@@ -979,6 +979,7 @@ typedef struct tagCsrRoamSession
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tCsrRoamOffloadSynchStruct roamOffloadSynchParams;
     tANI_U8 psk_pmk[SIR_ROAM_SCAN_PSK_SIZE];
+    size_t  pmk_len;
 #endif
 
     /* SME FT Context */

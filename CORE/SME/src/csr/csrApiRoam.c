@@ -12363,8 +12363,8 @@ static void csrRoamUpdateConnectedProfileFromNewBss( tpAniSirGlobal pMac, tANI_U
 }
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-eHalStatus csrRoamSetPSK_PMK (tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                                        tANI_U8 *pPSK_PMK)
+eHalStatus csrRoamSetPSK_PMK(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                             tANI_U8 *pPSK_PMK, size_t pmk_len)
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
     if (!pSession) {
@@ -12372,6 +12372,7 @@ eHalStatus csrRoamSetPSK_PMK (tpAniSirGlobal pMac, tANI_U32 sessionId,
         return eHAL_STATUS_FAILURE;
     }
     vos_mem_copy(pSession->psk_pmk, pPSK_PMK, sizeof(pSession->psk_pmk));
+    pSession->pmk_len = pmk_len;
     return eHAL_STATUS_SUCCESS;
 }
 #endif /* WLAN_FEATURE_ROAM_OFFLOAD */
@@ -16302,7 +16303,11 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
 void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
                                                    tCsrRoamSession *pSession)
 {
-        vos_mem_copy(pRequestBuf->PSK_PMK, pSession->psk_pmk, sizeof(pRequestBuf->PSK_PMK));
+        vos_mem_copy(pRequestBuf->PSK_PMK, pSession->psk_pmk,
+                     sizeof(pRequestBuf->PSK_PMK));
+        pRequestBuf->pmk_len = pSession->pmk_len;
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                  "LFR3: PMK Length = %d", pRequestBuf->pmk_len);
         pRequestBuf->R0KH_ID_Length = pSession->ftSmeContext.r0kh_id_len;
         vos_mem_copy(pRequestBuf->R0KH_ID, pSession->ftSmeContext.r0kh_id,
                      pRequestBuf->R0KH_ID_Length);

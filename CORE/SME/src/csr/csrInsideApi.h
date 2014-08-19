@@ -773,7 +773,8 @@ eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkid
  *\return eHalStatus - usually it succeed unless sessionId is not found
  *\Note:
  *-------------------------------------------------------------------------------*/
-eHalStatus csrRoamSetPSK_PMK (tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pPSK_PMK);
+eHalStatus csrRoamSetPSK_PMK(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                             tANI_U8 *pPSK_PMK, size_t pmk_len);
 #endif
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWpaRsnReqIE

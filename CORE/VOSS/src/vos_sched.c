@@ -545,48 +545,6 @@ VosMCThread
         }
         break;
       }
-      /*
-      ** Check the WDI queue
-      ** Service it till the entire queue is empty
-      */
-      if (!vos_is_mq_empty(&pSchedContext->wdiMcMq))
-      {
-        wpt_msg *pWdiMsg;
-        /*
-        ** Service the WDI message queue
-        */
-        VOS_TRACE(VOS_MODULE_ID_WDI, VOS_TRACE_LEVEL_INFO,
-                  ("Servicing the VOS MC WDI Message queue"));
-
-        pMsgWrapper = vos_mq_get(&pSchedContext->wdiMcMq);
-
-        if (pMsgWrapper == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: pMsgWrapper is NULL", __func__);
-           VOS_ASSERT(0);
-           break;
-        }
-
-        pWdiMsg = (wpt_msg *)pMsgWrapper->pVosMsg->bodyptr;
-
-        if(pWdiMsg == NULL || pWdiMsg->callback == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: WDI Msg or Callback is NULL", __func__);
-           VOS_ASSERT(0);
-           break;
-        }
-
-        pWdiMsg->callback(pWdiMsg);
-
-        /*
-        ** return message to the Core
-        */
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-
-        continue;
-      }
 
       // Check the SYS queue first
       if (!vos_is_mq_empty(&pSchedContext->sysMcMq))
@@ -1068,38 +1026,7 @@ static int VosTXThread ( void * Arg )
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
-      // Check the WDI queue
-      if (!vos_is_mq_empty(&pSchedContext->wdiTxMq))
-      {
-        wpt_msg *pWdiMsg;
 
-        pMsgWrapper = vos_mq_get(&pSchedContext->wdiTxMq);
-
-        if (pMsgWrapper == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: pMsgWrapper is NULL", __func__);
-           VOS_ASSERT(0);
-           break;
-        }
-
-        pWdiMsg = (wpt_msg *)pMsgWrapper->pVosMsg->bodyptr;
-
-        if(pWdiMsg == NULL || pWdiMsg->callback == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: WDI Msg or Callback is NULL", __func__);
-           VOS_ASSERT(0);
-           break;
-        }
-
-        pWdiMsg->callback(pWdiMsg);
-
-        // return message to the Core
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-
-        continue;
-      }
       /* Check for any Suspend Indication */
       if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
       {
@@ -1241,40 +1168,6 @@ static int VosRXThread ( void * Arg )
         }
         // return message to the Core
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-        continue;
-      }
-
-      // Check the WDI queue
-      if (!vos_is_mq_empty(&pSchedContext->wdiRxMq))
-      {
-        wpt_msg *pWdiMsg;
-
-        pMsgWrapper = vos_mq_get(&pSchedContext->wdiRxMq);
-        if ((NULL == pMsgWrapper) || (NULL == pMsgWrapper->pVosMsg))
-        {
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "%s: wdiRxMq message is NULL", __func__);
-          VOS_ASSERT(0);
-          // we won't return this wrapper since it is corrupt
-        }
-        else
-        {
-          pWdiMsg = (wpt_msg *)pMsgWrapper->pVosMsg->bodyptr;
-          if ((NULL == pWdiMsg) || (NULL == pWdiMsg->callback))
-          {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "%s: WDI Msg or callback is NULL", __func__);
-            VOS_ASSERT(0);
-          }
-          else
-          {
-            // invoke the message handler
-            pWdiMsg->callback(pWdiMsg);
-          }
-
-          // return message to the Core
-          vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-        }
         continue;
       }
 
@@ -1742,17 +1635,6 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the WDI MC Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->wdiMcMq);
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init WDI MC Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the TL Tx Message queue",__func__);
@@ -1761,28 +1643,6 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             "%s: Failed to init TL TX Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the WDI Tx Message queue",__func__);
-  vStatus = vos_mq_init(&pSchedContext->wdiTxMq);
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init WDI TX Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the WDI Rx Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->wdiRxMq);
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init WDI RX Message queue",__func__);
     VOS_ASSERT(0);
     return vStatus;
   }
@@ -1840,25 +1700,11 @@ void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s De-Initializing the SYS MC Message queue",__func__);
   vos_mq_deinit(&pSchedContext->sysMcMq);
-  // MC WDI
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s De-Initializing the WDI MC Message queue",__func__);
-  vos_mq_deinit(&pSchedContext->wdiMcMq);
 
   //Tx TL
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s De-Initializing the TL Tx Message queue",__func__);
   vos_mq_deinit(&pSchedContext->tlTxMq);
-  //Tx WDI
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: DeInitializing the WDI Tx Message queue",__func__);
-  vos_mq_deinit(&pSchedContext->wdiTxMq);
-
-
-  //Rx WDI
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: DeInitializing the WDI Rx Message queue",__func__);
-  vos_mq_deinit(&pSchedContext->wdiRxMq);
 
   //Tx SYS
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1920,25 +1766,6 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
     {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    "%s: Freeing MC WDA MSG message type %d",
-                   __func__, pMsgWrapper->pVosMsg->type );
-        if (pMsgWrapper->pVosMsg->bodyptr) {
-            vos_mem_free((v_VOID_t*)pMsgWrapper->pVosMsg->bodyptr);
-        }
-
-        pMsgWrapper->pVosMsg->bodyptr = NULL;
-        pMsgWrapper->pVosMsg->bodyval = 0;
-        pMsgWrapper->pVosMsg->type = 0;
-    }
-    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-  }
-
-  /* Flush the WDI Mq */
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->wdiMcMq) ))
-  {
-    if(pMsgWrapper->pVosMsg != NULL)
-    {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                   "%s: Freeing MC WDI MSG message type %d",
                    __func__, pMsgWrapper->pVosMsg->type );
         if (pMsgWrapper->pVosMsg->bodyptr) {
             vos_mem_free((v_VOID_t*)pMsgWrapper->pVosMsg->bodyptr);
@@ -2025,16 +1852,6 @@ void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
     WLANTL_TxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
-  /* Flush the WDI Mq */
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->wdiTxMq) ))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS,
-               VOS_TRACE_LEVEL_INFO,
-               "%s: Freeing TX WDI MSG message type %d",__func__,
-               pMsgWrapper->pVosMsg->type );
-    sysTxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
-    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-  }
 } /* vos_sched_flush_tx_mqs() */
 /*-------------------------------------------------------------------------
  This helper function flushes all the RX message queues
@@ -2056,15 +1873,6 @@ void vos_sched_flush_rx_mqs ( pVosSchedContext pSchedContext )
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: pSchedContext is NULL", __func__);
      return;
-  }
-
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->wdiRxMq) ))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS,
-               VOS_TRACE_LEVEL_INFO,
-               "%s: Freeing RX WDI MSG message type %d",__func__,
-               pMsgWrapper->pVosMsg->type );
-    sysTxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
   }
 
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sysRxMq) ))
