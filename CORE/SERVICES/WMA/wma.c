@@ -7412,6 +7412,7 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 						roam_offload_11r->r0kh_id_len);
 				vos_mem_copy (roam_offload_11r->psk_msk, roam_req->PSK_PMK,
 						       sizeof(roam_req->PSK_PMK));
+				roam_offload_11r->psk_msk_len = roam_req->pmk_len;
 				roam_offload_11r->mdie_present = roam_req->MDID.mdiePresent;
 				roam_offload_11r->mdid = roam_req->MDID.mobilityDomain;
 				WMITLV_SET_HDR(&roam_offload_11r->tlv_header,
@@ -7431,6 +7432,7 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(roam_offload_11i->flags);
 				vos_mem_copy (roam_offload_11i->pmk, roam_req->PSK_PMK,
                                              sizeof(roam_req->PSK_PMK));
+				roam_offload_11i->pmk_len = roam_req->pmk_len;
 				WMITLV_SET_HDR(&roam_offload_11i->tlv_header,
 				WMITLV_TAG_STRUC_wmi_roam_11i_offload_tlv_param,
 				WMITLV_GET_STRUCT_TLVLEN
