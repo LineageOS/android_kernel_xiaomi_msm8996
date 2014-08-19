@@ -1828,27 +1828,6 @@ VOS_STATUS sme_NeighborReportRequest (tHalHandle hHal, tANI_U8 sessionId,
                 tpRrmNeighborReq pRrmNeighborReq, tpRrmNeighborRspCallbackInfo callbackInfo);
 #endif
 
-//The following are debug APIs to support direct read/write register/memory
-//They are placed in SME because HW cannot be access when in LOW_POWER state
-//AND not connected. The knowledge and synchronization is done in SME
-
-//sme_DbgReadRegister
-//Caller needs to validate the input values
-VOS_STATUS sme_DbgReadRegister(tHalHandle hHal, v_U32_t regAddr, v_U32_t *pRegValue);
-
-//sme_DbgWriteRegister
-//Caller needs to validate the input values
-VOS_STATUS sme_DbgWriteRegister(tHalHandle hHal, v_U32_t regAddr, v_U32_t regValue);
-
-//sme_DbgReadMemory
-//Caller needs to validate the input values
-//pBuf caller allocated buffer has the length of nLen
-VOS_STATUS sme_DbgReadMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_U32_t nLen);
-
-//sme_DbgWriteMemory
-//Caller needs to validate the input values
-VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_U32_t nLen);
-
 VOS_STATUS sme_GetWcnssWlanCompiledVersion(tHalHandle hHal,
                                            tSirVersionType *pVersion);
 VOS_STATUS sme_GetWcnssWlanReportedVersion(tHalHandle hHal,

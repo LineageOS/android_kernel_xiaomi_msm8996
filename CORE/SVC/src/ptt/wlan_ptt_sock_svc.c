@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -49,23 +49,7 @@
 #endif
 // Global variables
 static struct hdd_context_s *pAdapterHandle;
-//Utility function to perform endianess swap
-static void ptt_sock_swap_32(void *pBuffer, unsigned int len)
-{
-    v_U32_t *pBuf32, data;
-    v_U8_t *pBuf8;
-    unsigned int i;
-    len &= ~(sizeof(v_U32_t)-1);
-    pBuf32 = (v_U32_t *) pBuffer;
-    pBuf8 = (v_U8_t *) pBuffer;
-    for (i = 0; i < len; i += 4, ++pBuf32, pBuf8 += 4) {
-        data = *pBuf32;
-        pBuf8[0] = (v_U8_t) ((data >> 24) & 0xff);
-        pBuf8[1] = (v_U8_t) ((data >> 16) & 0xff);
-        pBuf8[2] = (v_U8_t) ((data >> 8) & 0xff);
-        pBuf8[3] = (v_U8_t) ((data >> 0) & 0xff);
-    }
-}
+
 #ifdef PTT_SOCK_DEBUG_VERBOSE
 //Utility function to perform a hex dump
 static void ptt_sock_dump_buf(const unsigned char * pbuf, int cnt)
@@ -171,109 +155,6 @@ static void ptt_proc_pumac_msg(struct sk_buff * skb, tAniHdr *wmsg, int radio)
    }
 }
 /*
- * Process all the messages from the Quarky Client
- */
-static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
-{
-   u16 ani_msg_type = be16_to_cpu(wmsg->type);
-   v_U32_t reg_addr;
-   v_U32_t reg_val;
-   v_U32_t len_payload;
-   v_U8_t* buf;
-   unsigned int arg1, arg2, arg3, arg4, cmd;
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   if (radio < 0 || radio > ANI_MAX_RADIOS) {
-      PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: ANI Msg [0x%X] invalid radio id [%d]\n",
-         __func__, ani_msg_type, radio);
-      return;
-   }
-   if(ani_msg_type == ANI_MSG_APP_REG_REQ)
-   {
-      ptt_sock_proc_reg_req(wmsg, radio);
-   }
-   else
-   {
-      switch (ani_msg_type)
-      {
-         case PTT_MSG_READ_REGISTER:
-            reg_addr = *(v_U32_t*) ((char*)wmsg + 8);
-            PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: PTT_MSG_READ_REGISTER [0x%08X]\n",
-               __func__, reg_addr);
-            vosStatus = sme_DbgReadRegister(pAdapterHandle->hHal, reg_addr, &reg_val);
-            *(v_U32_t*) ((char*)wmsg + 12) = reg_val;
-            if(vosStatus != VOS_STATUS_SUCCESS)
-               PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Read Register [0x%08X] failed!!\n",
-               __func__, reg_addr);
-            ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
-            break;
-         case PTT_MSG_WRITE_REGISTER:
-            reg_addr = *(v_U32_t*) ((const unsigned char*)wmsg + 8);
-            reg_val = *(v_U32_t*)((const unsigned char*)wmsg + 12);
-            PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: PTT_MSG_WRITE_REGISTER Addr [0x%08X] value [0x%08X]\n",
-               __func__, reg_addr, reg_val);
-            vosStatus = sme_DbgWriteRegister(pAdapterHandle->hHal, reg_addr, reg_val);
-            if(vosStatus != VOS_STATUS_SUCCESS)
-            {
-               PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Write Register [0x%08X] value [0x%08X] failed!!\n",
-                  __func__, reg_addr, reg_val);
-            }
-            //send message to the app
-            ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
-            break;
-         case PTT_MSG_READ_MEMORY:
-            reg_addr = *(v_U32_t*) ((char*)wmsg + 8);
-            len_payload = *(v_U32_t*) ((char*)wmsg + 12);
-            PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: PTT_MSG_READ_MEMORY addr [0x%08X] bytes [0x%08X]\n",
-               __func__, reg_addr, len_payload);
-            buf = (v_U8_t*)wmsg + 16;
-            vosStatus = sme_DbgReadMemory(pAdapterHandle->hHal, reg_addr, buf, len_payload);
-            if(vosStatus != VOS_STATUS_SUCCESS) {
-               PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Memory read failed for [0x%08X]!!\n",
-                  __func__, reg_addr);
-            }
-            ptt_sock_swap_32(buf, len_payload);
-            //send message to the app
-            ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
-            break;
-         case PTT_MSG_WRITE_MEMORY:
-            reg_addr = *(v_U32_t*) ((char*)wmsg + 8);
-            len_payload = *(v_U32_t*) ((char*)wmsg + 12);
-            PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: PTT_MSG_DBG_WRITE_MEMORY addr [0x%08X] bytes [0x%08X]\n",
-               __func__, reg_addr, len_payload);
-            buf = (v_U8_t*)wmsg + 16;
-            ptt_sock_swap_32(buf, len_payload);
-            vosStatus = sme_DbgWriteMemory(pAdapterHandle->hHal, reg_addr, buf, len_payload);
-            if(vosStatus != VOS_STATUS_SUCCESS)
-            {
-               PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Memory write failed for addr [0x%08X]!!\n",
-                  __func__, reg_addr);
-            }
-            //send message to the app
-            ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
-            break;
-         case PTT_MSG_LOG_DUMP_DBG:
-            cmd = *(unsigned int *) ((char *)wmsg + 8);
-            arg1 = *(unsigned int *) ((char *)wmsg + 12);
-            arg2 = *(unsigned int *) ((char *)wmsg + 16);
-            arg3 = *(unsigned int *) ((char *)wmsg + 20);
-            arg4 = *(unsigned int *) ((char *)wmsg + 24);
-            PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: PTT_MSG_LOG_DUMP_DBG %d arg1 %d arg2 %d arg3 %d arg4 %d\n",
-               __func__, cmd, arg1, arg2, arg3, arg4);
-            //send message to the app
-            ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
-            break;
-         case PTT_MSG_FTM_CMDS_TYPE:
-            PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: unsupported FTM msg cmd [0x%X], length [0x%X]\n",
-               __func__, ani_msg_type, be16_to_cpu(wmsg->length ));
-            break;
-         default:
-            PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown ANI Msg [0x%X], length [0x%X]\n",
-               __func__, ani_msg_type, be16_to_cpu(wmsg->length ));
-            break;
-      }
-   }
-}
-/*
  * Process all the Netlink messages from PTT Socket app in user space
  */
 static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
@@ -289,11 +170,6 @@ static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
          PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PUMAC Msg [0x%X]\n",
             __func__, type);
          ptt_proc_pumac_msg(skb, &wnl->wmsg, radio);
-         break;
-      case ANI_NL_MSG_PTT: //Message from Quarky GUI
-         PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PTT Msg [0x%X]\n",
-            __func__, type);
-         ptt_proc_quarky_msg(wnl, &wnl->wmsg, radio);
          break;
       default:
          PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown NL Msg [0x%X]\n",__func__, type);
