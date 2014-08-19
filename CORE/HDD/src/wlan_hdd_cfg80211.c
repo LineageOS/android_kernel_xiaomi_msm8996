@@ -4066,13 +4066,6 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
         return -EINVAL;
     }
 
-    if (params->tail && !params->tail_len)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   FL("tail_len is zero but tail is not NULL"));
-        return -EINVAL;
-    }
-
     if(params->head)
         head_len = params->head_len;
     else
