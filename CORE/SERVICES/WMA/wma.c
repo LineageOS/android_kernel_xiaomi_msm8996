@@ -22096,20 +22096,28 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 {
 	tSirSmeHOFailureInd *ho_failure_ind;
+	vos_msg_t sme_msg = {0};
+        VOS_STATUS vos_status;
 
-	ho_failure_ind = (tSirSmeHOFailureInd *) vos_mem_malloc
-		                             (sizeof(tSirSmeHOFailureInd));
+	ho_failure_ind = vos_mem_malloc(sizeof(tSirSmeHOFailureInd));
 
 	if (NULL == ho_failure_ind) {
 		WMA_LOGE("%s: Memory allocation failure", __func__);
 		return;
 	}
-	ho_failure_ind->messageType = WDA_HO_FAIL_IND;
-	ho_failure_ind->length = sizeof(tSirSmeHOFailureInd);
 	ho_failure_ind->sessionId = vdev_id;
 
-	wma_send_msg(wma, WDA_HO_FAIL_IND,
-		         (void *)ho_failure_ind, 0);
+	sme_msg.type = eWNI_SME_HO_FAIL_IND;
+	sme_msg.bodyptr = ho_failure_ind;
+	sme_msg.bodyval = 0;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGE("Fail to post eWNI_SME_HO_FAIL_IND msg to SME");
+		vos_mem_free(ho_failure_ind);
+		return;
+	}
+	return;
 }
 
 /* function   : wma_roam_better_ap_handler

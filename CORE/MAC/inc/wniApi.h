@@ -388,6 +388,7 @@ enum eWniMsgTypes
                                           from SME to PE*/
     eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP,/* Roam Synch Indication Rsp
                                          from PE toSME */
+    eWNI_SME_HO_FAIL_IND, /* Hand Off Failure Ind from WMA to SME */
 #endif
 #ifdef WLAN_FEATURE_NAN
     eWNI_SME_NAN_EVENT,
