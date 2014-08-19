@@ -51,30 +51,6 @@
 #ifndef MK_IMAGE_HDR
 
 //
-// Validate the Bus type being built....
-//
-#if defined(ANI_BUS_TYPE_PCI)
-
-#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_PLATFORM )
-#error "more than one ANI_BUS_TYPE_xxx is defined for this build"
-#endif //
-
-#elif defined( ANI_BUS_TYPE_PCIe )
-
-#if defined( ANI_BUS_TYPE_PCI ) || defined( ANI_BUS_TYPE_PLATFORM )
-#error "more than one ANI_BUS_TYPE_xxx is defined for this build"
-#endif
-
-#elif defined( ANI_BUS_TYPE_PLATFORM )
-
-#if defined( ANI_BUS_TYPE_PCIe ) || defined(ANI_BUS_TYPE_PCI)
-#error "more than one ANI_BUS_TYPE_xxx is defined for this build"
-#endif
-
-#endif
-
-
-//
 // Validate the OS Type being built...
 //
 

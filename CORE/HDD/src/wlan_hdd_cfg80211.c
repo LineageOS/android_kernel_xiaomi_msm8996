@@ -86,6 +86,7 @@
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
+#include "vos_utils.h"
 #ifdef WLAN_BTAMP_FEATURE
 #include "bap_hdd_misc.h"
 #endif
@@ -1653,7 +1654,8 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
     struct nlattr *channels;
     int rem1, rem2;
     eHalStatus status;
-    tANI_U8 bktIndex, i, j;
+    tANI_U8 bktIndex, i, j, numChannels;
+    tANI_U32 chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
 
     ENTER();
 
@@ -1781,6 +1783,50 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
                bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]);
         hddLog(VOS_TRACE_LEVEL_INFO, FL("report events (%d)"),
                            pReqMsg->buckets[bktIndex].reportEvents);
+
+        /* Framework shall pass the channel list if the input WiFi band is
+         * WIFI_BAND_UNSPECIFIED.
+         * If the input WiFi band is specified (any value other than
+         * WIFI_BAND_UNSPECIFIED) then driver populates the channel list */
+        if (pReqMsg->buckets[bktIndex].band != WIFI_BAND_UNSPECIFIED) {
+            numChannels = 0;
+            hddLog(LOG1, "WiFi band is specified, driver to fill channel list");
+            status = sme_GetValidChannelsByBand(pHddCtx->hHal,
+                                       pReqMsg->buckets[bktIndex].band,
+                                       chanList, &numChannels);
+            if (!HAL_STATUS_SUCCESS(status)) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                   FL("sme_GetValidChannelsByBand failed (err=%d)"), status);
+                goto fail;
+            }
+
+            pReqMsg->buckets[bktIndex].numChannels =
+                                VOS_MIN(numChannels, WLAN_EXTSCAN_MAX_CHANNELS);
+            hddLog(LOG1, FL("Num channels (%d)"),
+                         pReqMsg->buckets[bktIndex].numChannels);
+
+            for (j = 0; j < pReqMsg->buckets[bktIndex].numChannels; j++) {
+                pReqMsg->buckets[bktIndex].channels[j].channel = chanList[j];
+                pReqMsg->buckets[bktIndex].channels[j].chnlClass = 0;
+                if (CSR_IS_CHANNEL_DFS(vos_freq_to_chan(chanList[j]))) {
+                    pReqMsg->buckets[bktIndex].channels[j].passive = 1;
+                    pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
+                                           CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+                } else {
+                    pReqMsg->buckets[bktIndex].channels[j].passive = 0;
+                    pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
+                                           CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+                }
+
+                hddLog(LOG1,
+                       "Channel(%u) Passive(%u) Dwell time(%u ms) Class(%u)",
+                       pReqMsg->buckets[bktIndex].channels[j].channel,
+                       pReqMsg->buckets[bktIndex].channels[j].passive,
+                       pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs,
+                       pReqMsg->buckets[bktIndex].channels[j].chnlClass);
+            }
+            continue;
+        }
 
         /* Parse and fetch number of channels */
         if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]) {
@@ -13790,7 +13836,7 @@ static void wlan_hdd_cfg80211_extscan_stop_rsp(void *ctx, void *pMsg)
                   FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
+    hddLog(LOG1, "Req Id (%u) Status (%u)", pData->requestId, pData->status);
 
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                          pData->requestId) ||

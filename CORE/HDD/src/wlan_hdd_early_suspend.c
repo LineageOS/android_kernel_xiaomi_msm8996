@@ -1951,9 +1951,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    v_CONTEXT_t      pVosContext = NULL;
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
-#ifdef HAVE_WCNSS_CAL_DOWNLOAD
-   int              max_retries = 0;
-#endif
 #ifdef WLAN_BTAMP_FEATURE
    hdd_config_t     *pConfig = NULL;
    WLANBAP_ConfigType btAmpConfig;
@@ -2004,23 +2001,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
 
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);
-
-
-   /* Try to get an adapter from mode ID */
-   pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
-   if (!pAdapter)
-   {
-      pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
-      if (!pAdapter)
-      {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: Failed to get Adapter!", __func__);
-         goto err_re_init;
-      }
-   }
-
-   /* Get WLAN HW/FW version */
-   hdd_wlan_get_version(pAdapter, NULL, NULL);
 
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
    vosStatus = vos_open(&pVosContext, 0);
@@ -2118,6 +2098,26 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosstop;
    }
 
+   /* Try to get an adapter from mode ID */
+   pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+   if (!pAdapter) {
+      pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+      if (!pAdapter) {
+        pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_IBSS);
+        if (!pAdapter) {
+           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to get Adapter!",
+                  __func__);
+        }
+     }
+   }
+
+   /* Get WLAN Host/FW/HW version */
+   if (pAdapter)
+      hdd_wlan_get_version(pAdapter, NULL, NULL);
+
+   /* Pass FW version to HIF layer */
+   hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
+
 #ifdef WLAN_BTAMP_FEATURE
    vosStatus = WLANBAP_Open(pVosContext);
    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -2147,46 +2147,48 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
 
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
-   /* reconfigure f/w logs after ssr */
-   if (pHddCtx->fw_log_settings.enable != 0) {
-       process_wma_set_command(pAdapter->sessionId,
-                               WMI_DBGLOG_MODULE_ENABLE,
-                               pHddCtx->fw_log_settings.enable , DBG_CMD);
-   } else {
-       process_wma_set_command(pAdapter->sessionId,
-                                WMI_DBGLOG_MODULE_DISABLE,
-                                pHddCtx->fw_log_settings.enable, DBG_CMD);
+
+   /* Reconfigure FW logs after SSR */
+   if (pAdapter) {
+      if (pHddCtx->fw_log_settings.enable != 0) {
+         process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_MODULE_ENABLE,
+                                 pHddCtx->fw_log_settings.enable , DBG_CMD);
+      } else {
+         process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_MODULE_DISABLE,
+                                 pHddCtx->fw_log_settings.enable, DBG_CMD);
+      }
+
+      if (pHddCtx->fw_log_settings.dl_report != 0) {
+         process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_REPORT_ENABLE,
+                                 pHddCtx->fw_log_settings.dl_report, DBG_CMD);
+
+         process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_TYPE,
+                                 pHddCtx->fw_log_settings.dl_type, DBG_CMD);
+
+         process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_LOG_LEVEL,
+                                 pHddCtx->fw_log_settings.dl_loglevel, DBG_CMD);
+
+         for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
+            if (pHddCtx->fw_log_settings.dl_mod_loglevel[i] != 0) {
+               process_wma_set_command(pAdapter->sessionId,
+                                 WMI_DBGLOG_MOD_LOG_LEVEL,
+                                 pHddCtx->fw_log_settings.dl_mod_loglevel[i],
+                                 DBG_CMD);
+            }
+         }
+      }
    }
-   if (pHddCtx->fw_log_settings.dl_report != 0) {
 
-       process_wma_set_command(pAdapter->sessionId,
-                         WMI_DBGLOG_REPORT_ENABLE,
-                         pHddCtx->fw_log_settings.dl_report, DBG_CMD);
-
-       process_wma_set_command(pAdapter->sessionId,
-                               WMI_DBGLOG_TYPE,
-                               pHddCtx->fw_log_settings.dl_type, DBG_CMD);
-
-       process_wma_set_command(pAdapter->sessionId,
-                              WMI_DBGLOG_LOG_LEVEL,
-                              pHddCtx->fw_log_settings.dl_loglevel, DBG_CMD);
-
-       for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
-           if (pHddCtx->fw_log_settings.dl_mod_loglevel[i] != 0) {
-                process_wma_set_command(pAdapter->sessionId,
-                                  WMI_DBGLOG_MOD_LOG_LEVEL,
-                                  pHddCtx->fw_log_settings.dl_mod_loglevel[i],
-                                  DBG_CMD);
-           }
-       }
-   }
-   /* end of f/w log config after ssr */
    pHddCtx->isLogpInProgress = FALSE;
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    hdd_register_mcast_bcast_filter(pHddCtx);
    hdd_ssr_timer_del();
-
 
    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_FW_CRASHED_IND, NULL, 0);
 

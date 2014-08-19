@@ -72,6 +72,7 @@
 #ifdef WLAN_FEATURE_NAN
 #include "nan_Api.h"
 #endif
+#include "regdomain_common.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -10937,6 +10938,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     tANI_U8 num;
     tANI_U8 chanId;
     tANI_U8 i;
+    tANI_U8 preOffChanOffset;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
@@ -11032,6 +11034,19 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
            peerStateParams->peerCap.prefOffChanNum;
        pTdlsPeerStateParams->peerCap.prefOffChanBandwidth =
            peerStateParams->peerCap.prefOffChanBandwidth;
+
+       /* Ideally better to get offset from ini or userspace, for now
+        * in case of 40MHz, assume lower primary
+        */
+       if (pTdlsPeerStateParams->peerCap.prefOffChanBandwidth == 20)
+           preOffChanOffset = BW20;
+       else
+           preOffChanOffset = BW40_LOW_PRIMARY;
+
+       pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+           regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                           pTdlsPeerStateParams->peerCap.prefOffChanNum,
+                           preOffChanOffset);
 
        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
        vosMessage.reserved = 0;
