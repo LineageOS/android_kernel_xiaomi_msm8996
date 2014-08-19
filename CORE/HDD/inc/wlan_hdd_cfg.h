@@ -1404,7 +1404,7 @@ typedef enum
 #define CFG_BAND_CAPABILITY_NAME          "BandCapability"
 #define CFG_BAND_CAPABILITY_MIN           (0)
 #define CFG_BAND_CAPABILITY_MAX           (2)
-#define CFG_BAND_CAPABILITY_DEFAULT       (1)
+#define CFG_BAND_CAPABILITY_DEFAULT       (0)
 
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_NAME          "enableBeaconEarlyTermination"
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_MIN           ( 0 )
