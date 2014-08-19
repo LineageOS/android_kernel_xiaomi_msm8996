@@ -2011,26 +2011,16 @@ static void wma_post_link_status(tAniGetLinkStatus *pGetLinkStatus,
 	}
 }
 
-static int wma_link_status_event_handler(void *handle, u_int8_t *cmd_param_info,
-				   u_int32_t len)
+static int wma_link_status_rsp(tp_wma_handle wma, u_int8_t *buf)
 {
-	WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *param_buf;
 	wmi_vdev_rate_stats_event_fixed_param *event;
 	wmi_vdev_rate_ht_info *ht_info;
-	tp_wma_handle wma = (tp_wma_handle)handle;
 	struct wma_txrx_node *intr = wma->interfaces;
 	u_int8_t link_status = LINK_STATUS_LEGACY;
 	int i;
 
-	param_buf =
-		(WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
-	if (!param_buf) {
-		WMA_LOGA("%s: Invalid stats event", __func__);
-		return -1;
-	}
-
-	event = param_buf->fixed_param;
-	ht_info = param_buf->ht_info;
+	event = (wmi_vdev_rate_stats_event_fixed_param *)buf;
+	ht_info = (wmi_vdev_rate_ht_info *)(buf + sizeof(*event));
 
 	WMA_LOGD("num_vdev_stats: %d", event->num_vdev_stats);
 	for (i = 0; (i < event->num_vdev_stats) && ht_info; i++) {
@@ -2063,6 +2053,54 @@ static int wma_link_status_event_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+static int wma_link_status_event_handler(void *handle, u_int8_t *cmd_param_info,
+				   u_int32_t len)
+{
+	WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_rate_stats_event_fixed_param *event;
+	vos_msg_t vos_msg = {0};
+	u_int32_t buf_size;
+	u_int8_t *buf;
+
+	param_buf =
+		(WMI_UPDATE_VDEV_RATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGA("%s: Invalid stats event", __func__);
+		return -EINVAL;
+	}
+
+	event = param_buf->fixed_param;
+	buf_size = sizeof(wmi_vdev_rate_stats_event_fixed_param) +
+			sizeof(wmi_vdev_rate_ht_info) * event->num_vdev_stats;
+	buf = vos_mem_malloc(buf_size);
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -ENOMEM;
+	}
+
+	vos_mem_zero(buf, buf_size);
+	vos_mem_copy(buf, param_buf->fixed_param,
+			sizeof(wmi_vdev_rate_stats_event_fixed_param));
+	vos_mem_copy((buf + sizeof(wmi_vdev_rate_stats_event_fixed_param)),
+			param_buf->ht_info,
+			sizeof(wmi_vdev_rate_ht_info) * event->num_vdev_stats);
+
+	vos_msg.type = WDA_GET_LINK_STATUS_RSP_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_GET_LINK_STATUS_RSP_IND msg",
+				__func__);
+		vos_mem_free(buf);
+		return -1;
+	}
+	WMA_LOGD("posted WDA_GET_LINK_STATUS_RSP_IND");
+
+	return 0;
+}
+
 static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 				   u_int32_t len)
 {
@@ -2075,7 +2113,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
 	if (!param_buf) {
 		WMA_LOGA("%s: Invalid stats event", __func__);
-		return -1;
+		return -EINVAL;
 	}
 	event = param_buf->fixed_param;
 	buf_size = sizeof(*event) +
@@ -2085,7 +2123,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	buf = vos_mem_malloc(buf_size);
 	if (!buf) {
 		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
-		return -1;
+		return -ENOMEM;
 	}
 	vos_mem_zero(buf, buf_size);
 	vos_mem_copy(buf, event, sizeof(*event));
@@ -21747,6 +21785,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_LINK_STATUS_GET_REQ:
 			wma_process_link_status_req(wma_handle,
 				(tAniGetLinkStatus *)msg->bodyptr);
+			break;
+		case WDA_GET_LINK_STATUS_RSP_IND:
+			wma_link_status_rsp(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

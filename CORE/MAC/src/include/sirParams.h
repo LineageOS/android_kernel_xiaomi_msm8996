@@ -637,6 +637,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_UNIT_TEST_CMD              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 283)
 
 #define SIR_HAL_LINK_STATUS_GET_REQ        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 285)
+#define SIR_HAL_GET_LINK_STATUS_RSP_IND    (SIR_HAL_ITC_MSG_TYPES_BEGIN + 286)
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types
