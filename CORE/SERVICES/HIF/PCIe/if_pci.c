@@ -1697,6 +1697,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 #endif
 
     A_FREE(scn);
+    A_FREE(sc->hif_device);
     A_FREE(sc);
     pci_set_drvdata(pdev, NULL);
     pci_iounmap(pdev, mem);
