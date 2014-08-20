@@ -667,7 +667,8 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
                   tANI_U8 *eids, tANI_U8 numEids,
                   tpSirBssDescription pBssDesc )
 {
-   tANI_U8 len, *pBcnIes, BcnNumIes, count = 0, i;
+   tANI_U8 len, *pBcnIes, count = 0, i;
+   tANI_S8 BcnNumIes;
 
    if( (pIes == NULL) || (pNumIes == NULL) || (pBssDesc == NULL) )
    {
@@ -679,7 +680,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
    numEids = (eids == NULL) ? 0 : numEids;
 
    pBcnIes = (tANI_U8*) &pBssDesc->ieFields[0];
-   BcnNumIes = (tANI_U8)GET_IE_LEN_IN_BSS( pBssDesc->length );
+   BcnNumIes = (tANI_S8)GET_IE_LEN_IN_BSS( pBssDesc->length );
 
    *pNumIes = 0;
 
