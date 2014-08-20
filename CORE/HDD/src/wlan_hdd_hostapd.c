@@ -2657,6 +2657,13 @@ static iw_softap_setparam(struct net_device *dev,
                 return ret;
             }
 #endif /* IPA_UC_OFFLOAD */
+        case QCASAP_SET_PHYMODE:
+            {
+                hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+
+                ret = wlan_hdd_update_phymode(dev, hHal, set_value, phddctx);
+                break;
+            }
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -4723,6 +4730,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "set_nss" },
 
+    {   QCASAP_SET_PHYMODE,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setphymode" },
+
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
   { QCSAP_IOCTL_GETPARAM, 0,
@@ -4869,6 +4881,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "setTrafficMon" },
+
 };
 
 static const iw_handler hostapd_private[] = {

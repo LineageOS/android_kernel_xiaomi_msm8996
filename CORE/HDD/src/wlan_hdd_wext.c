@@ -4303,7 +4303,7 @@ int process_wma_set_command(int sessid, int paramid,
     return ret;
 }
 
-static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
+int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx)
 {
@@ -4456,6 +4456,28 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
          }
          break;
 #endif
+    case IEEE80211_MODE_2G_AUTO:
+         sme_SetPhyMode(hal, eCSR_DOT11_MODE_AUTO);
+         if ((hdd_setBand(net, WLAN_HDD_UI_BAND_2_4_GHZ) == 0)) {
+             phymode = eCSR_DOT11_MODE_AUTO;
+             chwidth = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
+             curr_band = eCSR_BAND_24;
+         } else {
+             sme_SetPhyMode(hal, old_phymode);
+             return -EIO;
+         }
+         break;
+    case IEEE80211_MODE_5G_AUTO:
+         sme_SetPhyMode(hal, eCSR_DOT11_MODE_AUTO);
+         if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
+             phymode = eCSR_DOT11_MODE_AUTO;
+             chwidth = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
+             curr_band = eCSR_BAND_5G;
+         } else {
+             sme_SetPhyMode(hal, old_phymode);
+             return -EIO;
+         }
+         break;
     default:
          return -EIO;
     }
