@@ -1741,4 +1741,13 @@ typedef void (*csrReadyToSuspendCallback)(void *pContext, boolean suspended);
 eHalStatus csrRoamIssueFTRoamOffloadSynch(tHalHandle hHal, tANI_U32 sessionId,
                                           tSirBssDescription *pBssDescription);
 #endif
+
+/*---------------------------------------------------------------------------
+  Callback to be registered with SME for getting link status
+  \param status - link stats req result status
+  \param pContext - any user data given at callback registration.
+  \return None
+
+---------------------------------------------------------------------------*/
+typedef void (*tCsrLinkStatusCallback)(v_U8_t status, void *pContext);
 #endif

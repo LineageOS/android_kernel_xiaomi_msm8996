@@ -80,10 +80,6 @@
 #include "vos_packet.h"
 #include "vos_memory.h"
 
-#ifdef QCA_WIFI_ISOC
-/* This value corresponds to 500 ms */
-#define MAX_PROBEREQ_TIME 5000
-#endif
 void limLogSessionStates(tpAniSirGlobal pMac);
 
 /** -------------------------------------------------------------
@@ -965,72 +961,19 @@ void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tA
 void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
     tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
-#ifndef QCA_WIFI_2_0
-    tpStartOemDataRsp oemDataRsp = NULL;
-#endif
 
     //Process all the messages for the lim queue
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
-#ifndef QCA_WIFI_2_0
-    oemDataRsp = (tpStartOemDataRsp)(body);
-
-    mlmOemDataRsp = vos_mem_malloc(sizeof(tLimMlmOemDataRsp));
-    if ( NULL == mlmOemDataRsp )
-    {
-        limLog(pMac, LOGP, FL("could not allocate memory for mlmOemDataRsp"));
-        return;
-    }
-
-    //copy the memory into tLimMlmOemDataRsp and free the tStartOemDataRsp
-    //the structures tStartOemDataRsp and tLimMlmOemDataRsp have the same structure
-    vos_mem_copy((void*)(mlmOemDataRsp), (void*)(oemDataRsp),
-                  sizeof(tLimMlmOemDataRsp));
-
-    //Now free the incoming memory
-    vos_mem_free(oemDataRsp);
-
-    limResumeLink(pMac, limOemDataRspHandleResumeLinkRsp, (tANI_U32*)mlmOemDataRsp);
-#else
     mlmOemDataRsp = (tpLimMlmOemDataRsp) body;
 
     PELOG1(limLog(pMac, LOG1, FL("%s: sending oem data response msg to sme"),
                   __func__);)
     limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)(mlmOemDataRsp));
-#endif
 
     return;
 }
 
-#endif
-#ifdef QCA_WIFI_ISOC
-static tANI_BOOLEAN limAgeOutProbeReq( tpAniSirGlobal pMac, tpSirMsgQ  limMsg,
-                                       vos_pkt_t  *pVosPkt )
-{
-    tANI_U8    *pRxPacketInfo = NULL;
-    tSirMacFrameCtl  fc;
-    tpSirMacMgmtHdr    pHdr=NULL;
-    tANI_BOOLEAN match = VOS_FALSE;
-
-    limGetBDfromRxPacket(pMac, limMsg->bodyptr, (tANI_U32 **)&pRxPacketInfo);
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    fc = pHdr->fc;
-    if ( fc.subType == SIR_MAC_MGMT_PROBE_REQ )
-    {
-        if(  vos_timer_get_system_ticks() - pVosPkt->pkt_meta.timestamp >= MAX_PROBEREQ_TIME )
-        {
-            // drop packet
-           limLog(pMac, LOGE,
-           FL("Dropping Aged Out probe requests. Peer MAC is "MAC_ADDRESS_STR),
-                MAC_ADDR_ARRAY(pHdr->sa));
-
-            vos_pkt_return_packet(pVosPkt);
-            match = VOS_TRUE;
-        }
-    }
-
-    return match;
-}
 #endif
 
 /**
@@ -1195,18 +1138,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     break;
 
                 }
-#ifdef QCA_WIFI_ISOC
-                /*
-                * putting a check for age out probe request frames
-                * such that any probe req more than 0.5 sec old can directly
-                * be dropped. With this, there won't be blocking of MC thread.
-                */
-
-                if( limAgeOutProbeReq ( pMac, &limMsgNew, pVosPkt ))
-                {
-                   break;
-                }
-#endif
                 limHandle80211Frames(pMac, &limMsgNew, &deferMsg);
 
                 if ( deferMsg == true )
@@ -1734,7 +1665,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
 
 #ifdef FEATURE_WLAN_TDLS
-#ifdef QCA_WIFI_2_0
         case SIR_HAL_TDLS_SHOULD_DISCOVER:
         case SIR_HAL_TDLS_SHOULD_TEARDOWN:
         case SIR_HAL_TDLS_PEER_DISCONNECTED:
@@ -1744,7 +1674,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limSendSmeTdlsEventNotify(pMac, limMsg->type,
                                       (void *)limMsg->bodyptr);
             break;
-#endif
 #endif
 
         case WDA_ADD_BSS_RSP:

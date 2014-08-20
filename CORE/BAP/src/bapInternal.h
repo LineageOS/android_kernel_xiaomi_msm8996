@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -653,40 +653,6 @@ WLANBAP_STAFetchPktCB
   WLANTL_MetaInfoType*  tlMetaInfo
 );
 
-#ifndef QCA_WIFI_2_0
-/*----------------------------------------------------------------------------
-
-  FUNCTION    WLANBAP_STARxCB
-
-  DESCRIPTION
-    The receive callback registered with TL.
-
-    TL will call this to notify the client when a packet was received
-    for a registered STA.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL's or HDD's control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was received
-                    (it may be a linked list)
-    ucSTAId:        station id
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-VOS_STATUS
-WLANBAP_STARxCB
-(
-  v_PVOID_t              pvosGCtx,
-  vos_pkt_t*             vosDataBuff,
-  v_U8_t                 ucSTAId,
-  WLANTL_RxMetaInfoType* pRxMetaInfo
-);
-#else
 
 /*----------------------------------------------------------------------------
 
@@ -712,7 +678,6 @@ WLANBAP_STARxCB
 ----------------------------------------------------------------------------*/
 VOS_STATUS
 WLANBAP_STARxCB(v_PVOID_t pvosGCtx, adf_nbuf_t rxBufChain, v_U8_t ucSTAId);
-#endif
 
 /*----------------------------------------------------------------------------
 

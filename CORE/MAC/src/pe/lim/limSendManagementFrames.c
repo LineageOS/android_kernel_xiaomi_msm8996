@@ -216,7 +216,6 @@ void limMergeExtCapIEStruct(tDot11fIEExtCap *pDst,
     }
 }
 
-#ifdef QCA_WIFI_2_0
 /**
  *
  * \brief This function is called to add the sequence number to the
@@ -280,7 +279,6 @@ limPopulateP2pMacHeader(tpAniSirGlobal pMac, tANI_U8* pBD)
             pMacHdr->seqControl.seqNumHi,
             pMac->mgmtSeqNum);
 }
-#endif /* QCA_WIFI_2_0 */
 
 /**
  *
@@ -337,14 +335,12 @@ tSirRetStatus limPopulateMacHeader( tpAniSirGlobal pMac,
                    (tANI_U8 *) peerAddr,
                    sizeof( tSirMacAddr ));
 
-#ifdef QCA_WIFI_2_0
     /* Prepare sequence number */
     limAddMgmtSeqNum(pMac, pMacHdr);
     limLog(pMac, LOG1,"seqNumLo=%d, seqNumHi=%d, mgmtSeqNum=%d",
             pMacHdr->seqControl.seqNumLo,
             pMacHdr->seqControl.seqNumHi,
             pMac->mgmtSeqNum);
-#endif /* QCA_WIFI_2_0 */
 
     return statusCode;
 } /*** end limPopulateMacHeader() ***/

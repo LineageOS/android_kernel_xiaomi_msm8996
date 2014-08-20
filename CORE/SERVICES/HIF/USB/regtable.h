@@ -783,7 +783,6 @@ typedef struct hostdef_s {
 	(((x) << SOC_RESET_CONTROL_COLD_RST_LSB) & \
 	 SOC_RESET_CONTROL_COLD_RST_MASK)
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 
 #define AR6320_CORE_CLK_DIV_ADDR	0x403fa8
 #define AR6320_CPU_PLL_INIT_DONE_ADDR	0x403fd0
@@ -832,7 +831,6 @@ struct cmnos_clock_s {
 	u_int32_t         pll_settling_time; /* 50us */
 	struct wlan_pll_s   wlan_pll;
 };
-#endif
 
 typedef struct TGT_REG_SECTION {
 	u_int32_t start_addr;

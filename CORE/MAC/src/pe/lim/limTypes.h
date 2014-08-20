@@ -656,9 +656,7 @@ void limProcessDeauthFrame(tpAniSirGlobal, tANI_U8 *,tpPESession);
 void limProcessActionFrame(tpAniSirGlobal, tANI_U8 *,tpPESession);
 void limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxMetaInfo);
 
-#ifdef QCA_WIFI_2_0
 void limPopulateP2pMacHeader(tpAniSirGlobal, tANI_U8*);
-#endif /* QCA_WIFI_2_0 */
 tSirRetStatus limPopulateMacHeader(tpAniSirGlobal, tANI_U8*, tANI_U8, tANI_U8, tSirMacAddr,tSirMacAddr);
 tSirRetStatus limSendProbeReqMgmtFrame(tpAniSirGlobal, tSirMacSSid *, tSirMacAddr, tANI_U8, tSirMacAddr, tANI_U32, tANI_U32, tANI_U8 *);
 void limSendProbeRspMgmtFrame(tpAniSirGlobal, tSirMacAddr, tpAniSSID, short, tANI_U8, tpPESession, tANI_U8);
@@ -1015,10 +1013,8 @@ limGetIElenFromBssDescription(tpSirBssDescription pBssDescr)
 void
 limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
-#ifdef QCA_WIFI_2_0
 void
 limSendVdevRestart(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 sessionId);
-#endif /* QCA_WIFI_2_0 */
 
 void limGetWPSPBCSessions(tpAniSirGlobal pMac, tANI_U8 *addr, tANI_U8 *uuid_e, eWPSPBCOverlap *overlap, tpPESession psessionEntry);
 void limWPSPBCTimeout(tpAniSirGlobal pMac, tpPESession psessionEntry);

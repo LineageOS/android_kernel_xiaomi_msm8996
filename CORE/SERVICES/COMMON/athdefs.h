@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -82,6 +82,7 @@ ter (typically in callback) */
     A_PHY_ERROR,                /* RX PHY error */
     A_CONSUMED,                 /* Object was consumed */
     A_CLONE,                    /* The buffer is cloned */
+    A_USB_ERROR,                /* Rome USB Target error */
 } A_STATUS;
 
 #define A_SUCCESS(x)        (x == A_OK)

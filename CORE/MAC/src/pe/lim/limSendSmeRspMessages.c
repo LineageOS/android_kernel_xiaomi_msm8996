@@ -1738,7 +1738,6 @@ limSendSmeMgmtTXCompletion(tpAniSirGlobal pMac,
     return;
 }/*** end limSendSmeTDLSDeleteAllPeerInd() ***/
 
-#ifdef QCA_WIFI_2_0
 void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
                                void *events)
 {
@@ -1762,7 +1761,6 @@ void limSendSmeTdlsEventNotify(tpAniSirGlobal pMac, tANI_U16 msgType,
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
     return;
 }
-#endif /* QCA_WIFI_2_0 */
 #endif /* FEATURE_WLAN_TDLS */
 
 

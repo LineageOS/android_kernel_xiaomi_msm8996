@@ -485,7 +485,6 @@ int hifWaitForPendingRecv(HIF_DEVICE *device);
 #define DIAG_TRANSFER_LIMIT 2048U /* maximum number of bytes that can be
                                     handled atomically by DiagRead/DiagWrite */
 
-#if !defined(QCA_WIFI_ISOC)
     /* API to handle HIF-specific BMI message exchanges, this API is synchronous
      * and only allowed to be called from a context that can block (sleep) */
 int HIFExchangeBMIMsg(HIF_DEVICE *device,
@@ -522,12 +521,6 @@ int HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int 
      */
 int HIFDiagWriteAccess(HIF_DEVICE *hifDevice, A_UINT32 address, A_UINT32 data);
 int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbytes);
-#else
-inline int HIFDiagReadAccess(HIF_DEVICE *hifDevice, A_UINT32 address, A_UINT32 *data) {return A_OK;};
-inline int HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbytes) {return A_OK;};
-inline int HIFDiagWriteAccess(HIF_DEVICE *hifDevice, A_UINT32 address, A_UINT32 data) {return A_OK;};
-inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbytes) {return A_OK;};
-#endif
 #if defined(HIF_PCI) && ! defined(A_SIMOS_DEVHOST)
 /*
  * This API allows the Host to access Target registers of a given

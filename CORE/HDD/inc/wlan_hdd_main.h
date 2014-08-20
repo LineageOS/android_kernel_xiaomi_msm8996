@@ -102,6 +102,7 @@
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
 #define WLAN_WAIT_TIME_COUNTRY     1000
+#define WLAN_WAIT_TIME_LINK_STATUS 800
 /* Amount of time to wait for sme close session callback.
    This value should be larger than the timeout used by WDI to wait for
    a response from WCNSS */
@@ -282,6 +283,7 @@ extern spinlock_t hdd_context_lock;
 #define POWER_CONTEXT_MAGIC 0x504F5752   //POWR
 #define SNR_CONTEXT_MAGIC   0x534E5200   //SNR
 #define LINK_CONTEXT_MAGIC  0x4C494E4B   //LINKSPEED
+#define LINK_STATUS_MAGIC   0x4C4B5354   //LINKSTATUS(LNST)
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 #define HDD_BATCH_SCAN_VERSION (17)
@@ -1103,6 +1105,7 @@ struct hdd_adapter_s
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
    v_BOOL_t isLinkLayerStatsSet;
 #endif
+   v_U8_t linkStatus;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

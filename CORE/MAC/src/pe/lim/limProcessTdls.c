@@ -760,7 +760,6 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
      * Transmit Discovery response and watch if this is delivered to
      * peer STA.
      */
-#ifdef QCA_WIFI_2_0
     /* In CLD 2.0, pass Discovery Response as mgmt frame so that
      * wma does not do header conversion to 802.3 before calling tx/rx
      * routine and subsequenly target also sends frame as is OTA
@@ -772,15 +771,6 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
                             HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId, false );
-#else
-    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
-                            HAL_TXRX_FRM_802_11_DATA,
-                            ANI_TXDIR_IBSS,
-                            0,
-                            limTxComplete, pFrame,
-                            limMgmtTXComplete,
-                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId, false );
-#endif
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
