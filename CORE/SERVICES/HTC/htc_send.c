@@ -60,6 +60,20 @@ static unsigned ep_debug_mask = (1 << ENDPOINT_0) | (1 << ENDPOINT_1) | (1 << EN
 #define ENABLE_BUNDLE_TX 0
 #endif
 
+/* HTC Control Path Credit History */
+A_UINT32 g_htc_credit_history_idx = 0;
+HTC_CREDIT_HISTORY htc_credit_history_buffer[HTC_CREDIT_HISTORY_MAX];
+
+#define HTC_CREDIT_RECORD(a, b, c) {                                           \
+  if (HTC_CREDIT_HISTORY_MAX <= g_htc_credit_history_idx)                      \
+    g_htc_credit_history_idx = 0;                                              \
+  htc_credit_history_buffer[g_htc_credit_history_idx].type = a;                \
+  htc_credit_history_buffer[g_htc_credit_history_idx].time =                   \
+    adf_get_boottime();                                                        \
+  htc_credit_history_buffer[g_htc_credit_history_idx].tx_credit = b;           \
+  htc_credit_history_buffer[g_htc_credit_history_idx].htc_tx_queue_depth = c;  \
+  g_htc_credit_history_idx++;                                                  \
+}                                                                              \
 
 void HTC_dump_counter_info(HTC_HANDLE HTCHandle)
 {
@@ -577,8 +591,16 @@ void GetHTCSendPacketsCreditBased(HTC_TARGET        *target,
 
                 /* check if we need credits back from the target */
             if (pEndpoint->TxCredits <= pEndpoint->TxCreditsPerMaxMsg) {
-                    /* tell the target we need credits ASAP! */
+                /* tell the target we need credits ASAP! */
                 sendFlags |= HTC_FLAGS_NEED_CREDIT_UPDATE;
+
+                if (pEndpoint->ServiceID == WMI_CONTROL_SVC) {
+                    LOCK_HTC_CREDIT(target);
+                    HTC_CREDIT_RECORD(HTC_REQUEST_CREDIT, pEndpoint->TxCredits,
+                        HTC_PACKET_QUEUE_DEPTH(&pEndpoint->TxQueue));
+                    UNLOCK_HTC_CREDIT(target);
+                }
+
                 INC_HTC_EP_STAT(pEndpoint, TxCreditLowIndications, 1);
 #if DEBUG_CREDIT
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR,(" EP%d Needs Credits\n", pEndpoint->Id));
@@ -1589,6 +1611,13 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
         }
 #else
         pEndpoint->TxCredits += rpt_credits;
+
+        if (pEndpoint->ServiceID == WMI_CONTROL_SVC) {
+            LOCK_HTC_CREDIT(target);
+            HTC_CREDIT_RECORD(HTC_PROCESS_CREDIT_REPORT, pEndpoint->TxCredits,
+                              HTC_PACKET_QUEUE_DEPTH(&pEndpoint->TxQueue));
+            UNLOCK_HTC_CREDIT(target);
+        }
 
         if (pEndpoint->TxCredits && HTC_PACKET_QUEUE_DEPTH(&pEndpoint->TxQueue)) {
             UNLOCK_HTC_TX(target);
