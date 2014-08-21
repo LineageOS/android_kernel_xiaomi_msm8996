@@ -18536,6 +18536,39 @@ err_synch_rsp:
     vos_mem_free(pFTRoamOffloadSynchRsp->pbssDescription);
     pFTRoamOffloadSynchRsp->pbssDescription = NULL;
 }
+
+
+/*----------------------------------------------------------------------------
+ * fn csrProcessHOFailInd
+ * brief  This function will process the Hand Off Failure indication
+ *        received from the firmware. It will trigger a disconnect on
+ *        the session which the firmware reported a hand off failure
+ * param  pMac global structure
+ * param  pMsgBuf - Contains the session ID for which the handler should apply
+ * --------------------------------------------------------------------------*/
+void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf)
+{
+   tSirSmeHOFailureInd *pSmeHOFailInd = (tSirSmeHOFailureInd *)pMsgBuf;
+   tANI_U32 sessionId;
+
+   if (pSmeHOFailInd)
+       sessionId = pSmeHOFailInd->sessionId;
+   else {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "LFR3: Hand-Off Failure Ind is NULL");
+       return;
+   }
+   /* Roaming is supported only on Infra STA Mode. */
+   if (!csrRoamIsStaMode(pMac, sessionId)) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "LFR3:HO Fail cannot be handled for session %d",sessionId);
+       return;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "LFR3:Issue Disconnect on session %d", sessionId);
+   csrRoamDisconnect(pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+}
 #endif
 
 void csrInitOperatingClasses(tHalHandle hHal)

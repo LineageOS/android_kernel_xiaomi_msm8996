@@ -2248,6 +2248,12 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                csrProcessRoamOffloadSynchInd(pMac, pMsg->bodyptr);
                vos_mem_free(pMsg->bodyptr);
                break;
+          case eWNI_SME_HO_FAIL_IND:
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "LFR3:%s: Rcvd eWNI_SME_HO_FAIL_IND", __func__);
+               csrProcessHOFailInd(pMac, pMsg->bodyptr);
+               vos_mem_free(pMsg->bodyptr);
+               break;
 #endif
           case eWNI_PMC_ENTER_BMPS_RSP:
           case eWNI_PMC_EXIT_BMPS_RSP:

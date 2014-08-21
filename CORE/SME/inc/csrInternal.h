@@ -1523,6 +1523,7 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
 void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf);
 eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
             tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd);
+void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf);
 #endif
 #endif
 
