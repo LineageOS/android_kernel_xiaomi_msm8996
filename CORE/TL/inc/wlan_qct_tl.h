@@ -159,47 +159,18 @@ typedef enum
   /* AD-hoc link*/
   WLAN_STA_IBSS,
 
-  /* BT-AMP link*/
-  WLAN_STA_BT_AMP,
-
   /* SoftAP station */
   WLAN_STA_SOFTAP,
 
 #ifdef FEATURE_WLAN_TDLS
   /* TDLS direct link */
-  WLAN_STA_TDLS,    /* 4 */
+  WLAN_STA_TDLS,
 #endif
-
 
   /* Invalid link*/
   WLAN_STA_MAX
 
 }WLAN_STAType;
-
-/*---------------------------------------------------------------------------
-  BAP Management frame type
----------------------------------------------------------------------------*/
-typedef enum
-{
-    /* BT-AMP packet of type data */
-    WLANTL_BT_AMP_TYPE_DATA = 0x0001,
-
-    /* BT-AMP packet of type activity report */
-    WLANTL_BT_AMP_TYPE_AR = 0x0002,
-
-    /* BT-AMP packet of type security frame */
-    WLANTL_BT_AMP_TYPE_SEC = 0x0003,
-
-    /* BT-AMP packet of type Link Supervision request frame */
-    WLANTL_BT_AMP_TYPE_LS_REQ = 0x0004,
-
-    /* BT-AMP packet of type Link Supervision reply frame */
-    WLANTL_BT_AMP_TYPE_LS_REP = 0x0005,
-
-    /* Invalid Frame */
-    WLANTL_BAP_INVALID_FRAME
-
-} WLANTL_BAPFrameEnumType;
 
 /* Type used to specify LWM threshold unit */
 typedef enum  {
@@ -509,7 +480,7 @@ typedef tSap_SoftapStats WLANTL_TRANSFER_STA_TYPE;
 
     IN
     pvosGCtx:       pointer to the global vos context; a handle to
-                    TL/HAL/PE/BAP/HDD control block can be extracted from
+                    TL/HAL/PE/HDD control block can be extracted from
                     its context
     vosDataBuff:   pointer to the VOSS data buffer that was transmitted
     wTxSTAtus:      status of the transmission
@@ -622,60 +593,6 @@ typedef void (*WLANTL_TxFlowControlCBType)(void *adapterCtxt,
                                                v_BOOL_t resume_tx);
 #endif /* QCA_LL_TX_FLOW_CT */
 
-/*----------------------------------------------------------------------------
-    INTERACTION WITH BAP
- ---------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------
-
-  DESCRIPTION
-    Type of the receive callback registered with TL for BAP.
-
-    The registered reception callback is being triggered by TL whenever a
-    frame was received and it was filtered as a non-data BT AMP packet.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:      pointer to the global vos context; a handle to TL's
-                   or SME's control block can be extracted from its context
-    vosDataBuff:   pointer to the vOSS buffer containing the received packet;
-                   no chaining will be done on this path
-    frameType:     type of the frame to be indicated to BAP.
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_BAPRxCBType)( v_PVOID_t               pvosGCtx,
-                                          vos_pkt_t*              vosDataBuff,
-                                          WLANTL_BAPFrameEnumType frameType);
-
-/*----------------------------------------------------------------------------
-
-  DESCRIPTION
-    Callback registered with TL for BAP, this is required inorder for
-    TL to inform BAP, that the flush operation requested has been completed.
-
-    The registered reception callback is being triggered by TL whenever a
-    frame SIR_TL_HAL_FLUSH_AC_RSP is received by TL from HAL.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's
-                    or SME's control block can be extracted from its context
-    vosDataBuff:   pointer to the vOSS buffer containing the received packet;
-                    no chaining will be done on this path
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_FlushOpCompCBType)( v_PVOID_t     pvosGCtx,
-                                                v_U8_t        ucStaId,
-                                                v_U8_t        ucTID,
-                                                v_U8_t        status);
 /*----------------------------------------------------------------------------
     INTERACTION WITH PE
  ---------------------------------------------------------------------------*/
@@ -1361,107 +1278,6 @@ WLANTL_SetSTAPriority
 );
 
 /*----------------------------------------------------------------------------
-    INTERACTION WITH BAP
- ---------------------------------------------------------------------------*/
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_RegisterBAPClient
-
-  DESCRIPTION
-    Called by SME to register itself as client for non-data BT-AMP packets.
-
-  DEPENDENCIES
-    TL must be initialized before this function can be called.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's
-                    or SME's control block can be extracted from its context
-    pfnTlBAPRxFrm:  pointer to the receive processing routine for non-data
-                    BT-AMP packets
-    pfnFlushOpCompleteCb:
-                    pointer to the function that will inform BAP that the
-                    flush operation is complete.
-
-  RETURN VALUE
-
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_INVAL:  Input parameters are invalid
-    VOS_STATUS_E_FAULT:  Station ID is outside array boundaries or pointer
-                         to TL cb is NULL ; access would cause a page fault
-    VOS_STATUS_E_EXISTS: BAL client was already registered
-    VOS_STATUS_SUCCESS:  Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_RegisterBAPClient
-(
-  v_PVOID_t                   pvosGCtx,
-  WLANTL_BAPRxCBType          pfnTlBAPRx,
-  WLANTL_FlushOpCompCBType    pfnFlushOpCompleteCb
-);
-
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_TxBAPFrm
-
-  DESCRIPTION
-    BAP calls this when it wants to send a frame to the module
-
-  DEPENDENCIES
-    BAP must be registered with TL before this function can be called.
-
-    RESTRICTION: BAP CANNOT push any packets to TL until it did not receive
-                 a tx complete from the previous packet, that means BAP
-                 sends one packet, wait for tx complete and then
-                 sends another one
-
-                 If BAP sends another packet before TL manages to process the
-                 previously sent packet call will end in failure
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's
-                    or BAP's control block can be extracted from its context
-    vosDataBuff:   pointer to the vOSS buffer containing the packet to be
-                    transmitted
-    pMetaInfo:      meta information about the packet
-    pfnTlBAPTxComp: pointer to a transmit complete routine for notifying
-                    the result of the operation over the bus
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:  pointer to TL cb is NULL ; access would cause a
-                         page fault
-    VOS_STATUS_E_EXISTS: BAL client was not yet registered
-    VOS_STATUS_E_BUSY:   The previous BT-AMP packet was not yet transmitted
-    VOS_STATUS_SUCCESS:  Everything is good :)
-
-    Other failure messages may be returned from the BD header handling
-    routines, please check apropriate API for more info.
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_TxBAPFrm
-(
-  v_PVOID_t               pvosGCtx,
-  vos_pkt_t*              vosDataBuff,
-  WLANTL_MetaInfoType*    pMetaInfo,
-  WLANTL_TxCompCBType     pfnTlBAPTxComp
-);
-
-
-/*----------------------------------------------------------------------------
     INTERACTION WITH SME
  ---------------------------------------------------------------------------*/
 
@@ -1601,42 +1417,6 @@ WLANTL_GetLinkQuality
   v_PVOID_t             pvosGCtx,
   v_U8_t                ucSTAId,
   v_U32_t*              puLinkQuality
-);
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_FlushStaTID
-
-  DESCRIPTION
-    TL provides this API as an interface to SME (BAP) layer. TL inturn posts a
-    message to HAL. This API is called by the SME inorder to perform a flush
-    operation.
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's
-                    or SME's control block can be extracted from its context
-    ucSTAId:        station identifier for the requested value
-    ucTid:          Tspec ID for the new BA session
-
-    OUT
-    The response for this post is received in the main thread, via a response
-    message from HAL to TL.
-
-  RETURN VALUE
-    VOS_STATUS_SUCCESS:  Everything is good :)
-
-  SIDE EFFECTS
-============================================================================*/
-VOS_STATUS
-WLANTL_FlushStaTID
-(
-  v_PVOID_t             pvosGCtx,
-  v_U8_t                ucSTAId,
-  v_U8_t                ucTid
 );
 
 /*----------------------------------------------------------------------------
