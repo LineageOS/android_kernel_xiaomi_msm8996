@@ -101,7 +101,7 @@
 /// in the software system.
 typedef enum
 {
-   VOS_MODULE_ID_BAP        = 0,
+   /* 0 is unused for historical purposes */
    VOS_MODULE_ID_TL         = 1,
    VOS_MODULE_ID_WDI        = 2,
    // 3 & 4 are unused for historical purposes

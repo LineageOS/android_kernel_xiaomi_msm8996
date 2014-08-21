@@ -258,35 +258,6 @@ ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
                 $(ADF_DIR)/linux/adf_os_defer_pvt.o \
                 $(ADF_DIR)/linux/adf_os_lock_pvt.o
 
-############ BAP ############
-BAP_DIR :=	CORE/BAP
-BAP_INC_DIR :=	$(BAP_DIR)/inc
-BAP_SRC_DIR :=	$(BAP_DIR)/src
-
-BAP_INC := 	-I$(WLAN_ROOT)/$(BAP_INC_DIR) \
-		-I$(WLAN_ROOT)/$(BAP_SRC_DIR)
-
-BAP_OBJS := 	$(BAP_SRC_DIR)/bapApiData.o \
-		$(BAP_SRC_DIR)/bapApiDebug.o \
-		$(BAP_SRC_DIR)/bapApiExt.o \
-		$(BAP_SRC_DIR)/bapApiHCBB.o \
-		$(BAP_SRC_DIR)/bapApiInfo.o \
-		$(BAP_SRC_DIR)/bapApiLinkCntl.o \
-		$(BAP_SRC_DIR)/bapApiLinkSupervision.o \
-		$(BAP_SRC_DIR)/bapApiStatus.o \
-		$(BAP_SRC_DIR)/bapApiTimer.o \
-		$(BAP_SRC_DIR)/bapModule.o \
-		$(BAP_SRC_DIR)/bapRsn8021xAuthFsm.o \
-		$(BAP_SRC_DIR)/bapRsn8021xPrf.o \
-		$(BAP_SRC_DIR)/bapRsn8021xSuppRsnFsm.o \
-		$(BAP_SRC_DIR)/bapRsnAsfPacket.o \
-		$(BAP_SRC_DIR)/bapRsnSsmAesKeyWrap.o \
-		$(BAP_SRC_DIR)/bapRsnSsmEapol.o \
-		$(BAP_SRC_DIR)/bapRsnSsmReplayCtr.o \
-		$(BAP_SRC_DIR)/bapRsnTxRx.o \
-		$(BAP_SRC_DIR)/btampFsm.o \
-		$(BAP_SRC_DIR)/btampHCI.o
-
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 ############ HIF ############
 HIF_DIR := CORE/SERVICES/HIF
@@ -335,8 +306,7 @@ HDD_SRC_DIR :=	$(HDD_DIR)/src
 HDD_INC := 	-I$(WLAN_ROOT)/$(HDD_INC_DIR) \
 		-I$(WLAN_ROOT)/$(HDD_SRC_DIR)
 
-HDD_OBJS := 	$(HDD_SRC_DIR)/bap_hdd_main.o \
-		$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
+HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_cfg.o \
 		$(HDD_SRC_DIR)/wlan_hdd_debugfs.o \
 		$(HDD_SRC_DIR)/wlan_hdd_dev_pwr.o \
@@ -806,8 +776,7 @@ WCNSS_INC :=	-I$(WLAN_ROOT)/wcnss/inc
 
 LINUX_INC :=	-Iinclude/linux
 
-INCS :=		$(BAP_INC) \
-		$(HDD_INC) \
+INCS :=		$(HDD_INC) \
 		$(EPPING_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
@@ -841,8 +810,7 @@ ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 INCS +=		$(PKTLOG_INC)
 endif
 
-OBJS :=		$(BAP_OBJS) \
-		$(HDD_OBJS) \
+OBJS :=		$(HDD_OBJS) \
 		$(EPPING_OBJS) \
 		$(MAC_OBJS) \
 		$(SAP_OBJS) \

@@ -77,10 +77,6 @@
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
 #include <wlan_hdd_wext.h>
-#ifdef WLAN_BTAMP_FEATURE
-#include <bap_hdd_main.h>
-#include <bapInternal.h>
-#endif // WLAN_BTAMP_FEATURE
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -107,9 +103,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include <wlan_hdd_softap_tx_rx.h>
 #include "cfgApi.h"
 #include "wlan_hdd_dev_pwr.h"
-#ifdef WLAN_BTAMP_FEATURE
-#include "bap_hdd_misc.h"
-#endif
 #include "qwlan_version.h"
 #include "wlan_qct_wda.h"
 #ifdef FEATURE_WLAN_TDLS
@@ -647,9 +640,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    struct net_device *dev = ndev;
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
-#ifdef WLAN_BTAMP_FEATURE
-   VOS_STATUS status;
-#endif
+
    //Make sure that this callback corresponds to our device.
    if ((strncmp(dev->name, "wlan", 4)) &&
       (strncmp(dev->name, "p2p", 3)))
@@ -718,26 +709,6 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: Scan is not Pending from user" , __func__);
         }
-#ifdef WLAN_BTAMP_FEATURE
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __func__);
-        status = WLANBAP_StopAmp();
-        if(VOS_STATUS_SUCCESS != status )
-        {
-           pHddCtx->isAmpAllowed = VOS_TRUE;
-           hddLog(VOS_TRACE_LEVEL_FATAL,
-                  "%s: Failed to stop AMP", __func__);
-        }
-        else
-        {
-           //a state m/c implementation in PAL is TBD to avoid this delay
-           msleep(500);
-           if ( pHddCtx->isAmpAllowed )
-           {
-                WLANBAP_DeregisterFromHCI();
-                pHddCtx->isAmpAllowed = VOS_FALSE;
-           }
-        }
-#endif //WLAN_BTAMP_FEATURE
         break;
 
    default:
@@ -10807,14 +10778,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    hdd_stop_all_adapters( pHddCtx );
 
-#ifdef WLAN_BTAMP_FEATURE
-   vosStatus = WLANBAP_Stop(pVosContext);
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to stop BAP",__func__);
-   }
-#endif //WLAN_BTAMP_FEATURE
 
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
@@ -11488,11 +11451,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
-#ifdef WLAN_BTAMP_FEATURE
-   VOS_STATUS vStatus = VOS_STATUS_SUCCESS;
-   WLANBAP_ConfigType btAmpConfig;
-   hdd_config_t *pConfig;
-#endif
    int ret;
    int i;
    struct wiphy *wiphy;
@@ -11675,8 +11633,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        pHddCtx->fw_log_settings.dl_mod_loglevel[i] = 0;
    }
    // Update VOS trace levels based upon the cfg.ini
-   hdd_vos_trace_enable(VOS_MODULE_ID_BAP,
-                        pHddCtx->cfg_ini->vosTraceEnableBAP);
    hdd_vos_trace_enable(VOS_MODULE_ID_TL,
                         pHddCtx->cfg_ini->vosTraceEnableTL);
    hdd_vos_trace_enable(VOS_MODULE_ID_WDI,
@@ -12004,35 +11960,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
-#ifdef WLAN_BTAMP_FEATURE
-   vStatus = WLANBAP_Open(pVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAP",__func__);
-      goto err_close_adapter;
-   }
-
-   vStatus = BSL_Init(pVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to Init BSL",__func__);
-     goto err_bap_close;
-   }
-   vStatus = WLANBAP_Start(pVosContext);
-   if (!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start TL",__func__);
-       goto err_bap_close;
-   }
-
-   pConfig = pHddCtx->cfg_ini;
-   btAmpConfig.ucPreferredChannel = pConfig->preferredChannel;
-   status = WLANBAP_SetConfig(&btAmpConfig);
-
-#endif //WLAN_BTAMP_FEATURE
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
    if(!(IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE))
@@ -12054,11 +11981,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
-#ifdef WLAN_BTAMP_FEATURE
-      goto err_bap_stop;
-#else
       goto err_close_adapter;
-#endif //WLAN_BTAMP_FEATURE
    }
 
    /* Open debugfs interface */
@@ -12340,15 +12263,7 @@ err_unregister_pmops:
 
    hdd_debugfs_exit(pHddCtx);
 
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_stop:
-  WLANBAP_Stop(pVosContext);
-#endif
 
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_close:
-   WLANBAP_Close(pVosContext);
-#endif
 
 err_close_adapter:
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)

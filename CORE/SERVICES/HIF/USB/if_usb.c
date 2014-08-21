@@ -40,10 +40,6 @@
 #include "wlan_hdd_main.h"
 #include "epping_main.h"
 
-#ifdef WLAN_BTAMP_FEATURE
-#include "wlan_btc_svc.h"
-#include "wlan_nlink_common.h"
-#endif
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -200,10 +196,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	}
 #endif
 
-#ifdef WLAN_BTAMP_FEATURE
-	/* Send WLAN UP indication to Nlink Service */
-	send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
-#endif
 
 	sc->interface = interface;
 	sc->reboot_notifier.notifier_call = hif_usb_reboot;

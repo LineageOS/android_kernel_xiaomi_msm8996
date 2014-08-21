@@ -52,10 +52,6 @@
 #endif
 #include "epping_main.h"
 
-#ifdef WLAN_BTAMP_FEATURE
-#include "wlan_btc_svc.h"
-#include "wlan_nlink_common.h"
-#endif
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -967,10 +963,6 @@ again:
     }
 #endif
 
-#ifdef WLAN_BTAMP_FEATURE
-    /* Send WLAN UP indication to Nlink Service */
-    send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
-#endif
 
     return 0;
 
@@ -1312,10 +1304,6 @@ again:
     }
 #endif
 
-#ifdef WLAN_BTAMP_FEATURE
-    /* Send WLAN UP indication to Nlink Service */
-    send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
-#endif
 
     printk("%s: WLAN host driver reinitiation completed!\n", __func__);
     return 0;
