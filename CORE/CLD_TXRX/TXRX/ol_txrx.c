@@ -1387,7 +1387,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
      */
 
     if (0 == adf_os_atomic_read(&(peer->ref_cnt)) ) {
-        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "The Peer is not present anymore\n");
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR, "The Peer is not present anymore\n");
         adf_os_assert(0);
         return;
     }
@@ -1505,7 +1505,7 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
     /* debug print to dump rx reorder state */
     //htt_rx_reorder_log_print(vdev->pdev->htt_pdev);
 
-    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2,
+    TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
         "%s:peer %p (%02x:%02x:%02x:%02x:%02x:%02x)\n",
           __func__, peer,
           peer->mac_addr.raw[0], peer->mac_addr.raw[1],
