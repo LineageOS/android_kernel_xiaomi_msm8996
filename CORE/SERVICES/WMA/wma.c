@@ -10694,6 +10694,10 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 
 		pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 			wma_handle->vos_context);
+		if (!pdev) {
+			WMA_LOGE("pdev NULL for uc stat");
+			return -EINVAL;
+		}
 		ol_txrx_ipa_uc_get_stat(pdev);
 	}
 		break;
