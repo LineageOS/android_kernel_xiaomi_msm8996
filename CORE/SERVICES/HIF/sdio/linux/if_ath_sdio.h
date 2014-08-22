@@ -46,6 +46,8 @@
 
 #define ATH_DBG_DEFAULT   0
 
+#define RAMDUMP_ADDR     0x8F000000
+#define RAMDUMP_SIZE     0x700000
 
 struct ath_hif_sdio_softc {
     struct device *dev;

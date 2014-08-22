@@ -857,7 +857,7 @@ int dump_CE_register(struct ol_softc *scn)
 }
 #endif
 
-#if  defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 static struct ol_softc *ramdump_scn;
 
 int ol_copy_ramdump(struct ol_softc *scn)
@@ -879,7 +879,9 @@ out:
 
 static void ramdump_work_handler(struct work_struct *ramdump)
 {
+#if !defined(HIF_SDIO)
 	int ret;
+#endif
 	u_int32_t host_interest_address;
 	u_int32_t dram_dump_values[4];
 
@@ -887,7 +889,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
 		goto out_fail;
 	}
-
+#if !defined(HIF_SDIO)
 #ifdef DEBUG
 	ret = hif_pci_check_soc_status(ramdump_scn->hif_sc);
 	if (ret)
@@ -899,14 +901,17 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	dump_CE_debug_register(ramdump_scn->hif_sc);
 #endif
+#endif
 
 	if (HIFDiagReadMem(ramdump_scn->hif_hdl,
 		host_interest_item_address(ramdump_scn->target_type,
 		offsetof(struct host_interest_s, hi_failure_state)),
 		(A_UCHAR *)&host_interest_address, sizeof(u_int32_t)) != A_OK) {
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
+#if !defined(HIF_SDIO)
 		dump_CE_register(ramdump_scn);
 		dump_CE_debug_register(ramdump_scn->hif_sc);
+#endif
 
 		goto out_fail;
 	}
@@ -926,17 +931,27 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	printk("%s: RAM dump collecting completed!\n", __func__);
 	msleep(250);
-
+#if defined(HIF_SDIO)
+	panic("CNSS Ram dump collected\n");
+#else
 	/* Notify SSR framework the target has crashed. */
 	cnss_device_crashed();
+#endif
 	return;
 
 out_fail:
 	/* Silent SSR on dump failure */
 #ifdef CNSS_SELF_RECOVERY
+#if !defined(HIF_SDIO)
 	cnss_device_self_recovery();
+#endif
+#else
+
+#if defined(HIF_SDIO)
+	panic("CNSS Ram dump collection failed \n");
 #else
 	cnss_device_crashed();
+#endif
 #endif
 	return;
 }
@@ -951,7 +966,9 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 
 static void fw_indication_work_handler(struct work_struct *fw_indication)
 {
+#if !defined(HIF_SDIO)
 	cnss_device_self_recovery();
+#endif
 }
 
 static DECLARE_WORK(fw_indication_work, fw_indication_work_handler);
@@ -1213,7 +1230,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	}
 #endif
 
-#if  defined(CONFIG_CNSS)
+#if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 	/* Collect the RAM dump through a workqueue */
 	ol_schedule_ramdump_work(scn);
 #endif
@@ -1956,7 +1973,7 @@ int ol_download_firmware(struct ol_softc *scn)
 	return status;
 }
 
-#ifdef HIF_PCI
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 	u_int32_t pos, size_t count)
 {
@@ -1966,6 +1983,7 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 		result = HIFDiagReadAccess(scn->hif_hdl, pos,
 			(u_int32_t*)buffer);
 	} else {
+#ifdef HIF_PCI
 		size_t amountRead = 0;
 		size_t readSize = PCIE_READ_LIMIT;
 		size_t remainder = 0;
@@ -1983,9 +2001,12 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 				}
 			}
 		} else {
+#endif
 			result = HIFDiagReadMem(scn->hif_hdl, pos,
 					buffer, count);
+#ifdef HIF_PCI
 		}
+#endif
 	}
 
 	if (!result) {
@@ -1995,6 +2016,7 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 	}
 }
 
+#if defined(HIF_PCI)
 static int ol_ath_get_reg_table(A_UINT32 target_version,
 				tgt_reg_table *reg_table)
 {
@@ -2091,6 +2113,7 @@ static int ol_diag_read_reg_loc(struct ol_softc *scn, u_int8_t *buffer,
 out:
 	return result;
 }
+#endif
 
 /**---------------------------------------------------------------------------
  *   \brief  ol_target_coredump
@@ -2152,10 +2175,12 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 		}
 
 		if ((blockLength - amountRead) >= readLen) {
+#if !defined(HIF_SDIO)
 			if (pos == REGISTER_LOCATION)
 				result = ol_diag_read_reg_loc(scn, bufferLoc,
 						blockLength - amountRead);
 			else
+#endif
 				result = ol_diag_read(scn, bufferLoc,
 						      pos, readLen);
 			if (result != -EIO) {
