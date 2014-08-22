@@ -1079,6 +1079,10 @@ typedef struct sAniSirGlobal
     v_BOOL_t enable5gEBT;
     /* Miracast session 0-Disabled, 1-Source, 2-sink*/
     tANI_U8 fMiracastSessionPresent;
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+    csrReadyToExtWoWCallback readyToExtWoWCallback;
+    void *readyToExtWoWContext;
+#endif
 } tAniSirGlobal;
 
 typedef enum

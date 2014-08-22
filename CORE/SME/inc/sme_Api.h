@@ -2114,6 +2114,70 @@ eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal,
 eHalStatus sme_ConfigureResumeReq( tHalHandle hHal,
                              tpSirWlanResumeParam  wlanResumeParam);
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureExtWoW
+
+  \brief
+    SME will pass this request to lower mac to configure Indoor WoW parameters.
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanExtParams- Depicts the wlan Ext params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureExtWoW( tHalHandle hHal,
+                          tpSirExtWoWParams  wlanExtParams,
+                          csrReadyToSuspendCallback callback,
+                          void *callbackContext);
+
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureAppType1Params
+
+  \brief
+    SME will pass this request to lower mac to configure Indoor WoW parameters.
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanAppType1Params- Depicts the wlan Indoor params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureAppType1Params( tHalHandle hHal,
+                          tpSirAppType1Params  wlanAppType1Params);
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureAppType2Params
+
+  \brief
+    SME will pass this request to lower mac to configure Indoor WoW parameters.
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanAppType2Params- Depicts the wlan Indoor params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureAppType2Params( tHalHandle hHal,
+                          tpSirAppType2Params  wlanAppType2Params);
+#endif
 
 /* ---------------------------------------------------------------------------
 
