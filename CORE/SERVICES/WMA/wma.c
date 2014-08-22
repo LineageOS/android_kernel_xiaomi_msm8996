@@ -16650,8 +16650,10 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	struct ol_softc *scn;
 	int host_credits;
 	int wmi_pending_cmds;
+#ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+#endif
 
 #ifdef FEATURE_WLAN_D0WOW
 	if (wma->ap_client_cnt > 0) {
@@ -16713,6 +16715,8 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		if (pMac->sme.enableSelfRecovery) {
 			vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
 			cnss_schedule_recovery_work();
+		} else {
+			VOS_BUG(0);
 		}
 #else
 		VOS_BUG(0);
@@ -17649,8 +17653,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t len;
 	int ret;
+#ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+#endif
 
 	len = sizeof(wmi_wow_hostwakeup_from_sleep_cmd_fixed_param);
 
@@ -17692,6 +17698,8 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 				vos_set_logp_in_progress(VOS_MODULE_ID_HIF,
 							TRUE);
 				cnss_schedule_recovery_work();
+			} else {
+				VOS_BUG(0);
 			}
 #else
 			VOS_BUG(0);
