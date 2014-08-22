@@ -166,7 +166,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||            //mlm state check should be global - 18th oct
         (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
         (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) )||
-        ((GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE) &&
+        (LIM_IS_IBSS_ROLE(psessionEntry) &&
         (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE)) ||
         pMac->fScanOffload)
     {
@@ -262,8 +262,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             }
 
 
-            if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
-            {
+            if (LIM_IS_STA_ROLE(psessionEntry)) {
                 if (pProbeRsp->channelSwitchPresent)
                 {
                     limUpdateChannelSwitch(pMac, pProbeRsp, psessionEntry);
@@ -316,7 +315,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                limDetectChangeInApCapabilities(pMac, pProbeRsp, psessionEntry);
            }
         }
-        else if ((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
+        else if (LIM_IS_IBSS_ROLE(psessionEntry) &&
                  (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE))
                 limHandleIBSScoalescing(pMac, pProbeRsp, pRxPacketInfo,psessionEntry);
     } // if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) || ...

@@ -119,14 +119,14 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         case HAL_DEL_STA_REASON_CODE_KEEP_ALIVE:
         case HAL_DEL_STA_REASON_CODE_TIM_BASED:
              PELOGE(limLog(pMac, LOGE, FL(" Deleting station: staId = %d, reasonCode = %d"), pMsg->staId, pMsg->reasonCode);)
-             if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole)
+             if (LIM_IS_IBSS_ROLE(psessionEntry))
                  return;
 
              pStaDs = dphLookupAssocId(pMac, pMsg->staId, &pMsg->assocId, &psessionEntry->dph.dphHashTable);
 
-             if (!pStaDs)
-             {
-                 PELOGE(limLog(pMac, LOGE, FL("Skip STA deletion (invalid STA) limSystemRole=%d"),psessionEntry->limSystemRole);)
+             if (!pStaDs) {
+                 PELOGE(limLog(pMac, LOGE, FL("Skip STA deletion (invalid STA) limSystemRole=%d"),
+                 GET_LIM_SYSTEM_ROLE(psessionEntry));)
                  vos_mem_free(pMsg);
                  return;
              }
@@ -141,9 +141,8 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                  return;
              }
 
-             if((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) ||
-                     (eLIM_AP_ROLE == psessionEntry->limSystemRole))
-             {
+             if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) ||
+                 LIM_IS_AP_ROLE(psessionEntry)) {
                  PELOG1(limLog(pMac, LOG1, FL("SAP:lim Delete Station Context (staId: %d, assocId: %d) "),
                              pMsg->staId, pMsg->assocId);)
                  limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
@@ -151,17 +150,14 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
              else
              {
 #ifdef FEATURE_WLAN_TDLS
-                if(eLIM_STA_ROLE == psessionEntry->limSystemRole &&
-                    STA_ENTRY_TDLS_PEER == pStaDs->staType)
-                {
+                if (LIM_IS_STA_ROLE(psessionEntry) &&
+                    STA_ENTRY_TDLS_PEER == pStaDs->staType) {
                     //TeardownLink with PEER
                     //Reason code HAL_DEL_STA_REASON_CODE_KEEP_ALIVE means
                     //eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE
                     limSendSmeTDLSDelStaInd(pMac, pStaDs, psessionEntry,
-                    /*pMsg->reasonCode*/ eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE);
-                }
-                else
-                {
+                                       eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE);
+                } else {
 #endif
                     //TearDownLink with AP
                     tLimMlmDeauthInd  mlmDeauthInd;
@@ -431,8 +427,8 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
     /* Ensure HB Status for the session has been reseted */
     psessionEntry->LimHBFailureStatus = eANI_BOOLEAN_FALSE;
 
-    if (((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&
+    if ((LIM_IS_STA_ROLE(psessionEntry) ||
+         LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) &&
          (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) &&
          (psessionEntry->limSmeState != eLIM_SME_WT_DISASSOC_STATE) &&
          (psessionEntry->limSmeState != eLIM_SME_WT_DEAUTH_STATE))

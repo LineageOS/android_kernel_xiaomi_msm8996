@@ -1626,68 +1626,55 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             PELOG1(limLog(pMac,LOG1,FL("Short Preamble is not enabled in Assoc Req from "));
                     limPrintMacAddr(pMac, peerMacAddr, LOG1);)
 
-                for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-                {
-                if ((psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
-                     psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
-                    {
+                for (i = 0; i < LIM_PROT_STA_CACHE_SIZE; i++) {
+                    if (LIM_IS_AP_ROLE(psessionEntry) &&
+                        psessionEntry->gLimNoShortParams.staNoShortCache[i].active) {
                         if (vos_mem_compare(
                                     psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
                                     peerMacAddr, sizeof(tSirMacAddr)))
                             return;
-                }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-                {
-                    if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
-                     {
-                         if (vos_mem_compare(
+                    } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+                        if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active) {
+                            if (vos_mem_compare(
                                              pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
                                              peerMacAddr, sizeof(tSirMacAddr)))
-                             return;
-                      }
+                            return;
+                        }
                     }
                 }
 
-
-            for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-            {
-                if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
+            for (i = 0; i < LIM_PROT_STA_CACHE_SIZE; i++) {
+                if (LIM_IS_AP_ROLE(psessionEntry) &&
                       !psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
                      break;
-                else
-                {
+                else {
                     if (!pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
                     break;
                 }
             }
 
-            if (i >= LIM_PROT_STA_CACHE_SIZE)
-            {
-                if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+            if (i >= LIM_PROT_STA_CACHE_SIZE) {
+                if (LIM_IS_AP_ROLE(psessionEntry)) {
                     limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
                             i, psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
                     return;
-                }
-                else
-                {
+                } else {
                     limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
                             i, pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
                     return;
                 }
-
             }
 
-
-            if (psessionEntry->limSystemRole == eLIM_AP_ROLE){
-                vos_mem_copy( psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
-                        peerMacAddr,  sizeof(tSirMacAddr));
+            if (LIM_IS_AP_ROLE(psessionEntry)) {
+                vos_mem_copy(psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
+                             peerMacAddr, sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortParams.staNoShortCache[i].active = true;
                 psessionEntry->gLimNoShortParams.numNonShortPreambleSta++;
-            }else
-            {
-                vos_mem_copy(  pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
-                               peerMacAddr,  sizeof(tSirMacAddr));
+            } else {
+                vos_mem_copy(pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
+                             peerMacAddr, sizeof(tSirMacAddr));
                 pMac->lim.gLimNoShortParams.staNoShortCache[i].active = true;
                 pMac->lim.gLimNoShortParams.numNonShortPreambleSta++;
             }
@@ -1738,18 +1725,15 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
         {
             PELOG1(limLog(pMac, LOG1, FL("Short Slot Time is not enabled in Assoc Req from "));
             limPrintMacAddr(pMac, peerMacAddr, LOG1);)
-            for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
+            for (i = 0; i < LIM_PROT_STA_CACHE_SIZE; i++)
             {
-                if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                     psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
-                {
+                if (LIM_IS_AP_ROLE(psessionEntry) &&
+                     psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active) {
                     if (vos_mem_compare(
                          psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
                          peerMacAddr, sizeof(tSirMacAddr)))
                         return;
-                }
-                else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-                {
+                } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
                     if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     {
                         if (vos_mem_compare(
@@ -1760,27 +1744,23 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                 }
             }
 
-            for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-            {
-                if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                     !psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+            for (i = 0; i < LIM_PROT_STA_CACHE_SIZE; i++) {
+                if (LIM_IS_AP_ROLE(psessionEntry) &&
+                   !psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     break;
-                 else
-                 {
-                     if (!pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
-                          break;
+                else {
+                    if (!pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+                        break;
                  }
             }
 
-            if (i >= LIM_PROT_STA_CACHE_SIZE)
-            {
-                if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+            if (i >= LIM_PROT_STA_CACHE_SIZE) {
+                if (LIM_IS_AP_ROLE(psessionEntry)) {
                     limLog(pMac, LOGE, FL("No space in ShortSlot cache (#active %d, #sta %d) for sta "),
                             i, psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
                     return;
-                }else
-                {
+                } else {
                     limLog(pMac, LOGE, FL("No space in ShortSlot cache (#active %d, #sta %d) for sta "),
                            i, pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
@@ -1788,14 +1768,12 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                 }
             }
 
-
-            if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
-                vos_mem_copy(  psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
-                               peerMacAddr, sizeof(tSirMacAddr));
+            if (LIM_IS_AP_ROLE(psessionEntry)) {
+                vos_mem_copy(psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
+                             peerMacAddr, sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active = true;
                 psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta++;
-            }else
-            {
+            } else {
                 vos_mem_copy( pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
                           peerMacAddr, sizeof(tSirMacAddr));
                 pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active = true;
@@ -1806,25 +1784,23 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             /* Here we check if we are AP role and short slot enabled (both admin and oper modes) but we have atleast one STA connected with
              * only long slot enabled, we need to change our beacon/pb rsp to broadcast short slot disabled
              */
-            if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
-                 (val && psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta && psessionEntry->shortSlotTimeSupported))
-            {
+            if ((LIM_IS_AP_ROLE(psessionEntry)) && (val &&
+                 psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta &&
+                 psessionEntry->shortSlotTimeSupported)) {
                 // enable long slot time
                 pBeaconParams->fShortSlotTime = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                 PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time."));)
                 psessionEntry->shortSlotTimeSupported = false;
-            }
-            else if ( psessionEntry->limSystemRole != eLIM_AP_ROLE)
-            {
-                if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta && psessionEntry->shortSlotTimeSupported)
-                {
+            } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+                if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta &&
+                    psessionEntry->shortSlotTimeSupported) {
                     // enable long slot time
                     pBeaconParams->fShortSlotTime = false;
                     pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                     PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time."));)
                     psessionEntry->shortSlotTimeSupported = false;
-                 }
+                }
             }
         }
     }
@@ -2133,9 +2109,10 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
         return;
     }
 
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
-    {
-        PELOGW(limLog(pMac, LOGW, "Channel switch can be done only in STA role, Current Role = %d", psessionEntry->limSystemRole);)
+    if (!LIM_IS_STA_ROLE(psessionEntry)) {
+        PELOGW(limLog(pMac, LOGW,
+               "Channel switch can be done only in STA role, Current Role = %d",
+               GET_LIM_SYSTEM_ROLE(psessionEntry));)
         return;
     }
 
@@ -2347,7 +2324,7 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac, tpSirProbeRespBeacon pBeacon,
  */
 void limCancelDot11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return;
 
     PELOGW(limLog(pMac, LOGW, FL("Received a beacon without channel switch IE"));)
@@ -2376,7 +2353,7 @@ void limCancelDot11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry
 -----------------------------------------------*/
 void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return;
 
     if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
@@ -2562,11 +2539,8 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
     }
 
   PELOG1(limLog(pMac, LOG1, FL("quietState = %d"), psessionEntry->gLimSpecMgmt.quietState);)
-  if (eLIM_AP_ROLE == psessionEntry->limSystemRole)
-  {
-  }
-  else
-  {
+  if (LIM_IS_AP_ROLE(psessionEntry)) {
+  } else {
     // eLIM_STA_ROLE
     switch( psessionEntry->gLimSpecMgmt.quietState )
     {
@@ -2639,9 +2613,9 @@ void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId)
         return;
     }
 
-
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return;
+
     // First, de-activate Timer, if its already active
     limCancelDot11hQuiet(pMac, psessionEntry);
 
@@ -2982,7 +2956,7 @@ tAniBool limTriggerBackgroundScanDuringQuietBss( tpAniSirGlobal pMac )
     tAniBool bScanTriggered = eSIR_FALSE;
     tpPESession psessionEntry = &pMac->lim.gpSession[0];
 
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return bScanTriggered;
 
     if( !psessionEntry->lim11hEnable )
@@ -3225,7 +3199,7 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_OP_MODE:
-      if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+      if (LIM_IS_AP_ROLE(psessionEntry))
           retVal = psessionEntry->htOperMode;
       else
           retVal = pMac->lim.gHTOperMode;
@@ -3285,15 +3259,11 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_FAILURE;
     }
         //overlapping protection configuration check.
-        if(overlap)
-        {
-        }
-        else
-        {
+        if (overlap) {
+        } else {
             //normal protection config check
-            if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
-                (!psessionEntry->cfgProtection.fromlla))
-            {
+            if (LIM_IS_AP_ROLE(psessionEntry) &&
+                (!psessionEntry->cfgProtection.fromlla)) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from 11a is disabled"));)
                 return eSIR_SUCCESS;
@@ -3304,9 +3274,9 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
-        if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))&&
-              (true == psessionEntry->htCapability))
-        {
+        if ((LIM_IS_AP_ROLE(psessionEntry) ||
+             LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) &&
+             (true == psessionEntry->htCapability)) {
             if(overlap)
             {
                 pMac->lim.gLimOverlap11aParams.protectionEnabled = true;
@@ -3346,10 +3316,8 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-        {
-            if(overlap)
-            {
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
+            if (overlap) {
                 //Overlap Legacy protection disabled.
                 pMac->lim.gLimOverlap11aParams.protectionEnabled = false;
 
@@ -3442,24 +3410,17 @@ tSirRetStatus
 limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-
     //overlapping protection configuration check.
-    if(overlap)
-    {
-    }
-    else
-    {
+    if (overlap) {
+    } else {
         //normal protection config check
-        if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                !psessionEntry->cfgProtection.fromllb)
-        {
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+                !psessionEntry->cfgProtection.fromllb) {
             // protection disabled.
             PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled"));)
             return eSIR_SUCCESS;
-        }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-        {
-            if(!pMac->lim.cfgProtection.fromllb)
-            {
+        } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+            if(!pMac->lim.cfgProtection.fromllb) {
                 // protection disabled.
                 PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled"));)
                 return eSIR_SUCCESS;
@@ -3471,8 +3432,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 psessionEntry->gLimOlbcParams.protectionEnabled = true;
@@ -3506,9 +3466,8 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     }
                 }
             }
-        }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
-                (true == psessionEntry->htCapability))
-            {
+        }else if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) &&
+                (true == psessionEntry->htCapability)) {
                 if(overlap)
                 {
                     psessionEntry->gLimOlbcParams.protectionEnabled = true;
@@ -3549,8 +3508,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 //Overlap Legacy protection disabled.
@@ -3621,8 +3579,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-            {
+        }else if(LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
                 if(overlap)
                 {
                     //Overlap Legacy protection disabled.
@@ -3718,45 +3675,39 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_SUCCESS; // protection from 11g is only for HT stations.
 
     //overlapping protection configuration check.
-    if(overlap)
-    {
-        if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && (!psessionEntry->cfgProtection.overlapFromllg))
-        {
+    if (overlap) {
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+           (!psessionEntry->cfgProtection.overlapFromllg)) {
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled")););
             return eSIR_SUCCESS;
-        }else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
-        {
+        } else if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) &&
+                  (!pMac->lim.cfgProtection.overlapFromllg)) {
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled")););
             return eSIR_SUCCESS;
         }
-        }
-    else
-    {
+    } else {
         //normal protection config check
-       if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-           !psessionEntry->cfgProtection.fromllg){
+       if (LIM_IS_AP_ROLE(psessionEntry) &&
+           !psessionEntry->cfgProtection.fromllg) {
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("protection from 11g is disabled"));)
             return eSIR_SUCCESS;
-         }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-       {
-          if(!pMac->lim.cfgProtection.fromllg)
-           {
+       } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
+           if (!pMac->lim.cfgProtection.fromllg) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from 11g is disabled"));)
                 return eSIR_SUCCESS;
-            }
-        }
-     }
-    if (enable)
-    {
+           }
+       }
+    }
+
+    if (enable) {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 psessionEntry->gLimOverlap11gParams.protectionEnabled = true;
@@ -3783,8 +3734,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);
                 }
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        } else if(LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 pMac->lim.gLimOverlap11gParams.protectionEnabled = true;
@@ -3832,10 +3782,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
 
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-        {
-            if(overlap)
-            {
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
+            if (overlap) {
                 //Overlap Legacy protection disabled.
                 if (psessionEntry->gLim11gParams.numSta == 0)
                 psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
@@ -3904,8 +3852,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->llgCoexist = psessionEntry->beaconParams.llgCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        } else if(LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 //Overlap Legacy protection disabled.
@@ -4009,15 +3956,13 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     else
     {
         //normal protection config check
-        if((psessionEntry->limSystemRole == eLIM_AP_ROLE) && !psessionEntry->cfgProtection.obss)
-        { //ToDo Update this field
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+            !psessionEntry->cfgProtection.obss) { //ToDo Update this field
             // protection disabled.
             PELOG1(limLog(pMac, LOG1, FL("protection from Obss is disabled"));)
             return eSIR_SUCCESS;
-        }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-        {
-            if(!pMac->lim.cfgProtection.obss)
-            { //ToDo Update this field
+        } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+            if (!pMac->lim.cfgProtection.obss) { //ToDo Update this field
                 // protection disabled.
                 PELOG1(limLog(pMac, LOG1, FL("protection from Obss is disabled"));)
                 return eSIR_SUCCESS;
@@ -4026,7 +3971,7 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     }
 
 
-    if (eLIM_AP_ROLE == psessionEntry->limSystemRole){
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         if ((enable) && (false == psessionEntry->beaconParams.gHTObssMode) )
         {
             PELOG1(limLog(pMac, LOG1, FL("=>obss protection enabled"));)
@@ -4082,22 +4027,16 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
-        if(overlap)
-        {
-        }
-        else
-        {
+        if(overlap) {
+        } else {
             //normal protection config check
-            if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                !psessionEntry->cfgProtection.ht20)
-            {
+            if (LIM_IS_AP_ROLE(psessionEntry) &&
+                !psessionEntry->cfgProtection.ht20) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled"));)
                 return eSIR_SUCCESS;
-            }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-            {
-                if(!pMac->lim.cfgProtection.ht20)
-                {
+            } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+                if (!pMac->lim.cfgProtection.ht20) {
                     // protection disabled.
                     PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled"));)
                     return eSIR_SUCCESS;
@@ -4105,12 +4044,11 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-    if (enable)
-    {
+    if (enable) {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 psessionEntry->gLimOverlapHt20Params.protectionEnabled = true;
@@ -4133,8 +4071,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
                 }
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        } else if(LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 pMac->lim.gLimOverlapHt20Params.protectionEnabled = true;
@@ -4170,7 +4107,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 //Overlap Legacy protection disabled.
@@ -4215,8 +4152,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             PELOG1(limLog(pMac, LOG1, FL("===> Protection from HT 20 Disabled"));)
             pBeaconParams->ht20MhzCoexist = psessionEntry->beaconParams.ht20Coexist = false;
             pBeaconParams->paramChangeBitmap |= PARAM_HT20MHZCOEXIST_CHANGED;
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-        {
+        } else if(LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
             if(overlap)
             {
                 //Overlap Legacy protection disabled.
@@ -4290,30 +4226,25 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
-        if(overlap)
-        {
-        }
-        else
-        {
+        if(overlap) {
+        } else {
             //normal protection config check
-            if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                !psessionEntry->cfgProtection.nonGf)
-            {
+            if (LIM_IS_AP_ROLE(psessionEntry) &&
+                !psessionEntry->cfgProtection.nonGf) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled"));)
                 return eSIR_SUCCESS;
-            }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-            {
+            } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
                 //normal protection config check
-                if(!pMac->lim.cfgProtection.nonGf)
-                {
+                if (!pMac->lim.cfgProtection.nonGf) {
                     // protection disabled.
                     PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled"));)
                     return eSIR_SUCCESS;
-                 }
+                }
             }
         }
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Protection from non GF Enabled"));)
@@ -4326,8 +4257,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = false;
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
-    }else
-    {
+    } else {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Protection from non GF Enabled"));)
@@ -4361,23 +4291,17 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
-        if(overlap)
-        {
-        }
-        else
-        {
+        if(overlap) {
+        } else {
             //normal protection config check
-            if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-               !psessionEntry->cfgProtection.lsigTxop)
-            {
+            if (LIM_IS_AP_ROLE(psessionEntry) &&
+               !psessionEntry->cfgProtection.lsigTxop) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled"));)
                 return eSIR_SUCCESS;
-            }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-            {
+            } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
                 //normal protection config check
-                if(!pMac->lim.cfgProtection.lsigTxop)
-                {
+                if(!pMac->lim.cfgProtection.lsigTxop) {
                     // protection disabled.
                     PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled"));)
                     return eSIR_SUCCESS;
@@ -4385,8 +4309,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Protection from LsigTxop Enabled"));)
@@ -4399,8 +4322,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->fLsigTXOPProtectionFullSupport= psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = false;
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
-    }else
-    {
+    } else {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Protection from LsigTxop Enabled"));)
@@ -4435,23 +4357,17 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
 
         //overlapping protection configuration check.
-        if(overlap)
-        {
-        }
-        else
-        {
+        if(overlap) {
+        } else {
              //normal protection config check
-            if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
-               !psessionEntry->cfgProtection.rifs)
-            {
+            if (LIM_IS_AP_ROLE(psessionEntry) &&
+               !psessionEntry->cfgProtection.rifs) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
                 return eSIR_SUCCESS;
-            }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-            {
+            } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
                //normal protection config check
-               if(!pMac->lim.cfgProtection.rifs)
-               {
+               if(!pMac->lim.cfgProtection.rifs) {
                   // protection disabled.
                   PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
                   return eSIR_SUCCESS;
@@ -4459,7 +4375,7 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
         if ((!enable) && (false == psessionEntry->beaconParams.fRIFSMode))
         {
@@ -4535,8 +4451,7 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     if (!val)   // 11G short preamble switching is disabled.
         return eSIR_SUCCESS;
 
-    if ( psessionEntry->limSystemRole == eLIM_AP_ROLE )
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         if (enable && (psessionEntry->beaconParams.fShortPreamble == 0))
         {
             PELOG1(limLog(pMac, LOG1, FL("===> Short Preamble Enabled"));)
@@ -4554,7 +4469,7 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     }
 
     return eSIR_SUCCESS;
-        }
+}
 
 /**
  * limTxComplete
@@ -4698,11 +4613,9 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
 #endif
 
         //In case of IBSS, if STA should update HT Info IE in its beacons.
-       if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole)
-        {
-            schSetFixedBeaconFields(pMac,psessionEntry);
-        }
-
+       if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+            schSetFixedBeaconFields(pMac, psessionEntry);
+       }
     }
 } // End limUpdateStaRunTimeHTParams.
 
@@ -4900,8 +4813,8 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
       return eSIR_FAILURE;
     }
 
-    if ((psessionEntry->limSystemRole == eLIM_STA_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE))
-    {
+    if (LIM_IS_STA_ROLE(psessionEntry) ||
+        LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) {
         tANI_U32 val;
 
         // station always talks to the AP
@@ -4910,9 +4823,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
         val = sizeof(tSirMacAddr);
        sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
 
-    }
-    else
-    {
+    } else {
         tANI_U16 assocId;
         tANI_U8 *macaddr = (tANI_U8 *) peerMacAddr;
 
@@ -5168,11 +5079,10 @@ limDeleteBASessions(tpAniSirGlobal pMac, tpPESession pSessionEntry,
     {
         for(tid = 0; tid < STACFG_MAX_TC; tid++)
         {
-            if ((eLIM_AP_ROLE == pSessionEntry->limSystemRole) ||
-                (pSessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) ||
-                (eLIM_STA_IN_IBSS_ROLE == pSessionEntry->limSystemRole) ||
-                (pSessionEntry->limSystemRole == eLIM_P2P_DEVICE_GO))
-            {
+            if (LIM_IS_AP_ROLE(pSessionEntry) ||
+                LIM_IS_BT_AMP_AP_ROLE(pSessionEntry) ||
+                LIM_IS_IBSS_ROLE(pSessionEntry) ||
+                LIM_IS_P2P_DEVICE_GO(pSessionEntry)) {
                 for (i = 0; i < pMac->lim.maxStation; i++)
                 {
                     pSta = pSessionEntry->dph.dphHashTable.pDphNodeArray + i;
@@ -5194,11 +5104,9 @@ limDeleteBASessions(tpAniSirGlobal pMac, tpPESession pSessionEntry,
                         }
                     }
                 }
-            }
-            else if ((eLIM_STA_ROLE == pSessionEntry->limSystemRole) ||
-                     (eLIM_BT_AMP_STA_ROLE == pSessionEntry->limSystemRole) ||
-                     (eLIM_P2P_DEVICE_ROLE == pSessionEntry->limSystemRole))
-            {
+            } else if (LIM_IS_STA_ROLE(pSessionEntry) ||
+                     LIM_IS_BT_AMP_STA_ROLE(pSessionEntry) ||
+                     LIM_IS_P2P_DEVICE_ROLE(pSessionEntry)) {
                 pSta = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER,
                                        &pSessionEntry->dph.dphHashTable);
                 if (pSta && pSta->added)
@@ -6205,7 +6113,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
     tSirRetStatus retCode = eSIR_SUCCESS;
     tANI_U32      val = 0;
 
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return retCode;
 
     /* Channel switch should be ready for the next time */
@@ -6342,7 +6250,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac, tpPESession psessionE
 void
 limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
+    if (!LIM_IS_STA_ROLE(psessionEntry))
         return;
 
     /* Flag to indicate 11h channel switch in progress */
@@ -6641,8 +6549,7 @@ void limHandleHeartBeatTimeoutForSession(tpAniSirGlobal pMac, tpPESession psessi
             limIbssHeartBeatHandle(pMac,psessionEntry);
         }
         if((psessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE) &&
-             (psessionEntry->limSystemRole == eLIM_STA_ROLE))
-        {
+             LIM_IS_STA_ROLE(psessionEntry)) {
             limHandleHeartBeatFailure(pMac,psessionEntry);
         }
     }
@@ -6651,8 +6558,7 @@ void limHandleHeartBeatTimeoutForSession(tpAniSirGlobal pMac, tpPESession psessi
     if(psessionEntry->valid == TRUE )
     {
         if((psessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE) &&
-            (psessionEntry->limSystemRole == eLIM_STA_ROLE))
-        {
+            LIM_IS_STA_ROLE(psessionEntry)) {
             if(psessionEntry->LimHBFailureStatus == eANI_BOOLEAN_TRUE)
             {
                 /* Activate Probe After HeartBeat Timer in-case
@@ -6703,7 +6609,7 @@ void limProcessAddStaRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
         return;
     }
     psessionEntry->csaOffloadEnable = pAddStaParams->csaOffloadEnable;
-    if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
+    if (LIM_IS_IBSS_ROLE(psessionEntry))
         (void) limIbssAddStaRsp(pMac, limMsgQ->bodyptr,psessionEntry);
 #ifdef FEATURE_WLAN_TDLS
     else if(pMac->lim.gLimAddStaTdls)
@@ -7495,10 +7401,7 @@ limSetProtectedBit(tpAniSirGlobal  pMac,
     tANI_U16 aid;
     tpDphHashNode pStaDs;
 
-    if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
-    {
-
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
         pStaDs = dphLookupHashEntry( pMac, peer, &aid,
                                      &psessionEntry->dph.dphHashTable );
         if( pStaDs != NULL )

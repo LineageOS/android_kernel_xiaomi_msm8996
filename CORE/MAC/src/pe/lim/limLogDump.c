@@ -231,17 +231,14 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
         return p;
     }
 
-    if( ( (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-          (psessionEntry ->limSystemRole == eLIM_BT_AMP_STA_ROLE) ) &&
-        (psessionEntry->statypeForBss == STA_ENTRY_PEER))
-    {
+    if ((LIM_IS_STA_ROLE(psessionEntry) ||
+         LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) &&
+        (psessionEntry->statypeForBss == STA_ENTRY_PEER)) {
         sirCopyMacAddr(pDisAssocReq->bssId,psessionEntry->bssId);
         sirCopyMacAddr(pDisAssocReq->peerMacAddr,psessionEntry->bssId);
     }
-    if((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
-       || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    )
-    {
+    if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) ||
+        (LIM_IS_AP_ROLE(psessionEntry))) {
         sirCopyMacAddr(pDisAssocReq->peerMacAddr,pStaDs->staAddr);
         sirCopyMacAddr(pDisAssocReq->bssId,psessionEntry->bssId);
     }
@@ -489,7 +486,7 @@ static char *printSessionInfo(tpAniSirGlobal pMac, char *p)
             p += log_sprintf( pMac,p, "valid: %d \n", psessionEntry->valid);
             p += log_sprintf( pMac,p, "limMlmState: (%d) %s ", psessionEntry->limMlmState, limMlmStateStr(psessionEntry->limMlmState) );
             p += log_sprintf( pMac,p, "limPrevMlmState: (%d) %s ", psessionEntry->limPrevMlmState, limMlmStateStr(psessionEntry->limMlmState) );
-            p += log_sprintf( pMac,p, "limSystemRole: (%d) %s \n", psessionEntry->limSystemRole, getRole(psessionEntry->limSystemRole) );
+            p += log_sprintf( pMac,p, "limSystemRole: (%d) %s \n", GET_LIM_SYSTEM_ROLE(psessionEntry), getRole(psessionEntry->limSystemRole) );
             p += log_sprintf( pMac,p, "bssType: (%d) %s \n", psessionEntry->bssType, limBssTypeStr(psessionEntry->bssType));
             p += log_sprintf( pMac,p, "operMode: %d \n", psessionEntry->operMode);
             p += log_sprintf( pMac,p, "dot11mode: %d \n", psessionEntry->dot11mode);
@@ -1099,8 +1096,7 @@ dump_lim_set_dot11_mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
 
     tpPESession psessionEntry =&pMac->lim.gpSession[0];
     dump_cfg_set(pMac, WNI_CFG_DOT11_MODE, arg1, arg2, arg3, p);
-    if ( (limGetSystemRole(psessionEntry) == eLIM_AP_ROLE) ||
-          (limGetSystemRole(psessionEntry) == eLIM_STA_IN_IBSS_ROLE))
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry))
         schSetFixedBeaconFields(pMac,psessionEntry);
     p += log_sprintf( pMac,p, "The Dot11 Mode is set to %d", (tANI_U8)psessionEntry->dot11mode);
     return p;
@@ -1136,11 +1132,10 @@ static char* dump_lim_update_cb_Mode(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U3
 
     limSendSwitchChnlParams(pMac, psessionEntry->currentOperChannel, psessionEntry->htSecondaryChannelOffset,
                                                                   (tPowerdBm) localPwrConstraint, psessionEntry->peSessionId);
-    if ( (limGetSystemRole(psessionEntry) == eLIM_AP_ROLE) ||
-          (limGetSystemRole(psessionEntry) == eLIM_STA_IN_IBSS_ROLE))
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry))
            schSetFixedBeaconFields(pMac,psessionEntry);
-    return p;
 
+    return p;
 }
 
 static char* dump_lim_abort_scan(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)

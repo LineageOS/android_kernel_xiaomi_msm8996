@@ -1730,9 +1730,8 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
         * the host causing the host to wakeup. Hence, offloading the HB
         * monitoring to LMAC
         */
-       if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE &&
-             IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE)
-       {
+       if (LIM_IS_IBSS_ROLE(psessionEntry) &&
+             IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE) {
           if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
           {
              limLog(pMac, LOGP,FL("IBSS HeartBeat Offloaded, Could not deactivate Heartbeat timer"));
@@ -1792,9 +1791,8 @@ v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry
         //consider 0 interval a ok case
         if( pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs )
         {
-           if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE &&
-               IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE)
-           {
+           if (LIM_IS_IBSS_ROLE(psessionEntry) &&
+               IS_IBSS_HEARTBEAT_OFFLOAD_FEATURE_ENABLE) {
               /* HB offload in IBSS mode */
               status = tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
               if (TX_SUCCESS != status)

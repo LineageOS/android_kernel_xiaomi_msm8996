@@ -432,7 +432,7 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pRxPacketIn
        //limSendDisassocMgmtFrame(pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON,(tANI_U8 *) pRxPacketInfo);
     //TODO: verify this
     //This could be a public action frame.
-    if( psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE )
+    if (LIM_IS_P2P_DEVICE_ROLE(psessionEntry))
         limProcessActionFrameNoSession(pMac, (tANI_U8 *) pRxPacketInfo);
 
 #ifdef FEATURE_WLAN_TDLS
@@ -449,7 +449,7 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pRxPacketIn
         }
         /* TDLS_hklee: move down here to reject Addr2 == Group (first checking above)
            and also checking if SystemRole == STA */
-        if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
+        if (LIM_IS_STA_ROLE(psessionEntry))
         {
             /* ADD handling of Public Action Frame */
             LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR, \
@@ -786,13 +786,10 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
             {
                 case SIR_MAC_MGMT_ASSOC_REQ:
                     // Make sure the role supports Association
-                    if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
-                    || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-                    )
+                    if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) ||
+                        LIM_IS_AP_ROLE(psessionEntry))
                         limProcessAssocReqFrame(pMac, pRxPacketInfo, LIM_ASSOC, psessionEntry);
-
-                    else
-                    {
+                    else {
                         // Unwanted messages - Log error
                         limLog(pMac, LOGE, FL("unexpected message received %X"),limMsg->type);
                     }
@@ -804,13 +801,10 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
                 case SIR_MAC_MGMT_REASSOC_REQ:
                     // Make sure the role supports Reassociation
-                    if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
-                      || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-                    ){
+                    if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) ||
+                        LIM_IS_AP_ROLE(psessionEntry)) {
                         limProcessAssocReqFrame(pMac, pRxPacketInfo, LIM_REASSOC, psessionEntry);
-                    }
-                    else
-                    {
+                    } else {
                         // Unwanted messages - Log error
                         limLog(pMac, LOGE, FL("unexpected message received %X"),limMsg->type);
                     }
@@ -1108,8 +1102,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if defined WLAN_FEATURE_VOWIFI_11R
     tpPESession pSession;
 #endif
-    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-    {
+    if (ANI_DRIVER_TYPE(pMac) == eDRIVER_TYPE_MFG) {
         vos_mem_free(limMsg->bodyptr);
         limMsg->bodyptr = NULL;
         return;
