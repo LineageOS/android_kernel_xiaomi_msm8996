@@ -3190,7 +3190,7 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
             }
         }
         csrElectedCountryInfo(pMac);
-        csrLearnCountryInformation( pMac, eANI_BOOLEAN_TRUE );
+        csrLearnCountryInformation( pMac, NULL, NULL, eANI_BOOLEAN_TRUE );
     }
 
 end:
@@ -4107,38 +4107,71 @@ void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pCh
 /*
   * 802.11D only: Gather 11d IE via beacon or Probe response and store them in pAdapter->channels11d
 */
-tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce)
+tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
+                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce)
 {
     eHalStatus status;
+    tANI_U8 *pCountryCodeSelected;
     tANI_BOOLEAN fRet = eANI_BOOLEAN_FALSE;
     v_REGDOMAIN_t domainId;
+    tDot11fBeaconIEs *pIesLocal = pIes;
+    tANI_BOOLEAN useVoting = eANI_BOOLEAN_FALSE;
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
         return eHAL_STATUS_SUCCESS;
+
+    if ((NULL == pSirBssDesc) && (NULL == pIes))
+        useVoting = eANI_BOOLEAN_TRUE;
 
     do
     {
         // check if .11d support is enabled
         if( !csrIs11dSupported( pMac ) ) break;
 
-#ifdef CONFIG_ENABLE_LINUX_REG
-            csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeElected,
-                                             &domainId, COUNTRY_IE);
-#endif
-#ifndef CONFIG_ENABLE_LINUX_REG
+        if (eANI_BOOLEAN_FALSE == useVoting)
+        {
+            if( !pIesLocal &&
+                (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
+                                     pSirBssDesc, &pIesLocal))))
+            {
+                break;
+            }
+            // check if country information element is present
+            if(!pIesLocal->Country.present)
+            {
+                //No country info
+                break;
+            }
+
+            if( HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry
+                (pMac, pIesLocal->Country.country, &domainId,
+                COUNTRY_QUERY)) &&
+                ( domainId == REGDOMAIN_WORLD))
+            {
+                break;
+            }
+        } //useVoting == eANI_BOOLEAN_FALSE
+
+        if (eANI_BOOLEAN_FALSE == useVoting)
+            pCountryCodeSelected = pIesLocal->Country.country;
+        else
+            pCountryCodeSelected = pMac->scan.countryCodeElected;
+
         status = csrGetRegulatoryDomainForCountry(pMac,
-                       pMac->scan.countryCodeElected, &domainId, COUNTRY_IE);
+                       pCountryCodeSelected, &domainId, COUNTRY_IE);
         if ( status != eHAL_STATUS_SUCCESS )
         {
             smsLog( pMac, LOGE, FL("  fail to get regId %d"), domainId );
             fRet = eANI_BOOLEAN_FALSE;
             break;
         }
+
+#ifndef CONFIG_ENABLE_LINUX_REG
         // Checking for Domain Id change
         if ( domainId != pMac->scan.domainIdCurrent )
         {
             vos_mem_copy(pMac->scan.countryCode11d,
-                                  pMac->scan.countryCodeElected,
+                                  pCountryCodeSelected,
                                   sizeof( pMac->scan.countryCode11d ) );
             /* Set Current Country code and Current Regulatory domain */
             status = csrSetRegulatoryDomain(pMac, domainId, NULL);
@@ -4150,9 +4183,9 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForc
             }
             //csrSetRegulatoryDomain will fail if the country doesn't fit our domain criteria.
             vos_mem_copy(pMac->scan.countryCodeCurrent,
-                            pMac->scan.countryCodeElected, WNI_CFG_COUNTRY_CODE_LEN);
+                            pCountryCodeSelected, WNI_CFG_COUNTRY_CODE_LEN);
             //Simply set it to cfg.
-            csrSetCfgCountryCode(pMac, pMac->scan.countryCodeElected);
+            csrSetCfgCountryCode(pMac, pCountryCodeSelected);
 
             /* overwrite the defualt country code */
             vos_mem_copy(pMac->scan.countryCodeDefault,
@@ -4182,6 +4215,12 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForc
         fRet = eANI_BOOLEAN_TRUE;
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        vos_mem_free(pIesLocal);
+    }
 
     return( fRet );
 }
