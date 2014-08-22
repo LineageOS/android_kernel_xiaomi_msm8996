@@ -401,7 +401,8 @@ htt_tx_desc_init(
     HTT_TX_DESC_VDEV_ID_SET(local_word0, msdu_info->info.vdev_id);
     HTT_TX_DESC_EXT_TID_SET(local_word0, msdu_info->info.ext_tid);
     HTT_TX_DESC_CKSUM_OFFLOAD_SET(local_word0, msdu_info->action.cksum_offload);
-    HTT_TX_DESC_TX_COMP_SET(local_word0, msdu_info->action.tx_comp_req);
+    if (pdev->cfg.is_high_latency)
+        HTT_TX_DESC_TX_COMP_SET(local_word0, msdu_info->action.tx_comp_req);
     HTT_TX_DESC_NO_ENCRYPT_SET(local_word0, msdu_info->action.do_encrypt ? 0 : 1);
     *word0 = local_word0;
 
