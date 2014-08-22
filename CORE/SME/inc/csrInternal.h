@@ -980,6 +980,7 @@ typedef struct tagCsrRoamSession
     tCsrRoamOffloadSynchStruct roamOffloadSynchParams;
     tANI_U8 psk_pmk[SIR_ROAM_SCAN_PSK_SIZE];
     size_t  pmk_len;
+    tANI_U8 RoamKeyMgmtOffloadEnabled;
 #endif
 
     /* SME FT Context */

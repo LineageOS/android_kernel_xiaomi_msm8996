@@ -7465,7 +7465,15 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				buf_ptr += WMI_TLV_HDR_SIZE;
 				roam_offload_11i =
 				(wmi_roam_11i_offload_tlv_param *) buf_ptr;
-				WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(roam_offload_11i->flags);
+				if (roam_req->RoamKeyMgmtOffloadEnabled) {
+					WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(
+						roam_offload_11i->flags);
+				} else {
+					WMI_SET_ROAM_OFFLOAD_OKC_DISABLED(
+						roam_offload_11i->flags);
+				}
+
+
 				vos_mem_copy (roam_offload_11i->pmk, roam_req->PSK_PMK,
                                              sizeof(roam_req->PSK_PMK));
 				roam_offload_11i->pmk_len = roam_req->pmk_len;

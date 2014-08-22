@@ -3756,6 +3756,7 @@ typedef struct sSirRoamOffloadScanReq
   tSirAcUapsd AcUapsd;
   tANI_U8   R0KH_ID[SIR_ROAM_R0KH_ID_MAX_LEN];
   tANI_U32  R0KH_ID_Length;
+  tANI_U8   RoamKeyMgmtOffloadEnabled;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 

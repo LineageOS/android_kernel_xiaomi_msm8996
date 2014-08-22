@@ -9548,7 +9548,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-#define KEY_MGMT_OFFLOAD_BITMASK 0x4
     /* Supplicant indicate its decision to offload key management
      * by setting the third bit in flags in case of Secure connection
      * so if the supplicant does not support this then LFR3.0 shall
@@ -9559,26 +9558,29 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
      * enabled in INI and FW also has the capability to handle
      * key management offload as part of LFR3.0
      */
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
-            "%s: LFR3:Supplicant key mgmt offload capability flags %x",
-                                                  __func__,req->flags);
-    if (!(req->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM) ||
-        (req->auth_type == NL80211_AUTHTYPE_FT)) {
-        if (!(req->flags & KEY_MGMT_OFFLOAD_BITMASK)) {
-            hddLog(VOS_TRACE_LEVEL_DEBUG,
-            FL("Supplicant does not support key mgmt offload for this AP"));
-            pHddCtx->cfg_ini->isRoamOffloadEnabled = 0;
-            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, FALSE);
-        } else {
-            pHddCtx->cfg_ini->isRoamOffloadEnabled = 1;
-            status =    sme_UpdateRoamOffloadEnabled(pHddCtx->hHal, TRUE);
-        }
-        if (0 != status) {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Could not update the RoamOffload enable", __func__);
-            return status;
-        }
+
+#ifdef NL80211_KEY_LEN_PMK /* if kernel supports key mgmt offload */
+    VOS_TRACE( VOS_MODULE_ID_HDD,
+               VOS_TRACE_LEVEL_ERROR,
+               "%s: LFR3:Supplicant association request flags %x",
+               __func__, req->flags);
+    if (!(req->flags & ASSOC_REQ_OFFLOAD_KEY_MGMT)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+        FL("Supplicant does not support key mgmt offload for this AP"));
+        sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal,
+                                            pAdapter->sessionId,
+                                            FALSE);
+    } else {
+        sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal,
+                                            pAdapter->sessionId,
+                                            TRUE);
     }
+#else
+    hddLog(VOS_TRACE_LEVEL_ERROR,
+        FL("Kernel does not support key mgmt offload"));
+    sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal, pAdapter->sessionId, FALSE);
+#endif /* #ifdef NL80211_KEY_LEN_PMK */
+
 #endif
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));

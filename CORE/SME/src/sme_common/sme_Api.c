@@ -13697,4 +13697,43 @@ eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
 
     return status ;
 }
+
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateRoamKeyMgmtOffloadEnabled() - enable/disable key mgmt offload
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session Identifier
+  \param nRoamKeyMgmtOffloadEnabled - The boolean to update with
+  \return eHAL_STATUS_SUCCESS - SME update config successfully.
+          Other status means SME is failed to update.
+  \sa
+  --------------------------------------------------------------------------*/
+
+eHalStatus sme_UpdateRoamKeyMgmtOffloadEnabled(tHalHandle hHal,
+                                     tANI_U8 sessionId,
+                                     v_BOOL_t nRoamKeyMgmtOffloadEnabled)
+
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: LFR3: KeyMgmtOffloadEnabled changed to %d",
+                      __func__,
+                      nRoamKeyMgmtOffloadEnabled);
+            status = csrRoamSetKeyMgmtOffload(pMac,
+                                              sessionId,
+                                              nRoamKeyMgmtOffloadEnabled);
+        } else {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return status ;
+}
 #endif
