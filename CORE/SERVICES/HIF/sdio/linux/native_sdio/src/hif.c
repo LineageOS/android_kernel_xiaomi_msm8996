@@ -1594,7 +1594,8 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
             setAsyncIRQ = 1;
             ret = Func0_CMD52WriteByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6003,
                     SDIO_IRQ_MODE_ASYNC_4BIT_IRQ_AR6003);
-        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE){
+        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE ||
+                   manufacturer_id == MANUFACTURER_ID_QCA9377_BASE) {
             unsigned char data = 0;
             setAsyncIRQ = 1;
             ret = Func0_CMD52ReadByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6320, &data);
