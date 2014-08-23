@@ -975,18 +975,10 @@ typedef struct sSirSmeScanChanReq
 #ifdef FEATURE_OEM_DATA_SUPPORT
 
 #ifndef OEM_DATA_REQ_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_REQ_SIZE 280
-#else
-#define OEM_DATA_REQ_SIZE 134
-#endif
 #endif
 #ifndef OEM_DATA_RSP_SIZE
-#ifdef QCA_WIFI_2_0
 #define OEM_DATA_RSP_SIZE 1724
-#else
-#define OEM_DATA_RSP_SIZE 1968
-#endif
 #endif
 
 typedef struct sSirOemDataReq
@@ -3019,13 +3011,8 @@ typedef struct sSmeCsaOffloadInd
 
 /// WOW related structures
 // SME -> PE <-> HAL
-#ifdef QCA_WIFI_2_0
 #define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 146
 #define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 19
-#else
-#define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 128
-#define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 16
-#endif
 // SME -> PE -> HAL - This is to add WOWL BCAST wake-up pattern.
 // SME/HDD maintains the list of the BCAST wake-up patterns.
 // This is a pass through message for PE
@@ -4164,7 +4151,6 @@ typedef struct sSirMgmtTxCompletionInd
    tANI_U32               txCompleteStatus;
 } tSirMgmtTxCompletionInd, *tpSirMgmtTxCompletionInd;
 
-#ifdef QCA_WIFI_2_0
 typedef struct sSirTdlsEventNotify
 {
    tANI_U8         sessionId;
@@ -4172,7 +4158,6 @@ typedef struct sSirTdlsEventNotify
    tANI_U16        messageType;
    tANI_U32        peer_reason;
 } tSirTdlsEventNotify;
-#endif
 #endif /* FEATURE_WLAN_TDLS */
 
 
@@ -4220,9 +4205,7 @@ typedef struct sAniHandoffReq
     tANI_U8   sessionId;
     tANI_U8   bssid[VOS_MAC_ADDR_SIZE];
     tANI_U8   channel;
-#ifndef QCA_WIFI_ISOC
     tANI_U8   handoff_src;
-#endif
 } tAniHandoffReq, *tpAniHandoffReq;
 
 typedef struct sSirScanOffloadReq {
@@ -4549,7 +4532,7 @@ typedef struct sSirRateUpdateInd
 
 } tSirRateUpdateInd, *tpSirRateUpdateInd;
 
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 #define SIR_CH_AVOID_MAX_RANGE   4
 
 typedef struct sSirChAvoidFreqType
@@ -4563,7 +4546,7 @@ typedef struct sSirChAvoidIndType
 	tANI_U32	avoid_range_count;
 	tSirChAvoidFreqType	avoid_freq_range[SIR_CH_AVOID_MAX_RANGE];
 } tSirChAvoidIndType;
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
 #define SIR_DFS_MAX_20M_SUB_CH 8
 
@@ -5066,7 +5049,7 @@ typedef struct
     tANI_U32     numOfRssi;
 
     /* Rssi history in db */
-    tANI_S32     *rssi;
+    tANI_S32     rssi[];
 } tSirWifiSignificantChange, *tpSirWifiSignificantChange;
 
 typedef struct
@@ -5075,7 +5058,7 @@ typedef struct
 
     tANI_BOOLEAN                  moreData;
     tANI_U32                      numResults;
-    tSirWifiSignificantChange     **ap;
+    tSirWifiSignificantChange     ap[];
 } tSirWifiSignificantChangeEvent, *tpSirWifiSignificantChangeEvent;
 
 typedef struct
@@ -5113,8 +5096,9 @@ typedef struct
 
 typedef struct
 {
-    tANI_U8    scanEventType;
+    tANI_U32   requestId;
     tANI_U32   status;
+    tANI_U8    scanEventType;
 } tSirExtScanOnScanEventIndParams,
   *tpSirExtScanOnScanEventIndParams;
 
@@ -5493,6 +5477,14 @@ typedef struct
 } tSirLLStatsResults, *tpSirLLStatsResults;
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+typedef struct sAniGetLinkStatus
+{
+    tANI_U16 msgType;      /* message type is same as the request type */
+    tANI_U16 msgLen;       /* length of the entire request */
+    tANI_U8 linkStatus;
+    tANI_U8 sessionId;
+} tAniGetLinkStatus, *tpAniGetLinkStatus;
 
 /* find the size of given member within a structure */
 #ifndef member_size

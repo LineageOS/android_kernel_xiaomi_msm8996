@@ -345,8 +345,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
 #define WE_CLEAR_STATS       1
-#define WE_INIT_AP           2
-#define WE_STOP_AP           3
 #ifdef WLAN_BTAMP_FEATURE
 #define WE_ENABLE_AMP        4
 #define WE_DISABLE_AMP       5
@@ -7132,71 +7130,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             break;
         }
 
-        case WE_INIT_AP:
-        {
-#ifndef WLAN_FEATURE_MBSSID
-          /* As Soft AP mode might been changed to STA already with
-           * killing of Hostapd, need to find the adpater by name
-           * rather than mode */
-          hdd_adapter_t* pAdapter_to_stop =
-                hdd_get_adapter_by_name(WLAN_HDD_GET_CTX(pAdapter), "softap.0");
-          if( pAdapter_to_stop )
-          {
-              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                       "Adapter with name softap.0 already "
-                       "exist, ignoring the request.\nRemove the "
-                       "adapter and try again\n");
-              ret = -EINVAL;
-              break;
-          }
-#endif
-          pr_info("Init AP trigger\n");
-          hdd_open_adapter( WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP, "softap.%d",
-                 wlan_hdd_get_intf_addr( WLAN_HDD_GET_CTX(pAdapter) ),TRUE);
-          break;
-        }
-        case WE_STOP_AP:
-        {
-           /*FIX ME: Need to be revisited if multiple SAPs to be supported */
-           /* As Soft AP mode has been changed to STA already with killing of Hostapd,
-            * this is a dead code and need to find the adpater by name rather than mode */
-           hdd_adapter_t* pAdapter_to_stop =
-                hdd_get_adapter_by_name(WLAN_HDD_GET_CTX(pAdapter), "softap.0");
-           if( pAdapter_to_stop )
-           {
-               hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
-               pr_info("Stopping AP mode\n");
-
-               if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
-               {
-                  /* EXIT BMPS as fw cannot handle DEL_STA when its in BMPS */
-                  wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
-               }
-
-               /*Make sure that pAdapter cleaned properly*/
-               hdd_stop_adapter( pHddCtx, pAdapter_to_stop, VOS_TRUE );
-               hdd_deinit_adapter( pHddCtx, pAdapter_to_stop );
-               memset(&pAdapter_to_stop->sessionCtx, 0, sizeof(pAdapter_to_stop->sessionCtx));
-
-               wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter),
-                       pAdapter_to_stop->macAddressCurrent.bytes);
-               hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop,
-                       TRUE);
-
-               if (FALSE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
-               {
-                  /* put the device back into BMPS */
-                  wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
-               }
-           }
-           else
-           {
-              printk(KERN_ERR"SAP adapter not found to stop it!\n");
-           }
-
-           break;
-        }
 #ifdef WLAN_BTAMP_FEATURE
         case WE_ENABLE_AMP:
         {
@@ -10436,18 +10369,10 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "clearStats" },
-    {   WE_INIT_AP,
-        0,
-        0,
-        "initAP" },
     {   WE_GET_RECOVERY_STAT,
         0,
         0,
         "getRecoverStat" },
-    {   WE_STOP_AP,
-        0,
-        0,
-        "exitAP" },
 #ifdef WLAN_BTAMP_FEATURE
     {   WE_ENABLE_AMP,
         0,

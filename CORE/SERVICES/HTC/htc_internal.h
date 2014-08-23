@@ -229,7 +229,7 @@ void        HTCProcessCreditRpt(HTC_TARGET        *target,
                                 HTC_CREDIT_REPORT *pRpt,
                                 int                NumEntries,
                                 HTC_ENDPOINT_ID    FromEndpoint);
-void        HTCFwEventHandler(void *context);
+void        HTCFwEventHandler(void *context, A_STATUS status);
 void        HTCSendCompleteCheckCleanup(void *context);
 
 

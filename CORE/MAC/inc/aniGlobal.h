@@ -143,13 +143,11 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #define EQUALS_TO_ASCII_VALUE (61)
 #endif
 
-#ifdef QCA_WIFI_2_0
 #define WLAN_HOST_SEQ_NUM_MIN				2048
 #define WLAN_HOST_SEQ_NUM_MAX				4095
 #define LOW_SEQ_NUM_MASK				0x000F
 #define HIGH_SEQ_NUM_MASK				0x0FF0
 #define HIGH_SEQ_NUM_OFFSET				4
-#endif /* QCA_WIFI_2_0 */
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -977,10 +975,8 @@ typedef struct sMacOpenParameters
     tANI_U16 RArateLimitInterval;
     v_BOOL_t IsRArateLimitEnabled;
 #endif
-#if !defined(QCA_WIFI_ISOC)
     /* is RX re-ordering offloaded to the fw */
     tANI_U8 reorderOffload;
-#endif
 
     /* dfs radar pri multiplier */
     tANI_S32 dfsRadarPriMultiplier;
@@ -1079,9 +1075,7 @@ typedef struct sAniSirGlobal
     tANI_U8 lteCoexAntShare;
     tANI_U8 beacon_offload;
     tANI_U32 fEnableDebugLog;
-#ifdef QCA_WIFI_2_0
     tANI_U16 mgmtSeqNum;
-#endif /* QCA_WIFI_2_0 */
     v_BOOL_t enable5gEBT;
     /* Miracast session 0-Disabled, 1-Source, 2-sink*/
     tANI_U8 fMiracastSessionPresent;

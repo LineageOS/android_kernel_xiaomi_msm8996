@@ -262,13 +262,8 @@ extern a_uint16_t
  * @param mpdu_desc - the abstract descriptor for the MPDU in question
  * @return the rx reorder array index the MPDU goes into
  */
-#ifdef QCA_WIFI_ISOC
-int
-htt_rx_mpdu_desc_reorder_idx(htt_pdev_handle pdev, void *mpdu_desc);
-#else
 /* use sequence number (or LSBs thereof) as rx reorder array index */
 #define htt_rx_mpdu_desc_reorder_idx htt_rx_mpdu_desc_seq_num
-#endif
 
 union htt_rx_pn_t {
     /* WEP: 24-bit PN */

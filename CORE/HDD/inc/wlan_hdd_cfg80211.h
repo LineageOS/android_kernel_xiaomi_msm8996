@@ -162,9 +162,9 @@ enum qca_nl80211_vendor_subcmds {
 };
 
 enum qca_nl80211_vendor_subcmds_index {
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
     QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY_INDEX = 0,
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
 #ifdef WLAN_FEATURE_NAN
     QCA_NL80211_VENDOR_SUBCMD_NAN_INDEX,
@@ -731,7 +731,7 @@ enum qca_wlan_vendor_attr_ll_stats_results
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
 
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 #define HDD_MAX_AVOID_FREQ_RANGES   4
 typedef struct sHddAvoidFreqRange
 {
@@ -744,7 +744,7 @@ typedef struct sHddAvoidFreqList
    u32 avoidFreqRangeCount;
    tHddAvoidFreqRange avoidFreqRange[HDD_MAX_AVOID_FREQ_RANGES];
 } tHddAvoidFreqList;
-#endif /* FEATURE_WLAN_CH_AVOID */
+#endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
@@ -825,10 +825,10 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended)
                       void *callbackContext);
 void hdd_resume_wlan(void);
 
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
                                    tHddAvoidFreqList *pAvoidFreqList);
-#endif
+#endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC*/
 
 #ifdef FEATURE_WLAN_EXTSCAN
 void wlan_hdd_cfg80211_extscan_callback(void *ctx,

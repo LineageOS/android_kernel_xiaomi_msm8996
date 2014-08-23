@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -777,7 +777,6 @@ typedef struct hostdef_s {
 
 #define INVALID_REG_LOC_DUMMY_DATA 0xAA
 
-#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
 
 #define AR6320_CORE_CLK_DIV_ADDR	0x403fa8
 #define AR6320_CPU_PLL_INIT_DONE_ADDR	0x403fd0
@@ -826,7 +825,6 @@ struct cmnos_clock_s {
 	u_int32_t         pll_settling_time; /* 50us */
 	struct wlan_pll_s   wlan_pll;
 };
-#endif
 
 typedef struct TGT_REG_SECTION {
 	u_int32_t start_addr;

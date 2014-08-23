@@ -63,7 +63,9 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "sme_Api.h"
-
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+#include "wlan_hdd_hostapd.h"
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
@@ -1371,6 +1373,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     struct net_device *dev = pAdapter->dev;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+    hdd_adapter_t *pHostapdAdapter;
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     v_U8_t reqRsnIe[DOT11F_IE_RSN_MAX_LEN];
     tANI_U32 reqRsnLength = DOT11F_IE_RSN_MAX_LEN;
@@ -1895,6 +1900,25 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
     }
 
+#ifdef FEATURE_WLAN_FORCE_SAP_SCC
+    if (eCSR_ROAM_RESULT_ASSOCIATED == roamResult &&
+        pHddCtx->cfg_ini->SapSccChanAvoidance) {
+        pHostapdAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+        if (pHostapdAdapter != NULL) {
+             /* Restart SAP if its operating channel is different
+              * from AP channel.
+              */
+             if (pHostapdAdapter->sessionCtx.ap.operatingChannel !=
+                pRoamInfo->pBssDesc->channelId) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "Restart Sap as SAP channel is %d and STA channel is %d",
+                       pHostapdAdapter->sessionCtx.ap.operatingChannel,
+                       pRoamInfo->pBssDesc->channelId);
+                hdd_restart_softap(pHddCtx, pHostapdAdapter);
+             }
+        }
+    }
+#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
     return eHAL_STATUS_SUCCESS;
 }
 

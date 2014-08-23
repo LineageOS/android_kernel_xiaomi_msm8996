@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -315,32 +315,17 @@ wdi_out_cfg_sw_encap_hdr_max_size(ol_pdev_handle pdev)
 static inline u_int8_t
 wdi_out_cfg_tx_encap(ol_pdev_handle pdev)
 {
-#ifdef QCA_WIFI_ISOC
-    /*
-     * Tx encap done in SW for Riva.
-     * TBD: do tx encap in HW for Pronto and Northstar?
-     */
-    return 1;
-#else
     /* tx encap done in HW */
     return 0;
-#endif
 }
 
 static inline int
 wdi_out_cfg_host_addba(ol_pdev_handle pdev)
 {
-#ifdef QCA_WIFI_ISOC
-    /*
-     * ADDBA negotiation is handled by the host SW for the Riva family.
-     */
-    return 1;
-#else
     /*
      * ADDBA negotiation is handled by the target FW for Peregrine + Rome.
      */
     return 0;
-#endif
 }
 
 /**
@@ -526,57 +511,10 @@ wdi_out_rx_notify(
 void
 wdi_out_tx_paused_peer_data(ol_peer_handle peer, int has_tx_data);
 
-#ifdef QCA_WIFI_ISOC
-
-/**
- * @brief Request the control SW to begin an ADDBA negotiation
- * @details
- *  For systems in which ADDBA-request / response handshaking is handled
- *  by the host SW, the data SW will use this function to request for the
- *  control SW to perform ADDBA negotiation.
- *  The control SW will check whether it is able to do the ADDBA
- *  negotiation, and will use the return value to indicate whether the
- *  requested ADDBA negotiation was actually started.
- *  If the control SW starts ADDBA negotiation, it will call the
- *  reverse-direction ol_tx_addba_conf function to notify the data SW
- *  when the ADDBA negotiation completes.
- *
- * @param pdev - handle to the ctrl SW's physical device object
- * @param peer_mac_addr - which peer the ADDBA negotiation is with
- * @param tid - which traffic type the ADDBA negotiation is for
- * @return ol_addba_status enum
- */
-enum ol_addba_status
-wdi_out_ctrl_addba_req(ol_pdev_handle pdev, u_int8_t *peer_mac_addr, int tid);
-
-/**
- * @brief Notify the control SW that rx aggregation setup is complete
- * @details
- *  For systems in which responses to ADDBA-requests are handled by the host
- *  SW, the host control SW will tell the target to set up rx aggregation.
- *  The target, in turn, will send a HTT T2H RX_ADDBA message to the host
- *  data SW, to set up the host's side of rx aggregation.
- *  After the host data SW processes the RX_ADDBA message from the target,
- *  it will call this function to notify the host control SW that the target
- *  and the host data SW are fully prepared for rx aggregation.
- *  So, upon receiving this function call, the host control SW can send
- *  the ADDBA-response message.
- *
- * @param pdev - handle to the ctrl SW's physical device object
- * @param peer_mac_addr - which peer the ADDBA request was from
- * @param tid - which traffic type the ADDBA request was for
- * @param failed - whether rx aggregation setup succeeded (0) or failed (1)
- */
-void
-wdi_out_ctrl_rx_addba_complete(
-    ol_pdev_handle pdev, u_int8_t *peer_mac_addr, int tid, int failed);
-
-#else
 
 #define wdi_out_ctrl_addba_req(pdev, peer_mac_addr, tid) ol_addba_req_reject
 #define wdi_out_ctrl_rx_addba_complete(pdev, peer_mac_addr, tid, failed) /* no-op */
 
-#endif /* QCA_SUPPORT_HOST_ADDBA */
 
 #else
 /* WDI_API_AS_MACROS */

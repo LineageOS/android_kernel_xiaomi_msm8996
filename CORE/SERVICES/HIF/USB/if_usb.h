@@ -57,6 +57,7 @@
 #include <athdefs.h>
 #include "osapi_linux.h"
 #include "hif.h"
+
 struct hif_usb_softc {
 	/* For efficiency, should be first in struct */
 	struct device *dev;
@@ -80,6 +81,8 @@ struct hif_usb_softc {
 	int hdd_removed;
 	int hdd_removed_processing;
 	int hdd_removed_wait_cnt;
+	u8 *fw_data;
+	u32 fw_data_len;
 };
 #if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 int athdiag_procfs_init(void *scn);

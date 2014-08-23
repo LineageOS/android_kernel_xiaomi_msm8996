@@ -225,14 +225,10 @@ void wpalDmaMemoryFree(void *pv);
     Return:
        eWLAN_PAL_STATUS_SUCCESS - when everything is OK
 ---------------------------------------------------------------------------*/
-#ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue)
 {
         return eWLAN_PAL_STATUS_SUCCESS;
 }
-#else
-wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue);
-#endif	/* #ifdef QCA_WIFI_2_0 */
 
 /*---------------------------------------------------------------------------
     wpalDbgWriteRegister -  Write a value to the register in the WiFi BB chip
@@ -242,15 +238,11 @@ wpt_status wpalDbgReadRegister(wpt_uint32 regAddr, wpt_uint32 *pregValue);
     Return:
        eWLAN_PAL_STATUS_SUCCESS - when everything is OK
 ---------------------------------------------------------------------------*/
-#ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr,
                                               wpt_uint32 regValue)
 {
         return eWLAN_PAL_STATUS_SUCCESS;
 }
-#else
-wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr, wpt_uint32 regValue);
-#endif	/* #ifdef QCA_WIFI_2_0 */
 
 /*---------------------------------------------------------------------------
     wpalDbgReadMemory -  Read memory from WiFi BB chip space
@@ -261,15 +253,11 @@ wpt_status wpalDbgWriteRegister(wpt_uint32 regAddr, wpt_uint32 regValue);
     Return:
        eWLAN_PAL_STATUS_SUCCESS - when everything is OK
 ---------------------------------------------------------------------------*/
-#ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf,
                                            wpt_uint32 len)
 {
         return eWLAN_PAL_STATUS_SUCCESS;
 }
-#else
-wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len);
-#endif	/* #ifdef QCA_WIFI_2_0 */
 
 /*---------------------------------------------------------------------------
     wpalDbgWriteMemory -  Write a value to the memory in the WiFi BB chip space
@@ -280,15 +268,11 @@ wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len)
     Return:
        eWLAN_PAL_STATUS_SUCCESS - when everything is OK
 ---------------------------------------------------------------------------*/
-#ifdef QCA_WIFI_2_0
 static inline wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf,
                                             wpt_uint32 len)
 {
         return eWLAN_PAL_STATUS_SUCCESS;
 }
-#else
-wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len);
-#endif	/* #ifdef QCA_WIFI_2_0 */
 
 /*---------------------------------------------------------------------------
     wpalDriverShutdown -  Shutdown WLAN driver

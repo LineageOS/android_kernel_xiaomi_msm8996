@@ -175,6 +175,8 @@ typedef struct tagSmeStruct
     void (*nanCallback) (void*, tSirNanEvent*);
 #endif
     v_BOOL_t enableSelfRecovery;
+    tCsrLinkStatusCallback linkStatusCallback;
+    void *linkStatusContext;
 } tSmeStruct, *tpSmeStruct;
 
 

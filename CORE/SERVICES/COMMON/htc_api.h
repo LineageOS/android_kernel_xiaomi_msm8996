@@ -669,20 +669,6 @@ struct ol_ath_htc_stats *ieee80211_ioctl_get_htc_stats(HTC_HANDLE HTCHandle);
 }
 #endif
 
-#ifdef QCA_WIFI_ISOC
-typedef struct s_htc_msg t_htc_msg;
-
-typedef void (*htc_msg_callback)(t_htc_msg *pMsg);
-
-struct s_htc_msg{
-	u16 type;
-	u16 reserved;
-	void *ptr;
-	u32 val;
-	htc_msg_callback callback;
-	void *pContext;
-};
-#endif
 void HTCGetControlEndpointTxHostCredits(HTC_HANDLE HTCHandle, int *credit);
 void HTC_dump_counter_info(HTC_HANDLE HTCHandle);
 void *htc_get_targetdef(HTC_HANDLE htc_handle);

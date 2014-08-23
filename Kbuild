@@ -6,9 +6,6 @@ else
 	KERNEL_BUILD := 0
 endif
 
-# This driver supports the QCACLD 2.0 software architecture
-CONFIG_QCA_WIFI_2_0=1
-
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
 endif
@@ -107,7 +104,6 @@ PANIC_ON_BUG := 1
 #Re-enable wifi on WDI timeout
 RE_ENABLE_WIFI_ON_WDI_TIMEOUT := 0
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 #Enable OS specific ADF abstraction
 CONFIG_ADF_SUPPORT := 1
 
@@ -205,7 +201,6 @@ CONFIG_GTK_OFFLOAD := 1
 
 #Set this to 1 to catch erroneous Target accesses during debug.
 CONFIG_ATH_PCIE_ACCESS_DEBUG := 0
-endif
 
 #Enable IPA offload
 ifeq ($(CONFIG_IPA), y)
@@ -236,7 +231,6 @@ HAVE_CFG80211 := 0
 endif
 endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ############ COMMON ############
 COMMON_DIR :=	CORE/SERVICES/COMMON
 COMMON_INC :=	-I$(WLAN_ROOT)/$(COMMON_DIR)
@@ -252,7 +246,6 @@ ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
                 $(ADF_DIR)/adf_os_mem.o \
                 $(ADF_DIR)/linux/adf_os_defer_pvt.o \
                 $(ADF_DIR)/linux/adf_os_lock_pvt.o
-endif
 
 ############ BAP ############
 BAP_DIR :=	CORE/BAP
@@ -644,7 +637,6 @@ ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ########### BMI ###########
 BMI_DIR := CORE/SERVICES/BMI
 
@@ -768,7 +760,6 @@ WMA_OBJS :=	$(WMA_DIR)/regdomain.o \
 		$(WMA_DIR)/wma.o \
 		$(WMA_DIR)/wma_dfs_interface.o
 
-endif
 
 ############ WDA ############
 WDA_DIR :=	CORE/WDA
@@ -819,7 +810,6 @@ INCS :=		$(BAP_INC) \
 		$(WDI_INC) \
 		$(DFS_INC)
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 INCS +=		$(WMA_INC) \
 		$(COMMON_INC) \
 		$(WMI_INC) \
@@ -837,8 +827,6 @@ INCS +=		$(HIF_INC) \
 
 ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 INCS +=		$(PKTLOG_INC)
-endif
-
 endif
 
 OBJS :=		$(BAP_OBJS) \
@@ -931,11 +919,14 @@ CDEFINES +=     -DCONFIG_HL_SUPPORT \
                 -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 endif
 
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CDEFINES += -DFEATURE_WLAN_FORCE_SAP_SCC
+endif
+
 ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
 endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 CDEFINES +=	-DOSIF_NEED_RX_PEER_ID \
 		-DQCA_SUPPORT_TXRX_LOCAL_PEER_ID
 ifeq ($(CONFIG_ROME_IF),pci)
@@ -943,12 +934,9 @@ CDEFINES +=	-DQCA_LL_TX_FLOW_CT \
 		-DQCA_SUPPORT_TXRX_VDEV_PAUSE_LL \
 		-DQCA_SUPPORT_TXRX_VDEV_LL_TXQ
 endif
-endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ifeq ($(CONFIG_DEBUG_LL),y)
 CDEFINES +=    	-DQCA_PKT_PROTO_TRACE
-endif
 endif
 
 ifneq ($(CONFIG_QCA_CLD_WLAN),)
@@ -1033,7 +1021,6 @@ CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 CDEFINES += -DQCA_SUPPORT_OL_RX_REORDER_TIMEOUT
 CDEFINES += -DCONFIG_ATH_PCIE_MAX_PERF=0 -DCONFIG_ATH_PCIE_AWAKE_WHILE_DRIVER_LOAD=0 -DCONFIG_DISABLE_CDC_MAX_PERF_WAR=0
 CDEFINES += -DQCA_TX_HTT2_SUPPORT
-CDEFINES += -DUSB_FW_CRASH_RAM_DUMP
 endif
 
 # enable the MAC Address auto-generation feature
@@ -1071,11 +1058,6 @@ ifeq ($(CONFIG_FEATURE_NAN),y)
 CDEFINES += -DWLAN_FEATURE_NAN
 endif
 
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
-CDEFINES += -DQCA_WIFI_2_0
-endif
-
-ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
 ifeq ($(CONFIG_QCA_IBSS_SUPPORT), 1)
 CDEFINES += -DQCA_IBSS_SUPPORT
 endif
@@ -1202,7 +1184,6 @@ endif
 #Mark it as SMP Kernel
 ifeq ($(CONFIG_SMP),y)
 CDEFINES += -DQCA_CONFIG_SMP
-endif
 endif
 
 #features specific to mdm9630

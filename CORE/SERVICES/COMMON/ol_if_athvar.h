@@ -49,9 +49,6 @@
 #include <net/cnss.h>
 #endif
 
-#ifdef QCA_WIFI_ISOC
-#include "dmux_dxe_api.h"
-#endif
 
 #include "ol_ctrl_addba_api.h"
 typedef void * hif_handle_t;
@@ -115,6 +112,36 @@ struct ol_ath_stats {
     int hif_pipe_no_resrc_count;
     int ce_ring_delta_fail_count;
 };
+
+#ifdef HIF_USB
+/* Magic patterns for FW to report crash information (Rome USB) */
+#define FW_ASSERT_PATTERN       0x0000c600
+#define FW_REG_PATTERN          0x0000d600
+#define FW_REG_END_PATTERN      0x0000e600
+#define FW_RAMDUMP_PATTERN      0x0000f600
+#define FW_RAMDUMP_END_PATTERN  0x0000f601
+#define FW_RAMDUMP_PATTERN_MASK 0xfffffff0
+
+#define FW_REG_DUMP_CNT       60
+
+/* FW RAM segments (Rome USB) */
+enum {
+    FW_RAM_SEG_DRAM,
+    FW_RAM_SEG_IRAM,
+    FW_RAM_SEG_AXI,
+    FW_RAM_SEG_CNT
+};
+
+/* Allocate 384K memory to save each segment of ram dump */
+#define FW_RAMDUMP_SEG_SIZE     393216
+
+/* structure to save RAM dump information */
+struct fw_ramdump {
+    A_UINT32 start_addr;
+    A_UINT32 length;
+    A_UINT8 *mem;
+};
+#endif
 
 struct ol_softc {
     /*
@@ -203,6 +230,13 @@ struct ol_softc {
     bool                    enablefwlog;        /* enable fwlog */
     /* enable FW self-recovery for Rome USB */
     bool                    enableFwSelfRecovery;
+#ifdef HIF_USB
+    /* structure to save FW RAM dump (Rome USB) */
+    struct fw_ramdump       *ramdump[FW_RAM_SEG_CNT];
+    A_UINT8                 ramdump_index;
+    bool                    fw_ram_dumping;
+#endif
+
     bool                    enablesinglebinary; /* Use single binary for FW */
     HAL_REG_CAPABILITIES hal_reg_capabilities;
     struct ol_regdmn *ol_regdmn_handle;
@@ -282,9 +316,6 @@ struct ol_ath_vap_net80211 {
 
 struct ol_ath_node_net80211 {
     ol_txrx_peer_handle         an_txrx_handle;    /* ol data path handle */
-#ifdef QCA_WIFI_ISOC
-    ol_ctrl_addba_handle        an_ctrl_addba_handle;
-#endif /* QCA_WIFI_ISOC */
 };
 
 #define OL_ATH_NODE_NET80211(_ni)      ((struct ol_ath_node_net80211 *)(_ni))

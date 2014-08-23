@@ -83,9 +83,7 @@ when        who    what, where, why
 #include "sirApi.h"
 #include "csrApi.h"
 #include "sapApi.h"
-#ifdef QCA_WIFI_2_0
 #include "adf_nbuf.h"
-#endif
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -573,36 +571,6 @@ typedef VOS_STATUS (*WLANTL_STAFetchPktCBType)(
                                             vos_pkt_t**           vosDataBuff,
                                             WLANTL_MetaInfoType*  tlMetaInfo);
 
-#ifndef QCA_WIFI_2_0
-/*----------------------------------------------------------------------------
-
-  DESCRIPTION
-    Type of the receive callback registered with TL.
-
-    TL will call this to notify the client when a packet was received
-    for a registered STA.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL's or HDD's control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was received
-                    (it may be a linked list)
-    ucSTAId:        station id
-    pRxMetaInfo:   meta info for the received packet(s)
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_STARxCBType)( v_PVOID_t              pvosGCtx,
-                                          vos_pkt_t*             vosDataBuff,
-                                          v_U8_t                 ucSTAId,
-                                          WLANTL_RxMetaInfoType* pRxMetaInfo);
-
-#else
 
 /*----------------------------------------------------------------------------
 
@@ -653,7 +621,6 @@ typedef VOS_STATUS (*WLANTL_STARxCBType)(v_PVOID_t              pvosGCtx,
 typedef void (*WLANTL_TxFlowControlCBType)(void *adapterCtxt,
                                                v_BOOL_t resume_tx);
 #endif /* QCA_LL_TX_FLOW_CT */
-#endif /* QCA_WIFI_2_0 */
 
 /*----------------------------------------------------------------------------
     INTERACTION WITH BAP
@@ -1225,15 +1192,6 @@ WLANTL_STAPtkInstalled
   SIDE EFFECTS
 
 ============================================================================*/
-#ifndef QCA_WIFI_2_0
-VOS_STATUS
-WLANTL_GetSTAState
-(
-  v_PVOID_t             pvosGCtx,
-  v_U8_t                ucSTAId,
-  WLANTL_STAStateType   *ptlSTAState
-);
-#else
 static inline VOS_STATUS
 WLANTL_GetSTAState
 (
@@ -1244,7 +1202,6 @@ WLANTL_GetSTAState
 {
      return VOS_STATUS_SUCCESS;
 }
-#endif /* QCA_WIFI_2_0 */
 
 /*===========================================================================
 
@@ -1294,7 +1251,6 @@ WLANTL_STAPktPending
   WLANTL_ACEnumType    ucAc
 );
 
-#ifdef QCA_WIFI_2_0
 /*===========================================================================
 
   FUNCTION   WLANTL_SendSTA_DataFrame
@@ -1328,7 +1284,6 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(v_PVOID_t pvosGCtx, v_U8_t ucSTAId,
                                   , v_U8_t proto_type
 #endif /* QCA_PKT_PROTO_TRACE */
                                     );
-#endif
 
 #ifdef IPA_OFFLOAD
 /*===========================================================================
@@ -2231,13 +2186,9 @@ WLANTL_EnableUAPSDForAC
   v_U8_t             ucUP,
   v_U32_t            uServiceInt,
   v_U32_t            uSuspendInt,
-#ifdef QCA_WIFI_2_0
   WLANTL_TSDirType   wTSDir,
   v_U8_t             psb,
   v_U32_t            sessionId
-#else
-  WLANTL_TSDirType   wTSDir
-#endif
 );
 
 
@@ -2273,12 +2224,8 @@ WLANTL_DisableUAPSDForAC
 (
   v_PVOID_t          pvosGCtx,
   v_U8_t             ucSTAId,
-#ifdef QCA_WIFI_2_0
   WLANTL_ACEnumType  ucACId,
   v_U32_t            sessionId
-#else
-  WLANTL_ACEnumType  ucACId
-#endif
 );
 
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING
@@ -2932,15 +2879,6 @@ WLANTL_UpdateLinkCapacity
 
 ============================================================================*/
 
-#ifndef QCA_WIFI_2_0
-VOS_STATUS
-WLANTL_GetSTALinkCapacity
-(
-  v_PVOID_t             pvosGCtx,
-  v_U8_t                ucSTAId,
-  v_U32_t               *plinkCapacity
-);
-#else
 static inline VOS_STATUS
 WLANTL_GetSTALinkCapacity
 (
@@ -2951,7 +2889,6 @@ WLANTL_GetSTALinkCapacity
 {
     return VOS_STATUS_SUCCESS;
 }
-#endif /* QCA_WIFI_2_0 */
 /*===========================================================================
   FUNCTION   WLANTL_TxThreadDebugHandler
 
@@ -3000,13 +2937,6 @@ WLANTL_TxThreadDebugHandler
 
 ============================================================================*/
 
-#ifndef QCA_WIFI_2_0
-v_VOID_t
-WLANTL_TLDebugMessage
-(
-  v_BOOL_t displaySnapshot
-);
-#else
 static inline v_VOID_t
 WLANTL_TLDebugMessage
 (
@@ -3015,10 +2945,7 @@ WLANTL_TLDebugMessage
 {
 
 }
-#endif /* QCA_WIFI_2_0 */
 
-
-#ifdef QCA_WIFI_2_0
 #ifdef QCA_LL_TX_FLOW_CT
 /*=============================================================================
   FUNCTION    WLANTL_GetTxResource
@@ -3164,7 +3091,6 @@ void WLANTL_SetAdapterMaxQDepth
    int max_q_depth
 );
 #endif /* QCA_LL_TX_FLOW_CT */
-#endif /* QCA_WIFI_2_0 */
 
 #ifdef IPA_UC_OFFLOAD
 /*=============================================================================
