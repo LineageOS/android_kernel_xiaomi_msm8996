@@ -826,7 +826,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define WDA_ROAM_OFFLOAD_SYNCH_CNF  SIR_HAL_ROAM_OFFLOAD_SYNCH_CNF
-#define WDA_HO_FAIL_IND  SIR_HAL_HO_FAIL_IND
 #endif
 #ifdef WLAN_WAKEUP_EVENTS
 #define WDA_WAKE_REASON_IND    SIR_HAL_WAKE_REASON_IND
@@ -971,6 +970,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
 #define WDA_LINK_STATUS_GET_REQ SIR_HAL_LINK_STATUS_GET_REQ
+#define WDA_GET_LINK_STATUS_RSP_IND SIR_HAL_GET_LINK_STATUS_RSP_IND
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

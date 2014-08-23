@@ -265,6 +265,8 @@ PREPACK struct bmi_target_info {
 #define TARGET_TYPE_AR6320V2    12
 /* For Rome3.0 target_reg_tbl ID*/
 #define TARGET_TYPE_AR6320V3    13
+/* For Tufello1.0 target_reg_tbl ID*/
+#define TARGET_TYPE_QCA9377V1   14
 
 #define BMI_ROMPATCH_INSTALL               9
         /*

@@ -86,6 +86,20 @@ extern "C" {
 
 #define HTC_SERVICE_TX_PACKET_TAG  HTC_TX_PACKET_TAG_INTERNAL
 
+#define HTC_CREDIT_HISTORY_MAX              1024
+
+typedef enum {
+    HTC_REQUEST_CREDIT,
+    HTC_PROCESS_CREDIT_REPORT,
+} htc_credit_exchange_type;
+
+typedef struct {
+    htc_credit_exchange_type type;
+    A_UINT64 time;
+    A_UINT32 tx_credit;
+    A_UINT32 htc_tx_queue_depth;
+} HTC_CREDIT_HISTORY;
+
 typedef struct _HTC_ENDPOINT {
     HTC_ENDPOINT_ID             Id;
     HTC_SERVICE_ID              ServiceID;          /* service ID this endpoint is bound to
@@ -146,6 +160,7 @@ typedef struct _HTC_TARGET {
     adf_os_spinlock_t           HTCLock;
     adf_os_spinlock_t           HTCRxLock;
     adf_os_spinlock_t           HTCTxLock;
+    adf_os_spinlock_t           HTCCreditLock;
     A_UINT32                    HTCStateFlags;
     void                       *host_handle;
     HTC_INIT_INFO               HTCInitInfo;
@@ -189,6 +204,8 @@ typedef struct _HTC_TARGET {
 #define UNLOCK_HTC_RX(t)        adf_os_spin_unlock_bh(&(t)->HTCRxLock);
 #define LOCK_HTC_TX(t)          adf_os_spin_lock_bh(&(t)->HTCTxLock);
 #define UNLOCK_HTC_TX(t)        adf_os_spin_unlock_bh(&(t)->HTCTxLock);
+#define LOCK_HTC_CREDIT(t)      adf_os_spin_lock_bh(&(t)->HTCCreditLock);
+#define UNLOCK_HTC_CREDIT(t)    adf_os_spin_unlock_bh(&(t)->HTCCreditLock);
 
 #define GET_HTC_TARGET_FROM_HANDLE(hnd) ((HTC_TARGET *)(hnd))
 

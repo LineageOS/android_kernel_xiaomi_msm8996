@@ -4754,8 +4754,6 @@ typedef struct sSirSmeRoamOffloadSynchCnf
 
 typedef struct sSirSmeHOFailureInd
 {
-    tANI_U16 messageType;
-    tANI_U16 length;
     tANI_U8  sessionId;
 } tSirSmeHOFailureInd, *tpSirSmeHOFailureInd;
 #endif
