@@ -25505,16 +25505,23 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		peerStateParams->peerCap.peerOffChanSupport;
 	peer_cap->peer_curr_operclass =
 		peerStateParams->peerCap.peerCurrOperClass;
+	/* self curr operclass is not being used and so pass op class for
+	 * preferred off chan in it.
+	 */
 	peer_cap->self_curr_operclass =
-		peerStateParams->peerCap.selfCurrOperClass;
+		peerStateParams->peerCap.opClassForPrefOffChan;
 	peer_cap->peer_chan_len =
 		peerStateParams->peerCap.peerChanLen;
 	peer_cap->peer_operclass_len =
 		peerStateParams->peerCap.peerOperClassLen;
 
+	WMA_LOGD("%s: peer_operclass_len: %d",
+	         __func__, peer_cap->peer_operclass_len);
 	for (i = 0; i < WMI_TDLS_MAX_SUPP_OPER_CLASSES; i++) {
 		peer_cap->peer_operclass[i] =
 			peerStateParams->peerCap.peerOperClass[i];
+		WMA_LOGD("%s: peer_operclass[%d]: %d",
+	          __func__, i, peer_cap->peer_operclass[i]);
 	}
 
 	peer_cap->is_peer_responder =

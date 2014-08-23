@@ -1288,6 +1288,7 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     v_U8_t *rspRsnIe = kmalloc(IW_GENERIC_IE_MAX, GFP_KERNEL);
     tANI_U32 rspRsnLength = 0;
     struct ieee80211_channel *chan;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     if (!rspRsnIe) {
         hddLog(LOGE, FL("Unable to allocate RSN IE"));
@@ -1313,6 +1314,15 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     pFTAssocRsp += FT_ASSOC_RSP_IES_OFFSET;
     hddLog(LOG1, FL("AssocRsp is now at %02x%02x"),
                    (unsigned int)pFTAssocRsp[0], (unsigned int)pFTAssocRsp[1]);
+
+   /* Active session count is decremented upon disconnection, but during
+    * roaming, there is no disconnect indication and hence active session
+    * count is not decremented.
+    * After roaming is completed, active session count is incremented
+    * as a part of connect indication but effectively after roaming the
+    * active session count should still be the same and hence upon
+    * successful reassoc decrement the active session count here */
+    wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
 
     /* Send the Assoc Resp, the supplicant needs this for initial Auth */
     len = pCsrRoamInfo->nAssocRspLength - FT_ASSOC_RSP_IES_OFFSET;

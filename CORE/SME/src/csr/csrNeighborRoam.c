@@ -1938,9 +1938,20 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
     tANI_U32 CurrAPRssi;
     tANI_U8 RoamRssiDiff = pMac->roam.configParam.RoamRssiDiff;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-    tANI_U8 immediateRoamRssiDiff = pMac->roam.configParam.nImmediateRoamRssiDiff;
+    tANI_U8 immediateRoamRssiDiff =
+               pMac->roam.configParam.nImmediateRoamRssiDiff;
 #endif
     tANI_BOOLEAN roamNow = eANI_BOOLEAN_FALSE;
+    tScanResultHandle *pScanResultListSaved = NULL;
+    tANI_U32  apAgeTicks = 0;
+    tANI_U32  apAgeLimitTicks = adf_os_msecs_to_ticks(ROAM_AP_AGE_LIMIT_MS);
+    tANI_U8   numCandidates = 0;
+    tANI_U8   numAPsDropped = 0;
+    /*
+     * first iteration of scan list should consider
+     * age constraint for candidates
+     */
+    tANI_BOOLEAN ageConstraint = eANI_BOOLEAN_TRUE;
 
     /***************************************************************
      * Find out the Current AP RSSI and keep it handy to check if
@@ -1950,235 +1961,318 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
      ***************************************************************/
     CurrAPRssi = csrGetCurrentAPRssi(pMac, pScanResultList, sessionId);
 
-    /* Expecting the scan result already to be in the sorted order based on the RSSI */
-    /* Based on the previous state we need to check whether the list should be sorted again taking neighbor score into consideration */
-    /* If previous state is CFG_CHAN_LIST_SCAN, there should not be any neighbor score associated with any of the BSS.
-       If the previous state is REPORT_QUERY, then there will be neighbor score for each of the APs */
-    /* For now, let us take the top of the list provided as it is by the CSR Scan result API. This means it is assumed that neighbor score
-       and rssi score are in the same order. This will be taken care later */
+    /*
+     * Expecting the scan result already to be in the sorted order based on the
+     * RSSI. Based on the previous state we need to check whether the list
+     * should be sorted again taking neighbor score into consideration. If
+     * previous state is CFG_CHAN_LIST_SCAN, there should not be any neighbor
+     * score associated with any of the BSS. If the previous state is
+     * REPORT_QUERY, then there will be neighbor score for each of the APs. For
+     * now, let us take the top of the list provided as it is by the CSR Scan
+     * result API. This means it is assumed that neighbor score and rssi score
+     * are in the same order. This will be taken care later
+     */
 
-    while (NULL != (pScanResult = csrScanResultGetNext(pMac, *pScanResultList)))
-    {
-        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-            FL("Scan result: BSSID "MAC_ADDRESS_STR" (Rssi %ld, Ch:%d)"),
-            MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId),
-            abs(pScanResult->BssDescriptor.rssi),
-            pScanResult->BssDescriptor.channelId);
+    do {
+        /* save the scan result pointer for next iteration */
+        pScanResultListSaved = pScanResultList;
+        while (NULL != (pScanResult = csrScanResultGetNext(pMac,
+                                                      *pScanResultList))) {
+            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                FL("Scan result: BSSID "MAC_ADDRESS_STR" (Rssi %ld, Ch:%d)"),
+                MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId),
+                abs(pScanResult->BssDescriptor.rssi),
+                pScanResult->BssDescriptor.channelId);
 
-       if ((VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
-           pNeighborRoamInfo->currAPbssid, sizeof(tSirMacAddr))) ||
-           ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) &&
-           (VOS_TRUE != vos_mem_compare(pScanResult->BssDescriptor.bssId,
-                        pNeighborRoamInfo->cfgRoambssId, sizeof(tSirMacAddr)))))
-        {
-            /* currently associated AP. Do not have this in the roamable AP list */
-            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                    "SKIP-currently associated AP");
-            continue;
-        }
+            if ((VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
+                pNeighborRoamInfo->currAPbssid, sizeof(tSirMacAddr))) ||
+                ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) &&
+                (VOS_TRUE != vos_mem_compare(pScanResult->BssDescriptor.bssId,
+                   pNeighborRoamInfo->cfgRoambssId, sizeof(tSirMacAddr))))) {
+                /*
+                 * currently associated AP. Do not have this in the roamable AP
+                 * list
+                 */
+                VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                           "SKIP-currently associated AP");
+                continue;
+            }
 
 #ifdef FEATURE_WLAN_LFR
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-       /* In case of reassoc requested by upper layer, look for exact match of bssid & channel;
-          csr cache might have duplicates*/
-       if ((pNeighborRoamInfo->uOsRequestedHandoff) &&
-           ((VOS_FALSE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
-                                         pNeighborRoamInfo->handoffReqInfo.bssid,
-                                         sizeof(tSirMacAddr)))||
-            (pScanResult->BssDescriptor.channelId != pNeighborRoamInfo->handoffReqInfo.channel)))
-
-       {
-           VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      "SKIP-not a candidate AP for OS requested roam");
-           continue;
-       }
-#endif
-#endif
-
-       /* This condition is to ensure to roam to an AP with better RSSI. if the value of RoamRssiDiff is Zero, this feature
-        * is disabled and we continue to roam without any check*/
-       if ((RoamRssiDiff > 0)
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-       && !csrRoamIsRoamOffloadScanEnabled(pMac)
-#endif
-       && ((eSME_ROAM_TRIGGER_SCAN != pNeighborRoamInfo->cfgRoamEn) ||
-           (eSME_ROAM_TRIGGER_FAST_ROAM != pNeighborRoamInfo->cfgRoamEn)))
-       {
-               /*
-               * If RSSI is lower than the lookup threshold, then continue.
-               */
-           if (abs(pScanResult->BssDescriptor.rssi) >
-               pNeighborRoamInfo->currentNeighborLookupThreshold) {
+            /*
+             * In case of reassoc requested by upper layer, look for exact match
+             * of bssid & channel. csr cache might have duplicates
+             */
+            if ((pNeighborRoamInfo->uOsRequestedHandoff) &&
+                ((VOS_FALSE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
+                      pNeighborRoamInfo->handoffReqInfo.bssid,
+                      sizeof(tSirMacAddr)))||
+                 (pScanResult->BssDescriptor.channelId !=
+                      pNeighborRoamInfo->handoffReqInfo.channel))) {
                 VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                FL("new ap rssi (%d) lower than lookup threshold (%d)"),
-                (int)pScanResult->BssDescriptor.rssi * (-1),
-                (int)pNeighborRoamInfo->currentNeighborLookupThreshold * (-1));
+                      "SKIP-not a candidate AP for OS requested roam");
                 continue;
-           }
+            }
+#endif
+#endif
 
-           if (abs(CurrAPRssi) < abs(pScanResult->BssDescriptor.rssi))
-           {
-               /* Do not roam to an AP with worse RSSI than the current */
-                       VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                 "%s: [INFOLOG]Current AP rssi=%d new ap rssi worse=%d", __func__,
-                     CurrAPRssi,
-                     (int)pScanResult->BssDescriptor.rssi * (-1) );
-               continue;
-           } else {
-                       /*Do not roam to an AP which is having better RSSI than the current AP, but still less than the
-                        * margin that is provided by user from the ini file (RoamRssiDiff)*/
-               if (abs(abs(CurrAPRssi) - abs(pScanResult->BssDescriptor.rssi)) < RoamRssiDiff)
-               {
-                           VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                 "%s: [INFOLOG]Current AP rssi=%d new ap rssi=%d not good enough, roamRssiDiff=%d", __func__,
+            /*
+             * This condition is to ensure to roam to an AP with better RSSI.
+             * if the value of RoamRssiDiff is Zero, this feature
+             * is disabled and we continue to roam without any check
+             */
+            if ((RoamRssiDiff > 0)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+              && !csrRoamIsRoamOffloadScanEnabled(pMac)
+#endif
+              && ((eSME_ROAM_TRIGGER_SCAN != pNeighborRoamInfo->cfgRoamEn) ||
+               (eSME_ROAM_TRIGGER_FAST_ROAM != pNeighborRoamInfo->cfgRoamEn))) {
+                /*
+                 * If RSSI is lower than the lookup threshold, then continue.
+                 */
+                if (abs(pScanResult->BssDescriptor.rssi) >
+                    pNeighborRoamInfo->currentNeighborLookupThreshold) {
+                    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                    FL("new ap rssi (%d) lower than lookup threshold (%d)"),
+                    (int)pScanResult->BssDescriptor.rssi * (-1),
+                    (int)pNeighborRoamInfo->currentNeighborLookupThreshold * (-1));
+                    continue;
+                }
+
+                if (abs(CurrAPRssi) < abs(pScanResult->BssDescriptor.rssi)) {
+                    /* Do not roam to an AP with worse RSSI than the current */
+                    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                               "%s: [INFOLOG]Current AP rssi=%d new ap rssi "
+                               "worse=%d", __func__,
+                               CurrAPRssi,
+                               (int)pScanResult->BssDescriptor.rssi * (-1) );
+                    continue;
+                } else {
+                    /*
+                     * Do not roam to an AP which is having better RSSI than the
+                     * current AP, but still less than the margin that is
+                     * provided by user from the ini file (RoamRssiDiff)
+                     */
+                    if (abs(abs(CurrAPRssi) -
+                         abs(pScanResult->BssDescriptor.rssi)) < RoamRssiDiff) {
+                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                   "%s: [INFOLOG]Current AP rssi=%d new ap "
+                                   "rssi=%d not good enough, roamRssiDiff=%d",
+                                    __func__,
+                                   CurrAPRssi,
+                                   (int)pScanResult->BssDescriptor.rssi * (-1),
+                                   RoamRssiDiff);
+                        continue;
+                    } else {
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                 "%s: [INFOLOG]Current AP rssi=%d new ap "
+                                 "rssi better=%d",
+                                  __func__,
                                  CurrAPRssi,
-                         (int)pScanResult->BssDescriptor.rssi * (-1),
-                         RoamRssiDiff);
-                      continue;
-                       }
-                       else {
-                                 VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                            "%s: [INFOLOG]Current AP rssi=%d new ap rssi better=%d", __func__,
-                           CurrAPRssi,
-                          (int)pScanResult->BssDescriptor.rssi * (-1) );
-               }
-           }
-       }
+                                 (int)pScanResult->BssDescriptor.rssi * (-1) );
+                    }
+                }
+            }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-       if (pNeighborRoamInfo->is11rAssoc) {
-           if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
-                                  pScanResult->BssDescriptor.bssId)) {
-                smsLog(pMac, LOGE, FL("BSSID present in pre-auth fail list.. Ignoring"));
-               continue;
-           }
-       }
+            if (pNeighborRoamInfo->is11rAssoc) {
+                if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
+                    pScanResult->BssDescriptor.bssId)) {
+                    smsLog(pMac, LOGE,
+                         FL("BSSID present in pre-auth fail list.. Ignoring"));
+                    continue;
+                }
+            }
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
 #ifdef FEATURE_WLAN_ESE
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-        if (!csrRoamIsRoamOffloadScanEnabled(pMac))
-        {
+            if (!csrRoamIsRoamOffloadScanEnabled(pMac)) {
 #endif
-          if (pNeighborRoamInfo->isESEAssoc)
-          {
-              if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
-                                             pScanResult->BssDescriptor.bssId)) {
-                  smsLog(pMac, LOGE, FL("BSSID present in pre-auth fail list.. Ignoring"));
-                  continue;
-              }
-          }
-          if ((pScanResult->BssDescriptor.QBSSLoad_present) &&
-               (pScanResult->BssDescriptor.QBSSLoad_avail))
-          {
-              if (pNeighborRoamInfo->isVOAdmitted)
-              {
-                  smsLog(pMac, LOG1, FL("New AP has %x BW available"), (unsigned int)pScanResult->BssDescriptor.QBSSLoad_avail);
-                  smsLog(pMac, LOG1, FL("We need %x BW available"),(unsigned int)pNeighborRoamInfo->MinQBssLoadRequired);
-                  if (pScanResult->BssDescriptor.QBSSLoad_avail < pNeighborRoamInfo->MinQBssLoadRequired)
-                  {
-                      VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                          "[INFOLOG]BSSID : "MAC_ADDRESS_STR" has no bandwidth ignoring..not adding to roam list",
+                if (pNeighborRoamInfo->isESEAssoc) {
+                    if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
+                           pScanResult->BssDescriptor.bssId)) {
+                        smsLog(pMac, LOGE,
+                          FL("BSSID present in pre-auth fail list.. Ignoring"));
+                        continue;
+                    }
+                }
+                if ((pScanResult->BssDescriptor.QBSSLoad_present) &&
+                     (pScanResult->BssDescriptor.QBSSLoad_avail)) {
+                    if (pNeighborRoamInfo->isVOAdmitted) {
+                      smsLog(pMac, LOG1, FL("New AP has %x BW available"),
+                       (unsigned int)pScanResult->BssDescriptor.QBSSLoad_avail);
+                      smsLog(pMac, LOG1, FL("We need %x BW available"),
+                        (unsigned int)pNeighborRoamInfo->MinQBssLoadRequired);
+                      if (pScanResult->BssDescriptor.QBSSLoad_avail <
+                           pNeighborRoamInfo->MinQBssLoadRequired) {
+                          VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                     "[INFOLOG]BSSID : "MAC_ADDRESS_STR" has no"
+                                     " bandwidth ignoring..not adding to roam"
+                                     " list",
                           MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId));
+                          continue;
+                      }
+                    }
+                } else {
+                  smsLog(pMac, LOGE, FL("No QBss %x %x"),
+                     (unsigned int)pScanResult->BssDescriptor.QBSSLoad_avail,
+                     (unsigned int)pScanResult->BssDescriptor.QBSSLoad_present);
+                  if (pNeighborRoamInfo->isVOAdmitted) {
+                      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                              "[INFOLOG]BSSID : "MAC_ADDRESS_STR" has no "
+                              "QBSSLoad IE, ignoring..not adding to roam list",
+                              MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId));
                       continue;
                   }
-              }
-          }
-          else
-          {
-              smsLog(pMac, LOGE, FL("No QBss %x %x"), (unsigned int)pScanResult->BssDescriptor.QBSSLoad_avail, (unsigned int)pScanResult->BssDescriptor.QBSSLoad_present);
-              if (pNeighborRoamInfo->isVOAdmitted)
-              {
-                  VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      "[INFOLOG]BSSID : "MAC_ADDRESS_STR" has no QBSSLoad IE, ignoring..not adding to roam list",
-                      MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId));
-                  continue;
-              }
-          }
+                }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-        }
+            }
 #endif
 #endif /* FEATURE_WLAN_ESE */
 
 #ifdef FEATURE_WLAN_LFR
-        // If we are supporting legacy roaming, and
-        // if the candidate is on the "pre-auth failed" list, ignore it.
-        if (csrRoamIsFastRoamEnabled(pMac, sessionId)) {
-            if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
-                 pScanResult->BssDescriptor.bssId)) {
-                smsLog(pMac, LOGE, FL("BSSID present in pre-auth fail list.. Ignoring"));
-                continue;
+            /*
+             * If we are supporting legacy roaming, and
+             * if the candidate is on the "pre-auth failed" list, ignore it.
+             */
+            if (csrRoamIsFastRoamEnabled(pMac, sessionId)) {
+                if (!csrNeighborRoamIsPreauthCandidate(pMac, sessionId,
+                    pScanResult->BssDescriptor.bssId)) {
+                    smsLog(pMac, LOGE,
+                      FL("BSSID present in pre-auth fail list.. Ignoring"));
+                    continue;
+                }
             }
-        }
 #endif /* FEATURE_WLAN_LFR */
 
-        /* If the received timestamp in BSS description is earlier than the scan request timestamp, skip
-         * this result */
-        if ((pNeighborRoamInfo->scanRequestTimeStamp >= pScanResult->BssDescriptor.nReceivedTime)
+            /*
+             * If the received timestamp in BSS description is earlier than the
+             * scan request timestamp, skip this result
+             */
+            if ((pNeighborRoamInfo->scanRequestTimeStamp >=
+                     pScanResult->BssDescriptor.nReceivedTime)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-            && !csrRoamIsRoamOffloadScanEnabled(pMac)
+                && !csrRoamIsRoamOffloadScanEnabled(pMac)
 #endif
-        )
-        {
-            smsLog(pMac, LOGE, FL("Ignoring BSS as it is older than the scan request timestamp"));
-            continue;
-        }
+            ) {
+                smsLog(pMac, LOGE,
+                       FL("Ignoring BSS as it is older than the scan request "
+                       "timestamp"));
+                continue;
+            }
 
-        pBssInfo = vos_mem_malloc(sizeof(tCsrNeighborRoamBSSInfo));
-        if (NULL == pBssInfo)
-        {
-            smsLog(pMac, LOGE, FL("Memory allocation for Neighbor Roam BSS Info failed.. Just ignoring"));
-            continue;
-        }
+            pBssInfo = vos_mem_malloc(sizeof(tCsrNeighborRoamBSSInfo));
+            if (NULL == pBssInfo) {
+                smsLog(pMac, LOGE,
+                       FL("Memory allocation for Neighbor Roam BSS Info "
+                       "failed.. Just ignoring"));
+                continue;
+            }
 
-        pBssInfo->pBssDescription = vos_mem_malloc(pScanResult->BssDescriptor.length + sizeof(pScanResult->BssDescriptor.length));
-        if (pBssInfo->pBssDescription != NULL)
-        {
-            vos_mem_copy(pBssInfo->pBssDescription, &pScanResult->BssDescriptor,
-                    pScanResult->BssDescriptor.length + sizeof(pScanResult->BssDescriptor.length));
-        }
-        else
-        {
-            smsLog(pMac, LOGE, FL("Memory allocation for Neighbor Roam BSS Descriptor failed.. Just ignoring"));
-            vos_mem_free(pBssInfo);
-            continue;
+            pBssInfo->pBssDescription =
+                vos_mem_malloc(pScanResult->BssDescriptor.length +
+                               sizeof(pScanResult->BssDescriptor.length));
+            if (pBssInfo->pBssDescription != NULL) {
+                vos_mem_copy(pBssInfo->pBssDescription,
+                             &pScanResult->BssDescriptor,
+                             pScanResult->BssDescriptor.length +
+                                 sizeof(pScanResult->BssDescriptor.length));
+            } else {
+                smsLog(pMac, LOGE,
+                       FL("Memory allocation for Neighbor Roam BSS Descriptor "
+                       "failed.. Just ignoring"));
+                vos_mem_free(pBssInfo);
+                continue;
+            }
+            /*
+             * some value for now. Need to calculate the actual score based on
+             * RSSI and neighbor AP score
+             */
+            pBssInfo->apPreferenceVal = 10;
 
-        }
-        pBssInfo->apPreferenceVal = 10; //some value for now. Need to calculate the actual score based on RSSI and neighbor AP score
-
-        /* Just add to the end of the list as it is already sorted by RSSI */
-        csrLLInsertTail(&pNeighborRoamInfo->roamableAPList, &pBssInfo->List, LL_ACCESS_LOCK);
-
+            if (ageConstraint == eANI_BOOLEAN_FALSE) {
+                /* just add to candidate list, irrespective of age */
+                numCandidates++;
+                csrLLInsertTail(&pNeighborRoamInfo->roamableAPList,
+                                &pBssInfo->List,
+                                LL_ACCESS_LOCK);
+            } else {
+                /* check the age of the AP first */
+                apAgeTicks = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd) -
+                           pScanResult->BssDescriptor.nReceivedTime;
+                if (apAgeTicks < apAgeLimitTicks) {
+                    numCandidates++;
+                    csrLLInsertTail(&pNeighborRoamInfo->roamableAPList,
+                                    &pBssInfo->List,
+                                    LL_ACCESS_LOCK);
+                } else {
+                    numAPsDropped++;
+                    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
+                               FL("Skipping because received AP "
+                               "(probe rsp/beacon) is old."));
+                    continue;
+                }
+            }
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-        if ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) ||
-            (eSME_ROAM_TRIGGER_FAST_ROAM == pNeighborRoamInfo->cfgRoamEn))
-        {
-           roamNow = eANI_BOOLEAN_FALSE;
-        }
-        else if ((abs(abs(CurrAPRssi) - abs(pScanResult->BssDescriptor.rssi)) >= immediateRoamRssiDiff)
+            if ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) ||
+                (eSME_ROAM_TRIGGER_FAST_ROAM == pNeighborRoamInfo->cfgRoamEn)) {
+               roamNow = eANI_BOOLEAN_FALSE;
+            }
+            else if ((abs(abs(CurrAPRssi) -
+                          abs(pScanResult->BssDescriptor.rssi)) >=
+                              immediateRoamRssiDiff)
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-            && !csrRoamIsRoamOffloadScanEnabled(pMac)
+                && !csrRoamIsRoamOffloadScanEnabled(pMac)
 #endif
-        )
-        {
-            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                       "%s: [INFOLOG] potential candidate to roam immediately (diff=%ld, expected=%d)",
-                       __func__, abs(abs(CurrAPRssi) - abs(pScanResult->BssDescriptor.rssi)),
-                       immediateRoamRssiDiff);
-            roamNow = eANI_BOOLEAN_TRUE;
-        }
+            ) {
+                VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                           "%s: [INFOLOG] potential candidate to roam "
+                           "immediately (diff=%ld, expected=%d)",
+                           __func__,
+                           abs(abs(CurrAPRssi) -
+                                abs(pScanResult->BssDescriptor.rssi)),
+                           immediateRoamRssiDiff);
+                roamNow = eANI_BOOLEAN_TRUE;
+            }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-        /* If we are here means, FW already found candidates to roam, so we are
-           good to go with pre-auth */
-        if(csrRoamIsRoamOffloadScanEnabled(pMac))
-        {
-            roamNow = eANI_BOOLEAN_TRUE;
-        }
+            /*
+             * If we are here means, FW already found candidates to roam,
+             * so we are good to go with pre-auth
+             */
+            if(csrRoamIsRoamOffloadScanEnabled(pMac)) {
+                roamNow = eANI_BOOLEAN_TRUE;
+            }
 #endif
 #endif
-    }
+        } /* end of while (csrScanResultGetNext) */
+        /* set the scan results for next iteration */
+        pScanResultList = pScanResultListSaved;
 
-    /* Now we have all the scan results in our local list. Good time to free up the the list we got as a part of csrGetScanResult */
+        /* if some candidates were found, then no need to repeat */
+        if (numCandidates)
+            break;
+        /*
+         * if ageConstraint is already false, we have done two
+         * iterations and no candidate were found */
+        if (ageConstraint == eANI_BOOLEAN_FALSE) {
+            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: No roamable candidates found", __func__);
+            break;
+        }
+        /*
+         * if all candidates were dropped rescan the scan
+         * list but this time without age constraint.
+         */
+        ageConstraint = eANI_BOOLEAN_FALSE;
+        /* if no candidates were dropped no need to repeat */
+    } while (numAPsDropped);
+
+    /*
+     * Now we have all the scan results in our local list. Good time to free
+     * up the the list we got as a part of csrGetScanResult
+     */
     csrScanResultPurge(pMac, *pScanResultList);
 
     return roamNow;

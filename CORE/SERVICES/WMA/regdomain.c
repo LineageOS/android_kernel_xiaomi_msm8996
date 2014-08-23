@@ -72,6 +72,83 @@
 
 #define N(a) (sizeof(a)/sizeof(a[0]))
 
+static regdm_supp_op_classes regdm_curr_supp_opp_classes = {0};
+
+/* Global Operating Classes */
+regdm_op_class_map_t global_op_class[] = {
+	{81, 25,  BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+	{82, 25,  BW20,      {14}},
+	{83, 40,  BW40_LOW_PRIMARY,  {1, 2, 3, 4, 5, 6, 7, 8, 9}},
+	{84, 40,  BW40_HIGH_PRIMARY, {5, 6, 7, 8, 9, 10, 11, 12, 13}},
+	{115, 20, BW20,      {36, 40, 44, 48}},
+	{116, 40, BW40_LOW_PRIMARY,  {36, 44}},
+	{117, 40, BW40_HIGH_PRIMARY, {40, 48}},
+	{118, 20, BW20,      {52, 56, 60, 64}},
+	{119, 40, BW40_LOW_PRIMARY,  {52, 60}},
+	{120, 40, BW40_HIGH_PRIMARY, {56, 64}},
+	{121, 20, BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
+	{122, 40, BW40_LOW_PRIMARY,  {100, 108, 116, 124, 132}},
+	{123, 40, BW40_HIGH_PRIMARY, {104, 112, 120, 128, 136}},
+	{125, 20, BW20,      {149, 153, 157, 161, 165, 169}},
+	{126, 40, BW40_LOW_PRIMARY,  {149, 157}},
+	{127, 40, BW40_HIGH_PRIMARY, {153, 161}},
+	{0, 0, 0, {0}},
+};
+
+/* Operating Classes in US */
+regdm_op_class_map_t us_op_class[] = {
+	{1, 20,  BW20,      {36, 40, 44, 48}},
+	{2, 20,  BW20,      {52, 56, 60, 64}},
+	{4, 20,  BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
+	{5, 20,  BW20,      {149, 153, 157, 161, 165}},
+	{12, 25, BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+	{22, 40, BW40_LOW_PRIMARY,  {36, 44}},
+	{23, 40, BW40_LOW_PRIMARY,  {52, 60}},
+	{24, 40, BW40_LOW_PRIMARY,  {100, 108, 116, 124, 132}},
+	{26, 40, BW40_LOW_PRIMARY,  {149, 157}},
+	{27, 40, BW40_HIGH_PRIMARY, {40, 48}},
+	{28, 40, BW40_HIGH_PRIMARY, {56, 64}},
+	{29, 40, BW40_HIGH_PRIMARY, {104, 112, 120, 128, 136}},
+	{31, 40, BW40_HIGH_PRIMARY, {153, 161}},
+	{32, 40, BW40_LOW_PRIMARY,  {1, 2, 3, 4, 5, 6, 7}},
+	{33, 40, BW40_HIGH_PRIMARY, {5, 6, 7, 8, 9, 10, 11}},
+	{0, 0, 0, {0}},
+};
+
+/* Operating Classes in Europe */
+regdm_op_class_map_t euro_op_class[] = {
+	{1, 20,  BW20,      {36, 40, 44, 48}},
+	{2, 20,  BW20,      {52, 56, 60, 64}},
+	{3, 20,  BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
+	{4, 25,  BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+	{5, 40,  BW40_LOW_PRIMARY,  {36, 44}},
+	{6, 40,  BW40_LOW_PRIMARY,  {52, 60}},
+	{7, 40,  BW40_LOW_PRIMARY,  {100, 108, 116, 124, 132}},
+	{8, 40,  BW40_HIGH_PRIMARY, {40, 48}},
+	{9, 40,  BW40_HIGH_PRIMARY, {56, 64}},
+	{10, 40, BW40_HIGH_PRIMARY, {104, 112, 120, 128, 136}},
+	{11, 40, BW40_LOW_PRIMARY,  {1, 2, 3, 4, 5, 6, 7, 8, 9}},
+	{12, 40, BW40_HIGH_PRIMARY, {5, 6, 7, 8, 9, 10, 11, 12, 13}},
+	{17, 20, BW20,      {149, 153, 157, 161, 165, 169}},
+	{0, 0, 0, {0}},
+};
+
+/* Operating Classes in Japan */
+regdm_op_class_map_t japan_op_class[] = {
+	{1, 20,  BW20,      {36, 40, 44, 48}},
+	{30, 25, BW20,      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
+	{31, 25, BW20,      {14}},
+	{32, 20, BW20,      {52, 56, 60, 64}},
+	{34, 20, BW20,   {100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140}},
+	{36, 40, BW40_LOW_PRIMARY,  {36, 44}},
+	{37, 40, BW40_LOW_PRIMARY,  {52, 60}},
+	{39, 40, BW40_LOW_PRIMARY,  {100, 108, 116, 124, 132}},
+	{41, 40, BW40_HIGH_PRIMARY, {40, 48}},
+	{42, 40, BW40_HIGH_PRIMARY, {56, 64}},
+	{44, 40, BW40_HIGH_PRIMARY, {104, 112, 120, 128, 136}},
+	{0, 0, 0, {0}},
+};
+
 /*
  * By default, the regdomain tables reference the common tables
  * from regdomain_common.h.  These default tables can be replaced
@@ -522,5 +599,82 @@ u_int16_t get_regdmn_5g(u_int32_t reg_dmn)
 	}
 	adf_os_print("%s: invalid regulatory domain/country code 0x%x\n",
 		     __func__, reg_dmn);
+	return 0;
+}
+
+/*
+ * Get operating class for a given channel
+ */
+u_int16_t regdm_get_opclass_from_channel(u_int8_t *country, u_int8_t channel,
+	u_int8_t offset)
+{
+	regdm_op_class_map_t *class = NULL;
+	u_int16_t i = 0;
+
+	if (0 == adf_os_mem_cmp(country,"US", 2)) {
+		class = us_op_class;
+	} else if (0 == adf_os_mem_cmp(country,"EU", 2)) {
+		class = euro_op_class;
+	} else if (0 == adf_os_mem_cmp(country,"JP", 2)) {
+		class = japan_op_class;
+	} else {
+		class = global_op_class;
+	}
+
+	while (class->op_class) {
+		if ((offset == class->offset) || (offset == BWALL)) {
+			for (i = 0;
+			     (i < MAX_CHANNELS_PER_OPERATING_CLASS &&
+			      class->channels[i]);
+			     i++) {
+				if (channel == class->channels[i])
+					return class->op_class;
+			}
+		}
+		class++;
+	}
+	return 0;
+}
+
+/*
+ * Set current operating classes per country, regdomain
+ */
+u_int16_t regdm_set_curr_opclasses(u_int8_t num_classes, u_int8_t *class)
+{
+	u_int8_t i;
+
+	if (SIR_MAC_MAX_SUPP_OPER_CLASSES < num_classes) {
+		adf_os_print(KERN_ERR "%s: Invalid numClasses (%d)\n",
+		             __func__, num_classes);
+		return -1;
+	}
+
+	for (i = 0 ; i < num_classes; i++) {
+		regdm_curr_supp_opp_classes.classes[i] = class[i];
+	}
+	regdm_curr_supp_opp_classes.num_classes = num_classes;
+
+	return 0;
+}
+
+/*
+ * Get current operating classes
+ */
+u_int16_t regdm_get_curr_opclasses(u_int8_t *num_classes, u_int8_t *class)
+{
+	u_int8_t i;
+
+	if (!num_classes || !class) {
+		adf_os_print(KERN_ERR "%s: Either num_classes or class is null\n",
+		             __func__);
+		return -1;
+	}
+
+	for (i = 0 ; i < regdm_curr_supp_opp_classes.num_classes; i++) {
+		class[i] = regdm_curr_supp_opp_classes.classes[i];
+	}
+
+	*num_classes = regdm_curr_supp_opp_classes.num_classes;
+
 	return 0;
 }

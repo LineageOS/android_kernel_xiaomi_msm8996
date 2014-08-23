@@ -40,6 +40,8 @@
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 #include "sme_Api.h"
 
+#define ROAM_AP_AGE_LIMIT_MS                     10000
+
 /* Enumeration of various states in neighbor roam algorithm */
 typedef enum
 {

@@ -110,7 +110,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef WLAN_BTAMP_FEATURE
 #include "bap_hdd_misc.h"
 #endif
-#include "wlan_qct_pal_trace.h"
 #include "qwlan_version.h"
 #include "wlan_qct_wda.h"
 #ifdef FEATURE_WLAN_TDLS
@@ -774,7 +773,7 @@ static int curr_con_mode;
   --------------------------------------------------------------------------*/
 static void hdd_vos_trace_enable(VOS_MODULE_ID moduleId, v_U32_t bitmask)
 {
-   wpt_tracelevel level;
+   VOS_TRACE_LEVEL level;
 
    /* if the bitmask is the default value, then a bitmask was not
       specified in cfg.ini, so leave the logging level alone (it
@@ -800,47 +799,6 @@ static void hdd_vos_trace_enable(VOS_MODULE_ID moduleId, v_U32_t bitmask)
    }
 }
 
-
-/**---------------------------------------------------------------------------
-
-  \brief hdd_wdi_trace_enable() - Configure initial WDI Trace enable
-
-  Called immediately after the cfg.ini is read in order to configure
-  the desired trace levels in the WDI.
-
-  \param  - moduleId - module whose trace level is being configured
-  \param  - bitmask - bitmask of log levels to be enabled
-
-  \return - void
-
-  --------------------------------------------------------------------------*/
-static void hdd_wdi_trace_enable(wpt_moduleid moduleId, v_U32_t bitmask)
-{
-   wpt_tracelevel level;
-
-   /* if the bitmask is the default value, then a bitmask was not
-      specified in cfg.ini, so leave the logging level alone (it
-      will remain at the "compiled in" default value) */
-   if (CFG_WDI_TRACE_ENABLE_DEFAULT == bitmask)
-   {
-      return;
-   }
-
-   /* a mask was specified.  start by disabling all logging */
-   wpalTraceSetLevel(moduleId, eWLAN_PAL_TRACE_LEVEL_NONE, 0);
-
-   /* now cycle through the bitmask until all "set" bits are serviced */
-   level = eWLAN_PAL_TRACE_LEVEL_FATAL;
-   while (0 != bitmask)
-   {
-      if (bitmask & 1)
-      {
-         wpalTraceSetLevel(moduleId, level, 1);
-      }
-      level++;
-      bitmask >>= 1;
-   }
-}
 
 /*
  * FUNCTION: wlan_hdd_validate_context
@@ -10373,6 +10331,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    /* Destroy the wake lock */
    vos_wake_lock_destroy(&pHddCtx->sap_wake_lock);
 
+   hdd_hostapd_channel_wakelock_deinit(pHddCtx);
+
   vosStatus = vos_nv_close();
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -11197,16 +11157,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_vos_trace_enable(VOS_MODULE_ID_HDD_SOFTAP,
                         pHddCtx->cfg_ini->vosTraceEnableHDDSAP);
 
-   // Update WDI trace levels based upon the cfg.ini
-   hdd_wdi_trace_enable(eWLAN_MODULE_DAL,
-                        pHddCtx->cfg_ini->wdiTraceEnableDAL);
-   hdd_wdi_trace_enable(eWLAN_MODULE_DAL_CTRL,
-                        pHddCtx->cfg_ini->wdiTraceEnableCTL);
-   hdd_wdi_trace_enable(eWLAN_MODULE_DAL_DATA,
-                        pHddCtx->cfg_ini->wdiTraceEnableDAT);
-   hdd_wdi_trace_enable(eWLAN_MODULE_PAL,
-                        pHddCtx->cfg_ini->wdiTraceEnablePAL);
-
    print_hdd_cfg(pHddCtx);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
@@ -11403,6 +11353,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
 #endif
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      pHddCtx->isLoadInProgress = FALSE;
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
       complete(&wlan_start_comp);
       return VOS_STATUS_SUCCESS;
@@ -11677,6 +11628,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_wake_lock_init(&pHddCtx->sap_wake_lock,
            "qcom_sap_wakelock");
 
+   hdd_hostapd_channel_wakelock_init(pHddCtx);
+
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    hdd_allow_suspend();
 
@@ -11907,13 +11860,7 @@ static int hdd_driver_init( void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
-#if      defined (ANI_BUS_TYPE_PCI)
-   struct device *dev = NULL;
-#endif
    int ret_status = 0;
-#ifdef HAVE_WCNSS_CAL_DOWNLOAD
-   int max_retries = 0;
-#endif
    unsigned long rc;
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
@@ -11928,35 +11875,6 @@ static int hdd_driver_init( void)
 #endif
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
-
-#ifdef ANI_BUS_TYPE_PCI
-
-   dev = wcnss_wlan_get_device();
-
-#endif // ANI_BUS_TYPE_PCI
-
-#ifdef ANI_BUS_TYPE_PLATFORM
-
-#ifdef HAVE_WCNSS_CAL_DOWNLOAD
-   /* wait until WCNSS driver downloads NV */
-   while (!wcnss_device_ready() && 5 >= ++max_retries) {
-       msleep(1000);
-   }
-   if (max_retries >= 5) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
-      vos_wake_lock_destroy(&wlan_wake_lock);
-
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-      wlan_logging_sock_deinit_svc();
-#endif
-
-      return -ENODEV;
-   }
-#endif
-
-   dev = wcnss_wlan_get_device();
-#endif // ANI_BUS_TYPE_PLATFORM
-
 
    do {
 
@@ -13272,6 +13190,9 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
         return;
 #endif
 
+    if (VOS_FTM_MODE == hdd_get_conparam())
+        return;
+
     memset(&data, 0, sizeof(struct wlan_status_data));
     if (is_on)
         ret = wlan_hdd_gen_wlan_status_pack(&data, pAdapter, pHddStaCtx,
@@ -13301,6 +13222,9 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
     if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
         return;
 #endif
+
+    if (VOS_FTM_MODE == hdd_get_conparam())
+        return;
 
     memset(&data, 0, sizeof(struct wlan_version_data));
     ret = wlan_hdd_gen_wlan_version_pack(&data, fw_version, chip_id, chip_name);

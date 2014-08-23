@@ -67,6 +67,8 @@
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 #include "csrEse.h"
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD */
+#include "regdomain_common.h"
+
 #define CSR_NUM_IBSS_START_CHANNELS_50      4
 #define CSR_NUM_IBSS_START_CHANNELS_24      3
 #define CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD         ( 5 * VOS_TIMER_TO_SEC_UNIT )  // 5 seconds, for WPA, WPA2, CCKM
@@ -258,6 +260,7 @@ extern void SysProcessMmhMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 extern void btampEstablishLogLinkHdlr(void* pMsg);
 static void csrSerDesUnpackDiassocRsp(tANI_U8 *pBuf, tSirSmeDisassocRsp *pRsp);
 void csrReinitPreauthCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+void csrInitOperatingClasses(tHalHandle hHal);
 
 //Initialize global variables
 static void csrRoamInitGlobals(tpAniSirGlobal pMac)
@@ -467,7 +470,7 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     bufLen = sizeof(tSirUpdateChanList) +
         (sizeof(tSirUpdateChanParam) * (numChan - 1));
 
-    limInitOperatingClasses((tHalHandle)pMac);
+    csrInitOperatingClasses((tHalHandle)pMac);
     pChanList = (tSirUpdateChanList *) vos_mem_malloc(bufLen);
     if (!pChanList)
     {
@@ -2334,7 +2337,7 @@ eHalStatus csrInitChannelList( tHalHandle hHal )
     csrSaveChannelPowerForBand(pMac, eANI_BOOLEAN_TRUE);
     // Apply the base channel list, power info, and set the Country code...
     csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.base20MHzChannels, pMac->scan.countryCodeCurrent, eANI_BOOLEAN_TRUE );
-    limInitOperatingClasses(hHal);
+    csrInitOperatingClasses(hHal);
     return (status);
 }
 eHalStatus csrChangeConfigParams(tpAniSirGlobal pMac,
@@ -18529,3 +18532,135 @@ err_synch_rsp:
     pFTRoamOffloadSynchRsp->pbssDescription = NULL;
 }
 #endif
+
+void csrInitOperatingClasses(tHalHandle hHal)
+{
+    tANI_U8 Index = 0;
+    tANI_U8 class = 0;
+    tANI_U8 i = 0;
+    tANI_U8 j = 0;
+    tANI_U8 swap = 0;
+    tANI_U8 numChannels = 0;
+    tANI_U8 numClasses = 0;
+    tANI_BOOLEAN found;
+    tANI_U8 opClasses[SIR_MAC_MAX_SUPP_OPER_CLASSES];
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    smsLog(pMac, LOG1, FL("Current Country = %c%c"),
+                          pMac->scan.countryCodeCurrent[0],
+                          pMac->scan.countryCodeCurrent[1]);
+
+    for (j = 0; j < SIR_MAC_MAX_SUPP_OPER_CLASSES; j++) {
+        opClasses[j] = 0;
+    }
+
+    numChannels = pMac->scan.baseChannels.numChannels;
+
+    smsLog(pMac, LOG1, FL("Num of base channels %d"), numChannels);
+
+    for (Index = 0;
+         Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
+         Index++) {
+        class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                            pMac->scan.baseChannels.channelList[Index],
+                            BWALL);
+        smsLog(pMac, LOG4, FL("for chan %d, op class: %d"),
+               pMac->scan.baseChannels.channelList[Index],
+               class);
+
+        found = FALSE;
+        for (j = 0 ; j < SIR_MAC_MAX_SUPP_OPER_CLASSES - 1; j++) {
+           if (opClasses[j] == class) {
+              found = TRUE;
+              break;
+           }
+        }
+        if (!found) {
+            opClasses[i]= class;
+            i++;
+        }
+    }
+
+    numChannels = pMac->scan.base20MHzChannels.numChannels;
+
+    smsLog(pMac, LOG1, FL("Num of 20MHz channels %d"), numChannels);
+
+    for (Index = 0;
+         Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
+         Index++) {
+        class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                            pMac->scan.base20MHzChannels.channelList[Index],
+                            BWALL);
+        smsLog(pMac, LOG4, FL("for chan %d, op class: %d"),
+               pMac->scan.base20MHzChannels.channelList[ Index ],
+               class);
+
+        found = FALSE;
+        for (j = 0 ; j < SIR_MAC_MAX_SUPP_OPER_CLASSES - 1; j++) {
+           if (opClasses[j] == class) {
+              found = TRUE;
+              break;
+           }
+        }
+        if (!found) {
+            opClasses[i]= class;
+            i++;
+        }
+    }
+
+    numChannels = pMac->scan.base40MHzChannels.numChannels;
+
+    smsLog(pMac, LOG1, FL("Num of 40MHz channels %d"), numChannels);
+
+    for (Index = 0;
+         Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
+         Index++) {
+        class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                            pMac->scan.base40MHzChannels.channelList[Index],
+                            BWALL);
+        smsLog(pMac, LOG4, FL("for chan %d, op class: %d"),
+               pMac->scan.base40MHzChannels.channelList[ Index ],
+               class);
+
+        found = FALSE;
+        for (j = 0 ; j < SIR_MAC_MAX_SUPP_OPER_CLASSES - 1; j++) {
+           if (opClasses[j] == class) {
+              found = TRUE;
+              break;
+           }
+        }
+        if (!found) {
+            opClasses[i]= class;
+            i++;
+        }
+    }
+
+    numClasses = i;
+
+    /* As per spec the operating classes should be in ascending order.
+     * Bubble sort is fine since we don't have many classes
+     */
+    for (i = 0 ; i < (numClasses - 1); i++) {
+        for (j = 0 ; j < (numClasses - i - 1); j++) {
+            /* For decreasing order use < */
+            if (opClasses[j] > opClasses[j+1]) {
+                swap = opClasses[j];
+                opClasses[j] = opClasses[j+1];
+                opClasses[j+1] = swap;
+            }
+        }
+    }
+
+    smsLog(pMac, LOG1, FL("Total number of unique supported op classes %d"),
+           numClasses);
+    for (i = 0; i < numClasses; i++) {
+        smsLog(pMac, LOG1, FL("supported opClasses[%d] = %d"), i,
+               opClasses[i]);
+    }
+
+    /* Set the ordered list of op classes in regdomain
+     * for use by other modules
+     */
+    regdm_set_curr_opclasses(numClasses, &opClasses[0]);
+}
+

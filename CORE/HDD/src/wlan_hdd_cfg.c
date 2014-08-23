@@ -2328,36 +2328,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_VOS_TRACE_ENABLE_MIN,
                  CFG_VOS_TRACE_ENABLE_MAX ),
 
-   /* note that since the default value is out of range we cannot
-      enable range check, otherwise we get a system log message */
-   REG_VARIABLE( CFG_WDI_TRACE_ENABLE_DAL_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, wdiTraceEnableDAL,
-                 VAR_FLAGS_OPTIONAL,
-                 CFG_WDI_TRACE_ENABLE_DEFAULT,
-                 CFG_WDI_TRACE_ENABLE_MIN,
-                 CFG_WDI_TRACE_ENABLE_MAX ),
-
-   REG_VARIABLE( CFG_WDI_TRACE_ENABLE_CTL_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, wdiTraceEnableCTL,
-                 VAR_FLAGS_OPTIONAL,
-                 CFG_WDI_TRACE_ENABLE_DEFAULT,
-                 CFG_WDI_TRACE_ENABLE_MIN,
-                 CFG_WDI_TRACE_ENABLE_MAX ),
-
-   REG_VARIABLE( CFG_WDI_TRACE_ENABLE_DAT_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, wdiTraceEnableDAT,
-                 VAR_FLAGS_OPTIONAL,
-                 CFG_WDI_TRACE_ENABLE_DEFAULT,
-                 CFG_WDI_TRACE_ENABLE_MIN,
-                 CFG_WDI_TRACE_ENABLE_MAX ),
-
-   REG_VARIABLE( CFG_WDI_TRACE_ENABLE_PAL_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, wdiTraceEnablePAL,
-                 VAR_FLAGS_OPTIONAL,
-                 CFG_WDI_TRACE_ENABLE_DEFAULT,
-                 CFG_WDI_TRACE_ENABLE_MIN,
-                 CFG_WDI_TRACE_ENABLE_MAX ),
-
    REG_VARIABLE( CFG_TELE_BCN_TRANS_LI_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nTeleBcnTransListenInterval,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
