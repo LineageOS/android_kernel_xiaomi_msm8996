@@ -665,9 +665,6 @@ int htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
       *header_ptr = buffer_paddr + 32;
 
       *ring_vaddr = buffer_paddr;
-      printk("TX RING vADD %lx BF pADDR %x buffer_paddr %x buffer_vaddr %lx\n",
-             (unsigned long)ring_vaddr, (unsigned int)(*ring_vaddr),
-             (unsigned int)buffer_paddr, (unsigned long)adf_nbuf_data(buffer_vaddr));
       pdev->ipa_uc_tx_rsc.tx_buf_pool_vaddr_strg[tx_buffer_count] =
             buffer_vaddr;
       /* Memory barrier to ensure actual value updated */
@@ -675,8 +672,6 @@ int htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
       ring_vaddr++;
    }
 
-   adf_os_print("%s: Allocated TX buffer count is %d\n",
-                __func__, tx_buffer_count);
    pdev->ipa_uc_tx_rsc.alloc_tx_buf_cnt = tx_buffer_count;
 
    return 0;

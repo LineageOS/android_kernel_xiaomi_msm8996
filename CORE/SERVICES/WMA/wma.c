@@ -1482,8 +1482,6 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 		if (temp) {
 			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 			if (adf_os_atomic_read(&temp->delete_in_progress) == 0){
-				adf_os_atomic_init(&temp->ref_cnt);
-				adf_os_atomic_inc(&temp->ref_cnt);
 				wma_remove_peer(wma, temp->mac_addr.raw,
 					vdev_id, temp, VOS_FALSE);
 			}
@@ -10688,6 +10686,22 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 			wma_handle->wma_ibss_power_save_params.ibssPs1RxChainInAtimEnable);
 	}
 		break;
+
+#ifdef IPA_UC_OFFLOAD
+	case WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID:
+	{
+		ol_txrx_pdev_handle pdev;
+
+		pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+			wma_handle->vos_context);
+		if (!pdev) {
+			WMA_LOGE("pdev NULL for uc stat");
+			return -EINVAL;
+		}
+		ol_txrx_ipa_uc_get_stat(pdev);
+	}
+		break;
+#endif /* IPA_UC_OFFLOAD */
 
 	default:
 		WMA_LOGE("Invalid wma config command id:%d",

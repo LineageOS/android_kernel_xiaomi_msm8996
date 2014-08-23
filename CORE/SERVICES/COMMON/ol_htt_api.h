@@ -289,6 +289,14 @@ htt_h2t_ipa_uc_set_active(struct htt_pdev_t *pdev,
    a_bool_t is_tx);
 
 /**
+ * @brief query uc data path stats
+ *
+ * @param pdev - handle to the HTT instance
+ */
+int
+htt_h2t_ipa_uc_get_stats(struct htt_pdev_t *pdev);
+
+/**
  * @brief Attach IPA UC data path
  *
  * @param pdev - handle to the HTT instance

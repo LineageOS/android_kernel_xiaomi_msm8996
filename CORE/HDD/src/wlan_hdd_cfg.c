@@ -3763,6 +3763,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_ENABLE_LPASS_SUPPORT_MIN,
                CFG_ENABLE_LPASS_SUPPORT_MAX),
 #endif
+
    REG_VARIABLE( CFG_ENABLE_SELF_RECOVERY, WLAN_PARAM_Integer,
               hdd_config_t, enableSelfRecovery,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3778,6 +3779,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_SCC_CHAN_AVOIDANCE_MIN,
                  CFG_SAP_SCC_CHAN_AVOIDANCE_MAX),
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
+
+   REG_VARIABLE( CFG_ENABLE_SAP_SUSPEND, WLAN_PARAM_Integer,
+               hdd_config_t, enableSapSuspend,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ENABLE_SAP_SUSPEND_DEFAULT,
+               CFG_ENABLE_SAP_SUSPEND_MIN,
+               CFG_ENABLE_SAP_SUSPEND_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4315,9 +4323,14 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
             "Name = [gEnableLpassSupport] Value = [%u] ",
             pHddCtx->cfg_ini->enablelpasssupport);
 #endif
+
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gEnableSelfRecovery] Value = [%u]",
                    pHddCtx->cfg_ini->enableSelfRecovery);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [gEnableSapSuspend] Value = [%u]",
+            pHddCtx->cfg_ini->enableSapSuspend);
 }
 
 #define CFG_VALUE_MAX_LEN 256

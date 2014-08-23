@@ -6641,7 +6641,25 @@ void hdd_update_tgt_cfg(void *context, void *param)
 {
     hdd_context_t *hdd_ctx = (hdd_context_t *)context;
     struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
+    tANI_U8 temp_band_cap;
+
+    /* first store the INI band capability */
+    temp_band_cap = hdd_ctx->cfg_ini->nBandCapability;
+
     hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
+
+    /* now overwrite the target band capability with INI
+       setting if INI setting is a subset */
+
+    if ((hdd_ctx->cfg_ini->nBandCapability == eCSR_BAND_ALL) &&
+        (temp_band_cap != eCSR_BAND_ALL))
+        hdd_ctx->cfg_ini->nBandCapability = temp_band_cap;
+    else if ((hdd_ctx->cfg_ini->nBandCapability != eCSR_BAND_ALL) &&
+             (temp_band_cap != eCSR_BAND_ALL) &&
+             (hdd_ctx->cfg_ini->nBandCapability != temp_band_cap)) {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               FL("ini BandCapability not supported by the target"));
+    }
 
     hdd_ctx->reg.reg_domain = cfg->reg_domain;
     hdd_ctx->reg.eeprom_rd_ext = cfg->eeprom_rd_ext;
