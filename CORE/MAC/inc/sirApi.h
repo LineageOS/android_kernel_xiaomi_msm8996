@@ -4811,6 +4811,7 @@ typedef struct sSirSmeRoamOffloadSynchInd
     tANI_U32    authStatus;
     tANI_U8     rssi;
     tANI_U8     roamReason;
+    tANI_U32    chan_freq;
 } tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
 
 typedef struct sSirSmeRoamOffloadSynchCnf

@@ -4681,6 +4681,7 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
         tp_wma_handle wma = (tp_wma_handle)handle;
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
+	wmi_channel *chan = NULL;
 	int size=0;
 	tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd;
 
@@ -4733,6 +4734,8 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	vos_mem_copy(reassoc_rsp_ptr,
 			param_buf->reassoc_rsp_frame,
 			pRoamOffloadSynchInd->reassocRespLength);
+	chan = (wmi_channel *) param_buf->chan;
+	pRoamOffloadSynchInd->chan_freq = chan->mhz;
 	vos_msg.type = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	vos_msg.bodyptr = (void *) pRoamOffloadSynchInd;
 	vos_msg.bodyval = 0;
