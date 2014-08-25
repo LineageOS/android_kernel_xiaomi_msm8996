@@ -687,7 +687,11 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             pSpectCh++;
         }
     }
-    return eSAP_TRUE;
+
+    if (pSpectCh->chNum > 0)
+        return eSAP_TRUE;
+    else
+        return eSAP_FALSE;
 }
 
 /*==========================================================================
@@ -2471,11 +2475,10 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
         }
 
         // preference is given to channels in the configured range which are safe
-        // if there is not such one, then we return start channel in the configuration
         if (firstSafeChannelInRange != SAP_CHANNEL_NOT_SELECTED)
             return firstSafeChannelInRange;
         else
-            return startChannelNum;
+            return SAP_CHANNEL_NOT_SELECTED;
 #endif /* !FEATURE_WLAN_CH_AVOID */
 #endif /* SOFTAP_CHANNEL_RANGE */
     }
