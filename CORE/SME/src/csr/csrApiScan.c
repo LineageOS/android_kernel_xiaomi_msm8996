@@ -4855,12 +4855,12 @@ static tANI_BOOLEAN csrScanIsBssAllowed(tpAniSirGlobal pMac, tSirBssDescription 
             fAllowed = (tANI_BOOLEAN)((eCSR_DOT11_MODE_11b != phyMode) && (eCSR_DOT11_MODE_11g != phyMode));
             break;
         case eCSR_DOT11_MODE_11n_ONLY:
-            fAllowed = (tANI_BOOLEAN)((eCSR_DOT11_MODE_11n == phyMode) || (eCSR_DOT11_MODE_TAURUS == phyMode));
+            fAllowed = (tANI_BOOLEAN)((eCSR_DOT11_MODE_11n == phyMode));
             break;
 
 #ifdef WLAN_FEATURE_11AC
          case eCSR_DOT11_MODE_11ac_ONLY:
-             fAllowed = (tANI_BOOLEAN)((eCSR_DOT11_MODE_11ac == phyMode) || (eCSR_DOT11_MODE_TAURUS == phyMode));
+             fAllowed = (tANI_BOOLEAN)((eCSR_DOT11_MODE_11ac == phyMode));
              break;
 #endif
         case eCSR_DOT11_MODE_11b_ONLY:
@@ -4873,7 +4873,6 @@ static tANI_BOOLEAN csrScanIsBssAllowed(tpAniSirGlobal pMac, tSirBssDescription 
 #ifdef WLAN_FEATURE_11AC
         case eCSR_DOT11_MODE_11ac:
 #endif
-        case eCSR_DOT11_MODE_TAURUS:
         default:
             fAllowed = eANI_BOOLEAN_TRUE;
             break;

@@ -579,9 +579,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_CCA_CHANGE_MODE            SIR_HAL_CCA_CHANGE_MODE
 #define WDA_TIMER_WRAP_AROUND_STATS_COLLECT_REQ   SIR_HAL_TIMER_WRAP_AROUND_STATS_COLLECT_REQ
 
-/*
- * New Taurus related messages
- */
 #define WDA_ADD_STA_REQ                SIR_HAL_ADD_STA_REQ
 #define WDA_ADD_STA_RSP                SIR_HAL_ADD_STA_RSP
 #define WDA_ADD_STA_SELF_RSP           SIR_HAL_ADD_STA_SELF_RSP

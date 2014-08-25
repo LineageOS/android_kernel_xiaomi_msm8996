@@ -577,11 +577,6 @@ typedef struct sAniSirLim
 
     //////////////////////////////////////////     MISC RELATED START ///////////////////////////////////////////
 
-    // WDS info
-    tANI_U32            gLimNumWdsInfoInd;
-    tANI_U32            gLimNumWdsInfoSet;
-    tSirWdsInfo         gLimWdsInfo;
-
     /* Deferred Queue Parameters */
     tLimDeferredMsgQParams    gLimDeferredMsgQ;
 
@@ -697,39 +692,6 @@ typedef struct sAniSirLim
     tCacheParams    protStaCache[LIM_PROT_STA_CACHE_SIZE];
 
     //////////////////////////////////////////     ASSOC RELATED END ///////////////////////////////////////////
-
-
-
-    //
-    // For DEBUG purposes
-    // Primarily for - TITAN BEACON workaround
-    // Symptom - TFP/PHY gets stuck
-    //
-    tANI_U32 gLimScanOverride;
-    // Holds the desired tSirScanType, as requested by SME
-    tSirScanType gLimScanOverrideSaved;
-
-    //
-    // CB State protection, operated upon as follows:
-    // 1 - CB is enabled in the hardware ONLY WHEN a Titan
-    // STA associates with the AP
-    // 0 - CB is enabled/disabled based on the configuration
-    // received as per eWNI_SME_START_BSS_REQ
-    //
-    tANI_U32 gLimCBStateProtection;
-
-    // Count of TITAN STA's currently associated
-    tANI_U16 gLimTitanStaCount;
-
-    //
-    // For DEBUG purposes
-    // Primarily for - TITAN workaround
-    // Symptom - Avoid NULL data frames
-        // Applies to AP only
-    //
-    tANI_U32 gLimBlockNonTitanSta;
-    /////////////////////////// TITAN related globals       //////////////////////////////////////////
-
 
     ////////////////////////////////  HT RELATED           //////////////////////////////////////////
     //

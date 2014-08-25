@@ -263,14 +263,10 @@ schGetParams(
                    WNI_CFG_EDCA_ANI_ACVI_LOCAL, WNI_CFG_EDCA_ANI_ACVO_LOCAL };
     tANI_U32 wme_l[] = {WNI_CFG_EDCA_WME_ACBE_LOCAL, WNI_CFG_EDCA_WME_ACBK_LOCAL,
                    WNI_CFG_EDCA_WME_ACVI_LOCAL, WNI_CFG_EDCA_WME_ACVO_LOCAL};
-    tANI_U32 demo_l[] = {WNI_CFG_EDCA_TIT_DEMO_ACBE_LOCAL, WNI_CFG_EDCA_TIT_DEMO_ACBK_LOCAL,
-                   WNI_CFG_EDCA_TIT_DEMO_ACVI_LOCAL, WNI_CFG_EDCA_TIT_DEMO_ACVO_LOCAL};
     tANI_U32 ani_b[] = {WNI_CFG_EDCA_ANI_ACBE, WNI_CFG_EDCA_ANI_ACBK,
                    WNI_CFG_EDCA_ANI_ACVI, WNI_CFG_EDCA_ANI_ACVO};
     tANI_U32 wme_b[] = {WNI_CFG_EDCA_WME_ACBE, WNI_CFG_EDCA_WME_ACBK,
                    WNI_CFG_EDCA_WME_ACVI, WNI_CFG_EDCA_WME_ACVO};
-    tANI_U32 demo_b[] = {WNI_CFG_EDCA_TIT_DEMO_ACBE, WNI_CFG_EDCA_TIT_DEMO_ACBK,
-                   WNI_CFG_EDCA_TIT_DEMO_ACVI, WNI_CFG_EDCA_TIT_DEMO_ACVO};
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_EDCA_PROFILE, &val) != eSIR_SUCCESS)
     {
@@ -287,8 +283,7 @@ schGetParams(
     }
 
     schLog(pMac, LOGW, FL("EdcaProfile: Using %d (%s)"),  val,
-           ((val == WNI_CFG_EDCA_PROFILE_WMM) ? "WMM"
-           : ( (val == WNI_CFG_EDCA_PROFILE_TIT_DEMO) ? "Titan" : "HiPerf")));
+           ((val == WNI_CFG_EDCA_PROFILE_WMM) ? "WMM" : "HiPerf"));
 
     if (local)
     {
@@ -296,9 +291,6 @@ schGetParams(
         {
            case WNI_CFG_EDCA_PROFILE_WMM:
               prf = &wme_l[0];
-              break;
-           case WNI_CFG_EDCA_PROFILE_TIT_DEMO:
-              prf = &demo_l[0];
               break;
            case WNI_CFG_EDCA_PROFILE_ANI:
            default:
@@ -312,9 +304,6 @@ schGetParams(
         {
            case WNI_CFG_EDCA_PROFILE_WMM:
               prf = &wme_b[0];
-              break;
-           case WNI_CFG_EDCA_PROFILE_TIT_DEMO:
-              prf = &demo_b[0];
               break;
            case WNI_CFG_EDCA_PROFILE_ANI:
            default:
@@ -453,7 +442,6 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
 
     tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
-    tANI_BOOLEAN highPerformance=eANI_BOOLEAN_TRUE;
 
     if (schGetParams(pMac, params, true /*local*/) != eSIR_SUCCESS)
     {
@@ -463,20 +451,9 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     setSchEdcaParams(pMac, params, psessionEntry);
 
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {
-        if (pMac->lim.gLimNumOfAniSTAs)
-            highPerformance = eANI_BOOLEAN_TRUE;
-        else
-            highPerformance = eANI_BOOLEAN_FALSE;
-    }
-    else if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-    {
-        highPerformance = eANI_BOOLEAN_TRUE;
-    }
-
     //For AP, the bssID is stored in LIM Global context.
-    limSendEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry->bssIdx, highPerformance);
+    limSendEdcaParams(pMac, psessionEntry->gLimEdcaParams,
+                      psessionEntry->bssIdx);
 }
 
 /** ----------------------------------------------------------

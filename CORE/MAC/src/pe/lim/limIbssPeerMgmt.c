@@ -57,9 +57,9 @@
  *
  *FUNCTION:
  * This function is called while adding a context at
- * DPH & Polaris for a peer in IBSS.
+ * DPH for a peer in IBSS.
  * If peer is found in the list, capabilities from the
- * returned BSS description are used at DPH node & Polaris.
+ * returned BSS description are used at DPH node.
  *
  *LOGIC:
  *
@@ -366,12 +366,12 @@ ibss_sta_rates_update(
 #ifdef WLAN_FEATURE_11AC
     limPopulateMatchingRateSet(pMac, pStaDs, &pPeer->supportedRates,
                                &pPeer->extendedRates, pPeer->supportedMCSSet,
-                               &pStaDs->mlmStaContext.propRateSet,psessionEntry, &pPeer->VHTCaps);
+                               psessionEntry, &pPeer->VHTCaps);
 #else
     // Populate supported rateset
     limPopulateMatchingRateSet(pMac, pStaDs, &pPeer->supportedRates,
                                &pPeer->extendedRates, pPeer->supportedMCSSet,
-                               &pStaDs->mlmStaContext.propRateSet,psessionEntry);
+                               psessionEntry);
 #endif
 
     pStaDs->mlmStaContext.capabilityInfo = pPeer->capabilityInfo;
@@ -381,8 +381,7 @@ ibss_sta_rates_update(
  * ibss_sta_info_update
  *
  *FUNCTION:
- * This is called to program both SW & Polaris context
- * for peer in IBSS.
+ * This is called to program SW context for peer in IBSS.
  *
  *LOGIC:
  *
@@ -960,9 +959,9 @@ limIbssDecideProtection(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaco
  *
  *FUNCTION:
  * This function is called while adding a context at
- * DPH & Polaris for a peer in IBSS.
+ * DPH for a peer in IBSS.
  * If peer is found in the list, capabilities from the
- * returned BSS description are used at DPH node & Polaris.
+ * returned BSS description are used at DPH node.
  *
  *LOGIC:
  *

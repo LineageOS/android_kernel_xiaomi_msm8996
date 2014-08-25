@@ -75,17 +75,6 @@ typedef struct sCfgBinHdr
 } tCfgBinHdr, *tpCfgBinHdr;
 
 
-/*--------------------------------------------------------------------*/
-/* Polaris HW counter access structure                                */
-/*--------------------------------------------------------------------*/
-typedef struct
-{
-    tANI_U32    addr;
-    tANI_U32    mask;
-    tANI_U32    shift;
-} tCfgHwCnt;
-
-
 #define CFG_STAT_CNT_LO_MASK       0x0000ffff
 #define CFG_STAT_CNT_HI_MASK       0xffff0000
 #define CFG_STAT_CNT_HI_INCR       0x00010000

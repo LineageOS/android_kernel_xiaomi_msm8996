@@ -124,26 +124,22 @@ typedef enum
 
 typedef enum
 {
-    eCSR_DOT11_MODE_TAURUS = 0, //This mean everything because it covers all thing we support
     eCSR_DOT11_MODE_abg = 0x0001,    //11a/b/g only, no HT, no proprietary
     eCSR_DOT11_MODE_11a = 0x0002,
     eCSR_DOT11_MODE_11b = 0x0004,
     eCSR_DOT11_MODE_11g = 0x0008,
     eCSR_DOT11_MODE_11n = 0x0010,
-    eCSR_DOT11_MODE_POLARIS = 0x0020,
-    eCSR_DOT11_MODE_TITAN = 0x0040,
-    eCSR_DOT11_MODE_11g_ONLY = 0x0080,
-    eCSR_DOT11_MODE_11n_ONLY = 0x0100,
-    eCSR_DOT11_MODE_TAURUS_ONLY = 0x0200,
-    eCSR_DOT11_MODE_11b_ONLY = 0x0400,
-    eCSR_DOT11_MODE_11a_ONLY = 0x0800,
+    eCSR_DOT11_MODE_11g_ONLY = 0x0020,
+    eCSR_DOT11_MODE_11n_ONLY = 0x0040,
+    eCSR_DOT11_MODE_11b_ONLY = 0x0080,
+    eCSR_DOT11_MODE_11a_ONLY = 0x0100,
 #ifdef WLAN_FEATURE_11AC
-    eCSR_DOT11_MODE_11ac     = 0x1000,
-    eCSR_DOT11_MODE_11ac_ONLY = 0x2000,
+    eCSR_DOT11_MODE_11ac     = 0x0200,
+    eCSR_DOT11_MODE_11ac_ONLY = 0x0400,
 #endif
     //This is for WIFI test. It is same as eWNIAPI_MAC_PROTOCOL_ALL except when it starts IBSS in 11B of 2.4GHz
     //It is for CSR internal use
-    eCSR_DOT11_MODE_AUTO = 0x4000,
+    eCSR_DOT11_MODE_AUTO = 0x0800,
 
     eCSR_NUM_PHY_MODE = 16,     //specify the number of maximum bits for phyMode
 }eCsrPhyMode;

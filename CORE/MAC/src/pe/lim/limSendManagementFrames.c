@@ -821,7 +821,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                                 &pFrm->ExtSuppRates, psessionEntry );
 
-    //Populate HT IEs, when operating in 11n or Taurus modes.
+    //Populate HT IEs, when operating in 11n
     if ( psessionEntry->htCapability )
     {
         PopulateDot11fHTCaps( pMac, psessionEntry, &pFrm->HTCaps );
@@ -1343,7 +1343,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8             *pFrame, *macAddr;
     tpSirMacMgmtHdr      pMacHdr;
     tSirRetStatus        nSirStatus;
-    tANI_U8              lleMode = 0, fAddTS, edcaInclude = 0;
+    tANI_U8              lleMode = 0, fAddTS;
     tHalBitVal           qosMode, wmeMode;
     tANI_U32             nPayload, nBytes, nStatus;
     void                *pPacket;
@@ -1416,36 +1416,17 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
             if ( pSta->lleEnabled )
             {
                 lleMode = 1;
-                if ( ( ! pSta->aniPeer ) || ( ! PROP_CAPABILITY_GET( 11EQOS, pSta->propCapability ) ) )
-                {
-                    PopulateDot11fEDCAParamSet( pMac, &frm.EDCAParamSet, psessionEntry);
-                }
+                PopulateDot11fEDCAParamSet( pMac, &frm.EDCAParamSet, psessionEntry);
             } // End if on .11e enabled in 'pSta'.
         } // End if on QOS Mode on.
 
-        if ( ( ! lleMode ) && ( eHAL_SET == wmeMode ) && pSta->wmeEnabled )
-        {
-            if ( ( ! pSta->aniPeer ) || ( ! PROP_CAPABILITY_GET( WME, pSta->propCapability ) ) )
-            {
+        if ((!lleMode) && (eHAL_SET == wmeMode) && pSta->wmeEnabled) {
+            PopulateDot11fWMMParams(pMac, &frm.WMMParams, psessionEntry);
 
-                PopulateDot11fWMMParams( pMac, &frm.WMMParams, psessionEntry);
-
-                if ( pSta->wsmEnabled )
-                {
-                    PopulateDot11fWMMCaps(&frm.WMMCaps );
-                }
+            if (pSta->wsmEnabled) {
+                PopulateDot11fWMMCaps(&frm.WMMCaps);
             }
         }
-
-        if ( pSta->aniPeer )
-        {
-            if ( ( lleMode && PROP_CAPABILITY_GET( 11EQOS, pSta->propCapability ) ) ||
-                 ( pSta->wmeEnabled && PROP_CAPABILITY_GET( WME, pSta->propCapability ) ) )
-            {
-                edcaInclude = 1;
-            }
-
-        } // End if on Airgo peer.
 
         if ( pSta->mlmStaContext.htCapability  &&
              psessionEntry->htCapability )
@@ -2206,8 +2187,6 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
     caps = pMlmAssocReq->capabilityInfo;
-    if ( PROP_CAPABILITY_GET( 11EQOS, psessionEntry->limCurrentBssPropCap ) )
-        ((tSirMacCapabilityInfo *) &caps)->qos = 0;
 #if defined(FEATURE_WLAN_WAPI)
     /* CR: 262463 :
        According to WAPI standard:
@@ -2261,8 +2240,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 #endif
 
-    if ( fQosEnabled &&
-            ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limCurrentBssPropCap)))
+    if (fQosEnabled)
         PopulateDot11fQOSCapsStation( pMac, &pFrm->QOSCapsStation );
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
@@ -2312,30 +2290,22 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
     // include WME EDCA IE as well
-    if ( fWmeEnabled )
-    {
-        if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limCurrentBssPropCap ) )
-        {
-            if(!pMac->psOffloadEnabled)
-                PopulateDot11fWMMInfoStation( pMac, &pFrm->WMMInfoStation );
-            else
-                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
-                                                       &pFrm->WMMInfoStation);
-        }
+    if (fWmeEnabled) {
+        if(!pMac->psOffloadEnabled)
+            PopulateDot11fWMMInfoStation( pMac, &pFrm->WMMInfoStation );
+        else
+            PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                   &pFrm->WMMInfoStation);
 
-        if ( fWsmEnabled &&
-                ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limCurrentBssPropCap )))
-        {
+        if (fWsmEnabled)
             PopulateDot11fWMMCaps( &pFrm->WMMCaps );
-        }
     }
 
-    //Populate HT IEs, when operating in 11n or Taurus modes AND
-    //when AP is also operating in 11n mode.
-    if ( psessionEntry->htCapability &&
-            pMac->lim.htCapabilityPresentInBeacon)
-    {
-        PopulateDot11fHTCaps( pMac, psessionEntry, &pFrm->HTCaps );
+    /* Populate HT IEs, when operating in 11n and
+     * when AP is also operating in 11n mode */
+    if (psessionEntry->htCapability &&
+            pMac->lim.htCapabilityPresentInBeacon) {
+        PopulateDot11fHTCaps(pMac, psessionEntry, &pFrm->HTCaps);
 #ifdef DISABLE_GF_FOR_INTEROP
 
         /*
@@ -2610,8 +2580,6 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     caps = pMlmReassocReq->capabilityInfo;
-    if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
-        ((tSirMacCapabilityInfo *) &caps)->qos = 0;
 #if defined(FEATURE_WLAN_WAPI)
     /* CR: 262463 :
        According to WAPI standard:
@@ -2672,11 +2640,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
 #endif
 
-    if ( fQosEnabled &&
-            ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap ) ))
-    {
+    if (fQosEnabled)
         PopulateDot11fQOSCapsStation( pMac, &frm.QOSCapsStation );
-    }
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
             &frm.ExtSuppRates, psessionEntry );
@@ -2760,20 +2725,14 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     // include WME EDCA IE as well
     if ( fWmeEnabled )
     {
-        if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limReassocBssPropCap ) )
-        {
-            if(!pMac->psOffloadEnabled)
-                PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
-            else
-                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
-                                                       &frm.WMMInfoStation);
-        }
+        if(!pMac->psOffloadEnabled)
+            PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+        else
+            PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                   &frm.WMMInfoStation);
 
-        if ( fWsmEnabled &&
-                ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limReassocBssPropCap )))
-        {
+        if (fWsmEnabled)
             PopulateDot11fWMMCaps( &frm.WMMCaps );
-        }
 #ifdef FEATURE_WLAN_ESE
         if (psessionEntry->isESEconnection)
         {
@@ -3117,8 +3076,6 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0 );
 
     caps = pMlmReassocReq->capabilityInfo;
-    if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
-        ((tSirMacCapabilityInfo *) &caps)->qos = 0;
 #if defined(FEATURE_WLAN_WAPI)
     /* CR: 262463 :
     According to WAPI standard:
@@ -3172,11 +3129,8 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
 #endif
 
-    if ( fQosEnabled &&
-         ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap ) ))
-    {
+    if (fQosEnabled)
         PopulateDot11fQOSCapsStation( pMac, &frm.QOSCapsStation );
-    }
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                                 &frm.ExtSuppRates, psessionEntry );
@@ -3225,22 +3179,15 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
 
     // include WME EDCA IE as well
-    if ( fWmeEnabled )
-    {
-        if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limReassocBssPropCap ) )
-        {
-            if(!pMac->psOffloadEnabled)
-                PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
-            else
-                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
-                                                       &frm.WMMInfoStation);
-        }
+    if (fWmeEnabled) {
+        if(!pMac->psOffloadEnabled)
+            PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+        else
+            PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                   &frm.WMMInfoStation);
 
-        if ( fWsmEnabled &&
-             ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limReassocBssPropCap )))
-        {
-            PopulateDot11fWMMCaps( &frm.WMMCaps );
-        }
+        if (fWsmEnabled)
+            PopulateDot11fWMMCaps(&frm.WMMCaps);
     }
 
     if ( psessionEntry->htCapability &&

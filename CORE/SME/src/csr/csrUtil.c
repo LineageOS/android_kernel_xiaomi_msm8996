@@ -1294,20 +1294,6 @@ tANI_BOOLEAN csrIsSsidEqual( tHalHandle hHal, tSirBssDescription *pSirBssDesc1,
     return( fEqual );
 }
 
-tANI_BOOLEAN csrIsAniWmeSupported(tDot11fIEAirgo *pIeAirgo)
-{
-    tANI_BOOLEAN fRet = eANI_BOOLEAN_FALSE;
-
-    if(pIeAirgo && pIeAirgo->present && pIeAirgo->PropCapability.present)
-    {
-        fRet = (tANI_BOOLEAN)(PROP_CAPABILITY_GET( WME, pIeAirgo->PropCapability.capability ));
-    }
-
-    return fRet;
-}
-
-
-
 
 //pIes can be passed in as NULL if the caller doesn't have one prepared
 tANI_BOOLEAN csrIsBssDescriptionWme( tHalHandle hHal, tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes )
@@ -1327,8 +1313,6 @@ tANI_BOOLEAN csrIsBssDescriptionWme( tHalHandle hHal, tSirBssDescription *pSirBs
                 break;
             }
         }
-        // if the AirgoProprietary indicator is found, then WME is supported...
-        if ( csrIsAniWmeSupported(&pIesTemp->Airgo) ) break;
         // if the Wme Info IE is found, then WME is supported...
         if ( CSR_IS_QOS_BSS(pIesTemp) ) break;
         // if none of these are found, then WME is NOT supported...
@@ -1349,17 +1333,6 @@ tANI_BOOLEAN csrIsBssDescriptionWme( tHalHandle hHal, tSirBssDescription *pSirBs
 
     return( fWme );
 }
-
-tANI_BOOLEAN csrIsHcfEnabled( tDot11fIEAirgo *pIeAirgo )
-{
-    tANI_BOOLEAN fHcfSupported = FALSE;
-
-    fHcfSupported = ((tANI_BOOLEAN)(PROP_CAPABILITY_GET( WME, pIeAirgo->PropCapability.capability )) ||
-        (pIeAirgo->present && pIeAirgo->HCF.present && pIeAirgo->HCF.enabled));
-
-    return( fHcfSupported );
-}
-
 
 eCsrMediaAccessType csrGetQoSFromBssDesc( tHalHandle hHal, tSirBssDescription *pSirBssDesc,
                                           tDot11fBeaconIEs *pIes )
@@ -1383,20 +1356,9 @@ eCsrMediaAccessType csrGetQoSFromBssDesc( tHalHandle hHal, tSirBssDescription *p
         else
         {
             // if the QoS bit is on, then the AP is advertising 11E QoS...
-            if ( csrIsQoSBssDesc( pSirBssDesc ) )
-            {
-                // which could be HCF or eDCF.
-                    if ( csrIsHcfEnabled( &pIes->Airgo ) )
-                {
-                    qosType = eCSR_MEDIUM_ACCESS_11e_HCF;
-                }
-                else
-                {
-                    qosType = eCSR_MEDIUM_ACCESS_11e_eDCF;
-                }
-            }
-            else
-            {
+            if (csrIsQoSBssDesc(pSirBssDesc)) {
+                qosType = eCSR_MEDIUM_ACCESS_11e_eDCF;
+            } else {
                 qosType = eCSR_MEDIUM_ACCESS_DCF;
             }
             // scale back based on the types turned on for the adapter...
@@ -1571,17 +1533,7 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
     case eCSR_CFG_DOT11_MODE_AUTO:
         smsLog(pMac, LOGW, FL("  Warning: sees eCSR_CFG_DOT11_MODE_AUTO "));
         //We cannot decide until now.
-        if(pMac->roam.configParam.ProprietaryRatesEnabled)
-        {
-            ret = WNI_CFG_DOT11_MODE_TAURUS;
-        }
-        else
-        {
-            ret = WNI_CFG_DOT11_MODE_11AC;
-        }
-        break;
-    case eCSR_CFG_DOT11_MODE_TAURUS:
-        ret = WNI_CFG_DOT11_MODE_TAURUS;
+        ret = WNI_CFG_DOT11_MODE_11AC;
         break;
     case eCSR_CFG_DOT11_MODE_11A:
         ret = WNI_CFG_DOT11_MODE_11A;
@@ -1594,12 +1546,6 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
         break;
     case eCSR_CFG_DOT11_MODE_11N:
         ret = WNI_CFG_DOT11_MODE_11N;
-        break;
-    case eCSR_CFG_DOT11_MODE_POLARIS:
-        ret = WNI_CFG_DOT11_MODE_POLARIS;
-        break;
-    case eCSR_CFG_DOT11_MODE_TITAN:
-        ret = WNI_CFG_DOT11_MODE_TITAN;
         break;
     case eCSR_CFG_DOT11_MODE_11G_ONLY:
        ret = WNI_CFG_DOT11_MODE_11G_ONLY;
@@ -1640,26 +1586,13 @@ eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDes
     eHalStatus status = eHAL_STATUS_SUCCESS;
     eCsrPhyMode phyMode = csrTranslateToPhyModeFromBssDesc(pBSSDescription);
 
-    if( pIes )
-    {
-        if(pIes->Airgo.present)
-        {
-            if(pIes->Airgo.PropCapability.present)
-            {
-                if( PROP_CAPABILITY_GET( TAURUS, pIes->Airgo.PropCapability.capability ))
-                {
-                    phyMode = eCSR_DOT11_MODE_TAURUS;
-                }
-                }
-                }
-        if(pIes->HTCaps.present && (eCSR_DOT11_MODE_TAURUS != phyMode))
-        {
+    if (pIes) {
+        if (pIes->HTCaps.present) {
             phyMode = eCSR_DOT11_MODE_11n;
         }
 
 #ifdef WLAN_FEATURE_11AC
-        if ( pIes->VHTCaps.present && (eCSR_DOT11_MODE_TAURUS != phyMode))
-        {
+        if (pIes->VHTCaps.present) {
              phyMode = eCSR_DOT11_MODE_11ac;
         }
 #endif
@@ -1778,7 +1711,6 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
                 break;
 
-            case eCSR_DOT11_MODE_TAURUS:
             default:
 #ifdef WLAN_FEATURE_11AC
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
@@ -1790,11 +1722,9 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             break;
 
         case eCSR_DOT11_MODE_11n_ONLY:
-            if((eCSR_DOT11_MODE_11n == bssPhyMode) || (eCSR_DOT11_MODE_TAURUS == bssPhyMode))
-            {
+            if ((eCSR_DOT11_MODE_11n == bssPhyMode)) {
                 fMatch = TRUE;
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
-
             }
 
             break;
@@ -1816,7 +1746,6 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
                 break;
             case eCSR_DOT11_MODE_11ac:
-            case eCSR_DOT11_MODE_TAURUS:
             default:
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
                 break;
@@ -1824,15 +1753,13 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             break;
 
         case eCSR_DOT11_MODE_11ac_ONLY:
-            if((eCSR_DOT11_MODE_11ac == bssPhyMode) || (eCSR_DOT11_MODE_TAURUS == bssPhyMode))
-            {
+            if ((eCSR_DOT11_MODE_11ac == bssPhyMode)) {
                 fMatch = TRUE;
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
             }
             break;
 #endif
 
-        case eCSR_DOT11_MODE_TAURUS:
         default:
             fMatch = TRUE;
             switch(bssPhyMode)
@@ -1854,9 +1781,8 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11AC;
                 break;
 #endif
-            case eCSR_DOT11_MODE_TAURUS:
             default:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
+                cfgDot11Mode = eCSR_CFG_DOT11_MODE_AUTO;
                 break;
             }
             break;
@@ -1888,57 +1814,33 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
 {
     tANI_BOOLEAN fMatch = FALSE;
     eCsrPhyMode phyModeInBssDesc, phyMode2;
-    eCsrCfgDot11Mode cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_TAURUS;
+    eCsrCfgDot11Mode cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_AUTO;
     tANI_U32 bitMask, loopCount;
 
-    if(HAL_STATUS_SUCCESS(csrGetPhyModeFromBss(pMac, pSirBssDesc, &phyModeInBssDesc, pIes )))
-    {
-        //In case some change change eCSR_DOT11_MODE_TAURUS to non-0
-        if ( (0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode) || (eCSR_DOT11_MODE_TAURUS & phyMode))
-        {
-            //Taurus means anything
-            if ( eCSR_CFG_DOT11_MODE_ABG == pMac->roam.configParam.uCfgDot11Mode )
-            {
+    if (HAL_STATUS_SUCCESS(csrGetPhyModeFromBss(pMac, pSirBssDesc,
+                                                &phyModeInBssDesc, pIes))) {
+        if ((0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode)) {
+            if (eCSR_CFG_DOT11_MODE_ABG == pMac->roam.configParam.uCfgDot11Mode) {
                 phyMode = eCSR_DOT11_MODE_abg;
-            }
-            else if(eCSR_CFG_DOT11_MODE_AUTO == pMac->roam.configParam.uCfgDot11Mode)
-            {
-                if(pMac->roam.configParam.ProprietaryRatesEnabled)
-                {
-                    phyMode = eCSR_DOT11_MODE_TAURUS;
-                }
-                else
-                {
-
+            } else if (eCSR_CFG_DOT11_MODE_AUTO ==
+                                       pMac->roam.configParam.uCfgDot11Mode) {
 #ifdef WLAN_FEATURE_11AC
                     phyMode = eCSR_DOT11_MODE_11ac;
 #else
                     phyMode = eCSR_DOT11_MODE_11n;
 #endif
-
-                }
-            }
-            else
-            {
+            } else {
                 //user's pick
                 phyMode = pMac->roam.configParam.phyMode;
             }
         }
-        if ( (0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode) || (eCSR_DOT11_MODE_TAURUS & phyMode) )
-        {
-            if(0 != phyMode)
-            {
-                if(eCSR_DOT11_MODE_AUTO & phyMode)
-                {
+
+        if ((0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode)) {
+            if (0 != phyMode) {
+                if (eCSR_DOT11_MODE_AUTO & phyMode) {
                     phyMode2 = eCSR_DOT11_MODE_AUTO & phyMode;
                 }
-                else
-                {
-                    phyMode2 = eCSR_DOT11_MODE_TAURUS & phyMode;
-                }
-            }
-            else
-            {
+            } else {
                 phyMode2 = phyMode;
             }
             fMatch = csrGetPhyModeInUse( phyMode2, phyModeInBssDesc, CSR_IS_CHANNEL_5GHZ(pSirBssDesc->channelId),
@@ -1967,20 +1869,16 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
                  * by the AP or if the AP included an HT capabilities element
                  * in its Beacons and Probe Response.
                  */
-                if( (!CSR_IS_11n_ALLOWED( pProfile->negotiatedUCEncryptionType )) &&
+                if ((!CSR_IS_11n_ALLOWED(pProfile->negotiatedUCEncryptionType)) &&
                     ((eCSR_CFG_DOT11_MODE_11N == cfgDot11ModeToUse) ||
 #ifdef WLAN_FEATURE_11AC
-                     (eCSR_CFG_DOT11_MODE_11AC == cfgDot11ModeToUse) ||
+                     (eCSR_CFG_DOT11_MODE_11AC == cfgDot11ModeToUse)
 #endif
-                     (eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11ModeToUse)) )
-                {
-                    //We cannot do 11n here
-                    if( !CSR_IS_CHANNEL_5GHZ(pSirBssDesc->channelId) )
-                    {
+                     )) {
+                    /* We cannot do 11n here */
+                    if (!CSR_IS_CHANNEL_5GHZ(pSirBssDesc->channelId)) {
                         cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11G;
-                    }
-                    else
-                    {
+                    } else {
                         cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11A;
                     }
                 }
@@ -5568,14 +5466,7 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(tCsrRoamProfile *pProfile, eCs
         cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G;
         break;
     case eCSR_DOT11_MODE_11n:
-        if(fProprietary)
-        {
-            cfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
-        }
-        else
-        {
-            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
-        }
+        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
         break;
     case eCSR_DOT11_MODE_11n_ONLY:
        if(pProfile && CSR_IS_INFRA_AP(pProfile))
@@ -5583,9 +5474,6 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(tCsrRoamProfile *pProfile, eCs
        else
        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
        break;
-    case eCSR_DOT11_MODE_TAURUS:
-        cfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
-        break;
     case eCSR_DOT11_MODE_abg:
         cfgDot11Mode = eCSR_CFG_DOT11_MODE_ABG;
         break;

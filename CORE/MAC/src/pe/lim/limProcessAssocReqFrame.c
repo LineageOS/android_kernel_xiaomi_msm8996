@@ -1139,17 +1139,7 @@ sendIndToSme:
     pStaDs->shortPreambleEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortPreamble;
     pStaDs->shortSlotTimeEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortSlotTime;
 
-    if (pAssocReq->propIEinfo.versionPresent) //update STA version info
-    {
-        pStaDs->versionPresent = 1;
-        pStaDs->version = pAssocReq->propIEinfo.version;
-    }
     pStaDs->propCapability = 0;
-    if (pAssocReq->propIEinfo.capabilityPresent)
-    {
-        if (sirGetCfgPropCaps(pMac, &pStaDs->propCapability))
-            pStaDs->propCapability &= pAssocReq->propIEinfo.capability;
-    }
 
     pStaDs->valid                  = 0;
     pStaDs->mlmStaContext.authType = authType;
@@ -1233,8 +1223,7 @@ if (limPopulateMatchingRateSet(pMac,
                                &(pAssocReq->supportedRates),
                                &(pAssocReq->extendedRates),
                                pAssocReq->HTCaps.supportedMCSSet,
-                               &(pAssocReq->propIEinfo.propRates),
-                               psessionEntry , &pAssocReq->VHTCaps)
+                               psessionEntry, &pAssocReq->VHTCaps)
                                != eSIR_SUCCESS)
 #else
 
@@ -1243,7 +1232,7 @@ if (limPopulateMatchingRateSet(pMac,
                                    &(pAssocReq->supportedRates),
                                    &(pAssocReq->extendedRates),
                                    pAssocReq->HTCaps.supportedMCSSet,
-                                   &(pAssocReq->propIEinfo.propRates), psessionEntry) != eSIR_SUCCESS)
+                                   psessionEntry) != eSIR_SUCCESS)
 #endif
     {
         // Could not update hash table entry at DPH with rateset
@@ -1275,10 +1264,6 @@ if (limPopulateMatchingRateSet(pMac,
                                                                 == MCSMAPMASK2x2) ? 1 : 2;
     }
 #endif
-
-    vos_mem_copy((tANI_U8 *) &pStaDs->mlmStaContext.propRateSet,
-                 (tANI_U8 *) &(pAssocReq->propIEinfo.propRates),
-                  pAssocReq->propIEinfo.propRates.numPropRates + 1);
 
     /// Add STA context at MAC HW (BMU, RHP & TFP)
 

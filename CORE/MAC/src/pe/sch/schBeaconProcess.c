@@ -442,10 +442,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                     // If needed, downgrade the EDCA parameters
                     limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
-                    if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
-                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
-                    else
-                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+                    limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                                      pStaDs->bssId);
                 }
                 else
                     PELOGE(schLog(pMac, LOGE, FL("Self Entry missing in Hash Table"));)
@@ -465,13 +463,10 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
           (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) )
     {
         /* Channel Switch information element updated */
-        if(pBeacon->channelSwitchPresent ||
-            pBeacon->propIEinfo.propChannelSwitchPresent)
-        {
+        if (pBeacon->channelSwitchPresent) {
             limUpdateChannelSwitch(pMac, pBeacon, psessionEntry);
-        }
-        else if (psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
-        {
+        } else if (psessionEntry->gLimSpecMgmt.dot11hChanSwState ==
+                                       eLIM_11H_CHANSW_RUNNING) {
             limCancelDot11hChannelSwitch(pMac, psessionEntry);
         }
     }
