@@ -10890,7 +10890,8 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
             }
             if (rate_flags & eHAL_TX_RATE_SGI)
             {
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+                if (!(sinfo->txrate.flags & RATE_INFO_FLAGS_VHT_MCS))
+                    sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
             }
 
