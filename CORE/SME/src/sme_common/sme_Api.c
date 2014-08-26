@@ -12371,8 +12371,8 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
     return status;
 }
 
-eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
-                              tSmeChannelInfo *chanInfo)
+eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,
+                         tANI_U32  *regInfo1, tANI_U32  *regInfo2)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     eHalStatus status;
@@ -12380,40 +12380,26 @@ eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
     eAniBoolean found = false;
 
     status = sme_AcquireGlobalLock(&pMac->sme);
+    *regInfo1 = 0;
+    *regInfo2 = 0;
     if (HAL_STATUS_SUCCESS(status))
     {
         for (i = 0 ; i < WNI_CFG_VALID_CHANNEL_LIST_LEN; i++)
         {
             if (pMac->scan.defaultPowerTable[i].chanId == chanId)
             {
-                chanInfo->chan_id = chanId;
-                chanInfo->mhz = vos_chan_to_freq(chanId);
-                chanInfo->band_center_freq1 = chanInfo->mhz;
-                chanInfo->band_center_freq2 = 0;
-
-                if (chanInfo->mhz < SME_2_4_GHZ_MAX_FREQ)
-                {
-                    SME_SET_CHANNEL_MODE(chanInfo, SME_MODE_11G);
-                }
-                else
-                {
-                    SME_SET_CHANNEL_MODE(chanInfo, SME_MODE_11A);
-                }
-
-                SME_SET_CHANNEL_MAX_POWER(chanInfo,
+                SME_SET_CHANNEL_REG_POWER(*regInfo1,
                                           pMac->scan.defaultPowerTable[i].pwr);
 
-                SME_SET_CHANNEL_REG_POWER(chanInfo,
+                SME_SET_CHANNEL_MAX_TX_POWER(*regInfo2,
                                           pMac->scan.defaultPowerTable[i].pwr);
 
-                /* TODO: Set CHANNEL_MIN_POWER */
-                /* TODO: Set CHANNEL_ANTENNA_MAX */
-                /* TODO: Set CHANNEL_REG_CLASSID */
 
                 found = true;
                 break;
             }
         }
+
         if (!found)
             status = eHAL_STATUS_FAILURE;
 

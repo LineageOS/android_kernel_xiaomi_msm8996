@@ -1193,6 +1193,23 @@ typedef struct sSirSmeProbereq
     tANI_U16           devicePasswdId;
 } tSirSmeProbeReq, *tpSirSmeProbeReq;
 
+typedef struct sSirSmeChanInfo
+{
+    /* channel id */
+    tANI_U8 chan_id;
+    /* primary 20 MHz channel frequency in mhz */
+    tANI_U32 mhz;
+    /* Center frequency 1 in MHz */
+    tANI_U32 band_center_freq1;
+    /* Center frequency 2 in MHz - valid only for 11acvht 80plus80 mode */
+    tANI_U32 band_center_freq2;
+    /* channel info described below */
+    tANI_U32 info;
+    /* contains min power, max power, reg power and reg class id */
+    tANI_U32 reg_info_1;
+    /* contains antennamax */
+    tANI_U32 reg_info_2;
+} tSirSmeChanInfo, *tpSirSmeChanInfo;
 /// Definition for Association indication from peer
 /// MAC --->
 typedef struct sSirSmeAssocInd
@@ -1226,6 +1243,7 @@ typedef struct sSirSmeAssocInd
 
     /* Timing measurement capability */
     tANI_U8              timingMeasCap;
+    tSirSmeChanInfo      chan_info;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 

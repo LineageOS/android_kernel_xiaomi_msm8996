@@ -60,6 +60,7 @@
 
 
 #include "vos_types.h"
+#include "vos_utils.h"
 /**
  * limConvertSupportedChannels
  *
@@ -1607,8 +1608,8 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
                limLog(pMac, LOGP, FL("Cannot add HT capabilities IE to addIE"));
        }
 
-        if(pAssocReq->wmeInfoPresent)
-        {
+       if (pAssocReq->wmeInfoPresent)
+       {
 
             if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WME_ENABLED, &tmp) != eSIR_SUCCESS)
                  limLog(pMac, LOGP, FL("wlan_cfgGetInt failed for id %d"),
@@ -1625,7 +1626,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             }
             /* Note: we are not rejecting association here because IOT will fail */
 
-        }
+       }
 
         // Required for indicating the frames to upper layer
         pMlmAssocInd->assocReqLength = pAssocReq->assocReqFrameLength;
@@ -1634,6 +1635,65 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         pMlmAssocInd->beaconPtr = psessionEntry->beacon;
         pMlmAssocInd->beaconLength = psessionEntry->bcnLen;
 
+        pMlmAssocInd->chan_info.chan_id = psessionEntry->currentOperChannel;
+
+        pMlmAssocInd->chan_info.mhz = vos_chan_to_freq(
+                                    psessionEntry->currentOperChannel);
+
+        pMlmAssocInd->chan_info.band_center_freq1 = vos_chan_to_freq(
+                                    psessionEntry->currentOperChannel);
+
+        pMlmAssocInd->chan_info.band_center_freq2 = 0;
+
+        pMlmAssocInd->chan_info.reg_info_1 = (psessionEntry->maxTxPower << 16);
+        pMlmAssocInd->chan_info.reg_info_2 = (psessionEntry->maxTxPower << 8);
+
+        if (psessionEntry->limRFBand == SIR_BAND_2_4_GHZ) {
+            if (psessionEntry->vhtCapability && pAssocReq->VHTCaps.present) {
+                pMlmAssocInd->chan_info.info = MODE_11AC_VHT20_2G;
+            } else if (psessionEntry->htCapability &&
+                                                 pAssocReq->HTCaps.present) {
+                pMlmAssocInd->chan_info.info = MODE_11NG_HT20;
+            } else {
+                pMlmAssocInd->chan_info.info = MODE_11G;
+            }
+        } else {
+            if (psessionEntry->vhtCapability && pAssocReq->VHTCaps.present) {
+                if ((psessionEntry->vhtTxChannelWidthSet ==
+                                                eHT_CHANNEL_WIDTH_80MHZ) &&
+                                 pAssocReq->HTCaps.supportedChannelWidthSet) {
+                    pMlmAssocInd->chan_info.band_center_freq1 =
+                                 vos_chan_to_freq(psessionEntry->apCenterChan);
+                    pMlmAssocInd->chan_info.info = MODE_11AC_VHT80;
+                } else if ((psessionEntry->vhtTxChannelWidthSet ==
+                                                eHT_CHANNEL_WIDTH_40MHZ) &&
+                                  pAssocReq->HTCaps.supportedChannelWidthSet) {
+                    pMlmAssocInd->chan_info.info = MODE_11AC_VHT40;
+                    if (psessionEntry->htSecondaryChannelOffset ==
+                                             PHY_DOUBLE_CHANNEL_LOW_PRIMARY) {
+                        pMlmAssocInd->chan_info.band_center_freq1 += 10;
+                    } else {
+                        pMlmAssocInd->chan_info.band_center_freq1 -= 10;
+                    }
+                } else
+                    pMlmAssocInd->chan_info.info = MODE_11AC_VHT20;
+            } else if (psessionEntry->htCapability &&
+                                pAssocReq->HTCaps.present) {
+                if ((psessionEntry->vhtTxChannelWidthSet ==
+                                                eHT_CHANNEL_WIDTH_40MHZ) &&
+                                  pAssocReq->HTCaps.supportedChannelWidthSet) {
+                    pMlmAssocInd->chan_info.info = MODE_11NA_HT40;
+                    if (psessionEntry->htSecondaryChannelOffset ==
+                                             PHY_DOUBLE_CHANNEL_LOW_PRIMARY) {
+                        pMlmAssocInd->chan_info.band_center_freq1 += 10;
+                    } else {
+                        pMlmAssocInd->chan_info.band_center_freq1 -= 10;
+                    }
+                } else
+                    pMlmAssocInd->chan_info.info = MODE_11NA_HT20;
+            } else
+                pMlmAssocInd->chan_info.info = MODE_11A;
+        }
         limPostSmeMessage(pMac, LIM_MLM_ASSOC_IND, (tANI_U32 *) pMlmAssocInd);
         vos_mem_free(pMlmAssocInd);
     }

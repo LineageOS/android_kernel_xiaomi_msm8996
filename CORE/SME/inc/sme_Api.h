@@ -78,23 +78,15 @@
 #define SME_INVALID_COUNTRY_CODE "XX"
 
 #define SME_2_4_GHZ_MAX_FREQ    3000
-#define SME_MODE_11A            0    /* 11a mode */
-#define SME_MODE_11G            1    /* 11b/g mode */
 
-/* channel info consists of 6 bits of channel mode */
-#define SME_SET_CHANNEL_MODE(psme_channel, val) do { \
-    (psme_channel)->info &= 0xffffffc0;              \
-    (psme_channel)->info |= (val);                   \
+#define SME_SET_CHANNEL_REG_POWER(reg_info_1, val) do { \
+    reg_info_1 &= 0xff00ffff;             \
+    reg_info_1 |= ((val & 0xff) << 16);   \
 } while(0)
 
-#define SME_SET_CHANNEL_MAX_POWER(psme_channel, val) do { \
-    (psme_channel)->reg_info_1 &= 0xffff00ff;             \
-    (psme_channel)->reg_info_1 |= ((val & 0xff) << 8);    \
-} while(0)
-
-#define SME_SET_CHANNEL_REG_POWER(psme_channel, val) do { \
-    (psme_channel)->reg_info_1 &= 0xff00ffff;             \
-    (psme_channel)->reg_info_1 |= ((val & 0xff) << 16);   \
+#define SME_SET_CHANNEL_MAX_TX_POWER(reg_info_2, val) do { \
+    reg_info_2 &= 0xffff00ff;             \
+    reg_info_2 |= ((val & 0xff) << 8);   \
 } while(0)
 
 /*--------------------------------------------------------------------------
@@ -136,29 +128,6 @@ typedef enum
     eSME_ROAM_TRIGGER_MAX
 } tSmeFastRoamTrigger;
 
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* channel id */
-    tANI_U8 chan_id;
-
-    /* primary 20 MHz channel frequency in mhz */
-    tANI_U32 mhz;
-
-    /* Center frequency 1 in MHz */
-    tANI_U32 band_center_freq1;
-
-    /* Center frequency 2 in MHz - valid only for 11acvht 80plus80 mode */
-    tANI_U32 band_center_freq2;
-
-    /* channel info described below */
-    tANI_U32 info;
-
-    /* contains min power, max power, reg power and reg class id */
-    tANI_U32 reg_info_1;
-
-    /* contains antennamax */
-    tANI_U32 reg_info_2;
-} tSmeChannelInfo;
 #ifdef FEATURE_WLAN_TDLS
 
 #define SME_TDLS_MAX_SUPP_CHANNELS       128
@@ -3646,8 +3615,9 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel
 eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode);
 #endif
 
-eHalStatus sme_getChannelInfo(tHalHandle hHal, tANI_U8 chanId,
-                              tSmeChannelInfo *chanInfo);
+eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,
+                          tANI_U32 *regInfo1, tANI_U32 *regInfo2);
+
 #ifdef FEATURE_WLAN_TDLS
 eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams,
                                  tANI_BOOLEAN useSmeLock);

@@ -708,14 +708,22 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #endif
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {
+            tSirSmeChanInfo chan_info;
             vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
                          sizeof(pHddStaCtx->conn_info.bssId));
+            chan_info.chan_id = pCsrRoamInfo->chan_info.chan_id;
+            chan_info.mhz = pCsrRoamInfo->chan_info.mhz;
+            chan_info.info = pCsrRoamInfo->chan_info.info;
+            chan_info.band_center_freq1 = pCsrRoamInfo->chan_info.band_center_freq1;
+            chan_info.band_center_freq2 = pCsrRoamInfo->chan_info.band_center_freq2;
+            chan_info.reg_info_1 = pCsrRoamInfo->chan_info.reg_info_1;
+            chan_info.reg_info_2 = pCsrRoamInfo->chan_info.reg_info_2;
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerConnected,
-                                   pCsrRoamInfo->timingMeasCap,
-                                   pAdapter->sessionId,
-                                   pHddStaCtx->conn_info.operationChannel);
+                                          pCsrRoamInfo->timingMeasCap,
+                                          pAdapter->sessionId,
+                                          &chan_info);
         }
 
 #ifdef WLAN_FEATURE_LPSS
@@ -767,8 +775,8 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerDisconnected,
-                                     0, pAdapter->sessionId,
-                                     pHddStaCtx->conn_info.operationChannel);
+                                          0, pAdapter->sessionId,
+                                          NULL);
         }
 
 #ifdef WLAN_FEATURE_LPSS

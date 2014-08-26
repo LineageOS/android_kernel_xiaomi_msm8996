@@ -68,6 +68,7 @@
 #include "csrEse.h"
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD */
 #include "regdomain_common.h"
+#include "vos_utils.h"
 
 #define CSR_NUM_IBSS_START_CHANNELS_50      4
 #define CSR_NUM_IBSS_START_CHANNELS_24      3
@@ -2549,6 +2550,10 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
     WLAN_VOS_DIAG_EVENT_DEF(connectionStatus, vos_event_wlan_status_payload_type);
 #endif
     tCsrRoamSession *pSession;
+    tDot11fBeaconIEs *beacon_ies = NULL;
+    tANI_U8 chan1, chan2;
+    ePhyChanBondState phy_state;
+
     if( CSR_IS_SESSION_VALID( pMac, sessionId) )
     {
         pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -2568,10 +2573,77 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 
     smsLog(pMac, LOG4, "Recieved RoamCmdStatus %d with Roam Result %d", u1, u2);
 
-    if(eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
+    if (eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
     {
         smsLog(pMac, LOGW, " Assoc complete result = %d statusCode = %d reasonCode = %d", u2, pRoamInfo->statusCode, pRoamInfo->reasonCode);
+
+        beacon_ies = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
+
+        if ((NULL != beacon_ies) && (NULL != pRoamInfo->pBssDesc)) {
+            status = csrParseBssDescriptionIEs((tHalHandle)pMac,
+                                               pRoamInfo->pBssDesc,
+                                               beacon_ies);
+
+            /* now extract the phymode and center frequencies */
+
+            /* get the VHT OPERATION IE */
+            if (beacon_ies->VHTOperation.present) {
+
+                chan1 = beacon_ies->VHTOperation.chanCenterFreqSeg1;
+                chan2 = beacon_ies->VHTOperation.chanCenterFreqSeg2;
+                pRoamInfo->chan_info.info = MODE_11AC_VHT80;
+
+            } else if (beacon_ies->HTInfo.present) {
+
+                if (beacon_ies->HTInfo.recommendedTxWidthSet == eHT_CHANNEL_WIDTH_40MHZ) {
+                    phy_state = beacon_ies->HTInfo.secondaryChannelOffset;
+                    if (phy_state == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+
+                        chan1 = beacon_ies->HTInfo.primaryChannel +
+                            CSR_CB_CENTER_CHANNEL_OFFSET;
+                    else if (phy_state == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+                        chan1 = beacon_ies->HTInfo.primaryChannel -
+                            CSR_CB_CENTER_CHANNEL_OFFSET;
+                    else
+                        chan1 = beacon_ies->HTInfo.primaryChannel;
+                    pRoamInfo->chan_info.info = MODE_11NA_HT40;
+                } else {
+                    chan1 = beacon_ies->HTInfo.primaryChannel;
+                    pRoamInfo->chan_info.info = MODE_11NA_HT20;
+                }
+                chan2 = 0;
+            } else {
+                chan1 = 0;
+                chan2 = 0;
+                pRoamInfo->chan_info.info = MODE_11A;
+            }
+
+            if (0 != chan1)
+                pRoamInfo->chan_info.band_center_freq1 =
+                                        vos_chan_to_freq(chan1);
+            else
+                pRoamInfo->chan_info.band_center_freq1 = 0;
+
+            if (0 != chan2)
+                pRoamInfo->chan_info.band_center_freq2 =
+                                        vos_chan_to_freq(chan2);
+            else
+                pRoamInfo->chan_info.band_center_freq2 = 0;
+        }
+        else {
+            pRoamInfo->chan_info.band_center_freq1 = 0;
+            pRoamInfo->chan_info.band_center_freq2 = 0;
+            pRoamInfo->chan_info.info = 0;
+        }
+        pRoamInfo->chan_info.chan_id = pRoamInfo->u.pConnectedProfile->operationChannel;
+        pRoamInfo->chan_info.mhz = vos_chan_to_freq(pRoamInfo->chan_info.chan_id);
+        pRoamInfo->chan_info.reg_info_1 =
+            (csrGetCfgMaxTxPower(pMac, pRoamInfo->chan_info.chan_id) << 16);
+        pRoamInfo->chan_info.reg_info_2 =
+            (csrGetCfgMaxTxPower(pMac, pRoamInfo->chan_info.chan_id) << 8);
+        vos_mem_free(beacon_ies);
     }
+
     if ((u1 == eCSR_ROAM_FT_REASSOC_FAILED) && (pSession->bRefAssocStartCnt)) {
         /*
          * Decrement bRefAssocStartCnt for FT reassoc failure.
@@ -8773,6 +8845,8 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                          sizeof(tCsrBssid));
             pRoamInfo->wmmEnabledSta = pUpperLayerAssocCnf->wmmEnabledSta;
             pRoamInfo->timingMeasCap = pUpperLayerAssocCnf->timingMeasCap;
+            vos_mem_copy(&pRoamInfo->chan_info, &pUpperLayerAssocCnf->chan_info,
+                                                       sizeof(tSirSmeChanInfo));
             if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) )
             {
                 pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
@@ -9754,6 +9828,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                  sizeof(tCsrBssid));
                     pRoamInfo->wmmEnabledSta = pAssocInd->wmmEnabledSta;
                     pRoamInfo->timingMeasCap = pAssocInd->timingMeasCap;
+                    vos_mem_copy(&pRoamInfo->chan_info, &pAssocInd->chan_info,
+                                 sizeof(tSirSmeChanInfo));
                     if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
                     if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile))
@@ -14277,6 +14353,8 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         //timingMeasCap
         *pBuf = pAssocInd->timingMeasCap;
         pBuf += sizeof (tANI_U8);
+        vos_mem_copy((void *)pBuf, &pAssocInd->chan_info,
+                        sizeof(tSirSmeChanInfo));
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
         msgQ.bodyptr = pMsg;
         msgQ.bodyval = 0;
