@@ -273,170 +273,170 @@ tSapChanMatrixInfo ht80_chan[] =
 tSapChanMatrixInfo ht40_chan[] =
 {
  {52,
-   {{36, 328},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 230},            {48, SAP_TX_LEAKAGE_MIN },
+   {{36, 328},            {40, 328 },
+    {44, 230},            {48, 230 },
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
-    {60, 323},            {64, SAP_TX_LEAKAGE_MIN },
-    {100, 625},           {104, SAP_TX_LEAKAGE_MIN },
-    {108, 646},{112, SAP_TX_LEAKAGE_MIN },
+    {60, 323},            {64, 323 },
+    {100, 625},           {104, 323 },
+    {108, 646},{112, 646 },
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
     {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
     {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
     {140, SAP_TX_LEAKAGE_MAX}}},
  {56,
-   {{36, 446},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 300},            {48, SAP_TX_LEAKAGE_MIN },
+   {{36, 446},            {40, 446 },
+    {44, 300},            {48, 300 },
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
-    {100, 611},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 617},{112, SAP_TX_LEAKAGE_MIN },
+    {100, 611},{104, 611 },
+    {108, 617},{112, 617 },
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
     {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
     {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
     {140, SAP_TX_LEAKAGE_MAX}}},
  {60,
-   {{36, 481},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 407},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 190}, {56, SAP_TX_LEAKAGE_MIN},
+   {{36, 481},            {40, 481 },
+    {44, 407},            {48, 407 },
+    {52, 190}, {56, 190},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
-    {100, 608},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 623},{112, SAP_TX_LEAKAGE_MIN },
+    {100, 608},{104, 608 },
+    {108, 623},{112, 623 },
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
     {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
     {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
     {140, SAP_TX_LEAKAGE_MAX}}},
  {64,
-   {{36, 524},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 527},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 295},            {56, SAP_TX_LEAKAGE_MIN },
+   {{36, 524},            {40, 524 },
+    {44, 527},            {48, 527 },
+    {52, 295},            {56, 295 },
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
-    {100, 594},           {104, SAP_TX_LEAKAGE_MIN },
-    {108, 625},{112, SAP_TX_LEAKAGE_MIN },
+    {100, 594},           {104, 594 },
+    {108, 625},{112, 625 },
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
     {124, SAP_TX_LEAKAGE_MAX},{128, SAP_TX_LEAKAGE_MAX},
     {132, SAP_TX_LEAKAGE_MAX},{136, SAP_TX_LEAKAGE_MAX},
     {140, SAP_TX_LEAKAGE_MAX}}},
 
  {100,
-   {{36, 618},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 604},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 596},            {56, SAP_TX_LEAKAGE_MIN },
-    {60, 584},            {64, SAP_TX_LEAKAGE_MIN },
+   {{36, 618},            {40, 618 },
+    {44, 604},            {48, 604 },
+    {52, 596},            {56, 596 },
+    {60, 584},            {64, 584 },
     {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 299},           {112, SAP_TX_LEAKAGE_MIN },
-    {116, 486},           {120, SAP_TX_LEAKAGE_MIN },
-    {124, 498},           {128, SAP_TX_LEAKAGE_MIN },
-    {132, 538},           {136, SAP_TX_LEAKAGE_MIN },
+    {108, 299},           {112, 299 },
+    {116, 486},           {120, 486 },
+    {124, 498},           {128, 498 },
+    {132, 538},           {136, 538 },
     {140, 598}}},
  {104,
-   {{36, 636},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 601},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 616}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 584}, {64, SAP_TX_LEAKAGE_MIN },
+   {{36, 636},            {40, 636 },
+    {44, 601},            {48, 601 },
+    {52, 616}, {56, 616 },
+    {60, 584}, {64, 584 },
     {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 396},{120, SAP_TX_LEAKAGE_MIN },
-    {124, 483},           {128, SAP_TX_LEAKAGE_MIN },
-    {132, 553},           {136, SAP_TX_LEAKAGE_MIN },
+    {116, 396},{120, 396 },
+    {124, 483},           {128, 483 },
+    {132, 553},           {136, 553 },
     {140, 568}}},
  {108,
-   {{36, 600},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 627},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 611}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 611}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 214},{104, SAP_TX_LEAKAGE_MIN},
+   {{36, 600},            {40, 600 },
+    {44, 627},            {48, 627 },
+    {52, 611}, {56, 611 },
+    {60, 611}, {64, 611 },
+    {100, 214},{104, 214},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 323},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 494},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 566},{136, SAP_TX_LEAKAGE_MIN },
+    {116, 323},{120, 323},
+    {124, 494},{128, 494},
+    {132, 566},{136, 566 },
     {140, 534}}},
  {112,
-   {{36, 645},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 641},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 618}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 612}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 293},{104, SAP_TX_LEAKAGE_MIN},
+   {{36, 645},            {40, 645 },
+    {44, 641},            {48, 641 },
+    {52, 618}, {56, 618 },
+    {60, 612}, {64, 612 },
+    {100, 293},{104, 293},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 414},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 533},{136, SAP_TX_LEAKAGE_MIN },
+    {124, 414},{128, 414},
+    {132, 533},{136, 533 },
     {140, 521}}},
  {116,
-   {{36, 661},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 624},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 634}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 611},            {64, SAP_TX_LEAKAGE_MIN },
-    {100, 371},{104, SAP_TX_LEAKAGE_MIN},
-    {108, 217},{112, SAP_TX_LEAKAGE_MIN },
+   {{36, 661},            {40, 661 },
+    {44, 624},            {48, 624 },
+    {52, 634}, {56, 634 },
+    {60, 611},            {64, 611 },
+    {100, 371},{104, 371},
+    {108, 217},{112, 217 },
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 309},{128, SAP_TX_LEAKAGE_MIN },
-    {132, 412},{136, SAP_TX_LEAKAGE_MIN},
+    {124, 309},{128, 309 },
+    {132, 412},{136, 412},
     {140, 509}}},
  {120,
-   {{36, 667},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 645},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 633}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 619}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 467},           {104, SAP_TX_LEAKAGE_MIN},
-    {108, 291},{112, SAP_TX_LEAKAGE_MIN},
+   {{36, 667},            {40, 667 },
+    {44, 645},            {48, 645 },
+    {52, 633}, {56, 633 },
+    {60, 619}, {64, 619 },
+    {100, 467},           {104, 467},
+    {108, 291},{112, 291},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 434},{136, SAP_TX_LEAKAGE_MIN},
+    {132, 434},{136, 434},
     {140, 514}}},
  {124,
-   {{36, 676},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 668},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 595}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 622}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 494},           {104, SAP_TX_LEAKAGE_MIN},
-    {108, 393},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 225},{120, SAP_TX_LEAKAGE_MIN},
+   {{36, 676},            {40, 676 },
+    {44, 668},            {48, 668 },
+    {52, 595}, {56, 595 },
+    {60, 622}, {64, 622 },
+    {100, 494},           {104, 494},
+    {108, 393},{112, 393},
+    {116, 225},{120, 225},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 327},{136, SAP_TX_LEAKAGE_MIN},
+    {132, 327},{136, 327},
     {140, 468}}},
  {128,
-   {{36, 678},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 664},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 651}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 643}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 502},           {104, SAP_TX_LEAKAGE_MIN },
-    {108, 503},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 293},{120, SAP_TX_LEAKAGE_MIN},
+   {{36, 678},            {40, 678 },
+    {44, 664},            {48, 664 },
+    {52, 651}, {56, 651 },
+    {60, 643}, {64, 643 },
+    {100, 502},           {104, 502 },
+    {108, 503},{112, 503},
+    {116, 293},{120, 293},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
     {140, 415}}},
  {132,
-   {{36, 689},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 669},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 662}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 609}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 538},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 534},           {112, SAP_TX_LEAKAGE_MIN },
-    {116, 428},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 247},{128, SAP_TX_LEAKAGE_MIN},
+   {{36, 689},            {40, 689 },
+    {44, 669},            {48, 669 },
+    {52, 662}, {56, 662 },
+    {60, 609}, {64, 609 },
+    {100, 538},{104, 538 },
+    {108, 534},           {112, 534 },
+    {116, 428},{120, 428},
+    {124, 247},{128, 247},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
     {140, SAP_TX_LEAKAGE_MIN }}},
  {136,
-   {{36, 703},            {40, SAP_TX_LEAKAGE_MIN },
+   {{36, 703},            {40, 703 },
     {44, 688},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 671}, {56, SAP_TX_LEAKAGE_MIN },
-    {60, 658}, {64, SAP_TX_LEAKAGE_MIN },
-    {100, 504},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 513},{112, SAP_TX_LEAKAGE_MIN },
-    {116, 428},           {120, SAP_TX_LEAKAGE_MIN},
-    {124, 289},{128, SAP_TX_LEAKAGE_MIN},
+    {52, 671}, {56, 671 },
+    {60, 658}, {64, 658 },
+    {100, 504},{104, 504 },
+    {108, 513},{112, 513 },
+    {116, 428},           {120, 428},
+    {124, 289},{128, 289},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
     {140, SAP_TX_LEAKAGE_MIN }}},
  {140,
-   {{36, 695},            {40, SAP_TX_LEAKAGE_MIN },
-    {44, 684},            {48, SAP_TX_LEAKAGE_MIN },
-    {52, 664},            {56, SAP_TX_LEAKAGE_MIN },
-    {60, 658},            {64, SAP_TX_LEAKAGE_MIN },
-    {100, 601},{104, SAP_TX_LEAKAGE_MIN },
-    {108, 545},{112, SAP_TX_LEAKAGE_MIN },
-    {116, 529},           {120, SAP_TX_LEAKAGE_MIN},
-    {124, 432},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 262},{136, SAP_TX_LEAKAGE_MIN},
+   {{36, 695},            {40, 695 },
+    {44, 684},            {48, 684 },
+    {52, 664},            {56, 664 },
+    {60, 658},            {64, 658 },
+    {100, 601},{104, 601 },
+    {108, 545},{112, 545 },
+    {116, 529},           {120, 529},
+    {124, 432},{128, 432},
+    {132, 262},{136, 262},
     {140, SAP_TX_LEAKAGE_MIN }}},
 };
 
@@ -506,8 +506,8 @@ tSapChanMatrixInfo ht20_chan[] =
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
     {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
-    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {108, SAP_TX_LEAKAGE_MIN},{112, 463},
+    {116, 483},{120, 503},
     {124, 523},           {128, 565},
     {132, 570},           {136, 588},
     {140, 585}}},
@@ -516,67 +516,67 @@ tSapChanMatrixInfo ht20_chan[] =
     {44, 611},            {48, 614},
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
-    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {100, 477},{104, SAP_TX_LEAKAGE_MIN},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, 577},
+    {116, 477},{120, 497},
+    {124, 517},{128, 537},
+    {132, 557},{136, 577},
     {140, 603}}},
  {112,
    {{36, 636},            {40, 623},
     {44, 638},            {48, 628},
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
     {60, SAP_TX_LEAKAGE_MAX}, {64, 606},
-    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
+    {100, 501},{104, 481},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, 561},
+    {116, SAP_TX_LEAKAGE_MIN},{120, 481},
+    {124, 501},{128, 421},
+    {132, 541},{136, 561},
     {140, 583}}},
  {116,
    {{36, 646},            {40, 648},
     {44, 633},            {48, 634},
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
-    {60, 615},            {64, SAP_TX_LEAKAGE_MAX},
-    {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
-    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {60, 615},            {64, 594},
+    {100, 575},{104, 554},
+    {108, 534},{112, SAP_TX_LEAKAGE_MIN},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {132, 534},{136, 554},
     {140, 574}}},
  {120,
    {{36, 643},            {40, 649},
     {44, 654},            {48, 629},
     {52, SAP_TX_LEAKAGE_MAX}, {56, 621},
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
-    {100, 565},           {104, SAP_TX_LEAKAGE_MIN},
-    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
+    {100, 565},           {104, 545},
+    {108, 525},{112, 505},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, SAP_TX_LEAKAGE_MIN}}},
+    {124, SAP_TX_LEAKAGE_MIN},{128, 505},
+    {132, 525},{136, 545},
+    {140, 565}}},
  {124,
    {{36, 638},            {40, 657},
     {44, 663},            {48, 649},
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
-    {100, 581},           {104, SAP_TX_LEAKAGE_MIN},
-    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {100, 581},           {104, 561},
+    {108, 541},{112, 521},
+    {116, 499},{120, SAP_TX_LEAKAGE_MIN},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, SAP_TX_LEAKAGE_MIN}}},
+    {132, 499},{136, 519},
+    {140, 539}}},
  {128,
    {{36, 651},            {40, 651},
     {44, 674},            {48, 640},
     {52, SAP_TX_LEAKAGE_MAX}, {56, SAP_TX_LEAKAGE_MAX},
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
     {100, 603},           {104, 560},
-    {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
+    {108, 540},{112, 520},
+    {116, 499},{120, 479},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, SAP_TX_LEAKAGE_MIN}}},
+    {132, SAP_TX_LEAKAGE_MIN},{136, 479},
+    {140, 499}}},
  {132,
    {{36, 643},            {40, 668},
     {44, 651},            {48, 657},
@@ -584,10 +584,10 @@ tSapChanMatrixInfo ht20_chan[] =
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
     {100, SAP_TX_LEAKAGE_MAX},{104, 602},
     {108, 578},           {112, 570},
-    {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {116, 550},{120, 530},
+    {124, 510},{128, SAP_TX_LEAKAGE_MIN},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, SAP_TX_LEAKAGE_MIN}}},
+    {140, 490}}},
  {136,
    {{36, 654},            {40, 667},
     {44, 666},            {48, 642},
@@ -595,20 +595,20 @@ tSapChanMatrixInfo ht20_chan[] =
     {60, SAP_TX_LEAKAGE_MAX}, {64, SAP_TX_LEAKAGE_MAX},
     {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
     {108, SAP_TX_LEAKAGE_MAX},{112, 596},
-    {116, 555},           {120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
+    {116, 555},           {120, 535},
+    {124, 515},{128, 495},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, SAP_TX_LEAKAGE_MAX}}},
+    {140, SAP_TX_LEAKAGE_MIN}}},
  {140,
    {{36, 679},            {40, 673},
     {44, 667},            {48, 656},
     {52, 634},            {56, 663},
-    {60, 662},            {64, SAP_TX_LEAKAGE_MAX},
+    {60, 662},            {64, 660},
     {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
     {108, SAP_TX_LEAKAGE_MAX},{112, 590},
-    {116, 573},           {120, SAP_TX_LEAKAGE_MIN},
-    {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
+    {116, 573},           {120, 553},
+    {124, 533},{128, 513},
+    {132, 490},{136, SAP_TX_LEAKAGE_MIN},
     {140, SAP_TX_LEAKAGE_MIN}}},
 };
 
@@ -728,17 +728,18 @@ static inline void sapEventInit(ptWLAN_SAPEvent sapEvent)
  * RETURN VALUE
  * BOOLEAN to indicate if the target channel is good or bad to switch
  *
- * TRUE: the channel is above the tx leak threshold
- * FALSE: good to be used
+ * TRUE:  the channel is above the tx leak threshold, CANNOT USE
+ * FALSE: the channel is below the tx leak threshold, CAN BE USED
  */
 v_BOOL_t
-sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel)
+sapChannelMatrixCheck(ptSapContext sapContext,
+                      ePhyChanBondState cbMode,
+                      v_U8_t target_channel)
 {
     tSapTxLeakInfo *target_chan_matrix = NULL;
     tSapChanMatrixInfo *pchan_matrix = NULL;
     v_U32_t     num_channel = (RF_CHAN_140 - RF_CHAN_36) + 1;
     v_U32_t     nchan_matrix;
-    ePhyChanBondState cbMode;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     int i = 0;
 
@@ -746,9 +747,6 @@ sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel)
         VOS_ASSERT(0);
         return VOS_FALSE;
     }
-
-    cbMode = sme_GetCBPhyStateFromCBIniValue(
-                sme_GetChannelBondingMode5G(hHal));
 
     switch (cbMode) {
         case PHY_SINGLE_CHANNEL_CENTERED:
@@ -831,111 +829,319 @@ sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel)
     return VOS_FALSE;
 }
 
+/*
+ * This function adds availabe channel to bitmap
+ *
+ * PARAMETERS
+ * IN
+ * pBitmap: bitmap to populate
+ * channel: channel to set in bitmap
+ */
+static void sapSetBitmap(chan_bonding_bitmap *pBitmap, v_U8_t channel)
+{
+    int i = 0;
+    int start_channel = 0;
+    for ( i = 0; i < MAX_80MHZ_BANDS; i++ ) {
+        start_channel = pBitmap->chanBondingSet[i].startChannel;
+        if (channel >= start_channel && channel <= start_channel + 12) {
+            pBitmap->chanBondingSet[i].channelMap |=
+                1 << ((channel - start_channel)/4);
+            return;
+        }
+    }
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              FL("Channel=%d is not in the bitmap"), channel);
+}
+
+/*
+ * This function reads the bitmap and populates available channel
+ * list according to channel bonding mode. This will be called for
+ * 80 MHz and 40 Mhz only. For 20 MHz no need for bitmap hence list
+ * is directly created while parsing the main list
+ *
+ * PARAMETERS
+ * IN
+ * pBitmap: bitmap to populate
+ * cbModeCurrent: cb mode to check for channel availability
+ * availableChannels: available channel list to populate
+ *
+ * RETURN VALUE
+ * number of channels found
+ */
+static v_U8_t sapPopulateAvailableChannels(chan_bonding_bitmap *pBitmap,
+                                           ePhyChanBondState cbModeCurrent,
+                                           v_U8_t *availableChannels)
+{
+    v_U8_t   i = 0;
+    v_U8_t   channelCount = 0;
+    v_U8_t   start_channel = 0;
+
+    switch (cbModeCurrent) {
+#ifdef WLAN_FEATURE_11AC
+        /* HT80 */
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+            for ( i = 0; i < MAX_80MHZ_BANDS; i++ ) {
+                start_channel = pBitmap->chanBondingSet[i].startChannel;
+                if (pBitmap->chanBondingSet[i].channelMap == SAP_80MHZ_MASK) {
+                    availableChannels[channelCount++] = start_channel;
+                    availableChannels[channelCount++] = start_channel + 4;
+                    availableChannels[channelCount++] = start_channel + 8;
+                    availableChannels[channelCount++] = start_channel + 12;
+                }
+            }
+        break;
+#endif
+        /* HT40 */
+        case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+        case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+            for ( i = 0; i < MAX_80MHZ_BANDS; i++ ) {
+                start_channel = pBitmap->chanBondingSet[i].startChannel;
+                if ((pBitmap->chanBondingSet[i].channelMap & SAP_40MHZ_MASK_L)
+                        == SAP_40MHZ_MASK_L) {
+                    availableChannels[channelCount++] = start_channel;
+                    availableChannels[channelCount++] = start_channel + 4;
+                } else {
+                    if ((pBitmap->chanBondingSet[i].channelMap &
+                         SAP_40MHZ_MASK_H) == SAP_40MHZ_MASK_H) {
+                        availableChannels[channelCount++] = start_channel + 8;
+                        availableChannels[channelCount++] = start_channel + 12;
+                    }
+               }
+            }
+        break;
+        default:
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      FL("Invalid case."));
+        break;
+    }
+
+    return channelCount;
+}
 
 /*
  * This function randomly pick up an AVAILABLE channel
  */
 static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 {
-    v_U8_t available_chan_idx[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-    int available_chan_count;
-    v_U32_t random_byte = 0;
-    v_U8_t  target_channel = 0;
-    v_U8_t total_num_channels = 0;
+    v_U32_t  random_byte = 0;
+    v_U8_t   available_chnl_count = 0;
+    v_U8_t   availableChannels[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0,};
+    v_U8_t   target_channel = 0;
     v_BOOL_t isChannelNol = VOS_FALSE;
     v_BOOL_t isOutOfRange = VOS_FALSE;
-    int i=0;
+    chan_bonding_bitmap channelBitmap;
+    v_U8_t   i = 0;
+    v_U8_t   channelID;
+    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    tpAniSirGlobal pMac;
+    tANI_U32 chanWidth;
+    ePhyChanBondState cbModeCurrent;
+
+    if (NULL == hHal) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("invalid hHal"));
+        return target_channel;
+    }
+
+    pMac = PMAC_STRUCT(hHal);
+    if (NULL == pMac) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("invalid pMac"));
+        return target_channel;
+    }
+
+    /*
+     * Retrieve the original one and store it.
+     * use the stored original value when you call this function next time
+     * so fall back mechanism always starts with original ini value.
+     */
+    if (pMac->sap.SapDfsInfo.orig_cbMode == 0)
+    {
+        pMac->sap.SapDfsInfo.orig_cbMode =
+              pMac->roam.configParam.channelBondingMode5GHz;
+        cbModeCurrent = pMac->sap.SapDfsInfo.orig_cbMode;
+    }
+    else
+    {
+        cbModeCurrent = pMac->sap.SapDfsInfo.orig_cbMode;
+    }
+
+    /*
+     * Retrieve the original one and store it.
+     * use the stored original value when you call this function next time
+     * so fall back mechanism always starts with original ini value.
+     */
+    if (pMac->sap.SapDfsInfo.orig_chanWidth == 0)
+    {
+        pMac->sap.SapDfsInfo.orig_chanWidth =
+                  pMac->roam.configParam.nVhtChannelWidth;
+        chanWidth = pMac->sap.SapDfsInfo.orig_chanWidth;
+    }
+    else
+    {
+        chanWidth = pMac->sap.SapDfsInfo.orig_chanWidth;
+    }
 
     if (sapGet5GHzChannelList(sapContext))
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-            "%s: get 5Ghz channel list failed",
-            __func__);
-        return sapContext->channel;
+                  FL("Get 5Ghz channel list failed"));
+        return target_channel;
     }
-    total_num_channels = sapContext->SapAllChnlList.numChannel;
 
-    for (i = 0, available_chan_count = 0; i < total_num_channels; i++)
+
+    /* loop to check ACS range or NOL channels */
+    for (i = 0; i < sapContext->SapAllChnlList.numChannel; i++)
     {
-        /*
-         * Now Check if the channel is DFS and if
-         * the channel is not in NOL and add
-         * it available_chan_idx otherwise skip this
-         * channel index.
-         */
+        channelID = sapContext->SapAllChnlList.channelList[i].channel;
 
-        if (vos_nv_getChannelEnabledState(sapContext->SapAllChnlList
-                    .channelList[i]) ==
-                NV_CHANNEL_DFS)
+        if (vos_nv_getChannelEnabledState(channelID) == NV_CHANNEL_DFS)
         {
             isChannelNol = sapDfsIsChannelInNolList(sapContext,
-                    sapContext->SapAllChnlList.channelList[i],
-                    PHY_SINGLE_CHANNEL_CENTERED);
+                                                   channelID,
+                                                   PHY_SINGLE_CHANNEL_CENTERED);
             if (VOS_TRUE == isChannelNol)
             {
                 /*
-                 * Skip this channel since it is still in
+                 * Mark this channel invalid since it is still in
                  * DFS Non-Occupancy-Period which is 30 mins.
                  */
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                        "%s[%d]: index: %d, Channel = %d Present in NOL LIST",
-                        __func__, __LINE__, i,
-                        sapContext->SapAllChnlList.channelList[i]);
-
-                continue;
+                          FL("index: %d, Channel = %d Present in NOL LIST"),
+                          i, channelID);
+                sapContext->SapAllChnlList.channelList[i].valid = VOS_FALSE;
             }
         }
 
         /* check if the channel is within ACS channel range */
         isOutOfRange = sapAcsChannelCheck(sapContext,
-                            sapContext->SapAllChnlList.channelList[i]);
+                                          channelID);
         if (VOS_TRUE == isOutOfRange)
         {
             /*
-             * Skip this channel since it is out of ACS channel range
+             * mark this channel invalid since it is out of ACS channel range
              */
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                     "%s[%d]: index: %d, Channel = %d out of ACS channel range",
-                      __func__, __LINE__, i,
-                      sapContext->SapAllChnlList.channelList[i]);
-
-            continue;
+                     FL("index: %d, Channel = %d out of ACS channel range"),
+                     i, channelID);
+            sapContext->SapAllChnlList.channelList[i].valid = VOS_FALSE;
         }
+    } /* end of check for NOL or ACS channels */
 
-        /* check the channel matrix */
-        if (VOS_TRUE == sapChannelMatrixCheck(sapContext,
-                    sapContext->SapAllChnlList.channelList[i]))
-        {
-            /* skip this channel, it is out of tx leak threshold  */
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                     FL("Channel=%d has tx leakage"),
-                      sapContext->SapAllChnlList.channelList[i]);
-            continue;
-        }
-
-        available_chan_idx[available_chan_count++] =
-            sapContext->SapAllChnlList.channelList[i];
-    }
-
-    if (available_chan_count)
+    do
     {
-        /* to generate a random index */
-        get_random_bytes(&random_byte,1);
-        i = (random_byte + jiffies) % available_chan_count;
+        vos_mem_zero(&channelBitmap, sizeof(channelBitmap));
+        channelBitmap.chanBondingSet[0].startChannel = 36;
+        channelBitmap.chanBondingSet[1].startChannel = 52;
+        channelBitmap.chanBondingSet[2].startChannel = 100;
+        channelBitmap.chanBondingSet[3].startChannel = 116;
+        channelBitmap.chanBondingSet[4].startChannel = 149;
+        vos_mem_zero(availableChannels, sizeof(availableChannels));
+        /* now loop through whatever is left of channel list */
+        for (i = 0; i < sapContext->SapAllChnlList.numChannel; i++ ){
+            /* check the channel matrix */
+            if (sapContext->SapAllChnlList.channelList[i].valid) {
+                channelID = sapContext->SapAllChnlList.channelList[i].channel;
+                /* if leakage for this channel is within limits */
+                if (VOS_FALSE == sapChannelMatrixCheck(sapContext,
+                                                       cbModeCurrent,
+                                                       channelID)) {
+                    /* for 20MHz, directly create available channel list */
+                    if (cbModeCurrent == PHY_SINGLE_CHANNEL_CENTERED) {
+                        VOS_TRACE(VOS_MODULE_ID_SAP,
+                                  VOS_TRACE_LEVEL_INFO_LOW,
+                                  FL("Channel=%d added to available list"),
+                                  channelID);
+                        availableChannels[available_chnl_count++] = channelID;
+                    } else {
+                        VOS_TRACE(VOS_MODULE_ID_SAP,
+                                  VOS_TRACE_LEVEL_INFO_LOW,
+                                  FL("Channel=%d added to bitmap"),
+                                  channelID);
+                        sapSetBitmap(&channelBitmap, channelID);
+                    }
+                }
+            }
+        } /* end of loop to check against DFS leakage channel matrix */
+
+        /* if 40 MHz or 80 MHz, populate available channel list from bitmap */
+        if (cbModeCurrent != PHY_SINGLE_CHANNEL_CENTERED) {
+            available_chnl_count = sapPopulateAvailableChannels(&channelBitmap,
+                                              cbModeCurrent,
+                                              availableChannels);
+            /* if no valid channel bonding found, fallback to lower bandwidth */
+            if (available_chnl_count == 0) {
+                if (cbModeCurrent >=
+                     PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED) {
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:No 80MHz cb found, falling to 40MHz"));
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:Changing chanWidth from [%d] to [%d]"),
+                                 chanWidth, eHT_CHANNEL_WIDTH_40MHZ);
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:Changing CB mode from [%d] to [%d]"),
+                                 cbModeCurrent, PHY_DOUBLE_CHANNEL_LOW_PRIMARY);
+                    cbModeCurrent = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
+                    chanWidth = eHT_CHANNEL_WIDTH_40MHZ;
+                    /* continue to start of do loop */
+                    continue;
+                } else if (cbModeCurrent >=
+                             PHY_DOUBLE_CHANNEL_LOW_PRIMARY ) {
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:No 40MHz cb found, falling to 20MHz"));
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:Changing chanWidth from [%d] to [%d]"),
+                                 chanWidth, eHT_CHANNEL_WIDTH_20MHZ);
+                    VOS_TRACE(VOS_MODULE_ID_SAP,
+                              VOS_TRACE_LEVEL_WARN,
+                              FL("sapdfs:Changing CB mode from [%d] to [%d]"),
+                                 cbModeCurrent, PHY_SINGLE_CHANNEL_CENTERED);
+                    cbModeCurrent = PHY_SINGLE_CHANNEL_CENTERED;
+                    chanWidth = eHT_CHANNEL_WIDTH_20MHZ;
+                    /* continue to start of do loop */
+                    continue;
+                }
+            }
+        }
 
         /*
-         * Pick the channel from the random index
-         * in available_chan_idx list
+         * by now, available channels list will be populated or
+         * no channels are avaialbe
          */
-        target_channel = (available_chan_idx[i]);
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                "%s[%d]: Target channel Index = %d target_channel = %d",
-                __func__,__LINE__, i, target_channel);
-    } else {
-        sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NO_AVAILABLE_CHANNEL,
-              (v_PVOID_t) eSAP_STATUS_SUCCESS);
-        target_channel = 0;
-    }
+        if (available_chnl_count) {
+            get_random_bytes(&random_byte, 1);
+            i = (random_byte + jiffies) % available_chnl_count;
+            /* Random channel selection from available list */
+            target_channel = availableChannels[i];
+            pMac->sap.SapDfsInfo.new_chanWidth = chanWidth;
+            pMac->sap.SapDfsInfo.new_cbMode = cbModeCurrent;
+            VOS_TRACE(VOS_MODULE_ID_SAP,
+                      VOS_TRACE_LEVEL_INFO_LOW,
+                      FL("sapdfs: New CB mode = %d"),
+                      pMac->sap.SapDfsInfo.new_cbMode);
+            VOS_TRACE(VOS_MODULE_ID_SAP,
+                      VOS_TRACE_LEVEL_INFO_LOW,
+                      FL("sapdfs: New Channel width = %d"),
+                      pMac->sap.SapDfsInfo.new_chanWidth);
+            VOS_TRACE(VOS_MODULE_ID_SAP,
+                      VOS_TRACE_LEVEL_INFO_LOW,
+                      FL("sapdfs: target_channel = %d"), target_channel);
+        }
+        else {
+            VOS_TRACE(VOS_MODULE_ID_SAP,
+                      VOS_TRACE_LEVEL_INFO_LOW,
+                      FL("No target channel found"));
+        }
+        break;
+    } while(1); /* this loop will iterate at max 3 times */
 
     return target_channel;
 }
@@ -2509,6 +2715,9 @@ sapFsm
                          /* No available channel found */
                          VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                              FL("No available channel found!!!"));
+                         sapSignalHDDevent(sapContext, NULL,
+                                           eSAP_DFS_NO_AVAILABLE_CHANNEL,
+                                           (v_PVOID_t) eSAP_STATUS_SUCCESS);
                          return VOS_STATUS_E_FAULT;
                      }
 
@@ -3529,7 +3738,8 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
     }
 
     sapContext->SapAllChnlList.channelList =
-                (v_U8_t *)vos_mem_malloc(WNI_CFG_VALID_CHANNEL_LIST_LEN);
+                (tChannelInfo *)vos_mem_malloc(WNI_CFG_VALID_CHANNEL_LIST_LEN *
+                                               sizeof(tChannelInfo));
     if (NULL == sapContext->SapAllChnlList.channelList)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -3542,11 +3752,12 @@ static VOS_STATUS sapGet5GHzChannelList(ptSapContext sapContext)
         if( regChannels[i].enabled == NV_CHANNEL_ENABLE ||
             regChannels[i].enabled == NV_CHANNEL_DFS )
         {
-            sapContext->SapAllChnlList.channelList[count] =
+            sapContext->SapAllChnlList.channelList[count].channel =
                                           rfChannels[i].channelNum;
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
                       "%s[%d] CHANNEL = %d",__func__, __LINE__,
-                      sapContext->SapAllChnlList.channelList[count]);
+                      sapContext->SapAllChnlList.channelList[count].channel);
+            sapContext->SapAllChnlList.channelList[count].valid = VOS_TRUE;
             count++;
         }
     }
@@ -3628,7 +3839,14 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
      */
 
     target_channel = sapRandomChannelSel(sapContext);
-
+    if (0 == target_channel)
+    {
+        sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NO_AVAILABLE_CHANNEL,
+                          (v_PVOID_t) eSAP_STATUS_SUCCESS);
+    }
+    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+              FL("sapdfs: New selected target channel is [%d]"),
+              target_channel);
     return target_channel;
 }
 

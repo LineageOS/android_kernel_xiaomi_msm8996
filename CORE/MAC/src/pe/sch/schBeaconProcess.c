@@ -651,7 +651,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
             psessionEntry->dot11mode, 0, NULL);
 
-    if(beaconParams.paramChangeBitmap)
+    if ((VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+        && beaconParams.paramChangeBitmap)
     {
         PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. "), psessionEntry->peSessionId);)
         PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x "), beaconParams.paramChangeBitmap);)
@@ -741,7 +742,8 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
                 ap_beacon_process(pMac,  pRxPacketInfo, &beaconStruct,
                         &beaconParams, pAPSession);
 
-            if (beaconParams.paramChangeBitmap)
+            if ((VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+                && beaconParams.paramChangeBitmap)
             {
                 //Update the beacons and apply the new settings to HAL
                 schSetFixedBeaconFields(pMac, pAPSession);

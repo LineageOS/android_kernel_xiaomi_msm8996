@@ -3294,7 +3294,8 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
 
             //Send message to HAL about beacon parameter change.
             PELOGW(limLog(pMac, LOGW, FL("param bitmap = %d "), beaconParams.paramChangeBitmap);)
-            if(beaconParams.paramChangeBitmap)
+            if((VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+                && beaconParams.paramChangeBitmap)
             {
                 schSetFixedBeaconFields(pMac,psessionEntry);
                 limSendBeaconParams(pMac, &beaconParams, psessionEntry );

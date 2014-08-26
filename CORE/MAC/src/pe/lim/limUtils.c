@@ -1775,7 +1775,8 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
         enable = 0;
     }
 
-    if(beaconParams.paramChangeBitmap)
+    if ((VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+        && beaconParams.paramChangeBitmap)
     {
         schSetFixedBeaconFields(pMac,psessionEntry);
         limSendBeaconParams(pMac, &beaconParams, psessionEntry);

@@ -4750,14 +4750,17 @@ __limProcessSmeChangeBI(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         PELOG1(limLog(pMac, LOG1,
                FL("LIM send update BeaconInterval Indication : %d"),pChangeBIParams->beaconInterval););
 
-        /* Update beacon */
-        schSetFixedBeaconFields(pMac, psessionEntry);
+        if (VOS_FALSE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+        {
+            /* Update beacon */
+            schSetFixedBeaconFields(pMac, psessionEntry);
 
-        beaconParams.bssIdx = psessionEntry->bssIdx;
-        //Set change in beacon Interval
-        beaconParams.beaconInterval = pChangeBIParams->beaconInterval;
-        beaconParams.paramChangeBitmap = PARAM_BCN_INTERVAL_CHANGED;
-        limSendBeaconParams(pMac, &beaconParams, psessionEntry);
+            beaconParams.bssIdx = psessionEntry->bssIdx;
+            //Set change in beacon Interval
+            beaconParams.beaconInterval = pChangeBIParams->beaconInterval;
+            beaconParams.paramChangeBitmap = PARAM_BCN_INTERVAL_CHANGED;
+            limSendBeaconParams(pMac, &beaconParams, psessionEntry);
+        }
     }
 
     return;

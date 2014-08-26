@@ -232,7 +232,7 @@ typedef struct sSapContext {
      * any random channel[5Ghz-(NON-DFS/DFS)],if SAP is operating
      * on a DFS channel and a RADAR is detected on the channel.
      */
-    tSapChannelListInfo SapAllChnlList;
+    tAll5GChannelList  SapAllChnlList;
 
 
     tANI_BOOLEAN       allBandScanned;
@@ -882,7 +882,9 @@ v_BOOL_t sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber);
  * FALSE: good to be used
  */
 v_BOOL_t
-sapChannelMatrixCheck(ptSapContext sapContext, v_U8_t target_channel);
+sapChannelMatrixCheck(ptSapContext sapContext,
+                      ePhyChanBondState cbMode,
+                      v_U8_t target_channel);
 #ifdef __cplusplus
 }
 #endif
