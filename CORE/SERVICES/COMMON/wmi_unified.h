@@ -7739,7 +7739,7 @@ typedef struct {
      * The TLV's are:
      *     A_UINT8 bcn_probe_rsp_frame[];  length identified by bcn_probe_rsp_len
      *     A_UINT8 reassoc_rsp_frame[];  length identified by reassoc_rsp_len
-     *
+     *      wmi_channel chan;
      **/
 } wmi_roam_synch_event_fixed_param;
 
