@@ -2079,13 +2079,7 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 			 */
 			rssi = wma->first_rssi;
 		} else {
-			if (((vdev_stats->vdev_snr.dat_snr > 0) &&
-					(vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR)) &&
-				((vdev_stats->vdev_snr.bcn_snr > 0) &&
-					(vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR))) {
-				rssi = (vdev_stats->vdev_snr.dat_snr +
-						vdev_stats->vdev_snr.bcn_snr)/2;
-			} else if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR) {
+			if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR) {
 				rssi = vdev_stats->vdev_snr.bcn_snr;
 			} else if (vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR) {
 				rssi = vdev_stats->vdev_snr.dat_snr;
