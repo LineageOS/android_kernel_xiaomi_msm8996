@@ -176,5 +176,7 @@ void hif_read_bar(struct hif_pci_softc *sc, u32 *bar_value);
 #define OL_ATH_TX_DRAIN_WAIT_CNT       10
 
 #define HIF_CE_DRAIN_WAIT_CNT          20
-
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+void wlan_hif_pci_suspend(void);
+#endif
 #endif /* __ATH_PCI_H__ */

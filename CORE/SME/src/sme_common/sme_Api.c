@@ -1704,6 +1704,46 @@ void sme_ProcessReadyToSuspend( tHalHandle hHal,
    }
 }
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+/*--------------------------------------------------------------------------
+
+  \fn - sme_ProcessReadyToExtWoW
+  \brief - On getting ready to Ext WoW indication, this function calls
+             callback registered (HDD callbacks) with SME to inform
+             ready to ExtWoW indication.
+
+  \param hHal - Handle returned by macOpen.
+   pReadyToExtWoW - Parameter received along with ready to Ext WoW
+                                indication from WMA.
+
+  \return None
+
+  \sa
+
+ --------------------------------------------------------------------------*/
+void sme_ProcessReadyToExtWoW( tHalHandle hHal,
+                                 tpSirReadyToExtWoWInd pReadyToExtWoW)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (NULL == pMac)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+             "%s: pMac is null", __func__);
+       return ;
+   }
+
+   if (NULL != pMac->readyToExtWoWCallback)
+   {
+       pMac->readyToExtWoWCallback (pMac->readyToExtWoWContext,
+                                    pReadyToExtWoW->status);
+       pMac->readyToExtWoWCallback = NULL;
+       pMac->readyToExtWoWContext = NULL;
+   }
+
+}
+#endif
+
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during
@@ -2622,6 +2662,21 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                     smsLog(pMac, LOGE, "Empty rsp message for (eWNI_SME_READY_TO_SUSPEND_IND), nothing to process");
                 }
                 break ;
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+           case eWNI_SME_READY_TO_EXTWOW_IND:
+                if (pMsg->bodyptr)
+                {
+                     sme_ProcessReadyToExtWoW(pMac, pMsg->bodyptr);
+                     vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                     smsLog(pMac, LOGE, "Empty rsp message"
+                     "for (eWNI_SME_READY_TO_EXTWOW_IND), nothing to process");
+                }
+                break ;
+#endif
 
 #ifdef FEATURE_WLAN_CH_AVOID
            /* channel avoid message arrived, send IND to client */
@@ -7235,6 +7290,173 @@ eHalStatus sme_ConfigureResumeReq( tHalHandle hHal,
     }
     return(status);
 }
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureExtWoW
+
+  \brief
+    SME will pass this request to lower mac to configure Extr WoW
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanExtParams- Depicts the wlan Ext params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureExtWoW( tHalHandle hHal,
+                          tpSirExtWoWParams  wlanExtParams,
+                          csrReadyToExtWoWCallback callback,
+                             void *callbackContext)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tpSirExtWoWParams MsgPtr = vos_mem_malloc(sizeof(*MsgPtr));
+
+    if (!MsgPtr)
+        return eHAL_STATUS_FAILURE;
+
+    MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                  TRACE_CODE_SME_RX_HDD_CONFIG_EXTWOW, NO_SESSION, 0));
+
+    pMac->readyToExtWoWCallback = callback;
+    pMac->readyToExtWoWContext = callbackContext;
+
+    if ( eHAL_STATUS_SUCCESS ==
+              ( status = sme_AcquireGlobalLock( &pMac->sme ) ) ) {
+
+        /* serialize the req through MC thread */
+        vos_mem_copy(MsgPtr, wlanExtParams, sizeof(*MsgPtr));
+        vosMessage.bodyptr = MsgPtr;
+        vosMessage.type =  WDA_WLAN_EXT_WOW;
+        vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) ) {
+            pMac->readyToExtWoWCallback = NULL;
+            pMac->readyToExtWoWContext = NULL;
+            vos_mem_free(MsgPtr);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    } else {
+        pMac->readyToExtWoWCallback = NULL;
+        pMac->readyToExtWoWContext = NULL;
+        vos_mem_free(MsgPtr);
+    }
+
+    return(status);
+}
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureAppType1Params
+
+  \brief
+   SME will pass this request to lower mac to configure Indoor WoW parameters.
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanAppType1Params- Depicts the wlan App Type 1(Indoor) params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureAppType1Params( tHalHandle hHal,
+                          tpSirAppType1Params  wlanAppType1Params)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t       vosMessage;
+    tpSirAppType1Params MsgPtr = vos_mem_malloc(sizeof(*MsgPtr));
+
+    if (!MsgPtr)
+        return eHAL_STATUS_FAILURE;
+
+    MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                  TRACE_CODE_SME_RX_HDD_CONFIG_APP_TYPE1, NO_SESSION, 0));
+
+    if ( eHAL_STATUS_SUCCESS ==
+              ( status = sme_AcquireGlobalLock( &pMac->sme ) ) ) {
+
+        /* serialize the req through MC thread */
+        vos_mem_copy(MsgPtr, wlanAppType1Params, sizeof(*MsgPtr));
+        vosMessage.bodyptr = MsgPtr;
+        vosMessage.type    =  WDA_WLAN_SET_APP_TYPE1_PARAMS;
+        vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) ) {
+           vos_mem_free(MsgPtr);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    } else {
+        vos_mem_free(MsgPtr);
+    }
+
+    return(status);
+}
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureAppType2Params
+
+  \brief
+   SME will pass this request to lower mac to configure Indoor WoW parameters.
+
+  \param
+
+    hHal - The handle returned by macOpen.
+
+    wlanAppType2Params- Depicts the wlan App Type 2 (Outdoor) params
+
+  \return eHalStatus
+
+
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureAppType2Params( tHalHandle hHal,
+                          tpSirAppType2Params  wlanAppType2Params)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t       vosMessage;
+    tpSirAppType2Params MsgPtr = vos_mem_malloc(sizeof(*MsgPtr));
+
+    if (!MsgPtr)
+        return eHAL_STATUS_FAILURE;
+
+    MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                  TRACE_CODE_SME_RX_HDD_CONFIG_APP_TYPE2, NO_SESSION, 0));
+
+    if ( eHAL_STATUS_SUCCESS ==
+            ( status = sme_AcquireGlobalLock( &pMac->sme ) ) ) {
+
+        /* serialize the req through MC thread */
+        vos_mem_copy(MsgPtr, wlanAppType2Params, sizeof(*MsgPtr));
+        vosMessage.bodyptr = MsgPtr;
+        vosMessage.type =  WDA_WLAN_SET_APP_TYPE2_PARAMS;
+        vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) ) {
+           vos_mem_free(MsgPtr);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    } else {
+        vos_mem_free(MsgPtr);
+    }
+
+    return(status);
+}
+#endif
 
 /* ---------------------------------------------------------------------------
 
@@ -13692,6 +13914,45 @@ eHalStatus sme_UpdateRoamOffloadEnabled(tHalHandle hHal,
                               pMac->roam.configParam.isRoamOffloadEnabled,
                                                      nRoamOffloadEnabled);
         pMac->roam.configParam.isRoamOffloadEnabled = nRoamOffloadEnabled;
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return status ;
+}
+
+/*--------------------------------------------------------------------------
+  \brief sme_UpdateRoamKeyMgmtOffloadEnabled() - enable/disable key mgmt offload
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session Identifier
+  \param nRoamKeyMgmtOffloadEnabled - The boolean to update with
+  \return eHAL_STATUS_SUCCESS - SME update config successfully.
+          Other status means SME is failed to update.
+  \sa
+  --------------------------------------------------------------------------*/
+
+eHalStatus sme_UpdateRoamKeyMgmtOffloadEnabled(tHalHandle hHal,
+                                     tANI_U8 sessionId,
+                                     v_BOOL_t nRoamKeyMgmtOffloadEnabled)
+
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        if (CSR_IS_SESSION_VALID(pMac, sessionId)) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      "%s: LFR3: KeyMgmtOffloadEnabled changed to %d",
+                      __func__,
+                      nRoamKeyMgmtOffloadEnabled);
+            status = csrRoamSetKeyMgmtOffload(pMac,
+                                              sessionId,
+                                              nRoamKeyMgmtOffloadEnabled);
+        } else {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
         sme_ReleaseGlobalLock(&pMac->sme);
     }
 

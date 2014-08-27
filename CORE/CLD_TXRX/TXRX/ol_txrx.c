@@ -474,7 +474,11 @@ ol_txrx_pdev_attach(
      */
     if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
         /* PN check, rx-tx forwarding and rx reorder is done by the target */
-        pdev->rx_opt_proc = ol_rx_in_order_deliver;
+        if (ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) {
+            pdev->rx_opt_proc = ol_rx_in_order_deliver;
+        } else {
+            pdev->rx_opt_proc = ol_rx_fwd_check;
+        }
     } else {
         if (ol_cfg_rx_pn_check(pdev->ctrl_pdev)) {
             if (ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) {

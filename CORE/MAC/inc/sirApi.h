@@ -3559,6 +3559,62 @@ typedef struct sSirWlanResumeParam
     tANI_U8 configuredMcstBcstFilterSetting;
 }tSirWlanResumeParam,*tpSirWlanResumeParam;
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+
+typedef enum ext_wow_type
+{
+    EXT_WOW_TYPE_APP_TYPE1, /* wow type: only enable wakeup for app type1 */
+    EXT_WOW_TYPE_APP_TYPE2, /* wow type: only enable wakeup for app type2 */
+    EXT_WOW_TYPE_APP_TYPE1_2, /* wow type: enable wakeup for app type1&2 */
+
+}EXT_WOW_TYPE;
+
+typedef struct
+{
+    tANI_U8 vdev_id;
+    EXT_WOW_TYPE type;
+    tANI_U32 wakeup_pin_num;
+} tSirExtWoWParams, *tpSirExtWoWParams;
+
+typedef struct
+{
+    tANI_U8 vdev_id;
+    tSirMacAddr wakee_mac_addr;
+    tANI_U8 identification_id[8];
+    tANI_U8 password[16];
+    tANI_U32 id_length;
+    tANI_U32 pass_length;
+} tSirAppType1Params, *tpSirAppType1Params;
+
+typedef struct
+{
+    tANI_U8 vdev_id;
+
+    tANI_U8 rc4_key[16];
+    tANI_U32 rc4_key_len;
+
+    /** ip header parameter */
+    tANI_U32 ip_id; /* NC id */
+    tANI_U32 ip_device_ip; /* NC IP address */
+    tANI_U32 ip_server_ip; /* Push server IP address */
+
+    /** tcp header parameter */
+    tANI_U16 tcp_src_port; /* NC TCP port */
+    tANI_U16 tcp_dst_port; /* Push server TCP port */
+    tANI_U32 tcp_seq;
+    tANI_U32 tcp_ack_seq;
+
+    tANI_U32 keepalive_init; /* Initial ping interval */
+    tANI_U32 keepalive_min; /* Minimum ping interval */
+    tANI_U32 keepalive_max; /* Maximum ping interval */
+    tANI_U32 keepalive_inc; /* Increment of ping interval */
+
+    tSirMacAddr gateway_mac;
+    tANI_U32 tcp_tx_timeout_val;
+    tANI_U32 tcp_rx_timeout_val;
+} tSirAppType2Params, *tpSirAppType2Params;
+#endif
+
 typedef struct sSirWlanSetRxpFilters
 {
     tANI_U8 configuredMcstBcstFilterSetting;
@@ -3756,6 +3812,7 @@ typedef struct sSirRoamOffloadScanReq
   tSirAcUapsd AcUapsd;
   tANI_U8   R0KH_ID[SIR_ROAM_R0KH_ID_MAX_LEN];
   tANI_U32  R0KH_ID_Length;
+  tANI_U8   RoamKeyMgmtOffloadEnabled;
 #endif
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
@@ -4490,6 +4547,14 @@ typedef struct
     tANI_U16      mesgLen;
     tANI_BOOLEAN  suspended;
 }  tSirReadyToSuspendInd, *tpSirReadyToSuspendInd;
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+typedef struct
+{
+    tANI_U16      mesgType;
+    tANI_U16      mesgLen;
+    tANI_BOOLEAN  status;
+}  tSirReadyToExtWoWInd, *tpSirReadyToExtWoWInd;
+#endif
 typedef struct sSirRateUpdateInd
 {
     tANI_U8 nss; /* 0: 1x1, 1: 2x2 */
@@ -4746,6 +4811,7 @@ typedef struct sSirSmeRoamOffloadSynchInd
     tANI_U32    authStatus;
     tANI_U8     rssi;
     tANI_U8     roamReason;
+    tANI_U32    chan_freq;
 } tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
 
 typedef struct sSirSmeRoamOffloadSynchCnf

@@ -2713,6 +2713,64 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_SAP_SUSPEND_MAX                 ( 1 )
 #define CFG_ENABLE_SAP_SUSPEND_DEFAULT             ( 1 )
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+#define CFG_EXTWOW_GO_TO_SUSPEND                   "gExtWoWgotoSuspend"
+#define CFG_EXTWOW_GO_TO_SUSPEND_MIN               ( 0 )
+#define CFG_EXTWOW_GO_TO_SUSPEND_MAX               ( 1 )
+#define CFG_EXTWOW_GO_TO_SUSPEND_DEFAULT           ( 1 )
+
+#define CFG_EXTWOW_APP1_WAKE_PIN_NUMBER            "gExtWowApp1WakeupPinNumber"
+#define CFG_EXTWOW_APP1_WAKE_PIN_NUMBER_MIN        ( 0 )
+#define CFG_EXTWOW_APP1_WAKE_PIN_NUMBER_MAX        ( 255 )
+#define CFG_EXTWOW_APP1_WAKE_PIN_NUMBER_DEFAULT    ( 12 )
+
+#define CFG_EXTWOW_APP2_WAKE_PIN_NUMBER            "gExtWowApp2WakeupPinNumber"
+#define CFG_EXTWOW_APP2_WAKE_PIN_NUMBER_MIN        ( 0 )
+#define CFG_EXTWOW_APP2_WAKE_PIN_NUMBER_MAX        ( 255 )
+#define CFG_EXTWOW_APP2_WAKE_PIN_NUMBER_DEFAULT    ( 16 )
+
+#define CFG_EXTWOW_KA_INIT_PING_INTERVAL           "gExtWoWApp2KAInitPingInterval"
+#define CFG_EXTWOW_KA_INIT_PING_INTERVAL_MIN       ( 0 )
+#define CFG_EXTWOW_KA_INIT_PING_INTERVAL_MAX       ( 0xffffffff )
+#define CFG_EXTWOW_KA_INIT_PING_INTERVAL_DEFAULT   ( 240 )
+
+#define CFG_EXTWOW_KA_MIN_PING_INTERVAL            "gExtWoWApp2KAMinPingInterval"
+#define CFG_EXTWOW_KA_MIN_PING_INTERVAL_MIN        ( 0 )
+#define CFG_EXTWOW_KA_MIN_PING_INTERVAL_MAX        ( 0xffffffff )
+#define CFG_EXTWOW_KA_MIN_PING_INTERVAL_DEFAULT    ( 240 )
+
+#define CFG_EXTWOW_KA_MAX_PING_INTERVAL            "gExtWoWApp2KAMaxPingInterval"
+#define CFG_EXTWOW_KA_MAX_PING_INTERVAL_MIN        ( 0 )
+#define CFG_EXTWOW_KA_MAX_PING_INTERVAL_MAX        ( 0xffffffff )
+#define CFG_EXTWOW_KA_MAX_PING_INTERVAL_DEFAULT    ( 1280 )
+
+#define CFG_EXTWOW_KA_INC_PING_INTERVAL            "gExtWoWApp2KAIncPingInterval"
+#define CFG_EXTWOW_KA_INC_PING_INTERVAL_MIN        ( 0 )
+#define CFG_EXTWOW_KA_INC_PING_INTERVAL_MAX        ( 0xffffffff )
+#define CFG_EXTWOW_KA_INC_PING_INTERVAL_DEFAULT    ( 4 )
+
+#define CFG_EXTWOW_TCP_SRC_PORT                    "gExtWoWApp2TcpSrcPort"
+#define CFG_EXTWOW_TCP_SRC_PORT_MIN                ( 0 )
+#define CFG_EXTWOW_TCP_SRC_PORT_MAX                ( 65535 )
+#define CFG_EXTWOW_TCP_SRC_PORT_DEFAULT            ( 5000 )
+
+#define CFG_EXTWOW_TCP_DST_PORT                    "gExtWoWApp2TcpDstPort"
+#define CFG_EXTWOW_TCP_DST_PORT_MIN                ( 0 )
+#define CFG_EXTWOW_TCP_DST_PORT_MAX                ( 65535 )
+#define CFG_EXTWOW_TCP_DST_PORT_DEFAULT            ( 5001 )
+
+#define CFG_EXTWOW_TCP_TX_TIMEOUT                  "gExtWoWApp2TcpTxTimeout"
+#define CFG_EXTWOW_TCP_TX_TIMEOUT_MIN              ( 0 )
+#define CFG_EXTWOW_TCP_TX_TIMEOUT_MAX              ( 0xffffffff )
+#define CFG_EXTWOW_TCP_TX_TIMEOUT_DEFAULT          ( 200 )
+
+#define CFG_EXTWOW_TCP_RX_TIMEOUT                  "gExtWoWApp2TcpRxTimeout"
+#define CFG_EXTWOW_TCP_RX_TIMEOUT_MIN              ( 0 )
+#define CFG_EXTWOW_TCP_RX_TIMEOUT_MAX              ( 0xffffffff )
+#define CFG_EXTWOW_TCP_RX_TIMEOUT_DEFAULT          ( 200 )
+#endif
+
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3301,6 +3359,20 @@ typedef struct
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 
    v_BOOL_t                    enableSapSuspend;
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+   v_U8_t                      extWowGotoSuspend;
+   v_U8_t                      extWowApp1WakeupPinNumber;
+   v_U8_t                      extWowApp2WakeupPinNumber;
+   v_U32_t                     extWowApp2KAInitPingInterval;
+   v_U32_t                     extWowApp2KAMinPingInterval;
+   v_U32_t                     extWowApp2KAMaxPingInterval;
+   v_U32_t                     extWowApp2KAIncPingInterval;
+   v_U16_t                     extWowApp2TcpSrcPort;
+   v_U16_t                     extWowApp2TcpDstPort;
+   v_U32_t                     extWowApp2TcpTxTimeout;
+   v_U32_t                     extWowApp2TcpRxTimeout;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

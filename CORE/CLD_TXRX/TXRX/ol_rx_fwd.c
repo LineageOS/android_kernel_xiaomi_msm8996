@@ -233,6 +233,10 @@ ol_rx_fwd_check(
     }
     if (deliver_list_head) {
         adf_nbuf_set_next(deliver_list_tail, NULL); /* add NULL terminator */
-        ol_rx_deliver(vdev, peer, tid, deliver_list_head);
+        if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
+            ol_rx_in_order_deliver(vdev, peer, tid, deliver_list_head);
+        } else {
+            ol_rx_deliver(vdev, peer, tid, deliver_list_head);
+        }
     }
 }

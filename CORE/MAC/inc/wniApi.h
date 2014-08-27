@@ -394,6 +394,9 @@ enum eWniMsgTypes
     eWNI_SME_NAN_EVENT,
 #endif
     eWNI_SME_LINK_STATUS_IND,
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+    eWNI_SME_READY_TO_EXTWOW_IND,
+#endif
     eWNI_SME_MSG_TYPES_END
 };
 

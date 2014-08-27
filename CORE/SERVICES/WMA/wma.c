@@ -1794,6 +1794,207 @@ free_req_msg:
 	return status;
 }
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+static void wma_send_status_of_ext_wow(tp_wma_handle wma, boolean status)
+{
+	tSirReadyToExtWoWInd *ready_to_extwow;
+	VOS_STATUS vstatus;
+	vos_msg_t vos_msg;
+	u_int8_t len;
+
+	WMA_LOGD("Posting ready to suspend indication to umac");
+
+	len = sizeof(tSirReadyToExtWoWInd);
+	ready_to_extwow = (tSirReadyToExtWoWInd *) vos_mem_malloc(len);
+
+	if (NULL == ready_to_extwow) {
+		WMA_LOGE("%s: Memory allocation failure", __func__);
+		return;
+	}
+
+	ready_to_extwow->mesgType = eWNI_SME_READY_TO_EXTWOW_IND;
+	ready_to_extwow->mesgLen = len;
+	ready_to_extwow->status= status;
+
+	vos_msg.type = eWNI_SME_READY_TO_EXTWOW_IND;
+	vos_msg.bodyptr = (void *) ready_to_extwow;
+	vos_msg.bodyval = 0;
+
+	vstatus = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (vstatus != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to post ready to suspend");
+		vos_mem_free(ready_to_extwow);
+	}
+}
+
+static int wma_enable_ext_wow(tp_wma_handle wma,
+			 tpSirExtWoWParams params)
+{
+	wmi_extwow_enable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(wmi_extwow_enable_cmd_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_extwow_enable_cmd_fixed_param *) wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_extwow_enable_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				wmi_extwow_enable_cmd_fixed_param));
+
+	cmd->vdev_id = params->vdev_id;
+	cmd->type = params->type;
+	cmd->wakeup_pin_num = params->wakeup_pin_num;
+
+	WMA_LOGD("%s: vdev_id %d type %d Wakeup_pin_num %x",
+		 __func__, cmd->vdev_id,
+		 cmd->type, cmd->wakeup_pin_num);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_EXTWOW_ENABLE_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set EXTWOW Enable", __func__);
+		wmi_buf_free(buf);
+		wma_send_status_of_ext_wow(wma, FALSE);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wma_send_status_of_ext_wow(wma, TRUE);
+	return VOS_STATUS_SUCCESS;
+
+}
+
+static int wma_set_app_type1_params_in_fw(tp_wma_handle wma,
+			 tpSirAppType1Params appType1Params)
+{
+	wmi_extwow_set_app_type1_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(wmi_extwow_set_app_type1_params_cmd_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_extwow_set_app_type1_params_cmd_fixed_param *)
+						    wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	    WMITLV_TAG_STRUC_wmi_extwow_set_app_type1_params_cmd_fixed_param,
+	    WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extwow_set_app_type1_params_cmd_fixed_param));
+
+	cmd->vdev_id = appType1Params->vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(appType1Params->wakee_mac_addr,
+							 &cmd->wakee_mac);
+	vos_mem_copy(cmd->ident, appType1Params->identification_id, 8);
+	cmd->ident_len = appType1Params->id_length;
+	vos_mem_copy(cmd->passwd, appType1Params->password, 16);
+	cmd->passwd_len = appType1Params->pass_length;
+
+	WMA_LOGD("%s: vdev_id %d wakee_mac_addr %pM "
+			 "identification_id %.8s id_length %u "
+			 "password %.16s pass_length %u",
+		__func__, cmd->vdev_id, appType1Params->wakee_mac_addr,
+		cmd->ident, cmd->ident_len,
+		cmd->passwd, cmd->passwd_len);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set APP TYPE1 PARAMS", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static int wma_set_app_type2_params_in_fw(tp_wma_handle wma,
+			 tpSirAppType2Params appType2Params)
+{
+	wmi_extwow_set_app_type2_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(wmi_extwow_set_app_type2_params_cmd_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_extwow_set_app_type2_params_cmd_fixed_param *)
+						    wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+             WMITLV_TAG_STRUC_wmi_extwow_set_app_type2_params_cmd_fixed_param,
+             WMITLV_GET_STRUCT_TLVLEN(
+			wmi_extwow_set_app_type2_params_cmd_fixed_param));
+
+	cmd->vdev_id = appType2Params->vdev_id;
+
+	vos_mem_copy(cmd->rc4_key, appType2Params->rc4_key, 16);
+	cmd->rc4_key_len = appType2Params->rc4_key_len;
+
+	cmd->ip_id = appType2Params->ip_id;
+	cmd->ip_device_ip = appType2Params->ip_device_ip;
+	cmd->ip_server_ip = appType2Params->ip_server_ip;
+
+	cmd->tcp_src_port = appType2Params->tcp_src_port;
+	cmd->tcp_dst_port = appType2Params->tcp_dst_port;
+	cmd->tcp_seq = appType2Params->tcp_seq;
+	cmd->tcp_ack_seq = appType2Params->tcp_ack_seq;
+
+	cmd->keepalive_init = appType2Params->keepalive_init;
+	cmd->keepalive_min = appType2Params->keepalive_min;
+	cmd->keepalive_max = appType2Params->keepalive_max;
+	cmd->keepalive_inc = appType2Params->keepalive_inc;
+
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(appType2Params->gateway_mac,
+						&cmd->gateway_mac);
+	cmd->tcp_tx_timeout_val = appType2Params->tcp_tx_timeout_val;
+	cmd->tcp_rx_timeout_val = appType2Params->tcp_rx_timeout_val;
+
+	WMA_LOGD("%s: vdev_id %d gateway_mac %pM "
+			 "rc4_key %.16s rc4_key_len %u "
+			 "ip_id %x ip_device_ip %x ip_server_ip %x "
+			 "tcp_src_port %u tcp_dst_port %u tcp_seq %u "
+			 "tcp_ack_seq %u keepalive_init %u keepalive_min %u "
+			 "keepalive_max %u keepalive_inc %u "
+			 "tcp_tx_timeout_val %u tcp_rx_timeout_val %u",
+		__func__, cmd->vdev_id, appType2Params->gateway_mac,
+		cmd->rc4_key, cmd->rc4_key_len,
+		cmd->ip_id, cmd->ip_device_ip, cmd->ip_server_ip,
+		cmd->tcp_src_port, cmd->tcp_dst_port, cmd->tcp_seq,
+		cmd->tcp_ack_seq, cmd->keepalive_init, cmd->keepalive_min,
+		cmd->keepalive_max, cmd->keepalive_inc,
+		cmd->tcp_tx_timeout_val, cmd->tcp_rx_timeout_val);
+
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set APP TYPE2 PARAMS", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+
+}
+#endif
 static void wma_update_pdev_stats(tp_wma_handle wma,
 					wmi_pdev_stats *pdev_stats)
 {
@@ -4480,6 +4681,7 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
         tp_wma_handle wma = (tp_wma_handle)handle;
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
+	wmi_channel *chan = NULL;
 	int size=0;
 	tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd;
 
@@ -4532,6 +4734,8 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	vos_mem_copy(reassoc_rsp_ptr,
 			param_buf->reassoc_rsp_frame,
 			pRoamOffloadSynchInd->reassocRespLength);
+	chan = (wmi_channel *) param_buf->chan;
+	pRoamOffloadSynchInd->chan_freq = chan->mhz;
 	vos_msg.type = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	vos_msg.bodyptr = (void *) pRoamOffloadSynchInd;
 	vos_msg.bodyval = 0;
@@ -7465,7 +7669,15 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				buf_ptr += WMI_TLV_HDR_SIZE;
 				roam_offload_11i =
 				(wmi_roam_11i_offload_tlv_param *) buf_ptr;
-				WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(roam_offload_11i->flags);
+				if (roam_req->RoamKeyMgmtOffloadEnabled) {
+					WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(
+						roam_offload_11i->flags);
+				} else {
+					WMI_SET_ROAM_OFFLOAD_OKC_DISABLED(
+						roam_offload_11i->flags);
+				}
+
+
 				vos_mem_copy (roam_offload_11i->pmk, roam_req->PSK_PMK,
                                              sizeof(roam_req->PSK_PMK));
 				roam_offload_11i->pmk_len = roam_req->pmk_len;
@@ -21731,6 +21943,23 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tHalHiddenSsidVdevRestart *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+		case WDA_WLAN_EXT_WOW:
+			wma_enable_ext_wow(wma_handle,
+				(tSirExtWoWParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_WLAN_SET_APP_TYPE1_PARAMS:
+			wma_set_app_type1_params_in_fw(wma_handle,
+				(tSirAppType1Params *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_WLAN_SET_APP_TYPE2_PARAMS:
+			wma_set_app_type2_params_in_fw(wma_handle,
+				(tSirAppType2Params *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif
 		case WDA_VDEV_START_RSP_IND:
 			wma_vdev_start_rsp_ind(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);

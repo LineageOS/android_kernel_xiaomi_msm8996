@@ -8735,8 +8735,12 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
    }
    else
    {
-      pBssDescr->channelId = pParsedFrame->channelNumber;
+      /*If DS Params or HTIE is not present in the probe resp or beacon,
+       * then use the channel frequency provided by firmware to fill the
+       * channel in the BSS descriptor.*/
+      pBssDescr->channelId = vos_freq_to_chan(pRoamOffloadSynchInd->chan_freq);
    }
+   pBssDescr->channelIdSelf = pBssDescr->channelId;
 
    if ((pBssDescr->channelId > 0) && (pBssDescr->channelId < 15))
    {
@@ -8780,12 +8784,13 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
       vos_mem_copy((tANI_U8 *)pBssDescr->mdie, (tANI_U8 *)pParsedFrame->mdie, SIR_MDIE_SIZE);
    }
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                 "LFR3:%s:BssDescr Info:", __func__);
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                  pBssDescr->bssId, sizeof(tSirMacAddr));
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              "chan= %d, rssi = %d",pBssDescr->channelId,pBssDescr->rssi);
+             "LFR3:chan = %d, rssi = %d",
+             pBssDescr->channelId, pBssDescr->rssi);
 
    if (uLen)
    {
@@ -8808,7 +8813,7 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
 
    fDupBss = csrRemoveDupBssDescription(pMac,
                                         &pScanResult->Result.BssDescriptor,
-                                        pIesLocal, &tmpSsid, &timer, FALSE);
+                                        pIesLocal, &tmpSsid, &timer, TRUE);
    if ( CSR_SCAN_IS_OVER_BSS_LIMIT(pMac) )
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,

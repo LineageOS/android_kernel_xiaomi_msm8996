@@ -1487,6 +1487,13 @@ struct hdd_context_s
 
     vos_wake_lock_t sap_dfs_wakelock;
     atomic_t sap_dfs_ref_cnt;
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+    v_BOOL_t is_extwow_app_type1_param_set;
+    v_BOOL_t is_extwow_app_type2_param_set;
+    v_BOOL_t ext_wow_should_suspend;
+    struct completion ready_to_extwow;
+#endif
 };
 
 /*---------------------------------------------------------------------------

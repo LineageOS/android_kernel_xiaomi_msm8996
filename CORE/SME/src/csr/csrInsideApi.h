@@ -778,6 +778,19 @@ eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
  *-------------------------------------------------------------------------------*/
 eHalStatus csrRoamSetPSK_PMK(tpAniSirGlobal pMac, tANI_U32 sessionId,
                              tANI_U8 *pPSK_PMK, size_t pmk_len);
+
+/* ---------------------------------------------------------------------------
+ *\fn csrRoamSetKeyMgmtOffload
+ *\brief sets nRoamKeyMgmtOffloadEnabled
+ *\param pMac  - pointer to global structure for MAC
+ *\param sessionId - Sme session id
+ *\param nRoamKeyMgmtOffloadEnabled - value of key mgmt offload enable
+ *\return eHalStatus - usually it succeed unless sessionId is not found
+ *\Note:
+ *-------------------------------------------------------------------------------*/
+eHalStatus csrRoamSetKeyMgmtOffload(tpAniSirGlobal pMac,
+                                    tANI_U32 sessionId,
+                                    v_BOOL_t nRoamKeyMgmtOffloadEnabled);
 #endif
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetWpaRsnReqIE
