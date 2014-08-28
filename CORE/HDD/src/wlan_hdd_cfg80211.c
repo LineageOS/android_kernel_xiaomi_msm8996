@@ -4066,13 +4066,6 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
         return -EINVAL;
     }
 
-    if (params->tail && !params->tail_len)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   FL("tail_len is zero but tail is not NULL"));
-        return -EINVAL;
-    }
-
     if(params->head)
         head_len = params->head_len;
     else
@@ -5644,14 +5637,16 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     mutex_lock(&pHddCtx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
+        hdd_hostapd_state_t *pHostapdState =
+                    WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+
+        vos_event_reset(&pHostapdState->vosEvent);
 #ifdef WLAN_FEATURE_MBSSID
         status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
 #else
         status = WLANSAP_StopBss(pHddCtx->pvosContext);
 #endif
         if (VOS_IS_STATUS_SUCCESS(status)) {
-            hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
-
             status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
 
             if (!VOS_IS_STATUS_SUCCESS(status)) {
@@ -9812,14 +9807,24 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
         case WLAN_REASON_PREV_AUTH_NOT_VALID:
         case WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA:
-        case WLAN_REASON_DEAUTH_LEAVING:
              reasonCode = eCSR_DISCONNECT_REASON_DEAUTH;
              break;
 
+        case WLAN_REASON_DEAUTH_LEAVING:
+             reasonCode = pHddCtx->cfg_ini->gEnableDeauthToDisassocMap ?
+                 eCSR_DISCONNECT_REASON_STA_HAS_LEFT :
+                 eCSR_DISCONNECT_REASON_DEAUTH;
+             break;
+        case WLAN_REASON_DISASSOC_STA_HAS_LEFT:
+             reasonCode = eCSR_DISCONNECT_REASON_STA_HAS_LEFT;
+             break;
         default:
              reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
             break;
         }
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                  FL("convert to internal reason %d to reasonCode %d"),
+                  reason, reasonCode);
         pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
         pScanInfo =  &pAdapter->scan_info;
         if (pScanInfo->mScanPending) {
