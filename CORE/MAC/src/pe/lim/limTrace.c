@@ -141,7 +141,7 @@ void limTraceDump(tpAniSirGlobal pMac, tpvosTraceRecord pRecord, tANI_U16 recInd
         NULL,
         "Beacon",
         "ATIM",
-        "Disassocation",
+        "Disassociation",
         "Authentication",
         "Deauthentication",
         "Action"

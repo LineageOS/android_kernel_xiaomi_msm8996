@@ -2403,7 +2403,7 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             // Log error
             limLog(pMac, LOGP,
                    FL("could not start Auth failure timer"));
-            // Cleanup as if auth timer expired
+            /* Clean up as if auth timer expired */
             limProcessAuthFailureTimeout(pMac);
         }
 
@@ -2515,7 +2515,7 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             limLog(pMac, LOGP,
                    FL("SessionId:%d could not start Association failure timer"),
                    psessionEntry->peSessionId);
-            // Cleanup as if assoc timer expired
+            /* Clean up as if assoc timer expired */
             limProcessAssocFailureTimeout(pMac,LIM_ASSOC );
 
         }
@@ -3084,12 +3084,6 @@ limProcessMlmDeauthReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U3
                         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
                         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
                         goto end;
-                    }
-                    else
-                    {
-                        // LINK_ESTABLISED_STATE
-                        // Cleanup RX & TX paths
-                        // below
                     }
 
                     break;

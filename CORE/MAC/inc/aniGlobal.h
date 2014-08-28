@@ -347,7 +347,7 @@ typedef struct sAniSirLim
     /// Place holder for current channel ID
     /// being scanned during background scanning
     tANI_U32   gLimBackgroundScanChannelId;
-    /// flag to indicate that bacground scan timer has been started
+    /* Flag to indicate that background scan timer has been started */
     tANI_U8    gLimBackgroundScanStarted;
 
     /* Used to store the list of legacy bss sta detected during scan on one channel */
@@ -355,17 +355,17 @@ typedef struct sAniSirLim
     tANI_U16    gLimRestoreCBCount;
     tSirMacAddr gLimLegacyBssidList[MAX_NUM_LEGACY_BSSID_PER_CHANNEL];
 
-    //
-    // If this flag is 1,
-    //   then, LIM will "try and trigger" a background
-    //   scan whenever it receives a Quiet BSS IE
-    //
-    // If this flag is 0,
-    //   then, LIM will simply shut-off Tx/Rx whenever it
-    //   receives a Quiet BSS IE.
-    //   This is the default behavior when a Quiet BSS IE
-    //   is received and 11H is enabled
-    //
+    /*
+     * If this flag is 1,
+     *   then, LIM will "try and trigger" a background
+     *   scan whenever it receives a Quiet BSS IE
+     *
+     * If this flag is 0,
+     *   then, LIM will simply shut-off Tx/Rx whenever it
+     *   receives a Quiet BSS IE.
+     *   This is the default behaviour when a Quiet BSS IE
+     *   is received and 11H is enabled
+     */
     tANI_U32 gLimTriggerBackgroundScanDuringQuietBss;
 
 
@@ -582,7 +582,7 @@ typedef struct sAniSirLim
     tANI_U32            gLimNumWdsInfoSet;
     tSirWdsInfo         gLimWdsInfo;
 
-    // Deferred Queue Paramters
+    /* Deferred Queue Parameters */
     tLimDeferredMsgQParams    gLimDeferredMsgQ;
 
     // addts request if any - only one can be outstanding at any time
@@ -594,7 +594,7 @@ typedef struct sAniSirLim
     tCfgProtection    cfgProtection;
 
     tANI_U8 gLimProtectionControl;
-    //RF band to determibe 2.4/5 GHZ
+    /* RF band to determine 2.4/5 GHz */
 
     // alternate radio info used by STA
     tSirAlternateRadioInfo  gLimAlternateRadio;
@@ -630,7 +630,7 @@ typedef struct sAniSirLim
 
     /* Used on STA for AC downgrade. This is a dynamic mask
      * setting which keep tracks of ACs being admitted.
-     * If bit is set to 0: That partiular AC is not admitted
+     * If bit is set to 0: That particular AC is not admitted
      * If bit is set to 1: That particular AC is admitted
      */
     tANI_U8  gAcAdmitMask[SIR_MAC_DIRECTION_DIRECT];
@@ -833,10 +833,10 @@ typedef struct sAniSirLim
     //
     tANI_U8 gHTDualCTSProtection;
 
-    //
-    // Identifies a single STBC MCS that shall ne used for
-    // STBC control frames and STBC beacons
-    //
+    /*
+     * Identifies a single STBC MCS that shall be used for
+     * STBC control frames and STBC beacons
+     */
     tANI_U8 gHTSTBCBasicMCS;
 
     tANI_U8 gHTNonGFDevicesPresent;
@@ -998,7 +998,7 @@ typedef struct sMacOpenParameters
 
 typedef struct sHalMacStartParameters
 {
-    // parametes for the Firmware
+    /* Parameters for the Firmware */
     tDriverType  driverType;
 
 } tHalMacStartParameters;
@@ -1051,8 +1051,8 @@ typedef struct sAniSirGlobal
     tANI_U32     menuCurrent;
     /* logDump specific */
     tANI_U32 dumpTablecurrentId;
-    /* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry
-        Thinking of using linkedlist  */
+    /* Instead of static allocation I will dynamically allocate memory
+       for dumpTableEntry thinking of using linked list  */
     tDumpModuleEntry *dumpTableEntry[MAX_DUMP_TABLE_ENTRY];
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;

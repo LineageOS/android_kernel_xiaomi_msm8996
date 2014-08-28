@@ -106,7 +106,7 @@ tSirRetStatus pePostMsgApi(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 tSirRetStatus peProcessMsg(tpAniSirGlobal pMac, tSirMsgQ* limMsg);
 void limDumpInit(tpAniSirGlobal pMac);
 /**
- * Function to cleanup LIM state.
+ * Function to clean up LIM state.
  * This called upon reset/persona change etc
  */
 extern void limCleanup(tpAniSirGlobal);

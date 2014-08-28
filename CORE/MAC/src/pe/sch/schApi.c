@@ -298,7 +298,7 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
       beaconParams->timIeOffset = psessionEntry->schBeaconOffsetBegin;
   }
 
-  /* p2pIeOffset should be atleast greater than timIeOffset */
+  /* p2pIeOffset should be at-least greater than timIeOffset */
   if ((pMac->sch.schObject.p2pIeOffset != 0) &&
           (pMac->sch.schObject.p2pIeOffset <
            psessionEntry->schBeaconOffsetBegin))

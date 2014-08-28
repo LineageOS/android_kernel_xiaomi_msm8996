@@ -242,13 +242,13 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
     vos_mem_set(( tANI_U8*) pBcn1, sizeof( tDot11fBeacon1 ), 0);
 
-    // Skip over the timestamp (it'll be updated later).
+    /* Skip over the time stamp (it'll be updated later). */
 
     pBcn1->BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
     PopulateDot11fCapabilities( pMac, &pBcn1->Capabilities, psessionEntry );
     if (psessionEntry->ssidHidden)
     {
-       pBcn1->SSID.present = 1; //rest of the fileds are 0 for hidden ssid
+       pBcn1->SSID.present = 1; /* Rest of the fields are 0 for hidden ssid */
        if((psessionEntry->ssId.length) &&
           (psessionEntry->ssidHidden == eHIDDEN_SSID_ZERO_CONTENTS))
           pBcn1->SSID.num_ssid = psessionEntry->ssId.length;
@@ -569,7 +569,7 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
                      sizeof(beacon2->PowerConstraints));
 
     }
-    /* Channel Switch Annoouncement SIR_MAC_CHNL_SWITCH_ANN_EID */
+    /* Channel Switch Announcement SIR_MAC_CHNL_SWITCH_ANN_EID */
     if(beacon2->ChanSwitchAnn.present)
     {
         SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_CHNL_SWITCH_ANN_EID);

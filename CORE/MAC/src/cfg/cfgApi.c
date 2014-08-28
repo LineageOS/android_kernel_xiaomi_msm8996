@@ -87,7 +87,7 @@ tANI_U32 cfgNeedReload(tpAniSirGlobal pMac, tANI_U16 cfgId)
  *
  * LOGIC:
  * Please see Configuration & Statistic Collection Micro-Architecture
- * specification for the pseudocode.
+ * specification for the pseudo code.
  *
  * ASSUMPTIONS:
  * None.
@@ -741,7 +741,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
         cfgLog(pMac, LOGP, FL("Failed to retrieve 11d configuration parameters while retrieving 11d tuples"));
         goto error;
     }
-    /* Identify the channel and maxtxpower */
+    /* Identify the channel and max txpower */
     while(count <= (cfgLength - (sizeof(tSirMacChanInfo))))
     {
         tANI_U8    firstChannel, maxChannels;
@@ -1008,7 +1008,7 @@ cfgSetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 caps)
  * cfgCleanup()
  *
  * FUNCTION:
- * CFG cleanup function.
+ * CFG clean up function.
  *
  * LOGIC:
  *
@@ -1016,7 +1016,7 @@ cfgSetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 caps)
  * None.
  *
  * NOTE:
- * This function must be called during system shutdown.
+ * This function must be called during system shut down.
  *
  * @param None
  *

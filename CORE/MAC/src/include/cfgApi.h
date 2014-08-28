@@ -120,7 +120,7 @@ extern tSirRetStatus cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tp
 /// Set capability info
 extern void cfgSetCapabilityInfo(tpAniSirGlobal, tANI_U16);
 
-/// Cleanup CFG module
+/* Clean up CFG module */
 void cfgCleanup(tpAniSirGlobal pMac);
 
 extern tANI_U8 *gCfgParamName[];

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -34,7 +34,7 @@ FILE:
 
 BRIEF DESCRIPTION:
    WLAN Host Version file.
-   Build number automaticly updated by build scripts.
+   Build number automatically updated by build scripts.
 
 ===========================================================================*/
 

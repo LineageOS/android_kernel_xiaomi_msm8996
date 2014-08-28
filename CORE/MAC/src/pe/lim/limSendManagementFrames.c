@@ -3836,7 +3836,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
                  eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
         {
             PELOGE(limLog(pMac, LOGE,
-                   FL("FT Preauth Session (%p,%d) Cleanup"),
+                   FL("FT Preauth Session (%p,%d) Clean up"),
                    psessionEntry, psessionEntry->peSessionId););
 
 #if defined WLAN_FEATURE_VOWIFI_11R
@@ -3847,7 +3847,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
         else
         {
             PELOGE(limLog(pMac, LOGE,
-                   FL("No FT Preauth Session Cleanup in role %d"
+                   FL("No FT Preauth Session Clean up in role %d"
 #ifdef FEATURE_WLAN_ESE
                    " isESE %d"
 #endif

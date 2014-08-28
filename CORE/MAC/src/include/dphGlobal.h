@@ -300,11 +300,8 @@ typedef struct sDphHashNode
     tANI_U8  timWaitCount;
 
 
-    /// Number of Successfull MPDU's being sent
-
+    /* Number of Successful MPDU's being sent */
     tANI_U32    curTxMpduCnt;
-
-
 
 
     /// number of consecutive TIMs sent without response
@@ -430,7 +427,7 @@ typedef struct sDphHashNode
 
     ///////////////////////////////////////////////////////////////////////
 
-    tANI_U8 dpuSig:4;                       // DPU signiture
+    tANI_U8 dpuSig:4;                       /* DPU signature */
 
     tANI_U8 staSig:4;                       // STA signature
 
@@ -479,27 +476,6 @@ typedef struct sDphHashNode
     //
 
     tCfgTrafficClass tcCfg[STACFG_MAX_TC];
-
-
-    // Block Ack state
-
-    // This is used between PE and HAL only.
-
-    // can be set to one of the values from the following enum
-
-    /*typedef enum eLimBAState
-
-    {
-
-        eLIM_BA_STATE_IDLE, // we are not waiting for anything from HAL.
-
-        eLIM_BA_STATE_WT_ADD_RSP, //We are waiting for Add rsponse from HAL.
-
-        eLIM_BA_STATE_WT_DEL_RSP //  We are waiting for Del response from HAL.
-
-    } tLimBAState; */
-
-
 
 
     //BA state bitmap 2 bits per tid
