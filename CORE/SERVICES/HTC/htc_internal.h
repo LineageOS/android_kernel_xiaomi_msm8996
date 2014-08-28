@@ -74,6 +74,15 @@ extern "C" {
 #else
 #define HTC_MAX_MSG_PER_BUNDLE              16
 #endif
+/*
+ * HTC_MAX_TX_BUNDLE_SEND_LIMIT -
+ * This value is in units of tx frame fragments.
+ * It needs to be at least as large as the maximum number of tx frames in a
+ * HTC download bundle times the average number of fragments in each such frame
+ * (In certain operating systems, such as Linux, we expect to only have
+ * a single fragment per frame anyway.)
+ */
+#define HTC_MAX_TX_BUNDLE_SEND_LIMIT        255
 
 #define HTC_PACKET_CONTAINER_ALLOCATION     32
 #define NUM_CONTROL_TX_BUFFERS              2
