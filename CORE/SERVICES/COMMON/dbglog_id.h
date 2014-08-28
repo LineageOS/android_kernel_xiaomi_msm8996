@@ -1271,26 +1271,42 @@ extern "C" {
 #define NAN_DBGID_TW_PARAMS                         (NAN_DBGID_EVT_BASE + 65)
 /* args: */
 #define NAN_DBGID_BEACON_SENDER                     (NAN_DBGID_EVT_BASE + 66)
+/* args: currTsf, nextDwTsf */
+#define NAN_DBGID_TSF_DUMP                          (NAN_DBGID_EVT_BASE + 67)
+/* args: chan, startSlot, numSlots, repeat */
+#define NAN_DBGID_FAW_CONFIG                        (NAN_DBGID_EVT_BASE + 68)
 /* args: */
-#define NAN_DBGID_SPARE_67                          (NAN_DBGID_EVT_BASE + 67)
+#define NAN_DBGID_FAW_START                         (NAN_DBGID_EVT_BASE + 69)
 /* args: */
-#define NAN_DBGID_SPARE_68                          (NAN_DBGID_EVT_BASE + 68)
+#define NAN_DBGID_FAW_END                           (NAN_DBGID_EVT_BASE + 70)
+/* args: offset, oldval, newval */
+#define NAN_DBGID_CONFIG_PARAM_CHANGED              (NAN_DBGID_EVT_BASE + 71)
+/* args: <none> */
+#define NAN_DBGID_CONN_CAP_ATTR_CLEARED             (NAN_DBGID_EVT_BASE + 72)
+/* args: connType */
+#define NAN_DBGID_POST_DISC_ATTR_CLEARED            (NAN_DBGID_EVT_BASE + 73)
+/* args: <none> */
+#define NAN_DBGID_VENDOR_SPECIFIC_ATTR_CLEARED      (NAN_DBGID_EVT_BASE + 74)
+/* args: offset */
+#define NAN_DBGID_WLAN_INFRA_MAP_CTRL_OFFSET        (NAN_DBGID_EVT_BASE + 75)
+/* args: offset */
+#define NAN_DBGID_WLAN_INFRA_AI_BITMAP_OFFSET       (NAN_DBGID_EVT_BASE + 76)
+/* args: offset */
+#define NAN_DBGID_WLAN_INFRA_DEVICE_ROLE_OFFSET     (NAN_DBGID_EVT_BASE + 77)
+/* args: offset */
+#define NAN_DBGID_MESH_ID_OFFSET                    (NAN_DBGID_EVT_BASE + 78)
 /* args: */
-#define NAN_DBGID_SPARE_69                          (NAN_DBGID_EVT_BASE + 69)
+#define NAN_DBGID_SPARE_79                          (NAN_DBGID_EVT_BASE + 79)
 /* args: */
-#define NAN_DBGID_SPARE_70                          (NAN_DBGID_EVT_BASE + 70)
+#define NAN_DBGID_SPARE_80                          (NAN_DBGID_EVT_BASE + 80)
 /* args: */
-#define NAN_DBGID_SPARE_71                          (NAN_DBGID_EVT_BASE + 71)
+#define NAN_DBGID_SPARE_81                          (NAN_DBGID_EVT_BASE + 81)
 /* args: */
-#define NAN_DBGID_SPARE_72                          (NAN_DBGID_EVT_BASE + 72)
+#define NAN_DBGID_SPARE_82                          (NAN_DBGID_EVT_BASE + 82)
 /* args: */
-#define NAN_DBGID_SPARE_73                          (NAN_DBGID_EVT_BASE + 73)
-/* args: */
-#define NAN_DBGID_SPARE_74                          (NAN_DBGID_EVT_BASE + 74)
-/* args: */
-#define NAN_DBGID_SPARE_75                          (NAN_DBGID_EVT_BASE + 75)
+#define NAN_DBGID_SPARE_83                          (NAN_DBGID_EVT_BASE + 83)
 /* PLEASE KEEP THIS ONE AT THE END */
-#define NAN_DBGID_EVT_LOG_LAST                      (NAN_DBGID_EVT_BASE + 76)
+#define NAN_DBGID_EVT_LOG_LAST                      (NAN_DBGID_EVT_BASE + 84)
 
 /* Debug IDs for message logs. */
 #define NAN_DBGID_API_MSG_BASE                      NAN_DBGID_EVT_LOG_LAST
