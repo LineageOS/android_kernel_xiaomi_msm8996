@@ -2089,7 +2089,8 @@ void sapSortChlWeightHT40_24G(tSapChSelSpectInfo *pSpectInfoParams)
                     else
                     {
                         pSpectInfo[j+4].weight = tmpWeight1;
-                        pSpectInfo[j].weight = ACS_WEIGHT_MAX;
+                        /* for secondary channel selection */
+                        pSpectInfo[j].weight = ACS_WEIGHT_MAX - 1;
                         pSpectInfo[j+8].weight = ACS_WEIGHT_MAX;
                     }
                 }
@@ -2099,7 +2100,8 @@ void sapSortChlWeightHT40_24G(tSapChSelSpectInfo *pSpectInfoParams)
                     {
                         pSpectInfo[j+4].weight = tmpWeight2;
                         pSpectInfo[j].weight = ACS_WEIGHT_MAX;
-                        pSpectInfo[j+8].weight = ACS_WEIGHT_MAX;
+                        /* for secondary channel selection */
+                        pSpectInfo[j+8].weight = ACS_WEIGHT_MAX - 1;
                     }
                     else
                     {
@@ -2614,6 +2616,40 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     bestChNum = sapSelectPreferredChannelFromChannelList(bestChNum,
                                                   pSapCtx, pSpectInfoParams);
 #endif
+
+    /* determine secondary channel for 2.4G channel 5, 6, 7 in HT40 */
+    if ((operatingBand == RF_SUBBAND_2_4_GHZ) && (chWidth == CHWIDTH_HT40) &&
+             (bestChNum >= 5) && (bestChNum <= 7)) {
+        int weight_below, weight_above, i;
+        tSmeConfigParams *pSmeConfig;
+        tSapSpectChInfo *pSpectInfo;
+
+        weight_below = weight_above  = ACS_WEIGHT_MAX;
+        pSpectInfo = pSpectInfoParams->pSpectCh;
+
+        for (i = 0; i < pSpectInfoParams->numSpectChans ; i++) {
+            if (pSpectInfo[i].chNum == (bestChNum - 4))
+                weight_below = pSpectInfo[i].weight;
+
+            if (pSpectInfo[i].chNum == (bestChNum + 4))
+                weight_above = pSpectInfo[i].weight;
+        }
+
+        pSmeConfig = vos_mem_malloc(sizeof(*pSmeConfig));
+        if (NULL != pSmeConfig) {
+            sme_GetConfigParam(halHandle, pSmeConfig);
+
+            if (weight_below < weight_above)
+                pSmeConfig->csrConfig.channelBondingMode24GHz =
+                       eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+            else
+                pSmeConfig->csrConfig.channelBondingMode24GHz =
+                       eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+
+            sme_UpdateConfig(halHandle, pSmeConfig);
+            vos_mem_free(pSmeConfig);
+        }
+    }
 
     // Free all the allocated memory
     sapChanSelExit(pSpectInfoParams);
