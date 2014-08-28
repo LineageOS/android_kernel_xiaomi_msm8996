@@ -54,8 +54,14 @@
 #include <net/cnss.h>
 #endif
 
-static struct hash_fw fw_hash;
 #include "qwlan_version.h"
+
+#ifdef FEATURE_SECURE_FIRMWARE
+#define MAX_FIRMWARE_SIZE (1*1024*1024)
+
+static u8 fw_mem[MAX_FIRMWARE_SIZE];
+static struct hash_fw fw_hash;
+#endif
 
 #ifdef HIF_PCI
 static u_int32_t refclk_speed_to_hz[] = {
@@ -359,6 +365,7 @@ exit:
 	return status;
 }
 
+#ifdef FEATURE_SECURE_FIRMWARE
 static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
 {
 	u8 *hash = NULL;
@@ -417,6 +424,7 @@ static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
 end:
 	return ret;
 }
+#endif
 
 static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 				u_int32_t address, bool compressed)
@@ -432,9 +440,6 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	int bin_off, bin_len;
 	SIGN_HEADER_T *sign_header;
 #endif
-	u8 *fw_ptr;
-	u32 fw_size;
-
 	int ret;
 
 	if (scn->enablesinglebinary && file != ATH_BOARD_DATA_FILE) {
@@ -590,24 +595,21 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	fw_entry_size = fw_entry->size;
 	tempEeprom = NULL;
 
-	fw_size = fw_entry->size;
-	fw_ptr = OS_MALLOC(scn->sc_osdev, fw_size, GFP_ATOMIC);
-
-	if (!fw_ptr) {
-		pr_err("Failed to allocate fw_ptr memory\n");
+#ifdef FEATURE_SECURE_FIRMWARE
+	if (fw_entry_size <= MAX_FIRMWARE_SIZE) {
+		OS_MEMCPY(fw_mem, fw_entry->data, fw_entry_size);
+	} else {
+		pr_err("%s: No enough memory to copy FW data!", __func__);
 		status = A_ERROR;
 		goto end;
 	}
-	OS_MEMCPY(fw_ptr, fw_entry->data, fw_size);
 
-	if (ol_check_fw_hash(fw_ptr, fw_size, file)) {
+	if (ol_check_fw_hash(fw_mem, fw_entry_size, file)) {
 		pr_err("Hash Check failed for file:%s\n", filename);
 		status = A_ERROR;
-		OS_FREE(fw_ptr);
 		goto end;
 	}
-
-	OS_FREE(fw_ptr);
+#endif
 
 	if (file == ATH_BOARD_DATA_FILE)
 	{
