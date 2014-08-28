@@ -254,8 +254,6 @@ int hdd_hostapd_open (struct net_device *dev)
        goto done;
    }
 
-   WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
-
    //Turn ON carrier state
    netif_carrier_on(dev);
    //Enable all Tx queues
@@ -4966,6 +4964,12 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     pAdapter->sessionCtx.ap.sapContext = sapContext;
+
+    /*
+     * DFS requirement: Do not transmit during CAC. This flag will be reset
+     * when BSS starts(if not in a DFS channel) or CAC ends.
+     */
+    pAdapter->sessionCtx.ap.dfs_cac_block_tx = VOS_TRUE;
 
     status = WLANSAP_Start(sapContext);
     if ( ! VOS_IS_STATUS_SUCCESS( status ) )
