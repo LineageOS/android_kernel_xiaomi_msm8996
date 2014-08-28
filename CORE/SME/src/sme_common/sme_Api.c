@@ -11485,23 +11485,22 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
           }
       }
 
-#ifdef QCA_HT_2040_COEX
-      /* if obss is enabled, the channel bonding mode is coming from hostapd,
-         so we don't need to hard code it here  */
-      if (!pMac->roam.configParam.obssEnabled)
-#endif
-          if (pMac->roam.configParam.channelBondingMode24GHz)
-          {
-              if (channel >= 1 && channel <= 5)
-                 smeConfig.csrConfig.channelBondingMode24GHz =
+      if (pMac->roam.configParam.apAutoChannelSelection &&
+                pMac->roam.configParam.channelBondingMode24GHz) {
+          if (channel >= 1 && channel < 5)
+             smeConfig.csrConfig.channelBondingMode24GHz =
                   eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-              else if (channel >= 6 && channel <= 13)
-                 smeConfig.csrConfig.channelBondingMode24GHz =
+          else if (channel > 7 && channel <= 13)
+             smeConfig.csrConfig.channelBondingMode24GHz =
                   eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-              else if (channel ==14)
+          else if (channel == 14)
                  smeConfig.csrConfig.channelBondingMode24GHz =
                   eCSR_INI_SINGLE_CHANNEL_CENTERED;
-          }
+
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+               "SelectCBMode: 11n mode, 2.4G cbmode = %d",
+                smeConfig.csrConfig.channelBondingMode24GHz);
+      }
    }
 
    /*

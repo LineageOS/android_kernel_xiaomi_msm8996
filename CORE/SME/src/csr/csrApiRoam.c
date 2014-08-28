@@ -1887,6 +1887,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->isRoamOffloadEnabled;
 #endif
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
+        pMac->roam.configParam.apAutoChannelSelection =
+                                               pParam->apAutoChannelSelection;
     }
 
     return status;
@@ -2037,6 +2039,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         csrSetChannels(pMac, pParam);
 
         pParam->obssEnabled = pMac->roam.configParam.obssEnabled;
+        pParam->apAutoChannelSelection =
+                              pMac->roam.configParam.apAutoChannelSelection;
 
         status = eHAL_STATUS_SUCCESS;
     }

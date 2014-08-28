@@ -676,6 +676,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN  isRoamOffloadEnabled;
 #endif
     tANI_BOOLEAN obssEnabled;
+    tANI_BOOLEAN apAutoChannelSelection;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
