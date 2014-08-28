@@ -59,7 +59,6 @@ extern "C" {
 #include <adf_os_lock.h>
 #include <adf_os_timer.h>
 #include <adf_os_atomic.h>
-#include "htc_debug.h"
 #include "hif_msg_based.h"
 #include <htc.h>
 #include "htc_api.h"
@@ -69,9 +68,12 @@ extern "C" {
 #define HTC_TARGET_RESPONSE_TIMEOUT         2000 /* in ms */
 #define HTC_TARGET_DEBUG_INTR_MASK          0x01
 #define HTC_TARGET_CREDIT_INTR_MASK         0xF0
-
-#define HTC_HOST_MAX_MSG_PER_BUNDLE        18
-#define HTC_MIN_HTC_MSGS_TO_BUNDLE         2
+#define HTC_MIN_MSG_PER_BUNDLE              2
+#if defined(HIF_USB)
+#define HTC_MAX_MSG_PER_BUNDLE              9
+#else
+#define HTC_MAX_MSG_PER_BUNDLE              16
+#endif
 
 #define HTC_PACKET_CONTAINER_ALLOCATION     32
 #define NUM_CONTROL_TX_BUFFERS              2
@@ -187,8 +189,10 @@ typedef struct _HTC_TARGET {
     HTC_PACKET                  *pBundleFreeList;
     A_UINT32                    CE_send_cnt;
     A_UINT32                    TX_comp_cnt;
+    A_UINT8                     MaxMsgsPerHTCBundle;
 } HTC_TARGET;
 
+#define HTC_ENABLE_BUNDLE(target) (target->MaxMsgsPerHTCBundle > 1)
 #ifdef RX_SG_SUPPORT
 #define RESET_RX_SG_CONFIG(_target) \
     _target->ExpRxSgTotalLen = 0; \
@@ -301,5 +305,17 @@ HTCSendCompleteCheck(HTC_ENDPOINT *pEndpoint, int force)
 }
 #endif
 
+#ifndef DEBUG_BUNDLE
+#define DEBUG_BUNDLE 0
+#endif
 
+#ifdef HIF_SDIO
+#ifndef ENABLE_BUNDLE_TX
+#define ENABLE_BUNDLE_TX 1
+#endif
+
+#ifndef ENABLE_BUNDLE_RX
+#define ENABLE_BUNDLE_RX 1
+#endif
+#endif /* HIF_SDIO */
 #endif	/* !_HTC_HOST_INTERNAL_H_ */

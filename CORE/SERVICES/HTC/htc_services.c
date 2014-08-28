@@ -25,7 +25,7 @@
  * to the Linux Foundation.
  */
 
-
+#include "htc_debug.h"
 #include "htc_internal.h"
 #include <adf_nbuf.h>  /* adf_nbuf_t */
 #if defined(HIF_PCI)
