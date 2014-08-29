@@ -578,7 +578,7 @@ eHalStatus ccmCfgSetInt(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 ccmValue, tCcm
 {
     if( callback || toBeSaved)
     {
-        //we need to sychronous this one
+        /* We need to synchronous this one */
         return cfgSet(hHal, cfgId, CCM_INTEGER_TYPE, sizeof(tANI_U32), NULL, ccmValue, callback, toBeSaved);
     }
     else
@@ -605,7 +605,7 @@ eHalStatus ccmCfgSetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pStr, tANI_U32
 {
     if( callback || toBeSaved )
     {
-        //we need to sychronous this one
+        /* We need to synchronous this one */
         return cfgSet(hHal, cfgId, CCM_STRING_TYPE, length, pStr, 0, callback, toBeSaved);
     }
     else

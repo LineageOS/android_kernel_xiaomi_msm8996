@@ -116,7 +116,7 @@ void oemData_ReleaseOemDataReqCommand(tpAniSirGlobal pMac, tSmeCmd *pOemDataCmd,
     {
         vos_mem_set(&(pOemDataCmd->u.oemDataCmd), sizeof(tOemDataCmd), 0);
 
-        //Now put this command back on the avilable command list
+        /* Now put this command back on the available command list */
         smeReleaseCommand(pMac, pOemDataCmd);
     }
     else
@@ -308,7 +308,7 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
          * OEM Data request, SME does not peek into data response so SME
          * can not know which response is the last one. So SME clears active
          * request command on receiving first response and thereafter SME
-         * passes each sunsequent response to upper user layer.
+         * passes each subsequent response to upper user layer.
          */
         pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
         if (pEntry)

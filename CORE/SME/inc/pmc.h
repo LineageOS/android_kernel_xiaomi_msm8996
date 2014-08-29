@@ -205,8 +205,11 @@ typedef struct sPmcInfo
     void *wakeReasonIndCBContext;  /* value to be passed as parameter to routine specified above */
 #endif // WLAN_WAKEUP_EVENTS
 
-/* If TRUE driver will go to BMPS only if host operatiing system asks to enter BMPS.
-* For android wlan_hdd_cfg80211_set_power_mgmt API will be used to set host powersave*/
+/*
+ * If TRUE driver will go to BMPS only if host operating system
+ * asks to enter BMPS. For android wlan_hdd_cfg80211_set_power_mgmt API will
+ * be used to set host power save
+ */
     v_BOOL_t    isHostPsEn;
     v_BOOL_t    ImpsReqFailed;
     v_BOOL_t    ImpsReqTimerFailed;
@@ -346,7 +349,7 @@ typedef struct sPsOffloadPerSessionInfo
     tDblLinkList uapsdCbList;
 
     /*
-     * Whether TDLS session allows powersave or not
+     * Whether TDLS session allows power save or not
      */
 #ifdef FEATURE_WLAN_TDLS
     v_BOOL_t isTdlsPowerSaveProhibited;
