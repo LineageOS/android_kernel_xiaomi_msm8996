@@ -242,6 +242,10 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     len  -= sizeof(tANI_U16);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
+
+    /* 4 reserved bytes for padding */
+    pBuf += sizeof(tANI_U32);
+    len  -= 4;
 #endif
     pBssDescription->fProbeRsp = *pBuf++;
     len  -= sizeof(tANI_U8);

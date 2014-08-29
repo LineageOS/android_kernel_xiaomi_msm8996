@@ -435,5 +435,8 @@ VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode);
 
 int hdd_setBand(struct net_device *dev, u8 ui_band);
 int hdd_setBand_helper(struct net_device *dev, const char *command);
+int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
+                                   int new_phymode,
+                                   hdd_context_t *phddctx);
 
 #endif // __WEXT_IW_H__
