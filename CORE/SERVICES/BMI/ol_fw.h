@@ -70,6 +70,16 @@
  */
 #define REGISTER_LOCATION       0x00000800
 
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+#define DRAM_LOCATION           0x00400000
+#define DRAM_SIZE               0x00097FFC
+
+#define IRAM_LOCATION           0x00980000
+#define IRAM_SIZE               0x000BFFFC
+
+#define AXI_LOCATION            0x000a0000
+#define AXI_SIZE                0x0001FFFC
+#else
 #define DRAM_LOCATION           0x00400000
 #define DRAM_SIZE               0x000a8000
 
@@ -78,6 +88,7 @@
 
 #define AXI_LOCATION            0x000a0000
 #define AXI_SIZE                0x00018000
+#endif
 
 #define CE_OFFSET               0x00000400
 #define CE_USEFUL_SIZE          0x00000058
