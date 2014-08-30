@@ -439,4 +439,6 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx);
 
+int process_wma_set_command_twoargs(int sessid, int paramid,
+                                    int sval, int ssecval, int vpdev);
 #endif // __WEXT_IW_H__

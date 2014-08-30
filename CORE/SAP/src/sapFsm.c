@@ -2542,6 +2542,21 @@ sapFsm
                  sapContext->csrRoamProfile.ChannelInfo.numOfChannels = 1;
                  sapContext->csrRoamProfile.ChannelInfo.ChannelList = &sapContext->csrRoamProfile.operationChannel;
                  sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
+                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                         "%s: notify hostapd about channel selection: %d",
+                         __func__, sapContext->channel);
+                 if (sapContext->apAutoChannelSelection &&
+                     (sapContext->csrRoamProfile.phyMode ==
+                                                   eSAP_DOT11_MODE_11n ||
+                      sapContext->csrRoamProfile.phyMode ==
+                                                   eSAP_DOT11_MODE_11n_ONLY)) {
+                     tSap_Event sapApAppEvent;
+                     sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
+                     sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
+                                                       sapContext->channel;
+                     (*sapContext->pfnSapEventCallback) (&sapApAppEvent,
+                                                       sapContext->pUsrContext);
+                 }
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
             }
             else

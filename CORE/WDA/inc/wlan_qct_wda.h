@@ -407,6 +407,7 @@ typedef struct
 typedef struct {
    v_UINT_t param_id;
    v_UINT_t param_value;
+   v_UINT_t param_sec_value;
    v_UINT_t param_vdev_id;
    v_UINT_t param_vp_dev;
 } wda_cli_set_cmd_t;

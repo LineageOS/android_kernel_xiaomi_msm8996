@@ -5449,6 +5449,43 @@ eCsrPhyMode csrRoamdot11modeToPhymode(tANI_U8 dot11mode)
     return phymode;
 }
 #endif
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    tpSirSmeRoamOffloadSynchCnf pRoamOffloadSynchCnf;
+    vos_msg_t msg;
+    pRoamOffloadSynchCnf =
+            vos_mem_malloc(sizeof(tSirSmeRoamOffloadSynchCnf));
+    if (NULL == pRoamOffloadSynchCnf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME,
+          VOS_TRACE_LEVEL_ERROR,
+          "%s: not able to allocate memory for roam"
+          "offload synch confirmation data", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+    pRoamOffloadSynchCnf->sessionId = sessionId;
+    msg.type     = WDA_ROAM_OFFLOAD_SYNCH_CNF;
+    msg.reserved = 0;
+    msg.bodyptr  = pRoamOffloadSynchCnf;
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                "LFR3: Posting WDA_ROAM_OFFLOAD_SYNCH_CNF");
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
+                                    VOS_MODULE_ID_WDA, &msg)))
+    {
+            VOS_TRACE(VOS_MODULE_ID_SME,
+                VOS_TRACE_LEVEL_DEBUG,
+                "%s: Not able to post"
+                  "WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
+                     __func__);
+            vos_mem_free(pRoamOffloadSynchCnf);
+         return eHAL_STATUS_FAILURE;
+    }
+    return eHAL_STATUS_SUCCESS;
+}
+#endif
+
 //Return true means the command can be release, else not
 static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                                        eCsrRoamCompleteResult Result, void *Context )
@@ -5639,6 +5676,17 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 
                     //Save sessionId in case of timeout
                     pMac->roam.WaitForKeyTimerInfo.sessionId = (tANI_U8)sessionId;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        if (pSession->roamOffloadSynchParams.bRoamSynchInProgress &&
+           (pSession->roamOffloadSynchParams.authStatus ==
+                                     CSR_ROAM_AUTH_STATUS_CONNECTED))
+        {
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+             FL("LFR3:Send Synch Cnf for Auth status connected"));
+             csrRoamOffloadSendSynchCnf( pMac, sessionId);
+
+         }
+#endif
                     //This time should be long enough for the rest of the process plus setting key
                     if(!HAL_STATUS_SUCCESS( csrRoamStartWaitForKeyTimer( pMac, key_timeout_interval ) ) )
                     {
