@@ -36,7 +36,8 @@
 #include "wma.h"
 #include "ol_defines.h"
 #include <wlan_nlink_srv.h>
-
+#include "vos_diag_core_event.h"
+#include "qwlan_version.h"
 #include <net/sock.h>
 #include <linux/netlink.h>
 
@@ -54,9 +55,12 @@
 
 #if defined(DEBUG)
 
-bool appstarted = FALSE;
-bool kd_nl_init = FALSE;
-int cnss_diag_pid = 0;
+static bool appstarted = FALSE;
+static bool senddriverstatus = FALSE;
+static bool kd_nl_init = FALSE;
+static int cnss_diag_pid = 0;
+static int get_version = 0;
+static int gprint_limiter = 0;
 
 static ATH_DEBUG_MASK_DESCRIPTION g_fwlogDebugDescription[] = {
     {FWLOG_DEBUG,"fwlog"},
@@ -1670,6 +1674,54 @@ send_fw_diag_nl_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
     return res;
 }
 
+static int
+send_diag_netlink_data(const u_int8_t *buffer,
+                           A_UINT32 len, A_UINT32 cmd)
+{
+    struct sk_buff *skb_out;
+    struct nlmsghdr *nlh;
+    int res = 0;
+    struct dbglog_slot *slot;
+    size_t slot_len;
+
+    if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
+        return -ENODEV;
+
+    /* NL is not ready yet, WLAN KO started first */
+    if ((kd_nl_init) && (!cnss_diag_pid)) {
+        nl_srv_nl_ready_indication();
+    }
+
+    if (cnss_diag_pid) {
+        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+
+        skb_out = nlmsg_new(slot_len, 0);
+        if (!skb_out) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("Failed to allocate new skb\n"));
+            return -1;
+        }
+
+        nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, slot_len, 0);
+        slot = (struct dbglog_slot *) nlmsg_data(nlh);
+        slot->diag_type = cmd;
+        slot->timestamp = cpu_to_le32(jiffies);
+        slot->length = cpu_to_le32(len);
+        /* Version mapped to get_version here */
+        slot->dropped = get_version;
+        memcpy(slot->payload, buffer, len);
+        NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+
+        res = nl_srv_ucast(skb_out, cnss_diag_pid, MSG_DONTWAIT);
+        if (res < 0) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+                            ("nl_srv_ucast failed 0x%x \n", res));
+            return res;
+        }
+    }
+    return res;
+}
+
 
 int
 dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
@@ -1720,6 +1772,90 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
     }
     return res;
 }
+
+/*
+ * WMI diag data event handler, this function invoked as a CB
+ * when there DIAG_EVENT, DIAG_MSG, DIAG_DBG to be
+ * forwarded from the FW. This is the new implementation for
+ * replacement of fw_dbg and dbg messages
+ */
+
+static int
+diag_fw_handler(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
+{
+
+    tp_wma_handle wma = (tp_wma_handle)scn;
+    wmitlv_cmd_param_info *param_buf;
+    u_int8_t *datap;
+    u_int32_t len = 0;
+    u_int32_t *buffer;
+
+    if (!wma) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NULL Pointer assigned\n"));
+        return -1;
+    }
+    /* when fw asser occurs,host can't use TLV format. */
+    if (wma->is_fw_assert) {
+        datap = data;
+        len = datalen;
+        wma->is_fw_assert = 0;
+    } else {
+        param_buf = (wmitlv_cmd_param_info *) data;
+        if (!param_buf) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("Get NULL point message from FW\n"));
+            return -1;
+        }
+
+        param_buf = (wmitlv_cmd_param_info *) data;
+        datap = param_buf->tlv_ptr;
+        len = param_buf->num_elements;
+        if (!get_version) {
+             buffer = (u_int32_t *)datap  ;
+             buffer++; /* skip offset */
+             if (WLAN_DIAG_TYPE_CONFIG == DIAG_GET_TYPE(*buffer)) {
+                 buffer++; /* skip  */
+                 if (DIAG_VERSION_INFO == DIAG_GET_ID(*buffer)) {
+                    buffer++; /* skip  */
+                    /* get payload */
+                    get_version = *buffer;
+                 }
+             }
+        }
+    }
+    if (dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
+        if (!gprint_limiter) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NOT Supported"
+                            " only supports net link socket\n"));
+            gprint_limiter = TRUE;
+        }
+        return 0;
+    }
+
+    if ( dbglog_process_type == DBGLOG_PROCESS_NET_RAW) {
+         return send_diag_netlink_data((A_UINT8 *)datap,
+                                          len, DIAG_TYPE_FW_MSG);
+    }
+
+#ifdef WLAN_OPEN_SOURCE
+    if (dbglog_process_type == DBGLOG_PROCESS_POOL_RAW) {
+        if (!gprint_limiter) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NOT Supported"
+                            " only supports net link socket\n"));
+            gprint_limiter = TRUE;
+        }
+        return 0;
+    }
+#endif /* WLAN_OPEN_SOURCE */
+    if (!gprint_limiter) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("NOT Supported"
+                        " only supports net link socket\n"));
+        gprint_limiter = TRUE;
+    }
+    /* Always returns zero */
+    return (0);
+}
+
 
 /*
  * WMI diag data event handler, this function invoked as a CB
@@ -3792,6 +3928,58 @@ int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
 }
 #endif /* WLAN_OPEN_SOURCE */
 
+static void
+cnss_diag_event_report(A_UINT16 event_Id, A_UINT16 length, void *pPayload)
+{
+    A_UINT8 *pBuf, *pBuf1;
+    event_report_t *pEvent_report;
+    A_UINT16 total_len;
+    total_len = sizeof(event_report_t) + length;
+    pBuf = vos_mem_malloc(total_len);
+    if (!pBuf){
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                        ("%s: vos_mem_malloc failed \n", __func__));
+        return;
+    }
+    pBuf1 = pBuf;
+    pEvent_report = (event_report_t*)pBuf;
+    pEvent_report->diag_type = DIAG_TYPE_EVENTS;
+    pEvent_report->event_id = event_Id;
+    pEvent_report->length = length;
+    pBuf += sizeof(event_report_t);
+    memcpy(pBuf, pPayload, length);
+    send_diag_netlink_data((A_UINT8 *) pBuf1, total_len, DIAG_TYPE_HOST_MSG);
+    vos_mem_free((v_VOID_t*)pBuf1);
+    return;
+
+}
+
+static void cnss_diag_send_driver_loaded(void)
+{
+    if (appstarted) {
+        vos_event_wlan_bringup_status_payload_type wlan_bringup_status;
+         /* Send Driver up command */
+        strlcpy(&wlan_bringup_status.driverVersion[0], QWLAN_VERSIONSTR,
+                    sizeof(wlan_bringup_status.driverVersion));
+        wlan_bringup_status.wlanStatus = DIAG_WLAN_DRIVER_LOADED;
+        cnss_diag_event_report(EVENT_WLAN_BRINGUP_STATUS,
+                      sizeof(wlan_bringup_status), &wlan_bringup_status);
+        senddriverstatus = FALSE;
+    }
+    else
+        senddriverstatus = TRUE;
+}
+
+static void cnss_diag_send_driver_unloaded(void)
+{
+    vos_event_wlan_bringup_status_payload_type wlan_bringup_status;
+     /* Send Driver down command */
+    memset(&wlan_bringup_status, 0,
+           sizeof(vos_event_wlan_bringup_status_payload_type));
+    wlan_bringup_status.wlanStatus = DIAG_WLAN_DRIVER_UNLOADED;
+    cnss_diag_event_report(EVENT_WLAN_BRINGUP_STATUS,
+        sizeof(wlan_bringup_status), &wlan_bringup_status);
+}
 /**---------------------------------------------------------------------------
   \brief cnss_diag_msg_callback() - Call back invoked by netlink service
 
@@ -3806,7 +3994,8 @@ int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
 int cnss_diag_msg_callback(struct sk_buff *skb)
 {
     struct nlmsghdr *nlh;
-    tAniMsgHdr *msg_hdr;
+    struct dbglog_slot *slot;
+    A_UINT8 *msg;
 
     nlh = (struct nlmsghdr *)skb->data;
     if (!nlh)
@@ -3815,12 +4004,27 @@ int cnss_diag_msg_callback(struct sk_buff *skb)
        return -1;
     }
 
-    msg_hdr = NLMSG_DATA(nlh);
+    msg = NLMSG_DATA(nlh);
 
-    appstarted = TRUE;
-    cnss_diag_pid = nlh->nlmsg_pid;
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+    /* This check added for backward compatability */
+    if (!memcmp(msg, "Hello", 5)) {
+         appstarted = TRUE;
+         cnss_diag_pid = nlh->nlmsg_pid;
+         AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
                    ("%s: registered pid %d \n", __func__, cnss_diag_pid));
+         if (senddriverstatus)
+             cnss_diag_send_driver_loaded();
+         return 0;
+    }
+    else
+       slot = (struct dbglog_slot *)msg;
+    switch (slot->diag_type) {
+    case DIAG_TYPE_CRASH_INJECT:
+         process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT, 0, GEN_CMD);
+    break;
+    default:
+    break;
+    }
     return 0;
 
 }
@@ -3839,6 +4043,7 @@ int cnss_diag_notify_wlan_close()
     /* Send nl msg about the wlan close */
     if (0 != cnss_diag_pid)
     {
+        cnss_diag_send_driver_unloaded();
         nl_srv_nl_close_indication(cnss_diag_pid);
         cnss_diag_pid = 0;
     }
@@ -3970,6 +4175,7 @@ int dbglog_parser_type_init(wmi_unified_t wmi_handle, int type)
     }
 
     dbglog_process_type = type;
+    gprint_limiter = FALSE;
 
     return A_OK;
 }
@@ -3999,16 +4205,23 @@ dbglog_init(wmi_unified_t wmi_handle)
     /* Register handler for F3 or debug messages */
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
                        dbglog_parse_debug_logs);
-    if(res != 0)
+    if (res != 0)
         return res;
 
     /* Register handler for FW diag events */
     res = wmi_unified_register_event_handler(wmi_handle,
                      WMI_DIAG_DATA_CONTAINER_EVENTID,
                      fw_diag_data_event_handler);
-    if(res != 0)
+    if (res != 0)
         return res;
 
+    /* Register handler for new FW diag  Event, LOG, MSG combined */
+    res = wmi_unified_register_event_handler(wmi_handle, WMI_DIAG_EVENTID,
+                                   diag_fw_handler);
+    if (res != 0)
+       return res;
+
+    cnss_diag_send_driver_loaded();
 #ifdef WLAN_OPEN_SOURCE
     /* Initialize the fw debug log queue */
     skb_queue_head_init(&wmi_handle->dbglog.fwlog_queue);

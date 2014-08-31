@@ -68,6 +68,18 @@ extern "C" {
 
 #define CNSS_DIAG_SLEEP_INTERVAL    5 /* In secs */
 
+#define SIZEOF_NL_MSG_LOAD     28 /* sizeof nlmsg and load length */
+#define SIZEOF_NL_MSG_UNLOAD   28 /* sizeof nlmsg and Unload length */
+#define SIZEOF_NL_MSG_DBG_MSG  1532
+#define ATH6KL_FWLOG_MAX_ENTRIES   20
+#define ATH6KL_FWLOG_PAYLOAD_SIZE  1500
+
+#define DIAG_WLAN_DRIVER_UNLOADED 6
+#define DIAG_WLAN_DRIVER_LOADED   7
+#define DIAG_TYPE_LOGS   1
+#define DIAG_TYPE_EVENTS 2
+
+
 typedef enum {
     DBGLOG_PROCESS_DEFAULT = 0,
     DBGLOG_PROCESS_PRINT_RAW, /* print them in debug view */
@@ -77,14 +89,27 @@ typedef enum {
 } dbglog_process_t;
 
 enum cnss_diag_type {
-    DIAG_TYPE_FW_EVENT,
-    DIAG_TYPE_FW_LOG,
-    DIAG_TYPE_FW_DEBUG_MSG
+    DIAG_TYPE_FW_EVENT,     /* send fw event- to diag*/
+    DIAG_TYPE_FW_LOG,       /* send log event- to diag*/
+    DIAG_TYPE_FW_DEBUG_MSG, /* send dbg message- to diag*/
+    DIAG_TYPE_INIT_REQ,     /* cnss_diag nitialization- from diag */
+    DIAG_TYPE_FW_MSG,       /* fw msg command-to diag */
+    DIAG_TYPE_HOST_MSG,     /* host command-to diag */
+    DIAG_TYPE_CRASH_INJECT, /*crash inject-from diag */
+    DIAG_TYPE_DBG_LEVEL,    /* DBG LEVEL-from diag */
 };
 
-#define SIZEOF_NL_MSG_LOAD     28 /* sizeof nlmsg and load length */
-#define SIZEOF_NL_MSG_UNLOAD   28 /* sizeof nlmsg and Unload length */
-#define SIZEOF_NL_MSG_DBG_MSG  1532
+enum wlan_diag_config_type {
+    DIAG_VERSION_INFO,
+};
+
+enum wlan_diag_frame_type {
+    WLAN_DIAG_TYPE_CONFIG,
+    WLAN_DIAG_TYPE_EVENT,
+    WLAN_DIAG_TYPE_LOG,
+    WLAN_DIAG_TYPE_MSG,
+    WLAN_DIAG_TYPE_LEGACY_MSG,
+};
 
 /* log/event are always 32-bit aligned. Padding is inserted after
  * optional payload to satisify this requirement */
@@ -105,10 +130,21 @@ struct dbglog_slot {
     u_int8_t payload[0];
 }__packed;
 
+typedef struct event_report_s {
+    unsigned int diag_type;
+    unsigned short event_id;
+    unsigned short length;
+} event_report_t;
 
-#define ATH6KL_FWLOG_MAX_ENTRIES                20
+typedef struct wlan_bringup_s {
+    unsigned short wlanStatus;
+    char driverVersion[10];
+} wlan_bringup_t;
 
-#define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
+static inline unsigned int get_32(const unsigned char *pos)
+{
+    return pos[0] | (pos[1] << 8) | (pos[2] << 16) | (pos[3] << 24);
+}
 
 /*
  * set the dbglog parser type

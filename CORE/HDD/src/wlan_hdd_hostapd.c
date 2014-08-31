@@ -2640,6 +2640,23 @@ static iw_softap_setparam(struct net_device *dev,
                         set_value, VDEV_CMD);
                 break;
             }
+#ifdef IPA_UC_OFFLOAD
+        case QCSAP_IPA_UC_STAT:
+            {
+                /* If input value is non-zero get stats */
+                if (set_value) {
+                    ret = process_wma_set_command(
+                         (int)pHostapdAdapter->sessionId,
+                         (int)WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID,
+                          0, VDEV_CMD);
+                }
+                else {
+                    /* place holder for stats clean up
+                     * Stats clean not implemented yet on firmware and ipa */
+                }
+                return ret;
+            }
+#endif /* IPA_UC_OFFLOAD */
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -4436,7 +4453,6 @@ int iw_get_softap_linkspeed(struct net_device *dev,
    return 0;
 }
 
-
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
@@ -4685,6 +4701,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "setRadar" },
+#ifdef IPA_UC_OFFLOAD
+    {   QCSAP_IPA_UC_STAT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "ipaucstat" },
+#endif /* IPA_UC_OFFLOAD */
 
     {   QCASAP_TX_CHAINMASK_CMD,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,

@@ -2433,7 +2433,6 @@ void WLANTL_IpaUcFwOpEventHandler(void *context,
 	void *rxpkt,
 	u_int16_t staid)
 {
-	v_U8_t op_code;
 	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
 
 	if (!tl_shim) {
@@ -2441,10 +2440,8 @@ void WLANTL_IpaUcFwOpEventHandler(void *context,
 		return;
 	}
 
-	vos_mem_copy(&op_code, rxpkt, 1);
-	TLSHIM_LOGD("%s, opcode %d", __func__, op_code);
 	if (tl_shim->fw_op_cb) {
-		tl_shim->fw_op_cb(op_code);
+		tl_shim->fw_op_cb(rxpkt, tl_shim->usr_ctxt);
 	}
 }
 
@@ -2468,11 +2465,10 @@ void WLANTL_IpaUcFwOpEventHandler(void *context,
   SIDE EFFECTS
 
 ==============================================================================*/
-void WLANTL_IpaUcOpEventHandler(v_U8_t op_code, void *shim_ctxt)
+void WLANTL_IpaUcOpEventHandler(v_U8_t *op_msg, void *shim_ctxt)
 {
 	pVosSchedContext sched_ctx = get_vos_sched_ctxt();
 	struct VosTlshimPkt *pkt;
-	v_U8_t *op_code_pkt;
 
 	if (unlikely(!sched_ctx))
 		return;
@@ -2483,11 +2479,9 @@ void WLANTL_IpaUcOpEventHandler(v_U8_t op_code, void *shim_ctxt)
 		return;
 	}
 
-	op_code_pkt = (v_U8_t *)vos_mem_malloc(4);
-	vos_mem_copy(op_code_pkt, &op_code, 1);
 	pkt->callback = (vos_tlshim_cb)	WLANTL_IpaUcFwOpEventHandler;
 	pkt->context = shim_ctxt;
-	pkt->Rxpkt = (void *) op_code_pkt;
+	pkt->Rxpkt = (void *)op_msg;
 	pkt->staId = 0;
 	vos_indicate_rxpkt(sched_ctx, pkt);
 }
@@ -2510,7 +2504,7 @@ void WLANTL_IpaUcOpEventHandler(v_U8_t op_code, void *shim_ctxt)
 
 ==============================================================================*/
 void WLANTL_RegisterOPCbFnc(void *vos_ctx,
-	void (*func)(v_U8_t op_code))
+	void (*func)(v_U8_t *op_msg, void *usr_ctxt), void *usr_ctxt)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 
@@ -2526,6 +2520,7 @@ void WLANTL_RegisterOPCbFnc(void *vos_ctx,
 	}
 
 	tl_shim->fw_op_cb = func;
+	tl_shim->usr_ctxt = usr_ctxt;
 	wdi_in_ipa_uc_register_op_cb(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
 		WLANTL_IpaUcOpEventHandler, (void *)tl_shim);
 }

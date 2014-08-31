@@ -742,6 +742,7 @@ typedef struct sSirBssDescription
 #ifdef FEATURE_WLAN_ESE
     tANI_U16             QBSSLoad_present;
     tANI_U16             QBSSLoad_avail;
+    tANI_U32             reservedPadding5; // To achieve 8-byte alignment with ESE enabled
 #endif
     // Please keep the structure 4 bytes aligned above the ieFields
 

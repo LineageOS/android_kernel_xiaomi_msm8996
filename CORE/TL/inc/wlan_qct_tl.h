@@ -3198,6 +3198,6 @@ void WLANTL_SetUcActive(void *vos_ctx,
 
 ==============================================================================*/
 void WLANTL_RegisterOPCbFnc(void *vos_ctx,
-	void (*func)(v_U8_t op_code));
+	void (*func)(v_U8_t *op_msg, void *usr_ctxt), void *usr_ctxt);
 #endif /* IPA_UC_OFFLOAD */
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

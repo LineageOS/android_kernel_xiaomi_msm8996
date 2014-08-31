@@ -345,6 +345,33 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         break;
     }
 
+#ifdef IPA_UC_OFFLOAD
+    case HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE:
+        {
+            u_int8_t op_code;
+            u_int16_t len;
+            u_int8_t *op_msg_buffer;
+            u_int8_t *msg_start_ptr;
+
+            msg_start_ptr = (u_int8_t *)msg_word;
+            op_code = HTT_WDI_IPA_OP_RESPONSE_OP_CODE_GET(*msg_word);
+            msg_word++;
+            len = HTT_WDI_IPA_OP_RESPONSE_RSP_LEN_GET(*msg_word);
+
+            op_msg_buffer = adf_os_mem_alloc(NULL,
+                sizeof(struct htt_wdi_ipa_op_response_t) + len);
+            if (!op_msg_buffer) {
+                adf_os_print("OPCODE messsage buffer alloc fail");
+                break;
+            }
+            adf_os_mem_copy(op_msg_buffer,
+                    msg_start_ptr,
+                    sizeof(struct htt_wdi_ipa_op_response_t) + len);
+            ol_txrx_ipa_uc_op_response(pdev->txrx_pdev, op_msg_buffer);
+            break;
+        }
+#endif /* IPA_UC_OFFLOAD */
+
     default:
         break;
     };
@@ -544,17 +571,6 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                                                peer_id, tid, offload_ind);
             break;
      }
-
-#ifdef IPA_UC_OFFLOAD
-    case HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE:
-        {
-            u_int8_t op_code;
-
-            op_code = HTT_WDI_IPA_OP_RESPONSE_OP_CODE_GET(*msg_word);
-            ol_txrx_ipa_uc_op_response(pdev->txrx_pdev, op_code);
-            break;
-        }
-#endif /* IPA_UC_OFFLOAD */
 
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);

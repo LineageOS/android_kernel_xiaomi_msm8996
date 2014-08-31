@@ -238,6 +238,8 @@ typedef enum {
     WMI_PDEV_DUMP_CMDID,
      /* set LED configuration  */
     WMI_PDEV_SET_LED_CONFIG_CMDID,
+    /* Get Current temprature of chip in Celcius degree*/
+    WMI_PDEV_GET_TEMPERATURE_CMDID,
 
     /* VDEV(virtual device) specific commands */
     /** vdev create */
@@ -702,6 +704,9 @@ typedef enum {
     /** track L1SS entry and residency event */
     WMI_PDEV_L1SS_TRACK_EVENTID,
 
+    /** Report current temprature of the chip in Celcius degree */
+    WMI_PDEV_TEMPERATURE_EVENTID,
+
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
     WMI_VDEV_START_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_VDEV),
@@ -869,6 +874,8 @@ typedef enum {
 
     /*update ht/vht info based on vdev (rx and tx NSS and preamble)*/
     WMI_UPDATE_VDEV_RATE_STATS_EVENTID,
+
+    WMI_DIAG_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
@@ -1813,6 +1820,14 @@ typedef struct {
     A_UINT32 vdev_id;
 } wmi_scan_event_fixed_param;
 
+/* WMI Diag event */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag is WMITLV_TAG_STRUC_wmi_diag_event_fixed_param */
+    A_UINT32 time_stamp; /* Reference timestamp. diag frame contains diff value */
+    A_UINT32 count;   /* Number of diag frames added to current event */
+    A_UINT32 dropped;
+    /* followed by WMITLV_TAG_ARRAY_BYTE */
+} wmi_diag_event_fixed_param;
 
 /*
 * If FW has multiple active channels due to MCC(multi channel concurrency),
@@ -8592,6 +8607,16 @@ typedef struct {
         A_UINT32 module_id_bitmap[MAX_MODULE_ID_BITMAP_WORDS];
      */
 } wmi_debug_log_config_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param  */
+    A_UINT32 param;     /* Reserved for future use */
+} wmi_pdev_get_temperature_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param */
+    A_INT32  value;     /* temprature value in Celcius degree */
+} wmi_pdev_temperature_event_fixed_param;
 
 #ifdef __cplusplus
 }

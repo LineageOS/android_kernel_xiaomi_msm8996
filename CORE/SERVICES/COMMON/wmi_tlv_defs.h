@@ -502,7 +502,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_lpi_handoff_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_vdev_rate_stats_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_vdev_rate_ht_info,
-    WMITLV_TAG_STRUC_wmi_ric_request_fixed_param
+    WMITLV_TAG_STRUC_wmi_ric_request_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -687,7 +689,9 @@ typedef enum {
     OP(WMI_EXTWOW_ENABLE_CMDID) \
     OP(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID) \
     OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID) \
-    OP(WMI_ROAM_SET_RIC_REQUEST_CMDID)
+    OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
+    OP(WMI_PDEV_GET_TEMPERATURE_CMDID)
+
 
 
 /*
@@ -776,6 +780,8 @@ typedef enum {
     OP(WMI_LPI_STATUS_EVENTID) \
     OP(WMI_LPI_HANDOFF_EVENTID) \
     OP(WMI_UPDATE_VDEV_RATE_STATS_EVENTID) \
+    OP(WMI_PDEV_TEMPERATURE_EVENTID) \
+    OP(WMI_DIAG_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1898,6 +1904,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_CHAN_AVOID_UPDATE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_d0_wow_enable_disable_cmd_fixed_param, wmi_d0_wow_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
 
+/* Pdev get chip temperature Cmd */
+#define WMITLV_TABLE_WMI_PDEV_GET_TEMPERATURE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param, wmi_pdev_get_temperature_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2114,6 +2125,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RFKILL_STATE_CHANGE_EVENTID);
 #define WMITLV_TABLE_WMI_DEBUG_MESG_EVENTID(id,op,buf,len)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_DEBUG_MESG_EVENTID);
+
+/* Diagnostics Event */
+#define WMITLV_TABLE_WMI_DIAG_EVENTID(id,op,buf,len)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DIAG_EVENTID);
 
 /* IGTK Offload Event */
 #define WMITLV_TABLE_WMI_GTK_OFFLOAD_STATUS_EVENTID(id,op,buf,len)\
@@ -2341,6 +2357,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PEER_STATE_EVENTID);
 #define WMITLV_TABLE_WMI_D0_WOW_DISABLE_ACK_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param, wmi_d0_wow_disable_ack_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_DISABLE_ACK_EVENTID);
+
+/* Pdev get chip temperature event */
+#define WMITLV_TABLE_WMI_PDEV_TEMPERATURE_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param, wmi_pdev_temperature_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_TEMPERATURE_EVENTID);
 
 #ifdef __cplusplus
 }
