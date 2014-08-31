@@ -337,6 +337,16 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     mlmAssocCnf.resultCode = eSIR_SME_SUCCESS;
     /* Update PE session Id*/
     mlmAssocCnf.sessionId = psessionEntry->peSessionId;
+    if (pHdr == NULL) {
+        limLog(pMac, LOGE,
+               FL("LFR3: Reassoc response packet header is NULL"));
+        return;
+    } else if ( pHdr->sa == NULL) {
+        limLog(pMac, LOGE,
+               FL("LFR3: Reassoc response packet source address is NULL"));
+        return;
+    }
+
     limLog(pMac, LOG1,
               FL("received Re/Assoc(%d) resp on sessionid: %d with systemrole: %d "
               "and mlmstate: %d RSSI %d from "MAC_ADDRESS_STR),subType,

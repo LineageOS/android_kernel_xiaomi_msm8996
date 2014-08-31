@@ -5134,46 +5134,40 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
                          if (eSIR_ROAM_AUTH_STATUS_AUTHENTICATED ==
                              pSession->roamOffloadSynchParams.authStatus)
                          {
-                             pRoamOffloadSynchCnf =
-                             vos_mem_malloc(sizeof(tSirSmeRoamOffloadSynchCnf));
-                             if (NULL == pRoamOffloadSynchCnf)
-                             {
-                                 VOS_TRACE(VOS_MODULE_ID_SME,
-                                 VOS_TRACE_LEVEL_ERROR,
-                                 "%s: not able to allocate memory for roam"
-                                 "offload synch confirmation data", __func__);
-                                 return eHAL_STATUS_FAILURE;
-                             }
                              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                "LFR3: Sending authorized event to supplicant");
                              csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
                                                 eCSR_ROAM_AUTHORIZED_EVENT, 0);
-                             pRoamOffloadSynchCnf->sessionId = sessionId;
-                             msg.type     = WDA_ROAM_OFFLOAD_SYNCH_CNF;
-                             msg.reserved = 0;
-                             msg.bodyptr  = pRoamOffloadSynchCnf;
-                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                                   "LFR3: Posting WDA_ROAM_OFFLOAD_SYNCH_CNF");
-                             if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
-                                                    VOS_MODULE_ID_WDA, &msg)))
-                             {
-                                 VOS_TRACE(VOS_MODULE_ID_SME,
-                                 VOS_TRACE_LEVEL_DEBUG,
-                                 "%s: Not able to post"
-                                 "WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
-                                 __func__);
-                                 vos_mem_free(pRoamOffloadSynchCnf);
-                                 return eHAL_STATUS_FAILURE;
-                             }
+                         }
+                         pRoamOffloadSynchCnf =
+                         vos_mem_malloc(sizeof(tSirSmeRoamOffloadSynchCnf));
+                         if (NULL == pRoamOffloadSynchCnf)
+                         {
+                             VOS_TRACE(VOS_MODULE_ID_SME,
+                             VOS_TRACE_LEVEL_ERROR,
+                             "%s: not able to allocate memory for roam"
+                             "offload synch confirmation data", __func__);
+                             return eHAL_STATUS_FAILURE;
+                         }
+                         pRoamOffloadSynchCnf->sessionId = sessionId;
+                         msg.type     = WDA_ROAM_OFFLOAD_SYNCH_CNF;
+                         msg.reserved = 0;
+                         msg.bodyptr  = pRoamOffloadSynchCnf;
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                               "LFR3: Posting WDA_ROAM_OFFLOAD_SYNCH_CNF");
+                         if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
+                                                VOS_MODULE_ID_WDA, &msg)))
+                         {
+                             VOS_TRACE(VOS_MODULE_ID_SME,
+                             VOS_TRACE_LEVEL_DEBUG,
+                             "%s: Not able to post"
+                             "WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
+                              __func__);
+                              vos_mem_free(pRoamOffloadSynchCnf);
+                              return eHAL_STATUS_FAILURE;
                          }
                          pSession->roamOffloadSynchParams.bRoamSynchInProgress =
                          VOS_FALSE;
-                         if (eSIR_ROAM_AUTH_STATUS_CONNECTED ==
-                             pSession->roamOffloadSynchParams.authStatus) {
-                             csrRoamOffloadScan(pMac, sessionId,
-                                                ROAM_SCAN_OFFLOAD_START,
-                                                REASON_CONNECT);
-                         }
                      } else
 #endif
                      csrRoamOffloadScan(pMac, sessionId,

@@ -3258,7 +3258,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                     pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
             }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-            pRoamInfo->roamSynchInProgress = VOS_FALSE;
+            if (pRoamInfo != NULL)
+                pRoamInfo->roamSynchInProgress = VOS_FALSE;
 #endif
             break;
 #ifdef WLAN_FEATURE_VOWIFI_11R

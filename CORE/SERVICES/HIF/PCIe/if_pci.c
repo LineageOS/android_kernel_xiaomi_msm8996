@@ -2205,3 +2205,18 @@ void hif_read_bar(struct hif_pci_softc *sc, u32 *bar_value)
 }
 #endif /* IPA_UC_OFFLOAD */
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+void wlan_hif_pci_suspend(void)
+{
+    void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    struct ol_softc *scn =  vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+    pm_message_t state;
+
+    if (!scn || !scn->hif_sc) {
+        printk(KERN_ERR "%s: error: scn or scn->hif_sc is NULL!\n", __func__);
+        return;
+    }
+    state.event = PM_EVENT_SUSPEND;
+    hif_pci_suspend(scn->hif_sc->pdev, state);
+}
+#endif

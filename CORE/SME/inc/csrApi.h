@@ -1737,6 +1737,11 @@ eHalStatus csrSetBand(tHalHandle hHal, tANI_U8 sessionId, eCsrBand eBand);
 eCsrBand csrGetCurrentBand (tHalHandle hHal);
 
 typedef void (*csrReadyToSuspendCallback)(void *pContext, boolean suspended);
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+typedef void (*csrReadyToExtWoWCallback)(void *pContext, boolean status);
+#endif
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 eHalStatus csrRoamIssueFTRoamOffloadSynch(tHalHandle hHal, tANI_U32 sessionId,
                                           tSirBssDescription *pBssDescription);

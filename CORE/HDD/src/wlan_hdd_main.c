@@ -244,6 +244,11 @@ struct android_wifi_af_params {
    unsigned char data[ANDROID_WIFI_ACTION_FRAME_SIZE];
 } ;
 
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+#define WLAN_HDD_MAX_TCP_PORT            65535
+#define WLAN_WAIT_TIME_READY_TO_EXTWOW   2000
+#endif
+
 static vos_wake_lock_t wlan_wake_lock;
 /* set when SSR is needed after unload */
 static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
@@ -3265,6 +3270,277 @@ eHalStatus hdd_parse_plm_cmd(tANI_U8 *pValue, tSirPlmReq *pPlmRequest)
      return eHAL_STATUS_SUCCESS;
 }
 #endif
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+static void wlan_hdd_ready_to_extwow(void *callbackContext,
+                                             boolean is_success)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *)callbackContext;
+    int rc;
+
+    rc = wlan_hdd_validate_context(pHddCtx);
+    if (0 != rc) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return;
+    }
+    pHddCtx->ext_wow_should_suspend = is_success;
+    complete(&pHddCtx->ready_to_extwow);
+}
+
+static int hdd_enable_ext_wow(hdd_adapter_t *pAdapter,
+                               tpSirExtWoWParams arg_params)
+{
+    tSirExtWoWParams params;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    hdd_context_t  *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    int rc;
+
+    vos_mem_copy(&params, arg_params, sizeof(params));
+
+    INIT_COMPLETION(pHddCtx->ready_to_extwow);
+
+    halStatus = sme_ConfigureExtWoW(hHal, &params,
+                &wlan_hdd_ready_to_extwow, pHddCtx);
+    if (eHAL_STATUS_SUCCESS != halStatus) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("sme_ConfigureExtWoW returned failure %d"), halStatus);
+        return -EPERM;
+    }
+
+    rc = wait_for_completion_timeout(&pHddCtx->ready_to_extwow,
+                             msecs_to_jiffies(WLAN_WAIT_TIME_READY_TO_EXTWOW));
+    if (!rc) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to get ready to extwow", __func__);
+        return -EPERM;
+    }
+
+    if (pHddCtx->ext_wow_should_suspend) {
+       if (pHddCtx->cfg_ini->extWowGotoSuspend) {
+          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "%s: Received ready to ExtWoW. Going to suspend", __func__);
+
+          wlan_hdd_cfg80211_suspend_wlan(pHddCtx->wiphy, NULL);
+          wlan_hif_pci_suspend();
+       }
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: Received ready to ExtWoW failure", __func__);
+        return -EPERM;
+    }
+
+    return 0;
+}
+
+static int hdd_enable_ext_wow_parser(hdd_adapter_t *pAdapter, int vdev_id,
+                                                                  int value)
+{
+   tSirExtWoWParams params;
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   int rc;
+
+   rc = wlan_hdd_validate_context(pHddCtx);
+   if (0 != rc) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return -EINVAL;
+   }
+
+   if (value < EXT_WOW_TYPE_APP_TYPE1 || value > EXT_WOW_TYPE_APP_TYPE1_2 ) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid type"));
+       return -EINVAL;
+   }
+
+   if (value == EXT_WOW_TYPE_APP_TYPE1 &&
+        pHddCtx->is_extwow_app_type1_param_set)
+        params.type = value;
+   else if (value == EXT_WOW_TYPE_APP_TYPE2 &&
+        pHddCtx->is_extwow_app_type2_param_set)
+        params.type = value;
+   else if (value == EXT_WOW_TYPE_APP_TYPE1_2 &&
+        pHddCtx->is_extwow_app_type1_param_set &&
+        pHddCtx->is_extwow_app_type2_param_set)
+        params.type = value;
+   else {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+           FL("Set app params before enable it value %d"),value);
+        return -EINVAL;
+   }
+
+   params.vdev_id = vdev_id;
+   params.wakeup_pin_num = pHddCtx->cfg_ini->extWowApp1WakeupPinNumber |
+                      (pHddCtx->cfg_ini->extWowApp2WakeupPinNumber << 8);
+
+   return hdd_enable_ext_wow(pAdapter, &params);
+}
+
+static int hdd_set_app_type1_params(tHalHandle hHal,
+                         tpSirAppType1Params arg_params)
+{
+    tSirAppType1Params params;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    vos_mem_copy(&params, arg_params, sizeof(params));
+
+    halStatus = sme_ConfigureAppType1Params(hHal, &params);
+    if (eHAL_STATUS_SUCCESS != halStatus) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+             FL("sme_ConfigureAppType1Params returned failure %d"), halStatus);
+        return -EPERM;
+    }
+
+    return 0;
+}
+
+static int hdd_set_app_type1_parser(hdd_adapter_t *pAdapter,
+                                             char *arg, int len)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    char id[20], password[20];
+    tSirAppType1Params params;
+    int rc, i;
+
+    rc = wlan_hdd_validate_context(pHddCtx);
+    if (0 != rc) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+       return -EINVAL;
+    }
+
+    if (2 != sscanf(arg, "%8s %16s", id, password)) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 FL("Invalid Number of arguments"));
+       return -EINVAL;
+    }
+
+    memset(&params, 0, sizeof(tSirAppType1Params));
+    params.vdev_id = pAdapter->sessionId;
+    for (i = 0; i < ETHER_ADDR_LEN; i++)
+        params.wakee_mac_addr[i] = pAdapter->macAddressCurrent.bytes[i];
+
+    params.id_length = strlen(id);
+    vos_mem_copy(params.identification_id, id, params.id_length);
+    params.pass_length = strlen(password);
+    vos_mem_copy(params.password, password, params.pass_length);
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+        "%s: %d %pM %.8s %u %.16s %u",
+        __func__, params.vdev_id, params.wakee_mac_addr,
+        params.identification_id, params.id_length,
+        params.password, params.pass_length );
+
+    return hdd_set_app_type1_params(hHal, &params);
+}
+
+static int hdd_set_app_type2_params(tHalHandle hHal,
+                          tpSirAppType2Params arg_params)
+{
+    tSirAppType2Params params;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    vos_mem_copy(&params, arg_params, sizeof(params));
+
+    halStatus = sme_ConfigureAppType2Params(hHal, &params);
+    if (eHAL_STATUS_SUCCESS != halStatus)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+             FL("sme_ConfigureAppType2Params returned failure %d"), halStatus);
+        return -EPERM;
+    }
+
+    return 0;
+}
+
+static int hdd_set_app_type2_parser(hdd_adapter_t *pAdapter,
+                            char *arg, int len)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    char mac_addr[20], rc4_key[20];
+    unsigned int gateway_mac[6], i;
+    tSirAppType2Params params;
+    int ret;
+
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+        return -EINVAL;
+    }
+
+    memset(&params, 0, sizeof(tSirAppType2Params));
+
+    ret = sscanf(arg, "%17s %16s %x %x %x %u %u %u %u %u %u %u %u %u %u",
+        mac_addr, rc4_key, (unsigned int *)&params.ip_id,
+        (unsigned int*)&params.ip_device_ip,
+        (unsigned int*)&params.ip_server_ip,
+        (unsigned int*)&params.tcp_seq, (unsigned int*)&params.tcp_ack_seq,
+        (unsigned int*)&params.tcp_src_port,
+        (unsigned int*)&params.tcp_dst_port,
+        (unsigned int*)&params.keepalive_init,
+        (unsigned int*)&params.keepalive_min,
+        (unsigned int*)&params.keepalive_max,
+        (unsigned int*)&params.keepalive_inc,
+        (unsigned int*)&params.tcp_tx_timeout_val,
+        (unsigned int*)&params.tcp_rx_timeout_val);
+
+
+    if (ret != 15 && ret != 7) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid Number of arguments");
+        return -EINVAL;
+    }
+
+    if (6 != sscanf(mac_addr, "%02x:%02x:%02x:%02x:%02x:%02x", &gateway_mac[0],
+             &gateway_mac[1], &gateway_mac[2], &gateway_mac[3],
+             &gateway_mac[4], &gateway_mac[5])) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "Invalid MacAddress Input %s", mac_addr);
+        return -EINVAL;
+    }
+
+    if (params.tcp_src_port > WLAN_HDD_MAX_TCP_PORT ||
+           params.tcp_dst_port > WLAN_HDD_MAX_TCP_PORT) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "Invalid TCP Port Number");
+        return -EINVAL;
+    }
+
+    for (i = 0; i < ETHER_ADDR_LEN; i++)
+        params.gateway_mac[i] = (uint8_t) gateway_mac[i];
+
+    params.rc4_key_len = strlen(rc4_key);
+    vos_mem_copy(params.rc4_key, rc4_key, params.rc4_key_len);
+
+    params.vdev_id = pAdapter->sessionId;
+    params.tcp_src_port = (params.tcp_src_port != 0)?
+        params.tcp_src_port : pHddCtx->cfg_ini->extWowApp2TcpSrcPort;
+    params.tcp_dst_port = (params.tcp_dst_port != 0)?
+        params.tcp_dst_port : pHddCtx->cfg_ini->extWowApp2TcpDstPort;
+    params.keepalive_init = (params.keepalive_init != 0)?
+        params.keepalive_init : pHddCtx->cfg_ini->extWowApp2KAInitPingInterval;
+    params.keepalive_min = (params.keepalive_min != 0)?
+        params.keepalive_min : pHddCtx->cfg_ini->extWowApp2KAMinPingInterval;
+    params.keepalive_max = (params.keepalive_max != 0)?
+        params.keepalive_max : pHddCtx->cfg_ini->extWowApp2KAMaxPingInterval;
+    params.keepalive_inc = (params.keepalive_inc != 0)?
+        params.keepalive_inc : pHddCtx->cfg_ini->extWowApp2KAIncPingInterval;
+    params.tcp_tx_timeout_val = (params.tcp_tx_timeout_val != 0)?
+        params.tcp_tx_timeout_val : pHddCtx->cfg_ini->extWowApp2TcpTxTimeout;
+    params.tcp_rx_timeout_val = (params.tcp_rx_timeout_val != 0)?
+        params.tcp_rx_timeout_val : pHddCtx->cfg_ini->extWowApp2TcpRxTimeout;
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+        "%s: %pM %.16s %u %u %u %u %u %u %u %u %u %u %u %u %u",
+        __func__, gateway_mac, rc4_key, params.ip_id, params.ip_device_ip,
+        params.ip_server_ip, params.tcp_seq, params.tcp_ack_seq,
+        params.tcp_src_port, params.tcp_dst_port, params.keepalive_init,
+        params.keepalive_min, params.keepalive_max,
+        params.keepalive_inc, params.tcp_tx_timeout_val,
+        params.tcp_rx_timeout_val);
+
+    return hdd_set_app_type2_params(hHal, &params);
+}
+
+#endif
 
 int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
 {
@@ -5643,6 +5919,39 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
        }
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+       else if (strncmp(command, "ENABLEEXTWOW", 12) == 0) {
+
+           tANI_U8 *value = command;
+           int set_value;
+
+           /* Move pointer to ahead of ENABLEEXTWOW*/
+           value += 12;
+           sscanf(value, "%d", &set_value);
+           ret = hdd_enable_ext_wow_parser(pAdapter,
+                               pAdapter->sessionId, set_value);
+
+       } else if (strncmp(command, "SETAPP1PARAMS", 13) == 0) {
+           tANI_U8 *value = command;
+
+           /* Move pointer to ahead of SETAPP1PARAMS*/
+           value += 13;
+           ret = hdd_set_app_type1_parser(pAdapter,
+                                         value, strlen(value));
+           if (ret >= 0)
+               pHddCtx->is_extwow_app_type1_param_set = TRUE;
+
+       } else if (strncmp(command, "SETAPP2PARAMS", 13) == 0) {
+           tANI_U8 *value = command;
+
+           /* Move pointer to ahead of SETAPP2PARAMS*/
+           value += 13;
+           ret = hdd_set_app_type2_parser(pAdapter,
+                                         value, strlen(value));
+           if (ret >= 0)
+               pHddCtx->is_extwow_app_type2_param_set = TRUE;
+       }
+#endif
        else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -7766,6 +8075,10 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       init_completion(&pHddCtx->ready_to_suspend);
       init_completion(&pAdapter->ula_complete);
       init_completion(&pAdapter->change_country_code);
+
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+      init_completion(&pHddCtx->ready_to_extwow);
+#endif
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
       init_completion(&pAdapter->hdd_set_batch_scan_req_var);

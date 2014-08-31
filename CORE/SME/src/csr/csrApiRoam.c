@@ -16364,6 +16364,19 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
 }
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus csrRoamSetKeyMgmtOffload(tpAniSirGlobal pMac,
+                                    tANI_U32 sessionId,
+                                    v_BOOL_t nRoamKeyMgmtOffloadEnabled)
+{
+    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+    if (!pSession) {
+        smsLog(pMac, LOGE, FL("session %d not found"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+    pSession->RoamKeyMgmtOffloadEnabled = nRoamKeyMgmtOffloadEnabled;
+    return eHAL_STATUS_SUCCESS;
+}
+
 void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
                                                    tCsrRoamSession *pSession)
 {
@@ -16717,6 +16730,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    pRequestBuf->allowDFSChannelRoam = pMac->roam.configParam.allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
    pRequestBuf->RoamOffloadEnabled = csrRoamIsRoamOffloadEnabled(pMac);
+   pRequestBuf->RoamKeyMgmtOffloadEnabled = pSession->RoamKeyMgmtOffloadEnabled;
    /* Roam Offload piggybacks upon the Roam Scan offload command.*/
    if (pRequestBuf->RoamOffloadEnabled){
        csrRoamOffload(pMac, pRequestBuf, pSession);
