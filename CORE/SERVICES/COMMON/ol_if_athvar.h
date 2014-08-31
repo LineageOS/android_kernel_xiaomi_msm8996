@@ -273,7 +273,7 @@ struct ol_softc {
 #elif defined(HIF_SDIO)
     struct ol_fw_files fw_files;
 #endif
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(HIF_SDIO)
     void __iomem *ramdump_base;
     unsigned long ramdump_address;
     unsigned long ramdump_size;

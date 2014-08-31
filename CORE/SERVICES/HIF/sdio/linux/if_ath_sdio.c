@@ -147,6 +147,13 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
     ol_sc->max_no_of_peers = 1;
 
     ol_sc->hif_hdl = hif_handle;
+
+    ol_sc->ramdump_base = ioremap(RAMDUMP_ADDR, RAMDUMP_SIZE);
+    ol_sc->ramdump_size = RAMDUMP_SIZE;
+    if (ol_sc->ramdump_base == NULL) {
+        ol_sc->ramdump_base = 0;
+        ol_sc->ramdump_size = 0;
+    }
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
     if (athdiag_procfs_init(sc) != 0) {
@@ -217,6 +224,8 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
     ENTER();
 
     athdiag_procfs_remove();
+
+    iounmap(sc->ol_sc->ramdump_base);
 
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE &&
