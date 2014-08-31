@@ -2733,6 +2733,14 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     {
         reasonCode = eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON;
     }
+    else if (eCSR_ROAM_SUBSTATE_DISASSOC_STA_HAS_LEFT == NewSubstate)
+    {
+        reasonCode = eSIR_MAC_DISASSOC_LEAVING_BSS_REASON;
+        NewSubstate = eCSR_ROAM_SUBSTATE_DISASSOC_FORCED;
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+            FL("set to reason code eSIR_MAC_DISASSOC_LEAVING_BSS_REASON"
+            " and set back NewSubstate"));
+    }
     else
     {
         reasonCode = eSIR_MAC_UNSPEC_FAILURE_REASON;
@@ -7263,6 +7271,14 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
         {
             NewSubstate = eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF;
         }
+        else if ((eCsrForcedDisassoc == pCommand->u.roamCmd.roamReason)
+            && (eSIR_MAC_DISASSOC_LEAVING_BSS_REASON ==
+            pCommand->u.roamCmd.reason))
+        {
+            NewSubstate = eCSR_ROAM_SUBSTATE_DISASSOC_STA_HAS_LEFT;
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                FL("set to substate eCSR_ROAM_SUBSTATE_DISASSOC_STA_HAS_LEFT"));
+        }
         if( fDisassoc )
         {
             status = csrRoamIssueDisassociate( pMac, sessionId, NewSubstate, fMICFailure );
@@ -7363,6 +7379,12 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
             break;
         case eCSR_DISCONNECT_REASON_IBSS_LEAVE:
             pCommand->u.roamCmd.roamReason = eCsrForcedIbssLeave;
+            break;
+        case eCSR_DISCONNECT_REASON_STA_HAS_LEFT:
+            pCommand->u.roamCmd.roamReason = eCsrForcedDisassoc;
+            pCommand->u.roamCmd.reason = eSIR_MAC_DISASSOC_LEAVING_BSS_REASON;
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                FL("SME convert to internal reason code eCsrStaHasLeft"));
             break;
         default:
             break;
