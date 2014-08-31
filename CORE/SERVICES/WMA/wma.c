@@ -24772,6 +24772,8 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
                 WMA_LOGI("%s: Preauth frame on channel %d", __func__, chanfreq);
         } else if(pFc->subType == SIR_MAC_MGMT_PROBE_RSP){
 		chanfreq = wma_handle->interfaces[vdev_id].mhz;
+                WMA_LOGI("%s: Probe response frame on channel %d", __func__, chanfreq);
+                WMA_LOGI("%s: Probe response frame on vdev id %d", __func__, vdev_id);
 	} else {
                 chanfreq = 0;
         }
