@@ -1766,6 +1766,36 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 }
 #endif
 
+#ifdef CONFIG_CNSS
+/* AXI Start Address */
+#define TARGET_ADDR (0xa0000)
+
+void ol_transfer_codeswap_struct(struct ol_softc *scn) {
+	struct hif_pci_softc *sc = scn->hif_sc;
+	struct codeswap_codeseg_info wlan_codeswap;
+	A_STATUS rv;
+
+	if (!sc || !sc->hif_device) {
+		pr_err("%s: hif_pci_softc is null\n", __func__);
+		return;
+	}
+
+	if (cnss_get_codeswap_struct(&wlan_codeswap)) {
+		pr_err("%s: failed to get codeswap structure\n", __func__);
+		return;
+	}
+
+	rv = BMIWriteMemory(scn->hif_hdl, TARGET_ADDR,
+		(u_int8_t *)&wlan_codeswap, sizeof(wlan_codeswap), scn);
+
+	if (rv != A_OK) {
+		pr_err("Failed to Write 0xa0000 for Target Memory Expansion\n");
+		return;
+	}
+	pr_info("%s:codeswap structure is successfully downloaded\n", __func__);
+}
+#endif
+
 int ol_download_firmware(struct ol_softc *scn)
 {
 	u_int32_t param, address = 0;
@@ -1837,6 +1867,10 @@ int ol_download_firmware(struct ol_softc *scn)
 		printk("%s: Using 0x%x for the remainder of init\n", __func__, address);
 
 		if ( scn->enablesinglebinary == FALSE ) {
+#ifdef CONFIG_CNSS
+			ol_transfer_codeswap_struct(scn);
+#endif
+
 			status = ol_transfer_bin_file(scn, ATH_OTP_FILE,
 						      address, TRUE);
 			if (status == EOK) {
