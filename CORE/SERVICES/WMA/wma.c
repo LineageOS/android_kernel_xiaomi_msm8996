@@ -10917,7 +10917,8 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	return ret;
 }
 
-static int wmi_crash_inject(wmi_unified_t wmi_handle, u_int32_t delay_time_ms)
+static int wmi_crash_inject(wmi_unified_t wmi_handle, u_int32_t type,
+				u_int32_t delay_time_ms)
 {
 	int ret = 0;
 	WMI_FORCE_FW_HANG_CMD_fixed_param *cmd;
@@ -10934,7 +10935,7 @@ static int wmi_crash_inject(wmi_unified_t wmi_handle, u_int32_t delay_time_ms)
 	WMITLV_SET_HDR(&cmd->tlv_header,
 		WMITLV_TAG_STRUC_WMI_FORCE_FW_HANG_CMD_fixed_param,
 		WMITLV_GET_STRUCT_TLVLEN(WMI_FORCE_FW_HANG_CMD_fixed_param));
-	cmd->type = 1;
+	cmd->type = type;
 	cmd->delay_time_ms = delay_time_ms;
 
 	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_FORCE_FW_HANG_CMDID);
@@ -11167,7 +11168,8 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			HTCDump(wma->htc_handle, WD_DUMP, false);
 			break;
 		case GEN_PARAM_CRASH_INJECT:
-			ret = wmi_crash_inject(wma->wmi_handle, privcmd->param_value);
+			ret = wmi_crash_inject(wma->wmi_handle,
+				privcmd->param_value, privcmd->param_sec_value);
 			break;
 #ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 		case GEN_PARAM_DUMP_PCIE_ACCESS_LOG:
@@ -23495,15 +23497,18 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
                 WMA_LOGE("Failed to destroy the scan completion timer");
         }
 
+	/* There's no need suspend target which is already down during SSR. */
+	if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
 #ifdef HIF_USB
-	/* Suspend the target and enable interrupt */
-	if (wma_suspend_target(wma_handle, 0))
-		WMA_LOGE("Failed to suspend target");
+		/* Suspend the target and enable interrupt */
+		if (wma_suspend_target(wma_handle, 0))
+			WMA_LOGE("Failed to suspend target");
 #else
-	/* Suspend the target and disable interrupt */
-	if (wma_suspend_target(wma_handle, 1))
-		WMA_LOGE("Failed to suspend target");
+		/* Suspend the target and disable interrupt */
+		if (wma_suspend_target(wma_handle, 1))
+			WMA_LOGE("Failed to suspend target");
 #endif
+	}
 
 	vos_status = wma_tx_detach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {

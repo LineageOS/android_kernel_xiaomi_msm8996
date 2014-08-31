@@ -287,7 +287,6 @@ HIFSend_head(HIF_DEVICE *hif_device,
     struct CE_sendlist sendlist;
     int status;
 
-
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
     A_ASSERT(nbytes <= adf_nbuf_len(nbuf));
 
@@ -306,11 +305,17 @@ HIFSend_head(HIF_DEVICE *hif_device,
 
         frag_paddr = adf_nbuf_get_frag_paddr_lo(nbuf, nfrags);
         frag_bytes = adf_nbuf_get_frag_len(nbuf, nfrags);
-        CE_sendlist_buf_add(
+        status = CE_sendlist_buf_add(
             &sendlist, frag_paddr,
             frag_bytes > bytes ? bytes : frag_bytes,
             adf_nbuf_get_frag_is_wordstream(nbuf, nfrags) ?
                 0 : CE_SEND_FLAG_SWAP_DISABLE);
+        if (status != A_OK) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+            ("%s: error, frag_num %d larger than the given limit\n",
+             __func__, nfrags));
+            return status;
+        }
         bytes -= frag_bytes;
         nfrags++;
     } while (bytes > 0);

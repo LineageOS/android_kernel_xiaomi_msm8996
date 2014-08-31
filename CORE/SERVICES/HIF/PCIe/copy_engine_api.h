@@ -169,7 +169,7 @@ unsigned int CE_sendlist_sizeof(void);
 void CE_sendlist_init(struct CE_sendlist *sendlist);
 
 /* Append a simple buffer (address/length) to a sendlist. */
-void CE_sendlist_buf_add(struct CE_sendlist *sendlist,
+int CE_sendlist_buf_add(struct CE_sendlist *sendlist,
                          CE_addr_t buffer,
                          unsigned int nbytes,
                          u_int32_t flags /* OR-ed with internal flags */);
