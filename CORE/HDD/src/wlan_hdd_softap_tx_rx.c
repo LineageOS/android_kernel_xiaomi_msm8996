@@ -327,7 +327,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
             if ( !VOS_IS_STATUS_SUCCESS(status) )
             {
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to initialize tx_flow_control_timer", __func__);
+                "%s: Failed to start tx_flow_control_timer", __func__);
             }
         }
     }
