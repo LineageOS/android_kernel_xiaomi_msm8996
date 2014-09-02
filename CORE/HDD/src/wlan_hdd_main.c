@@ -10655,6 +10655,19 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 #endif
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+   if (VOS_TIMER_STATE_RUNNING ==
+                vos_timer_getCurrentState(&pHddCtx->skip_acs_scan_timer)) {
+       vos_timer_stop(&pHddCtx->skip_acs_scan_timer);
+   }
+
+   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+                         &pHddCtx->skip_acs_scan_timer))) {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: Cannot deallocate ACS Skip timer", __func__);
+   }
+#endif
+
    if (pConfig && !pConfig->enablePowersaveOffload)
    {
       //Disable IMPS/BMPS as we do not want the device to enter any power
@@ -10898,6 +10911,15 @@ void __hdd_wlan_exit(void)
    hdd_wlan_exit(pHddCtx);
    EXIT();
 }
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+void hdd_skip_acs_scan_timer_handler(void * data)
+{
+    hdd_context_t *pHddCtx = (hdd_context_t *) data;
+    hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
+    pHddCtx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+}
+#endif
 
 #ifdef QCA_HT_2040_COEX
 /**--------------------------------------------------------------------------
@@ -12080,6 +12102,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        if (sme_set_auto_shutdown_cb(pHddCtx->hHal, wlan_hdd_auto_shutdown_cb)
            != eHAL_STATUS_SUCCESS)
            hddLog(LOGE, FL("Auto shutdown feature could not be enabled"));
+#endif
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+   status = vos_timer_init(&pHddCtx->skip_acs_scan_timer, VOS_TIMER_TYPE_SW,
+                  hdd_skip_acs_scan_timer_handler, (void *)pHddCtx);
+   if (!VOS_IS_STATUS_SUCCESS(status))
+        hddLog(LOGE, FL("Failed to init ACS Skip timer\n"));
 #endif
 
 #ifdef FEATURE_GREEN_AP

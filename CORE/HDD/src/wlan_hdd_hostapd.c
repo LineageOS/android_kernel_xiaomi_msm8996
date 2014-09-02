@@ -115,6 +115,7 @@ extern int process_wma_set_command(int sessid, int paramid,
 #define HT_RC_2_STREAMS_11AC(_rc)    ((((_rc) & 0x30) >> 4) + 1)
 
 #define SAP_24GHZ_CH_COUNT (14)
+#define ACS_SCAN_EXPIRY_TIMEOUT_S 4
 
 /*---------------------------------------------------------------------------
  *   Function definitions
@@ -1438,6 +1439,19 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pHddApCtx->operatingChannel);
             /* TODO Need to indicate operating channel change to hostapd */
             return VOS_STATUS_SUCCESS;
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        case eSAP_ACS_SCAN_SUCCESS_EVENT:
+            pHddCtx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+            hddLog(LOG1, FL("Reusing Last ACS scan result for %d sec"),
+                ACS_SCAN_EXPIRY_TIMEOUT_S);
+            vos_timer_stop( &pHddCtx->skip_acs_scan_timer);
+            vos_status = vos_timer_start( &pHddCtx->skip_acs_scan_timer,
+                                   ACS_SCAN_EXPIRY_TIMEOUT_S * 1000);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                hddLog(LOGE, FL("Failed to start ACS scan expiry timer"));
+            return VOS_STATUS_SUCCESS;
+#endif
 
         case eSAP_DFS_NOL_GET:
             hddLog(VOS_TRACE_LEVEL_INFO,

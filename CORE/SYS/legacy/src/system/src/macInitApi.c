@@ -236,7 +236,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     {
         pMac->psOffloadEnabled = FALSE;
     }
-
+    pMac->scan.nextScanID = 1;
     /* FW: 0 to 2047 and Host: 2048 to 4095 */
     pMac->mgmtSeqNum = WLAN_HOST_SEQ_NUM_MIN-1;
 

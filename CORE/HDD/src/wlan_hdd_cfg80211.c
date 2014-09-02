@@ -5374,11 +5374,108 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                         pHostapdAdapter->sap_dyn_ini_cfg.apStartChannelNum;
     pConfig->apEndChannelNum =
                         pHostapdAdapter->sap_dyn_ini_cfg.apEndChannelNum;
+    pConfig->apOperatingBand = pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand;
 #else
     pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
     pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
     pConfig->apStartChannelNum = iniConfig->apStartChannelNum;
     pConfig->apEndChannelNum = iniConfig->apEndChannelNum;
+    pConfig->apOperatingBand = iniConfig->apOperatingBand;
+#endif
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    if (vos_concurrent_sap_sessions_running() &&
+        pConfig->channel == AUTO_CHANNEL_SELECT) {
+        hdd_adapter_t *con_sap_adapter;
+        tsap_Config_t *con_sap_config = NULL;
+
+        con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
+
+        if (con_sap_adapter)
+            con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
+
+        pConfig->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+
+        hddLog(LOG1, FL("HDD_ACS_SKIP_STATUS = %d"),
+            pHddCtx->skip_acs_scan_status);
+
+        if (con_sap_config && con_sap_config->channel == AUTO_CHANNEL_SELECT &&
+            pHddCtx->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
+
+            hddLog(LOG1, FL("Operating Band: PriAP: %d SecAP: %d"),
+               con_sap_config->apOperatingBand, pConfig->apOperatingBand);
+
+            if (con_sap_config->apOperatingBand == 5 &&
+                                              pConfig->apOperatingBand > 0) {
+                pConfig->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+
+            } else if (con_sap_config->apOperatingBand
+                                               == pConfig->apOperatingBand) {
+                v_U8_t con_sap_st_ch, con_sap_end_ch;
+                v_U8_t cur_sap_st_ch, cur_sap_end_ch;
+                v_U8_t bandStartChannel, bandEndChannel;
+
+                con_sap_st_ch = con_sap_config->apStartChannelNum;
+                con_sap_end_ch = con_sap_config->apEndChannelNum;
+                cur_sap_st_ch = pConfig->apStartChannelNum;
+                cur_sap_end_ch = pConfig->apEndChannelNum;
+
+                WLANSAP_extend_to_acs_range(pConfig->apOperatingBand,
+                                &cur_sap_st_ch, &cur_sap_end_ch,
+                                &bandStartChannel, &bandEndChannel);
+
+                WLANSAP_extend_to_acs_range(con_sap_config->apOperatingBand,
+                                &con_sap_st_ch, &con_sap_end_ch,
+                                &bandStartChannel, &bandEndChannel);
+
+                if (con_sap_st_ch <= cur_sap_st_ch &&
+                    con_sap_end_ch >= cur_sap_end_ch) {
+
+                    pConfig->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+
+                } else if (con_sap_st_ch >= cur_sap_st_ch &&
+                    con_sap_end_ch >= cur_sap_end_ch) {
+
+                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    pConfig->skip_acs_scan_range1_stch = cur_sap_st_ch;
+                    pConfig->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
+                    pConfig->skip_acs_scan_range2_stch = 0;
+                    pConfig->skip_acs_scan_range2_endch = 0;
+
+                } else if (con_sap_st_ch <= cur_sap_st_ch &&
+                    con_sap_end_ch <= cur_sap_end_ch) {
+
+                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    pConfig->skip_acs_scan_range1_stch = con_sap_end_ch + 1;
+                    pConfig->skip_acs_scan_range1_endch = cur_sap_end_ch;
+                    pConfig->skip_acs_scan_range2_stch = 0;
+                    pConfig->skip_acs_scan_range2_endch = 0;
+
+                } else if (con_sap_st_ch >= cur_sap_st_ch &&
+                    con_sap_end_ch <= cur_sap_end_ch) {
+
+                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    pConfig->skip_acs_scan_range1_stch = cur_sap_st_ch;
+                    pConfig->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
+                    pConfig->skip_acs_scan_range2_stch = con_sap_end_ch;
+                    pConfig->skip_acs_scan_range2_endch = cur_sap_end_ch + 1;
+
+                } else
+                    pConfig->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+
+                hddLog(LOG1,
+                       FL("SecAP ACS Skip = %d, ACS CH RANGE = %d-%d, %d-%d"),
+                       pConfig->skip_acs_scan_status,
+                       pConfig->skip_acs_scan_range1_stch,
+                       pConfig->skip_acs_scan_range1_endch,
+                       pConfig->skip_acs_scan_range2_stch,
+                       pConfig->skip_acs_scan_range2_endch);
+            }
+        }
+    }
 #endif
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;

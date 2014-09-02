@@ -1557,80 +1557,118 @@ sapGotoChannelSel
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT)
     {
-        vos_mem_zero(&scanRequest, sizeof(scanRequest));
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "%s skip_acs_status = %d ", __func__,
+                    sapContext->skip_acs_scan_status);
+        if (sapContext->skip_acs_scan_status != eSAP_SKIP_ACS_SCAN) {
+#endif
+            vos_mem_zero(&scanRequest, sizeof(scanRequest));
 
-        /* Set scanType to Passive scan */
-        scanRequest.scanType = eSIR_PASSIVE_SCAN;
+            /* Set scanType to Passive scan */
+            scanRequest.scanType = eSIR_PASSIVE_SCAN;
 
-        /* Set min and max channel time to zero */
-        scanRequest.minChnTime = 0;
-        scanRequest.maxChnTime = 0;
+            /* Set min and max channel time to zero */
+            scanRequest.minChnTime = 0;
+            scanRequest.maxChnTime = 0;
 
-        /* Set BSSType to default type */
-        scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
+            /* Set BSSType to default type */
+            scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
 
 #ifndef SOFTAP_CHANNEL_RANGE
-        /*Scan all the channels */
-        scanRequest.ChannelInfo.numOfChannels = 0;
+            /*Scan all the channels */
+            scanRequest.ChannelInfo.numOfChannels = 0;
 
-        scanRequest.ChannelInfo.ChannelList = NULL;
+            scanRequest.ChannelInfo.ChannelList = NULL;
 
-        scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;//eCSR_SCAN_REQUEST_11D_SCAN;
+            scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
+            //eCSR_SCAN_REQUEST_11D_SCAN;
 
 #else
 
-        sapGetChannelList(sapContext, &channelList, &numOfChannels);
+            sapGetChannelList(sapContext, &channelList, &numOfChannels);
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+            if (numOfChannels != 0) {
+#endif
+                /*Scan the channels in the list*/
+                scanRequest.ChannelInfo.numOfChannels = numOfChannels;
 
-        /*Scan the channels in the list*/
-        scanRequest.ChannelInfo.numOfChannels = numOfChannels;
+                scanRequest.ChannelInfo.ChannelList = channelList;
 
-        scanRequest.ChannelInfo.ChannelList = channelList;
+                scanRequest.requestType = eCSR_SCAN_SOFTAP_CHANNEL_RANGE;
 
-        scanRequest.requestType = eCSR_SCAN_SOFTAP_CHANNEL_RANGE;
-
-        sapContext->channelList = channelList;
+                sapContext->channelList = channelList;
 
 #endif
-        /* Set requestType to Full scan */
+                /* Set requestType to Full scan */
 
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, calling sme_ScanRequest", __func__);
-
-        halStatus = sme_ScanRequest(hHal,
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, calling sme_ScanRequest", __func__);
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+                if (sapContext->skip_acs_scan_status == eSAP_DO_NEW_ACS_SCAN) {
+#endif
+                    sme_ScanFlushResult(hHal, sapContext->sessionId);
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+                }
+#endif
+                halStatus = sme_ScanRequest(hHal,
                             sapContext->sessionId,
                             &scanRequest,
-                            &scanRequestID,//, when ID == 0 11D scan/active scan with callback, min-maxChntime set in csrScanRequest()?
-                            &WLANSAP_ScanCallback,//csrScanCompleteCallback callback,
-                            sapContext);//void * pContext scanRequestID filled up
-        if (eHAL_STATUS_SUCCESS != halStatus)
-        {
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s:sme_ScanRequest  fail %d!!!", __func__, halStatus);
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "SoftAP Configuring for default channel, Ch= %d", sapContext->channel);
-            /* In case of error, switch to default channel */
-            sapContext->channel = SAP_DEFAULT_CHANNEL;
+                            /*, when ID == 0 11D scan/active scan with callback,
+                             * min-maxChntime set in csrScanRequest()?
+                             */
+                            &scanRequestID,
+                            /*csrScanCompleteCallback callback,*/
+                            &WLANSAP_ScanCallback,
+                            /* pContext scanRequestID filled up*/
+                            sapContext);
+                if (eHAL_STATUS_SUCCESS != halStatus)
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        "%s:sme_ScanRequest  fail %d!!!", __func__, halStatus);
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                        "SoftAP Configuring for default channel, Ch= %d",
+                        sapContext->channel);
+                    /* In case of error, switch to default channel */
+                    sapContext->channel = SAP_DEFAULT_CHANNEL;
 
 #ifdef SOFTAP_CHANNEL_RANGE
-            if(sapContext->channelList != NULL)
-            {
-                sapContext->channel = sapContext->channelList[0];
-                vos_mem_free(sapContext->channelList);
-                sapContext->channelList = NULL;
-            }
+                    if(sapContext->channelList != NULL)
+                    {
+                        sapContext->channel = sapContext->channelList[0];
+                        vos_mem_free(sapContext->channelList);
+                        sapContext->channelList = NULL;
+                    }
 #endif
-            /* Fill in the event structure */
-            sapEventInit(sapEvent);
-            /* Handle event */
-            vosStatus = sapFsm(sapContext, sapEvent);
-        }
-        else
-        {
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, return from sme_ScanRequest, scanRequestID=%d, Ch= %d",
-                   __func__, scanRequestID, sapContext->channel);
+                    /* Fill in the event structure */
+                    sapEventInit(sapEvent);
+                    /* Handle event */
+                    vosStatus = sapFsm(sapContext, sapEvent);
+                }
+                else
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                         "In %s, return from sme_ScanReq, scanID=%d, Ch= %d",
+                        __func__, scanRequestID, sapContext->channel);
+                }
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+            } else
+               sapContext->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
         }
 
+        if (sapContext->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "## %s SKIPPED ACS SCAN", __func__);
+            WLANSAP_ScanCallback(hHal, sapContext, sapContext->sessionId, 0,
+                eCSR_SCAN_SUCCESS);
+         }
+#endif
     }
     else
     {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, for configured channel, Ch= %d", __func__, sapContext->channel);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                  "In %s, for configured channel, Ch= %d",
+                  __func__, sapContext->channel);
         /* Fill in the event structure */
         // Eventhough scan was not done, means a user set channel was chosen
         sapEventInit(sapEvent);
@@ -1992,6 +2030,9 @@ sapSignalHDDevent
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                 "In %s, SAP event callback event = %s : %d", __func__,
                 "eSAP_DFS event", sapHddevent);
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        case eSAP_ACS_SCAN_SUCCESS_EVENT:
+#endif
             sapApAppEvent.sapHddEventCode = sapHddevent;
             sapApAppEvent.sapevt.sapStopBssCompleteEvent.status =
                                                         (eSapStatus )context;
@@ -3499,14 +3540,14 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                                  v_U8_t **channelList, v_U8_t *numberOfChannels)
 {
-    v_U32_t startChannelNum;
-    v_U32_t endChannelNum;
+    v_U32_t cfg_startChannelNum;
+    v_U32_t cfg_endChannelNum;
     v_U32_t operatingBand;
     v_U8_t  loopCount;
     v_U8_t *list;
     v_U8_t channelCount;
-    v_U8_t bandStartChannel;
-    v_U8_t bandEndChannel ;
+    v_U8_t startChannelNum, bandStartChannel;
+    v_U8_t endChannelNum, bandEndChannel ;
     v_U32_t enableLTECoex;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -3524,66 +3565,18 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
 
     if ( eCSR_BAND_ALL == sapContext->scanBandPreference)
     {
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
+        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &cfg_startChannelNum);
+        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &cfg_endChannelNum);
         ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                  "%s: startChannel %d,EndChannel %d,Operatingband:%d",
                  __func__,startChannelNum,endChannelNum,operatingBand);
 
-        switch(operatingBand)
-        {
-            case eSAP_RF_SUBBAND_2_4_GHZ:
-               bandStartChannel = RF_CHAN_1;
-               bandEndChannel = RF_CHAN_14;
-               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
-               endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
-               break;
-
-            case eSAP_RF_SUBBAND_5_LOW_GHZ:
-               bandStartChannel = RF_CHAN_36;
-               bandEndChannel = RF_CHAN_64;
-               startChannelNum = (startChannelNum - 12) > 36 ? (startChannelNum - 12):36;
-               endChannelNum = (endChannelNum + 12) <= 64? (endChannelNum + 12):64;
-               break;
-
-            case eSAP_RF_SUBBAND_5_MID_GHZ:
-               bandStartChannel = RF_CHAN_100;
-               startChannelNum = (startChannelNum - 12) > 100 ? (startChannelNum - 12):100;
-#ifndef FEATURE_WLAN_CH144
-               bandEndChannel = RF_CHAN_140;
-               endChannelNum = (endChannelNum + 12) <= 140? (endChannelNum + 12):140;
-#else
-               bandEndChannel = RF_CHAN_144;
-               endChannelNum = (endChannelNum + 12) <= 144? (endChannelNum + 12):144;
-#endif /* FEATURE_WLAN_CH144 */
-               break;
-
-            case eSAP_RF_SUBBAND_5_HIGH_GHZ:
-               bandStartChannel = RF_CHAN_149;
-               bandEndChannel = RF_CHAN_165;
-               startChannelNum = (startChannelNum - 12) > 149 ? (startChannelNum - 12):149;
-               endChannelNum = (endChannelNum + 12) <= 165? (endChannelNum + 12):165;
-               break;
-
-            case eSAP_RF_SUBBAND_5_ALL_GHZ:
-               bandStartChannel = RF_CHAN_36;
-               bandEndChannel = RF_CHAN_165;
-               startChannelNum = (startChannelNum - 12) > 36 ? (startChannelNum - 12):36;
-               endChannelNum = (endChannelNum + 12) <= 165? (endChannelNum + 12):165;
-               break;
-
-            default:
-               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 "sapGetChannelList:OperatingBand not valid ");
-               /* assume 2.4 GHz */
-               bandStartChannel = RF_CHAN_1;
-               bandEndChannel = RF_CHAN_14;
-               startChannelNum = startChannelNum > 5 ? (startChannelNum - 4): 1;
-               endChannelNum = (endChannelNum + 4) <= 14 ? (endChannelNum + 4):14;
-               break;
-        }
+        startChannelNum = cfg_startChannelNum;
+        endChannelNum = cfg_endChannelNum;
+        WLANSAP_extend_to_acs_range(operatingBand, &startChannelNum, &endChannelNum,
+                                &bandStartChannel, &bandEndChannel);
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                  "%s: expanded startChannel %d,EndChannel %d,Operatingband:%d",
@@ -3671,9 +3664,43 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                         if(VOS_TRUE == safeChannels[i].isSafe)
                         {
 #endif
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+                            v_U8_t ch;
+                            ch = rfChannels[loopCount].channelNum;
+                            if ((sapContext->skip_acs_scan_status
+                                == eSAP_DO_PAR_ACS_SCAN)) {
+                                if ((ch >= sapContext->skip_acs_scan_range1_stch &&
+                                ch <= sapContext->skip_acs_scan_range1_endch) ||
+                                (ch >= sapContext->skip_acs_scan_range2_stch &&
+                                ch <= sapContext->skip_acs_scan_range2_endch)) {
+
+                                    list[channelCount] =
+                                        rfChannels[loopCount].channelNum;
+                                    channelCount++;
+                                    VOS_TRACE( VOS_MODULE_ID_SAP,
+                                        VOS_TRACE_LEVEL_INFO,
+                                        "%s:%d %d added to ACS ch range",
+                                        __func__, channelCount, ch);
+                                } else
+                                    VOS_TRACE( VOS_MODULE_ID_SAP,
+                                        VOS_TRACE_LEVEL_INFO_HIGH,
+                                        "%s:%d %d skipped from ACS ch range",
+                                        __func__, channelCount, ch);
+
+                            } else {
+                                    list[channelCount] =
+                                        rfChannels[loopCount].channelNum;
+                                    channelCount++;
+                                    VOS_TRACE( VOS_MODULE_ID_SAP,
+                                        VOS_TRACE_LEVEL_INFO,
+                                        "%s:%d %d added to ACS ch range",
+                                        __func__, channelCount, ch);
+                            }
+#else
                             list[channelCount] =
-                                     rfChannels[loopCount].channelNum;
+                                    rfChannels[loopCount].channelNum;
                             channelCount++;
+#endif
 #ifdef FEATURE_WLAN_CH_AVOID
                         }
                         break;
