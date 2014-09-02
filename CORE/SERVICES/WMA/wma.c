@@ -8351,6 +8351,8 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle,
         u_int32_t vdev_id)
 {
     VOS_STATUS vos_status;
+    A_INT32 first_bcnt;
+    A_UINT32 final_bcnt;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                 wma_handle->vos_context);
     wmi_start_scan_cmd_fixed_param scan_params;
@@ -8362,9 +8364,19 @@ VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle,
     /* first program the parameters to conservative values so that roaming scan won't be
      * triggered before association completes
      */
+    /* for p2p FW expects 15, 45 */
+    if ( (wma_handle->interfaces[vdev_id].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE) ||
+       (wma_handle->interfaces[vdev_id].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) ) {
+            first_bcnt = WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT_P2P;
+            final_bcnt = WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT_P2P;
+    } else {
+       first_bcnt = WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT;
+       final_bcnt = WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT;
+    }
+
     vos_status = wma_roam_scan_bmiss_cnt(wma_handle,
-            WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT,
-            WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT,
+            first_bcnt,
+            final_bcnt,
             vdev_id);
 
     /* rssi_thresh = 10 is low enough */

@@ -206,6 +206,7 @@ typedef enum {
     eSAP_DFS_RADAR_DETECT,
     eSAP_DFS_NOL_GET,  /* Event sent when user need to get the DFS NOL from CNSS */
     eSAP_DFS_NOL_SET,  /* Event sent when user need to set the DFS NOL to CNSS */
+    eSAP_DFS_NO_AVAILABLE_CHANNEL, /* No ch available after DFS RADAR detect */
 } eSapHddEvent;
 
 typedef enum {
