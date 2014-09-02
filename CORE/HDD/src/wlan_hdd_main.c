@@ -11362,12 +11362,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
     hdd_adapter_t *pAdapter = NULL;
     uint64_t tx_packets= 0, rx_packets= 0;
-    unsigned long flags;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
     v_BOOL_t connected = FALSE;
-
-    spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
 
     for (status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
             NULL != pAdapterNode && VOS_STATUS_SUCCESS == status;
@@ -11397,12 +11394,12 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
                 pAdapter->prev_rx_packets);
 
+        spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+        spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
     }
-
-    spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 
     if (!connected) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

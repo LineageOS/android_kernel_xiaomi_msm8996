@@ -611,9 +611,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
-#ifdef MSM_PLATFORM
-    unsigned long flags;
-#endif
     v_MACADDR_t peerMacAddr;
 
 #if defined (WLAN_FEATURE_VOWIFI_11R)
@@ -714,11 +711,11 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */
-        spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+        spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+        spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_start_bus_bw_compute_timer(pAdapter);
-        spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
 #endif
     }
@@ -766,11 +763,11 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
 #ifdef MSM_PLATFORM
         /* stop timer in sta/p2p_cli */
-        spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+        spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = 0;
         pAdapter->prev_rx_packets = 0;
+        spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_stop_bus_bw_compute_timer(pAdapter);
-        spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
 #endif
     }
     hdd_dump_concurrency_info(pHddCtx);
