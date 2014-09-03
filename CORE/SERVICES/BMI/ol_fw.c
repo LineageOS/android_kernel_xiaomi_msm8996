@@ -1025,7 +1025,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 		pr_err("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId);
 		reg = (A_UINT32 *) (data + 4);
 		print_hex_dump(KERN_DEBUG, " ", DUMP_PREFIX_OFFSET, 16, 4, reg,
-				min_t(A_UINT32, len - 4, FW_REG_DUMP_CNT),
+				min_t(A_UINT32, len - 4, FW_REG_DUMP_CNT * 4),
 				false);
 		scn->fw_ram_dumping = 0;
 	}
@@ -1069,16 +1069,16 @@ void ol_ramdump_handler(struct ol_softc *scn)
 				pr_err("Fail to allocate memory for ram dump");
 				VOS_BUG(0);
 			}
-			fw_ram_seg_addr[i] = scn->ramdump[i];
+			(scn->ramdump[i])->mem =
+				(A_UINT8 *) (scn->ramdump[i] + 1);
+			fw_ram_seg_addr[i] = (scn->ramdump[i])->mem;
 			pr_err("FW %s start addr = %#08x\n",
 				fw_ram_seg_name[i], *reg);
 			pr_err("Memory addr for %s = %#08x\n",
 				fw_ram_seg_name[i],
-				(A_UINT32) scn->ramdump[i]);
+				(A_UINT32) (scn->ramdump[i])->mem);
 			(scn->ramdump[i])->start_addr = *reg;
 			(scn->ramdump[i])->length = 0;
-			(scn->ramdump[i])->mem =
-				(A_UINT8 *) (scn->ramdump[i] + 1);
 		}
 		reg++;
 		ram_ptr = (scn->ramdump[i])->mem + (scn->ramdump[i])->length;
