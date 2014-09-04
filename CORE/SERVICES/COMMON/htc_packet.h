@@ -106,9 +106,10 @@ typedef struct _HTC_PACKET {
     } PktInfo;
 
     /* the following fields are for internal HTC use */
-    HTC_PACKET_COMPLETION Completion;   /* completion */
-    void                  *pContext;    /* HTC private completion context */
-    void                  *pNetBufContext; /* optimization for network-oriented data, the HTC packet
+    A_UINT32               netbufOrigHeadRoom;
+    HTC_PACKET_COMPLETION  Completion;   /* completion */
+    void                   *pContext;    /* HTC private completion context */
+    void                   *pNetBufContext; /* optimization for network-oriented data, the HTC packet
                                               can pass the network buffer corresponding to the HTC packet
                                               lower layers may optimized the transfer knowing this is
                                               a network buffer */

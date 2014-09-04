@@ -434,7 +434,8 @@ A_STATUS    HTCSendPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
 A_STATUS     HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf,
                             int Epid, int ActualLength);
 #else  /*ATH_11AC_TXCOMPACT*/
-A_STATUS    HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
+A_STATUS   HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket,
+                          A_UINT8 more_data);
 #endif /*ATH_11AC_TXCOMPACT*/
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   @desc: Flush HTC when target is removed surprisely service communications

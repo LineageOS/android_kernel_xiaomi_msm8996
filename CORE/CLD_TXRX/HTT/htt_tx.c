@@ -417,7 +417,8 @@ htt_tx_send_base(
     htt_pdev_handle pdev,
     adf_nbuf_t msdu,
     u_int16_t msdu_id,
-    int download_len)
+    int download_len,
+    u_int8_t more_data)
 {
     struct htt_host_tx_desc_t *htt_host_tx_desc;
     struct htt_htc_pkt *pkt;
@@ -467,8 +468,7 @@ htt_tx_send_base(
     SET_HTC_PACKET_NET_BUF_CONTEXT(&pkt->htc_pkt, msdu);
 
     adf_nbuf_trace_update(msdu, "HT:T:");
-
-    HTCSendDataPkt(pdev->htc_pdev, &pkt->htc_pkt);
+    HTCSendDataPkt(pdev->htc_pdev, &pkt->htc_pkt, more_data);
 
     return 0; /* success */
 }
@@ -482,7 +482,6 @@ htt_tx_send_batch(
     u_int16_t *msdu_id_storage;
     u_int16_t msdu_id;
     adf_nbuf_t msdu;
-
     /*
      * FOR NOW, iterate through the batch, sending the frames singly.
      * Eventually HTC and HIF should be able to accept a batch of
@@ -494,8 +493,10 @@ htt_tx_send_batch(
          adf_nbuf_t next_msdu = adf_nbuf_next(msdu);
          msdu_id_storage = ol_tx_msdu_id_storage(msdu);
          msdu_id = *msdu_id_storage;
+
          /* htt_tx_send_base returns 0 as success and 1 as failure */
-         if (htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len)) {
+         if (htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len,
+                              num_msdus)) {
              adf_nbuf_set_next(msdu, rejected);
              rejected = msdu;
          }
@@ -525,7 +526,7 @@ htt_tx_send_nonstd(
         HTT_TX_HDR_SIZE_802_1Q +
         HTT_TX_HDR_SIZE_LLC_SNAP +
         ol_cfg_tx_download_size(pdev->ctrl_pdev);
-    return htt_tx_send_base(pdev, msdu, msdu_id, download_len);
+    return htt_tx_send_base(pdev, msdu, msdu_id, download_len, 0);
 }
 
 int
@@ -534,7 +535,7 @@ htt_tx_send_std(
     adf_nbuf_t msdu,
     u_int16_t msdu_id)
 {
-    return htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
+    return htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len, 0);
 }
 
 #endif /*ATH_11AC_TXCOMPACT*/

@@ -27,6 +27,7 @@
 
 
 #include "ol_if_athvar.h"
+#include "htc_debug.h"
 #include "htc_internal.h"
 #include <adf_nbuf.h>     /* adf_nbuf_t */
 #include <adf_os_types.h> /* adf_os_print */
@@ -535,9 +536,15 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
 
         target->TotalTransmitCredits = HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITCOUNT);
         target->TargetCreditSize = (int)HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITSIZE);
+        target->MaxMsgsPerHTCBundle = (A_UINT8)pReadyMsg->MaxMsgsPerHTCBundle;
+        /* for old fw this value is set to 0. But the minimum value should be 1,
+         * i.e., no bundling */
+        if (target->MaxMsgsPerHTCBundle < 1)
+            target->MaxMsgsPerHTCBundle = 1;
 
-        AR_DEBUG_PRINTF(ATH_DEBUG_INIT, ("Target Ready! : transmit resources : %d size:%d\n",
-                target->TotalTransmitCredits, target->TargetCreditSize));
+        AR_DEBUG_PRINTF(ATH_DEBUG_INIT,
+            ("Target Ready! : transmit resources : %d size:%d, MaxMsgsPerHTCBundle = %d\n",
+            target->TotalTransmitCredits, target->TargetCreditSize, target->MaxMsgsPerHTCBundle));
 
         if ((0 == target->TotalTransmitCredits) || (0 == target->TargetCreditSize)) {
             status = A_ECOMM;
@@ -635,6 +642,14 @@ A_STATUS HTCStart(HTC_HANDLE HTCHandle)
         } else {
             AR_DEBUG_PRINTF(ATH_DEBUG_INIT, ("HTC using TX credit flow control\n"));
         }
+
+#ifdef HIF_SDIO
+#if ENABLE_BUNDLE_RX
+        if (HTC_ENABLE_BUNDLE(target))
+            pSetupComp->SetupFlags |=
+                HTC_SETUP_COMPLETE_FLAGS_ENABLE_BUNDLE_RECV;
+#endif /* ENABLE_BUNDLE_RX */
+#endif /* HIF_SDIO */
 
         SET_HTC_PACKET_INFO_TX(pSendPacket,
                                NULL,
