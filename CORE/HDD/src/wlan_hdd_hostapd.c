@@ -3096,52 +3096,6 @@ static int iw_softap_set_trafficmonitor(struct net_device *dev,
         struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    int *isSetTrafficMon = (int *)wrqu->data.pointer;
-    hdd_context_t *pHddCtx;
-    int status;
-
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
-    status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
-        return status;
-    }
-
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s : ", __func__);
-
-    if (NULL == isSetTrafficMon)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from extra", __func__);
-        return -ENOMEM;
-    }
-
-    if (TRUE == *isSetTrafficMon)
-    {
-        pHddCtx->cfg_ini->enableTrafficMonitor= TRUE;
-        if (VOS_STATUS_SUCCESS != hdd_start_trafficMonitor(pAdapter))
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: failed to Start Traffic Monitor timer ", __func__ );
-            return -EIO;
-        }
-    }
-    else if (FALSE == *isSetTrafficMon)
-    {
-        pHddCtx->cfg_ini->enableTrafficMonitor= FALSE;
-        if (VOS_STATUS_SUCCESS != hdd_stop_trafficMonitor(pAdapter))
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: failed to Stop Traffic Monitor timer ", __func__ );
-            return -EIO;
-        }
-
-    }
     return 0;
 }
 
