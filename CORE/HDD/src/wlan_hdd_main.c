@@ -13573,6 +13573,7 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
     case WLAN_SVC_DFS_CAC_START_IND:
     case WLAN_SVC_DFS_CAC_END_IND:
     case WLAN_SVC_DFS_RADAR_DETECT_IND:
+    case WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND:
         ani_hdr->length = len;
         nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
         nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);

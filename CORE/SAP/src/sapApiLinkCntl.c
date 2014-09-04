@@ -432,6 +432,11 @@ WLANSAP_RoamCallback
            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                    FL("Received Radar Indication"));
 
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
+               "sapdfs:  Indicate eSAP_DFS_RADAR_DETECT to HDD");
+           sapSignalHDDevent(sapContext, NULL, eSAP_DFS_RADAR_DETECT,
+               (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
            /* sync to latest DFS-NOL */
            sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NOL_GET,
                    (v_PVOID_t) eSAP_STATUS_SUCCESS);
@@ -445,6 +450,14 @@ WLANSAP_RoamCallback
                pMac->sap.SapDfsInfo.target_channel =
                    pMac->sap.SapDfsInfo.user_provided_target_channel;
                pMac->sap.SapDfsInfo.user_provided_target_channel = 0;
+           }
+
+           if (pMac->sap.SapDfsInfo.target_channel == 0) {
+               /* No available channel found */
+               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   FL("No available channel found, StopBss!!!"));
+               WLANSAP_StopBss((v_PVOID_t)sapContext);
+               break;
            }
 
            pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;

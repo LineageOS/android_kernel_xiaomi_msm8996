@@ -932,7 +932,9 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
                 "%s[%d]: Target channel Index = %d target_channel = %d",
                 __func__,__LINE__, i, target_channel);
     } else {
-        target_channel = sapContext->channel;
+        sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NO_AVAILABLE_CHANNEL,
+              (v_PVOID_t) eSAP_STATUS_SUCCESS);
+        target_channel = 0;
     }
 
     return target_channel;
@@ -1780,6 +1782,7 @@ sapSignalHDDevent
         case eSAP_DFS_CAC_START:
         case eSAP_DFS_CAC_END:
         case eSAP_DFS_RADAR_DETECT:
+        case eSAP_DFS_NO_AVAILABLE_CHANNEL:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                 "In %s, SAP event callback event = %s : %d", __func__,
                 "eSAP_DFS event", sapHddevent);
@@ -2502,6 +2505,13 @@ sapFsm
 
                      /* find a new available channel */
                      ch = sapRandomChannelSel(sapContext);
+                     if (ch == 0) {
+                         /* No available channel found */
+                         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                             FL("No available channel found!!!"));
+                         return VOS_STATUS_E_FAULT;
+                     }
+
                      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                          FL("channel %d is in NOL, StartBss on new channel %d"),
                          sapContext->channel, ch);
@@ -2796,11 +2806,6 @@ sapFsm
                 /* Radar is seen on the current operating channel
                  * send CSA IE for all associated stations
                  */
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-                          "sapdfs:  Indicate eSAP_DFS_RADAR_DETECT to HDD");
-
-                sapSignalHDDevent(sapContext, NULL, eSAP_DFS_RADAR_DETECT,
-                                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
                 if (pMac != NULL)
                 {
                     /* Request for CSA IE transmission */

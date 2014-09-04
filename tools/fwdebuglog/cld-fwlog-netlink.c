@@ -47,12 +47,6 @@
 #endif
 #include <sys/socket.h>
 #include <linux/netlink.h>
-
-#include <athdefs.h>
-#include <a_types.h>
-#include "dbglog.h"
-#include "dbglog_host.h"
-
 #include "event.h"
 #include "msg.h"
 #include "log.h"
@@ -61,6 +55,7 @@
 #include "diagpkt.h"
 #include "diagcmd.h"
 #include "diag.h"
+#include "cld-diag-parser.h"
 
 #ifdef ANDROID
 #include "aniNlMsg.h"
@@ -71,7 +66,7 @@
  * CAP_NET_RAW   : Use RAW and packet socket
  * CAP_NET_ADMIN : NL broadcast receive
  */
-const unsigned int capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
+const uint32_t capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
 
 /* Groups needed
  * AID_INET      : Open INET socket
@@ -81,8 +76,6 @@ const unsigned int capabilities = (1 << CAP_NET_RAW) | (1 << CAP_NET_ADMIN);
  */
 const gid_t groups[] = {AID_INET, AID_NET_ADMIN, AID_QCOM_DIAG, AID_WIFI};
 #endif
-
-#define WLAN_NL_MSG_CNSS_DIAG  27 /* Msg type between user space/wlan driver */
 
 const char options[] =
 "Options:\n\
@@ -102,16 +95,16 @@ struct msghdr msg;
 static FILE *fwlog_res;
 static FILE *log_out;
 const char *fwlog_res_file;
-int max_records;
-int record;
+int32_t max_records;
+int32_t record = 0;
 const char *progname;
 char dbglogoutfile[PATH_MAX];
-int optionflag = 0;
-int isDriverLoaded = FALSE;
+int32_t optionflag = 0;
+boolean isDriverLoaded = FALSE;
 const char driverLoaded[] = "KNLREADY";
 const char driverUnLoaded[] = "KNLCLOSE";
 
-int rec_limit = 100000000; /* Million records is a good default */
+int32_t rec_limit = 100000000; /* Million records is a good default */
 
 static void
 usage(void)
@@ -121,31 +114,25 @@ usage(void)
     exit(-1);
 }
 
-extern int parser_init();
-
-
-extern int
-dbglog_parse_debug_logs(u_int8_t *datap, u_int16_t len, u_int16_t dropped);
-
-static unsigned int get_le32(const unsigned char *pos)
+static uint32_t get_le32(const uint8_t *pos)
 {
     return pos[0] | (pos[1] << 8) | (pos[2] << 16) | (pos[3] << 24);
 }
 
 static size_t reorder(FILE *log_in, FILE *log_out)
 {
-    unsigned char buf[RECLEN];
+    uint8_t buf[RECLEN];
     size_t res;
-    unsigned int timestamp = 0, min_timestamp = -1;
-    int pos = 0, min_pos = 0;
+    uint32_t timestamp = 0, min_timestamp = -1;
+    int32_t pos = 0, min_pos = 0;
     struct dbglog_slot *slot;
-    unsigned int length = 0;
+    uint32_t length = 0;
 
     pos = 0;
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
         slot = (struct dbglog_slot *)buf;
-        timestamp = get_le32((unsigned char *)&slot->timestamp);
-        length = get_le32((unsigned char *)&slot->length);
+        timestamp = get_le32((uint8_t *)&slot->timestamp);
+        length = get_le32((uint8_t *)&slot->length);
         if (timestamp < min_timestamp) {
                 min_timestamp = timestamp;
                 min_pos = pos;
@@ -157,8 +144,8 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     fseek(log_in, min_pos * RECLEN, SEEK_SET);
     while ((res = fread(buf, RECLEN, 1, log_in)) == 1) {
         slot = (struct dbglog_slot *)buf;
-        timestamp = get_le32((unsigned char *)&slot->timestamp);
-        length = get_le32((unsigned char *)&slot->length);
+        timestamp = get_le32((uint8_t *)&slot->timestamp);
+        length = get_le32((uint8_t *)&slot->length);
         printf("Read record timestamp=%u length=%u\n",
                timestamp, length);
         if (fwrite(buf, RECLEN, res, log_out) != res)
@@ -169,8 +156,8 @@ static size_t reorder(FILE *log_in, FILE *log_out)
     pos = min_pos;
     while (pos > 0 && (res = fread(buf, RECLEN, 1, log_out)) == 1) {
         slot = (struct dbglog_slot *)buf;
-        timestamp = get_le32((unsigned char *)&slot->timestamp);
-        length = get_le32((unsigned char *)&slot->length);
+        timestamp = get_le32((uint8_t *)&slot->timestamp);
+        length = get_le32((uint8_t *)&slot->length);
         pos--;
         printf("Read record timestamp=%u length=%u\n",
                 timestamp, length);
@@ -187,11 +174,11 @@ static size_t reorder(FILE *log_in, FILE *log_out)
  * the service will run only in system or diag mode
  *
  */
-int
+int32_t
 cnssdiagservice_cap_handle(void)
 {
-    int i;
-    int err;
+    int32_t i;
+    int32_t err;
 
     struct __user_cap_header_struct cap_header_data;
     cap_user_header_t cap_header = &cap_header_data;
@@ -257,7 +244,7 @@ static void cleanup(void) {
     fclose(log_out);
 }
 
-static void stop(int signum)
+static void stop(int32_t signum)
 {
 
     if(optionflag & LOGFILE_FLAG){
@@ -266,48 +253,90 @@ static void stop(int signum)
     }
     exit(0);
 }
+
+void process_cnss_log_file(uint8_t *dbgbuf)
+{
+    uint16_t length = 0;
+    uint32_t dropped = 0;
+    uint32_t timestamp = 0;
+    uint32_t res =0;
+    struct dbglog_slot *slot = (struct dbglog_slot *)dbgbuf;
+    fseek(log_out, record * RECLEN, SEEK_SET);
+    record++;
+    timestamp = get_le32((uint8_t *)&slot->timestamp);
+    length = get_le32((uint8_t *)&slot->length);
+    dropped = get_le32((uint8_t *)&slot->dropped);
+    if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
+        /* don't like this have to fix it */
+        printf("Read record %d timestamp=%u length=%u fw dropped=%u\n",
+              record, timestamp, length, dropped);
+    }
+    if ((res = fwrite(dbgbuf, RECLEN, 1, log_out)) != 1){
+        perror("fwrite");
+        return;
+    }
+    fflush(log_out);
+    if (record == max_records)
+        record = 0;
+}
 /*
  * Process FW debug, FW event and FW log messages
  * Read the payload and process accordingly.
  *
  */
-void process_cnss_diag_msg(unsigned char *eventbuf)
+void process_cnss_diag_msg(uint8_t *eventbuf)
 {
-    unsigned char *dbgbuf;
-    unsigned short diag_type = 0;
-    unsigned int event_id = 0;
-    unsigned short length = 0;
+    uint8_t *dbgbuf;
+    tAniNlHdr *wnl = (tAniNlHdr *)eventbuf;
+    uint16_t diag_type = 0;
+    uint32_t event_id = 0;
+    uint16_t length = 0;
     struct dbglog_slot *slot;
-    unsigned int dropped = 0;
+    uint32_t dropped = 0;
 
     dbgbuf = eventbuf;
 
-    diag_type = *(unsigned short *)eventbuf;
-    eventbuf += sizeof(unsigned short);
+    diag_type = *(uint16_t *)eventbuf;
+    eventbuf += sizeof(uint16_t);
 
-    length = *(unsigned short *)eventbuf;
-    eventbuf += sizeof(unsigned short);
+    length = *(uint16_t *)eventbuf;
+    eventbuf += sizeof(uint16_t);
 
     if (diag_type == DIAG_TYPE_FW_EVENT) {
-        eventbuf += sizeof(unsigned int);
-
-        event_id = *(unsigned int *)eventbuf;
-        eventbuf += sizeof(unsigned int);
-
-        if (length)
-            event_report_payload(event_id, length, eventbuf);
-        else
-            event_report(event_id);
+        eventbuf += sizeof(uint32_t);
+        event_id = *(uint32_t *)eventbuf;
+        eventbuf += sizeof(uint32_t);
+        if (optionflag & QXDM_FLAG) {
+            if (length)
+                event_report_payload(event_id, length, eventbuf);
+            else
+                event_report(event_id);
+        }
     } else if (diag_type == DIAG_TYPE_FW_LOG) {
        /* Do nothing for now */
     } else if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
         slot =(struct dbglog_slot *)dbgbuf;
-        length = get_le32((unsigned char *)&slot->length);
-        dropped = get_le32((unsigned char *)&slot->dropped);
-        dbglog_parse_debug_logs(slot->payload, length, dropped);
+        length = get_le32((uint8_t *)&slot->length);
+        dropped = get_le32((uint8_t *)&slot->dropped);
+        if (optionflag & LOGFILE_FLAG)
+            process_cnss_log_file(dbgbuf);
+        else if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
+            dbglog_parse_debug_logs(&slot->payload[0], length, dropped);
+    } else if (diag_type == DIAG_TYPE_FW_MSG) {
+        uint32_t version = 0;
+        slot = (struct dbglog_slot *)dbgbuf;
+        length = get_32((uint8_t *)&slot->length);
+        version = get_le32((uint8_t *)&slot->dropped);
+        process_diagfw_msg(&slot->payload[0], length, optionflag, log_out,
+                           &record, max_records, version, sock_fd);
+    } else if (diag_type == DIAG_TYPE_HOST_MSG) {
+        slot = (struct dbglog_slot *)dbgbuf;
+        length = get_32((uint8_t *)&slot->length);
+        process_diaghost_msg(slot->payload, length);
     } else {
        /* Do nothing for now */
     }
+
 }
 
 /*
@@ -315,10 +344,10 @@ void process_cnss_diag_msg(unsigned char *eventbuf)
  * address. Return the socket fd if sucess.
  *
  */
-static int create_nl_socket()
+static int32_t create_nl_socket()
 {
-    int ret;
-    int sock_fd;
+    int32_t ret;
+    int32_t sock_fd;
 
     sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USERSOCK);
     if (sock_fd < 0) {
@@ -340,7 +369,7 @@ static int create_nl_socket()
     return sock_fd;
 }
 
-static unsigned int initialize(int sock_fd)
+static uint32_t initialize(int32_t sock_fd)
 {
     char *mesg = "Hello";
 
@@ -349,6 +378,8 @@ static unsigned int initialize(int sock_fd)
     dest_addr.nl_pid = 0; /* For Linux Kernel */
     dest_addr.nl_groups = 0; /* unicast */
 
+    if (nlh)
+       free(nlh);
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(RECLEN));
     if (nlh == NULL) {
         fprintf(stderr, "Cannot allocate memory \n");
@@ -374,21 +405,17 @@ static unsigned int initialize(int sock_fd)
     return 0;
 }
 
-int main(int argc, char *argv[])
+int32_t main(int32_t argc, char *argv[])
 {
-    unsigned int res =0;
-    unsigned char *eventbuf = NULL;
-    unsigned char *dbgbuf = NULL;
-    int c;
+    uint32_t res =0;
+    uint8_t *eventbuf = NULL;
+    uint8_t *dbgbuf = NULL;
+    int32_t c;
     struct dbglog_slot *slot;
 
     progname = argv[0];
-    unsigned short diag_type = 0;
-    unsigned short length = 0;
-    unsigned int dropped = 0;
-    unsigned int timestamp = 0;
-
-    int option_index = 0;
+    uint16_t diag_type = 0;
+    int32_t option_index = 0;
     static struct option long_options[] = {
         {"logfile", 1, NULL, 'f'},
         {"reclimit", 1, NULL, 'r'},
@@ -441,7 +468,8 @@ int main(int argc, char *argv[])
              perror("Failed on Diag_LSM_Init\n");
              return -1;
         }
-
+         /* Register CALLABACK for QXDM input data */
+        DIAGPKT_DISPATCH_TABLE_REGISTER(DIAG_SUBSYS_WLAN, cnss_wlan_tbl);
 #ifdef ANDROID
         if(cnssdiagservice_cap_handle()) {
             printf("Cap bouncing failed EXIT!!!");
@@ -482,110 +510,53 @@ int main(int argc, char *argv[])
         }
 
         fwlog_res_file = "./reorder";
+    }
 
-        /* Read message from kernel */
-        while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            if (res > sizeof(struct dbglog_slot) &&
-                (res == SIZEOF_NL_MSG_DBG_MSG)) {
-                dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
-            } else {
-                continue;
-            }
-            slot = (struct dbglog_slot *)dbgbuf;
-            diag_type = *(unsigned short*)dbgbuf;
 
-            if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
-                fseek(log_out, record * RECLEN, SEEK_SET);
-                record++;
-                timestamp = get_le32((unsigned char *)&slot->timestamp);
-                length = get_le32((unsigned char *)&slot->length);
-                dropped = get_le32((unsigned char *)&slot->dropped);
-                if (!((optionflag & SILENT_FLAG) == SILENT_FLAG)) {
-                    /* don't like this have to fix it */
-                    printf("Read record %d timestamp=%u length=%u fw dropped=%u\n",
-                           record, timestamp, length, dropped);
-                }
-                if ((res = fwrite(dbgbuf, RECLEN, 1, log_out)) != 1){
-                    perror("fwrite");
-                    break;
-                }
-                fflush(log_out);
-                if (record == max_records)
-                    record = 0;
-            }
-        }
-        printf("Incomplete read: %d bytes\n", (int) res);
+    parser_init();
+
+    while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
+       if ((isDriverLoaded == FALSE) &&
+            (res == SIZEOF_NL_MSG_LOAD)) {
+           eventbuf = (uint8_t *)NLMSG_DATA(nlh);
+           if (0 == strncmp(driverLoaded, (const char *)eventbuf,
+                            strlen(driverLoaded))) {
+               isDriverLoaded = TRUE;
+               close(sock_fd);
+               /* Wait for driver to Load */
+               sleep(5);
+               sock_fd = create_nl_socket();
+               if (sock_fd < 0) {
+                   printf("create nl sock failed ret %d \n", sock_fd);
+                   return -1;
+              }
+              initialize(sock_fd);
+              diag_initialize(isDriverLoaded, sock_fd, optionflag);
+           }
+       } else if ((isDriverLoaded == TRUE) &&
+                   (res == SIZEOF_NL_MSG_UNLOAD)) {
+           eventbuf = (uint8_t *)NLMSG_DATA(nlh);
+           if (0 == strncmp(driverUnLoaded, (const char *)eventbuf,
+                            strlen(driverUnLoaded))) {
+               isDriverLoaded = FALSE;
+               diag_initialize(isDriverLoaded, sock_fd, optionflag);
+           }
+       } else if((res >= sizeof(struct dbglog_slot)) &&
+                 ((res != SIZEOF_NL_MSG_LOAD) &&
+                 (res != SIZEOF_NL_MSG_UNLOAD))) {
+           isDriverLoaded = TRUE;
+           eventbuf = (uint8_t *)NLMSG_DATA(nlh);
+           process_cnss_diag_msg(eventbuf);
+       } else {
+           /* Ignore other messages that might be broadcast */
+           continue;
+       }
+    }
+    /* Release the handle to Diag*/
+    Diag_LSM_DeInit();
+    if (optionflag & LOGFILE_FLAG)
         cleanup();
-    }
-
-    if (optionflag & CONSOLE_FLAG) {
-
-        parser_init();
-
-        while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            if ((res > sizeof(struct dbglog_slot)) &&
-                (res == SIZEOF_NL_MSG_DBG_MSG)) {
-                dbgbuf = (unsigned char *)NLMSG_DATA(nlh);
-            } else {
-                continue;
-            }
-            slot = (struct dbglog_slot *)dbgbuf;
-            diag_type = *(unsigned short*)dbgbuf;
-            if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
-                length = get_le32((unsigned char *)&slot->length);
-                dropped = get_le32((unsigned char *)&slot->dropped);
-                dbglog_parse_debug_logs(slot->payload, length, dropped);
-            }
-        }
-        close(sock_fd);
-        free(nlh);
-    }
-
-    if (optionflag & QXDM_FLAG) {
-
-        parser_init();
-
-        while ((res = recvmsg(sock_fd, &msg, 0)) > 0)  {
-            eventbuf = (unsigned char *)NLMSG_DATA(nlh);
-
-            if ((isDriverLoaded == FALSE) &&
-                 (res == SIZEOF_NL_MSG_LOAD)) {
-                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
-                if (0 == strncmp(driverLoaded, (const char *)eventbuf,
-                                 strlen(driverLoaded))) {
-                    isDriverLoaded = TRUE;
-                    close(sock_fd);
-                    /* Wait for driver to Load */
-                    sleep(5);
-                    sock_fd = create_nl_socket();
-                    if (sock_fd < 0) {
-                        printf("create nl sock failed ret %d \n", sock_fd);
-                        return -1;
-                   }
-                   initialize(sock_fd);
-                }
-            } else if ((isDriverLoaded == TRUE) &&
-                        (res == SIZEOF_NL_MSG_UNLOAD)) {
-                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
-                if (0 == strncmp(driverUnLoaded, (const char *)eventbuf,
-                                 strlen(driverUnLoaded))) {
-                    isDriverLoaded = FALSE;
-                }
-            } else if((res >= sizeof(struct dbglog_slot)) &&
-                      ((res != SIZEOF_NL_MSG_LOAD) &&
-                      (res != SIZEOF_NL_MSG_UNLOAD))) {
-                isDriverLoaded = TRUE;
-                eventbuf = (unsigned char *)NLMSG_DATA(nlh);
-                process_cnss_diag_msg(eventbuf);
-            } else {
-                /* Ignore other messages that might be broadcast */
-                continue;
-            }
-        }
-        /* Release the handle to Diag*/
-        Diag_LSM_DeInit();
-        close(sock_fd);
-        free(nlh);
-    }
+    close(sock_fd);
+    free(nlh);
     return 0;
 }
