@@ -15945,7 +15945,7 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 		       WMITLV_GET_STRUCT_TLVLEN(
 			       wmi_nlo_config_cmd_fixed_param));
 	cmd->vdev_id = pno->sessionId;
-	cmd->flags = WMI_NLO_CONFIG_START;
+	cmd->flags = WMI_NLO_CONFIG_START | WMI_NLO_CONFIG_SSID_HIDE_EN;
 
 	/* Copy scan interval */
 	if (pno->scanTimers.ucScanTimersCount) {
@@ -15988,6 +15988,11 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 			WMA_LOGD("RSSI threshold : %d dBm",
 				nlo_list[i].rssi_cond.rssi);
 		}
+		nlo_list[i].bcast_nw_type.valid = TRUE;
+		nlo_list[i].bcast_nw_type.bcast_nw_type =
+					 pno->aNetworks[i].bcastNetwType;
+		WMA_LOGI("Broadcast NW type (%u)",
+				nlo_list[i].bcast_nw_type.bcast_nw_type);
 	}
 	buf_ptr += cmd->no_of_ssids * sizeof(nlo_configured_parameters);
 
