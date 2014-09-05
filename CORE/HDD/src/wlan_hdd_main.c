@@ -11444,6 +11444,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef FEATURE_WLAN_CH_AVOID
    int unsafeChannelIndex;
 #endif
+   tANI_U8 rtnl_lock_enable;
+   tANI_U8 reg_netdev_notifier_done = FALSE;
 
    ENTER();
 
@@ -11842,8 +11844,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       return VOS_STATUS_SUCCESS;
    }
 
+#if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
+   rtnl_lock();
+   rtnl_lock_enable = TRUE;
+#else
+   rtnl_lock_enable = FALSE;
+#endif
+
    pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
-       wlan_hdd_get_intf_addr(pHddCtx), FALSE );
+       wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable );
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
    /* Open P2P device interface */
@@ -11878,7 +11887,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
 
       pP2pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
-                        &pHddCtx->p2pDeviceAddress.bytes[0], FALSE );
+                        &pHddCtx->p2pDeviceAddress.bytes[0], rtnl_lock_enable );
+
       if ( NULL == pP2pAdapter )
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -12015,7 +12025,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                      __func__);
       goto err_unregister_pmops;
    }
-
+#if !defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    // register net device notifier for device change notification
    ret = register_netdevice_notifier(&hdd_netdev_notifier);
 
@@ -12024,6 +12034,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",__func__);
       goto err_free_power_on_lock;
    }
+   reg_netdev_notifier_done = TRUE;
+#endif
 
    //Initialize the nlink service
    if(nl_srv_init() != 0)
@@ -12094,6 +12106,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->sap_lock);
 
    pHddCtx->isLoadInProgress = FALSE;
+#if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
+   if (rtnl_lock_enable == TRUE) {
+      rtnl_lock_enable = FALSE;
+      rtnl_unlock();
+   }
+   /* register net device notifier for device change notification */
+   ret = register_netdevice_notifier(&hdd_netdev_notifier);
+   if (ret < 0) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",
+            __func__);
+      goto err_nl_srv;
+   }
+   reg_netdev_notifier_done = TRUE;
+#endif
 
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    /* Initialize the wake lcok */
@@ -12233,10 +12259,20 @@ err_nl_srv:
 #else
    nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */
-err_reg_netdev:
-   unregister_netdevice_notifier(&hdd_netdev_notifier);
 
+err_reg_netdev:
+   if (rtnl_lock_enable == TRUE) {
+      rtnl_lock_enable = FALSE;
+      rtnl_unlock();
+   }
+   if (reg_netdev_notifier_done == TRUE) {
+      unregister_netdevice_notifier(&hdd_netdev_notifier);
+      reg_netdev_notifier_done = FALSE;
+   }
+
+#if !defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
 err_free_power_on_lock:
+#endif
    free_riva_power_on_lock("wlan");
 
 err_unregister_pmops:
@@ -12256,6 +12292,12 @@ err_bap_close:
 #endif
 
 err_close_adapter:
+#if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
+   if (rtnl_lock_enable == TRUE) {
+      rtnl_lock_enable = FALSE;
+      rtnl_unlock();
+   }
+#endif
    hdd_close_all_adapters( pHddCtx );
 
 err_vosstop:
