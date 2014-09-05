@@ -97,6 +97,7 @@ void ol_rx_trigger_restore(htt_pdev_handle htt_pdev, adf_nbuf_t head_msdu,
     }
 
     if ( !htt_pdev->rx_ring.htt_rx_restore){
+        vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
         htt_pdev->rx_ring.htt_rx_restore = 1;
         schedule_work(&ol_rx_restore_work);
     }
@@ -298,7 +299,7 @@ ol_rx_indication_handler(
 
                 msdu_chaining = htt_rx_amsdu_pop(
                     htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
-#ifdef HTT_RX_RESET
+#ifdef HTT_RX_RESTORE
                 if (htt_pdev->rx_ring.rx_reset) {
                     ol_rx_trigger_restore(htt_pdev, head_msdu, tail_msdu);
                     return;
