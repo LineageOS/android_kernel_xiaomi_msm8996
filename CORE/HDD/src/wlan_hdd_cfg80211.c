@@ -11299,6 +11299,9 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                            MAC_ADDR_ARRAY(macAddr));
+
+                    /* Send disassoc and deauth both to avoid some IOT issues */
+                    hdd_softap_sta_disassoc(pAdapter, macAddr);
                     vos_status = hdd_softap_sta_deauth(pAdapter, macAddr);
                     if (VOS_IS_STATUS_SUCCESS(vos_status))
                         pAdapter->aStaInfo[i].isDeauthInProgress = TRUE;
@@ -11326,6 +11329,8 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                    FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY(mac));
 
+            /* Send disassoc and deauth both to avoid some IOT issues */
+            hdd_softap_sta_disassoc(pAdapter, mac);
             vos_status = hdd_softap_sta_deauth(pAdapter, mac);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 pAdapter->aStaInfo[staId].isDeauthInProgress = FALSE;
