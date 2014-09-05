@@ -3667,7 +3667,11 @@ static eHalStatus csrGetRateSet( tpAniSirGlobal pMac,  tCsrRoamProfile *pProfile
         if ( eCSR_CFG_DOT11_MODE_11G == cfgDot11Mode ||
              eCSR_CFG_DOT11_MODE_11N == cfgDot11Mode ||
              eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11Mode ||
-             eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode )
+             eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode
+#ifdef WLAN_FEATURE_11AC
+             || eCSR_CFG_DOT11_MODE_11AC == cfgDot11Mode
+#endif
+        )
         {
             // If there are Extended Rates in the beacon, we will reflect those
             // extended rates that we support in out Extended Operational Rate
