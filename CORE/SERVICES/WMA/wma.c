@@ -16981,6 +16981,11 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 #endif
 
 #ifdef FEATURE_WLAN_D0WOW
@@ -17984,6 +17989,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 #endif
 
 	len = sizeof(wmi_wow_hostwakeup_from_sleep_cmd_fixed_param);
