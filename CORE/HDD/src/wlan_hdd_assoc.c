@@ -758,6 +758,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         }
 
 #ifdef WLAN_FEATURE_LPSS
+        pAdapter->rssi_send = VOS_FALSE;
         wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 0);
 #endif
 

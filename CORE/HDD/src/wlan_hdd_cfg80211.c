@@ -11173,10 +11173,6 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     eDataRate11ACMaxMcs vhtMaxMcs;
 #endif /* WLAN_FEATURE_11AC */
 
-#ifdef WLAN_FEATURE_LPSS
-    v_S7_t last_rssi_send;
-#endif /* WLAN_FEATURE_LPSS */
-
     ENTER();
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
@@ -11197,16 +11193,12 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         return status;
     }
 
-#ifdef WLAN_FEATURE_LPSS
-    last_rssi_send = pAdapter->last_rssi_send;
-#endif
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     sinfo->filled |= STATION_INFO_SIGNAL;
 
 #ifdef WLAN_FEATURE_LPSS
-    if ((pAdapter->rssi >= last_rssi_send + HDD_RSSI_THRESHOLD) ||
-        (pAdapter->rssi <= last_rssi_send - HDD_RSSI_THRESHOLD)) {
-        pAdapter->last_rssi_send = pAdapter->rssi;
+    if (!pAdapter->rssi_send) {
+        pAdapter->rssi_send = VOS_TRUE;
         wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 1);
     }
 #endif
