@@ -247,6 +247,14 @@ typedef struct sSapContext {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
 #endif
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    v_U8_t          skip_acs_scan_status;
+    v_U8_t          skip_acs_scan_range1_stch;
+    v_U8_t          skip_acs_scan_range1_endch;
+    v_U8_t          skip_acs_scan_range2_stch;
+    v_U8_t          skip_acs_scan_range2_endch;
+#endif
+
 #if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) ||\
     defined(WLAN_FEATURE_MBSSID)
     v_BOOL_t           dfs_ch_disable;

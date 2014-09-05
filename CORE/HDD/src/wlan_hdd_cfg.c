@@ -579,6 +579,16 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DOT11_MODE_MIN,
                  CFG_DOT11_MODE_MAX ),
 
+   REG_VARIABLE( CFG_SAP_FORCE_11AC_FOR_11N, WLAN_PARAM_Integer,
+                 hdd_config_t, apForce11ACFor11n,
+#ifndef WLAN_FEATURE_MBSSID
+                 VAR_FLAGS_DYNAMIC_CFG |
+#endif
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_SAP_FORCE_11AC_FOR_11N_DEFAULT,
+                 CFG_SAP_FORCE_11AC_FOR_11N_MIN,
+                 CFG_SAP_FORCE_11AC_FOR_11N_MAX ),
+
    REG_VARIABLE( CFG_CHANNEL_BONDING_MODE_24GHZ_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nChannelBondingMode24GHz,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
@@ -3930,6 +3940,14 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
 
+   REG_VARIABLE( CFG_SAP_FORCE_11AC_FOR_11N, WLAN_PARAM_Integer,
+                 mbssid_sap_dyn_ini_config_t, apForce11ACFor11n,
+                 VAR_FLAGS_DYNAMIC_CFG |
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_SAP_FORCE_11AC_FOR_11N_DEFAULT,
+                 CFG_SAP_FORCE_11AC_FOR_11N_MIN,
+                 CFG_SAP_FORCE_11AC_FOR_11N_MAX ),
+
 };
 #endif
 
@@ -4994,7 +5012,7 @@ v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter)
    sap_ini_cfg->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
    vos_mem_copy(sap_ini_cfg->acsAllowedChnls, iniConfig->acsAllowedChnls,
                                                               CFG_MAX_STR_LEN);
-
+   sap_ini_cfg->apForce11ACFor11n = iniConfig->apForce11ACFor11n;
 }
 #endif
 

@@ -3201,10 +3201,10 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                //Clear saved connection information in HDD
                hdd_connRemoveConnectInfo( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) );
             }
+            halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
             pRoamInfo->roamSynchInProgress = VOS_FALSE;
 #endif
-            halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             break;
         case eCSR_ROAM_ASSOCIATION_FAILURE:
             halStatus = hdd_AssociationCompletionHandler( pAdapter,

@@ -4346,7 +4346,10 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     v_BOOL_t band_24 = VOS_FALSE, band_5g = VOS_FALSE;
     v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
     tSmeConfigParams smeconfig;
-    tANI_U32 vhtchanwidth, chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+    tANI_U32 chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U32 vhtchanwidth;
+#endif
     eCsrPhyMode phymode = -EIO, old_phymode;
     eCsrBand curr_band = eCSR_BAND_ALL;
 
@@ -4467,21 +4470,8 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 #ifdef WLAN_FEATURE_11AC
     case IEEE80211_MODE_11AC_VHT20:
     case IEEE80211_MODE_11AC_VHT40:
-         if ((vhtchanwidth == eHT_CHANNEL_WIDTH_20MHZ ||
-              vhtchanwidth == eHT_CHANNEL_WIDTH_40MHZ) &&
-                                         band_5g) {
-             sme_SetPhyMode(hal, eCSR_DOT11_MODE_11ac);
-             if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
-                 phymode = eCSR_DOT11_MODE_11ac;
-             } else {
-                 sme_SetPhyMode(hal, old_phymode);
-                 return -EIO;
-             }
-         }
-         break;
     case IEEE80211_MODE_11AC_VHT80:
-         if ((vhtchanwidth == eHT_CHANNEL_WIDTH_80MHZ) &&
-                                         band_5g) {
+         if (band_5g) {
              sme_SetPhyMode(hal, eCSR_DOT11_MODE_11ac);
              if ((hdd_setBand(net, WLAN_HDD_UI_BAND_5_GHZ) == 0)) {
                  phymode = eCSR_DOT11_MODE_11ac;
@@ -4518,6 +4508,19 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
          return -EIO;
     }
 
+#ifdef WLAN_FEATURE_11AC
+    switch (new_phymode) {
+    case IEEE80211_MODE_11AC_VHT20:
+        vhtchanwidth = eHT_CHANNEL_WIDTH_20MHZ;
+    case IEEE80211_MODE_11AC_VHT40:
+        vhtchanwidth = eHT_CHANNEL_WIDTH_40MHZ;
+    case IEEE80211_MODE_11AC_VHT80:
+        vhtchanwidth = eHT_CHANNEL_WIDTH_80MHZ;
+    default:
+        vhtchanwidth = phddctx->cfg_ini->vhtChannelWidth;
+    }
+#endif
+
     if (phymode != -EIO) {
         sme_GetConfigParam(hal, &smeconfig);
         smeconfig.csrConfig.phyMode = phymode;
@@ -4538,6 +4541,9 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                 smeconfig.csrConfig.channelBondingMode5GHz =
                                     phddctx->cfg_ini->nChannelBondingMode5GHz;
         }
+#ifdef WLAN_FEATURE_11AC
+        smeconfig.csrConfig.nVhtChannelWidth = vhtchanwidth;
+#endif
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                                                   "SET PHY MODE=%d",

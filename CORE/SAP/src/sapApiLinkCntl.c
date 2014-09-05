@@ -163,11 +163,20 @@ WLANSAP_ScanCallback
                                 __func__, scanGetResultStatus);
                 break;
             }
-
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+            if (scanID != 0) {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "%s: Sending ACS Scan skip event", __func__);
+                sapSignalHDDevent(psapContext, NULL,
+                                  eSAP_ACS_SCAN_SUCCESS_EVENT,
+                                  (v_PVOID_t) eSAP_STATUS_SUCCESS);
+            } else
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "%s: ACS scan id: %d (skipped ACS SCAN)", __func__, scanID);
+#endif
             operChannel = sapSelectChannel(halHandle, psapContext, pResult);
 
             sme_ScanResultPurge(halHandle, pResult);
-            sme_ScanFlushResult(halHandle, psapContext->sessionId);
             event = eSAP_MAC_SCAN_COMPLETE;
             break;
 
