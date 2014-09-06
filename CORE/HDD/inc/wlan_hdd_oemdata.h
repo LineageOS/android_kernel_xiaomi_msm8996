@@ -63,7 +63,7 @@ typedef enum
   /* OEM App is not registered */
   OEM_ERR_APP_NOT_REGISTERED,
 
-  /* Inavalid signature */
+  /* Invalid signature */
   OEM_ERR_INVALID_SIGNATURE,
 
   /* Invalid message type */
@@ -91,7 +91,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    /* Signature of chipset vendor, e.g. QUALCOMM */
+    /* Signature of chip set vendor, e.g. QUALCOMM */
     tANI_U8 oem_target_signature[OEM_TARGET_SIGNATURE_LEN];
     tANI_U32 oem_target_type;         /* Chip type */
     tANI_U32 oem_fw_version;          /* FW version */
@@ -113,7 +113,7 @@ typedef PACKED_PRE struct PACKED_POST
     /* reserved0 */
     tANI_U32 reserved0;
 
-    /* primary 20 MHz channel frequency in mhz */
+    /* Primary 20 MHz channel frequency in MHz */
     tANI_U32 mhz;
 
     /* Center frequency 1 in MHz */

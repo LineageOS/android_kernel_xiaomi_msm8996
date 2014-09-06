@@ -713,7 +713,7 @@ static struct index_vht_data_rate_type supported_vht_mcs_rate_nss2[] =
 };
 #endif /* WLAN_FEATURE_11AC */
 
-/*array index ponints to MCS and array value points respective rssi*/
+/* Array index points to MCS and array value points respective rssi */
 static int rssiMcsTbl[][10] =
 {
 /*MCS 0   1     2   3    4    5    6    7    8    9*/
@@ -802,7 +802,7 @@ wlan_hdd_extscan_results_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_MAX + 1] =
 /*
  * FUNCTION: wlan_hdd_send_avoid_freq_event
  * This is called when wlan driver needs to send vendor specific
- * avoid frequency range event to userspace
+ * avoid frequency range event to user space
  */
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
                                    tHddAvoidFreqList *pAvoidFreqList)
@@ -1475,7 +1475,7 @@ static int wlan_hdd_cfg80211_extscan_set_significant_change(
     hddLog(VOS_TRACE_LEVEL_INFO,
                FL("Lost AP sample size (%u)"), pReqMsg->lostApSampleSize);
 
-    /* Parse and fetch AP min breacing */
+    /* Parse and fetch AP min breaching */
     if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SIGNIFICANT_CHANGE_PARAMS_MIN_BREACHING])
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr AP min breaching"));
@@ -3688,8 +3688,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
     }
 
-    /* Before registering we need to update the ht capabilitied based
-     * on ini values*/
+    /* Before registering we need to update the HT capability based
+     * on ini values */
     if( !pCfg->ShortGI20MhzEnable )
     {
         wlan_hdd_band_2_4_GHZ.ht_cap.cap     &= ~IEEE80211_HT_CAP_SGI_20;
@@ -3854,17 +3854,19 @@ void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy)
 #endif
 }
 
-/* In this function we are updating channel list when,
-   regulatory domain is FCC and country code is US.
-   Here In FCC standard 5GHz UNII-1 Bands are indoor only.
-   As per FCC smart phone is not a indoor device.
-   GO should not opeate on indoor channels */
+/*
+ * In this function we are updating channel list when,
+ * regulatory domain is FCC and country code is US.
+ * Here In FCC standard 5GHz UNII-1 Bands are indoor only.
+ * As per FCC smart phone is not a indoor device.
+ * GO should not operate on indoor channels.
+ */
 void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy)
 {
     int j;
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
     tANI_U8 defaultCountryCode[3] = SME_INVALID_COUNTRY_CODE;
-    //Default counrtycode from NV at the time of wiphy initialization.
+    /* Default country code from NV at the time of wiphy initialization. */
     if (eHAL_STATUS_SUCCESS != sme_GetDefaultCountryCodeFrmNv(pHddCtx->hHal,
                                   &defaultCountryCode[0]))
     {
@@ -3998,7 +4000,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     vos_mem_zero(&setKey, sizeof(tCsrRoamSetKey));
     setKey.keyId = key_index; // Store Key ID
     setKey.encType  = eCSR_ENCRYPT_TYPE_WPI; // SET WAPI Encryption
-    setKey.keyDirection = eSIR_TX_RX;  // Key Directionn both TX and RX
+    setKey.keyDirection = eSIR_TX_RX;  /* Key Direction both TX and RX */
     setKey.paeRole = 0 ; // the PAE role
     if (!mac_addr || is_broadcast_ether_addr(mac_addr))
     {
@@ -5265,9 +5267,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         else
             pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
 
-        /*If ACS disable and selected channel <= 14
+        /* If ACS disable and selected channel <= 14
              OR
-             ACS enabled and ACS operating band is choosen as 2.4
+             ACS enabled and ACS operating band is chosen as 2.4
          AND
              VHT in 2.4G Disabled
          THEN
@@ -5520,7 +5522,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         return -EINVAL;
     }
 
-    //Succesfully started Bss update the state bit.
+    /* Successfully started Bss update the state bit. */
     set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
     wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
 
@@ -6070,7 +6072,7 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     return ret;
 }
 /* FUNCTION: wlan_hdd_change_country_code_cd
-*  to wait for contry code completion
+*  to wait for country code completion
 */
 void* wlan_hdd_change_country_code_cb(void *pAdapter)
 {
@@ -6609,7 +6611,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     if ( eHAL_STATUS_SUCCESS != pAdapter->tdlsAddStaStatus)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Add Station is unsucessful", __func__);
+                "%s: Add Station is unsuccessful", __func__);
         return -EPERM;
     }
 
@@ -6720,14 +6722,15 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
 
             StaParams.supported_rates_len = params->supported_rates_len;
 
-            /* Note : The Maximum sizeof supported_rates sent by the Supplicant is 32.
-             * The supported_rates array , for all the structures propogating till Add Sta
-             * to the firmware has to be modified , if the supplicant (ieee80211) is
-             * modified to send more rates.
+            /*
+             * Note : The Maximum sizeof supported_rates sent by the Supplicant
+             * is 32. The supported_rates array, for all the structures
+             * propagating till Add Sta to the firmware has to be modified,
+             * if the supplicant (ieee80211) is modified to send more rates.
              */
 
-            /* To avoid Data Currption , set to max length to SIR_MAC_MAX_SUPP_RATES
-             */
+            /* To avoid Data Corruption, set to max length
+               to SIR_MAC_MAX_SUPP_RATES */
             if (StaParams.supported_rates_len > SIR_MAC_MAX_SUPP_RATES)
                 StaParams.supported_rates_len = SIR_MAC_MAX_SUPP_RATES;
 
@@ -7083,7 +7086,7 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
 
         /* in case of IBSS as there was no information available about WEP keys during
-         * IBSS join, group key intialized with NULL key, so re-initialize group key
+         * IBSS join, group key initialized with NULL key, so re-initialize group key
          * with correct value*/
         if ( (eCSR_BSS_TYPE_START_IBSS == pWextState->roamProfile.BSSType) &&
             !(  ( IW_AUTH_KEY_MGMT_802_1X
@@ -7435,11 +7438,13 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
             if (Keys->KeyLength[key_index] == CSR_WEP40_KEY_LEN &&
                pWextState->roamProfile.EncryptionType.encryptionType[0] ==
                eCSR_ENCRYPT_TYPE_WEP104) {
-                /* In the case of dynamic wep supplicant hardcodes DWEP type
+                /*
+                 * In the case of dynamic wep supplicant hardcodes DWEP type
                  * to eCSR_ENCRYPT_TYPE_WEP104 even though ap is configured for
-                 * WEP-40 encryption. In this canse the key length is 5 but the
-                 * encryption type is 104 hence checking the key langht(5) and
-                 * encryption type(104) and switching encryption type to 40*/
+                 * WEP-40 encryption. In this case the key length is 5 but the
+                 * encryption type is 104 hence checking the key length(5) and
+                 * encryption type(104) and switching encryption type to 40.
+                 */
                 pWextState->roamProfile.EncryptionType.encryptionType[0] =
                    eCSR_ENCRYPT_TYPE_WEP40;
                 pWextState->roamProfile.mcEncryptionType.encryptionType[0] =
@@ -7668,7 +7673,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
 
 #ifdef CONFIG_CNSS
-    /* Android does not want the timestamp from the frame.
+    /* Android does not want the time stamp from the frame.
        Instead it wants a monotonic increasing value */
     cnss_get_monotonic_boottime(&ts);
     mgmt->u.probe_resp.timestamp =
@@ -7719,24 +7724,25 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     }
 
     chan = __ieee80211_get_channel(wiphy, freq);
-    /* When the band is changed on the fly using the GUI, three things are done
+    /*
+     * When the band is changed on the fly using the GUI, three things are done
      * 1. scan abort
      * 2. flush scan results from cache
      * 3. update the band with the new band user specified (refer to the
      * hdd_setBand_helper function) as part of the scan abort, message will be
-     * queued to PE and we proceed with flushing and changinh the band.
+     * queued to PE and we proceed with flushing and changing the band.
      * PE will stop the scanning further and report back the results what ever
      * it had till now by calling the call back function.
      * if the time between update band and scandone call back is sufficient
      * enough the band change reflects in SME, SME validates the channels
-     * and discards the channels correponding to previous band and calls back
+     * and discards the channels corresponding to previous band and calls back
      * with zero bss results. but if the time between band update and scan done
      * callback is very small then band change will not reflect in SME and SME
-     * reports to HDD all the channels correponding to previous band.this is due
-     * to race condition.but those channels are invalid to the new band and so
-     * this function __ieee80211_get_channel will return NULL.Each time we
-     * report scan result with this pointer null warning kernel trace is printed.
-     * if the scan results contain large number of APs continuosly kernel
+     * reports to HDD all the channels corresponding to previous band.this is
+     * due to race condition.but those channels are invalid to the new band and
+     * so this function __ieee80211_get_channel will return NULL.Each time we
+     * report scan result with this pointer null warning kernel trace is printed
+     * if the scan results contain large number of APs continuously kernel
      * warning trace is printed and it will lead to apps watch dog bark.
      * So drop the bss and continue to next bss.
      */
@@ -8168,7 +8174,7 @@ allow_suspend:
     hdd_allow_suspend();
 
     /* Acquire wakelock to handle the case where APP's tries to suspend
-     * immediatly after the driver gets connect request(i.e after scan)
+     * immediately after the driver gets connect request(i.e after scan)
      * from supplicant, this result in app's is suspending and not able
      * to process the connect request to AP */
     hdd_prevent_suspend_timeout(1000);
@@ -8267,7 +8273,7 @@ v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
 /*
  * FUNCTION: __wlan_hdd_cfg80211_scan
  * this scan respond to scan trigger and update cfg80211 scan database
- * later, scan dump command can be used to recieve scan results
+ * later, scan dump command can be used to receive scan results
  */
 int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
@@ -8509,9 +8515,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      */
 
     /* Supplicant does single channel scan after 8-way handshake
-     * and in that case driver shoudnt flush scan results. If
+     * and in that case driver shouldn't flush scan results. If
      * driver flushes the scan results here and unfortunately if
-     * the AP doesnt respond to our probe req then association
+     * the AP doesn't respond to our probe req then association
      * fails which is not desired
      */
 
@@ -8776,7 +8782,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
                     VOS_MAC_ADDR_SIZE);
-            /* Save BSSID in seperate variable as well, as RoamProfile
+            /* Save BSSID in separate variable as well, as RoamProfile
                BSSID is getting zeroed out in the association process. And in
                case of join failure we should send valid BSSID to supplicant
              */
@@ -8896,7 +8902,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
          * enhancements, the supplicant is not issuing the scan command now.
          * So the unicast frames which are sent from the host are not having
          * the additional IEs. If it is P2P CLIENT and there is no additional
-         * IE present in roamProfile, then use the addtional IE form scan_info
+         * IE present in roamProfile, then use the additional IE form scan_info
          */
 
         if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
@@ -9262,7 +9268,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
                 }
 #endif
-                /* Appending HS 2.0 Indication Element in Assiciation Request */
+                /* Appending HS 2.0 Indication Element in Association Request */
                 else if ( (0 == memcmp(&genie[0], HS20_OUI_TYPE,
                                        HS20_OUI_TYPE_SIZE)) )
                 {
@@ -9283,7 +9289,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
                 }
-                 /* Appending OSEN Information  Element in Assiciation Request */
+                 /* Appending OSEN Information  Element in Association Request */
                 else if ( (0 == memcmp(&genie[0], OSEN_OUI_TYPE,
                                        OSEN_OUI_TYPE_SIZE)) )
                 {
@@ -9511,7 +9517,7 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
     pWextState->roamProfile.MFPEnabled = (req->mfp == NL80211_MFP_REQUIRED);
 #endif
 
-    /*parse WPA/RSN IE, and set the correspoing fileds in Roam profile*/
+    /* Parse WPA/RSN IE, and set the corresponding fields in Roam profile */
     if (req->ie_len)
     {
         status = wlan_hdd_cfg80211_set_ie(pAdapter, req->ie, req->ie_len);
@@ -9656,7 +9662,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
      * by setting the third bit in flags in case of Secure connection
      * so if the supplicant does not support this then LFR3.0 shall
      * be disabled.if supplicant indicates support for offload
-     * of key managament then we shall enable LFR3.0.Note that
+     * of key management then we shall enable LFR3.0.Note that
      * supplicant set the bit in flags means driver already indicated
      * its capability to handle the key management and LFR3.0 is
      * enabled in INI and FW also has the capability to handle
@@ -10061,7 +10067,7 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
     if (params->privacy)
     {
         /* Security enabled IBSS, At this time there is no information available
-         * about the security paramters, so initialise the encryption type to
+         * about the security parameters, so initialise the encryption type to
          * eCSR_ENCRYPT_TYPE_WEP40_STATICKEY.
          * The correct security parameters will be updated later in
          * wlan_hdd_cfg80211_add_key */
@@ -10834,7 +10840,7 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
             else
                 mode = 0;
 
-            /* VHT80 rate has seperate rate table */
+            /* VHT80 rate has separate rate table */
             if (rate_flags & (eHAL_TX_RATE_VHT20|eHAL_TX_RATE_VHT40|eHAL_TX_RATE_VHT80))
             {
                 ccmCfgGetInt(WLAN_HDD_GET_HAL_CTX(pAdapter), WNI_CFG_VHT_TX_MCS_MAP, &vht_mcs_map);
@@ -11753,7 +11759,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         ret = wlan_hdd_scan_abort(pAdapter);
         if(ret < 0){
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: aborting the existing scan is unsuccessfull", __func__);
+                  "%s: aborting the existing scan is unsuccessful", __func__);
             return -EBUSY;
         }
     }
@@ -11892,9 +11898,9 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                 pPnoRequest->us5GProbeTemplateLen);
     }
 
-    /* Driver gets only one time interval which is hardcoded in
+    /* Driver gets only one time interval which is hard coded in
      * supplicant for 10000ms. Taking power consumption into account 6 timers
-     * will be used, Timervalue is increased exponentially i.e 10,20,40,
+     * will be used, Timer value is increased exponentially i.e 10,20,40,
      * 80,160,320 secs. And number of scan cycle for each timer
      * is configurable through INI param gPNOScanTimerRepeatValue.
      * If it is set to 0 only one timer will be used and PNO scan cycle
@@ -12166,7 +12172,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         {
             /* supplicant still sends tdls_mgmt(SETUP_REQ) even after
                we return error code at 'add_station()'. Hence we have this
-               check again in addtion to add_station().
+               check again in addition to add_station().
                Anyway, there is no hard to double-check. */
             if (SIR_MAC_TDLS_SETUP_REQ == action_code)
             {
@@ -12441,8 +12447,11 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                             wlan_hdd_tdls_timer_restart(pAdapter,
                                                         &pTdlsPeer->initiatorWaitTimeoutTimer,
                                                        WAIT_TIME_TDLS_INITIATOR);
-                            /* suspend initiator TX until it receives direct packet from the
-                            reponder or WAIT_TIME_TDLS_INITIATOR timer expires */
+                            /*
+                             * Suspend initiator TX until it receives direct
+                             * packet from the responder or
+                             * WAIT_TIME_TDLS_INITIATOR timer expires
+                             */
                             WLANTL_SuspendDataTx( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                                    &staId, NULL);
                         }
@@ -12708,7 +12717,7 @@ int wlan_hdd_cfg80211_send_tdls_discover_req(struct wiphy *wiphy,
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 /*
  * FUNCTION: wlan_hdd_cfg80211_update_replayCounterCallback
- * Callback rountine called upon receiving response for
+ * Callback routine called upon receiving response for
  * get offload info
  */
 void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext,
@@ -12831,7 +12840,7 @@ int __wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy,
             hddLog(LOGE, FL("sme_SetGTKOffload failed, status(%d)"), status);
             return -EINVAL;
         }
-        hddLog(LOG1, FL("sme_SetGTKOffload successfull"));
+        hddLog(LOG1, FL("sme_SetGTKOffload successful"));
     } else {
         hddLog(LOG1, FL("wlan not suspended GTKOffload request is stored"));
     }
@@ -13365,7 +13374,7 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         hddLog(LOG1, FL("Return resume is not due to PNO indication"));
         return 0;
     }
-    /* Reset flag to avoid updatating cfg80211 data old results again */
+    /* Reset flag to avoid updating cfg80211 data old results again */
     pHddCtx->isSchedScanUpdatePending = FALSE;
     spin_unlock(&pHddCtx->schedScan_lock);
 
@@ -13379,7 +13388,7 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
                 hddLog(LOGW, FL("NO SCAN result"));
             } else {
                 /* Acquire wakelock to handle the case where APP's tries to
-                 * suspend immediately after updating the scan results. Whis
+                 * suspend immediately after updating the scan results. This
                  * results in app's is in suspended state and not able to
                  * process the connect request to AP
                  */

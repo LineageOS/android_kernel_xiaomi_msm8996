@@ -73,20 +73,14 @@ static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
     //now if the status is success, then send an event up
     //so that the application can request for the data
     //else no need to send the event up
-    if(oemDataReqStatus == eOEM_DATA_REQ_FAILURE)
-    {
+    if (oemDataReqStatus == eOEM_DATA_REQ_FAILURE) {
         snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-FAILED");
         hddLog(LOGW, "%s: oem data req %d failed", __func__, oemDataReqID);
-    }
-    else if(oemDataReqStatus == eOEM_DATA_REQ_INVALID_MODE)
-    {
+    } else if(oemDataReqStatus == eOEM_DATA_REQ_INVALID_MODE) {
         snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-INVALID-MODE");
         hddLog(LOGW, "%s: oem data req %d failed because the driver is in invalid mode (IBSS|BTAMP|AP)", __func__, oemDataReqID);
-    }
-    else
-    {
+    } else {
         snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-SUCCESS");
-        //everything went alright
     }
 
     wrqu.data.pointer = buffer;
@@ -376,7 +370,7 @@ int iw_get_oem_data_cap(
 
   \brief send_oem_reg_rsp_nlink_msg() - send oem registration response
 
-  This function sends oem message to registetred application process
+  This function sends oem message to registered application process
 
   \param -
      - none
@@ -522,7 +516,7 @@ void send_oem_err_rsp_nlink_msg(v_SINT_t app_pid, tANI_U8 error_code)
 
   \brief send_oem_data_rsp_msg() - send oem data response
 
-  This function sends oem data rsp message to registetred application process
+  This function sends oem data rsp message to registered application process
   over the netlink socket.
 
   \param -
@@ -879,7 +873,7 @@ void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
   an OEM application process.
 
   \param -
-     - pAdapter - ponter to HDD adapter
+     - pAdapter - pointer to HDD adapter
 
   \return - 0 for success, non zero for failure
 
@@ -1000,7 +994,7 @@ int oem_msg_callback(struct sk_buff *skb)
          {
             /* either oem app is not registered yet or pid is different */
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: OEM DataReq: app not regsitered(%d) or incorrect pid(%d)",
+                "%s: OEM DataReq: app not registered(%d) or incorrect pid(%d)",
                 __func__, pHddCtx->oem_app_registered, nlh->nlmsg_pid);
             send_oem_err_rsp_nlink_msg(nlh->nlmsg_pid,
                                        OEM_ERR_APP_NOT_REGISTERED);
@@ -1032,7 +1026,7 @@ int oem_msg_callback(struct sk_buff *skb)
          {
             /* either oem app is not registered yet or pid is different */
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Chan InfoReq: app not regsitered(%d) or incorrect pid(%d)",
+                "%s: Chan InfoReq: app not registered(%d) or incorrect pid(%d)",
                 __func__, pHddCtx->oem_app_registered, nlh->nlmsg_pid);
             send_oem_err_rsp_nlink_msg(nlh->nlmsg_pid,
                                        OEM_ERR_APP_NOT_REGISTERED);

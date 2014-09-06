@@ -38,7 +38,7 @@
   QoS (QoS here refers to a TSPEC). The setup QoS comes in two flavors: an
   explicit application invoked and an internal HDD invoked.  The implicit QoS
   is for applications that do NOT call the custom QCT WLAN OIDs for QoS but
-  which DO mark their traffic for priortization. It also has logic to start,
+  which DO mark their traffic for prioritization. It also has logic to start,
   update and stop the U-APSD trigger frame generation. It also has logic to
   read WMM related config parameters from the registry.
 
@@ -160,9 +160,11 @@ typedef struct
    // has implicit QoS negotiation already succeeded?
    v_BOOL_t                     wmmAcAccessGranted;
 
-   // is access to this AC allowed, either because we are not doing
-   // WMM, we are not doing implicit QoS, implict QoS has completed,
-   // or explicit QoS has completed?
+   /*
+    * Is access to this AC allowed, either because we are not doing
+    * WMM, we are not doing implicit QoS, implicit QoS has completed,
+    * or explicit QoS has completed?
+    */
    v_BOOL_t                     wmmAcAccessAllowed;
 
    // is the wmmAcTspecInfo valid?
@@ -207,7 +209,7 @@ extern const v_U8_t hddLinuxUpToAcMap[];
 #define WLAN_HDD_MAX_DSCP 0x3f
 
 /**============================================================================
-  @brief hdd_wmm_init() - Function which will initialize the WMM configuation
+  @brief hdd_wmm_init() - Function which will initialize the WMM configuration
   and status to an initial state.  The configuration can later be overwritten
   via application APIs
 
@@ -220,13 +222,13 @@ extern const v_U8_t hddLinuxUpToAcMap[];
 VOS_STATUS hdd_wmm_init ( hdd_adapter_t *pAdapter );
 
 /**============================================================================
-  @brief hdd_wmm_adapter_init() - Function which will initialize the WMM configuation
-  and status to an initial state.  The configuration can later be overwritten
-  via application APIs
+  @brief hdd_wmm_adapter_init() - Function which will initialize the WMM
+  configuration and status to an initial state.
+  The configuration can later be overwritten via application APIs
 
   @param pAdapter : [in]  pointer to Adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
@@ -238,7 +240,7 @@ VOS_STATUS hdd_wmm_adapter_init( hdd_adapter_t *pAdapter );
 
   @param pAdapter : [in]  pointer to adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
@@ -246,18 +248,18 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter );
 
 /**============================================================================
   @brief hdd_wmm_select_queue() - Function which will classify an OS packet
-  into linux Qdisc expectation
+  into Linux Qdisc expectation
 
   @param dev      : [in]  pointer to net_device structure
   @param skb      : [in]  pointer to OS packet (sk_buff)
 
-  @return         : queue_index/linux AC value.
+  @return         : queue_index/Linux AC value.
   ===========================================================================*/
 v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb);
 
 /**============================================================================
   @brief hdd_hostapd_select_queue() - Function which will classify the packet
-         according to linux qdisc expectation.
+         according to Linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure
@@ -295,7 +297,7 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
   @param pGranted : [out] pointer to boolean flag when indicates if access
                           has been granted or not
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
@@ -310,7 +312,7 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
   @param pRoamInfo: [in]  pointer to roam information
   @param eBssType : [in]  type of BSS
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
@@ -325,7 +327,7 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
   @param pRoamInfo: [in]  pointer to roam information
   @param eBssType : [in]  type of BSS
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
@@ -339,7 +341,7 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
   @param pAdapter  : [in]  pointer to adapter context
   @param pUapsdMask: [in]  pointer to where the UAPSD Mask is to be stored
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_get_uapsd_mask( hdd_adapter_t* pAdapter,
@@ -398,7 +400,7 @@ hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
   of all ACs
   @param pAdapter  : [in]  pointer to adapter context
 
-  @return          : VOS_STATUS_SUCCESS if succssful
+  @return          : VOS_STATUS_SUCCESS if successful
                    : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_adapter_clear( hdd_adapter_t *pAdapter );

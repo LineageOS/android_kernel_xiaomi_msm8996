@@ -57,7 +57,7 @@
  //gEnableDriverStop = 1 implies map driver stop to standby
  #define WLAN_MAP_DRIVER_STOP_TO_STANDBY     1
 
- //gEnableDriverStop = 2 implies map sriver stop to deep sleep
+ /* gEnableDriverStop = 2 implies map driver stop to deep sleep */
  #define WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP  2
 
  //Maximum time (ms) to wait for standby to complete

@@ -1273,7 +1273,7 @@ static void hdd_ipa_rm_notify(void *user_data, enum ipa_rm_event event,
 #endif /* IPA_UC_OFFLOAD */
 		break;
 	default:
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Unknow RM Evt: %d", event);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Unknown RM Evt: %d", event);
 		break;
 	}
 }
@@ -3162,7 +3162,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 
 	adf_os_spinlock_destroy(&hdd_ipa->pm_lock);
 
-	/* destory the interface lock */
+	/* Destroy the interface lock */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
 		iface_context = &hdd_ipa->iface_context[i];
 		adf_os_spinlock_destroy(&iface_context->interface_lock);

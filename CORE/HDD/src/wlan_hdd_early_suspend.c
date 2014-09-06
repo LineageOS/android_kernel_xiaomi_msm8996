@@ -1232,7 +1232,7 @@ static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
 
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-    /* Filer was applied during suspend inditication
+    /* Filter was applied during suspend indication
      * clear it when we resume.
      */
     wlan_hdd_set_mc_addr_list(pAdapter, FALSE);
@@ -1385,7 +1385,7 @@ static void hdd_PowerStateChangedCB
       /* Android framework can send resume request when the WCN chip is
        * in IMPS mode. When the chip exits IMPS mode the firmware will
        * restore all the registers to the state they were before the chip
-       * entered IMPS and so our hardware filter settings confgured by the
+       * entered IMPS and so our hardware filter settings configured by the
        * resume request will be lost. So reconfigure the filters on detecting
        * a change in the power state of the WCN chip.
        */
@@ -1498,7 +1498,7 @@ void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
             }
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                   "%s: sme_SetGTKOffload successfull", __func__);
+                   "%s: sme_SetGTKOffload successful", __func__);
         }
 
     }
@@ -1528,7 +1528,7 @@ void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
                        "%s: sme_GetGTKOffload successful",
                        __func__);
 
-                /* Sending GTK offload dissable */
+                /* Sending GTK offload disable */
                 memcpy(&hddGtkOffloadReqParams, &pHddStaCtx->gtkOffloadReqParams,
                       sizeof (tSirGtkOffloadParams));
                 hddGtkOffloadReqParams.ulFlags = GTK_OFFLOAD_DISABLE;
@@ -1537,12 +1537,12 @@ void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
                 if (eHAL_STATUS_SUCCESS != ret)
                 {
                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                            "%s: failed to dissable GTK offload, returned %d",
+                            "%s: failed to disable GTK offload, returned %d",
                             __func__, ret);
                     return;
                 }
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                        "%s: successfully dissabled GTK offload request to HAL",
+                        "%s: successfully disabled GTK offload request to HAL",
                         __func__);
             }
         }
@@ -1690,7 +1690,7 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
 
 
 /*
- * Based on the ioctl command recieved by HDD, put WLAN driver
+ * Based on the ioctl command received by HDD, put WLAN driver
  * into the quiet mode. This is the same as the early suspend
  * notification that driver used to listen
  */

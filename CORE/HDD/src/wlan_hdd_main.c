@@ -222,7 +222,7 @@ static VOS_STATUS hdd_parse_ese_beacon_req(tANI_U8 *pValue,
 #define WLAN_HDD_DRIVER_MIRACAST_CFG_MAX_VAL 2
 
 /*
- * When ever we need to print IBSSPEERINFOALL for morethan 16 STA
+ * When ever we need to print IBSSPEERINFOALL for more than 16 STA
  * we will split the printing.
  */
 #define NUM_OF_STA_DATA_TO_PRINT 16
@@ -754,10 +754,10 @@ void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
 static int con_mode;
 #ifndef MODULE
 /* current con_mode - used only for statically linked driver
- * con_mode is changed by userspace to indicate a mode change which will
+ * con_mode is changed by user space to indicate a mode change which will
  * result in calling the module exit and init functions. The module
  * exit function will clean up based on the value of con_mode prior to it
- * being changed by userspace. So curr_con_mode records the current con_mode
+ * being changed by user space. So curr_con_mode records the current con_mode
  * for exit when con_mode becomes the next mode for init
  */
 static int curr_con_mode;
@@ -1074,11 +1074,11 @@ VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter)
   \param  - base  Base for string to int conversion(10 for decimal 16 for hex)
   \param  - pOutPtr Pointer to variable in which extracted integer needs to be
             assigned
-  \param  - pLastArg to tell whether it is last arguement in input string or
+  \param  - pLastArg to tell whether it is last argument in input string or
             not
 
   \return - NULL for failure cases
-            pointer to next arguement in input string for success cases
+            pointer to next argument in input string for success cases
   --------------------------------------------------------------------------*/
 static tANI_U8 *
 hdd_extract_assigned_int_from_str
@@ -1144,11 +1144,11 @@ hdd_extract_assigned_int_from_str
   \param  - pInPtr Pointer to input string
   \param  - pOutPtr Pointer to variable in which extracted char needs to be
             assigned
-  \param  - pLastArg to tell whether it is last arguement in input string or
+  \param  - pLastArg to tell whether it is last argument in input string or
             not
 
   \return - NULL for failure cases
-            pointer to next arguement in input string for success cases
+            pointer to next argument in input string for success cases
   --------------------------------------------------------------------------*/
 static tANI_U8 *
 hdd_extract_assigned_char_from_str
@@ -1189,7 +1189,7 @@ hdd_extract_assigned_char_from_str
   \brief hdd_parse_set_batchscan_command () - HDD parse set batch scan command
 
   This function parses set batch scan command in below format:
-  WLS_BATCHING_SET <space> followed by below arguements
+  WLS_BATCHING_SET <space> followed by below arguments
   "SCANFREQ=XX"   : Optional defaults to 30 sec
   "MSCAN=XX"      : Required number of scans to attempt to batch
   "BESTN=XX"      : Best Network (RSSI) defaults to 16
@@ -1202,7 +1202,7 @@ hdd_extract_assigned_char_from_str
   For example input commands:
   1) WLS_BATCHING_SET SCANFREQ=60 MSCAN=10 BESTN=20 CHANNEL=A RTT=0 -> This is
      translated into set batch scan with following parameters:
-     a) Frequence 60 seconds
+     a) Frequency 60 seconds
      b) Batch 10 scans together
      c) Best RSSI to be 20
      d) 5GHz band only
@@ -1634,7 +1634,7 @@ static void hdd_batch_scan_result_ind_callback
             }
 
             mutex_lock(&pAdapter->hdd_batch_scan_lock);
-            /*store batch scan repsonse in hdd queue*/
+            /*store batch scan response in hdd queue*/
             hdd_populate_batch_scan_rsp_queue(pAdapter, pApMetaInfo,
                 pScanList->scanId, isLastAp);
             mutex_unlock(&pAdapter->hdd_batch_scan_lock);
@@ -1694,28 +1694,34 @@ hdd_format_batch_scan_rsp
    tANI_U8  temp[HDD_BATCH_SCAN_AP_META_INFO_SIZE];
    tANI_U8  *pTemp = temp;
 
-   /*Batch scan reponse needs to be returned to user space in
-     following format:
-     "scancount=X\n" where X is the number of scans in current batch
-     batch
-     "trunc\n" optional present if current scan truncated
-     "bssid=XX:XX:XX:XX:XX:XX\n"
-     "ssid=XXXX\n"
-     "freq=X\n" frequency in Mhz
-     "level=XX\n"
-     "age=X\n" ms
-     "dist=X\n" cm (-1 if not available)
-     "errror=X\n" (-1if not available)
-     "====\n" (end of ap marker)
-     "####\n" (end of scan marker)
-     "----\n" (end of results)*/
-     /*send scan result in above format to user space based on
-       available length*/
-   /*The GET response may have more data than the driver can return in its
-     buffer. In that case the buffer should be filled to the nearest complete
-     scan, ending with "%%%%".Subsequent callsshould return the remaining data
-     starting with the next scan (optional .trunc\n., .apcount=X\n., etc).
-     The final buffer should end with "----\n"*/
+   /*
+    * Batch scan response needs to be returned to user space in
+    * following format:
+    * "scancount=X\n" where X is the number of scans in current batch
+    * batch
+    * "trunc\n" optional present if current scan truncated
+    * "bssid=XX:XX:XX:XX:XX:XX\n"
+    * "ssid=XXXX\n"
+    * "freq=X\n" frequency in Mhz
+    * "level=XX\n"
+    * "age=X\n" ms
+    * "dist=X\n" cm (-1 if not available)
+    * "errror=X\n" (-1if not available)
+    * "====\n" (end of ap marker)
+    * "####\n" (end of scan marker)
+    * "----\n" (end of results)
+    *
+    * Send scan result in above format to user space based on
+    * available length.
+    */
+
+    /*
+     * The GET response may have more data than the driver can return in its
+     * buffer. In that case the buffer should be filled to the nearest complete
+     * scan, ending with "%%%%".Subsequent calls should return the remaining
+     * data starting with the next scan (optional .trunc\n., .apcount=X\n., etc)
+     * The final buffer should end with "----\n"
+     */
 
    /*sanity*/
    if (cur_len > tot_len)
@@ -2294,7 +2300,7 @@ exit:
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*
-  \brief hdd_reassoc() - perform a userspace-directed reassoc
+  \brief hdd_reassoc() - perform a user space-directed reassoc
 
   \param - pAdapter - Adapter upon which the command was received
   \param - bssid - BSSID with which to reassociate
@@ -2470,7 +2476,7 @@ hdd_parse_reassoc(hdd_adapter_t *pAdapter, const char *command)
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 /*
-  \brief hdd_sendactionframe() - send a userspace-supplied action frame
+  \brief hdd_sendactionframe() - send a user space supplied action frame
 
   \param - pAdapter - Adapter upon which the command was received
   \param - bssid - BSSID target of the action frame
@@ -4034,9 +4040,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
        }
        /*
-          command should be a string having format
-          SET_SAP_CHANNEL_LIST <num of channels> <the channels seperated by spaces>
-       */
+        * Command should be a string having format
+        * SET_SAP_CHANNEL_LIST <num of channels> <channels separated by spaces>
+        */
        else if (strncmp(command, "SET_SAP_CHANNEL_LIST", 20) == 0)
        {
            tANI_U8 *ptr = command;
@@ -4332,7 +4338,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 	   tANI_U8 len = 0;
 
            /*
-            * roamMode value shall be inverted because the sementics is different.
+            * roamMode value shall be inverted because the semantics is
+            * different.
             */
            if (CFG_LFR_FEATURE_ENABLED_MIN == roamMode)
 	       roamMode = CFG_LFR_FEATURE_ENABLED_MAX;
@@ -5546,7 +5553,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
           rateUpdateParams->ucastDataRate = -1;
 
           /*
-           * Fill the user specifieed RMC rate param
+           * Fill the user specified RMC rate param
            * and the derived tx flags.
            */
           rateUpdateParams->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
@@ -6388,7 +6395,7 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
  * i) The mac address of the first interface is just the actual hw mac address.
  * ii) MSM 3 or 4 bits of byte5 of the actual mac address are used to
  *     define the mac address for the remaining interfaces and locally
- *     admistered bit is set. INTF_MACADDR_MASK is based on the number of
+ *     administered bit is set. INTF_MACADDR_MASK is based on the number of
  *     supported virtual interfaces, right now this is 0x07 (meaning 8 interface).
  *     Byte[3] of second interface will be hw_macaddr[3](bit5..7) + 1,
  *     for third interface it will be hw_macaddr[3](bit5..7) + 2, etc.
@@ -6580,7 +6587,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
                           val32, NULL, eANI_BOOLEAN_FALSE);
     if (status != eHAL_STATUS_SUCCESS)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                  "%s: could not set HT capabilty to CCM",
+                  "%s: could not set HT capability to CCM",
                   __func__);
 #define WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES 0xff
     value = SIZE_OF_SUPPORTED_MCS_SET;
@@ -6824,7 +6831,7 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         }
     }
 
-    /* check and update SU BEAMFORMEE capabality*/
+    /* check and update SU BEAMFORMEE capability*/
     if (pconfig->enableTxBF && !cfg->vht_su_bformee)
         pconfig->enableTxBF = cfg->vht_su_bformee;
 
@@ -7802,12 +7809,12 @@ static void hdd_uninit (struct net_device *dev)
 }
 
 /**---------------------------------------------------------------------------
-     \brief hdd_full_pwr_cbk() - HDD full power callbackfunction
+     \brief hdd_full_pwr_cbk() - HDD full power callback function
 
       This is the function invoked by SME to inform the result of a full power
       request issued by HDD
 
-     \param  - callbackcontext - Pointer to cookie
+     \param  - callback context - Pointer to cookie
                status - result of request
 
      \return - None
@@ -7831,7 +7838,7 @@ void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
      This is the function invoked by SME to inform the result of BMPS
      request issued by HDD
 
-    \param  - callbackcontext - Pointer to cookie
+    \param  - callback context - Pointer to cookie
                status - result of request
 
     \return - None
@@ -8182,7 +8189,7 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
     !defined (WLAN_OPEN_SOURCE)
    /* need to make sure all of our scheduled work has completed.
     * This callback is called from MC thread context, so it is safe to
-    * to call below flush workqueue API from here.
+    * to call below flush work queue API from here.
     *
     * Even though this is called from MC thread context, if there is a faulty
     * work item in the system, that can hang this call forever.  So flushing
@@ -8198,7 +8205,7 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
     * flushed, and the adapter structure can potentially be freed, in
     * which case the magic will have been reset.  So make sure the
     * magic is still good, and hence the adapter structure is still
-    * valid, before signaling completion */
+    * valid, before signalling completion */
    if (WLAN_HDD_ADAPTER_MAGIC == pAdapter->magic)
    {
       complete(&pAdapter->session_close_comp_var);
@@ -8902,7 +8909,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             pAdapter->sessionCtx.monitor.pAdapterForTx =
                            hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_P2P_GO);
          }
-         /* This workqueue will be used to transmit management packet over
+         /* This work queue will be used to transmit management packet over
           * monitor interface. */
          if (NULL == pAdapter->sessionCtx.monitor.pAdapterForTx) {
              hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:hdd_get_adapter",__func__);
@@ -10249,7 +10256,7 @@ void wlan_hdd_set_monitor_tx_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAd
 
   \param  - pHddCtx - Pointer to the HDD context.
               - mode - Device mode for which operating channel is required
-                suported modes - WLAN_HDD_INFRA_STATION, WLAN_HDD_P2P_CLIENT
+                supported modes - WLAN_HDD_INFRA_STATION, WLAN_HDD_P2P_CLIENT
                                  WLAN_HDD_SOFTAP, WLAN_HDD_P2P_GO.
   \return - channel number. "0" id the requested device is not found OR it is not connected.
   --------------------------------------------------------------------------*/
@@ -10440,7 +10447,7 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
   This is the function invoked by SME to inform the result of a full power
   request issued by HDD
 
-  \param  - callbackcontext - Pointer to cookie
+  \param  - callback context - Pointer to cookie
   \param  - status - result of request
 
   \return - None
@@ -10611,19 +10618,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
 
-   // Cancel any outstanding scan requests.  We are about to close all
-   // of our adapters, but an adapter structure is what SME passes back
-   // to our callback function.  Hence if there are any outstanding scan
-   // requests then there is a race condition between when the adapter
-   // is closed and when the callback is invoked.  We try to resolve that
-   // race condition here by canceling any outstanding scans before we
-   // close the adapters.
-   // Note that the scans may be cancelled in an asynchronous manner, so
-   // ideally there needs to be some kind of synchronization.  Rather than
-   // introduce a new synchronization here, we will utilize the fact that
-   // we are about to Request Full Power, and since that is synchronized,
-   // the expectation is that by the time Request Full Power has completed,
-   // all scans will be cancelled.
+   /*
+    * Cancel any outstanding scan requests.  We are about to close all
+    * of our adapters, but an adapter structure is what SME passes back
+    * to our callback function.  Hence if there are any outstanding scan
+    * requests then there is a race condition between when the adapter
+    * is closed and when the callback is invoked.  We try to resolve that
+    * race condition here by cancelling any outstanding scans before we
+    * close the adapters.
+    * Note that the scans may be cancelled in an asynchronous manner, so
+    * ideally there needs to be some kind of synchronization.  Rather than
+    * introduce a new synchronization here, we will utilize the fact that
+    * we are about to Request Full Power, and since that is synchronized,
+    * the expectation is that by the time Request Full Power has completed,
+    * all scans will be cancelled.
+    */
    hdd_abort_mac_scan_all_adapters(pHddCtx);
 
    /* Stop the traffic monitor timer */
@@ -11547,14 +11556,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
-   /* If SNR Monitoring is enabled, FW has to parse all beacons
-    * for calcaluting and storing the average SNR, so set Nth beacon
-    * filter to 1 to enable FW to parse all the beaocons
+   /*
+    * If SNR Monitoring is enabled, FW has to parse all beacons
+    * for calculating and storing the average SNR, so set Nth beacon
+    * filter to 1 to enable FW to parse all the beacons
     */
    if (1 == pHddCtx->cfg_ini->fEnableSNRMonitoring)
    {
       /* The log level is deliberately set to WARN as overriding
-       * nthBeaconFilter to 1 will increase power cosumption and this
+       * nthBeaconFilter to 1 will increase power consumption and this
        * might just prove helpful to detect the power issue.
        */
       hddLog(VOS_TRACE_LEVEL_WARN,
@@ -11868,7 +11878,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 
-   /* target hw version/revision would only be retrieved after firmware donwload */
+   /* Target hw version/revision would only be retrieved after
+      firmware download */
    hif_get_hw_info(hif_sc, &pHddCtx->target_hw_version,
                    &pHddCtx->target_hw_revision);
 
@@ -12302,7 +12313,7 @@ success:
 
   \brief hdd_driver_init() - Core Driver Init Function
 
-   This is the driver entry point - called in different timeline depending
+   This is the driver entry point - called in different time line depending
    on whether the driver is statically or dynamically linked
 
   \param  - None
@@ -12466,7 +12477,7 @@ static int __init hdd_module_init ( void)
   \brief hdd_driver_exit() - Exit function
 
   This is the driver exit point (invoked when module is unloaded using rmmod
-  or con_mode was changed by userspace)
+  or con_mode was changed by user space)
 
   \param  - None
 
@@ -12591,8 +12602,8 @@ static int con_mode_handler(const char *kmessage,
 
    This is the driver entry point
    - delayed driver initialization when driver is statically linked
-   - invoked when module parameter fwpath is modified from userspace to signal
-     initializing the WLAN driver or when con_mode is modified from userspace
+   - invoked when module parameter fwpath is modified from user space to signal
+     initializing the WLAN driver or when con_mode is modified from user space
      to signal a switch in operating mode
 
   \return - 0 for success, non zero for failure
@@ -12642,7 +12653,7 @@ static int fwpath_changed_handler(const char *kmessage,
 
   \brief con_mode_handler() -
 
-  Handler function for module param con_mode when it is changed by userspace
+  Handler function for module param con_mode when it is changed by user space
   Dynamically linked - do nothing
   Statically linked - exit and init driver, as in rmmod and insmod
 
@@ -12991,7 +13002,7 @@ void wlan_hdd_decr_active_session(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
  *
  *   \brief wlan_hdd_restart_init
  *
- *   This function initalizes restart timer/flag. An internal function.
+ *   This function initializes restart timer/flag. An internal function.
  *
  *   \param  - pHddCtx
  *
@@ -13062,7 +13073,7 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
    int len = (sizeof (struct ieee80211_mgmt));
    struct ieee80211_mgmt *mgmt = NULL;
 
-   /* Prepare the DEAUTH managment frame with reason code */
+   /* Prepare the DEAUTH management frame with reason code */
    mgmt =  kzalloc(len, GFP_KERNEL);
    if(mgmt == NULL)
    {
@@ -13188,7 +13199,7 @@ VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx)
   \param  - freq input frequency with order of MHz
 
   \return - corresponding channel number.
-            incannot find correct channel number, return 0
+            if cannot find correct channel number, return 0
 
   --------------------------------------------------------------------------*/
 v_U16_t hdd_freq_to_chn
@@ -13214,7 +13225,7 @@ v_U16_t hdd_freq_to_chn
   \brief hdd_ch_avoid_cb() -
 
   Avoid channel notification from FW handler.
-  FW will send un-safe channle list to avoid overwrapping.
+  FW will send un-safe channel list to avoid over wrapping.
   hostapd should not use notified channel
 
   \param  - pAdapter HDD adapter pointer
@@ -13751,7 +13762,7 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
         return;
     }
 
-    /* To enable shutdown timer check conncurrency */
+    /* To enable shutdown timer check concurrency */
     if (vos_concurrent_open_sessions_running()) {
         status = hdd_get_front_adapter ( hdd_ctx, &pAdapterNode );
 

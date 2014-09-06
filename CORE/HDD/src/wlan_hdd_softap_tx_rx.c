@@ -62,7 +62,7 @@
   -------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
-  Function definitions and documenation
+  Function definitions and documentation
   -------------------------------------------------------------------------*/
 #if 0
 static void hdd_softap_dump_sk_buff(struct sk_buff * skb)
@@ -88,8 +88,8 @@ extern void hdd_set_wlan_suspend_mode(bool suspend);
 
 /**============================================================================
   @brief hdd_softap_traffic_monitor_timeout_handler() -
-         SAP/P2P GO traffin monitor timeout handler function
-         If no traffic during programmed time, trigger suspand mode
+         SAP/P2P GO traffic monitor timeout handler function
+         If no traffic during programmed time, trigger suspend mode
 
   @param pUsrData : [in] pointer to hdd context
   @return         : NONE
@@ -151,7 +151,7 @@ VOS_STATUS hdd_start_trafficMonitor( hdd_adapter_t *pAdapter )
         pHddCtx->traffic_monitor.isInitialized = 1;
         pHddCtx->traffic_monitor.lastFrameTs   = 0;
         /* Start traffic monitor timer here
-         * If no AP assoc, immediatly go into suspend */
+         * If no AP assoc, immediately go into suspend */
         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
                   "%s  Start Traffic Monitor Timer", __func__);
         vos_timer_start(&pHddCtx->traffic_monitor.trafficTimer,
@@ -360,7 +360,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #endif /* QCA_PKT_PROTO_TRACE */
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
-   /* Prevent this funtion to be called during SSR since TL context may
+   /* Prevent this function to be called during SSR since TL context may
       not be reinitialized at this time which will lead crash. */
    if (pHddCtx->isLogpInProgress)
    {
@@ -526,7 +526,7 @@ drop_pkt:
   @param up       : [in] User Priority
 
   @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+                  : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
 VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
                                       struct net_device *dev,
@@ -584,7 +584,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    {
        VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
             "%s: station %d ac %d queue over limit %d", __func__, STAId, ac, pktListSize);
-       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
+       /* TODO:Rx Flowchart should be triggered here to SUPEND SSC on RX side.
         * SUSPEND should be done based on Threshold. RESUME would be
         * triggered in fetch cbk after recovery.
         */
@@ -734,7 +734,7 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
    if (VOS_STATUS_SUCCESS != hdd_start_trafficMonitor(pAdapter))
    {
        VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-          "%s: failed to start Traffic Monito timer ", __func__ );
+          "%s: failed to start Traffic Monitor timer ", __func__ );
        return VOS_STATUS_E_INVAL;
    }
    return status;
@@ -755,7 +755,7 @@ VOS_STATUS hdd_softap_deinit_tx_rx( hdd_adapter_t *pAdapter )
    if (VOS_STATUS_SUCCESS != hdd_stop_trafficMonitor(pAdapter))
    {
        VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Fail to Stop Traffic Monito timer", __func__ );
+                 "%s: Fail to Stop Traffic Monitor timer", __func__ );
        return VOS_STATUS_E_INVAL;
    }
 
@@ -848,7 +848,7 @@ VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_M
 }
 
 /**============================================================================
-  @brief hdd_softap_deinit_tx_rx_sta() - Deinit function to clean up a statioin in Tx/RX
+  @brief hdd_softap_deinit_tx_rx_sta() - Deinit function to clean up a station in Tx/RX
   modules in HDD
 
   @param pAdapter : [in] pointer to adapter context
@@ -941,7 +941,7 @@ VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter )
 /**============================================================================
   @brief hdd_softap_tx_complete_cbk() - Callback function invoked by TL
   to indicate that a packet has been transmitted across the bus
-  succesfully. OS packet resources can be released after this cbk.
+  successfully. OS packet resources can be released after this cbk.
 
   @param vosContext   : [in] pointer to VOS context
   @param pVosPacket   : [in] pointer to VOS packet (containing skb)
@@ -1218,8 +1218,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
          pPktMetaInfo->ucIsEapol = 1;
       }
    }
-
-//xg: @@@@: temporarily disble these. will revisit later
+   /* xg: @@@@: temporarily disable these. will revisit later */
    {
       pPktMetaInfo->ucUP = pktNode->userPriority;
       pPktMetaInfo->ucTID = pPktMetaInfo->ucUP;
@@ -1338,7 +1337,7 @@ VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 
   @param vosContext      : [in] pointer to VOS context
   @param rxBuf           : [in] pointer to rx adf_nbuf
-  @param staId           : [in] Station Id (Adress 1 Index)
+  @param staId           : [in] Station Id (Address 1 Index)
 
   @return                : VOS_STATUS_E_FAILURE if any errors encountered,
                          : VOS_STATUS_SUCCESS otherwise
@@ -1441,7 +1440,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
   @param vosContext      : [in] pointer to VOS context
   @param rx_buf_list     : [in] pointer to rx adf_nbuf linked list
-  @param staId           : [in] Station Id (Adress 1 Index)
+  @param staId           : [in] Station Id (Address 1 Index)
 
   @return                : VOS_STATUS_E_FAILURE if any errors encountered,
                          : VOS_STATUS_SUCCESS otherwise
@@ -1461,7 +1460,7 @@ VOS_STATUS hdd_softap_rx_mul_packet_cbk(v_VOID_t *vosContext,
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
          VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                   "%s: RX fail, satus %d", __func__, status);
+                   "%s: RX fail, status %d", __func__, status);
          return status;
       }
       buf = next_buf;
@@ -1548,7 +1547,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
       hdd_softap_DeregisterSTA( pAdapter, staId );
    }
 
-   // Get the Station ID from the one saved during the assocation.
+   /* Get the Station ID from the one saved during the association */
 
    staDesc.ucSTAId = staId;
 

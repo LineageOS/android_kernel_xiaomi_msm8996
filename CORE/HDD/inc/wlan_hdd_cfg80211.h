@@ -388,7 +388,7 @@ enum qca_wlan_vendor_attr_extscan_results
 
     /* Unsigned 64-bit value; age of sample at the time of retrieval */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
-    /* 33 x unsiged 8-bit value; NULL terminated SSID */
+    /* 33 x unsigned 8-bit value; NULL terminated SSID */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_SSID,
     /* An array of 6 x Unsigned 8-bit value */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_BSSID,

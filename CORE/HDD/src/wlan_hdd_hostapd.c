@@ -104,7 +104,7 @@ extern int process_wma_set_command(int sessid, int paramid,
     (IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
 #define WE_GET_STA_INFO_SIZE 30
-/* WEXT limition: MAX allowed buf len for any *
+/* WEXT limitation: MAX allowed buf len for any *
  * IW_PRIV_TYPE_CHAR is 2Kbytes *
  */
 #define WE_SAP_MAX_STA_INFO 0x7FF
@@ -132,7 +132,7 @@ extern int process_wma_set_command(int sessid, int paramid,
   --------------------------------------------------------------------------*/
 void hdd_hostapd_channel_wakelock_init(hdd_context_t *pHddCtx)
 {
-    /* Iniitialize the wakelock */
+    /* Initialize the wakelock */
     vos_wake_lock_init(&pHddCtx->sap_dfs_wakelock, "sap_dfs_wakelock");
     atomic_set(&pHddCtx->sap_dfs_ref_cnt, 0);
 }
@@ -326,7 +326,7 @@ static void hdd_hostapd_uninit (struct net_device *dev)
   @param dev      : [in] pointer to Libra network device
 
   @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+                  : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
 int hdd_hostapd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -398,7 +398,7 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
    {
       /*
        * command should be a string having format
-       * SET_SAP_CHANNEL_LIST <num channels> <channels seperated by spaces>
+       * SET_SAP_CHANNEL_LIST <num channels> <channels separated by spaces>
        */
       hddLog(VOS_TRACE_LEVEL_INFO,
              "%s: Received Command to Set Preferred Channels for SAP",
@@ -577,7 +577,7 @@ void hdd_restart_softap(hdd_context_t *pHddCtx,
 
   \brief hdd_hostapd_set_mac_address() -
    This function sets the user specified mac address using
-   the command ifconfig wlanX hw ether <mac adress>.
+   the command ifconfig wlanX hw ether <mac address>.
 
   \param  - dev - Pointer to the net device.
               - addr - Pointer to the sockaddr.
@@ -1052,12 +1052,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             break;
 
         case eSAP_STA_SET_KEY_EVENT:
-            //TODO: forward the message to hostapd once implementtation is done for now just print
+            /* TODO: forward the message to hostapd once implementation
+               is done for now just print */
             hddLog(LOG1, FL("SET Key: configured status = %s"),pSapEvent->sapevt.sapStationSetKeyCompleteEvent.status ?
                             "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
             return VOS_STATUS_SUCCESS;
         case eSAP_STA_DEL_KEY_EVENT:
-           //TODO: forward the message to hostapd once implementtation is done for now just print
+           /* TODO: forward the message to hostapd once implementation
+              is done for now just print */
            hddLog(LOG1, FL("Event received %s"),"eSAP_STA_DEL_KEY_EVENT");
            return VOS_STATUS_SUCCESS;
         case eSAP_STA_MIC_FAILURE_EVENT:
@@ -1550,7 +1552,7 @@ stopbss :
         if (eSAP_STOP_BSS_EVENT == sapEvent)
             vos_event_set(&pHostapdState->vosEvent);
 
-        /* notify userspace that the BSS has stopped */
+        /* Notify user space that the BSS has stopped */
         memset(&we_custom_event, '\0', sizeof(we_custom_event));
         memcpy(&we_custom_event, stopBssEvent, event_len);
         memset(&wrqu, 0, sizeof(wrqu));
@@ -3039,7 +3041,7 @@ static iw_display_data_path_snapshot(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
 
-    /* Function intitiating dumping states of
+    /* Function initiating dumping states of
      *  HDD(WMM Tx Queues)
      *  TL State (with Per Client infor)
      *  DXE Snapshot (Called at the end of TL Snapshot)
@@ -3084,7 +3086,7 @@ static iw_softap_set_tx_power(struct net_device *dev,
 /**---------------------------------------------------------------------------
 
   \brief iw_softap_set_trafficmonitor() -
-   This function dynamically enable/disable traffic monitor functonality
+   This function dynamically enable/disable traffic monitor functionality
    the command iwpriv wlanX setTrafficMon <value>.
 
   \param  - dev - Pointer to the net device.
@@ -3113,25 +3115,25 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
     int cnt = 0;
     int left;
     int ret = 0;
-    /* maclist_index must be u32 to match userspace */
+    /* maclist_index must be u32 to match user space */
     u32 maclist_index;
 
     /*
      * NOTE WELL: this is a "get" ioctl but it uses an even ioctl
      * number, and even numbered iocts are supposed to have "set"
      * semantics.  Hence the wireless extensions support in the kernel
-     * won't correctly copy the result to userspace, so the ioctl
+     * won't correctly copy the result to user space, so the ioctl
      * handler itself must copy the data.  Output format is 32-bit
      * record length, followed by 0 or more 6-byte STA MAC addresses.
      *
      * Further note that due to the incorrect semantics, the "iwpriv"
-     * userspace application is unable to correctly invoke this API,
+     * user space application is unable to correctly invoke this API,
      * hence it is not registered in the hostapd_private_args.  This
      * API can only be invoked by directly invoking the ioctl() system
      * call.
      */
 
-    /* make sure userspace allocated a reasonable buffer size */
+    /* Make sure user space allocated a reasonable buffer size */
     if (wrqu->data.length < sizeof(maclist_index)) {
         hddLog(LOG1, "%s: invalid userspace buffer", __func__);
         return -EINVAL;
@@ -3491,7 +3493,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     }
     if(!ext->key_len) {
 #if 0
-      /*Set the encrytion type to NONE*/
+      /*Set the encryption type to NONE*/
 #if 0
        pRoamProfile->EncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_NONE;
 #endif

@@ -83,7 +83,7 @@ static struct sk_buff* hdd_mon_tx_fetch_pkt(hdd_adapter_t* pAdapter);
   -------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
-  Function definitions and documenation
+  Function definitions and documentation
   -------------------------------------------------------------------------*/
 
 #ifdef DATA_PATH_UNIT_TEST
@@ -205,7 +205,7 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
          break;
       }
       spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
-      // backpressure is no longer in effect
+      /* Back pressure is no longer in effect */
       pAdapter->isTxSuspended[i] = VOS_FALSE;
    }
 
@@ -217,7 +217,7 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
                                       in IBSS mode
 
   @param pAdapter : [in] pointer to adapter context
-                  : [in] Staion Id
+                  : [in] Station Id
   @return         : VOS_STATUS_E_FAILURE if any errors encountered
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
@@ -337,7 +337,8 @@ static struct sk_buff* hdd_mon_tx_fetch_pkt(hdd_adapter_t* pAdapter)
       return NULL;
    }
 
-   // if we are in a backpressure situation see if we can turn the hose back on
+   /* If we are in a back pressure situation see if we can turn the
+      hose back on */
    if ( (pAdapter->isTxSuspended[ac]) &&
         (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
    {
@@ -475,7 +476,8 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       goto fail; /* too short to be possibly valid */
    }
 
-   /* check if toal skb length is greater then radio tab header length of not */
+   /* Check if total skb length is greater then radio tap
+      header length of not */
    if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
       goto fail; /* too short to be possibly valid */
 
@@ -486,7 +488,7 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    /*Strip off the radio tap header*/
    rt_hdr_len = ieee80211_get_radiotap_len(skb->data);
 
-   /* check if skb length if greator then total radio tap header length ot not*/
+   /* Check if skb length if greater then total radio tap header length ot not*/
    if (unlikely(skb->len < rt_hdr_len))
       goto fail;
 
@@ -509,7 +511,7 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    hdr = (struct ieee80211_hdr *)skb->data;
 
    /* Send data frames through the normal Data path. In this path we will
-    * conver rcvd 802.11 packet to 802.3 packet */
+    * convert rcvd 802.11 packet to 802.3 packet */
    if ( (hdr->frame_control & HDD_FRAME_TYPE_MASK)  == HDD_FRAME_TYPE_DATA)
    {
       v_U8_t da[6];
@@ -594,11 +596,11 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          return NETDEV_TX_OK;
       }
 
-      if ( pktListSize == 1 )
-      {
-         /* In this context we cannot acquire any mutex etc. And to transmit
+      if (pktListSize == 1) {
+         /*
+          * In this context we cannot acquire any mutex etc. And to transmit
           * this packet we need to call SME API. So to take care of this we will
-          * schedule a workqueue
+          * schedule a work queue
           */
          schedule_work(&pPgBkAdapter->monTxWorkQueue);
       }
@@ -621,7 +623,7 @@ fail:
       If Blocked OS Q is not resumed during timeout period, to prevent
       permanent stall, resume OS Q forcefully.
 
-  @param adapter_context : [in] pointer to vdev apdapter
+  @param adapter_context : [in] pointer to vdev adapter
 
   @return         : NONE
   ===========================================================================*/
@@ -643,7 +645,7 @@ void hdd_tx_resume_timer_expired_handler(void *adapter_context)
   @brief hdd_tx_resume_cb() - Resume OS TX Q.
       Q was stopped due to WLAN TX path low resource condition
 
-  @param adapter_context : [in] pointer to vdev apdapter
+  @param adapter_context : [in] pointer to vdev adapter
   @param tx_resume       : [in] TX Q resume trigger
 
   @return         : NONE
@@ -701,7 +703,7 @@ void hdd_tx_resume_cb(void *adapter_context,
   @param dev      : [in] pointer to network device
 
   @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+                  : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
 int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -828,7 +830,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    if (!granted) {
       bool isDefaultAc = VOS_FALSE;
       /* ADDTS request for this AC is sent, for now
-       * send this packet through next avaiable lower
+       * send this packet through next available lower
        * Access category until ADDTS negotiation completes.
        */
       while (!likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed)) {
@@ -1145,7 +1147,7 @@ v_BOOL_t hdd_IsWAIPacket( vos_pkt_t *pVosPacket )
 /**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
   to indicate that a packet has been transmitted across the SDIO bus
-  succesfully. OS packet resources can be released after this cbk.
+  successfully. OS packet resources can be released after this cbk.
 
   @param vosContext   : [in] pointer to VOS context
   @param pVosPacket   : [in] pointer to VOS packet (containing skb)
@@ -1485,7 +1487,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 
 
 
-   // if we are in a backpressure situation see if we can turn the hose back on
+   /* If we are in a back pressure situation see if we can turn the
+      hose back on */
    if ( (pAdapter->isTxSuspended[ac]) &&
         (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
    {
@@ -1756,7 +1759,7 @@ void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
 
   @param vosContext      : [in] pointer to VOS context
   @param rx_buf_list     : [in] pointer to rx adf_nbuf linked list
-  @param staId           : [in] Station Id (Adress 1 Index)
+  @param staId           : [in] Station Id (Address 1 Index)
 
   @return                : VOS_STATUS_E_FAILURE if any errors encountered,
                          : VOS_STATUS_SUCCESS otherwise
