@@ -115,6 +115,7 @@ extern int process_wma_set_command(int sessid, int paramid,
 #define HT_RC_2_STREAMS_11AC(_rc)    ((((_rc) & 0x30) >> 4) + 1)
 
 #define SAP_24GHZ_CH_COUNT (14)
+#define ACS_SCAN_EXPIRY_TIMEOUT_S 4
 
 /*---------------------------------------------------------------------------
  *   Function definitions
@@ -1438,6 +1439,19 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pHddApCtx->operatingChannel);
             /* TODO Need to indicate operating channel change to hostapd */
             return VOS_STATUS_SUCCESS;
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        case eSAP_ACS_SCAN_SUCCESS_EVENT:
+            pHddCtx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+            hddLog(LOG1, FL("Reusing Last ACS scan result for %d sec"),
+                ACS_SCAN_EXPIRY_TIMEOUT_S);
+            vos_timer_stop( &pHddCtx->skip_acs_scan_timer);
+            vos_status = vos_timer_start( &pHddCtx->skip_acs_scan_timer,
+                                   ACS_SCAN_EXPIRY_TIMEOUT_S * 1000);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                hddLog(LOGE, FL("Failed to start ACS scan expiry timer"));
+            return VOS_STATUS_SUCCESS;
+#endif
 
         case eSAP_DFS_NOL_GET:
             hddLog(VOS_TRACE_LEVEL_INFO,
@@ -3082,52 +3096,6 @@ static int iw_softap_set_trafficmonitor(struct net_device *dev,
         struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    int *isSetTrafficMon = (int *)wrqu->data.pointer;
-    hdd_context_t *pHddCtx;
-    int status;
-
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
-    status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
-        return status;
-    }
-
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s : ", __func__);
-
-    if (NULL == isSetTrafficMon)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid SAP pointer from extra", __func__);
-        return -ENOMEM;
-    }
-
-    if (TRUE == *isSetTrafficMon)
-    {
-        pHddCtx->cfg_ini->enableTrafficMonitor= TRUE;
-        if (VOS_STATUS_SUCCESS != hdd_start_trafficMonitor(pAdapter))
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: failed to Start Traffic Monitor timer ", __func__ );
-            return -EIO;
-        }
-    }
-    else if (FALSE == *isSetTrafficMon)
-    {
-        pHddCtx->cfg_ini->enableTrafficMonitor= FALSE;
-        if (VOS_STATUS_SUCCESS != hdd_stop_trafficMonitor(pAdapter))
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: failed to Stop Traffic Monitor timer ", __func__ );
-            return -EIO;
-        }
-
-    }
     return 0;
 }
 

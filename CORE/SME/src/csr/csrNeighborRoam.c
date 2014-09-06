@@ -4974,7 +4974,9 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
     }
 #endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
+    if (pSession->roamOffloadSynchParams.bRoamSynchInProgress &&
+       (eSIR_ROAM_AUTH_STATUS_AUTHENTICATED ==
+        pSession->roamOffloadSynchParams.authStatus))
     {
        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                   "LFR3:csrNeighborRoamIndicateConnect");
@@ -5138,8 +5140,6 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
                              "LFR3:Send SynchCnf auth status authenticated");
                              csrRoamOffloadSendSynchCnf( pMac, sessionId);
                          }
-                         pSession->roamOffloadSynchParams.bRoamSynchInProgress =
-                         VOS_FALSE;
                      } else
 #endif
                      csrRoamOffloadScan(pMac, sessionId,

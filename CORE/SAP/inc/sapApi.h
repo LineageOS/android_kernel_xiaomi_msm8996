@@ -207,6 +207,9 @@ typedef enum {
     eSAP_DFS_NOL_GET,  /* Event sent when user need to get the DFS NOL from CNSS */
     eSAP_DFS_NOL_SET,  /* Event sent when user need to set the DFS NOL to CNSS */
     eSAP_DFS_NO_AVAILABLE_CHANNEL, /* No ch available after DFS RADAR detect */
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    eSAP_ACS_SCAN_SUCCESS_EVENT,
+#endif
 } eSapHddEvent;
 
 typedef enum {
@@ -486,6 +489,16 @@ typedef struct sap_Config {
     v_BOOL_t        apAutoChannelSelection;
     v_U8_t          apStartChannelNum;
     v_U8_t          apEndChannelNum;
+    v_U8_t          apOperatingBand;
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    v_U8_t          skip_acs_scan_status;
+    v_U8_t          skip_acs_scan_range1_stch;
+    v_U8_t          skip_acs_scan_range1_endch;
+    v_U8_t          skip_acs_scan_range2_stch;
+    v_U8_t          skip_acs_scan_range2_endch;
+#endif
+
 #ifdef WLAN_FEATURE_11W
     v_BOOL_t        mfpRequired;
     v_BOOL_t        mfpCapable;
@@ -505,8 +518,16 @@ typedef struct sap_Config {
 
 } tsap_Config_t;
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
 typedef enum {
-    eSAP_WPS_PROBE_RSP_IE,
+    eSAP_DO_NEW_ACS_SCAN,
+    eSAP_DO_PAR_ACS_SCAN,
+    eSAP_SKIP_ACS_SCAN
+} tSap_skip_acs_scan;
+#endif
+
+typedef enum {
+     eSAP_WPS_PROBE_RSP_IE,
     eSAP_WPS_BEACON_IE,
     eSAP_WPS_ASSOC_RSP_IE
 } eSapWPSIE_CODE;
@@ -2124,6 +2145,29 @@ RETURN VALUE If SUCCESS or FAILURE
 SIDE EFFECTS
 ============================================================================*/
 eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
+
+/*==========================================================================
+FUNCTION  WLANSAP_extend_to_acs_range
+
+DESCRIPTION Function extends give channel range to consider ACS chan bonding
+
+DEPENDENCIES PARAMETERS
+
+IN /OUT
+*startChannelNum : ACS extend start ch
+*endChannelNum   : ACS extended End ch
+*bandStartChannel: Band start ch
+*bandEndChannel  : Band end ch
+
+RETURN VALUE NONE
+
+SIDE EFFECTS
+============================================================================*/
+v_VOID_t WLANSAP_extend_to_acs_range(v_U8_t operatingBand,
+                                  v_U8_t *startChannelNum,
+                                  v_U8_t *endChannelNum,
+                                  v_U8_t *bandStartChannel,
+                                  v_U8_t *bandEndChannel);
 
 /*==========================================================================
   FUNCTION    WLANSAP_Get_DfsNol

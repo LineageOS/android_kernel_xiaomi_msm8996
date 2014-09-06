@@ -678,7 +678,13 @@ WLANSAP_StartBss
         pSapCtx->apAutoChannelSelection = pConfig->apAutoChannelSelection;
         pSapCtx->apStartChannelNum = pConfig->apStartChannelNum;
         pSapCtx->apEndChannelNum = pConfig->apEndChannelNum;
-
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        pSapCtx->skip_acs_scan_status = pConfig->skip_acs_scan_status;
+        pSapCtx->skip_acs_scan_range1_endch = pConfig->skip_acs_scan_range1_endch;
+        pSapCtx->skip_acs_scan_range1_stch = pConfig->skip_acs_scan_range1_stch;
+        pSapCtx->skip_acs_scan_range2_endch = pConfig->skip_acs_scan_range2_endch;
+        pSapCtx->skip_acs_scan_range2_stch = pConfig->skip_acs_scan_range2_stch;
+#endif
         pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
         if (strlen(pConfig->acsAllowedChnls) > 0)
         {
@@ -3226,6 +3232,99 @@ WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig,
         break;
     }
     return VOS_STATUS_SUCCESS;
+}
+
+/*==========================================================================
+FUNCTION  WLANSAP_extend_to_acs_range
+
+DESCRIPTION Function extends give channel range to consider ACS chan bonding
+
+DEPENDENCIES PARAMETERS
+
+IN /OUT
+*startChannelNum : ACS extend start ch
+*endChannelNum   : ACS extended End ch
+*bandStartChannel: Band start ch
+*bandEndChannel  : Band end ch
+
+RETURN VALUE NONE
+
+SIDE EFFECTS
+============================================================================*/
+v_VOID_t WLANSAP_extend_to_acs_range(v_U8_t operatingBand,
+                                  v_U8_t *startChannelNum,
+                                  v_U8_t *endChannelNum,
+                                  v_U8_t *bandStartChannel,
+                                  v_U8_t *bandEndChannel)
+{
+#define ACS_2G_EXTEND 4
+#define ACS_5G_EXTEND 12
+
+        switch(operatingBand)
+        {
+            case eSAP_RF_SUBBAND_2_4_GHZ:
+               *bandStartChannel = RF_CHAN_1;
+               *bandEndChannel = RF_CHAN_14;
+               *startChannelNum = *startChannelNum > 5 ?
+                                      (*startChannelNum - ACS_2G_EXTEND): 1;
+               *endChannelNum = (*endChannelNum + ACS_2G_EXTEND) <= 14 ?
+                                      (*endChannelNum + ACS_2G_EXTEND):14;
+               break;
+
+            case eSAP_RF_SUBBAND_5_LOW_GHZ:
+               *bandStartChannel = RF_CHAN_36;
+               *bandEndChannel = RF_CHAN_64;
+               *startChannelNum = (*startChannelNum - ACS_5G_EXTEND) > 36 ?
+                                      (*startChannelNum - ACS_5G_EXTEND):36;
+               *endChannelNum = (*endChannelNum + ACS_5G_EXTEND) <= 64?
+                                      (*endChannelNum + ACS_5G_EXTEND):64;
+               break;
+
+            case eSAP_RF_SUBBAND_5_MID_GHZ:
+               *bandStartChannel = RF_CHAN_100;
+               *startChannelNum = (*startChannelNum - ACS_5G_EXTEND) > 100 ?
+                                      (*startChannelNum - ACS_5G_EXTEND):100;
+#ifndef FEATURE_WLAN_CH144
+               *bandEndChannel = RF_CHAN_140;
+               *endChannelNum = (*endChannelNum + ACS_5G_EXTEND) <= 140 ?
+                                      (*endChannelNum + ACS_5G_EXTEND):140;
+#else
+               *bandEndChannel = RF_CHAN_144;
+               *endChannelNum = (*endChannelNum + ACS_5G_EXTEND) <= 144 ?
+                                      (*endChannelNum + ACS_5G_EXTEND):144;
+#endif /* FEATURE_WLAN_CH144 */
+               break;
+
+            case eSAP_RF_SUBBAND_5_HIGH_GHZ:
+               *bandStartChannel = RF_CHAN_149;
+               *bandEndChannel = RF_CHAN_165;
+               *startChannelNum = (*startChannelNum - ACS_5G_EXTEND) > 149 ?
+                                      (*startChannelNum - ACS_5G_EXTEND):149;
+               *endChannelNum = (*endChannelNum + ACS_5G_EXTEND) <= 165 ?
+                                    (*endChannelNum + ACS_5G_EXTEND):165;
+               break;
+
+            case eSAP_RF_SUBBAND_5_ALL_GHZ:
+               *bandStartChannel = RF_CHAN_36;
+               *bandEndChannel = RF_CHAN_165;
+               *startChannelNum = (*startChannelNum - ACS_5G_EXTEND) > 36 ?
+                                       (*startChannelNum - ACS_5G_EXTEND):36;
+               *endChannelNum = (*endChannelNum + ACS_5G_EXTEND) <= 165 ?
+                                    (*endChannelNum + ACS_5G_EXTEND):165;
+               break;
+
+            default:
+               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                 "sapGetChannelList:OperatingBand not valid ");
+               /* assume 2.4 GHz */
+               *bandStartChannel = RF_CHAN_1;
+               *bandEndChannel = RF_CHAN_14;
+               *startChannelNum = *startChannelNum > 5 ?
+                                      (*startChannelNum - ACS_2G_EXTEND): 1;
+               *endChannelNum = (*endChannelNum + ACS_2G_EXTEND) <= 14 ?
+                                    (*endChannelNum + ACS_2G_EXTEND):14;
+               break;
+        }
 }
 
 /*==========================================================================

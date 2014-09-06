@@ -5458,6 +5458,7 @@ eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     tpSirSmeRoamOffloadSynchCnf pRoamOffloadSynchCnf;
     vos_msg_t msg;
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
     pRoamOffloadSynchCnf =
             vos_mem_malloc(sizeof(tSirSmeRoamOffloadSynchCnf));
     if (NULL == pRoamOffloadSynchCnf)
@@ -5466,6 +5467,7 @@ eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
           VOS_TRACE_LEVEL_ERROR,
           "%s: not able to allocate memory for roam"
           "offload synch confirmation data", __func__);
+        pSession->roamOffloadSynchParams.bRoamSynchInProgress = VOS_FALSE;
         return eHAL_STATUS_FAILURE;
     }
     pRoamOffloadSynchCnf->sessionId = sessionId;
@@ -5477,14 +5479,14 @@ eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
     if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
                                     VOS_MODULE_ID_WDA, &msg)))
     {
-            VOS_TRACE(VOS_MODULE_ID_SME,
-                VOS_TRACE_LEVEL_DEBUG,
-                "%s: Not able to post"
-                  "WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
-                     __func__);
-            vos_mem_free(pRoamOffloadSynchCnf);
-         return eHAL_STATUS_FAILURE;
+        VOS_TRACE(VOS_MODULE_ID_SME,VOS_TRACE_LEVEL_DEBUG,
+        "%s: Not able to post WDA_ROAM_OFFLOAD_SYNCH_CNF message to WDA",
+        __func__);
+        vos_mem_free(pRoamOffloadSynchCnf);
+        pSession->roamOffloadSynchParams.bRoamSynchInProgress = VOS_FALSE;
+        return eHAL_STATUS_FAILURE;
     }
+    pSession->roamOffloadSynchParams.bRoamSynchInProgress = VOS_FALSE;
     return eHAL_STATUS_SUCCESS;
 }
 #endif
