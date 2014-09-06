@@ -1050,6 +1050,11 @@ eHalStatus csrRoamDequeueRoamOffloadSynch(tpAniSirGlobal pMac);
 void csrRoamFTRoamOffloadSynchRspProcessor(
     tHalHandle hHal, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp );
 #endif
+
+tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac);
+void csrAddVoteForCountryInfo(tpAniSirGlobal pMac, tANI_U8 *pCountryCode);
+void csrClearVotesForCountryInfo(tpAniSirGlobal pMac);
+
 #endif
 
 #ifdef QCA_HT_2040_COEX

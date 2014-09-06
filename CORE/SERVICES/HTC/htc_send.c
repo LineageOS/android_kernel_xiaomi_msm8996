@@ -27,6 +27,7 @@
 
 
 
+#include "htc_debug.h"
 #include "htc_internal.h"
 #include <adf_nbuf.h> /* adf_nbuf_t */
 #include <adf_os_mem.h> /* adf_os_mem_alloc */
@@ -52,12 +53,6 @@ typedef enum _HTC_SEND_QUEUE_RESULT {
 #if DEBUG_CREDIT
 /* bit mask to enable debug certain endpoint */
 static unsigned ep_debug_mask = (1 << ENDPOINT_0) | (1 << ENDPOINT_1) | (1 << ENDPOINT_2);
-#endif
-
-#define DEBUG_BUNDLE 0
-
-#ifndef ENABLE_BUNDLE_TX
-#define ENABLE_BUNDLE_TX 0
 #endif
 
 /* HTC Control Path Credit History */
@@ -180,7 +175,7 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
     if (NULL == target->pBundleFreeList) {
         UNLOCK_HTC_TX(target);
         netbuf = adf_nbuf_alloc(NULL,
-                HTC_HOST_MAX_MSG_PER_BUNDLE * target->TargetCreditSize,
+                target->MaxMsgsPerHTCBundle * target->TargetCreditSize,
                 0,
                 4,
                 FALSE);
@@ -207,9 +202,16 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
         INIT_HTC_PACKET_QUEUE(pQueueSave);
         pPacket->pContext = pQueueSave;
         SET_HTC_PACKET_NET_BUF_CONTEXT(pPacket, netbuf);
+        pPacket->pBuffer = adf_nbuf_data(netbuf);
+        pPacket->BufferLength = adf_nbuf_len(netbuf);
+
+        //store the original head room so that we can restore this when we "free" the packet
+        //free packet puts the packet back on the free list
+        pPacket->netbufOrigHeadRoom = adf_nbuf_headroom(netbuf);
         return pPacket;
     }
 
+    //already done malloc - restore from free list
     pPacket = target->pBundleFreeList;
     AR_DEBUG_ASSERT(pPacket);
     if (!pPacket)
@@ -219,26 +221,45 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
     }
     target->pBundleFreeList = (HTC_PACKET *)pPacket->ListLink.pNext;
     UNLOCK_HTC_TX(target);
-    netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
-    AR_DEBUG_ASSERT(netbuf);
-    if (!netbuf)
-    {
-        return NULL;
-    }
-    adf_nbuf_trim_tail(netbuf, adf_nbuf_len(netbuf));
-    pQueueSave = (HTC_PACKET_QUEUE*)pPacket->pContext;
-    AR_DEBUG_ASSERT(pQueueSave);
-    if (!pQueueSave)
-    {
-        return NULL;
-    }
-    INIT_HTC_PACKET_QUEUE(pQueueSave);
     pPacket->ListLink.pNext = NULL;
+
     return pPacket;
 }
 
 void FreeHTCBundlePacket(HTC_TARGET *target, HTC_PACKET *pPacket)
 {
+    A_UINT32 curentHeadRoom;
+    adf_nbuf_t netbuf;
+    HTC_PACKET_QUEUE *pQueueSave;
+
+    netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+    AR_DEBUG_ASSERT(netbuf);
+    if (!netbuf)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("\n%s: Invalid netbuf in HTC "
+                                        "Packet\n", __func__));
+        return;
+    }
+
+    // HIF adds data to the headroom section of the nbuf, restore the original
+    // size. If this is not done, headroom keeps shrinking with every HIF send
+    // and eventually HIF ends up doing another malloc big enough to store the
+    // data + its header
+
+    curentHeadRoom = adf_nbuf_headroom(netbuf);
+    adf_nbuf_pull_head(netbuf, pPacket->netbufOrigHeadRoom - curentHeadRoom);
+    adf_nbuf_trim_tail(netbuf, adf_nbuf_len(netbuf));
+
+    //restore the pBuffer pointer. HIF changes this
+    pPacket->pBuffer = adf_nbuf_data(netbuf);
+    pPacket->BufferLength = adf_nbuf_len(netbuf);
+
+    //restore queue
+    pQueueSave = (HTC_PACKET_QUEUE*)pPacket->pContext;
+    AR_DEBUG_ASSERT(pQueueSave);
+
+    INIT_HTC_PACKET_QUEUE(pQueueSave);
+
     LOCK_HTC_TX(target);
     if (target->pBundleFreeList == NULL) {
         target->pBundleFreeList = pPacket;
@@ -250,14 +271,14 @@ void FreeHTCBundlePacket(HTC_TARGET *target, HTC_PACKET *pPacket)
     UNLOCK_HTC_TX(target);
 }
 
-#if ENABLE_BUNDLE_TX
-
+#if defined(HIF_USB) || defined(HIF_SDIO)
+#ifdef ENABLE_BUNDLE_TX
 static A_STATUS HTCSendBundledNetbuf(HTC_TARGET *target,
         HTC_ENDPOINT *pEndpoint,
         unsigned char *pBundleBuffer,
         HTC_PACKET *pPacketTx)
 {
-    int data_len;
+    adf_os_size_t data_len;
     A_STATUS status;
     adf_nbuf_t bundleBuf;
     bundleBuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacketTx);
@@ -302,7 +323,7 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
    int              creditPad, creditRemainder,transferLength, bundlesSpaceRemaining = 0;
    HTC_PACKET_QUEUE *pQueueSave = NULL;
 
-   bundlesSpaceRemaining = HTC_HOST_MAX_MSG_PER_BUNDLE * pEndpoint->TxCreditSize;
+   bundlesSpaceRemaining = target->MaxMsgsPerHTCBundle * pEndpoint->TxCreditSize;
    pPacketTx = AllocateHTCBundlePacket(target);
    if (!pPacketTx)
    {
@@ -334,10 +355,10 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
        if (bundlesSpaceRemaining < transferLength){
            /* send out previous buffer */
            HTCSendBundledNetbuf(target, pEndpoint, pBundleBuffer, pPacketTx);
-           if (HTC_PACKET_QUEUE_DEPTH(pPktQueue) < HTC_MIN_HTC_MSGS_TO_BUNDLE){
+           if (HTC_PACKET_QUEUE_DEPTH(pPktQueue) < HTC_MIN_MSG_PER_BUNDLE){
                return;
            }
-           bundlesSpaceRemaining = HTC_HOST_MAX_MSG_PER_BUNDLE * pEndpoint->TxCreditSize;
+           bundlesSpaceRemaining = target->MaxMsgsPerHTCBundle * pEndpoint->TxCreditSize;
            pPacketTx = AllocateHTCBundlePacket(target);
            if (!pPacketTx)
            {
@@ -384,6 +405,7 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
    }
 }
 #endif /* ENABLE_BUNDLE_TX */
+#endif
 
 static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
                                 HTC_ENDPOINT     *pEndpoint,
@@ -397,13 +419,15 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("+HTCIssuePackets: Queue: %p, Pkts %d \n",
                     pPktQueue, HTC_PACKET_QUEUE_DEPTH(pPktQueue)));
-
     while (TRUE) {
-#if ENABLE_BUNDLE_TX
+#if defined(HIF_USB) || defined(HIF_SDIO)
+#ifdef ENABLE_BUNDLE_TX
         if(IS_TX_CREDIT_FLOW_ENABLED(pEndpoint) &&
-                HTC_PACKET_QUEUE_DEPTH(pPktQueue) >= HTC_MIN_HTC_MSGS_TO_BUNDLE){
+                HTC_ENABLE_BUNDLE(target) &&
+                HTC_PACKET_QUEUE_DEPTH(pPktQueue) >= HTC_MIN_MSG_PER_BUNDLE){
             HTCIssuePacketsBundle(target, pEndpoint, pPktQueue);
         }
+#endif
 #endif
         /* if not bundling or there was a packet that could not be placed in a bundle,
          * and send it by normal way
@@ -460,6 +484,12 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
                               pEndpoint->UL_PipeID, pEndpoint->Id,
                               HTC_HDR_LENGTH + pPacket->ActualLength,
                               netbuf);
+#if DEBUG_BUNDLE
+        adf_os_print(" Send single EP%d buffer size:0x%x, total:0x%x.\n",
+            pEndpoint->Id,
+            pEndpoint->TxCreditSize,
+            HTC_HDR_LENGTH + pPacket->ActualLength);
+#endif
 
 	target->CE_send_cnt++;
 
@@ -489,7 +519,6 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
         }
 
     }
-
     if (adf_os_unlikely(A_FAILED(status))) {
 #if defined(HIF_USB)
         if (pEndpoint->Id >= ENDPOINT_2 && pEndpoint->Id <= ENDPOINT_5)
@@ -1129,8 +1158,8 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf, int Epid,
 }
 #else /*ATH_11AC_TXCOMPACT*/
 
-
-A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
+A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket,
+                        A_UINT8 more_data)
 {
     HTC_TARGET       *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
     HTC_ENDPOINT     *pEndpoint;
@@ -1181,6 +1210,12 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
 
         /* append new packet to pEndpoint->TxQueue */
         HTC_PACKET_ENQUEUE(&pEndpoint->TxQueue, pPacket);
+#ifdef ENABLE_BUNDLE_TX
+        if (HTC_ENABLE_BUNDLE(target) && (more_data)) {
+            UNLOCK_HTC_TX(target);
+            return A_OK;
+        }
+#endif
     } else {
         LOCK_HTC_TX(target);
         pEndpoint = &target->EndPoint[1];
@@ -1216,7 +1251,16 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
         }
 #endif
         UNLOCK_HTC_TX(target);
-    } else {
+    }
+#ifdef ENABLE_BUNDLE_TX
+    else if (HTC_ENABLE_BUNDLE(target)) {
+        /* Dequeue max packets from endpoint tx queue */
+        GetHTCSendPackets(target, pEndpoint, &sendQueue,
+                          HTC_MAX_TX_BUNDLE_SEND_LIMIT);
+        UNLOCK_HTC_TX(target);
+    }
+#endif
+    else {
         /*
          * Now drain the endpoint TX queue for transmission as long as we have
          * enough transmit resources
@@ -1225,14 +1269,15 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
         GetHTCSendPackets(target, pEndpoint, &sendQueue, tx_resources);
         UNLOCK_HTC_TX(target);
     }
-
     /* send what we can */
     while (TRUE) {
-#if ENABLE_BUNDLE_TX
-        if(IS_TX_CREDIT_FLOW_ENABLED(pEndpoint) &&
-                HTC_PACKET_QUEUE_DEPTH(&sendQueue) >= HTC_MIN_HTC_MSGS_TO_BUNDLE){
+#if defined(HIF_USB) || defined(HIF_SDIO)
+#ifdef ENABLE_BUNDLE_TX
+        if (HTC_ENABLE_BUNDLE(target) &&
+           HTC_PACKET_QUEUE_DEPTH(&sendQueue) >= HTC_MIN_MSG_PER_BUNDLE) {
             HTCIssuePacketsBundle(target, pEndpoint, &sendQueue);
         }
+#endif
 #endif
         pPacket = HTC_PACKET_DEQUEUE(&sendQueue);
         if (pPacket == NULL){
@@ -1252,6 +1297,13 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
                               pEndpoint->Id,
                               HTC_HDR_LENGTH + pPacket->ActualLength,
                               netbuf);
+#if DEBUG_BUNDLE
+        adf_os_print(" Send single EP%d buffer size:0x%x, total:0x%x.\n",
+            pEndpoint->Id,
+            pEndpoint->TxCreditSize,
+            HTC_HDR_LENGTH + pPacket->ActualLength);
+#endif
+
         if (adf_os_unlikely(A_FAILED(status))) {
             LOCK_HTC_TX(target);
             pEndpoint->ul_outstanding_cnt--;
@@ -1277,7 +1329,6 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
             break; /* still need to reset TxProcessCount */
         }
     }
-
     /* done with this endpoint, we can clear the count */
     adf_os_atomic_init(&pEndpoint->TxProcessCount);
 
@@ -1625,7 +1676,7 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
             HTCTrySend(target,pEndpoint,NULL);
 #else
             if (pEndpoint->ServiceID == HTT_DATA_MSG_SVC){
-                HTCSendDataPkt(target, NULL);
+                HTCSendDataPkt(target, NULL, 0);
             } else {
                 HTCTrySend(target,pEndpoint,NULL);
             }

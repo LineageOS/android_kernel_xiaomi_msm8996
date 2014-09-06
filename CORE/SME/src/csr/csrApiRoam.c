@@ -347,8 +347,11 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac, v_U8_t *alpha2)
     vos_mem_copy(mac->scan.countryCodeCurrent,
                  mac->scan.countryCodeDefault,
                  WNI_CFG_COUNTRY_CODE_LEN);
-
+    vos_mem_copy(mac->scan.countryCodeElected,
+                 mac->scan.countryCodeDefault,
+                 WNI_CFG_COUNTRY_CODE_LEN);
     status = csrInitGetChannels(mac);
+    csrClearVotesForCountryInfo(mac);
     return status;
 }
 

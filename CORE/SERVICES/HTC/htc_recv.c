@@ -25,7 +25,7 @@
  * to the Linux Foundation.
  */
 
-
+#include "htc_debug.h"
 #include "htc_internal.h"
 #include "vos_api.h"
 #include <adf_nbuf.h> /* adf_nbuf_t */
@@ -354,7 +354,7 @@ A_STATUS HTCRxCompletionHandler(
                 temp = HTC_GET_FIELD(HtcHdr, HTC_FRAME_HDR, CONTROLBYTES0);
                 if ((temp < sizeof(HTC_RECORD_HDR)) || (temp > payloadLen)) {
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
-                        ("HTCProcessRecvHeader, invalid header (payloadlength should be :%d, CB[0] is:%d) \n",
+                        ("HTCRxCompletionHandler, invalid header (payloadlength should be :%d, CB[0] is:%d) \n",
                             payloadLen, temp));
                     status = A_EPROTO;
                     break;
@@ -668,9 +668,10 @@ static A_STATUS HTCProcessTrailer(HTC_TARGET     *target,
             case HTC_RECORD_LOOKAHEAD_BUNDLE:
                 /* Process in HIF layer */
                 break;
-#endif
+#endif /* HIF_SDIO */
+
             default:
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, (" unhandled record: id:%d length:%d \n",
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, (" HTC unhandled record: id:%d length:%d \n",
                         htc_rec_id, htc_rec_len));
                 break;
         }
