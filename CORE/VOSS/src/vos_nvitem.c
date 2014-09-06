@@ -389,6 +389,9 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5660, 132, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_132,
     { 5680, 136, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_136,
     { 5700, 140, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_140,
+#ifdef FEATURE_WLAN_CH144
+    { 5720, 144, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_144,
+#endif /* FEATURE_WLAN_CH144 */
     { 5745, 149, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_149,
     { 5765, 153, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_153,
     { 5785, 157, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_157,
@@ -425,6 +428,9 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5650, 130, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_130,
     { 5670, 134, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_134,
     { 5690, 138, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_138,
+#ifdef FEATURE_WLAN_CH144
+    { 5710, 142, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_142,
+#endif /* FEATURE_WLAN_CH144 */
     { 5755, 151, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_151,
     { 5775, 155, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_155,
     { 5795, 159, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_159,
@@ -737,6 +743,13 @@ static void vos_update_reg_info(hdd_context_t *pHddCtx)
     return;
 }
 
+/**------------------------------------------------------------------------
+  \brief vos_nv_open() - Open NV operation
+         Read NV bin file and prepare NV common structure
+  \return VOS_STATUS_SUCCESS - module is initialized successfully
+          otherwise  - module is not initialized
+  \sa
+  -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_open(void)
 {
     /* Allocate memory to global NV table */
@@ -998,11 +1011,20 @@ static int bw20_ch_index_to_bw40_ch_index(int k)
       if (m > RF_CHAN_BOND_62)
          m = RF_CHAN_BOND_62;
    }
+#ifdef FEATURE_WLAN_CH144
+   else if (k >= RF_CHAN_100 && k <= RF_CHAN_144)
+#else
    else if (k >= RF_CHAN_100 && k <= RF_CHAN_140)
+#endif /* FEATURE_WLAN_CH144 */
    {
       m = k - RF_CHAN_100 + RF_CHAN_BOND_102;
+#ifdef FEATURE_WLAN_CH144
+      if (m > RF_CHAN_BOND_142)
+         m = RF_CHAN_BOND_142;
+#else
       if (m > RF_CHAN_BOND_138)
          m = RF_CHAN_BOND_138;
+#endif /* FEATURE_WLAN_CH144 */
    }
    else if (k >= RF_CHAN_149 && k <= RF_CHAN_165)
    {
@@ -1012,7 +1034,6 @@ static int bw20_ch_index_to_bw40_ch_index(int k)
    }
    return m;
 }
-
 
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
                                          v_U8_t nBandCapability);
@@ -1430,8 +1451,8 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             }
             else /* Enable is only last flag we support */
             {
-                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].enabled =
-                    NV_CHANNEL_ENABLE;
+                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                    channels[k].enabled = NV_CHANNEL_ENABLE;
 
                 /* max_power is in dBm */
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
@@ -1472,6 +1493,14 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                is real gain which should be provided by the real design */
         }
     }
+
+#ifdef FEATURE_WLAN_CH144
+     /* Disable  RF_CHAN_144 entry if FW does not support channel 144. */
+     if ( 0 == (pHddCtx->reg.eeprom_rd_ext & (1 << WHAL_REG_EXT_FCC_CH_144))) {
+        pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+           channels[RF_CHAN_144].enabled = NV_CHANNEL_DISABLE;
+     }
+#endif
 
     if (k == 0)
        return -1;
