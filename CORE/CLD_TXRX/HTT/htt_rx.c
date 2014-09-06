@@ -960,7 +960,7 @@ htt_rx_amsdu_pop_ll(
                 adf_nbuf_set_next(msdu, NULL);
                 *tail_msdu = msdu;
                 pdev->rx_ring.rx_reset = 1;
-                return msdu_chained;
+                return msdu_chaining;
 #else
                 process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT,
                                         0, GEN_CMD);
@@ -2401,6 +2401,10 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         pdev->rx_ring.dbg_ring_idx = 0;
         pdev->rx_ring.dbg_refill_cnt = 0;
         pdev->rx_ring.dbg_sync_success = 0;
+#endif
+#ifdef HTT_RX_RESTORE
+        pdev->rx_ring.rx_reset = 0;
+        pdev->rx_ring.htt_rx_restore = 0;
 #endif
         htt_rx_ring_fill_n(pdev, pdev->rx_ring.fill_level);
 
