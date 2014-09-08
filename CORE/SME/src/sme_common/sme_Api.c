@@ -9419,14 +9419,14 @@ eHalStatus sme_UpdateIsFastRoamIniFeatureEnabled
     if (pMac->roam.configParam.isFastRoamIniFeatureEnabled ==
                   isFastRoamIniFeatureEnabled)
     {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                      "%s: FastRoam is already enabled or disabled, nothing to do (returning) old(%d) new(%d)", __func__,
              pMac->roam.configParam.isFastRoamIniFeatureEnabled,
              isFastRoamIniFeatureEnabled);
         return eHAL_STATUS_SUCCESS;
     }
 
-  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                      "%s: FastRoamEnabled is changed from %d to %d", __func__,
            pMac->roam.configParam.isFastRoamIniFeatureEnabled,
            isFastRoamIniFeatureEnabled);
@@ -10070,7 +10070,7 @@ eHalStatus sme_UpdateRoamScanOffloadEnabled(tHalHandle hHal,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                FL("gRoamScanOffloadEnabled is changed from %d to %d"),
                pMac->roam.configParam.isRoamOffloadScanEnabled,
                nRoamScanOffloadEnabled);
