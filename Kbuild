@@ -752,7 +752,8 @@ HIF_OBJS := $(HIF_DIR)/ath_procfs.o
 
 HIF_USB_OBJS := $(HIF_USB_DIR)/usbdrv.o \
                  $(HIF_USB_DIR)/hif_usb.o \
-                 $(HIF_USB_DIR)/if_usb.o
+                 $(HIF_USB_DIR)/if_usb.o \
+                 $(HIF_USB_DIR)/regtable.o
 
 HIF_OBJS += $(HIF_USB_OBJS)
 endif

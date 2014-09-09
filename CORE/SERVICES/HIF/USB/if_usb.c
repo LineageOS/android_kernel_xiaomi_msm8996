@@ -52,7 +52,7 @@
 #endif
 #define VENDOR_ATHR             0x0CF3
 #define AR9888_DEVICE_ID (0x003c)
-#define AR6320_DEVICE_ID (0x003e)
+#define AR6320_DEVICE_ID (0x9378)
 #define DELAY_FOR_TARGET_READY 200	/* 200ms */
 #define DELAY_INT_FOR_HDD_REMOVE 200	/* 200ms */
 #define HIFDiagWriteCOLDRESET(hifdevice) HIFDiagWriteAccess(sc->hif_device, \
@@ -120,7 +120,6 @@ static int
 hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
 	int ret = 0;
-	u_int32_t hif_type, target_type;
 	struct hif_usb_softc *sc;
 	struct ol_softc *ol_sc;
 	struct usb_device *pdev = interface_to_usbdev(interface);
@@ -146,24 +145,9 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	sc->aps_osdev.bdev = pdev;
 	sc->aps_osdev.device = &pdev->dev;
 	sc->aps_osdev.bc.bc_bustype = HAL_BUS_TYPE_AHB;
-	sc->devid = AR6320_DEVICE_ID;
+	sc->devid = id->idProduct;
 
 	adf_os_spinlock_init(&sc->target_lock);
-
-	switch (sc->devid) {
-	case AR9888_DEVICE_ID:
-		hif_type = HIF_TYPE_AR9888;
-		target_type = TARGET_TYPE_AR9888;
-		break;
-	case AR6320_DEVICE_ID:
-		hif_type = HIF_TYPE_AR6320;
-		target_type = TARGET_TYPE_AR6320;
-		break;
-	default:
-		pr_err("unsupported device id\n");
-		ret = -ENODEV;
-		goto err_tgtstate;
-	}
 
 	ol_sc = A_MALLOC(sizeof(*ol_sc));
 	if (!ol_sc)
@@ -172,7 +156,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	ol_sc->sc_osdev = &sc->aps_osdev;
 	ol_sc->hif_sc = (void *)sc;
 	sc->ol_sc = ol_sc;
-	ol_sc->target_type = target_type;
 
 	if ((usb_control_msg(pdev, usb_sndctrlpipe(pdev, 0),
 			     USB_REQ_SET_CONFIGURATION, 0, 1, 0, NULL, 0,
@@ -203,6 +186,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	sc->hdd_removed = 0;
 	sc->hdd_removed_processing = 0;
 	sc->hdd_removed_wait_cnt = 0;
+
 #ifndef REMOVE_PKT_LOG
 	if (vos_get_conparam() != VOS_FTM_MODE &&
         !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
@@ -232,7 +216,7 @@ err_config:
 	A_FREE(ol_sc);
 err_attach:
 	ret = -EIO;
-err_tgtstate:
+	usb_sc = NULL;
 	A_FREE(sc);
 err_alloc:
 	usb_put_dev(pdev);
@@ -539,9 +523,56 @@ void hif_reset_soc(void *ol_sc)
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 {
+	u_int32_t hif_type, target_type;
+	A_STATUS rv;
+	A_INT32 ret = 0;
+	A_UINT32 chip_id;
+	struct hif_usb_softc *sc;
+
+	sc = ((struct ol_softc *)ol_sc)->hif_sc;
+	if (sc->hostdef == NULL && sc->targetdef == NULL) {
+		switch (((struct ol_softc *)ol_sc)->target_type)
+		{
+			case TARGET_TYPE_AR6320:
+				switch(((struct ol_softc *)ol_sc)->target_version) {
+					case AR6320_REV1_VERSION:
+					case AR6320_REV1_1_VERSION:
+					case AR6320_REV1_3_VERSION:
+						hif_type = HIF_TYPE_AR6320;
+						target_type = TARGET_TYPE_AR6320;
+						break;
+					case AR6320_REV2_1_VERSION:
+					case AR6320_REV3_VERSION:
+						hif_type = HIF_TYPE_AR6320V2;
+						target_type = TARGET_TYPE_AR6320V2;
+						break;
+					default:
+						ret = -1;
+						break;
+				}
+				break;
+			default:
+				ret = -1;
+				break;
+		}
+
+		if (!ret) {
+			/* assign target register table if we find corresponding type */
+			hif_register_tbl_attach(sc, hif_type);
+			target_register_tbl_attach(sc, target_type);
+			/* read the chip revision*/
+			rv = HIFDiagReadAccess(sc->hif_device, (CHIP_ID_ADDRESS | RTC_SOC_BASE_ADDRESS), &chip_id);
+			if (rv != A_OK) {
+				pr_err("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv);
+			}
+			((struct ol_softc *)ol_sc)->target_revision = CHIP_ID_REVISION_GET(chip_id);
+		}
+	}
+
+	/* we need to get chip revision here */
 	*version = ((struct ol_softc *)ol_sc)->target_version;
 	/* Chip version should be supported, set to 0 for now */
-	*revision = 0;
+	*revision = ((struct ol_softc *)ol_sc)->target_revision;
 }
 
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version)

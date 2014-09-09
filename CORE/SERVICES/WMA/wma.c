@@ -14612,6 +14612,77 @@ fail:
 	return VOS_STATUS_E_FAILURE;
 }
 
+static int wmi_unified_probe_rsp_tmpl_send(tp_wma_handle wma,
+					u_int8_t vdev_id,
+					tpSendProbeRespParams probe_rsp_info)
+{
+	wmi_prb_tmpl_cmd_fixed_param  *cmd;
+	wmi_bcn_prb_info *bcn_prb_info;
+	wmi_buf_t wmi_buf;
+	u_int32_t tmpl_len, tmpl_len_aligned, wmi_buf_len;
+	u_int8_t *frm, *buf_ptr;
+	int ret;
+	u_int64_t adjusted_tsf_le;
+	struct ieee80211_frame *wh;
+
+	WMA_LOGD(FL("Send probe response template for vdev %d"), vdev_id);
+
+	frm = probe_rsp_info->pProbeRespTemplate;
+	tmpl_len = probe_rsp_info->probeRespTemplateLen;
+	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
+	/*
+	 * Make the TSF offset negative so probe response in the same
+	 * staggered batch have the same TSF.
+	 */
+	adjusted_tsf_le = cpu_to_le64(0ULL -
+				      wma->interfaces[vdev_id].tsfadjust);
+	/* Update the timstamp in the probe response buffer with adjusted TSF */
+	wh = (struct ieee80211_frame *)frm;
+	A_MEMCPY(&wh[1], &adjusted_tsf_le, sizeof(adjusted_tsf_le));
+
+	wmi_buf_len = sizeof(wmi_prb_tmpl_cmd_fixed_param) +
+	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
+		  tmpl_len_aligned;
+
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, wmi_buf_len);
+	if (!wmi_buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_prb_tmpl_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_prb_tmpl_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_prb_tmpl_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->buf_len = tmpl_len;
+	buf_ptr += sizeof(wmi_prb_tmpl_cmd_fixed_param);
+
+	bcn_prb_info = (wmi_bcn_prb_info *)buf_ptr;
+        WMITLV_SET_HDR(&bcn_prb_info->tlv_header,
+			WMITLV_TAG_STRUC_wmi_bcn_prb_info,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_bcn_prb_info));
+	bcn_prb_info->caps = 0;
+	bcn_prb_info->erp = 0;
+	buf_ptr += sizeof(wmi_bcn_prb_info);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, tmpl_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, frm, tmpl_len);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle,
+			wmi_buf, wmi_buf_len,
+			WMI_PRB_TMPL_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("Failed to send PRB RSP tmpl: %d"), ret);
+		wmi_buf_free(wmi_buf);
+	}
+
+	return ret;
+}
+
 static int wmi_unified_bcn_tmpl_send(tp_wma_handle wma,
 				     u_int8_t vdev_id,
 				     tpSendbeaconParams bcn_info,
@@ -14938,6 +15009,41 @@ static int wma_p2p_go_set_beacon_ie(t_wma_handle *wma_handle,
 
 	WMA_LOGI("%s: Successfully sent WMI_P2P_GO_SET_BEACON_IE", __func__);
 	return ret;
+}
+
+static void wma_send_probe_rsp_tmpl(tp_wma_handle wma,
+				tpSendProbeRespParams probe_rsp_info)
+{
+        ol_txrx_vdev_handle vdev;
+        u_int8_t vdev_id;
+	tpAniProbeRspStruct probe_rsp;
+
+	if(!probe_rsp_info) {
+		WMA_LOGE(FL("probe_rsp_info is NULL"));
+		return;
+	}
+
+	probe_rsp = (tpAniProbeRspStruct)(probe_rsp_info->pProbeRespTemplate);
+	if(!probe_rsp) {
+		WMA_LOGE(FL("probe_rsp is NULL"));
+		return;
+	}
+
+	vdev = wma_find_vdev_by_addr(wma, probe_rsp->macHdr.sa, &vdev_id);
+	if (!vdev) {
+		WMA_LOGE(FL("failed to get vdev handle"));
+		return;
+	}
+
+	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+				WMI_SERVICE_BEACON_OFFLOAD)) {
+		WMA_LOGA("Beacon Offload Enabled Sending Unified command");
+		if (wmi_unified_probe_rsp_tmpl_send(wma, vdev_id,
+					probe_rsp_info) < 0){
+		WMA_LOGE(FL("wmi_unified_probe_rsp_tmpl_send Failed "));
+		return;
+		}
+	}
 }
 
 static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
@@ -15839,7 +15945,7 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 		       WMITLV_GET_STRUCT_TLVLEN(
 			       wmi_nlo_config_cmd_fixed_param));
 	cmd->vdev_id = pno->sessionId;
-	cmd->flags = WMI_NLO_CONFIG_START;
+	cmd->flags = WMI_NLO_CONFIG_START | WMI_NLO_CONFIG_SSID_HIDE_EN;
 
 	/* Copy scan interval */
 	if (pno->scanTimers.ucScanTimersCount) {
@@ -15882,6 +15988,11 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 			WMA_LOGD("RSSI threshold : %d dBm",
 				nlo_list[i].rssi_cond.rssi);
 		}
+		nlo_list[i].bcast_nw_type.valid = TRUE;
+		nlo_list[i].bcast_nw_type.bcast_nw_type =
+					 pno->aNetworks[i].bcastNetwType;
+		WMA_LOGI("Broadcast NW type (%u)",
+				nlo_list[i].bcast_nw_type.bcast_nw_type);
 	}
 	buf_ptr += cmd->no_of_ssids * sizeof(nlo_configured_parameters);
 
@@ -16875,6 +16986,11 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 #endif
 
 #ifdef FEATURE_WLAN_D0WOW
@@ -17878,6 +17994,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
+	if (NULL == pMac) {
+		WMA_LOGE("%s: Unable to get PE context", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
 #endif
 
 	len = sizeof(wmi_wow_hostwakeup_from_sleep_cmd_fixed_param);
@@ -21629,6 +21749,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SEND_BEACON_REQ:
 			wma_send_beacon(wma_handle,
 					(tpSendbeaconParams)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SEND_PROBE_RSP_TMPL:
+			wma_send_probe_rsp_tmpl(wma_handle,
+					(tpSendProbeRespParams)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_CLI_SET_CMD:

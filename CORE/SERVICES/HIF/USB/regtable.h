@@ -842,4 +842,5 @@ typedef struct TGT_REG_TABLE {
 	u_int32_t section_size;
 } tgt_reg_table;
 void target_register_tbl_attach(struct hif_usb_softc *sc, u32 target_type);
+void hif_register_tbl_attach(struct hif_usb_softc *sc, u32 hif_type);
 #endif
