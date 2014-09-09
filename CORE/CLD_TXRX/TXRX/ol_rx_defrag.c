@@ -204,7 +204,9 @@ ol_rx_frag_indication_handler(
     htt_pdev = pdev->htt_pdev;
     peer = ol_txrx_peer_find_by_id(pdev, peer_id);
 
-    if (htt_rx_ind_flush(pdev->htt_pdev, rx_frag_ind_msg) && peer) {
+    /* In case of reorder offload, we will never get a flush indication */
+    if (!ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev) &&
+         htt_rx_ind_flush(pdev->htt_pdev, rx_frag_ind_msg) && peer) {
         htt_rx_frag_ind_flush_seq_num_range(
             pdev->htt_pdev, rx_frag_ind_msg, &seq_num_start, &seq_num_end);
         /*
@@ -216,14 +218,22 @@ ol_rx_frag_indication_handler(
     if (peer) {
         htt_rx_frag_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
         adf_os_assert(head_msdu == tail_msdu);
-        rx_mpdu_desc = htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
+        if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
+            rx_mpdu_desc = htt_rx_mpdu_desc_list_next(htt_pdev, head_msdu);
+        } else {
+            rx_mpdu_desc = htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
+        }
         seq_num = htt_rx_mpdu_desc_seq_num(htt_pdev, rx_mpdu_desc);
         OL_RX_ERR_STATISTICS_1(pdev, peer->vdev, peer, rx_mpdu_desc, OL_RX_ERR_NONE_FRAG);
         ol_rx_reorder_store_frag(pdev, peer, tid, seq_num, head_msdu);
     } else {
         /* invalid frame - discard it */
         htt_rx_frag_pop(htt_pdev, rx_frag_ind_msg, &head_msdu, &tail_msdu);
-        htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
+        if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
+            htt_rx_msdu_desc_retrieve(htt_pdev, head_msdu);
+        } else {
+            htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
+        }
         htt_rx_desc_frame_free(htt_pdev, head_msdu);
     }
     /* request HTT to provide new rx MSDU buffers for the target to fill. */
@@ -507,7 +517,11 @@ ol_rx_defrag(
 
     /* bypass defrag for safe mode */
     if (vdev->safemode) {
-        ol_rx_deliver(vdev, peer, tid, frag_list);
+        if (ol_cfg_is_full_reorder_offload(pdev->ctrl_pdev)) {
+            ol_rx_in_order_deliver(vdev, peer, tid, frag_list);
+        } else {
+            ol_rx_deliver(vdev, peer, tid, frag_list);
+        }
         return;
     }
 
