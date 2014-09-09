@@ -25,6 +25,8 @@ ifeq ($(KERNEL_BUILD),1)
 	MODNAME := wlan
 	WLAN_ROOT := drivers/staging/qcacld-2.0
 	WLAN_OPEN_SOURCE := 1
+	CONFIG_QCA_WIFI_2_0 := 1
+	CONFIG_QCA_WIFI_ISOC := 0
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
