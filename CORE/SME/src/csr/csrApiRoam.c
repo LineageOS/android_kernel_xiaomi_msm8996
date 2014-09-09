@@ -18402,6 +18402,7 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
 
     pUpdateAddIEs->updateIE.smeSessionId = pUpdateIE->smeSessionId;
     pUpdateAddIEs->updateIE.append = pUpdateIE->append;
+    pUpdateAddIEs->updateIE.notify = pUpdateIE->notify;
     pUpdateAddIEs->updateIE.ieBufferlength = pUpdateIE->ieBufferlength;
     pUpdateAddIEs->updateIE.pAdditionIEBuffer = pLocalBuffer;
 
