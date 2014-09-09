@@ -10455,17 +10455,18 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	wma_update_txrx_chainmask(wma->num_rf_chains, &cmd->peer_nss);
 
 	intr->nss = cmd->peer_nss;
-        cmd->peer_phymode = phymode;
+	cmd->peer_phymode = phymode;
 
-        WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x "
-                 "peer_caps %x listen_intval %d ht_caps %x max_mpdu %d "
-                 "nss %d phymode %d peer_mpdu_density %d"
-                 "cmd->peer_vht_caps %x", __func__,
-                 cmd->vdev_id, cmd->peer_associd, cmd->peer_flags,
-                 cmd->peer_rate_caps, cmd->peer_caps,
-                 cmd->peer_listen_intval, cmd->peer_ht_caps,
-                 cmd->peer_max_mpdu, cmd->peer_nss, cmd->peer_phymode,
-                 cmd->peer_mpdu_density, cmd->peer_vht_caps);
+	WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x "
+			"peer_caps %x listen_intval %d ht_caps %x max_mpdu %d "
+			"nss %d phymode %d peer_mpdu_density %d encr_type %d "
+			"cmd->peer_vht_caps %x", __func__,
+			cmd->vdev_id, cmd->peer_associd, cmd->peer_flags,
+			cmd->peer_rate_caps, cmd->peer_caps,
+			cmd->peer_listen_intval, cmd->peer_ht_caps,
+			cmd->peer_max_mpdu, cmd->peer_nss, cmd->peer_phymode,
+			cmd->peer_mpdu_density, params->encryptType,
+			cmd->peer_vht_caps);
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_PEER_ASSOC_CMDID);
@@ -13487,7 +13488,7 @@ static void wma_read_cfg_wepkey(tp_wma_handle wma_handle,
  */
 static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 				struct wma_set_key_params *key_params,
-				u_int32_t *len)
+				u_int32_t *len, u_int8_t mode)
 {
 	wmi_vdev_install_key_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
@@ -13548,19 +13549,28 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 	case eSIR_ED_WPI:
 	{
 		/*initialize receive and transmit IV with default values*/
+		/* **Note: tx_iv must be sent in reverse** */
 		unsigned char tx_iv[16] = {0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
 					   0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
 					   0x36,0x5c};
 		unsigned char rx_iv[16] = {0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
 					   0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
 					   0x5c,0x37};
+		if (mode == wlan_op_mode_ap) {
+			/*Authenticator initializes the value of PN as
+			*0x5C365C365C365C365C365C365C365C36 for MCastkey Update
+			*/
+			if (key_params->unicast)
+				tx_iv[0] = 0x37;
+
+			rx_iv[WPI_IV_LEN - 1] = 0x36;
+		} else {
+			if (!key_params->unicast)
+				rx_iv[WPI_IV_LEN - 1] = 0x36;
+		}
+
 		cmd->key_txmic_len = WMA_TXMIC_LEN;
 		cmd->key_rxmic_len = WMA_RXMIC_LEN;
-		/*Authenticator initializes the value of PN as
-		 *0x5C365C365C365C365C365C365C365C36 for multicast key update.
-		 */
-		if (!key_params->unicast)
-			rx_iv[WPI_IV_LEN - 1] = 0x36;
 
 		vos_mem_copy(&cmd->wpi_key_rsc_counter, &rx_iv, WPI_IV_LEN);
 		vos_mem_copy(&cmd->wpi_key_tsc_counter, &tx_iv, WPI_IV_LEN);
@@ -13720,7 +13730,8 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 	        WMA_LOGD("%s: bss key[%d] length %d", __func__, i,
 			key_info->key[i].keyLength);
 
-		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
+		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len,
+							txrx_vdev->opmode);
 		if (!buf) {
 			WMA_LOGE("%s:Failed to setup install key buf", __func__);
 			key_info->status = eHAL_STATUS_FAILED_ALLOC;
@@ -13800,7 +13811,8 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
                 WMA_LOGD("%s: peer bcast key[%d] length %d", __func__, i,
 			key_info->key[i].keyLength);
 
-                buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
+                buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len,
+							txrx_vdev->opmode);
                 if (!buf) {
                         WMA_LOGE("%s:Failed to setup install key buf", __func__);
                         return;
@@ -13901,7 +13913,8 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 			key_params.key_idx = i;
 
 		key_params.key_len = key_info->key[i].keyLength;
-		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
+		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len,
+							txrx_vdev->opmode);
 		if (!buf) {
 			WMA_LOGE("%s:Failed to setup install key buf", __func__);
 			key_info->status = eHAL_STATUS_FAILED_ALLOC;
