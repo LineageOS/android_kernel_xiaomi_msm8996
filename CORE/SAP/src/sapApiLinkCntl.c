@@ -525,6 +525,13 @@ WLANSAP_RoamCallback
                 vos_mem_copy( sapContext->pStaWpaRsnReqIE,
                               pCsrRoamInfo->prsnIE, sapContext->nStaWPARSnReqIeLength);
 
+#ifdef FEATURE_WLAN_WAPI
+            sapContext->nStaWAPIReqIeLength = pCsrRoamInfo->wapiIELen;
+
+            if(sapContext->nStaWAPIReqIeLength)
+                vos_mem_copy( sapContext->pStaWapiReqIE,
+                              pCsrRoamInfo->pwapiIE, sapContext->nStaWAPIReqIeLength);
+#endif
             sapContext->nStaAddIeLength = pCsrRoamInfo->addIELen;
 
             if(sapContext->nStaAddIeLength)

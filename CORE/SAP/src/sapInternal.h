@@ -218,6 +218,11 @@ typedef struct sSapContext {
     tSirAPWPSIEs      APWPSIEs;
     tSirRSNie         APWPARSNIEs;
 
+#ifdef FEATURE_WLAN_WAPI
+    v_U32_t           nStaWAPIReqIeLength;
+    v_U8_t            pStaWapiReqIE[MAX_ASSOC_IND_IE_LEN];
+#endif
+
     v_U32_t           nStaAddIeLength;
     v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN];
     v_U8_t            *channelList;

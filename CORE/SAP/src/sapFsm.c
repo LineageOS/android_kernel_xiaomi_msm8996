@@ -2065,6 +2065,18 @@ sapSignalHDDevent
             vos_mem_copy(sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies, pCsrRoamInfo->prsnIE,
                         pCsrRoamInfo->rsnIELen);
 
+#ifdef FEATURE_WLAN_WAPI
+            if(pCsrRoamInfo->wapiIELen)
+            {
+                v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
+                sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen
+                                                        += pCsrRoamInfo->wapiIELen;
+                vos_mem_copy(&sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies[len],
+                        pCsrRoamInfo->pwapiIE,
+                            pCsrRoamInfo->wapiIELen);
+            }
+#endif
+
             if(pCsrRoamInfo->addIELen)
             {
                 v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
