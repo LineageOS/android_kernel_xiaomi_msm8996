@@ -3537,6 +3537,7 @@ FRAME AssocRequest                        // 7.2.3.4
     OPTIE  Airgo;
     OPTIE  WscIEOpaque;
     OPTIE  WAPIOpaque;
+    OPTIE  WAPI;
     OPTIE  ESERadMgmtCap;
     OPTIE  ESEVersion;
     OPTIE  P2PIEOpaque;
@@ -3604,6 +3605,7 @@ FRAME ReAssocRequest                      // 7.2.3.6
     OPTIE  Airgo;
     OPTIE  WscIEOpaque;
     OPTIE  WAPIOpaque;
+    OPTIE  WAPI;
     OPTIE  ESERadMgmtCap;
     OPTIE  ESEVersion;
     OPTIE  ESECckmOpaque;

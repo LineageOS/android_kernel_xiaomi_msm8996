@@ -1146,6 +1146,13 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                  (tANI_U8 *) &(pAssocInd->rsnIE.rsnIEdata),
                   pAssocInd->rsnIE.length);
 
+#ifdef FEATURE_WLAN_WAPI
+    pSirSmeAssocInd->wapiIE.length = pAssocInd->wapiIE.length;
+    vos_mem_copy((tANI_U8*) &pSirSmeAssocInd->wapiIE.wapiIEdata,
+                 (tANI_U8 *) &(pAssocInd->wapiIE.wapiIEdata),
+                  pAssocInd->wapiIE.length);
+#endif
+
     pSirSmeAssocInd->addIE.length = pAssocInd->addIE.length;
     vos_mem_copy((tANI_U8*) &pSirSmeAssocInd->addIE.addIEdata,
                  (tANI_U8 *) &(pAssocInd->addIE.addIEdata),

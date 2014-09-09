@@ -1287,6 +1287,8 @@ typedef struct tagCsrRoamInfo
     tANI_U8 sessionId;
     tANI_U8 rsnIELen;
     tANI_U8 *prsnIE;
+    tANI_U8 wapiIELen;
+    tANI_U8 *pwapiIE;
 
     tANI_U8 addIELen;
     tANI_U8 *paddIE;
@@ -1356,6 +1358,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              alternateChannelId;
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
+    tSirWAPIie           wapiIE;          // WAPI IE received from peer
     tSirAddie            addIE;           // Additional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
     tANI_U8              timingMeasCap;
