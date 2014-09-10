@@ -74,7 +74,7 @@ when           who                what, where, why
 #include "vos_types.h"
 
 #include "p2p_Api.h"
-
+#include "sme_Api.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -310,6 +310,7 @@ typedef struct sap_StationAssocReassocCompleteEvent_s {
     tANI_U32     assocRespLength;
     tANI_U8*     assocRespPtr;
     tANI_U8      timingMeasCap;
+    tSirSmeChanInfo chan_info;
 } tSap_StationAssocReassocCompleteEvent;
 
 typedef struct sap_StationDisassocCompleteEvent_s {

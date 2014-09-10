@@ -1059,7 +1059,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         /* next two offsets contain min and max channel time */
         if( WEXT_CSCAN_PASV_DWELL_SECTION == (str_ptr[i]) )
         {
-            /* No SSID specified, num_ssid == 0, then start paasive scan */
+            /* No SSID specified, num_ssid == 0, then start passive scan */
             if (!num_ssid || (eSIR_PASSIVE_SCAN == pAdapter->scan_info.scan_mode))
             {
                 scanRequest.scanType = eSIR_PASSIVE_SCAN;

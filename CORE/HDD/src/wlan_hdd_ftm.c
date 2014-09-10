@@ -379,7 +379,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
      goto err_wda_close;
    }
 
-   /* If we arrive here, both threads dispacthing messages correctly */
+   /* If we arrive here, both threads dispatching messages correctly */
 
    /* Now proceed to open the MAC */
 
@@ -711,8 +711,9 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
       goto err_vos_status_failure;
    }
 
-    /*
-     For Integrated SOC, only needed to start WDA, whihc happens in wlan_hdd_ftm_start()
+   /*
+    * For Integrated SOC, only needed to start WDA,
+    * which happens in wlan_hdd_ftm_start()
     */
     /* Save the hal context in Adapter */
     pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME, pVosContext );

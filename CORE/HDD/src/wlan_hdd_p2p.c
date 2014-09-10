@@ -533,7 +533,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     /* When P2P-GO and if we are trying to unload the driver then
      * wlan driver is keep on receiving the remain on channel command
      * and which is resulting in crash. So not allowing any remain on
-     * channel requets when Load/Unload is in progress*/
+     * channel request when Load/Unload is in progress*/
     if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadInProgress ||
         ((hdd_context_t*)pAdapter->pHddCtx)->isUnloadInProgress ||
         hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx))
@@ -591,7 +591,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     if (vos_status != VOS_STATUS_SUCCESS)
     {
          hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Not able to initalize remain_on_chan timer",__func__);
+             "%s: Not able to initialize remain_on_chan timer",__func__);
     }
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
@@ -1532,7 +1532,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
  *
  *FUNCTION:
  * This function is called from hdd_hostapd_ioctl function when Driver
- * get P2P_SET_NOA comand from wpa_supplicant using private ioctl
+ * get P2P_SET_NOA command from wpa_supplicant using private ioctl
  *
  *LOGIC:
  * Fill NoA Struct According to P2P Power save Option and Pass it to SME layer
@@ -1616,7 +1616,7 @@ int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
  *
  *FUNCTION:
  * This function is called from hdd_hostapd_ioctl function when Driver
- * get P2P_SET_PS comand from wpa_supplicant using private ioctl
+ * get P2P_SET_PS command from wpa_supplicant using private ioctl
  *
  *LOGIC:
  * Fill NoA Struct According to P2P Power save Option and Pass it to SME layer
@@ -1646,7 +1646,7 @@ int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
     if (param == NULL)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: strnchr failed to find delimeter", __func__);
+                  "%s: strnchr failed to find delimiter", __func__);
         return -EINVAL;
     }
     param++;
@@ -2089,7 +2089,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             &pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]);
          if (NULL == pAdapter)
          {
-             /* Under assumtion that we don't receive any action frame
+             /* Under assumption that we don't receive any action frame
               * with BCST as destination we dropping action frame
               */
              hddLog(VOS_TRACE_LEVEL_FATAL,"pAdapter for action frame is NULL Macaddr = "

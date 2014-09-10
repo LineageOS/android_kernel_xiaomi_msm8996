@@ -190,7 +190,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_MAX_TX_POWER_2_4   42
 #define WE_SET_MAX_TX_POWER_5_0   43
 #define WE_SET_POWER_GATING       44
-/* Private ioctl for packet powe save */
+/* Private ioctl for packet power save */
 #define  WE_PPS_PAID_MATCH              45
 #define  WE_PPS_GID_MATCH               46
 #define  WE_PPS_EARLY_TIM_CLEAR         47
@@ -617,7 +617,7 @@ void *mem_alloc_copy_from_user_helper(const void *wrqu_data, size_t len)
    Helper function to get compatible struct iw_point passed to ioctl
 
   \param  - p_priv_data - pointer to iw_point struct to be filled
-            wrqu - Pointer to IOCTL Data received from userspace
+            wrqu - Pointer to IOCTL Data received from user space
 
   \return - 0 if p_priv_data successfully filled
             error otherwise
@@ -2695,7 +2695,7 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
 
    if (NULL == pAdapter)
    {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Padapter is NULL", __func__);
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
        return VOS_STATUS_E_FAULT;
    }
    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
@@ -2827,7 +2827,7 @@ VOS_STATUS  wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 
    if (NULL == pAdapter)
    {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Padapter is NULL", __func__);
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
        return VOS_STATUS_SUCCESS;
    }
 
@@ -3936,7 +3936,7 @@ static int iw_set_encodeext(struct net_device *dev,
     }
     if(!ext->key_len) {
 
-      /*Set the encrytion type to NONE*/
+      /* Set the encryption type to NONE */
        pRoamProfile->EncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_NONE;
        return status;
     }
@@ -4416,7 +4416,8 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
              }
          }
          break;
-    /* UMAC doesnt have option to set MODE_11NA/MODE_11NG as phymode
+    /*
+     * UMAC doesn't have option to set MODE_11NA/MODE_11NG as phymode
      * so setting phymode as eCSR_DOT11_MODE_11n and updating the band
      * and channel bonding in configuration to reflect MODE_11NA/MODE_11NG
      */
@@ -6984,7 +6985,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             buf = extra;
             /**
              * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
-             * needed = 5 * number of channels. Check ifsufficient
+             * needed = 5 * number of channels. Check if sufficient
              * buffer is available and then proceed to fill the buffer.
              */
             if(WE_MAX_STR_LEN < (5 * WNI_CFG_VALID_CHANNEL_LIST_LEN))
@@ -7158,7 +7159,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
      * the number of get and set args is 0.  in this specific case the
      * logic in iwpriv places the sub_cmd in the data.flags portion of
      * the iwreq.  unfortunately the location of this field will be
-     * different between 32-bit and 64-bit userspace, and the standard
+     * different between 32-bit and 64-bit user space, and the standard
      * compat support in the kernel does not handle this case.  so we
      * need to explicitly handle it here. */
     if (is_compat_task()) {
@@ -7320,7 +7321,7 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
     /*
      * Function to display HDD WMM information
      * for Tx Queues.
-     * Prints globala as well as per client depending
+     * Prints global as well as per client depending
      * whether the clients are registered or not.
      */
     int i = 0, j = 0;
@@ -7597,10 +7598,12 @@ static int iw_add_tspec(struct net_device *dev, struct iw_request_info *info,
    v_U32_t handle;
    struct iw_point s_priv_data;
 
-   // make sure the application is sufficiently priviledged
-   // note that the kernel will do this for "set" ioctls, but since
-   // this ioctl wants to return status to user space it must be
-   // defined as a "get" ioctl
+   /*
+    * Make sure the application is sufficiently privileged
+    * note that the kernel will do this for "set" ioctls, but since
+    * this ioctl wants to return status to user space it must be
+    * defined as a "get" ioctl.
+    */
    if (!capable(CAP_NET_ADMIN))
    {
       return -EPERM;
@@ -7751,10 +7754,12 @@ static int iw_del_tspec(struct net_device *dev, struct iw_request_info *info,
    hdd_wlan_wmm_status_e *pStatus = (hdd_wlan_wmm_status_e *)extra;
    v_U32_t handle;
 
-   // make sure the application is sufficiently priviledged
-   // note that the kernel will do this for "set" ioctls, but since
-   // this ioctl wants to return status to user space it must be
-   // defined as a "get" ioctl
+   /*
+    * Make sure the application is sufficiently privileged
+    * note that the kernel will do this for "set" ioctls, but since
+    * this ioctl wants to return status to user space it must be
+    * defined as a "get" ioctl.
+    */
    if (!capable(CAP_NET_ADMIN))
    {
       return -EPERM;
@@ -8304,9 +8309,9 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType,
          * 2 filters, one for MC and one for UC.
          * The Filter ID shouldn't be swapped, which results in making
          * UC Filter ineffective.
-         * We have Hardcode all the values
+         * We have hard coded all the values
          *
-         * Reason for a seperate UC filter is because, driver need to
+         * Reason for a separate UC filter is because, driver need to
          * specify the FW that the specific filter is for unicast
          * otherwise FW will not pass the unicast frames by default
          * through the filter. This is required to avoid any performance
@@ -8347,7 +8352,7 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType,
                                     &packetFilterSetReq, sessionId))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: Failure to execute Set IPv6 Mulicast Filter",
+                    "%s: Failure to execute Set IPv6 Multicast Filter",
                     __func__);
             return -EINVAL;
         }
@@ -8490,7 +8495,7 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
 
         if (set)
         {
-            /* Following pre-conditions should be satisfied before wei
+            /* Following pre-conditions should be satisfied before we
              * configure the MC address list.
              */
             if (((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
@@ -8846,7 +8851,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     SSID bcast type is unknown (directed probe will be sent if AP not found)
     and must meet -40dBm RSSI
 
-    test2 - with auth and enrytption type 4/4
+    test2 - with auth and encryption type 4/4
     that can be found on 6 channels 1, 2, 3, 4, 5 and 6
     bcast type is non-bcast (directed probe will be sent)
     and must not meet any RSSI threshold
@@ -9376,7 +9381,7 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
     -----------------------------
     1 - Ignore DTIM
     2 - Listen Interval
-    3 - Broadcast Multicas Filter
+    3 - Broadcast Multicast Filter
     4 - Beacon Early Termination
     5 - Beacon Early Termination Interval
   -----------------------------------------------------------------------*/
@@ -10826,8 +10831,7 @@ int hdd_validate_mcc_config(hdd_adapter_t *pAdapter, v_UINT_t staId, v_UINT_t ar
             break;
 
         default :
-            hddLog(LOGE, "%s : Uknown / Not allowed to configure parameter :  %d",
-                        __FUNCTION__,arg1);
+            hddLog(LOGE, FL("Unknown / Not allowed to configure parameter : %d"), arg1);
             break;
     }
     return 0;

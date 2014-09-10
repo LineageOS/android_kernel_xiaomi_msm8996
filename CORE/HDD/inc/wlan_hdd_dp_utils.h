@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -78,7 +78,7 @@ typedef struct
 //FIXME Need a helper function to cleanup skbs in a queue. Required for cleanup/shutdown
 
 /**-----------------------------------------------------------------------------
-  Function declarations and documenation
+  Function declarations and documentation
  ----------------------------------------------------------------------------*/
 VOS_INLINE_FN v_VOID_t hdd_list_init( hdd_list_t *pList, v_SIZE_t max_size)
 {

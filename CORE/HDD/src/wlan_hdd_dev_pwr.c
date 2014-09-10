@@ -71,7 +71,7 @@
  * 10 frame means 2seconds TX operation */
 static const hdd_tmLevelAction_t thermalMigrationAction[WLAN_HDD_TM_LEVEL_MAX] =
 {
-   /* TM Level 0, Do nothing, just normal operaton */
+   /* TM Level 0, Do nothing, just normal operation */
    {1, 0, 0, 0, 0xFFFFF},
    /* Tm Level 1, disable TX AMPDU */
    {0, 0, 0, 0, 0xFFFFF},

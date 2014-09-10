@@ -245,11 +245,11 @@ typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
  * wait forever (or at least for a long time) for the response to be
  * received and for the completion variable to be set.  However in
  * most cases these HDD APIs are being invoked in the context of a
- * userspace thread which has invoked either a cfg80211 API or a
+ * user space thread which has invoked either a cfg80211 API or a
  * wireless extensions ioctl and which has taken the kernel rtnl_lock.
  * Since this lock is used to synchronize many of the kernel tasks, we
  * do not want to hold it for a long time.  In addition we do not want
- * to block userspace threads (such as the wpa supplicant's main
+ * to block user space threads (such as the wpa supplicant's main
  * thread) for an extended time.  Therefore we only block for a short
  * time waiting for the response before we timeout.  This means that
  * it is possible for the HDD API to timeout, and for the callback to
@@ -478,7 +478,7 @@ enum _KEY_DIRECTION
 
 typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 
-/** WAPI KEY stucture definition */
+/* WAPI KEY structure definition */
 struct WLAN_WAPI_KEY
 {
    WAPIKeyType     keyType;
@@ -501,7 +501,7 @@ typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
 #define WAPI_PSK_AKM_SUITE  0x02721400
 #define WAPI_CERT_AKM_SUITE 0x01721400
 
-/** WAPI BKID List stucture definition */
+/* WAPI BKID List structure definition */
 struct _WLAN_BKID_LIST
 {
    v_U32_t          length;
@@ -513,7 +513,7 @@ typedef struct _WLAN_BKID_LIST WLAN_BKID_LIST;
 typedef struct _WLAN_BKID_LIST *pWLAN_BKID_LIST;
 
 
-/** WAPI Information stucture definition */
+/* WAPI Information structure definition */
 struct hdd_wapi_info_s
 {
    v_U32_t     nWapiMode;
@@ -833,7 +833,7 @@ typedef struct multicast_addr_list
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
 
-/*Batch scan repsonse AP info*/
+/* Batch scan response AP info */
 typedef struct
 {
     /*Batch ID*/
@@ -1048,8 +1048,8 @@ struct hdd_adapter_s
    tSirStopBatchScanInd hddStopBatchScanInd;
    /*HDD get batch scan request*/
    tSirTriggerBatchScanResultInd  hddTriggerBatchScanResultInd;
-   /*Batched scan reponse queue: new batch scan results added at the tail
-    and old batch scan results are deleted from head*/
+   /* Batched scan response queue: new batch scan results added at the tail
+      and old batch scan results are deleted from head */
    tHddBatchScanRsp *pBatchScanRsp;
    /*No of scans in batch scan rsp(MSCAN)*/
    v_U32_t numScanList;
@@ -1308,7 +1308,7 @@ struct hdd_context_s
 
    spinlock_t filter_lock;
 
-   /* Lock to avoid race condtion during start/stop bss*/
+   /* Lock to avoid race condition during start/stop bss */
    struct mutex sap_lock;
 
    /** ptt Process ID*/
@@ -1501,7 +1501,7 @@ struct hdd_context_s
 };
 
 /*---------------------------------------------------------------------------
-  Function declarations and documenation
+  Function declarations and documentation
   -------------------------------------------------------------------------*/
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *sta_pAdapter);

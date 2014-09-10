@@ -80,7 +80,7 @@
   -------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
-  Function declarations and documenation
+  Function declarations and documentation
   -------------------------------------------------------------------------*/
 
 /**============================================================================
@@ -91,7 +91,7 @@
   @param dev      : [in] pointer to Libra network device
 
   @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+                  : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
 extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
@@ -247,9 +247,10 @@ extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
 void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
 
 /**============================================================================
-  @brief hdd_mon_tx_work_queue() - workqueue handler for transmitting mgmt packets..
+  @brief hdd_mon_tx_work_queue() - work queue handler for transmitting
+                                   mgmt packets.
 
-  @param work: [in] workqueue structure.
+  @param work: [in] work queue structure.
   ===========================================================================*/
 void hdd_mon_tx_work_queue(struct work_struct *work);
 
