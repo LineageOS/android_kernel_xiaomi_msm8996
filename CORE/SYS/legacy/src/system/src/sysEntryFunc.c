@@ -142,6 +142,19 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 
     if(type == SIR_MAC_MGMT_FRAME)
     {
+            if (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running)
+            {
+                pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
+                psessionEntry = peFindSessionByBssid(pMac,
+                                        pMacHdr->bssId, &sessionId);
+                if (psessionEntry &&
+                    (psessionEntry->pePersona == VOS_STA_SAP_MODE))
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("CAC timer is running, dropping the mgmt frame"));
+                    goto fail;
+                }
+            }
             if ((subType == SIR_MAC_MGMT_DEAUTH) && (pMac->sys.gSysFrameCount[type][subType] >= MAX_DEAUTH_ALLOWED))
             {
                 tANI_U32 timeNow = adf_os_ticks();
