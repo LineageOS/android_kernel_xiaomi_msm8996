@@ -681,6 +681,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_UP:
+        sme_ChAvoidUpdateReq(pHddCtx->hHal);
         break;
 
    case NETDEV_DOWN:
