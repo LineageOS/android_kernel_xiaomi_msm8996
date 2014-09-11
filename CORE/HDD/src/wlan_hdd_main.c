@@ -8747,6 +8747,30 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
    return status;
 }
 
+VOS_STATUS hdd_check_for_existing_macaddr( hdd_context_t *pHddCtx,
+                                           tSirMacAddr macAddr )
+{
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+    hdd_adapter_t *pAdapter;
+    VOS_STATUS status;
+
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+    {
+        pAdapter = pAdapterNode->pAdapter;
+
+        if( pAdapter && vos_mem_compare( pAdapter->macAddressCurrent.bytes,
+                                         macAddr, sizeof(tSirMacAddr) ) ) {
+            return VOS_STATUS_E_FAILURE;
+        }
+        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  const char *iface_name, tSirMacAddr macAddr,
                                  tANI_U8 rtnl_held )
@@ -8777,6 +8801,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s:Unable to add virtual intf: Not able to get"
                              "valid mac address",__func__);
+         return NULL;
+   }
+
+   status = hdd_check_for_existing_macaddr(pHddCtx, macAddr);
+   if (VOS_STATUS_E_FAILURE == status) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Duplicate MAC addr: "MAC_ADDRESS_STR" already exists",
+                   __func__, MAC_ADDR_ARRAY(macAddr));
          return NULL;
    }
 
