@@ -9064,11 +9064,14 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
 {
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     ENTER();
-
+    /* Should be in ieee802_11_defs.h */
+#define WLAN_AKM_SUITE_8021X_SHA256 0x000FAC05
+#define WLAN_AKM_SUITE_PSK_SHA256   0x000FAC06
     /*set key mgmt type*/
     switch(key_mgmt)
     {
         case WLAN_AKM_SUITE_PSK:
+        case WLAN_AKM_SUITE_PSK_SHA256:
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case WLAN_AKM_SUITE_FT_PSK:
 #endif
@@ -9077,6 +9080,7 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_PSK;
             break;
 
+        case WLAN_AKM_SUITE_8021X_SHA256:
         case WLAN_AKM_SUITE_8021X:
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case WLAN_AKM_SUITE_FT_8021X:
