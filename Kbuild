@@ -85,10 +85,14 @@ ifeq ($(KERNEL_BUILD), 0)
         endif
 endif
 
+ifeq ($(CONFIG_X86), y)
+CONFIG_NON_QC_PLATFORM := y
+endif
+
 # To enable ESE upload, dependent config
 # CONFIG_QCOM_ESE must be enabled.
-CONFIG_QCOM_ESE := n
-CONFIG_QCOM_ESE_UPLOAD := n
+CONFIG_QCOM_ESE := y
+CONFIG_QCOM_ESE_UPLOAD := y
 
 # Feature flags which are not (currently) configurable via Kconfig
 
@@ -1282,6 +1286,13 @@ endif
 # Enable feature support fo Linux version QCMBR
 ifeq ($(CONFIG_LINUX_QCMBR),y)
 CDEFINES += -DLINUX_QCMBR
+endif
+
+# Enable target dump for non-qualcomm platform
+ifeq ($(CONFIG_NON_QC_PLATFORM), y)
+ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
+CDEFINES += -DTARGET_DUMP_FOR_NON_QC_PLATFORM
+endif
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
