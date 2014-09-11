@@ -10868,6 +10868,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
                                            __func__);
    }
 
+   /* Free up RoC request queue and flush workqueue */
+   vos_flush_work(&pHddCtx->rocReqWork);
+   hdd_list_destroy(&pHddCtx->hdd_roc_req_q);
+
 free_hdd_ctx:
    /* FTM mode, WIPHY did not registered
       If un-register here, system crash will happen */
@@ -12229,6 +12233,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    wlan_hdd_send_version_pkg(pHddCtx->target_fw_version,
                              pHddCtx->target_hw_version,
                              pHddCtx->target_hw_name);
+#endif
+
+   /* Initialize the RoC Request queue and work. */
+   hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
+#ifdef CONFIG_CNSS
+   cnss_init_work(&pHddCtx->rocReqWork, hdd_roc_req_work);
+#else
+   INIT_WORK(&pHddCtx->rocReqWork, hdd_roc_req_work);
 #endif
 
    complete(&wlan_start_comp);

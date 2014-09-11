@@ -184,4 +184,9 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev );
 
 void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter);
 
+/* Max entry for RoC request */
+#define MAX_ROC_REQ_QUEUE_ENTRY 10
+
+void hdd_roc_req_work(struct work_struct *work);
+
 #endif // __P2P_H
