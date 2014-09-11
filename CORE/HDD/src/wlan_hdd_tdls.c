@@ -678,7 +678,7 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
 
     wlan_hdd_tdls_free_scan_request(&pHddCtx->tdls_scan_ctxt);
 
-    /* No need to post message during driver unlaod because MC thread is
+    /* No need to post message during driver unload because MC thread is
       already shutdown */
     if ( !pHddCtx->isUnloadInProgress)
     {
@@ -1018,8 +1018,10 @@ int wlan_hdd_tdls_recv_discovery_resp(hdd_adapter_t *pAdapter, u8 *mac)
 
     if (eTDLS_LINK_DISCOVERING == curr_peer->link_status)
     {
-        /* Since we are here, it means Throughput threshold is alredy met. Make sure RSSI
-           threshold is also met before setting up TDLS link*/
+        /*
+         * Since we are here, it means Throughput threshold is already met.
+         * Make sure RSSI threshold is also met before setting up TDLS link
+         */
         if ((tANI_S32) curr_peer->rssi > (tANI_S32) pHddTdlsCtx->threshold_config.rssi_trigger_threshold)
         {
             curr_peer->link_status = eTDLS_LINK_DISCOVERED;
@@ -2413,7 +2415,7 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
     else if (eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode ||
         eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)
     {
-        /* disable implicit trigger logic & tdls operatoin */
+        /* Disable implicit trigger logic & tdls operation */
         wlan_hdd_tdls_set_mode(pHddCtx, eTDLS_SUPPORT_DISABLED, FALSE);
         /* indicate the teardown all connected to peer */
         connectedTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);

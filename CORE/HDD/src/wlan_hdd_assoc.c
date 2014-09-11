@@ -198,27 +198,6 @@ eCsrBand hdd_connGetConnectedBand( hdd_station_ctx_t *pHddStaCtx )
       return eCSR_BAND_ALL;
 }
 
-
-//TODO - Not used anyhwere. Can be removed.
-#if 0
-//
-v_BOOL_t hdd_connIsConnectedInfra( hdd_adapter_t *pAdapter )
-{
-   v_BOOL_t fConnectedInfra = FALSE;
-   eConnectionState connState;
-
-   if ( hdd_connGetConnectionState( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), &connState ) )
-   {
-      if ( eConnectionState_Associated == connState )
-      {
-         fConnectedInfra = TRUE;
-      }
-   }
-
-   return( fConnectedInfra );
-}
-#endif
-
 static inline v_BOOL_t hdd_connGetConnectedCipherAlgo( hdd_station_ctx_t *pHddStaCtx, eCsrEncryptionType *pConnectedCipherAlgo )
 {
     v_BOOL_t fConnected = VOS_FALSE;
@@ -317,7 +296,7 @@ void hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
           // Get Multicast Encryption Type
           encryptType =  pRoamInfo->u.pConnectedProfile->mcEncryptionType;
           pHddStaCtx->conn_info.mcEncryptionType = encryptType;
-          // Get Unicast Encrytion Type
+          /* Get Unicast Encryption Type */
           encryptType =  pRoamInfo->u.pConnectedProfile->EncryptionType;
           pHddStaCtx->conn_info.ucEncryptionType = encryptType;
 
@@ -708,14 +687,22 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #endif
         if (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
         {
+            tSirSmeChanInfo chan_info;
             vos_mem_copy(peerMacAddr.bytes, pHddStaCtx->conn_info.bssId,
                          sizeof(pHddStaCtx->conn_info.bssId));
+            chan_info.chan_id = pCsrRoamInfo->chan_info.chan_id;
+            chan_info.mhz = pCsrRoamInfo->chan_info.mhz;
+            chan_info.info = pCsrRoamInfo->chan_info.info;
+            chan_info.band_center_freq1 = pCsrRoamInfo->chan_info.band_center_freq1;
+            chan_info.band_center_freq2 = pCsrRoamInfo->chan_info.band_center_freq2;
+            chan_info.reg_info_1 = pCsrRoamInfo->chan_info.reg_info_1;
+            chan_info.reg_info_2 = pCsrRoamInfo->chan_info.reg_info_2;
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerConnected,
-                                   pCsrRoamInfo->timingMeasCap,
-                                   pAdapter->sessionId,
-                                   pHddStaCtx->conn_info.operationChannel);
+                                          pCsrRoamInfo->timingMeasCap,
+                                          pAdapter->sessionId,
+                                          &chan_info);
         }
 
 #ifdef WLAN_FEATURE_LPSS
@@ -767,8 +754,8 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
             /* send peer status indication to oem app */
             hdd_SendPeerStatusIndToOemApp(&peerMacAddr, ePeerDisconnected,
-                                     0, pAdapter->sessionId,
-                                     pHddStaCtx->conn_info.operationChannel);
+                                          0, pAdapter->sessionId,
+                                          NULL);
         }
 
 #ifdef WLAN_FEATURE_LPSS
@@ -826,7 +813,7 @@ void hdd_connRemoveConnectInfo( hdd_station_ctx_t *pHddStaCtx )
 
    vos_mem_zero( &pHddStaCtx->conn_info.SSID, sizeof( tCsrSSIDInfo ) );
 }
-/* TODO Revist this function. and data path */
+/* TODO Revisit this function. and data path */
 static VOS_STATUS hdd_roamDeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
 {
     VOS_STATUS vosStatus;
@@ -982,10 +969,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             // and the P2P Client is Connected
             //Enable BMPS
 
-            // In case of JB, as Change-Iface may or maynot be called for p2p0
-            // Enable BMPS/IMPS in case P2P_CLIENT disconnected
-            // If power save offload is enabled, Fw will take care
-            // of power save in case of concurrency.
+            /*
+             * In case of JB, as Change-Iface may or may not be called for p2p0
+             * Enable BMPS/IMPS in case P2P_CLIENT disconnected
+             * If power save offload is enabled, Fw will take care
+             * of power save in case of concurrency.
+             */
             if((VOS_STATUS_SUCCESS == hdd_issta_p2p_clientconnected(pHddCtx))
                && !pHddCtx->cfg_ini->enablePowersaveOffload)
             {
@@ -1094,7 +1083,7 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    {
        return VOS_STATUS_E_FAILURE;
    }
-   // Get the Station ID from the one saved during the assocation.
+   /* Get the Station ID from the one saved during the association */
    staDesc.ucSTAId = staId;
 
    if ( pHddStaCtx->conn_info.connDot11DesiredBssType == eMib_dot11DesiredBssType_infrastructure)
@@ -1110,10 +1099,13 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       // for an IBSS 'connect', setup the Station Descriptor for TL.
       staDesc.wSTAType = WLAN_STA_IBSS;
 
-      // Note that for IBSS, the STA MAC address and BSSID are goign to be different where
-      // in infrastructure, they are the same (BSSID is the MAC address of the AP).  So,
-      // for IBSS we have a second field to pass to TL in the STA descriptor that we don't
-      // pass when making an Infrastructure connection.
+      /*
+       * Note that for IBSS, the STA MAC address and BSSID are going to be
+       * different where in infrastructure, they are the same (BSSID is the
+       * MAC address of the AP). So, for IBSS we have a second field to pass
+       * to TL in the STA descriptor that we don't pass when making an
+       * Infrastructure connection.
+       */
       vos_mem_copy( staDesc.vSTAMACAddress.bytes, pPeerMacAddress->bytes,sizeof(pPeerMacAddress->bytes) );
       vos_mem_copy( staDesc.vBSSIDforIBSS.bytes, pHddStaCtx->conn_info.bssId,6 );
    }
@@ -1432,7 +1424,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         }
 #endif  /* FEATURE_WLAN_WAPI */
 
-        // indicate 'connect' status to userspace
+        /* Indicate 'connect' status to user space */
         hdd_SendAssociationEvent(dev,pRoamInfo);
 
         // Initialize the Linkup event completion variable
@@ -1495,7 +1487,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 wlan_hdd_check_sta_ap_concurrent_ch_intf, (void *)pAdapter);
             adf_os_sched_work(0, &pHddCtx->sta_ap_intf_check_work);
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                                "Checking for Concurrent Channge interference");
+                                "Checking for Concurrent Change interference");
         }
 #endif
 
@@ -1796,9 +1788,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         // and the P2P Client is Connected
         //Enable BMPS
 
-        // In case of JB, as Change-Iface may or maynot be called for p2p0
-        // Enable BMPS/IMPS in case P2P_CLIENT disconnected
-        // If ps offload is enabled, fw will take care in case of concurrency.
+        /*
+         * In case of JB, as Change-Iface may or may not be called for p2p0
+         * Enable BMPS/IMPS in case P2P_CLIENT disconnected
+         * If ps offload is enabled, fw will take care in case of concurrency.
+         */
         if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
             (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
             (vos_concurrent_open_sessions_running()) &&
@@ -2215,11 +2209,13 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
       }
       else
       {
-         // TODO: Considering getting a state machine in HDD later.
-         // This routine is invoked twice. 1)set PTK 2)set GTK.
-         // The folloing if statement will be TRUE when setting GTK.
-         // At this time we don't handle the state in detail.
-         // Related CR: 174048 - TL not in authenticated state
+         /*
+          * TODO: Considering getting a state machine in HDD later.
+          * This routine is invoked twice. 1)set PTK 2)set GTK.
+          * The following if statement will be TRUE when setting GTK.
+          * At this time we don't handle the state in detail.
+          * Related CR: 174048 - TL not in authenticated state
+          */
          vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
                                            pHddStaCtx->conn_info.staId[0],
                                            WLANTL_STA_AUTHENTICATED,
@@ -2498,7 +2494,7 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
 
     /*
      * TDLS sta in BSS should be set as STA type TDLS and STA MAC should
-     * be peer MAC, here we are wokrking on direct Link
+     * be peer MAC, here we are working on direct Link
      */
     staDesc.ucSTAId = staId ;
 

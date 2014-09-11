@@ -3952,7 +3952,7 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
 #endif
 
 /*
- * This function returns a pointer to the character after the occurence
+ * This function returns a pointer to the character after the occurrence
  * of a new line character. It also modifies the original string by replacing
  * the '\n' character with the null character.
  * Function returns NULL if no new line character was found before end of
@@ -4663,7 +4663,7 @@ static void update_mac_from_string(hdd_context_t *pHddCtx, tCfgIniEntry *macTabl
 }
 
 /*
- * This function tries to update macaddress from cfg file.
+ * This function tries to update mac address from cfg file.
  * It overwrites the MAC address if config file exist.
  */
 VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
@@ -5236,8 +5236,8 @@ VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
    while ( (s != NULL) && (*len < intArrayMaxLen) )
    {
       int val;
-      //Increment length only if sscanf succesfully extracted one element.
-      //Any other return value means error. Ignore it.
+      /* Increment length only if sscanf successfully extracted one element.
+         Any other return value means error. Ignore it. */
       if( sscanf(s, "%d", &val ) == 1 )
       {
          intArray[*len] = (tANI_U8) val;
@@ -6266,7 +6266,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                               pHddCtx->cfg_ini->acsScanBandPreference;
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-   /* Update PNO offoad status */
+   /* Update PNO offload status */
    smeConfig->pnoOffload = pHddCtx->cfg_ini->PnoOffload;
 #endif
 

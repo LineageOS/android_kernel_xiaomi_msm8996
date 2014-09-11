@@ -1162,6 +1162,8 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                      (tANI_U8 *) &(pAssocInd->supportedChannels.channelList),
                       pAssocInd->supportedChannels.numChnl);
     }
+    vos_mem_copy(&pSirSmeAssocInd->chan_info, &pAssocInd->chan_info,
+                 sizeof(tSirSmeChanInfo));
     // Fill in WmmInfo
     pSirSmeAssocInd->wmmEnabledSta = pAssocInd->WmmStaInfoPresent;
 } /*** end limAssocIndSerDes() ***/

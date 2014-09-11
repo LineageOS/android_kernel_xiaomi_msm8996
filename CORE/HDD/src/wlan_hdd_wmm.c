@@ -35,7 +35,7 @@
   QoS (QoS here refers to a TSPEC). The setup QoS comes in two flavors: an
   explicit application invoked and an internal HDD invoked.  The implicit QoS
   is for applications that do NOT call the custom QCT WLAN OIDs for QoS but
-  which DO mark their traffic for priortization. It also has logic to start,
+  which DO mark their traffic for prioritization. It also has logic to start,
   update and stop the U-APSD trigger frame generation. It also has logic to
   read WMM related config parameters from the registry.
 
@@ -615,7 +615,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -669,7 +669,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -710,7 +710,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -719,11 +719,13 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          hdd_wmm_notify_app(pQosContext);
       }
 
-      /* Setting up QoS Failed, QoS context can be released.
-       * SME is releasing this flow information and if HDD doen't release this context,
-       * next time if application uses the same handle to set-up QoS, HDD (as it has
-       * QoS context for this handle) will issue Modify QoS request to SME but SME will
-       * reject as no it has no information for this flow.
+      /*
+       * Setting up QoS Failed, QoS context can be released.
+       * SME is releasing this flow information and if HDD doesn't release this
+       * context, next time if application uses the same handle to set-up QoS,
+       * HDD (as it has QoS context for this handle) will issue Modify QoS
+       * request to SME but SME will reject as no it has no information
+       * for this flow.
        */
       hdd_wmm_free_context(pQosContext);
       break;
@@ -763,7 +765,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -779,7 +781,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       if (!HDD_WMM_HANDLE_IMPLICIT == pQosContext->handle)
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -810,7 +812,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          if (HDD_WMM_HANDLE_IMPLICIT != pQosContext->handle)
          {
             VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                      "%s: Explicit Qos, notifying userspace",
+                      "%s: Explicit Qos, notifying user space",
                       __func__);
 
             // this was triggered by an application
@@ -851,7 +853,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -900,7 +902,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -952,7 +954,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       if (HDD_WMM_HANDLE_IMPLICIT != pQosContext->handle)
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -973,7 +975,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       if (HDD_WMM_HANDLE_IMPLICIT != pQosContext->handle)
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -1005,7 +1007,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
       else
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
-                   "%s: Explicit Qos, notifying userspace",
+                   "%s: Explicit Qos, notifying user space",
                    __func__);
 
          // this was triggered by an application
@@ -1448,7 +1450,7 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
 }
 
 /**============================================================================
-  @brief hdd_wmm_init() - Function which will initialize the WMM configuation
+  @brief hdd_wmm_init() - Function which will initialize the WMM configuration
   and status to an initial state.  The configuration can later be overwritten
   via application APIs
 
@@ -1483,13 +1485,13 @@ VOS_STATUS hdd_wmm_init ( hdd_adapter_t *pAdapter )
 }
 
 /**============================================================================
-  @brief hdd_wmm_adapter_init() - Function which will initialize the WMM configuation
-  and status to an initial state.  The configuration can later be overwritten
-  via application APIs
+  @brief hdd_wmm_adapter_init() - Function which will initialize the WMM
+  configuration and status to an initial state.
+  The configuration can later be overwritten via application APIs
 
   @param pAdapter : [in]  pointer to Adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
@@ -1529,7 +1531,7 @@ VOS_STATUS hdd_wmm_adapter_init( hdd_adapter_t *pAdapter )
 
   @param pAdapter : [in]  pointer to Adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
@@ -1560,7 +1562,7 @@ VOS_STATUS hdd_wmm_adapter_clear( hdd_adapter_t *pAdapter )
 
   @param pAdapter : [in]  pointer to adapter context
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
 
   ===========================================================================*/
@@ -1792,7 +1794,7 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
 
 /**============================================================================
   @brief hdd_hostapd_select_quueue() - Function which will classify the packet
-         according to linux qdisc expectation.
+         according to Linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure
@@ -1855,7 +1857,7 @@ done:
 
 /**============================================================================
   @brief hdd_wmm_select_quueue() - Function which will classify the packet
-         according to linux qdisc expectation.
+         according to Linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure
@@ -1895,8 +1897,10 @@ v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb)
           goto done;
        }
    }
-   // if we don't want QoS or the AP doesn't support Qos
-   // All traffic will get equal opportuniy to transmit data frames.
+   /*
+    * If we don't want QoS or the AP doesn't support Qos
+    * All traffic will get equal opportunity to transmit data frames.
+    */
    if( hdd_wmm_is_active(pAdapter) ) {
       /* Get the user priority from IP header & corresponding AC */
       hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
@@ -1965,7 +1969,7 @@ void hdd_wmm_acquire_access_required(hdd_adapter_t *pAdapter,
   @param pGranted : [out] pointer to boolean flag when indicates if access
                           has been granted or not
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
@@ -2080,7 +2084,7 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
   @param pRoamInfo: [in]  pointer to roam information
   @param eBssType : [in]  type of BSS
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
@@ -2214,7 +2218,7 @@ static const v_U8_t acmMaskBit[WLANTL_MAX_AC] =
   @param pRoamInfo: [in]  pointer to roam information
   @param eBssType : [in]  type of BSS
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
@@ -2297,7 +2301,7 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
   @param pAdapter  : [in]  pointer to adapter context
   @param pUapsdMask: [in]  pointer to where the UAPSD Mask is to be stored
 
-  @return         : VOS_STATUS_SUCCESS if succssful
+  @return         : VOS_STATUS_SUCCESS if successful
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_get_uapsd_mask( hdd_adapter_t* pAdapter,
@@ -2513,8 +2517,10 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
       hdd_wmm_free_context(pQosContext);
       return HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
    case SME_QOS_STATUS_SETUP_FAILURE_RSP:
-      // we can't tell the difference between when a request fails because
-      // AP rejected it versus when SME encounterd an internal error
+      /*
+       * We can't tell the difference between when a request fails because
+       * AP rejected it versus when SME encountered an internal error
+       */
       hdd_wmm_free_context(pQosContext);
       return HDD_WLAN_WMM_STATUS_SETUP_FAILED;
    case SME_QOS_STATUS_SETUP_NOT_QOS_AP_RSP:

@@ -67,11 +67,11 @@
     2) Unicast Pattern
 
   However note that WoWL will not be enabled by default by HDD. WoWL needs to
-  enabled explcitly by exercising the iwpriv command.
+  enabled explicitly by exercising the iwpriv command.
 
   HDD will expose an API that accepts patterns as Hex string in the following
-  format: "PatternSize:PatternMaskSize:PatternMask:Pattern". Mutliple patterns
-  can be specified by deleimiting each pattern with the ';' token.
+  format: "PatternSize:PatternMaskSize:PatternMask:Pattern". Multiple patterns
+  can be specified by delimiting each pattern with the ';' token.
   "PatternSize1:PatternMaskSize1:PatternMask1:Pattern1;PatternSize2:...."
 
   Patterns can be configured dynamically via iwpriv cmd or statically via
@@ -79,15 +79,15 @@
 
   PBM (when enabled) can perform filtering on unicast data or broadcast data or
   both. These configurations are part of factory defaults (cfg.dat) and
-  the deafult behavior is to perform filtering on both unicast and data frames.
+  the default behavior is to perform filtering on both unicast and data frames.
 
   MP filtering (when enabled) is performed ALWAYS on both unicast and broadcast
   data frames.
 
-  Mangement frames are not subjected to WoWL filtering and are discarded when
+  Management frames are not subjected to WoWL filtering and are discarded when
   WoWL is enabled.
 
-  Whenever a patern match succeeds, RX path is restored and packets (both
+  Whenever a pattern match succeeds, RX path is restored and packets (both
   management and data) will be pushed to the host from that point onwards.
   Therefore, exit from WoWL is implicit and happens automatically when the
   first packet match succeeds.
@@ -187,7 +187,7 @@ v_BOOL_t hdd_exit_wowl (hdd_adapter_t*pAdapter);
 
 /**============================================================================
   @brief hdd_init_wowl() - Init function which will initialize the WoWL module
-  and perform any required intial configuration
+  and perform any required initial configuration
 
   @return           : FALSE if any errors encountered
                     : TRUE otherwise

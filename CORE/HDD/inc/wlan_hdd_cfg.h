@@ -1338,10 +1338,11 @@ typedef enum
 #define CFG_QOS_WMM_TS_INFO_ACK_POLICY_MAX                         (0x01)
 #define CFG_QOS_WMM_TS_INFO_ACK_POLICY_DEFAULT                     (0x00)
 
-#define CFG_SINGLE_TID_RC_NAME                             "SingleTIDRC"
-#define CFG_SINGLE_TID_RC_MIN                               (0) // Seperate replay counter for all TID
-#define CFG_SINGLE_TID_RC_MAX                               (1) // Single replay counter for all TID
-#define CFG_SINGLE_TID_RC_DEFAULT                           (1)
+#define CFG_SINGLE_TID_RC_NAME    "SingleTIDRC"
+#define CFG_SINGLE_TID_RC_MIN     (0) /* Separate replay counter for all TID */
+#define CFG_SINGLE_TID_RC_MAX     (1) /* Single replay counter for all TID */
+#define CFG_SINGLE_TID_RC_DEFAULT (1)
+
 #define CFG_MCAST_BCAST_FILTER_SETTING_NAME          "McastBcastFilter"
 #define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
 #define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
@@ -1697,7 +1698,7 @@ typedef enum
 #define CFG_ACS_BAND_SWITCH_THRESHOLD             "gACSBandSwitchThreshold"
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_MIN         (0)
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_MAX         (4444)
-/* 2 BSS, maximus RSSI -90 */
+/* 2 BSS, maximum RSSI -90 */
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT     (296)
 
 /*BMPS Logic
@@ -3042,7 +3043,7 @@ typedef struct
    /* Wowl pattern */
    char                        wowlPattern[1024];
 
-   /* Control for Replay counetr. value 1 means
+   /* Control for Replay counter. value 1 means
       single replay counter for all TID*/
    v_BOOL_t                    bSingleTidRc;
    v_U8_t                      mcastBcastFilterSetting;
@@ -3411,14 +3412,18 @@ typedef struct mbssid_sap_dyn_ini_config {
 
 #define VAR_FLAGS_RANGE_CHECK_ASSUME_MINMAX ( VAR_FLAGS_RANGE_CHECK )
 
-#define VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT ( 1 << 2 )  // bit 2 is range checking that assumes the DEFAULT value
-                                                         // If less than MIN, assume DEFAULT,
-                                                         // If grateer than MAX, assume DEFAULT.
+/*
+ * bit 2 is range checking that assumes the DEFAULT value
+ * If less than MIN, assume DEFAULT,
+ * If greater than MAX, assume DEFAULT.
+ */
+#define VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT ( 1 << 2 )
 
-#define VAR_FLAGS_DYNAMIC_CFG ( 1 << 3 )  // Bit 3 indicates that
-                                          // the config item can be
-                                          // modified dynamicially
-                                          // on a running system
+/*
+ * Bit 3 indicates that the config item can be modified dynamically
+ * on a running system
+ */
+#define VAR_FLAGS_DYNAMIC_CFG ( 1 << 3 )
 
 typedef enum
 {
@@ -3496,7 +3501,7 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 }
 
 /*---------------------------------------------------------------------------
-  Function declarations and documenation
+  Function declarations and documentation
   -------------------------------------------------------------------------*/
 VOS_STATUS hdd_parse_config_ini(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx);

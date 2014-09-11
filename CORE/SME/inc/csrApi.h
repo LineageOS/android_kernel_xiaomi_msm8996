@@ -1330,10 +1330,8 @@ typedef struct tagCsrRoamInfo
     tANI_U8 roamSynchInProgress;
     tANI_U8 synchAuthStatus;
 #endif
+    tSirSmeChanInfo chan_info;
 }tCsrRoamInfo;
-
-
-
 
 
 typedef struct tagCsrFreqScanInfo
@@ -1360,6 +1358,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tSirAddie            addIE;           // Additional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
     tANI_U8              timingMeasCap;
+    tSirSmeChanInfo      chan_info;
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 
 typedef struct tagCsrSummaryStatsInfo

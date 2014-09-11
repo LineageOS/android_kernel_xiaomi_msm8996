@@ -2048,6 +2048,7 @@ sapSignalHDDevent
         case eSAP_STA_ASSOC_EVENT:
         case eSAP_STA_REASSOC_EVENT:
         {
+            tSirSmeChanInfo *pChanInfo;
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                 __func__, "eSAP_STA_ASSOC_EVENT");
             if (pCsrRoamInfo->fReassocReq)
@@ -2072,6 +2073,18 @@ sapSignalHDDevent
                 vos_mem_copy(&sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies[len], pCsrRoamInfo->paddIE,
                             pCsrRoamInfo->addIELen);
             }
+
+            /* also fill up the channel info from the csrRoamInfo */
+            pChanInfo =
+            &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.chan_info;
+
+            pChanInfo->chan_id = pCsrRoamInfo->chan_info.chan_id;
+            pChanInfo->mhz = pCsrRoamInfo->chan_info.mhz;
+            pChanInfo->info = pCsrRoamInfo->chan_info.info;
+            pChanInfo->band_center_freq1 = pCsrRoamInfo->chan_info.band_center_freq1;
+            pChanInfo->band_center_freq2 = pCsrRoamInfo->chan_info.band_center_freq2;
+            pChanInfo->reg_info_1 = pCsrRoamInfo->chan_info.reg_info_1;
+            pChanInfo->reg_info_2 = pCsrRoamInfo->chan_info.reg_info_2;
 
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;

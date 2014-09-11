@@ -201,7 +201,7 @@ typedef struct sHddMib_s
     eMib_DevicePowerState      mibDevicePowerState;
 
     // dot11NICPowerState is really the on/off state of the PHY.  This can be
-    // mamipulated through OIDs like a software control for radio on/off.
+    /* Manipulated through OIDs like a software control for radio on/off. */
     eMib_dot11NICPowerState    mibDot11NICPowerState;
 
     // Hardware PHY state is the on/off state of the hardware PHY.
