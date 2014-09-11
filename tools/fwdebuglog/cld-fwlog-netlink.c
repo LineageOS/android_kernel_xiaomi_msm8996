@@ -84,6 +84,7 @@ const char options[] =
 -c, --console (prints the logs in the console)\n\
 -s, --silent (No print will come when logging)\n\
 -q, --qxdm  (prints the logs in the qxdm)\n\
+-d, --debug  (more prints in logcat, check logcat -s ROME_DEBUG, example to use: -q -d or -c -d)\n\
 The options can also be given in the abbreviated form --option=x or -o x. The options can be given in any order";
 
 struct sockaddr_nl src_addr, dest_addr;
@@ -422,11 +423,12 @@ int32_t main(int32_t argc, char *argv[])
         {"console", 0, NULL, 'c'},
         {"qxdm", 0, NULL, 'q'},
         {"silent", 0, NULL, 's'},
+        {"debug", 0, NULL, 'd'},
         { 0, 0, 0, 0}
     };
 
     while (1) {
-        c = getopt_long (argc, argv, "f:scqr:", long_options, &option_index);
+        c = getopt_long (argc, argv, "f:scqdr:", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -456,12 +458,13 @@ int32_t main(int32_t argc, char *argv[])
         }
     }
 
-    if (!(optionflag & (LOGFILE_FLAG | CONSOLE_FLAG | QXDM_FLAG | SILENT_FLAG))) {
+    if (!(optionflag & (LOGFILE_FLAG | CONSOLE_FLAG | QXDM_FLAG | SILENT_FLAG
+           | DEBUG_FLAG))) {
         usage();
         return -1;
     }
 
-    if (optionflag == QXDM_FLAG) {
+    if (optionflag & QXDM_FLAG) {
         /* Intialize the fd required for diag APIs */
         if (TRUE != Diag_LSM_Init(NULL))
         {

@@ -40,6 +40,7 @@
 #include <android/log.h>
 
 #define FWDEBUG_LOG_NAME        "ROME"
+#define FWDEBUG_NAME            "ROME_DEBUG"
 #define android_printf(...) \
        __android_log_print(ANDROID_LOG_INFO, FWDEBUG_LOG_NAME, __VA_ARGS__);
 #endif
@@ -68,6 +69,12 @@ static diag_entry *gdiag_db = NULL;
 static file_header *gdiag_header = NULL;
 static int32_t gisdiag_init = FALSE;
 static int gdiag_sock_fd = 0, goptionflag = 0;
+#ifdef CONFIG_ANDROID_LOG
+#define debug_printf(...) do {     \
+    if (goptionflag & DEBUG_FLAG)   \
+       __android_log_print(ANDROID_LOG_INFO, FWDEBUG_NAME, __VA_ARGS__);    \
+} while(0)
+#endif
 
 /*
  * macros to safely extract 8, 16, 32, or 64-bit values from byte buffer
@@ -807,8 +814,29 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
     char *payload;
     char buf[BUF_SIZ], payload_buf[BUF_SIZ];
     char *start = buf;
-    int32_t hashInd = 0, i =0;
+    int32_t hashInd = 0, i =0, j =0;
     diag_entry *entry = NULL;
+    int ret = 0, total_dump_len = 0;
+    uint8_t *debugp = datap;
+    char dump_buffer[BUF_SIZ];
+
+    if (optionflag & DEBUG_FLAG) {
+        memset(dump_buffer, 0, sizeof(dump_buffer));
+        debug_printf("process_diagfw_msg hex dump start len %d", len);
+        for (i = 0; i < len; i++) {
+             ret = snprintf(dump_buffer + j,BUF_SIZ, "0x%x ", debugp[i]);
+             j += ret;
+             if (!(i % 16) && (i!=0)) {
+                total_dump_len += 16;
+                debug_printf("%s", dump_buffer);
+                memset(dump_buffer, 0, sizeof(dump_buffer));
+                j = 0;
+             }
+        }
+        if (total_dump_len != len)
+           debug_printf("%s", dump_buffer);
+        debug_printf("process_diagfw_msg hex dump end");
+    }
 
     if (!gisdiag_init) {
        /* If cnss_diag is started if WIFI already ON,
@@ -853,7 +881,7 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
             payloadlen = DIAG_GET_PAYLEN16(header2);
             debug_printf("DIAG_TYPE_FW_EVENT: id = %d"
                          " payloadlen = %d \n", id, payloadlen);
-            if (optionflag == QXDM_FLAG) {
+            if (optionflag & QXDM_FLAG) {
                 if (payloadlen)
                     event_report_payload(id, payloadlen, payload);
                 else
@@ -867,12 +895,19 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
             payloadlen = DIAG_GET_PAYLEN16(header2);
             debug_printf("DIAG_TYPE_FW_LOG: id = %d"
                          " payloadlen = %d \n", id,  payloadlen);
-            if (optionflag == QXDM_FLAG) {
-                log_header_type *pHdr = (log_header_type*)(payload);
-               if (log_status(pHdr->code)) {
-                   log_set_timestamp(pHdr);
-                   log_submit(pHdr);
-               }
+            if (optionflag & QXDM_FLAG) {
+                /* Allocate a log buffer */
+                uint8_t *logbuff = (uint8_t*) log_alloc(id,
+                                    sizeof(log_hdr_type)+payloadlen);
+                if ( logbuff != NULL ) {
+                    /* Copy the log data */
+                    memcpy(logbuff + sizeof(log_hdr_type), payload,
+                              payloadlen);
+                    /* Commit the log buffer */
+                    log_commit(logbuff);
+                }
+                else
+                    debug_printf("log_alloc failed for len = %d ", payloadlen);
             }
         }
         break;
