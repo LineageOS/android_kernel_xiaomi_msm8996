@@ -69,7 +69,7 @@ typedef struct sSirCountryInformation
 } tSirCountryInformation,*tpSirCountryInformation;
 
 
-/// Structure common to Beaons & Probe Responses
+/* Structure common to Beacons & Probe Responses */
 typedef struct sSirProbeRespBeacon
 {
     tSirMacTimeStamp          timeStamp;
@@ -211,8 +211,8 @@ typedef struct sSirAssocReq
 
     tANI_U8                   powerCapabilityPresent;
     tANI_U8                   supportedChannelsPresent;
-    // keeing copy of assoction request received, this is
-    // required for indicating the frame to upper layers
+    /* keeping copy of association request received, this is
+       required for indicating the frame to upper layers */
     tANI_U32                  assocReqFrameLength;
     tANI_U8*                  assocReqFrame;
 #ifdef WLAN_FEATURE_11AC
@@ -454,7 +454,7 @@ sirConvertMeasReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
  * \sa PopulatedDot11fCapabilities2
  *
  *
- * \param pMac Pointer to the global MAC datastructure
+ * \param pMac Pointer to the global MAC data structure
  *
  * \param pDot11f Address of a tDot11fFfCapabilities to be filled in
  *
@@ -476,7 +476,7 @@ PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
  * \sa PopulatedDot11fCapabilities2
  *
  *
- * \param pMac Pointer to the global MAC datastructure
+ * \param pMac Pointer to the global MAC data structure
  *
  * \param pDot11f Address of a tDot11fFfCapabilities to be filled in
  *
@@ -553,7 +553,7 @@ PopulateDot11fBeaconReport(tpAniSirGlobal       pMac,
  * \brief Populate a tDot11fIEExtSuppRates
  *
  *
- * \param pMac Pointer to the global MAC datastructure
+ * \param pMac Pointer to the global MAC data structure
  *
  * \param nChannelNum Channel on which the enclosing frame will be going out
  *
@@ -707,7 +707,7 @@ PopulateDot11fSuppChannels(tpAniSirGlobal         pMac,
  * \brief Populated a tDot11fIESuppRates
  *
  *
- * \param pMac Pointer to the global MAC datastructure
+ * \param pMac Pointer to the global MAC data structure
  *
  * \param nChannelNum Channel the enclosing frame will be going out on; see
  * below

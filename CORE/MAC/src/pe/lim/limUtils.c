@@ -3209,7 +3209,7 @@ void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId)
  * For the first and last ANI peer, we have to update EDCA params as needed
  *
  * When the first ANI peer joins the BSS, we notify SCH
- * When the last ANI peer leaves the BSS, we notfiy SCH
+ * When the last ANI peer leaves the BSS, we notify SCH
  */
 void
 limUtilCountStaAdd(
@@ -3324,7 +3324,7 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
  *
  *NOTE:
  * @param  pMac        Pointer to Global MAC structure
- * @param  newChannel  new chnannel ID
+ * @param  newChannel  new channel ID
  * @return NONE
  */
 void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession psessionEntry)
@@ -3370,7 +3370,7 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
  *
  *NOTE:
  * @param  pMac        Pointer to Global MAC structure
- * @param  newChannel  New chnannel ID (or current channel ID)
+ * @param  newChannel  New channel ID (or current channel ID)
  * @param  subband     CB secondary info:
  *                       - eANI_CB_SECONDARY_NONE
  *                       - eANI_CB_SECONDARY_UP
@@ -3606,7 +3606,7 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
   if( htCap >= eHT_ANTENNA_SELECTION &&
       htCap < eHT_SI_GRANULARITY )
   {
-    // Get Antenna Seletion HT Capabilities
+    /* Get Antenna Selection HT Capabilities */
     if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_AS_CAP, &cfgValue ))
       cfgValue = 0;
     ptr = (tANI_U8 *) &macASCapabilityInfo;
@@ -3867,7 +3867,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-        //This part is common for staiton as well.
+        /* This part is common for station as well. */
         if(false == psessionEntry->beaconParams.llaCoexist)
         {
             PELOG1(limLog(pMac, LOG1, FL(" => protection from 11A Enabled"));)
@@ -3887,7 +3887,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 //Overlap Legacy protection disabled.
                 pMac->lim.gLimOverlap11aParams.protectionEnabled = false;
 
-                //We need to take care of HT OP mode iff we are HT AP.
+                /* We need to take care of HT OP mode if we are HT AP. */
                 if(psessionEntry->htCapability)
                 {
                    // no HT op mode change if any of the overlap protection enabled.
@@ -4070,7 +4070,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
 
-        //This part is common for staiton as well.
+        /* This part is common for station as well. */
         if(false == psessionEntry->beaconParams.llbCoexist)
         {
             PELOG1(limLog(pMac, LOG1, FL("=> 11G Protection Enabled"));)
@@ -4103,12 +4103,9 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                         {
                             limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                             limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
-                            if(psessionEntry->gLimHt20Params.protectionEnabled){
-                                //Commenting out beacuse of CR 258588 WFA cert
-                                //psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+                            if (psessionEntry->gLimHt20Params.protectionEnabled) {
                                 psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
-                            }
-                            else
+                            } else
                                 psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
                         }
                     }
@@ -4165,7 +4162,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     //Overlap Legacy protection disabled.
                 psessionEntry->gLimOlbcParams.protectionEnabled = false;
 
-                    //We need to take care of HT OP mode iff we are HT AP.
+                    /* We need to take care of HT OP mode if we are HT AP. */
                     if(psessionEntry->htCapability)
                     {
                         // no HT op mode change if any of the overlap protection enabled.
@@ -4349,7 +4346,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-        //This part is common for staiton as well.
+        /* This part is common for station as well. */
         if(false == psessionEntry->beaconParams.llgCoexist)
         {
             pBeaconParams->llgCoexist = psessionEntry->beaconParams.llgCoexist = true;
@@ -4694,10 +4691,10 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-        //This part is common for staiton as well.
+        /* This part is common for station as well. */
         if(false == psessionEntry->beaconParams.ht20Coexist)
         {
-            PELOG1(limLog(pMac, LOG1, FL("=> Prtection from HT20 Enabled"));)
+            PELOG1(limLog(pMac, LOG1, FL("=> Protection from HT20 Enabled"));)
             pBeaconParams->ht20MhzCoexist = psessionEntry->beaconParams.ht20Coexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_HT20MHZCOEXIST_CHANGED;
         }
@@ -4725,8 +4722,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                     {
                         if(psessionEntry->gLimHt20Params.protectionEnabled)
                         {
-                            //Commented beacuse of CR 258588 for WFA Cert
-                            //psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
                             psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
                             limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                             limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
@@ -4855,7 +4850,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
-            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled"));)
+            PELOG1(limLog(pMac, LOG1, FL(" => Protection from non GF Enabled"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
@@ -4869,7 +4864,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
-            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled"));)
+            PELOG1(limLog(pMac, LOG1, FL(" => Protection from non GF Enabled"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
@@ -4928,7 +4923,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
-            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from LsigTxop Enabled"));)
+            PELOG1(limLog(pMac, LOG1, FL(" => Protection from LsigTxop Enabled"));)
             pBeaconParams->fLsigTXOPProtectionFullSupport = psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = true;
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
@@ -4942,7 +4937,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
-            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from LsigTxop Enabled"));)
+            PELOG1(limLog(pMac, LOG1, FL(" => Protection from LsigTxop Enabled"));)
             pBeaconParams->fLsigTXOPProtectionFullSupport = psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = true;
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
@@ -5167,7 +5162,7 @@ void limTxComplete( tHalHandle hHal, void *pData, v_BOOL_t free)
  *  have changed, and sends an indication to HAL also with the
  * updated HT Parameters.
  * This function does not detect the change in the primary channel, that is done as part
- * of channel Swtich IE processing.
+ * of channel Switch IE processing.
  * If STA is configured with '20Mhz only' mode, then this function does not do anything
  * This function changes the CB mode, only if the self capability is set to '20 as well as 40Mhz'
  *
@@ -5655,7 +5650,7 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
 #endif
 
-    //delete the complete dialoguetoken linked list
+    /* Delete the complete dialogue token linked list */
     limDeleteDialogueTokenList(pMac);
     pBaCandidate =  (tpAddBaCandidate) (((tANI_U8*)pBaActivityInd) + sizeof(tBaActivityInd));
 
@@ -5684,7 +5679,7 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
 /** -------------------------------------------------------------
 \fn      limDeleteBASessions
-\brief   Deletes all the exisitng BA sessions for given session
+\brief   Deletes all the existing BA sessions for given session
          and BA direction.
 \param   tpAniSirGlobal pMac
 \param   tpPESession pSessionEntry
@@ -5765,7 +5760,7 @@ limDeleteBASessions(tpAniSirGlobal pMac, tpPESession pSessionEntry,
 
 /** -------------------------------------------------------------
 \fn     limDelAllBASessions
-\brief  Deletes all the exisitng BA sessions.
+\brief  Deletes all the existing BA sessions.
 \param  tpAniSirGlobal pMac
 \return None
 -------------------------------------------------------------*/
@@ -5787,7 +5782,7 @@ void limDelAllBASessions(tpAniSirGlobal pMac)
 
 /** -------------------------------------------------------------
 \fn     limDelAllBASessionsBtc
-\brief  Deletes all the exisitng BA receipent sessions in 2.4GHz
+\brief  Deletes all the existing BA recipient sessions in 2.4GHz
         band.
 \param  tpAniSirGlobal pMac
 \return None
@@ -5809,8 +5804,9 @@ void limDelPerBssBASessionsBtc(tpAniSirGlobal pMac)
 
 /** -------------------------------------------------------------
 \fn limProcessDelTsInd
-\brief handles the DeleteTS indication coming from HAL or generated by PE itself in some error cases.
-         Validates the request, sends the DelTs action frame to the Peer and sends DelTs indicatoin to HDD.
+\brief Handles the DeleteTS indication coming from HAL or generated by
+       PE itself in some error cases. Validates the request, sends the
+       DelTs action frame to the Peer and sends DelTs indication to HDD.
 \param   tpAniSirGlobal pMac
 \param  tSirMsgQ limMsg
 \return None
@@ -6378,12 +6374,6 @@ tSirMsgQ msgQ;
   pDelBAParams->staIdx = pSta->staIndex;
   pDelBAParams->baTID = baTID;
   pDelBAParams->baDirection = baDirection;
-
-  /* Update PE session ID */
-
-
-  //TBD-RAJESH Updating of the session ID is requird for SIR_HAL_DELBA_IND?????
-  //pDelBAParams->sessionId = psessionEntry->peSessionId;
 
   // Post WDA_DELBA_IND to HAL.
   msgQ.type = WDA_DELBA_IND;
@@ -6966,9 +6956,11 @@ tSirNwType limGetNwType(tpAniSirGlobal pMac, tANI_U8 channelNum, tANI_U32 type, 
         if ((channelNum > 0) && (channelNum < 15))
         {
             int i;
-            // 11b or 11g packet
-            // 11g iff extended Rate IE is present or
-            // if there is an A rate in suppRate IE
+            /*
+             * 11b or 11g packet
+             * 11g if extended Rate IE is present or
+             * if there is an A rate in suppRate IE
+             */
             for (i = 0; i < pBeacon->supportedRates.numRates; i++)
             {
                 if (sirIsArate(pBeacon->supportedRates.rate[i] & 0x7f))
@@ -7026,7 +7018,7 @@ tANI_U8 limGetChannelFromBeacon(tpAniSirGlobal pMac, tpSchBeaconStruct pBeacon)
 \        in the TS Info Fields.
 \
 \        An AC is a trigger-enabled AC if the PSB subfield
-\        is set to 1 in the uplink direction.
+\        is set to 1 in the up link direction.
 \        An AC is a delivery-enabled AC if the PSB subfield
 \        is set to 1 in the down-link direction.
 \
@@ -7165,7 +7157,8 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
             {
                 if(pMac->lim.gpSession[i].LimHBFailureStatus == eANI_BOOLEAN_TRUE)
                 {
-                    /* Activate Probe After HeartBeat Timer incase HB Failure detected */
+                    /* Activate Probe After HeartBeat Timer in-case
+                       HB Failure detected */
                     PELOGW(limLog(pMac, LOGW,FL("Sending Probe for Session: %d"),
                             i);)
                     limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
@@ -7205,7 +7198,8 @@ void limHandleHeartBeatTimeoutForSession(tpAniSirGlobal pMac, tpPESession psessi
         {
             if(psessionEntry->LimHBFailureStatus == eANI_BOOLEAN_TRUE)
             {
-                /* Activate Probe After HeartBeat Timer incase HB Failure detected */
+                /* Activate Probe After HeartBeat Timer in-case
+                   HB Failure detected */
                 PELOGW(limLog(pMac, LOGW,FL("Sending Probe for Session: %d"),
                        psessionEntry->bssIdx);)
                 limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
@@ -7346,8 +7340,6 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
             }
         }
     }
-    /* Deactivate Timer ProbeAfterHB Timer -> As its a oneshot timer, need not deactivate the timer */
-    // tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
 }
 
 

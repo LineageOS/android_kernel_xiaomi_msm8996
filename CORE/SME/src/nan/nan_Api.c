@@ -64,7 +64,7 @@ void sme_NanRegisterCallback(tHalHandle hHal, NanCallback callback)
  *
  * Description:
  * This function gets called when HDD receives NAN vendor command
- * from userspace
+ * from user space
  *
  * Args:
  * Nan Request structure ptr

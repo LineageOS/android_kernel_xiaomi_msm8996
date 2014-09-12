@@ -66,7 +66,7 @@ void limFTOpen(tpAniSirGlobal pMac, tpPESession psessionEntry)
 }
 
 /*--------------------------------------------------------------------------
-  Cleanup FT variables.
+  Clean up FT variables.
   ------------------------------------------------------------------------*/
 void limFTCleanupPreAuthInfo(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {

@@ -725,6 +725,7 @@ static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataFor
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
 
+#ifdef QCA_HT_2040_COEX
 static void hdd_send_channel_switch_evt(hdd_adapter_t *pHostapdAdapter,
                                         tpSap_Event pSapEvent,
                                         v_PVOID_t usrDataForCallback)
@@ -805,6 +806,7 @@ static void hdd_send_channel_switch_evt(hdd_adapter_t *pHostapdAdapter,
         cfg80211_ch_switch_notify(dev, &chandef);
     }
 }
+#endif
 
 
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
@@ -1522,10 +1524,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* Allow suspend for old channel */
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
+#ifdef QCA_HT_2040_COEX
             /* indicate operating channel change to hostapd */
             hdd_send_channel_switch_evt(pHostapdAdapter,
                                         pSapEvent,
                                         usrDataForCallback);
+#endif
             return VOS_STATUS_SUCCESS;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

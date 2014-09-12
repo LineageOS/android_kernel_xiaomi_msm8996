@@ -60,7 +60,8 @@
 #endif
 
 /* Roam score for a neighbor AP will be calculated based on the below definitions.
-    The calculated roam score will be used to select the roamable candidate from neighbor AP list */
+    The calculated roam score will be used to select the roam able
+    candidate from neighbor AP list */
 #define RRM_ROAM_SCORE_NEIGHBOR_REPORT_REACHABILITY             0   /* When we support 11r over the DS, this should have a non-zero value */
 #define RRM_ROAM_SCORE_NEIGHBOR_REPORT_SECURITY                 10
 #define RRM_ROAM_SCORE_NEIGHBOR_REPORT_KEY_SCOPE                20
@@ -532,17 +533,21 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
 
    if (NULL == pResult)
    {
-      // no scan results
-      //
-      // Spec. doesnt say anything about such condition.
-      // Since section 7.4.6.2 (IEEE802.11k-2008) says-rrm report frame should contain
-      // one or more report IEs. It probably means dont send any respose if no matching
-      // BSS found. Moreover, there is no flag or field in measurement report IE(7.3.2.22)
-      // OR beacon report IE(7.3.2.22.6) that can be set to indicate no BSS found on a given channel.
-      //
-      // If we finished measurement on all the channels, we still need to
-      // send a xmit indication with moreToFollow set to MEASURMENT_DONE
-      // so that PE can clean any context allocated.
+      /*
+       * no scan results
+       *
+       * Spec. doesnt say anything about such condition.
+       * Since section 7.4.6.2 (IEEE802.11k-2008) says-rrm report frame should
+       * contain one or more report IEs. It probably means dont send any
+       * response if no matching BSS found. Moreover, there is no flag or
+       * field in measurement report IE(7.3.2.22) OR beacon report
+       * IE(7.3.2.22.6) that can be set to indicate no BSS found on a
+       * given channel.
+       *
+       * If we finished measurement on all the channels, we still need to
+       * send a xmit indication with moreToFollow set to MEASURMENT_DONE
+       * so that PE can clean any context allocated.
+       */
       if( measurementDone )
       {
 #if defined(FEATURE_WLAN_ESE_UPLOAD)
@@ -659,8 +664,9 @@ static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle,
       sme_RrmSendScanResult( pMac, 1, &pSmeRrmContext->channelList.ChannelList[pSmeRrmContext->currentIndex], false );
 
       pSmeRrmContext->currentIndex++; //Advance the current index.
-      //start the timer to issue next request.
-      //From timer tick get a random number within 10ms and max randmization interval.
+
+      /* Start the timer to issue next request. From timer tick get a random
+       number within 10ms and max randomization interval. */
       time_tick = vos_timer_get_system_ticks();
       interval = time_tick % (pSmeRrmContext->randnIntvl - 10 + 1) + 10;
 
@@ -1298,10 +1304,8 @@ eHalStatus sme_RrmMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
 
     \fn rrmIterMeasTimerHandle
 
-    \brief  Timer handler to handlet the timeout condition when a specific BT
-
+    \brief  Timer handler to handle the timeout condition when a specific BT
             stop event does not come back, in which case to restore back the
-
             heartbeat timer.
 
     \param  pMac - The handle returned by macOpen.

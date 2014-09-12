@@ -141,7 +141,7 @@ void limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpda
 void limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry);
 
 /*
- * The below 'product' check tobe removed if 'Association' is
+ * The below 'product' check to be removed if 'Association' is
  * allowed in IBSS.
  */
 void    limReleasePeerIdx(tpAniSirGlobal, tANI_U16, tpPESession);

@@ -136,8 +136,8 @@ typedef struct sSirMsgQ
     /**
      * Based on the type either a bodyptr pointer into
      * memory or bodyval as a 32 bit data is used.
-     * bodyptr: is always a freeable pointer, one should always
-     * make sure that bodyptr is always freeable.
+     * bodyptr: is always a free able pointer, one should always
+     * make sure that bodyptr is always free able.
      *
      * Messages should use either bodyptr or bodyval; not both !!!.
      */
@@ -697,7 +697,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_LIM_UPDATE_BEACON                   (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x13)
 
 
-// LIM Timeout messages
+/* LIM Time out messages */
 #define SIR_LIM_TIMEOUT_MSG_START      ((SIR_LIM_MODULE_ID  << 8) + 0xD0)
 #define SIR_LIM_MIN_CHANNEL_TIMEOUT    SIR_LIM_TIMEOUT_MSG_START
 #define SIR_LIM_MAX_CHANNEL_TIMEOUT    (SIR_LIM_TIMEOUT_MSG_START + 1)
@@ -778,7 +778,7 @@ typedef struct sSirMbMsgP2p
 
 /* ****************************************** *
  *                                            *
- *         EVENT TYPE Defintions              *
+ *         EVENT TYPE Definitions             *
  *                                            *
  * ****************************************** */
 
