@@ -681,7 +681,9 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_UP:
+#ifdef FEATURE_WLAN_CH_AVOID
         sme_ChAvoidUpdateReq(pHddCtx->hHal);
+#endif
         break;
 
    case NETDEV_DOWN:
