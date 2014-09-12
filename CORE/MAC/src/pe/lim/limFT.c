@@ -1600,6 +1600,125 @@ tANI_BOOLEAN limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
     return TRUE;
 }
 
+void
+limFTSendAggrQosRsp(tpAniSirGlobal pMac, tANI_U8 rspReqd,
+                    tpAggrAddTsParams aggrQosRsp, tANI_U8 smesessionId)
+{
+    tpSirAggrQosRsp  rsp;
+    int i = 0;
+
+    if (! rspReqd)
+    {
+        return;
+    }
+
+    rsp = vos_mem_malloc(sizeof(tSirAggrQosRsp));
+    if (NULL == rsp)
+    {
+        limLog(pMac, LOGP, FL("AllocateMemory failed for tSirAggrQosRsp"));
+        return;
+    }
+
+    vos_mem_set((tANI_U8 *) rsp, sizeof(*rsp), 0);
+    rsp->messageType = eWNI_SME_FT_AGGR_QOS_RSP;
+    rsp->sessionId = smesessionId;
+    rsp->length = sizeof(*rsp);
+    rsp->aggrInfo.tspecIdx = aggrQosRsp->tspecIdx;
+
+    for( i = 0; i < SIR_QOS_NUM_AC_MAX; i++ )
+    {
+        if( (1 << i) & aggrQosRsp->tspecIdx )
+        {
+            rsp->aggrInfo.aggrRsp[i].status = aggrQosRsp->status[i];
+            rsp->aggrInfo.aggrRsp[i].tspec = aggrQosRsp->tspec[i];
+        }
+    }
+
+    limSendSmeAggrQosRsp(pMac, rsp, smesessionId);
+    return;
+}
+
+void limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
+{
+    tpAggrAddTsParams pAggrQosRspMsg = NULL;
+    tAddTsParams     addTsParam = {0};
+    tpDphHashNode  pSta = NULL;
+    tANI_U16  assocId =0;
+    tSirMacAddr  peerMacAddr;
+    tANI_U8   rspReqd = 1;
+    tpPESession  psessionEntry = NULL;
+    int i = 0;
+
+    PELOG1(limLog(pMac, LOG1, FL(" Received AGGR_QOS_RSP from HAL"));)
+
+    /* Need to process all the deferred messages enqueued since sending the
+       SIR_HAL_AGGR_ADD_TS_REQ */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    pAggrQosRspMsg = (tpAggrAddTsParams) (limMsg->bodyptr);
+    if (NULL == pAggrQosRspMsg)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("NULL pAggrQosRspMsg"));)
+        return;
+    }
+
+    psessionEntry = peFindSessionBySessionId(pMac, pAggrQosRspMsg->sessionId);
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE,
+               FL("Cant find session entry for %s"), __func__);)
+        if( pAggrQosRspMsg != NULL )
+        {
+            vos_mem_free(pAggrQosRspMsg);
+        }
+        return;
+    }
+
+    /* Nothing to be done if the session is not in STA mode */
+    if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
+#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
+       PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
+#endif
+       return;
+    }
+
+    for( i = 0; i < HAL_QOS_NUM_AC_MAX; i++ )
+    {
+        if((((1 << i) & pAggrQosRspMsg->tspecIdx)) &&
+                (pAggrQosRspMsg->status[i] != eHAL_STATUS_SUCCESS))
+        {
+            /* send DELTS to the station */
+            sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
+
+            addTsParam.staIdx = pAggrQosRspMsg->staIdx;
+            addTsParam.sessionId = pAggrQosRspMsg->sessionId;
+            addTsParam.tspec = pAggrQosRspMsg->tspec[i];
+            addTsParam.tspecIdx = pAggrQosRspMsg->tspecIdx;
+
+            limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd,
+                    &addTsParam.tspec.tsinfo,
+                    &addTsParam.tspec, psessionEntry);
+
+            pSta = dphLookupAssocId(pMac, addTsParam.staIdx, &assocId,
+                    &psessionEntry->dph.dphHashTable);
+            if (pSta != NULL)
+            {
+                limAdmitControlDeleteTS(pMac, assocId, &addTsParam.tspec.tsinfo,
+                        NULL, (tANI_U8 *)&addTsParam.tspecIdx);
+            }
+        }
+    }
+
+    /* Send the Aggr QoS response to SME */
+    limFTSendAggrQosRsp(pMac, rspReqd, pAggrQosRspMsg,
+            psessionEntry->smeSessionId);
+    if( pAggrQosRspMsg != NULL )
+    {
+        vos_mem_free(pAggrQosRspMsg);
+    }
+    return;
+}
+
 tSirRetStatus
 limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
 {
@@ -1781,145 +1900,48 @@ limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
        }
     }
 
-    msg.type = WDA_AGGR_QOS_REQ;
-    msg.bodyptr = pAggrAddTsParam;
-    msg.bodyval = 0;
-
-    /* We need to defer any incoming messages until we get a
-     * WDA_AGGR_QOS_RSP from HAL.
-     */
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msg.type));
-
-    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (!pMac->roam.configParam.isRoamOffloadEnabled ||
+       (pMac->roam.configParam.isRoamOffloadEnabled &&
+        !psessionEntry->is11Rconnection))
+#endif
     {
-       PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed"));)
-       SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-       vos_mem_free(pAggrAddTsParam);
-       return eSIR_FAILURE;
+        msg.type = WDA_AGGR_QOS_REQ;
+        msg.bodyptr = pAggrAddTsParam;
+        msg.bodyval = 0;
+
+        /* We need to defer any incoming messages until we get a
+         * WDA_AGGR_QOS_RSP from HAL.
+         */
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+        MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msg.type));
+
+        if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
+        {
+            PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed"));)
+            SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+            vos_mem_free(pAggrAddTsParam);
+            return eSIR_FAILURE;
+        }
     }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    else
+    {
+        /* Implies it is a LFR3.0 based 11r connection
+         * so donot send add ts request to fimware since it
+         * already has the RIC IEs */
+
+        /* Send the Aggr QoS response to SME */
+        limFTSendAggrQosRsp(pMac, true, pAggrAddTsParam,
+                          psessionEntry->smeSessionId);
+        if( pAggrAddTsParam != NULL )
+        {
+            vos_mem_free(pAggrAddTsParam);
+        }
+    }
+#endif
 
     return eSIR_SUCCESS;
-}
-
-void
-limFTSendAggrQosRsp(tpAniSirGlobal pMac, tANI_U8 rspReqd,
-                    tpAggrAddTsParams aggrQosRsp, tANI_U8 smesessionId)
-{
-    tpSirAggrQosRsp  rsp;
-    int i = 0;
-
-    if (! rspReqd)
-    {
-        return;
-    }
-
-    rsp = vos_mem_malloc(sizeof(tSirAggrQosRsp));
-    if (NULL == rsp)
-    {
-        limLog(pMac, LOGP, FL("AllocateMemory failed for tSirAggrQosRsp"));
-        return;
-    }
-
-    vos_mem_set((tANI_U8 *) rsp, sizeof(*rsp), 0);
-    rsp->messageType = eWNI_SME_FT_AGGR_QOS_RSP;
-    rsp->sessionId = smesessionId;
-    rsp->length = sizeof(*rsp);
-    rsp->aggrInfo.tspecIdx = aggrQosRsp->tspecIdx;
-
-    for( i = 0; i < SIR_QOS_NUM_AC_MAX; i++ )
-    {
-        if( (1 << i) & aggrQosRsp->tspecIdx )
-        {
-            rsp->aggrInfo.aggrRsp[i].status = aggrQosRsp->status[i];
-            rsp->aggrInfo.aggrRsp[i].tspec = aggrQosRsp->tspec[i];
-        }
-    }
-
-    limSendSmeAggrQosRsp(pMac, rsp, smesessionId);
-    return;
-}
-
-
-void limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
-{
-    tpAggrAddTsParams pAggrQosRspMsg = NULL;
-    tAddTsParams     addTsParam = {0};
-    tpDphHashNode  pSta = NULL;
-    tANI_U16  assocId =0;
-    tSirMacAddr  peerMacAddr;
-    tANI_U8   rspReqd = 1;
-    tpPESession  psessionEntry = NULL;
-    int i = 0;
-
-    PELOG1(limLog(pMac, LOG1, FL(" Received AGGR_QOS_RSP from HAL"));)
-
-    /* Need to process all the deferred messages enqueued since sending the
-       SIR_HAL_AGGR_ADD_TS_REQ */
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-
-    pAggrQosRspMsg = (tpAggrAddTsParams) (limMsg->bodyptr);
-    if (NULL == pAggrQosRspMsg)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("NULL pAggrQosRspMsg"));)
-        return;
-    }
-
-    psessionEntry = peFindSessionBySessionId(pMac, pAggrQosRspMsg->sessionId);
-    if (NULL == psessionEntry)
-    {
-        PELOGE(limLog(pMac, LOGE,
-               FL("Cant find session entry for %s"), __func__);)
-        if( pAggrQosRspMsg != NULL )
-        {
-            vos_mem_free(pAggrQosRspMsg);
-        }
-        return;
-    }
-
-    /* Nothing to be done if the session is not in STA mode */
-    if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
-#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-       PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
-#endif
-       return;
-    }
-
-    for( i = 0; i < HAL_QOS_NUM_AC_MAX; i++ )
-    {
-        if((((1 << i) & pAggrQosRspMsg->tspecIdx)) &&
-                (pAggrQosRspMsg->status[i] != eHAL_STATUS_SUCCESS))
-        {
-            /* send DELTS to the station */
-            sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
-
-            addTsParam.staIdx = pAggrQosRspMsg->staIdx;
-            addTsParam.sessionId = pAggrQosRspMsg->sessionId;
-            addTsParam.tspec = pAggrQosRspMsg->tspec[i];
-            addTsParam.tspecIdx = pAggrQosRspMsg->tspecIdx;
-
-            limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd,
-                    &addTsParam.tspec.tsinfo,
-                    &addTsParam.tspec, psessionEntry);
-
-            pSta = dphLookupAssocId(pMac, addTsParam.staIdx, &assocId,
-                    &psessionEntry->dph.dphHashTable);
-            if (pSta != NULL)
-            {
-                limAdmitControlDeleteTS(pMac, assocId, &addTsParam.tspec.tsinfo,
-                        NULL, (tANI_U8 *)&addTsParam.tspecIdx);
-            }
-        }
-    }
-
-    /* Send the Aggr QoS response to SME */
-    limFTSendAggrQosRsp(pMac, rspReqd, pAggrQosRspMsg,
-            psessionEntry->smeSessionId);
-    if( pAggrQosRspMsg != NULL )
-    {
-        vos_mem_free(pAggrQosRspMsg);
-    }
-    return;
 }
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD

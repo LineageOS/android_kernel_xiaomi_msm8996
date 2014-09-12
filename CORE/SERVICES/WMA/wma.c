@@ -260,7 +260,6 @@ static struct index_vht_data_rate_type supported_vht_mcs_rate_nss2[] =
 };
 #endif
 
-
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -18445,6 +18444,89 @@ VOS_STATUS wma_process_tsm_stats_req(tp_wma_handle wma_handler,
 
 #endif /* FEATURE_WLAN_ESE */
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+static void wma_set_ric_req(tp_wma_handle wma, void *msg, tANI_U8 is_add_ts)
+{
+	wmi_ric_request_fixed_param *cmd;
+	wmi_ric_tspec *tspec_param;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	tSirMacTspecIE *ptspecIE;
+	int32_t len = sizeof(wmi_ric_request_fixed_param)+
+					WMI_TLV_HDR_SIZE +
+					sizeof(wmi_ric_tspec);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed", __func__);
+		return;
+	}
+
+	buf_ptr = (u_int8_t *)wmi_buf_data(buf);
+
+	cmd = (wmi_ric_request_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_ric_request_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_ric_request_fixed_param));
+	if (is_add_ts)
+		cmd->vdev_id = ((tAddTsParams *)msg)->sessionId;
+	else
+		cmd->vdev_id = ((tDelTsParams *)msg)->sessionId;
+	cmd->num_ric_request = 1; /* Today we are sending only 1 ric at once */
+	cmd->is_add_ric = is_add_ts;
+
+	buf_ptr += sizeof(wmi_ric_request_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		sizeof(wmi_ric_tspec));
+
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	tspec_param = (wmi_ric_tspec *)buf_ptr;
+	WMITLV_SET_HDR(&tspec_param->tlv_header,
+		WMITLV_TAG_STRUC_wmi_ric_tspec,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_ric_tspec));
+
+	if(is_add_ts)
+		ptspecIE = &(((tAddTsParams *)msg)->tspec);
+	else
+		ptspecIE = &(((tDelTsParams *)msg)->delTsInfo.tspec);
+
+	/* Fill the tsinfo in the format expected by firmware */
+#ifndef ANI_LITTLE_BIT_ENDIAN
+	vos_mem_copy(((tANI_U8 *)&tspec_param->ts_info)+1,
+			((tANI_U8 *)&ptspecIE->tsinfo)+1, 2);
+#else
+	vos_mem_copy(((tANI_U8 *)&tspec_param->ts_info),
+			((tANI_U8 *)&ptspecIE->tsinfo)+1, 2);
+#endif
+
+	tspec_param->nominal_msdu_size = ptspecIE->nomMsduSz;
+	tspec_param->maximum_msdu_size = ptspecIE->maxMsduSz;
+	tspec_param->min_service_interval = ptspecIE->minSvcInterval;
+	tspec_param->max_service_interval = ptspecIE->maxSvcInterval;
+	tspec_param->inactivity_interval = ptspecIE->inactInterval;
+	tspec_param->suspension_interval = ptspecIE->suspendInterval;
+	tspec_param->svc_start_time = ptspecIE->svcStartTime;
+	tspec_param->min_data_rate = ptspecIE->minDataRate;
+	tspec_param->mean_data_rate = ptspecIE->meanDataRate;
+	tspec_param->peak_data_rate = ptspecIE->peakDataRate;
+	tspec_param->max_burst_size = ptspecIE->maxBurstSz;
+	tspec_param->delay_bound = ptspecIE->delayBound;
+	tspec_param->min_phy_rate = ptspecIE->minPhyRate;
+	tspec_param->surplus_bw_allowance = ptspecIE->surplusBw;
+	tspec_param->medium_time = 0;
+
+	WMA_LOGI("%s: Set RIC Req is_add_ts:%d", __func__, is_add_ts);
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_ROAM_SET_RIC_REQUEST_CMDID)) {
+		WMA_LOGP("%s: Failed to send vdev Set RIC Req command", __func__);
+		if(is_add_ts)
+			((tAddTsParams *)msg)->status = eHAL_STATUS_FAILURE;
+		adf_nbuf_free(buf);
+	}
+}
+#endif
+
 static void wma_del_ts_req(tp_wma_handle wma, tDelTsParams *msg)
 {
 	wmi_vdev_wmm_delts_cmd_fixed_param *cmd;
@@ -18470,6 +18552,11 @@ static void wma_del_ts_req(tp_wma_handle wma, tDelTsParams *msg)
 		WMA_LOGP("%s: Failed to send vdev DELTS command", __func__);
 		adf_nbuf_free(buf);
 	}
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	if(msg->setRICparams == true)
+		wma_set_ric_req(wma, msg, false);
+#endif
 
 err:
 	vos_mem_free(msg);
@@ -18580,6 +18667,11 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 		msg->status = eHAL_STATUS_FAILURE;
 		adf_nbuf_free(buf);
 	}
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	if(msg->setRICparams == true)
+		wma_set_ric_req(wma, msg, true);
+#endif
 
 err:
 	wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
