@@ -114,7 +114,7 @@
 
 #define LIM_DECRYPT_ICV_FAIL    1
 
-/// Definitions to distinquish between Association/Reassociaton
+/* Definitions to distinguish between Association/Reassociation */
 #define LIM_ASSOC    0
 #define LIM_REASSOC  1
 
@@ -609,7 +609,7 @@ void limProcessSmeDelBssRsp( tpAniSirGlobal , tANI_U32,tpPESession);
 
 void limGetRandomBssid(tpAniSirGlobal pMac ,tANI_U8 *data);
 
-// Function to handle HT and HT IE CFG parameter intializations
+/* Function to handle HT and HT IE CFG parameter initializations */
 void handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac, tpPESession psessionEntry);
 
 // Function to handle CFG parameter updates
@@ -626,10 +626,10 @@ void limSetCfgProtection(tpAniSirGlobal pMac, tpPESession pesessionEntry);
 // Function to Initialize MLM state machine on STA
 void limInitMlm(tpAniSirGlobal);
 
-// Function to cleanup MLM state machine
+/* Function to clean up MLM state machine */
 void limCleanupMlm(tpAniSirGlobal);
 
-// Function to cleanup LMM state machine
+/* Function to clean up LMM state machine */
 void limCleanupLmm(tpAniSirGlobal);
 
 // Management frame handling functions
@@ -757,7 +757,7 @@ void limSetChannel(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 secChannelOffse
 void limCompleteMlmScan(tpAniSirGlobal, tSirResultCodes);
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-/// Funtion that sets system into meas mode for oem data req
+/* Function that sets system into meas mode for oem data req */
 void limSetOemDataReqMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data);
 #endif
 

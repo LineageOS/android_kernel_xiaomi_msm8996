@@ -162,7 +162,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
             sirCopyMacAddr(pMac->lim.gpSession[i].bssId, bssid);
             pMac->lim.gpSession[i].valid = TRUE;
 
-            /* Intialize the SME and MLM states to IDLE */
+            /* Initialize the SME and MLM states to IDLE */
             pMac->lim.gpSession[i].limMlmState = eLIM_MLM_IDLE_STATE;
             pMac->lim.gpSession[i].limSmeState = eLIM_SME_IDLE_STATE;
             pMac->lim.gpSession[i].limCurrentAuthType = eSIR_OPEN_SYSTEM;
@@ -488,7 +488,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     if (psessionEntry->parsedAssocReq != NULL)
     {
-        // Cleanup the individual allocation first
+        /* Clean up the individual allocation first */
         for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
         {
             if ( psessionEntry->parsedAssocReq[i] != NULL )
@@ -504,7 +504,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
                 psessionEntry->parsedAssocReq[i] = NULL;
             }
         }
-        // Cleanup the whole block
+        /* Clean up the whole block */
         vos_mem_free(psessionEntry->parsedAssocReq);
         psessionEntry->parsedAssocReq = NULL;
     }

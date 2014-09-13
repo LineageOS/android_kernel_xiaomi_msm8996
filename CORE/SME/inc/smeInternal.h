@@ -165,7 +165,7 @@ typedef struct tagSmeStruct
     /* Maximum interfaces allowed by the host */
     tANI_U8 max_intf_count;
     void (* StatsExtCallback) (void *, tStatsExtEvent *);
-    /* linkspeed callback */
+    /* link speed callback */
     void (*pLinkSpeedIndCb) (tSirLinkSpeedInfo *indParam, void *pDevContext);
     void *pLinkSpeedCbContext;
 #ifdef FEATURE_WLAN_EXTSCAN

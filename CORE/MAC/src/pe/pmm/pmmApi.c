@@ -322,7 +322,7 @@ void pmmExitBmpsRequestHandler(tpAniSirGlobal pMac, tpExitBmpsInfo pExitBmpsInfo
      * BMPS mode while Nth Beacon is delivered. Essentially, PMC
      * can request the device to get out of power-save while
      * background scanning is happening. since, the device is already
-     * out of powersave, just inform that device is out of powersave
+     * out of power save, just inform that device is out of power save
      */
     if(limIsSystemInScanState(pMac))
     {
@@ -549,7 +549,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
     msgQ.bodyval = 0;
 
     /* If reason for full power is disconnecting (ie. link is
-     * disconnected) or becasue of channel switch or full power requested
+     * disconnected) or because of channel switch or full power requested
      * because of beacon miss and connected on DFS channel
      * then we should not send data null.
      * For all other reason code, send data null.
@@ -584,7 +584,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
  *
  *FUNCTION:
  * This function is called to send ENTER_BMPS_REQ message to HAL.
- * This message is sent to intialize the process of bringing the
+ * This message is sent to initialize the process of bringing the
  * station into power save state.
  *
  *LOGIC:
@@ -687,7 +687,7 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
  * pmmSendPowerSaveCfg()
  *
  *FUNCTION:
- * This function is called to send power save configurtion.
+ * This function is called to send power save configuration.
  *
  *NOTE:
  *
@@ -795,8 +795,8 @@ returnFailure:
  * pmmExitBmpsResponseHandler
  *
  *FUNCTION:
- * This function processes the Wakeup Rsp from HAL and if successfull,
- * sends a respnose back to PMC layer.
+ * This function processes the Wakeup Rsp from HAL and if successful,
+ * sends a response back to PMC layer.
  *LOGIC:
  *
  *ASSUMPTIONS:
@@ -1033,7 +1033,7 @@ void pmmExitBmpsIndicationHandler(tpAniSirGlobal pMac, tANI_U8 mode, eHalStatus 
       return;
     }
 
-    /* Since, the hardware is already wokenup, PE also wakesup and informs
+    /* Since, the hardware is already woken up, PE also wakes up and informs
      * the upper layers that the system is waking up. Hence always Success is
      * sent in the reason code for the message sent to PMC
      */
@@ -1336,7 +1336,7 @@ void pmmEnterImpsRequestHandler (tpAniSirGlobal pMac)
     if(peIsAnySessionActive(pMac))
     {
         /* Print active pesession and tracedump once in every 16
-         * continous error.
+         * continuous error.
          */
         if (!(pMac->pmc.ImpsReqFailCnt & 0xF))
         {
@@ -2860,7 +2860,7 @@ void pmmGTKOffloadGetInfoResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 }
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
-/* Powersave Offload Implementation */
+/* Power save Offload Implementation */
 eHalStatus pmmPsOffloadOpen(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     if(psessionEntry->valid)
@@ -3144,7 +3144,7 @@ tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
      * get a WDA_EXIT_BMPS_RSP from HAL.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    pmmLog(pMac, LOG1, FL("WDA_ENTER_BMPS_REQ Successfully sendt to WDA"));
+    pmmLog(pMac, LOG1, FL("WDA_ENTER_BMPS_REQ Successfully sent to WDA"));
 
     return eSIR_SUCCESS;
 }
@@ -3279,7 +3279,7 @@ tSirRetStatus pmmOffloadExitBmpsReqHandler(tpAniSirGlobal pMac,
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-    pmmLog(pMac, LOG1, FL("WDA_EXIT_BMPS_REQ Successfully sendt to WDA"));
+    pmmLog(pMac, LOG1, FL("WDA_EXIT_BMPS_REQ Successfully sent to WDA"));
 
     return eSIR_SUCCESS;
 }
@@ -3431,7 +3431,7 @@ tSirRetStatus pmmOffloadEnterUapsdReqHandler(tpAniSirGlobal pMac,
      * get a WDA_EXIT_UAPSD_RSP from HAL.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    pmmLog(pMac, LOG1, FL("WDA_ENTER_UAPSD_REQ Successfully sendt to WDA"));
+    pmmLog(pMac, LOG1, FL("WDA_ENTER_UAPSD_REQ Successfully sent to WDA"));
     return eSIR_SUCCESS;
 }
 
@@ -3549,7 +3549,7 @@ tSirRetStatus pmmOffloadExitUapsdReqHandler(tpAniSirGlobal pMac,
      * get a WDA_EXIT_UAPSD_RSP from HAL.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    pmmLog(pMac, LOG1, FL("WDA_EXIT_UAPSD_REQ Successfully sendt to WDA"));
+    pmmLog(pMac, LOG1, FL("WDA_EXIT_UAPSD_REQ Successfully sent to WDA"));
     return eSIR_SUCCESS;
 }
 

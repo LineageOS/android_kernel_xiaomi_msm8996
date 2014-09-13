@@ -33,7 +33,7 @@
 
   \file  smeInside.h
 
-  \brief prototype for SME structures and APIs used insside SME
+  \brief prototype for SME structures and APIs used inside SME
 
   ========================================================================*/
 
@@ -74,7 +74,10 @@ typedef struct sGenericPmcCmd
     tANI_U32 size;  //sizeof the data in the union, if any
     tANI_U32 sessionId;
     tRequestFullPowerReason fullPowerReason;
-    tANI_BOOLEAN fReleaseWhenDone; //if TRUE, the command shall not put back to the queue, free te memory instead.
+
+    /* If TRUE, the command shall not put back to the queue,
+       free the memory instead */
+    tANI_BOOLEAN fReleaseWhenDone;
     union
     {
         tExitBmpsInfo exitBmpsInfo;

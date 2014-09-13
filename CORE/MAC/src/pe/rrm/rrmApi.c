@@ -156,7 +156,7 @@ rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, tPowerdBm txPower, tpPESession pS
 
    if( pSessionEntry == NULL )
    {
-      PELOGE(limLog(pMac, LOGE, FL(" Inavalid parameters"));)
+      PELOGE(limLog(pMac, LOGE, FL("Invalid parameters"));)
       return eSIR_FAILURE;
    }
    pMaxTxParams = vos_mem_malloc(sizeof(tMaxTxPowerParams));
@@ -490,7 +490,7 @@ rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
  *
  * NOTE:
  *
- * @param pCurrentReq pointer to the current Req comtext.
+ * @param pCurrentReq pointer to the current Req context.
  * @param pBeaconReq pointer to the beacon report request IE from the peer.
  * @param pSessionEntry session entry.
  * @return None
@@ -511,10 +511,14 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    if( pBeaconReq->measurement_request.Beacon.BeaconReporting.present &&
        (pBeaconReq->measurement_request.Beacon.BeaconReporting.reportingCondition != 0) )
    {
-      //Repeated measurement is not supported. This means number of repetitions should be zero.(Already checked)
-      //All test case in VoWifi(as of version 0.36)  use zero for number of repetitions.
-      //Beacon reporting should not be included in request if number of repetitons is zero.
-      // IEEE Std 802.11k-2008 Table 7-29g and section 11.10.8.1
+      /*
+       * Repeated measurement is not supported. This means number of repetitions
+       * should be zero.(Already checked).
+       * All test case in VoWifi(as of version 0.36)  use zero for number of
+       * repetitions. Beacon reporting should not be included in request
+       * if number of repetitions is zero.
+       * IEEE Std 802.11k-2008 Table 7-29g and section 11.10.8.1
+       */
 
       PELOGE(limLog( pMac, LOGE, "Dropping the request: Reporting condition included in beacon report request and it is not zero");)
       return eRRM_INCAPABLE;
@@ -596,7 +600,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
 
    vos_mem_set(pSmeBcnReportReq,sizeof( tSirBeaconReportReqInd ),0);
 
-   /* Allocated memory for pSmeBcnReportReq....will be freed by other modulea*/
+   /* Allocated memory for pSmeBcnReportReq will be freed by other modules */
    vos_mem_copy(pSmeBcnReportReq->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr));
    pSmeBcnReportReq->messageType = eWNI_SME_BEACON_REPORT_REQ_IND;
    pSmeBcnReportReq->length = sizeof( tSirBeaconReportReqInd );
@@ -1077,7 +1081,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
             }
             break;
          default:
-            //Send a report with incapabale bit set.
+            /* Send a report with incapable bit set. */
             if ( pReport == NULL ) //Allocate memory to send reports for any subsequent requests.
             {
                pReport = vos_mem_malloc(sizeof( tSirMacRadioMeasureReport )
@@ -1093,7 +1097,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                            * (pRRMReq->num_MeasurementRequest - i),
                            0);
                   limLog( pMac, LOG3,
-                         FL(" rrm beacon type incapble of %d report "),
+                         FL("rrm beacon type incapable of %d report "),
                          num_report );
             }
             pReport[num_report].incapable = 1;

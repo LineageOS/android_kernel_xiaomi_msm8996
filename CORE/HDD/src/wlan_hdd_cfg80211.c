@@ -4942,15 +4942,33 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
             if (con_sap_adapter) {
                 /* we have active SAP running */
-                con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-                if (con_ch != 0 && VOS_IS_DFS_CH(con_ch)) {
+                /* Check if user configured channel is ACS or DFS */
+                con_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
+                /* For fixed channel or ACS, once primary AP chooses a DFS
+                 * channel secondary AP should alway follow primary APs channel
+                 * This is applicable for cases even when primary AP moves to
+                 * non DFS channel after RADAR detection.
+                 */
+                if (con_ch == AUTO_CHANNEL_SELECT) {
+                    con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+                }
+
+                if (VOS_IS_DFS_CH(con_ch)) {
                     /* AP-AP DFS: secondary AP has to follow primary AP's
                      * channel */
+                    /* NOTE:Even if orig user configured channel is DFS, use the
+                     * current operating channel since when RADAR detected orig
+                     * configured channel will be in NOL and already running AP
+                     * might have choosen another channel
+                     */
+                    con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                            "%s: Only SCC AP-AP DFS Permitted (chan=%d, con_ch=%d) !!, overriding guest AP's channel",
-                            __func__,
-                            pConfig->channel,
-                            con_ch);
+                        "%s: Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)",
+                         __func__,
+                         pConfig->channel,
+                         con_ch);
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                        "Overriding guest AP's channel !!");
                     pConfig->channel = con_ch;
                 }
             } else {
@@ -11299,6 +11317,9 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                            MAC_ADDR_ARRAY(macAddr));
+
+                    /* Send disassoc and deauth both to avoid some IOT issues */
+                    hdd_softap_sta_disassoc(pAdapter, macAddr);
                     vos_status = hdd_softap_sta_deauth(pAdapter, macAddr);
                     if (VOS_IS_STATUS_SUCCESS(vos_status))
                         pAdapter->aStaInfo[i].isDeauthInProgress = TRUE;
@@ -11326,6 +11347,8 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                    FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY(mac));
 
+            /* Send disassoc and deauth both to avoid some IOT issues */
+            hdd_softap_sta_disassoc(pAdapter, mac);
             vos_status = hdd_softap_sta_deauth(pAdapter, mac);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 pAdapter->aStaInfo[staId].isDeauthInProgress = FALSE;

@@ -139,7 +139,7 @@ eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
 
             if (fFound)
             {
-                //Now put this command back on the avilable command list
+                /* Now put this command back on the available command list */
                 smeReleaseCommand(pMac, pCommand);
             }
             smeProcessPendingQueue( pMac );

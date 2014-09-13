@@ -54,7 +54,7 @@
 
 /*
  * common routine to remove TDLS cmd from SME command list..
- * commands are removed after getting reponse from PE.
+ * commands are removed after getting response from PE.
  */
 eHalStatus csrTdlsRemoveSmeCmd(tpAniSirGlobal pMac, eSmeCommandType cmdType)
 {
@@ -609,7 +609,7 @@ eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac, tSmeCmd *cmd)
         break;
        default:
        {
-            /* TODO: Add defualt handling */
+            /* TODO: Add default handling */
            break ;
        }
 
@@ -674,7 +674,7 @@ eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd )
 }
 
 /*
- * TDLS Message processor, will be called after TDLS message recieved from
+ * TDLS Message processor, will be called after TDLS message received from
  * PE
  */
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,

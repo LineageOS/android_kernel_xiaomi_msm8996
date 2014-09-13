@@ -275,9 +275,12 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
         limHandleIBSScoalescing(pMac, pBeacon, pRxPacketInfo, psessionEntry);
     }
 
-    //If station(STA/BT-STA/BT-AP/IBSS) mode, Always save the beacon in the scan results, if atleast one session is active
-    //schBeaconProcessNoSession will be called only when there is atleast one session active, so not checking
-    //it again here.
+    /*
+     * If station(STA/BT-STA/BT-AP/IBSS) mode, Always save the beacon in the
+     * scan results, if at-least one session is active schBeaconProcessNoSession
+     * will be called only when there is at-least one session active,
+     * so not checking it again here.
+     */
     limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
     return;
 }
@@ -294,11 +297,11 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
  *
  * LOGIC:
  *        Following scenarios exist when Session exists
- *             * IBSS STA receving beacons from IBSS Peers, who are part of IBSS.
+ *             * IBSS STA receiving beacons from IBSS Peers, who are part of IBSS.
  *                 - call limHandleIBSScoalescing with that session context.
- *             * Infra STA receving beacons from AP to which it is connected
+ *             * Infra STA receiving beacons from AP to which it is connected
  *                 - call schBeaconProcessFromAP with that session's context.
- *             * BTAMP STA receving beacons from BTAMP AP
+ *             * BTAMP STA receiving beacons from BTAMP AP
  *                 - call schBeaconProcessFromAP with that session's context.
  *             * BTAMP AP receiving beacons from BTAMP STA
  *               (here need to make sure BTAP creates session entry for BT STA)
@@ -356,8 +359,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     {
         /*
         *  This handles two cases:
-        *  -- Infra STA receving beacons from AP
-        *  -- BTAMP_STA receving beacons from BTAMP_AP
+        *  -- Infra STA receiving beacons from AP
+        *  -- BTAMP_STA receiving beacons from BTAMP_AP
         */
         //Always save the beacon into LIM's cached scan results
         limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);

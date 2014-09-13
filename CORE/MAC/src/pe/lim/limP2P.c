@@ -620,8 +620,8 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
         return;
     }
 
-    //Incase of the Remain on Channel Failure Case
-    //Cleanup Everything
+    /* Incase of the Remain on Channel Failure Case
+       Clean up Everything */
     if(eHAL_STATUS_FAILURE == status)
     {
        //Deactivate Remain on Channel Timer

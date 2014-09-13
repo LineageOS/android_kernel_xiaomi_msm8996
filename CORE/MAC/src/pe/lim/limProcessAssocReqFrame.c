@@ -156,6 +156,47 @@ limConvertSupportedChannels(tpAniSirGlobal pMac,
         pMlmAssocInd->supportedChannels.numChnl);)
 }
 
+/**---------------------------------------------------------------
+\fn     lim_check_sta_in_pe_entries
+\brief  This function is called by limProcessAssocReqFrame()
+\       to check if STA entry already exists in any of the
+\       PE entries of the AP. If it exists, deauth will be
+\       sent on that session and the STA deletion will
+\       happen. After this, the ASSOC request will be
+\       processed
+\
+\param pMac - A pointer to Global MAC structure
+\param pHdr - A pointer to the MAC header
+\return None
+------------------------------------------------------------------*/
+void lim_check_sta_in_pe_entries(tpAniSirGlobal pMac, tpSirMacMgmtHdr pHdr)
+{
+    tANI_U8 i;
+    tANI_U16 assocId = 0;
+    tpDphHashNode pStaDs = NULL;
+    tpPESession psessionEntry=NULL;
+
+    for(i = 0; i < pMac->lim.maxBssId; i++)
+    {
+        if( (pMac->lim.gpSession[i].valid) &&
+            (pMac->lim.gpSession[i].pePersona == VOS_STA_SAP_MODE) &&
+            ((psessionEntry = &pMac->lim.gpSession[i]) != NULL)) {
+
+            pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &assocId,
+                            &psessionEntry->dph.dphHashTable);
+            if (pStaDs) {
+                limLog(pMac, LOGE,
+                        FL("Sending Deauth and Deleting existing STA entry: "
+                        MAC_ADDRESS_STR),
+                        MAC_ADDR_ARRAY(psessionEntry->selfMacAddr));
+                limSendDeauthMgmtFrame(pMac, eSIR_MAC_UNSPEC_FAILURE_REASON,
+                    (tANI_U8 *) pHdr->sa, psessionEntry, FALSE);
+                limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                break;
+            }
+        }
+    }
+}
 
 /**---------------------------------------------------------------
 \fn     limProcessAssocReqFrame
@@ -212,6 +253,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
           (LIM_ASSOC == subType) ? "Assoc" : "ReAssoc",
           psessionEntry->peSessionId, psessionEntry->limSystemRole,
           psessionEntry->limMlmState, MAC_ADDR_ARRAY(pHdr->sa));
+
+   lim_check_sta_in_pe_entries(pMac, pHdr);
 
    if (psessionEntry->limSystemRole == eLIM_STA_ROLE || psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE )
    {

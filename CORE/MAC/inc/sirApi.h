@@ -270,7 +270,10 @@ typedef enum eSirResultCodes
     eSIR_SME_NO_KEY_MAPPING_KEY_FOR_PEER,
     eSIR_SME_ASSOC_REFUSED,
     eSIR_SME_REASSOC_REFUSED,
-    eSIR_SME_DEAUTH_WHILE_JOIN, //Received Deauth while joining or pre-auhtentication.
+
+    /* Received Deauth while joining or pre-authenticating */
+    eSIR_SME_DEAUTH_WHILE_JOIN,
+
     eSIR_SME_DISASSOC_WHILE_JOIN, //Received Disassociation while joining.
     eSIR_SME_DEAUTH_WHILE_REASSOC, //Received Deauth while ReAssociate.
     eSIR_SME_DISASSOC_WHILE_REASSOC, //Received Disassociation while ReAssociate
@@ -448,7 +451,7 @@ typedef enum eSirRFBand
 
 
 /*
-* Specifies which beacons are to be indicated upto the host driver when
+* Specifies which beacons are to be indicated up to the host driver when
 * Station is in power save mode.
 */
 typedef enum eBeaconForwarding
@@ -484,10 +487,10 @@ typedef struct sSirRegisterMgmtFrame
     tANI_U8  matchData[1];
 }tSirRegisterMgmtFrame, *tpSirRegisterMgmtFrame;
 
-//
-// Identifies the neighbor BSS' that was(were) detected
-// by an STA and reported to the AP
-//
+/*
+ * Identifies the neighbor BSS' that was(were) detected
+ * by an STA and reported to the AP
+ */
 typedef struct sAniTitanCBNeighborInfo
 {
   // A BSS was found on the Primary
@@ -682,7 +685,9 @@ typedef struct sSirSmeStartBssReq
     tAniAuthType            authType;
     tANI_U32                dtimPeriod;
     tANI_U8                 wps_state;
-    tANI_U8                 isCoalesingInIBSSAllowed; //Coalesing on/off knob
+
+    /* Coalescing on/off knob */
+    tANI_U8                 isCoalesingInIBSSAllowed;
     tVOS_CON_MODE           bssPersona;
 
     tANI_U8                 txLdpcIniFeatureEnabled;
@@ -785,7 +790,7 @@ typedef struct sSirSmeStartBssRsp
     tSirResultCodes     statusCode;
     tSirBssType         bssType;//Add new type for WDS mode
     tANI_U16            beaconInterval;//Beacon Interval for both type
-    tANI_U32            staId;//Staion ID for Self
+    tANI_U32            staId;  /* Station ID for Self */
     tSirBssDescription  bssDescription;//Peer BSS description
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
@@ -918,7 +923,7 @@ typedef struct sSirSmeScanReq
     tANI_U8              returnFreshResults;
 
     /*  backgroundScanMode can take following values:
-     *  0x0 - agressive scan
+     *  0x0 - aggressive scan
      *  0x1 - normal scan where HAL will check for link traffic
      *        prior to proceeding with the scan
      */
@@ -1017,7 +1022,7 @@ typedef struct sSirSmeBackgroundScanModeReq
     tSirBackgroundScanMode   mode;
 } tSirSmeBackgroundScanModeReq, *tpSirSmeBackgroundScanModeReq;
 
-/// Background Scan Statisics
+/* Background Scan Statistics */
 typedef struct sSirBackgroundScanInfo {
     tANI_U32        numOfScanSuccess;
     tANI_U32        numOfScanFailure;
@@ -1026,7 +1031,7 @@ typedef struct sSirBackgroundScanInfo {
 
 #define SIR_BACKGROUND_SCAN_INFO_SIZE        (3 * sizeof(tANI_U32))
 
-/// Definition for Join/Reassoc info - Reshmi: need to check if this is a def which moved from elsehwere.
+/* Definition for Join/Reassoc info */
 typedef struct sJoinReassocInfo
 {
     tAniTitanCBNeighborInfo cbNeighbors;
@@ -1131,8 +1136,7 @@ typedef struct sSirSmeJoinReq
 
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
-/// Definition for reponse message to previously issued join request
-/// MAC --->
+/* Definition for response message to previously issued join request */
 typedef struct sSirSmeJoinRsp
 {
     tANI_U16                messageType; // eWNI_SME_JOIN_RSP
@@ -1670,7 +1674,7 @@ typedef struct sSirSmeDisassocCnf
     tSirMacAddr         peerMacAddr;
 } tSirSmeDisassocCnf, *tpSirSmeDisassocCnf;
 
-/// Definition for Deauthetication request
+/* Definition for Deauthentication request */
 typedef struct sSirSmeDeauthReq
 {
     tANI_U16            messageType;   // eWNI_SME_DEAUTH_REQ
@@ -1682,7 +1686,7 @@ typedef struct sSirSmeDeauthReq
     tANI_U16            reasonCode;
 } tSirSmeDeauthReq, *tpSirSmeDeauthReq;
 
-/// Definition for Deauthetication response
+/* Definition for Deauthentication response */
 typedef struct sSirSmeDeauthRsp
 {
     tANI_U16                messageType; // eWNI_SME_DEAUTH_RSP
@@ -1693,7 +1697,7 @@ typedef struct sSirSmeDeauthRsp
     tSirMacAddr        peerMacAddr;
 } tSirSmeDeauthRsp, *tpSirSmeDeauthRsp;
 
-/// Definition for Deauthetication indication from peer
+/* Definition for Deauthentication indication from peer */
 typedef struct sSirSmeDeauthInd
 {
     tANI_U16            messageType; // eWNI_SME_DEAUTH_IND
@@ -1771,9 +1775,11 @@ typedef struct sirUlaCompleteCnf
     tSirMacAddr        peerMacAddr;
 } tSirUlaCompleteCnf, *tpSirUlaCompleteCnf;
 
-/// Definition for Neighbor BSS indication
-/// MAC --->
-/// MAC reports this each time a new I/BSS is detected
+/*
+ * Definition for Neighbor BSS indication
+ * MAC --->
+ * MAC reports this each time a new I/BSS is detected
+ */
 typedef struct sSirSmeNeighborBssInd
 {
     tANI_U16                    messageType; // eWNI_SME_NEIGHBOR_BSS_IND
@@ -1782,9 +1788,11 @@ typedef struct sSirSmeNeighborBssInd
     tSirBssDescription     bssDescription[1];
 } tSirSmeNeighborBssInd, *tpSirSmeNeighborBssInd;
 
-/// Definition for MIC failure indication
-/// MAC --->
-/// MAC reports this each time a MIC failure occures on Rx TKIP packet
+/*
+ * Definition for MIC failure indication
+ * MAC --->
+ * MAC reports this each time a MIC failure occurs on Rx TKIP packet
+ */
 typedef struct sSirSmeMicFailureInd
 {
     tANI_U16                    messageType; // eWNI_SME_MIC_FAILURE_IND
@@ -2373,13 +2381,14 @@ typedef struct sAniGlobalClassAStatsInfo
                                      //or MMPDU frames
     tANI_U32 promiscuous_rx_frag_cnt; //The number of MPDU frames received by the 802.11 station for MSDU packets
                                      //or MMPDU frames when a promiscuous packet filter was enabled
-    //tANI_U32 rx_fcs_err;              //The number of MPDU frames that the 802.11 station received with FCS errors
     tANI_U32 rx_input_sensitivity;    //The receiver input sensitivity referenced to a FER of 8% at an MPDU length
                                      //of 1024 bytes at the antenna connector. Each element of the array shall correspond
                                      //to a supported rate and the order shall be the same as the supporteRates parameter.
-    tANI_U32 max_pwr;                 //The maximum transmit power in dBm upto one decimal.
-                                      //for eg: if it is 10.5dBm, the value would be 105
-    //tANI_U32 default_pwr;             //The nominal transmit level used after normal power on sequence
+
+    /* The maximum transmit power in dBm up-to one decimal
+       for eg: if it is 10.5dBm, the value would be 105 */
+    tANI_U32 max_pwr;
+
     tANI_U32 sync_fail_cnt;           //Number of times the receiver failed to synchronize with the incoming signal
                                      //after detecting the sync in the preamble of the transmitted PLCP protocol data unit.
     tANI_U32 tx_rate;                //Legacy transmit rate, in units of
@@ -2881,7 +2890,10 @@ typedef enum eRequestFullPowerReason
    eSME_BMPS_STATUS_IND_RCVD,      /* PE received a SIR_HAL_BMPS_STATUS_IND */
    eSME_BMPS_MODE_DISABLED,        /* BMPS mode was disabled by HDD in SME */
    eSME_LINK_DISCONNECTED_BY_HDD,  /* Link has been disconnected requested by HDD */
-   eSME_LINK_DISCONNECTED_BY_OTHER,/* Disconnect due to linklost or requested by peer */
+
+   /* Disconnect due to link lost or requested by peer */
+   eSME_LINK_DISCONNECTED_BY_OTHER,
+
    eSME_FULL_PWR_NEEDED_BY_HDD,    /* HDD request full power for some reason */
    eSME_FULL_PWR_NEEDED_BY_BAP,    /* BAP request full power for BT_AMP */
    eSME_FULL_PWR_NEEDED_BY_CSR,    /* CSR requests full power */
@@ -2895,7 +2907,7 @@ typedef enum eRequestFullPowerReason
 
 
 
-//This is sent alongwith eWNI_PMC_EXIT_BMPS_REQ message
+/* This is sent along with eWNI_PMC_EXIT_BMPS_REQ message */
 typedef struct sExitBmpsInfo
 {
    tExitBmpsReason exitBmpsReason;  /*Reason for exiting BMPS */
@@ -3093,7 +3105,7 @@ typedef struct sSirSmeWowlEnterParams
      */
     tANI_U8   ucWowNetScanOffloadMatch;
 
-    /* This configuration allows a host wakeup on any GTK rekeying error.
+    /* This configuration allows a host wakeup on any GTK re-keying error.
      */
     tANI_U8   ucWowGTKRekeyError;
 
@@ -3272,7 +3284,7 @@ typedef struct sSirWPSProbeRspIE {
    v_U8_t   PrimaryDeviceOUI[4] ; // Vendor specific OUI for Device Sub Category
    v_U32_t  DeviceSubCategory ; // Device Sub Category ID: 1-PC, 2-Server if Device Category ID is computer
    tSirText DeviceName;
-   v_U16_t  ConfigMethod;     // Configuaration method
+   v_U16_t  ConfigMethod;     /* Configuration method */
    v_U8_t   RFBand;           // RF bands available on the AP
 } tSirWPSProbeRspIE;
 
@@ -3307,7 +3319,7 @@ typedef struct sSirWPSAssocRspIE {
 } tSirWPSAssocRspIE;
 
 typedef struct sSirAPWPSIEs {
-   tSirWPSProbeRspIE  SirWPSProbeRspIE;    /*WPS Set Probe Respose IE*/
+   tSirWPSProbeRspIE  SirWPSProbeRspIE;    /* WPS Set Probe Response IE */
    tSirWPSBeaconIE    SirWPSBeaconIE;      /*WPS Set Beacon IE*/
    tSirWPSAssocRspIE  SirWPSAssocRspIE;    /*WPS Set Assoc Response IE*/
 } tSirAPWPSIEs, *tpSiriAPWPSIEs;
@@ -3865,7 +3877,7 @@ typedef struct
   /* Listen Interval */
   tANI_U32 uListenInterval;
 
-  /* Broadcast Multicas Filter  */
+  /* Broadcast Multicast Filter */
   tANI_U32 uBcastMcastFilter;
 
   /* Beacon Early Termination */
@@ -4095,7 +4107,9 @@ typedef struct sSirTdlsSendMgmtReq
     tANI_U32            peerCapability;
     tSirMacAddr         bssid;         // For multi-session, for PE to locate peSession ID
     tSirMacAddr         peerMac;
-    tANI_U8             addIe[1];      //Variable lenght. Dont add any field after this.
+
+    /* Variable length. Dont add any field after this. */
+    tANI_U8             addIe[1];
 } tSirTdlsSendMgmtReq, *tpSirSmeTdlsSendMgmtReq ;
 
 typedef enum TdlsAddOper
@@ -4489,7 +4503,7 @@ typedef struct sSirDelPeriodicTxPtrn
 } tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-// Set batch scan resposne from FW
+/* Set batch scan response from FW */
 typedef struct
 {
   /*maximum number of scans which FW can cache*/
@@ -4530,8 +4544,8 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8   ssid[33];     /* SSID */
     tANI_U8   ch;           /* Channel */
     tANI_S8   rssi;         /* RSSI or Level */
-    /*Timestamp when Network was found. Used to calculate age based on timestamp
-      in GET_RSP msg header */
+    /* Time stamp when Network was found. Used to calculate age based
+       on time stamp in GET_RSP msg header */
     tANI_U32  timestamp;
 } tSirBatchScanNetworkInfo, *tpSirBatchScanNetworkInfo;
 
@@ -4689,7 +4703,7 @@ typedef enum tUpdateIEsType
 } eUpdateIEsType;
 
 
-/* Modify particular IE in addition IE for prob resp Bcn */
+/* Modify particular IE in addition IE for probe resp Bcn */
 typedef struct sSirModifyIE
 {
    tSirMacAddr      bssid;
@@ -5453,7 +5467,7 @@ typedef struct
     tANI_U32 txMpdu;
     /* number of received unicast mpdus */
     tANI_U32 rxMpdu;
-    /* number of succesfully transmitted multicast data packets */
+    /* Number of successfully transmitted multicast data packets */
     /* STA case: implies ACK received from AP for the unicast */
     /* packet in which mcast pkt was sent */
     tANI_U32 txMcast;

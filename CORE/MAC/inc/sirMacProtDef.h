@@ -297,7 +297,7 @@
 #define SIR_MAC_QBSS_LOAD_EID_MAX          5
 #define SIR_MAC_EDCA_PARAM_SET_EID     12 // EDCA parameter set
 #define SIR_MAC_EDCA_PARAM_SET_EID_MIN     18
-#define SIR_MAC_EDCA_PARAM_SET_EID_MAX     20 // TBD temp - change backto 18
+#define SIR_MAC_EDCA_PARAM_SET_EID_MAX     20
 #define SIR_MAC_TSPEC_EID              13
 #define SIR_MAC_TSPEC_EID_MIN              55
 #define SIR_MAC_TSPEC_EID_MAX              55
@@ -690,8 +690,14 @@ typedef enum eSirMacStatusCodes
     eSIR_MAC_UNSUPPORTED_RSN_IE_VERSION_STATUS    = 44, //Unsupported RSN information element version
     eSIR_MAC_INVALID_RSN_IE_CAPABILITIES_STATUS   = 45, //Invalid RSN information element capabilities
     eSIR_MAC_CIPHER_SUITE_REJECTED_STATUS         = 46, //Cipher suite rejected because of security policy
-    eSIR_MAC_TS_NOT_CREATED_STATUS                = 47, //The TS has not been created; however, the HC may be capable of creating a TS, in
-                                                        //response to a request, after the time indicated in the TS Delay element
+
+    /*
+     * The TS has not been created; however, the HC may be capable of creating
+     * a TS, in response to a request, after the time indicated in the TS Delay
+     * element
+     */
+    eSIR_MAC_TS_NOT_CREATED_STATUS                = 47,
+
     eSIR_MAC_DL_NOT_ALLOWED_STATUS                = 48, //Direct link is not allowed in the BSS by policy
     eSIR_MAC_DEST_STA_NOT_KNOWN_STATUS            = 49, //The Destination STA is not present within this BSS
     eSIR_MAC_DEST_STA_NOT_QSTA_STATUS             = 50, //The Destination STA is not a QoS STA
@@ -721,8 +727,13 @@ typedef enum eSirMacReasonCodes
     eSIR_MAC_DEAUTH_LEAVING_BSS_REASON               = 3, //Deauthenticated because sending station is leaving (or has left) IBSS or ESS
     eSIR_MAC_DISASSOC_DUE_TO_INACTIVITY_REASON       = 4, //Disassociated due to inactivity
     eSIR_MAC_DISASSOC_DUE_TO_DISABILITY_REASON       = 5, //Disassociated because AP is unable to handle all currently associated stations
-    eSIR_MAC_CLASS2_FRAME_FROM_NON_AUTH_STA_REASON   = 6, //Class 2 frame received from nonauthenticated station
-    eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON  = 7, //Class 3 frame received from nonassociated station
+
+    /* Class 2 frame received from non-authenticated station */
+    eSIR_MAC_CLASS2_FRAME_FROM_NON_AUTH_STA_REASON   = 6,
+
+    /* Class 3 frame received from non-associated station */
+    eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON  = 7,
+
     eSIR_MAC_DISASSOC_LEAVING_BSS_REASON             = 8, //Disassociated because sending station is leaving (or has left) BSS
     eSIR_MAC_STA_NOT_PRE_AUTHENTICATED_REASON        = 9, //Station requesting (re)association is not authenticated with responding station
     eSIR_MAC_PWR_CAPABILITY_BAD_REASON               = 10, //Disassociated because the information in the Power Capability element is unacceptable
@@ -743,8 +754,12 @@ typedef enum eSirMacReasonCodes
     eSIR_MAC_1X_AUTH_FAILURE_REASON                  = 23, //IEEE 802.1X authentication failed
     eSIR_MAC_CIPHER_SUITE_REJECTED_REASON            = 24, //Cipher suite rejected because of the security policy
 #ifdef FEATURE_WLAN_TDLS
-    eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE          = 25, //TDLS direct link teardown due to TDLS peer STA unreachable via the TDLS direct link
-    eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON             = 26, //TDLS direct link teardown for unspecified reason
+    /* TDLS direct link tear down due to TDLS peer STA unreachable
+       via the TDLS direct link */
+    eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE          = 25,
+
+    /* TDLS direct link tear down for unspecified reason */
+    eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON             = 26,
 #endif
     // reserved                                        27 - 30
 #ifdef WLAN_FEATURE_11W
@@ -1611,7 +1626,7 @@ typedef enum eSirMacHTOperatingMode
   eSIR_HT_OP_MODE_PURE, // No Protection
   eSIR_HT_OP_MODE_OVERLAP_LEGACY, // Overlap Legacy device present, protection is optional
   eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT, // No legacy device, but 20 MHz HT present
-  eSIR_HT_OP_MODE_MIXED // Protetion is required
+  eSIR_HT_OP_MODE_MIXED /* Protection is required */
 } tSirMacHTOperatingMode;
 
 

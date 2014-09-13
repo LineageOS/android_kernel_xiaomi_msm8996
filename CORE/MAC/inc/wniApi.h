@@ -168,7 +168,7 @@ enum eWniMsgTypes
     eWNI_SME_SELECT_CHANNEL_RSP,
     eWNI_SME_SET_PROPRIETARY_IE_REQ,
     eWNI_SME_SET_PROPRIETARY_IE_RSP, // #endif
-    eWNI_SME_DISCARD_SKB_NTF,  // Used to cleanup SKBs by HDD
+    eWNI_SME_DISCARD_SKB_NTF,  /* Used to clean up SKBs by HDD */
     eWNI_SME_DEAUTH_CNF,
     eWNI_SME_MIC_FAILURE_IND,
     eWNI_SME_ADDTS_REQ,
@@ -311,8 +311,8 @@ enum eWniMsgTypes
 
     eWNI_SME_MAX_ASSOC_EXCEEDED,
 
-    eWNI_SME_BTAMP_LOG_LINK_IND,//to serialize the create/accpet LL req from HCI
-
+    /* To serialize the create/accept LL req from HCI */
+    eWNI_SME_BTAMP_LOG_LINK_IND,
 
 #ifdef WLAN_WAKEUP_EVENTS
     eWNI_SME_WAKE_REASON_IND,
@@ -335,11 +335,13 @@ enum eWniMsgTypes
     eWNI_SME_TDLS_SHOULD_TEARDOWN,
     eWNI_SME_TDLS_PEER_DISCONNECTED,
 #endif
-    //NOTE: If you are planning to add more mesages, please make sure that
-    //SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
-    //SIR_LIM_MSG_TYPES_BEGIN+0xB0 = 12B0 (which means max of 176 messages and
-    //eWNI_SME_TDLS_DEL_STA_RSP = 175.
-    //Should fix above issue to enable TDLS_INTERNAL
+    /*
+     * NOTE: If you are planning to add more messages, please make sure that
+     * SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
+     * SIR_LIM_MSG_TYPES_BEGIN+0xB0 = 12B0 (which means max of 176 messages and
+     * eWNI_SME_TDLS_DEL_STA_RSP = 175.
+     * Should fix above issue to enable TDLS_INTERNAL
+     */
     eWNI_SME_SET_BCN_FILTER_REQ,
     eWNI_SME_RESET_AP_CAPS_CHANGED,
 #ifdef WLAN_FEATURE_11W
@@ -372,7 +374,7 @@ enum eWniMsgTypes
     eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND, //To indicate completion of CSA IE
                                         //update in beacons/probe rsp
     eWNI_SME_STATS_EXT_EVENT,
-    eWNI_SME_LINK_SPEED_IND,//Indicate linkspeed response from WMA
+    eWNI_SME_LINK_SPEED_IND, /* Indicate link speed response from WMA */
     eWNI_SME_CSA_OFFLOAD_EVENT,
     eWNI_SME_UPDATE_ADDITIONAL_IES,  // indicates Additional IE from hdd to PE
     eWNI_SME_MODIFY_ADDITIONAL_IES, /* To indicate IE modify from hdd to PE */
@@ -445,7 +447,7 @@ typedef enum {
 
 
 /*---------------------------------------------------------------------*/
-/* CFG to HDD message paramter indices                                 */
+/* CFG to HDD message parameter indices                                 */
 
 /*   The followings are word indices starting from the message body    */
 
@@ -541,7 +543,7 @@ typedef enum {
 
 
 /*---------------------------------------------------------------------*/
-/* HDD to CFG message paramter indices                                 */
+/* HDD to CFG message parameter indices                                 */
 /*                                                                     */
 /*   The followings are word indices starting from the message body    */
 /*                                                                     */

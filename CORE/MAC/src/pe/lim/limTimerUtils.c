@@ -151,7 +151,7 @@ limCreateTimers(tpAniSirGlobal pMac)
     }
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
 
-    /* Limiting max numm of probe req for each channel scan */
+    /* Limiting max number of probe req for each channel scan */
     pMac->lim.maxProbe = (cfgValue/cfgValue1);
 
     if (tx_timer_create(&pMac->lim.limTimers.gLimMaxChannelTimer,
@@ -407,8 +407,8 @@ limCreateTimers(tpAniSirGlobal pMac)
                             0,
                             TX_NO_ACTIVATE) != TX_SUCCESS)
         {
-            // Could not creat wt-probe-after-HeartBeat-failure timer.
-            // Log error
+            /* Could not create wt-probe-after-HeartBeat-failure timer.
+               Log error */
             limLog(pMac, LOGP,
                    FL("unable to create ProbeAfterHBTimer"));
             goto err_timer;
@@ -479,18 +479,18 @@ limCreateTimers(tpAniSirGlobal pMac)
            FL("Created Disassociate throttle timer "));)
 
     /**
-     * Create keepalive timer and  activate it right away for AP role
+     * Create keep alive timer and  activate it right away for AP role
      */
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_KEEPALIVE_TIMEOUT,
                   &cfgValue) != eSIR_SUCCESS)
     {
         /**
-         * Could not get keepalive timeout value
+         * Could not get keep alive timeout value
          * from CFG. Log error.
          */
         limLog(pMac, LOGP,
-               FL("could not retrieve keepalive timeout value"));
+               FL("could not retrieve keep alive timeout value"));
     }
 
     // A value of zero implies keep alive should be disabled
@@ -514,8 +514,8 @@ limCreateTimers(tpAniSirGlobal pMac)
                          TX_AUTO_ACTIVATE : TX_NO_ACTIVATE)
                   != TX_SUCCESS)
     {
-        // Cannot create keepalive timer.  Log error.
-        limLog(pMac, LOGP, FL("Cannot create keepalive timer."));
+        /* Cannot create keep alive timer.  Log error. */
+        limLog(pMac, LOGP, FL("Cannot create keep alive timer."));
         goto err_timer;
     }
 
@@ -769,7 +769,7 @@ limCreateTimers(tpAniSirGlobal pMac)
  * 3. AUTH_FAILURE timer expiration while authenticating with a peer
  * 4. Heartbeat timer expiration on STA
  * 5. Background scan timer expiration on STA
- * 6. AID release, Pre-auth cleanup and Link monitoring timer
+ * 6. AID release, Pre-auth clean up and Link monitoring timer
  *    expiration on AP
  *
  *LOGIC:
@@ -1391,8 +1391,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             if (tx_timer_deactivate(&pMac->lim.limTimers.gLimKeepaliveTimer)
                             != TX_SUCCESS)
             {
-                // Could not deactivate Keepalive timer.
-                // Log error
+                /* Could not deactivate Keep alive timer. Log error */
                 limLog(pMac, LOGP,
                    FL("unable to deactivate KeepaliveTimer timer"));
             }
@@ -1403,11 +1402,11 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                           &val) != eSIR_SUCCESS)
             {
                 /**
-                 * Could not get keepalive timeout value
+                 * Could not get keep alive timeout value
                  * from CFG. Log error.
                  */
                 limLog(pMac, LOGP,
-                   FL("could not retrieve keepalive timeout value"));
+                   FL("could not retrieve keep alive timeout value"));
             }
             if (val == 0)
             {
@@ -1722,7 +1721,7 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
     limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
 
-    //only start the hearbeat-timer if the timeout value is non-zero
+    /* Only start the heartbeat-timer if the timeout value is non-zero */
     if(pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs > 0)
     {
        /*

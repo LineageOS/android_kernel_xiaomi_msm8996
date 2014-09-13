@@ -247,8 +247,8 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 }
 
 
-// get the local or broadcast parameters based on the profile sepcified in the config
-// params are delivered in this order: BK, BE, VI, VO
+/* Get the local or broadcast parameters based on the profile specified in the
+   config params are delivered in this order: BK, BE, VI, VO */
 tSirRetStatus
 schGetParams(
     tpAniSirGlobal pMac,
@@ -377,7 +377,11 @@ static void broadcastWMMOfConcurrentSTASession(tpAniSirGlobal pMac, tpPESession 
                         psessionEntry->gLimEdcaParamsBC[j].txoplimit);)
 
             }
-            /* Once atleast one concurrent session on same channel is found and WMM broadcast params for current SoftAP/GO session updated, return*/
+            /*
+             * Once at-least one concurrent session on same channel is found
+             * and WMM broadcast params for current SoftAP/GO session updated,
+             * return
+             */
             break;
         }
     }

@@ -2274,7 +2274,7 @@ eHalStatus csrUpdateMCCp2pBeaconInterval(tpAniSirGlobal pMac)
         if (pMac->roam.roamSession[sessionId].bssParams.bssPersona
                               == VOS_P2P_GO_MODE)
         {
-           /* Handle different BI scneario based on the configuration set.
+           /* Handle different BI scenario based on the configuration set.
             * If Config is set to 0x02 then Disconnect all the P2P clients
             * associated. If config is set to 0x04 then update the BI
             * without disconnecting all the clients
@@ -2312,11 +2312,11 @@ tANI_U16 csrCalculateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U16 sta_bi, tAN
     if ( sta_bi == 0 )
     {
         /* There is possibility to receive zero as value.
-           Which will cause divide by zero. Hence initialise with 100
+           Which will cause divide by zero. Hence initialize with 100
         */
         sta_bi =  100;
         smsLog(pMac, LOGW,
-            FL("sta_bi 2nd parameter is zero, initialise to %d"), sta_bi);
+            FL("sta_bi 2nd parameter is zero, initialize to %d"), sta_bi);
     }
 
     // check, if either one is multiple of another
@@ -2504,10 +2504,12 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                                 != *beaconInterval))
                         {
                             /*
-                             * Updated beaconInterval should be used only when we are starting a new BSS
-                             * not incase of client or STA case
+                             * Updated beaconInterval should be used only when
+                             * we are starting a new BSS not in-case of client
+                             * or STA case
                              */
-                            //Calculate beacon Interval for P2P-GO incase of MCC
+                            /* Calculate beacon Interval for P2P-GO
+                               in-case of MCC */
                             new_beaconInterval = csrCalculateMCCBeaconInterval(pMac,
                                                 pMac->roam.roamSession[sessionId].connectedProfile.beaconInterval,
                                                 *beaconInterval );
@@ -2530,7 +2532,7 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
 }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-/* Function to return TRUE if the authtype is 11r */
+/* Function to return TRUE if the auth type is 11r */
 tANI_BOOLEAN csrIsAuthType11r( eCsrAuthType AuthType, tANI_U8 mdiePresent)
 {
     switch ( AuthType )
@@ -2559,7 +2561,7 @@ tANI_BOOLEAN csrIsProfile11r( tCsrRoamProfile *pProfile )
 
 #ifdef FEATURE_WLAN_ESE
 
-/* Function to return TRUE if the authtype is ESE */
+/* Function to return TRUE if the auth type is ESE */
 tANI_BOOLEAN csrIsAuthTypeESE( eCsrAuthType AuthType )
 {
     switch ( AuthType )
@@ -3043,7 +3045,7 @@ csrIsPMFCapabilitiesInRSNMatch( tHalHandle hHal,
        {
            /*
             * This is tricky, because supplicant asked us to make mandatory
-            * PMF connection eventhough PMF connection is optional here.
+            * PMF connection even though PMF connection is optional here.
             * so if AP is not capable of PMF then drop it. Don't try to
             * connect with it.
             */
@@ -3068,7 +3070,7 @@ csrIsPMFCapabilitiesInRSNMatch( tHalHandle hHal,
                 (apProfileMFPCapable == 1))
        {
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-           "we don't need PMF connection eventhough both parties are capable");
+           "we don't need PMF connection even though both parties are capable");
            return VOS_FALSE;
        }
     }
@@ -3116,7 +3118,7 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *p
     }
    /* to force the AP initiate fresh 802.1x authentication after re-association should not
     * fill the PMKID from cache  this is needed
-    * by the HS 2.0 passpoint certification 5.2.a and b testcases */
+    * by the HS 2.0 pass point certification 5.2.a and b test cases */
 
     if(pSession->fIgnorePMKIDCache)
     {
@@ -3203,11 +3205,14 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
         pAuthSuite->cAuthenticationSuites = 1;
         vos_mem_copy(&pAuthSuite->AuthOui[ 0 ], AuthSuite, sizeof( AuthSuite ));
 
-        // RSN capabilities follows the Auth Suite (two octects)
-        // !!REVIEW - What should STA put in RSN capabilities, currently
-        // just putting back APs capabilities
-        // For one, we shouldn't EVER be sending out "pre-auth supported".  It is an AP only capability
-        // For another, we should use the Management Frame Protection values given by the supplicant
+        /*
+         * RSN capabilities follows the Auth Suite (two octets)
+         * !!REVIEW - What should STA put in RSN capabilities, currently
+         * just putting back APs capabilities For one, we shouldn't EVER be
+         * sending out "pre-auth supported". It is an AP only capability.
+         * For another, we should use the Management Frame Protection
+         * values given by the supplicant
+         */
         RSNCapabilities.PreAuthSupported = 0;
 #ifdef WLAN_FEATURE_11W
         RSNCapabilities.MFPRequired = pProfile->MFPRequired;
@@ -3349,7 +3354,8 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
             if( pNegotiatedMCCipher )
                 *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
 
-            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
+            /* Ciphers are supported, Match authentication algorithm and pick
+               first matching auth type. */
             if ( csrIsAuthWapiCert( pMac, AuthSuites, cAuthSuites, Authentication ) )
             {
                 negAuthType = eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE;
@@ -3503,9 +3509,12 @@ tANI_U8 csrConstructWapiIe( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamPro
         pWapi += sizeof( MulticastCypher );
 
 
-        // WAPI capabilities follows the Auth Suite (two octects)
-        // we shouldn't EVER be sending out "pre-auth supported".  It is an AP only capability
-        // & since we already did a memset pWapiIe to 0, skip these fields
+        /*
+         * WAPI capabilities follows the Auth Suite (two octets)
+         * we shouldn't EVER be sending out "pre-auth supported".
+         * It is an AP only capability & since we already did a memset
+         * pWapiIe to 0, skip these fields
+         */
         pWapi +=2;
 
         fBKIDFound = csrLookupBKID( pMac, sessionId, pSirBssDesc->bssId, &(BKId[0]) );
@@ -3606,7 +3615,8 @@ tANI_BOOLEAN csrGetWpaCyphers( tpAniSirGlobal pMac, tCsrAuthList *pAuthType, eCs
             fAcceptableCyphers = FALSE;
             for (i = 0 ; i < pAuthType->numEntries; i++)
             {
-            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
+                /* Ciphers are supported, Match authentication algorithm
+                   and pick first matching auth type */
                 if ( csrIsAuthWpa( pMac, pWpaIe->auth_suites, cAuthSuites, Authentication ) )
                 {
                     if (eCSR_AUTH_TYPE_WPA == pAuthType->authType[i])
@@ -3719,14 +3729,17 @@ tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
         pAuthSuite->cAuthenticationSuites = 1;
         vos_mem_copy(&pAuthSuite->AuthOui[ 0 ], AuthSuite, sizeof( AuthSuite ));
 
-        // The WPA capabilities follows the Auth Suite (two octects)--
-        // this field is optional, and we always "send" zero, so just
-        // remove it.  This is consistent with our assumptions in the
-        // frames compiler; c.f. bug 15234:
-        // http://gold.woodsidenet.com/bugzilla/show_bug.cgi?id=15234
-
-        // Add in the fixed fields plus 1 Unicast cypher, less the IE Header length
-        // Add in the size of the Auth suite (count plus a single OUI)
+        /*
+         * The WPA capabilities follows the Auth Suite (two octets)--
+         * this field is optional, and we always "send" zero, so just
+         * remove it.  This is consistent with our assumptions in the
+         * frames compiler; c.f. bug 15234:
+         * http://gold.woodsidenet.com/bugzilla/show_bug.cgi?id=15234
+         *
+         * Add in the fixed fields plus 1 Unicast cypher, less the IE Header
+         * length
+         * Add in the size of the Auth suite (count plus a single OUI)
+         */
         pWpaIe->IeHeader.Length = sizeof( *pWpaIe ) - sizeof ( pWpaIe->IeHeader ) +
                                   sizeof( *pAuthSuite );
 
@@ -3864,8 +3877,11 @@ tANI_BOOLEAN csrGetWpaRsnIe( tHalHandle hHal, tANI_U8 *pIes, tANI_U32 len,
 }
 
 
-//If a WPAIE exists in the profile, just use it. Or else construct one from the BSS
-//Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
+/*
+ * If a WPAIE exists in the profile, just use it. Or else construct one from
+ * the BSS Caller allocated memory for pWpaIe and guarantee it can contain a max
+ * length WPA IE
+ */
 tANI_U8 csrRetrieveWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc,
                           tDot11fBeaconIEs *pIes, tCsrWpaIe *pWpaIe )
 {
@@ -3897,8 +3913,11 @@ tANI_U8 csrRetrieveWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDes
 }
 
 
-//If a RSNIE exists in the profile, just use it. Or else construct one from the BSS
-//Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
+/*
+ * If a RSNIE exists in the profile, just use it. Or else construct one from the
+ * BSS. Caller allocated memory for pWpaIe and guarantee it can contain a max
+ * length WPA IE
+ */
 tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
                          tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRsnIe )
 {
@@ -3941,8 +3960,11 @@ tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *
 
 
 #ifdef FEATURE_WLAN_WAPI
-//If a WAPI IE exists in the profile, just use it. Or else construct one from the BSS
-//Caller allocated memory for pWapiIe and guarrantee it can contain a max length WAPI IE
+/*
+ * If a WAPI IE exists in the profile, just use it. Or else construct one from
+ * the BSS. Caller allocated memory for pWapiIe and guarantee it can contain a
+ * max length WAPI IE.
+ */
 tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId,
                           tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc,
                           tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe )
@@ -4428,13 +4450,14 @@ tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1L
     tANI_BOOLEAN fMatch = FALSE;
 
     do {
-
-        // There are a few special cases.  If the Bss description has a Broadcast SSID,
-        // then our Profile must have a single SSID without Wildcards so we can program
-        // the SSID.
-        // SSID could be suppressed in beacons. In that case SSID IE has valid length
-        // but the SSID value is all NULL characters. That condition is trated same
-        // as NULL SSID
+        /*
+         * There are a few special cases. If the Bss description has a
+         * Broadcast SSID, then our Profile must have a single SSID without
+         * Wild cards so we can program the SSID.
+         * SSID could be suppressed in beacons. In that case SSID IE has valid
+         * length but the SSID value is all NULL characters.
+         * That condition is treated same as NULL SSID.
+         */
         if ( csrIsNULLSSID( bssSsid, bssSsidLen ) )
         {
             if ( eANI_BOOLEAN_FALSE == fSsidRequired )
@@ -5420,8 +5443,8 @@ tSirResultCodes csrGetDisassocRspStatusCode( tSirSmeDisassocRsp *pSmeDisassocRsp
     tANI_U32 ret;
 
     pBuffer += (sizeof(tANI_U16) + sizeof(tANI_U16) + sizeof(tSirMacAddr));
-    //tSirResultCodes is an enum, assuming is 32bit
-    //If we cannot make this assumption, use copymemory
+    /* tSirResultCodes is an enum, assuming is 32bit
+       If we cannot make this assumption, use copy memory */
     pal_get_U32( pBuffer, &ret );
 
     return( ( tSirResultCodes )ret );
@@ -5434,8 +5457,8 @@ tSirResultCodes csrGetDeAuthRspStatusCode( tSirSmeDeauthRsp *pSmeRsp )
     tANI_U32 ret;
 
     pBuffer += (sizeof(tANI_U16) + sizeof(tANI_U16) + sizeof(tANI_U8) +sizeof(tANI_U16));
-    //tSirResultCodes is an enum, assuming is 32bit
-    //If we cannot make this assumption, use copymemory
+    /* tSirResultCodes is an enum, assuming is 32bit
+       If we cannot make this assumption, use copy memory */
     pal_get_U32( pBuffer, &ret );
 
     return( ( tSirResultCodes )ret );
@@ -5796,7 +5819,7 @@ eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U
     v_SIZE_t size = (v_SIZE_t)*pbLen;
 
     vosStatus = vos_nv_getSupportedCountryCode( pBuf, &size, 1 );
-    //eiter way, return the value back
+    /* Either way, return the value back */
     *pbLen = (tANI_U32)size;
 
     //If pBuf is NULL, caller just want to get the size, consider it success
