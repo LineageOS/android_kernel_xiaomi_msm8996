@@ -1523,7 +1523,9 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
     /* Check peer is VHT capable*/
     if (CHECK_BIT(peerCapability, TDLS_PEER_VHT_CAP))
     {
-        PopulateDot11fVHTOperation( pMac, &tdlsSetupCnf.VHTOperation);
+        PopulateDot11fVHTOperation(pMac,
+                                   psessionEntry,
+                                   &tdlsSetupCnf.VHTOperation);
         PopulateDot11fHTInfo( pMac, &tdlsSetupCnf.HTInfo, psessionEntry );
     }
     else if (CHECK_BIT(peerCapability, TDLS_PEER_HT_CAP)) /* Check peer is HT capable */
