@@ -177,6 +177,10 @@ typedef struct tagSmeStruct
     v_BOOL_t enableSelfRecovery;
     tCsrLinkStatusCallback linkStatusCallback;
     void *linkStatusContext;
+
+    /* get temperature event context and callback */
+    void *pTemperatureCbContext;
+    void (*pGetTemperatureCb)(int temperature, void *context);
 } tSmeStruct, *tpSmeStruct;
 
 

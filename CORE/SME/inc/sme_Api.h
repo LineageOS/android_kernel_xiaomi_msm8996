@@ -4045,4 +4045,16 @@ eHalStatus sme_getLinkStatus(tHalHandle hHal,
                              tCsrLinkStatusCallback callback,
                              void *pContext,
                              tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+   \fn sme_GetTemperature
+   \brief SME API to get the pdev temperature
+   \param hHal
+   \param temperature context
+   \param pCallbackfn: callback fn with response (temperature)
+   \- return eHalStatus
+   -------------------------------------------------------------------------*/
+eHalStatus sme_GetTemperature(tHalHandle hHal,
+        void *tempContext,
+        void (*pCallbackfn)(int temperature, void *pContext));
 #endif //#if !defined( __SME_API_H )
