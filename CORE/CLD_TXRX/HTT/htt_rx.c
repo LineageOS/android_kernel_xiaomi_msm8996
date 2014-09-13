@@ -264,7 +264,11 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
         headroom = adf_nbuf_data(rx_netbuf) - (u_int8_t *) rx_desc;
         adf_nbuf_push_head(rx_netbuf, headroom);
 
+#ifdef DEBUG_DMA_DONE
+        status = adf_nbuf_map(pdev->osdev, rx_netbuf, ADF_OS_DMA_BIDIRECTIONAL);
+#else
         status = adf_nbuf_map(pdev->osdev, rx_netbuf, ADF_OS_DMA_FROM_DEVICE);
+#endif
         if (status != A_STATUS_OK) {
             adf_nbuf_free(rx_netbuf);
             goto fail;
@@ -274,7 +278,12 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
             if(adf_os_unlikely(
                htt_rx_hash_list_insert(pdev, paddr, rx_netbuf))) {
                 adf_os_print("%s: hash insert failed!\n", __FUNCTION__);
+#ifdef DEBUG_DMA_DONE
+                adf_nbuf_unmap(pdev->osdev, rx_netbuf,
+                                ADF_OS_DMA_BIDIRECTIONAL);
+#else
                 adf_nbuf_unmap(pdev->osdev, rx_netbuf, ADF_OS_DMA_FROM_DEVICE);
+#endif
                 adf_nbuf_free(rx_netbuf);
                 goto fail;
             }
@@ -330,9 +339,15 @@ htt_rx_detach(struct htt_pdev_t *pdev)
         int sw_rd_idx = pdev->rx_ring.sw_rd_idx.msdu_payld;
 
         while (sw_rd_idx != *(pdev->rx_ring.alloc_idx.vaddr)) {
-            adf_nbuf_unmap(
-                pdev->osdev, pdev->rx_ring.buf.netbufs_ring[sw_rd_idx],
-                ADF_OS_DMA_FROM_DEVICE);
+#ifdef DEBUG_DMA_DONE
+        adf_nbuf_unmap(
+            pdev->osdev, pdev->rx_ring.buf.netbufs_ring[sw_rd_idx],
+            ADF_OS_DMA_BIDIRECTIONAL);
+#else
+        adf_nbuf_unmap(
+            pdev->osdev, pdev->rx_ring.buf.netbufs_ring[sw_rd_idx],
+            ADF_OS_DMA_FROM_DEVICE);
+#endif
             adf_nbuf_free(pdev->rx_ring.buf.netbufs_ring[sw_rd_idx]);
             sw_rd_idx++;
             sw_rd_idx &= pdev->rx_ring.size_mask;
@@ -902,7 +917,11 @@ htt_rx_amsdu_pop_ll(
          * so the unmap will unmap the entire buffer.
          */
         adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
+#ifdef DEBUG_DMA_DONE
+        adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_BIDIRECTIONAL);
+#else
         adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+#endif
 
         /* cache consistency has been taken care of by the adf_nbuf_unmap */
 
@@ -1177,7 +1196,11 @@ htt_rx_offload_msdu_pop_ll(
     /* Fake read mpdu_desc to keep desc ptr in sync */
     htt_rx_mpdu_desc_list_next(pdev, NULL);
     adf_nbuf_set_pktlen(buf, HTT_RX_BUF_SIZE);
+#ifdef DEBUG_DMA_DONE
+    adf_nbuf_unmap(pdev->osdev, buf, ADF_OS_DMA_BIDIRECTIONAL);
+#else
     adf_nbuf_unmap(pdev->osdev, buf, ADF_OS_DMA_FROM_DEVICE);
+#endif
     msdu_hdr = (u_int32_t *)adf_nbuf_data(buf);
 
     /* First dword */
@@ -1221,8 +1244,11 @@ htt_rx_offload_paddr_msdu_pop_ll(
         return 0;
     }
     adf_nbuf_set_pktlen(buf, HTT_RX_BUF_SIZE);
+#ifdef DEBUG_DMA_DONE
+    adf_nbuf_unmap(pdev->osdev, buf, ADF_OS_DMA_BIDIRECTIONAL);
+#else
     adf_nbuf_unmap(pdev->osdev, buf, ADF_OS_DMA_FROM_DEVICE);
-
+#endif
     msdu_hdr = (u_int32_t *)adf_nbuf_data(buf);
 
     /* First dword */
@@ -1309,7 +1335,11 @@ htt_rx_amsdu_rx_in_order_pop_ll(
          * so the unmap will unmap the entire buffer.
          */
         adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
+#ifdef DEBUG_DMA_DONE
+        adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_BIDIRECTIONAL);
+#else
         adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+#endif
 
         /* cache consistency has been taken care of by the adf_nbuf_unmap */
 
