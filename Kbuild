@@ -228,9 +228,6 @@ CONFIG_QCA_SINGLE_BINARY_SUPPORT := 0
 #Enable collecting target RAM dump after kernel panic
 CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC := 1
 
-#Flag to enable/disable secure firmware feature
-CONFIG_FEATURE_SECURE_FIRMWARE := 0
-
 #Flag to enable Stats Ext implementation
 CONFIG_FEATURE_STATS_EXT := 1
 
@@ -1262,7 +1259,7 @@ CDEFINES += -DTARGET_RAMDUMP_AFTER_KERNEL_PANIC
 endif
 
 #Enable/disable secure firmware feature
-ifeq ($(CONFIG_FEATURE_SECURE_FIRMWARE), 1)
+ifeq ($(CONFIG_CNSS_SECURE_FW), y)
 CDEFINES += -DFEATURE_SECURE_FIRMWARE
 endif
 

@@ -57,9 +57,6 @@
 #include "qwlan_version.h"
 
 #ifdef FEATURE_SECURE_FIRMWARE
-#define MAX_FIRMWARE_SIZE (1*1024*1024)
-
-static u8 fw_mem[MAX_FIRMWARE_SIZE];
 static struct hash_fw fw_hash;
 #endif
 
@@ -366,8 +363,9 @@ exit:
 }
 
 #ifdef FEATURE_SECURE_FIRMWARE
-static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
+static int ol_check_fw_hash(const u8* data, u32 fw_size, ATH_BIN_FILE file)
 {
+	u8 *fw_mem = NULL;
 	u8 *hash = NULL;
 #ifdef CONFIG_CNSS
 	u8 digest[SHA256_DIGEST_SIZE];
@@ -404,8 +402,18 @@ static int ol_check_fw_hash(const u8* data, u32 data_size, ATH_BIN_FILE file)
 		goto end;
 	}
 
+	fw_mem = (u8 *)cnss_get_fw_ptr();
+
+	if (!fw_mem || (fw_size > MAX_FIRMWARE_SIZE)) {
+		pr_err("No enough memory to copy FW data\n");
+		ret = A_ERROR;
+		goto end;
+	}
+
+	OS_MEMCPY(fw_mem, data, fw_size);
+
 #ifdef CONFIG_CNSS
-	ret = cnss_get_sha_hash(data, data_size, "sha256", digest);
+	ret = cnss_get_sha_hash(fw_mem, fw_size, "sha256", digest);
 
 	if (ret) {
 		pr_err("Sha256 Hash computation fialed err:%d\n", ret);
@@ -596,15 +604,8 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	tempEeprom = NULL;
 
 #ifdef FEATURE_SECURE_FIRMWARE
-	if (fw_entry_size <= MAX_FIRMWARE_SIZE) {
-		OS_MEMCPY(fw_mem, fw_entry->data, fw_entry_size);
-	} else {
-		pr_err("%s: No enough memory to copy FW data!", __func__);
-		status = A_ERROR;
-		goto end;
-	}
 
-	if (ol_check_fw_hash(fw_mem, fw_entry_size, file)) {
+	if (ol_check_fw_hash(fw_entry->data, fw_entry_size, file)) {
 		pr_err("Hash Check failed for file:%s\n", filename);
 		status = A_ERROR;
 		goto end;
