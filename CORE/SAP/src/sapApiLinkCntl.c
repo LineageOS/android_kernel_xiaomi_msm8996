@@ -463,9 +463,25 @@ WLANSAP_RoamCallback
 
            if (pMac->sap.SapDfsInfo.target_channel == 0) {
                /* No available channel found */
-               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                   FL("No available channel found, StopBss!!!"));
-               WLANSAP_StopBss((v_PVOID_t)sapContext);
+               v_U8_t  intf;
+               /* Issue stopbss for each sapctx */
+               for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
+               {
+                    ptSapContext pSapContext;
+
+                    if (VOS_STA_SAP_MODE ==
+                         pMac->sap.sapCtxList[intf].sapPersona &&
+                         pMac->sap.sapCtxList[intf].pSapContext != NULL )
+                    {
+                        pSapContext = pMac->sap.sapCtxList[intf].pSapContext;
+                        VOS_TRACE(VOS_MODULE_ID_SAP,
+                                  VOS_TRACE_LEVEL_ERROR,
+                        "sapdfs: no available channel for sapctx[%p], StopBss",
+                                  pSapContext);
+
+                        WLANSAP_StopBss(pSapContext);
+                     }
+               }
                break;
            }
 
