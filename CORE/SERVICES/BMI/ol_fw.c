@@ -861,6 +861,14 @@ int dump_CE_register(struct ol_softc *scn)
 
 #if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 static struct ol_softc *ramdump_scn;
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+void *ol_fw_dram_addr=NULL;
+void *ol_fw_iram_addr=NULL;
+void *ol_fw_axi_addr=NULL;
+u_int32_t ol_fw_dram_size;
+u_int32_t ol_fw_iram_size;
+u_int32_t ol_fw_axi_size;
+#endif
 
 int ol_copy_ramdump(struct ol_softc *scn)
 {
@@ -886,6 +894,9 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 #endif
 	u_int32_t host_interest_address;
 	u_int32_t dram_dump_values[4];
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+	u_int8_t *byte_ptr;
+#endif
 
 	if (!ramdump_scn) {
 		printk("No RAM dump will be collected since ramdump_scn is NULL!\n");
@@ -928,6 +939,39 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	printk("FW Assertion at PC: 0x%08x BadVA: 0x%08x TargetID: 0x%08x\n",
 		dram_dump_values[2], dram_dump_values[3], dram_dump_values[0]);
 
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+	/* Allocate memory to save ramdump */
+	if (ramdump_scn->enableFwSelfRecovery) {
+		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+		goto out_fail;
+	}
+
+	ramdump_scn->ramdump_size = DRAM_SIZE + IRAM_SIZE + AXI_SIZE;
+	ramdump_scn->ramdump_base =
+		kmalloc(ramdump_scn->ramdump_size, GFP_KERNEL);
+
+	if (!ramdump_scn->ramdump_base) {
+		pr_err("%s: fail to alloc mem for FW RAM dump\n",
+				__func__);
+		goto out_fail;
+	}
+
+	ol_fw_dram_size = DRAM_SIZE;
+	ol_fw_iram_size = IRAM_SIZE;
+	ol_fw_axi_size = AXI_SIZE;
+	ol_fw_dram_addr = ramdump_scn->ramdump_base;
+	byte_ptr = (u_int8_t *)ol_fw_dram_addr;
+	ol_fw_axi_addr = (void *)(byte_ptr + DRAM_SIZE);
+	ol_fw_iram_addr = (void *)(byte_ptr + DRAM_SIZE + AXI_SIZE);
+
+	pr_err("%s: DRAM => mem = %#08x, len = %d\n", __func__,
+			(u_int32_t)ol_fw_dram_addr, DRAM_SIZE);
+	pr_err("%s: AXI  => mem = %#08x, len = %d\n", __func__,
+			(u_int32_t)ol_fw_axi_addr, AXI_SIZE);
+	pr_err("%s: IRAM => mem = %#08x, len = %d\n", __func__,
+			(u_int32_t)ol_fw_iram_addr, IRAM_SIZE);
+#endif
+
 	if (ol_copy_ramdump(ramdump_scn))
 		goto out_fail;
 
@@ -943,7 +987,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 out_fail:
 	/* Silent SSR on dump failure */
-#ifdef CNSS_SELF_RECOVERY
+#if defined(CNSS_SELF_RECOVERY) || defined(TARGET_DUMP_FOR_NON_QC_PLATFORM)
 #if !defined(HIF_SDIO)
 	cnss_device_self_recovery();
 #endif
@@ -2186,28 +2230,39 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	* START   = 0x00000800
 	* LENGTH  = 0x0007F820
 	*/
-
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+	while ((sectionCount < 4) && (amountRead < blockLength)) {
+#else
 	while ((sectionCount < 3) && (amountRead < blockLength)) {
+#endif
 		switch (sectionCount) {
 		case 0:
 			/* DRAM SECTION */
 			pos = DRAM_LOCATION;
 			readLen = DRAM_SIZE;
-			printk("%s: Dumping DRAM section...\n", __func__);
+			pr_err("%s: Dumping DRAM section...\n", __func__);
 			break;
 		case 1:
 			/* AXI SECTION */
 			pos = AXI_LOCATION;
 			readLen = AXI_SIZE;
-			printk("%s: Dumping AXI section...\n", __func__);
+			pr_err("%s: Dumping AXI section...\n", __func__);
 			break;
 		case 2:
 			/* REG SECTION */
 			pos = REGISTER_LOCATION;
 			/* ol_diag_read_reg_loc checks for buffer overrun */
 			readLen = 0;
-			printk("%s: Dumping Register section...\n", __func__);
+			pr_err("%s: Dumping Register section...\n", __func__);
 			break;
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+		case 3:
+			/* IRAM SECTION */
+			pos = IRAM_LOCATION;
+			readLen = IRAM_SIZE;
+			pr_err("%s: Dumping IRAM section...\n", __func__);
+			break;
+#endif
 		}
 
 		if ((blockLength - amountRead) >= readLen) {
@@ -2226,7 +2281,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			} else {
 #ifdef CONFIG_HL_SUPPORT
 #else
-				printk(KERN_ERR "Could not read dump section!\n");
+				pr_err("Could not read dump section!\n");
 				dump_CE_register(scn);
 				dump_CE_debug_register(scn->hif_sc);
 				ret = -EACCES;
@@ -2234,7 +2289,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 				break; /* Could not read the section */
 			}
 		} else {
-			printk(KERN_ERR "Insufficient room in dump buffer!\n");
+			pr_err("Insufficient room in dump buffer!\n");
 			break; /* Insufficient room in buffer */
 		}
 	}

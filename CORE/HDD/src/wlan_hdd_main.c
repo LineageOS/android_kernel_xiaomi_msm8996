@@ -4311,7 +4311,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 	      goto exit;
 	   }
 
-	   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+	   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
 		   "%s: Received Command to Set Roam Mode = %d", __func__, roamMode);
            /*
 	    * Note that
@@ -4326,9 +4326,27 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 	       roamMode = CFG_LFR_FEATURE_ENABLED_MIN;    /* Roam disable */
 
 	   pHddCtx->cfg_ini->isFastRoamIniFeatureEnabled = roamMode;
-           sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal,
-                                                 pAdapter->sessionId,
-                                                 roamMode);
+	   /* LFR2 is dependent on Fast Roam. So, enable/disable LFR2
+	    * variable. if Fast Roam has been changed from disabled to enabled,
+	    * then enable LFR2 and send the LFR START command to the firmware.
+	    * Otherwise, send the LFR STOP command to the firmware and then
+	    * disable LFR2.The sequence is different.
+	    */
+	   if (roamMode) {
+		   pHddCtx->cfg_ini->isRoamOffloadScanEnabled = roamMode;
+		   sme_UpdateRoamScanOffloadEnabled((tHalHandle)(pHddCtx->hHal),
+				   pHddCtx->cfg_ini->isRoamOffloadScanEnabled);
+		   sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal,
+				   pAdapter->sessionId,
+				   roamMode);
+	   } else {
+		   sme_UpdateIsFastRoamIniFeatureEnabled(pHddCtx->hHal,
+				   pAdapter->sessionId,
+				   roamMode);
+		   pHddCtx->cfg_ini->isRoamOffloadScanEnabled = roamMode;
+		   sme_UpdateRoamScanOffloadEnabled((tHalHandle)(pHddCtx->hHal),
+				   pHddCtx->cfg_ini->isRoamOffloadScanEnabled);
+	   }
        }
        /* GETROAMMODE */
        else if (strncmp(priv_data.buf, "GETROAMMODE", SIZE_OF_GETROAMMODE) == 0)

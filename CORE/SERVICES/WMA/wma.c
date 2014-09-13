@@ -8338,106 +8338,6 @@ VOS_STATUS wma_roam_scan_bmiss_cnt(tp_wma_handle wma_handle,
     return VOS_STATUS_SUCCESS;
 }
 
-/* function   : wma_roam_scan_offload_init_connect
- * Description : Rome firmware requires that roam scan engine is configured prior to
- *            : sending VDEV_UP command to firmware. This routine configures it
- *            : to default values with only periodic scan mode. Rssi triggerred scan
- *            : is not enabled, preventing unnecessary off-channel scans while EAPOL
- *            : handshake is completed.
- * Args       :
- * Returns    :
- */
-VOS_STATUS wma_roam_scan_offload_init_connect(tp_wma_handle wma_handle,
-        u_int32_t vdev_id)
-{
-    VOS_STATUS vos_status;
-    A_INT32 first_bcnt;
-    A_UINT32 final_bcnt;
-    tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
-                wma_handle->vos_context);
-    wmi_start_scan_cmd_fixed_param scan_params;
-    wmi_ap_profile ap_profile;
-    if (NULL == pMac) {
-            WMA_LOGE("%s: Failed to get pMac", __func__);
-            return VOS_STATUS_E_FAILURE;
-    }
-    /* first program the parameters to conservative values so that roaming scan won't be
-     * triggered before association completes
-     */
-    /* for p2p FW expects 15, 45 */
-    if ( (wma_handle->interfaces[vdev_id].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE) ||
-       (wma_handle->interfaces[vdev_id].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT) ) {
-            first_bcnt = WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT_P2P;
-            final_bcnt = WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT_P2P;
-    } else {
-       first_bcnt = WMA_ROAM_BMISS_FIRST_BCNT_DEFAULT;
-       final_bcnt = WMA_ROAM_BMISS_FINAL_BCNT_DEFAULT;
-    }
-
-    vos_status = wma_roam_scan_bmiss_cnt(wma_handle,
-            first_bcnt,
-            final_bcnt,
-            vdev_id);
-
-    /* rssi_thresh = 10 is low enough */
-    vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-            WMA_ROAM_LOW_RSSI_TRIGGER_VERYLOW,
-            pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff,
-            vdev_id);
-    vos_status = wma_roam_scan_offload_scan_period(wma_handle,
-            WMA_ROAM_OPP_SCAN_PERIOD_DEFAULT,
-            WMA_ROAM_OPP_SCAN_AGING_PERIOD_DEFAULT,
-            vdev_id);
-    vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
-            pMac->roam.configParam.neighborRoamConfig.nRoamRescanRssiDiff,
-            WMA_ROAM_BEACON_WEIGHT_DEFAULT,
-            vdev_id);
-    wma_roam_scan_fill_ap_profile(wma_handle, pMac, NULL, &ap_profile);
-
-    vos_status = wma_roam_scan_offload_ap_profile(wma_handle, &ap_profile,
-            vdev_id);
-
-    wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
-    vos_status = wma_roam_scan_offload_mode(wma_handle,
-            &scan_params,
-            NULL,
-            WMI_ROAM_SCAN_MODE_PERIODIC,
-            vdev_id);
-    return vos_status;
-}
-
-/* function   : wma_roam_scan_offload_end_connect
- * Description : Stop the roam scan by setting scan mode to 0.
- * Args       :
- * Returns    :
- */
-VOS_STATUS wma_roam_scan_offload_end_connect(tp_wma_handle wma_handle,
-        u_int32_t vdev_id)
-{
-    VOS_STATUS vos_status;
-    tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
-                wma_handle->vos_context);
-    wmi_start_scan_cmd_fixed_param scan_params;
-
-    if (NULL == pMac)
-    {
-        WMA_LOGE("%s: pMac is NULL", __func__);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    /* If roam scan is enabled, disable it */
-    if (wma_handle->roam_offload_enabled) {
-
-        wma_roam_scan_fill_scan_params(wma_handle, pMac, NULL, &scan_params);
-        vos_status = wma_roam_scan_offload_mode(wma_handle,
-                &scan_params,
-                NULL,
-                WMI_ROAM_SCAN_MODE_NONE,
-                vdev_id);
-    }
-    return VOS_STATUS_SUCCESS;
-}
-
 VOS_STATUS wma_roam_scan_offload_command(tp_wma_handle wma_handle,
         u_int32_t command,
         u_int32_t vdev_id)
@@ -8602,7 +8502,17 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
 
         case ROAM_SCAN_OFFLOAD_STOP:
             wma_handle->suitable_ap_hb_failure = FALSE;
-            wma_roam_scan_offload_end_connect(wma_handle, roam_req->sessionId);
+            if (wma_handle->roam_offload_enabled) {
+
+                wma_roam_scan_fill_scan_params(wma_handle, pMac,
+                                               NULL, &scan_params);
+                vos_status = wma_roam_scan_offload_mode(wma_handle,
+                                                       &scan_params,
+                                                       NULL,
+                                                       WMI_ROAM_SCAN_MODE_NONE,
+                                                       roam_req->sessionId);
+            }
+
             if (roam_req->StartScanReason == REASON_OS_REQUESTED_ROAMING_NOW) {
                 vos_msg_t vosMsg;
                 tSirRoamOffloadScanRsp *scan_offload_rsp;
@@ -13383,7 +13293,6 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	wma_vdev_set_bss_params(wma, params->smesessionId, iface->beaconInterval,
 				iface->dtimPeriod, iface->shortSlotTimeSupported,
 				iface->llbCoexist, maxTxPower);
-	wma_roam_scan_offload_init_connect(wma, params->smesessionId);
 
 	params->csaOffloadEnable = 0;
 	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
@@ -14144,7 +14053,6 @@ if(iface->roam_synch_in_progress)
 	 return;
 	}
 #endif
-	wma_roam_scan_offload_end_connect(wma, params->smesessionId);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 send_del_sta_rsp:
 #endif

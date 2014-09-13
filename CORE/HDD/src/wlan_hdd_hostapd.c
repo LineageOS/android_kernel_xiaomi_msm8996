@@ -725,6 +725,88 @@ static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataFor
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
 
+static void hdd_send_channel_switch_evt(hdd_adapter_t *pHostapdAdapter,
+                                        tpSap_Event pSapEvent,
+                                        v_PVOID_t usrDataForCallback)
+{
+    v_BOOL_t acsEnabled;
+    v_U8_t   cbMode;
+    struct ieee80211_channel *chan;
+    struct cfg80211_chan_def chandef;
+    struct net_device *dev;
+    hdd_context_t *pHddCtx;
+    v_U32_t freq;
+
+    dev = (struct net_device *)usrDataForCallback;
+    if (!dev) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: usrDataForCallback is null", __func__);
+        return;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    if (!pHddCtx) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is null"));
+        return;
+    }
+#ifdef WLAN_FEATURE_MBSSID
+    acsEnabled = pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
+#else
+    acsEnabled = pHddCtx->cfg_ini->apAutoChannelSelection;
+#endif
+
+    if (acsEnabled) {
+        if (pSapEvent->sapevt.sapChannelChange.operatingChannel > 14)
+            freq = ieee80211_channel_to_frequency(
+                        pSapEvent->sapevt.sapChannelChange.operatingChannel,
+                        IEEE80211_BAND_5GHZ);
+        else
+             freq = ieee80211_channel_to_frequency(
+                        pSapEvent->sapevt.sapChannelChange.operatingChannel,
+                        IEEE80211_BAND_2GHZ);
+
+        chan = ieee80211_get_channel(pHostapdAdapter->wdev.wiphy, freq);
+
+        if (!chan) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: chan is null", __func__);
+            return;
+        }
+        chandef.chan = chan;
+        chandef.center_freq2 = 0;
+
+        if (pSapEvent->sapevt.sapChannelChange.operatingChannel > 14)
+            cbMode = sme_GetChannelBondingMode5G(pHddCtx->hHal);
+        else
+            cbMode = sme_GetChannelBondingMode24G(pHddCtx->hHal);
+
+        switch (cbMode) {
+        case eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY:
+            chandef.width = NL80211_CHAN_WIDTH_40;
+            chandef.center_freq1 = chan->center_freq - 10;
+            break;
+        case eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY:
+            chandef.width = NL80211_CHAN_WIDTH_40;
+            chandef.center_freq1 = chan->center_freq + 10;
+            break;
+        default:
+            /* for HT20 and VHT80, don't set secondary channel
+               so that hostapd will not start OBSS scan */
+            chandef.width = NL80211_CHAN_WIDTH_20;
+            chandef.center_freq1 = chan->center_freq;
+            break;
+
+        }
+
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                  "%s: Send channel change event to hostapd,"
+                  "chandef.width=%d, center_freq1=%d",
+                   __func__, chandef.width, chandef.center_freq1);
+        cfg80211_ch_switch_notify(dev, &chandef);
+    }
+}
+
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -1440,7 +1522,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* Allow suspend for old channel */
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
-            /* TODO Need to indicate operating channel change to hostapd */
+            /* indicate operating channel change to hostapd */
+            hdd_send_channel_switch_evt(pHostapdAdapter,
+                                        pSapEvent,
+                                        usrDataForCallback);
             return VOS_STATUS_SUCCESS;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
