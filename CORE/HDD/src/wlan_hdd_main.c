@@ -681,7 +681,9 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_UP:
+#ifdef FEATURE_WLAN_CH_AVOID
         sme_ChAvoidUpdateReq(pHddCtx->hHal);
+#endif
         break;
 
    case NETDEV_DOWN:
@@ -8862,6 +8864,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                      VOS_TIMER_TYPE_SW,
                      hdd_tx_resume_timer_expired_handler,
                      pAdapter);
+         pAdapter->tx_flow_timer_initialized = VOS_TRUE;
          WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                      hdd_tx_resume_cb,
                      pAdapter->sessionId,
@@ -9402,6 +9405,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             vos_timer_stop(&pAdapter->tx_flow_control_timer);
          }
          vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+         pAdapter->tx_flow_timer_initialized = VOS_FALSE;
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef WLAN_NS_OFFLOAD
@@ -9453,6 +9457,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             vos_timer_stop(&pAdapter->tx_flow_control_timer);
          }
          vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+         pAdapter->tx_flow_timer_initialized = VOS_FALSE;
 #endif /* QCA_LL_TX_FLOW_CT */
 
          mutex_lock(&pHddCtx->sap_lock);

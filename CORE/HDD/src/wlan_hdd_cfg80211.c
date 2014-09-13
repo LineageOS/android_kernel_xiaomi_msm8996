@@ -6205,6 +6205,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                             VOS_TIMER_TYPE_SW,
                             hdd_tx_resume_timer_expired_handler,
                             pAdapter);
+           pAdapter->tx_flow_timer_initialized = VOS_TRUE;
            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                             hdd_tx_resume_cb,
                             pAdapter->sessionId,
@@ -6331,6 +6332,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                          VOS_TIMER_TYPE_SW,
                          hdd_softap_tx_resume_timer_expired_handler,
                          pAdapter);
+            pAdapter->tx_flow_timer_initialized = VOS_TRUE;
             WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                          hdd_softap_tx_resume_cb,
                          pAdapter->sessionId,
@@ -6369,6 +6371,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                               VOS_TIMER_TYPE_SW,
                               hdd_tx_resume_timer_expired_handler,
                               pAdapter);
+              pAdapter->tx_flow_timer_initialized = VOS_TRUE;
               WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                               hdd_tx_resume_cb,
                               pAdapter->sessionId,
@@ -6396,6 +6399,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                          VOS_TIMER_TYPE_SW,
                          hdd_softap_tx_resume_timer_expired_handler,
                          pAdapter);
+           pAdapter->tx_flow_timer_initialized = VOS_TRUE;
            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                          hdd_softap_tx_resume_cb,
                          pAdapter->sessionId,
