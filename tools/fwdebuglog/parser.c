@@ -66,6 +66,25 @@ extern int optionflag;
 
 module_dbg_print mod_print[WLAN_MODULE_ID_MAX];
 
+int
+diag_msg_handler(uint32_t id, char *payload,  uint16_t vdevid,
+    uint32_t timestamp)
+{
+    uint32_t moduleid = 0;
+    moduleid = (id >> 9) & 0x3F;
+    if (moduleid >= WLAN_MODULE_ID_MAX)
+        return 0;
+    if (mod_print[moduleid] != NULL) {
+        if (!(mod_print[moduleid](moduleid, vdevid,
+            DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG,
+            timestamp, 4, ( uint32_t *)payload))) {
+            return 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
 extern A_BOOL
 dbglog_nan_print_handler(
     A_UINT32 mod_id,
