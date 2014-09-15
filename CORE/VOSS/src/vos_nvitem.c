@@ -1496,7 +1496,8 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
 
 #ifdef FEATURE_WLAN_CH144
      /* Disable  RF_CHAN_144 entry if FW does not support channel 144. */
-     if ( 0 == (pHddCtx->reg.eeprom_rd_ext & (1 << WHAL_REG_EXT_FCC_CH_144))) {
+     if (pHddCtx &&
+        (0 == (pHddCtx->reg.eeprom_rd_ext & (1 << WHAL_REG_EXT_FCC_CH_144)))) {
         pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
            channels[RF_CHAN_144].enabled = NV_CHANNEL_DISABLE;
      }
