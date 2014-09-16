@@ -2587,7 +2587,8 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 
     smsLog(pMac, LOG4, "Received RoamCmdStatus %d with Roam Result %d", u1, u2);
 
-    if (eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
+    if (eCSR_ROAM_ASSOCIATION_COMPLETION == u1 &&
+        eCSR_ROAM_RESULT_ASSOCIATED == u2 && pRoamInfo)
     {
         smsLog(pMac, LOGW, " Assoc complete result = %d statusCode = %d reasonCode = %d", u2, pRoamInfo->statusCode, pRoamInfo->reasonCode);
 
