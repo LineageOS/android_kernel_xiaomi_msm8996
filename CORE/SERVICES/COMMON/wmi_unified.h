@@ -563,6 +563,8 @@ typedef enum {
     WMI_THERMAL_MGMT_CMDID,
     /** set host auto shutdown params **/
     WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID,
+    /* set tpc chainmask config command */
+    WMI_TPC_CHAINMASK_CONFIG_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -1502,6 +1504,11 @@ typedef struct {
      *      mentions how many such buffer STAs can be supported concurrently.
      */
     A_UINT32 max_tdls_concurrent_buffer_sta;
+
+    /**
+     * @brief wmi_send_separate - host configures fw to send the wmi separately
+     */
+    A_UINT32 wmi_send_separate;
 } wmi_resource_config;
 
 
@@ -7635,6 +7642,121 @@ typedef struct{
     A_UINT32    shutdown_reason; /* value: wmi_host_auto_shutdown_reason */
 } wmi_host_auto_shutdown_event_fixed_param;
 
+
+//Support TPC CHAINMASK ADJUSTMENT ACCORDING TO SOME Conditions which host set
+
+#define WMI_TPC_CHAINMASK_CONFIG_BT_ON_OFF    0   /* dont' care the bt status */
+#define WMI_TPC_CHAINMASK_CONFIG_BT_OFF       1   /* apply only when bt off */
+#define WMI_TPC_CHAINMASK_CONFIG_BT_ON        2   /* apply only when bt on  */
+#define WMI_TPC_CHAINMASK_CONFIG_BT_RESV1     3   /* reserved  */
+
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_DONT_CARE   0   /*  don't care the chainmask */
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_CHAIN0      1   /*  force to use Chain0 to send */
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_CHAIN1      2   /*  force to use Chain1 to send */
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_CHAIN0_CHAIN1  3   /* force to use Chain0 & Chain1 to send */
+
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_ON_OFF  0   /*  don't care about stbc  */
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_ON      1   /*  apply only when stbc on */
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_OFF     2   /*  apply only when stbc off */
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_RESV1   3   /*  reserved */
+
+#define WMI_TPC_CHAINMASK_CONFIG_BAND_2G      0
+#define WMI_TPC_CHAINMASK_CONFIG_BAND_5G      1
+
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11B_2G    0        /* 11b 2G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11G_2G    1        /* 11g 2G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11N_2G    2        /* 11n 2G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11N_11AC_2G   3    /* 11n + 11ac 2G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11A_5G    4        /* 11a 5G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11N_5G    5        /* 11n 5G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11AC_5G   6        /* 11ac 5G */
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_11N_11AC_5G  7     /* 11n + 11ac 5G */
+
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM_1           0    /* 1 stream  */
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM_2           1    /* 2 streams */
+
+//Bit map definition starts
+#define WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET_S   0
+#define WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET     (0xf << WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET_S)
+#define WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET_GET(x)     WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET)
+#define WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET_SET(x,z)   WMI_F_RMW(x,(z) & 0xf,WMI_TPC_CHAINMASK_CONFIG_TPC_OFFSET)
+
+#define WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET_S      4
+#define WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET        (0xf << WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET_S)
+#define WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET_GET(x)     WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET)
+#define WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET_SET(x,z)   WMI_F_RMW(x, (z) & 0xf, WMI_TPC_CHAINMASK_CONFIG_ACK_OFFSET)
+
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_S  8
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK   (0x3 << WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_S)
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_GET(x)   WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_CHAINMASK)
+#define WMI_TPC_CHAINMASK_CONFIG_CHAINMASK_SET(x,z)  WMI_F_RMW(x, (z)&0x3, WMI_TPC_CHAINMASK_CONFIG_CHAINMASK)
+
+#define WMI_TPC_CHAINMASK_CONFIG_BT_S       10
+#define WMI_TPC_CHAINMASK_CONFIG_BT         (0x3 << WMI_TPC_CHAINMASK_CONFIG_BT_S)
+#define WMI_TPC_CHAINMASK_CONFIG_BT_GET(x)     WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_BT)
+#define WMI_TPC_CHAINMASK_CONFIG_BT_SET(x,z)   WMI_F_RMW(x, (z)&0x3, WMI_TPC_CHAINMASK_CONFIG_BT)
+
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_S     12
+#define WMI_TPC_CHAINMASK_CONFIG_STBC       (0x3 << WMI_TPC_CHAINMASK_CONFIG_STBC_S)
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_GET(x)     WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_STBC)
+#define WMI_TPC_CHAINMASK_CONFIG_STBC_SET(x,z)   WMI_F_RMW(x, (z)& 0x3, WMI_TPC_CHAINMASK_CONFIG_STBC)
+
+#define WMI_TPC_CHAINMASK_CONFIG_BAND_S     14
+#define WMI_TPC_CHAINMASK_CONFIG_BAND       (0x1 << WMI_TPC_CHAINMASK_CONFIG_BAND_S)
+#define WMI_TPC_CHAINMASK_CONFIG_BAND_GET(x)  WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_BAND)
+#define WMI_TPC_CHAINMASK_CONFIG_BAND_SET(x,z) WMI_F_RMW(x, (z) &0x1, WMI_TPC_CHAINMASK_CONFIG_BAND)
+
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM_S   15
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM     (0x1 << WMI_TPC_CHAINMASK_CONFIG_STREAM_S)
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM_GET(x)  WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_STREAM)
+#define WMI_TPC_CHAINMASK_CONFIG_STREAM_SET(x,z)  WMI_F_RMW(x, (z)&0x1, WMI_TPC_CHAINMASK_CONFIG_STREAM)
+
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_S     16
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE       (0x7 << WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_S)
+#define WMI_TPC_CHAINMASK_CONFIG_PHY_MODE_GET(x) WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_PHY_MODE)
+#define WMI_TPC_CHAINAMSK_CONFIG_PHY_MODE_SET(x,z)  WMI_F_RMW(x, (z)&0x7, WMI_TPC_CHAINMASK_CONFIG_PHY_MODE)
+
+#define WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM_S  19
+#define WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM    (0x1f << WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM_S)
+#define WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM_GET(x)  WMI_F_MS(x,WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM)
+#define WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM_SET(x,z)  WMI_F_RMW(x, (z)&0x1f, WMI_TPC_CHAINMASK_CONFIG_CHANNEL_NUM)
+
+#define WMI_TPC_CHAINMASK_CONFIG_RATE_NUM_S  24
+#define WMI_TPC_CHAINMASK_CONFIG_RATE_NUM    (0x1f << WMI_TPC_CHAINMASK_CONFIG_RATE_NUM_S)
+#define WMI_TPC_CHAINMASK_CONFIG_RATE_NUM_GET(x)   WMI_F_MS(x, WMI_TPC_CHAINMASK_CONFIG_RATE_NUM)
+#define WMI_TPC_CHAINMASK_CONFIG_RATE_NUM_SET(x,z)  WMI_F_RMW(x, (z)&0x1f, WMI_TPC_CHAINMASK_CONFIG_RATE_NUM)
+//Bit map definition ends
+typedef struct{
+    A_UINT32 tlv_header;
+    //Basic condition defined as bit map above
+    A_UINT32 basic_info;
+
+    //Total 24 channels for 5G
+    //36    40    44    48    52    56    60    64   100   104   108   112   116   120   124   128   132   136   140   149   153   157   161   165
+    //Total 14 channels for 2G
+    //1 ~ 14
+    A_UINT32 channel;
+
+    //Legacy rates , 11b, 11g, 11A
+    //11n one stream ( ht20, ht40 ) 8+8
+    //11n two streams ( ht20, ht40 ) 8+8
+    //11ac one stream ( vht20, vht40, vht80 ) 10+10+10
+    //11ac two streams (vht20, vht40, vht80 ) 10+10+10
+    A_UINT32 rate0;
+
+    //only used for "11n/11ac", in this case, 11n rates begins on rate0, while 11ac rates begins on rate1
+    A_UINT32 rate1;
+} wmi_tpc_chainmask_config;
+
+#define WMI_TPC_CHAINMASK_CONFIG_DISABLE   0   /* control the off for the tpc & chainmask*/
+#define WMI_TPC_CHAINMASK_CONFIG_ENABLE    1   /* control the on for the tpc & chainmask*/
+
+typedef struct{
+    A_UINT32 tlv_header;
+    A_UINT32 enable;
+    A_UINT32 valid_num;
+    //following this structure is multiple wmi_tpc_chainmask_config
+} wmi_tpc_chainmask_config_cmd_fixed_param;
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nan_cmd_param */

@@ -505,7 +505,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_ric_request_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ric_tspec
 } WMITLV_TAG_ID;
 
 /*
@@ -665,6 +667,7 @@ typedef enum {
     OP(WMI_OBSS_SCAN_DISABLE_CMDID)\
     OP(WMI_PDEV_SET_LED_CONFIG_CMDID)\
     OP(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID) \
+    OP(WMI_TPC_CHAINMASK_CONFIG_CMDID) \
     OP(WMI_CHAN_AVOID_UPDATE_CMDID) \
     OP(WMI_WOW_IOAC_ADD_KEEPALIVE_CMDID) \
     OP(WMI_WOW_IOAC_DEL_KEEPALIVE_CMDID) \
@@ -1895,6 +1898,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_CONFIG_CMDID);
 #define WMITLV_TABLE_WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param, wmi_host_auto_shutdown_cfg_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID);
+
+/* tpc chainmask config cmd */
+#define WMITLV_TABLE_WMI_TPC_CHAINMASK_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param, wmi_tpc_chainmask_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)  \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_tpc_chainmask_config, config_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_TPC_CHAINMASK_CONFIG_CMDID);
 
 /* Ch avoidance update cmd */
 #define WMITLV_TABLE_WMI_CHAN_AVOID_UPDATE_CMDID(id,op,buf,len) \
