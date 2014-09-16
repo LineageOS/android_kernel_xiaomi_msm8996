@@ -504,7 +504,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_vdev_rate_ht_info,
     WMITLV_TAG_STRUC_wmi_ric_request_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param
+    WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -690,7 +691,8 @@ typedef enum {
     OP(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID) \
     OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID) \
     OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
-    OP(WMI_PDEV_GET_TEMPERATURE_CMDID)
+    OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
+    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID)
 
 
 
@@ -1908,6 +1910,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
 #define WMITLV_TABLE_WMI_PDEV_GET_TEMPERATURE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param, wmi_pdev_get_temperature_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
+
+/* DHCP server offload param Cmd */
+#define WMITLV_TABLE_WMI_SET_DHCP_SERVER_OFFLOAD_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param, wmi_set_dhcp_server_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
