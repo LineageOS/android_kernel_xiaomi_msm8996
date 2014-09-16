@@ -3603,7 +3603,12 @@ typedef struct {
                 mutxbfee : 1,
                 sutxbfer : 1,
                 mutxbfer : 1,
+#if defined(AR900B)
+                txb_sts_cap : 3,
+                implicit_bf:1;
+#else
                 reserved : 4;
+#endif
 } wmi_vdev_txbf_en;
 
 /** Upto 8 bits are available for Roaming module to be sent along with
