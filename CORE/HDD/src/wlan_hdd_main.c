@@ -13323,6 +13323,65 @@ v_U16_t hdd_freq_to_chn
 
 /**---------------------------------------------------------------------------
 
+  \brief hdd_find_prefd_safe_chnl() -
+
+  Try to find safe channel within preferred channel
+  In case auto channel selection enabled
+    - Preferred and safe channel should be used
+    - If no overlapping, preferred channel should be used
+
+  \param  - hdd_ctxt hdd context pointer
+
+  \return - 1: found preferred safe channel
+            0: could not found preferred safe channel
+
+  --------------------------------------------------------------------------*/
+static v_U8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt)
+{
+   v_U16_t             safe_channels[NUM_20MHZ_RF_CHANNELS];
+   v_U16_t             safe_channel_count;
+   v_U8_t              is_unsafe = 1;
+   v_U16_t             i;
+   v_U16_t             channel_loop;
+
+   safe_channel_count = 0;
+   for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
+      is_unsafe = 0;
+      for (channel_loop = 0;
+           channel_loop < hdd_ctxt->unsafe_channel_count;
+           channel_loop++) {
+         if (rfChannels[i].channelNum ==
+             hdd_ctxt->unsafe_channel_list[channel_loop]) {
+            is_unsafe = 1;
+            break;
+         }
+      }
+      if (!is_unsafe) {
+         safe_channels[safe_channel_count] = rfChannels[i].channelNum;
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "safe channel %d", safe_channels[safe_channel_count]);
+         safe_channel_count++;
+      }
+  }
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "perferred range %d - %d",
+             hdd_ctxt->cfg_ini->apStartChannelNum,
+             hdd_ctxt->cfg_ini->apEndChannelNum);
+   for (i = 0; i < safe_channel_count; i++) {
+      if ((safe_channels[i] >= hdd_ctxt->cfg_ini->apStartChannelNum) &&
+          (safe_channels[i] <= hdd_ctxt->cfg_ini->apEndChannelNum)) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "safe channel %d is in perferred range", safe_channels[i]);
+         return 1;
+      }
+   }
+
+   return 0;
+}
+
+/**---------------------------------------------------------------------------
+
   \brief hdd_ch_avoid_cb() -
 
   Avoid channel notification from FW handler.
@@ -13458,6 +13517,17 @@ void hdd_ch_avoid_cb
                  hdd_ctxt->unsafe_channel_list[channel_loop]);
    }
 #endif
+
+   /* If auto channel select is enabled
+    * preferred channel is in safe channel,
+    * re-start softap interface with safe channel.
+    * no overlap with preferred channel and safe channel
+    * do not re-start softap interface
+    * stay current operating channel. */
+   if ((hdd_ctxt->cfg_ini->apAutoChannelSelection) &&
+       (!hdd_find_prefd_safe_chnl(hdd_ctxt))) {
+      return;
+   }
 
    if (hdd_ctxt->unsafe_channel_count) {
        hostapd_adapter = hdd_get_adapter(hdd_ctxt, WLAN_HDD_SOFTAP);
