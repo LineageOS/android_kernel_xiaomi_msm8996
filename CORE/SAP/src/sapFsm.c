@@ -2065,6 +2065,18 @@ sapSignalHDDevent
             vos_mem_copy(sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies, pCsrRoamInfo->prsnIE,
                         pCsrRoamInfo->rsnIELen);
 
+#ifdef FEATURE_WLAN_WAPI
+            if(pCsrRoamInfo->wapiIELen)
+            {
+                v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
+                sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen
+                                                        += pCsrRoamInfo->wapiIELen;
+                vos_mem_copy(&sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies[len],
+                        pCsrRoamInfo->pwapiIE,
+                            pCsrRoamInfo->wapiIELen);
+            }
+#endif
+
             if(pCsrRoamInfo->addIELen)
             {
                 v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
@@ -4104,4 +4116,54 @@ VOS_STATUS sapInitDfsChannelNolList(ptSapContext sapContext)
               pMac->sap.SapDfsInfo.numCurrentRegDomainDfsChannels);
 
     return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * This function will calculate how many interfaces
+ * have sap persona and returns total number of sap persona.
+ */
+v_U8_t sap_get_total_number_sap_intf(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    v_U8_t intf = 0;
+    v_U8_t intf_count = 0;
+
+    for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++) {
+         if (VOS_STA_SAP_MODE == pMac->sap.sapCtxList [intf].sapPersona &&
+             pMac->sap.sapCtxList[intf].pSapContext != NULL) {
+             intf_count++;
+         }
+    }
+    return intf_count;
+}
+
+/*
+ * This function will find the concurrent sap context apart from
+ * passed sap context and return its channel change ready status
+ */
+tANI_BOOLEAN is_concurrent_sap_ready_for_channel_change(tHalHandle hHal,
+                                       ptSapContext sapContext)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    ptSapContext pSapContext;
+    v_U8_t intf = 0;
+
+    for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++) {
+         if (VOS_STA_SAP_MODE == pMac->sap.sapCtxList [intf].sapPersona &&
+             pMac->sap.sapCtxList[intf].pSapContext != NULL) {
+             pSapContext =
+                    (ptSapContext)pMac->sap.sapCtxList [intf].pSapContext;
+             if (pSapContext == sapContext) {
+                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                           FL("sapCtx matched [%p]"), sapContext);
+                 continue;
+             } else {
+                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                           FL("concurrent sapCtx[%p] didn't matche with [%p]"),
+                           pSapContext, sapContext);
+                 return pSapContext->is_sap_ready_for_chnl_chng;
+             }
+         }
+    }
+    return VOS_FALSE;
 }

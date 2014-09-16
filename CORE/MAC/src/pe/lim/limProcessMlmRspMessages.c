@@ -1146,6 +1146,13 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                  (tANI_U8 *) &(pAssocInd->rsnIE.rsnIEdata),
                   pAssocInd->rsnIE.length);
 
+#ifdef FEATURE_WLAN_WAPI
+    pSirSmeAssocInd->wapiIE.length = pAssocInd->wapiIE.length;
+    vos_mem_copy((tANI_U8*) &pSirSmeAssocInd->wapiIE.wapiIEdata,
+                 (tANI_U8 *) &(pAssocInd->wapiIE.wapiIEdata),
+                  pAssocInd->wapiIE.length);
+#endif
+
     pSirSmeAssocInd->addIE.length = pAssocInd->addIE.length;
     vos_mem_copy((tANI_U8*) &pSirSmeAssocInd->addIE.addIEdata,
                  (tANI_U8 *) &(pAssocInd->addIE.addIEdata),
@@ -3786,23 +3793,31 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
         "BSSID: "MAC_ADDRESS_STR), psessionEntry->peSessionId,
          psessionEntry->currentOperChannel, ssId.ssId,
          MAC_ADDR_ARRAY(psessionEntry->pLimMlmJoinReq->bssDescription.bssId));
+
+    /*
+     * We need to wait for probe response, so start join timeout timer.
+     * This timer will be deactivated once we receive probe response.
+     */
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE,
+                    psessionEntry->peSessionId, eLIM_JOIN_FAIL_TIMER));
+    if (tx_timer_activate(&pMac->lim.limTimers.gLimJoinFailureTimer) !=
+            TX_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("could not activate Join failure timer"));
+        psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE,
+                        psessionEntry->peSessionId,
+                        pMac->lim.gLimMlmState));
+        //memory is freed up below.
+        psessionEntry->pLimMlmJoinReq = NULL;
+        goto error;
+    }
+
     // include additional IE if there is
     limSendProbeReqMgmtFrame( pMac, &ssId,
            psessionEntry->pLimMlmJoinReq->bssDescription.bssId, psessionEntry->currentOperChannel/*chanNum*/,
            psessionEntry->selfMacAddr, psessionEntry->dot11mode,
            psessionEntry->pLimJoinReq->addIEScan.length, psessionEntry->pLimJoinReq->addIEScan.addIEdata);
-
-    // Sending mgmt frame is a blocking call activate Join failure timer now
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_JOIN_FAIL_TIMER));
-    if (tx_timer_activate(&pMac->lim.limTimers.gLimJoinFailureTimer) != TX_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not activate Join failure timer"));
-        psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, pMac->lim.gLimMlmState));
-        //memory is freed up below.
-        psessionEntry->pLimMlmJoinReq = NULL;
-        goto error;
-    }
 
     if( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE )
     {

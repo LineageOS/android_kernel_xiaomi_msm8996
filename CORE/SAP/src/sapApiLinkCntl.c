@@ -525,6 +525,13 @@ WLANSAP_RoamCallback
                 vos_mem_copy( sapContext->pStaWpaRsnReqIE,
                               pCsrRoamInfo->prsnIE, sapContext->nStaWPARSnReqIeLength);
 
+#ifdef FEATURE_WLAN_WAPI
+            sapContext->nStaWAPIReqIeLength = pCsrRoamInfo->wapiIELen;
+
+            if(sapContext->nStaWAPIReqIeLength)
+                vos_mem_copy( sapContext->pStaWapiReqIE,
+                              pCsrRoamInfo->pwapiIE, sapContext->nStaWAPIReqIeLength);
+#endif
             sapContext->nStaAddIeLength = pCsrRoamInfo->addIELen;
 
             if(sapContext->nStaAddIeLength)
@@ -830,20 +837,98 @@ WLANSAP_RoamCallback
                                     pMac->sap.SapDfsInfo.target_channel);
                 }
 
-                /* Send channel switch request */
-                sapEvent.event = eWNI_SME_CHANNEL_CHANGE_REQ;
-                sapEvent.params = 0;
-                sapEvent.u1 = 0;
-                sapEvent.u2 = 0;
+                /*
+                 * Fetch the number of SAP interfaces.
+                 * If the number of sap Interface more than
+                 * one then we will make is_sap_ready_for_chnl_chng to true
+                 * for that sapctx
+                 *
+                 * If there is only one SAP interface then process immediately
+                 */
 
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-                "sapdfs: Posting event eWNI_SME_CHANNEL_CHANGE_REQ to sapFSM");
-
-                /* Handle event */
-                vosStatus = sapFsm(sapContext, &sapEvent);
-                if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+                if (sap_get_total_number_sap_intf(hHal) > 1)
                 {
-                   halStatus = eHAL_STATUS_FAILURE;
+                    v_U8_t  intf;
+                    sapContext->is_sap_ready_for_chnl_chng = VOS_TRUE;
+                    /*
+                     * now check if the con-current sap interface is ready
+                     * for channel change.
+                     * If yes then we issue channel change for both the
+                     * SAPs.
+                     * If no then simply return success & we will issue channel
+                     * change when second AP's 5 CSA beacon Tx is completed.
+                     */
+                     if (VOS_TRUE ==
+                         is_concurrent_sap_ready_for_channel_change(hHal,
+                                                                    sapContext))
+                     {
+                         /* Issue channel change req for each sapctx */
+                         for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
+                         {
+                              ptSapContext pSapContext;
+                              if ((VOS_STA_SAP_MODE ==
+                                  pMac->sap.sapCtxList[intf].sapPersona) &&
+                                  (pMac->sap.sapCtxList[intf].pSapContext !=
+                                   NULL))
+                              {
+                                   pSapContext =
+                                      pMac->sap.sapCtxList[intf].pSapContext;
+                                      VOS_TRACE(VOS_MODULE_ID_SAP,
+                                                VOS_TRACE_LEVEL_INFO_MED,
+                                    "sapdfs:issue chnl change for sapctx[%p]",
+                                                pSapContext);
+                                   /* Send channel switch request */
+                                   sapEvent.event = eWNI_SME_CHANNEL_CHANGE_REQ;
+                                   sapEvent.params = 0;
+                                   sapEvent.u1 = 0;
+                                   sapEvent.u2 = 0;
+
+
+                                   /* Handle event */
+                                   vosStatus = sapFsm(pSapContext, &sapEvent);
+                                   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+                                   {
+                                       halStatus = eHAL_STATUS_FAILURE;
+                                       VOS_TRACE(VOS_MODULE_ID_SAP,
+                                                 VOS_TRACE_LEVEL_ERROR,
+                                       FL("post chnl chng req failed, sap[%p]"),
+                                       sapContext);
+                                   }
+                                   else
+                                   {
+                                       pSapContext->is_sap_ready_for_chnl_chng =
+                                        VOS_FALSE;
+                                   }
+
+                               }
+                         }
+                     }
+                     else
+                     {
+                         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
+                         FL("sapdfs: sapctx[%p] ready but not concurrent sap"),
+                         sapContext);
+
+                         halStatus = eHAL_STATUS_SUCCESS;
+                     }
+                }
+                else
+                {
+                    /* Send channel switch request */
+                    sapEvent.event = eWNI_SME_CHANNEL_CHANGE_REQ;
+                    sapEvent.params = 0;
+                    sapEvent.u1 = 0;
+                    sapEvent.u2 = 0;
+
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
+                    "sapdfs: Posting event eWNI_SME_CHANNEL_CHANGE_REQ to sapFSM");
+
+                    /* Handle event */
+                    vosStatus = sapFsm(sapContext, &sapEvent);
+                    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+                    {
+                       halStatus = eHAL_STATUS_FAILURE;
+                    }
                 }
             }
             else

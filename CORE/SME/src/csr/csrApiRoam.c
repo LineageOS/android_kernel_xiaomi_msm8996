@@ -125,6 +125,9 @@ int diagAuthTypeFromCSRType(eCsrAuthType authType)
         n = AUTH_WPA_PSK;
         break;
     case eCSR_AUTH_TYPE_RSN:
+#ifdef WLAN_FEATURE_11W
+    case eCSR_AUTH_TYPE_RSN_8021X_SHA256:
+#endif
         n = AUTH_WPA2_EAP;
         break;
     case eCSR_AUTH_TYPE_RSN_PSK:
@@ -5156,7 +5159,8 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef WLAN_FEATURE_11W
       ||
-       (eCSR_AUTH_TYPE_RSN_PSK_SHA256 == authType)
+       (eCSR_AUTH_TYPE_RSN_PSK_SHA256 == authType) ||
+       (eCSR_AUTH_TYPE_RSN_8021X_SHA256 == authType)
 #endif /* FEATURE_WLAN_WAPI */
         )
     {
@@ -5175,6 +5179,7 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 #if defined WLAN_FEATURE_11W
                 (eCSR_AUTH_TYPE_RSN_PSK_SHA256 == authType) ||
+                (eCSR_AUTH_TYPE_RSN_8021X_SHA256 == authType) ||
 #endif
                 (eCSR_AUTH_TYPE_RSN_PSK == authType))
             {
@@ -7735,6 +7740,8 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN)
 #ifdef WLAN_FEATURE_11W
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK_SHA256)
+              || (pProfile->negotiatedAuthType ==
+                                            eCSR_AUTH_TYPE_RSN_8021X_SHA256)
 #endif
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
         && (pMac->roam.configParam.isEseIniFeatureEnabled))
@@ -8894,6 +8901,10 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             pRoamInfo->staId = (tANI_U8)pUpperLayerAssocCnf->aid;
             pRoamInfo->rsnIELen = (tANI_U8)pUpperLayerAssocCnf->rsnIE.length;
             pRoamInfo->prsnIE = pUpperLayerAssocCnf->rsnIE.rsnIEdata;
+#ifdef FEATURE_WLAN_WAPI
+            pRoamInfo->wapiIELen = (tANI_U8)pUpperLayerAssocCnf->wapiIE.length;
+            pRoamInfo->pwapiIE = pUpperLayerAssocCnf->wapiIE.wapiIEdata;
+#endif
             pRoamInfo->addIELen = (tANI_U8)pUpperLayerAssocCnf->addIE.length;
             pRoamInfo->paddIE = pUpperLayerAssocCnf->addIE.addIEdata;
             vos_mem_copy(pRoamInfo->peerMac, pUpperLayerAssocCnf->peerMacAddr,
@@ -8972,7 +8983,7 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
 {
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
     tSmeCmd *pCommand = NULL;
-#ifdef FEATURE_WLAN_ESE
+#if defined(FEATURE_WLAN_ESE) || defined (FEATURE_WLAN_WAPI)
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 #endif /* FEATURE_WLAN_ESE */
 
@@ -9051,12 +9062,16 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
         {
             if ( pSetKey->keyLength < CSR_WAPI_KEY_LEN )
             {
-                smsLog( pMac, LOGW, "Invalid WAPI keylength [= %d] in SetContext call", pSetKey->keyLength );
+                smsLog( pMac, LOGW,
+                        "Invalid WAPI keylength [= %d] in SetContext call",
+                        pSetKey->keyLength );
                 break;
             }
             pCommand->u.setKeyCmd.keyLength = CSR_WAPI_KEY_LEN;
             vos_mem_copy(pCommand->u.setKeyCmd.Key, pSetKey->Key,
                          CSR_WAPI_KEY_LEN);
+            pSession->pCurRoamProfile->negotiatedUCEncryptionType =
+                                                eCSR_ENCRYPT_TYPE_WPI;
         }
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef FEATURE_WLAN_ESE
@@ -9064,7 +9079,9 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
         {
             if ( pSetKey->keyLength < CSR_KRK_KEY_LEN )
             {
-                smsLog( pMac, LOGW, "Invalid KRK keylength [= %d] in SetContext call", pSetKey->keyLength );
+                smsLog( pMac, LOGW,
+                        "Invalid KRK keylength [= %d] in SetContext call",
+                        pSetKey->keyLength );
                 break;
             }
             vos_mem_copy(pSession->eseCckmInfo.krk, pSetKey->Key,
@@ -9878,10 +9895,14 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 pRoamInfo->statusCode = eSIR_SME_SUCCESS; //send the status code as Success
                 pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
 
-                    pRoamInfo->staId = (tANI_U8)pAssocInd->staId;
-                    pRoamInfo->rsnIELen = (tANI_U8)pAssocInd->rsnIE.length;
-                    pRoamInfo->prsnIE = pAssocInd->rsnIE.rsnIEdata;
+                pRoamInfo->staId = (tANI_U8)pAssocInd->staId;
+                pRoamInfo->rsnIELen = (tANI_U8)pAssocInd->rsnIE.length;
+                pRoamInfo->prsnIE = pAssocInd->rsnIE.rsnIEdata;
 
+#ifdef FEATURE_WLAN_WAPI
+                pRoamInfo->wapiIELen = (tANI_U8)pAssocInd->wapiIE.length;
+                pRoamInfo->pwapiIE = pAssocInd->wapiIE.wapiIEdata;
+#endif
                 pRoamInfo->addIELen = (tANI_U8)pAssocInd->addIE.length;
                 pRoamInfo->paddIE =  pAssocInd->addIE.addIEdata;
                     vos_mem_copy(pRoamInfo->peerMac, pAssocInd->peerMacAddr,
@@ -13652,6 +13673,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN)
 #ifdef WLAN_FEATURE_11W
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK_SHA256)
+                       || (pProfile->negotiatedAuthType ==
+                                          eCSR_AUTH_TYPE_RSN_8021X_SHA256)
 #endif
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
                  && (pMac->roam.configParam.isEseIniFeatureEnabled))
@@ -13688,6 +13711,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN)
 #ifdef WLAN_FEATURE_11W
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK_SHA256)
+                  || (pProfile->negotiatedAuthType ==
+                                            eCSR_AUTH_TYPE_RSN_8021X_SHA256)
 #endif
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
             && (pMac->roam.configParam.isEseIniFeatureEnabled))
@@ -14418,6 +14443,12 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         //RSN IE
         vos_mem_copy((tSirRSNie *)pBuf, &pAssocInd->rsnIE, sizeof(tSirRSNie));
         pBuf += sizeof (tSirRSNie);
+#ifdef FEATURE_WLAN_WAPI
+        //WAPI IE
+        vos_mem_copy((tSirWAPIie *)pBuf, &pAssocInd->wapiIE,
+                        sizeof(tSirWAPIie));
+        pBuf += sizeof (tSirWAPIie);
+#endif
         //Additional IE
         vos_mem_copy((void *)pBuf, &pAssocInd->addIE, sizeof(tSirAddie));
         pBuf += sizeof (tSirAddie);
@@ -14521,16 +14552,12 @@ eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId,
                 p++;
                 // set pSirKey->keyLength = keyLength;
                 p = pal_set_U16( p, pal_cpu_to_be16(keyLength) );
-        if ( keyLength && pKey )
+        if (keyLength && pKey)
         {
             vos_mem_copy(p, pKey, keyLength);
-            if(keyLength == 16)
-            {
-                smsLog(pMac, LOG1, "  SME Set keyIdx (%d) encType(%d) key = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X",
-                keyId, edType, pKey[0], pKey[1], pKey[2], pKey[3], pKey[4],
-                pKey[5], pKey[6], pKey[7], pKey[8],
-                pKey[9], pKey[10], pKey[11], pKey[12], pKey[13], pKey[14], pKey[15]);
-            }
+            smsLog(pMac, LOG1, FL("SME set keyIndx (%d) encType (%d) key"),
+                                                keyId, edType);
+            sirDumpBuf(pMac, SIR_SMS_MODULE_ID, LOG1, pKey, keyLength);
         }
         status = palSendMBMessage(pMac->hHdd, pMsg);
     } while( 0 );

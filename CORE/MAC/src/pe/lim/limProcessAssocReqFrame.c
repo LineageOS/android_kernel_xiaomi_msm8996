@@ -1620,6 +1620,20 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmAssocInd->rsnIE.length += 2 + pAssocReq->wpa.length;
         }
 
+#ifdef FEATURE_WLAN_WAPI
+        /* This check is to avoid extra Sec IEs present incase of WPS */
+        if (pAssocReq->wapiPresent && (NULL == wpsIe))
+        {
+            limLog(pMac, LOG2, FL("Received WAPI IE length in Assoc Req is %d"),
+                    pAssocReq->wapi.length);
+            pMlmAssocInd->wapiIE.wapiIEdata[0] = SIR_MAC_WAPI_EID;
+            pMlmAssocInd->wapiIE.wapiIEdata[1] = pAssocReq->wapi.length;
+            vos_mem_copy(&pMlmAssocInd->wapiIE.wapiIEdata[2],
+                    pAssocReq->wapi.info,
+                    pAssocReq->wapi.length);
+            pMlmAssocInd->wapiIE.length = 2 + pAssocReq->wapi.length;
+        }
+#endif
 
        pMlmAssocInd->addIE.length = 0;
        if (pAssocReq->addIEPresent)
@@ -1823,6 +1837,21 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
                           pAssocReq->wpa.length);
             pMlmReassocInd->rsnIE.length += 2 + pAssocReq->wpa.length;
         }
+
+#ifdef FEATURE_WLAN_WAPI
+        /* This check is to avoid extra Sec IEs present incase of WPS */
+        if (pAssocReq->wapiPresent && (NULL == wpsIe))
+        {
+            limLog(pMac, LOG2, FL("Received WAPI IE length in Assoc Req is %d"),
+                    pAssocReq->wapi.length);
+            pMlmReassocInd->wapiIE.wapiIEdata[0] = SIR_MAC_WAPI_EID;
+            pMlmReassocInd->wapiIE.wapiIEdata[1] = pAssocReq->wapi.length;
+            vos_mem_copy(&pMlmReassocInd->wapiIE.wapiIEdata[2],
+                    pAssocReq->wapi.info,
+                    pAssocReq->wapi.length);
+            pMlmReassocInd->wapiIE.length = 2 + pAssocReq->wapi.length;
+        }
+#endif
 
        pMlmReassocInd->addIE.length = 0;
        if (pAssocReq->addIEPresent)

@@ -185,6 +185,7 @@ typedef struct sSirAssocReq
     tSirAddtsReqInfo          addtsReq;
     tSirMacQosCapabilityStaIE qosCapability;
 
+    tSirMacWapiInfo           wapi;
     tSirMacWpaInfo            wpa;
     tSirMacRsnInfo            rsn;
     tSirAddie                 addIE;
@@ -205,6 +206,7 @@ typedef struct sSirAssocReq
     tANI_U8                   addtsPresent;
     tANI_U8                   wsmCapablePresent;
 
+    tANI_U8                   wapiPresent;
     tANI_U8                   wpaPresent;
     tANI_U8                   rsnPresent;
     tANI_U8                   addIEPresent;

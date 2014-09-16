@@ -128,6 +128,7 @@
 #define CONSOLE_FLAG           0x02
 #define QXDM_FLAG              0x04
 #define SILENT_FLAG            0x08
+#define DEBUG_FLAG             0x0A
 
 #define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
 
@@ -212,7 +213,6 @@ static inline unsigned int get_32(const unsigned char *pos)
 #define RESTART_LEVEL     \
     "echo related > /sys/bus/msm_subsys/devices/subsys4/restart_level"
 #define DB_FILE_PATH        "/firmware/image/Data.msc"
-#define debug_printf
 #define BUF_SIZ  256
 
 #define WLAN_LOG_TO_DIAG(xx_ss_id, xx_ss_mask, xx_fmt) \

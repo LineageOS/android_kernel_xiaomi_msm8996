@@ -1849,6 +1849,12 @@ htt_rx_mpdu_desc_list_next_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 }
 
 void *
+htt_rx_in_ord_mpdu_desc_list_next_ll(htt_pdev_handle pdev, adf_nbuf_t netbuf)
+{
+    return (void*)htt_rx_desc(netbuf);
+}
+
+void *
 htt_rx_mpdu_desc_list_next_hl(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 {
     /*
@@ -2441,12 +2447,14 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         if (pdev->cfg.is_full_reorder_offload) {
             adf_os_print("HTT: full reorder offload enabled\n");
             htt_rx_amsdu_pop = htt_rx_amsdu_rx_in_order_pop_ll;
+            htt_rx_frag_pop = htt_rx_amsdu_rx_in_order_pop_ll;
+            htt_rx_mpdu_desc_list_next = htt_rx_in_ord_mpdu_desc_list_next_ll;
         } else {
             htt_rx_amsdu_pop = htt_rx_amsdu_pop_ll;
+            htt_rx_frag_pop = htt_rx_amsdu_pop_ll;
+            htt_rx_mpdu_desc_list_next = htt_rx_mpdu_desc_list_next_ll;
         }
-        htt_rx_frag_pop = htt_rx_amsdu_pop_ll;
         htt_rx_offload_msdu_pop = htt_rx_offload_msdu_pop_ll;
-        htt_rx_mpdu_desc_list_next = htt_rx_mpdu_desc_list_next_ll;
         htt_rx_mpdu_desc_seq_num = htt_rx_mpdu_desc_seq_num_ll;
         htt_rx_mpdu_desc_pn = htt_rx_mpdu_desc_pn_ll;
         htt_rx_msdu_desc_completes_mpdu = htt_rx_msdu_desc_completes_mpdu_ll;
