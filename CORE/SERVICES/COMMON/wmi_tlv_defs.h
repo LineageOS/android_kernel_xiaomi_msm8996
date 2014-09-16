@@ -507,7 +507,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_ric_tspec
+    WMITLV_TAG_STRUC_wmi_ric_tspec,
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config
 } WMITLV_TAG_ID;
 
 /*
