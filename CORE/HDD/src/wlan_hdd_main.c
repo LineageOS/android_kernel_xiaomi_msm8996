@@ -650,10 +650,13 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
 #ifdef WLAN_BTAMP_FEATURE
    VOS_STATUS status;
 #endif
-
    //Make sure that this callback corresponds to our device.
    if ((strncmp(dev->name, "wlan", 4)) &&
       (strncmp(dev->name, "p2p", 3)))
+      return NOTIFY_DONE;
+
+   if ((pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) &&
+      (pAdapter->dev != dev))
       return NOTIFY_DONE;
 
    if (!dev->ieee80211_ptr)
