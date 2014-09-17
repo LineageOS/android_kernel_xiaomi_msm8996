@@ -7669,14 +7669,17 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tDot11fBeaconIEs *pIesTemp = pIes;
     tANI_U8 index;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-    tCsrRoamConnectedProfile *pConnectProfile = &pSession->connectedProfile;
+    tCsrRoamSession *pSession = NULL;
+    tCsrRoamConnectedProfile *pConnectProfile = NULL;
 
-    if(!pSession)
-    {
-        smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+    pSession = CSR_GET_SESSION(pMac, sessionId);
+    if (NULL == pSession) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("session %d not found"), sessionId);
         return eHAL_STATUS_FAILURE;
     }
+
+    pConnectProfile = &pSession->connectedProfile;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
     {
@@ -7740,7 +7743,7 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
     }
 #ifdef FEATURE_WLAN_ESE
     if ((csrIsProfileESE(pProfile) ||
-         ((pIesTemp->ESEVersion.present)
+         (HAL_STATUS_SUCCESS(status) && (pIesTemp->ESEVersion.present)
           && ((pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_OPEN_SYSTEM)
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA)
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA_PSK)
@@ -8992,6 +8995,11 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
     tSmeCmd *pCommand = NULL;
 #if defined(FEATURE_WLAN_ESE) || defined (FEATURE_WLAN_WAPI)
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    if (NULL == pSession) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("session %d not found"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
 #endif /* FEATURE_WLAN_ESE */
 
     do
