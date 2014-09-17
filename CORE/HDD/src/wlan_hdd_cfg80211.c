@@ -15076,33 +15076,48 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
         return;
     }
 
+    /*
+     * If the full scan result including IE data exceeds NL 4K size limitation,
+     * drop that beacon/probe rsp frame.
+     */
+    if ((sizeof(*pData) + pData->ap.ieLength) >= EXTSCAN_EVENT_BUF_SIZE) {
+        hddLog(LOGE, FL("Frame exceeded NL size limilation, drop it!!"));
+        return;
+    }
     skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
                   EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
                   QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_FULL_SCAN_RESULT_INDEX,
                   GFP_KERNEL);
 
     if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
+        hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "More Data (%u)", pData->moreData);
-    hddLog(VOS_TRACE_LEVEL_INFO, "AP Info: Timestamp(0x%llX) "
-                          "Ssid (%s) "
+    pData->ap.channel = vos_chan_to_freq(pData->ap.channel);
+    hddLog(LOG1, "Req Id (%u) More Data (%u)", pData->requestId,
+           pData->moreData);
+    hddLog(LOG1, "AP Info: Timestamp(0x%llX) Ssid (%s) "
                           "Bssid (" MAC_ADDRESS_STR ") "
                           "Channel (%u) "
-                          "Rssi (%u) "
+                          "Rssi (%d) "
                           "RTT (%u) "
-                          "RTT_SD (%u)",
+                          "RTT_SD (%u) "
+                          "Bcn Period (%d) "
+                          "Capability (0x%X) "
+                          "IE Length (%d)",
                           pData->ap.ts,
                           pData->ap.ssid,
                           MAC_ADDR_ARRAY(pData->ap.bssid),
                           pData->ap.channel,
                           pData->ap.rssi,
                           pData->ap.rtt,
-                          pData->ap.rtt_sd);
+                          pData->ap.rtt_sd,
+                          pData->ap.beaconPeriod,
+                          pData->ap.capability,
+                          pData->ap.ieLength);
+    VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       pData->ap.ieData, pData->ap.ieLength);
 
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||

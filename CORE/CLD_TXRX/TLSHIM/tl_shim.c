@@ -515,6 +515,8 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	 * TODO: Try to maintain rx metainfo as part of skb->data.
 	 */
 	rx_pkt->pkt_meta.channel = hdr->channel;
+        rx_pkt->pkt_meta.scan_src = hdr->flags;
+
 	/*Get the absolute rssi value from the current rssi value
 	 *the sinr value is hardcoded into 0 in the core stack*/
 	rx_pkt->pkt_meta.rssi = hdr->snr + TLSHIM_TGT_NOISE_FLOOR_DBM;

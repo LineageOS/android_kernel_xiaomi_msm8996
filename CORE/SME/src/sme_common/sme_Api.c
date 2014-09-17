@@ -2810,6 +2810,16 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
           }
+#ifdef FEATURE_WLAN_EXTSCAN
+          case eWNI_SME_EXTSCAN_FULL_SCAN_RESULT_IND:
+          {
+                pMac->sme.pExtScanIndCb(pMac->hHdd,
+                                        eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
+                                        pMsg->bodyptr);
+                vos_mem_free(pMsg->bodyptr);
+                break;
+          }
+#endif
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )

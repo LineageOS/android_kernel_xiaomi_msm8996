@@ -21157,12 +21157,18 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->notify_extscan_events =
 				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
+		if (src_bucket->reportEvents >= 2) {
+			dest_blist->forwarding_flags =
+				WMI_EXTSCAN_FORWARD_FRAME_TO_HOST;
+		} else {
+			dest_blist->forwarding_flags =
+				WMI_EXTSCAN_NO_FORWARDING;
+		}
 
 		dest_blist->min_dwell_time_active = dwelltime;
 		dest_blist->max_dwell_time_active = dwelltime;
 		dest_blist->min_dwell_time_passive = dwelltime;
 		dest_blist->max_dwell_time_passive = dwelltime;
-		dest_blist->forwarding_flags = 0;
 		src_channel = src_bucket->channels;
 
 		/* save the channel info to later populate

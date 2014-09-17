@@ -165,6 +165,101 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
   return false;
 }
 
+#ifdef FEATURE_WLAN_EXTSCAN
+static void
+__limExtScanForwardBcnProbeRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
+                               tSirProbeRespBeacon *pFrame, tANI_U32 ieLen)
+{
+    tpSirWifiFullScanResultEvent fScanResult;
+    tANI_U8                     *pBody;
+    tSirMsgQ                     mmhMsg;
+    tpSirMacMgmtHdr              pHdr;
+
+    fScanResult = vos_mem_malloc(sizeof(*fScanResult) + ieLen);
+    if (NULL == fScanResult) {
+        limLog(pMac, LOGE, FL("Memory allocation failed"));
+        return;
+    }
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    vos_mem_zero(fScanResult, sizeof(*fScanResult) + ieLen);
+
+    /* Received frame does not have request id, hence set 0 */
+    fScanResult->requestId = 0;
+
+    fScanResult->moreData = 0;
+    fScanResult->ap.ts = vos_timer_get_system_time();
+    fScanResult->ap.beaconPeriod = pFrame->beaconInterval;
+    fScanResult->ap.capability = limGetU16((tANI_U8 *)&pFrame->capabilityInfo);
+    fScanResult->ap.channel = WDA_GET_RX_CH(pRxPacketInfo);
+    fScanResult->ap.rssi = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
+    fScanResult->ap.rtt = 0;
+    fScanResult->ap.rtt_sd = 0;
+    fScanResult->ap.ieLength = ieLen;
+
+    vos_mem_copy((tANI_U8 *) &fScanResult->ap.ssid[0],
+                 (tANI_U8 *) pFrame->ssId.ssId, pFrame->ssId.length);
+    fScanResult->ap.ssid[pFrame->ssId.length] = '\0';
+    vos_mem_copy((tANI_U8 *) &fScanResult->ap.bssid, (tANI_U8 *) pHdr->bssId,
+                 sizeof(tSirMacAddr));
+    /* Copy IE fields */
+    vos_mem_copy((tANI_U8 *) &fScanResult->ap.ieData,
+                 pBody + SIR_MAC_B_PR_SSID_OFFSET, ieLen);
+
+    mmhMsg.type = eWNI_SME_EXTSCAN_FULL_SCAN_RESULT_IND;
+    mmhMsg.bodyptr = fScanResult;
+    mmhMsg.bodyval = 0;
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+}
+
+static void
+__limProcessExtScanBeaconProbeRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
+                                  tANI_U8 subType)
+{
+    tSirProbeRespBeacon         *pFrame;
+    tANI_U8                     *pBody;
+    tANI_U32                     frameLen;
+    tSirRetStatus                status;
+
+    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+    if (frameLen <= SIR_MAC_B_PR_SSID_OFFSET) {
+        limLog(pMac, LOGP,
+               FL("RX packet has invalid length %d"), frameLen);
+        return;
+    }
+
+    pFrame = vos_mem_malloc(sizeof(*pFrame));
+    if (NULL == pFrame) {
+        limLog(pMac, LOGE, FL("Memory allocation failed"));
+        return;
+    }
+
+    if (subType == SIR_MAC_MGMT_BEACON) {
+        limLog(pMac, LOG2, FL("Beacon due to ExtScan"));
+        status = sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *)pRxPacketInfo,
+                                              pFrame);
+    } else if (subType == SIR_MAC_MGMT_PROBE_RSP) {
+        limLog(pMac, LOG2, FL("Probe Rsp due to ExtScan"));
+        pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+        status = sirConvertProbeFrame2Struct(pMac, pBody, frameLen, pFrame);
+    } else {
+        vos_mem_free(pFrame);
+        return;
+    }
+
+    if (status != eSIR_SUCCESS) {
+        limLog(pMac, LOGE, FL("Frame parsing failed"));
+        vos_mem_free(pFrame);
+        return;
+    }
+
+    __limExtScanForwardBcnProbeRsp(pMac, pRxPacketInfo, pFrame,
+                                  (frameLen - SIR_MAC_B_PR_SSID_OFFSET));
+    vos_mem_free(pFrame);
+}
+#endif
+
+
 /*
 * Beacon Handling Cases:
 * during scanning, when no session is active:
@@ -560,6 +655,19 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                     fc.type, fc.subType);
         }
     }
+#ifdef FEATURE_WLAN_EXTSCAN
+    if (WMA_IS_EXTSCAN_SCAN_SRC(pRxPacketInfo)) {
+        if (fc.subType == SIR_MAC_MGMT_BEACON ||
+            fc.subType == SIR_MAC_MGMT_PROBE_RSP) {
+            __limProcessExtScanBeaconProbeRsp(pMac, pRxPacketInfo, fc.subType);
+        } else {
+            limLog(pMac, LOGE, FL("Wrong frameType %d, Subtype %d for EXTSCAN"),
+                    fc.type, fc.subType);
+        }
+        goto end;
+    }
+#endif
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
     if ( WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo))
     {
