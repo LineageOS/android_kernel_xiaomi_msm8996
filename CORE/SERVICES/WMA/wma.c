@@ -2034,7 +2034,9 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 	struct wma_txrx_node *node;
 	tANI_U8 i;
 	v_S7_t rssi = 0;
+	VOS_STATUS vos_status;
 	tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)wma->pGetRssiReq;
+	vos_msg_t sme_msg = {0} ;
 
 	node = &wma->interfaces[vdev_stats->vdev_id];
 	stats_rsp_params = node->stats_rsp;
@@ -2065,6 +2067,11 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 		}
 	}
 
+	WMA_LOGD("vdev id %d beancon snr %d data snr %d",
+			vdev_stats->vdev_id,
+			vdev_stats->vdev_snr.bcn_snr,
+			vdev_stats->vdev_snr.dat_snr);
+
 	if (pGetRssiReq &&
 		pGetRssiReq->sessionId == vdev_stats->vdev_id) {
 		if ((vdev_stats->vdev_snr.bcn_snr == WMA_TGT_INVALID_SNR) &&
@@ -2091,10 +2098,6 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 			rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
 		}
 
-		WMA_LOGD("vdev id %d beancon snr %d data snr %d",
-				vdev_stats->vdev_id,
-				vdev_stats->vdev_snr.bcn_snr,
-				vdev_stats->vdev_snr.dat_snr);
 		WMA_LOGD("Average Rssi = %d, vdev id= %d", rssi,
 				pGetRssiReq->sessionId);
 
@@ -2106,6 +2109,29 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 
 		adf_os_mem_free(pGetRssiReq);
 		wma->pGetRssiReq = NULL;
+	}
+
+	if (node->psnr_req) {
+		tAniGetSnrReq *p_snr_req = node->psnr_req;
+
+		if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR)
+			p_snr_req->snr = vdev_stats->vdev_snr.bcn_snr;
+		else if (vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR)
+			p_snr_req->snr = vdev_stats->vdev_snr.dat_snr;
+		else
+			p_snr_req->snr = WMA_TGT_INVALID_SNR;
+
+		sme_msg.type = eWNI_SME_SNR_IND;
+		sme_msg.bodyptr = p_snr_req;
+		sme_msg.bodyval = 0;
+
+		vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			WMA_LOGE("%s: Fail to post snr ind msg", __func__);
+			vos_mem_free(p_snr_req);
+		}
+
+		node->psnr_req = NULL;
 	}
 }
 
@@ -7061,6 +7087,67 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 		wma_handle->pGetRssiReq = NULL;
 		return VOS_STATUS_E_FAILURE;
 	}
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS WDA_GetSnr(tAniGetSnrReq *psnr_req)
+{
+	wmi_buf_t buf;
+	wmi_request_stats_cmd_fixed_param *cmd;
+	tAniGetSnrReq *psnr_req_bkp;
+	u_int8_t len = sizeof(wmi_request_stats_cmd_fixed_param);
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma_handle = NULL;
+	struct wma_txrx_node *intr;
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s : Failed to get wma_handle", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+
+	intr = &wma_handle->interfaces[psnr_req->sessionId];
+	/* command is in progess */
+	if(NULL != intr->psnr_req) {
+		WMA_LOGE("%s : previous snr request is pending", __func__);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	psnr_req_bkp = adf_os_mem_alloc(NULL, sizeof(tAniGetSnrReq));
+	if (!psnr_req_bkp) {
+		WMA_LOGE("Failed to allocate memory for tAniGetSnrReq");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	adf_os_mem_set(psnr_req_bkp, 0, sizeof(tAniGetSnrReq));
+	psnr_req_bkp->staId = psnr_req->staId;
+	psnr_req_bkp->pDevContext = psnr_req->pDevContext;
+	psnr_req_bkp->snrCallback = psnr_req->snrCallback;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		adf_os_mem_free(psnr_req_bkp);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	cmd = (wmi_request_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	cmd->vdev_id = psnr_req->sessionId;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
+	cmd->stats_id = WMI_REQUEST_VDEV_STAT;
+	intr->psnr_req = (void *)psnr_req_bkp;
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				WMI_REQUEST_STATS_CMDID)) {
+		WMA_LOGE("Failed to send host stats request to fw");
+		wmi_buf_free(buf);
+		adf_os_mem_free(psnr_req_bkp);
+		intr->psnr_req = NULL;
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -14192,6 +14279,11 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	if (wma->interfaces[params->smesessionId].stats_rsp) {
 		vos_mem_free(wma->interfaces[params->smesessionId].stats_rsp);
 		wma->interfaces[params->smesessionId].stats_rsp = NULL;
+	}
+
+	if (wma->interfaces[params->smesessionId].psnr_req) {
+		vos_mem_free(wma->interfaces[params->smesessionId].psnr_req);
+		wma->interfaces[params->smesessionId].psnr_req = NULL;
 	}
 
         if (wlan_op_mode_ibss == txrx_vdev->opmode) {

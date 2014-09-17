@@ -2213,6 +2213,7 @@ typedef struct sAniGetSnrReq
     tANI_U8                 staId;
     void                    *snrCallback;
     void                    *pDevContext; //device context
+    tANI_S8                 snr;
 } tAniGetSnrReq, *tpAniGetSnrReq;
 
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
