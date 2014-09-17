@@ -5956,6 +5956,19 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                     {
                         limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
                     }
+                    /*
+                     * In case of DFS operation, If AP falls back to lower
+                     * bandwidth [< 80Mhz] then there is no need of
+                     * Center freq segment. So reset it to zero.
+                     */
+                    if (cfgSetInt(pMac,
+                                  WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1,
+                                  0)
+                                  != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP,
+                        FL("couldn't reset center freq seg 0 in beacon"));
+                    }
                 }
                 if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
                 {
