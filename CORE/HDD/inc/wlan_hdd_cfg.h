@@ -2587,7 +2587,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_MEMORY_DEBUG_NAME             "gEnableMemoryDebug"
 #define CFG_ENABLE_MEMORY_DEBUG_MIN              (0)
 #define CFG_ENABLE_MEMORY_DEBUG_MAX              (1)
-#define CFG_ENABLE_MEMORY_DEBUG_DEFAULT          (0)
+#define CFG_ENABLE_MEMORY_DEBUG_DEFAULT          (1)
 #endif
 
 #define CFG_INITIAL_DWELL_TIME_NAME            "gInitialDwellTime"
