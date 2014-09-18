@@ -35,7 +35,6 @@
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include "cld-diag-parser.h"
-#include "diaglogi.h"
 #ifdef CONFIG_ANDROID_LOG
 #include <android/log.h>
 
