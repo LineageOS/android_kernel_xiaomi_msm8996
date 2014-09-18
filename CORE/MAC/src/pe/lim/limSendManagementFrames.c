@@ -727,6 +727,17 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
 
+    /*
+     * In case when cac timer is running for this SAP session then
+     * avoid sending probe rsp out. It is violation of dfs specification.
+     */
+    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+        (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                  FL("CAC timer is running, dropping the probe response"));
+        return;
+    }
     smeSessionId = psessionEntry->smeSessionId;
     pFrm = vos_mem_malloc(sizeof(tDot11fProbeResponse));
     if ( NULL == pFrm )
@@ -3945,6 +3956,17 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
 
+    /*
+     * In case when cac timer is running for this SAP session then
+     * avoid sending disassoc out. It is violation of dfs specification.
+     */
+    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+        (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                  FL("CAC timer is running, drop disassoc from going out"));
+        return;
+    }
     smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* )&frm, sizeof( frm ), 0);
@@ -4139,6 +4161,17 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
         return;
     }
 
+    /*
+     * In case when cac timer is running for this SAP session then
+     * avoid deauth frame out. It is violation of dfs specification.
+     */
+    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+        (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                  FL("CAC timer is running, drop the deauth from going out"));
+        return;
+    }
     smeSessionId = psessionEntry->smeSessionId;
 
     vos_mem_set( ( tANI_U8* ) &frm, sizeof( frm ), 0 );

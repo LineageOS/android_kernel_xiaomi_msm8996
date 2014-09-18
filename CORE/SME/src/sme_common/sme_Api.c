@@ -2789,6 +2789,15 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
           }
+
+          case eWNI_SME_MSG_GET_TEMPERATURE_IND:
+               if (pMac->sme.pGetTemperatureCb)
+               {
+                   pMac->sme.pGetTemperatureCb(pMsg->bodyval,
+                           pMac->sme.pTemperatureCbContext);
+               }
+               break;
+
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -13971,5 +13980,53 @@ eHalStatus sme_UpdateRoamKeyMgmtOffloadEnabled(tHalHandle hHal,
     }
 
     return status ;
+}
+
+/* ---------------------------------------------------------------------------
+   \fn sme_GetTemperature
+   \brief SME API to get the pdev temperature
+   \param hHal
+   \param temperature context
+   \param pCallbackfn: callback fn with response (temperature)
+   \- return eHalStatus
+   -------------------------------------------------------------------------*/
+eHalStatus sme_GetTemperature(tHalHandle hHal,
+        void *tempContext,
+        void (*pCallbackfn)(int temperature, void *pContext))
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+    vos_msg_t           vosMessage;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        if ( (NULL == pCallbackfn) &&
+                (NULL == pMac->sme.pGetTemperatureCb))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                FL("Indication Call back did not registered"));
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        else if (NULL != pCallbackfn)
+        {
+            pMac->sme.pTemperatureCbContext = tempContext;
+            pMac->sme.pGetTemperatureCb = pCallbackfn;
+        }
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = NULL;
+        vosMessage.type    = WDA_GET_TEMPERATURE_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                FL("Post Get Temperature msg fail"));
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return(status);
 }
 #endif

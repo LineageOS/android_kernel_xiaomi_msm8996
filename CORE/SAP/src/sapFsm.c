@@ -1657,7 +1657,7 @@ sapGotoChannelSel
         }
 
         if (sapContext->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "## %s SKIPPED ACS SCAN", __func__);
             WLANSAP_ScanCallback(hHal, sapContext, sapContext->sessionId, 0,
                 eCSR_SCAN_SUCCESS);

@@ -16451,6 +16451,81 @@ static int wma_d0_wow_disable_ack_event(void *handle, u_int8_t *event,
 }
 #endif
 
+/* function   : wma_get_temperature
+ * Descriptin : Function is used to send get pdev temperature req
+ * Args       : wma_handle, request data which will be non-null
+ * Returns    : SUCCESS or FAILURE
+ */
+VOS_STATUS wma_get_temperature(tp_wma_handle wma_handle)
+{
+	wmi_pdev_get_temperature_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len = sizeof(wmi_pdev_get_temperature_cmd_fixed_param);
+	u_int8_t *buf_ptr;
+
+	if (!wma_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t*)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_pdev_get_temperature_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_get_temperature_cmd_fixed_param));
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+				WMI_PDEV_GET_TEMPERATURE_CMDID)) {
+		WMA_LOGE(FL("failed to send get temperature command"));
+		wmi_buf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/* function    : wma_pdev_temperature_evt_handler
+ * Description : Handler for WMI_PDEV_TEMPERATURE_EVENTID event from firmware
+ *             : This event reports the chip temperature
+ *  Returns    :
+ */
+static int wma_pdev_temperature_evt_handler(void *handle, u_int8_t *event,
+		u_int32_t len)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	vos_msg_t sme_msg = {0};
+	WMI_PDEV_TEMPERATURE_EVENTID_param_tlvs *param_buf;
+	wmi_pdev_temperature_event_fixed_param *wmi_event;
+
+	param_buf = (WMI_PDEV_TEMPERATURE_EVENTID_param_tlvs *) event;
+	if (!param_buf)
+	{
+		WMA_LOGE("Invalid pdev_temperature event buffer");
+		return -EINVAL;
+	}
+
+	wmi_event = param_buf->fixed_param;
+	WMA_LOGI(FL("temperature: %d"), wmi_event->value);
+
+	sme_msg.type = eWNI_SME_MSG_GET_TEMPERATURE_IND;
+	sme_msg.bodyptr = NULL;
+	sme_msg.bodyval = wmi_event->value;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status) )
+	{
+		WMA_LOGE(FL("Fail to post get temperature ind msg"));
+	}
+
+	return 0;
+}
+
 /*
  * Handler to catch wow wakeup host event. This event will have
  * reason why the firmware has woken the host.
@@ -22212,6 +22287,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_link_status_rsp(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_GET_TEMPERATURE_REQ:
+			wma_get_temperature(wma_handle);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -23598,6 +23677,17 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 					wma_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to initialize scan completion timeout");
+		goto end;
+	}
+
+	/* Initialize the get temperature event handler */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_PDEV_TEMPERATURE_EVENTID,
+				wma_pdev_temperature_evt_handler);
+	if (status != VOS_STATUS_SUCCESS)
+	{
+		WMA_LOGE("Failed to register get_temperature event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
 

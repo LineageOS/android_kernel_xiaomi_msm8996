@@ -645,6 +645,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_CONFIG_APP_TYPE2_PARAMS    (SIR_HAL_ITC_MSG_TYPES_BEGIN + 289)
 #endif
 
+#define SIR_HAL_GET_TEMPERATURE_REQ        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 290)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

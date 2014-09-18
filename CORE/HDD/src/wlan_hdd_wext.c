@@ -298,6 +298,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_GTX_MINTPC               53
 #define WE_GET_GTX_BWMASK               54
 #define WE_GET_SCAN_BAND_PREFERENCE     55
+#define WE_GET_TEMPERATURE              56
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -4561,6 +4562,113 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     return 0;
 }
 
+void hdd_GetTemperatureCB(int temperature, void *pContext)
+{
+    struct statsContext *pTempContext;
+    hdd_adapter_t *pAdapter;
+
+    ENTER();
+
+    if (NULL == pContext) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("pContext is NULL"));
+        return;
+    }
+
+    pTempContext = pContext;
+    pAdapter     = pTempContext->pAdapter;
+
+    /* there is a race condition that exists between this callback
+       function and the caller since the caller could time out either
+       before or while this code is executing.  we use a spinlock to
+       serialize these actions */
+    spin_lock(&hdd_context_lock);
+
+    if ((NULL == pAdapter) ||
+            (TEMP_CONTEXT_MAGIC != pTempContext->magic))
+    {
+        /* the caller presumably timed out so there is nothing we can do */
+        spin_unlock(&hdd_context_lock);
+        hddLog(VOS_TRACE_LEVEL_WARN,
+                FL("Invalid context, pAdapter [%p] magic [%08x]"),
+                pAdapter, pTempContext->magic);
+        return;
+    }
+
+    /* context is valid, update the temperature, ignore it if this was 0 */
+    if (temperature != 0) {
+        pAdapter->temperature = temperature;
+    }
+
+    /* notify the caller */
+    complete(&pTempContext->completion);
+
+    /* serialization is complete */
+    spin_unlock(&hdd_context_lock);
+
+    EXIT();
+}
+
+VOS_STATUS wlan_hdd_get_temperature(hdd_adapter_t *pAdapter,
+        union iwreq_data *wrqu, char *extra)
+{
+    eHalStatus hstatus;
+    struct statsContext tempContext;
+    unsigned long rc;
+    A_INT32 *pData = (A_INT32 *)extra;
+
+    ENTER();
+
+    if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("pAdapter is NULL"));
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* prepare callback context and magic pattern */
+    init_completion(&tempContext.completion);
+    tempContext.pAdapter = pAdapter;
+    tempContext.magic = TEMP_CONTEXT_MAGIC;
+
+    /* send get temperature request to sme */
+    hstatus = sme_GetTemperature(
+            WLAN_HDD_GET_HAL_CTX(pAdapter),
+            &tempContext,
+            hdd_GetTemperatureCB);
+
+    if (eHAL_STATUS_SUCCESS != hstatus) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to retrieve temperature"));
+    } else {
+        /* request was sent -- wait for the response */
+        rc = wait_for_completion_timeout(&tempContext.completion,
+                msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+        if (!rc) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                FL("SME timed out while retrieving temperature"));
+        }
+    }
+
+    /* either we never sent a request, we sent a request and received a
+       response or we sent a request and timed out.  if we never sent a
+       request or if we sent a request and got a response, we want to
+       clear the magic out of paranoia.  if we timed out there is a
+       race condition such that the callback function could be
+       executing at the same time we are. of primary concern is if the
+       callback function had already verified the "magic" but had not
+       yet set the completion variable when a timeout occurred. we
+       serialize these activities by invalidating the magic while
+       holding a shared spinlock which will cause us to block if the
+       callback is currently executing */
+    spin_lock(&hdd_context_lock);
+    tempContext.magic = 0;
+    spin_unlock(&hdd_context_lock);
+
+    /* update temperature */
+    *pData = pAdapter->temperature;
+
+    EXIT();
+    return VOS_STATUS_SUCCESS;
+}
+
 /* set param sub-ioctls */
 static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
@@ -6587,6 +6695,13 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "scanBandPreference = %d", *value);
+            break;
+        }
+
+        case WE_GET_TEMPERATURE:
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO, "WE_GET_TEMPERATURE");
+            ret = wlan_hdd_get_temperature(pAdapter, wrqu, extra);
             break;
         }
 
@@ -10300,6 +10415,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_scan_pref"},
+
+    {   WE_GET_TEMPERATURE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_temp"},
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
