@@ -4558,6 +4558,12 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 }
             }
         }
+
+        if (!pRoamInfo)
+            pRoamInfo = &roamInfo;
+
+        pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
+
         //We have something to roam, tell HDD when it is infra.
         //For IBSS, the indication goes back to HDD via eCSR_ROAM_IBSS_IND
         //For WDS, the indication is eCSR_ROAM_WDS_IND
