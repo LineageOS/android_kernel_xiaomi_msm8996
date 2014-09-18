@@ -111,6 +111,7 @@ typedef  enum  {
     WMI_SERVICE_HSOFFLOAD,            /* Hotspot offload feature Support */
     WMI_SERVICE_ROAM_HO_OFFLOAD,      /* roam handover offload */
     WMI_SERVICE_RX_FULL_REORDER,      /* target-based Rx full reorder */
+    WMI_SERVICE_DHCP_OFFLOAD,         /* DHCP offload support */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

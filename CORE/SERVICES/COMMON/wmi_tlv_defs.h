@@ -504,7 +504,11 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_vdev_rate_ht_info,
     WMITLV_TAG_STRUC_wmi_ric_request_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param
+    WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ric_tspec,
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config
 } WMITLV_TAG_ID;
 
 /*
@@ -664,6 +668,7 @@ typedef enum {
     OP(WMI_OBSS_SCAN_DISABLE_CMDID)\
     OP(WMI_PDEV_SET_LED_CONFIG_CMDID)\
     OP(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID) \
+    OP(WMI_TPC_CHAINMASK_CONFIG_CMDID) \
     OP(WMI_CHAN_AVOID_UPDATE_CMDID) \
     OP(WMI_WOW_IOAC_ADD_KEEPALIVE_CMDID) \
     OP(WMI_WOW_IOAC_DEL_KEEPALIVE_CMDID) \
@@ -690,7 +695,8 @@ typedef enum {
     OP(WMI_EXTWOW_SET_APP_TYPE1_PARAMS_CMDID) \
     OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID) \
     OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
-    OP(WMI_PDEV_GET_TEMPERATURE_CMDID)
+    OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
+    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID)
 
 
 
@@ -1894,6 +1900,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_CONFIG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_host_auto_shutdown_cfg_cmd_fixed_param, wmi_host_auto_shutdown_cfg_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID);
 
+/* tpc chainmask config cmd */
+#define WMITLV_TABLE_WMI_TPC_CHAINMASK_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param, wmi_tpc_chainmask_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)  \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_tpc_chainmask_config, config_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_TPC_CHAINMASK_CONFIG_CMDID);
+
 /* Ch avoidance update cmd */
 #define WMITLV_TABLE_WMI_CHAN_AVOID_UPDATE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chan_avoid_update_cmd_param, wmi_chan_avoid_update_cmd_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1908,6 +1920,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
 #define WMITLV_TABLE_WMI_PDEV_GET_TEMPERATURE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param, wmi_pdev_get_temperature_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
+
+/* DHCP server offload param Cmd */
+#define WMITLV_TABLE_WMI_SET_DHCP_SERVER_OFFLOAD_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param, wmi_set_dhcp_server_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 

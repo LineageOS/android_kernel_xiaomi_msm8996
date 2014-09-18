@@ -1076,6 +1076,12 @@ ol_rx_in_order_indication_handler(
         TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
                    "%s: Couldn't find peer from ID 0x%x\n", __FUNCTION__,
                    peer_id);
+        while (head_msdu) {
+            adf_nbuf_t msdu = head_msdu;
+
+            head_msdu = adf_nbuf_next(head_msdu);
+            htt_rx_desc_frame_free(htt_pdev, msdu);
+        }
         return;
     }
 
