@@ -11494,7 +11494,8 @@ static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
 /*
  * SME API to determine the channel bonding mode
  */
-VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 channel)
+VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
+                            tANI_U8 channel, tANI_U32 vhtChannelWidth)
 {
    tSmeConfigParams  smeConfig;
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
@@ -11526,8 +11527,9 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
    sme_GetConfigParam(pMac, &smeConfig);
 
 #ifdef WLAN_FEATURE_11AC
-   if ( eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
-         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode )
+   if ((eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
+        (eHT_CHANNEL_WIDTH_80MHZ == vhtChannelWidth))
    {
       if (pMac->roam.configParam.channelBondingMode5GHz) {
           if ( channel== 36 || channel == 52 || channel == 100 ||
@@ -11586,8 +11588,11 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
    }
 #endif
 
-   if ( eCSR_DOT11_MODE_11n == eCsrPhyMode ||
-         eCSR_DOT11_MODE_11n_ONLY == eCsrPhyMode )
+   if ((eCSR_DOT11_MODE_11n == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11n_ONLY == eCsrPhyMode) ||
+       ((eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
+        (eHT_CHANNEL_WIDTH_40MHZ == vhtChannelWidth)))
    {
       if (pMac->roam.configParam.channelBondingMode5GHz) {
           if ( channel== 40 || channel == 48 || channel == 56 ||
@@ -12718,28 +12723,24 @@ eHalStatus sme_ChAvoidUpdateReq
    \param targetChannel - New Channel to move the SAP to.
    \return eHalStatus
 ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
-                                tANI_U8 targetChannel, eCsrPhyMode phyMode )
+eHalStatus sme_RoamChannelChangeReq(tHalHandle hHal, tCsrBssid bssid,
+                                    tANI_U8 targetChannel, eCsrPhyMode phyMode,
+                                    tANI_U32 cbMode, tANI_U32 vhtChannelWidth)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tANI_U32 cbMode;
 
-    /*
-     * We are getting channel bonding mode from sapDfsInfor structure
-     * because we've implemented channel width fallback mechanism for DFS
-     * which will result in channel width changing dynamically.
-     */
-    cbMode = pMac->sap.SapDfsInfo.new_cbMode;
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        sme_SelectCBMode(hHal, phyMode, targetChannel);
+        sme_SelectCBMode(hHal, phyMode, targetChannel, vhtChannelWidth);
 
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
-                  FL("sapdfs: channel bonding mode is [%d]"), cbMode);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("sapdfs: requested CBmode=%d & new negotiated CBmode=%d"),
+                  cbMode, pMac->roam.configParam.channelBondingMode5GHz);
         status = csrRoamChannelChangeReq(pMac, bssid, targetChannel,
-                                         cbMode);
+                         (tANI_U8)pMac->roam.configParam.channelBondingMode5GHz,
+                         (tANI_U8)vhtChannelWidth);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return (status);

@@ -2828,6 +2828,10 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
     ptSapContext sapContext = NULL;
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     v_PVOID_t hHal = NULL;
+    tpAniSirGlobal pMac = NULL;
+    eCsrPhyMode phyMode;
+    tANI_U32 cbMode;
+    tANI_U32 vhtChannelWidth;
     sapContext = (ptSapContext)pSapCtx;
 
     if ( NULL == sapContext )
@@ -2844,10 +2848,19 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
                    "%s: Invalid HAL pointer from pvosGCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
-
-    halStatus = sme_RoamChannelChangeReq( hHal, sapContext->bssid,
-       tArgetChannel,
-       sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode) );
+    pMac = PMAC_STRUCT( hHal );
+    phyMode =
+           sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode);
+    /*
+     * We are getting channel bonding mode from sapDfsInfor structure
+     * because we've implemented channel width fallback mechanism for DFS
+     * which will result in channel width changing dynamically.
+     */
+    cbMode = pMac->sap.SapDfsInfo.new_cbMode;
+    vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
+    halStatus = sme_RoamChannelChangeReq(hHal, sapContext->bssid,
+                                         tArgetChannel,
+                                         phyMode, cbMode, vhtChannelWidth);
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {

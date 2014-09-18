@@ -6184,7 +6184,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     {
         sme_SelectCBMode(hHal,
             sapConvertSapPhyModeToCsrPhyMode(pConfig->SapHw_mode),
-            pConfig->channel);
+            pConfig->channel,
+            WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->vhtChannelWidth);
     }
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab =
@@ -9648,7 +9649,8 @@ void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
      /* This call decides required channel bonding mode */
     sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
                      hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
-                     operationChannel);
+                     operationChannel,
+                     WLAN_HDD_GET_CTX(pAdapter)->cfg_ini->vhtChannelWidth);
 }
 
 /*

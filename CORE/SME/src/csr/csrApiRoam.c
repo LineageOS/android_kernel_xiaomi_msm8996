@@ -18150,12 +18150,12 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
  * Channel Change Req for SAP
  */
 eHalStatus
-csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
-                          tANI_U8 targetChannel, tANI_U8 cbMode )
+csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
+                        tANI_U8 targetChannel, tANI_U8 cbMode,
+                        tANI_U8 vhtChannelWidth )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirChanChangeRequest *pMsg;
-    tANI_U32 vhtChannelWidth;
 
     pMsg = vos_mem_malloc( sizeof(tSirChanChangeRequest) );
     if (!pMsg)
@@ -18164,13 +18164,6 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
     }
 
     vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
-
-    /*
-     * We are getting channel width from sapDfsInfor structure
-     * because we've implemented channel width fallback mechanism for DFS
-     * which will result in channel width changing dynamically.
-     */
-    vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
 
 #ifdef WLAN_FEATURE_11AC
     // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3

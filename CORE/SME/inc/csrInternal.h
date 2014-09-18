@@ -1479,7 +1479,8 @@ tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 
 /* Post Channel Change Indication */
 eHalStatus csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
-                        tANI_U8 targetChannel, tANI_U8 cbMode);
+                        tANI_U8 targetChannel, tANI_U8 cbMode,
+                        tANI_U8 vhtChannelWidth);
 
 /* Post Beacon Tx Start Indication */
 eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac,
