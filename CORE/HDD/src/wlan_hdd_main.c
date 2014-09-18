@@ -8757,17 +8757,16 @@ VOS_STATUS hdd_check_for_existing_macaddr( hdd_context_t *pHddCtx,
     hdd_adapter_t *pAdapter;
     VOS_STATUS status;
 
-    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
 
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
+    while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
         pAdapter = pAdapterNode->pAdapter;
 
-        if( pAdapter && vos_mem_compare( pAdapter->macAddressCurrent.bytes,
-                                         macAddr, sizeof(tSirMacAddr) ) ) {
+        if (pAdapter && vos_mem_compare(pAdapter->macAddressCurrent.bytes,
+                                         macAddr, sizeof(tSirMacAddr))) {
             return VOS_STATUS_E_FAILURE;
         }
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
         pAdapterNode = pNext;
     }
 
