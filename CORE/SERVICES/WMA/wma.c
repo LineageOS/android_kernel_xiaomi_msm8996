@@ -6771,7 +6771,8 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
-	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES |
+				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 
 	/* Do not combine multiple channels in a single burst. Come back
 	 * to home channel for data traffic after every foreign channel.
@@ -21065,8 +21066,9 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->idle_time = 0;
 	cmd->burst_duration = WMA_EXTSCAN_BURST_DURATION;
 	cmd->scan_ctrl_flags = WMI_SCAN_ADD_BCAST_PROBE_REQ |
-					WMI_SCAN_ADD_CCK_RATES |
-						WMI_SCAN_ADD_OFDM_RATES;
+				WMI_SCAN_ADD_CCK_RATES |
+				WMI_SCAN_ADD_OFDM_RATES |
+				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
 	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
@@ -21832,6 +21834,49 @@ static void wma_process_unit_test_cmd(WMA_HANDLE handle,
 }
 #endif
 
+VOS_STATUS  wma_scan_probe_setoui(tp_wma_handle wma,
+		tSirScanMacOui *psetoui)
+{
+	wmi_scan_prob_req_oui_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+	u_int32_t *oui_buf;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+	cmd = (wmi_scan_prob_req_oui_cmd_fixed_param *)buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_scan_prob_req_oui_cmd_fixed_param));
+
+	oui_buf = &cmd->prob_req_oui;
+	vos_mem_zero(oui_buf, sizeof(cmd->prob_req_oui));
+	*oui_buf = psetoui->oui[0] << 16 | psetoui->oui[1] << 8
+					| psetoui->oui[2];
+	WMA_LOGD("%s: wma:oui received from hdd %08x", __func__,
+			cmd->prob_req_oui);
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_SCAN_PROB_REQ_OUI_CMDID)) {
+		WMA_LOGE("%s: failed to send command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -22350,6 +22395,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 		break;
 #endif
+		case WDA_SET_SCAN_MAC_OUI_REQ:
+			wma_scan_probe_setoui(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 		case WDA_LINK_LAYER_STATS_CLEAR_REQ:
 			wma_process_ll_stats_clearReq(wma_handle,
