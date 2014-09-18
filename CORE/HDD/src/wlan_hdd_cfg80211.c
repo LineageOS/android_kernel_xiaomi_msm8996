@@ -5486,6 +5486,26 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              sme_UpdateConfig(hHal, &smeConfig);
         }
         WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
+
+        /*
+         * Set the JAPAN W53 disabled INI param
+         * in to SAP DFS for restricting these
+         * channel from being picked during DFS
+         * random channel selection.
+         */
+        WLANSAP_set_Dfs_Restrict_JapanW53(hHal,
+                         iniConfig->gDisableDfsJapanW53);
+
+        /*
+         * Set the SAP Indoor/Outdoor preferred
+         * operating channel location. This
+         * prameter will restrict SAP picking
+         * channel from only Indoor/outdoor
+         * channels list only based up on the
+         * this parameter.
+         */
+        WLANSAP_set_Dfs_Preferred_Channel_location(hHal,
+                                     iniConfig->gSapPreferredChanLocation);
     }
     else
     {

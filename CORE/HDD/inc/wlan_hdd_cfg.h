@@ -1520,6 +1520,24 @@ typedef enum
 #define CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX           ( 1 )
 #define CFG_ENABLE_DFS_MASTER_CAPABILITY_DEFAULT       ( 0 )
 
+/*
+ * This parameter indicates if SAP preferred
+ * channel are INDOOR/OUTDOOR Channels.
+ * 0- Indicates no preferred channel location or
+ *    no preferred channel restrictions.
+ * 1- Indicates Use only Indoor channels only.
+ * 2- Indicates Use outdoor channels only.
+ */
+#define CFG_SAP_PREFERRED_CHANNEL_LOCATION          "gSapPreferredChanLocation"
+#define CFG_SAP_PREFERRED_CHANNEL_LOCATION_MIN      ( 0 )
+#define CFG_SAP_PREFERRED_CHANNEL_LOCATION_MAX      ( 2 )
+#define CFG_SAP_PREFERRED_CHANNEL_LOCATION_DEFAULT  ( 0 )
+
+#define CFG_DISABLE_DFS_JAPAN_W53                      "gDisableDfsJapanW53"
+#define CFG_DISABLE_DFS_JAPAN_W53_MIN                  ( 0 )
+#define CFG_DISABLE_DFS_JAPAN_W53_MAX                  ( 1 )
+#define CFG_DISABLE_DFS_JAPAN_W53_DEFAULT              ( 0 )
+
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME       "dfsPhyerrFilterOffload"
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MIN        ( 0 )
 #define CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_MAX        ( 1 )
@@ -3284,6 +3302,8 @@ typedef struct
    v_U32_t                     gEnableDebugLog;
    v_U8_t                      enableRxThread;
    v_BOOL_t                    fDfsPhyerrFilterOffload;
+   v_U8_t                      gSapPreferredChanLocation;
+   v_U8_t                      gDisableDfsJapanW53;
    v_BOOL_t                    gEnableOverLapCh;
    char                        acsAllowedChnls[CFG_MAX_STR_LEN];
    v_BOOL_t                    fRegChangeDefCountry;
