@@ -285,6 +285,11 @@ struct hdd_ipa_stats {
 };
 
 #ifdef IPA_UC_OFFLOAD
+struct ipa_uc_stas_map {
+	v_BOOL_t is_reserved;
+	uint8_t sta_id;
+};
+
 struct op_msg_type {
 	uint8_t msg_t;
 	uint8_t rsvd;
@@ -370,12 +375,14 @@ struct hdd_ipa_priv {
 	uint32_t curr_cons_bw;
 
 #ifdef IPA_UC_OFFLOAD
+	uint8_t activated_fw_pipe;
 	uint8_t sap_num_connected_sta;
 	uint32_t tx_pipe_handle;
 	uint32_t rx_pipe_handle;
 	v_BOOL_t resource_loading;
 	v_BOOL_t resource_unloading;
 	v_BOOL_t pending_cons_req;
+	struct ipa_uc_stas_map  assoc_stas_map[WLAN_MAX_STA_COUNT];
 #endif /* IPA_UC_OFFLOAD */
 };
 
@@ -536,6 +543,68 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
 }
 
 #ifdef IPA_UC_OFFLOAD
+static v_BOOL_t hdd_ipa_uc_find_add_assoc_sta(
+	struct hdd_ipa_priv *hdd_ipa,
+	v_BOOL_t sta_add,
+	uint8_t sta_id)
+{
+	/* Found associated sta */
+	v_BOOL_t sta_found = VOS_FALSE;
+	uint8_t idx;
+
+	for (idx = 0; idx < WLAN_MAX_STA_COUNT; idx++) {
+		if ((hdd_ipa->assoc_stas_map[idx].is_reserved) &&
+			(hdd_ipa->assoc_stas_map[idx].sta_id == sta_id)) {
+			sta_found = VOS_TRUE;
+			break;
+		}
+	}
+
+	/* Try to add sta which is already in
+	 * If the sta is already in, just return sta_found */
+	if (sta_add && sta_found) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: STA ID %d already exist, cannot add",
+			__func__, sta_id);
+		return sta_found;
+	}
+
+	if (sta_add) {
+		/* Find first empty slot */
+		for (idx = 0; idx < WLAN_MAX_STA_COUNT; idx++) {
+			if (!hdd_ipa->assoc_stas_map[idx].is_reserved) {
+				hdd_ipa->assoc_stas_map[idx].is_reserved =
+					VOS_TRUE;
+				hdd_ipa->assoc_stas_map[idx].sta_id = sta_id;
+				return sta_found;
+			}
+		}
+	}
+
+	/* Delete STA from map, but could not find STA within the map
+	 * Error case, add error log */
+	if (!sta_add && !sta_found) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: STA ID %d does not exist, cannot delete",
+			__func__, sta_id);
+		return sta_found;
+	}
+
+	if (!sta_add) {
+		for (idx = 0; idx < WLAN_MAX_STA_COUNT; idx++) {
+			if ((hdd_ipa->assoc_stas_map[idx].is_reserved) &&
+			(hdd_ipa->assoc_stas_map[idx].sta_id == sta_id)) {
+				hdd_ipa->assoc_stas_map[idx].is_reserved =
+					VOS_FALSE;
+				hdd_ipa->assoc_stas_map[idx].sta_id = 0xFF;
+				return sta_found;
+			}
+		}
+	}
+
+	return sta_found;
+}
+
 static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
@@ -630,11 +699,8 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 		return result;
 	}
 
-
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);
-	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
-		VOS_FALSE, VOS_FALSE);
 	result = ipa_suspend_wdi_pipe(hdd_ipa->rx_pipe_handle);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -652,8 +718,6 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable TX PIPE", __func__);
-	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
-		VOS_FALSE, VOS_TRUE);
 	result = ipa_suspend_wdi_pipe(hdd_ipa->tx_pipe_handle);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -674,6 +738,7 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 
 static int hdd_ipa_uc_handle_first_con(struct hdd_ipa_priv *hdd_ipa)
 {
+	hdd_ipa->activated_fw_pipe = 0;
 	hdd_ipa->resource_loading = VOS_TRUE;
 	/* If RM feature enabled
 	 * Request PROD Resource first
@@ -704,15 +769,14 @@ static int hdd_ipa_uc_handle_first_con(struct hdd_ipa_priv *hdd_ipa)
 static int hdd_ipa_uc_handle_last_discon(struct hdd_ipa_priv *hdd_ipa)
 {
 	hdd_ipa->resource_unloading = VOS_TRUE;
-	hdd_ipa_uc_disable_pipes(hdd_ipa);
-	if ((hdd_ipa_is_rm_enabled(hdd_ipa)) &&
-		(!ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
-		/* Sync return success from IPA
-		 * Enable/resume all the PIPEs */
-		hdd_ipa->resource_unloading = VOS_FALSE;
-	} else {
-		hdd_ipa->resource_unloading = VOS_FALSE;
-	}
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s: Disable FW RX PIPE", __func__);
+	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
+		VOS_FALSE, VOS_FALSE);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s: Disable FW TX PIPE", __func__);
+	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
+		VOS_FALSE, VOS_TRUE);
 	return 0;
 }
 
@@ -812,6 +876,28 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 	hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"%s, OPCODE %s", __func__, op_string[msg->op_code]);
+
+	if ((HDD_IPA_UC_OPCODE_TX_RESUME == msg->op_code) ||
+		(HDD_IPA_UC_OPCODE_RX_RESUME == msg->op_code)) {
+		ghdd_ipa->activated_fw_pipe++;
+	}
+
+	if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
+		(HDD_IPA_UC_OPCODE_RX_SUSPEND == msg->op_code)) {
+		ghdd_ipa->activated_fw_pipe--;
+		if (!ghdd_ipa->activated_fw_pipe) {
+			hdd_ipa_uc_disable_pipes(ghdd_ipa);
+			if ((hdd_ipa_is_rm_enabled(ghdd_ipa)) &&
+			(!ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
+				/* Sync return success from IPA
+				 * Enable/resume all the PIPEs */
+				ghdd_ipa->resource_unloading = VOS_FALSE;
+			} else {
+				ghdd_ipa->resource_unloading = VOS_FALSE;
+			}
+		}
+	}
+
 	if (HDD_IPA_UC_OPCODE_STATS == msg->op_code) {
 
 		/* STATs from host */
@@ -2679,6 +2765,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
 				msg_ex->name, meta.msg_type);
 		} else {
+			if (hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
+					VOS_TRUE,
+					sta_id)) {
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"%s: STA ID %d found, not valid",
+					msg_ex->name, sta_id);
+				return 0;
+			}
 			hdd_ipa->sap_num_connected_sta++;
 			hdd_ipa->pending_cons_req = VOS_FALSE;
 			/* Enable IPA UC Data PIPEs when first STA connected */
@@ -2700,6 +2794,15 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: IPA UC OFFLOAD NOT ENABLED",
 				msg_ex->name);
+			return 0;
+		}
+
+		if (!hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
+					VOS_FALSE,
+					sta_id)) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"%s: STA ID %d NOT found, not valid",
+				msg_ex->name, sta_id);
 			return 0;
 		}
 		hdd_ipa->sap_num_connected_sta--;

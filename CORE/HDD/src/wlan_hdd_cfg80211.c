@@ -11325,12 +11325,18 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
         (WLAN_HDD_P2P_GO == pAdapter->device_mode)) {
-        if (NULL == mac) {
+        if ((NULL == mac) || (vos_is_macaddr_broadcast((v_MACADDR_t *)mac))) {
             v_U16_t i;
             for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
                 if ((pAdapter->aStaInfo[i].isUsed) &&
                     (!pAdapter->aStaInfo[i].isDeauthInProgress)) {
                     u8 *macAddr = pAdapter->aStaInfo[i].macAddrSTA.bytes;
+#ifdef IPA_UC_OFFLOAD
+                    if (pHddCtx->cfg_ini->IpaUcOffloadEnabled) {
+                       hdd_ipa_wlan_evt(pAdapter, pAdapter->aStaInfo[i].ucSTAId,
+                          WLAN_CLIENT_DISCONNECT, macAddr);
+                    }
+#endif /* IPA_UC_OFFLOAD */
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                            MAC_ADDR_ARRAY(macAddr));
@@ -11350,6 +11356,13 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                        MAC_ADDR_ARRAY(mac));
                 return -ENOENT;
             }
+
+#ifdef IPA_UC_OFFLOAD
+            if (pHddCtx->cfg_ini->IpaUcOffloadEnabled) {
+               hdd_ipa_wlan_evt(pAdapter, staId,
+                  WLAN_CLIENT_DISCONNECT, mac);
+            }
+#endif /* IPA_UC_OFFLOAD */
 
             if (pAdapter->aStaInfo[staId].isDeauthInProgress == TRUE) {
                 hddLog(VOS_TRACE_LEVEL_INFO,
