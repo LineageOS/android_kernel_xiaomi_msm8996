@@ -2377,7 +2377,9 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         pdev->rx_ring.fill_level = htt_rx_ring_fill_level(pdev);
 
         if (pdev->cfg.is_full_reorder_offload) {
-            htt_rx_hash_init(pdev);
+            if (htt_rx_hash_init(pdev)) {
+                goto fail1;
+            }
 
             /* allocate the target index */
             pdev->rx_ring.target_idx.vaddr = adf_os_mem_alloc_consistent(

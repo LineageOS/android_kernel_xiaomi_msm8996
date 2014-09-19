@@ -2413,7 +2413,14 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		snprintf(ipa_hdr->hdr[0].name, IPA_RESOURCE_NAME_MAX, "%s%s",
 				ifname, HDD_IPA_IPV6_NAME_EXT);
 
-		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
+#ifdef IPA_UC_OFFLOAD
+		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
+			/* Set the type to IPV6 in the header*/
+			uc_tx_hdr = (struct hdd_ipa_uc_tx_hdr *)ipa_hdr->hdr[0].hdr;
+			uc_tx_hdr->eth.h_proto = cpu_to_be16(ETH_P_IPV6);
+		} else
+#endif /* IPA_UC_OFFLOAD */
+		{
 			/* Set the type to IPV6 in the header*/
 			tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 			tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);

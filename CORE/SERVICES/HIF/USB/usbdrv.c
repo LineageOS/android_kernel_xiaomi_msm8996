@@ -856,7 +856,7 @@ void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 {
 	device->pipes[HIF_RX_DATA_PIPE].urb_cnt_thresh =
 	    device->pipes[HIF_RX_DATA_PIPE].urb_alloc / 2;
-
+	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	if (!htc_bundle_recv) {
 		usb_hif_post_recv_transfers(&device->pipes[HIF_RX_DATA_PIPE],
 					    HIF_USB_RX_BUFFER_SIZE);
@@ -878,6 +878,7 @@ void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 	usb_hif_post_recv_transfers(&device->pipes[HIF_RX_INT_PIPE],
 				    HIF_USB_RX_BUFFER_SIZE);
 #endif
+	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 }
 
 A_STATUS usb_hif_submit_ctrl_out(HIF_DEVICE_USB *device,

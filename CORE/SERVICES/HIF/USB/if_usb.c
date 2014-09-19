@@ -292,6 +292,7 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 	v_VOID_t * temp_module;
 
+	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	if (vos == NULL)
 		return 0;
 	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
@@ -322,6 +323,7 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 		}
 	}
 	usb_hif_flush_all(device);
+	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 	return 0;
 }
 
@@ -336,6 +338,7 @@ static int hif_usb_resume(struct usb_interface *interface)
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 	v_VOID_t * temp_module;
 
+	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	if (vos == NULL)
 		return 0;
 	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
@@ -360,9 +363,10 @@ static int hif_usb_resume(struct usb_interface *interface)
 	if (!wma_is_wow_mode_selected(temp_module)) {
 		wma_resume_target(temp_module);
 	} else if (wma_disable_wow_in_fw(temp_module)) {
-	    return (-1);
+		pr_warn("%s[%d]: fail\n", __func__, __LINE__);
+		return (-1);
 	}
-
+	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 	return 0;
 }
 
@@ -371,8 +375,9 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 	HIF_DEVICE_USB *device = usb_get_intfdata(intf);
 	struct hif_usb_softc *sc = device->sc;
 
+	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	HIFDiagWriteCOLDRESET(sc->hif_device);
-
+	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 	return 0;
 }
 
