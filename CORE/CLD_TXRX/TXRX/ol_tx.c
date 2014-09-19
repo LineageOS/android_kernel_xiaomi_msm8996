@@ -838,7 +838,7 @@ ol_txrx_mgmt_send(
             tx_mgmt_frm,
             &tx_msdu_info.htt);
         htt_tx_desc_display(tx_desc->htt_tx_desc);
-        htt_tx_desc_set_chanfreq((u_int32_t *)(tx_desc->htt_tx_desc), chanfreq);
+        htt_tx_desc_set_chanfreq(tx_desc->htt_tx_desc, chanfreq);
 
 	ol_tx_enqueue(vdev->pdev, txq, tx_desc, &tx_msdu_info);
 	if (tx_msdu_info.peer) {
@@ -847,6 +847,7 @@ ol_txrx_mgmt_send(
 	}
         ol_tx_sched(vdev->pdev);
     } else {
+	htt_tx_desc_set_chanfreq(tx_desc->htt_tx_desc, chanfreq);
         ol_tx_send_nonstd(pdev, tx_desc, tx_mgmt_frm, htt_pkt_type_mgmt);
     }
 
@@ -874,7 +875,7 @@ adf_nbuf_t ol_tx_reinject(
     ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
     HTT_TX_DESC_POSTPONED_SET(*((u_int32_t *)(tx_desc->htt_tx_desc)), TRUE);
 
-    htt_tx_desc_set_peer_id((u_int32_t *)(tx_desc->htt_tx_desc), peer_id);
+    htt_tx_desc_set_peer_id(tx_desc->htt_tx_desc, peer_id);
 
     ol_tx_send(vdev->pdev, tx_desc, msdu);
 

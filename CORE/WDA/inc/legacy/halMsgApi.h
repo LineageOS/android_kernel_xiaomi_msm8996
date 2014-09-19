@@ -1065,6 +1065,9 @@ typedef struct
 #ifdef FEATURE_WLAN_ESE
   tANI_U16         tsm_interval; // TSM interval period passed from lim to wda
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+  tANI_U8          setRICparams;
+#endif
 } tAddTsParams, *tpAddTsParams;
 
 typedef struct
@@ -1074,6 +1077,10 @@ typedef struct
   tSirMacAddr bssId; //TO SUPPORT BT-AMP
   tANI_U8 sessionId;
   tANI_U8 userPrio;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+  tSirDeltsReqInfo delTsInfo;
+  tANI_U8 setRICparams;
+#endif
 } tDelTsParams, *tpDelTsParams;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R

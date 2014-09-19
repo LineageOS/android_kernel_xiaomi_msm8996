@@ -40,8 +40,11 @@
  * This file contains WLAN definitions that may be used across both
  * Host and Target software.
  */
-
+#if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
+#define MAX_SPATIAL_STREAM   4
+#else
 #define MAX_SPATIAL_STREAM   3
+#endif
 
 
 typedef enum {
@@ -79,7 +82,11 @@ typedef enum {
 }WLAN_CAPABILITY;
 
 
+#if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
+#define A_RATEMASK A_UINT64
+#else
 #define A_RATEMASK A_UINT32
+#endif
 
 #define A_RATEMASK_NUM_OCTET (sizeof (A_RATEMASK))
 #define A_RATEMASK_NUM_BITS ((sizeof (A_RATEMASK)) << 3)
@@ -223,6 +230,11 @@ typedef struct {
         (_dst).time_stamp      = (_ts);                               \
     } while (0)
 
+#define RC_SET_TXBF_DONE_INFO(_dst, _f)                                 \
+    do {                                                                \
+        (_dst).flags           |= (_f);                                 \
+    } while (0)
+
 /* NOTE: NUM_DYN_BW and NUM_SCHED_ENTRIES cannot be changed without breaking WMI Compatibility */
 #define NUM_SCHED_ENTRIES           2
 #define NUM_DYN_BW_MAX              4
@@ -239,6 +251,35 @@ typedef A_UINT8 A_RATE;
 #error "Extend rate table module for 80+80/160 MHz first"
 #endif
 
+#if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
+typedef struct{
+    A_UINT32    psdu_len    [NUM_DYN_BW * NUM_SCHED_ENTRIES];
+    A_UINT16    flags[NUM_SCHED_ENTRIES][NUM_DYN_BW];
+    A_RATE      rix[NUM_SCHED_ENTRIES][NUM_DYN_BW];
+    A_UINT8     tpc[NUM_SCHED_ENTRIES][NUM_DYN_BW];
+    A_UINT32    antmask[NUM_SCHED_ENTRIES];
+    A_UINT8     num_mpdus   [NUM_DYN_BW * NUM_SCHED_ENTRIES];
+    A_UINT16    txbf_cv_len;
+    A_UINT32    txbf_cv_ptr;
+    A_UINT16    txbf_flags;
+    A_UINT16    txbf_cv_size;
+    A_UINT8     txbf_nc_idx;
+    A_UINT8     tries[NUM_SCHED_ENTRIES];
+    A_UINT8     bw_mask[NUM_SCHED_ENTRIES];
+    A_UINT8     max_bw[NUM_SCHED_ENTRIES];
+    A_UINT8     num_sched_entries;
+    A_UINT8     paprd_mask;
+    A_UINT8     rts_rix;
+    A_UINT8     sh_pream;
+    A_UINT8     min_spacing_1_4_us;
+    A_UINT8     fixed_delims;
+    A_UINT8     bw_in_service;
+    A_RATE      probe_rix;
+    A_UINT8     num_valid_rates;
+    A_UINT8     rtscts_tpc;
+} RC_TX_RATE_SCHEDULE;
+
+#else
 typedef struct{
     A_UINT32    psdu_len    [NUM_DYN_BW * NUM_SCHED_ENTRIES];
     A_UINT16    flags       [NUM_DYN_BW * NUM_SCHED_ENTRIES];
@@ -258,6 +299,7 @@ typedef struct{
     A_UINT8     bw_in_service;
     A_RATE      probe_rix;
 } RC_TX_RATE_SCHEDULE;
+#endif
 
 typedef struct{
     A_UINT16    flags       [NUM_DYN_BW * NUM_SCHED_ENTRIES];
@@ -328,13 +370,41 @@ typedef struct {
     A_UINT32    num_units;
 } wlan_host_mem_req;
 
-
 typedef enum {
     IGNORE_DTIM = 0x01,
     NORMAL_DTIM = 0x02,
     STICK_DTIM  = 0x03,
     AUTO_DTIM   = 0x04,
 } BEACON_DTIM_POLICY;
+
+#if defined (AR900B)
+/* During test it is observed that 6 * 400 = 2400 can
+ * be alloced in addition to CFG_TGT_NUM_MSDU_DESC.
+ * If there is any change memory requirement, this number
+ * needs to be revisited. */
+#define TOTAL_VOW_ALLOCABLE 2400
+#define VOW_DESC_GRAB_MAX 800
+
+#define VOW_GET_NUM_VI_STA(vow_config) (((vow_config) & 0xffff0000) >> 16)
+#define VOW_GET_DESC_PER_VI_STA(vow_config) ((vow_config) & 0x0000ffff)
+
+/***TODO!!! Get these values dynamically in WMI_READY event and use it to calculate the mem req*/
+/* size in bytes required for msdu descriptor. If it changes, this should be updated. LARGE_AP
+ * case is not considered. LARGE_AP is disabled when VoW is enabled.*/
+#define MSDU_DESC_SIZE 20
+
+/* size in bytes required to support a peer in target.
+ * This obtained by considering Two tids per peer.
+ * peer structure = 168 bytes
+ * tid = 96 bytes (per sta 2 means we need 192 bytes)
+ * peer_cb = 16 * 2
+ * key = 52 * 2
+ * AST = 12 * 2
+ * rate, reorder.. = 384
+ * smart antenna = 50
+ */
+#define MEMORY_REQ_FOR_PEER 800
+#endif
 
 /*
  * NB: it is important to keep all the fields in the structure dword long
@@ -362,12 +432,19 @@ struct wlan_dbg_tx_stats {
     A_INT32 hw_reaped;
     /* Num underruns */
     A_INT32 underrun;
+#if defined(AR900B)
+    /* HW Paused. */
+    A_UINT32 hw_paused;
+#endif
     /* Num PPDUs cleaned up in TX abort */
     A_INT32 tx_abort;
     /* Num MPDUs requed by SW */
     A_INT32 mpdus_requed;
     /* excessive retries */
     A_UINT32 tx_ko;
+#if defined(AR900B)
+    A_UINT32 tx_xretry;
+#endif
     /* data hw rate code */
     A_UINT32 data_rc;
     /* Scheduler self triggers */
@@ -384,9 +461,34 @@ struct wlan_dbg_tx_stats {
     A_UINT32 pdev_resets;
     /* frames dropped due to non-availability of stateless TIDs */
     A_UINT32 stateless_tid_alloc_failure;
+    /* PhY/BB underrun */
     A_UINT32 phy_underrun;
     /* MPDU is more than txop limit */
     A_UINT32 txop_ovf;
+#if defined(AR900B)
+    /* Number of Sequences posted */
+    A_UINT32 seq_posted;
+    /* Number of Sequences failed queueing */
+    A_UINT32 seq_failed_queueing;
+    /* Number of Sequences completed */
+    A_UINT32 seq_completed;
+    /* Number of Sequences restarted */
+    A_UINT32 seq_restarted;
+    /* Number of MU Sequences posted */
+    A_UINT32 mu_seq_posted;
+    /* Num MPDUs flushed by SW, HWPAUSED, SW TXABORT (Reset,channel change) */
+    A_INT32 mpdus_sw_flush;
+    /* Num MPDUs filtered by HW, all filter condition (TTL expired) */
+    A_INT32 mpdus_hw_filter;
+    /* Num MPDUs truncated by PDG (TXOP, TBTT, PPDU_duration based on rate, dyn_bw) */
+    A_INT32 mpdus_truncated;
+    /* Num MPDUs that was tried but didn't receive ACK or BA */
+    A_INT32 mpdus_ack_failed;
+    /* Num MPDUs that was dropped du to expiry. */
+    A_INT32 mpdus_expired;
+    /* Num mc drops */
+    //A_UINT32 mc_drop;
+#endif
 };
 
 struct wlan_dbg_rx_stats {
@@ -413,7 +515,18 @@ struct wlan_dbg_rx_stats {
     A_INT32 phy_err_drop;
     /* Number of mpdu errors - FCS, MIC, ENC etc. */
     A_INT32 mpdu_errs;
+#if defined(AR900B)
+    /* Number of rx overflow errors. */
+    A_INT32 rx_ovfl_errs;
+#endif
 };
+
+#if defined(AR900B)
+struct wlan_dbg_mem_stats {
+    A_UINT32 iram_free_size;
+    A_UINT32 dram_free_size;
+};
+#endif
 
 struct wlan_dbg_peer_stats {
 
@@ -435,12 +548,19 @@ typedef struct {
     A_UINT32 rssi_chain0;
     A_UINT32 rssi_chain1;
     A_UINT32 rssi_chain2;
+#if defined(AR900B)
+    A_UINT32 rssi_chain3;
+#endif
 } wlan_dbg_rx_rate_info_t ;
 
 typedef struct {
     A_UINT32 mcs[10];
     A_UINT32 sgi[10];
+#if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
+    A_UINT32 nss[4];
+#else
     A_UINT32 nss[3];
+#endif
     A_UINT32 stbc[10];
     A_UINT32 bw[3];
     A_UINT32 pream[4];
@@ -449,17 +569,137 @@ typedef struct {
     A_UINT32 ack_rssi;
 } wlan_dbg_tx_rate_info_t ;
 
+#if defined(AR900B)
+#define WHAL_DBG_PHY_ERR_MAXCNT 18
+#define WHAL_DBG_SIFS_STATUS_MAXCNT 8
+#define WHAL_DBG_SIFS_ERR_MAXCNT 8
+#define WHAL_DBG_CMD_RESULT_MAXCNT 8
+#define WHAL_DBG_CMD_STALL_ERR_MAXCNT 4
+#define WHAL_DBG_CMD_RESULT_MAXCNT 8
+#define WHAL_DBG_FLUSH_REASON_MAXCNT 18
+
+#define WHAL_DBG_PHY_ERR_MAXCNT 18
+#define WHAL_DBG_SIFS_ERR_MAXCNT 8
+#define WHAL_DBG_CMD_STALL_ERR_MAXCNT 4
+#define WHAL_DBG_FLUSH_REASON_MAXCNT 18
+typedef enum {
+    WIFI_URRN_STATS_FIRST_PKT,
+    WIFI_URRN_STATS_BETWEEN_MPDU,
+    WIFI_URRN_STATS_WITHIN_MPDU,
+    WHAL_MAX_URRN_STATS
+} wifi_urrn_type_t;
+
+typedef struct wlan_dbg_txbf_snd_stats {
+    A_UINT32 cbf_20[4];
+    A_UINT32 cbf_40[4];
+    A_UINT32 cbf_80[4];
+    A_UINT32 sounding[9];
+}wlan_dbg_txbf_snd_stats_t;
+
+typedef struct wlan_dbg_wifi2_error_stats {
+    A_UINT32 urrn_stats[WHAL_MAX_URRN_STATS];
+    A_UINT32 flush_errs[WHAL_DBG_FLUSH_REASON_MAXCNT];
+    A_UINT32 schd_stall_errs[WHAL_DBG_CMD_STALL_ERR_MAXCNT];
+    A_UINT32 schd_cmd_result[WHAL_DBG_CMD_RESULT_MAXCNT];
+    A_UINT32 sifs_status[WHAL_DBG_SIFS_STATUS_MAXCNT];
+    A_UINT8  phy_errs[WHAL_DBG_PHY_ERR_MAXCNT];
+    A_UINT32 rx_rate_inval;
+}wlan_dbg_wifi2_error_stats_t;
+
+typedef struct wlan_dbg_wifi2_error2_stats {
+    A_UINT32 schd_errs[WHAL_DBG_CMD_STALL_ERR_MAXCNT];
+    A_UINT32 sifs_errs[WHAL_DBG_SIFS_ERR_MAXCNT];
+}wlan_dbg_wifi2_error2_stats_t;
+
+typedef struct wlan_dbg_txbf_data_stats {
+    A_UINT32 tx_txbf_vht[10];
+    A_UINT32 rx_txbf_vht[10];
+    A_UINT32 tx_txbf_ht[8];
+    A_UINT32 tx_txbf_ofdm[8];
+    A_UINT32 tx_txbf_cck[7];
+} wlan_dbg_txbf_data_stats_t;
+
+struct wlan_dbg_tx_mu_stats {
+    A_UINT32 mu_sch_nusers_2;
+    A_UINT32 mu_sch_nusers_3;
+    A_UINT32 mu_mpdus_queued_usr[4];
+    A_UINT32 mu_mpdus_tried_usr[4];
+    A_UINT32 mu_mpdus_failed_usr[4];
+    A_UINT32 mu_mpdus_requeued_usr[4];
+    A_UINT32 mu_err_no_ba_usr[4];
+    A_UINT32 mu_mpdu_underrun_usr[4];
+    A_UINT32 mu_ampdu_underrun_usr[4];
+};
+
+struct wlan_dbg_tx_selfgen_stats {
+    A_UINT32 su_ndpa;
+    A_UINT32 su_ndp;
+    A_UINT32 mu_ndpa;
+    A_UINT32 mu_ndp;
+    A_UINT32 mu_brpoll_1;
+    A_UINT32 mu_brpoll_2;
+    A_UINT32 mu_bar_1;
+    A_UINT32 mu_bar_2;
+    A_UINT32 cts_burst;
+    A_UINT32 su_ndp_err;
+    A_UINT32 mu_ndp_err;
+    A_UINT32 mu_brp1_err;
+    A_UINT32 mu_brp2_err;
+};
+
+typedef struct wlan_dbg_sifs_resp_stats {
+    A_UINT32 ps_poll_trigger;       /* num ps-poll trigger frames */
+    A_UINT32 uapsd_trigger;         /* num uapsd trigger frames */
+    A_UINT32 qb_data_trigger[2];    /* num data trigger frames; idx 0: explicit and idx 1: implicit */
+    A_UINT32 qb_bar_trigger[2];     /* num bar trigger frames;  idx 0: explicit and idx 1: implicit */
+    A_UINT32 sifs_resp_data;        /* num ppdus transmitted at SIFS interval */
+    A_UINT32 sifs_resp_err;         /* num ppdus failed to meet SIFS resp timing */
+} wlan_dgb_sifs_resp_stats_t;
+
+
+
+/** wlan_dbg_wifi2_error_stats_t is not grouped with the
+ *  following structure as it is allocated differently and only
+ *  belongs to whal
+ */
+typedef struct wlan_dbg_stats_wifi2 {
+    wlan_dbg_txbf_snd_stats_t txbf_snd_info;
+    wlan_dbg_txbf_data_stats_t txbf_data_info;
+    struct wlan_dbg_tx_selfgen_stats tx_selfgen;
+    struct wlan_dbg_tx_mu_stats tx_mu;
+    wlan_dgb_sifs_resp_stats_t sifs_resp_info;
+} wlan_dbg_wifi2_stats_t;
+#endif
+
 typedef struct {
     wlan_dbg_rx_rate_info_t rx_phy_info;
     wlan_dbg_tx_rate_info_t tx_rate_info;
 } wlan_dbg_rate_info_t;
 
-/* Add functional stats in groups */
 
 struct wlan_dbg_stats {
     struct wlan_dbg_tx_stats tx;
     struct wlan_dbg_rx_stats rx;
+#if defined(AR900B)
+    struct wlan_dbg_mem_stats mem;
+#endif
     struct wlan_dbg_peer_stats peer;
 };
+
+#if defined(AR900B)
+#define DBG_STATS_MAX_HWQ_NUM 10
+#define DBG_STATS_MAX_TID_NUM 20
+#define DBG_STATS_MAX_CONG_NUM 16
+struct wlan_dbg_txq_stats {
+    A_UINT16 num_pkts_queued[DBG_STATS_MAX_HWQ_NUM];
+    A_UINT16 tid_hw_qdepth[DBG_STATS_MAX_TID_NUM];//WAL_MAX_TID is 20
+    A_UINT16 tid_sw_qdepth[DBG_STATS_MAX_TID_NUM];//WAL_MAX_TID is 20
+};
+
+struct wlan_dbg_tidq_stats{
+    A_UINT32 wlan_dbg_tid_txq_status;
+    struct wlan_dbg_txq_stats txq_st;
+};
+#endif
 
 #endif /* __WLANDEFS_H__ */

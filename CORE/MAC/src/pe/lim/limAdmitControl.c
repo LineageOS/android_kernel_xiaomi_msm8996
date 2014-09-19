@@ -938,6 +938,15 @@ limSendHalMsgAddTs(
     tSirMsgQ msg;
     tpAddTsParams pAddTsParam;
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tpPESession psessionEntry = peFindSessionBySessionId(pMac, sessionId);
+    if (psessionEntry == NULL) {
+       limLog( pMac, LOGP,
+          FL("Unable to get Session for session Id %d"), sessionId);
+       return eSIR_FAILURE;
+    }
+#endif
+
     pAddTsParam = vos_mem_malloc(sizeof(tAddTsParams));
     if (NULL == pAddTsParam)
     {
@@ -953,6 +962,12 @@ limSendHalMsgAddTs(
 
 #ifdef FEATURE_WLAN_ESE
     pAddTsParam->tsm_interval = tsm_interval;
+#endif
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if (pMac->roam.configParam.isRoamOffloadEnabled &&
+        psessionEntry->is11Rconnection)
+        pAddTsParam->setRICparams = 1;
 #endif
 
     msg.type = WDA_ADD_TS_REQ;
@@ -1025,6 +1040,14 @@ limSendHalMsgDelTs(
   }
   pDelTsParam->sessionId = psessionEntry->smeSessionId;
   pDelTsParam->userPrio = delts.tsinfo.traffic.userPrio;
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+  if (pMac->roam.configParam.isRoamOffloadEnabled &&
+      psessionEntry->is11Rconnection) {
+      vos_mem_copy(&pDelTsParam->delTsInfo, &delts, sizeof(tSirDeltsReqInfo));
+      pDelTsParam->setRICparams = 1;
+  }
+#endif
 
   PELOGW(limLog(pMac, LOGW, FL("calling wdaPostCtrlMsg()"));)
   MTRACE(macTraceMsgTx(pMac, sessionId, msg.type));

@@ -3806,6 +3806,13 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
     tCsrRoamSession *pCsrSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamConnectedInfo *pCsrConnectedInfo = NULL;
     tANI_U32    ricRspLen;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    tDot11fIERICDataDesc *pRicData = NULL;
+    tANI_U32 ricLen;
+    v_BOOL_t Found = false;
+    sme_QosWmmDirType direction;
+    v_U8_t ac1;
+#endif
 
     if (NULL == pCsrSession)
     {
@@ -3828,66 +3835,140 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
         (pCsrConnectedInfo->nBeaconLength + pCsrConnectedInfo->nAssocReqLength +
         pCsrConnectedInfo->nAssocRspLength));
 
-    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    if(!pCsrSession->roamOffloadSynchParams.bRoamSynchInProgress)
     {
-        pACInfo = &pSession->ac_info[ac];
-
-        for (tspec_flow_index = 0; tspec_flow_index < SME_QOS_TSPEC_INDEX_MAX; tspec_flow_index++)
+#endif
+        for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
         {
-            /* Only in the below case, copy the AC's curr QoS Info to requested QoS info */
-            if (pACInfo->ricIdentifier[tspec_flow_index])
-            {
+            pACInfo = &pSession->ac_info[ac];
 
-                if (!ricRspLen)
+            for (tspec_flow_index = 0; tspec_flow_index < SME_QOS_TSPEC_INDEX_MAX; tspec_flow_index++)
+            {
+                /* Only in the below case, copy the AC's curr QoS Info to requested QoS info */
+                if (pACInfo->ricIdentifier[tspec_flow_index])
                 {
-                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+
+                    if (!ricRspLen)
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                             FL("RIC Response not received for AC %d on TSPEC Index %d, RIC Req Identifier = %d"),
                             ac, tspec_flow_index, pACInfo->ricIdentifier[tspec_flow_index]);
-                    VOS_ASSERT(0);
-                }
-                else
-                {
-                    /* Now we got response for this identifier. Process it. */
-                    if (pRicDataDesc->present)
+                        VOS_ASSERT(0);
+                    }
+                    else
                     {
-                        if (pRicDataDesc->RICData.present)
+                        /* Now we got response for this identifier. Process it. */
+                        if (pRicDataDesc->present)
                         {
-                            if (pRicDataDesc->RICData.Identifier != pACInfo->ricIdentifier[tspec_flow_index])
+                            if (pRicDataDesc->RICData.present)
                             {
-                                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                                        FL("RIC response order not same as request sent. Request ID = %d, Response ID = %d"),
-                                        pACInfo->ricIdentifier[tspec_flow_index], pRicDataDesc->RICData.Identifier);
-                                VOS_ASSERT(0);
-                            }
-                            else
-                            {
-                                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                        FL("Processing RIC Response for AC %d, TSPEC Flow index %d with RIC ID %d "),
-                                        ac, tspec_flow_index, pRicDataDesc->RICData.Identifier);
-                                status = sme_QosProcessFTRICResponse(pMac, sessionId, pRicDataDesc, ac, tspec_flow_index);
-                                if (eHAL_STATUS_SUCCESS != status)
+                                if (pRicDataDesc->RICData.Identifier != pACInfo->ricIdentifier[tspec_flow_index])
                                 {
                                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                        FL("RIC response order not same as request sent. Request ID = %d, Response ID = %d"),
+                                        pACInfo->ricIdentifier[tspec_flow_index], pRicDataDesc->RICData.Identifier);
+                                    VOS_ASSERT(0);
+                                }
+                                else
+                                {
+                                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                        FL("Processing RIC Response for AC %d, TSPEC Flow index %d with RIC ID %d "),
+                                        ac, tspec_flow_index, pRicDataDesc->RICData.Identifier);
+                                    status = sme_QosProcessFTRICResponse(pMac, sessionId, pRicDataDesc, ac, tspec_flow_index);
+                                    if (eHAL_STATUS_SUCCESS != status)
+                                    {
+                                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                                             FL("Failed with status %d for AC %d in TSPEC Flow index = %d"),
                                             status, ac, tspec_flow_index);
+                                    }
                                 }
+                                pRicDataDesc++;
+                                ricRspLen -= sizeof(tDot11fIERICDataDesc);
                             }
-                            pRicDataDesc++;
-                            ricRspLen -= sizeof(tDot11fIERICDataDesc);
                         }
                     }
                 }
-            }
 
+            }
+        }
+
+        if (ricRspLen)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                FL("RIC Response still follows despite traversing through all ACs. Remaining len = %d"), ricRspLen);
+            VOS_ASSERT(0);
+        }
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    }
+    else
+    {
+        /* It means LFR3.0 roaming with RIC,
+         * currently we have support for WMM TSPEC alone
+         * In LFR3.0 11r since we do not have a RIC identifier
+         * maintained in host so identify the tspec from the AC
+         * and direction info */
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              FL("LFR3-11r Compare RIC in Reassoc Resp to find"
+                 " matching tspec in host."));
+
+        pRicData = pRicDataDesc;
+        ricLen = ricRspLen;
+
+        if (ricRspLen && pRicDataDesc->present &&
+            pRicDataDesc->WMMTSPEC.present) {
+            for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
+            {
+                pACInfo = &pSession->ac_info[ac];
+                for (tspec_flow_index = 0;
+                     tspec_flow_index < SME_QOS_TSPEC_INDEX_MAX;
+                     tspec_flow_index++) {
+                    if((pSession->ac_info[ac].tspec_mask_status)
+                        & (1 << tspec_flow_index)) {
+                        do {
+                            ac1 = sme_QosUpToAc(pRicData->WMMTSPEC.user_priority);
+                            if (ac == SME_QOS_EDCA_AC_MAX) {
+                              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                              FL("Invalid AC %d UP %d"), ac,
+                              pRicData->WMMTSPEC.user_priority);
+                              break;
+                            }
+                            direction = pRicData->WMMTSPEC.direction;
+
+                            if (ac == ac1 &&
+                                direction == pACInfo->requested_QoSInfo[tspec_flow_index].ts_info.direction)
+                            {
+                              /* It means we found a matching tspec */
+                              Found = true;
+                              status = sme_QosProcessFTRICResponse(pMac,
+                                                                   sessionId,
+                                                                   pRicData,
+                                                                   ac,
+                                                                   tspec_flow_index);
+                              if (eHAL_STATUS_SUCCESS != status)
+                              {
+                                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                  FL("Failed with status %d for AC %d in TSPEC Flow index = %d"),
+                                     status, ac, tspec_flow_index);
+                              }
+                              break;
+                            }
+                            pRicData++;
+                            ricLen -= sizeof(tDot11fIERICDataDesc);
+                        }while(ricLen);
+                    }
+                    pRicData = pRicDataDesc;
+                    ricLen = ricRspLen;
+                    Found = false;
+                }
+            }
+        }else {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+             FL("LFR3-11r ricRspLen is zero or pRicDataDesc is not"
+                " present or wmmtspec is not present"));
         }
     }
-
-    if (ricRspLen)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                FL("RIC Response still follows despite traversing through all ACs. Remaining len = %d"), ricRspLen);
-        VOS_ASSERT(0);
-    }
+#endif
 
     /* Send the Aggregated QoS request to HAL */
     status = sme_QosFTAggrQosReq(pMac,sessionId);
@@ -4856,6 +4937,16 @@ eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId
             break;
       }
    }
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+   if (csrRoamIs11rAssoc(pMac, sessionId)) {
+       /* Need not check here if it is LFR3.0 roaming,
+        * since ftHandoffInProgress will be true if it
+        * is 11r assoc even with LFR2.0 */
+       pSession->ftHandoffInProgress = VOS_TRUE;
+   }
+#endif
+
    // If FT handoff is in progress, legacy handoff need not be enabled
    if (!pSession->ftHandoffInProgress) {
        pSession->handoffRequested = VOS_TRUE;
