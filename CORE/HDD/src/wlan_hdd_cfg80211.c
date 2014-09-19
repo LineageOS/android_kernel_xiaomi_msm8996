@@ -4009,8 +4009,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     }
     else
     {
-        isConnected = hdd_connIsConnected(pHddStaCtx);
-        vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
+        vos_mem_copy(setKey.peerMac, mac_addr, VOS_MAC_ADDR_SIZE);
     }
     setKey.keyLength = key_Len;
     pKeyPtr = setKey.Key;
@@ -4340,8 +4339,9 @@ static void wlan_hdd_add_hostapd_conf_vsie(hdd_adapter_t* pHostapdAdapter,
     return;
 }
 
-static void wlan_hdd_add_obss_scan_param_ie(hdd_adapter_t* pHostapdAdapter,
-                                           v_U8_t *genie, v_U8_t *total_ielen)
+static void wlan_hdd_add_extra_ie(hdd_adapter_t* pHostapdAdapter,
+                                           v_U8_t *genie, v_U8_t *total_ielen,
+                                           v_U8_t temp_ie_id)
 {
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
     int left = pBeacon->tail_len;
@@ -4365,7 +4365,7 @@ static void wlan_hdd_add_obss_scan_param_ie(hdd_adapter_t* pHostapdAdapter,
             return;
         }
 
-        if (WLAN_EID_OVERLAP_BSS_SCAN_PARAM == elem_id)
+        if (temp_ie_id == elem_id)
         {
             ielen = ptr[1] + 2;
             if ((*total_ielen + ielen) <= MAX_GENIE_LEN)
@@ -4437,6 +4437,14 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
          goto done;
     }
 
+#ifdef FEATURE_WLAN_WAPI
+    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
+    {
+        wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
+                WLAN_EID_WAPI);
+    }
+#endif
+
     if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
     {
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
@@ -4444,7 +4452,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
 
     if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
     {
-        wlan_hdd_add_obss_scan_param_ie(pHostapdAdapter, genie, &total_ielen);
+        wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
+                WLAN_EID_OVERLAP_BSS_SCAN_PARAM);
     }
 
     vos_mem_copy(updateIE.bssid, pHostapdAdapter->macAddressCurrent.bytes,
@@ -9055,11 +9064,14 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
 {
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     ENTER();
-
+    /* Should be in ieee802_11_defs.h */
+#define WLAN_AKM_SUITE_8021X_SHA256 0x000FAC05
+#define WLAN_AKM_SUITE_PSK_SHA256   0x000FAC06
     /*set key mgmt type*/
     switch(key_mgmt)
     {
         case WLAN_AKM_SUITE_PSK:
+        case WLAN_AKM_SUITE_PSK_SHA256:
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case WLAN_AKM_SUITE_FT_PSK:
 #endif
@@ -9068,6 +9080,7 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_PSK;
             break;
 
+        case WLAN_AKM_SUITE_8021X_SHA256:
         case WLAN_AKM_SUITE_8021X:
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case WLAN_AKM_SUITE_FT_8021X:

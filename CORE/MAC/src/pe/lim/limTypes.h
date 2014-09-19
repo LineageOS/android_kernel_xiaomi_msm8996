@@ -246,6 +246,7 @@ typedef struct sLimMlmAssocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirWAPIie           wapiIE;
     tSirAddie            addIE; // additional IE received from the peer, which possibly includes WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniBool                spectrumMgtIndicator;
@@ -288,6 +289,7 @@ typedef struct sLimMlmReassocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirWAPIie           wapiIE;
     tSirAddie            addIE; // additional IE received from the peer, which can be WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniBool                spectrumMgtIndicator;

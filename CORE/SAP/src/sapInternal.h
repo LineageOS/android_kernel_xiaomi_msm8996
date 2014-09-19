@@ -218,6 +218,11 @@ typedef struct sSapContext {
     tSirAPWPSIEs      APWPSIEs;
     tSirRSNie         APWPARSNIEs;
 
+#ifdef FEATURE_WLAN_WAPI
+    v_U32_t           nStaWAPIReqIeLength;
+    v_U8_t            pStaWapiReqIE[MAX_ASSOC_IND_IE_LEN];
+#endif
+
     v_U32_t           nStaAddIeLength;
     v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN];
     v_U8_t            *channelList;
@@ -261,6 +266,7 @@ typedef struct sSapContext {
 #endif
     tANI_BOOLEAN       isCacEndNotified;
     tANI_BOOLEAN       isCacStartNotified;
+    tANI_BOOLEAN       is_sap_ready_for_chnl_chng;
 } *ptSapContext;
 
 
@@ -893,6 +899,37 @@ v_BOOL_t
 sapChannelMatrixCheck(ptSapContext sapContext,
                       ePhyChanBondState cbMode,
                       v_U8_t target_channel);
+
+/*
+ * This function will find the concurrent sap context apart from
+ * passed sap context and return its channel change ready status
+ *
+ * PARAMETERS
+ * IN
+ * sapContext: pointer to sap context
+ * hHal: pointer to hal structure.
+ *
+ * RETURN VALUE
+ * v_BOOL_t
+ * returns change change ready indication for concurrent sapctx
+ */
+v_BOOL_t is_concurrent_sap_ready_for_channel_change(tHalHandle hHal,
+                                                    ptSapContext sapContext);
+
+/*
+ * This function will calculate how many interfaces
+ * have sap persona and returns total number of sap persona.
+ *
+ * PARAMETERS
+ * IN
+ * hHal: pointer to hal structure.
+ *
+ * RETURN VALUE
+ * v_U8_t
+ * Returns total number of sap interfaces.
+ *
+ */
+v_U8_t sap_get_total_number_sap_intf(tHalHandle hHal);
 #ifdef __cplusplus
 }
 #endif

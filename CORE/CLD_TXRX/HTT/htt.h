@@ -1638,6 +1638,8 @@ struct htt_rx_in_ord_paddr_ind_msdu_t
 #define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_S      8
 #define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_M      0x00002000
 #define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_S      13
+#define HTT_RX_IN_ORD_PADDR_IND_FRAG_M         0x4000
+#define HTT_RX_IN_ORD_PADDR_IND_FRAG_S         14
 #define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_M      0xffff0000
 #define HTT_RX_IN_ORD_PADDR_IND_PEER_ID_S      16
 #define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_M       0x000000ff
@@ -1713,9 +1715,12 @@ struct htt_rx_in_ord_paddr_ind_msdu_t
         HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_IND_OFFLOAD, value);                    \
         (word) |= (value)  << HTT_RX_IN_ORD_IND_OFFLOAD_S;                      \
     } while (0)
+
 #define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_GET(word) \
     (((word) & HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_M) >> HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_S)
 
+#define HTT_RX_IN_ORD_PADDR_IND_FRAG_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_FRAG_M) >> HTT_RX_IN_ORD_PADDR_IND_FRAG_S)
 
 /* definitions used within target -> host rx indication message */
 

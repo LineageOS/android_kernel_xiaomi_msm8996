@@ -131,6 +131,20 @@ tSirRetStatus ConvertWPAOpaque( tpAniSirGlobal      pMac,
     return eSIR_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_WAPI
+tSirRetStatus ConvertWAPIOpaque( tpAniSirGlobal      pMac,
+                                tSirMacWapiInfo     *pOld,
+                                tDot11fIEWAPIOpaque *pNew )
+{
+    // This is awful, I know, but the old code just rammed the IE into
+    // an opaque array.  Note that we need to explicitly add the OUI!
+    pOld->length    = pNew->num_data;
+    vos_mem_copy( pOld->info , pNew->data, pNew->num_data );
+
+    return eSIR_SUCCESS;
+}
+#endif
+
 tSirRetStatus ConvertWscOpaque( tpAniSirGlobal      pMac,
                                 tSirAddie           *pOld,
                                 tDot11fIEWscIEOpaque *pNew )
