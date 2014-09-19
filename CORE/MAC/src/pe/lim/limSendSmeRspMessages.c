@@ -3209,7 +3209,7 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
    if((psessionEntry =
        peFindSessionByBssIdx(pMac, pBcnTxInd->bssIdx))== NULL)
    {
-       limLog(pMac, LOGP,FL("Session Does not exist for given sessionID"));
+       limLog(pMac, LOGE,FL("Session Does not exist for given sessionID"));
        return;
    }
 
