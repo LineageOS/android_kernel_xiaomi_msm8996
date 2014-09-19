@@ -35,7 +35,6 @@
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include "cld-diag-parser.h"
-#include "diaglogi.h"
 #ifdef CONFIG_ANDROID_LOG
 #include <android/log.h>
 
@@ -973,10 +972,24 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
                               );
             }
             else {
-              snprintf(buf, BUF_SIZ,
-                       "****WARNING****, FWMSG ID %d not found", id);
-              diag_printf(buf, 0, 4, optionflag, timestamp);
-              printf( "NOT found id = %d\n", id);
+                switch (id) {
+                case DIAG_WLAN_MODULE_STA_PWRSAVE:
+                case DIAG_WLAN_MODULE_WAL:
+                case DIAG_NAN_MODULE_ID:
+                case DIAG_WLAN_MODULE_IBSS_PWRSAVE:
+                    if (!diag_msg_handler(id, payload, vdevid, timestamp)) {
+                        snprintf(buf, BUF_SIZ,
+                            "****WARNING****, undefined moduleid = %d no t"
+                            " found", moduleid);
+                        diag_printf(buf, 0, 4, optionflag, timestamp);
+                    }
+                break;
+                default:
+                    snprintf(buf, BUF_SIZ,
+                             "****WARNING****, FWMSG ID %d not found", id);
+                    diag_printf(buf, 0, 4, optionflag, timestamp);
+                    printf( "NOT found id = %d\n", id);
+                }
             }
         }
         break;

@@ -2677,6 +2677,8 @@ IE ExtCap (EID_EXT_CAP)
         reserved3:                      1;
         spsmpCap:                       1;
         event:                          1;
+    }
+    {
         diagnostics:                    1;
         multiDiagnostics:               1;
         locTracking:                    1;
@@ -2685,6 +2687,8 @@ IE ExtCap (EID_EXT_CAP)
         coLocIntfReporting:             1;
         civicLoc:                       1;
         geospatialLoc:                  1;
+    }
+    {
         TFS:                            1;
         wnmSleepMode:                   1;
         timBroadcast:                   1;
@@ -2693,6 +2697,8 @@ IE ExtCap (EID_EXT_CAP)
         acStaCnt:                       1;
         multiBSSID:                     1;
         timingMeas:                     1;
+    }
+    {
         chanUsage:                      1;
         ssidList:                       1;
         DMS:                            1;
@@ -2711,18 +2717,43 @@ IE ExtCap (EID_EXT_CAP)
         TDLSSupport:                    1;
         TDLSProhibited:                 1;
         TDLSChanSwitProhibited:         1;
+    }
+    {
         rejectUnadmittedTraffic:        1;
         serviceIntervalGranularity:     3;
         identifierLoc:                  1;
         uapsdCoexistence:               1;
         wnmNotification:                1;
-        reserved5:                      1;
+        QABcapbility:                   1;
     }
     {
         UTF8SSID:                       1;
-        reserved6:                      12;
+        QMFActivated:                   1;
+        QMFreconAct:                    1;
+        RobustAVStreaming:              1;
+        AdvancedGCR:                    1;
+        MeshGCR:                        1;
+        SCS:                            1;
+        QLoadReport:                    1;
+    }
+    {
+        AlternateEDCA:                  1;
+        UnprotTXOPneg:                  1;
+        ProtTXOPneg:                    1;
+        reserved6:                      1;
+        ProtQLoadReport:                1;
         TDLSWiderBW:                    1;
         operModeNotification:           1;
+        maxNumOfMSDU_bit1:              1;
+    }
+    {
+        maxNumOfMSDU_bit2:              1;
+        ChanSchMgmt:                    1;
+        GeoDBInbandEnSignal:            1;
+        NwChanControl:                  1;
+        WhiteSpaceMap:                  1;
+        ChanAvailQuery:                 1;
+        fineTimingMeas:                 1;
         reserved7:                      1;
     }
 }

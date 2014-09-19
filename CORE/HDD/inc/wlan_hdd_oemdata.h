@@ -143,7 +143,12 @@ typedef PACKED_PRE struct PACKED_POST
     /* vdev_id for the peer mac */
     tANI_U8 vdev_id;
 
-    /* peer capability: 0: RTT/RTT2, 1: RTT3. Default is 0 */
+    /* peer capability:
+     * 0: RTT/RTT2
+     * 1: RTT3(timing Meas Capability)
+     * 2: RTT3(fine timing Meas Capability)
+     * Default is 0
+     */
     tANI_U32 peer_capability;
 
     /* reserved0 */

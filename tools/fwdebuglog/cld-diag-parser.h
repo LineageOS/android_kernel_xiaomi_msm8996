@@ -210,6 +210,12 @@ static inline unsigned int get_32(const unsigned char *pos)
 #define DIAG_MSG_MAX_LEN 4096
 #define DIAG_MSG_OVERHEAD_LEN 48
 
+/* SPECIAL DIAG HANDLING*/
+#define DIAG_WLAN_MODULE_STA_PWRSAVE  34292
+#define DIAG_WLAN_MODULE_WAL          42996
+#define DIAG_NAN_MODULE_ID            56820
+#define DIAG_WLAN_MODULE_IBSS_PWRSAVE 57332
+
 #define RESTART_LEVEL     \
     "echo related > /sys/bus/msm_subsys/devices/subsys4/restart_level"
 #define DB_FILE_PATH        "/firmware/image/Data.msc"
@@ -247,11 +253,13 @@ diag_initialize(boolean isDriverLoaded, int sock_fd, uint32_t optionflag);
 void
 process_diaghost_msg(uint8_t *datap, uint16_t len);
 
-
 uint32_t
 process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         FILE *log_out, int32_t *record, int32_t max_records, int32_t version,
         int sock_fd);
+
+int
+diag_msg_handler(uint32_t id, char *payload,  uint16_t vdevid, uint32_t timestamp);
 
 #endif
 

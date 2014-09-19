@@ -3231,13 +3231,21 @@ eHalStatus sme_QosESEProcessReassocTspecRsp(tpAniSirGlobal pMac, v_U8_t sessionI
     sme_QosSessionInfo *pSession;
     sme_QosACInfo *pACInfo;
     tDot11fIEWMMTSPEC *pTspecIE = NULL;
-    tCsrRoamSession *pCsrSession = CSR_GET_SESSION( pMac, sessionId );
-    tCsrRoamConnectedInfo *pCsrConnectedInfo = &pCsrSession->connectedInfo;
+    tCsrRoamSession *pCsrSession = NULL;
+    tCsrRoamConnectedInfo *pCsrConnectedInfo = NULL;
     eHalStatus status = eHAL_STATUS_FAILURE;
     v_U8_t ac, numTspec, cnt;
     v_U8_t tspec_flow_index, tspec_mask_status;
     v_U32_t tspecIeLen;
 
+    pCsrSession = CSR_GET_SESSION(pMac, sessionId);
+    if (NULL == pCsrSession) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("session %d not found"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pCsrConnectedInfo = &pCsrSession->connectedInfo;
     pSession = &sme_QosCb.sessionInfo[sessionId];
 
     // Get the TSPEC IEs which came along with the reassoc response
