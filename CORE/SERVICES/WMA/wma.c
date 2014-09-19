@@ -22651,7 +22651,11 @@ static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 		return;
 	}
 	ho_failure_ind->sessionId = vdev_id;
-
+	/* Hand Off Failure could happen as an exception, when a roam synch
+	 * indication is posted to Host, but a roam synch complete is not
+	 * posted to the firmware.So, clear the roam synch in progress
+	 * flag before disconnecting the session through this event.*/
+	wma->interfaces[vdev_id].roam_synch_in_progress = VOS_FALSE;
 	sme_msg.type = eWNI_SME_HO_FAIL_IND;
 	sme_msg.bodyptr = ho_failure_ind;
 	sme_msg.bodyval = 0;
