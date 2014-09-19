@@ -82,6 +82,16 @@ typedef enum {
    TDLS = 6,
    P2P_GO_NOA_DECOUPLE_INIT_SCAN = 7,
    WLANACTIVE_OFFLOAD = 8,
+#ifdef FEATURE_WLAN_EXTSCAN
+   EXTENDED_SCAN = 9,
+#endif
+#ifdef FEATURE_WLAN_SCAN_PNO
+   PNO = 10,
+#endif
+#ifdef WLAN_FEATURE_NAN
+   NAN = 11,
+#endif
+   RTT = 12,
    WOW = 22,
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
    WLAN_ROAM_SCAN_OFFLOAD = 23,
@@ -90,10 +100,11 @@ typedef enum {
    WLAN_PERIODIC_TX_PTRN = 28,
 #ifdef FEATURE_WLAN_TDLS
    ADVANCE_TDLS = 29,
+   TDLS_OFF_CHANNEL = 30,
 #endif
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-   BATCH_SCAN = 30,
+   BATCH_SCAN = 31,
 #endif
    //MAX_FEATURE_SUPPORTED = 128
 } placeHolderInCapBitmap;

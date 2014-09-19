@@ -164,6 +164,8 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_TDLS_DISABLE = 35,
     QCA_NL80211_VENDOR_SUBCMD_TDLS_GET_STATUS = 36,
     QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE = 37,
+    /* Get supported features */
+    QCA_NL80211_VENDOR_SUBCMD_GET_SUPPORTED_FEATURES = 38,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -788,6 +790,39 @@ enum qca_wlan_vendor_attr_ll_stats_results
 };
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+enum qca_wlan_vendor_attr_get_supported_features {
+    QCA_WLAN_VENDOR_ATTR_FEATURE_SET_INVALID = 0,
+    /* Unsigned 32-bit value */
+    QCA_WLAN_VENDOR_ATTR_FEATURE_SET = 1,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_FEATURE_SET_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_FEATURE_SET_MAX =
+        QCA_WLAN_VENDOR_ATTR_FEATURE_SET_AFTER_LAST - 1,
+};
+
+/* Feature defines */
+#define WIFI_FEATURE_INFRA              0x0001   /* Basic infrastructure mode */
+#define WIFI_FEATURE_INFRA_5G           0x0002   /* Support for 5 GHz Band */
+#define WIFI_FEATURE_HOTSPOT            0x0004   /* Support for GAS/ANQP */
+#define WIFI_FEATURE_P2P                0x0008   /* Wifi-Direct */
+#define WIFI_FEATURE_SOFT_AP            0x0010   /* Soft AP */
+#define WIFI_FEATURE_EXTSCAN            0x0020   /* Extended Scan APIs */
+#define WIFI_FEATURE_NAN                0x0040   /* Neighbor Awareness
+                                                    Networking */
+#define WIFI_FEATURE_D2D_RTT            0x0080   /* Device-to-device RTT */
+#define WIFI_FEATURE_D2AP_RTT           0x0100   /* Device-to-AP RTT */
+#define WIFI_FEATURE_BATCH_SCAN         0x0200   /* Batched Scan (legacy) */
+#define WIFI_FEATURE_PNO                0x0400   /* Preferred network offload */
+#define WIFI_FEATURE_ADDITIONAL_STA     0x0800   /* Support for two STAs */
+#define WIFI_FEATURE_TDLS               0x1000   /* Tunnel directed link
+                                                    setup */
+#define WIFI_FEATURE_TDLS_OFFCHANNEL    0x2000   /* Support for TDLS off
+                                                    channel */
+#define WIFI_FEATURE_EPR                0x4000   /* Enhanced power reporting */
+#define WIFI_FEATURE_AP_STA             0x8000   /* Support for AP STA
+                                                    Concurrency */
+/* Add more features here */
 
 
 #if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)

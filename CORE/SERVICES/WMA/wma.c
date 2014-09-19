@@ -24048,15 +24048,27 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	}
 #endif
 
+#ifdef FEATURE_WLAN_EXTSCAN
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+		WMI_SERVICE_EXTSCAN)) {
+		gFwWlanFeatCaps |= (1 << EXTENDED_SCAN);
+	}
+#endif
 	cfg->lte_coex_ant_share = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					WMI_SERVICE_LTE_ANT_SHARE_SUPPORT);
 #ifdef FEATURE_WLAN_TDLS
 	/* Enable TDLS */
-	cfg->en_tdls = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
-	                                      WMI_SERVICE_TDLS);
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_TDLS)) {
+		cfg->en_tdls = 1;
+		gFwWlanFeatCaps |= (1 << TDLS);
+	}
 	/* Enable advanced TDLS features */
-	cfg->en_tdls_offchan = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
-	                                      WMI_SERVICE_TDLS_OFFCHAN);
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+                                   WMI_SERVICE_TDLS_OFFCHAN)) {
+		cfg->en_tdls_offchan = 1;
+		gFwWlanFeatCaps |= (1 << TDLS_OFF_CHANNEL);
+	}
+
 	cfg->en_tdls_uapsd_buf_sta = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 	                                      WMI_SERVICE_TDLS_UAPSD_BUFFER_STA);
 	cfg->en_tdls_uapsd_sleep_sta = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
@@ -24069,6 +24081,11 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_roam_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 	                                      WMI_SERVICE_ROAM_HO_OFFLOAD);
 #endif
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NAN))
+		gFwWlanFeatCaps |= (1 << NAN);
+
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_RTT))
+		gFwWlanFeatCaps |= (1 << RTT);
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,
