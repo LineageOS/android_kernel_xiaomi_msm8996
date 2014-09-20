@@ -341,6 +341,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #define WE_GET_OEM_DATA_CAP  13
 #endif
+#define WE_GET_SNR           14
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
@@ -7244,6 +7245,38 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             return iw_get_oem_data_cap(dev, info, wrqu, extra);
         }
 #endif /* FEATURE_OEM_DATA_SUPPORT */
+        case WE_GET_SNR:
+        {
+            v_S7_t s7snr = 0;
+            int status = 0;
+            hdd_context_t *pHddCtx;
+            hdd_station_ctx_t *pHddStaCtx;
+
+            pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+            status = wlan_hdd_validate_context(pHddCtx);
+            if (0 != status)
+            {
+                hddLog(LOGE, "%s: getSNR: HDD context is not valid", __func__);
+                return status;
+            }
+
+            pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+            if (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring ||
+                eConnectionState_Associated != pHddStaCtx->conn_info.connState)
+            {
+                hddLog(LOGE, "%s: getSNR failed: Enable SNR Monitoring-%d,"
+                       " ConnectionState-%d", __func__,
+                       pHddCtx->cfg_ini->fEnableSNRMonitoring,
+                       pHddStaCtx->conn_info.connState);
+                return -ENONET;
+            }
+
+            wlan_hdd_get_snr(pAdapter, &s7snr);
+            snprintf(extra, WE_MAX_STR_LEN, "snr=%d",s7snr);
+            wrqu->data.length = strlen(extra) + 1;
+            break;
+        }
         default:
         {
             hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
@@ -10540,6 +10573,10 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getOemDataCap" },
 #endif /* FEATURE_OEM_DATA_SUPPORT */
+    {   WE_GET_SNR,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getSNR" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_NONE,

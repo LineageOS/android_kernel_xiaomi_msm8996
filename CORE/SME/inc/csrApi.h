@@ -1329,6 +1329,7 @@ typedef struct tagCsrRoamInfo
     tANI_S8 rxRssi;
     tSirSmeDfsEventInd dfs_event;
     tSirChanChangeResponse *channelChangeRespEvent;
+    /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8 timingMeasCap;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tANI_U8 roamSynchInProgress;
@@ -1362,6 +1363,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tSirWAPIie           wapiIE;          // WAPI IE received from peer
     tSirAddie            addIE;           // Additional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
+    /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8              timingMeasCap;
     tSirSmeChanInfo      chan_info;
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;

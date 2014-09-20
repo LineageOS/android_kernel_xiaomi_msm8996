@@ -608,8 +608,6 @@ static v_BOOL_t hdd_ipa_uc_find_add_assoc_sta(
 static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
-	struct ipa_msg_meta meta;
-	struct ipa_wlan_msg *msg;
 
 	/* ACTIVATE TX PIPE */
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
@@ -651,53 +649,12 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
 		VOS_TRUE, VOS_FALSE);
 
-	/* This should be handled async manner */
-	meta.msg_len = sizeof(struct ipa_wlan_msg);
-	msg = adf_os_mem_alloc(NULL, meta.msg_len);
-	if (msg == NULL) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"msg allocation failed");
-		return -ENOMEM;
-	}
-
-	meta.msg_type = SW_ROUTING_DISABLE;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
-		msg->name, meta.msg_type);
-	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
-	if (result) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
-			"%s: Evt: %d fail:%d",
-			msg->name, meta.msg_type,  result);
-		adf_os_mem_free(msg);
-		return result;
-	}
 	return 0;
 }
 
 static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
-	struct ipa_msg_meta meta;
-	struct ipa_wlan_msg *msg;
-
-	meta.msg_len = sizeof(struct ipa_wlan_msg);
-	msg = adf_os_mem_alloc(NULL, meta.msg_len);
-	if (msg == NULL) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"msg allocation failed");
-		return -ENOMEM;
-	}
-
-	meta.msg_type = SW_ROUTING_ENABLE;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: SW PATH ENA", __func__);
-
-	result = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
-	if (result) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
-				msg->name, meta.msg_type,  result);
-		adf_os_mem_free(msg);
-		return result;
-	}
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);

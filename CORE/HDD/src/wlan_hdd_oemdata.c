@@ -819,6 +819,7 @@ void hdd_SendPeerStatusIndToOemApp(v_MACADDR_t *peerMac,
                 sizeof(peerMac->bytes));
    pPeerInfo->peer_status = peerStatus;
    pPeerInfo->vdev_id = sessionId;
+   /* peerTimingMeasCap - bit mask for timing and fine timing Meas Cap */
    pPeerInfo->peer_capability = peerTimingMeasCap;
    pPeerInfo->reserved0 = 0;
 

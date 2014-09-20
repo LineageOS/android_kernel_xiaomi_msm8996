@@ -1081,7 +1081,7 @@ PopulateDot11fExtCap(tpAniSirGlobal   pMac,
 
     if (val)   // If set to true then set RTTv3
     {
-       pDot11f->timingMeas = 1;
+       pDot11f->fineTimingMeas = 1;
     }
 
 #ifdef QCA_HT_2040_COEX
@@ -2457,8 +2457,9 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     if (ar->ExtCap.present)
     {
         vos_mem_copy(&pAssocReq->ExtCap, &ar->ExtCap, sizeof(tDot11fIEExtCap));
-        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
-               ar->ExtCap.timingMeas);
+        limLog(pMac, LOG1,
+               FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
+               ar->ExtCap.timingMeas, ar->ExtCap.fineTimingMeas);
     }
     vos_mem_free(ar);
     return eSIR_SUCCESS;
@@ -2634,8 +2635,9 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
     if (ar.ExtCap.present)
     {
         vos_mem_copy(&pAssocRsp->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
-        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
-               ar.ExtCap.timingMeas);
+        limLog(pMac, LOG1,
+               FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
+               ar.ExtCap.timingMeas, ar.ExtCap.fineTimingMeas);
     }
 
     if ( ar.QosMapSet.present )
@@ -2829,8 +2831,9 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     if (ar.ExtCap.present)
     {
         vos_mem_copy(&pAssocReq->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
-        limLog(pMac, LOG1, FL("ExtCap is present, timingMeas: %d"),
-               ar.ExtCap.timingMeas);
+        limLog(pMac, LOG1,
+               FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
+               ar.ExtCap.timingMeas, ar.ExtCap.fineTimingMeas);
     }
 
     return eSIR_SUCCESS;

@@ -11115,8 +11115,12 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
        else
            preOffChanOffset = BW40_LOW_PRIMARY;
 
-       pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
-           regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+       if (peerStateParams->peerCap.opClassForPrefOffChanIsSet)
+           pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+               peerStateParams->peerCap.opClassForPrefOffChan;
+       else
+           pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+               regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
                            pTdlsPeerStateParams->peerCap.prefOffChanNum,
                            preOffChanOffset);
 
@@ -11130,6 +11134,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
           vos_mem_free(pTdlsPeerStateParams);
           status = eHAL_STATUS_FAILURE;
        }
+
        sme_ReleaseGlobalLock(&pMac->sme);
     }
     return(status);
