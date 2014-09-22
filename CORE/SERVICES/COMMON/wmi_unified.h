@@ -176,6 +176,7 @@ typedef enum {
     WMI_GRP_LPI,
     WMI_GRP_EXTSCAN,
     WMI_GRP_DHCP_OFL,
+    WMI_GRP_IPA,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -679,6 +680,8 @@ typedef enum {
     /** DHCP server offload commands */
     WMI_SET_DHCP_SERVER_OFFLOAD_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_DHCP_OFL),
 
+    /** IPA Offload features related commands */
+    WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_IPA),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -8808,6 +8811,36 @@ typedef struct {
     A_UINT32 start_lsb; /* starting address assigned to client */
     A_UINT32 num_client; /* number of clients we support */
 } wmi_set_dhcp_server_offload_cmd_fixed_param;
+
+typedef enum {
+    AP_RX_DATA_OFFLOAD             = 0x00,
+    STA_RX_DATA_OFFLOAD            = 0x01,
+} wmi_ipa_offload_types;
+
+/**
+ * This command is sent from WLAN host driver to firmware for
+ * enabling/disabling IPA data-path offload features.
+ *
+ *
+ * Enabling data path offload to IPA(based on host INI configuration), example:
+ *    when STA interface comes up,
+ *    host->target: WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMD,
+ *                  (enable = 1, vdev_id = STA vdev id, offload_type = STA_RX_DATA_OFFLOAD)
+ *
+ * Disabling data path offload to IPA, example:
+ *    host->target: WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMD,
+ *                  (enable = 0, vdev_id = STA vdev id, offload_type = STA_RX_DATA_OFFLOAD)
+ *
+ *
+ * This command is applicable only on the PCIE LL systems
+ *
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_ipa_offload_enable_disable_cmd_fixed_param */
+    A_UINT32 offload_type; /* wmi_ipa_offload_types enum values */
+    A_UINT32 vdev_id;
+    A_UINT32 enable; /* 1 == enable, 0 == disable */
+} wmi_ipa_offload_enable_disable_cmd_fixed_param;
 
 #ifdef __cplusplus
 }

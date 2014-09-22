@@ -508,7 +508,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_ric_tspec,
-    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config,
+    WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -696,7 +697,8 @@ typedef enum {
     OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID) \
     OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
     OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
-    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID)
+    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID) \
+    OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)
 
 
 
@@ -1925,6 +1927,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
 #define WMITLV_TABLE_WMI_SET_DHCP_SERVER_OFFLOAD_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param, wmi_set_dhcp_server_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
+
+/* IPA Offload Enable Disable Cmd */
+#define WMITLV_TABLE_WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID(id,op,buf,len)                                                         \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param, wmi_ipa_offload_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
