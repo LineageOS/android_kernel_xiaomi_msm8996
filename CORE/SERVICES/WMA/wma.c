@@ -2578,14 +2578,20 @@ static int wma_extscan_operations_event_handler(void *handle,
 	oprn_ind->requestId = oprn_event->request_id;
 
 	switch (oprn_event->event) {
-	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
+	case WMI_EXTSCAN_BUCKET_COMPLETED_EVENT:
 		oprn_ind->scanEventType =  WIFI_SCAN_COMPLETE;
 		oprn_ind->status = 0;
 		break;
-	case WMI_EXTSCAN_BUCKET_OVERRUN_EVENT:
-		oprn_ind->scanEventType =  WIFI_SCAN_BUFFER_FULL;
-		oprn_ind->status = 0;
-		break;
+	case WMI_EXTSCAN_CYCLE_STARTED_EVENT:
+		vos_wake_lock_acquire(&wma->extscan_wake_lock);
+		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_STARTED_EVENT",
+			 __func__);
+		goto exit_handler;
+	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
+		vos_wake_lock_release(&wma->extscan_wake_lock);
+		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_COMPLETED_EVENT",
+			__func__);
+		goto exit_handler;
 	default:
 		WMA_LOGE("%s: Unknown event(%d) from target",
 			__func__, oprn_event->event);
@@ -2595,6 +2601,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
+exit_handler:
 	WMA_LOGD("%s: sending scan progress event to hdd",
 		__func__);
 	vos_mem_free(oprn_ind);
@@ -5115,6 +5122,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_init(&wma_handle->pno_wake_lock, "wlan_pno_wl");
 #endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_init(&wma_handle->extscan_wake_lock,
+					"wlan_extscan_wl");
+#endif
 		vos_wake_lock_init(&wma_handle->wow_wake_lock, "wlan_wow_wl");
 	}
 
@@ -5449,6 +5460,9 @@ err_wma_handle:
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_destroy(&wma_handle->extscan_wake_lock);
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
@@ -21153,8 +21167,6 @@ static VOS_STATUS wma_process_ll_stats_getReq
 				WMI_SCAN_ADD_OFDM_RATES |
 				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
-	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
-					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
 	cmd->num_ssids = 0;
 	cmd->num_bssid = 0;
 	cmd->ie_len = 0;
@@ -21207,6 +21219,13 @@ static VOS_STATUS wma_process_ll_stats_getReq
 			dest_blist->forwarding_flags =
 				WMI_EXTSCAN_NO_FORWARDING;
 		}
+		if (src_bucket->reportEvents >= 1)
+			dest_blist->notify_extscan_events =
+					WMI_EXTSCAN_BUCKET_COMPLETED_EVENT;
+		if (src_bucket->reportEvents >= 2)
+			dest_blist->notify_extscan_events |=
+				WMI_EXTSCAN_CYCLE_STARTED_EVENT |
+				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT;
 
 		dest_blist->min_dwell_time_active = dwelltime;
 		dest_blist->max_dwell_time_active = dwelltime;
@@ -24250,6 +24269,9 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_destroy(&wma_handle->extscan_wake_lock);
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}

@@ -697,6 +697,9 @@ typedef struct {
 #ifdef FEATURE_WLAN_SCAN_PNO
 	vos_wake_lock_t pno_wake_lock;
 #endif
+#ifdef FEATURE_WLAN_EXTSCAN
+	vos_wake_lock_t extscan_wake_lock;
+#endif
 	vos_wake_lock_t wow_wake_lock;
 	int wow_nack;
 	u_int32_t ap_client_cnt;
