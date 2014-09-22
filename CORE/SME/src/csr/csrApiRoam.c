@@ -9660,26 +9660,14 @@ static void csrUpdateRssi(tpAniSirGlobal pMac, void* pMsg)
 
 static void csrUpdateSnr(tpAniSirGlobal pMac, void* pMsg)
 {
-    tANI_S8  snr = 0;
     tAniGetSnrReq *pGetSnrReq = (tAniGetSnrReq*)pMsg;
 
     if (pGetSnrReq)
     {
         if (VOS_STATUS_SUCCESS !=
-            WDA_GetSnr(pGetSnrReq->staId, &snr))
+            WDA_GetSnr(pGetSnrReq))
         {
-            smsLog(pMac, LOGE, FL("Error in WLANTL_GetSnr"));
-            return;
-        }
-
-        if (pGetSnrReq->snrCallback)
-        {
-            ((tCsrSnrCallback)(pGetSnrReq->snrCallback))(snr, pGetSnrReq->staId,
-                                                       pGetSnrReq->pDevContext);
-        }
-        else
-        {
-            smsLog(pMac, LOGE, FL("pGetSnrReq->snrCallback is NULL"));
+            smsLog(pMac, LOGE, FL("Error in WDA_GetSnr"));
             return;
         }
     }
@@ -9687,6 +9675,7 @@ static void csrUpdateSnr(tpAniSirGlobal pMac, void* pMsg)
     {
         smsLog(pMac, LOGE, FL("pGetSnrReq is NULL"));
     }
+
     return;
 }
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)

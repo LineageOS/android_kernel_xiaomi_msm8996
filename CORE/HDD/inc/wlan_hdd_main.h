@@ -224,10 +224,6 @@
 #define HDD_MIN_TX_POWER (-100) // minimum tx power
 #define HDD_MAX_TX_POWER (+100)  // maximum tx power
 
-#ifdef WLAN_FEATURE_LPSS
-#define HDD_RSSI_THRESHOLD  10 /* RSSI threshold set to 10 for temp */
-#endif
-
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*
@@ -1009,7 +1005,7 @@ struct hdd_adapter_s
 
    v_S7_t rssi;
 #ifdef WLAN_FEATURE_LPSS
-   v_S7_t last_rssi_send;
+   v_BOOL_t rssi_send;
 #endif
 
    tANI_U8 snr;

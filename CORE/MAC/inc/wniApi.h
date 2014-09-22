@@ -400,7 +400,7 @@ enum eWniMsgTypes
     eWNI_SME_READY_TO_EXTWOW_IND,
 #endif
     eWNI_SME_MSG_GET_TEMPERATURE_IND,
-
+    eWNI_SME_SNR_IND,
     eWNI_SME_MSG_TYPES_END
 };
 

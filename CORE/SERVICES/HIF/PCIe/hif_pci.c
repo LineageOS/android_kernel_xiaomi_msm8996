@@ -713,7 +713,12 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
             return 0;
         }
 
-
+        /* Make sure that HTC registered call backs with the HIF are valid */
+        if (!msg_callbacks->fwEventHandler
+               || !msg_callbacks->txCompletionHandler
+               || !msg_callbacks->rxCompletionHandler) {
+            return 0;
+        }
 
         while (atomic_read(&hif_state->fw_event_pending) > 0) {
             /*

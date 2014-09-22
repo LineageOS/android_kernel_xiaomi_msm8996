@@ -840,9 +840,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #ifdef WLAN_FEATURE_MBSSID
     hdd_adapter_t *con_sap_adapter;
 #endif
-#ifdef MSM_PLATFORM
-    unsigned long flags;
-#endif
     VOS_STATUS status = VOS_STATUS_SUCCESS;
 #if defined CONFIG_CNSS
     int ret = 0;
@@ -1263,11 +1260,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* start timer in sap/p2p_go */
             if (pHddApCtx->bApActive == VOS_FALSE)
             {
-                spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+                spin_lock_bh(&pHddCtx->bus_bw_lock);
                 pHostapdAdapter->prev_tx_packets = pHostapdAdapter->stats.tx_packets;
                 pHostapdAdapter->prev_rx_packets = pHostapdAdapter->stats.rx_packets;
+                spin_unlock_bh(&pHddCtx->bus_bw_lock);
                 hdd_start_bus_bw_compute_timer(pHostapdAdapter);
-                spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
             }
 #endif
             pHddApCtx->bApActive = VOS_TRUE;
@@ -1421,11 +1418,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /*stop timer in sap/p2p_go */
             if (pHddApCtx->bApActive == FALSE)
             {
-                spin_lock_irqsave(&pHddCtx->bus_bw_lock, flags);
+                spin_lock_bh(&pHddCtx->bus_bw_lock);
                 pHostapdAdapter->prev_tx_packets = 0;
                 pHostapdAdapter->prev_rx_packets = 0;
+                spin_unlock_bh(&pHddCtx->bus_bw_lock);
                 hdd_stop_bus_bw_compute_timer(pHostapdAdapter);
-                spin_unlock_irqrestore(&pHddCtx->bus_bw_lock, flags);
             }
 #endif
 #ifdef FEATURE_GREEN_AP
