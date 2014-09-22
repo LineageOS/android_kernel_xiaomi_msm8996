@@ -104,6 +104,8 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 #define PERIODIC_TX_PTRN_MAX_SIZE 1536
 #define MAXNUM_PERIODIC_TX_PTRNS 6
 
+#define WIFI_SCANNING_MAC_OUI_LENGTH 3
+
 
 #ifdef FEATURE_WLAN_EXTSCAN
 
@@ -5233,6 +5235,11 @@ typedef struct
   tANI_U32  statsClearReqMask;
   tANI_U8   stopReq;
 } tSirLLStatsClearReq, *tpSirLLStatsClearReq;
+
+typedef struct
+{
+    tANI_U8 oui[WIFI_SCANNING_MAC_OUI_LENGTH];
+} tSirScanMacOui, *tpSirScanMacOui;
 
 /*---------------------------------------------------------------------------
   WLAN_HAL_LL_NOTIFY_STATS
