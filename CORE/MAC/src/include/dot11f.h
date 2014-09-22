@@ -7152,7 +7152,7 @@ typedef struct sDot11fTDLSSetupCnf{
     tDot11fIETimeoutInterval TimeoutInterval;
     tDot11fIEHTInfo          HTInfo;
     tDot11fIELinkIdentifier  LinkIdentifier;
-    tDot11fIEWMMInfoStation  WMMInfoStation;
+    tDot11fIEWMMParams       WMMParams;
     tDot11fIEVHTOperation    VHTOperation;
     tDot11fIEOperatingMode   OperatingMode;
 } tDot11fTDLSSetupCnf;
