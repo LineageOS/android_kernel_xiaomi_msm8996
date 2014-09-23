@@ -48,7 +48,9 @@
 #include <pktlog_ac_fmt.h>
 #include <wdi_event.h>
 #include <ol_htt_tx_api.h>
-#include <ol_txrx_types.h>
+#include <ol_txrx_stats.h>
+#include <wdi_event_api.h>
+#include <ol_txrx_ctrl_api.h>
 /*--- target->host HTT message dispatch function ----------------------------*/
 
 #ifndef DEBUG_CREDIT
@@ -283,10 +285,19 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
     case HTT_T2H_MSG_TYPE_MGMT_TX_COMPL_IND:
         {
             struct htt_mgmt_tx_compl_ind *compl_msg;
+            int32_t credit_delta = 1;
 
             compl_msg = (struct htt_mgmt_tx_compl_ind *)(msg_word + 1);
+
             if (pdev->cfg.is_high_latency) {
-                ol_tx_target_credit_update(pdev->txrx_pdev, 1);
+                if (!pdev->cfg.default_tx_comp_req) {
+                    adf_os_atomic_add(credit_delta,
+                                      &pdev->htt_tx_credit.target_delta);
+                    credit_delta = htt_tx_credit_update(pdev);
+                }
+                if (credit_delta) {
+                    ol_tx_target_credit_update(pdev->txrx_pdev, credit_delta);
+                }
             }
             ol_tx_single_completion_handler(
                 pdev->txrx_pdev, compl_msg->status, compl_msg->desc_id);
@@ -341,7 +352,16 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         htt_credit_delta_abs = HTT_TX_CREDIT_DELTA_ABS_GET(*msg_word);
         sign = HTT_TX_CREDIT_SIGN_BIT_GET(*msg_word) ? -1 : 1;
         htt_credit_delta = sign * htt_credit_delta_abs;
-        ol_tx_credit_completion_handler(pdev->txrx_pdev, htt_credit_delta);
+
+        if (pdev->cfg.is_high_latency &&
+            !pdev->cfg.default_tx_comp_req) {
+            adf_os_atomic_add(htt_credit_delta,
+                              &pdev->htt_tx_credit.target_delta);
+            htt_credit_delta = htt_tx_credit_update(pdev);
+        }
+        if (htt_credit_delta) {
+            ol_tx_credit_completion_handler(pdev->txrx_pdev, htt_credit_delta);
+        }
         break;
     }
 
@@ -484,9 +504,20 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                         compl->payload[num_msdus];
                 }
             }
+
             if (pdev->cfg.is_high_latency) {
-                ol_tx_target_credit_update(
-                    pdev->txrx_pdev, num_msdus /* 1 credit per MSDU */);
+                if (!pdev->cfg.default_tx_comp_req) {
+                    int credit_delta;
+                    adf_os_atomic_add(num_msdus,
+                        &pdev->htt_tx_credit.target_delta);
+                    credit_delta = htt_tx_credit_update(pdev);
+                    if (credit_delta) {
+                        ol_tx_target_credit_update(pdev->txrx_pdev,
+                                                   credit_delta);
+                    }
+                } else {
+                    ol_tx_target_credit_update(pdev->txrx_pdev, num_msdus);
+                }
             }
             ol_tx_completion_handler(
                 pdev->txrx_pdev, num_msdus, status, msg_word + 1);
