@@ -1232,7 +1232,6 @@ typedef struct tagCsrConfigParam
 #endif
 
     tANI_BOOLEAN obssEnabled;
-    tANI_BOOLEAN apAutoChannelSelection;
 
 }tCsrConfigParam;
 
