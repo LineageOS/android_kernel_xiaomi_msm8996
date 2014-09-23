@@ -11022,7 +11022,6 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     tANI_U8 num;
     tANI_U8 chanId;
     tANI_U8 i;
-    tANI_U8 preOffChanOffset;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
@@ -11119,23 +11118,23 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
        pTdlsPeerStateParams->peerCap.prefOffChanBandwidth =
            peerStateParams->peerCap.prefOffChanBandwidth;
 
-       /* Ideally better to get offset from ini or user space, for now
-        * in case of 40MHz, assume lower primary
-        */
-       if (pTdlsPeerStateParams->peerCap.prefOffChanBandwidth == 20)
-           preOffChanOffset = BW20;
-       else
-           preOffChanOffset = BW40_LOW_PRIMARY;
 
        if (peerStateParams->peerCap.opClassForPrefOffChanIsSet)
+       {
            pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
                peerStateParams->peerCap.opClassForPrefOffChan;
+       }
        else
+       {
+           /* Ideally better to get offset from ini or user space, for now
+            * we will use the first opclass matching the chan irrespective
+            * of primary lower or primary upper
+            */
            pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
                regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
                            pTdlsPeerStateParams->peerCap.prefOffChanNum,
-                           preOffChanOffset);
-
+                           BWALL);
+       }
        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
        vosMessage.reserved = 0;
        vosMessage.bodyptr = pTdlsPeerStateParams;

@@ -2020,10 +2020,18 @@ typedef enum
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT  (36)
 
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW           "gTDLSPrefOffChanBandwidth"
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (20)
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (80)
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (40)
+/* Tdls offchannel bandwidth is now represented in bits as follows.
+ *  0th bit - 20MHz
+ *  1st bit - 40MHz
+ *  2nd bit - 80MHz
+ *  3rd bit - 160MHz
+ *  If more than one bits are set the f/w will start from the highest
+ *  and select one, based on the capability of peer.
+ */
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW          "gTDLSPrefOffChanBandwidth"
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (0)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (0x0F)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (0x02)
 #endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
