@@ -832,7 +832,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOG1, FL("Populate VHT IE in Probe Response"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &pFrm->VHTCaps );
-        PopulateDot11fVHTOperation( pMac, &pFrm->VHTOperation );
+        PopulateDot11fVHTOperation( pMac, psessionEntry, &pFrm->VHTOperation );
         // we do not support multi users yet
         //PopulateDot11fVHTExtBssLoad( pMac, &frm.VHTExtBssLoad );
        isVHTEnabled = eANI_BOOLEAN_TRUE;
@@ -1460,7 +1460,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         {
             limLog( pMac, LOG1, FL("Populate VHT IEs in Assoc Response"));
             PopulateDot11fVHTCaps( pMac, psessionEntry, &frm.VHTCaps );
-            PopulateDot11fVHTOperation( pMac, &frm.VHTOperation);
+            PopulateDot11fVHTOperation( pMac, psessionEntry, &frm.VHTOperation);
             isVHTEnabled = eANI_BOOLEAN_TRUE;
         }
 #endif

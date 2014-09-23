@@ -2789,7 +2789,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
           }
-
           case eWNI_SME_MSG_GET_TEMPERATURE_IND:
                if (pMac->sme.pGetTemperatureCb)
                {
@@ -2797,7 +2796,20 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                            pMac->sme.pTemperatureCbContext);
                }
                break;
+          case eWNI_SME_SNR_IND:
+          {
+                tAniGetSnrReq *pSnrReq = (tAniGetSnrReq *) pMsg->bodyptr;
+                if (pSnrReq) {
+                    if (pSnrReq->snrCallback) {
+                        ((tCsrSnrCallback)(pSnrReq->snrCallback))(pSnrReq->snr,
+                                                    pSnrReq->staId,
+                                                    pSnrReq->pDevContext);
+                    }
 
+                    vos_mem_free(pSnrReq);
+                }
+                break;
+          }
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )

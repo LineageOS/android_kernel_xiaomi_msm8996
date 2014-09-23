@@ -576,6 +576,9 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
             /* Include VHT Capability IE */
             PopulateDot11fVHTCaps( pMac, psessionEntry, vhtCap );
             vhtCap->suBeamformeeCap = 0;
+            vhtCap->suBeamFormerCap = 0;
+            vhtCap->muBeamformeeCap = 0;
+            vhtCap->muBeamformerCap = 0;
         }
         else
         {
@@ -1523,7 +1526,9 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac,
     /* Check peer is VHT capable*/
     if (CHECK_BIT(peerCapability, TDLS_PEER_VHT_CAP))
     {
-        PopulateDot11fVHTOperation( pMac, &tdlsSetupCnf.VHTOperation);
+        PopulateDot11fVHTOperation(pMac,
+                                   psessionEntry,
+                                   &tdlsSetupCnf.VHTOperation);
         PopulateDot11fHTInfo( pMac, &tdlsSetupCnf.HTInfo, psessionEntry );
     }
     else if (CHECK_BIT(peerCapability, TDLS_PEER_HT_CAP)) /* Check peer is HT capable */
@@ -1840,8 +1845,8 @@ limTdlsPopulateDot11fVHTCaps(tpAniSirGlobal pMac,
     pDot11f->suBeamformeeCap = 0;
     pDot11f->csnofBeamformerAntSup =  uVHTCapabilityInfo.vhtCapInfo.csnofBeamformerAntSup;
     pDot11f->numSoundingDim =  uVHTCapabilityInfo.vhtCapInfo.numSoundingDim;
-    pDot11f->muBeamformerCap =  uVHTCapabilityInfo.vhtCapInfo.muBeamformerCap;
-    pDot11f->muBeamformeeCap =  uVHTCapabilityInfo.vhtCapInfo.muBeamformeeCap;
+    pDot11f->muBeamformerCap =  0;
+    pDot11f->muBeamformeeCap =  0;
     pDot11f->vhtTXOPPS =  uVHTCapabilityInfo.vhtCapInfo.vhtTXOPPS;
     pDot11f->htcVHTCap =  uVHTCapabilityInfo.vhtCapInfo.htcVHTCap;
     pDot11f->maxAMPDULenExp =  uVHTCapabilityInfo.vhtCapInfo.maxAMPDULenExp;

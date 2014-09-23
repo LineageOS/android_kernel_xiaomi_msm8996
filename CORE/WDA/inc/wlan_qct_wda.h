@@ -1026,15 +1026,11 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps);
 VOS_STATUS WDA_notify_modem_power_state(void *wda_handle, tANI_U32 value);
+VOS_STATUS WDA_GetSnr(tAniGetSnrReq *psnr_req);
 static inline void WDA_UpdateSnrBmps(v_PVOID_t pvosGCtx, v_U8_t staId,
             v_S7_t snr)
 {
 
-}
-
-static inline int WDA_GetSnr(tANI_U8 ucSTAId, tANI_S8* pSnr)
-{
-     return VOS_STATUS_SUCCESS;
 }
 
 static inline void WDA_UpdateLinkCapacity(v_PVOID_t pvosGCtx, v_U8_t staId,

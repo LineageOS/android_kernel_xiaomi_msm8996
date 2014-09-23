@@ -995,7 +995,8 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
 
 tSirRetStatus
 PopulateDot11fVHTOperation(tpAniSirGlobal   pMac,
-                               tDot11fIEVHTOperation  *pDot11f)
+                           tpPESession psessionEntry,
+                           tDot11fIEVHTOperation  *pDot11f)
 {
     tSirRetStatus        nStatus;
     tANI_U32             nCfgValue=0;
@@ -1005,10 +1006,7 @@ PopulateDot11fVHTOperation(tpAniSirGlobal   pMac,
     CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_CHANNEL_WIDTH, nCfgValue );
     pDot11f->chanWidth = (tANI_U8)nCfgValue;
 
-    nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1,
-                                                               nCfgValue );
-    pDot11f->chanCenterFreqSeg1 = (tANI_U8)nCfgValue;
+    pDot11f->chanCenterFreqSeg1 = psessionEntry->apCenterChan;
 
     nCfgValue = 0;
     CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT2,
