@@ -33,9 +33,6 @@ ifeq ($(KERNEL_BUILD), 0)
 	# These are configurable via Kconfig for kernel-based builds
 	# Need to explicitly configure for Android-based builds
 
-	#Flag to enable BlueTooth AMP feature
-	CONFIG_PRIMA_WLAN_BTAMP := n
-
 	#Flag to enable Legacy Fast Roaming3(LFR3)
 	CONFIG_QCACLD_WLAN_LFR3 := y
 
@@ -970,10 +967,6 @@ CDEFINES += -DCONFIG_TDLS_IMPLICIT
 #is not tested only verifed that it compiles. This is not required for
 #supplicant based implementation
 #CDEFINES += -DFEATURE_WLAN_TDLS_INTERNAL
-endif
-
-ifeq ($(CONFIG_PRIMA_WLAN_BTAMP),y)
-CDEFINES += -DWLAN_BTAMP_FEATURE
 endif
 
 ifeq ($(CONFIG_QCACLD_WLAN_LFR3),y)
