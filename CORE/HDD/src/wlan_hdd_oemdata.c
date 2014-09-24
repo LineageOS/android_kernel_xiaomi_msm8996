@@ -45,6 +45,7 @@
 #include <net/arp.h>
 #include "qwlan_version.h"
 #include "vos_utils.h"
+#include "wma.h"
 static struct hdd_context_s *pHddCtx;
 
 
@@ -705,16 +706,23 @@ int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
                               &reg_info_1, &reg_info_2);
       if (eHAL_STATUS_SUCCESS == status)
       {
-         /* band center freq1, 2 and info depends on peer's capability
+         /* band center freq1, and freq2 depends on peer's capability
           * and at this time we might not be associated on the given channel,
-          * so fill freq1=mhz, freq2=0 and info = 0
+          * so fill freq1=mhz, and freq2=0
           */
          hddChanInfo.chan_id = chanId;
          hddChanInfo.reserved0 = 0;
          hddChanInfo.mhz = vos_chan_to_freq(chanId);
          hddChanInfo.band_center_freq1 = hddChanInfo.mhz;
          hddChanInfo.band_center_freq2 = 0;
+
+         /* set only DFS flag in info, rest of the fields will be filled in
+          *  by the OEM App
+          */
          hddChanInfo.info = 0;
+         if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(chanId))
+             WMI_SET_CHANNEL_FLAG(&hddChanInfo, WMI_CHAN_FLAG_DFS);
+
          hddChanInfo.reg_info_1 = reg_info_1;
          hddChanInfo.reg_info_2 = reg_info_2;
       }
