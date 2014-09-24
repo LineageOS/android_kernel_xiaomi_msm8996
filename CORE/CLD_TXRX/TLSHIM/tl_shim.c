@@ -734,7 +734,16 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 				       u_int32_t data_len)
 {
-	return (tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0));
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+							   vos_ctx);
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+
+	adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
+	ret = tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0);
+	adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
+
+	return ret;
 }
 /*
  * tlshim_mgmt_roam_event_ind() is called from WMA layer when
@@ -754,7 +763,9 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id)
 
 	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len)
 	{
+		adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
 		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE, vdev_id);
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 	}
 	return ret;
 }
@@ -1836,6 +1847,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	}
 
 	adf_os_spinlock_init(&tl_shim->bufq_lock);
+	adf_os_spinlock_init(&tl_shim->mgmt_lock);
 
 	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
 		tl_shim->sta_info[i].suspend_flush = 0;
