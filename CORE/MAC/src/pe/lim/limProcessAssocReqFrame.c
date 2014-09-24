@@ -186,7 +186,11 @@ void lim_check_sta_in_pe_entries(tpAniSirGlobal pMac, tpSirMacMgmtHdr pHdr)
 
             pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &assocId,
                             &psessionEntry->dph.dphHashTable);
-            if (pStaDs) {
+            if (pStaDs
+#ifdef WLAN_FEATURE_11W
+                && !pStaDs->rmfEnabled
+#endif
+               ) {
                 limLog(pMac, LOGE,
                         FL("Sending Deauth and Deleting existing STA entry: "
                         MAC_ADDRESS_STR),
