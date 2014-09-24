@@ -107,9 +107,14 @@ when           who        what, where, why
 //MAC Address length
 #define ANI_EAPOL_KEY_RSN_NONCE_SIZE      32
 
-#define IS_ETSI_WEATHER_CH(_ch) ((_ch >= 120) && (_ch <= 130))
+#define IS_ETSI_WEATHER_CH(_ch)   ((_ch >= 120) && (_ch <= 130))
+#define IS_CHAN_JAPAN_W53(_ch)    ((_ch >= 52)  && (_ch <= 64))
+#define IS_CHAN_JAPAN_INDOOR(_ch) ((_ch >= 36)  && (_ch <= 64))
+#define IS_CHAN_JAPAN_OUTDOOR(_ch)((_ch >= 100) && (_ch <= 140))
 #define DEFAULT_CAC_TIMEOUT (60 * 1000) //msecs - 1 min
 #define ETSI_WEATHER_CH_CAC_TIMEOUT (10 * 60 * 1000) //msecs - 10 min
+#define SAP_CHAN_PREFERRED_INDOOR  1
+#define SAP_CHAN_PREFERRED_OUTDOOR 2
 
 extern const sRegulatoryChannel *regChannels;
 
@@ -930,6 +935,56 @@ v_BOOL_t is_concurrent_sap_ready_for_channel_change(tHalHandle hHal,
  *
  */
 v_U8_t sap_get_total_number_sap_intf(tHalHandle hHal);
+/*---------------------------------------------------------------------------
+FUNCTION  sapFetchRegulatoryDomain
+
+DESCRIPTION Fetches the Regulatory domain based up on the coutry code.
+
+DEPENDENCIES PARAMETERS
+IN hHAL : HAL pointer
+
+RETURN VALUE  : v_REGDOMAIN_t, returns the regulatory domain
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+v_REGDOMAIN_t sapFetchRegulatoryDomain(tHalHandle hHal);
+
+/*---------------------------------------------------------------------------
+FUNCTION  sapDfsIsW53Invalid
+
+DESCRIPTION Checks if the passed channel is W53 and returns if
+            SAP W53 opearation is allowed.
+
+DEPENDENCIES PARAMETERS
+IN hHAL : HAL pointer
+channelID: Channel Number to be verified
+
+RETURN VALUE  : v_BOOL_t
+                VOS_TRUE: If W53 operation is disabled
+                VOS_FALSE: If W53 operation is enabled
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+v_BOOL_t sapDfsIsW53Invalid(tHalHandle hHal, v_U8_t channelID);
+
+/*---------------------------------------------------------------------------
+FUNCTION  sapDfsIsChannelInPreferredLocation
+
+DESCRIPTION Checks if the passed channel is in accordance with preferred
+            Channel location settings.
+
+DEPENDENCIES PARAMETERS
+IN hHAL : HAL pointer
+channelID: Channel Number to be verified
+
+RETURN VALUE  :v_BOOL_t
+          VOS_TRUE:If Channel location is same as the preferred location
+          VOS_FALSE:If Channel location is not same as the preferred location
+
+SIDE EFFECTS
+---------------------------------------------------------------------------*/
+v_BOOL_t sapDfsIsChannelInPreferredLocation(tHalHandle hHal, v_U8_t channelID);
+
 #ifdef __cplusplus
 }
 #endif

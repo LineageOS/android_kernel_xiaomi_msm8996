@@ -11549,27 +11549,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->tdls_lock);
 #endif
 
-   /* Initialize the adf_ctx handle */
-   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
-
-   if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
-      goto err_free_hdd_context;
-   }
-   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
-   hif_init_adf_ctx(adf_ctx, hif_sc);
-   ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
-
-   /* store target type and target version info in hdd ctx */
-   pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
-   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
-
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
    if(pHddCtx->cfg_ini == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
-      goto err_free_adf_context;
+      goto err_free_hdd_context;
    }
 
    vos_mem_zero(pHddCtx->cfg_ini, sizeof( hdd_config_t ));
@@ -11590,6 +11575,21 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: gEnableMemoryDebug=%d",
           __func__, pHddCtx->cfg_ini->IsMemoryDebugSupportEnabled);
 #endif
+
+   /* Initialize the adf_ctx handle */
+   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
+
+   if (!adf_ctx) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
+      goto err_config;
+   }
+   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
+   hif_init_adf_ctx(adf_ctx, hif_sc);
+   ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
+
+   /* store target type and target version info in hdd ctx */
+   pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
+   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 
    pHddCtx->current_intf_count=0;
    pHddCtx->max_intf_count = CSR_ROAM_SESSION_MAX;
@@ -11638,7 +11638,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,
                  "%s: wlan_hdd_cfg80211_init return failure", __func__);
-          goto err_config;
+          goto err_free_adf_context;
       }
    }
 
@@ -12366,13 +12366,13 @@ err_free_ftm_open:
 #endif
 }
 
+err_free_adf_context:
+   hif_deinit_adf_ctx(hif_sc);
+   vos_mem_free(adf_ctx);
+
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
-
-err_free_adf_context:
-   vos_mem_free(adf_ctx);
-   hif_deinit_adf_ctx(hif_sc);
 
 err_free_hdd_context:
    /* wiphy_free() will free the HDD context so remove global reference */
