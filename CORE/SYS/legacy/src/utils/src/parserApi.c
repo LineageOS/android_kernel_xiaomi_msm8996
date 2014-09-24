@@ -2446,6 +2446,16 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
     pAssocRsp->statusCode = ar.Status.status;
     pAssocRsp->aid        = ar.AID.associd;
 
+#ifdef WLAN_FEATURE_11W
+    if (ar.TimeoutInterval.present) {
+        pAssocRsp->TimeoutInterval.present = 1;
+        pAssocRsp->TimeoutInterval.timeoutType =
+                                ar.TimeoutInterval.timeoutType;
+        pAssocRsp->TimeoutInterval.timeoutValue =
+                                ar.TimeoutInterval.timeoutValue;
+    }
+#endif
+
     if ( ! ar.SuppRates.present )
     {
         pAssocRsp->suppRatesPresent = 0;

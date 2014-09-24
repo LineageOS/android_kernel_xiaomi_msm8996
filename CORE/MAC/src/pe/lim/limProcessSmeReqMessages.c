@@ -1945,7 +1945,24 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #ifdef WLAN_FEATURE_11W
         if(eSIR_ED_AES_128_CMAC == pSmeJoinReq->MgmtEncryptionType)
         {
+            VOS_STATUS vosStatus;
             psessionEntry->limRmfEnabled = 1;
+            /*
+             * For STA profile only:
+             * init pmf comeback timer and info struct only if PMF connection
+             */
+            psessionEntry->pmfComebackTimerInfo.pMac = pMac;
+            psessionEntry->pmfComebackTimerInfo.sessionID = sessionId;
+            vosStatus = vos_timer_init(&psessionEntry->pmfComebackTimer,
+                                   VOS_TIMER_TYPE_SW,
+                                   limPmfComebackTimerCallback,
+                                   (void*)&psessionEntry->pmfComebackTimerInfo);
+            if (VOS_STATUS_SUCCESS != vosStatus) {
+                limLog(pMac, LOGP,
+                       FL("cannot init pmf comeback timer."));
+                retCode = eSIR_LOGP_EXCEPTION;
+                goto end;
+            }
         }
         else
         {

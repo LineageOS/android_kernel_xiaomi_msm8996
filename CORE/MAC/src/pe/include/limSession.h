@@ -52,6 +52,21 @@ typedef struct sPowersaveoffloadInfo
     tANI_U8 bcnmiss;
 }tPowersaveoffloadInfo, tpPowersaveoffloadInfo;
 
+#ifdef WLAN_FEATURE_11W
+/*
+ * This struct is needed for handling of ASSOC RSP with TRY AGAIN LATER
+ * It stores the context and state machine setting for MLM so that it can
+ * go back send ASSOC REQ frame again after the timer has expired.
+ */
+typedef struct tagComebackTimerInfo
+{
+    tpAniSirGlobal   pMac;
+    tANI_U8          sessionID;
+    tLimMlmStates    limPrevMlmState;   /* Previous MLM State */
+    tLimSmeStates    limMlmState;       /* MLM State */
+} tComebackTimerInfo;
+#endif /* WLAN_FEATURE_11W */
+
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
@@ -451,6 +466,10 @@ typedef struct sPESession           // Added to Support BT-AMP
     tftPEContext  ftPEContext;
 #endif
     tANI_BOOLEAN            isNonRoamReassoc;
+#ifdef WLAN_FEATURE_11W
+    vos_timer_t pmfComebackTimer;
+    tComebackTimerInfo pmfComebackTimerInfo;
+#endif /* WLAN_FEATURE_11W */
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

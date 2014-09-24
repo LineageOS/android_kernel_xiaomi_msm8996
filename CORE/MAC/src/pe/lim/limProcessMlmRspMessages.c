@@ -505,6 +505,164 @@ limProcessMlmJoinCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 } /*** end limProcessMlmJoinCnf() ***/
 
+/*
+ * limSendMlmAssocReq()
+ *
+ * FUNCTION:
+ * This function is sends ASSOC request MLM message to MLM State machine.
+ * ASSOC request packet would be by picking parameters from psessionEntry
+ * automatically based on the current state of MLM state machine.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * this function is called in middle of connection state machine and is
+ * expected to be called after auth cnf has been received or after ASSOC rsp
+ * with TRY_AGAIN_LATER was received and required time has elapsed after that.
+ *
+ *NOTE:
+ *
+ * @param pMac             Pointer to Global MAC structure
+ * @param psessionEntry    Pointer to session etnry
+ *
+ * @return None
+ */
+
+void
+limSendMlmAssocReq( tpAniSirGlobal pMac,
+                    tpPESession    psessionEntry)
+{
+    tLimMlmAssocReq    *pMlmAssocReq;
+    tANI_U32            val;
+    tANI_U16            caps;
+    tANI_U32            teleBcnEn = 0;
+
+    /* Successful MAC based authentication. Trigger Association with BSS */
+    PELOG1(limLog(pMac, LOG1, FL("SessionId:%d Authenticated with BSS"),
+           psessionEntry->peSessionId);)
+
+    pMlmAssocReq = vos_mem_malloc(sizeof(tLimMlmAssocReq));
+    if ( NULL == pMlmAssocReq ) {
+        limLog(pMac, LOGP, FL("call to AllocateMemory failed for mlmAssocReq"));
+        return;
+    }
+    val = sizeof(tSirMacAddr);
+    sirCopyMacAddr(pMlmAssocReq->peerMacAddr,psessionEntry->bssId);
+    if (wlan_cfgGetInt(pMac,
+                       WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
+                       (tANI_U32 *) &pMlmAssocReq->assocFailureTimeout)
+                         != eSIR_SUCCESS) {
+        /* Could not get AssocFailureTimeout value from CFG. Log error */
+        limLog(pMac, LOGP, FL("could not retrieve AssocFailureTimeout value"));
+    }
+
+    if (cfgGetCapabilityInfo(pMac, &caps, psessionEntry) != eSIR_SUCCESS) {
+        /* Could not get Capabilities value from CFG. Log error */
+        limLog(pMac, LOGP,
+               FL("could not retrieve Capabilities value"));
+    }
+
+    /* Clear spectrum management bit if AP doesn't support it */
+    if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
+          LIM_SPECTRUM_MANAGEMENT_BIT_MASK)) {
+        /*
+         * AP doesn't support spectrum management
+         * clear spectrum management bit
+         */
+        caps &= (~LIM_SPECTRUM_MANAGEMENT_BIT_MASK);
+    }
+
+    /* Clear rrm bit if AP doesn't support it */
+    if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo
+         & LIM_RRM_BIT_MASK)) {
+       caps &= (~LIM_RRM_BIT_MASK);
+    }
+
+    /* Clear short preamble bit if AP does not support it */
+    if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
+        (LIM_SHORT_PREAMBLE_BIT_MASK))) {
+        caps &= (~LIM_SHORT_PREAMBLE_BIT_MASK);
+        limLog(pMac, LOG1, FL("Clearing short preamble:no AP support"));
+    }
+
+    /* Clear immediate block ack bit if AP does not support it */
+    if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
+        (LIM_IMMEDIATE_BLOCK_ACK_MASK))) {
+        caps &= (~LIM_IMMEDIATE_BLOCK_ACK_MASK);
+        limLog(pMac, LOG1, FL("Clearing Immed Blk Ack:no AP support"));
+    }
+
+    pMlmAssocReq->capabilityInfo = caps;
+    PELOG3(limLog(pMac, LOG3,
+           FL("Capabilities to be used in AssocReq=0x%X, "
+              "privacy bit=%x shortSlotTime %x"),
+           caps,
+      ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->privacy,
+      ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->shortSlotTime);)
+
+    /*
+     * If telescopic beaconing is enabled, set listen interval to
+     * WNI_CFG_TELE_BCN_MAX_LI
+     */
+    if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_WAKEUP_EN, &teleBcnEn) !=
+       eSIR_SUCCESS)
+       limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_TELE_BCN_WAKEUP_EN"));
+
+    val = WNI_CFG_LISTEN_INTERVAL_STADEF;
+
+    if(teleBcnEn)
+    {
+       if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, &val) !=
+          eSIR_SUCCESS)
+       {
+           /**
+          * Could not get ListenInterval value
+          * from CFG. Log error.
+          */
+          limLog(pMac, LOGP, FL("could not retrieve ListenInterval"));
+       }
+    } else {
+        if (wlan_cfgGetInt(pMac,
+                           WNI_CFG_LISTEN_INTERVAL,
+                           &val) != eSIR_SUCCESS) {
+            /*
+             * Could not get ListenInterval value
+             * from CFG. Log error.
+             */
+            limLog(pMac, LOGP, FL("could not retrieve ListenInterval"));
+        }
+    }
+
+    pMlmAssocReq->listenInterval = (tANI_U16)val;
+    /* Update PE session ID*/
+    pMlmAssocReq->sessionId = psessionEntry->peSessionId;
+    psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
+    psessionEntry->limSmeState     = eLIM_SME_WT_ASSOC_STATE;
+    MTRACE(macTrace(pMac,
+                    TRACE_CODE_SME_STATE,
+                    psessionEntry->peSessionId,
+                    psessionEntry->limSmeState));
+    limPostMlmMessage(pMac,
+                      LIM_MLM_ASSOC_REQ,
+                      (tANI_U32 *) pMlmAssocReq);
+}
+
+#ifdef WLAN_FEATURE_11W
+void limPmfComebackTimerCallback(void *context)
+{
+    tComebackTimerInfo *pInfo = (tComebackTimerInfo *)context;
+    tpAniSirGlobal pMac = pInfo->pMac;
+    tpPESession psessionEntry = &pMac->lim.gpSession[pInfo->sessionID];
+
+    PELOGE(limLog(pMac, LOGE,
+           FL("comeback later timer expired. sending MLM ASSOC req"));)
+    /* set MLM state such that ASSOC REQ packet will be sent out */
+    psessionEntry->limPrevMlmState   = pInfo->limPrevMlmState;
+    psessionEntry->limMlmState       = pInfo->limMlmState;
+    limSendMlmAssocReq(pMac, psessionEntry);
+}
+#endif /* WLAN_FEATURE_11W */
+
 /**
  * limProcessMlmAuthCnf()
  *
@@ -526,14 +684,10 @@ limProcessMlmJoinCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 void
 limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U16                caps;
-    tANI_U32                val;
     tAniAuthType       cfgAuthType, authMode;
     tLimMlmAuthReq     *pMlmAuthReq;
-    tLimMlmAssocReq    *pMlmAssocReq;
     tLimMlmAuthCnf     *pMlmAuthCnf;
     tpPESession     psessionEntry;
-    tANI_U32        teleBcnEn = 0;
 
     if(pMsgBuf == NULL)
     {
@@ -600,7 +754,6 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 return;
             }
             vos_mem_set((tANI_U8 *) pMlmAuthReq, sizeof(tLimMlmAuthReq), 0);
-            val = sizeof(tSirMacAddr);
             if (psessionEntry->limSmeState == eLIM_SME_WT_AUTH_STATE)
             {
                 sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
@@ -661,132 +814,16 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         if (psessionEntry->limSmeState == eLIM_SME_WT_AUTH_STATE)
         {
-            /**
-             * Successful MAC based authentication
-             * Trigger Association with BSS
-             */
-            PELOG1(limLog(pMac, LOG1,
-                   FL("SessionId:%d Authenticated with BSS"),
-                   psessionEntry->peSessionId);)
-            pMlmAssocReq = vos_mem_malloc(sizeof(tLimMlmAssocReq));
-            if ( NULL == pMlmAssocReq )
-            {
-                // Log error
-                limLog(pMac, LOGP,
-                   FL("call to AllocateMemory failed for mlmAssocReq"));
-                return;
-            }
-            val = sizeof(tSirMacAddr);
-            sirCopyMacAddr(pMlmAssocReq->peerMacAddr,psessionEntry->bssId);
-            if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
-                          (tANI_U32 *) &pMlmAssocReq->assocFailureTimeout)
-                           != eSIR_SUCCESS)
-            {
-                /**
-                 * Could not get AssocFailureTimeout value
-                 * from CFG. Log error.
-                 */
-                limLog(pMac, LOGP,
-                   FL("could not retrieve AssocFailureTimeout value"));
-            }
-            if (cfgGetCapabilityInfo(pMac, &caps,psessionEntry) != eSIR_SUCCESS)
-            {
-                /**
-                 * Could not get Capabilities value
-                 * from CFG. Log error.
-                 */
-                limLog(pMac, LOGP,
-                       FL("could not retrieve Capabilities value"));
-            }
-            /*Clear spectrum management bit if AP doesn't support it*/
-            if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo & LIM_SPECTRUM_MANAGEMENT_BIT_MASK))
-            {
-                /*AP doesn't support spectrum management clear spectrum management bit*/
-                caps &= (~LIM_SPECTRUM_MANAGEMENT_BIT_MASK);
-            }
-
-            /* Clear rrm bit if AP doesn't support it */
-            if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo
-                 & LIM_RRM_BIT_MASK))
-            {
-               caps &= (~LIM_RRM_BIT_MASK);
-            }
-
-            /* Clear short preamble bit if AP does not support it */
-            if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
-                (LIM_SHORT_PREAMBLE_BIT_MASK)))
-            {
-                caps &= (~LIM_SHORT_PREAMBLE_BIT_MASK);
-                limLog(pMac, LOG1, FL("Clearing short preamble:no AP support"));
-            }
-
-            /* Clear immediate block ack bit if AP does not support it */
-            if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
-                (LIM_IMMEDIATE_BLOCK_ACK_MASK)))
-            {
-                caps &= (~LIM_IMMEDIATE_BLOCK_ACK_MASK);
-                limLog(pMac, LOG1, FL("Clearing Immed Blk Ack:no AP support"));
-            }
-
-            pMlmAssocReq->capabilityInfo = caps;
-           PELOG3(limLog(pMac, LOG3,
-               FL("Capabilities to be used in AssocReq=0x%X, privacy bit=%x shortSlotTime %x"),
-               caps,
-               ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->privacy,
-               ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->shortSlotTime);)
-
-           /* If telescopic beaconing is enabled, set listen interval to
-              WNI_CFG_TELE_BCN_MAX_LI */
-            if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_WAKEUP_EN, &teleBcnEn) !=
-               eSIR_SUCCESS)
-               limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_TELE_BCN_WAKEUP_EN"));
-
-            val = WNI_CFG_LISTEN_INTERVAL_STADEF;
-
-            if(teleBcnEn)
-            {
-               if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, &val) !=
-                  eSIR_SUCCESS)
-               {
-                   /**
-                  * Could not get ListenInterval value
-                  * from CFG. Log error.
-                  */
-                  limLog(pMac, LOGP, FL("could not retrieve ListenInterval"));
-               }
-            }
-            else
-            {
-            if (wlan_cfgGetInt(pMac, WNI_CFG_LISTEN_INTERVAL, &val) != eSIR_SUCCESS)
-            {
-                /**
-                 * Could not get ListenInterval value
-                 * from CFG. Log error.
-                 */
-                  limLog(pMac, LOGP, FL("could not retrieve ListenInterval"));
-               }
-            }
-
-            pMlmAssocReq->listenInterval = (tANI_U16)val;
-            /* Update PE session ID*/
-            pMlmAssocReq->sessionId = psessionEntry->peSessionId;
-            psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
-            psessionEntry->limSmeState     = eLIM_SME_WT_ASSOC_STATE;
-            MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
-            limLog(pMac,LOG1,"SessionId:%d PostMLMMessage: LIM_MLM_ASSOC_REQ",
-                   psessionEntry->peSessionId);
-            limPostMlmMessage(pMac,
-                              LIM_MLM_ASSOC_REQ,
-                              (tANI_U32 *) pMlmAssocReq);
+            limSendMlmAssocReq(pMac, psessionEntry);
         }
         else
         {
-            /**
-             * Successful Pre-authentication.
-             * Send Pre-auth response to host
-             */
+            /* Successful Pre-authentication. Send Pre-auth response to host */
             psessionEntry->limSmeState = psessionEntry->limPrevSmeState;
-            MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
+            MTRACE(macTrace(pMac,
+                            TRACE_CODE_SME_STATE,
+                            psessionEntry->peSessionId,
+                            psessionEntry->limSmeState));
         }
     } // end if (((tLimMlmAuthCnf *) pMsgBuf)->resultCode != ...
 } /*** end limProcessMlmAuthCnf() ***/
