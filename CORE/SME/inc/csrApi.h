@@ -1333,6 +1333,9 @@ typedef struct tagCsrRoamInfo
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tANI_U8 roamSynchInProgress;
     tANI_U8 synchAuthStatus;
+    tANI_U8 kck[SIR_KCK_KEY_LEN];
+    tANI_U8 kek[SIR_KEK_KEY_LEN];
+    tANI_U8 replay_ctr[SIR_REPLAY_CTR_LEN];
 #endif
     tSirSmeChanInfo chan_info;
 }tCsrRoamInfo;

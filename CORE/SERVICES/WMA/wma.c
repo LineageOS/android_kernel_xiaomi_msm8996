@@ -4701,6 +4701,7 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
 	wmi_channel *chan = NULL;
+	wmi_key_material *key = NULL;
 	int size=0;
 	tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd;
 
@@ -4755,6 +4756,19 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 			pRoamOffloadSynchInd->reassocRespLength);
 	chan = (wmi_channel *) param_buf->chan;
 	pRoamOffloadSynchInd->chan_freq = chan->mhz;
+	key = (wmi_key_material *) param_buf->key;
+	if (key != NULL)
+	{
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+				key->replay_counter,
+				SIR_REPLAY_CTR_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->kck, key->kck,
+				SIR_KCK_KEY_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->kek, key->kek,
+				SIR_KEK_KEY_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->replay_ctr, key->replay_counter,
+				SIR_REPLAY_CTR_LEN);
+	}
 	vos_msg.type = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	vos_msg.bodyptr = (void *) pRoamOffloadSynchInd;
 	vos_msg.bodyval = 0;

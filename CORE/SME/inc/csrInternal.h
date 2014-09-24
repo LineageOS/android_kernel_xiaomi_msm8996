@@ -897,6 +897,9 @@ typedef struct tagCsrRoamOffloadSynchStruct
     tANI_BOOLEAN bRoamSynchInProgress; /* a roam offload synch*/
     tCsrRoamOffloadAuthStatus authStatus;  /* authentication
                                               status */
+    tANI_U8 kck[SIR_KCK_KEY_LEN];
+    tANI_U8 kek[SIR_KEK_KEY_LEN];
+    tANI_U8 replay_ctr[SIR_REPLAY_CTR_LEN];
 } tCsrRoamOffloadSynchStruct;
 #endif
 

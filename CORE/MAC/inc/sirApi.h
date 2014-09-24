@@ -141,6 +141,9 @@ typedef enum
 #define SIR_KRK_KEY_LEN 16
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define SIR_BTK_KEY_LEN 32
+#define SIR_KCK_KEY_LEN 16
+#define SIR_KEK_KEY_LEN 16
+#define SIR_REPLAY_CTR_LEN 8
 
 #define SIR_UAPSD_BITOFFSET_ACVO     0
 #define SIR_UAPSD_BITOFFSET_ACVI     1
@@ -4846,6 +4849,9 @@ typedef struct sSirSmeRoamOffloadSynchInd
     tANI_U8     rssi;
     tANI_U8     roamReason;
     tANI_U32    chan_freq;
+    tANI_U8     kck[SIR_KCK_KEY_LEN];
+    tANI_U8     kek[SIR_KEK_KEY_LEN];
+    tANI_U8     replay_ctr[SIR_REPLAY_CTR_LEN];
 } tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
 
 typedef struct sSirSmeRoamOffloadSynchCnf
