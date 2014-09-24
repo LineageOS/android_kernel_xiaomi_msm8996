@@ -185,7 +185,7 @@ static v_VOID_t wlan_hdd_tdls_discover_peer_cb( v_PVOID_t userData )
     if (0 == pHddTdlsCtx->discovery_peer_cnt)
         pHddTdlsCtx->discovery_peer_cnt = wlan_hdd_get_tdls_discovery_peer_cnt(pHddTdlsCtx);
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
 
         list_for_each (pos, head) {
@@ -303,7 +303,7 @@ static v_VOID_t wlan_hdd_tdls_discovery_timeout_peer_cb(v_PVOID_t userData)
 
     mutex_lock(&pHddCtx->tdls_lock);
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each_safe (pos, q, head) {
             tmp = list_entry(pos, hddTdlsPeer_t, node);
@@ -369,7 +369,7 @@ static void wlan_hdd_tdls_free_list(tdlsCtx_t *pHddTdlsCtx)
                  FL("pHddTdlsCtx is NULL"));
        return;
     }
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
     {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each_safe (pos, q, head) {
@@ -506,7 +506,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 
     pHddTdlsCtx->pAdapter = pAdapter;
 
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
     {
         INIT_LIST_HEAD(&pHddTdlsCtx->peer_list[i]);
     }
@@ -782,7 +782,7 @@ static void wlan_hdd_tdls_peer_timers_stop(tdlsCtx_t *pHddTdlsCtx)
     struct list_head *head;
     struct list_head *pos;
     hddTdlsPeer_t *curr_peer;
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
     {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each (pos, head) {
@@ -815,7 +815,7 @@ static void wlan_hdd_tdls_peer_timers_destroy(tdlsCtx_t *pHddTdlsCtx)
     struct list_head *head;
     struct list_head *pos;
     hddTdlsPeer_t *curr_peer;
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
     {
         head = &pHddTdlsCtx->peer_list[i];
 
@@ -1691,7 +1691,7 @@ static void wlan_tdd_tdls_reset_tx_rx(tdlsCtx_t *pHddTdlsCtx)
     hddTdlsPeer_t *tmp;
     struct list_head *pos, *q;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each_safe (pos, q, head) {
             tmp = list_entry(pos, hddTdlsPeer_t, node);
@@ -1713,7 +1713,7 @@ static tANI_S32 wlan_hdd_tdls_peer_reset_discovery_processed(tdlsCtx_t *pHddTdls
 
     pHddTdlsCtx->discovery_peer_cnt = 0;
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each_safe (pos, q, head) {
             tmp = list_entry(pos, hddTdlsPeer_t, node);
@@ -1737,7 +1737,7 @@ static tANI_S32 wlan_hdd_get_tdls_discovery_peer_cnt(tdlsCtx_t *pHddTdlsCtx)
      * This function expects the callers to acquire the Mutex.
      */
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each_safe (pos, q, head) {
             tmp = list_entry(pos, hddTdlsPeer_t, node);
@@ -1800,7 +1800,7 @@ int wlan_hdd_tdls_get_all_peers(hdd_adapter_t *pAdapter, char *buf, int buflen)
         len = scnprintf(buf, buflen, "TDLS not enabled\n");
         return len;
     }
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
 
         list_for_each(pos, head) {
@@ -2055,7 +2055,7 @@ static hddTdlsPeer_t *wlan_hdd_tdls_find_progress_peer(hdd_adapter_t *pAdapter, 
        return NULL;
      }
 
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
         head = &pHddTdlsCtx->peer_list[i];
         list_for_each(pos, head) {
             curr_peer = list_entry (pos, hddTdlsPeer_t, node);
@@ -2681,7 +2681,6 @@ void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
                                GFP_KERNEL);
 }
 
-
 /*EXT TDLS*/
 int wlan_hdd_set_callback(hddTdlsPeer_t *curr_peer,
                          cfg80211_exttdls_callback callback)
@@ -2747,3 +2746,180 @@ int wlan_hdd_tdls_get_status(hdd_adapter_t *pAdapter,
     return (0);
 }
 
+hddTdlsPeer_t *wlan_hdd_tdls_find_first_connected_peer(hdd_adapter_t *pAdapter)
+{
+    int i;
+    struct list_head *head;
+    struct list_head *pos;
+    hddTdlsPeer_t *curr_peer = NULL;
+    tdlsCtx_t *pHddTdlsCtx;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (0 != (wlan_hdd_validate_context(pHddCtx))) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("pHddCtx is not valid"));
+        return NULL;
+    }
+    mutex_lock(&pHddCtx->tdls_lock);
+    pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
+    if (NULL == pHddTdlsCtx) {
+        mutex_unlock(&pHddCtx->tdls_lock);
+        return NULL;
+    }
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
+        head = &pHddTdlsCtx->peer_list[i];
+        list_for_each(pos, head) {
+            curr_peer = list_entry (pos, hddTdlsPeer_t, node);
+            if (curr_peer && (curr_peer->link_status == eTDLS_LINK_CONNECTED)) {
+                mutex_unlock(&pHddCtx->tdls_lock);
+                VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                          FL(MAC_ADDRESS_STR "eTDLS_LINK_CONNECTED"),
+                          MAC_ADDR_ARRAY(curr_peer->peerMac));
+                return curr_peer;
+            }
+        }
+    }
+    mutex_unlock(&pHddCtx->tdls_lock);
+    return NULL;
+}
+
+int hdd_set_tdls_offchannel(hdd_context_t *pHddCtx, int offchannel)
+{
+    if ((TRUE == pHddCtx->cfg_ini->fEnableTDLSOffChannel) &&
+        (eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode ||
+         eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)) {
+        if (offchannel < CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN ||
+              offchannel > CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("Invalid tdls off channel %u"),
+                      offchannel);
+            return -EINVAL;
+        }
+    } else {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Either TDLS or TDLS Off-channel is not enabled"));
+        return  -ENOTSUPP;
+    }
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              FL("change tdls off channel from %d to %d"),
+              pHddCtx->tdls_off_channel, offchannel);
+    pHddCtx->tdls_off_channel = offchannel;
+    return 0;
+}
+
+int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset)
+{
+    if ((TRUE == pHddCtx->cfg_ini->fEnableTDLSOffChannel) &&
+        (eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode ||
+         eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)) {
+        pHddCtx->tdls_channel_offset = 0;
+        switch (offchanoffset) {
+        case BW_20:
+            pHddCtx->tdls_channel_offset = (1 << BW_20_OFFSET_BIT);
+            break;
+        case BW_40:
+            pHddCtx->tdls_channel_offset = (1 << BW_40_OFFSET_BIT);
+            break;
+        case BW_80:
+            pHddCtx->tdls_channel_offset = (1 << BW_80_OFFSET_BIT);
+            break;
+        case BW_160:
+            pHddCtx->tdls_channel_offset = (1 << BW_160_OFFSET_BIT);
+            break;
+        default:
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("Invalid tdls secondary off channel offset %d"),
+                      offchanoffset);
+            return -EINVAL;
+        }/* end switch */
+    } else {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Either TDLS or TDLS Off-channel is not enabled"));
+        return  -ENOTSUPP;
+    }
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              FL("change tdls secondary off channel offset to 0x%x"),
+              pHddCtx->tdls_channel_offset);
+    return 0;
+}
+
+int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode)
+{
+    hddTdlsPeer_t *connPeer = NULL;
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tSmeTdlsChanSwitchParams chanSwitchParams;
+
+    if (offchanmode < ENABLE_CHANSWITCH || offchanmode > DISABLE_CHANSWITCH) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Invalid tdls off channel mode %d"),
+                  offchanmode);
+        return -EINVAL;
+    }
+    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("tdls off channel mode req in not associated state %d"),
+                  offchanmode);
+        return -EPERM;
+    }
+    if ((TRUE == pHddCtx->cfg_ini->fEnableTDLSOffChannel) &&
+        (eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode ||
+         eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)) {
+        connPeer = wlan_hdd_tdls_find_first_connected_peer(pAdapter);
+        if (NULL == connPeer) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                      FL("No TDLS Connected Peer"));
+            return -EPERM;
+       }
+    } else {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  FL("TDLS Connection not supported"));
+        return -ENOTSUPP;
+    }
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              FL("TDLS Channel Switch in swmode=%d"),
+              offchanmode);
+
+    switch (offchanmode) {
+    case ENABLE_CHANSWITCH:
+    case DISABLE_CHANSWITCH:
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                  FL("change tdls off channel mode %d tdls_off_channel %d offchanoffset %d"),
+                  offchanmode, pHddCtx->tdls_off_channel,
+                  pHddCtx->tdls_channel_offset);
+        if (pHddCtx->tdls_off_channel && pHddCtx->tdls_channel_offset) {
+            chanSwitchParams.vdev_id = pAdapter->sessionId;
+            chanSwitchParams.tdls_off_channel = pHddCtx->tdls_off_channel;
+            chanSwitchParams.tdls_off_ch_bw_offset =
+                             pHddCtx->tdls_channel_offset;
+            chanSwitchParams.tdls_off_ch_mode = offchanmode;
+            chanSwitchParams.is_responder = connPeer->is_responder;
+            vos_mem_copy(&chanSwitchParams.peer_mac_addr,
+                                  &connPeer->peerMac,
+                                  sizeof(tSirMacAddr));
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      FL("Peer " MAC_ADDRESS_STR "vdevId: %d, off channel: %d, offset: %d, mode: %d, is_responder: %d"),
+                      MAC_ADDR_ARRAY(chanSwitchParams.peer_mac_addr),
+                      chanSwitchParams.vdev_id,
+                      chanSwitchParams.tdls_off_channel,
+                      chanSwitchParams.tdls_off_ch_bw_offset,
+                      chanSwitchParams.tdls_off_ch_mode,
+                      chanSwitchParams.is_responder);
+
+            sme_SendTdlsChanSwitchReq(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                      &chanSwitchParams);
+        } else {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("TDLS off-channel parameters are not set yet!!!"));
+            return -EINVAL;
+        }
+        break;
+    default:
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Incorrect Parameters mode: %d tdls_off_channel: %d offchanoffset: %d"),
+                  offchanmode, pHddCtx->tdls_off_channel,
+                  pHddCtx->tdls_channel_offset);
+        break;
+    }/* end switch */
+    return 0;
+}

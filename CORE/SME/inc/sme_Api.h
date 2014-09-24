@@ -165,6 +165,27 @@ typedef struct _smeTdlsPeerStateParams
     tANI_U32 peerState;
     tSmeTdlsPeerCapParams peerCap;
 } tSmeTdlsPeerStateParams;
+
+#define ENABLE_CHANSWITCH  1
+#define DISABLE_CHANSWITCH 2
+#define BW_20              20
+#define BW_40              40
+#define BW_80              80
+#define BW_160             160
+#define BW_20_OFFSET_BIT   0
+#define BW_40_OFFSET_BIT   1
+#define BW_80_OFFSET_BIT   2
+#define BW_160_OFFSET_BIT  3
+
+typedef struct _smeTdlsChanSwitchParams
+{
+   tANI_U32    vdev_id;
+   tSirMacAddr peer_mac_addr;
+   tANI_U16    tdls_off_ch_bw_offset;/* Target Off Channel Bandwidth offset */
+   tANI_U8     tdls_off_channel;     /* Target Off Channel */
+   tANI_U8     tdls_off_ch_mode;     /* TDLS Off Channel Mode */
+   tANI_U8     is_responder;         /* is peer responder or initiator */
+} tSmeTdlsChanSwitchParams;
 #endif /* FEATURE_WLAN_TDLS */
 
 /* Thermal Mitigation*/
@@ -3390,6 +3411,14 @@ VOS_STATUS sme_DeleteTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
 void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId,
                                             v_BOOL_t val);
 
+/* ---------------------------------------------------------------------------
+    \fn  sme_SendTdlsChanSwitchReq
+    \API to set tdls channel switch parameters.
+
+    \- return void
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SendTdlsChanSwitchReq(tHalHandle hHal,
+                                     tSmeTdlsChanSwitchParams *chSwitchParams);
 #endif
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps

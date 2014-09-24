@@ -1790,8 +1790,8 @@ typedef enum
 #define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (0)
 
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (0)
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (1)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (165)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT  (36)
 
 /* Tdls offchannel bandwidth is now represented in bits as follows.

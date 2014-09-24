@@ -70,6 +70,8 @@ should not be more than 2000 */
 #define ENA_TDLS_BUFFER_STA   (1 << 1)  /* TDLS Buffer STA support */
 #define ENA_TDLS_SLEEP_STA    (1 << 2)  /* TDLS Sleep STA support */
 
+#define TDLS_PEER_LIST_SIZE   256
+
 typedef struct
 {
     tANI_U32    tdls;
@@ -180,7 +182,7 @@ typedef struct {
 struct _hddTdlsPeer_t;
 
 typedef struct {
-    struct list_head peer_list[256];
+    struct list_head peer_list[TDLS_PEER_LIST_SIZE];
     hdd_adapter_t   *pAdapter;
 #ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
     vos_timer_t     peerDiscoverTimer;
@@ -369,7 +371,6 @@ int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter,
 
 int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, u8 *mac,
                                  tANI_BOOLEAN forcePeer);
-
 int wlan_hdd_tdls_extctrl_deconfig_peer(hdd_adapter_t *pAdapter, u8 *peer);
 int wlan_hdd_tdls_extctrl_config_peer(hdd_adapter_t *pAdapter,
                                       u8 *peer,
@@ -388,4 +389,8 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
                                       tANI_S32 *reason);
 int wlan_hdd_set_callback(hddTdlsPeer_t *curr_peer,
                           cfg80211_exttdls_callback callback);
+hddTdlsPeer_t *wlan_hdd_tdls_find_first_connected_peer(hdd_adapter_t *pAdapter);
+int hdd_set_tdls_offchannel(hdd_context_t *pHddCtx, int offchannel);
+int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset);
+int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode);
 #endif // __HDD_TDSL_H
