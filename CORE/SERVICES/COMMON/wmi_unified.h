@@ -204,6 +204,9 @@ typedef enum {
      */
     WMI_SCAN_UPDATE_REQUEST_CMDID,
 
+    /** set OUI to be used in probe request if enabled */
+    WMI_SCAN_PROB_REQ_OUI_CMDID,
+
     /* PDEV(physical device) specific commands */
     /** set regulatorty ctl id used by FW to determine the exact ctl power limits */
     WMI_PDEV_SET_REGDOMAIN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_PDEV),
@@ -1689,6 +1692,10 @@ typedef struct {
 #define WMI_SCAN_ADD_TPC_IE_IN_PROBE_REQ  0x400
 /** add DS content in probe req frame */
 #define WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ   0x800
+/** use random mac address for TA for probe request frame and add
+ * oui specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the probe req frame.
+ * if oui is not set by WMI_SCAN_PROB_REQ_OUI_CMDID  then the flag is ignored*/
+#define WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ   0x1000
 
 /** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
 #define WMI_SCAN_CLASS_MASK 0xFF000000
@@ -1795,6 +1802,15 @@ typedef struct {
     /** min rest time. Only valid if WMI_SCAN_UPDATE_MAX_REST_TIME flag is set in scan_update_flag */
     A_UINT32 max_rest_time;
 } wmi_scan_update_request_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    /** oui to be used in probe request frame when  random mac addresss is
+     * requested part of scan parameters. this is applied to both FW internal scans and
+     * host initated scans. host can request for random mac address with
+     * WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ flag.     */
+    A_UINT32 prob_req_oui;
+} wmi_scan_prob_req_oui_cmd_fixed_param;
 
 enum wmi_scan_event_type {
     WMI_SCAN_EVENT_STARTED=0x1,

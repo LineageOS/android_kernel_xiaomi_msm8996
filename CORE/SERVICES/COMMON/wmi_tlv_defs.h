@@ -509,7 +509,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_ric_tspec,
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config,
-    WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param
+    WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -698,7 +699,8 @@ typedef enum {
     OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
     OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
     OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID) \
-    OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)
+    OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)\
+    OP(WMI_SCAN_PROB_REQ_OUI_CMDID)
 
 
 
@@ -1612,6 +1614,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RESUME_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_scan_update_request_cmd_fixed_param, wmi_scan_update_request_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_SCAN_UPDATE_REQUEST_CMDID);
+
+#define WMITLV_TABLE_WMI_SCAN_PROB_REQ_OUI_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param, wmi_scan_prob_req_oui_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_SCAN_PROB_REQ_OUI_CMDID);
 
 #define WMITLV_TABLE_WMI_CHATTER_ADD_COALESCING_FILTER_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_STRUC_wmi_chatter_coalescing_add_filter_cmd_fixed_param, wmi_chatter_coalescing_add_filter_cmd_fixed_param, fixed_param,WMITLV_SIZE_FIX) \
