@@ -510,7 +510,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_ric_tspec,
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config,
     WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_key_material,
+    WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -700,7 +702,8 @@ typedef enum {
     OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
     OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID) \
     OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)\
-    OP(WMI_SCAN_PROB_REQ_OUI_CMDID)
+    OP(WMI_SCAN_PROB_REQ_OUI_CMDID) \
+    OP(WMI_TDLS_SET_OFFCHAN_MODE_CMDID)
 
 
 
@@ -1682,6 +1685,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_SET_STATE_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_PEER_UPDATE_CMDID);
 
+/* Enable/Disable TDLS Offchannel Cmd */
+#define WMITLV_TABLE_WMI_TDLS_SET_OFFCHAN_MODE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param, \
+            wmi_tdls_set_offchan_mode_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_SET_OFFCHAN_MODE_CMDID);
+
 /* Resmgr Enable/Disable Adaptive OCS CMD */
 #define WMITLV_TABLE_WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_resmgr_adaptive_ocs_enable_disable_cmd_fixed_param, \
@@ -2103,7 +2112,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param, wmi_roam_synch_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bcn_probe_rsp_frame, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, reassoc_rsp_frame, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_key_material, key, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_EVENTID);
 
 /* WOW Wakeup Host Event */

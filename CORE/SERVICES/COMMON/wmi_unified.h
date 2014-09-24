@@ -589,6 +589,8 @@ typedef enum {
     WMI_TDLS_SET_STATE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_TDLS),
     /** set tdls peer state */
     WMI_TDLS_PEER_UPDATE_CMDID,
+    /** TDLS Offchannel control */
+    WMI_TDLS_SET_OFFCHAN_MODE_CMDID,
 
     /** Resmgr Configuration */
     /** Adaptive OCS is enabled by default in the FW. This command is used to
@@ -5157,7 +5159,7 @@ typedef struct {
                                           SSID and Security profile in
                                           WMI_ROAM_AP_PROFILE, found during scan
                                           triggered upon FINAL_BMISS **/
-#define WMI_ROAM_REASON_HO_FAILED 0x5  /** LFR3.0 roaming failed, indicate the disconnection to host */
+#define WMI_ROAM_REASON_HO_FAILED  0x5  /** LFR3.0 roaming failed, indicate the disconnection to host */
 
 /**whenever RIC request information change, host driver should pass all ric related information to firmware (now only support tsepc)
 * Once, 11r roaming happens, firmware can generate RIC request in reassoc request based on these informations
@@ -6836,6 +6838,40 @@ typedef struct {
      *  wmi_channel chan_info[] */
 } wmi_tdls_peer_update_cmd_fixed_param;
 
+/* WMI_TDLS_SET_OFFCHAN_MODE_CMDID */
+
+
+/* bitmap  20, 40, 80 or 160 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_20MHZ                  0x1   /*  20 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_40MHZ                  0x2   /*  40 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_80MHZ                  0x4   /*  80 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_160MHZ                 0x8   /*  160 MHz wide channel */
+
+
+enum wmi_tdls_offchan_mode {
+    WMI_TDLS_ENABLE_OFFCHANNEL,
+    WMI_TDLS_DISABLE_OFFCHANNEL
+};
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param  */
+    A_UINT32   tlv_header;
+    /** unique id identifying the VDEV */
+    A_UINT32   vdev_id;
+    /** Enable/Disable TDLS offchannel */
+    A_UINT32 offchan_mode;
+    /** peer MAC address */
+    wmi_mac_addr   peer_macaddr;
+    /* Is peer initiator or responder of TDLS setup request */
+    A_UINT32 is_peer_responder;
+    /* off channel number*/
+    A_UINT32 offchan_num;
+    /* off channel bandwidth bitmap, e.g. WMI_OFFCHAN_20MHZ */
+    A_UINT32 offchan_bw_bitmap;
+    /* operating class for offchan */
+    A_UINT32 offchan_oper_class;
+} wmi_tdls_set_offchan_mode_cmd_fixed_param;
+
 /** TDLS EVENTS */
 enum wmi_tdls_peer_notification {
     /** tdls discovery recommended for peer (based
@@ -7918,6 +7954,15 @@ enum {
 */
 
 typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_key_material */
+    A_UINT32 tlv_header;
+
+    A_UINT8  kck[GTK_OFFLOAD_KCK_BYTES]; /* EAPOL-Key Key Confirmation Key (KCK) */
+    A_UINT8  kek[GTK_OFFLOAD_KEK_BYTES]; /* EAPOL-Key Key Encryption Key (KEK) */
+    A_UINT8  replay_counter[GTK_REPLAY_COUNTER_BYTES];
+} wmi_key_material;
+
+typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param  */
     /** Unique id identifying the VDEV on which roaming is done by firmware */
     A_UINT32 vdev_id;
@@ -7940,7 +7985,8 @@ typedef struct {
      * The TLV's are:
      *     A_UINT8 bcn_probe_rsp_frame[];  length identified by bcn_probe_rsp_len
      *     A_UINT8 reassoc_rsp_frame[];  length identified by reassoc_rsp_len
-     *      wmi_channel chan;
+     *     wmi_channel chan;
+     *     wmi_key_material key;
      **/
 } wmi_roam_synch_event_fixed_param;
 
