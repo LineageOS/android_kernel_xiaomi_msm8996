@@ -657,7 +657,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         pStaDs = NULL;
                     }
 
-                    if (NULL != pStaDs)
+                    if (NULL != pStaDs
+#ifdef WLAN_FEATURE_11W
+                        && !pStaDs->rmfEnabled
+#endif
+                       )
                     {
                         PELOGE(limLog(pMac, LOGE,
                                FL("lim Delete Station Context (staId: %d, assocId: %d) "),
