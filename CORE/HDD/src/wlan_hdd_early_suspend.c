@@ -1851,9 +1851,14 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
    set_bit(RX_POST_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
    wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for TLshim RX thread to exit",
+          __func__);
    wait_for_completion(&vosSchedContext->TlshimRxShutdown);
    vosSchedContext->TlshimRxThread = NULL;
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for dropping RX packets",
+          __func__);
    vos_drop_rxpkt_by_staid(vosSchedContext, WLAN_MAX_STA_COUNT);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for freeing freeQ", __func__);
    vos_free_tlshim_pkt_freeq(vosSchedContext);
 #endif
 
