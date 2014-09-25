@@ -23950,6 +23950,8 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 {
 	tp_wma_handle wma_handle;
+	struct beacon_info *bcn;
+	int i;
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -23971,6 +23973,24 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 	WMA_LOGD("calling wmi_unified_detach");
 	wmi_unified_detach(wma_handle->wmi_handle);
 	wma_handle->wmi_handle = NULL;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		bcn = wma_handle->interfaces[i].beacon;
+
+		if (bcn) {
+			if (bcn->dma_mapped)
+				adf_nbuf_unmap_single(wma_handle->adf_dev,
+						bcn->buf, ADF_OS_DMA_TO_DEVICE);
+			adf_nbuf_free(bcn->buf);
+			vos_mem_free(bcn);
+			wma_handle->interfaces[i].beacon = NULL;
+		}
+
+		if (wma_handle->interfaces[i].handle) {
+			adf_os_mem_free(wma_handle->interfaces[i].handle);
+			wma_handle->interfaces[i].handle = NULL;
+		}
+	}
 
 	vos_mem_free(wma_handle->interfaces);
 	/* free the wma_handle */

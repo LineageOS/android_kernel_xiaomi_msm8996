@@ -6328,6 +6328,9 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
         /* BSS stopped, clear the active sessions for this device mode */
         wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+
+        pAdapter->sessionCtx.ap.beacon = NULL;
+        kfree(old);
     }
     mutex_unlock(&pHddCtx->sap_lock);
 
@@ -6356,8 +6359,6 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     // Reset WNI_CFG_PROBE_RSP Flags
     wlan_hdd_reset_prob_rspies(pAdapter);
 
-    pAdapter->sessionCtx.ap.beacon = NULL;
-    kfree(old);
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if((pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
        (globalP2PConnectionStatus == P2P_GO_COMPLETED_STATE)) {

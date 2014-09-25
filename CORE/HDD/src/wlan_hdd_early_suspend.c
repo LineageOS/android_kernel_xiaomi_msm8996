@@ -1992,10 +1992,10 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    }
 
    /* Initialize the adf_ctx handle */
-   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
+   adf_ctx = ((VosContextType*)(pVosContext))->adf_ctx;
 
    if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to get adf_ctx", __func__);
       goto err_re_init;
    }
    vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
