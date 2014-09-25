@@ -508,7 +508,11 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_tpc_chainmask_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_ric_tspec,
-    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config
+    WMITLV_TAG_STRUC_wmi_tpc_chainmask_config,
+    WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_key_material,
+    WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -696,7 +700,10 @@ typedef enum {
     OP(WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID) \
     OP(WMI_ROAM_SET_RIC_REQUEST_CMDID) \
     OP(WMI_PDEV_GET_TEMPERATURE_CMDID) \
-    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID)
+    OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID) \
+    OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)\
+    OP(WMI_SCAN_PROB_REQ_OUI_CMDID) \
+    OP(WMI_TDLS_SET_OFFCHAN_MODE_CMDID)
 
 
 
@@ -1611,6 +1618,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RESUME_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_SCAN_UPDATE_REQUEST_CMDID);
 
+#define WMITLV_TABLE_WMI_SCAN_PROB_REQ_OUI_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param, wmi_scan_prob_req_oui_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_SCAN_PROB_REQ_OUI_CMDID);
+
 #define WMITLV_TABLE_WMI_CHATTER_ADD_COALESCING_FILTER_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_STRUC_wmi_chatter_coalescing_add_filter_cmd_fixed_param, wmi_chatter_coalescing_add_filter_cmd_fixed_param, fixed_param,WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, chatter_pkt_coalescing_filter, coalescing_filter, WMITLV_SIZE_VAR)
@@ -1672,6 +1684,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_SET_STATE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_channel, peer_chan_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_PEER_UPDATE_CMDID);
+
+/* Enable/Disable TDLS Offchannel Cmd */
+#define WMITLV_TABLE_WMI_TDLS_SET_OFFCHAN_MODE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param, \
+            wmi_tdls_set_offchan_mode_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_SET_OFFCHAN_MODE_CMDID);
 
 /* Resmgr Enable/Disable Adaptive OCS CMD */
 #define WMITLV_TABLE_WMI_RESMGR_ADAPTIVE_OCS_ENABLE_DISABLE_CMDID(id,op,buf,len) \
@@ -1926,6 +1944,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param, wmi_set_dhcp_server_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 
+/* IPA Offload Enable Disable Cmd */
+#define WMITLV_TABLE_WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID(id,op,buf,len)                                                         \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param, wmi_ipa_offload_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2089,7 +2112,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param, wmi_roam_synch_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bcn_probe_rsp_frame, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, reassoc_rsp_frame, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_key_material, key, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_EVENTID);
 
 /* WOW Wakeup Host Event */

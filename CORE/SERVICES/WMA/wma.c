@@ -16452,6 +16452,10 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case  WOW_REASON_HOST_AUTO_SHUTDOWN:
 		return "WOW_REASON_HOST_AUTO_SHUTDOWN";
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	case  WOW_REASON_ROAM_HO:
+		return "WOW_REASON_ROAM_HO";
+#endif
 	}
 	return "unknown";
 }
@@ -16642,8 +16646,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGA("WOW wakeup host event received (reason: %s) for vdev %d",
+	WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
+		 wake_info->wake_reason,
 		 wake_info->vdev_id);
 
 	vos_event_set(&wma->wma_resume_event);
@@ -22730,6 +22735,7 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 {
 	tSirSmeHOFailureInd *ho_failure_ind;
@@ -22760,6 +22766,7 @@ static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 	}
 	return;
 }
+#endif
 
 /* function   : wma_roam_better_ap_handler
  * Description : Handler for WMI_ROAM_REASON_BETTER_AP event from roam firmware in Rome.
@@ -22822,11 +22829,13 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 			wmi_event->vdev_id, wmi_event->rssi);
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);
 		break;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	case WMI_ROAM_REASON_HO_FAILED:
 		WMA_LOGE("LFR3:Hand-Off Failed for vdevid %x",
 			wmi_event->vdev_id);
 		wma_roam_ho_fail_handler(wma_handle, wmi_event->vdev_id);
 		break;
+#endif
 	default:
 		WMA_LOGD("%s:Unhandled Roam Event %x for vdevid %x", __func__,
 		wmi_event->reason, wmi_event->vdev_id);

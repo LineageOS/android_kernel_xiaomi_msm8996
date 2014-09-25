@@ -73,6 +73,8 @@
 #include <vos_timer.h>
 #include <vos_pack_align.h>
 
+#define VOS_WDA_TIMEOUT 15000
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/

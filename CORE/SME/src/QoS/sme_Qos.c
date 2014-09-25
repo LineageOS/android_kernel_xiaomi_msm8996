@@ -3270,6 +3270,11 @@ eHalStatus sme_QosESEProcessReassocTspecRsp(tpAniSirGlobal pMac, v_U8_t sessionI
     numTspec = (tspecIeLen)/sizeof(tDot11fIEWMMTSPEC);
     for(cnt=0; cnt<numTspec; cnt++) {
         ac = sme_QosUpToAc(pTspecIE->user_priority);
+        if (ac >= SME_QOS_EDCA_AC_MAX) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    FL("ac %d more than it`s max value"), ac);
+            return eHAL_STATUS_FAILURE;
+        }
         pACInfo = &pSession->ac_info[ac];
         tspec_mask_status = pACInfo->tspec_mask_status;
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,

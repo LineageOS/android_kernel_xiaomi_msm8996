@@ -598,7 +598,9 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
  */
 
 static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
-                     tSirMacAddr peerMac, tANI_U8 dialog, tpPESession psessionEntry)
+                     tSirMacAddr peerMac, tANI_U8 dialog,
+                     tpPESession psessionEntry, tANI_U8 *addIe,
+                     tANI_U16 addIeLen)
 {
     tDot11fTDLSDisRsp   tdlsDisRsp ;
     tANI_U16            caps = 0 ;
@@ -698,7 +700,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
      */
 
 
-    nBytes = nPayload + sizeof( tSirMacMgmtHdr ) ;
+    nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + addIeLen;
 
     /* Ok-- try to allocate memory from MGMT PKT pool */
 
@@ -750,7 +752,14 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGW, FL("There were warnings while packing TDLS "
                                "Discovery Request (0x%08x)."), status );
     }
-
+    if (0 != addIeLen)
+    {
+        LIM_LOG_TDLS(VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                     ("Copy Additional Ie Len = %d"), addIeLen ));
+        vos_mem_copy(pFrame + sizeof(tSirMacMgmtHdr) + nPayload,
+                     addIe,
+                     addIeLen);
+    }
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                  ("transmitting Discovery response on direct link")) ;
 
@@ -2566,15 +2575,18 @@ tSirRetStatus limProcessSmeTdlsMgmtSendReq(tpAniSirGlobal pMac,
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                     "Transmit Discovery Request Frame") ;
             /* format TDLS discovery request frame and transmit it */
-            limSendTdlsDisReqFrame(pMac, pSendMgmtReq->peerMac, pSendMgmtReq->dialog,
-                    psessionEntry) ;
+            limSendTdlsDisReqFrame(pMac, pSendMgmtReq->peerMac,
+                                   pSendMgmtReq->dialog,
+                                   psessionEntry) ;
             resultCode = eSIR_SME_SUCCESS;
             break;
         case SIR_MAC_TDLS_DIS_RSP:
             {
                 //Send a response mgmt action frame
                 limSendTdlsDisRspFrame(pMac, pSendMgmtReq->peerMac,
-                        pSendMgmtReq->dialog, psessionEntry) ;
+                        pSendMgmtReq->dialog, psessionEntry,
+                        &pSendMgmtReq->addIe[0],
+                        (pSendMgmtReq->length - sizeof(tSirTdlsSendMgmtReq)));
                 resultCode = eSIR_SME_SUCCESS;
             }
             break;
