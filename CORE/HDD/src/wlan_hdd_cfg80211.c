@@ -8958,14 +8958,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         return -EOPNOTSUPP;
     }
 #endif
-    //Scan on any other interface is not supported.
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Not scanning on device_mode = %d",
-               __func__, pAdapter->device_mode);
-        return -EOPNOTSUPP;
-    }
 
     if (TRUE == pScanInfo->mScanPending)
     {

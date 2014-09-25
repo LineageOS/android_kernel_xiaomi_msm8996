@@ -7013,12 +7013,6 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     csrScanCancelIdleScan(pMac);
     //Only abort the scan if it is not used for other roam/connect purpose
     csrScanAbortMacScan(pMac, sessionId, eCSR_SCAN_ABORT_DEFAULT);
-    if (!vos_concurrent_open_sessions_running() &&
-       (VOS_STA_SAP_MODE == pProfile->csrPersona))
-    {
-        /* In case of AP mode we do not want idle mode scan */
-        csrScanDisable(pMac);
-    }
     csrRoamRemoveDuplicateCommand(pMac, sessionId, NULL, eCsrHddIssued);
     //Check whether ssid changes
     if(csrIsConnStateConnected(pMac, sessionId))
