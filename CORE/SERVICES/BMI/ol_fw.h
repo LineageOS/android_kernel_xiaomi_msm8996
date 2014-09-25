@@ -117,4 +117,14 @@ int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
 void ol_target_failure(void *instance, A_STATUS status);
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn);
+
+#if defined(HIF_SDIO)
+void ol_target_ready(struct ol_softc *scn);
+#else
+static inline void ol_target_ready(struct ol_softc *scn)
+{
+
+}
+#endif
+
 #endif /* _OL_FW_H_ */

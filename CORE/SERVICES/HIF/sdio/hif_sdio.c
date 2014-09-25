@@ -94,7 +94,8 @@ int HIFMapServiceToPipe(HIF_DEVICE *hif_device, a_uint16_t ServiceId,
 {
     HIF_SDIO_DEVICE *htc_sdio_device = HIFDevFromHIF(hif_device);
 
-    return HIFDevMapServiceToPipe(htc_sdio_device, ServiceId, ULPipe, DLPipe);
+    return HIFDevMapServiceToPipe(htc_sdio_device,
+                   ServiceId, ULPipe, DLPipe, hif_device->swap_mailbox);
 }
 
 void HIFGetDefaultPipe(HIF_DEVICE *hif_device, a_uint8_t *ULPipe,

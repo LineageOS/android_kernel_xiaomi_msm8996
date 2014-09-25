@@ -91,6 +91,8 @@ struct hif_device {
     const struct sdio_device_id *id;
     struct mmc_host *host;
     void *htcContext;
+    /* mailbox swapping for control and data svc*/
+    A_BOOL swap_mailbox;
 };
 
 #define HIF_DMA_BUFFER_SIZE (32 * 1024)

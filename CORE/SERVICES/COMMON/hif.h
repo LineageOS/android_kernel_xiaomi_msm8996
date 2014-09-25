@@ -812,6 +812,7 @@ void HIFIpaGetCEResource(HIF_DEVICE *hif_device,
                           A_UINT32 *ce_reg_paddr);
 #endif /* IPA_UC_OFFLOAD */
 
+void HIFSetMailboxSwap(HIF_DEVICE  *device);
 #ifdef __cplusplus
 }
 #endif
