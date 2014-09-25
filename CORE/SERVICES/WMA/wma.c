@@ -15003,6 +15003,19 @@ static int wma_p2p_go_set_beacon_ie(t_wma_handle *wma_handle,
 
 	ie_len = (u_int32_t) (p2pIe[1] + 2);
 
+	/* More than one P2P IE may be included in a single frame.
+	   If multiple P2P IEs are present, the complete P2P attribute
+	   data consists of the concatenation of the P2P Attribute
+	   fields of the P2P IEs. The P2P Attributes field of each
+	   P2P IE may be any length up to the maximum (251 octets).
+	   In this case host sends one P2P IE to firmware so the length
+	   should not exceed more than 251 bytes
+	 */
+	if (ie_len > 251) {
+		WMA_LOGE("%s : invalid p2p ie length %u", __func__, ie_len);
+		return -EINVAL;
+	}
+
 	ie_len_aligned = roundup(ie_len, sizeof(A_UINT32));
 
 	wmi_buf_len = sizeof(wmi_p2p_go_set_beacon_ie_fixed_param) + ie_len_aligned + WMI_TLV_HDR_SIZE;
