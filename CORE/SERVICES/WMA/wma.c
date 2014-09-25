@@ -16452,6 +16452,10 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case  WOW_REASON_HOST_AUTO_SHUTDOWN:
 		return "WOW_REASON_HOST_AUTO_SHUTDOWN";
 #endif
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	case  WOW_REASON_ROAM_HO:
+		return "WOW_REASON_ROAM_HO";
+#endif
 	}
 	return "unknown";
 }
@@ -16642,8 +16646,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGA("WOW wakeup host event received (reason: %s) for vdev %d",
+	WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
 		 wma_wow_wake_reason_str(wake_info->wake_reason),
+		 wake_info->wake_reason,
 		 wake_info->vdev_id);
 
 	vos_event_set(&wma->wma_resume_event);
