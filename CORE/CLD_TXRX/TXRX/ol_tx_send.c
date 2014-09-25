@@ -916,13 +916,15 @@ ol_tx_delay_compute(
      */
 
     cat = ol_tx_delay_category(pdev, desc_ids[0]);
-    if (cat == -1)
+    if (cat < 0 || cat >= QCA_TX_DELAY_NUM_CATEGORIES)
         return;
 
     pdev->packet_count[cat] = pdev->packet_count[cat] + num_msdus;
     if (status != htt_tx_status_ok) {
         for (i = 0; i < num_msdus; i++) {
             cat = ol_tx_delay_category(pdev, desc_ids[i]);
+            if (cat < 0 || cat >= QCA_TX_DELAY_NUM_CATEGORIES)
+                return;
             pdev->packet_loss_count[cat]++;
         }
         return;
