@@ -4497,3 +4497,15 @@ NONE
 V    RW    NP
 NONE
 0    1    0
+
+*
+*TDLS WMM Mode
+*
+*
+WNI_CFG_TDLS_WMM_MODE_ENABLED   I   4   7
+V    RW    NP
+LIM
+0    1    0
+V    RW    NP
+LIM
+0    1    0

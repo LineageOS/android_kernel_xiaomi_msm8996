@@ -2024,6 +2024,11 @@ typedef enum
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MAX      (1)
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_DEFAULT  (0)
 
+#define CFG_TDLS_WMM_MODE_ENABLE                     "gEnableTDLSWmmMode"
+#define CFG_TDLS_WMM_MODE_ENABLE_MIN                 (0)
+#define CFG_TDLS_WMM_MODE_ENABLE_MAX                 (1)
+#define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (0)
+
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (0)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
@@ -3226,6 +3231,7 @@ typedef struct
    v_U32_t                     fTDLSPuapsdPTRTimeout;
    v_BOOL_t                    fTDLSExternalControl;
    v_U32_t                     fEnableTDLSOffChannel;
+   v_U32_t                     fEnableTDLSWmmMode;
    v_U8_t                      fTDLSPrefOffChanNum;
    v_U8_t                      fTDLSPrefOffChanBandwidth;
 #endif
