@@ -33,7 +33,8 @@ static inline wdi_event_subscribe *
 wdi_event_next_sub(wdi_event_subscribe *wdi_sub)
 {
     if (!wdi_sub) {
-        adf_os_print("Invalid subscriber in %s\n", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid subscriber in %s\n", __FUNCTION__);
         return NULL;
     }
     return wdi_sub->priv.next;
@@ -87,11 +88,13 @@ wdi_event_handler(
      * Input validation
      */
     if (!event) {
-        adf_os_print("Invalid WDI event in %s\n", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid WDI event in %s\n", __FUNCTION__);
         return;
     }
     if (!txrx_pdev) {
-        adf_os_print("Invalid pdev in WDI event handler\n");
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid pdev in WDI event handler\n");
         return;
     }
     /*
@@ -116,15 +119,18 @@ wdi_event_sub(
     wdi_event_subscribe *wdi_sub;
     /* Input validation */
     if (!txrx_pdev) {
-        adf_os_print("Invalid txrx_pdev in %s", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid txrx_pdev in %s", __FUNCTION__);
         return A_ERROR;
     }
     if (!event_cb_sub) {
-        adf_os_print("Invalid callback in %s", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid callback in %s", __FUNCTION__);
         return A_ERROR;
     }
     if ((!event) || (event >= WDI_EVENT_LAST) || (event < WDI_EVENT_BASE)) {
-        adf_os_print("Invalid event in %s", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid event in %s", __FUNCTION__);
         return A_ERROR;
     } /* Input validation */
 
@@ -159,7 +165,8 @@ wdi_event_unsub(
 
     /* Input validation */
     if (!event_cb_sub) {
-        adf_os_print("Invalid callback in %s", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid callback in %s", __FUNCTION__);
         return A_ERROR;
     }
     if (!event_cb_sub->priv.prev) {
@@ -180,7 +187,7 @@ wdi_event_attach(struct ol_txrx_pdev_t *txrx_pdev)
 {
     /* Input validation */
     if (!txrx_pdev) {
-        adf_os_print(
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
             "Invalid device in %s\nWDI event attach failed", __FUNCTION__);
         return A_ERROR;
     }
@@ -189,7 +196,8 @@ wdi_event_attach(struct ol_txrx_pdev_t *txrx_pdev)
         adf_os_mem_alloc(
             txrx_pdev->osdev, sizeof(wdi_event_subscribe *) * WDI_NUM_EVENTS);
     if (!txrx_pdev->wdi_event_list) {
-        adf_os_print("Insufficient memory for the WDI event lists\n");
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Insufficient memory for the WDI event lists\n");
         return A_NO_MEMORY;
     }
     return A_OK;
@@ -201,7 +209,8 @@ wdi_event_detach(struct ol_txrx_pdev_t *txrx_pdev)
     int i;
     wdi_event_subscribe *wdi_sub;
     if (!txrx_pdev) {
-        adf_os_print("Invalid device in %s\nWDI attach failed", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Invalid device in %s\nWDI attach failed", __FUNCTION__);
         return A_ERROR;
     }
     if (!txrx_pdev->wdi_event_list) {

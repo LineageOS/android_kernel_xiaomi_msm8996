@@ -351,7 +351,8 @@ ol_txrx_pdev_attach(
         u_int32_t paddr_lo;
         htt_tx_desc = htt_tx_desc_alloc(pdev->htt_pdev, &paddr_lo);
         if (! htt_tx_desc) {
-            adf_os_print("%s: failed to alloc HTT tx desc (%d of %d)\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
+                "%s: failed to alloc HTT tx desc (%d of %d)\n",
                 __func__, i, desc_pool_size);
             while (--i >= 0) {
                 htt_tx_desc_free(
@@ -389,7 +390,9 @@ ol_txrx_pdev_attach(
     } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
         pdev->htt_pkt_type = htt_pkt_type_ethernet;
     } else {
-        adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "%s Invalid standard frame type: %d\n",
+            __func__, pdev->frame_format);
         goto fail5;
     }
 
@@ -445,7 +448,7 @@ ol_txrx_pdev_attach(
             pdev->target_rx_tran_caps & wlan_frm_tran_cap_8023 ? 0: 1;
         break;
     default:
-        adf_os_print(
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
             "Invalid standard frame type for encap/decap: fmt %x tx %x rx %x\n",
             pdev->frame_format,
             pdev->target_tx_tran_caps,
@@ -492,7 +495,7 @@ ol_txrx_pdev_attach(
                  */
                 pdev->rx_opt_proc = ol_rx_pn_check;
             } else {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                     "%s: invalid config: if rx PN check is on the host,"
                     "rx->tx forwarding check needs to also be on the host.\n",
                     __func__);
@@ -547,7 +550,8 @@ ol_txrx_pdev_attach(
      */
 #ifdef WDI_EVENT_ENABLE
     if ((ret = wdi_event_attach(pdev)) == A_ERROR) {
-        adf_os_print("WDI event attach unsuccessful\n");
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_WARN,
+            "WDI event attach unsuccessful\n");
     }
 #endif
 
@@ -791,7 +795,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
      */
 #ifdef WDI_EVENT_ENABLE
     if (wdi_event_detach(pdev) == A_ERROR) {
-        adf_os_print("WDI detach unsuccessful\n");
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_WARN,
+            "WDI detach unsuccessful\n");
     }
 #endif
     OL_TXRX_LOCAL_PEER_ID_CLEANUP(pdev);
@@ -903,22 +908,22 @@ ol_txrx_vdev_attach(
 }
 
 void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
-				void *osif_vdev,
-				struct ol_txrx_osif_ops *txrx_ops)
+                                void *osif_vdev,
+                                struct ol_txrx_osif_ops *txrx_ops)
 {
-	vdev->osif_dev = osif_vdev;
-	vdev->osif_rx = txrx_ops->rx.std;
+    vdev->osif_dev = osif_vdev;
+    vdev->osif_rx = txrx_ops->rx.std;
 
-	if (ol_cfg_is_high_latency(vdev->pdev->ctrl_pdev)) {
-		txrx_ops->tx.std = vdev->tx = ol_tx_hl;
-		txrx_ops->tx.non_std = ol_tx_non_std_hl;
-	} else {
-		txrx_ops->tx.std = vdev->tx = OL_TX_LL;
-		txrx_ops->tx.non_std = ol_tx_non_std_ll;
-	}
-	#ifdef QCA_LL_TX_FLOW_CT
-	vdev->osif_flow_control_cb = txrx_ops->tx.flow_control_cb;
-	#endif /* QCA_LL_TX_FLOW_CT */
+    if (ol_cfg_is_high_latency(vdev->pdev->ctrl_pdev)) {
+        txrx_ops->tx.std = vdev->tx = ol_tx_hl;
+        txrx_ops->tx.non_std = ol_tx_non_std_hl;
+    } else {
+        txrx_ops->tx.std = vdev->tx = OL_TX_LL;
+        txrx_ops->tx.non_std = ol_tx_non_std_ll;
+    }
+    #ifdef QCA_LL_TX_FLOW_CT
+    vdev->osif_flow_control_cb = txrx_ops->tx.flow_control_cb;
+    #endif /* QCA_LL_TX_FLOW_CT */
 }
 
 void
@@ -1247,92 +1252,93 @@ ol_txrx_peer_keyinstalled_state_update(
 
 void
 ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
-		    u_int8_t *peer_mac,
-		    ol_txrx_peer_update_param_t *param,
-		    ol_txrx_peer_update_select_t select)
+                        u_int8_t *peer_mac,
+                        ol_txrx_peer_update_param_t *param,
+                        ol_txrx_peer_update_select_t select)
 {
-	struct ol_txrx_peer_t *peer;
+    struct ol_txrx_peer_t *peer;
 
-	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
-	if (!peer)
-	{
-		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null", __FUNCTION__);
-		return;
-	}
+    peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
+    if (!peer)
+    {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: peer is null", __FUNCTION__);
+        return;
+    }
 
-	switch (select) {
-	case ol_txrx_peer_update_qos_capable:
-		{
-			/* save qos_capable here txrx peer,
-			 * when HTT_ISOC_T2H_MSG_TYPE_PEER_INFO comes then save.
-			 */
-			peer->qos_capable = param->qos_capable;
-			/*
-			 * The following function call assumes that the peer has a single
-			 * ID.  This is currently true, and is expected to remain true.
-			 */
-			htt_peer_qos_update(
-				peer->vdev->pdev->htt_pdev,
-				peer->peer_ids[0],
-				peer->qos_capable);
-			break;
-		}
-	case ol_txrx_peer_update_uapsdMask:
-		{
-			peer->uapsd_mask = param->uapsd_mask;
-			htt_peer_uapsdmask_update(
-				peer->vdev->pdev->htt_pdev,
-				peer->peer_ids[0],
-				peer->uapsd_mask);
-			break;
-		}
-	case ol_txrx_peer_update_peer_security:
-		{
-			enum ol_sec_type              sec_type = param->sec_type;
-			enum htt_sec_type             peer_sec_type = htt_sec_type_none;
+    switch (select) {
+    case ol_txrx_peer_update_qos_capable:
+        {
+            /* save qos_capable here txrx peer,
+                      * when HTT_ISOC_T2H_MSG_TYPE_PEER_INFO comes then save.
+                      */
+            peer->qos_capable = param->qos_capable;
+            /*
+                       * The following function call assumes that the peer has a single
+                       * ID.  This is currently true, and is expected to remain true.
+                       */
+            htt_peer_qos_update(
+                peer->vdev->pdev->htt_pdev,
+                peer->peer_ids[0],
+                peer->qos_capable);
+            break;
+        }
+    case ol_txrx_peer_update_uapsdMask:
+        {
+            peer->uapsd_mask = param->uapsd_mask;
+            htt_peer_uapsdmask_update(
+                peer->vdev->pdev->htt_pdev,
+                peer->peer_ids[0],
+                peer->uapsd_mask);
+            break;
+        }
+    case ol_txrx_peer_update_peer_security:
+        {
+            enum ol_sec_type              sec_type = param->sec_type;
+            enum htt_sec_type             peer_sec_type = htt_sec_type_none;
 
-			switch(sec_type) {
-			case ol_sec_type_none:
-			    peer_sec_type = htt_sec_type_none;
-			    break;
-			case ol_sec_type_wep128:
-			    peer_sec_type = htt_sec_type_wep128;
-			    break;
-			case ol_sec_type_wep104:
-			    peer_sec_type = htt_sec_type_wep104;
-			    break;
-			case ol_sec_type_wep40:
-			    peer_sec_type = htt_sec_type_wep40;
-			    break;
-			case ol_sec_type_tkip:
-			    peer_sec_type = htt_sec_type_tkip;
-			    break;
-			case ol_sec_type_tkip_nomic:
-			    peer_sec_type = htt_sec_type_tkip_nomic;
-			    break;
-			case ol_sec_type_aes_ccmp:
-			    peer_sec_type = htt_sec_type_aes_ccmp;
-			    break;
-			case ol_sec_type_wapi:
-			    peer_sec_type = htt_sec_type_wapi;
-			    break;
-			default:
-			    peer_sec_type = htt_sec_type_none;
-			    break;
-			}
+            switch(sec_type) {
+            case ol_sec_type_none:
+                peer_sec_type = htt_sec_type_none;
+                break;
+            case ol_sec_type_wep128:
+                peer_sec_type = htt_sec_type_wep128;
+                break;
+            case ol_sec_type_wep104:
+                peer_sec_type = htt_sec_type_wep104;
+                break;
+            case ol_sec_type_wep40:
+                peer_sec_type = htt_sec_type_wep40;
+                break;
+            case ol_sec_type_tkip:
+                peer_sec_type = htt_sec_type_tkip;
+                break;
+            case ol_sec_type_tkip_nomic:
+                peer_sec_type = htt_sec_type_tkip_nomic;
+                break;
+            case ol_sec_type_aes_ccmp:
+                peer_sec_type = htt_sec_type_aes_ccmp;
+                break;
+            case ol_sec_type_wapi:
+                peer_sec_type = htt_sec_type_wapi;
+                break;
+            default:
+                peer_sec_type = htt_sec_type_none;
+                break;
+            }
 
-			peer->security[txrx_sec_ucast].sec_type =
-			peer->security[txrx_sec_mcast].sec_type = peer_sec_type;
+            peer->security[txrx_sec_ucast].sec_type =
+            peer->security[txrx_sec_mcast].sec_type = peer_sec_type;
 
-			break;
-		}
-	default:
-		{
-			adf_os_print("ERROR: unknown param %d in %s\n", select, __func__);
-			break;
-		}
-	}
-	adf_os_atomic_dec(&peer->ref_cnt);
+            break;
+        }
+    default:
+        {
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                "ERROR: unknown param %d in %s\n", select, __func__);
+            break;
+        }
+    }
+    adf_os_atomic_dec(&peer->ref_cnt);
 }
 
 u_int8_t
@@ -1592,11 +1598,12 @@ unsigned g_txrx_print_level = TXRX_PRINT_LEVEL_ERR; /* default */
 void ol_txrx_print_level_set(unsigned level)
 {
 #ifndef TXRX_PRINT_ENABLE
-    adf_os_print(
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
         "The driver is compiled without TXRX prints enabled.\n"
         "To enable them, recompile with TXRX_PRINT_ENABLE defined.\n");
 #else
-    adf_os_print("TXRX printout level changed from %d to %d\n",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "TXRX printout level changed from %d to %d\n",
         g_txrx_print_level, level);
     g_txrx_print_level = level;
 #endif
@@ -1808,7 +1815,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #if defined(TXRX_DEBUG_LEVEL) && TXRX_DEBUG_LEVEL > 5
             ol_txrx_pdev_display(vdev->pdev, 0);
         #else
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
                 "The pdev,vdev,peer display functions are disabled.\n"
                 "To enable them, recompile with TXRX_DEBUG_LEVEL > 5.\n");
         #endif
@@ -1817,7 +1824,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
             ol_txrx_stats_display(vdev->pdev);
         #else
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
                 "txrx stats collection is disabled.\n"
                 "To enable it, recompile with TXRX_STATS_LEVEL on.\n");
         #endif
@@ -1826,7 +1833,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #if defined(ENABLE_TXRX_PROT_ANALYZE)
             ol_txrx_prot_ans_display(vdev->pdev);
         #else
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
                 "txrx protocol analysis is disabled.\n"
                 "To enable it, recompile with "
                 "ENABLE_TXRX_PROT_ANALYZE defined.\n");
@@ -1836,7 +1843,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #if defined(ENABLE_RX_REORDER_TRACE)
             ol_rx_reorder_trace_display(vdev->pdev, 0, 0);
         #else
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
                 "rx reorder seq num trace is disabled.\n"
                 "To enable it, recompile with "
                 "ENABLE_RX_REORDER_TRACE defined.\n");
@@ -1862,16 +1869,20 @@ ol_txrx_pdev_display(ol_txrx_pdev_handle pdev, int indent)
 {
     struct ol_txrx_vdev_t *vdev;
 
-    adf_os_print("%*s%s:\n", indent, " ", "txrx pdev");
-    adf_os_print("%*spdev object: %p\n", indent+4, " ", pdev);
-    adf_os_print("%*svdev list:\n", indent+4, " ");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*s%s:\n", indent, " ", "txrx pdev");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*spdev object: %p\n", indent+4, " ", pdev);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*svdev list:\n", indent+4, " ");
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
         ol_txrx_vdev_display(vdev, indent+8);
     }
     ol_txrx_peer_find_display(pdev, indent+4);
-    adf_os_print("%*stx desc pool: %d elems @ %p\n", indent+4, " ",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*stx desc pool: %d elems @ %p\n", indent+4, " ",
         pdev->tx_desc.pool_size, pdev->tx_desc.array);
-    adf_os_print("\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW, "\n");
     htt_display(pdev->htt_pdev, indent);
 }
 
@@ -1880,13 +1891,17 @@ ol_txrx_vdev_display(ol_txrx_vdev_handle vdev, int indent)
 {
     struct ol_txrx_peer_t *peer;
 
-    adf_os_print("%*stxrx vdev: %p\n", indent, " ", vdev);
-    adf_os_print("%*sID: %d\n", indent+4, " ", vdev->vdev_id);
-    adf_os_print("%*sMAC addr: %d:%d:%d:%d:%d:%d\n",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*stxrx vdev: %p\n", indent, " ", vdev);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*sID: %d\n", indent+4, " ", vdev->vdev_id);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*sMAC addr: %d:%d:%d:%d:%d:%d\n",
         indent+4, " ",
         vdev->mac_addr.raw[0], vdev->mac_addr.raw[1], vdev->mac_addr.raw[2],
         vdev->mac_addr.raw[3], vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
-    adf_os_print("%*speer list:\n", indent+4, " ");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*speer list:\n", indent+4, " ");
     TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
         ol_txrx_peer_display(peer, indent+8);
     }
@@ -1897,10 +1912,12 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
 {
     int i;
 
-    adf_os_print("%*stxrx peer: %p\n", indent, " ", peer);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+    "%*stxrx peer: %p\n", indent, " ", peer);
     for (i = 0; i < MAX_NUM_PEER_ID_PER_PEER; i++) {
         if (peer->peer_ids[i] != HTT_INVALID_PEER) {
-            adf_os_print("%*sID: %d\n", indent+4, " ", peer->peer_ids[i]);
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+                "%*sID: %d\n", indent+4, " ", peer->peer_ids[i]);
         }
     }
 }
@@ -1910,13 +1927,14 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
 void
 ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
 {
-    adf_os_print("txrx stats:\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO, "txrx stats:\n");
     if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC) {
-        adf_os_print("  tx: %lld msdus (%lld B)\n",
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+            "  tx: %lld msdus (%lld B)\n",
             pdev->stats.pub.tx.delivered.pkts,
             pdev->stats.pub.tx.delivered.bytes);
     } else { /* full */
-        adf_os_print(
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
             "  tx: sent %lld msdus (%lld B), "
             "rejected %lld (%lld B), dropped %lld (%lld B)\n",
             pdev->stats.pub.tx.delivered.pkts,
@@ -1929,7 +1947,7 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.dropped.download_fail.bytes
               + pdev->stats.pub.tx.dropped.target_discard.bytes
               + pdev->stats.pub.tx.dropped.no_ack.bytes);
-        adf_os_print(
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
             "    download fail: %lld (%lld B), "
             "target discard: %lld (%lld B), "
             "no ack: %lld (%lld B)\n",
@@ -1940,7 +1958,7 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.dropped.no_ack.pkts,
             pdev->stats.pub.tx.dropped.no_ack.bytes);
     }
-    adf_os_print(
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
         "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs\n",
         pdev->stats.priv.rx.normal.ppdus,
         pdev->stats.priv.rx.normal.mpdus,
@@ -1948,7 +1966,7 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
         pdev->stats.pub.rx.delivered.bytes,
         pdev->stats.priv.rx.err.mpdu_bad);
     if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_FULL) {
-        adf_os_print(
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
             "    forwarded %lld msdus, %lld bytes\n",
             pdev->stats.pub.rx.forwarded.pkts,
             pdev->stats.pub.rx.forwarded.bytes);
