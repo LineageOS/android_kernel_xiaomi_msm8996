@@ -7644,12 +7644,16 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 		len += sizeof(wmi_roam_offload_tlv_param);
 		len += WMI_TLV_HDR_SIZE;
 		if((auth_mode != WMI_AUTH_NONE) &&
-			(auth_mode != WMI_AUTH_OPEN)){
+			((auth_mode != WMI_AUTH_OPEN) ||
+			(auth_mode == WMI_AUTH_OPEN &&
+			roam_req->MDID.mdiePresent) )){
 			len += WMI_TLV_HDR_SIZE;
 			if(auth_mode == WMI_AUTH_CCKM)
 			len += sizeof(wmi_roam_ese_offload_tlv_param);
 			else if (auth_mode == WMI_AUTH_FT_RSNA ||
-			auth_mode == WMI_AUTH_FT_RSNA_PSK)
+			auth_mode == WMI_AUTH_FT_RSNA_PSK ||
+			(auth_mode == WMI_AUTH_OPEN &&
+			roam_req->MDID.mdiePresent))
 			len += sizeof(wmi_roam_11r_offload_tlv_param);
 			else
 			len += sizeof(wmi_roam_11i_offload_tlv_param);
@@ -7712,7 +7716,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 	     * they are filled in the same order.Depending on the
 	     * authentication type, the other mode TLV's are nullified
 	     * and only headers are filled.*/
-	    if ((auth_mode != WMI_AUTH_OPEN) && (auth_mode != WMI_AUTH_NONE)) {
+	    if ((auth_mode != WMI_AUTH_NONE) &&
+		((auth_mode != WMI_AUTH_OPEN) ||
+		 (auth_mode == WMI_AUTH_OPEN && roam_req->MDID.mdiePresent))) {
 			if (auth_mode == WMI_AUTH_CCKM){
 				WMITLV_SET_HDR(buf_ptr,WMITLV_TAG_ARRAY_STRUC,
 				WMITLV_GET_STRUCT_TLVLEN(0));
@@ -7735,7 +7741,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				  (wmi_roam_ese_offload_tlv_param));
 				buf_ptr += sizeof(wmi_roam_ese_offload_tlv_param);
 			} else if (auth_mode == WMI_AUTH_FT_RSNA ||
-				auth_mode == WMI_AUTH_FT_RSNA_PSK){
+				auth_mode == WMI_AUTH_FT_RSNA_PSK ||
+				(auth_mode == WMI_AUTH_OPEN &&
+				roam_req->MDID.mdiePresent)){
 				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
 				buf_ptr += WMI_TLV_HDR_SIZE;
 				WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
@@ -7751,6 +7759,12 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 				roam_offload_11r->psk_msk_len = roam_req->pmk_len;
 				roam_offload_11r->mdie_present = roam_req->MDID.mdiePresent;
 				roam_offload_11r->mdid = roam_req->MDID.mobilityDomain;
+				if(auth_mode == WMI_AUTH_OPEN) {
+					/* If FT-Open ensure pmk length
+					 and r0khid len are zero */
+					roam_offload_11r->r0kh_id_len = 0;
+					roam_offload_11r->psk_msk_len = 0;
+				}
 				WMITLV_SET_HDR(&roam_offload_11r->tlv_header,
 				WMITLV_TAG_STRUC_wmi_roam_11r_offload_tlv_param,
 				WMITLV_GET_STRUCT_TLVLEN
