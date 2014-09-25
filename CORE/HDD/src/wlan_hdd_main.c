@@ -9912,12 +9912,12 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
          if (!preAdapterChannel)
          {
              pAdapter->tx_flow_low_watermark =
-                       pHddCtx->cfg_ini->TxHbwFlowLowWaterMark;
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
              pAdapter->tx_flow_high_watermark_offset =
-                       pHddCtx->cfg_ini->TxHbwFlowHighWaterMarkOffset;
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
              WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                         pAdapter->sessionId,
-                                        pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+                                        pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
              /* Temporary set log level as error
               * TX Flow control feature settled down, will lower log level */
              hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -9927,7 +9927,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                     pAdapter->tx_flow_low_watermark,
                     pAdapter->tx_flow_low_watermark +
                     pAdapter->tx_flow_high_watermark_offset,
-                    pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+                    pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
              preAdapterChannel = targetChannel;
              preAdapterContext = pAdapter;
          }
