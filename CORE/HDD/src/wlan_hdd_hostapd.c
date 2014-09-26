@@ -3100,25 +3100,6 @@ static iw_softap_set_tx_power(struct net_device *dev,
     return 0;
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief iw_softap_set_trafficmonitor() -
-   This function dynamically enable/disable traffic monitor functionality
-   the command iwpriv wlanX setTrafficMon <value>.
-
-  \param  - dev - Pointer to the net device.
-              - addr - Pointer to the sockaddr.
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-static int iw_softap_set_trafficmonitor(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu, char *extra)
-{
-    return 0;
-}
-
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
 
 int
@@ -4890,12 +4871,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
         "getConfig" },
 
     /* handlers for main ioctl */
-    {   QCSAP_IOCTL_SET_TRAFFIC_MONITOR,
-        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "setTrafficMon" },
-
-    /* handlers for main ioctl */
     {   QCSAP_IOCTL_SET_TWO_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0,
@@ -4933,7 +4908,6 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_DATAPATH_SNAP_SHOT - SIOCIWFIRSTPRIV]  =   iw_display_data_path_snapshot,
    [QCSAP_IOCTL_SET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_set_ini_cfg,
    [QCSAP_IOCTL_GET_INI_CFG - SIOCIWFIRSTPRIV]  =  iw_softap_get_ini_cfg,
-   [QCSAP_IOCTL_SET_TRAFFIC_MONITOR - SIOCIWFIRSTPRIV]  =  iw_softap_set_trafficmonitor,
    [QCSAP_IOCTL_SET_TWO_INT_GET_NONE - SIOCIWFIRSTPRIV] =
                                                 iw_softap_set_two_ints_getnone,
 };
