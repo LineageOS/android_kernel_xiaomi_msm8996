@@ -87,7 +87,11 @@
 #define IRAM_SIZE               0x00038000
 
 #define AXI_LOCATION            0x000a0000
+#ifdef HIF_PCIE
 #define AXI_SIZE                0x00018000
+#else
+#define AXI_SIZE                0x00020000
+#endif /* #ifdef HIF_PCIE */
 #endif
 
 #define CE_OFFSET               0x00000400
