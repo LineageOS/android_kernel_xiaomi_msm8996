@@ -1597,20 +1597,20 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                }
             }
 
-            if ((pPeerVHTCaps->rxMCSMap & mcsMapMask) < (pRates->vhtRxMCSMap & mcsMapMask)) {
+            if ((pPeerVHTCaps->txMCSMap & mcsMapMask) < (pRates->vhtRxMCSMap & mcsMapMask)) {
                 pRates->vhtRxMCSMap &= ~(mcsMapMask);
-                pRates->vhtRxMCSMap |= (pPeerVHTCaps->rxMCSMap & mcsMapMask);
+                pRates->vhtRxMCSMap |= (pPeerVHTCaps->txMCSMap & mcsMapMask);
             }
-            if ((pPeerVHTCaps->txMCSMap & mcsMapMask) < (pRates->vhtTxMCSMap & mcsMapMask)) {
+            if ((pPeerVHTCaps->rxMCSMap & mcsMapMask) < (pRates->vhtTxMCSMap & mcsMapMask)) {
                 pRates->vhtTxMCSMap &= ~(mcsMapMask);
-                pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & mcsMapMask);
+                pRates->vhtTxMCSMap |= (pPeerVHTCaps->rxMCSMap & mcsMapMask);
             }
 
             if (mcsMapMask2x2) {
 
                 tANI_U16 peerMcsMap, selfMcsMap;
 
-                peerMcsMap = pPeerVHTCaps->rxMCSMap & mcsMapMask2x2;
+                peerMcsMap = pPeerVHTCaps->txMCSMap & mcsMapMask2x2;
                 selfMcsMap = pRates->vhtRxMCSMap & mcsMapMask2x2;
 
                 if ((selfMcsMap != mcsMapMask2x2) &&
@@ -1620,7 +1620,7 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                     pRates->vhtRxMCSMap |= peerMcsMap;
                 }
 
-                peerMcsMap = (pPeerVHTCaps->txMCSMap & mcsMapMask2x2);
+                peerMcsMap = (pPeerVHTCaps->rxMCSMap & mcsMapMask2x2);
                 selfMcsMap = (pRates->vhtTxMCSMap & mcsMapMask2x2);
 
                 if ((selfMcsMap != mcsMapMask2x2) &&
