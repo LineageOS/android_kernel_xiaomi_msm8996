@@ -4701,6 +4701,7 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
 	wmi_channel *chan = NULL;
+	wmi_key_material *key = NULL;
 	int size=0;
 	tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd;
 
@@ -4755,6 +4756,19 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 			pRoamOffloadSynchInd->reassocRespLength);
 	chan = (wmi_channel *) param_buf->chan;
 	pRoamOffloadSynchInd->chan_freq = chan->mhz;
+	key = (wmi_key_material *) param_buf->key;
+	if (key != NULL)
+	{
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+				key->replay_counter,
+				SIR_REPLAY_CTR_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->kck, key->kck,
+				SIR_KCK_KEY_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->kek, key->kek,
+				SIR_KEK_KEY_LEN);
+		vos_mem_copy(pRoamOffloadSynchInd->replay_ctr, key->replay_counter,
+				SIR_REPLAY_CTR_LEN);
+	}
 	vos_msg.type = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	vos_msg.bodyptr = (void *) pRoamOffloadSynchInd;
 	vos_msg.bodyval = 0;
@@ -6757,7 +6771,8 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
-	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES |
+				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 
 	/* Do not combine multiple channels in a single burst. Come back
 	 * to home channel for data traffic after every foreign channel.
@@ -14988,6 +15003,19 @@ static int wma_p2p_go_set_beacon_ie(t_wma_handle *wma_handle,
 
 	ie_len = (u_int32_t) (p2pIe[1] + 2);
 
+	/* More than one P2P IE may be included in a single frame.
+	   If multiple P2P IEs are present, the complete P2P attribute
+	   data consists of the concatenation of the P2P Attribute
+	   fields of the P2P IEs. The P2P Attributes field of each
+	   P2P IE may be any length up to the maximum (251 octets).
+	   In this case host sends one P2P IE to firmware so the length
+	   should not exceed more than 251 bytes
+	 */
+	if (ie_len > 251) {
+		WMA_LOGE("%s : invalid p2p ie length %u", __func__, ie_len);
+		return -EINVAL;
+	}
+
 	ie_len_aligned = roundup(ie_len, sizeof(A_UINT32));
 
 	wmi_buf_len = sizeof(wmi_p2p_go_set_beacon_ie_fixed_param) + ie_len_aligned + WMI_TLV_HDR_SIZE;
@@ -21051,8 +21079,9 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->idle_time = 0;
 	cmd->burst_duration = WMA_EXTSCAN_BURST_DURATION;
 	cmd->scan_ctrl_flags = WMI_SCAN_ADD_BCAST_PROBE_REQ |
-					WMI_SCAN_ADD_CCK_RATES |
-						WMI_SCAN_ADD_OFDM_RATES;
+				WMI_SCAN_ADD_CCK_RATES |
+				WMI_SCAN_ADD_OFDM_RATES |
+				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
 	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
@@ -21818,6 +21847,49 @@ static void wma_process_unit_test_cmd(WMA_HANDLE handle,
 }
 #endif
 
+VOS_STATUS  wma_scan_probe_setoui(tp_wma_handle wma,
+		tSirScanMacOui *psetoui)
+{
+	wmi_scan_prob_req_oui_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+	u_int32_t *oui_buf;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+	cmd = (wmi_scan_prob_req_oui_cmd_fixed_param *)buf_ptr;
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_scan_prob_req_oui_cmd_fixed_param));
+
+	oui_buf = &cmd->prob_req_oui;
+	vos_mem_zero(oui_buf, sizeof(cmd->prob_req_oui));
+	*oui_buf = psetoui->oui[0] << 16 | psetoui->oui[1] << 8
+					| psetoui->oui[2];
+	WMA_LOGD("%s: wma:oui received from hdd %08x", __func__,
+			cmd->prob_req_oui);
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_SCAN_PROB_REQ_OUI_CMDID)) {
+		WMA_LOGE("%s: failed to send command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -22336,6 +22408,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 		break;
 #endif
+		case WDA_SET_SCAN_MAC_OUI_REQ:
+			wma_scan_probe_setoui(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 		case WDA_LINK_LAYER_STATS_CLEAR_REQ:
 			wma_process_ll_stats_clearReq(wma_handle,
@@ -23887,6 +23963,8 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 {
 	tp_wma_handle wma_handle;
+	struct beacon_info *bcn;
+	int i;
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -23908,6 +23986,24 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 	WMA_LOGD("calling wmi_unified_detach");
 	wmi_unified_detach(wma_handle->wmi_handle);
 	wma_handle->wmi_handle = NULL;
+
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		bcn = wma_handle->interfaces[i].beacon;
+
+		if (bcn) {
+			if (bcn->dma_mapped)
+				adf_nbuf_unmap_single(wma_handle->adf_dev,
+						bcn->buf, ADF_OS_DMA_TO_DEVICE);
+			adf_nbuf_free(bcn->buf);
+			vos_mem_free(bcn);
+			wma_handle->interfaces[i].beacon = NULL;
+		}
+
+		if (wma_handle->interfaces[i].handle) {
+			adf_os_mem_free(wma_handle->interfaces[i].handle);
+			wma_handle->interfaces[i].handle = NULL;
+		}
+	}
 
 	vos_mem_free(wma_handle->interfaces);
 	/* free the wma_handle */

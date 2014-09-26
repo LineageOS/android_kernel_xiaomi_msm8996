@@ -166,6 +166,9 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE = 37,
     /* Get supported features */
     QCA_NL80211_VENDOR_SUBCMD_GET_SUPPORTED_FEATURES = 38,
+
+    /* Set scanning_mac_oui */
+    QCA_NL80211_VENDOR_SUBCMD_SCANNING_MAC_OUI = 39,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -799,6 +802,16 @@ enum qca_wlan_vendor_attr_get_supported_features {
     QCA_WLAN_VENDOR_ATTR_FEATURE_SET_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_FEATURE_SET_MAX =
         QCA_WLAN_VENDOR_ATTR_FEATURE_SET_AFTER_LAST - 1,
+};
+
+enum qca_wlan_vendor_attr_set_scanning_mac_oui {
+    QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_INVALID = 0,
+    /* An array of 3 x Unsigned 8-bit value */
+    QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI = 1,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX =
+        QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_AFTER_LAST - 1,
 };
 
 /* Feature defines */

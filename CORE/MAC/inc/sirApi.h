@@ -104,6 +104,8 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 #define PERIODIC_TX_PTRN_MAX_SIZE 1536
 #define MAXNUM_PERIODIC_TX_PTRNS 6
 
+#define WIFI_SCANNING_MAC_OUI_LENGTH 3
+
 
 #ifdef FEATURE_WLAN_EXTSCAN
 
@@ -141,6 +143,9 @@ typedef enum
 #define SIR_KRK_KEY_LEN 16
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define SIR_BTK_KEY_LEN 32
+#define SIR_KCK_KEY_LEN 16
+#define SIR_KEK_KEY_LEN 16
+#define SIR_REPLAY_CTR_LEN 8
 
 #define SIR_UAPSD_BITOFFSET_ACVO     0
 #define SIR_UAPSD_BITOFFSET_ACVI     1
@@ -4846,6 +4851,9 @@ typedef struct sSirSmeRoamOffloadSynchInd
     tANI_U8     rssi;
     tANI_U8     roamReason;
     tANI_U32    chan_freq;
+    tANI_U8     kck[SIR_KCK_KEY_LEN];
+    tANI_U8     kek[SIR_KEK_KEY_LEN];
+    tANI_U8     replay_ctr[SIR_REPLAY_CTR_LEN];
 } tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
 
 typedef struct sSirSmeRoamOffloadSynchCnf
@@ -5227,6 +5235,11 @@ typedef struct
   tANI_U32  statsClearReqMask;
   tANI_U8   stopReq;
 } tSirLLStatsClearReq, *tpSirLLStatsClearReq;
+
+typedef struct
+{
+    tANI_U8 oui[WIFI_SCANNING_MAC_OUI_LENGTH];
+} tSirScanMacOui, *tpSirScanMacOui;
 
 /*---------------------------------------------------------------------------
   WLAN_HAL_LL_NOTIFY_STATS

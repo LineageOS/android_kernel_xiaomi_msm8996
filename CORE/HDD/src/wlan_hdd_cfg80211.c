@@ -1197,6 +1197,58 @@ nla_put_failure:
     return -EINVAL;
 }
 
+static int
+wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
+                                       struct wireless_dev *wdev,
+                                       void *data, int data_len)
+{
+    tpSirScanMacOui pReqMsg   = NULL;
+    hdd_context_t *pHddCtx    = wiphy_priv(wiphy);
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX + 1];
+    eHalStatus status;
+
+    ENTER();
+
+    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX,
+                    data, data_len,
+                    NULL)) {
+        hddLog(LOGE, FL("Invalid ATTR"));
+        return -EINVAL;
+    }
+
+    pReqMsg = vos_mem_malloc(sizeof(*pReqMsg));
+    if (!pReqMsg) {
+        hddLog(LOGE, FL("vos_mem_malloc failed"));
+        return -ENOMEM;
+    }
+
+    /* Parse and fetch oui */
+    if (!tb[QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI]) {
+        hddLog(LOGE, FL("attr mac oui failed"));
+        goto fail;
+    }
+
+    nla_memcpy(&pReqMsg->oui[0],
+            tb[QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI],
+            sizeof(pReqMsg->oui));
+
+    hddLog(LOG1, FL("Oui (%02x:%02x:%02x)"), pReqMsg->oui[0], pReqMsg->oui[1],
+                 pReqMsg->oui[2]);
+
+    status = sme_SetScanningMacOui(pHddCtx->hHal, pReqMsg);
+    if (!HAL_STATUS_SUCCESS(status)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                    FL("sme_SetScanningMacOui failed(err=%d)"), status);
+        goto fail;
+    }
+
+    return 0;
+
+fail:
+    vos_mem_free(pReqMsg);
+    return -EINVAL;
+}
+
 #ifdef WLAN_FEATURE_STATS_EXT
 static int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
@@ -3932,6 +3984,13 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV,
         .doit = wlan_hdd_cfg80211_get_supported_features
     },
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_SCANNING_MAC_OUI,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV,
+        .doit = wlan_hdd_cfg80211_set_scanning_mac_oui
+    },
 };
 
 
@@ -6269,6 +6328,9 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
         /* BSS stopped, clear the active sessions for this device mode */
         wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+
+        pAdapter->sessionCtx.ap.beacon = NULL;
+        kfree(old);
     }
     mutex_unlock(&pHddCtx->sap_lock);
 
@@ -6297,8 +6359,6 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     // Reset WNI_CFG_PROBE_RSP Flags
     wlan_hdd_reset_prob_rspies(pAdapter);
 
-    pAdapter->sessionCtx.ap.beacon = NULL;
-    kfree(old);
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if((pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
        (globalP2PConnectionStatus == P2P_GO_COMPLETED_STATE)) {
