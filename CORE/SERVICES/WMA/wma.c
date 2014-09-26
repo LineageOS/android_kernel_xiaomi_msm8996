@@ -760,7 +760,7 @@ static int wma_auto_shutdown_event_handler(void *handle, u_int8_t *event,
 		(WMI_HOST_AUTO_SHUTDOWN_EVENTID_param_tlvs *)
 		event;
 
-	if (!param_buf) {
+	if (!param_buf || !param_buf->fixed_param) {
 		WMA_LOGE("%s:%d: Invalid Auto shutdown timer evt", __func__,
 								__LINE__);
 		return -EINVAL;
@@ -768,7 +768,8 @@ static int wma_auto_shutdown_event_handler(void *handle, u_int8_t *event,
 
 
 	wmi_auto_sh_evt = param_buf->fixed_param;
-	if (!wmi_auto_sh_evt && wmi_auto_sh_evt->shutdown_reason
+
+	if (wmi_auto_sh_evt->shutdown_reason
 			!= WMI_HOST_AUTO_SHUTDOWN_REASON_TIMER_EXPIRY) {
 		WMA_LOGE("%s:%d: Invalid Auto shutdown timer evt", __func__,
 								 __LINE__);
