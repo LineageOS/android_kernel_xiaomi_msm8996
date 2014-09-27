@@ -383,12 +383,12 @@ tl_shim_extract_ccmp_pn(u_int8_t *ccmp_ptr)
 	pn[5]  = (u_int8_t)*(ccmp_ptr+7);
 
 	/* Form 6 byte PN with 6 individual bytes of PN */
-	new_pn = ((uint64_t)pn[0] << 40) |
-			((uint64_t)pn[1] << 32) |
-			((uint64_t)pn[2] << 24) |
-			((uint64_t)pn[3] << 16) |
-			((uint64_t)pn[4] << 8)  |
-			((uint64_t)pn[5] << 0);
+	new_pn = ((uint64_t)pn[5] << 40) |
+			((uint64_t)pn[4] << 32) |
+			((uint64_t)pn[3] << 24) |
+			((uint64_t)pn[2] << 16) |
+			((uint64_t)pn[1] << 8)  |
+			((uint64_t)pn[0] << 0);
 
 	TLSHIM_LOGD("PN of received packet is %llu", new_pn);
 	return new_pn;

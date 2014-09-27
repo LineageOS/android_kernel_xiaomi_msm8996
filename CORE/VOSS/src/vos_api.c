@@ -98,12 +98,6 @@
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
-/* Amount of time to wait for WDA to perform an asynchronous activity.
-   This value should be larger than the timeout used by WDI to wait for
-   a response from WCNSS since in the event that WCNSS is not responding,
-   WDI should handle that timeout */
-#define VOS_WDA_TIMEOUT 15000
-
 /* Approximate amount of time to wait for WDA to stop WDI */
 #define VOS_WDA_STOP_TIMEOUT WDA_STOP_TIMEOUT
 

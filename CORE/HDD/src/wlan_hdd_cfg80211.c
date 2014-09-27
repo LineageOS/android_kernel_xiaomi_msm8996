@@ -4222,7 +4222,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #ifdef QCA_HT_2040_COEX
     if (pCfg->ht2040CoexEnabled)
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
-    wiphy->features |= NL80211_FEATURE_AP_ACS_OFFLOAD;
 #endif
 
 #ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
@@ -5054,12 +5053,12 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     hdd_adapter_t *pAdapter = NULL;
     v_U32_t num_ch = 0;
     int channel = 0;
-    int freq; /* freq is in MHZ */
+    int freq = chan->center_freq; /* freq is in MHZ */
     hdd_context_t *pHddCtx;
     int status;
-    tSmeConfigParams smeConfig;
 
     ENTER();
+
 
     if( NULL == dev )
     {
@@ -5067,27 +5066,6 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 "%s: Called with dev = NULL.", __func__);
         return -ENODEV;
     }
-
-    if (chan == NULL) {
-        hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: chan is NULL, auto channel selection", __func__);
-        channel = 0;
-        freq = 0;
-    } else {
-        freq = chan->center_freq;
-        channel = ieee80211_frequency_to_channel(freq);
-
-        /* Check freq range */
-        if ((WNI_CFG_CURRENT_CHANNEL_STAMIN > channel) ||
-            (WNI_CFG_CURRENT_CHANNEL_STAMAX < channel)) {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: Channel [%d] is outside valid range from %d to %d",
-                    __func__, channel, WNI_CFG_CURRENT_CHANNEL_STAMIN,
-                    WNI_CFG_CURRENT_CHANNEL_STAMAX);
-            return -EINVAL;
-        }
-    }
-
     pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -5095,7 +5073,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                      channel_type ));
     hddLog(VOS_TRACE_LEVEL_INFO,
                 "%s: device_mode = %d  freq = %d",__func__,
-                            pAdapter->device_mode, freq);
+                            pAdapter->device_mode, chan->center_freq);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -5105,6 +5083,24 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: HDD context is not valid", __func__);
         return status;
+    }
+
+    /*
+     * Do freq to chan conversion
+     * TODO: for 11a
+     */
+
+    channel = ieee80211_frequency_to_channel(freq);
+
+    /* Check freq range */
+    if ((WNI_CFG_CURRENT_CHANNEL_STAMIN > channel) ||
+            (WNI_CFG_CURRENT_CHANNEL_STAMAX < channel))
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Channel [%d] is outside valid range from %d to %d",
+                __func__, channel, WNI_CFG_CURRENT_CHANNEL_STAMIN,
+                WNI_CFG_CURRENT_CHANNEL_STAMAX);
+        return -EINVAL;
     }
 
     num_ch = WNI_CFG_VALID_CHANNEL_LIST_LEN;
@@ -5160,32 +5156,25 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
         }
         else if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
         {
-            if (channel == 0) {
-                /* hostapd.conf set channel to 0, update driver configuration
-                   to be consistent with hostapd */
+
+            /* If auto channel selection is configured as enable/ 1 then ignore
+            channel set by supplicant
+            */
 #ifdef WLAN_FEATURE_MBSSID
-                pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection = 1;
+            if (pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection)
 #else
-                hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
-                cfg_param->apAutoChannelSelection = 1;
+            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+            if ( cfg_param->apAutoChannelSelection )
 #endif
+            {
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel =
                                                           AUTO_CHANNEL_SELECT;
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                      "%s: set channel to auto channel (0) for device mode =%d",
-                      __func__, pAdapter->device_mode);
-
-                vos_mem_zero(&smeConfig, sizeof(smeConfig));
-                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-                smeConfig.csrConfig.apAutoChannelSelection = 1;
-                sme_UpdateConfig (pHddCtx->hHal, &smeConfig);
-            } else {
-#ifdef WLAN_FEATURE_MBSSID
-                pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection = 0;
-#else
-                hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
-                cfg_param->apAutoChannelSelection = 0;
-#endif
+                       "%s: set channel to auto channel (0) for device mode =%d",
+                       __func__, pAdapter->device_mode);
+            }
+            else
+            {
                 if(VOS_STATUS_SUCCESS !=
                          wlan_hdd_validate_operation_channel(pAdapter,channel))
                 {
@@ -5198,7 +5187,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
 
 #ifdef QCA_HT_2040_COEX
             /* set channel bonding mode for 2.4G */
-            if ( channel <= 14 && channel > 0)
+            if ( channel <= 14 )
             {
                 switch (channel_type)
                 {
@@ -5456,7 +5445,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
         else
         {
-             tSmeConfigParams smeConfig;
              if(1 != pHddCtx->is_dynamic_channel_range_set)
              {
 #ifdef WLAN_FEATURE_MBSSID
@@ -5474,16 +5462,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #endif
              }
                    pHddCtx->is_dynamic_channel_range_set = 0;
-
-             /* reset cb mode to INI value since it might be changed by previous
-                SAP start */
-             vos_mem_zero(&smeConfig, sizeof(smeConfig));
-             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-             smeConfig.csrConfig.channelBondingMode5GHz =
-                                   iniConfig->nChannelBondingMode5GHz;
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                                   iniConfig->nChannelBondingMode24GHz;
-             sme_UpdateConfig(hHal, &smeConfig);
         }
         WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
 
@@ -7446,9 +7424,11 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_KRK:
             setKey.encType = eCSR_ENCRYPT_TYPE_KRK;
             break;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
         case WLAN_CIPHER_SUITE_BTK:
             setKey.encType = eCSR_ENCRYPT_TYPE_BTK;
             break;
+#endif
 #endif
 
 #ifdef WLAN_FEATURE_11W
@@ -8858,10 +8838,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         return -EOPNOTSUPP;
     }
 #endif
-    /* Don't support scan if SAP is not started, support
-       OBSS scan in SAP mode if SAP is started */
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
-        !test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
+    //Scan on any other interface is not supported.
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: Not scanning on device_mode = %d",
@@ -9652,9 +9630,11 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
         case WLAN_CIPHER_SUITE_KRK:
             encryptionType = eCSR_ENCRYPT_TYPE_KRK;
             break;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
         case WLAN_CIPHER_SUITE_BTK:
             encryptionType = eCSR_ENCRYPT_TYPE_BTK;
             break;
+#endif
 #endif
             default:
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported cipher type %d",

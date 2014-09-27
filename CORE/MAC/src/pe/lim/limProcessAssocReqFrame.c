@@ -186,7 +186,11 @@ void lim_check_sta_in_pe_entries(tpAniSirGlobal pMac, tpSirMacMgmtHdr pHdr)
 
             pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &assocId,
                             &psessionEntry->dph.dphHashTable);
-            if (pStaDs) {
+            if (pStaDs
+#ifdef WLAN_FEATURE_11W
+                && !pStaDs->rmfEnabled
+#endif
+               ) {
                 limLog(pMac, LOGE,
                         FL("Sending Deauth and Deleting existing STA entry: "
                         MAC_ADDRESS_STR),
@@ -1363,6 +1367,10 @@ if (limPopulateMatchingRateSet(pMac,
                              peerIdx, false,
                              (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
         goto error;
+    }
+    if (WNI_CFG_PMF_SA_QUERY_RETRY_INTERVAL_APMIN > retryInterval)
+    {
+        retryInterval = WNI_CFG_PMF_SA_QUERY_RETRY_INTERVAL_APDEF;
     }
     if (tx_timer_create(&pStaDs->pmfSaQueryTimer, "PMF SA Query timer",
                         limPmfSaQueryTimerHandler, timerId.value,

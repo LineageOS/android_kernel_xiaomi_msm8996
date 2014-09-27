@@ -225,6 +225,12 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
 {
     ENTER();
 
+    if (!sc) {
+        VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+                  "Global SDIO context is NULL");
+        return A_ERROR;
+    }
+
     athdiag_procfs_remove();
 
 #ifndef TARGET_DUMP_FOR_NON_QC_PLATFORM

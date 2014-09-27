@@ -12479,17 +12479,14 @@ static int hdd_driver_init( void)
       hdd_set_conparam((v_UINT_t)con_mode);
 #endif
 
-#ifdef HIF_SDIO
-#define WLAN_WAIT_TIME_WLANSTART 10000
-#else
-#define WLAN_WAIT_TIME_WLANSTART 2000
-#endif
+#define HDD_WLAN_START_WAIT_TIME VOS_WDA_TIMEOUT + 5000
+
    init_completion(&wlan_start_comp);
    ret_status = hif_register_driver();
    if (!ret_status) {
        rc = wait_for_completion_timeout(
                            &wlan_start_comp,
-                           msecs_to_jiffies(WLAN_WAIT_TIME_WLANSTART));
+                           msecs_to_jiffies(HDD_WLAN_START_WAIT_TIME));
        if (!rc) {
           hddLog(VOS_TRACE_LEVEL_FATAL,
             "%s: timed-out waiting for hif_register_driver", __func__);

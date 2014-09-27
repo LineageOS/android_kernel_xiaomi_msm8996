@@ -176,6 +176,7 @@ typedef enum {
     WMI_GRP_LPI,
     WMI_GRP_EXTSCAN,
     WMI_GRP_DHCP_OFL,
+    WMI_GRP_IPA,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -202,6 +203,9 @@ typedef enum {
      * of an on ongoing scan request.
      */
     WMI_SCAN_UPDATE_REQUEST_CMDID,
+
+    /** set OUI to be used in probe request if enabled */
+    WMI_SCAN_PROB_REQ_OUI_CMDID,
 
     /* PDEV(physical device) specific commands */
     /** set regulatorty ctl id used by FW to determine the exact ctl power limits */
@@ -585,6 +589,8 @@ typedef enum {
     WMI_TDLS_SET_STATE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_TDLS),
     /** set tdls peer state */
     WMI_TDLS_PEER_UPDATE_CMDID,
+    /** TDLS Offchannel control */
+    WMI_TDLS_SET_OFFCHAN_MODE_CMDID,
 
     /** Resmgr Configuration */
     /** Adaptive OCS is enabled by default in the FW. This command is used to
@@ -679,6 +685,8 @@ typedef enum {
     /** DHCP server offload commands */
     WMI_SET_DHCP_SERVER_OFFLOAD_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_DHCP_OFL),
 
+    /** IPA Offload features related commands */
+    WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_IPA),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -1686,6 +1694,10 @@ typedef struct {
 #define WMI_SCAN_ADD_TPC_IE_IN_PROBE_REQ  0x400
 /** add DS content in probe req frame */
 #define WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ   0x800
+/** use random mac address for TA for probe request frame and add
+ * oui specified by WMI_SCAN_PROB_REQ_OUI_CMDID to the probe req frame.
+ * if oui is not set by WMI_SCAN_PROB_REQ_OUI_CMDID  then the flag is ignored*/
+#define WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ   0x1000
 
 /** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
 #define WMI_SCAN_CLASS_MASK 0xFF000000
@@ -1792,6 +1804,15 @@ typedef struct {
     /** min rest time. Only valid if WMI_SCAN_UPDATE_MAX_REST_TIME flag is set in scan_update_flag */
     A_UINT32 max_rest_time;
 } wmi_scan_update_request_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;
+    /** oui to be used in probe request frame when  random mac addresss is
+     * requested part of scan parameters. this is applied to both FW internal scans and
+     * host initated scans. host can request for random mac address with
+     * WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ flag.     */
+    A_UINT32 prob_req_oui;
+} wmi_scan_prob_req_oui_cmd_fixed_param;
 
 enum wmi_scan_event_type {
     WMI_SCAN_EVENT_STARTED=0x1,
@@ -5138,7 +5159,7 @@ typedef struct {
                                           SSID and Security profile in
                                           WMI_ROAM_AP_PROFILE, found during scan
                                           triggered upon FINAL_BMISS **/
-#define WMI_ROAM_REASON_HO_FAILED 0x5  /** LFR3.0 roaming failed, indicate the disconnection to host */
+#define WMI_ROAM_REASON_HO_FAILED  0x5  /** LFR3.0 roaming failed, indicate the disconnection to host */
 
 /**whenever RIC request information change, host driver should pass all ric related information to firmware (now only support tsepc)
 * Once, 11r roaming happens, firmware can generate RIC request in reassoc request based on these informations
@@ -6817,6 +6838,40 @@ typedef struct {
      *  wmi_channel chan_info[] */
 } wmi_tdls_peer_update_cmd_fixed_param;
 
+/* WMI_TDLS_SET_OFFCHAN_MODE_CMDID */
+
+
+/* bitmap  20, 40, 80 or 160 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_20MHZ                  0x1   /*  20 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_40MHZ                  0x2   /*  40 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_80MHZ                  0x4   /*  80 MHz wide channel */
+#define WMI_TDLS_OFFCHAN_160MHZ                 0x8   /*  160 MHz wide channel */
+
+
+enum wmi_tdls_offchan_mode {
+    WMI_TDLS_ENABLE_OFFCHANNEL,
+    WMI_TDLS_DISABLE_OFFCHANNEL
+};
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param  */
+    A_UINT32   tlv_header;
+    /** unique id identifying the VDEV */
+    A_UINT32   vdev_id;
+    /** Enable/Disable TDLS offchannel */
+    A_UINT32 offchan_mode;
+    /** peer MAC address */
+    wmi_mac_addr   peer_macaddr;
+    /* Is peer initiator or responder of TDLS setup request */
+    A_UINT32 is_peer_responder;
+    /* off channel number*/
+    A_UINT32 offchan_num;
+    /* off channel bandwidth bitmap, e.g. WMI_OFFCHAN_20MHZ */
+    A_UINT32 offchan_bw_bitmap;
+    /* operating class for offchan */
+    A_UINT32 offchan_oper_class;
+} wmi_tdls_set_offchan_mode_cmd_fixed_param;
+
 /** TDLS EVENTS */
 enum wmi_tdls_peer_notification {
     /** tdls discovery recommended for peer (based
@@ -7899,6 +7954,15 @@ enum {
 */
 
 typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_key_material */
+    A_UINT32 tlv_header;
+
+    A_UINT8  kck[GTK_OFFLOAD_KCK_BYTES]; /* EAPOL-Key Key Confirmation Key (KCK) */
+    A_UINT8  kek[GTK_OFFLOAD_KEK_BYTES]; /* EAPOL-Key Key Encryption Key (KEK) */
+    A_UINT8  replay_counter[GTK_REPLAY_COUNTER_BYTES];
+} wmi_key_material;
+
+typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param  */
     /** Unique id identifying the VDEV on which roaming is done by firmware */
     A_UINT32 vdev_id;
@@ -7921,7 +7985,8 @@ typedef struct {
      * The TLV's are:
      *     A_UINT8 bcn_probe_rsp_frame[];  length identified by bcn_probe_rsp_len
      *     A_UINT8 reassoc_rsp_frame[];  length identified by reassoc_rsp_len
-     *      wmi_channel chan;
+     *     wmi_channel chan;
+     *     wmi_key_material key;
      **/
 } wmi_roam_synch_event_fixed_param;
 
@@ -8808,6 +8873,36 @@ typedef struct {
     A_UINT32 start_lsb; /* starting address assigned to client */
     A_UINT32 num_client; /* number of clients we support */
 } wmi_set_dhcp_server_offload_cmd_fixed_param;
+
+typedef enum {
+    AP_RX_DATA_OFFLOAD             = 0x00,
+    STA_RX_DATA_OFFLOAD            = 0x01,
+} wmi_ipa_offload_types;
+
+/**
+ * This command is sent from WLAN host driver to firmware for
+ * enabling/disabling IPA data-path offload features.
+ *
+ *
+ * Enabling data path offload to IPA(based on host INI configuration), example:
+ *    when STA interface comes up,
+ *    host->target: WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMD,
+ *                  (enable = 1, vdev_id = STA vdev id, offload_type = STA_RX_DATA_OFFLOAD)
+ *
+ * Disabling data path offload to IPA, example:
+ *    host->target: WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMD,
+ *                  (enable = 0, vdev_id = STA vdev id, offload_type = STA_RX_DATA_OFFLOAD)
+ *
+ *
+ * This command is applicable only on the PCIE LL systems
+ *
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_ipa_offload_enable_disable_cmd_fixed_param */
+    A_UINT32 offload_type; /* wmi_ipa_offload_types enum values */
+    A_UINT32 vdev_id;
+    A_UINT32 enable; /* 1 == enable, 0 == disable */
+} wmi_ipa_offload_enable_disable_cmd_fixed_param;
 
 #ifdef __cplusplus
 }

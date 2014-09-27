@@ -1897,8 +1897,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->isRoamOffloadEnabled;
 #endif
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
-        pMac->roam.configParam.apAutoChannelSelection =
-                                               pParam->apAutoChannelSelection;
     }
 
     return status;
@@ -2049,8 +2047,6 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         csrSetChannels(pMac, pParam);
 
         pParam->obssEnabled = pMac->roam.configParam.obssEnabled;
-        pParam->apAutoChannelSelection =
-                              pMac->roam.configParam.apAutoChannelSelection;
 
         status = eHAL_STATUS_SUCCESS;
     }
@@ -3068,7 +3064,9 @@ eHalStatus csrRoamIssueDeauth( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoam
     csrRoamSubstateChange( pMac, NewSubstate, sessionId);
 
     status = csrSendMBDeauthReqMsg( pMac, sessionId, bssId, eSIR_MAC_DEAUTH_LEAVING_BSS_REASON );
-    if(!HAL_STATUS_SUCCESS(status))
+    if (HAL_STATUS_SUCCESS(status))
+        csrRoamLinkDown(pMac, sessionId);
+    else
     {
         smsLog(pMac, LOGE, FL("csrSendMBDeauthReqMsg failed with status %d Session ID: %d"
                                 MAC_ADDRESS_STR ), status, sessionId, MAC_ADDR_ARRAY(bssId));
