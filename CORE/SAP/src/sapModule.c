@@ -3056,6 +3056,146 @@ VOS_STATUS WLANSAP_Set_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t ignore_cac)
 }
 
 /*==========================================================================
+  FUNCTION    WLANSAP_set_Dfs_Restrict_JapanW53
+
+  DESCRIPTION
+   This API is used to enable or disable Japan W53 Band
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  disable_Dfs_JapanW3 :Indicates if Japan W53 is disabled when set to 1
+                       Indicates if Japan W53 is enabled when set to 0
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_set_Dfs_Restrict_JapanW53(tHalHandle hHal, v_U8_t disable_Dfs_W53)
+{
+    tpAniSirGlobal pMac = NULL;
+    v_REGDOMAIN_t regDomain;
+    VOS_STATUS status;
+
+    if (NULL != hHal)
+    {
+        pMac = PMAC_STRUCT( hHal );
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid hHal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    regDomain = sapFetchRegulatoryDomain(hHal);
+
+    /*
+     * Set the JAPAN W53 restriction only if the current
+     * regulatory domain is JAPAN.
+     */
+    if (REGDOMAIN_JAPAN == regDomain)
+    {
+        pMac->sap.SapDfsInfo.is_dfs_w53_disabled = disable_Dfs_W53;
+        VOS_TRACE(VOS_MODULE_ID_SAP,
+                  VOS_TRACE_LEVEL_INFO_LOW,
+                  FL("sapdfs: SET DFS JAPAN W53 DISABLED = %d"),
+                  pMac->sap.SapDfsInfo.is_dfs_w53_disabled);
+
+        status = VOS_STATUS_SUCCESS;
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("Regdomain not japan, set disable JP W53 not valid"));
+
+        status = VOS_STATUS_E_FAULT;
+    }
+
+    return status;
+}
+
+/*==========================================================================
+  FUNCTION    WLANSAP_set_Dfs_Preferred_Channel_location
+
+  DESCRIPTION
+   This API is used to set sap preferred channels location
+   to resetrict the DFS random channel selection algorithm
+   either Indoor/Outdoor channels only.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  dfs_Preferred_Channels_location :
+                       0 - Indicates No preferred channel location restrictions
+                       1 - Indicates SAP Indoor Channels operation only.
+                       2 - Indicates SAP Outdoor Channels operation only.
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_set_Dfs_Preferred_Channel_location(tHalHandle hHal,
+                                   v_U8_t dfs_Preferred_Channels_location)
+{
+    tpAniSirGlobal pMac = NULL;
+    v_REGDOMAIN_t regDomain;
+    VOS_STATUS status;
+    if (NULL != hHal)
+    {
+        pMac = PMAC_STRUCT( hHal );
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid hHal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    regDomain = sapFetchRegulatoryDomain(hHal);
+
+    /*
+     * The Indoor/Outdoor only random channel selection
+     * restriction is currently enforeced only for
+     * JAPAN regulatory domain.
+     */
+    if (REGDOMAIN_JAPAN == regDomain)
+    {
+        pMac->sap.SapDfsInfo.sap_operating_chan_preferred_location =
+                                               dfs_Preferred_Channels_location;
+        VOS_TRACE(VOS_MODULE_ID_SAP,
+                  VOS_TRACE_LEVEL_INFO_LOW,
+                  FL("sapdfs:Set Preferred Operating Channel location=%d"),
+                  pMac->sap.SapDfsInfo.sap_operating_chan_preferred_location);
+
+        status = VOS_STATUS_SUCCESS;
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+           FL("sapdfs:NOT JAPAN REG, Invalid Set preferred chans location"));
+
+        status = VOS_STATUS_E_FAULT;
+    }
+
+    return status;
+}
+
+/*==========================================================================
   FUNCTION    WLANSAP_Set_Dfs_Target_Chnl
 
   DESCRIPTION

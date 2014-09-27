@@ -289,6 +289,22 @@ static void cbNotifySetEnableSSR(hdd_context_t *pHddCtx, unsigned long NotifyId)
     sme_UpdateEnableSSR(pHddCtx->hHal, pHddCtx->cfg_ini->enableSSR);
 }
 
+
+static void cbNotify_set_gSapPreferredChanLocation(hdd_context_t *pHddCtx,
+                                                   unsigned long NotifyId)
+{
+    WLANSAP_set_Dfs_Preferred_Channel_location(pHddCtx->hHal,
+                              pHddCtx->cfg_ini->gSapPreferredChanLocation);
+}
+
+
+static void chNotify_set_gDisableDfsJapanW53(hdd_context_t *pHddCtx,
+                                             unsigned long NotifyId)
+{
+    WLANSAP_set_Dfs_Restrict_JapanW53(pHddCtx->hHal,
+                              pHddCtx->cfg_ini->gDisableDfsJapanW53);
+}
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 static void
 cbNotifyUpdateRoamScanOffloadEnabled(hdd_context_t *pHddCtx,
@@ -2652,6 +2668,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_DFS_MASTER_CAPABILITY_MIN,
                  CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX ),
 
+   REG_DYNAMIC_VARIABLE( CFG_SAP_PREFERRED_CHANNEL_LOCATION, WLAN_PARAM_Integer,
+                 hdd_config_t, gSapPreferredChanLocation,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_PREFERRED_CHANNEL_LOCATION_DEFAULT,
+                 CFG_SAP_PREFERRED_CHANNEL_LOCATION_MIN,
+                 CFG_SAP_PREFERRED_CHANNEL_LOCATION_MAX,
+                 cbNotify_set_gSapPreferredChanLocation, 0),
+
+   REG_DYNAMIC_VARIABLE( CFG_DISABLE_DFS_JAPAN_W53, WLAN_PARAM_Integer,
+                 hdd_config_t, gDisableDfsJapanW53,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DISABLE_DFS_JAPAN_W53_DEFAULT,
+                 CFG_DISABLE_DFS_JAPAN_W53_MIN,
+                 CFG_DISABLE_DFS_JAPAN_W53_MAX,
+                 chNotify_set_gDisableDfsJapanW53, 0),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4407,6 +4439,12 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gIgnoreCAC] Value = [%u] ",
           pHddCtx->cfg_ini->ignoreCAC);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gSapPreferredChanLocation] Value = [%u] ",
+          pHddCtx->cfg_ini->gSapPreferredChanLocation);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gDisableDfsJapanW53] Value = [%u] ",
+          pHddCtx->cfg_ini->gDisableDfsJapanW53);
 #ifdef FEATURE_GREEN_AP
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gEnableGreenAp] Value = [%u] ",

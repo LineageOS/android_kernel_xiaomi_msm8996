@@ -592,6 +592,34 @@ typedef struct sSapDfsInfo
     tANI_U8             orig_chanWidth;
     tANI_U8             new_chanWidth;
     tANI_U8             new_cbMode;
+
+    /*
+     * INI param to enable/disable SAP W53
+     * channel operation.
+     */
+    v_U8_t              is_dfs_w53_disabled;
+
+    /*
+     * sap_operating_channel_location holds SAP indoor,
+     * outdoor location information. Currently, if this
+     * param is  set this Indoor/outdoor channel interop
+     * restriction will only be implemented for JAPAN
+     * regulatory domain.
+     *
+     * 0 - Indicates that location unknown
+     * (or) SAP Indoor/outdoor interop is allowed
+     *
+     * 1 - Indicates device is operating on Indoor channels
+     * and SAP cannot pick next random channel from outdoor
+     * list of channels when a radar is found on current operating
+     * DFS channel.
+     *
+     * 2 - Indicates device is operating on Outdoor Channels
+     * and SAP cannot pick next random channel from indoor
+     * list of channels when a radar is found on current
+     * operating DFS channel.
+     */
+    v_U8_t              sap_operating_chan_preferred_location;
 } tSapDfsInfo;
 
 typedef struct tagSapCtxList
@@ -2032,6 +2060,61 @@ WLANSAP_Get_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t *pIgnore_cac);
 
 VOS_STATUS
 WLANSAP_Set_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t ignore_cac);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_set_Dfs_Restrict_JapanW53
+
+  DESCRIPTION
+   This API is used to enable or disable Japan W53 Band
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  disable_Dfs_JapanW3 :Indicates if Japan W53 is disabled when set to 1
+                       Indicates if Japan W53 is enabled when set to 0
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_set_Dfs_Restrict_JapanW53(tHalHandle hHal, v_U8_t disable_Dfs_JapanW3);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_set_Dfs_Preferred_Channel_location
+
+  DESCRIPTION
+   This API is used to set sap preferred channels location
+   to resetrict the DFS random channel selection algorithm
+   either Indoor/Outdoor channels only.
+
+  DEPENDENCIES
+   NA.
+
+  PARAMETERS
+  IN
+  hHal : HAL pointer
+  dfs_Preferred_Channels_location :
+                       0 - Indicates No preferred channel location restrictions
+                       1 - Indicates SAP Indoor Channels operation only.
+                       2 - Indicates SAP Outdoor Channels operation only.
+
+  RETURN VALUE
+  The VOS_STATUS code associated with performing the operation
+
+  VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_set_Dfs_Preferred_Channel_location(tHalHandle hHal,
+                                   v_U8_t dfs_Preferred_Channels_location);
 
 /*==========================================================================
   FUNCTION   WLANSAP_Set_Dfs_Target_Chnl

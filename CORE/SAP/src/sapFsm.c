@@ -922,6 +922,125 @@ static v_U8_t sapPopulateAvailableChannels(chan_bonding_bitmap *pBitmap,
 }
 
 /*
+ * FUNCTION  sapFetchRegulatoryDomain
+ *
+ * DESCRIPTION Fetches the Regulatory domain based up on the coutry code.
+ *
+ * DEPENDENCIES PARAMETERS
+ * IN hHAL : HAL pointer
+ *
+ * RETURN VALUE  : v_REGDOMAIN_t, returns the regulatory domain
+ *
+ * SIDE EFFECTS
+ */
+v_REGDOMAIN_t sapFetchRegulatoryDomain(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac;
+    v_COUNTRYCODE_t country_code;
+    v_REGDOMAIN_t regDomain;
+    pMac = PMAC_STRUCT(hHal);
+
+    /*
+     * Fetch the REG DOMAIN from the country code.
+     */
+    country_code[0] = pMac->scan.countryCodeCurrent[0];
+    country_code[1] = pMac->scan.countryCodeCurrent[1];
+
+    vos_nv_getRegDomainFromCountryCode(&regDomain,
+                   country_code, COUNTRY_QUERY);
+
+    return regDomain;
+}
+
+/*
+ * FUNCTION  sapDfsIsW53Invalid
+ *
+ * DESCRIPTION Checks if the passed channel is W53 and returns if
+ *             SAP W53 opearation is allowed.
+ *
+ * DEPENDENCIES PARAMETERS
+ * IN hHAL : HAL pointer
+ * channelID: Channel Number to be verified
+ *
+ * RETURN VALUE  : v_BOOL_t
+ *                 VOS_TRUE: If W53 operation is disabled
+ *                 VOS_FALSE: If W53 operation is enabled
+ *
+ * SIDE EFFECTS
+ */
+v_BOOL_t sapDfsIsW53Invalid(tHalHandle hHal, v_U8_t channelID)
+{
+    tpAniSirGlobal pMac;
+
+    pMac = PMAC_STRUCT(hHal);
+    if (NULL == pMac)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("invalid pMac"));
+        return VOS_FALSE;
+    }
+
+    /*
+     * Check for JAPAN W53 Channel operation capability
+     */
+    if (VOS_TRUE ==  pMac->sap.SapDfsInfo.is_dfs_w53_disabled &&
+        VOS_TRUE == IS_CHAN_JAPAN_W53(channelID))
+    {
+        return VOS_TRUE;
+    }
+
+    return VOS_FALSE;
+}
+
+/*
+ * FUNCTION  sapDfsIsChannelInPreferredLocation
+ *
+ * DESCRIPTION Checks if the passed channel is in accordance with preferred
+ *          Channel location settings.
+ *
+ * DEPENDENCIES PARAMETERS
+ * IN hHAL : HAL pointer
+ * channelID: Channel Number to be verified
+ *
+ * RETURN VALUE  :v_BOOL_t
+ *        VOS_TRUE:If Channel location is same as the preferred location
+ *        VOS_FALSE:If Channel location is not same as the preferred location
+ *
+ * SIDE EFFECTS
+ */
+v_BOOL_t sapDfsIsChannelInPreferredLocation(tHalHandle hHal, v_U8_t channelID)
+{
+    tpAniSirGlobal pMac;
+
+    pMac = PMAC_STRUCT(hHal);
+    if (NULL == pMac) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("invalid pMac"));
+        return VOS_TRUE;
+    }
+    if ( (SAP_CHAN_PREFERRED_INDOOR ==
+            pMac->sap.SapDfsInfo.sap_operating_chan_preferred_location) &&
+         (VOS_TRUE == IS_CHAN_JAPAN_OUTDOOR(channelID)) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                   FL("CHAN=%d is Outdoor so invalid,preferred Indoor only"),
+                   channelID);
+        return VOS_FALSE;
+    }
+    else if ( (SAP_CHAN_PREFERRED_OUTDOOR ==
+                 pMac->sap.SapDfsInfo.sap_operating_chan_preferred_location) &&
+              (VOS_TRUE == IS_CHAN_JAPAN_INDOOR(channelID)) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                   FL("CHAN=%d is Indoor so invalid,preferred Outdoor only"),
+                   channelID);
+        return VOS_FALSE;
+    }
+
+    return VOS_TRUE;
+}
+
+/*
  * This function randomly pick up an AVAILABLE channel
  */
 static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
@@ -939,6 +1058,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     tpAniSirGlobal pMac;
     tANI_U32 chanWidth;
     ePhyChanBondState cbModeCurrent;
+    v_REGDOMAIN_t regDomain;
 
     if (NULL == hHal) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -992,11 +1112,60 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
         return target_channel;
     }
 
+    regDomain = sapFetchRegulatoryDomain(hHal);
 
     /* loop to check ACS range or NOL channels */
     for (i = 0; i < sapContext->SapAllChnlList.numChannel; i++)
     {
         channelID = sapContext->SapAllChnlList.channelList[i].channel;
+
+        /*
+         * IN JAPAN REGULATORY DOMAIN CHECK IF THE FOLLOWING TWO
+         * TWO RULES APPLY AND FILTER THE AVAILABLE CHANNELS
+         * ACCORDINGLY.
+         *
+         * 1. If we are operating in Japan regulatory domain
+         * Check if Japan W53 Channel operation is NOT
+         * allowed and if its not allowed then mark all the
+         * W53 channels as Invalid.
+         *
+         * 2. If we are operating in Japan regulatory domain
+         * Check if channel switch between Indoor/Outdoor
+         * is allowed. If it is not allowed then limit
+         * the avaiable channels to Indoor or Outdoor
+         * channels only based up on the SAP Channel location
+         * indicated by "sap_operating_channel_location" param.
+         */
+        if (REGDOMAIN_JAPAN == regDomain)
+        {
+            /*
+             * Check for JAPAN W53 Channel operation capability
+             */
+            if (VOS_TRUE ==  sapDfsIsW53Invalid(hHal, channelID))
+            {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                      FL("index:%d, Channel=%d Invalid,Japan W53 Disabled"),
+                      i, channelID);
+                sapContext->SapAllChnlList.channelList[i].valid = VOS_FALSE;
+            }
+
+            /*
+             * If SAP's preferred channel location is Indoor
+             * then set all the outdoor channels in the domain
+             * to invalid.If the preferred channel location is
+             * outdoor then set all the Indoor channels in the
+             * domain to Invalid.
+             */
+            if (VOS_FALSE ==
+                        sapDfsIsChannelInPreferredLocation(hHal, channelID))
+            {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                   FL("CHAN=%d is invalid,preferred Channel Location %d Only"),
+                   channelID,
+                   pMac->sap.SapDfsInfo.sap_operating_chan_preferred_location);
+                sapContext->SapAllChnlList.channelList[i].valid = VOS_FALSE;
+            }
+        }
 
         if (vos_nv_getChannelEnabledState(channelID) == NV_CHANNEL_DFS)
         {

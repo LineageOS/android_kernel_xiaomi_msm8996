@@ -1781,7 +1781,7 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
     struct nlattr *channels;
     int rem1, rem2;
     eHalStatus status;
-    tANI_U8 bktIndex, i, j, numChannels;
+    tANI_U8 bktIndex, j, numChannels;
     tANI_U32 chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
 
     ENTER();
@@ -1861,7 +1861,7 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
         goto fail;
     }
 
-    i = 0;
+    bktIndex = 0;
     nla_for_each_nested(buckets,
                 tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC], rem1) {
         if (nla_parse(bucket,
@@ -1876,10 +1876,10 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr bucket index failed"));
             goto fail;
         }
-        bktIndex = nla_get_u8(
+        pReqMsg->buckets[bktIndex].bucket = nla_get_u8(
                        bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("Bucket spec Index (%d)"), bktIndex);
-        pReqMsg->buckets[bktIndex].bucket = bktIndex;
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("Bucket spec Index (%d)"),
+                                     pReqMsg->buckets[bktIndex].bucket);
 
         /* Parse and fetch wifi band */
         if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]) {
@@ -2013,7 +2013,7 @@ static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
                      pReqMsg->buckets[bktIndex].channels[j].passive);
             j++;
         }
-        i++;
+        bktIndex++;
     }
 
     status = sme_ExtScanStart(pHddCtx->hHal, pReqMsg);
@@ -5486,6 +5486,26 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              sme_UpdateConfig(hHal, &smeConfig);
         }
         WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
+
+        /*
+         * Set the JAPAN W53 disabled INI param
+         * in to SAP DFS for restricting these
+         * channel from being picked during DFS
+         * random channel selection.
+         */
+        WLANSAP_set_Dfs_Restrict_JapanW53(hHal,
+                         iniConfig->gDisableDfsJapanW53);
+
+        /*
+         * Set the SAP Indoor/Outdoor preferred
+         * operating channel location. This
+         * prameter will restrict SAP picking
+         * channel from only Indoor/outdoor
+         * channels list only based up on the
+         * this parameter.
+         */
+        WLANSAP_set_Dfs_Preferred_Channel_location(hHal,
+                                     iniConfig->gSapPreferredChanLocation);
     }
     else
     {
