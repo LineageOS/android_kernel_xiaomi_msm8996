@@ -657,6 +657,7 @@ typedef struct sSirMbMsgP2p
 #endif
 
 #define SIR_HAL_GET_TEMPERATURE_REQ        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 290)
+#define SIR_HAL_SET_SCAN_MAC_OUI_REQ       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 291)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

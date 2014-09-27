@@ -18805,6 +18805,16 @@ void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf)
               pMac->roam.pReassocResp,
               pMac->roam.reassocRespLen);
 
+   vos_mem_copy(pSession->roamOffloadSynchParams.kck,
+                smeRoamOffloadSynchInd->kck,
+                SIR_KCK_KEY_LEN);
+   vos_mem_copy(pSession->roamOffloadSynchParams.kek,
+                smeRoamOffloadSynchInd->kek,
+                SIR_KEK_KEY_LEN);
+   vos_mem_copy(pSession->roamOffloadSynchParams.replay_ctr,
+                smeRoamOffloadSynchInd->replay_ctr,
+                SIR_REPLAY_CTR_LEN);
+
    if (pEntry)
        csrRoamEnqueueRoamOffloadSynch(
        pMac, smeRoamOffloadSynchInd->roamedVdevId,

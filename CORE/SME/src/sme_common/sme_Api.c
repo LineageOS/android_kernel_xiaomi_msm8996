@@ -14046,4 +14046,34 @@ eHalStatus sme_GetTemperature(tHalHandle hHal,
     }
     return(status);
 }
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetScanningMacOui
+    \brief  SME API to set scanning mac oui
+    \param  hHal
+    \param  pScanMacOui: Scanning Mac Oui (input 3 bytes)
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetScanningMacOui(tHalHandle hHal, tSirScanMacOui *pScanMacOui)
+{
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        /* Serialize the req through MC thread */
+        vosMessage.bodyptr = pScanMacOui;
+        vosMessage.type    = WDA_SET_SCAN_MAC_OUI_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                FL("Msg post Set Scan Mac OUI failed"));
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+
 #endif

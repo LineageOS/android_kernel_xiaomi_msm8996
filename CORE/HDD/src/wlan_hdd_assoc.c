@@ -3376,6 +3376,25 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
        case eCSR_ROAM_AUTHORIZED_EVENT:
          {
+#ifdef NL80211_KEY_LEN_PTK_KCK
+           struct cfg80211_auth_params auth_params;
+           if (pRoamInfo != NULL) {
+               auth_params.ptk_kck = pRoamInfo->kck;
+               auth_params.ptk_kek = pRoamInfo->kek;
+               auth_params.key_replay_ctr = pRoamInfo->replay_ctr;
+               auth_params.status = NL80211_AUTHORIZED;
+               VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                          pRoamInfo->replay_ctr,NL80211_KEY_REPLAY_CTR_LEN);
+               hddLog(VOS_TRACE_LEVEL_DEBUG,
+                      "LFR3:cfg80211_key_mgmt_auth NL80211_AUTHORIZED");
+               cfg80211_key_mgmt_auth(pAdapter->dev, &auth_params, GFP_KERNEL);
+           } else {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "LFR3:pRoamInfo is NULL. Not sending Authorized Event");
+               halStatus = eHAL_STATUS_FAILURE;
+           }
+           break;
+#else
             v_U8_t keyReplayCtr [NL80211_KEY_REPLAY_CTR_LEN];
             vos_mem_zero(keyReplayCtr, sizeof(keyReplayCtr));
             hddLog(VOS_TRACE_LEVEL_DEBUG,
@@ -3383,6 +3402,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             cfg80211_authorization_event(pAdapter->dev, NL80211_AUTHORIZED,
                                          keyReplayCtr, GFP_KERNEL);
             break;
+#endif
          }
 #endif
 #endif
