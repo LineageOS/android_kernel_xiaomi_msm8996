@@ -1898,6 +1898,10 @@ typedef struct {
  */
  /* ATH_MAX_ANTENNA value (4) can't be changed without breaking the compatibility */
 #define ATH_MAX_ANTENNA 4 /* To support beelinear, which is up to 4 chains */
+
+/** flag indicating that the the  mgmt frame (probe req/beacon) is received in the context of extscan performed by FW */
+#define WMI_MGMT_RX_HDR_EXTSCAN     0x01
+
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mgmt_rx_hdr */
     /** channel on which this frame is received. */
@@ -1914,6 +1918,8 @@ typedef struct {
     A_UINT32 status;
     /** RSSI of PRI 20MHz for each chain. */
     A_UINT32 rssi_ctl[ATH_MAX_ANTENNA];
+    /** information about the management frame e.g. can give a scan source for a scan result mgmt frame */
+    A_UINT32 flags;
     /* This TLV is followed by array of bytes:
          * // management frame buffer
          *   A_UINT8 bufp[];
@@ -5471,6 +5477,7 @@ typedef enum event_type_e {
     WOW_IOAC_TIMER_EVENT,
     WOW_DFS_PHYERR_RADAR_EVENT,
     WOW_BEACON_EVENT,
+    WOW_CLIENT_KICKOUT_EVENT,
 }WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -5502,6 +5509,7 @@ typedef enum wake_reason_e {
     WOW_REASON_ROAM_HO,
     WOW_REASON_DFS_PHYERR_RADADR_EVENT,
     WOW_REASON_BEACON_RECV,
+    WOW_REASON_CLIENT_KICKOUT_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 }WOW_WAKE_REASON_TYPE;
 
