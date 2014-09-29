@@ -2330,13 +2330,15 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 }
 
 #ifdef HIF_SDIO
+#define SDIO_SWAP_MAILBOX_FW_ACK	0x10000
+#define SDIO_SWAP_MAILBOX_SET		0x1
 /*Setting SDIO block size, mbox ISR yield limit for SDIO based HIF*/
 static A_STATUS
 ol_sdio_extra_initialization(struct ol_softc *scn)
 {
 
 	A_STATUS status;
-
+	u_int32_t param;
 #ifdef CONFIG_DISABLE_SLEEP_BMI_OPTION
 	uint32 value;
 #endif
@@ -2400,9 +2402,48 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 			value,
 			scn);
 #endif
+		status = BMIReadMemory(scn->hif_hdl,
+				HOST_INTEREST_ITEM_ADDRESS(scn->target_type,
+				hi_acs_flags),
+				(u_int8_t *)&param,
+				4,
+				scn);
+		if (A_FAILED(status)) {
+			printk("BMIReadMemory for hi_acs_flags failed \n");
+			break;
+		}
+
+		param |= SDIO_SWAP_MAILBOX_SET;
+		BMIWriteMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type,
+				offsetof(struct host_interest_s,
+					hi_acs_flags)),
+				(u_int8_t *)&param, 4, scn);
 
 	}while(FALSE);
 
 	return status;
+}
+
+void
+ol_target_ready(struct ol_softc *scn)
+{
+	u_int32_t value = 0;
+	A_STATUS status = EOK;
+
+	status = HIFDiagReadMem(scn->hif_hdl,
+		host_interest_item_address(scn->target_type,
+		offsetof(struct host_interest_s, hi_acs_flags)),
+		(A_UCHAR *)&value, sizeof(u_int32_t));
+
+	if (status != EOK) {
+		printk("%s: HIFDiagReadMem failed:%d\n", __func__, status);
+		return;
+	}
+
+	if (value & SDIO_SWAP_MAILBOX_FW_ACK) {
+		printk("MAILBOX SWAP Service is enabled!\n");
+		HIFSetMailboxSwap(scn->hif_hdl);
+	}
 }
 #endif

@@ -87,7 +87,11 @@
 #define IRAM_SIZE               0x00038000
 
 #define AXI_LOCATION            0x000a0000
+#ifdef HIF_PCIE
 #define AXI_SIZE                0x00018000
+#else
+#define AXI_SIZE                0x00020000
+#endif /* #ifdef HIF_PCIE */
 #endif
 
 #define CE_OFFSET               0x00000400
@@ -117,4 +121,14 @@ int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
 void ol_target_failure(void *instance, A_STATUS status);
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn);
+
+#if defined(HIF_SDIO)
+void ol_target_ready(struct ol_softc *scn);
+#else
+static inline void ol_target_ready(struct ol_softc *scn)
+{
+
+}
+#endif
+
 #endif /* _OL_FW_H_ */

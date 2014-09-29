@@ -415,19 +415,25 @@ static void
 format_pack( const char *pack,  char *buf, uint32_t buflen)
 {
     char c;
-    uint32_t num = 0,index = 0;
+    uint32_t num = 0, index = 0, i = 0;
+    boolean isfound = 0;
     memset(buf, 0 , buflen);
     while ((c = fmt_next_char(&pack)) != '\0') {
         if (index >= buflen -1)
             break;
-        if (is_digit(c)) {
-            num = (num* 10) + (c - '0');
+        while (is_digit(c)) {
+            num = (i++ * 10) + (c - '0');
             c = fmt_next_char(&pack);
-            while(num--) {
+            isfound = TRUE;
+        }
+        if (isfound) {
+            while (num--) {
                 buf[index++] = c;
-                if(index >= buflen -1)
+                if (index >= buflen -1)
                     break;
             }
+            num = 0;
+            i = 0;
         }
         else
             buf[index++] = c;
@@ -435,9 +441,9 @@ format_pack( const char *pack,  char *buf, uint32_t buflen)
     buf[index] = '\0';
 }
 
-static void
+static int
 diag_printf(const char *buf,  uint16_t vdevid,  uint16_t level,
-            uint32_t optionflag, uint32_t timestamp)
+            uint32_t optionflag, uint32_t timestamp, FILE *log_out)
 {
     char pbuf[512];
     if (vdevid < DBGLOG_MAX_VDEVID)
@@ -472,8 +478,14 @@ diag_printf(const char *buf,  uint16_t vdevid,  uint16_t level,
            MSG_SPRINTF_1(MSG_SSID_WLAN, MSG_LEGACY_FATAL, "%s", pbuf);
        break;
        }
-    } else
+    } else if (optionflag & CONSOLE_FLAG) {
         android_printf("%s\n", pbuf);
+    }
+    else if (optionflag & LOGFILE_FLAG) {
+        if (log_out)
+            return fprintf(log_out, "%s\n", pbuf);
+    }
+    return 0;
 }
 
 /*
@@ -596,7 +608,7 @@ get_numberofentries()
     boolean  isfound = FALSE;
     if ((fd = fopen(DB_FILE_PATH, "r")) == NULL) {
         diag_printf("[Error] : While opening the file\n",
-                      0, 4, goptionflag, 0);
+                      0, 4, goptionflag, 0, NULL);
         return 0;
     }
     while ( fgets (line, sizeof(line), fd) != NULL ) {
@@ -640,7 +652,7 @@ parse_dbfile()
      /*Open the data.msc file*/
     if ((fd = fopen(DB_FILE_PATH , "r")) == NULL) {
         diag_printf("[Error] : While opening the file\n",
-                   0, 4, goptionflag, 0);
+                   0, 4, goptionflag, 0, NULL);
         return 0;
     }
     memset(line, 0 , sizeof(line));
@@ -714,6 +726,47 @@ parse_dbfile()
     }
     fclose(fd);
     return n_entries;
+}
+
+int
+cnssdiag_register_kernel_logging(int sock_fd, struct nlmsghdr *nlh)
+{
+    tAniNlHdr *wnl;
+    tAniNlAppRegReq *regReq;
+    int regMsgLen = 0;
+
+    if (!nlh)
+       return -1;
+    /* Only the msg header is being carried */
+    nlh->nlmsg_len =  aniNlAlign(sizeof(tAniNlHdr));
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_type = WLAN_NL_MSG_CNSS_HOST_MSG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+    nlh->nlmsg_seq++;
+    wnl = (tAniNlHdr *)nlh;
+    wnl->radio = 0;
+    wnl->wmsg.length = sizeof(tAniHdr);
+    wnl->wmsg.type = ANI_NL_MSG_LOG_REG_TYPE;
+    if (sendto(sock_fd, (char*)wnl, nlh->nlmsg_len,0,NULL, 0) < 0) {
+        return -1;
+    }
+
+    regMsgLen = aniNlLen(sizeof(tAniNlAppRegReq));
+    nlh->nlmsg_len = aniNlAlign(sizeof(tAniNlHdr)) + regMsgLen;
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_type = WLAN_NL_MSG_CNSS_HOST_EVENT_LOG;
+    nlh->nlmsg_flags = NLM_F_REQUEST;
+    nlh->nlmsg_seq++;
+    wnl = (tAniNlHdr *)nlh;
+    wnl->radio = 0;
+    wnl->wmsg.length = regMsgLen;
+    wnl->wmsg.type = htons(ANI_NL_MSG_LOG_REG_TYPE);
+    regReq = (tAniNlAppRegReq *)(wnl + 1);
+    regReq->pid = getpid();
+    if (sendto(sock_fd, (char*)wnl, nlh->nlmsg_len,0,NULL, 0) < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 static int32_t
@@ -844,7 +897,8 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         */
         diag_initialize(1, sock_fd, optionflag);
         if (!gisdiag_init) {
-            diag_printf("**ERROR** Diag not Initialized", 0, 4, optionflag, 0);
+            diag_printf("**ERROR** Diag not Initialized",
+                          0, 4, optionflag, 0, NULL);
             return -1;
         }
 
@@ -854,7 +908,7 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         " Data.msc Version %d doesn't match"
         " with Firmware version %d",
             gdiag_header->file_version, version);
-        diag_printf(buf, 0, 4, optionflag, 0);
+        diag_printf(buf, 0, 4, optionflag, 0, NULL);
         return -1;
     }
     buffer = (uint32_t *)datap  ;
@@ -958,7 +1012,9 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
                    if (!((optionflag & SILENT_FLAG) == SILENT_FLAG))
                              printf("%d: %s\n", lrecord, buf);
 
-                   res = fprintf(log_out, "%s\n", buf);
+                   res = diag_printf(
+                         buf, vdevid, vdevlevel, optionflag, timestamp, log_out
+                              );
                    //fseek(log_out, lrecord * res, SEEK_SET);
                    if (lrecord == max_records) {
                        lrecord = 0;
@@ -968,7 +1024,7 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
                }
                if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
                    diag_printf(
-                         buf, vdevid, vdevlevel, optionflag, timestamp
+                         buf, vdevid, vdevlevel, optionflag, timestamp, NULL
                               );
             }
             else {
@@ -981,13 +1037,13 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
                         snprintf(buf, BUF_SIZ,
                             "****WARNING****, undefined moduleid = %d no t"
                             " found", moduleid);
-                        diag_printf(buf, 0, 4, optionflag, timestamp);
+                        diag_printf(buf, 0, 4, optionflag, timestamp, NULL);
                     }
                 break;
                 default:
                     snprintf(buf, BUF_SIZ,
                              "****WARNING****, FWMSG ID %d not found", id);
-                    diag_printf(buf, 0, 4, optionflag, timestamp);
+                    diag_printf(buf, 0, 4, optionflag, timestamp, NULL);
                     printf( "NOT found id = %d\n", id);
                 }
             }
@@ -995,7 +1051,7 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         break;
         default:
             diag_printf(" ****WARNING**** WRONG DIAG ID", 0,
-                      4, optionflag, timestamp);
+                      4, optionflag, timestamp, NULL);
         return 0;
         }
         count  += payloadlen + 8;
@@ -1057,4 +1113,69 @@ PACK(void *) cnss_wlan_handle(PACK(void *)req_pkt, uint16_t pkt_len)
     else
       debug_printf("%s:Allocate response buffer error", __func__ );
     return rsp;
+}
+
+void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
+      FILE *log_out, int32_t *record, int32_t max_records)
+{
+    char *wlanLog = (char *)&wnl->wmsg.length + sizeof(wnl->wmsg.length);
+    char *charCache = NULL ;
+
+    /* Assuming every kmsg is terminated by a '\n' character,split the
+     * wlanLog buffer received from the driver and log individual messages
+     */
+    while((charCache = strchr(wlanLog, '\n'))!= NULL) {
+        *charCache = '\0';
+        if (optionflag & QXDM_FLAG) {
+            WLAN_LOG_TO_DIAG(MSG_SSID_WLAN_RESERVED_10, MSG_LEGACY_MED,
+                             wlanLog);
+        }
+        else if (optionflag & LOGFILE_FLAG) {
+            int32_t  lrecord = 0;
+            uint32_t res = 0;
+            lrecord = *record;
+            lrecord++;
+            if (!((optionflag & SILENT_FLAG) == SILENT_FLAG))
+                printf("%d: %s\n", lrecord, wlanLog);
+            res = fprintf(log_out, "%s\n", wlanLog);
+            if (lrecord == max_records) {
+                lrecord = 0;
+                fseek(log_out, lrecord * res, SEEK_SET);
+            }
+            *record = lrecord;
+        }
+        else if (optionflag & CONSOLE_FLAG) {
+            android_printf("%s\n", wlanLog);
+        }
+        wlanLog = charCache++;
+    }
+}
+
+void process_cnss_host_diag_events_log(char *pData, int32_t optionflag)
+{
+    uint32_t diag_type = 0;
+
+    if (optionflag & QXDM_FLAG) {
+        if (pData) {
+            diag_type = *(uint32_t*) pData;
+            pData += sizeof(uint32_t);
+        }
+        if (diag_type == DIAG_TYPE_LOGS) {
+            log_hdr_type *pHdr = (log_hdr_type*)pData;
+            if (log_status(pHdr->code))
+            {
+                log_set_timestamp(pHdr);
+                log_submit(pHdr);
+            }
+        }
+        else if (diag_type == DIAG_TYPE_EVENTS) {
+            uint16_t event_id;
+            uint16_t length;
+            event_id = *(uint16_t*)pData;
+            pData += sizeof(uint16_t);
+            length = *(uint16_t*)pData;
+            pData += sizeof(uint16_t);
+            event_report_payload(event_id,length,pData);
+        }
+    }
 }

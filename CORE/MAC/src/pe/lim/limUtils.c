@@ -457,40 +457,6 @@ char* limDot11ModeStr(tpAniSirGlobal pMac, tANI_U8 dot11Mode)
                 return "11G";
             case WNI_CFG_DOT11_MODE_11N:
                 return "11N";
-            case WNI_CFG_DOT11_MODE_POLARIS:
-                return "Polaris";
-            case WNI_CFG_DOT11_MODE_TITAN:
-                return "Titan";
-            case WNI_CFG_DOT11_MODE_TAURUS:
-                return "Taurus";
-            default:
-                return "Invalid Dot11 Mode";
-        }
-#endif
-return "";
-}
-
-
-char* limStaOpRateModeStr(tStaRateMode opRateMode)
-{
-#ifdef FIXME_GEN6
-
-    switch(opRateMode)
-        {
-            case eSTA_TAURUS:
-                return "Taurus";
-            case eSTA_11a:
-                return "11A";
-            case eSTA_11b:
-                return "11B";
-            case eSTA_11bg:
-                return "11G";
-            case eSTA_11n:
-                return "11N";
-            case eSTA_POLARIS:
-                return "Polaris";
-            case eSTA_TITAN:
-                return "Titan";
             default:
                 return "Invalid Dot11 Mode";
         }
@@ -878,8 +844,6 @@ char *limResultCodeStr(tSirResultCodes resultCode)
             return "eSIR_SME_LINK_TEST_INVALID_STATE";
       case eSIR_SME_LINK_TEST_INVALID_ADDRESS:
             return "eSIR_SME_LINK_TEST_INVALID_ADDRESS";
-      case eSIR_SME_POLARIS_RESET:
-            return "eSIR_SME_POLARIS_RESET";
       case eSIR_SME_SETCONTEXT_FAILED:
             return "eSIR_SME_SETCONTEXT_FAILED";
       case eSIR_SME_BSS_RESTART:
@@ -2747,11 +2711,10 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
  * @param psessionentry
  */
 void
-limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon, tpPESession psessionEntry)
+limUpdateChannelSwitch(struct sAniSirGlobal *pMac, tpSirProbeRespBeacon pBeacon,
+                       tpPESession psessionEntry)
 {
-
     tANI_U16                         beaconPeriod;
-    tChannelSwitchPropIEStruct       *pPropChnlSwitch;
     tDot11fIEChanSwitchAnn           *pChnlSwitch;
 #ifdef WLAN_FEATURE_11AC
     tDot11fIEWiderBWChanSwitchAnn    *pWiderChnlSwitch;
@@ -2759,89 +2722,75 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
 
     beaconPeriod = psessionEntry->beaconParams.beaconInterval;
 
-    /* STA either received proprietary channel switch IE or 802.11h
-     * standard channel switch IE.
-     */
-    if (pBeacon->propIEinfo.propChannelSwitchPresent)
-    {
-        pPropChnlSwitch = &(pBeacon->propIEinfo.channelSwitch);
-
-        /* Add logic to determine which change this is:  */
-        /*      primary, secondary, both.  For now assume both. */
-        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-        psessionEntry->gLimChannelSwitch.primaryChannel = pPropChnlSwitch->primaryChannel;
-        psessionEntry->gLimChannelSwitch.secondarySubBand = (ePhyChanBondState)pPropChnlSwitch->subBand;
-        psessionEntry->gLimChannelSwitch.switchCount = pPropChnlSwitch->channelSwitchCount;
-        psessionEntry->gLimChannelSwitch.switchTimeoutValue =
-                 SYS_MS_TO_TICKS(beaconPeriod)* (pPropChnlSwitch->channelSwitchCount);
-        psessionEntry->gLimChannelSwitch.switchMode = pPropChnlSwitch->mode;
+    /* 802.11h standard channel switch IE */
+    pChnlSwitch = &(pBeacon->channelSwitchIE);
+    psessionEntry->gLimChannelSwitch.primaryChannel = pChnlSwitch->newChannel;
+    psessionEntry->gLimChannelSwitch.switchCount = pChnlSwitch->switchCount;
+    psessionEntry->gLimChannelSwitch.switchTimeoutValue =
+              SYS_MS_TO_TICKS(beaconPeriod)* (pChnlSwitch->switchCount);
+    psessionEntry->gLimChannelSwitch.switchMode = pChnlSwitch->switchMode;
+#ifdef WLAN_FEATURE_11AC
+    pWiderChnlSwitch = &(pBeacon->WiderBWChanSwitchAnn);
+    if (pBeacon->WiderBWChanSwitchAnnPresent) {
+        psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                                 pWiderChnlSwitch->newChanWidth;
+        psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 =
+                                           pWiderChnlSwitch->newCenterChanFreq0;
+        psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 =
+                                           pWiderChnlSwitch->newCenterChanFreq1;
     }
-    else
-    {
-       pChnlSwitch = &(pBeacon->channelSwitchIE);
-       psessionEntry->gLimChannelSwitch.primaryChannel = pChnlSwitch->newChannel;
-       psessionEntry->gLimChannelSwitch.switchCount = pChnlSwitch->switchCount;
-       psessionEntry->gLimChannelSwitch.switchTimeoutValue =
-                 SYS_MS_TO_TICKS(beaconPeriod)* (pChnlSwitch->switchCount);
-       psessionEntry->gLimChannelSwitch.switchMode = pChnlSwitch->switchMode;
-#ifdef WLAN_FEATURE_11AC
-       pWiderChnlSwitch = &(pBeacon->WiderBWChanSwitchAnn);
-       if(pBeacon->WiderBWChanSwitchAnnPresent)
-       {
-           psessionEntry->gLimWiderBWChannelSwitch.newChanWidth = pWiderChnlSwitch->newChanWidth;
-           psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 = pWiderChnlSwitch->newCenterChanFreq0;
-           psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 = pWiderChnlSwitch->newCenterChanFreq1;
-       }
 #endif
 
-        /* Only primary channel switch element is present */
-        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
-        psessionEntry->gLimChannelSwitch.secondarySubBand = PHY_SINGLE_CHANNEL_CENTERED;
+     /* Only primary channel switch element is present */
+     psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
+     psessionEntry->gLimChannelSwitch.secondarySubBand =
+                                                   PHY_SINGLE_CHANNEL_CENTERED;
 
-        /* Do not bother to look and operate on extended channel switch element
-         * if our own channel-bonding state is not enabled
-         */
-        if (psessionEntry->htSupportedChannelWidthSet)
-        {
-            if (pBeacon->extChannelSwitchPresent)
-            {
-                if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
-                    (pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY))
-                {
-                    psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                    psessionEntry->gLimChannelSwitch.secondarySubBand = pBeacon->extChannelSwitchIE.secondaryChannelOffset;
-                }
+     /* Do not bother to look and operate on extended channel switch element
+      * if our own channel-bonding state is not enabled
+      */
+     if (psessionEntry->htSupportedChannelWidthSet) {
+         if (pBeacon->extChannelSwitchPresent) {
+             if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                                 PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
+                 (pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                                 PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)) {
+                 psessionEntry->gLimChannelSwitch.state =
+                                      eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                 psessionEntry->gLimChannelSwitch.secondarySubBand =
+                             pBeacon->extChannelSwitchIE.secondaryChannelOffset;
+             }
 #ifdef WLAN_FEATURE_11AC
-                if(psessionEntry->vhtCapability && pBeacon->WiderBWChanSwitchAnnPresent)
-                {
-                    if (pWiderChnlSwitch->newChanWidth == WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
-                    {
-                        if(pBeacon->extChannelSwitchPresent)
-                        {
-                            if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
-                                (pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY))
-                            {
-                                psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                                psessionEntry->gLimChannelSwitch.secondarySubBand = limGet11ACPhyCBState(pMac,
-                                                                                                         psessionEntry->gLimChannelSwitch.primaryChannel,
-                                                                                                         pBeacon->extChannelSwitchIE.secondaryChannelOffset,
-                                                                                                         pWiderChnlSwitch->newCenterChanFreq0,
-                                                                                                         psessionEntry);
-                            }
-                        }
-                    }
-                }
+             if (psessionEntry->vhtCapability &&
+                               pBeacon->WiderBWChanSwitchAnnPresent) {
+                 if (pWiderChnlSwitch->newChanWidth ==
+                                   WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ) {
+                     if (pBeacon->extChannelSwitchPresent) {
+                         if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                                              PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
+                             (pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                                              PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)) {
+                             psessionEntry->gLimChannelSwitch.state =
+                                      eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                             psessionEntry->gLimChannelSwitch.secondarySubBand =
+                                limGet11ACPhyCBState(pMac,
+                                    psessionEntry->gLimChannelSwitch.primaryChannel,
+                                    pBeacon->extChannelSwitchIE.secondaryChannelOffset,
+                                    pWiderChnlSwitch->newCenterChanFreq0,
+                                    psessionEntry);
+                         }
+                     }
+                 }
+             }
 #endif
-            }
-        }
-     }
-    if (eSIR_SUCCESS != limStartChannelSwitch(pMac, psessionEntry))
-    {
+         }
+    }
+    if (eSIR_SUCCESS != limStartChannelSwitch(pMac, psessionEntry)) {
         PELOGW(limLog(pMac, LOGW, FL("Could not start Channel Switch"));)
     }
 
     limLog(pMac, LOGW,
-        FL("session %d primary chl %d, subband %d, count  %d (%d ticks) "),
+        FL("session %d primary chl %d, subband %d, count  %d (%d ticks)"),
         psessionEntry->peSessionId,
         psessionEntry->gLimChannelSwitch.primaryChannel,
         psessionEntry->gLimChannelSwitch.secondarySubBand,
@@ -3058,8 +3007,7 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
  * If 802.11H is enabled, the Quiet BSS IE is sent as per
  * the 11H spec
  * If 802.11H is not enabled, the Quiet BSS IE is sent as
- * a Proprietary IE. This will be understood by all the
- * TITAN STA's
+ * a Proprietary IE.
  * Transitioning gLimQuietState to eLIM_QUIET_BEGIN will
  * initiate the SCH to include the Quiet BSS IE in all
  * its subsequent Beacons/PR's.
@@ -3218,7 +3166,7 @@ limUtilCountStaAdd(
     tpPESession psessionEntry)
 {
 
-    if ((! pSta) || (! pSta->valid) || (! pSta->aniPeer) || (pSta->fAniCount))
+    if ((! pSta) || (! pSta->valid) || (pSta->fAniCount))
         return;
 
     pSta->fAniCount = 1;
@@ -3237,7 +3185,7 @@ limUtilCountStaDel(
     tpPESession psessionEntry)
 {
 
-    if ((pSta == NULL) || (pSta->aniPeer == eHAL_CLEAR) || (! pSta->fAniCount))
+    if ((pSta == NULL) || (! pSta->fAniCount))
         return;
 
     /* Only if sta is invalid and the validInDummyState bit is set to 1,
@@ -5925,12 +5873,6 @@ tSirRetStatus limPostMlmAddBAReq( tpAniSirGlobal pMac,
     tpDialogueToken dialogueTokenNode;
     tANI_U32        val = 0;
 
-  // Check if the peer is a 11n capable STA
-  // FIXME - Need a 11n peer indication in DPH.
-  // For now, using the taurusPeer attribute
-  //if( 0 == pStaDs->taurusPeer == )
-    //return eSIR_SUCCESS;
-
   // Allocate for LIM_MLM_ADDBA_REQ
   pMlmAddBAReq = vos_mem_malloc(sizeof( tLimMlmAddBAReq ));
   if ( NULL == pMlmAddBAReq )
@@ -6494,7 +6436,7 @@ void limPktFree (
  * limGetBDfromRxPacket()
  *
  *FUNCTION:
- * This function is called to get pointer to Polaris
+ * This function is called to get pointer to
  * Buffer Descriptor containing MAC header & other control
  * info from the body of the message posted to LIM.
  *
@@ -7924,7 +7866,6 @@ void limGetShortSlotFromPhyMode(tpAniSirGlobal pMac, tpPESession psessionEntry,
         {
             val = true;
         }
-        // Program Polaris based on AP capability
         if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
         {
             // Joining BSS.

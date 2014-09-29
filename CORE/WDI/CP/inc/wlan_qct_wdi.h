@@ -95,9 +95,6 @@ when        who    what, where, why
 /* Max number of 11g rates -> 6,9,12,18,24,36,48,54*/
 #define WDI_NUM_11A_RATES                 8
 
-/* Max number of legacy rates -> 72, 96, 108*/
-#define WDI_NUM_POLARIS_RATES             3
-
 /* Max supported MCS set*/
 #define WDI_MAC_MAX_SUPPORTED_MCS_SET    16
 
@@ -1436,12 +1433,6 @@ typedef struct
     /* 11b, 11a and aniLegacyRates are IE rates which gives rate in unit of 500Kbps */
     wpt_uint16         llbRates[WDI_NUM_11B_RATES];
     wpt_uint16         llaRates[WDI_NUM_11A_RATES];
-    wpt_uint16         aLegacyRates[WDI_NUM_POLARIS_RATES];
-
-    /*Taurus only supports 26 Titan Rates(no ESF/concat Rates will be supported)
-      First 26 bits are reserved for those Titan rates and
-     the last 4 bits(bit28-31) for Taurus, 2(bit26-27) bits are reserved.*/
-    wpt_uint32         uEnhancedRateBitmap; //Titan and Taurus Rates
 
     /*
     * 0-76 bits used, remaining reserved

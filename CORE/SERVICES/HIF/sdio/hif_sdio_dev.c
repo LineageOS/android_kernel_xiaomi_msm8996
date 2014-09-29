@@ -92,13 +92,18 @@ A_UINT8 HIFDevMapMailBoxToPipe(HIF_SDIO_DEVICE *pDev, A_UINT8 mboxIndex,
 }
 
 A_STATUS HIFDevMapServiceToPipe(HIF_SDIO_DEVICE *pDev, A_UINT16 ServiceId,
-        A_UINT8 *ULPipe, A_UINT8 *DLPipe)
+        A_UINT8 *ULPipe, A_UINT8 *DLPipe, A_BOOL SwapMapping)
 {
     A_STATUS status = EOK;
     switch (ServiceId) {
     case HTT_DATA_MSG_SVC:
-        *ULPipe = 3;
-        *DLPipe = 2;
+        if (SwapMapping) {
+            *ULPipe = 1;
+            *DLPipe = 0;
+        } else {
+            *ULPipe = 3;
+            *DLPipe = 2;
+        }
         break;
 
     case HTC_CTRL_RSVD_SVC:
@@ -116,8 +121,13 @@ A_STATUS HIFDevMapServiceToPipe(HIF_SDIO_DEVICE *pDev, A_UINT16 ServiceId,
         break;
 
     case WMI_CONTROL_SVC:
-        *ULPipe = 1;
-        *DLPipe = 0;
+        if (SwapMapping) {
+            *ULPipe = 3;
+            *DLPipe = 2;
+        } else {
+            *ULPipe = 1;
+            *DLPipe = 0;
+        }
         break;
 
     default:

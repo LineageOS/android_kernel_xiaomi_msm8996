@@ -232,44 +232,10 @@ PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
         return nSirStatus;
     }
 
-#if 0
-    if ( sirIsPropCapabilityEnabled( pMac, SIR_MAC_PROP_CAPABILITY_11EQOS ) )
-    {
-        SIR_MAC_CLEAR_CAPABILITY( cfg, QOS );
-    }
-#endif
     swapBitField16( cfg, ( tANI_U16* )pDot11f );
 
     return eSIR_SUCCESS;
 } // End PopulateDot11fCapabilities.
-
-tSirRetStatus
-PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
-                            tDot11fFfCapabilities *pDot11f,
-                            tpDphHashNode          pSta,
-                            tpPESession            psessionEntry)
-{
-    tANI_U16           cfg;
-    tSirRetStatus nSirStatus;
-    nSirStatus = cfgGetCapabilityInfo( pMac, &cfg ,psessionEntry);
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        dot11fLog( pMac, LOGP, FL("Failed to retrieve the Capabilities b"
-                               "itfield from CFG (%d).\n"), nSirStatus );
-        return nSirStatus;
-    }
-
-    if ( ( NULL != pSta ) && pSta->aniPeer &&
-         PROP_CAPABILITY_GET( 11EQOS, pSta->propCapability ) )
-    {
-        SIR_MAC_CLEAR_CAPABILITY( cfg, QOS );
-    }
-
-    swapBitField16( cfg, ( tANI_U16* )pDot11f );
-
-    return eSIR_SUCCESS;
-
-} // End PopulateDot11fCapabilities2.
 
 void
 PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
@@ -282,18 +248,6 @@ PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
 
     pDot11f->present = 1;
 } // End PopulateDot11fChanSwitchAnn.
-
-void
-PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal pMac,
-                               tDot11fIEExtChanSwitchAnn *pDot11f,
-                               tpPESession psessionEntry)
-{
-    //Has to be updated on the cb state basis
-    pDot11f->secondaryChannelOffset =
-             psessionEntry->gLimChannelSwitch.secondarySubBand;
-
-    pDot11f->present = 1;
-}
 
 void
 PopulateDot11fChanSwitchWrapper(tpAniSirGlobal pMac,
@@ -1895,30 +1849,6 @@ tSirRetStatus PopulateDot11fWPAOpaque( tpAniSirGlobal      pMac,
 } // End PopulateDot11fWPAOpaque.
 
 ////////////////////////////////////////////////////////////////////////
-
-tSirRetStatus
-sirGetCfgPropCaps(tpAniSirGlobal pMac, tANI_U16 *caps)
-{
-#if 0
-    tANI_U32 val;
-
-    *caps = 0;
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, &val)
-        != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not retrieve PropFeature enabled flag\n"));
-        return eSIR_FAILURE;
-    }
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PROP_CAPABILITY, &val) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not retrieve PROP_CAPABLITY flag\n"));
-        return eSIR_FAILURE;
-    }
-
-    *caps = (tANI_U16) val;
-#endif
-    return eSIR_SUCCESS;
-}
 
 tSirRetStatus
 sirConvertProbeReqFrame2Struct(tpAniSirGlobal  pMac,

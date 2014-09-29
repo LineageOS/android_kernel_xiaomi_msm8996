@@ -245,7 +245,6 @@ ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode)
  *
  *FUNCTION:
  * Based on a combination of the following -
- * 1) tDphHashNode.aniPeer
  * 2) tDphHashNode.propCapability
  * this API determines if a given STA is an ANI peer or not
  *
@@ -264,19 +263,9 @@ tStaRateMode limGetStaPeerType( tpAniSirGlobal pMac,
     tpDphHashNode pStaDs,
     tpPESession   psessionEntry)
 {
-tStaRateMode staPeerType = eSTA_11b;
-  // Determine the peer-STA type
-  if( pStaDs->aniPeer )
-  {
-    if(PROP_CAPABILITY_GET( TAURUS, pStaDs->propCapability ))
-        staPeerType = eSTA_TAURUS;
-    else if( PROP_CAPABILITY_GET( TITAN, pStaDs->propCapability ))
-        staPeerType = eSTA_TITAN;
-    else
-        staPeerType = eSTA_POLARIS;
-  }
+  tStaRateMode staPeerType = eSTA_11b;
 #ifdef WLAN_FEATURE_11AC
-  else if(pStaDs->mlmStaContext.vhtCapability)
+  if(pStaDs->mlmStaContext.vhtCapability)
       staPeerType = eSTA_11ac;
 #endif
   else if(pStaDs->mlmStaContext.htCapability)

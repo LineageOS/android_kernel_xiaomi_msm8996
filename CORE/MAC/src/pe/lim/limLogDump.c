@@ -171,8 +171,8 @@ char *dumpLim( tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
                           pSta->mlmStaContext.authType,
                           limMlmStateStr(pSta->mlmStaContext.mlmState));
 
-          p += log_sprintf( pMac,p, "\tAID:%-2d  OpRateMode:%s  ShPrmbl:%d  HT:%d  GF:%d  TxChWidth:%d  MimoPS:%d  LsigProt:%d\n",
-                            pSta->assocId, limStaOpRateModeStr(pSta->supportedRates.opRateMode),
+          p += log_sprintf( pMac,p, "\tAID:%-2d  ShPrmbl:%d  HT:%d  GF:%d  TxChWidth:%d  MimoPS:%d  LsigProt:%d\n",
+                            pSta->assocId,
                             pSta->shortPreambleEnabled, pSta->mlmStaContext.htCapability,
                             pSta->htGreenfield, pSta->htSupportedChannelWidthSet,
                             pSta->htMIMOPSState, pSta->htLsigTXOPProtection);
@@ -192,14 +192,6 @@ char *dumpLim( tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
           for(j=0; j<SIR_NUM_11A_RATES; j++)
               if(pSta->supportedRates.llaRates[j] > 0)
                   p += log_sprintf( pMac,p, "%d ", pSta->supportedRates.llaRates[j]);
-
-          p += log_sprintf( pMac,p, "\n\tPolaris Rates: ");
-          for(j=0; j<SIR_NUM_POLARIS_RATES; j++)
-              if(pSta->supportedRates.aniLegacyRates[j] > 0)
-                  p += log_sprintf( pMac,p, "%d ", pSta->supportedRates.aniLegacyRates[j]);
-
-          p += log_sprintf( pMac,p, "\n\tTitan and Taurus Proprietary Rate Bitmap: %08x\n",
-                          pSta->supportedRates.aniEnhancedRateBitmap);
           p += log_sprintf( pMac,p, "\tMCS Rate Set Bitmap: ");
           for(j=0; j<SIR_MAC_MAX_SUPPORTED_MCS_SET; j++)
               p += log_sprintf( pMac,p, "%x ", pSta->supportedRates.supportedMCSSet[j]);
@@ -241,8 +233,7 @@ char *dumpLim( tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
                               pTemp->peerMacAddr[3],
                               pTemp->peerMacAddr[4],
                               pTemp->peerMacAddr[5]);
-              p += log_sprintf( pMac,p, " %d   %d,%d        %d  %d  %04X  %d,%d\n",
-                              pTemp->aniIndicator,
+              p += log_sprintf( pMac,p, " %d,%d        %d  %d  %04X  %d,%d\n",
                               pTemp->edcaPresent, pTemp->wmeEdcaPresent,
                               pTemp->wmeInfoPresent,
                               pTemp->htCapable,
@@ -255,12 +246,6 @@ char *dumpLim( tpAniSirGlobal pMac, char *p, tANI_U32 sessionId)
   }
   p += log_sprintf( pMac,p, "System Scan/Learn Mode bit      = %d\n",
                   pMac->lim.gLimSystemInScanLearnMode);
-  p += log_sprintf( pMac,p, "Scan override                   = %d\n",
-                  pMac->lim.gLimScanOverride);
-  p += log_sprintf( pMac,p, "CB State protection             = %d\n",
-                  pMac->lim.gLimCBStateProtection);
-  p += log_sprintf( pMac,p, "Count of Titan STA's            = %d\n",
-                  pMac->lim.gLimTitanStaCount);
 
   //current BSS capability
   p += log_sprintf( pMac,p, "**********Current BSS Capability********\n");

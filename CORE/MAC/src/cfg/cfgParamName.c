@@ -20,6 +20,12 @@
  */
 
 /*
+ * This file was originally distributed by Qualcomm Atheros, Inc.
+ * under proprietary terms before Copyright ownership was assigned
+ * to the Linux Foundation.
+ */
+
+/*
  * DO NOT EDIT - This file is generated automatically
  */
 
@@ -113,9 +119,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"CURRENT_TX_ANTENNA",
     (unsigned char *)"CURRENT_RX_ANTENNA",
     (unsigned char *)"CURRENT_TX_POWER_LEVEL",
-    (unsigned char *)"POWER_STATE_PER_CHAIN",
     (unsigned char *)"NEW_BSS_FOUND_IND",
-    (unsigned char *)"PROPRIETARY_ANI_FEATURES_ENABLED",
     (unsigned char *)"PROPRIETARY_RATES_ENABLED",
     (unsigned char *)"AP_NODE_NAME",
     (unsigned char *)"COUNTRY_CODE",
@@ -141,7 +145,6 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"KEEP_ALIVE_STA_LIMIT_THRESHOLD",
     (unsigned char *)"SEND_SINGLE_SSID_ALWAYS",
     (unsigned char *)"WSM_ENABLED",
-    (unsigned char *)"PROP_CAPABILITY",
     (unsigned char *)"EDCA_PROFILE",
     (unsigned char *)"EDCA_ANI_ACBK_LOCAL",
     (unsigned char *)"EDCA_ANI_ACBE_LOCAL",
@@ -159,14 +162,6 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"EDCA_WME_ACBE",
     (unsigned char *)"EDCA_WME_ACVI",
     (unsigned char *)"EDCA_WME_ACVO",
-    (unsigned char *)"EDCA_TIT_DEMO_ACBK_LOCAL",
-    (unsigned char *)"EDCA_TIT_DEMO_ACBE_LOCAL",
-    (unsigned char *)"EDCA_TIT_DEMO_ACVI_LOCAL",
-    (unsigned char *)"EDCA_TIT_DEMO_ACVO_LOCAL",
-    (unsigned char *)"EDCA_TIT_DEMO_ACBK",
-    (unsigned char *)"EDCA_TIT_DEMO_ACBE",
-    (unsigned char *)"EDCA_TIT_DEMO_ACVI",
-    (unsigned char *)"EDCA_TIT_DEMO_ACVO",
     (unsigned char *)"RDET_FLAG",
     (unsigned char *)"RADAR_CHANNEL_LIST",
     (unsigned char *)"LOCAL_POWER_CONSTRAINT",
@@ -345,3 +340,4 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"DFS_MASTER_ENABLED",
     (unsigned char *)"VHT_ENABLE_TXBF_20MHZ",
 };
+

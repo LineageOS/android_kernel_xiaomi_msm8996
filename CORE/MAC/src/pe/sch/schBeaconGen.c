@@ -334,12 +334,6 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
           */
          PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
                                      psessionEntry);
-
-         /* TODO: depending the CB mode, extended channel switch announcement
-          * need to be called
-          */
-         /*PopulateDot11fExtChanSwitchAnn(pMac, &pBcn2->ExtChanSwitchAnn,
-                                        psessionEntry);*/
 #ifdef WLAN_FEATURE_11AC
          /* TODO: If in 11AC mode, wider bw channel switch announcement needs
           * to be called

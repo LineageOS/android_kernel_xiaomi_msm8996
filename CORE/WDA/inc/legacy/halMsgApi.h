@@ -1106,7 +1106,6 @@ typedef tSirRetStatus (*tHalMsgCallback)(tpAniSirGlobal pMac, tANI_U32 mesgId, v
 typedef struct
 {
   tANI_U16 bssIdx;
-  tANI_BOOLEAN highPerformance;
   tSirMacEdcaParamRecord acbe; // best effort
   tSirMacEdcaParamRecord acbk; // background
   tSirMacEdcaParamRecord acvi; // video

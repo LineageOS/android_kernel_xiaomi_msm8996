@@ -1158,7 +1158,6 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                  (tANI_U8 *) &(pAssocInd->addIE.addIEdata),
                  pAssocInd->addIE.length);
 
-    // Copy the new TITAN capabilities
     pSirSmeAssocInd->spectrumMgtIndicator = pAssocInd->spectrumMgtIndicator;
     if (pAssocInd->spectrumMgtIndicator == eSIR_TRUE)
     {
@@ -1327,8 +1326,6 @@ limProcessMlmDisassocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 PELOG1(limLog(pMac, LOG1,
                        FL("*** Peer staId=%d Disassociated ***"),
                         pMlmDisassocInd->aid);)
-            // Send SME_DISASOC_IND after Polaris cleanup
-            // (after receiving LIM_MLM_PURGE_STA_IND)
             break;
     } // end switch (psessionEntry->limSystemRole)
 } /*** end limProcessMlmDisassocInd() ***/
@@ -1462,8 +1459,6 @@ limProcessMlmDeauthInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                    FL("*** Received Deauthentication from staId=%d ***"),
                    pMlmDeauthInd->aid);)
             }
-            // Send SME_DEAUTH_IND after Polaris cleanup
-            // (after receiving LIM_MLM_PURGE_STA_IND)
             break;
     } // end switch (psessionEntry->limSystemRole)
 } /*** end limProcessMlmDeauthInd() ***/
@@ -1609,7 +1604,7 @@ limProcessMlmPurgeStaInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 break;
             }
             PELOG1(limLog(pMac, LOG1,
-               FL("*** Polaris cleanup completed for staId=%d ***"),
+               FL("*** Cleanup completed for staId=%d ***"),
                pMlmPurgeStaInd->aid);)
             if ((psessionEntry->limSystemRole == eLIM_STA_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE))
             {
@@ -3139,12 +3134,8 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
             pStaDs->ucBcastSig   = pAddBssParams->staContext.ucBcastSig;
             // Downgrade the EDCA parameters if needed
             limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
-            // Send the active EDCA parameters to HAL
-            if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) {
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
-            } else {
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
-            }
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                              pStaDs->bssId);
 #if defined WLAN_FEATURE_VOWIFI
             rrmCacheMgmtTxPower( pMac, pAddBssParams->txMgmtPower, psessionEntry );
 #endif

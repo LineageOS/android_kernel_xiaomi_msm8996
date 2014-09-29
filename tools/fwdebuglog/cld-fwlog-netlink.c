@@ -58,10 +58,6 @@
 #include "cld-diag-parser.h"
 
 #ifdef ANDROID
-#include "aniNlMsg.h"
-#include "aniAsfHdr.h"
-#include "aniAsfMem.h"
-
 /* CAPs needed
  * CAP_NET_RAW   : Use RAW and packet socket
  * CAP_NET_ADMIN : NL broadcast receive
@@ -255,6 +251,7 @@ static void stop(int32_t signum)
     exit(0);
 }
 
+
 void process_cnss_log_file(uint8_t *dbgbuf)
 {
     uint16_t length = 0;
@@ -285,10 +282,10 @@ void process_cnss_log_file(uint8_t *dbgbuf)
  * Read the payload and process accordingly.
  *
  */
-void process_cnss_diag_msg(uint8_t *eventbuf)
+void process_cnss_diag_msg(tAniNlHdr *wnl)
 {
     uint8_t *dbgbuf;
-    tAniNlHdr *wnl = (tAniNlHdr *)eventbuf;
+    uint8_t *eventbuf = (uint8_t *)NLMSG_DATA(wnl);
     uint16_t diag_type = 0;
     uint32_t event_id = 0;
     uint16_t length = 0;
@@ -303,39 +300,48 @@ void process_cnss_diag_msg(uint8_t *eventbuf)
     length = *(uint16_t *)eventbuf;
     eventbuf += sizeof(uint16_t);
 
-    if (diag_type == DIAG_TYPE_FW_EVENT) {
-        eventbuf += sizeof(uint32_t);
-        event_id = *(uint32_t *)eventbuf;
-        eventbuf += sizeof(uint32_t);
-        if (optionflag & QXDM_FLAG) {
-            if (length)
-                event_report_payload(event_id, length, eventbuf);
-            else
-                event_report(event_id);
-        }
-    } else if (diag_type == DIAG_TYPE_FW_LOG) {
-       /* Do nothing for now */
-    } else if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
-        slot =(struct dbglog_slot *)dbgbuf;
-        length = get_le32((uint8_t *)&slot->length);
-        dropped = get_le32((uint8_t *)&slot->dropped);
-        if (optionflag & LOGFILE_FLAG)
-            process_cnss_log_file(dbgbuf);
-        else if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
-            dbglog_parse_debug_logs(&slot->payload[0], length, dropped);
-    } else if (diag_type == DIAG_TYPE_FW_MSG) {
-        uint32_t version = 0;
-        slot = (struct dbglog_slot *)dbgbuf;
-        length = get_32((uint8_t *)&slot->length);
-        version = get_le32((uint8_t *)&slot->dropped);
-        process_diagfw_msg(&slot->payload[0], length, optionflag, log_out,
-                           &record, max_records, version, sock_fd);
-    } else if (diag_type == DIAG_TYPE_HOST_MSG) {
-        slot = (struct dbglog_slot *)dbgbuf;
-        length = get_32((uint8_t *)&slot->length);
-        process_diaghost_msg(slot->payload, length);
+    if (wnl->nlh.nlmsg_type == WLAN_NL_MSG_CNSS_HOST_MSG
+        && (wnl->wmsg.type == ANI_NL_MSG_LOG_HOST_MSG_TYPE)) {
+          process_cnss_host_message(wnl, optionflag, log_out, &record, max_records);
+    } else if (wnl->nlh.nlmsg_type == WLAN_NL_MSG_CNSS_HOST_EVENT_LOG
+        && (wnl->wmsg.type == ANI_NL_MSG_LOG_HOST_EVENT_LOG_TYPE)) {
+        process_cnss_host_diag_events_log((char *)((char *)&wnl->wmsg.length
+        + sizeof(wnl->wmsg.length)), optionflag);
     } else {
-       /* Do nothing for now */
+        if (diag_type == DIAG_TYPE_FW_EVENT) {
+            eventbuf += sizeof(uint32_t);
+            event_id = *(uint32_t *)eventbuf;
+            eventbuf += sizeof(uint32_t);
+            if (optionflag & QXDM_FLAG) {
+                if (length)
+                    event_report_payload(event_id, length, eventbuf);
+                else
+                    event_report(event_id);
+            }
+        } else if (diag_type == DIAG_TYPE_FW_LOG) {
+           /* Do nothing for now */
+        } else if (diag_type == DIAG_TYPE_FW_DEBUG_MSG) {
+            slot =(struct dbglog_slot *)dbgbuf;
+            length = get_le32((uint8_t *)&slot->length);
+            dropped = get_le32((uint8_t *)&slot->dropped);
+            if (optionflag & LOGFILE_FLAG)
+                process_cnss_log_file(dbgbuf);
+            else if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
+                dbglog_parse_debug_logs(&slot->payload[0], length, dropped);
+        } else if (diag_type == DIAG_TYPE_FW_MSG) {
+            uint32_t version = 0;
+            slot = (struct dbglog_slot *)dbgbuf;
+            length = get_32((uint8_t *)&slot->length);
+            version = get_le32((uint8_t *)&slot->dropped);
+            process_diagfw_msg(&slot->payload[0], length, optionflag, log_out,
+                               &record, max_records, version, sock_fd);
+        } else if (diag_type == DIAG_TYPE_HOST_MSG) {
+            slot = (struct dbglog_slot *)dbgbuf;
+            length = get_32((uint8_t *)&slot->length);
+            process_diaghost_msg(slot->payload, length);
+        } else {
+           /* Do nothing for now */
+        }
     }
 
 }
@@ -379,16 +385,18 @@ static uint32_t initialize(int32_t sock_fd)
     dest_addr.nl_pid = 0; /* For Linux Kernel */
     dest_addr.nl_groups = 0; /* unicast */
 
-    if (nlh)
-       free(nlh);
-    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(RECLEN));
+    if (nlh) {
+        free(nlh);
+        nlh = NULL;
+    }
+    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_MSG_SIZE));
     if (nlh == NULL) {
         fprintf(stderr, "Cannot allocate memory \n");
         close(sock_fd);
         return -1;
     }
-    memset(nlh, 0, NLMSG_SPACE(RECLEN));
-    nlh->nlmsg_len = NLMSG_SPACE(RECLEN);
+    memset(nlh, 0, NLMSG_SPACE(MAX_MSG_SIZE));
+    nlh->nlmsg_len = NLMSG_SPACE(MAX_MSG_SIZE);
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_type = WLAN_NL_MSG_CNSS_DIAG;
     nlh->nlmsg_flags = NLM_F_REQUEST;
@@ -436,23 +444,27 @@ int32_t main(int32_t argc, char *argv[])
                 memset(dbglogoutfile, 0, PATH_MAX);
                 memcpy(dbglogoutfile, optarg, strlen(optarg));
                 optionflag |= LOGFILE_FLAG;
-                break;
+            break;
 
             case 'c':
                 optionflag |= CONSOLE_FLAG;
-                break;
+            break;
 
             case 'q':
                 optionflag |= QXDM_FLAG;
-                break;
+            break;
 
             case 'r':
                 rec_limit = strtoul(optarg, NULL, 0);
-                break;
+            break;
 
             case 's':
                 optionflag |= SILENT_FLAG;
-                break;
+            break;
+
+            case 'd':
+                optionflag |= DEBUG_FLAG;
+            break;
             default:
                 usage();
         }
@@ -488,6 +500,7 @@ int32_t main(int32_t argc, char *argv[])
     }
 
     initialize(sock_fd);
+    cnssdiag_register_kernel_logging(sock_fd, nlh);
 
     signal(SIGINT, stop);
     signal(SIGTERM, stop);
@@ -535,6 +548,7 @@ int32_t main(int32_t argc, char *argv[])
               }
               initialize(sock_fd);
               diag_initialize(isDriverLoaded, sock_fd, optionflag);
+              cnssdiag_register_kernel_logging(sock_fd, nlh);
            }
        } else if ((isDriverLoaded == TRUE) &&
                    (res == SIZEOF_NL_MSG_UNLOAD)) {
@@ -544,12 +558,13 @@ int32_t main(int32_t argc, char *argv[])
                isDriverLoaded = FALSE;
                diag_initialize(isDriverLoaded, sock_fd, optionflag);
            }
-       } else if((res >= sizeof(struct dbglog_slot)) &&
-                 ((res != SIZEOF_NL_MSG_LOAD) &&
-                 (res != SIZEOF_NL_MSG_UNLOAD))) {
+       } else if (((res >= sizeof(struct dbglog_slot)) &&
+                 (res != SIZEOF_NL_MSG_LOAD) &&
+                 (res != SIZEOF_NL_MSG_UNLOAD)) ||
+                 (nlh->nlmsg_type == WLAN_NL_MSG_CNSS_HOST_EVENT_LOG)) {
            isDriverLoaded = TRUE;
-           eventbuf = (uint8_t *)NLMSG_DATA(nlh);
-           process_cnss_diag_msg(eventbuf);
+           process_cnss_diag_msg((tAniNlHdr *)nlh);
+           memset(nlh,0,NLMSG_SPACE(MAX_MSG_SIZE));
        } else {
            /* Ignore other messages that might be broadcast */
            continue;

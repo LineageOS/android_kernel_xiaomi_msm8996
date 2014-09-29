@@ -1140,15 +1140,6 @@ typedef struct hdd_priv_data_s
    int total_len;
 }hdd_priv_data_t;
 
-typedef struct
-{
-   vos_timer_t trafficTimer;
-   atomic_t    isActiveMode;
-   v_U8_t      isInitialized;
-   vos_lock_t  trafficLock;
-   v_TIME_t    lastFrameTs;
-}hdd_traffic_monitor_t;
-
 #ifdef FEATURE_GREEN_AP
 
 #define GREEN_AP_PS_ON_TIME        (0)
@@ -1379,8 +1370,6 @@ struct hdd_context_s
     /* Lock to avoid race condition during TDLS operations*/
     struct mutex tdls_lock;
 #endif
-
-    hdd_traffic_monitor_t traffic_monitor;
 
 #ifdef IPA_OFFLOAD
     void *hdd_ipa;

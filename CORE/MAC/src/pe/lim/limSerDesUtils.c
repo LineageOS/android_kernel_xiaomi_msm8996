@@ -1356,14 +1356,6 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     len -= sizeof(tAniBool);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
-    // Extract Titan CB Neighbor BSS info
-    pJoinReq->cbNeighbors.cbBssFoundPri = *pBuf;
-    pBuf++;
-    pJoinReq->cbNeighbors.cbBssFoundSecUp = *pBuf;
-    pBuf++;
-    pJoinReq->cbNeighbors.cbBssFoundSecDown = *pBuf;
-    pBuf++;
-    len -= 3;
 
     // Extract Spectrum Mgt Indicator
     pJoinReq->spectrumMgtIndicator = (tAniBool) limGetU32(pBuf);

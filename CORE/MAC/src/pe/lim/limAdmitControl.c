@@ -257,7 +257,6 @@ limComputeMeanBwUsed(
                        ctspec, pTspecInfo->assocId);
                 continue;
             }
-            //FIXME: need to take care of taurusPeer, titanPeer, 11npeer too.
             *pBw += LIM_STA_BW_ADJUST(pSta->aniPeer, phyMode, pTspecInfo->tspec.meanDataRate);
         }
     }

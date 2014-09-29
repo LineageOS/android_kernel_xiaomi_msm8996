@@ -240,13 +240,6 @@ static void __limInitVars(tpAniSirGlobal pMac)
 {
     // Place holder for Measurement Req/Rsp/Ind related info
 
-    // WDS info
-    pMac->lim.gLimNumWdsInfoInd = 0;
-    pMac->lim.gLimNumWdsInfoSet = 0;
-    vos_mem_set(&pMac->lim.gLimWdsInfo, sizeof(tSirWdsInfo), 0);
-    /* initialize some parameters */
-    limInitWdsInfoParams(pMac);
-
     // Deferred Queue Paramters
     vos_mem_set(&pMac->lim.gLimDeferredMsgQ, sizeof(tSirAddtsReq), 0);
 
@@ -333,17 +326,6 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
 
 }
 
-
-static void __limInitTitanVars(tpAniSirGlobal pMac)
-{
-    // Debug workaround for BEACON's
-    // State change triggered by "dump 222"
-    pMac->lim.gLimScanOverride = 1;
-    pMac->lim.gLimScanOverrideSaved = eSIR_ACTIVE_SCAN;
-    pMac->lim.gLimTitanStaCount = 0;
-    pMac->lim.gLimBlockNonTitanSta = 0;
-}
-
 static void __limInitHTVars(tpAniSirGlobal pMac)
 {
     pMac->lim.htCapabilityPresentInBeacon = 0;
@@ -400,8 +382,6 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    val16 = ( tANI_U16 ) val1;
    pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &val16;
 
-   //channel bonding mode could be set to anything from 0 to 4(Titan had these
-   // modes But for Taurus we have only two modes: enable(>0) or disable(=0)
    pHTCapabilityInfo->supportedChannelWidthSet = val2 ?
      WNI_CFG_CHANNEL_BONDING_MODE_ENABLE : WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
    if(cfgSetInt(pMac, WNI_CFG_HT_CAP_INFO, *(tANI_U16*)pHTCapabilityInfo)
@@ -652,7 +632,6 @@ limInitialize(tpAniSirGlobal pMac)
     __limInitBssVars(pMac);
     __limInitScanVars(pMac);
     __limInitHTVars(pMac);
-    __limInitTitanVars(pMac);
 
     status = limStart(pMac);
     if(eSIR_SUCCESS != status)
@@ -1353,62 +1332,6 @@ limReceivedHBHandler(tpAniSirGlobal pMac, tANI_U8 channelId, tpPESession psessio
         pMac->pmm.inMissedBeaconScenario = FALSE;
 } /*** end limReceivedHBHandler() ***/
 
-
-
-/*
- * limProcessWdsInfo()
- *
- *FUNCTION:
- * This function is called from schBeaconProcess in BP
- *
- *PARAMS:
- * @param pMac     - Pointer to Global MAC structure
- * @param propIEInfo - proprietary IE info
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- *
- *
- *RETURNS:
- *
- */
-
-void limProcessWdsInfo(tpAniSirGlobal pMac,
-                       tSirPropIEStruct propIEInfo)
-{
-}
-
-
-
-/**
- * limInitWdsInfoParams()
- *
- *FUNCTION:
- * This function is called while processing
- * START_BSS/JOIN/REASSOC_REQ  to initialize WDS info
- * ind/set related parameters.
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @param  pMac      Pointer to Global MAC structure
- * @return None
- */
-
-void
-limInitWdsInfoParams(tpAniSirGlobal pMac)
-{
-    pMac->lim.gLimWdsInfo.wdsLength = 0;
-    pMac->lim.gLimNumWdsInfoInd     = 0;
-    pMac->lim.gLimNumWdsInfoSet     = 0;
-} /*** limInitWdsInfoParams() ***/
 
 
 /** -------------------------------------------------------------

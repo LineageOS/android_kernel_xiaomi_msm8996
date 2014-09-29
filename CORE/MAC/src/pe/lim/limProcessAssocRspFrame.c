@@ -79,9 +79,7 @@ extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamS
  */
 void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAssocRsp pAssocRsp,tpPESession psessionEntry)
 {
-    tANI_U32        prop;
     tANI_U32        phyMode;
-    tANI_U32        val;
     tANI_BOOLEAN    qosMode;
     tANI_U16        rxHighestRate = 0;
 
@@ -90,17 +88,6 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     pStaDs->staType= STA_ENTRY_SELF;
 
     limGetQosMode(psessionEntry, &qosMode);
-    // set the ani peer bit, if self mode is one of the proprietary modes
-    if(IS_DOT11_MODE_PROPRIETARY(psessionEntry->dot11mode))
-    {
-       wlan_cfgGetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, &prop);
-
-       if (prop)
-       {
-           pStaDs->aniPeer = eHAL_SET;
-           pStaDs->propCapability = pAssocRsp->propIEinfo.capability;
-       }
-    }
 
        pStaDs->mlmStaContext.authType = psessionEntry->limCurrentAuthType;
 
@@ -169,16 +156,6 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        if ((phyMode == WNI_CFG_PHY_MODE_11G) && sirIsArate(pStaDs->supportedRates.llaRates[0] & 0x7f))
            pStaDs->erpEnabled = eHAL_SET;
 
-
-       val = WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN;
-       if (wlan_cfgGetStr(pMac, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET,
-                     (tANI_U8 *) &pStaDs->mlmStaContext.propRateSet.propRate,
-                     &val) != eSIR_SUCCESS) {
-           /// Could not get prop rateset from CFG. Log error.
-           limLog(pMac, LOGP, FL("could not retrieve prop rateset"));
-           return;
-       }
-       pStaDs->mlmStaContext.propRateSet.numPropRates = (tANI_U8) val;
 
        pStaDs->qosMode    = 0;
        pStaDs->lleEnabled = 0;
@@ -647,16 +624,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         // along with STATUS CODE
 
         // Return Assoc confirm to SME with received failure code
-
-        if (pAssocRsp->propIEinfo.loadBalanceInfoPresent)
-        {
-            mlmAssocCnf.resultCode = eSIR_SME_TRANSFER_STA;
-            vos_mem_copy(pMac->lim.gLimAlternateRadio.bssId,
-                         pAssocRsp->propIEinfo.alternateRadio.bssId, sizeof(tSirMacAddr));
-            pMac->lim.gLimAlternateRadio.channelId =
-                          pAssocRsp->propIEinfo.alternateRadio.channelId;
-        }else
-            mlmAssocCnf.resultCode = eSIR_SME_ASSOC_REFUSED;
+        mlmAssocCnf.resultCode = eSIR_SME_ASSOC_REFUSED;
 
         // Delete Pre-auth context for the associated BSS
         if (limSearchPreAuthList(pMac, pHdr->sa))
@@ -783,16 +751,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
             if (!psessionEntry->bRoamSynchInProgress)
             {
 #endif
-               if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
-               {
-                  limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
-                                    pStaDs->bssId, eANI_BOOLEAN_TRUE);
-               }
-               else
-               {
-                  limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
-                                    pStaDs->bssId, eANI_BOOLEAN_FALSE);
-               }
+              limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                                    pStaDs->bssId);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
             }
 #endif

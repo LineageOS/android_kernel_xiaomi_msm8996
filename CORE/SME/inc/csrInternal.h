@@ -109,15 +109,11 @@
 
 typedef enum
 {
-    //eCSR_CFG_DOT11_MODE_BEST = 0,
-    eCSR_CFG_DOT11_MODE_TAURUS = 0,
     eCSR_CFG_DOT11_MODE_ABG,
     eCSR_CFG_DOT11_MODE_11A,
     eCSR_CFG_DOT11_MODE_11B,
     eCSR_CFG_DOT11_MODE_11G,
     eCSR_CFG_DOT11_MODE_11N,
-    eCSR_CFG_DOT11_MODE_POLARIS,
-    eCSR_CFG_DOT11_MODE_TITAN,
 #ifdef WLAN_FEATURE_11AC
     eCSR_CFG_DOT11_MODE_11AC,
 #endif
@@ -1106,12 +1102,10 @@ typedef struct tagCsrRoamStruct
 #define CSR_IS_PHY_MODE_DUAL_BAND(phyMode) \
         ((eCSR_DOT11_MODE_abg & (phyMode)) || (eCSR_DOT11_MODE_11n & (phyMode)) || \
         (eCSR_DOT11_MODE_11ac & (phyMode)) || \
-        (eCSR_DOT11_MODE_TAURUS & (phyMode)) || \
         (eCSR_DOT11_MODE_AUTO & (phyMode)))
 #else
 #define CSR_IS_PHY_MODE_DUAL_BAND(phyMode) \
         ((eCSR_DOT11_MODE_abg & (phyMode)) || (eCSR_DOT11_MODE_11n & (phyMode)) || \
-        (eCSR_DOT11_MODE_TAURUS & (phyMode)) || \
         (eCSR_DOT11_MODE_AUTO & (phyMode)))
 #endif
 

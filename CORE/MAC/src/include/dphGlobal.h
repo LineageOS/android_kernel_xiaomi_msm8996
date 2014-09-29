@@ -278,8 +278,6 @@ typedef struct sDphHashNode
 
     tANI_U8  aniPeer:1;
 
-    tANI_U8   titanPeer:1;                // flag to indicate if its a titan peer
-
     tANI_U8  fAniCount:1;
 
     tANI_U8   rmfEnabled:1;
@@ -332,15 +330,11 @@ typedef struct sDphHashNode
 #endif
 
 
-   //Taurus capabilities
-
    tANI_U16 baPolicyFlag;                 //BA Policy for each TID.
 
 
     /*
-
-    * All the legacy and airgo supported rates.
-
+    * All the legacy supported rates.
     */
 
     tSirSupportedRates supportedRates;

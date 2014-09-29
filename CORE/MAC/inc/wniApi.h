@@ -81,19 +81,6 @@
 #define ANI_DUMMY_PKT_MSG_LEN            16
 #define ANI_DUMMY_DATA_PAYLOAD_OFFSET    10
 
-/**
- * Product IDs stored in the EEPROM for the different types of AP radio cards
- * supported by Polaris
- */
-#define AGN1323AR_00      4
-#define AGN1323AR_01      5
-#define AGN1223AR_00      6
-#define AGN1223AR_01      7
-#define AGN1223AR_02      8
-#define AGN_EEP_PRODUCT_ID_MAX   8
-
-
-
 
 /// Start of Sirius/Host message types
 #define WNI_HOST_MSG_START             0x1500

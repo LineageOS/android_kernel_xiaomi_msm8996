@@ -28,6 +28,8 @@
 #ifndef _CLD_DIAG_PARSER_H
 #define _CLD_DIAG_PARSER_H
 
+#define FEATURE_LOG_EXPOSED_HEADER
+
 #include <stdint.h>
 #include "event.h"
 #include "msg.h"
@@ -36,7 +38,11 @@
 #include "diagpkt.h"
 #include "diagcmd.h"
 #include "diag.h"
-#include "diagi.h"
+
+#ifdef ANDROID
+#include "aniNlMsg.h"
+#include "aniNlFuncs.h"
+#endif
 
 /* KERNEL DEFS START */
 #define DBGLOG_MAX_VDEVID 15 /* 0-15 */
@@ -198,15 +204,17 @@ static inline unsigned int get_32(const unsigned char *pos)
 /* KENEL DEFS END */
 
 #define WLAN_NL_MSG_CNSS_DIAG   27 /* Msg type between user space/wlan driver */
-#define WLAN_NL_MSG_CNSS_MSG    28
+#define WLAN_NL_MSG_CNSS_HOST_MSG    28
+#define WLAN_NL_MSG_CNSS_HOST_EVENT_LOG    17
 #define CNSS_WLAN_DIAG          0x07
 #define CNSS_WLAN_SSR_TYPE      0x01
 #define CNSS_WLAN_LEVEL_TYPE    0x02
 /* NL messgage Carries actual Logs from Driver */
-#define ANI_NL_MSG_LOG_MSG_TYPE 89
+#define ANI_NL_MSG_LOG_HOST_MSG_TYPE 89
+#define ANI_NL_MSG_LOG_HOST_EVENT_LOG_TYPE 0x5050
 /* NL message Registration Req/Response to and from Driver */
-#define ANI_NL_MSG_LOG_REG_TYPE  1
-#define MAX_MSG_SIZE 8192
+#define ANI_NL_MSG_LOG_REG_TYPE  0x0001
+#define MAX_MSG_SIZE 50000
 #define DIAG_MSG_MAX_LEN 4096
 #define DIAG_MSG_OVERHEAD_LEN 48
 
@@ -260,6 +268,14 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
 
 int
 diag_msg_handler(uint32_t id, char *payload,  uint16_t vdevid, uint32_t timestamp);
+
+int
+cnssdiag_register_kernel_logging(int sock_fd, struct nlmsghdr *nlh);
+
+void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
+      FILE *log_out, int32_t *record, int32_t max_records);
+
+void process_cnss_host_diag_events_log(char *pData, int32_t optionflag);
 
 #endif
 

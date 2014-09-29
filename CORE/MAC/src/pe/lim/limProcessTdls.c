@@ -1890,7 +1890,6 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
                            tANI_U8 *pSupportedRateSet,
                            tANI_U8 supporteRatesLength,
                            tANI_U8* pSupportedMCSSet,
-                           tSirMacPropRateSet *pAniLegRateSet,
                            tpPESession  psessionEntry,
                            tDot11fIEVHTCaps *pVHTCaps)
 
@@ -2183,7 +2182,6 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     limTdlsPopulateMatchingRateSet(pMac, pStaDs, pTdlsAddStaReq->supported_rates,
                                    pTdlsAddStaReq->supported_rates_length,
                                    (tANI_U8 *)pTdlsAddStaReq->htCap.suppMcsSet,
-                                   &pStaDs->mlmStaContext.propRateSet,
                                    psessionEntry, pVhtCaps);
 
     /*  TDLS Dummy AddSTA does not have right capability , is it OK ??
