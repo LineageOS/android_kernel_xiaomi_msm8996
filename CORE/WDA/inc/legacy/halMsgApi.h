@@ -311,6 +311,7 @@ typedef struct
      */
     tANI_U8  atimIePresent;
     tANI_U32 peerAtimWindowLength;
+    tANI_U8  nonRoamReassoc;
 } tAddStaParams, *tpAddStaParams;
 
 
@@ -535,6 +536,7 @@ typedef struct
     tANI_U16 chainMask;
     tANI_U16 smpsMode;
     tANI_U8 dot11_mode;
+    tANI_U8 nonRoamReassoc;
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct

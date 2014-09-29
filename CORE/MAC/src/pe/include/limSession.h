@@ -450,7 +450,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Fast Transition (FT) */
     tftPEContext  ftPEContext;
 #endif
-
+    tANI_BOOLEAN            isNonRoamReassoc;
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

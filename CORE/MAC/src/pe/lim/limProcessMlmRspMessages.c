@@ -4722,7 +4722,10 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
                 else
                     psessionEntry->beaconParams.fShortPreamble = 1;
             }
-
+            /* to skip sending Add BSS and ADD STA incase of reassoc to
+             * same AP as part of HS2.0 set this flag
+             */
+            psessionEntry->isNonRoamReassoc = 1;
             if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, pBeaconStruct,
                                                     &psessionEntry->pLimReAssocReq->bssDescription, true, psessionEntry))  {
                 limLog( pMac, LOGE, FL( "Posting ADDBSS in the ReAssocContext has Failed "));

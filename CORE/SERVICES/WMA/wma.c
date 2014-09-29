@@ -12519,6 +12519,13 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		iface->llbCoexist = add_bss->llbCoexist;
 		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
                 iface->nwType = add_bss->nwType;
+		if(add_bss->nonRoamReassoc) {
+			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+			if(peer) {
+				add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
+				goto send_bss_resp;
+			}
+		}
 		if (add_bss->reassocReq) {
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 			ol_txrx_vdev_handle vdev;
@@ -13332,6 +13339,13 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		goto out;
 	}
 	peer = ol_txrx_find_peer_by_addr(pdev, params->bssId, &params->staIdx);
+	if(params->nonRoamReassoc) {
+		ol_txrx_peer_state_update(pdev, params->bssId,
+			ol_txrx_peer_state_auth);
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STARTED);
+		iface->aid = params->assocId;
+		goto out;
+	}
 	if (peer != NULL && peer->state == ol_txrx_peer_state_disc) {
 		/*
 		 * This is the case for reassociation.
