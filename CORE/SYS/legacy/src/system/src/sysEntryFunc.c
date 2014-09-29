@@ -121,11 +121,9 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus =
               WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
-#ifdef WLAN_FEATURE_11W
     tANI_U8         sessionId;
     tpPESession     psessionEntry;
     tpSirMacMgmtHdr pMacHdr;
-#endif /* WLAN_FEATURE_11W */
 
     pMac->sys.gSysBbtReceived++;
 
