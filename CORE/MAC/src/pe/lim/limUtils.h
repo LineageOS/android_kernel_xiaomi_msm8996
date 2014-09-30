@@ -110,7 +110,6 @@ char * limSmeStateStr(tLimSmeStates state);
 char * limMsgStr(tANI_U32 msgType);
 char * limResultCodeStr(tSirResultCodes resultCode);
 char* limDot11ModeStr(tpAniSirGlobal pMac, tANI_U8 dot11Mode);
-char* limStaOpRateModeStr(tStaRateMode opRateMode);
 void limPrintMlmState(tpAniSirGlobal pMac, tANI_U16 logLevel, tLimMlmStates state);
 void limPrintSmeState(tpAniSirGlobal pMac, tANI_U16 logLevel, tLimSmeStates state);
 void limPrintMsgName(tpAniSirGlobal pMac, tANI_U16 logLevel, tANI_U32 msgType);

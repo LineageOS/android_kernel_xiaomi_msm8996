@@ -304,9 +304,6 @@ typedef struct sSirEseBcnReportMandatoryIe
 tANI_U8
 sirIsPropCapabilityEnabled(struct sAniSirGlobal *pMac, tANI_U32 bitnum);
 
-tSirRetStatus
-sirGetCfgPropCaps(struct sAniSirGlobal *, tANI_U16 *);
-
 void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
 
 #define CFG_GET_INT(nStatus, pMac, nItem, cfg )  do {                \
@@ -505,12 +502,6 @@ PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
                             tDot11fIEChanSwitchAnn *pDot11f,
                             tpPESession psessionEntry);
 
-/// Populate a tDot11fIEChanSwitchAnn
-void
-PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal          pMac,
-                             tDot11fIEExtChanSwitchAnn *pDot11f,
-                             tpPESession psessionEntry);
-
 /// Populate a tDot11fIEChannelSwitchWrapper
 void
 PopulateDot11fChanSwitchWrapper(tpAniSirGlobal             pMac,
@@ -573,11 +564,6 @@ PopulateDot11fExtSuppRates1(tpAniSirGlobal         pMac,
                             tDot11fIEExtSuppRates *pDot11f);
 
 tSirRetStatus
-PopulateDot11fHCF(tpAniSirGlobal  pMac,
-                  tANI_U32        capEnable,
-                  tDot11fIEHCF   *pDot11f);
-
-tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                            tpPESession      psessionEntry,
                            tDot11fIEHTCaps *pDot11f);
@@ -619,26 +605,6 @@ PopulateDot11fPowerCaps(tpAniSirGlobal  pMac,
 tSirRetStatus
 PopulateDot11fPowerConstraints(tpAniSirGlobal             pMac,
                                tDot11fIEPowerConstraints *pDot11f);
-
-tSirRetStatus
-PopulateDot11fPropCapability(tpAniSirGlobal           pMac,
-                             tANI_U32                      capEnable,
-                             tDot11fIEPropCapability *pDot11f);
-
-void
-PopulateDot11fPropChannSwitchAnn(tpAniSirGlobal               pMac,
-                                 tANI_U32                          capEnable,
-                                 tDot11fIEPropChannSwitchAnn *pDot11f);
-
-void
-PopulateDot11fPropEDCAParams(tpAniSirGlobal           pMac,
-                             tANI_U16                      caps,
-                             tDot11fIEPropEDCAParams *pDot11f);
-
-tSirRetStatus
-PopulateDot11fPropSuppRates(tpAniSirGlobal          pMac,
-                            tANI_U32                     capEnable,
-                            tDot11fIEPropSuppRates *pDot11f);
 
 void
 PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,

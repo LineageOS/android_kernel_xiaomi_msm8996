@@ -312,11 +312,11 @@ returnFailure:
  * @param pMac  pointer to Global Mac structure.
  * @param tpUpdatedEdcaParams pointer to the structure which contains
  *                                       dynamically changing EDCA parameters.
- * @param highPerformance  If the peer is Airgo (taurus) then switch to highPerformance is true.
- *
  * @return success if message send is ok, else false.
  */
-tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUpdatedEdcaParams, tANI_U16 bssIdx, tANI_BOOLEAN highPerformance)
+tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac,
+                                tSirMacEdcaParamRecord *pUpdatedEdcaParams,
+                                tANI_U16 bssIdx)
 {
     tEdcaParams *pEdcaParams = NULL;
     tSirRetStatus   retCode = eSIR_SUCCESS;
@@ -335,7 +335,6 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     pEdcaParams->acbk = pUpdatedEdcaParams[EDCA_AC_BK];
     pEdcaParams->acvi = pUpdatedEdcaParams[EDCA_AC_VI];
     pEdcaParams->acvo = pUpdatedEdcaParams[EDCA_AC_VO];
-    pEdcaParams->highPerformance = highPerformance;
     msgQ.type = WDA_UPDATE_EDCA_PROFILE_IND;
     msgQ.reserved = 0;
     msgQ.bodyptr = pEdcaParams;

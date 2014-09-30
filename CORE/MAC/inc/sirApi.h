@@ -74,16 +74,6 @@
 
 #define SIR_NUM_11B_RATES 4   //1,2,5.5,11
 #define SIR_NUM_11A_RATES 8  //6,9,12,18,24,36,48,54
-#define SIR_NUM_POLARIS_RATES 3 //72,96,108
-#define SIR_NUM_TITAN_RATES 26
-#define SIR_NUM_TAURUS_RATES 4 //136.5, 151.7,283.5,315
-#define SIR_NUM_PROP_RATES  (SIR_NUM_TITAN_RATES + SIR_NUM_TAURUS_RATES)
-
-#define SIR_CONVERT_2_U32_BITMAP(nRates) ((nRates + 31)/32)
-
-/* #tANI_U32's needed for a bitmap representation for all prop rates */
-#define SIR_NUM_U32_MAP_RATES    SIR_CONVERT_2_U32_BITMAP(SIR_NUM_PROP_RATES)
-
 
 #define SIR_PM_SLEEP_MODE   0
 #define SIR_PM_ACTIVE_MODE        1
@@ -306,7 +296,6 @@ typedef enum eSirResultCodes
     eSIR_SME_LINK_TEST_INVALID_STATE,   // Given in LINK_TEST_START_RSP
     eSIR_SME_LINK_TEST_TERMINATE,       // Given in LINK_TEST_START_RSP
     eSIR_SME_LINK_TEST_INVALID_ADDRESS, // Given in LINK_TEST_STOP_RSP
-    eSIR_SME_POLARIS_RESET,             // Given in SME_STOP_BSS_REQ
     eSIR_SME_SETCONTEXT_FAILED,         // Given in SME_SETCONTEXT_REQ when
                                         // unable to plumb down keys
     eSIR_SME_BSS_RESTART,               // Given in SME_STOP_BSS_REQ
@@ -374,9 +363,6 @@ typedef enum eSirResultCodes
 
 /* each station added has a rate mode which specifies the sta attributes */
 typedef enum eStaRateMode {
-    eSTA_TAURUS = 0,
-    eSTA_TITAN,
-    eSTA_POLARIS,
     eSTA_11b,
     eSTA_11bg,
     eSTA_11a,
@@ -392,7 +378,6 @@ typedef enum eStaRateMode {
 #define IERATE_BASICRATE_MASK     0x80
 #define IERATE_RATE_MASK          0x7f
 #define IERATE_IS_BASICRATE(x)   ((x) & IERATE_BASICRATE_MASK)
-#define ANIENHANCED_TAURUS_RATEMAP_BITOFFSET_START  28
 
 typedef struct sSirSupportedRates {
     /*
@@ -411,12 +396,6 @@ typedef struct sSirSupportedRates {
     // 11b, 11a and aniLegacyRates are IE rates which gives rate in unit of 500Kbps
     tANI_U16             llbRates[SIR_NUM_11B_RATES];
     tANI_U16             llaRates[SIR_NUM_11A_RATES];
-    tANI_U16             aniLegacyRates[SIR_NUM_POLARIS_RATES];
-
-    //Taurus only supports 26 Titan Rates(no ESF/concat Rates will be supported)
-    //First 26 bits are reserved for those Titan rates and
-    //the last 4 bits(bit28-31) for Taurus, 2(bit26-27) bits are reserved.
-    tANI_U32             aniEnhancedRateBitmap; //Titan and Taurus Rates
 
     /*
     * 0-76 bits used, remaining reserved
@@ -492,23 +471,6 @@ typedef struct sSirRegisterMgmtFrame
     tANI_U8  matchData[1];
 }tSirRegisterMgmtFrame, *tpSirRegisterMgmtFrame;
 
-/*
- * Identifies the neighbor BSS' that was(were) detected
- * by an STA and reported to the AP
- */
-typedef struct sAniTitanCBNeighborInfo
-{
-  // A BSS was found on the Primary
-  tANI_U8 cbBssFoundPri;
-
-  // A BSS was found on the adjacent Upper Secondary
-  tANI_U8 cbBssFoundSecUp;
-
-  // A BSS was found on the adjacent Lower Secondary
-  tANI_U8 cbBssFoundSecDown;
-
-} tAniTitanCBNeighborInfo, *tpAniTitanCBNeighborInfo;
-
 /// Generic type for sending a response message
 /// with result code to host software
 typedef struct sSirSmeRsp
@@ -528,7 +490,6 @@ typedef struct sSirSmeStartReq
     tANI_U8      sessionId;      //Added for BT-AMP Support
     tANI_U16     transcationId;  //Added for BT-AMP Support
     tSirMacAddr  bssId;          //Added For BT-AMP Support
-    tANI_U32   roamingAtPolaris;
     tANI_U32   sendNewBssInd;
 } tSirSmeStartReq, *tpSirSmeStartReq;
 
@@ -568,13 +529,6 @@ typedef enum eSirBssType
     eSIR_AUTO_MODE,
     eSIR_DONOT_USE_BSS_TYPE = SIR_MAX_ENUM_SIZE
 } tSirBssType;
-
-/// Definition for WDS Information
-typedef struct sSirWdsInfo
-{
-    tANI_U16                wdsLength;
-    tANI_U8                 wdsBytes[ANI_WDS_INFO_MAX_LENGTH];
-} tSirWdsInfo, *tpSirWdsInfo;
 
 /// Power Capability info used in 11H
 typedef struct sSirMacPowerCapInfo
@@ -995,6 +949,7 @@ typedef struct sSirSmeScanChanReq
 typedef struct sSirOemDataReq
 {
     tANI_U16              messageType; //eWNI_SME_OEM_DATA_REQ
+    tANI_U16              messageLen;
     tSirMacAddr           selfMacAddr;
     tANI_U8               oemDataReq[OEM_DATA_REQ_SIZE];
 } tSirOemDataReq, *tpSirOemDataReq;
@@ -1039,7 +994,6 @@ typedef struct sSirBackgroundScanInfo {
 /* Definition for Join/Reassoc info */
 typedef struct sJoinReassocInfo
 {
-    tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
@@ -1133,7 +1087,6 @@ typedef struct sSirSmeJoinReq
     tAniBool            isWMEenabled;
     tAniBool            isQosEnabled;
     tAniBool            isOSENConnection;
-    tAniTitanCBNeighborInfo cbNeighbors;
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
@@ -1399,7 +1352,6 @@ typedef struct sSirSmeWmStatusChangeNtf
         tSirNewIbssPeerInfo     newIbssPeerInfo;  // eSIR_SME_IBSS_NEW_PEER
         tSirSmeApNewCaps        apNewCaps;        // eSIR_SME_AP_CAPS_CHANGED
         tSirBackgroundScanInfo  bkgndScanInfo;    // eSIR_SME_BACKGROUND_SCAN_FAIL
-        tAniTitanCBNeighborInfo cbNeighbors;      // eSIR_SME_CB_LEGACY_BSS_FOUND_BY_STA
     } statusChangeInfo;
 } tSirSmeWmStatusChangeNtf, *tpSirSmeWmStatusChangeNtf;
 
@@ -1519,15 +1471,6 @@ typedef struct sAniStaStatStruct
     tANI_U32 nRcvBytes;
     tANI_U32 nXmitBytes;
 
-    // titan 3c stats
-    tANI_U32 chunksTxCntHi;          // Number of Chunks Transmitted
-    tANI_U32 chunksTxCntLo;
-    tANI_U32 compPktRxCntHi;         // Number of Packets Received that were actually compressed
-    tANI_U32 compPktRxCntLo;
-    tANI_U32 expanPktRxCntHi;        // Number of Packets Received that got expanded
-    tANI_U32 expanPktRxCntLo;
-
-
     /* Following elements are valid and filled in correctly. They have valid values.
      */
 
@@ -1626,17 +1569,7 @@ typedef struct _sPermStaStats
     tANI_U32 fragTxCntsLo;
     tANI_U32 transmittedPktsHi;
     tANI_U32 transmittedPktsLo;
-
-    // titan 3c stats
-    tANI_U32 chunksTxCntHi;          // Number of Chunks Transmitted
-    tANI_U32 chunksTxCntLo;
-    tANI_U32 compPktRxCntHi;         // Number of Packets Received that were actually compressed
-    tANI_U32 compPktRxCntLo;
-    tANI_U32 expanPktRxCntHi;        // Number of Packets Received that got expanded
-    tANI_U32 expanPktRxCntLo;
 }tPermanentStaStats;
-
-
 
 
 /// Definition for Disassociation response
@@ -1986,18 +1919,6 @@ typedef struct sAniTxCtrs
     tANI_U32 ackFailureHi;
     tANI_U32 ackFailureLo;
     tANI_U32 xmitBeacons;
-
-    // titan 3c stats
-    tANI_U32 txCbEscPktCntHi;            // Total Number of Channel Bonded/Escort Packet Transmitted
-    tANI_U32 txCbEscPktCntLo;
-    tANI_U32 txChunksCntHi;              // Total Number of Chunks Transmitted
-    tANI_U32 txChunksCntLo;
-    tANI_U32 txCompPktCntHi;             // Total Number of Compresssed Packet Transmitted
-    tANI_U32 txCompPktCntLo;
-    tANI_U32 tx50PerCompPktCntHi;        // Total Number of Packets with 50% or more compression
-    tANI_U32 tx50PerCompPktCntLo;
-    tANI_U32 txExpanPktCntHi;            // Total Number of Packets Transmitted that got expanded
-    tANI_U32 txExpanPktCntLo;
 } tAniTxCtrs, *tpAniTxCtrs;
 
 typedef struct sAniRxCtrs
@@ -2042,14 +1963,6 @@ typedef struct sAniRxCtrs
     tANI_U32 aesFormatErrorUcastCnts;
     tANI_U32 aesReplaysUcast;
     tANI_U32 aesDecryptErrUcast;
-
-    // titan 3c stats
-    tANI_U32 rxDecompPktCntHi;           // Total Number of Packets that got decompressed
-    tANI_U32 rxDecompPktCntLo;
-    tANI_U32 rxCompPktCntHi;             // Total Number of Packets received that were actually compressed
-    tANI_U32 rxCompPktCntLo;
-    tANI_U32 rxExpanPktCntHi;            // Total Number of Packets received that got expanded
-    tANI_U32 rxExpanPktCntLo;
 } tAniRxCtrs, *tpAniRxCtrs;
 
 // Radio stats

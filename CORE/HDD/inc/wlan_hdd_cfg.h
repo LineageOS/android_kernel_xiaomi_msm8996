@@ -2166,19 +2166,6 @@ typedef enum
 #define CFG_MAX_MEDIUM_TIME_STADEFAULT           WNI_CFG_MAX_MEDIUM_TIME_STADEF
 
 /*
- * SAP/P2P-GO mode traffic monitor
- */
-#define CFG_ENABLE_TRAFFIC_MONITOR                "gEnableTrafficMonitor"
-#define CFG_ENABLE_TRAFFIC_MONITOR_MIN            ( 0 )
-#define CFG_ENABLE_TRAFFIC_MONITOR_MAX            ( 1 )
-#define CFG_ENABLE_TRAFFIC_MONITOR_DEFAULT        ( 0 )
-
-#define CFG_TRAFFIC_IDLE_TIMEOUT                  "gTrafficIdleTimeout"
-#define CFG_TRAFFIC_IDLE_TIMEOUT_MIN              ( 3000 )
-#define CFG_TRAFFIC_IDLE_TIMEOUT_MAX              ( 10000 )
-#define CFG_TRAFFIC_IDLE_TIMEOUT_DEFAULT          ( 5000 )
-
-/*
  * SCAN Offload
  */
 #define CFG_SCAN_OFFLOAD_NAME                     "gEnableDirectedScanOffload"
@@ -3221,8 +3208,6 @@ typedef struct
    v_BOOL_t                    enableSSR;
    char                        listOfNon11acCountryCode[128];
    v_U32_t                     cfgMaxMediumTime;
-   v_U8_t                      enableTrafficMonitor;
-   v_U32_t                     trafficIdleTimeout;
    v_BOOL_t                    enableVhtFor24GHzBand;
    v_U8_t                      fScanOffload;
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD

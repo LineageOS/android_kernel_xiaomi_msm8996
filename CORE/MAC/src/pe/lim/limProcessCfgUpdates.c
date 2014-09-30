@@ -655,8 +655,6 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     PELOG2(limLog(pMac, LOG2, FL("Applying config"));)
 
-    limInitWdsInfoParams(pMac);
-
     psessionEntry->limSentCapsChangeNtf = false;
 
     limGetPhyMode(pMac, &phyMode, psessionEntry);

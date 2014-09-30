@@ -117,8 +117,6 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
 
     pProbeRsp->ssId.length              = 0;
     pProbeRsp->wpa.length               = 0;
-    pProbeRsp->propIEinfo.apName.length = 0;
-
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 
@@ -266,8 +264,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
 
             if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
             {
-                if (pProbeRsp->channelSwitchPresent ||
-                    pProbeRsp->propIEinfo.propChannelSwitchPresent)
+                if (pProbeRsp->channelSwitchPresent)
                 {
                     limUpdateChannelSwitch(pMac, pProbeRsp, psessionEntry);
                 }
@@ -305,10 +302,8 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                     // If needed, downgrade the EDCA parameters
                     limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
-                    if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
-                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
-                    else
-                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+                    limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                                      pStaDs->bssId);
                 }
                 else
                     PELOGE(limLog(pMac, LOGE, FL("Self Entry missing in Hash Table"));)
@@ -349,8 +344,6 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
 
     pProbeRsp->ssId.length              = 0;
     pProbeRsp->wpa.length               = 0;
-    pProbeRsp->propIEinfo.apName.length = 0;
-
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 

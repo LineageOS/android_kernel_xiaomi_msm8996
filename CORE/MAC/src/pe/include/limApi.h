@@ -137,10 +137,6 @@ limGetSmeState(tpAniSirGlobal pMac) { return pMac->lim.gLimSmeState; }
 limGetSystemRole(tpPESession psessionEntry) { return psessionEntry->limSystemRole; }
 extern void limReceivedHBHandler(tpAniSirGlobal, tANI_U8, tpPESession);
 extern void limCheckAndQuietBSS(tpAniSirGlobal);
-/// Function to send WDS info to WSM if needed
-extern void limProcessWdsInfo(tpAniSirGlobal, tSirPropIEStruct);
-/// Function to initialize WDS info params
-extern void limInitWdsInfoParams(tpAniSirGlobal);
 /// Function that triggers STA context deletion
 extern void limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry);
 

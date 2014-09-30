@@ -233,6 +233,11 @@ A_STATUS bmi_done(struct ol_softc *scn)
     return 0;
 }
 
+void bmi_target_ready(struct ol_softc *scn)
+{
+    ol_target_ready(scn);
+}
+
 #ifndef HIF_MESSAGE_BASED
 extern A_STATUS HIFRegBasedGetTargetInfo(HIF_DEVICE *device, struct bmi_target_info *targ_info);
 #endif

@@ -51,6 +51,7 @@
 #endif
 
 #define WMI_MIN_HEAD_ROOM 64
+#define WMI_MAX_LEN_BYTES 2048
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
 /* WMI commands */
@@ -122,6 +123,11 @@ wmi_buf_alloc(wmi_unified_t wmi_handle, u_int16_t len)
 {
 	wmi_buf_t wmi_buf;
 
+	if (roundup(len + WMI_MIN_HEAD_ROOM, 4) >
+				WMI_MAX_LEN_BYTES) {
+		VOS_ASSERT(0);
+		return NULL;
+	}
 	wmi_buf = adf_nbuf_alloc(NULL, roundup(len + WMI_MIN_HEAD_ROOM, 4),
 				 WMI_MIN_HEAD_ROOM, 4, FALSE);
 	if (!wmi_buf)

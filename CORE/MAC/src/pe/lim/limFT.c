@@ -1874,16 +1874,8 @@ limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
           limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams,
                 psessionEntry);
 
-          if (pSta->aniPeer == eANI_BOOLEAN_TRUE)
-          {
-             limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
-                   pSta->bssId, eANI_BOOLEAN_TRUE);
-          }
-          else
-          {
-             limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
-                   pSta->bssId, eANI_BOOLEAN_FALSE);
-          }
+          limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,
+                            pSta->bssId);
 
           if(eSIR_SUCCESS != limTspecAdd(pMac, pSta->staAddr, pSta->assocId,
                    pTspec,  0, &tspecInfo))

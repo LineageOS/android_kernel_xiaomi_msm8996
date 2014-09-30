@@ -1061,9 +1061,9 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.channelBondingMode24GHz = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     pMac->roam.configParam.channelBondingMode5GHz = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
 
-    pMac->roam.configParam.phyMode = eCSR_DOT11_MODE_TAURUS;
+    pMac->roam.configParam.phyMode = eCSR_DOT11_MODE_AUTO;
     pMac->roam.configParam.eBand = eCSR_BAND_ALL;
-    pMac->roam.configParam.uCfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
+    pMac->roam.configParam.uCfgDot11Mode = eCSR_CFG_DOT11_MODE_AUTO;
     pMac->roam.configParam.FragmentationThreshold = eCSR_DOT11_FRAG_THRESH_DEFAULT;
     pMac->roam.configParam.HeartbeatThresh24 = 40;
     pMac->roam.configParam.HeartbeatThresh50 = 40;
@@ -2076,16 +2076,9 @@ eHalStatus csrSetPhyMode(tHalHandle hHal, tANI_U32 phyMode, eCsrBand eBand, tANI
                 break;
             }
         }
-        if((0 == phyMode) || (eCSR_DOT11_MODE_TAURUS & phyMode))
-        {
-            newPhyMode = eCSR_DOT11_MODE_TAURUS;
-        }
-        else if(eCSR_DOT11_MODE_AUTO & phyMode)
-        {
+        if (eCSR_DOT11_MODE_AUTO & phyMode) {
             newPhyMode = eCSR_DOT11_MODE_AUTO;
-        }
-        else
-        {
+        } else {
             //Check for dual band and higher capability first
             if(eCSR_DOT11_MODE_11n_ONLY & phyMode)
             {
@@ -3318,11 +3311,10 @@ static eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal pMac, tCsrRo
     } else {
              qAPisEnabled = TRUE;
     }
-    if (( eCsrRoamWmmNoQos != pMac->roam.configParam.WMMSupportMode && qAPisEnabled) ||
-          (( eCSR_CFG_DOT11_MODE_11N == pBssConfig->uCfgDot11Mode && qAPisEnabled) ||
-             ( eCSR_CFG_DOT11_MODE_TAURUS == pBssConfig->uCfgDot11Mode ) ) //For 11n, need QoS
-      )
-    {
+    if ((eCsrRoamWmmNoQos != pMac->roam.configParam.WMMSupportMode &&
+         qAPisEnabled) ||
+        ((eCSR_CFG_DOT11_MODE_11N == pBssConfig->uCfgDot11Mode &&
+         qAPisEnabled))) {
         pBssConfig->qosType = eCSR_MEDIUM_ACCESS_WMM_eDCF_DSCP;
     } else {
         pBssConfig->qosType = eCSR_MEDIUM_ACCESS_DCF;
@@ -3681,7 +3673,6 @@ static eHalStatus csrGetRateSet( tpAniSirGlobal pMac,  tCsrRoamProfile *pProfile
         }
         if ( eCSR_CFG_DOT11_MODE_11G == cfgDot11Mode ||
              eCSR_CFG_DOT11_MODE_11N == cfgDot11Mode ||
-             eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11Mode ||
              eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode
 #ifdef WLAN_FEATURE_11AC
              || eCSR_CFG_DOT11_MODE_11AC == cfgDot11Mode
@@ -3726,9 +3717,6 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
     tANI_U32 OperationalRatesLength = 0;
     tANI_U8 ExtendedOperationalRates[ CSR_DOT11_EXTENDED_SUPPORTED_RATES_MAX ];    // leave enough room for the max number of rates
     tANI_U32 ExtendedOperationalRatesLength = 0;
-    tANI_U8 ProprietaryOperationalRates[ 4 ];    // leave enough room for the max number of proprietary rates
-    tANI_U32 ProprietaryOperationalRatesLength = 0;
-    tANI_U32 PropRatesEnable = 0;
     tANI_U8 MCSRateIdxSet[ SIZE_OF_SUPPORTED_MCS_SET ];
     tANI_U32 MCSRateLength = 0;
     VOS_ASSERT( pIes != NULL );
@@ -3757,11 +3745,9 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
                 }
             }
         }
-        if ( eCSR_CFG_DOT11_MODE_11G == cfgDot11Mode ||
-             eCSR_CFG_DOT11_MODE_11N == cfgDot11Mode ||
-             eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11Mode ||
-             eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode )
-        {
+        if (eCSR_CFG_DOT11_MODE_11G == cfgDot11Mode ||
+            eCSR_CFG_DOT11_MODE_11N == cfgDot11Mode ||
+            eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode) {
             // If there are Extended Rates in the beacon, we will reflect those
             // extended rates that we support in out Extended Operational Rate
             // set:
@@ -3778,35 +3764,6 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
                     }
                 }
             }
-        }
-        // Enable proprietary MAC features if peer node is Airgo node and STA
-        // user wants to use them
-        if( pIes->Airgo.present && pMac->roam.configParam.ProprietaryRatesEnabled )
-        {
-            PropRatesEnable = 1;
-        }
-        else
-        {
-            PropRatesEnable = 0;
-        }
-        // For ANI network companions, we need to populate the proprietary rate
-        // set with any proprietary rates we found in the beacon, only if user
-        // allows them...
-        if ( PropRatesEnable && pIes->Airgo.PropSuppRates.present &&
-             ( pIes->Airgo.PropSuppRates.num_rates > 0 ))
-        {
-            ProprietaryOperationalRatesLength = pIes->Airgo.PropSuppRates.num_rates;
-            if ( ProprietaryOperationalRatesLength > sizeof(ProprietaryOperationalRates) )
-            {
-               ProprietaryOperationalRatesLength = sizeof (ProprietaryOperationalRates);
-            }
-            vos_mem_copy(ProprietaryOperationalRates,
-                         pIes->Airgo.PropSuppRates.rates,
-                         ProprietaryOperationalRatesLength);
-        }
-        else {
-            // No proprietary modes...
-            ProprietaryOperationalRatesLength = 0;
         }
         /* Get MCS Rate */
         pDstRate = MCSRateIdxSet;
@@ -3826,10 +3783,6 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
                         OperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
         ccmCfgSetStr(pMac, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedOperationalRates,
                             ExtendedOperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
-        ccmCfgSetStr(pMac, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET,
-                        ProprietaryOperationalRates,
-                        ProprietaryOperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
-        ccmCfgSetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, PropRatesEnable, NULL, eANI_BOOLEAN_FALSE);
         ccmCfgSetStr(pMac, WNI_CFG_CURRENT_MCS_SET, MCSRateIdxSet,
                         MCSRateLength, NULL, eANI_BOOLEAN_FALSE);
     }//Parsing BSSDesc
@@ -3974,7 +3927,6 @@ static void csrSetCfgRateSetFromProfile( tpAniSirGlobal pMac,
     ccmCfgSetStr(pMac, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET,
                     ProprietaryOperationalRates,
                     ProprietaryOperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
-    ccmCfgSetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, PropRatesEnable, NULL, eANI_BOOLEAN_FALSE);
 }
 void csrRoamCcmCfgSetCallback(tHalHandle hHal, tANI_S32 result)
 {
@@ -5538,15 +5490,6 @@ eCsrPhyMode csrRoamdot11modeToPhymode(tANI_U8 dot11mode)
     case WNI_CFG_DOT11_MODE_11N:
         phymode = eCSR_DOT11_MODE_11n;
         break;
-    case WNI_CFG_DOT11_MODE_POLARIS:
-        phymode = eCSR_DOT11_MODE_POLARIS;
-        break;
-    case WNI_CFG_DOT11_MODE_TITAN:
-        phymode = eCSR_DOT11_MODE_TITAN;
-        break;
-    case WNI_CFG_DOT11_MODE_TAURUS:
-        phymode = eCSR_DOT11_MODE_TAURUS;
-        break;
     case WNI_CFG_DOT11_MODE_11G_ONLY:
         phymode = eCSR_DOT11_MODE_11g_ONLY;
         break;
@@ -5741,8 +5684,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 //
                 // this was causing issues in the 2c_wlan_wep WHQL test when the SetContext was issued after the link
                 // indication.  (Link Indication happens in the profFSMSetConnectedInfra call).
-                //
-                // this reordering was done on titan_prod_usb branch and is being replicated here.
                 //
 
                 if( CSR_IS_ENC_TYPE_STATIC( pProfile->negotiatedUCEncryptionType ) &&
@@ -11663,22 +11604,21 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
      cfgDot11Mode = eCSR_CFG_DOT11_MODE_11B;
    }
 
-    /* In-case of WEP Security encryption type is coming as part of add key.
-       So while STart BSS dont have information */
-    if( (!CSR_IS_11n_ALLOWED(pProfile->EncryptionType.encryptionType[0] ) || ((pProfile->privacy == 1) && (pProfile->EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_NONE))  ) &&
+    /* Incase of WEP Security encryption type is coming as part of add key.
+       So while Start BSS dont have information */
+    if ((!CSR_IS_11n_ALLOWED(pProfile->EncryptionType.encryptionType[0]) ||
+        ((pProfile->privacy == 1) &&
+        (pProfile->EncryptionType.encryptionType[0] ==
+                                       eCSR_ENCRYPT_TYPE_NONE))) &&
         ((eCSR_CFG_DOT11_MODE_11N == cfgDot11Mode) ||
 #ifdef WLAN_FEATURE_11AC
-        (eCSR_CFG_DOT11_MODE_11AC == cfgDot11Mode) ||
+        (eCSR_CFG_DOT11_MODE_11AC == cfgDot11Mode)
 #endif
-        (eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11Mode)) )
-    {
-        //We cannot do 11n here
-        if ( CSR_IS_CHANNEL_24GHZ(operationChn) )
-        {
+        )) {
+        /* We cannot do 11n here */
+        if (CSR_IS_CHANNEL_24GHZ(operationChn)) {
             cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G;
-        }
-        else
-        {
+        } else {
             cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
         }
     }
@@ -12146,14 +12086,11 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             break;
         default:
         case eCSR_CFG_DOT11_MODE_11N:
-        case eCSR_CFG_DOT11_MODE_TAURUS:
-            //Because LIM only verifies it against 11a, 11b or 11g, set only 11g or 11a here
-            if(eCSR_BAND_24 == eBand)
-            {
+            /* Because LIM only verifies it against 11a, 11b or 11g,
+               set only 11g or 11a here */
+            if (eCSR_BAND_24 == eBand) {
                 nwType = eSIR_11G_NW_TYPE;
-            }
-            else
-            {
+            } else {
                 nwType = eSIR_11A_NW_TYPE;
             }
             break;
@@ -12987,7 +12924,7 @@ eHalStatus csrRoamRemoveConnectedBssFromScanCache(tpAniSirGlobal pMac,
             pScanFilter->bWPSAssociation = eANI_BOOLEAN_FALSE;
             pScanFilter->bOSENAssociation = eANI_BOOLEAN_FALSE;
             pScanFilter->countryCode[0] = 0;
-            pScanFilter->phyMode = eCSR_DOT11_MODE_TAURUS;
+            pScanFilter->phyMode = eCSR_DOT11_MODE_AUTO;
             csrLLLock(&pMac->scan.scanResultList);
             pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_NOLOCK );
             while( pEntry )
@@ -13134,10 +13071,6 @@ static void csrPrepareJoinReassocReqBuffer( tpAniSirGlobal pMac,
     tANI_U32 size = 0;
     tANI_S8 pwrLimit = 0;
     tANI_U16 i;
-    // plug in neighborhood occupancy info (i.e. BSSes on primary or secondary channels)
-    *pBuf++ = (tANI_U8)FALSE;  //tAniTitanCBNeighborInfo->cbBssFoundPri
-    *pBuf++ = (tANI_U8)FALSE;  //tAniTitanCBNeighborInfo->cbBssFoundSecDown
-    *pBuf++ = (tANI_U8)FALSE;  //tAniTitanCBNeighborInfo->cbBssFoundSecUp
     // 802.11h
     //We can do this because it is in HOST CPU order for now.
     pAP_capabilityInfo = (tSirMacCapabilityInfo *)&pBssDescription->capabilityInfo;
@@ -18171,7 +18104,6 @@ eHalStatus csrRoamStopJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId)
       transactionId - 2 bytes (tANI_U16)
       reasonCode - 4 bytes (sizeof(tSirResultCodes))
       peerMacAddr - 6 bytes
-      The rest is conditionally defined of (WNI_POLARIS_FW_PRODUCT == AP) and not used
 */
 static void csrSerDesUnpackDiassocRsp(tANI_U8 *pBuf, tSirSmeDisassocRsp *pRsp)
 {

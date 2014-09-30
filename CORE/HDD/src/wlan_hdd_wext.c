@@ -7180,10 +7180,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
            case eCSR_DOT11_MODE_AUTO:
                 snprintf(extra, WE_MAX_STR_LEN, "AUTO MODE");
                 break;
-           case eCSR_DOT11_MODE_TAURUS:
-           case eCSR_DOT11_MODE_POLARIS:
-           case eCSR_DOT11_MODE_TAURUS_ONLY:
-           case eCSR_DOT11_MODE_TITAN:
            case eCSR_DOT11_MODE_11n:
            case eCSR_DOT11_MODE_11n_ONLY:
                 if (currBand == eCSR_BAND_24) {
@@ -11026,7 +11022,7 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
     pwextBuf->roamProfile.AuthType.numEntries = 1;
     pwextBuf->roamProfile.AuthType.authType[0] = eCSR_AUTH_TYPE_OPEN_SYSTEM;
 
-    pwextBuf->roamProfile.phyMode = eCSR_DOT11_MODE_TAURUS;
+    pwextBuf->roamProfile.phyMode = eCSR_DOT11_MODE_AUTO;
     pwextBuf->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
 
     /*Set the default scan mode*/

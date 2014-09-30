@@ -2105,6 +2105,11 @@ void HIFClaimDevice(HIF_DEVICE  *device, void *context)
     device->claimedContext = context;
 }
 
+void HIFSetMailboxSwap(HIF_DEVICE  *device)
+{
+    device->swap_mailbox = TRUE;
+}
+
 void HIFReleaseDevice(HIF_DEVICE  *device)
 {
     device->claimedContext = NULL;
