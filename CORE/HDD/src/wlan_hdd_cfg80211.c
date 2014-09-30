@@ -14724,16 +14724,21 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
                   FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "Num results (%u)", pData->numOfAps);
-    hddLog(VOS_TRACE_LEVEL_INFO, "More Data (%u)", pData->moreData);
+    hddLog(LOG1, "Req Id (%u) Num results (%u) More Data (%u)",
+           pData->requestId, pData->numOfAps, pData->moreData);
 
     for (i = 0; i < pData->numOfAps; i++) {
+        /*
+         * Firmware returns timestamp from WiFi turn ON till BSSID was cached
+         * (in seconds). Add this with time gap between system boot up to
+         * WiFi turn ON to derive the time since boot when the BSSID was cached.
+         */
+        pData->ap[i].ts += pHddCtx->wifi_turn_on_time_since_boot;
         hddLog(VOS_TRACE_LEVEL_INFO, "[index=%d] Timestamp(0x%llX) "
                               "Ssid (%s) "
                               "Bssid (" MAC_ADDRESS_STR ") "
                               "Channel (%u) "
-                              "Rssi (%u) "
+                              "Rssi (%d) "
                               "RTT (%u) "
                               "RTT_SD (%u) "
                               "Beacon Period (%u) "

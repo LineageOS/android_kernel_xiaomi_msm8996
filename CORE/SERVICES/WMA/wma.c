@@ -2841,7 +2841,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 
 	for (j = 0; j < numap; j++) {
 		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = src_hotlist->tstamp;
+		dest_ap->ts = src_hotlist->tstamp * WMA_SEC_TO_USEC;
 		dest_ap->rtt = src_hotlist->rtt;
 		dest_ap->rtt_sd = src_hotlist->rtt_sd;
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
