@@ -3460,6 +3460,27 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_SCAN_BAND_PREFERENCE_MAX ),
 
 #ifdef QCA_LL_TX_FLOW_CT
+   REG_VARIABLE( CFG_LL_TX_FLOW_LWM, WLAN_PARAM_Integer,
+                 hdd_config_t, TxFlowLowWaterMark,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_LL_TX_FLOW_LWM_DEFAULT,
+                 CFG_LL_TX_FLOW_LWM_MIN,
+                 CFG_LL_TX_FLOW_LWM_MAX ),
+
+   REG_VARIABLE( CFG_LL_TX_FLOW_HWM_OFFSET, WLAN_PARAM_Integer,
+                 hdd_config_t, TxFlowHighWaterMarkOffset,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_LL_TX_FLOW_HWM_OFFSET_DEFAULT,
+                 CFG_LL_TX_FLOW_HWM_OFFSET_MIN,
+                 CFG_LL_TX_FLOW_HWM_OFFSET_MAX ),
+
+   REG_VARIABLE( CFG_LL_TX_FLOW_MAX_Q_DEPTH, WLAN_PARAM_Integer,
+                 hdd_config_t, TxFlowMaxQueueDepth,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_LL_TX_FLOW_MAX_Q_DEPTH_DEFAULT,
+                 CFG_LL_TX_FLOW_MAX_Q_DEPTH_MIN,
+                 CFG_LL_TX_FLOW_MAX_Q_DEPTH_MAX ),
+
    REG_VARIABLE( CFG_LL_TX_LBW_FLOW_LWM, WLAN_PARAM_Integer,
                  hdd_config_t, TxLbwFlowLowWaterMark,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,

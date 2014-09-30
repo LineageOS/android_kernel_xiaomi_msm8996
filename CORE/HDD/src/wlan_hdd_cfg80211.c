@@ -8452,6 +8452,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     }
 
     sme_ScanResultPurge(hHal, pResult);
+    sme_ScanFlushResult(hHal, pAdapter->sessionId);
 
     EXIT();
     return 0;

@@ -5384,28 +5384,30 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_11N_RATE:
         {
-           u_int8_t preamble, nss, rix;
+           u_int8_t preamble = 0, nss = 0, rix = 0;
            hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d", set_value);
 
-           rix = RC_2_RATE_IDX(set_value);
-           if (set_value & 0x80) {
-               preamble = WMI_RATE_PREAMBLE_HT;
-               nss = HT_RC_2_STREAMS(set_value) -1;
-           } else {
-               nss = 0;
+           if (set_value != 0xff) {
                rix = RC_2_RATE_IDX(set_value);
-               if (set_value & 0x10) {
-                   preamble = WMI_RATE_PREAMBLE_CCK;
-                   if(rix != 0x3)
-                       rix |= 0x4; /* Enable Short preamble always for CCK except 1mbps*/
-               } else
-                   preamble = WMI_RATE_PREAMBLE_OFDM;
+               if (set_value & 0x80) {
+                   preamble = WMI_RATE_PREAMBLE_HT;
+                   nss = HT_RC_2_STREAMS(set_value) -1;
+               } else {
+                   nss = 0;
+                   rix = RC_2_RATE_IDX(set_value);
+                   if (set_value & 0x10) {
+                       preamble = WMI_RATE_PREAMBLE_CCK;
+                       /* Enable Short preamble always for CCK except 1mbps */
+                       if(rix != 0x3)
+                           rix |= 0x4;
+                   } else
+                       preamble = WMI_RATE_PREAMBLE_OFDM;
+               }
+               set_value = (preamble << 6) | (nss << 4) | rix;
            }
-
            hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
                   nss %d", set_value, rix, preamble, nss);
 
-           set_value = (preamble << 6) | (nss << 4) | rix;
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_FIXED_RATE,
                                          set_value, VDEV_CMD);
@@ -5414,16 +5416,17 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_VHT_RATE:
         {
-           u_int8_t preamble, nss, rix;
+           u_int8_t preamble = 0, nss = 0, rix = 0;
 
-           rix = RC_2_RATE_IDX_11AC(set_value);
-           preamble = WMI_RATE_PREAMBLE_VHT;
-           nss = HT_RC_2_STREAMS_11AC(set_value) -1;
+           if (set_value != 0xff) {
+               rix = RC_2_RATE_IDX_11AC(set_value);
+               preamble = WMI_RATE_PREAMBLE_VHT;
+               nss = HT_RC_2_STREAMS_11AC(set_value) -1;
 
+               set_value = (preamble << 6) | (nss << 4) | rix;
+           }
            hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
                   nss %d", set_value, rix, preamble, nss);
-
-           set_value = (preamble << 6) | (nss << 4) | rix;
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_FIXED_RATE,
                                          set_value, VDEV_CMD);
