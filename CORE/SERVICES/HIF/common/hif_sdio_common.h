@@ -104,7 +104,7 @@
 #define HIF_GMBOX_WIDTH                    0x4000
 
     /* for SDIO we recommend a 128-byte block size */
-#define HIF_DEFAULT_IO_BLOCK_SIZE          128
+#define HIF_DEFAULT_IO_BLOCK_SIZE          256
 
     /* set extended MBOX window information for SDIO interconnects */
 static INLINE void SetExtendedMboxWindowInfo(A_UINT16 Manfid, HIF_DEVICE_MBOX_INFO *pInfo)
