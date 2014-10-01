@@ -923,10 +923,10 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		(A_UCHAR *)&host_interest_address, sizeof(u_int32_t)) != A_OK) {
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 #if !defined(HIF_SDIO)
-		dump_CE_register(ramdump_scn);
-		dump_CE_debug_register(ramdump_scn->hif_sc);
+		ol_copy_ramdump(ramdump_scn);
+		cnss_device_crashed();
+		return;
 #endif
-
 		goto out_fail;
 	}
 	printk("Host interest item address: 0x%08x\n", host_interest_address);
@@ -2196,6 +2196,31 @@ out:
 }
 #endif
 
+void ol_dump_target_memory(HIF_DEVICE *hif_device, void *memoryBlock)
+{
+	char *bufferLoc = memoryBlock;
+	u_int32_t sectionCount = 0;
+	u_int32_t address = 0;
+	u_int32_t size = 0;
+
+	for ( ; sectionCount < 2; sectionCount++) {
+		switch (sectionCount) {
+		case 0:
+			address = DRAM_LOCAL_BASE_ADDRESS;
+			size = DRAM_SIZE;
+			break;
+		case 1:
+			address = AXI_LOCATION;
+			size = AXI_SIZE;
+		default:
+			break;
+		}
+
+		HIFDumpTargetMemory(hif_device, bufferLoc, address, size);
+		bufferLoc += size;
+	}
+}
+
 /**---------------------------------------------------------------------------
  *   \brief  ol_target_coredump
  *
@@ -2285,6 +2310,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 				pr_err("Could not read dump section!\n");
 				dump_CE_register(scn);
 				dump_CE_debug_register(scn->hif_sc);
+				ol_dump_target_memory(scn->hif_hdl, memoryBlock);
 				ret = -EACCES;
 #endif
 				break; /* Could not read the section */

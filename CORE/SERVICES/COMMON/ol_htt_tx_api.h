@@ -46,6 +46,7 @@
 #include <adf_net_types.h>
 #include <ol_htt_api.h> /* htt_pdev_handle */
 #include <htt_types.h>
+#include <vos_trace.h>
 
 /*================ meta-info about tx MSDUs =================================*/
 
@@ -171,19 +172,36 @@ struct htt_msdu_info_t {
 static inline void
 htt_msdu_info_dump(struct htt_msdu_info_t *msdu_info)
 {
-    adf_os_print("HTT MSDU info object (%p)\n", msdu_info);
-    adf_os_print("  ethertype: %#x\n", msdu_info->info.ethertype);
-    adf_os_print("  peer_id: %d\n", msdu_info->info.peer_id);
-    adf_os_print("  vdev_id: %d\n", msdu_info->info.vdev_id);
-    adf_os_print("  ext_tid: %d\n", msdu_info->info.ext_tid);
-    adf_os_print("  l2_hdr_type: %d\n", msdu_info->info.l2_hdr_type);
-    adf_os_print("  frame_type: %d\n", msdu_info->info.frame_type);
-    adf_os_print("  frame_subtype: %d\n", msdu_info->info.frame_subtype);
-    adf_os_print("  is_unicast: %u\n", msdu_info->info.is_unicast);
-    adf_os_print("  l3_hdr_offset: %u\n", msdu_info->info.l3_hdr_offset);
-    adf_os_print("  use 6 Mbps: %d\n", msdu_info->action.use_6mbps);
-    adf_os_print("  do_encrypt: %d\n",  msdu_info->action.do_encrypt);
-    adf_os_print("  do_tx_complete: %d\n", msdu_info->action.do_tx_complete);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "HTT MSDU info object (%p)\n", msdu_info);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  ethertype: %#x\n", msdu_info->info.ethertype);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  peer_id: %d\n", msdu_info->info.peer_id);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  vdev_id: %d\n", msdu_info->info.vdev_id);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  ext_tid: %d\n", msdu_info->info.ext_tid);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  l2_hdr_type: %d\n", msdu_info->info.l2_hdr_type);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  frame_type: %d\n", msdu_info->info.frame_type);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  frame_subtype: %d\n", msdu_info->info.frame_subtype);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  is_unicast: %u\n", msdu_info->info.is_unicast);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  l3_hdr_offset: %u\n", msdu_info->info.l3_hdr_offset);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  use 6 Mbps: %d\n", msdu_info->action.use_6mbps);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  do_encrypt: %d\n",  msdu_info->action.do_encrypt);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  do_tx_complete: %d\n", msdu_info->action.do_tx_complete);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  is_unicast: %u\n", msdu_info->info.is_unicast);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "  is_unicast: %u\n", msdu_info->info.is_unicast);
 }
 
 

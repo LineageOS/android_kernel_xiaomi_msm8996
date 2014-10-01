@@ -1488,6 +1488,9 @@ struct hdd_context_s
     v_BOOL_t ext_wow_should_suspend;
     struct completion ready_to_extwow;
 #endif
+
+    /* Time since boot up to WiFi turn ON (in micro seconds) */
+    v_U64_t wifi_turn_on_time_since_boot;
 };
 
 /*---------------------------------------------------------------------------

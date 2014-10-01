@@ -510,6 +510,11 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
 
 #endif
 
+#ifdef FEATURE_WLAN_EXTSCAN
+#define WMA_IS_EXTSCAN_SCAN_SRC(pRxMeta) \
+     ((((t_packetmeta *)pRxMeta)->scan_src) == WMI_MGMT_RX_HDR_EXTSCAN)
+#endif /* FEATURE_WLAN_EXTSCAN */
+
 #define WDA_GET_RX_SNR(pRxMeta) \
      (((t_packetmeta *)pRxMeta)->snr)
 

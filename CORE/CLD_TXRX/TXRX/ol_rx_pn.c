@@ -349,10 +349,13 @@ ol_rx_pn_trace_display(ol_txrx_pdev_handle pdev, int just_once)
     }
 
     i = start;
-    adf_os_print("                                 seq     PN\n");
-    adf_os_print("   count  idx    peer   tid uni  num    LSBs\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "                                 seq     PN\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "   count  idx    peer   tid uni  num    LSBs\n");
     do {
-        adf_os_print("  %6lld %4d  %p %2d   %d %4d %8d\n",
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+            "  %6lld %4d  %p %2d   %d %4d %8d\n",
             cnt, i,
             pdev->rx_pn_trace.data[i].peer,
             pdev->rx_pn_trace.data[i].tid,

@@ -77,9 +77,11 @@
 
 static void ol_rx_restore_handler(struct work_struct *htt_rx)
 {
-    adf_os_print("Enter: %s", __func__);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "Enter: %s", __func__);
     cnss_device_self_recovery();
-    adf_os_print("Exit: %s", __func__);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "Exit: %s", __func__);
 }
 
 static DECLARE_WORK(ol_rx_restore_work, ol_rx_restore_handler);
@@ -91,7 +93,8 @@ void ol_rx_trigger_restore(htt_pdev_handle htt_pdev, adf_nbuf_t head_msdu,
 
     while (head_msdu) {
         next = adf_nbuf_next(head_msdu);
-        adf_os_print("freeing %p\n", head_msdu);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+            "freeing %p\n", head_msdu);
         adf_nbuf_free(head_msdu);
         head_msdu = next;
     }

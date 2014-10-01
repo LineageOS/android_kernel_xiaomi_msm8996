@@ -2841,7 +2841,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 
 	for (j = 0; j < numap; j++) {
 		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = src_hotlist->tstamp;
+		dest_ap->ts = src_hotlist->tstamp * WMA_SEC_TO_USEC;
 		dest_ap->rtt = src_hotlist->rtt;
 		dest_ap->rtt_sd = src_hotlist->rtt_sd;
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
@@ -12519,6 +12519,13 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		iface->llbCoexist = add_bss->llbCoexist;
 		iface->shortSlotTimeSupported = add_bss->shortSlotTimeSupported;
                 iface->nwType = add_bss->nwType;
+		if(add_bss->nonRoamReassoc) {
+			peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+			if(peer) {
+				add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
+				goto send_bss_resp;
+			}
+		}
 		if (add_bss->reassocReq) {
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 			ol_txrx_vdev_handle vdev;
@@ -13332,6 +13339,13 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		goto out;
 	}
 	peer = ol_txrx_find_peer_by_addr(pdev, params->bssId, &params->staIdx);
+	if(params->nonRoamReassoc) {
+		ol_txrx_peer_state_update(pdev, params->bssId,
+			ol_txrx_peer_state_auth);
+		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STARTED);
+		iface->aid = params->assocId;
+		goto out;
+	}
 	if (peer != NULL && peer->state == ol_txrx_peer_state_disc) {
 		/*
 		 * This is the case for reassociation.
@@ -14094,7 +14108,7 @@ static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
 send_del_rsp:
 	if (del_sta->respReqd) {
 		WMA_LOGD("%s: Sending del rsp to umac (status: %d)",
-			__func__, del_sta->status);
+					__func__, del_sta->status);
 		wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)del_sta, 0);
 	}
 }
@@ -14156,9 +14170,11 @@ static void wma_del_tdls_sta(tp_wma_handle wma,
 	del_sta->status = VOS_STATUS_SUCCESS;
 
 send_del_rsp:
-	WMA_LOGD("%s: Sending del rsp to umac (status: %d)",
-	         __func__, del_sta->status);
-	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)del_sta, 0);
+	if (del_sta->respReqd) {
+		WMA_LOGD("%s: Sending del rsp to umac (status: %d)",
+					__func__, del_sta->status);
+		wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)del_sta, 0);
+	}
 }
 #endif
 
@@ -14187,15 +14203,20 @@ if(iface->roam_synch_in_progress)
 send_del_sta_rsp:
 #endif
 	params->status = status;
-	WMA_LOGD("%s: vdev_id %d status %d", __func__, params->smesessionId, status);
-	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
+	if (params->respReqd) {
+		WMA_LOGD("%s: vdev_id %d status %d", __func__,
+				params->smesessionId, status);
+		wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
+	}
 }
 
 static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
+	u_int8_t smesession_id = del_sta->smesessionId;
+	bool rsp_requested = del_sta->respReqd;
 
-	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId)) {
+	if (wma_is_vdev_in_ap_mode(wma, smesession_id)) {
 #ifdef FEATURE_WLAN_D0WOW
 		wma_del_pm_vote(wma);
 #else
@@ -14204,7 +14225,7 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 	}
 #ifdef QCA_IBSS_SUPPORT
-	if (wma_is_vdev_in_ibss_mode(wma, del_sta->smesessionId)) {
+	if (wma_is_vdev_in_ibss_mode(wma, smesession_id)) {
 		oper_mode = BSS_OPERATIONAL_MODE_IBSS;
 #ifdef FEATURE_WLAN_D0WOW
 		wma_del_pm_vote(wma);
@@ -14227,11 +14248,17 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 	}
 
 #ifdef QCA_IBSS_SUPPORT
-        /* adjust heart beat thresold timer value for detecting ibss peer departure */
+	/* adjust heart beat thresold timer value for
+	 * detecting ibss peer departure
+	 */
         if (oper_mode == BSS_OPERATIONAL_MODE_IBSS)
-                wma_adjust_ibss_heart_beat_timer(wma, del_sta->smesessionId, -1);
+		wma_adjust_ibss_heart_beat_timer(wma, smesession_id, -1);
 #endif
-
+	if (!rsp_requested) {
+		WMA_LOGD("%s: vdev_id %d status %d", __func__,
+			del_sta->smesessionId, del_sta->status);
+		vos_mem_free(del_sta);
+	}
 }
 
 static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id)
@@ -21143,12 +21170,18 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->notify_extscan_events =
 				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
+		if (src_bucket->reportEvents >= 2) {
+			dest_blist->forwarding_flags =
+				WMI_EXTSCAN_FORWARD_FRAME_TO_HOST;
+		} else {
+			dest_blist->forwarding_flags =
+				WMI_EXTSCAN_NO_FORWARDING;
+		}
 
 		dest_blist->min_dwell_time_active = dwelltime;
 		dest_blist->max_dwell_time_active = dwelltime;
 		dest_blist->min_dwell_time_passive = dwelltime;
 		dest_blist->max_dwell_time_passive = dwelltime;
-		dest_blist->forwarding_flags = 0;
 		src_channel = src_bucket->channels;
 
 		/* save the channel info to later populate

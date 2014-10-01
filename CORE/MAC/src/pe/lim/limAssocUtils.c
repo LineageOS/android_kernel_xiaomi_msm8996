@@ -3091,7 +3091,17 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     "p2pCapableSta: %d"),
     pAddStaParams->htLdpcCapable,pAddStaParams->vhtLdpcCapable,
     pAddStaParams->p2pCapableSta);
-
+    /* As part of HS2.0 certification need to send reassoc
+     * to the same AP to which STA connected .in this case
+     * we are not sending delsta but sending only addsta
+     * which is causing target asssert. to fix this
+     * set  pAddStaParams->nonRoamReassoc = 1 and using this
+     * skip sending the addsta to firmware
+     */
+    if (psessionEntry->isNonRoamReassoc) {
+        pAddStaParams->nonRoamReassoc = 1;
+        psessionEntry->isNonRoamReassoc = 0;
+    }
     limLog(pMac, LOG2, FL("sessionid: %d  Assoc ID: %d listenInterval = %d "
                     "shortPreambleSupported: %d"), psessionEntry->smeSessionId,
                     pAddStaParams->assocId, pAddStaParams->listenInterval,
@@ -4088,7 +4098,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     limLog(pMac, LOG2, FL("bSpectrumMgtEnabled: %d halPersona: %d setting "
     "LimMlm state to %d"), pAddBssParams->bSpectrumMgtEnabled,
     pAddBssParams->halPersona, psessionEntry->limMlmState);
-
+    if (psessionEntry->isNonRoamReassoc) {
+        pAddBssParams->nonRoamReassoc = 1;
+    }
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 

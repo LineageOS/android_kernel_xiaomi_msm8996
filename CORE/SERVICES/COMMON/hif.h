@@ -508,7 +508,8 @@ int HIFExchangeBMIMsg(HIF_DEVICE *device,
      */
 int HIFDiagReadAccess(HIF_DEVICE *hifDevice, A_UINT32 address, A_UINT32 *data);
 int HIFDiagReadMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *data, int nbytes);
-
+void HIFDumpTargetMemory(HIF_DEVICE *hif_device, void *ramdump_base,
+                           u_int32_t address, u_int32_t size);
     /*
      * APIs to handle HIF specific diagnostic write accesses. These APIs are
      * synchronous and only allowed to be called from a context that can block (sleep).

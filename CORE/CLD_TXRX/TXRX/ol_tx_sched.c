@@ -54,11 +54,13 @@ ol_tx_sched_log(struct ol_txrx_pdev_t *pdev);
 #endif /* defined(ENABLE_TX_QUEUE_LOG) */
 
 #if DEBUG_HTT_CREDIT
-#define OL_TX_DISPATCH_LOG_CREDIT() \
-        adf_os_print("                                 TX %d bytes\n", adf_nbuf_len(msdu)); \
-        adf_os_print(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n", \
-            adf_os_atomic_read(&pdev->target_tx_credit), \
-            adf_os_atomic_read(&pdev->target_tx_credit) -1, \
+#define OL_TX_DISPATCH_LOG_CREDIT()                                           \
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,               \
+        "                                TX %d bytes\n", adf_nbuf_len(msdu)); \
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,               \
+        " <HTT> Decrease credit %d - 1 = %d, len:%d.\n",                      \
+            adf_os_atomic_read(&pdev->target_tx_credit),                      \
+            adf_os_atomic_read(&pdev->target_tx_credit) -1,                   \
             adf_nbuf_len(msdu));
 #else
 #define OL_TX_DISPATCH_LOG_CREDIT()
@@ -421,7 +423,8 @@ ol_tx_sched_init_rr(
 void
 ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wmm_param)
 {
-    adf_os_print("Dummy function when OL_TX_SCHED_RR is enabled\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "Dummy function when OL_TX_SCHED_RR is enabled\n");
 }
 
 #endif /* OL_TX_SCHED == OL_TX_SCHED_RR */
@@ -542,7 +545,8 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
         } while (0)
 
 #define OL_TX_SCHED_WRR_ADV_CAT_STAT_CURR_DBG(category_index, category)     \
-        adf_os_print("\t +++ cat[%d], "                                     \
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,             \
+            "\t +++ cat[%d], "                                              \
             "wrr:%d, frms:%d spec[resv:%d,cred:%d,wrr:%d]\n",               \
             category_index,                                                 \
             category->state.wrr_count,                                      \
@@ -606,9 +610,11 @@ struct ol_tx_sched_wrr_adv_t {
 static void ol_tx_sched_wrr_adv_cat_stat_dump(struct ol_tx_sched_wrr_adv_t *scheduler)
 {
     int i;
-    adf_os_print("====             Queued  Discard  Dispatched  frms  wrr   === \n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "====             Queued  Discard  Dispatched  frms  wrr   === \n");
     for (i = 0; i < OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES; ++ i){
-        adf_os_print("%12s:   %6d  %7d  %10d  %4d  %3d\n",
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+                "%12s:   %6d  %7d  %10d  %4d  %3d\n",
                 scheduler->categories[i].stat.cat_name,
                 scheduler->categories[i].stat.queued,
                 scheduler->categories[i].stat.discard,
@@ -622,14 +628,17 @@ static void ol_tx_sched_wrr_adv_cat_stat_rotate_dbg(struct ol_tx_sched_wrr_adv_t
 {
     int i;
     if (index < 0){ //less than 0 means just output order
-        adf_os_print("order[");
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+            "order[");
     } else {
-        adf_os_print("rotate %d, order[", index);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+            "rotate %d, order[", index);
     }
     for (i = 0; i < OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES; i ++){
-        adf_os_print("%d ", scheduler->order[i]);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+            "%d ", scheduler->order[i]);
     }
-    adf_os_print("]\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW, "]\n");
 }
 #endif
 
@@ -666,7 +675,7 @@ ol_tx_sched_wrr_adv_credit_sanity_check(struct ol_txrx_pdev_t *pdev, u_int32_t c
 
     for (i = 0; i < OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES; i++) {
         if (scheduler->categories[i].specs.credit_threshold > credit) {
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                 "*** Config error: credit (%d) not enough "
                 "to support category %d threshold (%d)\n",
                 credit, i, scheduler->categories[i].specs.credit_threshold);
@@ -782,8 +791,9 @@ ol_tx_sched_select_batch_wrr_adv(
         TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     } else {
         used_credits = 0;
-		/* TODO: find its reason */
-		adf_os_print("ol_tx_sched_select_batch_wrr_adv: error, no TXQ can be popped.");
+        /* TODO: find its reason */
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+             "ol_tx_sched_select_batch_wrr_adv: error, no TXQ can be popped.");
     }
     OL_TX_SCHED_WRR_ADV_CAT_STAT_DUMP(scheduler);
     return used_credits;
@@ -1160,7 +1170,8 @@ ol_tx_sched_notify(
         ol_tx_sched_txq_discard(pdev, txq, tid, ctx->frames, ctx->bytes);
         break;
     default:
-        adf_os_print("Error: unknown sched notification (%d)\n", ctx->event);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "Error: unknown sched notification (%d)\n", ctx->event);
         adf_os_assert(0);
         break;
     }
@@ -1184,8 +1195,9 @@ ol_tx_sched_dispatch(
     {
         tx_desc = TAILQ_FIRST(&sctx->head);
         if (tx_desc == NULL){
-			/* TODO: find its reason */
-            adf_os_print("ol_tx_sched_dispatch: err, no enough tx_desc from stx->head.\n");
+            /* TODO: find its reason */
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                "%s: err, no enough tx_desc from stx->head.\n", __func__);
             break;
         }
         msdu = tx_desc->netbuf;
@@ -1287,7 +1299,8 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev)
         num_credits = ol_tx_sched_select_batch(pdev, &sctx, credit);
         if (num_credits > 0){
 #if DEBUG_HTT_CREDIT
-            adf_os_print(" <HTT> Decrease credit %d - %d = %d.\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                " <HTT> Decrease credit %d - %d = %d.\n",
                 adf_os_atomic_read(&pdev->target_tx_credit),
                 num_credits,
                 adf_os_atomic_read(&pdev->target_tx_credit) - num_credits);

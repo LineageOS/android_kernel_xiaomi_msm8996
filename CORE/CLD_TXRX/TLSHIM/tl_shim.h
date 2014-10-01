@@ -80,6 +80,7 @@ struct txrx_tl_shim_ctx {
 	WLANTL_MgmtFrmRxCBType mgmt_rx;
 	struct tlshim_sta_info sta_info[WLAN_MAX_STA_COUNT];
 	adf_os_spinlock_t bufq_lock;
+	adf_os_spinlock_t mgmt_lock;
 	struct work_struct cache_flush_work;
 
 #ifdef FEATURE_WLAN_ESE

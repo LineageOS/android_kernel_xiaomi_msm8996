@@ -866,7 +866,8 @@ ol_tx_queue_log_oldest_update(struct ol_txrx_pdev_t *pdev, int offset)
         align_pad =
             (align - ((oldest_record_offset + 1/*type*/))) & (align - 1);
         /*
-        adf_os_print("TXQ LOG old alloc: offset %d, type %d, size %d (%d)\n",
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+            "TXQ LOG old alloc: offset %d, type %d, size %d (%d)\n",
             oldest_record_offset, type, size, size + 1 + align_pad);
          */
         oldest_record_offset += size + 1 + align_pad;
@@ -914,7 +915,8 @@ alloc_found:
         pdev->txq_log.data[pdev->txq_log.offset] = ol_tx_log_entry_type_wrap;
     }
     /*
-    adf_os_print("TXQ LOG new alloc: offset %d, type %d, size %d (%d)\n",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+    "TXQ LOG new alloc: offset %d, type %d, size %d (%d)\n",
         offset, type, size, size + 1 + align_pad);
      */
     pdev->txq_log.data[offset] = type;
@@ -944,12 +946,13 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
             record = (struct ol_tx_log_queue_add_t *)
                 &pdev->txq_log.data[offset + 1 + align_pad];
             if (record->peer_id != 0xffff) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
                     "  added %d frms (%d bytes) for peer %d, tid %d\n",
                     record->num_frms, record->num_bytes,
                     record->peer_id, record->tid);
             } else {
-                adf_os_print("  added %d frms (%d bytes) vdev tid %d\n",
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                    "  added %d frms (%d bytes) vdev tid %d\n",
                     record->num_frms, record->num_bytes, record->tid);
             }
             break;
@@ -960,12 +963,13 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
             record = (struct ol_tx_log_queue_add_t *)
                 &pdev->txq_log.data[offset + 1 + align_pad];
             if (record->peer_id != 0xffff) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
                     "  download %d frms (%d bytes) from peer %d, tid %d\n",
                     record->num_frms, record->num_bytes,
                     record->peer_id, record->tid);
             } else {
-                adf_os_print("  download %d frms (%d bytes) from vdev tid %d\n",
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                    "  download %d frms (%d bytes) from vdev tid %d\n",
                     record->num_frms, record->num_bytes, record->tid);
             }
             break;
@@ -976,13 +980,14 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
             record = (struct ol_tx_log_queue_add_t *)
                 &pdev->txq_log.data[offset + 1 + align_pad];
             if (record->peer_id != 0xffff) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
                     "  peer %d, tid %d queue removed (%d frms, %d bytes)\n",
                     record->peer_id, record->tid,
                     record->num_frms, record->num_bytes);
             } else {
                 /* shouldn't happen */
-                adf_os_print("Unexpected vdev queue removal\n");
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                    "Unexpected vdev queue removal\n");
             }
             break;
         }
@@ -996,7 +1001,8 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
 
             record = (struct ol_tx_log_queue_state_var_sz_t *)
                 &pdev->txq_log.data[offset + 1 + align_pad];
-            adf_os_print("  credit = %d, active category bitmap = %#x\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                "  credit = %d, active category bitmap = %#x\n",
                 record->credit, record->active_bitmap);
             data = &record->data[0];
             j = 0;
@@ -1010,7 +1016,8 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
                     frms = data[0] | (data[1] << 8);
                     bytes = (data[2] <<  0) | (data[3] <<  8) |
                             (data[4] << 16) | (data[5] << 24);
-                    adf_os_print("    cat %d: %d frms, %d bytes\n",
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                        "    cat %d: %d frms, %d bytes\n",
                         i, frms, bytes);
                     data += 6;
                     j++;
@@ -1027,7 +1034,8 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
         return -1 * offset; /* go back to the top */
 
     default:
-        adf_os_print("  *** invalid tx log entry type (%d)\n", type);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+            "  *** invalid tx log entry type (%d)\n", type);
         return 0; /* error */
     };
 
@@ -1046,7 +1054,8 @@ ol_tx_queue_log_display(struct ol_txrx_pdev_t *pdev)
      * being changed while in use, but since this is just for debugging,
      * don't bother.
      */
-    adf_os_print("tx queue log:\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "tx queue log:\n");
     unwrap = pdev->txq_log.wrapped;
     while (unwrap || offset != pdev->txq_log.offset) {
         int delta = ol_tx_queue_log_record_display(pdev, offset);
@@ -1186,7 +1195,8 @@ ol_tx_queue_display(struct ol_tx_frms_queue_t *txq, int indent)
     char *state;
 
     state = (txq->flag == ol_tx_queue_active) ? "active" : "paused";
-    adf_os_print("%*stxq %p (%s): %d frms, %d bytes\n",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*stxq %p (%s): %d frms, %d bytes\n",
         indent, " ", txq, state, txq->frms, txq->bytes);
 }
 
@@ -1195,7 +1205,8 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
 {
     struct ol_txrx_vdev_t *vdev;
 
-    adf_os_print("pdev %p tx queues:\n", pdev);
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "pdev %p tx queues:\n", pdev);
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
         struct ol_txrx_peer_t *peer;
         int i;
@@ -1203,7 +1214,8 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
             if (vdev->txqs[i].frms == 0) {
                 continue;
             }
-            adf_os_print("  vdev %d (%p), txq %d\n", vdev->vdev_id, vdev, i);
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+                "  vdev %d (%p), txq %d\n", vdev->vdev_id, vdev, i);
             ol_tx_queue_display(&vdev->txqs[i], 4);
         }
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
@@ -1211,7 +1223,8 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
                 if (peer->txqs[i].frms == 0) {
                     continue;
                 }
-                adf_os_print("    peer %d (%p), txq %d\n",
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+                    "    peer %d (%p), txq %d\n",
                     peer->peer_ids[0], vdev, i);
                 ol_tx_queue_display(&peer->txqs[i], 6);
             }
