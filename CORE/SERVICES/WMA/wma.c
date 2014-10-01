@@ -6772,8 +6772,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
-	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES |
-				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
 
 	/* Do not combine multiple channels in a single burst. Come back
 	 * to home channel for data traffic after every foreign channel.
@@ -21095,8 +21094,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->burst_duration = WMA_EXTSCAN_BURST_DURATION;
 	cmd->scan_ctrl_flags = WMI_SCAN_ADD_BCAST_PROBE_REQ |
 				WMI_SCAN_ADD_CCK_RATES |
-				WMI_SCAN_ADD_OFDM_RATES |
-				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
+				WMI_SCAN_ADD_OFDM_RATES ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
 	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
 					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;

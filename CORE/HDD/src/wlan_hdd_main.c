@@ -9912,12 +9912,12 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
          if (!preAdapterChannel)
          {
              pAdapter->tx_flow_low_watermark =
-                       pHddCtx->cfg_ini->TxHbwFlowLowWaterMark;
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
              pAdapter->tx_flow_high_watermark_offset =
-                       pHddCtx->cfg_ini->TxHbwFlowHighWaterMarkOffset;
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
              WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                         pAdapter->sessionId,
-                                        pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+                                        pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
              /* Temporary set log level as error
               * TX Flow control feature settled down, will lower log level */
              hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -9927,7 +9927,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                     pAdapter->tx_flow_low_watermark,
                     pAdapter->tx_flow_low_watermark +
                     pAdapter->tx_flow_high_watermark_offset,
-                    pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
+                    pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
              preAdapterChannel = targetChannel;
              preAdapterContext = pAdapter;
          }
@@ -10872,6 +10872,14 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    //Clean up HDD Nlink Service
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+   if (pConfig && pConfig->wlanLoggingEnable)
+   {
+       wlan_logging_sock_deactivate_svc();
+   }
+#endif
+
 #ifdef WLAN_KD_READY_NOTIFIER
    cnss_diag_notify_wlan_close();
    nl_srv_exit(pHddCtx->ptt_pid);
@@ -10879,12 +10887,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */
 
-
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-   if (pConfig && pConfig->wlanLoggingEnable) {
-      wlan_logging_sock_deactivate_svc();
-   }
-#endif
 
    hdd_close_all_adapters( pHddCtx );
 
