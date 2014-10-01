@@ -1750,7 +1750,7 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     tANI_U32 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
     tANI_U8 numChannels                                  = 0;
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
-    tANI_U32 requestId;
+    tANI_U32 requestId, maxChannels;
     tWifiBand wifiBand;
     eHalStatus status;
     struct sk_buff *reply_skb;
@@ -1775,14 +1775,22 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Req Id (%d)"), requestId);
 
     /* Parse and fetch wifi band */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND])
-    {
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr wifi band failed"));
         return -EINVAL;
     }
     wifiBand = nla_get_u32(
      tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]);
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Wifi band (%d)"), wifiBand);
+
+    /* Parse and fetch max channels */
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]) {
+        hddLog(LOGE, FL("attr max channels failed"));
+        return -EINVAL;
+    }
+    maxChannels = nla_get_u32(
+     tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]);
+    hddLog(LOG1, FL("Max channels (%d)"), maxChannels);
 
     status = sme_GetValidChannelsByBand((tHalHandle)(pHddCtx->hHal),
                                         wifiBand, ChannelList,
@@ -1792,6 +1800,8 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
            FL("sme_GetValidChannelsByBand failed (err=%d)"), status);
         return -EINVAL;
     }
+
+    numChannels = VOS_MIN(numChannels, maxChannels);
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Number of channels (%d)"), numChannels);
     for (i = 0; i < numChannels; i++)
         hddLog(VOS_TRACE_LEVEL_INFO, "Channel: %u ", ChannelList[i]);
