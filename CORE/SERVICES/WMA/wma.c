@@ -24326,8 +24326,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_roam_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 	                                      WMI_SERVICE_ROAM_HO_OFFLOAD);
 #endif
+#ifdef WLAN_FEATURE_NAN
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NAN))
 		gFwWlanFeatCaps |= (1 << NAN);
+#endif
 
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_RTT))
 		gFwWlanFeatCaps |= (1 << RTT);

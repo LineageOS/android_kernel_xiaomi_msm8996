@@ -3531,6 +3531,7 @@ static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
 }
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
+#ifdef FEATURE_WLAN_TDLS
 /* EXT TDLS */
 static const struct nla_policy
 wlan_hdd_tdls_config_enable_policy[QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_MAX +1] =
@@ -3827,6 +3828,7 @@ static int wlan_hdd_cfg80211_exttdls_disable(struct wiphy *wiphy,
 
     return (wlan_hdd_tdls_extctrl_deconfig_peer(pAdapter, peer));
 }
+#endif
 
 
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
@@ -3963,6 +3965,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_ll_stats_get
     },
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+#ifdef FEATURE_WLAN_TDLS
 /* EXT TDLS */
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
@@ -3987,6 +3990,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV,
         .doit = wlan_hdd_cfg80211_exttdls_get_status
     },
+#endif
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
         .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_SUPPORTED_FEATURES,
@@ -7180,7 +7184,6 @@ error:
     return -EPERM;
 
 }
-#endif
 
 static bool wlan_hdd_is_duplicate_channel(tANI_U8 *arr,
                                           int index,
@@ -7193,6 +7196,7 @@ static bool wlan_hdd_is_duplicate_channel(tANI_U8 *arr,
     }
     return FALSE;
 }
+#endif /* FEATURE_WLAN_TDLS */
 
 static int wlan_hdd_change_station(struct wiphy *wiphy,
                                          struct net_device *dev,

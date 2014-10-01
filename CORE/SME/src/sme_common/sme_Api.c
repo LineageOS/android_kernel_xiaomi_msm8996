@@ -11160,6 +11160,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     }
     return(status);
 }
+#endif /* FEATURE_WLAN_TDLS */
 
 eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *plsContext,
                             void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) )
@@ -11200,7 +11201,6 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
     }
     return(status);
 }
-#endif /* FEATURE_WLAN_TDLS */
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
     \API to Check if PMC state is BMPS.
