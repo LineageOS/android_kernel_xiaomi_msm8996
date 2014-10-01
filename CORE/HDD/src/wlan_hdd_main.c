@@ -13585,7 +13585,10 @@ int wlan_hdd_gen_wlan_status_pack(struct wlan_status_data *data,
     }
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    data->lpss_support = pHddCtx->lpss_support;
+    if (pHddCtx->lpss_support && pHddCtx->cfg_ini->enablelpasssupport)
+        data->lpss_support = 1;
+    else
+        data->lpss_support = 0;
     data->numChannels = WLAN_SVC_MAX_NUM_CHAN;
     sme_GetCfgValidChannels(pHddCtx->hHal, data->channel_list,
                             &data->numChannels);
