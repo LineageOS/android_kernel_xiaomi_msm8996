@@ -3911,6 +3911,27 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_DEFAULT,
               CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_MIN,
               CFG_ENABLE_DEAUTH_TO_DISASSOC_MAP_MAX ),
+
+#ifdef DHCP_SERVER_OFFLOAD
+   REG_VARIABLE( CFG_DHCP_SERVER_OFFLOAD_SUPPORT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enableDHCPServerOffload,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_SUPPORT_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_SUPPORT_MIN,
+                 CFG_DHCP_SERVER_OFFLOAD_SUPPORT_MAX ),
+
+   REG_VARIABLE( CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, dhcpMaxNumClients,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MIN,
+                 CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX ),
+
+   REG_VARIABLE_STRING( CFG_DHCP_SERVER_IP_NAME, WLAN_PARAM_String,
+                 hdd_config_t, dhcpServerIP,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_DHCP_SERVER_IP_DEFAULT ),
+#endif /* DHCP_SERVER_OFFLOAD */
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4517,6 +4538,17 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->extWowApp2TcpRxTimeout);
 #endif
 
+#ifdef DHCP_SERVER_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gDHCPServerOffloadEnable] Value = [%u]",
+                   pHddCtx->cfg_ini->enableDHCPServerOffload);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gDHCPMaxNumClients] Value = [%u]",
+                   pHddCtx->cfg_ini->dhcpMaxNumClients);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gDHCPServerIP] Value = [%s]",
+                   pHddCtx->cfg_ini->dhcpServerIP);
+#endif
 }
 
 #define CFG_VALUE_MAX_LEN 256

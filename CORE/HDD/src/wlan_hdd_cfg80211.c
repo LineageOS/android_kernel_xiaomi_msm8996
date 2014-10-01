@@ -5330,6 +5330,76 @@ static void wlan_hdd_set_acs_allowed_channels(
     return;
 }
 
+#ifdef DHCP_SERVER_OFFLOAD
+static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    tpSirDhcpSrvOffloadInfo pDhcpSrvInfo;
+    tANI_U8 numEntries = 0;
+    tANI_U8 srv_ip[IPADDR_NUM_ENTRIES];
+    tANI_U8 num;
+    tANI_U32 temp;
+
+    /* Prepare the request to send to SME */
+    pDhcpSrvInfo = vos_mem_malloc(sizeof(*pDhcpSrvInfo));
+    if (NULL == pDhcpSrvInfo) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: could not allocate tDhcpSrvOffloadInfo!", __func__);
+        return;
+    }
+
+    vos_mem_zero(pDhcpSrvInfo, sizeof(*pDhcpSrvInfo));
+
+    pDhcpSrvInfo->vdev_id = pHostapdAdapter->sessionId;
+    pDhcpSrvInfo->dhcpSrvOffloadEnabled = TRUE;
+    pDhcpSrvInfo->dhcpClientNum = pHddCtx->cfg_ini->dhcpMaxNumClients;
+
+    hdd_string_to_u8_array(pHddCtx->cfg_ini->dhcpServerIP,
+                           srv_ip,
+                           &numEntries,
+                           IPADDR_NUM_ENTRIES);
+    if (numEntries != IPADDR_NUM_ENTRIES) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: incorrect IP address (%s) assigned for DHCP server!",
+               __func__, pHddCtx->cfg_ini->dhcpServerIP);
+        goto end;
+    }
+
+    if ((srv_ip[0] >= 224) && (srv_ip[0] <= 239)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+          "%s: invalid IP address (%s)! It could NOT be multicast IP address!",
+          __func__, pHddCtx->cfg_ini->dhcpServerIP);
+        goto end;
+    }
+
+    if (srv_ip[IPADDR_NUM_ENTRIES-1] >= 100) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+          "%s: invalid IP address (%s)! The last field must be less than 100!",
+          __func__, pHddCtx->cfg_ini->dhcpServerIP);
+        goto end;
+    }
+
+    for (num = 0; num < numEntries; num++) {
+        temp = srv_ip[num];
+        pDhcpSrvInfo->dhcpSrvIP |= (temp << (8 * num));
+    }
+
+    if (eHAL_STATUS_SUCCESS !=
+                        sme_setDhcpSrvOffload(pHddCtx->hHal, pDhcpSrvInfo)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: sme_setDHCPSrvOffload fail!", __func__);
+        goto end;
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+           "%s: enable DHCP Server offload successfully!", __func__);
+
+end:
+    vos_mem_free(pDhcpSrvInfo);
+    return;
+}
+#endif /* DHCP_SERVER_OFFLOAD */
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -6098,6 +6168,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     /* Successfully started Bss update the state bit. */
     set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
     wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
+
+#ifdef DHCP_SERVER_OFFLOAD
+    /* set dhcp server offload */
+    if (iniConfig->enableDHCPServerOffload)
+        wlan_hdd_set_dhcp_server_offload(pHostapdAdapter);
+#endif /* DHCP_SERVER_OFFLOAD */
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
