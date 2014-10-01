@@ -1139,8 +1139,11 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     }
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-    if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
-        hddLog(LOG1, FL("Batch scan is supported by firmware"));
+    if (fset & WIFI_FEATURE_EXTSCAN) {
+        hddLog(LOG1, FL("Batch scan is supported as extscan is supported"));
+        fset &= ~WIFI_FEATURE_BATCH_SCAN;
+    } else if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
+        hddLog(LOG1, FL("Batch scan (legacy) is supported by firmware"));
         fset |= WIFI_FEATURE_BATCH_SCAN;
     }
 #endif
