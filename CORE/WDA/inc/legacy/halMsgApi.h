@@ -1443,6 +1443,17 @@ typedef struct sTdlsPeerStateParams
    tANI_U32 peerState;
    tTdlsPeerCapParams peerCap;
 }tTdlsPeerStateParams;
+
+typedef struct sTdlsChanSwitchParams
+{
+   tANI_U32    vdevId;
+   tSirMacAddr peerMacAddr;
+   tANI_U16    tdlsOffChBwOffset;/* Target Off Channel Bandwidth offset */
+   tANI_U8     tdlsOffCh;   /* Target Off Channel */
+   tANI_U8     tdlsSwMode;  /* TDLS Off Channel Mode */
+   tANI_U8     operClass;   /* Operating class corresponding to target channel */
+   tANI_U8     is_responder;/* responder or initiator */
+}tTdlsChanSwitchParams;
 #endif /* FEATURE_WLAN_TDLS */
 
 typedef struct sAbortScanParams
