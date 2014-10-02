@@ -4081,4 +4081,16 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
                                 tSirDhcpSrvOffloadInfo *pDhcpSrvInfo);
 #endif /* DHCP_SERVER_OFFLOAD */
 
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+/* ---------------------------------------------------------------------------
+    \fn sme_SetLedFlashing
+    \brief  API to set the LED flashing feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  x0, x1 -  led flashing parameters
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
+                               tANI_U32 x0, tANI_U32 x1);
+#endif
+
 #endif //#if !defined( __SME_API_H )
