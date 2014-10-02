@@ -38,8 +38,6 @@
  */
 #include "palTypes.h"
 #include "wniApi.h"
-#include "wlan_qct_wdi_ds.h"
-#include "wlan_qct_pal_packet.h"
 #include "wlan_qct_wda.h"
 
 #include "wniCfgSta.h"

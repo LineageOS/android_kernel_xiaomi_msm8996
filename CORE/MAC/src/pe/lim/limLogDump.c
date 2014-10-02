@@ -53,7 +53,6 @@ Implements the dump commands specific to the lim module.
 #endif
 #include "smeInside.h"
 #include "wlan_qct_wda.h"
-#include "wlan_qct_wdi_dts.h"
 
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA);
 #ifdef WLANTL_DEBUG
@@ -1996,8 +1995,8 @@ dump_lim_mcc_policy_maker(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg2,tANI_
    }
    else if(arg1 == 3) //Enable only stats collection - Used for unit testing
    {
-      VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL, "Enabling Traffic Stats in DTS");
-      WDI_DS_ActivateTrafficStats();
+      VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL,
+                FL("Obsolete command %d"), arg1);
    }
    else if(arg1 == 4) //Send current stats snapshot to Riva -- Used for unit testing
    {

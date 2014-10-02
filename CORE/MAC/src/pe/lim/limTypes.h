@@ -45,8 +45,6 @@
 #include "sirMacProtDef.h"
 #include "utilsApi.h"
 
-#include "wlan_qct_wdi_ds.h"
-
 #include "limApi.h"
 #include "limDebug.h"
 #include "limSendSmeRspMessages.h"
