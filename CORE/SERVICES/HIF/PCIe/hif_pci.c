@@ -967,6 +967,31 @@ HIFMapServiceToPipe(HIF_DEVICE *hif_device, a_uint16_t ServiceId, a_uint8_t *ULP
     return status;
 }
 
+void HIFDumpTargetMemory(HIF_DEVICE *hif_device, void *ramdump_base,
+                                  u_int32_t address, u_int32_t size)
+{
+    struct HIF_CE_state *hif_state;
+    struct hif_pci_softc *sc;
+    A_target_id_t targid;
+    u_int32_t loc = address;
+    u_int32_t val = 0;
+    u_int32_t j = 0;
+    u8 *temp = ramdump_base;
+
+    hif_state = (struct HIF_CE_state *)hif_device;
+    sc = hif_state->sc;
+    targid = hif_state->targid;
+
+    A_TARGET_ACCESS_BEGIN(targid);
+    while (j < size) {
+       val = A_PCI_READ32(sc->mem + loc + j);
+       OS_MEMCPY(temp, &val, 4);
+       j += 4;
+       temp += 4;
+    }
+    A_TARGET_ACCESS_END(targid);
+}
+
 /*
  * TBDXXX: Should be a function call specific to each Target-type.
  * This convoluted macro converts from Target CPU Virtual Address Space to CE Address Space.

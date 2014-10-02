@@ -717,19 +717,23 @@ ol_rx_reorder_trace_display(ol_txrx_pdev_handle pdev, int just_once, int limit)
     }
 
     i = start;
-    adf_os_print("           log       array seq\n");
-    adf_os_print("   count   idx  tid   idx  num (LSBs)\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "           log       array seq\n");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        "   count   idx  tid   idx  num (LSBs)\n");
     do {
         u_int16_t seq_num, reorder_idx;
         seq_num = pdev->rx_reorder_trace.data[i].seq_num;
         reorder_idx = pdev->rx_reorder_trace.data[i].reorder_idx;
         if (seq_num < (1 << 14)) {
-            adf_os_print("  %6lld  %4d  %3d  %4d  %4d (%d)\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                "  %6lld  %4d  %3d  %4d  %4d (%d)\n",
                 cnt, i, pdev->rx_reorder_trace.data[i].tid,
                 reorder_idx, seq_num, seq_num & 63);
         } else {
             int err = TXRX_SEQ_NUM_ERR(seq_num);
-            adf_os_print("  %6lld  %4d err %d (%d MPDUs)\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                "  %6lld  %4d err %d (%d MPDUs)\n",
                 cnt, i, err, pdev->rx_reorder_trace.data[i].num_mpdus);
         }
         cnt++;

@@ -7194,6 +7194,18 @@ error:
 }
 #endif
 
+static bool wlan_hdd_is_duplicate_channel(tANI_U8 *arr,
+                                          int index,
+                                          tANI_U8 match)
+{
+    int i;
+    for (i = 0; i < index; i++) {
+        if (arr[i] == match)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 static int wlan_hdd_change_station(struct wiphy *wiphy,
                                          struct net_device *dev,
                                          u8 *mac,
@@ -7254,26 +7266,73 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
              * are an incremental of 1 else an incremental of 4 till the number
              * of channels.
              */
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                      "%s: params->supported_channels_len: %d",
+                      __func__, params->supported_channels_len);
             if (0 != params->supported_channels_len) {
                 int i = 0, j = 0, k = 0, no_of_channels = 0;
-
+                int num_unique_channels;
+                int next;
                 for (i = 0 ; i < params->supported_channels_len &&
                              j < SIR_MAC_MAX_SUPP_CHANNELS; i += 2) {
                     int wifi_chan_index;
-
-                    StaParams.supported_channels[j] = params->supported_channels[i];
+                    if (!wlan_hdd_is_duplicate_channel(
+                                            StaParams.supported_channels,
+                                            j,
+                                            params->supported_channels[i])){
+                        StaParams.supported_channels[j] =
+                                  params->supported_channels[i];
+                    } else {
+                        continue;
+                    }
                     wifi_chan_index =
                         ((StaParams.supported_channels[j] <= HDD_CHANNEL_14 ) ? 1 : 4 );
                     no_of_channels = params->supported_channels[i + 1];
 
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                              "%s: i: %d, j: %d, k: %d, StaParams.supported_channels[%d]: %d, wifi_chan_index: %d, no_of_channels: %d",
+                              __func__, i, j, k, j,
+                             StaParams.supported_channels[j],
+                             wifi_chan_index,
+                             no_of_channels);
+
                     for (k = 1; k <= no_of_channels &&
                                 j <  SIR_MAC_MAX_SUPP_CHANNELS - 1; k++) {
-                        StaParams.supported_channels[j + 1] =
-                              StaParams.supported_channels[j] + wifi_chan_index;
+                        next = StaParams.supported_channels[j] + wifi_chan_index;
+                        if (!wlan_hdd_is_duplicate_channel(
+                                             StaParams.supported_channels,
+                                             j+1,
+                                             next)){
+                            StaParams.supported_channels[j + 1] = next;
+                        } else {
+                            continue;
+                        }
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                  "%s: i: %d, j: %d, k: %d, StaParams.supported_channels[%d]: %d",
+                                  __func__, i, j, k, j+1,
+                                  StaParams.supported_channels[j+1]);
                         j += 1;
                     }
                 }
-                StaParams.supported_channels_len = j;
+                num_unique_channels = j+1;
+
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                              "%s: Unique Channel List", __func__);
+                for (i = 0; i < num_unique_channels; i++) {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                             "%s: StaParams.supported_channels[%d]: %d,",
+                             __func__, i, StaParams.supported_channels[i]);
+                }
+                /* num of channels should not be more than max
+                 * number of channels in 2.4GHz and 5GHz
+                 */
+                if (MAX_CHANNEL < num_unique_channels)
+                    num_unique_channels = MAX_CHANNEL;
+
+                StaParams.supported_channels_len = num_unique_channels;
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                          "%s: After removing duplcates StaParams.supported_channels_len: %d",
+                          __func__, StaParams.supported_channels_len);
             }
             vos_mem_copy(StaParams.supported_oper_classes,
                          params->supported_oper_classes,
@@ -10749,9 +10808,8 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
                     "%s:ccmCfgStInt faild for WNI_CFG_IBSS_AUTO_BSSID", __func__);
             return -EIO;
         }
-        params->bssid = vos_mem_malloc(sizeof(VOS_MAC_ADDR_SIZE));
-        if (!params->bssid)
-        {
+        params->bssid = vos_mem_malloc(VOS_MAC_ADDR_SIZE);
+        if (!params->bssid) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Memory allocation failed"));
             return -ENOMEM;
         }
@@ -13178,17 +13236,17 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                         smeTdlsPeerStateParams.peerCap.peerChanLen =
                             pTdlsPeer->supported_channels_len;
                         smeTdlsPeerStateParams.peerCap.prefOffChanNum =
-                            pHddCtx->cfg_ini->fTDLSPrefOffChanNum;
+                            pTdlsPeer->pref_off_chan_num;
                         smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth =
                             pHddCtx->cfg_ini->fTDLSPrefOffChanBandwidth;
-                        smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan =
-                            pTdlsPeer->op_class_for_pref_off_chan;
-                        smeTdlsPeerStateParams.peerCap.opClassForPrefOffChanIsSet = 1;
-                        smeTdlsPeerStateParams.peerCap.prefOffChanNum =
-                            pTdlsPeer->pref_off_chan_num;
-
+                        if (pTdlsPeer->op_class_for_pref_off_chan_is_set) {
+                           smeTdlsPeerStateParams.peerCap.opClassForPrefOffChanIsSet =
+                                  pTdlsPeer->op_class_for_pref_off_chan_is_set;
+                           smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan =
+                                  pTdlsPeer->op_class_for_pref_off_chan;
+                        }
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                           "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d, opClassForPrefOffChan %d",
+                           "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d, op_class_for_pref_off_chan_is_set: %d, op_class_for_pref_off_chan: %d",
                               __func__, MAC_ADDR_ARRAY(peer),
                            smeTdlsPeerStateParams.vdevId,
                            smeTdlsPeerStateParams.peerState,
@@ -13203,7 +13261,8 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                            smeTdlsPeerStateParams.peerCap.peerOperClassLen,
                            smeTdlsPeerStateParams.peerCap.prefOffChanNum,
                            smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth,
-                           smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan);
+                           pTdlsPeer->op_class_for_pref_off_chan_is_set,
+                           pTdlsPeer->op_class_for_pref_off_chan);
 
                         for (i = 0; i < pTdlsPeer->supported_channels_len; i++)
                         {
@@ -14724,16 +14783,21 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
                   FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "Num results (%u)", pData->numOfAps);
-    hddLog(VOS_TRACE_LEVEL_INFO, "More Data (%u)", pData->moreData);
+    hddLog(LOG1, "Req Id (%u) Num results (%u) More Data (%u)",
+           pData->requestId, pData->numOfAps, pData->moreData);
 
     for (i = 0; i < pData->numOfAps; i++) {
+        /*
+         * Firmware returns timestamp from WiFi turn ON till BSSID was cached
+         * (in seconds). Add this with time gap between system boot up to
+         * WiFi turn ON to derive the time since boot when the BSSID was cached.
+         */
+        pData->ap[i].ts += pHddCtx->wifi_turn_on_time_since_boot;
         hddLog(VOS_TRACE_LEVEL_INFO, "[index=%d] Timestamp(0x%llX) "
                               "Ssid (%s) "
                               "Bssid (" MAC_ADDRESS_STR ") "
                               "Channel (%u) "
-                              "Rssi (%u) "
+                              "Rssi (%d) "
                               "RTT (%u) "
                               "RTT_SD (%u) "
                               "Beacon Period (%u) "
@@ -15072,33 +15136,48 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
         return;
     }
 
+    /*
+     * If the full scan result including IE data exceeds NL 4K size limitation,
+     * drop that beacon/probe rsp frame.
+     */
+    if ((sizeof(*pData) + pData->ap.ieLength) >= EXTSCAN_EVENT_BUF_SIZE) {
+        hddLog(LOGE, FL("Frame exceeded NL size limilation, drop it!!"));
+        return;
+    }
     skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
                   EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
                   QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_FULL_SCAN_RESULT_INDEX,
                   GFP_KERNEL);
 
     if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
+        hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "More Data (%u)", pData->moreData);
-    hddLog(VOS_TRACE_LEVEL_INFO, "AP Info: Timestamp(0x%llX) "
-                          "Ssid (%s) "
+    pData->ap.channel = vos_chan_to_freq(pData->ap.channel);
+    hddLog(LOG1, "Req Id (%u) More Data (%u)", pData->requestId,
+           pData->moreData);
+    hddLog(LOG1, "AP Info: Timestamp(0x%llX) Ssid (%s) "
                           "Bssid (" MAC_ADDRESS_STR ") "
                           "Channel (%u) "
-                          "Rssi (%u) "
+                          "Rssi (%d) "
                           "RTT (%u) "
-                          "RTT_SD (%u)",
+                          "RTT_SD (%u) "
+                          "Bcn Period (%d) "
+                          "Capability (0x%X) "
+                          "IE Length (%d)",
                           pData->ap.ts,
                           pData->ap.ssid,
                           MAC_ADDR_ARRAY(pData->ap.bssid),
                           pData->ap.channel,
                           pData->ap.rssi,
                           pData->ap.rtt,
-                          pData->ap.rtt_sd);
+                          pData->ap.rtt_sd,
+                          pData->ap.beaconPeriod,
+                          pData->ap.capability,
+                          pData->ap.ieLength);
+    VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       pData->ap.ieData, pData->ap.ieLength);
 
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||

@@ -152,6 +152,8 @@
 #define WMA_DWELL_TIME_PASSIVE_DEFAULT          (110)
 #define WMA_DWELL_TIME_PROBE_TIME_MAP_SIZE      (11)
 
+#define WMA_SEC_TO_USEC                     (1000000)
+
 typedef struct probeTime_dwellTime {
 	u_int8_t dwell_time;
 	u_int8_t probe_time;

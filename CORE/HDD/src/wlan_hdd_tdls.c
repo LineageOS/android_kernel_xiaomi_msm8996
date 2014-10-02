@@ -888,7 +888,7 @@ hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, u8 *mac)
     vos_mem_zero(peer, sizeof(hddTdlsPeer_t));
     vos_mem_copy(peer->peerMac, mac, sizeof(peer->peerMac));
     peer->pHddTdlsCtx = pHddTdlsCtx;
-
+    peer->pref_off_chan_num = pHddCtx->cfg_ini->fTDLSPrefOffChanNum;
 
     vos_timer_init(&peer->initiatorWaitTimeoutTimer,
                     VOS_TIMER_TYPE_SW,
@@ -1548,7 +1548,7 @@ int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter, uint8_t *mac,
 
     curr_peer->op_class_for_pref_off_chan = (uint8_t)op_class;
     curr_peer->pref_off_chan_num = (uint8_t)chan;
-
+    curr_peer->op_class_for_pref_off_chan_is_set = 1;
     mutex_unlock(&pHddCtx->tdls_lock);
     return 0;
 }

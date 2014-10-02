@@ -218,9 +218,10 @@ typedef struct _hddTdlsPeer_t {
     tANI_U8     supported_oper_classes_len;
     tANI_U8     supported_oper_classes[SIR_MAC_MAX_SUPP_OPER_CLASSES];
     vos_timer_t     initiatorWaitTimeoutTimer;
-    tANI_BOOLEAN isForcedPeer;
-    tANI_U8     op_class_for_pref_off_chan;
-    tANI_U8     pref_off_chan_num;
+    tANI_BOOLEAN  isForcedPeer;
+    tANI_U8       op_class_for_pref_off_chan;
+    tANI_U8       pref_off_chan_num;
+    tANI_U8       op_class_for_pref_off_chan_is_set;
     /* EXT TDLS */
     tTDLSLinkReason reason;
     cfg80211_exttdls_callback state_change_notification;

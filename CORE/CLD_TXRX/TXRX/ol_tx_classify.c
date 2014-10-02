@@ -294,7 +294,8 @@ ol_tx_tid(
          */
         tid = tx_msdu_info->htt.info.ext_tid;
     } else {
-        adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,
+            "Invalid standard frame type: %d\n", pdev->frame_format);
         adf_os_assert(0);
         tid = HTT_TX_EXT_TID_INVALID;
     }
@@ -332,7 +333,7 @@ ol_tx_classify(
              */
             peer = ol_txrx_assoc_peer_find(vdev);
             if (!peer) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                     "Error: STA %p (%02x:%02x:%02x:%02x:%02x:%02x) "
                     "trying to send bcast DA tx data frame "
                     "w/o association\n",
@@ -356,7 +357,7 @@ ol_tx_classify(
              */
             peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0, 1);
             if (!peer) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                     "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
                     "trying to send bcast/mcast, but no self-peer found\n",
                     vdev,
@@ -371,7 +372,7 @@ ol_tx_classify(
         /* tid would be overwritten for non QoS case*/
         tid = ol_tx_tid(pdev, tx_nbuf, tx_msdu_info);
         if ((HTT_TX_EXT_TID_INVALID == tid) || (tid >= OL_TX_NUM_TIDS)) {
-             adf_os_print(
+             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                  "%s Error: could not classify packet into valid TID(%d).\n",
                  __func__, tid);
              return NULL;
@@ -381,7 +382,8 @@ ol_tx_classify(
         if (tx_msdu_info->htt.info.ethertype == ETHERTYPE_WAI) {
             /* WAI frames should not be encrypted */
             tx_msdu_info->htt.action.do_encrypt = 0;
-            adf_os_print("Tx Frame is a WAI frame\n");
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+                "Tx Frame is a WAI frame\n");
         }
         #endif /* ATH_SUPPORT_WAPI */
 
@@ -444,7 +446,7 @@ ol_tx_classify(
              * It is illegitimate to send unicast data if there is no peer
              * to send it to.
              */
-            adf_os_print(
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                 "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
                 "trying to send unicast tx data frame to an unknown peer\n",
                 vdev,

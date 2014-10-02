@@ -523,20 +523,23 @@ ol_txrx_peer_find_display(ol_txrx_pdev_handle pdev, int indent)
 {
     int i, max_peers;
 
-    adf_os_print("%*speer map:\n", indent, " ");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*speer map:\n", indent, " ");
     max_peers = ol_cfg_max_peer_id(pdev->ctrl_pdev) + 1;
     for (i = 0; i < max_peers; i++) {
         if (pdev->peer_id_to_obj_map[i]) {
-            adf_os_print("%*sid %d -> %p\n",
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+                "%*sid %d -> %p\n",
                 indent+4, " ", i, pdev->peer_id_to_obj_map[i]);
         }
     }
-    adf_os_print("%*speer hash table:\n", indent, " ");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
+        "%*speer hash table:\n", indent, " ");
     for (i = 0; i <= pdev->peer_hash.mask; i++) {
         if (!TAILQ_EMPTY(&pdev->peer_hash.bins[i])) {
             struct ol_txrx_peer_t *peer;
             TAILQ_FOREACH(peer, &pdev->peer_hash.bins[i], hash_list_elem) {
-                adf_os_print(
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
                     "%*shash idx %d -> %p (%02x:%02x:%02x:%02x:%02x:%02x)\n",
                     indent+4, " ", i, peer,
                     peer->mac_addr.raw[0], peer->mac_addr.raw[1],
