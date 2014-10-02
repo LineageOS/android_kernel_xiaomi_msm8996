@@ -275,6 +275,9 @@ typedef struct sSirAssocRsp
 #endif
     tDot11fIEExtCap           ExtCap;
     tSirQosMapSet             QosMapSet;
+#ifdef WLAN_FEATURE_11W
+    tDot11fIETimeoutInterval  TimeoutInterval;
+#endif
 } tSirAssocRsp, *tpSirAssocRsp;
 
 #if defined(FEATURE_WLAN_ESE_UPLOAD)

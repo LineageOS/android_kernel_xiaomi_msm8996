@@ -50,9 +50,6 @@
 #include <wlan_hdd_includes.h>
 #include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
-#ifdef WLAN_BTAMP_FEATURE
-#include <bap_hdd_main.h>
-#endif
 #include <vos_api.h>
 #include <net/arp.h>
 #include "ccmApi.h"
@@ -94,7 +91,6 @@
 #include "wlan_qct_tl.h"
 
 #include "wlan_hdd_misc.h"
-#include "bap_hdd_misc.h"
 
 #include "wlan_hdd_dev_pwr.h"
 #include "qc_sap_ioctl.h"
@@ -346,10 +342,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
 #define WE_CLEAR_STATS       1
-#ifdef WLAN_BTAMP_FEATURE
-#define WE_ENABLE_AMP        4
-#define WE_DISABLE_AMP       5
-#endif /* WLAN_BTAMP_FEATURE */
 #define WE_ENABLE_DXE_STALL_DETECT 6
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
@@ -7338,39 +7330,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             break;
         }
 
-#ifdef WLAN_BTAMP_FEATURE
-        case WE_ENABLE_AMP:
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: enabling AMP", __func__);
-            WLANBAP_RegisterWithHCI(pAdapter);
-            break;
-        }
-        case WE_DISABLE_AMP:
-        {
-            hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-            VOS_STATUS status;
-
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __func__);
-
-            pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-            status = WLANBAP_StopAmp();
-            if(VOS_STATUS_SUCCESS != status )
-            {
-               pHddCtx->isAmpAllowed = VOS_TRUE;
-               hddLog(VOS_TRACE_LEVEL_FATAL,
-                      "%s: Failed to stop AMP", __func__);
-            }
-            else
-            {
-               //a state m/c implementation in PAL is TBD to avoid this delay
-               msleep(500);
-               pHddCtx->isAmpAllowed = VOS_FALSE;
-               WLANBAP_DeregisterFromHCI();
-            }
-
-            break;
-        }
-#endif
         case WE_ENABLE_DXE_STALL_DETECT:
         {
             tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -10592,16 +10551,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "getRecoverStat" },
-#ifdef WLAN_BTAMP_FEATURE
-    {   WE_ENABLE_AMP,
-        0,
-        0,
-        "enableAMP" },
-    {   WE_DISABLE_AMP,
-        0,
-        0,
-        "disableAMP" },
-#endif /* WLAN_BTAMP_FEATURE */
     {   WE_ENABLE_DXE_STALL_DETECT,
         0,
         0,

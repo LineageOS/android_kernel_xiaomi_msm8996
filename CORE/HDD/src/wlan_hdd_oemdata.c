@@ -49,7 +49,7 @@
 static struct hdd_context_s *pHddCtx;
 
 
-/*---------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------
 
   \brief hdd_OemDataReqCallback() -
 
@@ -57,7 +57,7 @@ static struct hdd_context_s *pHddCtx;
 
   \return - eHalStatus enumeration
 
------------------------------------------------------------------------------------------------*/
+----------------------------------------------------------------------------*/
 static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
         void *pContext,
         tANI_U32 oemDataReqID,
@@ -79,7 +79,7 @@ static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
         hddLog(LOGW, "%s: oem data req %d failed", __func__, oemDataReqID);
     } else if(oemDataReqStatus == eOEM_DATA_REQ_INVALID_MODE) {
         snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-INVALID-MODE");
-        hddLog(LOGW, "%s: oem data req %d failed because the driver is in invalid mode (IBSS|BTAMP|AP)", __func__, oemDataReqID);
+        hddLog(LOGW, "%s: oem data req %d failed because the driver is in invalid mode (IBSS|AP)", __func__, oemDataReqID);
     } else {
         snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-SUCCESS");
     }

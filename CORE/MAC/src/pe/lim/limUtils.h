@@ -585,4 +585,7 @@ void limSetProtectedBit(tpAniSirGlobal  pMac,
 
 tANI_U8* lim_get_ie_ptr(tANI_U8 *pIes, int length, tANI_U8 eid);
 
+#ifdef WLAN_FEATURE_11W
+void limPmfComebackTimerCallback(void *context);
+#endif /* WLAN_FEATURE_11W */
 #endif /* __LIM_UTILS_H */

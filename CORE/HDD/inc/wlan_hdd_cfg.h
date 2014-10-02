@@ -1395,18 +1395,6 @@ typedef enum
 #define CFG_ENABLE_HOST_NSOFFLOAD_DEFAULT      ( 0 )
 
 
-#define CFG_ENABLE_BTAMP_NAME                   "gEnableBtAmp"
-#define CFG_ENABLE_BTAMP_MIN                    ( 0 )
-#define CFG_ENABLE_BTAMP_MAX                    ( 1 )
-#define CFG_ENABLE_BTAMP_DEFAULT                ( 0 )
-
-#ifdef WLAN_BTAMP_FEATURE
-#define CFG_BT_AMP_PREFERRED_CHANNEL_NAME          "BtAmpPreferredChannel"
-#define CFG_BT_AMP_PREFERRED_CHANNEL_MIN           (1)
-#define CFG_BT_AMP_PREFERRED_CHANNEL_MAX           (11)
-#define CFG_BT_AMP_PREFERRED_CHANNEL_DEFAULT       (1)
-#endif //WLAN_BTAMP_FEATURE
-
 #define CFG_BAND_CAPABILITY_NAME          "BandCapability"
 #define CFG_BAND_CAPABILITY_MIN           (0)
 #define CFG_BAND_CAPABILITY_MAX           (2)
@@ -1659,7 +1647,6 @@ typedef enum
  *  hence a value of 0xFF would set all bits (enable all logs)
  */
 
-#define CFG_VOS_TRACE_ENABLE_BAP_NAME     "vosTraceEnableBAP"
 #define CFG_VOS_TRACE_ENABLE_TL_NAME      "vosTraceEnableTL"
 #define CFG_VOS_TRACE_ENABLE_WDI_NAME     "vosTraceEnableWDI"
 #define CFG_VOS_TRACE_ENABLE_HDD_NAME     "vosTraceEnableHDD"
@@ -2637,6 +2624,16 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_DEFAULT ( 3000 )
 #define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MIN     ( 1000 )
 #define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX     ( 10000 )
+
+#define CFG_TCP_DELACK_THRESHOLD_HIGH              "gTcpDelAckThresholdHigh"
+#define CFG_TCP_DELACK_THRESHOLD_HIGH_DEFAULT      ( 4000 )
+#define CFG_TCP_DELACK_THRESHOLD_HIGH_MIN          ( 1000 )
+#define CFG_TCP_DELACK_THRESHOLD_HIGH_MAX          ( 10000 )
+
+#define CFG_TCP_DELACK_THRESHOLD_LOW               "gTcpDelAckThresholdLow"
+#define CFG_TCP_DELACK_THRESHOLD_LOW_DEFAULT       ( 1000 )
+#define CFG_TCP_DELACK_THRESHOLD_LOW_MIN           ( 0 )
+#define CFG_TCP_DELACK_THRESHOLD_LOW_MAX           ( 4000 )
 #endif /* MSM_PLATFORM */
 
 #ifdef WLAN_FEATURE_11W
@@ -3099,10 +3096,6 @@ typedef struct
 
    /* RF Settling Time Clock */
    v_U32_t                     rfSettlingTimeUs;
-   v_U8_t                      enableBtAmp;
-#ifdef WLAN_BTAMP_FEATURE
-   v_U8_t                      preferredChannel;
-#endif //WLAN_BTAMP_FEATURE
 
    v_U8_t                      dynamicPsPollValue;
    v_BOOL_t                    AddTSWhenACMIsOff;
@@ -3117,7 +3110,6 @@ typedef struct
    v_BOOL_t                    teleBcnWakeupEn;
 
 /* VOS Trace Control*/
-   v_U16_t                     vosTraceEnableBAP;
    v_U16_t                     vosTraceEnableTL;
    v_U16_t                     vosTraceEnableWDI;
    v_U16_t                     vosTraceEnableHDD;
@@ -3351,6 +3343,8 @@ typedef struct
    v_U32_t                     busBandwidthMediumThreshold;
    v_U32_t                     busBandwidthLowThreshold;
    v_U32_t                     busBandwidthComputeInterval;
+   v_U32_t                     tcpDelackThresholdHigh;
+   v_U32_t                     tcpDelackThresholdLow;
 #endif /* MSM_PLATFORM */
 
    /* FW debug log parameters */

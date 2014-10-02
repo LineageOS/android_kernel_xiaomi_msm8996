@@ -67,11 +67,6 @@
 #include <wlan_hdd_hostapd.h>
 #include "cfgApi.h"
 
-#ifdef WLAN_BTAMP_FEATURE
-#include "bapApi.h"
-#include "bap_hdd_main.h"
-#include "bap_hdd_misc.h"
-#endif
 
 #include <wcnss_api.h>
 #include <linux/inetdevice.h>
@@ -1862,14 +1857,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vos_free_tlshim_pkt_freeq(vosSchedContext);
 #endif
 
-#ifdef WLAN_BTAMP_FEATURE
-   vosStatus = WLANBAP_Stop(pVosContext);
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to stop BAP",__func__);
-   }
-#endif //WLAN_BTAMP_FEATURE
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing WDA STOP", __func__);
    vosStatus = WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
@@ -1956,10 +1943,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    v_CONTEXT_t      pVosContext = NULL;
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
-#ifdef WLAN_BTAMP_FEATURE
-   hdd_config_t     *pConfig = NULL;
-   WLANBAP_ConfigType btAmpConfig;
-#endif
 
    adf_os_device_t adf_ctx;
    hdd_adapter_t *pAdapter;
@@ -2123,32 +2106,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    /* Pass FW version to HIF layer */
    hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 
-#ifdef WLAN_BTAMP_FEATURE
-   vosStatus = WLANBAP_Open(pVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAP",__func__);
-      goto err_vosstop;
-   }
-   vosStatus = BSL_Init(pVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to Init BSL",__func__);
-     goto err_bap_close;
-   }
-   vosStatus = WLANBAP_Start(pVosContext);
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start TL",__func__);
-       goto err_bap_close;
-   }
-   pConfig = pHddCtx->cfg_ini;
-   btAmpConfig.ucPreferredChannel = pConfig->preferredChannel;
-   vosStatus = WLANBAP_SetConfig(&btAmpConfig);
-#endif //WLAN_BTAMP_FEATURE
 
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
@@ -2221,14 +2178,7 @@ err_unregister_pmops:
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
    hdd_close_all_adapters(pHddCtx);
-#ifdef WLAN_BTAMP_FEATURE
-   WLANBAP_Stop(pVosContext);
-#endif
 
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_close:
-   WLANBAP_Close(pVosContext);
-#endif
 
 err_vosstop:
    vos_stop(pVosContext);

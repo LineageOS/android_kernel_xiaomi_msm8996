@@ -2468,6 +2468,7 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         PELOGE(limLog(pMac, LOGE,FL("Buffer is Pointing to NULL"));)
         return;
     }
+
     pMlmAssocReq = (tLimMlmAssocReq *) pMsgBuf;
 
     if( (psessionEntry = peFindSessionBySessionId(pMac,pMlmAssocReq->sessionId) )== NULL)
@@ -2487,6 +2488,19 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /// map the session entry pointer to the AssocFailureTimer
         pMac->lim.limTimers.gLimAssocFailureTimer.sessionId = pMlmAssocReq->sessionId;
+
+#ifdef WLAN_FEATURE_11W
+        /*
+         * Store current MLM state in case ASSOC response returns with
+         * TRY_AGAIN_LATER return code.
+         */
+        if (psessionEntry->limRmfEnabled) {
+            psessionEntry->pmfComebackTimerInfo.limPrevMlmState =
+                                                psessionEntry->limPrevMlmState;
+            psessionEntry->pmfComebackTimerInfo.limMlmState =
+                                                psessionEntry->limMlmState;
+        }
+#endif /* WLAN_FEATURE_11W */
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState = eLIM_MLM_WT_ASSOC_RSP_STATE;

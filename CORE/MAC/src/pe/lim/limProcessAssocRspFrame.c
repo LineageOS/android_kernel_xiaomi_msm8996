@@ -614,7 +614,11 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         limDeactivateAndChangeTimer(pMac, eLIM_REASSOC_FAIL_TIMER);
     }
 
-    if (pAssocRsp->statusCode != eSIR_MAC_SUCCESS_STATUS)
+    if (pAssocRsp->statusCode != eSIR_MAC_SUCCESS_STATUS
+#ifdef WLAN_FEATURE_11W
+      && pAssocRsp->statusCode != eSIR_MAC_TRY_AGAIN_LATER
+#endif /* WLAN_FEATURE_11W */
+      )
     {
         // Re/Association response was received
         // either with failure code.
@@ -654,6 +658,39 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
      * assoc/reassoc response
      * NOTE: for BTAMP case, it is being handled in limProcessMlmAssocReq
      */
+
+#ifdef WLAN_FEATURE_11W
+    if (pAssocRsp->statusCode == eSIR_MAC_TRY_AGAIN_LATER) {
+        /* fetch timer value from IE */
+        if (pAssocRsp->TimeoutInterval.present &&
+            (pAssocRsp->TimeoutInterval.timeoutType ==
+               SIR_MAC_TI_TYPE_ASSOC_COMEBACK) ) {
+            tANI_U16 timeout_value = pAssocRsp->TimeoutInterval.timeoutValue;
+            PELOGE(limLog(pMac, LOG1,
+                   FL("ASSOC response with eSIR_MAC_TRY_AGAIN_LATER recvd. "
+                   "Starting timer to wait timeout=%d."),
+                   timeout_value);)
+
+            /* start timer with callback */
+            if (VOS_STATUS_SUCCESS !=
+                vos_timer_start(&psessionEntry->pmfComebackTimer,
+                                timeout_value)) {
+                PELOGE(limLog(pMac, LOGE,
+                       FL("Failed to start comeback timer."));)
+            }
+        } else {
+            PELOGE(limLog(pMac, LOG1,
+                   FL("ASSOC response with eSIR_MAC_TRY_AGAIN_LATER recvd."
+                      "But try again time interval IE is wrong."));)
+        }
+        /* callback will send Assoc again */
+        /* DO NOT send ASSOC CNF to MLM state machine */
+        vos_mem_free(pBeaconStruct);
+        vos_mem_free(pAssocRsp);
+        return;
+    }
+#endif /* WLAN_FEATURE_11W */
+
     if (!((psessionEntry->bssType == eSIR_BTAMP_STA_MODE) ||
           ((psessionEntry->bssType == eSIR_BTAMP_AP_MODE) &&
           (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE))))
@@ -667,6 +704,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
                 return;
             }
     }
+
     if (subType == LIM_REASSOC)
     {
         // Log success

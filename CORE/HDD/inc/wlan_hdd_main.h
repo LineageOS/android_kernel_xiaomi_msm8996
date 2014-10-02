@@ -1428,6 +1428,8 @@ struct hdd_context_s
     vos_timer_t    bus_bw_timer;
     int            cur_vote_level;
     spinlock_t     bus_bw_lock;
+    int            cur_rx_level;
+    uint64_t       prev_rx;
 #endif
 
     v_U8_t         issplitscan_enabled;

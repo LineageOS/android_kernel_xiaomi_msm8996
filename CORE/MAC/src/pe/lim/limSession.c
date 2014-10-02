@@ -582,6 +582,13 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         psessionEntry->addIeParams.probeRespBCNDataLen = 0;
     }
 
+#ifdef WLAN_FEATURE_11W
+    /* if PMF connection */
+    if (psessionEntry->limRmfEnabled) {
+        vos_timer_destroy(&psessionEntry->pmfComebackTimer);
+    }
+#endif
+
     psessionEntry->valid = FALSE;
     return;
 }

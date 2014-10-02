@@ -72,7 +72,6 @@
 #include <linux/mmc/sdio_func.h>
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
-#include <bap_hdd_main.h>
 #include "wlan_hdd_p2p.h"
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
