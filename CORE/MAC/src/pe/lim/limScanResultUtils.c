@@ -239,8 +239,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     channelNum = pBssDescr->channelId;
     pBssDescr->nwType = limGetNwType(pMac, channelNum, SIR_MAC_MGMT_FRAME, pBPR);
 
-    pBssDescr->aniIndicator = pBPR->propIEinfo.aniIndicator;
-
     // Copy RSSI & SINR from BD
 
     PELOG4(limLog(pMac, LOG4, "***********BSS Description for BSSID:*********** ");
@@ -297,10 +295,9 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     pBPR->channelNumber = pBssDescr->channelId;
 
     limLog( pMac, LOG3,
-        FL("Collected BSS Description for Channel(%1d), length(%u), aniIndicator(%d), IE Fields(%u)"),
+        FL("Collected BSS Description for Channel(%1d), length(%u), IE Fields(%u)"),
         pBssDescr->channelId,
         pBssDescr->length,
-        pBssDescr->aniIndicator,
         ieLen );
 
     return eHAL_STATUS_SUCCESS;

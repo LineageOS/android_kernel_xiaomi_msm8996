@@ -274,10 +274,6 @@ typedef struct sDphHashNode
 
     tANI_U8   staAuthenticated:1;
 
-    /// Whether the peer is ANI or not
-
-    tANI_U8  aniPeer:1;
-
     tANI_U8  fAniCount:1;
 
     tANI_U8   rmfEnabled:1;
@@ -315,11 +311,6 @@ typedef struct sDphHashNode
     // station version info - valid only if versionPresent is set
 
     tSirMacPropVersion version;
-
-    // station proprietary capability
-
-    tANI_U16                propCapability;
-
 
 #ifdef PLM_WDS
 

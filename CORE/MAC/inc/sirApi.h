@@ -685,7 +685,7 @@ typedef struct sSirBssDescription
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
     tSirNwType           nwType; // Indicates 11a/b/g
-    tANI_U8              aniIndicator;
+    tANI_U8              reservedPadding0;
     tANI_S8              rssi;
     tANI_S8              sinr;
     //channelId what peer sent in beacon/probersp.
