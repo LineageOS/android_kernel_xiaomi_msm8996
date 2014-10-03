@@ -87,9 +87,6 @@
 #include "vos_types.h"
 #include "vos_trace.h"
 #include "vos_utils.h"
-#ifdef WLAN_BTAMP_FEATURE
-#include "bap_hdd_misc.h"
-#endif
 #include <qc_sap_ioctl.h>
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
@@ -1139,8 +1136,11 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     }
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
-    if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
-        hddLog(LOG1, FL("Batch scan is supported by firmware"));
+    if (fset & WIFI_FEATURE_EXTSCAN) {
+        hddLog(LOG1, FL("Batch scan is supported as extscan is supported"));
+        fset &= ~WIFI_FEATURE_BATCH_SCAN;
+    } else if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
+        hddLog(LOG1, FL("Batch scan (legacy) is supported by firmware"));
         fset |= WIFI_FEATURE_BATCH_SCAN;
     }
 #endif
@@ -1750,7 +1750,7 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     tANI_U32 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
     tANI_U8 numChannels                                  = 0;
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
-    tANI_U32 requestId;
+    tANI_U32 requestId, maxChannels;
     tWifiBand wifiBand;
     eHalStatus status;
     struct sk_buff *reply_skb;
@@ -1775,14 +1775,22 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Req Id (%d)"), requestId);
 
     /* Parse and fetch wifi band */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND])
-    {
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr wifi band failed"));
         return -EINVAL;
     }
     wifiBand = nla_get_u32(
      tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]);
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Wifi band (%d)"), wifiBand);
+
+    /* Parse and fetch max channels */
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]) {
+        hddLog(LOGE, FL("attr max channels failed"));
+        return -EINVAL;
+    }
+    maxChannels = nla_get_u32(
+     tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]);
+    hddLog(LOG1, FL("Max channels (%d)"), maxChannels);
 
     status = sme_GetValidChannelsByBand((tHalHandle)(pHddCtx->hHal),
                                         wifiBand, ChannelList,
@@ -1792,6 +1800,8 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
            FL("sme_GetValidChannelsByBand failed (err=%d)"), status);
         return -EINVAL;
     }
+
+    numChannels = VOS_MIN(numChannels, maxChannels);
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Number of channels (%d)"), numChannels);
     for (i = 0; i < numChannels; i++)
         hddLog(VOS_TRACE_LEVEL_INFO, "Channel: %u ", ChannelList[i]);
@@ -6687,21 +6697,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
     pConfig = pHddCtx->cfg_ini;
     wdev = ndev->ieee80211_ptr;
 
-#ifdef WLAN_BTAMP_FEATURE
-    if((NL80211_IFTYPE_P2P_CLIENT == type)||
-       (NL80211_IFTYPE_ADHOC == type)||
-       (NL80211_IFTYPE_AP == type)||
-       (NL80211_IFTYPE_P2P_GO == type)) {
-        pHddCtx->isAmpAllowed = VOS_FALSE;
-        /* Stop AMP traffic */
-        vstatus = WLANBAP_StopAmp();
-        if (VOS_STATUS_SUCCESS != vstatus) {
-            pHddCtx->isAmpAllowed = VOS_TRUE;
-            hddLog(LOGP, FL("Failed to stop AMP"));
-            return -EINVAL;
-        }
-    }
-#endif /* WLAN_BTAMP_FEATURE */
     /* Reset the current device mode bit mask */
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
 
@@ -6973,13 +6968,6 @@ done:
         hddDevTmLevelChangedHandler(pHddCtx->parent_dev, 0);
     }
 
-#ifdef WLAN_BTAMP_FEATURE
-    if ((NL80211_IFTYPE_STATION == type) && (pHddCtx->concurrency_mode <= 1) &&
-       (pHddCtx->no_of_open_sessions[WLAN_HDD_INFRA_STATION] <= 1)) {
-        /* We are ok to do AMP */
-        pHddCtx->isAmpAllowed = VOS_TRUE;
-    }
-#endif /* WLAN_BTAMP_FEATURE */
 
 #ifdef WLAN_FEATURE_LPSS
     wlan_hdd_send_all_scan_intf_info(pHddCtx);
@@ -8949,24 +8937,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     cfg_param = pHddCtx->cfg_ini;
     pScanInfo = &pAdapter->scan_info;
 
-#ifdef WLAN_BTAMP_FEATURE
-    //Scan not supported when AMP traffic is on.
-    if (VOS_TRUE == WLANBAP_AmpSessionOn())
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: No scanning when AMP is on", __func__);
-        return -EOPNOTSUPP;
-    }
-#endif
-    //Scan on any other interface is not supported.
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Not scanning on device_mode = %d",
-               __func__, pAdapter->device_mode);
-        return -EOPNOTSUPP;
-    }
-
     if (TRUE == pScanInfo->mScanPending)
     {
         if ( MAX_PENDING_LOG > pScanInfo->mScanPendingCounter++ )
@@ -10339,14 +10309,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     wlan_hdd_disable_roaming(pAdapter);
 #endif
 
-#ifdef WLAN_BTAMP_FEATURE
-    //Infra connect not supported when AMP traffic is on.
-    if (VOS_TRUE == WLANBAP_AmpSessionOn()) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: No connection when AMP is on", __func__);
-        return -ECONNREFUSED;
-    }
-#endif
 
     //If Device Mode is Station Concurrent Sessions Exit BMps
     //P2P Mode will be taken care in Open/close adapter

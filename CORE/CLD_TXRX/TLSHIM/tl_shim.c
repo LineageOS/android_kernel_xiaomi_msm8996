@@ -1210,14 +1210,6 @@ VOS_STATUS WLANTL_SuspendDataTx(void *vos_ctx, u_int8_t *sta_id,
 	return VOS_STATUS_SUCCESS;
 }
 
-VOS_STATUS WLANTL_TxBAPFrm(void *vos_ctx, vos_pkt_t *buf,
-			   WLANTL_MetaInfoType *meta_info,
-			   WLANTL_TxCompCBType txcomp_cb)
-{
-	/* Not needed */
-	return VOS_STATUS_SUCCESS;
-}
-
 void WLANTL_AssocFailed(u_int8_t sta_id)
 {
 	/* Not needed */
@@ -1258,14 +1250,6 @@ VOS_STATUS WLANTL_McFreeMsg(void *vos_ctx, vos_msg_t *message)
 }
 
 VOS_STATUS WLANTL_TxFreeMsg(void *vos_ctx, vos_msg_t *message)
-{
-	/* Not needed */
-	return VOS_STATUS_SUCCESS;
-}
-
-VOS_STATUS WLANTL_RegisterBAPClient(void *vos_ctx,
-				    WLANTL_BAPRxCBType bap_rx,
-				    WLANTL_FlushOpCompCBType flush_cb)
 {
 	/* Not needed */
 	return VOS_STATUS_SUCCESS;

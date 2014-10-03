@@ -77,11 +77,6 @@
 #include "vos_trace.h"
 
 
-#ifdef WLAN_BTAMP_FEATURE
-#include "bapApi.h"
-#include "bapInternal.h"
-#include "bap_hdd_main.h"
-#endif //WLAN_BTAMP_FEATURE
 
 #include "bmi.h"
 #include "ol_fw.h"
@@ -954,15 +949,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
 
-#ifdef WLAN_BTAMP_FEATURE
-  vosStatus = WLANBAP_Close(vosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close BAP", __func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-#endif // WLAN_BTAMP_FEATURE
 
   if (gpVosContext->htc_ctx)
   {
@@ -1107,13 +1093,6 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
       break;
     }
 
-#ifdef WLAN_BTAMP_FEATURE
-    case VOS_MODULE_ID_BAP:
-    {
-        pModContext = gpVosContext->pBAPContext;
-        break;
-    }
-#endif //WLAN_BTAMP_FEATURE
 
 #ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
@@ -1396,13 +1375,6 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
       break;
     }
 
-#ifdef WLAN_BTAMP_FEATURE
-    case VOS_MODULE_ID_BAP:
-    {
-        pGpModContext = &(gpVosContext->pBAPContext);
-        break;
-    }
-#endif //WLAN_BTAMP_FEATURE
 
 #ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
@@ -1523,13 +1495,6 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
       break;
     }
 
-#ifdef WLAN_BTAMP_FEATURE
-    case VOS_MODULE_ID_BAP:
-    {
-        pGpModContext = &(gpVosContext->pBAPContext);
-        break;
-    }
-#endif //WLAN_BTAMP_FEATURE
 
 #ifndef WLAN_FEATURE_MBSSID
     case VOS_MODULE_ID_SAP:
@@ -2095,15 +2060,6 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
 {
   VOS_STATUS vosStatus;
 
-#ifdef WLAN_BTAMP_FEATURE
-  vosStatus = WLANBAP_Close(vosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close BAP", __func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-#endif // WLAN_BTAMP_FEATURE
 
   vosStatus = WLANTL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
