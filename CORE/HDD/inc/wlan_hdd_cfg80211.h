@@ -170,7 +170,10 @@ enum qca_nl80211_vendor_subcmds {
     /* Set scanning_mac_oui */
     QCA_NL80211_VENDOR_SUBCMD_SCANNING_MAC_OUI = 39,
     /* Set nodfs_flag */
-    QCA_NL80211_VENDOR_SUBCMD_NO_DFS_FLAG = 40
+    QCA_NL80211_VENDOR_SUBCMD_NO_DFS_FLAG = 40,
+
+    /* Get Concurrency Matrix */
+    QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX = 42,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -827,6 +830,24 @@ enum qca_wlan_vendor_attr_set_no_dfs_flag
     QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_AFTER_LAST - 1,
 };
 
+/* NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX sub command.
+ */
+enum qca_wlan_vendor_attr_get_concurrency_matrix {
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_INVALID = 0,
+    /* Unsigned 32-bit value */
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_CONFIG_PARAM_SET_SIZE_MAX = 1,
+    /* Unsigned 32-bit value */
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_RESULTS_SET_SIZE = 2,
+    /* An array of SET_SIZE x Unsigned 32bit values representing
+     * concurrency combinations.
+     */
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_RESULTS_SET = 3,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_MAX =
+        QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_AFTER_LAST - 1,
+};
 
 /* Feature defines */
 #define WIFI_FEATURE_INFRA              0x0001   /* Basic infrastructure mode */
