@@ -2215,7 +2215,7 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
      * to occupy the medium during non channel occupancy period. So resume the transmission after
      * HAL gives back the response.
      */
-    dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);//TBD-RAJESH is it needed ?
+    dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);
     limDeletePreAuthList(pMac);
     //Initialize number of associated stations during cleanup
     psessionEntry->gLimNumOfCurrentSTAs = 0;

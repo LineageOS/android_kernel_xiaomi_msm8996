@@ -113,39 +113,12 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
 void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 {
-#ifdef FIXME_GEN6
-    tANI_U32            *pBD;
-    tpSirMacMgmtHdr     mh;
-    void                *pPacket;
-#endif
     tANI_U32            val;
-
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];
     PELOG3(schLog(pMac, LOG3, FL("Received message (%x) "), pSchMsg->type);)
 
     switch (pSchMsg->type)
     {
-#ifdef FIXME_GEN6
-        case SIR_BB_XPORT_MGMT_MSG:
-            pMac->sch.gSchBBXportRcvCnt++;
-
-
-            pBD = (tANI_U32 *) pSchMsg->bodyptr;
-
-
-            mh = SIR_MAC_BD_TO_MPDUHEADER( pBD );
-
-            if (mh->fc.type == SIR_MAC_MGMT_FRAME &&
-                mh->fc.subType == SIR_MAC_MGMT_BEACON)
-                schBeaconProcess(pMac, pBD);
-            else
-            {
-                schLog(pMac, LOGE, FL("Unexpected message (%d,%d) rcvd"),
-                       mh->fc.type, mh->fc.subType);
-                pMac->sch.gSchUnknownRcvCnt++;
-            }
-            break;
-#endif
 
         case SIR_SCH_CHANNEL_SWITCH_REQUEST:
             schLog(pMac, LOGE,

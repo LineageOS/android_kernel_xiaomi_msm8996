@@ -106,14 +106,8 @@ typedef union uPmfSaQueryTimerId
 void limGetBssidFromPkt(tpAniSirGlobal, tANI_U8 *, tANI_U8 *, tANI_U32 *);
 char * limDot11ReasonStr(tANI_U16 reasonCode);
 char * limMlmStateStr(tLimMlmStates state);
-char * limSmeStateStr(tLimSmeStates state);
-char * limMsgStr(tANI_U32 msgType);
 char * limResultCodeStr(tSirResultCodes resultCode);
-char* limDot11ModeStr(tpAniSirGlobal pMac, tANI_U8 dot11Mode);
 void limPrintMlmState(tpAniSirGlobal pMac, tANI_U16 logLevel, tLimMlmStates state);
-void limPrintSmeState(tpAniSirGlobal pMac, tANI_U16 logLevel, tLimSmeStates state);
-void limPrintMsgName(tpAniSirGlobal pMac, tANI_U16 logLevel, tANI_U32 msgType);
-void limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg);
 char* limBssTypeStr(tSirBssType bssType);
 
 #if defined FEATURE_WLAN_ESE || defined WLAN_FEATURE_VOWIFI

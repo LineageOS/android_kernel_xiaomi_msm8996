@@ -102,8 +102,8 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
       // Defer processsing this message
       if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
       {
-          PELOGW(limLog(pMac, LOGW, FL("Unable to Defer message(0x%X) %s limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)"),
-                   limMsg->type, limMsgStr(limMsg->type), pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+          PELOGW(limLog(pMac, LOGW, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)"),
+                   limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
                    pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
           limLogSessionStates(pMac);
           limHandleDeferMsgError(pMac, limMsg);
@@ -146,14 +146,14 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #endif
         (limMsg->type != WDA_ADD_TS_RSP))
     {
-        PELOG1(limLog(pMac, LOG1, FL("Defer the current message %s , gLimProcessDefdMsgs is false and system is not in scan/learn mode"),
-               limMsgStr(limMsg->type));)
+        PELOG1(limLog(pMac, LOG1, FL("Defer the current message type %d , gLimProcessDefdMsgs is false and system is not in scan/learn mode"),
+               limMsg->type);)
 
         // Defer processsing this message
         if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
         {
-            PELOGW(limLog(pMac, LOGW, FL("Unable to Defer message(0x%X) %s limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)"),
-                   limMsg->type, limMsgStr(limMsg->type), pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+            PELOGW(limLog(pMac, LOGW, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)"),
+                   limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
                    pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
             limLogSessionStates(pMac);
             limHandleDeferMsgError(pMac, limMsg);
@@ -800,7 +800,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                     {
                         // Unwanted messages - Log error
                         limLog(pMac, LOGE, FL("unexpected message received %X"),limMsg->type);
-                        limPrintMsgName(pMac, LOGE, limMsg->type);
                     }
                     break;
 
@@ -819,7 +818,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                     {
                         // Unwanted messages - Log error
                         limLog(pMac, LOGE, FL("unexpected message received %X"),limMsg->type);
-                        limPrintMsgName(pMac, LOGE, limMsg->type);
                     }
                     break;
 
@@ -1131,11 +1129,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
     pMac->lim.numTot++;
 #endif
 
-
-   PELOG3(limLog(pMac, LOG3, FL("rcvd msgType = %s, sme state = %s, mlm state = %s"),
-      limMsgStr(limMsg->type), limSmeStateStr(pMac->lim.gLimSmeState),
-      limMlmStateStr(pMac->lim.gLimMlmState));)
-
     MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
 
     switch (limMsg->type)
@@ -1160,7 +1153,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                         pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
                     }
                     limLogSessionStates(pMac);
-                    limPrintMsgName(pMac, LOGE, limMsg->type);
                 }
             }
             else
@@ -1254,7 +1246,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                                 limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
                                 pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
                             limLogSessionStates(pMac);
-                            limPrintMsgName(pMac, LOGE, limMsg->type);
                             vos_pkt_return_packet(pVosPkt);
                         }
                 }
@@ -2050,13 +2041,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limLog(pMac, LOGE,
                 FL("Discarding unexpected message received %X"),
                 limMsg->type);
-        limPrintMsgName(pMac, LOGE, limMsg->type);
         break;
 
     } // switch (limMsg->type)
 
-   PELOG2(limLog(pMac, LOG2, FL("Done Processing msgType = %d, sme state = %s, mlm state = %s"),
-            limMsg->type, limSmeStateStr(pMac->lim.gLimSmeState),
+   PELOG2(limLog(pMac, LOG2, FL("Done Processing msgType = %d, mlm state = %s"),
+            limMsg->type,
             limMlmStateStr(pMac->lim.gLimMlmState));)
 
 } /*** end limProcessMessages() ***/
@@ -2165,7 +2155,6 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
                         pLimMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
                         pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
             limLogSessionStates(pMac);
-            limPrintMsgName(pMac, LOGE, pLimMsg->type);
             // Release body
             vos_mem_free(pLimMsg->bodyptr);
             pLimMsg->bodyptr = NULL;
