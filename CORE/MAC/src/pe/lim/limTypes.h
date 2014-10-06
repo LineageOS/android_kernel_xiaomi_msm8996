@@ -763,15 +763,6 @@ void limCompleteMlmScan(tpAniSirGlobal, tSirResultCodes);
 void limSetOemDataReqMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data);
 #endif
 
-#ifdef ANI_SUPPORT_11H
-/// Function that sends Measurement Report action frame
-tSirRetStatus limSendMeasReportFrame(tpAniSirGlobal, tpSirMacMeasReqActionFrame,
-                                     tSirMacAddr, tpPESession psessionEntry);
-
-/// Function that sends TPC Report action frame
-tSirRetStatus limSendTpcReportFrame(tpAniSirGlobal, tpSirMacTpcReqActionFrame, tSirMacAddr,
-                                            tpPESession psessionEntry);
-#endif
 
 /// Function that sends TPC Request action frame
 void limSendTpcRequestFrame(tpAniSirGlobal, tSirMacAddr, tpPESession psessionEntry);
