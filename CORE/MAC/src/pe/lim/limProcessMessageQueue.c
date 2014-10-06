@@ -72,9 +72,6 @@
 #include "limFT.h"
 #endif
 
-#ifdef WMM_APSD
-#include "wmmApsd.h"
-#endif
 
 #include "vos_types.h"
 #include "vos_packet.h"

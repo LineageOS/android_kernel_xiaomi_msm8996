@@ -279,12 +279,6 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
     pStaDs->added = 1;
     pStaDs->encPolicy = HAL_ENC_POLICY_NULL;
 
-#ifdef WMM_APSD
-    pStaDs->stopQueue = 0;
-    pStaDs->spStatus = 0;
-    pStaDs->apsdMaxSpLen = 0;
-    pStaDs->acMode[0] = pStaDs->acMode[1] = pStaDs->acMode[2] = pStaDs->acMode[3] =  0;
-#endif /* WMM_APSD */
     pStaDs->valid = 1;
     return pStaDs;
 }
