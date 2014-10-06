@@ -2028,19 +2028,6 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-#ifdef RSSI_HACK
-/* This dump command is needed to set the RSSI values in TL while testing handoff. Handoff code was tested
- * using this dump command. Whatever the value gives as the first parameter will be considered as the average
- * RSSI by TL and invokes corresponding callback registered by the clients */
-extern int dumpCmdRSSI;
-static char *
-dump_lim_set_tl_data_pkt_rssi( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
-{
-    dumpCmdRSSI = arg1;
-    limLog(pMac, LOGE, FL("Setting TL data packet RSSI to %d"), dumpCmdRSSI);
-    return p;
-}
-#endif
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R
@@ -2475,9 +2462,6 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {361,   "PE.LIM: unpack an RRM action frame",                    dump_lim_unpack_rrm_action},
 #endif
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-#ifdef RSSI_HACK
-    {362,   "TL Set current RSSI",                                   dump_lim_set_tl_data_pkt_rssi},
-#endif
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
     {363,   "PE.LIM: trigger pre auth/reassoc event",                dump_lim_ft_event},

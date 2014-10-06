@@ -4733,9 +4733,6 @@ csrNeighborRoamNeighborLookupDOWNCallback (v_PVOID_t pAdapter,
     return vosStatus;
 }
 
-#ifdef RSSI_HACK
-extern int dumpCmdRSSI;
-#endif
 
 /* ---------------------------------------------------------------------------
 
@@ -4803,9 +4800,6 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac,
 #endif
     } //if (NULL != pSession)
 
-#ifdef RSSI_HACK
-    dumpCmdRSSI = -40;
-#endif
     switch (pNeighborRoamInfo->neighborRoamState)
     {
         case eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING:
