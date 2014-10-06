@@ -3415,36 +3415,23 @@ void csrApplyPower2Current( tpAniSirGlobal pMac )
 void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannelList, tANI_U8 *countryCode, tANI_BOOLEAN updateRiva)
 {
     int i;
-    eNVChannelEnabledType channelEnabledType;
     tANI_U8 numChannels = 0;
     tANI_U8 tempNumChannels = 0;
     tCsrChannel ChannelList;
 
-    if( pChannelList->numChannels )
+    if (pChannelList->numChannels)
     {
         tempNumChannels = CSR_MIN(pChannelList->numChannels, WNI_CFG_VALID_CHANNEL_LIST_LEN);
-        /* If user doesn't want to scan the DFS channels lets trim them from
-        the valid channel list*/
-        for(i=0; i < tempNumChannels; i++)
+
+        for (i = 0; i < tempNumChannels; i++)
         {
-            if( FALSE == pMac->scan.fEnableDFSChnlScan )
-            {
-                channelEnabledType =
-                    vos_nv_getChannelEnabledState(pChannelList->channelList[i]);
-            }
-            else
-            {
-                channelEnabledType = NV_CHANNEL_ENABLE;
-            }
-            if( NV_CHANNEL_ENABLE == channelEnabledType )
-            {
-                ChannelList.channelList[numChannels] = pChannelList->channelList[i];
-                numChannels++;
-            }
+            ChannelList.channelList[numChannels] = pChannelList->channelList[i];
+            numChannels++;
         }
 
         ChannelList.numChannels = numChannels;
         csrSetCfgValidChannelList(pMac, ChannelList.channelList, ChannelList.numChannels);
+
         // extend scan capability
         //  build a scan list based on the channel list : channel# + active/passive scan
         csrSetCfgScanControlList(pMac, countryCode, &ChannelList);

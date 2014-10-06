@@ -3831,6 +3831,129 @@ static int wlan_hdd_cfg80211_exttdls_disable(struct wiphy *wiphy,
 #endif
 
 
+static const struct nla_policy
+wlan_hdd_set_no_dfs_flag_config_policy[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX
+                                       +1] =
+{
+    [QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG] = {.type = NLA_U32 },
+};
+
+
+static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
+                                                  struct wireless_dev *wdev,
+                                                  void *data,
+                                                  int data_len)
+{
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX + 1];
+    eHalStatus status;
+    int ret_val = -EPERM;
+    u32 no_dfs_flag = 0;
+    hdd_adapter_list_node_t *p_adapter_node = NULL, *p_next = NULL;
+    hdd_adapter_t *p_adapter;
+    VOS_STATUS vos_status;
+    hdd_ap_ctx_t *p_ap_ctx;
+    hdd_station_ctx_t *p_sta_ctx;
+
+    if (wlan_hdd_validate_context(pHddCtx)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("HDD context is not valid"));
+        return -EINVAL;
+    }
+
+    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX,
+                    data, data_len,
+                    wlan_hdd_set_no_dfs_flag_config_policy)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid attr"));
+        return -EINVAL;
+    }
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr dfs flag failed"));
+        return -EINVAL;
+    }
+
+    no_dfs_flag = nla_get_u32(
+        tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]);
+
+    hddLog(VOS_TRACE_LEVEL_INFO, FL(" DFS flag = %d"),
+           no_dfs_flag);
+
+    if (no_dfs_flag > 1) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid value of dfs flag"));
+        return -EINVAL;
+    }
+
+    if (no_dfs_flag == pHddCtx->cfg_ini->enableDFSChnlScan) {
+        if (no_dfs_flag) {
+
+            vos_status = hdd_get_front_adapter( pHddCtx, &p_adapter_node);
+            while ((NULL != p_adapter_node) &&
+                   (VOS_STATUS_SUCCESS == vos_status))
+            {
+                p_adapter = p_adapter_node->pAdapter;
+
+                if (WLAN_HDD_SOFTAP == p_adapter->device_mode) {
+                    p_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(p_adapter);
+
+                    /* if there is SAP already running on DFS channel,
+                       do not disable scan on dfs channels. Note that with
+                       SAP on DFS, there cannot be conurrency on single
+                       radio. But then we can have multiple radios !!!!! */
+                    if (NV_CHANNEL_DFS ==
+                        vos_nv_getChannelEnabledState(
+                            p_ap_ctx->operatingChannel)) {
+                        hddLog(VOS_TRACE_LEVEL_ERROR,
+                               FL("SAP running on DFS channel"));
+                        return -EOPNOTSUPP;
+                    }
+                }
+
+                if (WLAN_HDD_INFRA_STATION == p_adapter->device_mode) {
+                    p_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(p_adapter);
+
+                    /* if STA is already connected on DFS channel,
+                       do not disable scan on dfs channels */
+                    if (hdd_connIsConnected(p_sta_ctx) &&
+                        (NV_CHANNEL_DFS ==
+                         vos_nv_getChannelEnabledState(
+                             p_sta_ctx->conn_info.operationChannel))) {
+                        hddLog(VOS_TRACE_LEVEL_ERROR,
+                               FL("client connected on DFS channel"));
+                        return -EOPNOTSUPP;
+                    }
+                }
+
+                vos_status = hdd_get_next_adapter(pHddCtx, p_adapter_node,
+                                                  &p_next);
+                p_adapter_node = p_next;
+            }
+        }
+
+        pHddCtx->cfg_ini->enableDFSChnlScan = !no_dfs_flag;
+
+        hdd_abort_mac_scan_all_adapters(pHddCtx);
+
+        /* call the SME API to tunnel down the new channel list
+           to the firmware  */
+        status = sme_handle_dfs_chan_scan(hHal,
+                                          pHddCtx->cfg_ini->enableDFSChnlScan);
+
+        if (eHAL_STATUS_SUCCESS == status)
+            ret_val = 0;
+
+    } else {
+        hddLog(VOS_TRACE_LEVEL_INFO, FL(" the DFS flag has not changed"));
+        ret_val = 0;
+    }
+
+    return ret_val;
+}
+
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -4005,6 +4128,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV,
         .doit = wlan_hdd_cfg80211_set_scanning_mac_oui
     },
+
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_NO_DFS_FLAG,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV,
+        .doit = wlan_hdd_cfg80211_disable_dfs_chan_scan
+     },
 };
 
 
@@ -5584,6 +5715,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  hddLog(VOS_TRACE_LEVEL_ERROR,
                          "%s: Invalid Channel [%d]", __func__, pConfig->channel);
                  return -EINVAL;
+            }
+
+            /* reject SAP if DFS channel scan is not allowed */
+            if ((VOS_FALSE == pHddCtx->cfg_ini->enableDFSChnlScan) &&
+                (NV_CHANNEL_DFS ==
+                 vos_nv_getChannelEnabledState(pConfig->channel))) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("not allowed to start SAP on DFS channel"));
+                return -EOPNOTSUPP;
             }
         }
         else

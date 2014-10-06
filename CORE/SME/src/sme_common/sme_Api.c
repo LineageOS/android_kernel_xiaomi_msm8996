@@ -14179,3 +14179,31 @@ eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
 }
 #endif
 
+/* ---------------------------------------------------------------------------
+    \fn sme_handle_dfS_chan_scan
+    \brief  SME API to enable/disable DFS channel scan
+    \param  hHal
+    \param dfs_flag: whether dfs needs to be enabled or disabled
+    \return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_handle_dfs_chan_scan(tHalHandle hHal, tANI_U8 dfs_flag)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+
+    if (eHAL_STATUS_SUCCESS == status) {
+
+        pMac->scan.fEnableDFSChnlScan = dfs_flag;
+
+        /* update the channel list to the firmware */
+        status = csrUpdateChannelList(pMac);
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return status;
+}
+
+
