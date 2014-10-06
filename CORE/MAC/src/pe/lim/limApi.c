@@ -880,6 +880,11 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     vos_mem_free(pMac->lim.limTimers.gpLimCnfWaitTimer);
     pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
 
+    if (pMac->lim.gpLimMlmOemDataReq) {
+        vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
+        pMac->lim.gpLimMlmOemDataReq = NULL;
+    }
+
     vos_mem_free(pMac->lim.gpSession);
     pMac->lim.gpSession = NULL;
     vos_mem_free(pMac->pmm.gPmmTim.pTim);
