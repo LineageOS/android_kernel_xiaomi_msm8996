@@ -33,12 +33,6 @@
 #include "ccmApi.h"
 #include "logDump.h"
 
-//#define CCM_DEBUG
-#undef CCM_DEBUG
-
-#define CCM_DEBUG2
-//#undef CCM_DEBUG2
-
 #define CFGOBJ_ALIGNTO          4
 #define CFGOBJ_ALIGN(len)       ( ((len)+CFGOBJ_ALIGNTO-1) & ~(CFGOBJ_ALIGNTO-1) )
 
@@ -238,9 +232,6 @@ static void sendQueuedReqToMacSw(tpAniSirGlobal pMac, tHddHandle hHdd)
                     req->callback((tHalHandle)pMac, WNI_CFG_OTHER_ERROR) ;
                 }
 
-#ifdef CCM_DEBUG
-                smsLog(pMac, LOGW, FL("ccmComplete(%p)"), req->done);
-#endif
                 ccmComplete(hHdd, req->done);
 
                 freeCfgReq(hHdd, req);
@@ -346,18 +337,12 @@ static eHalStatus cfgSet(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 type, tANI_S3
 
     if (pal_in_interrupt())
     {
-#ifdef CCM_DEBUG2
-        smsLog(pMac, LOG1, FL("WNI_CFG_%s (%d 0x%x), in_interrupt()=TRUE"), gCfgParamName[cfgId], (int)cfgId, (int)cfgId);
-#endif
         status = cfgSetSub(pMac, hHdd, cfgId, type, length, ccmPtr, ccmValue, callback, toBeSaved, NULL, &req);
     }
     else
     {
         void *sem ;
 
-#ifdef CCM_DEBUG2
-        smsLog(pMac, LOG1, FL("WNI_CFG_%s (%d 0x%x), in_interrupt()=FALSE"), gCfgParamName[cfgId], (int)cfgId, (int)cfgId);
-#endif
         pal_local_bh_disable() ;
 
         status = palMutexAllocLocked( hHdd, &sem ) ;
@@ -381,14 +366,8 @@ static eHalStatus cfgSet(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 type, tANI_S3
 
         if ((status == eHAL_STATUS_SUCCESS) && (sem != NULL))
         {
-#ifdef CCM_DEBUG
-            smsLog(pMac, LOG1, FL("ccmWaitForCompletion(%p)"), req->done);
-#endif
             ccmWaitForCompletion(hHdd, sem);
 
-#ifdef CCM_DEBUG
-            smsLog(pMac, LOG1, FL("free(%p)"), req->done);
-#endif
             palSemaphoreFree( hHdd, sem ) ;
         }
     }
@@ -464,9 +443,6 @@ void ccmCfgCnfMsgHandler(tHalHandle hHal, void *m)
             pMac->ccm.replay.started = 0 ;
 
             /* Wake up the sleeping process */
-#ifdef CCM_DEBUG
-            smsLog(pMac, LOGW, FL("ccmComplete(%p)"), pMac->ccm.replay.done);
-#endif
             ccmComplete(hHdd, pMac->ccm.replay.done);
             //Let go with the rest of the set CFGs waiting.
             sendQueuedReqToMacSw(pMac, hHdd);
@@ -492,26 +468,16 @@ void ccmCfgCnfMsgHandler(tHalHandle hHal, void *m)
                 if (result == WNI_CFG_NEED_RESTART ||
                     result == WNI_CFG_NEED_RELOAD)
                 {
-#ifdef CCM_DEBUG
-                    smsLog(pMac, LOGW, FL("need restart/reload, cfgId=%d"), req->cfgId) ;
-#endif
                     //purgeReqQ(hHal);
                 }
 
                 /* invoke callback */
                 if (req->callback)
                 {
-#ifdef CCM_DEBUG
-                    req->callback(hHal, cfgId) ;
-#else
                     req->callback(hHal, result) ;
-#endif
                 }
 
                 /* Wake up the sleeping process */
-#ifdef CCM_DEBUG
-                smsLog(pMac, LOGW, FL("cfgId=%ld, calling ccmComplete(%p)"), cfgId, req->done);
-#endif
                 ccmComplete(hHdd, req->done);
 
                 /* move the completed req from reqQ to comp[] */
@@ -537,9 +503,6 @@ void ccmCfgCnfMsgHandler(tHalHandle hHal, void *m)
                 smsLog( pMac, LOGW, FL("can not match RSP with REQ, rspcfgid=%d result=%d reqcfgid=%d reqstate=%d"),
                         (int)cfgId, (int)result, req->cfgId, req->state);
 
-#ifdef CCM_DEBUG
-                smsLog(pMac, LOGW, FL("ccmComplete(%p)"), req->done);
-#endif
             }
 
         }
@@ -724,9 +687,6 @@ static eHalStatus cfgUpdate(tpAniSirGlobal pMac, tHddHandle hHdd, tCcmCfgSetCall
         {
             msgLen += (tANI_S16)(CFGOBJ_ID_SIZE + CFGOBJ_LEN_SIZE + CFGOBJ_ALIGN(req->length)) ;
             pMac->ccm.replay.nr_param += 1 ;
-#ifdef CCM_DEBUG
-            smsLog(pMac, LOGW, FL("cfgId=%d"), req->cfgId);
-#endif
         }
     }
 
@@ -820,14 +780,8 @@ eHalStatus ccmCfgUpdate(tHalHandle hHal, tCcmCfgSetCallback callback)
     /* Waiting here ... */
     if (status == eHAL_STATUS_SUCCESS && pMac->ccm.replay.done)
     {
-#ifdef CCM_DEBUG
-        smsLog(pMac, LOGW, FL("ccmWaitForCompletion(%p)"), pMac->ccm.replay.done);
-#endif
         ccmWaitForCompletion(hHdd, pMac->ccm.replay.done);
 
-#ifdef CCM_DEBUG
-        smsLog(pMac, LOGW, FL("free(%p)"), pMac->ccm.replay.done);
-#endif
         palSemaphoreFree( hHdd, pMac->ccm.replay.done) ;
     }
 
