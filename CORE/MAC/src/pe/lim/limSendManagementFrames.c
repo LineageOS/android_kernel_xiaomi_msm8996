@@ -398,9 +398,6 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     return eSIR_FAILURE;
 #endif
 
-#if defined ( ANI_DVT_DEBUG )
-    return eSIR_FAILURE;
-#endif
 
     /* The probe req should not send 11ac capabilieties if band is 2.4GHz,
      * unless enableVhtFor24GHz is enabled in INI. So if enableVhtFor24GHz

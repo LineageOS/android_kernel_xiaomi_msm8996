@@ -1115,9 +1115,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if defined WLAN_FEATURE_VOWIFI_11R
     tpPESession pSession;
 #endif
-#if defined(ANI_DVT_DEBUG)
-    tSirMsgQ  msgQ;
-#endif
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         vos_mem_free(limMsg->bodyptr);
