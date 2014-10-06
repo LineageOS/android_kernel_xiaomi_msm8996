@@ -4515,10 +4515,13 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     switch (new_phymode) {
     case IEEE80211_MODE_11AC_VHT20:
         vhtchanwidth = eHT_CHANNEL_WIDTH_20MHZ;
+        break;
     case IEEE80211_MODE_11AC_VHT40:
         vhtchanwidth = eHT_CHANNEL_WIDTH_40MHZ;
+        break;
     case IEEE80211_MODE_11AC_VHT80:
         vhtchanwidth = eHT_CHANNEL_WIDTH_80MHZ;
+        break;
     default:
         vhtchanwidth = phddctx->cfg_ini->vhtChannelWidth;
     }
@@ -4546,6 +4549,13 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
         }
 #ifdef WLAN_FEATURE_11AC
         smeconfig.csrConfig.nVhtChannelWidth = vhtchanwidth;
+        if (0 != ccmCfgSetInt(phddctx->hHal,
+                              WNI_CFG_VHT_CHANNEL_WIDTH,
+                              vhtchanwidth, NULL, eANI_BOOLEAN_FALSE)) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s: could not set VHT SUPPORTED CHAN WIDTH",
+                      __func__);
+        }
 #endif
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
