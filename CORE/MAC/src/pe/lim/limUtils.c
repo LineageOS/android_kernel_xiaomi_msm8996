@@ -2478,12 +2478,6 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
             FL("Unable to change gLimQuietBssTimer! Will still attempt to activate anyway..."));
       }
       MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, pMac->lim.limTimers.gLimQuietTimer.sessionId, eLIM_QUIET_BSS_TIMER));
-#ifdef GEN6_TODO
-        /* revisit this piece of code to assign the appropriate sessionId below
-         * priority - HIGH
-         */
-        pMac->lim.limTimers.gLimQuietBssTimer.sessionId = sessionId;
-#endif
       if( TX_SUCCESS !=
           tx_timer_activate( &pMac->lim.limTimers.gLimQuietBssTimer ))
       {
