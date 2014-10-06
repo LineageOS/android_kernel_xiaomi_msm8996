@@ -2948,20 +2948,6 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     if ( IS_DOT11_MODE_HT(selfStaDot11Mode) )
     {
         pAddStaParams->htCapable = TRUE ;
-#ifdef DISABLE_GF_FOR_INTEROP
-        /*
-         * To resolve the interop problem with Broadcom AP,
-         * where TQ STA could not pass traffic with GF enabled,
-         * TQ STA will do Greenfield only with TQ AP, for
-         * everybody else it will be turned off.
-        */
-        if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
-        {
-            limLog( pMac, LOGE, FL(" Turning off Greenfield, when adding self entry"));
-            pAddStaParams->greenFieldCapable = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
-        }
-        else
-#endif
         {
             pAddStaParams->greenFieldCapable = limGetHTCapability( pMac, eHT_GREENFIELD, psessionEntry);
             pAddStaParams->txChannelWidthSet =

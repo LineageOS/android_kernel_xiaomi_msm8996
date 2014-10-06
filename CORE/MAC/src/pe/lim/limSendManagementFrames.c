@@ -2303,22 +2303,6 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     if (psessionEntry->htCapability &&
             pMac->lim.htCapabilityPresentInBeacon) {
         PopulateDot11fHTCaps(pMac, psessionEntry, &pFrm->HTCaps);
-#ifdef DISABLE_GF_FOR_INTEROP
-
-        /*
-         * To resolve the interop problem with Broadcom AP,
-         * where TQ STA could not pass traffic with GF enabled,
-         * TQ STA will do Greenfield only with TQ AP, for
-         * everybody else it will be turned off.
-         */
-
-        if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
-        {
-                limLog( pMac, LOG1, FL("Sending Assoc Req to Non-TQ AP,"
-                                        " Turning off Greenfield"));
-            pFrm->HTCaps.greenField = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
-        }
-#endif
 
     }
 #ifdef WLAN_FEATURE_11AC
