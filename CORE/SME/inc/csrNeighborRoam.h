@@ -344,8 +344,9 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
 #endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId);
-eHalStatus csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
-                   tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp,
+eHalStatus
+csrNeighborRoamOffloadUpdatePreauthList(tpAniSirGlobal pMac,
+        tpSirRoamOffloadSynchInd pSmeRoamOffloadSynchInd,
                    tANI_U8 sessionId);
 #endif
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */

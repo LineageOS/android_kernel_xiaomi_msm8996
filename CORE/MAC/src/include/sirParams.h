@@ -661,6 +661,10 @@ typedef struct sSirMbMsgP2p
 #endif /* DHCP_SERVER_OFFLOAD */
 #define SIR_HAL_LED_FLASHING_REQ           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 293)
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#define SIR_HAL_ROAM_OFFLOAD_SYNCH_IND     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 294)
+#endif
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

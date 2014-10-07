@@ -2837,8 +2837,9 @@ tSirRetStatus limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, tpPESession
     msgQ.bodyval = 0;
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    limLog(pMac, LOGE,
-           FL("Sending WDA_ADD_STA_REQ (aid %d)"), pAddStaParams->assocId);
+    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+                  "%s: Sending WDA_ADD_STA_REQ (aid %d)",
+                  __func__, pAddStaParams->assocId);
 #endif
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 

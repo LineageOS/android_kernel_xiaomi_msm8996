@@ -73,6 +73,7 @@
 #include <limFT.h>
 #include "vos_types.h"
 #include "vos_packet.h"
+#include "vos_utils.h"
 #include "wlan_qct_tl.h"
 #include "sysStartup.h"
 
@@ -1858,6 +1859,251 @@ void limPsOffloadHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     return;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+eHalStatus limRoamFillBssDescr(tpAniSirGlobal pMac,
+      tSirRoamOffloadSynchInd *pRoamOffloadSynchInd)
+{
+   v_U32_t uLen = 0;
+   tpSirProbeRespBeacon pParsedFrame;
+   tpSirMacMgmtHdr macHeader;
+   tANI_U8 *pBeaconProbeResp;
+   tSirBssDescription *pBssDescr = NULL;
+
+   pBeaconProbeResp = (tANI_U8 *)pRoamOffloadSynchInd +
+   pRoamOffloadSynchInd->beaconProbeRespOffset;
+   macHeader = (tpSirMacMgmtHdr)pBeaconProbeResp;
+   pParsedFrame =
+     (tpSirProbeRespBeacon) vos_mem_malloc(sizeof(tSirProbeRespBeacon));
+   if (NULL == pParsedFrame)
+   {
+     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+       "%s: fail to allocate memory for frame",__func__);
+     return eHAL_STATUS_RESOURCES;
+   }
+
+   if ( pRoamOffloadSynchInd->beaconProbeRespLength <= SIR_MAC_HDR_LEN_3A )
+   {
+      VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+      "%s: Very few bytes in synchInd beacon / probe resp frame! length=%d",
+      __func__, pRoamOffloadSynchInd->beaconProbeRespLength);
+      vos_mem_free(pParsedFrame);
+      return eHAL_STATUS_FAILURE;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,"LFR3: Beacon/Prb Rsp:");
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+      pBeaconProbeResp, pRoamOffloadSynchInd->beaconProbeRespLength);
+   if (pRoamOffloadSynchInd->isBeacon) {
+     if (sirParseBeaconIE(pMac, pParsedFrame,
+         &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET],
+         pRoamOffloadSynchInd->beaconProbeRespLength -
+         SIR_MAC_HDR_LEN_3A) != eSIR_SUCCESS || !pParsedFrame->ssidPresent) {
+         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                   "Parse error Beacon, length=%d",
+                   pRoamOffloadSynchInd->beaconProbeRespLength);
+         vos_mem_free(pParsedFrame);
+         return eHAL_STATUS_FAILURE;
+     }
+   }
+   else {
+     if (sirConvertProbeFrame2Struct(pMac,
+         &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A],
+         pRoamOffloadSynchInd->beaconProbeRespLength - SIR_MAC_HDR_LEN_3A,
+         pParsedFrame) != eSIR_SUCCESS ||
+         !pParsedFrame->ssidPresent) {
+         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+         "Parse error ProbeResponse, length=%d",
+         pRoamOffloadSynchInd->beaconProbeRespLength);
+         vos_mem_free(pParsedFrame);
+         return eHAL_STATUS_FAILURE;
+     }
+   }
+   /* 24 byte MAC header and 12 byte to ssid IE */
+   if (pRoamOffloadSynchInd->beaconProbeRespLength >
+      (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET)) {
+     uLen = pRoamOffloadSynchInd->beaconProbeRespLength -
+            (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET);
+   }
+   pRoamOffloadSynchInd->pbssDescription =
+   vos_mem_malloc(sizeof (tSirBssDescription) + uLen); /*De-allocated in
+                                           csrProcessRoamOffloadSynchInd*/
+   pBssDescr = pRoamOffloadSynchInd->pbssDescription;
+   if (NULL == pBssDescr)
+   {
+     PELOGE(limLog( pMac, LOGE, "LFR3:Failed to allocate memory");)
+     VOS_ASSERT(pBssDescr != NULL);
+     return eHAL_STATUS_RESOURCES;
+   }
+     vos_mem_zero(pBssDescr, sizeof(tSirBssDescription));
+   /* Length of BSS desription is without length of
+    * length itself and length of pointer
+    * that holds the next BSS description
+    */
+   pBssDescr->length = (tANI_U16)(
+                       sizeof(tSirBssDescription) - sizeof(tANI_U16) -
+                       sizeof(tANI_U32) + uLen);
+   if (pParsedFrame->dsParamsPresent)
+   {
+     pBssDescr->channelId = pParsedFrame->channelNumber;
+   }
+   else if (pParsedFrame->HTInfo.present)
+   {
+     pBssDescr->channelId = pParsedFrame->HTInfo.primaryChannel;
+   }
+   else
+   {
+     /*If DS Params or HTIE is not present in the probe resp or beacon,
+      * then use the channel frequency provided by firmware to fill the
+      * channel in the BSS descriptor.*/
+     pBssDescr->channelId = vos_freq_to_chan(pRoamOffloadSynchInd->chan_freq);
+   }
+   pBssDescr->channelIdSelf = pBssDescr->channelId;
+
+   if ((pBssDescr->channelId > 0) && (pBssDescr->channelId < 15))
+   {
+     int i;
+     /* 11b or 11g packet
+      * 11g if extended Rate IE is present or
+      * if there is an A rate in suppRate IE */
+     for (i = 0; i < pParsedFrame->supportedRates.numRates; i++) {
+       if (sirIsArate(pParsedFrame->supportedRates.rate[i] & 0x7f)) {
+          pBssDescr->nwType = eSIR_11G_NW_TYPE;
+          break;
+       }
+     }
+     if (pParsedFrame->extendedRatesPresent) {
+         pBssDescr->nwType = eSIR_11G_NW_TYPE;
+     }
+   } else {
+     /* 11a packet */
+     pBssDescr->nwType = eSIR_11A_NW_TYPE;
+   }
+
+   pBssDescr->sinr = 0;
+   pBssDescr->beaconInterval = pParsedFrame->beaconInterval;
+   pBssDescr->timeStamp[0]   = pParsedFrame->timeStamp[0];
+   pBssDescr->timeStamp[1]   = pParsedFrame->timeStamp[1];
+   vos_mem_copy(&pBssDescr->capabilityInfo,
+   &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_CAPAB_OFFSET], 2);
+   vos_mem_copy((tANI_U8 *) &pBssDescr->bssId,
+                 (tANI_U8 *) macHeader->bssId,
+                         sizeof(tSirMacAddr));
+   pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
+   if(pParsedFrame->mdiePresent) {
+     pBssDescr->mdiePresent = pParsedFrame->mdiePresent;
+     vos_mem_copy((tANI_U8 *)pBssDescr->mdie, (tANI_U8 *)pParsedFrame->mdie,
+                   SIR_MDIE_SIZE);
+   }
+   VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+             "LFR3:%s:BssDescr Info:", __func__);
+   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+                      pBssDescr->bssId, sizeof(tSirMacAddr));
+   VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+             "chan=%d, rssi=%d",pBssDescr->channelId,pBssDescr->rssi);
+   if (uLen)
+   {
+     vos_mem_copy(&pBssDescr->ieFields,
+     pBeaconProbeResp + (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET),
+     uLen);
+   }
+   vos_mem_free(pParsedFrame);
+   return eHAL_STATUS_SUCCESS;
+}
+
+/** -----------------------------------------------------------------
+  * brief limRoamOffloadSynchInd() - Handles Roam Synch Indication
+  * param pMac - global mac structure
+  * return - none
+  ----------------------------------------------------------------- */
+void limRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
+{
+     tpPESession psessionEntry;
+     tpPESession pftSessionEntry;
+     tANI_U8 sessionId;
+     tSirMsgQ mmhMsg;
+     tSirBssDescription *pbssDescription = NULL;
+     tpSirRoamOffloadSynchInd pRoamOffloadSynchInd =
+                           (tpSirRoamOffloadSynchInd)pMsg->bodyptr;
+
+     if (!pRoamOffloadSynchInd) {
+       VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+       "LFR3:%s:pRoamOffloadSynchInd is NULL", __func__);
+       return;
+     }
+     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+               "LFR3: Received WDA_ROAM_OFFLOAD_SYNCH_IND");
+     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+               "LFR3:%s:authStatus=%d, vdevId=%d", __func__,
+               pRoamOffloadSynchInd->authStatus,
+               pRoamOffloadSynchInd->roamedVdevId);
+     VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+                        pRoamOffloadSynchInd->bssId,6);
+     psessionEntry = peFindSessionByBssIdx(pMac,
+                     pRoamOffloadSynchInd->roamedVdevId);
+     if (psessionEntry == NULL) {
+       PELOGE(limLog( pMac, LOGE,
+               "%s: LFR3:Unable to find session", __func__);)
+       return;
+     }
+     /* Nothing to be done if the session is not in STA mode */
+     if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
+        PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
+        return;
+     }
+     if (!HAL_STATUS_SUCCESS(limRoamFillBssDescr(pMac,
+                             pRoamOffloadSynchInd))) {
+       VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+       "LFR3:%s:Failed to fill Bss Descr", __func__);
+       return;
+     }
+     pbssDescription = pRoamOffloadSynchInd->pbssDescription;
+     if((pftSessionEntry = peCreateSession(pMac, pbssDescription->bssId,
+                                       &sessionId, pMac->lim.maxStation,
+                                       eSIR_INFRASTRUCTURE_MODE)) == NULL) {
+        limLog(pMac, LOGE, FL("LFR3: Session Can not be created for new AP"
+                              "during Roam Offload Synch"));
+        limPrintMacAddr( pMac, pbssDescription->bssId, LOGE );
+        return;
+     }
+     pftSessionEntry->peSessionId = sessionId;
+     sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
+     sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
+     pftSessionEntry->bssType = eSIR_INFRASTRUCTURE_MODE;
+     /*Set bRoamSynchInProgress here since this session is
+      * specific to roam synch indication. This flag will
+      * later be used to differentiate LFR3 with LFR2 in LIM
+      */
+     pftSessionEntry->bRoamSynchInProgress = VOS_TRUE;
+
+     if (pftSessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
+       pftSessionEntry->limSystemRole = eLIM_STA_ROLE;
+     else {
+       limLog(pMac, LOGE, FL("LFR3:Invalid bss type"));
+       return;
+     }
+     pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
+     pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
+     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+               "LFR3:%s:created session (%p) with id = %d",
+               __func__, pftSessionEntry, pftSessionEntry->peSessionId);
+     /* Update the ReAssoc BSSID of the current session */
+     sirCopyMacAddr(psessionEntry->limReAssocbssId, pbssDescription->bssId);
+     limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG2);
+
+     /* Prepare the session right now with as much as possible */
+     limFillFTSession(pMac, pbssDescription, pftSessionEntry, psessionEntry);
+     limFTPrepareAddBssReq( pMac, FALSE, pftSessionEntry, pbssDescription );
+     mmhMsg.type =
+     pRoamOffloadSynchInd->messageType;/* eWNI_SME_ROAM_OFFLOAD_SYNCH_IND */
+     mmhMsg.bodyptr = pRoamOffloadSynchInd;
+     mmhMsg.bodyval = 0;
+
+     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+         "LFR3:%s:sending eWNI_SME_ROAM_OFFLOAD_SYNCH_IND", __func__);
+     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
+}
+
+#endif
 /** -----------------------------------------------------------------
   \brief limMicFailureInd() - handles mic failure  indication
 
