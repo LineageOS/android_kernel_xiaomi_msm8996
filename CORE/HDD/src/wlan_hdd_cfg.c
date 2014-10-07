@@ -415,76 +415,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENFORCE_DEFAULT_DOMAIN_MIN,
                  CFG_ENFORCE_DEFAULT_DOMAIN_MAX ),
 
-   REG_VARIABLE( CFG_GENERIC_ID1_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg1Id,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_ID1_DEFAULT,
-                 CFG_GENERIC_ID1_MIN,
-                 CFG_GENERIC_ID1_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_ID2_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg2Id,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_ID2_DEFAULT,
-                 CFG_GENERIC_ID2_MIN,
-                 CFG_GENERIC_ID2_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_ID3_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg3Id,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_ID3_DEFAULT,
-                 CFG_GENERIC_ID3_MIN,
-                 CFG_GENERIC_ID3_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_ID4_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg4Id,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_ID4_DEFAULT,
-                 CFG_GENERIC_ID4_MIN,
-                 CFG_GENERIC_ID4_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_ID5_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg5Id,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_ID5_DEFAULT,
-                 CFG_GENERIC_ID5_MIN,
-                 CFG_GENERIC_ID5_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_VALUE1_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg1Value,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_VALUE1_DEFAULT,
-                 CFG_GENERIC_VALUE1_MIN,
-                 CFG_GENERIC_VALUE1_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_VALUE2_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg2Value,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_VALUE2_DEFAULT,
-                 CFG_GENERIC_VALUE2_MIN,
-                 CFG_GENERIC_VALUE2_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_VALUE3_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg3Value,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_VALUE3_DEFAULT,
-                 CFG_GENERIC_VALUE3_MIN,
-                 CFG_GENERIC_VALUE3_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_VALUE4_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg4Value,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_VALUE4_DEFAULT,
-                 CFG_GENERIC_VALUE4_MIN,
-                 CFG_GENERIC_VALUE4_MAX ),
-
-   REG_VARIABLE( CFG_GENERIC_VALUE5_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Cfg5Value,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_GENERIC_VALUE5_DEFAULT,
-                 CFG_GENERIC_VALUE5_MIN,
-                 CFG_GENERIC_VALUE5_MAX ),
-
    REG_VARIABLE( CFG_HEARTBEAT_THRESH_24_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, HeartbeatThresh24,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5358,57 +5288,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_CAL_PERIOD to CCM");
-   }
-
-   if ( 0 != pConfig->Cfg1Id )
-   {
-      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg1Id, pConfig->Cfg1Value, NULL,
-         eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE, "Could not pass on Cfg1Id to CCM");
-      }
-
-   }
-
-   if ( 0 != pConfig->Cfg2Id )
-   {
-      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg2Id, pConfig->Cfg2Value,
-         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE, "Could not pass on Cfg2Id to CCM");
-      }
-   }
-
-   if ( 0 != pConfig->Cfg3Id )
-   {
-      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg3Id, pConfig->Cfg3Value,
-         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE, "Could not pass on Cfg3Id to CCM");
-      }
-   }
-
-   if ( 0 != pConfig->Cfg4Id )
-   {
-      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg4Id, pConfig->Cfg4Value,
-         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE, "Could not pass on Cfg4Id to CCM");
-      }
-   }
-
-   if ( 0 != pConfig->Cfg5Id )
-   {
-      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg5Id, pConfig->Cfg5Value,
-         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOGE, "Could not pass on Cfg5Id to CCM");
-      }
    }
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_BA_AUTO_SETUP, pConfig->BlockAckAutoSetup,
