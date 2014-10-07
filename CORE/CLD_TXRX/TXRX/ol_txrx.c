@@ -284,12 +284,16 @@ ol_txrx_pdev_attach(
          * Define the value seperately.
          */
         pdev->tx_queue.rsrc_threshold_lo = TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED;
+
+        /* when freeing up descriptors, keep going until there's a 7.5% margin */
+        pdev->tx_queue.rsrc_threshold_hi = ((15 * desc_pool_size)/100)/2;
 #else
         /* always maintain a 5% margin of unallocated descriptors */
         pdev->tx_queue.rsrc_threshold_lo = (5 * desc_pool_size)/100;
-#endif
+
         /* when freeing up descriptors, keep going until there's a 15% margin */
         pdev->tx_queue.rsrc_threshold_hi = (15 * desc_pool_size)/100;
+#endif
     } else {
         /*
          * For LL, limit the number of host's tx descriptors to match the
