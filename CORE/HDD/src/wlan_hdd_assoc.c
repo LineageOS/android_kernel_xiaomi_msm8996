@@ -3226,7 +3226,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             }
             halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-            pRoamInfo->roamSynchInProgress = VOS_FALSE;
+            if (pRoamInfo)
+                pRoamInfo->roamSynchInProgress = VOS_FALSE;
 #endif
             break;
         case eCSR_ROAM_ASSOCIATION_FAILURE:
