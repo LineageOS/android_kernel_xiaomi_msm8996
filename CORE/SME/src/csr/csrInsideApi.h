@@ -106,10 +106,6 @@
 #define CSR_ROAM_MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define CSR_ROAM_MAX(X, Y)  ((X) > (Y) ? (X) : (Y))
 
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-#define CSR_JOIN_MAX_RETRY_COUNT             10
-#define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  VOS_TIMER_TO_SEC_UNIT )  // 1 second
-#endif
 
 #define CSR_ROAMING_DFS_CHANNEL_DISABLED           (0)
 #define CSR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL     (1)
@@ -1009,10 +1005,6 @@ eHalStatus csrSendMBGetWPSPBCSessions( tpAniSirGlobal pMac, tANI_U32 sessionId,
 eHalStatus
 csrSendChngMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U32 sessionId);
 
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-eHalStatus csrRoamStartJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval);
-eHalStatus csrRoamStopJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId);
-#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /* ---------------------------------------------------------------------------
     \fn csrRoamFTPreAuthRspProcessor
