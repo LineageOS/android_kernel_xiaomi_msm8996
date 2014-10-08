@@ -345,20 +345,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_FRAG_THRESHOLD_MIN,
                  CFG_FRAG_THRESHOLD_MAX ),
 
-   REG_VARIABLE( CFG_CALIBRATION_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, Calibration,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_CALIBRATION_DEFAULT,
-                 CFG_CALIBRATION_MIN,
-                 CFG_CALIBRATION_MAX ),
-
-   REG_VARIABLE( CFG_CALIBRATION_PERIOD_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, CalibrationPeriod,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_CALIBRATION_PERIOD_DEFAULT,
-                 CFG_CALIBRATION_PERIOD_MIN,
-                 CFG_CALIBRATION_PERIOD_MAX ),
-
    REG_VARIABLE( CFG_OPERATING_CHANNEL_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, OperatingChannel,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5210,20 +5196,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_SHORT_GI_20MHZ to CCM");
-   }
-
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_CAL_CONTROL, pConfig->Calibration,
-      NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_CAL_CONTROL to CCM");
-   }
-
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_CAL_PERIOD, pConfig->CalibrationPeriod,
-      NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_CAL_PERIOD to CCM");
    }
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_BA_AUTO_SETUP, pConfig->BlockAckAutoSetup,

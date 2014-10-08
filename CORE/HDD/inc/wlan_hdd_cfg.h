@@ -69,18 +69,6 @@
 #define CFG_FRAG_THRESHOLD_MAX                 WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX
 #define CFG_FRAG_THRESHOLD_DEFAULT             WNI_CFG_FRAGMENTATION_THRESHOLD_STADEF
 
-#define CFG_CALIBRATION_NAME                   "gCalibration"
-#define CFG_CALIBRATION_MIN                    ( 0 )
-#define CFG_CALIBRATION_MAX                    ( 1 )
-#define CFG_CALIBRATION_MAC_DEFAULT            ( 1 )
-#define CFG_CALIBRATION_DEFAULT                CFG_CALIBRATION_MAC_DEFAULT
-
-#define CFG_CALIBRATION_PERIOD_NAME            "gCalibrationPeriod"
-#define CFG_CALIBRATION_PERIOD_MIN             ( 2 )
-#define CFG_CALIBRATION_PERIOD_MAX             ( 10 )
-#define CFG_CALIBRATION_PERIOD_MAC_DEFAULT     ( 5 )
-#define CFG_CALIBRATION_PERIOD_DEFAULT         CFG_CALIBRATION_PERIOD_MAC_DEFAULT
-
 #define CFG_OPERATING_CHANNEL_NAME             "gOperatingChannel"
 #define CFG_OPERATING_CHANNEL_MIN              ( 0 )
 #define CFG_OPERATING_CHANNEL_MAX              ( 14 )
@@ -2768,8 +2756,6 @@ typedef struct
    v_U32_t       RTSThreshold;
    v_U32_t       FragmentationThreshold;
    v_U32_t       nCheckForHangTime;
-   v_U32_t       Calibration;
-   v_U32_t       CalibrationPeriod;
    v_U8_t        OperatingChannel;
    v_BOOL_t      ShortSlotTimeEnabled;
    v_BOOL_t      Is11dSupportEnabled;
