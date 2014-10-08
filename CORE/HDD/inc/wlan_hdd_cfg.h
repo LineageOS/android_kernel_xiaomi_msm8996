@@ -1986,14 +1986,13 @@ typedef enum
 
 #define CFG_TDLS_QOS_WMM_UAPSD_MASK_NAME            "gTDLSUapsdMask" // ACs to setup U-APSD for TDLS Sta
 #define CFG_TDLS_QOS_WMM_UAPSD_MASK_MIN             (0)
-#define CFG_TDLS_QOS_WMM_UAPSD_MASK_MAX             (15)
-#define CFG_TDLS_QOS_WMM_UAPSD_MASK_DEFAULT         (0)
+#define CFG_TDLS_QOS_WMM_UAPSD_MASK_MAX             (0x0F)
+#define CFG_TDLS_QOS_WMM_UAPSD_MASK_DEFAULT         (0x0F)
 
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE          "gEnableTDLSBufferSta"
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MIN      (0)
 #define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_MAX      (1)
-/* Buffer STA is not enabled in CLD 2.0 yet */
-#define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_DEFAULT  (0)
+#define CFG_TDLS_BUFFER_STA_SUPPORT_ENABLE_DEFAULT  (1)
 
 #define CFG_TDLS_PUAPSD_INACTIVITY_TIME             "gTDLSPuapsdInactivityTime"
 #define CFG_TDLS_PUAPSD_INACTIVITY_TIME_MIN         (0)
@@ -2025,6 +2024,11 @@ typedef enum
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MAX      (1)
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_DEFAULT  (0)
 
+#define CFG_TDLS_WMM_MODE_ENABLE                     "gEnableTDLSWmmMode"
+#define CFG_TDLS_WMM_MODE_ENABLE_MIN                 (0)
+#define CFG_TDLS_WMM_MODE_ENABLE_MAX                 (1)
+#define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (0)
+
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (0)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
@@ -2041,7 +2045,7 @@ typedef enum
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW          "gTDLSPrefOffChanBandwidth"
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (0)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (0x0F)
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (0x02)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (0x07)
 #endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
@@ -3227,6 +3231,7 @@ typedef struct
    v_U32_t                     fTDLSPuapsdPTRTimeout;
    v_BOOL_t                    fTDLSExternalControl;
    v_U32_t                     fEnableTDLSOffChannel;
+   v_U32_t                     fEnableTDLSWmmMode;
    v_U8_t                      fTDLSPrefOffChanNum;
    v_U8_t                      fTDLSPrefOffChanBandwidth;
 #endif

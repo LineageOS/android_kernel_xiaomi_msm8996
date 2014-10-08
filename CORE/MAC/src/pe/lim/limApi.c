@@ -552,6 +552,13 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
        limLog(pMac, LOGP, FL("cfg get LimTDLSUapsdMask failed"));
        return eSIR_FAILURE;
    }
+
+   if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_TDLS_WMM_MODE_ENABLED,
+                       (tANI_U32 *) &pMac->lim.gLimTDLSWmmMode))
+   {
+       limLog(pMac, LOGP, FL("cfg get LimTDLSWmmMode failed"));
+       return eSIR_FAILURE;
+   }
 #endif
    return eSIR_SUCCESS;
 }

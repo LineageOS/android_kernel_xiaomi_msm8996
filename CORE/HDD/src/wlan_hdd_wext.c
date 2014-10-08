@@ -374,13 +374,15 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_MTRACE_DUMP_CMD    8
 #define WE_MTRACE_SELECTIVE_MODULE_LOG_ENABLE_CMD    9
 
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+#define WE_LED_FLASHING_PARAM    10
+#endif
 #ifdef FEATURE_WLAN_TDLS
 #undef  MAX_VAR_ARGS
 #define MAX_VAR_ARGS         11
 #else
 #define MAX_VAR_ARGS         7
 #endif
-
 
 /* Private ioctls (with no sub-ioctls) */
 /* note that they must be odd so that they have "get" semantics */
@@ -7670,6 +7672,31 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                 }
             }
         break;
+
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+        case WE_LED_FLASHING_PARAM:
+            {
+                int i;
+                if (num_args != 4) {
+                    hddLog(LOGE,
+                          FL("gpio_control: 4 parameters are required"));
+                    return -EINVAL;
+                }
+
+                for (i = 0; i < num_args; i++) {
+                    if (apps_args[i] >= 0x7fffffff) {
+                        hddLog(LOGE,
+                               FL("gpio_control: parameter should be less than 0x7fffffff"));
+                        return -EINVAL;
+                    }
+                }
+                sme_SetLedFlashing(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                    0, apps_args[0], apps_args[1]);
+                sme_SetLedFlashing(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                    1, apps_args[2], apps_args[3]);
+            }
+            break;
+#endif
         default:
             {
                 hddLog(LOGE, FL("Invalid IOCTL command %d"), sub_cmd );
@@ -10648,6 +10675,13 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0,
         "setUnitTestCmd" },
+
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+    {   WE_LED_FLASHING_PARAM,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0,
+        "gpio_control" },
+#endif
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_ADD_TSPEC,

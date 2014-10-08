@@ -158,6 +158,16 @@ hif_pci_interrupt_handler(int irq, void *arg)
                 A_PCI_READ32(sc->mem + PCIE_LOCAL_BASE_ADDRESS
                     + PCIE_SOC_WAKE_ADDRESS));
 
+            pr_err("%s: 0x80008 = 0x%08x, 0x8000c = 0x%08x, "
+                "0x80010 = 0x%08x,\n0x80014 = 0x%08x, 0x80018 = 0x%08x, "
+                "0x8001c = 0x%08x\n", __func__,
+                A_PCI_READ32(sc->mem + 0x80008),
+                A_PCI_READ32(sc->mem + 0x8000c),
+                A_PCI_READ32(sc->mem + 0x80010),
+                A_PCI_READ32(sc->mem + 0x80014),
+                A_PCI_READ32(sc->mem + 0x80018),
+                A_PCI_READ32(sc->mem + 0x8001c));
+
             VOS_BUG(0);
         }
 

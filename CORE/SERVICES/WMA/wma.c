@@ -21978,6 +21978,52 @@ static int wma_process_dhcpserver_offload(tp_wma_handle wma_handle,
 }
 #endif /* DHCP_SERVER_OFFLOAD */
 
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+VOS_STATUS wma_set_led_flashing(tp_wma_handle wma_handle,
+				tSirLedFlashingReq *flashing)
+{
+	wmi_set_led_flashing_cmd_fixed_param *cmd;
+	int status = 0;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int32_t len = sizeof(wmi_set_led_flashing_cmd_fixed_param);
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+	if (!flashing) {
+		WMA_LOGE(FL("invalid parameter: flashing"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_set_led_flashing_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_set_led_flashing_cmd_fixed_param));
+	cmd->pattern_id = flashing->pattern_id;
+	cmd->led_x0 = flashing->led_x0;
+	cmd->led_x1 = flashing->led_x1;
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_PDEV_SET_LED_FLASHING_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("%s: wmi_unified_cmd_send WMI_PEER_SET_PARAM_CMD"
+			" returned Error %d",
+			__func__, status);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -22559,6 +22605,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* DHCP_SERVER_OFFLOAD */
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+		case WDA_LED_FLASHING_REQ:
+			wma_set_led_flashing(wma_handle,
+				(tSirLedFlashingReq *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
