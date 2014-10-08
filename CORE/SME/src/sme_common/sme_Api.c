@@ -11160,6 +11160,7 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     }
     return(status);
 }
+#endif /* FEATURE_WLAN_TDLS */
 
 eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *plsContext,
                             void (*pCallbackfn)(tSirLinkSpeedInfo *indParam, void *pContext) )
@@ -11200,7 +11201,6 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
     }
     return(status);
 }
-#endif /* FEATURE_WLAN_TDLS */
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
     \API to Check if PMC state is BMPS.
@@ -14085,5 +14085,57 @@ eHalStatus sme_SetScanningMacOui(tHalHandle hHal, tSirScanMacOui *pScanMacOui)
     }
     return status;
 }
-
 #endif
+
+#ifdef DHCP_SERVER_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_setDhcpSrvOffload
+    \brief  SME API to set DHCP server offload info
+    \param  hHal
+    \param  pDhcpSrvInfo : DHCP server offload info struct
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
+                                tSirDhcpSrvOffloadInfo *pDhcpSrvInfo)
+{
+    vos_msg_t vosMessage;
+    tSirDhcpSrvOffloadInfo *pSmeDhcpSrvInfo;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pSmeDhcpSrvInfo = vos_mem_malloc(sizeof(*pSmeDhcpSrvInfo));
+
+    if (!pSmeDhcpSrvInfo) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to allocate memory for WDA_SET_DHCP_SERVER_OFFLOAD_CMD",
+         __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pSmeDhcpSrvInfo = *pDhcpSrvInfo;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_DHCP_SERVER_OFFLOAD_CMD;
+        vosMessage.bodyptr  = pSmeDhcpSrvInfo;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to post WDA_SET_DHCP_SERVER_OFFLOAD_CMD to WDA!",
+                __func__);
+            vos_mem_free(pSmeDhcpSrvInfo);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: sme_AcquireGlobalLock error!",
+                       __func__);
+        vos_mem_free(pSmeDhcpSrvInfo);
+    }
+
+    return (status);
+}
+#endif /* DHCP_SERVER_OFFLOAD */

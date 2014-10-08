@@ -512,7 +512,8 @@ typedef enum {
     WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_key_material,
-    WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -703,7 +704,8 @@ typedef enum {
     OP(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID) \
     OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)\
     OP(WMI_SCAN_PROB_REQ_OUI_CMDID) \
-    OP(WMI_TDLS_SET_OFFCHAN_MODE_CMDID)
+    OP(WMI_TDLS_SET_OFFCHAN_MODE_CMDID)\
+    OP(WMI_PDEV_SET_LED_FLASHING_CMDID)
 
 
 
@@ -1948,6 +1950,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 #define WMITLV_TABLE_WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID(id,op,buf,len)                                                         \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param, wmi_ipa_offload_enable_disable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID);
+
+/* Set LED flashing parameter Cmd */
+#define WMITLV_TABLE_WMI_PDEV_SET_LED_FLASHING_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param, wmi_set_led_flashing_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_FLASHING_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 

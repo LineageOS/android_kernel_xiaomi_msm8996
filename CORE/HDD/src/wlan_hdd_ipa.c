@@ -1026,7 +1026,7 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 			ipa_stat.rx_ch_stats.num_unexpected_db,
 			ipa_stat.rx_ch_stats.num_bam_int_handled);
 	}
-	vos_mem_free(op_msg);
+	adf_os_mem_free(op_msg);
 }
 
 static hdd_adapter_t *hdd_ipa_uc_get_adapter(struct hdd_ipa_priv *hdd_ipa,

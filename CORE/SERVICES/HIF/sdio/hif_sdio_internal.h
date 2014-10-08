@@ -34,7 +34,7 @@
 #include "htc_api.h"
 
 
-#define HIF_SDIO_RX_BUFFER_SIZE            1664
+#define HIF_SDIO_RX_BUFFER_SIZE            1792
 #define HIF_SDIO_RX_DATA_OFFSET            64
 
 /* TODO: print output level and mask control */

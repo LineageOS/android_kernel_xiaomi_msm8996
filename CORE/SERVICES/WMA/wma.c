@@ -21938,6 +21938,46 @@ VOS_STATUS  wma_scan_probe_setoui(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef DHCP_SERVER_OFFLOAD
+static int wma_process_dhcpserver_offload(tp_wma_handle wma_handle,
+				tSirDhcpSrvOffloadInfo *pDhcpSrvOffloadInfo)
+{
+	wmi_set_dhcp_server_offload_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_dhcp_server_offload cmd");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_set_dhcp_server_offload_cmd_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_set_dhcp_server_offload_cmd_fixed_param));
+	cmd->vdev_id = pDhcpSrvOffloadInfo->vdev_id;
+	cmd->enable = pDhcpSrvOffloadInfo->dhcpSrvOffloadEnabled;
+	cmd->num_client = pDhcpSrvOffloadInfo->dhcpClientNum;
+	cmd->srv_ipv4 = pDhcpSrvOffloadInfo->dhcpSrvIP;
+	cmd->start_lsb = 0;
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_dhcp_server_offload cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Set dhcp server offload to vdevId %d",
+		pDhcpSrvOffloadInfo->vdev_id);
+	return 0;
+}
+#endif /* DHCP_SERVER_OFFLOAD */
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -22512,6 +22552,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_get_temperature(wma_handle);
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef DHCP_SERVER_OFFLOAD
+		case WDA_SET_DHCP_SERVER_OFFLOAD_CMD:
+			wma_process_dhcpserver_offload(wma_handle,
+				(tSirDhcpSrvOffloadInfo *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif /* DHCP_SERVER_OFFLOAD */
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -24326,8 +24373,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->en_roam_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 	                                      WMI_SERVICE_ROAM_HO_OFFLOAD);
 #endif
+#ifdef WLAN_FEATURE_NAN
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NAN))
 		gFwWlanFeatCaps |= (1 << NAN);
+#endif
 
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_RTT))
 		gFwWlanFeatCaps |= (1 << RTT);

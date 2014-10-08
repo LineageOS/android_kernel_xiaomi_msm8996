@@ -245,6 +245,8 @@ typedef enum {
     WMI_PDEV_SET_LED_CONFIG_CMDID,
     /* Get Current temprature of chip in Celcius degree*/
     WMI_PDEV_GET_TEMPERATURE_CMDID,
+    /* Set LED flashing behavior  */
+    WMI_PDEV_SET_LED_FLASHING_CMDID,
 
     /* VDEV(virtual device) specific commands */
     /** vdev create */
@@ -8911,6 +8913,28 @@ typedef struct {
     A_UINT32 vdev_id;
     A_UINT32 enable; /* 1 == enable, 0 == disable */
 } wmi_ipa_offload_enable_disable_cmd_fixed_param;
+
+typedef enum {
+    WMI_LED_FLASHING_PATTERN_NOT_CONNECTED    = 0,
+    WMI_LED_FLASHING_PATTERN_CONNECTED   = 1,
+    WMI_LED_FLASHING_PATTERN_RESERVED    = 2,
+} wmi_set_led_flashing_type;
+
+/**
+The state of the LED GPIO control is determined by two 32 bit values(X_0 and X_1) to produce a 64 bit value.
+Each 32 bit value consists of 4 bytes, where each byte defines the number of 50ms intervals that the GPIO will
+remain at a predetermined state. The 64 bit value provides 8 unique GPIO timing intervals. The pattern starts
+with the MSB of X_0 and continues to the LSB of X_1. After executing the timer interval of the LSB of X_1, the
+pattern returns to the MSB of X_0 and repeats. The GPIO state for each timing interval  alternates from Low to
+High and the first interval of the pattern represents the time when the GPIO is Low. When a timing interval of
+Zero is reached, it is skipped and moves on to the next interval.
+*/
+typedef struct{
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param  */
+    A_UINT32    pattern_id; /* pattern identifier */
+    A_UINT32    led_x0; /* led flashing parameter0 */
+    A_UINT32    led_x1; /* led flashing parameter1 */
+} wmi_set_led_flashing_cmd_fixed_param;
 
 #ifdef __cplusplus
 }

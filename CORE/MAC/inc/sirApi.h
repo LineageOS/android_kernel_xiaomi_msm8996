@@ -5511,6 +5511,16 @@ typedef struct sAniGetLinkStatus
     tANI_U8 sessionId;
 } tAniGetLinkStatus, *tpAniGetLinkStatus;
 
+#ifdef DHCP_SERVER_OFFLOAD
+typedef struct
+{
+    tANI_U32 vdev_id;
+    tANI_U32 dhcpSrvOffloadEnabled;
+    tANI_U32 dhcpClientNum;
+    tANI_U32 dhcpSrvIP;
+} tSirDhcpSrvOffloadInfo, *tpSirDhcpSrvOffloadInfo;
+#endif /* DHCP_SERVER_OFFLOAD */
+
 /* find the size of given member within a structure */
 #ifndef member_size
 #define member_size(type, member) (sizeof(((type *)0)->member))

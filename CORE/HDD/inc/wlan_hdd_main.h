@@ -59,9 +59,7 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "wlan_hdd_cfg80211.h"
-#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 #include <adf_os_defer.h>
-#endif
 #ifdef WLAN_FEATURE_MBSSID
 #include "sapApi.h"
 #endif

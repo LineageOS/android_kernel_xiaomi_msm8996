@@ -33,6 +33,14 @@ ifeq ($(KERNEL_BUILD), 0)
 	# These are configurable via Kconfig for kernel-based builds
 	# Need to explicitly configure for Android-based builds
 
+	ifeq ($(CONFIG_ARCH_MDM9630), y)
+	CONFIG_MOBILE_ROUTER := y
+	endif
+
+	ifeq ($(CONFIG_ARCH_MSMZIRC), y)
+	CONFIG_MOBILE_ROUTER := y
+	endif
+
 	#Flag to enable Legacy Fast Roaming3(LFR3)
 	CONFIG_QCACLD_WLAN_LFR3 := y
 
@@ -49,22 +57,27 @@ ifeq ($(KERNEL_BUILD), 0)
 	ifeq ($(CONFIG_ROME_IF),sdio)
 		CONFIG_PRIMA_WLAN_11AC_HIGH_TP := n
 	endif
+
+	ifneq ($(CONFIG_MOBILE_ROUTER), y)
 	#Flag to enable TDLS feature
 	CONFIG_QCOM_TDLS := y
+	endif
 
 	#Flag to enable Fast Transition (11r) feature
 	CONFIG_QCOM_VOWIFI_11R := y
 
-        ifneq ($(CONFIG_QCA_CLD_WLAN),)
-                ifeq ($(CONFIG_CNSS),y)
-        #Flag to enable Protected Managment Frames (11w) feature
-                CONFIG_WLAN_FEATURE_11W := y
-        #Flag to enable LTE CoEx feature
-                CONFIG_QCOM_LTE_COEX := y
-        #Flag to enable LPSS feature
+	ifneq ($(CONFIG_QCA_CLD_WLAN),)
+        ifeq ($(CONFIG_CNSS),y)
+		#Flag to enable Protected Managment Frames (11w) feature
+		CONFIG_WLAN_FEATURE_11W := y
+		#Flag to enable LTE CoEx feature
+		CONFIG_QCOM_LTE_COEX := y
+		ifneq ($(CONFIG_MOBILE_ROUTER), y)
+                #Flag to enable LPSS feature
                 CONFIG_WLAN_FEATURE_LPSS := y
-                endif
-        endif
+		endif
+	endif
+	endif
 
 
         #Flag to enable Protected Managment Frames (11w) feature
@@ -75,8 +88,10 @@ ifeq ($(KERNEL_BUILD), 0)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
 
-	#Flag to enable NAN
-	CONFIG_FEATURE_NAN := y
+        ifneq ($(CONFIG_MOBILE_ROUTER), y)
+        #Flag to enable NAN
+        CONFIG_FEATURE_NAN := y
+        endif
 
         #Flag to enable Linux QCMBR feature as default feature
         ifeq ($(CONFIG_ROME_IF),usb)
@@ -88,10 +103,12 @@ ifeq ($(CONFIG_X86), y)
 CONFIG_NON_QC_PLATFORM := y
 endif
 
+ifneq ($(CONFIG_MOBILE_ROUTER), y)
 # To enable ESE upload, dependent config
 # CONFIG_QCOM_ESE must be enabled.
 CONFIG_QCOM_ESE := y
 CONFIG_QCOM_ESE_UPLOAD := y
+endif
 
 # Feature flags which are not (currently) configurable via Kconfig
 
@@ -166,8 +183,10 @@ ifeq ($(CONFIG_ROME_IF),usb)
 #CONFIG_ATH_PCI := 1
 endif
 
+ifneq ($(CONFIG_MOBILE_ROUTER), y)
 #Enable IBSS support on CLD
 CONFIG_QCA_IBSS_SUPPORT := 1
+endif
 
 #Enable power management suspend/resume functionality to PCI
 CONFIG_ATH_BUS_PM := 1
@@ -899,6 +918,7 @@ endif
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 CDEFINES += -DFEATURE_WLAN_FORCE_SAP_SCC
+CDEFINES += -DDHCP_SERVER_OFFLOAD
 endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)
@@ -1145,8 +1165,10 @@ CDEFINES += -DIPA_OFFLOAD -DHDD_IPA_USE_IPA_RM_TIMER
 endif
 
 ifneq ($(CONFIG_ARCH_MDM9630), y)
+ifneq ($(CONFIG_ARCH_MSMZIRC), y)
 ifeq ($(CONFIG_IPA_UC_OFFLOAD), 1)
 CDEFINES += -DIPA_UC_OFFLOAD
+endif
 endif
 endif
 
@@ -1166,42 +1188,45 @@ ifeq ($(CONFIG_SMP),y)
 CDEFINES += -DQCA_CONFIG_SMP
 endif
 
-#features specific to mdm9630
-ifeq ($(CONFIG_ARCH_MDM9630), y)
+#features specific to mobile router use case
+ifeq ($(CONFIG_MOBILE_ROUTER), y)
 
 #enable MCC TO SCC switch
 CDEFINES += -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
 
-#enable wlan auto shutdown feature for mdm9630
+#enable wlan auto shutdown feature
 CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
 
 #enable for MBSSID
 CDEFINES += -DWLAN_FEATURE_MBSSID
 
-#enable AP-AP ACS Optimization for MDM
+#enable AP-AP ACS Optimization
 CDEFINES += -DFEATURE_WLAN_AP_AP_ACS_OPTIMIZE
 
 #Green AP feature
 CDEFINES += -DFEATURE_GREEN_AP
 
-#Enable 4address scheme for mdm9630
+#Enable 4address scheme
 CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
 
 #Disable STA-AP Mode DFS support
 CDEFINES += -DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
 
-#Enable OBSS feature for mdm9630
+#Enable OBSS feature
 CDEFINES += -DQCA_HT_2040_COEX
 
 else
 
-#Open P2P device interface only for non-MDM9630 platform
+#Open P2P device interface only for non-Mobile router use cases
 CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
 
 #Enable 2.4 GHz social channels in 5 GHz only mode for p2p usage
 CDEFINES += -DWLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
 
-#Enable RX Full re-order OL feature only "LL and NON-MDM platform"
+endif
+
+#Enable RX Full re-order OL feature
+ifneq ($(CONFIG_ARCH_MDM9630), y)
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DWLAN_FEATURE_RX_FULL_REORDER_OL
 endif
