@@ -1996,10 +1996,6 @@ vos_fetch_tl_cfg_parms
    return;
   }
 
-  pTLConfig->ucReorderAgingTime[0] = pConfig->BkReorderAgingTime;/*WLANTL_AC_BK*/
-  pTLConfig->ucReorderAgingTime[1] = pConfig->BeReorderAgingTime;/*WLANTL_AC_BE*/
-  pTLConfig->ucReorderAgingTime[2] = pConfig->ViReorderAgingTime;/*WLANTL_AC_VI*/
-  pTLConfig->ucReorderAgingTime[3] = pConfig->VoReorderAgingTime;/*WLANTL_AC_VO*/
   pTLConfig->uDelayedTriggerFrmInt = pConfig->DelayedTriggerFrmInt;
   pTLConfig->uMinFramesProcThres = pConfig->MinFramesProcThres;
   pTLConfig->ip_checksum_offload = pConfig->enableIPChecksumOffload;
