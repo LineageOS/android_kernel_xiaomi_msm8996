@@ -3380,13 +3380,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
 
-   REG_VARIABLE( CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, gEnableStrictRegulatoryForFCC,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_DEFAULT,
-                 CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MIN,
-                 CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MAX ),
-
    REG_VARIABLE( CFG_SAP_MAX_OFFLOAD_PEERS, WLAN_PARAM_Integer,
                  hdd_config_t, apMaxOffloadPeers,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
