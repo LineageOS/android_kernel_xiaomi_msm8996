@@ -1992,6 +1992,16 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          (pMac->lim.gLimMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)))
     {
         //Hold onto the oem data request criteria
+
+        /*
+         * Free gpLimMlmOemDataReq to avoid memory leak due to
+         * second OEM data request
+         */
+        if (pMac->lim.gpLimMlmOemDataReq) {
+            vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
+            pMac->lim.gpLimMlmOemDataReq = NULL;
+        }
+
         pMac->lim.gpLimMlmOemDataReq = (tLimMlmOemDataReq*)pMsgBuf;
 
         pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;

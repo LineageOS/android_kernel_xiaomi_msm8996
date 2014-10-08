@@ -844,6 +844,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     }
                 }
 
+                if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
+                    psessionEntry->htSupportedChannelWidthSet = 0;
                 /* All the translation is done by now for gVhtChannelWidth
                  * from .ini file to the actual values as defined in spec.
                  * So, grabing the spec value which is

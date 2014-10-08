@@ -160,7 +160,7 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus  status = eHAL_STATUS_SUCCESS;
     tCsrRoamInfo pRoamInfo = {0};
-    tANI_U8 i;
+    tANI_U8 i = 0;
     tANI_U32 SessionId = pSmeMgmtFrm->sessionId;
 
     pRoamInfo.nFrameLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
@@ -180,6 +180,10 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
        }
     }
 
+    if (i == CSR_ROAM_SESSION_MAX) {
+        smsLog(pMac, LOGE, FL("No valid sessions found."));
+        return eHAL_STATUS_FAILURE;
+    }
     /* forward the mgmt frame to HDD */
     csrRoamCallCallback(pMac, SessionId, &pRoamInfo, 0, eCSR_ROAM_INDICATE_MGMT_FRAME, 0);
 
