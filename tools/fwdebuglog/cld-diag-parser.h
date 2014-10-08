@@ -31,6 +31,10 @@
 #define FEATURE_LOG_EXPOSED_HEADER
 
 #include <stdint.h>
+#ifndef __KERNEL__
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif // __KERNEL__
 #include "event.h"
 #include "msg.h"
 #include "log.h"
@@ -38,11 +42,6 @@
 #include "diagpkt.h"
 #include "diagcmd.h"
 #include "diag.h"
-
-#ifdef ANDROID
-#include "aniNlMsg.h"
-#include "aniNlFuncs.h"
-#endif
 
 /* KERNEL DEFS START */
 #define DBGLOG_MAX_VDEVID 15 /* 0-15 */
@@ -144,6 +143,8 @@
 #define SIZEOF_NL_MSG_UNLOAD   28 /* sizeof nlmsg and Unload length */
 #define DIAG_TYPE_LOGS   1
 #define DIAG_TYPE_EVENTS 2
+/* General purpose MACROS to handle the WNI Netlink msgs */
+#define ANI_NL_MASK        3
 
 /* Debug Log levels*/
 
@@ -176,6 +177,34 @@ enum wlan_diag_frame_type {
     WLAN_DIAG_TYPE_LEGACY_MSG,
 };
 
+/*
+ * The following enum defines the target kernel module for which the netlink
+ * message is intended for. Each kernel module along with its counterpart
+ * in the user space, will then define a set of messages they recognize.
+ * Each of this message will have an header of type tAniHdr define below.
+ * Each Netlink message to/from a kernel module will contain only one
+ * message which is preceded by a tAniHdr.
+ *
+ *         +------------+-------+-------+----------+
+ *         |Netlink hdr | Align |tAniHdr| msg body |
+ *         +------------+-------+-------|----------+
+ */
+#define ANI_NL_MSG_BASE     0x10    /* Some arbitrary base */
+typedef enum eAniNlModuleTypes {
+    ANI_NL_MSG_NETSIM = ANI_NL_MSG_BASE,// NetSim Messages (to the server)
+    ANI_NL_MSG_PUMAC,       // Messages for/from the Upper MAC driver
+    ANI_NL_MSG_WNS,         // Messages for the Wireless Networking
+                            //  Services module(s)
+    ANI_NL_MSG_MACSW,       // Messages from MAC
+    ANI_NL_MSG_ES,          // Messages from ES
+    ANI_NL_MSG_WSM,         // Message from the WSM in user space
+    ANI_NL_MSG_DVT,         // Message from the DVT application
+    ANI_NL_MSG_PTT,         // Message from the PTT application
+    ANI_NL_MSG_MAC_CLONE,     //Message from the Mac clone App
+    ANI_NL_MSG_LOG = ANI_NL_MSG_BASE + 0x0C, // Message for WLAN logging
+    ANI_NL_MSG_MAX
+} tAniNlModTypes;
+
 struct dbglog_slot {
     unsigned int diag_type;
     unsigned int timestamp;
@@ -196,9 +225,54 @@ typedef struct wlan_bringup_s {
     char driverVersion[10];
 } wlan_bringup_t;
 
+//All Netlink messages must contain this header
+typedef struct sAniHdr {
+   unsigned short type;
+   unsigned short length;
+} tAniHdr, tAniMsgHdr;
+
+/*
+ * This msg hdr will always follow tAniHdr in all the messages exchanged
+ * between the Applications in userspace the Pseudo Driver, in either
+ * direction.
+ */
+typedef struct sAniNlMsg {
+    struct  nlmsghdr nlh;   // Netlink Header
+    int radio;          // unit number of the radio
+    tAniHdr wmsg;       // Airgo Message Header
+} tAniNlHdr;
+
+typedef struct sAniAppRegReq {
+    tAniNlModTypes type;    /* The module id that the application is
+                    registering for */
+    int pid;            /* Pid returned in the nl_sockaddr structure
+                    in the call getsockbyname after the
+                    application opens and binds a netlink
+                    socket */
+} tAniNlAppRegReq;
+
 static inline unsigned int get_32(const unsigned char *pos)
 {
     return pos[0] | (pos[1] << 8) | (pos[2] << 16) | (pos[3] << 24);
+}
+
+static inline unsigned int aniNlAlign(unsigned int len)
+{
+    return ((len + ANI_NL_MASK) & ~ANI_NL_MASK);
+}
+
+static inline void *aniNlAlignBuf(void *buf)
+{
+    return (void *)aniNlAlign((unsigned int)buf);
+}
+
+/*
+ * Determines the aligned length of the WNI MSG including the hdr
+ * for a given payload of length 'len'.
+ */
+static inline unsigned int aniNlLen(unsigned int len)
+{
+    return  (aniNlAlign(sizeof(tAniHdr)) + len);
 }
 
 /* KENEL DEFS END */
