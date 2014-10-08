@@ -261,9 +261,6 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-  /*AC weight for WFQ*/
-  v_U8_t   ucAcWeights[WLANTL_MAX_AC];
-
   /*Delayed trigger frame timmer: - used by TL to send trigger frames less
     often when it has established that the App is suspended*/
   v_U32_t  uDelayedTriggerFrmInt;

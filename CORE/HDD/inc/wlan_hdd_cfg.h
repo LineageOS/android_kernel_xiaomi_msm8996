@@ -938,26 +938,6 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_SBA_AC_BK_DEFAULT                 (0x2001)
 
 // TL configuration
-#define CFG_TL_WFQ_BK_WEIGHT_NAME                           "WfqBkWeight"
-#define CFG_TL_WFQ_BK_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_BK_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_BK_WEIGHT_DEFAULT                        1
-
-#define CFG_TL_WFQ_BE_WEIGHT_NAME                           "WfqBeWeight"
-#define CFG_TL_WFQ_BE_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_BE_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_BE_WEIGHT_DEFAULT                        3
-
-#define CFG_TL_WFQ_VI_WEIGHT_NAME                           "WfqViWeight"
-#define CFG_TL_WFQ_VI_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_VI_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VI_WEIGHT_DEFAULT                        5
-
-#define CFG_TL_WFQ_VO_WEIGHT_NAME                           "WfqVoWeight"
-#define CFG_TL_WFQ_VO_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_VO_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VO_WEIGHT_DEFAULT                        7
-
 #define CFG_TL_DELAYED_TRGR_FRM_INT_NAME                   "DelayedTriggerFrmInt"
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MIN                     1
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MAX                     (4294967295UL)
@@ -3035,10 +3015,6 @@ typedef struct
    v_U16_t                      InfraSbaAcBk;
 
    /* TL related configuration */
-   v_U8_t                       WfqBkWeight;
-   v_U8_t                       WfqBeWeight;
-   v_U8_t                       WfqViWeight;
-   v_U8_t                       WfqVoWeight;
    v_U32_t                      DelayedTriggerFrmInt;
    v_U16_t                      BkReorderAgingTime;
    v_U16_t                      BeReorderAgingTime;
