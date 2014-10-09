@@ -470,6 +470,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     vos_timer_t pmfComebackTimer;
     tComebackTimerInfo pmfComebackTimerInfo;
 #endif /* WLAN_FEATURE_11W */
+    tANI_U8  isKeyInstalled;
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------
