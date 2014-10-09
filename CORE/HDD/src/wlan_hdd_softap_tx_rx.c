@@ -1482,15 +1482,6 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
       return vosStatus;
    }
 
-   //Timer value should be in milliseconds
-   if ( pHddCtx->cfg_ini->dynSplitscan &&
-      ( VOS_TIMER_STATE_RUNNING !=
-                      vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)))
-   {
-        vos_timer_start(&pHddCtx->tx_rx_trafficTmr,
-                        pHddCtx->cfg_ini->trafficMntrTmrForSplitScan);
-   }
-
    // if ( WPA ), tell TL to go to 'connected' and after keys come to the driver,
    // then go to 'authenticated'.  For all other authentication types (those that do
    // not require upper layer authentication) we can put TL directly into 'authenticated'

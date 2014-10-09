@@ -1098,7 +1098,6 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    v_BOOL_t  fConnected;
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   hdd_config_t *cfg_param = pHddCtx->cfg_ini;
 
    if ( NULL == pBssDesc)
    {
@@ -1240,14 +1239,6 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
                  "WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08X]",
                  vosStatus, vosStatus );
       return vosStatus;
-   }
-
-   if ( cfg_param->dynSplitscan &&
-      ( VOS_TIMER_STATE_RUNNING !=
-                      vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)))
-   {
-       vos_timer_start(&pHddCtx->tx_rx_trafficTmr,
-                       cfg_param->trafficMntrTmrForSplitScan);
    }
 
    // if (WPA), tell TL to go to 'connected' and after keys come to the driver,
@@ -2509,8 +2500,6 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
     WLAN_STADescType staDesc = {0};
     eCsrEncryptionType connectedCipherAlgo = eCSR_ENCRYPT_TYPE_UNKNOWN;
     v_BOOL_t fConnected   = FALSE;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    hdd_config_t *cfg_param = pHddCtx->cfg_ini;
 
     fConnected = hdd_connGetConnectedCipherAlgo( pHddStaCtx, &connectedCipherAlgo );
     if (!fConnected) {
@@ -2598,13 +2587,6 @@ VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
          return vosStatus;
     }
 
-    if ( cfg_param->dynSplitscan &&
-       ( VOS_TIMER_STATE_RUNNING !=
-                        vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)) )
-    {
-        vos_timer_start(&pHddCtx->tx_rx_trafficTmr,
-                        cfg_param->trafficMntrTmrForSplitScan);
-    }
     return( vosStatus );
 }
 

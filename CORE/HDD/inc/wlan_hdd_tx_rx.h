@@ -265,14 +265,6 @@ VOS_STATUS hdd_Ibss_GetStaId(hdd_station_ctx_t *pHddStaCtx,
                                   v_MACADDR_t *pMacAddress, v_U8_t *staId);
 
 /**============================================================================
-  @brief hdd_tx_rx_pkt_cnt_stat_timer_handler() -
-                    Timer handler to check enable/disable split scan
-  @param pHddStaCtx : Hdd adapter
-  @return    : VOS_STATUS_SUCCESS/VOS_STATUS_E_FAILURE
-  ===========================================================================*/
-void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *pAdapter);
-
-/**============================================================================
   @brief hdd_flush_ibss_tx_queues() -
                     Flush tx queues in IBSS mode
   @param pAdapter: Hdd adapter
