@@ -2592,7 +2592,6 @@ typedef struct
    //Config parameters
    v_U32_t       RTSThreshold;
    v_U32_t       FragmentationThreshold;
-   v_U32_t       nCheckForHangTime;
    v_U8_t        OperatingChannel;
    v_BOOL_t      ShortSlotTimeEnabled;
    v_BOOL_t      Is11dSupportEnabled;
@@ -2605,10 +2604,10 @@ typedef struct
    char          PowerUsageControl[4];
    v_U8_t        nEnableSuspend;
    v_U8_t        nEnableDriverStop;
-   v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
    v_U32_t       mwsCoexConfig[6];
+   v_BOOL_t      fIsImpsEnabled;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -2622,9 +2621,7 @@ typedef struct
    v_U32_t       nChannelBondingMode24GHz;
    v_U32_t       nChannelBondingMode5GHz;
    v_U32_t       MaxRxAmpduFactor;
-   v_U32_t       nBAAgingTimerInterval;
    v_U16_t       TxRate;
-   v_U32_t       AdaptiveThresholdAlgo;
    v_U32_t       ShortGI20MhzEnable;
    v_U32_t       BlockAckAutoSetup;
    v_U32_t       ScanResultAgeCount;
@@ -2860,14 +2857,14 @@ typedef struct
    v_U8_t                      ShortGI40MhzEnable;
    eHddLinkSpeedReportType     reportMaxLinkSpeed;
    v_S31_t                     linkSpeedRssiHigh;
+   v_S31_t                     linkSpeedRssiMid;
+   v_S31_t                     linkSpeedRssiLow;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
    v_BOOL_t                    nRoamPrefer5GHz;
    v_BOOL_t                    nRoamIntraBand;
    v_U8_t                      nProbes;
    v_U16_t                     nRoamScanHomeAwayTime;
 #endif
-   v_S31_t                     linkSpeedRssiMid;
-   v_S31_t                     linkSpeedRssiLow;
    v_U8_t                      enableMCC;
    v_U8_t                      allowMCCGODiffBI;
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
