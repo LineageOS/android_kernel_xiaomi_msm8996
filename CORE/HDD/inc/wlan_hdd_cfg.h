@@ -968,139 +968,6 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
-#define CFG_BTC_DHCP_PROTECTION_NAME                         "BtcConsBtSlotToBlockDuringDhcp"
-#define CFG_BTC_DHCP_PROTECTION_MIN                          ( 0 )
-#define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
-#define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
-
-#define CFG_BTC_A2DP_DHCP_PROTECTION_NAME                    "BtcA2DPDhcpProtectLevel"
-#define CFG_BTC_A2DP_DHCP_PROTECTION_MIN                     ( 0 )
-#define CFG_BTC_A2DP_DHCP_PROTECTION_MAX                     ( 0xFF )
-#define CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT                 ( 7 )
-
-#define CFG_BTC_STATIC_LEN_INQ_BT_NAME       "btcStaticLenInqBt"
-#define CFG_BTC_STATIC_LEN_INQ_BT_MIN        ( 5000 )
-#define CFG_BTC_STATIC_LEN_INQ_BT_MAX        ( 500000 )
-#define CFG_BTC_STATIC_LEN_INQ_BT_DEFAULT    ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_PAGE_BT_NAME      "btcStaticLenPageBt"
-#define CFG_BTC_STATIC_LEN_PAGE_BT_MIN       ( 5000 )
-#define CFG_BTC_STATIC_LEN_PAGE_BT_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_PAGE_BT_DEFAULT   ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_CONN_BT_NAME      "btcStaticLenConnBt"
-#define CFG_BTC_STATIC_LEN_CONN_BT_MIN       ( 5000 )
-#define CFG_BTC_STATIC_LEN_CONN_BT_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_CONN_BT_DEFAULT   ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_LE_BT_NAME        "btcStaticLenLeBt"
-#define CFG_BTC_STATIC_LEN_LE_BT_MIN         ( 5000 )
-#define CFG_BTC_STATIC_LEN_LE_BT_MAX         ( 500000 )
-#define CFG_BTC_STATIC_LEN_LE_BT_DEFAULT     ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_NAME     "btcStaticLenInqWlan"
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_MIN      ( 0 )
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_MAX      ( 500000 )
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_DEFAULT  ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_NAME    "btcStaticLenPageWlan"
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_MIN     ( 0 )
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_MAX     ( 500000 )
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_DEFAULT ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_NAME    "btcStaticLenConnWlan"
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_MIN     ( 0 )
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_MAX     ( 500000 )
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_DEFAULT ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_LE_WLAN_NAME      "btcStaticLenLeWlan"
-#define CFG_BTC_STATIC_LEN_LE_WLAN_MIN       ( 0 )
-#define CFG_BTC_STATIC_LEN_LE_WLAN_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_LE_WLAN_DEFAULT   ( 30000 )
-
-#define CFG_BTC_DYN_MAX_LEN_BT_NAME          "btcDynMaxLenBt"
-#define CFG_BTC_DYN_MAX_LEN_BT_MIN           ( 25000 )
-#define CFG_BTC_DYN_MAX_LEN_BT_MAX           ( 500000 )
-#define CFG_BTC_DYN_MAX_LEN_BT_DEFAULT       ( 250000 )
-
-#define CFG_BTC_DYN_MAX_LEN_WLAN_NAME        "btcDynMaxLenWlan"
-#define CFG_BTC_DYN_MAX_LEN_WLAN_MIN         ( 15000 )
-#define CFG_BTC_DYN_MAX_LEN_WLAN_MAX         ( 500000 )
-#define CFG_BTC_DYN_MAX_LEN_WLAN_DEFAULT     ( 45000 )
-
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_NAME      "btcMaxScoBlockPerc"
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_MIN       ( 0 )
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_MAX       ( 100 )
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_DEFAULT   ( 1 )
-
-#define CFG_BTC_DHCP_PROT_ON_A2DP_NAME       "btcDhcpProtOnA2dp"
-#define CFG_BTC_DHCP_PROT_ON_A2DP_MIN        ( 0 )
-#define CFG_BTC_DHCP_PROT_ON_A2DP_MAX        ( 1 )
-#define CFG_BTC_DHCP_PROT_ON_A2DP_DEFAULT    ( 1 )
-
-#define CFG_BTC_DHCP_PROT_ON_SCO_NAME        "btcDhcpProtOnSco"
-#define CFG_BTC_DHCP_PROT_ON_SCO_MIN         ( 0 )
-#define CFG_BTC_DHCP_PROT_ON_SCO_MAX         ( 1 )
-#define CFG_BTC_DHCP_PROT_ON_SCO_DEFAULT     ( 0 )
-
-#define CFG_MWS_COEX_V1_WAN_FREQ_NAME        "mwsCoexVictim1WANFreq"
-#define CFG_MWS_COEX_VX_WAN_FREQ_MIN         ( 0 )
-#define CFG_MWS_COEX_VX_WAN_FREQ_MAX         ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT     ( 0 )
-
-#define CFG_MWS_COEX_V1_WLAN_FREQ_NAME       "mwsCoexVictim1WLANFreq"
-#define CFG_MWS_COEX_VX_WLAN_FREQ_MIN        ( 0 )
-#define CFG_MWS_COEX_VX_WLAN_FREQ_MAX        ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT    ( 0 )
-
-#define CFG_MWS_COEX_V1_CONFIG_NAME          "mwsCoexVictim1Config"
-#define CFG_MWS_COEX_V1_CONFIG2_NAME         "mwsCoexVictim1Config2"
-#define CFG_MWS_COEX_VX_CONFIG_MIN           ( 0 )
-#define CFG_MWS_COEX_VX_CONFIG_MAX           ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_CONFIG_DEFAULT       ( 0 )
-
-#define CFG_MWS_COEX_V2_WAN_FREQ_NAME        "mwsCoexVictim2WANFreq"
-#define CFG_MWS_COEX_V2_WLAN_FREQ_NAME       "mwsCoexVictim2WLANFreq"
-#define CFG_MWS_COEX_V2_CONFIG_NAME          "mwsCoexVictim2Config"
-#define CFG_MWS_COEX_V2_CONFIG2_NAME         "mwsCoexVictim2Config2"
-#define CFG_MWS_COEX_V3_WAN_FREQ_NAME        "mwsCoexVictim3WANFreq"
-#define CFG_MWS_COEX_V3_WLAN_FREQ_NAME       "mwsCoexVictim3WLANFreq"
-#define CFG_MWS_COEX_V3_CONFIG_NAME          "mwsCoexVictim3Config"
-#define CFG_MWS_COEX_V3_CONFIG2_NAME         "mwsCoexVictim3Config2"
-#define CFG_MWS_COEX_V4_WAN_FREQ_NAME        "mwsCoexVictim4WANFreq"
-#define CFG_MWS_COEX_V4_WLAN_FREQ_NAME       "mwsCoexVictim4WLANFreq"
-#define CFG_MWS_COEX_V4_CONFIG_NAME          "mwsCoexVictim4Config"
-#define CFG_MWS_COEX_V4_CONFIG2_NAME         "mwsCoexVictim4Config2"
-#define CFG_MWS_COEX_V5_WAN_FREQ_NAME        "mwsCoexVictim5WANFreq"
-#define CFG_MWS_COEX_V5_WLAN_FREQ_NAME       "mwsCoexVictim5WLANFreq"
-#define CFG_MWS_COEX_V5_CONFIG_NAME          "mwsCoexVictim5Config"
-#define CFG_MWS_COEX_V5_CONFIG2_NAME         "mwsCoexVictim5Config2"
-#define CFG_MWS_COEX_V6_WAN_FREQ_NAME        "mwsCoexVictim6WANFreq"
-#define CFG_MWS_COEX_V6_WLAN_FREQ_NAME       "mwsCoexVictim6WLANFreq"
-#define CFG_MWS_COEX_V6_CONFIG_NAME          "mwsCoexVictim6Config"
-#define CFG_MWS_COEX_V6_CONFIG2_NAME         "mwsCoexVictim6Config2"
-#define CFG_MWS_COEX_V7_WAN_FREQ_NAME        "mwsCoexVictim7WANFreq"
-#define CFG_MWS_COEX_V7_WLAN_FREQ_NAME       "mwsCoexVictim7WLANFreq"
-#define CFG_MWS_COEX_V7_CONFIG_NAME          "mwsCoexVictim7Config"
-#define CFG_MWS_COEX_V7_CONFIG2_NAME         "mwsCoexVictim7Config2"
-#define CFG_MWS_COEX_V8_WAN_FREQ_NAME        "mwsCoexVictim8WANFreq"
-#define CFG_MWS_COEX_V8_WLAN_FREQ_NAME       "mwsCoexVictim8WLANFreq"
-#define CFG_MWS_COEX_V8_CONFIG_NAME          "mwsCoexVictim8Config"
-#define CFG_MWS_COEX_V8_CONFIG2_NAME         "mwsCoexVictim8Config2"
-#define CFG_MWS_COEX_V9_WAN_FREQ_NAME        "mwsCoexVictim9WANFreq"
-#define CFG_MWS_COEX_V9_WLAN_FREQ_NAME       "mwsCoexVictim9WLANFreq"
-#define CFG_MWS_COEX_V9_CONFIG_NAME          "mwsCoexVictim9Config"
-#define CFG_MWS_COEX_V9_CONFIG2_NAME         "mwsCoexVictim9Config2"
-#define CFG_MWS_COEX_V10_WAN_FREQ_NAME       "mwsCoexVictim10WANFreq"
-#define CFG_MWS_COEX_V10_WLAN_FREQ_NAME      "mwsCoexVictim10WLANFreq"
-#define CFG_MWS_COEX_V10_CONFIG_NAME         "mwsCoexVictim10Config"
-#define CFG_MWS_COEX_V10_CONFIG2_NAME        "mwsCoexVictim10Config2"
-
-#define CFG_MWS_COEX_MODEM_BACKOFF_NAME      "mwsCoexModemBackoff"
-#define CFG_MWS_COEX_MODEM_BACKOFF_MIN       ( 0 )
-#define CFG_MWS_COEX_MODEM_BACKOFF_MAX       ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_MODEM_BACKOFF_DEFAULT   ( 0 )
-
 #define CFG_MWS_COEX_CONFIG1_NAME            "mwsCoexConfig1"
 #define CFG_MWS_COEX_CONFIGX_MIN             ( 0 )
 #define CFG_MWS_COEX_CONFIGX_MAX             ( 0xFFFFFFFF )
@@ -1110,11 +977,6 @@ typedef enum
 #define CFG_MWS_COEX_CONFIG4_NAME            "mwsCoexConfig4"
 #define CFG_MWS_COEX_CONFIG5_NAME            "mwsCoexConfig5"
 #define CFG_MWS_COEX_CONFIG6_NAME            "mwsCoexConfig6"
-
-#define CFG_SAR_POWER_BACKOFF_NAME           "SARPowerBackoff"
-#define CFG_SAR_POWER_BACKOFF_MIN            ( 0 )
-#define CFG_SAR_POWER_BACKOFF_MAX            ( 0xFFFFFFFF )
-#define CFG_SAR_POWER_BACKOFF_DEFAULT        ( 0 )
 
 #if defined WLAN_FEATURE_VOWIFI_11R
 #define CFG_FT_RESOURCE_REQ_NAME                        "gFTResourceReqSupported"
@@ -2746,28 +2608,7 @@ typedef struct
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
-   v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
-   v_U8_t        btcA2DPBtSubIntervalsDuringDhcp;
-   v_U32_t       btcStaticLenInqBt;
-   v_U32_t       btcStaticLenPageBt;
-   v_U32_t       btcStaticLenConnBt;
-   v_U32_t       btcStaticLenLeBt;
-   v_U32_t       btcStaticLenInqWlan;
-   v_U32_t       btcStaticLenPageWlan;
-   v_U32_t       btcStaticLenConnWlan;
-   v_U32_t       btcStaticLenLeWlan;
-   v_U32_t       btcDynMaxLenBt;
-   v_U32_t       btcDynMaxLenWlan;
-   v_U32_t       btcMaxScoBlockPerc;
-   v_U32_t       btcDhcpProtOnA2dp;
-   v_U32_t       btcDhcpProtOnSco;
-   v_U32_t       mwsCoexVictimWANFreq[10];
-   v_U32_t       mwsCoexVictimWLANFreq[10];
-   v_U32_t       mwsCoexVictimConfig[10];
-   v_U32_t       mwsCoexVictimConfig2[10];
-   v_U32_t       mwsCoexModemBackoff;
    v_U32_t       mwsCoexConfig[6];
-   v_U32_t       SARPowerBackoff;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
