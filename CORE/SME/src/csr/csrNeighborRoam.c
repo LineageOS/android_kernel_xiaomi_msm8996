@@ -5922,12 +5922,17 @@ eHalStatus csrNeighborRoamProcessHandoffReq(tpAniSirGlobal pMac,
 
         //Add the BSSID & Channel
         pProfile->BSSIDs.numOfBSSIDs = 1;
-        pProfile->BSSIDs.bssid = vos_mem_malloc(sizeof(tSirMacAddr) * pProfile->BSSIDs.numOfBSSIDs);
+
         if (NULL == pProfile->BSSIDs.bssid)
         {
-            smsLog(pMac, LOGE, FL("mem alloc failed for BSSID"));
-            status = eHAL_STATUS_FAILURE;
-            break;
+            pProfile->BSSIDs.bssid =
+            vos_mem_malloc(sizeof(tSirMacAddr) * pProfile->BSSIDs.numOfBSSIDs);
+            if (NULL == pProfile->BSSIDs.bssid)
+            {
+                smsLog(pMac, LOGE, FL("mem alloc failed for BSSID"));
+                status = eHAL_STATUS_FAILURE;
+                break;
+            }
         }
 
         vos_mem_zero(pProfile->BSSIDs.bssid, sizeof(tSirMacAddr) * pProfile->BSSIDs.numOfBSSIDs);
@@ -5940,14 +5945,17 @@ eHalStatus csrNeighborRoamProcessHandoffReq(tpAniSirGlobal pMac,
         }
 
         pProfile->ChannelInfo.numOfChannels = 1;
-        pProfile->ChannelInfo.ChannelList =
-        vos_mem_malloc(sizeof(*pProfile->ChannelInfo.ChannelList) *
-                           pProfile->ChannelInfo.numOfChannels);
         if (NULL == pProfile->ChannelInfo.ChannelList)
         {
-            smsLog(pMac, LOGE, FL("mem alloc failed for ChannelList"));
-            status = eHAL_STATUS_FAILURE;
-            break;
+            pProfile->ChannelInfo.ChannelList =
+              vos_mem_malloc(sizeof(*pProfile->ChannelInfo.ChannelList) *
+                             pProfile->ChannelInfo.numOfChannels);
+           if (NULL == pProfile->ChannelInfo.ChannelList)
+           {
+               smsLog(pMac, LOGE, FL("mem alloc failed for ChannelList"));
+               status = eHAL_STATUS_FAILURE;
+               break;
+           }
         }
         pProfile->ChannelInfo.ChannelList[0] = pNeighborRoamInfo->handoffReqInfo.channel;
 
