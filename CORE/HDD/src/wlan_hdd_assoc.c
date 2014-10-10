@@ -3955,6 +3955,13 @@ int iw_set_essid(struct net_device *dev,
         return 0;
     }
 
+    if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION &&
+        pAdapter->device_mode != WLAN_HDD_P2P_CLIENT) {
+        hddLog(LOGW, "%s device mode %d is not allowed.",
+               __func__, pAdapter->device_mode);
+        return -EINVAL;
+    }
+
     if(pWextState->mTKIPCounterMeasures == TKIP_COUNTER_MEASURE_STARTED) {
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s :Counter measure is in progress", __func__);
         return -EBUSY;

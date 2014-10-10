@@ -4724,6 +4724,12 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	 return -EINVAL;
 	}
 
+	if(wma->interfaces[synch_event->vdev_id].roam_synch_in_progress ==
+		VOS_TRUE) {
+	  WMA_LOGE("%s: Ignoring RSI since one is already in progress",
+	  __func__);
+	  return -EINVAL;
+	}
 	wma->interfaces[synch_event->vdev_id].roam_synch_in_progress = VOS_TRUE;
 	len = sizeof(tSirSmeRoamOffloadSynchInd) +
 		synch_event->bcn_probe_rsp_len +
@@ -15326,7 +15332,8 @@ static inline u_int32_t wma_get_uapsd_mask(tpUapsd_Params uapsd_params)
 	return uapsd_val;
 }
 
-static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_t enable)
+static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id,
+			u_int8_t enable, u_int8_t is_qpower_enabled)
 {
 	int32_t ret;
 	tANI_U32 cfg_data_val = 0;
@@ -15397,7 +15404,7 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 	 * So Disable QPower explicitly
 	 */
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-					WMI_STA_PS_ENABLE_QPOWER, 0);
+				WMI_STA_PS_ENABLE_QPOWER, is_qpower_enabled);
 	if (ret) {
 		WMA_LOGE("Disable QPower Failed vdevId %d", vdev_id);
 		return ret;
@@ -15483,7 +15490,8 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_
 	return 0;
 }
 
-static int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_t enable)
+int32_t wma_set_qpower_force_sleep(tp_wma_handle wma, u_int32_t vdev_id,
+							u_int8_t enable)
 {
 	int32_t ret;
 	tANI_U32 cfg_data_val = 0;
@@ -15614,10 +15622,8 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 			goto resp;
 		}
 
-		if(is_qpower_enabled)
-			ret = wma_set_qpower_force_sleep(wma, vdev_id, false);
-		else
-			ret = wma_set_force_sleep(wma, vdev_id, false);
+		ret = wma_set_force_sleep(wma, vdev_id, false,
+						is_qpower_enabled);
 		if (ret) {
 			WMA_LOGE("Enable Sta Ps Failed vdevId %d", vdev_id);
 			ps_req->status = VOS_STATUS_E_FAILURE;
@@ -15647,10 +15653,9 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 		}
 
 		WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
-		if(is_qpower_enabled)
-			ret = wma_set_qpower_force_sleep(wma, vdev_id, true);
-		else
-			ret = wma_set_force_sleep(wma, vdev_id, true);
+
+		ret = wma_set_force_sleep(wma, vdev_id, false,
+						is_qpower_enabled);
 
 		if (ret) {
 			WMA_LOGE("Enable Forced Sleep Failed vdevId %d",
@@ -15727,10 +15732,9 @@ static void wma_enable_uapsd_mode(tp_wma_handle wma,
 	}
 
 	WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
-	if(is_qpower_enabled)
-		ret = wma_set_qpower_force_sleep(wma, vdev_id, true);
-	else
-		ret = wma_set_force_sleep(wma, vdev_id, true);
+
+	ret = wma_set_force_sleep(wma, vdev_id, false,
+						is_qpower_enabled);
 	if (ret) {
 		WMA_LOGE("Enable Forced Sleep Failed vdevId %d", vdev_id);
 		ps_req->status = VOS_STATUS_E_FAILURE;
@@ -15768,10 +15772,8 @@ static void wma_disable_uapsd_mode(tp_wma_handle wma,
 	}
 
 	/* Re enable Sta Mode Powersave with proper configuration */
-	if(is_qpower_enabled)
-		ret = wma_set_qpower_force_sleep(wma, vdev_id, false);
-	else
-		ret = wma_set_force_sleep(wma, vdev_id, false);
+	ret = wma_set_force_sleep(wma, vdev_id, false,
+						is_qpower_enabled);
 	if (ret) {
 		WMA_LOGE("Disable Forced Sleep Failed vdevId %d", vdev_id);
 		ps_req->status = VOS_STATUS_E_FAILURE;
@@ -27072,7 +27074,6 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 
 	if ((iface->type == WMI_VDEV_TYPE_STA) &&
 		(iface->ps_enabled == TRUE) &&
-		!is_qpower_enabled &&
 		(iface->dtimPeriod != 0)) {
 		int32_t ret;
 		u_int32_t listen_interval;
@@ -27122,6 +27123,18 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 		WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
 			vdev_id, listen_interval);
 
+		if (is_qpower_enabled) {
+			WMA_LOGD("disable Qpower in suspend mode!");
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+						vdev_id,
+						WMI_STA_PS_ENABLE_QPOWER,
+						0);
+			if (ret)
+				WMA_LOGE("Failed to disable Qpower in suspend mode!");
+
+			iface->ps_enabled = TRUE;
+		}
+
 		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
 							WMI_VDEV_PARAM_DTIM_POLICY ,
 							NORMAL_DTIM);
@@ -27158,7 +27171,6 @@ static void wma_set_vdev_resume_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 
 	if ((iface->type == WMI_VDEV_TYPE_STA) &&
 		(iface->ps_enabled == TRUE) &&
-		!is_qpower_enabled &&
 		(iface->dtim_policy == NORMAL_DTIM)) {
 		int32_t ret;
 		tANI_U32 cfg_data_val = 0;
@@ -27197,6 +27209,16 @@ static void wma_set_vdev_resume_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 		}
 		iface->dtim_policy = STICK_DTIM;
 		WMA_LOGD("Set DTIM Policy to Stick Dtim vdevId %d", vdev_id);
+
+		if (is_qpower_enabled) {
+			WMA_LOGD("enable Qpower in resume mode!");
+			ret = wmi_unified_set_sta_ps_param(wma->wmi_handle,
+						vdev_id,
+						WMI_STA_PS_ENABLE_QPOWER,
+						1);
+			if (ret)
+				WMA_LOGE("Failed to enable Qpower in resume mode!");
+		}
 	}
 }
 
@@ -27225,6 +27247,7 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	wmi_buf_t wmi_buf;
 	u_int8_t *buf_ptr;
 	u_int16_t len;
+	v_BOOL_t roam_synch_in_progress;
 	len = sizeof(wmi_roam_synch_complete_fixed_param);
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
@@ -27232,11 +27255,19 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 				__func__);
 		return;
 	}
-	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
-                                                                     VOS_FALSE;
+	roam_synch_in_progress =
+	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress;
+	if (roam_synch_in_progress == VOS_FALSE) {
+	  WMA_LOGE("%s: Dont send the roam synch complete since Roam Synch"
+	  "Propagation is not in Progress", __func__);
+	  return;
+	} else {
+	  wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
+	  VOS_FALSE;
+	}
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
-		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
 		return;
 	}
 	cmd = (wmi_roam_synch_complete_fixed_param *)wmi_buf_data(wmi_buf);
