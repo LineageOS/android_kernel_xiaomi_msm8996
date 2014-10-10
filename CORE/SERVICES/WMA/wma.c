@@ -4724,6 +4724,12 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	 return -EINVAL;
 	}
 
+	if(wma->interfaces[synch_event->vdev_id].roam_synch_in_progress ==
+		VOS_TRUE) {
+	  WMA_LOGE("%s: Ignoring RSI since one is already in progress",
+	  __func__);
+	  return -EINVAL;
+	}
 	wma->interfaces[synch_event->vdev_id].roam_synch_in_progress = VOS_TRUE;
 	len = sizeof(tSirSmeRoamOffloadSynchInd) +
 		synch_event->bcn_probe_rsp_len +
@@ -27245,6 +27251,7 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	wmi_buf_t wmi_buf;
 	u_int8_t *buf_ptr;
 	u_int16_t len;
+	v_BOOL_t roam_synch_in_progress;
 	len = sizeof(wmi_roam_synch_complete_fixed_param);
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
@@ -27252,11 +27259,19 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 				__func__);
 		return;
 	}
-	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
-                                                                     VOS_FALSE;
+	roam_synch_in_progress =
+	wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress;
+	if (roam_synch_in_progress == VOS_FALSE) {
+	  WMA_LOGE("%s: Dont send the roam synch complete since Roam Synch"
+	  "Propagation is not in Progress", __func__);
+	  return;
+	} else {
+	  wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
+	  VOS_FALSE;
+	}
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
-		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
 		return;
 	}
 	cmd = (wmi_roam_synch_complete_fixed_param *)wmi_buf_data(wmi_buf);
