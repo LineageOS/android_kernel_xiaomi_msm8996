@@ -540,6 +540,7 @@ void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 						break;
 					case AR6320_REV2_1_VERSION:
 					case AR6320_REV3_VERSION:
+					case AR6320_REV3_2_VERSION:
 						hif_type = HIF_TYPE_AR6320V2;
 						target_type = TARGET_TYPE_AR6320V2;
 						break;

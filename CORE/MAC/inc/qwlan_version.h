@@ -44,7 +44,7 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_EXTRA            ""
 #define QWLAN_VERSION_BUILD            209
 
-#define QWLAN_VERSIONSTR               "1.0.0.209A"
+#define QWLAN_VERSIONSTR               "1.0.0.209B"
 
 
 #define AR6320_REV1_VERSION             0x5000000
@@ -52,6 +52,7 @@ BRIEF DESCRIPTION:
 #define AR6320_REV1_3_VERSION           0x5000003
 #define AR6320_REV2_1_VERSION           0x5010000
 #define AR6320_REV3_VERSION             0x5020000
+#define AR6320_REV3_2_VERSION           0x5030000
 
 struct qwlan_hw {
     u32 id;
