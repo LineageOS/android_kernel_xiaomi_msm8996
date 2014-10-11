@@ -122,56 +122,6 @@
 #define CFG_ENFORCE_DEFAULT_DOMAIN_MAX         ( 1 )
 #define CFG_ENFORCE_DEFAULT_DOMAIN_DEFAULT     ( 0 )
 
-#define CFG_GENERIC_ID1_NAME                   "gCfg1Id"
-#define CFG_GENERIC_ID1_MIN                    ( 0 )
-#define CFG_GENERIC_ID1_MAX                    ( 0xffffffff )
-#define CFG_GENERIC_ID1_DEFAULT                ( 0 )
-
-#define CFG_GENERIC_ID2_NAME                   "gCfg2Id"
-#define CFG_GENERIC_ID2_MIN                    ( 0 )
-#define CFG_GENERIC_ID2_MAX                    ( 0xffffffff )
-#define CFG_GENERIC_ID2_DEFAULT                ( 0 )
-
-#define CFG_GENERIC_ID3_NAME                   "gCfg3Id"
-#define CFG_GENERIC_ID3_MIN                    ( 0 )
-#define CFG_GENERIC_ID3_MAX                    ( 0xffffffff )
-#define CFG_GENERIC_ID3_DEFAULT                ( 0 )
-
-#define CFG_GENERIC_ID4_NAME                   "gCfg4Id"
-#define CFG_GENERIC_ID4_MIN                    ( 0 )
-#define CFG_GENERIC_ID4_MAX                    ( 0xffffffff )
-#define CFG_GENERIC_ID4_DEFAULT                ( 0 )
-
-#define CFG_GENERIC_ID5_NAME                   "gCfg5Id"
-#define CFG_GENERIC_ID5_MIN                    ( 0 )
-#define CFG_GENERIC_ID5_MAX                    ( 0xffffffff )
-#define CFG_GENERIC_ID5_DEFAULT                ( 0 )
-
-#define CFG_GENERIC_VALUE1_NAME                "gCfg1Value"
-#define CFG_GENERIC_VALUE1_MIN                 ( 0 )
-#define CFG_GENERIC_VALUE1_MAX                 ( 0xffffffff )
-#define CFG_GENERIC_VALUE1_DEFAULT             ( 0 )
-
-#define CFG_GENERIC_VALUE2_NAME                "gCfg2Value"
-#define CFG_GENERIC_VALUE2_MIN                 ( 0 )
-#define CFG_GENERIC_VALUE2_MAX                 ( 0xffffffff )
-#define CFG_GENERIC_VALUE2_DEFAULT             ( 0 )
-
-#define CFG_GENERIC_VALUE3_NAME                "gCfg3Value"
-#define CFG_GENERIC_VALUE3_MIN                 ( 0 )
-#define CFG_GENERIC_VALUE3_MAX                 ( 0xffffffff )
-#define CFG_GENERIC_VALUE3_DEFAULT             ( 0 )
-
-#define CFG_GENERIC_VALUE4_NAME                "gCfg4Value"
-#define CFG_GENERIC_VALUE4_MIN                 ( 0 )
-#define CFG_GENERIC_VALUE4_MAX                 ( 0xffffffff )
-#define CFG_GENERIC_VALUE4_DEFAULT             ( 0 )
-
-#define CFG_GENERIC_VALUE5_NAME                "gCfg5Value"
-#define CFG_GENERIC_VALUE5_MIN                 ( 0 )
-#define CFG_GENERIC_VALUE5_MAX                 ( 0xffffffff )
-#define CFG_GENERIC_VALUE5_DEFAULT             ( 0 )
-
 #define CFG_HEARTBEAT_THRESH_24_NAME           "gHeartbeat24"
 #define CFG_HEARTBEAT_THRESH_24_MIN            WNI_CFG_HEART_BEAT_THRESHOLD_STAMIN
 #define CFG_HEARTBEAT_THRESH_24_MAX            WNI_CFG_HEART_BEAT_THRESHOLD_STAMAX
@@ -2731,7 +2681,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_NAME    "wlanLoggingFEToConsole"
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_ENABLE  ( 1 )
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DISABLE ( 0 )
-#define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DEFAULT ( 0 )
+#define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DEFAULT ( 1 )
 
 /* Number of buffers to be used for WLAN logging */
 #define CFG_WLAN_LOGGING_NUM_BUF_NAME               "wlanLoggingNumBuf"
@@ -2868,16 +2818,6 @@ typedef struct
    v_BOOL_t      fSupplicantCountryCodeHasPriority;
    v_BOOL_t      fEnforceCountryCodeMatch;
    v_BOOL_t      fEnforceDefaultDomain;
-   v_U32_t       Cfg1Id;
-   v_U32_t       Cfg2Id;
-   v_U32_t       Cfg3Id;
-   v_U32_t       Cfg4Id;
-   v_U32_t       Cfg5Id;
-   v_U32_t       Cfg1Value;
-   v_U32_t       Cfg2Value;
-   v_U32_t       Cfg3Value;
-   v_U32_t       Cfg4Value;
-   v_U32_t       Cfg5Value;
    v_U32_t       HeartbeatThresh24;
    char          PowerUsageControl[4];
    v_U8_t        nEnableSuspend;

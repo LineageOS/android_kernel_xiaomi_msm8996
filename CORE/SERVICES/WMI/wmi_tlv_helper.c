@@ -649,7 +649,7 @@ wmitlv_check_and_pad_tlvs(
             /* Warning: some parameter truncation */
             if (tlv_size_diff > 0)
             {
-                wmi_tlv_print_error("%s: WARN: TLV truncated. tlv_size_diff=%d, curr_tlv_len=%d\n",
+                wmi_tlv_print_verbose("%s: WARN: TLV truncated. tlv_size_diff=%d, curr_tlv_len=%d\n",
                        __func__, tlv_size_diff, curr_tlv_len);
             }
             /* TODO: this next line needs more comments and explanation */
@@ -662,7 +662,7 @@ wmitlv_check_and_pad_tlvs(
             void *new_tlv_buf = NULL;
 
             /* Warning: Needs to allocate a larger structure and pad with zeros */
-            wmi_tlv_print_error("%s: WARN: TLV needs padding. tlv_size_diff=%d\n",
+            wmi_tlv_print_verbose("%s: WARN: TLV needs padding. tlv_size_diff=%d\n",
                    __func__, tlv_size_diff);
 #ifndef NO_DYNAMIC_MEM_ALLOC
             /* Dynamic memory allocation is supported */
