@@ -128,32 +128,6 @@ typedef struct sFTPEContext
     tANI_BOOLEAN      ftPreAuthSession;
 } tftPEContext, *tpftPEContext;
 
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-/*------------------------------------------------------------------------
- * FT Roam Offload Synch Indication SME->PE
- * -----------------------------------------------------------------------
- * */
-typedef struct sSirFTRoamOffloadSynchInd
-{
-   tANI_U16    messageType;      /* eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND */
-   tANI_U16    length;
-   tSirMacAddr currbssId;
-   tpSirBssDescription  pbssDescription;
-} tSirFTRoamOffloadSynchInd, *tpSirFTRoamOffloadSynchInd;
-
-/*----------------------------------------------------------------------
- * FT Roam Offload Synch Response PE->SME
- *----------------------------------------------------------------------
- */
-typedef struct sSirFTRoamOffloadSynchRsp
-{
-   tANI_U16    messageType;      /* eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP */
-   tANI_U16    length;
-   tANI_U8     sessionId;
-   tpSirBssDescription  pbssDescription;
-} tSirFTRoamOffloadSynchRsp, *tpSirFTRoamOffloadSynchRsp;
-#endif
-
 #endif /* __LIMFTDEFS_H__ */
 
 #endif /* WLAN_FEATURE_VOWIFI_11R */

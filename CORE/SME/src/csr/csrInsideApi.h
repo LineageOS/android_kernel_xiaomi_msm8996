@@ -1053,14 +1053,6 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
 eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac);
 eHalStatus csrRoamDelPMKIDfromCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tANI_U8 *pBSSId, tANI_BOOLEAN flush_cache );
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-eHalStatus csrRoamEnqueueRoamOffloadSynch(
-    tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirBssDescription pBssDescription,
-    eCsrRoamReason reason);
-eHalStatus csrRoamDequeueRoamOffloadSynch(tpAniSirGlobal pMac);
-void csrRoamFTRoamOffloadSynchRspProcessor(
-    tHalHandle hHal, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp );
-#endif
 
 tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac);
 void csrAddVoteForCountryInfo(tpAniSirGlobal pMac, tANI_U8 *pCountryCode);

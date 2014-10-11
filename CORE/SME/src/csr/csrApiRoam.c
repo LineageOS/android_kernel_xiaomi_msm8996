@@ -4934,12 +4934,6 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         status = csrRoamIssueFTPreauthReq(pMac, sessionId,
                 pCommand->u.roamCmd.pLastRoamBss);
         break;
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    case eCsrPerformRoamOffloadSynch:
-        status = csrRoamIssueFTRoamOffloadSynch(pMac, sessionId,
-                                            pCommand->u.roamCmd.pLastRoamBss);
-        break;
-#endif
     default:
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING, sessionId );
 
@@ -5530,7 +5524,7 @@ eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
     msg.type     = WDA_ROAM_OFFLOAD_SYNCH_CNF;
     msg.reserved = 0;
     msg.bodyptr  = pRoamOffloadSynchCnf;
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "LFR3: Posting WDA_ROAM_OFFLOAD_SYNCH_CNF");
     if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
                                     VOS_MODULE_ID_WDA, &msg)))
@@ -10713,12 +10707,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eWNI_SME_FT_PRE_AUTH_RSP:
             csrRoamFTPreAuthRspProcessor( pMac, (tpSirFTPreAuthRsp)pSirMsg );
-            break;
-#endif
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP:
-            csrRoamFTRoamOffloadSynchRspProcessor(pMac,
-                   (tpSirFTRoamOffloadSynchRsp)pSirMsg);
             break;
 #endif
         case eWNI_SME_MAX_ASSOC_EXCEEDED:
@@ -18569,238 +18557,72 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
     return status;
 }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-eHalStatus csrRoamEnqueueRoamOffloadSynch(
-    tpAniSirGlobal pMac, tANI_U32 sessionId, tpSirBssDescription pBssDescription,
-    eCsrRoamReason reason)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    tSmeCmd *pCommand;
-
-    pCommand = csrGetCommandBuffer(pMac);
-    if(NULL == pCommand)
-    {
-        smsLog( pMac, LOGE, FL(" fail to get command buffer") );
-        status = eHAL_STATUS_RESOURCES;
-    }
-    else
-    {
-        if(pBssDescription)
-        {
-            /* copy over the parameters we need later */
-            pCommand->command = eSmeCommandRoam;
-            pCommand->u.roamCmd.roamReason = reason;
-            pCommand->sessionId = (tANI_U8)sessionId;
-            pCommand->u.roamCmd.pLastRoamBss = pBssDescription;
-            status = csrQueueSmeCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
-            if( !HAL_STATUS_SUCCESS( status ) )
-            {
-                smsLog( pMac, LOGE, FL(" fail to enqueue roam offload sync"
-                        "command, status = %d"), status );
-                csrReleaseCommand( pMac, pCommand );
-            }
-        }
-        else
-        {
-           /* Return failure */
-           smsLog( pMac, LOGE, FL(" pBssDescription is NULL"));
-           status = eHAL_STATUS_RESOURCES;
-           csrReleaseCommand( pMac, pCommand );
-        }
-    }
-    return (status);
-}
-
-eHalStatus csrRoamDequeueRoamOffloadSynch(tpAniSirGlobal pMac)
-{
-    tListElem *pEntry;
-    tSmeCmd *pCommand;
-    pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
-    if ( pEntry )
-    {
-        pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-        if ( (eSmeCommandRoam == pCommand->command) &&
-                (eCsrPerformRoamOffloadSynch == pCommand->u.roamCmd.roamReason))
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                      "LFR3:DQ-Command = %d, Reason = %d",
-                       pCommand->command, pCommand->u.roamCmd.roamReason);
-            if (csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK )) {
-                csrReleaseCommand( pMac, pCommand );
-            }
-        } else  {
-            smsLog( pMac, LOGE, FL("Command = %d, Reason = %d "),
-                    pCommand->command, pCommand->u.roamCmd.roamReason);
-        }
-    }
-    else {
-        smsLog( pMac, LOGE, FL("pEntry NULL for eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_RSP"));
-    }
-    smeProcessPendingQueue( pMac );
-    return eHAL_STATUS_SUCCESS;
-}
 /*----------------------------------------------------------------------------
- * fn     csrProcessRoamOffloadSynchInd
- * brief  This will process the roam synch indication received from
- *        lower layers.This function also calls another API to
- *        parse the beacon IE and fill the appropriate fields
- * param  pMac - pMac global structure
- * param  pMsgBuf - Message buffer received from lower layers
- * --------------------------------------------------------------------------*/
-void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf)
-{
-   tpSirSmeRoamOffloadSynchInd smeRoamOffloadSynchInd = (tpSirSmeRoamOffloadSynchInd) pMsgBuf;
-   tListElem *pEntry;
-   tCsrScanResult *pBssDesc;
-   tDot11fBeaconIEs *pIes;
-   tCsrRoamSession *pSession = NULL;
-
-   if (!smeRoamOffloadSynchInd)
-   {
-      smsLog(pMac, LOGE, FL("LFR3:smeRoamOffloadSynchInd is NULL"));
-      return;
-   }
-   pSession =  CSR_GET_SESSION(pMac, smeRoamOffloadSynchInd->roamedVdevId);
-   if (!pSession)
-   {
-      smsLog(pMac, LOGE, FL("LFR3: session %d not found "),
-                        smeRoamOffloadSynchInd->roamedVdevId);
-      return;
-   }
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-               "%s: Received eWNI_SME_ROAM_OFFLOAD_SYNCH_IND", __func__);
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                   "authStatus=%d, vdevId=%d, BSSID=%x:%x:%x:%x:%x:%x\n",
-                   smeRoamOffloadSynchInd->authStatus,
-                   smeRoamOffloadSynchInd->roamedVdevId,
-                   smeRoamOffloadSynchInd->bssId[0],
-                   smeRoamOffloadSynchInd->bssId[1],
-                   smeRoamOffloadSynchInd->bssId[2],
-                   smeRoamOffloadSynchInd->bssId[3],
-                   smeRoamOffloadSynchInd->bssId[4],
-                   smeRoamOffloadSynchInd->bssId[5]);
-   if (!HAL_STATUS_SUCCESS(csrScanSaveRoamOffloadApToScanCache(pMac, smeRoamOffloadSynchInd)))
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                 "fail to save roam offload AP to scan cache");
-       return;
-   }
-
-   csrLLLock(&pMac->scan.scanResultList);
-   pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
-   while (pEntry)
-   {
-      pBssDesc = GET_BASE_ADDR(pEntry, tCsrScanResult, Link);
-      pIes = (tDot11fBeaconIEs *)(pBssDesc->Result.pvIes);
-      if (csrIsBssidMatch(pMac, (tCsrBssid *)(smeRoamOffloadSynchInd->bssId),
-                          (tCsrBssid *)(pBssDesc->Result.BssDescriptor.bssId)))
-          break;
-      pEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
-   }
-   csrLLUnlock(&pMac->scan.scanResultList);
-
-   if (!pEntry)
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                 "%s: Not Found BSS descriptor", __func__);
-   pSession->roamOffloadSynchParams.rssi = smeRoamOffloadSynchInd->rssi;
-   pSession->roamOffloadSynchParams.roamReason = smeRoamOffloadSynchInd->roamReason;
-   pSession->roamOffloadSynchParams.roamedVdevId = smeRoamOffloadSynchInd->roamedVdevId;
-   vos_mem_copy(pSession->roamOffloadSynchParams.bssid,
-                 smeRoamOffloadSynchInd->bssId, sizeof(tSirMacAddr));
-   pSession->roamOffloadSynchParams.txMgmtPower = smeRoamOffloadSynchInd->txMgmtPower;
-   pSession->roamOffloadSynchParams.authStatus = smeRoamOffloadSynchInd->authStatus;
-   pSession->roamOffloadSynchParams.bRoamSynchInProgress = eANI_BOOLEAN_TRUE;
-   pMac->roam.reassocRespLen = smeRoamOffloadSynchInd->reassocRespLength;
-   pMac->roam.pReassocResp =
-       vos_mem_malloc(pMac->roam.reassocRespLen);
-   if (NULL == pMac->roam.pReassocResp)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-              "Memory allocation for reassoc response failed");
-       return;
-   }
-   vos_mem_copy(pMac->roam.pReassocResp,
-                (tANI_U8 *)smeRoamOffloadSynchInd +
-                smeRoamOffloadSynchInd->reassocRespOffset,
-                pMac->roam.reassocRespLen);
-
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-             "LFR3:%s: the reassoc resp frame data:", __func__);
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-              pMac->roam.pReassocResp,
-              pMac->roam.reassocRespLen);
-
-   vos_mem_copy(pSession->roamOffloadSynchParams.kck,
-                smeRoamOffloadSynchInd->kck,
-                SIR_KCK_KEY_LEN);
-   vos_mem_copy(pSession->roamOffloadSynchParams.kek,
-                smeRoamOffloadSynchInd->kek,
-                SIR_KEK_KEY_LEN);
-   vos_mem_copy(pSession->roamOffloadSynchParams.replay_ctr,
-                smeRoamOffloadSynchInd->replay_ctr,
-                SIR_REPLAY_CTR_LEN);
-
-   if (pEntry)
-       csrRoamEnqueueRoamOffloadSynch(
-       pMac, smeRoamOffloadSynchInd->roamedVdevId,
-       &pBssDesc->Result.BssDescriptor, eCsrPerformRoamOffloadSynch);
-}
-
-/*----------------------------------------------------------------------------
- * fn     csrRoamIssueFTRoamOffloadSynch
- * brief  This will pass down the request to LIM
+ * fn csrProcessRoamOffloadSynchInd
+ * brief  This will receive and process the Roam Offload Synch Ind
  * param  hHal - pMac global structure
- * param  sessionId - SME session ID
- * param  pBssDescription - BSS Descriptor
- * return eHalStatus - Returns a success if the msg is posted properly
+ * param  pSmeRoamOffloadSynchInd - Roam Synch info is retrieved
  * --------------------------------------------------------------------------*/
-eHalStatus csrRoamIssueFTRoamOffloadSynch(
-    tHalHandle hHal, tANI_U32 sessionId, tSirBssDescription *pBssDescription)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    tpSirFTRoamOffloadSynchInd pftRoamOffloadSynchInd;
-    tANI_U16 roam_offload_sync_ind_len = 0;
-    tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
-
-    roam_offload_sync_ind_len = sizeof(tSirFTRoamOffloadSynchInd);
-    pftRoamOffloadSynchInd =
-    (tpSirFTRoamOffloadSynchInd)vos_mem_malloc(roam_offload_sync_ind_len);
-    if (pftRoamOffloadSynchInd == NULL)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-             "Memory allocation for FT Roam Offload Synch Indication failed");
-        return eHAL_STATUS_RESOURCES;
-    }
-
-    vos_mem_copy((void *)&pftRoamOffloadSynchInd->currbssId,
-                  (void *)pSession->connectedProfile.bssid, sizeof(tSirMacAddr));
-    /* Memory allocated below for pbssDescription is freed after
-     * handling it in csrRoamFTRoamOffloadSynchRspProcessor */
-    pftRoamOffloadSynchInd->pbssDescription = (tpSirBssDescription)vos_mem_malloc(
-            sizeof(pBssDescription->length) + pBssDescription->length);
-
-    pftRoamOffloadSynchInd->messageType = pal_cpu_to_be16(
-        eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND);
-
-    vos_mem_copy(pftRoamOffloadSynchInd->pbssDescription, pBssDescription,
-                 sizeof(pBssDescription->length) + pBssDescription->length);
-
-    pftRoamOffloadSynchInd->length = pal_cpu_to_be16(roam_offload_sync_ind_len);
-    return palSendMBMessage(pMac->hHdd, pftRoamOffloadSynchInd);
-}
-
-/*----------------------------------------------------------------------------
- * fn csrRoamFTRoamOffloadSynchRspProcessor
- * brief  This will receive and process the FT Roam Offload Synch Response
- * param  hHal - pMac global structure
- * param  tpSirFTRoamOffloadSynchRsp - Bss descriptor info is retrieved
- * --------------------------------------------------------------------------*/
-void csrRoamFTRoamOffloadSynchRspProcessor(
-    tHalHandle hHal, tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp )
+void csrProcessRoamOffloadSynchInd(
+    tHalHandle hHal, tpSirRoamOffloadSynchInd pSmeRoamOffloadSynchInd)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tCsrRoamSession *pSession = NULL;
+    tANI_U8 sessionId = pSmeRoamOffloadSynchInd->roamedVdevId;
+    pSession =  CSR_GET_SESSION(pMac, pSmeRoamOffloadSynchInd->roamedVdevId);
+    if (!pSession) {
+        smsLog(pMac, LOGE, FL("LFR3: session %d not found "),
+                   pSmeRoamOffloadSynchInd->roamedVdevId);
+        goto err_synch_rsp;
+    }
+    if (!HAL_STATUS_SUCCESS(csrScanSaveRoamOffloadApToScanCache(pMac,
+                            pSmeRoamOffloadSynchInd))) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "fail to save roam offload AP to scan cache");
+        goto err_synch_rsp;
+    }
+    pSession->roamOffloadSynchParams.rssi = pSmeRoamOffloadSynchInd->rssi;
+    pSession->roamOffloadSynchParams.roamReason =
+                             pSmeRoamOffloadSynchInd->roamReason;
+    pSession->roamOffloadSynchParams.roamedVdevId =
+                             pSmeRoamOffloadSynchInd->roamedVdevId;
+    vos_mem_copy(pSession->roamOffloadSynchParams.bssid,
+                 pSmeRoamOffloadSynchInd->bssId, sizeof(tSirMacAddr));
+    pSession->roamOffloadSynchParams.txMgmtPower =
+                                 pSmeRoamOffloadSynchInd->txMgmtPower;
+    pSession->roamOffloadSynchParams.authStatus =
+                                 pSmeRoamOffloadSynchInd->authStatus;
+    pSession->roamOffloadSynchParams.bRoamSynchInProgress = eANI_BOOLEAN_TRUE;
+    /*Save the BSS descriptor for later use*/
+    pSession->roamOffloadSynchParams.pbssDescription =
+                                  pSmeRoamOffloadSynchInd->pbssDescription;
+    pMac->roam.reassocRespLen = pSmeRoamOffloadSynchInd->reassocRespLength;
+    pMac->roam.pReassocResp =
+    vos_mem_malloc(pMac->roam.reassocRespLen);
+    if (NULL == pMac->roam.pReassocResp) {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+           "Memory allocation for reassoc response failed");
+        goto err_synch_rsp;
+    }
+    vos_mem_copy(pMac->roam.pReassocResp,
+                (tANI_U8 *)pSmeRoamOffloadSynchInd +
+                pSmeRoamOffloadSynchInd->reassocRespOffset,
+                pMac->roam.reassocRespLen);
 
-    if (eHAL_STATUS_SUCCESS != csrNeighborRoamOffloadSynchRspHandler(
-        pMac, pFTRoamOffloadSynchRsp, pFTRoamOffloadSynchRsp->sessionId)) {
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              "LFR3:%s: the reassoc resp frame data:", __func__);
+    VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+              pMac->roam.pReassocResp, pMac->roam.reassocRespLen);
+
+    vos_mem_copy(pSession->roamOffloadSynchParams.kck,
+        pSmeRoamOffloadSynchInd->kck, SIR_KCK_KEY_LEN);
+    vos_mem_copy(pSession->roamOffloadSynchParams.kek,
+        pSmeRoamOffloadSynchInd->kek, SIR_KEK_KEY_LEN);
+    vos_mem_copy(pSession->roamOffloadSynchParams.replay_ctr,
+        pSmeRoamOffloadSynchInd->replay_ctr, SIR_REPLAY_CTR_LEN);
+
+    if (eHAL_STATUS_SUCCESS != csrNeighborRoamOffloadUpdatePreauthList(pMac,
+                                        pSmeRoamOffloadSynchInd, sessionId)) {
         /*
          * Bail out if Roam Offload Synch Response was not even handled.
          */
@@ -18808,14 +18630,13 @@ void csrRoamFTRoamOffloadSynchRspProcessor(
                               "was not processed"));
         goto err_synch_rsp;
     }
-    csrNeighborRoamRequestHandoff(pMac, pFTRoamOffloadSynchRsp->sessionId);
-    csrRoamDequeueRoamOffloadSynch(pMac);
+
+    csrNeighborRoamRequestHandoff(pMac, sessionId);
 
 err_synch_rsp:
-    vos_mem_free(pFTRoamOffloadSynchRsp->pbssDescription);
-    pFTRoamOffloadSynchRsp->pbssDescription = NULL;
+    vos_mem_free(pSmeRoamOffloadSynchInd->pbssDescription);
+    pSmeRoamOffloadSynchInd->pbssDescription = NULL;
 }
-
 
 /*----------------------------------------------------------------------------
  * fn csrProcessHOFailInd

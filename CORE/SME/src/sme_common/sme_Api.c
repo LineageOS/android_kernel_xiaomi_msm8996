@@ -2288,18 +2288,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
       {
           switch (pMsg->type) { // TODO: Will be modified to do a range check for msgs instead of having cases for each msgs
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-          case eWNI_SME_ROAM_OFFLOAD_SYNCH_IND:
-               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                     "LFR3:%s: Rcvd eWNI_SME_ROAM_OFFLOAD_SYNCH_IND",__func__);
-               csrProcessRoamOffloadSynchInd(pMac, pMsg->bodyptr);
-               vos_mem_free(pMsg->bodyptr);
-               break;
           case eWNI_SME_HO_FAIL_IND:
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                      "LFR3:%s: Rcvd eWNI_SME_HO_FAIL_IND", __func__);
                csrProcessHOFailInd(pMac, pMsg->bodyptr);
                vos_mem_free(pMsg->bodyptr);
                break;
+	  case eWNI_SME_ROAM_OFFLOAD_SYNCH_IND:
+	       csrProcessRoamOffloadSynchInd(pMac,
+			       (tpSirRoamOffloadSynchInd)pMsg->bodyptr);
+               vos_mem_free(pMsg->bodyptr);
+	       break;
 #endif
           case eWNI_PMC_ENTER_BMPS_RSP:
           case eWNI_PMC_EXIT_BMPS_RSP:

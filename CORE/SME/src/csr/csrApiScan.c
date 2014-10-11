@@ -8677,174 +8677,30 @@ void UpdateCCKMTSF(tANI_U32 *timeStamp0, tANI_U32 *timeStamp1, tANI_U32 *incr)
  */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
-            tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd)
+            tSirRoamOffloadSynchInd *pRoamOffloadSynchInd)
 {
    v_U32_t uLen = 0;
-   tpSirProbeRespBeacon pParsedFrame;
-   tCsrScanResult *pScanResult = NULL;
-   tSirBssDescription *pBssDescr = NULL;
    tANI_BOOLEAN fDupBss;
    tDot11fBeaconIEs *pIesLocal = NULL;
    tAniSSID tmpSsid;
    v_TIME_t timer=0;
-   tpSirMacMgmtHdr macHeader;
-   tANI_U8 *pBeaconProbeResp;
+   tCsrScanResult *pScanResult = NULL;
    tANI_U8 sessionId = pRoamOffloadSynchInd->roamedVdevId;
 
-   pBeaconProbeResp = (tANI_U8 *)pRoamOffloadSynchInd +
-       pRoamOffloadSynchInd->beaconProbeRespOffset;
-   macHeader = (tpSirMacMgmtHdr)pBeaconProbeResp;
-   pParsedFrame =
-       (tpSirProbeRespBeacon) vos_mem_malloc(sizeof(tSirProbeRespBeacon));
-   if (NULL == pParsedFrame)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-          "%s: fail to allocate memory for frame",__func__);
-      return eHAL_STATUS_RESOURCES;
-   }
-
-   if ( pRoamOffloadSynchInd->beaconProbeRespLength <= SIR_MAC_HDR_LEN_3A )
-   {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-         "%s: Very few bytes in synchInd beacon / probe resp frame! length=%d",
-         __func__, pRoamOffloadSynchInd->beaconProbeRespLength);
-      vos_mem_free(pParsedFrame);
-      return eHAL_STATUS_FAILURE;
-   }
-
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,"LFR3: Beacon/Prb Rsp:");
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                pBeaconProbeResp, pRoamOffloadSynchInd->beaconProbeRespLength);
-
-   if (pRoamOffloadSynchInd->isBeacon)
-   {
-      if (sirParseBeaconIE(
-          pMac, pParsedFrame,
-          &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET],
-          pRoamOffloadSynchInd->beaconProbeRespLength -
-          SIR_MAC_HDR_LEN_3A) != eSIR_SUCCESS || !pParsedFrame->ssidPresent)
-      {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-            "Parse error Beacon, length=%d",
-            pRoamOffloadSynchInd->beaconProbeRespLength);
-         vos_mem_free(pParsedFrame);
-         return eHAL_STATUS_FAILURE;
-      }
-   }
-   else
-   {
-      if (sirConvertProbeFrame2Struct(pMac,
-            &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A],
-            pRoamOffloadSynchInd->beaconProbeRespLength - SIR_MAC_HDR_LEN_3A,
-            pParsedFrame) != eSIR_SUCCESS ||
-            !pParsedFrame->ssidPresent)
-      {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-            "Parse error ProbeResponse, length=%d",
-            pRoamOffloadSynchInd->beaconProbeRespLength);
-         vos_mem_free(pParsedFrame);
-         return eHAL_STATUS_FAILURE;
-      }
-   }
-   /* 24 byte MAC header and 12 byte to ssid IE */
-   if (pRoamOffloadSynchInd->beaconProbeRespLength >
-           (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET))
-   {
-      uLen = pRoamOffloadSynchInd->beaconProbeRespLength -
+   uLen = pRoamOffloadSynchInd->beaconProbeRespLength -
           (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET);
-   }
    pScanResult = vos_mem_malloc(sizeof(tCsrScanResult) + uLen);
    if ( pScanResult == NULL )
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
       " fail to allocate memory for frame");
-      vos_mem_free(pParsedFrame);
       return eHAL_STATUS_RESOURCES;
    }
 
    vos_mem_zero(pScanResult, sizeof(tCsrScanResult) + uLen );
-   pBssDescr = &pScanResult->Result.BssDescriptor;
-   /* Length of BSS desription is without length of
-    * length itself and length of pointer
-    * that holds the next BSS description
-    */
-   pBssDescr->length = (tANI_U16)(
-                     sizeof(tSirBssDescription) - sizeof(tANI_U16) -
-                     sizeof(tANI_U32) + uLen);
-   if (pParsedFrame->dsParamsPresent)
-   {
-      pBssDescr->channelId = pParsedFrame->channelNumber;
-   }
-   else if (pParsedFrame->HTInfo.present)
-   {
-      pBssDescr->channelId = pParsedFrame->HTInfo.primaryChannel;
-   }
-   else
-   {
-      /*If DS Params or HTIE is not present in the probe resp or beacon,
-       * then use the channel frequency provided by firmware to fill the
-       * channel in the BSS descriptor.*/
-      pBssDescr->channelId = vos_freq_to_chan(pRoamOffloadSynchInd->chan_freq);
-   }
-   pBssDescr->channelIdSelf = pBssDescr->channelId;
-
-   if ((pBssDescr->channelId > 0) && (pBssDescr->channelId < 15))
-   {
-      int i;
-      /* 11b or 11g packet
-       * 11g if extended Rate IE is present or
-       * if there is an A rate in suppRate IE */
-      for (i = 0; i < pParsedFrame->supportedRates.numRates; i++)
-      {
-         if (sirIsArate(pParsedFrame->supportedRates.rate[i] & 0x7f))
-         {
-            pBssDescr->nwType = eSIR_11G_NW_TYPE;
-            break;
-         }
-      }
-      if (pParsedFrame->extendedRatesPresent)
-      {
-            pBssDescr->nwType = eSIR_11G_NW_TYPE;
-      }
-   }
-   else
-   {
-      /* 11a packet */
-      pBssDescr->nwType = eSIR_11A_NW_TYPE;
-   }
-
-   pBssDescr->sinr = 0;
-   pBssDescr->beaconInterval = pParsedFrame->beaconInterval;
-   pBssDescr->timeStamp[0]   = pParsedFrame->timeStamp[0];
-   pBssDescr->timeStamp[1]   = pParsedFrame->timeStamp[1];
-   vos_mem_copy(&pBssDescr->capabilityInfo,
-        &pBeaconProbeResp[SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_CAPAB_OFFSET], 2);
-   vos_mem_copy((tANI_U8 *) &pBssDescr->bssId,
-                (tANI_U8 *) macHeader->bssId,
-                sizeof(tSirMacAddr));
-   pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
-
-   if(pParsedFrame->mdiePresent)
-   {
-      pBssDescr->mdiePresent = pParsedFrame->mdiePresent;
-      vos_mem_copy((tANI_U8 *)pBssDescr->mdie, (tANI_U8 *)pParsedFrame->mdie, SIR_MDIE_SIZE);
-   }
-
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                                "LFR3:%s:BssDescr Info:", __func__);
-   VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-                                 pBssDescr->bssId, sizeof(tSirMacAddr));
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-             "LFR3:chan = %d, rssi = %d",
-             pBssDescr->channelId, pBssDescr->rssi);
-
-   if (uLen)
-   {
-      vos_mem_copy( &pBssDescr->ieFields,
-      pBeaconProbeResp + (SIR_MAC_HDR_LEN_3A + SIR_MAC_B_PR_SSID_OFFSET),
-      uLen);
-   }
-
+   vos_mem_copy(&pScanResult->Result.BssDescriptor,
+                pRoamOffloadSynchInd->pbssDescription,
+                (sizeof(tSirBssDescription) + uLen));
    pIesLocal = (tDot11fBeaconIEs *)( pScanResult->Result.pvIes );
    if ( !pIesLocal &&
        (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
@@ -8853,7 +8709,6 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s:Cannot Parse IEs", __func__);
       csrFreeScanResultEntry(pMac, pScanResult);
-      vos_mem_free(pParsedFrame);
       return eHAL_STATUS_RESOURCES;
    }
 
@@ -8869,13 +8724,9 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
             vos_mem_free(pIesLocal);
       }
       csrFreeScanResultEntry(pMac, pScanResult);
-      vos_mem_free(pParsedFrame);
       return eHAL_STATUS_RESOURCES;
    }
    csrScanAddResult(pMac, pScanResult, pIesLocal, sessionId);
-
-   vos_mem_free(pParsedFrame);
-
    return eHAL_STATUS_SUCCESS;
 }
 #endif

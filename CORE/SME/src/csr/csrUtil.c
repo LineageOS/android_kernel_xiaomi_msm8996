@@ -3045,7 +3045,7 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *p
     {
         for (Index = 0; Index < CSR_MAX_PMKID_ALLOWED; Index++)
         {
-            smsLog(pMac, LOGW, "match PMKID "MAC_ADDRESS_STR " to ",
+            smsLog(pMac, LOG1, "match PMKID "MAC_ADDRESS_STR " to ",
                    MAC_ADDR_ARRAY(pBSSId));
             if( vos_mem_compare(pBSSId, pSession->PmkidCacheInfo[Index].BSSID, sizeof(tCsrBssid)) )
             {
