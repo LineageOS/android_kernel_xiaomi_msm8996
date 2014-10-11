@@ -600,6 +600,14 @@ typedef struct hdd_remain_on_chan_ctx
   v_BOOL_t hdd_remain_on_chan_cancel_in_progress;
 }hdd_remain_on_chan_ctx_t;
 
+/* RoC Request entry */
+typedef struct hdd_roc_req
+{
+    hdd_list_node_t node; /* MUST be first element */
+    hdd_adapter_t *pAdapter;
+    hdd_remain_on_chan_ctx_t *pRemainChanCtx;
+}hdd_roc_req_t;
+
 typedef enum{
     HDD_IDLE,
     HDD_PD_REQ_ACK_PENDING,
@@ -1491,6 +1499,10 @@ struct hdd_context_s
 
     /* Time since boot up to WiFi turn ON (in micro seconds) */
     v_U64_t wifi_turn_on_time_since_boot;
+
+    /* RoC request queue and work */
+    struct work_struct rocReqWork;
+    hdd_list_t hdd_roc_req_q;
 };
 
 /*---------------------------------------------------------------------------

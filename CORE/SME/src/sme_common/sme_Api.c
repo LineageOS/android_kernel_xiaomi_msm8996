@@ -14139,3 +14139,45 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
     return (status);
 }
 #endif /* DHCP_SERVER_OFFLOAD */
+
+#ifdef WLAN_FEATURE_GPIO_LED_FLASHING
+/* ---------------------------------------------------------------------------
+    \fn sme_SetLedFlashing
+    \brief  API to set the Led flashing parameters.
+    \param  hHal - The handle returned by macOpen.
+    \param  x0, x1 -  led flashing parameters
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
+                               tANI_U32 x0, tANI_U32 x1)
+{
+    eHalStatus status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tSirLedFlashingReq *ledflashing;
+
+    ledflashing = vos_mem_malloc(sizeof(*ledflashing));
+    if (!ledflashing) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Not able to allocate memory for WDA_LED_TIMING_REQ"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    ledflashing->pattern_id = type;
+    ledflashing->led_x0 = x0;
+    ledflashing->led_x1 = x1;
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        /* Serialize the req through MC thread */
+        vosMessage.bodyptr = ledflashing;
+        vosMessage.type    = WDA_LED_FLASHING_REQ;
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+            status = eHAL_STATUS_FAILURE;
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+#endif
+

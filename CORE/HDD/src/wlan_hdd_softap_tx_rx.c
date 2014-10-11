@@ -318,14 +318,14 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 
 #ifdef QCA_LL_TX_FLOW_CT
-   if (VOS_FALSE == WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                         pAdapter->sessionId,
-                                         pAdapter->tx_flow_low_watermark,
-                                         pAdapter->tx_flow_high_watermark_offset))
-   {
-       if (VOS_TIMER_STATE_STOPPED ==
-           vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
-       {
+   if (VOS_FALSE ==
+              WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                    pAdapter->sessionId,
+                                    pAdapter->tx_flow_low_watermark,
+                                    pAdapter->tx_flow_high_watermark_offset)) {
+       if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
+             (VOS_TIMER_STATE_STOPPED ==
+             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
           netif_tx_stop_all_queues(dev);
           vos_timer_start(&pAdapter->tx_flow_control_timer,
                           WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);

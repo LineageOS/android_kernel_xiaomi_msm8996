@@ -6796,11 +6796,13 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                return -EINVAL;
 
 #ifdef QCA_LL_TX_FLOW_CT
-           vos_timer_init(&pAdapter->tx_flow_control_timer,
-                            VOS_TIMER_TYPE_SW,
-                            hdd_tx_resume_timer_expired_handler,
-                            pAdapter);
-           pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+           if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
+              vos_timer_init(&pAdapter->tx_flow_control_timer,
+                             VOS_TIMER_TYPE_SW,
+                             hdd_tx_resume_timer_expired_handler,
+                             pAdapter);
+              pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+           }
            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                             hdd_tx_resume_cb,
                             pAdapter->sessionId,
@@ -6923,11 +6925,13 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
             hdd_set_conparam(1);
 
 #ifdef QCA_LL_TX_FLOW_CT
-            vos_timer_init(&pAdapter->tx_flow_control_timer,
-                         VOS_TIMER_TYPE_SW,
-                         hdd_softap_tx_resume_timer_expired_handler,
-                         pAdapter);
-            pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+            if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
+               vos_timer_init(&pAdapter->tx_flow_control_timer,
+                            VOS_TIMER_TYPE_SW,
+                            hdd_softap_tx_resume_timer_expired_handler,
+                            pAdapter);
+               pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+            }
             WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                          hdd_softap_tx_resume_cb,
                          pAdapter->sessionId,
@@ -6962,15 +6966,17 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 #ifdef QCA_LL_TX_FLOW_CT
           if ((NL80211_IFTYPE_P2P_CLIENT == type) ||
               (NL80211_IFTYPE_STATION == type)) {
-              vos_timer_init(&pAdapter->tx_flow_control_timer,
-                              VOS_TIMER_TYPE_SW,
-                              hdd_tx_resume_timer_expired_handler,
-                              pAdapter);
-              pAdapter->tx_flow_timer_initialized = VOS_TRUE;
-              WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
-                              hdd_tx_resume_cb,
-                              pAdapter->sessionId,
-                             (void *)pAdapter);
+             if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
+                vos_timer_init(&pAdapter->tx_flow_control_timer,
+                               VOS_TIMER_TYPE_SW,
+                               hdd_tx_resume_timer_expired_handler,
+                               pAdapter);
+                pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+             }
+             WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
+                               hdd_tx_resume_cb,
+                               pAdapter->sessionId,
+                              (void *)pAdapter);
           }
 #endif /* QCA_LL_TX_FLOW_CT */
 
@@ -6990,11 +6996,13 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
            pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                     WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
 #ifdef QCA_LL_TX_FLOW_CT
-           vos_timer_init(&pAdapter->tx_flow_control_timer,
-                         VOS_TIMER_TYPE_SW,
-                         hdd_softap_tx_resume_timer_expired_handler,
-                         pAdapter);
-           pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+           if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
+              vos_timer_init(&pAdapter->tx_flow_control_timer,
+                             VOS_TIMER_TYPE_SW,
+                             hdd_softap_tx_resume_timer_expired_handler,
+                             pAdapter);
+              pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+           }
            WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                          hdd_softap_tx_resume_cb,
                          pAdapter->sessionId,
@@ -9575,8 +9583,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                    "%s: Set HDD connState to eConnectionState_Connecting",
                    __func__);
-            hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-                                                 eConnectionState_Connecting);
+            hdd_connSetConnectionState(pAdapter,
+                                        eConnectionState_Connecting);
         }
 
         /* After 8-way handshake supplicant should give the scan command
@@ -9605,8 +9613,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: sme_RoamConnect (session %d) failed with "
                                       "status %d. -> NotConnected", __func__, pAdapter->sessionId, status);
             /* change back to NotAssociated */
-            hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-                                             eConnectionState_NotConnected);
+            hdd_connSetConnectionState(pAdapter,
+                                       eConnectionState_NotConnected);
         }
 
         pRoamProfile->ChannelInfo.ChannelList = NULL;
@@ -10539,7 +10547,8 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 disconnected:
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              FL("Set HDD connState to eConnectionState_NotConnected"));
-    pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+    hdd_connSetConnectionState(pAdapter,
+                                eConnectionState_NotConnected);
 
     return 0;
 }

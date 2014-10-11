@@ -8865,11 +8865,13 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          /* SAT mode default TX Flow control instance
           * This instance will be used for
           * STA mode, IBSS mode and TDLS mode */
-         vos_timer_init(&pAdapter->tx_flow_control_timer,
-                     VOS_TIMER_TYPE_SW,
-                     hdd_tx_resume_timer_expired_handler,
-                     pAdapter);
-         pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+         if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
+            vos_timer_init(&pAdapter->tx_flow_control_timer,
+                           VOS_TIMER_TYPE_SW,
+                           hdd_tx_resume_timer_expired_handler,
+                           pAdapter);
+            pAdapter->tx_flow_timer_initialized = VOS_TRUE;
+         }
          WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
                      hdd_tx_resume_cb,
                      pAdapter->sessionId,
@@ -9404,13 +9406,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
 #ifdef QCA_LL_TX_FLOW_CT
          WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
-         if(VOS_TIMER_STATE_STOPPED !=
-            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
-         {
-            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         if (pAdapter->tx_flow_timer_initialized == VOS_TRUE) {
+            if(VOS_TIMER_STATE_STOPPED !=
+               vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer)) {
+               vos_timer_stop(&pAdapter->tx_flow_control_timer);
+            }
+            vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+            pAdapter->tx_flow_timer_initialized = VOS_FALSE;
          }
-         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-         pAdapter->tx_flow_timer_initialized = VOS_FALSE;
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef WLAN_NS_OFFLOAD
@@ -9456,13 +9459,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
 #ifdef QCA_LL_TX_FLOW_CT
          WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
-         if(VOS_TIMER_STATE_STOPPED !=
-            vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
-         {
-            vos_timer_stop(&pAdapter->tx_flow_control_timer);
+         if (pAdapter->tx_flow_timer_initialized == VOS_TRUE) {
+            if(VOS_TIMER_STATE_STOPPED !=
+               vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer)) {
+               vos_timer_stop(&pAdapter->tx_flow_control_timer);
+            }
+            vos_timer_destroy(&pAdapter->tx_flow_control_timer);
+            pAdapter->tx_flow_timer_initialized = VOS_FALSE;
          }
-         vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-         pAdapter->tx_flow_timer_initialized = VOS_FALSE;
 #endif /* QCA_LL_TX_FLOW_CT */
 
          mutex_lock(&pHddCtx->sap_lock);
@@ -10868,6 +10872,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
                                            __func__);
    }
 
+   /* Free up RoC request queue and flush workqueue */
+   vos_flush_work(&pHddCtx->rocReqWork);
+   hdd_list_destroy(&pHddCtx->hdd_roc_req_q);
+
 free_hdd_ctx:
    /* FTM mode, WIPHY did not registered
       If un-register here, system crash will happen */
@@ -12229,6 +12237,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    wlan_hdd_send_version_pkg(pHddCtx->target_fw_version,
                              pHddCtx->target_hw_version,
                              pHddCtx->target_hw_name);
+#endif
+
+   /* Initialize the RoC Request queue and work. */
+   hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
+#ifdef CONFIG_CNSS
+   cnss_init_work(&pHddCtx->rocReqWork, hdd_roc_req_work);
+#else
+   INIT_WORK(&pHddCtx->rocReqWork, hdd_roc_req_work);
 #endif
 
    complete(&wlan_start_comp);
