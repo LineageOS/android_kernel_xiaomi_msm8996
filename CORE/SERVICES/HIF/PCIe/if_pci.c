@@ -65,6 +65,7 @@
 #define AR6320_FW_1_3  (0x13)
 #define AR6320_FW_2_0  (0x20)
 #define AR6320_FW_3_0  (0x30)
+#define AR6320_FW_3_2  (0x32)
 
 #ifdef CONFIG_SLUB_DEBUG_ON
 #define MAX_NUM_OF_RECEIVES 400 /* Maximum number of Rx buf to process before*
@@ -829,12 +830,13 @@ again:
 
         case AR6320_FW_2_0:
         case AR6320_FW_3_0:
+        case AR6320_FW_3_2:
             hif_type = HIF_TYPE_AR6320V2;
             target_type = TARGET_TYPE_AR6320V2;
             break;
 
         default:
-            printk(KERN_ERR "unsupported revision id\n");
+            printk(KERN_ERR "unsupported revision id %x\n", id->device);
             ret = -ENODEV;
             goto err_tgtstate;
         }
@@ -1169,12 +1171,13 @@ again:
 
         case AR6320_FW_2_0:
         case AR6320_FW_3_0:
+        case AR6320_FW_3_2:
             hif_type = HIF_TYPE_AR6320V2;
             target_type = TARGET_TYPE_AR6320V2;
             break;
 
         default:
-            printk(KERN_ERR "unsupported revision id\n");
+            printk(KERN_ERR "unsupported revision id %x\n", id->device);
             ret = -ENODEV;
             goto err_tgtstate;
         }
