@@ -4069,4 +4069,16 @@ eHalStatus sme_GetTemperature(tHalHandle hHal,
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetScanningMacOui(tHalHandle hHal, tSirScanMacOui *pScanMacOui);
 
+#ifdef DHCP_SERVER_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_setDhcpSrvOffload
+    \brief  SME API to set DHCP server offload info
+    \param  hHal
+    \param  pDhcpSrvInfo : DHCP server offload info struct
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
+                                tSirDhcpSrvOffloadInfo *pDhcpSrvInfo);
+#endif /* DHCP_SERVER_OFFLOAD */
+
 #endif //#if !defined( __SME_API_H )
