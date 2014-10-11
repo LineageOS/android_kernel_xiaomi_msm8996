@@ -10340,6 +10340,13 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO,
              "%s: device_mode = %d",__func__,pAdapter->device_mode);
 
+    if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION &&
+        pAdapter->device_mode != WLAN_HDD_P2P_CLIENT) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: device_mode is not supported", __func__);
+        return -EINVAL;
+    }
+
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     if (!pHddCtx) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
