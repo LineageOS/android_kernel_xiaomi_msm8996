@@ -15037,7 +15037,7 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	if (VOS_STATUS_SUCCESS !=
 	vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
 		WMA_LOGP("%s: Failed to post WDA_TBTT_UPDATE_IND msg", __func__);
-		vos_mem_free(buf);
+		vos_mem_free(tempBuf);
 		return -1;
 	}
 	WMA_LOGD("WDA_TBTT_UPDATE_IND posted");
