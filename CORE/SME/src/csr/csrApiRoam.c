@@ -257,9 +257,6 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
                                              tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
 static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBssDesc);
 void csrRoamReissueRoamCommand(tpAniSirGlobal pMac);
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-void csrRoamJoinRetryTimerHandler(void *pv);
-#endif
 extern void SysProcessMmhMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 static void csrSerDesUnpackDiassocRsp(tANI_U8 *pBuf, tSirSmeDisassocRsp *pRsp);
 void csrReinitPreauthCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
@@ -5605,11 +5602,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 pSession->pWapiRspIE = NULL;
             }
 #endif /* FEATURE_WLAN_WAPI */
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-            //Reset counter so no join retry is needed.
-            pSession->maxRetryCount = 0;
-            csrRoamStopJoinRetryTimer(pMac, sessionId);
-#endif
             /* This creates problem since we have not saved the connected profile.
             So moving this after saving the profile
             */
@@ -6335,17 +6327,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif
                     csrRoamCompletion(pMac, sessionId, NULL, pCommand, eCSR_ROAM_RESULT_FAILURE, eANI_BOOLEAN_FALSE);
                     csrScanStartIdleScan(pMac);
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-                    /*
-                     * For WDS STA. To fix the issue where the WDS AP side may
-                     * be too busy by BT activity and not able to receive
-                     * WLAN traffic. Retry the join
-                     */
-                    if( CSR_IS_WDS_STA(pProfile) )
-                    {
-                        csrRoamStartJoinRetryTimer(pMac, sessionId, CSR_JOIN_RETRY_TIMEOUT_PERIOD);
-                    }
-#endif
                     break;
                 case eCsrHddIssuedReassocToSameAP:
                 case eCsrSmeIssuedReassocToSameAP:
@@ -7015,9 +6996,6 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             csrRoamIssueDisassociateCmd(pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
         }
     }
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-    pSession->maxRetryCount = CSR_JOIN_MAX_RETRY_COUNT;
-#endif
     if(CSR_INVALID_SCANRESULT_HANDLE != hBssListIn)
     {
         smsLog(pMac, LOG1, FL("is called with BSSList"));
@@ -7548,11 +7526,6 @@ eHalStatus csrRoamDisconnectInternal(tpAniSirGlobal pMac, tANI_U32 sessionId, eC
         return eHAL_STATUS_FAILURE;
     }
 
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-    /* Stop the retry */
-    pSession->maxRetryCount = 0;
-    csrRoamStopJoinRetryTimer(pMac, sessionId);
-#endif
     //Not to call cancel roaming here
     //Only issue disconnect when necessary
     if(csrIsConnStateConnected(pMac, sessionId) || csrIsBssTypeIBSS(pSession->connectedProfile.BSSType)
@@ -14946,18 +14919,6 @@ eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
                 break;
             }
 
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-            status = vos_timer_init(&pSession->hTimerJoinRetry,
-                                    VOS_TIMER_TYPE_SW,
-                                    csrRoamJoinRetryTimerHandler,
-                                    &pSession->joinRetryTimerInfo);
-            if (!HAL_STATUS_SUCCESS(status))
-            {
-                smsLog(pMac, LOGE,
-                       FL("cannot allocate memory for join retry timer"));
-                break;
-            }
-#endif
             uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
             pSession->htConfig.ht_rx_ldpc =
                                        uHTCapabilityInfo.htCapInfo.advCodingCap;
@@ -15163,9 +15124,6 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
         csrRoamFreeConnectProfile( pMac, &pSession->connectedProfile );
         csrRoamFreeConnectedInfo ( pMac, &pSession->connectedInfo);
         vos_timer_destroy(&pSession->hTimerRoaming);
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-        vos_timer_destroy(&pSession->hTimerJoinRetry);
-#endif
         purgeSmeSessionCmdList(pMac, sessionId, &pMac->sme.smeCmdPendingList);
         if (pMac->fScanOffload)
         {
@@ -18008,71 +17966,6 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
 }
 #endif
 
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-void csrRoamJoinRetryTimerHandler(void *pv)
-{
-    tCsrTimerInfo *pInfo = (tCsrTimerInfo *)pv;
-    tpAniSirGlobal pMac = pInfo->pMac;
-    tANI_U32 sessionId = pInfo->sessionId;
-    tCsrRoamSession *pSession;
-
-    if (CSR_IS_SESSION_VALID(pMac, sessionId) ) {
-        smsLog( pMac, LOGE,
-            FL("retrying the last roam profile on session %d" ), sessionId );
-        pSession = CSR_GET_SESSION( pMac, sessionId );
-        if (pSession->pCurRoamProfile &&
-           csrIsConnStateDisconnected(pMac, sessionId))
-        {
-            if (!HAL_STATUS_SUCCESS(csrRoamJoinLastProfile(pMac, sessionId)) )
-            {
-               smsLog( pMac, LOGE,
-                  FL("fail to retry the last roam profile" ) );
-            }
-        }
-    }
-}
-eHalStatus csrRoamStartJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                      tANI_U32 interval)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
-    if(pSession->pCurRoamProfile && pSession->maxRetryCount)
-    {
-        smsLog(pMac, LOGE, FL(" call sessionId %d retry count %d left"),
-               sessionId, pSession->maxRetryCount);
-        pSession->maxRetryCount--;
-        pSession->joinRetryTimerInfo.pMac = pMac;
-        pSession->joinRetryTimerInfo.sessionId = (tANI_U8)sessionId;
-        status =
-            vos_timer_start(&pSession->hTimerJoinRetry,
-                            interval/VOS_TIMER_TO_MS_UNIT);
-        if (!HAL_STATUS_SUCCESS(status))
-        {
-            smsLog(pMac, LOGE, FL(" fail to start timer status %s"), status);
-        }
-    }
-    else
-    {
-        smsLog(pMac, LOGE,
-            FL("not to start timer due to no profile or reach mac ret (%d)"),
-            pSession->maxRetryCount);
-    }
-
-    return (status);
-}
-eHalStatus csrRoamStopJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId)
-{
-    smsLog(pMac, LOGE, " csrRoamStopJoinRetryTimer");
-    if( CSR_IS_SESSION_VALID(pMac, sessionId) )
-    {
-        return (vos_timer_stop(
-                  &pMac->roam.roamSession[sessionId].hTimerJoinRetry));
-    }
-
-    return eHAL_STATUS_SUCCESS;
-}
-#endif
 
 
 /*

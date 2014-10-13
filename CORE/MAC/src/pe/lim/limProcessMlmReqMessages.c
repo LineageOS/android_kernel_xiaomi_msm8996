@@ -462,12 +462,6 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
             /// Activate minChannelTimer
             limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
 
-#ifdef GEN6_TODO
-            /* revisit this piece of code to assign the appropriate sessionId below
-             * priority - LOW/might not be needed
-             */
-            pMac->lim.limTimers.gLimMinChannelTimer.sessionId = sessionId;
-#endif
 
             MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_MIN_CHANNEL_TIMER));
 
@@ -3643,18 +3637,6 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
 {
     tANI_U8 channelNum;
 
-#ifdef GEN6_TODO
-    //if the min Channel is maintained per session, then use the below seesionEntry
-    //priority - LOW/might not be needed
-
-    tpPESession psessionEntry;
-
-    if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimMinChannelTimer.sessionId))== NULL)
-    {
-        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID"));
-        return;
-    }
-#endif
 
     /*do not process if we are in finish scan wait state i.e.
     scan is aborted or finished*/

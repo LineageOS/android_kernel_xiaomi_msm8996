@@ -69,18 +69,6 @@
 #define CFG_FRAG_THRESHOLD_MAX                 WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX
 #define CFG_FRAG_THRESHOLD_DEFAULT             WNI_CFG_FRAGMENTATION_THRESHOLD_STADEF
 
-#define CFG_CALIBRATION_NAME                   "gCalibration"
-#define CFG_CALIBRATION_MIN                    ( 0 )
-#define CFG_CALIBRATION_MAX                    ( 1 )
-#define CFG_CALIBRATION_MAC_DEFAULT            ( 1 )
-#define CFG_CALIBRATION_DEFAULT                CFG_CALIBRATION_MAC_DEFAULT
-
-#define CFG_CALIBRATION_PERIOD_NAME            "gCalibrationPeriod"
-#define CFG_CALIBRATION_PERIOD_MIN             ( 2 )
-#define CFG_CALIBRATION_PERIOD_MAX             ( 10 )
-#define CFG_CALIBRATION_PERIOD_MAC_DEFAULT     ( 5 )
-#define CFG_CALIBRATION_PERIOD_DEFAULT         CFG_CALIBRATION_PERIOD_MAC_DEFAULT
-
 #define CFG_OPERATING_CHANNEL_NAME             "gOperatingChannel"
 #define CFG_OPERATING_CHANNEL_MIN              ( 0 )
 #define CFG_OPERATING_CHANNEL_MAX              ( 14 )
@@ -938,50 +926,10 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_SBA_AC_BK_DEFAULT                 (0x2001)
 
 // TL configuration
-#define CFG_TL_WFQ_BK_WEIGHT_NAME                           "WfqBkWeight"
-#define CFG_TL_WFQ_BK_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_BK_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_BK_WEIGHT_DEFAULT                        1
-
-#define CFG_TL_WFQ_BE_WEIGHT_NAME                           "WfqBeWeight"
-#define CFG_TL_WFQ_BE_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_BE_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_BE_WEIGHT_DEFAULT                        3
-
-#define CFG_TL_WFQ_VI_WEIGHT_NAME                           "WfqViWeight"
-#define CFG_TL_WFQ_VI_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_VI_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VI_WEIGHT_DEFAULT                        5
-
-#define CFG_TL_WFQ_VO_WEIGHT_NAME                           "WfqVoWeight"
-#define CFG_TL_WFQ_VO_WEIGHT_MIN                            1
-#define CFG_TL_WFQ_VO_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VO_WEIGHT_DEFAULT                        7
-
 #define CFG_TL_DELAYED_TRGR_FRM_INT_NAME                   "DelayedTriggerFrmInt"
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MIN                     1
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MAX                     (4294967295UL)
 #define CFG_TL_DELAYED_TRGR_FRM_INT_DEFAULT                 3000
-
-#define CFG_REORDER_TIME_BK_NAME                           "BkReorderTime"
-#define CFG_REORDER_TIME_BK_MIN                            30
-#define CFG_REORDER_TIME_BK_MAX                            1000
-#define CFG_REORDER_TIME_BK_DEFAULT                        100
-
-#define CFG_REORDER_TIME_BE_NAME                           "BeReorderTime"
-#define CFG_REORDER_TIME_BE_MIN                            30
-#define CFG_REORDER_TIME_BE_MAX                            1000
-#define CFG_REORDER_TIME_BE_DEFAULT                        100
-
-#define CFG_REORDER_TIME_VI_NAME                           "ViReorderTime"
-#define CFG_REORDER_TIME_VI_MIN                            30
-#define CFG_REORDER_TIME_VI_MAX                            1000
-#define CFG_REORDER_TIME_VI_DEFAULT                        100
-
-#define CFG_REORDER_TIME_VO_NAME                           "VoReorderTime"
-#define CFG_REORDER_TIME_VO_MIN                            30
-#define CFG_REORDER_TIME_VO_MAX                            1000
-#define CFG_REORDER_TIME_VO_DEFAULT                        40
 
 #if defined WLAN_FEATURE_VOWIFI
 #define CFG_RRM_ENABLE_NAME                              "gRrmEnable"
@@ -1020,139 +968,6 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
-#define CFG_BTC_DHCP_PROTECTION_NAME                         "BtcConsBtSlotToBlockDuringDhcp"
-#define CFG_BTC_DHCP_PROTECTION_MIN                          ( 0 )
-#define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
-#define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
-
-#define CFG_BTC_A2DP_DHCP_PROTECTION_NAME                    "BtcA2DPDhcpProtectLevel"
-#define CFG_BTC_A2DP_DHCP_PROTECTION_MIN                     ( 0 )
-#define CFG_BTC_A2DP_DHCP_PROTECTION_MAX                     ( 0xFF )
-#define CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT                 ( 7 )
-
-#define CFG_BTC_STATIC_LEN_INQ_BT_NAME       "btcStaticLenInqBt"
-#define CFG_BTC_STATIC_LEN_INQ_BT_MIN        ( 5000 )
-#define CFG_BTC_STATIC_LEN_INQ_BT_MAX        ( 500000 )
-#define CFG_BTC_STATIC_LEN_INQ_BT_DEFAULT    ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_PAGE_BT_NAME      "btcStaticLenPageBt"
-#define CFG_BTC_STATIC_LEN_PAGE_BT_MIN       ( 5000 )
-#define CFG_BTC_STATIC_LEN_PAGE_BT_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_PAGE_BT_DEFAULT   ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_CONN_BT_NAME      "btcStaticLenConnBt"
-#define CFG_BTC_STATIC_LEN_CONN_BT_MIN       ( 5000 )
-#define CFG_BTC_STATIC_LEN_CONN_BT_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_CONN_BT_DEFAULT   ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_LE_BT_NAME        "btcStaticLenLeBt"
-#define CFG_BTC_STATIC_LEN_LE_BT_MIN         ( 5000 )
-#define CFG_BTC_STATIC_LEN_LE_BT_MAX         ( 500000 )
-#define CFG_BTC_STATIC_LEN_LE_BT_DEFAULT     ( 120000 )
-
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_NAME     "btcStaticLenInqWlan"
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_MIN      ( 0 )
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_MAX      ( 500000 )
-#define CFG_BTC_STATIC_LEN_INQ_WLAN_DEFAULT  ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_NAME    "btcStaticLenPageWlan"
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_MIN     ( 0 )
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_MAX     ( 500000 )
-#define CFG_BTC_STATIC_LEN_PAGE_WLAN_DEFAULT ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_NAME    "btcStaticLenConnWlan"
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_MIN     ( 0 )
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_MAX     ( 500000 )
-#define CFG_BTC_STATIC_LEN_CONN_WLAN_DEFAULT ( 30000 )
-
-#define CFG_BTC_STATIC_LEN_LE_WLAN_NAME      "btcStaticLenLeWlan"
-#define CFG_BTC_STATIC_LEN_LE_WLAN_MIN       ( 0 )
-#define CFG_BTC_STATIC_LEN_LE_WLAN_MAX       ( 500000 )
-#define CFG_BTC_STATIC_LEN_LE_WLAN_DEFAULT   ( 30000 )
-
-#define CFG_BTC_DYN_MAX_LEN_BT_NAME          "btcDynMaxLenBt"
-#define CFG_BTC_DYN_MAX_LEN_BT_MIN           ( 25000 )
-#define CFG_BTC_DYN_MAX_LEN_BT_MAX           ( 500000 )
-#define CFG_BTC_DYN_MAX_LEN_BT_DEFAULT       ( 250000 )
-
-#define CFG_BTC_DYN_MAX_LEN_WLAN_NAME        "btcDynMaxLenWlan"
-#define CFG_BTC_DYN_MAX_LEN_WLAN_MIN         ( 15000 )
-#define CFG_BTC_DYN_MAX_LEN_WLAN_MAX         ( 500000 )
-#define CFG_BTC_DYN_MAX_LEN_WLAN_DEFAULT     ( 45000 )
-
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_NAME      "btcMaxScoBlockPerc"
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_MIN       ( 0 )
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_MAX       ( 100 )
-#define CFG_BTC_MAX_SCO_BLOCK_PERC_DEFAULT   ( 1 )
-
-#define CFG_BTC_DHCP_PROT_ON_A2DP_NAME       "btcDhcpProtOnA2dp"
-#define CFG_BTC_DHCP_PROT_ON_A2DP_MIN        ( 0 )
-#define CFG_BTC_DHCP_PROT_ON_A2DP_MAX        ( 1 )
-#define CFG_BTC_DHCP_PROT_ON_A2DP_DEFAULT    ( 1 )
-
-#define CFG_BTC_DHCP_PROT_ON_SCO_NAME        "btcDhcpProtOnSco"
-#define CFG_BTC_DHCP_PROT_ON_SCO_MIN         ( 0 )
-#define CFG_BTC_DHCP_PROT_ON_SCO_MAX         ( 1 )
-#define CFG_BTC_DHCP_PROT_ON_SCO_DEFAULT     ( 0 )
-
-#define CFG_MWS_COEX_V1_WAN_FREQ_NAME        "mwsCoexVictim1WANFreq"
-#define CFG_MWS_COEX_VX_WAN_FREQ_MIN         ( 0 )
-#define CFG_MWS_COEX_VX_WAN_FREQ_MAX         ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_WAN_FREQ_DEFAULT     ( 0 )
-
-#define CFG_MWS_COEX_V1_WLAN_FREQ_NAME       "mwsCoexVictim1WLANFreq"
-#define CFG_MWS_COEX_VX_WLAN_FREQ_MIN        ( 0 )
-#define CFG_MWS_COEX_VX_WLAN_FREQ_MAX        ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_WLAN_FREQ_DEFAULT    ( 0 )
-
-#define CFG_MWS_COEX_V1_CONFIG_NAME          "mwsCoexVictim1Config"
-#define CFG_MWS_COEX_V1_CONFIG2_NAME         "mwsCoexVictim1Config2"
-#define CFG_MWS_COEX_VX_CONFIG_MIN           ( 0 )
-#define CFG_MWS_COEX_VX_CONFIG_MAX           ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_VX_CONFIG_DEFAULT       ( 0 )
-
-#define CFG_MWS_COEX_V2_WAN_FREQ_NAME        "mwsCoexVictim2WANFreq"
-#define CFG_MWS_COEX_V2_WLAN_FREQ_NAME       "mwsCoexVictim2WLANFreq"
-#define CFG_MWS_COEX_V2_CONFIG_NAME          "mwsCoexVictim2Config"
-#define CFG_MWS_COEX_V2_CONFIG2_NAME         "mwsCoexVictim2Config2"
-#define CFG_MWS_COEX_V3_WAN_FREQ_NAME        "mwsCoexVictim3WANFreq"
-#define CFG_MWS_COEX_V3_WLAN_FREQ_NAME       "mwsCoexVictim3WLANFreq"
-#define CFG_MWS_COEX_V3_CONFIG_NAME          "mwsCoexVictim3Config"
-#define CFG_MWS_COEX_V3_CONFIG2_NAME         "mwsCoexVictim3Config2"
-#define CFG_MWS_COEX_V4_WAN_FREQ_NAME        "mwsCoexVictim4WANFreq"
-#define CFG_MWS_COEX_V4_WLAN_FREQ_NAME       "mwsCoexVictim4WLANFreq"
-#define CFG_MWS_COEX_V4_CONFIG_NAME          "mwsCoexVictim4Config"
-#define CFG_MWS_COEX_V4_CONFIG2_NAME         "mwsCoexVictim4Config2"
-#define CFG_MWS_COEX_V5_WAN_FREQ_NAME        "mwsCoexVictim5WANFreq"
-#define CFG_MWS_COEX_V5_WLAN_FREQ_NAME       "mwsCoexVictim5WLANFreq"
-#define CFG_MWS_COEX_V5_CONFIG_NAME          "mwsCoexVictim5Config"
-#define CFG_MWS_COEX_V5_CONFIG2_NAME         "mwsCoexVictim5Config2"
-#define CFG_MWS_COEX_V6_WAN_FREQ_NAME        "mwsCoexVictim6WANFreq"
-#define CFG_MWS_COEX_V6_WLAN_FREQ_NAME       "mwsCoexVictim6WLANFreq"
-#define CFG_MWS_COEX_V6_CONFIG_NAME          "mwsCoexVictim6Config"
-#define CFG_MWS_COEX_V6_CONFIG2_NAME         "mwsCoexVictim6Config2"
-#define CFG_MWS_COEX_V7_WAN_FREQ_NAME        "mwsCoexVictim7WANFreq"
-#define CFG_MWS_COEX_V7_WLAN_FREQ_NAME       "mwsCoexVictim7WLANFreq"
-#define CFG_MWS_COEX_V7_CONFIG_NAME          "mwsCoexVictim7Config"
-#define CFG_MWS_COEX_V7_CONFIG2_NAME         "mwsCoexVictim7Config2"
-#define CFG_MWS_COEX_V8_WAN_FREQ_NAME        "mwsCoexVictim8WANFreq"
-#define CFG_MWS_COEX_V8_WLAN_FREQ_NAME       "mwsCoexVictim8WLANFreq"
-#define CFG_MWS_COEX_V8_CONFIG_NAME          "mwsCoexVictim8Config"
-#define CFG_MWS_COEX_V8_CONFIG2_NAME         "mwsCoexVictim8Config2"
-#define CFG_MWS_COEX_V9_WAN_FREQ_NAME        "mwsCoexVictim9WANFreq"
-#define CFG_MWS_COEX_V9_WLAN_FREQ_NAME       "mwsCoexVictim9WLANFreq"
-#define CFG_MWS_COEX_V9_CONFIG_NAME          "mwsCoexVictim9Config"
-#define CFG_MWS_COEX_V9_CONFIG2_NAME         "mwsCoexVictim9Config2"
-#define CFG_MWS_COEX_V10_WAN_FREQ_NAME       "mwsCoexVictim10WANFreq"
-#define CFG_MWS_COEX_V10_WLAN_FREQ_NAME      "mwsCoexVictim10WLANFreq"
-#define CFG_MWS_COEX_V10_CONFIG_NAME         "mwsCoexVictim10Config"
-#define CFG_MWS_COEX_V10_CONFIG2_NAME        "mwsCoexVictim10Config2"
-
-#define CFG_MWS_COEX_MODEM_BACKOFF_NAME      "mwsCoexModemBackoff"
-#define CFG_MWS_COEX_MODEM_BACKOFF_MIN       ( 0 )
-#define CFG_MWS_COEX_MODEM_BACKOFF_MAX       ( 0xFFFFFFFF )
-#define CFG_MWS_COEX_MODEM_BACKOFF_DEFAULT   ( 0 )
-
 #define CFG_MWS_COEX_CONFIG1_NAME            "mwsCoexConfig1"
 #define CFG_MWS_COEX_CONFIGX_MIN             ( 0 )
 #define CFG_MWS_COEX_CONFIGX_MAX             ( 0xFFFFFFFF )
@@ -1162,11 +977,6 @@ typedef enum
 #define CFG_MWS_COEX_CONFIG4_NAME            "mwsCoexConfig4"
 #define CFG_MWS_COEX_CONFIG5_NAME            "mwsCoexConfig5"
 #define CFG_MWS_COEX_CONFIG6_NAME            "mwsCoexConfig6"
-
-#define CFG_SAR_POWER_BACKOFF_NAME           "SARPowerBackoff"
-#define CFG_SAR_POWER_BACKOFF_MIN            ( 0 )
-#define CFG_SAR_POWER_BACKOFF_MAX            ( 0xFFFFFFFF )
-#define CFG_SAR_POWER_BACKOFF_DEFAULT        ( 0 )
 
 #if defined WLAN_FEATURE_VOWIFI_11R
 #define CFG_FT_RESOURCE_REQ_NAME                        "gFTResourceReqSupported"
@@ -2096,9 +1906,6 @@ typedef enum
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_MAX          ( 14 )
 #define CFG_IBSS_ADHOC_CHANNEL_24GHZ_DEFAULT      ( 6 )
 
-#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE           "gListOfNon11acCountryCode"
-#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT   "RU,UA,ZA"
-
 /* Parameter to control VHT support in 2.4 GHz band */
 #define CFG_ENABLE_VHT_FOR_24GHZ_NAME             "gEnableVhtFor24GHzBand"
 #define CFG_ENABLE_VHT_FOR_24GHZ_MIN              (0)
@@ -2155,23 +1962,6 @@ typedef enum
 #define CFG_ENABLE_SNR_MONITORING_MIN               ( 0 )
 #define CFG_ENABLE_SNR_MONITORING_MAX               ( 1 )
 #define CFG_ENABLE_SNR_MONITORING_DEFAULT           ( 0 )
-//Macro to enable/disable dynamic timer
-#define CFG_DYNAMIC_SPLIT_SCAN_NAME                    "gEnableDynSplitScan"
-#define CFG_DYNAMIC_SPLIT_SCAN_MIN                     ( 0 )
-#define CFG_DYNAMIC_SPLIT_SCAN_MAX                     ( 1 )
-#define CFG_DYNAMIC_SPLIT_SCAN_DEFAULT                 ( 1 )
-
-//Macro to monitor the packet count
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_NAME    "gSplitScanTxRxThreshold"
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_MIN     ( 10 )
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_MAX     ( 100 )
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_THRSHLD_DEFAULT ( 50 )
-
-//Macro to handle the monitor timer value in milliseconds
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_NAME      "gSplitScanTxRxTimer"
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_MIN       ( 1000 )
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_MAX       ( 10000 )
-#define CFG_SPLIT_SCAN_TRAFFIC_MONITOR_TIMER_DEFAULT   ( 5000 )
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define CFG_PNO_SCAN_SUPPORT                         "gPNOScanSupport"
@@ -2512,11 +2302,6 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LL_TX_HBW_FLOW_MAX_Q_DEPTH_DEFAULT     ( 1500 )
 #endif /* QCA_LL_TX_FLOW_CT */
 
-#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_NAME                "gEnableStrictRegulatoryForFCC"
-#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MIN                 ( 0 )
-#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_MAX                 ( 1 )
-#define CFG_ENABLE_STRICT_REGULATORY_FOR_FCC_DEFAULT             ( 0 )
-
 #define CFG_SAP_MAX_OFFLOAD_PEERS                  "gMaxOffloadPeers"
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MIN              (2)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (5)
@@ -2807,9 +2592,6 @@ typedef struct
    //Config parameters
    v_U32_t       RTSThreshold;
    v_U32_t       FragmentationThreshold;
-   v_U32_t       nCheckForHangTime;
-   v_U32_t       Calibration;
-   v_U32_t       CalibrationPeriod;
    v_U8_t        OperatingChannel;
    v_BOOL_t      ShortSlotTimeEnabled;
    v_BOOL_t      Is11dSupportEnabled;
@@ -2822,31 +2604,10 @@ typedef struct
    char          PowerUsageControl[4];
    v_U8_t        nEnableSuspend;
    v_U8_t        nEnableDriverStop;
-   v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
-   v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
-   v_U8_t        btcA2DPBtSubIntervalsDuringDhcp;
-   v_U32_t       btcStaticLenInqBt;
-   v_U32_t       btcStaticLenPageBt;
-   v_U32_t       btcStaticLenConnBt;
-   v_U32_t       btcStaticLenLeBt;
-   v_U32_t       btcStaticLenInqWlan;
-   v_U32_t       btcStaticLenPageWlan;
-   v_U32_t       btcStaticLenConnWlan;
-   v_U32_t       btcStaticLenLeWlan;
-   v_U32_t       btcDynMaxLenBt;
-   v_U32_t       btcDynMaxLenWlan;
-   v_U32_t       btcMaxScoBlockPerc;
-   v_U32_t       btcDhcpProtOnA2dp;
-   v_U32_t       btcDhcpProtOnSco;
-   v_U32_t       mwsCoexVictimWANFreq[10];
-   v_U32_t       mwsCoexVictimWLANFreq[10];
-   v_U32_t       mwsCoexVictimConfig[10];
-   v_U32_t       mwsCoexVictimConfig2[10];
-   v_U32_t       mwsCoexModemBackoff;
    v_U32_t       mwsCoexConfig[6];
-   v_U32_t       SARPowerBackoff;
+   v_BOOL_t      fIsImpsEnabled;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -2860,9 +2621,7 @@ typedef struct
    v_U32_t       nChannelBondingMode24GHz;
    v_U32_t       nChannelBondingMode5GHz;
    v_U32_t       MaxRxAmpduFactor;
-   v_U32_t       nBAAgingTimerInterval;
    v_U16_t       TxRate;
-   v_U32_t       AdaptiveThresholdAlgo;
    v_U32_t       ShortGI20MhzEnable;
    v_U32_t       BlockAckAutoSetup;
    v_U32_t       ScanResultAgeCount;
@@ -3035,15 +2794,7 @@ typedef struct
    v_U16_t                      InfraSbaAcBk;
 
    /* TL related configuration */
-   v_U8_t                       WfqBkWeight;
-   v_U8_t                       WfqBeWeight;
-   v_U8_t                       WfqViWeight;
-   v_U8_t                       WfqVoWeight;
    v_U32_t                      DelayedTriggerFrmInt;
-   v_U16_t                      BkReorderAgingTime;
-   v_U16_t                      BeReorderAgingTime;
-   v_U16_t                      ViReorderAgingTime;
-   v_U16_t                      VoReorderAgingTime;
 
    /* Wowl pattern */
    char                        wowlPattern[1024];
@@ -3106,14 +2857,14 @@ typedef struct
    v_U8_t                      ShortGI40MhzEnable;
    eHddLinkSpeedReportType     reportMaxLinkSpeed;
    v_S31_t                     linkSpeedRssiHigh;
+   v_S31_t                     linkSpeedRssiMid;
+   v_S31_t                     linkSpeedRssiLow;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
    v_BOOL_t                    nRoamPrefer5GHz;
    v_BOOL_t                    nRoamIntraBand;
    v_U8_t                      nProbes;
    v_U16_t                     nRoamScanHomeAwayTime;
 #endif
-   v_S31_t                     linkSpeedRssiMid;
-   v_S31_t                     linkSpeedRssiLow;
    v_U8_t                      enableMCC;
    v_U8_t                      allowMCCGODiffBI;
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
@@ -3194,7 +2945,6 @@ typedef struct
    v_U8_t                      disableAggWithBtc;
    char                        listOfNonDfsCountryCode[128];
    v_BOOL_t                    enableSSR;
-   char                        listOfNon11acCountryCode[128];
    v_U32_t                     cfgMaxMediumTime;
    v_BOOL_t                    enableVhtFor24GHzBand;
    v_U8_t                      fScanOffload;
@@ -3203,12 +2953,6 @@ typedef struct
    v_BOOL_t                    bFastRoamInConIniFeatureEnabled;
 #endif
    v_BOOL_t                    fEnableAdaptRxDrain;
-   //TX and RX traffic threshold for split scan
-   v_U8_t                      txRxThresholdForSplitScan;
-   v_U8_t                      dynSplitscan;   //Enable/Disable dynamic
-                                                 //splitscan
-   //Traffic monitor timer for split scan
-   v_U32_t                     trafficMntrTmrForSplitScan;
    v_U8_t                      flexConnectPowerFactor;
    v_BOOL_t                    enableIbssHeartBeatOffload;
    v_U32_t                     antennaDiversity;
@@ -3293,7 +3037,6 @@ typedef struct
    v_U32_t                     TxHbwFlowMaxQueueDepth;
 #endif /* QCA_LL_TX_FLOW_CT */
    v_U16_t                     acsBandSwitchThreshold;
-   v_BOOL_t                    gEnableStrictRegulatoryForFCC;
    v_U8_t                      apMaxOffloadPeers;
    v_U8_t                      apMaxOffloadReorderBuffs;
    v_BOOL_t                    advertiseConcurrentOperation;

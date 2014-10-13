@@ -162,22 +162,9 @@
 #define SIR_MAC_QOS_DEL_BA_REQ      6
 #define SIR_MAC_QOS_DEL_BA_RSP      7
 
-#ifdef ANI_SUPPORT_11H
-// Spectrum management action codes
-#define SIR_MAC_ACTION_MEASURE_REQUEST_ID      0
-#define SIR_MAC_ACTION_MEASURE_REPORT_ID       1
-#define SIR_MAC_ACTION_TPC_REQUEST_ID          2
-#define SIR_MAC_ACTION_TPC_REPORT_ID           3
-#endif //ANI_SUPPORT_11H
 #define SIR_MAC_ACTION_CHANNEL_SWITCH_ID       4
 
 
-#ifdef ANI_SUPPORT_11H
-// Measurement Request/Report Type
-#define SIR_MAC_BASIC_MEASUREMENT_TYPE         0
-#define SIR_MAC_CCA_MEASUREMENT_TYPE           1
-#define SIR_MAC_RPI_MEASUREMENT_TYPE           2
-#endif //ANI_SUPPORT_11H
 
 //RRM related.
 //Refer IEEE Std 802.11k-2008, Section 7.3.2.21, table 7.29
@@ -2124,20 +2111,6 @@ typedef  struct sSirMacMeasActionFrameHdr
 } tSirMacMeasActionFrameHdr, *tpSirMacMeasActionFrameHdr;
 
 
-#ifdef ANI_SUPPORT_11H
-typedef  struct sSirMacTpcReqActionFrame
-{
-    tSirMacMeasActionFrameHdr   actionHeader;
-    tANI_U8                          type;
-    tANI_U8                          length;
-} tSirMacTpcReqActionFrame, *tpSirMacTpcReqActionFrame;
-
-typedef  struct sSirMacMeasReqActionFrame
-{
-    tSirMacMeasActionFrameHdr   actionHeader;
-    tSirMacMeasReqIE            measReqIE;
-} tSirMacMeasReqActionFrame, *tpSirMacMeasReqActionFrame;
-#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 

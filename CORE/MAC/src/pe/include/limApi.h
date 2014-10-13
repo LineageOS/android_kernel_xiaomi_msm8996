@@ -48,7 +48,6 @@
 #include "utilsApi.h"
 #include "limGlobal.h"
 #include "halMsgApi.h"
-#include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_wda.h"
 
 /* Macro to count heartbeat */

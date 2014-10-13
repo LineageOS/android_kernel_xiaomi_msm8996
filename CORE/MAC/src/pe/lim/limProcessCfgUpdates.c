@@ -51,46 +51,6 @@
 
 static void limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
-/**
- * limSetDefaultKeyIdAndKeys()
- *
- *FUNCTION:
- * This function is called while applying configuration
- * during JOIN/REASSOC/START_BSS.
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- *
- * @param  pMac  - Pointer to Global MAC structure
- * @return None
- */
-
-static void
-limSetDefaultKeyIdAndKeys(tpAniSirGlobal pMac)
-{
-#ifdef FIXME_GEN6
-    tANI_U32 val;
-    tANI_U32 dkCfgId;
-
-    PELOG1(limLog(pMac, LOG1, FL("Setting default keys at SP"));)
-
-    if (wlan_cfgGetInt(pMac, WNI_CFG_WEP_DEFAULT_KEYID,
-                  &val) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP,
-               FL("Unable to retrieve defaultKeyId from CFG"));
-    }
-    dkCfgId = limGetCfgIdOfDefaultKeyid(val);
-#endif
-
-} /*** end limSetDefaultKeyIdAndKeys() ***/
-
 /** -------------------------------------------------------------
 \fn limSetCfgProtection
 \brief sets lim global cfg cache from the config.
@@ -265,13 +225,6 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
     switch (cfgId)
     {
         case WNI_CFG_WEP_DEFAULT_KEYID:
-
-            // !!LAC - when the default KeyID is changed, force all of the
-            // keys and the keyID to be reprogrammed.  this allows the
-            // keys to change after the initial setting of the keys when the CFG was
-            // applied at association time through CFG changes of the keys.
-            limSetDefaultKeyIdAndKeys( pMac );
-
             break;
 
         case WNI_CFG_EXCLUDE_UNENCRYPTED:
@@ -659,9 +612,6 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     limGetPhyMode(pMac, &phyMode, psessionEntry);
 
-    // Set default keyId and keys
-    limSetDefaultKeyIdAndKeys(pMac);
-
     limUpdateConfig(pMac,psessionEntry);
 
     limGetShortSlotFromPhyMode(pMac, psessionEntry, phyMode,
@@ -775,12 +725,12 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
     if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT, &val) != eSIR_SUCCESS) {
         limLog( pMac, LOGP, FL( "cfg get assoc sta limit failed" ));
     }
-    if( (!WDI_getFwWlanFeatCaps(SAP32STA)) && (val >= WNI_CFG_ASSOC_STA_LIMIT_STAMAX))
+    if(val >= WNI_CFG_ASSOC_STA_LIMIT_STAMAX)
     {
         if(ccmCfgSetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT, WNI_CFG_ASSOC_STA_LIMIT_STADEF,
             NULL, eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
         {
-           limLog( pMac, LOGP, FL( "cfg get assoc sta limit failed" ));
+           limLog( pMac, LOGP, FL( "cfg set assoc sta limit failed" ));
         }
         val = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
     }

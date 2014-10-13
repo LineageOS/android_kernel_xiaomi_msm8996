@@ -71,7 +71,6 @@
 #include "wlan_nv.h"
 #include "wlan_qct_wda.h"
 #include "cfgApi.h"
-#include "wlan_qct_pal_device.h"
 
 #if  defined(QCA_WIFI_FTM)
 #include "bmi.h"

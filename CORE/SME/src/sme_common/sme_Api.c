@@ -76,7 +76,6 @@
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
-#include <wlan_qct_pal_api.h>
 #define LOG_SIZE 256
 #define READ_MEMORY_DUMP_CMD     9
 #define TL_INIT_STATE            0

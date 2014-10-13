@@ -74,46 +74,16 @@ VOS_STATUS btcOpen (tHalHandle hHal)
 
    /* Initialize BTC configuration. */
    pMac->btc.btcConfig.btcExecutionMode = BTC_SMART_COEXISTENCE;
-   pMac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp = 0;
-   pMac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp = BTC_MAX_NUM_ACL_BT_SUB_INTS;
-   pMac->btc.btcConfig.btcBtIntervalMode1 = BTC_BT_INTERVAL_MODE1_DEFAULT;
-   pMac->btc.btcConfig.btcWlanIntervalMode1 = BTC_WLAN_INTERVAL_MODE1_DEFAULT;
-   pMac->btc.btcConfig.btcActionOnPmFail = BTC_START_NEXT;
-
-   pMac->btc.btcConfig.btcStaticLenInqBt = BTC_STATIC_BT_LEN_INQ_DEF;
-   pMac->btc.btcConfig.btcStaticLenPageBt = BTC_STATIC_BT_LEN_PAGE_DEF;
-   pMac->btc.btcConfig.btcStaticLenConnBt = BTC_STATIC_BT_LEN_CONN_DEF;
-   pMac->btc.btcConfig.btcStaticLenLeBt = BTC_STATIC_BT_LEN_LE_DEF;
-   pMac->btc.btcConfig.btcStaticLenInqWlan = BTC_STATIC_WLAN_LEN_INQ_DEF;
-   pMac->btc.btcConfig.btcStaticLenPageWlan = BTC_STATIC_WLAN_LEN_PAGE_DEF;
-   pMac->btc.btcConfig.btcStaticLenConnWlan = BTC_STATIC_WLAN_LEN_CONN_DEF;
-   pMac->btc.btcConfig.btcStaticLenLeWlan = BTC_STATIC_WLAN_LEN_LE_DEF;
-   pMac->btc.btcConfig.btcDynMaxLenBt = BTC_DYNAMIC_BT_LEN_MAX_DEF;
-   pMac->btc.btcConfig.btcDynMaxLenWlan = BTC_DYNAMIC_WLAN_LEN_MAX_DEF;
-   pMac->btc.btcConfig.btcMaxScoBlockPerc = BTC_SCO_BLOCK_PERC_DEF;
-   pMac->btc.btcConfig.btcDhcpProtOnA2dp = BTC_DHCP_ON_A2DP_DEF;
-   pMac->btc.btcConfig.btcDhcpProtOnSco = BTC_DHCP_ON_SCO_DEF;
 
    pMac->btc.btcReady = VOS_FALSE;
    pMac->btc.btcEventState = 0;
    pMac->btc.btcHBActive = VOS_TRUE;
    pMac->btc.btcScanCompromise = VOS_FALSE;
 
-   for (i = 0; i < MWS_COEX_MAX_VICTIM_TABLE; i++)
-   {
-      pMac->btc.btcConfig.mwsCoexVictimWANFreq[i] = 0;
-      pMac->btc.btcConfig.mwsCoexVictimWLANFreq[i] = 0;
-      pMac->btc.btcConfig.mwsCoexVictimConfig[i] = 0;
-      pMac->btc.btcConfig.mwsCoexVictimConfig2[i] = 0;
-   }
-
    for (i = 0; i < MWS_COEX_MAX_CONFIG; i++)
    {
       pMac->btc.btcConfig.mwsCoexConfig[i] = 0;
    }
-
-   pMac->btc.btcConfig.mwsCoexModemBackoff = 0;
-   pMac->btc.btcConfig.SARPowerBackoff = 0;
 
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
                       VOS_TIMER_TYPE_SW,

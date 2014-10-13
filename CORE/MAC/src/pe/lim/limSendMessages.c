@@ -686,7 +686,6 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac,tpPESession psessionEn
     }
     vos_mem_set((tANI_U8 *) pBeaconFilterMsg, msgSize, 0);
     // Fill in capability Info and mask
-    //TBD-RAJESH get the BSS capability from session.
     //Don't send this message if no active Infra session is found.
     pBeaconFilterMsg->capabilityInfo = psessionEntry->limCurrentBssCaps;
     pBeaconFilterMsg->capabilityMask = CAPABILITY_FILTER_MASK;

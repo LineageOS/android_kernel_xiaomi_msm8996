@@ -68,9 +68,6 @@
 #define ANI_HDD_PRE_DUMMY_PKT_SPL_PROC  2
 #define ANI_HDD_WNS_L2_UPDATE_SPL_PROC  3
 #define ANI_HDD_DUMMY_DATA              4
-#ifdef WMM_APSD
-#define ANI_HDD_EOSP_PKT                5
-#endif
 
 /// Message offset for the cmd to enqueue a dummy pkt to HDD TD ring
 #define ANI_DUMMY_PKT_MSG_TYPE_OFFSET    0

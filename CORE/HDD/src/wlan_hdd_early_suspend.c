@@ -1766,12 +1766,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
    vos_clear_concurrent_session_count();
-   //Stop the traffic monitor timer
-   if ( VOS_TIMER_STATE_RUNNING ==
-                        vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr))
-   {
-        vos_timer_stop(&pHddCtx->tx_rx_trafficTmr);
-   }
 
    hdd_reset_all_adapters(pHddCtx);
 

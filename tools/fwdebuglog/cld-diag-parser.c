@@ -903,14 +903,6 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         }
 
     }
-    if (gdiag_header->file_version != version) {
-        snprintf(buf, BUF_SIZ, "**ERROR**"
-        " Data.msc Version %d doesn't match"
-        " with Firmware version %d",
-            gdiag_header->file_version, version);
-        diag_printf(buf, 0, 4, optionflag, 0, NULL);
-        return -1;
-    }
     buffer = (uint32_t *)datap  ;
     buffer ++; /* increment 1 to skip dropped */
     num_buf = len - 4;
@@ -975,6 +967,14 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
             debug_printf(" DIAG_TYPE_FW_DEBUG_MSG: "
                    " vdevid %d vdevlevel %d payloadlen = %d id = %d\n",
                                   vdevid, vdevlevel, payloadlen, id);
+            if (gdiag_header->file_version != version) {
+                snprintf(buf, BUF_SIZ, "**ERROR**"
+                " Data.msc Version %d doesn't match"
+                " with Firmware version %d id = %d",
+                gdiag_header->file_version, version, id);
+                diag_printf(buf, 0, 4, optionflag, 0, NULL);
+                break;
+            }
             entry = diag_find_by_id(id);
             if (entry) {
                debug_printf(" entry->format = %s pack = %s\n",
