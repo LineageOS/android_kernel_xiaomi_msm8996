@@ -320,17 +320,12 @@ typedef enum eSirResultCodes
     eSIR_SME_CHANNEL_SWITCH_FAIL,        // failed to send out Channel Switch Action Frame
     eSIR_SME_INVALID_STA_ROLE,
     eSIR_SME_INVALID_STATE,
-#ifdef GEN4_SCAN
     eSIR_SME_CHANNEL_SWITCH_DISABLED,    // either 11h is disabled or channelSwitch is currently active
     eSIR_SME_HAL_SCAN_INIT_FAILED,       // SIR_HAL_SIR_HAL_INIT_SCAN_RSP returned failed status
     eSIR_SME_HAL_SCAN_START_FAILED,      // SIR_HAL_START_SCAN_RSP returned failed status
     eSIR_SME_HAL_SCAN_END_FAILED,        // SIR_HAL_END_SCAN_RSP returned failed status
     eSIR_SME_HAL_SCAN_FINISH_FAILED,     // SIR_HAL_FINISH_SCAN_RSP returned failed status
     eSIR_SME_HAL_SEND_MESSAGE_FAIL,      // Failed to send a message to HAL
-#else // GEN4_SCAN
-    eSIR_SME_CHANNEL_SWITCH_DISABLED,    // either 11h is disabled or channelSwitch is currently active
-    eSIR_SME_HAL_SEND_MESSAGE_FAIL,      // Failed to send a message to HAL
-#endif // GEN4_SCAN
 #ifdef FEATURE_OEM_DATA_SUPPORT
     eSIR_SME_HAL_OEM_DATA_REQ_START_FAILED,
 #endif

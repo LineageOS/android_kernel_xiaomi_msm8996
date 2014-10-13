@@ -206,10 +206,8 @@ static void __limInitStates(tpAniSirGlobal pMac)
     /// Previous MLM State
     pMac->lim.gLimPrevMlmState = eLIM_MLM_OFFLINE_STATE;
 
-#ifdef GEN4_SCAN
     // LIM to HAL SCAN Management Message Interface states
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
-#endif // GEN4_SCAN
 
     /**
      * Initialize state to eLIM_SME_OFFLINE_STATE

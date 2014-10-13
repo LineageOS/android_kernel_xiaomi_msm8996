@@ -512,7 +512,6 @@ typedef struct sAniSirLim
     /// Previous MLM State
     tLimMlmStates       gLimPrevMlmState;
 
-#ifdef GEN4_SCAN
     // LIM to HAL SCAN Management Message Interface states
     tLimLimHalScanState gLimHalScanState;
 //WLAN_SUSPEND_LINK Related
@@ -527,7 +526,6 @@ typedef struct sAniSirLim
     //current channel. CB state goes along with channel to resume to
     tANI_U16    gResumeChannel;
     ePhyChanBondState    gResumePhyCbState;
-#endif // GEN4_SCAN
 
     // Change channel generic scheme
     CHANGE_CHANNEL_CALLBACK gpchangeChannelCallback;
