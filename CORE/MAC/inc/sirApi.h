@@ -4767,7 +4767,8 @@ typedef struct sSirSmeRoamOffloadSynchInd
     tANI_U8     kck[SIR_KCK_KEY_LEN];
     tANI_U8     kek[SIR_KEK_KEY_LEN];
     tANI_U8     replay_ctr[SIR_REPLAY_CTR_LEN];
-} tSirSmeRoamOffloadSynchInd, *tpSirSmeRoamOffloadSynchInd;
+    tpSirBssDescription  pbssDescription;
+} tSirRoamOffloadSynchInd, *tpSirRoamOffloadSynchInd;
 
 typedef struct sSirSmeRoamOffloadSynchCnf
 {

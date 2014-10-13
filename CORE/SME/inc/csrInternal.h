@@ -191,10 +191,6 @@ typedef enum
     eCsrLostLink1Abort,
     eCsrLostLink2Abort,
     eCsrLostLink3Abort,
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    eCsrPerformRoamOffloadSynch,
-#endif
-
 }eCsrRoamReason;
 
 typedef enum
@@ -896,6 +892,7 @@ typedef struct tagCsrRoamOffloadSynchStruct
     tANI_U8 kck[SIR_KCK_KEY_LEN];
     tANI_U8 kek[SIR_KEK_KEY_LEN];
     tANI_U8 replay_ctr[SIR_REPLAY_CTR_LEN];
+    tpSirBssDescription  pbssDescription; /*BSS descriptor*/
 } tCsrRoamOffloadSynchStruct;
 #endif
 
@@ -1531,9 +1528,10 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
                   eUpdateIEsType updateType);
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-void csrProcessRoamOffloadSynchInd(tpAniSirGlobal pMac, void *pMsgBuf);
+void csrProcessRoamOffloadSynchInd(tHalHandle hHal,
+            tpSirRoamOffloadSynchInd pSmeRoamOffloadSynchInd);
 eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
-            tSirSmeRoamOffloadSynchInd *pRoamOffloadSynchInd);
+            tSirRoamOffloadSynchInd *pRoamOffloadSynchInd);
 void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf);
 #endif
 #endif

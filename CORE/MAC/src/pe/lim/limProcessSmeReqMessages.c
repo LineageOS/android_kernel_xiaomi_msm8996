@@ -5768,11 +5768,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limProcessAdjacentAPRepMsg ( pMac, pMsgBuf );
             break;
 #endif
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND:
-             limProcessFTRoamOffloadSynchInd(pMac, pMsg);
-             break;
-#endif
        case eWNI_SME_ADD_STA_SELF_REQ:
             __limProcessSmeAddStaSelfReq( pMac, pMsgBuf );
             break;

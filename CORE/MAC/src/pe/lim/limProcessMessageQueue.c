@@ -1361,9 +1361,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
         case eWNI_SME_GET_TSM_STATS_REQ:
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-        case eWNI_SME_FT_ROAM_OFFLOAD_SYNCH_IND:
-#endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -1569,6 +1566,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
            vos_mem_free(limMsg->bodyptr);
            limMsg->bodyptr = NULL;
            break;
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        case WDA_ROAM_OFFLOAD_SYNCH_IND:
+           limRoamOffloadSynchInd(pMac, limMsg);
+           /* bodyPtr is freed after handling
+            * eWNI_SME_ROAM_OFFLOAD_SYNCH_IND in sme_ProcessMsg */
+           break;
+#endif
 
 
 

@@ -1696,17 +1696,18 @@ DEQ_PREAUTH:
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /* ---------------------------------------------------------------------------
- * \fn     csrNeighborRoamOffloadSynchRspHandler
- * \brief  This function handle the RoamOffloadSynch from PE
+ * \fn     csrNeighborRoamOffloadUpdatePreauthList
+ * \brief  This function handle the RoamOffloadSynch and adds the
+ *         roamed AP to the preauth done list
  * \param  pMac - The handle returned by macOpen.
- * \param  pFTRoamOffloadSynchRsp - Roam offload sync response
+ * \param  pSmeRoamOffloadSynchInd - Roam offload sync Ind Info
  * \param  sessionId - Session identifier
  * \return eHAL_STATUS_SUCCESS on success,
  *         eHAL_STATUS_FAILURE otherwise
  * --------------------------------------------------------------------------*/
 eHalStatus
-csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
-                              tpSirFTRoamOffloadSynchRsp pFTRoamOffloadSynchRsp,
+csrNeighborRoamOffloadUpdatePreauthList(tpAniSirGlobal pMac,
+                           tpSirRoamOffloadSynchInd pSmeRoamOffloadSynchInd,
                               tANI_U8 sessionId)
 {
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
@@ -1731,13 +1732,13 @@ csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
                FL("LFR3:Memory allocation for Neighbor Roam BSS Info failed"));
         return eHAL_STATUS_FAILURE;
     }
-    bssDescLen = pFTRoamOffloadSynchRsp->pbssDescription->length +
-        sizeof(pFTRoamOffloadSynchRsp->pbssDescription->length);
+    bssDescLen = pSmeRoamOffloadSynchInd->pbssDescription->length +
+        sizeof(pSmeRoamOffloadSynchInd->pbssDescription->length);
     pBssInfo->pBssDescription = vos_mem_malloc(bssDescLen);
     if (pBssInfo->pBssDescription != NULL)
     {
         vos_mem_copy(pBssInfo->pBssDescription,
-                     pFTRoamOffloadSynchRsp->pbssDescription,
+                     pSmeRoamOffloadSynchInd->pbssDescription,
                      bssDescLen);
     }
     else
@@ -1760,7 +1761,7 @@ csrNeighborRoamOffloadSynchRspHandler(tpAniSirGlobal pMac,
     }
     vos_mem_zero(pftPreAuthReq, sizeof(tSirFTPreAuthReq));
     vos_mem_copy(&pftPreAuthReq->preAuthbssId,
-                 pFTRoamOffloadSynchRsp->pbssDescription->bssId,
+                 pSmeRoamOffloadSynchInd->pbssDescription->bssId,
                  sizeof(tSirMacAddr));
 
     CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE,

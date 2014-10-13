@@ -167,6 +167,9 @@ void
 limSendHeartBeatTimeoutInd(tpAniSirGlobal pMac, tpPESession psessionEntry);
 tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U32 subType);
 void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+void limRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+#endif
 /* ----------------------------------------------------------------------- */
 // These used to be in DPH
 extern void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac);

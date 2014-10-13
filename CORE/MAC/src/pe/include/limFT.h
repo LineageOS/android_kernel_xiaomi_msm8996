@@ -63,13 +63,14 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
 void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
                 tpPESession psessionEntry);
 void limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
-
+void limFillFTSession(tpAniSirGlobal pMac, tpSirBssDescription pbssDescription,
+                      tpPESession pftSessionEntry, tpPESession psessionEntry);
+tSirRetStatus limFTPrepareAddBssReq(tpAniSirGlobal pMac, tANI_U8 updateEntry,
+                                    tpPESession pftSessionEntry,
+                                    tpSirBssDescription bssDescription);
 tANI_BOOLEAN   limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 tSirRetStatus  limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
 void        limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-void limProcessFTRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
-#endif
 void limFTCleanupAllFTSessions(tpAniSirGlobal pMac);
 
 #endif /* __LIMFT_H__ */
