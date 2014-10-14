@@ -125,9 +125,9 @@ void ol_target_failure(void *instance, A_STATUS status);
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn);
 
 #if defined(HIF_SDIO)
-void ol_target_ready(struct ol_softc *scn);
+void ol_target_ready(struct ol_softc *scn, void *cfg_ctx);
 #else
-static inline void ol_target_ready(struct ol_softc *scn)
+static inline void ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 {
 
 }

@@ -465,7 +465,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
            goto err_wda_close;
    }
 
-   bmi_target_ready(scn);
+   bmi_target_ready(scn, gpVosContext->cfg_ctx);
    /* Open the SYS module */
    vStatus = sysOpen(gpVosContext);
 
