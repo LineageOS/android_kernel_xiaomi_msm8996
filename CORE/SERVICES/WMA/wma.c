@@ -14728,6 +14728,12 @@ static int wmi_unified_probe_rsp_tmpl_send(tp_wma_handle wma,
 	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
 		  tmpl_len_aligned;
 
+	if (wmi_buf_len > BEACON_TX_BUFFER_SIZE) {
+		WMA_LOGE(FL("wmi_buf_len: %d > %d. Can't send wmi cmd"),
+			 wmi_buf_len, BEACON_TX_BUFFER_SIZE);
+		return -EINVAL;
+	}
+
 	wmi_buf = wmi_buf_alloc(wma->wmi_handle, wmi_buf_len);
 	if (!wmi_buf) {
 		WMA_LOGE(FL("wmi_buf_alloc failed"));

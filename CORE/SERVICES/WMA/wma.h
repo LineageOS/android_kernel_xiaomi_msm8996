@@ -154,6 +154,8 @@
 
 #define WMA_SEC_TO_USEC                     (1000000)
 
+#define BEACON_TX_BUFFER_SIZE               (512)
+
 typedef struct probeTime_dwellTime {
 	u_int8_t dwell_time;
 	u_int8_t probe_time;
