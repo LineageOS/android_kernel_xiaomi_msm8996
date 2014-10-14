@@ -583,13 +583,6 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
 
    v_U8_t STAId = 0;
 
-   v_U8_t pACWeights[] = {
-                           HDD_SOFTAP_BK_WEIGHT_DEFAULT,
-                           HDD_SOFTAP_BE_WEIGHT_DEFAULT,
-                           HDD_SOFTAP_VI_WEIGHT_DEFAULT,
-                           HDD_SOFTAP_VO_WEIGHT_DEFAULT
-                         };
-
    pAdapter->isVosOutOfResource = VOS_FALSE;
    pAdapter->isVosLowResource = VOS_FALSE;
 
@@ -616,9 +609,6 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
          hdd_list_init(&pAdapter->aStaInfo[STAId].wmm_tx_queue[i], HDD_TX_QUEUE_MAX_LEN);
       }
    }
-
-   /* Update the AC weights suitable for SoftAP mode of operation */
-   WLANTL_SetACWeights((WLAN_HDD_GET_CTX(pAdapter))->pvosContext, pACWeights);
 
    return status;
 }
