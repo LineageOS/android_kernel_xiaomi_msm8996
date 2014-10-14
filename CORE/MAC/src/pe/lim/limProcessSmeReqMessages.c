@@ -406,7 +406,6 @@ __limProcessSmeStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          * log error
          */
         limLog(pMac, LOGE, FL("Invalid SME_START_REQ received in SME state %X"),pMac->lim.gLimSmeState );
-        limPrintSmeState(pMac, LOGE, pMac->lim.gLimSmeState);
         retCode = eSIR_SME_UNEXPECTED_REQ_RESULT_CODE;
     }
     limSendSmeRsp(pMac, eWNI_SME_START_RSP, retCode,smesessionId,smetransactionId);
@@ -1757,20 +1756,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
 
         /* check for the existence of start BSS session  */
-#ifdef FIXME_GEN6
-        if(pSmeJoinReq->bsstype == eSIR_BTAMP_AP_MODE)
-        {
-            if(peValidateBtJoinRequest(pMac)!= TRUE)
-            {
-               limLog(pMac, LOGW, FL("SessionId:%d Start Bss session not present::SME_JOIN_REQ in unexpected state"),
-                      pSmeJoinReq->sessionId);
-                retCode = eSIR_SME_UNEXPECTED_REQ_RESULT_CODE;
-                psessionEntry = NULL;
-                goto end;
-            }
-        }
-
-#endif
 
 
         if((psessionEntry = peFindSessionByBssid(pMac,pSmeJoinReq->bssDescription.bssId,&sessionId)) != NULL)
@@ -2181,7 +2166,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* Received eWNI_SME_JOIN_REQ un expected state */
         limLog(pMac, LOGE, FL("received unexpected SME_JOIN_REQ "
                              "in state %X"), pMac->lim.gLimSmeState);
-        limPrintSmeState(pMac, LOGE, pMac->lim.gLimSmeState);
         retCode = eSIR_SME_UNEXPECTED_REQ_RESULT_CODE;
         psessionEntry = NULL;
         goto end;
@@ -2343,7 +2327,6 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limLog(pMac, LOGE,
                FL("received unexpected SME_REASSOC_REQ in state %X"),
                psessionEntry->limSmeState);
-        limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
 
         retCode = eSIR_SME_UNEXPECTED_REQ_RESULT_CODE;
         goto end;
@@ -2701,7 +2684,6 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     limLog(pMac, LOGE,
                        FL("received unexpected SME_DISASSOC_REQ in state %X"),
                        psessionEntry->limSmeState);
-                    limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
 
                     if (pMac->lim.gLimRspReqd)
                     {
@@ -2858,7 +2840,6 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 limLog(pMac, LOGE,
                    FL("received unexp SME_DISASSOC_CNF in state %X"),
                   psessionEntry->limSmeState);
-                limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
                 return;
             }
             break;
@@ -3019,7 +3000,6 @@ __limProcessSmeDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     limLog(pMac, LOGE,
                     FL("received unexp SME_DEAUTH_REQ in state %X"),
                     psessionEntry->limSmeState);
-                    limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
 
                     if (pMac->lim.gLimRspReqd)
                     {
@@ -3268,7 +3248,6 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            FL("received unexpected SME_SETCONTEXT_REQ for role %d, state=%X"),
            psessionEntry->limSystemRole,
            psessionEntry->limSmeState);
-        limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
 
         limSendSmeSetContextRsp(pMac, pSetContextReq->peerMacAddr,
                                 1,
@@ -3407,7 +3386,6 @@ __limProcessSmeRemoveKeyReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            FL("received unexpected SME_REMOVEKEY_REQ for role %d, state=%X"),
            psessionEntry->limSystemRole,
            psessionEntry->limSmeState);
-        limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
 
         limSendSmeRemoveKeyRsp(pMac,
                                 pRemoveKeyReq->peerMacAddr,
@@ -3433,10 +3411,6 @@ void limProcessSmeGetScanChannelInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 pMac->lim.scanChnInfo.numChnInfo);
         pMac->lim.scanChnInfo.numChnInfo = SIR_MAX_SUPPORTED_CHANNEL_LIST;
     }
-
-    PELOG2(limLog(pMac, LOG2,
-           FL("Sending message %s with number of channels %d"),
-           limMsgStr(eWNI_SME_GET_SCANNED_CHANNEL_RSP), pMac->lim.scanChnInfo.numChnInfo);)
 
     len = sizeof(tSmeGetScanChnRsp) + (pMac->lim.scanChnInfo.numChnInfo - 1) * sizeof(tLimScanChn);
     pSirSmeRsp = vos_mem_malloc(len);
@@ -3766,7 +3740,6 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limLog(pMac, LOGE,
            FL("received unexpected SME_STOP_BSS_REQ in state %X, for role %d"),
            psessionEntry->limSmeState, psessionEntry->limSystemRole);
-        limPrintSmeState(pMac, LOGE, psessionEntry->limSmeState);
         /// Send Stop BSS response to host
         limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, eSIR_SME_UNEXPECTED_REQ_RESULT_CODE,smesessionId,smetransactionId);
         return;
@@ -5509,9 +5482,7 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     tANI_BOOLEAN bufConsumed = TRUE; //Set this flag to false within case block of any following message, that doesnt want pMsgBuf to be freed.
     tANI_U32 *pMsgBuf = pMsg->bodyptr;
     tpSirSmeScanReq     pScanReq;
-    PELOG1(limLog(pMac, LOG1, FL("LIM Received SME Message %s(%d) Global LimSmeState:%s(%d) Global LimMlmState: %s(%d)"),
-         limMsgStr(pMsg->type), pMsg->type,
-         limSmeStateStr(pMac->lim.gLimSmeState), pMac->lim.gLimSmeState,
+    PELOG1(limLog(pMac, LOG1, FL("LIM Received Global LimMlmState: %s(%d)"),
          limMlmStateStr(pMac->lim.gLimMlmState), pMac->lim.gLimMlmState );)
 
     pScanReq = (tpSirSmeScanReq) pMsgBuf;
@@ -5553,8 +5524,8 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
                 limLog(pMac, LOGE,
                       FL("Error: Scan Disabled."
-                      " Return with error status for SME Message %s(%d)"),
-                      limMsgStr(pMsg->type), pMsg->type);
+                      " Return with error status for SME Message type(%d)"),
+                      pMsg->type);
 
                 return bufConsumed;
             }

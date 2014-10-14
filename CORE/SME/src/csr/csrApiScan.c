@@ -1647,9 +1647,6 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     tCsrScanResultFilter *pScanFilter = NULL;
     tCsrRoamProfile *pProfile = pCommand->u.scanCmd.pToRoamProfile;
     tANI_U32 sessionId = pCommand->sessionId;
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-#endif
     do
     {
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
@@ -1708,21 +1705,6 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
         {
             status = csrScanStartIdleScan(pMac);
         }
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-        //In case of WDS station, let it retry.
-        if( CSR_IS_WDS_STA(pProfile) )
-        {
-            /* Save the roam profile so we can retry */
-            csrFreeRoamProfile( pMac, sessionId );
-            pSession->pCurRoamProfile = vos_mem_malloc(sizeof(tCsrRoamProfile));
-            if ( NULL != pSession->pCurRoamProfile )
-            {
-                vos_mem_set(pSession->pCurRoamProfilee, sizeof(tCsrRoamProfile), 0);
-                csrRoamCopyProfile(pMac, pSession->pCurRoamProfile, pProfile);
-            }
-            csrRoamStartJoinRetryTimer(pMac, sessionId, CSR_JOIN_RETRY_TIMEOUT_PERIOD);
-        }
-#endif
     }
     if (pScanFilter)
     {
@@ -1819,21 +1801,6 @@ eHalStatus csrScanHandleSearchForSSIDFailure(tpAniSirGlobal pMac, tSmeCmd *pComm
                                     eCSR_ROAM_ASSOCIATION_FAILURE,
                                     eCSR_ROAM_RESULT_FAILURE);
             }
-#ifdef FEATURE_WLAN_BTAMP_UT_RF
-            //In case of WDS station, let it retry.
-            if( CSR_IS_WDS_STA(pProfile) )
-            {
-                /* Save the roam profile so we can retry */
-                csrFreeRoamProfile( pMac, sessionId );
-                pSession->pCurRoamProfile = vos_mem_malloc(sizeof(tCsrRoamProfile));
-                if ( NULL != pSession->pCurRoamProfile )
-                {
-                    vos_mem_set(pSession->pCurRoamProfile, sizeof(tCsrRoamProfile), 0);
-                    csrRoamCopyProfile(pMac, pSession->pCurRoamProfile, pProfile);
-                }
-                csrRoamStartJoinRetryTimer(pMac, sessionId, CSR_JOIN_RETRY_TIMEOUT_PERIOD);
-            }
-#endif
         }
         else
         {

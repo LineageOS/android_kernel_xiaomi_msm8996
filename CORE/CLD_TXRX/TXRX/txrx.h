@@ -138,7 +138,6 @@ struct wlan_txrx_ind_req {
 };
 
 struct wlan_txrx_config_param {
-	u8 ucAcWeights[TXRX_NUM_WMM_AC];
 	u32 uDelayedTriggerFrmInt;
 	u8 uMinFramesProcThres;
 };

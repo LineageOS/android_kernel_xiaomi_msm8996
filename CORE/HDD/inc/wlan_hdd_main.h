@@ -1423,10 +1423,6 @@ struct hdd_context_s
 
     // Indicates about pending sched_scan results
     v_BOOL_t isSchedScanUpdatePending;
-    /*
-    * TX_rx_pkt_count_timer
-    */
-    vos_timer_t    tx_rx_trafficTmr;
 
 #ifdef MSM_PLATFORM
    /* DDR bus bandwidth compute timer
@@ -1437,8 +1433,6 @@ struct hdd_context_s
     int            cur_rx_level;
     uint64_t       prev_rx;
 #endif
-
-    v_U8_t         issplitscan_enabled;
 
     /* VHT80 allowed*/
     v_BOOL_t isVHT80Allowed;

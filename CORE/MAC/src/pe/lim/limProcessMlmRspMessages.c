@@ -2215,7 +2215,7 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
      * to occupy the medium during non channel occupancy period. So resume the transmission after
      * HAL gives back the response.
      */
-    dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);//TBD-RAJESH is it needed ?
+    dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);
     limDeletePreAuthList(pMac);
     //Initialize number of associated stations during cleanup
     psessionEntry->gLimNumOfCurrentSTAs = 0;
@@ -2972,20 +2972,6 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
 #ifdef WLAN_FEATURE_11AC
         pAddStaParams->vhtCapable = psessionEntry->vhtCapability;
         pAddStaParams->vhtTxChannelWidthSet = psessionEntry->vhtTxChannelWidthSet;
-#endif
-#ifdef DISABLE_GF_FOR_INTEROP
-        /*
-         * To resolve the interop problem with Broadcom AP,
-         * where TQ STA could not pass traffic with GF enabled,
-         * TQ STA will do Greenfield only with TQ AP, for
-         * everybody else it will be turned off.
-         */
-        if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
-        {
-            limLog( pMac, LOGE, FL(" Turning off Greenfield, when adding self entry"));
-            pAddStaParams->greenFieldCapable = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
-        }
-        else
 #endif
 
         pAddStaParams->greenFieldCapable = limGetHTCapability( pMac, eHT_GREENFIELD, psessionEntry);

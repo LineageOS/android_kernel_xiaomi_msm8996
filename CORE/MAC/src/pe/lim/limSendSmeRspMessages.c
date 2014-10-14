@@ -164,8 +164,8 @@ limSendSmeRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
     tSirSmeRsp  *pSirSmeRsp;
 
     PELOG1(limLog(pMac, LOG1,
-           FL("Sending message %s with reasonCode %s"),
-           limMsgStr(msgType), limResultCodeStr(resultCode));)
+           FL("Sending message type %d with reasonCode %s"),
+           msgType, limResultCodeStr(resultCode));)
 
     pSirSmeRsp = vos_mem_malloc(sizeof(tSirSmeRsp));
     if ( NULL == pSirSmeRsp )
@@ -315,8 +315,8 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
     PELOG1(limLog(pMac, LOG1,
-           FL("Sending message %s with reasonCode %s"),
-           limMsgStr(msgType), limResultCodeStr(resultCode));)
+           FL("Sending message type %d with reasonCode %s"),
+           msgType, limResultCodeStr(resultCode));)
 
     if(psessionEntry == NULL)
     {
@@ -589,8 +589,8 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
     tANI_U16            ieLen;
     tANI_U16            ieOffset, curLen;
 
-    PELOG1(limLog(pMac, LOG1, FL("Sending message %s with reasonCode %s"),
-           limMsgStr(msgType), limResultCodeStr(resultCode));)
+    PELOG1(limLog(pMac, LOG1, FL("Sending message type %d with reasonCode %s"),
+           msgType, limResultCodeStr(resultCode));)
 
     size = sizeof(tSirSmeStartBssRsp);
 

@@ -179,12 +179,6 @@ typedef struct
     tANI_U8 delBASupport;
     // delayed ba support... TBD
 
-#ifdef ANI_DVT_DEBUG
-    //These 6 fields are used only by DVT driver to pass selected
-    //rates to Softmac through HAL.
-    tANI_U8 primaryRateIndex, secondaryRateIndex, tertiaryRateIndex;
-    tANI_U8 primaryRateIndex40, secondaryRateIndex40, tertiaryRateIndex40;
-#endif
 
     // FIXME
     //Add these fields to message

@@ -261,9 +261,6 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-  /*AC weight for WFQ*/
-  v_U8_t   ucAcWeights[WLANTL_MAX_AC];
-
   /*Delayed trigger frame timmer: - used by TL to send trigger frames less
     often when it has established that the App is suspended*/
   v_U32_t  uDelayedTriggerFrmInt;
@@ -277,8 +274,6 @@ typedef struct
   /* Rx processing in thread from TL shim */
   v_BOOL_t enable_rxthread;
 
-  /* Re-order Aging Time */
-  v_U16_t  ucReorderAgingTime[WLANTL_MAX_AC];
 }WLANTL_ConfigInfoType;
 
 /*---------------------------------------------------------------------------

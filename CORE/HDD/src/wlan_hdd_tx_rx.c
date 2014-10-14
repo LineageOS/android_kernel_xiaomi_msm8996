@@ -1740,17 +1740,6 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    return VOS_STATUS_SUCCESS;
 }
 
-/**============================================================================
-  @brief hdd_tx_rx_pkt_cnt_stat_timer_handler() -
-               Enable/Disable split scan based on TX and RX traffic.
-  @param HddContext      : [in] pointer to Hdd context
-  @return                : None
-  ===========================================================================*/
-void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
-{
-
-}
-
 #ifdef IPA_OFFLOAD
 /**============================================================================
   @brief hdd_rx_mul_packet_cbk() - Receive callback registered with TL.

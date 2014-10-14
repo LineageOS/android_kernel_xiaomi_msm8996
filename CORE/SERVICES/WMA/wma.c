@@ -8639,6 +8639,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 scan_offload_rsp = vos_mem_malloc(sizeof(*scan_offload_rsp));
                 if (!scan_offload_rsp) {
                     WMA_LOGE("%s: Alloc failed for scan_offload_rsp", __func__);
+                    vos_mem_free(roam_req);
                     return VOS_STATUS_E_NOMEM;
                 }
                 vosMsg.type = eWNI_SME_ROAM_SCAN_OFFLOAD_RSP;
@@ -8652,6 +8653,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME,
                     (vos_msg_t*)&vosMsg))
                 {
+                    vos_mem_free(scan_offload_rsp);
                     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                "%s: Failed to post Scan Offload Rsp to UMAC",
                                __func__);

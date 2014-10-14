@@ -600,40 +600,6 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         }
     }
 
-#ifdef WMM_APSD
-    // Save the QOS info element in assoc request..
-    limGetWmeMode(pMac, &wmeMode);
-    if (wmeMode == eHAL_SET)
-    {
-        tpQosInfoSta qInfo;
-
-        qInfo = (tpQosInfoSta) (pAssocReq->qosCapability.qosInfo);
-
-        if ((pMac->lim.gWmmApsd.apsdEnable == 0) && (qInfo->ac_be || qInfo->ac_bk || qInfo->ac_vo || qInfo->ac_vi))
-        {
-            limLog(pMac, LOGW,
-                   FL("Rejecting Re/Assoc req from STA: "MAC_ADDRESS_STR),
-                   MAC_ADDR_ARRAY(pHdr->sa));
-            limLog(pMac, LOGE, FL("APSD not enabled, qosInfo - 0x%x"), *qInfo);
-
-            /**
-             * Received Re/Association Request from
-             * 11b STA when 11g only policy option
-             * is set.
-             * Reject with unspecified status code.
-             */
-            limSendAssocRspMgmtFrame(
-                           pMac,
-                           eSIR_MAC_WME_REFUSED_STATUS,
-                           1,
-                           pHdr->sa,
-                           subType, 0,psessionEntry);
-
-            limLog(pMac, LOGE, FL("APSD not enabled, qosInfo - 0x%x"), *qInfo);
-            goto error;
-        }
-    }
-#endif
 
     // Check for 802.11n HT caps compatibility; are HT Capabilities
     // turned on in lim?

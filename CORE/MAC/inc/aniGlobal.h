@@ -95,9 +95,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include <limFTDefs.h>
 #endif
 
-#ifdef ANI_DVT_DEBUG
-#include "dvtModule.h"
-#endif
 
 // New HAL API interface defs.
 #include "logDump.h"
@@ -985,9 +982,6 @@ typedef struct sAniSirGlobal
     /* PAL/HDD handle */
     tHddHandle hHdd;
 
-#ifdef ANI_DVT_DEBUG
-    tAniSirDvt   dvt;
-#endif
 
     tSmeStruct sme;
     tSapStruct sap;

@@ -5501,7 +5501,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
            //Filtertype value should be either 0-Disabled, 1-Source, 2-sink
            pMac->fMiracastSessionPresent = filterType;
-           hdd_tx_rx_pkt_cnt_stat_timer_handler(pHddCtx);
        }
        else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
        {
@@ -10671,20 +10670,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    hdd_abort_mac_scan_all_adapters(pHddCtx);
 
-   /* Stop the traffic monitor timer */
-   if ((NULL != pConfig) && (pConfig->dynSplitscan)) {
-       if (VOS_TIMER_STATE_RUNNING ==
-                    vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)) {
-            vos_timer_stop(&pHddCtx->tx_rx_trafficTmr);
-       }
-
-       /* Destroy the traffic monitor timer */
-       if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                                 &pHddCtx->tx_rx_trafficTmr))) {
-            hddLog(LOGE, FL("Cannot de-allocate Traffic monitor timer"));
-       }
-   }
-
 #ifdef MSM_PLATFORM
    if (VOS_TIMER_STATE_RUNNING ==
                         vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
@@ -12130,15 +12115,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    // Initialize the restart logic
    wlan_hdd_restart_init(pHddCtx);
-
-   //Register the traffic monitor timer now
-   if ( pHddCtx->cfg_ini->dynSplitscan)
-   {
-       vos_timer_init(&pHddCtx->tx_rx_trafficTmr,
-                     VOS_TIMER_TYPE_SW,
-                     hdd_tx_rx_pkt_cnt_stat_timer_handler,
-                     (void *)pHddCtx);
-   }
 
    if(pHddCtx->cfg_ini->enablePowersaveOffload)
    {

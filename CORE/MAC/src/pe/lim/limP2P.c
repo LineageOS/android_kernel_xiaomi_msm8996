@@ -181,10 +181,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
      * respond with Probe Rsp causing peer device to NOT find us.
      * If we need this optimization, we need to find a way to keep the STA-AP link awake (no BMPS) on home channel when in listen state
      */
-#ifdef CONC_OPER_AND_LISTEN_CHNL_SAME_OPTIMIZE
-    tANI_U8 i;
-    tpPESession psessionEntry;
-#endif
 
     tSirRemainOnChnReq *MsgBuff = (tSirRemainOnChnReq *)pMsg;
     pMac->lim.gpLimRemainOnChanReq = MsgBuff;
@@ -205,56 +201,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         return FALSE;
     }
 
-#ifdef CONC_OPER_AND_LISTEN_CHNL_SAME_OPTIMIZE
-    for (i =0; i < pMac->lim.maxBssId;i++)
-    {
-        psessionEntry = peFindSessionBySessionId(pMac,i);
-
-        if ( (psessionEntry != NULL) )
-        {
-            if (psessionEntry->currentOperChannel == MsgBuff->chnNum)
-            {
-                tANI_U32 val;
-                tSirMacAddr nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-                pMac->lim.p2pRemOnChanTimeStamp = vos_timer_get_system_time();
-                pMac->lim.gTotalScanDuration = MsgBuff->duration;
-
-                /* get the duration from the request */
-                val = SYS_MS_TO_TICKS(MsgBuff->duration);
-
-                limLog( pMac, LOG2, "Start listen duration = %d", val);
-                if (tx_timer_change(
-                        &pMac->lim.limTimers.gLimRemainOnChannelTimer, val, 0)
-                                          != TX_SUCCESS)
-                {
-                    limLog(pMac, LOGP,
-                          FL("Unable to change remain on channel Timer val"));
-                    goto error;
-                }
-                else if(TX_SUCCESS != tx_timer_activate(
-                                &pMac->lim.limTimers.gLimRemainOnChannelTimer))
-                {
-                    limLog(pMac, LOGP,
-                    FL("Unable to activate remain on channel Timer"));
-                    limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
-                    goto error;
-                }
-
-
-                if ((limSetLinkState(pMac, MsgBuff->isProbeRequestAllowed?
-                                     eSIR_LINK_LISTEN_STATE:eSIR_LINK_SEND_ACTION_STATE,
-                                     nullBssid, pMac->lim.gSelfMacAddr,
-                                     limSetLinkStateP2PCallback, NULL)) != eSIR_SUCCESS)
-                {
-                    limLog( pMac, LOGE, "Unable to change link state");
-                    goto error;
-                }
-                return FALSE;
-            }
-        }
-    }
-#endif
     pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
     pMac->lim.gLimMlmState     = eLIM_MLM_P2P_LISTEN_STATE;
 
@@ -265,12 +211,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                    limRemainOnChnlSuspendLinkHdlr, NULL);
     return FALSE;
 
-#ifdef CONC_OPER_AND_LISTEN_CHNL_SAME_OPTIMIZE
-error:
-    limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
-    /* pMsg is freed by the caller */
-    return FALSE;
-#endif
 }
 
 

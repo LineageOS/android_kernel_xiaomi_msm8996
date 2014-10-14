@@ -55,7 +55,6 @@
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
 #include "wlan_qct_wda.h"
-#include "wlan_qct_pal_msg.h"
 #include <linux/spinlock.h>
 #include <linux/kthread.h>
 #include <linux/cpu.h>

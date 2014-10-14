@@ -439,15 +439,6 @@ sirConvertQosMapConfigureFrame2Struct(tpAniSirGlobal    pMac,
                           tANI_U32               nFrame,
                           tSirQosMapSet      *pQosMapSet);
 
-#ifdef ANI_SUPPORT_11H
-tSirRetStatus
-sirConvertTpcReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
-                             tpSirMacTpcReqActionFrame, tANI_U32);
-
-tSirRetStatus
-sirConvertMeasReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
-                              tpSirMacMeasReqActionFrame, tANI_U32);
-#endif
 
 
 /**
@@ -579,24 +570,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 void PopulateDot11fIBSSParams(tpAniSirGlobal  pMac,
        tDot11fIEIBSSParams *pDot11f, tpPESession psessionEntry);
 
-#ifdef ANI_SUPPORT_11H
-tSirRetStatus
-PopulateDot11fMeasurementReport0(tpAniSirGlobal              pMac,
-                                 tpSirMacMeasReqActionFrame  pReq,
-                                 tDot11fIEMeasurementReport *pDot11f);
-
-/// Populate a tDot11fIEMeasurementReport when the report type is CCA
-tSirRetStatus
-PopulateDot11fMeasurementReport1(tpAniSirGlobal              pMac,
-                                 tpSirMacMeasReqActionFrame  pReq,
-                                 tDot11fIEMeasurementReport *pDot11f);
-
-/// Populate a tDot11fIEMeasurementReport when the report type is RPI Hist
-tSirRetStatus
-PopulateDot11fMeasurementReport2(tpAniSirGlobal              pMac,
-                                 tpSirMacMeasReqActionFrame  pReq,
-                                 tDot11fIEMeasurementReport *pDot11f);
-#endif  //ANI_SUPPORT_11H
 
 /// Populate a tDot11fIEPowerCaps
 void
