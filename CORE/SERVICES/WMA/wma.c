@@ -14728,6 +14728,12 @@ static int wmi_unified_probe_rsp_tmpl_send(tp_wma_handle wma,
 	          sizeof(wmi_bcn_prb_info) + WMI_TLV_HDR_SIZE +
 		  tmpl_len_aligned;
 
+	if (wmi_buf_len > BEACON_TX_BUFFER_SIZE) {
+		WMA_LOGE(FL("wmi_buf_len: %d > %d. Can't send wmi cmd"),
+			 wmi_buf_len, BEACON_TX_BUFFER_SIZE);
+		return -EINVAL;
+	}
+
 	wmi_buf = wmi_buf_alloc(wma->wmi_handle, wmi_buf_len);
 	if (!wmi_buf) {
 		WMA_LOGE(FL("wmi_buf_alloc failed"));
@@ -15037,7 +15043,7 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	if (VOS_STATUS_SUCCESS !=
 	vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
 		WMA_LOGP("%s: Failed to post WDA_TBTT_UPDATE_IND msg", __func__);
-		vos_mem_free(buf);
+		vos_mem_free(tempBuf);
 		return -1;
 	}
 	WMA_LOGD("WDA_TBTT_UPDATE_IND posted");

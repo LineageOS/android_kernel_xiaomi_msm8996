@@ -358,7 +358,8 @@ void ol_tx_vdev_ll_pause_queue_send(void *context)
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     struct ol_txrx_vdev_t *vdev = (struct ol_txrx_vdev_t *) context;
 
-    if (vdev->pdev->tx_throttle.current_throttle_phase == THROTTLE_PHASE_OFF) {
+    if (vdev->pdev->tx_throttle.current_throttle_level != THROTTLE_LEVEL_0 &&
+        vdev->pdev->tx_throttle.current_throttle_phase == THROTTLE_PHASE_OFF) {
         return;
     }
 

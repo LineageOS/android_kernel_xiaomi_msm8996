@@ -10561,7 +10561,8 @@ static inline VOS_STATUS hdd_UnregisterWext_all_adapters(hdd_context_t *pHddCtx)
 
     return VOS_STATUS_SUCCESS;
 }
-static inline VOS_STATUS hdd_abort_mac_scan_all_adapters(hdd_context_t *pHddCtx)
+
+VOS_STATUS hdd_abort_mac_scan_all_adapters(hdd_context_t *pHddCtx)
 {
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     VOS_STATUS status;

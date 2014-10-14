@@ -3747,6 +3747,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U8_t i;
 #endif
+    tpAniSirGlobal pmac = PMAC_STRUCT(hHal);
 
     if (NULL == hHal)
     {
@@ -3846,7 +3847,10 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
         if((startChannelNum <= rfChannels[loopCount].channelNum)&&
             (endChannelNum >= rfChannels[loopCount].channelNum ))
         {
-            if( regChannels[loopCount].enabled )
+            if (((TRUE == pmac->scan.fEnableDFSChnlScan) &&
+                 (regChannels[loopCount].enabled)) ||
+                ((FALSE == pmac->scan.fEnableDFSChnlScan) &&
+                 (NV_CHANNEL_ENABLE == regChannels[loopCount].enabled)))
             {
 #ifdef FEATURE_WLAN_CH_AVOID
                 for( i = 0; i < NUM_20MHZ_RF_CHANNELS; i++ )
