@@ -1668,6 +1668,9 @@ void hdd_deinit_batch_scan(hdd_adapter_t *pAdapter);
 
 #endif /*End of FEATURE_WLAN_BATCH_SCAN*/
 
+VOS_STATUS hdd_abort_mac_scan_all_adapters(hdd_context_t *pHddCtx);
+
+
 #ifdef WLAN_FEATURE_LPSS
 void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
                               hdd_station_ctx_t *pHddStaCtx,

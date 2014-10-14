@@ -458,68 +458,79 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     tSirUpdateChanList *pChanList;
     tCsrScanStruct *pScan = &pMac->scan;
     tANI_U8 numChan = pScan->base20MHzChannels.numChannels;
+    tANI_U8 num_channel = 0;
     tANI_U32 bufLen;
     vos_msg_t msg;
     tANI_U8 i, j, social_channel[MAX_SOCIAL_CHANNELS] = {1,6,11};
+    tANI_U8 channel_state;
 
     if (CSR_IS_5G_BAND_ONLY(pMac))
     {
         for (i = 0; i < MAX_SOCIAL_CHANNELS; i++)
         {
             if (vos_nv_getChannelEnabledState(social_channel[i])
-                         == NV_CHANNEL_ENABLE)
+                == NV_CHANNEL_ENABLE)
                 numChan++;
         }
     }
 
     bufLen = sizeof(tSirUpdateChanList) +
-        (sizeof(tSirUpdateChanParam) * (numChan - 1));
+        (sizeof(tSirUpdateChanParam) * (numChan));
 
     csrInitOperatingClasses((tHalHandle)pMac);
     pChanList = (tSirUpdateChanList *) vos_mem_malloc(bufLen);
     if (!pChanList)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "Failed to allocate memory for tSirUpdateChanList");
+                  "Failed to allocate memory for tSirUpdateChanList");
         return eHAL_STATUS_FAILED_ALLOC;
     }
 
-    msg.type = WDA_UPDATE_CHAN_LIST_REQ;
-    msg.reserved = 0;
-    msg.bodyptr = pChanList;
-    pChanList->numChan = numChan;
     for (i = 0; i < pScan->base20MHzChannels.numChannels; i++)
     {
-        pChanList->chanParam[i].chanId =
-                             pScan->base20MHzChannels.channelList[i];
-        pChanList->chanParam[i].pwr =
-                             csrFindChannelPwr(pScan->defaultPowerTable,
-                             pChanList->chanParam[i].chanId);
-        /*Set DFS flag for DFS channel*/
-        if (vos_nv_getChannelEnabledState(pChanList->chanParam[i].chanId) ==
-            NV_CHANNEL_DFS)
-            pChanList->chanParam[i].dfsSet = VOS_TRUE;
-        else
-            pChanList->chanParam[i].dfsSet = VOS_FALSE;
+        channel_state =
+            vos_nv_getChannelEnabledState(
+                pScan->base20MHzChannels.channelList[i]);
+        if ((NV_CHANNEL_ENABLE == channel_state) ||
+            pMac->scan.fEnableDFSChnlScan)
+        {
+            pChanList->chanParam[num_channel].chanId =
+                pScan->base20MHzChannels.channelList[i];
+            pChanList->chanParam[num_channel].pwr =
+                csrFindChannelPwr(pScan->defaultPowerTable,
+                                  pChanList->chanParam[num_channel].chanId);
+            if (NV_CHANNEL_ENABLE == channel_state)
+                pChanList->chanParam[num_channel].dfsSet = VOS_FALSE;
+            else
+                pChanList->chanParam[num_channel].dfsSet = VOS_TRUE;
+            num_channel++;
+        }
     }
+
 
     if (CSR_IS_5G_BAND_ONLY(pMac))
     {
         for (j = 0; j < MAX_SOCIAL_CHANNELS; j++)
         {
             if (vos_nv_getChannelEnabledState(social_channel[j])
-                         == NV_CHANNEL_ENABLE)
+                == NV_CHANNEL_ENABLE)
             {
-                pChanList->chanParam[i].chanId = social_channel[j];
-                pChanList->chanParam[i].pwr =
-                 csrFindChannelPwr(pScan->defaultPowerTable, social_channel[j]);
-                pChanList->chanParam[i].dfsSet = VOS_FALSE;
-                i++;
+                pChanList->chanParam[num_channel].chanId = social_channel[j];
+                pChanList->chanParam[num_channel].pwr =
+                    csrFindChannelPwr(pScan->defaultPowerTable,
+                                      social_channel[j]);
+                pChanList->chanParam[num_channel].dfsSet = VOS_FALSE;
+                num_channel++;
             }
         }
     }
 
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    msg.type = WDA_UPDATE_CHAN_LIST_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pChanList;
+    pChanList->numChan = num_channel;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to post msg to WDA", __func__);

@@ -169,6 +169,8 @@ enum qca_nl80211_vendor_subcmds {
 
     /* Set scanning_mac_oui */
     QCA_NL80211_VENDOR_SUBCMD_SCANNING_MAC_OUI = 39,
+    /* Set nodfs_flag */
+    QCA_NL80211_VENDOR_SUBCMD_NO_DFS_FLAG = 40
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -813,6 +815,18 @@ enum qca_wlan_vendor_attr_set_scanning_mac_oui {
     QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX =
         QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_AFTER_LAST - 1,
 };
+
+enum qca_wlan_vendor_attr_set_no_dfs_flag
+{
+    QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_INVALID = 0,
+    /* Unsigned 32-bit value */
+    QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG = 1,
+    /* keep last */
+    QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_AFTER_LAST,
+    QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX =
+    QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_AFTER_LAST - 1,
+};
+
 
 /* Feature defines */
 #define WIFI_FEATURE_INFRA              0x0001   /* Basic infrastructure mode */

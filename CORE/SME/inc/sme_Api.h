@@ -4092,5 +4092,13 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
 eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
                                tANI_U32 x0, tANI_U32 x1);
 #endif
+/* ---------------------------------------------------------------------------
+    \fn sme_handle_dfS_chan_scan
+    \brief  SME API to enable/disable DFS channel scan
+    \param  hHal
+    \param dfs_flag: whether dfs needs to be enabled or disabled
+    \return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_handle_dfs_chan_scan(tHalHandle hHal, tANI_U8 dfs_flag);
 
 #endif //#if !defined( __SME_API_H )
