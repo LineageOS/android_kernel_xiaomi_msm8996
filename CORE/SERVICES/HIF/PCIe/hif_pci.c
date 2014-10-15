@@ -330,6 +330,12 @@ HIFSend_head(HIF_DEVICE *hif_device,
     pipe_info->num_sends_allowed -= nfrags;
     adf_os_spin_unlock_bh(&pipe_info->completion_freeq_lock);
 
+    if(adf_os_unlikely(ce_hdl == NULL)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+        ("%s: error CE handle is null\n", __func__));
+        return A_ERROR;
+    }
+
     status = CE_sendlist_send(ce_hdl, nbuf, &sendlist, transfer_id);
     A_ASSERT(status == A_OK);
 
