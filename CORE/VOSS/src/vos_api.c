@@ -2051,7 +2051,7 @@ void vos_abort_mac_scan(v_U8_t sessionId)
 VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
 {
   VOS_STATUS vosStatus;
-
+  tpAniSirGlobal pMac = (((pVosContextType)vosContext)->pMACContext);
 
   vosStatus = WLANTL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -2068,6 +2068,12 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
          "%s: Failed to close SME", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+
+  if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
+     vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+     pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+  }
+  vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
 
   vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
