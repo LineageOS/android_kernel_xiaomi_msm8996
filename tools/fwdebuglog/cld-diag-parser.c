@@ -837,6 +837,8 @@ process_diaghost_msg(uint8_t *datap, uint16_t len)
 {
     uint8_t  *payload;
     event_report_t *pEvent_report =(event_report_t *)datap ;
+    if (!pEvent_report)
+        return;
     debug_printf("\n  %s diag_type = %d event_id =%d\n",
                  __func__, pEvent_report->diag_type,
                  pEvent_report->event_id);
@@ -876,7 +878,7 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
         memset(dump_buffer, 0, sizeof(dump_buffer));
         debug_printf("process_diagfw_msg hex dump start len %d", len);
         for (i = 0; i < len; i++) {
-             ret = snprintf(dump_buffer + j,BUF_SIZ, "0x%x ", debugp[i]);
+             ret = snprintf(dump_buffer + j, BUF_SIZ - j, "0x%x ", debugp[i]);
              j += ret;
              if (!(i % 16) && (i!=0)) {
                 total_dump_len += 16;
@@ -977,9 +979,11 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
             }
             entry = diag_find_by_id(id);
             if (entry) {
-               debug_printf(" entry->format = %s pack = %s\n",
+                if (entry->format && entry->pack) {
+                    debug_printf("entry->format = %s pack = %s\n",
                                     entry->format, entry->pack);
-               if ((payloadlen > 0) && entry->pack) {
+                }
+                if ((payloadlen > 0) && entry->pack) {
                     if (payloadlen < BUF_SIZ)
                         memcpy(payload_buf, payload, payloadlen);
                     else
@@ -1001,29 +1005,29 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
                              (uint8_t*)entry->msg,
                              entry->msg_len
                               );
-               }
-               else
-                  strlcpy(buf, entry->format, strlen(entry->format));
+                }
+                else if (entry->format)
+                    strlcpy(buf, entry->format, strlen(entry->format));
 
-               debug_printf("\n buf = %s \n", buf);
-               if (optionflag & LOGFILE_FLAG)  {
-                   lrecord = *record;
-                   lrecord++;
-                   if (!((optionflag & SILENT_FLAG) == SILENT_FLAG))
-                             printf("%d: %s\n", lrecord, buf);
+                debug_printf("\n buf = %s \n", buf);
+                if (optionflag & LOGFILE_FLAG)  {
+                    lrecord = *record;
+                    lrecord++;
+                    if (!((optionflag & SILENT_FLAG) == SILENT_FLAG))
+                        printf("%d: %s\n", lrecord, buf);
 
-                   res = diag_printf(
+                    res = diag_printf(
                          buf, vdevid, vdevlevel, optionflag, timestamp, log_out
                               );
-                   //fseek(log_out, lrecord * res, SEEK_SET);
-                   if (lrecord == max_records) {
-                       lrecord = 0;
-                       fseek(log_out, lrecord * res, SEEK_SET);
-                   }
-                   *record = lrecord;
-               }
-               if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
-                   diag_printf(
+                    //fseek(log_out, lrecord * res, SEEK_SET);
+                    if (lrecord == max_records) {
+                        lrecord = 0;
+                        fseek(log_out, lrecord * res, SEEK_SET);
+                    }
+                    *record = lrecord;
+                }
+                if (optionflag & (CONSOLE_FLAG | QXDM_FLAG))
+                    diag_printf(
                          buf, vdevid, vdevlevel, optionflag, timestamp, NULL
                               );
             }
