@@ -139,6 +139,7 @@ const SIR_MAC_PROP_TRIG_STA_BK_SCAN	 =  17;
 const ANI_WDS_INFO_MAX_LENGTH        =  64;
 const SIR_MAC_MAX_NUMBER_OF_RATES    =  12;
 const HT_MAX_SUPPORTED_MCS_SET       =  16;
+const MAX_SUPPORTED_NEIGHBOR_RPT     =  15;
 
 /////////////////////////////////////////////////////////////////////////////
 //                  Wi-Fi Protected Setup TLV Identifiers                  //
@@ -3689,7 +3690,7 @@ FRAME NeighborReportResponse
    FF     Category;
    FF     Action;
    FF     DialogToken;
-   OPTIE  NeighborReport[1..4];
+   OPTIE  NeighborReport[1..MAX_SUPPORTED_NEIGHBOR_RPT];
 }
 
 FRAME GONegReq

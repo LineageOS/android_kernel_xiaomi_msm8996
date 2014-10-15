@@ -5546,4 +5546,7 @@ typedef struct
 #define RTT_TIMING_MEAS_CAPABILITY      0x01
 #define RTT_FINE_TIMING_MEAS_CAPABILITY 0x02
 
+/* number of neighbor reports that we can handle in Neighbor Report Response */
+#define MAX_SUPPORTED_NEIGHBOR_RPT 15
+
 #endif /* __SIR_API_H */
