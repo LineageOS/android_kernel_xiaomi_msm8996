@@ -4350,6 +4350,10 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx)
 {
+#ifdef QCA_HT_2040_COEX
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(net);
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+#endif
     v_BOOL_t band_24 = VOS_FALSE, band_5g = VOS_FALSE;
     v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
     tSmeConfigParams smeconfig;
@@ -4543,6 +4547,16 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             else
                 smeconfig.csrConfig.channelBondingMode5GHz =
                                           WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+
+#ifdef QCA_HT_2040_COEX
+            smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_FALSE;
+            halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+                                      eHT_CHAN_HT20, eANI_BOOLEAN_FALSE);
+            if (halStatus == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Failed to disable OBSS"));
+                return -EIO;
+            }
+#endif
         } else if (phymode == eCSR_DOT11_MODE_11n &&
                               chwidth == WNI_CFG_CHANNEL_BONDING_MODE_ENABLE) {
             if (curr_band == eCSR_BAND_24)
@@ -4551,6 +4565,18 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             else
                 smeconfig.csrConfig.channelBondingMode5GHz =
                                     phddctx->cfg_ini->nChannelBondingMode5GHz;
+
+#ifdef QCA_HT_2040_COEX
+            if (phddctx->cfg_ini->ht2040CoexEnabled) {
+                smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
+                halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+                                      eHT_CHAN_HT20, eANI_BOOLEAN_TRUE);
+                if (halStatus == eHAL_STATUS_FAILURE) {
+                    hddLog(LOGE, FL("Failed to enable OBSS"));
+                    return -EIO;
+                }
+            }
+#endif
         }
 #ifdef WLAN_FEATURE_11AC
         smeconfig.csrConfig.nVhtChannelWidth = vhtchanwidth;

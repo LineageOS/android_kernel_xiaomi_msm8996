@@ -5666,7 +5666,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->csrConfig.isCoalesingInIBSSAllowed =
                        pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
-
+#ifdef QCA_HT_2040_COEX
+   smeConfig->csrConfig.obssEnabled = pHddCtx->cfg_ini->ht2040CoexEnabled;
+#endif
 
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);

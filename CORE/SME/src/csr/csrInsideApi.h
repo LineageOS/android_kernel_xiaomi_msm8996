@@ -1053,5 +1053,6 @@ void csrClearVotesForCountryInfo(tpAniSirGlobal pMac);
 #endif
 
 #ifdef QCA_HT_2040_COEX
-eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId, ePhyChanBondState cbMode);
+eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                     ePhyChanBondState cbMode, tANI_BOOLEAN obssEnabled);
 #endif

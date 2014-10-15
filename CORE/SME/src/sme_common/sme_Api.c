@@ -12207,14 +12207,18 @@ VOS_STATUS sme_notify_ht2040_mode(tHalHandle hHal, tANI_U16 staId,
 
     \brief To update HT Operation beacon IE.
 
-    \param
+    \param hHal - The handle returned by macOPen
+    \param sessionId - session id
+    \param channel_type - indicates channel width
+    \param obssEnabled - OBSS enabled/disabled
 
     \return eHalStatus  SUCCESS
                         FAILURE or RESOURCES
                         The API finished and failed.
 
   -------------------------------------------------------------------------------*/
-eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel_type)
+eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId,
+                             tANI_U8 channel_type, tANI_BOOLEAN obssEnabled)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -12242,9 +12246,8 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 channel
        return VOS_STATUS_E_FAILURE;
    }
    status = sme_AcquireGlobalLock(&pMac->sme);
-   if (HAL_STATUS_SUCCESS(status))
-   {
-      status = csrSetHT2040Mode(pMac, sessionId, cbMode);
+   if (HAL_STATUS_SUCCESS(status)) {
+      status = csrSetHT2040Mode(pMac, sessionId, cbMode, obssEnabled);
       sme_ReleaseGlobalLock(&pMac->sme );
    }
    return (status);

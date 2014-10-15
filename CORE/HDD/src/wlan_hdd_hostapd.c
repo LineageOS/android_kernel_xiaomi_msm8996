@@ -538,7 +538,7 @@ VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
             return VOS_STATUS_E_FAULT;
         }
         halStatus = sme_SetHT2040Mode(hHal, pHostapdAdapter->sessionId,
-                                      channel_type);
+                                      channel_type, eANI_BOOLEAN_TRUE);
         if (halStatus == eHAL_STATUS_FAILURE ) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                        "%s: Failed to change HT20/40 mode", __func__);
