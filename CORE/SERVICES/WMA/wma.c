@@ -354,6 +354,8 @@ static void wma_set_suspend_dtim(tp_wma_handle wma);
 static void wma_set_resume_dtim(tp_wma_handle wma);
 static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 				u_int32_t len);
+static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
+		tAbortScanParams *abort_scan_req);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -4743,6 +4745,14 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	 WMA_LOGE("%s: failed to allocate memory for roam_synch_event", __func__);
 	 return -ENOMEM;
 	}
+	/* abort existing scan if any */
+	if (wma->interfaces[synch_event->vdev_id].scan_info.scan_id != 0) {
+		tAbortScanParams abortScan;
+		WMA_LOGD("LFR3: Aborting Scan with scan_id=%d\n",
+		wma->interfaces[synch_event->vdev_id].scan_info.scan_id);
+		abortScan.SessionId = synch_event->vdev_id;
+		wma_stop_scan(wma, &abortScan);
+	}
 	pRoamOffloadSynchInd->messageType = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	pRoamOffloadSynchInd->length = size;
 	pRoamOffloadSynchInd->roamedVdevId = synch_event->vdev_id;
@@ -7292,7 +7302,7 @@ error1:
  * Args       : wma_handle
  * Returns    : failure or success
  */
-VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
+static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 			 tAbortScanParams *abort_scan_req)
 {
 	VOS_STATUS vos_status;
