@@ -419,4 +419,10 @@ int
 htt_rx_ipa_uc_detach(struct htt_pdev_t *pdev);
 #endif /* IPA_UC_OFFLOAD */
 
+/* Maximum Outstanding Bus Download */
+#define HTT_MAX_BUS_CREDIT 17
+
+int
+htt_tx_credit_update(struct htt_pdev_t *pdev);
+
 #endif /* _HTT_INTERNAL__H_ */

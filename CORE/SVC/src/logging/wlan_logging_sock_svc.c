@@ -309,7 +309,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 		 * register with driver immediately and start logging all the
 		 * messages.
 		 */
-		pr_err("%s\n", to_be_sent);
+		pr_info("%s\n", to_be_sent);
 	}
 
 	/* Format the Log time [Secondselapsedinaday.microseconds] */
@@ -380,7 +380,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 		&& gwlan_logging.log_fe_to_console
 		&& ((VOS_TRACE_LEVEL_FATAL == log_level)
 		|| (VOS_TRACE_LEVEL_ERROR == log_level))) {
-		pr_err("%s\n", to_be_sent);
+		pr_info("%s\n", to_be_sent);
 	}
 
 	return 0;

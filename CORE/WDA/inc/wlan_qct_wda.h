@@ -136,6 +136,12 @@ typedef enum
   WDA_TDLS_PEER_STATE_CONNECTED,
   WDA_TDLS_PEER_STATE_TEARDOWN,
 } WDA_TdlsPeerState;
+/* WMI_TDLS_SET_OFFCHAN_MODE_CMDID */
+typedef enum
+{
+  WDA_TDLS_ENABLE_OFFCHANNEL,
+  WDA_TDLS_DISABLE_OFFCHANNEL
+}WDA_TdlsOffchanMode;
 #endif /* FEATURE_WLAN_TDLS */
 
 /*--------------------------------------------------------------------------
@@ -925,6 +931,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_TDLS_SHOULD_DISCOVER      SIR_HAL_TDLS_SHOULD_DISCOVER
 #define WDA_TDLS_SHOULD_TEARDOWN      SIR_HAL_TDLS_SHOULD_TEARDOWN
 #define WDA_TDLS_PEER_DISCONNECTED    SIR_HAL_TDLS_PEER_DISCONNECTED
+#define WDA_TDLS_SET_OFFCHAN_MODE     SIR_HAL_TDLS_SET_OFFCHAN_MODE
 #endif
 #define WDA_SET_SAP_INTRABSS_DIS      SIR_HAL_SET_SAP_INTRABSS_DIS
 

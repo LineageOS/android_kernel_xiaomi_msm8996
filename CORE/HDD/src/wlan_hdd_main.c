@@ -5953,6 +5953,39 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                pHddCtx->is_extwow_app_type2_param_set = TRUE;
        }
 #endif
+#ifdef FEATURE_WLAN_TDLS
+       else if (strncmp(command, "TDLSSECONDARYCHANNELOFFSET", 26) == 0) {
+           tANI_U8 *value = command;
+           int set_value;
+           /* Move pointer to point the string */
+           value += 26;
+           sscanf(value, "%d", &set_value);
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     FL("Tdls offchannel offset:%d"),
+                     set_value);
+           ret = hdd_set_tdls_secoffchanneloffset(pHddCtx, set_value);
+       } else if (strncmp(command, "TDLSOFFCHANNELMODE", 18) == 0) {
+           tANI_U8 *value = command;
+           int set_value;
+           /* Move pointer to point the string */
+           value += 18;
+           sscanf(value, "%d", &set_value);
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     FL("Tdls offchannel mode:%d"),
+                     set_value);
+           ret = hdd_set_tdls_offchannelmode(pAdapter, set_value);
+       } else if (strncmp(command, "TDLSOFFCHANNEL", 14) == 0) {
+           tANI_U8 *value = command;
+           int set_value;
+           /* Move pointer to point the string */
+           value += 14;
+           sscanf(value, "%d", &set_value);
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     FL("Tdls offchannel num: %d"),
+                     set_value);
+           ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
+       }
+#endif
        else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -11971,6 +12004,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*SME must send channel update configuration to RIVA*/
    sme_UpdateChannelConfig(pHddCtx->hHal);
 #endif
+
+#ifdef FEATURE_WLAN_TDLS
+   wlan_hdd_global_tdls_init(pHddCtx);
+#endif
+
    sme_Register11dScanDoneCallback(pHddCtx->hHal, hdd_11d_scan_done);
 
    /* Register with platform driver as client for Suspend/Resume */
