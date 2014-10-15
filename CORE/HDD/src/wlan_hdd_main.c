@@ -449,7 +449,8 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
 
         case GREEN_AP_PS_STOP_EVENT:
-            green_ap->ps_enable = 0;
+            if (!(hdd_get_concurrency_mode() & VOS_SAP))
+                green_ap->ps_enable = 0;
             break;
 
         case GREEN_AP_ADD_STA_EVENT:
@@ -528,7 +529,7 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
                 }
                 hdd_wlan_green_ap_update(pHddCtx,
                     GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
-            } else if ((green_ap->ps_event = GREEN_AP_PS_WAIT_EVENT) &&
+            } else if ((green_ap->ps_event == GREEN_AP_PS_WAIT_EVENT) &&
                     (green_ap->ps_on_time)) {
 
                 /* ps_on_time timeout, switch to ps off */
