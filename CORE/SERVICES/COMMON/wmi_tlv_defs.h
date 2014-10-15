@@ -513,7 +513,12 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_scan_prob_req_oui_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_key_material,
     WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mdns_offload_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -1956,6 +1961,25 @@ WMITLV_CREATE_PARAM_STRUC(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_led_flashing_cmd_fixed_param, wmi_set_led_flashing_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_LED_FLASHING_CMDID);
 
+/* mDNS responder offload param Cmd */
+#define WMITLV_TABLE_WMI_MDNS_OFFLOAD_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_offload_cmd_fixed_param, wmi_mdns_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_OFFLOAD_ENABLE_CMDID);
+
+#define WMITLV_TABLE_WMI_MDNS_SET_FQDN_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param, wmi_mdns_set_fqdn_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, fqdn_data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_SET_FQDN_CMDID);
+
+#define WMITLV_TABLE_WMI_MDNS_SET_RESPONSE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param, wmi_mdns_set_resp_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, resp_data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_SET_RESPONSE_CMDID);
+
+#define WMITLV_TABLE_WMI_MDNS_GET_STATS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param, wmi_mdns_get_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_GET_STATS_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2411,6 +2435,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_DISABLE_ACK_EVENTID);
 #define WMITLV_TABLE_WMI_PDEV_TEMPERATURE_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_temperature_event_fixed_param, wmi_pdev_temperature_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_TEMPERATURE_EVENTID);
+
+/* mDNS offload stats event */
+#define WMITLV_TABLE_WMI_MDNS_STATS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param, wmi_mdns_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_STATS_EVENTID);
 
 #ifdef __cplusplus
 }

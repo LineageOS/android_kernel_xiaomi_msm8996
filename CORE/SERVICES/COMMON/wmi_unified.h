@@ -177,6 +177,7 @@ typedef enum {
     WMI_GRP_EXTSCAN,
     WMI_GRP_DHCP_OFL,
     WMI_GRP_IPA,
+    WMI_GRP_MDNS_OFL,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -689,6 +690,12 @@ typedef enum {
 
     /** IPA Offload features related commands */
     WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_IPA),
+
+    /** mDNS responder offload commands */
+    WMI_MDNS_OFFLOAD_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_MDNS_OFL),
+    WMI_MDNS_SET_FQDN_CMDID,
+    WMI_MDNS_SET_RESPONSE_CMDID,
+    WMI_MDNS_GET_STATS_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -937,6 +944,10 @@ typedef enum {
     WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
     WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
     WMI_EXTSCAN_CAPABILITIES_EVENTID,
+
+    /* mDNS offload events */
+    WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
+
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -8935,6 +8946,75 @@ typedef struct{
     A_UINT32    led_x0; /* led flashing parameter0 */
     A_UINT32    led_x1; /* led flashing parameter1 */
 } wmi_set_led_flashing_cmd_fixed_param;
+
+/**
+ * The purpose of the multicast Domain Name System (mDNS) is to resolve host names to IP addresses
+ * within small networks that do not include a local name server.
+ * It utilizes essentially the same programming interfaces, packet formats and operating semantics
+ * as the unicast DNS, and the advantage is zero configuration service while no need for central or
+ * global server.
+ * Based on mDNS, the DNS-SD (Service Discovery) allows clients to discover a named list of services
+ * by type in a specified domain using standard DNS queries.
+ * Here, we provide the ability to advertise the available services by responding to mDNS queries.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_offload_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 enable;
+} wmi_mdns_offload_cmd_fixed_param;
+
+#define WMI_MAX_MDNS_FQDN_LEN         64
+#define WMI_MAX_MDNS_RESP_LEN         512
+#define WMI_MDNS_FQDN_TYPE_GENERAL    0
+#define WMI_MDNS_FQDN_TYPE_UNIQUE     1
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    /** type of fqdn, general or unique */
+    A_UINT32 type;
+    /** length of fqdn */
+    A_UINT32 fqdn_len;
+    /* Following this structure is the TLV byte stream of fqdn data of length fqdn_len
+     * A_UINT8  fqdn_data[]; // fully-qualified domain name to check if match with the received queries
+     */
+} wmi_mdns_set_fqdn_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    /** Answer Resource Record count */
+    A_UINT32 AR_count;
+    /** length of response */
+    A_UINT32 resp_len;
+    /* Following this structure is the TLV byte stream of resp data of length resp_len
+     * A_UINT8  resp_data[]; // responses consisits of Resource Records
+     */
+} wmi_mdns_set_resp_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param */
+    A_UINT32 vdev_id;
+} wmi_mdns_get_stats_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param */
+    A_UINT32 vdev_id;
+    /** curTimestamp in milliseconds */
+    A_UINT32 curTimestamp;
+    /** last received Query in milliseconds */
+    A_UINT32 lastQueryTimestamp;
+    /** last sent Response in milliseconds */
+    A_UINT32 lastResponseTimestamp;
+    /** stats of received queries */
+    A_UINT32 totalQueries;
+    /** stats of macth queries */
+    A_UINT32 totalMatches;
+    /** stats of responses */
+    A_UINT32 totalResponses;
+    /** indicate the current status of mDNS offload */
+    A_UINT32 status;
+} wmi_mdns_stats_event_fixed_param;
 
 #ifdef __cplusplus
 }

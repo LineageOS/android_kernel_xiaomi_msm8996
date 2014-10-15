@@ -113,6 +113,7 @@ typedef  enum  {
     WMI_SERVICE_RX_FULL_REORDER,      /* target-based Rx full reorder */
     WMI_SERVICE_DHCP_OFFLOAD,         /* DHCP offload support */
     WMI_SERVICE_STA_RX_IPA_OFFLOAD_SUPPORT, /* STA RX DATA offload to IPA support */
+    WMI_SERVICE_MDNS_OFFLOAD,         /* mDNS responder offload support */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 
