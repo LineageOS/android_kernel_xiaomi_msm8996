@@ -7658,9 +7658,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 		if((auth_mode != WMI_AUTH_NONE) &&
 			((auth_mode != WMI_AUTH_OPEN) ||
 			(auth_mode == WMI_AUTH_OPEN &&
-			roam_req->MDID.mdiePresent) )){
+			roam_req->MDID.mdiePresent) || roam_req->IsESEAssoc)){
 			len += WMI_TLV_HDR_SIZE;
-			if(auth_mode == WMI_AUTH_CCKM)
+			if(roam_req->IsESEAssoc)
 			len += sizeof(wmi_roam_ese_offload_tlv_param);
 			else if (auth_mode == WMI_AUTH_FT_RSNA ||
 			auth_mode == WMI_AUTH_FT_RSNA_PSK ||
@@ -7730,8 +7730,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 	     * and only headers are filled.*/
 	    if ((auth_mode != WMI_AUTH_NONE) &&
 		((auth_mode != WMI_AUTH_OPEN) ||
-		 (auth_mode == WMI_AUTH_OPEN && roam_req->MDID.mdiePresent))) {
-			if (auth_mode == WMI_AUTH_CCKM){
+		 (auth_mode == WMI_AUTH_OPEN && roam_req->MDID.mdiePresent) ||
+		 (roam_req->IsESEAssoc))) {
+		    if (roam_req->IsESEAssoc){
 				WMITLV_SET_HDR(buf_ptr,WMITLV_TAG_ARRAY_STRUC,
 				WMITLV_GET_STRUCT_TLVLEN(0));
 				buf_ptr += WMI_TLV_HDR_SIZE;
