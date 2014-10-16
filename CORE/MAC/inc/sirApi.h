@@ -4779,6 +4779,11 @@ typedef struct sSirSmeHOFailureInd
 {
     tANI_U8  sessionId;
 } tSirSmeHOFailureInd, *tpSirSmeHOFailureInd;
+
+typedef struct sSirRoamOffloadSynchFail
+{
+    tANI_U8 sessionId;
+} tSirRoamOffloadSynchFail, *tpSirRoamOffloadSynchFail;
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
