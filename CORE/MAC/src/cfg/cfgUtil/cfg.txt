@@ -1538,46 +1538,6 @@ NONE
 0    1    1
 
 *
-* Calibration periodicity (minutes)
-*
-
-WNI_CFG_CAL_PERIOD    I    4    12
-V    RW    NP
-HAL
-2    10    5
-V    RW    NP
-HAL
-2    10    5
-
-*
-* Statistics collection periodicity (seconds)
-*
-
-WNI_CFG_STATS_PERIOD    I    4    12
-V    RW    NP
-HAL
-1    10    10
-V    RW    NP
-HAL
-1    10    10
-
-*
-* Calibration on/off control
-*
-
-WNI_CFG_CAL_CONTROL    I    4    12
-V    RW    NP
-HAL
-0    1    0
-V    RW    NP
-HAL
-0    1    0
-
-#ENUM CAL_ON  0
-#ENUM CAL_OFF 1
-
-
-*
 * Parameter to allow 11g only STAs while operating in 11g mode
 *
 

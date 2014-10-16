@@ -1255,20 +1255,6 @@ VOS_STATUS WLANTL_TxFreeMsg(void *vos_ctx, vos_msg_t *message)
 	return VOS_STATUS_SUCCESS;
 }
 
-/*
- * Txrx does weighted RR scheduling, set/get ac weights does not
- * apply here, this is no operation.
- */
-VOS_STATUS WLANTL_SetACWeights(void *vos_ctx, u_int8_t *ac_weight)
-{
-	return VOS_STATUS_SUCCESS;
-}
-
-VOS_STATUS WLANTL_GetACWeights(void *vos_ctx, u_int8_t *ac_weight)
-{
-	return VOS_STATUS_SUCCESS;
-}
-
 VOS_STATUS WLANTL_GetSoftAPStatistics(void *vos_ctx,
 				      WLANTL_TRANSFER_STA_TYPE *stats_sum,
 				      v_BOOL_t reset)

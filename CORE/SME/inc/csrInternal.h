@@ -1023,7 +1023,6 @@ typedef struct tagCsrRoamStruct
     eCsrRoamLinkQualityInd vccLinkQuality;
     tCsrLinkQualityIndInfo linkQualityIndInfo;
     v_CONTEXT_t gVosContext; //used for interaction with TL
-    v_U8_t ucACWeights[WLANTL_MAX_AC];
     /* TODO : Upto here */
     tCsrTimerInfo WaitForKeyTimerInfo;
     tCsrRoamSession   *roamSession;

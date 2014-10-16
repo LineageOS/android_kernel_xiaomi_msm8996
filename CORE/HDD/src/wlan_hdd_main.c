@@ -449,7 +449,8 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
 
         case GREEN_AP_PS_STOP_EVENT:
-            green_ap->ps_enable = 0;
+            if (!(hdd_get_concurrency_mode() & VOS_SAP))
+                green_ap->ps_enable = 0;
             break;
 
         case GREEN_AP_ADD_STA_EVENT:
@@ -528,7 +529,7 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
                 }
                 hdd_wlan_green_ap_update(pHddCtx,
                     GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
-            } else if ((green_ap->ps_event = GREEN_AP_PS_WAIT_EVENT) &&
+            } else if ((green_ap->ps_event == GREEN_AP_PS_WAIT_EVENT) &&
                     (green_ap->ps_on_time)) {
 
                 /* ps_on_time timeout, switch to ps off */
@@ -8853,12 +8854,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             return NULL;
           }
 
-         if (session_type == WLAN_HDD_INFRA_STATION)
-            pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
+         if (session_type == WLAN_HDD_P2P_CLIENT)
+            pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0))
          else if (session_type == WLAN_HDD_P2P_DEVICE)
             pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_DEVICE;
+#endif
          else
-            pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
+            pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
 
          pAdapter->device_mode = session_type;
 
