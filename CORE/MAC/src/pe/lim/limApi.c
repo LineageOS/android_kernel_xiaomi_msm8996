@@ -1559,7 +1559,8 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
             SIR_MAC_GET_SHORT_PREAMBLE(psessionEntry->limCurrentBssCaps) ) ||
           ( SIR_MAC_GET_QOS(apNewCaps.capabilityInfo) !=
             SIR_MAC_GET_QOS(psessionEntry->limCurrentBssCaps) ) ||
-          ( newChannel !=  psessionEntry->currentOperChannel )
+          ( (newChannel !=  psessionEntry->currentOperChannel) &&
+            (newChannel != 0) )
           ) ) )
     {
         if( false == psessionEntry->fWaitForProbeRsp )
