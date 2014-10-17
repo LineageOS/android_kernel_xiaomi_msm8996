@@ -16629,7 +16629,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     pRequestBuf->MAWCEnabled =
             pMac->roam.configParam.MAWCEnabled;
 #ifdef FEATURE_WLAN_ESE
-    pRequestBuf->IsESEAssoc = csrNeighborRoamIsESEAssoc(pMac, sessionId);
+    pRequestBuf->IsESEAssoc = csrNeighborRoamIsESEAssoc(pMac, sessionId) &&
+    ((pRequestBuf->ConnectedNetwork.authentication ==
+                                            eCSR_AUTH_TYPE_OPEN_SYSTEM)  ||
+    (csrIsAuthTypeESE(pRequestBuf->ConnectedNetwork.authentication)));
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
              "LFR3:%s:IsEseAssoc=%d\n", __func__, pRequestBuf->IsESEAssoc);
 #endif
