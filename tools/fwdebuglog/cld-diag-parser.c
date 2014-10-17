@@ -1124,6 +1124,8 @@ void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
 {
     char *wlanLog = (char *)&wnl->wmsg.length + sizeof(wnl->wmsg.length);
     char *charCache = NULL ;
+    if (!wlanLog)
+        return;
 
     /* Assuming every kmsg is terminated by a '\n' character,split the
      * wlanLog buffer received from the driver and log individual messages
@@ -1151,7 +1153,7 @@ void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
         else if (optionflag & CONSOLE_FLAG) {
             android_printf("%s\n", wlanLog);
         }
-        wlanLog = charCache++;
+        wlanLog = ++charCache;
     }
 }
 
