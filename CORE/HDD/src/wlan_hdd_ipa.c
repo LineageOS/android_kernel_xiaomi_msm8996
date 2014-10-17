@@ -2740,12 +2740,37 @@ static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type)
 	adf_os_mem_free(buff);
 }
 
-#ifdef IPA_UC_OFFLOAD
-int hdd_ipa_send_mcc_scc_msg(bool mcc_mode)
+#ifdef IPA_UC_STA_OFFLOAD
+int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx, bool mcc_mode)
 {
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	VOS_STATUS status;
+	hdd_adapter_t *pAdapter;
 	struct ipa_msg_meta meta;
 	struct ipa_wlan_msg *msg;
 	int ret;
+
+	if (!hdd_ipa_uc_sta_is_enabled(hdd_ipa))
+		return -EINVAL;
+
+	if (!mcc_mode) {
+		/* Flush TxRx queue for each adapter before switch to SCC */
+		status =  hdd_get_front_adapter (hdd_ctx, &adapter_node);
+		while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+			pAdapter = adapter_node->pAdapter;
+			if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
+				pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+				hddLog(VOS_TRACE_LEVEL_INFO,
+					"MCC->SCC: Flush TxRx queue(d_mode=%d)",
+					pAdapter->device_mode);
+				hdd_deinit_tx_rx(pAdapter);
+			}
+			status = hdd_get_next_adapter(
+					hdd_ctx, adapter_node, &next);
+			adapter_node = next;
+		}
+	}
 
 	/* Send SCC/MCC Switching event to IPA */
 	meta.msg_len = sizeof(*msg);

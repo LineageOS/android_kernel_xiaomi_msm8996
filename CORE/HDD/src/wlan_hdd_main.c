@@ -10234,9 +10234,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
        mcc_mode = !(p2pChannel==staChannel || apChannel1==staChannel);
    }
    if (pHddCtx->mcc_mode != mcc_mode) {
-#ifdef IPA_UC_OFFLOAD
+#ifdef IPA_UC_STA_OFFLOAD
        /* Send SCC/MCC Switching event to IPA */
-       hdd_ipa_send_mcc_scc_msg(mcc_mode);
+       hdd_ipa_send_mcc_scc_msg(pHddCtx, mcc_mode);
 #endif
        pHddCtx->mcc_mode = mcc_mode;
    }
