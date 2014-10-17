@@ -190,6 +190,12 @@ struct ipa_uc_rx_ring_elem_t
 };
 #endif /* IPA_UC_OFFLOAD */
 
+struct htt_tx_credit_t
+{
+    adf_os_atomic_t bus_delta;
+    adf_os_atomic_t target_delta;
+};
+
 struct htt_pdev_t {
     ol_pdev_handle ctrl_pdev;
     ol_txrx_pdev_handle txrx_pdev;
@@ -344,6 +350,8 @@ struct htt_pdev_t {
     struct htt_ipa_uc_tx_resource_t ipa_uc_tx_rsc;
     struct htt_ipa_uc_rx_resource_t ipa_uc_rx_rsc;
 #endif /* IPA_UC_OFFLOAD */
+
+    struct htt_tx_credit_t htt_tx_credit;
 };
 
 #endif /* _HTT_TYPES__H_ */

@@ -289,6 +289,8 @@ static eHalStatus wma_set_mimops(tp_wma_handle wma_handle,
 static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams);
 static int wma_update_tdls_peer_state(WMA_HANDLE handle,
                tTdlsPeerStateParams *peerStateParams);
+static int wma_set_tdls_offchan_mode(WMA_HANDLE wma_handle,
+                                     tTdlsChanSwitchParams *pChanSwitchParams);
 #endif
 
 static eHalStatus wma_set_smps_params(tp_wma_handle wma_handle,
@@ -352,6 +354,8 @@ static void wma_set_suspend_dtim(tp_wma_handle wma);
 static void wma_set_resume_dtim(tp_wma_handle wma);
 static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 				u_int32_t len);
+static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
+		tAbortScanParams *abort_scan_req);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -4741,6 +4745,14 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	 WMA_LOGE("%s: failed to allocate memory for roam_synch_event", __func__);
 	 return -ENOMEM;
 	}
+	/* abort existing scan if any */
+	if (wma->interfaces[synch_event->vdev_id].scan_info.scan_id != 0) {
+		tAbortScanParams abortScan;
+		WMA_LOGD("LFR3: Aborting Scan with scan_id=%d\n",
+		wma->interfaces[synch_event->vdev_id].scan_info.scan_id);
+		abortScan.SessionId = synch_event->vdev_id;
+		wma_stop_scan(wma, &abortScan);
+	}
 	pRoamOffloadSynchInd->messageType = eWNI_SME_ROAM_OFFLOAD_SYNCH_IND;
 	pRoamOffloadSynchInd->length = size;
 	pRoamOffloadSynchInd->roamedVdevId = synch_event->vdev_id;
@@ -7290,7 +7302,7 @@ error1:
  * Args       : wma_handle
  * Returns    : failure or success
  */
-VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
+static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 			 tAbortScanParams *abort_scan_req)
 {
 	VOS_STATUS vos_status;
@@ -7646,9 +7658,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 		if((auth_mode != WMI_AUTH_NONE) &&
 			((auth_mode != WMI_AUTH_OPEN) ||
 			(auth_mode == WMI_AUTH_OPEN &&
-			roam_req->MDID.mdiePresent) )){
+			roam_req->MDID.mdiePresent) || roam_req->IsESEAssoc)){
 			len += WMI_TLV_HDR_SIZE;
-			if(auth_mode == WMI_AUTH_CCKM)
+			if(roam_req->IsESEAssoc)
 			len += sizeof(wmi_roam_ese_offload_tlv_param);
 			else if (auth_mode == WMI_AUTH_FT_RSNA ||
 			auth_mode == WMI_AUTH_FT_RSNA_PSK ||
@@ -7718,8 +7730,9 @@ VOS_STATUS wma_roam_scan_offload_mode(tp_wma_handle wma_handle,
 	     * and only headers are filled.*/
 	    if ((auth_mode != WMI_AUTH_NONE) &&
 		((auth_mode != WMI_AUTH_OPEN) ||
-		 (auth_mode == WMI_AUTH_OPEN && roam_req->MDID.mdiePresent))) {
-			if (auth_mode == WMI_AUTH_CCKM){
+		 (auth_mode == WMI_AUTH_OPEN && roam_req->MDID.mdiePresent) ||
+		 (roam_req->IsESEAssoc))) {
+		    if (roam_req->IsESEAssoc){
 				WMITLV_SET_HDR(buf_ptr,WMITLV_TAG_ARRAY_STRUC,
 				WMITLV_GET_STRUCT_TLVLEN(0));
 				buf_ptr += WMI_TLV_HDR_SIZE;
@@ -22366,6 +22379,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_update_tdls_peer_state(wma_handle,
 			  (tTdlsPeerStateParams *)msg->bodyptr);
 			break;
+		case WDA_TDLS_SET_OFFCHAN_MODE:
+			wma_set_tdls_offchan_mode(wma_handle,
+			  (tTdlsChanSwitchParams*)msg->bodyptr);
+			break;
 #endif /* FEATURE_WLAN_TDLS */
 #ifdef FEATURE_WLAN_BATCH_SCAN
 		case WDA_SET_BATCH_SCAN_REQ:
@@ -26284,6 +26301,72 @@ pkt_pwr_save_config:
 }
 
 #ifdef FEATURE_WLAN_TDLS
+static int wma_set_tdls_offchan_mode(WMA_HANDLE handle,
+		                     tTdlsChanSwitchParams* pChanSwitchParams)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_tdls_set_offchan_mode_cmd_fixed_param* cmd;
+	wmi_buf_t wmi_buf;
+	u_int16_t len = sizeof(wmi_tdls_set_offchan_mode_cmd_fixed_param);
+	int ret = 0;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue tdls off channel cmd",
+		         __func__);
+		ret = -EINVAL;
+		goto end;
+	}
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);
+		ret = -ENOMEM;
+		goto end;
+	}
+	cmd = (wmi_tdls_set_offchan_mode_cmd_fixed_param*)wmi_buf_data(wmi_buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_tdls_set_offchan_mode_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_tdls_set_offchan_mode_cmd_fixed_param));
+
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(pChanSwitchParams->peerMacAddr,
+		                   &cmd->peer_macaddr);
+	cmd->vdev_id = pChanSwitchParams->vdevId;
+	cmd->offchan_mode = pChanSwitchParams->tdlsSwMode;
+	cmd->is_peer_responder = pChanSwitchParams->is_responder;
+	cmd->offchan_num = pChanSwitchParams->tdlsOffCh;
+	cmd->offchan_bw_bitmap = pChanSwitchParams->tdlsOffChBwOffset;
+	cmd->offchan_oper_class = pChanSwitchParams->operClass;
+
+	WMA_LOGD("%s: Peer MAC Addr mac_addr31to0: 0x%x, "
+		 "mac_addr47to32: 0x%x",
+		__func__, cmd->peer_macaddr.mac_addr31to0,
+		cmd->peer_macaddr.mac_addr47to32);
+
+	WMA_LOGD("%s: vdev_id: %d, "
+		 "off channel mode: %d, "
+		 "off channel Num: %d, "
+		 "off channel offset: 0x%x, "
+		 "is_peer_responder: %d, "
+		 "operating class: %d, ",
+		 __func__, cmd->vdev_id,
+		 cmd->offchan_mode,
+		 cmd->offchan_num,
+		 cmd->offchan_bw_bitmap,
+		 cmd->is_peer_responder,
+		 cmd->offchan_oper_class);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+		WMI_TDLS_SET_OFFCHAN_MODE_CMDID)) {
+		WMA_LOGP("%s: failed to send tdls off chan command", __func__);
+		adf_nbuf_free(wmi_buf);
+		ret = -EIO;
+	}
+
+end:
+	if (pChanSwitchParams)
+		vos_mem_free(pChanSwitchParams);
+	return ret;
+}
+
 /* wmi tdls command sent to firmware to enable/disable tdls for a vdev */
 static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams)
 {

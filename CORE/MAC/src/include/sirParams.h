@@ -665,6 +665,9 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_ROAM_OFFLOAD_SYNCH_IND     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 294)
 #endif
 
+#ifdef FEATURE_WLAN_TDLS
+#define SIR_HAL_TDLS_SET_OFFCHAN_MODE      (SIR_HAL_ITC_MSG_TYPES_BEGIN + 295)
+#endif
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

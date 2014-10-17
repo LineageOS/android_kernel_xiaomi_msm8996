@@ -144,6 +144,11 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
     }
     *p = NULL;
 
+    if (pdev->cfg.is_high_latency) {
+        adf_os_atomic_init(&pdev->htt_tx_credit.target_delta);
+        adf_os_atomic_init(&pdev->htt_tx_credit.bus_delta);
+        adf_os_atomic_add(HTT_MAX_BUS_CREDIT,&pdev->htt_tx_credit.bus_delta);
+    }
     return 0; /* success */
 }
 
@@ -732,3 +737,15 @@ int htt_tx_ipa_uc_detach(struct htt_pdev_t *pdev)
    return 0;
 }
 #endif /* IPA_UC_OFFLOAD */
+
+int htt_tx_credit_update(struct htt_pdev_t *pdev)
+{
+   int credit_delta;
+   credit_delta = MIN(adf_os_atomic_read(&pdev->htt_tx_credit.target_delta),
+                      adf_os_atomic_read(&pdev->htt_tx_credit.bus_delta));
+   if (credit_delta) {
+      adf_os_atomic_add(-credit_delta, &pdev->htt_tx_credit.target_delta);
+      adf_os_atomic_add(-credit_delta, &pdev->htt_tx_credit.bus_delta);
+   }
+   return credit_delta;
+}

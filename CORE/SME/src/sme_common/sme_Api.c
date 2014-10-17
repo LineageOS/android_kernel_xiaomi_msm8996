@@ -11158,6 +11158,90 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
     }
     return(status);
 }
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SendTdlsChanSwitchReq
+    \brief  API to send TDLS channel switch parameters to WMA.
+
+    \param  hHal - Umac handle.
+    \param  chanSwitchParams-  vdev, channel, offset, mode, peerMac
+    \- return VOS_STATUS_SUCCES
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SendTdlsChanSwitchReq(tHalHandle hHal,
+                                     tSmeTdlsChanSwitchParams *chanSwitchParams)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tTdlsChanSwitchParams *pTdlsChanSwitchParams = NULL;
+    vos_msg_t vosMessage;
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        pTdlsChanSwitchParams = vos_mem_malloc(sizeof(*pTdlsChanSwitchParams));
+        if (NULL == pTdlsChanSwitchParams)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      FL("failed to allocate mem for tdls chan switch param"));
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        vos_mem_zero(pTdlsChanSwitchParams, sizeof(*pTdlsChanSwitchParams));
+
+        switch (chanSwitchParams->tdls_off_ch_mode)
+        {
+            case ENABLE_CHANSWITCH:
+                pTdlsChanSwitchParams->tdlsSwMode =
+                                       WDA_TDLS_ENABLE_OFFCHANNEL;
+                break;
+
+            case DISABLE_CHANSWITCH:
+                pTdlsChanSwitchParams->tdlsSwMode =
+                                       WDA_TDLS_DISABLE_OFFCHANNEL;
+                break;
+
+            default:
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          FL("invalid off channel command (%d)"),
+                          chanSwitchParams->tdls_off_ch_mode);
+                vos_mem_free(pTdlsChanSwitchParams);
+                sme_ReleaseGlobalLock(&pMac->sme);
+                return eHAL_STATUS_FAILURE;
+        }
+        vos_mem_copy(&pTdlsChanSwitchParams->peerMacAddr,
+                     &chanSwitchParams->peer_mac_addr,
+                     sizeof(tSirMacAddr));
+        pTdlsChanSwitchParams->vdevId =
+             chanSwitchParams->vdev_id;
+        pTdlsChanSwitchParams->tdlsOffCh =
+             chanSwitchParams->tdls_off_channel;
+        pTdlsChanSwitchParams->tdlsOffChBwOffset =
+             chanSwitchParams->tdls_off_ch_bw_offset;
+        pTdlsChanSwitchParams->is_responder=
+             chanSwitchParams->is_responder;
+        pTdlsChanSwitchParams->operClass =
+             regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                                            pTdlsChanSwitchParams->tdlsOffCh,
+                                            BWALL);
+
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      FL("Selected Operating Class=%d"),
+                      pTdlsChanSwitchParams->operClass);
+        vosMessage.type = WDA_TDLS_SET_OFFCHAN_MODE;
+        vosMessage.reserved = 0;
+        vosMessage.bodyptr = pTdlsChanSwitchParams;
+
+        vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      FL("Message Post failed status=%d"), vosStatus);
+            vos_mem_free(pTdlsChanSwitchParams);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return(status);
+}
 #endif /* FEATURE_WLAN_TDLS */
 
 eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *plsContext,

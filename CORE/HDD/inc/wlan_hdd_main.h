@@ -1375,6 +1375,8 @@ struct hdd_context_s
     tdls_scan_context_t tdls_scan_ctxt;
     /* Lock to avoid race condition during TDLS operations*/
     struct mutex tdls_lock;
+    tANI_U8      tdls_off_channel;
+    tANI_U16     tdls_channel_offset;
 #endif
 
 #ifdef IPA_OFFLOAD

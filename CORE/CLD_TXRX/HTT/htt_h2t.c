@@ -87,6 +87,16 @@ htt_h2t_send_complete(void *context, HTC_PACKET *htc_pkt)
         send_complete_part2(
             htt_pkt->pdev_ctxt, htc_pkt->Status, netbuf, htt_pkt->msdu_id);
     }
+
+    if (pdev->cfg.is_high_latency && !pdev->cfg.default_tx_comp_req) {
+        int32_t credit_delta;
+        adf_os_atomic_add(1, &pdev->htt_tx_credit.bus_delta);
+        credit_delta = htt_tx_credit_update(pdev);
+        if (credit_delta) {
+            ol_tx_credit_completion_handler(pdev->txrx_pdev, credit_delta);
+        }
+    }
+
     /* free the htt_htc_pkt / HTC_PACKET object */
     htt_htc_pkt_free(pdev, htt_pkt);
 }

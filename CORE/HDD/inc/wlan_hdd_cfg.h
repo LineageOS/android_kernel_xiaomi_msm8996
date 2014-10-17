@@ -1790,8 +1790,8 @@ typedef enum
 #define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (0)
 
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (0)
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (0xFF)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (1)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MAX      (165)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT  (36)
 
 /* Tdls offchannel bandwidth is now represented in bits as follows.
@@ -2466,7 +2466,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_NAME    "wlanLoggingFEToConsole"
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_ENABLE  ( 1 )
 #define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DISABLE ( 0 )
-#define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DEFAULT ( 1 )
+#define CFG_WLAN_LOGGING_FE_CONSOLE_SUPPORT_DEFAULT ( 0 )
 
 /* Number of buffers to be used for WLAN logging */
 #define CFG_WLAN_LOGGING_NUM_BUF_NAME               "wlanLoggingNumBuf"

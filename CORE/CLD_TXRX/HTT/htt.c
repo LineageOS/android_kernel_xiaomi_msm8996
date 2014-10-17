@@ -408,7 +408,20 @@ htt_htc_attach(struct htt_pdev_t *pdev)
     connect.MaxSendQueueDepth = HTT_MAX_SEND_QUEUE_DEPTH;
 
     /* disable flow control for HTT data message service */
-#ifndef HIF_SDIO
+#ifdef HIF_SDIO
+    /*
+     * HTC Credit mechanism is disabled based on
+     * default_tx_comp_req as throughput will be lower
+     * if we disable htc credit mechanism with default_tx_comp_req
+     * set since txrx download packet will be limited by ota
+     * completion.
+     * TODO:Conditional disabling will be removed once firmware
+     * with reduced tx completion is pushed into release builds.
+     */
+    if (!pdev->cfg.default_tx_comp_req) {
+       connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
+    }
+#else
     connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
 #endif
 
