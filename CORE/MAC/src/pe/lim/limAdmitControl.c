@@ -62,15 +62,6 @@
 #define LIM_CONVERT_SIZE_BITS(numBytes) ((numBytes) * 8)
 #define LIM_CONVERT_RATE_MBPS(rate)     ((rate)/1000000)
 
-/* ANI sta's support enhanced rates, so the effective medium time used is
- * half that of other stations. This is the same as if they were requesting
- * half the badnwidth - so we adjust ANI sta's accordingly for bandwidth
- * calculations. Also enhanced rates apply only in case of non 11B mode.
- */
-#define LIM_STA_BW_ADJUST(aniPeer, phyMode, bw) \
-            (((aniPeer) && ((phyMode) != WNI_CFG_PHY_MODE_11B)) \
-              ?   ((bw)/2) : (bw))
-
 
 //------------------------------------------------------------------------------
 // local protos
@@ -257,7 +248,7 @@ limComputeMeanBwUsed(
                        ctspec, pTspecInfo->assocId);
                 continue;
             }
-            *pBw += LIM_STA_BW_ADJUST(pSta->aniPeer, phyMode, pTspecInfo->tspec.meanDataRate);
+            *pBw += pTspecInfo->tspec.meanDataRate;
         }
     }
 }

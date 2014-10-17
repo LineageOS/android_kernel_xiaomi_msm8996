@@ -335,6 +335,8 @@ wmi_unified_vdev_up_send(wmi_unified_t wmi,
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 void wma_process_roam_synch_complete(WMA_HANDLE handle,
 		tSirSmeRoamOffloadSynchCnf *synchcnf);
+void wma_process_roam_synch_fail(WMA_HANDLE handle,
+		tSirRoamOffloadSynchFail *synchfail);
 #endif
 /* Configure the regulatory domain for DFS radar filter initialization*/
 void wma_set_dfs_regdomain(tp_wma_handle wma);
@@ -22604,6 +22606,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(t_wma_unit_test_cmd *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_ROAM_OFFLOAD_SYNCH_FAIL:
+			wma_process_roam_synch_fail(wma_handle,
+				(tSirRoamOffloadSynchFail *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #endif
 #ifdef WLAN_FEATURE_NAN
 		case WDA_NAN_REQUEST:
@@ -27377,5 +27384,17 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 		return;
 	}
 	return;
+}
+void wma_process_roam_synch_fail(WMA_HANDLE handle,
+		tSirRoamOffloadSynchFail *synchfail)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not clean-up roam synch",
+				__func__);
+		return;
+	}
+	wma_handle->interfaces[synchfail->sessionId].roam_synch_in_progress =
+		VOS_FALSE;
 }
 #endif

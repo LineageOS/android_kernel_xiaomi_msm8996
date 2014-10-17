@@ -1055,7 +1055,8 @@ int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
     struct sk_buff *temp_skbuff;
     int ret_val;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT)
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
 #endif
 
@@ -4415,7 +4416,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->vendor_events = wlan_hdd_cfg80211_vendor_events;
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT)
     if (pCfg->enableDFSMasterCap) {
         wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
     }

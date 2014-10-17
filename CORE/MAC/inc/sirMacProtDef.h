@@ -42,7 +42,6 @@
 #include "palTypes.h"
 #include "sirTypes.h"
 #include "wniCfgSta.h"
-#include "aniCompiler.h"
 
 
 ///Capability information related

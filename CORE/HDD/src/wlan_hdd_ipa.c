@@ -61,6 +61,9 @@ Include Files
 #ifdef IPA_UC_OFFLOAD
 #define HDD_IPA_UC_WLAN_HDR_DES_MAC_OFFSET 12
 #define HDD_IPA_UC_WLAN_8023_HDR_SIZE      14
+/* WDI TX and RX PIPE */
+#define HDD_IPA_UC_NUM_WDI_PIPE            2
+#define HDD_IPA_UC_MAX_PENDING_EVENT       33
 #endif /* IPA_UC_OFFLOAD */
 
 #ifdef IPA_UC_OFFLOAD
@@ -324,6 +327,14 @@ struct ipa_uc_fw_stats {
 	uint32_t rx_reserved;
 };
 
+struct ipa_uc_pending_event {
+	vos_list_node_t node;
+	hdd_adapter_t *adapter;
+	enum ipa_wlan_event type;
+	uint8_t sta_id;
+	uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
+};
+
 static const char *op_string[] = {
 	"TX_SUSPEND",
 	"TX_RESUME",
@@ -383,6 +394,8 @@ struct hdd_ipa_priv {
 	v_BOOL_t resource_unloading;
 	v_BOOL_t pending_cons_req;
 	struct ipa_uc_stas_map  assoc_stas_map[WLAN_MAX_STA_COUNT];
+	vos_list_t pending_event;
+	vos_lock_t event_lock;
 #endif /* IPA_UC_OFFLOAD */
 };
 
@@ -707,18 +720,18 @@ static int hdd_ipa_uc_handle_first_con(struct hdd_ipa_priv *hdd_ipa)
 		if (hdd_ipa_uc_enable_pipes(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: IPA WDI Pipes activate fail", __func__);
+			hdd_ipa->resource_loading = VOS_FALSE;
 			return -EBUSY;
 		}
-		hdd_ipa->resource_loading = VOS_FALSE;
 	} else {
 		/* RM Disabled
 		 * Just enabled all the PIPEs */
 		if (hdd_ipa_uc_enable_pipes(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: IPA WDI Pipes activate fail", __func__);
+			hdd_ipa->resource_loading = VOS_FALSE;
 			return -EBUSY;
 		}
-		hdd_ipa->resource_loading = VOS_FALSE;
 	}
 	return 0;
 }
@@ -755,7 +768,6 @@ void hdd_ipa_uc_rm_notify_handler(void *context,
 	case IPA_RM_RESOURCE_GRANTED:
 		/* Differed RM Granted */
 		hdd_ipa_uc_enable_pipes(hdd_ipa);
-		hdd_ipa->resource_loading = VOS_FALSE;
 		if (hdd_ipa->pending_cons_req) {
 			ipa_rm_notify_completion(IPA_RM_RESOURCE_GRANTED,
 				IPA_RM_RESOURCE_WLAN_CONS);
@@ -808,6 +820,35 @@ void hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
 	vos_indicate_rxpkt(sched_ctx, pkt);
 }
 
+static int hdd_ipa_uc_proc_pending_event(struct hdd_ipa_priv *hdd_ipa)
+{
+	v_SIZE_t pending_event_count;
+	struct ipa_uc_pending_event *pending_event = NULL;
+
+	vos_list_size(&hdd_ipa->pending_event, &pending_event_count);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s, Pending Event Count %d", __func__, pending_event_count);
+	if (!pending_event_count) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s, No Pending Event", __func__);
+		return 0;
+	}
+
+	vos_list_remove_front(&hdd_ipa->pending_event,
+			(vos_list_node_t **)&pending_event);
+	while (pending_event != NULL) {
+		hdd_ipa_wlan_evt(pending_event->adapter,
+			pending_event->type,
+			pending_event->sta_id,
+			pending_event->mac_addr);
+		vos_mem_free(pending_event);
+		pending_event = NULL;
+		vos_list_remove_front(&hdd_ipa->pending_event,
+			(vos_list_node_t **)&pending_event);
+	}
+	return 0;
+}
+
 static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 {
 	struct op_msg_type *msg;
@@ -836,23 +877,33 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 
 	if ((HDD_IPA_UC_OPCODE_TX_RESUME == msg->op_code) ||
 		(HDD_IPA_UC_OPCODE_RX_RESUME == msg->op_code)) {
-		ghdd_ipa->activated_fw_pipe++;
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		hdd_ipa->activated_fw_pipe++;
+		if (HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe) {
+			hdd_ipa->resource_loading = VOS_FALSE;
+			hdd_ipa_uc_proc_pending_event(hdd_ipa);
+		}
+		vos_lock_release(&hdd_ipa->event_lock);
 	}
 
 	if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
 		(HDD_IPA_UC_OPCODE_RX_SUSPEND == msg->op_code)) {
-		ghdd_ipa->activated_fw_pipe--;
-		if (!ghdd_ipa->activated_fw_pipe) {
-			hdd_ipa_uc_disable_pipes(ghdd_ipa);
-			if ((hdd_ipa_is_rm_enabled(ghdd_ipa)) &&
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		hdd_ipa->activated_fw_pipe--;
+		if (!hdd_ipa->activated_fw_pipe) {
+			hdd_ipa_uc_disable_pipes(hdd_ipa);
+			if ((hdd_ipa_is_rm_enabled(hdd_ipa)) &&
 			(!ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
 				/* Sync return success from IPA
 				 * Enable/resume all the PIPEs */
-				ghdd_ipa->resource_unloading = VOS_FALSE;
+				hdd_ipa->resource_unloading = VOS_FALSE;
+				hdd_ipa_uc_proc_pending_event(hdd_ipa);
 			} else {
-				ghdd_ipa->resource_unloading = VOS_FALSE;
+				hdd_ipa->resource_unloading = VOS_FALSE;
+				hdd_ipa_uc_proc_pending_event(hdd_ipa);
 			}
 		}
+		vos_lock_release(&hdd_ipa->event_lock);
 	}
 
 	if (HDD_IPA_UC_OPCODE_STATS == msg->op_code) {
@@ -1052,6 +1103,9 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 
 	vos_mem_zero(&pipe_in, sizeof(struct ipa_wdi_in_params));
 	vos_mem_zero(&pipe_out, sizeof(struct ipa_wdi_out_params));
+
+	vos_list_init(&ipa_ctxt->pending_event);
+	vos_lock_init(&ipa_ctxt->event_lock);
 
 	/* TX PIPE */
 	pipe_in.sys.ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
@@ -2659,6 +2713,32 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		(WLAN_HDD_SOFTAP != adapter->device_mode)) {
 		return 0;
 	}
+	/* During IPA UC resource loading/unloading
+	 * new event issued.
+	 * Store event seperatly and handle later */
+	if (hdd_ipa_uc_is_enabled(hdd_ipa) &&
+		((hdd_ipa->resource_loading) ||
+		(hdd_ipa->resource_unloading))) {
+		struct ipa_uc_pending_event *pending_evet = NULL;
+
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s, RL/RUL inprogress", __func__);
+		pending_evet = (struct ipa_uc_pending_event *)vos_mem_malloc(
+			sizeof(struct ipa_uc_pending_event));
+		if (!pending_evet) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"Pending event memory alloc fail");
+			return -ENOMEM;
+		}
+		pending_evet->adapter = adapter;
+		pending_evet->sta_id = sta_id;
+		pending_evet->type = type;
+		vos_mem_copy(pending_evet->mac_addr,
+			mac_addr,
+			VOS_MAC_ADDR_SIZE);
+		vos_list_insert_back(&hdd_ipa->pending_event,
+				&pending_evet->node);
+	}
 #endif /* IPA_UC_OFFLOAD */
 
 	hdd_ipa->stats.event[type]++;
@@ -2722,12 +2802,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
 				msg_ex->name, meta.msg_type);
 		} else {
+			vos_lock_acquire(&hdd_ipa->event_lock);
 			if (hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
 					VOS_TRUE,
 					sta_id)) {
 				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 					"%s: STA ID %d found, not valid",
 					msg_ex->name, sta_id);
+				vos_lock_release(&hdd_ipa->event_lock);
 				return 0;
 			}
 			hdd_ipa->sap_num_connected_sta++;
@@ -2741,6 +2823,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 						msg_ex->name, ret);
 				}
 			}
+			vos_lock_release(&hdd_ipa->event_lock);
 		}
 #endif /* IPA_UC_OFFLOAD */
 		return ret;
@@ -2754,12 +2837,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			return 0;
 		}
 
+		vos_lock_acquire(&hdd_ipa->event_lock);
 		if (!hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
 					VOS_FALSE,
 					sta_id)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: STA ID %d NOT found, not valid",
 				msg_ex->name, sta_id);
+			vos_lock_release(&hdd_ipa->event_lock);
 			return 0;
 		}
 		hdd_ipa->sap_num_connected_sta--;
@@ -2767,6 +2852,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		if (!hdd_ipa->sap_num_connected_sta) {
 			hdd_ipa_uc_handle_last_discon(hdd_ipa);
 		}
+		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
 		break;
 
@@ -3264,6 +3350,8 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 			"%s: Disconnect RX PIPE", __func__);
 		ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
+		vos_lock_destroy(&hdd_ipa->event_lock);
+		vos_list_destroy(&hdd_ipa->pending_event);
 	} else
 #endif /* IPA_UC_OFFLOAD */
 	{

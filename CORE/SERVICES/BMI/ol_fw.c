@@ -2361,7 +2361,10 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 
 #ifdef HIF_SDIO
 #define SDIO_SWAP_MAILBOX_FW_ACK	0x10000
+#define SDIO_REDUCE_TX_COMPL_FW_ACK	0X20000
 #define SDIO_SWAP_MAILBOX_SET		0x1
+#define SDIO_REDUCE_TX_COMPL_SET	0x2
+
 /*Setting SDIO block size, mbox ISR yield limit for SDIO based HIF*/
 static A_STATUS
 ol_sdio_extra_initialization(struct ol_softc *scn)
@@ -2443,7 +2446,7 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 			break;
 		}
 
-		param |= SDIO_SWAP_MAILBOX_SET;
+		param |= (SDIO_SWAP_MAILBOX_SET|SDIO_REDUCE_TX_COMPL_SET);
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type,
 				offsetof(struct host_interest_s,
@@ -2456,7 +2459,7 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 }
 
 void
-ol_target_ready(struct ol_softc *scn)
+ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 {
 	u_int32_t value = 0;
 	A_STATUS status = EOK;
@@ -2474,6 +2477,12 @@ ol_target_ready(struct ol_softc *scn)
 	if (value & SDIO_SWAP_MAILBOX_FW_ACK) {
 		printk("MAILBOX SWAP Service is enabled!\n");
 		HIFSetMailboxSwap(scn->hif_hdl);
+	}
+
+	if (value & SDIO_REDUCE_TX_COMPL_FW_ACK) {
+		printk("Reduced Tx Complete service is enabled!\n");
+		ol_cfg_set_tx_free_at_download(cfg_ctx);
+
 	}
 }
 #endif

@@ -233,9 +233,9 @@ A_STATUS bmi_done(struct ol_softc *scn)
     return 0;
 }
 
-void bmi_target_ready(struct ol_softc *scn)
+void bmi_target_ready(struct ol_softc *scn, void *cfg_ctx)
 {
-    ol_target_ready(scn);
+    ol_target_ready(scn, cfg_ctx);
 }
 
 #ifndef HIF_MESSAGE_BASED

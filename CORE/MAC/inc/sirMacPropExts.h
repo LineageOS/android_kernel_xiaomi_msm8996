@@ -48,10 +48,6 @@
 #define PROP_CAPABILITY_GET(bitname, value) \
         (((value) >> SIR_MAC_PROP_CAPABILITY_ ## bitname) & 1)
 
-
-#define IS_DOT11_MODE_PROPRIETARY(dot11Mode) \
-          ((dot11Mode == WNI_CFG_DOT11_MODE_ALL) ? TRUE: FALSE)
-
 #define IS_DOT11_MODE_HT(dot11Mode) \
         (((dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_11N_ONLY) || \
@@ -101,8 +97,6 @@ typedef struct sSirMacPropVersion
 // generic proprietary IE structure definition
 typedef struct sSirPropIEStruct
 {
-    tANI_U8                    aniIndicator;
-
     tANI_U8                    propRatesPresent:1;
     tANI_U8                    apNamePresent:1;
     tANI_U8                    loadBalanceInfoPresent:1;
