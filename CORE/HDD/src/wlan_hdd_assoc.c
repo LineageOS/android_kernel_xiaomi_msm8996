@@ -723,10 +723,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                                           &chan_info);
         }
 
-#ifdef WLAN_FEATURE_LPSS
-        wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 1);
-#endif
-
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */

@@ -85,11 +85,7 @@
 #define CSR_MIN_GLOBAL_STAT_QUERY_PERIOD   500 //ms
 #define CSR_MIN_GLOBAL_STAT_QUERY_PERIOD_IN_BMPS 2000 //ms
 #define CSR_MIN_TL_STAT_QUERY_PERIOD       500 //ms
-//We use constant 4 here
-//This macro returns true when higher AC parameter is bigger than lower AC for a difference
-//The bigger the number, the less chance of TX
-//It must put lower AC as the first parameter.
-#define SME_DETECT_AC_WEIGHT_DIFF(loAC, hiAC)   (v_BOOL_t)(((hiAC) > (loAC)) ? (((hiAC)-(loAC)) > 4) : 0)
+
 //Flag to send/do not send disassoc frame over the air
 #define CSR_DONT_SEND_DISASSOC_OVER_THE_AIR 1
 #define RSSI_HACK_BMPS (-40)
@@ -681,8 +677,6 @@ eHalStatus csrReady(tpAniSirGlobal pMac)
     {
        csrScanStartResultCfgAgingTimer(pMac);
     }
-    //Store the AC weights in TL for later use
-    WLANTL_GetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
     status = csrInitChannelList( pMac );
     if ( ! HAL_STATUS_SUCCESS( status ) )
     {
@@ -2803,14 +2797,6 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     {
         smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
         return eHAL_STATUS_FAILURE;
-    }
-
-    //Restore AC weight in case we change it
-    if ( csrIsConnStateConnectedInfra( pMac, sessionId ) )
-    {
-        smsLog(pMac, LOG1, FL(" restore AC weights (%d-%d-%d-%d)"), pMac->roam.ucACWeights[0], pMac->roam.ucACWeights[1],
-            pMac->roam.ucACWeights[2], pMac->roam.ucACWeights[3]);
-        WLANTL_SetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
     }
 
     if ( fMICFailure )
@@ -5323,64 +5309,6 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
     return (status);
 }
 
-static void csrCheckAndUpdateACWeight( tpAniSirGlobal pMac, tDot11fBeaconIEs *pIEs )
-{
-    v_U8_t bACWeights[WLANTL_MAX_AC];
-    v_U8_t paramBk, paramBe, paramVi, paramVo;
-    v_BOOL_t fWeightChange = VOS_FALSE;
-    //Compare two ACs' EDCA parameters, from low to high (BK, BE, VI, VO)
-    //The "formula" is, if lower AC's AIFSN+CWMin is bigger than a fixed amount
-    //of the higher AC one, make the higher AC has the same weight as the lower AC.
-    //This doesn't address the case where the lower AC needs a real higher weight
-    if( pIEs->WMMParams.present )
-    {
-        //no change to the lowest ones
-        bACWeights[WLANTL_AC_BK] = pMac->roam.ucACWeights[WLANTL_AC_BK];
-        bACWeights[WLANTL_AC_BE] = pMac->roam.ucACWeights[WLANTL_AC_BE];
-        bACWeights[WLANTL_AC_VI] = pMac->roam.ucACWeights[WLANTL_AC_VI];
-        bACWeights[WLANTL_AC_VO] = pMac->roam.ucACWeights[WLANTL_AC_VO];
-        paramBk = pIEs->WMMParams.acbk_aifsn + pIEs->WMMParams.acbk_acwmin;
-        paramBe = pIEs->WMMParams.acbe_aifsn + pIEs->WMMParams.acbe_acwmin;
-        paramVi = pIEs->WMMParams.acvi_aifsn + pIEs->WMMParams.acvi_acwmin;
-        paramVo = pIEs->WMMParams.acvo_aifsn + pIEs->WMMParams.acvo_acwmin;
-        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramBe) )
-        {
-            bACWeights[WLANTL_AC_BE] = bACWeights[WLANTL_AC_BK];
-            fWeightChange = VOS_TRUE;
-        }
-        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramVi) )
-        {
-            bACWeights[WLANTL_AC_VI] = bACWeights[WLANTL_AC_BK];
-            fWeightChange = VOS_TRUE;
-        }
-        else if( SME_DETECT_AC_WEIGHT_DIFF(paramBe, paramVi) )
-        {
-            bACWeights[WLANTL_AC_VI] = bACWeights[WLANTL_AC_BE];
-            fWeightChange = VOS_TRUE;
-        }
-        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramVo) )
-        {
-            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_BK];
-            fWeightChange = VOS_TRUE;
-        }
-        else if( SME_DETECT_AC_WEIGHT_DIFF(paramBe, paramVo) )
-        {
-            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_BE];
-            fWeightChange = VOS_TRUE;
-        }
-        else if( SME_DETECT_AC_WEIGHT_DIFF(paramVi, paramVo) )
-        {
-            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_VI];
-            fWeightChange = VOS_TRUE;
-        }
-        if(fWeightChange)
-        {
-            smsLog(pMac, LOGE, FL(" change AC weights (%d-%d-%d-%d)"), bACWeights[0], bACWeights[1],
-                bACWeights[2], bACWeights[3]);
-            WLANTL_SetACWeights(pMac->roam.gVosContext, bACWeights);
-        }
-    }
-}
 #ifdef WLAN_FEATURE_VOWIFI_11R
 //Returns whether the current association is a 11r assoc or not
 tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac, tANI_U8 sessionId)
@@ -5899,18 +5827,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 csrRoamCompletion(pMac, sessionId, NULL, pCommand, eCSR_ROAM_RESULT_NONE, eANI_BOOLEAN_TRUE);
                 // reset the PMKID candidate list
                 csrResetPMKIDCandidateList( pMac, sessionId );
-                //Update TL's AC weight base on the current EDCA parameters
-                /*
-                 * These parameters may change in the course of the connection,
-                 * that situation is not taken care here. This change is mainly
-                 * to address a WIFI WMM test where BE has a equal or
-                 * higher TX priority than VI.
-                 * We only do this for infra link
-                 */
-                if( csrIsConnStateConnectedInfra(pMac, sessionId ) && pIes )
-                {
-                    csrCheckAndUpdateACWeight(pMac, pIes);
-                }
 #ifdef FEATURE_WLAN_WAPI
                 // reset the BKID candidate list
                 csrResetBKIDCandidateList( pMac, sessionId );
@@ -7356,10 +7272,6 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     }
     else if ( csrIsConnStateInfra( pMac, sessionId ) )
     {
-        smsLog(pMac, LOG1, FL(" restore AC weights (%d-%d-%d-%d)"), pMac->roam.ucACWeights[0], pMac->roam.ucACWeights[1],
-            pMac->roam.ucACWeights[2], pMac->roam.ucACWeights[3]);
-        //Restore AC weight in case we change it
-        WLANTL_SetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
         /* In Infrastructure, we need to disassociate from the
            Infrastructure network... */
         NewSubstate = eCSR_ROAM_SUBSTATE_DISASSOC_FORCED;

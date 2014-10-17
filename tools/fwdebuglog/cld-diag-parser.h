@@ -133,7 +133,7 @@
 #define CONSOLE_FLAG           0x02
 #define QXDM_FLAG              0x04
 #define SILENT_FLAG            0x08
-#define DEBUG_FLAG             0x0A
+#define DEBUG_FLAG             0x10
 
 #define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
 
@@ -261,11 +261,6 @@ static inline unsigned int aniNlAlign(unsigned int len)
     return ((len + ANI_NL_MASK) & ~ANI_NL_MASK);
 }
 
-static inline void *aniNlAlignBuf(void *buf)
-{
-    return (void *)aniNlAlign((unsigned int)buf);
-}
-
 /*
  * Determines the aligned length of the WNI MSG including the hdr
  * for a given payload of length 'len'.
@@ -275,7 +270,7 @@ static inline unsigned int aniNlLen(unsigned int len)
     return  (aniNlAlign(sizeof(tAniHdr)) + len);
 }
 
-/* KENEL DEFS END */
+/* KERNEL DEFS END */
 
 #define WLAN_NL_MSG_CNSS_DIAG   27 /* Msg type between user space/wlan driver */
 #define WLAN_NL_MSG_CNSS_HOST_MSG    28
