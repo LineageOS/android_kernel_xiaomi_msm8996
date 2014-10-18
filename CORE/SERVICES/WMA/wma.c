@@ -4745,7 +4745,9 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	  __func__);
 	  return -EINVAL;
 	}
+	adf_os_spin_lock_bh(&wma->roam_synch_lock);
 	wma->interfaces[synch_event->vdev_id].roam_synch_in_progress = VOS_TRUE;
+	adf_os_spin_unlock_bh(&wma->roam_synch_lock);
 	len = sizeof(tSirRoamOffloadSynchInd) +
 		synch_event->bcn_probe_rsp_len +
 		synch_event->reassoc_rsp_len;
@@ -5300,6 +5302,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
 	adf_os_spinlock_init(&wma_handle->roam_preauth_lock);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	adf_os_spinlock_init(&wma_handle->roam_synch_lock);
+#endif
 	adf_os_atomic_init(&wma_handle->is_wow_bus_suspended);
 
 	/* Register vdev start response event handler */
@@ -5442,6 +5447,9 @@ err_dbglog_init:
 	adf_os_spinlock_destroy(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_destroy(&wma_handle->vdev_detach_lock);
 	adf_os_spinlock_destroy(&wma_handle->roam_preauth_lock);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	adf_os_spinlock_destroy(&wma_handle->roam_synch_lock);
+#endif
 err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
@@ -23029,11 +23037,6 @@ static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 		return;
 	}
 	ho_failure_ind->sessionId = vdev_id;
-	/* Hand Off Failure could happen as an exception, when a roam synch
-	 * indication is posted to Host, but a roam synch complete is not
-	 * posted to the firmware.So, clear the roam synch in progress
-	 * flag before disconnecting the session through this event.*/
-	wma->interfaces[vdev_id].roam_synch_in_progress = VOS_FALSE;
 	sme_msg.type = eWNI_SME_HO_FAIL_IND;
 	sme_msg.bodyptr = ho_failure_ind;
 	sme_msg.bodyval = 0;
@@ -27385,8 +27388,10 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	  "Propagation is not in Progress", __func__);
 	  return;
 	} else {
+	  adf_os_spin_lock_bh(&wma_handle->roam_synch_lock);
 	  wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
 	  VOS_FALSE;
+	  adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
 	}
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
@@ -27416,7 +27421,13 @@ void wma_process_roam_synch_fail(WMA_HANDLE handle,
 				__func__);
 		return;
 	}
+	/* Hand Off Failure could happen as an exception, when a roam synch
+	 * indication is posted to Host, but a roam synch complete is not
+	 * posted to the firmware.So, clear the roam synch in progress
+	 * flag before disconnecting the session through this event.*/
+	adf_os_spin_lock_bh(&wma_handle->roam_synch_lock);
 	wma_handle->interfaces[synchfail->sessionId].roam_synch_in_progress =
 		VOS_FALSE;
+	adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
 }
 #endif

@@ -18520,6 +18520,7 @@ void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf)
        return;
    }
 
+   csrRoamSynchCleanUp(pMac, sessionId);
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
             "LFR3:Issue Disconnect on session %d", sessionId);
    csrRoamDisconnect(pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
