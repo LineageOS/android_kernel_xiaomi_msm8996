@@ -2303,7 +2303,6 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     if (psessionEntry->htCapability &&
             pMac->lim.htCapabilityPresentInBeacon) {
         PopulateDot11fHTCaps(pMac, psessionEntry, &pFrm->HTCaps);
-
     }
 #ifdef WLAN_FEATURE_11AC
     if ( psessionEntry->vhtCapability &&

@@ -162,9 +162,9 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-    // Extract aniIndicator
-    pBssDescription->aniIndicator = *pBuf++;
-    len --;
+    /* 1 reserved byte for padding */
+    pBuf += sizeof(pBssDescription->reservedPadding0);
+    len -= sizeof(pBssDescription->reservedPadding0);
 
     // Extract rssi
     pBssDescription->rssi = (tANI_S8) *pBuf++;
@@ -301,95 +301,6 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
 
     return eSIR_SUCCESS;
 } /*** end limGetBssDescription() ***/
-
-
-
-/**
- * limCopyBssDescription()
- *
- *FUNCTION:
- * This function is called by various LIM functions to copy
- * BSS description to a tANI_U8 buffer
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  *pBuf            Pointer to the destination buffer
- * @param  pBssDescription  Pointer to the BssDescription being copied
- * @return                  Length of BSSdescription written
- */
-
-tANI_U16
-limCopyBssDescription(tpAniSirGlobal pMac, tANI_U8 *pBuf, tSirBssDescription *pBssDescription)
-{
-    tANI_U16 len = 0;
-
-    limCopyU16(pBuf, pBssDescription->length);
-    pBuf       += sizeof(tANI_U16);
-    len        += sizeof(tANI_U16);
-
-    vos_mem_copy(  pBuf,
-                  (tANI_U8 *) pBssDescription->bssId,
-                  sizeof(tSirMacAddr));
-    pBuf       += sizeof(tSirMacAddr);
-    len        += sizeof(tSirMacAddr);
-
-   PELOG3(limLog(pMac, LOG3,
-       FL("Copying BSSdescr:channel is %d, aniInd is %d, bssId is "),
-       pBssDescription->channelId, pBssDescription->aniIndicator);
-    limPrintMacAddr(pMac, pBssDescription->bssId, LOG3);)
-
-    vos_mem_copy( pBuf,
-                  (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
-                  sizeof(v_TIME_t));
-    pBuf       += sizeof(v_TIME_t);
-    len        += sizeof(v_TIME_t);
-
-    limCopyU32(pBuf, pBssDescription->timeStamp[0]);
-    pBuf       += sizeof(tANI_U32);
-    len        += sizeof(tANI_U32);
-
-    limCopyU32(pBuf, pBssDescription->timeStamp[1]);
-    pBuf       += sizeof(tANI_U32);
-    len        += sizeof(tANI_U32);
-
-    limCopyU16(pBuf, pBssDescription->beaconInterval);
-    pBuf       += sizeof(tANI_U16);
-    len        += sizeof(tANI_U16);
-
-    limCopyU16(pBuf, pBssDescription->capabilityInfo);
-    pBuf       += sizeof(tANI_U16);
-    len        += sizeof(tANI_U16);
-
-    limCopyU32(pBuf, pBssDescription->nwType);
-    pBuf       += sizeof(tANI_U32);
-    len        += sizeof(tANI_U32);
-
-    *pBuf++ = pBssDescription->aniIndicator;
-    len++;
-
-    *pBuf++ = pBssDescription->rssi;
-    len++;
-
-    *pBuf++ = pBssDescription->sinr;
-    len++;
-
-    *pBuf++ = pBssDescription->channelId;
-    len++;
-
-    vos_mem_copy( pBuf, (tANI_U8 *) &(pBssDescription->ieFields),
-                  limGetIElenFromBssDescription(pBssDescription));
-
-    return (len + sizeof(tANI_U16));
-} /*** end limCopyBssDescription() ***/
-
-
-
 
 
 /**

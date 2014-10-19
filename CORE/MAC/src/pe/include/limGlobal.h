@@ -453,21 +453,19 @@ struct tLimIbssPeerNode
 {
     tLimIbssPeerNode         *next;
     tSirMacAddr              peerMacAddr;
-    tANI_U8                       aniIndicator:1;
     tANI_U8                       extendedRatesPresent:1;
     tANI_U8                       edcaPresent:1;
     tANI_U8                       wmeEdcaPresent:1;
     tANI_U8                       wmeInfoPresent:1;
     tANI_U8                       htCapable:1;
     tANI_U8                       vhtCapable:1;
-    tANI_U8                       rsvd:1;
+    tANI_U8                       rsvd:2;
     tANI_U8                       htSecondaryChannelOffset;
     tSirMacCapabilityInfo    capabilityInfo;
     tSirMacRateSet           supportedRates;
     tSirMacRateSet           extendedRates;
     tANI_U8                   supportedMCSSet[SIZE_OF_SUPPORTED_MCS_SET];
     tSirMacEdcaParamSetIE    edcaParams;
-    tANI_U16 propCapability;
     tANI_U8  erpIePresent;
 
     //HT Capabilities of IBSS Peer

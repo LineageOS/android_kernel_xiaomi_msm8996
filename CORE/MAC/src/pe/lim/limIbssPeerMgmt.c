@@ -293,14 +293,6 @@ ibss_sta_caps_update(
     }
 #endif
 
-    if(IS_DOT11_MODE_PROPRIETARY(psessionEntry->dot11mode) &&
-      pPeerNode->aniIndicator)
-    {
-        pStaDs->aniPeer = pPeerNode->aniIndicator;
-        pStaDs->propCapability = pPeerNode->propCapability;
-    }
-
-
     // peer is 11e capable but is not 11e enabled yet
     // some STA's when joining Airgo IBSS, assert qos capability even when
     // they don't suport qos. however, they do not include the edca parameter

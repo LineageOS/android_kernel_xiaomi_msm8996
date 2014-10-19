@@ -685,7 +685,7 @@ typedef struct sSirBssDescription
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
     tSirNwType           nwType; // Indicates 11a/b/g
-    tANI_U8              aniIndicator;
+    tANI_U8              reservedPadding0;
     tANI_S8              rssi;
     tANI_S8              sinr;
     //channelId what peer sent in beacon/probersp.
@@ -4779,6 +4779,11 @@ typedef struct sSirSmeHOFailureInd
 {
     tANI_U8  sessionId;
 } tSirSmeHOFailureInd, *tpSirSmeHOFailureInd;
+
+typedef struct sSirRoamOffloadSynchFail
+{
+    tANI_U8 sessionId;
+} tSirRoamOffloadSynchFail, *tpSirRoamOffloadSynchFail;
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
@@ -5540,5 +5545,8 @@ typedef struct
 #define RTT_INVALID                     0x00
 #define RTT_TIMING_MEAS_CAPABILITY      0x01
 #define RTT_FINE_TIMING_MEAS_CAPABILITY 0x02
+
+/* number of neighbor reports that we can handle in Neighbor Report Response */
+#define MAX_SUPPORTED_NEIGHBOR_RPT 15
 
 #endif /* __SIR_API_H */

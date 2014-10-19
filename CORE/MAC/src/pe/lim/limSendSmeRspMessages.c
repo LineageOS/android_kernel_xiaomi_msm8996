@@ -642,7 +642,6 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
                 limGetPhyMode(pMac, (tANI_U32 *)&pSirSmeRsp->bssDescription.nwType, psessionEntry);
 
                 pSirSmeRsp->bssDescription.channelId = psessionEntry->currentOperChannel;
-                pSirSmeRsp->bssDescription.aniIndicator = 1;
 
                 curLen = psessionEntry->schBeaconOffsetBegin - ieOffset;
                 vos_mem_copy( (tANI_U8 *) &pSirSmeRsp->bssDescription.ieFields,

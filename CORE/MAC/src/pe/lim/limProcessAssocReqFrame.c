@@ -1128,8 +1128,6 @@ sendIndToSme:
     pStaDs->shortPreambleEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortPreamble;
     pStaDs->shortSlotTimeEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortSlotTime;
 
-    pStaDs->propCapability = 0;
-
     pStaDs->valid                  = 0;
     pStaDs->mlmStaContext.authType = authType;
     pStaDs->staType = STA_ENTRY_PEER;
@@ -1315,9 +1313,6 @@ if (limPopulateMatchingRateSet(pMac,
 
     // Re/Assoc Response frame to requesting STA
     pStaDs->mlmStaContext.subType = subType;
-
-    if (pAssocReq->propIEinfo.aniIndicator)
-        pStaDs->aniPeer = 1;
 
 #ifdef WLAN_FEATURE_11W
     pStaDs->rmfEnabled = (pmfConnection) ? 1 : 0;
@@ -1760,9 +1755,6 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         pMlmReassocInd->authType = pStaDs->mlmStaContext.authType;
         vos_mem_copy((tANI_U8 *)&pMlmReassocInd->ssId,
                      (tANI_U8 *)&(pAssocReq->ssId), pAssocReq->ssId.length + 1);
-
-        if (pAssocReq->propIEinfo.aniIndicator)
-            pStaDs->aniPeer = 1;
 
         pMlmReassocInd->capabilityInfo = pAssocReq->capabilityInfo;
         pMlmReassocInd->rsnIE.length = 0;

@@ -5475,6 +5475,35 @@ eHalStatus csrRoamOffloadSendSynchCnf(tpAniSirGlobal pMac, tANI_U8 sessionId)
     pSession->roamOffloadSynchParams.bRoamSynchInProgress = VOS_FALSE;
     return eHAL_STATUS_SUCCESS;
 }
+void csrRoamSynchCleanUp (tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    vos_msg_t msg;
+    tpSirRoamOffloadSynchFail pRoamOffloadFailed = NULL;
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
+
+    /*Clean up the roam synch in progress for LFR3 */
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+    "%s: Roam Synch Failed, Clean Up", __func__);
+    pSession->roamOffloadSynchParams.bRoamSynchInProgress = VOS_FALSE;
+
+    pRoamOffloadFailed =
+            vos_mem_malloc(sizeof(tSirRoamOffloadSynchFail));
+    if (NULL == pRoamOffloadFailed)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+          "%s: unable to allocate memory for roam synch fail" , __func__);
+        return;
+    }
+    pRoamOffloadFailed->sessionId = sessionId;
+    msg.type     = WDA_ROAM_OFFLOAD_SYNCH_FAIL;
+    msg.reserved = 0;
+    msg.bodyptr  = pRoamOffloadFailed;
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+          VOS_TRACE(VOS_MODULE_ID_SME,VOS_TRACE_LEVEL_DEBUG,
+          "%s:Unable to post WDA_ROAM_OFFLOAD_SYNCH_FAIL msg to WDA",__func__);
+           vos_mem_free(pRoamOffloadFailed);
+    }
+}
 #endif
 
 //Return true means the command can be release, else not
@@ -8468,6 +8497,9 @@ POST_ROAM_FAILURE:
         if (pCurRoamProfile)
             vos_mem_free(pCurRoamProfile);
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+        csrRoamSynchCleanUp(pMac, sessionId);
+#endif
         /* Inform the upper layers that the reassoc failed */
         vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
         csrRoamCallCallback(pMac, sessionId,
@@ -16597,7 +16629,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     pRequestBuf->MAWCEnabled =
             pMac->roam.configParam.MAWCEnabled;
 #ifdef FEATURE_WLAN_ESE
-    pRequestBuf->IsESEAssoc = csrNeighborRoamIsESEAssoc(pMac, sessionId);
+    pRequestBuf->IsESEAssoc = csrNeighborRoamIsESEAssoc(pMac, sessionId) &&
+    ((pRequestBuf->ConnectedNetwork.authentication ==
+                                            eCSR_AUTH_TYPE_OPEN_SYSTEM)  ||
+    (csrIsAuthTypeESE(pRequestBuf->ConnectedNetwork.authentication)));
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
              "LFR3:%s:IsEseAssoc=%d\n", __func__, pRequestBuf->IsESEAssoc);
 #endif
