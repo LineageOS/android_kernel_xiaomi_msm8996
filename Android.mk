@@ -3,6 +3,7 @@
 # Assume no targets will be supported
 WLAN_CHIPSET :=
 
+ifeq ($(BOARD_HAS_QCOM_WLAN), true)
 # Build/Package options for 8084/8092/8960/8994 target
 ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8960 msm8994),true)
 	WLAN_CHIPSET     := qca_cld
@@ -109,3 +110,4 @@ endif
 endif # DLKM check
 
 endif # supported target check
+endif # WLAN enabled check

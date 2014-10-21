@@ -1192,6 +1192,9 @@ ifeq ($(CONFIG_SMP),y)
 CDEFINES += -DQCA_CONFIG_SMP
 endif
 
+#Enable Channel Matrix restriction for all targets
+CDEFINES += -DWLAN_ENABLE_CHNL_MATRIX_RESTRICTION
+
 #features specific to mobile router use case
 ifeq ($(CONFIG_MOBILE_ROUTER), y)
 
