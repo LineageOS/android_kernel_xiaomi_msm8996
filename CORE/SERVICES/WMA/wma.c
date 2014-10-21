@@ -15702,7 +15702,7 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 
 		WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
 
-		ret = wma_set_force_sleep(wma, vdev_id, false,
+		ret = wma_set_force_sleep(wma, vdev_id, true,
 						is_qpower_enabled);
 
 		if (ret) {
@@ -15781,7 +15781,7 @@ static void wma_enable_uapsd_mode(tp_wma_handle wma,
 
 	WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
 
-	ret = wma_set_force_sleep(wma, vdev_id, false,
+	ret = wma_set_force_sleep(wma, vdev_id, true,
 						is_qpower_enabled);
 	if (ret) {
 		WMA_LOGE("Enable Forced Sleep Failed vdevId %d", vdev_id);
