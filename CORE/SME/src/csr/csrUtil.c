@@ -3031,15 +3031,6 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *p
         smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
         return FALSE;
     }
-   /* to force the AP initiate fresh 802.1x authentication after re-association should not
-    * fill the PMKID from cache  this is needed
-    * by the HS 2.0 pass point certification 5.2.a and b test cases */
-
-    if(pSession->fIgnorePMKIDCache)
-    {
-        pSession->fIgnorePMKIDCache = FALSE;
-        return fRC;
-    }
 
     do
     {

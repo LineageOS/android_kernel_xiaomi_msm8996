@@ -276,9 +276,13 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tANI_U32 sessionId,
       smsLog(pMac, LOG1, FL("%02x"), pFTKeyInfo->Key[i]);
 #endif
 
-   msgLen  = sizeof( tANI_U16) + sizeof( tANI_U16 ) +
-      sizeof( pMsg->keyMaterial.length ) + sizeof( pMsg->keyMaterial.edType ) +
-      sizeof( pMsg->keyMaterial.numKeys ) + sizeof( pMsg->keyMaterial.key );
+   if(pFTKeyInfo->keyLength > CSR_MAX_KEY_LEN)
+   {
+      smsLog( pMac, LOGE, "%s: invalid keyLength %d", __func__,pFTKeyInfo->keyLength);
+      return eHAL_STATUS_FAILURE;
+   }
+
+   msgLen  = sizeof(tSirFTUpdateKeyInfo);
 
    pMsg = vos_mem_malloc(msgLen);
    if ( NULL == pMsg )

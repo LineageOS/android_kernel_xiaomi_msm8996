@@ -680,7 +680,9 @@ typedef struct {
         u_int16_t roam_preauth_chanfreq;
         void *roam_preauth_chan_context;
 	adf_os_spinlock_t roam_preauth_lock;
-
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	adf_os_spinlock_t roam_synch_lock;
+#endif
 	/* Here ol_ini_info is used to store ini
 	 * status of arp offload, ns offload
 	 * and others. Currently 1st bit is used
@@ -696,6 +698,9 @@ typedef struct {
    struct ieee80211com *dfs_ic;
 #ifdef FEATURE_WLAN_SCAN_PNO
 	vos_wake_lock_t pno_wake_lock;
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+	vos_wake_lock_t extscan_wake_lock;
 #endif
 	vos_wake_lock_t wow_wake_lock;
 	int wow_nack;
