@@ -1714,7 +1714,6 @@ csrNeighborRoamOffloadUpdatePreauthList(tpAniSirGlobal pMac,
                                 &pMac->roam.neighborRoamInfo[sessionId];
     tpCsrNeighborRoamBSSInfo pBssInfo;
     tANI_U16 bssDescLen;
-    tpSirFTPreAuthReq pftPreAuthReq;
 
     if (pNeighborRoamInfo->neighborRoamState !=
                                 eCSR_NEIGHBOR_ROAM_STATE_CONNECTED)
@@ -1751,18 +1750,6 @@ csrNeighborRoamOffloadUpdatePreauthList(tpAniSirGlobal pMac,
     }
     csrLLInsertTail(&pNeighborRoamInfo->FTRoamInfo.preAuthDoneList,
                     &pBssInfo->List, LL_ACCESS_LOCK);
-
-    pftPreAuthReq = (tpSirFTPreAuthReq)vos_mem_malloc(sizeof(tSirFTPreAuthReq));
-    if (pftPreAuthReq == NULL)
-    {
-        smsLog(pMac, LOGE,
-               FL("LFR3:Mem alloc for FT Preauth request failed"));
-        return eHAL_STATUS_RESOURCES;
-    }
-    vos_mem_zero(pftPreAuthReq, sizeof(tSirFTPreAuthReq));
-    vos_mem_copy(&pftPreAuthReq->preAuthbssId,
-                 pSmeRoamOffloadSynchInd->pbssDescription->bssId,
-                 sizeof(tSirMacAddr));
 
     CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE,
                                        sessionId)
