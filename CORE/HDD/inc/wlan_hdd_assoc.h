@@ -25,10 +25,11 @@
  * to the Linux Foundation.
  */
 
-#include <sme_Api.h>
-#if !defined( HDD_CONNECTION_H__ )
-#define HDD_CONNECTION_H__
+#if !defined(WLAN_HDD_ASSOC_H__)
+#define WLAN_HDD_ASSOC_H__
 #include <wlan_hdd_mib.h>
+#include <sme_Api.h>
+
 #define HDD_MAX_NUM_IBSS_STA          ( 32 )
 #ifdef FEATURE_WLAN_TDLS
 #define HDD_MAX_NUM_TDLS_STA          ( 8 )
