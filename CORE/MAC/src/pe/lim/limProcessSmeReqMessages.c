@@ -766,10 +766,12 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (pSmeStartBssReq->channelId)
         {
             channelNumber = pSmeStartBssReq->channelId;
+#ifdef QCA_HT_2040_COEX
             if (pSmeStartBssReq->obssEnabled)
                 psessionEntry->htSupportedChannelWidthSet =
                                  IS_DOT11_MODE_HT(psessionEntry->dot11mode)?1:0;
             else
+#endif
                 psessionEntry->htSupportedChannelWidthSet =
                                  (pSmeStartBssReq->cbMode)?1:0;
             psessionEntry->htSecondaryChannelOffset = pSmeStartBssReq->cbMode;
@@ -4796,6 +4798,10 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     case PHY_SINGLE_CHANNEL_CENTERED:
         psessionEntry->htSecondaryChannelOffset = PHY_SINGLE_CHANNEL_CENTERED;
         psessionEntry->htRecommendedTxWidthSet = 0;
+        if (pSetHT2040Mode->obssEnabled)
+            psessionEntry->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
+        else
+            psessionEntry->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
         break;
     case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
         psessionEntry->htSecondaryChannelOffset = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;

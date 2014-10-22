@@ -2578,14 +2578,20 @@ static int wma_extscan_operations_event_handler(void *handle,
 	oprn_ind->requestId = oprn_event->request_id;
 
 	switch (oprn_event->event) {
-	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
+	case WMI_EXTSCAN_BUCKET_COMPLETED_EVENT:
 		oprn_ind->scanEventType =  WIFI_SCAN_COMPLETE;
 		oprn_ind->status = 0;
 		break;
-	case WMI_EXTSCAN_BUCKET_OVERRUN_EVENT:
-		oprn_ind->scanEventType =  WIFI_SCAN_BUFFER_FULL;
-		oprn_ind->status = 0;
-		break;
+	case WMI_EXTSCAN_CYCLE_STARTED_EVENT:
+		vos_wake_lock_acquire(&wma->extscan_wake_lock);
+		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_STARTED_EVENT",
+			 __func__);
+		goto exit_handler;
+	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
+		vos_wake_lock_release(&wma->extscan_wake_lock);
+		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_COMPLETED_EVENT",
+			__func__);
+		goto exit_handler;
 	default:
 		WMA_LOGE("%s: Unknown event(%d) from target",
 			__func__, oprn_event->event);
@@ -2595,6 +2601,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
+exit_handler:
 	WMA_LOGD("%s: sending scan progress event to hdd",
 		__func__);
 	vos_mem_free(oprn_ind);
@@ -4738,7 +4745,9 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	  __func__);
 	  return -EINVAL;
 	}
+	adf_os_spin_lock_bh(&wma->roam_synch_lock);
 	wma->interfaces[synch_event->vdev_id].roam_synch_in_progress = VOS_TRUE;
+	adf_os_spin_unlock_bh(&wma->roam_synch_lock);
 	len = sizeof(tSirRoamOffloadSynchInd) +
 		synch_event->bcn_probe_rsp_len +
 		synch_event->reassoc_rsp_len;
@@ -5115,6 +5124,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_init(&wma_handle->pno_wake_lock, "wlan_pno_wl");
 #endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_init(&wma_handle->extscan_wake_lock,
+					"wlan_extscan_wl");
+#endif
 		vos_wake_lock_init(&wma_handle->wow_wake_lock, "wlan_wow_wl");
 	}
 
@@ -5289,6 +5302,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
 	adf_os_spinlock_init(&wma_handle->roam_preauth_lock);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	adf_os_spinlock_init(&wma_handle->roam_synch_lock);
+#endif
 	adf_os_atomic_init(&wma_handle->is_wow_bus_suspended);
 
 	/* Register vdev start response event handler */
@@ -5431,6 +5447,9 @@ err_dbglog_init:
 	adf_os_spinlock_destroy(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_destroy(&wma_handle->vdev_detach_lock);
 	adf_os_spinlock_destroy(&wma_handle->roam_preauth_lock);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	adf_os_spinlock_destroy(&wma_handle->roam_synch_lock);
+#endif
 err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
@@ -5449,6 +5468,9 @@ err_wma_handle:
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_destroy(&wma_handle->extscan_wake_lock);
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
@@ -21153,8 +21175,6 @@ static VOS_STATUS wma_process_ll_stats_getReq
 				WMI_SCAN_ADD_OFDM_RATES |
 				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
-	cmd->notify_extscan_events = WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
-					  WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
 	cmd->num_ssids = 0;
 	cmd->num_bssid = 0;
 	cmd->ie_len = 0;
@@ -21207,6 +21227,13 @@ static VOS_STATUS wma_process_ll_stats_getReq
 			dest_blist->forwarding_flags =
 				WMI_EXTSCAN_NO_FORWARDING;
 		}
+		if (src_bucket->reportEvents >= 1)
+			dest_blist->notify_extscan_events =
+					WMI_EXTSCAN_BUCKET_COMPLETED_EVENT;
+		if (src_bucket->reportEvents >= 2)
+			dest_blist->notify_extscan_events |=
+				WMI_EXTSCAN_CYCLE_STARTED_EVENT |
+				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT;
 
 		dest_blist->min_dwell_time_active = dwelltime;
 		dest_blist->max_dwell_time_active = dwelltime;
@@ -23010,11 +23037,6 @@ static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 		return;
 	}
 	ho_failure_ind->sessionId = vdev_id;
-	/* Hand Off Failure could happen as an exception, when a roam synch
-	 * indication is posted to Host, but a roam synch complete is not
-	 * posted to the firmware.So, clear the roam synch in progress
-	 * flag before disconnecting the session through this event.*/
-	wma->interfaces[vdev_id].roam_synch_in_progress = VOS_FALSE;
 	sme_msg.type = eWNI_SME_HO_FAIL_IND;
 	sme_msg.bodyptr = ho_failure_ind;
 	sme_msg.bodyval = 0;
@@ -24250,6 +24272,9 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	if (vos_get_conparam() != VOS_FTM_MODE) {
 #ifdef FEATURE_WLAN_SCAN_PNO
 		vos_wake_lock_destroy(&wma_handle->pno_wake_lock);
+#endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		vos_wake_lock_destroy(&wma_handle->extscan_wake_lock);
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
@@ -27363,8 +27388,10 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	  "Propagation is not in Progress", __func__);
 	  return;
 	} else {
+	  adf_os_spin_lock_bh(&wma_handle->roam_synch_lock);
 	  wma_handle->interfaces[synchcnf->sessionId].roam_synch_in_progress =
 	  VOS_FALSE;
+	  adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
 	}
 	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!wmi_buf) {
@@ -27394,7 +27421,13 @@ void wma_process_roam_synch_fail(WMA_HANDLE handle,
 				__func__);
 		return;
 	}
+	/* Hand Off Failure could happen as an exception, when a roam synch
+	 * indication is posted to Host, but a roam synch complete is not
+	 * posted to the firmware.So, clear the roam synch in progress
+	 * flag before disconnecting the session through this event.*/
+	adf_os_spin_lock_bh(&wma_handle->roam_synch_lock);
 	wma_handle->interfaces[synchfail->sessionId].roam_synch_in_progress =
 		VOS_FALSE;
+	adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
 }
 #endif

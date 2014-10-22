@@ -654,6 +654,114 @@ int hdd_priv_get_data(struct iw_point *p_priv_data,
    return 0;
 }
 
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_wlan_get_stats -
+
+   Helper function to get stats
+
+  \param  - pAdapter Pointer to the adapter.
+            wrqu - Pointer to IOCTL REQUEST Data.
+            extra - Pointer to char
+
+
+  \return - none
+
+  --------------------------------------------------------------------------*/
+void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
+                        char *buffer, v_U16_t buf_len)
+{
+    hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
+
+    snprintf(buffer, buf_len,
+        "\nTransmit"
+        "\ncalled %u, dropped %u, backpressured %u, queued %u"
+        "\n      dropped BK %u, BE %u, VI %u, VO %u"
+        "\n   classified BK %u, BE %u, VI %u, VO %u"
+        "\nbackpressured BK %u, BE %u, VI %u, VO %u"
+        "\n       queued BK %u, BE %u, VI %u, VO %u"
+        "\nfetched %u, empty %u, lowres %u, deqerr %u"
+        "\ndequeued %u, depressured %u, deque-depressured %u, completed %u, flushed %u"
+        "\n      fetched BK %u, BE %u, VI %u, VO %u"
+        "\n     dequeued BK %u, BE %u, VI %u, VO %u"
+        "\n  depressured BK %u, BE %u, VI %u, VO %u"
+        "\nDeque depressured BK %u, BE %u, VI %u, VO %u"
+        "\n      flushed BK %u, BE %u, VI %u, VO %u"
+        "\n\nReceive"
+        "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
+        "\n",
+        pStats->txXmitCalled,
+        pStats->txXmitDropped,
+        pStats->txXmitBackPressured,
+        pStats->txXmitQueued,
+
+        pStats->txXmitDroppedAC[WLANTL_AC_BK],
+        pStats->txXmitDroppedAC[WLANTL_AC_BE],
+        pStats->txXmitDroppedAC[WLANTL_AC_VI],
+        pStats->txXmitDroppedAC[WLANTL_AC_VO],
+
+        pStats->txXmitClassifiedAC[WLANTL_AC_BK],
+        pStats->txXmitClassifiedAC[WLANTL_AC_BE],
+        pStats->txXmitClassifiedAC[WLANTL_AC_VI],
+        pStats->txXmitClassifiedAC[WLANTL_AC_VO],
+
+        pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
+        pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
+        pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
+        pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
+
+        pStats->txXmitQueuedAC[WLANTL_AC_BK],
+        pStats->txXmitQueuedAC[WLANTL_AC_BE],
+        pStats->txXmitQueuedAC[WLANTL_AC_VI],
+        pStats->txXmitQueuedAC[WLANTL_AC_VO],
+
+        pStats->txFetched,
+        pStats->txFetchEmpty,
+        pStats->txFetchLowResources,
+        pStats->txFetchDequeueError,
+
+        pStats->txFetchDequeued,
+        pStats->txFetchDePressured,
+        pStats->txDequeDePressured,
+        pStats->txCompleted,
+        pStats->txFlushed,
+
+        pStats->txFetchedAC[WLANTL_AC_BK],
+        pStats->txFetchedAC[WLANTL_AC_BE],
+        pStats->txFetchedAC[WLANTL_AC_VI],
+        pStats->txFetchedAC[WLANTL_AC_VO],
+
+        pStats->txFetchDequeuedAC[WLANTL_AC_BK],
+        pStats->txFetchDequeuedAC[WLANTL_AC_BE],
+        pStats->txFetchDequeuedAC[WLANTL_AC_VI],
+        pStats->txFetchDequeuedAC[WLANTL_AC_VO],
+
+        pStats->txFetchDePressuredAC[WLANTL_AC_BK],
+        pStats->txFetchDePressuredAC[WLANTL_AC_BE],
+        pStats->txFetchDePressuredAC[WLANTL_AC_VI],
+        pStats->txFetchDePressuredAC[WLANTL_AC_VO],
+
+        pStats->txDequeDePressuredAC[WLANTL_AC_BK],
+        pStats->txDequeDePressuredAC[WLANTL_AC_BE],
+        pStats->txDequeDePressuredAC[WLANTL_AC_VI],
+        pStats->txDequeDePressuredAC[WLANTL_AC_VO],
+
+        pStats->txFlushedAC[WLANTL_AC_BK],
+        pStats->txFlushedAC[WLANTL_AC_BE],
+        pStats->txFlushedAC[WLANTL_AC_VI],
+        pStats->txFlushedAC[WLANTL_AC_VO],
+
+        pStats->rxChains,
+        pStats->rxPackets,
+        pStats->rxDropped,
+        pStats->rxDelivered,
+        pStats->rxRefused
+        );
+    *length = strlen(buffer) + 1;
+}
+
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_get_version() -
@@ -4350,6 +4458,10 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                                    int new_phymode,
                                    hdd_context_t *phddctx)
 {
+#ifdef QCA_HT_2040_COEX
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(net);
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+#endif
     v_BOOL_t band_24 = VOS_FALSE, band_5g = VOS_FALSE;
     v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
     tSmeConfigParams smeconfig;
@@ -4543,6 +4655,16 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             else
                 smeconfig.csrConfig.channelBondingMode5GHz =
                                           WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+
+#ifdef QCA_HT_2040_COEX
+            smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_FALSE;
+            halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+                                      eHT_CHAN_HT20, eANI_BOOLEAN_FALSE);
+            if (halStatus == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Failed to disable OBSS"));
+                return -EIO;
+            }
+#endif
         } else if (phymode == eCSR_DOT11_MODE_11n &&
                               chwidth == WNI_CFG_CHANNEL_BONDING_MODE_ENABLE) {
             if (curr_band == eCSR_BAND_24)
@@ -4551,6 +4673,18 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             else
                 smeconfig.csrConfig.channelBondingMode5GHz =
                                     phddctx->cfg_ini->nChannelBondingMode5GHz;
+
+#ifdef QCA_HT_2040_COEX
+            if (phddctx->cfg_ini->ht2040CoexEnabled) {
+                smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
+                halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+                                      eHT_CHAN_HT20, eANI_BOOLEAN_TRUE);
+                if (halStatus == eHAL_STATUS_FAILURE) {
+                    hddLog(LOGE, FL("Failed to enable OBSS"));
+                    return -EIO;
+                }
+            }
+#endif
         }
 #ifdef WLAN_FEATURE_11AC
         smeconfig.csrConfig.nVhtChannelWidth = vhtchanwidth;
@@ -6800,93 +6934,8 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
         case WE_GET_STATS:
         {
-            hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
-
-            snprintf(extra, WE_MAX_STR_LEN,
-                     "\nTransmit"
-                     "\ncalled %u, dropped %u, backpressured %u, queued %u"
-                     "\n      dropped BK %u, BE %u, VI %u, VO %u"
-                     "\n   classified BK %u, BE %u, VI %u, VO %u"
-                     "\nbackpressured BK %u, BE %u, VI %u, VO %u"
-                     "\n       queued BK %u, BE %u, VI %u, VO %u"
-                     "\nfetched %u, empty %u, lowres %u, deqerr %u"
-                     "\ndequeued %u, depressured %u, deque-depressured %u, completed %u, flushed %u"
-                     "\n      fetched BK %u, BE %u, VI %u, VO %u"
-                     "\n     dequeued BK %u, BE %u, VI %u, VO %u"
-                     "\n  depressured BK %u, BE %u, VI %u, VO %u"
-                     "\nDeque depressured BK %u, BE %u, VI %u, VO %u"
-                     "\n      flushed BK %u, BE %u, VI %u, VO %u"
-                     "\n\nReceive"
-                     "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
-                     "\n",
-                     pStats->txXmitCalled,
-                     pStats->txXmitDropped,
-                     pStats->txXmitBackPressured,
-                     pStats->txXmitQueued,
-
-                     pStats->txXmitDroppedAC[WLANTL_AC_BK],
-                     pStats->txXmitDroppedAC[WLANTL_AC_BE],
-                     pStats->txXmitDroppedAC[WLANTL_AC_VI],
-                     pStats->txXmitDroppedAC[WLANTL_AC_VO],
-
-                     pStats->txXmitClassifiedAC[WLANTL_AC_BK],
-                     pStats->txXmitClassifiedAC[WLANTL_AC_BE],
-                     pStats->txXmitClassifiedAC[WLANTL_AC_VI],
-                     pStats->txXmitClassifiedAC[WLANTL_AC_VO],
-
-                     pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
-                     pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
-                     pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
-                     pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
-
-                     pStats->txXmitQueuedAC[WLANTL_AC_BK],
-                     pStats->txXmitQueuedAC[WLANTL_AC_BE],
-                     pStats->txXmitQueuedAC[WLANTL_AC_VI],
-                     pStats->txXmitQueuedAC[WLANTL_AC_VO],
-
-                     pStats->txFetched,
-                     pStats->txFetchEmpty,
-                     pStats->txFetchLowResources,
-                     pStats->txFetchDequeueError,
-
-                     pStats->txFetchDequeued,
-                     pStats->txFetchDePressured,
-                     pStats->txDequeDePressured,
-                     pStats->txCompleted,
-                     pStats->txFlushed,
-
-                     pStats->txFetchedAC[WLANTL_AC_BK],
-                     pStats->txFetchedAC[WLANTL_AC_BE],
-                     pStats->txFetchedAC[WLANTL_AC_VI],
-                     pStats->txFetchedAC[WLANTL_AC_VO],
-
-                     pStats->txFetchDequeuedAC[WLANTL_AC_BK],
-                     pStats->txFetchDequeuedAC[WLANTL_AC_BE],
-                     pStats->txFetchDequeuedAC[WLANTL_AC_VI],
-                     pStats->txFetchDequeuedAC[WLANTL_AC_VO],
-
-                     pStats->txFetchDePressuredAC[WLANTL_AC_BK],
-                     pStats->txFetchDePressuredAC[WLANTL_AC_BE],
-                     pStats->txFetchDePressuredAC[WLANTL_AC_VI],
-                     pStats->txFetchDePressuredAC[WLANTL_AC_VO],
-
-                     pStats->txDequeDePressuredAC[WLANTL_AC_BK],
-                     pStats->txDequeDePressuredAC[WLANTL_AC_BE],
-                     pStats->txDequeDePressuredAC[WLANTL_AC_VI],
-                     pStats->txDequeDePressuredAC[WLANTL_AC_VO],
-
-                     pStats->txFlushedAC[WLANTL_AC_BK],
-                     pStats->txFlushedAC[WLANTL_AC_BE],
-                     pStats->txFlushedAC[WLANTL_AC_VI],
-                     pStats->txFlushedAC[WLANTL_AC_VO],
-
-                     pStats->rxChains,
-                     pStats->rxPackets,
-                     pStats->rxDropped,
-                     pStats->rxDelivered,
-                     pStats->rxRefused
-                     );
-            wrqu->data.length = strlen(extra)+1;
+            hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
+                               extra, WE_MAX_STR_LEN);
             break;
         }
 

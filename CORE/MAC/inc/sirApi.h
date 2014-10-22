@@ -3278,6 +3278,7 @@ typedef struct sSirSetHT2040Mode
     tANI_U16       messageType;
     tANI_U16       length;
     tANI_U8        cbMode;
+    tANI_BOOLEAN   obssEnabled;
     tSirMacAddr    bssId;
     tANI_U8        sessionId;      // Session ID
 } tSirSetHT2040Mode, *tpSirSetHT2040Mode;

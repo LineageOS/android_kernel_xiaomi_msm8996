@@ -14002,7 +14002,8 @@ csrSendChngMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U32 sessionId)
 }
 
 #ifdef QCA_HT_2040_COEX
-eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId, ePhyChanBondState cbMode)
+eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                           ePhyChanBondState cbMode, tANI_BOOLEAN obssEnabled)
 {
     tpSirSetHT2040Mode pMsg;
     tANI_U16 len = 0;
@@ -14036,6 +14037,7 @@ eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId, ePhyChanBon
         pMsg->sessionId       = sessionId;
         smsLog(pMac, LOG1, FL("  session %d HT20/40 mode %d"), sessionId, cbMode);
         pMsg->cbMode = cbMode;
+        pMsg->obssEnabled = obssEnabled;
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }
      return status;
@@ -18518,6 +18520,7 @@ void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf)
        return;
    }
 
+   csrRoamSynchCleanUp(pMac, sessionId);
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
             "LFR3:Issue Disconnect on session %d", sessionId);
    csrRoamDisconnect(pMac, sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
