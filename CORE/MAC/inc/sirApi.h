@@ -4744,7 +4744,7 @@ typedef struct
 #ifdef WLAN_FEATURE_NAN
 typedef struct
 {
-    tANI_U16 event_data_len;
+    tANI_U32 event_data_len;
     tANI_U8  event_data[];
 } tSirNanEvent, *tpSirNanEvent;
 #endif
