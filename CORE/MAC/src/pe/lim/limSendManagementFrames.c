@@ -394,9 +394,6 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8             txFlag = 0;
     tANI_U8             smeSessionId = 0;
 
-#ifndef GEN4_SCAN
-    return eSIR_FAILURE;
-#endif
 
 
     /* The probe req should not send 11ac capabilieties if band is 2.4GHz,

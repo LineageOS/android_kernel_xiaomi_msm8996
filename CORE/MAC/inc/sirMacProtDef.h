@@ -80,10 +80,7 @@
 #define SIR_MAC_CTRL_CF_END     14
 #define SIR_MAC_CTRL_CF_END_ACK 15
 
-#define GEN4_SCAN         1
-#ifdef GEN4_SCAN
 #define SIR_MAC_MAX_DURATION_MICRO_SECONDS       32767
-#endif // GEN4_SCAN
 
 // Data frame subtype definitions
 #define SIR_MAC_DATA_DATA                 0

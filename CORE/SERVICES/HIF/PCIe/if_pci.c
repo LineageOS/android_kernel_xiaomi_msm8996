@@ -256,6 +256,9 @@ hif_pci_device_reset(struct hif_pci_softc *sc)
     int i;
     u_int32_t val;
 
+    if (!sc->hostdef)
+        return;
+
     /* NB: Don't check resetok here.  This form of reset is integral to correct operation. */
 
     if (!SOC_GLOBAL_RESET_ADDRESS) {
