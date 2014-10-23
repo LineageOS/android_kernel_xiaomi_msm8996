@@ -222,6 +222,12 @@
 #define HDD_MIN_TX_POWER (-100) // minimum tx power
 #define HDD_MAX_TX_POWER (+100)  // maximum tx power
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#ifdef CONFIG_CNSS
+#define cfg80211_vendor_cmd_reply(skb) cnss_vendor_cmd_reply(skb)
+#endif
+#endif
+
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*

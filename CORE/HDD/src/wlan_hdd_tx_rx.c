@@ -562,7 +562,14 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
       skb->protocol = htons(HDD_ETHERTYPE_802_1_X);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+      hdd_hostapd_select_queue(pPgBkAdapter->dev, skb, NULL, NULL);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0))
+      hdd_hostapd_select_queue(pPgBkAdapter->dev, skb, NULL);
+#else
       hdd_hostapd_select_queue(pPgBkAdapter->dev, skb);
+#endif
+
       return hdd_softap_hard_start_xmit( skb, pPgBkAdapter->dev );
    }
    else

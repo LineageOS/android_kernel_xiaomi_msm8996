@@ -807,6 +807,15 @@ wlan_hdd_extscan_results_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_MAX + 1] =
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+static const struct wiphy_wowlan_support wowlan_support_cfg80211_init = {
+    .flags = WIPHY_WOWLAN_MAGIC_PKT,
+    .n_patterns = WOWL_MAX_PTRNS_ALLOWED,
+    .pattern_min_len = 1,
+    .pattern_max_len = WOWL_PTRN_MAX_SIZE,
+};
+#endif
+
 #if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 /*
  * FUNCTION: wlan_hdd_send_avoid_freq_event
@@ -863,14 +872,24 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
  */
 static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
                                          struct wireless_dev *wdev,
-                                         void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                         const void *data,
+#else
+                                         void *data,
+#endif
+                                         int data_len)
+
 {
     tNanRequestReq nan_req;
     VOS_STATUS status;
     int ret_val = -1;
 
     nan_req.request_data_len = data_len;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    nan_req.request_data = (void *)data;
+#else
     nan_req.request_data = data;
+#endif
 
     status = sme_NanRequest(&nan_req);
     if (VOS_STATUS_SUCCESS == status) {
@@ -1051,7 +1070,12 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 };
 
 int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
-                          void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                          const void *data,
+#else
+                          void *data,
+#endif
+                          int data_len)
 {
     u32 dfs_capability = 0;
     struct sk_buff *temp_skbuff;
@@ -1091,7 +1115,12 @@ int is_driver_dfs_capable(struct wiphy *wiphy, struct wireless_dev *wdev,
 static int
 wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
                                          struct wireless_dev *wdev,
-                                         void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                         const void *data,
+#else
+                                         void *data,
+#endif
+                                         int data_len)
 {
     hdd_context_t *pHddCtx      = wiphy_priv(wiphy);
     struct sk_buff *skb         = NULL;
@@ -1203,7 +1232,12 @@ nla_put_failure:
 static int
 wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
                                        struct wireless_dev *wdev,
-                                       void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                       const void *data,
+#else
+                                       void *data,
+#endif
+                                       int data_len)
 {
     tpSirScanMacOui pReqMsg   = NULL;
     hdd_context_t *pHddCtx    = wiphy_priv(wiphy);
@@ -1255,7 +1289,12 @@ fail:
 static int
 wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
                                          struct wireless_dev *wdev,
-                                         void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                         const void *data,
+#else
+                                         void *data,
+#endif
+                                         int data_len)
 {
     uint32_t feature_set_matrix[WLAN_HDD_MAX_FEATURE_SET] = {0};
     uint8_t i, feature_sets, max_feature_sets;
@@ -1324,7 +1363,12 @@ max_buffer_err:
 #ifdef WLAN_FEATURE_STATS_EXT
 static int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     tStatsExtRequestReq stats_ext_req;
     struct net_device *dev = wdev->netdev;
@@ -1333,7 +1377,11 @@ static int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
     eHalStatus status;
 
     stats_ext_req.request_data_len = data_len;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    stats_ext_req.request_data = (void *)data;
+#else
     stats_ext_req.request_data = data;
+#endif
 
     status = sme_StatsExtRequest(pAdapter->sessionId, &stats_ext_req);
 
@@ -1427,7 +1475,12 @@ void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx)
 #ifdef FEATURE_WLAN_EXTSCAN
 static int wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
                                                 struct wireless_dev *wdev,
-                                                void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                                const void *data,
+#else
+                                                void *data,
+#endif
+                                                int data_len)
 {
     tpSirGetExtScanCapabilitiesReqParams pReqMsg = NULL;
     struct net_device *dev                     = wdev->netdev;
@@ -1480,7 +1533,12 @@ fail:
 
 static int wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
                                                   struct wireless_dev *wdev,
-                                                  void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                                  const void *data,
+#else
+                                                  void *data,
+#endif
+                                                  int data_len)
 {
     tpSirExtScanGetCachedResultsReqParams pReqMsg = NULL;
     struct net_device *dev                      = wdev->netdev;
@@ -1543,7 +1601,12 @@ fail:
 
 static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
                                                  struct wireless_dev *wdev,
-                                                 void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                                 const void *data,
+#else
+                                                 void *data,
+#endif
+                                                 int data_len)
 {
     tpSirExtScanSetBssidHotListReqParams pReqMsg = NULL;
     struct net_device *dev                     = wdev->netdev;
@@ -1663,7 +1726,12 @@ fail:
 static int wlan_hdd_cfg80211_extscan_set_significant_change(
                                         struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     tpSirExtScanSetSigChangeReqParams pReqMsg = NULL;
     struct net_device *dev                  = wdev->netdev;
@@ -1816,7 +1884,12 @@ fail:
 
 static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     hdd_context_t *pHddCtx                               = wiphy_priv(wiphy);
     tANI_U32 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
@@ -1902,7 +1975,12 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
                                            struct wireless_dev *wdev,
-                                           void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                           const void *data,
+#else
+                                           void *data,
+#endif
+                                           int data_len)
 {
     tpSirWifiScanCmdReqParams pReqMsg       = NULL;
     struct net_device *dev                  = wdev->netdev;
@@ -2167,7 +2245,12 @@ fail:
 
 static int wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     tpSirExtScanStopReqParams pReqMsg         = NULL;
     struct net_device *dev                  = wdev->netdev;
@@ -2221,7 +2304,12 @@ fail:
 
 static int wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     tpSirExtScanResetBssidHotlistReqParams pReqMsg = NULL;
     struct net_device *dev                       = wdev->netdev;
@@ -2276,7 +2364,12 @@ fail:
 static int wlan_hdd_cfg80211_extscan_reset_significant_change(
                                         struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        void *data, int data_len)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                        const void *data,
+#else
+                                        void *data,
+#endif
+                                        int data_len)
 {
     tpSirExtScanResetSignificantChangeReqParams pReqMsg = NULL;
     struct net_device *dev                            = wdev->netdev;
@@ -3308,7 +3401,11 @@ qca_wlan_vendor_ll_set_policy[QCA_WLAN_VENDOR_ATTR_LL_STATS_SET_MAX +1] =
 
 static int wlan_hdd_cfg80211_ll_stats_set(struct wiphy *wiphy,
                                           struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                          const void *data,
+#else
                                           void *data,
+#endif
                                           int data_len)
 {
     int status;
@@ -3406,7 +3503,11 @@ qca_wlan_vendor_ll_get_policy[QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_MAX +1] =
 
 static int wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
                                           struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                          const void *data,
+#else
                                           void *data,
+#endif
                                           int data_len)
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
@@ -3494,7 +3595,11 @@ qca_wlan_vendor_ll_clr_policy[QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_MAX +1] =
 
 static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
                                             struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                            const void *data,
+#else
                                             void *data,
+#endif
                                             int data_len)
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
@@ -3645,7 +3750,11 @@ wlan_hdd_tdls_config_get_status_policy[
 };
 static int wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
                                                 struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                                const void *data,
+#else
                                                 void *data,
+#endif
                                                 int data_len)
 {
     uint8_t peer[6]         = {0};
@@ -3770,7 +3879,11 @@ nla_put_failure:
 
 static int wlan_hdd_cfg80211_exttdls_enable(struct wiphy *wiphy,
                                             struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                            const void *data,
+#else
                                             void *data,
+#endif
                                             int data_len)
 {
     uint8_t peer[6]                            = {0};
@@ -3861,7 +3974,11 @@ static int wlan_hdd_cfg80211_exttdls_enable(struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_exttdls_disable(struct wiphy *wiphy,
                                              struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                             const void *data,
+#else
                                              void *data,
+#endif
                                              int data_len)
 {
     u8 peer[6]                                 = {0};
@@ -3913,7 +4030,11 @@ wlan_hdd_set_no_dfs_flag_config_policy[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX
 
 static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
                                                   struct wireless_dev *wdev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                                                  const void *data,
+#else
                                                   void *data,
+#endif
                                                   int data_len)
 {
     struct net_device *dev = wdev->netdev;
@@ -4341,8 +4462,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     /* This will disable updating of NL channels from passive to
      * active if a beacon is received on passive channel. */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    wiphy->regulatory_flags |= REGULATORY_DISABLE_BEACON_HINTS;
+#else
     wiphy->flags |=   WIPHY_FLAG_DISABLE_BEACON_HINTS;
-
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
     wiphy->flags |= WIPHY_FLAG_HAVE_AP_SME
@@ -4352,13 +4476,22 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                  |  WIPHY_FLAG_4ADDR_STATION
 #endif
                     | WIPHY_FLAG_OFFCHAN_TX;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    wiphy->regulatory_flags = REGULATORY_COUNTRY_IE_IGNORE;
+#else
     wiphy->country_ie_pref = NL80211_COUNTRY_IE_IGNORE_CORE;
 #endif
+#endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+    wiphy->wowlan = &wowlan_support_cfg80211_init;
+#else
     wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;
     wiphy->wowlan.n_patterns = WOWL_MAX_PTRNS_ALLOWED;
     wiphy->wowlan.pattern_min_len = 1;
     wiphy->wowlan.pattern_max_len = WOWL_PTRN_MAX_SIZE;
+#endif
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
     if (pCfg->isFastTransitionEnabled
@@ -14256,7 +14389,11 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
    return err;
 }
 
-static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy, void *data, int len)
+static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
+                                      struct wireless_dev *wdev,
+#endif
+                                      void *data, int len)
 {
    int ret;
 
