@@ -501,6 +501,7 @@ struct ol_tx_sched_wrr_adv_category_info_t {
 //                                            WRR           send
 //                                           skip  credit  limit credit disc
 //                                            wts  thresh (frms) reserv  wts
+#ifdef HIF_SDIO
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VO,           1,     16,    24,     0,  1);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           3,     16,    16,     1,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,          10,     16,    16,     1,  8);
@@ -509,7 +510,16 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(NON_QOS_DATA,12,      6,     4,     1,  8);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,  10,     16,     4,     1,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
-
+#else
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VO,           1,     16,    24,     0,  1);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           3,     16,    16,     1,  4);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,          10,     12,    12,     1,  8);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BK,          12,      6,     6,     1,  8);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(NON_QOS_DATA,12,      6,     4,     1,  8);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,  10,     16,     4,     1,  4);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
+#endif
 
 #if DEBUG_SCHED_STAT
 
