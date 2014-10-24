@@ -12031,11 +12031,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*SME must send channel update configuration to RIVA*/
    sme_UpdateChannelConfig(pHddCtx->hHal);
 #endif
-
-#ifdef FEATURE_WLAN_TDLS
-   wlan_hdd_global_tdls_init(pHddCtx);
-#endif
-
    sme_Register11dScanDoneCallback(pHddCtx->hHal, hdd_11d_scan_done);
 
    /* Register with platform driver as client for Suspend/Resume */
