@@ -157,6 +157,15 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+
+#ifdef IPA_UC_OFFLOAD
+/* If IPA UC data path is enabled, target should reserve extra tx descriptors
+ * for IPA WDI data path.
+ * Then host data path should allow less TX packet pumping in case
+ * IPA WDI data path enabled */
+#define WLAN_TFC_IPAUC_TX_DESC_RESERVE   100
+#endif /* IPA_UC_OFFLOAD */
+
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath_buffer[BUF_LEN];
@@ -9924,8 +9933,23 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           * set as default for none concurrency case */
          if (!preAdapterChannel)
          {
-             pAdapter->tx_flow_low_watermark =
+#ifdef IPA_UC_OFFLOAD
+             /* If IPA UC data path is enabled,
+              * target should reserve extra tx descriptors
+              * for IPA WDI data path.
+              * Then host data path should allow less TX packet pumping in case
+              * IPA WDI data path enabled */
+             if ((pHddCtx->cfg_ini->IpaUcOffloadEnabled) &&
+                 (WLAN_HDD_SOFTAP == pAdapter->device_mode)) {
+                pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark +
+                       WLAN_TFC_IPAUC_TX_DESC_RESERVE;
+             } else
+#endif /* IPA_UC_OFFLOAD */
+             {
+                 pAdapter->tx_flow_low_watermark =
                        pHddCtx->cfg_ini->TxFlowLowWaterMark;
+             }
              pAdapter->tx_flow_high_watermark_offset =
                        pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
              WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
