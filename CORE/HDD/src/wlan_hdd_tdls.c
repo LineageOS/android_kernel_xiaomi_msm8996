@@ -331,41 +331,6 @@ static v_VOID_t wlan_hdd_tdls_discovery_timeout_peer_cb(v_PVOID_t userData)
     return;
 }
 
-v_VOID_t wlan_hdd_global_tdls_init(hdd_context_t *pHddCtx)
-{
-    v_U8_t staIdx;
-
-    if (FALSE == pHddCtx->cfg_ini->fEnableTDLSSupport) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("TDLS is Not Enabled!"));
-        pHddCtx->tdls_mode = eTDLS_SUPPORT_NOT_ENABLED;
-        return;
-    }
-
-    /* initialize TDLS global context */
-    pHddCtx->connected_peer_count = 0;
-    pHddCtx->tdls_scan_ctxt.magic = 0;
-    pHddCtx->tdls_scan_ctxt.attempt = 0;
-    pHddCtx->tdls_scan_ctxt.reject = 0;
-    pHddCtx->tdls_scan_ctxt.scan_request = NULL;
-    pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
-
-    for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++) {
-        pHddCtx->tdlsConnInfo[staIdx].staId = 0;
-        pHddCtx->tdlsConnInfo[staIdx].sessionId = TDLS_INVALID_SESSION;
-        vos_mem_zero(&pHddCtx->tdlsConnInfo[staIdx].peerMac,
-                     sizeof(v_MACADDR_t));
-    }
-    if (FALSE == pHddCtx->cfg_ini->fEnableTDLSImplicitTrigger) {
-        pHddCtx->tdls_mode = eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY;
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("TDLS Implicit trigger not enabled!"));
-    } else {
-        pHddCtx->tdls_mode = eTDLS_SUPPORT_ENABLED;
-    }
-    return;
-}
-
 static v_VOID_t wlan_hdd_tdls_initiator_wait_cb( v_PVOID_t userData )
 {
     hddTdlsPeer_t *curr_peer = (hddTdlsPeer_t *)userData;
@@ -446,7 +411,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     tdlsCtx_t *pHddTdlsCtx;
     int i;
-
+    v_U8_t staIdx;
     tdlsInfo_t *tInfo;
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
 
@@ -519,8 +484,25 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 
     pHddTdlsCtx = pAdapter->sessionCtx.station.pHddTdlsCtx;
 
+    /* initialize TDLS global context */
+    pHddCtx->connected_peer_count = 0;
     sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                    pAdapter->sessionId, 0);
+
+    pHddCtx->tdls_scan_ctxt.magic = 0;
+    pHddCtx->tdls_scan_ctxt.attempt = 0;
+    pHddCtx->tdls_scan_ctxt.reject = 0;
+    pHddCtx->tdls_scan_ctxt.scan_request = NULL;
+
+    pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
+
+    for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
+    {
+         pHddCtx->tdlsConnInfo[staIdx].staId = 0;
+         pHddCtx->tdlsConnInfo[staIdx].sessionId = 255;
+         vos_mem_zero(&pHddCtx->tdlsConnInfo[staIdx].peerMac,
+                                            sizeof(v_MACADDR_t)) ;
+    }
 
     pHddTdlsCtx->pAdapter = pAdapter;
 
@@ -543,6 +525,16 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     pHddTdlsCtx->threshold_config.rssi_trigger_threshold = pHddCtx->cfg_ini->fTDLSRSSITriggerThreshold;
     pHddTdlsCtx->threshold_config.rssi_teardown_threshold = pHddCtx->cfg_ini->fTDLSRSSITeardownThreshold;
     pHddTdlsCtx->threshold_config.rssi_delta = pHddCtx->cfg_ini->fTDLSRSSIDelta;
+
+    if (FALSE == pHddCtx->cfg_ini->fEnableTDLSImplicitTrigger)
+    {
+        pHddCtx->tdls_mode = eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s TDLS Implicit trigger not enabled!", __func__);
+    }
+    else
+    {
+        pHddCtx->tdls_mode = eTDLS_SUPPORT_ENABLED;
+    }
 
 #ifdef CONFIG_TDLS_IMPLICIT
 #ifdef CONFIG_CNSS

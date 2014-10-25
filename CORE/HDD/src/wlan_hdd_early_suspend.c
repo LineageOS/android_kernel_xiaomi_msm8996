@@ -2144,9 +2144,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    hdd_register_mcast_bcast_filter(pHddCtx);
-#ifdef FEATURE_WLAN_TDLS
-   wlan_hdd_global_tdls_init(pHddCtx);
-#endif
    hdd_ssr_timer_del();
 
    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_FW_CRASHED_IND, NULL, 0);

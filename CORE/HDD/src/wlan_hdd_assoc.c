@@ -2430,7 +2430,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       {
          hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-         if (!roamRemoveIbssStation(pAdapter, pRoamInfo->staId))
+									if ( !roamRemoveIbssStation(pAdapter, pRoamInfo->staId ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                     "IBSS peer departed by cannot find peer in our registration table with TL" );
@@ -2829,13 +2829,11 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         {
 #ifdef CONFIG_TDLS_IMPLICIT
             /* ignore TDLS_SHOULD_DISCOVER if any concurrency detected */
-            if (((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode) ||
-                (pHddCtx->no_of_active_sessions[VOS_STA_MODE] > 1))
+            if ((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode)
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                         FL("concurrency detected. ignore SHOULD_DISCOVER concurrency_mode: 0x%x, active_sessions: %d"),
-                         pHddCtx->concurrency_mode,
-                         pHddCtx->no_of_active_sessions[VOS_STA_MODE]);
+                          "%s: concurrency detected. ignore SHOULD_DISCOVER",
+                          __func__);
                 status = eHAL_STATUS_FAILURE;
                 break;
             }

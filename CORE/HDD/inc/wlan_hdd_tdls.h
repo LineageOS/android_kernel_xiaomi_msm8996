@@ -71,7 +71,7 @@ should not be more than 2000 */
 #define ENA_TDLS_SLEEP_STA    (1 << 2)  /* TDLS Sleep STA support */
 
 #define TDLS_PEER_LIST_SIZE   256
-#define TDLS_INVALID_SESSION 255
+
 typedef struct
 {
     tANI_U32    tdls;
@@ -255,8 +255,6 @@ typedef struct {
 } tdlsInfo_t;
 
 int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter);
-
-void wlan_hdd_global_tdls_init(hdd_context_t *pHddCtx);
 
 void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter);
 
