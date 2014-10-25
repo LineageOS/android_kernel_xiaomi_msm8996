@@ -4400,7 +4400,7 @@ static int wma_nan_rsp_event_handler(void *handle, u_int8_t *event_buf,
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
 	u_int8_t *buf_ptr;
-	u_int8_t alloc_len;
+	u_int32_t alloc_len;
 
 	/*
 	 * This is how received event_buf looks like
@@ -4992,7 +4992,7 @@ static int wma_stats_ext_event_handler(void *handle, u_int8_t *event_buf,
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
 	u_int8_t *buf_ptr;
-	u_int8_t alloc_len;
+	u_int32_t alloc_len;
 
 	WMA_LOGD("%s: Posting stats ext event to SME", __func__);
 

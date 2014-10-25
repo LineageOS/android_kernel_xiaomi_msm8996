@@ -778,7 +778,6 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
 
 
 
-#ifdef GEN4_SCAN
 // Function to process WDA_INIT_SCAN_RSP message
 void limProcessInitScanRsp(tpAniSirGlobal,  void * );
 
@@ -808,7 +807,6 @@ tANI_U8 limIsLinkSuspended(tpAniSirGlobal pMac);
 void limSuspendLink(tpAniSirGlobal, tSirLinkTrafficCheck, SUSPEND_RESUME_LINK_CALLBACK, tANI_U32*);
 void limResumeLink(tpAniSirGlobal, SUSPEND_RESUME_LINK_CALLBACK, tANI_U32*);
 //end WLAN_SUSPEND_LINK Related
-#endif // GEN4_SCAN
 
 tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     tpLimMlmAddBAReq pMlmAddBAReq,tpPESession);

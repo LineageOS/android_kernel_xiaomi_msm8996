@@ -207,7 +207,6 @@ typedef enum eLimDot11hChanSwStates
     eLIM_11H_CHANSW_END
 } tLimDot11hChanSwStates;
 
-#ifdef GEN4_SCAN
 
 //WLAN_SUSPEND_LINK Related
 typedef void (*SUSPEND_RESUME_LINK_CALLBACK)(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
@@ -231,7 +230,6 @@ typedef enum eLimHalScanState
   eLIM_HAL_RESUME_LINK_WAIT_STATE,
 //end WLAN_SUSPEND_LINK Related
 } tLimLimHalScanState;
-#endif // GEN4_SCAN
 
 // LIM states related to A-MPDU/BA
 // This is used for maintaining the state between PE and HAL only.

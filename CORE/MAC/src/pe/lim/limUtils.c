@@ -530,7 +530,6 @@ char *limResultCodeStr(tSirResultCodes resultCode)
             return "eSIR_SME_RECEIVED";
       case eSIR_SME_CHANNEL_SWITCH_FAIL:
             return "eSIR_SME_CHANNEL_SWITCH_FAIL";
-#ifdef GEN4_SCAN
       case eSIR_SME_CHANNEL_SWITCH_DISABLED:
             return "eSIR_SME_CHANNEL_SWITCH_DISABLED";
       case eSIR_SME_HAL_SCAN_INIT_FAILED:
@@ -543,12 +542,6 @@ char *limResultCodeStr(tSirResultCodes resultCode)
             return "eSIR_SME_HAL_SCAN_FINISH_FAILED";
       case eSIR_SME_HAL_SEND_MESSAGE_FAIL:
             return "eSIR_SME_HAL_SEND_MESSAGE_FAIL";
-#else // GEN4_SCAN
-      case eSIR_SME_CHANNEL_SWITCH_DISABLED:
-            return "eSIR_SME_CHANNEL_SWITCH_DISABLED";
-      case eSIR_SME_HAL_SEND_MESSAGE_FAIL:
-            return "eSIR_SME_HAL_SEND_MESSAGE_FAIL";
-#endif // GEN4_SCAN
 
         default:
             return "INVALID resultCode";
@@ -4988,8 +4981,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     }
     else
     {
-      if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) &&
-           psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
+      if(tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA)
       {
         //send message to HAL to delete TS
         if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac,
