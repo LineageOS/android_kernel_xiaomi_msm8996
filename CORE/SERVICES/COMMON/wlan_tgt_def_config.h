@@ -46,7 +46,7 @@
 
 /* # of WDS entries to support.
  */
-#define CFG_TGT_WDS_ENTRIES             32
+#define CFG_TGT_WDS_ENTRIES             0
 
 /* MAC DMA burst size. 0: 128B - default, 1: 256B, 2: 64B
  */
