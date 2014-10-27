@@ -137,13 +137,13 @@ A_STATUS HIFDevMapServiceToPipe(HIF_SDIO_DEVICE *pDev, A_UINT16 ServiceId,
     return status;
 }
 
-HTC_PACKET *HIFDevAllocRxBuffer(HIF_SDIO_DEVICE *pDev)
+HTC_PACKET *HIFDevAllocRxBuffer(HIF_SDIO_DEVICE *pDev, size_t length)
 {
     HTC_PACKET *pPacket;
     adf_nbuf_t netbuf;
     A_UINT32 bufsize = 0, headsize = 0;
 
-    bufsize = HIF_SDIO_RX_BUFFER_SIZE + HIF_SDIO_RX_DATA_OFFSET;
+    bufsize = length + HIF_SDIO_RX_DATA_OFFSET;
     headsize = sizeof(HTC_PACKET);
     netbuf = adf_nbuf_alloc(NULL, bufsize + headsize, 0, 4, FALSE);
     if (netbuf == NULL) {
