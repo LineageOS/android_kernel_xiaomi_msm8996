@@ -518,7 +518,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param
+    WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -710,7 +711,8 @@ typedef enum {
     OP(WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)\
     OP(WMI_SCAN_PROB_REQ_OUI_CMDID) \
     OP(WMI_TDLS_SET_OFFCHAN_MODE_CMDID)\
-    OP(WMI_PDEV_SET_LED_FLASHING_CMDID)
+    OP(WMI_PDEV_SET_LED_FLASHING_CMDID) \
+    OP(WMI_ROAM_INVOKE_CMDID)
 
 
 
@@ -1459,7 +1461,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_AP_PROFILE);
 #define WMITLV_TABLE_WMI_ROAM_SYNCH_COMPLETE(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_synch_complete_fixed_param, wmi_roam_synch_complete_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
-WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_COMPLETE)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_COMPLETE);
 
 #define WMITLV_TABLE_WMI_ROAM_SET_RIC_REQUEST_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ric_request_fixed_param, wmi_ric_request_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1979,6 +1981,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_SET_RESPONSE_CMDID);
 #define WMITLV_TABLE_WMI_MDNS_GET_STATS_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param, wmi_mdns_get_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_GET_STATS_CMDID);
+
+/* roam invoke Cmd */
+#define WMITLV_TABLE_WMI_ROAM_INVOKE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param, wmi_roam_invoke_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, bssid_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_INVOKE_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
