@@ -8833,7 +8833,14 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     }
 
     sme_ScanResultPurge(hHal, pResult);
-    sme_ScanFlushResult(hHal, pAdapter->sessionId);
+
+    /*
+     *  For SAP mode, scan is invoked by hostapd during SAP start, if hostapd is
+     *  restarted, we need to flush previous scan result so that it will reflect
+     *  environment change
+     */
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
+        sme_ScanFlushResult(hHal, pAdapter->sessionId);
 
     EXIT();
     return 0;
