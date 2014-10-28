@@ -1722,6 +1722,12 @@ eHalStatus csrScanHandleSearchForSSIDFailure(tpAniSirGlobal pMac, tSmeCmd *pComm
     tANI_U32 sessionId = pCommand->sessionId;
     tCsrRoamProfile *pProfile = pCommand->u.scanCmd.pToRoamProfile;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if (!pSession) {
+        smsLog(pMac, LOGE, FL("Session %d not found"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
     /* If this scan is for LFR */
     if (pMac->roam.neighborRoamInfo[sessionId].uOsRequestedHandoff) {
@@ -1734,11 +1740,6 @@ eHalStatus csrScanHandleSearchForSSIDFailure(tpAniSirGlobal pMac, tSmeCmd *pComm
         return eHAL_STATUS_SUCCESS;
     }
 #endif
-    if(!pSession)
-    {
-        smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-        return eHAL_STATUS_FAILURE;
-    }
 
 #if defined(WLAN_DEBUG)
     if(pCommand->u.scanCmd.u.scanRequest.SSIDs.numOfSSIDs == 1)
