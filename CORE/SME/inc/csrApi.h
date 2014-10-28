@@ -1550,6 +1550,13 @@ typedef struct tagCsrEseBeaconReq
 } tCsrEseBeaconReq, *tpCsrEseBeaconReq;
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
+struct tagCsrDelStaParams
+{
+    tCsrBssid peerMacAddr;
+    u16 reason_code;
+    u8 subtype;
+};
+
 ////////////////////////////////////////////Common SCAN starts
 
 //void *p2 -- the second context pass in for the caller
