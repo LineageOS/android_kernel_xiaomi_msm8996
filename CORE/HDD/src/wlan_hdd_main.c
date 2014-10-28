@@ -157,7 +157,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #define MEMORY_DEBUG_STR ""
 #endif
 
-
+#define DISABLE_KRAIT_IDLE_PS_VAL   200
 #ifdef IPA_UC_OFFLOAD
 /* If IPA UC data path is enabled, target should reserve extra tx descriptors
  * for IPA WDI data path.
@@ -12449,6 +12449,34 @@ success:
    return 0;
 }
 
+/*
+ * In BMI Phase we are only sending small chunk (256 bytes) of the FW image at
+ * a time, and wait for the completion interrupt to start the next transfer.
+ * During this phase, the KRAIT is entering IDLE/StandAlone(SA) Power Save(PS).
+ * The delay incurred for resuming from IDLE/SA PS is huge during driver load.
+ * So prevent APPS IDLE/SA PS during driver load for reducing interrupt latency.
+ */
+
+#ifdef CONFIG_CNSS
+static inline void hdd_request_pm_qos(int val)
+{
+   cnss_request_pm_qos(val);
+}
+
+static inline void hdd_remove_pm_qos(void)
+{
+   cnss_remove_pm_qos();
+}
+#else
+static inline void hdd_request_pm_qos(int val)
+{
+}
+
+static inline void hdd_remove_pm_qos(void)
+{
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_driver_init() - Core Driver Init Function
@@ -12476,6 +12504,13 @@ static int hdd_driver_init( void)
 
    vos_wake_lock_init(&wlan_wake_lock, "wlan");
    hdd_prevent_suspend();
+   /*
+    * The Krait is going to Idle/Stand Alone Power Save
+    * more aggressively which is resulting in the longer driver load time.
+    * The Fix is to not allow Krait to enter Idle Power Save during driver load.
+    */
+
+   hdd_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
 #ifdef HDD_TRACE_RECORD
    MTRACE(hddTraceInit());
 #endif
@@ -12489,6 +12524,7 @@ static int hdd_driver_init( void)
          ret_status =  epping_driver_init(con_mode, &wlan_wake_lock,
                           WLAN_MODULE_NAME);
          if (ret_status < 0) {
+            hdd_remove_pm_qos();
             hdd_allow_suspend();
             vos_wake_lock_destroy(&wlan_wake_lock);
          }
@@ -12499,6 +12535,7 @@ static int hdd_driver_init( void)
          ret_status = epping_driver_init(hdd_get_conparam(),
                          &wlan_wake_lock, WLAN_MODULE_NAME);
          if (ret_status < 0) {
+            hdd_remove_pm_qos();
             hdd_allow_suspend();
             vos_wake_lock_destroy(&wlan_wake_lock);
          }
@@ -12542,6 +12579,7 @@ static int hdd_driver_init( void)
            ret_status = 0;
    }
 
+   hdd_remove_pm_qos();
    hdd_allow_suspend();
 
    if (ret_status) {
