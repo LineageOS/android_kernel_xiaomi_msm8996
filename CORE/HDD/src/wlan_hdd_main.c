@@ -6035,7 +6035,20 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
        }
 #endif
-       else {
+       else if (strncasecmp(command, "RSSI", 4) == 0) {
+           v_S7_t s7Rssi = 0;
+           char extra[32];
+           tANI_U8 len = 0;
+
+           wlan_hdd_get_rssi(pAdapter, &s7Rssi);
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, s7Rssi);
+           if (copy_to_user(priv_data.buf, &extra, len + 1)) {
+               hddLog(LOGE, FL("Failed to copy data to user buffer"));
+               ret = -EFAULT;
+               goto exit;
+           }
+       } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
                             pAdapter->sessionId, 0));
