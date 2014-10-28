@@ -22270,6 +22270,186 @@ static void wma_process_roam_invoke(WMA_HANDLE handle,
 }
 #endif
 
+#ifdef MDNS_OFFLOAD
+static int wma_set_mdns_offload(tp_wma_handle wma_handle,
+				tSirMDNSOffloadInfo *pMDNSInfo)
+{
+	wmi_mdns_offload_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_mdns_offload cmd");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_mdns_offload_cmd_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_mdns_offload_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_mdns_offload_cmd_fixed_param));
+	cmd->vdev_id = pMDNSInfo->vdev_id;
+	cmd->enable = pMDNSInfo->mDNSOffloadEnabled;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MDNS_OFFLOAD_ENABLE_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_mdns_offload cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Set mDNS offload to vdevId %d",
+		pMDNSInfo->vdev_id);
+	return 0;
+}
+
+static int wma_set_mdns_fqdn(tp_wma_handle wma_handle,
+				tSirMDNSFqdnInfo *pMDNSFqdnInfo)
+{
+	wmi_mdns_set_fqdn_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int len, err;
+	int num;
+	int numPadding = 0;
+
+	/* mdns fqdn is a table of 2 TLV's */
+	len = WMI_TLV_HDR_SIZE + pMDNSFqdnInfo->fqdn_len;
+	len += sizeof(wmi_mdns_set_fqdn_cmd_fixed_param);
+	num = len % sizeof(A_UINT32);
+	if (num > 0) {
+		numPadding = sizeof(A_UINT32) - num;
+		len += numPadding;
+	}
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_mdns_fqdn cmd");
+		return -ENOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_mdns_set_fqdn_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_mdns_set_fqdn_cmd_fixed_param));
+	cmd->vdev_id = pMDNSFqdnInfo->vdev_id;
+	cmd->type = pMDNSFqdnInfo->fqdn_type;
+	cmd->fqdn_len = pMDNSFqdnInfo->fqdn_len;
+
+	buf_ptr += sizeof(wmi_mdns_set_fqdn_cmd_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, (numPadding+cmd->fqdn_len));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, pMDNSFqdnInfo->fqdn_data, cmd->fqdn_len);
+	if (numPadding > 0) {
+		buf_ptr += cmd->fqdn_len;
+		vos_mem_zero(buf_ptr, numPadding);
+	}
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_MDNS_SET_FQDN_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_mdns_fqdn cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Set mDNS fqdn to vdevId %d",
+			pMDNSFqdnInfo->vdev_id);
+	return 0;
+}
+
+static int wma_set_mdns_response(tp_wma_handle wma_handle,
+				tSirMDNSResponseInfo *pMDNSRespInfo)
+{
+	wmi_mdns_set_resp_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int len, err;
+	int num;
+	int numPadding = 0;
+
+	/* mdns response is a table of 2 TLV's */
+	len = WMI_TLV_HDR_SIZE + pMDNSRespInfo->resp_len;
+	len += sizeof(wmi_mdns_set_resp_cmd_fixed_param);
+	num = len % sizeof(A_UINT32);
+	if (num > 0) {
+		numPadding = sizeof(A_UINT32) - num;
+		len += numPadding;
+	}
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_mdns_response cmd");
+		return -ENOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_mdns_set_resp_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_mdns_set_resp_cmd_fixed_param));
+	cmd->vdev_id = pMDNSRespInfo->vdev_id;
+	cmd->AR_count = pMDNSRespInfo->resourceRecord_count;
+	cmd->resp_len = pMDNSRespInfo->resp_len;
+
+	buf_ptr += sizeof(wmi_mdns_set_resp_cmd_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, (numPadding+cmd->resp_len));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, pMDNSRespInfo->resp_data, cmd->resp_len);
+	if (numPadding > 0) {
+		buf_ptr += cmd->resp_len;
+		vos_mem_zero(buf_ptr, numPadding);
+	}
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_MDNS_SET_RESPONSE_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to set_mdns_response cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Set mDNS response to vdevId %d",
+			pMDNSRespInfo->vdev_id);
+	return 0;
+}
+
+static int wma_get_mdns_status(tp_wma_handle wma_handle, A_UINT32 *pVdev_id)
+{
+	wmi_mdns_get_stats_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"get_mdns_status cmd");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_mdns_get_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_mdns_get_stats_cmd_fixed_param));
+	cmd->vdev_id = *pVdev_id;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MDNS_GET_STATS_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send get_mdns_status cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Get mDNS STATS for vdevId %d", *pVdev_id);
+	return 0;
+}
+#endif /* MDNS_OFFLOAD */
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -22877,6 +23057,26 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			 (struct sir_ipa_offload_enable_disable *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef MDNS_OFFLOAD
+		case WDA_SET_MDNS_OFFLOAD_CMD:
+			wma_set_mdns_offload(wma_handle,
+				(tSirMDNSOffloadInfo *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MDNS_FQDN_CMD:
+			wma_set_mdns_fqdn(wma_handle,
+				(tSirMDNSFqdnInfo *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MDNS_RESPONSE_CMD:
+			wma_set_mdns_response(wma_handle,
+				(tSirMDNSResponseInfo *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_GET_MDNS_STATUS_CMD:
+			wma_get_mdns_status(wma_handle,	(A_UINT32 *) msg->bodyptr);
+			break;
+#endif /* MDNS_OFFLOAD */
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
