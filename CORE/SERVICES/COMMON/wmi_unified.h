@@ -177,6 +177,7 @@ typedef enum {
     WMI_GRP_EXTSCAN,
     WMI_GRP_DHCP_OFL,
     WMI_GRP_IPA,
+    WMI_GRP_MDNS_OFL,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -377,6 +378,8 @@ typedef enum {
     WMI_ROAM_SYNCH_COMPLETE,
     /** set ric request element for 11r roaming */
     WMI_ROAM_SET_RIC_REQUEST_CMDID,
+    /** Invoke roaming forcefully */
+    WMI_ROAM_INVOKE_CMDID,
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -689,6 +692,12 @@ typedef enum {
 
     /** IPA Offload features related commands */
     WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_IPA),
+
+    /** mDNS responder offload commands */
+    WMI_MDNS_OFFLOAD_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_MDNS_OFL),
+    WMI_MDNS_SET_FQDN_CMDID,
+    WMI_MDNS_SET_RESPONSE_CMDID,
+    WMI_MDNS_GET_STATS_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -937,6 +946,10 @@ typedef enum {
     WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
     WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
     WMI_EXTSCAN_CAPABILITIES_EVENTID,
+
+    /* mDNS offload events */
+    WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
+
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -1082,18 +1095,20 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_CAP_TX_STBC                      0x00000080
 #define WMI_VHT_CAP_RX_STBC_MASK                 0x00000300
 #define WMI_VHT_CAP_RX_STBC_MASK_SHIFT           8
+#define WMI_VHT_CAP_SU_BFORMER                   0x00000800
+#define WMI_VHT_CAP_SU_BFORMEE                   0x00001000
+#define WMI_VHT_CAP_MAX_CS_ANT_MASK              0x0000E000
+#define WMI_VHT_CAP_MAX_CS_ANT_MASK_SHIFT        13
+#define WMI_VHT_CAP_MAX_SND_DIM_MASK             0x00070000
+#define WMI_VHT_CAP_MAX_SND_DIM_MASK_SHIFT       16
+#define WMI_VHT_CAP_MU_BFORMER                   0x00080000
+#define WMI_VHT_CAP_MU_BFORMEE                   0x00100000
 #define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP            0x03800000
 #define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP_SHIT       23
 #define WMI_VHT_CAP_RX_FIXED_ANT                 0x10000000
 #define WMI_VHT_CAP_TX_FIXED_ANT                 0x20000000
 
 #define WMI_VHT_CAP_MAX_MPDU_LEN_11454           0x00000002
-
-/* These macros should be used to advertise VHT CAP support */
-#define WMI_VHT_CAP_SU_BFORMER            0x00000800
-#define WMI_VHT_CAP_SU_BFORMEE            0x00001000
-#define WMI_VHT_CAP_MU_BFORMER            0x00080000
-#define WMI_VHT_CAP_MU_BFORMEE            0x00100000
 
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
@@ -4263,6 +4278,7 @@ typedef struct {
                                            * is assigned up to 127 */
                                           /* Reserved from 128 - 255 for
                                            * target internal use.*/
+            WMI_PEER_TYPE_ROAMOFFLOAD_TEMP = 128, /* Temporarily created during offload roam */
         };
 
         typedef struct {
@@ -5202,6 +5218,60 @@ typedef struct{
     A_UINT32                         surplus_bw_allowance; /**The Surplus Bandwidth Allowance field*/
     A_UINT32                         medium_time; /**The Medium Time field,in units of 32 us/s.*/
 } wmi_ric_tspec;
+
+/* flags for roam_invoke_cmd */
+/* add this channel into roam cache channel list after this command is finished */
+#define WMI_ROAM_INVOKE_FLAG_ADD_CH_TO_CACHE       0
+/* from bit 1 to bit 31 are reserved */
+
+#define WMI_SET_ROAM_INVOKE_ADD_CH_TO_CACHE(flag) do { \
+        (flag) |=  (1 << WMI_SET_ROAM_INVOKE_ADD_CH_TO_CACHE);      \
+     } while(0)
+
+#define WMI_CLEAR_ROAM_INVOKE_ADD_CH_TO_CACHE(flag) do { \
+        (flag) &=  ~(1 << WMI_SET_ROAM_INVOKE_ADD_CH_TO_CACHE);      \
+     } while(0)
+
+#define WMI_GET_ROAM_INVOKE_ADD_CH_TO_CACHE(flag)   \
+        ((flag) & (1 << WMI_SET_ROAM_INVOKE_ADD_CH_TO_CACHE))
+
+
+#define WMI_ROAM_INVOKE_SCAN_MODE_FIXED_CH      0   /* scan given channel only */
+#define WMI_ROAM_INVOKE_SCAN_MODE_CACHE_LIST    1   /* scan cached channel list */
+#define WMI_ROAM_INVOKE_SCAN_MODE_FULL_CH       2   /* scan full channel */
+
+#define WMI_ROAM_INVOKE_AP_SEL_FIXED_BSSID      0   /* roam to given BSSID only */
+#define WMI_ROAM_INVOKE_AP_SEL_ANY_BSSID        1   /* roam to any BSSID */
+
+/** WMI_ROAM_INVOKE_CMD: command to invoke roaming forcefully
+ *
+ * if <roam_scan_ch_mode> is zero and <channel_no> is not given, roaming is not executed.
+ * if <roam_ap_sel_mode> is zero and <BSSID) is not given, roaming is not executed
+ *
+ * This command can be used to add specific channel into roam cached channel list by following
+ * <roam_scan_ch_mode> = 0
+ * <roam_ap_sel_mode> = 0
+ * <roam_delay> = 0
+ * <flag> |= WMI_ROAM_INVOKE_FLAG_ADD_CH_TO_CACHE
+ * <BSSID> = do not fill (there will be no actual roaming because of ap_sel_mode is zero, but no BSSID is given)
+ * <channel_no> = channel list to be added
+ */
+typedef struct {
+    A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_invoke_fixed_param */
+    A_UINT32 vdev_id; /** Unique id identifying the VDEV on which roaming is invoked */
+    A_UINT32 flags;   /** flags. see WMI_ROAM_INVOKE_FLAG_ above */
+    A_UINT32 roam_scan_mode; /** see WMI_ROAM_INVOKE_SCAN_ above */
+    A_UINT32 roam_ap_sel_mode; /** see WMI_ROAM_INVOKE_AP_SEL_ above */
+    A_UINT32 roam_delay; /** 0 = immediate roam, 1-2^32 = roam after this delay (msec) */
+    A_UINT32 num_chan; /** # if channels to scan. In the TLV channel_list[] */
+    A_UINT32 num_bssid;  /** number of bssids. In the TLV bssid_list[] */
+    /**
+     * TLV (tag length value ) parameters follows roam_invoke_req
+     * The TLV's are:
+     *     A_UINT32 channel_list[];
+     *     wmi_mac_addr bssid_list[];
+     */
+} wmi_roam_invoke_cmd_fixed_param;
 
 /** WMI_PROFILE_MATCH_EVENT: offload scan
  * generated when ever atleast one of the matching profiles is found
@@ -8935,6 +9005,75 @@ typedef struct{
     A_UINT32    led_x0; /* led flashing parameter0 */
     A_UINT32    led_x1; /* led flashing parameter1 */
 } wmi_set_led_flashing_cmd_fixed_param;
+
+/**
+ * The purpose of the multicast Domain Name System (mDNS) is to resolve host names to IP addresses
+ * within small networks that do not include a local name server.
+ * It utilizes essentially the same programming interfaces, packet formats and operating semantics
+ * as the unicast DNS, and the advantage is zero configuration service while no need for central or
+ * global server.
+ * Based on mDNS, the DNS-SD (Service Discovery) allows clients to discover a named list of services
+ * by type in a specified domain using standard DNS queries.
+ * Here, we provide the ability to advertise the available services by responding to mDNS queries.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_offload_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 enable;
+} wmi_mdns_offload_cmd_fixed_param;
+
+#define WMI_MAX_MDNS_FQDN_LEN         64
+#define WMI_MAX_MDNS_RESP_LEN         512
+#define WMI_MDNS_FQDN_TYPE_GENERAL    0
+#define WMI_MDNS_FQDN_TYPE_UNIQUE     1
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_set_fqdn_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    /** type of fqdn, general or unique */
+    A_UINT32 type;
+    /** length of fqdn */
+    A_UINT32 fqdn_len;
+    /* Following this structure is the TLV byte stream of fqdn data of length fqdn_len
+     * A_UINT8  fqdn_data[]; // fully-qualified domain name to check if match with the received queries
+     */
+} wmi_mdns_set_fqdn_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    /** Answer Resource Record count */
+    A_UINT32 AR_count;
+    /** length of response */
+    A_UINT32 resp_len;
+    /* Following this structure is the TLV byte stream of resp data of length resp_len
+     * A_UINT8  resp_data[]; // responses consisits of Resource Records
+     */
+} wmi_mdns_set_resp_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param */
+    A_UINT32 vdev_id;
+} wmi_mdns_get_stats_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param */
+    A_UINT32 vdev_id;
+    /** curTimestamp in milliseconds */
+    A_UINT32 curTimestamp;
+    /** last received Query in milliseconds */
+    A_UINT32 lastQueryTimestamp;
+    /** last sent Response in milliseconds */
+    A_UINT32 lastResponseTimestamp;
+    /** stats of received queries */
+    A_UINT32 totalQueries;
+    /** stats of macth queries */
+    A_UINT32 totalMatches;
+    /** stats of responses */
+    A_UINT32 totalResponses;
+    /** indicate the current status of mDNS offload */
+    A_UINT32 status;
+} wmi_mdns_stats_event_fixed_param;
 
 #ifdef __cplusplus
 }
