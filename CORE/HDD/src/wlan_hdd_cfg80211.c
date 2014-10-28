@@ -13064,18 +13064,9 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
                     __func__, MAC_ADDR_ARRAY(peer), action_code);
         return -ENOTSUPP;
     }
-    /* If any concurrency is detected */
-    if (((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode) ||
-        (pHddCtx->no_of_active_sessions[VOS_STA_MODE] > 1))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                  FL("Multiple STA OR Concurrency detected. Ignore TDLS MGMT frame. action_code=%d, concurrency_mode: 0x%x, active_sessions: %d"),
-                  action_code,
-                  pHddCtx->concurrency_mode,
-                  pHddCtx->no_of_active_sessions[VOS_STA_MODE]);
-        return -EPERM;
-    }
-    /* other than teardown frame, mgmt frames are not sent if disabled */
+
+    /* other than teardown frame, other mgmt frames are not sent if disabled
+       or concurrency is detected */
     if (SIR_MAC_TDLS_TEARDOWN != action_code)
     {
        /* if tdls_mode is disabled to respond to peer's request */
@@ -13088,7 +13079,17 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
 
              return -ENOTSUPP;
         }
+
+        /* if any concurrency is detected */
+        if ((1 << VOS_STA_MODE) != pHddCtx->concurrency_mode)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                      "%s: concurrency detected. ignore TDLS MGMT frame. action_code=%d",
+                      __func__, action_code);
+            return -ENOTSUPP;
+        }
     }
+
     if (WLAN_IS_TDLS_SETUP_ACTION(action_code))
     {
         if (NULL != wlan_hdd_tdls_is_progress(pHddCtx, peer, TRUE))
