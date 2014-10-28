@@ -731,6 +731,9 @@ typedef struct {
 	u_int32_t hw_bd_id;
 	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
 
+#ifdef FEATURE_WLAN_D0WOW
+	atomic_t in_d0wow;
+#endif
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1513,6 +1516,11 @@ enum uapsd_up {
 	UAPSD_UP_NC,
 	UAPSD_UP_MAX
 };
+
+#ifdef FEATURE_WLAN_D0WOW
+void wma_set_d0wow_flag(tp_wma_handle wma_handle, A_BOOL flag);
+A_BOOL wma_read_d0wow_flag(tp_wma_handle wma_handle);
+#endif
 
 A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype,
                                        eCsrEncryptionType encr);

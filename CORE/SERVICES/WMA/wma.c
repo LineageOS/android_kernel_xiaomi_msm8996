@@ -17116,6 +17116,16 @@ static VOS_STATUS wma_del_wow_pattern_in_fw(tp_wma_handle wma,
 }
 
 #ifdef FEATURE_WLAN_D0WOW
+void wma_set_d0wow_flag(tp_wma_handle wma_handle, A_BOOL flag)
+{
+	atomic_set(&wma_handle->in_d0wow, flag);
+}
+
+A_BOOL wma_read_d0wow_flag(tp_wma_handle wma_handle)
+{
+	return atomic_read(&wma_handle->in_d0wow);
+}
+
 /* Enable D0-WOW in firmware. */
 VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 {
@@ -17179,6 +17189,7 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
 	wmi_set_d0wow_flag(wma->wmi_handle, TRUE);
+	wma_set_d0wow_flag(wma, TRUE);
 	WMA_LOGD("D0-WOW is enabled successfully in FW.");
 	return vos_status;
 
