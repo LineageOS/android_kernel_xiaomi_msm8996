@@ -103,7 +103,8 @@ __adf_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int
 void
 __adf_nbuf_free(struct sk_buff *skb)
 {
-#if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
+#if defined(IPA_OFFLOAD) && (!defined(IPA_UC_OFFLOAD) ||\
+   (defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)))
     if( (NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID) && NBUF_CALLBACK_FN(skb) )
         NBUF_CALLBACK_FN_EXEC(skb);
     else

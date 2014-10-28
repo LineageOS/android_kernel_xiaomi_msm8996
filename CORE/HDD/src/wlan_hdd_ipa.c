@@ -214,9 +214,15 @@ static struct hdd_ipa_adapter_2_client {
 	enum ipa_client_type cons_client;
 	enum ipa_client_type prod_client;
 } hdd_ipa_adapter_2_client[HDD_IPA_MAX_IFACE] = {
+#ifdef IPA_UC_OFFLOAD
+	{IPA_CLIENT_WLAN2_CONS, IPA_CLIENT_WLAN1_PROD},
+	{IPA_CLIENT_WLAN3_CONS, IPA_CLIENT_WLAN1_PROD},
+	{IPA_CLIENT_WLAN4_CONS, IPA_CLIENT_WLAN1_PROD},
+#else
 	{IPA_CLIENT_WLAN1_CONS, IPA_CLIENT_WLAN1_PROD},
 	{IPA_CLIENT_WLAN2_CONS, IPA_CLIENT_WLAN1_PROD},
 	{IPA_CLIENT_WLAN3_CONS, IPA_CLIENT_WLAN1_PROD},
+#endif
 };
 
 struct hdd_ipa_sys_pipe {
@@ -1280,12 +1286,14 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 	if (atomic_read(&hdd_ipa->tx_ref_cnt))
 		return -EAGAIN;
 
+#ifndef IPA_UC_STA_OFFLOAD
 	spin_lock_bh(&hdd_ipa->q_lock);
 	if (hdd_ipa->pending_hw_desc_cnt || hdd_ipa->pend_q_cnt) {
 		spin_unlock_bh(&hdd_ipa->q_lock);
 		return -EAGAIN;
 	}
 	spin_unlock_bh(&hdd_ipa->q_lock);
+#endif
 
 	adf_os_spin_lock_bh(&hdd_ipa->pm_lock);
 
@@ -2047,7 +2055,12 @@ static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
 	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
 	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
+#ifdef IPA_UC_STA_OFFLOAD
+	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr
+		+ sizeof(struct frag_header) + sizeof(struct ipa_header);
+#else
 	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
+#endif
 
 	NBUF_OWNER_PRIV_DATA(skb) = (unsigned long)ipa_tx_desc;
 
@@ -2252,7 +2265,17 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 		ipa->priv = &hdd_ipa->iface_context[i];
 		ipa->notify = hdd_ipa_i2w_cb;
 
+#ifdef IPA_UC_STA_OFFLOAD
+		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_UC_WLAN_TX_HDR_LEN;
+		ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
+		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size_valid = 1;
+		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size = 0;
+		ipa->ipa_ep_cfg.hdr.hdr_additional_const_len =
+			HDD_IPA_UC_WLAN_8023_HDR_SIZE;
+		ipa->ipa_ep_cfg.hdr_ext.hdr_little_endian = true;
+#else
 		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
+#endif
 		ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
 
 		if (!hdd_ipa_is_rm_enabled(hdd_ipa))
@@ -2267,6 +2290,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 		hdd_ipa->sys_pipe[i].conn_hdl_valid = 1;
 	}
 
+#ifndef IPA_UC_STA_OFFLOAD
 	/*
 	 * Hard code it here, this can be extended if in case PROD pipe is also
 	 * per interface. Right now there is no advantage of doing this.
@@ -2296,6 +2320,7 @@ static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
 		goto setup_sys_pipe_fail;
 	}
 	hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].conn_hdl_valid = 1;
+#endif /* IPA_UC_STA_OFFLOAD */
 
 	return ret;
 
@@ -2405,6 +2430,7 @@ static int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa,
 #ifdef IPA_UC_OFFLOAD
 	tx_prop[IPA_IP_v4].hdr_l2_type = IPA_HDR_L2_ETHERNET_II;
 	tx_prop[IPA_IP_v4].dst_pipe = IPA_CLIENT_WLAN1_CONS;
+	tx_prop[IPA_IP_v4].alt_dst_pipe = iface_context->cons_client;
 #else
 	tx_prop[IPA_IP_v4].dst_pipe = iface_context->cons_client;
 #endif
@@ -2713,6 +2739,36 @@ static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type)
 	ghdd_ipa->stats.num_free_msg++;
 	adf_os_mem_free(buff);
 }
+
+#ifdef IPA_UC_OFFLOAD
+int hdd_ipa_send_mcc_scc_msg(bool mcc_mode)
+{
+	struct ipa_msg_meta meta;
+	struct ipa_wlan_msg *msg;
+	int ret;
+
+	/* Send SCC/MCC Switching event to IPA */
+	meta.msg_len = sizeof(*msg);
+	msg = adf_os_mem_alloc(NULL, meta.msg_len);
+	if (msg == NULL) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "msg allocation failed");
+		return -ENOMEM;
+	}
+
+	meta.msg_type = mcc_mode ? WLAN_SWITCH_TO_MCC : WLAN_SWITCH_TO_SCC;
+	hddLog(VOS_TRACE_LEVEL_INFO, "ipa_send_msg(Evt:%d)", meta.msg_type);
+
+	ret = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
+
+	if (ret) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "ipa_send_msg(Evt:%d) - fail=%d",
+			meta.msg_type,  ret);
+		adf_os_mem_free(msg);
+	}
+
+	return ret;
+}
+#endif
 
 static inline char *hdd_ipa_wlan_event_to_str(enum ipa_wlan_event event)
 {
@@ -3393,6 +3449,13 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		hdd_ipa->sap_num_connected_sta = 0;
 #ifdef IPA_UC_STA_OFFLOAD
 		hdd_ipa->sta_connected = 0;
+
+		/* Setup IPA sys_pipe for MCC */
+		if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
+			ret = hdd_ipa_setup_sys_pipe(hdd_ipa);
+			if (ret)
+				goto fail_create_sys_pipe;
+		}
 #endif
 		hdd_ipa_uc_ol_init(hdd_ctx);
 	} else
@@ -3446,6 +3509,12 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 		unregister_inetaddr_notifier(&hdd_ipa->ipv4_notifier);
 		hdd_ipa_teardown_sys_pipe(hdd_ipa);
 	}
+
+#ifdef IPA_UC_STA_OFFLOAD
+	/* Teardown IPA sys_pipe for MCC */
+	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa))
+		hdd_ipa_teardown_sys_pipe(hdd_ipa);
+#endif
 
 	hdd_ipa_destory_rm_resource(hdd_ipa);
 

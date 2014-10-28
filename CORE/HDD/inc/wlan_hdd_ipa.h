@@ -58,6 +58,10 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 int hdd_ipa_suspend(hdd_context_t *hdd_ctx);
 int hdd_ipa_resume(hdd_context_t *hdd_ctx);
 
+#ifdef IPA_UC_OFFLOAD
+int hdd_ipa_send_mcc_scc_msg(bool mcc_mode);
+#endif
+
 #endif
 
 #endif
