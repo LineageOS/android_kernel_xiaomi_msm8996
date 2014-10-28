@@ -5496,6 +5496,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 switch (channel_type)
                 {
                 case NL80211_CHAN_HT20:
+                case NL80211_CHAN_NO_HT:
                     sme_SetPhyCBMode24G(pHddCtx->hHal,
                                         PHY_SINGLE_CHANNEL_CENTERED);
                     break;
@@ -5519,7 +5520,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
 
             vos_mem_zero(&smeConfig, sizeof(smeConfig));
             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-            if (NL80211_CHAN_HT20 == channel_type)
+            if (NL80211_CHAN_NO_HT == channel_type)
                 smeConfig.csrConfig.obssEnabled = VOS_FALSE;
             else
                 smeConfig.csrConfig.obssEnabled = VOS_TRUE;
