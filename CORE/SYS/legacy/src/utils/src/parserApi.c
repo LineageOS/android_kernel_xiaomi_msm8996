@@ -833,6 +833,14 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
         pDot11f->rxSTBC = (nCfgValue & 0x0007);
 
         pDot11f->suBeamformeeCap = psessionEntry->txBFIniFeatureEnabled;
+        if (psessionEntry->txBFIniFeatureEnabled) {
+            nCfgValue = 0;
+            CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
+                            nCfgValue );
+            pDot11f->muBeamformeeCap = (nCfgValue & 0x0001);
+        } else {
+            pDot11f->muBeamformeeCap = 0;
+        }
     }
     else
     {
@@ -857,6 +865,7 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
         pDot11f->rxSTBC = (nCfgValue & 0x0007);
 
         pDot11f->suBeamformeeCap = 0;
+        pDot11f->muBeamformeeCap = 0;
     }
 
     nCfgValue = 0;
@@ -877,10 +886,6 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
     nCfgValue = 0;
     CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_MU_BEAMFORMER_CAP, nCfgValue );
     pDot11f->muBeamformerCap = (nCfgValue & 0x0001);
-
-    nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_MU_BEAMFORMEE_CAP, nCfgValue );
-    pDot11f->muBeamformeeCap = (nCfgValue & 0x0001);
 
     nCfgValue = 0;
     CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_TXOP_PS, nCfgValue );
