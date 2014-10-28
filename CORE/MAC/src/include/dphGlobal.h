@@ -493,6 +493,8 @@ typedef struct sDphHashNode
 
     /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8 timingMeasCap;
+    /* key installed for this STA or not in the firmware */
+    tANI_U8 isKeyInstalled;
 
     /* When a station with already an existing dph entry tries to
 

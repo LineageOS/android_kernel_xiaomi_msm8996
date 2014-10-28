@@ -2199,6 +2199,8 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
         pVhtCaps_txbf = (tDot11fIEVHTCaps *)(&pTdlsAddStaReq->vhtCap);
         pVhtCaps_txbf->suBeamformeeCap = 0;
         pVhtCaps_txbf->suBeamFormerCap = 0;
+        pVhtCaps_txbf->muBeamformerCap = 0;
+        pVhtCaps_txbf->muBeamformeeCap = 0;
         pStaDs->vht_caps = pTdlsAddStaReq->vhtCap.vhtCapInfo;
     }
     else
