@@ -466,6 +466,9 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
+#ifdef FEATURE_WLAN_D0WOW
+	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+#endif
 	WMI_MGMT_RX_EVENTID_param_tlvs *param_tlvs = NULL;
 	wmi_mgmt_rx_hdr *hdr = NULL;
 #ifdef WLAN_FEATURE_11W
@@ -484,6 +487,13 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
 		return 0;
 	}
+
+#ifdef FEATURE_WLAN_D0WOW
+	if (!wma_handle) {
+		TLSHIM_LOGE("%s: Failed to get WMA context!", __func__);
+		return 0;
+	}
+#endif
 
 	param_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) data;
 	if (!param_tlvs) {
@@ -594,8 +604,12 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	mgt_subtype = (wh)->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
 
 #ifdef FEATURE_WLAN_D0WOW
-	TLSHIM_LOGD("%s: Frame subtype is 0x%x", __func__, mgt_subtype);
+	if (wma_read_d0wow_flag(wma_handle)) {
+		TLSHIM_LOGE("%s: Frame subtype is 0x%x", __func__, mgt_subtype);
+		wma_set_d0wow_flag(wma_handle, FALSE);
+	}
 #endif
+
 	if (!saved_beacon && mgt_type == IEEE80211_FC0_TYPE_MGT &&
 		(mgt_subtype == IEEE80211_FC0_SUBTYPE_BEACON || mgt_subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP))
 	{
