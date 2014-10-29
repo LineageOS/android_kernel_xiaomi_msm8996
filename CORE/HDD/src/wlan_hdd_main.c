@@ -295,10 +295,6 @@ extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t);
 #endif
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-static void wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssId,
-                                     int channel);
-#endif
 
 /* Store WLAN driver version info in a global variable such that crash debugger
    can extract it from driver debug symbol and crashdump for post processing */
@@ -3903,6 +3899,39 @@ static int wlan_hdd_get_link_status(hdd_adapter_t *pAdapter)
    return  pAdapter->linkStatus;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+static void hdd_wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssid,
+                                     int channel)
+{
+    t_wma_roam_invoke_cmd *fastreassoc;
+    vos_msg_t msg = {0};
+
+    fastreassoc = vos_mem_malloc(sizeof(*fastreassoc));
+    if (NULL == fastreassoc) {
+        hddLog(LOGE, FL("vos_mem_alloc failed for fastreassoc"));
+        return;
+    }
+    fastreassoc->vdev_id = sessionId;
+    fastreassoc->channel = channel;
+    fastreassoc->bssid[0] = bssid[0];
+    fastreassoc->bssid[1] = bssid[1];
+    fastreassoc->bssid[2] = bssid[2];
+    fastreassoc->bssid[3] = bssid[3];
+    fastreassoc->bssid[4] = bssid[4];
+    fastreassoc->bssid[5] = bssid[5];
+
+    msg.type = SIR_HAL_ROAM_INVOKE;
+    msg.reserved = 0;
+    msg.bodyptr = fastreassoc;
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
+                                                             &msg)) {
+        vos_mem_free(fastreassoc);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               FL("Not able to post ROAM_INVOKE_CMD message to WMA"));
+    }
+}
+#endif
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -5210,8 +5239,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
            if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
-               wma_send_fastreassoc_cmd(pAdapter->sessionId, targetApBssid,
-                                        channel);
+               hdd_wma_send_fastreassoc_cmd((int)pAdapter->sessionId, targetApBssid,
+                                       (int) channel);
                goto exit;
            }
 #endif
@@ -14105,31 +14134,8 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 
 #endif
 
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-void wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssId, int channel)
-{
-    t_wma_roam_invoke_cmd *fastReassoc;
-    vos_msg_t msg = {0};
 
-    fastReassoc = vos_mem_malloc(sizeof(*fastReassoc));
-    if (NULL == fastReassoc) {
-        hddLog(LOGE, FL("vos_mem_alloc failed for fastReassoc"));
-    }
-    fastReassoc->vdev_id = sessionId;
-    fastReassoc->channel = channel;
-    vos_mem_copy(fastReassoc->bssId, bssId, sizeof( tSirMacAddr ));
 
-    msg.type = SIR_HAL_ROAM_INVOKE;
-    msg.reserved = 0;
-    msg.bodyptr = fastReassoc;
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
-                                                             &msg)) {
-        vos_mem_free(fastReassoc);
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-               FL("Not able to post ROAM_INVOKE_CMD message to WDA"));
-    }
-}
-#endif
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
