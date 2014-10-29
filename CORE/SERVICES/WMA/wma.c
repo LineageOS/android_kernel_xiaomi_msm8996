@@ -337,6 +337,8 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 		tSirSmeRoamOffloadSynchCnf *synchcnf);
 void wma_process_roam_synch_fail(WMA_HANDLE handle,
 		tSirRoamOffloadSynchFail *synchfail);
+void wma_process_roam_invoke(WMA_HANDLE handle,
+		t_wma_roam_invoke_cmd *roaminvoke);
 #endif
 /* Configure the regulatory domain for DFS radar filter initialization*/
 void wma_set_dfs_regdomain(tp_wma_handle wma);
@@ -22649,6 +22651,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(tSirRoamOffloadSynchFail *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case SIR_HAL_ROAM_INVOKE:
+			wma_process_roam_invoke(wma_handle,
+				(t_wma_roam_invoke_cmd *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #endif
 #ifdef WLAN_FEATURE_NAN
 		case WDA_NAN_REQUEST:
@@ -27440,5 +27447,61 @@ void wma_process_roam_synch_fail(WMA_HANDLE handle,
 	wma_handle->interfaces[synchfail->sessionId].roam_synch_in_progress =
 		VOS_FALSE;
 	adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
+}
+void wma_process_roam_invoke(WMA_HANDLE handle,
+		t_wma_roam_invoke_cmd *roaminvoke)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_roam_invoke_cmd_fixed_param* cmd;
+	wmi_buf_t wmi_buf;
+	u_int8_t *buf_ptr;
+	u_int16_t len, args_tlv_len;
+	A_UINT32 *channel_list;
+	wmi_mac_addr *bssid_list;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not send roam invoke",
+				__func__);
+		return;
+	}
+    /* Host sends only one channel and one bssid */
+	args_tlv_len = 2 * WMI_TLV_HDR_SIZE + sizeof(A_UINT32) +
+					sizeof(wmi_mac_addr);
+	len = sizeof(wmi_roam_invoke_cmd_fixed_param) + args_tlv_len;
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmai_buf_alloc failed", __func__);
+		return;
+	}
+
+	cmd = (wmi_roam_invoke_cmd_fixed_param *)wmi_buf_data(wmi_buf);
+	buf_ptr = (u_int8_t *) cmd;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param,
+	WMITLV_GET_STRUCT_TLVLEN(wmi_roam_invoke_cmd_fixed_param));
+	cmd->vdev_id = roaminvoke->vdev_id;
+	cmd->flags = 0;
+	cmd->roam_scan_mode = 0;
+	cmd->roam_ap_sel_mode = 0;
+	cmd->roam_delay = 0;
+	cmd->num_chan = 1;
+	cmd->num_bssid = 1;
+	buf_ptr += sizeof(wmi_roam_invoke_cmd_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(sizeof(u_int32_t)));
+	channel_list = (A_UINT32 *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	*channel_list = (A_UINT32)roaminvoke->channel;
+	buf_ptr += sizeof(A_UINT32) + WMI_TLV_HDR_SIZE;
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_FIXED_STRUC,
+			(sizeof(wmi_mac_addr)));
+	bssid_list = (wmi_mac_addr *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(roaminvoke->bssId, bssid_list);
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+				WMI_ROAM_INVOKE_CMDID)) {
+		WMA_LOGP("%s: failed to send roam invoke command", __func__);
+		adf_nbuf_free(wmi_buf);
+		return;
+	}
+	return;
 }
 #endif

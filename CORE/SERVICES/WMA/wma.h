@@ -1539,4 +1539,11 @@ typedef struct wma_unit_test_cmd
     v_U32_t num_args;
     v_U32_t args[WMA_MAX_NUM_ARGS];
 }t_wma_unit_test_cmd;
+
+typedef struct wma_roam_invoke_cmd
+{
+    v_UINT_t vdev_id;
+    u_int8_t bssId[6];
+    v_U32_t channel;
+}t_wma_roam_invoke_cmd;
 #endif
