@@ -731,6 +731,9 @@ typedef struct {
 	u_int32_t hw_bd_id;
 	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
 
+#ifdef FEATURE_WLAN_D0WOW
+	atomic_t in_d0wow;
+#endif
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1514,6 +1517,11 @@ enum uapsd_up {
 	UAPSD_UP_MAX
 };
 
+#ifdef FEATURE_WLAN_D0WOW
+void wma_set_d0wow_flag(tp_wma_handle wma_handle, A_BOOL flag);
+A_BOOL wma_read_d0wow_flag(tp_wma_handle wma_handle);
+#endif
+
 A_UINT32 eCsrAuthType_to_rsn_authmode (eCsrAuthType authtype,
                                        eCsrEncryptionType encr);
 A_UINT32 eCsrEncryptionType_to_rsn_cipherset (eCsrEncryptionType encr);
@@ -1531,4 +1539,11 @@ typedef struct wma_unit_test_cmd
     v_U32_t num_args;
     v_U32_t args[WMA_MAX_NUM_ARGS];
 }t_wma_unit_test_cmd;
+
+typedef struct wma_roam_invoke_cmd
+{
+    v_UINT_t vdev_id;
+    u_int8_t bssId[6];
+    v_U32_t channel;
+}t_wma_roam_invoke_cmd;
 #endif
