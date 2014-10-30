@@ -35,6 +35,8 @@
 #include <linux/kthread.h>
 #include "if_ath_sdio.h"
 #include "regtable.h"
+#include "vos_api.h"
+#include "wma_api.h"
 
 /* by default setup a bounce buffer for the data packets, if the underlying host controller driver
    does not use DMA you may be able to skip this step and save the memory allocation and transfer time */
@@ -1802,6 +1804,24 @@ static int hifDeviceSuspend(struct device *dev)
 #endif
 
     HIF_DEVICE *device = getHifDevice(func);
+    void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    v_VOID_t *temp_module;
+
+    if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: LOPG in progress\n", __func__));
+        return (-1);
+    }
+
+    temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
+    if (!temp_module) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: WDA module is NULL\n", __func__));
+        return (-1);
+    }
+
+    if (wma_check_scan_in_progress(temp_module)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: Scan in progress. Aborting suspend\n", __func__));
+        return (-1);
+    }
 
 #if defined(MMC_PM_KEEP_POWER) || (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34))
     if (device && device->func) {
@@ -1859,7 +1879,13 @@ static int hifDeviceSuspend(struct device *dev)
                 return ret;
             }
 
-            /* TODO:WOW support */
+            if (wma_is_wow_mode_selected(temp_module)) {
+                if (wma_enable_wow_in_fw(temp_module)) {
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("wow mode failure\n"));
+                    return -1;
+                }
+            }
+
             if (pm_flag & MMC_PM_WAKE_SDIO_IRQ){
                 AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("hifDeviceSuspend: wow enter\n"));
                 config = HIF_DEVICE_POWER_DOWN;
@@ -1936,6 +1962,17 @@ static int hifDeviceResume(struct device *dev)
     A_STATUS status = A_OK;
     HIF_DEVICE_POWER_CHANGE_TYPE  config;
     HIF_DEVICE *device;
+    void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    v_VOID_t * temp_module;
+
+    if (vos == NULL)
+        return 0;
+
+    temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
+    if (!temp_module) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: WDA module is NULL\n", __func__));
+        return (-1);
+    }
 
     device = getHifDevice(func);
 
@@ -1970,6 +2007,15 @@ static int hifDeviceResume(struct device *dev)
         status = osdrvCallbacks.deviceResumeHandler(device->claimedContext);
         device->is_suspend = FALSE;
     }
+
+    /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
+    if (!wma_is_wow_mode_selected(temp_module)) {
+        wma_resume_target(temp_module);
+    } else if (wma_disable_wow_in_fw(temp_module)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: disable wow in fw failed\n", __func__));
+        status = (-1);
+    }
+
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: -hifDeviceResume\n"));
     device->DeviceState = HIF_DEVICE_STATE_ON;
 
