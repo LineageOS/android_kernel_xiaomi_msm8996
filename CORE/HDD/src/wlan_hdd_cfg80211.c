@@ -87,6 +87,7 @@
 #include "vos_types.h"
 #include "vos_trace.h"
 #include "vos_utils.h"
+#include "vos_sched.h"
 #include <qc_sap_ioctl.h>
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
@@ -6293,7 +6294,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->apOperatingBand = iniConfig->apOperatingBand;
 #endif
 
-#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+#if defined(FEATURE_WLAN_AP_AP_ACS_OPTIMIZE) && defined(WLAN_FEATURE_MBSSID)
     if (vos_concurrent_sap_sessions_running() &&
         pConfig->channel == AUTO_CHANNEL_SELECT) {
         hdd_adapter_t *con_sap_adapter;
@@ -9241,6 +9242,22 @@ v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
     return VOS_FALSE;
 }
 
+static void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work)
+{
+    hdd_adapter_t *adapter = container_of(work,
+                                   hdd_adapter_t, scan_block_work);
+    struct cfg80211_scan_request *request = adapter->request;
+
+    request->n_ssids = 0;
+    request->n_channels = 0;
+
+    hddLog(LOGE,
+            "%s:##In DFS Master mode. Scan aborted. Null result sent",
+             __func__);
+    cfg80211_scan_done(request, true);
+    adapter->request = NULL;
+}
+
 /*
  * FUNCTION: __wlan_hdd_cfg80211_scan
  * this scan respond to scan trigger and update cfg80211 scan database
@@ -9265,6 +9282,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     int status;
     hdd_scaninfo_t *pScanInfo = NULL;
     v_U8_t* pP2pIe = NULL;
+    hdd_adapter_t *con_sap_adapter;
+    uint16_t con_dfs_ch;
 
     ENTER();
 
@@ -9286,6 +9305,39 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     cfg_param = pHddCtx->cfg_ini;
     pScanInfo = &pAdapter->scan_info;
+
+    /* Block All Scan during DFS operation and send null scan result */
+    con_sap_adapter = hdd_get_con_sap_adapter(pAdapter);
+    if (con_sap_adapter) {
+        con_dfs_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
+        if (con_dfs_ch == AUTO_CHANNEL_SELECT)
+            con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+
+        if (VOS_IS_DFS_CH(con_dfs_ch)) {
+            /* Provide empty scan result during DFS operation since scanning
+             * not supported during DFS. Reason is following case:
+             * DFS is supported only in SCC for MBSSID Mode.
+             * We shall not return EBUSY or ENOTSUPP as when Primary AP is
+             * operating in DFS channel and secondary AP is started. Though we
+             * force SCC in driver, the hostapd issues obss scan before
+             * starting secAP. This results in MCC in DFS mode.
+             * Thus we return null scan result. If we return scan failure
+             * hostapd fails secondary AP startup.
+             */
+            pAdapter->request = request;
+
+#ifdef CONFIG_CNSS
+            cnss_init_work(&pAdapter->scan_block_work,
+                                            wlan_hdd_cfg80211_scan_block_cb);
+#else
+            INIT_WORK(&pAdapter->scan_block_work,
+                                            wlan_hdd_cfg80211_scan_block_cb);
+#endif
+
+            schedule_work(&pAdapter->scan_block_work);
+            return 0;
+        }
+    }
 
     if (TRUE == pScanInfo->mScanPending)
     {
