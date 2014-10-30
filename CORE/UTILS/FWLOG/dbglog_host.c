@@ -38,6 +38,8 @@
 #include <wlan_nlink_srv.h>
 #include "vos_diag_core_event.h"
 #include "qwlan_version.h"
+#include <wlan_hdd_main.h>
+#include <wlan_hdd_wext.h>
 #include <net/sock.h>
 #include <linux/netlink.h>
 
@@ -4020,7 +4022,17 @@ int cnss_diag_msg_callback(struct sk_buff *skb)
        slot = (struct dbglog_slot *)msg;
     switch (slot->diag_type) {
     case DIAG_TYPE_CRASH_INJECT:
-         process_wma_set_command(0,(int)GEN_PARAM_CRASH_INJECT, 0, GEN_CMD);
+        if (slot->length == 2) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
+                           ("%s : DIAG_TYPE_CRASH_INJECT: %d %d\n", __func__,
+                           slot->payload[0], slot->payload[1]));
+            process_wma_set_command_twoargs(0,
+                                           (int)GEN_PARAM_CRASH_INJECT,
+                                           slot->payload[0],
+                                           slot->payload[1], GEN_CMD);
+        }
+        else
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("crash_inject cmd error\n"));
     break;
     default:
     break;

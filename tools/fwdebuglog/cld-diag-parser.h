@@ -294,7 +294,7 @@ static inline unsigned int aniNlLen(unsigned int len)
 #define DIAG_WLAN_MODULE_IBSS_PWRSAVE 57332
 
 #define RESTART_LEVEL     \
-    "echo related > /sys/bus/msm_subsys/devices/subsys4/restart_level"
+    "echo related > /sys/bus/msm_subsys/devices/subsys%d/restart_level"
 #define DB_FILE_PATH        "/firmware/image/Data.msc"
 #define BUF_SIZ  256
 
