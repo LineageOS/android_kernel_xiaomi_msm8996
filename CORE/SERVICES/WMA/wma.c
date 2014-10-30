@@ -22133,7 +22133,7 @@ static void wma_process_roam_invoke(WMA_HANDLE handle,
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
 			(sizeof(u_int32_t)));
 	channel_list = (A_UINT32 *)(buf_ptr + WMI_TLV_HDR_SIZE);
-	*channel_list = (A_UINT32)roaminvoke->channel;
+	*channel_list = (A_UINT32)vos_chan_to_freq(roaminvoke->channel);
 	buf_ptr += sizeof(A_UINT32) + WMI_TLV_HDR_SIZE;
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_FIXED_STRUC,
 			(sizeof(wmi_mac_addr)));
