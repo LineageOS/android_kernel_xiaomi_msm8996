@@ -1543,7 +1543,7 @@ typedef struct wma_unit_test_cmd
 typedef struct wma_roam_invoke_cmd
 {
     v_UINT_t vdev_id;
-    u_int8_t bssId[6];
+    u_int8_t bssid[6];
     v_U32_t channel;
 }t_wma_roam_invoke_cmd;
 #endif

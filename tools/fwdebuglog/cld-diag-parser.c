@@ -770,35 +770,45 @@ cnssdiag_register_kernel_logging(int sock_fd, struct nlmsghdr *nlh)
 }
 
 static int32_t
-sendcnss_cmd(int sock_fd, int32_t cmd)
+sendcnss_cmd(int sock_fd, int32_t cmd, int len, uint8_t *buf)
 {
-    struct dbglog_slot slot;
+    struct dbglog_slot *slot;
     struct sockaddr_nl src_addr, dest_addr;
     struct nlmsghdr *nlh = NULL;
     struct msghdr msg;
     struct iovec iov;
-    int32_t ret;
+    int32_t ret, slot_len = 0;
 
-    memset(&slot, 0 , sizeof(struct dbglog_slot));
-    slot.diag_type = cmd;
+    slot_len =  sizeof(struct dbglog_slot) + len;
+    char *slot_buf = NULL;
+    slot_buf = malloc(slot_len);
+    if (slot_buf == NULL) {
+        fprintf(stderr, "Cannot allocate slot memory \n");
+        return -1;
+    }
+    slot = (struct dbglog_slot *)slot_buf;
+    memset(slot, 0 , sizeof(struct dbglog_slot));
+    slot->diag_type = cmd;
+    slot->length = len;
+    memcpy(slot->payload, buf, len);
+
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.nl_family = AF_NETLINK;
     dest_addr.nl_pid = 0; /* For Linux Kernel */
     dest_addr.nl_groups = 0; /* unicast */
 
-    nlh = malloc(NLMSG_SPACE(sizeof(struct dbglog_slot)));
+    nlh = malloc(NLMSG_SPACE(slot_len));
     if (nlh == NULL) {
         fprintf(stderr, "Cannot allocate memory \n");
-        close(sock_fd);
         return -1;
     }
-    memset(nlh, 0, NLMSG_SPACE(sizeof(struct dbglog_slot)));
-    nlh->nlmsg_len = NLMSG_SPACE(sizeof(struct dbglog_slot));
+    memset(nlh, 0, NLMSG_SPACE(slot_len));
+    nlh->nlmsg_len = NLMSG_SPACE(slot_len);
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_type = WLAN_NL_MSG_CNSS_DIAG;
     nlh->nlmsg_flags = NLM_F_REQUEST;
 
-    memcpy(NLMSG_DATA(nlh), &slot, sizeof(struct dbglog_slot));
+    memcpy(NLMSG_DATA(nlh), slot_buf, slot_len);
 
     iov.iov_base = (void *)nlh;
     iov.iov_len = nlh->nlmsg_len;
@@ -836,6 +846,7 @@ void
 process_diaghost_msg(uint8_t *datap, uint16_t len)
 {
     uint8_t  *payload;
+    len;
     event_report_t *pEvent_report =(event_report_t *)datap ;
     if (!pEvent_report)
         return;
@@ -1071,7 +1082,8 @@ process_diagfw_msg(uint8_t *datap, uint16_t len, uint32_t optionflag,
 WLAN trigger command from QXDM
 
 1) SSR
-   send_data 75 41 7 0 1 0 253 1 25
+   send_data 75 41 7 0 1 0 253 len id val1 val 2
+   id is subsystem id value
 2) log level
    send_data 75 41 7 0 2 0 253 1 25
 
@@ -1088,12 +1100,13 @@ PACK(void *) cnss_wlan_handle(PACK(void *)req_pkt, uint16_t pkt_len)
     PACK(void *)rsp = NULL;
     uint8_t *pkt_ptr = (uint8_t *)req_pkt + 4;
     uint16_t p_len, p_opcode;
-    int32_t ret = 0;
+    int32_t ret = 0, i = 0;
+    char cmd[BUF_SIZ] = {0};
 
    /* Allocate the same length as the request
    */
     rsp = diagpkt_subsys_alloc( DIAG_SUBSYS_WLAN, CNSS_WLAN_DIAG, pkt_len);
-    if (rsp  != NULL)
+    if (rsp  != NULL && pkt_len > 3)
     {
         p_len = *(pkt_ptr+3); /* VS Command packet length */
         p_opcode = (*(pkt_ptr+2) << 8) | *(pkt_ptr+1);
@@ -1101,18 +1114,33 @@ PACK(void *) cnss_wlan_handle(PACK(void *)req_pkt, uint16_t pkt_len)
             "%s : p_len: %d, pkt_len -8: %d, p_opcode:%.04x  cmd = %d\n",
               __func__, p_len, pkt_len -8, p_opcode, *pkt_ptr
                  );
-        if (p_len !=(pkt_len - 8) || ( p_opcode != 0xFD00))
+        if (p_len !=(pkt_len - 8) || ( p_opcode != 0xFD00)) {
+            debug_printf("%s:Error in p_len or p_opcode ", __func__ );
             return rsp;
+        }
         memcpy(rsp, req_pkt, pkt_len);
-        if (*pkt_ptr == CNSS_WLAN_SSR_TYPE) {
-            if ((ret = system(RESTART_LEVEL))){
+        if (*pkt_ptr == CNSS_WLAN_SSR_TYPE && p_len > 1) {
+            /* get ID */
+            i = *(pkt_ptr+4);
+            p_len--;
+            /* Restart for subsystem id */
+            memset(cmd, 0x00, BUF_SIZ);
+            snprintf(cmd, sizeof(cmd), RESTART_LEVEL, i);
+            debug_printf("%s: cmd = %s\n", __func__, cmd);
+            if ((ret = system(cmd))){
                 if (ret <  0) {
+                    debug_printf("%s: error with subsystem id\n", __func__);
                     return rsp;
                 }
             }
-            if (gdiag_sock_fd > 0)
-                sendcnss_cmd(gdiag_sock_fd, DIAG_TYPE_CRASH_INJECT);
-        }
+            if (gdiag_sock_fd > 0) {
+                sendcnss_cmd(gdiag_sock_fd, DIAG_TYPE_CRASH_INJECT,
+                             p_len, (pkt_ptr + 5)
+                             );
+                debug_printf("%s: Success with crash inject \n", __func__);
+            }
+        } else
+            debug_printf("%s:Error in Command ", __func__ );
     }
     else
       debug_printf("%s:Allocate response buffer error", __func__ );
