@@ -2814,16 +2814,17 @@ int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset)
          eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)) {
         pHddCtx->tdls_channel_offset = 0;
         switch (offchanoffset) {
-        case BW_20:
+        case TDLS_SEC_OFFCHAN_OFFSET_0:
             pHddCtx->tdls_channel_offset = (1 << BW_20_OFFSET_BIT);
             break;
-        case BW_40:
+        case TDLS_SEC_OFFCHAN_OFFSET_40PLUS:
+        case TDLS_SEC_OFFCHAN_OFFSET_40MINUS:
             pHddCtx->tdls_channel_offset = (1 << BW_40_OFFSET_BIT);
             break;
-        case BW_80:
+        case TDLS_SEC_OFFCHAN_OFFSET_80:
             pHddCtx->tdls_channel_offset = (1 << BW_80_OFFSET_BIT);
             break;
-        case BW_160:
+        case TDLS_SEC_OFFCHAN_OFFSET_160:
             pHddCtx->tdls_channel_offset = (1 << BW_160_OFFSET_BIT);
             break;
         default:
