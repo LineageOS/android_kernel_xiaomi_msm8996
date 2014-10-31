@@ -369,11 +369,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
                  * apps which are waiting on this message can
                  * register for the logs.
                  */
-		if ( (gapp_pid != INVALID_PID)) {
-			wake_up_interruptible(&gwlan_logging.wait_queue);
-		} else {
-			wlan_logging_srv_nl_ready_indication();
-		}
+                wake_up_interruptible(&gwlan_logging.wait_queue);
 	}
 
 	if ((gapp_pid != INVALID_PID)
@@ -508,7 +504,7 @@ static int wlan_logging_thread(void *Arg)
 		}
 
 		if (INVALID_PID == gapp_pid) {
-			pr_err("%s: Invalid PID\n", __func__);
+                        wlan_logging_srv_nl_ready_indication();
 			continue;
 		}
 

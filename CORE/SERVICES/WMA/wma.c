@@ -7313,8 +7313,10 @@ error1:
 					__func__);
                         return VOS_STATUS_E_NOMEM;
                 }
+                memset(scan_event, 0x00, sizeof(*scan_event));
                 scan_event->event = WMI_SCAN_EVENT_COMPLETED;
                 scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+                scan_event->p2pScanType = scan_req->p2pScanType;
                 scan_event->sessionId = scan_req->sessionId;
                 wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
         }

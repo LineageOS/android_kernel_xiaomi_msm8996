@@ -231,21 +231,19 @@ typedef enum
     eHDD_DOT11_MODE_11g_ONLY,
     eHDD_DOT11_MODE_11n_ONLY,
     eHDD_DOT11_MODE_11b_ONLY,
-#ifdef WLAN_FEATURE_11AC
     eHDD_DOT11_MODE_11ac_ONLY,
     eHDD_DOT11_MODE_11ac,
-#endif
+    eHDD_DOT11_MODE_11a,
 }eHddDot11Mode;
 
 #define CFG_DOT11_MODE_NAME                    "gDot11Mode"
 #define CFG_DOT11_MODE_MIN                     eHDD_DOT11_MODE_AUTO
 #ifdef WLAN_FEATURE_11AC
-#define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11ac
 #define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11ac
 #else
-#define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11b_ONLY
 #define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11n
 #endif
+#define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11a
 
 #define CFG_SAP_FORCE_11AC_FOR_11N             "gSapForce11ACFor11n"
 #define CFG_SAP_FORCE_11AC_FOR_11N_MIN         ( 0 )

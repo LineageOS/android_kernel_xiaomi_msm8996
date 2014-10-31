@@ -4536,9 +4536,16 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
          return eCSR_DOT11_MODE_11ac_ONLY;
       case (eHDD_DOT11_MODE_11ac):
          return eCSR_DOT11_MODE_11ac;
+#else
+      /* If 11AC support is not compiled set Auto mode */
+      case (eHDD_DOT11_MODE_11ac):
+      case (eHDD_DOT11_MODE_11ac_ONLY):
+         return eCSR_DOT11_MODE_AUTO;
 #endif
       case (eHDD_DOT11_MODE_AUTO):
          return eCSR_DOT11_MODE_AUTO;
+      case (eHDD_DOT11_MODE_11a):
+         return eCSR_DOT11_MODE_11a;
    }
 
 }
