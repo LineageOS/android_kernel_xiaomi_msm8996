@@ -586,13 +586,21 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
     hdd_hostapd_state_t *pHostapdState;
     VOS_STATUS vos_status;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(ap_adapter);
+    struct tagCsrDelStaParams delStaParams;
 
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
 
     mutex_lock(&pHddCtx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+        WLANSAP_PopulateDelStaParams(NULL, eCsrForcedDeauthSta,
+                            (SIR_MAC_MGMT_DEAUTH >> 4), &delStaParams);
+#ifdef CFG80211_DEL_STA_V2
         wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
-                                                                          NULL);
+                                      &delStaParams);
+#else
+        wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
+                                      NULL);
+#endif
         hdd_cleanup_actionframe(pHddCtx, ap_adapter);
 
         pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
@@ -12913,7 +12921,8 @@ void hdd_set_conparam ( v_UINT_t newParam )
 
   --------------------------------------------------------------------------*/
 
-VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
+VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter,
+                                 struct tagCsrDelStaParams *pDelStaParams)
 {
 #ifndef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
@@ -12926,13 +12935,14 @@ VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddres
            (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 
     //Ignore request to deauth bcmc station
-    if( pDestMacAddress[0] & 0x1 )
+    if (pDelStaParams->peerMacAddr[0] & 0x1)
        return vosStatus;
 
 #ifdef WLAN_FEATURE_MBSSID
-    vosStatus = WLANSAP_DeauthSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), pDestMacAddress);
+    vosStatus = WLANSAP_DeauthSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
+                                  pDelStaParams);
 #else
-    vosStatus = WLANSAP_DeauthSta(pVosContext, pDestMacAddress);
+    vosStatus = WLANSAP_DeauthSta(pVosContext, pDelStaParams);
 #endif
 
     EXIT();
