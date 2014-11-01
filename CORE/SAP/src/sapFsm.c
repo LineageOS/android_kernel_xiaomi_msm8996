@@ -3772,7 +3772,9 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
 
     //set the phyMode to accept anything
     //Best means everything because it covers all the things we support
-    profile->phyMode = pconfig_params->SapHw_mode; /*eCSR_DOT11_MODE_BEST*/
+    /*eCSR_DOT11_MODE_BEST*/
+    profile->phyMode =
+           sapConvertSapPhyModeToCsrPhyMode(pconfig_params->SapHw_mode);
 
     //Configure beaconInterval
     profile->beaconInterval = (tANI_U16)pconfig_params->beacon_int;

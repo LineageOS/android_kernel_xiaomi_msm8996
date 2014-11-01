@@ -471,7 +471,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
        (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11G_ONLY) &&
-       ((!pAssocReq->extendedRatesPresent ) || (pAssocReq->HTCaps.present)))
+       (pAssocReq->HTCaps.present))
     {
         limLog(pMac, LOGE, FL("SOFTAP was in 11G only mode, rejecting legacy "
                               "STA : "MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));

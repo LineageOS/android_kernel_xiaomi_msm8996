@@ -11305,7 +11305,6 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
     eCsrCfgDot11Mode cfgDot11Mode = csrGetCfgDot11ModeFromCsrPhyMode(pProfile, phyModeIn,
                                             pMac->roam.configParam.ProprietaryRatesEnabled);
     eCsrBand eBand;
-
     //If the global setting for dot11Mode is set to auto/abg, we overwrite the setting in the profile.
     if( ((!CSR_IS_INFRA_AP(pProfile )&& !CSR_IS_WDS(pProfile )) &&
          ((eCSR_CFG_DOT11_MODE_AUTO == pMac->roam.configParam.uCfgDot11Mode) ||
@@ -12064,7 +12063,8 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
         case eSIR_11G_NW_TYPE:
             /* For P2P Client and P2P GO, disable 11b rates */
             if( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
-                (pProfile->csrPersona == VOS_P2P_GO_MODE)
+                (pProfile->csrPersona == VOS_P2P_GO_MODE) ||
+                (eCSR_CFG_DOT11_MODE_11G_ONLY == cfgDot11Mode)
               )
             {
                 pParam->operationalRateSet.numRates = 8;
