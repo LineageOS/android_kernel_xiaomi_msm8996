@@ -5196,11 +5196,15 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            tANI_U8 *value = command;
            tANI_U8 channel = 0;
            tSirMacAddr targetApBssid;
+           tHalHandle hHal;
+           v_U32_t roamId = 0;
+           tCsrRoamModifyProfileFields modProfileFields;
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
            tCsrHandoffRequest handoffInfo;
 #endif
            hdd_station_ctx_t *pHddStaCtx = NULL;
            pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+           hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
 
            /* if not associated, no need to proceed with reassoc */
            if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
@@ -5220,13 +5224,16 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 
            /* if the target bssid is same as currently associated AP,
-              then no need to proceed with reassoc */
+              issue reassoc to same AP */
            if (VOS_TRUE == vos_mem_compare(targetApBssid,
                                            pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr)))
            {
                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Reassoc BSSID is same as currently associated AP bssid",__func__);
-               ret = -EINVAL;
-               goto exit;
+               sme_GetModifyProfileFields(hHal, pAdapter->sessionId,
+                                       &modProfileFields);
+               sme_RoamReassoc(hHal, pAdapter->sessionId,
+                            NULL, modProfileFields, &roamId, 1);
+               return 0;
            }
 
            /* Check channel number is a valid channel number */

@@ -168,10 +168,6 @@ typedef struct _smeTdlsPeerStateParams
 
 #define ENABLE_CHANSWITCH  1
 #define DISABLE_CHANSWITCH 2
-#define BW_20              20
-#define BW_40              40
-#define BW_80              80
-#define BW_160             160
 #define BW_20_OFFSET_BIT   0
 #define BW_40_OFFSET_BIT   1
 #define BW_80_OFFSET_BIT   2

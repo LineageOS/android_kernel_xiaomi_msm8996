@@ -17255,12 +17255,14 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 	WMA_LOGD("Credits:%d; Pending_Cmds: %d",
 		host_credits, wmi_pending_cmds);
 
+#if !defined(HIF_SDIO)
 	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
 		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
 			"Credits:%d, pending_cmds:%d\n", __func__,
 				host_credits, wmi_pending_cmds);
 		goto error;
 	}
+#endif
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_ENABLE_CMDID);
