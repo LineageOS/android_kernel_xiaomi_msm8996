@@ -285,9 +285,7 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	v_VOID_t * temp_module;
 
 	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
-	if (vos == NULL)
-		return 0;
-	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
+
 	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
 	if (!temp_module) {
 		printk("%s: WDA module is NULL\n", __func__);
@@ -331,19 +329,12 @@ static int hif_usb_resume(struct usb_interface *interface)
 	v_VOID_t * temp_module;
 
 	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
-	if (vos == NULL)
-		return 0;
-	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
 	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
 	if (!temp_module) {
 		printk("%s: WDA module is NULL\n", __func__);
 		return (-1);
 	}
 
-	if (wma_check_scan_in_progress(temp_module)) {
-		printk("%s: Scan in progress. Aborting suspend\n", __func__);
-		return (-1);
-	}
 	sc->local_state.event = 0;
 	usb_hif_start_recv_pipes(device);
 
