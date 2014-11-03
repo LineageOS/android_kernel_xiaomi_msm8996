@@ -871,10 +871,10 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                   pMac->scan.scanProfile.numOfChannels =
                    pTempScanReq->ChannelInfo.numOfChannels;
 
-                  smsLog( pMac, LOG1, FL(" SId=%d scanId=%d"
+                  smsLog(pMac, LOG1, FL(" SId=%d scanId=%d"
                         " Scan reason=%u numSSIDs=%d"
                         " numChan=%d P2P search=%d minCT=%d maxCT=%d"
-                        " minCBtc=%d maxCBtx=%d"),
+                        " minCBtc=%d maxCBtx=%d uIEFieldLen=%d"),
                         sessionId, pScanCmd->u.scanCmd.scanID,
                         pScanCmd->u.scanCmd.reason,
                         pTempScanReq->SSIDs.numOfSSIDs,
@@ -883,7 +883,8 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                         pTempScanReq->minChnTime,
                         pTempScanReq->maxChnTime,
                         pTempScanReq->minChnTimeBtc,
-                        pTempScanReq->maxChnTimeBtc );
+                        pTempScanReq->maxChnTimeBtc,
+                        pTempScanReq->uIEFieldLen);
 
                     //Start process the command
 #ifdef WLAN_AP_STA_CONCURRENCY

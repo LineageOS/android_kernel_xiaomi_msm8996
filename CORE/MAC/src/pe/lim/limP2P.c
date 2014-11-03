@@ -734,72 +734,6 @@ eHalStatus limP2PActionCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 }
 
 
-void limSetHtCaps(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 *pIeStartPtr,tANI_U32 nBytes)
-{
-    v_U8_t              *pIe=NULL;
-    tDot11fIEHTCaps     dot11HtCap;
-
-    PopulateDot11fHTCaps(pMac, psessionEntry, &dot11HtCap);
-    pIe = limGetIEPtr(pMac,pIeStartPtr, nBytes,
-                                       DOT11F_EID_HTCAPS,ONE_BYTE);
-    limLog( pMac, LOG2, FL("pIe %p dot11HtCap.supportedMCSSet[0]=0x%x"),
-            pIe, dot11HtCap.supportedMCSSet[0]);
-    if(pIe)
-    {
-        tHtCaps *pHtcap = (tHtCaps *)&pIe[2]; //convert from unpacked to packed structure
-        pHtcap->advCodingCap = dot11HtCap.advCodingCap;
-        pHtcap->supportedChannelWidthSet = dot11HtCap.supportedChannelWidthSet;
-        pHtcap->mimoPowerSave = dot11HtCap.mimoPowerSave;
-        pHtcap->greenField = dot11HtCap.greenField;
-        pHtcap->shortGI20MHz = dot11HtCap.shortGI20MHz;
-        pHtcap->shortGI40MHz = dot11HtCap.shortGI40MHz;
-        pHtcap->txSTBC = dot11HtCap.txSTBC;
-        pHtcap->rxSTBC = dot11HtCap.rxSTBC;
-        pHtcap->delayedBA = dot11HtCap.delayedBA  ;
-        pHtcap->maximalAMSDUsize = dot11HtCap.maximalAMSDUsize;
-        pHtcap->dsssCckMode40MHz = dot11HtCap.dsssCckMode40MHz;
-        pHtcap->psmp = dot11HtCap.psmp;
-        pHtcap->stbcControlFrame = dot11HtCap.stbcControlFrame;
-        pHtcap->lsigTXOPProtection = dot11HtCap.lsigTXOPProtection;
-        pHtcap->maxRxAMPDUFactor = dot11HtCap.maxRxAMPDUFactor;
-        pHtcap->mpduDensity = dot11HtCap.mpduDensity;
-        vos_mem_copy((void *)pHtcap->supportedMCSSet,
-                     (void *)(dot11HtCap.supportedMCSSet),
-                      sizeof(pHtcap->supportedMCSSet));
-        pHtcap->pco = dot11HtCap.pco;
-        pHtcap->transitionTime = dot11HtCap.transitionTime;
-        pHtcap->mcsFeedback = dot11HtCap.mcsFeedback;
-        pHtcap->txBF = dot11HtCap.txBF;
-        pHtcap->rxStaggeredSounding = dot11HtCap.rxStaggeredSounding;
-        pHtcap->txStaggeredSounding = dot11HtCap.txStaggeredSounding;
-        pHtcap->rxZLF = dot11HtCap.rxZLF;
-        pHtcap->txZLF = dot11HtCap.txZLF;
-        pHtcap->implicitTxBF = dot11HtCap.implicitTxBF;
-        pHtcap->calibration = dot11HtCap.calibration;
-        pHtcap->explicitCSITxBF = dot11HtCap.explicitCSITxBF;
-        pHtcap->explicitUncompressedSteeringMatrix =
-            dot11HtCap.explicitUncompressedSteeringMatrix;
-        pHtcap->explicitBFCSIFeedback = dot11HtCap.explicitBFCSIFeedback;
-        pHtcap->explicitUncompressedSteeringMatrixFeedback =
-            dot11HtCap.explicitUncompressedSteeringMatrixFeedback;
-        pHtcap->explicitCompressedSteeringMatrixFeedback =
-            dot11HtCap.explicitCompressedSteeringMatrixFeedback;
-        pHtcap->csiNumBFAntennae = dot11HtCap.csiNumBFAntennae;
-        pHtcap->uncompressedSteeringMatrixBFAntennae =
-            dot11HtCap.uncompressedSteeringMatrixBFAntennae;
-        pHtcap->compressedSteeringMatrixBFAntennae =
-            dot11HtCap.compressedSteeringMatrixBFAntennae;
-        pHtcap->antennaSelection = dot11HtCap.antennaSelection;
-        pHtcap->explicitCSIFeedbackTx = dot11HtCap.explicitCSIFeedbackTx;
-        pHtcap->antennaIndicesFeedbackTx = dot11HtCap.antennaIndicesFeedbackTx;
-        pHtcap->explicitCSIFeedback = dot11HtCap.explicitCSIFeedback;
-        pHtcap->antennaIndicesFeedback = dot11HtCap.antennaIndicesFeedback;
-        pHtcap->rxAS = dot11HtCap.rxAS;
-        pHtcap->txSoundingPPDUs = dot11HtCap.txSoundingPPDUs;
-    }
-}
-
-
 void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
     tSirMbMsgP2p *pMbMsg = (tSirMbMsgP2p *)pMsg->bodyptr;
@@ -983,8 +917,9 @@ send_action_frame:
 
         if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
         {
-            limSetHtCaps( pMac, psessionEntry, (tANI_U8*)pMbMsg->data + PROBE_RSP_IE_OFFSET,
-                           nBytes - PROBE_RSP_IE_OFFSET);
+            lim_set_ht_caps(pMac, psessionEntry,
+                            (tANI_U8*)pMbMsg->data + PROBE_RSP_IE_OFFSET,
+                            nBytes - PROBE_RSP_IE_OFFSET);
         }
 
         if (pMac->fP2pListenOffload)

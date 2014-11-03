@@ -7546,3 +7546,74 @@ tANI_U8* lim_get_ie_ptr(tANI_U8 *pIes, int length, tANI_U8 eid)
     }
     return NULL;
 }
+
+void lim_set_ht_caps(tpAniSirGlobal p_mac, tpPESession p_session_entry,
+                     tANI_U8 *p_ie_start,tANI_U32 num_bytes)
+{
+    v_U8_t              *p_ie=NULL;
+    tDot11fIEHTCaps     dot11_ht_cap;
+
+    PopulateDot11fHTCaps(p_mac, p_session_entry, &dot11_ht_cap);
+    p_ie = limGetIEPtr(p_mac, p_ie_start, num_bytes, DOT11F_EID_HTCAPS,
+                                                    ONE_BYTE);
+    limLog( p_mac, LOG2, FL("p_ie %p dot11_ht_cap.supportedMCSSet[0]=0x%x"),
+            p_ie, dot11_ht_cap.supportedMCSSet[0]);
+
+    if(p_ie)
+    {
+        /* convert from unpacked to packed structure */
+        tHtCaps *p_ht_cap = (tHtCaps *)&p_ie[2];
+
+        p_ht_cap->advCodingCap = dot11_ht_cap.advCodingCap;
+        p_ht_cap->supportedChannelWidthSet =
+            dot11_ht_cap.supportedChannelWidthSet;
+        p_ht_cap->mimoPowerSave = dot11_ht_cap.mimoPowerSave;
+        p_ht_cap->greenField = dot11_ht_cap.greenField;
+        p_ht_cap->shortGI20MHz = dot11_ht_cap.shortGI20MHz;
+        p_ht_cap->shortGI40MHz = dot11_ht_cap.shortGI40MHz;
+        p_ht_cap->txSTBC = dot11_ht_cap.txSTBC;
+        p_ht_cap->rxSTBC = dot11_ht_cap.rxSTBC;
+        p_ht_cap->delayedBA = dot11_ht_cap.delayedBA  ;
+        p_ht_cap->maximalAMSDUsize = dot11_ht_cap.maximalAMSDUsize;
+        p_ht_cap->dsssCckMode40MHz = dot11_ht_cap.dsssCckMode40MHz;
+        p_ht_cap->psmp = dot11_ht_cap.psmp;
+        p_ht_cap->stbcControlFrame = dot11_ht_cap.stbcControlFrame;
+        p_ht_cap->lsigTXOPProtection = dot11_ht_cap.lsigTXOPProtection;
+        p_ht_cap->maxRxAMPDUFactor = dot11_ht_cap.maxRxAMPDUFactor;
+        p_ht_cap->mpduDensity = dot11_ht_cap.mpduDensity;
+        vos_mem_copy((void *)p_ht_cap->supportedMCSSet,
+                     (void *)(dot11_ht_cap.supportedMCSSet),
+                      sizeof(p_ht_cap->supportedMCSSet));
+        p_ht_cap->pco = dot11_ht_cap.pco;
+        p_ht_cap->transitionTime = dot11_ht_cap.transitionTime;
+        p_ht_cap->mcsFeedback = dot11_ht_cap.mcsFeedback;
+        p_ht_cap->txBF = dot11_ht_cap.txBF;
+        p_ht_cap->rxStaggeredSounding = dot11_ht_cap.rxStaggeredSounding;
+        p_ht_cap->txStaggeredSounding = dot11_ht_cap.txStaggeredSounding;
+        p_ht_cap->rxZLF = dot11_ht_cap.rxZLF;
+        p_ht_cap->txZLF = dot11_ht_cap.txZLF;
+        p_ht_cap->implicitTxBF = dot11_ht_cap.implicitTxBF;
+        p_ht_cap->calibration = dot11_ht_cap.calibration;
+        p_ht_cap->explicitCSITxBF = dot11_ht_cap.explicitCSITxBF;
+        p_ht_cap->explicitUncompressedSteeringMatrix =
+            dot11_ht_cap.explicitUncompressedSteeringMatrix;
+        p_ht_cap->explicitBFCSIFeedback = dot11_ht_cap.explicitBFCSIFeedback;
+        p_ht_cap->explicitUncompressedSteeringMatrixFeedback =
+            dot11_ht_cap.explicitUncompressedSteeringMatrixFeedback;
+        p_ht_cap->explicitCompressedSteeringMatrixFeedback =
+            dot11_ht_cap.explicitCompressedSteeringMatrixFeedback;
+        p_ht_cap->csiNumBFAntennae = dot11_ht_cap.csiNumBFAntennae;
+        p_ht_cap->uncompressedSteeringMatrixBFAntennae =
+            dot11_ht_cap.uncompressedSteeringMatrixBFAntennae;
+        p_ht_cap->compressedSteeringMatrixBFAntennae =
+            dot11_ht_cap.compressedSteeringMatrixBFAntennae;
+        p_ht_cap->antennaSelection = dot11_ht_cap.antennaSelection;
+        p_ht_cap->explicitCSIFeedbackTx = dot11_ht_cap.explicitCSIFeedbackTx;
+        p_ht_cap->antennaIndicesFeedbackTx =
+            dot11_ht_cap.antennaIndicesFeedbackTx;
+        p_ht_cap->explicitCSIFeedback = dot11_ht_cap.explicitCSIFeedback;
+        p_ht_cap->antennaIndicesFeedback = dot11_ht_cap.antennaIndicesFeedback;
+        p_ht_cap->rxAS = dot11_ht_cap.rxAS;
+        p_ht_cap->txSoundingPPDUs = dot11_ht_cap.txSoundingPPDUs;
+    }
+}
