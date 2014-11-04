@@ -945,6 +945,9 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	/* Allocate memory to save ramdump */
 	if (ramdump_scn->enableFwSelfRecovery) {
 		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+#if defined(HIF_SDIO) && defined(WLAN_OPEN_SOURCE)
+		kobject_uevent(&ramdump_scn->adf_dev->dev->kobj, KOBJ_OFFLINE);
+#endif
 		goto out_fail;
 	}
 
