@@ -1294,7 +1294,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
     adf_nbuf_t *head_msdu,
     adf_nbuf_t *tail_msdu)
 {
-    adf_nbuf_t msdu, next;
+    adf_nbuf_t msdu, next, prev = NULL;
     u_int8_t *rx_ind_data;
     u_int32_t *msg_word;
     unsigned int msdu_count = 0;
@@ -1316,6 +1316,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
     if (offload_ind) {
         ol_rx_offload_paddr_deliver_ind_handler(pdev, msdu_count,
                                                   msg_word);
+        *head_msdu = *tail_msdu = NULL;
         return 0;
     }
 
@@ -1325,6 +1326,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
 
     if (adf_os_unlikely(NULL == msdu)) {
         adf_os_print("%s: netbuf pop failed!\n", __FUNCTION__);
+        *tail_msdu = NULL;
         return 0;
     }
 
@@ -1359,6 +1361,50 @@ htt_rx_amsdu_rx_in_order_pop_ll(
 
         msdu_count--;
 
+        if (adf_os_unlikely((*((u_int8_t *) &rx_desc->fw_desc.u.val)) &
+                             FW_RX_DESC_MIC_ERR_M)) {
+            u_int8_t tid =
+                 HTT_RX_IN_ORD_PADDR_IND_EXT_TID_GET(*(u_int32_t *)rx_ind_data);
+            u_int16_t peer_id =
+                 HTT_RX_IN_ORD_PADDR_IND_PEER_ID_GET(*(u_int32_t *)rx_ind_data);
+            ol_rx_mic_error_handler(pdev->txrx_pdev, tid, peer_id, rx_desc, msdu);
+
+            htt_rx_desc_frame_free(pdev, msdu);
+
+            /* if this is the last msdu */
+            if (!msdu_count) {
+                /* if this is the only msdu */
+                if (!prev) {
+                    *head_msdu = *tail_msdu = NULL;
+                    return 0;
+                } else {
+                    *tail_msdu = prev;
+                    adf_nbuf_set_next(prev, NULL);
+                    return 1;
+                }
+            } else { /* if this is not the last msdu */
+                /* get the next msdu */
+                msg_word += HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS;
+                next = htt_rx_in_order_netbuf_pop(pdev,
+                                      HTT_RX_IN_ORD_PADDR_IND_PADDR_GET(*msg_word));
+                if (adf_os_unlikely(NULL == next)) {
+                    adf_os_print("%s: netbuf pop failed!\n", __FUNCTION__);
+                    *tail_msdu = NULL;
+                    return 0;
+                }
+
+                /* if this is not the first msdu, update the next pointer of the
+                   preceding msdu */
+                if (prev) {
+                    adf_nbuf_set_next(prev, next);
+                } else {/* if this is the first msdu, update the head pointer */
+                    *head_msdu = next;
+                }
+                msdu = next;
+                continue;
+            }
+        }
+
         /* check if this is the last msdu */
         if (msdu_count) {
             msg_word += HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS;
@@ -1366,9 +1412,11 @@ htt_rx_amsdu_rx_in_order_pop_ll(
                                   HTT_RX_IN_ORD_PADDR_IND_PADDR_GET(*msg_word));
             if (adf_os_unlikely(NULL == next)) {
                 adf_os_print("%s: netbuf pop failed!\n", __FUNCTION__);
+                *tail_msdu = NULL;
                 return 0;
             }
             adf_nbuf_set_next(msdu, next);
+            prev = msdu;
             msdu = next;
         }
         else {

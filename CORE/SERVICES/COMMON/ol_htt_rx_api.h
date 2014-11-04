@@ -506,7 +506,6 @@ htt_rx_msdu_forward(htt_pdev_handle pdev, void *msdu_desc);
 int
 htt_rx_msdu_inspect(htt_pdev_handle pdev, void *msdu_desc);
 
-
 /**
  * @brief Provide all action specifications for a rx MSDU
  * @details
