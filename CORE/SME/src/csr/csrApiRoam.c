@@ -11688,10 +11688,12 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
     //Figure what the other side's CB mode
     if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != ChannelBondingMode)
     {
-        if(pIes->HTCaps.present && (eHT_CHANNEL_WIDTH_40MHZ == pIes->HTCaps.supportedChannelWidthSet))
+        if(pIes->HTCaps.present && (eHT_CHANNEL_WIDTH_40MHZ ==
+                              pIes->HTCaps.supportedChannelWidthSet))
         {
             // Check set as TKIP or not.
-            if ((NULL != &(pIes->RSN.pwise_cipher_suites[0][0]) &&
+            if (((NULL != &(pIes->RSN.pwise_cipher_suites[0][0]) &&
+                 (pIes->RSN.pwise_cipher_suite_count == 1)) &&
                !memcmp( &(pIes->RSN.pwise_cipher_suites[0][0]),
                                         "\x00\x0f\xac\x02" ,4))
                || (((NULL != &(pIes->WPA)) &&
