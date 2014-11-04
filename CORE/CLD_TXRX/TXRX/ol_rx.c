@@ -52,7 +52,6 @@
 /* FIX THIS: txrx should not include private header files of other modules */
 #include <htt_types.h>
 #include <ol_if_athvar.h>
-#include <if_llc.h>
 #include <enet.h>    /* ethernet + SNAP/LLC header defs and ethertype values */
 #include <ip_prot.h> /* IP protocol values */
 #include <ipv4.h>    /* IPv4 header defs */

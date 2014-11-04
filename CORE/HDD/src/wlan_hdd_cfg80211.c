@@ -4026,9 +4026,17 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
         status = sme_handle_dfs_chan_scan(hHal,
                                           pHddCtx->cfg_ini->enableDFSChnlScan);
 
-        if (eHAL_STATUS_SUCCESS == status)
+        if (eHAL_STATUS_SUCCESS == status) {
             ret_val = 0;
 
+            /* Clear the SME scan cache also. Note that the clearing of scan
+             * results is independent of session; so no need to iterate over
+             * all sessions
+             */
+            status = sme_ScanFlushResult(hHal, pAdapter->sessionId);
+            if (eHAL_STATUS_SUCCESS != status)
+                ret_val = -EPERM;
+        }
     } else {
         hddLog(VOS_TRACE_LEVEL_INFO, FL(" the DFS flag has not changed"));
         ret_val = 0;
