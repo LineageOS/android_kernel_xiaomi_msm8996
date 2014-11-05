@@ -90,8 +90,8 @@ struct fw_rx_desc_base {
 #define FW_RX_DESC_DISCARD_S 0
 #define FW_RX_DESC_FORWARD_M 0x2
 #define FW_RX_DESC_FORWARD_S 1
-#define FW_RX_DESC_ANY_ERR_M 0x4
-#define FW_RX_DESC_ANY_ERR_S 2
+#define FW_RX_DESC_MIC_ERR_M 0x4
+#define FW_RX_DESC_MIC_ERR_S 2
 #define FW_RX_DESC_DUP_ERR_M 0x8
 #define FW_RX_DESC_DUP_ERR_S 3
 #define FW_RX_DESC_INSPECT_M 0x20

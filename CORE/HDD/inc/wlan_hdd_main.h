@@ -1715,4 +1715,5 @@ void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr);
 void wlan_hdd_disable_roaming(hdd_adapter_t *pAdapter);
 void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter);
 #endif
+int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
