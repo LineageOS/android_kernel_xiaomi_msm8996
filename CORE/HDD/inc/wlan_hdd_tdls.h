@@ -69,6 +69,11 @@ should not be more than 2000 */
 #define ENA_TDLS_OFFCHAN      (1 << 0)  /* TDLS Off Channel support */
 #define ENA_TDLS_BUFFER_STA   (1 << 1)  /* TDLS Buffer STA support */
 #define ENA_TDLS_SLEEP_STA    (1 << 2)  /* TDLS Sleep STA support */
+#define TDLS_SEC_OFFCHAN_OFFSET_0        0
+#define TDLS_SEC_OFFCHAN_OFFSET_40PLUS   40
+#define TDLS_SEC_OFFCHAN_OFFSET_40MINUS  (-40)
+#define TDLS_SEC_OFFCHAN_OFFSET_80       80
+#define TDLS_SEC_OFFCHAN_OFFSET_160      160
 
 #define TDLS_PEER_LIST_SIZE   256
 
