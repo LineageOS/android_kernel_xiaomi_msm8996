@@ -3932,6 +3932,44 @@ static void hdd_wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssid,
 }
 #endif
 
+/**
+ * hdd_set_miracast_mode() - function used to set the miracast mode value
+ * @pAdapter: pointer to the adapter of the interface.
+ * @command: pointer to the command buffer "MIRACAST <value>".
+ * Return: 0 on success -EINVAL on failure.
+ */
+int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
+{
+    tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tANI_U8 filterType = 0;
+    tANI_U8 *value;
+    int ret;
+
+    value = command + 9;
+
+    /* Convert the value from ascii to integer */
+    ret = kstrtou8(value, 10, &filterType);
+    if (ret < 0) {
+        /* If the input value is greater than max value of datatype,
+         * then also kstrtou8 fails
+         */
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: kstrtou8 failed range", __func__);
+        return -EINVAL;
+    }
+
+    /* Filtertype value should be either 0-Disabled, 1-Source, 2-sink */
+    if ((filterType < WLAN_HDD_DRIVER_MIRACAST_CFG_MIN_VAL ) ||
+            (filterType > WLAN_HDD_DRIVER_MIRACAST_CFG_MAX_VAL)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Accepted Values are 0 to 2."
+                "0-Disabled, 1-Source, 2-Sink", __func__);
+        return -EINVAL;
+    }
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: miracast mode %hu", __func__, filterType);
+    pMac->fMiracastSessionPresent = filterType;
+    return 0;
+}
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -5528,35 +5566,10 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        }
        else if ( strncasecmp(command, "MIRACAST", 8) == 0 )
        {
-           tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
-           tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-           tANI_U8 filterType = 0;
-           tANI_U8 *value;
-           value = command + 9;
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "%s: Received MIRACAST command", __func__);
 
-           /* Convert the value from ascii to integer */
-           ret = kstrtou8(value, 10, &filterType);
-           if (ret < 0)
-           {
-               /* If the input value is greater than max value of datatype,
-                * then also kstrtou8 fails
-                */
-              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                              "%s: kstrtou8 failed range ", __func__);
-              ret = -EINVAL;
-              goto exit;
-           }
-           if ((filterType < WLAN_HDD_DRIVER_MIRACAST_CFG_MIN_VAL ) ||
-               (filterType > WLAN_HDD_DRIVER_MIRACAST_CFG_MAX_VAL))
-           {
-               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "%s: Accepted Values are 0 to 2. 0-Disabled, 1-Source,"
-                      " 2-Sink ", __func__);
-               ret = -EINVAL;
-               goto exit;
-           }
-           //Filtertype value should be either 0-Disabled, 1-Source, 2-sink
-           pMac->fMiracastSessionPresent = filterType;
+           ret = hdd_set_miracast_mode(pAdapter, command);
        }
        else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
        {

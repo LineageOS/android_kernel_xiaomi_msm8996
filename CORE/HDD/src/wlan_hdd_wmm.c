@@ -1468,18 +1468,13 @@ VOS_STATUS hdd_wmm_init ( hdd_adapter_t *pAdapter )
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered", __func__);
 
-   // DSCP to User Priority Lookup Table
-   for (dscp = 0; dscp <= WLAN_HDD_MAX_DSCP; dscp++)
-   {
-      hddWmmDscpToUpMap[dscp] = SME_QOS_WMM_UP_BE;
+   /*
+    * DSCP to User Priority Lookup Table
+    * By default use the 3 Precedence bits of DSCP as the User Priority
+    */
+   for (dscp = 0; dscp <= WLAN_HDD_MAX_DSCP; dscp++) {
+      hddWmmDscpToUpMap[dscp] = dscp >> 3;
    }
-   hddWmmDscpToUpMap[8]  = SME_QOS_WMM_UP_BK;
-   hddWmmDscpToUpMap[16] = SME_QOS_WMM_UP_RESV;
-   hddWmmDscpToUpMap[24] = SME_QOS_WMM_UP_EE;
-   hddWmmDscpToUpMap[32] = SME_QOS_WMM_UP_CL;
-   hddWmmDscpToUpMap[40] = SME_QOS_WMM_UP_VI;
-   hddWmmDscpToUpMap[48] = SME_QOS_WMM_UP_VO;
-   hddWmmDscpToUpMap[56] = SME_QOS_WMM_UP_NC;
 
    return VOS_STATUS_SUCCESS;
 }

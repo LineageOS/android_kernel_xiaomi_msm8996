@@ -1166,6 +1166,38 @@ ol_rx_offload_paddr_deliver_ind_handler(
     }
     htt_rx_msdu_buff_replenish(htt_pdev);
 }
+
+void
+ol_rx_mic_error_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t tid,
+    u_int16_t peer_id,
+    void * msdu_desc,
+    adf_nbuf_t msdu )
+{
+    union htt_rx_pn_t pn = {0};
+    u_int8_t key_id = 0;
+
+    struct ol_txrx_peer_t *peer = NULL;
+    struct ol_txrx_vdev_t *vdev = NULL;
+
+    if (pdev) {
+        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+        if (peer) {
+            vdev = peer->vdev;
+            if (vdev) {
+                htt_rx_mpdu_desc_pn(vdev->pdev->htt_pdev, msdu_desc, &pn, 48);
+
+                if (htt_rx_msdu_desc_key_id(vdev->pdev->htt_pdev, msdu_desc, &key_id)
+                     == A_TRUE) {
+                    ol_rx_err(vdev->pdev->ctrl_pdev, vdev->vdev_id,
+                              peer->mac_addr.raw, tid, 0,
+                              OL_RX_ERR_TKIP_MIC, msdu, &pn.pn48, key_id);
+                }
+            }
+        }
+    }
+}
 #if 0
 /**
  * @brief populates vow ext stats in given network buffer.

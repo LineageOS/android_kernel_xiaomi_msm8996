@@ -69,4 +69,12 @@ ol_rx_offload_paddr_deliver_ind_handler(
    u_int32_t msdu_count,
    u_int32_t * msg_word );
 
+void
+ol_rx_mic_error_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t tid,
+    u_int16_t peer_id,
+    void * msdu_desc,
+    adf_nbuf_t msdu );
+
 #endif /* _OL_RX__H_ */
