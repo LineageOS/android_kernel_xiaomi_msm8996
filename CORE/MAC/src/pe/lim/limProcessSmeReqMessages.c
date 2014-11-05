@@ -5986,6 +5986,7 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                         limLog(pMac, LOGP,
                         FL("couldn't reset center freq seg 0 in beacon"));
                     }
+                    psessionEntry->apCenterChan = 0;
                 }
                 if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
                 {
