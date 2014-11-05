@@ -3121,8 +3121,14 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
          */
         RSNCapabilities.PreAuthSupported = 0;
 #ifdef WLAN_FEATURE_11W
-        RSNCapabilities.MFPRequired = pProfile->MFPRequired;
-        RSNCapabilities.MFPCapable = pProfile->MFPCapable;
+        if (RSNCapabilities.MFPCapable && pProfile->MFPCapable) {
+            RSNCapabilities.MFPCapable = pProfile->MFPCapable;
+            RSNCapabilities.MFPRequired = pProfile->MFPRequired;
+        }
+        else {
+            RSNCapabilities.MFPCapable = 0;
+            RSNCapabilities.MFPRequired = 0;
+        }
 #endif
         *(tANI_U16 *)( &pAuthSuite->AuthOui[ 1 ] ) = *((tANI_U16 *)(&RSNCapabilities));
 

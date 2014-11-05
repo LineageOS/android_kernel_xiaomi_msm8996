@@ -120,7 +120,6 @@ void __limProcessSmeAssocCnfNew(tpAniSirGlobal, tANI_U32, tANI_U32 *);
 
 extern void peRegisterTLHandle(tpAniSirGlobal pMac);
 
-
 #ifdef BACKGROUND_SCAN_ENABLED
 
 // start the background scan timers if it hasn't already started
@@ -1132,8 +1131,9 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
 {
     tSirScanOffloadReq *pScanOffloadReq;
     tANI_U8 *p;
+    tANI_U8 *ht_cap_ie;
     tSirMsgQ msg;
-    tANI_U16 i, len;
+    tANI_U16 i, len, ht_cap_len = 0;
     tSirRetStatus rc = eSIR_SUCCESS;
 
     pMac->lim.fOffloadScanPending = 0;
@@ -1143,6 +1143,13 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
        so allocate the memory for (numChannels - 1) and uIEFieldLen */
     len = sizeof(tSirScanOffloadReq) + (pScanReq->channelList.numChannels - 1) +
         pScanReq->uIEFieldLen;
+
+    if (IS_DOT11_MODE_HT(pScanReq->dot11mode)) {
+        limLog(pMac, LOG1,
+               FL("Adding HT Caps IE since dot11mode=%d"), pScanReq->dot11mode);
+        ht_cap_len = 2 + sizeof(tHtCaps); /* 2 bytes for EID and Length */
+        len += ht_cap_len;
+    }
 
     pScanOffloadReq = vos_mem_malloc(len);
     if ( NULL == pScanOffloadReq )
@@ -1198,7 +1205,8 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     pScanOffloadReq->sessionId = pScanReq->sessionId;
 
     if (pScanOffloadReq->sessionId >= pMac->lim.maxBssId)
-        limLog(pMac, LOGE,FL("Invalid pe sessionID : %d"), pScanOffloadReq->sessionId);
+        limLog(pMac, LOGE, FL("Invalid pe sessionID : %d"),
+                           pScanOffloadReq->sessionId);
 
     pScanOffloadReq->channelList.numChannels =
         pScanReq->channelList.numChannels;
@@ -1207,11 +1215,25 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
         p[i] = pScanReq->channelList.channelNumber[i];
 
     pScanOffloadReq->uIEFieldLen = pScanReq->uIEFieldLen;
-    pScanOffloadReq->uIEFieldOffset = len - pScanOffloadReq->uIEFieldLen;
+    pScanOffloadReq->uIEFieldOffset = len - ht_cap_len -
+                                      pScanOffloadReq->uIEFieldLen;
     vos_mem_copy(
             (tANI_U8 *) pScanOffloadReq + pScanOffloadReq->uIEFieldOffset,
             (tANI_U8 *) pScanReq + pScanReq->uIEFieldOffset,
             pScanReq->uIEFieldLen);
+
+    /* Copy HT Capability info if dot11mode is HT */
+    if (IS_DOT11_MODE_HT(pScanReq->dot11mode)) {
+        /* Populate EID and Length field here */
+        ht_cap_ie = (tANI_U8 *) pScanOffloadReq +
+                                pScanOffloadReq->uIEFieldOffset +
+                                pScanOffloadReq->uIEFieldLen;
+        vos_mem_set(ht_cap_ie, ht_cap_len, 0);
+        *ht_cap_ie = SIR_MAC_HT_CAPABILITIES_EID;
+        *(ht_cap_ie + 1) =  ht_cap_len - 2;
+        lim_set_ht_caps(pMac, NULL, ht_cap_ie, len - ht_cap_len);
+        pScanOffloadReq->uIEFieldLen += ht_cap_len;
+    }
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc != eSIR_SUCCESS)

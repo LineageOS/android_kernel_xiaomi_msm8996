@@ -179,6 +179,9 @@
 #define LINK_STATUS_LEGACY	0
 #define LINK_STATUS_VHT		0x1
 #define LINK_STATUS_MIMO	0x2
+#define LINK_SUPPORT_VHT	0x4
+#define LINK_SUPPORT_MIMO	0x8
+
 #define LINK_RATE_VHT		0x3
 /* Data rate 100KBPS based on IE Index */
 struct index_data_rate_type
@@ -2269,6 +2272,14 @@ static int wma_link_status_rsp(tp_wma_handle wma, u_int8_t *buf)
 			if ((ht_info->tx_preamble == LINK_RATE_VHT) ||
 				(ht_info->rx_preamble == LINK_RATE_VHT))
 				link_status |= LINK_STATUS_VHT;
+
+			if (intr[ht_info->vdevid].nss == 2)
+				link_status |= LINK_SUPPORT_MIMO;
+
+			if (intr[ht_info->vdevid].rate_flags &
+				(eHAL_TX_RATE_VHT20 | eHAL_TX_RATE_VHT40 |
+				eHAL_TX_RATE_VHT80))
+				link_status |= LINK_SUPPORT_VHT;
 
 			wma_post_link_status(intr[ht_info->vdevid].plink_status_req,
 						link_status);
