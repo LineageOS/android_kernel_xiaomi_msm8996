@@ -23152,8 +23152,11 @@ static void wma_roam_ho_fail_handler(tp_wma_handle wma, u_int32_t vdev_id)
 static void wma_roam_better_ap_handler(tp_wma_handle wma, u_int32_t vdev_id)
 {
 	VOS_STATUS ret;
-	/* abort existing scan if any */
-	if (wma->interfaces[vdev_id].scan_info.scan_id != 0) {
+	/* abort existing scans from GUI, but not roaming preauth scan */
+	if (wma->interfaces[vdev_id].scan_info.scan_id != 0 &&
+	    (wma->interfaces[vdev_id].scan_info.scan_id &
+	     WMA_HOST_ROAM_SCAN_REQID_PREFIX) !=
+		WMA_HOST_ROAM_SCAN_REQID_PREFIX) {
 		tAbortScanParams abortScan;
 		abortScan.SessionId = vdev_id;
 		wma_stop_scan(wma, &abortScan);
