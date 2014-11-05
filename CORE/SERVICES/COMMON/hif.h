@@ -426,6 +426,14 @@ int HIFAttachHTC(HIF_DEVICE *device, HTC_CALLBACKS *callbacks);
 /* This API detaches the HTC layer from the HIF device */
 void     HIFDetachHTC(HIF_DEVICE *device);
 
+A_STATUS
+HIFSyncRead(HIF_DEVICE *device,
+               A_UINT32 address,
+               A_UCHAR *buffer,
+               A_UINT32 length,
+               A_UINT32 request,
+               void *context);
+
 /*
  * This API is used to provide the read/write interface over the specific bus
  * interface.

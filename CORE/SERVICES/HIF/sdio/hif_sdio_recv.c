@@ -275,12 +275,14 @@ static INLINE A_STATUS HIFDevRecvPacket(HIF_SDIO_DEVICE *pDev,
          RecvLength,
          paddedLength,
          pDev->MailBoxInfo.MboxAddresses[mboxIndex]));
-    status = HIFReadWrite(pDev->HIFDevice,
-            pDev->MailBoxInfo.MboxAddresses[mboxIndex],
-            pPacket->pBuffer,
-            paddedLength,
-            (sync ? HIF_RD_SYNC_BLOCK_FIX : HIF_RD_ASYNC_BLOCK_FIX),
-            sync ? NULL : pPacket); /* pass the packet as the context to the HIF request */
+
+    status = HIFSyncRead(pDev->HIFDevice,
+                pDev->MailBoxInfo.MboxAddresses[mboxIndex],
+                pPacket->pBuffer,
+                paddedLength,
+                (sync ? HIF_RD_SYNC_BLOCK_FIX : HIF_RD_ASYNC_BLOCK_FIX),
+                sync ? NULL : pPacket); /* pass the packet as the context to the HIF request */
+
     AR_DEBUG_PRINTF( ATH_DEBUG_RECV, ("EP%d, Seq:%d\n",
            ((HTC_FRAME_HDR*)pPacket->pBuffer)->EndpointID,
            ((HTC_FRAME_HDR*)pPacket->pBuffer)->ControlBytes1));
@@ -636,12 +638,12 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
        HTC_PACKET_QUEUE_DEPTH(pSyncCompletionQueue), totalLength);
 #endif
 
-    status = HIFReadWrite(pDev->HIFDevice,
-            pDev->MailBoxInfo.MboxAddresses[(int)MailBoxIndex],
-            pBundleBuffer,
-            totalLength,
-            HIF_RD_SYNC_BLOCK_FIX,
-            NULL);
+    status = HIFSyncRead(pDev->HIFDevice,
+                pDev->MailBoxInfo.MboxAddresses[(int)MailBoxIndex],
+                pBundleBuffer,
+                totalLength,
+                HIF_RD_SYNC_BLOCK_FIX,
+                NULL);
 
     if(status != A_OK){
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s, HIFSend Failed status:%d \n",__FUNCTION__, status));
@@ -1010,12 +1012,13 @@ static A_STATUS HIFDevProcessPendingIRQs(HIF_SDIO_DEVICE *pDev, A_BOOL *pDone,
              * point. */
             break;
         }
-        status = HIFReadWrite(pDev->HIFDevice,
-                HOST_INT_STATUS_ADDRESS,
-                (A_UINT8 *) &pDev->IrqProcRegisters,
-                sizeof(pDev->IrqProcRegisters),
-                HIF_RD_SYNC_BYTE_INC,
-                NULL);
+
+        status = HIFSyncRead(pDev->HIFDevice,
+                    HOST_INT_STATUS_ADDRESS,
+                    (A_UINT8 *) &pDev->IrqProcRegisters,
+                    sizeof(pDev->IrqProcRegisters),
+                    HIF_RD_SYNC_BYTE_INC,
+                    NULL);
 
         if (A_FAILED(status)) {
             break;
