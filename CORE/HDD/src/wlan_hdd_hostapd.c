@@ -157,6 +157,10 @@ void hdd_hostapd_channel_allow_suspend(hdd_adapter_t *pAdapter,
     hdd_hostapd_state_t *pHostapdState =
         WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
+    hddLog(LOG1, FL("bssState: %d, channel: %d, dfs_ref_cnt: %d"),
+            pHostapdState->bssState, channel,
+            atomic_read(&pHddCtx->sap_dfs_ref_cnt));
+
     /* Return if BSS is already stopped */
     if (pHostapdState->bssState == BSS_STOP)
         return;
@@ -190,8 +194,13 @@ void hdd_hostapd_channel_prevent_suspend(hdd_adapter_t *pAdapter,
     hdd_hostapd_state_t *pHostapdState =
         WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
-    /* Return if BSS is already started */
-    if (pHostapdState->bssState == BSS_START)
+    hddLog(LOG1, FL("bssState: %d, channel: %d, dfs_ref_cnt: %d"),
+            pHostapdState->bssState, channel,
+            atomic_read(&pHddCtx->sap_dfs_ref_cnt));
+
+    /* Return if BSS is already started && wakelock is acquired */
+    if ((pHostapdState->bssState == BSS_START) &&
+            (atomic_read(&pHddCtx->sap_dfs_ref_cnt) > 1))
         return;
 
     /* Acquire wakelock if we have at least one DFS channel in use */
