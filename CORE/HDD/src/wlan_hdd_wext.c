@@ -4691,14 +4691,12 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             }
         } else if (phymode == eCSR_DOT11_MODE_11n &&
                               chwidth == WNI_CFG_CHANNEL_BONDING_MODE_ENABLE) {
-            if (phddctx->cfg_ini->ht2040CoexEnabled) {
-                smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
-                halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+            smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
+            halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
                                       eHT_CHAN_HT20, eANI_BOOLEAN_TRUE);
-                if (halStatus == eHAL_STATUS_FAILURE) {
-                    hddLog(LOGE, FL("Failed to enable OBSS"));
-                    return -EIO;
-                }
+            if (halStatus == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Failed to enable OBSS"));
+                return -EIO;
             }
         }
 #endif
