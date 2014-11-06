@@ -2910,6 +2910,19 @@ eHalStatus sme_setNeighborLookupRssiThreshold(tHalHandle hHal,
                                            v_U8_t neighborLookupRssiThreshold);
 
 /*--------------------------------------------------------------------------
+  \brief sme_set_delay_before_vdev_stop() - update delay before vdev stop
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
+  \return eHAL_STATUS_SUCCESS - SME update config successful.
+          Other status means SME is failed to update
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_set_delay_before_vdev_stop(tHalHandle hHal,
+                                         tANI_U8 sessionId,
+                                         v_U8_t delay_before_vdev_stop);
+
+/*--------------------------------------------------------------------------
   \brief sme_setNeighborReassocRssiThreshold() - update neighbor reassoc rssi threshold
   This is a synchronous call
   \param hHal - The handle returned by macOpen.

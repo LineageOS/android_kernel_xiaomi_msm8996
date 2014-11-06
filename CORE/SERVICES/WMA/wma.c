@@ -8567,6 +8567,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                 wma_handle->vos_context);
     u_int32_t mode = 0;
+    struct wma_txrx_node *intr = NULL;
 
     WMA_LOGI("%s: command 0x%x, reason %d", __func__, roam_req->Command,
                                             roam_req->StartScanReason);
@@ -8586,6 +8587,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     }
     switch (roam_req->Command) {
         case ROAM_SCAN_OFFLOAD_START:
+            intr = &wma_handle->interfaces[roam_req->sessionId];
+            intr->delay_before_vdev_stop = roam_req->delay_before_vdev_stop;
             /*
              * Scan/Roam threshold parameters are translated from fields of tSirRoamOffloadScanReq
              * to WMITLV values sent to Rome firmware.
@@ -14354,8 +14357,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	struct wma_target_req *msg;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	u_int8_t peer_id;
-	u_int8_t max_wait_iterations = WMA_TX_Q_RECHECK_TIMER_MAX_WAIT /
-					WMA_TX_Q_RECHECK_TIMER_WAIT;
+	u_int8_t max_wait_iterations = 0;
 	ol_txrx_vdev_handle txrx_vdev = NULL;
 	v_BOOL_t roam_synch_in_progress = VOS_FALSE;
 
@@ -14426,10 +14428,15 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	WMA_LOGW(FL("Outstanding msdu packets: %d"),
 		 ol_txrx_get_tx_pending(pdev));
 
+	max_wait_iterations =
+		wma->interfaces[params->smesessionId].delay_before_vdev_stop /
+						WMA_TX_Q_RECHECK_TIMER_WAIT;
+
 	while ( ol_txrx_get_tx_pending(pdev) && max_wait_iterations )
 	{
+                WMA_LOGW(FL("Waiting for outstanding packet to drain."));
 		vos_wait_single_event(&wma->tx_queue_empty_event,
-				      WMA_TX_Q_RECHECK_TIMER_MAX_WAIT);
+				      WMA_TX_Q_RECHECK_TIMER_WAIT);
 		max_wait_iterations--;
 	}
 

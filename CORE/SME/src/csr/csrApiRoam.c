@@ -1650,6 +1650,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.cbChoice = pParam->cbChoice;
         pMac->roam.configParam.bgScanInterval = pParam->bgScanInterval;
         pMac->roam.configParam.disableAggWithBtc = pParam->disableAggWithBtc;
+
+        pMac->roam.configParam.neighborRoamConfig.delay_before_vdev_stop =
+            pParam->neighborRoamConfig.delay_before_vdev_stop;
+
         //if HDD passed down non zero values then only update,
         //otherwise keep using the defaults
         if (pParam->nInitialDwellTime)
@@ -16602,6 +16606,8 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pMac->roam.roamSession[sessionId].connectedProfile.mcEncryptionType;
     pRequestBuf->LookupThreshold =
             (v_S7_t)pNeighborRoamInfo->cfgParams.neighborLookupThreshold * (-1);
+    pRequestBuf->delay_before_vdev_stop =
+            pNeighborRoamInfo->cfgParams.delay_before_vdev_stop;
     pRequestBuf->OpportunisticScanThresholdDiff =
             pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
     pRequestBuf->RoamRescanRssiDiff =

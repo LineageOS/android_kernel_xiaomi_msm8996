@@ -9984,6 +9984,39 @@ eHalStatus sme_setNeighborLookupRssiThreshold
 }
 
 /*--------------------------------------------------------------------------
+  \brief sme_set_delay_before_vdev_stop() - update delay before VDEV_STOP
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session Identifier
+  \return eHAL_STATUS_SUCCESS - SME update config successful.
+          Other status means SME is failed to update
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_set_delay_before_vdev_stop(tHalHandle hHal,
+                                          tANI_U8    sessionId,
+                                          v_U8_t     delay_before_vdev_stop)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus     status  = eHAL_STATUS_SUCCESS;
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if (HAL_STATUS_SUCCESS(status))
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME,
+                 VOS_TRACE_LEVEL_DEBUG,
+                 FL("LFR param delay_before_vdev_stop changed from %d to %d"),
+              pMac->roam.configParam.neighborRoamConfig.delay_before_vdev_stop,
+              delay_before_vdev_stop);
+
+       pMac->roam.neighborRoamInfo[sessionId].cfgParams.delay_before_vdev_stop =
+                                                         delay_before_vdev_stop;
+       pMac->roam.configParam.neighborRoamConfig.delay_before_vdev_stop =
+                                                         delay_before_vdev_stop;
+       sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return eHAL_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
   \brief sme_setNeighborReassocRssiThreshold() - update neighbor reassoc rssi threshold
   This is a synchronous call
   \param hHal - The handle returned by macOpen.

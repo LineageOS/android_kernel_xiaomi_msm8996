@@ -203,6 +203,16 @@ cbNotifySetNeighborLookupRssiThreshold(hdd_context_t *pHddCtx,
 }
 
 static void
+cb_notify_set_delay_before_vdev_stop(hdd_context_t *pHddCtx,
+                                     unsigned long NotifyId)
+{
+    /* At the point this routine is called, the value in the cfg_ini
+       table has already been updated */
+    sme_set_delay_before_vdev_stop(pHddCtx->hHal, 0,
+                                   pHddCtx->cfg_ini->delay_before_vdev_stop);
+}
+
+static void
 cbNotifySetNeighborScanPeriod(hdd_context_t *pHddCtx, unsigned long NotifyId)
 {
     /* At the point this routine is called, the value in the cfg_ini
@@ -1582,6 +1592,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                          CFG_ROAMING_DFS_CHANNEL_MIN,
                          CFG_ROAMING_DFS_CHANNEL_MAX,
                          cbNotifySetDFSScanMode, 0),
+
+   REG_DYNAMIC_VARIABLE( CFG_DELAY_BEFORE_VDEV_STOP_NAME, WLAN_PARAM_Integer,
+                      hdd_config_t, delay_before_vdev_stop,
+                      VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                      CFG_DELAY_BEFORE_VDEV_STOP_DEFAULT,
+                      CFG_DELAY_BEFORE_VDEV_STOP_MIN,
+                      CFG_DELAY_BEFORE_VDEV_STOP_MAX,
+                      cb_notify_set_delay_before_vdev_stop, 0 ),
 
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
@@ -5633,6 +5651,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
    smeConfig->csrConfig.neighborRoamConfig.nNeighborReassocRssiThreshold = pConfig->nNeighborReassocRssiThreshold;
    smeConfig->csrConfig.neighborRoamConfig.nNeighborLookupRssiThreshold = pConfig->nNeighborLookupRssiThreshold;
+   smeConfig->csrConfig.neighborRoamConfig.delay_before_vdev_stop =
+                                           pConfig->delay_before_vdev_stop;
+
    smeConfig->csrConfig.neighborRoamConfig.nOpportunisticThresholdDiff =
        pConfig->nOpportunisticThresholdDiff;
    smeConfig->csrConfig.neighborRoamConfig.nRoamRescanRssiDiff =

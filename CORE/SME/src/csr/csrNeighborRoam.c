@@ -5304,6 +5304,8 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId)
     pNeighborRoamInfo->cfgParams.minChannelScanTime = pMac->roam.configParam.neighborRoamConfig.nNeighborScanMinChanTime;
     pNeighborRoamInfo->cfgParams.maxNeighborRetries = 0;
     pNeighborRoamInfo->cfgParams.neighborLookupThreshold = pMac->roam.configParam.neighborRoamConfig.nNeighborLookupRssiThreshold;
+    pNeighborRoamInfo->cfgParams.delay_before_vdev_stop =
+        pMac->roam.configParam.neighborRoamConfig.delay_before_vdev_stop;
     pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff =
         pMac->roam.configParam.neighborRoamConfig.nOpportunisticThresholdDiff;
     pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff =
