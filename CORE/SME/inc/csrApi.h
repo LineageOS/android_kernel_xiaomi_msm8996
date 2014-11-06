@@ -1045,6 +1045,7 @@ typedef struct tagCsrNeighborRoamConfigParams
     tANI_U8        nRoamBmissFirstBcnt;
     tANI_U8        nRoamBmissFinalBcnt;
     tANI_U8        nRoamBeaconRssiWeight;
+    tANI_U8        delay_before_vdev_stop;
 }tCsrNeighborRoamConfigParams;
 #endif
 
@@ -1549,6 +1550,13 @@ typedef struct tagCsrEseBeaconReq
     tCsrEseBeaconReqParams bcnReq[SIR_ESE_MAX_MEAS_IE_REQS];
 } tCsrEseBeaconReq, *tpCsrEseBeaconReq;
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+
+struct tagCsrDelStaParams
+{
+    tCsrBssid peerMacAddr;
+    u16 reason_code;
+    u8 subtype;
+};
 
 ////////////////////////////////////////////Common SCAN starts
 

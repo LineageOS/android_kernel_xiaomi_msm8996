@@ -1024,6 +1024,11 @@ typedef enum
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MAX       (120)
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (78)
 
+#define CFG_DELAY_BEFORE_VDEV_STOP_NAME      "gDelayBeforeVdevStop"
+#define CFG_DELAY_BEFORE_VDEV_STOP_MIN       (2)
+#define CFG_DELAY_BEFORE_VDEV_STOP_MAX       (200)
+#define CFG_DELAY_BEFORE_VDEV_STOP_DEFAULT   (20)
+
 /*
  * This parameter is the drop in RSSI value that will trigger a precautionary
  * scan by firmware.
@@ -2675,6 +2680,7 @@ typedef struct
    v_U16_t       nNeighborScanPeriod;
    v_U8_t        nNeighborReassocRssiThreshold;
    v_U8_t        nNeighborLookupRssiThreshold;
+   v_U8_t        delay_before_vdev_stop;
    v_U8_t        nOpportunisticThresholdDiff;
    v_U8_t        nRoamRescanRssiDiff;
    v_U8_t        neighborScanChanList[WNI_CFG_VALID_CHANNEL_LIST_LEN];

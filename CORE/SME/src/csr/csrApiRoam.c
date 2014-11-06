@@ -1650,6 +1650,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.cbChoice = pParam->cbChoice;
         pMac->roam.configParam.bgScanInterval = pParam->bgScanInterval;
         pMac->roam.configParam.disableAggWithBtc = pParam->disableAggWithBtc;
+
+        pMac->roam.configParam.neighborRoamConfig.delay_before_vdev_stop =
+            pParam->neighborRoamConfig.delay_before_vdev_stop;
+
         //if HDD passed down non zero values then only update,
         //otherwise keep using the defaults
         if (pParam->nInitialDwellTime)
@@ -2911,14 +2915,12 @@ eHalStatus csrRoamIssueDisassociateStaCmd( tpAniSirGlobal pMac,
     \fn csrRoamIssueDeauthSta
     \brief csr function that HDD calls to delete a associated station
     \param sessionId    - session Id for Soft AP
-    \param pPeerMacAddr - MAC of associated station to delete
-    \param reason - reason code, be one of the tSirMacReasonCodes
+    \param pDelStaParams- Pointer to parameters of the station to deauthenticate
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus csrRoamIssueDeauthStaCmd( tpAniSirGlobal pMac,
                                      tANI_U32 sessionId,
-                                     tANI_U8 *pPeerMacAddr,
-                                     tANI_U32 reason)
+                                     struct tagCsrDelStaParams *pDelStaParams)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSmeCmd *pCommand;
@@ -2935,8 +2937,10 @@ eHalStatus csrRoamIssueDeauthStaCmd( tpAniSirGlobal pMac,
         pCommand->command = eSmeCommandRoam;
         pCommand->sessionId = (tANI_U8)sessionId;
         pCommand->u.roamCmd.roamReason = eCsrForcedDeauthSta;
-        vos_mem_copy(pCommand->u.roamCmd.peerMac, pPeerMacAddr, 6);
-        pCommand->u.roamCmd.reason = (tSirMacReasonCodes)reason;
+        vos_mem_copy(pCommand->u.roamCmd.peerMac, pDelStaParams->peerMacAddr,
+                     sizeof(tSirMacAddr));
+        pCommand->u.roamCmd.reason =
+                    (tSirMacReasonCodes)pDelStaParams->reason_code;
         status = csrQueueSmeCommand(pMac, pCommand, eANI_BOOLEAN_FALSE);
         if( !HAL_STATUS_SUCCESS( status ) )
         {
@@ -11688,10 +11692,12 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
     //Figure what the other side's CB mode
     if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != ChannelBondingMode)
     {
-        if(pIes->HTCaps.present && (eHT_CHANNEL_WIDTH_40MHZ == pIes->HTCaps.supportedChannelWidthSet))
+        if(pIes->HTCaps.present && (eHT_CHANNEL_WIDTH_40MHZ ==
+                              pIes->HTCaps.supportedChannelWidthSet))
         {
             // Check set as TKIP or not.
-            if ((NULL != &(pIes->RSN.pwise_cipher_suites[0][0]) &&
+            if (((NULL != &(pIes->RSN.pwise_cipher_suites[0][0]) &&
+                 (pIes->RSN.pwise_cipher_suite_count == 1)) &&
                !memcmp( &(pIes->RSN.pwise_cipher_suites[0][0]),
                                         "\x00\x0f\xac\x02" ,4))
                || (((NULL != &(pIes->WPA)) &&
@@ -16600,6 +16606,8 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pMac->roam.roamSession[sessionId].connectedProfile.mcEncryptionType;
     pRequestBuf->LookupThreshold =
             (v_S7_t)pNeighborRoamInfo->cfgParams.neighborLookupThreshold * (-1);
+    pRequestBuf->delay_before_vdev_stop =
+            pNeighborRoamInfo->cfgParams.delay_before_vdev_stop;
     pRequestBuf->OpportunisticScanThresholdDiff =
             pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
     pRequestBuf->RoamRescanRssiDiff =
@@ -18150,12 +18158,12 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
  * Channel Change Req for SAP
  */
 eHalStatus
-csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
-                          tANI_U8 targetChannel, tANI_U8 cbMode )
+csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
+                        tANI_U8 targetChannel, tANI_U8 cbMode,
+                        tANI_U8 vhtChannelWidth )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirChanChangeRequest *pMsg;
-    tANI_U32 vhtChannelWidth;
 
     pMsg = vos_mem_malloc( sizeof(tSirChanChangeRequest) );
     if (!pMsg)
@@ -18164,13 +18172,6 @@ csrRoamChannelChangeReq( tpAniSirGlobal pMac, tCsrBssid bssid,
     }
 
     vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
-
-    /*
-     * We are getting channel width from sapDfsInfor structure
-     * because we've implemented channel width fallback mechanism for DFS
-     * which will result in channel width changing dynamically.
-     */
-    vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
 
 #ifdef WLAN_FEATURE_11AC
     // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3

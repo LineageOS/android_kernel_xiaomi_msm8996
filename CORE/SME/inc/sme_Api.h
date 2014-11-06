@@ -749,11 +749,11 @@ eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pP
     \brief To disassociate a station. This is an asynchronous API.
     \param hHal - Global structure
     \param sessionId - sessionId of SoftAP
-    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \param pDelStaParams- Pointer to parameters of the station to deauthenticate
     \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results
   -------------------------------------------------------------------------------*/
 eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
-                                tANI_U8 *pPeerMacAddr);
+                             struct tagCsrDelStaParams *pDelStaParams);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamTKIPCounterMeasures
@@ -2910,6 +2910,19 @@ eHalStatus sme_setNeighborLookupRssiThreshold(tHalHandle hHal,
                                            v_U8_t neighborLookupRssiThreshold);
 
 /*--------------------------------------------------------------------------
+  \brief sme_set_delay_before_vdev_stop() - update delay before vdev stop
+  This is a synchronous call
+  \param hHal - The handle returned by macOpen.
+  \param  sessionId - Session identifier
+  \return eHAL_STATUS_SUCCESS - SME update config successful.
+          Other status means SME is failed to update
+  \sa
+  --------------------------------------------------------------------------*/
+eHalStatus sme_set_delay_before_vdev_stop(tHalHandle hHal,
+                                         tANI_U8 sessionId,
+                                         v_U8_t delay_before_vdev_stop);
+
+/*--------------------------------------------------------------------------
   \brief sme_setNeighborReassocRssiThreshold() - update neighbor reassoc rssi threshold
   This is a synchronous call
   \param hHal - The handle returned by macOpen.
@@ -3462,7 +3475,8 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 /*
  * SME API to determine the channel bonding mode
  */
-VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 channel);
+VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
+                            tANI_U8 channel, tANI_U32 vhtChannelWidth);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /*--------------------------------------------------------------------------
@@ -3710,8 +3724,9 @@ eHalStatus sme_set_auto_shutdown_cb(tHalHandle hHal,
 eHalStatus sme_set_auto_shutdown_timer(tHalHandle hHal, tANI_U32 timer_value);
 #endif
 
-eHalStatus sme_RoamChannelChangeReq( tHalHandle hHal, tCsrBssid bssid,
-                                tANI_U8 targetChannel, eCsrPhyMode phyMode );
+eHalStatus sme_RoamChannelChangeReq(tHalHandle hHal, tCsrBssid bssid,
+                                    tANI_U8 targetChannel, eCsrPhyMode phyMode,
+                                    tANI_U32 cbMode, tANI_U32 vhtChannelWidth);
 
 eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
                    tCsrBssid bssid, tANI_U8 dfsCacWaitStatus);
