@@ -9513,12 +9513,17 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
 int hdd_setBand_helper(struct net_device *dev, const char *command)
 {
     u8 band;
+    int ret;
 
-    /*convert the band value from ascii to integer*/
-    band = command[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0';
+    /* Convert the band value from ascii to integer */
+    command += WLAN_HDD_UI_SET_BAND_VALUE_OFFSET;
+    ret = kstrtou8(command, 10, &band);
+    if (ret < 0) {
+        hddLog(LOGE, FL("kstrtou8 failed"));
+        return -EINVAL;
+    }
 
     return hdd_setBand(dev, band);
-
 }
 
 static int iw_set_band_config(struct net_device *dev,
