@@ -365,11 +365,10 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	/* Wakeup logger thread */
 	if ((true == wake_up_thread)) {
 		/* If there is logger app registered wakeup the logging
-                 * thread Else broadcast a Ready Indication message,
-                 * apps which are waiting on this message can
-                 * register for the logs.
-                 */
-                wake_up_interruptible(&gwlan_logging.wait_queue);
+		 * thread
+		 */
+		if (gapp_pid != INVALID_PID)
+			wake_up_interruptible(&gwlan_logging.wait_queue);
 	}
 
 	if ((gapp_pid != INVALID_PID)
@@ -501,11 +500,6 @@ static int wlan_logging_thread(void *Arg)
 		if (gwlan_logging.exit) {
 			pr_err("%s: Exiting the thread\n", __func__);
 			break;
-		}
-
-		if (INVALID_PID == gapp_pid) {
-                        wlan_logging_srv_nl_ready_indication();
-			continue;
 		}
 
 		ret = send_filled_buffers_to_user();
