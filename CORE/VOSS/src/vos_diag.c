@@ -143,14 +143,6 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
         return;
     }
 
-#ifdef WLAN_KD_READY_NOTIFIER
-    /* NL is not ready yet, WLAN KO started first */
-    if ((pHddCtx->kd_nl_init) && (!pHddCtx->ptt_pid))
-    {
-        nl_srv_nl_ready_indication();
-    }
-#endif /* WLAN_KD_READY_NOTIFIER */
-
    /* Send the log data to the ptt app only if it is registered with the wlan driver*/
     if(pHddCtx->ptt_pid)
     {
@@ -182,12 +174,13 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
 
         memcpy(pBuf, pHdr,data_len);
 
-        if(pHddCtx->ptt_pid)
+        if(pHddCtx->ptt_pid != INVALID_PID)
         {
             if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pHddCtx->ptt_pid) < 0) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                           ("Ptt Socket error sending message to the app!!"));
                 vos_mem_free((v_VOID_t *)wmsg);
+                pHddCtx->ptt_pid = INVALID_PID;
                 return;
             }
 
@@ -226,16 +219,8 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
      /*Get the Hdd Context */
     pHddCtx = ((VosContextType*)(pVosContext))->pHDDContext;
 
-#ifdef WLAN_KD_READY_NOTIFIER
-    /* NL is not ready yet, WLAN KO started first */
-    if ((pHddCtx->kd_nl_init) && (!pHddCtx->ptt_pid))
-    {
-        nl_srv_nl_ready_indication();
-    }
-#endif /* WLAN_KD_READY_NOTIFIER */
-
     /* Send the log data to the ptt app only if it is registered with the wlan driver*/
-    if(pHddCtx->ptt_pid)
+    if(pHddCtx->ptt_pid != INVALID_PID)
     {
         total_len = sizeof(tAniHdr)+sizeof(event_report_t)+length;
 
@@ -265,6 +250,7 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        ("Ptt Socket error sending message to the app!!"));
             vos_mem_free((v_VOID_t*)wmsg);
+            pHddCtx->ptt_pid = INVALID_PID;
             return;
         }
 
