@@ -5533,6 +5533,7 @@ typedef struct
     tANI_U32 dhcpSrvOffloadEnabled;
     tANI_U32 dhcpClientNum;
     tANI_U32 dhcpSrvIP;
+    tANI_U32 dhcp_client_start_ip;
 } tSirDhcpSrvOffloadInfo, *tpSirDhcpSrvOffloadInfo;
 #endif /* DHCP_SERVER_OFFLOAD */
 

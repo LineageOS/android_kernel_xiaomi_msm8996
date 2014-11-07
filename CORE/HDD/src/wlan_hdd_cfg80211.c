@@ -5745,6 +5745,8 @@ static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
     pDhcpSrvInfo->vdev_id = pHostapdAdapter->sessionId;
     pDhcpSrvInfo->dhcpSrvOffloadEnabled = TRUE;
     pDhcpSrvInfo->dhcpClientNum = pHddCtx->cfg_ini->dhcpMaxNumClients;
+    pDhcpSrvInfo->dhcp_client_start_ip =
+                           pHddCtx->cfg_ini->dhcp_client_start_ip;
 
     hdd_string_to_u8_array(pHddCtx->cfg_ini->dhcpServerIP,
                            srv_ip,

@@ -3371,6 +3371,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MIN,
                  CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX ),
 
+   REG_VARIABLE( CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_NAME,
+                 WLAN_PARAM_Integer, hdd_config_t, dhcp_client_start_ip,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_DEFAULT,
+                 CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_MIN,
+                 CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_MAX ),
+
    REG_VARIABLE_STRING( CFG_DHCP_SERVER_IP_NAME, WLAN_PARAM_String,
                  hdd_config_t, dhcpServerIP,
                  VAR_FLAGS_OPTIONAL,
@@ -4002,6 +4009,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gDHCPMaxNumClients] Value = [%u]",
                    pHddCtx->cfg_ini->dhcpMaxNumClients);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gDHCPClientStartIP] Value = [%u]",
+                   pHddCtx->cfg_ini->dhcp_client_start_ip);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gDHCPServerIP] Value = [%s]",
                    pHddCtx->cfg_ini->dhcpServerIP);

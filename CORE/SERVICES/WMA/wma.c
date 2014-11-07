@@ -22149,7 +22149,7 @@ static int wma_process_dhcpserver_offload(tp_wma_handle wma_handle,
 	cmd->enable = pDhcpSrvOffloadInfo->dhcpSrvOffloadEnabled;
 	cmd->num_client = pDhcpSrvOffloadInfo->dhcpClientNum;
 	cmd->srv_ipv4 = pDhcpSrvOffloadInfo->dhcpSrvIP;
-	cmd->start_lsb = 0;
+	cmd->start_lsb = pDhcpSrvOffloadInfo->dhcp_client_start_ip;
 	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 			sizeof(*cmd), WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 	if (err) {
