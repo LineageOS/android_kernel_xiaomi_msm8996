@@ -4661,6 +4661,7 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 #ifdef WLAN_FEATURE_11AC
     switch (new_phymode) {
     case IEEE80211_MODE_11AC_VHT20:
+        chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
         vhtchanwidth = eHT_CHANNEL_WIDTH_20MHZ;
         break;
     case IEEE80211_MODE_11AC_VHT40:
@@ -4739,6 +4740,15 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                        "%s: could not update config_dat", __func__ );
             return -EIO;
         }
+
+        if (phddctx->cfg_ini->nChannelBondingMode5GHz)
+            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+                                              IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+        else
+            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap &=
+                                              ~IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+
+
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, ("New_Phymode= %d "
             "ch_bonding=%d band=%d VHT_ch_width=%u"),
             phymode, chwidth, curr_band, vhtchanwidth);
