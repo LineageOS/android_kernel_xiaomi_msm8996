@@ -11592,7 +11592,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    int i;
    struct wiphy *wiphy;
    unsigned long rc;
-   adf_os_device_t adf_ctx;
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -11685,20 +11684,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
-   /* Initialize the adf_ctx handle */
-   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
-
-   if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx", __func__);
-      goto err_config;
-   }
-   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
-   hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* store target type and target version info in hdd ctx */
    pHddCtx->target_type = ((struct ol_softc *)hif_sc)->target_type;
-   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 
    pHddCtx->current_intf_count=0;
    pHddCtx->max_intf_count = CSR_ROAM_SESSION_MAX;
@@ -11747,7 +11736,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,
                  "%s: wlan_hdd_cfg80211_init return failure", __func__);
-          goto err_free_adf_context;
+          goto err_config;
       }
    }
 
@@ -11971,7 +11960,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_free_adf_context;
+          goto err_config;
       }
 #if  defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
@@ -12433,10 +12422,6 @@ err_free_ftm_open:
 #endif
 }
 
-err_free_adf_context:
-   hif_deinit_adf_ctx(hif_sc);
-   vos_mem_free(adf_ctx);
-
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -12590,6 +12575,7 @@ static int hdd_driver_init( void)
 #define HDD_WLAN_START_WAIT_TIME VOS_WDA_TIMEOUT + 5000
 
    init_completion(&wlan_start_comp);
+
    ret_status = hif_register_driver();
    if (!ret_status) {
        rc = wait_for_completion_timeout(
@@ -12691,7 +12677,6 @@ static void hdd_driver_exit(void)
 {
    hdd_context_t *pHddCtx = NULL;
    int retry = 0;
-   adf_os_device_t adf_ctx;
    v_CONTEXT_t pVosContext = NULL;
 
    pr_info("%s: unloading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
@@ -12742,13 +12727,6 @@ static void hdd_driver_exit(void)
    vos_wait_for_work_thread_completion(__func__);
 
    hif_unregister_driver();
-
-   /*
-    * ADF context cannot be freed in hdd_wlan_exit for discrete
-    * as it is needed in PCI remove. So free it here.
-    */
-   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
-   vos_mem_free(adf_ctx);
 
    vos_preClose( &pVosContext );
 
