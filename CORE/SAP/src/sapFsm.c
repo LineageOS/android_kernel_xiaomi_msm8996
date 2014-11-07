@@ -2159,7 +2159,7 @@ sapGotoChannelSel
                         "SoftAP Configuring for default channel, Ch= %d",
                         sapContext->channel);
                     /* In case of error, switch to default channel */
-                    sapContext->channel = SAP_DEFAULT_CHANNEL;
+                    sapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
 
 #ifdef SOFTAP_CHANNEL_RANGE
                     if(sapContext->channelList != NULL)

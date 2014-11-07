@@ -815,12 +815,12 @@ sap_ReleaseGlobalLock( ptSapContext  pSapCtx );
 	PARAMETERS
 
 	IN
-	NULL
+	Pointer to sap context
 
 	RETURN VALUE
 	NULL
 ============================================================================*/
-void sapUpdateUnsafeChannelList(void);
+void sapUpdateUnsafeChannelList(ptSapContext pSapCtx);
 #endif /* FEATURE_WLAN_CH_AVOID */
 
 /*---------------------------------------------------------------------------
