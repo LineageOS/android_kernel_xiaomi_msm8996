@@ -1285,19 +1285,6 @@ wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
                                          WIFI_FEATURE_P2P;
 
-    if (feature_sets >= WLAN_HDD_MAX_FEATURE_SET) goto max_buffer_err;
-    feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
-                                         WIFI_FEATURE_SOFT_AP;
-
-    if (feature_sets >= WLAN_HDD_MAX_FEATURE_SET) goto max_buffer_err;
-    feature_set_matrix[feature_sets++] = WIFI_FEATURE_P2P |
-                                         WIFI_FEATURE_SOFT_AP;
-
-    if (feature_sets >= WLAN_HDD_MAX_FEATURE_SET) goto max_buffer_err;
-    feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
-                                         WIFI_FEATURE_SOFT_AP |
-                                         WIFI_FEATURE_P2P;
-
     /* Add more feature combinations here */
 
     feature_sets = VOS_MIN(feature_sets, max_feature_sets);
