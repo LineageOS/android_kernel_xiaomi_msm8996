@@ -175,6 +175,8 @@ enum qca_nl80211_vendor_subcmds {
     /* Get Concurrency Matrix */
     QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX = 42,
     QCA_NL80211_VENDOR_SUBCMD_APFIND = 52,
+
+    QCA_NL80211_VENDOR_SUBCMD_DO_ACS = 54,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -216,6 +218,8 @@ enum qca_nl80211_vendor_subcmds_index {
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
     /* EXT TDLS */
     QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE_CHANGE_INDEX,
+    /* ACS OBSS Coex*/
+    QCA_NL80211_VENDOR_SUBCMD_DO_ACS_INDEX,
 };
 
 /* EXT TDLS */
@@ -889,6 +893,26 @@ typedef struct sHddAvoidFreqList
 } tHddAvoidFreqList;
 #endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
+enum qca_wlan_vendor_attr_acs_offload {
+       QCA_WLAN_VENDOR_ATTR_ACS_CHANNEL_INVALID = 0,
+       QCA_WLAN_VENDOR_ATTR_ACS_PRIMARY_CHANNEL,
+       QCA_WLAN_VENDOR_ATTR_ACS_SECONDARY_CHANNEL,
+       QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE,
+       QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED,
+       QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED,
+       /* keep last */
+       QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST,
+       QCA_WLAN_VENDOR_ATTR_ACS_MAX =
+       QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST - 1
+};
+
+enum qca_wlan_vendor_acs_hw_mode {
+        QCA_ACS_MODE_IEEE80211B,
+        QCA_ACS_MODE_IEEE80211G,
+        QCA_ACS_MODE_IEEE80211A,
+        QCA_ACS_MODE_IEEE80211AD,
+};
+
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
                                       );
@@ -991,4 +1015,6 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
 int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                                    struct cfg80211_wowlan *wow);
 
+void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_context_t *pHddCtx,
+                                        v_U8_t priChannel, v_U8_t secChannel);
 #endif

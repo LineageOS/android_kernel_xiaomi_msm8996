@@ -767,6 +767,8 @@ struct hdd_ap_ctx_s
 
    v_U8_t   operatingChannel;
 
+   v_U8_t   secondaryChannel;
+
    v_BOOL_t uIsAuthenticated;
 
    eCsrEncryptionType ucEncryptType;
