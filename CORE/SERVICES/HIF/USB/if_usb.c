@@ -71,6 +71,7 @@ static wait_queue_head_t hif_usb_unload_event_wq;
 static atomic_t hif_usb_unload_state;
 struct hif_usb_softc *usb_sc = NULL;
 static int hif_usb_resume(struct usb_interface *interface);
+static atomic_t hif_usb_hdd_remove;
 
 static int
 hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
@@ -256,16 +257,20 @@ static void hif_usb_remove(struct usb_interface *interface)
 			   HIF_USB_UNLOAD_STATE_TARGET_RESET);
 	scn = sc->ol_sc;
 
-	if (usb_sc->hdd_removed == 0) {
-		usb_sc->hdd_removed_processing = 1;
+	if (atomic_read(&hif_usb_hdd_remove) == 0) {
+		atomic_set(&hif_usb_hdd_remove, 1);
+
+		if (usb_sc->hdd_removed == 0) {
+			usb_sc->hdd_removed = 1;
+			usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-	if (vos_get_conparam() != VOS_FTM_MODE &&
-		!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-		pktlogmod_exit(scn);
+			if (vos_get_conparam() != VOS_FTM_MODE &&
+				!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+				pktlogmod_exit(scn);
 #endif
-		__hdd_wlan_exit();
-		usb_sc->hdd_removed_processing = 0;
-		usb_sc->hdd_removed = 1;
+			__hdd_wlan_exit();
+			usb_sc->hdd_removed_processing = 0;
+		}
 	}
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
@@ -461,6 +466,7 @@ int hif_register_driver(void)
 	is_usb_driver_register = 1;
 	init_waitqueue_head(&hif_usb_unload_event_wq);
 	atomic_set(&hif_usb_unload_state, HIF_USB_UNLOAD_STATE_NULL);
+	atomic_set(&hif_usb_hdd_remove, 0);
 	usb_register_notify(&hif_usb_dev_nb);
 	return usb_register(&hif_usb_drv_id);
 }
@@ -486,16 +492,20 @@ void hif_unregister_driver(void)
 				usb_sc->local_state.event = 0;
 			}
 
-			if (usb_sc->hdd_removed == 0) {
-				usb_sc->hdd_removed_processing = 1;
+			if (atomic_read(&hif_usb_hdd_remove) == 0) {
+				atomic_set(&hif_usb_hdd_remove, 1);
+
+				if (usb_sc->hdd_removed == 0) {
+					usb_sc->hdd_removed = 1;
+					usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-	            if (vos_get_conparam() != VOS_FTM_MODE &&
-		            !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-					pktlogmod_exit(usb_sc->ol_sc);
+					if (vos_get_conparam() != VOS_FTM_MODE &&
+						!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+						pktlogmod_exit(usb_sc->ol_sc);
 #endif
-				__hdd_wlan_exit();
-				usb_sc->hdd_removed_processing = 0;
-				usb_sc->hdd_removed = 1;
+					__hdd_wlan_exit();
+					usb_sc->hdd_removed_processing = 0;
+				}
 			}
 		}
 		is_usb_driver_register = 0;
