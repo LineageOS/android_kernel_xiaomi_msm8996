@@ -632,8 +632,7 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
             if(!(IS_2X2_CHAIN(psessionEntry->chainMask)))
             {
                 pDot11f->supportedMCSSet[1] = 0;
-                if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
-                {
+                if (LIM_IS_STA_ROLE(psessionEntry)) {
                     pDot11f->mimoPowerSave = psessionEntry->smpsMode;
                 }
             }
@@ -1118,18 +1117,21 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         pHTInfoField1->recommendedTxWidthSet      = psessionEntry->htRecommendedTxWidthSet;
     }
 
-    if((psessionEntry) && (psessionEntry->limSystemRole == eLIM_AP_ROLE)){
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
+    if (psessionEntry && LIM_IS_AP_ROLE(psessionEntry)) {
+        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
-    uHTInfoField2.nCfgValue16 = nCfgValue & 0xFFFF; // this is added for fixing CRs on MDM9K platform - 257951, 259577
+        /* This is added for fixing CRs on MDM9K platform - 257951, 259577 */
+        uHTInfoField2.nCfgValue16 = nCfgValue & 0xFFFF;
 
-    uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
-    uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->beaconParams.llnNonGFCoexist;
-    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->beaconParams.gHTObssMode;   /*added for Obss  */
+        uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
+        uHTInfoField2.infoField2.nonGFDevicesPresent =
+                                    psessionEntry->beaconParams.llnNonGFCoexist;
+        /* Added for Obss */
+        uHTInfoField2.infoField2.obssNonHTStaPresent =
+                                    psessionEntry->beaconParams.gHTObssMode;
 
-    uHTInfoField2.infoField2.reserved = 0;
-
-   }else{
+        uHTInfoField2.infoField2.reserved = 0;
+    } else {
         CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
         htInfoField2 = ( tANI_U16 ) nCfgValue;
@@ -1137,7 +1139,9 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         pHTInfoField2 = ( tSirMacHTInfoField2* ) &htInfoField2;
         pHTInfoField2->opMode   = pMac->lim.gHTOperMode;
         pHTInfoField2->nonGFDevicesPresent = pMac->lim.gHTNonGFDevicesPresent;
-        pHTInfoField2->obssNonHTStaPresent = pMac->lim.gHTObssMode;   /*added for Obss  */
+
+        /* Added for Obss */
+        pHTInfoField2->obssNonHTStaPresent = pMac->lim.gHTObssMode;
 
         pHTInfoField2->reserved = 0;
     }
@@ -1191,8 +1195,7 @@ PopulateDot11fIBSSParams(tpAniSirGlobal       pMac,
        tDot11fIEIBSSParams *pDot11f, tpPESession psessionEntry)
 {
     tANI_U32  val = 0;
-    if ( eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole )
-    {
+    if (LIM_IS_IBSS_ROLE(psessionEntry)) {
         if(wlan_cfgGetInt(pMac,
                           WNI_CFG_IBSS_ATIM_WIN_SIZE, &val) != eSIR_SUCCESS)
         {
@@ -1566,21 +1569,12 @@ void PopulateDot11fWMM(tpAniSirGlobal      pMac,
 {
     if ( psessionEntry->limWmeEnabled )
     {
-        if ( eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole )
-        {
-            //if ( ! sirIsPropCapabilityEnabled( pMac, SIR_MAC_PROP_CAPABILITY_WME ) )
-            {
-                PopulateDot11fWMMInfoAp( pMac, pInfo, psessionEntry );
-            }
-        }
-        else
-        {
-            {
-                PopulateDot11fWMMParams( pMac, pParams, psessionEntry);
-            }
+        if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+            PopulateDot11fWMMInfoAp( pMac, pInfo, psessionEntry );
+        } else {
+            PopulateDot11fWMMParams( pMac, pParams, psessionEntry);
 
-           if ( psessionEntry->limWsmEnabled )
-            {
+            if (psessionEntry->limWsmEnabled) {
                 PopulateDot11fWMMCaps( pCaps );
             }
         }
@@ -1623,18 +1617,14 @@ void PopulateDot11fWMMInfoAp(tpAniSirGlobal pMac, tDot11fIEWMMInfoAp *pInfo,
     /* WMM Specification 3.1.3, 3.2.3
      * An IBSS staion shall always use its default WMM parameters.
      */
-    if ( eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole )
-    {
+    if (LIM_IS_IBSS_ROLE(psessionEntry)) {
         pInfo->param_set_count = 0;
         pInfo->uapsd = 0;
-    }
-    else
-    {
+    } else {
         pInfo->param_set_count = ( 0xf & psessionEntry->gLimEdcaParamSetCount );
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
+        if (LIM_IS_AP_ROLE(psessionEntry)) {
             pInfo->uapsd = ( 0x1 & psessionEntry->apUapsdEnable );
-        }
-        else
+        } else
             pInfo->uapsd = ( 0x1 & pMac->lim.gUapsdEnable );
     }
     pInfo->present = 1;
@@ -1682,7 +1672,7 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
 {
     pParams->version = SIR_MAC_OUI_VERSION_1;
 
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if (LIM_IS_AP_ROLE(psessionEntry))
        pParams->qosInfo =
            (psessionEntry->apUapsdEnable << 7) | ((tANI_U8)(0x0f & psessionEntry->gLimEdcaParamSetCount));
     else
@@ -1704,7 +1694,7 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acbk_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.max );
     pParams->acbk_txoplimit = psessionEntry->gLimEdcaParamsBC[1].txoplimit;
 
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+    if (LIM_IS_AP_ROLE(psessionEntry))
         pParams->acvi_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].aci.aifsn );
     else
         pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[2].aci.aifsn) );
@@ -1717,7 +1707,7 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acvi_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.max );
     pParams->acvi_txoplimit = psessionEntry->gLimEdcaParamsBC[2].txoplimit;
 
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+    if (LIM_IS_AP_ROLE(psessionEntry))
         pParams->acvo_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].aci.aifsn );
     else
         pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[3].aci.aifsn) );

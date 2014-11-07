@@ -3211,6 +3211,7 @@ typedef struct sSirWPSProbeRspIE {
 #define SIR_WPS_BEACON_SELECTEDREGISTRACFGMETHOD_PRESENT    0x00000020
 #define SIR_WPS_BEACON_UUIDE_PRESENT    0x00000080
 #define SIR_WPS_BEACON_RF_BANDS_PRESENT    0x00000100
+#define SIR_WPS_UUID_LEN 16
 
 typedef struct sSirWPSBeaconIE {
    v_U32_t  FieldPresent;
@@ -3220,7 +3221,7 @@ typedef struct sSirWPSBeaconIE {
    v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
    v_U16_t  DevicePasswordID;  // Device Password ID
    v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
-   v_U8_t   UUID_E[16];        // Unique identifier of the AP.
+   v_U8_t   UUID_E[SIR_WPS_UUID_LEN];   /* Unique identifier of the AP */
    v_U8_t   RFBand;           // RF bands available on the AP
 } tSirWPSBeaconIE;
 
@@ -3279,7 +3280,6 @@ typedef struct sSirSetHT2040Mode
 } tSirSetHT2040Mode, *tpSirSetHT2040Mode;
 #endif
 
-#define SIR_WPS_UUID_LEN 16
 #define SIR_WPS_PBC_WALK_TIME   120  // 120 Second
 
 typedef struct sSirWPSPBCSession {

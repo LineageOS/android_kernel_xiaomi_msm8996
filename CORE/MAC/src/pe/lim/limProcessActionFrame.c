@@ -626,8 +626,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
 
 
     PELOGW(limLog(pMac, LOGW, "Recv AddTs Response");)
-    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
         PELOGW(limLog(pMac, LOGW, FL("AddTsRsp recvd at AP: ignoring"));)
         return;
     }
@@ -933,8 +932,8 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         }
     }
 
-    if ((psessionEntry->limSystemRole != eLIM_AP_ROLE) &&
-        (psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
+    if (!LIM_IS_AP_ROLE(psessionEntry) &&
+        !LIM_IS_BT_AMP_AP_ROLE(psessionEntry))
         limSendSmeDeltsInd(pMac, &delts, aid,psessionEntry);
 
     // try to delete the TS
@@ -1886,8 +1885,7 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
     /* When a station, supplicant handles SA Query Response.
      * Forward to SME to HDD to wpa_supplicant.
      */
-    if (eLIM_STA_ROLE == psessionEntry->limSystemRole)
-    {
+    if (LIM_IS_STA_ROLE(psessionEntry)) {
         limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
                                frameLen + sizeof(tSirMacMgmtHdr), 0,
                                WDA_GET_RX_CH( pRxPacketInfo ),
@@ -1965,15 +1963,12 @@ limDropUnprotectedActionFrame (tpAniSirGlobal pMac, tpPESession psessionEntry,
     tpDphHashNode pStaDs;
     tANI_BOOLEAN rmfConnection = eANI_BOOLEAN_FALSE;
 
-    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
-        (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
         pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
         if (pStaDs != NULL)
             if (pStaDs->rmfEnabled)
                 rmfConnection = eANI_BOOLEAN_TRUE;
-    }
-    else if (psessionEntry->limRmfEnabled)
+    } else if (psessionEntry->limRmfEnabled)
         rmfConnection = eANI_BOOLEAN_TRUE;
 
     if (rmfConnection && (pHdr->fc.wep == 0))
@@ -2061,9 +2056,10 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             switch (pActionHdr->actionID)
             {
                 case SIR_MAC_ACTION_CHANNEL_SWITCH_ID:
-                    if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
-                    {
-                        __limProcessChannelSwitchActionFrame(pMac, pRxPacketInfo,psessionEntry);
+                    if (LIM_IS_STA_ROLE(psessionEntry)) {
+                        __limProcessChannelSwitchActionFrame(pMac,
+                                                             pRxPacketInfo,
+                                                             psessionEntry);
                     }
                     break;
                 default:
@@ -2133,7 +2129,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         /** Type of HT Action to be performed*/
         switch(pActionHdr->actionID) {
         case SIR_MAC_SM_POWER_SAVE:
-            if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) )
+            if (LIM_IS_AP_ROLE(psessionEntry))
                 __limProcessSMPowerSaveUpdate(pMac, (tANI_U8 *) pRxPacketInfo,psessionEntry);
             break;
         default:
@@ -2225,12 +2221,11 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
 
               //Check if it is a vendor specific action frame.
-              if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) &&
+              if (LIM_IS_STA_ROLE(psessionEntry) &&
                   (VOS_TRUE == vos_mem_compare(psessionEntry->selfMacAddr,
                     &pHdr->da[0], sizeof(tSirMacAddr))) &&
                     IS_WES_MODE_ENABLED(pMac) &&
-                    vos_mem_compare(pVendorSpecific->Oui, Oui, 3))
-              {
+                    vos_mem_compare(pVendorSpecific->Oui, Oui, 3)) {
                   PELOGE( limLog( pMac, LOGW, FL("Received Vendor specific action frame, OUI %x %x %x"),
                          pVendorSpecific->Oui[0], pVendorSpecific->Oui[1], pVendorSpecific->Oui[2]);)
                  /* Forward to the SME to HDD to wpa_supplicant */
@@ -2248,7 +2243,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                                         IS_WES_MODE_ENABLED(pMac),
                                         pVendorSpecific->Oui[0], pVendorSpecific->Oui[1],
                                         pVendorSpecific->Oui[2],
-                                        psessionEntry->limSystemRole );
+                                        GET_LIM_SYSTEM_ROLE(psessionEntry));
               }
            }
            break;

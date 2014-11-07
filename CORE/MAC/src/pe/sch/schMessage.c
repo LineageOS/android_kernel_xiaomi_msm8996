@@ -162,7 +162,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
             {
                 case WNI_CFG_BEACON_INTERVAL:
                     // What to do for IBSS ?? - TBD
-                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+                    if (LIM_IS_AP_ROLE(psessionEntry))
                         schSetBeaconInterval(pMac,psessionEntry);
                     break;
 
@@ -187,7 +187,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACBE_LOCAL:
                 case WNI_CFG_EDCA_WME_ACVI_LOCAL:
                 case WNI_CFG_EDCA_WME_ACVO_LOCAL:
-                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+                    if (LIM_IS_AP_ROLE(psessionEntry))
                         schQosUpdateLocal(pMac, psessionEntry);
                     break;
 
@@ -199,8 +199,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACBE:
                 case WNI_CFG_EDCA_WME_ACVI:
                 case WNI_CFG_EDCA_WME_ACVO:
-                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-                    {
+                    if (LIM_IS_AP_ROLE(psessionEntry)) {
                         psessionEntry->gLimEdcaParamSetCount++;
                         schQosUpdateBroadcast(pMac, psessionEntry);
                     }
@@ -559,8 +558,7 @@ getWmmLocalParams(tpAniSirGlobal  pMac,  tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK
 void
 schEdcaProfileUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE || psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry)) {
         schQosUpdateLocal(pMac, psessionEntry);
         psessionEntry->gLimEdcaParamSetCount++;
         schQosUpdateBroadcast(pMac, psessionEntry);

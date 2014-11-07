@@ -1101,13 +1101,12 @@ tSirRetStatus pePostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
 tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 {
-   if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-   {
+   if (ANI_DRIVER_TYPE(pMac) == eDRIVER_TYPE_MFG) {
       return eSIR_SUCCESS;
    }
    /**
-    *   If the Message to be handled is for CFG Module call the CFG Msg Handler and
-    *   for all the other cases post it to LIM
+    * If the Message to be handled is for CFG Module call the CFG Msg Handler
+    * and for all the other cases post it to LIM
     */
     if ( SIR_CFG_PARAM_UPDATE_IND != pMsg->type && IS_CFG_MSG(pMsg->type))
         cfgProcessMbMsg(pMac, (tSirMbMsg*)pMsg->bodyptr);
@@ -2045,7 +2044,7 @@ void limRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
        return;
      }
      /* Nothing to be done if the session is not in STA mode */
-     if (eLIM_STA_ROLE != psessionEntry->limSystemRole) {
+     if (!LIM_IS_STA_ROLE(psessionEntry)) {
         PELOGE(limLog(pMac, LOGE, FL("psessionEntry is not in STA mode"));)
         return;
      }
@@ -2284,9 +2283,8 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     {
         pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
         psessionEntry = peFindSessionByBssid(pMac, pHdr->bssId, &sessionId);
-        if ((psessionEntry &&
-                    psessionEntry->limSystemRole != eLIM_STA_IN_IBSS_ROLE) ||
-                (!psessionEntry))
+        if ((psessionEntry && !LIM_IS_IBSS_ROLE(psessionEntry)) ||
+            (!psessionEntry))
             return eMGMT_DROP_NO_DROP;
 
         //Drop the Probe Request in IBSS mode, if STA did not send out the last beacon

@@ -266,8 +266,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     offset = sizeof( tAniBeaconStruct );
     ptr    = psessionEntry->pSchBeaconFrameBegin + offset;
 
-    if((psessionEntry->limSystemRole == eLIM_AP_ROLE))
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         /* Initialize the default IE bitmap to zero */
         vos_mem_set(( tANI_U8* )&(psessionEntry->DefProbeRspIeBitmap), (sizeof( tANI_U32 ) * 8), 0);
 
@@ -324,10 +323,9 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
       PopulateDot11fTPCReport( pMac, &pBcn2->TPCReport, psessionEntry);
 
       /* Need to insert channel switch announcement here */
-      if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ||
-           psessionEntry->limSystemRole == eLIM_P2P_DEVICE_GO) &&
-           psessionEntry->dfsIncludeChanSwIe == VOS_TRUE)
-      {
+      if ((LIM_IS_AP_ROLE(psessionEntry) ||
+           LIM_IS_P2P_DEVICE_GO(psessionEntry)) &&
+           psessionEntry->dfsIncludeChanSwIe == VOS_TRUE) {
          /* Channel switch announcement only if radar is detected
           * and SAP has instructed to announce channel switch IEs
           * in beacon and probe responses
@@ -394,8 +392,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     {
         PopulateDot11fWMM( pMac, &pBcn2->WMMInfoAp, &pBcn2->WMMParams, &pBcn2->WMMCaps, psessionEntry);
     }
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         if(psessionEntry->wps_state != SAP_WPS_DISABLED)
         {
             PopulateDot11fBeaconWPSIEs( pMac, &pBcn2->WscBeacon, psessionEntry);
@@ -426,8 +423,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         }
     }
 
-    if((psessionEntry->limSystemRole == eLIM_AP_ROLE))
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
         /* Can be efficiently updated whenever new IE added  in Probe response in future */
         limUpdateProbeRspTemplateIeBitmapBeacon2(pMac,pBcn2,&psessionEntry->DefProbeRspIeBitmap[0],
                                                 &psessionEntry->probeRespFrame);
@@ -815,35 +811,36 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         goto end;
     }
 
-    switch(psessionEntry->limSystemRole){
-
+    switch(GET_LIM_SYSTEM_ROLE(psessionEntry)) {
     case eLIM_STA_IN_IBSS_ROLE:
     case eLIM_BT_AMP_AP_ROLE:
     case eLIM_BT_AMP_STA_ROLE:
-        // generate IBSS parameter set
+        /* Generate IBSS parameter set */
         if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
-            writeBeaconToMemory(pMac, (tANI_U16) beaconSize, (tANI_U16)beaconSize, psessionEntry);
-    else
-        PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry"));)
+            writeBeaconToMemory(pMac, (tANI_U16) beaconSize,
+                               (tANI_U16)beaconSize, psessionEntry);
+        else
+            PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry"));)
         break;
 
-    case eLIM_AP_ROLE:{
+    case eLIM_AP_ROLE: {
          tANI_U8 *ptr = &psessionEntry->pSchBeaconFrameBegin[psessionEntry->schBeaconOffsetBegin];
          tANI_U16 timLength = 0;
-         if(psessionEntry->statypeForBss == STA_ENTRY_SELF){
-             pmmGenerateTIM(pMac, &ptr, &timLength, psessionEntry->dtimPeriod);
-         beaconSize += 2 + timLength;
-         writeBeaconToMemory(pMac, (tANI_U16) beaconSize, (tANI_U16)beaconSize, psessionEntry);
-     }
-     else
-         PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry"));)
-         }
-     break;
 
+         if (psessionEntry->statypeForBss == STA_ENTRY_SELF) {
+             pmmGenerateTIM(pMac, &ptr, &timLength, psessionEntry->dtimPeriod);
+             beaconSize += 2 + timLength;
+             writeBeaconToMemory(pMac, (tANI_U16) beaconSize,
+                                (tANI_U16)beaconSize, psessionEntry);
+         } else
+             PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry"));)
+         }
+         break;
 
     default:
-        PELOGE(schLog(pMac, LOGE, FL("Error-PE has Receive PreBeconGenIndication when System is in %d role"),
-               psessionEntry->limSystemRole);)
+        PELOGE(schLog(pMac, LOGE,
+               FL("Error-PE has Receive PreBeconGenIndication when System is in %d role"),
+               GET_LIM_SYSTEM_ROLE(psessionEntry));)
     }
 
 end:

@@ -184,9 +184,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         }
     }
 
-    if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_BT_AMP_AP_ROLE(psessionEntry)) {
         switch (reasonCode)
         {
             case eSIR_MAC_UNSPEC_FAILURE_REASON:
@@ -208,14 +206,12 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
                        reasonCode, MAC_ADDR_ARRAY(pHdr->sa));)
                 break;
         }
-    }
-    else if (  ((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-                (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&
+    } else if ((LIM_IS_STA_ROLE(psessionEntry) ||
+              LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) &&
                ((psessionEntry->limSmeState != eLIM_SME_WT_JOIN_STATE) &&
                 (psessionEntry->limSmeState != eLIM_SME_WT_AUTH_STATE)  &&
                 (psessionEntry->limSmeState != eLIM_SME_WT_ASSOC_STATE)  &&
-                (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE) ))
-    {
+                (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE))) {
         switch (reasonCode)
         {
             case eSIR_MAC_UNSPEC_FAILURE_REASON:
@@ -262,7 +258,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         limLog(pMac, LOGE,
                FL("received Disassoc frame with invalid reasonCode %d in role "
                "%d in sme state %d from "MAC_ADDRESS_STR), reasonCode,
-               psessionEntry->limSystemRole, psessionEntry->limSmeState,
+               GET_LIM_SYSTEM_ROLE(psessionEntry), psessionEntry->limSmeState,
                MAC_ADDR_ARRAY(pHdr->sa));
 
         return;

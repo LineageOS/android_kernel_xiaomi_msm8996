@@ -289,12 +289,9 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   // Fill in tSendbeaconParams members
   vos_mem_copy(beaconParams->bssId, psessionEntry->bssId, sizeof(psessionEntry->bssId));
 
-  if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole)
-  {
+  if (LIM_IS_IBSS_ROLE(psessionEntry)) {
       beaconParams->timIeOffset = 0;
-  }
-  else
-  {
+  } else {
       beaconParams->timIeOffset = psessionEntry->schBeaconOffsetBegin;
   }
 
@@ -348,9 +345,8 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
     schLog( pMac, LOG2,
         FL("Successfully posted WDA_SEND_BEACON_REQ to HAL"));
 
-    if( (psessionEntry->limSystemRole == eLIM_AP_ROLE )
-        && (pMac->sch.schObject.fBeaconChanged))
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) &&
+        pMac->sch.schObject.fBeaconChanged) {
         if(eSIR_SUCCESS != (retCode = limSendProbeRspTemplateToHal(pMac,psessionEntry,
                                     &psessionEntry->DefProbeRspIeBitmap[0])))
         {

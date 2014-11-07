@@ -894,9 +894,9 @@ static HTC_SEND_QUEUE_RESULT HTCTrySend(HTC_TARGET       *target,
 
     }
 
-    UNLOCK_HTC_TX(target);
         /* done with this endpoint, we can clear the count */
     adf_os_atomic_init(&pEndpoint->TxProcessCount);
+    UNLOCK_HTC_TX(target);
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND,("-HTCTrySend:  \n"));
 

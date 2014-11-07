@@ -221,9 +221,9 @@ static inline tSirRFBand limGetRFBand(tANI_U8 channel)
 static inline tSirRetStatus
 limGetMgmtStaid(tpAniSirGlobal pMac, tANI_U16 *staid, tpPESession psessionEntry)
 {
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if (LIM_IS_AP_ROLE(psessionEntry))
         *staid = 1;
-    else if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
+    else if (LIM_IS_STA_ROLE(psessionEntry))
         *staid = 0;
     else
         return eSIR_FAILURE;
