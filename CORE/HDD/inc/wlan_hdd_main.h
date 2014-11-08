@@ -1478,6 +1478,10 @@ struct hdd_context_s
     adf_os_work_t  sta_ap_intf_check_work;
 #endif
 
+    struct work_struct  sap_start_work;
+    bool is_sap_restart_required;
+    spinlock_t sap_update_info_lock;
+
     v_U8_t dev_dfs_cac_status;
 
     v_BOOL_t btCoexModeSet;
@@ -1722,4 +1726,15 @@ void wlan_hdd_disable_roaming(hdd_adapter_t *pAdapter);
 void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter);
 #endif
 int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command);
+VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
+                                              hdd_adapter_t *ap_adapter,
+                                              tCsrRoamProfile *roam_profile,
+                                              bool *concurrent_chnl_same);
+#ifdef WLAN_FEATURE_MBSSID
+void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter);
+void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter);
+#else
+static inline void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter) {}
+static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter) {}
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
