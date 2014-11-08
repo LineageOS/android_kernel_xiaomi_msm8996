@@ -11685,14 +11685,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
-#ifdef MEMORY_DEBUG
-   if (pHddCtx->cfg_ini->IsMemoryDebugSupportEnabled)
-      vos_mem_init();
-
-   hddLog(VOS_TRACE_LEVEL_INFO, "%s: gEnableMemoryDebug=%d",
-          __func__, pHddCtx->cfg_ini->IsMemoryDebugSupportEnabled);
-#endif
-
    /* Initialize the adf_ctx handle */
    adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
 
@@ -12573,6 +12565,10 @@ static int hdd_driver_init( void)
 
 #ifdef TIMER_MANAGER
       vos_timer_manager_init();
+#endif
+
+#ifdef MEMORY_DEBUG
+      vos_mem_init();
 #endif
 
       /* Preopen VOSS so that it is ready to start at least SAL */

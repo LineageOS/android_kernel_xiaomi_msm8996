@@ -3018,15 +3018,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_OVERRIDE_COUNTRY_CODE_DEFAULT),
 
-#ifdef MEMORY_DEBUG
-   REG_VARIABLE( CFG_ENABLE_MEMORY_DEBUG_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, IsMemoryDebugSupportEnabled,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_MEMORY_DEBUG_DEFAULT,
-                 CFG_ENABLE_MEMORY_DEBUG_MIN,
-                 CFG_ENABLE_MEMORY_DEBUG_MAX ),
-#endif
-
    REG_VARIABLE( CFG_DEBUG_P2P_REMAIN_ON_CHANNEL_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, debugP2pRemainOnChannel,
                  VAR_FLAGS_OPTIONAL,
