@@ -3151,6 +3151,113 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
    return (status);
 }
 
+/**
+ * sme_get_ap_channel_from_scan_cache() - a wrapper function to get AP's
+ *                                        channel id from CSR by filtering the
+ *                                        result which matches our roam profile.
+ * @profile: SAP adapter
+ * @ap_chnl_id: pointer to channel id of SAP. Fill the value after finding the
+ *              best ap from scan cache.
+ *
+ * This function is written to get AP's channel id from CSR by filtering
+ * the result which matches our roam profile. This is a synchronous call.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
+                                              tCsrRoamProfile *profile,
+                                              tANI_U8 *ap_chnl_id)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   tCsrScanResultFilter *scan_filter = NULL;
+   tScanResultHandle *filtered_scan_result = NULL;
+   tSirBssDescription first_ap_profile;
+
+   if (NULL == pMac) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("pMac is NULL"));
+       return VOS_STATUS_E_FAILURE;
+   }
+   filtered_scan_result = vos_mem_malloc(sizeof(tScanResultHandle));
+   if (NULL == filtered_scan_result) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("filtered_scan_result mem alloc failed"));
+      return VOS_STATUS_E_FAILURE;
+   }
+   scan_filter = vos_mem_malloc(sizeof(tCsrScanResultFilter));
+   if (NULL == scan_filter) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("scan_filter mem alloc failed"));
+       vos_mem_free(filtered_scan_result);
+       return VOS_STATUS_E_FAILURE;
+   } else {
+      vos_mem_set(filtered_scan_result, sizeof(tScanResultHandle), 0);
+      vos_mem_set(scan_filter, sizeof(tCsrScanResultFilter), 0);
+      vos_mem_set(&first_ap_profile, sizeof(tSirBssDescription), 0);
+
+      if (NULL == profile) {
+          scan_filter->EncryptionType.numEntries = 1;
+          scan_filter->EncryptionType.encryptionType[0]
+                              = eCSR_ENCRYPT_TYPE_NONE;
+      } else {
+          /* Here is the profile we need to connect to */
+          status = csrRoamPrepareFilterFromProfile(pMac, profile, scan_filter);
+      }
+
+      if (HAL_STATUS_SUCCESS(status)) {
+          /* Save the WPS info */
+          if(NULL != profile) {
+             scan_filter->bWPSAssociation = profile->bWPSAssociation;
+             scan_filter->bOSENAssociation = profile->bOSENAssociation;
+          } else {
+             scan_filter->bWPSAssociation = 0;
+             scan_filter->bOSENAssociation = 0;
+          }
+      } else {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    FL("Preparing the profile filter failed"));
+          vos_mem_free(filtered_scan_result);
+          vos_mem_free(scan_filter);
+          return VOS_STATUS_E_FAILURE;
+      }
+   }
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if (eHAL_STATUS_SUCCESS == status) {
+       status = csrScanGetResult(hHal, scan_filter, filtered_scan_result);
+       if (eHAL_STATUS_SUCCESS == status) {
+           csr_get_bssdescr_from_scan_handle(filtered_scan_result,
+                                             &first_ap_profile);
+           if (0 != first_ap_profile.channelId) {
+               *ap_chnl_id = first_ap_profile.channelId;
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          FL("Found best AP and it is on channel[%d]"),
+                          first_ap_profile.channelId);
+           } else {
+               /*
+                * This means scan result is empty
+                * so set the channel to zero, caller should
+                * take of zero channel id case.
+                */
+               *ap_chnl_id = 0;
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                         FL("Scan result is empty, setting channel to 0"));
+           }
+       } else {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    FL("Failed to get scan get result"));
+       }
+       sme_ReleaseGlobalLock( &pMac->sme );
+   } else {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    FL("Aquiring lock failed"));
+   }
+
+   vos_mem_free(filtered_scan_result);
+   vos_mem_free(scan_filter);
+
+   return VOS_STATUS_SUCCESS;
+}
 
 /* ---------------------------------------------------------------------------
     \fn sme_ScanFlushResult

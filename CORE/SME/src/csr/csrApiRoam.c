@@ -247,6 +247,7 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
 tListElem * csrRoamFindInPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask);
 eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac);
 static tANI_U32 csrFindIbssSession( tpAniSirGlobal pMac );
+static tANI_U32 csr_find_sap_session(tpAniSirGlobal pMac);
 static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pBssDesc );
 static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId );
 static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
@@ -1902,8 +1903,12 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->isRoamOffloadEnabled;
 #endif
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
-    }
+        pMac->roam.configParam.conc_custom_rule1 =
+                               pParam->conc_custom_rule1;
+        pMac->roam.configParam.is_sta_connection_in_5gz_enabled =
+                               pParam->is_sta_connection_in_5gz_enabled;
 
+    }
     return status;
 }
 
@@ -2053,6 +2058,10 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
         pParam->obssEnabled = pMac->roam.configParam.obssEnabled;
 
+        pParam->conc_custom_rule1 =
+                     pMac->roam.configParam.conc_custom_rule1;
+        pParam->is_sta_connection_in_5gz_enabled =
+                     pMac->roam.configParam.is_sta_connection_in_5gz_enabled;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -13109,6 +13118,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
     tANI_U32 ucDot11Mode = 0;
     tANI_U8 txBFCsnValue = 0;
+    tANI_U32 sap_sessionId;
+    tCsrRoamSession *sap_session;
 
     if(!pSession)
     {
@@ -13761,9 +13772,53 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         csrPrepareJoinReassocReqBuffer( pMac, pBssDescription, pBuf,
                 (tANI_U8)pProfile->uapsd_mask);
 
+        /*
+         * conc_custom_rule1:
+         * If SAP comes up first and STA comes up later then SAP
+         * need to follow STA's channel. In following if condition
+         * we are adding sanity check, just to make sure that if this rule
+         * is enabled then don't allow STA to connect on 5gz channel and also
+         * by this time SAP's channel should be the same as STA's channel.
+         */
+        if (pMac->roam.configParam.conc_custom_rule1) {
+            if ((0 == pMac->roam.configParam.is_sta_connection_in_5gz_enabled)
+                 && CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId)) {
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          FL("STA connection on 5G band is not allowed"));
+                status = eHAL_STATUS_FAILURE;
+                break;
+            }
+            if (!CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId)) {
+                sap_sessionId = csr_find_sap_session(pMac);
+                if (CSR_SESSION_ID_INVALID != sap_sessionId) {
+                    sap_session = CSR_GET_SESSION( pMac, sessionId );
+                    if(!sap_session) {
+                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                 FL("session %d not found"), sap_sessionId);
+                       status = eHAL_STATUS_FAILURE;
+                       break;
+                    }
+                    if ((0 != sap_session->pCurRoamProfile->operationChannel) &&
+                        (sap_session->pCurRoamProfile->operationChannel !=
+                         pBssDescription->channelId)) {
+
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          FL("Can't allow STA to connect, channels not same"));
+
+                        status = eHAL_STATUS_FAILURE;
+                        break;
+                    }
+                }
+            }
+        }
         status = palSendMBMessage(pMac->hHdd, pMsg );
         if(!HAL_STATUS_SUCCESS(status))
         {
+            /*
+             * palSendMBMessage would've released the memory allocated by pMsg.
+             * Let's make it defensive by assigning NULL to the pointer.
+             */
+            pMsg = NULL;
             break;
         }
         else
@@ -13785,6 +13840,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
 #endif
         }
     } while( 0 );
+
+    /* Clean up the memory in case of any failure */
+    if (!HAL_STATUS_SUCCESS(status) && (NULL != pMsg)) {
+        vos_mem_free(pMsg);
+    }
     return( status );
 }
 
@@ -18694,3 +18754,30 @@ void csrInitOperatingClasses(tHalHandle hHal)
     regdm_set_curr_opclasses(numClasses, &opClasses[0]);
 }
 
+/**
+ * csr_find_sap_session() - This function will find the AP sessions from all
+ *                          sessions.
+ * @mac_ctx: pointer to mac context.
+ *
+ * This function is written to find the sap session id.
+ *
+ * Return: sap session id.
+ */
+static tANI_U32 csr_find_sap_session(tpAniSirGlobal mac_ctx)
+{
+    tANI_U32 i, session_id = CSR_SESSION_ID_INVALID;
+    tCsrRoamSession *session_ptr;
+    for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
+         if (CSR_IS_SESSION_VALID( mac_ctx, i)){
+             session_ptr = CSR_GET_SESSION(mac_ctx, i);
+             if (session_ptr->pCurRoamProfile &&
+                 (eCSR_BSS_TYPE_INFRA_AP ==
+                         session_ptr->connectedProfile.BSSType)) {
+                 /* Found it */
+                 session_id = i;
+                 break;
+             }
+         }
+    }
+    return session_id;
+}

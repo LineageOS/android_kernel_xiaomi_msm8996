@@ -835,17 +835,32 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
                             VOS_STA_SAP_MODE)) &&
                        (pSession->connectState !=
                              eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
-                if (sap_ch  == 0) {
-                    sap_ch = pSession->connectedProfile.operationChannel;
-                    csrGetChFromHTProfile(pMac,
-                        &pSession->connectedProfile.HTProfile, sap_ch,
-                        &sap_cfreq, &sap_hbw);
-                } else if (sap_ch !=
+                /*
+                 * if conc_custom_rule1 is defined then we don't want p2pgo to
+                 * follow SAP's channel or SAP to follow P2PGO's channel.
+                 */
+                if (0 == pMac->roam.configParam.conc_custom_rule1) {
+                    if (sap_ch == 0) {
+                        sap_ch = pSession->connectedProfile.operationChannel;
+                        csrGetChFromHTProfile(pMac,
+                             &pSession->connectedProfile.HTProfile, sap_ch,
+                             &sap_cfreq, &sap_hbw);
+                    } else if (sap_ch !=
                                pSession->connectedProfile.operationChannel) {
-                    intf_ch = pSession->connectedProfile.operationChannel;
-                    csrGetChFromHTProfile(pMac,
-                               &pSession->connectedProfile.HTProfile, intf_ch,
-                                      &intf_cfreq, &intf_hbw);
+                        intf_ch = pSession->connectedProfile.operationChannel;
+                        csrGetChFromHTProfile(pMac,
+                             &pSession->connectedProfile.HTProfile, intf_ch,
+                             &intf_cfreq, &intf_hbw);
+                    }
+                } else {
+                    if (sap_ch == 0 &&
+                        (pSession->pCurRoamProfile->csrPersona ==
+                             VOS_STA_SAP_MODE)) {
+                        sap_ch = pSession->connectedProfile.operationChannel;
+                        csrGetChFromHTProfile(pMac,
+                             &pSession->connectedProfile.HTProfile, sap_ch,
+                             &sap_cfreq, &sap_hbw);
+                    }
                 }
             }
         }
@@ -2062,97 +2077,95 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                                  tVOS_CON_MODE currBssPersona)
 {
     tANI_U32 sessionId = 0;
+    tANI_U8 automotive_support_enable =
+        pMac->roam.configParam.conc_custom_rule1;
+    tVOS_CON_MODE bss_persona;
+    eCsrConnectState connect_state;
 
-    for (sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; sessionId++ )
-    {
-        if (cursessionId != sessionId )
-        {
-            if (!CSR_IS_SESSION_VALID( pMac, sessionId ))
-            {
-                continue;
-            }
+    for (sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; sessionId++) {
+         if (cursessionId != sessionId ) {
+             if (!CSR_IS_SESSION_VALID( pMac, sessionId )) {
+                 continue;
+             }
+             bss_persona =
+                 pMac->roam.roamSession[sessionId].bssParams.bssPersona;
+             connect_state =
+                 pMac->roam.roamSession[sessionId].connectState;
 
-            switch (currBssPersona)
-            {
-                case VOS_STA_MODE:
-                    smsLog(pMac, LOG1, FL(" **** STA session ****"));
-                    return eHAL_STATUS_SUCCESS;
+             switch (currBssPersona) {
 
-                case VOS_STA_SAP_MODE:
+             case VOS_STA_MODE:
+                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                               FL("** STA session **"));
+                     return eHAL_STATUS_SUCCESS;
+
+             case VOS_STA_SAP_MODE:
 #ifndef WLAN_FEATURE_MBSSID
-                    if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_STA_SAP_MODE)&&
-                       (pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
-                    {
-                        smsLog(pMac, LOGE, FL(" ****SoftAP mode already exists ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    else
+                     if ((bss_persona == VOS_STA_SAP_MODE) &&
+                         (connect_state !=
+                          eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                   FL("**SoftAP mode already exists **"));
+                         return eHAL_STATUS_FAILURE;
+                     }
+                     else
 #endif
-                        if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_P2P_GO_MODE &&
-                              pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) ||
-                             (pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_IBSS_MODE &&
-                              pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED))
-                    {
-                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    break;
+                     if (((bss_persona == VOS_P2P_GO_MODE) && (connect_state !=
+                                eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&
+                                (0 == automotive_support_enable)) ||
+                         ((bss_persona == VOS_IBSS_MODE) && (connect_state !=
+                                eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED))) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                   FL("Can't start multiple beaconing role"));
+                         return eHAL_STATUS_FAILURE;
+                     }
+                     break;
 
-                case VOS_P2P_GO_MODE:
-                    if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_P2P_GO_MODE) &&
-                       (pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
-                    {
-                        smsLog(pMac, LOGE, FL(" ****P2P GO mode already exists ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_STA_SAP_MODE &&
-                              pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) ||
-                             (pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_IBSS_MODE &&
-                              pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED) )
-                    {
-                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    break;
-                case VOS_IBSS_MODE:
-                    if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_IBSS_MODE) &&
-                       (pMac->roam.roamSession[sessionId].connectState
-                                      != eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED))
-                    {
-                        smsLog(pMac, LOGE, FL(" ****IBSS mode already exists ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    else if( (pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_P2P_GO_MODE ||
-                              pMac->roam.roamSession[sessionId].bssParams.bssPersona
-                                      == VOS_STA_SAP_MODE) &&
-                              pMac->roam.roamSession[sessionId].connectState
-                                     != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)
-                    {
-                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    break;
-                case VOS_P2P_CLIENT_MODE:
-                    smsLog(pMac, LOG1, FL(" **** P2P-Client session ****"));
-                    return eHAL_STATUS_SUCCESS;
-                default :
-                    smsLog(pMac, LOGE, FL("***Persona not handled = %d*****"),currBssPersona);
-                    break;
-            }
+             case VOS_P2P_GO_MODE:
+                     if ((bss_persona == VOS_P2P_GO_MODE) && (connect_state !=
+                                eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                FL(" ****P2P GO mode already exists ****"));
+                         return eHAL_STATUS_FAILURE;
+
+                     } else if (((bss_persona == VOS_STA_SAP_MODE) &&
+                                 (connect_state !=
+                                  eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&
+                                 (0 == automotive_support_enable)) ||
+                                ((bss_persona == VOS_IBSS_MODE) &&
+                                 (connect_state !=
+                                  eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED))) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                   FL("Can't start multiple beaconing role"));
+                         return eHAL_STATUS_FAILURE;
+                     }
+                     break;
+             case VOS_IBSS_MODE:
+                     if ((bss_persona == VOS_IBSS_MODE) &&
+                         (connect_state !=
+                                eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                FL(" ****IBSS mode already exists ****"));
+                         return eHAL_STATUS_FAILURE;
+                     } else if (((bss_persona == VOS_P2P_GO_MODE) ||
+                                 (bss_persona == VOS_STA_SAP_MODE)) &&
+                                (connect_state
+                                   != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                FL("**Cannot start Multiple Beaconing Role**"));
+                         return eHAL_STATUS_FAILURE;
+                     }
+                     break;
+             case VOS_P2P_CLIENT_MODE:
+                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                               FL("**P2P-Client session**"));
+                     return eHAL_STATUS_SUCCESS;
+             default :
+                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                               FL("**Persona not handled = %d**"),
+                               currBssPersona);
+                     break;
+             }
         }
     }
     return eHAL_STATUS_SUCCESS;
@@ -2379,6 +2392,9 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                             return eHAL_STATUS_FAILURE;
                         }
                     }
+                    break;
+
+                case VOS_STA_SAP_MODE :
                     break;
 
                 case VOS_P2P_GO_MODE :

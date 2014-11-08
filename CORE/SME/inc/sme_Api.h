@@ -568,7 +568,9 @@ eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tANI_U8 sessionId, tCsrBGSca
 eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultFilter *pFilter,
                             tScanResultHandle *phResult);
 
-
+VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
+                                              tCsrRoamProfile *profile,
+                                              tANI_U8 *ap_chnl_id);
 /* ---------------------------------------------------------------------------
     \fn sme_ScanFlushResult
     \brief a wrapper function to request CSR to clear scan results.
