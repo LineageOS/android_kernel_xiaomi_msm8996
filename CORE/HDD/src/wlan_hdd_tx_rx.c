@@ -36,6 +36,10 @@
 /*---------------------------------------------------------------------------
   Include files
   -------------------------------------------------------------------------*/
+
+/* Needs to be removed when completely root-caused */
+#define IPV6_MCAST_WAR 1
+
 #include <wlan_hdd_tx_rx.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_dp_utils.h>
@@ -43,6 +47,9 @@
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
+#ifdef IPV6_MCAST_WAR
+#include <linux/if_ether.h>
+#endif
 
 #include <wlan_hdd_p2p.h>
 #include <linux/wireless.h>
@@ -1632,6 +1639,26 @@ VOS_STATUS hdd_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
    return VOS_STATUS_SUCCESS;
 }
 
+#ifdef IPV6_MCAST_WAR
+/*
+ * Return TRUE if the packet is to be dropped
+ */
+static inline
+bool drop_ip6_mcast(struct sk_buff *skb)
+{
+    struct ethhdr *eth;
+
+    eth = eth_hdr(skb);
+    if (unlikely(skb->pkt_type == PACKET_MULTICAST)) {
+       if (unlikely(ether_addr_equal(eth->h_source, skb->dev->dev_addr)))
+            return true;
+    }
+    return false;
+}
+#else
+#define drop_ip6_mcast(_a) 0
+#endif
+
 
 
 /**============================================================================
@@ -1722,6 +1749,16 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 
    skb->dev = pAdapter->dev;
    skb->protocol = eth_type_trans(skb, skb->dev);
+
+   /* Check & drop mcast packets (for IPV6) as required */
+   if (drop_ip6_mcast(skb)) {
+         print_hex_dump_bytes("MAC Header", DUMP_PREFIX_NONE, skb_mac_header(skb), 16);
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
+         VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+            "%s: Dropping multicast to self NA", __func__);
+        kfree_skb(skb);
+        return VOS_STATUS_SUCCESS;
+   }
    ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
    ++pAdapter->stats.rx_packets;
    pAdapter->stats.rx_bytes += skb->len;

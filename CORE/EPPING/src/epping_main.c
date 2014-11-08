@@ -240,7 +240,6 @@ void epping_exit(v_CONTEXT_t pVosContext)
 void epping_driver_exit(v_CONTEXT_t pVosContext)
 {
    epping_context_t *pEpping_ctx;
-   adf_os_device_t adf_ctx;
 
    pr_info("%s: unloading driver\n", __func__);
 
@@ -260,12 +259,6 @@ void epping_driver_exit(v_CONTEXT_t pVosContext)
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    }
    hif_unregister_driver();
-   /*
-    * ADF context cannot be freed in hdd_wlan_exit for discrete
-    * as it is needed in PCI remove. So free it here.
-    */
-   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
-   vos_mem_free(adf_ctx);
    vos_preClose( &pVosContext );
 #ifdef MEMORY_DEBUG
    vos_mem_exit();
@@ -297,10 +290,10 @@ int epping_wlan_startup(struct device *parent_dev, v_VOID_t *hif_sc)
    int ret = 0;
    epping_context_t *pEpping_ctx = NULL;
    VosContextType *pVosContext = NULL;
-   adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
    struct ol_softc *scn;
    tSirMacAddr adapter_macAddr;
+   adf_os_device_t adf_ctx;
 
    EPPING_LOG(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Enter", __func__);
 
@@ -325,22 +318,10 @@ int epping_wlan_startup(struct device *parent_dev, v_VOID_t *hif_sc)
    pEpping_ctx->parent_dev = (void *)parent_dev;
    epping_get_dummy_mac_addr(adapter_macAddr);
 
-   /* Initialize the adf_ctx handle */
-   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
-
-   if (!adf_ctx) {
-      EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-                 "%s: Failed to allocate adf_ctx", __func__);
-      ret = -1;
-      return ret;
-   }
-   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
-   hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* store target type and target version info in hdd ctx */
    pEpping_ctx->target_type = ((struct ol_softc *)hif_sc)->target_type;
-   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 
    /* Initialize the timer module */
    vos_timer_module_init();

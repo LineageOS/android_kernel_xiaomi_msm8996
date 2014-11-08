@@ -2327,14 +2327,6 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_RA_RATE_LIMIT_INTERVAL_DEFAULT         (60)/*60 SEC*/
 #endif
 
-//Enable Memory Debug
-#ifdef MEMORY_DEBUG
-#define CFG_ENABLE_MEMORY_DEBUG_NAME             "gEnableMemoryDebug"
-#define CFG_ENABLE_MEMORY_DEBUG_MIN              (0)
-#define CFG_ENABLE_MEMORY_DEBUG_MAX              (1)
-#define CFG_ENABLE_MEMORY_DEBUG_DEFAULT          (1)
-#endif
-
 #define CFG_INITIAL_DWELL_TIME_NAME            "gInitialDwellTime"
 #define CFG_INITIAL_DWELL_TIME_DEFAULT         (0)
 #define CFG_INITIAL_DWELL_TIME_MIN             (0)
@@ -3048,9 +3040,6 @@ typedef struct
 
    v_U32_t                     defaultRateIndex24Ghz;
    char                        overrideCountryCode[4];
-#ifdef MEMORY_DEBUG
-   v_BOOL_t                    IsMemoryDebugSupportEnabled;
-#endif
 
    v_U8_t                      allowDFSChannelRoam;
 
