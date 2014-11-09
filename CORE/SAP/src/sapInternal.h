@@ -165,6 +165,7 @@ typedef struct sSapContext {
 
     // Include the current channel of AP
     v_U32_t             channel;
+    v_U32_t             secondary_ch;
 
     // Include the SME(CSR) sessionId here
     v_U8_t              sessionId;
@@ -325,6 +326,43 @@ typedef struct sWLAN_SAPEvent {
 ============================================================================*/
 eHalStatus
 WLANSAP_ScanCallback
+(
+  tHalHandle halHandle,
+  void *pContext,
+  v_U8_t sessionId,
+  v_U32_t scanID,
+  eCsrScanStatus scanStatus
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_PreStartBssAcsScanCallback()
+
+  DESCRIPTION
+    Callback for Scan (scan results) Events
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    tHalHandle:  the tHalHandle passed in with the scan request
+    *p2: the second context pass in for the caller, opaque sap Handle here
+    scanID:
+    sessionId: Session identifier
+    status: Status of scan -success, failure or abort
+
+  RETURN VALUE
+    The eHalStatus code associated with performing the operation
+
+    eHAL_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+============================================================================*/
+eHalStatus
+WLANSAP_PreStartBssAcsScanCallback
 (
   tHalHandle halHandle,
   void *pContext,
@@ -542,6 +580,38 @@ sapFsm
 (
     ptSapContext sapContext,    /* sapContext value */
     ptWLAN_SAPEvent sapEvent   /* State machine event */
+);
+
+/*==========================================================================
+  FUNCTION    sapGotoChannelSel
+
+  DESCRIPTION
+    Function for initiating scan request for SME
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    sapContext  : Sap Context value
+    sapEvent    : State machine event/ NULL if no FSM event is required.
+    sapDoAcsPreStartBss: VOS_TRUE, if ACS scan is issued pre start BSS.
+                         VOS_FALSE, if ACS scan is issued post start BSS.
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS: Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+sapGotoChannelSel
+(
+    ptSapContext sapContext,
+    ptWLAN_SAPEvent sapEvent,
+    v_BOOL_t sapDoAcsPreStartBss
 );
 
 /*==========================================================================
