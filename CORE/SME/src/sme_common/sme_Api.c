@@ -11749,6 +11749,61 @@ eHalStatus sme_HandoffRequest(tHalHandle hHal,
 
     return status ;
 }
+
+#ifdef IPA_UC_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_ipa_offload_enable_disable
+    \brief  API to enable/disable IPA offload
+    \param  hal - The handle returned by macOpen.
+    \param  session_id - Session Identifier
+    \param  request -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ipa_offload_enable_disable(tHalHandle hal, tANI_U8 session_id,
+                                struct sir_ipa_offload_enable_disable *request)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hal );
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    struct sir_ipa_offload_enable_disable *request_buf;
+    vos_msg_t msg;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        request_buf = vos_mem_malloc(sizeof(*request_buf));
+        if (NULL == request_buf)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+               "%s: Not able to allocate memory for IPA_OFFLOAD_ENABLE_DISABLE",
+               __func__);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILED_ALLOC;
+        }
+
+        request_buf->offload_type = request->offload_type;
+        request_buf->vdev_id = request->vdev_id;
+        request_buf->enable = request->enable;
+
+        msg.type     = WDA_IPA_OFFLOAD_ENABLE_DISABLE;
+        msg.reserved = 0;
+        msg.bodyptr  = request_buf;
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+               "%s: Not able to post WDA_IPA_OFFLOAD_ENABLE_DISABLE message \
+               to WDA", __func__);
+            vos_mem_free(request_buf);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif
+
 #endif
 
 /*

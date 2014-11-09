@@ -3383,6 +3383,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_MAC_ADDR_SPOOFING_DEFAULT,
                  CFG_ENABLE_MAC_ADDR_SPOOFING_MIN,
                  CFG_ENABLE_MAC_ADDR_SPOOFING_MAX ),
+#ifdef IPA_UC_STA_OFFLOAD
+   REG_VARIABLE( CFG_IPA_UC_STA_OFFLOAD, WLAN_PARAM_Integer,
+              hdd_config_t, ipa_uc_sta_offload,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_IPA_UC_STA_OFFLOAD_DEFAULT,
+              CFG_IPA_UC_STA_OFFLOAD_MIN,
+              CFG_IPA_UC_STA_OFFLOAD_MAX ),
+#endif
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3980,6 +3988,11 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gExtWoWApp2TcpRxTimeout] Value = [%u]",
                    pHddCtx->cfg_ini->extWowApp2TcpRxTimeout);
+#endif
+#ifdef IPA_UC_STA_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gIpaUcStaOffload] Value = [%u] ",
+                   pHddCtx->cfg_ini->ipa_uc_sta_offload);
 #endif
 
 #ifdef DHCP_SERVER_OFFLOAD

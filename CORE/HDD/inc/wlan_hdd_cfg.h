@@ -1394,6 +1394,13 @@ typedef enum
 #define CFG_SAP_SCC_CHAN_AVOIDANCE_DEFAULT ( 0 )
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 
+#ifdef IPA_UC_STA_OFFLOAD
+#define CFG_IPA_UC_STA_OFFLOAD             "gIpaUcStaOffload"
+#define CFG_IPA_UC_STA_OFFLOAD_MIN         ( 0 )
+#define CFG_IPA_UC_STA_OFFLOAD_MAX         ( 1 )
+#define CFG_IPA_UC_STA_OFFLOAD_DEFAULT     ( 0 )
+#endif /* IPA_UC_STA_OFFLOAD */
+
 /*
  * VOS Trace Enable Control
  * Notes:
@@ -3137,6 +3144,9 @@ typedef struct
    v_U8_t                      dhcpServerIP[IPADDR_STRING_LENGTH];
 #endif  /* DHCP_SERVER_OFFLOAD */
    bool                        enable_mac_spoofing;
+#ifdef IPA_UC_STA_OFFLOAD
+   bool                        ipa_uc_sta_offload;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

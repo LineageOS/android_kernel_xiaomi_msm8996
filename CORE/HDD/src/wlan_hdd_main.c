@@ -8511,7 +8511,7 @@ error_register_wext:
                    FL("Session is not opened within timeout period code %ld"),
                    rc);
       }
-}
+   }
 error_sme_open:
    return status;
 }
@@ -9596,6 +9596,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             pAdapter->ipv6_notifier_registered = false;
          }
 #endif
+
          /* It is possible that the caller of this function does not
           * wish to close the session
           */
