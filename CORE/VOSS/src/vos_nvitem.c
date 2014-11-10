@@ -692,17 +692,29 @@ static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
 
    if  (pHddCtx->cfg_ini->fRegChangeDefCountry) {
        regd = vos_custom_world_regdomain();
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+       wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+#else
        wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+#endif
    }
    else if (is_world_regd(reg->reg_domain))
    {
        regd = vos_world_regdomain(reg);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+       wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+#else
        wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+#endif
    }
    else
    {
        regd = vos_default_world_regdomain();
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+       wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
+#else
        wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
+#endif
    }
    wiphy_apply_custom_regulatory(wiphy, regd);
    vos_reg_apply_radar_flags(wiphy);
@@ -1371,8 +1383,11 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             if (0 == err)
 #endif
             {
-                if  (wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY) {
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+                if (wiphy->regulatory_flags & REGULATORY_CUSTOM_REG) {
+#else
+                if (wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY) {
+#endif
                     if (!(reg_rule->flags & NL80211_RRF_PASSIVE_SCAN))
                     {
                         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -1766,18 +1781,30 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
         /* default country is world roaming */
 
         reg_domain = REGDOMAIN_WORLD;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+        wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+#else
         wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+#endif
     }
     else if (REGDOMAIN_WORLD ==
 	     pnvEFSTable->halnv.tables.defaultCountryTable.regDomain) {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+        wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+#else
         wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+#endif
     }
     else {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+        wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
+#else
         wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
+#endif
     }
     m = 0;
     for (i = 0; i < IEEE80211_NUM_BANDS; i++)

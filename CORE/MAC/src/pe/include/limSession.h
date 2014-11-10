@@ -83,6 +83,7 @@ typedef struct tagComebackTimerInfo
 
 #define SCH_MAX_PROBE_RESP_SIZE 512
 
+#define SCH_PROTECTION_RESET_TIME 4000
 /*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
@@ -471,6 +472,14 @@ typedef struct sPESession           // Added to Support BT-AMP
     tComebackTimerInfo pmfComebackTimerInfo;
 #endif /* WLAN_FEATURE_11W */
     tANI_U8  isKeyInstalled;
+    /* timer for reseting protection fileds at regular intervals */
+    vos_timer_t protection_fields_reset_timer;
+    void *mac_ctx;
+    /*
+     * variable to store state of various protection struct like
+     * gLimOlbcParams, gLimOverlap11gParams, gLimOverlapHt20Params etc
+     */
+    tANI_U16 old_protection_state;
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

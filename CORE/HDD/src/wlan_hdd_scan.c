@@ -618,10 +618,26 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    v_U32_t scanId = 0;
    eHalStatus status = eHAL_STATUS_SUCCESS;
    struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
+   hdd_adapter_t *con_sap_adapter;
+   uint16_t con_dfs_ch;
 
    ENTER();
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
+
+    /* Block All Scan during DFS operation and send null scan result */
+    con_sap_adapter = hdd_get_con_sap_adapter(pAdapter);
+    if (con_sap_adapter) {
+        con_dfs_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
+        if (con_dfs_ch == AUTO_CHANNEL_SELECT)
+            con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+
+        if (VOS_IS_DFS_CH(con_dfs_ch)) {
+            hddLog(LOGW, "%s:##In DFS Master mode. Scan aborted", __func__);
+            return -EOPNOTSUPP;
+        }
+    }
+
 
    if(pAdapter->scan_info.mScanPending == TRUE)
    {
