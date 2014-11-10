@@ -3376,6 +3376,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  VAR_FLAGS_OPTIONAL,
                  (void *) CFG_DHCP_SERVER_IP_DEFAULT ),
 #endif /* DHCP_SERVER_OFFLOAD */
+
+   REG_VARIABLE( CFG_ENABLE_MAC_ADDR_SPOOFING, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_mac_spoofing,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_MAC_ADDR_SPOOFING_DEFAULT,
+                 CFG_ENABLE_MAC_ADDR_SPOOFING_MIN,
+                 CFG_ENABLE_MAC_ADDR_SPOOFING_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
