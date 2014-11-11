@@ -24364,6 +24364,66 @@ void wma_scan_completion_timeout(void *data)
         return;
 }
 
+#ifdef SAP_AUTH_OFFLOAD
+static int wma_sap_ofl_add_sta_handler(void *handle, u_int8_t *data,
+	u_int32_t data_len)
+{
+	tp_wma_handle wma = handle;
+	WMI_SAP_OFL_ADD_STA_EVENTID_param_tlvs *param_buf = NULL;
+	wmi_sap_ofl_add_sta_event_fixed_param *sta_add_event = NULL;
+	struct  sap_offload_add_sta_req *add_sta_req = NULL;
+	u_int8_t *buf_ptr;
+
+	param_buf = (WMI_SAP_OFL_ADD_STA_EVENTID_param_tlvs *)data;
+	sta_add_event = param_buf->fixed_param;
+	buf_ptr = (u_int8_t *)param_buf->bufp;
+
+	add_sta_req = vos_mem_malloc(sizeof(*add_sta_req));
+	if (!add_sta_req) {
+		WMA_LOGE("%s: Failed to alloc memory for sap_ofl_add_sta_event",
+			__func__);
+		return 0;
+	}
+
+	vos_mem_set(add_sta_req, sizeof(*add_sta_req), 0);
+	add_sta_req->assoc_id = sta_add_event->assoc_id;
+	add_sta_req->conn_req_len = sta_add_event->data_len;
+	vos_mem_copy(add_sta_req->conn_req, buf_ptr,
+		sta_add_event->data_len);
+
+	wma_send_msg(wma, WDA_SAP_OFL_ADD_STA, add_sta_req, 0);
+
+	return 1;
+}
+
+static int wma_sap_ofl_del_sta_handler(void *handle, u_int8_t *data,
+	u_int32_t data_len)
+{
+	tp_wma_handle wma = handle;
+	WMI_SAP_OFL_DEL_STA_EVENTID_param_tlvs *param_buf = NULL;
+	wmi_sap_ofl_del_sta_event_fixed_param *sta_del_event = NULL;
+	struct  sap_offload_del_sta_req *del_sta_req = NULL;
+
+	param_buf = (WMI_SAP_OFL_DEL_STA_EVENTID_param_tlvs *)data;
+	sta_del_event = param_buf->fixed_param;
+
+	del_sta_req = vos_mem_malloc(sizeof(*del_sta_req));
+	if (!del_sta_req) {
+		WMA_LOGE("%s: Failed to alloc memory for sap_ofl_del_sta_event",
+			__func__);
+		return 0;
+	}
+	vos_mem_set(del_sta_req, sizeof(*del_sta_req), 0);
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&sta_del_event->peer_macaddr,
+		del_sta_req->sta_mac);
+
+	del_sta_req->assoc_id = sta_del_event->assoc_id;
+	del_sta_req->reason_code = sta_del_event->reason;
+	wma_send_msg(wma, WDA_SAP_OFL_DEL_STA, del_sta_req, 0);
+	return 1;
+}
+#endif /* SAP_AUTH_OFFLOAD */
+
 /* function   : wma_start
  * Description :
  * Args       :
@@ -24565,6 +24625,31 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
+
+#ifdef SAP_AUTH_OFFLOAD
+	/* Initialize the station connect event handler for
+	 * software AP authentication offload feature.
+	 */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_SAP_OFL_ADD_STA_EVENTID,
+				wma_sap_ofl_add_sta_handler);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to register sap offload add_sta event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+	/* Initialize the station disconnect event handler for
+	 * software AP authentication offload feature.
+	 */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_SAP_OFL_DEL_STA_EVENTID,
+				wma_sap_ofl_del_sta_handler);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to register sap offload del_sta event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+#endif /* SAP_AUTH_OFFLOAD */
 
 end:
 	WMA_LOGD("%s: Exit", __func__);
