@@ -222,6 +222,12 @@
 #define HDD_MIN_TX_POWER (-100) // minimum tx power
 #define HDD_MAX_TX_POWER (+100)  // maximum tx power
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#ifdef CONFIG_CNSS
+#define cfg80211_vendor_cmd_reply(skb) cnss_vendor_cmd_reply(skb)
+#endif
+#endif
+
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*
@@ -1084,6 +1090,7 @@ struct hdd_adapter_s
     /* this need to be adapter struct since adapter type can be dyn changed */
     mbssid_sap_dyn_ini_config_t sap_dyn_ini_cfg;
 #endif
+    struct work_struct scan_block_work;
 #ifdef MSM_PLATFORM
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
@@ -1688,9 +1695,7 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len);
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
 
-#ifdef WLAN_FEATURE_MBSSID
 hdd_adapter_t *hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter);
-#endif
 
 boolean hdd_is_5g_supported(hdd_context_t * pHddCtx);
 

@@ -3332,7 +3332,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 				hdd_ipa->pending_hw_desc_cnt);
 
 		for (i = 0; hdd_ipa->pending_hw_desc_cnt != 0 && i < 10; i++) {
-			usleep(100);
+			usleep_range(100, 100);
 		}
 
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
