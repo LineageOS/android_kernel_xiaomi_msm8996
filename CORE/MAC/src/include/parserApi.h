@@ -858,3 +858,10 @@ PopulateDot11fWiderBWChanSwitchAnn(tpAniSirGlobal pMac,
 void PopulateDot11fTimeoutInterval( tpAniSirGlobal pMac,
                                     tDot11fIETimeoutInterval *pDot11f,
                                     tANI_U8 type, tANI_U32 value );
+
+#ifdef SAP_AUTH_OFFLOAD
+void
+sap_auth_offload_update_rsn_ie(tpAniSirGlobal pmac,
+                            tDot11fIERSNOpaque *pdot11f);
+#endif /* SAP_AUTH_OFFLOAD */
+

@@ -587,4 +587,12 @@ void lim_set_ht_caps(tpAniSirGlobal p_mac,
 			tpPESession p_session_entry,
 			tANI_U8 *p_ie_start,
 			tANI_U32 num_bytes);
+
+#ifdef SAP_AUTH_OFFLOAD
+void lim_sap_offload_add_sta(tpAniSirGlobal pmac,
+                            tpSirMsgQ lim_msgq);
+void lim_sap_offload_del_sta(tpAniSirGlobal pmac,
+                            tpSirMsgQ lim_msgq);
+#endif /* SAP_AUTH_OFFLOAD */
+
 #endif /* __LIM_UTILS_H */

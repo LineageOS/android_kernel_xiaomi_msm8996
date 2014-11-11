@@ -64,6 +64,10 @@
 #include "wniCfgAp.h"
 #endif
 
+#ifdef SAP_AUTH_OFFLOAD
+#include "limAssocUtils.h"
+#endif
+
 /* Static global used to mark situations where pMac->lim.gLimTriggerBackgroundScanDuringQuietBss is SET
  * and limTriggerBackgroundScanDuringQuietBss() returned failure.  In this case, we will stop data
  * traffic instead of going into scan.  The recover function limProcessQuietBssTimeout() needs to have
@@ -7520,3 +7524,430 @@ void lim_set_ht_caps(tpAniSirGlobal p_mac, tpPESession p_session_entry,
         p_ht_cap->txSoundingPPDUs = dot11_ht_cap.txSoundingPPDUs;
     }
 }
+
+#ifdef SAP_AUTH_OFFLOAD
+static tpDphHashNode
+_sap_offload_parse_assoc_req(tpAniSirGlobal pmac,
+                    tpSirAssocReq assoc_req,
+                    struct sap_offload_add_sta_req *add_sta_req)
+{
+    tpSirMacAssocReqFrame mac_assoc_req = NULL;
+    tpSirAssocReq temp_assoc_req;
+    tSirRetStatus status;
+    tpSirMacMgmtHdr mac_hdr = NULL;
+    tpDphHashNode sta_ds = NULL;
+    uint8_t *frame_body;
+
+    tpPESession session_entry = limIsApSessionActive(pmac);
+    mac_hdr = (tpSirMacMgmtHdr)add_sta_req->conn_req;
+
+    /* Update Attribute and Remove IE for
+     * Software AP Authentication Offload
+     */
+    frame_body = (tANI_U8 *)add_sta_req->conn_req + sizeof(*mac_hdr);
+    mac_assoc_req = (tpSirMacAssocReqFrame)frame_body;
+    mac_assoc_req->capabilityInfo.privacy = 0;
+
+    status = sirConvertAssocReqFrame2Struct(pmac,
+                                            frame_body,
+                                            add_sta_req->conn_req_len,
+                                            assoc_req);
+    if (status != eSIR_SUCCESS) {
+        limLog(pmac, LOGW, FL("sap_offload_add_sta_req parse error\n"));
+        goto error;
+    }
+    /* For software AP Auth Offload feature
+     * Host will take it as none security station
+     * Force change to none security
+     */
+    assoc_req->rsnPresent = 0;
+    assoc_req->wpaPresent = 0;
+
+    sta_ds = dphAddHashEntry(pmac,
+                             mac_hdr->sa,
+                             add_sta_req->assoc_id,
+                             &session_entry->dph.dphHashTable);
+    if (sta_ds == NULL) {
+        /* Could not add hash table entry at DPH */
+        limLog(pmac, LOGE,
+           FL("could not add hash entry at DPH for aid=%d, MacAddr:"
+               MAC_ADDRESS_STR),
+           add_sta_req->assoc_id,MAC_ADDR_ARRAY(mac_hdr->sa));
+        goto error;
+    }
+
+    if (session_entry->parsedAssocReq != NULL) {
+        temp_assoc_req = session_entry->parsedAssocReq[sta_ds->assocId];
+        if (temp_assoc_req != NULL) {
+            if (temp_assoc_req->assocReqFrame) {
+                vos_mem_free(temp_assoc_req->assocReqFrame);
+                temp_assoc_req->assocReqFrame = NULL;
+                temp_assoc_req->assocReqFrameLength = 0;
+            }
+            vos_mem_free(temp_assoc_req);
+            temp_assoc_req = NULL;
+        }
+        session_entry->parsedAssocReq[sta_ds->assocId] = assoc_req;
+    }
+error:
+    return sta_ds;
+}
+
+static void
+_sap_offload_parse_sta_capability(tpDphHashNode sta_ds,
+                        tpSirAssocReq assoc_req,
+                        struct sap_offload_add_sta_req *add_sta_req)
+{
+    tpSirMacMgmtHdr mac_hdr = NULL;
+
+    mac_hdr = (tpSirMacMgmtHdr)add_sta_req->conn_req;
+
+    sta_ds->mlmStaContext.htCapability = assoc_req->HTCaps.present;
+#ifdef WLAN_FEATURE_11AC
+    sta_ds->mlmStaContext.vhtCapability = assoc_req->VHTCaps.present;
+#endif
+    sta_ds->qos.addtsPresent = (assoc_req->addtsPresent==0) ? false : true;
+    sta_ds->qos.addts        = assoc_req->addtsReq;
+    sta_ds->qos.capability   = assoc_req->qosCapability;
+    sta_ds->versionPresent   = 0;
+    /* short slot and short preamble should be
+     * updated before doing limaddsta
+     */
+    sta_ds->shortPreambleEnabled =
+        (tANI_U8)assoc_req->capabilityInfo.shortPreamble;
+    sta_ds->shortSlotTimeEnabled =
+        (tANI_U8)assoc_req->capabilityInfo.shortSlotTime;
+
+    sta_ds->valid = 0;
+    /* The Auth Type of Software AP Authentication Offload
+     * is always Open System is host side
+     */
+    sta_ds->mlmStaContext.authType = eSIR_OPEN_SYSTEM;
+    sta_ds->staType = STA_ENTRY_PEER;
+
+    /* Re/Assoc Response frame to requesting STA */
+    sta_ds->mlmStaContext.subType = mac_hdr->fc.subType;
+
+    sta_ds->mlmStaContext.listenInterval = assoc_req->listenInterval;
+    sta_ds->mlmStaContext.capabilityInfo = assoc_req->capabilityInfo;
+
+    /* The following count will be used to knock-off the station
+     * if it doesn't come back to receive the buffered data.
+     * The AP will wait for numTimSent number of beacons after
+     * sending TIM information for the station, before assuming that
+     * the station is no more associated and disassociates it
+     */
+
+    /* timWaitCount is used by PMM for monitoring the STA's in PS for LINK*/
+    sta_ds->timWaitCount =
+        (tANI_U8)GET_TIM_WAIT_COUNT(assoc_req->listenInterval);
+
+    /* Initialise the Current successful
+     * MPDU's tranfered to this STA count as 0
+     */
+    sta_ds->curTxMpduCnt = 0;
+}
+
+static tSirRetStatus
+_sap_offload_parse_sta_vht(tpAniSirGlobal pmac,
+                        tpDphHashNode sta_ds,
+                        tpSirAssocReq assoc_req)
+{
+    tpPESession session_entry = limIsApSessionActive(pmac);
+
+    if (IS_DOT11_MODE_HT(session_entry->dot11mode) &&
+        assoc_req->HTCaps.present && assoc_req->wmeInfoPresent) {
+        sta_ds->htGreenfield = (tANI_U8)assoc_req->HTCaps.greenField;
+        sta_ds->htAMpduDensity = assoc_req->HTCaps.mpduDensity;
+        sta_ds->htDsssCckRate40MHzSupport =
+            (tANI_U8)assoc_req->HTCaps.dsssCckMode40MHz;
+        sta_ds->htLsigTXOPProtection =
+            (tANI_U8)assoc_req->HTCaps.lsigTXOPProtection;
+        sta_ds->htMaxAmsduLength =
+            (tANI_U8)assoc_req->HTCaps.maximalAMSDUsize;
+        sta_ds->htMaxRxAMpduFactor = assoc_req->HTCaps.maxRxAMPDUFactor;
+        sta_ds->htMIMOPSState = assoc_req->HTCaps.mimoPowerSave;
+        sta_ds->htShortGI20Mhz = (tANI_U8)assoc_req->HTCaps.shortGI20MHz;
+        sta_ds->htShortGI40Mhz = (tANI_U8)assoc_req->HTCaps.shortGI40MHz;
+        sta_ds->htSupportedChannelWidthSet =
+            (tANI_U8)assoc_req->HTCaps.supportedChannelWidthSet;
+        /* peer just follows AP; so when we are softAP/GO,
+         * we just store our session entry's secondary channel offset here
+         * in peer INFRA STA. However, if peer's 40MHz channel width support
+         * is disabled then secondary channel will be zero
+         */
+        sta_ds->htSecondaryChannelOffset =
+            (sta_ds->htSupportedChannelWidthSet) ?
+            session_entry->htSecondaryChannelOffset : 0;
+#ifdef WLAN_FEATURE_11AC
+        if (assoc_req->operMode.present) {
+            sta_ds->vhtSupportedChannelWidthSet =
+                (tANI_U8)((assoc_req->operMode.chanWidth ==
+                eHT_CHANNEL_WIDTH_80MHZ) ?
+                    WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ :
+                    WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ);
+            sta_ds->htSupportedChannelWidthSet =
+                (tANI_U8)(assoc_req->operMode.chanWidth ?
+                    eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ);
+        } else if (assoc_req->VHTCaps.present) {
+            /* Check if STA has enabled it's channel bonding mode.
+             * If channel bonding mode is enabled, we decide based on
+             * SAP's current configuration else, we set it to VHT20.
+             */
+            sta_ds->vhtSupportedChannelWidthSet =
+                (tANI_U8)((sta_ds->htSupportedChannelWidthSet ==
+                eHT_CHANNEL_WIDTH_20MHZ) ?
+                WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ :
+                session_entry->vhtTxChannelWidthSet );
+            sta_ds->htMaxRxAMpduFactor = assoc_req->VHTCaps.maxAMPDULenExp;
+        }
+
+        /* Lesser among the AP and STA bandwidth of operation. */
+        sta_ds->htSupportedChannelWidthSet =
+            (sta_ds->htSupportedChannelWidthSet <
+            session_entry->htSupportedChannelWidthSet) ?
+            sta_ds->htSupportedChannelWidthSet :
+            session_entry->htSupportedChannelWidthSet ;
+#endif
+        sta_ds->baPolicyFlag = 0xFF;
+        sta_ds->htLdpcCapable = (tANI_U8)assoc_req->HTCaps.advCodingCap;
+    }
+
+    if (assoc_req->VHTCaps.present && assoc_req->wmeInfoPresent) {
+        sta_ds->vhtLdpcCapable = (tANI_U8)assoc_req->VHTCaps.ldpcCodingCap;
+    }
+
+    if (!assoc_req->wmeInfoPresent) {
+        sta_ds->mlmStaContext.htCapability = 0;
+#ifdef WLAN_FEATURE_11AC
+        sta_ds->mlmStaContext.vhtCapability = 0;
+#endif
+    }
+#ifdef WLAN_FEATURE_11AC
+    if (limPopulateMatchingRateSet(pmac,
+                                   sta_ds,
+                                   &(assoc_req->supportedRates),
+                                   &(assoc_req->extendedRates),
+                                   assoc_req->HTCaps.supportedMCSSet,
+                                   session_entry , &assoc_req->VHTCaps)
+                                   != eSIR_SUCCESS) {
+#else
+    if (limPopulateMatchingRateSet(pmac,
+                                   sta_ds,
+                                   &(assoc_req->supportedRates),
+                                   &(assoc_req->extendedRates),
+                                   assoc_req->HTCaps.supportedMCSSet,
+                                   &(assoc_req->propIEinfo.propRates),
+                                   session_entry) != eSIR_SUCCESS) {
+#endif
+        limLog(pmac, LOGE,
+           FL("Rate set mismatched for aid=%d, MacAddr: "
+           MAC_ADDRESS_STR),
+           sta_ds->assocId, MAC_ADDR_ARRAY(sta_ds->staAddr));
+        goto error;
+    }
+
+#ifdef WLAN_FEATURE_11AC
+    if (assoc_req->operMode.present) {
+        sta_ds->vhtSupportedRxNss = assoc_req->operMode.rxNSS + 1;
+    } else {
+        sta_ds->vhtSupportedRxNss =
+            ((sta_ds->supportedRates.vhtRxMCSMap & MCSMAPMASK2x2)
+            == MCSMAPMASK2x2) ? 1 : 2;
+    }
+#endif
+
+    return eSIR_SUCCESS;
+error:
+    return eSIR_FAILURE;
+}
+
+static void
+_sap_offload_parse_sta_qos(tpAniSirGlobal pmac,
+                        tpDphHashNode sta_ds,
+                        tpSirAssocReq assoc_req)
+{
+    tHalBitVal qos_mode;
+    tHalBitVal wsm_mode, wme_mode;
+    tpPESession session_entry = limIsApSessionActive(pmac);
+
+    limGetQosMode(session_entry, &qos_mode);
+    sta_ds->qosMode    = eANI_BOOLEAN_FALSE;
+    sta_ds->lleEnabled = eANI_BOOLEAN_FALSE;
+
+    if (assoc_req->capabilityInfo.qos && (qos_mode == eHAL_SET)) {
+        sta_ds->lleEnabled = eANI_BOOLEAN_TRUE;
+        sta_ds->qosMode    = eANI_BOOLEAN_TRUE;
+    }
+
+    sta_ds->wmeEnabled = eANI_BOOLEAN_FALSE;
+    sta_ds->wsmEnabled = eANI_BOOLEAN_FALSE;
+    limGetWmeMode(session_entry, &wme_mode);
+    if ((!sta_ds->lleEnabled) && assoc_req->wmeInfoPresent &&
+        (wme_mode == eHAL_SET)) {
+        sta_ds->wmeEnabled = eANI_BOOLEAN_TRUE;
+        sta_ds->qosMode = eANI_BOOLEAN_TRUE;
+        limGetWsmMode(session_entry, &wsm_mode);
+        /* WMM_APSD - WMM_SA related processing should be
+         * separate; WMM_SA and WMM_APSD can coexist
+         */
+        if (assoc_req->WMMInfoStation.present) {
+            /* check whether AP supports or not */
+            if ((session_entry->limSystemRole == eLIM_AP_ROLE)
+                 && (session_entry->apUapsdEnable == 0) &&
+                    (assoc_req->WMMInfoStation.acbe_uapsd
+                    || assoc_req->WMMInfoStation.acbk_uapsd
+                    || assoc_req->WMMInfoStation.acvo_uapsd
+                    || assoc_req->WMMInfoStation.acvi_uapsd)) {
+                /*
+                 * Received Re/Association Request from
+                 * STA when UPASD is not supported
+                 */
+               limLog( pmac, LOGE, FL( "AP do not support UAPSD so reply "
+                                       "to STA accordingly" ));
+               /* update UAPSD and send it to LIM to add STA */
+               sta_ds->qos.capability.qosInfo.acbe_uapsd = 0;
+               sta_ds->qos.capability.qosInfo.acbk_uapsd = 0;
+               sta_ds->qos.capability.qosInfo.acvo_uapsd = 0;
+               sta_ds->qos.capability.qosInfo.acvi_uapsd = 0;
+               sta_ds->qos.capability.qosInfo.maxSpLen =   0;
+            } else {
+                /* update UAPSD and send it to LIM to add STA */
+                sta_ds->qos.capability.qosInfo.acbe_uapsd =
+                    assoc_req->WMMInfoStation.acbe_uapsd;
+                sta_ds->qos.capability.qosInfo.acbk_uapsd =
+                    assoc_req->WMMInfoStation.acbk_uapsd;
+                sta_ds->qos.capability.qosInfo.acvo_uapsd =
+                    assoc_req->WMMInfoStation.acvo_uapsd;
+                sta_ds->qos.capability.qosInfo.acvi_uapsd =
+                    assoc_req->WMMInfoStation.acvi_uapsd;
+                sta_ds->qos.capability.qosInfo.maxSpLen =
+                    assoc_req->WMMInfoStation.max_sp_length;
+            }
+        }
+        if (assoc_req->wsmCapablePresent && (wsm_mode == eHAL_SET))
+            sta_ds->wsmEnabled = eANI_BOOLEAN_TRUE;
+    }
+}
+
+void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
+{
+    tpSirAssocReq assoc_req = NULL;
+    tpDphHashNode sta_ds = NULL;
+
+    struct sap_offload_add_sta_req  *add_sta_req = NULL;
+    tpPESession session_entry = limIsApSessionActive(pmac);
+
+     if (session_entry == NULL) {
+        PELOGE(limLog(pmac, LOGE, FL(" Session not found"));)
+        return;
+    }
+    add_sta_req = (struct sap_offload_add_sta_req *)lim_msgq->bodyptr;
+    assoc_req = vos_mem_malloc(sizeof(*assoc_req));
+    if (NULL == assoc_req) {
+        limLog(pmac, LOGP, FL("Allocate Memory failed in AssocReq"));
+        return;
+    }
+    vos_mem_set(assoc_req , sizeof(*assoc_req), 0);
+
+    /* parse Assoc req frame for station information */
+    sta_ds = _sap_offload_parse_assoc_req(pmac, assoc_req, add_sta_req);
+    if (sta_ds == NULL) {
+        vos_mem_free(assoc_req);
+        goto error;
+    }
+
+    /* Parse Station Capability */
+    _sap_offload_parse_sta_capability(sta_ds, assoc_req, add_sta_req);
+
+    /* Parse Station HT/VHT information */
+    if (_sap_offload_parse_sta_vht(pmac, sta_ds, assoc_req)
+            == eSIR_FAILURE) {
+            goto error;
+    }
+
+    /* Parse Station QOS information */
+    _sap_offload_parse_sta_qos(pmac, sta_ds, assoc_req);
+
+    if (assoc_req->ExtCap.present) {
+        sta_ds->timingMeasCap = 0;
+        sta_ds->timingMeasCap |= (assoc_req->ExtCap.timingMeas)?
+                                  RTT_TIMING_MEAS_CAPABILITY :
+                                  RTT_INVALID;
+        sta_ds->timingMeasCap |= (assoc_req->ExtCap.fineTimingMeas)?
+                                  RTT_FINE_TIMING_MEAS_CAPABILITY :
+                                  RTT_INVALID;
+        PELOG1(limLog(pmac, LOG1,
+               FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
+               assoc_req->ExtCap.timingMeas,
+               assoc_req->ExtCap.fineTimingMeas);)
+    } else {
+        sta_ds->timingMeasCap = 0;
+        PELOG1(limLog(pmac, LOG1, FL("ExtCap not present"));)
+    }
+
+    session_entry->parsedAssocReq[sta_ds->assocId] = assoc_req;
+
+    if (limAddSta(pmac, sta_ds, false, session_entry) != eSIR_SUCCESS) {
+        limLog(pmac, LOGE, FL("could not Add STA with assocId=%d"),
+                              sta_ds->assocId);
+    }
+
+error:
+    vos_mem_free(add_sta_req);
+    return;
+}
+
+void
+lim_sap_offload_del_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
+{
+    struct sap_offload_del_sta_req *del_sta_req = NULL;
+    tpDphHashNode sta_ds = NULL;
+    tANI_U16 assoc_id = 0;
+    tpPESession psession_entry = limIsApSessionActive(pmac);
+
+    if (psession_entry == NULL) {
+        PELOGE(limLog(pmac, LOGE, FL(" Session not found"));)
+        goto error;
+    }
+
+    del_sta_req = ( struct sap_offload_del_sta_req *)lim_msgq->bodyptr;
+    sta_ds = dphLookupHashEntry(pmac,
+                                del_sta_req->sta_mac,
+                                &assoc_id,
+                                &psession_entry->dph.dphHashTable);
+    if (sta_ds == NULL) {
+        /*
+         * Disassociating STA is not associated.
+         * Log error
+         */
+        PELOGE(limLog(pmac, LOGE,
+           FL("received del sta event that sta not exist in table "
+           "reasonCode=%d, addr "MAC_ADDRESS_STR),
+           del_sta_req->reason_code,
+           MAC_ADDR_ARRAY(del_sta_req->sta_mac));)
+        goto error;
+    }
+
+    if (assoc_id != (tANI_U16)del_sta_req->assoc_id) {
+        /*
+         * Associate Id mismatch
+         * Log error
+         */
+        PELOGE(limLog(pmac, LOGE,
+           FL("received del sta event that sta assoc Id mismatch"));)
+        goto error;
+    }
+
+    sta_ds->mlmStaContext.cleanupTrigger = eLIM_PEER_ENTITY_DISASSOC;
+    sta_ds->mlmStaContext.disassocReason =
+        (tSirMacReasonCodes) del_sta_req->reason_code;
+    sta_ds->mlmStaContext.updateContext = 1;
+
+    limSendSmeDisassocInd(pmac, sta_ds, psession_entry);
+
+error:
+    vos_mem_free(del_sta_req);
+    return;
+}
+#endif /* SAP_AUTH_OFFLOAD */
