@@ -493,6 +493,24 @@ void AddToAsyncList(HIF_DEVICE *device, BUS_REQUEST *busrequest)
     spin_unlock_irqrestore(&device->asynclock, flags);
 }
 
+A_STATUS
+HIFSyncRead(HIF_DEVICE *device,
+               A_UINT32 address,
+               A_UCHAR *buffer,
+               A_UINT32 length,
+               A_UINT32 request,
+               void *context)
+{
+       A_STATUS status;
+
+       AR_DEBUG_ASSERT(device != NULL);
+       AR_DEBUG_ASSERT(device->func != NULL);
+
+       sdio_claim_host(device->func);
+       status = __HIFReadWrite(device, address, buffer, length, request & ~HIF_SYNCHRONOUS, NULL);
+       sdio_release_host(device->func);
+       return status;
+}
 
 /* queue a read/write request */
 A_STATUS

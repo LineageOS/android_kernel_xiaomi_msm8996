@@ -64,7 +64,7 @@ enum ol_ath_hif_pkt_ecodes {
 
 struct HIF_CE_state ;
 
-#define HIF_CE_COMPLETE_STATE_NUM 10
+#define HIF_CE_COMPLETE_STATE_NUM 18 /* 56 * 18 + 4/8 = 1012/1016 bytes */
 struct HIF_CE_completion_state_list {
     struct HIF_CE_completion_state_list *next;
 };

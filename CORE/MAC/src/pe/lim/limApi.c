@@ -801,46 +801,52 @@ limCleanup(tpAniSirGlobal pMac)
 
 tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
 {
+    tSirRetStatus status = eSIR_SUCCESS;
+
     pMac->lim.maxBssId = pMacOpenParam->maxBssId;
     pMac->lim.maxStation = pMacOpenParam->maxStation;
 
-    if ((pMac->lim.maxBssId == 0) || (pMac->lim.maxStation == 0))
-    {
-         PELOGE(limLog(pMac, LOGE, FL("max number of Bssid or Stations cannot be zero!"));)
+    if ((pMac->lim.maxBssId == 0) || (pMac->lim.maxStation == 0)) {
+         PELOGE(limLog(pMac, LOGE,
+                       FL("max number of Bssid or Stations cannot be zero!"));)
          return eSIR_FAILURE;
     }
 
-    pMac->lim.limTimers.gpLimCnfWaitTimer = vos_mem_malloc(sizeof(TX_TIMER) * (pMac->lim.maxStation + 1));
-    if (NULL == pMac->lim.limTimers.gpLimCnfWaitTimer)
-    {
+    pMac->lim.limTimers.gpLimCnfWaitTimer = vos_mem_malloc(sizeof(TX_TIMER) *
+                                               (pMac->lim.maxStation + 1));
+    if (NULL == pMac->lim.limTimers.gpLimCnfWaitTimer) {
         PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
         return eSIR_FAILURE;
     }
 
-    pMac->lim.gpSession = vos_mem_malloc(sizeof(tPESession)* pMac->lim.maxBssId);
-    if (NULL == pMac->lim.gpSession)
-    {
+    pMac->lim.gpSession = vos_mem_malloc(sizeof(tPESession)*
+                                          pMac->lim.maxBssId);
+    if (NULL == pMac->lim.gpSession) {
         limLog(pMac, LOGE, FL("memory allocate failed!"));
-        return eSIR_FAILURE;
+        status = eSIR_FAILURE;
+        goto pe_open_psession_fail;
     }
 
-    vos_mem_set(pMac->lim.gpSession, sizeof(tPESession)*pMac->lim.maxBssId, 0);
+    vos_mem_set(pMac->lim.gpSession, sizeof(tPESession) *
+                                     pMac->lim.maxBssId, 0);
 
-    pMac->pmm.gPmmTim.pTim = vos_mem_malloc(sizeof(tANI_U8)*pMac->lim.maxStation);
-    if (NULL == pMac->pmm.gPmmTim.pTim)
-    {
+    pMac->pmm.gPmmTim.pTim = vos_mem_malloc(sizeof(tANI_U8) *
+                                            pMac->lim.maxStation);
+    if (NULL == pMac->pmm.gPmmTim.pTim) {
         PELOGE(limLog(pMac, LOGE, FL("memory allocate failed for pTim!"));)
-        return eSIR_FAILURE;
+        status = eSIR_FAILURE;
+        goto pe_open_ptim_fail;
     }
-    vos_mem_set(pMac->pmm.gPmmTim.pTim, sizeof(tANI_U8)*pMac->lim.maxStation, 0);
+    vos_mem_set(pMac->pmm.gPmmTim.pTim, sizeof(tANI_U8) *
+                                        pMac->lim.maxStation, 0);
 
     pMac->lim.mgmtFrameSessionId = 0xff;
     pMac->lim.deferredMsgCnt = 0;
 
-    if( !VOS_IS_STATUS_SUCCESS( vos_lock_init( &pMac->lim.lkPeGlobalLock ) ) )
-    {
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_init(&pMac->lim.lkPeGlobalLock))) {
         PELOGE(limLog(pMac, LOGE, FL("pe lock init failed!"));)
-        return eSIR_FAILURE;
+        status = eSIR_FAILURE;
+        goto pe_open_lock_fail;
     }
     pMac->lim.deauthMsgCnt = 0;
 
@@ -852,7 +858,19 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
 #ifdef LIM_TRACE_RECORD
     MTRACE(limTraceInit(pMac));
 #endif
-    return eSIR_SUCCESS;
+    return status; /* status here will be eSIR_SUCCESS */
+
+pe_open_lock_fail:
+    vos_mem_free(pMac->pmm.gPmmTim.pTim);
+    pMac->pmm.gPmmTim.pTim = NULL;
+pe_open_ptim_fail:
+    vos_mem_free(pMac->lim.gpSession);
+    pMac->lim.gpSession = NULL;
+pe_open_psession_fail:
+    vos_mem_free(pMac->lim.limTimers.gpLimCnfWaitTimer);
+    pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
+
+    return status;
 }
 
 /** -------------------------------------------------------------

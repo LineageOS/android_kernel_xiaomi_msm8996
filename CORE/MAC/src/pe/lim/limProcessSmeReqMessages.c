@@ -157,8 +157,11 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
     tANI_U8 validState = TRUE;
     int i;
 
+    limLog(pMac, LOG1, FL("gLimSmeState: %d, returnFreshResults 0x%x"),
+        pMac->lim.gLimSmeState, returnFreshResults);
     if(pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE)
     {
+        limLog(pMac, LOG1, FL("return FALSE"));
         return FALSE;
     }
     for(i =0; i < pMac->lim.maxBssId; i++)
@@ -166,6 +169,12 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
 
         if(pMac->lim.gpSession[i].valid == TRUE)
         {
+            limLog(pMac, LOG1,
+               FL("session %d, bsstype %d, limSystemRole %d, limSmeState %d"),
+               i,
+               pMac->lim.gpSession[i].bssType,
+               pMac->lim.gpSession[i].limSystemRole,
+               pMac->lim.gpSession[i].limSmeState);
             if(!( ( (  (pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) ||
                         (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_STA_ROLE))&&
                        (pMac->lim.gpSession[i].limSmeState == eLIM_SME_LINK_EST_STATE) )||
@@ -187,12 +196,15 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
         }
     }
 
-   limLog(pMac, LOG1, FL("FreshScanReqd: %d "), validState);
 
-   if( (validState) && (returnFreshResults & SIR_BG_SCAN_RETURN_FRESH_RESULTS))
-    return TRUE;
-
-    return FALSE;
+    if((validState) &&
+       (returnFreshResults & SIR_BG_SCAN_RETURN_FRESH_RESULTS)) {
+        limLog(pMac, LOG1, FL("validState: %d, return TRUE"), validState);
+        return TRUE;
+    } else {
+        limLog(pMac, LOG1, FL("validState: %d, return FALSE"), validState);
+        return FALSE;
+    }
 }
 
 
@@ -1353,6 +1365,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      */
   if (__limFreshScanReqd(pMac, pScanReq->returnFreshResults))
   {
+      limLog(pMac, LOG1, FL("Fresh scan is required"));
       if (pMac->fScanOffload)
          limFlushp2pScanResults(pMac);
 
@@ -1566,9 +1579,13 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_RETURN_LFR_CACHED_RESULTS)
             {
                 pMac->lim.gLimSmeLfrScanResultLength = pMac->lim.gLimMlmLfrScanResultLength;
+                limLog(pMac, LOG1,
+                   FL("Returned scan results from LFR cache, length = %d"),
+                   pMac->lim.gLimSmeLfrScanResultLength);
+
                 if (pMac->lim.gLimSmeLfrScanResultLength == 0)
                 {
-                    limSendSmeLfrScanRsp(pMac, scanRspLen,
+                   limSendSmeLfrScanRsp(pMac, scanRspLen,
                                          eSIR_SME_SUCCESS,
                                          pScanReq->sessionId,
                                          pScanReq->transactionId);
@@ -1585,6 +1602,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             else
             {
 #endif
+                limLog(pMac, LOG1,
+                   FL("Returned scan results from normal cache, length = %d"),
+                   pMac->lim.gLimSmeScanResultLength);
                if (pMac->lim.gLimSmeScanResultLength == 0)
                {
                   limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS,
@@ -1605,8 +1625,6 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             if (pMac->fScanOffload)
                  limFlushp2pScanResults(pMac);
-
-            limLog(pMac, LOG1, FL("Cached scan results are returned "));
 
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
             {

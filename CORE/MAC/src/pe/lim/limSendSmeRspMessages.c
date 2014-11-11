@@ -766,9 +766,9 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
     tANI_U8               *pbBuf;
     tSirBssDescription    *pDesc;
 
-    PELOG1(limLog(pMac, LOG1,
+    limLog(pMac, LOG1,
        FL("Sending message SME_SCAN_RSP with length=%d reasonCode %s"),
-       length, limResultCodeStr(resultCode));)
+       length, limResultCodeStr(resultCode));
 
     if (resultCode != eSIR_SME_SUCCESS)
     {
@@ -934,9 +934,9 @@ limSendSmeLfrScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
     tANI_U8               *currentBssid =
         pMac->roam.roamSession[smesessionId].connectedProfile.bssid;
 
-    PELOG1(limLog(pMac, LOG1,
+    limLog(pMac, LOG1,
        FL("Sending message SME_SCAN_RSP with length=%d reasonCode %s\n"),
-       length, limResultCodeStr(resultCode));)
+       length, limResultCodeStr(resultCode));
 
     if (resultCode != eSIR_SME_SUCCESS)
     {
@@ -1182,9 +1182,9 @@ limPostSmeScanRspMessage(tpAniSirGlobal    pMac,
     tpSirSmeScanRsp   pSirSmeScanRsp;
     tSirMsgQ          mmhMsg;
 
-    PELOG1(limLog(pMac, LOG1,
+    limLog(pMac, LOG1,
        FL("limPostSmeScanRspMessage: send SME_SCAN_RSP (len %d, reasonCode %s). "),
-       length, limResultCodeStr(resultCode));)
+       length, limResultCodeStr(resultCode));
 
     pSirSmeScanRsp = vos_mem_malloc(length);
     if ( NULL == pSirSmeScanRsp )

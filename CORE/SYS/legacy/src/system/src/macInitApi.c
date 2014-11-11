@@ -183,60 +183,69 @@ tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
 
 tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameters *pMacOpenParms)
 {
-    tpAniSirGlobal pMac = NULL;
+    tpAniSirGlobal p_mac = NULL;
+    tSirRetStatus status = eSIR_SUCCESS;
 
     if(pHalHandle == NULL)
         return eSIR_FAILURE;
 
     /*
      * Make sure this adapter is not already opened. (Compare pAdapter pointer in already
-     * allocated pMac structures.)
-     * If it is opened just return pointer to previously allocated pMac pointer.
+     * allocated p_mac structures.)
+     * If it is opened just return pointer to previously allocated p_mac pointer.
      * Or should this result in error?
      */
 
-    /* Allocate pMac */
-    pMac = vos_mem_malloc(sizeof(tAniSirGlobal));
-    if ( NULL == pMac )
+    /* Allocate p_mac */
+    p_mac = vos_mem_malloc(sizeof(tAniSirGlobal));
+    if (NULL == p_mac)
         return eSIR_FAILURE;
 
-    /* Initialize the pMac structure */
-    vos_mem_set(pMac, sizeof(tAniSirGlobal), 0);
+    /* Initialize the p_mac structure */
+    vos_mem_set(p_mac, sizeof(tAniSirGlobal), 0);
 
     /*
-     * Set various global fields of pMac here
-     * (Could be platform dependant as some variables in pMac are platform
+     * Set various global fields of p_mac here
+     * (Could be platform dependant as some variables in p_mac are platform
      * dependant)
      */
-    pMac->hHdd      = hHdd;
-    *pHalHandle     = (tHalHandle)pMac;
+    p_mac->hHdd      = hHdd;
+    *pHalHandle     = (tHalHandle)p_mac;
 
     {
         /* Call various PE (and other layer init here) */
-        if( eSIR_SUCCESS != logInit(pMac))
-           return eSIR_FAILURE;
+        if (eSIR_SUCCESS != logInit(p_mac)) {
+            vos_mem_free(p_mac);
+            return eSIR_FAILURE;
+        }
 
         /* Call routine to initialize CFG data structures */
-        if( eSIR_SUCCESS != cfgInit(pMac) )
+        if (eSIR_SUCCESS != cfgInit(p_mac)) {
+            vos_mem_free(p_mac);
             return eSIR_FAILURE;
+        }
 
-        sysInitGlobals(pMac);
+        sysInitGlobals(p_mac);
     }
 
     /* Set the Powersave Offload Capability */
-    if(pMacOpenParms->powersaveOffloadEnabled)
-    {
-        pMac->psOffloadEnabled = TRUE;
-    }
+    if (pMacOpenParms->powersaveOffloadEnabled)
+        p_mac->psOffloadEnabled = TRUE;
     else
-    {
-        pMac->psOffloadEnabled = FALSE;
-    }
-    pMac->scan.nextScanID = 1;
-    /* FW: 0 to 2047 and Host: 2048 to 4095 */
-    pMac->mgmtSeqNum = WLAN_HOST_SEQ_NUM_MIN-1;
+        p_mac->psOffloadEnabled = FALSE;
 
-    return peOpen(pMac, pMacOpenParms);
+    p_mac->scan.nextScanID = 1;
+    /* FW: 0 to 2047 and Host: 2048 to 4095 */
+    p_mac->mgmtSeqNum = WLAN_HOST_SEQ_NUM_MIN-1;
+
+    status = peOpen(p_mac, pMacOpenParms);
+
+    if (eSIR_SUCCESS != status) {
+        vos_mem_free(p_mac);
+        sysLog(p_mac, LOGE, FL("macOpen failure\n"));
+    }
+
+    return status;
 }
 
 /** -------------------------------------------------------------
