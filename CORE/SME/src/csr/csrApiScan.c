@@ -4670,7 +4670,7 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
         smsLog(pMac, LOGW,
            FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
            pCsrBssDescription->AgingCount,
-           MAC_ADDR_ARRAY(pCsrBssDescription->Result.BssDescriptor.bssId));
+           MAC_ADDR_ARRAY(pBSSDescription->bssId));
         vos_mem_copy(&pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc );
         //Save SSID separately for later use
         if( pIes->SSID.present && !csrIsNULLSSID(pIes->SSID.ssid, pIes->SSID.num_ssid) )
@@ -5027,8 +5027,9 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
     }while(0);
     if ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode )
     {
-        smsLog(pMac, LOGE, "Found %d BSS",
-                           csrLLCount(&pMac->scan.tempScanResults));
+        smsLog(pMac, LOGE, "Found %d BSS, statusCode %d",
+                           csrLLCount(&pMac->scan.tempScanResults),
+                           pScanRsp->statusCode);
         smsLog(pMac, LOG1, "scan reason is %d", pCommand->u.scanCmd.reason);
         fRemoveCommand = csrScanComplete( pMac, pScanRsp );
         fRet = eANI_BOOLEAN_TRUE;

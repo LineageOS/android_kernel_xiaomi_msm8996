@@ -2331,6 +2331,8 @@ htt_rx_hash_init(struct htt_pdev_t *pdev)
                 i--;
                 adf_os_mem_free(pdev->rx_ring.hash_table[i].entries);
             }
+            adf_os_mem_free(pdev->rx_ring.hash_table);
+            pdev->rx_ring.hash_table = NULL;
             return 1;
         }
 
@@ -2378,6 +2380,10 @@ htt_rx_hash_deinit(struct htt_pdev_t *pdev)
 
         adf_os_mem_free(pdev->rx_ring.hash_table[i].entries);
 
+    }
+    if (NULL != pdev->rx_ring.hash_table) {
+        adf_os_mem_free(pdev->rx_ring.hash_table);
+        pdev->rx_ring.hash_table = NULL;
     }
 }
 

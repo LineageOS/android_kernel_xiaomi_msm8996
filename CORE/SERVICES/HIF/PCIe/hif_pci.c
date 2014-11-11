@@ -641,7 +641,7 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
             for (idx = 0; idx < num_list; idx++) {
                 if (completions_needed - allocated_node >=
                     HIF_CE_COMPLETE_STATE_NUM)
-                    num_in_batch = completions_needed - allocated_node;
+                    num_in_batch = HIF_CE_COMPLETE_STATE_NUM;
                 else
                     num_in_batch = completions_needed - allocated_node;
                 if (num_in_batch <= 0)
@@ -1721,6 +1721,8 @@ HIFStop(HIF_DEVICE *hif_device)
        /* sync shutdown */
        hif_completion_thread_shutdown(hif_state);
        hif_completion_thread(hif_state);
+    } else {
+        hif_completion_thread_shutdown(hif_state);
     }
 
     /*
