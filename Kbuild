@@ -1301,6 +1301,11 @@ ifeq ($(CONFIG_LINUX_QCMBR),y)
 CDEFINES += -DLINUX_QCMBR
 endif
 
+# Enable feature Software AP Authentication Offload
+ifeq ($(SAP_AUTH_OFFLOAD),1)
+CDEFINES += -DSAP_AUTH_OFFLOAD
+endif
+
 # Enable target dump for non-qualcomm platform
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)

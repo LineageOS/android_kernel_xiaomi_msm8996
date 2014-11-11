@@ -9610,6 +9610,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
          }
 
+         hdd_set_sap_auth_offload(pAdapter, FALSE);
+
 #ifdef QCA_LL_TX_FLOW_CT
          WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
          if (pAdapter->tx_flow_timer_initialized == VOS_TRUE) {

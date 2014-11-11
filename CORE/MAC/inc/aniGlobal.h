@@ -1039,6 +1039,10 @@ typedef struct sAniSirGlobal
     csrReadyToExtWoWCallback readyToExtWoWCallback;
     void *readyToExtWoWContext;
 #endif
+#ifdef SAP_AUTH_OFFLOAD
+    bool sap_auth_offload;
+    uint32_t sap_auth_offload_sec_type;
+#endif /* SAP_AUTH_OFFLOAD */
 } tAniSirGlobal;
 
 typedef enum

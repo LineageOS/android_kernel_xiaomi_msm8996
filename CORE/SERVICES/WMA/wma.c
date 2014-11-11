@@ -22460,6 +22460,73 @@ static int wma_get_mdns_status(tp_wma_handle wma_handle, A_UINT32 *pVdev_id)
 }
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
+				struct tSirSapOffloadInfo *sap_auth_offload_info)
+{
+	wmi_sap_ofl_enable_cmd_fixed_param *cmd = NULL;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	u_int16_t len, psk_len;
+	int err;
+
+	psk_len = sap_auth_offload_info->key_len;
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + psk_len;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"sap_auth_offload_enable cmd");
+		return -ENOMEM;
+	}
+
+	vos_mem_zero(cmd, len);
+
+	buf_ptr = wmi_buf_data(buf);
+	cmd = (wmi_sap_ofl_enable_cmd_fixed_param *)buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_sap_ofl_enable_cmd_fixed_param));
+
+	cmd->enable = sap_auth_offload_info->sap_auth_offload_enable;
+	cmd->vdev_id = sap_auth_offload_info->vdev_id;
+	cmd->psk_len = psk_len;
+
+	/* SSID didn't assign here, left for Supplicant Profile Assign
+	 * This field just keep for extendable
+	 */
+	switch (sap_auth_offload_info->sap_auth_offload_sec_type) {
+	case eSIR_OFFLOAD_WPA2PSK_CCMP:
+		cmd->rsn_authmode = WMI_AUTH_RSNA_PSK;
+		cmd->rsn_mcastcipherset = WMI_CIPHER_AES_CCM;
+		cmd->rsn_ucastcipherset = WMI_CIPHER_AES_CCM;
+		break;
+	case eSIR_OFFLOAD_NONE:
+	default:
+		WMA_LOGE("Set software AP Auth offload "
+			"with none support security type\n");
+		break;
+	}
+
+	buf_ptr += sizeof(wmi_sap_ofl_enable_cmd_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, psk_len);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, sap_auth_offload_info->key, psk_len);
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_SAP_OFL_ENABLE_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to set software AP Auth offload enable cmd");
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("Set software AP Auth offload enable = %d to vdevId %d",
+			sap_auth_offload_info->sap_auth_offload_enable,
+			sap_auth_offload_info->vdev_id);
+	return 0;
+}
+#endif /* SAP_AUTH_OFFLOAD */
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -23087,6 +23154,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_get_mdns_status(wma_handle,	(A_UINT32 *) msg->bodyptr);
 			break;
 #endif /* MDNS_OFFLOAD */
+#ifdef SAP_AUTH_OFFLOAD
+		case WDA_SET_SAP_AUTH_OFL:
+			wma_process_sap_auth_offload(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif /* SAP_AUTH_OFFLOAD */
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
