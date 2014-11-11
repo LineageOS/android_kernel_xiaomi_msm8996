@@ -56,9 +56,22 @@
 /* Useful macros for fetching various states in pMac->lim */
 /* gLimSystemRole */
 #define GET_LIM_SYSTEM_ROLE(psessionEntry)      (psessionEntry->limSystemRole)
-#define LIM_IS_AP_ROLE(psessionEntry)           (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
-#define LIM_IS_STA_ROLE(psessionEntry)          (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
-#define LIM_IS_IBSS_ROLE(psessionEntry)         (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
+#define LIM_IS_UNKNOWN_ROLE(psessionEntry)           \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_UNKNOWN_ROLE)
+#define LIM_IS_AP_ROLE(psessionEntry)           \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
+#define LIM_IS_BT_AMP_AP_ROLE(psessionEntry)    \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_BT_AMP_AP_ROLE)
+#define LIM_IS_BT_AMP_STA_ROLE(psessionEntry)    \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_BT_AMP_STA_ROLE)
+#define LIM_IS_STA_ROLE(psessionEntry)          \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
+#define LIM_IS_IBSS_ROLE(psessionEntry)         \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
+#define LIM_IS_P2P_DEVICE_ROLE(psessionEntry)   \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_P2P_DEVICE_ROLE)
+#define LIM_IS_P2P_DEVICE_GO(psessionEntry)   \
+                   (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_P2P_DEVICE_GO)
 /* gLimSmeState */
 #define GET_LIM_SME_STATE(pMac)                 (pMac->lim.gLimSmeState)
 #define SET_LIM_SME_STATE(pMac, state)          (pMac->lim.gLimSmeState = state)
@@ -131,9 +144,6 @@ extern tSirRetStatus limHandleIBSScoalescing(tpAniSirGlobal,
 /// Function used by other Sirius modules to read global SME state
  static inline tLimSmeStates
 limGetSmeState(tpAniSirGlobal pMac) { return pMac->lim.gLimSmeState; }
-/// Function used by other Sirius modules to read global system role
- static inline tLimSystemRole
-limGetSystemRole(tpPESession psessionEntry) { return psessionEntry->limSystemRole; }
 extern void limReceivedHBHandler(tpAniSirGlobal, tANI_U8, tpPESession);
 extern void limCheckAndQuietBSS(tpAniSirGlobal);
 /// Function that triggers STA context deletion

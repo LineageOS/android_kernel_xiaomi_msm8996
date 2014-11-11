@@ -61,7 +61,7 @@ void limSetCfgProtection(tpAniSirGlobal pMac, tpPESession pesessionEntry)
 {
     tANI_U32 val = 0;
 
-    if(( pesessionEntry != NULL ) && (pesessionEntry->limSystemRole == eLIM_AP_ROLE )){
+    if ((pesessionEntry != NULL) && LIM_IS_AP_ROLE(pesessionEntry)) {
         if (pesessionEntry->gLimProtectionControl == WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE )
             vos_mem_set((void *)&pesessionEntry->cfgProtection, sizeof(tCfgProtection), 0);
         else{
@@ -621,11 +621,10 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
 
     /* Added for BT - AMP Support */
-    if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)||
-         (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) ||
+        LIM_IS_BT_AMP_AP_ROLE(psessionEntry)||
+        LIM_IS_IBSS_ROLE(psessionEntry)||
+        LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) {
         /* This check is required to ensure the beacon generation is not done
            as a part of join request for a BT-AMP station */
 
@@ -679,9 +678,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
     psessionEntry->beaconParams.fShortPreamble = (val) ? 1 : 0;
 
     /* In STA case this parameter is filled during the join request */
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE ||
-        psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry)) {
         if (wlan_cfgGetInt(pMac, WNI_CFG_WME_ENABLED, &val) != eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("cfg get wme enabled failed"));
         psessionEntry->limWmeEnabled = (val) ? 1 : 0;
@@ -697,9 +694,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
         psessionEntry->limWsmEnabled = 0;
     }
     /* In STA , this parameter is filled during the join request */
-    if (psessionEntry->limSystemRole== eLIM_AP_ROLE ||
-        psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry)) {
         if (wlan_cfgGetInt(pMac, WNI_CFG_QOS_ENABLED, &val) != eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("cfg get qos enabled failed"));
         psessionEntry->limQosEnabled = (val) ? 1 : 0;
@@ -715,7 +710,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     // AP: WSM should enable HCF as well, for STA enable WSM only after
     // association response is received
-    if (psessionEntry->limWsmEnabled && psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if (psessionEntry->limWsmEnabled && LIM_IS_AP_ROLE(psessionEntry))
         psessionEntry->limHcfEnabled = 1;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_11D_ENABLED, &val) != eSIR_SUCCESS)

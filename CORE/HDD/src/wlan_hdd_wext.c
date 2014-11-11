@@ -4661,6 +4661,7 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 #ifdef WLAN_FEATURE_11AC
     switch (new_phymode) {
     case IEEE80211_MODE_11AC_VHT20:
+        chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
         vhtchanwidth = eHT_CHANNEL_WIDTH_20MHZ;
         break;
     case IEEE80211_MODE_11AC_VHT40:
@@ -4691,14 +4692,12 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
             }
         } else if (phymode == eCSR_DOT11_MODE_11n &&
                               chwidth == WNI_CFG_CHANNEL_BONDING_MODE_ENABLE) {
-            if (phddctx->cfg_ini->ht2040CoexEnabled) {
-                smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
-                halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
+            smeconfig.csrConfig.obssEnabled = eANI_BOOLEAN_TRUE;
+            halStatus = sme_SetHT2040Mode(hal, pAdapter->sessionId,
                                       eHT_CHAN_HT20, eANI_BOOLEAN_TRUE);
-                if (halStatus == eHAL_STATUS_FAILURE) {
-                    hddLog(LOGE, FL("Failed to enable OBSS"));
-                    return -EIO;
-                }
+            if (halStatus == eHAL_STATUS_FAILURE) {
+                hddLog(LOGE, FL("Failed to enable OBSS"));
+                return -EIO;
             }
         }
 #endif
@@ -4741,6 +4740,15 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
                        "%s: could not update config_dat", __func__ );
             return -EIO;
         }
+
+        if (phddctx->cfg_ini->nChannelBondingMode5GHz)
+            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+                                              IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+        else
+            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap &=
+                                              ~IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+
+
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, ("New_Phymode= %d "
             "ch_bonding=%d band=%d VHT_ch_width=%u"),
             phymode, chwidth, curr_band, vhtchanwidth);
@@ -9515,12 +9523,17 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
 int hdd_setBand_helper(struct net_device *dev, const char *command)
 {
     u8 band;
+    int ret;
 
-    /*convert the band value from ascii to integer*/
-    band = command[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0';
+    /* Convert the band value from ascii to integer */
+    command += WLAN_HDD_UI_SET_BAND_VALUE_OFFSET;
+    ret = kstrtou8(command, 10, &band);
+    if (ret < 0) {
+        hddLog(LOGE, FL("kstrtou8 failed"));
+        return -EINVAL;
+    }
 
     return hdd_setBand(dev, band);
-
 }
 
 static int iw_set_band_config(struct net_device *dev,

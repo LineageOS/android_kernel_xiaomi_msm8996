@@ -129,8 +129,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
          vos_mem_set(pMac->pResetMsg, sizeof(tSirMbMsg), 0);
       }
 
-      if (pMac->gDriverType != eDRIVER_TYPE_MFG)
-      {
+      if (ANI_DRIVER_TYPE(pMac) != eDRIVER_TYPE_MFG) {
          status = peStart(pMac);
       }
 
@@ -203,9 +202,6 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
 
     /* Initialize the pMac structure */
     vos_mem_set(pMac, sizeof(tAniSirGlobal), 0);
-
-    /** Store the Driver type in pMac Global.*/
-    //pMac->gDriverType = pMacOpenParms->driverType;
 
     /*
      * Set various global fields of pMac here

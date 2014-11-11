@@ -2092,8 +2092,10 @@ sapGotoChannelSel
 #endif
             vos_mem_zero(&scanRequest, sizeof(scanRequest));
 
-            /* Set scanType to Passive scan */
-            scanRequest.scanType = eSIR_PASSIVE_SCAN;
+            /* Set scanType to Active scan. FW takes care of using passive
+             * scan for DFS and active for non DFS channels.
+             */
+            scanRequest.scanType = eSIR_ACTIVE_SCAN;
 
             /* Set min and max channel time to zero */
             scanRequest.minChnTime = 0;

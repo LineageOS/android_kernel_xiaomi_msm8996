@@ -5520,20 +5520,30 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
 
                 default:
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                              "%s:Error!!! Invalid HT20/40 mode !",
-                              __func__);
+                              "%s:Error!!! Invalid HT20/40 mode: %d !",
+                              __func__, channel_type);
                     return -EINVAL;
                 }
+            } else {
+                vos_mem_zero(&smeConfig, sizeof(smeConfig));
+                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+                /* set cbMode for 5G */
+                switch (channel_type) {
+                case NL80211_CHAN_HT20:
+                case NL80211_CHAN_NO_HT:
+                    smeConfig.csrConfig.channelBondingMode5GHz = 0;
+                    break;
+                case NL80211_CHAN_HT40MINUS:
+                case NL80211_CHAN_HT40PLUS:
+                    smeConfig.csrConfig.channelBondingMode5GHz = 1;
+                    break;
+                 default:
+                    hddLog(LOGE,
+                       FL("Error!!! Invalid HT20/40 mode: %d !"), channel_type);
+                    return -EINVAL;
+                }
+                sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
             }
-
-            vos_mem_zero(&smeConfig, sizeof(smeConfig));
-            sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-            if (NL80211_CHAN_NO_HT == channel_type)
-                smeConfig.csrConfig.obssEnabled = VOS_FALSE;
-            else
-                smeConfig.csrConfig.obssEnabled = VOS_TRUE;
-            sme_UpdateConfig (pHddCtx->hHal, &smeConfig);
-
 #endif
         }
     }

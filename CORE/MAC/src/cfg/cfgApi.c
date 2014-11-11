@@ -835,18 +835,18 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 {
     tANI_U32 val = 0;
     tpSirMacCapabilityInfo pCapInfo;
-    tLimSystemRole systemRole = limGetSystemRole(sessionEntry);
 
     *pCap = 0;
     pCapInfo = (tpSirMacCapabilityInfo) pCap;
 
-    if (systemRole == eLIM_STA_IN_IBSS_ROLE)
+    if (LIM_IS_IBSS_ROLE(sessionEntry))
         pCapInfo->ibss = 1; // IBSS bit
-    else if ( (systemRole == eLIM_AP_ROLE) ||(systemRole == eLIM_BT_AMP_AP_ROLE)||(systemRole == eLIM_BT_AMP_STA_ROLE) ||
-             (systemRole == eLIM_STA_ROLE) )
+    else if (LIM_IS_AP_ROLE(sessionEntry) ||
+             LIM_IS_BT_AMP_AP_ROLE(sessionEntry) ||
+             LIM_IS_BT_AMP_STA_ROLE(sessionEntry) ||
+             LIM_IS_STA_ROLE(sessionEntry))
         pCapInfo->ess = 1; // ESS bit
-    else if (limGetSystemRole(sessionEntry) == eLIM_P2P_DEVICE_ROLE )
-    {
+    else if (LIM_IS_P2P_DEVICE_ROLE(sessionEntry)) {
         pCapInfo->ess = 0;
         pCapInfo->ibss = 0;
     }
@@ -854,12 +854,9 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
         cfgLog(pMac, LOGP, FL("can't get capability, role is UNKNOWN!!"));
 
 
-    if(systemRole == eLIM_AP_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(sessionEntry)) {
         val = sessionEntry->privacy;
-    }
-    else
-    {
+    } else {
         // PRIVACY bit
         if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
         {
@@ -890,12 +887,9 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
         return eSIR_SUCCESS;
 
     // Short slot time bit
-    if (systemRole == eLIM_AP_ROLE)
-    {
+    if (LIM_IS_AP_ROLE(sessionEntry)) {
         pCapInfo->shortSlotTime = sessionEntry->shortSlotTimeSupported;
-    }
-    else
-    {
+    } else {
         if (wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val)
                        != eSIR_SUCCESS)
         {
@@ -916,9 +910,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
     }
 
     // Spectrum Management bit
-    if((eLIM_STA_IN_IBSS_ROLE != systemRole) &&
-            sessionEntry->lim11hEnable )
-    {
+    if (!LIM_IS_IBSS_ROLE(sessionEntry) && sessionEntry->lim11hEnable) {
       if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
       {
           cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_11H_ENABLED failed"));
@@ -947,8 +939,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
         pCapInfo->apsd = 1;
 
 #if defined WLAN_FEATURE_VOWIFI
-    if ((limGetSystemRole(sessionEntry) == eLIM_STA_ROLE) )
-    {
+    if (LIM_IS_STA_ROLE(sessionEntry)) {
       if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
       {
         cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_RRM_ENABLED failed"));

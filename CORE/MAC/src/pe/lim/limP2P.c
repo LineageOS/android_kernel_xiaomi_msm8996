@@ -583,9 +583,8 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
     if((psessionEntry = peFindSessionByBssid(pMac,
                  MsgRemainonChannel->selfMacAddr,&sessionId)) != NULL)
     {
-        if ( eLIM_P2P_DEVICE_ROLE == psessionEntry->limSystemRole )
-        {
-           peDeleteSession( pMac, psessionEntry);
+        if (LIM_IS_P2P_DEVICE_ROLE(psessionEntry)) {
+            peDeleteSession( pMac, psessionEntry);
         }
     }
 
