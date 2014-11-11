@@ -63,6 +63,11 @@ enum ol_ath_hif_pkt_ecodes {
 };
 
 struct HIF_CE_state ;
+
+#define HIF_CE_COMPLETE_STATE_NUM 10
+struct HIF_CE_completion_state_list {
+    struct HIF_CE_completion_state_list *next;
+};
 /* Per-pipe state. */
 struct HIF_CE_pipe_info {
     /* Handle of underlying Copy Engine */
@@ -82,7 +87,7 @@ struct HIF_CE_pipe_info {
     adf_os_spinlock_t completion_freeq_lock;
     /* Limit the number of outstanding send requests. */
     int num_sends_allowed;
-    struct HIF_CE_completion_state *completion_space;
+    struct HIF_CE_completion_state_list *completion_space_list;
     struct HIF_CE_completion_state *completion_freeq_head;
     struct HIF_CE_completion_state *completion_freeq_tail;
 } ;

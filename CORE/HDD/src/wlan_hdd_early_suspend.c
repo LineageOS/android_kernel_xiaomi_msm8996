@@ -1938,7 +1938,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
 
-   adf_os_device_t adf_ctx;
    hdd_adapter_t *pAdapter;
    int i;
    hdd_prevent_suspend();
@@ -1968,18 +1967,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_re_init;
    }
 
-   /* Initialize the adf_ctx handle */
-   adf_ctx = ((VosContextType*)(pVosContext))->adf_ctx;
-
-   if (!adf_ctx) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to get adf_ctx", __func__);
-      goto err_re_init;
-   }
-   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
-
-   hif_init_adf_ctx(adf_ctx, hif_sc);
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
-   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
 
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);
