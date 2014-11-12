@@ -1867,6 +1867,11 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
     }
 #endif
 
+#ifdef WLAN_FEATURE_11W
+    pScanFilter->MFPEnabled = pCurProfile->MFPEnabled;
+    pScanFilter->MFPRequired = pCurProfile->MFPRequired;
+    pScanFilter->MFPCapable = pCurProfile->MFPCapable;
+#endif
     return eHAL_STATUS_SUCCESS;
 }
 
