@@ -874,6 +874,13 @@ void pktlogmod_exit(void *context)
 		return;
 
 	/*
+	 * pktlog already be detached
+	 * avoid to detach and remove proc entry again
+	 */
+	if (!pl_dev->pl_info)
+		return;
+
+	/*
 	 *  Disable firmware side pktlog function
 	 */
 	if (pl_dev->tgt_pktlog_enabled) {

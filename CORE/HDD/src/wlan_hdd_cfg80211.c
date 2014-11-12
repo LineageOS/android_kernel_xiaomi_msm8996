@@ -1243,8 +1243,20 @@ wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
     hdd_context_t *pHddCtx    = wiphy_priv(wiphy);
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX + 1];
     eHalStatus status;
+    int ret;
 
     ENTER();
+
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return ret;
+    }
+
+    if (FALSE == pHddCtx->cfg_ini->enable_mac_spoofing) {
+        hddLog(LOGW, FL("MAC address spoofing is not enabled"));
+        return -ENOTSUPP;
+    }
 
     if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SET_SCANNING_MAC_OUI_MAX,
                     data, data_len,

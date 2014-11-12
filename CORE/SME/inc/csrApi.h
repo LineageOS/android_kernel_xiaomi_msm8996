@@ -1017,6 +1017,12 @@ typedef struct tagCsrRoamConnectedProfile
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tCsrRoamHTProfile HTProfile;
 #endif
+#ifdef WLAN_FEATURE_11W
+    /* Management Frame Protection */
+    tANI_BOOLEAN MFPEnabled;
+    tANI_U8 MFPRequired;
+    tANI_U8 MFPCapable;
+#endif
 }tCsrRoamConnectedProfile;
 
 
