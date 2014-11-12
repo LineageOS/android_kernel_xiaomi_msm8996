@@ -111,6 +111,11 @@
 #define CSR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL     (1)
 #define CSR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE     (2)
 
+/* The MAX BSSID Count should be lower than the command timeout
+ * value and it can be of a fraction of 3/4 of the total command
+ * timeout value  */
+#define CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE 1000*30*4  //120s
+#define CSR_MAX_BSSID_COUNT     ((CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE/4000) * 3)
 typedef enum
 {
     eCsrNextScanNothing,

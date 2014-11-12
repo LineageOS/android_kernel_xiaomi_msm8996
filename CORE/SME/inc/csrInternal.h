@@ -987,6 +987,9 @@ typedef struct tagCsrRoamSession
 #if defined WLAN_FEATURE_VOWIFI_11R
     tftSMEContext ftSmeContext;
 #endif
+    uint8_t join_bssid_count; /* This count represents the number of
+                               * bssid's we are trying to join.
+                               */
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
