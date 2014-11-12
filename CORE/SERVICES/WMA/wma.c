@@ -9828,7 +9828,9 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGP("%s: Failed to find peer %pM", __func__, params->bssId);
 		}
 		msg = wma_fill_vdev_req(wma, tgt_req->vdev_id, WDA_DELETE_BSS_REQ,
-						WMA_TARGET_REQ_TYPE_VDEV_STOP, del_bss_params, 2000);
+						WMA_TARGET_REQ_TYPE_VDEV_STOP,
+						del_bss_params,
+						WMA_VDEV_STOP_REQUEST_TIMEOUT);
 		if (!msg) {
 			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 							__func__, tgt_req->vdev_id);
@@ -14417,7 +14419,8 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	}
 #endif
 	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 2000);
+				WMA_TARGET_REQ_TYPE_VDEV_STOP, params,
+				WMA_VDEV_STOP_REQUEST_TIMEOUT);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 			 __func__, params->smesessionId);
