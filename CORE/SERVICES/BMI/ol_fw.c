@@ -1077,6 +1077,9 @@ void ol_ramdump_handler(struct ol_softc *scn)
 				min_t(A_UINT32, len - 4, FW_REG_DUMP_CNT * 4),
 				false);
 		scn->fw_ram_dumping = 0;
+
+		if (scn->enableFwSelfRecovery)
+			kobject_uevent(&scn->adf_dev->dev->kobj, KOBJ_OFFLINE);
 	}
 	else if (pattern == FW_REG_PATTERN) {
 		reg = (A_UINT32 *) (data + 4);

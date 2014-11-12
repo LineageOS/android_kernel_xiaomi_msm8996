@@ -2365,14 +2365,14 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_BUS_BANDWIDTH_COMPUTE_INTERVAL_MAX     ( 10000 )
 
 #define CFG_TCP_DELACK_THRESHOLD_HIGH              "gTcpDelAckThresholdHigh"
-#define CFG_TCP_DELACK_THRESHOLD_HIGH_DEFAULT      ( 4000 )
+#define CFG_TCP_DELACK_THRESHOLD_HIGH_DEFAULT      ( 10000 )
 #define CFG_TCP_DELACK_THRESHOLD_HIGH_MIN          ( 1000 )
-#define CFG_TCP_DELACK_THRESHOLD_HIGH_MAX          ( 10000 )
+#define CFG_TCP_DELACK_THRESHOLD_HIGH_MAX          ( 16000 )
 
 #define CFG_TCP_DELACK_THRESHOLD_LOW               "gTcpDelAckThresholdLow"
 #define CFG_TCP_DELACK_THRESHOLD_LOW_DEFAULT       ( 1000 )
 #define CFG_TCP_DELACK_THRESHOLD_LOW_MIN           ( 0 )
-#define CFG_TCP_DELACK_THRESHOLD_LOW_MAX           ( 4000 )
+#define CFG_TCP_DELACK_THRESHOLD_LOW_MAX           ( 10000 )
 #endif /* MSM_PLATFORM */
 
 #ifdef WLAN_FEATURE_11W
@@ -2574,6 +2574,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_DHCP_SERVER_IP_NAME     "gDHCPServerIP"
 #define CFG_DHCP_SERVER_IP_DEFAULT  ""
 #endif /* DHCP_SERVER_OFFLOAD */
+
+#define CFG_ENABLE_MAC_ADDR_SPOOFING               "gEnableMacAddrSpoof"
+#define CFG_ENABLE_MAC_ADDR_SPOOFING_MIN           (0)
+#define CFG_ENABLE_MAC_ADDR_SPOOFING_MAX           (1)
+#define CFG_ENABLE_MAC_ADDR_SPOOFING_DEFAULT       (1)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3131,6 +3136,7 @@ typedef struct
    v_U32_t                     dhcpMaxNumClients;
    v_U8_t                      dhcpServerIP[IPADDR_STRING_LENGTH];
 #endif  /* DHCP_SERVER_OFFLOAD */
+   bool                        enable_mac_spoofing;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

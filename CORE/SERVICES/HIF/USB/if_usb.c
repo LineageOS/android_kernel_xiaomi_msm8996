@@ -39,7 +39,7 @@
 #include "wma_api.h"
 #include "wlan_hdd_main.h"
 #include "epping_main.h"
-
+#include "vos_sched.h"
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -71,6 +71,7 @@ static wait_queue_head_t hif_usb_unload_event_wq;
 static atomic_t hif_usb_unload_state;
 struct hif_usb_softc *usb_sc = NULL;
 static int hif_usb_resume(struct usb_interface *interface);
+static atomic_t hif_usb_hdd_remove;
 
 static int
 hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
@@ -170,7 +171,9 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 
 	init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
-	ret = hdd_wlan_startup(&pdev->dev, ol_sc);
+	ret = hif_init_adf_ctx(ol_sc);
+	if (ret == 0)
+		ret = hdd_wlan_startup(&pdev->dev, ol_sc);
 	if (ret) {
 		hif_nointrs(sc);
 		if (sc->hif_device != NULL) {
@@ -205,6 +208,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	return 0;
 
 err_config:
+	hif_deinit_adf_ctx(ol_sc);
 	A_FREE(ol_sc);
 err_attach:
 	ret = -EIO;
@@ -253,19 +257,24 @@ static void hif_usb_remove(struct usb_interface *interface)
 			   HIF_USB_UNLOAD_STATE_TARGET_RESET);
 	scn = sc->ol_sc;
 
-	if (usb_sc->hdd_removed == 0) {
-		usb_sc->hdd_removed_processing = 1;
+	if (atomic_read(&hif_usb_hdd_remove) == 0) {
+		atomic_set(&hif_usb_hdd_remove, 1);
+
+		if (usb_sc->hdd_removed == 0) {
+			usb_sc->hdd_removed = 1;
+			usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-	if (vos_get_conparam() != VOS_FTM_MODE &&
-		!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-		pktlogmod_exit(scn);
+			if (vos_get_conparam() != VOS_FTM_MODE &&
+				!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+				pktlogmod_exit(scn);
 #endif
-		__hdd_wlan_exit();
-		usb_sc->hdd_removed_processing = 0;
-		usb_sc->hdd_removed = 1;
+			__hdd_wlan_exit();
+			usb_sc->hdd_removed_processing = 0;
+		}
 	}
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
+	hif_deinit_adf_ctx(scn);
 	A_FREE(scn);
 	A_FREE(sc);
 	usb_sc = NULL;
@@ -384,20 +393,44 @@ struct usb_driver hif_usb_drv_id = {
 	.supports_autosuspend = true,
 };
 
-void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)
+int hif_init_adf_ctx(void *ol_sc)
 {
+	adf_os_device_t adf_ctx;
+	v_CONTEXT_t pVosContext = NULL;
 	struct ol_softc *sc = (struct ol_softc *)ol_sc;
 	struct hif_usb_softc *hif_sc = (struct hif_usb_softc *)sc->hif_sc;
-	adf_dev->drv = &hif_sc->aps_osdev;
-	adf_dev->drv_hdl = hif_sc->aps_osdev.bdev;
-	adf_dev->dev = hif_sc->aps_osdev.device;
-	sc->adf_dev = adf_dev;
+
+	pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if(pVosContext == NULL)
+		return -EFAULT;
+
+	adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
+	if (!adf_ctx)
+		return -ENOMEM;
+	vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
+	adf_ctx->drv = &hif_sc->aps_osdev;
+	adf_ctx->drv_hdl = hif_sc->aps_osdev.bdev;
+	adf_ctx->dev = hif_sc->aps_osdev.device;
+	sc->adf_dev = adf_ctx;
+	((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
+	return 0;
 }
 
 void hif_deinit_adf_ctx(void *ol_sc)
 {
 	struct ol_softc *sc = (struct ol_softc *)ol_sc;
-	sc->adf_dev = NULL;
+
+	if (sc == NULL)
+		return;
+	if (sc->adf_dev) {
+		v_CONTEXT_t pVosContext = NULL;
+
+		pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+		vos_mem_free(sc->adf_dev);
+		sc->adf_dev = NULL;
+		if (pVosContext)
+			((VosContextType*)(pVosContext))->adf_ctx = NULL;
+	}
 }
 
 static int hif_usb_dev_notify(struct notifier_block *nb,
@@ -433,6 +466,7 @@ int hif_register_driver(void)
 	is_usb_driver_register = 1;
 	init_waitqueue_head(&hif_usb_unload_event_wq);
 	atomic_set(&hif_usb_unload_state, HIF_USB_UNLOAD_STATE_NULL);
+	atomic_set(&hif_usb_hdd_remove, 0);
 	usb_register_notify(&hif_usb_dev_nb);
 	return usb_register(&hif_usb_drv_id);
 }
@@ -458,16 +492,20 @@ void hif_unregister_driver(void)
 				usb_sc->local_state.event = 0;
 			}
 
-			if (usb_sc->hdd_removed == 0) {
-				usb_sc->hdd_removed_processing = 1;
+			if (atomic_read(&hif_usb_hdd_remove) == 0) {
+				atomic_set(&hif_usb_hdd_remove, 1);
+
+				if (usb_sc->hdd_removed == 0) {
+					usb_sc->hdd_removed = 1;
+					usb_sc->hdd_removed_processing = 1;
 #ifndef REMOVE_PKT_LOG
-	            if (vos_get_conparam() != VOS_FTM_MODE &&
-		            !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-					pktlogmod_exit(usb_sc->ol_sc);
+					if (vos_get_conparam() != VOS_FTM_MODE &&
+						!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+						pktlogmod_exit(usb_sc->ol_sc);
 #endif
-				__hdd_wlan_exit();
-				usb_sc->hdd_removed_processing = 0;
-				usb_sc->hdd_removed = 1;
+					__hdd_wlan_exit();
+					usb_sc->hdd_removed_processing = 0;
+				}
 			}
 		}
 		is_usb_driver_register = 0;
