@@ -257,29 +257,74 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    hdd_wmm_ac_status_t *pAc = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
    VOS_STATUS status;
 
+   uint32_t service_interval;
+   uint32_t suspension_interval;
+   uint8_t uapsd_mask;
+   uint8_t active_tspec = INVALID_TSPEC;
+   hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+   hdd_config_t *config = hdd_ctx->cfg_ini;
 
    // have we previously enabled UAPSD?
-   if (pAc->wmmAcUapsdInfoValid == VOS_TRUE)
-   {
-      status = WLANTL_DisableUAPSDForAC((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                        (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
-                                        acType,
-                                        pAdapter->sessionId);
+   if (pAc->wmmAcUapsdInfoValid == VOS_TRUE) {
+      uapsd_mask = config->UapsdMask;
 
-      if ( !VOS_IS_STATUS_SUCCESS( status ) )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_ERROR,
-                    "%s: Failed to disable U-APSD for AC=%d",
-                    __func__, acType );
-      }
-      else
-      {
-         // TL no longer has valid UAPSD info
-         pAc->wmmAcUapsdInfoValid = VOS_FALSE;
-         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
+      /* Finding uapsd_mask as per AC */
+      uapsd_mask = uapsd_mask & (1 << (WLANTL_AC_VO - acType));
+
+      sme_QosTspecActive((tpAniSirGlobal)WLAN_HDD_GET_HAL_CTX(pAdapter), acType,
+                         pAdapter->sessionId, &active_tspec);
+
+      /* Call WLANTL_EnableUAPSDForAC only when static uapsd mask is present and
+       * no active tspecs. TODO: Need to change naming convention as Enable
+       * UAPSD function is called in hdd_wmm_disable_tl_uapsd. Purpose of
+       * calling WLANTL_EnableUAPSDForAC is to update UAPSD intervals to fw
+       */
+
+      if (uapsd_mask && !active_tspec) {
+         switch (acType) {
+         case WLANTL_AC_VO:
+            service_interval = config->InfraUapsdVoSrvIntv;
+            suspension_interval = config->InfraUapsdVoSuspIntv;
+            break;
+         case WLANTL_AC_VI:
+            service_interval = config->InfraUapsdViSrvIntv;
+            suspension_interval = config->InfraUapsdViSuspIntv;
+            break;
+         case WLANTL_AC_BE:
+            service_interval = config->InfraUapsdBeSrvIntv;
+            suspension_interval = config->InfraUapsdBeSuspIntv;
+            break;
+         case WLANTL_AC_BK:
+            service_interval = config->InfraUapsdBkSrvIntv;
+            suspension_interval = config->InfraUapsdBkSuspIntv;
+            break;
+         default:
+            return;
+         }
+
+         /* restore the UAPSD intervals configuration */
+         status = WLANTL_EnableUAPSDForAC(hdd_ctx->pvosContext,
+                  (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
+                   acType,
+                   pAc->wmmAcTspecInfo.ts_info.tid,
+                   pAc->wmmAcTspecInfo.ts_info.up,
+                   service_interval,
+                   suspension_interval,
+                   pAc->wmmAcTspecInfo.ts_info.direction,
+                   pAc->wmmAcTspecInfo.ts_info.psb,
+                   pAdapter->sessionId);
+
+         if (!VOS_IS_STATUS_SUCCESS(status)) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_ERROR,
+                    "%s: Failed to update U-APSD params for AC=%d",
+                     __func__, acType);
+         } else {
+            /* TL no longer has valid UAPSD info */
+            pAc->wmmAcUapsdInfoValid = VOS_FALSE;
+            VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
                    "%s: Disabled UAPSD in TL for AC=%d",
-                   __func__,
-                   acType);
+                   __func__, acType);
+         }
       }
    }
 }

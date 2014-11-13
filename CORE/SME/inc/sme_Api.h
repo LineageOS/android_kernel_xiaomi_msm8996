@@ -89,6 +89,9 @@
     reg_info_2 |= ((val & 0xff) << 8);   \
 } while(0)
 
+/* Macro to indicate invalid no of tspecs */
+#define INVALID_TSPEC 100
+
 #define NUM_OF_BANDS 2
 /*--------------------------------------------------------------------------
   Type declarations
