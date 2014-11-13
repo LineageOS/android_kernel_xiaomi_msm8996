@@ -111,6 +111,9 @@ struct hif_pci_softc {
     struct hostdef_s *hostdef;
     atomic_t tasklet_from_intr;
     atomic_t wow_done;
+#ifdef FEATURE_WLAN_D0WOW
+    atomic_t in_d0wow;
+#endif
     atomic_t ce_suspend;
     atomic_t pci_link_suspended;
     bool hif_init_done;

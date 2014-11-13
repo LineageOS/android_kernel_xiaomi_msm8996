@@ -95,8 +95,5 @@ struct wmi_unified {
 	adf_os_atomic_t runtime_pm_inprogress;
 #endif
 	void (*wma_wow_tx_complete_cbk)(ol_scn_t scn_handle);
-#ifdef FEATURE_WLAN_D0WOW
-	A_BOOL in_d0wow;
-#endif
 };
 #endif
