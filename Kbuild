@@ -1169,10 +1169,12 @@ CDEFINES += -DIPA_OFFLOAD -DHDD_IPA_USE_IPA_RM_TIMER
 endif
 
 ifneq ($(CONFIG_ARCH_MDM9630), y)
-ifneq ($(CONFIG_ARCH_MSMZIRC), y)
 ifeq ($(CONFIG_IPA_UC_OFFLOAD), 1)
 CDEFINES += -DIPA_UC_OFFLOAD
+ifeq ($(CONFIG_ARCH_MSMZIRC), y)
+CDEFINES += -DIPA_UC_STA_OFFLOAD
 endif
+CDEFINES += -DQCA_CONFIG_SMP
 endif
 endif
 
@@ -1222,7 +1224,7 @@ CDEFINES += -DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
 #Enable OBSS feature
 CDEFINES += -DQCA_HT_2040_COEX
 
-else
+else #CONFIG_MOBILE_ROUTER
 
 #Open P2P device interface only for non-Mobile router use cases
 CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
@@ -1230,9 +1232,9 @@ CDEFINES += -DWLAN_OPEN_P2P_INTERFACE
 #Enable 2.4 GHz social channels in 5 GHz only mode for p2p usage
 CDEFINES += -DWLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
 
-endif
+endif #CONFIG_MOBILE_ROUTER
 
-#Enable RX Full re-order OL feature
+#Enable RX Full re-order OL feature only "LL and NON-MDM9630 platform"
 ifneq ($(CONFIG_ARCH_MDM9630), y)
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DWLAN_FEATURE_RX_FULL_REORDER_OL

@@ -42,6 +42,8 @@
 #define FWDEBUG_NAME            "ROME_DEBUG"
 #define android_printf(...) \
        __android_log_print(ANDROID_LOG_INFO, FWDEBUG_LOG_NAME, __VA_ARGS__);
+#else
+#define android_printf printf
 #endif
 
 typedef struct diag_entry{
@@ -73,6 +75,8 @@ static int gdiag_sock_fd = 0, goptionflag = 0;
     if (goptionflag & DEBUG_FLAG)   \
        __android_log_print(ANDROID_LOG_INFO, FWDEBUG_NAME, __VA_ARGS__);    \
 } while(0)
+#else
+#define debug_printf(...) do {} while(0);
 #endif
 
 /*

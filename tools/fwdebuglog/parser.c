@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include <athdefs.h>
 #include <a_types.h>

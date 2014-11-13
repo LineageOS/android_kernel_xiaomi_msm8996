@@ -6935,6 +6935,8 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
         smsLog(pMac, LOGP, FL("No profile specified"));
         return eHAL_STATUS_FAILURE;
     }
+    /* Initialize the bssid count before proceeding with the Join requests */
+    pSession->join_bssid_count = 0;
     smsLog(pMac, LOG1, FL("called  BSSType = %d authtype = %d  encryType = %d"),
                 pProfile->BSSType, pProfile->AuthType.authType[0], pProfile->EncryptionType.encryptionType[0]);
     if( CSR_IS_WDS( pProfile ) &&
@@ -7682,6 +7684,19 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
 {
    tListElem *pEntry = NULL;
    tSmeCmd *pCommand = NULL;
+   tCsrRoamSession *pSession;
+
+   if (pSmeJoinRsp)
+     pSession = CSR_GET_SESSION(pMac, pSmeJoinRsp->sessionId);
+   else {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("Sme Join Response is NULL"));
+       return;
+   }
+   if (!pSession) {
+       smsLog(pMac, LOGE, FL("session %d not found"), pSmeJoinRsp->sessionId);
+       return;
+   }
    //The head of the active list is the request we sent
    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
    if(pEntry)
@@ -7696,19 +7711,16 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
                sme_QosCsrEventInd(pMac, pSmeJoinRsp->sessionId, SME_QOS_CSR_HANDOFF_COMPLETE, NULL);
 #endif
             }
+            /* The join bssid count can be reset as soon as
+             * we are done with the join requests and returning
+             * the response to upper layers
+             */
+            pSession->join_bssid_count = 0;
             csrRoamComplete( pMac, eCsrJoinSuccess, (void *)pSmeJoinRsp );
    }
    else
    {
         tANI_U32 roamId = 0;
-        tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pSmeJoinRsp->sessionId );
-        if(!pSession)
-        {
-            smsLog(pMac, LOGE, FL("  session %d not found "), pSmeJoinRsp->sessionId);
-            return;
-        }
-
-
         //The head of the active list is the request we sent
         //Try to get back the same profile and roam again
         if(pCommand)
@@ -7727,7 +7739,7 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
             csrNeighborRoamIndicateConnect(pMac, pSmeJoinRsp->sessionId, VOS_STATUS_E_FAILURE);
         }
 #endif
-        if (pCommand)
+        if (pCommand && (pSession->join_bssid_count < CSR_MAX_BSSID_COUNT))
         {
             if(CSR_IS_WDS_STA( &pCommand->u.roamCmd.roamProfile ))
             {
@@ -7737,6 +7749,7 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
             }
             else if( CSR_IS_WDS( &pCommand->u.roamCmd.roamProfile ) )
             {
+                pSession->join_bssid_count = 0;
                 csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
             }
             else
@@ -7744,9 +7757,21 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
                 csrRoam(pMac, pCommand);
             }
         }
-        else
-        {
-           csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+        else {
+          /* When the upper layers issue a connect command, there is a
+           * roam command with reason eCsrHddIssued that gets enqueued
+           * and an associated timer for the SME command timeout is
+           * started which is currently 120 seconds. This command would
+           * be dequeued only upon succesfull connections. In case of join
+           * failures, if there are too many BSS in the cache, and if we
+           * fail Join requests with all of them, there is a chance of
+           * timing out the above timer.
+           */
+          if (pSession->join_bssid_count >= CSR_MAX_BSSID_COUNT)
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+               FL("Excessive Join Request Failures"));
+          pSession->join_bssid_count = 0;
+          csrRoamComplete(pMac, eCsrNothingToJoin, NULL);
         }
     } /*else: ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode ) */
 }
@@ -13747,6 +13772,9 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             if (eWNI_SME_JOIN_REQ == messageType)
             {
                 //Tush-QoS: notify QoS module that join happening
+                pSession->join_bssid_count++;
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                          "BSSID Count = %d", pSession->join_bssid_count);
                 sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_JOIN_REQ, NULL);
             }
             else if (eWNI_SME_REASSOC_REQ == messageType)

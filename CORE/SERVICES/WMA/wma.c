@@ -9828,7 +9828,9 @@ void wma_vdev_resp_timer(void *data)
 			WMA_LOGP("%s: Failed to find peer %pM", __func__, params->bssId);
 		}
 		msg = wma_fill_vdev_req(wma, tgt_req->vdev_id, WDA_DELETE_BSS_REQ,
-						WMA_TARGET_REQ_TYPE_VDEV_STOP, del_bss_params, 2000);
+						WMA_TARGET_REQ_TYPE_VDEV_STOP,
+						del_bss_params,
+						WMA_VDEV_STOP_REQUEST_TIMEOUT);
 		if (!msg) {
 			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 							__func__, tgt_req->vdev_id);
@@ -14417,7 +14419,8 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	}
 #endif
 	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
-				WMA_TARGET_REQ_TYPE_VDEV_STOP, params, 2000);
+				WMA_TARGET_REQ_TYPE_VDEV_STOP, params,
+				WMA_VDEV_STOP_REQUEST_TIMEOUT);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 			 __func__, params->smesessionId);
@@ -21899,6 +21902,75 @@ VOS_STATUS  wma_extscan_get_capabilities(tp_wma_handle wma,
 }
 #endif
 
+VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
+		struct sir_ipa_offload_enable_disable *ipa_offload)
+{
+	wmi_ipa_offload_enable_disable_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t   len;
+	u_int8_t *buf_ptr;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
+			__func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			((ipa_offload->offload_type == AP_RX_DATA_OFFLOAD)?
+			WMI_SERVICE_HSOFFLOAD:
+			WMI_SERVICE_STA_RX_IPA_OFFLOAD_SUPPORT))) {
+		WMA_LOGE("%s: %s not supported", __func__,
+			((ipa_offload->offload_type == AP_RX_DATA_OFFLOAD)?
+			"WMI_SERVICE_HSOFFLOAD":
+			"WMI_SERVICE_STA_RX_IPA_OFFLOAD_SUPPORT"));
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (ipa_offload->offload_type > STA_RX_DATA_OFFLOAD) {
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len  = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed (len=%d)", __func__, len);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	WMA_LOGE("%s: offload_type=%d, enable=%d", __func__,
+		ipa_offload->offload_type, ipa_offload->enable);
+
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_ipa_offload_enable_disable_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUCT_wmi_ipa_offload_enable_disable_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		wmi_ipa_offload_enable_disable_cmd_fixed_param));
+
+	cmd->offload_type = ipa_offload->offload_type;
+	cmd->vdev_id = ipa_offload->vdev_id;
+	cmd->enable = ipa_offload->enable;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_IPA_OFFLOAD_ENABLE_DISABLE_CMDID)) {
+		WMA_LOGE("%s: failed to command", __func__);
+		wmi_buf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Disable/enable WMI_VDEV_PARAM_INTRA_BSS_FWD */
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
+		ipa_offload->vdev_id, WMI_VDEV_PARAM_INTRA_BSS_FWD,
+		ipa_offload->enable ? 0 : 1)) {
+		WMA_LOGE("Failed to disable WMI_VDEV_PARAM_INTRA_BSS_FWD");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 #ifdef WLAN_FEATURE_NAN
 /* function   : wma_nan_req
  * Descriptin : Function is used to send nan request down
@@ -22080,7 +22152,7 @@ static int wma_process_dhcpserver_offload(tp_wma_handle wma_handle,
 	cmd->enable = pDhcpSrvOffloadInfo->dhcpSrvOffloadEnabled;
 	cmd->num_client = pDhcpSrvOffloadInfo->dhcpClientNum;
 	cmd->srv_ipv4 = pDhcpSrvOffloadInfo->dhcpSrvIP;
-	cmd->start_lsb = 0;
+	cmd->start_lsb = pDhcpSrvOffloadInfo->dhcp_client_start_ip;
 	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 			sizeof(*cmd), WMI_SET_DHCP_SERVER_OFFLOAD_CMDID);
 	if (err) {
@@ -22801,6 +22873,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif
+		case WDA_IPA_OFFLOAD_ENABLE_DISABLE:
+			wma_ipa_offload_enable_disable(wma_handle,
+			 (struct sir_ipa_offload_enable_disable *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

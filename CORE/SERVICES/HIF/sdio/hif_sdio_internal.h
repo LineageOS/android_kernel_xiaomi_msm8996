@@ -34,7 +34,6 @@
 #include "htc_api.h"
 
 
-#define HIF_SDIO_RX_BUFFER_SIZE            1792
 #define HIF_SDIO_RX_DATA_OFFSET            64
 
 /* TODO: print output level and mask control */
@@ -136,7 +135,7 @@ struct TAG_HIF_SDIO_DEVICE {
 #define IS_DEV_IRQ_PROCESSING_ASYNC_ALLOWED(pDev) ((pDev)->HifIRQProcessingMode != HIF_DEVICE_IRQ_SYNC_ONLY)
 
 /* hif_sdio_dev.c */
-HTC_PACKET *HIFDevAllocRxBuffer(HIF_SDIO_DEVICE *pDev);
+HTC_PACKET *HIFDevAllocRxBuffer(HIF_SDIO_DEVICE *pDev, size_t length);
 
 A_UINT8 HIFDevMapPipeToMailBox(HIF_SDIO_DEVICE *pDev, A_UINT8 pipeid);
 A_UINT8 HIFDevMapMailBoxToPipe(HIF_SDIO_DEVICE *pDev, A_UINT8 mboxIndex,

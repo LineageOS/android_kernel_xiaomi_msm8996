@@ -1394,6 +1394,13 @@ typedef enum
 #define CFG_SAP_SCC_CHAN_AVOIDANCE_DEFAULT ( 0 )
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 
+#ifdef IPA_UC_STA_OFFLOAD
+#define CFG_IPA_UC_STA_OFFLOAD             "gIpaUcStaOffload"
+#define CFG_IPA_UC_STA_OFFLOAD_MIN         ( 0 )
+#define CFG_IPA_UC_STA_OFFLOAD_MAX         ( 1 )
+#define CFG_IPA_UC_STA_OFFLOAD_DEFAULT     ( 0 )
+#endif /* IPA_UC_STA_OFFLOAD */
+
 /*
  * VOS Trace Enable Control
  * Notes:
@@ -2570,6 +2577,12 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX      ( 8 )
 #define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_DEFAULT  ( CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX )
 
+/* Starting address assigned to DHCP client */
+#define CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_NAME     "gDHCPClientStartIP"
+#define CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_MIN      ( 100 )
+#define CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_MAX      ( 255 )
+#define CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_DEFAULT  ( CFG_DHCP_SERVER_OFFLOAD_CLIENT_IPBASE_MIN )
+
 /* DHCP Server IP*/
 #define CFG_DHCP_SERVER_IP_NAME     "gDHCPServerIP"
 #define CFG_DHCP_SERVER_IP_DEFAULT  ""
@@ -3134,9 +3147,13 @@ typedef struct
 #ifdef DHCP_SERVER_OFFLOAD
    v_BOOL_t                    enableDHCPServerOffload;
    v_U32_t                     dhcpMaxNumClients;
+   uint32_t                    dhcp_client_start_ip;
    v_U8_t                      dhcpServerIP[IPADDR_STRING_LENGTH];
 #endif  /* DHCP_SERVER_OFFLOAD */
    bool                        enable_mac_spoofing;
+#ifdef IPA_UC_STA_OFFLOAD
+   bool                        ipa_uc_sta_offload;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

@@ -42,6 +42,11 @@
 #include "diagpkt.h"
 #include "diagcmd.h"
 #include "diag.h"
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcat g_strlcat
+#define strlcpy g_strlcpy
+#endif
 
 /* KERNEL DEFS START */
 #define DBGLOG_MAX_VDEVID 15 /* 0-15 */
