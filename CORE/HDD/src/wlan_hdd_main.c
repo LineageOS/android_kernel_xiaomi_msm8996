@@ -3899,9 +3899,20 @@ static void hdd_GetLink_statusCB(v_U8_t status, void *pContext)
    spin_unlock(&hdd_context_lock);
 }
 
+/**
+ * wlan_hdd_get_link_status() - get link status
+ * @pAdapter:     pointer to the adapter
+ *
+ * This function sends a request to query the link status and waits
+ * on a timer to invoke the callback. if the callback is invoked then
+ * latest link status shall be returned or otherwise cached value
+ * will be returned.
+ *
+ * Return: On success, link status shall be returned.
+ *         On error or not associated, link status 0 will be returned.
+ */
 static int wlan_hdd_get_link_status(hdd_adapter_t *pAdapter)
 {
-
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    struct statsContext context;
@@ -3909,15 +3920,14 @@ static int wlan_hdd_get_link_status(hdd_adapter_t *pAdapter)
    unsigned long rc;
 
    if (pHddCtx->isLogpInProgress) {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-              "%s:LOGP in Progress. Ignore!!!", __func__);
-      return -EBUSY;
+       hddLog(LOGW, FL("LOGP in Progress. Ignore!!!"));
+       return 0;
    }
 
    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Not associated!",
-                                    __func__);
-      return -EINVAL;
+       /* If not associated, then expected link status return value is 0 */
+       hddLog(LOG1, FL("Not associated!"));
+       return 0;
    }
 
    init_completion(&context.completion);
