@@ -3684,6 +3684,7 @@ eHalStatus limSendDeauthCnf(tpAniSirGlobal pMac)
 
 
         /// Receive path cleanup with dummy packet
+        limFTCleanupPreAuthInfo(pMac,psessionEntry);
         limCleanupRxPath(pMac, pStaDs,psessionEntry);
         /// Free up buffer allocated for mlmDeauthReq
         vos_mem_free(pMlmDeauthReq);
