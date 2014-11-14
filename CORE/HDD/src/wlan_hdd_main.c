@@ -14288,8 +14288,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     pHddApCtx->sapConfig.channel = intf_ch;
     sme_SelectCBMode(hHal,
             sapConvertSapPhyModeToCsrPhyMode(pHddApCtx->sapConfig.SapHw_mode),
-                                             pHddApCtx->sapConfig.channel,
-                                             pHddCtx->cfg_ini->vhtChannelWidth);
+                                             pHddApCtx->sapConfig.channel);
     wlan_hdd_restart_sap(ap_adapter);
 }
 #endif
