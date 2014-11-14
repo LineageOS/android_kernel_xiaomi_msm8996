@@ -3132,6 +3132,11 @@ sapFsm
     tpAniSirGlobal pMac;
     v_U32_t cbMode;
     v_U32_t   vhtChannelWidth;
+    v_BOOL_t b_leak_chan = FALSE;
+#ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
+    v_U8_t temp_chan;
+    tSapDfsNolInfo *pNol;
+#endif
 
     if (NULL == hHal)
     {
@@ -3313,9 +3318,21 @@ sapFsm
                     cbMode = sme_GetCBPhyStateFromCBIniValue(
                                 sme_GetChannelBondingMode5G(hHal));
 
-                 /* check if channel is in DFS_NOL */
+#ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
+                 temp_chan = sapContext->channel;
+                 pNol = pMac->sap.SapDfsInfo.sapDfsChannelNolList;
+
+                 sapMarkChannelsLeakingIntoNOL(sapContext,
+                         cbMode, pNol, 1, &temp_chan);
+
+                 /* if selelcted channel has leakage to channels
+                    in NOL, the temp_chan will be reset */
+                 b_leak_chan = (temp_chan != sapContext->channel);
+#endif
+                 /* check if channel is in DFS_NOL or
+                    if the channel has leakage to the channels in NOL */
                  if (sapDfsIsChannelInNolList(sapContext, sapContext->channel,
-                             cbMode))
+                             cbMode) || b_leak_chan)
                  {
                      v_U8_t ch;
 
