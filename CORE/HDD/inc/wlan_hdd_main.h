@@ -1506,6 +1506,7 @@ struct hdd_context_s
     /* RoC request queue and work */
     struct work_struct rocReqWork;
     hdd_list_t hdd_roc_req_q;
+    bool mcc_mode;
 };
 
 /*---------------------------------------------------------------------------

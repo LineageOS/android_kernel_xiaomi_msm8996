@@ -4110,6 +4110,19 @@ eHalStatus sme_GetTemperature(tHalHandle hHal,
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetScanningMacOui(tHalHandle hHal, tSirScanMacOui *pScanMacOui);
 
+#ifdef IPA_UC_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn sme_ipa_offload_enable_disable
+    \brief  API to enable/disable IPA offload
+    \param  hHal - The handle returned by macOpen.
+    \param  sessionId - Session Identifier
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ipa_offload_enable_disable(tHalHandle hal, tANI_U8 session_id,
+                               struct sir_ipa_offload_enable_disable *request);
+#endif
+
 #ifdef DHCP_SERVER_OFFLOAD
 /* ---------------------------------------------------------------------------
     \fn sme_setDhcpSrvOffload

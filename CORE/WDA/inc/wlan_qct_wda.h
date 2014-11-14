@@ -957,6 +957,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif
 
 #define WDA_VDEV_START_RSP_IND      SIR_HAL_VDEV_START_RSP_IND
+#define WDA_IPA_OFFLOAD_ENABLE_DISABLE        SIR_HAL_IPA_OFFLOAD_ENABLE_DISABLE
 
 #define WDA_ROAM_PREAUTH_IND        SIR_HAL_ROAM_PREAUTH_IND
 

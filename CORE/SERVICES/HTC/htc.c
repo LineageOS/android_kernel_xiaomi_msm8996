@@ -34,6 +34,7 @@
 #include <hif_msg_based.h> /* HIFFlushSurpriseRemove */
 #include <vos_getBin.h>
 #include "epping_main.h"
+#include "htc_api.h"
 
 #ifdef DEBUG
 static ATH_DEBUG_MASK_DESCRIPTION g_HTCDebugDescription[] = {
@@ -654,6 +655,8 @@ A_STATUS HTCStart(HTC_HANDLE HTCHandle)
 #endif /* ENABLE_BUNDLE_RX */
 #endif /* HIF_SDIO */
 
+        pSetupComp->MaxMsgsPerBundledRecv = HTC_MAX_MSG_PER_BUNDLE_RX;
+
         SET_HTC_PACKET_INFO_TX(pSendPacket,
                                NULL,
                                (A_UINT8 *)pSetupComp,
@@ -778,6 +781,53 @@ void HTCDumpCreditStates(HTC_HANDLE HTCHandle)
     }
 }
 
+void HTCEndpointDumpCreditStats(HTC_HANDLE HTCHandle, HTC_ENDPOINT_ID Endpoint)
+{
+#ifdef HTC_EP_STAT_PROFILING
+    HTC_TARGET    *target;
+    AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("+%s \n", __func__));
+
+    target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_ANY, (" ******* HTC Stats for EP %d ******* \n", Endpoint));
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("HIFDSRCount=%d \t RxAllocThreshBytes=%d \t RxAllocThreshHit=%d \n"
+                                    "RxBundleIndFromHdr=%d \t RxBundleLookAheads=%d \t RxLookAheads=%d \n"
+                                    "RxPacketsBundled=%d \t RxReceived=%d \t TxBundles=%d \n"
+                                    "TxCreditLowIndications=%d \t TxCreditRpts=%d \t TxCreditRptsFromEp0=%d \n"
+                                    "TxCreditRptsFromOther=%d \t TxCreditRptsFromRx=%d \t TxCreditsConsummed=%d \n"
+                                    "TxCreditsFromEp0=%d \t TxCreditsFromOther=%d \t TxCreditsFromRx=%d \n"
+                                    "TxCreditsReturned=%d \t TxDropped=%d \t TxIssued=%d \n"
+                                    "TxPacketsBundled=%d \t TxPosted=%d \n",
+                                    target->EndPoint->EndPointStats.HIFDSRCount,
+                                    target->EndPoint->EndPointStats.RxAllocThreshBytes,
+                                    target->EndPoint->EndPointStats.RxAllocThreshHit,
+                                    target->EndPoint->EndPointStats.RxBundleIndFromHdr,
+                                    target->EndPoint->EndPointStats.RxBundleLookAheads,
+                                    target->EndPoint->EndPointStats.RxLookAheads,
+                                    target->EndPoint->EndPointStats.RxPacketsBundled,
+                                    target->EndPoint->EndPointStats.RxReceived,
+                                    target->EndPoint->EndPointStats.TxBundles,
+                                    target->EndPoint->EndPointStats.TxCreditLowIndications,
+                                    target->EndPoint->EndPointStats.TxCreditRpts,
+                                    target->EndPoint->EndPointStats.TxCreditRptsFromEp0,
+                                    target->EndPoint->EndPointStats.TxCreditRptsFromOther,
+                                    target->EndPoint->EndPointStats.TxCreditRptsFromRx,
+                                    target->EndPoint->EndPointStats.TxCreditsConsummed,
+                                    target->EndPoint->EndPointStats.TxCreditsFromEp0,
+                                    target->EndPoint->EndPointStats.TxCreditsFromOther,
+                                    target->EndPoint->EndPointStats.TxCreditsFromRx,
+                                    target->EndPoint->EndPointStats.TxCreditsReturned,
+                                    target->EndPoint->EndPointStats.TxDropped,
+                                    target->EndPoint->EndPointStats.TxIssued,
+                                    target->EndPoint->EndPointStats.TxPacketsBundled,
+                                    target->EndPoint->EndPointStats.TxPosted));
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_ANY, (" ******* End Stats ******* \n"));
+#else
+    AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("%s not implemented\n", __func__));
+#endif
+}
 
 A_BOOL HTCGetEndpointStatistics(HTC_HANDLE               HTCHandle,
                                 HTC_ENDPOINT_ID          Endpoint,

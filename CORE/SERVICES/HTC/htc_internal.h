@@ -70,9 +70,11 @@ extern "C" {
 #define HTC_TARGET_CREDIT_INTR_MASK         0xF0
 #define HTC_MIN_MSG_PER_BUNDLE              2
 #if defined(HIF_USB)
-#define HTC_MAX_MSG_PER_BUNDLE              9
+#define HTC_MAX_MSG_PER_BUNDLE_RX              9
+#define HTC_MAX_MSG_PER_BUNDLE_TX              9
 #else
-#define HTC_MAX_MSG_PER_BUNDLE              16
+#define HTC_MAX_MSG_PER_BUNDLE_RX              64
+#define HTC_MAX_MSG_PER_BUNDLE_TX              16
 #endif
 /*
  * HTC_MAX_TX_BUNDLE_SEND_LIMIT -

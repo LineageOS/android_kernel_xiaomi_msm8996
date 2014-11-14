@@ -8511,7 +8511,7 @@ error_register_wext:
                    FL("Session is not opened within timeout period code %ld"),
                    rc);
       }
-}
+   }
 error_sme_open:
    return status;
 }
@@ -9596,6 +9596,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             pAdapter->ipv6_notifier_registered = false;
          }
 #endif
+
          /* It is possible that the caller of this function does not
           * wish to close the session
           */
@@ -9979,10 +9980,12 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    hdd_station_ctx_t *pHddStaCtx;
    hdd_ap_ctx_t *pHddApCtx;
    hdd_hostapd_state_t * pHostapdState;
-   tCsrBssid staBssid = { 0 }, p2pBssid = { 0 }, apBssid = { 0 };
+   tCsrBssid staBssid = { 0 }, p2pBssid = { 0 };
+   tCsrBssid apBssid = { 0 }, apBssid1 = { 0 }, apBssid2 = { 0 };
    v_U8_t staChannel = 0, p2pChannel = 0, apChannel = 0;
+   v_U8_t apChannel1 = 0, apChannel2 = 0;
    const char *p2pMode = "DEV";
-   const char *ccMode = "Standalone";
+   bool mcc_mode = FALSE;
 
 #ifdef QCA_LL_TX_FLOW_CT
    v_U8_t targetChannel = 0;
@@ -10038,6 +10041,13 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           if (pHostapdState->bssState == BSS_START && pHostapdState->vosStatus==VOS_STATUS_SUCCESS) {
               apChannel = pHddApCtx->operatingChannel;
               memcpy(apBssid, pAdapter->macAddressCurrent.bytes, sizeof(apBssid));
+              if (!pHddApCtx->uBCStaId) {
+                  apChannel1 = apChannel;
+                  memcpy(apBssid1, apBssid, sizeof(apBssid));
+              } else {
+                  apChannel2 = apChannel;
+                  memcpy(apBssid2, apBssid, sizeof(apBssid));
+              }
 #ifdef QCA_LL_TX_FLOW_CT
               targetChannel = apChannel;
 #endif /* QCA_LL_TX_FLOW_CT */
@@ -10212,22 +10222,43 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   if (staChannel > 0 && (apChannel > 0 || p2pChannel > 0)) {
-       ccMode = (p2pChannel==staChannel||apChannel==staChannel) ? "SCC" : "MCC";
+
+   /*
+    * Determine SCC/MSS
+    * Remind that this only considered STA+AP and AP+AP concurrency
+    * Need to expand for futher concurreny in the future
+    */
+   if (apChannel1 > 0 && apChannel2 > 0) {
+       mcc_mode = apChannel1 != apChannel2;
+   } else if (staChannel > 0 && (apChannel1 > 0 || p2pChannel > 0)) {
+       mcc_mode = !(p2pChannel==staChannel || apChannel1==staChannel);
    }
-   hddLog(VOS_TRACE_LEVEL_ERROR, "wlan(%d) " MAC_ADDRESS_STR " %s",
-                staChannel, MAC_ADDR_ARRAY(staBssid), ccMode);
+   if (pHddCtx->mcc_mode != mcc_mode) {
+#ifdef IPA_UC_STA_OFFLOAD
+       /* Send SCC/MCC Switching event to IPA */
+       hdd_ipa_send_mcc_scc_msg(pHddCtx, mcc_mode);
+#endif
+       pHddCtx->mcc_mode = mcc_mode;
+   }
+   hddLog(VOS_TRACE_LEVEL_INFO, "wlan(%d) " MAC_ADDRESS_STR " %s",
+                staChannel, MAC_ADDR_ARRAY(staBssid), mcc_mode ? "MCC" : "SCC");
    if (p2pChannel > 0) {
        hddLog(VOS_TRACE_LEVEL_INFO, "p2p-%s(%d) " MAC_ADDRESS_STR,
                      p2pMode, p2pChannel, MAC_ADDR_ARRAY(p2pBssid));
    }
-   if (apChannel > 0) {
+   if (apChannel1 > 0) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "AP(%d) " MAC_ADDRESS_STR,
-                     apChannel, MAC_ADDR_ARRAY(apBssid));
+                     apChannel1, MAC_ADDR_ARRAY(apBssid1));
+   }
+   if (apChannel2 > 0) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "AP(%d) " MAC_ADDRESS_STR,
+                     apChannel2, MAC_ADDR_ARRAY(apBssid2));
    }
 
-   if (p2pChannel > 0 && apChannel > 0) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "Error concurrent SAP %d and P2P %d which is not support", apChannel, p2pChannel);
+   if (p2pChannel > 0 && apChannel1 > 0) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+            FL("Error concurrent SAP %d and P2P %d which is not support"),
+            apChannel1, p2pChannel);
    }
 }
 

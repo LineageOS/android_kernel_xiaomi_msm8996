@@ -5157,6 +5157,18 @@ typedef struct
     tANI_U8 oui[WIFI_SCANNING_MAC_OUI_LENGTH];
 } tSirScanMacOui, *tpSirScanMacOui;
 
+enum {
+    SIR_AP_RX_DATA_OFFLOAD             = 0x00,
+    SIR_STA_RX_DATA_OFFLOAD            = 0x01,
+};
+
+struct sir_ipa_offload_enable_disable
+{
+    uint32_t offload_type;
+    uint32_t vdev_id;
+    uint32_t enable;
+};
+
 /*---------------------------------------------------------------------------
   WLAN_HAL_LL_NOTIFY_STATS
 ---------------------------------------------------------------------------*/
@@ -5521,6 +5533,7 @@ typedef struct
     tANI_U32 dhcpSrvOffloadEnabled;
     tANI_U32 dhcpClientNum;
     tANI_U32 dhcpSrvIP;
+    tANI_U32 dhcp_client_start_ip;
 } tSirDhcpSrvOffloadInfo, *tpSirDhcpSrvOffloadInfo;
 #endif /* DHCP_SERVER_OFFLOAD */
 
