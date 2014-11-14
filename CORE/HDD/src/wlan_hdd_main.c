@@ -7601,7 +7601,7 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
 
     v = kstrtos32(tempBuf, 10, &tempInt);
     if ((v < 0) ||
-        (tempInt <= 0) ||
+        (tempInt < 0) ||
         (tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX))
     {
         return -EINVAL;
@@ -9622,6 +9622,19 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
+         if (pHddCtx->cfg_ini->conc_custom_rule1 &&
+             (WLAN_HDD_SOFTAP == pAdapter->device_mode)) {
+             /*
+              * Before stopping the sap adapter, lets make sure there is
+              * no sap restart work pending.
+              */
+             vos_flush_work(&pHddCtx->sap_start_work);
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                        FL("Canceled the pending SAP restart work"));
+             spin_lock(&pHddCtx->sap_update_info_lock);
+             pHddCtx->is_sap_restart_required = false;
+             spin_unlock(&pHddCtx->sap_update_info_lock);
+         }
          //Any softap specific cleanup here...
          if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
@@ -14269,7 +14282,185 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
                                              pHddCtx->cfg_ini->vhtChannelWidth);
     wlan_hdd_restart_sap(ap_adapter);
 }
+#endif
 
+/**
+ * wlan_hdd_check_con_channel_sap_and_sta() - This function checks the sap's
+ *                                            and sta's operating channel.
+ * @sta_adapter:  Describe the first argument to foobar.
+ * @ap_adapter:   Describe the second argument to foobar.
+ * @roam_profile: Roam profile of AP to which STA wants to connect.
+ * @concurrent_chnl_same: If both SAP and STA channels are same then
+ *                        set this flag to true else false.
+ *
+ * This function checks the sap's operating channel and sta's operating channel.
+ * if both are same then it will return false else it will restart the sap in
+ * sta's channel and return true.
+ *
+ *
+ * Return: VOS_STATUS_SUCCESS or VOS_STATUS_E_FAILURE.
+ */
+VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
+                                                  hdd_adapter_t *ap_adapter,
+                                                  tCsrRoamProfile *roam_profile,
+                                                  bool *concurrent_chnl_same)
+{
+    hdd_ap_ctx_t *hdd_ap_ctx;
+    uint8_t channel_id;
+    VOS_STATUS status;
+
+    hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
+    status =
+     sme_get_ap_channel_from_scan_cache(WLAN_HDD_GET_HAL_CTX(sta_adapter),
+                                        roam_profile,
+                                        &channel_id);
+    if ((VOS_STATUS_SUCCESS == status)) {
+        if (channel_id < SIR_11A_CHANNEL_BEGIN) {
+            if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+                *concurrent_chnl_same = FALSE;
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                         FL("channels are different"));
+            }
+        } else {
+           *concurrent_chnl_same = TRUE;
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                    FL("selected ap's channel in 5Ghz"));
+        }
+    } else {
+        /*
+         * Lets handle worst case scenario here, Scan cache lookup is failed
+         * so we have to stop the SAP to avoid any channel discrepancy  between
+         * SAP's channel and STA's channel. Return the status as failure so
+         * caller function could know that scan look up is failed.
+         */
+        *concurrent_chnl_same = FALSE;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    FL("Finding AP from scan cache failed"));
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
+#ifdef WLAN_FEATURE_MBSSID
+/**
+ * wlan_hdd_stop_sap() - This function stops bss of SAP.
+ * @ap_adapter: SAP adapter
+ *
+ * This function will process the stopping of sap adapter.
+ *
+ * Return: void.
+ */
+void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
+{
+    hdd_ap_ctx_t *hdd_ap_ctx;
+    hdd_hostapd_state_t *hostapd_state;
+    VOS_STATUS vos_status;
+    hdd_context_t *hdd_ctx;
+
+    if (NULL == ap_adapter) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    FL("ap_adapter is NULL here"));
+        return;
+    }
+
+    hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
+    hdd_ctx = WLAN_HDD_GET_CTX(ap_adapter);
+    if (0 != wlan_hdd_validate_context(hdd_ctx))
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return;
+    }
+    mutex_lock(&hdd_ctx->sap_lock);
+    if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+        wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
+                                      NULL);
+        hdd_cleanup_actionframe(hdd_ctx, ap_adapter);
+        hostapd_state = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                  FL("Now doing SAP STOPBSS"));
+        if (VOS_STATUS_SUCCESS == WLANSAP_StopBss(hdd_ap_ctx->sapContext)) {
+            vos_status = vos_wait_single_event(&hostapd_state->vosEvent, 10000);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          FL("SAP Stop Failed"));
+                mutex_unlock(&hdd_ctx->sap_lock);
+                return;
+            }
+        }
+        clear_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
+        wlan_hdd_decr_active_session(hdd_ctx, ap_adapter->device_mode);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                  FL("SAP Stop Success"));
+    } else {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Can't stop ap because its not started"));
+    }
+    mutex_unlock(&hdd_ctx->sap_lock);
+    return;
+}
+
+/**
+ * wlan_hdd_start_sap() - This function starts bss of SAP.
+ * @ap_adapter: SAP adapter
+ *
+ * This function will process the starting of sap adapter.
+ *
+ * Return: void.
+ */
+void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
+{
+    hdd_ap_ctx_t *hdd_ap_ctx;
+    hdd_hostapd_state_t *hostapd_state;
+    VOS_STATUS vos_status;
+    hdd_context_t *hdd_ctx;
+
+    if (NULL == ap_adapter) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    FL("ap_adapter is NULL here"));
+        return;
+    }
+
+    hdd_ctx = WLAN_HDD_GET_CTX(ap_adapter);
+    hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
+    hostapd_state = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
+
+    if (0 != wlan_hdd_validate_context(hdd_ctx))
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        return;
+    }
+    mutex_lock(&hdd_ctx->sap_lock);
+    if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+        return;
+    }
+
+    if (WLANSAP_StartBss(hdd_ap_ctx->sapContext, hdd_hostapd_SAPEventCB,
+                         &hdd_ap_ctx->sapConfig, (v_PVOID_t)ap_adapter->dev)
+                         != VOS_STATUS_SUCCESS) {
+        mutex_unlock(&hdd_ctx->sap_lock);
+        return;
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+              FL("Waiting for SAP to start"));
+    vos_status = vos_wait_single_event(&hostapd_state->vosEvent, 10000);
+    if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("SAP Start failed"));
+        mutex_unlock(&hdd_ctx->sap_lock);
+        return;
+    }
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+              FL("SAP Start Success"));
+    set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
+    wlan_hdd_incr_active_session(hdd_ctx, ap_adapter->device_mode);
+    hostapd_state->bCommit = TRUE;
+
+    mutex_unlock(&hdd_ctx->sap_lock);
+    return;
+}
 #endif
 
 

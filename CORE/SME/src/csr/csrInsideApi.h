@@ -1059,3 +1059,6 @@ void csrClearVotesForCountryInfo(tpAniSirGlobal pMac);
 eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId,
                      ePhyChanBondState cbMode, tANI_BOOLEAN obssEnabled);
 #endif
+tSirBssDescription*
+csr_get_bssdescr_from_scan_handle(tScanResultHandle *result_handle,
+                                  tSirBssDescription *bss_descr);
