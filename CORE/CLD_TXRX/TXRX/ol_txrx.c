@@ -1055,6 +1055,7 @@ ol_txrx_peer_attach(
     u_int8_t *peer_mac_addr)
 {
     struct ol_txrx_peer_t *peer;
+    struct ol_txrx_peer_t *temp_peer;
     u_int8_t i;
     int differs;
 
@@ -1062,6 +1063,23 @@ ol_txrx_peer_attach(
     TXRX_ASSERT2(pdev);
     TXRX_ASSERT2(vdev);
     TXRX_ASSERT2(peer_mac_addr);
+
+    adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
+    /* check for duplicate exsisting peer */
+    TAILQ_FOREACH(temp_peer, &vdev->peer_list, peer_list_elem) {
+        if (!ol_txrx_peer_find_mac_addr_cmp(&temp_peer->mac_addr,
+                   (union ol_txrx_align_mac_addr_t *)peer_mac_addr)) {
+            TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                "vdev_id %d (%02x:%02x:%02x:%02x:%02x:%02x) already exsist.\n",
+                vdev->vdev_id,
+                peer_mac_addr[0], peer_mac_addr[1],
+                peer_mac_addr[2], peer_mac_addr[3],
+                peer_mac_addr[4], peer_mac_addr[5]);
+            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+            return NULL;
+        }
+    }
+    adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
 
     peer = adf_os_mem_alloc(pdev->osdev, sizeof(*peer));
     if (!peer) {
