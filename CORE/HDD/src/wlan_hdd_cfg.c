@@ -3398,6 +3398,20 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_IPA_UC_STA_OFFLOAD_MIN,
               CFG_IPA_UC_STA_OFFLOAD_MAX ),
 #endif
+
+   REG_VARIABLE( CFG_ENABLE_CUSTOM_CONC_RULE1_NAME,  WLAN_PARAM_Integer,
+                 hdd_config_t, conc_custom_rule1,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ENABLE_CUSTOM_CONC_RULE1_NAME_DEFAULT,
+                 CFG_ENABLE_CUSTOM_CONC_RULE1_NAME_MIN,
+                 CFG_ENABLE_CUSTOM_CONC_RULE1_NAME_MAX),
+
+   REG_VARIABLE( CFG_ENABLE_STA_CONNECTION_IN_5GHZ,  WLAN_PARAM_Integer,
+                 hdd_config_t, is_sta_connection_in_5gz_enabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ENABLE_STA_CONNECTION_IN_5GHZ_DEFAULT,
+                 CFG_ENABLE_STA_CONNECTION_IN_5GHZ_MIN,
+                 CFG_ENABLE_STA_CONNECTION_IN_5GHZ_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -5746,6 +5760,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->csrConfig.isRoamOffloadEnabled =
                         pHddCtx->cfg_ini->isRoamOffloadEnabled;
 #endif
+   smeConfig->csrConfig.conc_custom_rule1 =
+                        pHddCtx->cfg_ini->conc_custom_rule1;
+   smeConfig->csrConfig.is_sta_connection_in_5gz_enabled =
+                        pHddCtx->cfg_ini->is_sta_connection_in_5gz_enabled;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

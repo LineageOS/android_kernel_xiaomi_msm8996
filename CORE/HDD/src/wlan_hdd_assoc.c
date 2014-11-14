@@ -69,6 +69,8 @@
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
+#include <vos_sched.h>
+
 v_BOOL_t mibIsDot11DesiredBssTypeInfrastructure( hdd_adapter_t *pAdapter );
 
 struct ether_addr
@@ -1361,6 +1363,44 @@ void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
     pHddStaCtx->roam_info.deferKeyComplete = FALSE;
 }
 
+/**
+ * hdd_sap_restart_handle() - to handle restarting of SAP
+ * @work: name of the work
+ *
+ * Purpose of this function is to trigger sap start. this function
+ * will be called from workqueue.
+ *
+ * Return: void.
+ */
+static void hdd_sap_restart_handle(struct work_struct *work)
+{
+    hdd_adapter_t *sap_adapter;
+    hdd_context_t *hdd_ctx = container_of(work,
+                                          hdd_context_t,
+                                          sap_start_work);
+    vos_ssr_protect(__func__);
+    if (0 != wlan_hdd_validate_context(hdd_ctx)) {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: HDD context is not valid", __func__);
+        vos_ssr_unprotect(__func__);
+        return;
+    }
+    sap_adapter = hdd_get_adapter(hdd_ctx,
+                                  WLAN_HDD_SOFTAP);
+    if (sap_adapter == NULL) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("sap_adapter is NULL"));
+        vos_ssr_unprotect(__func__);
+        return;
+    }
+    wlan_hdd_start_sap(sap_adapter);
+
+    spin_lock(&hdd_ctx->sap_update_info_lock);
+    hdd_ctx->is_sap_restart_required = false;
+    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    vos_ssr_unprotect(__func__);
+}
+
 static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,
                                                     tANI_U32 roamId, eRoamCmdStatus roamStatus,
                                                     eCsrRoamResult roamResult )
@@ -1379,6 +1419,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #endif
     v_BOOL_t hddDisconInProgress = FALSE;
     unsigned long rc;
+    hdd_adapter_t *sap_adapter;
+    hdd_ap_ctx_t *hdd_ap_ctx;
+    uint8_t default_sap_channel = 6;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pRoamInfo && pRoamInfo->roamSynchInProgress) {
        /* change logging before release */
@@ -1481,8 +1524,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #endif
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-        if (pHddCtx->cfg_ini->WlanMccToSccSwitchMode
-                != VOS_MCC_TO_SCC_SWITCH_DISABLE
+        if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode
+                != VOS_MCC_TO_SCC_SWITCH_DISABLE) &&
+            (0 == pHddCtx->cfg_ini->conc_custom_rule1)
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
             && !VOS_IS_DFS_CH(pHddStaCtx->conn_info.operationChannel)
 #endif
@@ -1896,6 +1940,59 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         netif_tx_disable(dev);
         netif_carrier_off(dev);
+
+    }
+
+    if (pHddCtx->cfg_ini->conc_custom_rule1 &&
+        (true == pHddCtx->is_sap_restart_required)) {
+        sap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+        if (sap_adapter == NULL) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("sap_adapter is NULL"));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        if (test_bit(SOFTAP_BSS_STARTED, &sap_adapter->event_flags)) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("Oops SAP is already in started state"));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(sap_adapter);
+        if ((eCSR_ROAM_RESULT_ASSOCIATED == roamResult) &&
+             pHddStaCtx->conn_info.operationChannel < SIR_11A_CHANNEL_BEGIN) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("Starting SAP on channel [%d] after STA assoc complete"),
+                  pHddStaCtx->conn_info.operationChannel);
+            hdd_ap_ctx->sapConfig.channel =
+                    pHddStaCtx->conn_info.operationChannel;
+        } else {
+            /* start on default SAP channel */
+            hdd_ap_ctx->sapConfig.channel =
+                    default_sap_channel;
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      FL("Starting SAP on channel [%d] after STA assoc failed"),
+                      default_sap_channel);
+        }
+        sme_SelectCBMode(WLAN_HDD_GET_HAL_CTX(sap_adapter),
+        sapConvertSapPhyModeToCsrPhyMode(hdd_ap_ctx->sapConfig.SapHw_mode),
+                                         hdd_ap_ctx->sapConfig.channel,
+                                         pHddCtx->cfg_ini->vhtChannelWidth);
+        /*
+         * Create a workqueue and let the workqueue handle the restarting
+         * sap task. if we directly call sap restart function without
+         * creating workqueue then our main thread might go to sleep which
+         * is not acceptable.
+         */
+#ifdef CONFIG_CNSS
+         cnss_init_work(&pHddCtx->sap_start_work,
+                        hdd_sap_restart_handle);
+#else
+         INIT_WORK(&pHddCtx->sap_start_work,
+                   hdd_sap_restart_handle);
+#endif
+         schedule_work(&pHddCtx->sap_start_work);
+
 
     }
 

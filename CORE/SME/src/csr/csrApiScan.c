@@ -8687,3 +8687,44 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
    return eHAL_STATUS_SUCCESS;
 }
 #endif
+
+/**
+ * csr_get_bssdescr_from_scan_handle() - This function to extract
+ *                                       first bss description from scan handle
+ * @result_handle: an object for the result.
+ *
+ * This function is written to extract first bss from scan handle.
+ *
+ * Return: first bss descriptor from the scan handle.
+ */
+tSirBssDescription*
+csr_get_bssdescr_from_scan_handle(tScanResultHandle *result_handle,
+                                  tSirBssDescription *bss_descr)
+{
+   tListElem *first_element = NULL;
+   tCsrScanResult *scan_result = NULL;
+   tScanResultList *bss_list = (tScanResultList *)*result_handle;
+
+   if (NULL == bss_list) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("Empty bss_list"));
+       return NULL;
+   }
+   if (csrLLIsListEmpty(&bss_list->List, LL_ACCESS_NOLOCK)) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 FL("bss_list->List is empty"));
+       vos_mem_free(bss_list);
+       return NULL;
+   }
+   first_element = csrLLPeekHead(&bss_list->List, LL_ACCESS_NOLOCK);
+   if (first_element) {
+       scan_result = GET_BASE_ADDR(first_element,
+                                   tCsrScanResult,
+                                   Link);
+       vos_mem_copy(bss_descr,
+                    &scan_result->Result.BssDescriptor,
+                    sizeof(tSirBssDescription));
+   }
+   vos_mem_free(bss_list);
+   return bss_descr;
+}

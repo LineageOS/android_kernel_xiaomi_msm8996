@@ -538,6 +538,24 @@ wlan_hdd_sta_p2p_iface_limit[] = {
    },
 };
 
+/* STA + AP + P2PGO combination */
+static const struct ieee80211_iface_limit
+wlan_hdd_sta_ap_p2pgo_iface_limit[] = {
+   /* Support for AP+P2PGO interfaces */
+   {
+      .max = 2,
+      .types = BIT(NL80211_IFTYPE_STATION)
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_P2P_GO)
+   },
+   {
+      .max = 1,
+      .types = BIT(NL80211_IFTYPE_AP)
+   }
+};
+
 static struct ieee80211_iface_combination
 wlan_hdd_iface_combination[] = {
    /* STA */
@@ -585,6 +603,18 @@ wlan_hdd_iface_combination[] = {
       /* one interface reserved for P2PDEV dedicated usage */
       .max_interfaces = 4,
       .n_limits = ARRAY_SIZE(wlan_hdd_sta_p2p_iface_limit),
+      .beacon_int_infra_match = true,
+   },
+   /* STA + P2P GO + SAP */
+   {
+      .limits = wlan_hdd_sta_ap_p2pgo_iface_limit,
+      /* we can allow 3 channels for three different persona
+       * but due to firmware limitation, allow max 2 concurrent channels.
+       */
+      .num_different_channels = 2,
+      /* one interface reserved for P2PDEV dedicated usage */
+      .max_interfaces = 4,
+      .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_p2pgo_iface_limit),
       .beacon_int_infra_match = true,
    },
 };
@@ -6225,6 +6255,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->num_accept_mac = 0;
     pConfig->num_deny_mac = 0;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    /*
+     * We don't want P2PGO to follow STA's channel
+     * so lets limit the logic for SAP only.
+     * Later if we decide to make p2pgo follow STA's
+     * channel then remove this check.
+     */
+    if ((0 == pHddCtx->cfg_ini->conc_custom_rule1) ||
+        (pHddCtx->cfg_ini->conc_custom_rule1 &&
+         WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode))
     pConfig->cc_switch_mode =
            (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->WlanMccToSccSwitchMode;
 #endif
@@ -6772,6 +6811,20 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
         status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
         pAdapterNode = pNext;
+    }
+    /*
+     * When ever stop ap adapter gets called, we need to check
+     * whether any restart AP work is pending. If any restart is pending
+     * then lets finish it and go ahead from there.
+     */
+    if (pHddCtx->cfg_ini->conc_custom_rule1 &&
+        (WLAN_HDD_SOFTAP == pAdapter->device_mode)) {
+        vos_flush_work(&pHddCtx->sap_start_work);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                  FL("Canceled the pending restart work"));
+        spin_lock(&pHddCtx->sap_update_info_lock);
+        pHddCtx->is_sap_restart_required = false;
+        spin_unlock(&pHddCtx->sap_update_info_lock);
     }
 
     hdd_hostapd_stop(dev);
@@ -9869,6 +9922,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
     v_U32_t roamId;
     tCsrRoamProfile *pRoamProfile;
     eCsrAuthType RSNAuthType;
+    hdd_adapter_t *ap_adapter = NULL;
+    bool are_cc_channels_same = 0;
 
     ENTER();
 
@@ -10050,7 +10105,39 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->pAddIEScan = &pAdapter->scan_info.scanAddIE.addIEdata[0];
             pRoamProfile->nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
         }
+        if (pHddCtx->cfg_ini->conc_custom_rule1 &&
+            (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
+            ap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
 
+            if ((ap_adapter != NULL) &&
+                test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+                status =
+                 wlan_hdd_check_con_channel_sap_and_sta(pAdapter, ap_adapter,
+                                                    pRoamProfile,
+                                                    &are_cc_channels_same);
+                /*
+                 * are_cc_channels_same will be false incase if SAP and STA
+                 * channel is different or STA channel is zero.
+                 * incase if STA channel is zero then lets stop the AP and
+                 * restart flag set, so later whenever STA channel is defined
+                 * we can restart our SAP in that channel.
+                 */
+                if (FALSE == are_cc_channels_same) {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                              FL("Stop AP due to mismatch with STA channel"));
+                    wlan_hdd_stop_sap(ap_adapter);
+                    spin_lock(&pHddCtx->sap_update_info_lock);
+                    pHddCtx->is_sap_restart_required = true;
+                    spin_unlock(&pHddCtx->sap_update_info_lock);
+                } else {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                              FL("channels are same"));
+                }
+            } else {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
+                          FL("extracted ap adapter is null"));
+            }
+        }
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);
 
