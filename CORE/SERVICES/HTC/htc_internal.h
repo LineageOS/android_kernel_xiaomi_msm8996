@@ -70,8 +70,8 @@ extern "C" {
 #define HTC_TARGET_CREDIT_INTR_MASK         0xF0
 #define HTC_MIN_MSG_PER_BUNDLE              2
 #if defined(HIF_USB)
-#define HTC_MAX_MSG_PER_BUNDLE_RX              9
-#define HTC_MAX_MSG_PER_BUNDLE_TX              9
+#define HTC_MAX_MSG_PER_BUNDLE_RX              11
+#define HTC_MAX_MSG_PER_BUNDLE_TX              8
 #else
 #define HTC_MAX_MSG_PER_BUNDLE_RX              64
 #define HTC_MAX_MSG_PER_BUNDLE_TX              16
@@ -184,9 +184,6 @@ typedef struct _HTC_TARGET {
     adf_os_mutex_t              CtrlResponseValid;
     A_BOOL                      CtrlResponseProcessing;
     int                         TotalTransmitCredits;
-#if defined(HIF_USB)
-    int                         avail_tx_credits;
-#endif
     HTC_SERVICE_TX_CREDIT_ALLOCATION ServiceTxAllocTable[HTC_MAX_SERVICE_ALLOC_ENTRIES];
     int                         TargetCreditSize;
 #ifdef RX_SG_SUPPORT
@@ -320,7 +317,7 @@ HTCSendCompleteCheck(HTC_ENDPOINT *pEndpoint, int force)
 #define DEBUG_BUNDLE 0
 #endif
 
-#ifdef HIF_SDIO
+#if defined(HIF_SDIO) || defined(HIF_USB)
 #ifndef ENABLE_BUNDLE_TX
 #define ENABLE_BUNDLE_TX 1
 #endif
@@ -328,5 +325,5 @@ HTCSendCompleteCheck(HTC_ENDPOINT *pEndpoint, int force)
 #ifndef ENABLE_BUNDLE_RX
 #define ENABLE_BUNDLE_RX 1
 #endif
-#endif /* HIF_SDIO */
+#endif
 #endif	/* !_HTC_HOST_INTERNAL_H_ */
