@@ -239,6 +239,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tHalBitVal qosMode;
     tHalBitVal wsmMode, wmeMode;
     tANI_U8    *wpsIe = NULL;
+    tANI_U8    *ht_cap_ie = NULL;
     tSirMacRateSet  basicRates;
     tANI_U8 i = 0, j = 0;
     tANI_BOOLEAN pmfConnection = eANI_BOOLEAN_FALSE;
@@ -1154,8 +1155,39 @@ sendIndToSme:
         pStaDs->htMaxAmsduLength = (tANI_U8)pAssocReq->HTCaps.maximalAMSDUsize;
         pStaDs->htMaxRxAMpduFactor = pAssocReq->HTCaps.maxRxAMPDUFactor;
         pStaDs->htMIMOPSState = pAssocReq->HTCaps.mimoPowerSave;
-        pStaDs->htShortGI20Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI20MHz;
-        pStaDs->htShortGI40Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI40MHz;
+
+        /* pAssocReq will be copied to psessionEntry->parsedAssocReq later */
+        ht_cap_ie = ((tANI_U8 *) &pAssocReq->HTCaps) + 1;
+
+        /* check whether AP is enabled with shortGI */
+        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_20MHZ, &val) !=
+                           eSIR_SUCCESS) {
+           PELOGE(limLog(pMac, LOGE,
+                         FL("could not retrieve shortGI 20Mhz CFG"));)
+           goto error;
+        }
+        if (val) {
+            pStaDs->htShortGI20Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI20MHz;
+        } else {
+            /* Unset htShortGI20Mhz in ht_caps*/
+            *ht_cap_ie &= ~(1 << SIR_MAC_HT_CAP_SHORTGI20MHZ_S);
+            pStaDs->htShortGI20Mhz = 0;
+        }
+
+        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val) !=
+                           eSIR_SUCCESS) {
+           PELOGE(limLog(pMac, LOGE,
+                         FL("could not retrieve shortGI 40Mhz CFG"));)
+           goto error;
+        }
+        if (val) {
+            pStaDs->htShortGI40Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI40MHz;
+        } else {
+            /* Unset htShortGI40Mhz in ht_caps */
+            *ht_cap_ie &= ~(1 << SIR_MAC_HT_CAP_SHORTGI40MHZ_S);
+            pStaDs->htShortGI40Mhz = 0;
+        }
+
         pStaDs->htSupportedChannelWidthSet = (tANI_U8)pAssocReq->HTCaps.supportedChannelWidthSet;
         /* peer just follows AP; so when we are softAP/GO, we just store our session entry's secondary channel offset here in peer INFRA STA
          * However, if peer's 40MHz channel width support is disabled then secondary channel will be zero
@@ -1463,8 +1495,10 @@ error:
 
     /* If it is not duplicate Assoc request then only make to Null */
     if ((pStaDs != NULL) &&
-          (pStaDs->mlmStaContext.mlmState != eLIM_MLM_WT_ADD_STA_RSP_STATE))
-        psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
+          (pStaDs->mlmStaContext.mlmState != eLIM_MLM_WT_ADD_STA_RSP_STATE)) {
+            if (psessionEntry->parsedAssocReq != NULL)
+                psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
+    }
 
     return;
 
