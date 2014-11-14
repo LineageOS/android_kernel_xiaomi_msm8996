@@ -1683,22 +1683,6 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
    return VOS_STATUS_SUCCESS;
 }
 
-
-/*
- * Based on the ioctl command received by HDD, put WLAN driver
- * into the quiet mode. This is the same as the early suspend
- * notification that driver used to listen
- */
-void hdd_set_wlan_suspend_mode(bool suspend)
-{
-    vos_ssr_protect(__func__);
-    if (suspend)
-        hdd_suspend_wlan(NULL, NULL);
-    else
-        hdd_resume_wlan();
-    vos_ssr_unprotect(__func__);
-}
-
 static void hdd_ssr_timer_init(void)
 {
     init_timer(&ssr_timer);

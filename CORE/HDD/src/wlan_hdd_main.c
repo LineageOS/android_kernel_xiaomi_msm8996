@@ -56,7 +56,6 @@
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
-//#include <wlan_qct_driver.h>
 #include <wlan_hdd_includes.h>
 #include <vos_api.h>
 #include <vos_sched.h>
@@ -282,7 +281,6 @@ static void wlan_hdd_restart_init(hdd_context_t *pHddCtx);
 static void wlan_hdd_restart_deinit(hdd_context_t *pHddCtx);
 
 void wlan_hdd_restart_timer_cb(v_PVOID_t usrDataForCallback);
-void hdd_set_wlan_suspend_mode(bool suspend);
 
 v_U16_t hdd_select_queue(struct net_device *dev,
                          struct sk_buff *skb
@@ -453,19 +451,6 @@ int hdd_wlan_green_ap_enable(hdd_adapter_t *pHostapdAdapter,
 
     return ret;
 }
-
-
-boolean hdd_wlan_green_ap_is_ps_on(hdd_context_t *pHddCtx)
-{
-    hdd_green_ap_ctx_t *green_ap = pHddCtx->green_ap_ctx;
-
-    if (green_ap == NULL)
-        return FALSE;
-
-    return ((green_ap->ps_state == GREEN_AP_PS_ON_STATE)
-            && (green_ap->ps_enable));
-}
-
 
 void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
         hdd_green_ap_event_t event)
@@ -7997,31 +7982,6 @@ void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
    if(&pHddCtx->full_pwr_comp_var)
    {
       complete(&pHddCtx->full_pwr_comp_var);
-   }
-}
-
-/**---------------------------------------------------------------------------
-
-    \brief hdd_req_bmps_cbk() - HDD Request BMPS callback function
-
-     This is the function invoked by SME to inform the result of BMPS
-     request issued by HDD
-
-    \param  - callback context - Pointer to cookie
-               status - result of request
-
-    \return - None
-
---------------------------------------------------------------------------*/
-void hdd_req_bmps_cbk(void *callbackContext, eHalStatus status)
-{
-
-   struct completion *completion_var = (struct completion*) callbackContext;
-
-   hddLog(VOS_TRACE_LEVEL_ERROR, "HDD BMPS request Callback, status = %d", status);
-   if(completion_var != NULL)
-   {
-      complete(completion_var);
    }
 }
 

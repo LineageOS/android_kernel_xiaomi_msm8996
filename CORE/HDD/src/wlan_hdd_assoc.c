@@ -71,8 +71,6 @@
 #endif
 #include <vos_sched.h>
 
-v_BOOL_t mibIsDot11DesiredBssTypeInfrastructure( hdd_adapter_t *pAdapter );
-
 struct ether_addr
 {
     u_char  ether_addr_octet[6];

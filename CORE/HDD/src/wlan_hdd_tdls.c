@@ -1238,21 +1238,6 @@ int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 respon
     return 0;
 }
 
-int wlan_hdd_tdls_get_responder(hdd_adapter_t *pAdapter, u8 *mac)
-{
-    hddTdlsPeer_t *curr_peer;
-
-    curr_peer = wlan_hdd_tdls_find_peer(pAdapter, mac, TRUE);
-    if (curr_peer == NULL)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 FL("curr_peer is NULL"));
-       return -1;
-    }
-
-    return (curr_peer->is_responder);
-}
-
 int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 uSignature)
 {
     hddTdlsPeer_t *curr_peer;
@@ -2018,21 +2003,6 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter)
         }
     }
     return;
-}
-
-u8 wlan_hdd_tdls_is_peer_progress(hdd_adapter_t *pAdapter, u8 *mac)
-{
-    hddTdlsPeer_t *curr_peer;
-
-    curr_peer = wlan_hdd_tdls_find_peer(pAdapter, mac, TRUE);
-    if (curr_peer == NULL)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                FL("curr_peer is NULL"));
-       return 0;
-    }
-
-    return (eTDLS_LINK_CONNECTING == curr_peer->link_status);
 }
 
 /* return pointer to hddTdlsPeer_t if TDLS is ongoing. Otherwise return NULL.

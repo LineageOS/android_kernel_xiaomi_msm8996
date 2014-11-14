@@ -324,22 +324,6 @@ static void hdd_hostapd_uninit (struct net_device *dev)
    EXIT();
 }
 
-
-/**============================================================================
-  @brief hdd_hostapd_hard_start_xmit() - Function registered with the Linux OS for
-  transmitting packets. There are 2 versions of this function. One that uses
-  locked queue and other that uses lockless queues. Both have been retained to
-  do some performance testing
-  @param skb      : [in]  pointer to OS packet (sk_buff)
-  @param dev      : [in] pointer to Libra network device
-
-  @return         : NET_XMIT_DROP if packets are dropped
-                  : NET_XMIT_SUCCESS if packet is enqueued successfully
-  ===========================================================================*/
-int hdd_hostapd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
-{
-    return 0;
-}
 int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
 {
     return 0;
