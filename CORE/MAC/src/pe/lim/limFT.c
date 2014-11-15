@@ -72,7 +72,6 @@ void limFTCleanupPreAuthInfo(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
    tpPESession pReAssocSessionEntry = NULL;
    tANI_U8 sessionId = 0;
-
    if (!psessionEntry) {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
       PELOGE(limLog(pMac, LOGE, "%s: psessionEntry is NULL", __func__);)
@@ -127,8 +126,8 @@ void limFTCleanupPreAuthInfo(tpAniSirGlobal pMac, tpPESession psessionEntry)
        */
       if (pReAssocSessionEntry->valid &&
             pReAssocSessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE) {
-         PELOGW(limLog( pMac, LOGW, FL("Deleting Preauth Session %d"),
-                pReAssocSessionEntry->peSessionId);)
+         limLog( pMac, LOG1, FL("Deleting Preauth Session %d"),
+                pReAssocSessionEntry->peSessionId);
          peDeleteSession(pMac, pReAssocSessionEntry);
       }
    }

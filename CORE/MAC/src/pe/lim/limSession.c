@@ -299,8 +299,9 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
             pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
             pMac->lim.gpSession[i].fIgnoreCapsChange = 0;
 
-            limLog(pMac, LOG1, FL("Create a new sessionId (%d) with BSSID: "
-               MAC_ADDRESS_STR " Max No. of STA %d"),
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+              "Create a new PE session (%d) with BSSID: "
+               MAC_ADDRESS_STR " Max No. of STA %d",
                pMac->lim.gpSession[i].peSessionId,
                MAC_ADDR_ARRAY(bssid), numSta);
 
@@ -526,8 +527,9 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     tANI_U16 n;
     TX_TIMER *timer_ptr;
 
-    limLog(pMac, LOGW, FL("Trying to delete a session %d Opmode %d BssIdx %d"
-           " BSSID: " MAC_ADDRESS_STR), psessionEntry->peSessionId,
+    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
+          "Trying to delete PE session %d Opmode %d BssIdx %d"
+          " BSSID: " MAC_ADDRESS_STR, psessionEntry->peSessionId,
            psessionEntry->operMode, psessionEntry->bssIdx,
            MAC_ADDR_ARRAY(psessionEntry->bssId));
 
