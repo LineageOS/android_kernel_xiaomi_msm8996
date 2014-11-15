@@ -11653,6 +11653,8 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
          eCSR_DOT11_MODE_abg != eCsrPhyMode
       )
    {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Incorrect PhyMode, CB mode is not selected", __func__);
       return VOS_STATUS_SUCCESS;
    }
 
@@ -11792,6 +11794,16 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
    } else if ( eCSR_DOT11_MODE_11g_ONLY == eCsrPhyMode)
       smeConfig.csrConfig.channelBondingMode24GHz =
          eCSR_INI_SINGLE_CHANNEL_CENTERED;
+
+   if (eHT_CHANNEL_WIDTH_20MHZ == vhtChannelWidth) {
+       if (channel <= 14) {
+           smeConfig.csrConfig.channelBondingMode24GHz =
+                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
+       } else {
+           smeConfig.csrConfig.channelBondingMode5GHz =
+                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
+       }
+   }
 
    sme_AdjustCBMode(pMac, &smeConfig, channel);
 

@@ -4086,15 +4086,15 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
     // in function csrConvertCBIniValueToPhyCBState()
     // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
-    if(cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
-    {
-        if(!WDA_getFwWlanFeatCaps(DOT11AC)) {
-            cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
+    if (cfgCb) {
+        if (cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
+            if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
+                cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
+            }
         }
-        else
-        {
-            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
-        }
+        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                    pMac->roam.configParam.nVhtChannelWidth, NULL,
+                    eANI_BOOLEAN_FALSE);
     }
     else
 #endif
@@ -18275,18 +18275,16 @@ csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
     // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
     // in function csrConvertCBIniValueToPhyCBState()
     // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
-    if(cbMode > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
-    {
-        if(!WDA_getFwWlanFeatCaps(DOT11AC)) {
-            cbMode = csrGetHTCBStateFromVHTCBState(cbMode);
+    if (cbMode) {
+        if (cbMode > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
+            if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
+                cbMode = csrGetHTCBStateFromVHTCBState(cbMode);
+            }
         }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
-                      FL("sapdfs: channel width is [%d]"), vhtChannelWidth);
-            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                         vhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
-        }
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
+                FL("sapdfs: channel width is [%d]"), vhtChannelWidth);
+        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                    vhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
     }
 #endif
 
