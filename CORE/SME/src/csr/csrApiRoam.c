@@ -11741,7 +11741,15 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
     tANI_U32 ChannelBondingMode;
     if(CSR_IS_CHANNEL_24GHZ(primaryChn))
     {
+         /* 'gChannelBondingMode24GHz' configuration item is common for
+          * SAP and STA mode and currently MDM does not support
+          * HT40 in 2.4Ghz STA mode.
+          * So disabling the HT40 in 2.4GHz station mode */
+#ifdef QCA_HT_20_24G_STA_ONLY
+        ChannelBondingMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+#else
         ChannelBondingMode = pMac->roam.configParam.channelBondingMode24GHz;
+#endif
     }
     else
     {
