@@ -102,7 +102,7 @@ void vos_mem_init()
 {
    /* Initalizing the list with maximum size of 60000 */
    hdd_list_init(&vosMemList, 60000);
-   memory_dbug_flag = 1;
+   memory_dbug_flag = 0;
    return;
 }
 

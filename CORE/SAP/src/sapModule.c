@@ -2849,8 +2849,7 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
         return VOS_STATUS_E_FAULT;
     }
     pMac = PMAC_STRUCT( hHal );
-    phyMode =
-           sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode);
+    phyMode = sapContext->csrRoamProfile.phyMode;
     /*
      * We are getting channel bonding mode from sapDfsInfor structure
      * because we've implemented channel width fallback mechanism for DFS

@@ -6834,8 +6834,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
                         cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
 		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
-		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ |
-					WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
+		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 		/*
 		 * Decide burst_duration and dwell_time_active based on
 		 * what type of devices are active.

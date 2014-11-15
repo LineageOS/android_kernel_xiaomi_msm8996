@@ -142,7 +142,10 @@ WLANSAP_ScanCallback
     tpAniSirGlobal pMac = NULL;
     v_U32_t vhtChannelWidth;
 #ifdef SOFTAP_CHANNEL_RANGE
+#if !defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) && \
+    !defined(WLAN_FEATURE_MBSSID)
     v_U32_t operatingBand;
+#endif
     v_U32_t event;
 #endif
 
@@ -208,21 +211,36 @@ WLANSAP_ScanCallback
         if ( eCSR_BAND_ALL ==  psapContext->scanBandPreference ||
                      psapContext->allBandScanned == eSAP_TRUE)
         {
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || \
+    defined(WLAN_FEATURE_MBSSID)
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "%s: ACS failed due to concurrent mode restrictions.. \n"
+                "Setting SAP channel to default ch (%d)", __func__,
+                SAP_DEFAULT_24GHZ_CHANNEL);
+             /* If there is no valid channel in the selected ACS range  select
+              * default 2.4GHz channel only. 5GHz channels were purposely
+              * avoided due to DFS and Concurrent mode restrictions
+              */
+             psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
+#else
+
              if(psapContext->channelList != NULL)
              {
                  psapContext->channel = psapContext->channelList[0];
              }
              else
              {
-                 /* if the channel list is empty then there is no valid channel in
-                    the selected sub-band so select default channel in the
+                 /* if the channel list is empty then there is no valid channel
+                    in the selected sub-band so select default channel in the
                     BAND(2.4GHz/5GHZ) */
-                 ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+                 ccmCfgGetInt( halHandle,
+                     WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
                  if(eSAP_RF_SUBBAND_2_4_GHZ == operatingBand )
-                     psapContext->channel = SAP_DEFAULT_CHANNEL;
+                     psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
                  else
                      psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
              }
+#endif
         }
         else
         {
@@ -241,7 +259,7 @@ WLANSAP_ScanCallback
          }
     }
 #else
-        psapContext->channel = SAP_DEFAULT_CHANNEL;
+        psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
 #endif
     else
     {

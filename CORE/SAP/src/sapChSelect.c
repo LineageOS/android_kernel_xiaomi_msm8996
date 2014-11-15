@@ -193,12 +193,12 @@ typedef enum {
     NA.
 
   IN
-    NULL
+    SapContext pointer
 
   RETURN VALUE
     NULL
 ============================================================================*/
-void sapUpdateUnsafeChannelList()
+void sapUpdateUnsafeChannelList(ptSapContext pSapCtx)
 {
    v_U16_t   i, j;
 
@@ -228,6 +228,20 @@ void sapUpdateUnsafeChannelList()
    }
 
    /* Try to find unsafe channel */
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || \
+    defined(WLAN_FEATURE_MBSSID)
+   for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
+        if (pSapCtx->dfs_ch_disable == VOS_TRUE) {
+            if (VOS_IS_DFS_CH(safeChannels[i].channelNumber)) {
+                safeChannels[i].isSafe = VOS_FALSE;
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "%s: DFS Ch %d is not safe in Concurrent mode", __func__,
+                    safeChannels[i].channelNumber);
+           }
+        }
+    }
+#endif
+
    for (i = 0; i < hdd_ctxt->unsafe_channel_count; i++)
    {
       for (j = 0; j < NUM_20MHZ_RF_CHANNELS; j++)
@@ -2419,7 +2433,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Running SAP Ch Select", __func__);
 
 #ifdef FEATURE_WLAN_CH_AVOID
-    sapUpdateUnsafeChannelList();
+    sapUpdateUnsafeChannelList(pSapCtx);
 #endif
 
     if (NULL == pScanResult)
@@ -2467,8 +2481,8 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                 if (safeChannels[i].isSafe == VOS_TRUE)
                 {
                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                        "%s: channel %d in the configuration is safe\n", __func__,
-                        safeChannels[i].channelNumber);
+                        "%s: channel %d in the configuration is safe\n",
+                        __func__, safeChannels[i].channelNumber);
                     firstSafeChannelInRange = safeChannels[i].channelNumber;
                     break;
                 }
@@ -2479,19 +2493,16 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
             }
         }
 
-        // preference is given to channels in the configured range which are safe
-        // if there is not such one, then we return start channel in the configuration
-        if (firstSafeChannelInRange != SAP_CHANNEL_NOT_SELECTED)
-            return firstSafeChannelInRange;
-        else
-            return startChannelNum;
+        /* if there is no channel selected return SAP_CHANNEL_NOT_SELECTED */
+        return firstSafeChannelInRange;
 #endif /* !FEATURE_WLAN_CH_AVOID */
 #endif /* SOFTAP_CHANNEL_RANGE */
     }
 
     // Initialize the structure pointed by pSpectInfoParams
     if (sapChanSelInit( halHandle, pSpectInfoParams, pSapCtx ) != eSAP_TRUE ) {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, Ch Select initialization failed", __func__);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "In %s, Ch Select initialization failed", __func__);
         return SAP_CHANNEL_NOT_SELECTED;
     }
 
