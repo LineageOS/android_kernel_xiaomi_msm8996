@@ -299,6 +299,8 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                     ol_tx_target_credit_update(pdev->txrx_pdev, credit_delta);
                 }
             }
+            OL_TX_DESC_UPDATE_GROUP_CREDIT(
+                pdev->txrx_pdev, compl_msg->desc_id, 1, 0);
             ol_tx_single_completion_handler(
                 pdev->txrx_pdev, compl_msg->status, compl_msg->desc_id);
             HTT_TX_SCHED(pdev);
@@ -359,9 +361,16 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                               &pdev->htt_tx_credit.target_delta);
             htt_credit_delta = htt_tx_credit_update(pdev);
         }
-        if (htt_credit_delta) {
-            ol_tx_credit_completion_handler(pdev->txrx_pdev, htt_credit_delta);
-        }
+
+        HTT_TX_GROUP_CREDIT_PROCESS(pdev, msg_word);
+        /*
+         * Call ol_tx_credit_completion even if htt_credit_delta is zero,
+         * in case there is some global credit already available, but the
+         * above group credit updates have removed credit restrictions,
+         * possibly allowing the download scheduler to perform a download
+         * even if htt_credit_delta == 0.
+         */
+        ol_tx_credit_completion_handler(pdev->txrx_pdev, htt_credit_delta);
         break;
     }
 

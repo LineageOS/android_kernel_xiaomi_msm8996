@@ -170,4 +170,50 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev);
 #else
 #define ol_tx_throttle_init(pdev) /*no op*/
 #endif
+
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+#define OL_TX_IS_TXQ_LAST_SERVICED_QUEUE(pdev, txq) \
+    txq == pdev->tx_sched.last_used_txq
+
+u_int32_t ol_tx_txq_group_credit_limit(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    u_int32_t credit);
+
+void ol_tx_txq_group_credit_update(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    int32_t credit,
+    u_int8_t absolute);
+
+void
+ol_tx_set_vdev_group_ptr(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t vdev_id,
+    struct ol_tx_queue_group_t *grp_ptr);
+
+void
+ol_tx_txq_set_group_ptr(
+    struct ol_tx_frms_queue_t *txq,
+    struct ol_tx_queue_group_t *grp_ptr);
+
+void
+ol_tx_set_peer_group_ptr(
+    ol_txrx_pdev_handle pdev,
+    struct ol_txrx_peer_t *peer,
+    u_int8_t vdev_id,
+    u_int8_t tid);
+
+#define OL_TX_TXQ_GROUP_CREDIT_LIMIT ol_tx_txq_group_credit_limit
+#define OL_TX_TXQ_GROUP_CREDIT_UPDATE ol_tx_txq_group_credit_update
+#define OL_TX_TXQ_SET_GROUP_PTR ol_tx_txq_set_group_ptr
+#define OL_TX_SET_PEER_GROUP_PTR ol_tx_set_peer_group_ptr
+#else
+#define OL_TX_IS_TXQ_LAST_SERVICED_QUEUE(pdev, txq) 0
+#define OL_TX_TXQ_GROUP_CREDIT_LIMIT(pdev, txq, credit) credit
+#define OL_TX_TXQ_GROUP_CREDIT_UPDATE(pdev, txq, credit, absolute) /* no-op */
+#define OL_TX_TXQ_SET_GROUP_PTR(txq,grp_ptr) /* no-op */
+#define OL_TX_SET_PEER_GROUP_PTR(pdev, peer, vdev_id, tid) /* no-op */
+#endif
+
 #endif /* _OL_TX_QUEUE__H_ */
