@@ -44,7 +44,6 @@
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
-//#include <vos_list.h>
 #include <vos_types.h>
 #include <aniGlobal.h>
 #include <halTypes.h>
@@ -83,8 +82,6 @@ static void hdd_softap_dump_sk_buff(struct sk_buff * skb)
      skb->data[13], skb->data[14], skb->data[15]);
 }
 #endif
-
-extern void hdd_set_wlan_suspend_mode(bool suspend);
 
 /**============================================================================
   @brief hdd_softap_flush_tx_queues() - Utility function to flush the TX queues
@@ -789,19 +786,6 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
 
    spin_unlock_bh( &pAdapter->staInfo_lock );
    return status;
-}
-
-/**============================================================================
-  @brief hdd_softap_disconnect_tx_rx() - Disconnect function to clean up Tx/RX
-  modules in HDD
-
-  @param pAdapter : [in] pointer to adapter context
-  @return         : VOS_STATUS_E_FAILURE if any errors encountered
-                  : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter )
-{
-   return hdd_softap_flush_tx_queues(pAdapter);
 }
 
 /**============================================================================
@@ -1643,19 +1627,3 @@ VOS_STATUS hdd_softap_GetStaId(hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress
     return VOS_STATUS_E_FAILURE;
 }
 
-VOS_STATUS hdd_softap_GetConnectedStaId(hdd_adapter_t *pAdapter, v_U8_t *staId)
-{
-    v_U8_t i;
-
-    for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
-    {
-        if (pAdapter->aStaInfo[i].isUsed &&
-            (!vos_is_macaddr_broadcast(&pAdapter->aStaInfo[i].macAddrSTA)))
-        {
-            *staId = i;
-            return VOS_STATUS_SUCCESS;
-        }
-    }
-
-    return VOS_STATUS_E_FAILURE;
-}
