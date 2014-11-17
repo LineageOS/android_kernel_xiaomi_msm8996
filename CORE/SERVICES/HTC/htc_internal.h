@@ -74,7 +74,7 @@ extern "C" {
 #define HTC_MAX_MSG_PER_BUNDLE_TX              8
 #else
 #define HTC_MAX_MSG_PER_BUNDLE_RX              64
-#define HTC_MAX_MSG_PER_BUNDLE_TX              16
+#define HTC_MAX_MSG_PER_BUNDLE_TX              32
 #endif
 /*
  * HTC_MAX_TX_BUNDLE_SEND_LIMIT -
