@@ -55,7 +55,7 @@
 #include "vos_sched.h"
 
 //Ms to Micro Sec
-#define MS_TO_MUS(x)   ((x)*1000);
+#define MS_TO_MUS(x)   ((x)*1000)
 
 tANI_U8* hdd_getActionString( tANI_U16 MsgType )
 {

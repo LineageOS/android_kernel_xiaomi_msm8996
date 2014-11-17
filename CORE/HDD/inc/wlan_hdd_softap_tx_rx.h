@@ -134,16 +134,6 @@ extern VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STA
 extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId );
 
 /**============================================================================
-  @brief hdd_disconnect_tx_rx() - Disconnect function to clean up Tx/RX
-  modules in HDD
-
-  @param pAdapter : [in] pointer to adapter context
-  @return         : VOS_STATUS_E_FAILURE if any errors encountered
-                  : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter );
-
-/**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
   to indicate that a packet has been transmitted across the SDIO bus
   successfully. OS packet resources can be released after this cbk.
@@ -309,16 +299,6 @@ extern VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADD
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
 extern VOS_STATUS hdd_softap_GetStaId( hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U8_t *staId);
-
-/**============================================================================
-  @brief hdd_softap_GetConnectedStaId - Helper function to get station Id of the connected device
-
-  @param pAdapter : [in] pointer to adapter context
-  @param staId    : [out] station id
-  @return         : VOS_STATUS_E_FAILURE if any errors encountered
-                  : VOS_STATUS_SUCCESS otherwise
-  =========================================================================== */
-extern VOS_STATUS hdd_softap_GetConnectedStaId( hdd_adapter_t *pAdapter, v_U8_t *staId);
 
 #ifdef QCA_LL_TX_FLOW_CT
 /**============================================================================

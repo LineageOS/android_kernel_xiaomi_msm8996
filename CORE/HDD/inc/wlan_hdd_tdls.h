@@ -301,8 +301,6 @@ int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi);
 
 int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 responder);
 
-int wlan_hdd_tdls_get_responder(hdd_adapter_t *pAdapter, u8 *mac);
-
 int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 uSignature);
 
 int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *config);
@@ -324,8 +322,6 @@ void wlan_hdd_tdls_increment_peer_count(hdd_adapter_t *pAdapter);
 void wlan_hdd_tdls_decrement_peer_count(hdd_adapter_t *pAdapter);
 
 void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
-
-u8 wlan_hdd_tdls_is_peer_progress(hdd_adapter_t *pAdapter, u8 *mac);
 
 hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx, u8* mac, u8 skip_self);
 
