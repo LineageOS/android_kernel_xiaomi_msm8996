@@ -194,7 +194,7 @@
 #define WLAN_HDD_QOS_MAP_CONFIGURE 4
 #define HDD_SAP_WAKE_LOCK_DURATION 10000 //in msecs
 
-#define HDD_MOD_EXIT_SSR_MAX_RETRIES 30
+#define HDD_MOD_EXIT_SSR_MAX_RETRIES 60
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interfaces) */
 #ifndef WLAN_OPEN_P2P_INTERFACE
