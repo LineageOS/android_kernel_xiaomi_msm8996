@@ -826,4 +826,6 @@ void HIFSetMailboxSwap(HIF_DEVICE  *device);
 }
 #endif
 
+A_BOOL HIFIsMailBoxSwapped(HIF_DEVICE *hd);
+
 #endif /* _HIF_H_ */

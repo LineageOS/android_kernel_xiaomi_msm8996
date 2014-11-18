@@ -223,15 +223,21 @@ typedef PREPACK struct {
     /* extended information */
     A_UINT32        HTCVersion : 8,
                     MaxMsgsPerHTCBundle : 8,
-                    reserved : 16;
+                    AltDataCreditSize : 12,
+                    Reserved : 4;
 } POSTPACK HTC_READY_EX_MSG;
 
 #define HTC_READY_EX_MSG_HTCVERSION_LSB               0
 #define HTC_READY_EX_MSG_HTCVERSION_MASK              0x000000ff
 #define HTC_READY_EX_MSG_HTCVERSION_OFFSET            sizeof(HTC_READY_MSG)
+
 #define HTC_READY_EX_MSG_MAXMSGSPERHTCBUNDLE_LSB      8
 #define HTC_READY_EX_MSG_MAXMSGSPERHTCBUNDLE_MASK     0x0000ff00
 #define HTC_READY_EX_MSG_MAXMSGSPERHTCBUNDLE_OFFSET   sizeof(HTC_READY_MSG)
+
+#define HTC_READY_EX_MSG_ALTDATACREDITSIZE_LSB        16
+#define HTC_READY_EX_MSG_ALTDATACREDITSIZE_MASK       0x0fff0000
+#define HTC_READY_EX_MSG_ALTDATACREDITSIZE_OFFSET     sizeof(HTC_READY_MSG)
 
 #define HTC_VERSION_2P0  0x00
 #define HTC_VERSION_2P1  0x01  /* HTC 2.1 */

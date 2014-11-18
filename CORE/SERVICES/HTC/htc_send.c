@@ -162,20 +162,23 @@ HTCSendCompleteCheckCleanup(void *context)
 }
 
 
-HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
+HTC_PACKET *AllocateHTCBundleTxPacket(HTC_TARGET *target)
 {
     HTC_PACKET *pPacket;
     HTC_PACKET_QUEUE *pQueueSave;
     adf_nbuf_t netbuf;
+
     LOCK_HTC_TX(target);
-    if (NULL == target->pBundleFreeList) {
+    if (NULL == target->pBundleFreeTxList) {
         UNLOCK_HTC_TX(target);
+
+        /* for HTT packets, if AltDataCreditSize is non zero, we will have
+         allocated more space per packet (i.e., TargetCreditSize-AltDataCreditSize)
+         per bundle packet, but this should is required since we reuse the packet
+         for all services and all endpoints */
+
         netbuf = adf_nbuf_alloc(NULL,
-#ifdef HIF_USB
                 HTC_MAX_MSG_PER_BUNDLE_TX * target->TargetCreditSize,
-#else
-                target->MaxMsgsPerHTCBundle * target->TargetCreditSize,
-#endif
                 0,
                 4,
                 FALSE);
@@ -212,21 +215,21 @@ HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target)
     }
 
     //already done malloc - restore from free list
-    pPacket = target->pBundleFreeList;
+    pPacket = target->pBundleFreeTxList;
     AR_DEBUG_ASSERT(pPacket);
     if (!pPacket)
     {
         UNLOCK_HTC_TX(target);
         return NULL;
     }
-    target->pBundleFreeList = (HTC_PACKET *)pPacket->ListLink.pNext;
+    target->pBundleFreeTxList = (HTC_PACKET *)pPacket->ListLink.pNext;
     UNLOCK_HTC_TX(target);
     pPacket->ListLink.pNext = NULL;
 
     return pPacket;
 }
 
-void FreeHTCBundlePacket(HTC_TARGET *target, HTC_PACKET *pPacket)
+void FreeHTCBundleTxPacket(HTC_TARGET *target, HTC_PACKET *pPacket)
 {
     A_UINT32 curentHeadRoom;
     adf_nbuf_t netbuf;
@@ -261,15 +264,121 @@ void FreeHTCBundlePacket(HTC_TARGET *target, HTC_PACKET *pPacket)
     INIT_HTC_PACKET_QUEUE(pQueueSave);
 
     LOCK_HTC_TX(target);
-    if (target->pBundleFreeList == NULL) {
-        target->pBundleFreeList = pPacket;
+    if (target->pBundleFreeTxList == NULL) {
+        target->pBundleFreeTxList = pPacket;
         pPacket->ListLink.pNext = NULL;
     } else {
-        pPacket->ListLink.pNext = (DL_LIST *)target->pBundleFreeList;
-        target->pBundleFreeList = pPacket;
+        pPacket->ListLink.pNext = (DL_LIST *)target->pBundleFreeTxList;
+        target->pBundleFreeTxList = pPacket;
     }
     UNLOCK_HTC_TX(target);
 }
+
+HTC_PACKET *AllocateHTCBundleRxPacket(HTC_TARGET *target)
+{
+    HTC_PACKET *pPacket;
+    HTC_PACKET_QUEUE *pQueueSave;
+    adf_nbuf_t netbuf;
+    LOCK_HTC_TX(target);
+    if (NULL == target->pBundleFreeRxList) {
+        UNLOCK_HTC_TX(target);
+        netbuf = adf_nbuf_alloc(NULL,
+                HTC_MAX_MSG_PER_BUNDLE_RX * target->TargetCreditSize,
+                0,
+                4,
+                FALSE);
+        AR_DEBUG_ASSERT(netbuf);
+        if (!netbuf)
+        {
+            return NULL;
+        }
+        pPacket = adf_os_mem_alloc(NULL, sizeof(HTC_PACKET));
+        AR_DEBUG_ASSERT(pPacket);
+        if (!pPacket)
+        {
+            adf_nbuf_free(netbuf);
+            return NULL;
+        }
+        pQueueSave = adf_os_mem_alloc(NULL, sizeof(HTC_PACKET_QUEUE));
+        AR_DEBUG_ASSERT(pQueueSave);
+        if (!pQueueSave)
+        {
+            adf_nbuf_free(netbuf);
+            adf_os_mem_free(pPacket);
+            return NULL;
+        }
+        INIT_HTC_PACKET_QUEUE(pQueueSave);
+        pPacket->pContext = pQueueSave;
+        SET_HTC_PACKET_NET_BUF_CONTEXT(pPacket, netbuf);
+        pPacket->pBuffer = adf_nbuf_data(netbuf);
+        pPacket->BufferLength = adf_nbuf_len(netbuf);
+
+        //store the original head room so that we can restore this when we "free" the packet
+        //free packet puts the packet back on the free list
+        pPacket->netbufOrigHeadRoom = adf_nbuf_headroom(netbuf);
+        return pPacket;
+    }
+
+    //already done malloc - restore from free list
+    pPacket = target->pBundleFreeRxList;
+    AR_DEBUG_ASSERT(pPacket);
+    if (!pPacket)
+    {
+        UNLOCK_HTC_TX(target);
+        return NULL;
+    }
+    target->pBundleFreeRxList = (HTC_PACKET *)pPacket->ListLink.pNext;
+    UNLOCK_HTC_TX(target);
+    pPacket->ListLink.pNext = NULL;
+
+    return pPacket;
+}
+
+void FreeHTCBundleRxPacket(HTC_TARGET *target, HTC_PACKET *pPacket)
+{
+    A_UINT32 curentHeadRoom;
+    adf_nbuf_t netbuf;
+    HTC_PACKET_QUEUE *pQueueSave;
+
+    netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+    AR_DEBUG_ASSERT(netbuf);
+    if (!netbuf)
+    {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("\n%s: Invalid netbuf in HTC "
+                                        "Packet\n", __func__));
+        return;
+    }
+
+    // HIF adds data to the headroom section of the nbuf, restore the original
+    // size. If this is not done, headroom keeps shrinking with every HIF send
+    // and eventually HIF ends up doing another malloc big enough to store the
+    // data + its header
+
+    curentHeadRoom = adf_nbuf_headroom(netbuf);
+    adf_nbuf_pull_head(netbuf, pPacket->netbufOrigHeadRoom - curentHeadRoom);
+    adf_nbuf_trim_tail(netbuf, adf_nbuf_len(netbuf));
+
+    //restore the pBuffer pointer. HIF changes this
+    pPacket->pBuffer = adf_nbuf_data(netbuf);
+    pPacket->BufferLength = adf_nbuf_len(netbuf);
+
+    //restore queue
+    pQueueSave = (HTC_PACKET_QUEUE*)pPacket->pContext;
+    AR_DEBUG_ASSERT(pQueueSave);
+
+    INIT_HTC_PACKET_QUEUE(pQueueSave);
+
+    LOCK_HTC_TX(target);
+    if (target->pBundleFreeRxList == NULL) {
+        target->pBundleFreeRxList = pPacket;
+        pPacket->ListLink.pNext = NULL;
+    } else {
+        pPacket->ListLink.pNext = (DL_LIST *)target->pBundleFreeRxList;
+        target->pBundleFreeRxList = pPacket;
+    }
+    UNLOCK_HTC_TX(target);
+}
+
 
 #if defined(HIF_USB) || defined(HIF_SDIO)
 #ifdef ENABLE_BUNDLE_TX
@@ -328,11 +437,11 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
 
    bundlesSpaceRemaining = HTC_MAX_MSG_PER_BUNDLE_TX * pEndpoint->TxCreditSize;
 
-   pPacketTx = AllocateHTCBundlePacket(target);
+   pPacketTx = AllocateHTCBundleTxPacket(target);
    if (!pPacketTx)
    {
        //good time to panic
-       AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundlePacket failed \n"));
+       AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundleTxPacket failed \n"));
        AR_DEBUG_ASSERT(FALSE);
        return;
    }
@@ -364,11 +473,11 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
                return;
            }
            bundlesSpaceRemaining = HTC_MAX_MSG_PER_BUNDLE_TX * pEndpoint->TxCreditSize;
-           pPacketTx = AllocateHTCBundlePacket(target);
+           pPacketTx = AllocateHTCBundleTxPacket(target);
            if (!pPacketTx)
            {
                //good time to panic
-               AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundlePacket failed \n"));
+               AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("AllocateHTCBundleTxPacket failed \n"));
                AR_DEBUG_ASSERT(FALSE);
                return;
            }
@@ -414,7 +523,7 @@ static void HTCIssuePacketsBundle(HTC_TARGET *target,
        HTCSendBundledNetbuf(target, pEndpoint,
                             pBundleBuffer - last_creditPad, pPacketTx);
    } else {
-       FreeHTCBundlePacket(target, pPacketTx);
+       FreeHTCBundleTxPacket(target, pPacketTx);
    }
 }
 #endif /* ENABLE_BUNDLE_TX */
@@ -1356,7 +1465,7 @@ A_STATUS HTCTxCompletionHandler(void *Context,
                 pPacket->Status = A_OK;
                 SendPacketCompletion(target,pPacketTemp);
             }HTC_PACKET_QUEUE_ITERATE_END;
-            FreeHTCBundlePacket(target, pPacket);
+            FreeHTCBundleTxPacket(target, pPacket);
 
 #ifdef HIF_USB
             if (!IS_TX_CREDIT_FLOW_ENABLED(pEndpoint)) {

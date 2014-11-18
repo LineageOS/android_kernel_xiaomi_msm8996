@@ -621,7 +621,7 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
     }
 
     bundleSpaceRemaining = HTC_MAX_MSG_PER_BUNDLE_RX * target->TargetCreditSize;
-    pPacketRxBundle = AllocateHTCBundlePacket(target);
+    pPacketRxBundle = AllocateHTCBundleRxPacket(target);
     pBundleBuffer = pPacketRxBundle->pBuffer;
 
     for(i = 0; !HTC_QUEUE_EMPTY(pRecvPktQueue) && i < HTC_MAX_MSG_PER_BUNDLE_RX; i++){
@@ -669,7 +669,7 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
         }HTC_PACKET_QUEUE_ITERATE_END;
     }
     /* free bundle space under Sync mode */
-    FreeHTCBundlePacket(target, pPacketRxBundle);
+    FreeHTCBundleRxPacket(target, pPacketRxBundle);
     return status;
 }
 A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,

@@ -37,6 +37,7 @@
 #include "regtable.h"
 #include "vos_api.h"
 #include "wma_api.h"
+#include "hif_internal.h"
 
 /* by default setup a bounce buffer for the data packets, if the underlying host controller driver
    does not use DMA you may be able to skip this step and save the memory allocation and transfer time */
@@ -2289,3 +2290,7 @@ void HIFsuspendwow(HIF_DEVICE *hif_device)
     printk(KERN_INFO "HIFsuspendwow TODO\n");
 }
 
+A_BOOL HIFIsMailBoxSwapped(HIF_DEVICE *hd)
+{
+    return ((struct hif_device *)hd)->swap_mailbox;
+}

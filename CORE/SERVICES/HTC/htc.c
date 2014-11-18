@@ -161,7 +161,14 @@ static void HTCCleanup(HTC_TARGET *target)
         A_FREE(pPacket);
     }
 
-    pPacket = target->pBundleFreeList;
+    pPacket = target->pBundleFreeTxList;
+    while (pPacket) {
+        HTC_PACKET *pPacketTmp = (HTC_PACKET *)pPacket->ListLink.pNext;
+        A_FREE(pPacket);
+        pPacket = pPacketTmp;
+    }
+
+    pPacket = target->pBundleFreeRxList;
     while (pPacket) {
         HTC_PACKET *pPacketTmp = (HTC_PACKET *)pPacket->ListLink.pNext;
         A_FREE(pPacket);
@@ -536,8 +543,11 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
         }
 
         target->TotalTransmitCredits = HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITCOUNT);
-        target->TargetCreditSize = (int)HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITSIZE);
-        target->MaxMsgsPerHTCBundle = (A_UINT8)pReadyMsg->MaxMsgsPerHTCBundle;
+        target->TargetCreditSize     = (int)HTC_GET_FIELD(rdy_msg, HTC_READY_MSG, CREDITSIZE);
+
+        target->MaxMsgsPerHTCBundle  = (A_UINT8) HTC_GET_FIELD(pReadyMsg, HTC_READY_EX_MSG, MAXMSGSPERHTCBUNDLE);
+        target->AltDataCreditSize    = (A_UINT16)HTC_GET_FIELD(pReadyMsg, HTC_READY_EX_MSG, ALTDATACREDITSIZE);
+
         /* for old fw this value is set to 0. But the minimum value should be 1,
          * i.e., no bundling */
         if (target->MaxMsgsPerHTCBundle < 1)
