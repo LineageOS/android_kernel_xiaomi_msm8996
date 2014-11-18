@@ -11795,7 +11795,9 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
       smeConfig.csrConfig.channelBondingMode24GHz =
          eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
-   if (eHT_CHANNEL_WIDTH_20MHZ == vhtChannelWidth) {
+   if ((eHT_CHANNEL_WIDTH_20MHZ == vhtChannelWidth) &&
+       (eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode)) {
        if (channel <= 14) {
            smeConfig.csrConfig.channelBondingMode24GHz =
                             eCSR_INI_SINGLE_CHANNEL_CENTERED;

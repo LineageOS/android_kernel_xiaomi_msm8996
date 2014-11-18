@@ -961,8 +961,12 @@ PopulateDot11fVHTOperation(tpAniSirGlobal   pMac,
 
     pDot11f->present = 1;
 
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_CHANNEL_WIDTH, nCfgValue );
-    pDot11f->chanWidth = (tANI_U8)nCfgValue;
+    if (psessionEntry->htSupportedChannelWidthSet) {
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_CHANNEL_WIDTH, nCfgValue );
+        pDot11f->chanWidth = (tANI_U8)nCfgValue;
+    } else {
+        pDot11f->chanWidth = 0;
+    }
 
     pDot11f->chanCenterFreqSeg1 = psessionEntry->apCenterChan;
 
