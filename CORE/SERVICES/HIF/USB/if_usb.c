@@ -209,6 +209,7 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 
 err_config:
 	hif_deinit_adf_ctx(ol_sc);
+	HIFDiagWriteCOLDRESET(sc->hif_device);
 	A_FREE(ol_sc);
 err_attach:
 	ret = -EIO;
@@ -463,12 +464,18 @@ static struct notifier_block hif_usb_dev_nb = {
 static int is_usb_driver_register = 0;
 int hif_register_driver(void)
 {
+	int status = 0;
 	is_usb_driver_register = 1;
 	init_waitqueue_head(&hif_usb_unload_event_wq);
 	atomic_set(&hif_usb_unload_state, HIF_USB_UNLOAD_STATE_NULL);
 	atomic_set(&hif_usb_hdd_remove, 0);
 	usb_register_notify(&hif_usb_dev_nb);
-	return usb_register(&hif_usb_drv_id);
+	status = usb_register(&hif_usb_drv_id);
+
+	if (usb_sc && status == 0)
+		return 0;
+	else
+		return -1;
 }
 
 void hif_unregister_driver(void)
