@@ -1614,7 +1614,7 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 
 	if (!adapter || adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid adapter: 0x%p",
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_LOW, "Invalid adapter: 0x%p",
 				adapter);
 
 		adf_nbuf_free(skb);
@@ -1756,7 +1756,7 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	adapter = hdd_ipa->hdd_ctx->sta_to_adapter[sta_id];
 	if (!adapter || !adapter->ipa_context ||
 			adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid sta_id: %d",
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_LOW, "Invalid sta_id: %d",
 				sta_id);
 		goto drop_pkts;
 	}
