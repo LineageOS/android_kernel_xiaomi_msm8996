@@ -6947,8 +6947,14 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-    if (NULL == pProfile)
-    {
+
+    if (NULL == pSession) {
+        smsLog(pMac, LOGE,
+               FL("session does not exist for given sessionId:%d"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    if (NULL == pProfile) {
         smsLog(pMac, LOGP, FL("No profile specified"));
         return eHAL_STATUS_FAILURE;
     }
