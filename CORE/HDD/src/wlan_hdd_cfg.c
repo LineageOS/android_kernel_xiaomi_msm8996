@@ -3412,6 +3412,88 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_STA_CONNECTION_IN_5GHZ_DEFAULT,
                  CFG_ENABLE_STA_CONNECTION_IN_5GHZ_MIN,
                  CFG_ENABLE_STA_CONNECTION_IN_5GHZ_MAX),
+
+#ifdef MDNS_OFFLOAD
+   REG_VARIABLE( CFG_MDNS_OFFLOAD_SUPPORT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_mdns_offload,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MDNS_OFFLOAD_SUPPORT_DEFAULT,
+                 CFG_MDNS_OFFLOAD_SUPPORT_MIN,
+                 CFG_MDNS_OFFLOAD_SUPPORT_MAX ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_FQDN_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_fqdn,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_FQDN_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_UNIQUE_FQDN_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_uniquefqdn,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_UNIQUE_FQDN_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_A_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_a,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_A_DEFAULT ),
+
+   REG_VARIABLE( CFG_MDNS_RESPONSE_TYPE_A_IPV4_NAME, WLAN_PARAM_HexInteger,
+                 hdd_config_t, mdns_resp_type_a_ipv4,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_A_IPV4_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_A_IPV4_MIN,
+                 CFG_MDNS_RESPONSE_TYPE_A_IPV4_MAX ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_TXT_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_txt,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_TXT_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_TXT_CNT_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_txt_content,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_TXT_CNT_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_PTR_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_ptr,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_PTR_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_PTR_DN_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_ptr_dname,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_PTR_DN_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_SRV_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_srv,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_SRV_DEFAULT ),
+
+   REG_VARIABLE( CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, mdns_resp_type_srv_priority,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_MIN,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_MAX ),
+
+   REG_VARIABLE( CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, mdns_resp_type_srv_weight,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_MIN,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_MAX ),
+
+   REG_VARIABLE( CFG_MDNS_RESPONSE_TYPE_SRV_PORT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, mdns_resp_type_srv_port,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PORT_DEFAULT,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PORT_MIN,
+                 CFG_MDNS_RESPONSE_TYPE_SRV_PORT_MAX ),
+
+   REG_VARIABLE_STRING( CFG_MDNS_RESPONSE_TYPE_SRV_TGT_NAME, WLAN_PARAM_String,
+                 hdd_config_t, mdns_resp_type_srv_target,
+                 VAR_FLAGS_OPTIONAL,
+                 (void *) CFG_MDNS_RESPONSE_TYPE_SRV_TGT_DEFAULT ),
+#endif /* MDNS_OFFLOAD */
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3648,7 +3730,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
                buffer = i_trim(buffer);
                if(strlen(buffer)>0) {
                   value = buffer;
-                  while(!i_isspace(*buffer) && *buffer != '\0')
+                  while (*buffer != '\0')
                      buffer++;
                   *buffer = '\0';
                   cfgIniTable[i].name= name;
@@ -4029,6 +4111,51 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gDHCPServerIP] Value = [%s]",
                    pHddCtx->cfg_ini->dhcpServerIP);
+#endif
+
+#ifdef MDNS_OFFLOAD
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSOffloadEnable] Value = [%u]",
+                   pHddCtx->cfg_ini->enable_mdns_offload);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSFqdn] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_fqdn);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSUniqueFqdn] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_uniquefqdn);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeA] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_a);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeAIpv4Addr] Value = [%u]",
+                   pHddCtx->cfg_ini->mdns_resp_type_a_ipv4);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeTXT] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_txt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeTXTContent] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_txt_content);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypePTR] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_ptr);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypePTRDomainName] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_ptr_dname);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeSRV] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_srv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeSRVPriority] Value = [%u]",
+                   pHddCtx->cfg_ini->mdns_resp_type_srv_priority);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeSRVWeight] Value = [%u]",
+                   pHddCtx->cfg_ini->mdns_resp_type_srv_weight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeSRVPort] Value = [%u]",
+                   pHddCtx->cfg_ini->mdns_resp_type_srv_port);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gMDNSResponseTypeSRVTarget] Value = [%s]",
+                   pHddCtx->cfg_ini->mdns_resp_type_srv_target);
 #endif
 }
 
@@ -4782,6 +4909,43 @@ VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
 
 }
 
+#ifdef MDNS_OFFLOAD
+VOS_STATUS hdd_string_to_string_array(char *data, uint8_t *datalist,
+                                    char separator, uint8_t *num_entries,
+                                    uint8_t max_entries, uint8_t max_len_entry)
+{
+    uint8_t num = 0;
+    char *str = data;
+    char *field;
+
+    if ((data == NULL) || ( datalist == NULL) || (num_entries == NULL))
+        return VOS_STATUS_E_INVAL;
+
+    /* parse the string */
+    while (str && ('\0' != *str) && (num < max_entries)) {
+        field = str;
+        while (str && ('\0' != *str) && (separator != *str))
+           str++;
+        if ('\0' == *str) {
+            /* reach the end of string */
+            if ('\0' != *field) {
+              strlcpy((char *)(datalist + (num * max_len_entry)),
+                      field, max_len_entry);
+              num++;
+            }
+            break;
+        }
+        /* replace separator with NUL to terminate the data */
+        *str++ = '\0';
+        strlcpy((char *)(datalist + (num * max_len_entry)),
+                field, max_len_entry);
+        num++;
+    }
+    *num_entries = num;
+
+    return VOS_STATUS_SUCCESS;
+}
+#endif
 
 v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 {

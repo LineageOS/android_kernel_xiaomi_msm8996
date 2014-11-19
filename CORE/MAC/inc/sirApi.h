@@ -96,7 +96,6 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 
 #define WIFI_SCANNING_MAC_OUI_LENGTH 3
 
-
 #ifdef FEATURE_WLAN_EXTSCAN
 
 #define WLAN_EXTSCAN_MAX_CHANNELS                 40
@@ -5546,6 +5545,33 @@ typedef struct
   tANI_U32 led_x1; /* led flashing parameter1 */
 } tSirLedFlashingReq, *tpSirLedFlashingReq;
 #endif
+
+#ifdef MDNS_OFFLOAD
+#define MAX_MDNS_FQDN_LEN                         64
+#define MAX_MDNS_RESP_LEN                         512
+
+typedef struct
+{
+    tANI_U32 vdev_id;
+    tANI_U32 mDNSOffloadEnabled;
+} tSirMDNSOffloadInfo, *tpSirMDNSOffloadInfo;
+
+typedef struct
+{
+    tANI_U32 vdev_id;
+    tANI_U32 fqdn_type;
+    tANI_U32 fqdn_len;
+    tANI_U8 fqdn_data[MAX_MDNS_FQDN_LEN];
+} tSirMDNSFqdnInfo, *tpSirMDNSFqdnInfo;
+
+typedef struct
+{
+    tANI_U32 vdev_id;
+    tANI_U32 resourceRecord_count;
+    tANI_U32 resp_len;
+    tANI_U8 resp_data[MAX_MDNS_RESP_LEN];
+} tSirMDNSResponseInfo, *tpSirMDNSResponseInfo;
+#endif /* MDNS_OFFLOAD */
 
 /* find the size of given member within a structure */
 #ifndef member_size

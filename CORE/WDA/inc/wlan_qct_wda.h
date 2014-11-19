@@ -1003,6 +1003,13 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_LED_FLASHING_REQ   SIR_HAL_LED_FLASHING_REQ
 #endif
 
+#ifdef MDNS_OFFLOAD
+#define WDA_SET_MDNS_OFFLOAD_CMD              SIR_HAL_SET_MDNS_OFFLOAD
+#define WDA_SET_MDNS_FQDN_CMD                 SIR_HAL_SET_MDNS_FQDN
+#define WDA_SET_MDNS_RESPONSE_CMD             SIR_HAL_SET_MDNS_RESPONSE
+#define WDA_GET_MDNS_STATUS_CMD               SIR_HAL_GET_MDNS_STATUS
+#endif /* MDNS_OFFLOAD */
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

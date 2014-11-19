@@ -825,6 +825,12 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
 #ifdef DHCP_SERVER_OFFLOAD
         CASE_RETURN_STRING(WDA_SET_DHCP_SERVER_OFFLOAD_CMD);
 #endif
+#ifdef MDNS_OFFLOAD
+        CASE_RETURN_STRING(WDA_SET_MDNS_OFFLOAD_CMD);
+        CASE_RETURN_STRING(WDA_SET_MDNS_FQDN_CMD);
+        CASE_RETURN_STRING(WDA_SET_MDNS_RESPONSE_CMD);
+        CASE_RETURN_STRING(WDA_GET_MDNS_STATUS_CMD);
+#endif
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;

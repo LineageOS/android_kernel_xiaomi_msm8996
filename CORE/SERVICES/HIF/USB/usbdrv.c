@@ -150,30 +150,6 @@ static A_STATUS usb_hif_alloc_pipe_resources(HIF_USB_PIPE *pipe, int urb_cnt)
 		 */
 		pipe->urb_alloc++;
 
-		if (htc_bundle_send) {
-			/* In tx bundle mode, only pre-allocate bundle buffers
-			 * for data
-			 * pipes
-			 */
-			if (pipe->logical_pipe_num >= HIF_TX_DATA_LP_PIPE &&
-			    pipe->logical_pipe_num <= HIF_TX_DATA_HP_PIPE) {
-				urb_context->buf = adf_nbuf_alloc(NULL,
-						  HIF_USB_TX_BUNDLE_BUFFER_SIZE,
-						  0, 4, FALSE);
-				if (NULL == urb_context->buf) {
-					status = A_NO_MEMORY;
-					usb_free_urb(urb_context->urb);
-					urb_context->urb = NULL;
-					adf_os_mem_free(urb_context);
-					AR_DEBUG_PRINTF(ATH_DEBUG_ERR, (
-					 "athusb: alloc send bundle buffer %d-byte failed\n",
-					 HIF_USB_TX_BUNDLE_BUFFER_SIZE));
-					break;
-				}
-			}
-			skb_queue_head_init(&urb_context->comp_queue);
-		}
-
 		usb_hif_free_urb_to_pipe(pipe, urb_context);
 	}
 
@@ -188,7 +164,6 @@ static A_STATUS usb_hif_alloc_pipe_resources(HIF_USB_PIPE *pipe, int urb_cnt)
 static void usb_hif_free_pipe_resources(HIF_USB_PIPE *pipe)
 {
 	HIF_URB_CONTEXT *urb_context;
-	adf_nbuf_t nbuf;
 
 	if (NULL == pipe->device) {
 		/* nothing allocated for this pipe */
@@ -218,14 +193,6 @@ static void usb_hif_free_pipe_resources(HIF_USB_PIPE *pipe)
 		if (urb_context->buf) {
 			adf_nbuf_free(urb_context->buf);
 			urb_context->buf = NULL;
-		}
-
-		if (htc_bundle_send) {
-			while ((nbuf =
-				skb_dequeue(&urb_context->comp_queue)) !=
-			       NULL) {
-				adf_nbuf_free(nbuf);
-			}
 		}
 
 		usb_free_urb(urb_context->urb);
@@ -460,6 +427,77 @@ void usb_hif_cleanup_transmit_urb(HIF_URB_CONTEXT *urb_context)
 	usb_hif_free_urb_to_pipe(urb_context->pipe, urb_context);
 }
 
+static void usb_hif_usb_recv_prestart_complete(struct urb *urb)
+{
+	HIF_URB_CONTEXT *urb_context = (HIF_URB_CONTEXT *) urb->context;
+	A_STATUS status = A_OK;
+	adf_nbuf_t buf = NULL;
+	HIF_USB_PIPE *pipe = urb_context->pipe;
+
+	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN, (
+				"+%s: recv pipe: %d, stat:%d,len:%d urb:0x%p\n",
+				__func__,
+				pipe->logical_pipe_num,
+				urb->status, urb->actual_length,
+				urb));
+
+	/* this urb is not pending anymore */
+	usb_hif_remove_pending_transfer(urb_context);
+
+	do {
+		if (urb->status != 0) {
+			status = A_ECOMM;
+			switch (urb->status) {
+			case -ECONNRESET:
+			case -ENOENT:
+			case -ESHUTDOWN:
+				/* NOTE: no need to spew these errors when
+				 * device is removed
+				 * or urb is killed due to driver shutdown
+				 */
+				status = A_ECANCELED;
+				break;
+			default:
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR, (
+					"%s recv pipe: %d (ep:0x%2.2X), failed:%d\n",
+					__func__,
+					pipe->logical_pipe_num,
+					pipe->ep_address,
+					urb->status));
+				break;
+			}
+			break;
+		}
+
+		if (urb->actual_length == 0)
+			break;
+
+		buf = urb_context->buf;
+		/* we are going to pass it up */
+		urb_context->buf = NULL;
+		adf_nbuf_put_tail(buf, urb->actual_length);
+		if (AR_DEBUG_LVL_CHECK(USB_HIF_DEBUG_DUMP_DATA)) {
+			A_UINT8 *data;
+			A_UINT32 len;
+			adf_nbuf_peek_header(buf, &data, &len);
+			DebugDumpBytes(data, len, "hif recv data");
+		}
+
+		/* note: queue implements a lock */
+		skb_queue_tail(&pipe->io_comp_queue, buf);
+		schedule_work(&pipe->io_complete_work);
+	} while (FALSE);
+
+	usb_hif_cleanup_recv_urb(urb_context);
+
+	/* Prestart URBs runs out and now start working receive pipe. */
+	if (--pipe->urb_prestart_cnt == 0) {
+		usb_hif_start_recv_pipes(pipe->device);
+	}
+
+	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN, ("-%s\n", __func__));
+}
+
 static void usb_hif_usb_recv_complete(struct urb *urb)
 {
 	HIF_URB_CONTEXT *urb_context = (HIF_URB_CONTEXT *) urb->context;
@@ -606,10 +644,6 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 		netlen = urb->actual_length;
 
 		do {
-#if defined(AR6004_1_0_ALIGN_WAR)
-			A_UINT8 extra_pad;
-			A_UINT16 act_frame_len;
-#endif
 			A_UINT16 frame_len;
 
 			/* Hack into HTC header for bundle processing */
@@ -624,54 +658,16 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 			payloadLen = HtcHdr->PayloadLen;
 			payloadLen = A_LE2CPU16(payloadLen);
 
-#if defined(AR6004_1_0_ALIGN_WAR)
-			act_frame_len = (HTC_HDR_LENGTH + payloadLen);
-
-			if (HtcHdr->EndpointID == 0 ||
-				HtcHdr->EndpointID == 1) {
-				/* assumption: target won't pad on HTC endpoint
-				 * 0 & 1.
-				 */
-				extra_pad = 0;
-			} else {
-				extra_pad =
-				    A_GET_UINT8_FIELD((A_UINT8 *) HtcHdr,
-						      HTC_FRAME_HDR,
-						      ControlBytes[1]);
-			}
-#endif
-
 			if (payloadLen > HIF_USB_RX_BUFFER_SIZE) {
 				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
 					("athusb: payloadLen too long %u\n",
 					payloadLen));
 				break;
 			}
-#if defined(AR6004_1_0_ALIGN_WAR)
-			frame_len = (act_frame_len + extra_pad);
-#else
 			frame_len = (HTC_HDR_LENGTH + payloadLen);
-#endif
 
 			if (netlen >= frame_len) {
 				/* allocate a new skb and copy */
-#if defined(AR6004_1_0_ALIGN_WAR)
-				new_skb =
-				    adf_nbuf_alloc(NULL, act_frame_len, 0, 4,
-						   FALSE);
-				if (new_skb == NULL) {
-					AR_DEBUG_PRINTF(ATH_DEBUG_ERR, (
-							 "athusb: allocate skb (len=%u) failed\n",
-							 act_frame_len));
-					break;
-				}
-
-				adf_nbuf_peek_header(new_skb, &netdata_new,
-						     &netlen_new);
-				adf_os_mem_copy(netdata_new, netdata,
-						act_frame_len);
-				adf_nbuf_put_tail(new_skb, act_frame_len);
-#else
 				new_skb =
 				    adf_nbuf_alloc(NULL, frame_len, 0, 4,
 						   FALSE);
@@ -687,7 +683,6 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 				adf_os_mem_copy(netdata_new, netdata,
 						frame_len);
 				adf_nbuf_put_tail(new_skb, frame_len);
-#endif
 				skb_queue_tail(&pipe->io_comp_queue, new_skb);
 				new_skb = NULL;
 
@@ -724,6 +719,68 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 	}
 
 	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN, ("-%s\n", __func__));
+}
+
+/* post prestart recv urbs for a given pipe */
+static void usb_hif_post_recv_prestart_transfers(HIF_USB_PIPE *recv_pipe,
+						int prestart_urb)
+{
+	HIF_URB_CONTEXT *urb_context;
+	a_uint8_t *data;
+	a_uint32_t len;
+	struct urb *urb;
+	int i, usb_status, buffer_length = HIF_USB_RX_BUFFER_SIZE;
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n", __func__));
+
+	for (i = 0; i < prestart_urb; i++) {
+		urb_context = usb_hif_alloc_urb_from_pipe(recv_pipe);
+		if (NULL == urb_context)
+			break;
+
+		urb_context->buf =
+			adf_nbuf_alloc(NULL, buffer_length, 0, 4, FALSE);
+		if (NULL == urb_context->buf) {
+			usb_hif_cleanup_recv_urb(urb_context);
+			break;
+		}
+
+		adf_nbuf_peek_header(urb_context->buf, &data, &len);
+
+		urb = urb_context->urb;
+
+		usb_fill_bulk_urb(urb,
+				  recv_pipe->device->udev,
+				  recv_pipe->usb_pipe_handle,
+				  data,
+				  buffer_length,
+				  usb_hif_usb_recv_prestart_complete,
+				  urb_context);
+
+		AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN, (
+			"athusb bulk recv submit:%d, 0x%X (ep:0x%2.2X), %d bytes, buf:0x%p\n",
+			recv_pipe->logical_pipe_num,
+			recv_pipe->usb_pipe_handle,
+			recv_pipe->ep_address, buffer_length,
+			urb_context->buf));
+
+		usb_hif_enqueue_pending_transfer(recv_pipe, urb_context);
+
+		usb_status = usb_submit_urb(urb, GFP_ATOMIC);
+
+		if (usb_status) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+					("athusb : usb bulk recv failed %d\n",
+					  usb_status));
+			usb_hif_remove_pending_transfer(urb_context);
+			usb_hif_cleanup_recv_urb(urb_context);
+			break;
+		} else
+			recv_pipe->urb_prestart_cnt++;
+
+	}
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n", __func__));
 }
 
 /* post recv urbs for a given pipe */
@@ -821,7 +878,8 @@ static void usb_hif_post_recv_bundle_transfers(HIF_USB_PIPE *recv_pipe,
 				  recv_pipe->device->udev,
 				  recv_pipe->usb_pipe_handle,
 				  data,
-				  HIF_USB_RX_BUNDLE_BUFFER_SIZE,
+				  (recv_pipe->device->rx_bundle_cnt *
+				   HIF_USB_RX_BUNDLE_ONE_PKT_SIZE),
 				  usb_hif_usb_recv_bundle_complete,
 				  urb_context);
 
@@ -852,32 +910,53 @@ static void usb_hif_post_recv_bundle_transfers(HIF_USB_PIPE *recv_pipe,
 
 }
 
+void usb_hif_prestart_recv_pipes(HIF_DEVICE_USB *device)
+{
+	HIF_USB_PIPE *pipe = &device->pipes[HIF_RX_DATA_PIPE];
+
+	/*
+	 * USB driver learn to support bundle or not until the firmware
+	 * download and ready. Only allocate some URBs for control message
+	 * communication during the initial phase then start the final
+	 * working pipe after all information understood.
+	 */
+	usb_hif_post_recv_prestart_transfers(pipe, 8);
+}
+
 void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 {
-	device->pipes[HIF_RX_DATA_PIPE].urb_cnt_thresh =
-	    device->pipes[HIF_RX_DATA_PIPE].urb_alloc / 2;
+	HIF_USB_PIPE *pipe;
+	a_uint32_t buf_len;
+
 	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
-	if (!htc_bundle_recv) {
-		usb_hif_post_recv_transfers(&device->pipes[HIF_RX_DATA_PIPE],
-					    HIF_USB_RX_BUFFER_SIZE);
+
+	pipe = &device->pipes[HIF_RX_DATA_PIPE];
+	pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
+
+	if (device->is_bundle_enabled) {
+		buf_len = device->rx_bundle_cnt *
+				HIF_USB_RX_BUNDLE_ONE_PKT_SIZE;
+		usb_hif_post_recv_bundle_transfers(pipe, buf_len);
 	} else {
-		usb_hif_post_recv_bundle_transfers(&device->pipes
-					   [HIF_RX_DATA_PIPE],
-					   HIF_USB_RX_BUNDLE_BUFFER_SIZE);
+		buf_len = HIF_USB_RX_BUFFER_SIZE;
+		usb_hif_post_recv_transfers(pipe, buf_len);
 	}
 
+	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN,
+			("athusb bulk recv len %d\n",
+			  buf_len));
+
 	if (!hif_usb_disable_rxdata2) {
-		device->pipes[HIF_RX_DATA2_PIPE].urb_cnt_thresh =
-		    device->pipes[HIF_RX_DATA2_PIPE].urb_alloc / 2;
-		usb_hif_post_recv_transfers(&device->pipes[HIF_RX_DATA2_PIPE],
-					    HIF_USB_RX_BUFFER_SIZE);
+		pipe = &device->pipes[HIF_RX_DATA2_PIPE];
+		pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
+		usb_hif_post_recv_transfers(pipe, HIF_USB_RX_BUFFER_SIZE);
 	}
 #ifdef USB_HIF_TEST_INTERRUPT_IN
-	device->pipes[HIF_RX_INT_PIPE].urb_cnt_thresh =
-	    device->pipes[HIF_RX_INT_PIPE].urb_alloc / 2;
-	usb_hif_post_recv_transfers(&device->pipes[HIF_RX_INT_PIPE],
-				    HIF_USB_RX_BUFFER_SIZE);
+	pipe = &device->pipes[HIF_RX_INT_PIPE];
+	pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
+	usb_hif_post_recv_transfers(pipe, HIF_USB_RX_BUFFER_SIZE);
 #endif
+
 	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 }
 
