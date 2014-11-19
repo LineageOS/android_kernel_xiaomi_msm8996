@@ -2360,6 +2360,10 @@ htt_rx_hash_deinit(struct htt_pdev_t *pdev)
     struct htt_rx_hash_entry * hash_entry;
     htt_list_node * list_iter = NULL;
 
+    if (NULL == pdev->rx_ring.hash_table) {
+        return;
+    }
+
     for (i = 0; i < RX_NUM_HASH_BUCKETS; i++) {
         /* Free the hash entries in hash bucket i */
         list_iter = pdev->rx_ring.hash_table[i].listhead.next;
