@@ -107,6 +107,7 @@
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
+#include "wlan_hdd_mdns_offload.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -6603,8 +6604,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
 #ifdef DHCP_SERVER_OFFLOAD
     /* set dhcp server offload */
-    if (iniConfig->enableDHCPServerOffload)
+    if (iniConfig->enableDHCPServerOffload) {
         wlan_hdd_set_dhcp_server_offload(pHostapdAdapter);
+        wlan_hdd_set_mdns_offload(pHostapdAdapter);
+    }
 #endif /* DHCP_SERVER_OFFLOAD */
 
 #ifdef WLAN_FEATURE_P2P_DEBUG

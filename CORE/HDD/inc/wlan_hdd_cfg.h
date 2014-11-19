@@ -2608,6 +2608,73 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_STA_CONNECTION_IN_5GHZ_MAX     ( 1 )
 #define CFG_ENABLE_STA_CONNECTION_IN_5GHZ_DEFAULT ( 1 )
 
+#ifdef MDNS_OFFLOAD
+/*
+ * Enable/Disable multicast DNS Offload
+ * 0x0 - Disable mDNS (Default)
+ * 0x1 - Enable mDNS
+ */
+#define CFG_MDNS_OFFLOAD_SUPPORT_NAME               "gMDNSOffloadEnable"
+#define CFG_MDNS_OFFLOAD_SUPPORT_MIN                ( 0 )
+#define CFG_MDNS_OFFLOAD_SUPPORT_MAX                ( 1 )
+#define CFG_MDNS_OFFLOAD_SUPPORT_ENABLE             ( 1 )
+#define CFG_MDNS_OFFLOAD_SUPPORT_DEFAULT            ( CFG_MDNS_OFFLOAD_SUPPORT_MIN )
+
+/* Set FQDN string for mDNS */
+#define CFG_MDNS_FQDN_NAME                          "gMDNSFqdn"
+#define CFG_MDNS_FQDN_DEFAULT                       ""
+
+/* Set UFQDN string for mDNS */
+#define CFG_MDNS_UNIQUE_FQDN_NAME                   "gMDNSUniqueFqdn"
+#define CFG_MDNS_UNIQUE_FQDN_DEFAULT                ""
+
+/* Set the response Type A to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_A_NAME               "gMDNSResponseTypeA"
+#define CFG_MDNS_RESPONSE_TYPE_A_DEFAULT            ""
+#define CFG_MDNS_RESPONSE_TYPE_A_IPV4_NAME          "gMDNSResponseTypeAIpv4Addr"
+#define CFG_MDNS_RESPONSE_TYPE_A_IPV4_MIN           ( 1 )
+#define CFG_MDNS_RESPONSE_TYPE_A_IPV4_MAX           ( 0xffffffff )
+#define CFG_MDNS_RESPONSE_TYPE_A_IPV4_DEFAULT       ( 0xffffffff )
+
+/* Set the response Type TXT to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_TXT_NAME             "gMDNSResponseTypeTXT"
+#define CFG_MDNS_RESPONSE_TYPE_TXT_DEFAULT          ""
+#define CFG_MDNS_RESPONSE_TYPE_TXT_CNT_NAME        "gMDNSResponseTypeTXTContent"
+#define CFG_MDNS_RESPONSE_TYPE_TXT_CNT_DEFAULT     ""
+
+/* Set the response Type PTR to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_PTR_NAME             "gMDNSResponseTypePTR"
+#define CFG_MDNS_RESPONSE_TYPE_PTR_DEFAULT          ""
+#define CFG_MDNS_RESPONSE_TYPE_PTR_DN_NAME          "gMDNSResponseTypePTRDomainName"
+#define CFG_MDNS_RESPONSE_TYPE_PTR_DN_DEFAULT       ""
+
+/* Set the response Type SRV to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_SRV_NAME             "gMDNSResponseTypeSRV"
+#define CFG_MDNS_RESPONSE_TYPE_SRV_DEFAULT          ""
+
+/* Set the response Type SRV Priority to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_NAME    "gMDNSResponseTypeSRVPriority"
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_MIN     ( 0 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_MAX     ( 65535 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_DEFAULT ( CFG_MDNS_RESPONSE_TYPE_SRV_PRIORITY_MIN )
+
+/* Set the response Type SRV Weight to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_NAME      "gMDNSResponseTypeSRVWeight"
+#define CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_MIN       ( 0 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_MAX       ( 65525 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_DEFAULT   ( CFG_MDNS_RESPONSE_TYPE_SRV_WEIGHT_MIN )
+
+/* Set the response Type SRV Port to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PORT_NAME        "gMDNSResponseTypeSRVPort"
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PORT_MIN         ( 0 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PORT_MAX         ( 65525 )
+#define CFG_MDNS_RESPONSE_TYPE_SRV_PORT_DEFAULT     ( 80 )
+
+/* Set the response Type SRV Target to mDNS queries */
+#define CFG_MDNS_RESPONSE_TYPE_SRV_TGT_NAME      "gMDNSResponseTypeSRVTarget"
+#define CFG_MDNS_RESPONSE_TYPE_SRV_TGT_DEFAULT   ""
+#endif /* MDNS_OFFLOAD */
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3171,6 +3238,23 @@ typedef struct
 #endif
    uint8_t                     conc_custom_rule1;
    uint8_t                     is_sta_connection_in_5gz_enabled;
+
+#ifdef MDNS_OFFLOAD
+   uint32_t                    enable_mdns_offload;
+   uint8_t                     mdns_fqdn[MAX_MDNS_FQDN_LEN];
+   uint8_t                     mdns_uniquefqdn[MAX_MDNS_FQDN_LEN];
+   uint8_t                     mdns_resp_type_a[MAX_MDNS_RESP_LEN];
+   uint32_t                    mdns_resp_type_a_ipv4;
+   uint8_t                     mdns_resp_type_txt[MAX_MDNS_RESP_LEN];
+   uint8_t                     mdns_resp_type_txt_content[MAX_MDNS_RESP_LEN];
+   uint8_t                     mdns_resp_type_ptr[MAX_MDNS_RESP_LEN];
+   uint8_t                     mdns_resp_type_ptr_dname[MAX_MDNS_RESP_LEN];
+   uint8_t                     mdns_resp_type_srv[MAX_MDNS_RESP_LEN];
+   uint16_t                    mdns_resp_type_srv_priority;
+   uint16_t                    mdns_resp_type_srv_weight;
+   uint16_t                    mdns_resp_type_srv_port;
+   uint8_t                     mdns_resp_type_srv_target[MAX_MDNS_RESP_LEN];
+#endif  /* MDNS_OFFLOAD */
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3317,6 +3401,13 @@ void hdd_dfs_indicate_radar(void *context, void *param);
 
 VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
                tANI_U8 intArrayMaxLen );
+
+#ifdef MDNS_OFFLOAD
+VOS_STATUS hdd_string_to_string_array(char *data, uint8_t *datalist,
+                                  char separator, uint8_t *num_entries,
+                                  uint8_t max_entries, uint8_t max_len_entry);
+#endif
+
 #ifdef WLAN_FEATURE_MBSSID
 v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter);
 #endif

@@ -188,6 +188,11 @@ ifneq ($(CONFIG_MOBILE_ROUTER), y)
 CONFIG_QCA_IBSS_SUPPORT := 1
 endif
 
+#Enable MDNS Offload
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CONFIG_MDNS_OFFLOAD_SUPPORT := 1
+endif
+
 #Enable power management suspend/resume functionality to PCI
 CONFIG_ATH_BUS_PM := 1
 
@@ -342,6 +347,10 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 
 ifeq ($(CONFIG_IPA_OFFLOAD), 1)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_ipa.o
+endif
+
+ifeq ($(CONFIG_MDNS_OFFLOAD_SUPPORT), 1)
+HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_mdns_offload.o
 endif
 
 ifeq ($(HAVE_CFG80211),1)
@@ -922,6 +931,10 @@ CDEFINES += -DWLAN_FEATURE_GPIO_LED_FLASHING
 ifneq ($(CONFIG_NON_QC_PLATFORM), y)
 CDEFINES += -DDFS_MASTER_OFFLOAD_IND_SUPPORT
 endif
+endif
+
+ifeq ($(CONFIG_MDNS_OFFLOAD_SUPPORT), 1)
+CDEFINES += -DMDNS_OFFLOAD
 endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)

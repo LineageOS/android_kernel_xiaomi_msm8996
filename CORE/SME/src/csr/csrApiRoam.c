@@ -4060,8 +4060,8 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     ccmCfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, pBssConfig->uPowerLimit, NULL, eANI_BOOLEAN_FALSE);
     //CB
 
-    if(CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile) || CSR_IS_IBSS(pProfile))
-    {
+    if (CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile) ||
+                    CSR_IS_IBSS(pProfile)) {
         channel = pProfile->operationChannel;
     }
     else
@@ -4082,23 +4082,31 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
            cfgCb = pBssConfig->cbMode;
         }
     }
+
+    if (CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile) ||
+                    CSR_IS_IBSS(pProfile)) {
 #ifdef WLAN_FEATURE_11AC
-    // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-    // in function csrConvertCBIniValueToPhyCBState()
-    // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
-    if (cfgCb) {
-        if (cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
-            if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
-                cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
+        /* cbMode = 1 in cfg.ini is mapped to
+           PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
+           in function csrConvertCBIniValueToPhyCBState()
+           So, max value for cbMode in 40MHz mode
+           is 3 (MAC\src\include\sirParams.h) */
+        if (cfgCb) {
+            if (cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
+                if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
+                    cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
+                }
             }
-        }
-        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
                     pMac->roam.configParam.nVhtChannelWidth, NULL,
                     eANI_BOOLEAN_FALSE);
-    }
-    else
+        }
+        else
 #endif
-    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
+        /* WNI_CFG_CHANNEL_BONDING_MODE can be removed since it is not used */
+        ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL,
+                        eANI_BOOLEAN_FALSE);
+    }
     //Rate
     //Fixed Rate
     if(pBssDesc)

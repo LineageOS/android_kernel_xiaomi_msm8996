@@ -314,9 +314,6 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
 
     credits = target->TotalTransmitCredits;
     pEntry = &target->ServiceTxAllocTable[0];
-#if defined(HIF_USB)
-    target->avail_tx_credits = target->TotalTransmitCredits - 1 ;
-#endif
 #if !(defined(HIF_PCI) || defined(HIF_SIM) || defined(CONFIG_HL_SUPPORT) || (defined(HIF_USB)))
     status = A_NO_RESOURCE;
 #endif
@@ -647,13 +644,16 @@ A_STATUS HTCStart(HTC_HANDLE HTCHandle)
             AR_DEBUG_PRINTF(ATH_DEBUG_INIT, ("HTC using TX credit flow control\n"));
         }
 
-#ifdef HIF_SDIO
+#if defined(HIF_SDIO) || defined(HIF_USB)
 #if ENABLE_BUNDLE_RX
-        if (HTC_ENABLE_BUNDLE(target))
+        if (HTC_ENABLE_BUNDLE(target)) {
             pSetupComp->SetupFlags |=
                 HTC_SETUP_COMPLETE_FLAGS_ENABLE_BUNDLE_RECV;
+
+            HIFSetBundleMode(target->hif_dev, true, HTC_MAX_MSG_PER_BUNDLE_RX);
+        }
 #endif /* ENABLE_BUNDLE_RX */
-#endif /* HIF_SDIO */
+#endif
 
         pSetupComp->MaxMsgsPerBundledRecv = HTC_MAX_MSG_PER_BUNDLE_RX;
 

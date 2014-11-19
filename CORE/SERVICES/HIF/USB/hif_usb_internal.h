@@ -42,8 +42,7 @@
 #define RX_URB_COUNT    32
 
 #define HIF_USB_RX_BUFFER_SIZE  2048
-#define HIF_USB_RX_BUNDLE_BUFFER_SIZE  16896
-#define HIF_USB_TX_BUNDLE_BUFFER_SIZE  16384
+#define HIF_USB_RX_BUNDLE_ONE_PKT_SIZE  (1792 + 8)
 
 /* USB Endpoint definition */
 typedef enum {
@@ -87,7 +86,6 @@ typedef struct _HIF_URB_CONTEXT {
 	struct _HIF_USB_PIPE *pipe;
 	adf_nbuf_t buf;
 	struct urb *urb;
-	struct sk_buff_head comp_queue;
 	struct HIFSendContext *pSendContext;
 } HIF_URB_CONTEXT;
 
@@ -108,6 +106,7 @@ typedef struct _HIF_USB_PIPE {
 	struct work_struct io_complete_work;
 	struct sk_buff_head io_comp_queue;
 	struct usb_endpoint_descriptor *ep_desc;
+	A_INT32 urb_prestart_cnt;
 } HIF_USB_PIPE;
 
 typedef struct _HIF_DEVICE_USB {
@@ -123,10 +122,10 @@ typedef struct _HIF_DEVICE_USB {
 	a_uint8_t *diag_resp_buffer;
 	void *claimed_context;
 	struct hif_usb_softc *sc;
+	A_BOOL is_bundle_enabled;
+	A_UINT16 rx_bundle_cnt;
 } HIF_DEVICE_USB;
 extern unsigned int hif_usb_disable_rxdata2;
-extern unsigned int htc_bundle_recv;
-extern unsigned int htc_bundle_send;
 
 extern A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *macp,
 				       a_uint8_t req,
@@ -150,6 +149,7 @@ extern void HIFDeviceResume(HIF_DEVICE *dev);
 #endif
 extern A_STATUS usb_hif_setup_pipe_resources(HIF_DEVICE_USB *device);
 extern void usb_hif_cleanup_pipe_resources(HIF_DEVICE_USB *device);
+extern void usb_hif_prestart_recv_pipes(HIF_DEVICE_USB *device);
 extern void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device);
 extern void usb_hif_flush_all(HIF_DEVICE_USB *device);
 extern void usb_hif_cleanup_transmit_urb(HIF_URB_CONTEXT *urb_context);

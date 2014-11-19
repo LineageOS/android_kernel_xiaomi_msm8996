@@ -147,3 +147,8 @@ void *hif_get_targetdef(HIF_DEVICE *hif_device)
 void HIFDump(HIF_DEVICE *hif_device, u_int8_t cmd_id, bool start) {
     ENTER("Dummy Function");
 }
+
+void HIFSetBundleMode(HIF_DEVICE *hif_device, bool enabled, int rx_bundle_cnt)
+{
+
+}
