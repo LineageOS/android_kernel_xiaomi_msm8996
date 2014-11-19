@@ -3168,6 +3168,9 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             }
             pHddStaCtx->ft_carrier_on = FALSE;
             pHddStaCtx->hdd_ReassocScenario = FALSE;
+            hddLog(LOG1,
+                   FL("hdd_ReassocScenario set to: %d, ReAssoc Failed, session: %d"),
+                   pHddStaCtx->hdd_ReassocScenario, pAdapter->sessionId);
             break;
 
         case eCSR_ROAM_FT_START:
@@ -3205,6 +3208,9 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             }
             pHddStaCtx->ft_carrier_on = TRUE;
             pHddStaCtx->hdd_ReassocScenario = VOS_TRUE;
+            hddLog(LOG1,
+                   FL("hdd_ReassocScenario set to: %d due to eCSR_ROAM_FT_START, session: %d"),
+                   pHddStaCtx->hdd_ReassocScenario, pAdapter->sessionId);
             break;
 #endif
 
@@ -3346,8 +3352,13 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                     }
                 }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
-                if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult)
+                if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult) {
                     pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
+                    hddLog(LOG1,
+                           FL("hdd_ReassocScenario set to: %d, set key complete, session: %d"),
+                           pHddStaCtx->hdd_ReassocScenario,
+                           pAdapter->sessionId);
+                }
             }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
             if (pRoamInfo != NULL)

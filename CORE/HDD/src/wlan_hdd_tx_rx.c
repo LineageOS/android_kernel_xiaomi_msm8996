@@ -672,12 +672,15 @@ void hdd_tx_resume_cb(void *adapter_context,
                         v_BOOL_t tx_resume)
 {
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)adapter_context;
+   hdd_station_ctx_t *hdd_sta_ctx = NULL;
 
    if (!pAdapter)
    {
       /* INVALID ARG */
       return;
    }
+
+   hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
    /* Resume TX  */
    if (VOS_TRUE == tx_resume)
@@ -687,7 +690,12 @@ void hdd_tx_resume_cb(void *adapter_context,
        {
           vos_timer_stop(&pAdapter->tx_flow_control_timer);
        }
-      netif_tx_wake_all_queues(pAdapter->dev);
+       if (adf_os_unlikely(hdd_sta_ctx->hdd_ReassocScenario)) {
+           hddLog(LOGW,
+                  FL("flow control, tx queues un-pause avoided as we are in REASSOCIATING state"));
+           return;
+       }
+       netif_tx_wake_all_queues(pAdapter->dev);
    }
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     else if (VOS_FALSE == tx_resume)  /* Pause TX  */
