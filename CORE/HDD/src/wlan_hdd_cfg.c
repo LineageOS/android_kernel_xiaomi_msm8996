@@ -3515,6 +3515,13 @@ REG_TABLE_ENTRY g_registry_table[] =
               VAR_FLAGS_OPTIONAL,
               (void *) CFG_SAP_AUTH_OFL_KEY_DEFAULT ),
 #endif /* SAP_AUTH_OFFLOAD */
+
+   REG_VARIABLE(CFG_DOT11P_MODE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, dot11p_mode,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_DOT11P_MODE_DEFAULT,
+                CFG_DOT11P_MODE_MIN,
+                CFG_DOT11P_MODE_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -5959,6 +5966,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                         pHddCtx->cfg_ini->conc_custom_rule1;
    smeConfig->csrConfig.is_sta_connection_in_5gz_enabled =
                         pHddCtx->cfg_ini->is_sta_connection_in_5gz_enabled;
+
+   /* Update 802.11p config */
+   smeConfig->csrConfig.enable_dot11p = (pHddCtx->cfg_ini->dot11p_mode !=
+                                             WLAN_HDD_11P_DISABLED);
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
