@@ -3224,7 +3224,7 @@ sapFsm
 
                vosStatus = sap_CacStartNotify(hHal);
             }
-            else if (msg == eSAP_CHANNEL_SELECTION_FAILED)
+            else if (msg == eSAP_CHANNEL_SELECTION_RETRY)
             {
                  /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
@@ -3417,6 +3417,12 @@ sapFsm
                                                        sapContext->pUsrContext);
                  }
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
+            }
+            else if (msg == eSAP_CHANNEL_SELECTION_FAILED) {
+                 sapContext->sapsMachine = eSAP_DISCONNECTED;
+                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                           "\n\n***In %s, Cannot start BSS, ACS Fail***\n\n",
+                             __func__);
             }
             else
             {

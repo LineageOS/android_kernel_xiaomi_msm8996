@@ -948,7 +948,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             WLANSAP_Get_Dfs_Ignore_CAC(pHddCtx->hHal, &ignoreCAC);
             if ((NV_CHANNEL_DFS !=
                 vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
-                || ignoreCAC)
+                || ignoreCAC
+                || pHddCtx->dev_dfs_cac_status == DFS_CAC_ALREADY_DONE)
             {
                 pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             }

@@ -6947,8 +6947,14 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-    if (NULL == pProfile)
-    {
+
+    if (NULL == pSession) {
+        smsLog(pMac, LOGE,
+               FL("session does not exist for given sessionId:%d"), sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    if (NULL == pProfile) {
         smsLog(pMac, LOGP, FL("No profile specified"));
         return eHAL_STATUS_FAILURE;
     }
@@ -11735,7 +11741,15 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
     tANI_U32 ChannelBondingMode;
     if(CSR_IS_CHANNEL_24GHZ(primaryChn))
     {
+         /* 'gChannelBondingMode24GHz' configuration item is common for
+          * SAP and STA mode and currently MDM does not support
+          * HT40 in 2.4Ghz STA mode.
+          * So disabling the HT40 in 2.4GHz station mode */
+#ifdef QCA_HT_20_24G_STA_ONLY
+        ChannelBondingMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+#else
         ChannelBondingMode = pMac->roam.configParam.channelBondingMode24GHz;
+#endif
     }
     else
     {
