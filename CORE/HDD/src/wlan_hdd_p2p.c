@@ -57,7 +57,7 @@
 //Ms to Micro Sec
 #define MS_TO_MUS(x)   ((x)*1000)
 
-tANI_U8* hdd_getActionString( tANI_U16 MsgType )
+static tANI_U8* hdd_getActionString(tANI_U16 MsgType)
 {
     switch (MsgType)
     {
@@ -121,18 +121,6 @@ const char *tdls_action_frame_type[] = {"TDLS Setup Request",
 
 extern struct net_device_ops net_ops_struct;
 
-static int hdd_wlan_add_rx_radiotap_hdr( struct sk_buff *skb,
-                                         int rtap_len, int flag );
-
-static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
-                                  hdd_cfg80211_state_t* cfgState,
-                                  tANI_BOOLEAN actionSendSuccess );
-
-static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
-                                               tANI_U32 nFrameLength,
-                                               tANI_U8* pbFrames,
-                                               tANI_U8 frameType );
-
 static bool wlan_hdd_is_type_p2p_action( const u8 *buf )
 {
     const u8 *ouiPtr;
@@ -178,8 +166,9 @@ static bool hdd_p2p_is_action_type_rsp( const u8 *buf )
     return FALSE;
 }
 
-eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
-                                                eHalStatus status )
+static eHalStatus
+wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
+                                    eHalStatus status)
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) pCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
@@ -1606,6 +1595,88 @@ int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 }
 #endif
 
+static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
+                                  hdd_cfg80211_state_t* cfgState,
+                                  tANI_BOOLEAN actionSendSuccess )
+{
+    struct ieee80211_radiotap_header *rthdr;
+    unsigned char *pos;
+    struct sk_buff *skb = cfgState->skb;
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
+#endif
+
+    /* 2 Byte for TX flags and 1 Byte for Retry count */
+    u32 rtHdrLen = sizeof(*rthdr) + 3;
+
+    u8 *data;
+
+    /* We have to return skb with Data starting with MAC header. We have
+     * copied SKB data starting with MAC header to cfgState->buf. We will pull
+     * entire skb->len from skb and then we will push cfgState->buf to skb
+     * */
+    if( NULL == skb_pull(skb, skb->len) )
+    {
+        hddLog( LOGE, FL("Not Able to Pull %d byte from skb"), skb->len);
+        kfree_skb(cfgState->skb);
+        return;
+    }
+
+    data = skb_push( skb, cfgState->len );
+
+    if (data == NULL)
+    {
+        hddLog( LOGE, FL("Not Able to Push %zu byte to skb"), cfgState->len);
+        kfree_skb( cfgState->skb );
+        return;
+    }
+
+    memcpy( data, cfgState->buf, cfgState->len );
+
+    /* send frame to monitor interfaces now */
+    if( skb_headroom(skb) < rtHdrLen )
+    {
+        hddLog( LOGE, FL("No headroom for rtap header"));
+        kfree_skb(cfgState->skb);
+        return;
+    }
+
+    rthdr = (struct ieee80211_radiotap_header*) skb_push( skb, rtHdrLen );
+
+    memset( rthdr, 0, rtHdrLen );
+    rthdr->it_len = cpu_to_le16( rtHdrLen );
+    rthdr->it_present = cpu_to_le32((1 << IEEE80211_RADIOTAP_TX_FLAGS) |
+                                    (1 << IEEE80211_RADIOTAP_DATA_RETRIES)
+                                   );
+
+    pos = (unsigned char *)( rthdr+1 );
+
+    // Fill TX flags
+    *pos = actionSendSuccess;
+    pos += 2;
+
+    // Fill retry count
+    *pos = 0;
+    pos++;
+
+    skb_set_mac_header( skb, 0 );
+    skb->ip_summed = CHECKSUM_NONE;
+    skb->pkt_type  = PACKET_OTHERHOST;
+    skb->protocol  = htons(ETH_P_802_2);
+    memset( skb->cb, 0, sizeof( skb->cb ) );
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+    vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
+                                  HDD_WAKE_LOCK_DURATION);
+#endif
+    if (in_interrupt())
+        netif_rx( skb );
+    else
+        netif_rx_ni( skb );
+
+    /* Enable Queues which we have disabled earlier */
+    netif_tx_start_all_queues( pAdapter->dev );
+}
+
 void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess )
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
@@ -2100,6 +2171,45 @@ int wlan_hdd_del_virtual_intf(struct wiphy *wiphy, struct net_device *dev)
     return ret;
 }
 
+/*
+ * ieee80211_add_rx_radiotap_header - add radiotap header
+ */
+static int hdd_wlan_add_rx_radiotap_hdr (
+             struct sk_buff *skb, int rtap_len, int flag )
+{
+    u8 rtap_temp[20] = {0};
+    struct ieee80211_radiotap_header *rthdr;
+    unsigned char *pos;
+    u16 rx_flags = 0;
+
+    rthdr = (struct ieee80211_radiotap_header *)(&rtap_temp[0]);
+
+    /* radiotap header, set always present flags */
+    rthdr->it_present = cpu_to_le32((1 << IEEE80211_RADIOTAP_FLAGS)   |
+                                    (1 << IEEE80211_RADIOTAP_RX_FLAGS));
+    rthdr->it_len = cpu_to_le16(rtap_len);
+
+    pos = (unsigned char *) (rthdr + 1);
+
+    /* the order of the following fields is important */
+
+    /* IEEE80211_RADIOTAP_FLAGS */
+    *pos = 0;
+    pos++;
+
+    /* IEEE80211_RADIOTAP_RX_FLAGS: Length 2 Bytes */
+    /* ensure 2 byte alignment for the 2 byte field as required */
+    if ((pos - (u8 *)rthdr) & 1)
+        pos++;
+    put_unaligned_le16(rx_flags, pos);
+    pos += 2;
+
+    // actually push the data
+    memcpy(skb_push(skb, rtap_len), &rtap_temp[0], rtap_len);
+
+    return 0;
+}
+
 void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
                                         tANI_U32 nFrameLength,
                                         tANI_U8* pbFrames,
@@ -2456,124 +2566,4 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
 #endif /* LINUX_VERSION_CODE */
 }
 
-/*
- * ieee80211_add_rx_radiotap_header - add radiotap header
- */
-static int hdd_wlan_add_rx_radiotap_hdr (
-             struct sk_buff *skb, int rtap_len, int flag )
-{
-    u8 rtap_temp[20] = {0};
-    struct ieee80211_radiotap_header *rthdr;
-    unsigned char *pos;
-    u16 rx_flags = 0;
 
-    rthdr = (struct ieee80211_radiotap_header *)(&rtap_temp[0]);
-
-    /* radiotap header, set always present flags */
-    rthdr->it_present = cpu_to_le32((1 << IEEE80211_RADIOTAP_FLAGS)   |
-                                    (1 << IEEE80211_RADIOTAP_RX_FLAGS));
-    rthdr->it_len = cpu_to_le16(rtap_len);
-
-    pos = (unsigned char *) (rthdr + 1);
-
-    /* the order of the following fields is important */
-
-    /* IEEE80211_RADIOTAP_FLAGS */
-    *pos = 0;
-    pos++;
-
-    /* IEEE80211_RADIOTAP_RX_FLAGS: Length 2 Bytes */
-    /* ensure 2 byte alignment for the 2 byte field as required */
-    if ((pos - (u8 *)rthdr) & 1)
-        pos++;
-    put_unaligned_le16(rx_flags, pos);
-    pos += 2;
-
-    // actually push the data
-    memcpy(skb_push(skb, rtap_len), &rtap_temp[0], rtap_len);
-
-    return 0;
-}
-
-static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
-                                  hdd_cfg80211_state_t* cfgState,
-                                  tANI_BOOLEAN actionSendSuccess )
-{
-    struct ieee80211_radiotap_header *rthdr;
-    unsigned char *pos;
-    struct sk_buff *skb = cfgState->skb;
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
-#endif
-
-    /* 2 Byte for TX flags and 1 Byte for Retry count */
-    u32 rtHdrLen = sizeof(*rthdr) + 3;
-
-    u8 *data;
-
-    /* We have to return skb with Data starting with MAC header. We have
-     * copied SKB data starting with MAC header to cfgState->buf. We will pull
-     * entire skb->len from skb and then we will push cfgState->buf to skb
-     * */
-    if( NULL == skb_pull(skb, skb->len) )
-    {
-        hddLog( LOGE, FL("Not Able to Pull %d byte from skb"), skb->len);
-        kfree_skb(cfgState->skb);
-        return;
-    }
-
-    data = skb_push( skb, cfgState->len );
-
-    if (data == NULL)
-    {
-        hddLog( LOGE, FL("Not Able to Push %zu byte to skb"), cfgState->len);
-        kfree_skb( cfgState->skb );
-        return;
-    }
-
-    memcpy( data, cfgState->buf, cfgState->len );
-
-    /* send frame to monitor interfaces now */
-    if( skb_headroom(skb) < rtHdrLen )
-    {
-        hddLog( LOGE, FL("No headroom for rtap header"));
-        kfree_skb(cfgState->skb);
-        return;
-    }
-
-    rthdr = (struct ieee80211_radiotap_header*) skb_push( skb, rtHdrLen );
-
-    memset( rthdr, 0, rtHdrLen );
-    rthdr->it_len = cpu_to_le16( rtHdrLen );
-    rthdr->it_present = cpu_to_le32((1 << IEEE80211_RADIOTAP_TX_FLAGS) |
-                                    (1 << IEEE80211_RADIOTAP_DATA_RETRIES)
-                                   );
-
-    pos = (unsigned char *)( rthdr+1 );
-
-    // Fill TX flags
-    *pos = actionSendSuccess;
-    pos += 2;
-
-    // Fill retry count
-    *pos = 0;
-    pos++;
-
-    skb_set_mac_header( skb, 0 );
-    skb->ip_summed = CHECKSUM_NONE;
-    skb->pkt_type  = PACKET_OTHERHOST;
-    skb->protocol  = htons(ETH_P_802_2);
-    memset( skb->cb, 0, sizeof( skb->cb ) );
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-    vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-                                  HDD_WAKE_LOCK_DURATION);
-#endif
-    if (in_interrupt())
-        netif_rx( skb );
-    else
-        netif_rx_ni( skb );
-
-    /* Enable Queues which we have disabled earlier */
-    netif_tx_start_all_queues( pAdapter->dev );
-
-}

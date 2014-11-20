@@ -247,7 +247,7 @@ void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx)
   \return - 0 for success non-zero for failure
 
   --------------------------------------------------------------------------*/
-int hdd_hostapd_open (struct net_device *dev)
+static int hdd_hostapd_open (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = netdev_priv(dev);
 
@@ -324,7 +324,7 @@ static void hdd_hostapd_uninit (struct net_device *dev)
    EXIT();
 }
 
-int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
+static int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
 {
     return 0;
 }
@@ -644,7 +644,8 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     EXIT();
 }
 
-VOS_STATUS hdd_change_mcc_go_beacon_interval(hdd_adapter_t *pHostapdAdapter)
+static VOS_STATUS
+hdd_change_mcc_go_beacon_interval(hdd_adapter_t *pHostapdAdapter)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     v_PVOID_t hHal = NULL;
@@ -3029,6 +3030,7 @@ static iw_softap_getparam(struct net_device *dev,
     eg 2. to delete a mac addr 00:0a:f5:89:89:90 from white list
     iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 1 1
 */
+static
 int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
@@ -3496,8 +3498,9 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
   \return - 0 for success, non zero for failure
 
   --------------------------------------------------------------------------*/
-int iw_set_auth_hostap(struct net_device *dev,struct iw_request_info *info,
-                        union iwreq_data *wrqu,char *extra)
+static int
+iw_set_auth_hostap(struct net_device *dev,struct iw_request_info *info,
+                   union iwreq_data *wrqu,char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -4271,7 +4274,8 @@ static int iw_softap_version(struct net_device *dev,
     return 0;
 }
 
-VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
+static VOS_STATUS
+hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
 {
     v_U8_t i;
     v_U8_t maxSta = 0;
@@ -4439,11 +4443,9 @@ VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
 }
 
 
-int iw_get_softap_linkspeed(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
-
+static int
+iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
    hdd_context_t *pHddCtx;
@@ -5011,7 +5013,7 @@ struct net_device_ops net_ops_struct  = {
     .ndo_select_queue = hdd_hostapd_select_queue,
  };
 
-int hdd_set_hostapd(hdd_adapter_t *pAdapter)
+static int hdd_set_hostapd(hdd_adapter_t *pAdapter)
 {
     return VOS_STATUS_SUCCESS;
 }

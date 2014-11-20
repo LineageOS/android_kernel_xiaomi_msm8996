@@ -88,9 +88,6 @@
 #endif
 #endif
 
-static int wlan_ftm_stop(hdd_context_t *pHddCtx);
-static int hdd_ftm_service_registration(hdd_context_t *pHddCtx);
-
 #if  defined(QCA_WIFI_FTM)
 #if defined(LINUX_QCMBR)
 #define ATH_XIOCTL_UNIFIED_UTF_CMD  0x1000
@@ -152,7 +149,7 @@ static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
     return VOS_STATUS_SUCCESS;
 }
 
-void wlan_hdd_ftm_update_tgt_cfg(void *context, void *param)
+static void wlan_hdd_ftm_update_tgt_cfg(void *context, void *param)
 {
     hdd_context_t *hdd_ctx = (hdd_context_t *)context;
     struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
@@ -592,7 +589,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
   \sa vos_start
 
 ---------------------------------------------------------------------------*/
-VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
+static VOS_STATUS vos_ftm_preStart(v_CONTEXT_t vosContext)
 {
    VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
    pVosContextType pVosContext = (pVosContextType)vosContext;
@@ -764,7 +761,35 @@ err_adapter_open_failure:
     return VOS_STATUS_E_FAILURE;
 }
 
+static int wlan_ftm_stop(hdd_context_t *pHddCtx)
+{
+   VOS_STATUS vosStatus;
 
+   if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Ftm has not started. Please start the ftm. ",__func__);
+       return VOS_STATUS_E_FAILURE;
+   }
+
+   {
+       /*  STOP MAC only */
+       v_VOID_t *hHal;
+       hHal = vos_get_context( VOS_MODULE_ID_SME, pHddCtx->pvosContext );
+       if (NULL == hHal) {
+           VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s: NULL hHal", __func__);
+       } else {
+           vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                          "%s: Failed to stop SYS", __func__);
+               VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+           }
+       }
+       WDA_stop(pHddCtx->pvosContext, HAL_STOP_TYPE_RF_KILL);
+    }
+    return WLAN_FTM_SUCCESS;
+}
 
 int wlan_hdd_ftm_close(hdd_context_t *pHddCtx)
 {
@@ -928,36 +953,6 @@ int hdd_ftm_start(hdd_context_t *pHddCtx)
     return wlan_hdd_ftm_start(pHddCtx);
 }
 #endif
-
-static int wlan_ftm_stop(hdd_context_t *pHddCtx)
-{
-   VOS_STATUS vosStatus;
-
-   if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
-   {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Ftm has not started. Please start the ftm. ",__func__);
-       return VOS_STATUS_E_FAILURE;
-   }
-
-   {
-       /*  STOP MAC only */
-       v_VOID_t *hHal;
-       hHal = vos_get_context( VOS_MODULE_ID_SME, pHddCtx->pvosContext );
-       if (NULL == hHal) {
-           VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "%s: NULL hHal", __func__);
-       } else {
-           vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
-           if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                          "%s: Failed to stop SYS", __func__);
-               VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-           }
-       }
-       WDA_stop(pHddCtx->pvosContext, HAL_STOP_TYPE_RF_KILL);
-    }
-    return WLAN_FTM_SUCCESS;
-}
 
 #if  defined(QCA_WIFI_FTM)
 int hdd_ftm_stop(hdd_context_t *pHddCtx)

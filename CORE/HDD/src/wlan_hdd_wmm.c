@@ -1610,10 +1610,9 @@ v_BOOL_t is_dhcp_packet(struct sk_buff *skb)
 
   @return         : None
   ===========================================================================*/
-v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
-                                struct sk_buff *skb,
-                                WLANTL_ACEnumType* pAcType,
-                                sme_QosWmmUpType *pUserPri)
+static v_VOID_t
+hdd_wmm_classify_pkt(hdd_adapter_t* pAdapter, struct sk_buff *skb,
+                     WLANTL_ACEnumType* pAcType, sme_QosWmmUpType *pUserPri)
 {
    unsigned char * pPkt;
    union generic_ethhdr *pHdr;
