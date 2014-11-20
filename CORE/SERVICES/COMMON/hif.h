@@ -822,6 +822,10 @@ void HIFIpaGetCEResource(HIF_DEVICE *hif_device,
 #endif /* IPA_UC_OFFLOAD */
 
 void HIFSetMailboxSwap(HIF_DEVICE  *device);
+
+/* runtime power management API of HIF to prevent suspending */
+int hif_pm_runtime_get(void);
+int hif_pm_runtime_put(void);
 #ifdef __cplusplus
 }
 #endif
