@@ -1736,4 +1736,5 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter);
 static inline void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter) {}
 static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter) {}
 #endif
+int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
