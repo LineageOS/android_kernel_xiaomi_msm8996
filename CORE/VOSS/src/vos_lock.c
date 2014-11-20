@@ -48,6 +48,8 @@
 #include "vos_lock.h"
 #include "vos_memory.h"
 #include "vos_trace.h"
+#include "vos_api.h"
+#include "hif.h"
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -521,6 +523,10 @@ VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock)
     cnss_pm_wake_lock(pLock);
 #elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_lock(pLock);
+#elif defined(CONFIG_NON_QC_PLATFORM)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+    hif_pm_runtime_get();
+#endif
 #endif
     return VOS_STATUS_SUCCESS;
 }
@@ -559,6 +565,10 @@ VOS_STATUS vos_wake_lock_release(vos_wake_lock_t *pLock)
     cnss_pm_wake_lock_release(pLock);
 #elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
     wake_unlock(pLock);
+#elif defined(CONFIG_NON_QC_PLATFORM)
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+    hif_pm_runtime_put();
+#endif
 #endif
     return VOS_STATUS_SUCCESS;
 }
