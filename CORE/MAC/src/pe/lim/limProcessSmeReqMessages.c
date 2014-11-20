@@ -810,30 +810,28 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                                                 " channel %d"),channelNumber);
                 }
 
+                /*
+                 * For Sta+p2p-Go concurrency
+                 * vhtTxChannelWidthSet is used for storing p2p-GO channel width
+                 *  apChanWidth is used for storing the AP channel width that
+                 * the Sta is going to associate.
+                 * Initialize the apChanWidth same as p2p-GO channel width this
+                 * gets over written once the station joins the AP
+                 */
                 if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ ||
                                 chanWidth == eHT_CHANNEL_WIDTH_40MHZ)
                 {
-                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                                     WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
-                                                             != eSIR_SUCCESS)
-                    {
-                        limLog(pMac, LOGP, FL("could not set "
-                                     " WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
-                        retCode = eSIR_LOGP_EXCEPTION;
-                         goto free;
-                    }
+                    psessionEntry->vhtTxChannelWidthSet =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+                    psessionEntry->apChanWidth =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
                 }
                 if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
                 {
-                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                                           WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
-                                                               != eSIR_SUCCESS)
-                    {
-                        limLog(pMac, LOGP, FL("could not set "
-                                     " WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
-                        retCode = eSIR_LOGP_EXCEPTION;
-                         goto free;
-                    }
+                    psessionEntry->vhtTxChannelWidthSet =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+                    psessionEntry->apChanWidth =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
 
                     centerChan = limGetCenterChannel( pMac, channelNumber,
                                          pSmeStartBssReq->cbMode,
@@ -857,23 +855,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
                 if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
                     psessionEntry->htSupportedChannelWidthSet = 0;
-                /* All the translation is done by now for gVhtChannelWidth
-                 * from .ini file to the actual values as defined in spec.
-                 * So, grabing the spec value which is
-                 * updated in .dat file by the above logic */
-                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                                   &chanWidth) != eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGP,
-                      FL("Unable to retrieve Channel Width from CFG"));
-                }
-                /*For Sta+p2p-Go concurrency
-                  vhtTxChannelWidthSet is used for storing p2p-GO channel width
-                  apChanWidth is used for storing the AP channel width that the Sta is going to associate.
-                  Initialize the apChanWidth same as p2p-GO channel width this gets over written once the station joins the AP
-                */
-                psessionEntry->vhtTxChannelWidthSet = chanWidth;
-                psessionEntry->apChanWidth = chanWidth;
             }
             psessionEntry->htSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
 #endif
@@ -5979,11 +5960,10 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
                 if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ || chanWidth == eHT_CHANNEL_WIDTH_40MHZ)
                 {
-                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
-                                                                     != eSIR_SUCCESS)
-                    {
-                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
-                    }
+                    psessionEntry->vhtTxChannelWidthSet =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+                    psessionEntry->apChanWidth =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
                     /*
                      * In case of DFS operation, If AP falls back to lower
                      * bandwidth [< 80Mhz] then there is no need of
@@ -6001,11 +5981,10 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                 }
                 if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
                 {
-                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
-                                                                     != eSIR_SUCCESS)
-                    {
-                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG"));
-                    }
+                    psessionEntry->vhtTxChannelWidthSet =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+                    psessionEntry->apChanWidth =
+                                           WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
 
                     centerChan = limGetCenterChannel(pMac, pChannelChangeReq->targetChannel,
                                     pChannelChangeReq->cbMode,WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ);
@@ -6021,17 +6000,6 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                     }
                 }
 
-                /* All the translation is done by now for gVhtChannelWidth from .ini file to
-                 * the actual values as defined in spec. So, grabing the spec value which is
-                 * updated in .dat file by the above logic */
-                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                                   &chanWidth) != eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGP,
-                      FL("Unable to retrieve Channel Width from CFG"));
-                }
-                psessionEntry->vhtTxChannelWidthSet = chanWidth;
-                psessionEntry->apChanWidth = chanWidth;
             }
             psessionEntry->htSecondaryChannelOffset = limGetHTCBState(pChannelChangeReq->cbMode);
             psessionEntry->htSupportedChannelWidthSet = (pChannelChangeReq->cbMode ? 1 : 0);
