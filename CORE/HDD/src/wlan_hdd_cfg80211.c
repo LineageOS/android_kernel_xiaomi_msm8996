@@ -4622,6 +4622,241 @@ out:
 }
 #endif
 
+static const struct
+nla_policy
+qca_wlan_vendor_ocb_set_sched_policy[
+        QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX + 1] =
+{
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_NUM_CHANS] =
+            { .type = NLA_U32 },
+
+    /* Attributes for each channel */
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_IDX] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_FREQ] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_PWR] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_RATE] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_DUR] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_START_GUARD_INT] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_END_GUARD_INT] =
+            { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_NUM_QOS] =
+            { .type = NLA_U32 },
+
+    /* Attributes for QoS Params */
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AC] =
+            { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AIFSN] =
+            { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMIN] =
+            { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMAX] =
+            { .type = NLA_U8 },
+};
+
+static int wlan_hdd_cfg80211_ocb_set_schedule(struct wiphy *wiphy,
+                                              struct wireless_dev *wdev,
+                                              const void *data,
+                                              int data_len)
+{
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX + 1];
+    struct nlattr *channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX + 1];
+    struct nlattr *qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX + 1];
+    struct nlattr *channels;
+    struct nlattr *qos_params;
+    int status;
+    sir_ocb_set_sched_request_t *sched_req = NULL;
+    sir_ocb_sched_t *sched = NULL;
+    int rem1, rem2;
+    int chan_idx;
+    int ac;
+    int rc = -EINVAL;
+
+    status = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != status) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        return -EINVAL;
+    }
+
+    if (adapter->device_mode != WLAN_HDD_OCB) {
+        hddLog(LOGE, FL("Device not in OCB mode!"));
+        return -EINVAL;
+    }
+
+    /* Parse the netlink message */
+    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX,
+                  data,
+                  data_len, qca_wlan_vendor_ocb_set_sched_policy)) {
+        hddLog(LOGE, FL("OCB_SET_SCHEDULE_MAX is not present"));
+        return -EINVAL;
+    }
+
+    sched_req = vos_mem_malloc(sizeof(*sched_req));
+    if (sched_req == NULL) {
+        hddLog(LOGE, FL("Unable to allocate memory!"));
+        return -ENOMEM;
+
+    }
+    vos_mem_set((void *)sched_req, sizeof(*sched_req), 0);
+
+    sched_req->session_id = adapter->sessionId;
+    sched = &sched_req->sched;
+
+    /* Get the number of channels in schedule */
+    if (!tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_NUM_CHANS]) {
+        hddLog(LOGE, FL("NUM_CHANS is not present"));
+        goto fail;
+    }
+
+    sched->num_channels = nla_get_u32(
+        tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_NUM_CHANS]);
+
+    /* Get the parameters for each channel in schedule */
+    if (!tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN]) {
+        hddLog(LOGE, FL("CHAN not present"));
+        goto fail;
+    }
+
+    nla_for_each_nested(channels,
+                        tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN],
+                        rem1) {
+        if (nla_parse(channel,
+                      QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX,
+                      nla_data(channels), nla_len(channels), NULL)) {
+            hddLog(LOGE, FL("nla_parse failed"));
+            goto fail;
+        }
+
+        /* Parse and fetch parameters for each channel */
+        /* Channel index */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_IDX]) {
+            hddLog(LOGE, FL("CHAN_IDX not present"));
+            goto fail;
+        }
+        chan_idx = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_IDX]);
+
+        /* Channel Number */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_FREQ]) {
+            hddLog(LOGE, FL("CHAN_FREQ not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].chan_freq = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_FREQ]);
+
+        /* TX Power */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_PWR]) {
+            hddLog(LOGE, FL("CHAN_TX_PWR not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].tx_power = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_PWR]);
+
+        /* TX Rate */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_RATE]) {
+            hddLog(LOGE, FL("CHAN_TX_RATE not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].tx_rate = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_TX_RATE]);
+
+        /* Duration */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_DUR]) {
+            hddLog(LOGE, FL("DUR not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].duration = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_DUR]);
+
+        /* Start Guard Interval */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_START_GUARD_INT]) {
+            hddLog(LOGE, FL("START_GUARD_INT not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].start_guard_interval = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_START_GUARD_INT]);
+
+        /* End Guard Interval */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_END_GUARD_INT]) {
+            hddLog(LOGE, FL("END_GUARD_INT not present"));
+            goto fail;
+        }
+        sched->channels[chan_idx].end_guard_interval = nla_get_u32(
+                channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_END_GUARD_INT]);
+
+        /* QoS Params */
+        if (!channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM]) {
+            hddLog(LOGE, FL("QOS_PARAM not present"));
+            goto fail;
+        }
+
+        nla_for_each_nested(qos_params,
+                    channel[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM],
+                    rem2) {
+            if (nla_parse(qos_param,
+                QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX,
+                nla_data(qos_params), nla_len(qos_params), NULL)) {
+                hddLog(LOGE, FL("nla_parse failed"));
+                goto fail;
+            }
+
+            /* Access Category Index */
+            if (!qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AC]) {
+                hddLog(LOGE, FL("QOS_PARAM_AC not present"));
+                goto fail;
+            }
+            ac = nla_get_u8(
+                qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AC]);
+            if (ac >= NUM_AC) {
+                hddLog(LOGE, FL("QOS_PARAM_AIFSN is out of range"));
+                goto fail;
+            }
+
+            /* AIFSN */
+            if (!qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AIFSN]) {
+                hddLog(LOGE, FL("QOS_PARAM_AIFSN not present"));
+                goto fail;
+            }
+            sched->channels[chan_idx].qos_params[ac].aifsn = nla_get_u8(
+                qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_AIFSN]);
+
+            /* CWMIN */
+            if (!qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMIN]) {
+                hddLog(LOGE, FL("QOS_PARAM_CWMIN not present"));
+                goto fail;
+            }
+            sched->channels[chan_idx].qos_params[ac].cwmin = nla_get_u8(
+                qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMIN]);
+
+            /* CWMAX */
+            if (!qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMAX]) {
+                hddLog(LOGE, FL("QOS_PARAM_CWMAX not present"));
+                goto fail;
+            }
+            sched->channels[chan_idx].qos_params[ac].aifsn = nla_get_u8(
+                qos_param[QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_CHAN_QOS_PARAM_CWMAX]);
+        }
+    }
+
+    /* TODO-OCB: Refactor common code path from WEXT and use here */
+
+    rc = 0;
+
+fail:
+    if (sched_req) {
+        vos_mem_free(sched_req);
+    }
+    return rc;
+}
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -4830,6 +5065,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = (void *)wlan_hdd_cfg80211_do_acs
     },
 #endif
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_OCB_SET_SCHED,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = (void *)wlan_hdd_cfg80211_ocb_set_schedule
+    },
 };
 
 
