@@ -60,6 +60,7 @@ enum wlan_op_mode {
 #define OL_TXQ_PAUSE_REASON_FW                (1 << 0)
 #define OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED (1 << 1)
 #define OL_TXQ_PAUSE_REASON_TX_ABORT          (1 << 2)
+#define OL_TXQ_PAUSE_REASON_VDEV_STOP         (1 << 3)
 
 /**
  * @brief Set up the data SW subsystem.
