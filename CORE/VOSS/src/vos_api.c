@@ -99,6 +99,9 @@
 /* Approximate amount of time to wait for WDA to issue a DUMP req */
 #define VOS_WDA_RESP_TIMEOUT WDA_STOP_TIMEOUT
 
+/* Maximum number of vos message queue get wrapper failures to cause panic */
+#define VOS_WRAPPER_MAX_FAIL_COUNT (1000)
+
 /*---------------------------------------------------------------------------
  * Data definitions
  * ------------------------------------------------------------------------*/
@@ -1591,6 +1594,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 {
   pVosMqType      pTargetMq   = NULL;
   pVosMsgWrapper  pMsgWrapper = NULL;
+  static uint32_t debug_count = 0;
 
   if ((gpVosContext == NULL) || (pMsg == NULL))
   {
@@ -1659,13 +1663,20 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   */
   pMsgWrapper = vos_mq_get(&gpVosContext->freeVosMq);
 
-  if (NULL == pMsgWrapper)
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: VOS Core run out of message wrapper", __func__);
+  if (NULL == pMsgWrapper) {
+      debug_count++;
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: VOS Core run out of message wrapper %d",
+              __func__, debug_count);
+
+      if (VOS_WRAPPER_MAX_FAIL_COUNT == debug_count) {
+          VOS_BUG(0);
+      }
 
     return VOS_STATUS_E_RESOURCES;
   }
+
+  debug_count = 0;
 
   /*
   ** Copy the message now
