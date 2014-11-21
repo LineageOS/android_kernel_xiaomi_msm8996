@@ -4966,6 +4966,8 @@ typedef struct {
 #define WMI_AP_PROFILE_FLAG_WPS    0x1
 /** looking for a secure AP  */
 #define WMI_AP_PROFILE_FLAG_CRYPTO 0x2
+/** looking for a PMF enabled AP */
+#define WMI_AP_PROFILE_FLAG_PMF    0x4
 
 /** To match an open AP, the rs_authmode should be set to WMI_AUTH_NONE
  *  and WMI_AP_PROFILE_FLAG_CRYPTO should be clear.
