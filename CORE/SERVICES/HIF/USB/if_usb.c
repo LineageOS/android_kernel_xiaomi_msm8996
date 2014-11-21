@@ -246,9 +246,8 @@ static void hif_usb_remove(struct usb_interface *interface)
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(msecs_to_jiffies(DELAY_FOR_TARGET_READY));
 	set_current_state(TASK_RUNNING);
-	if (usb_sc->local_state.event != 0) {
+	if (usb_sc->suspend_state) {
 		hif_usb_resume(usb_sc->interface);
-		usb_sc->local_state.event = 0;
 	}
 	unregister_reboot_notifier(&sc->reboot_notifier);
 	usb_put_dev(interface_to_usbdev(interface));
@@ -295,7 +294,7 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 	v_VOID_t * temp_module;
 
-	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	printk("Enter:%s,Line:%d\n", __func__,__LINE__);
 
 	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
 	if (!temp_module) {
@@ -307,7 +306,7 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 		printk("%s: Scan in progress. Aborting suspend\n", __func__);
 		return (-1);
 	}
-	sc->local_state = state;
+
 	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
 	if (wma_is_wow_mode_selected(temp_module)) {
 		if (wma_enable_wow_in_fw(temp_module)) {
@@ -323,8 +322,11 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 			return -1;
 		}
 	}
+
+	sc->suspend_state = 1;
 	usb_hif_flush_all(device);
-	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+
+	printk("Exit:%s,Line:%d\n", __func__,__LINE__);
 	return 0;
 }
 
@@ -339,14 +341,14 @@ static int hif_usb_resume(struct usb_interface *interface)
 	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 	v_VOID_t * temp_module;
 
-	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	printk("Enter:%s,Line:%d\n", __func__,__LINE__);
 	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
 	if (!temp_module) {
 		printk("%s: WDA module is NULL\n", __func__);
 		return (-1);
 	}
 
-	sc->local_state.event = 0;
+	sc->suspend_state = 0;
 	usb_hif_start_recv_pipes(device);
 
 #ifdef USB_HIF_TEST_INTERRUPT_IN
@@ -360,7 +362,7 @@ static int hif_usb_resume(struct usb_interface *interface)
 		pr_warn("%s[%d]: fail\n", __func__, __LINE__);
 		return (-1);
 	}
-	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+	printk("Exit:%s,Line:%d\n", __func__,__LINE__);
 	return 0;
 }
 
@@ -495,9 +497,8 @@ void hif_unregister_driver(void)
 				set_current_state(TASK_RUNNING);
 				usb_sc->hdd_removed_wait_cnt ++;
 			}
-			if (usb_sc->local_state.event != 0) {
+			if (usb_sc->suspend_state) {
 				hif_usb_resume(usb_sc->interface);
-				usb_sc->local_state.event = 0;
 			}
 
 			if (atomic_read(&hif_usb_hdd_remove) == 0) {
