@@ -521,7 +521,10 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -719,7 +722,8 @@ typedef enum {
     OP(WMI_MDNS_SET_FQDN_CMDID) \
     OP(WMI_MDNS_SET_RESPONSE_CMDID) \
     OP(WMI_MDNS_GET_STATS_CMDID) \
-    OP(WMI_SET_ANTENNA_DIVERSITY_CMDID)
+    OP(WMI_SET_ANTENNA_DIVERSITY_CMDID) \
+    OP(WMI_SAP_OFL_ENABLE_CMDID)
 
 
 
@@ -812,7 +816,9 @@ typedef enum {
     OP(WMI_PDEV_TEMPERATURE_EVENTID) \
     OP(WMI_DIAG_EVENTID) \
     OP(WMI_MDNS_STATS_EVENTID) \
-    OP(WMI_PDEV_RESUME_EVENTID)
+    OP(WMI_PDEV_RESUME_EVENTID) \
+    OP(WMI_SAP_OFL_ADD_STA_EVENTID) \
+    OP(WMI_SAP_OFL_DEL_STA_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2003,6 +2009,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_GET_STATS_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, bssid_list, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_INVOKE_CMDID);
 
+/* SAP Authentication offload param Cmd */
+#define WMITLV_TABLE_WMI_SAP_OFL_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param, wmi_sap_ofl_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, psk, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ENABLE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2468,6 +2480,16 @@ WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_STATS_EVENTID);
 #define WMITLV_TABLE_WMI_PDEV_RESUME_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param, wmi_pdev_resume_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RESUME_EVENTID);
+
+/* SAP Authentication offload event */
+#define WMITLV_TABLE_WMI_SAP_OFL_ADD_STA_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param, wmi_sap_ofl_add_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)   \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ADD_STA_EVENTID);
+
+#define WMITLV_TABLE_WMI_SAP_OFL_DEL_STA_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param, wmi_sap_ofl_del_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_DEL_STA_EVENTID);
 
 #ifdef __cplusplus
 }

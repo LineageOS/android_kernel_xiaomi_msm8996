@@ -178,6 +178,7 @@ typedef enum {
     WMI_GRP_DHCP_OFL,
     WMI_GRP_IPA,
     WMI_GRP_MDNS_OFL,
+    WMI_GRP_SAP_OFL,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -700,6 +701,10 @@ typedef enum {
     WMI_MDNS_SET_FQDN_CMDID,
     WMI_MDNS_SET_RESPONSE_CMDID,
     WMI_MDNS_GET_STATS_CMDID,
+
+    /* enable/disable AP Authentication offload */
+    WMI_SAP_OFL_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SAP_OFL),
+
 } WMI_CMD_ID;
 
 typedef enum {
@@ -954,6 +959,10 @@ typedef enum {
 
     /* mDNS offload events */
     WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
+
+    /* SAP Authentication offload events */
+    WMI_SAP_OFL_ADD_STA_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SAP_OFL),
+    WMI_SAP_OFL_DEL_STA_EVENTID,
 
 } WMI_EVT_ID;
 
@@ -9100,6 +9109,69 @@ typedef struct {
     /** indicate the current status of mDNS offload */
     A_UINT32 status;
 } wmi_mdns_stats_event_fixed_param;
+
+/**
+ * The purpose of the SoftAP authenticator offload is to offload the association and 4-way handshake process
+ * down to the firmware. When this feature is enabled, firmware can process the association/disassociation
+ * request and create/remove connection even host is suspended.
+ * 3 major components are offloaded:
+ *     1. ap-mlme. Firmware will process auth/deauth, association/disassociation request and send out response.
+ *     2. 4-way handshake. Firmware will send out m1/m3 and receive m2/m4.
+ *     3. key installation. Firmware will generate PMK from the psk info which is sent from the host and install PMK/GTK.
+ * Current implementation only supports WPA2 CCMP.
+ */
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_ENABLE_CMDID */
+    A_UINT32 vdev_id;
+    /** enable/disable sap auth offload */
+    A_UINT32 enable;
+    /** sap ssid */
+    wmi_ssid ap_ssid;
+    /** authentication mode (defined above) */
+    A_UINT32 rsn_authmode;
+    /** unicast cipher set */
+    A_UINT32 rsn_ucastcipherset;
+    /** mcast/group cipher set */
+    A_UINT32 rsn_mcastcipherset;
+    /** mcast/group management frames cipher set */
+    A_UINT32 rsn_mcastmgmtcipherset;
+    /** sap channel */
+    A_UINT32 channel;
+    /** length of psk */
+    A_UINT32 psk_len;
+    /* Following this structure is the TLV byte stream of wpa passphrase data of length psk_len
+     * A_UINT8  psk[];
+     */
+} wmi_sap_ofl_enable_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_ADD_STA_EVENTID */
+    A_UINT32 vdev_id;
+    /** aid (association id) of this station */
+    A_UINT32 assoc_id;
+    /** peer station's mac addr */
+    wmi_mac_addr peer_macaddr;
+    /** length of association request frame */
+    A_UINT32 data_len;
+    /* Following this structure is the TLV byte stream of a whole association request frame of length data_len
+     * A_UINT8 bufp[];
+     */
+} wmi_sap_ofl_add_sta_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_DEL_STA_EVENTID */
+    A_UINT32 vdev_id;
+    /** aid (association id) of this station */
+    A_UINT32 assoc_id;
+    /** peer station's mac addr */
+    wmi_mac_addr peer_macaddr;
+    /** disassociation reason */
+    A_UINT32 reason;
+} wmi_sap_ofl_del_sta_event_fixed_param;
 
 #ifdef __cplusplus
 }
