@@ -17827,6 +17827,15 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	else
 		WMA_LOGD("CSA IE match is enabled in fw");
 
+	ret = wma_add_wow_wakeup_event(wma, WOW_CLIENT_KICKOUT_EVENT, TRUE);
+
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to configure WOW_CLIENT_KICKOUT_EVENT");
+		goto end;
+	}
+	else
+		WMA_LOGD("CLIENT_KICKOUT_EVENT is enabled in fw");
+
 	/*
 	 * Configure pattern match wakeup event. FW does pattern match
 	 * only if pattern match event is enabled.
