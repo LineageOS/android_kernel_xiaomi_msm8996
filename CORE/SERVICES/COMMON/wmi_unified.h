@@ -812,6 +812,9 @@ typedef enum {
     /*send noa info to host when noa is changed for beacon tx offload enable*/
     WMI_P2P_NOA_EVENTID,
 
+    /* send pdev resume event to host after pdev resume. */
+    WMI_PDEV_RESUME_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SUSPEND),
+
     /** WOW wake up host event.generated in response to WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID.
         will cary wake reason */
     WMI_WOW_WAKEUP_HOST_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_WOW),
@@ -8855,6 +8858,13 @@ typedef struct{
     A_UINT32    tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_d0_wow_disable_ack_event_fixed_param  */
     A_UINT32    reserved0; /* for future need */
 } wmi_d0_wow_disable_ack_event_fixed_param;
+
+/** WMI_PDEV_RESUME_EVENTID : generated in response to WMI_PDEV_RESUME_CMDID */
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param  */
+    A_UINT32 rsvd;  /* for future need */
+} wmi_pdev_resume_event_fixed_param;
+
 
 /** value representing all modules */
 #define WMI_DEBUG_LOG_MODULE_ALL 0xffff

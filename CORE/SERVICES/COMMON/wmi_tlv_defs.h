@@ -519,7 +519,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -808,7 +809,8 @@ typedef enum {
     OP(WMI_UPDATE_VDEV_RATE_STATS_EVENTID) \
     OP(WMI_PDEV_TEMPERATURE_EVENTID) \
     OP(WMI_DIAG_EVENTID) \
-    OP(WMI_MDNS_STATS_EVENTID)
+    OP(WMI_MDNS_STATS_EVENTID) \
+    OP(WMI_PDEV_RESUME_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2454,6 +2456,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_TEMPERATURE_EVENTID);
 #define WMITLV_TABLE_WMI_MDNS_STATS_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param, wmi_mdns_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_STATS_EVENTID);
+
+/* pdev resume event */
+#define WMITLV_TABLE_WMI_PDEV_RESUME_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param, wmi_pdev_resume_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RESUME_EVENTID);
 
 #ifdef __cplusplus
 }
