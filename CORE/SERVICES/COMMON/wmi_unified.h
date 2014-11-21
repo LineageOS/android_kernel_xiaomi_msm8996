@@ -7277,23 +7277,26 @@ typedef struct
     A_UINT32 netWorkStartIndex;  /* indicate the start index of network info*/
 } wmi_batch_scan_result_scan_list;
 
-#define LPI_IE_BITMAP_BSSID                  0x0001
-#define LPI_IE_BITMAP_IS_PROBE               0x0002
-#define LPI_IE_BITMAP_SSID                   0x0004
-#define LPI_IE_BITMAP_RSSI                   0x0008
-#define LPI_IE_BITMAP_CHAN                   0x0010
-#define LPI_IE_BITMAP_AP_TX_PWR              0x0020
-#define LPI_IE_BITMAP_TX_RATE                0x0040
-#define LPI_IE_BITMAP_80211_MC_SUPPORT       0x0080
-#define LPI_IE_BITMAP_TSF_TIMER_VALUE        0x0100
-#define LPI_IE_BITMAP_AGE_OF_MESAUREMENT     0x0200
-#define LPI_IE_BITMAP_CONN_STATUS            0x0400
-#define LPI_IE_BITMAP_MSAP_IE                0x0800
-#define LPI_IE_BITMAP_SEC_STATUS             0x1000
-#define LPI_IE_BITMAP_DEVICE_TYPE            0x2000
-#define LPI_IE_BITMAP_CHAN_IS_PASSIVE        0x4000
-#define LPI_IE_BITMAP_DWELL_TIME             0x8000
-#define LPI_IE_BITMAP_ALL                    0xFFFF
+#define LPI_IE_BITMAP_BSSID                  0x00000001
+#define LPI_IE_BITMAP_IS_PROBE               0x00000002
+#define LPI_IE_BITMAP_SSID                   0x00000004
+#define LPI_IE_BITMAP_RSSI                   0x00000008
+#define LPI_IE_BITMAP_CHAN                   0x00000010
+#define LPI_IE_BITMAP_AP_TX_PWR              0x00000020
+#define LPI_IE_BITMAP_TX_RATE                0x00000040
+#define LPI_IE_BITMAP_80211_MC_SUPPORT       0x00000080
+#define LPI_IE_BITMAP_TSF_TIMER_VALUE        0x00000100
+#define LPI_IE_BITMAP_AGE_OF_MESAUREMENT     0x00000200
+#define LPI_IE_BITMAP_CONN_STATUS            0x00000400
+#define LPI_IE_BITMAP_MSAP_IE                0x00000800
+#define LPI_IE_BITMAP_SEC_STATUS             0x00001000
+#define LPI_IE_BITMAP_DEVICE_TYPE            0x00002000
+#define LPI_IE_BITMAP_CHAN_IS_PASSIVE        0x00004000
+#define LPI_IE_BITMAP_DWELL_TIME             0x00008000
+#define LPI_IE_BITMAP_BAND_CENTER_FREQ1      0x00010000
+#define LPI_IE_BITMAP_BAND_CENTER_FREQ2      0x00020000
+#define LPI_IE_BITMAP_PHY_MODE               0x00040000
+#define LPI_IE_BITMAP_ALL                    0xFFFFFFFF
 
 typedef struct {
     A_UINT32 tlv_header;
