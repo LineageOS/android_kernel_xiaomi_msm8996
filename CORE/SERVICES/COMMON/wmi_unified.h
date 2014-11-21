@@ -574,6 +574,8 @@ typedef enum {
     WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID,
     /** set tpc chainmask config command */
     WMI_TPC_CHAINMASK_CONFIG_CMDID,
+    /** set Antenna diversity command */
+    WMI_SET_ANTENNA_DIVERSITY_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -2454,6 +2456,15 @@ typedef struct {
     A_UINT32 param;
 } wmi_pdev_get_tpc_config_cmd_fixed_param;
 
+#define WMI_FAST_DIVERSITY_BIT_OFFSET 0
+#define WMI_SLOW_DIVERSITY_BIT_OFFSET 1
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param */
+    A_UINT32 mac_id; /** placeholder for pdev_id of future multiple MAC products. Init. to 0. */
+    /** parameter   */
+    A_UINT32 value;      /** bit0 is for enable/disable FAST diversity, and bit1 is for enable/disable SLOW diversity, 0->disable, 1->enable */
+} wmi_pdev_set_antenna_diversity_cmd_fixed_param;
 
 typedef struct {
     /** parameter   */
@@ -7585,7 +7596,7 @@ enum wmi_rmc_mode {
     WMI_RMC_MODE_ENABLED = 1,
 };
 
-/** Enable reliable multicast transmitter functionality. Upon
+/** Enable RMC transmitter functionality. Upon
  *  receiving this, the FW shall mutlicast frames with
  *  reliablity. This is a vendor
  *  proprietary feature. */
@@ -7601,7 +7612,7 @@ typedef struct {
 } wmi_rmc_set_mode_cmd_fixed_param;
 
 /** Configure transmission periodicity of action frames in a
- *  reliable multicast network for the multicast transmitter */
+ *  RMC network for the multicast transmitter */
 typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_rmc_set_action_period_cmd_fixed_param */
