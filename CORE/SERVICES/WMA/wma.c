@@ -7235,7 +7235,8 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	}
 
 	/* Sanity check to find whether vdev id active or not */
-	if (!wma_handle->interfaces[scan_req->sessionId].handle) {
+	if (msg_type != WDA_START_SCAN_OFFLOAD_REQ &&
+            !wma_handle->interfaces[scan_req->sessionId].handle) {
 		WMA_LOGA("vdev id [%d] is not active", scan_req->sessionId);
 		goto error1;
 	}
