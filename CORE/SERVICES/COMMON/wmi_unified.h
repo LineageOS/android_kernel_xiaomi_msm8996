@@ -508,10 +508,13 @@ typedef enum {
     /** NS offload confid*/
     WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NLO_OFL),
 
-	/* GTK offload Specific WMI commands*/
-	WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
+    /** APFIND Config */
+    WMI_APFIND_CMDID,
 
-	/* CSA offload Specific WMI commands*/
+    /* GTK offload Specific WMI commands*/
+    WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
+
+    /* CSA offload Specific WMI commands*/
     /** csa offload enable */
     WMI_CSA_OFFLOAD_ENABLE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_CSA_OFL),
     /** chan switch command */
@@ -851,6 +854,8 @@ typedef enum {
     /** NLO scan complete event */
     WMI_NLO_SCAN_COMPLETE_EVENTID,
 
+    /** APFIND specific events */
+    WMI_APFIND_EVENTID,
 
     /** GTK offload stautus event requested by host */
     WMI_GTK_OFFLOAD_STATUS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_GTK_OFL),
@@ -9172,6 +9177,32 @@ typedef struct {
     /** disassociation reason */
     A_UINT32 reason;
 } wmi_sap_ofl_del_sta_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_apfind_cmd_param */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /** This structure is used to send REQ binary blobs
+     * from application/service to firmware where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_apfind_cmd_param;
+
+typedef enum apfind_event_type_e {
+    APFIND_MATCH_EVENT = 0,
+    APFIND_WAKEUP_EVENT,
+} APFIND_EVENT_TYPE;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_apfind_event_hdr */
+    A_UINT32 event_type; /** APFIND_EVENT_TYPE */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /** This structure is used to send event binary blobs
+     * from firmware to application/service and Host drv.
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_apfind_event_hdr;
 
 #ifdef __cplusplus
 }
