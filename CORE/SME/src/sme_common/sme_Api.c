@@ -5416,9 +5416,10 @@ eHalStatus sme_getLinkStatus(tHalHandle hHal,
            pMac->sme.linkStatusCallback = NULL;
            status = eHAL_STATUS_FAILURE;
         }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
    }
 
-   sme_ReleaseGlobalLock(&pMac->sme);
    return (status);
 }
 
