@@ -11256,14 +11256,47 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
        }
        else
        {
-           /* Ideally better to get offset from ini or user space, for now
-            * we will use the first opclass matching the chan irrespective
-            * of primary lower or primary upper
+           /* redgm opclass table contains opclass for 40MHz low primary,
+            * 40MHz high primary and 20MHz. No support for 80MHz yet. So
+            * first we will check if bit for 40MHz is set and if so find
+            * matching opclass either with low primary or high primary
+            * (a channel would never be in both) and then search for opclass
+            * matching 20MHz, else for any BW.
             */
-           pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
-               regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+           if (pTdlsPeerStateParams->peerCap.prefOffChanBandwidth &
+                                               (1 << BW_40_OFFSET_BIT))
+           {
+               pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+                   regdm_get_opclass_from_channel(
+                           pMac->scan.countryCodeCurrent,
+                           pTdlsPeerStateParams->peerCap.prefOffChanNum,
+                           BW40_LOW_PRIMARY);
+               if (!pTdlsPeerStateParams->peerCap.opClassForPrefOffChan)
+               {
+                   pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+                       regdm_get_opclass_from_channel(
+                           pMac->scan.countryCodeCurrent,
+                           pTdlsPeerStateParams->peerCap.prefOffChanNum,
+                           BW40_HIGH_PRIMARY);
+               }
+           }
+           else if (pTdlsPeerStateParams->peerCap.prefOffChanBandwidth &
+                                                    (1 << BW_20_OFFSET_BIT))
+           {
+               pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+                   regdm_get_opclass_from_channel(
+                           pMac->scan.countryCodeCurrent,
+                           pTdlsPeerStateParams->peerCap.prefOffChanNum,
+                           BW20);
+           }
+           else
+           {
+               pTdlsPeerStateParams->peerCap.opClassForPrefOffChan =
+                   regdm_get_opclass_from_channel(
+                           pMac->scan.countryCodeCurrent,
                            pTdlsPeerStateParams->peerCap.prefOffChanNum,
                            BWALL);
+           }
        }
        vosMessage.type = WDA_UPDATE_TDLS_PEER_STATE;
        vosMessage.reserved = 0;
@@ -11330,6 +11363,7 @@ eHalStatus sme_SendTdlsChanSwitchReq(tHalHandle hHal,
                 sme_ReleaseGlobalLock(&pMac->sme);
                 return eHAL_STATUS_FAILURE;
         }
+
         vos_mem_copy(&pTdlsChanSwitchParams->peerMacAddr,
                      &chanSwitchParams->peer_mac_addr,
                      sizeof(tSirMacAddr));
@@ -11341,14 +11375,46 @@ eHalStatus sme_SendTdlsChanSwitchReq(tHalHandle hHal,
              chanSwitchParams->tdls_off_ch_bw_offset;
         pTdlsChanSwitchParams->is_responder=
              chanSwitchParams->is_responder;
-        pTdlsChanSwitchParams->operClass =
-             regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+
+        switch (pTdlsChanSwitchParams->tdlsOffChBwOffset)
+        {
+            case (1 << BW_20_OFFSET_BIT):
+                pTdlsChanSwitchParams->operClass =
+                    regdm_get_opclass_from_channel(
+                                            pMac->scan.countryCodeCurrent,
+                                            pTdlsChanSwitchParams->tdlsOffCh,
+                                            BW20);
+                break;
+            case (1 << BW_40_OFFSET_BIT):
+                pTdlsChanSwitchParams->operClass =
+                    regdm_get_opclass_from_channel(
+                                            pMac->scan.countryCodeCurrent,
+                                            pTdlsChanSwitchParams->tdlsOffCh,
+                                            BW40_LOW_PRIMARY);
+                if (!pTdlsChanSwitchParams->operClass)
+                {
+                    pTdlsChanSwitchParams->operClass =
+                        regdm_get_opclass_from_channel(
+                                            pMac->scan.countryCodeCurrent,
+                                            pTdlsChanSwitchParams->tdlsOffCh,
+                                            BW40_HIGH_PRIMARY);
+                }
+                break;
+            default:
+                pTdlsChanSwitchParams->operClass =
+                    regdm_get_opclass_from_channel(
+                                            pMac->scan.countryCodeCurrent,
                                             pTdlsChanSwitchParams->tdlsOffCh,
                                             BWALL);
+                break;
+        }/* end switch */
 
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      FL("Selected Operating Class=%d"),
-                      pTdlsChanSwitchParams->operClass);
+                  FL("Country Code=%s, Requested offset=%d, Selected Operating Class=%d"),
+                  pMac->scan.countryCodeCurrent,
+                  pTdlsChanSwitchParams->tdlsOffChBwOffset,
+                  pTdlsChanSwitchParams->operClass);
+
         vosMessage.type = WDA_TDLS_SET_OFFCHAN_MODE;
         vosMessage.reserved = 0;
         vosMessage.bodyptr = pTdlsChanSwitchParams;
