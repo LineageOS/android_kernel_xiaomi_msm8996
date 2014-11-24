@@ -100,13 +100,16 @@
 #define VOS_WDA_RESP_TIMEOUT WDA_STOP_TIMEOUT
 
 /* Maximum number of vos message queue get wrapper failures to cause panic */
-#define VOS_WRAPPER_MAX_FAIL_COUNT (1000)
+#define VOS_WRAPPER_MAX_FAIL_COUNT (2000)
 
 /*---------------------------------------------------------------------------
  * Data definitions
  * ------------------------------------------------------------------------*/
 static VosContextType  gVosContext;
 static pVosContextType gpVosContext;
+
+/* Debug variable to detect MC thread stuck */
+static atomic_t vos_wrapper_empty_count;
 
 /*---------------------------------------------------------------------------
  * Forward declaration
@@ -1594,7 +1597,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 {
   pVosMqType      pTargetMq   = NULL;
   pVosMsgWrapper  pMsgWrapper = NULL;
-  static uint32_t debug_count = 0;
+  uint32_t debug_count;
 
   if ((gpVosContext == NULL) || (pMsg == NULL))
   {
@@ -1664,7 +1667,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   pMsgWrapper = vos_mq_get(&gpVosContext->freeVosMq);
 
   if (NULL == pMsgWrapper) {
-      debug_count++;
+      debug_count = atomic_inc_return(&vos_wrapper_empty_count);
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: VOS Core run out of message wrapper %d",
               __func__, debug_count);
@@ -1676,7 +1679,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
     return VOS_STATUS_E_RESOURCES;
   }
 
-  debug_count = 0;
+  atomic_set(&vos_wrapper_empty_count, 0);
 
   /*
   ** Copy the message now
