@@ -60,7 +60,7 @@
 static struct hash_fw fw_hash;
 #endif
 
-#ifdef HIF_PCI
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
 	19200000, /* SOC_REFCLK_19_2_MHZ */
@@ -1459,7 +1459,7 @@ ol_check_dataset_patch(struct ol_softc *scn, u_int32_t *address)
 	return 0;
 }
 
-#ifdef HIF_PCI
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 
 A_STATUS ol_fw_populate_clk_settings(A_refclk_speed_t refclk,
 				struct cmnos_clock_s *clock_s)
@@ -1539,8 +1539,10 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 	u_int32_t cmnos_cpu_speed_addr = 0;
 #ifdef HIF_USB/* fail for USB case */
 	struct hif_usb_softc *sc = scn->hif_sc;
-#else
+#elif defined HIF_PCI
 	struct hif_pci_softc *sc = scn->hif_sc;
+#else
+    struct ath_hif_sdio_softc *sc = scn->hif_sc;
 #endif
 
 	switch (scn->target_version) {
@@ -1855,7 +1857,7 @@ int ol_download_firmware(struct ol_softc *scn)
 {
 	u_int32_t param, address = 0;
 	int status = !EOK;
-#if defined(HIF_PCI)
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 	A_STATUS ret;
 #endif
 
@@ -1884,7 +1886,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		printk("%s: Target address not known! Using 0x%x\n", __func__, address);
 	}
 
-#if defined(HIF_PCI)
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 	ret = ol_patch_pll_switch(scn);
 	if (ret) {
 		pr_err("pll switch failed. status %d\n", ret);
