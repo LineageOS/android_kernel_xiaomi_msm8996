@@ -4189,4 +4189,19 @@ eHalStatus sme_setMDNSResponse(tHalHandle hHal,
                                 tSirMDNSResponseInfo *pMDNSRespInfo);
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+/**
+ * sme_set_sap_auth_offload() enable/disable Software AP Auth Offload
+ * @hHal: hal layer handler
+ * @sap_auth_offload_info: the information of Software AP Auth Offload
+ *
+ * This function provide enable/disable Software AP authenticaiton offload
+ * feature on target firmware
+ *
+ * Return: Return eHalStatus.
+ */
+eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
+                      struct tSirSapOffloadInfo *sap_auth_offload_info);
+#endif /* SAP_AUTH_OFFLOAD */
+
 #endif //#if !defined( __SME_API_H )

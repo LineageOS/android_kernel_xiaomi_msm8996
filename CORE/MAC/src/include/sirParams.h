@@ -682,6 +682,12 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_GET_MDNS_STATUS            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 302)
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+#define SIR_HAL_SET_SAP_AUTH_OFL           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 303)
+#define SIR_HAL_SAP_OFL_ADD_STA            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 304)
+#define SIR_HAL_SAP_OFL_DEL_STA            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 305)
+#endif
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

@@ -4016,8 +4016,85 @@ end:
 
 } /*** end __limProcessSmeAssocCnfNew() ***/
 
+#ifdef SAP_AUTH_OFFLOAD
+/**
+ * __lim_process_sme_assoc_offload_cnf() station connect confirm
+ * @pMac: SirGlobal handler
+ * @msgType: message type
+ * @pMsgBuf: message body
+ *
+ * This function handles the station connect confirm of
+ * Software AP authentication offload feature
+ *
+ * Return: None
+ */
+static void
+__lim_process_sme_assoc_offload_cnf(tpAniSirGlobal pmac,
+                               tANI_U32 msg_type,
+                               tANI_U32 *pmsg_buf)
+{
+    tSirSmeAssocCnf assoc_cnf;
+    tpDphHashNode sta_ds = NULL;
+    tpPESession psession_entry= NULL;
+    tANI_U8 session_id;
+    tANI_U16 aid=0;
 
+    if(pmsg_buf == NULL) {
+        limLog(pmac, LOGE, FL("pmsg_buf is NULL "));
+        goto end;
+    }
 
+    if ((limAssocCnfSerDes(pmac, &assoc_cnf, (tANI_U8 *) pmsg_buf) ==
+        eSIR_FAILURE) || !__limIsSmeAssocCnfValid(&assoc_cnf)) {
+        limLog(pmac, LOGE, FL("Received invalid SME_RE(ASSOC)_CNF message "));
+        goto end;
+    }
+
+    if((psession_entry =
+        peFindSessionByBssid(pmac, assoc_cnf.bssId, &session_id))== NULL) {
+        limLog(pmac, LOGE, FL("session does not exist for given bssId"));
+        goto end;
+    }
+
+    if ((!LIM_IS_AP_ROLE(psession_entry) &&
+         !LIM_IS_BT_AMP_AP_ROLE(psession_entry)) ||
+        ((psession_entry->limSmeState != eLIM_SME_NORMAL_STATE) &&
+        (psession_entry->limSmeState != eLIM_SME_NORMAL_CHANNEL_SCAN_STATE))) {
+        limLog(pmac, LOGE,
+               FL("Received unexpected message %X in state %X, in role %X"),
+               msg_type, psession_entry->limSmeState,
+               GET_LIM_SYSTEM_ROLE(psession_entry));
+        goto end;
+    }
+
+    sta_ds = dphGetHashEntry(pmac,
+                             assoc_cnf.aid,
+                             &psession_entry->dph.dphHashTable);
+    if (sta_ds != NULL) {
+        aid = sta_ds->assocId;
+        limDeactivateAndChangePerStaIdTimer(pmac,
+                                            eLIM_CNF_WAIT_TIMER,
+                                            aid);
+    }
+
+end:
+    if((psession_entry != NULL) && (sta_ds != NULL)) {
+        if ( psession_entry->parsedAssocReq[aid] != NULL ) {
+            if ( ((tpSirAssocReq)
+                (psession_entry->parsedAssocReq[aid]))->assocReqFrame) {
+                vos_mem_free(((tpSirAssocReq)
+                    (psession_entry->parsedAssocReq[aid]))->assocReqFrame);
+                ((tpSirAssocReq)
+                    (psession_entry->parsedAssocReq[aid]))->assocReqFrame =
+                    NULL;
+            }
+            vos_mem_free(psession_entry->parsedAssocReq[aid]);
+            psession_entry->parsedAssocReq[aid] = NULL;
+        }
+    }
+
+} /*** end __lim_process_sme_assoc_offload_cnf() ***/
+#endif /* SAP_AUTH_OFFLOAD */
 
 static void
 __limProcessSmeAddtsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
@@ -5658,7 +5735,16 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                 PELOG1(limLog(pMac, LOG1, FL("Received ASSOC_CNF message"));)
             else
                 PELOG1(limLog(pMac, LOG1, FL("Received REASSOC_CNF message"));)
+
+#ifdef SAP_AUTH_OFFLOAD
+            if (pMac->sap_auth_offload) {
+                __lim_process_sme_assoc_offload_cnf(pMac, pMsg->type, pMsgBuf);
+            } else {
+                __limProcessSmeAssocCnfNew(pMac, pMsg->type, pMsgBuf);
+            }
+#else
             __limProcessSmeAssocCnfNew(pMac, pMsg->type, pMsgBuf);
+#endif /* SAP_AUTH_OFFLOAD */
             break;
 
         case eWNI_SME_ADDTS_REQ:

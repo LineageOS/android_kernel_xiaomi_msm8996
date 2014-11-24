@@ -93,7 +93,7 @@ typedef  enum  {
     WMI_SERVICE_QPOWER,               /* QPower service */
     WMI_SERVICE_PLMREQ,
     WMI_SERVICE_THERMAL_MGMT,
-    WMI_SERVICE_RMC,                  /* reliable multicast support */
+    WMI_SERVICE_RMC,                  /* RMC support */
     WMI_SERVICE_MHF_OFFLOAD,          /* multi-hop forwarding offload */
     WMI_SERVICE_COEX_SAR,             /* target support SAR tx limit from WMI_PDEV_PARAM_TXPOWER_LIMITxG */
     WMI_SERVICE_BCN_TXRATE_OVERRIDE,  /* Will support the bcn/prb rsp rate override */
@@ -114,6 +114,7 @@ typedef  enum  {
     WMI_SERVICE_DHCP_OFFLOAD,         /* DHCP offload support */
     WMI_SERVICE_STA_RX_IPA_OFFLOAD_SUPPORT, /* STA RX DATA offload to IPA support */
     WMI_SERVICE_MDNS_OFFLOAD,         /* mDNS responder offload support */
+    WMI_SERVICE_SAP_AUTH_OFFLOAD,     /* softap auth offload */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

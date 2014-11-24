@@ -1010,6 +1010,12 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_GET_MDNS_STATUS_CMD               SIR_HAL_GET_MDNS_STATUS
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+#define WDA_SAP_OFL_ADD_STA                   SIR_HAL_SAP_OFL_ADD_STA
+#define WDA_SAP_OFL_DEL_STA                   SIR_HAL_SAP_OFL_DEL_STA
+#define WDA_SET_SAP_AUTH_OFL                  SIR_HAL_SET_SAP_AUTH_OFL
+#endif /* SAP_AUTH_OFFLOAD */
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

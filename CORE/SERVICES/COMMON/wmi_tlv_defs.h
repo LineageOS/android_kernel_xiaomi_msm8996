@@ -519,7 +519,14 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_mdns_set_resp_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_get_stats_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_roam_invoke_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_apfind_cmd_param,
+    WMITLV_TAG_STRUC_wmi_apfind_event_hdr,
 } WMITLV_TAG_ID;
 
 /*
@@ -716,7 +723,10 @@ typedef enum {
     OP(WMI_MDNS_OFFLOAD_ENABLE_CMDID) \
     OP(WMI_MDNS_SET_FQDN_CMDID) \
     OP(WMI_MDNS_SET_RESPONSE_CMDID) \
-    OP(WMI_MDNS_GET_STATS_CMDID)
+    OP(WMI_MDNS_GET_STATS_CMDID) \
+    OP(WMI_SET_ANTENNA_DIVERSITY_CMDID) \
+    OP(WMI_SAP_OFL_ENABLE_CMDID) \
+    OP(WMI_APFIND_CMDID)
 
 
 
@@ -764,6 +774,7 @@ typedef enum {
     OP(WMI_GTK_REKEY_FAIL_EVENTID) \
     OP(WMI_NLO_MATCH_EVENTID) \
     OP(WMI_NLO_SCAN_COMPLETE_EVENTID) \
+    OP(WMI_APFIND_EVENTID) \
     OP(WMI_CHATTER_PC_QUERY_EVENTID) \
     OP(WMI_UPLOADH_EVENTID) \
     OP(WMI_CAPTUREH_EVENTID) \
@@ -808,7 +819,10 @@ typedef enum {
     OP(WMI_UPDATE_VDEV_RATE_STATS_EVENTID) \
     OP(WMI_PDEV_TEMPERATURE_EVENTID) \
     OP(WMI_DIAG_EVENTID) \
-    OP(WMI_MDNS_STATS_EVENTID)
+    OP(WMI_MDNS_STATS_EVENTID) \
+    OP(WMI_PDEV_RESUME_EVENTID) \
+    OP(WMI_SAP_OFL_ADD_STA_EVENTID) \
+    OP(WMI_SAP_OFL_DEL_STA_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1953,6 +1967,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param, wmi_pdev_get_temperature_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
 
+/* Set antenna diversiry Cmd */
+#define WMITLV_TABLE_WMI_SET_ANTENNA_DIVERSITY_CMDID(id,op,buf,len) \
+WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param, wmi_pdev_set_antenna_diversity_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SET_ANTENNA_DIVERSITY_CMDID);
+
 /* DHCP server offload param Cmd */
 #define WMITLV_TABLE_WMI_SET_DHCP_SERVER_OFFLOAD_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param, wmi_set_dhcp_server_offload_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1993,6 +2012,18 @@ WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_GET_STATS_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, bssid_list, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_INVOKE_CMDID);
+
+/* SAP Authentication offload param Cmd */
+#define WMITLV_TABLE_WMI_SAP_OFL_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param, wmi_sap_ofl_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, psk, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ENABLE_CMDID);
+
+/* APFIND Request */
+#define WMITLV_TABLE_WMI_APFIND_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_apfind_cmd_param, wmi_apfind_cmd_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_APFIND_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -2336,6 +2367,12 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_nlo_event, wmi_nlo_event, fixed_
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_nlo_event, wmi_nlo_event, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_NLO_SCAN_COMPLETE_EVENTID);
 
+/* APFIND event */
+#define WMITLV_TABLE_WMI_APFIND_EVENTID(id,op,buf,len)                                                                                                 \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_apfind_event_hdr, wmi_apfind_event_hdr, hdr, WMITLV_SIZE_FIX) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+    WMITLV_CREATE_PARAM_STRUC(WMI_APFIND_EVENTID);
+
 /* Chatter query reply event */
 #define WMITLV_TABLE_WMI_CHATTER_PC_QUERY_EVENTID(id,op,buf,len)                                                                                                 \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chatter_query_reply_event_fixed_param, wmi_chatter_query_reply_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -2454,6 +2491,21 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_TEMPERATURE_EVENTID);
 #define WMITLV_TABLE_WMI_MDNS_STATS_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mdns_stats_event_fixed_param, wmi_mdns_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_MDNS_STATS_EVENTID);
+
+/* pdev resume event */
+#define WMITLV_TABLE_WMI_PDEV_RESUME_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param, wmi_pdev_resume_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RESUME_EVENTID);
+
+/* SAP Authentication offload event */
+#define WMITLV_TABLE_WMI_SAP_OFL_ADD_STA_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param, wmi_sap_ofl_add_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)   \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ADD_STA_EVENTID);
+
+#define WMITLV_TABLE_WMI_SAP_OFL_DEL_STA_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param, wmi_sap_ofl_del_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_DEL_STA_EVENTID);
 
 #ifdef __cplusplus
 }

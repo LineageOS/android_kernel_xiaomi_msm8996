@@ -5585,4 +5585,26 @@ typedef struct
 /* number of neighbor reports that we can handle in Neighbor Report Response */
 #define MAX_SUPPORTED_NEIGHBOR_RPT 15
 
+#ifdef SAP_AUTH_OFFLOAD
+/* 80211 Pre-Share Key length */
+#define SIR_PSK_MAX_LEN   64
+
+/* Definition for Software AP Auth Offload Security Type */
+enum tSirSecurityType
+{
+    eSIR_OFFLOAD_NONE,
+    eSIR_OFFLOAD_WPA2PSK_CCMP,
+};
+
+/* Structure for Software AP Auth Offload feature */
+struct tSirSapOffloadInfo
+{
+    uint32_t vdev_id;
+    bool sap_auth_offload_enable;
+    uint32_t sap_auth_offload_sec_type;
+    uint32_t key_len;
+    uint8_t key[SIR_PSK_MAX_LEN];
+};
+#endif /* SAP_AUTH_OFFLOAD */
+
 #endif /* __SIR_API_H */

@@ -721,6 +721,60 @@ static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataFor
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
 
+#ifdef SAP_AUTH_OFFLOAD
+void hdd_set_sap_auth_offload(hdd_adapter_t *pHostapdAdapter,
+                                     bool enabled)
+{
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    struct tSirSapOffloadInfo *sap_offload_info = NULL;
+
+    /* Prepare the request to send to SME */
+    sap_offload_info = vos_mem_malloc(sizeof(*sap_offload_info));
+    if (NULL == sap_offload_info) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not allocate tSirSapOffloadInfo!", __func__);
+        return;
+    }
+
+    vos_mem_zero(sap_offload_info, sizeof(*sap_offload_info));
+
+    sap_offload_info->vdev_id = pHostapdAdapter->sessionId;
+    sap_offload_info->sap_auth_offload_enable =
+        pHddCtx->cfg_ini->enable_sap_auth_offload && enabled;
+    sap_offload_info->sap_auth_offload_sec_type =
+        pHddCtx->cfg_ini->sap_auth_offload_sec_type;
+    sap_offload_info->key_len =
+        strlen(pHddCtx->cfg_ini->sap_auth_offload_key);
+
+    if (sap_offload_info->sap_auth_offload_enable) {
+        if (sap_offload_info->key_len < 8 ||
+            sap_offload_info->key_len > WLAN_PSK_STRING_LENGTH) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                   "%s: invalid key length(%d) of WPA security!", __func__,
+                   sap_offload_info->key_len);
+            goto end;
+        }
+    }
+
+    vos_mem_copy(sap_offload_info->key,
+                            pHddCtx->cfg_ini->sap_auth_offload_key,
+                            sap_offload_info->key_len);
+    if (eHAL_STATUS_SUCCESS !=
+        sme_set_sap_auth_offload(pHddCtx->hHal, sap_offload_info)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: sme_set_sap_auth_offload fail!", __func__);
+        goto end;
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+           "%s: sme_set_sap_auth_offload successfully!", __func__);
+
+end:
+    vos_mem_free(sap_offload_info);
+    return;
+}
+#endif /* SAP_AUTH_OFFLOAD */
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -988,6 +1042,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         case eSAP_STOP_BSS_EVENT:
             hddLog(LOG1, FL("BSS stop status = %s"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+
+            hdd_set_sap_auth_offload(pHostapdAdapter, FALSE);
 
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
@@ -4967,6 +5023,8 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     int ret;
 
     ENTER();
+
+    hdd_set_sap_auth_offload(pAdapter, TRUE);
 
 #ifdef WLAN_FEATURE_MBSSID
     sapContext = WLANSAP_Open(pVosContext);

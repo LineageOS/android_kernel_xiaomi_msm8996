@@ -14648,3 +14648,66 @@ eHalStatus sme_setMDNSResponse(tHalHandle hHal,
 }
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+/**
+ * sme_set_sap_auth_offload() enable/disable Software AP Auth Offload
+ * @hHal: hal layer handler
+ * @sap_auth_offload_info: the information of Software AP Auth offload
+ *
+ * This function provide enable/disable Software AP authenticaiton offload
+ * feature on target firmware
+ *
+ * Return: Return eHalStatus.
+ */
+eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
+                      struct tSirSapOffloadInfo *sap_auth_offload_info)
+{
+    vos_msg_t vosMessage;
+    struct tSirSapOffloadInfo *sme_sap_auth_offload_info;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pMac->sap_auth_offload_sec_type =
+        sap_auth_offload_info->sap_auth_offload_sec_type;
+    pMac->sap_auth_offload = sap_auth_offload_info->sap_auth_offload_enable;
+
+    sme_sap_auth_offload_info =
+        vos_mem_malloc(sizeof(*sme_sap_auth_offload_info));
+
+    if (!sme_sap_auth_offload_info) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to allocate memory for WDA_SET_SAP_AUTH_OFL",
+                  __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    vos_mem_copy(sme_sap_auth_offload_info, sap_auth_offload_info,
+            sizeof(*sap_auth_offload_info));
+
+    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_SAP_AUTH_OFL;
+        vosMessage.bodyptr  = sme_sap_auth_offload_info;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Not able to post WDA_SET_SAP_AUTH_OFL to WDA!",
+                      __func__);
+            vos_mem_free(sme_sap_auth_offload_info);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: sme_AcquireGlobalLock error!",
+                  __func__);
+        vos_mem_free(sme_sap_auth_offload_info);
+        status = eHAL_STATUS_FAILURE;
+    }
+
+    return (status);
+
+}
+#endif /* SAP_AUTH_OFFLOAD */
+
