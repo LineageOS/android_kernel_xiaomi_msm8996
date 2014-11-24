@@ -178,6 +178,7 @@ typedef enum {
     WMI_GRP_DHCP_OFL,
     WMI_GRP_IPA,
     WMI_GRP_MDNS_OFL,
+    WMI_GRP_SAP_OFL,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -507,10 +508,13 @@ typedef enum {
     /** NS offload confid*/
     WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NLO_OFL),
 
-	/* GTK offload Specific WMI commands*/
-	WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
+    /** APFIND Config */
+    WMI_APFIND_CMDID,
 
-	/* CSA offload Specific WMI commands*/
+    /* GTK offload Specific WMI commands*/
+    WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
+
+    /* CSA offload Specific WMI commands*/
     /** csa offload enable */
     WMI_CSA_OFFLOAD_ENABLE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_CSA_OFL),
     /** chan switch command */
@@ -574,6 +578,8 @@ typedef enum {
     WMI_HOST_AUTO_SHUTDOWN_CFG_CMDID,
     /** set tpc chainmask config command */
     WMI_TPC_CHAINMASK_CONFIG_CMDID,
+    /** set Antenna diversity command */
+    WMI_SET_ANTENNA_DIVERSITY_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -698,6 +704,10 @@ typedef enum {
     WMI_MDNS_SET_FQDN_CMDID,
     WMI_MDNS_SET_RESPONSE_CMDID,
     WMI_MDNS_GET_STATS_CMDID,
+
+    /* enable/disable AP Authentication offload */
+    WMI_SAP_OFL_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SAP_OFL),
+
 } WMI_CMD_ID;
 
 typedef enum {
@@ -812,6 +822,9 @@ typedef enum {
     /*send noa info to host when noa is changed for beacon tx offload enable*/
     WMI_P2P_NOA_EVENTID,
 
+    /* send pdev resume event to host after pdev resume. */
+    WMI_PDEV_RESUME_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SUSPEND),
+
     /** WOW wake up host event.generated in response to WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID.
         will cary wake reason */
     WMI_WOW_WAKEUP_HOST_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_WOW),
@@ -841,6 +854,8 @@ typedef enum {
     /** NLO scan complete event */
     WMI_NLO_SCAN_COMPLETE_EVENTID,
 
+    /** APFIND specific events */
+    WMI_APFIND_EVENTID,
 
     /** GTK offload stautus event requested by host */
     WMI_GTK_OFFLOAD_STATUS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_GTK_OFL),
@@ -949,6 +964,10 @@ typedef enum {
 
     /* mDNS offload events */
     WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
+
+    /* SAP Authentication offload events */
+    WMI_SAP_OFL_ADD_STA_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SAP_OFL),
+    WMI_SAP_OFL_DEL_STA_EVENTID,
 
 } WMI_EVT_ID;
 
@@ -2451,6 +2470,15 @@ typedef struct {
     A_UINT32 param;
 } wmi_pdev_get_tpc_config_cmd_fixed_param;
 
+#define WMI_FAST_DIVERSITY_BIT_OFFSET 0
+#define WMI_SLOW_DIVERSITY_BIT_OFFSET 1
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param */
+    A_UINT32 mac_id; /** placeholder for pdev_id of future multiple MAC products. Init. to 0. */
+    /** parameter   */
+    A_UINT32 value;      /** bit0 is for enable/disable FAST diversity, and bit1 is for enable/disable SLOW diversity, 0->disable, 1->enable */
+} wmi_pdev_set_antenna_diversity_cmd_fixed_param;
 
 typedef struct {
     /** parameter   */
@@ -4952,6 +4980,8 @@ typedef struct {
 #define WMI_AP_PROFILE_FLAG_WPS    0x1
 /** looking for a secure AP  */
 #define WMI_AP_PROFILE_FLAG_CRYPTO 0x2
+/** looking for a PMF enabled AP */
+#define WMI_AP_PROFILE_FLAG_PMF    0x4
 
 /** To match an open AP, the rs_authmode should be set to WMI_AUTH_NONE
  *  and WMI_AP_PROFILE_FLAG_CRYPTO should be clear.
@@ -7274,23 +7304,26 @@ typedef struct
     A_UINT32 netWorkStartIndex;  /* indicate the start index of network info*/
 } wmi_batch_scan_result_scan_list;
 
-#define LPI_IE_BITMAP_BSSID                  0x0001
-#define LPI_IE_BITMAP_IS_PROBE               0x0002
-#define LPI_IE_BITMAP_SSID                   0x0004
-#define LPI_IE_BITMAP_RSSI                   0x0008
-#define LPI_IE_BITMAP_CHAN                   0x0010
-#define LPI_IE_BITMAP_AP_TX_PWR              0x0020
-#define LPI_IE_BITMAP_TX_RATE                0x0040
-#define LPI_IE_BITMAP_80211_MC_SUPPORT       0x0080
-#define LPI_IE_BITMAP_TSF_TIMER_VALUE        0x0100
-#define LPI_IE_BITMAP_AGE_OF_MESAUREMENT     0x0200
-#define LPI_IE_BITMAP_CONN_STATUS            0x0400
-#define LPI_IE_BITMAP_MSAP_IE                0x0800
-#define LPI_IE_BITMAP_SEC_STATUS             0x1000
-#define LPI_IE_BITMAP_DEVICE_TYPE            0x2000
-#define LPI_IE_BITMAP_CHAN_IS_PASSIVE        0x4000
-#define LPI_IE_BITMAP_DWELL_TIME             0x8000
-#define LPI_IE_BITMAP_ALL                    0xFFFF
+#define LPI_IE_BITMAP_BSSID                  0x00000001
+#define LPI_IE_BITMAP_IS_PROBE               0x00000002
+#define LPI_IE_BITMAP_SSID                   0x00000004
+#define LPI_IE_BITMAP_RSSI                   0x00000008
+#define LPI_IE_BITMAP_CHAN                   0x00000010
+#define LPI_IE_BITMAP_AP_TX_PWR              0x00000020
+#define LPI_IE_BITMAP_TX_RATE                0x00000040
+#define LPI_IE_BITMAP_80211_MC_SUPPORT       0x00000080
+#define LPI_IE_BITMAP_TSF_TIMER_VALUE        0x00000100
+#define LPI_IE_BITMAP_AGE_OF_MESAUREMENT     0x00000200
+#define LPI_IE_BITMAP_CONN_STATUS            0x00000400
+#define LPI_IE_BITMAP_MSAP_IE                0x00000800
+#define LPI_IE_BITMAP_SEC_STATUS             0x00001000
+#define LPI_IE_BITMAP_DEVICE_TYPE            0x00002000
+#define LPI_IE_BITMAP_CHAN_IS_PASSIVE        0x00004000
+#define LPI_IE_BITMAP_DWELL_TIME             0x00008000
+#define LPI_IE_BITMAP_BAND_CENTER_FREQ1      0x00010000
+#define LPI_IE_BITMAP_BAND_CENTER_FREQ2      0x00020000
+#define LPI_IE_BITMAP_PHY_MODE               0x00040000
+#define LPI_IE_BITMAP_ALL                    0xFFFFFFFF
 
 typedef struct {
     A_UINT32 tlv_header;
@@ -7579,7 +7612,7 @@ enum wmi_rmc_mode {
     WMI_RMC_MODE_ENABLED = 1,
 };
 
-/** Enable reliable multicast transmitter functionality. Upon
+/** Enable RMC transmitter functionality. Upon
  *  receiving this, the FW shall mutlicast frames with
  *  reliablity. This is a vendor
  *  proprietary feature. */
@@ -7595,7 +7628,7 @@ typedef struct {
 } wmi_rmc_set_mode_cmd_fixed_param;
 
 /** Configure transmission periodicity of action frames in a
- *  reliable multicast network for the multicast transmitter */
+ *  RMC network for the multicast transmitter */
 typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_rmc_set_action_period_cmd_fixed_param */
@@ -8856,6 +8889,13 @@ typedef struct{
     A_UINT32    reserved0; /* for future need */
 } wmi_d0_wow_disable_ack_event_fixed_param;
 
+/** WMI_PDEV_RESUME_EVENTID : generated in response to WMI_PDEV_RESUME_CMDID */
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_resume_event_fixed_param  */
+    A_UINT32 rsvd;  /* for future need */
+} wmi_pdev_resume_event_fixed_param;
+
+
 /** value representing all modules */
 #define WMI_DEBUG_LOG_MODULE_ALL 0xffff
 
@@ -9074,6 +9114,95 @@ typedef struct {
     /** indicate the current status of mDNS offload */
     A_UINT32 status;
 } wmi_mdns_stats_event_fixed_param;
+
+/**
+ * The purpose of the SoftAP authenticator offload is to offload the association and 4-way handshake process
+ * down to the firmware. When this feature is enabled, firmware can process the association/disassociation
+ * request and create/remove connection even host is suspended.
+ * 3 major components are offloaded:
+ *     1. ap-mlme. Firmware will process auth/deauth, association/disassociation request and send out response.
+ *     2. 4-way handshake. Firmware will send out m1/m3 and receive m2/m4.
+ *     3. key installation. Firmware will generate PMK from the psk info which is sent from the host and install PMK/GTK.
+ * Current implementation only supports WPA2 CCMP.
+ */
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_enable_cmd_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_ENABLE_CMDID */
+    A_UINT32 vdev_id;
+    /** enable/disable sap auth offload */
+    A_UINT32 enable;
+    /** sap ssid */
+    wmi_ssid ap_ssid;
+    /** authentication mode (defined above) */
+    A_UINT32 rsn_authmode;
+    /** unicast cipher set */
+    A_UINT32 rsn_ucastcipherset;
+    /** mcast/group cipher set */
+    A_UINT32 rsn_mcastcipherset;
+    /** mcast/group management frames cipher set */
+    A_UINT32 rsn_mcastmgmtcipherset;
+    /** sap channel */
+    A_UINT32 channel;
+    /** length of psk */
+    A_UINT32 psk_len;
+    /* Following this structure is the TLV byte stream of wpa passphrase data of length psk_len
+     * A_UINT8  psk[];
+     */
+} wmi_sap_ofl_enable_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_add_sta_event_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_ADD_STA_EVENTID */
+    A_UINT32 vdev_id;
+    /** aid (association id) of this station */
+    A_UINT32 assoc_id;
+    /** peer station's mac addr */
+    wmi_mac_addr peer_macaddr;
+    /** length of association request frame */
+    A_UINT32 data_len;
+    /* Following this structure is the TLV byte stream of a whole association request frame of length data_len
+     * A_UINT8 bufp[];
+     */
+} wmi_sap_ofl_add_sta_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param */
+    /** VDEV id(interface) of the WMI_SAP_OFL_DEL_STA_EVENTID */
+    A_UINT32 vdev_id;
+    /** aid (association id) of this station */
+    A_UINT32 assoc_id;
+    /** peer station's mac addr */
+    wmi_mac_addr peer_macaddr;
+    /** disassociation reason */
+    A_UINT32 reason;
+} wmi_sap_ofl_del_sta_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_apfind_cmd_param */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /** This structure is used to send REQ binary blobs
+     * from application/service to firmware where Host drv is pass through .
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_apfind_cmd_param;
+
+typedef enum apfind_event_type_e {
+    APFIND_MATCH_EVENT = 0,
+    APFIND_WAKEUP_EVENT,
+} APFIND_EVENT_TYPE;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_apfind_event_hdr */
+    A_UINT32 event_type; /** APFIND_EVENT_TYPE */
+    A_UINT32 data_len; /** length in byte of data[]. */
+    /** This structure is used to send event binary blobs
+     * from firmware to application/service and Host drv.
+     * Following this structure is the TLV:
+     *     A_UINT8 data[];    // length in byte given by field data_len.
+     */
+} wmi_apfind_event_hdr;
 
 #ifdef __cplusplus
 }

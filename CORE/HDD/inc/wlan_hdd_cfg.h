@@ -57,6 +57,11 @@
 //Number of items that can be configured
 #define MAX_CFG_INI_ITEMS   512
 
+#ifdef SAP_AUTH_OFFLOAD
+/* 802.11 pre-share key length */
+#define WLAN_PSK_STRING_LENGTH   (64)
+#endif /* SAP_AUTH_OFFLOAD */
+
 // Defines for all of the things we read from the configuration (registry).
 
 #define CFG_RTS_THRESHOLD_NAME                 "RTSThreshold"
@@ -2675,6 +2680,29 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_MDNS_RESPONSE_TYPE_SRV_TGT_DEFAULT   ""
 #endif /* MDNS_OFFLOAD */
 
+#ifdef SAP_AUTH_OFFLOAD
+/* Enable/Disable SAP Authentication offload
+ * Default: Disable
+ */
+#define CFG_ENABLE_SAP_AUTH_OFL_NAME                   "gEnableSAPAuthOffload"
+#define CFG_ENABLE_SAP_AUTH_OFL_MIN                    ( 0 )
+#define CFG_ENABLE_SAP_AUTH_OFL_MAX                    ( 1 )
+#define CFG_ENABLE_SAP_AUTH_OFL_DEFAULT                ( 0 )
+
+/* SAP Authentication offload Security Type
+ *  0: None Security
+ *  1: WPA2-PSK CCMP
+ */
+#define CFG_SAP_AUTH_OFL_SECURITY_TYPE_NAME               "gSAPAuthOffloadSec"
+#define CFG_SAP_AUTH_OFL_SECURITY_TYPE_MIN                ( 0 )
+#define CFG_SAP_AUTH_OFL_SECURITY_TYPE_MAX                ( 1 )
+#define CFG_SAP_AUTH_OFL_SECURITY_TYPE_DEFAULT            ( 0 )
+
+/* SAP Authentication offload Security Key */
+#define CFG_SAP_AUTH_OFL_KEY_NAME     "gSAPAuthOffloadKey"
+#define CFG_SAP_AUTH_OFL_KEY_DEFAULT  ""
+#endif /* SAP_AUTH_OFFLOAD */
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3255,6 +3283,12 @@ typedef struct
    uint16_t                    mdns_resp_type_srv_port;
    uint8_t                     mdns_resp_type_srv_target[MAX_MDNS_RESP_LEN];
 #endif  /* MDNS_OFFLOAD */
+
+#ifdef SAP_AUTH_OFFLOAD
+   bool                        enable_sap_auth_offload;
+   uint32_t                    sap_auth_offload_sec_type;
+   uint8_t                     sap_auth_offload_key[WLAN_PSK_STRING_LENGTH];
+#endif /* SAP_AUTH_OFFLOAD */
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

@@ -2021,6 +2021,15 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         limMsg->bodyptr = NULL;
         break;
 #endif
+
+#ifdef SAP_AUTH_OFFLOAD
+    case WDA_SAP_OFL_ADD_STA:
+        lim_sap_offload_add_sta(pMac, limMsg);
+        break;
+    case WDA_SAP_OFL_DEL_STA:
+        lim_sap_offload_del_sta(pMac, limMsg);
+        break;
+#endif /* SAP_AUTH_OFFLOAD */
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

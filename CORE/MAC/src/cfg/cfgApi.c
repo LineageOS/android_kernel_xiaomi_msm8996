@@ -856,6 +856,15 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 
     if (LIM_IS_AP_ROLE(sessionEntry)) {
         val = sessionEntry->privacy;
+#ifdef SAP_AUTH_OFFLOAD
+         /* Support software AP Authentication Offload feature,
+          * If Auth offload security Type is not disabled
+          * We need to enable privacy bit in beacon
+          */
+        if (pMac->sap_auth_offload && pMac->sap_auth_offload_sec_type) {
+            val = 1;
+        }
+#endif
     } else {
         // PRIVACY bit
         if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)

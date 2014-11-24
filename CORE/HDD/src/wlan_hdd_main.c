@@ -4015,6 +4015,51 @@ int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
     return 0;
 }
 
+/**
+ * wlan_hdd_get_link_speed() - get link speed
+ * @pAdapter:     pointer to the adapter
+ * @link_speed:   pointer to link speed
+ *
+ * This function fetches per bssid link speed.
+ *
+ * Return: if associated, link speed shall be returned.
+ *         if not associated, link speed of 0 is returned.
+ *         On error, error number will be returned.
+ */
+int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed)
+{
+    hdd_context_t *hddctx = WLAN_HDD_GET_CTX(sta_adapter);
+    hdd_station_ctx_t *hdd_stactx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+    int ret;
+
+    ret = wlan_hdd_validate_context(hddctx);
+
+    if (0 != ret) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        return ret;
+    }
+
+    if (eConnectionState_Associated != hdd_stactx->conn_info.connState) {
+       /* we are not connected so we don't have a classAstats */
+       *link_speed = 0;
+    } else {
+        VOS_STATUS status;
+        tSirMacAddr bssid;
+
+        vos_mem_copy(bssid, hdd_stactx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
+
+        status = wlan_hdd_get_linkspeed_for_peermac(sta_adapter, bssid);
+        if (!VOS_IS_STATUS_SUCCESS(status)) {
+           hddLog(LOGE, FL("Unable to retrieve SME linkspeed"));
+           return -EINVAL;
+        }
+        *link_speed = sta_adapter->ls_stats.estLinkSpeed;
+        /* linkspeed in units of 500 kbps */
+        *link_speed = (*link_speed) / 500;
+    }
+    return 0;
+}
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -6108,6 +6153,21 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            wlan_hdd_get_rssi(pAdapter, &s7Rssi);
 
            len = scnprintf(extra, sizeof(extra), "%s %d", command, s7Rssi);
+           if (copy_to_user(priv_data.buf, &extra, len + 1)) {
+               hddLog(LOGE, FL("Failed to copy data to user buffer"));
+               ret = -EFAULT;
+               goto exit;
+           }
+       } else if (strncasecmp(command, "LINKSPEED", 9) == 0) {
+           uint32_t link_speed = 0;
+           char extra[32];
+           uint8_t len = 0;
+
+           ret = wlan_hdd_get_link_speed(pAdapter, &link_speed);
+           if (0 != ret)
+               goto exit;
+
+           len = scnprintf(extra, sizeof(extra), "%s %d", command, link_speed);
            if (copy_to_user(priv_data.buf, &extra, len + 1)) {
                hddLog(LOGE, FL("Failed to copy data to user buffer"));
                ret = -EFAULT;
@@ -9609,6 +9669,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
          }
+
+         hdd_set_sap_auth_offload(pAdapter, FALSE);
 
 #ifdef QCA_LL_TX_FLOW_CT
          WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);

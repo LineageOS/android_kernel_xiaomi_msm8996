@@ -3007,44 +3007,17 @@ static int iw_get_linkspeed(struct net_device *dev,
                             union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   hdd_context_t *pHddCtx;
-   hdd_station_ctx_t *pHddStaCtx;
    char *pLinkSpeed = (char*)extra;
    int len = sizeof(v_U32_t) + 1;
    v_U32_t link_speed = 0;
-   VOS_STATUS status;
-   int rc, valid;
-   tSirMacAddr bssid;
+   int rc;
+   int ret_val;
 
-   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-   valid = wlan_hdd_validate_context(pHddCtx);
-
-   if (0 != valid)
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
-       return valid;
+   ret_val = wlan_hdd_get_link_speed(pAdapter, &link_speed);
+   if (0 != ret_val) {
+       return ret_val;
    }
-   vos_mem_copy(bssid, pHddStaCtx->conn_info.bssId, VOS_MAC_ADDR_SIZE);
 
-   if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-   {
-      /* we are not connected so we don't have a classAstats */
-      link_speed = 0;
-   }
-   else
-   {
-       status = wlan_hdd_get_linkspeed_for_peermac(pAdapter, bssid);
-       if (!VOS_IS_STATUS_SUCCESS(status ))
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to retrieve SME linkspeed"));
-          return -EINVAL;
-       }
-       link_speed = pAdapter->ls_stats.estLinkSpeed;
-       /* linkspeed in units of 500 kbps */
-       link_speed = link_speed / 500;
-   }
    wrqu->data.length = len;
    /* return the linkspeed in the format required by the WiFi Framework */
    rc = snprintf(pLinkSpeed, len, "%u", link_speed);
