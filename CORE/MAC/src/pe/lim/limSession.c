@@ -108,6 +108,13 @@ void pe_reset_protection_callback(void *ptr)
     tUpdateBeaconParams beacon_params;
     tANI_U16 current_protection_state = 0;
 
+    if (pe_session_entry->valid == false) {
+        VOS_TRACE(VOS_MODULE_ID_PE,
+                  VOS_TRACE_LEVEL_ERROR,
+                  FL("session already deleted. exiting timer callback"));
+        return;
+    }
+
     current_protection_state |=
                pe_session_entry->gLimOlbcParams.protectionEnabled              |
                pe_session_entry->gLimOverlap11gParams.protectionEnabled   << 1 |
