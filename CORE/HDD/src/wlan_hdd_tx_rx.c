@@ -1665,7 +1665,11 @@ bool drop_ip6_mcast(struct sk_buff *skb)
 
     eth = eth_hdr(skb);
     if (unlikely(skb->pkt_type == PACKET_MULTICAST)) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
        if (unlikely(ether_addr_equal(eth->h_source, skb->dev->dev_addr)))
+#else
+       if (unlikely(!compare_ether_addr(eth->h_source, skb->dev->dev_addr)))
+#endif
             return true;
     }
     return false;
