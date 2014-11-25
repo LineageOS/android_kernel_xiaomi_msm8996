@@ -18466,6 +18466,69 @@ int wma_is_wow_mode_selected(WMA_HANDLE handle)
 	return wma->wow.wow_enable;
 }
 
+#ifdef WLAN_FEATURE_APFIND
+
+/**
+ * wma_apfind_set_cmd() - set APFIND configuration to firmware
+ * @wda_handle: pointer to wma handle.
+ * @apfind_req: pointer to apfind configuration request.
+ *
+ * This is called to send APFIND configuations to firmware via WMI command.
+ *
+ * Return: VOS_STATUS.
+ */
+static VOS_STATUS wma_apfind_set_cmd(void *wda_handle,
+				struct hal_apfind_request *apfind_req)
+{
+	int ret;
+	tp_wma_handle wma_handle = (tp_wma_handle)wda_handle;
+	wmi_apfind_cmd_param *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(*cmd);
+	u_int16_t apfind_data_len, apfind_data_len_aligned;
+	u_int8_t *buf_ptr;
+
+	if (!apfind_req) {
+		WMA_LOGE("%s:apfind req is not valid", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	apfind_data_len = apfind_req->request_data_len;
+	apfind_data_len_aligned = roundup(apfind_req->request_data_len,
+						sizeof(u_int32_t));
+	len += WMI_TLV_HDR_SIZE + apfind_data_len_aligned;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_apfind_cmd_param *) buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_apfind_cmd_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		wmi_apfind_cmd_param));
+	cmd->data_len = apfind_req->request_data_len;
+	WMA_LOGD("%s: The data len value is %u",
+		__func__, apfind_req->request_data_len);
+	buf_ptr += sizeof(wmi_apfind_cmd_param);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, apfind_data_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	vos_mem_copy(buf_ptr, apfind_req->request_data,
+		cmd->data_len);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			 WMI_APFIND_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("%s Failed to send set param command ret = %d", __func__, ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+#endif /* WLAN_FEATURE_APFIND */
+
 tAniGetPEStatsRsp * wma_get_stats_rsp_buf(tAniGetPEStatsReq *get_stats_param)
 {
 	tAniGetPEStatsRsp *stats_rsp_params;
@@ -23160,6 +23223,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* SAP_AUTH_OFFLOAD */
+#ifdef WLAN_FEATURE_APFIND
+		case WDA_APFIND_SET_CMD:
+			wma_apfind_set_cmd(wma_handle,
+				(struct hal_apfind_request *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif /* WLAN_FEATURE_APFIND */
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -23698,7 +23768,37 @@ skip_pno_cmp_ind:
 }
 
 #endif
+#ifdef WLAN_FEATURE_APFIND
+/* Record APFIND event comes from FW.
+ */
+static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	wmi_apfind_event_hdr *apfind_event_hdr;
+	WMI_APFIND_EVENTID_param_tlvs *param_buf =
+				(WMI_APFIND_EVENTID_param_tlvs *) event;
+	u_int8_t *buf;
+	u_int8_t ssid_tmp[WMI_MAX_SSID_LEN + 1];
 
+	if (!param_buf) {
+		WMA_LOGE("Invalid APFIND event buffer");
+		return -EINVAL;
+	}
+
+	apfind_event_hdr = param_buf->hdr;
+	WMA_LOGD("APFIND event received, id=%d, data_length=%d",
+		apfind_event_hdr->event_type, apfind_event_hdr->data_len);
+	buf = param_buf->data;
+	A_MEMZERO(ssid_tmp, sizeof(ssid_tmp));
+	A_MEMCPY(ssid_tmp, buf, sizeof(ssid_tmp));
+	WMA_LOGD("%s, APFIND match, dump ssid=%s\n", __func__, ssid_tmp);
+
+	buf = &param_buf->data[WMI_MAX_SSID_LEN];
+	WMA_LOGD("%s, APFIND dump mac=0x%08X-0x%08X\n",
+		__func__, *(u_int32_t *)buf, *(u_int32_t *)(buf + sizeof(u_int32_t)));
+	return 0;
+}
+#endif /* WLAN_FEATURE_APFIND */
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 /* Handle TX pause event from FW */
 static int wma_mcc_vdev_tx_pause_evt_handler(void *handle, u_int8_t *event,
@@ -24513,6 +24613,19 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		}
 	}
 #endif
+
+#ifdef WLAN_FEATURE_APFIND
+	WMA_LOGD("APFIND event handler register");
+	status = wmi_unified_register_event_handler(
+			wma_handle->wmi_handle,
+			WMI_APFIND_EVENTID,
+			wma_apfind_evt_handler);
+	if (status) {
+		WMA_LOGE("Failed to register APFIND event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+#endif /* WLAN_FEATURE_APFIND*/
 
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 	WMA_LOGE("MCC TX Pause Event Handler register");

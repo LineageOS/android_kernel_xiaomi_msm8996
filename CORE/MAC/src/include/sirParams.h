@@ -688,6 +688,10 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SAP_OFL_DEL_STA            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 305)
 #endif
 
+#ifdef WLAN_FEATURE_APFIND
+#define SIR_HAL_APFIND_SET_CMD             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 306)
+#endif /* WLAN_FEATURE_APFIND */
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

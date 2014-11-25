@@ -200,6 +200,13 @@ typedef struct {
     u_int32_t smeThrottlePeriod;
 } tSmeThermalParams;
 
+#ifdef WLAN_FEATURE_APFIND
+struct sme_ap_find_request_req{
+    u_int16_t request_data_len;
+    u_int8_t* request_data;
+};
+#endif /* WLAN_FEATURE_APFIND */
+
 /*-------------------------------------------------------------------------
   Function declarations and documentation
   ------------------------------------------------------------------------*/
@@ -4203,5 +4210,9 @@ eHalStatus sme_setMDNSResponse(tHalHandle hHal,
 eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
                       struct tSirSapOffloadInfo *sap_auth_offload_info);
 #endif /* SAP_AUTH_OFFLOAD */
+
+#ifdef WLAN_FEATURE_APFIND
+VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input);
+#endif /* WLAN_FEATURE_APFIND */
 
 #endif //#if !defined( __SME_API_H )

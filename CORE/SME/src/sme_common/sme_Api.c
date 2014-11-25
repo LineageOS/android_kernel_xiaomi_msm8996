@@ -5416,9 +5416,10 @@ eHalStatus sme_getLinkStatus(tHalHandle hHal,
            pMac->sme.linkStatusCallback = NULL;
            status = eHAL_STATUS_FAILURE;
         }
+
+        sme_ReleaseGlobalLock(&pMac->sme);
    }
 
-   sme_ReleaseGlobalLock(&pMac->sme);
    return (status);
 }
 
@@ -14710,4 +14711,50 @@ eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
 
 }
 #endif /* SAP_AUTH_OFFLOAD */
+
+#ifdef WLAN_FEATURE_APFIND
+/**
+ * sme_apfind_set_cmd() - set apfind configuration to firmware
+ * @input: pointer to apfind request data.
+ *
+ * SME API to set APFIND configuations to firmware.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input)
+{
+     vos_msg_t msg;
+     struct hal_apfind_request *data;
+     size_t data_len;
+
+     data_len = sizeof(struct hal_apfind_request) + input->request_data_len;
+     data = vos_mem_malloc(data_len);
+
+     if (data == NULL) {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                FL("Memory allocation failure"));
+         return VOS_STATUS_E_FAULT;
+     }
+
+     vos_mem_zero(data, data_len);
+     data->request_data_len = input->request_data_len;
+     if (input->request_data_len) {
+         vos_mem_copy(data->request_data,
+                input->request_data, input->request_data_len);
+     }
+
+     msg.type = WDA_APFIND_SET_CMD;
+     msg.reserved = 0;
+     msg.bodyptr = data;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            FL("Not able to post WDA_APFIND_SET_CMD message to WDA"));
+        vos_mem_free(data);
+        return VOS_STATUS_SUCCESS;
+    }
+
+     return VOS_STATUS_SUCCESS;
+}
+#endif /* WLAN_FEATURE_APFIND */
 
