@@ -120,7 +120,7 @@ void pe_reset_protection_callback(void *ptr)
                pe_session_entry->gLim11gParams.protectionEnabled          << 8 ;
 
     VOS_TRACE(VOS_MODULE_ID_PE,
-              VOS_TRACE_LEVEL_ERROR,
+              VOS_TRACE_LEVEL_INFO,
               FL("old protection state: 0x%04X, "
                  "new protection state: 0x%04X\n"),
               pe_session_entry->old_protection_state,
