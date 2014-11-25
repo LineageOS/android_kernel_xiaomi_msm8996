@@ -1072,6 +1072,13 @@ void ol_ramdump_handler(struct ol_softc *scn)
 		pr_err("Firmware crash detected...\n");
 		pr_err("Host SW version: %s\n", QWLAN_VERSIONSTR);
 		pr_err("FW version: %d.%d.%d.%d", MSPId, mSPId, SIId, CRMId);
+
+		if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+			printk("%s: Loading/Unloading is in progress, ignore!\n",
+				__func__);
+			return;
+		}
+
 		reg = (A_UINT32 *) (data + 4);
 		print_hex_dump(KERN_DEBUG, " ", DUMP_PREFIX_OFFSET, 16, 4, reg,
 				min_t(A_UINT32, len - 4, FW_REG_DUMP_CNT * 4),
@@ -1079,7 +1086,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 		scn->fw_ram_dumping = 0;
 
 		if (scn->enableFwSelfRecovery)
-			kobject_uevent(&scn->adf_dev->dev->kobj, KOBJ_OFFLINE);
+			vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 	}
 	else if (pattern == FW_REG_PATTERN) {
 		reg = (A_UINT32 *) (data + 4);
