@@ -4231,6 +4231,9 @@ static int iw_softap_stopbss(struct net_device *dev,
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
+        hdd_hostapd_state_t *pHostapdState =
+                       WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
+        vos_event_reset(&pHostapdState->vosEvent);
 #ifdef WLAN_FEATURE_MBSSID
         status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter));
 #else
@@ -4238,8 +4241,6 @@ static int iw_softap_stopbss(struct net_device *dev,
 #endif
         if (VOS_IS_STATUS_SUCCESS(status))
         {
-            hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
-
             status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
 
             if (!VOS_IS_STATUS_SUCCESS(status))
