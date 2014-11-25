@@ -228,11 +228,10 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
         sysInitGlobals(p_mac);
     }
 
-    /* Set the Powersave Offload Capability */
-    if (pMacOpenParms->powersaveOffloadEnabled)
-        p_mac->psOffloadEnabled = TRUE;
-    else
-        p_mac->psOffloadEnabled = FALSE;
+    /* Set the Powersave Offload Capability to TRUE irrespective of
+     * INI param as it should be always enabled for qca-cld driver
+     */
+    p_mac->psOffloadEnabled = TRUE;
 
     p_mac->scan.nextScanID = 1;
     /* FW: 0 to 2047 and Host: 2048 to 4095 */

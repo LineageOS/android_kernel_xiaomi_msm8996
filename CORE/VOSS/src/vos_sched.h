@@ -626,6 +626,7 @@ void vos_timer_module_init( void );
 VOS_STATUS vos_watchdog_wlan_shutdown(void);
 VOS_STATUS vos_watchdog_wlan_re_init(void);
 v_BOOL_t isWDresetInProgress(void);
+void vos_ssr_protect_init(void);
 void vos_ssr_protect(const char *caller_func);
 void vos_ssr_unprotect(const char *caller_func);
 bool vos_is_ssr_ready(const char *caller_func);

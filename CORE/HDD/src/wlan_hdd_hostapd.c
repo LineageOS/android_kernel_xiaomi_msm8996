@@ -1003,6 +1003,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 || pHddCtx->dev_dfs_cac_status == DFS_CAC_ALREADY_DONE)
             {
                 pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
+            } else {
+                /*
+                 * DFS requirement: Do not transmit during CAC.
+                 * This flag will be reset when BSS starts
+                 * (if not in a DFS channel) or CAC ends.
+                 */
+                pHddApCtx->dfs_cac_block_tx = VOS_TRUE;
             }
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
@@ -1073,9 +1080,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
             }
 #endif
-            /* reset the dfs_cac status only when the last BSS is stopped */
+            /* reset the dfs_cac_status and dfs_cac_block_tx flag only when
+             * the last BSS is stopped
+             */
             con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
             if (!con_sap_adapter) {
+                pHddApCtx->dfs_cac_block_tx = TRUE;
                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
             }
             goto stopbss;
@@ -5035,12 +5045,6 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     pAdapter->sessionCtx.ap.sapContext = sapContext;
-
-    /*
-     * DFS requirement: Do not transmit during CAC. This flag will be reset
-     * when BSS starts(if not in a DFS channel) or CAC ends.
-     */
-    pAdapter->sessionCtx.ap.dfs_cac_block_tx = VOS_TRUE;
 
     status = WLANSAP_Start(sapContext);
     if ( ! VOS_IS_STATUS_SUCCESS( status ) )

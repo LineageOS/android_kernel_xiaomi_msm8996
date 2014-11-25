@@ -1590,4 +1590,12 @@ struct sap_offload_del_sta_req
 };
 #endif /* SAP_AUTH_OFFLOAD */
 
+#ifdef WLAN_FEATURE_APFIND
+struct hal_apfind_request
+{
+    u_int16_t request_data_len;
+    u_int8_t  request_data[];
+};
+#endif
+
 #endif /* _HALMSGAPI_H_ */

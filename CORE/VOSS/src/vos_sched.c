@@ -71,8 +71,18 @@
  * we proceed with SSR in WD Thread
  */
 #define MAX_SSR_WAIT_ITERATIONS 100
+#define MAX_SSR_PROTECT_LOG (16)
 
 static atomic_t ssr_protect_entry_count;
+
+struct ssr_protect {
+   const char* func;
+   bool  free;
+   uint32_t pid;
+};
+
+static spinlock_t ssr_protect_lock;
+static struct ssr_protect ssr_protect_log[MAX_SSR_PROTECT_LOG];
 
 /*---------------------------------------------------------------------------
  * Type Declarations
@@ -2077,6 +2087,53 @@ VOS_STATUS vos_watchdog_wlan_re_init(void)
 }
 
 /**
+ * vos_ssr_protect_init() - initialize ssr protection debug functionality
+ *
+ * Return:
+ *        void
+ */
+void vos_ssr_protect_init(void)
+{
+    int i = 0;
+
+    spin_lock_init(&ssr_protect_lock);
+
+    while (i < MAX_SSR_PROTECT_LOG) {
+       ssr_protect_log[i].func = NULL;
+       ssr_protect_log[i].free = true;
+       ssr_protect_log[i].pid =  0;
+       i++;
+    }
+}
+
+/**
+ * vos_print_external_threads() - print external threads stuck in driver
+ *
+ * Return:
+ *        void
+ */
+
+static void vos_print_external_threads(void)
+{
+    int i = 0;
+    unsigned long irq_flags;
+
+    spin_lock_irqsave(&ssr_protect_lock, irq_flags);
+
+    while (i < MAX_SSR_PROTECT_LOG) {
+        if (!ssr_protect_log[i].free) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "PID %d is stuck at %s", ssr_protect_log[i].pid,
+               ssr_protect_log[i].func);
+        }
+        i++;
+    }
+
+    spin_unlock_irqrestore(&ssr_protect_lock, irq_flags);
+}
+
+
+/**
   @brief vos_ssr_protect()
 
   This function is called to keep track of active driver entry points
@@ -2089,9 +2146,34 @@ VOS_STATUS vos_watchdog_wlan_re_init(void)
 void vos_ssr_protect(const char *caller_func)
 {
      int count;
+     int i = 0;
+     bool status = false;
+     unsigned long irq_flags;
+
      count = atomic_inc_return(&ssr_protect_entry_count);
      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: ENTRY ACTIVE %d", caller_func, count);
+
+     spin_lock_irqsave(&ssr_protect_lock, irq_flags);
+
+     while (i < MAX_SSR_PROTECT_LOG) {
+         if (ssr_protect_log[i].free) {
+              ssr_protect_log[i].func = caller_func;
+              ssr_protect_log[i].free = false;
+              ssr_protect_log[i].pid = current->pid;
+              status = true;
+              break;
+         }
+         i++;
+     }
+
+     spin_unlock_irqrestore(&ssr_protect_lock, irq_flags);
+
+     if (!status)
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "Could not track PID %d call %s: log is full",
+             current->pid, caller_func);
+
 }
 
 /**
@@ -2105,9 +2187,35 @@ void vos_ssr_protect(const char *caller_func)
 void vos_ssr_unprotect(const char *caller_func)
 {
    int count;
+   int i = 0;
+   bool status = false;
+   unsigned long irq_flags;
+
    count = atomic_dec_return(&ssr_protect_entry_count);
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s: ENTRY INACTIVE %d", caller_func, count);
+
+   spin_lock_irqsave(&ssr_protect_lock, irq_flags);
+
+   while (i < MAX_SSR_PROTECT_LOG) {
+      if (!ssr_protect_log[i].free) {
+          if ((ssr_protect_log[i].pid == current->pid) &&
+              !strcmp(ssr_protect_log[i].func, caller_func)) {
+              ssr_protect_log[i].func = NULL;
+              ssr_protect_log[i].free = true;
+              ssr_protect_log[i].pid =  0;
+              status = true;
+              break;
+          }
+      }
+      i++;
+   }
+
+   spin_unlock_irqrestore(&ssr_protect_lock, irq_flags);
+
+   if (!status)
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+           "Untracked call %s", caller_func);
 }
 
 /**
@@ -2137,8 +2245,10 @@ bool vos_is_ssr_ready(const char *caller_func)
         }
     }
     /* at least one external thread is executing */
-    if (!count)
+    if (!count) {
+        vos_print_external_threads();
         return false;
+    }
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "Allowing SSR for %s", caller_func);

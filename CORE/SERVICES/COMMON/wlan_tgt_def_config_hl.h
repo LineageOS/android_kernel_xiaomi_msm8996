@@ -240,7 +240,11 @@
 /*
  * Maximum number of VDEV that beacon tx offload will support
  */
+#ifdef HIF_SDIO
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
+#else
+#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 1
+#endif
 
 /*
  * ht enable highest MCS by default

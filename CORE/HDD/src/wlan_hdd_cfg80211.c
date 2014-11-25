@@ -989,6 +989,39 @@ void wlan_hdd_cfg80211_nan_init(hdd_context_t *pHddCtx)
 
 #endif
 
+#ifdef WLAN_FEATURE_APFIND
+/**
+ * wlan_hdd_cfg80211_apfind_cmd() - set configuration to firmware
+ * @wiphy: pointer to wireless wiphy structure.
+ * @wdev: pointer to wireless_dev structure.
+ * @data: pointer to apfind configuration data.
+ * @data_len: the length in byte of apfind data.
+ *
+ * This is called when wlan driver needs to send APFIND configuations to
+ * firmware.
+ *
+ * Return: An error code or 0 on success.
+ */
+static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
+                                        struct wireless_dev *wdev,
+                                        void *data, int data_len)
+{
+    struct sme_ap_find_request_req  apfind_req;
+    VOS_STATUS      status;
+    int ret_val = -EIO;
+
+    apfind_req.request_data_len = data_len;
+    apfind_req.request_data = data;
+
+    status = sme_apfind_set_cmd(&apfind_req);
+    if (VOS_STATUS_SUCCESS == status) {
+        ret_val = 0;
+    }
+    return ret_val;
+}
+#endif /* WLAN_FEATURE_APFIND */
+
+
 /* vendor specific events */
 static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 {
@@ -4386,6 +4419,16 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV,
         .doit = wlan_hdd_cfg80211_get_concurrency_matrix
     },
+#ifdef WLAN_FEATURE_APFIND
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_APFIND,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV,
+        .doit = wlan_hdd_cfg80211_apfind_cmd
+    },
+#endif /* WLAN_FEATURE_APFIND */
+
 };
 
 

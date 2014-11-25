@@ -174,6 +174,7 @@ enum qca_nl80211_vendor_subcmds {
 
     /* Get Concurrency Matrix */
     QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX = 42,
+    QCA_NL80211_VENDOR_SUBCMD_APFIND = 52,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
