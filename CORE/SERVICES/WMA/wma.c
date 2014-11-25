@@ -6840,6 +6840,17 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		 * what type of devices are active.
 		 */
 		do {
+		    if (wma_is_SAP_active(wma_handle) &&
+		        wma_is_P2P_GO_active(wma_handle) &&
+		        wma_is_STA_active(wma_handle)) {
+		        if (scan_req->maxChannelTime <=
+		            WMA_3PORT_CONC_SCAN_MAX_BURST_DURATION)
+		            cmd->burst_duration = scan_req->maxChannelTime;
+		        else
+		            cmd->burst_duration =
+		                    WMA_3PORT_CONC_SCAN_MAX_BURST_DURATION;
+		        break;
+		    }
 		    if (wma_is_SAP_active(wma_handle)) {
 			/* Background scan while SoftAP is sending beacons.
 			 * Max duration of CTS2self is 32 ms, which limits
