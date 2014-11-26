@@ -820,12 +820,12 @@ sme_process_cmd:
                    pmcCommand = smeIsFullPowerNeeded( pMac, pCommand );
                 if( eSmeDropCommand == pmcCommand )
                 {
+                    csrLLUnlock(&pMac->sme.smeCmdActiveList);
                     //This command is not ok for current PMC state
                     if( csrLLRemoveEntry( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_LOCK ) )
                     {
                         smeAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE );
                     }
-                    csrLLUnlock( &pMac->sme.smeCmdActiveList );
                     //tell caller to continue
                     fContinue = eANI_BOOLEAN_TRUE;
                     goto sme_process_scan_queue;
