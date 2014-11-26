@@ -479,20 +479,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
    event.u.qual.qual = descriptor->rssi;
    event.u.qual.noise = descriptor->sinr;
 
-   /*To keep the rssi icon of the connected AP in the scan window
-    *and the rssi icon of the wireless networks in sync */
-   if (( eConnectionState_Associated ==
-              pAdapter->sessionCtx.station.conn_info.connState ) &&
-              ( VOS_TRUE == vos_mem_compare(descriptor->bssId,
-                             pAdapter->sessionCtx.station.conn_info.bssId,
-                             VOS_MAC_ADDR_SIZE)))
-   {
-      event.u.qual.level = pAdapter->rssi;
-   }
-   else
-   {
-      event.u.qual.level = VOS_MIN ((descriptor->rssi + descriptor->sinr), 0);
-   }
+   event.u.qual.level = VOS_MIN ((descriptor->rssi + descriptor->sinr), 0);
 
    event.u.qual.updated = IW_QUAL_ALL_UPDATED;
 
