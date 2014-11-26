@@ -115,6 +115,7 @@ typedef struct  svosTraceRecord
     v_U8_t code;
     v_U8_t session;
     v_U32_t data;
+    uint32_t pid;
 }tvosTraceRecord, *tpvosTraceRecord;
 
 typedef struct svosTraceData

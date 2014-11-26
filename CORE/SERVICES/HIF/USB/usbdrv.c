@@ -569,12 +569,22 @@ static void usb_hif_usb_recv_complete(struct urb *urb)
 
 	usb_hif_cleanup_recv_urb(urb_context);
 
-	if (A_SUCCESS(status)) {
+	/* Only re-submit URB when STATUS is success and HIF is not at the
+	   suspend state.
+	 */
+	if (A_SUCCESS(status) && !pipe->device->sc->suspend_state) {
 		if (pipe->urb_cnt >= pipe->urb_cnt_thresh) {
 			/* our free urbs are piling up, post more transfers */
 			usb_hif_post_recv_transfers(pipe,
 						    HIF_USB_RX_BUFFER_SIZE);
 		}
+	} else {
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+			("%s:  pipe: %d, fail to post URB: status(%d) suspend (%d)\n",
+				__func__,
+				pipe->logical_pipe_num,
+				urb->status,
+				pipe->device->sc->suspend_state));
 	}
 
 	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN, ("-%s\n", __func__));
@@ -928,11 +938,13 @@ void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 	HIF_USB_PIPE *pipe;
 	a_uint32_t buf_len;
 
-	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	printk("Enter:%s,Line:%d \n", __func__,__LINE__);
 
 	pipe = &device->pipes[HIF_RX_DATA_PIPE];
 	pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
 
+	printk("Post URBs to RX_DATA_PIPE: %d\n",
+		device->pipes[HIF_RX_DATA_PIPE].urb_cnt);
 	if (device->is_bundle_enabled) {
 		buf_len = device->rx_bundle_cnt *
 				HIF_USB_RX_BUNDLE_ONE_PKT_SIZE;
@@ -947,17 +959,23 @@ void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 			  buf_len));
 
 	if (!hif_usb_disable_rxdata2) {
+		printk("Post URBs to RX_DATA2_PIPE: %d\n",
+			device->pipes[HIF_RX_DATA2_PIPE].urb_cnt);
+
 		pipe = &device->pipes[HIF_RX_DATA2_PIPE];
 		pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
 		usb_hif_post_recv_transfers(pipe, HIF_USB_RX_BUFFER_SIZE);
 	}
 #ifdef USB_HIF_TEST_INTERRUPT_IN
+	printk("Post URBs to RX_INT_PIPE: %d\n",
+		device->pipes[HIF_RX_INT_PIPE].urb_cnt);
+
 	pipe = &device->pipes[HIF_RX_INT_PIPE];
 	pipe->urb_cnt_thresh = pipe->urb_alloc / 2;
 	usb_hif_post_recv_transfers(pipe, HIF_USB_RX_BUFFER_SIZE);
 #endif
 
-	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+	printk("Exit:%s,Line:%d \n", __func__,__LINE__);
 }
 
 A_STATUS usb_hif_submit_ctrl_out(HIF_DEVICE_USB *device,

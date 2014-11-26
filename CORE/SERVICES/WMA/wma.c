@@ -1758,8 +1758,11 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
-		iface->pause_bitmap = 0;
+                WMA_LOGD("%s, vdev_id: %d, un-pausing tx_ll_queue for VDEV_STOP rsp",
+                         __func__, resp_event->vdev_id);
+		wdi_in_vdev_unpause(iface->handle,
+				    OL_TXQ_PAUSE_REASON_VDEV_STOP);
+		iface->pause_bitmap &= ~(1 << PAUSE_TYPE_HOST);
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
@@ -6840,6 +6843,17 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		 * what type of devices are active.
 		 */
 		do {
+		    if (wma_is_SAP_active(wma_handle) &&
+		        wma_is_P2P_GO_active(wma_handle) &&
+		        wma_is_STA_active(wma_handle)) {
+		        if (scan_req->maxChannelTime <=
+		            WMA_3PORT_CONC_SCAN_MAX_BURST_DURATION)
+		            cmd->burst_duration = scan_req->maxChannelTime;
+		        else
+		            cmd->burst_duration =
+		                    WMA_3PORT_CONC_SCAN_MAX_BURST_DURATION;
+		        break;
+		    }
 		    if (wma_is_SAP_active(wma_handle)) {
 			/* Background scan while SoftAP is sending beacons.
 			 * Max duration of CTS2self is 32 ms, which limits
@@ -9634,6 +9648,11 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 					WMI_VDEV_RESTART_REQUEST_CMDID);
 
 	} else {
+		WMA_LOGD("%s, vdev_id: %d, unpausing tx_ll_queue at VDEV_START",
+			 __func__, cmd->vdev_id);
+		wdi_in_vdev_unpause(wma->interfaces[cmd->vdev_id].handle,
+				    0xffffffff);
+		wma->interfaces[cmd->vdev_id].pause_bitmap = 0;
 		ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				WMI_VDEV_START_REQUEST_CMDID);
 	}
@@ -9754,8 +9773,11 @@ void wma_vdev_resp_timer(void *data)
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
 		}
 		ol_txrx_vdev_flush(iface->handle);
-		wdi_in_vdev_unpause(iface->handle, 0xffffffff);
-		iface->pause_bitmap = 0;
+                WMA_LOGD("%s, vdev_id: %d, un-pausing tx_ll_queue for WDA_DELETE_BSS_REQ timeout",
+                         __func__, tgt_req->vdev_id);
+		wdi_in_vdev_unpause(iface->handle,
+				    OL_TXQ_PAUSE_REASON_VDEV_STOP);
+		iface->pause_bitmap &= ~(1 << PAUSE_TYPE_HOST);
 		adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STOPPED);
 		WMA_LOGD("%s: (type %d subtype %d) BSS is stopped",
 			 __func__, iface->type, iface->sub_type);
@@ -9836,6 +9858,13 @@ void wma_vdev_resp_timer(void *data)
 							__func__, tgt_req->vdev_id);
 			goto error0;
 		}
+
+		WMA_LOGD("%s, vdev_id: %d, pausing tx_ll_queue for VDEV_STOP (WDA_ADD_BSS_REQ timedout)",
+			 __func__, tgt_req->vdev_id);
+		wdi_in_vdev_pause(wma->interfaces[tgt_req->vdev_id].handle,
+				  OL_TXQ_PAUSE_REASON_VDEV_STOP);
+		wma->interfaces[tgt_req->vdev_id].pause_bitmap |=
+						(1 << PAUSE_TYPE_HOST);
 		if (wmi_unified_vdev_stop_send(wma->wmi_handle, tgt_req->vdev_id)) {
 				WMA_LOGP("%s: %d Failed to send vdev stop",	__func__, __LINE__);
 				wma_remove_vdev_req(wma, tgt_req->vdev_id,
@@ -14449,6 +14478,13 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 			 ol_txrx_get_tx_pending(pdev));
 	}
 
+	WMA_LOGD("%s, vdev_id: %d, pausing tx_ll_queue for VDEV_STOP (del_bss)",
+		 __func__, params->smesessionId);
+	wdi_in_vdev_pause(wma->interfaces[params->smesessionId].handle,
+			  OL_TXQ_PAUSE_REASON_VDEV_STOP);
+	wma->interfaces[params->smesessionId].pause_bitmap |=
+						(1 << PAUSE_TYPE_HOST);
+
 	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId)) {
 		WMA_LOGP("%s: %d Failed to send vdev stop",
 			 __func__, __LINE__);
@@ -14515,6 +14551,11 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 				roam_synch_in_progress);
 	}
 	else {
+		WMA_LOGD("%s, vdev_id: %d, pausing tx_ll_queue for VDEV_STOP",
+			 __func__, vdev_id);
+		wdi_in_vdev_pause(wma->interfaces[vdev_id].handle,
+				  OL_TXQ_PAUSE_REASON_VDEV_STOP);
+		wma->interfaces[vdev_id].pause_bitmap |= (1 << PAUSE_TYPE_HOST);
 		if (wmi_unified_vdev_stop_send(wma->wmi_handle, vdev_id)) {
 			WMA_LOGP("%s: %d Failed to send vdev stop",
 				 __func__, __LINE__);
@@ -21029,6 +21070,12 @@ void wma_hidden_ssid_vdev_restart(tp_wma_handle wma_handle,
         adf_os_atomic_set(&intr[pReq->sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,1);
 
         /* vdev stop -> vdev restart -> vdev up */
+	WMA_LOGD("%s, vdev_id: %d, pausing tx_ll_queue for VDEV_STOP",
+		 __func__, pReq->sessionId);
+	wdi_in_vdev_pause(wma_handle->interfaces[pReq->sessionId].handle,
+			  OL_TXQ_PAUSE_REASON_VDEV_STOP);
+	wma_handle->interfaces[pReq->sessionId].pause_bitmap |=
+						(1 << PAUSE_TYPE_HOST);
         if (wmi_unified_vdev_stop_send(wma_handle->wmi_handle, pReq->sessionId)) {
                 WMA_LOGE("%s: %d Failed to send vdev stop",
                          __func__, __LINE__);
