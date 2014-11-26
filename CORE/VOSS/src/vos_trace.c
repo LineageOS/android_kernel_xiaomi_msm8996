@@ -480,10 +480,10 @@ void vos_trace(v_U8_t module, v_U8_t code, v_U8_t session, v_U32_t data)
     {
         return;
     }
-    //If module is not registered, don't record for that module.
-    if (NULL == vostraceCBTable[module])
-    {
-        return;
+
+    /* If module is not registered, don't record for that module */
+    if (NULL == vostraceCBTable[module]) {
+         return;
     }
 
     /* Aquire the lock so that only one thread at a time can fill the ring buffer */

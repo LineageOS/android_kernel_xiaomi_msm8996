@@ -12642,9 +12642,7 @@ static int hdd_driver_init( void)
     */
 
    hdd_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
-#ifdef HDD_TRACE_RECORD
-   MTRACE(hddTraceInit());
-#endif
+
    vos_ssr_protect_init();
 
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
@@ -12693,6 +12691,10 @@ static int hdd_driver_init( void)
          ret_status = -1;
          break;
    }
+
+#ifdef HDD_TRACE_RECORD
+   MTRACE(hddTraceInit());
+#endif
 
 #ifndef MODULE
       /* For statically linked driver, call hdd_set_conparam to update curr_con_mode
