@@ -530,6 +530,7 @@ void vos_trace(v_U8_t module, v_U8_t code, v_U8_t session, v_U32_t data)
     rec->data = data;
     rec->time = adf_get_boottime();
     rec->module =  module;
+    rec->pid = (in_interrupt() ? 0 : current->pid);
     gvosTraceData.numSinceLastDump ++;
     spin_unlock_irqrestore(&ltraceLock, flags);
 }

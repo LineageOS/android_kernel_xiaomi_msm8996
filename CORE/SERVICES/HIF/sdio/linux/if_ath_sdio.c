@@ -119,12 +119,20 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
         target_type = TARGET_TYPE_AR9888;
 #elif defined(CONFIG_AR6320_SUPPORT)
         id = ((HIF_DEVICE*)hif_handle)->id;
-        if (id->device == MANUFACTURER_ID_QCA9377_BASE) {
+        if ((id->device & MANUFACTURER_ID_AR6K_BASE_MASK) == MANUFACTURER_ID_QCA9377_BASE) {
             hif_register_tbl_attach(HIF_TYPE_AR6320V2);
             target_register_tbl_attach(TARGET_TYPE_AR6320V2);
-        } else {
-            hif_register_tbl_attach(HIF_TYPE_AR6320);
-            target_register_tbl_attach(TARGET_TYPE_AR6320);
+        } else if ((id->device & MANUFACTURER_ID_AR6K_BASE_MASK) == MANUFACTURER_ID_AR6320_BASE) {
+            int ar6kid = id->device & MANUFACTURER_ID_AR6K_REV_MASK;
+            if (ar6kid >= 1) {
+                /* v2 or higher silicon */
+                hif_register_tbl_attach(HIF_TYPE_AR6320V2);
+                target_register_tbl_attach(TARGET_TYPE_AR6320V2);
+            } else {
+                /* legacy v1 silicon */
+                hif_register_tbl_attach(HIF_TYPE_AR6320);
+                target_register_tbl_attach(TARGET_TYPE_AR6320);
+            }
         }
         target_type = TARGET_TYPE_AR6320;
 

@@ -617,6 +617,8 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         hdd_cleanup_actionframe(pHddCtx, ap_adapter);
 
         pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
+        vos_event_reset(&pHostapdState->vosEvent);
+
         if ( VOS_STATUS_SUCCESS == WLANSAP_StopBss(
 #ifdef WLAN_FEATURE_MBSSID
             pHddApCtx->sapContext
@@ -9689,6 +9691,9 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          {
             VOS_STATUS status;
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+            hdd_hostapd_state_t *pHostapdState =
+                  WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+            vos_event_reset(&pHostapdState->vosEvent);
 
             //Stop Bss.
 #ifdef WLAN_FEATURE_MBSSID
@@ -9699,9 +9704,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
             if (VOS_IS_STATUS_SUCCESS(status))
             {
-               hdd_hostapd_state_t *pHostapdState =
-                  WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
-
                status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
 
                if (!VOS_IS_STATUS_SUCCESS(status))

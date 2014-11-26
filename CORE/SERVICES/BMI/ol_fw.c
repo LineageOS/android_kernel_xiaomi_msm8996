@@ -60,7 +60,7 @@
 static struct hash_fw fw_hash;
 #endif
 
-#ifdef HIF_PCI
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
 	19200000, /* SOC_REFCLK_19_2_MHZ */
@@ -1459,7 +1459,7 @@ ol_check_dataset_patch(struct ol_softc *scn, u_int32_t *address)
 	return 0;
 }
 
-#ifdef HIF_PCI
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 
 A_STATUS ol_fw_populate_clk_settings(A_refclk_speed_t refclk,
 				struct cmnos_clock_s *clock_s)
@@ -1539,8 +1539,10 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 	u_int32_t cmnos_cpu_speed_addr = 0;
 #ifdef HIF_USB/* fail for USB case */
 	struct hif_usb_softc *sc = scn->hif_sc;
-#else
+#elif defined HIF_PCI
 	struct hif_pci_softc *sc = scn->hif_sc;
+#else
+    struct ath_hif_sdio_softc *sc = scn->hif_sc;
 #endif
 
 	switch (scn->target_version) {
@@ -1855,7 +1857,7 @@ int ol_download_firmware(struct ol_softc *scn)
 {
 	u_int32_t param, address = 0;
 	int status = !EOK;
-#if defined(HIF_PCI)
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 	A_STATUS ret;
 #endif
 
@@ -1884,7 +1886,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		printk("%s: Target address not known! Using 0x%x\n", __func__, address);
 	}
 
-#if defined(HIF_PCI)
+#if defined(HIF_PCI) || defined(HIF_SDIO)
 	ret = ol_patch_pll_switch(scn);
 	if (ret) {
 		pr_err("pll switch failed. status %d\n", ret);
@@ -2366,10 +2368,6 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 }
 
 #ifdef HIF_SDIO
-#define SDIO_SWAP_MAILBOX_FW_ACK	0x10000
-#define SDIO_REDUCE_TX_COMPL_FW_ACK	0X20000
-#define SDIO_SWAP_MAILBOX_SET		0x1
-#define SDIO_REDUCE_TX_COMPL_SET	0x2
 
 /*Setting SDIO block size, mbox ISR yield limit for SDIO based HIF*/
 static A_STATUS
@@ -2452,7 +2450,10 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 			break;
 		}
 
-		param |= (SDIO_SWAP_MAILBOX_SET|SDIO_REDUCE_TX_COMPL_SET);
+		param |= (HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_SET|
+                  HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET|
+                  HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE);
+
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type,
 				offsetof(struct host_interest_s,
@@ -2480,12 +2481,12 @@ ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 		return;
 	}
 
-	if (value & SDIO_SWAP_MAILBOX_FW_ACK) {
+	if (value & HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_FW_ACK) {
 		printk("MAILBOX SWAP Service is enabled!\n");
 		HIFSetMailboxSwap(scn->hif_hdl);
 	}
 
-	if (value & SDIO_REDUCE_TX_COMPL_FW_ACK) {
+	if (value & HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_FW_ACK) {
 		printk("Reduced Tx Complete service is enabled!\n");
 		ol_cfg_set_tx_free_at_download(cfg_ctx);
 

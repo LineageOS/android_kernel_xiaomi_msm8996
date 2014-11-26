@@ -260,6 +260,8 @@ A_STATUS HIFDevDisableInterrupts(HIF_SDIO_DEVICE *pDev)
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("Failed to update interrupt control registers err: %d", status));
     }
 
+    /* mask the host controller interrupts */
+    HIFMaskInterrupt(pDev->HIFDevice);
     EXIT("status :%d",status);
     return status;
 }

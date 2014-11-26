@@ -820,12 +820,12 @@ sme_process_cmd:
                    pmcCommand = smeIsFullPowerNeeded( pMac, pCommand );
                 if( eSmeDropCommand == pmcCommand )
                 {
+                    csrLLUnlock(&pMac->sme.smeCmdActiveList);
                     //This command is not ok for current PMC state
                     if( csrLLRemoveEntry( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_LOCK ) )
                     {
                         smeAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE );
                     }
-                    csrLLUnlock( &pMac->sme.smeCmdActiveList );
                     //tell caller to continue
                     fContinue = eANI_BOOLEAN_TRUE;
                     goto sme_process_scan_queue;
@@ -3171,7 +3171,7 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
    tCsrScanResultFilter *scan_filter = NULL;
-   tScanResultHandle *filtered_scan_result = NULL;
+   tScanResultHandle filtered_scan_result = NULL;
    tSirBssDescription first_ap_profile;
 
    if (NULL == pMac) {
@@ -3179,20 +3179,12 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                  FL("pMac is NULL"));
        return VOS_STATUS_E_FAILURE;
    }
-   filtered_scan_result = vos_mem_malloc(sizeof(tScanResultHandle));
-   if (NULL == filtered_scan_result) {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                 FL("filtered_scan_result mem alloc failed"));
-      return VOS_STATUS_E_FAILURE;
-   }
    scan_filter = vos_mem_malloc(sizeof(tCsrScanResultFilter));
    if (NULL == scan_filter) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                  FL("scan_filter mem alloc failed"));
-       vos_mem_free(filtered_scan_result);
        return VOS_STATUS_E_FAILURE;
    } else {
-      vos_mem_set(filtered_scan_result, sizeof(tScanResultHandle), 0);
       vos_mem_set(scan_filter, sizeof(tCsrScanResultFilter), 0);
       vos_mem_set(&first_ap_profile, sizeof(tSirBssDescription), 0);
 
@@ -3217,17 +3209,17 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
       } else {
           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                     FL("Preparing the profile filter failed"));
-          vos_mem_free(filtered_scan_result);
           vos_mem_free(scan_filter);
           return VOS_STATUS_E_FAILURE;
       }
    }
    status = sme_AcquireGlobalLock( &pMac->sme );
    if (eHAL_STATUS_SUCCESS == status) {
-       status = csrScanGetResult(hHal, scan_filter, filtered_scan_result);
+       status = csrScanGetResult(hHal, scan_filter, &filtered_scan_result);
        if (eHAL_STATUS_SUCCESS == status) {
            csr_get_bssdescr_from_scan_handle(filtered_scan_result,
                                              &first_ap_profile);
+           csrScanResultPurge(pMac, filtered_scan_result);
            if (0 != first_ap_profile.channelId) {
                *ap_chnl_id = first_ap_profile.channelId;
                 VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -3253,7 +3245,6 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                     FL("Aquiring lock failed"));
    }
 
-   vos_mem_free(filtered_scan_result);
    vos_mem_free(scan_filter);
 
    return VOS_STATUS_SUCCESS;

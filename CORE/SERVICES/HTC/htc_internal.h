@@ -194,10 +194,12 @@ typedef struct _HTC_TARGET {
 #endif
     adf_os_device_t             osdev;
     struct ol_ath_htc_stats     htc_pkt_stats;
-    HTC_PACKET                  *pBundleFreeList;
+    HTC_PACKET                  *pBundleFreeTxList;
+    HTC_PACKET                  *pBundleFreeRxList;
     A_UINT32                    CE_send_cnt;
     A_UINT32                    TX_comp_cnt;
     A_UINT8                     MaxMsgsPerHTCBundle;
+    A_UINT16                    AltDataCreditSize;
 } HTC_TARGET;
 
 #define HTC_ENABLE_BUNDLE(target) (target->MaxMsgsPerHTCBundle > 1)
@@ -240,8 +242,11 @@ A_STATUS HTCRxCompletionHandler(
 A_STATUS HTCTxCompletionHandler(
             void *Context, adf_nbuf_t netbuf, unsigned int transferID);
 
-HTC_PACKET *AllocateHTCBundlePacket(HTC_TARGET *target);
-void FreeHTCBundlePacket(HTC_TARGET *target, HTC_PACKET *pPacket);
+HTC_PACKET *AllocateHTCBundleRxPacket(HTC_TARGET *target);
+HTC_PACKET *AllocateHTCBundleTxPacket(HTC_TARGET *target);
+
+void FreeHTCBundleRxPacket(HTC_TARGET *target, HTC_PACKET *pPacket);
+void FreeHTCBundleTxPacket(HTC_TARGET *target, HTC_PACKET *pPacket);
 
 HTC_PACKET *AllocateHTCPacketContainer(HTC_TARGET *target);
 void        FreeHTCPacketContainer(HTC_TARGET *target, HTC_PACKET *pPacket);

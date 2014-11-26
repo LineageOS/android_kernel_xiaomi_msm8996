@@ -441,7 +441,7 @@ bool hdd_ipa_is_enabled(hdd_context_t *hdd_ctx)
 static inline bool hdd_ipa_uc_is_enabled(struct hdd_ipa_priv *hdd_ipa)
 {
 #ifdef IPA_UC_OFFLOAD
-	return hdd_ipa->hdd_ctx->cfg_ini->IpaUcOffloadEnabled;
+	return (hdd_ipa && hdd_ipa->hdd_ctx->cfg_ini->IpaUcOffloadEnabled);
 #else
 	return false;
 #endif /* IPA_UC_OFFLOAD */
