@@ -78,8 +78,8 @@ struct hif_usb_softc {
 	struct usb_interface *interface;
 	struct notifier_block reboot_notifier;  /* default mode before reboot */
 	u8 suspend_state;
-	int hdd_removed;
-	int hdd_removed_processing;
+	atomic_t hdd_removed;
+	atomic_t hdd_removed_processing;
 	int hdd_removed_wait_cnt;
 	u8 *fw_data;
 	u32 fw_data_len;

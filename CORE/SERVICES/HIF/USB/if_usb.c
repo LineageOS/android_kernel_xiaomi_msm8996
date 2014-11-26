@@ -71,7 +71,6 @@ static wait_queue_head_t hif_usb_unload_event_wq;
 static atomic_t hif_usb_unload_state;
 struct hif_usb_softc *usb_sc = NULL;
 static int hif_usb_resume(struct usb_interface *interface);
-static atomic_t hif_usb_hdd_remove;
 
 static int
 hif_usb_configure(struct hif_usb_softc *sc, hif_handle_t *hif_hdl,
@@ -182,8 +181,8 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		athdiag_procfs_remove();
 		goto err_config;
 	}
-	sc->hdd_removed = 0;
-	sc->hdd_removed_processing = 0;
+	atomic_set(&sc->hdd_removed, -1);
+	atomic_set(&sc->hdd_removed_processing, 0);
 	sc->hdd_removed_wait_cnt = 0;
 
 #ifndef REMOVE_PKT_LOG
@@ -233,7 +232,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 	if (!sc)
 		return;
 	/* wait __hdd_wlan_exit until finished and no more than 4 seconds*/
-	while(usb_sc->hdd_removed_processing == 1 &&
+	while(atomic_read(&usb_sc->hdd_removed_processing) == 1 &&
 			usb_sc->hdd_removed_wait_cnt < 20) {
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(msecs_to_jiffies(DELAY_INT_FOR_HDD_REMOVE));
@@ -257,21 +256,16 @@ static void hif_usb_remove(struct usb_interface *interface)
 			   HIF_USB_UNLOAD_STATE_TARGET_RESET);
 	scn = sc->ol_sc;
 
-	if (atomic_read(&hif_usb_hdd_remove) == 0) {
-		atomic_set(&hif_usb_hdd_remove, 1);
 
-		if (usb_sc->hdd_removed == 0) {
-			usb_sc->hdd_removed = 1;
-			usb_sc->hdd_removed_processing = 1;
+	if (atomic_inc_and_test(&usb_sc->hdd_removed)) {
+		atomic_set(&usb_sc->hdd_removed_processing, 1);
 #ifndef REMOVE_PKT_LOG
-			if (vos_get_conparam() != VOS_FTM_MODE &&
-				!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-				pktlogmod_exit(scn);
+		if (vos_get_conparam() != VOS_FTM_MODE &&
+			!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+			pktlogmod_exit(scn);
 #endif
-			__hdd_wlan_exit();
-			usb_sc->hdd_removed_processing = 0;
-		}
-		atomic_set(&hif_usb_hdd_remove, 0);
+		__hdd_wlan_exit();
+		atomic_set(&usb_sc->hdd_removed_processing, 0);
 	}
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
@@ -471,7 +465,6 @@ int hif_register_driver(void)
 	is_usb_driver_register = 1;
 	init_waitqueue_head(&hif_usb_unload_event_wq);
 	atomic_set(&hif_usb_unload_state, HIF_USB_UNLOAD_STATE_NULL);
-	atomic_set(&hif_usb_hdd_remove, 0);
 	usb_register_notify(&hif_usb_dev_nb);
 	status = usb_register(&hif_usb_drv_id);
 
@@ -489,35 +482,37 @@ void hif_unregister_driver(void)
 			/* wait __hdd_wlan_exit until finished and no more than
 			 * 4 seconds
 			 */
-			while(usb_sc->hdd_removed_processing == 1 &&
-					usb_sc->hdd_removed_wait_cnt < 20) {
+			while(usb_sc &&
+				atomic_read(&usb_sc->hdd_removed_processing) == 1 &&
+				usb_sc->hdd_removed_wait_cnt < 20) {
+				usb_sc->hdd_removed_wait_cnt ++;
 				set_current_state(TASK_INTERRUPTIBLE);
 				schedule_timeout(msecs_to_jiffies(
 						DELAY_INT_FOR_HDD_REMOVE));
 				set_current_state(TASK_RUNNING);
-				usb_sc->hdd_removed_wait_cnt ++;
 			}
+
+			/* usb_sc is freed by hif_usb_remove */
+			if (!usb_sc)
+				goto deregister;
+
 			if (usb_sc->suspend_state) {
 				hif_usb_resume(usb_sc->interface);
 			}
 
-			if (atomic_read(&hif_usb_hdd_remove) == 0) {
-				atomic_set(&hif_usb_hdd_remove, 1);
-
-				if (usb_sc->hdd_removed == 0) {
-					usb_sc->hdd_removed = 1;
-					usb_sc->hdd_removed_processing = 1;
+			if (atomic_inc_and_test(&usb_sc->hdd_removed)) {
+				atomic_set(&usb_sc->hdd_removed_processing, 1);
 #ifndef REMOVE_PKT_LOG
-					if (vos_get_conparam() != VOS_FTM_MODE &&
-						!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
-						pktlogmod_exit(usb_sc->ol_sc);
+				if (vos_get_conparam() != VOS_FTM_MODE &&
+					!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
+					pktlogmod_exit(usb_sc->ol_sc);
 #endif
-					__hdd_wlan_exit();
-					usb_sc->hdd_removed_processing = 0;
-				}
-				atomic_set(&hif_usb_hdd_remove, 0);
+				__hdd_wlan_exit();
+				atomic_set(&usb_sc->hdd_removed_processing, 0);
 			}
 		}
+
+deregister:
 		is_usb_driver_register = 0;
 		atomic_set(&hif_usb_unload_state,
 			   HIF_USB_UNLOAD_STATE_DRV_DEREG);
