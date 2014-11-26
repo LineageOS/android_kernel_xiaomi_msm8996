@@ -101,7 +101,7 @@
 /*
  * keys per peer node
  */
-#define CFG_TGT_NUM_PEER_KEYS           2
+#define CFG_TGT_NUM_PEER_KEYS           1
 /*
  * total number of data TX and RX TIDs
  */
