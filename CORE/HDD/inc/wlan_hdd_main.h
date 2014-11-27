@@ -316,39 +316,16 @@ typedef struct hdd_tx_rx_stats_s
    // start_xmit stats
    __u32    txXmitCalled;
    __u32    txXmitDropped;
-   __u32    txXmitBackPressured;
-   __u32    txXmitQueued;
    __u32    txXmitClassifiedAC[NUM_TX_QUEUES];
    __u32    txXmitDroppedAC[NUM_TX_QUEUES];
-   __u32    txXmitBackPressuredAC[NUM_TX_QUEUES];
-   __u32    txXmitQueuedAC[NUM_TX_QUEUES];
-   // fetch_cbk stats
-   __u32    txFetched;
-   __u32    txFetchedAC[NUM_TX_QUEUES];
-   __u32    txFetchEmpty;
-   __u32    txFetchLowResources;
-   __u32    txFetchDequeueError;
-   __u32    txFetchDequeued;
-   __u32    txFetchDequeuedAC[NUM_TX_QUEUES];
-   __u32    txFetchDePressured;
-   __u32    txFetchDePressuredAC[NUM_TX_QUEUES];
    // complete_cbk_stats
    __u32    txCompleted;
-   // flush stats
-   __u32    txFlushed;
-   __u32    txFlushedAC[NUM_TX_QUEUES];
-   // Deque depressure stats
-   __u32    txDequeDePressured;
-   __u32    txDequeDePressuredAC[NUM_TX_QUEUES];
    // rx stats
    __u32    rxChains;
    __u32    rxPackets;
    __u32    rxDropped;
    __u32    rxDelivered;
    __u32    rxRefused;
-   __u32    pkt_tx_count; //TX pkt Counter used for dynamic splitscan
-   __u32    pkt_rx_count; //RX pkt Counter used for dynamic splitscan
-
 } hdd_tx_rx_stats_t;
 
 #ifdef WLAN_FEATURE_11W

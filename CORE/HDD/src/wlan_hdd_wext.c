@@ -676,25 +676,15 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
 
     snprintf(buffer, buf_len,
         "\nTransmit"
-        "\ncalled %u, dropped %u, backpressured %u, queued %u"
+        "\ncalled %u, dropped %u,"
         "\n      dropped BK %u, BE %u, VI %u, VO %u"
         "\n   classified BK %u, BE %u, VI %u, VO %u"
-        "\nbackpressured BK %u, BE %u, VI %u, VO %u"
-        "\n       queued BK %u, BE %u, VI %u, VO %u"
-        "\nfetched %u, empty %u, lowres %u, deqerr %u"
-        "\ndequeued %u, depressured %u, deque-depressured %u, completed %u, flushed %u"
-        "\n      fetched BK %u, BE %u, VI %u, VO %u"
-        "\n     dequeued BK %u, BE %u, VI %u, VO %u"
-        "\n  depressured BK %u, BE %u, VI %u, VO %u"
-        "\nDeque depressured BK %u, BE %u, VI %u, VO %u"
-        "\n      flushed BK %u, BE %u, VI %u, VO %u"
+        "\ncompleted %u,"
         "\n\nReceive"
         "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
         "\n",
         pStats->txXmitCalled,
         pStats->txXmitDropped,
-        pStats->txXmitBackPressured,
-        pStats->txXmitQueued,
 
         pStats->txXmitDroppedAC[WLANTL_AC_BK],
         pStats->txXmitDroppedAC[WLANTL_AC_BE],
@@ -706,51 +696,7 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         pStats->txXmitClassifiedAC[WLANTL_AC_VI],
         pStats->txXmitClassifiedAC[WLANTL_AC_VO],
 
-        pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
-        pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
-        pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
-        pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
-
-        pStats->txXmitQueuedAC[WLANTL_AC_BK],
-        pStats->txXmitQueuedAC[WLANTL_AC_BE],
-        pStats->txXmitQueuedAC[WLANTL_AC_VI],
-        pStats->txXmitQueuedAC[WLANTL_AC_VO],
-
-        pStats->txFetched,
-        pStats->txFetchEmpty,
-        pStats->txFetchLowResources,
-        pStats->txFetchDequeueError,
-
-        pStats->txFetchDequeued,
-        pStats->txFetchDePressured,
-        pStats->txDequeDePressured,
         pStats->txCompleted,
-        pStats->txFlushed,
-
-        pStats->txFetchedAC[WLANTL_AC_BK],
-        pStats->txFetchedAC[WLANTL_AC_BE],
-        pStats->txFetchedAC[WLANTL_AC_VI],
-        pStats->txFetchedAC[WLANTL_AC_VO],
-
-        pStats->txFetchDequeuedAC[WLANTL_AC_BK],
-        pStats->txFetchDequeuedAC[WLANTL_AC_BE],
-        pStats->txFetchDequeuedAC[WLANTL_AC_VI],
-        pStats->txFetchDequeuedAC[WLANTL_AC_VO],
-
-        pStats->txFetchDePressuredAC[WLANTL_AC_BK],
-        pStats->txFetchDePressuredAC[WLANTL_AC_BE],
-        pStats->txFetchDePressuredAC[WLANTL_AC_VI],
-        pStats->txFetchDePressuredAC[WLANTL_AC_VO],
-
-        pStats->txDequeDePressuredAC[WLANTL_AC_BK],
-        pStats->txDequeDePressuredAC[WLANTL_AC_BE],
-        pStats->txDequeDePressuredAC[WLANTL_AC_VI],
-        pStats->txDequeDePressuredAC[WLANTL_AC_VO],
-
-        pStats->txFlushedAC[WLANTL_AC_BK],
-        pStats->txFlushedAC[WLANTL_AC_BE],
-        pStats->txFlushedAC[WLANTL_AC_VI],
-        pStats->txFlushedAC[WLANTL_AC_VO],
 
         pStats->rxChains,
         pStats->rxPackets,
