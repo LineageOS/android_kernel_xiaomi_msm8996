@@ -9080,21 +9080,13 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     return 0;
 }
 
-void
-hddPrintPmkId(tANI_U8 *pmkId, tANI_U8 logLevel)
-{
-    VOS_TRACE(VOS_MODULE_ID_HDD, logLevel,
-              "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
-              pmkId[0], pmkId[1], pmkId[2], pmkId[3], pmkId[4],
-              pmkId[5], pmkId[6], pmkId[7], pmkId[8], pmkId[9], pmkId[10],
-              pmkId[11], pmkId[12], pmkId[13], pmkId[14], pmkId[15]);
-} /****** end hddPrintPmkId() ******/
-
 #define dump_pmkid(pMac, pmkid) \
-    { \
-        hddLog(VOS_TRACE_LEVEL_INFO, "PMKSA-ID:\t"); \
-        hddPrintPmkId(pmkid, VOS_TRACE_LEVEL_INFO);\
-    }
+{ \
+    hddLog(LOG1, "PMKSA-ID: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", \
+           pmkid[0], pmkid[1], pmkid[2], pmkid[3], pmkid[4], pmkid[5], \
+           pmkid[6], pmkid[7], pmkid[8], pmkid[9], pmkid[10], \
+           pmkid[11], pmkid[12], pmkid[13], pmkid[14], pmkid[15]); \
+}
 
 #if defined(FEATURE_WLAN_LFR) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 /*

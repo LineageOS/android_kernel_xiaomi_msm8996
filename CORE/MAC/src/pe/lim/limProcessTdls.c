@@ -672,9 +672,16 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                                &tdlsDisRsp.VHTCaps, psessionEntry );
 
     if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsDisRsp.SuppChannels,
                                             &tdlsDisRsp.SuppOperatingClasses);
+        if ( pMac->roam.configParam.bandCapability != eCSR_BAND_24)
+        {
+            tdlsDisRsp.HT2040BSSCoexistence.present = 1;
+            tdlsDisRsp.HT2040BSSCoexistence.infoRequest = 1;
+        }
+    }
     /*
      * now we pack it.  First, how much space are we going to need?
      */
@@ -959,9 +966,17 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
                             &tdlsSetupReq.AID, psessionEntry );
 
     if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsSetupReq.SuppChannels,
                                             &tdlsSetupReq.SuppOperatingClasses);
+        if ( pMac->roam.configParam.bandCapability != eCSR_BAND_24)
+        {
+            tdlsSetupReq.HT2040BSSCoexistence.present = 1;
+            tdlsSetupReq.HT2040BSSCoexistence.infoRequest = 1;
+        }
+    }
+
     /*
      * now we pack it.  First, how much space are we going to need?
      */
@@ -1414,9 +1429,16 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
                             &tdlsSetupRsp.AID, psessionEntry );
 
     if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsSetupRsp.SuppChannels,
                                             &tdlsSetupRsp.SuppOperatingClasses);
+        if ( pMac->roam.configParam.bandCapability != eCSR_BAND_24)
+        {
+            tdlsSetupRsp.HT2040BSSCoexistence.present = 1;
+            tdlsSetupRsp.HT2040BSSCoexistence.infoRequest = 1;
+        }
+    }
     tdlsSetupRsp.Status.status = setupStatus ;
 
     /*

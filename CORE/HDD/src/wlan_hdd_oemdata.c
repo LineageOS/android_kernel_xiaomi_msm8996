@@ -379,7 +379,7 @@ int iw_get_oem_data_cap(
   \return - none
 
   --------------------------------------------------------------------------*/
-void send_oem_reg_rsp_nlink_msg(void)
+static void send_oem_reg_rsp_nlink_msg(void)
 {
    struct sk_buff *skb;
    struct nlmsghdr *nlh;
@@ -473,7 +473,7 @@ void send_oem_reg_rsp_nlink_msg(void)
   \return - none
 
   --------------------------------------------------------------------------*/
-void send_oem_err_rsp_nlink_msg(v_SINT_t app_pid, tANI_U8 error_code)
+static void send_oem_err_rsp_nlink_msg(v_SINT_t app_pid, tANI_U8 error_code)
 {
    struct sk_buff *skb;
    struct nlmsghdr *nlh;
@@ -594,7 +594,7 @@ void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp)
   \return - eHalStatus enumeration
 
   --------------------------------------------------------------------------*/
-eHalStatus oem_process_data_req_msg(int oemDataLen, char *oemData)
+static eHalStatus oem_process_data_req_msg(int oemDataLen, char *oemData)
 {
    hdd_adapter_t *pAdapter = NULL;
    tOemDataReqConfig oemDataReqConfig;
@@ -646,7 +646,7 @@ eHalStatus oem_process_data_req_msg(int oemDataLen, char *oemData)
   \return - 0 for success, non zero for failure
 
   --------------------------------------------------------------------------*/
-int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
+static int oem_process_channel_info_req_msg(int numOfChannels, char *chanList)
 {
    struct sk_buff *skb;
    struct nlmsghdr *nlh;
@@ -913,7 +913,7 @@ int oem_activate_service(void *pAdapter)
   \return - 0 for success, non zero for failure
 
   --------------------------------------------------------------------------*/
-int oem_msg_callback(struct sk_buff *skb)
+static int oem_msg_callback(struct sk_buff *skb)
 {
    struct nlmsghdr *nlh;
    tAniMsgHdr *msg_hdr;

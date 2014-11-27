@@ -131,8 +131,6 @@ eCsrBand hdd_connGetConnectedBand( hdd_station_ctx_t *pHddStaCtx );
 extern eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, v_U32_t roamId,
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult );
 
-extern v_VOID_t hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, eCsrRoamBssType eBssType );
-
 v_BOOL_t hdd_connGetConnectedBssType( hdd_station_ctx_t *pHddCtx,
         eMib_dot11DesiredBssType *pConnectedBssType );
 

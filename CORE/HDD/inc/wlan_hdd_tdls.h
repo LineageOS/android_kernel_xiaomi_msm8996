@@ -325,16 +325,6 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
 
 hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx, u8* mac, u8 skip_self);
 
-void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
-                            eTDLSSupportMode tdls_mode,
-                            v_BOOL_t bUpdateLast);
-
-tANI_U32 wlan_hdd_tdls_discovery_sent_cnt(hdd_context_t *pHddCtx);
-
-void wlan_hdd_tdls_check_power_save_prohibited(hdd_adapter_t *pAdapter);
-
-void wlan_hdd_tdls_free_scan_request (tdls_scan_context_t *tdls_scan_ctx);
-
 int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
                             struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
@@ -390,7 +380,6 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
                                       tANI_S32 *reason);
 int wlan_hdd_set_callback(hddTdlsPeer_t *curr_peer,
                           cfg80211_exttdls_callback callback);
-hddTdlsPeer_t *wlan_hdd_tdls_find_first_connected_peer(hdd_adapter_t *pAdapter);
 int hdd_set_tdls_offchannel(hdd_context_t *pHddCtx, int offchannel);
 int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset);
 int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode);

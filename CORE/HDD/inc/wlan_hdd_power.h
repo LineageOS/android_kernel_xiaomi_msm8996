@@ -96,10 +96,4 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t* pAdapter, int fenable);
  *           either enable or disable them.
  */
 void hdd_conf_hostoffload(hdd_adapter_t * pAdapter, v_BOOL_t fenable);
-#ifdef WLAN_FEATURE_GTK_OFFLOAD
-void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable);
-#endif
-#ifdef WLAN_NS_OFFLOAD
-void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable);
-#endif
 #endif // if !defined __WLAN_QCT_DRIVER_H
