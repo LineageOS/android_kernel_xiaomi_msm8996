@@ -420,18 +420,10 @@ static struct hdd_ipa_priv *ghdd_ipa;
 	(((_hdd_ctx)->cfg_ini->IpaConfig & (_mask)) == (_mask))
 
 /* Local Function Prototypes */
-static void hdd_ipa_send_pkt_to_ipa(struct hdd_ipa_priv *hdd_ipa);
 static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
-static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type);
-
-#ifdef IPA_UC_OFFLOAD
-static void hdd_ipa_uc_rm_notify_handler(void *context,
-	void *rxpkt,
-	u_int16_t staid);
-#endif /* IPA_UC_OFFLOAD */
 
 bool hdd_ipa_is_enabled(hdd_context_t *hdd_ctx)
 {
@@ -769,9 +761,8 @@ static int hdd_ipa_uc_handle_last_discon(struct hdd_ipa_priv *hdd_ipa)
 	return 0;
 }
 
-void hdd_ipa_uc_rm_notify_handler(void *context,
-	void *rxpkt,
-	u_int16_t staid)
+static void
+hdd_ipa_uc_rm_notify_handler(void *context, void *rxpkt, u_int16_t staid)
 {
 	enum ipa_rm_event event_code;
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
@@ -812,7 +803,8 @@ void hdd_ipa_uc_rm_notify_handler(void *context,
 	}
 }
 
-void hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
+static void
+hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
 {
 	pVosSchedContext sched_ctx = get_vos_sched_ctxt();
 	struct VosTlshimPkt *pkt;
@@ -1346,6 +1338,109 @@ static int hdd_ipa_rm_try_release(struct hdd_ipa_priv *hdd_ipa)
 	return ret;
 }
 
+static void hdd_ipa_send_pkt_to_ipa(struct hdd_ipa_priv *hdd_ipa)
+{
+	struct ipa_tx_data_desc *send_desc, *desc, *tmp;
+	uint32_t cur_send_cnt = 0, pend_q_cnt;
+	adf_nbuf_t buf;
+	struct ipa_tx_data_desc *send_desc_head = NULL;
+
+	/* Unloading is in progress so do not proceed to send the packets to
+	 * IPA
+	 */
+	if (hdd_ipa->hdd_ctx->isUnloadInProgress)
+		return;
+
+	/* Make it priority queue request as send descriptor */
+	send_desc_head = hdd_ipa_alloc_data_desc(hdd_ipa, 1);
+
+	/* Try again later  when descriptors are available */
+	if (!send_desc_head)
+		return;
+
+	INIT_LIST_HEAD(&send_desc_head->link);
+
+	spin_lock_bh(&hdd_ipa->q_lock);
+
+	if (hdd_ipa->pending_hw_desc_cnt >= hdd_ipa->hw_desc_cnt) {
+		hdd_ipa->stats.num_rx_ipa_hw_maxed_out++;
+		spin_unlock_bh(&hdd_ipa->q_lock);
+		hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
+		return;
+	}
+
+	pend_q_cnt = hdd_ipa->pend_q_cnt;
+
+	if (pend_q_cnt == 0) {
+		spin_unlock_bh(&hdd_ipa->q_lock);
+		hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
+		return;
+	}
+
+	/* If hardware has more room than what is pending in the queue update
+	 * the send_desc_head right away without going through the loop
+	 */
+	if ((hdd_ipa->pending_hw_desc_cnt + pend_q_cnt) <
+			hdd_ipa->hw_desc_cnt) {
+		list_splice_tail_init(&hdd_ipa->pend_desc_head,
+				&send_desc_head->link);
+		cur_send_cnt = pend_q_cnt;
+		hdd_ipa->pend_q_cnt = 0;
+		hdd_ipa->stats.num_rx_ipa_splice++;
+	} else {
+		while (((hdd_ipa->pending_hw_desc_cnt + cur_send_cnt) <
+					hdd_ipa->hw_desc_cnt) && pend_q_cnt > 0)
+		{
+			send_desc = list_first_entry(&hdd_ipa->pend_desc_head,
+					struct ipa_tx_data_desc, link);
+			list_del(&send_desc->link);
+			list_add_tail(&send_desc->link, &send_desc_head->link);
+			cur_send_cnt++;
+			pend_q_cnt--;
+		}
+		hdd_ipa->stats.num_rx_ipa_loop++;
+
+		hdd_ipa->pend_q_cnt -= cur_send_cnt;
+
+		VOS_ASSERT(hdd_ipa->pend_q_cnt == pend_q_cnt);
+	}
+
+	hdd_ipa->pending_hw_desc_cnt += cur_send_cnt;
+	spin_unlock_bh(&hdd_ipa->q_lock);
+
+	if (ipa_tx_dp_mul(hdd_ipa->prod_client, send_desc_head) != 0) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"ipa_tx_dp_mul failed: %u, q_cnt: %u!",
+				hdd_ipa->pending_hw_desc_cnt,
+				hdd_ipa->pend_q_cnt);
+		goto ipa_tx_failed;
+	}
+
+	hdd_ipa->stats.num_rx_ipa_tx_dp += cur_send_cnt;
+	if (cur_send_cnt > hdd_ipa->stats.num_max_ipa_tx_mul)
+		hdd_ipa->stats.num_max_ipa_tx_mul = cur_send_cnt;
+
+	return;
+
+ipa_tx_failed:
+
+	spin_lock_bh(&hdd_ipa->q_lock);
+	hdd_ipa->pending_hw_desc_cnt -= cur_send_cnt;
+	spin_unlock_bh(&hdd_ipa->q_lock);
+
+	list_for_each_entry_safe(desc, tmp, &send_desc_head->link, link) {
+		list_del(&desc->link);
+		buf = desc->priv;
+		adf_nbuf_free(buf);
+		hdd_ipa_free_data_desc(hdd_ipa, desc);
+		hdd_ipa->stats.num_rx_ipa_tx_dp_err++;
+	}
+
+	/* Return anchor node */
+	hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
+}
+
+
 static void hdd_ipa_rm_send_pkt_to_ipa(struct work_struct *work)
 {
 	struct hdd_ipa_priv *hdd_ipa = container_of(work,
@@ -1635,108 +1730,6 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	else
 		++adapter->hdd_stats.hddTxRxStats.rxRefused;
 	adapter->dev->last_rx = jiffies;
-}
-
-static void hdd_ipa_send_pkt_to_ipa(struct hdd_ipa_priv *hdd_ipa)
-{
-	struct ipa_tx_data_desc *send_desc, *desc, *tmp;
-	uint32_t cur_send_cnt = 0, pend_q_cnt;
-	adf_nbuf_t buf;
-	struct ipa_tx_data_desc *send_desc_head = NULL;
-
-	/* Unloading is in progress so do not proceed to send the packets to
-	 * IPA
-	 */
-	if (hdd_ipa->hdd_ctx->isUnloadInProgress)
-		return;
-
-	/* Make it priority queue request as send descriptor */
-	send_desc_head = hdd_ipa_alloc_data_desc(hdd_ipa, 1);
-
-	/* Try again later  when descriptors are available */
-	if (!send_desc_head)
-		return;
-
-	INIT_LIST_HEAD(&send_desc_head->link);
-
-	spin_lock_bh(&hdd_ipa->q_lock);
-
-	if (hdd_ipa->pending_hw_desc_cnt >= hdd_ipa->hw_desc_cnt) {
-		hdd_ipa->stats.num_rx_ipa_hw_maxed_out++;
-		spin_unlock_bh(&hdd_ipa->q_lock);
-		hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
-		return;
-	}
-
-	pend_q_cnt = hdd_ipa->pend_q_cnt;
-
-	if (pend_q_cnt == 0) {
-		spin_unlock_bh(&hdd_ipa->q_lock);
-		hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
-		return;
-	}
-
-	/* If hardware has more room than what is pending in the queue update
-	 * the send_desc_head right away without going through the loop
-	 */
-	if ((hdd_ipa->pending_hw_desc_cnt + pend_q_cnt) <
-			hdd_ipa->hw_desc_cnt) {
-		list_splice_tail_init(&hdd_ipa->pend_desc_head,
-				&send_desc_head->link);
-		cur_send_cnt = pend_q_cnt;
-		hdd_ipa->pend_q_cnt = 0;
-		hdd_ipa->stats.num_rx_ipa_splice++;
-	} else {
-		while (((hdd_ipa->pending_hw_desc_cnt + cur_send_cnt) <
-					hdd_ipa->hw_desc_cnt) && pend_q_cnt > 0)
-		{
-			send_desc = list_first_entry(&hdd_ipa->pend_desc_head,
-					struct ipa_tx_data_desc, link);
-			list_del(&send_desc->link);
-			list_add_tail(&send_desc->link, &send_desc_head->link);
-			cur_send_cnt++;
-			pend_q_cnt--;
-		}
-		hdd_ipa->stats.num_rx_ipa_loop++;
-
-		hdd_ipa->pend_q_cnt -= cur_send_cnt;
-
-		VOS_ASSERT(hdd_ipa->pend_q_cnt == pend_q_cnt);
-	}
-
-	hdd_ipa->pending_hw_desc_cnt += cur_send_cnt;
-	spin_unlock_bh(&hdd_ipa->q_lock);
-
-	if (ipa_tx_dp_mul(hdd_ipa->prod_client, send_desc_head) != 0) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"ipa_tx_dp_mul failed: %u, q_cnt: %u!",
-				hdd_ipa->pending_hw_desc_cnt,
-				hdd_ipa->pend_q_cnt);
-		goto ipa_tx_failed;
-	}
-
-	hdd_ipa->stats.num_rx_ipa_tx_dp += cur_send_cnt;
-	if (cur_send_cnt > hdd_ipa->stats.num_max_ipa_tx_mul)
-		hdd_ipa->stats.num_max_ipa_tx_mul = cur_send_cnt;
-
-	return;
-
-ipa_tx_failed:
-
-	spin_lock_bh(&hdd_ipa->q_lock);
-	hdd_ipa->pending_hw_desc_cnt -= cur_send_cnt;
-	spin_unlock_bh(&hdd_ipa->q_lock);
-
-	list_for_each_entry_safe(desc, tmp, &send_desc_head->link, link) {
-		list_del(&desc->link);
-		buf = desc->priv;
-		adf_nbuf_free(buf);
-		hdd_ipa_free_data_desc(hdd_ipa, desc);
-		hdd_ipa->stats.num_rx_ipa_tx_dp_err++;
-	}
-
-	/* Return anchor node */
-	hdd_ipa_free_data_desc(hdd_ipa, send_desc_head);
 }
 
 VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
