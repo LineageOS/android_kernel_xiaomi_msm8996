@@ -22595,6 +22595,12 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 	u_int16_t len, psk_len;
 	int err;
 
+	if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				WMI_SERVICE_SAP_AUTH_OFFLOAD)) {
+		WMA_LOGE("Firmware not support SAP auth offload feature");
+		return -EIO;
+	}
+
 	psk_len = sap_auth_offload_info->key_len;
 	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + psk_len;
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
@@ -24802,27 +24808,30 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 
 #ifdef SAP_AUTH_OFFLOAD
-	/* Initialize the station connect event handler for
-	 * software AP authentication offload feature.
-	 */
-	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-				WMI_SAP_OFL_ADD_STA_EVENTID,
-				wma_sap_ofl_add_sta_handler);
-	if (status != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to register sap offload add_sta event cb");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto end;
-	}
-	/* Initialize the station disconnect event handler for
-	 * software AP authentication offload feature.
-	 */
-	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-				WMI_SAP_OFL_DEL_STA_EVENTID,
-				wma_sap_ofl_del_sta_handler);
-	if (status != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to register sap offload del_sta event cb");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto end;
+	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				WMI_SERVICE_SAP_AUTH_OFFLOAD)) {
+		/* Initialize the station connect event handler for
+		 * software AP authentication offload feature.
+		 */
+		status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_SAP_OFL_ADD_STA_EVENTID,
+					wma_sap_ofl_add_sta_handler);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to register sap offload add_sta event cb");
+			vos_status = VOS_STATUS_E_FAILURE;
+			goto end;
+		}
+		/* Initialize the station disconnect event handler for
+		 * software AP authentication offload feature.
+		 */
+		status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_SAP_OFL_DEL_STA_EVENTID,
+					wma_sap_ofl_del_sta_handler);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to register sap offload del_sta event cb");
+			vos_status = VOS_STATUS_E_FAILURE;
+			goto end;
+		}
 	}
 #endif /* SAP_AUTH_OFFLOAD */
 
@@ -25242,6 +25251,13 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_RTT))
 		gFwWlanFeatCaps |= (1 << RTT);
+
+#ifdef SAP_AUTH_OFFLOAD
+	cfg->sap_auth_offload_service =
+			WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+					WMI_SERVICE_SAP_AUTH_OFFLOAD);
+#endif
+
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

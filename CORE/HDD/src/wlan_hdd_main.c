@@ -7062,6 +7062,10 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     cfg_ini->isRoamOffloadEnabled &= cfg->en_roam_offload;
 #endif
 
+#ifdef SAP_AUTH_OFFLOAD
+    cfg_ini->enable_sap_auth_offload &= cfg->sap_auth_offload_service;
+#endif
+
 }
 
 static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
