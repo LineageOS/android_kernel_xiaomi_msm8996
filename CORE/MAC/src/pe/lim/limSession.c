@@ -154,7 +154,18 @@ void pe_reset_protection_callback(void *ptr)
 
     vos_mem_zero(&pe_session_entry->beaconParams,
                  sizeof(pe_session_entry->beaconParams));
+
+    vos_mem_zero(&mac_ctx->lim.gLimOverlap11gParams,
+                 sizeof(mac_ctx->lim.gLimOverlap11gParams));
+    vos_mem_zero(&mac_ctx->lim.gLimOverlap11aParams,
+                 sizeof(mac_ctx->lim.gLimOverlap11aParams));
+    vos_mem_zero(&mac_ctx->lim.gLimOverlapHt20Params,
+                 sizeof(mac_ctx->lim.gLimOverlapHt20Params));
+    vos_mem_zero(&mac_ctx->lim.gLimOverlapNonGfParams,
+                 sizeof(mac_ctx->lim.gLimOverlapNonGfParams));
+
     pe_session_entry->htOperMode = eSIR_HT_OP_MODE_PURE;
+    mac_ctx->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
 
     if ((current_protection_state != pe_session_entry->old_protection_state) &&
         (VOS_FALSE == mac_ctx->sap.SapDfsInfo.is_dfs_cac_timer_running)) {
