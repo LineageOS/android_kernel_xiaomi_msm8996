@@ -640,10 +640,10 @@ typedef enum {
      *  configures/finetunes RMC algorithms */
     WMI_RMC_CONFIG_CMDID,
 
-    /** WLAN multihop forwarding (MHF) offload commands */
-    /** enable/disable multihop forwarding offload */
+    /** WLAN MHF offload commands */
+    /** enable/disable MHF offload */
     WMI_MHF_OFFLOAD_SET_MODE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_MHF_OFL),
-    /** Plumb routing table for multihop forwarding offload */
+    /** Plumb routing table for MHF offload */
     WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID,
 
     /*location scan commands*/
@@ -7672,9 +7672,9 @@ typedef struct {
  *  the next hop using next hop's mac address. This is a vendor
  *  proprietary feature. */
 enum wmi_mhf_ofl_mode {
-    /** Disable multihop forwarding offload */
+    /** Disable MHF offload */
     WMI_MHF_OFL_MODE_DISABLED = 0,
-    /** Enable multihop forwarding offload */
+    /** Enable MHF offload */
     WMI_MHF_OFL_MODE_ENABLED = 1,
 };
 
@@ -7692,9 +7692,9 @@ typedef struct {
 enum wmi_mhf_ofl_table_action {
    /** Create forwarding offload table in FW */
    WMI_MHF_OFL_TBL_CREATE = 0,
-   /** Append to existing multihop forwarding offload table */
+   /** Append to existing MFF table */
    WMI_MHF_OFL_TBL_APPEND = 1,
-   /** Flush entire multihop forwarding offload table in FW */
+   /** Flush entire MHF offload table in FW */
    WMI_MHF_OFL_TBL_FLUSH = 2,
 };
 

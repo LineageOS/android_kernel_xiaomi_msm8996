@@ -140,7 +140,7 @@
 #define SIR_MAC_ACTION_UNPROT_WNM     11
 #define SIR_MAC_ACTION_TDLS           12
 #define SIR_MAC_ACITON_MESH           13
-#define SIR_MAC_ACTION_MULTIHOP       14
+#define SIR_MAC_ACTION_MHF            14
 #define SIR_MAC_SELF_PROTECTED        15
 #define SIR_MAC_ACTION_WME            17
 #define SIR_MAC_ACTION_VHT            21
