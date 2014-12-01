@@ -123,6 +123,10 @@ static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
 }
 #endif
 
+#ifdef HIF_USB
+static A_STATUS ol_usb_extra_initialization(struct ol_softc *scn);
+#endif
+
 extern int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
 
@@ -2067,6 +2071,8 @@ int ol_download_firmware(struct ol_softc *scn)
 
 #ifdef HIF_SDIO
 	status = ol_sdio_extra_initialization(scn);
+#elif defined(HIF_USB)
+	status = ol_usb_extra_initialization(scn);
 #endif
 
 	return status;
@@ -2498,5 +2504,23 @@ ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 		ol_cfg_set_tx_free_at_download(cfg_ctx);
 
 	}
+}
+#endif
+
+#ifdef HIF_USB
+static A_STATUS
+ol_usb_extra_initialization(struct ol_softc *scn)
+{
+	A_STATUS status = !EOK;
+	u_int32_t param = 0;
+
+	param |= HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE;
+	status = BMIWriteMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type,
+				offsetof(struct host_interest_s,
+					hi_acs_flags)),
+				(u_int8_t *)&param, 4, scn);
+
+	return status;
 }
 #endif
