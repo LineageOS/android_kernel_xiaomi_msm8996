@@ -17257,7 +17257,7 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
 		WMA_LOGE("%s: Doesn't have enough credits to Post "
 			"WMI_D0_WOW_ENABLE_DISABLE_CMDID! "
-			"Credits: %d, pending_cmds: %d\n", __func__,
+			"Credits: %d, pending_cmds: %d", __func__,
 			host_credits, wmi_pending_cmds);
 		goto error;
 	}
@@ -17272,7 +17272,11 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	vos_status = vos_wait_single_event(&wma->target_suspend,
 		WMA_TGT_SUSPEND_COMPLETE_TIMEOUT);
 	if (VOS_STATUS_SUCCESS != vos_status) {
-		WMA_LOGE("Failed to receive D0-WoW enable ACK from FW!");
+		WMA_LOGE("Failed to receive D0-WoW enable HTC ACK from FW! "
+			"Credits: %d, pending_cmds: %d",
+			wmi_get_host_credits(wma->wmi_handle),
+			wmi_get_pending_cmds(wma->wmi_handle));
+		VOS_BUG(0);
 		return VOS_STATUS_E_FAILURE;
 	}
 
