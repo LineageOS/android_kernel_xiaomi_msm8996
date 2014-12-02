@@ -2235,8 +2235,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                     psessionEntry->smeSessionId,
                     WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
               }
-              else
-              {
+              else {
                  limLog( pMac, LOGE, FL("Dropping the vendor specific action frame because of( "
                                         "WES Mode not enabled (WESMODE = %d) or OUI mismatch (%02x %02x %02x) or "
                                         "not received with SelfSta Mac address) system role = %d"),

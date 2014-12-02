@@ -2243,7 +2243,6 @@ typedef struct sSirMacRadioMeasureReport
 
 #define SIR_MAC_MIN_IE_LEN 2 // Minimum IE length for IE validation
 
-
 #define SIR_MAC_TI_TYPE_REASSOC_DEADLINE        1
 #define SIR_MAC_TI_TYPE_KEY_LIFETIME            2
 #define SIR_MAC_TI_TYPE_ASSOC_COMEBACK          3

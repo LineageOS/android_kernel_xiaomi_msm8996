@@ -5883,7 +5883,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limSendSetTxPowerReq(pMac,  pMsgBuf);
             break ;
 
-
         case eWNI_SME_CHANNEL_CHANGE_REQ:
             limProcessSmeChannelChangeRequest(pMac, pMsgBuf);
             break;
