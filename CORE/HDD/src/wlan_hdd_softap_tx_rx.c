@@ -197,6 +197,9 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
        }
 
        netif_tx_wake_all_queues(pAdapter->dev);
+       pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
+       pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
+
    }
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     else if (VOS_FALSE == tx_resume)  /* Pause TX  */
@@ -213,7 +216,13 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to start tx_flow_control_timer", __func__);
             }
+            else
+            {
+                pAdapter->hdd_stats.hddTxRxStats.txflow_stats.txflow_timer_cnt++;
+            }
         }
+        pAdapter->hdd_stats.hddTxRxStats.txflow_pause_cnt++;
+        pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = TRUE;
     }
 #endif
 
@@ -324,6 +333,9 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
           netif_tx_stop_all_queues(dev);
           vos_timer_start(&pAdapter->tx_flow_control_timer,
                           WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
+          pAdapter->hdd_stats.hddTxRxStats.txflow_timer_cnt++;
+          pAdapter->hdd_stats.hddTxRxStats.txflow_pause_cnt++;
+          pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = TRUE;
        }
    }
 #endif /* QCA_LL_TX_FLOW_CT */
