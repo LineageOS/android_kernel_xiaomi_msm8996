@@ -537,10 +537,10 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		 *  configures/finetunes RMC algorithms */
 		CASE_RETURN_STRING(WMI_RMC_CONFIG_CMDID);
 
-		/** WLAN multihop forwarding (MHF) offload commands */
-		/** enable/disable multihop forwarding offload */
+		/** WLAN MHF offload commands */
+		/** enable/disable MHF offload */
 		CASE_RETURN_STRING(WMI_MHF_OFFLOAD_SET_MODE_CMDID);
-		/** Plumb routing table for multihop forwarding offload */
+		/** Plumb routing table for MHF offload */
 		CASE_RETURN_STRING(WMI_MHF_OFFLOAD_PLUMB_ROUTING_TBL_CMDID);
 
 		/*location scan commands*/

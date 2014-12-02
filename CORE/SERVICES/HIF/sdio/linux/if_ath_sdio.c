@@ -434,3 +434,14 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
     ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
+
+int hif_pm_runtime_get(void)
+{
+    return 0;
+}
+
+int hif_pm_runtime_put(void)
+{
+    return 0;
+}
+

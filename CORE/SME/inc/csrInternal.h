@@ -1482,7 +1482,6 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
 tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 
-
 /* Post Channel Change Indication */
 eHalStatus csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
                         tANI_U8 targetChannel, tANI_U8 cbMode,
