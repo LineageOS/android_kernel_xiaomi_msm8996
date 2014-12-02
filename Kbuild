@@ -1310,6 +1310,7 @@ endif
 
 # Enable target dump for non-qualcomm platform
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
+CDEFINES += -DCONFIG_NON_QC_PLATFORM
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 CDEFINES += -DTARGET_DUMP_FOR_NON_QC_PLATFORM
 endif

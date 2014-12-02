@@ -223,6 +223,7 @@ err_alloc:
 static void hif_usb_remove(struct usb_interface *interface)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
+	struct usb_device *udev = interface_to_usbdev(interface);
 	struct hif_usb_softc *sc = device->sc;
 	struct ol_softc *scn;
 
@@ -239,12 +240,20 @@ static void hif_usb_remove(struct usb_interface *interface)
 		set_current_state(TASK_RUNNING);
 		usb_sc->hdd_removed_wait_cnt ++;
 	}
-	/* do cold reset */
-	HIFDiagWriteCOLDRESET(sc->hif_device);
-	/* wait for target jump to boot code and finish the initialization */
+
+	/* disable lpm to avoid following cold reset will
+	 *cause xHCI U1/U2 timeout
+	 */
+	usb_disable_lpm(udev);
+
+	/* wait for disable lpm */
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(msecs_to_jiffies(DELAY_FOR_TARGET_READY));
 	set_current_state(TASK_RUNNING);
+
+	/* do cold reset */
+	HIFDiagWriteCOLDRESET(sc->hif_device);
+
 	if (usb_sc->suspend_state) {
 		hif_usb_resume(usb_sc->interface);
 	}
@@ -628,4 +637,24 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
 	((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
+
+int hif_pm_runtime_get(void)
+{
+	if (usb_sc && usb_sc->interface)
+		return usb_autopm_get_interface_async(usb_sc->interface);
+	else {
+		pr_err("%s: USB interface isn't ready for autopm\n", __func__);
+		return 0;
+	}
+}
+
+int hif_pm_runtime_put(void)
+{
+	if (usb_sc && usb_sc->interface)
+		usb_autopm_put_interface_async(usb_sc->interface);
+	else
+		pr_err("%s: USB interface isn't ready for autopm\n", __func__);
+	return 0;
+}
+
 MODULE_LICENSE("Dual BSD/GPL");

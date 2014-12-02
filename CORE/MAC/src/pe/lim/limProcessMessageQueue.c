@@ -70,7 +70,6 @@
 #include "limFT.h"
 #endif
 
-
 #include "vos_types.h"
 #include "vos_packet.h"
 #include "vos_memory.h"
