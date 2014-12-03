@@ -19130,7 +19130,7 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	WMITLV_SET_HDR(&cmd->tlv_header,
 			WMITLV_TAG_STRUC_wmi_vdev_wmm_addts_cmd_fixed_param,
 			WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_wmm_addts_cmd_fixed_param));
-	cmd->vdev_id = msg->sessionId;
+	cmd->vdev_id = msg->sme_session_id;
 	cmd->ac = TID_TO_WME_AC(msg->tspec.tsinfo.traffic.userPrio);
 	cmd->medium_time_us = msg->tspec.mediumTime * 32;
 	cmd->downgrade_type = WMM_AC_DOWNGRADE_DROP;
