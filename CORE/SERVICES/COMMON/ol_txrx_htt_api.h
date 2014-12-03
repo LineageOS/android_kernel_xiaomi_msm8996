@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -166,6 +166,27 @@ ol_tx_completion_handler(
 
 void
 ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits);
+
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+void
+ol_txrx_update_tx_queue_groups(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t group_id,
+    int32_t credit,
+    u_int8_t absolute,
+    u_int32_t vdev_id_mask,
+    u_int32_t ac_mask
+);
+
+void
+ol_tx_desc_update_group_credit(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t tx_desc_id,
+    int credit, u_int8_t absolute);
+#define OL_TX_DESC_UPDATE_GROUP_CREDIT ol_tx_desc_update_group_credit
+#else
+#define OL_TX_DESC_UPDATE_GROUP_CREDIT(pdev, tx_desc_id, credit, absolute) /* no-op */
+#endif
 
 /**
  * @brief Init the total amount of target credit.
@@ -630,4 +651,10 @@ ol_rx_in_order_indication_handler(
     u_int8_t tid,
     u_int8_t is_offload );
 
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+u_int32_t ol_tx_get_max_tx_groups_supported(struct ol_txrx_pdev_t *pdev);
+#define OL_TX_GET_MAX_GROUPS ol_tx_get_max_tx_groups_supported
+#else
+#define OL_TX_GET_MAX_GROUPS(pdev) 0
+#endif
 #endif /* _OL_TXRX_HTT_API__H_ */

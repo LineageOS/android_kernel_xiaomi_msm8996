@@ -1235,3 +1235,155 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
 #endif
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
+
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+static a_bool_t
+ol_tx_vdev_has_tx_queue_group(
+    struct ol_tx_queue_group_t* group,
+    u_int8_t vdev_id)
+{
+    u_int16_t vdev_bitmap;
+    vdev_bitmap = OL_TXQ_GROUP_VDEV_ID_MASK_GET(group->membership);
+    if (OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(vdev_bitmap, vdev_id)) {
+        return A_TRUE;
+    }
+    return A_FALSE;
+}
+
+static a_bool_t
+ol_tx_ac_has_tx_queue_group(
+    struct ol_tx_queue_group_t* group,
+    u_int8_t ac)
+{
+    u_int16_t ac_bitmap;
+    ac_bitmap = OL_TXQ_GROUP_AC_MASK_GET(group->membership);
+    if (OL_TXQ_GROUP_AC_BIT_MASK_GET(ac_bitmap, ac)) {
+        return A_TRUE;
+    }
+    return A_FALSE;
+}
+
+u_int32_t ol_tx_txq_group_credit_limit(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    u_int32_t credit)
+{
+    u_int8_t i;
+    /*
+     * If this tx queue belongs to a group, check whether the group's
+     * credit limit is more stringent than the global credit limit.
+     */
+    for (i = 0; i < OL_TX_MAX_GROUPS_PER_QUEUE; i++) {
+        if (txq->group_ptrs[i]) {
+            u_int32_t group_credit;
+            group_credit = adf_os_atomic_read(&txq->group_ptrs[i]->credit);
+            credit = MIN(credit, group_credit);
+        }
+    }
+    return credit;
+}
+
+void ol_tx_txq_group_credit_update(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    int32_t credit,
+    u_int8_t absolute)
+{
+    u_int8_t i;
+    /*
+     * If this tx queue belongs to a group then
+     * update group credit
+     */
+    for (i = 0; i < OL_TX_MAX_GROUPS_PER_QUEUE; i++) {
+        if (txq->group_ptrs[i]) {
+            ol_txrx_update_group_credit(txq->group_ptrs[i], credit, absolute);
+        }
+    }
+}
+
+void
+ol_tx_set_vdev_group_ptr(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t vdev_id,
+    struct ol_tx_queue_group_t *grp_ptr)
+{
+    struct ol_txrx_vdev_t *vdev = NULL;
+    struct ol_txrx_peer_t *peer = NULL;
+
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        if (vdev->vdev_id == vdev_id) {
+            u_int8_t i, j;
+            /* update vdev queues group pointers */
+            for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+                for (j = 0; j < OL_TX_MAX_GROUPS_PER_QUEUE; j++) {
+                    vdev->txqs[i].group_ptrs[j] = grp_ptr;
+                }
+            }
+            adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
+            /* Update peer queue group pointers */
+            TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+                for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+                    for (j = 0; j < OL_TX_MAX_GROUPS_PER_QUEUE; j++) {
+                        peer->txqs[i].group_ptrs[j] = grp_ptr;
+                    }
+                }
+            }
+            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+            break;
+        }
+    }
+}
+
+void
+ol_tx_txq_set_group_ptr(
+    struct ol_tx_frms_queue_t *txq,
+    struct ol_tx_queue_group_t *grp_ptr)
+{
+    u_int8_t i;
+    for (i = 0; i < OL_TX_MAX_GROUPS_PER_QUEUE; i++) {
+        txq->group_ptrs[i] = grp_ptr;
+    }
+}
+
+void
+ol_tx_set_peer_group_ptr(
+    ol_txrx_pdev_handle pdev,
+    struct ol_txrx_peer_t *peer,
+    u_int8_t vdev_id,
+    u_int8_t tid)
+{
+    u_int8_t i, j = 0;
+    struct ol_tx_queue_group_t *group = NULL;
+
+    for (i = 0; i < OL_TX_MAX_GROUPS_PER_QUEUE; i++) {
+        peer->txqs[tid].group_ptrs[i] = NULL;
+    }
+    for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
+        group = &pdev->txq_grps[i];
+        if (ol_tx_vdev_has_tx_queue_group(group, vdev_id)) {
+            if (tid < OL_TX_NUM_QOS_TIDS) {
+                if (ol_tx_ac_has_tx_queue_group(
+                    group, TXRX_TID_TO_WMM_AC(tid))) {
+                    peer->txqs[tid].group_ptrs[j] = group;
+                    j++;
+                }
+            } else {
+                peer->txqs[tid].group_ptrs[j] = group;
+                j++;
+            }
+        }
+        if (j >= OL_TX_MAX_GROUPS_PER_QUEUE) {
+            break;
+        }
+    }
+}
+
+u_int32_t ol_tx_get_max_tx_groups_supported(struct ol_txrx_pdev_t *pdev)
+{
+#ifdef HIF_SDIO
+    return OL_TX_MAX_TXQ_GROUPS;
+#else
+    return 0;
+#endif
+}
+#endif

@@ -669,4 +669,12 @@ do {                                                                            
 #define DEBUG_HTT_CREDIT 0
 #endif
 
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+void
+ol_txrx_update_group_credit(
+    struct ol_tx_queue_group_t *group,
+    int32_t credit,
+    u_int8_t absolute);
+#endif
+
 #endif /* _OL_TXRX_INTERNAL__H_ */

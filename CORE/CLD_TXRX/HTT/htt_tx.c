@@ -749,3 +749,38 @@ int htt_tx_credit_update(struct htt_pdev_t *pdev)
    }
    return credit_delta;
 }
+
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+void htt_tx_group_credit_process(struct htt_pdev_t *pdev, u_int32_t *msg_word)
+{
+   int group_credit_sign;
+   int32_t group_credit;
+   u_int32_t group_credit_abs, vdev_id_mask, ac_mask;
+   u_int8_t group_abs, group_id;
+   u_int8_t group_offset = 0, more_group_present = 0;
+
+   more_group_present = HTT_TX_CREDIT_TXQ_GRP_GET(*msg_word);
+
+   while (more_group_present) {
+      /* Parse the Group Data */
+      group_id = HTT_TXQ_GROUP_ID_GET(*(msg_word+1+group_offset));
+      group_credit_abs =
+           HTT_TXQ_GROUP_CREDIT_COUNT_GET(*(msg_word+1+group_offset));
+      group_credit_sign =
+           HTT_TXQ_GROUP_SIGN_GET(*(msg_word+1+group_offset)) ? -1 : 1;
+      group_credit = group_credit_sign * group_credit_abs;
+      group_abs = HTT_TXQ_GROUP_ABS_GET(*(msg_word+1+group_offset));
+
+      vdev_id_mask =
+           HTT_TXQ_GROUP_VDEV_ID_MASK_GET(*(msg_word+2+group_offset));
+      ac_mask = HTT_TXQ_GROUP_AC_MASK_GET(*(msg_word+2+group_offset));
+
+      ol_txrx_update_tx_queue_groups(pdev->txrx_pdev, group_id,
+                                     group_credit, group_abs,
+                                     vdev_id_mask, ac_mask);
+      more_group_present = HTT_TXQ_GROUP_EXT_GET(*(msg_word+1+group_offset));
+      group_offset += HTT_TX_GROUP_INDEX_OFFSET;
+   }
+}
+#endif
+

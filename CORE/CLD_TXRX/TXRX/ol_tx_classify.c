@@ -513,6 +513,9 @@ ol_tx_classify(
     /* Whether this frame can download though HTT2 data pipe or not. */
     OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, tx_nbuf, tx_msdu_info);
 
+    /* Update Tx Queue info */
+    tx_desc->txq = txq;
+
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     return txq;
 }
@@ -590,6 +593,9 @@ ol_tx_classify_mgmt(
 
     /* Whether this frame can download though HTT2 data pipe or not. */
     OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, tx_nbuf, tx_msdu_info);
+
+    /* Update Tx Queue info */
+    tx_desc->txq = txq;
 
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     return txq;

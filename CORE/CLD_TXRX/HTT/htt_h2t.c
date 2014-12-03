@@ -114,10 +114,21 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
     struct htt_htc_pkt *pkt;
     adf_nbuf_t msg;
     u_int32_t *msg_word;
+    u_int32_t msg_size;
+    u_int32_t max_tx_group;
 
     pkt = htt_htc_pkt_alloc(pdev);
     if (!pkt) {
         return A_ERROR; /* failure */
+    }
+
+    max_tx_group = OL_TX_GET_MAX_GROUPS(pdev->txrx_pdev);
+
+    if (max_tx_group) {
+        msg_size = HTT_VER_REQ_BYTES +
+               sizeof(struct htt_option_tlv_mac_tx_queue_groups_t);
+    } else {
+        msg_size = HTT_VER_REQ_BYTES;
     }
 
     /* show that this is not a tx frame download (not required, but helpful) */
@@ -126,7 +137,7 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
 
     msg = adf_nbuf_alloc(
         pdev->osdev,
-        HTT_MSG_BUF_SIZE(HTT_VER_REQ_BYTES),
+        HTT_MSG_BUF_SIZE(msg_size),
         /* reserve room for the HTC header */
         HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING, 4, TRUE);
     if (!msg) {
@@ -140,7 +151,7 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
      * separately during the below call to adf_nbuf_push_head.
      * The contribution from the HTC header is added separately inside HTC.
      */
-    adf_nbuf_put_tail(msg, HTT_VER_REQ_BYTES);
+    adf_nbuf_put_tail(msg, msg_size);
 
     /* fill in the message contents */
     msg_word = (u_int32_t *) adf_nbuf_data(msg);
@@ -150,6 +161,17 @@ htt_h2t_ver_req_msg(struct htt_pdev_t *pdev)
 
     *msg_word = 0;
     HTT_H2T_MSG_TYPE_SET(*msg_word, HTT_H2T_MSG_TYPE_VERSION_REQ);
+
+    if (max_tx_group) {
+        *(msg_word + 1) = 0;
+        /* Fill Group Info */
+        HTT_OPTION_TLV_TAG_SET(*(msg_word+1),
+                           HTT_OPTION_TLV_TAG_MAX_TX_QUEUE_GROUPS);
+        HTT_OPTION_TLV_LENGTH_SET(*(msg_word+1),
+                          (sizeof(struct htt_option_tlv_mac_tx_queue_groups_t)/
+                           sizeof(u_int32_t)));
+        HTT_OPTION_TLV_VALUE0_SET(*(msg_word+1), max_tx_group);
+    }
 
     SET_HTC_PACKET_INFO_TX(
         &pkt->htc_pkt,

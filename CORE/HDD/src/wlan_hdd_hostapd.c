@@ -1546,6 +1546,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                         __func__, ret);
                 return VOS_STATUS_E_FAULT;
             }
+#else
+            return VOS_STATUS_E_FAILURE;
 #endif
         case eSAP_DFS_NOL_SET:
             hddLog(VOS_TRACE_LEVEL_INFO, FL("Received eSAP_DFS_NOL_SET event"));
@@ -1565,6 +1567,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                         __func__,
                         pSapEvent->sapevt.sapDfsNolInfo.sDfsList);
             }
+#else
+            return VOS_STATUS_E_FAILURE;
 #endif
             return VOS_STATUS_SUCCESS;
 

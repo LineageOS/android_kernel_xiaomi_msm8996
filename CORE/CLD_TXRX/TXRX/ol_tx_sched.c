@@ -658,6 +658,7 @@ ol_tx_sched_select_init_wrr_adv(struct ol_txrx_pdev_t *pdev)
     struct ol_tx_sched_wrr_adv_t *scheduler = pdev->tx_sched.scheduler;
     /* start selection from the front of the ordered list */
     scheduler->index = 0;
+    pdev->tx_sched.last_used_txq = NULL;
 }
 
 static void
@@ -711,7 +712,7 @@ ol_tx_sched_select_batch_wrr_adv(
     struct ol_tx_frms_queue_t *txq;
     int index;
     struct ol_tx_sched_wrr_adv_category_info_t *category = NULL;
-    int frames, bytes, used_credits;
+    int frames, bytes, used_credits = 0;
     /*
      * the macro may end up the function if all tx_queue is empty
      */
@@ -782,22 +783,52 @@ ol_tx_sched_select_batch_wrr_adv(
      * Take the tx queue from the head of the category list.
      */
     txq = TAILQ_FIRST(&category->state.head);
+
     if (txq){
         TAILQ_REMOVE(&category->state.head, txq, list_elem);
-        credit -= category->specs.credit_reserve;
-        frames = ol_tx_dequeue(
-                pdev, txq, &sctx->head, category->specs.send_limit, &credit, &bytes);
-        used_credits = credit;
-        category->state.frms -= frames;
-        category->state.bytes -= bytes;
-        if (txq->frms > 0) {
-            TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
+        credit = OL_TX_TXQ_GROUP_CREDIT_LIMIT(pdev, txq, credit);
+        if (credit > category->specs.credit_reserve) {
+            credit -= category->specs.credit_reserve;
+            /*
+             * this tx queue will download some frames,
+             * so update last_used_txq
+             */
+            pdev->tx_sched.last_used_txq = txq;
+
+            frames = ol_tx_dequeue(
+                        pdev, txq, &sctx->head, category->specs.send_limit,
+                        &credit, &bytes);
+            used_credits = credit;
+            category->state.frms -= frames;
+            category->state.bytes -= bytes;
+            if (txq->frms > 0) {
+                TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
+            } else {
+                if (category->state.frms == 0) {
+                    category->state.active = 0;
+                }
+            }
+            sctx->frms += frames;
+            OL_TX_TXQ_GROUP_CREDIT_UPDATE(pdev, txq, -credit, 0);
         } else {
-            if (category->state.frms == 0) {
-                category->state.active = 0;
+            if (OL_TX_IS_TXQ_LAST_SERVICED_QUEUE(pdev, txq)) {
+                /*
+                 * The scheduler has looked at all the active tx queues
+                 * but none were able to download any of their tx frames.
+                 * Nothing is changed, so if none were able to download before,
+                 * they wont be able to download now.
+                 * Return that no credit has been used, which
+                 * will cause the scheduler to stop.
+                 */
+                TAILQ_INSERT_HEAD(&category->state.head, txq, list_elem);
+                return 0;
+            } else {
+                TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
+                if (!pdev->tx_sched.last_used_txq) {
+                    pdev->tx_sched.last_used_txq = txq;
+                }
             }
         }
-        sctx->frms += frames;
         TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     } else {
         used_credits = 0;

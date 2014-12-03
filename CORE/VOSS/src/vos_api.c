@@ -2397,6 +2397,12 @@ void vos_trigger_recovery(void)
 #endif
 }
 
+/**
+ * @brief vos_get_monotonic_boottime()
+ * Get kernel boot time.
+ * @return Time in microseconds
+ */
+
 v_U64_t vos_get_monotonic_boottime(void)
 {
 #ifdef CONFIG_CNSS
@@ -2405,7 +2411,7 @@ v_U64_t vos_get_monotonic_boottime(void)
    cnss_get_monotonic_boottime(&ts);
    return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
 #else
-   return adf_os_ticks_to_msecs(adf_os_ticks());
+   return adf_os_ticks_to_msecs(adf_os_ticks()) * 1000;
 #endif
 }
 

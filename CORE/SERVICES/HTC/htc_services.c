@@ -274,7 +274,7 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
             break;
         }
 
-#if defined(HIF_USB) || defined(HIF_SDIO)
+#if defined(HIF_SDIO)
         /*
          When AltDataCreditSize is non zero, it indicates the credit size for
          HTT and all other services on Mbox0. Mbox1 has WMI_CONTROL_SVC which
@@ -291,6 +291,14 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
 
         if ((target->AltDataCreditSize) && HIFIsMailBoxSwapped(target->hif_dev)
             && (pEndpoint->UL_PipeID == 1) && (pEndpoint->DL_PipeID == 0))
+            pEndpoint->TxCreditSize = target->AltDataCreditSize;
+#elif defined(HIF_USB)
+        /*
+         * Endpoing to pipe is one-to-one mapping in USB.
+         * If AltDataCreditSize is not zero, it indicates the credit size for
+         * HTT_DATA_MSG_SVC services use AltDataCrditSize.
+         */
+        if ((target->AltDataCreditSize) && (pEndpoint->ServiceID == HTT_DATA_MSG_SVC))
             pEndpoint->TxCreditSize = target->AltDataCreditSize;
 #endif
 

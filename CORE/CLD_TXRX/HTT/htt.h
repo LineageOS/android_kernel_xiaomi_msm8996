@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -82,9 +82,15 @@
  * 3.9  Added HTT_T2H CHAN_CHANGE message;
  *      Allow buffer addresses in bus-address format to be stored as
  *      either 32 bits or 64 bits.
+ * 3.10 Add optional TLV extensions to the VERSION_REQ and VERSION_CONF
+ *      messages to specify which HTT options to use.
+ *      Initial TLV options cover:
+ *        - whether to use 32 or 64 bits to represent LL bus addresses
+ *        - whether to use TX_COMPL_IND or TX_CREDIT_UPDATE_IND in HL systems
+ *        - how many tx queue groups to use
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 9
+#define HTT_CURRENT_VERSION_MINOR 10
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -168,6 +174,178 @@ enum htt_dbg_stats_type {
     HTT_DBG_NUM_STATS
 };
 
+/*=== HTT option selection TLVs ===
+ * Certain HTT messages have alternatives or options.
+ * For such cases, the host and target need to agree on which option to use.
+ * Option specification TLVs can be appended to the VERSION_REQ and
+ * VERSION_CONF messages to select options other than the default.
+ * These TLVs are entirely optional - if they are not provided, there is a
+ * well-defined default for each option.  If they are provided, they can be
+ * provided in any order.  Each TLV can be present or absent independent of
+ * the presence / absence of other TLVs.
+ *
+ * The HTT option selection TLVs use the following format:
+ *     |31                             16|15             8|7              0|
+ *     |---------------------------------+----------------+----------------|
+ *     |        value (payload)          |     length     |       tag      |
+ *     |-------------------------------------------------------------------|
+ * The value portion need not be only 2 bytes; it can be extended by any
+ * integer number of 4-byte units.  The total length of the TLV, including
+ * the tag and length fields, must be a multiple of 4 bytes.  The length
+ * field specifies the total TLV size in 4-byte units.  Thus, the typical
+ * TLV, with a 1-byte tag field, a 1-byte length field, and a 2-byte value
+ * field, would store 0x1 in its length field, to show that the TLV occupies
+ * a single 4-byte unit.
+ */
+
+/*--- TLV header format - applies to all HTT option TLVs ---*/
+
+enum HTT_OPTION_TLV_TAGS {
+    HTT_OPTION_TLV_TAG_RESERVED0                = 0x0,
+    HTT_OPTION_TLV_TAG_LL_BUS_ADDR_SIZE         = 0x1,
+    HTT_OPTION_TLV_TAG_HL_SUPPRESS_TX_COMPL_IND = 0x2,
+    HTT_OPTION_TLV_TAG_MAX_TX_QUEUE_GROUPS      = 0x3,
+};
+
+PREPACK struct htt_option_tlv_header_t {
+    A_UINT8 tag;
+    A_UINT8 length;
+} POSTPACK;
+
+#define HTT_OPTION_TLV_TAG_M      0x000000ff
+#define HTT_OPTION_TLV_TAG_S      0
+#define HTT_OPTION_TLV_LENGTH_M   0x0000ff00
+#define HTT_OPTION_TLV_LENGTH_S   8
+/*
+ * value0 - 16 bit value field stored in word0
+ * The TLV's value field may be longer than 2 bytes, in which case
+ * the remainder of the value is stored in word1, word2, etc.
+ */
+#define HTT_OPTION_TLV_VALUE0_M   0xffff0000
+#define HTT_OPTION_TLV_VALUE0_S   16
+
+#define HTT_OPTION_TLV_TAG_SET(word, tag)           \
+    do {                                            \
+        HTT_CHECK_SET_VAL(HTT_OPTION_TLV_TAG, tag); \
+        (word) |= ((tag) << HTT_OPTION_TLV_TAG_S);  \
+    } while (0)
+#define HTT_OPTION_TLV_TAG_GET(word) \
+    (((word) & HTT_OPTION_TLV_TAG_M) >> HTT_OPTION_TLV_TAG_S)
+
+#define HTT_OPTION_TLV_LENGTH_SET(word, tag)           \
+    do {                                               \
+        HTT_CHECK_SET_VAL(HTT_OPTION_TLV_LENGTH, tag); \
+        (word) |= ((tag) << HTT_OPTION_TLV_LENGTH_S);  \
+    } while (0)
+#define HTT_OPTION_TLV_LENGTH_GET(word) \
+    (((word) & HTT_OPTION_TLV_LENGTH_M) >> HTT_OPTION_TLV_LENGTH_S)
+
+#define HTT_OPTION_TLV_VALUE0_SET(word, tag)           \
+    do {                                               \
+        HTT_CHECK_SET_VAL(HTT_OPTION_TLV_VALUE0, tag); \
+        (word) |= ((tag) << HTT_OPTION_TLV_VALUE0_S);  \
+    } while (0)
+#define HTT_OPTION_TLV_VALUE0_GET(word) \
+    (((word) & HTT_OPTION_TLV_VALUE0_M) >> HTT_OPTION_TLV_VALUE0_S)
+
+/*--- format of specific HTT option TLVs ---*/
+
+/*
+ * HTT option TLV for specifying LL bus address size
+ * Some chips require bus addresses used by the target to access buffers
+ * within the host's memory to be 32 bits; others require bus addresses
+ * used by the target to access buffers within the host's memory to be
+ * 64 bits.
+ * The LL_BUS_ADDR_SIZE TLV can be sent from the target to the host as
+ * a suffix to the VERSION_CONF message to specify which bus address format
+ * the target requires.
+ * If this LL_BUS_ADDR_SIZE TLV is not sent by the target, the host should
+ * default to providing bus addresses to the target in 32-bit format.
+ */
+enum HTT_OPTION_TLV_LL_BUS_ADDR_SIZE_VALUES {
+    HTT_OPTION_TLV_LL_BUS_ADDR_SIZE32 = 0x0,
+    HTT_OPTION_TLV_LL_BUS_ADDR_SIZE64 = 0x1,
+};
+PREPACK struct htt_option_tlv_ll_bus_addr_size_t {
+    struct htt_option_tlv_header_t hdr;
+    A_UINT16 ll_bus_addr_size; /* LL_BUS_ADDR_SIZE_VALUES enum */
+} POSTPACK;
+
+/*
+ * HTT option TLV for specifying whether HL systems should indicate
+ * over-the-air tx completion for individual frames, or should instead
+ * send a bulk TX_CREDIT_UPDATE_IND except when the host explicitly
+ * requests an OTA tx completion for a particular tx frame.
+ * This option does not apply to LL systems, where the TX_COMPL_IND
+ * is mandatory.
+ * This option is primarily intended for HL systems in which the tx frame
+ * downloads over the host --> target bus are as slow as or slower than
+ * the transmissions over the WLAN PHY.  For cases where the bus is faster
+ * than the WLAN PHY, the target will transmit relatively large A-MPDUs,
+ * and consquently will send one TX_COMPL_IND message that covers several
+ * tx frames.  For cases where the WLAN PHY is faster than the bus,
+ * the target will end up transmitting very short A-MPDUs, and consequently
+ * sending many TX_COMPL_IND messages, which each cover a very small number
+ * of tx frames.
+ * The HL_SUPPRESS_TX_COMPL_IND TLV can be sent by the host to the target as
+ * a suffix to the VERSION_REQ message to request whether the host desires to
+ * use TX_CREDIT_UPDATE_IND rather than TX_COMPL_IND.  The target can then
+ * send a HTT_SUPPRESS_TX_COMPL_IND TLV to the host as a suffix to the
+ * VERSION_CONF message to confirm whether TX_CREDIT_UPDATE_IND will be used
+ * rather than TX_COMPL_IND.  TX_CREDIT_UPDATE_IND shall only be used if the
+ * host sends a HL_SUPPRESS_TX_COMPL_IND TLV requesting use of
+ * TX_CREDIT_UPDATE_IND, and the target sends a HL_SUPPRESS_TX_COMPLE_IND TLV
+ * back to the host confirming use of TX_CREDIT_UPDATE_IND.
+ * Lack of a HL_SUPPRESS_TX_COMPL_IND TLV from either host --> target or
+ * target --> host is equivalent to a HL_SUPPRESS_TX_COMPL_IND that
+ * explicitly specifies HL_ALLOW_TX_COMPL_IND in the value payload of the
+ * TLV.
+ */
+enum HTT_OPTION_TLV_HL_SUPPRESS_TX_COMPL_IND_VALUES {
+    HTT_OPTION_TLV_HL_ALLOW_TX_COMPL_IND = 0x0,
+    HTT_OPTION_TLV_HL_SUPPRESS_TX_COMPL_IND = 0x1,
+};
+PREPACK struct htt_option_tlv_hl_suppress_tx_compl_ind_t {
+    struct htt_option_tlv_header_t hdr;
+    A_UINT16 hl_suppress_tx_compl_ind; /* HL_SUPPRESS_TX_COMPL_IND enum */
+} POSTPACK;
+
+/*
+ * HTT option TLV for specifying how many tx queue groups the target
+ * may establish.
+ * This TLV specifies the maximum value the target may send in the
+ * txq_group_id field of any TXQ_GROUP information elements sent by
+ * the target to the host.  This allows the host to pre-allocate an
+ * appropriate number of tx queue group structs.
+ *
+ * The MAX_TX_QUEUE_GROUPS_TLV can be sent from the host to the target as
+ * a suffix to the VERSION_REQ message to specify whether the host supports
+ * tx queue groups at all, and if so if there is any limit on the number of
+ * tx queue groups that the host supports.
+ * The MAX_TX_QUEUE_GROUPS TLV can be sent from the target to the host as
+ * a suffix to the VERSION_CONF message.  If the host has specified in the
+ * VER_REQ message a limit on the number of tx queue groups the host can
+ * supprt, the target shall limit its specification of the maximum tx groups
+ * to be no larger than this host-specified limit.
+ *
+ * If the target does not provide a MAX_TX_QUEUE_GROUPS TLV, then the host
+ * shall preallocate 4 tx queue group structs, and the target shall not
+ * specify a txq_group_id larger than 3.
+ */
+enum HTT_OPTION_TLV_MAX_TX_QUEUE_GROUPS_VALUES {
+    HTT_OPTION_TLV_TX_QUEUE_GROUPS_UNSUPPORTED = 0,
+    /*
+     * values 1 through N specify the max number of tx queue groups
+     * the sender supports
+     */
+    HTT_OPTION_TLV_TX_QUEUE_GROUPS_UNLIMITED = 0xffff,
+};
+PREPACK struct htt_option_tlv_mac_tx_queue_groups_t {
+    struct htt_option_tlv_header_t hdr;
+    A_UINT16 max_tx_queue_groups; /* max txq_group_id + 1 */
+} POSTPACK;
+
+
 /*=== host -> target messages ===============================================*/
 
 enum htt_h2t_msg_type {
@@ -208,6 +386,17 @@ enum htt_h2t_msg_type {
  *     |----------------+----------------+----------------+----------------|
  *     |                     reserved                     |    msg type    |
  *     |-------------------------------------------------------------------|
+ *     :                    option request TLV (optional)                  |
+ *     :...................................................................:
+ *
+ * The VER_REQ message may consist of a single 4-byte word, or may be
+ * extended with TLVs that specify which HTT options the host is requesting
+ * from the target.
+ * The following option TLVs may be appended to the VER_REQ message:
+ *   - HL_SUPPRESS_TX_COMPL_IND
+ *   - HL_MAX_TX_QUEUE_GROUPS
+ * These TLVs may appear in an arbitrary order.  Any number of these TLVs
+ * may be appended to the VER_REQ message (but only one TLV of each type).
  *
  * Header fields:
  *   - MSG_TYPE
@@ -1676,6 +1865,17 @@ enum htt_t2h_msg_type {
  *     |----------------+----------------+----------------+----------------|
  *     |    reserved    |  major number  |  minor number  |    msg type    |
  *     |-------------------------------------------------------------------|
+ *     :                    option request TLV (optional)                  |
+ *     :...................................................................:
+ *
+ * The VER_CONF message may consist of a single 4-byte word, or may be
+ * extended with TLVs that specify HTT options selected by the target.
+ * The following option TLVs may be appended to the VER_CONF message:
+ *   - LL_BUS_ADDR_SIZE
+ *   - HL_SUPPRESS_TX_COMPL_IND
+ *   - MAX_TX_QUEUE_GROUPS
+ * These TLVs may appear in an arbitrary order.  Any number of these TLVs
+ * may be appended to the VER_CONF message (but only one TLV of each type).
  *
  * Header fields:
  *   - MSG_TYPE
