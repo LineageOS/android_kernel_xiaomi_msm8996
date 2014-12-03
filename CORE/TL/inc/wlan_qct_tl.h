@@ -2686,6 +2686,22 @@ WLANTL_TLDebugMessage
 void WLANTL_PauseUnPauseQs(void *vos_context, v_BOOL_t flag);
 
 #ifdef QCA_LL_TX_FLOW_CT
+/*
+ * WLANTL_Get_llStats - get the stats for TXRX module
+ * @sessionId: vdev sessionid.
+ * @buffer:  buffer to update the stats
+ * @length:  lenth of the buffer
+ *
+ * HDD will call this API to get the OL-TXRX module stats
+ *
+ */
+void WLANTL_Get_llStats
+(
+  v_U8_t sessionId,
+  char *buffer,
+  v_U16_t buf_len
+);
+
 /*=============================================================================
   FUNCTION    WLANTL_GetTxResource
 
@@ -2829,6 +2845,14 @@ void WLANTL_SetAdapterMaxQDepth
    v_U8_t sessionId,
    int max_q_depth
 );
+#else
+static inline void WLANTL_Get_llStats
+(
+   uint8_t sessionId,
+   char *buffer,
+   uint16_t length
+) {}
+
 #endif /* QCA_LL_TX_FLOW_CT */
 
 #ifdef IPA_UC_OFFLOAD

@@ -699,22 +699,23 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
                         char *buffer, v_U16_t buf_len)
 {
     hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
+    v_U32_t len;
 
-    snprintf(buffer, buf_len,
+    len = snprintf(buffer, buf_len,
         "\nTransmit"
-        "\ncalled %u, dropped %u,"
-        "\n      dropped BK %u, BE %u, VI %u, VO %u"
-        "\n   classified BK %u, BE %u, VI %u, VO %u"
-        "\ncompleted %u,"
+        "\n  called %u, dropped %u,"
+        "\n  dropped BK %u, BE %u, VI %u, VO %u"
+        "\n  classified BK %u, BE %u, VI %u, VO %u"
+        "\n  completed %u,"
         "\n\nReceive"
-        "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
+        "\n  chains %u, packets %u, dropped %u, delivered %u, refused %u"
         "\n"
-        "\nNetQueue State %s"
-        "\ndisable count %u, enable count %u"
+        "\nNetQueue State : %s"
+        "\n  disable %u, enable %u"
         "\n\nTX_FLOW"
-        "\nCurrent status %s"
-        "\ntx-flow timer start count %u"
-        "\npause count %u, unpause count %u",
+        "\n  Current status : %s"
+        "\n  tx-flow timer trigger %u"
+        "\n  pause %u, unpause %u",
         pStats->txXmitCalled,
         pStats->txXmitDropped,
 
@@ -738,13 +739,16 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         (pStats->netq_state_off == TRUE ? "OFF" : "ON"),
         pStats->netq_disable_cnt,
         pStats->netq_enable_cnt,
-        (pStats->is_txflow_paused == TRUE ? "paused" : "unpaused"),
+        (pStats->is_txflow_paused == TRUE ? "PAUSED" : "UNPAUSED"),
         pStats->txflow_timer_cnt,
         pStats->txflow_pause_cnt,
         pStats->txflow_unpause_cnt
         );
-        *length = strlen(buffer) + 1;
 
+    WLANTL_Get_llStats(pAdapter->sessionId,
+            &buffer[len], (buf_len - len));
+
+    *length = strlen(buffer) + 1;
 }
 
 /**---------------------------------------------------------------------------

@@ -1142,6 +1142,7 @@ ol_txrx_vdev_detach(
 
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     adf_os_timer_cancel(&vdev->ll_pause.timer);
+    vdev->ll_pause.is_q_timer_on = FALSE;
     adf_os_timer_free(&vdev->ll_pause.timer);
     while (vdev->ll_pause.txq.head) {
         adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
@@ -2150,6 +2151,32 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
     }
 }
 #endif /* TXRX_DEBUG_LEVEL */
+/**
+ * ol_txrx_stats() - update ol layter stats
+ * @vdev: pointer to vdev adapter
+ * @buffer: pointer to buffer
+ * @buf_len: length of the buffer
+ * *
+ * to update the stats
+ *
+ * Return: None
+ */
+void
+ol_txrx_stats(ol_txrx_vdev_handle vdev, char *buffer, unsigned buf_len)
+{
+	snprintf(buffer, buf_len,
+		"\nTXRX stats:\n"
+		"\nllQueue State : %s"
+		"\n pause %u unpause %u"
+		"\n overflow %u"
+		"\nllQueue timer state : %s\n",
+		((vdev->ll_pause.is_q_paused == FALSE) ? "UNPAUSED" : "PAUSED"),
+		vdev->ll_pause.q_pause_cnt,
+		vdev->ll_pause.q_unpause_cnt,
+		vdev->ll_pause.q_overflow_cnt,
+		((vdev->ll_pause.is_q_timer_on == FALSE)
+			? "NOT-RUNNING" : "RUNNING"));
+}
 
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
 void

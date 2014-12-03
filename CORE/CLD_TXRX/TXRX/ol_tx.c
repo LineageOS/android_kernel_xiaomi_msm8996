@@ -197,9 +197,13 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
         }
     }
     if (vdev->ll_pause.txq.depth) {
-		adf_os_timer_cancel(&vdev->ll_pause.timer);
+        adf_os_timer_cancel(&vdev->ll_pause.timer);
         adf_os_timer_start(
                 &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+        vdev->ll_pause.is_q_timer_on = TRUE;
+        if (vdev->ll_pause.txq.depth >= vdev->ll_pause.max_q_depth) {
+            vdev->ll_pause.q_overflow_cnt++;
+        }
     }
 
     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
@@ -212,6 +216,7 @@ ol_tx_vdev_pause_queue_append(
    u_int8_t start_timer)
 {
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
+
     while (msdu_list &&
             vdev->ll_pause.txq.depth < vdev->ll_pause.max_q_depth)
     {
@@ -236,6 +241,7 @@ ol_tx_vdev_pause_queue_append(
     if (start_timer) {
         adf_os_timer_start(
                 &vdev->ll_pause.timer, OL_TX_VDEV_PAUSE_QUEUE_SEND_PERIOD_MS);
+        vdev->ll_pause.is_q_timer_on = TRUE;
     }
     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
 

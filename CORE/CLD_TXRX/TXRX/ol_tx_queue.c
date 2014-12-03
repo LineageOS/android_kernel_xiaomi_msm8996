@@ -564,6 +564,8 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
     } else {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
         vdev->ll_pause.paused_reason |= reason;
+        vdev->ll_pause.q_pause_cnt++;
+        vdev->ll_pause.is_q_paused = TRUE;
         adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
     }
 
@@ -600,6 +602,8 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
         if (vdev->ll_pause.paused_reason & reason)
         {
             vdev->ll_pause.paused_reason &= ~reason;
+            vdev->ll_pause.is_q_paused = FALSE;
+            vdev->ll_pause.q_unpause_cnt++;
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
             if (reason == OL_TXQ_PAUSE_REASON_VDEV_SUSPEND) {
                 adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
@@ -630,6 +634,7 @@ ol_txrx_vdev_flush(ol_txrx_vdev_handle vdev)
     } else {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
         adf_os_timer_cancel(&vdev->ll_pause.timer);
+        vdev->ll_pause.is_q_timer_on = FALSE;
         while (vdev->ll_pause.txq.head) {
             adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
             adf_nbuf_set_next(vdev->ll_pause.txq.head, NULL);
