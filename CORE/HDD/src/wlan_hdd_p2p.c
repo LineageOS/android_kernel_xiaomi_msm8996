@@ -268,20 +268,20 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     if(cfgState->remain_on_chan_ctx != NULL)
     {
-        hddLog( LOG1, "Cancel Existing Remain on Channel");
+        hddLog(LOGE, "Cancel Existing Remain on Channel");
 
         vos_timer_stop(&cfgState->remain_on_chan_ctx->hdd_remain_on_chan_timer);
         pRemainChanCtx = cfgState->remain_on_chan_ctx;
         if (pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress == TRUE)
         {
             mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
-            hddLog( LOG1,
+            hddLog(LOGE,
                     "ROC timer cancellation in progress,"
                     " wait for completion");
             rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
                                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
             if (!rc) {
-                hddLog( LOGE,
+                hddLog(LOGE,
                         "%s:wait on cancel_rem_on_chan_var timed out",
                          __func__);
             }
@@ -914,6 +914,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
         // Check for cached action frame
         if(pRemainChanCtx->action_pkt_buff.frame_length != 0)
         {
+          hddLog(LOGE, "%s: Sent cached action frame to supplicant", __func__);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
           cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr,
                       pRemainChanCtx->action_pkt_buff.freq, 0,
@@ -937,7 +938,6 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
                       GFP_ATOMIC );
 #endif /* LINUX_VERSION_CODE */
 
-          hddLog( LOGE,"%s: Sent cached action frame to supplicant", __func__);
           vos_mem_free(pRemainChanCtx->action_pkt_buff.frame_ptr);
           pRemainChanCtx->action_pkt_buff.frame_length = 0;
           pRemainChanCtx->action_pkt_buff.freq = 0;
