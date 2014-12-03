@@ -234,6 +234,83 @@ OL_TXRX_LOCAL_PEER_ID_CLEANUP(struct ol_txrx_pdev_t *pdev)
 #define OL_TXRX_LOCAL_PEER_ID_CLEANUP(pdev)     /* no-op */
 #endif
 
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+void
+ol_txrx_update_group_credit(
+    struct ol_tx_queue_group_t *group,
+    int32_t credit,
+    u_int8_t absolute)
+{
+    if (absolute) {
+        adf_os_atomic_set(&group->credit, credit);
+    } else {
+        adf_os_atomic_add(credit, &group->credit);
+    }
+}
+
+void
+ol_txrx_update_tx_queue_groups(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t group_id,
+    int32_t credit,
+    u_int8_t absolute,
+    u_int32_t vdev_id_mask,
+    u_int32_t ac_mask
+)
+{
+    struct ol_tx_queue_group_t *group;
+    u_int32_t group_vdev_bit_mask, vdev_bit_mask, group_vdev_id_mask;
+    u_int32_t membership;
+    struct ol_txrx_vdev_t *vdev;
+    group = &pdev->txq_grps[group_id];
+
+    membership = OL_TXQ_GROUP_MEMBERSHIP_GET(vdev_id_mask,ac_mask);
+
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+    /*
+     * if the membership (vdev id mask and ac mask)
+     * matches then no need to update tx qeue groups.
+     */
+    if (group->membership == membership) {
+       /* Update Credit Only */
+       goto credit_update;
+    }
+
+    /*
+     * membership (vdev id mask and ac mask) is not matching
+     * TODO: ignoring ac mask for now
+     */
+    group_vdev_id_mask =
+        OL_TXQ_GROUP_VDEV_ID_MASK_GET(group->membership);
+
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        group_vdev_bit_mask =
+           OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(group_vdev_id_mask,vdev->vdev_id);
+        vdev_bit_mask =
+           OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(vdev_id_mask,vdev->vdev_id);
+
+        if (group_vdev_bit_mask != vdev_bit_mask) {
+            /*
+             * Change in vdev tx queue group
+             */
+            if (!vdev_bit_mask) {
+                /* Set Group Pointer (vdev and peer) to NULL */
+                ol_tx_set_vdev_group_ptr(pdev, vdev->vdev_id, NULL);
+            } else {
+                /* Set Group Pointer (vdev and peer) */
+                ol_tx_set_vdev_group_ptr(pdev, vdev->vdev_id, group);
+            }
+        }
+    }
+    /* Update membership */
+    group->membership = membership;
+credit_update:
+    /* Update Credit */
+    ol_txrx_update_group_credit(group, credit, absolute);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+}
+#endif
+
 ol_txrx_pdev_handle
 ol_txrx_pdev_attach(
     ol_pdev_handle ctrl_pdev,
@@ -294,6 +371,10 @@ ol_txrx_pdev_attach(
         /* when freeing up descriptors, keep going until there's a 15% margin */
         pdev->tx_queue.rsrc_threshold_hi = (15 * desc_pool_size)/100;
 #endif
+        for (i = 0 ; i < OL_TX_MAX_TXQ_GROUPS; i++) {
+            adf_os_atomic_init(&pdev->txq_grps[i].credit);
+        }
+
     } else {
         /*
          * For LL, limit the number of host's tx descriptors to match the
@@ -872,6 +953,7 @@ ol_txrx_vdev_attach(
             vdev->txqs[i].flag = ol_tx_queue_empty;
             /* aggregation is not applicable for vdev tx queues */
             vdev->txqs[i].aggr_state = ol_tx_aggr_disabled;
+            OL_TX_TXQ_SET_GROUP_PTR(&vdev->txqs[i], NULL);
         }
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
@@ -1094,6 +1176,7 @@ ol_txrx_peer_attach(
 
     #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
+        adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
         for (i = 0; i < OL_TX_NUM_TIDS; i++) {
             TAILQ_INIT(&peer->txqs[i].head);
             peer->txqs[i].paused_count.total = 0;
@@ -1102,7 +1185,10 @@ ol_txrx_peer_attach(
             peer->txqs[i].ext_tid = i;
             peer->txqs[i].flag = ol_tx_queue_empty;
             peer->txqs[i].aggr_state = ol_tx_aggr_untried;
+            OL_TX_SET_PEER_GROUP_PTR(pdev, peer, vdev->vdev_id, i);
         }
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+
         /* aggregation is not applicable for mgmt and non-QoS tx queues */
         for (i = OL_TX_NUM_QOS_TIDS; i < OL_TX_NUM_TIDS; i++) {
             peer->txqs[i].aggr_state = ol_tx_aggr_disabled;

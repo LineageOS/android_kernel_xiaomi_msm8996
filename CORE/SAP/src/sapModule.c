@@ -3559,7 +3559,7 @@ WLANSAP_Get_DfsNol(v_PVOID_t pSapCtx)
         current_time = vos_get_monotonic_boottime();
         found_time = dfs_nol[i].radar_found_timestamp;
 
-        elapsed_time = abs(current_time - found_time);
+        elapsed_time = current_time - found_time;
 
         /* check if channel is available
          * if either channel is usable or available, or timer expired 30mins

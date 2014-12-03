@@ -57,6 +57,7 @@
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #include <ol_txrx_encap.h>    /* OL_TX_RESTORE_HDR, etc*/
 #endif
+#include <ol_tx_queue.h>
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
@@ -520,6 +521,10 @@ ol_tx_completion_handler(
         tx_desc->status = status;
         netbuf = tx_desc->netbuf;
 
+        if (pdev->cfg.is_high_latency) {
+            OL_TX_DESC_UPDATE_GROUP_CREDIT(pdev, tx_desc_id, 1, 0);
+        }
+
         adf_nbuf_trace_update(netbuf, trace_str);
         /* Per SDU update of byte count */
         byte_cnt += adf_nbuf_len(netbuf);
@@ -567,6 +572,20 @@ ol_tx_completion_handler(
     /* Do one shot statistics */
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, num_msdus, byte_cnt);
 }
+
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+void
+ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
+                          int credit, u_int8_t absolute)
+{
+    struct ol_tx_desc_t *tx_desc;
+    struct ol_tx_frms_queue_t *txq;
+    union ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
+    tx_desc = &td_array[tx_desc_id].tx_desc;
+    txq = (struct ol_tx_frms_queue_t *)(tx_desc->txq);
+    ol_tx_txq_group_credit_update(pdev, txq, credit, absolute);
+}
+#endif
 
 /*
  * ol_tx_single_completion_handler performs the same tx completion
