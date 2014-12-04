@@ -3156,10 +3156,18 @@ hdd_indicateUnprotMgmtFrame(hdd_adapter_t *pAdapter, tANI_U32 nFrameLength,
 
     /* Get pAdapter from Destination mac address of the frame */
     if (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_DISASSOC) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
+        cfg80211_rx_unprot_mlme_mgmt(pAdapter->dev, pbFrames, nFrameLength);
+#else
         cfg80211_send_unprot_disassoc(pAdapter->dev, pbFrames, nFrameLength);
+#endif
         pAdapter->hdd_stats.hddPmfStats.numUnprotDisassocRx++;
     } else if (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_DEAUTH) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
+        cfg80211_rx_unprot_mlme_mgmt(pAdapter->dev, pbFrames, nFrameLength);
+#else
         cfg80211_send_unprot_deauth(pAdapter->dev, pbFrames, nFrameLength);
+#endif
         pAdapter->hdd_stats.hddPmfStats.numUnprotDeauthRx++;
     } else {
         hddLog(LOGE, FL("Frame type %d and subtype %d are not valid"), type, subType);
