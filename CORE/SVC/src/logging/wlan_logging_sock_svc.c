@@ -40,6 +40,7 @@
 #include <vos_types.h>
 #include <vos_trace.h>
 #include <kthread.h>
+#include <adf_os_time.h>
 
 #define LOGGING_TRACE(level, args...) \
 		VOS_TRACE(VOS_MODULE_ID_HDD, level, ## args)
@@ -51,7 +52,6 @@
 #define INVALID_PID -1
 
 #define MAX_LOGMSG_LENGTH 4096
-#define SECONDS_IN_A_DAY (86400)
 
 struct log_msg {
 	struct list_head node;
@@ -297,8 +297,7 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	unsigned int *pfilled_length;
 	bool wake_up_thread = false;
 	unsigned long flags;
-
-	struct timeval tv;
+	u_int64_t ts;
 
 	if (gapp_pid == INVALID_PID) {
 		/*
@@ -312,11 +311,11 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 		pr_info("%s\n", to_be_sent);
 	}
 
-	/* Format the Log time [Secondselapsedinaday.microseconds] */
-	do_gettimeofday(&tv);
-	tlen = snprintf(tbuf, sizeof(tbuf), "[%s][%5lu.%06lu] ", current->comm,
-			(unsigned long) (tv.tv_sec%SECONDS_IN_A_DAY),
-			tv.tv_usec);
+	/* Format the Log time [Seconds.microseconds] */
+	ts = adf_get_boottime();
+	tlen = snprintf(tbuf, sizeof(tbuf), "[%s][%lu.%06lu] ", current->comm,
+			(unsigned long) (ts / VOS_TIMER_TO_SEC_UNIT),
+			(unsigned long) (ts % VOS_TIMER_TO_SEC_UNIT));
 
 	/* 1+1 indicate '\n'+'\0' */
 	total_log_len = length + tlen + 1 + 1;

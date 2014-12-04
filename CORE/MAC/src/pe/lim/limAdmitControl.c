@@ -949,6 +949,7 @@ limSendHalMsgAddTs(
     pAddTsParam->tspecIdx = tspecIdx;
     vos_mem_copy(&pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
     pAddTsParam->sessionId = sessionId;
+    pAddTsParam->sme_session_id = psessionEntry->smeSessionId;
 
 #ifdef FEATURE_WLAN_ESE
     pAddTsParam->tsm_interval = tsm_interval;
