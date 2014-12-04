@@ -79,7 +79,7 @@
 #define WMA_READY_EVENTID_TIMEOUT          2000
 #define WMA_TGT_SUSPEND_COMPLETE_TIMEOUT   3000
 #define WMA_WAKE_LOCK_TIMEOUT              1000
-#define WMA_MAX_RESUME_RETRY               1000
+#define WMA_MAX_RESUME_RETRY               10
 #define WMA_RESUME_TIMEOUT                 3000
 #define WMA_TGT_WOW_TX_COMPLETE_TIMEOUT    2000
 #define MAX_MEM_CHUNKS                     32
@@ -739,6 +739,13 @@ typedef struct {
 
 	u_int32_t hw_bd_id;
 	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	/* Callback registered by auto suspend to indicate HDD that driver
+	 * resumed from auto suspend. This callback is only needed for
+	 * auto resume.
+	 */
+	void (*resumed_cb)(void *param);
+#endif
 
 #ifdef FEATURE_WLAN_D0WOW
 	atomic_t in_d0wow;
