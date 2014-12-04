@@ -1504,6 +1504,11 @@ struct hdd_context_s
     struct work_struct rocReqWork;
     hdd_list_t hdd_roc_req_q;
     bool mcc_mode;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+    vos_timer_t auto_suspend_timer;
+    atomic_t auto_suspend_state;
+    atomic_t auto_suspend_stop_requested;
+#endif
 };
 
 /*---------------------------------------------------------------------------
@@ -1728,4 +1733,13 @@ static inline void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter) {}
 static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter) {}
 #endif
 int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed);
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx, bool delayed);
+void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx);
+#else
+static inline void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx,
+              bool delayed) {}
+static inline void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx) {}
+#endif
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

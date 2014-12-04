@@ -244,6 +244,8 @@ struct android_wifi_af_params {
 #define WLAN_WAIT_TIME_READY_TO_EXTWOW   2000
 #endif
 
+#define AUTO_SUSPEND_DELAY_MS    1500
+
 static vos_wake_lock_t wlan_wake_lock;
 /* set when SSR is needed after unload */
 static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
@@ -280,6 +282,384 @@ extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t);
+#endif
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+enum auto_suspend_state {
+    HDD_BUS_NOT_AUTO_SUSPENDED,
+    HDD_BUS_AUTO_SUSPEND_IN_PROGRESS,
+    HDD_BUS_AUTO_SUSPENDED,
+};
+
+/**
+ * hdd_auto_resumed_cb() - Callback to restart auto suspend attempt.
+ *
+ * @param: Optional parameter to the callback.
+ *
+ * Callback registered to restart auto suspend attempt, if bus is resumed
+ * because of a control message or management frame transaction.
+ *
+ * Return: none
+ */
+static void hdd_auto_resumed_cb(void *param)
+{
+    hdd_context_t *hdd_ctx;
+    v_CONTEXT_t vos_ctx;
+    int ret;
+
+    vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if (NULL == vos_ctx) {
+         hddLog(LOGE, FL("invalid VOS context"));
+         return;
+    }
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (ret) {
+         return;
+    }
+
+    atomic_set(&hdd_ctx->auto_suspend_state, HDD_BUS_NOT_AUTO_SUSPENDED);
+
+    /* if there was a stop request, don't restart auto suspend
+     * attempt on resume.
+     */
+    if (atomic_read(&hdd_ctx->auto_suspend_stop_requested)) {
+        hddLog(LOGE, FL("Auto suspend not restarting on resume"));
+        return;
+    }
+
+    hddLog(LOG1, FL("auto suspend retry"));
+    hdd_start_auto_suspend_attempt(hdd_ctx, false);
+}
+
+enum auto_suspend_perm {
+    HDD_AUTO_SUSPEND_ALLOWED,
+    HDD_AUTO_SUSPEND_RETRY,
+    HDD_AUTO_SUSPEND_DENIED,
+};
+
+/**
+ * hdd_is_auto_suspend_allowed() - Check if HDD allows auto suspend.
+ *
+ * @hdd_ctx: HDD context
+ *
+ * Scan thru the adapters and see if any adapter state is preventing
+ * auto suspend.
+ *
+ * Return: Allowed or denied or retry
+ */
+static int hdd_is_auto_suspend_allowed(hdd_context_t *hdd_ctx)
+{
+    hdd_adapter_list_node_t *node = NULL, *next = NULL;
+    enum auto_suspend_perm perm = HDD_AUTO_SUSPEND_ALLOWED;
+    VOS_STATUS status;
+    hdd_adapter_t *adapter;
+
+    status = hdd_get_front_adapter(hdd_ctx, &node);
+    if (VOS_STATUS_SUCCESS != status) {
+        hddLog(LOGE, FL("Failed to scan thru adapters for auto suspend"));
+        perm = HDD_AUTO_SUSPEND_DENIED;
+        goto out;
+    }
+
+    while (node && VOS_STATUS_SUCCESS == status) {
+        adapter = node->pAdapter;
+        if (!adapter)
+            break;
+
+        switch (adapter->device_mode) {
+
+        case WLAN_HDD_INFRA_STATION:
+             if ((WLAN_HDD_GET_STATION_CTX_PTR(adapter)->conn_info.connState
+                  == eConnectionState_Associated) ||
+                  (WLAN_HDD_GET_STATION_CTX_PTR(adapter)->conn_info.connState
+                  == eConnectionState_Connecting) ||
+                  (WLAN_HDD_GET_STATION_CTX_PTR(adapter)->conn_info.connState
+                    ==eConnectionState_Disconnecting)) {
+                 perm = HDD_AUTO_SUSPEND_DENIED;
+             }
+             break;
+
+        case WLAN_HDD_P2P_DEVICE:
+             break;
+
+        case WLAN_HDD_SOFTAP:
+        case WLAN_HDD_P2P_GO:
+        case WLAN_HDD_P2P_CLIENT:
+        case WLAN_HDD_IBSS:
+        default:
+             hddLog(LOG1, FL("Auto suspend denied %d"), adapter->device_mode);
+             perm = HDD_AUTO_SUSPEND_DENIED;
+             break;
+        }
+
+        if (perm == HDD_AUTO_SUSPEND_DENIED)
+            break;
+
+        status = hdd_get_next_adapter(hdd_ctx, node, &next);
+        node = next;
+    }
+
+out:
+    return perm;
+}
+
+/**
+ * hdd_start_auto_suspend_attempt() - start auto suspend attempt at HDD.
+ *
+ * @hdd_ctx: HDD context
+ * @delayed: if set, then conditions are checked only after first timer expiry
+ *
+ * Start bus auto suspend timer if HDD is allowing auto suspend.
+ *
+ * Return: none
+ */
+void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx, bool delayed)
+{
+    enum auto_suspend_perm perm;
+    int ret;
+
+    hdd_config_t *cfg;
+
+    cfg = hdd_ctx->cfg_ini;
+
+    if (!cfg) {
+        hddLog(LOGE, FL("cfg not available"));
+        return;
+    }
+
+    if (!cfg->enable_bus_auto_suspend) {
+        hddLog(LOGE, FL("Auto suspend disabled"));
+        return;
+    }
+
+    atomic_set(&hdd_ctx->auto_suspend_stop_requested, 0);
+
+    ret = atomic_read(&hdd_ctx->auto_suspend_state);
+    if (ret == HDD_BUS_AUTO_SUSPENDED ||
+             ret == HDD_BUS_AUTO_SUSPEND_IN_PROGRESS) {
+        hddLog(LOGE, FL("Auto suspend in progress or suspended %d"), ret);
+        return;
+    }
+
+    if (VOS_TIMER_STATE_RUNNING ==
+                vos_timer_getCurrentState(&hdd_ctx->auto_suspend_timer)) {
+        hddLog(LOG1, FL("ignore, auto suspend timer running"));
+        return;
+    }
+
+    if (!delayed) {
+        perm = hdd_is_auto_suspend_allowed(hdd_ctx);
+        if (perm == HDD_AUTO_SUSPEND_DENIED) {
+            hddLog(LOG1, FL("HDD not ready for auto suspend"));
+            return;
+        }
+    }
+
+    hddLog(LOG1, FL("starting auto suspend timer %d"), delayed);
+
+    vos_timer_start(&hdd_ctx->auto_suspend_timer, AUTO_SUSPEND_DELAY_MS);
+
+    hddLog(LOG1, FL("HDD auto suspend timer started"));
+
+    return;
+}
+
+/**
+ * hdd_stop_auto_suspend_attempt() - stop auto suspend attempt at HDD.
+ *
+ * @hdd_ctx: HDD context
+ *
+ * Stop auto suspend timer if it is already running.
+ *
+ * Return: none
+ */
+void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx)
+{
+    int ret;
+    hdd_config_t *cfg;
+
+    cfg = hdd_ctx->cfg_ini;
+    if (!cfg) {
+        hddLog(LOGE, FL("cfg not available"));
+        return;
+    }
+
+    if (!cfg->enable_bus_auto_suspend) {
+        hddLog(LOGE, FL("Auto suspend disabled"));
+        return;
+    }
+
+    atomic_set(&hdd_ctx->auto_suspend_stop_requested, 1);
+
+    if (VOS_TIMER_STATE_RUNNING !=
+                vos_timer_getCurrentState(&hdd_ctx->auto_suspend_timer)) {
+        /* if timer is not running, then we may have already suspended */
+        ret = atomic_read(&hdd_ctx->auto_suspend_state);
+        if (ret != HDD_BUS_NOT_AUTO_SUSPENDED) {
+             hddLog(LOG1, FL("HDD initiating resume"));
+             cnss_auto_resume();
+        }
+        return;
+    }
+
+    hddLog(LOG1, FL("stop auto suspend timer"));
+    vos_timer_stop(&hdd_ctx->auto_suspend_timer);
+    atomic_set(&hdd_ctx->auto_suspend_state, HDD_BUS_NOT_AUTO_SUSPENDED);
+}
+
+/**
+ * ready_to_auto_suspend() - Callback to receive auto suspend indication.
+ *
+ * @cb_context: Optional callback context
+ * @suspended: Will be set to true, if bus suspend is successful.
+ *
+ * Callback registered to receive auto suspend indication processed at the
+ * bus layer.
+ *
+ * Return: none
+ */
+static void ready_to_auto_suspend(void *cb_context, boolean suspended)
+{
+    hdd_context_t *hdd_ctx;
+    v_CONTEXT_t vos_ctx;
+    int ret;
+
+    vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if (NULL == vos_ctx) {
+        hddLog(LOGE, FL("invalid VOS context"));
+        return;
+    }
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,
+                               vos_ctx);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret) {
+        hddLog(LOGE, FL("invalid HDD context"));
+        return;
+    }
+
+    hdd_allow_suspend();
+
+    if (!suspended)
+        hddLog(LOG1, FL("Failed response for auto suspend")); {
+        return;
+    }
+
+    /* if we already started this timer, then resume has happened */
+    if (VOS_TIMER_STATE_RUNNING ==
+                vos_timer_getCurrentState(&hdd_ctx->auto_suspend_timer)) {
+        hddLog(LOG1, FL("HDD auto suspend ready when timer is running"));
+        return;
+    }
+
+    atomic_set(&hdd_ctx->auto_suspend_state, HDD_BUS_AUTO_SUSPENDED);
+    hddLog(LOG1, FL("HDD auto suspended"));
+}
+
+/**
+ * hdd_auto_suspend_timer_cb() - Timer callback function for auto suspend.
+ *
+ * @usr_data: Callback data (used to stored HDD context)
+ *
+ * Callback function registered for auto suspend VOS timer.
+ *
+ * Return: none
+ */
+static void hdd_auto_suspend_timer_cb(v_PVOID_t usr_data)
+{
+    int ret;
+    enum auto_suspend_perm perm;
+    hdd_context_t *hdd_ctx = usr_data;
+
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        goto out;
+    }
+
+    if (true == hdd_ctx->hdd_wlan_suspended) {
+        hddLog(LOGE, FL("Ignore auto suspend, suspend in progress"));
+        goto out;
+    }
+    ret = atomic_read(&hdd_ctx->auto_suspend_state);
+    if (ret == HDD_BUS_AUTO_SUSPEND_IN_PROGRESS ||
+           ret == HDD_BUS_AUTO_SUSPENDED) {
+        hddLog(LOGE, FL("Callback in invalid auto suspend state %d"), ret);
+        goto out;
+    }
+
+    perm = hdd_is_auto_suspend_allowed(hdd_ctx);
+    if (perm == HDD_AUTO_SUSPEND_DENIED) {
+        hddLog(LOG1, FL("HDD auto-suspend denied, not re-starting timer"));
+        goto out;
+    }
+
+    ret = cnss_is_auto_suspend_allowed(__func__);
+    if (ret || perm == HDD_AUTO_SUSPEND_RETRY) {
+        hddLog(LOG1, FL("Auto suspend retry %d"), ret);
+        vos_timer_start(&hdd_ctx->auto_suspend_timer,
+                AUTO_SUSPEND_DELAY_MS);
+        goto out;
+    }
+
+    atomic_set(&hdd_ctx->auto_suspend_state, HDD_BUS_AUTO_SUSPEND_IN_PROGRESS);
+
+    /* Prevent system suspend until auto suspend is completed,
+     * that is to avoid race condition with system suspend
+     */
+    hdd_prevent_suspend();
+
+    hddLog(LOG1, FL("HDD starting auto-suspend."));
+
+    hdd_auto_suspend_wlan(ready_to_auto_suspend, hdd_ctx, hdd_auto_resumed_cb);
+
+out:
+    return;
+}
+
+/**
+ * hdd_init_auto_suspend_timer() - Initialize auto suspend timer.
+ *
+ * @hdd_ctx: HDD context
+ *
+ * Initialize bus auto suspend timer.
+ *
+ * Return: none
+ */
+static void hdd_init_auto_suspend_timer(hdd_context_t *hdd_ctx)
+{
+    vos_timer_init(&hdd_ctx->auto_suspend_timer,
+             VOS_TIMER_TYPE_SW, hdd_auto_suspend_timer_cb, hdd_ctx);
+    hddLog(LOG1, FL("HDD auto suspend timer initialized"));
+
+    return;
+}
+
+/**
+ * hdd_init_auto_suspend_timer() - De-initialize auto suspend timer.
+ *
+ * @hdd_ctx: HDD context
+ *
+ * Stop and destroy bus auto suspend timer.
+ *
+ * Return: none
+ */
+static void hdd_deinit_auto_suspend_timer(hdd_context_t *hdd_ctx)
+{
+   if (VOS_TIMER_STATE_RUNNING ==
+           vos_timer_getCurrentState(&hdd_ctx->auto_suspend_timer)) {
+       vos_timer_stop(&hdd_ctx->auto_suspend_timer);
+   }
+
+   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+                   &hdd_ctx->auto_suspend_timer))) {
+       hddLog(LOGE, FL("Failed to deallocate auto suspend timer"));
+   }
+}
+
+#else
+static inline void hdd_init_auto_suspend_timer(hdd_context_t *hdd_ctx) {}
+static inline void hdd_deinit_auto_suspend_timer(hdd_context_t *hdd_ctx) {}
 #endif
 
 /* Store WLAN driver version info in a global variable such that crash debugger
@@ -10887,6 +11267,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 #endif
 
+   hdd_deinit_auto_suspend_timer(pHddCtx);
+
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
    if (VOS_TIMER_STATE_RUNNING ==
                 vos_timer_getCurrentState(&pHddCtx->skip_acs_scan_timer)) {
@@ -11186,6 +11568,7 @@ int hdd_wlan_set_ht2040_mode(hdd_adapter_t *pAdapter, v_U16_t staId,
    return 0;
 }
 #endif
+
 
 /**--------------------------------------------------------------------------
 
@@ -12442,6 +12825,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #else
    INIT_WORK(&pHddCtx->rocReqWork, hdd_roc_req_work);
 #endif
+
+   hdd_init_auto_suspend_timer(pHddCtx);
+   hdd_start_auto_suspend_attempt(pHddCtx, false);
 
    complete(&wlan_start_comp);
    goto success;
@@ -14395,7 +14781,6 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
     return;
 }
 #endif
-
 
 
 //Register the module init/exit functions

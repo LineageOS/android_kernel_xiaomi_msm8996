@@ -1036,6 +1036,10 @@ void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len);
 void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended),
                       void *callbackContext);
 void hdd_resume_wlan(void);
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+void hdd_auto_suspend_wlan(csrReadyToSuspendCallback ready_to_suspend_cb,
+               void *cb_context, void (auto_resumed_cb)(void *cb_parameter));
+#endif
 
 #if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,

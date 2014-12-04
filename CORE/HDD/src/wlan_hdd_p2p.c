@@ -57,6 +57,11 @@
 //Ms to Micro Sec
 #define MS_TO_MUS(x)   ((x)*1000)
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+static DEFINE_MUTEX(auto_suspend_lock);
+static bool auto_suspend_prevented;
+#endif
+
 static tANI_U8* hdd_getActionString(tANI_U16 MsgType)
 {
     switch (MsgType)
@@ -120,6 +125,48 @@ const char *tdls_action_frame_type[] = {"TDLS Setup Request",
 #endif
 
 extern struct net_device_ops net_ops_struct;
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+/**
+ * p2p_prevent_bus_auto_suspend() - Prevent bus auto suspend.
+ *
+ * API used by p2p logic to prevent bus auto suspend in the middle
+ * of p2p scanning and/or listening. This API will make sure that
+ * it does not increment the CNSS lock when it already has a lock on it.
+ *
+ * Return: none
+ */
+static void p2p_prevent_bus_auto_suspend(void)
+{
+    mutex_lock(&auto_suspend_lock);
+    if (!auto_suspend_prevented) {
+        cnss_prevent_auto_suspend(__func__);
+        auto_suspend_prevented = true;
+    }
+    mutex_unlock(&auto_suspend_lock);
+}
+
+/**
+ * p2p_allow_bus_auto_suspend() - Allow bus auto suspend.
+ *
+ * Release bus suspend lock if p2p logic is holding it.
+ *
+ * Return: none
+ */
+static void p2p_allow_bus_auto_suspend(void)
+{
+    mutex_lock(&auto_suspend_lock);
+    if (auto_suspend_prevented) {
+        cnss_allow_auto_suspend(__func__);
+        auto_suspend_prevented = false;
+    }
+    mutex_unlock(&auto_suspend_lock);
+}
+
+#else
+static inline void p2p_prevent_bus_auto_suspend(void) {}
+static inline void p2p_allow_bus_auto_suspend(void) {}
+#endif
 
 static bool wlan_hdd_is_type_p2p_action( const u8 *buf )
 {
@@ -256,6 +303,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     pAdapter->is_roc_inprogress = FALSE;
     mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     hdd_allow_suspend();
+    p2p_allow_bus_auto_suspend();
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -338,6 +386,7 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
                     __func__);
         }
         hdd_allow_suspend();
+        p2p_allow_bus_auto_suspend();
     } else
         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 }
@@ -482,7 +531,7 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
     }
 
     hdd_allow_suspend();
-
+    p2p_allow_bus_auto_suspend();
 }
 
 static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
@@ -534,6 +583,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
          duration = P2P_ROC_DURATION_MULTIPLIER_GO_ABSENT * duration;
 
 
+    p2p_prevent_bus_auto_suspend();
     hdd_prevent_suspend();
     INIT_COMPLETION(pAdapter->rem_on_chan_ready_event);
 
@@ -583,6 +633,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
            vos_mem_free (pRemainChanCtx);
            hdd_allow_suspend();
+           p2p_allow_bus_auto_suspend();
            return -EINVAL;
         }
 
@@ -605,6 +656,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 #endif
             hdd_allow_suspend();
+            p2p_allow_bus_auto_suspend();
             return -EINVAL;
         }
 
@@ -1096,6 +1148,8 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                 "%s:wait on cancel_rem_on_chan_var timed out ", __func__);
     }
     hdd_allow_suspend();
+    p2p_allow_bus_auto_suspend();
+
     return 0;
 }
 
