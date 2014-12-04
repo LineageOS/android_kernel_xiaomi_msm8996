@@ -834,6 +834,10 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
 #ifdef WLAN_FEATURE_APFIND
         CASE_RETURN_STRING(WDA_APFIND_SET_CMD);
 #endif /*WLAN_FEATURE_APFIND*/
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+        CASE_RETURN_STRING(WDA_WLAN_AUTO_SUSPEND_IND);
+        CASE_RETURN_STRING(WDA_WLAN_AUTO_RESUME_IND);
+#endif
         default:
             return((tANI_U8*) "UNKNOWN" );
             break;

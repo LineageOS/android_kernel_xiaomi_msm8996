@@ -181,6 +181,9 @@ typedef struct tagSmeStruct
     /* get temperature event context and callback */
     void *pTemperatureCbContext;
     void (*pGetTemperatureCb)(int temperature, void *context);
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+    bool enable_bus_auto_suspend;
+#endif
 } tSmeStruct, *tpSmeStruct;
 
 

@@ -118,6 +118,9 @@ typedef struct _smeConfigParams
     tANI_U8       max_intf_count;
     tANI_BOOLEAN  enable5gEBT;
     tANI_BOOLEAN  enableSelfRecovery;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+    bool  enable_bus_auto_suspend;
+#endif
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -4232,5 +4235,26 @@ eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
 #ifdef WLAN_FEATURE_APFIND
 VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input);
 #endif /* WLAN_FEATURE_APFIND */
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+/**
+ * sme_configure_bus_auto_suspend_ind() - Auto suspend request to lower MAC
+ *
+ * @hHal: The handle returned by macOpen.
+ * @suspend_param: Callback to be called when ready to auto suspend event is
+ *                 received.
+ * @callback: The callback API that should be invoked when auto suspended.
+ * @context: Context associated with csrReadyToSuspendCallback.
+ *
+ *  SME will pass this request to lower mac to Indicate that the wlan needs
+ *  to be auto suspended.
+ *
+ * Return: HAL status success or failure
+ */
+eHalStatus sme_configure_bus_auto_suspend_ind(tHalHandle hHal,
+                          tSirWlanSuspendParam  *suspend_param,
+                          csrReadyToSuspendCallback callback,
+                          void *context);
+#endif
 
 #endif //#if !defined( __SME_API_H )
