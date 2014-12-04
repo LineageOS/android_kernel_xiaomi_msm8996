@@ -6822,7 +6822,11 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
-	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
+	/* do not add OFDM rates in 11B mode */
+	if (scan_req->dot11mode != WNI_CFG_DOT11_MODE_11B)
+		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
+	else
+		WMA_LOGD("OFDM_RATES not included in 11B mode");
 
 	/* Do not combine multiple channels in a single burst. Come back
 	 * to home channel for data traffic after every foreign channel.
