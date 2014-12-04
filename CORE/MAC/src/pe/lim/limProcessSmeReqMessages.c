@@ -111,6 +111,10 @@ static void limUpdateAddIEBuffer(tpAniSirGlobal pMac,
                              tANI_U16 *pDstDataLen,
                              tANI_U8 *pSrcData_buff,
                              tANI_U16 srcDataLen);
+static tANI_BOOLEAN limUpdateIBssPropAddIEs(tpAniSirGlobal pMac,
+                                            tANI_U8 **pDstData_buff,
+                                            tANI_U16 *pDstDataLen,
+                                            tSirModifyIE *pModifyIE);
 static void limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 
 static void limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg);
@@ -6421,6 +6425,44 @@ limUpdateAddIEBuffer(tpAniSirGlobal pMac,
 
 }
 
+/**
+ * limUpdateIBssPropAddIEs() - update IBSS prop IE
+ * @pMac          : Pointer to Global MAC structure
+ * @pDstData_buff : A pointer to pointer of  tANI_U8 dst buffer
+ * @pDstDataLen  :  A pointer to pointer of  tANI_U16 dst buffer length
+ * @pModifyIE    :  A pointer to tSirModifyIE
+ *
+ * This function replaces previous ibss prop_ie with new ibss prop_ie.
+ *
+ * Return:
+ *  True or false depending upon whether IE is updated or not
+ */
+static tANI_BOOLEAN
+limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
+                        tANI_U16 *pDstDataLen, tSirModifyIE *pModifyIE)
+{
+    int32_t  oui_length;
+    uint8_t  *ibss_ie = NULL;
+
+    ibss_ie = pModifyIE->pIEBuffer;
+    oui_length = pModifyIE->oui_length;
+
+    if ((0 == oui_length) || (NULL == ibss_ie)) {
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                  FL("Invalid set IBSS vendor IE comamnd length %d ibss_ie %p"),
+                  oui_length, ibss_ie);
+        return FALSE;
+    }
+
+    limUpdateAddIEBuffer(pMac,
+                pDstData_buff,
+                pDstDataLen,
+                pModifyIE->pIEBuffer,
+                pModifyIE->ieBufferlength);
+
+    return TRUE;
+}
+
 /******************************************************************************
  * limProcessModifyAddIEs()
  *
@@ -6441,7 +6483,7 @@ static void
 limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 {
     tpSirModifyIEsInd pModifyAddIEs = (tpSirModifyIEsInd)pMsg;
-    tANI_U8     sessionId;
+    tANI_U8           sessionId;
     tANI_BOOLEAN      ret = FALSE;
 
     /* Incoming message has smeSession, use BSSID to find PE session*/
@@ -6461,6 +6503,12 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             case eUPDATE_IE_PROBE_RESP:
             {
                 /* Probe resp */
+                if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+                    limUpdateIBssPropAddIEs(pMac,
+                        &psessionEntry->addIeParams.probeRespData_buff,
+                        &psessionEntry->addIeParams.probeRespDataLen,
+                        &pModifyAddIEs->modifyIE);
+                }
                 break;
             }
             case eUPDATE_IE_ASSOC_RESP:
@@ -6476,6 +6524,12 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             case eUPDATE_IE_PROBE_BCN:
             {
                 /*probe beacon IE*/
+                if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+                    ret = limUpdateIBssPropAddIEs(pMac,
+                        &psessionEntry->addIeParams.probeRespBCNData_buff,
+                        &psessionEntry->addIeParams.probeRespBCNDataLen,
+                        &pModifyAddIEs->modifyIE);
+                }
                 if (ret == TRUE && pModifyAddIEs->modifyIE.notify)
                 {
                     limHandleParamUpdate(pMac, pModifyAddIEs->updateType);

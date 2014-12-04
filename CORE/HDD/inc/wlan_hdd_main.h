@@ -677,6 +677,30 @@ typedef enum{
     HDD_SSR_DISABLED,
 }e_hdd_ssr_required;
 
+/*---------------------------------------------------------------------------
+  hdd_ibss_peer_info_params_t
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    v_U8_t  staIdx;       //StaIdx
+    v_U32_t txRate;       //Current Tx Rate
+    v_U32_t mcsIndex;     //MCS Index
+    v_U32_t txRateFlags;  //TxRate Flags
+    v_S7_t  rssi;         //RSSI
+}hdd_ibss_peer_info_params_t;
+
+typedef struct
+{
+    /** Request status */
+    v_U32_t                       status;
+
+    /** Number of peers */
+    v_U8_t                        numIBSSPeers;
+
+    /** Peer Info parameters */
+    hdd_ibss_peer_info_params_t  ibssPeerList[HDD_MAX_NUM_IBSS_STA];
+}hdd_ibss_peer_info_t;
+
 struct hdd_station_ctx
 {
   /** Handle to the Wireless Extension State */
@@ -707,6 +731,8 @@ struct hdd_station_ctx
 
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
+   hdd_ibss_peer_info_t ibss_peer_info;
+
    v_BOOL_t hdd_ReassocScenario;
 
    /* STA ctx debug variables */
@@ -1009,6 +1035,8 @@ struct hdd_adapter_s
    struct completion tdls_link_establish_req_comp;
    eHalStatus tdlsAddStaStatus;
 #endif
+
+   struct completion ibss_peer_info_comp;
 
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
@@ -1794,6 +1822,7 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 s
 void hdd_ipv6_notifier_work_queue(struct work_struct *work);
 #endif
 
+v_MACADDR_t* hdd_wlan_get_ibss_mac_addr_from_staid(hdd_adapter_t *pAdapter, v_U8_t staIdx);
 
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 

@@ -843,8 +843,9 @@ static VOS_STATUS hdd_roamDeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId 
        // Need to cleanup all queues only if the last peer leaves
        if (eConnectionState_IbssDisconnected == pHddStaCtx->conn_info.connState)
        {
-          netif_tx_disable(pAdapter->dev);
-          netif_carrier_off(pAdapter->dev);
+       /* Do not set the carrier off when the last peer leaves.
+        * We will set the carrier off while stopping the IBSS.
+        */
           hdd_disconnect_tx_rx(pAdapter);
        }
        else
@@ -2284,6 +2285,10 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
                        pAdapter->dev->name,
                        (int)pRoamInfo->pBssDesc->channelId);
 #else
+
+            netif_carrier_on(pAdapter->dev);
+            netif_tx_start_all_queues(pAdapter->dev);
+
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
 #endif
             cfg80211_put_bss(
