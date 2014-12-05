@@ -1986,6 +1986,8 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
     IN
     sapContext  : Sap Context value
     sapEvent    : State machine event
+    sapDoAcsPreStartBss: VOS_TRUE, if ACS scan is issued pre start BSS.
+                         VOS_FALSE, if ACS scan is issued post start BSS.
 
   RETURN VALUE
     The VOS_STATUS code associated with performing the operation
@@ -1998,7 +2000,8 @@ VOS_STATUS
 sapGotoChannelSel
 (
     ptSapContext sapContext,
-    ptWLAN_SAPEvent sapEvent
+    ptWLAN_SAPEvent sapEvent,
+    v_BOOL_t sapDoAcsPreStartBss
 )
 {
     /* Initiate a SCAN request */
@@ -2140,17 +2143,38 @@ sapGotoChannelSel
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
                 }
 #endif
-                halStatus = sme_ScanRequest(hHal,
-                            sapContext->sessionId,
-                            &scanRequest,
-                            /*, when ID == 0 11D scan/active scan with callback,
-                             * min-maxChntime set in csrScanRequest()?
-                             */
-                            &scanRequestID,
-                            /*csrScanCompleteCallback callback,*/
-                            &WLANSAP_ScanCallback,
-                            /* pContext scanRequestID filled up*/
-                            sapContext);
+
+                if (VOS_TRUE == sapDoAcsPreStartBss)
+                {
+                    halStatus = sme_ScanRequest(hHal,
+                                    sapContext->sessionId,
+                                    &scanRequest,
+                                    /* when ID == 0 11D scan/active
+                                     * scan with callback,
+                                     * min-maxChntime set in csrScanRequest()?
+                                     */
+                                    &scanRequestID,
+                                    /*csrScanCompleteCallback callback,*/
+                                    &WLANSAP_PreStartBssAcsScanCallback,
+                                    /* pContext scanRequestID filled up*/
+                                    sapContext);
+
+                }
+                else
+                {
+                    halStatus = sme_ScanRequest(hHal,
+                                    sapContext->sessionId,
+                                    &scanRequest,
+                                    /* when ID == 0 11D scan/active
+                                     * scan with callback,
+                                     * min-maxChntime set in csrScanRequest()?
+                                     */
+                                    &scanRequestID,
+                                    /*csrScanCompleteCallback callback,*/
+                                    &WLANSAP_ScanCallback,
+                                    /* pContext scanRequestID filled up*/
+                                    sapContext);
+                }
                 if (eHAL_STATUS_SUCCESS != halStatus)
                 {
                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -2169,10 +2193,22 @@ sapGotoChannelSel
                         sapContext->channelList = NULL;
                     }
 #endif
-                    /* Fill in the event structure */
-                    sapEventInit(sapEvent);
-                    /* Handle event */
-                    vosStatus = sapFsm(sapContext, sapEvent);
+                    if (VOS_TRUE == sapDoAcsPreStartBss)
+                    {
+                        /*
+                         * In case of ACS req before start Bss,
+                         * return failure so that the calling
+                         * fucntion can use the default channel.
+                         */
+                        return VOS_STATUS_E_FAILURE;
+                    }
+                    else
+                    {
+                        /* Fill in the event structure */
+                        sapEventInit(sapEvent);
+                        /* Handle event */
+                        vosStatus = sapFsm(sapContext, sapEvent);
+                    }
                 }
                 else
                 {
@@ -2188,8 +2224,20 @@ sapGotoChannelSel
         if (sapContext->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "## %s SKIPPED ACS SCAN", __func__);
-            WLANSAP_ScanCallback(hHal, sapContext, sapContext->sessionId, 0,
-                eCSR_SCAN_SUCCESS);
+            if (VOS_TRUE == sapDoAcsPreStartBss)
+            {
+                WLANSAP_PreStartBssAcsScanCallback(hHal, sapContext,
+                                                   sapContext->sessionId,
+                                                   0,
+                                                   eCSR_SCAN_SUCCESS);
+            }
+            else
+            {
+                WLANSAP_ScanCallback(hHal, sapContext,
+                                     sapContext->sessionId,
+                                     0,
+                                     eCSR_SCAN_SUCCESS);
+            }
          }
 #endif
     }
@@ -2198,11 +2246,22 @@ sapGotoChannelSel
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "In %s, for configured channel, Ch= %d",
                   __func__, sapContext->channel);
-        /* Fill in the event structure */
-        // Eventhough scan was not done, means a user set channel was chosen
-        sapEventInit(sapEvent);
-        /* Handle event */
-        vosStatus = sapFsm(sapContext, sapEvent);
+        if (VOS_TRUE == sapDoAcsPreStartBss)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "In %s, ACS Disabled, Configured Ch= %d",
+                      __func__, sapContext->channel);
+
+            return VOS_STATUS_E_FAILURE;
+        }
+        else
+        {
+            /* Fill in the event structure */
+            // Eventhough scan was not done, means a user set channel was chosen
+            sapEventInit(sapEvent);
+            /* Handle event */
+            vosStatus = sapFsm(sapContext, sapEvent);
+        }
     }
 
     /* If scan failed, get default channel and advance state machine as success with default channel */
@@ -2565,6 +2624,22 @@ sapSignalHDDevent
             sapApAppEvent.sapHddEventCode = sapHddevent;
             sapApAppEvent.sapevt.sapStopBssCompleteEvent.status =
                                                         (eSapStatus )context;
+            break;
+
+        case eSAP_ACS_CHANNEL_SELECTED:
+            sapApAppEvent.sapHddEventCode = sapHddevent;
+            if ( eSAP_STATUS_SUCCESS == (eSapStatus )context)
+            {
+                sapApAppEvent.sapevt.sapAcsChSelected.pri_channel =
+                                                      sapContext->channel;
+                sapApAppEvent.sapevt.sapAcsChSelected.sec_channel =
+                                                      sapContext->secondary_ch;
+            }
+            else if (eSAP_STATUS_FAILURE == (eSapStatus )context)
+            {
+                sapApAppEvent.sapevt.sapAcsChSelected.pri_channel = 0;
+                sapApAppEvent.sapevt.sapAcsChSelected.sec_channel = 0;
+            }
             break;
 
         case eSAP_STOP_BSS_EVENT:
@@ -3198,8 +3273,12 @@ sapFsm
                 /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
 
-                /* Perform sme_ScanRequest */
-                vosStatus = sapGotoChannelSel(sapContext, sapEvent);
+                /*
+                 * Perform sme_ScanRequest
+                 * This scan request is post start bss
+                 * request so, set the third to false.
+                 */
+                vosStatus = sapGotoChannelSel(sapContext, sapEvent, VOS_FALSE);
 
                 /* Transition from eSAP_DISCONNECTED to eSAP_CH_SELECT (both without substates) */
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
@@ -3229,8 +3308,12 @@ sapFsm
                  /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
 
-                /* Perform sme_ScanRequest */
-                vosStatus = sapGotoChannelSel(sapContext, sapEvent);
+                /*
+                 * Perform sme_ScanRequest
+                 * This scan request is post start bss
+                 * request so, set the third to false.
+                 */
+                vosStatus = sapGotoChannelSel(sapContext, sapEvent, VOS_FALSE);
             }
             else
             {

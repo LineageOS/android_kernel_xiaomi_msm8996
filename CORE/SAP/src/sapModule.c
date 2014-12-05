@@ -601,6 +601,131 @@ v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
     return intf_ch;
 }
 #endif
+
+/*==========================================================================
+  FUNCTION    WLANSAP_SetScanAcsChannelParams
+
+  DESCRIPTION
+    This api function is used to copy Scan and Channel parameters from sap
+    config to sap context.
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+    IN
+    pConfig    : Pointer to the SAP config
+    sapContext : Pointer to the SAP Context.
+    pUsrContext: Parameter that will be passed
+                 back in all the SAP callback events.
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT: Pointer to SAP cb is NULL ; access would cause a page
+                        fault
+    VOS_STATUS_SUCCESS: Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
+                                ptSapContext pSapCtx,
+                                v_PVOID_t  pUsrContext)
+{
+    tHalHandle hHal = NULL;
+    tANI_BOOLEAN restartNeeded;
+    int ret;
+
+    if (NULL == pConfig)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid pConfig passed ", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if (NULL == pSapCtx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid pConfig passed ", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* Channel selection is auto or configured */
+    pSapCtx->channel = pConfig->channel;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
+#endif
+    pSapCtx->scanBandPreference = pConfig->scanBandPreference;
+    pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
+    pSapCtx->pUsrContext = pUsrContext;
+    pSapCtx->apAutoChannelSelection = pConfig->apAutoChannelSelection;
+    pSapCtx->apStartChannelNum = pConfig->apStartChannelNum;
+    pSapCtx->apEndChannelNum = pConfig->apEndChannelNum;
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    pSapCtx->skip_acs_scan_status = pConfig->skip_acs_scan_status;
+    pSapCtx->skip_acs_scan_range1_endch = pConfig->skip_acs_scan_range1_endch;
+    pSapCtx->skip_acs_scan_range1_stch = pConfig->skip_acs_scan_range1_stch;
+    pSapCtx->skip_acs_scan_range2_endch = pConfig->skip_acs_scan_range2_endch;
+    pSapCtx->skip_acs_scan_range2_stch = pConfig->skip_acs_scan_range2_stch;
+#endif
+    pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
+    if (strlen(pConfig->acsAllowedChnls) > 0)
+    {
+#ifdef WLAN_FEATURE_MBSSID
+        ret = sapSetPreferredChannel(pSapCtx, pConfig->acsAllowedChnls);
+#else
+        ret = sapSetPreferredChannel(pConfig->acsAllowedChnls);
+#endif
+        if (0 != ret)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       "%s: ACS set preferred channel failed!", __func__);
+            return VOS_STATUS_E_FAULT;
+        }
+    }
+    /*
+     * Set the BSSID to your "self MAC Addr" read
+     * the mac address from Configuation ITEM received
+     * from HDD
+     */
+    pSapCtx->csrRoamProfile.BSSIDs.numOfBSSIDs = 1;
+    vos_mem_copy(pSapCtx->csrRoamProfile.BSSIDs.bssid,
+                 pSapCtx->self_mac_addr,
+                 sizeof( tCsrBssid ));
+
+    /*
+     * Save a copy to SAP context
+     */
+    vos_mem_copy(pSapCtx->csrRoamProfile.BSSIDs.bssid,
+                 pConfig->self_macaddr.bytes, sizeof(v_MACADDR_t));
+    vos_mem_copy(pSapCtx->self_mac_addr,
+                 pConfig->self_macaddr.bytes, sizeof(v_MACADDR_t));
+
+    hHal = (tHalHandle)VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+    if (NULL == hHal)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "%s: Invalid MAC context from pvosGCtx", __func__);
+    }
+    else
+    {
+        //If concurrent session is running that is already associated
+        //then we just follow that sessions country info (whether
+        //present or not doesn't maater as we have to follow whatever
+        //STA session does)
+        if ((0 == sme_GetConcurrentOperationChannel(hHal)) &&
+             pConfig->ieee80211d)
+        {
+            /* Setting the region/country  information */
+            sme_setRegInfo(hHal, pConfig->countryCode);
+            sme_ResetCountryCodeInformation(hHal, &restartNeeded);
+        }
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
 /*==========================================================================
   FUNCTION    WLANSAP_StartBss
 
@@ -3761,4 +3886,161 @@ void WLANSAP_PopulateDelStaParams(const v_U8_t *mac,
                FL("Delete STA with RC:%hu subtype:%hhu MAC::" MAC_ADDRESS_STR),
                    pDelStaParams->reason_code, pDelStaParams->subtype,
                    MAC_ADDR_ARRAY(pDelStaParams->peerMacAddr));
+}
+
+/*==========================================================================
+  FUNCTION    WLANSAP_ACS_CHSelect
+
+  DESCRIPTION
+    This api function provides ACS selection for BSS
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+      pvosGCtx: Pointer to vos global context structure
+      pConfig: Pointer to configuration structure passed down from HDD
+      pACSEventCallback: Callback function in HDD called by SAP to inform
+                         HDD about channel section result
+      usrDataForCallback: Parameter that will be passed back in all the
+                          SAP callback events.
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
+                     tpWLAN_SAPEventCB pACSEventCallback,
+                     tsap_Config_t *pConfig,
+                     v_PVOID_t  pUsrContext)
+{
+    ptSapContext sapContext = NULL;
+    tHalHandle hHal = NULL;
+    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = NULL;
+
+    sapContext = VOS_GET_SAP_CB( pvosGCtx );
+    if (NULL == sapContext) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pvosGCtx", __func__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
+    hHal = (tHalHandle)VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid MAC context from pvosGCtx", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if (sapContext->isSapSessionOpen == eSAP_TRUE) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+                   "%s:SME Session is already opened\n",__func__);
+        return VOS_STATUS_E_EXISTS;
+    }
+
+    sapContext->sessionId = 0xff;
+
+    pMac = PMAC_STRUCT( hHal );
+    if ((!pMac->roam.configParam.obssEnabled) &&
+        ((pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_abg) ||
+         (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11a) ||
+         (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11g)))
+       sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_abg;
+    else
+       sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_11n;
+
+    if ((pConfig->channel == AUTO_CHANNEL_SELECT) &&
+        (sapContext->isScanSessionOpen == eSAP_FALSE)) {
+        tANI_U32 type, subType;
+
+        if(VOS_STATUS_SUCCESS ==
+                      vos_get_vdev_types(VOS_STA_MODE, &type, &subType)) {
+            /*
+             * Open SME Session for scan
+             */
+            if(eHAL_STATUS_SUCCESS  != sme_OpenSession(hHal, NULL, sapContext,
+                                                   sapContext->self_mac_addr,
+                                                   &sapContext->sessionId,
+                                                   type, subType)) {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                           "Error: In %s calling sme_OpenSession", __func__);
+                return VOS_STATUS_E_FAILURE;
+            }
+            else
+                sapContext->isScanSessionOpen = eSAP_TRUE;
+        }
+
+        /*
+         * Copy the HDD callback function to report the
+         * ACS result after scan in SAP context callback function.
+         */
+        sapContext->pfnSapEventCallback = pACSEventCallback;
+        /*
+         * init dfs channel nol
+         */
+        sapInitDfsChannelNolList(sapContext);
+
+        /*
+         * Now, configure the scan and ACS channel params
+         * to issue a scan request.
+         */
+        WLANSAP_SetScanAcsChannelParams(pConfig, sapContext, pUsrContext);
+
+        /*
+         * Issue the scan request. This scan request is
+         * issued before the start BSS is done so
+         *
+         * 1. No need to pass the second parameter
+         * as the SAP state machine is not started yet
+         * and there is no need for any event posting.
+         *
+         * 2. Set third parameter to TRUE to indicate the
+         * channel selection function to register a
+         * different scan callback fucntion to process
+         * the results pre start BSS.
+         */
+        vosStatus = sapGotoChannelSel(sapContext, NULL, VOS_TRUE);
+
+        if (VOS_STATUS_E_ABORTED == vosStatus) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       "In %s,DFS not supported in the current operating mode",
+                        __func__);
+            return VOS_STATUS_E_FAILURE;
+        }
+        else if (VOS_STATUS_E_CANCELED == vosStatus) {
+             /*
+              * ERROR is returned when either the SME scan request
+              * failed or ACS is not enabled. So, default channel
+              * is selected and this default channel should be sent
+              * to the HDD.
+              */
+             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                 FL("Scan Req Failed/ACS not enabled,default channel = %d"),
+                 sapContext->channel);
+             halStatus = sapSignalHDDevent(sapContext, NULL,
+                                           eSAP_ACS_CHANNEL_SELECTED,
+                                           (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
+             if (eHAL_STATUS_SUCCESS == halStatus) {
+                 vosStatus = VOS_STATUS_SUCCESS;
+                 return vosStatus;
+             }
+             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        FL("Failed to post eSAP_ACS_CHANNEL_SELECTED to HDD"));
+             return VOS_STATUS_E_FAILURE;
+        }
+        else if (VOS_STATUS_SUCCESS == vosStatus)
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       FL("Successfully Issued a Pre Start Bss Scan Request"));
+    }
+    return vosStatus;
 }

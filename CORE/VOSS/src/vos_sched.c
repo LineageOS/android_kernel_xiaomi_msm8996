@@ -111,6 +111,8 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
 
 #ifdef QCA_CONFIG_SMP
 #define VOS_CORE_PER_CLUSTER 4
+#define MAX_CPU_COUNT 8
+
 static int vos_set_cpus_allowed_ptr(struct task_struct *task,
                                     unsigned long cpu)
 {
@@ -121,6 +123,116 @@ static int vos_set_cpus_allowed_ptr(struct task_struct *task,
 #else
    return 0;
 #endif
+}
+
+int vos_sched_handle_cpu_hot_plug(void)
+{
+   pVosSchedContext pSchedContext = get_vos_sched_ctxt();
+   unsigned long online_perf_cpu[MAX_CPU_COUNT];
+   unsigned long online_litl_cpu[MAX_CPU_COUNT];
+   unsigned long cpus;
+   unsigned char perf_core_count = 0;
+   unsigned char litl_core_count = 0;
+
+   vos_lock_acquire(&pSchedContext->affinity_lock);
+   /* Get Online perf CPU count */
+   for_each_online_cpu(cpus) {
+      if (cpus >= VOS_CORE_PER_CLUSTER) {
+         online_perf_cpu[perf_core_count] = cpus;
+         perf_core_count++;
+      } else {
+         online_litl_cpu[litl_core_count] = cpus;
+         litl_core_count++;
+      }
+   }
+
+   if (litl_core_count > 0) {
+      litl_core_count--;
+   }
+   /* High throughput required and at least one PERF CPU online */
+   if ((pSchedContext->high_throughput_required) && (perf_core_count >= 1)) {
+      /* Attach RX thread to PERF CPU */
+      if (pSchedContext->rx_thread_cpu !=
+          online_perf_cpu[perf_core_count - 1]) {
+         vos_set_cpus_allowed_ptr(pSchedContext->TlshimRxThread,
+                                  online_perf_cpu[perf_core_count - 1]);
+         pSchedContext->rx_thread_cpu = online_perf_cpu[perf_core_count - 1];
+      }
+   } else {
+      if (pSchedContext->rx_thread_cpu != online_litl_cpu[litl_core_count]) {
+      /* no high throughput required or no PERF CPU online */
+         vos_set_cpus_allowed_ptr(pSchedContext->TlshimRxThread,
+                                  online_litl_cpu[litl_core_count]);
+         pSchedContext->rx_thread_cpu = online_litl_cpu[litl_core_count];
+      }
+   }
+   vos_lock_release(&pSchedContext->affinity_lock);
+
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+       "%s: NUM PERF CORE %d, HIGH TPUTR REQ %d, RX THRE CPU %lu",
+       __func__, perf_core_count,
+       (int)pSchedContext->high_throughput_required,
+       pSchedContext->rx_thread_cpu);
+   return 0;
+}
+
+int vos_sched_handle_throughput_req(v_BOOL_t high_tput_required)
+{
+   pVosSchedContext pSchedContext = get_vos_sched_ctxt();
+   unsigned long online_perf_cpu[MAX_CPU_COUNT];
+   unsigned long online_litl_cpu[MAX_CPU_COUNT];
+   unsigned long cpus;
+   unsigned char perf_core_count = 0;
+   unsigned char litl_core_count = 0;
+
+   /* Single cluster system, not need to handle this */
+   if (num_possible_cpus() < VOS_CORE_PER_CLUSTER) {
+      return 0;
+   }
+
+   vos_lock_acquire(&pSchedContext->affinity_lock);
+   if (pSchedContext->high_throughput_required == high_tput_required) {
+      vos_lock_release(&pSchedContext->affinity_lock);
+      return 0;
+   }
+   for_each_online_cpu(cpus) {
+      if (cpus >= VOS_CORE_PER_CLUSTER) {
+         online_perf_cpu[perf_core_count] = cpus;
+         perf_core_count++;
+      } else {
+         online_litl_cpu[litl_core_count] = cpus;
+         litl_core_count++;
+      }
+   }
+
+   if (litl_core_count > 0) {
+      litl_core_count--;
+   }
+   if ((VOS_TRUE == high_tput_required) && (perf_core_count >= 1)) {
+      if (pSchedContext->rx_thread_cpu !=
+          online_perf_cpu[perf_core_count - 1]) {
+         /* Attach RX thread to PERF CPU */
+         vos_set_cpus_allowed_ptr(pSchedContext->TlshimRxThread,
+                                  online_perf_cpu[perf_core_count - 1]);
+         pSchedContext->rx_thread_cpu = online_perf_cpu[perf_core_count - 1];
+      }
+   } else {
+      if (pSchedContext->rx_thread_cpu != online_litl_cpu[litl_core_count]) {
+      /* no high throughput required or no PERF CPU online */
+         vos_set_cpus_allowed_ptr(pSchedContext->TlshimRxThread,
+                                  online_litl_cpu[litl_core_count]);
+         pSchedContext->rx_thread_cpu = online_litl_cpu[litl_core_count];
+      }
+   }
+   pSchedContext->high_throughput_required = high_tput_required;
+   vos_lock_release(&pSchedContext->affinity_lock);
+
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+       "%s: NUM PERF CORE %d, HIGH TPUTR REQ %d, RX THRE CPU %lu",
+       __func__,
+       perf_core_count, (int)pSchedContext->high_throughput_required,
+       pSchedContext->rx_thread_cpu);
+   return 0;
 }
 
 static int vos_cpu_hotplug_notify(struct notifier_block *block,
@@ -146,17 +258,21 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
              "%s: RX CORE %d, STATE %d, NUM CPUS %d",
               __func__, (int)affine_cpu, (int)state, num_cpus);
    multi_cluster = (num_cpus > VOS_CORE_PER_CLUSTER)?1:0;
+   if ((multi_cluster) &&
+       ((CPU_ONLINE == state) || (CPU_DEAD == state))) {
+      vos_sched_handle_cpu_hot_plug();
+      return NOTIFY_OK;
+   }
 
    switch (state) {
    case CPU_ONLINE:
-       if ((!multi_cluster) && (affine_cpu != 0))
+       if (affine_cpu != 0)
            return NOTIFY_OK;
 
        for_each_online_cpu(i) {
            if (i == 0)
                continue;
            pref_cpu = i;
-           if (!multi_cluster)
                break;
        }
        break;
@@ -169,7 +285,6 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
            if (i == 0)
                continue;
            pref_cpu = i;
-           if (!multi_cluster)
                break;
        }
    }
@@ -293,6 +408,8 @@ vos_sched_open
   spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
   pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
+  vos_lock_init(&pSchedContext->affinity_lock);
+  pSchedContext->high_throughput_required = VOS_FALSE;
 #endif
 
 
@@ -1424,23 +1541,19 @@ static int VosTlshimRxThread(void *arg)
    unsigned long pref_cpu = 0;
    bool shutdown = false;
    int status, i;
-   unsigned int num_cpus;
 
    set_user_nice(current, -1);
 #ifdef MSM_PLATFORM
    set_wake_up_idle(true);
 #endif
 
-   num_cpus = num_possible_cpus();
    /* Find the available cpu core other than cpu 0 and
     * bind the thread */
    for_each_online_cpu(i) {
        if (i == 0)
            continue;
        pref_cpu = i;
-       if (num_cpus <= VOS_CORE_PER_CLUSTER) {
            break;
-       }
    }
    if (pref_cpu != 0 && (!vos_set_cpus_allowed_ptr(current, pref_cpu)))
        affine_cpu = pref_cpu;
@@ -1562,6 +1675,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     vos_sched_deinit_mqs(gpVosSchedContext);
 
 #ifdef QCA_CONFIG_SMP
+    vos_lock_destroy(&gpVosSchedContext->affinity_lock);
     // Shut down Tlshim Rx thread
     set_bit(RX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->tlshimRxEvtFlg);
     set_bit(RX_POST_EVENT_MASK, &gpVosSchedContext->tlshimRxEvtFlg);

@@ -1021,6 +1021,44 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
 }
 #endif /* WLAN_FEATURE_APFIND */
 
+void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_context_t *hdd_ctx,
+                                        v_U8_t pri_channel, v_U8_t sec_channel)
+{
+    struct sk_buff *vendor_event;
+    int ret_val;
+
+    vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
+                                   2 * sizeof(u8) +
+                                   NLMSG_HDRLEN,
+                                   QCA_NL80211_VENDOR_SUBCMD_DO_ACS_INDEX,
+                                   GFP_KERNEL);
+
+    if (!vendor_event) {
+        hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+        return;
+    }
+
+    ret_val = nla_put_u8(vendor_event, QCA_WLAN_VENDOR_ATTR_ACS_PRIMARY_CHANNEL,
+                              pri_channel);
+    if (ret_val) {
+        hddLog(LOGE, FL("QCA_WLAN_VENDOR_ATTR_ACS_PRIMARY_CHANNEL put fail"));
+        kfree_skb(vendor_event);
+        return;
+    }
+
+    ret_val = nla_put_u8(vendor_event,
+                         QCA_WLAN_VENDOR_ATTR_ACS_SECONDARY_CHANNEL,
+                         sec_channel);
+    if (ret_val) {
+        hddLog(LOGE, FL("QCA_WLAN_VENDOR_ATTR_ACS_SECONDARY_CHANNEL put fail"));
+        kfree_skb(vendor_event);
+        return;
+    }
+
+    cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+
+    return;
+}
 
 /* vendor specific events */
 static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
@@ -1130,6 +1168,10 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
     [QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE_CHANGE_INDEX] =  {
         .vendor_id = QCA_NL80211_VENDOR_ID,
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_DO_ACS_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DO_ACS
     },
 };
 
@@ -4231,6 +4273,450 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
 }
 
 
+/*
+ * FUNCTION: wlan_hdd_set_acs_allowed_channels
+ * set only allowed channel for ACS
+ * input channel list is a string with comma separated
+ * channel number, the first number is the total number
+ * of channels specified. e.g. 4,1,6,9,36
+ */
+static void wlan_hdd_set_acs_allowed_channels(
+                                             char *acs_allowed_chnls,
+                                             char *acs_sap_chnl_list,
+                                             int length)
+{
+    char *p;
+
+    /*
+     * a white space is required at the beginning of the
+     * string to be properly parsed by function
+     * sapSetPreferredChannel later
+     */
+    strlcpy(acs_sap_chnl_list, " ", length);
+    strlcat(acs_sap_chnl_list, acs_allowed_chnls, length);
+    p = acs_sap_chnl_list;
+    while (*p) {
+        /* looking for comma, replace it with white space */
+        if (*p == ',')
+            *p = ' ';
+
+        p++;
+    }
+
+    return;
+}
+
+static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
+{
+    tsap_Config_t *sap_config;
+    hdd_config_t *ini_config;
+    tHalHandle hal;
+    tSmeConfigParams *sme_config;
+
+    hal = WLAN_HDD_GET_HAL_CTX(adapter);
+    sap_config = &adapter->sessionCtx.ap.sapConfig;
+    ini_config = hdd_ctx->cfg_ini;
+
+    sap_config->enOverLapCh = !!hdd_ctx->cfg_ini->gEnableOverLapCh;
+#ifdef WLAN_FEATURE_MBSSID
+    if (strlen(adapter->sap_dyn_ini_cfg.acsAllowedChnls) > 0 )
+#else
+    if (strlen(ini_config->acsAllowedChnls) > 0)
+#endif
+    {
+        wlan_hdd_set_acs_allowed_channels(
+#ifdef WLAN_FEATURE_MBSSID
+                               adapter->sap_dyn_ini_cfg.acsAllowedChnls,
+#else
+                               ini_config->acsAllowedChnls,
+#endif
+                               sap_config->acsAllowedChnls,
+                               sizeof(sap_config->acsAllowedChnls));
+    }
+
+    if(!hdd_ctx->is_dynamic_channel_range_set) {
+#ifdef WLAN_FEATURE_MBSSID
+         WLANSAP_SetChannelRange(hal,
+                             adapter->sap_dyn_ini_cfg.apStartChannelNum,
+                             adapter->sap_dyn_ini_cfg.apEndChannelNum,
+                             adapter->sap_dyn_ini_cfg.apOperatingBand);
+#else
+         hdd_config_t *hdd_pConfig=
+                                   (WLAN_HDD_GET_CTX(adapter))->cfg_ini;
+         WLANSAP_SetChannelRange(hal,
+                                   hdd_pConfig->apStartChannelNum,
+                                   hdd_pConfig->apEndChannelNum,
+                                   hdd_pConfig->apOperatingBand);
+#endif
+     }
+     hdd_ctx->is_dynamic_channel_range_set = 0;
+
+     sme_config = (tSmeConfigParams*) vos_mem_malloc(sizeof(tSmeConfigParams));
+     if ( NULL != sme_config) {
+#ifdef WLAN_FEATURE_MBSSID
+         eHalStatus halStatus = eHAL_STATUS_FAILURE;
+         sme_GetConfigParam(hal, sme_config);
+         sme_config->csrConfig.scanBandPreference =
+                          adapter->sap_dyn_ini_cfg.acsScanBandPreference;
+         halStatus = sme_UpdateConfig(hal, sme_config);
+         if ( !HAL_STATUS_SUCCESS( halStatus )
+              && sap_config->channel == AUTO_CHANNEL_SELECT ) {
+             hddLog(LOGE, "sme_UpdateConfig() for ACS Scan band pref Fail: %d",
+                          halStatus);
+             return -1;
+         }
+         sap_config->scanBandPreference =
+                     sme_config->csrConfig.scanBandPreference;
+#else
+         sme_GetConfigParam(hal, sme_config);
+         sap_config->scanBandPreference =
+                     sme_config->csrConfig.scanBandPreference;
+#endif
+         vos_mem_free(sme_config);
+     }
+
+#ifdef WLAN_FEATURE_MBSSID
+     sap_config->acsBandSwitchThreshold =
+                         adapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
+     sap_config->apAutoChannelSelection =
+                         adapter->sap_dyn_ini_cfg.apAutoChannelSelection;
+     sap_config->apStartChannelNum =
+                         adapter->sap_dyn_ini_cfg.apStartChannelNum;
+     sap_config->apEndChannelNum =
+                         adapter->sap_dyn_ini_cfg.apEndChannelNum;
+#else
+     sap_config->acsBandSwitchThreshold = ini_config->acsBandSwitchThreshold;
+     sap_config->apAutoChannelSelection = ini_config->apAutoChannelSelection;
+     sap_config->apStartChannelNum = ini_config->apStartChannelNum;
+     sap_config->apEndChannelNum = ini_config->apEndChannelNum;
+#endif
+
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    if (vos_concurrent_sap_sessions_running() &&
+        sap_config->channel == AUTO_CHANNEL_SELECT) {
+        hdd_adapter_t *con_sap_adapter;
+        tsap_Config_t *con_sap_config = NULL;
+
+        con_sap_adapter = hdd_get_con_sap_adapter(adapter);
+
+        if (con_sap_adapter)
+            con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
+
+        sap_config->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+
+        hddLog(LOG1, FL("HDD_ACS_SKIP_STATUS = %d"),
+            hdd_ctx->skip_acs_scan_status);
+
+        if (con_sap_config && con_sap_config->channel == AUTO_CHANNEL_SELECT &&
+            hdd_ctx->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
+
+            hddLog(LOG1, FL("Operating Band: PriAP: %d SecAP: %d"),
+               con_sap_config->apOperatingBand, sap_config->apOperatingBand);
+
+            if (con_sap_config->apOperatingBand == 5 &&
+                                              sap_config->apOperatingBand > 0) {
+                sap_config->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+
+            } else if (con_sap_config->apOperatingBand
+                                               == sap_config->apOperatingBand) {
+                v_U8_t con_sap_st_ch, con_sap_end_ch;
+                v_U8_t cur_sap_st_ch, cur_sap_end_ch;
+                v_U8_t bandStartChannel, bandEndChannel;
+
+                con_sap_st_ch = con_sap_config->apStartChannelNum;
+                con_sap_end_ch = con_sap_config->apEndChannelNum;
+                cur_sap_st_ch = sap_config->apStartChannelNum;
+                cur_sap_end_ch = sap_config->apEndChannelNum;
+
+                WLANSAP_extend_to_acs_range(sap_config->apOperatingBand,
+                                &cur_sap_st_ch, &cur_sap_end_ch,
+                                &bandStartChannel, &bandEndChannel);
+
+                WLANSAP_extend_to_acs_range(con_sap_config->apOperatingBand,
+                                &con_sap_st_ch, &con_sap_end_ch,
+                                &bandStartChannel, &bandEndChannel);
+
+                if (con_sap_st_ch <= cur_sap_st_ch &&
+                    con_sap_end_ch >= cur_sap_end_ch) {
+
+                    sap_config->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+
+                } else if (con_sap_st_ch >= cur_sap_st_ch &&
+                    con_sap_end_ch >= cur_sap_end_ch) {
+
+                    sap_config->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    sap_config->skip_acs_scan_range1_stch = cur_sap_st_ch;
+                    sap_config->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
+                    sap_config->skip_acs_scan_range2_stch = 0;
+                    sap_config->skip_acs_scan_range2_endch = 0;
+
+                } else if (con_sap_st_ch <= cur_sap_st_ch &&
+                    con_sap_end_ch <= cur_sap_end_ch) {
+
+                    sap_config->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    sap_config->skip_acs_scan_range1_stch = con_sap_end_ch + 1;
+                    sap_config->skip_acs_scan_range1_endch = cur_sap_end_ch;
+                    sap_config->skip_acs_scan_range2_stch = 0;
+                    sap_config->skip_acs_scan_range2_endch = 0;
+
+                } else if (con_sap_st_ch >= cur_sap_st_ch &&
+                    con_sap_end_ch <= cur_sap_end_ch) {
+
+                    sap_config->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
+
+                    sap_config->skip_acs_scan_range1_stch = cur_sap_st_ch;
+                    sap_config->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
+                    sap_config->skip_acs_scan_range2_stch = con_sap_end_ch;
+                    sap_config->skip_acs_scan_range2_endch = cur_sap_end_ch + 1;
+
+                } else
+                    sap_config->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+
+                hddLog(LOG1,
+                       FL("SecAP ACS Skip = %d, ACS CH RANGE = %d-%d, %d-%d"),
+                       sap_config->skip_acs_scan_status,
+                       sap_config->skip_acs_scan_range1_stch,
+                       sap_config->skip_acs_scan_range1_endch,
+                       sap_config->skip_acs_scan_range2_stch,
+                       sap_config->skip_acs_scan_range2_endch);
+            }
+        }
+    }
+#endif
+
+    return 0;
+}
+
+
+#ifdef QCA_HT_2040_COEX
+const struct
+nla_policy qca_wlan_acs_vendor_attr[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1] =
+{
+    [QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE] = { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED] = { .type = NLA_FLAG },
+    [QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED] = { .type = NLA_FLAG },
+};
+
+static int band_to_hw_mode(eSapOperatingBand band)
+{
+    switch (band) {
+    case  eSAP_RF_SUBBAND_2_4_GHZ:
+        return QCA_ACS_MODE_IEEE80211G;
+    case  eSAP_RF_SUBBAND_5_LOW_GHZ:
+    case  eSAP_RF_SUBBAND_5_MID_GHZ:
+    case  eSAP_RF_SUBBAND_5_HIGH_GHZ:
+    case  eSAP_RF_SUBBAND_5_ALL_GHZ:
+        return QCA_ACS_MODE_IEEE80211A;
+    default:
+        return -1;
+    }
+}
+
+static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
+                                    struct wireless_dev *wdev,
+                                    void *data, int data_len)
+{
+
+    hdd_adapter_t *adapter;
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+    tsap_Config_t *sap_config;
+    tpWLAN_SAPEventCB acs_event_callback;
+    struct net_device *ndev = wdev->netdev;
+    struct sk_buff *temp_skbuff;
+    int status;
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1];
+    u8 hw_mode;
+    bool ht_enabled, ht40_enabled;
+
+    adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
+#ifndef WLAN_FEATURE_MBSSID
+    hdd_config_t *hdd_config = (WLAN_HDD_GET_CTX(adapter))->cfg_ini;
+#endif
+
+    status = wlan_hdd_validate_context(hdd_ctx);
+
+    if (0 != status) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        goto out;
+    }
+
+    status = nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ACS_MAX,
+                    data, data_len,
+                    qca_wlan_acs_vendor_attr);
+
+    if (status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid ATTR"));
+        goto out;
+    }
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE]) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Attr hw_mode failed"));
+        goto out;
+    }
+    hw_mode = nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE]);
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED]) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Attr ht_enabled failed"));
+        goto out;
+    }
+    ht_enabled =
+                 nla_get_flag(tb[QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED]);
+
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED]) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Attr ht40_enabled failed"));
+        goto out;
+    }
+    ht40_enabled =
+               nla_get_flag(tb[QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED]);
+
+    sap_config = &adapter->sessionCtx.ap.sapConfig;
+
+#ifdef WLAN_FEATURE_MBSSID
+    /*
+     * Check if AP+AP case, once primary AP chooses a DFS
+     * channel secondary AP should always follow primary APs channel
+     */
+    if (vos_concurrent_sap_sessions_running()) {
+        hdd_adapter_t *con_sap_adapter;
+        v_U16_t con_ch;
+
+        con_sap_adapter = hdd_get_con_sap_adapter(adapter);
+        if (con_sap_adapter) {
+                /* we have active SAP running, check if user
+                 * configured channel is ACS or DFS
+                 */
+                con_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
+                if (con_ch == AUTO_CHANNEL_SELECT) {
+                    con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+                }
+
+                if (VOS_IS_DFS_CH(con_ch)) {
+                    con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+                    hddLog(LOGE,
+                         FL("Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)"),
+                         sap_config->channel,
+                         con_ch);
+                    hddLog(LOGE,FL("Overriding guest AP's channel !!"));
+                    sap_config->channel = con_ch;
+                    /* notify hostapd about channel */
+                    wlan_hdd_cfg80211_acs_ch_select_evt(hdd_ctx,
+                       con_sap_adapter->sessionCtx.ap.operatingChannel,
+                       con_sap_adapter->sessionCtx.ap.secondaryChannel);
+                    status = 0;
+                    goto out;
+                }
+        }
+    }
+#endif
+
+    if (1 != hdd_ctx->is_dynamic_channel_range_set) {
+        if (hw_mode !=
+#ifdef WLAN_FEATURE_MBSSID
+                  band_to_hw_mode(adapter->sap_dyn_ini_cfg.apOperatingBand)) {
+#else
+                  band_to_hw_mode(hdd_config->apOperatingBand)) {
+#endif
+            hddLog(LOGW,
+                   FL("Conflict band setting between hostapd and driver!!"));
+            switch (hw_mode) {
+            case QCA_ACS_MODE_IEEE80211B:
+            case QCA_ACS_MODE_IEEE80211G:
+#ifdef WLAN_FEATURE_MBSSID
+                 adapter->sap_dyn_ini_cfg.apOperatingBand =
+                                         eSAP_RF_SUBBAND_2_4_GHZ;
+                 adapter->sap_dyn_ini_cfg.apStartChannelNum =
+                                         rfChannels[RF_CHAN_1].channelNum;
+                 adapter->sap_dyn_ini_cfg.apEndChannelNum =
+                                         rfChannels[RF_CHAN_14].channelNum;
+#else
+                 hdd_config->apOperatingBand = eSAP_RF_SUBBAND_2_4_GHZ;
+                 hdd_config->apStartChannelNum =
+                                         rfChannels[RF_CHAN_1].channelNum;
+                 hdd_config->apEndChannelNum =
+                                         rfChannels[RF_CHAN_14].channelNum;
+#endif
+                 break;
+           case  QCA_ACS_MODE_IEEE80211A:
+#ifdef WLAN_FEATURE_MBSSID
+                 adapter->sap_dyn_ini_cfg.apOperatingBand =
+                                         eSAP_RF_SUBBAND_5_ALL_GHZ;
+                 adapter->sap_dyn_ini_cfg.apStartChannelNum =
+                                         rfChannels[RF_CHAN_36].channelNum;
+                 adapter->sap_dyn_ini_cfg.apEndChannelNum =
+                                         rfChannels[RF_CHAN_165].channelNum;
+#else
+                 hdd_config->apOperatingBand =
+                                         eSAP_RF_SUBBAND_5_ALL_GHZ;
+                 hdd_config->apStartChannelNum =
+                                         rfChannels[RF_CHAN_36].channelNum;
+                 hdd_config->sap_dyn_ini_cfg.apEndChannelNum =
+                                         rfChannels[RF_CHAN_165].channelNum;
+#endif
+                 break;
+           default:
+                 hddLog(LOGE,
+                   FL("Unsupported hw_mode!"));
+                 goto out;
+           }
+        }
+    }
+
+    if (ht_enabled && ht40_enabled) {
+        tSmeConfigParams smeConfig;
+        vos_mem_zero(&smeConfig, sizeof(smeConfig));
+        sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
+        switch (hw_mode) {
+        case QCA_ACS_MODE_IEEE80211G:
+            smeConfig.csrConfig.channelBondingMode24GHz = 1;
+            break;
+        case QCA_ACS_MODE_IEEE80211A:
+            smeConfig.csrConfig.channelBondingMode5GHz = 1;
+            break;
+        default:
+            break;
+        }
+        sme_UpdateConfig(hdd_ctx->hHal, &smeConfig);
+    }
+
+    status = wlan_hdd_config_acs(hdd_ctx, adapter);
+    if (status) {
+        hddLog(LOGE, FL("ACS config failed"));
+        goto out;
+    }
+
+    acs_event_callback = hdd_hostapd_SAPEventCB;
+
+    vos_mem_copy(sap_config->self_macaddr.bytes,
+               adapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
+    status = WLANSAP_ACS_CHSelect(
+#ifdef WLAN_FEATURE_MBSSID
+                WLAN_HDD_GET_SAP_CTX_PTR(adapter),
+#else
+                pVosContext,
+#endif
+                acs_event_callback, sap_config, (v_PVOID_t)adapter->dev);
+
+
+    if (status) {
+        hddLog(LOGE, FL("ACS channel select failed"));
+        goto out;
+    }
+
+out:
+    if (0 == status) {
+        temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy,
+                                                      NLMSG_HDRLEN);
+        if (temp_skbuff != NULL)
+            return cfg80211_vendor_cmd_reply(temp_skbuff);
+    }
+
+    return status;
+}
+#endif
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -4429,6 +4915,16 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
     },
 #endif /* WLAN_FEATURE_APFIND */
 
+#ifdef QCA_HT_2040_COEX
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_DO_ACS,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_do_acs
+    },
+#endif
 };
 
 
@@ -5679,11 +6175,12 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             /* If auto channel selection is configured as enable/ 1 then ignore
             channel set by supplicant
             */
+#ifndef QCA_HT_2040_COEX
 #ifdef WLAN_FEATURE_MBSSID
             if (pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection)
 #else
             hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
-            if ( cfg_param->apAutoChannelSelection )
+            if (cfg_param->apAutoChannelSelection)
 #endif
             {
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel =
@@ -5703,54 +6200,60 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 }
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
             }
-
-#ifdef QCA_HT_2040_COEX
-            /* set channel bonding mode for 2.4G */
-            if ( channel <= 14 )
-            {
-                switch (channel_type)
-                {
-                case NL80211_CHAN_HT20:
-                case NL80211_CHAN_NO_HT:
-                    sme_SetPhyCBMode24G(pHddCtx->hHal,
-                                        PHY_SINGLE_CHANNEL_CENTERED);
-                    break;
-
-                case NL80211_CHAN_HT40MINUS:
-                    sme_SetPhyCBMode24G(pHddCtx->hHal,
-                                        PHY_DOUBLE_CHANNEL_HIGH_PRIMARY);
-                    break;
-                case NL80211_CHAN_HT40PLUS:
-                    sme_SetPhyCBMode24G(pHddCtx->hHal,
-                                        PHY_DOUBLE_CHANNEL_LOW_PRIMARY);
-                    break;
-
-                default:
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                              "%s:Error!!! Invalid HT20/40 mode: %d !",
-                              __func__, channel_type);
-                    return -EINVAL;
-                }
-            } else {
-                vos_mem_zero(&smeConfig, sizeof(smeConfig));
-                sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
-                /* set cbMode for 5G */
-                switch (channel_type) {
-                case NL80211_CHAN_HT20:
-                case NL80211_CHAN_NO_HT:
-                    smeConfig.csrConfig.channelBondingMode5GHz = 0;
-                    break;
-                case NL80211_CHAN_HT40MINUS:
-                case NL80211_CHAN_HT40PLUS:
-                    smeConfig.csrConfig.channelBondingMode5GHz = 1;
-                    break;
-                 default:
-                    hddLog(LOGE,
-                       FL("Error!!! Invalid HT20/40 mode: %d !"), channel_type);
-                    return -EINVAL;
-                }
-                sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+#else
+            /* set channel to what hostapd configured */
+            if (VOS_STATUS_SUCCESS !=
+                       wlan_hdd_validate_operation_channel(pAdapter,channel)) {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: Invalid Channel [%d]", __func__, channel);
+                   return -EINVAL;
             }
+            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+
+            vos_mem_zero(&smeConfig, sizeof(smeConfig));
+            sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
+
+            switch (channel_type) {
+            case NL80211_CHAN_HT20:
+            case NL80211_CHAN_NO_HT:
+                sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                        PHY_SINGLE_CHANNEL_CENTERED);
+                if (channel <= 14)
+                    smeConfig.csrConfig.channelBondingMode24GHz = 0;
+                else
+                    smeConfig.csrConfig.channelBondingMode5GHz = 0;
+                break;
+
+            case NL80211_CHAN_HT40MINUS:
+                sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                    PHY_DOUBLE_CHANNEL_HIGH_PRIMARY);
+                smeConfig.csrConfig.obssEnabled = VOS_TRUE;
+                if (channel <= 14)
+                    smeConfig.csrConfig.channelBondingMode24GHz =
+                            eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+                else
+                    smeConfig.csrConfig.channelBondingMode5GHz =
+                            eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+                break;
+            case NL80211_CHAN_HT40PLUS:
+                sme_SetPhyCBMode24G(pHddCtx->hHal,
+                                    PHY_DOUBLE_CHANNEL_LOW_PRIMARY);
+                smeConfig.csrConfig.obssEnabled = VOS_TRUE;
+                if (channel <= 14)
+                    smeConfig.csrConfig.channelBondingMode24GHz =
+                            eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+                else
+                    smeConfig.csrConfig.channelBondingMode5GHz =
+                            eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+
+                break;
+            default:
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s:Error!!! Invalid HT20/40 mode !",
+                          __func__);
+                return -EINVAL;
+            }
+            sme_UpdateConfig (pHddCtx->hHal, &smeConfig);
 #endif
         }
     }
@@ -5764,37 +6267,6 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     return status;
 }
 
-/*
- * FUNCTION: wlan_hdd_set_acs_allowed_channels
- * set only allowed channel for ACS
- * input channel list is a string with comma separated
- * channel number, the first number is the total number
- * of channels specified. e.g. 4,1,6,9,36
- */
-static void wlan_hdd_set_acs_allowed_channels(
-                                             char *acsAllowedChnls,
-                                             char *acsSapChnlList,
-                                             int length)
-{
-    char *p;
-
-    /* a white space is required at the beginning of the
-       string to be properly parsed by function
-       sapSetPreferredChannel later */
-    strlcpy(acsSapChnlList, " ", length);
-    strlcat(acsSapChnlList, acsAllowedChnls, length);
-    p = acsSapChnlList;
-    while (*p)
-    {
-        /* looking for comma, replace it with white space */
-        if (*p == ',')
-            *p = ' ';
-
-        p++;
-    }
-
-    return;
-}
 
 #ifdef DHCP_SERVER_OFFLOAD
 static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
@@ -5903,7 +6375,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              pHddCtx->cfg_ini->apForce11ACFor11n;
 #endif
 #endif
-    tSmeConfigParams *psmeConfig;
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     u_int16_t prev_rsn_length = 0;
@@ -5934,21 +6405,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"****pConfig->dtim_period=%d***",
                                       pConfig->dtim_period);
 
-    pConfig->enOverLapCh = !!pHddCtx->cfg_ini->gEnableOverLapCh;
-#ifdef WLAN_FEATURE_MBSSID
-    if (strlen(pHostapdAdapter->sap_dyn_ini_cfg.acsAllowedChnls) > 0 )
-#else
-    if (strlen(iniConfig->acsAllowedChnls) > 0)
-#endif
-    {
-        wlan_hdd_set_acs_allowed_channels(
-#ifdef WLAN_FEATURE_MBSSID
-                               pHostapdAdapter->sap_dyn_ini_cfg.acsAllowedChnls,
-#else
-                               iniConfig->acsAllowedChnls,
-#endif
-                               pConfig->acsAllowedChnls,
-                               sizeof(pConfig->acsAllowedChnls));
+    status = wlan_hdd_config_acs(pHddCtx, pHostapdAdapter);
+    if (status) {
+        hddLog(LOGE, FL("ACS config failed"));
+        return -EINVAL;
     }
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
@@ -6469,142 +6929,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
 
     pConfig->persona = pHostapdAdapter->device_mode;
-
-    psmeConfig = (tSmeConfigParams*) vos_mem_malloc(sizeof(tSmeConfigParams));
-    if ( NULL != psmeConfig)
-    {
-#ifdef WLAN_FEATURE_MBSSID
-        eHalStatus halStatus = eHAL_STATUS_FAILURE;
-        sme_GetConfigParam(hHal, psmeConfig);
-        psmeConfig->csrConfig.scanBandPreference =
-                         pHostapdAdapter->sap_dyn_ini_cfg.acsScanBandPreference;
-        halStatus = sme_UpdateConfig(pHddCtx->hHal, psmeConfig);
-        if ( !HAL_STATUS_SUCCESS( halStatus )
-                                    && pConfig->channel == AUTO_CHANNEL_SELECT )
-        {
-            hddLog(LOGE, "sme_UpdateConfig() for ACS Scan band pref Fail: %d",
-                                                                     halStatus);
-            return -EAGAIN;
-        }
-        pConfig->scanBandPreference = psmeConfig->csrConfig.scanBandPreference;
-#else
-        sme_GetConfigParam(hHal, psmeConfig);
-        pConfig->scanBandPreference = psmeConfig->csrConfig.scanBandPreference;
-#endif
-        vos_mem_free(psmeConfig);
-    }
-#ifdef WLAN_FEATURE_MBSSID
-    pConfig->acsBandSwitchThreshold =
-                        pHostapdAdapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
-    pConfig->apAutoChannelSelection =
-                        pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
-    pConfig->apStartChannelNum =
-                        pHostapdAdapter->sap_dyn_ini_cfg.apStartChannelNum;
-    pConfig->apEndChannelNum =
-                        pHostapdAdapter->sap_dyn_ini_cfg.apEndChannelNum;
-    pConfig->apOperatingBand = pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand;
-#else
-    pConfig->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
-    pConfig->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
-    pConfig->apStartChannelNum = iniConfig->apStartChannelNum;
-    pConfig->apEndChannelNum = iniConfig->apEndChannelNum;
-    pConfig->apOperatingBand = iniConfig->apOperatingBand;
-#endif
-
-#if defined(FEATURE_WLAN_AP_AP_ACS_OPTIMIZE) && defined(WLAN_FEATURE_MBSSID)
-    if (vos_concurrent_sap_sessions_running() &&
-        pConfig->channel == AUTO_CHANNEL_SELECT) {
-        hdd_adapter_t *con_sap_adapter;
-        tsap_Config_t *con_sap_config = NULL;
-
-        con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
-
-        if (con_sap_adapter)
-            con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
-
-        pConfig->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
-
-        hddLog(LOG1, FL("HDD_ACS_SKIP_STATUS = %d"),
-            pHddCtx->skip_acs_scan_status);
-
-        if (con_sap_config && con_sap_config->channel == AUTO_CHANNEL_SELECT &&
-            pHddCtx->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
-
-            hddLog(LOG1, FL("Operating Band: PriAP: %d SecAP: %d"),
-               con_sap_config->apOperatingBand, pConfig->apOperatingBand);
-
-            if (con_sap_config->apOperatingBand == 5 &&
-                                              pConfig->apOperatingBand > 0) {
-                pConfig->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
-
-            } else if (con_sap_config->apOperatingBand
-                                               == pConfig->apOperatingBand) {
-                v_U8_t con_sap_st_ch, con_sap_end_ch;
-                v_U8_t cur_sap_st_ch, cur_sap_end_ch;
-                v_U8_t bandStartChannel, bandEndChannel;
-
-                con_sap_st_ch = con_sap_config->apStartChannelNum;
-                con_sap_end_ch = con_sap_config->apEndChannelNum;
-                cur_sap_st_ch = pConfig->apStartChannelNum;
-                cur_sap_end_ch = pConfig->apEndChannelNum;
-
-                WLANSAP_extend_to_acs_range(pConfig->apOperatingBand,
-                                &cur_sap_st_ch, &cur_sap_end_ch,
-                                &bandStartChannel, &bandEndChannel);
-
-                WLANSAP_extend_to_acs_range(con_sap_config->apOperatingBand,
-                                &con_sap_st_ch, &con_sap_end_ch,
-                                &bandStartChannel, &bandEndChannel);
-
-                if (con_sap_st_ch <= cur_sap_st_ch &&
-                    con_sap_end_ch >= cur_sap_end_ch) {
-
-                    pConfig->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
-
-                } else if (con_sap_st_ch >= cur_sap_st_ch &&
-                    con_sap_end_ch >= cur_sap_end_ch) {
-
-                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
-
-                    pConfig->skip_acs_scan_range1_stch = cur_sap_st_ch;
-                    pConfig->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
-                    pConfig->skip_acs_scan_range2_stch = 0;
-                    pConfig->skip_acs_scan_range2_endch = 0;
-
-                } else if (con_sap_st_ch <= cur_sap_st_ch &&
-                    con_sap_end_ch <= cur_sap_end_ch) {
-
-                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
-
-                    pConfig->skip_acs_scan_range1_stch = con_sap_end_ch + 1;
-                    pConfig->skip_acs_scan_range1_endch = cur_sap_end_ch;
-                    pConfig->skip_acs_scan_range2_stch = 0;
-                    pConfig->skip_acs_scan_range2_endch = 0;
-
-                } else if (con_sap_st_ch >= cur_sap_st_ch &&
-                    con_sap_end_ch <= cur_sap_end_ch) {
-
-                    pConfig->skip_acs_scan_status = eSAP_DO_PAR_ACS_SCAN;
-
-                    pConfig->skip_acs_scan_range1_stch = cur_sap_st_ch;
-                    pConfig->skip_acs_scan_range1_endch = con_sap_st_ch - 1;
-                    pConfig->skip_acs_scan_range2_stch = con_sap_end_ch;
-                    pConfig->skip_acs_scan_range2_endch = cur_sap_end_ch + 1;
-
-                } else
-                    pConfig->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
-
-                hddLog(LOG1,
-                       FL("SecAP ACS Skip = %d, ACS CH RANGE = %d-%d, %d-%d"),
-                       pConfig->skip_acs_scan_status,
-                       pConfig->skip_acs_scan_range1_stch,
-                       pConfig->skip_acs_scan_range1_endch,
-                       pConfig->skip_acs_scan_range2_stch,
-                       pConfig->skip_acs_scan_range2_endch);
-            }
-        }
-    }
-#endif
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
