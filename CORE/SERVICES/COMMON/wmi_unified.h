@@ -1638,7 +1638,7 @@ typedef struct {
 
 #define WLAN_SCAN_PARAMS_MAX_SSID    16
 #define WLAN_SCAN_PARAMS_MAX_BSSID   4
-#define WLAN_SCAN_PARAMS_MAX_IE_LEN  256
+#define WLAN_SCAN_PARAMS_MAX_IE_LEN  512
 
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param */
@@ -1690,7 +1690,7 @@ typedef struct {
     A_UINT32 num_bssid;
     /** number of ssid. In the TLV ssid_list[] */
     A_UINT32     num_ssids;
-    /** number of bytes in ie data. In the TLV ie_data[] */
+    /** number of bytes in ie data. In the TLV ie_data[]. Max len is defined by WLAN_SCAN_PARAMS_MAX_IE_LEN */
     A_UINT32 ie_len;
     /** Max number of probes to be sent */
     A_UINT32 n_probes;
