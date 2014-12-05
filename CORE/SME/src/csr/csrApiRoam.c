@@ -13140,7 +13140,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
     tANI_U32 ucDot11Mode = 0;
     tANI_U8 txBFCsnValue = 0;
-    tANI_U32 sap_sessionId;
+    tANI_U32 sap_session_id;
     tCsrRoamSession *sap_session;
 
     if(!pSession)
@@ -13811,17 +13811,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                 break;
             }
             if (!CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId)) {
-                sap_sessionId = csr_find_sap_session(pMac);
-                if (CSR_SESSION_ID_INVALID != sap_sessionId) {
-                    sap_session = CSR_GET_SESSION( pMac, sessionId );
-                    if(!sap_session) {
-                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                                 FL("session %d not found"), sap_sessionId);
-                       status = eHAL_STATUS_FAILURE;
-                       break;
-                    }
-                    if ((0 != sap_session->pCurRoamProfile->operationChannel) &&
-                        (sap_session->pCurRoamProfile->operationChannel !=
+                sap_session_id = csr_find_sap_session(pMac);
+                if (CSR_SESSION_ID_INVALID != sap_session_id) {
+                    sap_session = CSR_GET_SESSION(pMac, sap_session_id);
+                    if ((0 != sap_session->bssParams.operationChn) &&
+                        (sap_session->bssParams.operationChn !=
                          pBssDescription->channelId)) {
 
                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -18790,9 +18784,7 @@ static tANI_U32 csr_find_sap_session(tpAniSirGlobal mac_ctx)
     for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
          if (CSR_IS_SESSION_VALID( mac_ctx, i)){
              session_ptr = CSR_GET_SESSION(mac_ctx, i);
-             if (session_ptr->pCurRoamProfile &&
-                 (eCSR_BSS_TYPE_INFRA_AP ==
-                         session_ptr->connectedProfile.BSSType)) {
+             if (VOS_STA_SAP_MODE == session_ptr->bssParams.bssPersona) {
                  /* Found it */
                  session_id = i;
                  break;

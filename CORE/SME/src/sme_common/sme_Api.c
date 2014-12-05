@@ -3173,6 +3173,7 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
    tCsrScanResultFilter *scan_filter = NULL;
    tScanResultHandle filtered_scan_result = NULL;
    tSirBssDescription first_ap_profile;
+   VOS_STATUS ret_status = VOS_STATUS_SUCCESS;
 
    if (NULL == pMac) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -3234,20 +3235,23 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                *ap_chnl_id = 0;
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                          FL("Scan result is empty, setting channel to 0"));
+               ret_status = VOS_STATUS_E_FAILURE;
            }
        } else {
           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                     FL("Failed to get scan get result"));
+          ret_status = VOS_STATUS_E_FAILURE;
        }
        sme_ReleaseGlobalLock( &pMac->sme );
    } else {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                     FL("Aquiring lock failed"));
+       ret_status = VOS_STATUS_E_FAILURE;
    }
 
    vos_mem_free(scan_filter);
 
-   return VOS_STATUS_SUCCESS;
+   return ret_status;
 }
 
 /* ---------------------------------------------------------------------------
