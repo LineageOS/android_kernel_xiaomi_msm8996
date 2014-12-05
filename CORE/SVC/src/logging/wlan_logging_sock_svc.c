@@ -297,7 +297,8 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	unsigned int *pfilled_length;
 	bool wake_up_thread = false;
 	unsigned long flags;
-	u_int64_t ts;
+	uint64_t ts;
+	uint32_t rem;
 
 	if (gapp_pid == INVALID_PID) {
 		/*
@@ -313,9 +314,9 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 
 	/* Format the Log time [Seconds.microseconds] */
 	ts = adf_get_boottime();
+	rem = do_div(ts, VOS_TIMER_TO_SEC_UNIT);
 	tlen = snprintf(tbuf, sizeof(tbuf), "[%s][%lu.%06lu] ", current->comm,
-			(unsigned long) (ts / VOS_TIMER_TO_SEC_UNIT),
-			(unsigned long) (ts % VOS_TIMER_TO_SEC_UNIT));
+			(unsigned long) ts, (unsigned long)rem);
 
 	/* 1+1 indicate '\n'+'\0' */
 	total_log_len = length + tlen + 1 + 1;
