@@ -10911,8 +10911,35 @@ static int32_t wma_set_txrx_fw_stats_level(tp_wma_handle wma_handle,
 		 */
 		req.print.concise = 1;
 		req.stats_type_upload_mask = 1 << (WMA_FW_TX_PPDU_STATS - 1);
-	} else if (value == WMA_FW_TX_RC_STATS)
+	} else if (value == WMA_FW_TX_RC_STATS) {
 		req.stats_type_upload_mask = 1 << (WMA_FW_TX_CONCISE_STATS - 1);
+    /*
+     * This part of the code is a bit confusing.
+     * For the statistics command iwpriv wlan0 txrx_fw_stats <n>,
+     * for all n <= 4, there is 1:1 mapping of WMA defined value (n)
+     * with f/w required stats_type_upload_mask.
+     * For n <= 4, stats_type_upload_mask = 1 << (n - 1)
+     * With the introduction of WMA_FW_TX_CONCISE_STATS, this changed
+     * & the code has a special case handling, where for n = 5,
+     * stats_type_upload_mask = 1 << (n - 2).
+     * However per current code, there is no way to set the value of
+     * stats_type_upload_mask for n > 5.
+     * In the mean-time for dumping Remote Ring Buffer information,
+     * f/w expects stats_type_upload_mask = 1 << 12.
+     * However going by CLI command arguments, n should be 7.
+     * There seems to be no apparent correlation between 7 & 12.
+     * To fix this properly, one needs to fix the WMA defines appropriately
+     * and always let n have a 1:1 correspondence with the bitmask expected by f/w.
+     * Do not want to disturb the existing code now, but extending this code,
+     * so that CLI argument "n" has 1:1 correpondence with f/w bitmask.
+     * With this approach, for remote ring information, the statistics
+     * command should be:
+     * iwpriv wlan0 txrx_fw_stats 12
+     */
+    /* FIXME : Fix all the values in the appropriate way. */
+    } else if (value == WMA_FW_RX_REM_RING_BUF) {
+		req.stats_type_upload_mask = 1 << WMA_FW_RX_REM_RING_BUF;
+    }
 
 	ol_txrx_fw_stats_get(vdev, &req);
 

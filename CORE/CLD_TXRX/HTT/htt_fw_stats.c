@@ -353,10 +353,75 @@ htt_t2h_stats_rx_reorder_stats_print(
                  stats_ptr->dup_past);
     adf_os_print("  %u times reorder timeout happened\n",
                  stats_ptr->reorder_timeout);
-    adf_os_print("  %u times bar ssn reset happened\n",
-                 stats_ptr->ssn_reset);
     adf_os_print("  %u times incorrect bar received\n",
                  stats_ptr->invalid_bar_ssn);
+    adf_os_print("  %u times bar ssn reset happened\n",
+                 stats_ptr->ssn_reset);
+    adf_os_print("  %u times flushed due to peer delete\n",
+                 stats_ptr->deliver_flush_delpeer);
+    adf_os_print("  %u times flushed due to offload\n",
+                 stats_ptr->deliver_flush_offload);
+    adf_os_print("  %u times flushed due to ouf of buffer\n",
+                 stats_ptr->deliver_flush_oob);
+    adf_os_print("  %u MPDU's dropped due to PN check fail\n",
+                 stats_ptr->pn_fail);
+    adf_os_print("  %u MPDU's dropped due to lack of memory\n",
+                 stats_ptr->store_fail);
+    adf_os_print("  %u times tid pool alloc succeeded\n",
+                 stats_ptr->tid_pool_alloc_succ);
+    adf_os_print("  %u times MPDU pool alloc succeeded\n",
+                 stats_ptr->mpdu_pool_alloc_succ);
+    adf_os_print("  %u times MSDU pool alloc succeeded\n",
+                 stats_ptr->msdu_pool_alloc_succ);
+    adf_os_print("  %u times tid pool alloc failed\n",
+                 stats_ptr->tid_pool_alloc_fail);
+    adf_os_print("  %u times MPDU pool alloc failed\n",
+                 stats_ptr->mpdu_pool_alloc_fail);
+    adf_os_print("  %u times MSDU pool alloc failed\n",
+                 stats_ptr->msdu_pool_alloc_fail);
+    adf_os_print("  %u times tid pool freed\n",
+                 stats_ptr->tid_pool_free);
+    adf_os_print("  %u times MPDU pool freed\n",
+                 stats_ptr->mpdu_pool_free);
+    adf_os_print("  %u times MSDU pool freed\n",
+                 stats_ptr->msdu_pool_free);
+    adf_os_print("  %u MSDUs undelivered to HTT, queued to Rx MSDU free list\n",
+                 stats_ptr->msdu_queued);
+    adf_os_print("  %u MSDUs released from Rx MSDU list to MAC ring\n",
+                 stats_ptr->msdu_recycled);
+}
+
+static void
+htt_t2h_stats_rx_rem_buf_stats_print(
+    struct rx_remote_buffer_mgmt_stats *stats_ptr, int concise)
+{
+    adf_os_print("Rx Remote Buffer Statistics:\n");
+    adf_os_print("  %u MSDU's reaped for Rx processing\n",
+                 stats_ptr->remote_reaped);
+    adf_os_print("  %u MSDU's recycled within firmware\n",
+                 stats_ptr->remote_recycled);
+    adf_os_print("  %u MSDU's stored by Data Rx\n",
+                 stats_ptr->data_rx_msdus_stored);
+    adf_os_print("  %u HTT indications from WAL Rx MSDU\n",
+                 stats_ptr->wal_rx_ind);
+    adf_os_print("  %u HTT indications unconsumed from WAL Rx MSDU\n",
+                 stats_ptr->wal_rx_ind_unconsumed);
+    adf_os_print("  %u HTT indications from Data Rx MSDU\n",
+                 stats_ptr->data_rx_ind);
+    adf_os_print("  %u HTT indications unconsumed from Data Rx MSDU\n",
+                 stats_ptr->data_rx_ind_unconsumed);
+    adf_os_print("  %u HTT indications from ATHBUF\n",
+                 stats_ptr->athbuf_rx_ind);
+    adf_os_print("  %u Remote buffers requested for refill\n",
+                 stats_ptr->refill_buf_req);
+    adf_os_print("  %u Remote buffers filled by host\n",
+                 stats_ptr->refill_buf_rsp);
+    adf_os_print("  %u times MAC has no buffers\n",
+                 stats_ptr->mac_no_bufs);
+    adf_os_print("  %u times f/w write & read indices on MAC ring are equal\n",
+                 stats_ptr->fw_indices_equal);
+    adf_os_print("  %u times f/w has no remote buffers to post to MAC\n",
+                 stats_ptr->host_no_bufs);
 }
 
 #define HTT_T2H_STATS_TX_PPDU_TIME_TO_MICROSEC(ticks, microsec_per_tick) \
@@ -717,6 +782,15 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
             wlan_dbg_tx_rate_info_t *tx_rate_info;
             tx_rate_info = (wlan_dbg_tx_rate_info_t *)(msg_word + 1);
             htt_t2h_stats_tx_rate_stats_print(tx_rate_info, concise);
+            break;
+        }
+    case HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO:
+        {
+
+            struct rx_remote_buffer_mgmt_stats *rx_rem_buf;
+
+            rx_rem_buf = (struct rx_remote_buffer_mgmt_stats *)(msg_word + 1);
+            htt_t2h_stats_rx_rem_buf_stats_print(rx_rem_buf, concise);
             break;
         }
     default:

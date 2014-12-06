@@ -1914,6 +1914,22 @@ ol_txrx_fw_stats_handler(
             case HTT_DBG_STATS_TX_PPDU_LOG:
                 bytes = 0; /* TO DO: specify how many bytes are present */
                 /* TO DO: add copying to the requestor's buffer */
+                break;
+
+            case HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO:
+
+                bytes = sizeof(struct rx_remote_buffer_mgmt_stats);
+                if (req->base.copy.buf) {
+                    int limit;
+
+                    limit = sizeof(struct rx_remote_buffer_mgmt_stats);
+                    if (req->base.copy.byte_limit < limit) {
+                        limit = req->base.copy.byte_limit;
+                    }
+                    buf = req->base.copy.buf + req->offset;
+                    adf_os_mem_copy(buf, stats_data, limit);
+                }
+                break;
 
             default:
                 break;
