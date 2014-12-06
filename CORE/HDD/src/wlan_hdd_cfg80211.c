@@ -6831,8 +6831,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     /* Overwrite the hostapd setting for HW mode only for 11ac.
      * This is valid only if mode is set to 11n in hostapd and either AUTO or 11ac in .ini .
      * Otherwise, leave whatever is set in hostapd (a OR b OR g OR n mode) */
-    if( ((pConfig->SapHw_mode == eSAP_DOT11_MODE_11n) ||
-         (pConfig->SapHw_mode == eSAP_DOT11_MODE_11n_ONLY)) &&
+    if( (pConfig->SapHw_mode == eSAP_DOT11_MODE_11n) &&
          sapForce11ACFor11n &&
         (( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO ) ||
          ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ) ||
