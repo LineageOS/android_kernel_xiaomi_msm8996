@@ -11517,11 +11517,6 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         pHddCtx->cur_vote_level = next_vote_level;
         cnss_request_bus_bandwidth(next_vote_level);
 #ifdef QCA_CONFIG_SMP
-        if (next_vote_level == CNSS_BUS_WIDTH_LOW) {
-            vos_sched_handle_throughput_req(VOS_FALSE);
-        } else {
-            vos_sched_handle_throughput_req(VOS_TRUE);
-        }
 #endif /* QCA_CONFIG_SMP */
     }
 

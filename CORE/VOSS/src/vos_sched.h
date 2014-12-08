@@ -73,7 +73,6 @@
 #endif
 #include <vos_mq.h>
 #include <adf_os_types.h>
-#include <vos_lock.h>
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -283,15 +282,6 @@ typedef struct _VosSchedContext
 
    /* cpu hotplug notifier */
    struct notifier_block *cpuHotPlugNotifier;
-
-   /* affinity lock */
-   vos_lock_t affinity_lock;
-
-   /* rx thread affinity cpu */
-   unsigned long rx_thread_cpu;
-
-   /* high throughput required */
-   v_BOOL_t high_throughput_required;
 #endif
 } VosSchedContext, *pVosSchedContext;
 
@@ -420,34 +410,6 @@ typedef struct _VosContextType
 ---------------------------------------------------------------------------*/
 
 #ifdef QCA_CONFIG_SMP
-/*---------------------------------------------------------------------------
-  \brief vos_sched_handle_cpu_hot_plug() - API to handle cpu hot plug
-      notification.
-  The \a vos_sched_handle_cpu_hot_plug() changes affined CPU for IRQ and
-  some of WLAN thread like TLShim RX Thread if needed.
-
-  \param  none
-
-  \return integer, success return 0
-
-  \sa vos_sched_handle_cpu_hot_plug()
-  -------------------------------------------------------------------------*/
-int vos_sched_handle_cpu_hot_plug(void);
-
-/*---------------------------------------------------------------------------
-  \brief vos_sched_handle_throughput_req() - API to handle throughput
-      requirement
-  The \a vos_sched_handle_throughput_req() changes affined CPU for IRQ and
-  some of WLAN thread like TLShim RX Thread if needed.
-
-  \param  high_tput_required, boolean, high throughput is required or not
-
-  \return integer, success return 0
-
-  \sa vos_sched_handle_throughput_req()
-  -------------------------------------------------------------------------*/
-int vos_sched_handle_throughput_req(v_BOOL_t high_tput_required);
-
 /*---------------------------------------------------------------------------
   \brief vos_drop_rxpkt_by_staid() - API to drop pending Rx packets for a sta
   The \a vos_drop_rxpkt_by_staid() drops queued packets for a station, to drop
