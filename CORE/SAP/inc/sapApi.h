@@ -210,6 +210,7 @@ typedef enum {
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     eSAP_ACS_SCAN_SUCCESS_EVENT,
 #endif
+    eSAP_ACS_CHANNEL_SELECTED,
 } eSapHddEvent;
 
 typedef enum {
@@ -407,6 +408,11 @@ typedef struct sap_DfsNolInfo_s {
    v_PVOID_t pDfsList;       /* pointer to pDfsList buffer */
 } tSap_DfsNolInfo;
 
+typedef struct sap_AcsChSelected_s {
+   v_U8_t   pri_channel;
+   v_U8_t   sec_channel;
+} tSap_AcsChSelectedEvent;
+
 /*
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call
    The event id corresponding to structure  in the union is defined in comment next to the structure
@@ -432,6 +438,8 @@ typedef struct sap_Event_s {
         tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
         tSap_OperatingChannelChangeEvent          sapChannelChange; /* eSAP_CHANNEL_CHANGE_EVENT */
         tSap_DfsNolInfo                           sapDfsNolInfo;    /*eSAP_DFS_NOL_XXX */
+        /*eSAP_ACS_CHANNEL_SELECTED */
+        tSap_AcsChSelectedEvent                   sapAcsChSelected;
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -2323,6 +2331,39 @@ void WLANSAP_PopulateDelStaParams(const v_U8_t *mac,
                                   v_U16_t reason_code,
                                   v_U8_t subtype,
                                   struct tagCsrDelStaParams *pDelStaParams);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_ACS_CHSelect
+
+  DESCRIPTION
+    This api function provides ACS selection for BSS
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+      pvosGCtx: Pointer to vos global context structure
+      pConfig: Pointer to configuration structure passed down from HDD
+      pACSEventCallback: Callback function in HDD called by SAP to inform
+                         HDD about channel section result
+      usrDataForCallback: Parameter that will be passed back in all the
+                          SAP callback events.
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
+                     tpWLAN_SAPEventCB pACSEventCallback,
+                     tsap_Config_t *pConfig,
+                     v_PVOID_t  pUsrContext);
+
 #ifdef __cplusplus
  }
 #endif

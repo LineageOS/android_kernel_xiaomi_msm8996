@@ -1572,6 +1572,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
             return VOS_STATUS_SUCCESS;
 
+        case eSAP_ACS_CHANNEL_SELECTED:
+            hddLog(LOG1, FL("Received eSAP_ACS_CHANNEL_SELECTED"));
+            pHddApCtx->operatingChannel =
+                 pSapEvent->sapevt.sapAcsChSelected.pri_channel;
+            pHddApCtx->secondaryChannel =
+                 pSapEvent->sapevt.sapAcsChSelected.sec_channel;
+            /* send vendor event to hostapd */
+            wlan_hdd_cfg80211_acs_ch_select_evt(pHddCtx,
+                       pSapEvent->sapevt.sapAcsChSelected.pri_channel,
+                       pSapEvent->sapevt.sapAcsChSelected.sec_channel);
+            return VOS_STATUS_SUCCESS;
+
         default:
             hddLog(LOG1,"SAP message is not handled");
             goto stopbss;

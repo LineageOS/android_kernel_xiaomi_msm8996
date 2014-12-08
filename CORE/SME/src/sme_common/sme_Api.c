@@ -3173,6 +3173,7 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
    tCsrScanResultFilter *scan_filter = NULL;
    tScanResultHandle filtered_scan_result = NULL;
    tSirBssDescription first_ap_profile;
+   VOS_STATUS ret_status = VOS_STATUS_SUCCESS;
 
    if (NULL == pMac) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -3234,20 +3235,23 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                *ap_chnl_id = 0;
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                          FL("Scan result is empty, setting channel to 0"));
+               ret_status = VOS_STATUS_E_FAILURE;
            }
        } else {
           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                     FL("Failed to get scan get result"));
+          ret_status = VOS_STATUS_E_FAILURE;
        }
        sme_ReleaseGlobalLock( &pMac->sme );
    } else {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                     FL("Aquiring lock failed"));
+       ret_status = VOS_STATUS_E_FAILURE;
    }
 
    vos_mem_free(scan_filter);
 
-   return VOS_STATUS_SUCCESS;
+   return ret_status;
 }
 
 /* ---------------------------------------------------------------------------
@@ -11565,6 +11569,9 @@ static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
    tANI_U8 i, startChan = channel, chanCnt = 0, chanBitmap = 0;
    tANI_BOOLEAN violation = VOS_FALSE;
    tANI_U32 newMode, mode;
+   tANI_U8 center_chan = channel;
+   /* to validate 40MHz channels against the regulatory domain */
+   tANI_BOOLEAN ht40_phymode = VOS_FALSE;
 
    /* get the bonding mode */
    mode = (channel <= 14) ? smeConfig->csrConfig.channelBondingMode24GHz :
@@ -11581,10 +11588,14 @@ static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
       case eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY:
          startChan = channel - step;
          chanCnt = 2;
+         center_chan = channel - CSR_CB_CENTER_CHANNEL_OFFSET;
+         ht40_phymode = VOS_TRUE;
          break;
       case eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY:
          startChan = channel;
          chanCnt=2;
+         center_chan = channel + CSR_CB_CENTER_CHANNEL_OFFSET;
+         ht40_phymode = VOS_TRUE;
          break;
 #ifdef WLAN_FEATURE_11AC
       case eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
@@ -11610,13 +11621,18 @@ static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
    }
 
    /* find violation; also map valid channels to a bitmap */
-   for (i = 0; i < chanCnt; i++)
-   {
+   for (i = 0; i < chanCnt; i++) {
       if (csrIsValidChannel(pMac, (startChan + (i * step))) ==
             VOS_STATUS_SUCCESS)
          chanBitmap = chanBitmap | 1 << i;
       else
          violation = VOS_TRUE;
+   }
+
+   /* validate if 40MHz channel is allowed */
+   if (ht40_phymode) {
+       if (!csrRoamIsValid40MhzChannel(pMac, center_chan))
+          violation = VOS_TRUE;
    }
 
    /* no channels are valid */
@@ -11817,23 +11833,18 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
           }
       }
 
-#ifdef QCA_HT_2040_COEX
-      /* if obss is enabled, the channel bonding mode is coming from hostapd,
-         so we don't need to hard code it here  */
-      if (!pMac->roam.configParam.obssEnabled)
-#endif
-          if (pMac->roam.configParam.channelBondingMode24GHz)
-          {
-              if (channel >= 1 && channel <= 5)
-                 smeConfig.csrConfig.channelBondingMode24GHz =
-                  eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-              else if (channel >= 6 && channel <= 13)
-                 smeConfig.csrConfig.channelBondingMode24GHz =
-                  eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-              else if (channel ==14)
-                 smeConfig.csrConfig.channelBondingMode24GHz =
-                  eCSR_INI_SINGLE_CHANNEL_CENTERED;
-          }
+      if (pMac->roam.configParam.channelBondingMode24GHz)
+      {
+          if (channel >= 1 && channel <= 5)
+             smeConfig.csrConfig.channelBondingMode24GHz =
+              eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+          else if (channel >= 6 && channel <= 13)
+             smeConfig.csrConfig.channelBondingMode24GHz =
+              eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+          else if (channel ==14)
+             smeConfig.csrConfig.channelBondingMode24GHz =
+              eCSR_INI_SINGLE_CHANNEL_CENTERED;
+      }
    }
 
    /*

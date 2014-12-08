@@ -115,6 +115,7 @@ typedef  enum  {
     WMI_SERVICE_STA_RX_IPA_OFFLOAD_SUPPORT, /* STA RX DATA offload to IPA support */
     WMI_SERVICE_MDNS_OFFLOAD,         /* mDNS responder offload support */
     WMI_SERVICE_SAP_AUTH_OFFLOAD,     /* softap auth offload */
+    WMI_SERVICE_DUAL_BAND_SIMULTANEOUS_SUPPORT, /* Dual Band Simultaneous support */
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

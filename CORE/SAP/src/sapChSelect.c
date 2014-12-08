@@ -2334,11 +2334,14 @@ eChannelWidthInfo sapGetChannelWidthInfo(tHalHandle halHandle, ptSapContext pSap
 {
     v_U32_t cbMode;
     eChannelWidthInfo chWidth = CHWIDTH_HT20;
+    tpAniSirGlobal pMac = PMAC_STRUCT(halHandle);
 
-    if (eSAP_RF_SUBBAND_2_4_GHZ == operatingBand)
-        cbMode = sme_GetChannelBondingMode24G(halHandle);
-    else
-        cbMode = sme_GetChannelBondingMode5G(halHandle);
+    /* get cbMode based on if obss is enabled */
+    cbMode = (pMac->roam.configParam.obssEnabled) ? 1:0;
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                  "%s: cbMode=%d, phyMode=%d",
+               __func__, cbMode, phyMode);
 
     if (phyMode == eSAP_DOT11_MODE_11n ||
         phyMode == eSAP_DOT11_MODE_11n_ONLY)
@@ -2639,34 +2642,44 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 #endif
 
     /* determine secondary channel for 2.4G channel 5, 6, 7 in HT40 */
-    if ((operatingBand == RF_SUBBAND_2_4_GHZ) && (chWidth == CHWIDTH_HT40) &&
-             (bestChNum >= 5) && (bestChNum <= 7)) {
-        int weight_below, weight_above, i;
+    if ((operatingBand == RF_SUBBAND_2_4_GHZ) && (chWidth == CHWIDTH_HT40)) {
         tSmeConfigParams *pSmeConfig;
-        tSapSpectChInfo *pSpectInfo;
-
-        weight_below = weight_above  = ACS_WEIGHT_MAX;
-        pSpectInfo = pSpectInfoParams->pSpectCh;
-
-        for (i = 0; i < pSpectInfoParams->numSpectChans ; i++) {
-            if (pSpectInfo[i].chNum == (bestChNum - 4))
-                weight_below = pSpectInfo[i].weight;
-
-            if (pSpectInfo[i].chNum == (bestChNum + 4))
-                weight_above = pSpectInfo[i].weight;
-        }
-
         pSmeConfig = vos_mem_malloc(sizeof(*pSmeConfig));
         if (NULL != pSmeConfig) {
             sme_GetConfigParam(halHandle, pSmeConfig);
 
-            if (weight_below < weight_above)
-                pSmeConfig->csrConfig.channelBondingMode24GHz =
-                       eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-            else
-                pSmeConfig->csrConfig.channelBondingMode24GHz =
-                       eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+            if ((bestChNum >= 5) && (bestChNum <= 7)) {
+                int weight_below, weight_above, i;
+                tSapSpectChInfo *pSpectInfo;
 
+                weight_below = weight_above  = ACS_WEIGHT_MAX;
+                pSpectInfo = pSpectInfoParams->pSpectCh;
+
+                for (i = 0; i < pSpectInfoParams->numSpectChans ; i++) {
+                    if (pSpectInfo[i].chNum == (bestChNum - 4))
+                        weight_below = pSpectInfo[i].weight;
+
+                    if (pSpectInfo[i].chNum == (bestChNum + 4))
+                        weight_above = pSpectInfo[i].weight;
+                }
+
+                if (weight_below < weight_above)
+                    pSmeConfig->csrConfig.channelBondingMode24GHz =
+                           eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+                else
+                    pSmeConfig->csrConfig.channelBondingMode24GHz =
+                           eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+            } else {
+                if (bestChNum >= 1 && bestChNum <= 5)
+                   pSmeConfig->csrConfig.channelBondingMode24GHz =
+                    eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+                else if (bestChNum >= 6 && bestChNum <= 13)
+                   pSmeConfig->csrConfig.channelBondingMode24GHz =
+                    eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+                else if (bestChNum ==14)
+                    pSmeConfig->csrConfig.channelBondingMode24GHz =
+                    eCSR_INI_SINGLE_CHANNEL_CENTERED;
+            }
             sme_UpdateConfig(halHandle, pSmeConfig);
             vos_mem_free(pSmeConfig);
         }

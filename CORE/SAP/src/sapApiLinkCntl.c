@@ -274,6 +274,268 @@ WLANSAP_ScanCallback
 }// WLANSAP_ScanCallback
 
 /*==========================================================================
+
+  FUNCTION    WLANSAP_PreStartBssAcsScanCallback()
+
+  DESCRIPTION
+    Callback for Scan (scan results) Events
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    tHalHandle:  the tHalHandle passed in with the scan request
+    *p2: the second context pass in for the caller, opaque sap Handle here
+    scanID:
+    sessionId: Session identifier
+    status: Status of scan -success, failure or abort
+
+  RETURN VALUE
+    The eHalStatus code associated with performing the operation
+
+    eHAL_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+============================================================================*/
+eHalStatus
+WLANSAP_PreStartBssAcsScanCallback
+(
+  tHalHandle halHandle,
+  void *pContext,
+  v_U8_t sessionId,
+  v_U32_t scanID,
+  eCsrScanStatus scanStatus
+)
+{
+    tScanResultHandle pResult = NULL;
+    eHalStatus scanGetResultStatus = eHAL_STATUS_FAILURE;
+    ptSapContext psapContext = (ptSapContext)pContext;
+    v_U8_t operChannel = 0;
+    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+#ifdef SOFTAP_CHANNEL_RANGE
+    v_U32_t operatingBand;
+#endif
+    v_U32_t vhtChannelWidth;
+    tpAniSirGlobal    pMac = PMAC_STRUCT(halHandle);
+
+    if ( eCSR_SCAN_SUCCESS == scanStatus)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("CSR scanStatus = %s (%d)"),
+                   "eCSR_SCAN_SUCCESS", scanStatus);
+        /*
+         * Now do
+         * 1. Get scan results
+         * 2. Run channel selection algorithm
+         * select channel and store in pSapContext->Channel
+         */
+        scanGetResultStatus = sme_ScanGetResult(halHandle,
+                                                psapContext->sessionId,
+                                                NULL, &pResult);
+
+        if ((scanGetResultStatus != eHAL_STATUS_SUCCESS) &&
+            (scanGetResultStatus != eHAL_STATUS_E_NULL_VALUE))
+        {
+            /*
+             * No scan results
+             * So, set the operation channel not selected
+             * to allow the default channel to be set when
+             * reporting to HDD
+             */
+            operChannel = SAP_CHANNEL_NOT_SELECTED;
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       FL("Get scan result failed! ret = %d"),
+                       scanGetResultStatus);
+        }
+        else
+        {
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+            if (scanID != 0)
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                           "%s: Sending ACS Scan skip event", __func__);
+                sapSignalHDDevent(psapContext, NULL,
+                                  eSAP_ACS_SCAN_SUCCESS_EVENT,
+                                  (v_PVOID_t) eSAP_STATUS_SUCCESS);
+            }
+            else
+            {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "%s: ACS scan id: %d (skipped ACS SCAN)",
+                          __func__, scanID);
+            }
+#endif
+            operChannel = sapSelectChannel(halHandle, psapContext, pResult);
+
+            sme_ScanResultPurge(halHandle, pResult);
+        }
+
+        if (operChannel == SAP_CHANNEL_NOT_SELECTED)
+#ifdef SOFTAP_CHANNEL_RANGE
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                       FL("No suitable channel selected"));
+
+            if ( eCSR_BAND_ALL ==  psapContext->scanBandPreference ||
+                     psapContext->allBandScanned == eSAP_TRUE)
+            {
+                halStatus = sapSignalHDDevent(psapContext, NULL,
+                                      eSAP_ACS_CHANNEL_SELECTED,
+                                      (v_PVOID_t) eSAP_STATUS_FAILURE);
+            }
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                           FL("Has scan band preference"));
+                if (eCSR_BAND_24 == psapContext->currentPreferredBand)
+                    psapContext->currentPreferredBand = eCSR_BAND_5G;
+                else
+                    psapContext->currentPreferredBand = eCSR_BAND_24;
+
+                psapContext->allBandScanned = eSAP_TRUE;
+                /*
+                 * Go back to scanning, scan next band
+                 *
+                 * 1. No need to pass the second parameter
+                 * as the SAP state machine is not started yet
+                 * and there is no need for any event posting.
+                 *
+                 * 2. Set third parameter to TRUE to indicate the
+                 * channel selection function to register a
+                 * different scan callback fucntion to process
+                 * the results pre start BSS.
+                 */
+                vosStatus = sapGotoChannelSel(psapContext, NULL, VOS_TRUE);
+                if (VOS_STATUS_SUCCESS == vosStatus)
+                {
+                    halStatus = eHAL_STATUS_SUCCESS;
+                }
+                return halStatus;
+            }
+        }
+#else
+        psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
+#endif
+        else
+        {
+            /*
+             * Valid Channel Found from scan results.
+             */
+            psapContext->channel = operChannel;
+        }
+
+        if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(halHandle,
+                                             WNI_CFG_VHT_CHANNEL_WIDTH,
+                                             &vhtChannelWidth))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
+            /*
+             * In case of failure, take the vht channel width from
+             * original ini value
+             */
+            vhtChannelWidth = pMac->roam.configParam.nVhtChannelWidth;
+        }
+
+        sme_SelectCBMode(halHandle,
+          sapConvertSapPhyModeToCsrPhyMode(psapContext->csrRoamProfile.phyMode),
+          psapContext->channel, vhtChannelWidth);
+
+        /* determine secondary channel for 11n mode */
+        if ((eSAP_DOT11_MODE_11n == psapContext->csrRoamProfile.phyMode) ||
+            (eSAP_DOT11_MODE_11n_ONLY == psapContext->csrRoamProfile.phyMode)) {
+            ePhyChanBondState cbMode;
+
+            if (psapContext->channel > 14)
+                cbMode = pMac->roam.configParam.channelBondingMode5GHz;
+            else
+                cbMode = pMac->roam.configParam.channelBondingMode24GHz;
+
+            switch (cbMode) {
+            case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+                psapContext->secondary_ch = psapContext->channel + 4;
+                break;
+            case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+                psapContext->secondary_ch = psapContext->channel - 4;
+                break;
+            case PHY_SINGLE_CHANNEL_CENTERED:
+            default:
+                psapContext->secondary_ch = 0;
+                break;
+            }
+
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                           FL("psapContext->secondary_ch=%d"),
+                           psapContext->secondary_ch);
+        }
+
+#ifdef SOFTAP_CHANNEL_RANGE
+        if(psapContext->channelList != NULL)
+        {
+            /*
+             * Always free up the memory for
+             * channel selection whatever
+             * the result
+             */
+            vos_mem_free(psapContext->channelList);
+            psapContext->channelList = NULL;
+        }
+#endif
+
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("Channel selected = %d"), psapContext->channel);
+
+        /*
+         * By now, Channel should be selected
+         * post a message to HDD to indicate
+         * the ACS channel selection complete.
+         */
+        halStatus = sapSignalHDDevent(psapContext, NULL,
+                                      eSAP_ACS_CHANNEL_SELECTED,
+                                      (v_PVOID_t) eSAP_STATUS_SUCCESS);
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   FL("CSR scanStatus = %s (%d), choose default channel"),
+                   "eCSR_SCAN_ABORT/FAILURE", scanStatus );
+#ifdef SOFTAP_CHANNEL_RANGE
+        /*
+         * if scan failed, select default channel in the
+         * BAND(2.4GHz/5GHZ)
+         */
+        ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,
+                      &operatingBand);
+        if(eSAP_RF_SUBBAND_2_4_GHZ == operatingBand )
+            psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
+        else
+            psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
+#else
+        psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
+#endif
+        halStatus = sapSignalHDDevent(psapContext, NULL,
+                                      eSAP_ACS_CHANNEL_SELECTED,
+                                      (v_PVOID_t) eSAP_STATUS_SUCCESS);
+    }
+
+    if(eHAL_STATUS_SUCCESS != sme_CloseSession(halHandle,
+                                      psapContext->sessionId, NULL, NULL))
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+            "In %s CloseSession error", __func__);
+    } else {
+        psapContext->isScanSessionOpen = eSAP_FALSE;
+    }
+    psapContext->sessionId = 0xff;
+
+    return halStatus;
+}
+
+/*==========================================================================
   FUNCTION    WLANSAP_RoamCallback()
 
   DESCRIPTION

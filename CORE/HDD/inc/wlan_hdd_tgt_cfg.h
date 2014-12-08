@@ -52,6 +52,9 @@ struct hdd_tgt_services {
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         v_BOOL_t en_roam_offload;
 #endif
+#ifdef SAP_AUTH_OFFLOAD
+        bool sap_auth_offload_service;
+#endif
 };
 
 struct hdd_tgt_ht_cap {

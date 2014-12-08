@@ -2956,17 +2956,13 @@ __limProcessSmeDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     if ((status == eSIR_FAILURE) || (!limIsSmeDeauthReqValid(pMac, &smeDeauthReq, psessionEntry)))
     {
-        PELOGE(limLog(pMac, LOGW,FL("received invalid SME_DEAUTH_REQ message"));)
-        if (pMac->lim.gLimRspReqd)
-        {
-            pMac->lim.gLimRspReqd = false;
+        PELOGE(limLog(pMac, LOGE,FL
+                   ("received invalid SME_DEAUTH_REQ message"));)
+        pMac->lim.gLimRspReqd = false;
 
-            retCode       = eSIR_SME_INVALID_PARAMETERS;
-            deauthTrigger = eLIM_HOST_DEAUTH;
-            goto sendDeauth;
-        }
-
-        return;
+        retCode       = eSIR_SME_INVALID_PARAMETERS;
+        deauthTrigger = eLIM_HOST_DEAUTH;
+        goto sendDeauth;
     }
     limLog(pMac, LOG1,FL("received DEAUTH_REQ message on sessionid %d "
       "Systemrole %d with reasoncode %u in limSmestate %d from "
@@ -5593,6 +5589,7 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
      * want to insert NOA before processing those msgs. These msgs will be processed later when
      * start event happens
      */
+    MTRACE(macTraceMsgRx(pMac, NO_SESSION, pMsg->type));
     switch (pMsg->type)
     {
         case eWNI_SME_SCAN_REQ:
