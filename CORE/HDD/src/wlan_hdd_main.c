@@ -7062,6 +7062,10 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     cfg_ini->isRoamOffloadEnabled &= cfg->en_roam_offload;
 #endif
 
+#ifdef SAP_AUTH_OFFLOAD
+    cfg_ini->enable_sap_auth_offload &= cfg->sap_auth_offload_service;
+#endif
+
 }
 
 static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
@@ -11512,11 +11516,13 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                __func__, next_vote_level, tx_packets, rx_packets);
         pHddCtx->cur_vote_level = next_vote_level;
         cnss_request_bus_bandwidth(next_vote_level);
+#ifdef QCA_CONFIG_SMP
         if (next_vote_level == CNSS_BUS_WIDTH_LOW) {
             vos_sched_handle_throughput_req(VOS_FALSE);
         } else {
             vos_sched_handle_throughput_req(VOS_TRUE);
         }
+#endif /* QCA_CONFIG_SMP */
     }
 
     pHddCtx->prev_rx = rx_packets;
