@@ -1755,7 +1755,7 @@ VOS_STATUS WLANTL_Start(void *vos_ctx)
 VOS_STATUS WLANTL_Close(void *vos_ctx)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
-#ifdef QCA_LL_TX_FLOW_CT
+#if defined(QCA_LL_TX_FLOW_CT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 	u_int8_t i;
 #endif /* QCA_LL_TX_FLOW_CT */
 
