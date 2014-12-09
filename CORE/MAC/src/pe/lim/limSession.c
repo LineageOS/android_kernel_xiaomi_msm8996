@@ -313,6 +313,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
 #ifdef FEATURE_WLAN_TDLS
             vos_mem_set(pMac->lim.gpSession[i].peerAIDBitmap,
                   sizeof(pMac->lim.gpSession[i].peerAIDBitmap), 0);
+            pMac->lim.gpSession[i].tdls_prohibited = false;
+            pMac->lim.gpSession[i].tdls_chan_swit_prohibited = false;
 #endif
             pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
             pMac->lim.gpSession[i].fIgnoreCapsChange = 0;

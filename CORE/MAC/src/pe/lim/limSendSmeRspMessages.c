@@ -377,6 +377,12 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
                 pSirSmeJoinRsp->ucastSig   = pStaDs->ucUcastSig;
                 pSirSmeJoinRsp->bcastSig   = pStaDs->ucBcastSig;
                 pSirSmeJoinRsp->timingMeasCap = pStaDs->timingMeasCap;
+#ifdef FEATURE_WLAN_TDLS
+                pSirSmeJoinRsp->tdls_prohibited =
+                                  psessionEntry->tdls_prohibited;
+                pSirSmeJoinRsp->tdls_chan_swit_prohibited =
+                                  psessionEntry->tdls_chan_swit_prohibited;
+#endif
             }
         }
 

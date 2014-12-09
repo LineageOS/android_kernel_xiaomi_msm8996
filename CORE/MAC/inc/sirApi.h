@@ -1122,6 +1122,14 @@ typedef struct sSirSmeJoinRsp
     /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8            timingMeasCap;
 
+#ifdef FEATURE_WLAN_TDLS
+    /* TDLS prohibited and TDLS channel switch prohibited are set as
+     * per ExtCap IE in received assoc/re-assoc response from AP
+     */
+    bool tdls_prohibited;
+    bool tdls_chan_swit_prohibited;
+#endif
+
     tANI_U8         frames[ 1 ];
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;

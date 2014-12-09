@@ -1322,6 +1322,8 @@ typedef struct tagCsrRoamInfo
 
 #ifdef FEATURE_WLAN_TDLS
     tANI_U8 staType;
+    bool tdls_prohibited;           /* per ExtCap in Assoc/Reassoc resp */
+    bool tdls_chan_swit_prohibited; /* per ExtCap in Assoc/Reassoc resp */
 #endif
 
     // Required for indicating the frames to upper layer
