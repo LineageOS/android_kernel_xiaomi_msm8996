@@ -233,7 +233,10 @@ static A_STATUS HIFDevAllocAndPrepareRxPackets(HIF_SDIO_DEVICE *pDev,
                 pPacket->PktInfo.AsRx.ExpectedHdr = LookAheads[i]; /* set expected look ahead */
             }
             /* set the amount of data to fetch */
-            pPacket->ActualLength = fullLength;
+            pPacket->ActualLength = pHdr->PayloadLen + HTC_HDR_LENGTH;
+            if ((j == (numMessages-1)) && ((pHdr->Flags) & HTC_FLAGS_RECV_1MORE_BLOCK))
+                pPacket->PktInfo.AsRx.HTCRxFlags |=
+                HTC_RX_PKT_LAST_BUNDLED_PKT_HAS_ADDTIONAL_BLOCK;
             pPacket->Endpoint = pHdr->EndpointID;
             pPacket->Completion = NULL;
         }
@@ -627,7 +630,11 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
     for(i = 0; !HTC_QUEUE_EMPTY(pRecvPktQueue) && i < HTC_MAX_MSG_PER_BUNDLE_RX; i++){
         pPacket = HTC_PACKET_DEQUEUE(pRecvPktQueue);
         A_ASSERT(pPacket != NULL);
-        paddedLength = DEV_CALC_RECV_PADDED_LEN(pDev, pPacket->ActualLength);
+        if (pPacket->PktInfo.AsRx.HTCRxFlags & HTC_RX_PKT_LAST_BUNDLED_PKT_HAS_ADDTIONAL_BLOCK)
+            paddedLength = DEV_CALC_RECV_PADDED_LEN(pDev, pPacket->ActualLength)
+                                                    + HIF_MBOX_BLOCK_SIZE;
+        else
+            paddedLength = DEV_CALC_RECV_PADDED_LEN(pDev, pPacket->ActualLength);
 
         if((bundleSpaceRemaining - paddedLength) < 0){
             /* exceeds what we can transfer, put the packet back */

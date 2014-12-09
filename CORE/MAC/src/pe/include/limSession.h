@@ -480,6 +480,7 @@ typedef struct sPESession           // Added to Support BT-AMP
      * gLimOlbcParams, gLimOverlap11gParams, gLimOverlapHt20Params etc
      */
     tANI_U16 old_protection_state;
+    tSirMacAddr             prev_ap_bssid;
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

@@ -2565,13 +2565,13 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
     frm.ListenInterval.interval = pMlmReassocReq->listenInterval;
 
-    // Get the old bssid of the older AP.
-    if (NULL != psessionEntry->ftPEContext.pFTPreAuthReq)
-    {
-       vos_mem_copy( ( tANI_U8* )frm.CurrentAPAddress.mac,
-             psessionEntry->ftPEContext.pFTPreAuthReq->currbssId,
-             sizeof(tSirMacAddr));
-    }
+    /* *
+     * Get the bssid of the older AP.
+     * The previous ap bssid is stored in the FT Session
+     * while creating the PE FT Session for reassociation.
+     * */
+    vos_mem_copy((tANI_U8*)frm.CurrentAPAddress.mac,
+                  psessionEntry->prev_ap_bssid, sizeof(tSirMacAddr));
 
     PopulateDot11fSSID2( pMac, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
