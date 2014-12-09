@@ -264,6 +264,9 @@ CONFIG_TARGET_RAMDUMP_AFTER_KERNEL_PANIC := 1
 #Flag to enable Stats Ext implementation
 CONFIG_FEATURE_STATS_EXT := 1
 
+#Flag to force the inclusion of the 802.11p channels because support
+#for these channels has not yet been added to the kernel.
+CONFIG_STATICALLY_ADD_11P_CHANNELS := n
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -1345,6 +1348,10 @@ endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
 CDEFINES += -DWITH_BACKPORTS
+endif
+
+ifeq ($(CONFIG_STATICALLY_ADD_11P_CHANNELS),y)
+CDEFINES += -DFEATURE_STATICALLY_ADD_11P_CHANNELS
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)

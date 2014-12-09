@@ -3758,7 +3758,7 @@ static int __iw_softap_get_channel_list(struct net_device *dev,
     v_U32_t num_channels = 0;
     v_U8_t i = 0;
     v_U8_t bandStartChannel = RF_CHAN_1;
-    v_U8_t bandEndChannel = RF_CHAN_165;
+    v_U8_t bandEndChannel = RF_CHAN_184;
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     tpChannelListInfo channel_list = (tpChannelListInfo) extra;
@@ -3780,7 +3780,7 @@ static int __iw_softap_get_channel_list(struct net_device *dev,
     else if (eCSR_BAND_5G == curBand)
     {
         bandStartChannel = RF_CHAN_36;
-        bandEndChannel = RF_CHAN_165;
+        bandEndChannel = RF_CHAN_184;
     }
 
     hddLog(LOG1, FL("curBand = %d, bandStartChannel = %hu, "

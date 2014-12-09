@@ -23196,7 +23196,19 @@ static void wma_ocb_set_sched_req(void *wma_handle,
 
 	req.chan = OCB_FREQ_TO_CHAN(sched->channels[0].chan_freq);
 	req.max_txpow = sched->channels[0].tx_power;
-	req.is_half_rate = TRUE;
+	switch (sched->channels[0].bandwidth) {
+	case 10:
+		req.is_half_rate = true;
+		req.is_quarter_rate = false;
+		break;
+	case 5:
+		req.is_half_rate = false;
+		req.is_quarter_rate = true;
+		break;
+	default:
+		req.is_half_rate = false;
+		req.is_quarter_rate = false;
+	}
 
 	if (wma->interfaces[vdev_id].vdev_up) {
 		wma->interfaces[vdev_id].vdev_up = FALSE;

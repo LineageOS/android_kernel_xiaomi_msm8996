@@ -5625,6 +5625,7 @@ typedef struct sir_qos_params {
 typedef struct sir_ocb_channel
 {
     uint32_t chan_freq;
+    uint32_t bandwidth;
     uint32_t duration;
     uint32_t start_guard_interval;
     uint32_t end_guard_interval;
