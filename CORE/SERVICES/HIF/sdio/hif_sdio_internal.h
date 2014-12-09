@@ -127,10 +127,11 @@ struct TAG_HIF_SDIO_DEVICE {
 #define HTC_RECV_WAIT_BUFFERS        (1 << 0)
 #define HTC_OP_STATE_STOPPING        (1 << 0)
 
-#define HTC_RX_PKT_IGNORE_LOOKAHEAD      (1 << 0)
-#define HTC_RX_PKT_REFRESH_HDR           (1 << 1)
-#define HTC_RX_PKT_PART_OF_BUNDLE        (1 << 2)
-#define HTC_RX_PKT_NO_RECYCLE            (1 << 3)
+#define HTC_RX_PKT_IGNORE_LOOKAHEAD                         (1 << 0)
+#define HTC_RX_PKT_REFRESH_HDR                              (1 << 1)
+#define HTC_RX_PKT_PART_OF_BUNDLE                           (1 << 2)
+#define HTC_RX_PKT_NO_RECYCLE                               (1 << 3)
+#define HTC_RX_PKT_LAST_BUNDLED_PKT_HAS_ADDTIONAL_BLOCK     (1 << 4)
 
 #define IS_DEV_IRQ_PROCESSING_ASYNC_ALLOWED(pDev) ((pDev)->HifIRQProcessingMode != HIF_DEVICE_IRQ_SYNC_ONLY)
 

@@ -883,6 +883,7 @@ void limFillFTSession(tpAniSirGlobal pMac,
 #endif
    sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
    sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
+   sirCopyMacAddr(pftSessionEntry->prev_ap_bssid, psessionEntry->bssId);
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
    limPrintMacAddr(pMac, pftSessionEntry->limReAssocbssId, LOG1);
 #endif
