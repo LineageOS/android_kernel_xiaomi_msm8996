@@ -383,4 +383,6 @@ int wlan_hdd_set_callback(hddTdlsPeer_t *curr_peer,
 int hdd_set_tdls_offchannel(hdd_context_t *pHddCtx, int offchannel);
 int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset);
 int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode);
+void wlan_hdd_update_tdls_info(hdd_adapter_t *adapter, bool tdls_prohibited,
+                               bool tdls_chan_swit_prohibited);
 #endif // __HDD_TDSL_H

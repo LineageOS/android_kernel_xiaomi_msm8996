@@ -1684,6 +1684,138 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
     return 0;
 }
 
+/**
+ * wlan_hdd_update_tdls_info - update tdls status info
+ * @adapter: ptr to device adapter.
+ * @tdls_prohibited: indicates whether tdls is prohibited.
+ * @tdls_chan_swit_prohibited: indicates whether tdls channel switch
+ *                             is prohibited.
+ *
+ * Normally an AP does not influence TDLS connection between STAs
+ * associated to it. But AP may set bits for TDLS Prohibited or
+ * TDLS Channel Switch Prohibited in Extended Capability IE in
+ * Assoc/Re-assoc response to STA. So after STA is connected to
+ * an AP, call this function to update TDLS status as per those
+ * bits set in Ext Cap IE in received Assoc/Re-assoc response
+ * from AP.
+ *
+ * Return: None.
+ */
+void wlan_hdd_update_tdls_info(hdd_adapter_t *adapter, bool tdls_prohibited,
+                               bool tdls_chan_swit_prohibited)
+{
+    hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+    tdlsCtx_t *hdd_tdls_ctx = WLAN_HDD_GET_TDLS_CTX_PTR(adapter);
+    tdlsInfo_t *tdls_param;
+    eHalStatus hal_status;
+
+    if (!hdd_tdls_ctx) {
+        /* may be TDLS is not applicable for this adapter */
+        hddLog(LOG1, FL("HDD TDLS context is null"));
+        return;
+    }
+
+    /* If TDLS support is disabled then no need to update target */
+    if (FALSE == hdd_ctx->cfg_ini->fEnableTDLSSupport) {
+        hddLog(LOG1, FL("TDLS not enabled"));
+        return;
+    }
+
+    /* If AP indicated TDLS Prohibited then disable tdls mode */
+    mutex_lock(&hdd_ctx->tdls_lock);
+    if (tdls_prohibited) {
+        hdd_ctx->tdls_mode = eTDLS_SUPPORT_NOT_ENABLED;
+    } else {
+        if (FALSE == hdd_ctx->cfg_ini->fEnableTDLSImplicitTrigger) {
+            hdd_ctx->tdls_mode = eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY;
+        } else {
+            hdd_ctx->tdls_mode = eTDLS_SUPPORT_ENABLED;
+        }
+    }
+    mutex_unlock(&hdd_ctx->tdls_lock);
+
+    tdls_param = vos_mem_malloc(sizeof(*tdls_param));
+    if (!tdls_param) {
+        hddLog(LOGE,
+               FL("memory allocation failed for tdlsParams"));
+        return;
+    }
+
+    tdls_param->vdev_id = adapter->sessionId;
+    tdls_param->tdls_state = hdd_ctx->tdls_mode;
+    tdls_param->notification_interval_ms =
+        hdd_tdls_ctx->threshold_config.tx_period_t;
+    tdls_param->tx_discovery_threshold =
+        hdd_tdls_ctx->threshold_config.tx_packet_n;
+    tdls_param->tx_teardown_threshold =
+        hdd_tdls_ctx->threshold_config.idle_packet_n;
+    tdls_param->rssi_teardown_threshold =
+        hdd_tdls_ctx->threshold_config.rssi_teardown_threshold;
+    tdls_param->rssi_delta = hdd_tdls_ctx->threshold_config.rssi_delta;
+
+    tdls_param->tdls_options = 0;
+
+    /* Do not enable TDLS offchannel, if AP prohibited TDLS channel switch */
+    if ((hdd_ctx->cfg_ini->fEnableTDLSOffChannel) &&
+        (!tdls_chan_swit_prohibited)) {
+        tdls_param->tdls_options |= ENA_TDLS_OFFCHAN;
+    }
+
+    if (hdd_ctx->cfg_ini->fEnableTDLSBufferSta)
+        tdls_param->tdls_options |= ENA_TDLS_BUFFER_STA;
+
+    if (hdd_ctx->cfg_ini->fEnableTDLSSleepSta)
+        tdls_param->tdls_options |= ENA_TDLS_SLEEP_STA;
+
+    tdls_param->peer_traffic_ind_window =
+        hdd_ctx->cfg_ini->fTDLSPuapsdPTIWindow;
+    tdls_param->peer_traffic_response_timeout =
+        hdd_ctx->cfg_ini->fTDLSPuapsdPTRTimeout;
+    tdls_param->puapsd_mask =
+        hdd_ctx->cfg_ini->fTDLSUapsdMask;
+    tdls_param->puapsd_inactivity_time =
+        hdd_ctx->cfg_ini->fTDLSPuapsdInactivityTimer;
+    tdls_param->puapsd_rx_frame_threshold =
+        hdd_ctx->cfg_ini->fTDLSRxFrameThreshold;
+
+    hddLog(LOG1,
+           FL("Setting tdls state and param in fw: "
+              "vdev_id: %d, "
+              "tdls_state: %d, "
+              "notification_interval_ms: %d, "
+              "tx_discovery_threshold: %d, "
+              "tx_teardown_threshold: %d, "
+              "rssi_teardown_threshold: %d, "
+              "rssi_delta: %d, "
+              "tdls_options: 0x%x, "
+              "peer_traffic_ind_window: %d, "
+              "peer_traffic_response_timeout: %d, "
+              "puapsd_mask: 0x%x, "
+              "puapsd_inactivity_time: %d, "
+              "puapsd_rx_frame_threshold: %d "),
+              tdls_param->vdev_id,
+              tdls_param->tdls_state,
+              tdls_param->notification_interval_ms,
+              tdls_param->tx_discovery_threshold,
+              tdls_param->tx_teardown_threshold,
+              tdls_param->rssi_teardown_threshold,
+              tdls_param->rssi_delta,
+              tdls_param->tdls_options,
+              tdls_param->peer_traffic_ind_window,
+              tdls_param->peer_traffic_response_timeout,
+              tdls_param->puapsd_mask,
+              tdls_param->puapsd_inactivity_time,
+              tdls_param->puapsd_rx_frame_threshold);
+
+    hal_status = sme_UpdateFwTdlsState(hdd_ctx->hHal, tdls_param, TRUE);
+    if (eHAL_STATUS_SUCCESS != hal_status) {
+        vos_mem_free(tdls_param);
+        return;
+    }
+
+    return;
+}
+
 int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, u8 *mac, u8 staId)
 {
     hddTdlsPeer_t *curr_peer;
