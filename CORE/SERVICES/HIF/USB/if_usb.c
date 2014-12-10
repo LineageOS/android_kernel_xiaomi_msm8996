@@ -240,6 +240,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 		set_current_state(TASK_RUNNING);
 		usb_sc->hdd_removed_wait_cnt ++;
 	}
+	atomic_set(&usb_sc->hdd_removed_processing, 1);
 
 	/* disable lpm to avoid following cold reset will
 	 *cause xHCI U1/U2 timeout
@@ -276,18 +277,17 @@ static void hif_usb_remove(struct usb_interface *interface)
         }
 
 	if (atomic_inc_and_test(&usb_sc->hdd_removed)) {
-		atomic_set(&usb_sc->hdd_removed_processing, 1);
 #ifndef REMOVE_PKT_LOG
 		if (vos_get_conparam() != VOS_FTM_MODE &&
 			!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
 			pktlogmod_exit(scn);
 #endif
 		__hdd_wlan_exit();
-		atomic_set(&usb_sc->hdd_removed_processing, 0);
 	}
 
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
+	atomic_set(&usb_sc->hdd_removed_processing, 0);
 	hif_deinit_adf_ctx(scn);
 	A_FREE(scn);
 	A_FREE(sc);
@@ -522,20 +522,21 @@ void hif_unregister_driver(void)
 			if (!usb_sc)
 				goto deregister;
 
+			atomic_set(&usb_sc->hdd_removed_processing, 1);
+
 			if (usb_sc->suspend_state) {
 				hif_usb_resume(usb_sc->interface);
 			}
 
 			if (atomic_inc_and_test(&usb_sc->hdd_removed)) {
-				atomic_set(&usb_sc->hdd_removed_processing, 1);
 #ifndef REMOVE_PKT_LOG
 				if (vos_get_conparam() != VOS_FTM_MODE &&
 					!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
 					pktlogmod_exit(usb_sc->ol_sc);
 #endif
 				__hdd_wlan_exit();
-				atomic_set(&usb_sc->hdd_removed_processing, 0);
 			}
+			atomic_set(&usb_sc->hdd_removed_processing, 0);
 		}
 
 deregister:

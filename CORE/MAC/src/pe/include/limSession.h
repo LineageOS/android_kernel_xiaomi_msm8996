@@ -372,6 +372,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U16  gLimNumOfCurrentSTAs;
 #ifdef FEATURE_WLAN_TDLS
     tANI_U32  peerAIDBitmap[2];
+    bool tdls_prohibited;
+    bool tdls_chan_swit_prohibited;
 #endif
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;

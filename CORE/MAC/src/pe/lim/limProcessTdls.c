@@ -101,7 +101,8 @@ void PopulateDot11fLinkIden(tpAniSirGlobal pMac, tpPESession psessionEntry,
                           tDot11fIELinkIdentifier *linkIden,
                              tSirMacAddr peerMac, tANI_U8 reqType) ;
 void PopulateDot11fTdlsExtCapability(tpAniSirGlobal pMac,
-                                    tDot11fIEExtCap *extCapability) ;
+                                     tpPESession psessionEntry,
+                                     tDot11fIEExtCap *extCapability) ;
 
 void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
           tpPESession psessionEntry,
@@ -663,7 +664,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                                 &tdlsDisRsp.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
-    PopulateDot11fTdlsExtCapability( pMac, &tdlsDisRsp.ExtCap );
+    PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsDisRsp.ExtCap);
 
     wlan_cfgGetInt(pMac,WNI_CFG_DOT11_MODE,&selfDot11Mode);
 
@@ -671,7 +672,12 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
     PopulateDot11fTdlsHtVhtCap( pMac, selfDot11Mode, &tdlsDisRsp.HTCaps,
                                &tdlsDisRsp.VHTCaps, psessionEntry );
 
-    if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    /* Populate TDLS offchannel param only if offchannel is enabled
+     * and TDLS Channel Switching is not prohibited by AP in ExtCap
+     * IE in assoc/re-assoc response.
+     */
+    if ((1 == pMac->lim.gLimTDLSOffChannelEnabled) &&
+        (!psessionEntry->tdls_chan_swit_prohibited))
     {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsDisRsp.SuppChannels,
@@ -682,6 +688,14 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
             tdlsDisRsp.HT2040BSSCoexistence.infoRequest = 1;
         }
     }
+    else
+    {
+        limLog(pMac, LOG1,
+               FL("TDLS offchan not enabled, or channel switch prohibited by AP, gLimTDLSOffChannelEnabled (%d), tdls_chan_swit_prohibited (%d)"),
+               pMac->lim.gLimTDLSOffChannelEnabled,
+               psessionEntry->tdls_chan_swit_prohibited);
+    }
+
     /*
      * now we pack it.  First, how much space are we going to need?
      */
@@ -904,7 +918,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
                                 &tdlsSetupReq.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
-    PopulateDot11fTdlsExtCapability( pMac, &tdlsSetupReq.ExtCap );
+    PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupReq.ExtCap);
 
     if (1 == pMac->lim.gLimTDLSWmmMode)
     {
@@ -965,7 +979,12 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
     PopulateDotfTdlsVhtAID( pMac, selfDot11Mode, peerMac,
                             &tdlsSetupReq.AID, psessionEntry );
 
-    if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    /* Populate TDLS offchannel param only if offchannel is enabled
+     * and TDLS Channel Switching is not prohibited by AP in ExtCap
+     * IE in assoc/re-assoc response.
+     */
+    if ((1 == pMac->lim.gLimTDLSOffChannelEnabled) &&
+        (!psessionEntry->tdls_chan_swit_prohibited))
     {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsSetupReq.SuppChannels,
@@ -975,6 +994,13 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
             tdlsSetupReq.HT2040BSSCoexistence.present = 1;
             tdlsSetupReq.HT2040BSSCoexistence.infoRequest = 1;
         }
+    }
+    else
+    {
+        limLog(pMac, LOG1,
+               FL("TDLS offchan not enabled, or channel switch prohibited by AP, gLimTDLSOffChannelEnabled (%d), tdls_chan_swit_prohibited (%d)"),
+               pMac->lim.gLimTDLSOffChannelEnabled,
+               psessionEntry->tdls_chan_swit_prohibited);
     }
 
     /*
@@ -1373,7 +1399,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
                                 &tdlsSetupRsp.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
-    PopulateDot11fTdlsExtCapability( pMac, &tdlsSetupRsp.ExtCap );
+    PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupRsp.ExtCap);
 
     if (1 == pMac->lim.gLimTDLSWmmMode)
     {
@@ -1428,7 +1454,12 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
     PopulateDotfTdlsVhtAID( pMac, selfDot11Mode, peerMac,
                             &tdlsSetupRsp.AID, psessionEntry );
 
-    if ( 1 == pMac->lim.gLimTDLSOffChannelEnabled )
+    /* Populate TDLS offchannel param only if offchannel is enabled
+     * and TDLS Channel Switching is not prohibited by AP in ExtCap
+     * IE in assoc/re-assoc response.
+     */
+    if ((1 == pMac->lim.gLimTDLSOffChannelEnabled) &&
+        (!psessionEntry->tdls_chan_swit_prohibited))
     {
         PopulateDot11fTdlsOffchannelParams( pMac, psessionEntry,
                                             &tdlsSetupRsp.SuppChannels,
@@ -1439,6 +1470,14 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
             tdlsSetupRsp.HT2040BSSCoexistence.infoRequest = 1;
         }
     }
+    else
+    {
+        limLog(pMac, LOG1,
+               FL("TDLS offchan not enabled, or channel switch prohibited by AP, gLimTDLSOffChannelEnabled (%d), tdls_chan_swit_prohibited (%d)"),
+               pMac->lim.gLimTDLSOffChannelEnabled,
+               psessionEntry->tdls_chan_swit_prohibited);
+    }
+
     tdlsSetupRsp.Status.status = setupStatus ;
 
     /*
@@ -2612,14 +2651,27 @@ void PopulateDot11fLinkIden(tpAniSirGlobal pMac, tpPESession psessionEntry,
 }
 
 void PopulateDot11fTdlsExtCapability(tpAniSirGlobal pMac,
-                                        tDot11fIEExtCap *extCapability)
+                                     tpPESession psessionEntry,
+                                     tDot11fIEExtCap *extCapability)
 {
     extCapability->TDLSPeerPSMSupp = PEER_PSM_SUPPORT ;
     extCapability->TDLSPeerUAPSDBufferSTA = pMac->lim.gLimTDLSBufStaEnabled;
-    extCapability->TDLSChannelSwitching = pMac->lim.gLimTDLSOffChannelEnabled ;
+
+    /* Set TDLS channel switching bits only if offchannel is enabled
+     * and TDLS Channel Switching is not prohibited by AP in ExtCap
+     * IE in assoc/re-assoc response.
+     */
+    if ((1== pMac->lim.gLimTDLSOffChannelEnabled) &&
+        (!psessionEntry->tdls_chan_swit_prohibited)) {
+        extCapability->TDLSChannelSwitching = 1;
+        extCapability->TDLSChanSwitProhibited = 0;
+    } else {
+        extCapability->TDLSChannelSwitching = 0;
+        extCapability->TDLSChanSwitProhibited = TDLS_CH_SWITCH_PROHIBITED;
+    }
+
     extCapability->TDLSSupport = TDLS_SUPPORT ;
     extCapability->TDLSProhibited = TDLS_PROHIBITED ;
-    extCapability->TDLSChanSwitProhibited = TDLS_CH_SWITCH_PROHIBITED ;
     extCapability->present = 1 ;
     return ;
 }
