@@ -924,10 +924,25 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
                FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
                pAssocRsp->ExtCap.timingMeas,
                pAssocRsp->ExtCap.fineTimingMeas);)
+#ifdef FEATURE_WLAN_TDLS
+        psessionEntry->tdls_prohibited =
+                pAssocRsp->ExtCap.TDLSProhibited;
+        psessionEntry->tdls_chan_swit_prohibited =
+                pAssocRsp->ExtCap.TDLSChanSwitProhibited;
+
+        PELOG1(limLog(pMac, LOG1,
+               FL("ExtCap: tdls_prohibited: %d, tdls_chan_swit_prohibited: %d"),
+               pAssocRsp->ExtCap.TDLSProhibited,
+               pAssocRsp->ExtCap.TDLSChanSwitProhibited);)
+#endif
     }
     else
     {
         pStaDs->timingMeasCap = 0;
+#ifdef FEATURE_WLAN_TDLS
+        psessionEntry->tdls_prohibited = false;
+        psessionEntry->tdls_chan_swit_prohibited = false;
+#endif
         PELOG1(limLog(pMac, LOG1, FL("ExtCap not present"));)
     }
 

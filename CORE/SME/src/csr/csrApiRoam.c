@@ -5783,6 +5783,15 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
                     roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
+#ifdef FEATURE_WLAN_TDLS
+                    roamInfo.tdls_prohibited = pJoinRsp->tdls_prohibited;
+                    roamInfo.tdls_chan_swit_prohibited =
+                                      pJoinRsp->tdls_chan_swit_prohibited;
+                    smsLog(pMac, LOG1,
+                       FL("tdls_prohibited: %d, tdls_chan_swit_prohibited: %d"),
+                       roamInfo.tdls_prohibited,
+                       roamInfo.tdls_chan_swit_prohibited);
+#endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                     if (pMac->roam.configParam.cc_switch_mode
                                             != VOS_MCC_TO_SCC_SWITCH_DISABLE) {

@@ -708,6 +708,18 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                                           &chan_info);
         }
 
+#ifdef FEATURE_WLAN_TDLS
+        if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+            hddLog(LOG1,
+                   FL("tdls_prohibited: %d, tdls_chan_swit_prohibited: %d"),
+                   pCsrRoamInfo->tdls_prohibited,
+                   pCsrRoamInfo->tdls_chan_swit_prohibited);
+
+            wlan_hdd_update_tdls_info(pAdapter, pCsrRoamInfo->tdls_prohibited,
+                                      pCsrRoamInfo->tdls_chan_swit_prohibited);
+        }
+#endif
+
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
         /* start timer in sta/p2p_cli */

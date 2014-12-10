@@ -3106,6 +3106,7 @@ tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
 
+    vos_mem_zero(pEnablePsReqParams, sizeof(tEnablePsParams));
     /* Fill the BSSID  corresponding to PS Req */
     vos_mem_copy(pEnablePsReqParams->bssid, psReqData->bssId,
                  sizeof(tSirMacAddr));
@@ -3252,6 +3253,7 @@ tSirRetStatus pmmOffloadExitBmpsReqHandler(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
 
+    vos_mem_zero(pDisablePsReqParams, sizeof(tDisablePsParams));
     /* Fill the BSSID  corresponding to PS Req */
     vos_mem_copy(pDisablePsReqParams->bssid, psReqData->bssId,
                  sizeof(tSirMacAddr));
