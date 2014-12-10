@@ -1207,6 +1207,65 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 
 	return VOS_STATUS_SUCCESS;
 }
+
+/**
+ * hdd_ipa_uc_ssr_deinit() - handle ipa deinit for SSR
+ *
+ * Deinit basic IPA UC host side to be in sync reloaded FW during
+ * SSR
+ *
+ * Return: 0 - Success
+ */
+int hdd_ipa_uc_ssr_deinit()
+{
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	int idx;
+
+	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
+		return 0;
+
+	/* After SSR, wlan driver reloads FW again. But we need to protect
+	 * IPA submodule during SSR transient state. So deinit basic IPA
+	 * UC host side to be in sync with reloaded FW during SSR
+	 */
+	hdd_ipa_uc_disable_pipes(hdd_ipa);
+
+	vos_lock_acquire(&hdd_ipa->event_lock);
+	for (idx = 0; idx < WLAN_MAX_STA_COUNT; idx++) {
+		hdd_ipa->assoc_stas_map[idx].is_reserved = false;
+		hdd_ipa->assoc_stas_map[idx].sta_id = 0xFF;
+	}
+	vos_lock_release(&hdd_ipa->event_lock);
+
+	/* Full IPA driver cleanup not required since wlan driver is now
+	 * unloaded and reloaded after SSR.
+	 */
+	return 0;
+}
+
+/**
+ * hdd_ipa_uc_ssr_reinit() - handle ipa reinit after SSR
+ *
+ * Init basic IPA UC host side to be in sync with reloaded FW after
+ * SSR to resume IPA UC operations
+ *
+ * Return: 0 - Success
+ */
+int hdd_ipa_uc_ssr_reinit()
+{
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+
+	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
+		return 0;
+
+	/* After SSR is complete, IPA UC can resume operation. But now wlan
+	 * driver will be unloaded and reloaded, which takes care of IPA cleanup
+	 * and initialization.
+	 * This is a placeholder func if IPA has to resume operations without
+	 * driver reload.
+	 */
+	return 0;
+}
 #endif /* IPA_UC_OFFLOAD */
 
 static int hdd_ipa_rm_request(struct hdd_ipa_priv *hdd_ipa)

@@ -1759,6 +1759,10 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    hdd_reset_all_adapters(pHddCtx);
 
+#ifdef IPA_UC_OFFLOAD
+   hdd_ipa_uc_ssr_deinit();
+#endif
+
    vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
@@ -2049,6 +2053,11 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_vosclose;
    }
+#ifdef IPA_UC_OFFLOAD
+   if (hdd_ipa_uc_ssr_reinit())
+      hddLog(LOGE, "%s: HDD IPA UC reinit failed", __func__);
+#endif
+
 
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
