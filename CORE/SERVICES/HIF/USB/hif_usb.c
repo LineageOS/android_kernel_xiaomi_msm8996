@@ -223,7 +223,11 @@ static void usb_hif_usb_transmit_complete(struct urb *urb)
 
 	/* note: queue implements a lock */
 	skb_queue_tail(&pipe->io_comp_queue, buf);
+#ifdef HIF_USB_TASKLET
+	tasklet_schedule(&pipe->io_complete_tasklet);
+#else
 	schedule_work(&pipe->io_complete_work);
+#endif
 
 	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_OUT, ("-%s\n", __func__));
 }
@@ -472,8 +476,13 @@ static HIF_DEVICE_USB *usb_hif_create(struct usb_interface *interface)
 
 		for (i = 0; i < HIF_USB_PIPE_MAX; i++) {
 			pipe = &device->pipes[i];
+#ifdef HIF_USB_TASKLET
+			tasklet_init(&pipe->io_complete_tasklet, usb_hif_io_comp_tasklet,
+						(long unsigned int)pipe);
+#else
 			INIT_WORK(&pipe->io_complete_work,
 				  usb_hif_io_comp_work);
+#endif
 			skb_queue_head_init(&pipe->io_comp_queue);
 		}
 
