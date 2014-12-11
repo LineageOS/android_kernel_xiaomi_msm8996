@@ -580,6 +580,8 @@ typedef enum {
     WMI_TPC_CHAINMASK_CONFIG_CMDID,
     /** set Antenna diversity command */
     WMI_SET_ANTENNA_DIVERSITY_CMDID,
+    /* Set OCB Sched Request */
+    WMI_OCB_SET_SCHED_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -918,6 +920,9 @@ typedef enum {
 
     WMI_DIAG_EVENTID,
 
+    /* Set OCB Sched Response */
+    WMI_OCB_SET_SCHED_EVENTID,
+
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
     /** upload H_CV info WMI event
@@ -1030,6 +1035,8 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_CHAN_FLAG_ALLOW_HT    11  /* HT is allowed on this channel */
 #define WMI_CHAN_FLAG_ALLOW_VHT   12  /* VHT is allowed on this channel */
 #define WMI_CHANNEL_CHANGE_CAUSE_CSA 13 /*Indicate reason for channel switch */
+#define WMI_CHAN_FLAG_HALF_RATE     14  /* Indicates half rate channel */
+#define WMI_CHAN_FLAG_QUARTER_RATE  15  /* Indicates quarter rate channel */
 
 #define WMI_SET_CHANNEL_FLAG(pwmi_channel,flag) do { \
         (pwmi_channel)->info |=  (1 << flag);      \
@@ -3276,6 +3283,8 @@ typedef struct {
 * expected to use any VDEV specific WMI commands on this VDEV.
 **/
 #define WMI_VDEV_TYPE_NAN        0x5
+
+#define WMI_VDEV_TYPE_OCB        0x6
 
 /** values for vdev_subtype */
 #define WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE 0x1
@@ -9220,6 +9229,61 @@ typedef struct {
      *     A_UINT8 data[];    // length in byte given by field data_len.
      */
 } wmi_apfind_event_hdr;
+
+/** Number of access priorities. */
+#define NUM_AC (4)
+/** Max number of channels in the schedule. */
+#define OCB_CHANNEL_MAX (5)
+
+/* NOTE: Make sure these data structures are identical to those	9235
+* defined in sirApi.h */
+
+typedef struct
+{
+    /** Arbitration Inter-Frame Spacing. Range: 2-15 */
+    A_UINT32 aifsn;
+    /** Contention Window minimum. Range: 1 - 10 */
+    A_UINT32 cwmin;
+    /** Contention Window maximum. Range: 1 - 10 */
+    A_UINT32 cwmax;
+} wmi_qos_params_t;
+
+typedef struct
+{
+    /** Channel frequency in MHz */
+    A_UINT32 chan_freq;
+    /** Channel duration in ms */
+    A_UINT32 duration;
+    /** Start guard interval in ms */
+    A_UINT32 start_guard_interval;
+    /** End guard interval in ms */
+    A_UINT32 end_guard_interval;
+    /** Transmit power in dBm, range 0 - 23 */
+    A_UINT32 tx_power;
+    /** Transmit datarate in Mbps */
+    A_UINT32 tx_rate;
+    /** QoS parameters for each AC */
+    wmi_qos_params_t qos_params[NUM_AC];
+    /** 1 to enable RX stats for this channel, 0 otherwise */
+    A_UINT32 rx_stats;
+} wmi_ocb_channel_t;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+    * WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** Number of valid channels in the channels array */
+    A_UINT32 num_channels;
+    /** The array of channels */
+    wmi_ocb_channel_t channels[OCB_CHANNEL_MAX];
+    /** 1 to allow off-channel tx, 0 otherwise */
+    A_UINT32 off_channel_tx; // Not supported
+} wmi_ocb_set_sched_cmd_fixed_param;
+
+typedef struct {
+    /** Return status. 0 for success, non-zero otherwise */
+    A_UINT32 status;
+} wmi_ocb_set_sched_event_fixed_param;
 
 #ifdef __cplusplus
 }
