@@ -1087,8 +1087,7 @@ typedef struct tagCsrRoamStruct
         (eCSR_DOT11_MODE_11g == (pMac)->roam.configParam.phyMode || eCSR_DOT11_MODE_11g_ONLY == (pMac)->roam.configParam.phyMode)
 
 #define CSR_IS_PHY_MODE_A_ONLY(pMac) \
-        ((eCSR_DOT11_MODE_11a == (pMac)->roam.configParam.phyMode) ||\
-        (eCSR_DOT11_MODE_11a_ONLY == (pMac)->roam.configParam.phyMode))
+        (eCSR_DOT11_MODE_11a == (pMac)->roam.configParam.phyMode)
 
 #ifdef WLAN_FEATURE_11AC
 #define CSR_IS_PHY_MODE_DUAL_BAND(phyMode) \

@@ -2077,8 +2077,7 @@ sapGotoChannelSel
                          PMAC_STRUCT(hHal)->roam.configParam.nVhtChannelWidth;
               }
               sme_SelectCBMode(hHal,
-                               sapConvertSapPhyModeToCsrPhyMode(
-                                       sapContext->csrRoamProfile.phyMode),
+                               sapContext->csrRoamProfile.phyMode,
                                channel, vhtChannelWidth);
 
         }
@@ -3362,8 +3361,7 @@ sapFsm
 
                      con_ch = sme_CheckConcurrentChannelOverlap(hHal,
                                         sapContext->channel,
-                                        sapConvertSapPhyModeToCsrPhyMode(
-                                        sapContext->csrRoamProfile.phyMode),
+                                        sapContext->csrRoamProfile.phyMode,
                                         sapContext->cc_switch_mode);
                      if (con_ch)
                      {
@@ -3384,9 +3382,7 @@ sapFsm
                          vhtChannelWidth =
                                    pMac->roam.configParam.nVhtChannelWidth;
                       }
-                      sme_SelectCBMode(hHal,
-                                       sapConvertSapPhyModeToCsrPhyMode(
-                                            sapContext->csrRoamProfile.phyMode),
+                      sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
                                        sapContext->channel, vhtChannelWidth);
 
                      }
@@ -3449,17 +3445,15 @@ sapFsm
                          vhtChannelWidth =
                                    pMac->roam.configParam.nVhtChannelWidth;
                       }
-                      sme_SelectCBMode(hHal,
-                                       sapConvertSapPhyModeToCsrPhyMode(
-                                            sapContext->csrRoamProfile.phyMode),
+                      sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
                                        sapContext->channel, vhtChannelWidth);
                  }
                  if (sapContext->channel > 14 &&
                          (sapContext->csrRoamProfile.phyMode ==
-                         eSAP_DOT11_MODE_11g ||
+                         eCSR_DOT11_MODE_11g ||
                          sapContext->csrRoamProfile.phyMode ==
-                         eSAP_DOT11_MODE_11g_ONLY))
-                     sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_11a;
+                         eCSR_DOT11_MODE_11g_ONLY))
+                     sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_11a;
 
 #ifdef WLAN_FEATURE_MBSSID
                  /* when AP2 is started while AP1 is performing ACS, we may not
@@ -3489,9 +3483,9 @@ sapFsm
                          __func__, sapContext->channel);
                  if (sapContext->apAutoChannelSelection &&
                      (sapContext->csrRoamProfile.phyMode ==
-                                                   eSAP_DOT11_MODE_11n ||
+                                                   eCSR_DOT11_MODE_11n ||
                       sapContext->csrRoamProfile.phyMode ==
-                                                   eSAP_DOT11_MODE_11n_ONLY)) {
+                                                   eCSR_DOT11_MODE_11n_ONLY)) {
                      tSap_Event sapApAppEvent;
                      sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
                      sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
@@ -3531,8 +3525,7 @@ sapFsm
                /* Radar found while performing channel availability
                 * check, need to switch the channel again
                 */
-               eCsrPhyMode phyMode =
-                  sapConvertSapPhyModeToCsrPhyMode(sapContext->csrRoamProfile.phyMode);
+               eCsrPhyMode phyMode = sapContext->csrRoamProfile.phyMode;
                tHalHandle hHal =
                   (tHalHandle)vos_get_context(VOS_MODULE_ID_SME, sapContext->pvosGCtx);
 
@@ -3940,8 +3933,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     //set the phyMode to accept anything
     //Best means everything because it covers all the things we support
     /*eCSR_DOT11_MODE_BEST*/
-    profile->phyMode =
-           sapConvertSapPhyModeToCsrPhyMode(pconfig_params->SapHw_mode);
+    profile->phyMode = pconfig_params->SapHw_mode;
 
     //Configure beaconInterval
     profile->beaconInterval = (tANI_U16)pconfig_params->beacon_int;
@@ -4013,41 +4005,6 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     }
 
     return eSAP_STATUS_SUCCESS; /* Success. */
-}
-
-/**
- * FUNCTION: sapConvertSapPhyModeToCsrPhyMode
- * Called internally by SAP
- */
-eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode )
-{
-    switch (sapPhyMode)
-    {
-      case (eSAP_DOT11_MODE_abg):
-         return eCSR_DOT11_MODE_abg;
-      case (eSAP_DOT11_MODE_11b):
-         return eCSR_DOT11_MODE_11b;
-      case (eSAP_DOT11_MODE_11g):
-         return eCSR_DOT11_MODE_11g;
-      case (eSAP_DOT11_MODE_11n):
-         return eCSR_DOT11_MODE_11n;
-      case (eSAP_DOT11_MODE_11a):
-         return eCSR_DOT11_MODE_11a;
-      case (eSAP_DOT11_MODE_11g_ONLY):
-         return eCSR_DOT11_MODE_11g_ONLY;
-      case (eSAP_DOT11_MODE_11n_ONLY):
-         return eCSR_DOT11_MODE_11n_ONLY;
-      case (eSAP_DOT11_MODE_11b_ONLY):
-         return eCSR_DOT11_MODE_11b_ONLY;
-#ifdef WLAN_FEATURE_11AC
-      case (eSAP_DOT11_MODE_11ac_ONLY):
-         return eCSR_DOT11_MODE_11ac_ONLY;
-      case (eSAP_DOT11_MODE_11ac):
-         return eCSR_DOT11_MODE_11ac;
-#endif
-      default:
-         return eCSR_DOT11_MODE_AUTO;
-    }
 }
 
 void sapFreeRoamProfile(tCsrRoamProfile *profile)

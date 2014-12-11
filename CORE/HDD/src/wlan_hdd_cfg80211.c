@@ -5786,7 +5786,7 @@ static int wlan_hdd_rate_is_11g(u8 rate)
 
 /* Check for 11g rate and set proper 11g only mode */
 static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
-                     u8* pCheckRatesfor11g, eSapPhyMode* pSapHw_mode)
+                     u8* pCheckRatesfor11g, eCsrPhyMode* pSapHw_mode)
 {
     u8 i, num_rates = pIe[0];
 
@@ -5796,13 +5796,13 @@ static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
         if( *pCheckRatesfor11g && (TRUE == wlan_hdd_rate_is_11g(pIe[i] & RATE_MASK)))
         {
             /* If rate set have 11g rate than change the mode to 11G */
-            *pSapHw_mode = eSAP_DOT11_MODE_11g;
+            *pSapHw_mode = eCSR_DOT11_MODE_11g;
             if (pIe[i] & BASIC_RATE_MASK)
             {
                 /* If we have 11g rate as  basic rate, it means mode
                    is 11g only mode.
                  */
-               *pSapHw_mode = eSAP_DOT11_MODE_11g_ONLY;
+               *pSapHw_mode = eCSR_DOT11_MODE_11g_ONLY;
                *pCheckRatesfor11g = FALSE;
             }
         }
@@ -5823,7 +5823,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
     u8 require_ht = FALSE;
     u8 *pIe=NULL;
 
-    pConfig->SapHw_mode= eSAP_DOT11_MODE_11b;
+    pConfig->SapHw_mode= eCSR_DOT11_MODE_11b;
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
                                        pBeacon->head_len, WLAN_EID_SUPP_RATES);
@@ -5846,7 +5846,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 
     if( pConfig->channel > 14 )
     {
-        pConfig->SapHw_mode= eSAP_DOT11_MODE_11a;
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11a;
     }
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
@@ -5854,9 +5854,9 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 
     if(pIe)
     {
-        pConfig->SapHw_mode= eSAP_DOT11_MODE_11n;
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11n;
         if(require_ht)
-            pConfig->SapHw_mode= eSAP_DOT11_MODE_11n_ONLY;
+            pConfig->SapHw_mode= eCSR_DOT11_MODE_11n_ONLY;
     }
 }
 
@@ -6984,16 +6984,16 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     /* Overwrite the hostapd setting for HW mode only for 11ac.
      * This is valid only if mode is set to 11n in hostapd and either AUTO or 11ac in .ini .
      * Otherwise, leave whatever is set in hostapd (a OR b OR g OR n mode) */
-    if( (pConfig->SapHw_mode == eSAP_DOT11_MODE_11n) &&
+    if( (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n) &&
          sapForce11ACFor11n &&
         (( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO ) ||
          ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ) ||
          ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY )) )
     {
         if ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac_ONLY;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac_ONLY;
         else
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
 
         /* If ACS disable and selected channel <= 14
              OR
@@ -7015,7 +7015,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                                                  == FALSE)) ||
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->isVHT80Allowed == FALSE))
         {
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
         }
     }
 #endif
@@ -7023,7 +7023,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
         sme_SelectCBMode(hHal,
-            sapConvertSapPhyModeToCsrPhyMode(pConfig->SapHw_mode),
+            pConfig->SapHw_mode,
             pConfig->channel,
             WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->vhtChannelWidth);
     }
