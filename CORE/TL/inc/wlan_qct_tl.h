@@ -167,6 +167,8 @@ typedef enum
   WLAN_STA_TDLS,
 #endif
 
+  WLAN_STA_OCB,
+
   /* Invalid link*/
   WLAN_STA_MAX
 
@@ -200,7 +202,6 @@ typedef enum
 
   WLANTL_STA_MAX_STATE
 }WLANTL_STAStateType;
-
 
 /*---------------------------------------------------------------------------
   STA Descriptor Type
@@ -2936,4 +2937,29 @@ void WLANTL_SetUcActive(void *vos_ctx,
 void WLANTL_RegisterOPCbFnc(void *vos_ctx,
 	void (*func)(v_U8_t *op_msg, void *usr_ctxt), void *usr_ctxt);
 #endif /* IPA_UC_OFFLOAD */
+
+/*=============================================================================
+  FUNCTION    WLANTL_RegisterOCBPeer
+
+  DESCRIPTION
+    Function to register the OCB Self Peer
+
+  PARAMETERS
+    IN
+    vos_ctx : Global OS context context
+    mac_addr : MAC address of self peer
+
+    OUT
+    peer_id : Peer ID
+
+  RETURN VALUE
+    VOS_STATUS_SUCCESS on success
+    VOS_STATUS_E_FAILURE on failure
+
+  SIDE EFFECTS
+
+==============================================================================*/
+VOS_STATUS WLANTL_RegisterOCBPeer(void *vos_ctx, uint8_t *mac_addr,
+    uint8_t *peer_id);
+
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

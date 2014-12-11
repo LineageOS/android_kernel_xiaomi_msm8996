@@ -146,6 +146,7 @@ typedef enum
     VOS_FTM_MODE = 5,
     VOS_IBSS_MODE,
     VOS_P2P_DEVICE_MODE,
+    VOS_OCB_MODE,
     VOS_MAX_NO_OF_MODE
 } tVOS_CON_MODE;
 

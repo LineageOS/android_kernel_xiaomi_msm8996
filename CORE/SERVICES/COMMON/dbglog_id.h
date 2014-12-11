@@ -928,6 +928,16 @@ extern "C" {
 #define DATA_TXRX_DBGID_DUP_CHECK                3
 #define DATA_TXRX_DBGID_DEFINITION_END           4
 
+/* HTT module DBGIDs */
+#define HTT_DBGID_DEFINITION_START               0
+#define HTT_DBGID_INVALID_VDEVID_OR_GROUP        1
+#define HTT_DBGID_DISCARD_INTERNAL_PKTS          2
+#define HTT_DBGID_DISCARD_TX_PKTS                3
+#define HTT_DBGID_GROUP_CHANGE                   4
+#define HTT_DBGID_GROUP_CREDIT_STATS             5
+#define HTT_DBGID_DISCARD_INTERNAL_PKTS_NUM      6
+#define HTT_DBGID_DEFINITION_END                 7
+
 /* TDLS module DBGIDs*/
 #define TDLS_DBGID_DEFINITION_START             0
 #define TDLS_DBGID_VDEV_CREATE                  1

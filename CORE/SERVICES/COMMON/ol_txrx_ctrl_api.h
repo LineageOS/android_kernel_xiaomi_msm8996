@@ -46,8 +46,8 @@
 /**
  * @brief modes that a virtual device can operate as
  * @details
- * A virtual device can operate as an AP, an IBSS, or a STA (client).
- * or in monitor mode
+ * A virtual device can operate as an AP, an IBSS, a STA (client),
+ * in monitor mode or in OCB mode
  */
 enum wlan_op_mode {
 	wlan_op_mode_unknown,
@@ -55,6 +55,7 @@ enum wlan_op_mode {
 	wlan_op_mode_ibss,
 	wlan_op_mode_sta,
 	wlan_op_mode_monitor,
+	wlan_op_mode_ocb,
 };
 
 #define OL_TXQ_PAUSE_REASON_FW                (1 << 0)
@@ -1241,5 +1242,18 @@ void ol_txrx_ipa_uc_get_stat(ol_txrx_pdev_handle pdev);
 
 #define ol_txrx_ipa_uc_get_stat(pdev) /* NO-OP */
 #endif /* IPA_UC_OFFLOAD */
+
+/**
+ * @brief Setter function to store OCB Peer.
+ */
+void ol_txrx_set_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *peer);
+
+/**
+ * @brief Getter function to retrieve OCB peer.
+ * @details
+ *      Returns A_TRUE if ocb_peer is valid
+ *      Otherwise, returns A_FALSE
+ */
+a_bool_t ol_txrx_get_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t **peer);
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

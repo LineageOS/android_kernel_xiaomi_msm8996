@@ -105,8 +105,8 @@ void wdi_in_enable_host_ratectrl(ol_txrx_pdev_handle pdev, u_int32_t enable);
 /**
  * @brief modes that a virtual device can operate as
  * @details
- *  A virtual device can operate as an AP, an IBSS, or a STA (client).
- *  or in monitor mode
+ *  A virtual device can operate as an AP, an IBSS, a STA
+ *  (client), in monitor mode or OCB mode
  */
 enum wlan_op_mode {
    wlan_op_mode_unknown,
@@ -114,6 +114,7 @@ enum wlan_op_mode {
    wlan_op_mode_ibss,
    wlan_op_mode_sta,
    wlan_op_mode_monitor,
+   wlan_op_mode_ocb,
 };
 
 /**

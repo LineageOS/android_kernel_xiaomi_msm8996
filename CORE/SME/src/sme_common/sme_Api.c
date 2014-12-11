@@ -12295,6 +12295,43 @@ eHalStatus sme_StopBatchScanInd
 
 #endif
 
+/* -------------------------------------------------------------------------
+   \fn sme_set_dot11p_config
+   \brief API to Set 802.11p config
+   \param hal - The handle returned by macOpen
+   \param enable_dot11p - 802.11p config param
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
+{
+    tpAniSirGlobal mac = PMAC_STRUCT(hal);
+    mac->enable_dot11p = enable_dot11p;
+}
+
+/* -------------------------------------------------------------------------
+   \fn sme_ocb_set_sched_req
+   \brief API to Indicate OCB Set Schedule Request
+   \param sched_req - Schedule Request
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_ocb_set_sched_req(sir_ocb_set_sched_request_t *sched_req)
+{
+    vos_msg_t msg;
+
+    msg.type = WDA_OCB_SET_SCHED_REQUEST;
+    msg.reserved = 0;
+    msg.bodyptr = sched_req;
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "%s: Not able to post WDA_OCB_SET_SCHED_REQUEST message to WDA",
+            __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
 void sme_getRecoveryStats(tHalHandle hHal) {
     tANI_U8 i;
 

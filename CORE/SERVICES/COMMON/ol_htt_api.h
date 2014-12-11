@@ -96,8 +96,8 @@ htt_attach_target(htt_pdev_handle htt_pdev);
 /**
  * @brief modes that a virtual device can operate as
  * @details
- *  A virtual device can operate as an AP, an IBSS, or a STA (client).
- *  or in monitor mode
+ *  A virtual device can operate as an AP, an IBSS, a STA
+ *  (client), in monitor mode or in OCB mode
  */
 enum htt_op_mode {
    htt_op_mode_unknown,
@@ -105,6 +105,7 @@ enum htt_op_mode {
    htt_op_mode_ibss,
    htt_op_mode_sta,
    htt_op_mode_monitor,
+   htt_op_mode_ocb,
 };
 
 /* no-ops */

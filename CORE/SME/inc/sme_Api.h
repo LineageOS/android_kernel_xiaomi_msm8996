@@ -3832,6 +3832,24 @@ eHalStatus sme_StatsExtRequest(tANI_U8 session_id, tpStatsExtRequestReq input);
 eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
 
 #endif
+
+/* -------------------------------------------------------------------------
+   \fn sme_set_dot11p_config
+   \brief API to Set 802.11p config
+   \param hal - The handle returned by macOpen
+   \param enable_dot11p - 802.11p config param
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p);
+
+/* -------------------------------------------------------------------------
+   \fn sme_ocb_set_sched_req
+   \brief API to Indicate OCB Set Schedule Request
+   \param sched_req - Schedule Request
+   \return eHalStatus
+---------------------------------------------------------------------------*/
+eHalStatus sme_ocb_set_sched_req(sir_ocb_set_sched_request_t *sched_req);
+
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode
     \brief  Update DFS roam scan mode

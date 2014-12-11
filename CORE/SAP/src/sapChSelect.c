@@ -2351,8 +2351,8 @@ eChannelWidthInfo sapGetChannelWidthInfo(tHalHandle halHandle, ptSapContext pSap
         else
             chWidth = CHWIDTH_HT20;
     }
-    else if (pSapCtx->csrRoamProfile.phyMode == eSAP_DOT11_MODE_11ac ||
-        pSapCtx->csrRoamProfile.phyMode == eSAP_DOT11_MODE_11ac_ONLY) {
+    else if (pSapCtx->csrRoamProfile.phyMode == eCSR_CFG_DOT11_MODE_11AC ||
+        pSapCtx->csrRoamProfile.phyMode == eCSR_CFG_DOT11_MODE_11AC_ONLY) {
         chWidth = CHWIDTH_HT80;
     }
     else {
