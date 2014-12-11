@@ -216,6 +216,13 @@ ol_rx_indication_handler(
 
     htt_pdev = pdev->htt_pdev;
     peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    if (!peer) {
+        /* If we can't find a peer send this packet to OCB interface using
+           OCB self peer */
+        if (!ol_txrx_get_ocb_peer(pdev, &peer))
+			peer = NULL;
+    }
+
     if (peer) {
         vdev = peer->vdev;
         OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg);

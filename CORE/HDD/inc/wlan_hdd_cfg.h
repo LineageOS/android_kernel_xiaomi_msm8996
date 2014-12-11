@@ -2703,6 +2703,17 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SAP_AUTH_OFL_KEY_DEFAULT  ""
 #endif /* SAP_AUTH_OFFLOAD */
 
+enum dot11p_mode {
+    WLAN_HDD_11P_DISABLED = 0,
+    WLAN_HDD_11P_STANDALONE,
+    WLAN_HDD_11P_CONCURRENT,
+};
+
+#define CFG_DOT11P_MODE_NAME             "gDot11PMode"
+#define CFG_DOT11P_MODE_DEFAULT          ( WLAN_HDD_11P_DISABLED )
+#define CFG_DOT11P_MODE_MIN              ( WLAN_HDD_11P_DISABLED )
+#define CFG_DOT11P_MODE_MAX              ( WLAN_HDD_11P_CONCURRENT )
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3260,6 +3271,7 @@ typedef struct
    uint32_t                    dhcp_client_start_ip;
    v_U8_t                      dhcpServerIP[IPADDR_STRING_LENGTH];
 #endif  /* DHCP_SERVER_OFFLOAD */
+
    bool                        enable_mac_spoofing;
 #ifdef IPA_UC_STA_OFFLOAD
    bool                        ipa_uc_sta_offload;
@@ -3289,6 +3301,8 @@ typedef struct
    uint32_t                    sap_auth_offload_sec_type;
    uint8_t                     sap_auth_offload_key[WLAN_PSK_STRING_LENGTH];
 #endif /* SAP_AUTH_OFFLOAD */
+
+   uint8_t                     dot11p_mode;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

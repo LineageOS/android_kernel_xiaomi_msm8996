@@ -2172,6 +2172,45 @@ ol_txrx_ll_set_tx_pause_q_depth(
 }
 #endif /* QCA_LL_TX_FLOW_CT */
 
+/**
+ * @brief Setter function to store OCB Peer.
+ */
+void ol_txrx_set_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *peer)
+{
+    if (pdev == NULL) {
+        return;
+    }
+
+    pdev->ocb_peer = peer;
+    pdev->ocb_peer_valid = (NULL != peer);
+}
+
+/**
+ * @brief Getter function to retrieve OCB peer.
+ * @details
+ *      Returns A_TRUE if ocb_peer is valid
+ *      Otherwise, returns A_FALSE
+ */
+a_bool_t ol_txrx_get_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t **peer)
+{
+    int rc;
+
+    if ((pdev == NULL) || (peer == NULL)) {
+        rc = A_FALSE;
+        goto exit;
+    }
+
+    if (pdev->ocb_peer_valid) {
+        *peer = pdev->ocb_peer;
+        rc = A_TRUE;
+    } else {
+        rc = A_FALSE;
+    }
+
+exit:
+    return rc;
+}
+
 #ifdef IPA_UC_OFFLOAD
 void
 ol_txrx_ipa_uc_get_resource(

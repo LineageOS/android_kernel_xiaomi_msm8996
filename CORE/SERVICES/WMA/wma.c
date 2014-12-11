@@ -362,6 +362,8 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 		tAbortScanParams *abort_scan_req);
 
+void wma_send_ocb_set_sched_req(void *wma_handle, sir_ocb_sched_t *sched);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -1018,6 +1020,26 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
                 vos_mem_copy(iface->bssid, bssParams->bssId, ETH_ALEN);
 		wma_vdev_start_rsp(wma, bssParams, resp_event);
+	} else if (req_msg->msg_type == WDA_OCB_SET_SCHED_REQUEST) {
+		sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
+
+		/* Send VDEV UP command to FW */
+		if (wmi_unified_vdev_up_send(wma->wmi_handle,
+			resp_event->vdev_id,
+			iface->aid,
+			iface->bssid) < 0) {
+			WMA_LOGE("%s : failed to send vdev up", __func__);
+			return -EEXIST;
+		}
+		iface->vdev_up = TRUE;
+
+		/* Invoke the callback function */
+		if (ocb_sched_resp) {
+			ocb_sched_resp->status = 0;
+		}
+		if (wma->ocb_callback) {
+			wma->ocb_callback(ocb_sched_resp);
+		}
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	adf_os_mem_free(req_msg);
@@ -5589,6 +5611,9 @@ enum wlan_op_mode wma_get_txrx_vdev_type(u_int32_t type)
                         vdev_type = wlan_op_mode_ibss;
                         break;
 #endif
+		case WMI_VDEV_TYPE_OCB:
+			vdev_type = wlan_op_mode_ocb;
+			break;
 		case WMI_VDEV_TYPE_MONITOR:
 		default:
 			WMA_LOGE("Invalid vdev type %u", type);
@@ -6428,9 +6453,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	adf_os_atomic_init(&wma_handle->interfaces
 			   [self_sta_req->sessionId].bss_status);
 
-	if ((self_sta_req->type == WMI_VDEV_TYPE_AP) &&
+	if (((self_sta_req->type == WMI_VDEV_TYPE_AP) &&
 			(self_sta_req->subType ==
-			 WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) {
+			WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE))
+		|| (self_sta_req->type == WMI_VDEV_TYPE_OCB)) {
 		WMA_LOGA("P2P Device: creating self peer %pM, vdev_id %hu",
 				self_sta_req->selfMacAddr,
 				self_sta_req->sessionId);
@@ -7453,6 +7479,12 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 			WMA_LOGI("chan[%d] DFS[%d]\n",
 					chan_list->chanParam[i].chanId,
 					chan_list->chanParam[i].dfsSet);
+		}
+
+		if (chan_list->chanParam[i].half_rate) {
+			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_HALF_RATE);
+		} else if (chan_list->chanParam[i].quarter_rate) {
+			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_QUARTER_RATE);
 		}
 
 		if (chan_info->mhz < WMA_2_4_GHZ_MAX_FREQ) {
@@ -9441,6 +9473,13 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 			break;
 		}
 	}
+
+	/* 5.9 GHz Band */
+	if ((chan >= WMA_11P_CHANNEL_BEGIN) && (chan <= WMA_11P_CHANNEL_END)) {
+		/* Only Legacy Modulation Schemes are supported */
+		phymode = MODE_11A;
+	}
+
 	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d "
 			"dot11_mode %d", __func__, phymode, chan,
 			chan_offset, vht_capable, dot11_mode);
@@ -9530,6 +9569,14 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 			chan->band_center_freq1 -= 10;
 	}
 	chan->band_center_freq2 = 0;
+
+	/* Set half or quarter rate WMI flags */
+	if (req->is_half_rate) {
+		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_HALF_RATE);
+	} else if (req->is_quarter_rate) {
+		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_QUARTER_RATE);
+	}
+
 	/*
 	 * If the channel has DFS set, flip on radar reporting.
 	 *
@@ -9885,6 +9932,27 @@ error0:
 					tgt_req->vdev_id, peer,
 					VOS_FALSE);
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
+	} else if (tgt_req->msg_type == WDA_OCB_SET_SCHED_REQUEST) {
+		struct wma_txrx_node *iface;
+		sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
+
+		WMA_LOGE("%s: WDA_OCB_SET_SCHED_REQUEST timed out", __func__);
+
+		/* Set vdev_up to FALSE */
+		iface = &wma->interfaces[tgt_req->vdev_id];
+		iface->vdev_up = FALSE;
+
+		/* Send callback to upper layers with error code */
+		if (ocb_sched_resp) {
+			ocb_sched_resp->status = VOS_STATUS_E_TIMEOUT;
+		}
+		/* Call HDD Callback */
+		if (wma->ocb_callback) {
+			wma->ocb_callback(ocb_sched_resp);
+		} else {
+			WMA_LOGE("%s: HDD callback is null for OCB Set Schedule\n",
+				__func__);
+		}
 	}
 free_tgt_req:
 	vos_timer_destroy(&tgt_req->event_timeout);
@@ -22658,6 +22726,125 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 }
 #endif /* SAP_AUTH_OFFLOAD */
 
+/* TODO-OCB: This function is currently not called. It should be used
+ * when firmware supports the OCB Set Schedule command
+ */
+/**
+ * wma_send_ocb_set_sched_req() - send the OCB schedule to the FW
+ *
+ * @wma_handle: context with which the handler is registered.
+ * @sched: the schedule to be set.
+ */
+void wma_send_ocb_set_sched_req(void *wma_handle, sir_ocb_sched_t *sched)
+{
+	int32_t ret;
+	tp_wma_handle wma = (tp_wma_handle)wma_handle;
+	wmi_ocb_set_sched_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int i;
+	int j;
+
+	buf = wmi_buf_alloc(wma->wmi_handle,
+		sizeof(wmi_ocb_set_sched_cmd_fixed_param));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate memory");
+		return;
+	}
+
+	cmd = (wmi_ocb_set_sched_cmd_fixed_param *)wmi_buf_data(buf);
+
+	/* Populate the WMI TLV Header */
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_ocb_set_sched_cmd_fixed_param));
+
+	/* Populate the WMI command */
+	cmd->num_channels = sched->num_channels;
+	cmd->off_channel_tx = sched->off_channel_tx;
+	for (i = 0; i < cmd->num_channels; i++) {
+		cmd->channels[i].chan_freq = sched->channels[i].chan_freq;
+		cmd->channels[i].duration = sched->channels[i].duration;
+		cmd->channels[i].start_guard_interval =
+			sched->channels[i].start_guard_interval;
+		cmd->channels[i].end_guard_interval =
+			sched->channels[i].end_guard_interval;
+		cmd->channels[i].tx_power = sched->channels[i].tx_power;
+		cmd->channels[i].tx_rate = sched->channels[i].tx_rate;
+		cmd->channels[i].rx_stats = sched->channels[i].rx_stats;
+		for (j = 0; j < NUM_AC; j++) {
+			cmd->channels[i].qos_params[j].aifsn =
+				sched->channels[i].qos_params[j].aifsn;
+			cmd->channels[i].qos_params[j].cwmin =
+				sched->channels[i].qos_params[j].cwmin;
+			cmd->channels[i].qos_params[j].cwmax =
+				sched->channels[i].qos_params[j].cwmax;
+		}
+	}
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf,
+		sizeof(wmi_ocb_set_sched_cmd_fixed_param),
+		WMI_OCB_SET_SCHED_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("%s: Failed to send notify cmd ret = %d", __func__, ret);
+		wmi_buf_free(buf);
+	}
+}
+
+#define OCB_FREQ_TO_CHAN(x) (((x) - 5000) / 5)
+
+static void wma_ocb_set_sched_req(void *wma_handle,
+		sir_ocb_set_sched_request_t *sched_req)
+{
+	tp_wma_handle wma = (tp_wma_handle)wma_handle;
+	struct wma_vdev_start_req req;
+	struct wma_target_req *msg;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	sir_ocb_sched_t *sched = &sched_req->sched;
+	u_int8_t vdev_id;
+
+	WMA_LOGD("%s: Enter", __func__);
+
+	/* Store callback function */
+	wma->ocb_callback = sched_req->callback;
+	wma->ocb_resp = sched_req->resp;
+
+	vos_mem_zero(&req, sizeof(req));
+
+	vdev_id = sched_req->session_id;
+
+	/* vdev not yet up. Send vdev start request and wait for response.
+	 * OCB Set Schedule request should be sent on receiving
+	 * vdev start response message */
+	req.vdev_id = vdev_id;
+
+	/* Enqueue OCB Set Schedule request message */
+	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_OCB_SET_SCHED_REQUEST,
+		WMA_TARGET_REQ_TYPE_VDEV_START,
+		(void *)sched_req, 1000);
+	if (!msg) {
+		WMA_LOGP("%s: Failed to fill OCB set schedule request for vdev %d",
+			__func__, req.vdev_id);
+		status = VOS_STATUS_E_NOMEM;
+		return;
+	}
+
+	req.chan = OCB_FREQ_TO_CHAN(sched->channels[0].chan_freq);
+	req.max_txpow = sched->channels[0].tx_power;
+	req.is_half_rate = TRUE;
+
+	if (wma->interfaces[vdev_id].vdev_up) {
+		wma->interfaces[vdev_id].vdev_up = FALSE;
+	}
+
+	status = wma_vdev_start(wma, &req, VOS_FALSE);
+	if (status != VOS_STATUS_SUCCESS) {
+		wma_remove_vdev_req(wma, req.vdev_id,
+			WMA_TARGET_REQ_TYPE_VDEV_START);
+		WMA_LOGP("%s: vdev start failed status = %d", __func__,
+			status);
+	}
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -23298,6 +23485,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_APFIND */
+
+		case WDA_OCB_SET_SCHED_REQUEST:
+			wma_ocb_set_sched_req(wma_handle,
+				(sir_ocb_set_sched_request_t *)(msg->bodyptr));
+			vos_mem_free(msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -24552,7 +24746,6 @@ static int wma_sap_ofl_add_sta_handler(void *handle, u_int8_t *data,
 			__func__);
 		return 0;
 	}
-
 	vos_mem_set(add_sta_req, sizeof(*add_sta_req), 0);
 	add_sta_req->assoc_id = sta_add_event->assoc_id;
 	add_sta_req->conn_req_len = sta_add_event->data_len;
@@ -24591,6 +24784,36 @@ static int wma_sap_ofl_del_sta_handler(void *handle, u_int8_t *data,
 	return 1;
 }
 #endif /* SAP_AUTH_OFFLOAD */
+
+static int wma_ocb_set_sched_event_handler(void *handle, u_int8_t *event_buf,
+		u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_OCB_SET_SCHED_EVENTID_param_tlvs *param_tlvs;
+	wmi_ocb_set_sched_event_fixed_param *fix_param;
+	sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
+
+	param_tlvs = (WMI_OCB_SET_SCHED_EVENTID_param_tlvs *)event_buf;
+	fix_param = param_tlvs->fixed_param;
+
+	if (ocb_sched_resp) {
+		ocb_sched_resp->status = fix_param->status;
+	} else {
+		WMA_LOGE("%s: OCB Sched Response is null for OCB Set Schedule\n",
+			__func__);
+		return 0;
+	}
+
+	/* Call HDD Callback */
+	if (wma->ocb_callback) {
+		wma->ocb_callback(ocb_sched_resp);
+	} else {
+		WMA_LOGE("%s: HDD callback is null for OCB Set Schedule\n",
+			__func__);
+	}
+
+	return 0;
+}
 
 /* function   : wma_start
  * Description :
@@ -24764,6 +24987,16 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	   wma_thermal_mgmt_evt_handler);
 	if (status) {
 		WMA_LOGE("Failed to register thermal mitigation event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	/* Register event handler for OCB Set Schedule event */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+		WMI_OCB_SET_SCHED_EVENTID,
+		wma_ocb_set_sched_event_handler);
+	if (status) {
+		WMA_LOGE("Failed to register OCB set schedule event cb");
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}

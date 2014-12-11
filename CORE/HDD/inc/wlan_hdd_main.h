@@ -517,7 +517,8 @@ typedef enum device_mode
    WLAN_HDD_MONITOR,
    WLAN_HDD_FTM,
    WLAN_HDD_IBSS,
-   WLAN_HDD_P2P_DEVICE
+   WLAN_HDD_P2P_DEVICE,
+   WLAN_HDD_OCB
 }device_mode_t;
 
 typedef enum rem_on_channel_request_type
@@ -1095,6 +1096,9 @@ struct hdd_adapter_s
 
    /* variable for temperature in Celsius */
    int temperature;
+
+    /* 802.11p */
+    struct completion hdd_ocb_set_sched_req_var;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

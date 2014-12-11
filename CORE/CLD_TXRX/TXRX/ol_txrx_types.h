@@ -714,6 +714,8 @@ struct ol_txrx_pdev_t {
     void *osif_dev;
 #endif /* IPA_UC_OFFLOAD */
 	struct ol_tx_queue_group_t txq_grps[OL_TX_MAX_TXQ_GROUPS];
+	u_int8_t ocb_peer_valid;
+	struct ol_txrx_peer_t *ocb_peer;
 };
 
 struct ol_txrx_vdev_t {

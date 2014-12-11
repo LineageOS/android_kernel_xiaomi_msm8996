@@ -321,7 +321,8 @@ ol_tx_classify(
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
-    if (IEEE80211_IS_MULTICAST(dest_addr)) {
+    if ((IEEE80211_IS_MULTICAST(dest_addr))
+            || (vdev->opmode == wlan_op_mode_ocb)) {
         txq = &vdev->txqs[OL_TX_VDEV_MCAST_BCAST];
         tx_msdu_info->htt.info.ext_tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
         if (vdev->opmode == wlan_op_mode_sta) {

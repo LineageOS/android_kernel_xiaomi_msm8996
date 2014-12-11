@@ -4285,6 +4285,8 @@ typedef struct sSirUpdateChanParam
     tANI_U8 chanId;
     tANI_U8 pwr;
     tANI_BOOLEAN dfsSet;
+    bool half_rate;
+    bool quarter_rate;
 } tSirUpdateChanParam, *tpSirUpdateChanParam;
 
 typedef struct sSirUpdateChan
@@ -5614,5 +5616,50 @@ struct tSirSapOffloadInfo
     uint8_t key[SIR_PSK_MAX_LEN];
 };
 #endif /* SAP_AUTH_OFFLOAD */
+
+/* OCB Data Structures and defines */
+#define NUM_AC              (4)
+#define OCB_CHANNEL_MAX     (5)
+
+typedef struct sir_qos_params {
+    uint8_t aifsn;
+    uint8_t cwmin;
+    uint8_t cwmax;
+} sir_qos_params_t;
+
+typedef struct sir_ocb_channel
+{
+    uint32_t chan_freq;
+    uint32_t duration;
+    uint32_t start_guard_interval;
+    uint32_t end_guard_interval;
+    uint32_t tx_power;
+    uint32_t tx_rate;
+    sir_qos_params_t qos_params[NUM_AC];
+    uint32_t rx_stats;
+} sir_ocb_channel_t;
+
+typedef struct sir_ocb_sched
+{
+    uint32_t num_channels;
+    sir_ocb_channel_t channels[OCB_CHANNEL_MAX];
+    uint32_t off_channel_tx;
+} sir_ocb_sched_t;
+
+typedef struct sir_ocb_set_sched_response
+{
+    uint8_t status;
+    void *adapter;
+} sir_ocb_set_sched_response_t;
+
+typedef void (*ocb_callback_t)(sir_ocb_set_sched_response_t *);
+
+typedef struct sir_ocb_set_sched_request
+{
+    uint8_t session_id;
+    sir_ocb_sched_t sched;
+    sir_ocb_set_sched_response_t *resp;
+    ocb_callback_t callback;
+} sir_ocb_set_sched_request_t;
 
 #endif /* __SIR_API_H */

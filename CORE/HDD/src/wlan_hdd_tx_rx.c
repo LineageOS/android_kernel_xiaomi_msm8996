@@ -713,6 +713,40 @@ void hdd_tx_resume_cb(void *adapter_context,
 }
 #endif /* QCA_LL_TX_FLOW_CT */
 
+/**
+ * hdd_remove_ocb_tx_header() - Function to check for OCB
+ * TX control header on a packet and extract it if present
+ *
+ * @skb:   Pointer to OS packet (sk_buff)
+ */
+static void hdd_remove_ocb_tx_header(struct sk_buff *skb)
+{
+    struct ethhdr *eth_hdr_p;
+    struct ethhdr eth_hdr;
+
+    /* Check if TX control header is present */
+    eth_hdr_p = (struct ethhdr *) &skb->data[0];
+    if (eth_hdr_p->h_proto != htons(HDD_ETHERTYPE_OCB_TX)) {
+        /* TX control header is not present. Nothing to do.. */
+        return;
+    }
+
+    /* Copy and remove the ethernet header */
+    memcpy(&eth_hdr, eth_hdr_p, HDD_ETH_HEADER_LEN);
+    skb_pull(skb, HDD_ETH_HEADER_LEN);
+
+    /* Remove the TX control header */
+    skb_pull(skb, HDD_OCB_TX_HEADER_LEN);
+
+    /* Convert Ethernet header to 802.3 header by changing ethertype
+       field to length field */
+    eth_hdr.h_proto = htons(skb->len);
+
+    /* Push the now 802.3 header back */
+    skb_push(skb, HDD_ETH_HEADER_LEN);
+    memcpy(&skb->data[0], &eth_hdr, HDD_ETH_HEADER_LEN);
+}
+
 /**============================================================================
   @brief hdd_hard_start_xmit() - Function registered with the Linux OS for
   transmitting packets. This version of the function directly passes the packet
@@ -774,6 +808,10 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    else
    {
       STAId = pHddStaCtx->conn_info.staId[0];
+   }
+
+   if (pAdapter->device_mode == WLAN_HDD_OCB) {
+       hdd_remove_ocb_tx_header(skb);
    }
 
 #ifdef QCA_LL_TX_FLOW_CT

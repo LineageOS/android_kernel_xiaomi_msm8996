@@ -539,6 +539,14 @@ ol_rx_pn_ind_handler(
     int seq_num, i=0;
 
     peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+
+    if (!peer) {
+        /* If we can't find a peer send this packet to OCB interface using
+           OCB self peer */
+        if (!ol_txrx_get_ocb_peer(pdev, &peer))
+			peer = NULL;
+    }
+
     if (peer) {
         vdev = peer->vdev;
     } else {

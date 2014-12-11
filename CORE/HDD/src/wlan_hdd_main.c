@@ -8980,6 +8980,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          /* fall through */
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
+      case WLAN_HDD_OCB:
       {
          pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
 
@@ -11424,6 +11425,21 @@ VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
                               hdd_ctx->reg.cc_src);
 }
 
+/**
+ * hdd_set_dot11p_config() - Set 802.11p config flag
+ * @hdd_ctx:   HDD Context pointer
+ *
+ * TODO-OCB: This has been temporarily added to ensure this paramter
+ * is set in CSR when we init the channel list. This should be removed
+ * once the 5.9 GHz channels are added to the regulatory domain.
+ */
+void hdd_set_dot11p_config(hdd_context_t *hdd_ctx)
+{
+    sme_set_dot11p_config(hdd_ctx->hHal,
+                          hdd_ctx->cfg_ini->dot11p_mode !=
+                              WLAN_HDD_11P_DISABLED);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_is_5g_supported() - HDD function to know if hardware supports  5GHz
@@ -11658,6 +11674,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    tANI_U8 rtnl_lock_enable;
    tANI_U8 reg_netdev_notifier_done = FALSE;
+   hdd_adapter_t *dot11_adapter = NULL;
 
    ENTER();
 
@@ -11899,6 +11916,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
+   /* Set 802.11p config
+    * TODO-OCB: This has been temporarily added here to ensure this paramter
+    * is set in CSR when we init the channel list. This should be removed
+    * once the 5.9 GHz channels are added to the regulatory domain.
+    */
+   hdd_set_dot11p_config(pHddCtx);
+
    if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
    {
       pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
@@ -12042,53 +12066,65 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    rtnl_lock_enable = FALSE;
 #endif
 
-   pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
-       wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable );
+   if (pHddCtx->cfg_ini->dot11p_mode == WLAN_HDD_11P_STANDALONE) {
+       /* Create only 802.11p interface */
+      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB,
+          "wlanocb%d", wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable);
+   } else {
+      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+          wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable );
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
-   /* Open P2P device interface */
-   if (pAdapter != NULL)
-   {
-      if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-      {
-         vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes,
-                     pHddCtx->cfg_ini->intfMacAddr[0].bytes,
-                     sizeof(tSirMacAddr));
+      /* Open P2P device interface */
+      if (pAdapter != NULL) {
+         if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) {
+            vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes,
+                        pHddCtx->cfg_ini->intfMacAddr[0].bytes,
+                        sizeof(tSirMacAddr));
 
-         /* Generate the P2P Device Address.  This consists of the device's
-          * primary MAC address with the locally administered bit set.
-          */
-         pHddCtx->p2pDeviceAddress.bytes[0] |= 0x02;
-      }
-      else
-      {
-         tANI_U8* p2p_dev_addr = wlan_hdd_get_intf_addr(pHddCtx);
-         if (p2p_dev_addr != NULL)
-         {
-            vos_mem_copy(&pHddCtx->p2pDeviceAddress.bytes[0],
-                         p2p_dev_addr, VOS_MAC_ADDR_SIZE);
+            /* Generate the P2P Device Address.  This consists of the device's
+             * primary MAC address with the locally administered bit set.
+             */
+            pHddCtx->p2pDeviceAddress.bytes[0] |= 0x02;
+         } else {
+            uint8_t* p2p_dev_addr = wlan_hdd_get_intf_addr(pHddCtx);
+            if (p2p_dev_addr != NULL) {
+               vos_mem_copy(&pHddCtx->p2pDeviceAddress.bytes[0],
+                            p2p_dev_addr, VOS_MAC_ADDR_SIZE);
+            } else {
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                   FL("Failed to allocate mac_address for p2p_device"));
+               goto err_close_adapter;
+            }
          }
-         else
-         {
+
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+                           &pHddCtx->p2pDeviceAddress.bytes[0],
+                           rtnl_lock_enable);
+
+         if (NULL == pP2pAdapter) {
             hddLog(VOS_TRACE_LEVEL_FATAL,
-                   "%s: Failed to allocate mac_address for p2p_device",
-                   __func__);
+                FL("Failed to do hdd_open_adapter for P2P Device Interface"));
             goto err_close_adapter;
          }
       }
+#endif /* WLAN_OPEN_P2P_INTERFACE */
 
-      pP2pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
-                        &pHddCtx->p2pDeviceAddress.bytes[0], rtnl_lock_enable );
+      /* Open 802.11p Interface */
+      if (pAdapter != NULL) {
+         if (pHddCtx->cfg_ini->dot11p_mode == WLAN_HDD_11P_CONCURRENT) {
+            dot11_adapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB,
+                       "wlanocb%d", wlan_hdd_get_intf_addr(pHddCtx),
+                       rtnl_lock_enable);
 
-      if ( NULL == pP2pAdapter )
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: Failed to do hdd_open_adapter for P2P Device Interface",
-                __func__);
-         goto err_close_adapter;
+            if (dot11_adapter == NULL) {
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                   FL("hdd_open_adapter() failed for 802.11p Interface"));
+               goto err_close_adapter;
+            }
+         }
       }
    }
-#endif
 
    if( pAdapter == NULL )
    {

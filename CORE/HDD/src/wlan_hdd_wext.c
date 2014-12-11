@@ -433,6 +433,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WLAN_SET_POWER_PARAMS        (SIOCIWFIRSTPRIV + 29)
 
+/* 802.11p IOCTL */
+#define WLAN_SET_DOT11P_CHANNEL_SCHED   (SIOCIWFIRSTPRIV + 30)
+
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 /* Private ioctls and their sub-ioctls */
@@ -2996,6 +2999,399 @@ static int iw_get_linkspeed_priv(struct net_device *dev,
     /* a value is being successfully returned */
     return 0;
 }
+
+/* Structure definitions for WLAN_SET_DOT11P_CHANNEL_SCHED */
+#define NUM_AC                      (4)
+#define OCB_CHANNEL_MAX             (5)
+#define DOT11P_TX_PWR_MAX           (23)
+#define AIFSN_MIN                   (2)
+#define AIFSN_MAX                   (15)
+#define CW_MIN                      (1)
+#define CW_MAX                      (10)
+#define HDD_OCB_SET_SCHED_TIME_OUT  (1500)
+
+#define NUM_DOT11P_CHANNELS 9
+static const uint32_t valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
+    5860, 5870, 5880, 5890, 5900, 5910, 5920, 5875, 5905,
+};
+
+/**
+ * struct ocb_qos_params - QoS Parameters for each AC
+ * @aifsn:  Arbitration Inter-Frame Spacing
+ * @cwmin:  Contention Window (Min)
+ * @cwmax:  Contention Window (Max)
+ */
+struct ocb_qos_params {
+    uint8_t aifsn;
+    uint8_t cwmin;
+    uint8_t cwmax;
+};
+
+/**
+ * struct ocb_channel - Parameters for each OCB channel
+ * @channel_freq:           Channel Frequency (MHz)
+ * @duration:               Channel Duration (ms)
+ * @start_guard_interval:   Start Guard Interval (ms)
+ * @end_guard_interval:     End Guard Interval (ms)
+ * @tx_power:               Transmit Power (dBm)
+ * @tx_rate:                Transmit Data Rate (mbit)
+ * @qos_params:             Array of QoS Parameters
+ * @per_packet_rx_stats:    Enable per packet RX statistics
+ */
+struct ocb_channel {
+    uint32_t channel_freq;
+    uint32_t duration;
+    uint32_t start_guard_interval;
+    uint32_t end_guard_interval;
+    uint32_t tx_power;
+    uint32_t tx_rate;
+    struct ocb_qos_params qos_params[NUM_AC];
+    uint32_t per_packet_rx_stats;
+};
+
+/**
+ * struct dot11p_channel_sched - OCB channel schedule
+ * @num_channels:   Number of channels
+ * @channels:       Array of channel parameters
+ * @off_channel_tx: Enable off channel TX
+ */
+struct dot11p_channel_sched {
+    uint32_t num_channels;
+    struct ocb_channel channels[OCB_CHANNEL_MAX];
+    uint32_t off_channel_tx;
+};
+
+/**
+ * dot11p_validate_channel() - Check if specified channel is valid
+ * @channel:   Channel Frequency (MHz)
+ *
+ * Return: 0 on success. 1 on failure.
+ */
+static int dot11p_validate_channel(uint32_t channel)
+{
+    int i;
+
+    for (i = 0; i < NUM_DOT11P_CHANNELS; i++) {
+        if (channel == valid_dot11p_channels[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/**
+ * dot11p_validate_qos_params() - Check if QoS parameters are valid
+ * @qos_params:   Array of QoS parameters
+ *
+ * Return: 0 on success. 1 on failure.
+ */
+static int dot11p_validate_qos_params(struct ocb_qos_params qos_params[])
+{
+    int i;
+
+    for (i = 0; i < NUM_AC; i++) {
+        if ((!qos_params[i].aifsn) && (!qos_params[i].cwmin)
+            && (!qos_params[i].cwmax)) {
+            continue;
+        }
+
+        /* Validate AIFSN */
+        if ((qos_params[i].aifsn < AIFSN_MIN)
+            || (qos_params[i].aifsn > AIFSN_MAX)) {
+            return 1;
+        }
+
+        /* Validate CWMin */
+        if ((qos_params[i].cwmin < CW_MIN)
+            || (qos_params[i].cwmin > CW_MAX)) {
+            return 1;
+        }
+
+        /* Validate CWMax */
+        if ((qos_params[i].cwmax < CW_MIN)
+            || (qos_params[i].cwmax > CW_MAX)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * dot11p_validate_sched() - Check if schedule is valid
+ * @sched:   OCB channel schedule
+ *
+ * Return: 0 on success. 1 on failure.
+ */
+int dot11p_validate_sched(struct dot11p_channel_sched *sched)
+{
+    int i;
+
+    if ((sched->num_channels > OCB_CHANNEL_MAX)
+        || (sched->num_channels == 0)) {
+        goto error;
+    }
+
+    for (i = 0; i < sched->num_channels; i++) {
+        /* Validate channel frequency */
+        if (dot11p_validate_channel(sched->channels[i].channel_freq)) {
+            goto error;
+        }
+
+        /* Validate TX Power */
+        if (sched->channels[i].tx_power > DOT11P_TX_PWR_MAX) {
+            goto error;
+        }
+
+        /* Validate TX Rate */
+        switch (sched->channels[i].tx_rate) {
+            case 0:
+            case 6:
+            case 9:
+            case 12:
+            case 18:
+            case 24:
+            case 36:
+            case 48:
+            case 54:
+                break;
+            default:
+                goto error;
+        }
+
+        /* Validate QoS Params */
+        if (dot11p_validate_qos_params(sched->channels[i].qos_params)) {
+            goto error;
+        }
+
+        if ((sched->channels[i].per_packet_rx_stats != 0)
+            && (sched->channels[i].per_packet_rx_stats != 1)) {
+            goto error;
+        }
+    }
+
+    return 0;
+
+error:
+    return 1;
+}
+
+/**
+ * hdd_ocb_register_sta() - Register station with Transport Layer
+ * @adapter:   Pointer to HDD Adapter
+ *
+ * This function should be invoked in the OCB Set Schedule callback
+ * to enable the data path in the TL by calling RegisterSTAClient
+ *
+ * Return: 0 on success. -1 on failure.
+ */
+static int hdd_ocb_register_sta(hdd_adapter_t *adapter)
+{
+    VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+    WLAN_STADescType sta_desc = {0};
+    hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+    u_int8_t peer_id;
+    v_MACADDR_t wildcardBSSID = {
+        {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    };
+
+    vos_status = WLANTL_RegisterOCBPeer(hdd_ctx->pvosContext,
+                                        adapter->macAddressCurrent.bytes,
+                                        &peer_id);
+    if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+        hddLog(LOGE, FL("Error registering OCB Self Peer!"));
+        return -1;
+    }
+
+    /* Register adapter for STA ID 0 */
+    /* TODO-OCB: This is for standalone 802.11p only. We need to change this
+     * for concurrent mode */
+    hdd_ctx->sta_to_adapter[0] = adapter;
+
+    sta_desc.ucSTAId = peer_id;
+    /* Fill in MAC addresses */
+    vos_copy_macaddr(&sta_desc.vSelfMACAddress, &adapter->macAddressCurrent);
+    vos_copy_macaddr(&sta_desc.vSTAMACAddress, &adapter->macAddressCurrent);
+    vos_copy_macaddr(&sta_desc.vBSSIDforIBSS, &wildcardBSSID);
+
+    sta_desc.wSTAType = WLAN_STA_OCB;
+    sta_desc.ucQosEnabled = 1;
+    sta_desc.ucInitState = WLANTL_STA_AUTHENTICATED;
+
+    vos_status = WLANTL_RegisterSTAClient(hdd_ctx->pvosContext,
+                                         hdd_rx_packet_cbk,
+                                         hdd_tx_complete_cbk,
+                                         hdd_tx_fetch_packet_cbk, &sta_desc,
+                                         0);
+    if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+        hddLog(LOGE, FL("WLANTL_RegisterSTAClient() failed to register. "
+               "Status= %d [0x%08X]"), vos_status, vos_status);
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * hdd_ocb_set_sched_callback() - OCB Set Schedule callback functions
+ * @callback_context:   Pointer to HDD Adapter
+ * @rsp:                Pointer to response structure
+ *
+ * This function is registered as a callback with the lower layers
+ * and is used to respond with the status of a OCB Set Schedule command.
+ */
+static void hdd_ocb_set_sched_callback(sir_ocb_set_sched_response_t *resp)
+{
+    hdd_adapter_t *adapter;
+
+    if (resp == NULL) {
+        return;
+    }
+
+    adapter = (hdd_adapter_t *)resp->adapter;
+
+    if (resp->status) {
+        /* OCB Set Schedule command failed */
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("OCB set schedule command failed! Status = %d"),
+               resp->status);
+        goto exit;
+    }
+
+    /* OCB Set Schedule command successful. Open TX data path */
+    if (hdd_ocb_register_sta(adapter)) {
+        resp->status = -1;
+    } else {
+        netif_carrier_on(adapter->dev);
+        netif_tx_start_all_queues(adapter->dev);
+    }
+
+exit:
+    complete(&adapter->hdd_ocb_set_sched_req_var);
+}
+
+/**
+ * iw_set_dot11p_channel_sched() - Handler for WLAN_SET_DOT11P_CHANNEL_SCHED
+ *                                 ioctl
+ * @dev:                Pointer to net_device structure
+ * @iw_request_info:    IW Request Info
+ * @wrqu:               IW Request Userspace Data Pointer
+ * @extra:              IW Request Kernel Data Pointer
+ */
+static int iw_set_dot11p_channel_sched(struct net_device *dev,
+                                       struct iw_request_info *info,
+                                       union iwreq_data *wrqu, char *extra)
+{
+    int rc = 0;
+    eHalStatus halStatus;
+    struct dot11p_channel_sched *sched;
+    hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    sir_ocb_set_sched_request_t *sched_req = NULL;
+    sir_ocb_set_sched_response_t *sched_resp = NULL;
+    sir_ocb_sched_t *sched_ptr;
+    int i;
+
+    if (wlan_hdd_validate_context(WLAN_HDD_GET_CTX(adapter))) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        return -EINVAL;
+    }
+
+    if (adapter->device_mode != WLAN_HDD_OCB) {
+        hddLog(LOGE, FL("Device not in OCB mode!"));
+        return -EINVAL;
+    }
+
+    if (extra == NULL) {
+        hddLog(LOGE, FL("No data in IOCTL!"));
+        return -EINVAL;
+    }
+
+    sched = (struct dot11p_channel_sched *)extra;
+    if (dot11p_validate_sched(sched)) {
+        hddLog(LOGE, FL("OCB schedule validation failed!"));
+        return -EINVAL;
+    }
+
+    /*
+     * Currently we support only single channel operation.
+     * Hence, we will only use the first channel in the schedule regardless
+     * of the number of channels specified. All duration parameters will also
+     * be ignored.
+     */
+    sched_req = vos_mem_malloc(sizeof(sir_ocb_set_sched_request_t));
+    if (sched_req == NULL) {
+        hddLog(LOGE, FL("Failed to allocate memory!"));
+        return -ENOMEM;
+    }
+    vos_mem_set(sched_req, sizeof(*sched_req), 0);
+
+    sched_resp = vos_mem_malloc(sizeof(sir_ocb_set_sched_response_t));
+    if (sched_resp == NULL) {
+        hddLog(LOGE, FL("Failed to allocate memory!"));
+        rc = -ENOMEM;
+        goto exit;
+    }
+    vos_mem_set(sched_resp, sizeof(*sched_resp), 0);
+
+    sched_req->session_id = adapter->sessionId;
+
+    sched_ptr = &sched_req->sched;
+    sched_ptr->num_channels = 1;
+    sched_ptr->channels[0].chan_freq = sched->channels[0].channel_freq;
+    sched_ptr->channels[0].tx_power = sched->channels[0].tx_power;
+    sched_ptr->channels[0].tx_rate = sched->channels[0].tx_rate;
+    for (i = 0; i < NUM_AC; i++) {
+        sched_ptr->channels[0].qos_params[i].aifsn =
+            sched->channels[0].qos_params[i].aifsn;
+        sched_ptr->channels[0].qos_params[i].cwmin =
+            sched->channels[0].qos_params[i].cwmin;
+        sched_ptr->channels[0].qos_params[i].cwmax =
+            sched->channels[0].qos_params[i].cwmax;
+    }
+    sched_ptr->channels[0].rx_stats = sched->channels[0].per_packet_rx_stats;
+
+    sched_resp->adapter = (void *)adapter;
+    sched_req->resp = sched_resp;
+    sched_req->callback = hdd_ocb_set_sched_callback;
+
+    netif_tx_disable(adapter->dev);
+    netif_carrier_off(adapter->dev);
+
+    init_completion(&adapter->hdd_ocb_set_sched_req_var);
+    halStatus = sme_ocb_set_sched_req(sched_req);
+    if (halStatus != eHAL_STATUS_SUCCESS) {
+        rc = -EINVAL;
+        goto exit;
+    }
+
+    rc = wait_for_completion_timeout(&adapter->hdd_ocb_set_sched_req_var,
+             msecs_to_jiffies(HDD_OCB_SET_SCHED_TIME_OUT));
+    if (!rc) {
+        hddLog(LOGE, FL("Timeout waiting for OCB set sched to complete"));
+        rc = -EINVAL;
+        goto exit;
+    }
+
+    /* Check the status code */
+    if (sched_resp->status) {
+        hddLog(LOGE, FL("Error while setting OCB Schedule"));
+        rc = -EINVAL;
+        goto exit;
+    }
+
+    rc = 0;
+
+exit:
+    if (sched_req) {
+        vos_mem_free(sched_req);
+    }
+    if (sched_resp) {
+        vos_mem_free(sched_resp);
+    }
+    return rc;
+}
+
 
 /*
  * Support for the RSSI & RSSI-APPROX private commands
@@ -9778,6 +10174,7 @@ static const iw_handler we_private[] = {
    [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed_priv,
    [WLAN_PRIV_SET_TWO_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_set_two_ints_getnone,
+   [WLAN_SET_DOT11P_CHANNEL_SCHED       - SIOCIWFIRSTPRIV]   = iw_set_dot11p_channel_sched,
 };
 
 /*Maximum command length can be only 15 */
