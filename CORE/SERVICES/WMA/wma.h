@@ -110,6 +110,9 @@
 #define WMA_11G_CHANNEL_BEGIN           1
 #define WMA_11G_CHANNEL_END             14
 
+#define WMA_11P_CHANNEL_BEGIN           (172)
+#define WMA_11P_CHANNEL_END             (184)
+
 #define WMA_LOGD(args...) \
 	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG, ## args)
 #define WMA_LOGI(args...) \
@@ -215,6 +218,10 @@ static const t_probeTime_dwellTime
 #define WMA_EXTSCAN_REPEAT_PROBE        10
 #define WMA_EXTSCAN_BURST_DURATION      150
 #endif
+
+typedef void (*txFailIndCallback)(u_int8_t *peer_mac, u_int8_t seqNo);
+
+typedef void (*ocb_set_sched_callback_t)(sir_ocb_set_sched_response_t *resp);
 
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
@@ -736,6 +743,10 @@ typedef struct {
 #ifdef FEATURE_WLAN_D0WOW
 	atomic_t in_d0wow;
 #endif
+
+	/* OCB Set Schedule Response */
+	ocb_set_sched_callback_t ocb_callback;
+	sir_ocb_set_sched_response_t *ocb_resp;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1166,6 +1177,8 @@ struct wma_vdev_start_req {
 	u_int8_t ht_capable;
 	int32_t dfs_pri_multiplier;
 	u_int8_t dot11_mode;
+	bool is_half_rate;
+	bool is_quarter_rate;
 };
 
 struct wma_set_key_params {
