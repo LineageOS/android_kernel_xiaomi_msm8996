@@ -406,7 +406,11 @@ typedef int ( *HIF_MASK_UNMASK_RECV_EVENT)(HIF_DEVICE  *device,
                                                 bool    Mask,
                                                 void   *AsyncContext);
 
-
+#ifdef HIF_MBOX_SLEEP_WAR
+/* This API is used to update the target sleep state */
+void
+HIFSetMboxSleep(HIF_DEVICE *device, bool sleep, bool wait, bool cache);
+#endif
 /*
  * This API is used to perform any global initialization of the HIF layer
  * and to set OS driver callbacks (i.e. insertion/removal) to the HIF layer
