@@ -158,6 +158,7 @@ static void set_default_logtoapp_log_level(void)
 	vos_trace_setValue(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ALL,
 			VOS_TRUE);
 	vos_trace_setValue(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ALL, VOS_TRUE);
+	vos_trace_setValue(VOS_MODULE_ID_PMC, VOS_TRACE_LEVEL_ALL, VOS_TRUE);
 }
 
 static void clear_default_logtoapp_log_level(void)
