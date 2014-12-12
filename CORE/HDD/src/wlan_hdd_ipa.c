@@ -2815,6 +2815,14 @@ static void hdd_ipa_uc_offload_enable_disable(hdd_adapter_t *adapter,
 {
 	struct sir_ipa_offload_enable_disable ipa_offload_enable_disable;
 
+	/* Lower layer may send multiple START_BSS_EVENT in DFS mode or during
+	 * channel change indication. Since these indications are sent by lower
+	 * layer as SAP updates and IPA doesn't have to do anything for these
+	 * updates so ignoring!
+	*/
+	if (WLAN_HDD_SOFTAP == adapter->device_mode && adapter->ipa_context)
+		return;
+
 	vos_mem_zero(&ipa_offload_enable_disable,
 		sizeof(ipa_offload_enable_disable));
 	ipa_offload_enable_disable.offload_type = offload_type;
