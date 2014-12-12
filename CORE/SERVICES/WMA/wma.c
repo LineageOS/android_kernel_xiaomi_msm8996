@@ -22162,6 +22162,7 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
+#ifdef INTRA_BSS_FWD_OFFLOAD
 	/* Disable/enable WMI_VDEV_PARAM_INTRA_BSS_FWD */
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
 		ipa_offload->vdev_id, WMI_VDEV_PARAM_INTRA_BSS_FWD,
@@ -22169,6 +22170,7 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 		WMA_LOGE("Failed to disable WMI_VDEV_PARAM_INTRA_BSS_FWD");
 		return VOS_STATUS_E_FAILURE;
 	}
+#endif
 
 	return VOS_STATUS_SUCCESS;
 }
