@@ -4447,6 +4447,8 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
         goto out;
     }
 
+    set_bit(ACS_IN_PROGRESS, &adapter->event_flags);
+
     status = nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ACS_MAX,
                     data, data_len,
                     qca_wlan_acs_vendor_attr);
@@ -4616,6 +4618,8 @@ out:
         if (temp_skbuff != NULL)
             return cfg80211_vendor_cmd_reply(temp_skbuff);
     }
+
+    clear_bit(ACS_IN_PROGRESS, &adapter->event_flags);
 
     return status;
 }
@@ -6530,6 +6534,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     iniConfig = pHddCtx->cfg_ini;
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
 
+    clear_bit(ACS_IN_PROGRESS, &pHostapdAdapter->event_flags);
+
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
 
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
@@ -7641,6 +7647,12 @@ static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,
     VOS_STATUS status;
 
     ENTER();
+
+    if(test_bit(ACS_IN_PROGRESS, &pAdapter->event_flags))
+    {
+        hddLog(LOG1, FL("ACS is in progress, don't change iface!"));
+        return 0;
+    }
 
     wdev = ndev->ieee80211_ptr;
     hdd_stop_adapter(pHddCtx, pAdapter, VOS_TRUE);
