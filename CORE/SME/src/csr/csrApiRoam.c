@@ -5333,12 +5333,10 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
                                    pIesLocal->WAPI.multicast_cipher_suite + 4,
                                    2);
                       pIeBuf += 2;
-                      //bkid_count
-                      vos_mem_copy(pIeBuf, &pIesLocal->WAPI.bkid_count, 2);
-
-                      pIeBuf += 2;
-                      if( pIesLocal->WAPI.bkid_count )
-                      {
+                      if (pIesLocal->WAPI.bkid_count) {
+                         /* bkid_count */
+                         vos_mem_copy(pIeBuf, &pIesLocal->WAPI.bkid_count, 2);
+                         pIeBuf += 2;
                          //copy akm_suites
                          vos_mem_copy(pIeBuf, pIesLocal->WAPI.bkid,
                                       pIesLocal->WAPI.bkid_count * 4);
