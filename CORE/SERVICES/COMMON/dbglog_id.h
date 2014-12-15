@@ -909,17 +909,30 @@ extern "C" {
 #define ROAM_HO_SYNC_COMPLETE     45
 #define ROAM_HO_STOP              46
 #define ROAM_HO_HTT_FORWARD       47
-#define ROAM_CONFIG_SCAN_PARAMS_1 49
-#define ROAM_SCAN_COMPLETE_1      50
-#define ROAM_SWBMISS_BCN_RECV_VAL 51
-#define ROAM_SWBMISS_BCN_RECV_THRE2 52
-#define ROAM_SCAN_REQUESTED_1     53
-#define ROAM_HO_SORT_CANDIDATE_CUR  54
-#define ROAM_HO_SAVE_CANDIDATE_DUP  55
-#define ROAM_HO_SM_EVENT          56
-#define ROAM_HO_ENTER_CH          57
-#define ROAM_HO_MGMT_RX           58
-#define ROAM_DBGID_DEFINITION_END 59
+#define ROAM_CONFIG_SCAN_PARAMS_1 48
+#define ROAM_SCAN_COMPLETE_1      49
+#define ROAM_SWBMISS_BCN_RECV_VAL 50
+#define ROAM_SWBMISS_BCN_RECV_THRE2 51
+#define ROAM_SCAN_REQUESTED_1     52
+#define ROAM_HO_SORT_CANDIDATE_CUR  53
+#define ROAM_HO_SAVE_CANDIDATE_DUP  54
+#define ROAM_HO_SM_EVENT          55
+#define ROAM_HO_ENTER_CH          56
+#define ROAM_HO_MGMT_RX           57
+#define ROAM_HO_CANDIDATE_INFO    58
+#define ROAM_HO_OFFLD_DATA_STORE  59
+#define ROAM_HO_HTT_DATA_STORE    60
+#define ROAM_HO_UPDATE_STATUS     61
+#define ROAM_HO_OCS_CH_CB         62
+#define ROAM_RSSI_INTERRUPT_STATE 63
+#define ROAM_INVOKE_PARAM_CHECK   64
+#define ROAM_INVOKE_PARAM_CHAN    65
+#define ROAM_INVOKE_PARAM_BSSID   66
+#define ROAM_INVOKE_STATE_CHECK   67
+#define ROAM_INVOKE_START_SUCCESS 68
+#define ROAM_INVOKE_START_FAILURE 69
+#define ROAM_INVOKE_BSSID_CHECK   70
+#define ROAM_DBGID_DEFINITION_END 71
 
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
@@ -1110,6 +1123,13 @@ extern "C" {
 #define SUPPL_DBGID_SEND_EAPOL                  3
 #define SUPPL_DBGID_MIC_MISMATCH                4
 #define SUPPL_DBGID_FINISH                      5
+#define SUPPL_DBGID_GET_FRM_INFO                6
+#define SUPPL_DBGID_DUMP_TYPE                   7
+#define SUPPL_DBGID_DUMP_HEX                    8
+#define SUPPL_DBGID_NODE_NOT_FOUND              9
+#define SUPPL_DBGID_GET_EAPOL_BUF               10
+#define SUPPL_DBGID_GET_BUF_FAIL                11
+#define SUPPL_DBGID_RECV_EAPOL_ERROR            12
 
 /* Stats Module DBGIDs */
 #define WLAN_STATS_DBGID_DEFINITION_START                0

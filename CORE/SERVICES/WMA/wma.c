@@ -15320,7 +15320,7 @@ static void wma_send_probe_rsp_tmpl(tp_wma_handle wma,
 
 	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
 				WMI_SERVICE_BEACON_OFFLOAD)) {
-		WMA_LOGA("Beacon Offload Enabled Sending Unified command");
+		WMA_LOGI("Beacon Offload Enabled Sending Unified command");
 		if (wmi_unified_probe_rsp_tmpl_send(wma, vdev_id,
 					probe_rsp_info) < 0){
 		WMA_LOGE(FL("wmi_unified_probe_rsp_tmpl_send Failed "));
@@ -15346,7 +15346,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 
 	if (WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
 				   WMI_SERVICE_BEACON_OFFLOAD)) {
-	    WMA_LOGA("Beacon Offload Enabled Sending Unified command");
+	    WMA_LOGI("Beacon Offload Enabled Sending Unified command");
 	    if (wmi_unified_bcn_tmpl_send(wma, vdev_id, bcn_info, 4) < 0){
                 WMA_LOGE("%s : wmi_unified_bcn_tmpl_send Failed ", __func__);
 		return;
