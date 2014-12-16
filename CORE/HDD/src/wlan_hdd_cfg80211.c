@@ -5381,29 +5381,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
         wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
 
-#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    if (pCfg->isRoamOffloadEnabled) {
-        wiphy->flags |= WIPHY_FLAG_HAS_KEY_MGMT_OFFLOAD;
-        wiphy->key_mgmt_offload_support |=
-                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PSK;
-        wiphy->key_mgmt_offload_support |=
-                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_PSK;
-        wiphy->key_mgmt_offload_support |=
-                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_PMKSA;
-        wiphy->key_mgmt_offload_support |=
-                         NL80211_KEY_MGMT_OFFLOAD_SUPPORT_FT_802_1X;
-        wiphy->key_derive_offload_support |=
-                         NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_IGTK;
-        wiphy->key_derive_offload_support |=
-                         NL80211_KEY_DERIVE_OFFLOAD_SUPPORT_SHA256;
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
-            "%s: LFR3:Driver key mgmt offload capability flags %x",
-                         __func__,wiphy->key_mgmt_offload_support);
-    }
-#endif
-#endif
-
     EXIT();
     return 0;
 }
@@ -9033,40 +9010,6 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     return status;
 }
 
-#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-static int wlan_hdd_cfg80211_key_mgmt_set_pmk(struct wiphy *wiphy,
-                                              struct net_device *ndev,
-                                              const u8 *pmk, size_t pmk_len)
-{
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(ndev);
-    hdd_wext_state_t *pWextState;
-    hdd_station_ctx_t *pHddStaCtx;
-
-    ENTER();
-    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-    if (pmk) {
-        tANI_U8 localPmk [SIR_ROAM_SCAN_PSK_SIZE];
-        if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
-#ifdef FEATURE_WLAN_ESE
-             && (!pWextState->isESEConnection)
-#endif
-           ) {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                       "%s: calling sme_RoamSetPSK_PMK \n", __func__);
-            vos_mem_copy(localPmk, pmk, SIR_ROAM_SCAN_PSK_SIZE);
-            sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                               pAdapter->sessionId, localPmk, pmk_len);
-            return VOS_STATUS_SUCCESS;
-        }
-    }
-    return VOS_STATUS_SUCCESS;
-}
-#endif
-#endif
-
 /*
  * FUNCTION: __wlan_hdd_cfg80211_set_default_key
  * This function is used to set the default tx key index
@@ -11438,41 +11381,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     hdd_stop_auto_suspend_attempt(pHddCtx);
 
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    /* Supplicant indicate its decision to offload key management
-     * by setting the third bit in flags in case of Secure connection
-     * so if the supplicant does not support this then LFR3.0 shall
-     * be disabled.if supplicant indicates support for offload
-     * of key management then we shall enable LFR3.0.Note that
-     * supplicant set the bit in flags means driver already indicated
-     * its capability to handle the key management and LFR3.0 is
-     * enabled in INI and FW also has the capability to handle
-     * key management offload as part of LFR3.0
-     */
-
-#ifdef NL80211_KEY_LEN_PMK /* if kernel supports key mgmt offload */
-    VOS_TRACE( VOS_MODULE_ID_HDD,
-               VOS_TRACE_LEVEL_ERROR,
-               "%s: LFR3:Supplicant association request flags %x",
-               __func__, req->flags);
-    if (!(req->flags & ASSOC_REQ_OFFLOAD_KEY_MGMT)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-        FL("Supplicant does not support key mgmt offload for this AP"));
-        sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal,
-                                            pAdapter->sessionId,
-                                            FALSE);
-    } else {
-        sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal,
-                                            pAdapter->sessionId,
-                                            TRUE);
-    }
-#else
-    hddLog(VOS_TRACE_LEVEL_ERROR,
-        FL("Kernel does not support key mgmt offload"));
-    sme_UpdateRoamKeyMgmtOffloadEnabled(pHddCtx->hHal, pAdapter->sessionId, FALSE);
-#endif /* #ifdef NL80211_KEY_LEN_PMK */
-
-#endif
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
         return -ECONNREFUSED;
@@ -11534,30 +11442,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
         return status;
     }
-#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    if ((eHAL_STATUS_SUCCESS == status) && (req->psk)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: psk = %p", __func__, req->psk);
-        /* since PMK is available only in cfg80211_connect(), we save it
-         * even before we know connection succeeded or not */
-        if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
-             hdd_wext_state_t *pWextState =
-                       WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-             tANI_U8 localPsk [SIR_ROAM_SCAN_PSK_SIZE];
-             if ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_PSK)
-#ifdef FEATURE_WLAN_ESE
-                 && (!pWextState->isESEConnection)
-#endif
-                 ) {
-                 hddLog(VOS_TRACE_LEVEL_ERROR, FL("calling sme_RoamSetPSK"));
-                 vos_mem_copy(localPsk, req->psk, SIR_ROAM_SCAN_PSK_SIZE);
-                 sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                 pAdapter->sessionId, localPsk, SIR_ROAM_SCAN_PSK_SIZE);
-             }
-        }
-    }
-#endif
-#endif
     pHddCtx->isAmpAllowed = VOS_FALSE;
     EXIT();
     return status;
@@ -16667,9 +16551,4 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
-#ifdef NL80211_KEY_LEN_PMK /* kernel supports key mgmt offload */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-     .key_mgmt_set_pmk = wlan_hdd_cfg80211_key_mgmt_set_pmk,
-#endif
-#endif
 };

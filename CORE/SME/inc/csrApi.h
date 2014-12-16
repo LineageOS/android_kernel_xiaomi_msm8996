@@ -522,9 +522,6 @@ typedef enum
 
     // Channel sw update notification
     eCSR_ROAM_DFS_CHAN_SW_NOTIFY,
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    eCSR_ROAM_AUTHORIZED_EVENT
-#endif
 }eRoamCmdStatus;
 
 
