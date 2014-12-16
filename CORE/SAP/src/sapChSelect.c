@@ -696,7 +696,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
 
         /* OFDM rates are not supported on channel 14 */
         if(*pChans == 14 &&
-               eCSR_DOT11_MODE_11b != sme_GetPhyMode(halHandle))
+               eCSR_DOT11_MODE_11b != pSapCtx->csrRoamProfile.phyMode)
         {
             continue;
         }
