@@ -713,7 +713,7 @@ void hdd_tx_resume_cb(void *adapter_context,
             }
             else
             {
-                pAdapter->hdd_stats.hddTxRxStats.txflow_stats.txflow_timer_cnt++;
+                pAdapter->hdd_stats.hddTxRxStats.txflow_timer_cnt++;
             }
         }
         pAdapter->hdd_stats.hddTxRxStats.txflow_pause_cnt++;
