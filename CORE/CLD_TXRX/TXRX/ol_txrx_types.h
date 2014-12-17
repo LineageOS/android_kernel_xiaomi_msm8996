@@ -742,6 +742,7 @@ struct ol_txrx_pdev_t {
 	struct ol_tx_queue_group_t txq_grps[OL_TX_MAX_TXQ_GROUPS];
 	u_int8_t ocb_peer_valid;
 	struct ol_txrx_peer_t *ocb_peer;
+	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
 };
 
 struct ol_txrx_vdev_t {
