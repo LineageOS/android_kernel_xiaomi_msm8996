@@ -174,12 +174,22 @@ enum qca_nl80211_vendor_subcmds {
 
     /* Get Concurrency Matrix */
     QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX = 42,
+
+    /* Get the security keys for key management offload */
+    QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_SET_KEY = 50,
+
+    /* Send the roaming and authentication info after roaming */
+    QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH = 51,
+
     QCA_NL80211_VENDOR_SUBCMD_APFIND = 52,
 
     /* OCB Set Schedule */
     QCA_NL80211_VENDOR_SUBCMD_OCB_SET_SCHED = 53,
 
     QCA_NL80211_VENDOR_SUBCMD_DO_ACS = 54,
+
+    /* Get the supported features by the driver */
+    QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES = 55,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -223,6 +233,9 @@ enum qca_nl80211_vendor_subcmds_index {
     QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE_CHANGE_INDEX,
     /* ACS OBSS Coex*/
     QCA_NL80211_VENDOR_SUBCMD_DO_ACS_INDEX,
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX,
+#endif
 };
 
 /* EXT TDLS */
@@ -286,6 +299,8 @@ enum qca_wlan_vendor_attr {
     /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
     QCA_WLAN_VENDOR_ATTR_STATS_EXT = 3,
     QCA_WLAN_VENDOR_ATTR_IFINDEX = 4,
+    /* used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES */
+    QCA_WLAN_VENDOR_ATTR_FEATURE_FLAGS = 7,
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_MAX =
@@ -838,6 +853,30 @@ enum qca_wlan_vendor_attr_set_no_dfs_flag
     QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_AFTER_LAST - 1,
 };
 
+/**
+ * enum qca_wlan_vendor_attr_roam_auth - vendor event for roaming
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_BSSID: BSSID of the roamed AP
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_REQ_IE: Request IE
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_RESP_IE: Response IE
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED: Authorization Status
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_KEY_REPLAY_CTR: Replay Counter
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KCK: KCK of the PTK
+ * @QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KEK: KEK of the PTK
+ */
+enum qca_wlan_vendor_attr_roam_auth {
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_BSSID,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_REQ_IE,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_RESP_IE,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_KEY_REPLAY_CTR,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KCK,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KEK,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_MAX =
+		QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AFTER_LAST - 1
+};
+
 /* NL attributes for data used by
  * QCA_NL80211_VENDOR_SUBCMD_GET_CONCURRENCY_MATRIX sub command.
  */
@@ -891,6 +930,19 @@ enum qca_wlan_vendor_attr_ocb_set_sched
     QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX =
         QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_features - vendor device/driver features
+ * @QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD: Device supports key
+ * management offload, a mechanism where the station's firmware
+ * does the exchange with the AP to establish the temporal keys
+ * after roaming, rather than having the supplicant do it.
+ */
+enum qca_wlan_vendor_features {
+	QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD = 0,
+	/* Additional features need to be added above this */
+        NUM_QCA_WLAN_VENDOR_FEATURES
 };
 
 /* Feature defines */
@@ -1060,4 +1112,10 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
 void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_context_t *pHddCtx,
                                         v_U8_t priChannel, v_U8_t secChannel);
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
+		uint8_t *req_rsn_ie, uint32_t req_rsn_length,
+		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_length,
+		tCsrRoamInfo *roam_info_ptr);
+#endif
 #endif

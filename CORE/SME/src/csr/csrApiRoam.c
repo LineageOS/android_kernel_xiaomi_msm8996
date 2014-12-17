@@ -5899,10 +5899,17 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                        pMac->roam.configParam.doBMPSWorkaround = 1;
                     }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-        if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
-        {
+        if (pSession->roamOffloadSynchParams.bRoamSynchInProgress) {
            roamInfo.roamSynchInProgress = 1;
-           roamInfo.synchAuthStatus = pSession->roamOffloadSynchParams.authStatus;
+           roamInfo.synchAuthStatus =
+                 pSession->roamOffloadSynchParams.authStatus;
+           vos_mem_copy(roamInfo.kck, pSession->roamOffloadSynchParams.kck,
+                        SIR_KCK_KEY_LEN);
+           vos_mem_copy(roamInfo.kek, pSession->roamOffloadSynchParams.kek,
+                        SIR_KEK_KEY_LEN);
+           vos_mem_copy(roamInfo.replay_ctr,
+                        pSession->roamOffloadSynchParams.replay_ctr,
+                        SIR_REPLAY_CTR_LEN);
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
             FL("LFR3:csrRoamCallCallback:eCSR_ROAM_RESULT_ASSOCIATED"));
         }

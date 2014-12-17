@@ -1333,6 +1333,9 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     cfg80211_roamed(dev, chan, pCsrRoamInfo->bssid,
                     reqRsnIe, reqRsnLength,
                     rspRsnIe, rspRsnLength,GFP_KERNEL);
+    wlan_hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
+                                  reqRsnIe, reqRsnLength, rspRsnIe,
+                                  rspRsnLength, pCsrRoamInfo);
 done:
     kfree(rspRsnIe);
 }

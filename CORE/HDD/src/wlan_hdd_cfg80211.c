@@ -1165,6 +1165,12 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .vendor_id = QCA_NL80211_VENDOR_ID,
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_DO_ACS
     },
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    [QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH
+    },
+#endif
 };
 
 static int is_driver_dfs_capable(struct wiphy *wiphy,
@@ -2474,6 +2480,73 @@ fail:
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+/**
+ * wlan_hdd_cfg80211_set_feature() - Set the bitmask for supported features
+ * @feature_flags:   pointer to the byte array of features.
+ * @feature:         Feature to be turned ON in the byte array.
+ *
+ * Return:  None
+ *
+ * This is called to turn ON or SET the feature flag for the requested feature.
+ */
+#define NUM_BITS_IN_BYTE	8
+void wlan_hdd_cfg80211_set_feature(uint8_t *feature_flags, uint8_t feature)
+{
+	uint32_t index;
+	uint8_t bit_mask;
+
+	index = feature / NUM_BITS_IN_BYTE;
+	bit_mask = 1 << (feature % NUM_BITS_IN_BYTE);
+	feature_flags[index] |= bit_mask;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_features() - Get the Driver Supported features
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This is called when wlan driver needs to send supported feature set to
+ * supplicant upon a request/query from the supplicant.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	struct sk_buff *skb = NULL;
+	uint8_t feature_flags[(NUM_QCA_WLAN_VENDOR_FEATURES + 7) / 8] = {0};
+	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+
+	if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
+		hddLog(LOG1, FL("Key Mgmt Offload is supported"));
+		wlan_hdd_cfg80211_set_feature (feature_flags,
+				QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD);
+	}
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(feature_flags) +
+		NLMSG_HDRLEN);
+
+	if (!skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		return -ENOMEM;
+	}
+
+	if (nla_put(skb,
+		QCA_WLAN_VENDOR_ATTR_FEATURE_FLAGS,
+		sizeof(feature_flags), feature_flags))
+		goto nla_put_failure;
+
+	return cfg80211_vendor_cmd_reply(skb);
+
+nla_put_failure:
+	kfree_skb(skb);
+	return -EINVAL;
+}
+
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 
 static bool put_wifi_rate_stat( tpSirWifiRateStat stats,
@@ -3746,6 +3819,156 @@ static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
     return -EINVAL;
 }
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/**
+ * wlan_hdd_cfg80211_keymgmt_set_key() - Store the Keys in the driver session
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the Key data
+ * @data_len:Length of the data passed
+ *
+ * This is called when wlan driver needs to save the keys received via
+ * vendor specific command.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					const void *data, int data_len)
+{
+	uint8_t local_pmk[SIR_ROAM_SCAN_PSK_SIZE];
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *hdd_adapter_ptr = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx_ptr;
+	int status;
+
+	if ((data == NULL) || (data_len == 0) ||
+		(data_len > SIR_ROAM_SCAN_PSK_SIZE)) {
+		hddLog(LOGE, FL("Invalid data"));
+		return -EINVAL;
+	}
+
+	hdd_ctx_ptr = WLAN_HDD_GET_CTX(hdd_adapter_ptr);
+	if (!hdd_ctx_ptr) {
+		hddLog(LOGE, FL("HDD context is null"));
+		return -EINVAL;
+	}
+
+	status = wlan_hdd_validate_context(hdd_ctx_ptr);
+	if (0 != status) {
+		hddLog(LOGE, FL("HDD context is invalid"));
+		return status;
+	}
+	sme_UpdateRoamKeyMgmtOffloadEnabled(hdd_ctx_ptr->hHal,
+			hdd_adapter_ptr->sessionId,
+			TRUE);
+	vos_mem_zero(&local_pmk, SIR_ROAM_SCAN_PSK_SIZE);
+	vos_mem_copy(local_pmk, data, data_len);
+	sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(hdd_adapter_ptr),
+			hdd_adapter_ptr->sessionId, local_pmk, data_len);
+	return 0;
+}
+
+/**
+ * wlan_hdd_send_roam_auth_event() - Send the roamed and authorized event
+ * @hdd_ctx_ptr:   pointer to HDD Context.
+ * @bssid:    pointer to bssid of roamed AP.
+ * @req_rsn_ie:    Pointer to request RSN IE
+ * @req_rsn_len:   Length of the request RSN IE
+ * @rsp_rsn_ie:    Pointer to response RSN IE
+ * @rsp_rsn_len:   Length of the response RSN IE
+ * @roam_info_ptr: Pointer to the roaming related information
+ *
+ * This is called when wlan driver needs to send the roaming and
+ * authorization information after roaming.
+ *
+ * The information that would be sent is the request RSN IE, response
+ * RSN IE and BSSID of the newly roamed AP.
+ *
+ * If the Authorized status is authenticated, then additional parameters
+ * like PTK's KCK and KEK and Replay Counter would also be passed to the
+ * supplicant.
+ *
+ * The supplicant upon receiving this event would ignore the legacy
+ * cfg80211_roamed call and use the entire information from this event.
+ * The cfg80211_roamed should still co-exist since the kernel will
+ * make use of the parameters even if the supplicant ignores it.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
+		uint8_t *req_rsn_ie, uint32_t req_rsn_len,
+		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_len,
+		tCsrRoamInfo *roam_info_ptr)
+{
+	struct sk_buff *skb     = NULL;
+	ENTER();
+
+	if (wlan_hdd_validate_context(hdd_ctx_ptr)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "));
+		return -EINVAL;
+	}
+
+	skb = cfg80211_vendor_event_alloc(hdd_ctx_ptr->wiphy,
+			ETH_ALEN + req_rsn_len + rsp_rsn_len +
+			sizeof(uint8) + SIR_REPLAY_CTR_LEN +
+			SIR_KCK_KEY_LEN + SIR_KCK_KEY_LEN +
+			(7 * NLMSG_HDRLEN),
+			QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX,
+			GFP_KERNEL);
+
+	if (!skb) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("cfg80211_vendor_event_alloc failed"));
+		return -EINVAL;
+	}
+
+	if (nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_BSSID,
+				ETH_ALEN, bssid) ||
+		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_REQ_IE,
+			req_rsn_len, req_rsn_ie) ||
+		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_RESP_IE,
+			rsp_rsn_len, rsp_rsn_ie)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+		goto nla_put_failure;
+	}
+	hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Auth Status = %d"),
+			roam_info_ptr->synchAuthStatus);
+	if (roam_info_ptr->synchAuthStatus ==
+			CSR_ROAM_AUTH_STATUS_AUTHENTICATED) {
+		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Include Auth Params TLV's"));
+		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
+					TRUE) ||
+			nla_put(skb,
+				QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_KEY_REPLAY_CTR,
+				SIR_REPLAY_CTR_LEN, roam_info_ptr->replay_ctr)
+			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KCK,
+				SIR_KCK_KEY_LEN, roam_info_ptr->kck)
+			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KEK,
+				SIR_KEK_KEY_LEN, roam_info_ptr->kek)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+			goto nla_put_failure;
+		}
+	} else {
+		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("No Auth Params TLV's"));
+		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
+					FALSE)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+			goto nla_put_failure;
+		}
+	}
+
+	cfg80211_vendor_event(skb, GFP_KERNEL);
+	return 0;
+
+nla_put_failure:
+	kfree_skb(skb);
+	return -EINVAL;
+}
+
+
+#endif
 
 #ifdef FEATURE_WLAN_TDLS
 /* EXT TDLS */
@@ -5076,6 +5299,23 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = (void *)wlan_hdd_cfg80211_ocb_set_schedule
     },
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV,
+        .doit = (void *)wlan_hdd_cfg80211_get_features
+    },
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_SET_KEY,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = (void *)wlan_hdd_cfg80211_keymgmt_set_key
+    },
+#endif
 };
 
 
