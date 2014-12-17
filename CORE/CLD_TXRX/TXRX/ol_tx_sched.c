@@ -434,19 +434,6 @@ ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wm
 
 /*--- definitions ---*/
 
-enum {
-    OL_TX_SCHED_WRR_ADV_CAT_VO,
-    OL_TX_SCHED_WRR_ADV_CAT_VI,
-    OL_TX_SCHED_WRR_ADV_CAT_BK,
-    OL_TX_SCHED_WRR_ADV_CAT_BE,
-    OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA,
-    OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT,
-    OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA,
-    OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT,
-
-    OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES /* must be last */
-};
-
 struct ol_tx_sched_wrr_adv_category_info_t {
     struct {
         int wrr_skip_weight;
