@@ -380,7 +380,28 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
             dfs_reset_alldelaylines(dfs);
             dfs_reset_radarq(dfs);
          }
+
          found = 0;
+
+         /*
+          * In FCC or JAPAN domain,if the follwing signature matches
+          * its likely that this is a false radar pulse pattern
+          * so process the next pulse in the queue.
+          */
+         if ((DFS_FCC_DOMAIN == dfs->dfsdomain ||
+              DFS_MKK4_DOMAIN == dfs->dfsdomain) &&
+             (re.re_dur >= 11 && re.re_dur <= 20) &&
+             (diff_ts > 500 || diff_ts <= 305) &&
+             (re.sidx == -4)) {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+            "\n%s: Rejecting on Peak Index = %d,re.re_dur = %d,diff_ts = %d\n",
+            __func__,re.sidx, re.re_dur, diff_ts);
+
+            ATH_DFSQ_LOCK(dfs);
+            empty = STAILQ_EMPTY(&(dfs->dfs_radarq));
+            ATH_DFSQ_UNLOCK(dfs);
+            continue;
+         }
 
       /* BIN5 pulses are FCC and Japan specific */
 
@@ -516,7 +537,11 @@ VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:filterID= %d :: Rejec
             DFS_DPRINTK(dfs, ATH_DEBUG_DFS3,
                "Found on channel minDur = %d, filterId = %d",ft->ft_mindur,
                rf != NULL ? rf->rf_pulseid : -1);
-                        }
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                 "%s[%d]:### Found on channel minDur = %d, filterId = %d ###",
+                 __func__,__LINE__,ft->ft_mindur,
+                 rf != NULL ? rf->rf_pulseid : -1);
+         }
          tabledepth++;
       }
       ATH_DFSQ_LOCK(dfs);

@@ -659,6 +659,7 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
    OS_MEMSET(e, 0, sizeof(*e));
    e->rssi = rs.rssi;
    e->dur = rs.pulse_duration;
+   e->sidx = rs.sidx;
    e->is_pri = 1;    /* XXX always PRI for now */
    e->is_ext = 0;
    e->is_dc = 0;

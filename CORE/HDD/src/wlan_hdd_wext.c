@@ -685,7 +685,13 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         "\ncompleted %u,"
         "\n\nReceive"
         "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
-        "\n",
+        "\n"
+        "\nNetQueue State %s"
+        "\ndisable count %u, enable count %u"
+        "\n\nTX_FLOW"
+        "\nCurrent status %s"
+        "\ntx-flow timer start count %u"
+        "\npause count %u, unpause count %u",
         pStats->txXmitCalled,
         pStats->txXmitDropped,
 
@@ -705,7 +711,14 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         pStats->rxPackets,
         pStats->rxDropped,
         pStats->rxDelivered,
-        pStats->rxRefused
+        pStats->rxRefused,
+        (pStats->netq_state_off == TRUE ? "OFF": "ON"),
+        pStats->netq_disable_cnt,
+        pStats->netq_enable_cnt,
+        (pStats->is_txflow_paused == TRUE ? "paused": "unpaused"),
+        pStats->txflow_timer_cnt,
+        pStats->txflow_pause_cnt,
+        pStats->txflow_unpause_cnt
         );
     *length = strlen(buffer) + 1;
 }
@@ -4686,6 +4699,8 @@ static int iw_set_mlme(struct net_device *dev,
 
                 netif_tx_disable(dev);
                 netif_carrier_off(dev);
+                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
+                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 
             }
             else

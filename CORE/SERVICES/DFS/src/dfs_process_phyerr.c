@@ -755,6 +755,7 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
       event->re_ts = (e.rs_tstamp) & DFS_TSMASK;
       event->re_chanindex = dfs->dfs_curchan_radindex;
       event->re_flags = 0;
+      event->sidx = e.sidx;
 
       /*
        * Handle chirp flags.
@@ -831,6 +832,7 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
          event->re_full_ts = e.fulltsf;
          event->re_ts = (e.rs_tstamp) & DFS_TSMASK;
          event->re_rssi = e.rssi;
+         event->sidx = e.sidx;
 
          /*
           * Handle chirp flags.
