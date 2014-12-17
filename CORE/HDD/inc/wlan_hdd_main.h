@@ -327,6 +327,15 @@ typedef struct hdd_tx_rx_stats_s
    __u32    rxDropped;
    __u32    rxDelivered;
    __u32    rxRefused;
+
+   __u32    netq_disable_cnt;
+   __u32    netq_enable_cnt;
+   bool     netq_state_off;
+
+   bool     is_txflow_paused;
+   __u32    txflow_pause_cnt;
+   __u32    txflow_unpause_cnt;
+   __u32    txflow_timer_cnt;
 } hdd_tx_rx_stats_t;
 
 #ifdef WLAN_FEATURE_11W

@@ -275,6 +275,7 @@ struct dfs_event {
    u_int32_t  re_freq;       /* Centre frequency of event, KHz */
    u_int32_t  re_freq_lo;    /* Lower bounds of frequency, KHz */
    u_int32_t  re_freq_hi;    /* Upper bounds of frequency, KHz */
+   int        sidx;          /* Pulse Index as in radar summary report */
    STAILQ_ENTRY(dfs_event) re_list; /* List of radar events */
 } adf_os_packed;
 #ifdef WIN32
@@ -687,6 +688,7 @@ struct dfs_phy_err {
 
    u_int8_t rssi;    /* pulse RSSI */
    u_int8_t dur;     /* pulse duration, raw (not uS) */
+   int sidx; /* Pulse Index as in radar summary report */
 };
 
 /* Attach, detach, handle ioctl prototypes */
