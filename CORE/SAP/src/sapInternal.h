@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -159,6 +159,32 @@ typedef struct sSapAcsChannelInfo {
     v_U32_t             weight;
 }tSapAcsChannelInfo;
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+/* max MDM devices in vicinity supported for this feature */
+#define SAP_MCC_CH_AVOIDANCE_MAX_DEV          1
+/* max SAP per MDM devices */
+#define SAP_MCC_CH_AVOIDANCE_MAX_SAP_PER_DEV  2
+/* max channels a SAP will take, 4 right now for 80 MHz */
+#define SAP_MCC_CH_AVOIDANCE_MAX_CH_PER_AP    4
+/*
+ * In a setup having two MDM both operating in AP+AP MCC scenario
+ * if both the AP decides to use same or close channel set, CTS to
+ * self, mechanism is causing issues with connectivity. For this, its
+ * proposed that 2nd MDM devices which comes up later should detect
+ * presence of first MDM device via special Q2Q IE present in becon
+ * and avoid those channels mentioned in IE.
+ *
+ * Following struct will keep this info in sapCtx struct, and will be used
+ * to avoid such channels in Random Channel Select in case of radar ind.
+ */
+struct sap_avoid_channels_info {
+	bool       present;
+	uint8_t    channels[SAP_MCC_CH_AVOIDANCE_MAX_DEV *
+			SAP_MCC_CH_AVOIDANCE_MAX_SAP_PER_DEV *
+			SAP_MCC_CH_AVOIDANCE_MAX_CH_PER_AP];
+};
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
 typedef struct sSapContext {
 
     vos_lock_t          SapGlobalLock;
@@ -275,6 +301,21 @@ typedef struct sSapContext {
     tANI_BOOLEAN       isCacEndNotified;
     tANI_BOOLEAN       isCacStartNotified;
     tANI_BOOLEAN       is_sap_ready_for_chnl_chng;
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    /*
+     * In a setup having two MDM both operating in AP+AP MCC scenario
+     * if both the AP decides to use same or close channel set, CTS to
+     * self, mechanism is causing issues with connectivity. For this, its
+     * proposed that 2nd MDM devices which comes up later should detect
+     * presence of first MDM device via special Q2Q IE present in becon
+     * and avoid those channels mentioned in IE.
+     *
+     * this struct contains the list of channels on which another MDM AP
+     * in MCC mode were detected.
+     */
+    struct sap_avoid_channels_info sap_detected_avoid_ch_ie;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 } *ptSapContext;
 
 

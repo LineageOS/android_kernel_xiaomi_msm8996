@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -483,6 +483,10 @@ typedef struct sPESession           // Added to Support BT-AMP
      */
     tANI_U16 old_protection_state;
     tSirMacAddr             prev_ap_bssid;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    /* tells if Q2Q IE, from another MDM device in AP MCC mode was recvd */
+    bool sap_advertise_avoid_ch_ie;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 }tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------
@@ -610,16 +614,19 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
   --------------------------------------------------------------------------*/
 void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
-
-/*--------------------------------------------------------------------------
-  \brief peDeleteSession() - Returns the SME session ID and Transaction ID .
-
-
-  \param pMac                   - pointer to global adapter context
-  \param sessionId             -session ID of the session which needs to be deleted.
-
-  \sa
-  --------------------------------------------------------------------------*/
-
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+/**
+ * pe_find_session_by_sme_session_id() - looks up the PE session for given sme
+ * session id
+ * @mac_ctx:          pointer to global adapter context
+ * @sme_session_id:   sme session id
+ *
+ * looks up the PE session for given sme session id
+ *
+ * Return: pe session entry for given sme session if found else NULL
+ */
+tpPESession pe_find_session_by_sme_session_id(tpAniSirGlobal mac_ctx,
+					   uint8_t sme_session_id);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 #endif //#if !defined( __LIM_SESSION_H )

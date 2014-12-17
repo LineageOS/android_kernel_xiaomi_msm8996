@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1096,6 +1096,13 @@ void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 void
 limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 {
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    uint8_t vdev_id = 0;
+    uint8_t i;
+    tpPESession session_entry = NULL;
+    tUpdateBeaconParams beacon_params;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
     tANI_U8  deferMsg = false;
     tLinkStateParams *linkStateParams;
 #if defined WLAN_FEATURE_VOWIFI_11R
@@ -1780,7 +1787,37 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case WDA_DEL_STA_SELF_RSP:
             limProcessDelStaSelfRsp(pMac, limMsg);
             break;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+        case WDA_UPDATE_Q2Q_IE_IND:
+            /*
+             * this device is operating AP in MCC mode, update Q2Q IE in
+             * beacon template
+             */
+             vos_mem_zero(&beacon_params, sizeof(tUpdateBeaconParams));
+             beacon_params.paramChangeBitmap = 0;
+             for ( i = 0; i < pMac->lim.maxBssId; i++) {
+                 vdev_id = ((tANI_U8*)limMsg->bodyptr)[i];
+                 session_entry = pe_find_session_by_sme_session_id(pMac,
+                                                                vdev_id);
+                 if(session_entry == NULL)
+                     continue;
+                 session_entry->sap_advertise_avoid_ch_ie =
+                                            (tANI_U8)limMsg->bodyval;
 
+                 beacon_params.bssIdx = session_entry->bssIdx;
+                 schSetFixedBeaconFields(pMac, session_entry);
+
+                 beacon_params.beaconInterval =
+                 session_entry->beaconParams.beaconInterval;
+                 beacon_params.paramChangeBitmap |=
+                                         PARAM_BCN_INTERVAL_CHANGED;
+                 limSendBeaconParams(pMac,
+                                     &beacon_params,
+                                     session_entry);
+             }
+             vos_mem_free(limMsg->bodyptr);
+             break;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
         case WDA_DELETE_BSS_RSP:
             limHandleDeleteBssRsp(pMac,limMsg); //wrapper routine to handle delete bss response
             break;

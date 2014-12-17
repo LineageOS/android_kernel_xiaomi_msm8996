@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -55,6 +55,21 @@
 #define IS_5G_CH(__chNum) ((__chNum >= 36) && (__chNum <= 165))
 #define IS_2X2_CHAIN(__chain) ((__chain & 0x3) == 0x3)
 #define DISABLE_NSS2_MCS 0xC
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+#define QCOM_VENDOR_IE_MCC_AVOID_CH 0x01
+
+struct sAvoidChannelIE {
+	/* following must be 0xDD (221) */
+	uint8_t tag_number;
+	uint8_t length;
+	/* following must be 00-A0-C6 */
+	uint8_t oui[3];
+	/* following must be 0x01 */
+	uint8_t type;
+	uint8_t channels[1];
+};
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 typedef struct sSirCountryInformation
 {
@@ -148,6 +163,9 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   Vendor3IEPresent;
     tDot11fIEIBSSParams       IBSSParams;
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    tDot11fIEQComVendorIE   AvoidChannelIE;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
 // probe Request structure
@@ -501,6 +519,14 @@ void
 PopulateDot11fChanSwitchWrapper(tpAniSirGlobal             pMac,
                             tDot11fIEChannelSwitchWrapper *pDot11f,
                             tpPESession                    psessionEntry);
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+/* Populate a tDot11fIEQComVendorIE */
+void
+populate_dot11f_avoid_channels_ie(tpAniSirGlobal mac_ctx,
+				  tDot11fIEQComVendorIE *dot11f,
+				  tpPESession session_entry);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 /// Populate a tDot11fIECountry
 tSirRetStatus

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -6932,39 +6932,6 @@ v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid,eS
 
         left -= elem_len;
         ptr += (elem_len + (size_of_len_field+1));
-    }
-    return NULL;
-}
-
-/* return NULL if oui is not found in ie
-   return !NULL pointer to vendor IE (starting from 0xDD) if oui is found
- */
-v_U8_t* limGetVendorIEOuiPtr(tpAniSirGlobal pMac, tANI_U8 *oui, tANI_U8 oui_size, tANI_U8 *ie, tANI_U16 ie_len)
-{
-    int left = ie_len;
-    v_U8_t *ptr = ie;
-    v_U8_t elem_id, elem_len;
-
-    while(left >= 2)
-    {
-        elem_id  = ptr[0];
-        elem_len = ptr[1];
-        left -= 2;
-        if(elem_len > left)
-        {
-            limLog( pMac, LOGE,
-               FL("****Invalid IEs eid = %d elem_len=%d left=%d*****"),
-                                               elem_id,elem_len,left);
-            return NULL;
-        }
-        if (SIR_MAC_EID_VENDOR == elem_id)
-        {
-            if(memcmp(&ptr[2], oui, oui_size)==0)
-                return ptr;
-        }
-
-        left -= elem_len;
-        ptr += (elem_len + 2);
     }
     return NULL;
 }

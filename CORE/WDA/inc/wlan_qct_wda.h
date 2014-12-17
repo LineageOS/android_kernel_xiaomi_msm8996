@@ -1022,6 +1022,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_WLAN_AUTO_RESUME_IND              SIR_HAL_WLAN_AUTO_RESUME_IND
 #endif
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+#define WDA_UPDATE_Q2Q_IE_IND                 SIR_HAL_UPDATE_Q2Q_IE_IND
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

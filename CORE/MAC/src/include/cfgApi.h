@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -124,5 +124,11 @@ extern void cfgSetCapabilityInfo(tpAniSirGlobal, tANI_U16);
 void cfgCleanup(tpAniSirGlobal pMac);
 
 extern tANI_U8 *gCfgParamName[];
+
+uint8_t* cfg_get_vendor_ie_ptr_from_oui(tpAniSirGlobal mac_ctx,
+					uint8_t *oui,
+					uint8_t oui_size,
+					uint8_t *ie,
+					uint16_t ie_len);
 
 #endif /* __CFGAPI_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -377,6 +377,12 @@
 #define SIR_MAC_VHT_OPMODE_EID         199
 #endif
 #define SIR_MAC_MAX_SUPPORTED_MCS_SET    16
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+#define SIR_MAC_QCOM_VENDOR_EID      200
+#define SIR_MAC_QCOM_VENDOR_OUI      "\x00\xA0\xC6"
+#define SIR_MAC_QCOM_VENDOR_SIZE     3
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 /// Workaround IE to change beacon length when it is 4*n+1
 #define SIR_MAC_ANI_WORKAROUND_EID     255
