@@ -3396,71 +3396,64 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 }
 void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 {
-    tANI_U8 respReqd = 1;
     tLimMlmSetKeysCnf mlmSetKeysCnf;
     tANI_U16          resultCode;
     tANI_U8           sessionId = 0;
     tpPESession  psessionEntry;
+    tpLimMlmSetKeysReq lpLimMlmSetKeysReq;
+
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     vos_mem_set((void *)&mlmSetKeysCnf, sizeof( tLimMlmSetKeysCnf ), 0);
-   //BTAMP
-    if( NULL == limMsgQ->bodyptr )
-    {
-        PELOGE(limLog(pMac, LOGE,FL("limMsgQ bodyptr is null"));)
+    if (NULL == limMsgQ->bodyptr) {
+        PELOGE(limLog(pMac, LOGE, FL("limMsgQ bodyptr is null"));)
         return;
     }
     sessionId = ((tpSetBssKeyParams) limMsgQ->bodyptr)->sessionId;
-    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
-    {
-        PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId"));)
-        vos_mem_free( limMsgQ->bodyptr );
+    if ((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL) {
+        PELOGE(limLog(pMac, LOGE,
+                      FL("session does not exist for given sessionId [%d]"),
+                      sessionId);)
+        vos_mem_free(limMsgQ->bodyptr);
         limMsgQ->bodyptr = NULL;
         return;
     }
-    if( eLIM_MLM_WT_SET_BSS_KEY_STATE == psessionEntry->limMlmState )
-        resultCode = (tANI_U16) (((tpSetBssKeyParams) limMsgQ->bodyptr)->status);
+    if (eLIM_MLM_WT_SET_BSS_KEY_STATE == psessionEntry->limMlmState)
+        resultCode = (tANI_U16) (((tpSetBssKeyParams)limMsgQ->bodyptr)->status);
     else
-        resultCode = (tANI_U16) (((tpSetStaKeyParams) limMsgQ->bodyptr)->status); //BCAST key also uses tpSetStaKeyParams. Done this way for readabilty.
+        /*BCAST key also uses tpSetStaKeyParams. Done this way for readabilty */
+        resultCode = (tANI_U16) (((tpSetStaKeyParams)limMsgQ->bodyptr)->status);
 
-    //
-    // TODO & FIXME_GEN4
-    // Need to inspect tSirMsgQ.reserved for a valid Dialog token!
-    //
-    // Validate MLME state
-    if( eLIM_MLM_WT_SET_BSS_KEY_STATE != psessionEntry->limMlmState &&
-        eLIM_MLM_WT_SET_STA_BCASTKEY_STATE != psessionEntry->limMlmState )
-    {
-        // Mesg received from HAL in Invalid state!
-        limLog( pMac, LOGE, FL( "Received unexpected [Mesg Id - %d] in state %X" ), limMsgQ->type, psessionEntry->limMlmState );
-        // There's not much that MLME can do at this stage...
-        respReqd = 0;
+    if (eLIM_MLM_WT_SET_BSS_KEY_STATE != psessionEntry->limMlmState &&
+        eLIM_MLM_WT_SET_STA_BCASTKEY_STATE != psessionEntry->limMlmState) {
+        /* Mesg received from lower layer is in Invalid state */
+        limLog(pMac, LOGE,
+               FL("Received unexpected [Mesg Id - %d] in state %X"),
+               limMsgQ->type, psessionEntry->limMlmState );
+        mlmSetKeysCnf.resultCode = eSIR_SME_INVALID_STATE;
     }
     else
       mlmSetKeysCnf.resultCode = resultCode;
 
     vos_mem_free(limMsgQ->bodyptr);
     limMsgQ->bodyptr = NULL;
-    // Restore MLME state
+    /* Restore MLME state */
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
 
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
-    if( respReqd )
-    {
-        tpLimMlmSetKeysReq lpLimMlmSetKeysReq = (tpLimMlmSetKeysReq) pMac->lim.gpLimMlmSetKeysReq;
-        mlmSetKeysCnf.sessionId = sessionId;
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE,
+                    psessionEntry->peSessionId, psessionEntry->limMlmState));
+    lpLimMlmSetKeysReq = (tpLimMlmSetKeysReq) pMac->lim.gpLimMlmSetKeysReq;
+    mlmSetKeysCnf.sessionId = sessionId;
 
-        // Prepare and Send LIM_MLM_SETKEYS_CNF
-        if( NULL != lpLimMlmSetKeysReq )
-        {
-            vos_mem_copy((tANI_U8 *) &mlmSetKeysCnf.peerMacAddr,
-                         (tANI_U8 *) lpLimMlmSetKeysReq->peerMacAddr,
-                         sizeof(tSirMacAddr));
-            // Free the buffer cached for the global pMac->lim.gpLimMlmSetKeysReq
-            vos_mem_free(pMac->lim.gpLimMlmSetKeysReq);
-            pMac->lim.gpLimMlmSetKeysReq = NULL;
-        }
-        limPostSmeMessage(pMac, LIM_MLM_SETKEYS_CNF, (tANI_U32 *) &mlmSetKeysCnf);
+    /* Prepare and Send LIM_MLM_SETKEYS_CNF */
+    if (NULL != lpLimMlmSetKeysReq) {
+        vos_mem_copy((tANI_U8 *) &mlmSetKeysCnf.peerMacAddr,
+                     (tANI_U8 *) lpLimMlmSetKeysReq->peerMacAddr,
+                     sizeof(tSirMacAddr));
+        /* Free the buffer cached for the global pMac->lim.gpLimMlmSetKeysReq */
+        vos_mem_free(pMac->lim.gpLimMlmSetKeysReq);
+        pMac->lim.gpLimMlmSetKeysReq = NULL;
     }
+    limPostSmeMessage(pMac, LIM_MLM_SETKEYS_CNF, (tANI_U32 *) &mlmSetKeysCnf);
 }
 /**
  * limProcessMlmRemoveKeyRsp()
