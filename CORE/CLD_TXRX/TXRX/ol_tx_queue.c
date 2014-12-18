@@ -210,6 +210,9 @@ ol_tx_enqueue(
 {
     int bytes;
     struct ol_tx_sched_notify_ctx_t notify_ctx;
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    ol_txrx_vdev_handle vdev;
+#endif
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
@@ -218,9 +221,16 @@ ol_tx_enqueue(
      * tx frames, to provide enough tx descriptors for new frames, which
      * may be higher priority than the current frames.
      */
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+    vdev = tx_desc->vdev;
+    if (adf_os_atomic_read(&vdev->tx_desc_count) >
+          ((ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) >> 1)
+           - TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED)) {
+#else
     if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) <=
         pdev->tx_queue.rsrc_threshold_lo)
     {
+#endif
         ol_tx_desc_list tx_descs;
         TAILQ_INIT(&tx_descs);
         ol_tx_queue_discard(pdev, A_FALSE, &tx_descs);

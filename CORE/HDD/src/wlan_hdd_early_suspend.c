@@ -828,12 +828,16 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
     }
 
     if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-           (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode))
+           (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+               (WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
+               (WLAN_HDD_P2P_GO == pAdapter->device_mode))
     {
         if (fenable)
         {
-            if (eConnectionState_Associated ==
-                    (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)
+            if ((eConnectionState_Associated ==
+                    (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) ||
+                (WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
+                (WLAN_HDD_P2P_GO == pAdapter->device_mode))
             {
                 if ((pHddCtx->cfg_ini->fhostArpOffload))
                 {

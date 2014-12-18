@@ -22111,6 +22111,9 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 	wmi_buf_t wmi_buf;
 	uint32_t   len;
 	u_int8_t *buf_ptr;
+#ifdef INTRA_BSS_FWD_OFFLOAD
+	ol_txrx_vdev_handle vdev;
+#endif
 
 	if (!wma || !wma->wmi_handle) {
 		WMA_LOGE("%s: WMA is closed, can not issue  cmd",
@@ -22163,6 +22166,13 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 	}
 
 #ifdef INTRA_BSS_FWD_OFFLOAD
+	/* Check if VDEV is already deleted. If deleted dont
+	 * send INTRA BSS FWD WMI command
+	 */
+	vdev = wma_find_vdev_by_id(wma, ipa_offload->vdev_id);
+	if (!vdev)
+		return VOS_STATUS_SUCCESS;
+
 	/* Disable/enable WMI_VDEV_PARAM_INTRA_BSS_FWD */
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
 		ipa_offload->vdev_id, WMI_VDEV_PARAM_INTRA_BSS_FWD,

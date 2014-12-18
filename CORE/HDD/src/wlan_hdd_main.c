@@ -13429,36 +13429,6 @@ VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx)
 #ifdef FEATURE_WLAN_CH_AVOID
 /**---------------------------------------------------------------------------
 
-  \brief hdd_freq_to_chn() -
-
-  Input frequency translated into channel number
-
-  \param  - freq input frequency with order of MHz
-
-  \return - corresponding channel number.
-            if cannot find correct channel number, return 0
-
-  --------------------------------------------------------------------------*/
-v_U16_t hdd_freq_to_chn
-(
-   v_U16_t   freq
-)
-{
-   int   loop;
-
-   for (loop = 0; loop < NUM_20MHZ_RF_CHANNELS; loop++)
-   {
-      if (rfChannels[loop].targetFreq == freq)
-      {
-         return rfChannels[loop].channelNum;
-      }
-   }
-
-   return (0);
-}
-
-/**---------------------------------------------------------------------------
-
   \brief hdd_find_prefd_safe_chnl() -
 
   Try to find safe channel within preferred channel
@@ -13591,9 +13561,9 @@ void hdd_ch_avoid_cb
           if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS)
                break;
 
-          start_channel = hdd_freq_to_chn(
+          start_channel = ieee80211_frequency_to_channel(
                           ch_avoid_indi->avoid_freq_range[range_loop].start_freq);
-          end_channel   = hdd_freq_to_chn(
+          end_channel   = ieee80211_frequency_to_channel(
                           ch_avoid_indi->avoid_freq_range[range_loop].end_freq);
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s : start %d : %d, end %d : %d",
@@ -13603,7 +13573,9 @@ void hdd_ch_avoid_cb
                     ch_avoid_indi->avoid_freq_range[range_loop].end_freq,
                     end_channel);
 
-          /* do not process frequency bands that are not mapped to predefined channels */
+          /* do not process frequency bands that are not mapped to predefined
+           * channels
+           */
           if (start_channel == 0 || end_channel == 0)
                     continue;
 
@@ -13612,7 +13584,8 @@ void hdd_ch_avoid_cb
                channel_loop++)
           {
              /* Channel duplicate check routine */
-             for (dup_check = 0; dup_check < hdd_ctxt->unsafe_channel_count; dup_check++)
+             for (dup_check = 0; dup_check < hdd_ctxt->unsafe_channel_count;
+                                                                  dup_check++)
              {
                 if (hdd_ctxt->unsafe_channel_list[dup_check] == channel_loop)
                 {
@@ -13625,7 +13598,10 @@ void hdd_ch_avoid_cb
              }
              if (dup_check == hdd_ctxt->unsafe_channel_count)
              {
-                hdd_ctxt->unsafe_channel_list[hdd_ctxt->unsafe_channel_count++] = channel_loop;
+                hdd_ctxt->unsafe_channel_list[hdd_ctxt->unsafe_channel_count++]
+                                                               = channel_loop;
+                if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS)
+                    break;
              }
              else
              {
