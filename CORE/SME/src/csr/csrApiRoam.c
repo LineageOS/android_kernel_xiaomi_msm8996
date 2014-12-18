@@ -4122,30 +4122,6 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
         }
     }
 
-    if (CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile) ||
-                    CSR_IS_IBSS(pProfile)) {
-#ifdef WLAN_FEATURE_11AC
-        /* cbMode = 1 in cfg.ini is mapped to
-           PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-           in function csrConvertCBIniValueToPhyCBState()
-           So, max value for cbMode in 40MHz mode
-           is 3 (MAC\src\include\sirParams.h) */
-        if (cfgCb) {
-            if (cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
-                if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
-                    cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
-                }
-            }
-            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                    pMac->roam.configParam.nVhtChannelWidth, NULL,
-                    eANI_BOOLEAN_FALSE);
-        }
-        else
-#endif
-        /* WNI_CFG_CHANNEL_BONDING_MODE can be removed since it is not used */
-        ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL,
-                        eANI_BOOLEAN_FALSE);
-    }
     //Rate
     //Fixed Rate
     if(pBssDesc)
@@ -5815,6 +5791,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     {
                         roamInfo.fReassocReq = roamInfo.fReassocRsp = eANI_BOOLEAN_TRUE;
                     }
+                    pSession->connectedProfile.vht_channel_width =
+                                                   pJoinRsp->vht_channel_width;
                     pSession->connectedInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
@@ -6626,6 +6604,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         }
 #endif /* FEATURE_WLAN_WAPI */
         pDstProfile->CBMode = pSrcProfile->CBMode;
+        pDstProfile->vht_channel_width = pSrcProfile->vht_channel_width;
         /*Save the WPS info*/
         pDstProfile->bWPSAssociation = pSrcProfile->bWPSAssociation;
         pDstProfile->bOSENAssociation = pSrcProfile->bOSENAssociation;
@@ -12048,7 +12027,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
     {
        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
-
     cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, pProfile, operationChannel, &eBand );
 
     if( ( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
@@ -12195,6 +12173,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
     }
     pParam->operationChn = channel;
     pParam->sirNwType = nwType;
+    pParam->vht_channel_width = pProfile->vht_channel_width;
 }
 
 static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDescription *pBssDesc,
@@ -13241,7 +13220,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf++;
         //CBMode
         *pBuf = (tANI_U8)pSession->bssParams.cbMode;
-        pBuf++;
+        pBuf += sizeof(ePhyChanBondState);
 
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                   FL("CSR PERSONA=%d CSR CbMode %d"), pProfile->csrPersona, pSession->bssParams.cbMode);
@@ -14652,6 +14631,9 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         cbMode = (ePhyChanBondState)pal_cpu_to_be32(pParam->cbMode);
         vos_mem_copy(pBuf, (tANI_U8 *)&cbMode, sizeof(ePhyChanBondState));
         pBuf += sizeof(ePhyChanBondState);
+        /*set vht channel width*/
+        *pBuf = pParam->vht_channel_width;
+        pBuf++;
 
         // Set privacy
         *pBuf = pParam->privacy;
@@ -18273,27 +18255,11 @@ csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
 
     vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
 
-#ifdef WLAN_FEATURE_11AC
-    // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-    // in function csrConvertCBIniValueToPhyCBState()
-    // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
-    if (cbMode) {
-        if (cbMode > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
-            if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
-                cbMode = csrGetHTCBStateFromVHTCBState(cbMode);
-            }
-        }
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
-                FL("sapdfs: channel width is [%d]"), vhtChannelWidth);
-        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                    vhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
-    }
-#endif
-
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANNEL_CHANGE_REQ);
     pMsg->messageLen = sizeof(tSirChanChangeRequest);
     pMsg->targetChannel = targetChannel;
     pMsg->cbMode = cbMode;
+    pMsg->vht_channel_width = vhtChannelWidth;
     vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);

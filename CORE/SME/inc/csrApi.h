@@ -910,6 +910,7 @@ typedef struct tagCsrRoamProfile
     eCsrCBChoice CBMode; //up, down or auto
     tCsrChannelInfo ChannelInfo;
     tANI_U8 operationChannel;
+    tANI_U32 vht_channel_width;
     tANI_U16 beaconInterval;    //If this is 0, SME will fill in for caller.
     // during connect this specifies ACs U-APSD is to be setup
     //   for (Bit0:VO; Bit1:VI; Bit2:BK; Bit3:BE all other bits are ignored).
@@ -989,6 +990,7 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrEncryptionList mcEncryptionInfo;
     eCsrCBChoice CBMode; //up, down or auto
     tANI_U8 operationChannel;
+    tANI_U32   vht_channel_width;
     tANI_U16   beaconInterval;
     tCsrKeys Keys;
     // meaningless on connect. It's an OUT param from CSR's point of view

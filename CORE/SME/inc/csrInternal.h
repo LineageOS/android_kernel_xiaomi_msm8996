@@ -342,6 +342,7 @@ typedef struct tagCsrRoamStartBssParams
     tSirMacRateSet      operationalRateSet;
     tSirMacRateSet      extendedRateSet;
     tANI_U8             operationChn;
+    tANI_U8             vht_channel_width;
     eCsrCfgDot11Mode    uCfgDot11Mode;
     tANI_U8             privacy;
     tANI_BOOLEAN        fwdWPSPBCProbeReq;

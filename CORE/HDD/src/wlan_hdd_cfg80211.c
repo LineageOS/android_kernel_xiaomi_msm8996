@@ -7231,8 +7231,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 #endif
                 == eSAP_RF_SUBBAND_2_4_GHZ)) &&
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->enableVhtFor24GHzBand
-                                                                 == FALSE)) ||
-            (WLAN_HDD_GET_CTX(pHostapdAdapter)->isVHT80Allowed == FALSE))
+                                                                 == FALSE)))
         {
             pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
         }
@@ -7241,10 +7240,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
+        if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
+            (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
+            pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
+            if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
+                                        (pHddCtx->isVHT80Allowed == false)) {
+                pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+            }
+        }
+        pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
         sme_SelectCBMode(hHal,
             pConfig->SapHw_mode,
             pConfig->channel,
-            WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->vhtChannelWidth);
+            &pConfig->vht_channel_width);
     }
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab =
@@ -10593,12 +10601,13 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     return ret;
 }
 
-void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
+void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel)
 {
     v_U8_t iniDot11Mode =
                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->dot11Mode;
+    v_U32_t vht_channel_width =
+               (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
     eHddDot11Mode   hddDot11Mode = iniDot11Mode;
-
     hddLog(LOG1, FL("Channel Bonding Mode Selected is %u"),
            iniDot11Mode);
     switch ( iniDot11Mode )
@@ -10624,7 +10633,7 @@ void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
     sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
                      hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
                      operationChannel,
-                     WLAN_HDD_GET_CTX(pAdapter)->cfg_ini->vhtChannelWidth);
+                     &vht_channel_width);
 }
 
 /**
@@ -10921,6 +10930,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->ChannelInfo.ChannelList = NULL;
             pRoamProfile->ChannelInfo.numOfChannels = 0;
         }
+
         if ( (WLAN_HDD_IBSS == pAdapter->device_mode) && operatingChannel)
         {
             /*

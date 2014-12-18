@@ -627,6 +627,7 @@ typedef struct sSirSmeStartBssReq
     tSirMacSSid             ssId;
     tANI_U8                 channelId;
     ePhyChanBondState       cbMode;
+    tANI_U8                 vht_channel_width;
 
     tANI_U8                 privacy;
     tANI_U8                 apUapsdEnable;
@@ -1095,8 +1096,9 @@ typedef struct sSirSmeJoinRsp
     tANI_U16                length;
     tANI_U8                 sessionId;         // Session ID
     tANI_U16                transactionId;     // Transaction ID for cmd
-    tSirResultCodes    statusCode;
-    tAniAuthType       authType;
+    tSirResultCodes         statusCode;
+    tAniAuthType            authType;
+    tANI_U32                vht_channel_width;
     tANI_U16        protStatusCode; //It holds reasonCode when join fails due to deauth/disassoc frame.
                                     //Otherwise it holds status code.
     tANI_U16        aid;
@@ -4582,6 +4584,7 @@ typedef struct sSirChanChangeRequest
     tANI_U16     messageLen;
     tANI_U8      targetChannel;
     tANI_U8      cbMode;
+    tANI_U8      vht_channel_width;
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 

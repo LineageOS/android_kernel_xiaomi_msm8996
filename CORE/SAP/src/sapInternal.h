@@ -233,6 +233,8 @@ typedef struct sSapContext {
     v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN];
     v_U8_t            *channelList;
     tSapChannelListInfo SapChnlList;
+    v_U32_t           vht_channel_width;
+    v_U32_t           vht_ch_width_orig;
 
     // session to scan
     tANI_BOOLEAN        isScanSessionOpen;

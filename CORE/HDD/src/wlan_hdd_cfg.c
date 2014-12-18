@@ -5464,16 +5464,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                hddLog(LOGE, "Could not pass on WNI_CFG_VHT_MAX_MPDU_LENGTH to CCM");
            }
        }
-       if (pConfig->nChannelBondingMode24GHz ||
-           pConfig->nChannelBondingMode5GHz) {
-           if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_CHANNEL_WIDTH,
-                     pConfig->vhtChannelWidth, NULL, eANI_BOOLEAN_FALSE) ==
-                     eHAL_STATUS_FAILURE) {
-               fStatus = FALSE;
-               hddLog(LOGE,
-                 "Could not pass WNI_CFG_VHT_CHANNEL_WIDTH on to CCM");
-           }
-       }
    }
 #endif
 

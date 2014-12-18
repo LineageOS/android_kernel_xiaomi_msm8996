@@ -65,6 +65,12 @@
 #define IS_DOT11_MODE_11B(dot11Mode)  \
             ((dot11Mode == WNI_CFG_DOT11_MODE_11B) ? TRUE : FALSE)
 
+#define WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ      0
+#define WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ         1
+#define WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ        2
+#define WNI_CFG_VHT_CHANNEL_WIDTH_80_PLUS_80MHZ 3
+
+
 /// Proprietary IE definition
 typedef struct sSirMacPropIE
 {

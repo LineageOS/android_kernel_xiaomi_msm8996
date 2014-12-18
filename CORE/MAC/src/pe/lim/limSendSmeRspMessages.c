@@ -461,6 +461,17 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
             PELOG1(limLog(pMac, LOG1, FL("AssocRsp=%d"), psessionEntry->assocRspLen);)
 #endif
+            if (WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ ==
+                            psessionEntry->apChanWidth) {
+                pSirSmeJoinRsp->vht_channel_width = eHT_CHANNEL_WIDTH_80MHZ;
+            } else if ((WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ ==
+                            psessionEntry->apChanWidth) &&
+                            (psessionEntry->htSecondaryChannelOffset)) {
+                pSirSmeJoinRsp->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+            } else {
+                pSirSmeJoinRsp->vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
+            }
+
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
             if (psessionEntry->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
                 pSirSmeJoinRsp->HTProfile.htSupportedChannelWidthSet =

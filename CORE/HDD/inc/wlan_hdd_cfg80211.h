@@ -1068,7 +1068,7 @@ extern void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext
                             tpSirGtkOffloadGetInfoRspParams pGtkOffloadGetInfoRsp);
 #endif
 void* wlan_hdd_change_country_code_cb(void *pAdapter);
-void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel);
+void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel);
 
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid);
 
