@@ -973,6 +973,10 @@ PowerStateChangeNotify(HIF_DEVICE *device, HIF_DEVICE_POWER_CHANGE_TYPE config)
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: +PowerStateChangeNotify %d\n", config));
     switch (config) {
        case HIF_DEVICE_POWER_DOWN:
+#ifdef HIF_MBOX_SLEEP_WAR
+            adf_os_timer_cancel(&device->sleep_timer);
+            HIFSetMboxSleep(device, true, true, false);
+#endif
             /* Disable 4bits in order to let SDIO bus detect DAT1 as interrupt source */
             SdioEnable4bits(device, 0);
             break;
