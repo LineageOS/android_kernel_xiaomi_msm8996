@@ -3170,6 +3170,7 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
  */
 VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                                               tCsrRoamProfile *profile,
+                                              tScanResultHandle *scan_cache,
                                               tANI_U8 *ap_chnl_id)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -3224,7 +3225,7 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
        if (eHAL_STATUS_SUCCESS == status) {
            csr_get_bssdescr_from_scan_handle(filtered_scan_result,
                                              &first_ap_profile);
-           csrScanResultPurge(pMac, filtered_scan_result);
+           *scan_cache = filtered_scan_result;
            if (0 != first_ap_profile.channelId) {
                *ap_chnl_id = first_ap_profile.channelId;
                 VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
@@ -3258,6 +3259,119 @@ VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
    return ret_status;
 }
 
+/**
+ * sme_store_joinreq_param() - This function will pass station's join
+ *                             request to store to csr.
+ * @hal_handle: pointer to hal context.
+ * @profile: pointer to station's roam profile.
+ * @scan_cache: pointer to station's scan cache.
+ * @roam_id: reference to roam_id variable being passed.
+ * @session_id: station's session id.
+ *
+ * This function will pass station's join request further down to csr
+ * to store it. this stored parameter will be used later.
+ *
+ * Return: true or false based on function's overall success.
+ */
+bool sme_store_joinreq_param(tHalHandle hal_handle,
+                             tCsrRoamProfile *profile,
+                             tScanResultHandle scan_cache,
+                             uint32_t *roam_id,
+                             uint32_t session_id)
+{
+   tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   bool ret_status = true;
+
+   MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                    TRACE_CODE_SME_RX_HDD_STORE_JOIN_REQ,
+                    session_id, 0));
+   status = sme_AcquireGlobalLock( &mac_ctx->sme );
+   if (HAL_STATUS_SUCCESS(status)) {
+       if (false == csr_store_joinreq_param(mac_ctx, profile, scan_cache,
+                                            roam_id, session_id)) {
+           ret_status = false;
+       }
+       sme_ReleaseGlobalLock(&mac_ctx->sme);
+   } else {
+       ret_status = false;
+   }
+
+   return ret_status;
+}
+
+/**
+ * sme_clear_joinreq_param() - This function will pass station's clear
+ *                             the join request to csr.
+ * @hal_handle: pointer to hal context.
+ * @session_id: station's session id.
+ *
+ * This function will pass station's clear join request further down to csr
+ * to cleanup.
+ *
+ * Return: true or false based on function's overall success.
+ */
+bool sme_clear_joinreq_param(tHalHandle hal_handle,
+                             uint32_t session_id)
+{
+   tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   bool ret_status = true;
+
+   MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                    TRACE_CODE_SME_RX_HDD_CLEAR_JOIN_REQ,
+                    session_id, 0));
+   status = sme_AcquireGlobalLock( &mac_ctx->sme );
+   if (HAL_STATUS_SUCCESS(status)) {
+       if (false == csr_clear_joinreq_param(mac_ctx,
+                                            session_id)) {
+           ret_status = false;
+       }
+       sme_ReleaseGlobalLock(&mac_ctx->sme);
+   } else {
+       ret_status = false;
+   }
+
+   return ret_status;
+}
+
+/**
+ * sme_issue_stored_joinreq() - This function will issues station's stored
+ *                              the join request to csr.
+ * @hal_handle: pointer to hal context.
+ * @roam_id: reference to roam_id variable being passed.
+ * @session_id: station's session id.
+ *
+ * This function will issue station's stored join request further down to csr
+ * to proceed forward.
+ *
+ * Return: VOS_STATUS_SUCCESS or VOS_STATUS_E_FAILURE.
+ */
+VOS_STATUS sme_issue_stored_joinreq(tHalHandle hal_handle,
+                                    uint32_t *roam_id,
+                                    uint32_t session_id)
+{
+   tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   VOS_STATUS ret_status = VOS_STATUS_SUCCESS;
+
+   MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                    TRACE_CODE_SME_RX_HDD_ISSUE_JOIN_REQ,
+                    session_id, 0));
+   status = sme_AcquireGlobalLock( &mac_ctx->sme );
+   if (HAL_STATUS_SUCCESS(status)) {
+       if (!HAL_STATUS_SUCCESS(csr_issue_stored_joinreq(mac_ctx,
+                                                        roam_id,
+                                                        session_id))) {
+           ret_status = VOS_STATUS_E_FAILURE;
+       }
+       sme_ReleaseGlobalLock(&mac_ctx->sme);
+   } else {
+       csr_clear_joinreq_param(mac_ctx, session_id);
+       ret_status = VOS_STATUS_E_FAILURE;
+   }
+   return ret_status;
+}
 /* ---------------------------------------------------------------------------
     \fn sme_ScanFlushResult
     \brief a wrapper function to request CSR to clear scan results.

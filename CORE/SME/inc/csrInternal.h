@@ -671,6 +671,7 @@ typedef struct tagCsrConfig
 #endif
     tANI_BOOLEAN obssEnabled;
     v_U8_t conc_custom_rule1;
+    v_U8_t conc_custom_rule2;
     v_U8_t is_sta_connection_in_5gz_enabled;
 }tCsrConfig;
 
@@ -900,6 +901,17 @@ typedef struct tagCsrRoamOffloadSynchStruct
 } tCsrRoamOffloadSynchStruct;
 #endif
 
+typedef struct tagCsrRoamStoredProfile
+{
+    tANI_U32 session_id;
+    tCsrRoamProfile profile;
+    tScanResultHandle bsslist_handle;
+    eCsrRoamReason reason;
+    tANI_U32 roam_id;
+    tANI_BOOLEAN imediate_flag;
+    tANI_BOOLEAN clear_flag;
+} tCsrRoamStoredProfile;
+
 typedef struct tagCsrRoamSession
 {
     tANI_U8 sessionId;             // Session ID
@@ -993,6 +1005,7 @@ typedef struct tagCsrRoamSession
     uint8_t join_bssid_count; /* This count represents the number of
                                * bssid's we are trying to join.
                                */
+    tCsrRoamStoredProfile stored_roam_profile;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
@@ -1520,5 +1533,15 @@ eHalStatus csrScanSaveRoamOffloadApToScanCache(tpAniSirGlobal pMac,
             tSirRoamOffloadSynchInd *pRoamOffloadSynchInd);
 void csrProcessHOFailInd(tpAniSirGlobal pMac, void *pMsgBuf);
 #endif
+bool csr_store_joinreq_param(tpAniSirGlobal mac_ctx,
+                             tCsrRoamProfile *profile,
+                             tScanResultHandle scan_cache,
+                             uint32_t *roam_id,
+                             uint32_t session_id);
+bool csr_clear_joinreq_param(tpAniSirGlobal mac_ctx,
+                             tANI_U32 session_id);
+eHalStatus csr_issue_stored_joinreq(tpAniSirGlobal mac_ctx,
+                                    uint32_t *roam_id,
+                                    uint32_t session_id);
 #endif
 
