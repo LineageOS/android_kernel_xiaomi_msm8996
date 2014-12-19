@@ -7571,9 +7571,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         vos_flush_work(&pHddCtx->sap_start_work);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   FL("Canceled the pending restart work"));
-        spin_lock(&pHddCtx->sap_update_info_lock);
-        pHddCtx->is_sap_restart_required = false;
-        spin_unlock(&pHddCtx->sap_update_info_lock);
+        hdd_change_sap_restart_required_status(pHddCtx, false);
     }
 
     hdd_hostapd_stop(dev);
@@ -10629,6 +10627,155 @@ void hdd_select_cbmode( hdd_adapter_t *pAdapter,v_U8_t operationChannel)
                      WLAN_HDD_GET_CTX(pAdapter)->cfg_ini->vhtChannelWidth);
 }
 
+/**
+ * wlan_hdd_sta_sap_concur_handle() - This function will handle Station and sap
+ *                                    concurrency.
+ * @hdd_ctx: pointer to hdd context.
+ * @sta_adapter: pointer to station adapter.
+ * @roam_profile: pointer to station's roam profile.
+ *
+ * This function will find the AP to which station is likely to make the
+ * the connection, if that AP's channel happens to be different than
+ * SAP's channel then this function will stop the SAP.
+ *
+ * Return: true or false based on function's overall success.
+ */
+static bool wlan_hdd_sta_sap_concur_handle(hdd_context_t *hdd_ctx,
+                                           hdd_adapter_t *sta_adapter,
+                                           tCsrRoamProfile *roam_profile)
+{
+    hdd_adapter_t *ap_adapter = hdd_get_adapter(hdd_ctx,
+                                               WLAN_HDD_SOFTAP);
+    bool are_cc_channels_same = false;
+    tScanResultHandle scan_cache = NULL;
+    VOS_STATUS status;
+
+    if ((ap_adapter != NULL) &&
+        test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+        status =
+         wlan_hdd_check_custom_con_channel_rules(sta_adapter, ap_adapter,
+                                                 roam_profile, &scan_cache,
+                                                 &are_cc_channels_same);
+        sme_ScanResultPurge(WLAN_HDD_GET_HAL_CTX(sta_adapter),
+                            scan_cache);
+        /*
+         * are_cc_channels_same will be false incase if SAP and STA
+         * channel is different or STA channel is zero.
+         * incase if STA channel is zero then lets stop the AP and
+         * restart flag set, so later whenever STA channel is defined
+         * we can restart our SAP in that channel.
+         */
+        if (false == are_cc_channels_same) {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("Stop AP due to mismatch with STA channel"));
+            wlan_hdd_stop_sap(ap_adapter);
+            hdd_change_sap_restart_required_status(hdd_ctx, true);
+            return false;
+        } else {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("sap channels are same"));
+        }
+    }
+    return true;
+}
+
+#ifdef FEATURE_WLAN_CH_AVOID
+/**
+ * wlan_hdd_sta_p2pgo_concur_handle() - This function will handle Station and GO
+ *                                      concurrency.
+ * @hdd_ctx: pointer to hdd context.
+ * @sta_adapter: pointer to station adapter.
+ * @roam_profile: pointer to station's roam profile.
+ * @roam_id: reference to roam_id variable being passed.
+ *
+ * This function will find the AP to which station is likely to make the
+ * the connection, if that AP's channel happens to be different than our
+ * P2PGO's channel then this function will send avoid frequency event to
+ * framework to make P2PGO stop and also caches station's connect request.
+ *
+ * Return: true or false based on function's overall success.
+ */
+static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
+                                             hdd_adapter_t *sta_adapter,
+                                             tCsrRoamProfile *roam_profile,
+                                             uint32_t *roam_id)
+{
+    hdd_adapter_t *p2pgo_adapter = hdd_get_adapter(hdd_ctx,
+                                               WLAN_HDD_P2P_GO);
+    bool are_cc_channels_same = false;
+    tScanResultHandle scan_cache = NULL;
+    uint32_t p2pgo_channel_num, freq;
+    tHddAvoidFreqList   hdd_avoid_freq_list;
+    VOS_STATUS status;
+
+    if ((p2pgo_adapter != NULL) &&
+        test_bit(SOFTAP_BSS_STARTED, &p2pgo_adapter->event_flags)) {
+        status =
+         wlan_hdd_check_custom_con_channel_rules(sta_adapter, p2pgo_adapter,
+                                                 roam_profile, &scan_cache,
+                                                 &are_cc_channels_same);
+        /*
+         * are_cc_channels_same will be false incase if P2PGO and STA
+         * channel is different or STA channel is zero.
+         */
+        if (false == are_cc_channels_same) {
+            if (true == hdd_is_sta_connection_pending(hdd_ctx)) {
+                MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                       TRACE_CODE_HDD_CLEAR_JOIN_REQ,
+                       sta_adapter->sessionId, *roam_id));
+                sme_clear_joinreq_param(WLAN_HDD_GET_HAL_CTX(sta_adapter),
+                                        sta_adapter->sessionId);
+                hdd_change_sta_conn_pending_status(hdd_ctx, false);
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                       FL("===>Clear pending join req"));
+            }
+            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                   TRACE_CODE_HDD_STORE_JOIN_REQ,
+                   sta_adapter->sessionId, *roam_id));
+            /* store the scan cache here */
+            sme_store_joinreq_param(WLAN_HDD_GET_HAL_CTX(sta_adapter),
+                                    roam_profile,
+                                    scan_cache,
+                                    roam_id,
+                                    sta_adapter->sessionId);
+            hdd_change_sta_conn_pending_status(hdd_ctx, true);
+            /*
+             * fill frequency avoidance event and send it up
+             * so, p2pgo stop event should get trigger from upper layer
+             */
+            p2pgo_channel_num =
+              WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->sapConfig.channel;
+            if (p2pgo_channel_num <= ARRAY_SIZE(hdd_channels_2_4_GHZ)) {
+                freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
+                                                   IEEE80211_BAND_2GHZ);
+            } else {
+                freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
+                                                   IEEE80211_BAND_5GHZ);
+            }
+            vos_mem_zero(&hdd_avoid_freq_list,
+                         sizeof(hdd_avoid_freq_list));
+            hdd_avoid_freq_list.avoidFreqRangeCount = 1;
+            hdd_avoid_freq_list.avoidFreqRange[0].startFreq = freq;
+            hdd_avoid_freq_list.avoidFreqRange[0].endFreq = freq;
+            wlan_hdd_send_avoid_freq_event(hdd_ctx,
+                                           &hdd_avoid_freq_list);
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("===>Sending chnl_avoid ch[%d] freq[%d]"),
+                   p2pgo_channel_num, freq);
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("===>Stop GO due to mismatch with STA channel"));
+            return false;
+        } else {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   FL("===>p2pgo channels are same"));
+            sme_ScanResultPurge(WLAN_HDD_GET_HAL_CTX(sta_adapter),
+                                scan_cache);
+        }
+    }
+    return true;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_connect_start
  * This function is used to start the association process
@@ -10642,8 +10789,6 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
     v_U32_t roamId;
     tCsrRoamProfile *pRoamProfile;
     eCsrAuthType RSNAuthType;
-    hdd_adapter_t *ap_adapter = NULL;
-    bool are_cc_channels_same = 0;
 
     ENTER();
 
@@ -10825,39 +10970,33 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->pAddIEScan = &pAdapter->scan_info.scanAddIE.addIEdata[0];
             pRoamProfile->nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
         }
+        /*
+         * Custom concurrency rule1: As per this rule if station is trying to
+         * connect to some AP in 2.4Ghz and SAP is already in started state then
+         * SAP should restart in station's channel.
+         */
         if (pHddCtx->cfg_ini->conc_custom_rule1 &&
             (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
-            ap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
 
-            if ((ap_adapter != NULL) &&
-                test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
-                status =
-                 wlan_hdd_check_con_channel_sap_and_sta(pAdapter, ap_adapter,
-                                                    pRoamProfile,
-                                                    &are_cc_channels_same);
-                /*
-                 * are_cc_channels_same will be false incase if SAP and STA
-                 * channel is different or STA channel is zero.
-                 * incase if STA channel is zero then lets stop the AP and
-                 * restart flag set, so later whenever STA channel is defined
-                 * we can restart our SAP in that channel.
-                 */
-                if (FALSE == are_cc_channels_same) {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                              FL("Stop AP due to mismatch with STA channel"));
-                    wlan_hdd_stop_sap(ap_adapter);
-                    spin_lock(&pHddCtx->sap_update_info_lock);
-                    pHddCtx->is_sap_restart_required = true;
-                    spin_unlock(&pHddCtx->sap_update_info_lock);
-                } else {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                              FL("channels are same"));
-                }
-            } else {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
-                          FL("extracted ap adapter is null"));
+            wlan_hdd_sta_sap_concur_handle (pHddCtx, pAdapter, pRoamProfile);
+        }
+#ifdef FEATURE_WLAN_CH_AVOID
+        /*
+         * Custom concurrency rule2: As per this rule if station is trying to
+         * connect to some AP in 5Ghz and P2PGO is already in started state then
+         * P2PGO should restart in station's channel.
+         */
+        if (pHddCtx->cfg_ini->conc_custom_rule2 &&
+            (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)) {
+            if (false ==
+                wlan_hdd_sta_p2pgo_concur_handle(pHddCtx, pAdapter,
+                                                 pRoamProfile, &roamId)) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("P2PGO - STA chnl diff, cached join req"));
+                return 0;
             }
         }
+#endif
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);
 

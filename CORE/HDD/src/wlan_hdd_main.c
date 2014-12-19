@@ -10043,9 +10043,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              vos_flush_work(&pHddCtx->sap_start_work);
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                         FL("Canceled the pending SAP restart work"));
-             spin_lock(&pHddCtx->sap_update_info_lock);
-             pHddCtx->is_sap_restart_required = false;
-             spin_unlock(&pHddCtx->sap_update_info_lock);
+             hdd_change_sap_restart_required_status(pHddCtx, false);
          }
          //Any softap specific cleanup here...
          if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
@@ -12084,7 +12082,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
    int unsafeChannelIndex;
+#endif
 #endif
    tANI_U8 rtnl_lock_enable;
    tANI_U8 reg_netdev_notifier_done = FALSE;
@@ -12418,6 +12418,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
    cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
@@ -12433,10 +12434,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               __func__, pHddCtx->unsafe_channel_list[unsafeChannelIndex]);
 
    }
-
    /* Plug in avoid channel notification callback */
    sme_AddChAvoidCallback(pHddCtx->hHal,
                           hdd_ch_avoid_cb);
+#endif
 #endif /* FEATURE_WLAN_CH_AVOID */
 
    status = hdd_post_voss_start_config( pHddCtx );
@@ -14635,8 +14636,8 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 #endif
 
 /**
- * wlan_hdd_check_con_channel_sap_and_sta() - This function checks the sap's
- *                                            and sta's operating channel.
+ * wlan_hdd_check_custom_con_channel_rules() - This function checks the sap's
+ *                                             and sta's operating channel.
  * @sta_adapter:  Describe the first argument to foobar.
  * @ap_adapter:   Describe the second argument to foobar.
  * @roam_profile: Roam profile of AP to which STA wants to connect.
@@ -14650,31 +14651,39 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
  *
  * Return: VOS_STATUS_SUCCESS or VOS_STATUS_E_FAILURE.
  */
-VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
+VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
                                                   hdd_adapter_t *ap_adapter,
                                                   tCsrRoamProfile *roam_profile,
+                                                  tScanResultHandle *scan_cache,
                                                   bool *concurrent_chnl_same)
 {
     hdd_ap_ctx_t *hdd_ap_ctx;
     uint8_t channel_id;
     VOS_STATUS status;
+    device_mode_t device_mode = ap_adapter->device_mode;
+    *concurrent_chnl_same = true;
 
     hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
     status =
      sme_get_ap_channel_from_scan_cache(WLAN_HDD_GET_HAL_CTX(sta_adapter),
                                         roam_profile,
+                                        scan_cache,
                                         &channel_id);
     if ((VOS_STATUS_SUCCESS == status)) {
-        if (channel_id < SIR_11A_CHANNEL_BEGIN) {
-            if (hdd_ap_ctx->sapConfig.channel != channel_id) {
-                *concurrent_chnl_same = FALSE;
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                         FL("channels are different"));
-            }
-        } else {
-           *concurrent_chnl_same = TRUE;
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                    FL("selected ap's channel in 5Ghz"));
+        if ((WLAN_HDD_SOFTAP == device_mode) &&
+            (channel_id < SIR_11A_CHANNEL_BEGIN)) {
+             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+                 *concurrent_chnl_same = false;
+                  hddLog(VOS_TRACE_LEVEL_INFO_MED,
+                            FL("channels are different"));
+             }
+        } else if ((WLAN_HDD_P2P_GO == device_mode) &&
+                   (channel_id >= SIR_11A_CHANNEL_BEGIN)) {
+             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+                 *concurrent_chnl_same = false;
+                 hddLog(VOS_TRACE_LEVEL_INFO_MED,
+                           FL("channels are different"));
+             }
         }
     } else {
         /*
@@ -14683,8 +14692,8 @@ VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
          * SAP's channel and STA's channel. Return the status as failure so
          * caller function could know that scan look up is failed.
          */
-        *concurrent_chnl_same = FALSE;
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        *concurrent_chnl_same = false;
+        hddLog(VOS_TRACE_LEVEL_ERROR,
                     FL("Finding AP from scan cache failed"));
         return VOS_STATUS_E_FAILURE;
     }

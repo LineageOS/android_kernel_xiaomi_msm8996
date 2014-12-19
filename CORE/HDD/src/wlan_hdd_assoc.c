@@ -63,9 +63,7 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "sme_Api.h"
-#ifdef FEATURE_WLAN_FORCE_SAP_SCC
 #include "wlan_hdd_hostapd.h"
-#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
@@ -1397,9 +1395,7 @@ static void hdd_sap_restart_handle(struct work_struct *work)
     }
     wlan_hdd_start_sap(sap_adapter);
 
-    spin_lock(&hdd_ctx->sap_update_info_lock);
-    hdd_ctx->is_sap_restart_required = false;
-    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    hdd_change_sap_restart_required_status(hdd_ctx, false);
     vos_ssr_unprotect(__func__);
 }
 
@@ -1528,7 +1524,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode
                 != VOS_MCC_TO_SCC_SWITCH_DISABLE) &&
-            (0 == pHddCtx->cfg_ini->conc_custom_rule1)
+            ((0 == pHddCtx->cfg_ini->conc_custom_rule1) &&
+             (0 == pHddCtx->cfg_ini->conc_custom_rule2))
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
             && !VOS_IS_DFS_CH(pHddStaCtx->conn_info.operationChannel)
 #endif
@@ -1952,7 +1949,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }
 
     if (pHddCtx->cfg_ini->conc_custom_rule1 &&
-        (true == pHddCtx->is_sap_restart_required)) {
+        (true == hdd_is_sap_restart_required(pHddCtx))) {
         sap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
         if (sap_adapter == NULL) {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

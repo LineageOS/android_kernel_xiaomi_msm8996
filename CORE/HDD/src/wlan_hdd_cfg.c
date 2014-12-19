@@ -3413,6 +3413,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_CUSTOM_CONC_RULE1_NAME_MIN,
                  CFG_ENABLE_CUSTOM_CONC_RULE1_NAME_MAX),
 
+   REG_VARIABLE( CFG_ENABLE_CUSTOM_CONC_RULE2_NAME,  WLAN_PARAM_Integer,
+                 hdd_config_t, conc_custom_rule2,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ENABLE_CUSTOM_CONC_RULE2_NAME_DEFAULT,
+                 CFG_ENABLE_CUSTOM_CONC_RULE2_NAME_MIN,
+                 CFG_ENABLE_CUSTOM_CONC_RULE2_NAME_MAX),
+
    REG_VARIABLE( CFG_ENABLE_STA_CONNECTION_IN_5GHZ,  WLAN_PARAM_Integer,
                  hdd_config_t, is_sta_connection_in_5gz_enabled,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
@@ -5995,6 +6002,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
    smeConfig->csrConfig.conc_custom_rule1 =
                         pHddCtx->cfg_ini->conc_custom_rule1;
+   smeConfig->csrConfig.conc_custom_rule2 =
+                        pHddCtx->cfg_ini->conc_custom_rule2;
    smeConfig->csrConfig.is_sta_connection_in_5gz_enabled =
                         pHddCtx->cfg_ini->is_sta_connection_in_5gz_enabled;
 #ifdef FEATURE_BUS_AUTO_SUSPEND
