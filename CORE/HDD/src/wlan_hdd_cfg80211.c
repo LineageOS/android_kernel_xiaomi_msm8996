@@ -5786,7 +5786,7 @@ static int wlan_hdd_rate_is_11g(u8 rate)
 
 /* Check for 11g rate and set proper 11g only mode */
 static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
-                     u8* pCheckRatesfor11g, eSapPhyMode* pSapHw_mode)
+                     u8* pCheckRatesfor11g, eCsrPhyMode* pSapHw_mode)
 {
     u8 i, num_rates = pIe[0];
 
@@ -5796,13 +5796,13 @@ static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
         if( *pCheckRatesfor11g && (TRUE == wlan_hdd_rate_is_11g(pIe[i] & RATE_MASK)))
         {
             /* If rate set have 11g rate than change the mode to 11G */
-            *pSapHw_mode = eSAP_DOT11_MODE_11g;
+            *pSapHw_mode = eCSR_DOT11_MODE_11g;
             if (pIe[i] & BASIC_RATE_MASK)
             {
                 /* If we have 11g rate as  basic rate, it means mode
                    is 11g only mode.
                  */
-               *pSapHw_mode = eSAP_DOT11_MODE_11g_ONLY;
+               *pSapHw_mode = eCSR_DOT11_MODE_11g_ONLY;
                *pCheckRatesfor11g = FALSE;
             }
         }
@@ -5823,7 +5823,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
     u8 require_ht = FALSE;
     u8 *pIe=NULL;
 
-    pConfig->SapHw_mode= eSAP_DOT11_MODE_11b;
+    pConfig->SapHw_mode= eCSR_DOT11_MODE_11b;
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
                                        pBeacon->head_len, WLAN_EID_SUPP_RATES);
@@ -5846,7 +5846,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 
     if( pConfig->channel > 14 )
     {
-        pConfig->SapHw_mode= eSAP_DOT11_MODE_11a;
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11a;
     }
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
@@ -5854,9 +5854,9 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 
     if(pIe)
     {
-        pConfig->SapHw_mode= eSAP_DOT11_MODE_11n;
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11n;
         if(require_ht)
-            pConfig->SapHw_mode= eSAP_DOT11_MODE_11n_ONLY;
+            pConfig->SapHw_mode= eCSR_DOT11_MODE_11n_ONLY;
     }
 }
 
@@ -6984,16 +6984,16 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     /* Overwrite the hostapd setting for HW mode only for 11ac.
      * This is valid only if mode is set to 11n in hostapd and either AUTO or 11ac in .ini .
      * Otherwise, leave whatever is set in hostapd (a OR b OR g OR n mode) */
-    if( (pConfig->SapHw_mode == eSAP_DOT11_MODE_11n) &&
+    if( (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n) &&
          sapForce11ACFor11n &&
         (( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO ) ||
          ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ) ||
          ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY )) )
     {
         if ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac_ONLY;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac_ONLY;
         else
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
 
         /* If ACS disable and selected channel <= 14
              OR
@@ -7015,7 +7015,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                                                  == FALSE)) ||
             (WLAN_HDD_GET_CTX(pHostapdAdapter)->isVHT80Allowed == FALSE))
         {
-            pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
         }
     }
 #endif
@@ -7023,7 +7023,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
         sme_SelectCBMode(hHal,
-            sapConvertSapPhyModeToCsrPhyMode(pConfig->SapHw_mode),
+            pConfig->SapHw_mode,
             pConfig->channel,
             WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->vhtChannelWidth);
     }
@@ -9841,7 +9841,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 allow_suspend:
     /* release the wake lock at the end of the scan*/
     hdd_allow_suspend();
-
     /* Acquire wakelock to handle the case where APP's tries to suspend
      * immediately after the driver gets connect request(i.e after scan)
      * from supplicant, this result in app's is suspending and not able
@@ -9850,6 +9849,10 @@ allow_suspend:
 
 #ifdef FEATURE_WLAN_TDLS
     wlan_hdd_tdls_scan_done_callback(pAdapter);
+#endif
+
+#ifdef CONFIG_CNSS
+    cnss_allow_auto_suspend(__func__);
 #endif
 
     EXIT();
@@ -10315,7 +10318,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      * be stuck in full power because of resume BMPS
      */
     hdd_prevent_suspend();
-
+#ifdef CONFIG_CNSS
+    cnss_prevent_auto_suspend(__func__);
+#endif
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
            "requestType %d, scanType %d, minChnTime %d, maxChnTime %d,p2pSearch %d, skipDfsChnlIn P2pSearch %d",
            scanRequest.requestType, scanRequest.scanType,
@@ -10343,6 +10348,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         }
 
         hdd_allow_suspend();
+#ifdef CONFIG_CNSS
+        cnss_allow_auto_suspend(__func__);
+#endif
         goto free_mem;
     }
 
@@ -11380,6 +11388,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     ENTER();
 
+
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CONNECT,
                      pAdapter->sessionId, pAdapter->device_mode));
@@ -11406,6 +11415,9 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
+
+    hdd_stop_auto_suspend_attempt(pHddCtx);
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     /* Supplicant indicate its decision to offload key management
      * by setting the third bit in flags in case of Secure connection
@@ -15236,7 +15248,10 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
     }
 
 #endif
+
     hdd_resume_wlan();
+
+    hdd_start_auto_suspend_attempt(pHddCtx, 0);
 
     spin_lock(&pHddCtx->schedScan_lock);
     pHddCtx->isWiphySuspended = FALSE;
@@ -15416,6 +15431,8 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     /* Wait for the target to be ready for suspend */
     INIT_COMPLETION(pHddCtx->ready_to_suspend);
 
+    hdd_stop_auto_suspend_attempt(pHddCtx);
+
     hdd_suspend_wlan(&wlan_hdd_cfg80211_ready_to_suspend, pHddCtx);
 
     rc = wait_for_completion_timeout(&pHddCtx->ready_to_suspend,
@@ -15486,6 +15503,8 @@ resume_all:
 resume_tx:
 
     hdd_resume_wlan();
+    hdd_start_auto_suspend_attempt(pHddCtx, 0);
+
     return -ETIME;
 
 }

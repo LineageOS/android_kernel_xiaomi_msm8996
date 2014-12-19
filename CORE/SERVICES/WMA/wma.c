@@ -17865,6 +17865,45 @@ end:
 	return ret;
 }
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+static VOS_STATUS wma_auto_resume_req(tp_wma_handle wma)
+{
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	uint8_t ptrn_id;
+
+	/*
+	 * This could happen when FW intiated resume(WAKE IRQ) and
+	 * WMA intiated resume(management frame or control message
+	 * happens at the same time.
+	 */
+	if (!wma->resumed_cb) {
+		WMA_LOGD("ignoring auto resume, already resumed");
+		return ret;
+	}
+
+	WMA_LOGD("Clearing already configured wow patterns in fw");
+	/* Clear existing wow patterns in FW. */
+	for (ptrn_id = 0; ptrn_id < wma->wlan_resource_config.num_wow_filters;
+		ptrn_id++) {
+		ret = wma_del_wow_pattern_in_fw(wma, ptrn_id);
+		if (ret != VOS_STATUS_SUCCESS)
+			goto end;
+	}
+
+end:
+	/* need to reset if hif_pci_suspend_fails */
+	wma_set_wow_bus_suspend(wma, 0);
+	/* unpause the vdev if left paused and hif_pci_suspend fails */
+	wma_unpause_vdev(wma);
+
+	WMA_LOGD("WMA invoking resume callback");
+	wma->resumed_cb(NULL);
+	wma->resumed_cb = NULL;
+
+	return ret;
+}
+#endif
+
 /*
  * Pushes wow patterns from local cache to FW and configures
  * wakeup trigger events.
@@ -18301,6 +18340,20 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 		return VOS_STATUS_SUCCESS;
 	}
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	/* WMA could already be suspended by auto suspend, in
+	 * that case just send the ready to suspend indication.
+	 * Also no resume callback is required by HDD; and WMA
+	 * resume will be taken care by HDD resume.
+	 */
+	if (wma_get_wow_bus_suspend(wma)) {
+		WMA_LOGI("WMA is already suspended by auto suspend");
+		wma_send_status_to_suspend_ind(wma, TRUE);
+		wma->resumed_cb = NULL;
+		return VOS_STATUS_SUCCESS;
+
+	}
+#endif
 	wma->no_of_suspend_ind = 0;
 	wma->wow.gtk_pdev_enable = 0;
 	/*
@@ -18392,6 +18445,101 @@ send_ready_to_suspend:
 
 	return VOS_STATUS_SUCCESS;
 }
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+/* Handles auto suspend indication request received from umac. */
+static VOS_STATUS wma_auto_suspend_req(tp_wma_handle wma,
+		tpSirWlanSuspendParam info)
+{
+	struct wma_txrx_node *iface;
+	bool pno_in_progress = FALSE;
+	VOS_STATUS ret;
+	uint8_t i;
+
+	if (info->sessionId > wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	iface = &wma->interfaces[info->sessionId];
+	if (!iface) {
+		WMA_LOGD("vdev %d node is not found", info->sessionId);
+		return VOS_STATUS_SUCCESS;
+	}
+
+
+	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
+		goto send_ready_to_suspend;
+	}
+	/* auto suspend comes with the callback to indicate
+	 * HDD when the bus resumes from auto suspend.
+	 */
+	if (!info->resumed_callback) {
+		WMA_LOGP("No resume callback to register with WMA");
+		return VOS_STATUS_E_INVAL;
+	}
+	wma->resumed_cb = info->resumed_callback;
+
+	if (wma_get_wow_bus_suspend(wma)) {
+		WMA_LOGE("WMA is already suspended");
+		wma_send_status_to_suspend_ind(wma, true);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	iface->conn_state = (info->connectedState) ? TRUE : FALSE;
+	wma->wow.gtk_pdev_enable = 0;
+	/*
+	 * Enable WOW only if PNO is required.
+	 */
+	for (i = 0; i < wma->max_bssid; i++) {
+#ifdef FEATURE_WLAN_SCAN_PNO
+		if (wma->interfaces[i].pno_in_progress) {
+			WMA_LOGD("PNO is in progress, enabling wow");
+			pno_in_progress = TRUE;
+			break;
+		}
+#endif
+	}
+	for (i = 0; i < wma->max_bssid; i++) {
+		wma->wow.gtk_pdev_enable |= wma->wow.gtk_err_enable[i];
+		WMA_LOGD("VDEV_ID:%d, gtk_err_enable[%d]:%d, gtk_pdev_enable:%d",
+						i, i, wma->wow.gtk_err_enable[i],
+						wma->wow.gtk_pdev_enable);
+	}
+	if (!pno_in_progress) {
+		WMA_LOGD("skip wow if PNO not in progress");
+		goto send_ready_to_suspend;
+	}
+
+	WMA_LOGD("WOW Suspend");
+
+	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
+	if (ret != VOS_STATUS_SUCCESS) {
+		wma_send_status_to_suspend_ind(wma, false);
+		return ret;
+	}
+
+send_ready_to_suspend:
+	/* Once WMA is suspended, then the bus suspend
+	 * should happen to complete the driver auto suspend.
+	 */
+	ret = cnss_auto_suspend();
+	if (ret) {
+		WMA_LOGE("%s: CNSS auto suspend failed", __func__);
+		wma_auto_resume_req(wma);
+		if (wma->resumed_cb) {
+			wma->resumed_cb(NULL);
+			wma->resumed_cb = NULL;
+		}
+		wma_send_status_to_suspend_ind(wma, false);
+		return ret;
+	}
+	wma_send_status_to_suspend_ind(wma, true);
+	wma_set_wow_bus_suspend(wma, 1);
+
+	return VOS_STATUS_SUCCESS;
+}
+#endif
 
 /*
  * Sends host wakeup indication to FW. On receiving this indication,
@@ -18573,6 +18721,26 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	/* Unpause the vdev as we are resuming */
 	wma_unpause_vdev(wma);
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	/* When the bus resumes from auto suspend, send a message
+	 * to WMA to resume itself. This should only happen for
+	 * FW initiated wakeup.
+	 */
+	if (wma->resumed_cb) {
+		vos_msg_t vos_msg = {0};
+		vos_msg.type = WDA_WLAN_AUTO_RESUME_IND;
+		vos_msg.bodyptr = NULL;
+		vos_msg.bodyval = 0;
+
+		if (VOS_STATUS_SUCCESS !=
+			vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+			WMA_LOGP("%s: Failed to post WDA_WLAN_AUTO_RESUME_IND msg",
+				__func__);
+			ret = -1;
+		}
+		WMA_LOGD("WDA_WLAN_AUTO_RESUME_IND posted  %d", ret);
+	}
+#endif
 	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
 
 	return ret;
@@ -22891,6 +23059,35 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		goto end;
 	}
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	if (wma_get_wow_bus_suspend(wma_handle) &&
+		    wma_handle->resumed_cb) {
+
+		switch (msg->type) {
+		/* Any command other than these should initiate auto
+		 * resume, if WMA is auto suspended
+		 */
+		case WDA_WLAN_SUSPEND_IND:
+		case WDA_WLAN_RESUME_REQ:
+		case WDA_WLAN_AUTO_SUSPEND_IND:
+		case WDA_WLAN_AUTO_RESUME_IND:
+		    break;
+
+		default:
+			WMA_LOGI("WMA initiating bus resume");
+			if (cnss_auto_resume()) {
+				WMA_LOGE("%s: CNSS auto resume failed",
+					__func__);
+			}
+			/* Once bus is resumed, resume WMA itself */
+			wma_auto_resume_req(wma_handle);
+
+			break;
+		}
+	}
+#endif
+
+
 	switch (msg->type) {
 #ifdef FEATURE_WLAN_ESE
         case WDA_TSM_STATS_REQ:
@@ -23497,13 +23694,22 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_APFIND */
-
 		case WDA_OCB_SET_SCHED_REQUEST:
 			wma_ocb_set_sched_req(wma_handle,
 				(sir_ocb_set_sched_request_t *)(msg->bodyptr));
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+		case WDA_WLAN_AUTO_SUSPEND_IND:
+			wma_auto_suspend_req(wma_handle,
+					(tpSirWlanSuspendParam)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 
+		case WDA_WLAN_AUTO_RESUME_IND:
+			wma_auto_resume_req(wma_handle);
+			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -26185,6 +26391,15 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 		WMA_LOGE("pMac Handle is NULL");
 		return VOS_STATUS_E_FAILURE;
 	}
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	if (wma_get_wow_bus_suspend(wma_handle) && wma_handle->resumed_cb) {
+		WMA_LOGE("TX attempt when suspended");
+		VOS_ASSERT(0);
+		if (cnss_auto_resume())
+			WMA_LOGE("%s: CNSS auto resume failed", __func__);
+		wma_auto_resume_req(wma_handle);
+	}
+#endif
 	/*
 	 * Currently only support to
 	 * send 80211 Mgmt and 80211 Data are added.
@@ -26698,7 +26913,7 @@ int wma_resume_target(WMA_HANDLE handle)
 	}
 	wmi_pending_cmds = wmi_get_pending_cmds(wma_handle->wmi_handle);
 	while (wmi_pending_cmds && timeout++ < WMA_MAX_RESUME_RETRY) {
-		msleep(1);
+		msleep(100);
 		wmi_pending_cmds = wmi_get_pending_cmds(wma_handle->wmi_handle);
 	}
 
@@ -26710,6 +26925,26 @@ int wma_resume_target(WMA_HANDLE handle)
 	if (EOK == ret)
 		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+	/* When the bus resumes from auto suspend, send a message
+	 * to WMA to resume itself. This should only happen for
+	 * FW initiated wakeup.
+	 */
+	if (wma_handle->resumed_cb) {
+		vos_msg_t vos_msg = {0};
+		vos_msg.type = WDA_WLAN_AUTO_RESUME_IND;
+		vos_msg.bodyptr = NULL;
+		vos_msg.bodyval = 0;
+
+		if (VOS_STATUS_SUCCESS !=
+			vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+			WMA_LOGP("%s: Failed to post WDA_WLAN_AUTO_RESUME_IND msg",
+				__func__);
+			ret = -1;
+		}
+		WMA_LOGD("WDA_WLAN_AUTO_RESUME_IND posted  %d", ret);
+	}
+#endif
 	return ret;
 }
 

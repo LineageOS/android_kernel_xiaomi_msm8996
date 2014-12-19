@@ -1658,14 +1658,6 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             }
             break;
 
-        case eCSR_DOT11_MODE_11a_ONLY:   //11a
-            if( eCSR_DOT11_MODE_11a == bssPhyMode )
-            {
-                fMatch = TRUE;
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
-            }
-            break;
-
         case eCSR_DOT11_MODE_11g:
             if(!f5GhzBand)
             {
@@ -1949,7 +1941,7 @@ eCsrCfgDot11Mode csrFindBestPhyMode( tpAniSirGlobal pMac, tANI_U32 phyMode )
                 cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11G;
             }
         }
-        else if( ( eCSR_DOT11_MODE_11a | eCSR_DOT11_MODE_11a_ONLY ) & phyMode )
+        else if(eCSR_DOT11_MODE_11a & phyMode)
         {
             cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11A;
         }
@@ -5464,7 +5456,6 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(tCsrRoamProfile *pProfile, eCs
     switch(phyMode)
     {
     case eCSR_DOT11_MODE_11a:
-    case eCSR_DOT11_MODE_11a_ONLY:
         cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
         break;
     case eCSR_DOT11_MODE_11b:

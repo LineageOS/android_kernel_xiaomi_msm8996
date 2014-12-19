@@ -48,6 +48,10 @@
 #define IS_ISOC_EP(attr)  (((attr) & 3) == 0x01)
 #define IS_DIR_IN(addr)  ((addr) & 0x80)
 
+#define IS_FW_CRASH_DUMP(x)    ((x == FW_ASSERT_PATTERN) || \
+                                (x == FW_REG_PATTERN) || \
+                                ((x & FW_RAMDUMP_PATTERN_MASK) == FW_RAMDUMP_PATTERN))?1:0
+
 static void usb_hif_post_recv_transfers(HIF_USB_PIPE *recv_pipe,
 					int buffer_length);
 static void usb_hif_post_recv_bundle_transfers(HIF_USB_PIPE *recv_pipe,
@@ -656,25 +660,29 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 		do {
 			A_UINT16 frame_len;
 
-			/* Hack into HTC header for bundle processing */
-			HtcHdr = (HTC_FRAME_HDR *) netdata;
-			if (HtcHdr->EndpointID >= ENDPOINT_MAX) {
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
-					("athusb: Rx: invalid EndpointID=%d\n",
-					HtcHdr->EndpointID));
-				break;
-			}
+			if (IS_FW_CRASH_DUMP(*(A_UINT32 *) netdata))
+				frame_len = netlen;
+			else {
+				/* Hack into HTC header for bundle processing */
+				HtcHdr = (HTC_FRAME_HDR *) netdata;
+				if (HtcHdr->EndpointID >= ENDPOINT_MAX) {
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+						("athusb: Rx: invalid EndpointID=%d\n",
+						HtcHdr->EndpointID));
+					break;
+				}
 
-			payloadLen = HtcHdr->PayloadLen;
-			payloadLen = A_LE2CPU16(payloadLen);
+				payloadLen = HtcHdr->PayloadLen;
+				payloadLen = A_LE2CPU16(payloadLen);
 
-			if (payloadLen > HIF_USB_RX_BUFFER_SIZE) {
-				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
-					("athusb: payloadLen too long %u\n",
-					payloadLen));
-				break;
+				if (payloadLen > HIF_USB_RX_BUFFER_SIZE) {
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+						("athusb: payloadLen too long %u\n",
+						payloadLen));
+					break;
+				}
+				frame_len = (HTC_HDR_LENGTH + payloadLen);
 			}
-			frame_len = (HTC_HDR_LENGTH + payloadLen);
 
 			if (netlen >= frame_len) {
 				/* allocate a new skb and copy */
@@ -1071,10 +1079,6 @@ A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *device,
 
 	return ret;
 }
-
-#define IS_FW_CRASH_DUMP(x)    ((x == FW_ASSERT_PATTERN) || \
-                                (x == FW_REG_PATTERN) || \
-                                ((x & FW_RAMDUMP_PATTERN_MASK) == FW_RAMDUMP_PATTERN))?1:0
 
 void usb_hif_io_comp_work(struct work_struct *work)
 {

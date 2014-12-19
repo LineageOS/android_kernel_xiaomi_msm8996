@@ -2556,12 +2556,12 @@ static iw_softap_setparam(struct net_device *dev,
                 if (set_value != 0xff) {
                     rix = RC_2_RATE_IDX(set_value);
                     if (set_value & 0x80) {
-                        if (pConfig->SapHw_mode == eSAP_DOT11_MODE_11b ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_11b_ONLY ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_11g ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_11g_ONLY ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_abg ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_11a) {
+                        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11b ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_11b_ONLY ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_11g ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_11g_ONLY ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_abg ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_11a) {
                             hddLog(LOGE, "Not valid mode for HT");
                             ret = -EIO;
                             break;
@@ -2569,7 +2569,7 @@ static iw_softap_setparam(struct net_device *dev,
                         preamble = WMI_RATE_PREAMBLE_HT;
                         nss = HT_RC_2_STREAMS(set_value) - 1;
                     } else if (set_value & 0x10) {
-                        if (pConfig->SapHw_mode == eSAP_DOT11_MODE_11a) {
+                        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11a) {
                             hddLog(VOS_TRACE_LEVEL_ERROR, "Not valid for cck");
                             ret = -EIO;
                             break;
@@ -2579,8 +2579,8 @@ static iw_softap_setparam(struct net_device *dev,
                         if (rix != 0x3)
                             rix |= 0x4;
                     } else {
-                        if (pConfig->SapHw_mode == eSAP_DOT11_MODE_11b ||
-                            pConfig->SapHw_mode == eSAP_DOT11_MODE_11b_ONLY) {
+                        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11b ||
+                            pConfig->SapHw_mode == eCSR_DOT11_MODE_11b_ONLY) {
                             hddLog(VOS_TRACE_LEVEL_ERROR, "Not valid for OFDM");
                             ret = -EIO;
                             break;
@@ -2604,8 +2604,8 @@ static iw_softap_setparam(struct net_device *dev,
                 tsap_Config_t *pConfig =
                     &pHostapdAdapter->sessionCtx.ap.sapConfig;
 
-                if (pConfig->SapHw_mode != eSAP_DOT11_MODE_11ac &&
-                    pConfig->SapHw_mode != eSAP_DOT11_MODE_11ac_ONLY) {
+                if (pConfig->SapHw_mode != eCSR_DOT11_MODE_11ac &&
+                    pConfig->SapHw_mode != eCSR_DOT11_MODE_11ac_ONLY) {
                     hddLog(VOS_TRACE_LEVEL_ERROR,
                         "%s: SET_VHT_RATE error: SapHw_mode= 0x%x, ch = %d",
                         __func__, pConfig->SapHw_mode, pConfig->channel);

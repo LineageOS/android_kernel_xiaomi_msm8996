@@ -2612,6 +2612,11 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
     if (sc->recovery)
         return -EACCES;
 
+    if  (adf_os_atomic_read(&sc->pci_link_suspended)) {
+        pr_err("invalid access, PCIe link is suspended");
+        VOS_BUG(0);
+    }
+
     if (sleep_ok) {
         adf_os_spin_lock_irqsave(&hif_state->keep_awake_lock);
         hif_state->keep_awake_count--;

@@ -122,9 +122,8 @@ typedef enum
 
 }eCsrSecurityType;
 
-typedef enum
-{
-    eCSR_DOT11_MODE_abg = 0x0001,    //11a/b/g only, no HT, no proprietary
+typedef enum {
+    eCSR_DOT11_MODE_abg = 0x0001, /* 11a/b/g only, no HT, no proprietary */
     eCSR_DOT11_MODE_11a = 0x0002,
     eCSR_DOT11_MODE_11b = 0x0004,
     eCSR_DOT11_MODE_11g = 0x0008,
@@ -132,18 +131,20 @@ typedef enum
     eCSR_DOT11_MODE_11g_ONLY = 0x0020,
     eCSR_DOT11_MODE_11n_ONLY = 0x0040,
     eCSR_DOT11_MODE_11b_ONLY = 0x0080,
-    eCSR_DOT11_MODE_11a_ONLY = 0x0100,
 #ifdef WLAN_FEATURE_11AC
-    eCSR_DOT11_MODE_11ac     = 0x0200,
-    eCSR_DOT11_MODE_11ac_ONLY = 0x0400,
+    eCSR_DOT11_MODE_11ac     = 0x0100,
+    eCSR_DOT11_MODE_11ac_ONLY = 0x0200,
 #endif
-    //This is for WIFI test. It is same as eWNIAPI_MAC_PROTOCOL_ALL except when it starts IBSS in 11B of 2.4GHz
-    //It is for CSR internal use
-    eCSR_DOT11_MODE_AUTO = 0x0800,
+    /*
+     * This is for WIFI test. It is same as eWNIAPI_MAC_PROTOCOL_ALL
+     * except when it starts IBSS in 11B of 2.4GHz
+     * It is for CSR internal use
+     */
+    eCSR_DOT11_MODE_AUTO = 0x0400,
 
-    eCSR_NUM_PHY_MODE = 16,     //specify the number of maximum bits for phyMode
-}eCsrPhyMode;
+    eCSR_NUM_PHY_MODE = 16, /* specify the number of maximum bits for phyMode */
 
+} eCsrPhyMode;
 
 typedef tANI_U8 tCsrBssid[VOS_MAC_ADDR_SIZE];
 
@@ -884,7 +885,8 @@ typedef struct tagCsrRoamProfile
     //that we need to join. Index 1 is the SSID for self BSS.
     tCsrSSIDs SSIDs;
     tCsrBSSIDs BSSIDs;
-    tANI_U32 phyMode;   //this is a bit mask of all the needed phy mode defined in eCsrPhyMode
+    /* this is a bit mask of all the needed phy mode defined in eCsrPhyMode */
+    eCsrPhyMode phyMode;
     eCsrRoamBssType BSSType;
 
     tCsrAuthList AuthType;

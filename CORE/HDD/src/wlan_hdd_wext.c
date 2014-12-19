@@ -7644,7 +7644,6 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 snprintf(extra, WE_MAX_STR_LEN, "11ABG");
                 break;
            case eCSR_DOT11_MODE_11a:
-           case eCSR_DOT11_MODE_11a_ONLY:
                 snprintf(extra, WE_MAX_STR_LEN, "11A");
                 break;
            case eCSR_DOT11_MODE_11b:

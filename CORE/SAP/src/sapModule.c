@@ -3977,9 +3977,9 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
         ((pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_abg) ||
          (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11a) ||
          (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11g)))
-       sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_abg;
+       sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_abg;
     else
-       sapContext->csrRoamProfile.phyMode = eSAP_DOT11_MODE_11n;
+       sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_11n;
 
     if ((pConfig->channel == AUTO_CHANNEL_SELECT) &&
         (sapContext->isScanSessionOpen == eSAP_FALSE)) {

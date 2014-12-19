@@ -1645,6 +1645,10 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 
    pMac->enable5gEBT = pSmeConfigParams->enable5gEBT;
    pMac->sme.enableSelfRecovery = pSmeConfigParams->enableSelfRecovery;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+   pMac->sme.enable_bus_auto_suspend =
+       pSmeConfigParams->enable_bus_auto_suspend;
+#endif
 
    return status;
 }
@@ -4303,6 +4307,9 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
       pParam->max_intf_count = pMac->sme.max_intf_count;
       pParam->enableSelfRecovery = pMac->sme.enableSelfRecovery;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+      pParam->enable_bus_auto_suspend = pMac->sme.enable_bus_auto_suspend;
+#endif
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -11722,7 +11729,6 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
          eCSR_DOT11_MODE_11n_ONLY != eCsrPhyMode &&
 
          eCSR_DOT11_MODE_11a != eCsrPhyMode &&
-         eCSR_DOT11_MODE_11a_ONLY != eCsrPhyMode &&
 
          eCSR_DOT11_MODE_abg != eCsrPhyMode
       )
@@ -11855,7 +11861,6 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
       for 802.11g only phy mode also channel bonding should be zero.
    */
    if (  eCSR_DOT11_MODE_11a == eCsrPhyMode ||
-         eCSR_DOT11_MODE_11a_ONLY == eCsrPhyMode ||
          eCSR_DOT11_MODE_abg == eCsrPhyMode)
    {
       smeConfig.csrConfig.channelBondingMode5GHz =
@@ -13557,6 +13562,57 @@ eHalStatus sme_ModifyAddIE(tHalHandle hHal,
     return (status);
 }
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+/**
+ * sme_configure_bus_auto_suspend_ind() - Auto suspend request to lower MAC
+ *
+ * @hHal: The handle returned by macOpen.
+ * @suspend_param: Callback to be called when ready to auto suspend event is
+ *                 received.
+ * @callback: The callback API that should be invoked when auto suspended.
+ * @context: Context associated with csrReadyToSuspendCallback.
+ *
+ *  SME will pass this request to lower mac to Indicate that the wlan needs
+ *  to be auto suspended.
+ *
+ * Return: HAL status success or failure
+ */
+eHalStatus sme_configure_bus_auto_suspend_ind(tHalHandle hHal,
+                          tSirWlanSuspendParam  *suspend_param,
+                          csrReadyToSuspendCallback callback,
+                          void *context)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t vosMessage;
+    tSirWlanSuspendParam  *sme_suspend_param;
+
+    MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                  TRACE_CODE_SME_RX_HDD_CONFIG_AUTO_SUSPENDIND, NO_SESSION, 0));
+
+    sme_suspend_param = vos_mem_malloc(sizeof(tSirWlanSuspendParam));
+    if (!sme_suspend_param) {
+        smsLog(pMac, LOGE,
+                     FL("Not able to allocate memory for suspend indication"));
+        return eHAL_STATUS_FAILURE;
+    }
+    *sme_suspend_param = *suspend_param;
+
+    pMac->readyToSuspendCallback = callback;
+    pMac->readyToSuspendContext = context;
+
+    vosMessage.bodyptr = sme_suspend_param;
+    vosMessage.type = WDA_WLAN_AUTO_SUSPEND_IND;
+    vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+        pMac->readyToSuspendCallback = NULL;
+        pMac->readyToSuspendContext = NULL;
+        status = eHAL_STATUS_FAILURE;
+    }
+    return(status);
+}
+#endif
 
 /*----------------------------------------------------------------------------
  \fn  sme_UpdateAddIE

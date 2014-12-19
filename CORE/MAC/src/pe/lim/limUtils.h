@@ -587,6 +587,12 @@ void lim_set_ht_caps(tpAniSirGlobal p_mac,
 			tpPESession p_session_entry,
 			tANI_U8 *p_ie_start,
 			tANI_U32 num_bytes);
+#ifdef WLAN_FEATURE_11AC
+void lim_set_vht_caps(tpAniSirGlobal p_mac,
+			tpPESession p_session_entry,
+			tANI_U8 *p_ie_start,
+			tANI_U32 num_bytes);
+#endif /* WLAN_FEATURE_11AC */
 
 #ifdef SAP_AUTH_OFFLOAD
 void lim_sap_offload_add_sta(tpAniSirGlobal pmac,

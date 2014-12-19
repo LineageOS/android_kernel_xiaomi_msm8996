@@ -1755,6 +1755,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    vos_clear_concurrent_session_count();
 
+   hdd_stop_auto_suspend_attempt(pHddCtx);
+
    hdd_reset_all_adapters(pHddCtx);
 
    vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
@@ -2141,6 +2143,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
                              pHddCtx->target_hw_version,
                              pHddCtx->target_hw_name);
 #endif
+   hdd_start_auto_suspend_attempt(pHddCtx, false);
    goto success;
 
 err_unregister_pmops:
@@ -2193,3 +2196,66 @@ success:
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    return VOS_STATUS_SUCCESS;
 }
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+/**
+ * hdd_auto_suspend_wlan() - Pass auto suspend indication to SME.
+ *
+ * @ready_to_suspend_cb: Callback invoked when bus is suspended.
+ * @cb_context: optional parameter for callback indication.
+ * @auto_resumed_cb: Callback invoked when bus resumes.
+ *
+ * HDD will send this indication to SME when it thinks that it
+ * has detected the ideal condition for bus auto suspend.
+ *
+ * Return: none
+ */
+void hdd_auto_suspend_wlan(csrReadyToSuspendCallback ready_to_suspend_cb,
+               void *cb_context, void (auto_resumed_cb)(void *cb_parameter))
+{
+    hdd_context_t *hdd_ctx;
+    hdd_adapter_t *adapter;
+    v_CONTEXT_t vos_ctx;
+    eHalStatus status;
+    int ret;
+    tpSirWlanSuspendParam suspend_param;
+
+    hddLog(LOG1, FL("Auto suspend WLAN"));
+
+    vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if (!vos_ctx) {
+        return;
+    }
+
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (ret) {
+        return;
+    }
+
+    adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
+    if (!adapter) {
+        hddLog(LOGE, "%s: invalid station adapter", __func__);
+        return;
+    }
+
+    suspend_param = vos_mem_malloc(sizeof(*suspend_param));
+    if (NULL == suspend_param) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, FL("vos_mem_alloc failed"));
+        return;
+    }
+
+    suspend_param->connectedState = FALSE;
+    suspend_param->sessionId = adapter->sessionId;
+    suspend_param->resumed_callback = auto_resumed_cb;
+
+    status =  sme_configure_bus_auto_suspend_ind(hdd_ctx->hHal,
+                             suspend_param, ready_to_suspend_cb, cb_context);
+    if (eHAL_STATUS_SUCCESS != status) {
+        hddLog(LOGE, FL("sme auto suspend failure %d"), status);
+    }
+    vos_mem_free(suspend_param);
+
+    return;
+}
+#endif
