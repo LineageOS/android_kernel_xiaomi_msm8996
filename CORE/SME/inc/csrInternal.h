@@ -1310,15 +1310,6 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,tCsrRssiCallback callback,
 eHalStatus csrGetSnr(tpAniSirGlobal pMac, tCsrSnrCallback callback,
                      tANI_U8 staId, tCsrBssid bssId, void *pContext);
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-eHalStatus csrGetRoamRssi(tpAniSirGlobal pMac,
-                          tCsrRssiCallback callback,
-                          tANI_U8 staId,
-                          tCsrBssid bssId,
-                          void * pContext,
-                          void * pVosContext);
-#endif
-
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 eHalStatus csrGetTsmStats(tpAniSirGlobal pMac,
                           tCsrTsmStatsCallback callback,

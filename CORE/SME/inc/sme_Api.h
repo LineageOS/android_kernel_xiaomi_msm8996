@@ -999,14 +999,6 @@ eHalStatus sme_GetSnr(tHalHandle hHal,
                        tCsrSnrCallback callback,
                        tANI_U8 staId, tCsrBssid bssId,
                        void *pContext);
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-eHalStatus sme_GetRoamRssi(tHalHandle hHal,
-                           tCsrRssiCallback callback,
-                           tANI_U8 staId,
-                           tCsrBssid bssId,
-                           void *pContext,
-                           void* pVosContext);
-#endif
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
 /* ---------------------------------------------------------------------------
