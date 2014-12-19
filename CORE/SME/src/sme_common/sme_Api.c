@@ -6644,53 +6644,6 @@ eHalStatus sme_ChangeMCCBeaconInterval(tHalHandle hHal, tANI_U8 sessionId)
    return (status);
 }
 
-/*-------------------------------------------------------------------------------*
-
-  \fn sme_sendBTAmpEvent
-
-  \brief to receive the coex priority request from BT-AMP PAL
-  and send the BT_AMP link state to HAL
-
-  \param btAmpEvent - btAmpEvent
-
-  \return eHalStatus: SUCCESS : BTAmp event successfully sent to HAL
-
-                      FAILURE: API failed
-
--------------------------------------------------------------------------------*/
-
-eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent)
-{
-  vos_msg_t msg;
-  tpSmeBtAmpEvent ptrSmeBtAmpEvent = NULL;
-  eHalStatus status = eHAL_STATUS_FAILURE;
-
-  ptrSmeBtAmpEvent = vos_mem_malloc(sizeof(tpSmeBtAmpEvent));
-  if (NULL == ptrSmeBtAmpEvent)
-     {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
-           "Not able to allocate memory for BTAmp event", __func__);
-        return status;
-   }
-
-  vos_mem_copy(ptrSmeBtAmpEvent, (void*)&btAmpEvent, sizeof(tSmeBtAmpEvent));
-  msg.type = WDA_SIGNAL_BTAMP_EVENT;
-  msg.reserved = 0;
-  msg.bodyptr = ptrSmeBtAmpEvent;
-
-  //status = halFW_SendBTAmpEventMesg(pMac, event);
-
-  if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-  {
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
-           "Not able to post SIR_HAL_SIGNAL_BTAMP_EVENT message to HAL", __func__);
-    vos_mem_free(ptrSmeBtAmpEvent);
-    return status;
-  }
-
-  return eHAL_STATUS_SUCCESS;
-
-}
 
 /* ---------------------------------------------------------------------------
     \fn     smeIssueFastRoamNeighborAPEvent
