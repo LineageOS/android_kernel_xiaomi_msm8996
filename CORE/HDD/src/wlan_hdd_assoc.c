@@ -4375,8 +4375,9 @@ int iw_set_essid(struct net_device *dev,
 
     if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION &&
         pAdapter->device_mode != WLAN_HDD_P2P_CLIENT) {
-        hddLog(LOGW, "%s device mode %d is not allowed.",
-               __func__, pAdapter->device_mode);
+        hddLog(LOGW, FL("Device mode %s(%d) is not allowed"),
+               hdd_device_mode_to_string(pAdapter->device_mode),
+               pAdapter->device_mode);
         return -EINVAL;
     }
 

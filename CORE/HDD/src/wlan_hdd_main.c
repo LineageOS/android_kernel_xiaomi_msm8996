@@ -388,7 +388,9 @@ static int hdd_is_auto_suspend_allowed(hdd_context_t *hdd_ctx)
         case WLAN_HDD_P2P_CLIENT:
         case WLAN_HDD_IBSS:
         default:
-             hddLog(LOG1, FL("Auto suspend denied %d"), adapter->device_mode);
+             hddLog(LOG1, FL("Auto suspend denied device_mode %s(%d)"),
+                    hdd_device_mode_to_string(adapter->device_mode),
+                    adapter->device_mode);
              perm = HDD_AUTO_SUSPEND_DENIED;
              break;
         }
@@ -666,6 +668,31 @@ static inline void hdd_deinit_auto_suspend_timer(hdd_context_t *hdd_ctx) {}
    can extract it from driver debug symbol and crashdump for post processing */
 tANI_U8 g_wlan_driver_version[ ] = QWLAN_VERSIONSTR;
 
+/**
+ * hdd_device_mode_to_string() - return string conversion of device mode
+ * @device_mode: device mode
+ *
+ * This utility function helps log string conversion of device mode.
+ *
+ * Return: string conversion of device mode, if match found;
+ *	   "Unknown" otherwise.
+ */
+const char* hdd_device_mode_to_string(uint8_t device_mode)
+{
+	switch (device_mode) {
+	CASE_RETURN_STRING(WLAN_HDD_INFRA_STATION);
+	CASE_RETURN_STRING(WLAN_HDD_SOFTAP);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_CLIENT);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_GO);
+	CASE_RETURN_STRING(WLAN_HDD_MONITOR);
+	CASE_RETURN_STRING(WLAN_HDD_FTM);
+	CASE_RETURN_STRING(WLAN_HDD_IBSS);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_DEVICE);
+	CASE_RETURN_STRING(WLAN_HDD_OCB);
+	default:
+		return "Unknown";
+	}
+}
 
 #ifdef FEATURE_GREEN_AP
 
@@ -4292,29 +4319,28 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    hdd_config_t *pConfig = NULL;
 
    if (pHddCtx == NULL) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: HDD context is null", __func__);
+      hddLog(LOGE, FL("HDD context is null"));
       return -EINVAL;
    }
+
    if ((WLAN_HDD_IBSS != pAdapter->device_mode) &&
        (WLAN_HDD_SOFTAP != pAdapter->device_mode) &&
-       (WLAN_HDD_INFRA_STATION != pAdapter->device_mode))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: Received SETMCRATE command in invalid mode %d"
-         "SETMCRATE command is only allowed in STA, IBSS or SOFTAP mode",
-         __func__, pAdapter->device_mode);
+       (WLAN_HDD_INFRA_STATION != pAdapter->device_mode)) {
+      hddLog(LOGE, FL("Received SETMCRATE cmd in invalid device mode %s(%d)"),
+             hdd_device_mode_to_string(pAdapter->device_mode),
+             pAdapter->device_mode);
+      hddLog(LOGE,
+             FL("SETMCRATE cmd is allowed only in STA, IBSS or SOFTAP mode"));
       return -EINVAL;
    }
+
    pConfig = pHddCtx->cfg_ini;
-   rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
-   if (NULL == rateUpdate)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-         "%s: SETMCRATE indication alloc fail", __func__);
-      return -EFAULT;
+   rateUpdate = vos_mem_malloc(sizeof(tSirRateUpdateInd));
+   if (NULL == rateUpdate) {
+      hddLog(LOGE, FL("SETMCRATE indication alloc fail"));
+      return -ENOMEM;
    }
-   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd));
    rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
    rateUpdate->dev_mode = pAdapter->device_mode;
    rateUpdate->mcastDataRate24GHz = targetRate;
@@ -4323,14 +4349,14 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    rateUpdate->bcastDataRate = -1;
    memcpy(rateUpdate->bssid, pAdapter->macAddressCurrent.bytes,
       sizeof(rateUpdate->bssid));
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-      "%s: MC Target rate %d, mac = %pM, dev_mode = %d",
-      __func__, rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+   hddLog(LOG1, FL("MC Target rate %d, mac = %pM, dev_mode %s(%d)"),
+      rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+      hdd_device_mode_to_string(pAdapter->device_mode),
       pAdapter->device_mode);
+
    status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
    if (eHAL_STATUS_SUCCESS != status) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-         "%s: SETMCRATE failed", __func__);
+      hddLog(LOGE, FL("SETMCRATE failed"));
       vos_mem_free(rateUpdate);
       return -EFAULT;
    }
@@ -10491,7 +10517,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
              /* Temporary set log level as error
               * TX Flow control feature settled down, will lower log level */
              hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    "MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter->device_mode),
                     pAdapter->device_mode,
                     targetChannel,
                     pAdapter->tx_flow_low_watermark,
@@ -10515,8 +10542,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            pAdapter->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                      "SCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      hdd_device_mode_to_string(pAdapter->device_mode),
                       pAdapter->device_mode,
                       targetChannel,
                       pAdapter->tx_flow_low_watermark,
@@ -10540,7 +10568,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
                 hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      "SCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      hdd_device_mode_to_string(preAdapterContext->device_mode),
                       preAdapterContext->device_mode,
                       targetChannel,
                       preAdapterContext->tx_flow_low_watermark,
@@ -10583,8 +10612,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                    "MCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter5->device_mode),
                     pAdapter5->device_mode,
                     channel5,
                     pAdapter5->tx_flow_low_watermark,
@@ -10607,8 +10637,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxLbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                    "MCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter2_4->device_mode),
                     pAdapter2_4->device_mode,
                     channel24,
                     pAdapter2_4->tx_flow_low_watermark,
@@ -13705,13 +13736,13 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    do
    {
-      if( (status == VOS_STATUS_SUCCESS) &&
+      if ((status == VOS_STATUS_SUCCESS) &&
                            pAdapterNode  &&
-                           pAdapterNode->pAdapter)
-      {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-               "restarting the driver(intf:\'%s\' mode:%d :try %d)",
+                           pAdapterNode->pAdapter) {
+         hddLog(LOGP,
+               "restarting the driver(intf:\'%s\' mode:%s(%d) :try %d)",
                pAdapterNode->pAdapter->dev->name,
+               hdd_device_mode_to_string(pAdapterNode->pAdapter->device_mode),
                pAdapterNode->pAdapter->device_mode,
                pHddCtx->hdd_restart_retries + 1);
          /*

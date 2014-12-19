@@ -1518,6 +1518,8 @@ struct hdd_context_s
 void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *sta_pAdapter);
 #endif
 
+const char* hdd_device_mode_to_string(uint8_t device_mode);
+
 VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode);
 

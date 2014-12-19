@@ -5604,8 +5604,9 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     tANI_U8 *pKeyPtr = NULL;
     int n = 0;
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                                        __func__,pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     vos_mem_zero(&setKey, sizeof(tCsrRoamSetKey));
     setKey.keyId = key_index; // Store Key ID
@@ -6237,9 +6238,9 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_CHANNEL, pAdapter->sessionId,
                      channel_type ));
-    hddLog(VOS_TRACE_LEVEL_INFO,
-                "%s: device_mode = %d  freq = %d",__func__,
-                            pAdapter->device_mode, chan->center_freq);
+    hddLog(LOG1, FL("Device_mode %s(%d) freq = %d"),
+                 hdd_device_mode_to_string(pAdapter->device_mode),
+                 pAdapter->device_mode, chan->center_freq);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -6280,9 +6281,9 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     "%s: Invalid Channel [%d]", __func__, channel);
             return -EINVAL;
         }
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                "%s: set channel to [%d] for device mode =%d",
-                          __func__, channel,pAdapter->device_mode);
+        hddLog(LOG2, FL("set channel to [%d] for device mode %s(%d)"),
+               channel, hdd_device_mode_to_string(pAdapter->device_mode),
+               pAdapter->device_mode);
     }
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
      || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
@@ -6336,9 +6337,10 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             {
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel =
                                                           AUTO_CHANNEL_SELECT;
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                       "%s: set channel to auto channel (0) for device mode =%d",
-                       __func__, pAdapter->device_mode);
+                hddLog(LOG2,
+                       FL("set channel to auto channel (0) for device mode %s(%d)"),
+                       hdd_device_mode_to_string(pAdapter->device_mode),
+                       pAdapter->device_mode);
             }
             else
             {
@@ -7167,7 +7169,9 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_ADD_BEACON,
                      pAdapter->sessionId, params->interval));
-    hddLog(LOG2, FL("Device mode=%d"), pAdapter->device_mode);
+    hddLog(LOG2, FL("Device mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -7229,7 +7233,9 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_BEACON,
                      pAdapter->sessionId, pHddStaCtx->conn_info.authType));
-    hddLog(LOG1, FL("Device_mode = %d"), pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -7308,7 +7314,9 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         return -EOPNOTSUPP;
     }
 
-    hddLog(LOG1, FL("Device_mode = %d"), pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
@@ -7461,8 +7469,9 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: pAdapter = %p, device mode = %d",
-           __func__, pAdapter, pAdapter->device_mode);
+    hddLog(LOG2, FL("pAdapter = %p, device mode %s(%d)"),
+           pAdapter, hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
@@ -7533,7 +7542,9 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CHANGE_BEACON,
                      pAdapter->sessionId, pAdapter->device_mode));
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -7587,8 +7598,9 @@ static int __wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CHANGE_BSS,
                      pAdapter->sessionId, params->ap_isolate));
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d, ap_isolate = %d"),
-                               pAdapter->device_mode, params->ap_isolate);
+    hddLog(LOG1, FL("Device_mode %s(%d), ap_isolate = %d"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode, params->ap_isolate);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
@@ -7740,8 +7752,9 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                      TRACE_CODE_HDD_CFG80211_CHANGE_IFACE,
                      pAdapter->sessionId, type));
 
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Device_mode = %d, IFTYPE = 0x%x"),
-                                 pAdapter->device_mode, type);
+    hddLog(LOG1, FL("Device_mode %s(%d), IFTYPE = 0x%x"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode, type);
 
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
@@ -8500,8 +8513,9 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-            __func__, pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     if (CSR_MAX_NUM_KEY <= key_index)
     {
@@ -8845,7 +8859,9 @@ static int __wlan_hdd_cfg80211_get_key(
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_GET_KEY,
                      pAdapter->sessionId, params.cipher));
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Device_mode = %d"), pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     memset(&params, 0, sizeof(params));
 
@@ -8937,8 +8953,9 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
 
     ENTER();
 
-    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: device_mode = %d",
-                                     __func__,pAdapter->device_mode);
+    hddLog(LOG2, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     if (CSR_MAX_NUM_KEY <= key_index)
     {
@@ -9071,7 +9088,8 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                      TRACE_CODE_HDD_CFG80211_SET_DEFAULT_KEY,
                      pAdapter->sessionId, key_index));
 
-    hddLog(LOG1, FL("Device_mode = %d key_index = %d"),
+    hddLog(LOG1, FL("Device_mode %s(%d) key_index = %d"),
+                 hdd_device_mode_to_string(pAdapter->device_mode),
                  pAdapter->device_mode, key_index);
 
     if (CSR_MAX_NUM_KEY <= key_index) {
@@ -9888,9 +9906,9 @@ v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
 
         if( pAdapter )
         {
-            hddLog(VOS_TRACE_LEVEL_INFO,
-                    "%s: Adapter with device mode %d exists",
-                    __func__, pAdapter->device_mode);
+            hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
+                   hdd_device_mode_to_string(pAdapter->device_mode),
+                   pAdapter->device_mode);
             if (((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
                  (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
                  (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) &&
@@ -9991,8 +10009,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
                      TRACE_CODE_HDD_CFG80211_SCAN,
                      pAdapter->sessionId, request->n_channels));
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-           __func__, pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -11392,8 +11411,9 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_CONNECT,
                      pAdapter->sessionId, pAdapter->device_mode));
-    hddLog(VOS_TRACE_LEVEL_INFO,
-             "%s: device_mode = %d",__func__,pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION &&
         pAdapter->device_mode != WLAN_HDD_P2P_CLIENT) {
@@ -11642,8 +11662,9 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_DISCONNECT,
                      pAdapter->sessionId, reason));
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode (%d) reason code(%d)"),
-                                 pAdapter->device_mode, reason);
+    hddLog(LOG1, FL("Device_mode %s(%d) reason code(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode, reason);
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -11857,8 +11878,9 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_JOIN_IBSS,
                      pAdapter->sessionId, pAdapter->device_mode));
-    hddLog(VOS_TRACE_LEVEL_INFO,
-                  "%s: device_mode = %d",__func__,pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
     status = wlan_hdd_validate_context(pHddCtx);
 
@@ -12065,7 +12087,9 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("device_mode = %d"), pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
     if (NULL == pWextState) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Data Storage Corruption"));
         return -EIO;
@@ -14765,8 +14789,7 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"acl policy: = %d"
              "no acl entries = %d", params->acl_policy, params->n_acl_entries);
 
-    if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
-    {
+    if (WLAN_HDD_SOFTAP == pAdapter->device_mode) {
         pConfig = &pAdapter->sessionCtx.ap.sapConfig;
 
         /* default value */
@@ -14836,12 +14859,10 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
                        "%s: SAP Set Mac Acl fail", __func__);
             return -EINVAL;
         }
-    }
-    else
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Invalid device_mode = %d",
-                                 __func__, pAdapter->device_mode);
+    } else {
+        hddLog(LOGE, FL("Invalid device_mode %s(%d)"),
+               hdd_device_mode_to_string(pAdapter->device_mode),
+               pAdapter->device_mode);
         return -EINVAL;
     }
 
