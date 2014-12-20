@@ -1174,6 +1174,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.doBMPSWorkaround = 0;
 
     pMac->roam.configParam.nInitialDwellTime = 0;
+    pMac->roam.configParam.initial_scan_no_dfs_chnl = 0;
 }
 eCsrBand csrGetCurrentBand(tHalHandle hHal)
 {
@@ -1684,6 +1685,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 
         //if HDD passed down non zero values then only update,
         //otherwise keep using the defaults
+        if (pParam->initial_scan_no_dfs_chnl) {
+            pMac->roam.configParam.initial_scan_no_dfs_chnl =
+                                        pParam->initial_scan_no_dfs_chnl;
+        }
         if (pParam->nInitialDwellTime)
         {
             pMac->roam.configParam.nInitialDwellTime =
@@ -2079,6 +2084,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                                 pMac->roam.configParam.allowDFSChannelRoam;
         pParam->nInitialDwellTime =
                                 pMac->roam.configParam.nInitialDwellTime;
+        pParam->initial_scan_no_dfs_chnl =
+                                pMac->roam.configParam.initial_scan_no_dfs_chnl;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         pParam->isRoamOffloadEnabled =
                                 pMac->roam.configParam.isRoamOffloadEnabled;
