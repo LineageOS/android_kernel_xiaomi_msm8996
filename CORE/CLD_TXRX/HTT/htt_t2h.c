@@ -51,6 +51,8 @@
 #include <ol_txrx_stats.h>
 #include <wdi_event_api.h>
 #include <ol_txrx_ctrl_api.h>
+#include <ol_txrx_peer_find.h>
+#include <ol_ctrl_txrx_api.h>
 /*--- target->host HTT message dispatch function ----------------------------*/
 
 #ifndef DEBUG_CREDIT
@@ -400,6 +402,54 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             break;
         }
 #endif /* IPA_UC_OFFLOAD */
+    case HTT_T2H_MSG_TYPE_RX_OFLD_PKT_ERR:
+    {
+        switch (HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_GET(*msg_word)) {
+            case HTT_RX_OFLD_PKT_ERR_TYPE_MIC_ERR:
+            {
+                struct ol_error_info err_info;
+                struct ol_txrx_vdev_t *vdev;
+                struct ol_txrx_peer_t *peer;
+                u_int8_t * pn_ptr;
+                u_int16_t peer_id =
+                     HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_GET(*(msg_word + 1));
+
+                peer = ol_txrx_peer_find_by_id(pdev->txrx_pdev, peer_id);
+                if (!peer) {
+                    adf_os_print("%s: invalid peer id %d\n", __FUNCTION__,
+                                  peer_id);
+                    break;
+                }
+                vdev = peer->vdev;
+
+                err_info.u.mic_err.vdev_id = vdev->vdev_id;
+                err_info.u.mic_err.key_id =
+                     HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_GET(*(msg_word + 1));
+                adf_os_mem_copy(err_info.u.mic_err.da,
+                                (u_int8_t *)(msg_word + 2),
+                                 OL_TXRX_MAC_ADDR_LEN);
+                adf_os_mem_copy(err_info.u.mic_err.sa,
+                                (u_int8_t *)(msg_word + 4),
+                                 OL_TXRX_MAC_ADDR_LEN);
+                adf_os_mem_copy(err_info.u.mic_err.ta,
+                                peer->mac_addr.raw, OL_TXRX_MAC_ADDR_LEN);
+
+                pn_ptr = (u_int8_t *)&err_info.u.mic_err.pn;
+                adf_os_mem_copy(pn_ptr, (u_int8_t *)(msg_word + 6), 4);
+                adf_os_mem_copy((pn_ptr + 4), (u_int8_t *)(msg_word + 7), 2);
+
+                ol_indicate_err(OL_RX_ERR_TKIP_MIC, &err_info);
+                break;
+            }
+
+            default:
+            {
+                adf_os_print("%s: unhandled error type %d\n", __FUNCTION__,
+                             HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_GET(*msg_word));
+                break;
+            }
+        }
+    }
 
     default:
         break;
