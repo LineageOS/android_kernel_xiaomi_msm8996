@@ -1022,6 +1022,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif /* WLAN_FEATURE_APFIND */
 
 #define WDA_OCB_SET_SCHED_REQUEST             SIR_HAL_OCB_SET_SCHED_REQUEST
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+#define WDA_WLAN_AUTO_SUSPEND_IND             SIR_HAL_WLAN_AUTO_SUSPEND_IND
+#define WDA_WLAN_AUTO_RESUME_IND              SIR_HAL_WLAN_AUTO_RESUME_IND
+#endif
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

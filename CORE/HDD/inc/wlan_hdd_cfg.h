@@ -2714,6 +2714,13 @@ enum dot11p_mode {
 #define CFG_DOT11P_MODE_MIN              ( WLAN_HDD_11P_DISABLED )
 #define CFG_DOT11P_MODE_MAX              ( WLAN_HDD_11P_CONCURRENT )
 
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+#define CFG_ENABLE_AUTO_SUSPEND                   "gEnableBusAutoSuspend"
+#define CFG_ENABLE_AUTO_SUSPEND_MIN               ( 0 )
+#define CFG_ENABLE_AUTO_SUSPEND_MAX               ( 1 )
+#define CFG_ENABLE_AUTO_SUSPEND_DEFAULT           ( 0 )
+#endif
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3301,8 +3308,10 @@ typedef struct
    uint32_t                    sap_auth_offload_sec_type;
    uint8_t                     sap_auth_offload_key[WLAN_PSK_STRING_LENGTH];
 #endif /* SAP_AUTH_OFFLOAD */
-
    uint8_t                     dot11p_mode;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+   bool                        enable_bus_auto_suspend;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

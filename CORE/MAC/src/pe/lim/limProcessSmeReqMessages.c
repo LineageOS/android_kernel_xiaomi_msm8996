@@ -1122,7 +1122,12 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     tANI_U8 *p;
     tANI_U8 *ht_cap_ie;
     tSirMsgQ msg;
-    tANI_U16 i, len, ht_cap_len = 0;
+    tANI_U16 i, len;
+    tANI_U16  ht_cap_len = 0, addn_ie_len = 0;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8 *vht_cap_ie;
+    tANI_U16 vht_cap_len = 0;
+#endif /* WLAN_FEATURE_11AC */
     tSirRetStatus rc = eSIR_SUCCESS;
 
     pMac->lim.fOffloadScanPending = 0;
@@ -1138,7 +1143,21 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
                FL("Adding HT Caps IE since dot11mode=%d"), pScanReq->dot11mode);
         ht_cap_len = 2 + sizeof(tHtCaps); /* 2 bytes for EID and Length */
         len += ht_cap_len;
+        addn_ie_len += ht_cap_len;
     }
+
+#ifdef WLAN_FEATURE_11AC
+    if (IS_DOT11_MODE_VHT(pScanReq->dot11mode)) {
+        limLog(pMac, LOG1,
+               FL("Adding VHT Caps IE since dot11mode=%d"),
+               pScanReq->dot11mode);
+        /* 2 bytes for EID and Length */
+        vht_cap_len = 2 + sizeof(tSirMacVHTCapabilityInfo) +
+                          sizeof(tSirVhtMcsInfo);
+        len += vht_cap_len;
+        addn_ie_len += vht_cap_len;
+    }
+#endif /* WLAN_FEATURE_11AC */
 
     pScanOffloadReq = vos_mem_malloc(len);
     if ( NULL == pScanOffloadReq )
@@ -1204,7 +1223,7 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
         p[i] = pScanReq->channelList.channelNumber[i];
 
     pScanOffloadReq->uIEFieldLen = pScanReq->uIEFieldLen;
-    pScanOffloadReq->uIEFieldOffset = len - ht_cap_len -
+    pScanOffloadReq->uIEFieldOffset = len - addn_ie_len -
                                       pScanOffloadReq->uIEFieldLen;
     vos_mem_copy(
             (tANI_U8 *) pScanOffloadReq + pScanOffloadReq->uIEFieldOffset,
@@ -1220,9 +1239,24 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
         vos_mem_set(ht_cap_ie, ht_cap_len, 0);
         *ht_cap_ie = SIR_MAC_HT_CAPABILITIES_EID;
         *(ht_cap_ie + 1) =  ht_cap_len - 2;
-        lim_set_ht_caps(pMac, NULL, ht_cap_ie, len - ht_cap_len);
+        lim_set_ht_caps(pMac, NULL, ht_cap_ie, ht_cap_len);
         pScanOffloadReq->uIEFieldLen += ht_cap_len;
     }
+
+#ifdef WLAN_FEATURE_11AC
+    /* Copy VHT Capability info if dot11mode is VHT Capable */
+    if (IS_DOT11_MODE_VHT(pScanReq->dot11mode)) {
+        /* Populate EID and Length field here */
+        vht_cap_ie = (tANI_U8 *) pScanOffloadReq +
+                                 pScanOffloadReq->uIEFieldOffset +
+                                 pScanOffloadReq->uIEFieldLen;
+        vos_mem_set(vht_cap_ie, vht_cap_len, 0);
+        *vht_cap_ie = SIR_MAC_VHT_CAPABILITIES_EID;
+        *(vht_cap_ie + 1) =  vht_cap_len - 2;
+        lim_set_vht_caps(pMac, NULL, vht_cap_ie, vht_cap_len);
+        pScanOffloadReq->uIEFieldLen += vht_cap_len;
+    }
+#endif /* WLAN_FEATURE_11AC */
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc != eSIR_SUCCESS)

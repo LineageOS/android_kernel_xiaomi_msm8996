@@ -696,7 +696,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
 
         /* OFDM rates are not supported on channel 14 */
         if(*pChans == 14 &&
-               eCSR_DOT11_MODE_11b != sme_GetPhyMode(halHandle))
+               eCSR_DOT11_MODE_11b != pSapCtx->csrRoamProfile.phyMode)
         {
             continue;
         }
@@ -2330,7 +2330,7 @@ void sapSortChlWeightAll(ptSapContext pSapCtx,
 }
 
 eChannelWidthInfo sapGetChannelWidthInfo(tHalHandle halHandle, ptSapContext pSapCtx,
-                                 v_U32_t operatingBand, eSapPhyMode phyMode)
+                                 v_U32_t operatingBand, eCsrPhyMode phyMode)
 {
     v_U32_t cbMode;
     eChannelWidthInfo chWidth = CHWIDTH_HT20;
@@ -2343,16 +2343,16 @@ eChannelWidthInfo sapGetChannelWidthInfo(tHalHandle halHandle, ptSapContext pSap
                   "%s: cbMode=%d, phyMode=%d",
                __func__, cbMode, phyMode);
 
-    if (phyMode == eSAP_DOT11_MODE_11n ||
-        phyMode == eSAP_DOT11_MODE_11n_ONLY)
+    if (phyMode == eCSR_DOT11_MODE_11n ||
+        phyMode == eCSR_DOT11_MODE_11n_ONLY)
     {
         if (cbMode)
             chWidth = CHWIDTH_HT40;
         else
             chWidth = CHWIDTH_HT20;
     }
-    else if (pSapCtx->csrRoamProfile.phyMode == eCSR_CFG_DOT11_MODE_11AC ||
-        pSapCtx->csrRoamProfile.phyMode == eCSR_CFG_DOT11_MODE_11AC_ONLY) {
+    else if (pSapCtx->csrRoamProfile.phyMode == eCSR_DOT11_MODE_11ac ||
+        pSapCtx->csrRoamProfile.phyMode == eCSR_DOT11_MODE_11ac_ONLY) {
         chWidth = CHWIDTH_HT80;
     }
     else {

@@ -3522,6 +3522,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DOT11P_MODE_DEFAULT,
                 CFG_DOT11P_MODE_MIN,
                 CFG_DOT11P_MODE_MAX),
+
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+   REG_VARIABLE( CFG_ENABLE_AUTO_SUSPEND, WLAN_PARAM_Integer,
+              hdd_config_t, enable_bus_auto_suspend,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_AUTO_SUSPEND_DEFAULT,
+              CFG_ENABLE_AUTO_SUSPEND_MIN,
+              CFG_ENABLE_AUTO_SUSPEND_MAX ),
+#endif
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4185,6 +4194,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
            "Name = [gMDNSResponseTypeSRVTarget] Value = [%s]",
                    pHddCtx->cfg_ini->mdns_resp_type_srv_target);
 #endif
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+  hddLog(LOG2, "Name = [gEnableBusAutoSuspend] Value = [%u]",
+                   pHddCtx->cfg_ini->enable_bus_auto_suspend);
+#endif
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -4632,7 +4645,6 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "RegName = %s, VarOffset %u VarSize %u VarDefault %s",
             pRegEntry->RegName, pRegEntry->VarOffset, pRegEntry->VarSize, (char*)pRegEntry->VarDefault);
 #endif
-
          if ( match_status == VOS_STATUS_SUCCESS)
          {
             len_value_str = strlen(value_str);
@@ -5960,7 +5972,6 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update PNO offload status */
    smeConfig->pnoOffload = pHddCtx->cfg_ini->PnoOffload;
 #endif
-
    /* Update maximum interfaces information */
    smeConfig->max_intf_count = pHddCtx->max_intf_count;
 
@@ -5977,6 +5988,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                         pHddCtx->cfg_ini->conc_custom_rule1;
    smeConfig->csrConfig.is_sta_connection_in_5gz_enabled =
                         pHddCtx->cfg_ini->is_sta_connection_in_5gz_enabled;
+#ifdef FEATURE_BUS_AUTO_SUSPEND
+   smeConfig->enable_bus_auto_suspend =
+       pHddCtx->cfg_ini->enable_bus_auto_suspend;
+#endif
 
    /* Update 802.11p config */
    smeConfig->csrConfig.enable_dot11p = (pHddCtx->cfg_ini->dot11p_mode !=

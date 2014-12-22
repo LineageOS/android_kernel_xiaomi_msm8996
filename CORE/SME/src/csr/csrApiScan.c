@@ -4822,9 +4822,6 @@ static tANI_BOOLEAN csrScanIsBssAllowed(tpAniSirGlobal pMac, tSirBssDescription 
         case eCSR_DOT11_MODE_11b_ONLY:
             fAllowed = (tANI_BOOLEAN)(eCSR_DOT11_MODE_11b == phyMode);
             break;
-        case eCSR_DOT11_MODE_11a_ONLY:
-            fAllowed = (tANI_BOOLEAN)(eCSR_DOT11_MODE_11a == phyMode);
-            break;
         case eCSR_DOT11_MODE_11n:
 #ifdef WLAN_FEATURE_11AC
         case eCSR_DOT11_MODE_11ac:

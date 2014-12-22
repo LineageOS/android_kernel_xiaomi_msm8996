@@ -147,21 +147,6 @@ typedef enum{
 }eSapReasonCode;
 
 typedef enum {
-    eSAP_DOT11_MODE_abg = 0x0001,
-    eSAP_DOT11_MODE_11a = 0x0002,
-    eSAP_DOT11_MODE_11b = 0x0004,
-    eSAP_DOT11_MODE_11g = 0x0008,
-    eSAP_DOT11_MODE_11n = 0x0010,
-    eSAP_DOT11_MODE_11g_ONLY = 0x0080,
-    eSAP_DOT11_MODE_11n_ONLY = 0x0100,
-    eSAP_DOT11_MODE_11b_ONLY = 0x0400,
-#ifdef WLAN_FEATURE_11AC
-    eSAP_DOT11_MODE_11ac     = 0x1000,
-    eSAP_DOT11_MODE_11ac_ONLY = 0x2000
-#endif
-} eSapPhyMode;
-
-typedef enum {
     eSAP_ACCEPT_UNLESS_DENIED = 0,
     eSAP_DENY_UNLESS_ACCEPTED = 1,
     eSAP_SUPPORT_ACCEPT_AND_DENY = 2, /* this type is added to support both accept and deny lists at the same time */
@@ -456,7 +441,7 @@ typedef __ani_attr_pre_packed struct sap_SSIDInfo {
 
 typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
-    eSapPhyMode     SapHw_mode; /* Wireless Mode */
+    eCsrPhyMode     SapHw_mode; /* Wireless Mode */
     eSapMacAddrACL  SapMacaddr_acl;
     v_MACADDR_t     accept_mac[MAX_ACL_MAC_ADDRESS]; /* MAC filtering */
     v_BOOL_t        ieee80211d;      /*Specify if 11D is enabled or disabled*/
@@ -2221,23 +2206,6 @@ VOS_STATUS WLANSAP_UpdateSapConfigAddIE(tsap_Config_t *pConfig,
 VOS_STATUS
 WLANSAP_ResetSapConfigAddIE(tsap_Config_t *pConfig,
                             eUpdateIEsType updateType);
-
-
-
-/*==========================================================================
-FUNCTION  sapConvertSapPhyModeToCsrPhyMode
-
-DESCRIPTION Function to implement selection of CSR PhyMode using SAP PhyMode
-
-DEPENDENCIES PARAMETERS
-
-IN sapPhyMode : SAP Phy Module
-
-RETURN VALUE If SUCCESS or FAILURE
-
-SIDE EFFECTS
-============================================================================*/
-eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 
 /*==========================================================================
 FUNCTION  WLANSAP_extend_to_acs_range
