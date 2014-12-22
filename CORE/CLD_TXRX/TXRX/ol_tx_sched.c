@@ -434,19 +434,6 @@ ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wm
 
 /*--- definitions ---*/
 
-enum {
-    OL_TX_SCHED_WRR_ADV_CAT_VO,
-    OL_TX_SCHED_WRR_ADV_CAT_VI,
-    OL_TX_SCHED_WRR_ADV_CAT_BK,
-    OL_TX_SCHED_WRR_ADV_CAT_BE,
-    OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA,
-    OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT,
-    OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA,
-    OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT,
-
-    OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES /* must be last */
-};
-
 struct ol_tx_sched_wrr_adv_category_info_t {
     struct {
         int wrr_skip_weight;
@@ -600,7 +587,6 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
 struct ol_tx_sched_wrr_adv_t {
     int order[OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES];
     int index;
-    int tid_to_category[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
     struct ol_tx_sched_wrr_adv_category_info_t
         categories[OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES];
 };
@@ -851,7 +837,7 @@ ol_tx_sched_txq_enqueue_wrr_adv(
     struct ol_tx_sched_wrr_adv_t *scheduler = pdev->tx_sched.scheduler;
     struct ol_tx_sched_wrr_adv_category_info_t *category;
 
-    category = &scheduler->categories[scheduler->tid_to_category[tid]];
+    category = &scheduler->categories[pdev->tid_to_ac[tid]];
     category->state.frms += frms;
     category->state.bytes += bytes;
     OL_TX_SCHED_WRR_ADV_CAT_STAT_INC_QUEUED(category, frms);
@@ -871,7 +857,7 @@ ol_tx_sched_txq_deactivate_wrr_adv(
     struct ol_tx_sched_wrr_adv_t *scheduler = pdev->tx_sched.scheduler;
     struct ol_tx_sched_wrr_adv_category_info_t *category;
 
-    category = &scheduler->categories[scheduler->tid_to_category[tid]];
+    category = &scheduler->categories[pdev->tid_to_ac[tid]];
     category->state.frms -= txq->frms;
     category->state.bytes -= txq->bytes;
 
@@ -960,7 +946,7 @@ ol_tx_sched_init_wrr_adv(
   struct ol_txrx_pdev_t *pdev)
 {
     struct ol_tx_sched_wrr_adv_t *scheduler;
-    int i, tid;
+    int i;
 
     scheduler = adf_os_mem_alloc(
         pdev->osdev, sizeof(struct ol_tx_sched_wrr_adv_t));
@@ -987,24 +973,6 @@ ol_tx_sched_init_wrr_adv(
         scheduler->categories[i].state.wrr_count =
             scheduler->categories[i].specs.wrr_skip_weight - 1;
     }
-
-    /*
-     * Init the tid --> category table.
-     * Regular tids (0-15) map to their AC.
-     * Extension tids get their own categories.
-     */
-    for (tid = 0; tid < OL_TX_NUM_QOS_TIDS; tid++) {
-        int ac = TXRX_TID_TO_WMM_AC(tid);
-        scheduler->tid_to_category[tid] = ac;
-    }
-    scheduler->tid_to_category[OL_TX_NON_QOS_TID] =
-        OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA;
-    scheduler->tid_to_category[OL_TX_MGMT_TID] =
-        OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT;
-    scheduler->tid_to_category[OL_TX_NUM_TIDS + OL_TX_VDEV_MCAST_BCAST] =
-        OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA;
-    scheduler->tid_to_category[OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT] =
-        OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT;
 
     /*
      * Init the order array - the initial ordering doesn't matter, as the

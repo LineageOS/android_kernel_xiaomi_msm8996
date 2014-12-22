@@ -1947,21 +1947,6 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
 eHalStatus sme_ChangeMCCBeaconInterval(tHalHandle hHal, tANI_U8 sessionId);
 
 
-
-/* ---------------------------------------------------------------------------
-  \fn sme_sendBTAmpEvent
-  \brief API to send the btAMPstate to FW
-  \param  hHal - The handle returned by macOpen.
-  \param  btAmpEvent -- btAMP event
-  \return eHalStatus  SUCCESS
-                         FAILURE or RESOURCES  The API finished and failed.
-
---------------------------------------------------------------------------- */
-
-eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
-
-
-
 /* ---------------------------------------------------------------------------
     \fn sme_SetHostOffload
     \brief  API to set the host offload feature.

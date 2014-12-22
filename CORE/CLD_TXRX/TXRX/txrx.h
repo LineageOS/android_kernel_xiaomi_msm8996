@@ -37,10 +37,10 @@
 #include "wlan_qct_tl.h"
 
 enum txrx_wmm_ac {
-	TXRX_WMM_AC_VO,
-	TXRX_WMM_AC_VI,
-	TXRX_WMM_AC_BK,
 	TXRX_WMM_AC_BE,
+	TXRX_WMM_AC_BK,
+	TXRX_WMM_AC_VI,
+	TXRX_WMM_AC_VO,
 
 	TXRX_NUM_WMM_AC
 };

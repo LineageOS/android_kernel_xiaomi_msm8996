@@ -62,6 +62,11 @@ int hdd_ipa_resume(hdd_context_t *hdd_ctx);
 int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx, bool mcc_mode);
 #endif
 
+#ifdef IPA_UC_OFFLOAD
+int hdd_ipa_uc_ssr_reinit(void);
+int hdd_ipa_uc_ssr_deinit(void);
+#endif
+
 #endif
 
 #endif
