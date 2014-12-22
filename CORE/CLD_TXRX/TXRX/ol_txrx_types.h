@@ -192,6 +192,32 @@ struct ol_rx_reorder_timeout_list_elem_t
 		(((_tid) ^ ((_tid) >> 1)) & 0x1) ? TXRX_WMM_AC_BK : \
 		TXRX_WMM_AC_BE)
 
+enum {
+    OL_TX_SCHED_WRR_ADV_CAT_BE,
+    OL_TX_SCHED_WRR_ADV_CAT_BK,
+    OL_TX_SCHED_WRR_ADV_CAT_VI,
+    OL_TX_SCHED_WRR_ADV_CAT_VO,
+    OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA,
+    OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT,
+    OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA,
+    OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT,
+
+    OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES /* must be last */
+};
+
+A_COMPILE_TIME_ASSERT(ol_tx_sched_htt_ac_values,
+    /* check that regular WMM AC enum values match */
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_VO == (int)HTT_AC_WMM_VO) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_VI == (int)HTT_AC_WMM_VI) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_BK == (int)HTT_AC_WMM_BK) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_BE == (int)HTT_AC_WMM_BE) &&
+
+    /* check that extension AC enum values match */
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA == (int)HTT_AC_EXT_NON_QOS) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT == (int)HTT_AC_EXT_UCAST_MGMT) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA == (int)HTT_AC_EXT_MCAST_DATA) &&
+    ((int)OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT == (int)HTT_AC_EXT_MCAST_MGMT));
+
 struct ol_tx_reorder_cat_timeout_t {
 	TAILQ_HEAD(, ol_rx_reorder_timeout_list_elem_t) virtual_timer_list;
 	adf_os_timer_t timer;
@@ -716,6 +742,7 @@ struct ol_txrx_pdev_t {
 	struct ol_tx_queue_group_t txq_grps[OL_TX_MAX_TXQ_GROUPS];
 	u_int8_t ocb_peer_valid;
 	struct ol_txrx_peer_t *ocb_peer;
+	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
 };
 
 struct ol_txrx_vdev_t {

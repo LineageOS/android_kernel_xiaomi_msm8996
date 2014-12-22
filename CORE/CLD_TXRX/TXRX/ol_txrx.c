@@ -317,7 +317,7 @@ ol_txrx_pdev_attach(
     HTC_HANDLE htc_pdev,
     adf_os_device_t osdev)
 {
-    int i;
+    int i, tid;
     struct ol_txrx_pdev_t *pdev;
 #ifdef WDI_EVENT_ENABLE
     A_STATUS ret;
@@ -735,6 +735,25 @@ ol_txrx_pdev_attach(
     /* Thermal Mitigation */
     ol_tx_throttle_init(pdev);
 #endif
+
+    /*
+     * Init the tid --> category table.
+     * Regular tids (0-15) map to their AC.
+     * Extension tids get their own categories.
+     */
+    for (tid = 0; tid < OL_TX_NUM_QOS_TIDS; tid++) {
+        int ac = TXRX_TID_TO_WMM_AC(tid);
+        pdev->tid_to_ac[tid] = ac;
+    }
+    pdev->tid_to_ac[OL_TX_NON_QOS_TID] =
+        OL_TX_SCHED_WRR_ADV_CAT_NON_QOS_DATA;
+    pdev->tid_to_ac[OL_TX_MGMT_TID] =
+        OL_TX_SCHED_WRR_ADV_CAT_UCAST_MGMT;
+    pdev->tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_MCAST_BCAST] =
+        OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA;
+    pdev->tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT] =
+        OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT;
+
     return pdev; /* success */
 
 fail8:
