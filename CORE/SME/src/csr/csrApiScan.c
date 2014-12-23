@@ -864,6 +864,14 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 }
 
                 status = csrScanCopyRequest(pMac, &pScanCmd->u.scanCmd.u.scanRequest, pScanRequest);
+                /*
+                 * Reset the variable after the first scan is queued after
+                 * loading the driver. The purpose of this parameter is that
+                 * DFS channels are skipped during the first scan after loading
+                 * the driver. The above API builds the target scan request in
+                 * which this variable is used.
+                 */
+                pMac->roam.configParam.initial_scan_no_dfs_chnl = 0;
                 if(HAL_STATUS_SUCCESS(status))
                 {
                   tCsrScanRequest *pTempScanReq =
@@ -6119,6 +6127,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
     tANI_U32 index = 0;
     tANI_U32 new_index = 0;
     eNVChannelEnabledType NVchannel_state;
+    uint8_t skip_dfs_chnl = pMac->roam.configParam.initial_scan_no_dfs_chnl;
 
     do
     {
@@ -6178,7 +6187,8 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                           NVchannel_state = vos_nv_getChannelEnabledState(
                                   pSrcReq->ChannelInfo.ChannelList[index]);
                           if ((NV_CHANNEL_ENABLE == NVchannel_state) ||
-                                  (NV_CHANNEL_DFS == NVchannel_state))
+                                  ((NV_CHANNEL_DFS == NVchannel_state) &&
+                                    !skip_dfs_chnl))
                           {
                              pDstReq->ChannelInfo.ChannelList[new_index] =
                                  pSrcReq->ChannelInfo.ChannelList[index];
@@ -6203,7 +6213,8 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                ((eCSR_SCAN_P2P_DISCOVERY == pSrcReq->requestType) &&
                                 CSR_IS_SOCIAL_CHANNEL(pSrcReq->ChannelInfo.ChannelList[index])))
                             {
-                                if( (pSrcReq->skipDfsChnlInP2pSearch &&
+                                if( ((pSrcReq->skipDfsChnlInP2pSearch ||
+                                    skip_dfs_chnl) &&
                                     (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(pSrcReq->ChannelInfo.ChannelList[index])) )
 #ifdef FEATURE_WLAN_LFR
                                      /*
