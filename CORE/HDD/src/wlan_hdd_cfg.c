@@ -2968,6 +2968,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_INITIAL_DWELL_TIME_MIN,
                  CFG_INITIAL_DWELL_TIME_MAX ),
 
+   REG_VARIABLE( CFG_INITIAL_SCAN_NO_DFS_CHNL_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, initial_scan_no_dfs_chnl,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_INITIAL_SCAN_NO_DFS_CHNL_DEFAULT,
+                 CFG_INITIAL_SCAN_NO_DFS_CHNL_MIN,
+                 CFG_INITIAL_SCAN_NO_DFS_CHNL_MAX ),
+
    REG_VARIABLE( CFG_ACS_BAND_SWITCH_THRESHOLD, WLAN_PARAM_Integer,
                  hdd_config_t, acsBandSwitchThreshold,
 #ifndef WLAN_FEATURE_MBSSID
@@ -5782,6 +5789,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->csrConfig.nRoamingTime             = pConfig->nRoamingTime;
    smeConfig->csrConfig.IsIdleScanEnabled        = pConfig->nEnableIdleScan;
    smeConfig->csrConfig.nInitialDwellTime        = pConfig->nInitialDwellTime;
+   smeConfig->csrConfig.initial_scan_no_dfs_chnl =
+                                            pConfig->initial_scan_no_dfs_chnl;
    smeConfig->csrConfig.nActiveMaxChnTime        = pConfig->nActiveMaxChnTime;
    smeConfig->csrConfig.nActiveMinChnTime        = pConfig->nActiveMinChnTime;
    smeConfig->csrConfig.nPassiveMaxChnTime       = pConfig->nPassiveMaxChnTime;

@@ -870,9 +870,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_UPDATE_USERPOS         SIR_HAL_UPDATE_USERPOS
 #endif
 
-#define WDA_GET_ROAM_RSSI_REQ      SIR_HAL_GET_ROAM_RSSI_REQ
-#define WDA_GET_ROAM_RSSI_RSP      SIR_HAL_GET_ROAM_RSSI_RSP
-
 #ifdef WLAN_FEATURE_NAN
 #define WDA_NAN_REQUEST            SIR_HAL_NAN_REQUEST
 #endif

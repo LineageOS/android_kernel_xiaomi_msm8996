@@ -2136,22 +2136,6 @@ typedef struct sAniGetSnrReq
     tANI_S8                 snr;
 } tAniGetSnrReq, *tpAniGetSnrReq;
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-typedef struct sAniGetRoamRssiRsp
-{
-    // Common for all types are responses
-    tANI_U16                msgType;    // message type is same as the request type
-    tANI_U16                msgLen;  // length of the entire request, includes the pStatsBuf length too
-    tANI_U8                 sessionId;
-    tANI_U32                rc;         //success/failure
-    tANI_U32                staId;  // Per STA stats request must contain valid
-    tANI_S8                 rssi;
-    void                    *rssiReq;  //rssi request backup
-
-} tAniGetRoamRssiRsp, *tpAniGetRoamRssiRsp;
-
-#endif
-
 #if defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_ESE_UPLOAD)
 typedef struct sSirTsmIE
 {

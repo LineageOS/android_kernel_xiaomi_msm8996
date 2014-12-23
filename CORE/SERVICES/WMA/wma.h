@@ -1042,9 +1042,6 @@ typedef enum
 
    WLAN_HAL_P2P_NOA_START_IND               = 184,
 
-   WLAN_HAL_GET_ROAM_RSSI_REQ               = 185,
-   WLAN_HAL_GET_ROAM_RSSI_RSP               = 186,
-
    WLAN_HAL_CLASS_B_STATS_IND               = 187,
    WLAN_HAL_DEL_BA_IND                      = 188,
    WLAN_HAL_DHCP_START_IND                  = 189,

@@ -4618,45 +4618,6 @@ __limProcessSmeGetTsmStatsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-/**
- * __limProcessSmeGetRoamRssiRequest()
- *
- *FUNCTION:
- *
- *
- *NOTE:
- *
- * @param  pMac      Pointer to Global MAC structure
- * @param  *pMsgBuf  A pointer to the SME message buffer
- * @return None
- */
-static void
-__limProcessSmeGetRoamRssiRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
-{
-    tpAniGetRssiReq    pPEGetRoamRssiReq = NULL;
-    tSirMsgQ msgQ;
-
-    pPEGetRoamRssiReq = (tpAniGetRssiReq) pMsgBuf;
-    msgQ.type = WDA_GET_ROAM_RSSI_REQ;
-
-    msgQ.reserved = 0;
-    msgQ.bodyptr = pMsgBuf;
-    msgQ.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-
-    if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
-        vos_mem_free( pMsgBuf );
-        pMsgBuf = NULL;
-        limLog(pMac, LOGP, "Unable to forward request");
-        return;
-    }
-
-    return;
-}
-#endif
-
-
 static void
 __limProcessSmeUpdateAPWPSIEs(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
@@ -5806,13 +5767,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             //HAL consumes pMsgBuf. It will be freed there. Set bufConsumed to false.
             bufConsumed = FALSE;
             break;
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
-        case eWNI_SME_GET_ROAM_RSSI_REQ:
-            __limProcessSmeGetRoamRssiRequest( pMac, pMsgBuf);
-            //HAL consumes pMsgBuf. It will be freed there. Set bufConsumed to false.
-            bufConsumed = FALSE;
-            break;
-#endif
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
         case eWNI_SME_GET_TSM_STATS_REQ:
             __limProcessSmeGetTsmStatsRequest( pMac, pMsgBuf);

@@ -23630,6 +23630,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_base_macaddr_indicate(wma_handle,
 				       (tSirMacAddr *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
 		case WDA_LINK_STATUS_GET_REQ:
 			wma_process_link_status_req(wma_handle,
 				(tAniGetLinkStatus *)msg->bodyptr);
