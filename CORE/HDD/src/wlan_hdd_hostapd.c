@@ -777,6 +777,46 @@ end:
 }
 #endif /* SAP_AUTH_OFFLOAD */
 
+/**
+ * hdd_issue_stored_joinreq() - This function will trigger stations's
+ *                              cached connect request to proceed.
+ * @hdd_ctx: pointer to hdd context.
+ * @sta_adapter: pointer to station adapter.
+ *
+ * This function will call SME to release station's stored/cached connect
+ * request to proceed.
+ *
+ * Return: none.
+ */
+static void hdd_issue_stored_joinreq(hdd_adapter_t *sta_adapter,
+                              hdd_context_t *hdd_ctx)
+{
+    tHalHandle hal_handle;
+    uint32_t roam_id;
+
+    if (NULL == sta_adapter) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("Invalid station adapter, ignore issueing join req"));
+        return;
+    }
+    hal_handle = WLAN_HDD_GET_HAL_CTX(sta_adapter);
+
+    if (true ==  hdd_is_sta_connection_pending(hdd_ctx)) {
+        MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                         TRACE_CODE_HDD_ISSUE_JOIN_REQ,
+                         sta_adapter->sessionId, roam_id));
+        if (VOS_STATUS_SUCCESS !=
+              sme_issue_stored_joinreq(hal_handle,
+                                       &roam_id,
+                                       sta_adapter->sessionId)) {
+            /* change back to NotAssociated */
+            hdd_connSetConnectionState(sta_adapter,
+                                       eConnectionState_NotConnected);
+        }
+        hdd_change_sta_conn_pending_status(hdd_ctx, false);
+    }
+}
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -1089,6 +1129,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             if (!con_sap_adapter) {
                 pHddApCtx->dfs_cac_block_tx = TRUE;
                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+            }
+            if (pHddCtx->cfg_ini->conc_custom_rule2 &&
+                (WLAN_HDD_P2P_GO == pHostapdAdapter->device_mode)) {
+
+                hdd_adapter_t *sta_adapter = hdd_get_adapter(pHddCtx,
+                                                WLAN_HDD_INFRA_STATION);
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                       FL("P2PGO is going down now"));
+                hdd_issue_stored_joinreq(sta_adapter, pHddCtx);
             }
             goto stopbss;
 

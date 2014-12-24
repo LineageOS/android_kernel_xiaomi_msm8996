@@ -580,7 +580,19 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
 
 VOS_STATUS sme_get_ap_channel_from_scan_cache(tHalHandle hHal,
                                               tCsrRoamProfile *profile,
+                                              tScanResultHandle *scan_cache,
                                               tANI_U8 *ap_chnl_id);
+bool sme_store_joinreq_param(tHalHandle hal_handle,
+                             tCsrRoamProfile *profile,
+                             tScanResultHandle scan_cache,
+                             uint32_t *roam_id,
+                             uint32_t session_id);
+bool sme_clear_joinreq_param(tHalHandle hal_handle,
+                             uint32_t session_id);
+VOS_STATUS sme_issue_stored_joinreq(tHalHandle hal_handle,
+                                    uint32_t *roam_id,
+                                    uint32_t session_id);
+
 /* ---------------------------------------------------------------------------
     \fn sme_ScanFlushResult
     \brief a wrapper function to request CSR to clear scan results.
@@ -3465,7 +3477,7 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
  * SME API to determine the channel bonding mode
  */
 VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
-                            tANI_U8 channel, tANI_U32 vhtChannelWidth);
+                            tANI_U8 channel, tANI_U32 *vht_channel_width);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /*--------------------------------------------------------------------------

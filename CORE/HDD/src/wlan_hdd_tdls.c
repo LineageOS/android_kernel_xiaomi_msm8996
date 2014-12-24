@@ -793,14 +793,13 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     }
 
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
-    if (NULL == pHddTdlsCtx)
-    {
+    if (NULL == pHddTdlsCtx) {
        /* TDLS context can be null and might have been freed up during
         * cleanup for STA adapter
         */
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                 FL("pHddTdlsCtx is NULL, adapter device mode: %d"),
-                 pAdapter->device_mode);
+       hddLog(LOG2, FL("pHddTdlsCtx is NULL, adapter device mode %s(%d)"),
+              hdd_device_mode_to_string(pAdapter->device_mode),
+              pAdapter->device_mode);
        return;
     }
 

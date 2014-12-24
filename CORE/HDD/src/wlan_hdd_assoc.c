@@ -63,9 +63,7 @@
 #include "wlan_hdd_tdls.h"
 #endif
 #include "sme_Api.h"
-#ifdef FEATURE_WLAN_FORCE_SAP_SCC
 #include "wlan_hdd_hostapd.h"
-#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
@@ -1333,6 +1331,9 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     cfg80211_roamed(dev, chan, pCsrRoamInfo->bssid,
                     reqRsnIe, reqRsnLength,
                     rspRsnIe, rspRsnLength,GFP_KERNEL);
+    wlan_hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
+                                  reqRsnIe, reqRsnLength, rspRsnIe,
+                                  rspRsnLength, pCsrRoamInfo);
 done:
     kfree(rspRsnIe);
 }
@@ -1394,9 +1395,7 @@ static void hdd_sap_restart_handle(struct work_struct *work)
     }
     wlan_hdd_start_sap(sap_adapter);
 
-    spin_lock(&hdd_ctx->sap_update_info_lock);
-    hdd_ctx->is_sap_restart_required = false;
-    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    hdd_change_sap_restart_required_status(hdd_ctx, false);
     vos_ssr_unprotect(__func__);
 }
 
@@ -1525,7 +1524,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode
                 != VOS_MCC_TO_SCC_SWITCH_DISABLE) &&
-            (0 == pHddCtx->cfg_ini->conc_custom_rule1)
+            ((0 == pHddCtx->cfg_ini->conc_custom_rule1) &&
+             (0 == pHddCtx->cfg_ini->conc_custom_rule2))
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
             && !VOS_IS_DFS_CH(pHddStaCtx->conn_info.operationChannel)
 #endif
@@ -1949,7 +1949,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }
 
     if (pHddCtx->cfg_ini->conc_custom_rule1 &&
-        (true == pHddCtx->is_sap_restart_required)) {
+        (true == hdd_is_sap_restart_required(pHddCtx))) {
         sap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
         if (sap_adapter == NULL) {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -1979,10 +1979,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                       FL("Starting SAP on channel [%d] after STA assoc failed"),
                       default_sap_channel);
         }
+        hdd_ap_ctx->sapConfig.vht_channel_width =
+                                            pHddCtx->cfg_ini->vhtChannelWidth;
+        hdd_ap_ctx->sapConfig.vht_ch_width_orig =
+                                            pHddCtx->cfg_ini->vhtChannelWidth;
         sme_SelectCBMode(WLAN_HDD_GET_HAL_CTX(sap_adapter),
                          hdd_ap_ctx->sapConfig.SapHw_mode,
                          hdd_ap_ctx->sapConfig.channel,
-                         pHddCtx->cfg_ini->vhtChannelWidth);
+                         &hdd_ap_ctx->sapConfig.vht_channel_width);
         /*
          * Create a workqueue and let the workqueue handle the restarting
          * sap task. if we directly call sap restart function without
@@ -3816,40 +3820,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             break;
          }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
-#ifdef NL80211_KEY_REPLAY_CTR_LEN /* kernel supports key mgmt offload */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-       case eCSR_ROAM_AUTHORIZED_EVENT:
-         {
-#ifdef NL80211_KEY_LEN_PTK_KCK
-           struct cfg80211_auth_params auth_params;
-           if (pRoamInfo != NULL) {
-               auth_params.ptk_kck = pRoamInfo->kck;
-               auth_params.ptk_kek = pRoamInfo->kek;
-               auth_params.key_replay_ctr = pRoamInfo->replay_ctr;
-               auth_params.status = NL80211_AUTHORIZED;
-               VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
-                          pRoamInfo->replay_ctr,NL80211_KEY_REPLAY_CTR_LEN);
-               hddLog(VOS_TRACE_LEVEL_DEBUG,
-                      "LFR3:cfg80211_key_mgmt_auth NL80211_AUTHORIZED");
-               cfg80211_key_mgmt_auth(pAdapter->dev, &auth_params, GFP_KERNEL);
-           } else {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "LFR3:pRoamInfo is NULL. Not sending Authorized Event");
-               halStatus = eHAL_STATUS_FAILURE;
-           }
-           break;
-#else
-            v_U8_t keyReplayCtr [NL80211_KEY_REPLAY_CTR_LEN];
-            vos_mem_zero(keyReplayCtr, sizeof(keyReplayCtr));
-            hddLog(VOS_TRACE_LEVEL_DEBUG,
-                   "cfg80211_authorization_event NL80211_AUTHORIZED");
-            cfg80211_authorization_event(pAdapter->dev, NL80211_AUTHORIZED,
-                                         keyReplayCtr, GFP_KERNEL);
-            break;
-#endif
-         }
-#endif
-#endif
         default:
             break;
     }
@@ -4357,6 +4327,7 @@ int iw_set_essid(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_U32_t roamId;
     tCsrRoamProfile          *pRoamProfile;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     eMib_dot11DesiredBssType connectedBssType;
     eCsrAuthType RSNAuthType;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -4375,8 +4346,9 @@ int iw_set_essid(struct net_device *dev,
 
     if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION &&
         pAdapter->device_mode != WLAN_HDD_P2P_CLIENT) {
-        hddLog(LOGW, "%s device mode %d is not allowed.",
-               __func__, pAdapter->device_mode);
+        hddLog(LOGW, FL("Device mode %s(%d) is not allowed"),
+               hdd_device_mode_to_string(pAdapter->device_mode),
+               pAdapter->device_mode);
         return -EINVAL;
     }
 
@@ -4498,8 +4470,7 @@ int iw_set_essid(struct net_device *dev,
 
     if ( eCSR_BSS_TYPE_START_IBSS == pRoamProfile->BSSType )
     {
-        hdd_select_cbmode(pAdapter,
-            (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->AdHocChannel5G);
+        hdd_select_cbmode(pAdapter, pHddCtx->cfg_ini->AdHocChannel5G);
     }
     status = sme_RoamConnect( hHal,pAdapter->sessionId,
                          &(pWextState->roamProfile), &roamId);

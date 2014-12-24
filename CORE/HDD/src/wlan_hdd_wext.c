@@ -4908,13 +4908,6 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 
 #ifdef WLAN_FEATURE_11AC
         smeconfig.csrConfig.nVhtChannelWidth = vhtchanwidth;
-        if (0 != ccmCfgSetInt(phddctx->hHal,
-                              WNI_CFG_VHT_CHANNEL_WIDTH,
-                              vhtchanwidth, NULL, eANI_BOOLEAN_FALSE)) {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "%s: could not set VHT SUPPORTED CHAN WIDTH",
-                      __func__);
-        }
 #endif
         sme_UpdateConfig(hal, &smeconfig);
         phddctx->cfg_ini->dot11Mode = hdd_dot11mode;
@@ -7815,21 +7808,18 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
     if(( sub_cmd == WE_MCC_CONFIG_CREDENTIAL ) ||
         (sub_cmd == WE_MCC_CONFIG_PARAMS ))
     {
-        if(( pAdapter->device_mode == WLAN_HDD_INFRA_STATION )||
-           ( pAdapter->device_mode == WLAN_HDD_P2P_CLIENT ))
-        {
+        if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
+           (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
             pStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
             staId = pStaCtx->conn_info.staId[0];
-        }
-        else if (( pAdapter->device_mode == WLAN_HDD_P2P_GO ) ||
-                 ( pAdapter->device_mode == WLAN_HDD_SOFTAP ))
-        {
+        } else if ((pAdapter->device_mode == WLAN_HDD_P2P_GO) ||
+                 (pAdapter->device_mode == WLAN_HDD_SOFTAP)) {
             pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
             staId = pAPCtx->uBCStaId;
-        }
-        else
-        {
-            hddLog(LOGE, "%s: Device mode %d not recognised", __FUNCTION__, pAdapter->device_mode);
+        } else {
+            hddLog(LOGE, FL("Device mode %s(%d) not recognised"),
+                   hdd_device_mode_to_string(pAdapter->device_mode),
+                   pAdapter->device_mode);
             return 0;
         }
     }
@@ -9655,13 +9645,14 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                  long lrc;
 
                  /* STA already connected on current band, So issue disconnect
-                  * first, then change the band*/
+                  * first, then change the band */
 
-                 hddLog(VOS_TRACE_LEVEL_INFO,
-                         "%s STA (Device mode=%d) connected in band %u, Changing band to %u, Issuing Disconnect"
-                         "Set HDD connState to eConnectionState_NotConnected",
-                            __func__, pAdapter->device_mode,
-                            currBand, band);
+                 hddLog(LOG1,
+                        FL("STA Device mode %s(%d) connected band %u, Changing band to %u, Issuing Disconnect"),
+                        hdd_device_mode_to_string(pAdapter->device_mode),
+                        pAdapter->device_mode, currBand, band);
+                 hddLog(LOG1,
+                        FL("Set HDD connState to eConnectionState_NotConnected"));
 
                  pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
                  INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -11074,6 +11065,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_SMPS_PARAM,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "set_smps_param" },
+    {   WLAN_SET_DOT11P_CHANNEL_SCHED,
+        IW_PRIV_TYPE_BYTE
+      | sizeof(struct dot11p_channel_sched),
+        0, "set_dot11p" },
 #ifdef DEBUG
     {   WE_SET_FW_CRASH_INJECT,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,

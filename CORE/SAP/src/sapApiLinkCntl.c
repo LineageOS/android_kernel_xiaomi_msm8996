@@ -140,7 +140,6 @@ WLANSAP_ScanCallback
     v_U8_t operChannel = 0;
     VOS_STATUS sapstatus;
     tpAniSirGlobal pMac = NULL;
-    v_U32_t vhtChannelWidth;
 #ifdef SOFTAP_CHANNEL_RANGE
     v_U32_t event;
 #endif
@@ -233,22 +232,10 @@ WLANSAP_ScanCallback
     {
         psapContext->channel = operChannel;
     }
-    if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(halHandle,
-                                             WNI_CFG_VHT_CHANNEL_WIDTH,
-                                             &vhtChannelWidth))
-    {
-        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                  FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-        /*
-         * In case of failure, take the vht channel width from
-         * original ini value
-         */
-        vhtChannelWidth = pMac->roam.configParam.nVhtChannelWidth;
-    }
 
     sme_SelectCBMode(halHandle,
                      psapContext->csrRoamProfile.phyMode,
-                     psapContext->channel, vhtChannelWidth);
+                     psapContext->channel, &psapContext->vht_channel_width);
 #ifdef SOFTAP_CHANNEL_RANGE
     if(psapContext->channelList != NULL)
     {
@@ -319,7 +306,6 @@ WLANSAP_PreStartBssAcsScanCallback
 #ifdef SOFTAP_CHANNEL_RANGE
     v_U32_t operatingBand;
 #endif
-    v_U32_t vhtChannelWidth;
     tpAniSirGlobal    pMac = PMAC_STRUCT(halHandle);
 
     if ( eCSR_SCAN_SUCCESS == scanStatus)
@@ -428,22 +414,10 @@ WLANSAP_PreStartBssAcsScanCallback
             psapContext->channel = operChannel;
         }
 
-        if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(halHandle,
-                                             WNI_CFG_VHT_CHANNEL_WIDTH,
-                                             &vhtChannelWidth))
-        {
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                  FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-            /*
-             * In case of failure, take the vht channel width from
-             * original ini value
-             */
-            vhtChannelWidth = pMac->roam.configParam.nVhtChannelWidth;
-        }
-
         sme_SelectCBMode(halHandle,
                          psapContext->csrRoamProfile.phyMode,
-                         psapContext->channel, vhtChannelWidth);
+                         psapContext->channel,
+                         &psapContext->vht_channel_width);
 
         /* determine secondary channel for 11n mode */
         if ((eCSR_DOT11_MODE_11n == psapContext->csrRoamProfile.phyMode) ||
@@ -578,7 +552,6 @@ WLANSAP_RoamCallback
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     tpAniSirGlobal pMac = NULL;
-    v_U32_t vhtChannelWidth;
 
     if (NULL == hHal)
     {
@@ -1106,23 +1079,9 @@ WLANSAP_RoamCallback
                 */
                 if (pMac->sap.SapDfsInfo.target_channel)
                 {
-                    if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
-                                                    WNI_CFG_VHT_CHANNEL_WIDTH,
-                                                    &vhtChannelWidth))
-                    {
-                        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                  FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-                        /*
-                         * In case of failure, take the vht channel width from
-                         * original ini value
-                         */
-                        vhtChannelWidth =
-                                  pMac->roam.configParam.nVhtChannelWidth;
-                     }
-
                      sme_SelectCBMode(hHal, phyMode,
                                       pMac->sap.SapDfsInfo.target_channel,
-                                      vhtChannelWidth);
+                                      &sapContext->vht_channel_width);
                 }
 
                 /*

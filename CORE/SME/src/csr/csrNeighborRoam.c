@@ -5128,29 +5128,9 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
                              vos_mem_free(pMac->roam.pReassocResp);
                              pMac->roam.pReassocResp = NULL;
                          }
-                         if (eSIR_ROAM_AUTH_STATUS_AUTHENTICATED ==
-                             pSession->roamOffloadSynchParams.authStatus) {
-                            if (pSession->connectedProfile.AuthType !=
-                                          eCSR_AUTH_TYPE_OPEN_SYSTEM) {
-                                vos_mem_copy(roamInfo.kck,
-                                pSession->roamOffloadSynchParams.kck,
-                                SIR_KCK_KEY_LEN);
-                                vos_mem_copy(roamInfo.kek,
-                                pSession->roamOffloadSynchParams.kek,
-                                SIR_KEK_KEY_LEN);
-                                vos_mem_copy(roamInfo.replay_ctr,
-                                pSession->roamOffloadSynchParams.replay_ctr,
-                                SIR_REPLAY_CTR_LEN);
-                                VOS_TRACE(VOS_MODULE_ID_SME,
-                                  VOS_TRACE_LEVEL_DEBUG,
-                                  "LFR3:Send authorized event to supplicant");
-                                csrRoamCallCallback(pMac, sessionId,
-                                &roamInfo, 0, eCSR_ROAM_AUTHORIZED_EVENT, 0);
-                         }
                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                             "LFR3:Send SynchCnf auth status authenticated");
                             csrRoamOffloadSendSynchCnf( pMac, sessionId);
-                         }
                      } else
 #endif
                      csrRoamOffloadScan(pMac, sessionId,

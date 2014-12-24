@@ -212,7 +212,6 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"VHT_TX_MCS_MAP",
     (unsigned char *)"VHT_RX_HIGHEST_SUPPORTED_DATA_RATE",
     (unsigned char *)"VHT_TX_HIGHEST_SUPPORTED_DATA_RATE",
-    (unsigned char *)"VHT_CHANNEL_WIDTH",
     (unsigned char *)"VHT_CHANNEL_CENTER_FREQ_SEGMENT1",
     (unsigned char *)"VHT_CHANNEL_CENTER_FREQ_SEGMENT2",
     (unsigned char *)"VHT_BASIC_MCS_SET",

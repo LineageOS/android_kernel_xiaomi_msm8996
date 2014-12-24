@@ -681,8 +681,9 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_roc_req_t* phdd_roc_req;
     VOS_STATUS status;
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-                                 __func__, pAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode);
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
     hddLog( LOG1,
@@ -1113,20 +1114,14 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
      * The remain on channel callback will make sure the remain_on_chan
      * expired event is sent.
      */
-    if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
-         ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
-       )
-    {
-
+    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+        (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+        (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) {
         tANI_U8 sessionId = pAdapter->sessionId;
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             sessionId );
-    }
-    else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
-              (WLAN_HDD_P2P_GO == pAdapter->device_mode)
-            )
-    {
+    } else if ((WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
+              (WLAN_HDD_P2P_GO == pAdapter->device_mode)) {
         WLANSAP_CancelRemainOnChannel(
 #ifdef WLAN_FEATURE_MBSSID
                                 WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
@@ -1134,11 +1129,10 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 #endif
 
-    }
-    else
-    {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid device_mode = %d",
-                            __func__, pAdapter->device_mode);
+    } else {
+       hddLog(LOGE, FL("Invalid device_mode %s(%d)"),
+              hdd_device_mode_to_string(pAdapter->device_mode),
+              pAdapter->device_mode);
        return -EIO;
     }
     rc = wait_for_completion_timeout(&pAdapter->cancel_rem_on_chan_var,
@@ -1230,8 +1224,9 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
         return status;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d type: %d",
-                            __func__, pAdapter->device_mode, type);
+    hddLog(LOG1, FL("Device_mode %s(%d) type: %d"),
+           hdd_device_mode_to_string(pAdapter->device_mode),
+           pAdapter->device_mode, type);
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if ((type == SIR_MAC_MGMT_FRAME) &&
@@ -2185,8 +2180,9 @@ int __wlan_hdd_del_virtual_intf(struct wiphy *wiphy, struct net_device *dev)
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_DEL_VIRTUAL_INTF,
                      pAdapter->sessionId, pAdapter->device_mode));
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
-           __func__,pVirtAdapter->device_mode);
+    hddLog(LOG1, FL("Device_mode %s(%d)"),
+           hdd_device_mode_to_string(pVirtAdapter->device_mode),
+           pVirtAdapter->device_mode);
 
     status = wlan_hdd_validate_context(pHddCtx);
 

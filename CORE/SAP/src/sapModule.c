@@ -603,6 +603,49 @@ v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
 #endif
 
 /*==========================================================================
+  FUNCTION   wlan_sap_get_vht_ch_width
+
+  DESCRIPTION Returns the SAP VHT channel width.
+
+  DEPENDENCIES NA.
+
+  PARAMETERS
+  IN
+  ctx: Pointer to vos Context or Sap Context based on MBSSID
+
+  RETURN VALUE VHT channnel width
+
+  SIDE EFFECTS
+============================================================================*/
+v_U32_t wlan_sap_get_vht_ch_width(v_PVOID_t ctx) {
+    ptSapContext sap_ctx = VOS_GET_SAP_CB(ctx);
+
+    return sap_ctx->vht_channel_width;
+}
+
+/*==========================================================================
+  FUNCTION   wlan_sap_set_vht_ch_width
+
+  DESCRIPTION Sets the SAP VHT channel width.
+
+  DEPENDENCIES NA.
+
+  PARAMETERS
+  IN
+  ctx: Pointer to vos Context or Sap Context based on MBSSID
+  vht_channel_width - VHT channel width
+
+  RETURN VALUE NONE
+
+  SIDE EFFECTS
+============================================================================*/
+void wlan_sap_set_vht_ch_width(v_PVOID_t ctx, v_U32_t vht_channel_width) {
+    ptSapContext sap_ctx = VOS_GET_SAP_CB(ctx);
+
+    sap_ctx->vht_channel_width = vht_channel_width;
+}
+
+/*==========================================================================
   FUNCTION    WLANSAP_SetScanAcsChannelParams
 
   DESCRIPTION
@@ -794,6 +837,8 @@ WLANSAP_StartBss
 
         /* Channel selection is auto or configured */
         pSapCtx->channel = pConfig->channel;
+        pSapCtx->vht_channel_width = pConfig->vht_channel_width;
+        pSapCtx->vht_ch_width_orig = pConfig->vht_ch_width_orig;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
 #endif
@@ -2982,6 +3027,8 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
      */
     cbMode = pMac->sap.SapDfsInfo.new_cbMode;
     vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
+    sme_SelectCBMode(hHal, phyMode, tArgetChannel, &vhtChannelWidth);
+    sapContext->vht_channel_width = vhtChannelWidth;
     halStatus = sme_RoamChannelChangeReq(hHal, sapContext->bssid,
                                          tArgetChannel,
                                          phyMode, cbMode, vhtChannelWidth);

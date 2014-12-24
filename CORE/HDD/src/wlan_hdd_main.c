@@ -388,7 +388,9 @@ static int hdd_is_auto_suspend_allowed(hdd_context_t *hdd_ctx)
         case WLAN_HDD_P2P_CLIENT:
         case WLAN_HDD_IBSS:
         default:
-             hddLog(LOG1, FL("Auto suspend denied %d"), adapter->device_mode);
+             hddLog(LOG1, FL("Auto suspend denied device_mode %s(%d)"),
+                    hdd_device_mode_to_string(adapter->device_mode),
+                    adapter->device_mode);
              perm = HDD_AUTO_SUSPEND_DENIED;
              break;
         }
@@ -666,6 +668,31 @@ static inline void hdd_deinit_auto_suspend_timer(hdd_context_t *hdd_ctx) {}
    can extract it from driver debug symbol and crashdump for post processing */
 tANI_U8 g_wlan_driver_version[ ] = QWLAN_VERSIONSTR;
 
+/**
+ * hdd_device_mode_to_string() - return string conversion of device mode
+ * @device_mode: device mode
+ *
+ * This utility function helps log string conversion of device mode.
+ *
+ * Return: string conversion of device mode, if match found;
+ *	   "Unknown" otherwise.
+ */
+const char* hdd_device_mode_to_string(uint8_t device_mode)
+{
+	switch (device_mode) {
+	CASE_RETURN_STRING(WLAN_HDD_INFRA_STATION);
+	CASE_RETURN_STRING(WLAN_HDD_SOFTAP);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_CLIENT);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_GO);
+	CASE_RETURN_STRING(WLAN_HDD_MONITOR);
+	CASE_RETURN_STRING(WLAN_HDD_FTM);
+	CASE_RETURN_STRING(WLAN_HDD_IBSS);
+	CASE_RETURN_STRING(WLAN_HDD_P2P_DEVICE);
+	CASE_RETURN_STRING(WLAN_HDD_OCB);
+	default:
+		return "Unknown";
+	}
+}
 
 #ifdef FEATURE_GREEN_AP
 
@@ -4292,29 +4319,28 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    hdd_config_t *pConfig = NULL;
 
    if (pHddCtx == NULL) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: HDD context is null", __func__);
+      hddLog(LOGE, FL("HDD context is null"));
       return -EINVAL;
    }
+
    if ((WLAN_HDD_IBSS != pAdapter->device_mode) &&
        (WLAN_HDD_SOFTAP != pAdapter->device_mode) &&
-       (WLAN_HDD_INFRA_STATION != pAdapter->device_mode))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: Received SETMCRATE command in invalid mode %d"
-         "SETMCRATE command is only allowed in STA, IBSS or SOFTAP mode",
-         __func__, pAdapter->device_mode);
+       (WLAN_HDD_INFRA_STATION != pAdapter->device_mode)) {
+      hddLog(LOGE, FL("Received SETMCRATE cmd in invalid device mode %s(%d)"),
+             hdd_device_mode_to_string(pAdapter->device_mode),
+             pAdapter->device_mode);
+      hddLog(LOGE,
+             FL("SETMCRATE cmd is allowed only in STA, IBSS or SOFTAP mode"));
       return -EINVAL;
    }
+
    pConfig = pHddCtx->cfg_ini;
-   rateUpdate = (tSirRateUpdateInd *)vos_mem_malloc(sizeof(tSirRateUpdateInd));
-   if (NULL == rateUpdate)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-         "%s: SETMCRATE indication alloc fail", __func__);
-      return -EFAULT;
+   rateUpdate = vos_mem_malloc(sizeof(tSirRateUpdateInd));
+   if (NULL == rateUpdate) {
+      hddLog(LOGE, FL("SETMCRATE indication alloc fail"));
+      return -ENOMEM;
    }
-   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd));
    rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
    rateUpdate->dev_mode = pAdapter->device_mode;
    rateUpdate->mcastDataRate24GHz = targetRate;
@@ -4323,14 +4349,14 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    rateUpdate->bcastDataRate = -1;
    memcpy(rateUpdate->bssid, pAdapter->macAddressCurrent.bytes,
       sizeof(rateUpdate->bssid));
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-      "%s: MC Target rate %d, mac = %pM, dev_mode = %d",
-      __func__, rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+   hddLog(LOG1, FL("MC Target rate %d, mac = %pM, dev_mode %s(%d)"),
+      rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+      hdd_device_mode_to_string(pAdapter->device_mode),
       pAdapter->device_mode);
+
    status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
    if (eHAL_STATUS_SUCCESS != status) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-         "%s: SETMCRATE failed", __func__);
+      hddLog(LOGE, FL("SETMCRATE failed"));
       vos_mem_free(rateUpdate);
       return -EFAULT;
    }
@@ -10017,9 +10043,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              vos_flush_work(&pHddCtx->sap_start_work);
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                         FL("Canceled the pending SAP restart work"));
-             spin_lock(&pHddCtx->sap_update_info_lock);
-             pHddCtx->is_sap_restart_required = false;
-             spin_unlock(&pHddCtx->sap_update_info_lock);
+             hdd_change_sap_restart_required_status(pHddCtx, false);
          }
          //Any softap specific cleanup here...
          if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
@@ -10491,7 +10515,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
              /* Temporary set log level as error
               * TX Flow control feature settled down, will lower log level */
              hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    "MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter->device_mode),
                     pAdapter->device_mode,
                     targetChannel,
                     pAdapter->tx_flow_low_watermark,
@@ -10515,8 +10540,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            pAdapter->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                      "SCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      hdd_device_mode_to_string(pAdapter->device_mode),
                       pAdapter->device_mode,
                       targetChannel,
                       pAdapter->tx_flow_low_watermark,
@@ -10540,7 +10566,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
                 hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      "SCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                      hdd_device_mode_to_string(preAdapterContext->device_mode),
                       preAdapterContext->device_mode,
                       targetChannel,
                       preAdapterContext->tx_flow_low_watermark,
@@ -10583,8 +10610,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                    "MCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter5->device_mode),
                     pAdapter5->device_mode,
                     channel5,
                     pAdapter5->tx_flow_low_watermark,
@@ -10607,8 +10635,9 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxLbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
+                hddLog(LOGE,
+                    "MCC: MODE %s(%d), CH %d, LWM %d, HWM %d, TXQDEP %d",
+                    hdd_device_mode_to_string(pAdapter2_4->device_mode),
                     pAdapter2_4->device_mode,
                     channel24,
                     pAdapter2_4->tx_flow_low_watermark,
@@ -12053,7 +12082,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
    int unsafeChannelIndex;
+#endif
 #endif
    tANI_U8 rtnl_lock_enable;
    tANI_U8 reg_netdev_notifier_done = FALSE;
@@ -12387,6 +12418,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
+#ifdef CONFIG_CNSS
    cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
@@ -12402,10 +12434,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               __func__, pHddCtx->unsafe_channel_list[unsafeChannelIndex]);
 
    }
-
    /* Plug in avoid channel notification callback */
    sme_AddChAvoidCallback(pHddCtx->hHal,
                           hdd_ch_avoid_cb);
+#endif
 #endif /* FEATURE_WLAN_CH_AVOID */
 
    status = hdd_post_voss_start_config( pHddCtx );
@@ -13705,13 +13737,13 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    do
    {
-      if( (status == VOS_STATUS_SUCCESS) &&
+      if ((status == VOS_STATUS_SUCCESS) &&
                            pAdapterNode  &&
-                           pAdapterNode->pAdapter)
-      {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-               "restarting the driver(intf:\'%s\' mode:%d :try %d)",
+                           pAdapterNode->pAdapter) {
+         hddLog(LOGP,
+               "restarting the driver(intf:\'%s\' mode:%s(%d) :try %d)",
                pAdapterNode->pAdapter->dev->name,
+               hdd_device_mode_to_string(pAdapterNode->pAdapter->device_mode),
                pAdapterNode->pAdapter->device_mode,
                pHddCtx->hdd_restart_retries + 1);
          /*
@@ -14567,6 +14599,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     tHalHandle hHal;
     hdd_ap_ctx_t *pHddApCtx;
     v_U16_t intf_ch = 0;
+    v_U32_t vht_channel_width = 0;
 
    if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode == VOS_MCC_TO_SCC_SWITCH_DISABLE)
        || !(vos_concurrent_open_sessions_running()
@@ -14588,8 +14621,10 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
 
 #ifdef WLAN_FEATURE_MBSSID
     intf_ch = WLANSAP_CheckCCIntf(pHddApCtx->sapContext);
+    vht_channel_width = wlan_sap_get_vht_ch_width(pHddApCtx->sapContext);
 #else
     intf_ch = WLANSAP_CheckCCIntf(pHddCtx->pvosContext);
+    vht_channel_width = wlan_sap_get_vht_ch_width(pHddApCtx->pvosContext);
 #endif
     if (intf_ch == 0)
         return;
@@ -14598,14 +14633,19 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     sme_SelectCBMode(hHal,
                      pHddApCtx->sapConfig.SapHw_mode,
                      pHddApCtx->sapConfig.channel,
-                     pHddCtx->cfg_ini->vhtChannelWidth);
+                     &vht_channel_width);
+#ifdef WLAN_FEATURE_MBSSID
+    wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);
+#else
+    wlan_sap_set_vht_ch_width(pHddApCtx->pvosContext, vht_channel_width);
+#endif
     wlan_hdd_restart_sap(ap_adapter);
 }
 #endif
 
 /**
- * wlan_hdd_check_con_channel_sap_and_sta() - This function checks the sap's
- *                                            and sta's operating channel.
+ * wlan_hdd_check_custom_con_channel_rules() - This function checks the sap's
+ *                                             and sta's operating channel.
  * @sta_adapter:  Describe the first argument to foobar.
  * @ap_adapter:   Describe the second argument to foobar.
  * @roam_profile: Roam profile of AP to which STA wants to connect.
@@ -14619,31 +14659,39 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
  *
  * Return: VOS_STATUS_SUCCESS or VOS_STATUS_E_FAILURE.
  */
-VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
+VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
                                                   hdd_adapter_t *ap_adapter,
                                                   tCsrRoamProfile *roam_profile,
+                                                  tScanResultHandle *scan_cache,
                                                   bool *concurrent_chnl_same)
 {
     hdd_ap_ctx_t *hdd_ap_ctx;
     uint8_t channel_id;
     VOS_STATUS status;
+    device_mode_t device_mode = ap_adapter->device_mode;
+    *concurrent_chnl_same = true;
 
     hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
     status =
      sme_get_ap_channel_from_scan_cache(WLAN_HDD_GET_HAL_CTX(sta_adapter),
                                         roam_profile,
+                                        scan_cache,
                                         &channel_id);
     if ((VOS_STATUS_SUCCESS == status)) {
-        if (channel_id < SIR_11A_CHANNEL_BEGIN) {
-            if (hdd_ap_ctx->sapConfig.channel != channel_id) {
-                *concurrent_chnl_same = FALSE;
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                         FL("channels are different"));
-            }
-        } else {
-           *concurrent_chnl_same = TRUE;
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                    FL("selected ap's channel in 5Ghz"));
+        if ((WLAN_HDD_SOFTAP == device_mode) &&
+            (channel_id < SIR_11A_CHANNEL_BEGIN)) {
+             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+                 *concurrent_chnl_same = false;
+                  hddLog(VOS_TRACE_LEVEL_INFO_MED,
+                            FL("channels are different"));
+             }
+        } else if ((WLAN_HDD_P2P_GO == device_mode) &&
+                   (channel_id >= SIR_11A_CHANNEL_BEGIN)) {
+             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+                 *concurrent_chnl_same = false;
+                 hddLog(VOS_TRACE_LEVEL_INFO_MED,
+                           FL("channels are different"));
+             }
         }
     } else {
         /*
@@ -14652,8 +14700,8 @@ VOS_STATUS wlan_hdd_check_con_channel_sap_and_sta(hdd_adapter_t *sta_adapter,
          * SAP's channel and STA's channel. Return the status as failure so
          * caller function could know that scan look up is failed.
          */
-        *concurrent_chnl_same = FALSE;
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        *concurrent_chnl_same = false;
+        hddLog(VOS_TRACE_LEVEL_ERROR,
                     FL("Finding AP from scan cache failed"));
         return VOS_STATUS_E_FAILURE;
     }
