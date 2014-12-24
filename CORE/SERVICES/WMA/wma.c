@@ -23698,7 +23698,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_OCB_SET_SCHED_REQUEST:
 			wma_ocb_set_sched_req(wma_handle,
 				(sir_ocb_set_sched_request_t *)(msg->bodyptr));
-			vos_mem_free(msg->bodyptr);
+			/* no need to vos_mem_free(msg->bodyptr) here. This synchronous
+			 *   request is waiting on completion in
+			 *   iw_set_dot11p_channel_sched()
+			 *   which will clean up the request buffer. */
 			break;
 #ifdef FEATURE_BUS_AUTO_SUSPEND
 		case WDA_WLAN_AUTO_SUSPEND_IND:

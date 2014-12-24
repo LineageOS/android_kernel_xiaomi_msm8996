@@ -795,12 +795,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 tANI_U32 centerChan;
                 tANI_U32 chanWidth;
 
-                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                          &chanWidth) != eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGP,
-                      FL("Unable to retrieve Channel Width from CFG"));
-                }
+                chanWidth = pSmeStartBssReq->vht_channel_width;
+
+                VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                                FL("vht_channel_width %u"),
+                                pSmeStartBssReq->vht_channel_width);
 
                 if(channelNumber <= RF_CHAN_14 &&
                                 chanWidth != eHT_CHANNEL_WIDTH_20MHZ)
@@ -853,8 +852,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     }
                 }
 
-                if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
-                    psessionEntry->htSupportedChannelWidthSet = 0;
             }
             psessionEntry->htSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
 #endif
@@ -6012,21 +6009,18 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         if (psessionEntry->currentOperChannel !=
                               pChannelChangeReq->targetChannel)
         {
-            limLog(pMac, LOGW,FL("switch old chnl %d --> new chnl %d "),
+            limLog(pMac, LOGE,
+                   FL("switch old chnl %d --> new chnl %d and CH width - %d"),
                                  psessionEntry->currentOperChannel,
-                                 pChannelChangeReq->targetChannel);
+                                 pChannelChangeReq->targetChannel,
+                                 pChannelChangeReq->vht_channel_width);
 
 
 #ifdef WLAN_FEATURE_11AC
             if(psessionEntry->vhtCapability)
             {
 
-                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                          &chanWidth) != eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGP,
-                      FL("Unable to retrieve Channel Width from CFG"));
-                }
+                chanWidth = pChannelChangeReq->vht_channel_width;
 
                 if(chanWidth == eHT_CHANNEL_WIDTH_20MHZ || chanWidth == eHT_CHANNEL_WIDTH_40MHZ)
                 {

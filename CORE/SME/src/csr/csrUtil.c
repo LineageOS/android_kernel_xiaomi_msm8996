@@ -839,7 +839,8 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
                  * if conc_custom_rule1 is defined then we don't want p2pgo to
                  * follow SAP's channel or SAP to follow P2PGO's channel.
                  */
-                if (0 == pMac->roam.configParam.conc_custom_rule1) {
+                if (0 == pMac->roam.configParam.conc_custom_rule1 &&
+                    0 == pMac->roam.configParam.conc_custom_rule2) {
                     if (sap_ch == 0) {
                         sap_ch = pSession->connectedProfile.operationChannel;
                         csrGetChFromHTProfile(pMac,
@@ -2070,7 +2071,8 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
 {
     tANI_U32 sessionId = 0;
     tANI_U8 automotive_support_enable =
-        pMac->roam.configParam.conc_custom_rule1;
+        (pMac->roam.configParam.conc_custom_rule1 |
+         pMac->roam.configParam.conc_custom_rule2);
     tVOS_CON_MODE bss_persona;
     eCsrConnectState connect_state;
 

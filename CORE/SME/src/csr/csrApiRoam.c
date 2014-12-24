@@ -247,7 +247,10 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
 tListElem * csrRoamFindInPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask);
 eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac);
 static tANI_U32 csrFindIbssSession( tpAniSirGlobal pMac );
-static tANI_U32 csr_find_sap_session(tpAniSirGlobal pMac);
+static uint32_t csr_find_sap_session(tpAniSirGlobal pMac);
+static uint32_t csr_find_p2pgo_session(tpAniSirGlobal pMac);
+static bool csr_is_conn_allow_2g_band(tpAniSirGlobal pMac, uint32_t chnl);
+static bool csr_is_conn_allow_5g_band(tpAniSirGlobal pMac, uint32_t chnl);
 static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pBssDesc );
 static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId );
 static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
@@ -1937,6 +1940,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
         pMac->roam.configParam.conc_custom_rule1 =
                                pParam->conc_custom_rule1;
+        pMac->roam.configParam.conc_custom_rule2 =
+                               pParam->conc_custom_rule2;
         pMac->roam.configParam.is_sta_connection_in_5gz_enabled =
                                pParam->is_sta_connection_in_5gz_enabled;
 
@@ -2099,6 +2104,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
         pParam->conc_custom_rule1 =
                      pMac->roam.configParam.conc_custom_rule1;
+        pParam->conc_custom_rule2 =
+                     pMac->roam.configParam.conc_custom_rule2;
         pParam->is_sta_connection_in_5gz_enabled =
                      pMac->roam.configParam.is_sta_connection_in_5gz_enabled;
         status = eHAL_STATUS_SUCCESS;
@@ -4115,30 +4122,6 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
         }
     }
 
-    if (CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile) ||
-                    CSR_IS_IBSS(pProfile)) {
-#ifdef WLAN_FEATURE_11AC
-        /* cbMode = 1 in cfg.ini is mapped to
-           PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-           in function csrConvertCBIniValueToPhyCBState()
-           So, max value for cbMode in 40MHz mode
-           is 3 (MAC\src\include\sirParams.h) */
-        if (cfgCb) {
-            if (cfgCb > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
-                if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
-                    cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
-                }
-            }
-            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                    pMac->roam.configParam.nVhtChannelWidth, NULL,
-                    eANI_BOOLEAN_FALSE);
-        }
-        else
-#endif
-        /* WNI_CFG_CHANNEL_BONDING_MODE can be removed since it is not used */
-        ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL,
-                        eANI_BOOLEAN_FALSE);
-    }
     //Rate
     //Fixed Rate
     if(pBssDesc)
@@ -5808,6 +5791,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     {
                         roamInfo.fReassocReq = roamInfo.fReassocRsp = eANI_BOOLEAN_TRUE;
                     }
+                    pSession->connectedProfile.vht_channel_width =
+                                                   pJoinRsp->vht_channel_width;
                     pSession->connectedInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
@@ -5899,10 +5884,17 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                        pMac->roam.configParam.doBMPSWorkaround = 1;
                     }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-        if (pSession->roamOffloadSynchParams.bRoamSynchInProgress)
-        {
+        if (pSession->roamOffloadSynchParams.bRoamSynchInProgress) {
            roamInfo.roamSynchInProgress = 1;
-           roamInfo.synchAuthStatus = pSession->roamOffloadSynchParams.authStatus;
+           roamInfo.synchAuthStatus =
+                 pSession->roamOffloadSynchParams.authStatus;
+           vos_mem_copy(roamInfo.kck, pSession->roamOffloadSynchParams.kck,
+                        SIR_KCK_KEY_LEN);
+           vos_mem_copy(roamInfo.kek, pSession->roamOffloadSynchParams.kek,
+                        SIR_KEK_KEY_LEN);
+           vos_mem_copy(roamInfo.replay_ctr,
+                        pSession->roamOffloadSynchParams.replay_ctr,
+                        SIR_REPLAY_CTR_LEN);
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
             FL("LFR3:csrRoamCallCallback:eCSR_ROAM_RESULT_ASSOCIATED"));
         }
@@ -6612,6 +6604,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         }
 #endif /* FEATURE_WLAN_WAPI */
         pDstProfile->CBMode = pSrcProfile->CBMode;
+        pDstProfile->vht_channel_width = pSrcProfile->vht_channel_width;
         /*Save the WPS info*/
         pDstProfile->bWPSAssociation = pSrcProfile->bWPSAssociation;
         pDstProfile->bOSENAssociation = pSrcProfile->bOSENAssociation;
@@ -12034,7 +12027,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
     {
        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
-
     cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, pProfile, operationChannel, &eBand );
 
     if( ( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
@@ -12181,6 +12173,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
     }
     pParam->operationChn = channel;
     pParam->sirNwType = nwType;
+    pParam->vht_channel_width = pProfile->vht_channel_width;
 }
 
 static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDescription *pBssDesc,
@@ -13139,8 +13132,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
     tANI_U32 ucDot11Mode = 0;
     tANI_U8 txBFCsnValue = 0;
-    tANI_U32 sap_session_id;
-    tCsrRoamSession *sap_session;
 
     if(!pSession)
     {
@@ -13229,7 +13220,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf++;
         //CBMode
         *pBuf = (tANI_U8)pSession->bssParams.cbMode;
-        pBuf++;
+        pBuf += sizeof(ePhyChanBondState);
 
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                   FL("CSR PERSONA=%d CSR CbMode %d"), pProfile->csrPersona, pSession->bssParams.cbMode);
@@ -13796,7 +13787,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         /*
          * conc_custom_rule1:
          * If SAP comes up first and STA comes up later then SAP
-         * need to follow STA's channel. In following if condition
+         * need to follow STA's channel in 2.4Ghz. In following if condition
          * we are adding sanity check, just to make sure that if this rule
          * is enabled then don't allow STA to connect on 5gz channel and also
          * by this time SAP's channel should be the same as STA's channel.
@@ -13809,23 +13800,30 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                 status = eHAL_STATUS_FAILURE;
                 break;
             }
-            if (!CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId)) {
-                sap_session_id = csr_find_sap_session(pMac);
-                if (CSR_SESSION_ID_INVALID != sap_session_id) {
-                    sap_session = CSR_GET_SESSION(pMac, sap_session_id);
-                    if ((0 != sap_session->bssParams.operationChn) &&
-                        (sap_session->bssParams.operationChn !=
-                         pBssDescription->channelId)) {
-
-                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                          FL("Can't allow STA to connect, channels not same"));
-
-                        status = eHAL_STATUS_FAILURE;
-                        break;
-                    }
-                }
+            if (!CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId) &&
+                (false == csr_is_conn_allow_2g_band(pMac,
+                                    pBssDescription->channelId))) {
+                status = eHAL_STATUS_FAILURE;
+                break;
             }
         }
+
+        /*
+         * conc_custom_rule2:
+         * If P2PGO comes up first and STA comes up later then P2PGO
+         * need to follow STA's channel in 5Ghz. In following if condition
+         * we are just adding sanity check to make sure that by this time
+         * P2PGO's channel is same as STA's channel.
+         */
+        if (pMac->roam.configParam.conc_custom_rule2) {
+            if (!CSR_IS_CHANNEL_24GHZ(pBssDescription->channelId) &&
+                (false == csr_is_conn_allow_5g_band(pMac,
+                                    pBssDescription->channelId))) {
+                status = eHAL_STATUS_FAILURE;
+                break;
+            }
+        }
+
         status = palSendMBMessage(pMac->hHdd, pMsg );
         if(!HAL_STATUS_SUCCESS(status))
         {
@@ -14633,6 +14631,9 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         cbMode = (ePhyChanBondState)pal_cpu_to_be32(pParam->cbMode);
         vos_mem_copy(pBuf, (tANI_U8 *)&cbMode, sizeof(ePhyChanBondState));
         pBuf += sizeof(ePhyChanBondState);
+        /*set vht channel width*/
+        *pBuf = pParam->vht_channel_width;
+        pBuf++;
 
         // Set privacy
         *pBuf = pParam->privacy;
@@ -18254,27 +18255,11 @@ csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
 
     vos_mem_set((void *)pMsg, sizeof( tSirChanChangeRequest ), 0);
 
-#ifdef WLAN_FEATURE_11AC
-    // cbMode = 1 in cfg.ini is mapped to PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-    // in function csrConvertCBIniValueToPhyCBState()
-    // So, max value for cbMode in 40MHz mode is 3 (MAC\src\include\sirParams.h)
-    if (cbMode) {
-        if (cbMode > PHY_DOUBLE_CHANNEL_HIGH_PRIMARY) {
-            if (!WDA_getFwWlanFeatCaps(DOT11AC)) {
-                cbMode = csrGetHTCBStateFromVHTCBState(cbMode);
-            }
-        }
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
-                FL("sapdfs: channel width is [%d]"), vhtChannelWidth);
-        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
-                    vhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
-    }
-#endif
-
     pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANNEL_CHANGE_REQ);
     pMsg->messageLen = sizeof(tSirChanChangeRequest);
     pMsg->targetChannel = targetChannel;
     pMsg->cbMode = cbMode;
+    pMsg->vht_channel_width = vhtChannelWidth;
     vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
@@ -18744,9 +18729,9 @@ void csrInitOperatingClasses(tHalHandle hHal)
  *
  * Return: sap session id.
  */
-static tANI_U32 csr_find_sap_session(tpAniSirGlobal mac_ctx)
+static uint32_t csr_find_sap_session(tpAniSirGlobal mac_ctx)
 {
-    tANI_U32 i, session_id = CSR_SESSION_ID_INVALID;
+    uint32_t i, session_id = CSR_SESSION_ID_INVALID;
     tCsrRoamSession *session_ptr;
     for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
          if (CSR_IS_SESSION_VALID( mac_ctx, i)){
@@ -18759,4 +18744,241 @@ static tANI_U32 csr_find_sap_session(tpAniSirGlobal mac_ctx)
          }
     }
     return session_id;
+}
+
+/**
+ * csr_find_p2pgo_session() - This function will find the p2pgo session from all
+ *                            sessions.
+ * @mac_ctx: pointer to mac context.
+ *
+ * This function is written to find the p2pgo session id.
+ *
+ * Return: p2pgo session id.
+ */
+static uint32_t csr_find_p2pgo_session(tpAniSirGlobal mac_ctx)
+{
+    uint32_t i, session_id = CSR_SESSION_ID_INVALID;
+    tCsrRoamSession *session_ptr;
+    for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
+         if (CSR_IS_SESSION_VALID( mac_ctx, i)){
+             session_ptr = CSR_GET_SESSION(mac_ctx, i);
+             if (VOS_P2P_GO_MODE == session_ptr->bssParams.bssPersona) {
+                 /* Found it */
+                 session_id = i;
+                 break;
+             }
+         }
+    }
+    return session_id;
+}
+
+/**
+ * csr_is_conn_allow_2g_band() - This function will check if station's conn
+ *                               is allowed in 2.4Ghz band.
+ * @mac_ctx: pointer to mac context.
+ * @chnl: station's channel.
+ *
+ * This function will check if station's connection is allowed in 5Ghz band
+ * after comparing it with SAP's operating channel. If SAP's operating
+ * channel and Station's channel is different than this function will return
+ * false else true.
+ *
+ * Return: true or false.
+ */
+static bool csr_is_conn_allow_2g_band(tpAniSirGlobal mac_ctx, uint32_t chnl)
+{
+    uint32_t sap_session_id;
+    tCsrRoamSession *sap_session;
+
+    if (0 == chnl) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("channel is zero, connection not allowed"));
+
+        return false;
+    }
+
+    sap_session_id = csr_find_sap_session(mac_ctx);
+    if (CSR_SESSION_ID_INVALID != sap_session_id) {
+        sap_session = CSR_GET_SESSION(mac_ctx, sap_session_id);
+        if ((0 != sap_session->bssParams.operationChn) &&
+            (sap_session->bssParams.operationChn != chnl)) {
+
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Can't allow STA to connect, channels not same"));
+             return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * csr_is_conn_allow_5g_band() - This function will check if station's conn
+ *                               is allowed in 5Ghz band.
+ * @mac_ctx: pointer to mac context.
+ * @chnl: station's channel.
+ *
+ * This function will check if station's connection is allowed in 5Ghz band
+ * after comparing it with P2PGO's operating channel. If P2PGO's operating
+ * channel and Station's channel is different than this function will return
+ * false else true.
+ *
+ * Return: true or false.
+ */
+static bool csr_is_conn_allow_5g_band(tpAniSirGlobal mac_ctx, uint32_t chnl)
+{
+    uint32_t p2pgo_session_id;
+    tCsrRoamSession *p2pgo_session;
+
+    if (0 == chnl) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("channel is zero, connection not allowed"));
+        return false;
+    }
+
+    p2pgo_session_id = csr_find_p2pgo_session(mac_ctx);
+    if (CSR_SESSION_ID_INVALID != p2pgo_session_id) {
+         p2pgo_session = CSR_GET_SESSION(mac_ctx, p2pgo_session_id);
+         if ((0 != p2pgo_session->bssParams.operationChn) &&
+             (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED !=
+                  p2pgo_session->connectState) &&
+             (p2pgo_session->bssParams.operationChn != chnl)) {
+
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Can't allow STA to connect, channels not same"));
+              return false;
+         }
+    }
+    return true;
+}
+
+/**
+ * csr_clear_joinreq_param() - This function will clear station's params
+ *                             for stored join request to csr.
+ * @hal_handle: pointer to hal context.
+ * @session_id: station's session id.
+ *
+ * This function will clear station's allocated memory for cached join
+ * request.
+ *
+ * Return: true or false based on function's overall success.
+ */
+bool csr_clear_joinreq_param(tpAniSirGlobal mac_ctx,
+                             uint32_t session_id)
+{
+    tCsrRoamSession *sta_session;
+    tScanResultList *bss_list;
+
+    if (NULL == mac_ctx) {
+        return false;
+    }
+
+    sta_session = CSR_GET_SESSION(mac_ctx, session_id);
+    if (NULL == sta_session) {
+        return false;
+    }
+
+    /* Release the memory allocated by previous join request */
+    bss_list =
+           (tScanResultList *)&sta_session->stored_roam_profile.bsslist_handle;
+    if (NULL != bss_list) {
+        csrScanResultPurge(mac_ctx,
+                           sta_session->stored_roam_profile.bsslist_handle);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                  FL("bss list is released for session %d"), session_id);
+        sta_session->stored_roam_profile.bsslist_handle = NULL;
+    }
+    sta_session->stored_roam_profile.bsslist_handle = NULL;
+    csrReleaseProfile(mac_ctx, &sta_session->stored_roam_profile.profile);
+    sta_session->stored_roam_profile.reason = 0;
+    sta_session->stored_roam_profile.roam_id = 0;
+    sta_session->stored_roam_profile.imediate_flag = false;
+    sta_session->stored_roam_profile.clear_flag = false;
+    return true;
+}
+
+/**
+ * csr_store_joinreq_param() - This function will store station's join
+ *                             request to that station's session.
+ * @mac_ctx: pointer to mac context.
+ * @profile: pointer to station's roam profile.
+ * @scan_cache: pointer to station's scan cache.
+ * @roam_id: reference to roam_id variable being passed.
+ * @session_id: station's session id.
+ *
+ * This function will store station's join request to one of the
+ * csr structure and add it to station's session.
+ *
+ * Return: true or false based on function's overall success.
+ */
+bool csr_store_joinreq_param(tpAniSirGlobal mac_ctx,
+                             tCsrRoamProfile *profile,
+                             tScanResultHandle scan_cache,
+                             uint32_t *roam_id,
+                             uint32_t session_id)
+{
+    tCsrRoamSession *sta_session;
+
+    if (NULL == mac_ctx) {
+        return false;
+    }
+
+    sta_session = CSR_GET_SESSION(mac_ctx, session_id);
+    if (NULL == sta_session) {
+        return false;
+    }
+
+    sta_session->stored_roam_profile.session_id = session_id;
+    csrRoamCopyProfile(mac_ctx, &sta_session->stored_roam_profile.profile,
+                       profile);
+    /* new bsslist_handle's memory will be relased later */
+    sta_session->stored_roam_profile.bsslist_handle = scan_cache;
+    sta_session->stored_roam_profile.reason = eCsrHddIssued;
+    sta_session->stored_roam_profile.roam_id = *roam_id;
+    sta_session->stored_roam_profile.imediate_flag = false;
+    sta_session->stored_roam_profile.clear_flag = false;
+
+    return true;
+}
+
+/**
+ * csr_issue_stored_joinreq() - This function will issues station's stored
+ *                              the join request.
+ * @mac_ctx: pointer to mac context.
+ * @roam_id: reference to roam_id variable being passed.
+ * @session_id: station's session id.
+ *
+ * This function will issue station's stored join request, from this point
+ * onwards the flow will be just like normal connect request.
+ *
+ * Return: eHAL_STATUS_SUCCESS or eHAL_STATUS_FAILURE.
+ */
+eHalStatus csr_issue_stored_joinreq(tpAniSirGlobal mac_ctx,
+                                    uint32_t *roam_id,
+                                    uint32_t session_id)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tCsrRoamSession *sta_session;
+    uint32_t new_roam_id;
+
+    sta_session = CSR_GET_SESSION(mac_ctx, session_id);
+    if (NULL == sta_session) {
+        return eHAL_STATUS_FAILURE;
+    }
+    new_roam_id = GET_NEXT_ROAM_ID(&mac_ctx->roam);
+    *roam_id = new_roam_id;
+    status = csrRoamIssueConnect(mac_ctx,
+                            sta_session->stored_roam_profile.session_id,
+                            &sta_session->stored_roam_profile.profile,
+                            sta_session->stored_roam_profile.bsslist_handle,
+                            sta_session->stored_roam_profile.reason,
+                            new_roam_id,
+                            sta_session->stored_roam_profile.imediate_flag,
+                            sta_session->stored_roam_profile.clear_flag);
+    if (!HAL_STATUS_SUCCESS(status)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("CSR failed to issue connect cmd with status = 0x%08X"),
+                  status);
+        csr_clear_joinreq_param(mac_ctx, session_id);
+    }
+    return status;
 }

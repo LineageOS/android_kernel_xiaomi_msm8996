@@ -2813,9 +2813,11 @@ int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx, bool mcc_mode)
 			pAdapter = adapter_node->pAdapter;
 			if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
 				pAdapter->device_mode == WLAN_HDD_SOFTAP) {
-				hddLog(VOS_TRACE_LEVEL_INFO,
-					"MCC->SCC: Flush TxRx queue(d_mode=%d)",
-					pAdapter->device_mode);
+				hddLog(LOG1,
+					"MCC->SCC: Flush TxRx queue(d_mode %s(%d))",
+					hdd_device_mode_to_string(
+						pAdapter->device_mode),
+                                        pAdapter->device_mode);
 				hdd_deinit_tx_rx(pAdapter);
 			}
 			status = hdd_get_next_adapter(

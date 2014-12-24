@@ -1030,7 +1030,8 @@ limSendHalMsgDelTs(
      goto err;
   }
   pDelTsParam->sessionId = psessionEntry->smeSessionId;
-  pDelTsParam->userPrio = delts.tsinfo.traffic.userPrio;
+  pDelTsParam->userPrio = delts.wmeTspecPresent?
+      delts.tspec.tsinfo.traffic.userPrio: delts.tsinfo.traffic.userPrio;
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
   if (pMac->roam.configParam.isRoamOffloadEnabled &&

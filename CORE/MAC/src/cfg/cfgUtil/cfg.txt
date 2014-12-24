@@ -2757,23 +2757,6 @@ LIM
 0    780    780
 
 *
-* VHT Operation Information
-* Channel Width set to zero for 20/40MHz.
-* set to 1 for 80MHz. 2->160Mhz, 3->80+80MHz
-*
-WNI_CFG_VHT_CHANNEL_WIDTH  I    4    19
-V    RW    NP
-LIM
-0    3    0
-V    RW    NP
-LIM
-0    3    0
-
-#ENUM 20_40MHZ       0
-#ENUM 80MHZ          1
-#ENUM 160MHZ         2
-#ENUM 80_PLUS_80MHZ  3
-*
 * Channel center freq Seg1
 *
 WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1  I    4    19

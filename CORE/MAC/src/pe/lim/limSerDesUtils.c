@@ -504,6 +504,9 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     pBuf += sizeof( tANI_U32 );
     len -= sizeof( tANI_U32 );
 
+    pStartBssReq->vht_channel_width = *pBuf++;
+    len--;
+
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -917,8 +920,10 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     }
 
     // Extract cbMode
-    pJoinReq->cbMode = *pBuf++;
-    len--;
+    pJoinReq->cbMode = (ePhyChanBondState)limGetU32(pBuf);
+    pBuf += sizeof(ePhyChanBondState);
+    len -= sizeof(ePhyChanBondState);
+
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
     {
         limLog(pMac, LOGE, FL("remaining len %d is too short"), len);

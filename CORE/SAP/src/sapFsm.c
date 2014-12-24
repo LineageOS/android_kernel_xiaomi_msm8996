@@ -1385,7 +1385,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     if (pMac->sap.SapDfsInfo.orig_chanWidth == 0)
     {
         pMac->sap.SapDfsInfo.orig_chanWidth =
-                  pMac->roam.configParam.nVhtChannelWidth;
+                  sapContext->vht_ch_width_orig;
         chanWidth = pMac->sap.SapDfsInfo.orig_chanWidth;
     }
     else
@@ -2017,7 +2017,6 @@ sapGotoChannelSel
     tHalHandle hHal;
 #ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8   channel;
-    tANI_U32 vhtChannelWidth = 0;
 #endif
 
     hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, sapContext->pvosGCtx);
@@ -2063,23 +2062,8 @@ sapGotoChannelSel
         { /*if a valid channel is returned then use concurrent channel.
                   Else take whatever comes from configuartion*/
             sapContext->channel = channel;
-             if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
-                                                     WNI_CFG_VHT_CHANNEL_WIDTH,
-                                                     &vhtChannelWidth))
-             {
-                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                           FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-                 /*
-                  * In case of failure, take the vht channel width from
-                  * original ini value
-                  */
-                 vhtChannelWidth =
-                         PMAC_STRUCT(hHal)->roam.configParam.nVhtChannelWidth;
-              }
-              sme_SelectCBMode(hHal,
-                               sapContext->csrRoamProfile.phyMode,
-                               channel, vhtChannelWidth);
-
+            sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
+                                channel, &sapContext->vht_channel_width);
         }
 #endif
     }
@@ -3210,7 +3194,6 @@ sapFsm
     v_U8_t temp_chan;
     tSapDfsNolInfo *pNol;
 #endif
-    v_U32_t   vhtChannelWidth;
 
     if (NULL == hHal)
     {
@@ -3369,22 +3352,10 @@ sapFsm
                              "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
                             __func__,sapContext->channel, con_ch);
                          sapContext->channel = con_ch;
-                     if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
-                                                      WNI_CFG_VHT_CHANNEL_WIDTH,
-                                                      &vhtChannelWidth))
-                     {
-                         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                   FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-                         /*
-                          * In case of failure, take the vht channel width from
-                          * original ini value
-                          */
-                         vhtChannelWidth =
-                                   pMac->roam.configParam.nVhtChannelWidth;
-                      }
-                      sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
-                                       sapContext->channel, vhtChannelWidth);
-
+                         sme_SelectCBMode(hHal,
+                                         sapContext->csrRoamProfile.phyMode,
+                                         sapContext->channel,
+                                         &sapContext->vht_channel_width);
                      }
                  }
 #endif
@@ -3432,21 +3403,9 @@ sapFsm
                          sapContext->channel, ch);
 
                      sapContext->channel = ch;
-                     if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
-                                                      WNI_CFG_VHT_CHANNEL_WIDTH,
-                                                      &vhtChannelWidth))
-                     {
-                         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                   FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-                         /*
-                          * In case of failure, take the vht channel width from
-                          * original ini value
-                          */
-                         vhtChannelWidth =
-                                   pMac->roam.configParam.nVhtChannelWidth;
-                      }
-                      sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
-                                       sapContext->channel, vhtChannelWidth);
+                     sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
+                                       sapContext->channel,
+                                       &sapContext->vht_channel_width);
                  }
                  if (sapContext->channel > 14 &&
                          (sapContext->csrRoamProfile.phyMode ==
@@ -3478,6 +3437,8 @@ sapFsm
                  sapContext->csrRoamProfile.ChannelInfo.numOfChannels = 1;
                  sapContext->csrRoamProfile.ChannelInfo.ChannelList = &sapContext->csrRoamProfile.operationChannel;
                  sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
+                 sapContext->csrRoamProfile.vht_channel_width =
+                                               sapContext->vht_channel_width;
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                          "%s: notify hostapd about channel selection: %d",
                          __func__, sapContext->channel);
@@ -3540,22 +3501,9 @@ sapFsm
                 }
                 else if (pMac->sap.SapDfsInfo.target_channel)
                 {
-                   if (eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
-                                                      WNI_CFG_VHT_CHANNEL_WIDTH,
-                                                      &vhtChannelWidth))
-                   {
-                       VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                                 FL("Get WNI_CFG_VHT_CHANNEL_WIDTH failed"));
-                       /*
-                        * In case of failure, take the vht channel width from
-                        * original ini value
-                        */
-                       vhtChannelWidth =
-                                 pMac->roam.configParam.nVhtChannelWidth;
-                   }
                    sme_SelectCBMode(hHal, phyMode,
                                     pMac->sap.SapDfsInfo.target_channel,
-                                    vhtChannelWidth);
+                                    &sapContext->vht_channel_width);
                 }
 
                 for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
