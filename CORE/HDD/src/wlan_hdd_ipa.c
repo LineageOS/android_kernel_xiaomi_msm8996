@@ -371,6 +371,7 @@ struct uc_op_work_struct {
 	struct work_struct work;
 	struct op_msg_type *msg;
 };
+static uint8_t vdev_to_iface[CSR_ROAM_SESSION_MAX];
 #endif /* IPA_UC_OFFLOAD */
 
 struct hdd_ipa_priv {
@@ -1283,21 +1284,6 @@ end:
 	adf_os_mem_free(op_msg);
 }
 
-static uint8_t hdd_ipa_uc_get_iface_id(struct hdd_ipa_priv *hdd_ipa,
-	uint8_t session_id)
-{
-	uint8_t i;
-
-	/* This revisit needed for performance */
-	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
-		if ((hdd_ipa->iface_context[i].adapter != NULL) &&
-		(hdd_ipa->iface_context[i].adapter->sessionId == session_id)) {
-			break;
-		}
-	}
-	return i;
-}
-
 static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 {
 	struct ipa_wdi_in_params  pipe_in;
@@ -2189,7 +2175,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			session_id = (uint8_t)skb->cb[0];
-			iface_id = hdd_ipa_uc_get_iface_id(hdd_ipa, session_id);
+			iface_id = vdev_to_iface[session_id];
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
 				"IPA_RECEIVE: session_id=%u, iface_id=%u",
 				session_id, iface_id);
@@ -3232,6 +3218,13 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
 		if (ret)
 			goto end;
+
+#ifdef IPA_UC_OFFLOAD
+		vdev_to_iface[adapter->sessionId] =
+			((struct hdd_ipa_iface_context *)
+				(adapter->ipa_context))->iface_id;
+#endif
+
 		break;
 
 	case WLAN_AP_CONNECT:
@@ -3241,9 +3234,17 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				SIR_AP_RX_DATA_OFFLOAD, 1);
 		}
 #endif
+
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
 		if (ret)
 			goto end;
+
+#ifdef IPA_UC_OFFLOAD
+		vdev_to_iface[adapter->sessionId] =
+			((struct hdd_ipa_iface_context *)
+				(adapter->ipa_context))->iface_id;
+#endif
+
 		break;
 
 	case WLAN_STA_DISCONNECT:
@@ -3265,6 +3266,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
                 if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_STA_RX_DATA_OFFLOAD, 0);
+			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
 #endif
 		break;
@@ -3276,6 +3278,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_AP_RX_DATA_OFFLOAD, 0);
+			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
 #endif
 		break;
