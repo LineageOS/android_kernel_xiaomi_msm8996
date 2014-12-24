@@ -11072,6 +11072,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_SMPS_PARAM,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "set_smps_param" },
+    {   WLAN_SET_DOT11P_CHANNEL_SCHED,
+        IW_PRIV_TYPE_BYTE
+      | sizeof(struct dot11p_channel_sched),
+        0, "set_dot11p" },
 #ifdef DEBUG
     {   WE_SET_FW_CRASH_INJECT,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
