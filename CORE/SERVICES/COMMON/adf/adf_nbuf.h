@@ -54,6 +54,11 @@
 #define NBUF_PKT_TRAC_MAX_STRING   12
 #define NBUF_PKT_TRAC_PROTO_STRING 4
 
+#define ADF_NBUF_TRAC_IPV4_OFFSET       14
+#define ADF_NBUF_TRAC_IPV4_HEADER_SIZE  20
+#define ADF_NBUF_TRAC_DHCP_SRV_PORT     67
+#define ADF_NBUF_TRAC_DHCP_CLI_PORT     68
+
 /**
  * @brief Platform indepedent packet abstraction
  */
@@ -1131,6 +1136,19 @@ static inline uint8_t
 adf_nbuf_get_tx_parallel_dnload_frm(adf_nbuf_t buf)
 {
    return __adf_nbuf_get_tx_htt2_frm(buf);
+}
+
+/**
+ * @brief this will return if the skb data is a dhcp packet or not
+ *
+ * @param[in] buf       buffer
+ *
+ * @return A_STATUS_OK if packet is DHCP packet
+ */
+static inline a_status_t
+adf_nbuf_is_dhcp_pkt(adf_nbuf_t buf)
+{
+    return (__adf_nbuf_is_dhcp_pkt(buf));
 }
 
 #endif
