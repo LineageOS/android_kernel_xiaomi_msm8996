@@ -688,7 +688,6 @@ extern "C" {
 #define WAL_DBGID_RESUME                            67
 #define WAL_DBGID_PEER_TX_FAIL_CNT_THRES_EXCEEDED   68
 #define WAL_DBGID_RX_FULL_REORDER_SUPPORT           69
-#if defined(AR900B)
 #define WAL_DBGID_HCM_BIN                           70
 #define WAL_DBGID_HCM_BIN_PENALIZE                  71
 #define WAL_DBGID_HCM_BIN_DEPENALIZE                72
@@ -697,11 +696,14 @@ extern "C" {
 #define WAL_DBGID_TX_AC_BUFFER_SET                  75
 #define WAL_DBGID_AST_ENTRY_EXIST                   76
 #define WAL_DBGID_AST_ENTRY_FULL                    77
-#define WAL_DBGID_DEFINITION_END                    78
-#else
-#define WAL_DBGID_DEFINITION_END                    70
-#endif
-
+#define WAL_DBGID_WMMAC_TXQ_STATUS                  78
+#define WAL_DBGID_PROLONGED_TX_PPDU_TOTAL_US        79
+#define WAL_DBGID_UPDATE_USED_TIME                  80
+#define WAL_DBGID_PAST_WB_ACK_TIMESTAMP             81
+#define WAL_DBGID_WMMAC_ADD_DEL_TSPEC               82
+#define WAL_DBGID_WMMAC_TIMER_EXPIRY                83
+#define WAL_DBGID_WMMAC_PARAMS                      84
+#define WAL_DBGID_DEFINITION_END                    85
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
 #define ANI_DBGID_OFDM_PARAMS                        2
