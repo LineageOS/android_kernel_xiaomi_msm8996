@@ -14879,6 +14879,254 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
 }
 #endif
 
+/**
+ * hdd_wlan_go_set_mcc_p2p_quota() - Function to set quota for P2P GO
+ * @hostapd_adapter:	Pointer to HDD adapter
+ * @set_value:		Qouta value for the interface
+ *
+ * This function is used to set the quota for P2P GO cases
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value)
+{
+	uint8_t first_adapter_operating_channel = 0;
+	uint8_t second_adapter_opertaing_channel = 0;
+	tVOS_CONCURRENCY_MODE concurrent_state = 0;
+	hdd_adapter_t *staAdapter = NULL;
+	int32_t ret = 0; /* success */
+
+	/*
+	 * Check if concurrency mode is active.
+	 * Need to modify this code to support MCC modes other than
+	 * STA/P2P GO
+	 */
+
+	concurrent_state = hdd_get_concurrency_mode();
+	if (concurrent_state == (VOS_STA | VOS_P2P_GO)) {
+		hddLog(LOG1, "%s: STA & P2P are both enabled", __func__);
+
+		/*
+		 * The channel numbers for both adapters and the time
+		 * quota for the 1st adapter, i.e., one specified in cmd
+		 * are formatted as a bit vector then passed on to WMA
+		 * +************************************************+
+		 * |bit 31-24 |bit 23-16  |  bits 15-8  |bits 7-0   |
+		 * |  Unused  |  Quota for| chan. # for |chan. # for|
+		 * |          |  1st chan.| 1st chan.   |2nd chan.  |
+		 * +************************************************+
+		 */
+
+		/* Get the operating channel of the specified vdev */
+		first_adapter_operating_channel =
+			hdd_get_operating_channel(hostapd_adapter->pHddCtx,
+			hostapd_adapter->device_mode);
+
+		hddLog(LOG1, "%s: 1st channel No.:%d and quota:%dms",
+			__func__, first_adapter_operating_channel,
+			set_value);
+
+		/* Move the time quota for first adapter to bits 15-8 */
+		set_value = set_value << 8;
+		/*
+		 * Store the operating channel number of 1st adapter at
+		 * the lower 8-bits of bit vector.
+		 */
+		set_value = set_value | first_adapter_operating_channel;
+		if (hostapd_adapter->device_mode ==
+				WLAN_HDD_INFRA_STATION) {
+			/* iwpriv cmd issued on wlan0; get p2p0 vdev chan */
+			if ((concurrent_state & VOS_P2P_CLIENT) != 0) {
+				/* The 2nd MCC vdev is P2P client */
+				staAdapter = hdd_get_adapter
+					(
+					 hostapd_adapter->pHddCtx,
+					 WLAN_HDD_P2P_CLIENT
+					);
+			} else {
+				/* The 2nd MCC vdev is P2P GO */
+				staAdapter = hdd_get_adapter
+					(
+					 hostapd_adapter->pHddCtx,
+					 WLAN_HDD_P2P_GO
+					);
+			}
+		} else {
+			/* iwpriv cmd issued on p2p0; get channel for wlan0 */
+			staAdapter = hdd_get_adapter
+				(
+				 hostapd_adapter->pHddCtx,
+				 WLAN_HDD_INFRA_STATION
+				);
+		}
+		if (staAdapter != NULL) {
+			second_adapter_opertaing_channel =
+				hdd_get_operating_channel
+				(
+				 staAdapter->pHddCtx,
+				 staAdapter->device_mode
+				);
+			hddLog(LOG1, "%s: 2nd vdev channel No. is:%d",
+					__func__,
+					second_adapter_opertaing_channel);
+
+			if (second_adapter_opertaing_channel == 0 ||
+					first_adapter_operating_channel == 0) {
+				hddLog(LOGE, "Invalid channel");
+				return -EINVAL;
+			}
+
+			/*
+			 * Move the time quota and operating channel number
+			 * for the first adapter to bits 23-16 & bits 15-8
+			 * of set_value vector, respectively.
+			 */
+			set_value = set_value << 8;
+			/*
+			 * Store the channel number for 2nd MCC vdev at bits
+			 * 7-0 of set_value vector as per the bit format above.
+			 */
+			set_value = set_value |
+				second_adapter_opertaing_channel;
+			ret = process_wma_set_command
+				(
+				 (int32_t)hostapd_adapter->sessionId,
+				 (int32_t)WMA_VDEV_MCC_SET_TIME_QUOTA,
+				 set_value,
+				 VDEV_CMD
+				);
+		} else {
+			hddLog(LOGE, "%s: NULL adapter handle. Exit",
+					__func__);
+		}
+	} else {
+		hddLog(LOG1, "%s: MCC is not active. "
+				"Exit w/o setting latency", __func__);
+	}
+	return ret;
+}
+
+/**
+ * hdd_wlan_set_mcc_p2p_quota() - Function to set quota for P2P
+ * @hostapd_adapter:    Pointer to HDD adapter
+ * @set_value:          Qouta value for the interface
+ *
+ * This function is used to set the quota for P2P cases
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapater,
+					uint32_t set_value)
+{
+	uint8_t first_adapter_operating_channel = 0;
+	uint8_t second_adapter_opertaing_channel = 0;
+	hdd_adapter_t *staAdapter = NULL;
+	int32_t ret = 0; /* success */
+
+	tVOS_CONCURRENCY_MODE concurrent_state = hdd_get_concurrency_mode();
+	hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
+			set_value);
+	/*
+	 * Check if concurrency mode is active.
+	 * Need to modify this code to support MCC modes other than STA/P2P
+	 */
+	if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+			(concurrent_state == (VOS_STA | VOS_P2P_GO))) {
+		hddLog(LOG1, "STA & P2P are both enabled");
+		/*
+		 * The channel numbers for both adapters and the time
+		 * quota for the 1st adapter, i.e., one specified in cmd
+		 * are formatted as a bit vector then passed on to WMA
+		 * +***********************************************************+
+		 * |bit 31-24  | bit 23-16  |   bits 15-8   |   bits 7-0       |
+		 * |  Unused   | Quota for  | chan. # for   |   chan. # for    |
+		 * |           | 1st chan.  | 1st chan.     |   2nd chan.      |
+		 * +***********************************************************+
+		 */
+		/* Get the operating channel of the specified vdev */
+		first_adapter_operating_channel =
+			hdd_get_operating_channel
+			(
+			 hostapd_adapater->pHddCtx,
+			 hostapd_adapater->device_mode
+			);
+		hddLog(LOG1, "1st channel No.:%d and quota:%dms",
+				first_adapter_operating_channel, set_value);
+		/* Move the time quota for first channel to bits 15-8 */
+		set_value = set_value << 8;
+		/*
+		 * Store the channel number of 1st channel at bits 7-0
+		 * of the bit vector
+		 */
+		set_value = set_value | first_adapter_operating_channel;
+		/* Find out the 2nd MCC adapter and its operating channel */
+		if (hostapd_adapater->device_mode == WLAN_HDD_INFRA_STATION) {
+			/*
+			 * iwpriv cmd was issued on wlan0;
+			 * get p2p0 vdev channel
+			 */
+			if ((concurrent_state & VOS_P2P_CLIENT) != 0) {
+				/* The 2nd MCC vdev is P2P client */
+				staAdapter = hdd_get_adapter(
+						hostapd_adapater->pHddCtx,
+						WLAN_HDD_P2P_CLIENT);
+			} else {
+				/* The 2nd MCC vdev is P2P GO */
+				staAdapter = hdd_get_adapter(
+						hostapd_adapater->pHddCtx,
+						WLAN_HDD_P2P_GO);
+			}
+		} else {
+			/*
+			 * iwpriv cmd was issued on p2p0;
+			 * get wlan0 vdev channel
+			 */
+			staAdapter = hdd_get_adapter(hostapd_adapater->pHddCtx,
+					WLAN_HDD_INFRA_STATION);
+		}
+		if (staAdapter != NULL) {
+			second_adapter_opertaing_channel =
+				hdd_get_operating_channel
+				(
+				 staAdapter->pHddCtx,
+				 staAdapter->device_mode
+				);
+			hddLog(LOG1, "2nd vdev channel No. is:%d",
+					second_adapter_opertaing_channel);
+
+			if (second_adapter_opertaing_channel == 0 ||
+					first_adapter_operating_channel == 0) {
+				hddLog(LOGE, "Invalid channel");
+				return -EINVAL;
+			}
+			/*
+			 * Now move the time quota and channel number of the
+			 * 1st adapter to bits 23-16 and bits 15-8 of the bit
+			 * vector, respectively.
+			 */
+			set_value = set_value << 8;
+			/*
+			 * Store the channel number for 2nd MCC vdev at bits
+			 * 7-0 of set_value
+			 */
+			set_value = set_value |
+					second_adapter_opertaing_channel;
+			ret = process_wma_set_command(
+					(int32_t)hostapd_adapater->sessionId,
+					(int32_t)WMA_VDEV_MCC_SET_TIME_QUOTA,
+					set_value, VDEV_CMD);
+		} else {
+			hddLog(LOGE, "NULL adapter handle. Exit");
+		}
+	} else {
+		hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
+				__func__);
+	}
+	return ret;
+}
 
 //Register the module init/exit functions
 module_init(hdd_module_init);

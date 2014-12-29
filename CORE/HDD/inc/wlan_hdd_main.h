@@ -1753,5 +1753,8 @@ static inline void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx,
               bool delayed) {}
 static inline void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx) {}
 #endif
-
+int hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value);
+int hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
