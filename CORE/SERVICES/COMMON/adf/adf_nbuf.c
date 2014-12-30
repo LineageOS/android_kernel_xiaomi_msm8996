@@ -32,6 +32,7 @@
 #include <linux/module.h>
 #include <adf_os_types.h>
 #include <adf_nbuf.h>
+#include <adf_os_io.h>
 
 adf_nbuf_trace_update_t  trace_update_cb = NULL;
 
@@ -383,6 +384,30 @@ __adf_nbuf_reg_trace_cb(adf_nbuf_trace_update_t cb_func_ptr)
    return;
 }
 
+a_status_t
+__adf_nbuf_is_dhcp_pkt(struct sk_buff *skb)
+{
+   a_uint16_t    SPort;
+   a_uint16_t    DPort;
+
+    SPort = (a_uint16_t)(*(a_uint16_t *)(skb->data + ADF_NBUF_TRAC_IPV4_OFFSET +
+                                     ADF_NBUF_TRAC_IPV4_HEADER_SIZE));
+    DPort = (a_uint16_t)(*(a_uint16_t *)(skb->data + ADF_NBUF_TRAC_IPV4_OFFSET +
+                                     ADF_NBUF_TRAC_IPV4_HEADER_SIZE + sizeof(a_uint16_t)));
+
+    if (((ADF_NBUF_TRAC_DHCP_SRV_PORT == adf_os_cpu_to_be16(SPort)) &&
+       (ADF_NBUF_TRAC_DHCP_CLI_PORT == adf_os_cpu_to_be16(DPort))) ||
+       ((ADF_NBUF_TRAC_DHCP_CLI_PORT == adf_os_cpu_to_be16(SPort)) &&
+       (ADF_NBUF_TRAC_DHCP_SRV_PORT == adf_os_cpu_to_be16(DPort))))
+    {
+        return A_STATUS_OK;
+    }
+    else
+    {
+        return A_STATUS_FAILED;
+    }
+}
+
 #ifdef QCA_PKT_PROTO_TRACE
 void
 __adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
@@ -449,3 +474,4 @@ EXPORT_SYMBOL(__adf_nbuf_get_tid);
 EXPORT_SYMBOL(__adf_nbuf_set_tid);
 EXPORT_SYMBOL(__adf_nbuf_get_exemption_type);
 EXPORT_SYMBOL(__adf_nbuf_dmamap_set_cb);
+EXPORT_SYMBOL(__adf_nbuf_is_dhcp_pkt);

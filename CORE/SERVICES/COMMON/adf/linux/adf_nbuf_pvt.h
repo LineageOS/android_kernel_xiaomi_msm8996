@@ -264,6 +264,7 @@ void            __adf_nbuf_dmamap_info(__adf_os_dma_map_t bmap, adf_os_dmamap_in
 void            __adf_nbuf_frag_info(struct sk_buff *skb, adf_os_sglist_t  *sg);
 void            __adf_nbuf_dmamap_set_cb(__adf_os_dma_map_t dmap, void *cb, void *arg);
 void            __adf_nbuf_reg_trace_cb(adf_nbuf_trace_update_t cb_func_ptr);
+a_status_t      __adf_nbuf_is_dhcp_pkt(struct sk_buff *skb);
 
 #ifdef QCA_PKT_PROTO_TRACE
 void

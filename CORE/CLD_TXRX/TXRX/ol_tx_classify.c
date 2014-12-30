@@ -94,6 +94,9 @@ ol_tx_classify_htt2_frm(
 #define OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, netbuf, msdu_info)      /* no-op */
 #endif /* QCA_TX_HTT2_SUPPORT */
 
+/* DHCP go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
+#define TX_DHCP_TID  6
+
 /* EAPOL go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
 #define TX_EAPOL_TID  6
 
@@ -275,9 +278,15 @@ ol_tx_tid(
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_ethernet;
 
         ol_tx_set_ether_type(datap, tx_msdu_info);
-        tid = tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
-            ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
-            tx_msdu_info->htt.info.ext_tid;
+        if (A_STATUS_OK == adf_nbuf_is_dhcp_pkt(tx_nbuf)) {
+            /* DHCP frame to go with voice priority */
+            tid = TX_DHCP_TID;
+        } else {
+            tid =
+                tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+                ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
+                tx_msdu_info->htt.info.ext_tid;
+        }
     } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
         struct llc_snap_hdr_t *llc;
 
@@ -343,6 +352,11 @@ ol_tx_classify(
                     vdev->mac_addr.raw[2], vdev->mac_addr.raw[3],
                     vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
                 return NULL; /* error */
+            } else if (A_STATUS_OK ==
+                            adf_nbuf_is_dhcp_pkt(tx_nbuf)) {
+                /* DHCP frame to go with voice priority */
+                txq = &peer->txqs[TX_DHCP_TID];
+                tx_msdu_info->htt.info.ext_tid = TX_DHCP_TID;
             }
             /*
              * The following line assumes each peer object has a single ID.
