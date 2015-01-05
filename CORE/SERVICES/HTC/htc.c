@@ -147,6 +147,9 @@ static void HTCCleanup(HTC_TARGET *target)
 
     if (target->hif_dev != NULL) {
         HIFDetachHTC(target->hif_dev);
+#ifdef HIF_SDIO
+        HIFMaskInterrupt(target->hif_dev);
+#endif
         target->hif_dev = NULL;
     }
 

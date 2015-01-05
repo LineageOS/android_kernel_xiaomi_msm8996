@@ -41,7 +41,7 @@
 #define TX_URB_COUNT    32
 #define RX_URB_COUNT    32
 
-#define HIF_USB_RX_BUFFER_SIZE  2048
+#define HIF_USB_RX_BUFFER_SIZE  (1792 + 8)
 #define HIF_USB_RX_BUNDLE_ONE_PKT_SIZE  (1792 + 8)
 
 /* USB Endpoint definition */
