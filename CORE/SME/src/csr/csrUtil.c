@@ -1608,7 +1608,7 @@ eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDes
         }
 
 #ifdef WLAN_FEATURE_11AC
-        if (pIes->VHTCaps.present) {
+        if (IS_BSS_VHT_CAPABLE(pIes->VHTCaps)) {
              phyMode = eCSR_DOT11_MODE_11ac;
         }
 #endif
