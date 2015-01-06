@@ -4608,16 +4608,20 @@ typedef struct
                                      // of peer with staIdx is reported
 }tSirIbssGetPeerInfoReqParams, *tpSirIbssGetPeerInfoReqParams;
 
-/*---------------------------------------------------------------------------
-* tSirIbssGetPeerInfoParams
-*--------------------------------------------------------------------------*/
-typedef struct
-{
-   tANI_U8  staIdx;      //StaIdx
-   tANI_U32 txRate;       //Tx Rate
-   tANI_U32 mcsIndex;    //MCS Index
-   tANI_U32 txRateFlags; //TxRate Flags
-   tANI_S8  rssi;        //RSSI
+/**
+ * typedef struct - tSirIbssGetPeerInfoParams
+ * @mac_addr: mac address received from target
+ * @txRate: TX rate
+ * @mcsIndex: MCS index
+ * @txRateFlags: TX rate flags
+ * @rssi: RSSI
+ */
+typedef struct {
+   uint8_t  mac_addr[VOS_MAC_ADDR_SIZE];
+   uint32_t txRate;
+   uint32_t mcsIndex;
+   uint32_t txRateFlags;
+   int8_t  rssi;
 }tSirIbssPeerInfoParams;
 
 typedef struct

@@ -677,30 +677,6 @@ typedef enum{
     HDD_SSR_DISABLED,
 }e_hdd_ssr_required;
 
-/*---------------------------------------------------------------------------
-  hdd_ibss_peer_info_params_t
----------------------------------------------------------------------------*/
-typedef struct
-{
-    v_U8_t  staIdx;       //StaIdx
-    v_U32_t txRate;       //Current Tx Rate
-    v_U32_t mcsIndex;     //MCS Index
-    v_U32_t txRateFlags;  //TxRate Flags
-    v_S7_t  rssi;         //RSSI
-}hdd_ibss_peer_info_params_t;
-
-typedef struct
-{
-    /** Request status */
-    v_U32_t                       status;
-
-    /** Number of peers */
-    v_U8_t                        numIBSSPeers;
-
-    /** Peer Info parameters */
-    hdd_ibss_peer_info_params_t  ibssPeerList[HDD_MAX_NUM_IBSS_STA];
-}hdd_ibss_peer_info_t;
-
 struct hdd_station_ctx
 {
   /** Handle to the Wireless Extension State */
@@ -731,7 +707,7 @@ struct hdd_station_ctx
 
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
-   hdd_ibss_peer_info_t ibss_peer_info;
+   tSirPeerInfoRspParams ibss_peer_info;
 
    v_BOOL_t hdd_ReassocScenario;
 
@@ -2028,5 +2004,8 @@ static inline void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx,
 
 int wlan_hdd_update_txrx_chain_mask(hdd_context_t *hdd_ctx,
 				    uint8_t chain_mask);
+void
+hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
+                                    tSirPeerInfoRspParams *pPeerInfo);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
