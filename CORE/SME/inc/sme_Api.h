@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2253,15 +2253,6 @@ eHalStatus sme_GetCfgValidChannels(tHalHandle hHal, tANI_U8 *aValidChannels, tAN
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SetPreferredNetworkList (tHalHandle hHal, tpSirPNOScanReq pRequest, tANI_U8 sessionId, preferredNetworkFoundIndCallback callbackRoutine, void *callbackContext );
-
-/* ---------------------------------------------------------------------------
-    \fn sme_SetRSSIFilter
-    \brief  API to set RSSI Filter feature.
-    \param  hHal - The handle returned by macOpen.
-    \param  pRequest -  Pointer to the offload request.
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_SetRSSIFilter(tHalHandle hHal, v_U8_t rssiThreshold);
 
 /******************************************************************************
 *

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -447,7 +447,6 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_PNO_REQ                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 170)
 #define SIR_HAL_SET_PNO_CHANGED_IND        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 171)
 #define SIR_HAL_UPDATE_SCAN_PARAMS         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 172)
-#define SIR_HAL_SET_RSSI_FILTER_REQ        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 173)
 #endif // FEATURE_WLAN_SCAN_PNO
 
 
