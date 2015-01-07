@@ -40,7 +40,7 @@
 #pragma warning( disable:4214 ) //bit field types other than int
 #endif
 #include "wlan_defs.h"
-#include "htt_common.h"
+#include <htt_common.h>
 
 /*
  * Unless explicitly specified to use 64 bits to represent physical addresses
@@ -88,9 +88,17 @@
  *        - whether to use 32 or 64 bits to represent LL bus addresses
  *        - whether to use TX_COMPL_IND or TX_CREDIT_UPDATE_IND in HL systems
  *        - how many tx queue groups to use
+ * 3.11 Expand rx debug stats:
+ *        - Expand the rx_reorder_stats struct with stats about successful and
+ *          failed rx buffer allcoations.
+ *        - Add a new rx_remote_buffer_mgmt_stats struct with stats about
+ *          the supply, allocation, use, and recycling of rx buffers for the
+ *          "remote ring" of rx buffers in host member in LL systems.
+ *          Add RX_REMOTE_RING_BUFFER_INFO stats type for uploading these stats.
+ * 3.12 Add "rx offload packet error" message with initial "MIC error" subtype
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 10
+#define HTT_CURRENT_VERSION_MINOR 12
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -168,7 +176,8 @@ enum htt_dbg_stats_type {
     HTT_DBG_STATS_TX_SELFGEN_INFO    = 9,  /* bit 9  -> 0x200 */
     HTT_DBG_STATS_TX_MU_INFO         = 10, /* bit 10 -> 0x400 */
     HTT_DBG_STATS_SIFS_RESP_INFO     = 11, /* bit 11 -> 0x800 */
-    /* bits 8-23 currently reserved */
+    HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO = 12, /* bit 12 -> 0x1000*/
+    /* bits 13-23 currently reserved */
 
     /* keep this last */
     HTT_DBG_NUM_STATS
@@ -340,7 +349,14 @@ enum HTT_OPTION_TLV_MAX_TX_QUEUE_GROUPS_VALUES {
      */
     HTT_OPTION_TLV_TX_QUEUE_GROUPS_UNLIMITED = 0xffff,
 };
-PREPACK struct htt_option_tlv_mac_tx_queue_groups_t {
+/* TEMPORARY backwards-compatibility alias for a typo fix -
+ * The htt_option_tlv_mac_tx_queue_groups_t typo has been corrected
+ * to  htt_option_tlv_max_tx_queue_groups_t, but an alias is provided
+ * to support the old name (with the typo) until all references to the
+ * old name are replaced with the new name.
+ */
+#define htt_option_tlv_mac_tx_queue_groups_t htt_option_tlv_max_tx_queue_groups_t
+PREPACK struct htt_option_tlv_max_tx_queue_groups_t {
     struct htt_option_tlv_header_t hdr;
     A_UINT16 max_tx_queue_groups; /* max txq_group_id + 1 */
 } POSTPACK;
@@ -774,11 +790,10 @@ A_COMPILE_TIME_ASSERT(
     #define HTT_TX_DESC_PEERID_DESC_PADDR_S \
         HTT_TX_DESC_PEER_ID_S
 
-/* channel frequency tag */
-#define HTT_TX_DESC_CHANFREQ_DESC_PADDR_OFFSET_BYTES 14
-#define HTT_TX_DESC_CHANFREQ_DESC_PADDR_OFFSET_DWORD 3
-#define HTT_TX_DESC_CHANFREQ_DESC_PADDR_M 0xffff0000
-#define HTT_TX_DESC_CHANFREQ_DESC_PADDR_S 16
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES 12 // to dword containing chan freq
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD 3
+#define HTT_TX_DESC_CHAN_FREQ_M 0xffff0000
+#define HTT_TX_DESC_CHAN_FREQ_S 16
 
 #define HTT_TX_DESC_PKT_SUBTYPE_GET(_var) \
     (((_var) & HTT_TX_DESC_PKT_SUBTYPE_M) >> HTT_TX_DESC_PKT_SUBTYPE_S)
@@ -866,6 +881,14 @@ A_COMPILE_TIME_ASSERT(
      do {                                               \
          HTT_CHECK_SET_VAL(HTT_TX_DESC_PEER_ID, _val);  \
          ((_var) |= ((_val) << HTT_TX_DESC_PEER_ID_S)); \
+     } while (0)
+
+#define HTT_TX_DESC_CHAN_FREQ_GET(_var) \
+    (((_var) & HTT_TX_DESC_CHAN_FREQ_M) >> HTT_TX_DESC_CHAN_FREQ_S)
+#define HTT_TX_DESC_CHAN_FREQ_SET(_var, _val)             \
+     do {                                               \
+         HTT_CHECK_SET_VAL(HTT_TX_DESC_CHAN_FREQ, _val);  \
+         ((_var) |= ((_val) << HTT_TX_DESC_CHAN_FREQ_S)); \
      } while (0)
 
 
@@ -1838,6 +1861,8 @@ enum htt_t2h_msg_type {
     /* 0x13 is reserved for RX_RING_LOW_IND (RX Full reordering related) */
     HTT_T2H_MSG_TYPE_WDI_IPA_OP_RESPONSE      = 0x14,
     HTT_T2H_MSG_TYPE_CHAN_CHANGE              = 0x15,
+    HTT_T2H_MSG_TYPE_RX_OFLD_PKT_ERR          = 0x16,
+
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
     HTT_T2H_NUM_MSGS
@@ -4289,7 +4314,64 @@ struct rx_reorder_stats {
     A_UINT32 pn_fail;
 	/* MPDUs dropped due to unable to allocate memory  */
     A_UINT32 store_fail;
+    /* Number of times the tid pool alloc succeeded */
+    A_UINT32 tid_pool_alloc_succ;
+    /* Number of times the MPDU pool alloc succeeded */
+    A_UINT32 mpdu_pool_alloc_succ;
+    /* Number of times the MSDU pool alloc succeeded */
+    A_UINT32 msdu_pool_alloc_succ;
+    /* Number of times the tid pool alloc failed */
+    A_UINT32 tid_pool_alloc_fail;
+    /* Number of times the MPDU pool alloc failed */
+    A_UINT32 mpdu_pool_alloc_fail;
+    /* Number of times the MSDU pool alloc failed */
+    A_UINT32 msdu_pool_alloc_fail;
+    /* Number of times the tid pool freed */
+    A_UINT32 tid_pool_free;
+    /* Number of times the MPDU pool freed */
+    A_UINT32 mpdu_pool_free;
+    /* Number of times the MSDU pool freed */
+    A_UINT32 msdu_pool_free;
+    /* number of MSDUs undelivered to HTT and queued to Data Rx MSDU free list*/
+    A_UINT32 msdu_queued;
+    /* Number of MSDUs released from Data Rx MSDU list to MAC ring */
+    A_UINT32 msdu_recycled;
 };
+
+
+/*
+ * Rx Remote buffer statistics
+ * NB: all the fields must be defined in 4 octets size.
+ */
+struct rx_remote_buffer_mgmt_stats {
+    /* Total number of MSDUs reaped for Rx processing */
+    A_UINT32 remote_reaped;
+    /* MSDUs recycled within firmware */
+    A_UINT32 remote_recycled;
+    /* MSDUs stored by Data Rx */
+    A_UINT32 data_rx_msdus_stored;
+    /* Number of HTT indications from WAL Rx MSDU */
+    A_UINT32 wal_rx_ind;
+    /* Number of unconsumed HTT indications from WAL Rx MSDU */
+    A_UINT32 wal_rx_ind_unconsumed;
+    /* Number of HTT indications from Data Rx MSDU */
+    A_UINT32 data_rx_ind;
+    /* Number of unconsumed HTT indications from Data Rx MSDU */
+    A_UINT32 data_rx_ind_unconsumed;
+    /* Number of HTT indications from ATHBUF */
+    A_UINT32 athbuf_rx_ind;
+    /* Number of remote buffers requested for refill */
+    A_UINT32 refill_buf_req;
+    /* Number of remote buffers filled by the host */
+    A_UINT32 refill_buf_rsp;
+    /* Number of times MAC hw_index = f/w write_index */
+    A_INT32 mac_no_bufs;
+    /* Number of times f/w write_index = f/w read_index for MAC Rx ring */
+    A_INT32 fw_indices_equal;
+    /* Number of times f/w finds no buffers to post */
+    A_INT32 host_no_bufs;
+};
+
 
 /*
  * htt_dbg_stats_status -
@@ -4889,6 +4971,239 @@ PREPACK struct htt_chan_change_t
      >> HTT_CHAN_CHANGE_PHY_MODE_S)
 
 #define HTT_CHAN_CHANGE_BYTES sizeof(struct htt_chan_change_t)
+
+
+/**
+ * @brief rx offload packet error message
+ *
+ * @details
+ *  HTT_RX_OFLD_PKT_ERR message is sent by target to host to indicate err
+ *  of target payload like mic err.
+ *
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |      tid       |     vdev_id    |  msg_sub_type  |    msg_type    |
+ *     |-------------------------------------------------------------------|
+ *     :                    (sub-type dependent content)                   :
+ *     :- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -:
+ * Header fields:
+ *   - msg_type
+ *     Bits 7:0
+ *     Purpose: Identifies this as HTT_RX_OFLD_PKT_ERR message
+ *     value: 0x16 (HTT_T2H_MSG_TYPE_RX_OFLD_PKT_ERR)
+ *   - msg_sub_type
+ *     Bits 15:8
+ *     Purpose: Identifies which type of rx error is reported by this message
+ *     value: htt_rx_ofld_pkt_err_type
+ *   - vdev_id
+ *     Bits 23:16
+ *     Purpose: Identifies which vdev received the erroneous rx frame
+ *     value:
+ *   - tid
+ *     Bits 31:24
+ *     Purpose: Identifies the traffic type of the rx frame
+ *     value:
+ *
+ *   - The payload fields used if the sub-type == MIC error are shown below.
+ *     Note - MIC err is per MSDU, while PN is per MPDU.
+ *     The FW will discard the whole MPDU if any MSDU within the MPDU is marked
+ *     with MIC err in A-MSDU case, so FW will send only one HTT message
+ *     with the PN of this MPDU attached to indicate MIC err for one MPDU
+ *     instead of sending separate HTT messages for each wrong MSDU within
+ *     the MPDU.
+ *
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |     Rsvd       |     key_id     |             peer_id             |
+ *     |-------------------------------------------------------------------|
+ *     |                        receiver MAC addr 31:0                     |
+ *     |-------------------------------------------------------------------|
+ *     |              Rsvd               |    receiver MAC addr 47:32      |
+ *     |-------------------------------------------------------------------|
+ *     |                     transmitter MAC addr 31:0                     |
+ *     |-------------------------------------------------------------------|
+ *     |              Rsvd               |    transmitter MAC addr 47:32   |
+ *     |-------------------------------------------------------------------|
+ *     |                              PN 31:0                              |
+ *     |-------------------------------------------------------------------|
+ *     |              Rsvd               |              PN 47:32           |
+ *     |-------------------------------------------------------------------|
+ *   - peer_id
+ *     Bits 15:0
+ *     Purpose: identifies which peer is frame is from
+ *     value:
+ *   - key_id
+ *     Bits 23:16
+ *     Purpose: identifies key_id of rx frame
+ *     value:
+ *   - RA_31_0 (receiver MAC addr 31:0)
+ *     Bits 31:0
+ *     Purpose: identifies by MAC address which vdev received the frame
+ *     value: MAC address lower 4 bytes
+ *   - RA_47_32 (receiver MAC addr 47:32)
+ *     Bits 15:0
+ *     Purpose: identifies by MAC address which vdev received the frame
+ *     value: MAC address upper 2 bytes
+ *   - TA_31_0 (transmitter MAC addr 31:0)
+ *     Bits 31:0
+ *     Purpose: identifies by MAC address which peer transmitted the frame
+ *     value: MAC address lower 4 bytes
+ *   - TA_47_32 (transmitter MAC addr 47:32)
+ *     Bits 15:0
+ *     Purpose: identifies by MAC address which peer transmitted the frame
+ *     value: MAC address upper 2 bytes
+ *   - PN_31_0
+ *     Bits 31:0
+ *     Purpose: Identifies pn of rx frame
+ *     value: PN lower 4 bytes
+ *   - PN_47_32
+ *     Bits 15:0
+ *     Purpose: Identifies pn of rx frame
+ *     value:
+ *         TKIP or CCMP: PN upper 2 bytes
+ *         WAPI: PN bytes 6:5 (bytes 15:7 not included in this message)
+ */
+
+enum htt_rx_ofld_pkt_err_type {
+    HTT_RX_OFLD_PKT_ERR_TYPE_NONE = 0,
+    HTT_RX_OFLD_PKT_ERR_TYPE_MIC_ERR,
+};
+
+/* definition for HTT_RX_OFLD_PKT_ERR msg hdr */
+#define HTT_RX_OFLD_PKT_ERR_HDR_BYTES 4
+
+#define HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_M     0x0000ff00
+#define HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_S     8
+
+#define HTT_RX_OFLD_PKT_ERR_VDEV_ID_M          0x00ff0000
+#define HTT_RX_OFLD_PKT_ERR_VDEV_ID_S          16
+
+#define HTT_RX_OFLD_PKT_ERR_TID_M              0xff000000
+#define HTT_RX_OFLD_PKT_ERR_TID_S              24
+
+#define HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_M) \
+    >> HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_S)
+#define HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MSG_SUB_TYPE_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_VDEV_ID_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_VDEV_ID_M) >> HTT_RX_OFLD_PKT_ERR_VDEV_ID_S)
+#define HTT_RX_OFLD_PKT_ERR_VDEV_ID_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_VDEV_ID, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_VDEV_ID_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_TID_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_TID_M) >> HTT_RX_OFLD_PKT_ERR_TID_S)
+#define HTT_RX_OFLD_PKT_ERR_TID_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_TID, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_TID_S)); \
+    } while (0)
+
+/* definition for HTT_RX_OFLD_PKT_ERR_MIC_ERR msg sub-type payload */
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_BYTES   28
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_M          0x0000ffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_S          0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_M            0x00ff0000
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_S            16
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_M          0xffffffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_S          0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_M         0x0000ffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_S         0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_M          0xffffffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_S          0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_M         0x0000ffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_S         0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_M          0xffffffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_S          0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_M         0x0000ffff
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_S         0
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_PEER_ID_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_KEYID_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_31_0_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_RA_47_32_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_31_0_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_TA_47_32_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_31_0_S)); \
+    } while (0)
+
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_GET(_var) \
+    (((_var) & HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_M) >> \
+    HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_S)
+#define HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32, _val);  \
+        ((_var) |= ((_val) << HTT_RX_OFLD_PKT_ERR_MIC_ERR_PN_47_32_S)); \
+    } while (0)
 
 
 #endif
