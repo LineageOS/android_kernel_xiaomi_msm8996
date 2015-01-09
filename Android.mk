@@ -67,6 +67,11 @@ LOCAL_MODULE_TAGS         := debug
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
+ifeq ($(WLAN_OPEN_SOURCE),1)
+include $(WLAN_BLD_DIR)/qcacld-2.0/tools/athdiag/Android.mk
+include $(WLAN_BLD_DIR)/qcacld-2.0/tools/fwdebuglog/Android.mk
+include $(WLAN_BLD_DIR)/qcacld-2.0/tools/pktlog/Android.mk
+endif
 ###########################################################
 
 # Create Symbolic link for built <WLAN_CHIPSET>_wlan.ko driver from
