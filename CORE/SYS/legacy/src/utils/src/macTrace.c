@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -743,7 +743,6 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg )
         CASE_RETURN_STRING(WDA_FTM_CMD_RSP);
 #ifdef FEATURE_WLAN_SCAN_PNO
         CASE_RETURN_STRING(WDA_SET_PNO_REQ);
-        CASE_RETURN_STRING(WDA_SET_RSSI_FILTER_REQ);
         CASE_RETURN_STRING(WDA_UPDATE_SCAN_PARAMS_REQ);
         CASE_RETURN_STRING(WDA_SET_PNO_CHANGED_IND);
         CASE_RETURN_STRING(WDA_SME_SCAN_CACHE_UPDATED);

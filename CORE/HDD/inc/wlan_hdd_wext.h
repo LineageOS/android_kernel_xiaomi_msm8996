@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -373,10 +373,6 @@ extern int iw_get_auth(struct net_device *dev,struct iw_request_info *info,
 
 VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
                       union iwreq_data *wrqu, char *extra, int nOffset);
-
-
-VOS_STATUS iw_set_rssi_filter(struct net_device *dev, struct iw_request_info *info,
-                              union iwreq_data *wrqu, char *extra, int nOffset);
 
 VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *info,
                       union iwreq_data *wrqu, char *extra, int nOffset);

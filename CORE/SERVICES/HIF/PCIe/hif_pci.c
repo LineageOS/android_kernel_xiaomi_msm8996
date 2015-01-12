@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1714,6 +1714,9 @@ HIFStop(HIF_DEVICE *hif_device)
     if (!hif_state->started && !sc->hif_init_done) {
         return; /* already stopped or stopping */
     }
+
+    if (sc->hdd_startup_reinit_flag == TRUE)
+        return; /* If still in wlan_hdd_startup or wlan_hdd_reinit nop. */
 
     sc->hif_init_done = FALSE;
 
