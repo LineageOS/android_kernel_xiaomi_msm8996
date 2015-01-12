@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -89,6 +89,7 @@ struct hif_pci_softc {
     atomic_t pci_link_suspended;
     bool hif_init_done;
     bool recovery;
+    bool hdd_startup_reinit_flag;
     int htc_endpoint;
 };
 #define TARGID(sc) ((A_target_id_t)(&(sc)->mem))

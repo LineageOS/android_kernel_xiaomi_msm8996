@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -976,8 +976,11 @@ again:
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
     ret = hif_init_adf_ctx(ol_sc);
-    if (ret == 0)
+    if (ret == 0) {
+        sc->hdd_startup_reinit_flag = true;
         ret = hdd_wlan_startup(&pdev->dev, ol_sc);
+        sc->hdd_startup_reinit_flag = false;
+    }
 
     if (ret) {
         hif_disable_isr(ol_sc);
@@ -1316,8 +1319,10 @@ again:
 
     ret = hif_init_adf_ctx(ol_sc);
     if (ret == 0) {
+        sc->hdd_startup_reinit_flag = true;
         if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc))
             ret = 0;
+        sc->hdd_startup_reinit_flag = false;
     }
 
     /* Re-enable ASPM after firmware/OTP download is complete */
@@ -1404,6 +1409,15 @@ hif_nointrs(struct hif_pci_softc *sc)
 {
     int i;
 
+    if (sc->hdd_startup_reinit_flag) {
+        pr_err("%s: WARN: In HDD startup or reinit\n", __func__);
+        return;
+    }
+
+    if (!sc->pdev) {
+        pr_err("%s: pdev is NULL\n", __func__);
+        return;
+    }
     if (sc->num_msi_intrs > 0) {
         /* MSI interrupt(s) */
         for (i = 0; i < sc->num_msi_intrs; i++) {
@@ -2134,7 +2148,11 @@ void hif_disable_isr(void *ol_sc)
 	struct ol_softc *sc = (struct ol_softc *)ol_sc;
 	struct hif_pci_softc *hif_sc = sc->hif_sc;
 	struct ol_softc *scn;
-
+	if (hif_sc->hdd_startup_reinit_flag) {
+		pr_err("%s: WARN: in HDD starrtup or reinit function\n",
+			__func__);
+		return;
+	}
 	scn = hif_sc->ol_sc;
 	hif_nointrs(hif_sc);
 #if CONFIG_PCIE_64BIT_MSI

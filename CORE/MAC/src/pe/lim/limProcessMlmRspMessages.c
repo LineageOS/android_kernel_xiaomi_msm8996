@@ -412,7 +412,6 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         peDeleteSession(pMac,psessionEntry);
         psessionEntry = NULL;
         PELOGE(limLog(pMac, LOGE,FL("Start BSS Failed "));)
-        return;
     }
     /// Send response to Host
     limSendSmeStartBssRsp(pMac, eWNI_SME_START_BSS_RSP,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3822,12 +3822,6 @@ static int iw_set_priv(struct net_device *dev,
 
         hddLog( VOS_TRACE_LEVEL_INFO, "pno");
         vos_status = iw_set_pno(dev, info, wrqu, cmd, 3);
-        kfree(cmd);
-        return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
-    }
-    else if( strncasecmp(cmd, "rssifilter",10) == 0 ) {
-        hddLog( VOS_TRACE_LEVEL_INFO, "rssifilter");
-        vos_status = iw_set_rssi_filter(dev, info, wrqu, cmd, 10);
         kfree(cmd);
         return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
     }
@@ -9520,28 +9514,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
 
   return VOS_STATUS_SUCCESS;
 }/*iw_set_pno*/
-
-VOS_STATUS iw_set_rssi_filter(struct net_device *dev, struct iw_request_info *info,
-        union iwreq_data *wrqu, char *extra, int nOffset)
-{
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    v_U8_t rssiThreshold = 0;
-    v_U8_t nRead;
-
-    nRead = sscanf(extra + nOffset,"%hhu",
-           &rssiThreshold);
-
-    if ( 1 != nRead )
-    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                "Incorrect format");
-      return VOS_STATUS_E_FAILURE;
-    }
-
-    sme_SetRSSIFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), rssiThreshold);
-    return VOS_STATUS_SUCCESS;
-}
-
 
 static int iw_set_pno_priv(struct net_device *dev,
                            struct iw_request_info *info,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2956,36 +2956,6 @@ eHalStatus pmcSetPreferredNetworkList
 
     return eHAL_STATUS_SUCCESS;
 }
-
-eHalStatus pmcSetRssiFilter(tHalHandle hHal,   v_U8_t        rssiThreshold)
-{
-    tpSirSetRSSIFilterReq pRequestBuf;
-    vos_msg_t msg;
-
-
-    pRequestBuf = vos_mem_malloc(sizeof(tpSirSetRSSIFilterReq));
-    if (NULL == pRequestBuf)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for PNO request", __func__);
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-
-
-    pRequestBuf->rssiThreshold = rssiThreshold;
-
-    msg.type = WDA_SET_RSSI_FILTER_REQ;
-    msg.reserved = 0;
-    msg.bodyptr = pRequestBuf;
-    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __func__);
-        vos_mem_free(pRequestBuf);
-        return eHAL_STATUS_FAILURE;
-    }
-
-    return eHAL_STATUS_SUCCESS;
-}
-
 
 eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChannel *pChannelList, tANI_U8 b11dResolved)
 {
