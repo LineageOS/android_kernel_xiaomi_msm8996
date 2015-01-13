@@ -1138,6 +1138,26 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH
     },
 #endif
+    [QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED
+    },
 };
 
 static int is_driver_dfs_capable(struct wiphy *wiphy,
@@ -4679,7 +4699,7 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	 * Check if AP+AP case, once primary AP chooses a DFS
 	 * channel secondary AP should always follow primary APs channel
 	 */
-	if (vos_concurrent_sap_sessions_running()) {
+	if (vos_concurrent_beaconing_sessions_running()) {
 		hdd_adapter_t *con_sap_adapter;
 		v_U16_t con_ch;
 
@@ -7007,7 +7027,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
 
 #ifdef WLAN_FEATURE_MBSSID
-        if (!vos_concurrent_sap_sessions_running()) {
+        if (!vos_concurrent_beaconing_sessions_running()) {
             /* Single AP Mode */
             if (VOS_IS_DFS_CH(pConfig->channel))
                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;

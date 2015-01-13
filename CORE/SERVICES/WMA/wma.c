@@ -1029,8 +1029,7 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 	if ((resp_event->vdev_id <= wma->max_bssid) &&
 		(adf_os_atomic_read(
 		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
-		((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
-		(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
+		(wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id) == true)) {
 		WMA_LOGE(
 			"%s: vdev restart event recevied for hidden ssid set using IOCTL",
 			__func__);
@@ -5065,8 +5064,7 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
    }
 
    /* Beacon Tx Indication supports only AP mode. Ignore in other modes */
-   if ((wma->interfaces[resp_event->vdev_id].type != WMI_VDEV_TYPE_AP) ||
-       (wma->interfaces[resp_event->vdev_id].sub_type != 0)) {
+   if (wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id) == false) {
       WMA_LOGI("%s: Beacon Tx Indication does not support type %d and sub_type %d",
                     __func__, wma->interfaces[resp_event->vdev_id].type,
                      wma->interfaces[resp_event->vdev_id].sub_type);
@@ -9745,8 +9743,7 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		 * mode operation on DFS channels, P2P-GO
 		 * does not support operation on DFS Channels.
 		 */
-		if (intr[cmd->vdev_id].type == WMI_VDEV_TYPE_AP &&
-			 intr[cmd->vdev_id].sub_type == 0) {
+		if (wma_is_vdev_in_ap_mode(wma, cmd->vdev_id) == true) {
 			/*
 			 * If DFS regulatory domain is invalid,
 			 * then, DFS radar filters intialization
@@ -10427,8 +10424,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	 * issuse VDEV RESTART, so we making is_channel_switch as
 	 * TRUE
 	 */
-	if((wma->interfaces[req.vdev_id].type == WMI_VDEV_TYPE_AP ) &&
-			(wma->interfaces[req.vdev_id].sub_type == 0))
+	if (wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true)
 		wma->interfaces[req.vdev_id].is_channel_switch = VOS_TRUE;
 
 	status = wma_vdev_start(wma, &req,
