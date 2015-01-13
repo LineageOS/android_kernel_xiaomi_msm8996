@@ -525,7 +525,6 @@ tpPESession pe_find_session_by_sme_session_id(tpAniSirGlobal mac_ctx,
     {
         return(&pMac->lim.gpSession[sessionId]);
     }
-    limLog(pMac, LOG1, FL("Session %d  not active\n "), sessionId);
     return(NULL);
 
 }
