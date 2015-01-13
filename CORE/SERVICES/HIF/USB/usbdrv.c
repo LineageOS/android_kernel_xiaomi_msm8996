@@ -406,7 +406,9 @@ void usb_hif_flush_all(HIF_DEVICE_USB *device)
 		if (device->pipes[i].device != NULL) {
 			usb_hif_flush_pending_transfers(&device->pipes[i]);
 			pipe = &device->pipes[i];
+#ifndef HIF_USB_TASKLET
 			flush_work(&pipe->io_complete_work);
+#endif
 		}
 	}
 
@@ -489,7 +491,11 @@ static void usb_hif_usb_recv_prestart_complete(struct urb *urb)
 
 		/* note: queue implements a lock */
 		skb_queue_tail(&pipe->io_comp_queue, buf);
+#ifdef HIF_USB_TASKLET
+		tasklet_schedule(&pipe->io_complete_tasklet);
+#else
 		schedule_work(&pipe->io_complete_work);
+#endif
 	} while (FALSE);
 
 	usb_hif_cleanup_recv_urb(urb_context);
@@ -567,8 +573,11 @@ static void usb_hif_usb_recv_complete(struct urb *urb)
 
 		/* note: queue implements a lock */
 		skb_queue_tail(&pipe->io_comp_queue, buf);
+#ifdef HIF_USB_TASKLET
+		tasklet_schedule(&pipe->io_complete_tasklet);
+#else
 		schedule_work(&pipe->io_complete_work);
-
+#endif
 	} while (FALSE);
 
 	usb_hif_cleanup_recv_urb(urb_context);
@@ -714,9 +723,11 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 			}
 
 		} while (netlen);
-
+#ifdef HIF_USB_TASKLET
+		tasklet_schedule(&pipe->io_complete_tasklet);
+#else
 		schedule_work(&pipe->io_complete_work);
-
+#endif
 	} while (FALSE);
 
 	if (urb_context->buf == NULL) {
@@ -1080,9 +1091,17 @@ A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *device,
 	return ret;
 }
 
+#ifdef HIF_USB_TASKLET
+void usb_hif_io_comp_tasklet(long unsigned int context)
+#else
 void usb_hif_io_comp_work(struct work_struct *work)
+#endif
 {
+#ifdef HIF_USB_TASKLET
+	HIF_USB_PIPE *pipe = (HIF_USB_PIPE *) context;
+#else
 	HIF_USB_PIPE *pipe = container_of(work, HIF_USB_PIPE, io_complete_work);
+#endif
 	adf_nbuf_t buf;
 	HIF_DEVICE_USB *device;
 	HTC_FRAME_HDR *HtcHdr;

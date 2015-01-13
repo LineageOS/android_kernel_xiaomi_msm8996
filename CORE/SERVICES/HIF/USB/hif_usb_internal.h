@@ -103,7 +103,11 @@ typedef struct _HIF_USB_PIPE {
 	A_UINT8 logical_pipe_num;
 	struct _HIF_DEVICE_USB *device;
 	A_UINT16 max_packet_size;
+#ifdef HIF_USB_TASKLET
+	struct tasklet_struct io_complete_tasklet;
+#else
 	struct work_struct io_complete_work;
+#endif
 	struct sk_buff_head io_comp_queue;
 	struct usb_endpoint_descriptor *ep_desc;
 	A_INT32 urb_prestart_cnt;
@@ -157,7 +161,11 @@ extern void usb_hif_enqueue_pending_transfer(HIF_USB_PIPE *pipe,
 					     HIF_URB_CONTEXT *urb_context);
 extern void usb_hif_remove_pending_transfer(HIF_URB_CONTEXT *urb_context);
 extern HIF_URB_CONTEXT *usb_hif_alloc_urb_from_pipe(HIF_USB_PIPE *pipe);
+#ifdef HIF_USB_TASKLET
+extern void usb_hif_io_comp_tasklet(long unsigned int context);
+#else
 extern void usb_hif_io_comp_work(struct work_struct *work);
+#endif
 /* Support for USB Suspend / Resume */
 extern void usb_hif_suspend(struct usb_interface *interface);
 extern void usb_hif_resume(struct usb_interface *interface);
