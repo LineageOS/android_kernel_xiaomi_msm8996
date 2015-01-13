@@ -116,6 +116,7 @@
  * timeout value  */
 #define CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE 1000*30*4  //120s
 #define CSR_MAX_BSSID_COUNT     ((CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE/4000) * 3)
+#define CSR_CUSTOM_CONC_GO_BI    100
 typedef enum
 {
     eCsrNextScanNothing,
