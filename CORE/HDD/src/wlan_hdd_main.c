@@ -8002,6 +8002,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->lpss_support = cfg->lpss_support;
 #endif
 
+    hdd_ctx->ap_arpns_support = cfg->ap_arpns_support;
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
 
     hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);

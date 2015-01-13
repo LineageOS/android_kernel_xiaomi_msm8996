@@ -101,6 +101,7 @@ struct hdd_tgt_cfg {
 #ifdef WLAN_FEATURE_LPSS
         v_U8_t lpss_support;
 #endif
+        uint8_t ap_arpns_support;
 };
 
 struct hdd_dfs_radar_ind {
