@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -53,7 +53,7 @@
 #include "regdomain.h"
 #include "regdomain_common.h"
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
 #endif
 
@@ -536,7 +536,7 @@ vos_reg_apply_beaconing_flags(struct wiphy *wiphy,
             continue;
 
          if (initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
             freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
                         0, &reg_rule);
 #else
@@ -604,7 +604,7 @@ vos_reg_apply_active_scan_flags(struct wiphy *wiphy,
     */
 
    ch = &sband->channels[11]; /* CH 12 */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
             freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
                         0, &reg_rule);
 #else
@@ -618,7 +618,7 @@ vos_reg_apply_active_scan_flags(struct wiphy *wiphy,
    }
 
    ch = &sband->channels[12]; /* CH 13 */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
             freq_reg_info(wiphy, MHZ_TO_KHZ(ch->center_freq),
                         0, &reg_rule);
 #else
@@ -692,7 +692,7 @@ static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
 
    if  (pHddCtx->cfg_ini->fRegChangeDefCountry) {
        regd = vos_custom_world_regdomain();
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
        wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
        wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
@@ -701,7 +701,7 @@ static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
    else if (is_world_regd(reg->reg_domain))
    {
        regd = vos_world_regdomain(reg);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
        wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
        wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
@@ -710,7 +710,7 @@ static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
    else
    {
        regd = vos_default_world_regdomain();
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
        wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
 #else
        wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
@@ -1271,7 +1271,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
         }
         else if (COUNTRY_IE == source || COUNTRY_USER == source)
         {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
             regulatory_hint_user(country_code,NL80211_USER_REG_HINT_USER);
 #else
             regulatory_hint_user(country_code);
@@ -1297,7 +1297,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
     int k = 0, n = 0;
     v_CONTEXT_t pVosContext = NULL;
     hdd_context_t *pHddCtx = NULL;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 	 int err;
 #endif
 	 const struct ieee80211_reg_rule *reg_rule;
@@ -1368,7 +1368,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
              * require a passive scan on a frequency, lift the passive
              * scan restriction
              */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
             reg_rule = freq_reg_info(wiphy,
                                      MHZ_TO_KHZ(wiphy->bands[i]->channels[j].center_freq));
 #else
@@ -1377,13 +1377,13 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                                 0, &reg_rule);
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
             if (!IS_ERR(reg_rule))
 #else
             if (0 == err)
 #endif
             {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
                 if (wiphy->regulatory_flags & REGULATORY_CUSTOM_REG) {
 #else
                 if (wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY) {
@@ -1531,7 +1531,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
  * This function is used to create a CRDA regulatory settings entry into internal
  * regulatory setting table.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
 void wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
                 struct regulatory_request *request)
 #else
@@ -1552,7 +1552,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                    ("SSR is in progress") );
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
        return;
 #else
        return 0;
@@ -1563,7 +1563,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                    ("Invalid pHddCtx pointer") );
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
        return;
 #else
        return 0;
@@ -1575,7 +1575,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                   "%s: Unloading or SSR in Progress, Ignore!!!", __func__);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
             return;
 #else
             return 0;
@@ -1687,7 +1687,7 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         break;
     }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
     return;
 #else
     return 0;
@@ -1781,7 +1781,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
         /* default country is world roaming */
 
         reg_domain = REGDOMAIN_WORLD;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
         wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
         wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
@@ -1791,7 +1791,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
 	     pnvEFSTable->halnv.tables.defaultCountryTable.regDomain) {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
         wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
         wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
@@ -1800,7 +1800,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
     else {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
         wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
 #else
         wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;

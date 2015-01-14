@@ -1719,7 +1719,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             if ( !hddDisconInProgress )
             {
                 cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                                  pHddCtx->wiphy,
 #endif
                                  bss);
@@ -2104,7 +2104,7 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
 
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
             cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                              pHddCtx->wiphy,
 #endif
                              bss);
@@ -2262,7 +2262,7 @@ static eHalStatus roamIbssConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo 
       return eHAL_STATUS_FAILURE;
    }
    cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                     WLAN_HDD_GET_CTX(pAdapter)->wiphy,
 #endif
                     bss);
