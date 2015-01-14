@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -942,6 +942,64 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+/**
+ * wma_find_mcc_ap() - finds if device is operating AP in MCC mode or not
+ * @wma:        wma handle.
+ * @vdev_id:	vdev ID of device for which MCC has to be checked
+ * @add:        flag indicating if current device is added or deleted
+ *
+ * This function parses through all the interfaces in wma and finds if
+ * any of those devces are in MCC mode with AP. If such a vdev is found
+ * involved AP vdevs are sent WDA_UPDATE_Q2Q_IE_IND msg to update their
+ * beacon template to include Q2Q IE.
+ *
+ * Return: void
+ */
+void wma_find_mcc_ap(tp_wma_handle wma,
+		     uint8_t vdev_id,
+		     bool add)
+{
+	uint8_t i;
+	uint16_t prev_ch_freq = 0;
+	bool is_ap = false;
+	bool result = false;
+	uint8_t * ap_vdev_ids = NULL;
+	uint8_t num_ch = 0;
+
+	ap_vdev_ids = vos_mem_malloc(wma->max_bssid);
+	if (!ap_vdev_ids) {
+		return;
+	}
+
+	for(i = 0; i < wma->max_bssid; i++) {
+		ap_vdev_ids[i] = -1;
+		if( add == false && i == vdev_id)
+			continue;
+
+		if( wma->interfaces[i].vdev_up || (i == vdev_id && add) ) {
+
+			if(wma->interfaces[i].type == WMI_VDEV_TYPE_AP) {
+				is_ap = true;
+				ap_vdev_ids[i] = i;
+			}
+
+			if(wma->interfaces[i].mhz != prev_ch_freq) {
+				num_ch++;
+				prev_ch_freq = wma->interfaces[i].mhz;
+			}
+		}
+	}
+
+	if( is_ap && (num_ch > 1) )
+		result = true;
+	else
+		result = false;
+
+	wma_send_msg(wma, WDA_UPDATE_Q2Q_IE_IND, (void*)ap_vdev_ids, result);
+}
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
 static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 {
 	struct wma_target_req *req_msg;
@@ -984,6 +1042,11 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 	}
 
 	vos_timer_stop(&req_msg->event_timeout);
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+	if (resp_event->status == VOS_STATUS_SUCCESS)
+		wma_find_mcc_ap(wma, resp_event->vdev_id, true);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 	iface = &wma->interfaces[resp_event->vdev_id];
 	if (req_msg->msg_type == WDA_CHNL_SWITCH_REQ) {
@@ -1778,6 +1841,9 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 				resp_event->vdev_id);
 		} else {
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+			wma_find_mcc_ap(wma, resp_event->vdev_id, false);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 		}
 		ol_txrx_vdev_flush(iface->handle);
                 WMA_LOGD("%s, vdev_id: %d, un-pausing tx_ll_queue for VDEV_STOP rsp",
@@ -9822,6 +9888,9 @@ void wma_vdev_resp_timer(void *data)
 				tgt_req->vdev_id);
 		} else {
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+			wma_find_mcc_ap(wma, tgt_req->vdev_id, false);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 		}
 		ol_txrx_vdev_flush(iface->handle);
                 WMA_LOGD("%s, vdev_id: %d, un-pausing tx_ll_queue for WDA_DELETE_BSS_REQ timeout",
