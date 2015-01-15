@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1077,4 +1077,50 @@ Notify(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 ntfMask)
 
 } /*** end Notify() ***/
 
+/**
+ * cfg_get_vendor_ie_ptr_from_oui() - returns IE pointer in IE buffer given its
+ * OUI and OUI size
+ * @mac_ctx:    mac context.
+ * @oui:        OUI string.
+ * @oui_size:   length of OUI string
+ *              One can provide multiple line descriptions
+ *              for arguments.
+ * @ie:         ie buffer
+ * @ie_len:     length of ie buffer
+ *
+ * This function parses the IE buffer and finds the given OUI and returns its
+ * pointer
+ *
+ * Return: pointer of given OUI IE else NULL
+ */
+uint8_t* cfg_get_vendor_ie_ptr_from_oui(tpAniSirGlobal mac_ctx,
+					uint8_t *oui,
+					uint8_t oui_size,
+					uint8_t *ie,
+					uint16_t ie_len)
+{
+	int32_t left = ie_len;
+	uint8_t *ptr = ie;
+	uint8_t elem_id, elem_len;
+
+	while(left >= 2) {
+		elem_id  = ptr[0];
+		elem_len = ptr[1];
+		left -= 2;
+		if(elem_len > left) {
+			cfgLog(mac_ctx, LOGE,
+			FL("Invalid IEs eid = %d elem_len=%d left=%d"),
+			elem_id, elem_len, left);
+			return NULL;
+		}
+		if (SIR_MAC_EID_VENDOR == elem_id) {
+			if(memcmp(&ptr[2], oui, oui_size)==0)
+			return ptr;
+		}
+
+		left -= elem_len;
+		ptr += (elem_len + 2);
+	}
+	return NULL;
+}
 // ---------------------------------------------------------------------
