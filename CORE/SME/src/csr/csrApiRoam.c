@@ -13703,7 +13703,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
 
         // txBFCsnValue
         txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
-        if (pIes->VHTCaps.present) {
+        if (IS_BSS_VHT_CAPABLE(pIes->VHTCaps)) {
             txBFCsnValue = MIN(txBFCsnValue, pIes->VHTCaps.numSoundingDim);
         }
         *pBuf = txBFCsnValue;

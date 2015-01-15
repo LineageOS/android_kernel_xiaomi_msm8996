@@ -53,6 +53,11 @@ Include Files
 #include "tl_shim.h"
 #include "wlan_qct_tl.h"
 
+#ifdef IPA_UC_OFFLOAD
+#include "wma.h"
+#include "wma_api.h"
+#endif /* IPA_UC_OFFLOAD */
+
 #define HDD_IPA_DESC_BUFFER_RATIO 4
 #define HDD_IPA_IPV4_NAME_EXT "_ipv4"
 #define HDD_IPA_IPV6_NAME_EXT "_ipv6"
@@ -76,6 +81,12 @@ typedef enum {
 	/* keep this last */
 	HDD_IPA_UC_OPCODE_MAX
 } hdd_ipa_uc_op_code;
+
+typedef enum {
+	HDD_IPA_UC_STAT_REASON_NONE,
+	HDD_IPA_UC_STAT_REASON_DEBUG,
+	HDD_IPA_UC_STAT_REASON_BW_CAL
+} hdd_ipa_uc_stat_reason;
 #endif /* IPA_UC_OFFLOAD */
 
 struct llc_snap_hdr {
@@ -405,6 +416,11 @@ struct hdd_ipa_priv {
 	struct ipa_uc_stas_map  assoc_stas_map[WLAN_MAX_STA_COUNT];
 	vos_list_t pending_event;
 	vos_lock_t event_lock;
+	uint32_t ipa_tx_packets_diff;
+	uint32_t ipa_rx_packets_diff;
+	uint32_t ipa_p_tx_packets;
+	uint32_t ipa_p_rx_packets;
+        hdd_ipa_uc_stat_reason stat_req_reason;
 #endif /* IPA_UC_OFFLOAD */
 };
 
@@ -424,6 +440,11 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
+
+#ifdef IPA_UC_OFFLOAD
+extern int process_wma_set_command(int sessid, int paramid,
+                                   int sval, int vpdev);
+#endif /* IPA_UC_OFFLOAD */
 
 bool hdd_ipa_is_enabled(hdd_context_t *hdd_ctx)
 {
@@ -567,6 +588,64 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
 }
 
 #ifdef IPA_UC_OFFLOAD
+void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
+	uint32_t *ipa_tx_diff, uint32_t *ipa_rx_diff)
+{
+	struct hdd_ipa_priv *hdd_ipa;
+
+	hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	*ipa_tx_diff = 0;
+	*ipa_rx_diff = 0;
+
+	if (!hdd_ipa_is_enabled(pHddCtx) ||
+		!(hdd_ipa_uc_is_enabled(hdd_ipa))) {
+		return;
+	}
+
+	vos_lock_acquire(&hdd_ipa->event_lock);
+	if ((HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe) &&
+		(VOS_FALSE == hdd_ipa->resource_loading)) {
+		*ipa_tx_diff = hdd_ipa->ipa_tx_packets_diff;
+		*ipa_rx_diff = hdd_ipa->ipa_rx_packets_diff;
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s: STAT Query TX DIFF %d, RX DIFF %d",
+			__func__, *ipa_tx_diff, *ipa_rx_diff);
+	}
+	vos_lock_release(&hdd_ipa->event_lock);
+	return;
+}
+
+void hdd_ipa_uc_stat_request( hdd_adapter_t *adapter, uint8_t reason)
+{
+	hdd_context_t *pHddCtx;
+	struct hdd_ipa_priv *hdd_ipa;
+
+	if (!adapter) {
+		return;
+	}
+
+	pHddCtx = (hdd_context_t *)adapter->pHddCtx;
+	hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	if (!hdd_ipa_is_enabled(pHddCtx) ||
+		!(hdd_ipa_uc_is_enabled(hdd_ipa))) {
+		return;
+	}
+
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s: STAT REQ Reason %d",
+		__func__, reason);
+	vos_lock_acquire(&hdd_ipa->event_lock);
+	if ((HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe) &&
+		(VOS_FALSE == hdd_ipa->resource_loading)) {
+		hdd_ipa->stat_req_reason = (hdd_ipa_uc_stat_reason)reason;
+		process_wma_set_command(
+			(int)adapter->sessionId,
+			(int)WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID,
+			0, VDEV_CMD);
+	}
+	vos_lock_release(&hdd_ipa->event_lock);
+}
+
 static v_BOOL_t hdd_ipa_uc_find_add_assoc_sta(
 	struct hdd_ipa_priv *hdd_ipa,
 	v_BOOL_t sta_add,
@@ -917,8 +996,8 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 		vos_lock_release(&hdd_ipa->event_lock);
 	}
 
-	if (HDD_IPA_UC_OPCODE_STATS == msg->op_code) {
-
+	if ((HDD_IPA_UC_OPCODE_STATS == msg->op_code) &&
+		(HDD_IPA_UC_STAT_REASON_DEBUG == hdd_ipa->stat_req_reason)) {
 		/* STATs from host */
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
 			"==== IPA_UC WLAN_HOST CE ====\n"
@@ -1093,6 +1172,26 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 			ipa_stat.rx_ch_stats.num_db,
 			ipa_stat.rx_ch_stats.num_unexpected_db,
 			ipa_stat.rx_ch_stats.num_bam_int_handled);
+	} else if ((HDD_IPA_UC_OPCODE_STATS == msg->op_code) &&
+		(HDD_IPA_UC_STAT_REASON_BW_CAL == hdd_ipa->stat_req_reason)) {
+		/* STATs from FW */
+		uc_fw_stat = (struct ipa_uc_fw_stats *)
+			(op_msg + sizeof(struct op_msg_type));
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		hdd_ipa->ipa_tx_packets_diff = uc_fw_stat->tx_pkts_completed -
+			hdd_ipa->ipa_p_tx_packets;
+		hdd_ipa->ipa_rx_packets_diff =
+			(uc_fw_stat->rx_num_ind_drop_no_space +
+			uc_fw_stat->rx_num_ind_drop_no_buf +
+			uc_fw_stat->rx_num_pkts_indicated) -
+			hdd_ipa->ipa_p_rx_packets;
+
+		hdd_ipa->ipa_p_tx_packets = uc_fw_stat->tx_pkts_completed;
+		hdd_ipa->ipa_p_rx_packets =
+			(uc_fw_stat->rx_num_ind_drop_no_space +
+			uc_fw_stat->rx_num_ind_drop_no_buf +
+			uc_fw_stat->rx_num_pkts_indicated);
+		vos_lock_release(&hdd_ipa->event_lock);
 	}
 	adf_os_mem_free(op_msg);
 }
@@ -1587,8 +1686,7 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 	int ret;
 
 	if ((!hdd_ipa_is_enabled(hdd_ctx)) ||
-		(!hdd_ipa_is_clk_scaling_enabled(hdd_ipa)) ||
-		(hdd_ipa_uc_is_enabled(hdd_ipa)))
+		(!hdd_ipa_is_clk_scaling_enabled(hdd_ipa)))
 		return 0;
 
 	memset(&profile, 0, sizeof(profile));
@@ -1608,6 +1706,13 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 		next_prod_bw = hdd_ctx->cfg_ini->IpaMediumBandwidthMbps;
 	else
 		next_prod_bw = hdd_ctx->cfg_ini->IpaLowBandwidthMbps;
+
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"CONS perf curr: %d, next: %d",
+		hdd_ipa->curr_cons_bw, next_cons_bw);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"PROD perf curr: %d, next: %d",
+		hdd_ipa->curr_prod_bw, next_prod_bw);
 
 	if (hdd_ipa->curr_cons_bw != next_cons_bw) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
@@ -3534,6 +3639,10 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 #ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 		hdd_ipa->sap_num_connected_sta = 0;
+		hdd_ipa->ipa_tx_packets_diff = 0;
+		hdd_ipa->ipa_rx_packets_diff = 0;
+		hdd_ipa->ipa_p_tx_packets = 0;
+		hdd_ipa->ipa_p_rx_packets = 0;
 #ifdef IPA_UC_STA_OFFLOAD
 		hdd_ipa->sta_connected = 0;
 

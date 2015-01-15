@@ -11973,6 +11973,10 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
     v_BOOL_t connected = FALSE;
+#ifdef IPA_UC_OFFLOAD
+    uint32_t ipa_tx_packets = 0, ipa_rx_packets = 0;
+    hdd_adapter_t *pValidAdapter = NULL;
+#endif /* IPA_UC_OFFLOAD */
 
     for (status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
             NULL != pAdapterNode && VOS_STATUS_SUCCESS == status;
@@ -11981,6 +11985,10 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         if ((pAdapter = pAdapterNode->pAdapter) == NULL)
             continue;
+
+#ifdef IPA_UC_OFFLOAD
+        pValidAdapter = pAdapter;
+#endif /* IPA_UC_OFFLOAD */
 
         if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
                     pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
@@ -12008,7 +12016,11 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
     }
-
+#ifdef IPA_UC_OFFLOAD
+    hdd_ipa_uc_stat_query(pHddCtx, &ipa_tx_packets, &ipa_rx_packets);
+    tx_packets += (uint64_t)ipa_tx_packets;
+    rx_packets += (uint64_t)ipa_rx_packets;
+#endif /* IPA_UC_OFFLOAD */
     if (!connected) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "bus bandwidth timer running in disconnected state");
@@ -12019,6 +12031,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
 #ifdef IPA_OFFLOAD
     hdd_ipa_set_perf_level(pHddCtx, tx_packets, rx_packets);
+#ifdef IPA_UC_OFFLOAD
+    hdd_ipa_uc_stat_request(pValidAdapter, 2);
+#endif /* IPA_UC_OFFLOAD */
 #endif
 
     vos_timer_start(&pHddCtx->bus_bw_timer,

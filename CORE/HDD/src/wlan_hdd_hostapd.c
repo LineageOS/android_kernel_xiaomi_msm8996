@@ -2895,10 +2895,7 @@ static iw_softap_setparam(struct net_device *dev,
             {
                 /* If input value is non-zero get stats */
                 if (set_value) {
-                    ret = process_wma_set_command(
-                         (int)pHostapdAdapter->sessionId,
-                         (int)WMA_VDEV_TXRX_GET_IPA_UC_FW_STATS_CMDID,
-                          0, VDEV_CMD);
+                    hdd_ipa_uc_stat_request(pHostapdAdapter, set_value);
                 }
                 else {
                     /* place holder for stats clean up
