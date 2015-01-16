@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4277,58 +4277,35 @@ wlan_hdd_set_no_dfs_flag_config_policy[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX
     [QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG] = {.type = NLA_U32 },
 };
 
+/**
+ * wlan_hdd_disable_dfs_chan_scan () - disable/enable DFS channels
+ *
+ * @pHddCtx: HDD context within host driver
+ * @pAdapter: Adapter pointer
+ * @no_dfs_flag: If TRUE, DFS channels cannot be used for scanning
+ *
+ * Loops through devices to see who is operating on DFS channels
+ * and then disables/enables DFS channels by calling SME API.
+ * Fails the disable request if any device is active on a DFS channel.
+ *
+ * Return: EOK or other error codes.
+ */
 
-static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
-                                                  struct wireless_dev *wdev,
-                                                  const void *data,
-                                                  int data_len)
+int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
+                                   hdd_adapter_t *pAdapter,
+                                   u32 no_dfs_flag)
 {
-    struct net_device *dev = wdev->netdev;
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
-    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX + 1];
-    eHalStatus status;
-    int ret_val = -EPERM;
-    u32 no_dfs_flag = 0;
     hdd_adapter_list_node_t *p_adapter_node = NULL, *p_next = NULL;
     hdd_adapter_t *p_adapter;
     VOS_STATUS vos_status;
     hdd_ap_ctx_t *p_ap_ctx;
     hdd_station_ctx_t *p_sta_ctx;
-
-    if (wlan_hdd_validate_context(pHddCtx)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-               FL("HDD context is not valid"));
-        return -EINVAL;
-    }
-
-    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX,
-                    data, data_len,
-                    wlan_hdd_set_no_dfs_flag_config_policy)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid attr"));
-        return -EINVAL;
-    }
-
-    if (!tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr dfs flag failed"));
-        return -EINVAL;
-    }
-
-    no_dfs_flag = nla_get_u32(
-        tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]);
-
-    hddLog(VOS_TRACE_LEVEL_INFO, FL(" DFS flag = %d"),
-           no_dfs_flag);
-
-    if (no_dfs_flag > 1) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid value of dfs flag"));
-        return -EINVAL;
-    }
+    eHalStatus status;
+    int ret_val = -EPERM;
 
     if (no_dfs_flag == pHddCtx->cfg_ini->enableDFSChnlScan) {
         if (no_dfs_flag) {
-
             vos_status = hdd_get_front_adapter( pHddCtx, &p_adapter_node);
             while ((NULL != p_adapter_node) &&
                    (VOS_STATUS_SUCCESS == vos_status))
@@ -4345,8 +4322,7 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
                     if (NV_CHANNEL_DFS ==
                         vos_nv_getChannelEnabledState(
                             p_ap_ctx->operatingChannel)) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("SAP running on DFS channel"));
+                        hddLog(LOGE, FL("SAP running on DFS channel"));
                         return -EOPNOTSUPP;
                     }
                 }
@@ -4360,8 +4336,7 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
                         (NV_CHANNEL_DFS ==
                          vos_nv_getChannelEnabledState(
                              p_sta_ctx->conn_info.operationChannel))) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("client connected on DFS channel"));
+                        hddLog(LOGE, FL("client connected on DFS channel"));
                         return -EOPNOTSUPP;
                     }
                 }
@@ -4379,7 +4354,7 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
         /* call the SME API to tunnel down the new channel list
            to the firmware  */
         status = sme_handle_dfs_chan_scan(hHal,
-                                          pHddCtx->cfg_ini->enableDFSChnlScan);
+                                      pHddCtx->cfg_ini->enableDFSChnlScan);
 
         if (eHAL_STATUS_SUCCESS == status) {
             ret_val = 0;
@@ -4393,10 +4368,67 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
                 ret_val = -EPERM;
         }
     } else {
-        hddLog(VOS_TRACE_LEVEL_INFO, FL(" the DFS flag has not changed"));
+        hddLog(LOG1, FL(" the DFS flag has not changed"));
         ret_val = 0;
     }
+    return ret_val;
+}
 
+/**
+ * wlan_hdd_cfg80211_disable_dfs_chan_scan () - DFS scan vendor command
+ *
+ * @wiphy: wiphy device pointer
+ * @wdev: wireless device pointer
+ * @data: Vendof command data buffer
+ * @data_len: Buffer length
+ *
+ * Handles QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX. Validate it and
+ * call wlan_hdd_disable_dfs_chan_scan to send it to firmware.
+ *
+ * Return: EOK or other error codes.
+ */
+
+static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
+                                                  struct wireless_dev *wdev,
+                                                  const void *data,
+                                                  int data_len)
+{
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX + 1];
+    int ret_val = -EPERM;
+    u32 no_dfs_flag = 0;
+
+    if ((ret_val = wlan_hdd_validate_context(pHddCtx))) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        return ret_val;
+    }
+
+    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX,
+                    data, data_len,
+                    wlan_hdd_set_no_dfs_flag_config_policy)) {
+        hddLog(LOGE, FL("invalid attr"));
+        return -EINVAL;
+    }
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]) {
+        hddLog(LOGE, FL("attr dfs flag failed"));
+        return -EINVAL;
+    }
+
+    no_dfs_flag = nla_get_u32(
+        tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG]);
+
+    hddLog(LOG1, FL(" DFS flag = %d"),
+           no_dfs_flag);
+
+    if (no_dfs_flag > 1) {
+        hddLog(LOGE, FL("invalid value of dfs flag"));
+        return -EINVAL;
+    }
+
+    ret_val = wlan_hdd_disable_dfs_chan_scan(pHddCtx, pAdapter, no_dfs_flag);
     return ret_val;
 }
 
@@ -7706,6 +7738,7 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
        )
     {
         beacon_data_t  *old, *new;
+	enum nl80211_channel_type channel_type;
 
         old = pAdapter->sessionCtx.ap.beacon;
 
@@ -7721,12 +7754,18 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
              return -EINVAL;
         }
         pAdapter->sessionCtx.ap.beacon = new;
+
+	if (params->chandef.width < NL80211_CHAN_WIDTH_80)
+		channel_type = cfg80211_get_chandef_type(&(params->chandef));
+	else
+		channel_type = NL80211_CHAN_HT40PLUS;
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
         wlan_hdd_cfg80211_set_channel(wiphy, dev,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
         params->channel, params->channel_type);
 #else
-        params->chandef.chan, cfg80211_get_chandef_type(&(params->chandef)));
+        params->chandef.chan, channel_type);
 #endif
 #endif
         /* set authentication type */

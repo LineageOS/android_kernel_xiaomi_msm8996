@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7122,6 +7122,19 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                       "%s: Received Command to Set DFS Scan Mode = %d",
                       __func__, dfsScanMode);
 
+           /* When DFS scanning is disabled, the DFS channels need to be
+            * removed from the operation of device.
+            */
+           ret = wlan_hdd_disable_dfs_chan_scan(pHddCtx, pAdapter,
+                        (dfsScanMode == CFG_ROAMING_DFS_CHANNEL_DISABLED));
+           if (ret < 0) {
+               /* Some conditions prevented it from disabling DFS channels
+                */
+               hddLog(LOGE,
+                   FL("disable/enable DFS channel request was denied"));
+               goto exit;
+           }
+
            pHddCtx->cfg_ini->allowDFSChannelRoam = dfsScanMode;
            sme_UpdateDFSScanMode(pHddCtx->hHal, pAdapter->sessionId,
                                  dfsScanMode);
@@ -7989,6 +8002,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->lpss_support = cfg->lpss_support;
 #endif
 
+    hdd_ctx->ap_arpns_support = cfg->ap_arpns_support;
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
 
     hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1118,4 +1118,7 @@ int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
 		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_length,
 		tCsrRoamInfo *roam_info_ptr);
 #endif
+int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
+                                   hdd_adapter_t *pAdapter,
+                                   u32 no_dfs_flag);
 #endif

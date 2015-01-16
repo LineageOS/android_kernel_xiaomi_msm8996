@@ -602,6 +602,17 @@ static void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable)
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
+    /* In SAP/P2PGo mode, ARP/NS offload feature capability
+     * is controlled by one bit.
+     */
+
+     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode ||
+          WLAN_HDD_P2P_GO == pAdapter->device_mode) &&
+          !pHddCtx->ap_arpns_support) {
+           hddLog(LOG1, FL("NS Offload is not supported in SAP/P2PGO mode"));
+           return;
+    }
+
     if (fenable)
     {
         in6_dev = __in6_dev_get(pAdapter->dev);
@@ -1029,6 +1040,17 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, int fenable)
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    hddLog(VOS_TRACE_LEVEL_ERROR, FL(" fenable = %d \n"), fenable);
+
+   /* In SAP/P2PGo mode, ARP/NS offload feature capability
+    * is controlled by one bit.
+    */
+   if ((WLAN_HDD_SOFTAP == pAdapter->device_mode ||
+       WLAN_HDD_P2P_GO == pAdapter->device_mode) &&
+       !pHddCtx->ap_arpns_support) {
+       hddLog(LOG1, FL("APR Offload is not supported in SAP/P2PGO mode"));
+       return VOS_STATUS_SUCCESS;
+   }
+
    if(fenable)
    {
        if ((in_dev = __in_dev_get_rtnl(pAdapter->dev)) != NULL)
