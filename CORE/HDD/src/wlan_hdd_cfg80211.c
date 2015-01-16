@@ -7747,7 +7747,9 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
        )
     {
         beacon_data_t  *old, *new;
-	enum nl80211_channel_type channel_type;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+        enum nl80211_channel_type channel_type;
+#endif
 
         old = pAdapter->sessionCtx.ap.beacon;
 
@@ -7764,10 +7766,12 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         }
         pAdapter->sessionCtx.ap.beacon = new;
 
-	if (params->chandef.width < NL80211_CHAN_WIDTH_80)
-		channel_type = cfg80211_get_chandef_type(&(params->chandef));
-	else
-		channel_type = NL80211_CHAN_HT40PLUS;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+        if (params->chandef.width < NL80211_CHAN_WIDTH_80)
+            channel_type = cfg80211_get_chandef_type(&(params->chandef));
+        else
+            channel_type = NL80211_CHAN_HT40PLUS;
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
         wlan_hdd_cfg80211_set_channel(wiphy, dev,
