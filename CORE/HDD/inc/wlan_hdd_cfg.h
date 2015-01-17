@@ -2603,6 +2603,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_MAC_ADDR_SPOOFING_MAX           (1)
 #define CFG_ENABLE_MAC_ADDR_SPOOFING_DEFAULT       (1)
 
+#define CFG_SAP_DOT11MC               "gSapDot11mc"
+#define CFG_SAP_DOT11MC_MIN           (0)
+#define CFG_SAP_DOT11MC_MAX           (1)
+#define CFG_SAP_DOT11MC_DEFAULT       (0)
+
 /*
  * Custom concurrency rule1:
  * If SAP comes up first and STA comes up later then SAP
@@ -3330,6 +3335,7 @@ typedef struct
    bool                        enable_bus_auto_suspend;
 #endif
    uint16_t                    p2p_listen_defer_interval;
+   uint8_t                     sap_dot11mc;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

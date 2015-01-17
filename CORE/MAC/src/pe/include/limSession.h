@@ -487,7 +487,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* tells if Q2Q IE, from another MDM device in AP MCC mode was recvd */
     bool sap_advertise_avoid_ch_ie;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
-}tPESession, *tpPESession;
+    uint8_t sap_dot11mc;
+} tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------
   Function declarations and documenation

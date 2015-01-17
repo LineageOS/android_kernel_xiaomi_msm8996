@@ -7304,6 +7304,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->obssProtEnabled =
            (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apOBSSProtEnabled;
 
+    if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP) {
+        pConfig->sap_dot11mc =
+                (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sap_dot11mc;
+    } else { /* for P2P-Go case */
+        pConfig->sap_dot11mc = 1;
+    }
+    hddLog(LOG1, FL("11MC Support Enabled : %d\n"),
+           pConfig->sap_dot11mc);
+
 #ifdef WLAN_FEATURE_11W
     pConfig->mfpCapable = MFPCapable;
     pConfig->mfpRequired = MFPRequired;
