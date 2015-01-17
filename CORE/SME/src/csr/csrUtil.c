@@ -2324,8 +2324,15 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                                    (pMac->roam.configParam.fAllowMCCGODiffBI == 0x04))
                            {
                                //Check to pass the right beacon Interval
-                               new_beaconInterval = csrCalculateMCCBeaconInterval(pMac, *beaconInterval,
-                                                         pMac->roam.roamSession[sessionId].bssParams.beaconInterval);
+                               if (pMac->roam.configParam.conc_custom_rule1 ||
+                                     pMac->roam.configParam.conc_custom_rule2) {
+                                     new_beaconInterval = CSR_CUSTOM_CONC_GO_BI;
+                               } else {
+                                     new_beaconInterval =
+                                        csrCalculateMCCBeaconInterval(pMac,
+                                                                      *beaconInterval,
+                                                                      pMac->roam.roamSession[sessionId].bssParams.beaconInterval);
+                               }
                                smsLog(pMac, LOG1, FL(" Peer AP BI : %d, new Beacon Interval: %d"),*beaconInterval,new_beaconInterval );
                                //Update the becon Interval
                                if (new_beaconInterval != pMac->roam.roamSession[sessionId].bssParams.beaconInterval)
@@ -2421,9 +2428,15 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                              */
                             /* Calculate beacon Interval for P2P-GO
                                in-case of MCC */
-                            new_beaconInterval = csrCalculateMCCBeaconInterval(pMac,
-                                                pMac->roam.roamSession[sessionId].connectedProfile.beaconInterval,
-                                                *beaconInterval );
+                           if (pMac->roam.configParam.conc_custom_rule1 ||
+                                  pMac->roam.configParam.conc_custom_rule2) {
+                                  new_beaconInterval = CSR_CUSTOM_CONC_GO_BI;
+                           } else {
+                                  new_beaconInterval =
+                                      csrCalculateMCCBeaconInterval(pMac,
+                                                                    pMac->roam.roamSession[sessionId].connectedProfile.beaconInterval,
+                                                                    *beaconInterval);
+                           }
                             if(*beaconInterval != new_beaconInterval)
                                 *beaconInterval = new_beaconInterval;
                             return eHAL_STATUS_SUCCESS;

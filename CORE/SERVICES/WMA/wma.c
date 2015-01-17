@@ -25958,6 +25958,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 #ifdef WLAN_FEATURE_LPSS
 	hdd_tgt_cfg.lpss_support = wma_handle->lpss_support;
 #endif
+	hdd_tgt_cfg.ap_arpns_support = wma_handle->ap_arpns_support;
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
 static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
@@ -26157,6 +26158,13 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				       WMI_SERVICE_LPASS);
 #endif
+	/*
+	 * This Service bit is added to check for ARP/NS offload
+	 * support for LL or HL targets
+	 */
+	wma_handle->ap_arpns_support =
+		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+					WMI_SERVICE_AP_ARPNS_OFFLOAD);
 
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				WMI_SERVICE_CSA_OFFLOAD)) {

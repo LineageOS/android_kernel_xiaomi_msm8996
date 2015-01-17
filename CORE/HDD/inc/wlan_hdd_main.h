@@ -1464,7 +1464,7 @@ struct hdd_context_s
 #ifdef WLAN_FEATURE_LPSS
     v_U8_t lpss_support;
 #endif
-
+    uint8_t ap_arpns_support;
     tSirScanType ioctl_scan_mode;
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
