@@ -2654,8 +2654,10 @@ void PopulateDot11fTdlsExtCapability(tpAniSirGlobal pMac,
                                      tpPESession psessionEntry,
                                      tDot11fIEExtCap *extCapability)
 {
-    extCapability->TDLSPeerPSMSupp = PEER_PSM_SUPPORT ;
-    extCapability->TDLSPeerUAPSDBufferSTA = pMac->lim.gLimTDLSBufStaEnabled;
+    struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)extCapability->bytes;
+
+    p_ext_cap->TDLSPeerPSMSupp = PEER_PSM_SUPPORT ;
+    p_ext_cap->TDLSPeerUAPSDBufferSTA = pMac->lim.gLimTDLSBufStaEnabled;
 
     /* Set TDLS channel switching bits only if offchannel is enabled
      * and TDLS Channel Switching is not prohibited by AP in ExtCap
@@ -2663,16 +2665,20 @@ void PopulateDot11fTdlsExtCapability(tpAniSirGlobal pMac,
      */
     if ((1== pMac->lim.gLimTDLSOffChannelEnabled) &&
         (!psessionEntry->tdls_chan_swit_prohibited)) {
-        extCapability->TDLSChannelSwitching = 1;
-        extCapability->TDLSChanSwitProhibited = 0;
+        p_ext_cap->TDLSChannelSwitching = 1;
+        p_ext_cap->TDLSChanSwitProhibited = 0;
     } else {
-        extCapability->TDLSChannelSwitching = 0;
-        extCapability->TDLSChanSwitProhibited = TDLS_CH_SWITCH_PROHIBITED;
+        p_ext_cap->TDLSChannelSwitching = 0;
+        p_ext_cap->TDLSChanSwitProhibited = TDLS_CH_SWITCH_PROHIBITED;
     }
 
-    extCapability->TDLSSupport = TDLS_SUPPORT ;
-    extCapability->TDLSProhibited = TDLS_PROHIBITED ;
+    p_ext_cap->TDLSSupport = TDLS_SUPPORT ;
+    p_ext_cap->TDLSProhibited = TDLS_PROHIBITED ;
+
     extCapability->present = 1 ;
+    /* For STA cases we alwasy support 11mc - Allow MAX length */
+    extCapability->num_bytes = DOT11F_IE_EXTCAP_MAX_LEN;
+
     return ;
 }
 

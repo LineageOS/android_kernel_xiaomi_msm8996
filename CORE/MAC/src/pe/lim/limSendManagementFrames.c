@@ -201,9 +201,9 @@ tSirRetStatus limStripOffExtCapIEAndUpdateStruct(tpAniSirGlobal pMac,
 void limMergeExtCapIEStruct(tDot11fIEExtCap *pDst,
                             tDot11fIEExtCap *pSrc)
 {
-    tANI_U8 *tempDst = (tANI_U8 *)pDst;
-    tANI_U8 *tempSrc = (tANI_U8 *)pSrc;
-    tANI_U8 structlen = sizeof(tDot11fIEExtCap);
+    tANI_U8 *tempDst = (tANI_U8 *)pDst->bytes;
+    tANI_U8 *tempSrc = (tANI_U8 *)pSrc->bytes;
+    tANI_U8 structlen = member_size(tDot11fIEExtCap, bytes);
 
     while(tempDst && tempSrc && structlen--)
     {
@@ -828,7 +828,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     }
 #endif
 
-    PopulateDot11fExtCap(pMac, isVHTEnabled, &pFrm->ExtCap);
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &pFrm->ExtCap, psessionEntry);
 
     if ( psessionEntry->pLimStartBssReq )
     {
@@ -1434,7 +1434,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         }
 #endif
 
-        PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap);
+        PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap, psessionEntry);
 
 #ifdef WLAN_FEATURE_11W
         if( eSIR_MAC_TRY_AGAIN_LATER == statusCode )
@@ -2168,10 +2168,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
     else
     {
-        if (extractedExtCap.interworkingService)
-        {
-            extractedExtCap.qosMap = 1;
-        }
+        struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)
+                                      extractedExtCap.bytes;
+        if (p_ext_cap->interworkingService)
+            p_ext_cap->qosMap = 1;
     }
 
     caps = pMlmAssocReq->capabilityInfo;
@@ -2305,7 +2305,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 #endif
 
-    PopulateDot11fExtCap( pMac, isVHTEnabled, &pFrm->ExtCap);
+    PopulateDot11fExtCap( pMac, isVHTEnabled, &pFrm->ExtCap, psessionEntry);
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     if (psessionEntry->pLimJoinReq->is11Rconnection)
@@ -2756,7 +2756,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOG1, FL("Populate VHT IEs in Re-Assoc Request"));
         PopulateDot11fVHTCaps( pMac, psessionEntry, &frm.VHTCaps );
         isVHTEnabled = eANI_BOOLEAN_TRUE;
-        PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap);
+        PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap, psessionEntry);
     }
 #endif
 
@@ -3176,7 +3176,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
 #endif
 
-    PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap);
+    PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap, psessionEntry);
 
     nStatus = dot11fGetPackedReAssocRequestSize( pMac, &frm, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )

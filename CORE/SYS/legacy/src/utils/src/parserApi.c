@@ -1111,14 +1111,34 @@ PopulateDot11fVHTExtBssLoad(tpAniSirGlobal      pMac,
 tSirRetStatus
 PopulateDot11fExtCap(tpAniSirGlobal   pMac,
                      tANI_BOOLEAN     isVHTEnabled,
-                     tDot11fIEExtCap  *pDot11f)
+                     tDot11fIEExtCap  *pDot11f, tpPESession psessionEntry)
 {
     tANI_U32   val=0;
+    struct s_ext_cap *p_ext_cap;
+
     pDot11f->present = 1;
+
+    if (psessionEntry->sap_dot11mc) {
+        PELOGE(limLog(pMac, LOG1,
+               FL("11MC support enabled"));)
+        pDot11f->num_bytes = DOT11F_IE_EXTCAP_MAX_LEN;
+    } else {
+        if (eLIM_AP_ROLE != psessionEntry->limSystemRole) {
+            PELOGE(limLog(pMac, LOG1,
+                   FL("11MC support enabled"));)
+            pDot11f->num_bytes = DOT11F_IE_EXTCAP_MAX_LEN;
+        } else  {
+            PELOGE(limLog(pMac, LOG1,
+                   FL("11MC support disabled"));)
+            pDot11f->num_bytes = DOT11F_IE_EXTCAP_MIN_LEN;
+        }
+    }
+
+    p_ext_cap = (struct s_ext_cap *)pDot11f->bytes;
 #ifdef WLAN_FEATURE_11AC
    if (isVHTEnabled == eANI_BOOLEAN_TRUE)
    {
-      pDot11f->operModeNotification = 1;
+      p_ext_cap->operModeNotification = 1;
    }
 #endif
 
@@ -1130,13 +1150,13 @@ PopulateDot11fExtCap(tpAniSirGlobal   pMac,
 
     if (val)   // If set to true then set RTTv3
     {
-       pDot11f->fineTimingMeas = 1;
+       p_ext_cap->fineTimingMeas = 1;
     }
 
 #ifdef QCA_HT_2040_COEX
     if (pMac->roam.configParam.obssEnabled)
     {
-        pDot11f->bssCoexistMgmtSupport = 1;
+        p_ext_cap->bssCoexistMgmtSupport = 1;
     }
 #endif
     return eSIR_SUCCESS;
@@ -2420,10 +2440,15 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
 #endif
     if (ar->ExtCap.present)
     {
-        vos_mem_copy(&pAssocReq->ExtCap, &ar->ExtCap, sizeof(tDot11fIEExtCap));
+        struct s_ext_cap *p_ext_cap;
+
+        vos_mem_copy(&pAssocReq->ExtCap.bytes, &ar->ExtCap.bytes,
+                     ar->ExtCap.num_bytes);
+
+        p_ext_cap = (struct s_ext_cap *)&pAssocReq->ExtCap.bytes;
         limLog(pMac, LOG1,
                FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
-               ar->ExtCap.timingMeas, ar->ExtCap.fineTimingMeas);
+               p_ext_cap->timingMeas, p_ext_cap->fineTimingMeas);
     }
     vos_mem_free(ar);
     return eSIR_SUCCESS;
@@ -2608,10 +2633,14 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
 
     if (ar.ExtCap.present)
     {
-        vos_mem_copy(&pAssocRsp->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
+        struct s_ext_cap *p_ext_cap;
+
+        vos_mem_copy(&pAssocRsp->ExtCap.bytes, &ar.ExtCap.bytes,
+                     ar.ExtCap.num_bytes);
+        p_ext_cap = (struct s_ext_cap *)&pAssocRsp->ExtCap.bytes;
         limLog(pMac, LOG1,
                FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
-               ar.ExtCap.timingMeas, ar.ExtCap.fineTimingMeas);
+               p_ext_cap->timingMeas, p_ext_cap->fineTimingMeas);
     }
 
     if ( ar.QosMapSet.present )
@@ -2804,10 +2833,13 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
 
     if (ar.ExtCap.present)
     {
-        vos_mem_copy(&pAssocReq->ExtCap, &ar.ExtCap, sizeof(tDot11fIEExtCap));
+        struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)
+                                       &ar.ExtCap.bytes;
+        vos_mem_copy(&pAssocReq->ExtCap.bytes, &ar.ExtCap.bytes,
+                     ar.ExtCap.num_bytes);
         limLog(pMac, LOG1,
                FL("ExtCap is present, timingMeas: %d, fineTimingMeas: %d"),
-               ar.ExtCap.timingMeas, ar.ExtCap.fineTimingMeas);
+               p_ext_cap->timingMeas, p_ext_cap->fineTimingMeas);
     }
 
     return eSIR_SUCCESS;
