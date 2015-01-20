@@ -1650,6 +1650,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
        pSmeConfigParams->enable_bus_auto_suspend;
 #endif
 
+   pMac->f_sta_miracast_mcc_rest_time_val =
+        pSmeConfigParams->f_sta_miracast_mcc_rest_time_val;
+
    return status;
 }
 

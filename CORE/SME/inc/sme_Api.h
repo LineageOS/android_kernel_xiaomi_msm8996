@@ -121,6 +121,7 @@ typedef struct _smeConfigParams
 #ifdef FEATURE_BUS_AUTO_SUSPEND
     bool  enable_bus_auto_suspend;
 #endif
+    uint32_t       f_sta_miracast_mcc_rest_time_val;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum

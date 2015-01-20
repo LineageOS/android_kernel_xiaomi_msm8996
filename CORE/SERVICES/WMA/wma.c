@@ -6999,7 +6999,8 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		    }
 		    if (wma_handle->miracast_value &&
 				    wma_is_mcc_24G(wma_handle)) {
-			    cmd->max_rest_time = WMA_MCC_MIRACAST_REST_TIME;
+			    cmd->max_rest_time =
+					pMac->f_sta_miracast_mcc_rest_time_val;
 		    }
 		    if (wma_is_P2P_GO_active(wma_handle)) {
 			/* Background scan while GO is sending beacons.
