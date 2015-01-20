@@ -978,7 +978,7 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         hdd_cleanup_actionframe(pHddCtx, ap_adapter);
 
         pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
-        vos_event_reset(&pHostapdState->vosEvent);
+        vos_event_reset(&pHostapdState->stop_bss_event);
 
         if ( VOS_STATUS_SUCCESS == WLANSAP_StopBss(
 #ifdef WLAN_FEATURE_MBSSID
@@ -987,8 +987,8 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
             (WLAN_HDD_GET_CTX(ap_adapter))->pvosContext
 #endif
         )) {
-            vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-
+            vos_status = vos_wait_single_event(&pHostapdState->stop_bss_event,
+                                               10000);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 hddLog(LOGE, FL("SAP Stop Failed"));
                 goto end;
@@ -10104,7 +10104,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
             hdd_hostapd_state_t *pHostapdState =
                   WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
-            vos_event_reset(&pHostapdState->vosEvent);
+            vos_event_reset(&pHostapdState->stop_bss_event);
 
             //Stop Bss.
 #ifdef WLAN_FEATURE_MBSSID
@@ -10115,8 +10115,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
             if (VOS_IS_STATUS_SUCCESS(status))
             {
-               status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-
+               status = vos_wait_single_event(&pHostapdState->stop_bss_event,
+                                              10000);
                if (!VOS_IS_STATUS_SUCCESS(status))
                {
                   hddLog(LOGE, "%s: failure waiting for WLANSAP_StopBss %d",
@@ -14795,7 +14795,8 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                   FL("Now doing SAP STOPBSS"));
         if (VOS_STATUS_SUCCESS == WLANSAP_StopBss(hdd_ap_ctx->sapContext)) {
-            vos_status = vos_wait_single_event(&hostapd_state->vosEvent, 10000);
+            vos_status = vos_wait_single_event(&hostapd_state->stop_bss_event,
+                                               10000);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                           FL("SAP Stop Failed"));

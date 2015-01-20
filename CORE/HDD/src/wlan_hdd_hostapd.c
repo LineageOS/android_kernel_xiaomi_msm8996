@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1686,7 +1686,7 @@ stopbss :
          * not be touched since they are now subject to being deleted
          * by another thread */
         if (eSAP_STOP_BSS_EVENT == sapEvent)
-            vos_event_set(&pHostapdState->vosEvent);
+            vos_event_set(&pHostapdState->stop_bss_event);
 
         /* Notify user space that the BSS has stopped */
         memset(&we_custom_event, '\0', sizeof(we_custom_event));
@@ -4363,7 +4363,7 @@ static int iw_softap_stopbss(struct net_device *dev,
     {
         hdd_hostapd_state_t *pHostapdState =
                        WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
-        vos_event_reset(&pHostapdState->vosEvent);
+        vos_event_reset(&pHostapdState->stop_bss_event);
 #ifdef WLAN_FEATURE_MBSSID
         status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter));
 #else
@@ -4371,8 +4371,8 @@ static int iw_softap_stopbss(struct net_device *dev,
 #endif
         if (VOS_IS_STATUS_SUCCESS(status))
         {
-            status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-
+            status = vos_wait_single_event(&pHostapdState->stop_bss_event,
+                                           10000);
             if (!VOS_IS_STATUS_SUCCESS(status))
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -5226,6 +5226,18 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: Hostapd HDD vos event init failed!!"));
+#ifdef WLAN_FEATURE_MBSSID
+         WLANSAP_Close(sapContext);
+#endif
+         return status;
+    }
+
+    status = vos_event_init(&phostapdBuf->stop_bss_event);
+    if (!VOS_IS_STATUS_SUCCESS(status))
+    {
+         VOS_TRACE(VOS_MODULE_ID_HDD,
+                   VOS_TRACE_LEVEL_ERROR,
+                   "ERROR: Hostapd HDD stop bss event init failed!!");
 #ifdef WLAN_FEATURE_MBSSID
          WLANSAP_Close(sapContext);
 #endif

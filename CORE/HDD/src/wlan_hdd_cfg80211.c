@@ -7640,15 +7640,15 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         hdd_hostapd_state_t *pHostapdState =
                     WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
-        vos_event_reset(&pHostapdState->vosEvent);
+        vos_event_reset(&pHostapdState->stop_bss_event);
 #ifdef WLAN_FEATURE_MBSSID
         status = WLANSAP_StopBss(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
 #else
         status = WLANSAP_StopBss(pHddCtx->pvosContext);
 #endif
         if (VOS_IS_STATUS_SUCCESS(status)) {
-            status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-
+            status = vos_wait_single_event(&pHostapdState->stop_bss_event,
+                                           10000);
             if (!VOS_IS_STATUS_SUCCESS(status)) {
                 hddLog(VOS_TRACE_LEVEL_ERROR,
                        FL("HDD vos wait for single_event failed!!"));
