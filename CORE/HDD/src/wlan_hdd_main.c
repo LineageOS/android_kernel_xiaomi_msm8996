@@ -9661,6 +9661,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                   "STA-AP Mode DFS not supported. Restart SAP with Non DFS ACS"
                   );
               ap_adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
+              ap_adapter->sessionCtx.ap.sapConfig.acs_case = true;
               wlan_hdd_restart_sap(ap_adapter);
           }
       }
@@ -14120,7 +14121,7 @@ void hdd_ch_avoid_cb
           {
               if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
                   hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
-                  (AUTO_CHANNEL_SELECT == hostapd_adapter->sessionCtx.ap.sapConfig.channel) &&
+                  (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true) &&
                   !restart_sap_in_progress)
               {
                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,

@@ -486,6 +486,7 @@ typedef struct sap_Config {
     v_U8_t          apStartChannelNum;
     v_U8_t          apEndChannelNum;
     v_U8_t          apOperatingBand;
+    v_U8_t          acs_case;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     v_U8_t          skip_acs_scan_status;
