@@ -23121,6 +23121,39 @@ static void wma_ocb_set_sched_req(void *wma_handle,
 	}
 }
 
+/**
+ * wma_process_set_mas() - Function to enable/disable MAS
+ * @wma:	Pointer to WMA handle
+ * @mas_val:	1-Enable MAS, 0-Disable MAS
+ *
+ * This function enables/disables the MAS value
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_process_set_mas(tp_wma_handle wma,
+		uint32_t *mas_val)
+{
+	uint32_t val;
+
+	if (NULL == wma || NULL == mas_val) {
+		WMA_LOGE("%s: Invalid input to enable/disable MAS", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	val = (*mas_val);
+
+	if (VOS_STATUS_SUCCESS !=
+			wma_set_enable_disable_mcc_adaptive_scheduler(val)) {
+		WMA_LOGE("%s: Unable to enable/disable MAS", __func__);
+		return VOS_STATUS_E_FAILURE;
+	} else {
+		WMA_LOGE("%s: Value is %d", __func__, val);
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -23810,6 +23843,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_auto_resume_req(wma_handle);
 			break;
 #endif
+		case SIR_HAL_SET_MAS:
+			wma_process_set_mas(wma_handle,
+				(u_int32_t *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

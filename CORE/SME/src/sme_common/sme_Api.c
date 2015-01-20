@@ -13046,6 +13046,88 @@ eHalStatus sme_ChAvoidUpdateReq
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+/**
+ * sme_set_miracast() - Function to set miracast value to UMAC
+ * @hal:                Handle returned by macOpen
+ * @filter_type:        0-Disabled, 1-Source, 2-sink
+ *
+ * This function passes down the value of miracast set by
+ * framework to UMAC
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+eHalStatus sme_set_miracast(tHalHandle hal, uint8_t filter_type)
+{
+	vos_msg_t msg;
+	uint32_t *val;
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal);
+
+	val = vos_mem_malloc(sizeof(*val));
+	if (NULL == val || NULL == mac_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Invalid pointer", __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	*val = filter_type;
+
+	msg.type = SIR_HAL_SET_MIRACAST;
+	msg.reserved = 0;
+	msg.bodyptr = val;
+
+	if (!VOS_IS_STATUS_SUCCESS(
+				vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Not able to post WDA_SET_MAS_ENABLE_DISABLE to WMA!",
+				__func__);
+		vos_mem_free(val);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	mac_ptr->sme.miracast_value = filter_type;
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_set_mas() - Function to set MAS value to UMAC
+ * @val:	1-Enable, 0-Disable
+ *
+ * This function passes down the value of MAS to the UMAC. A
+ * value of 1 will enable MAS and a value of 0 will disable MAS
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+eHalStatus sme_set_mas(uint32_t val)
+{
+	vos_msg_t msg;
+	uint32_t *ptr_val;
+
+	ptr_val = vos_mem_malloc(sizeof(*ptr_val));
+	if (NULL == ptr_val) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: could not allocate ptr_val", __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	*ptr_val = val;
+
+	msg.type = SIR_HAL_SET_MAS;
+	msg.reserved = 0;
+	msg.bodyptr = ptr_val;
+
+	if (!VOS_IS_STATUS_SUCCESS(
+				vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Not able to post WDA_SET_MAS_ENABLE_DISABLE to WMA!",
+				__func__);
+		vos_mem_free(ptr_val);
+		return eHAL_STATUS_FAILURE;
+	}
+	return eHAL_STATUS_SUCCESS;
+}
+
 /* -------------------------------------------------------------------------
    \fn sme_RoamChannelChangeReq
    \brief API to Indicate Channel change to new target channel

@@ -4726,12 +4726,17 @@ static void hdd_wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssid,
 int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
 {
     tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tANI_U8 filterType = 0;
+    hdd_context_t *pHddCtx = NULL;
     tANI_U8 *value;
     int ret;
+    eHalStatus ret_status;
 
     value = command + 9;
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    if (!pHddCtx)
+        return -EFAULT;
 
     /* Convert the value from ascii to integer */
     ret = kstrtou8(value, 10, &filterType);
@@ -4751,8 +4756,182 @@ int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
         return -EINVAL;
     }
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: miracast mode %hu", __func__, filterType);
-    pMac->fMiracastSessionPresent = filterType;
+    pHddCtx->miracast_value = filterType;
+
+    ret_status = sme_set_miracast(hHal, filterType);
+    if (eHAL_STATUS_SUCCESS != ret_status) {
+        hddLog(LOGE, "Failed to set miracast");
+        return -EBUSY;
+    }
+
+    if (hdd_is_mcc_in_24G(pHddCtx)) {
+        return hdd_set_mas(pAdapter, filterType);
+    }
+
     return 0;
+}
+
+/**
+ * hdd_set_mas() - Function to set MAS value to UMAC
+ * @adapter:		Pointer to HDD adapter
+ * @mas_value:		0-Disable, 1-Enable MAS
+ *
+ * This function passes down the value of MAS to UMAC
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_set_mas(hdd_adapter_t *adapter, tANI_U8 mas_value)
+{
+	hdd_context_t *hdd_ctx = NULL;
+	eHalStatus ret_status;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (!hdd_ctx)
+		return -EFAULT;
+
+	if (mas_value) {
+		/* Miracast is ON. Disable MAS and configure P2P quota */
+		if (hdd_ctx->cfg_ini->enableMCCAdaptiveScheduler) {
+			if (cfgSetInt(hdd_ctx->hHal,
+				WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, 0)
+				!= eSIR_SUCCESS) {
+				hddLog(LOGE,
+					"Could not pass on WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED to CCM");
+			}
+
+			ret_status = sme_set_mas(false);
+			if (eHAL_STATUS_SUCCESS != ret_status) {
+				hddLog(LOGE, "Failed to disable MAS");
+				return -EBUSY;
+			}
+		}
+
+		/* Config p2p quota */
+		if (adapter->device_mode == WLAN_HDD_INFRA_STATION)
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+				100 - HDD_DEFAULT_MCC_P2P_QUOTA);
+		else if (adapter->device_mode == WLAN_HDD_P2P_GO)
+			hdd_wlan_go_set_mcc_p2p_quota(adapter,
+				HDD_DEFAULT_MCC_P2P_QUOTA);
+		else
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+				HDD_DEFAULT_MCC_P2P_QUOTA);
+	} else {
+		/* Reset p2p quota */
+		if (adapter->device_mode == WLAN_HDD_P2P_GO)
+			hdd_wlan_go_set_mcc_p2p_quota(adapter,
+						HDD_RESET_MCC_P2P_QUOTA);
+		else
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+						HDD_RESET_MCC_P2P_QUOTA);
+
+		/* Miracast is OFF. Enable MAS and reset P2P quota */
+		if (hdd_ctx->cfg_ini->enableMCCAdaptiveScheduler) {
+			if (cfgSetInt(hdd_ctx->hHal,
+				WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, 1)
+				!= eSIR_SUCCESS) {
+				hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED to CCM");
+			}
+
+			/* Enable MAS */
+			ret_status = sme_set_mas(true);
+			if (eHAL_STATUS_SUCCESS != ret_status) {
+				hddLog(LOGE, "Unable to enable MAS");
+				return -EBUSY;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * hdd_is_mcc_in_24G() - Function to check for MCC in 2.4GHz
+ * @hdd_ctx:	Pointer to HDD context
+ *
+ * This function is used to check for MCC operation in 2.4GHz band.
+ * STA, P2P and SAP adapters are only considered.
+ *
+ * Return: Non zero value if MCC is detected in 2.4GHz band
+ *
+ */
+uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS status;
+	hdd_adapter_t *hdd_adapter = NULL;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	uint8_t ret = 0;
+	hdd_station_ctx_t *sta_ctx;
+	hdd_ap_ctx_t *ap_ctx;
+	uint8_t ch1 = 0, ch2 = 0;
+	uint8_t channel = 0;
+	hdd_hostapd_state_t *hostapd_state;
+
+	status =  hdd_get_front_adapter(hdd_ctx, &adapter_node);
+
+	/* loop through all adapters and check MCC for STA,P2P,SAP adapters */
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		hdd_adapter = adapter_node->pAdapter;
+
+		if (!((hdd_adapter->device_mode >= WLAN_HDD_INFRA_STATION)
+					|| (hdd_adapter->device_mode
+						<= WLAN_HDD_P2P_GO))) {
+			/* skip for other adapters */
+			status = hdd_get_next_adapter(hdd_ctx,
+					adapter_node, &next);
+			adapter_node = next;
+			continue;
+		} else {
+			if (WLAN_HDD_INFRA_STATION ==
+					hdd_adapter->device_mode ||
+					WLAN_HDD_P2P_CLIENT ==
+					hdd_adapter->device_mode) {
+				sta_ctx =
+					WLAN_HDD_GET_STATION_CTX_PTR(
+								hdd_adapter);
+				if (eConnectionState_Associated ==
+						sta_ctx->conn_info.connState)
+					channel =
+						sta_ctx->conn_info.
+							operationChannel;
+			} else if (WLAN_HDD_P2P_GO ==
+					hdd_adapter->device_mode ||
+					WLAN_HDD_SOFTAP ==
+					hdd_adapter->device_mode) {
+				ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(hdd_adapter);
+				hostapd_state =
+					WLAN_HDD_GET_HOSTAP_STATE_PTR(
+								hdd_adapter);
+				if (hostapd_state->bssState == BSS_START &&
+						hostapd_state->vosStatus ==
+						VOS_STATUS_SUCCESS)
+					channel = ap_ctx->operatingChannel;
+			}
+
+			if ((ch1 == 0) ||
+					((ch2 != 0) && (ch2 != channel))) {
+				ch1 = channel;
+			} else if ((ch2 == 0) ||
+					((ch1 != 0) && (ch1 != channel))) {
+				ch2 = channel;
+			}
+
+			if ((ch1 != 0 && ch2 != 0) && (ch1 != ch2) &&
+					((ch1 <= SIR_11B_CHANNEL_END) &&
+					 (ch2 <= SIR_11B_CHANNEL_END))) {
+				hddLog(LOGE,
+					"MCC in 2.4Ghz on channels %d and %d",
+					ch1, ch2);
+				return 1;
+			}
+
+			status = hdd_get_next_adapter(hdd_ctx,
+					adapter_node, &next);
+			adapter_node = next;
+		}
+	}
+	return ret;
 }
 
 /**

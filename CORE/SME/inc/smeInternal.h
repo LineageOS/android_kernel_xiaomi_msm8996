@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -184,6 +184,7 @@ typedef struct tagSmeStruct
 #ifdef FEATURE_BUS_AUTO_SUSPEND
     bool enable_bus_auto_suspend;
 #endif
+    uint8_t miracast_value;
 } tSmeStruct, *tpSmeStruct;
 
 
