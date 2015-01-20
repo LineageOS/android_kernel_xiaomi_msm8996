@@ -391,6 +391,51 @@ htt_rx_detach(struct htt_pdev_t *pdev)
  * byte-swizzling).
  */
 /* FIX THIS: APPLIES TO LL ONLY */
+
+/**
+ * htt_rx_mpdu_desc_retry_ll() - Returns the retry bit from the Rx descriptor
+ *                               for the Low Latency driver
+ * @pdev:                          Handle (pointer) to HTT pdev.
+ * @mpdu_desc:                     Void pointer to the Rx descriptor for MPDU
+ *                                 before the beginning of the payload.
+ *
+ *  This function returns the retry bit of the 802.11 header for the
+ *  provided rx MPDU descriptor.
+ *
+ * Return:        boolean -- true if retry is set, false otherwise
+ */
+bool
+htt_rx_mpdu_desc_retry_ll(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	struct htt_host_rx_desc_base *rx_desc =
+		(struct htt_host_rx_desc_base *) mpdu_desc;
+
+	return
+		(bool)(((*((uint32_t *) &rx_desc->mpdu_start)) &
+		RX_MPDU_START_0_RETRY_MASK) >>
+		RX_MPDU_START_0_RETRY_LSB);
+}
+
+/**
+ * htt_rx_mpdu_desc_retry_hl() - Returns the retry bit from the Rx descriptor
+ *                               for the High Latency driver
+ * @pdev:                          Handle (pointer) to HTT pdev.
+ * @mpdu_desc:                     Void pointer to the Rx descriptor for MPDU
+ *                                 before the beginning of the payload.
+ *
+ *  This function returns the retry bit of the 802.11 header for the
+ *  provided rx MPDU descriptor. For the high latency driver, this function
+ *  pretends as if the retry bit is never set so that the mcast duplicate
+ *  detection never fails.
+ *
+ * Return:        boolean -- false always for HL
+ */
+bool
+htt_rx_mpdu_desc_retry_hl(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	return false;
+}
+
 u_int16_t
 htt_rx_mpdu_desc_seq_num_ll(htt_pdev_handle pdev, void *mpdu_desc)
 {
@@ -509,6 +554,53 @@ htt_rx_mpdu_desc_pn_hl(
                 "Error: get pn from a not-first msdu.\n");
         adf_os_assert(0);
     }
+}
+
+/**
+ * htt_rx_mpdu_desc_tid_ll() - Returns the TID value from the Rx descriptor
+ *                             for Low Latency driver
+ * @pdev:                        Handle (pointer) to HTT pdev.
+ * @mpdu_desc:                   Void pointer to the Rx descriptor for the MPDU
+ *                               before the beginning of the payload.
+ *
+ * This function returns the TID set in the 802.11 QoS Control for the MPDU
+ * in the packet header, by looking at the mpdu_start of the Rx descriptor.
+ * Rx descriptor gets a copy of the TID from the MAC.
+ *
+ * Return:        Actual TID set in the packet header.
+ */
+uint8_t
+htt_rx_mpdu_desc_tid_ll(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	struct htt_host_rx_desc_base *rx_desc =
+		(struct htt_host_rx_desc_base *) mpdu_desc;
+
+	return
+		(uint8_t)(((*(((uint32_t *) &rx_desc->mpdu_start) + 2)) &
+		RX_MPDU_START_2_TID_MASK) >>
+		RX_MPDU_START_2_TID_LSB);
+}
+
+/**
+ * htt_rx_mpdu_desc_tid_hl() - Returns the TID value from the Rx descriptor
+ *                             for High Latency driver
+ * @pdev:                        Handle (pointer) to HTT pdev.
+ * @mpdu_desc:                   Void pointer to the Rx descriptor for the MPDU
+ *                               before the beginning of the payload.
+ *
+ * This function returns the TID set in the 802.11 QoS Control for the MPDU
+ * in the packet header, by looking at the mpdu_start of the Rx descriptor.
+ * Rx descriptor gets a copy of the TID from the MAC.
+ * For the HL driver, this is currently uimplemented and always returns
+ * an invalid tid. It is the responsibility of the caller to make
+ * sure that return value is checked for valid range.
+ *
+ * Return:        Invalid TID value (0xff) for HL driver.
+ */
+uint8_t
+htt_rx_mpdu_desc_tid_hl(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	return 0xff;  /* Invalid TID */
 }
 
 u_int32_t
@@ -1856,6 +1948,9 @@ void *(*htt_rx_mpdu_desc_list_next)(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg);
 
+bool (*htt_rx_mpdu_desc_retry)(
+    htt_pdev_handle pdev, void *mpdu_desc);
+
 u_int16_t (*htt_rx_mpdu_desc_seq_num)(
     htt_pdev_handle pdev, void *mpdu_desc);
 
@@ -1864,6 +1959,9 @@ void (*htt_rx_mpdu_desc_pn)(
     void *mpdu_desc,
     union htt_rx_pn_t *pn,
     int pn_len_bits);
+
+uint8_t (*htt_rx_mpdu_desc_tid)(
+    htt_pdev_handle pdev, void *mpdu_desc);
 
 a_bool_t (*htt_rx_msdu_desc_completes_mpdu)(
     htt_pdev_handle pdev, void *msdu_desc);
@@ -2519,8 +2617,10 @@ htt_rx_attach(struct htt_pdev_t *pdev)
             htt_rx_mpdu_desc_list_next = htt_rx_mpdu_desc_list_next_ll;
         }
         htt_rx_offload_msdu_pop = htt_rx_offload_msdu_pop_ll;
+        htt_rx_mpdu_desc_retry = htt_rx_mpdu_desc_retry_ll;
         htt_rx_mpdu_desc_seq_num = htt_rx_mpdu_desc_seq_num_ll;
         htt_rx_mpdu_desc_pn = htt_rx_mpdu_desc_pn_ll;
+        htt_rx_mpdu_desc_tid = htt_rx_mpdu_desc_tid_ll;
         htt_rx_msdu_desc_completes_mpdu = htt_rx_msdu_desc_completes_mpdu_ll;
         htt_rx_msdu_first_msdu_flag = htt_rx_msdu_first_msdu_flag_ll;
         htt_rx_msdu_has_wlan_mcast_flag = htt_rx_msdu_has_wlan_mcast_flag_ll;
@@ -2540,8 +2640,10 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_frag_pop = htt_rx_frag_pop_hl;
         htt_rx_offload_msdu_pop = htt_rx_offload_msdu_pop_hl;
         htt_rx_mpdu_desc_list_next = htt_rx_mpdu_desc_list_next_hl;
+        htt_rx_mpdu_desc_retry = htt_rx_mpdu_desc_retry_hl;
         htt_rx_mpdu_desc_seq_num = htt_rx_mpdu_desc_seq_num_hl;
         htt_rx_mpdu_desc_pn = htt_rx_mpdu_desc_pn_hl;
+        htt_rx_mpdu_desc_tid = htt_rx_mpdu_desc_tid_hl;
         htt_rx_msdu_desc_completes_mpdu = htt_rx_msdu_desc_completes_mpdu_hl;
         htt_rx_msdu_first_msdu_flag = htt_rx_msdu_first_msdu_flag_hl;
         htt_rx_msdu_has_wlan_mcast_flag = htt_rx_msdu_has_wlan_mcast_flag_hl;
