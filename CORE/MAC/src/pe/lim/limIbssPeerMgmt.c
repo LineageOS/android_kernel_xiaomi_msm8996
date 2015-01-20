@@ -1474,6 +1474,9 @@ limIbssCoalesce(
             return eSIR_MEM_ALLOC_FAILED;
         }
 
+        /* Initialize all peer node properties to 0 */
+        vos_mem_zero(pPeerNode, frameLen);
+
         pPeerNode->beacon = NULL;
         pPeerNode->beaconLen = 0;
 
