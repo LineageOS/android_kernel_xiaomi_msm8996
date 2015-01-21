@@ -511,6 +511,7 @@ typedef struct sap_Config {
 
     v_U16_t    probeRespBcnIEsLen;
     v_PVOID_t  pProbeRespBcnIEsBuffer; /* buffer for addn ies comes from hostapd*/
+    uint8_t   sap_dot11mc;      /* Specify if 11MC is enabled or disabled*/
 
 } tsap_Config_t;
 

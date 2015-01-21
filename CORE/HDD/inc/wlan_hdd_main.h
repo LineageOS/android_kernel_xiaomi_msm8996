@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1109,6 +1109,12 @@ struct hdd_adapter_s
 
     /* 802.11p */
     struct completion hdd_ocb_set_sched_req_var;
+
+    /* Time stamp for last completed RoC request */
+    v_TIME_t lastRocTs;
+
+    /* work queue to defer the back to back p2p_listen */
+    struct delayed_work roc_work;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

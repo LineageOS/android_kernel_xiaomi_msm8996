@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2603,6 +2603,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_MAC_ADDR_SPOOFING_MAX           (1)
 #define CFG_ENABLE_MAC_ADDR_SPOOFING_DEFAULT       (1)
 
+#define CFG_SAP_DOT11MC               "gSapDot11mc"
+#define CFG_SAP_DOT11MC_MIN           (0)
+#define CFG_SAP_DOT11MC_MAX           (1)
+#define CFG_SAP_DOT11MC_DEFAULT       (0)
+
 /*
  * Custom concurrency rule1:
  * If SAP comes up first and STA comes up later then SAP
@@ -2730,6 +2735,11 @@ enum dot11p_mode {
 #define CFG_ENABLE_AUTO_SUSPEND_MAX               ( 1 )
 #define CFG_ENABLE_AUTO_SUSPEND_DEFAULT           ( 0 )
 #endif
+
+#define CFG_P2P_LISTEN_DEFER_INTERVAL_NAME        "gP2PListenDeferInterval"
+#define CFG_P2P_LISTEN_DEFER_INTERVAL_MIN         (100)
+#define CFG_P2P_LISTEN_DEFER_INTERVAL_MAX         (200)
+#define CFG_P2P_LISTEN_DEFER_INTERVAL_DEFAULT     (100)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3324,6 +3334,8 @@ typedef struct
 #ifdef FEATURE_BUS_AUTO_SUSPEND
    bool                        enable_bus_auto_suspend;
 #endif
+   uint16_t                    p2p_listen_defer_interval;
+   uint8_t                     sap_dot11mc;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

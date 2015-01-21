@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -259,6 +259,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
                               pRemainChanCtx->chan_type,
 #endif
                               GFP_KERNEL);
+        pAdapter->lastRocTs = vos_timer_get_system_time();
     }
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
@@ -318,7 +319,11 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
     {
         hddLog(LOGE, "Cancel Existing Remain on Channel");
 
-        vos_timer_stop(&cfgState->remain_on_chan_ctx->hdd_remain_on_chan_timer);
+        if (VOS_TIMER_STATE_RUNNING == vos_timer_getCurrentState(
+                    &cfgState->remain_on_chan_ctx->hdd_remain_on_chan_timer))
+            vos_timer_stop(&cfgState->remain_on_chan_ctx->
+                                              hdd_remain_on_chan_timer);
+
         pRemainChanCtx = cfgState->remain_on_chan_ctx;
         if (pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress == TRUE)
         {
@@ -596,19 +601,30 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
         tANI_U8 sessionId = pAdapter->sessionId;
         //call sme API to start remain on channel.
 
-        sme_RemainOnChannel(
+        if (eHAL_STATUS_SUCCESS != sme_RemainOnChannel(
                        WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId,
                        pRemainChanCtx->chan.hw_value, duration,
                        wlan_hdd_remain_on_channel_callback, pAdapter,
                        (tANI_U8)(pRemainChanCtx->rem_on_chan_request
-                                  == REMAIN_ON_CHANNEL_REQUEST)? TRUE:FALSE);
-
-        if (REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request) {
-            sme_RegisterMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                   sessionId, (SIR_MAC_MGMT_FRAME << 2) |
-                                  (SIR_MAC_MGMT_PROBE_REQ << 4), NULL, 0 );
+                                  == REMAIN_ON_CHANNEL_REQUEST)? TRUE:FALSE)) {
+            hddLog(LOGE, FL("sme_RemainOnChannel returned failure"));
+            mutex_lock(&cfgState->remain_on_chan_ctx_lock);
+            cfgState->remain_on_chan_ctx = NULL;
+            pAdapter->is_roc_inprogress = FALSE;
+            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+            vos_mem_free(pRemainChanCtx);
+            hdd_allow_suspend();
+            p2p_allow_bus_auto_suspend();
+            return -EINVAL;
         }
 
+        if (REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request) {
+            if (eHAL_STATUS_SUCCESS != sme_RegisterMgmtFrame(
+                                         WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                         sessionId, (SIR_MAC_MGMT_FRAME << 2) |
+                                        (SIR_MAC_MGMT_PROBE_REQ << 4), NULL, 0))
+                hddLog(LOGE, FL("sme_RegisterMgmtFrame returned failure"));
+        }
     }
     else if ( ( WLAN_HDD_SOFTAP== pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
@@ -664,6 +680,97 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
     return 0;
 }
 
+/**
+ * wlan_hdd_roc_request_enqueue() - enqueue remain on channel request
+ * @adapter: Pointer to the adapter
+ * @remain_chan_ctx: Pointer to the remain on channel context
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wlan_hdd_roc_request_enqueue(hdd_adapter_t *adapter,
+			hdd_remain_on_chan_ctx_t *remain_chan_ctx)
+{
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	hdd_roc_req_t *hdd_roc_req;
+	VOS_STATUS status;
+
+	/*
+	 * "Driver is busy" OR "there is already RoC request inside the queue"
+	 * so enqueue this RoC Request and execute sequentially later.
+	 */
+
+	hdd_roc_req = vos_mem_malloc(sizeof(*hdd_roc_req));
+
+	if (NULL == hdd_roc_req) {
+		hddLog(LOGP, FL("malloc failed for roc req context"));
+		return -ENOMEM;
+	}
+
+	hdd_roc_req->pAdapter = adapter;
+	hdd_roc_req->pRemainChanCtx = remain_chan_ctx;
+
+	/* Enqueue this RoC request */
+	spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
+	status = hdd_list_insert_back(&hdd_ctx->hdd_roc_req_q,
+					&hdd_roc_req->node);
+	spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
+
+	if (VOS_STATUS_SUCCESS != status) {
+		hddLog(LOGP, FL("Not able to enqueue RoC Req context"));
+		vos_mem_free(hdd_roc_req);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
+ * wlan_hdd_roc_request_dequeue() - dequeue remain on channel request
+ * @work: Pointer to work queue struct
+ *
+ * Return: none
+ */
+void wlan_hdd_roc_request_dequeue(struct work_struct *work)
+{
+	VOS_STATUS status;
+	hdd_roc_req_t *hdd_roc_req;
+	hdd_context_t *hdd_ctx =
+			container_of(work, hdd_context_t, rocReqWork);
+
+	hddLog(LOG1, FL("RoC request timeout"));
+
+	if (list_empty(&hdd_ctx->hdd_roc_req_q.anchor))
+		return;
+
+	/* If driver is busy then we can't run RoC */
+	if (hdd_ctx->isLoadInProgress || hdd_ctx->isUnloadInProgress ||
+	    hdd_isConnectionInProgress(hdd_ctx)) {
+		hddLog(LOGE,
+			FL("Wlan Load/Unload or Connection is in progress"));
+		return;
+	}
+
+	if (hdd_ctx->isLogpInProgress) {
+		hddLog(LOGE, FL("LOGP in Progress. Ignore!!!"));
+		return;
+	}
+
+	while (!list_empty(&hdd_ctx->hdd_roc_req_q.anchor)) {
+		/* go to process this RoC request */
+		spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
+		status = hdd_list_remove_front(&hdd_ctx->hdd_roc_req_q,
+					(hdd_list_node_t**) &hdd_roc_req);
+		spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
+
+		if (status == VOS_STATUS_SUCCESS) {
+			wlan_hdd_execute_remain_on_channel(
+						hdd_roc_req->pAdapter,
+						hdd_roc_req->pRemainChanCtx);
+			vos_mem_free(hdd_roc_req);
+		}
+	}
+}
+
 static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                                    struct net_device *dev,
                                    struct ieee80211_channel *chan,
@@ -678,8 +785,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     v_BOOL_t isBusy = VOS_FALSE;
     v_SIZE_t size = 0;
-    hdd_roc_req_t* phdd_roc_req;
-    VOS_STATUS status;
+    hdd_adapter_t *sta_adapter;
 
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
@@ -746,47 +852,37 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     pRemainChanCtx->action_pkt_buff.frame_length = 0;
     pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress = FALSE;
 
-    /* Check roc_req_Q has pendding RoC Request or not */
+    if (REMAIN_ON_CHANNEL_REQUEST == request_type) {
+        sta_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+        if ((NULL != sta_adapter)&&
+               hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter))) {
+            if (pAdapter->lastRocTs !=0 &&
+                    ((vos_timer_get_system_time() - pAdapter->lastRocTs )
+                     < pHddCtx->cfg_ini->p2p_listen_defer_interval)) {
+                if (pRemainChanCtx->duration > HDD_P2P_MAX_ROC_DURATION)
+                    pRemainChanCtx->duration = HDD_P2P_MAX_ROC_DURATION;
+
+                wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx);
+                schedule_delayed_work(&pAdapter->roc_work,
+                 msecs_to_jiffies(pHddCtx->cfg_ini->p2p_listen_defer_interval));
+                hddLog(LOG1, "Defer interval is %hu, pAdapter %p",
+                       pHddCtx->cfg_ini->p2p_listen_defer_interval, pAdapter);
+                return 0;
+            }
+        }
+    }
+
+    /* Check roc_req_Q has pending RoC Request or not */
     hdd_list_size(&(pHddCtx->hdd_roc_req_q), &size);
 
     if ((isBusy == VOS_FALSE) && (!size)) {
-
         /* Media is free and no RoC request is in queue, execute directly */
         wlan_hdd_execute_remain_on_channel(pAdapter, pRemainChanCtx);
 
         return 0;
     } else {
-
-        /*
-         * "Driver is busy" OR "there is already RoC request inside the queue"
-         * so enqueue this RoC Request for execute RoC sequently in the future.
-         */
-
-        phdd_roc_req = vos_mem_malloc(sizeof(hdd_roc_req_t));
-
-        if (NULL == phdd_roc_req) {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                 "%s: Not able to allocate memory for roc req context",
-                                             __func__);
-            return -ENOMEM;
-        }
-
-        phdd_roc_req->pAdapter = pAdapter;
-        phdd_roc_req->pRemainChanCtx = pRemainChanCtx;
-
-        /* Enqueue this RoC request */
-        spin_lock(&pHddCtx->hdd_roc_req_q.lock);
-        status = hdd_list_insert_back(&pHddCtx->hdd_roc_req_q,
-                              &phdd_roc_req->node);
-        spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
-
-        if (VOS_STATUS_SUCCESS != status) {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                 "%s: Not able to enqueue RoC Req context",
-                                             __func__);
-            vos_mem_free(phdd_roc_req);
-            return -ENOMEM;
-        }
+        if (wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx))
+		return -EAGAIN;
     }
 
     /*
@@ -798,47 +894,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     }
 
     return 0;
-}
-
-void hdd_roc_req_work(struct work_struct *work)
-{
-    VOS_STATUS status;
-    hdd_roc_req_t *hdd_roc_req;
-    hdd_context_t *pHddCtx =
-             container_of(work, hdd_context_t, rocReqWork);
-
-    hddLog(LOG1, FL("RoC request timeout"));
-
-    if (list_empty(&pHddCtx->hdd_roc_req_q.anchor)) {
-       return;
-    }
-
-    /* If driver is busy then we can't run RoC */
-    if (pHddCtx->isLoadInProgress || pHddCtx->isUnloadInProgress ||
-        hdd_isConnectionInProgress(pHddCtx)) {
-        hddLog( LOGE,
-            "%s: Wlan Load/Unload  or Connection is in progress", __func__);
-        return;
-    }
-
-    if (pHddCtx->isLogpInProgress) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        return;
-    }
-
-    while (!list_empty(&pHddCtx->hdd_roc_req_q.anchor)) {
-        /* go to process this RoC request */
-        spin_lock(&pHddCtx->hdd_roc_req_q.lock);
-        status = hdd_list_remove_front(&pHddCtx->hdd_roc_req_q,
-                                           (hdd_list_node_t**) &hdd_roc_req);
-        spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
-        if (status == VOS_STATUS_SUCCESS) {
-            wlan_hdd_execute_remain_on_channel(hdd_roc_req->pAdapter,
-                                     hdd_roc_req->pRemainChanCtx);
-            vos_mem_free(hdd_roc_req);
-        }
-    }
 }
 
 int __wlan_hdd_cfg80211_remain_on_channel( struct wiphy *wiphy,
@@ -1724,6 +1779,17 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
 
     /* Enable Queues which we have disabled earlier */
     netif_tx_start_all_queues( pAdapter->dev );
+}
+
+/**
+ * hdd_p2p_roc_work_queue() - roc delayed work queue handler
+ * @work: Pointer to work queue struct
+ *
+ * Return: none
+ */
+void hdd_p2p_roc_work_queue(struct work_struct *work)
+{
+	wlan_hdd_roc_request_dequeue(work);
 }
 
 void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess )
