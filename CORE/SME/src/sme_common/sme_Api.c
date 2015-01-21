@@ -14549,6 +14549,7 @@ eHalStatus sme_UpdateRoamKeyMgmtOffloadEnabled(tHalHandle hHal,
 
     return status ;
 }
+#endif
 
 /* ---------------------------------------------------------------------------
    \fn sme_GetTemperature
@@ -14626,7 +14627,6 @@ eHalStatus sme_SetScanningMacOui(tHalHandle hHal, tSirScanMacOui *pScanMacOui)
     }
     return status;
 }
-#endif
 
 #ifdef DHCP_SERVER_OFFLOAD
 /* ---------------------------------------------------------------------------

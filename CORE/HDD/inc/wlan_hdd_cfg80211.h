@@ -1117,6 +1117,14 @@ int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
 		uint8_t *req_rsn_ie, uint32_t req_rsn_length,
 		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_length,
 		tCsrRoamInfo *roam_info_ptr);
+#else
+static inline int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr,
+	uint8_t *bssid, uint8_t *req_rsn_ie, uint32_t req_rsn_length,
+		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_length,
+		tCsrRoamInfo *roam_info_ptr)
+{
+	return 0;
+}
 #endif
 int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
                                    hdd_adapter_t *pAdapter,

@@ -2519,6 +2519,7 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 {
 	struct sk_buff *skb = NULL;
 	uint8_t feature_flags[(NUM_QCA_WLAN_VENDOR_FEATURES + 7) / 8] = {0};
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
 
 	if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
@@ -2526,6 +2527,7 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 		wlan_hdd_cfg80211_set_feature (feature_flags,
 				QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD);
 	}
+#endif
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(feature_flags) +
 		NLMSG_HDRLEN);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -927,15 +927,13 @@ limSendHalMsgAddTs(
 {
     tSirMsgQ msg;
     tpAddTsParams pAddTsParam;
-
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
     tpPESession psessionEntry = peFindSessionBySessionId(pMac, sessionId);
+
     if (psessionEntry == NULL) {
        limLog( pMac, LOGP,
           FL("Unable to get Session for session Id %d"), sessionId);
        return eSIR_FAILURE;
     }
-#endif
 
     pAddTsParam = vos_mem_malloc(sizeof(tAddTsParams));
     if (NULL == pAddTsParam)
