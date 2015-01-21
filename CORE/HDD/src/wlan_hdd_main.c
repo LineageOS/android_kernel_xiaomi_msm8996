@@ -9639,7 +9639,12 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                  WLAN_HDD_P2P_DEVICE == session_type) {
              /* Initialize the work queue to defer the
               * back to back RoC request */
+#ifdef CONFIG_CNSS
+             cnss_init_delayed_work(&pAdapter->roc_work,
+                                    hdd_p2p_roc_work_queue);
+#else
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
          }
 
 #ifdef QCA_LL_TX_FLOW_CT
@@ -9696,7 +9701,12 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          if (WLAN_HDD_P2P_GO == session_type) {
              /* Initialize the work queue to
               * defer the back to back RoC request */
+#ifdef CONFIG_CNSS
+             cnss_init_delayed_work(&pAdapter->roc_work,
+                                    hdd_p2p_roc_work_queue);
+#else
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
          }
 
          break;
