@@ -7927,17 +7927,21 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
     _sap_offload_parse_sta_qos(pmac, sta_ds, assoc_req);
 
     if (assoc_req->ExtCap.present) {
+        struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)
+                                       assoc_req->ExtCap.bytes;
+
         sta_ds->timingMeasCap = 0;
-        sta_ds->timingMeasCap |= (assoc_req->ExtCap.timingMeas)?
+        sta_ds->timingMeasCap |= (p_ext_cap->timingMeas)?
                                   RTT_TIMING_MEAS_CAPABILITY :
                                   RTT_INVALID;
-        sta_ds->timingMeasCap |= (assoc_req->ExtCap.fineTimingMeas)?
+        sta_ds->timingMeasCap |= (p_ext_cap->fineTimingMeas)?
                                   RTT_FINE_TIMING_MEAS_CAPABILITY :
                                   RTT_INVALID;
-        PELOG1(limLog(pmac, LOG1,
+
+        PELOG1(limLog(pMac, LOG1,
                FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
-               assoc_req->ExtCap.timingMeas,
-               assoc_req->ExtCap.fineTimingMeas);)
+               p_ext_cap->timingMeas,
+               p_ext_cap->fineTimingMeas);)
     } else {
         sta_ds->timingMeasCap = 0;
         PELOG1(limLog(pmac, LOG1, FL("ExtCap not present"));)
