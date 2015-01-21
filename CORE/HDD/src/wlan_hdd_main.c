@@ -14728,14 +14728,14 @@ VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
     if ((VOS_STATUS_SUCCESS == status)) {
         if ((WLAN_HDD_SOFTAP == device_mode) &&
             (channel_id < SIR_11A_CHANNEL_BEGIN)) {
-             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+             if (hdd_ap_ctx->operatingChannel != channel_id) {
                  *concurrent_chnl_same = false;
                   hddLog(VOS_TRACE_LEVEL_INFO_MED,
                             FL("channels are different"));
              }
         } else if ((WLAN_HDD_P2P_GO == device_mode) &&
                    (channel_id >= SIR_11A_CHANNEL_BEGIN)) {
-             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+             if (hdd_ap_ctx->operatingChannel != channel_id) {
                  *concurrent_chnl_same = false;
                  hddLog(VOS_TRACE_LEVEL_INFO_MED,
                            FL("channels are different"));
@@ -14748,7 +14748,6 @@ VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
          * SAP's channel and STA's channel. Return the status as failure so
          * caller function could know that scan look up is failed.
          */
-        *concurrent_chnl_same = false;
         hddLog(VOS_TRACE_LEVEL_ERROR,
                     FL("Finding AP from scan cache failed"));
         return VOS_STATUS_E_FAILURE;

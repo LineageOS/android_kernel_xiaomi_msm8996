@@ -10805,7 +10805,7 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
              * so, p2pgo stop event should get trigger from upper layer
              */
             p2pgo_channel_num =
-              WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->sapConfig.channel;
+              WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->operatingChannel;
             if (p2pgo_channel_num <= ARRAY_SIZE(hdd_channels_2_4_GHZ)) {
                 freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
                                                    IEEE80211_BAND_2GHZ);
