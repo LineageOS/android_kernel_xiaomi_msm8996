@@ -1152,6 +1152,7 @@ wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	wmi_vdev_set_param_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
 	u_int16_t len = sizeof(*cmd);
+	tp_wma_handle wma;
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -1168,6 +1169,16 @@ wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	cmd->param_value = param_value;
 	WMA_LOGD("Setting vdev %d param = %x, value = %u",
 				if_id, param_id, param_value);
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!wma->interfaces[if_id].vdev_up) {
+		WMA_LOGE("%s:vdev %d is not up. Skipping to send set param cmd"
+				, __func__, if_id);
+		wmi_buf_free(buf);
+		return -EINVAL;
+	}
 
 	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
 					WMI_VDEV_SET_PARAM_CMDID);
@@ -12133,12 +12144,6 @@ wma_update_protection_mode(tp_wma_handle wma, u_int8_t vdev_id,
 	enum ieee80211_protmode prot_mode;
 
 	prot_mode = llbcoexist ? IEEE80211_PROT_CTSONLY : IEEE80211_PROT_NONE;
-
-	if (!wma->interfaces[vdev_id].vdev_up) {
-		WMA_LOGE("%s:vdev %d is not up. Skipping to send PROTECTION_MODE"
-				, __func__, vdev_id);
-		return;
-	}
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
 					      WMI_VDEV_PARAM_PROTECTION_MODE,
