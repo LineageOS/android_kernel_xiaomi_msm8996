@@ -848,6 +848,7 @@ WLANSAP_StartBss
         pSapCtx->apAutoChannelSelection = pConfig->apAutoChannelSelection;
         pSapCtx->apStartChannelNum = pConfig->apStartChannelNum;
         pSapCtx->apEndChannelNum = pConfig->apEndChannelNum;
+        pSapCtx->acs_case = pConfig->acs_case;
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         pSapCtx->skip_acs_scan_status = pConfig->skip_acs_scan_status;
         pSapCtx->skip_acs_scan_range1_endch = pConfig->skip_acs_scan_range1_endch;

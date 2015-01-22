@@ -9661,6 +9661,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                   "STA-AP Mode DFS not supported. Restart SAP with Non DFS ACS"
                   );
               ap_adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
+              ap_adapter->sessionCtx.ap.sapConfig.acs_case = true;
               wlan_hdd_restart_sap(ap_adapter);
           }
       }
@@ -14120,7 +14121,7 @@ void hdd_ch_avoid_cb
           {
               if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
                   hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
-                  (AUTO_CHANNEL_SELECT == hostapd_adapter->sessionCtx.ap.sapConfig.channel) &&
+                  (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true) &&
                   !restart_sap_in_progress)
               {
                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -14728,14 +14729,14 @@ VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
     if ((VOS_STATUS_SUCCESS == status)) {
         if ((WLAN_HDD_SOFTAP == device_mode) &&
             (channel_id < SIR_11A_CHANNEL_BEGIN)) {
-             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+             if (hdd_ap_ctx->operatingChannel != channel_id) {
                  *concurrent_chnl_same = false;
                   hddLog(VOS_TRACE_LEVEL_INFO_MED,
                             FL("channels are different"));
              }
         } else if ((WLAN_HDD_P2P_GO == device_mode) &&
                    (channel_id >= SIR_11A_CHANNEL_BEGIN)) {
-             if (hdd_ap_ctx->sapConfig.channel != channel_id) {
+             if (hdd_ap_ctx->operatingChannel != channel_id) {
                  *concurrent_chnl_same = false;
                  hddLog(VOS_TRACE_LEVEL_INFO_MED,
                            FL("channels are different"));
@@ -14748,7 +14749,6 @@ VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
          * SAP's channel and STA's channel. Return the status as failure so
          * caller function could know that scan look up is failed.
          */
-        *concurrent_chnl_same = false;
         hddLog(VOS_TRACE_LEVEL_ERROR,
                     FL("Finding AP from scan cache failed"));
         return VOS_STATUS_E_FAILURE;

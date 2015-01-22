@@ -5288,7 +5288,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
-
+    pAdapter->sessionCtx.ap.sapConfig.acs_case = false;
     return status;
 
 error_wmm_init:
