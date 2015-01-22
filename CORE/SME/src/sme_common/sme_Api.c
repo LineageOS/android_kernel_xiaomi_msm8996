@@ -11784,6 +11784,8 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
          eCSR_DOT11_MODE_11n_ONLY != eCsrPhyMode &&
 
          eCSR_DOT11_MODE_11a != eCsrPhyMode &&
+         eCSR_DOT11_MODE_11b != eCsrPhyMode &&
+         eCSR_DOT11_MODE_11g != eCsrPhyMode &&
 
          eCSR_DOT11_MODE_abg != eCsrPhyMode
       )
