@@ -11897,6 +11897,7 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     }
 
     /*stop tx queues*/
+    hddLog(LOG1, FL("Disabling queues"));
     netif_tx_disable(pAdapter->dev);
     netif_carrier_off(pAdapter->dev);
     pHddCtx->isAmpAllowed = VOS_TRUE;

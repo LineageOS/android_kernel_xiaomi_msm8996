@@ -877,6 +877,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     }
 
     // notify apps that we can't pass traffic anymore
+    hddLog(LOG1, FL("Disabling queues"));
     netif_tx_disable(dev);
     netif_carrier_off(dev);
     pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
@@ -1730,6 +1731,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 /* Start the Queue - Start tx queues before hdd_roamRegisterSTA,
                    since hdd_roamRegisterSTA will flush any cached data frames
                    immediately */
+                hddLog(LOG1, FL("Enabling queues"));
                 netif_tx_wake_all_queues(dev);
                 pAdapter->hdd_stats.hddTxRxStats.netq_enable_cnt++;
                 pAdapter->hdd_stats.hddTxRxStats.netq_state_off = FALSE;
@@ -1795,6 +1797,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                hddLog(VOS_TRACE_LEVEL_DEBUG, "LFR3:netif_tx_wake_all_queues");
             }
 #endif
+            hddLog(LOG1, FL("Enabling queues"));
             netif_tx_wake_all_queues(dev);
             pAdapter->hdd_stats.hddTxRxStats.netq_enable_cnt++;
             pAdapter->hdd_stats.hddTxRxStats.netq_state_off = FALSE;
@@ -1949,6 +1952,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         hdd_clearRoamProfileIe( pAdapter );
         hdd_wmm_init( pAdapter );
 
+        hddLog(LOG1, FL("Disabling queues"));
         netif_tx_disable(dev);
         netif_carrier_off(dev);
         pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
@@ -2101,7 +2105,6 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
                       __func__, pAdapter->dev->name);
                return;
             }
-
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
             cfg80211_put_bss(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
@@ -2524,6 +2527,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
             }
          }
          netif_carrier_on(pAdapter->dev);
+         hddLog(LOG1, FL("Enabling queues"));
          netif_tx_start_all_queues(pAdapter->dev);
          break;
       }
@@ -2565,6 +2569,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                     "Received eCSR_ROAM_RESULT_IBSS_INACTIVE from SME");
          // Stop only when we are inactive
+         hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
          pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
@@ -3529,6 +3534,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             // after reassoc.
             {
                 struct net_device *dev = pAdapter->dev;
+                hddLog(LOG1, FL("Disabling queues"));
                 netif_tx_disable(dev);
                 pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
                 pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
@@ -3567,6 +3573,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 struct net_device *dev = pAdapter->dev;
                 hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
                 // notify apps that we can't pass traffic anymore
+                hddLog(LOG1, FL("Disabling queues"));
                 netif_tx_disable(dev);
                 pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
                 pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
@@ -3596,6 +3603,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             if(roamResult == eCSR_ROAM_RESULT_LOSTLINK) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                           "Roaming started due to connection lost");
+                hddLog(LOG1, FL("Disabling queues"));
                 netif_tx_disable(pAdapter->dev);
                 netif_carrier_off(pAdapter->dev);
                 pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;

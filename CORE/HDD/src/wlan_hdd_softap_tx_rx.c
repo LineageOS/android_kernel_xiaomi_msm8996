@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -161,6 +161,7 @@ void hdd_softap_tx_resume_timer_expired_handler(void *adapter_context)
       return;
    }
 
+   hddLog(LOG1, FL("Enabling queues"));
    netif_tx_wake_all_queues(pAdapter->dev);
    return;
 }
@@ -196,6 +197,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
           vos_timer_stop(&pAdapter->tx_flow_control_timer);
        }
 
+       hddLog(LOG1, FL("Enabling queues"));
        netif_tx_wake_all_queues(pAdapter->dev);
        pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
        pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
@@ -204,6 +206,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     else if (VOS_FALSE == tx_resume)  /* Pause TX  */
     {
+        hddLog(LOG1, FL("Disabling queues"));
         netif_tx_stop_all_queues(pAdapter->dev);
         if (VOS_TIMER_STATE_STOPPED ==
             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
@@ -330,6 +333,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
              (VOS_TIMER_STATE_STOPPED ==
              vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
+          hddLog(LOG1, FL("Disabling queues"));
           netif_tx_stop_all_queues(dev);
           vos_timer_start(&pAdapter->tx_flow_control_timer,
                           WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
@@ -1370,10 +1374,12 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                   "Turn on Monitor the carrier");
        netif_carrier_on(pmonAdapter->dev);
            //Enable Tx queue
+       hddLog(LOG1, FL("Enabling queues"));
        netif_tx_start_all_queues(pmonAdapter->dev);
     }
    netif_carrier_on(pAdapter->dev);
    //Enable Tx queue
+   hddLog(LOG1, FL("Enabling queues"));
    netif_tx_start_all_queues(pAdapter->dev);
 
    return( vosStatus );
