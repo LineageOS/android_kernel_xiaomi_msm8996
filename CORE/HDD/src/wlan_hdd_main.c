@@ -14676,20 +14676,6 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
 {
     int ret = 0;
     struct wlan_status_data data;
-#ifdef CONFIG_CNSS
-    struct cnss_platform_cap cap;
-
-    ret = cnss_get_platform_cap(&cap);
-    if (ret) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: platform capability info from CNSS not available",
-                  __func__);
-        return;
-    }
-
-    if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
-        return;
-#endif
 
     if (VOS_FTM_MODE == hdd_get_conparam())
         return;
@@ -14709,20 +14695,6 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
 {
     int ret = 0;
     struct wlan_version_data data;
-#ifdef CONFIG_CNSS
-    struct cnss_platform_cap cap;
-
-    ret = cnss_get_platform_cap(&cap);
-    if (ret) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: platform capability info from CNSS not available",
-                  __func__);
-        return;
-    }
-
-    if (!(cap.cap_flag & CNSS_HAS_UART_ACCESS))
-        return;
-#endif
 
     if (VOS_FTM_MODE == hdd_get_conparam())
         return;
