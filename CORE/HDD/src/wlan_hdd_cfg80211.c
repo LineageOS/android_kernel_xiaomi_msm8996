@@ -5716,41 +5716,6 @@ void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy)
 #endif
 }
 
-/*
- * In this function we are updating channel list when,
- * regulatory domain is FCC and country code is US.
- * Here In FCC standard 5GHz UNII-1 Bands are indoor only.
- * As per FCC smart phone is not a indoor device.
- * GO should not operate on indoor channels.
- */
-void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy)
-{
-    int j;
-    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
-    tANI_U8 defaultCountryCode[3] = SME_INVALID_COUNTRY_CODE;
-    /* Default country code from NV at the time of wiphy initialization. */
-    if (eHAL_STATUS_SUCCESS != sme_GetDefaultCountryCodeFrmNv(pHddCtx->hHal,
-                                  &defaultCountryCode[0]))
-    {
-       hddLog(LOGE, FL("Failed to get default country code from NV"));
-    }
-    if ((defaultCountryCode[0]== 'U') && (defaultCountryCode[1]=='S'))
-    {
-       if (NULL == wiphy->bands[IEEE80211_BAND_5GHZ])
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy->bands[IEEE80211_BAND_5GHZ] is NULL",__func__ );
-          return;
-       }
-       for (j = 0; j < wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels; j++)
-       {
-          struct ieee80211_supported_band *band = wiphy->bands[IEEE80211_BAND_5GHZ];
-          // Mark UNII -1 band channel as passive
-          if (WLAN_HDD_CHANNEL_IN_UNII_1_BAND(band->channels[j].center_freq))
-             band->channels[j].flags |= IEEE80211_CHAN_PASSIVE_SCAN;
-       }
-    }
-}
-
 /* This function registers for all frame which supplicant is interested in */
 void wlan_hdd_cfg80211_register_frames(hdd_adapter_t* pAdapter)
 {
