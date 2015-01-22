@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1969,11 +1969,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   FL("Starting SAP on channel [%d] after STA assoc complete"),
                   pHddStaCtx->conn_info.operationChannel);
-            hdd_ap_ctx->sapConfig.channel =
+            hdd_ap_ctx->operatingChannel =
                     pHddStaCtx->conn_info.operationChannel;
         } else {
             /* start on default SAP channel */
-            hdd_ap_ctx->sapConfig.channel =
+            hdd_ap_ctx->operatingChannel =
                     default_sap_channel;
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                       FL("Starting SAP on channel [%d] after STA assoc failed"),
@@ -1985,7 +1985,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                             pHddCtx->cfg_ini->vhtChannelWidth;
         sme_SelectCBMode(WLAN_HDD_GET_HAL_CTX(sap_adapter),
                          hdd_ap_ctx->sapConfig.SapHw_mode,
-                         hdd_ap_ctx->sapConfig.channel,
+                         hdd_ap_ctx->operatingChannel,
                          &hdd_ap_ctx->sapConfig.vht_channel_width);
         /*
          * Create a workqueue and let the workqueue handle the restarting

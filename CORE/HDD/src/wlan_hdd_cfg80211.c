@@ -4734,7 +4734,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 
     sap_config = &adapter->sessionCtx.ap.sapConfig;
     sap_config->channel = AUTO_CHANNEL_SELECT;
-
 #ifdef WLAN_FEATURE_MBSSID
     /*
      * Check if AP+AP case, once primary AP chooses a DFS
@@ -4865,6 +4864,7 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
         hddLog(LOGE, FL("ACS channel select failed"));
         goto out;
     }
+    sap_config->acs_case = true;
 
 out:
     if (0 == status) {
@@ -7623,6 +7623,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         hdd_change_sap_restart_required_status(pHddCtx, false);
     }
 
+    pAdapter->sessionCtx.ap.sapConfig.acs_case = false;
     hdd_hostapd_stop(dev);
 
     old = pAdapter->sessionCtx.ap.beacon;
@@ -10805,7 +10806,7 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
              * so, p2pgo stop event should get trigger from upper layer
              */
             p2pgo_channel_num =
-              WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->sapConfig.channel;
+              WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->operatingChannel;
             if (p2pgo_channel_num <= ARRAY_SIZE(hdd_channels_2_4_GHZ)) {
                 freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
                                                    IEEE80211_BAND_2GHZ);
