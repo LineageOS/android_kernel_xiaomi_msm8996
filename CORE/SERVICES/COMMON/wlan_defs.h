@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2010 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2004-2010, 2013-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -25,14 +25,6 @@
  * to the Linux Foundation.
  */
 
-//------------------------------------------------------------------------------
-// <copyright file="wlan_defs.h" company="Atheros">
-//    Copyright (c) 2004-2010, 2013 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
 #ifndef __WLANDEFS_H__
 #define __WLANDEFS_H__
 
