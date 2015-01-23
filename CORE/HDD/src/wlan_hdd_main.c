@@ -960,15 +960,18 @@ static void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
     hdd_hostapd_state_t *pHostapdState;
     VOS_STATUS vos_status;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(ap_adapter);
-    struct tagCsrDelStaParams delStaParams;
+#ifdef CFG80211_DEL_STA_V2
+    struct station_del_parameters delStaParams;
+#endif
 
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
 
     mutex_lock(&pHddCtx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
-        WLANSAP_PopulateDelStaParams(NULL, eCsrForcedDeauthSta,
-                            (SIR_MAC_MGMT_DEAUTH >> 4), &delStaParams);
 #ifdef CFG80211_DEL_STA_V2
+        delStaParams.mac = NULL;
+        delStaParams.subtype = SIR_MAC_MGMT_DEAUTH >> 4;
+        delStaParams.reason_code = eCsrForcedDeauthSta;
         wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
                                       &delStaParams);
 #else
@@ -14969,6 +14972,9 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
     hdd_hostapd_state_t *hostapd_state;
     VOS_STATUS vos_status;
     hdd_context_t *hdd_ctx;
+#ifdef CFG80211_DEL_STA_V2
+    struct station_del_parameters delStaParams;
+#endif
 
     if (NULL == ap_adapter) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -14986,8 +14992,16 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
     }
     mutex_lock(&hdd_ctx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
+#ifdef CFG80211_DEL_STA_V2
+        delStaParams.mac = NULL;
+        delStaParams.subtype = SIR_MAC_MGMT_DEAUTH >> 4;
+        delStaParams.reason_code = eCsrForcedDeauthSta;
+        wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
+                                      &delStaParams);
+#else
         wlan_hdd_cfg80211_del_station(ap_adapter->wdev.wiphy, ap_adapter->dev,
                                       NULL);
+#endif
         hdd_cleanup_actionframe(hdd_ctx, ap_adapter);
         hostapd_state = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
