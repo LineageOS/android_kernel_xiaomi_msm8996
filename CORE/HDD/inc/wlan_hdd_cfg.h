@@ -2741,6 +2741,11 @@ enum dot11p_mode {
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_MAX         (200)
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_DEFAULT     (100)
 
+#define CFG_STA_MIRACAST_MCC_REST_TIME_VAL          "gStaMiracastMccRestTimeVal"
+#define CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MIN     (100)
+#define CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MAX     (500)
+#define CFG_STA_MIRACAST_MCC_REST_TIME_VAL_DEFAULT (400)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3336,6 +3341,7 @@ typedef struct
 #endif
    uint16_t                    p2p_listen_defer_interval;
    uint8_t                     sap_dot11mc;
+   uint32_t                    sta_miracast_mcc_rest_time_val;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

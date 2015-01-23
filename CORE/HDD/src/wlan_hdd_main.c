@@ -255,7 +255,7 @@ static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
 #define WOW_MIN_PATTERN_SIZE     6
 #define WOW_MAX_PATTERN_SIZE     64
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
 static const struct wiphy_wowlan_support wowlan_support_reg_init = {
     .flags = WIPHY_WOWLAN_ANY |
              WIPHY_WOWLAN_MAGIC_PKT |
@@ -3122,7 +3122,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    int ret = 0;
    tpSirMacVendorSpecificFrameHdr pVendorSpecific =
                    (tpSirMacVendorSpecificFrameHdr) payload;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
    struct cfg80211_mgmt_tx_params params;
 #endif
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
@@ -3202,7 +3202,7 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    vos_mem_copy(hdr->addr3, bssid, VOS_MAC_ADDR_SIZE);
    vos_mem_copy(hdr + 1, payload, payload_len);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
    params.chan = &chan;
    params.offchan = 0;
    params.wait = dwell_time;
@@ -3213,13 +3213,13 @@ hdd_sendactionframe(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
    ret = wlan_hdd_mgmt_tx(NULL, &pAdapter->wdev, &params, &cookie);
 #else
    ret = wlan_hdd_mgmt_tx(NULL,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)) || defined(WITH_BACKPORTS)
                          &(pAdapter->wdev),
 #else
                          pAdapter->dev,
 #endif
                          &chan, 0,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
                          NL80211_CHAN_HT20, 1,
 #endif
                          dwell_time, frame, frame_len, 1, 1, &cookie );
@@ -4726,12 +4726,17 @@ static void hdd_wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssid,
 int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
 {
     tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tANI_U8 filterType = 0;
+    hdd_context_t *pHddCtx = NULL;
     tANI_U8 *value;
     int ret;
+    eHalStatus ret_status;
 
     value = command + 9;
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    if (!pHddCtx)
+        return -EFAULT;
 
     /* Convert the value from ascii to integer */
     ret = kstrtou8(value, 10, &filterType);
@@ -4751,8 +4756,182 @@ int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
         return -EINVAL;
     }
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: miracast mode %hu", __func__, filterType);
-    pMac->fMiracastSessionPresent = filterType;
+    pHddCtx->miracast_value = filterType;
+
+    ret_status = sme_set_miracast(hHal, filterType);
+    if (eHAL_STATUS_SUCCESS != ret_status) {
+        hddLog(LOGE, "Failed to set miracast");
+        return -EBUSY;
+    }
+
+    if (hdd_is_mcc_in_24G(pHddCtx)) {
+        return hdd_set_mas(pAdapter, filterType);
+    }
+
     return 0;
+}
+
+/**
+ * hdd_set_mas() - Function to set MAS value to UMAC
+ * @adapter:		Pointer to HDD adapter
+ * @mas_value:		0-Disable, 1-Enable MAS
+ *
+ * This function passes down the value of MAS to UMAC
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_set_mas(hdd_adapter_t *adapter, tANI_U8 mas_value)
+{
+	hdd_context_t *hdd_ctx = NULL;
+	eHalStatus ret_status;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (!hdd_ctx)
+		return -EFAULT;
+
+	if (mas_value) {
+		/* Miracast is ON. Disable MAS and configure P2P quota */
+		if (hdd_ctx->cfg_ini->enableMCCAdaptiveScheduler) {
+			if (cfgSetInt(hdd_ctx->hHal,
+				WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, 0)
+				!= eSIR_SUCCESS) {
+				hddLog(LOGE,
+					"Could not pass on WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED to CCM");
+			}
+
+			ret_status = sme_set_mas(false);
+			if (eHAL_STATUS_SUCCESS != ret_status) {
+				hddLog(LOGE, "Failed to disable MAS");
+				return -EBUSY;
+			}
+		}
+
+		/* Config p2p quota */
+		if (adapter->device_mode == WLAN_HDD_INFRA_STATION)
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+				100 - HDD_DEFAULT_MCC_P2P_QUOTA);
+		else if (adapter->device_mode == WLAN_HDD_P2P_GO)
+			hdd_wlan_go_set_mcc_p2p_quota(adapter,
+				HDD_DEFAULT_MCC_P2P_QUOTA);
+		else
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+				HDD_DEFAULT_MCC_P2P_QUOTA);
+	} else {
+		/* Reset p2p quota */
+		if (adapter->device_mode == WLAN_HDD_P2P_GO)
+			hdd_wlan_go_set_mcc_p2p_quota(adapter,
+						HDD_RESET_MCC_P2P_QUOTA);
+		else
+			hdd_wlan_set_mcc_p2p_quota(adapter,
+						HDD_RESET_MCC_P2P_QUOTA);
+
+		/* Miracast is OFF. Enable MAS and reset P2P quota */
+		if (hdd_ctx->cfg_ini->enableMCCAdaptiveScheduler) {
+			if (cfgSetInt(hdd_ctx->hHal,
+				WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, 1)
+				!= eSIR_SUCCESS) {
+				hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED to CCM");
+			}
+
+			/* Enable MAS */
+			ret_status = sme_set_mas(true);
+			if (eHAL_STATUS_SUCCESS != ret_status) {
+				hddLog(LOGE, "Unable to enable MAS");
+				return -EBUSY;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * hdd_is_mcc_in_24G() - Function to check for MCC in 2.4GHz
+ * @hdd_ctx:	Pointer to HDD context
+ *
+ * This function is used to check for MCC operation in 2.4GHz band.
+ * STA, P2P and SAP adapters are only considered.
+ *
+ * Return: Non zero value if MCC is detected in 2.4GHz band
+ *
+ */
+uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS status;
+	hdd_adapter_t *hdd_adapter = NULL;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	uint8_t ret = 0;
+	hdd_station_ctx_t *sta_ctx;
+	hdd_ap_ctx_t *ap_ctx;
+	uint8_t ch1 = 0, ch2 = 0;
+	uint8_t channel = 0;
+	hdd_hostapd_state_t *hostapd_state;
+
+	status =  hdd_get_front_adapter(hdd_ctx, &adapter_node);
+
+	/* loop through all adapters and check MCC for STA,P2P,SAP adapters */
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		hdd_adapter = adapter_node->pAdapter;
+
+		if (!((hdd_adapter->device_mode >= WLAN_HDD_INFRA_STATION)
+					|| (hdd_adapter->device_mode
+						<= WLAN_HDD_P2P_GO))) {
+			/* skip for other adapters */
+			status = hdd_get_next_adapter(hdd_ctx,
+					adapter_node, &next);
+			adapter_node = next;
+			continue;
+		} else {
+			if (WLAN_HDD_INFRA_STATION ==
+					hdd_adapter->device_mode ||
+					WLAN_HDD_P2P_CLIENT ==
+					hdd_adapter->device_mode) {
+				sta_ctx =
+					WLAN_HDD_GET_STATION_CTX_PTR(
+								hdd_adapter);
+				if (eConnectionState_Associated ==
+						sta_ctx->conn_info.connState)
+					channel =
+						sta_ctx->conn_info.
+							operationChannel;
+			} else if (WLAN_HDD_P2P_GO ==
+					hdd_adapter->device_mode ||
+					WLAN_HDD_SOFTAP ==
+					hdd_adapter->device_mode) {
+				ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(hdd_adapter);
+				hostapd_state =
+					WLAN_HDD_GET_HOSTAP_STATE_PTR(
+								hdd_adapter);
+				if (hostapd_state->bssState == BSS_START &&
+						hostapd_state->vosStatus ==
+						VOS_STATUS_SUCCESS)
+					channel = ap_ctx->operatingChannel;
+			}
+
+			if ((ch1 == 0) ||
+					((ch2 != 0) && (ch2 != channel))) {
+				ch1 = channel;
+			} else if ((ch2 == 0) ||
+					((ch1 != 0) && (ch1 != channel))) {
+				ch2 = channel;
+			}
+
+			if ((ch1 != 0 && ch2 != 0) && (ch1 != ch2) &&
+					((ch1 <= SIR_11B_CHANNEL_END) &&
+					 (ch2 <= SIR_11B_CHANNEL_END))) {
+				hddLog(LOGE,
+					"MCC in 2.4Ghz on channels %d and %d",
+					ch1, ch2);
+				return 1;
+			}
+
+			status = hdd_get_next_adapter(hdd_ctx,
+					adapter_node, &next);
+			adapter_node = next;
+		}
+	}
+	return ret;
 }
 
 /**
@@ -8600,7 +8779,7 @@ static struct net_device_ops wlan_drv_ops = {
       .ndo_set_mac_address = hdd_set_mac_address,
       .ndo_select_queue    = hdd_select_queue,
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,1,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,1,0)) || defined(WITH_BACKPORTS)
       .ndo_set_rx_mode = hdd_set_multicast_list,
 #else
       .ndo_set_multicast_list = hdd_set_multicast_list,
@@ -9413,7 +9592,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          if (session_type == WLAN_HDD_P2P_CLIENT)
             pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)) || defined(WITH_BACKPORTS)
          else if (session_type == WLAN_HDD_P2P_DEVICE)
             pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_DEVICE;
 #endif
@@ -10282,7 +10461,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
-#ifndef MSM_PLATFORM
+#if !defined(MSM_PLATFORM) || defined(WITH_BACKPORTS)
    v_MACADDR_t  bcastMac = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
 #endif
    eConnectionState  connState;
@@ -10350,7 +10529,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             break;
 
          case WLAN_HDD_P2P_GO:
-#ifdef MSM_PLATFORM
+#if defined(MSM_PLATFORM) && !defined(WITH_BACKPORTS)
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send stop ap to supplicant",
                                                        __func__);
             cfg80211_ap_stopped(pAdapter->dev, GFP_KERNEL);
@@ -11924,7 +12103,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
       return status;
    }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
     wiphy->wowlan = &wowlan_support_reg_init;
 #else
     wiphy->wowlan.flags = WIPHY_WOWLAN_ANY |
@@ -13806,7 +13985,7 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
           * the driver.
           *
           */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
          cfg80211_rx_unprot_mlme_mgmt(pAdapterNode->pAdapter->dev,
                                       (u_int8_t*)mgmt, len);
 #else
@@ -14879,6 +15058,254 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
 }
 #endif
 
+/**
+ * hdd_wlan_go_set_mcc_p2p_quota() - Function to set quota for P2P GO
+ * @hostapd_adapter:	Pointer to HDD adapter
+ * @set_value:		Qouta value for the interface
+ *
+ * This function is used to set the quota for P2P GO cases
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value)
+{
+	uint8_t first_adapter_operating_channel = 0;
+	uint8_t second_adapter_opertaing_channel = 0;
+	tVOS_CONCURRENCY_MODE concurrent_state = 0;
+	hdd_adapter_t *staAdapter = NULL;
+	int32_t ret = 0; /* success */
+
+	/*
+	 * Check if concurrency mode is active.
+	 * Need to modify this code to support MCC modes other than
+	 * STA/P2P GO
+	 */
+
+	concurrent_state = hdd_get_concurrency_mode();
+	if (concurrent_state == (VOS_STA | VOS_P2P_GO)) {
+		hddLog(LOG1, "%s: STA & P2P are both enabled", __func__);
+
+		/*
+		 * The channel numbers for both adapters and the time
+		 * quota for the 1st adapter, i.e., one specified in cmd
+		 * are formatted as a bit vector then passed on to WMA
+		 * +************************************************+
+		 * |bit 31-24 |bit 23-16  |  bits 15-8  |bits 7-0   |
+		 * |  Unused  |  Quota for| chan. # for |chan. # for|
+		 * |          |  1st chan.| 1st chan.   |2nd chan.  |
+		 * +************************************************+
+		 */
+
+		/* Get the operating channel of the specified vdev */
+		first_adapter_operating_channel =
+			hdd_get_operating_channel(hostapd_adapter->pHddCtx,
+			hostapd_adapter->device_mode);
+
+		hddLog(LOG1, "%s: 1st channel No.:%d and quota:%dms",
+			__func__, first_adapter_operating_channel,
+			set_value);
+
+		/* Move the time quota for first adapter to bits 15-8 */
+		set_value = set_value << 8;
+		/*
+		 * Store the operating channel number of 1st adapter at
+		 * the lower 8-bits of bit vector.
+		 */
+		set_value = set_value | first_adapter_operating_channel;
+		if (hostapd_adapter->device_mode ==
+				WLAN_HDD_INFRA_STATION) {
+			/* iwpriv cmd issued on wlan0; get p2p0 vdev chan */
+			if ((concurrent_state & VOS_P2P_CLIENT) != 0) {
+				/* The 2nd MCC vdev is P2P client */
+				staAdapter = hdd_get_adapter
+					(
+					 hostapd_adapter->pHddCtx,
+					 WLAN_HDD_P2P_CLIENT
+					);
+			} else {
+				/* The 2nd MCC vdev is P2P GO */
+				staAdapter = hdd_get_adapter
+					(
+					 hostapd_adapter->pHddCtx,
+					 WLAN_HDD_P2P_GO
+					);
+			}
+		} else {
+			/* iwpriv cmd issued on p2p0; get channel for wlan0 */
+			staAdapter = hdd_get_adapter
+				(
+				 hostapd_adapter->pHddCtx,
+				 WLAN_HDD_INFRA_STATION
+				);
+		}
+		if (staAdapter != NULL) {
+			second_adapter_opertaing_channel =
+				hdd_get_operating_channel
+				(
+				 staAdapter->pHddCtx,
+				 staAdapter->device_mode
+				);
+			hddLog(LOG1, "%s: 2nd vdev channel No. is:%d",
+					__func__,
+					second_adapter_opertaing_channel);
+
+			if (second_adapter_opertaing_channel == 0 ||
+					first_adapter_operating_channel == 0) {
+				hddLog(LOGE, "Invalid channel");
+				return -EINVAL;
+			}
+
+			/*
+			 * Move the time quota and operating channel number
+			 * for the first adapter to bits 23-16 & bits 15-8
+			 * of set_value vector, respectively.
+			 */
+			set_value = set_value << 8;
+			/*
+			 * Store the channel number for 2nd MCC vdev at bits
+			 * 7-0 of set_value vector as per the bit format above.
+			 */
+			set_value = set_value |
+				second_adapter_opertaing_channel;
+			ret = process_wma_set_command
+				(
+				 (int32_t)hostapd_adapter->sessionId,
+				 (int32_t)WMA_VDEV_MCC_SET_TIME_QUOTA,
+				 set_value,
+				 VDEV_CMD
+				);
+		} else {
+			hddLog(LOGE, "%s: NULL adapter handle. Exit",
+					__func__);
+		}
+	} else {
+		hddLog(LOG1, "%s: MCC is not active. "
+				"Exit w/o setting latency", __func__);
+	}
+	return ret;
+}
+
+/**
+ * hdd_wlan_set_mcc_p2p_quota() - Function to set quota for P2P
+ * @hostapd_adapter:    Pointer to HDD adapter
+ * @set_value:          Qouta value for the interface
+ *
+ * This function is used to set the quota for P2P cases
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+int32_t hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapater,
+					uint32_t set_value)
+{
+	uint8_t first_adapter_operating_channel = 0;
+	uint8_t second_adapter_opertaing_channel = 0;
+	hdd_adapter_t *staAdapter = NULL;
+	int32_t ret = 0; /* success */
+
+	tVOS_CONCURRENCY_MODE concurrent_state = hdd_get_concurrency_mode();
+	hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
+			set_value);
+	/*
+	 * Check if concurrency mode is active.
+	 * Need to modify this code to support MCC modes other than STA/P2P
+	 */
+	if ((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
+			(concurrent_state == (VOS_STA | VOS_P2P_GO))) {
+		hddLog(LOG1, "STA & P2P are both enabled");
+		/*
+		 * The channel numbers for both adapters and the time
+		 * quota for the 1st adapter, i.e., one specified in cmd
+		 * are formatted as a bit vector then passed on to WMA
+		 * +***********************************************************+
+		 * |bit 31-24  | bit 23-16  |   bits 15-8   |   bits 7-0       |
+		 * |  Unused   | Quota for  | chan. # for   |   chan. # for    |
+		 * |           | 1st chan.  | 1st chan.     |   2nd chan.      |
+		 * +***********************************************************+
+		 */
+		/* Get the operating channel of the specified vdev */
+		first_adapter_operating_channel =
+			hdd_get_operating_channel
+			(
+			 hostapd_adapater->pHddCtx,
+			 hostapd_adapater->device_mode
+			);
+		hddLog(LOG1, "1st channel No.:%d and quota:%dms",
+				first_adapter_operating_channel, set_value);
+		/* Move the time quota for first channel to bits 15-8 */
+		set_value = set_value << 8;
+		/*
+		 * Store the channel number of 1st channel at bits 7-0
+		 * of the bit vector
+		 */
+		set_value = set_value | first_adapter_operating_channel;
+		/* Find out the 2nd MCC adapter and its operating channel */
+		if (hostapd_adapater->device_mode == WLAN_HDD_INFRA_STATION) {
+			/*
+			 * iwpriv cmd was issued on wlan0;
+			 * get p2p0 vdev channel
+			 */
+			if ((concurrent_state & VOS_P2P_CLIENT) != 0) {
+				/* The 2nd MCC vdev is P2P client */
+				staAdapter = hdd_get_adapter(
+						hostapd_adapater->pHddCtx,
+						WLAN_HDD_P2P_CLIENT);
+			} else {
+				/* The 2nd MCC vdev is P2P GO */
+				staAdapter = hdd_get_adapter(
+						hostapd_adapater->pHddCtx,
+						WLAN_HDD_P2P_GO);
+			}
+		} else {
+			/*
+			 * iwpriv cmd was issued on p2p0;
+			 * get wlan0 vdev channel
+			 */
+			staAdapter = hdd_get_adapter(hostapd_adapater->pHddCtx,
+					WLAN_HDD_INFRA_STATION);
+		}
+		if (staAdapter != NULL) {
+			second_adapter_opertaing_channel =
+				hdd_get_operating_channel
+				(
+				 staAdapter->pHddCtx,
+				 staAdapter->device_mode
+				);
+			hddLog(LOG1, "2nd vdev channel No. is:%d",
+					second_adapter_opertaing_channel);
+
+			if (second_adapter_opertaing_channel == 0 ||
+					first_adapter_operating_channel == 0) {
+				hddLog(LOGE, "Invalid channel");
+				return -EINVAL;
+			}
+			/*
+			 * Now move the time quota and channel number of the
+			 * 1st adapter to bits 23-16 and bits 15-8 of the bit
+			 * vector, respectively.
+			 */
+			set_value = set_value << 8;
+			/*
+			 * Store the channel number for 2nd MCC vdev at bits
+			 * 7-0 of set_value
+			 */
+			set_value = set_value |
+					second_adapter_opertaing_channel;
+			ret = process_wma_set_command(
+					(int32_t)hostapd_adapater->sessionId,
+					(int32_t)WMA_VDEV_MCC_SET_TIME_QUOTA,
+					set_value, VDEV_CMD);
+		} else {
+			hddLog(LOGE, "NULL adapter handle. Exit");
+		}
+	} else {
+		hddLog(LOG1, "%s: MCC is not active. Exit w/o setting latency",
+				__func__);
+	}
+	return ret;
+}
 
 //Register the module init/exit functions
 module_init(hdd_module_init);

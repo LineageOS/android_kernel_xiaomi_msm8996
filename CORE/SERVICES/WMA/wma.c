@@ -183,6 +183,9 @@
 #define LINK_SUPPORT_MIMO	0x8
 
 #define LINK_RATE_VHT		0x3
+
+#define WMA_MCC_MIRACAST_REST_TIME 400
+
 /* Data rate 100KBPS based on IE Index */
 struct index_data_rate_type
 {
@@ -6790,6 +6793,39 @@ v_BOOL_t wma_is_STA_active(tp_wma_handle wma_handle)
 	return FALSE;
 }
 
+/**
+ * wma_is_mcc_24G() - Function to check MCC in 2.4GHz band
+ * @handle:             WMA handle
+ *
+ * This function is used to check MCC in 2.4GHz band
+ *
+ * Return: True if WMA is in MCC in 2.4GHz band
+ *
+ */
+static bool wma_is_mcc_24G(WMA_HANDLE handle)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	int32_t prev_chan = 0;
+	int32_t i;
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: wma_handle is NULL", __func__);
+		return false;
+	}
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (wma_handle->interfaces[i].handle &&
+				wma_handle->interfaces[i].conn_state) {
+			if ((prev_chan != 0 &&
+				prev_chan != wma_handle->interfaces[i].mhz) &&
+				(wma_handle->interfaces[i].mhz <=
+				VOS_CHAN_14_FREQ))
+				return true;
+			else
+				prev_chan = wma_handle->interfaces[i].mhz;
+		}
+	}
+	return false;
+}
 
 /* function   : wma_get_buf_start_scan_cmd
  * Description :
@@ -6961,13 +6997,18 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			cmd->burst_duration = 0;
 			break;
 		    }
+		    if (wma_handle->miracast_value &&
+				    wma_is_mcc_24G(wma_handle)) {
+			    cmd->max_rest_time =
+					pMac->f_sta_miracast_mcc_rest_time_val;
+		    }
 		    if (wma_is_P2P_GO_active(wma_handle)) {
 			/* Background scan while GO is sending beacons.
 			 * Every off-channel transition has overhead of 2 beacon
 			 * intervals for NOA. Maximize number of channels in
 			 * every transition by using burst scan.
 			 */
-			if (IS_MIRACAST_SESSION_PRESENT(pMac)) {
+			if (wma_handle->miracast_value) {
 				/* When miracast is running, burst duration
 				 * needs to be minimum to avoid any stutter
 				 * or glitch in miracast during station scan
@@ -7032,7 +7073,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			 * than the dwell time in normal scenarios.
 			 */
 			if (scan_req->channelList.numChannels == P2P_SOCIAL_CHANNELS
-			 && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
+			 && (!(wma_handle->miracast_value)))
 				cmd->repeat_probe_time = scan_req->maxChannelTime/5;
 			else
 				cmd->repeat_probe_time = scan_req->maxChannelTime/3;
@@ -23121,6 +23162,62 @@ static void wma_ocb_set_sched_req(void *wma_handle,
 	}
 }
 
+/**
+ * wma_process_set_mas() - Function to enable/disable MAS
+ * @wma:	Pointer to WMA handle
+ * @mas_val:	1-Enable MAS, 0-Disable MAS
+ *
+ * This function enables/disables the MAS value
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_process_set_mas(tp_wma_handle wma,
+		uint32_t *mas_val)
+{
+	uint32_t val;
+
+	if (NULL == wma || NULL == mas_val) {
+		WMA_LOGE("%s: Invalid input to enable/disable MAS", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	val = (*mas_val);
+
+	if (VOS_STATUS_SUCCESS !=
+			wma_set_enable_disable_mcc_adaptive_scheduler(val)) {
+		WMA_LOGE("%s: Unable to enable/disable MAS", __func__);
+		return VOS_STATUS_E_FAILURE;
+	} else {
+		WMA_LOGE("%s: Value is %d", __func__, val);
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_process_set_miracast() - Function to set miracast value in WMA
+ * @wma:		Pointer to WMA handle
+ * @miracast_val:	0-Disabled,1-Source,2-Sink
+ *
+ * This function stores the miracast value in WMA
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_process_set_miracast(tp_wma_handle wma, u_int32_t *miracast_val)
+{
+	if (NULL == wma || NULL == miracast_val) {
+		WMA_LOGE("%s: Invalid input to store miracast value", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wma->miracast_value = *miracast_val;
+	WMA_LOGE("%s: Miracast value is %d", __func__, wma->miracast_value);
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -23810,6 +23907,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_auto_resume_req(wma_handle);
 			break;
 #endif
+		case SIR_HAL_SET_MAS:
+			wma_process_set_mas(wma_handle,
+				(u_int32_t *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_SET_MIRACAST:
+			wma_process_set_miracast(wma_handle,
+					(u_int32_t *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

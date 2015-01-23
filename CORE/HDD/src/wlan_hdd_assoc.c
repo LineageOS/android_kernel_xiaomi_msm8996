@@ -1416,6 +1416,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     int ft_carrier_on = FALSE;
 #endif
     v_BOOL_t hddDisconInProgress = FALSE;
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     unsigned long rc;
     hdd_adapter_t *sap_adapter;
     hdd_ap_ctx_t *hdd_ap_ctx;
@@ -1471,6 +1473,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         /* Indicate 'connect' status to user space */
         hdd_SendAssociationEvent(dev,pRoamInfo);
+
+	if (hdd_is_mcc_in_24G(pHddCtx)) {
+		if ((pMac != NULL) && (pHddCtx->miracast_value)) {
+			hdd_set_mas(pAdapter, pHddCtx->miracast_value);
+		}
+	}
 
         // Initialize the Linkup event completion variable
         INIT_COMPLETION(pAdapter->linkup_event_var);
@@ -1711,7 +1719,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             if ( !hddDisconInProgress )
             {
                 cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                                  pHddCtx->wiphy,
 #endif
                                  bss);
@@ -2096,7 +2104,7 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
 
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
             cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                              pHddCtx->wiphy,
 #endif
                              bss);
@@ -2254,7 +2262,7 @@ static eHalStatus roamIbssConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo 
       return eHAL_STATUS_FAILURE;
    }
    cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                     WLAN_HDD_GET_CTX(pAdapter)->wiphy,
 #endif
                     bss);

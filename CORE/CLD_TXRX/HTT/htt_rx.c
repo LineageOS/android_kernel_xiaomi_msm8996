@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,9 +54,13 @@
 #include <ieee80211_common.h>         /* ieee80211_frame, ieee80211_qoscntl */
 #include <ieee80211_defines.h> /* ieee80211_rx_status */
 
-#ifdef DEBUG_DMA_DONE
-#include <asm/barrier.h>
 #include <wma_api.h>
+#ifdef DEBUG_DMA_DONE
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#include <asm/barrier.h>
+#else
+#include <asm/system.h>
+#endif
 #endif
 
 #ifdef DEBUG_DMA_DONE

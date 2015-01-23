@@ -5653,4 +5653,7 @@ typedef struct sir_ocb_set_sched_request
     ocb_callback_t callback;
 } sir_ocb_set_sched_request_t;
 
+/* Max number of rates allowed in Supported Rates IE */
+#define MAX_NUM_SUPPORTED_RATES (8)
+
 #endif /* __SIR_API_H */

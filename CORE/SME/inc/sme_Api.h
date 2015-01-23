@@ -121,6 +121,7 @@ typedef struct _smeConfigParams
 #ifdef FEATURE_BUS_AUTO_SUSPEND
     bool  enable_bus_auto_suspend;
 #endif
+    uint32_t       f_sta_miracast_mcc_rest_time_val;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -4237,4 +4238,28 @@ eHalStatus sme_configure_bus_auto_suspend_ind(tHalHandle hHal,
                           void *context);
 #endif
 
+/**
+ * sme_enable_disable_mas() - Function to set MAS value to UMAC
+ * @val:        1-Enable, 0-Disable
+ *
+ * This function passes down the value of MAS to the UMAC. A
+ * value of 1 will enable MAS and a value of 0 will disable MAS
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+eHalStatus sme_set_mas(tANI_U32 val);
+
+/**
+ * sme_set_miracast() - Function to set miracast value to UMAC
+ * @hal:                Handle returned by macOpen
+ * @filter_type:        0-Disabled, 1-Source, 2-sink
+ *
+ * This function passes down the value of miracast set by
+ * framework to UMAC
+ *
+ * Return: Configuration message posting status, SUCCESS or Fail
+ *
+ */
+eHalStatus sme_set_miracast(tHalHandle hal, uint8_t filter_type);
 #endif //#if !defined( __SME_API_H )

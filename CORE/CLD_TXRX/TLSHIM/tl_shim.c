@@ -2408,83 +2408,6 @@ void WLANTL_SetUcActive(void *vos_ctx,
 }
 
 /*=============================================================================
-  FUNCTION    WLANTL_IpaUcFwOpEventHandler
-
-  DESCRIPTION
-    This function will be called by TL client.
-    Firmware data path activation response handler.
-    Firmware response will be routed to upper layer
-
-  PARAMETERS
-    IN
-    context : pre-registered shim context
-    rxpkt : message pointer from firmware
-    staid : STA ID, not used
-
-  RETURN VALUE
-    NONE
-
-  SIDE EFFECTS
-
-==============================================================================*/
-void WLANTL_IpaUcFwOpEventHandler(void *context,
-	void *rxpkt,
-	u_int16_t staid)
-{
-	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
-
-	if (!tl_shim) {
-		TLSHIM_LOGE("%s: Invalid context", __func__);
-		return;
-	}
-
-	if (tl_shim->fw_op_cb) {
-		tl_shim->fw_op_cb(rxpkt, tl_shim->usr_ctxt);
-	}
-}
-
-/*=============================================================================
-  FUNCTION    WLANTL_IpaUcOpEventHandler
-
-  DESCRIPTION
-    This function will be called by TL client.
-    This API will be registered into OL layer and if firmware send any
-    Activity related notification, OL layer will call this function.
-    firmware indication will be serialized within TLSHIM RX Thread
-
-  PARAMETERS
-    IN
-    op_code : OP Code from firmware
-    shim_ctxt : shim context pointer
-
-  RETURN VALUE
-    NONE
-
-  SIDE EFFECTS
-
-==============================================================================*/
-void WLANTL_IpaUcOpEventHandler(v_U8_t *op_msg, void *shim_ctxt)
-{
-	pVosSchedContext sched_ctx = get_vos_sched_ctxt();
-	struct VosTlshimPkt *pkt;
-
-	if (unlikely(!sched_ctx))
-		return;
-
-	pkt = vos_alloc_tlshim_pkt(sched_ctx);
-	if (!pkt) {
-		TLSHIM_LOGW("No available Rx message buffer");
-		return;
-	}
-
-	pkt->callback = (vos_tlshim_cb)	WLANTL_IpaUcFwOpEventHandler;
-	pkt->context = shim_ctxt;
-	pkt->Rxpkt = (void *)op_msg;
-	pkt->staId = 0;
-	vos_indicate_rxpkt(sched_ctx, pkt);
-}
-
-/*=============================================================================
   FUNCTION    WLANTL_RegisterOPCbFnc
 
   DESCRIPTION
@@ -2504,23 +2427,8 @@ void WLANTL_IpaUcOpEventHandler(v_U8_t *op_msg, void *shim_ctxt)
 void WLANTL_RegisterOPCbFnc(void *vos_ctx,
 	void (*func)(v_U8_t *op_msg, void *usr_ctxt), void *usr_ctxt)
 {
-	struct txrx_tl_shim_ctx *tl_shim;
-
-	if (!vos_ctx) {
-		TLSHIM_LOGE("%s: Invalid context", __func__);
-		return;
-	}
-
-	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	if (NULL == tl_shim) {
-		TLSHIM_LOGW("Invalid TL Shim context");
-		return;
-	}
-
-	tl_shim->fw_op_cb = func;
-	tl_shim->usr_ctxt = usr_ctxt;
 	wdi_in_ipa_uc_register_op_cb(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
-		WLANTL_IpaUcOpEventHandler, (void *)tl_shim);
+		func, usr_ctxt);
 }
 #endif /* IPA_UC_OFFLOAD */
 
