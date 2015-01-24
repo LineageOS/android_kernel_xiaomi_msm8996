@@ -7409,6 +7409,15 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                      FL("Tdls offchannel num: %d"),
                      set_value);
            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
+       } else if (strncmp(command, "TDLSSCAN", 8) == 0) {
+           uint8_t *value = command;
+           int set_value;
+           /* Move pointer to point the string */
+           value += 8;
+           sscanf(value, "%d", &set_value);
+           hddLog(LOG1, FL("Tdls scan type val: %d"),
+                  set_value);
+           ret = hdd_set_tdls_scan_type(pHddCtx, set_value);
        }
 #endif
        else if (strncasecmp(command, "RSSI", 4) == 0) {

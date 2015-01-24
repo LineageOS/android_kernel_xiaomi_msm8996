@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2631,6 +2631,20 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
             hddTdlsPeer_t *curr_peer;
             hddTdlsPeer_t *connectedPeerList[HDD_MAX_NUM_TDLS_STA];
 
+            /* If TDLSScan is enabled then allow scan and maintain tdls link
+             * regardless if peer is buffer sta capable or not and if device
+             * is sleep sta capable or not. If peer is not buffer sta capable,
+             * then Tx would stop when device initiates scan and there will be
+             * loss of Rx packets since peer would not know when device moves
+             * away from the tdls channel.
+             */
+            if (1 == pHddCtx->cfg_ini->enable_tdls_scan) {
+                hddLog(LOG1,
+                       FL("TDLSScan enabled, keep tdls link and allow scan, connectedTdlsPeers: %d"),
+                       connectedTdlsPeers);
+                return 1;
+            }
+
             for (staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++)
             {
                 if (pHddCtx->tdlsConnInfo[staIdx].staId)
@@ -3010,4 +3024,32 @@ int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode)
         break;
     }/* end switch */
     return 0;
+}
+
+/**
+ * hdd_set_tdls_scan_type - set scan during active tdls session
+ * @hdd_ctx: ptr to hdd context.
+ * @val: scan type value: 0 or 1.
+ *
+ * Set scan type during tdls session. If set to 1, that means driver
+ * shall maintain tdls link and allow scan regardless if tdls peer is
+ * buffer sta capable or not and/or if device is sleep sta capable or
+ * not. If tdls peer is not buffer sta capable then during scan there
+ * will be loss of Rx packets and Tx would stop when device moves away
+ * from tdls channel. If set to 0, then driver shall teardown tdls link
+ * before initiating scan if peer is not buffer sta capable and device
+ * is not sleep sta capable. By default, scan type is set to 0.
+ *
+ * Return: success (0) or failure (errno value)
+ */
+int hdd_set_tdls_scan_type(hdd_context_t *hdd_ctx, int val)
+{
+	if ((val != 0) && (val != 1)) {
+		hddLog(LOGE, FL("Incorrect value of tdls scan type: %d"),
+		       val);
+		return -EINVAL;
+	} else {
+		hdd_ctx->cfg_ini->enable_tdls_scan = val;
+		return 0;
+	}
 }
