@@ -2335,7 +2335,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 
 #define CFG_SAP_MAX_OFFLOAD_PEERS                  "gMaxOffloadPeers"
 #define CFG_SAP_MAX_OFFLOAD_PEERS_MIN              (2)
-#define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (5)
+#define CFG_SAP_MAX_OFFLOAD_PEERS_MAX              (8)
 #define CFG_SAP_MAX_OFFLOAD_PEERS_DEFAULT          (2)
 
 #define CFG_SAP_MAX_OFFLOAD_REORDER_BUFFS          "gMaxOffloadReorderBuffs"
