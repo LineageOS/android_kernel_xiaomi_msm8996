@@ -7409,6 +7409,15 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                      FL("Tdls offchannel num: %d"),
                      set_value);
            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
+       } else if (strncmp(command, "TDLSSCAN", 8) == 0) {
+           uint8_t *value = command;
+           int set_value;
+           /* Move pointer to point the string */
+           value += 8;
+           sscanf(value, "%d", &set_value);
+           hddLog(LOG1, FL("Tdls scan type val: %d"),
+                  set_value);
+           ret = hdd_set_tdls_scan_type(pHddCtx, set_value);
        }
 #endif
        else if (strncasecmp(command, "RSSI", 4) == 0) {
@@ -9639,7 +9648,12 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                  WLAN_HDD_P2P_DEVICE == session_type) {
              /* Initialize the work queue to defer the
               * back to back RoC request */
+#ifdef CONFIG_CNSS
+             cnss_init_delayed_work(&pAdapter->roc_work,
+                                    hdd_p2p_roc_work_queue);
+#else
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
          }
 
 #ifdef QCA_LL_TX_FLOW_CT
@@ -9696,7 +9710,12 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          if (WLAN_HDD_P2P_GO == session_type) {
              /* Initialize the work queue to
               * defer the back to back RoC request */
+#ifdef CONFIG_CNSS
+             cnss_init_delayed_work(&pAdapter->roc_work,
+                                    hdd_p2p_roc_work_queue);
+#else
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
          }
 
          break;

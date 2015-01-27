@@ -1821,6 +1821,22 @@ typedef enum
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (0)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (0x0F)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (0x07)
+
+/* Enable TDLS Scan: Allow scan and maintain TDLS link.
+ *  0: If peer is not buffer STA capable and device is not sleep STA
+ *     capable, then teardown TDLS link when scan is initiated. If peer
+ *     is buffer STA and we can be sleep STA then TDLS link is maintained
+ *     during scan.
+ *  1: Maintain TDLS link and allow scan even if peer is not buffer STA
+ *     capable and device is not sleep STA capable. There will be loss of
+ *     Rx pkts since peer would not know when device moves away from tdls
+ *     channel. Tx on TDLS link would stop when device moves away from tdls
+ *     channel.
+ */
+#define CFG_TDLS_SCAN_ENABLE                       "gEnableTDLSScan"
+#define CFG_TDLS_SCAN_ENABLE_MIN                   (0)
+#define CFG_TDLS_SCAN_ENABLE_MAX                   (1)
+#define CFG_TDLS_SCAN_ENABLE_DEFAULT               (0)
 #endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
@@ -3093,6 +3109,7 @@ typedef struct
    v_U32_t                     fEnableTDLSWmmMode;
    v_U8_t                      fTDLSPrefOffChanNum;
    v_U8_t                      fTDLSPrefOffChanBandwidth;
+   uint8_t                     enable_tdls_scan;
 #endif
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
    v_BOOL_t                    fEnableVSTASupport;

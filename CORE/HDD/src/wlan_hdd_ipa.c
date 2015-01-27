@@ -2010,7 +2010,10 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 			adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_LOW, "Invalid sta_id: %d",
 				sta_id);
-		goto drop_pkts;
+		hdd_ipa->stats.num_rx_drop++;
+		if (adapter)
+			adapter->stats.rx_dropped++;
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	iface_context = (struct hdd_ipa_iface_context *) adapter->ipa_context;
@@ -2076,19 +2079,6 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	}
 
 	return VOS_STATUS_SUCCESS;
-
-drop_pkts:
-	buf = rx_buf_list;
-	while (buf) {
-		next_buf = adf_nbuf_queue_next(buf);
-		adf_nbuf_free(buf);
-		buf = next_buf;
-		hdd_ipa->stats.num_rx_drop++;
-		if (adapter)
-			adapter->stats.rx_dropped++;
-	}
-
-	return VOS_STATUS_E_FAILURE;
 }
 
 static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)

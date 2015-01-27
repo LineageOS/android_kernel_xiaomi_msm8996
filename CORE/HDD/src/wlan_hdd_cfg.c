@@ -2364,6 +2364,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_TDLS_WMM_MODE_ENABLE_DEFAULT,
                  CFG_TDLS_WMM_MODE_ENABLE_MIN,
                  CFG_TDLS_WMM_MODE_ENABLE_MAX ),
+
+   REG_VARIABLE( CFG_TDLS_SCAN_ENABLE, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_tdls_scan,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TDLS_SCAN_ENABLE_DEFAULT,
+                 CFG_TDLS_SCAN_ENABLE_MIN,
+                 CFG_TDLS_SCAN_ENABLE_MAX ),
 #endif
 
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
@@ -3918,6 +3925,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fTDLSUapsdMask] Value = [%u] ",pHddCtx->cfg_ini->fTDLSUapsdMask);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fEnableTDLSBufferSta] Value = [%u] ",pHddCtx->cfg_ini->fEnableTDLSBufferSta);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fEnableTDLSWmmMode] Value = [%u] ",pHddCtx->cfg_ini->fEnableTDLSWmmMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [enable_tdls_scan] Value = [%u]",
+            pHddCtx->cfg_ini->enable_tdls_scan);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVo);
