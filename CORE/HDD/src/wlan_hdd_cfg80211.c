@@ -6592,6 +6592,8 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     smeConfig.csrConfig.channelBondingMode24GHz = 0;
                 else
                     smeConfig.csrConfig.channelBondingMode5GHz = 0;
+
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->secondaryChannel = 0;
                 break;
 
             case NL80211_CHAN_HT40MINUS:
@@ -6604,6 +6606,9 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                 else
                     smeConfig.csrConfig.channelBondingMode5GHz =
                             eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->secondaryChannel =
+                                                      channel - 4;
                 break;
             case NL80211_CHAN_HT40PLUS:
                 sme_SetPhyCBMode24G(pHddCtx->hHal,
@@ -6616,6 +6621,8 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     smeConfig.csrConfig.channelBondingMode5GHz =
                             eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
 
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->secondaryChannel =
+                                                      channel + 4;
                 break;
             default:
                 hddLog(VOS_TRACE_LEVEL_ERROR,
