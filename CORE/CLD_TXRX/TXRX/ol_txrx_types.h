@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -68,6 +68,8 @@
 #define OL_TX_NON_QOS_TID 16
 #define OL_TX_MGMT_TID    17
 #define OL_TX_NUM_TIDS    18
+
+#define OL_RX_MCAST_TID     18  /* Mcast TID only between f/w & host */
 
 #define OL_TX_VDEV_MCAST_BCAST    0 // HTT_TX_EXT_TID_MCAST_BCAST
 #define OL_TX_VDEV_DEFAULT_MGMT   1 // HTT_TX_EXT_TID_DEFALT_MGMT
@@ -592,6 +594,7 @@ struct ol_txrx_pdev_t {
 					//u_int64_t mpdu_bad_sender; /* peer not found */
 					//u_int64_t mpdu_flushed;
 					//u_int64_t msdu_defrag_mic_err;
+					u_int64_t msdu_mc_dup_drop;
 				} err;
 			} rx;
 		} priv;
@@ -904,6 +907,7 @@ struct ol_txrx_peer_t {
 	u_int8_t               tids_last_pn_valid[OL_TXRX_NUM_EXT_TIDS];
 	u_int16_t              tids_next_rel_idx[OL_TXRX_NUM_EXT_TIDS];
 	u_int16_t              tids_last_seq[OL_TXRX_NUM_EXT_TIDS];
+	uint16_t               tids_mcast_last_seq[OL_TXRX_NUM_EXT_TIDS];
 
 	struct {
 		enum htt_sec_type sec_type;

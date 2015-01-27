@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -385,4 +385,5 @@ int hdd_set_tdls_secoffchanneloffset(hdd_context_t *pHddCtx, int offchanoffset);
 int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode);
 void wlan_hdd_update_tdls_info(hdd_adapter_t *adapter, bool tdls_prohibited,
                                bool tdls_chan_swit_prohibited);
+int hdd_set_tdls_scan_type(hdd_context_t *hdd_ctx, int val);
 #endif // __HDD_TDSL_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -365,8 +365,9 @@ ol_rx_indication_handler(
                      *     allows the host to discard it, rather than sending
                      *     it out of order.
                      */
-                    mpdu_status = OL_RX_REORDER_SEQ_NUM_CHECK(
+                    mpdu_status = OL_RX_SEQ_NUM_CHECK(
                         pdev, peer, tid, rx_mpdu_desc);
+
                     if (mpdu_status != htt_rx_status_ok) {
                         /*
                          * If the sequence number was out of bounds,

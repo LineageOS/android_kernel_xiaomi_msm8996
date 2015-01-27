@@ -702,7 +702,7 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
     pSapCtx->scanBandPreference = pConfig->scanBandPreference;
     pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
     pSapCtx->pUsrContext = pUsrContext;
-    pSapCtx->apAutoChannelSelection = pConfig->apAutoChannelSelection;
+    pSapCtx->apAutoChannelSelection = VOS_TRUE;
     pSapCtx->apStartChannelNum = pConfig->apStartChannelNum;
     pSapCtx->apEndChannelNum = pConfig->apEndChannelNum;
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

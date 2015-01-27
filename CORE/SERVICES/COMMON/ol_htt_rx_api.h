@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -227,6 +227,9 @@ htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg);
 
 /*==================== rx MPDU descriptor access methods ====================*/
 
+extern
+bool (*htt_rx_mpdu_desc_retry)(
+		htt_pdev_handle pdev, void *mpdu_desc);
 /**
  * @brief Return a rx MPDU's sequence number.
  * @details
@@ -301,6 +304,10 @@ extern void (*htt_rx_mpdu_desc_pn)(
     void *mpdu_desc,
     union htt_rx_pn_t *pn,
     int pn_len_bits);
+
+extern
+uint8_t (*htt_rx_mpdu_desc_tid)(
+			htt_pdev_handle pdev, void *mpdu_desc);
 
 /**
  * @brief Return the TSF timestamp indicating when a MPDU was received.
