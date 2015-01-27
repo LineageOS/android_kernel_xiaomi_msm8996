@@ -1566,6 +1566,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* Allow suspend for old channel */
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
+            /* SME/PE is already updated for new operation channel. So update
+             * HDD layer also here. This resolves issue in AP-AP mode where
+             * AP1 channel is changed due to RADAR then CAC is going on and
+             * START_BSS on new channel has not come to HDD. At this case if
+             * AP2 is start it needs current operation channel for MCC DFS
+             * restiction
+             */
+            pHddApCtx->operatingChannel =
+                    pSapEvent->sapevt.sapChannelChange.operatingChannel;
             /* TODO Need to indicate operating channel change to hostapd */
             return VOS_STATUS_SUCCESS;
 
