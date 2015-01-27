@@ -1853,7 +1853,12 @@ int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter, uint8_t *mac,
 
     curr_peer->op_class_for_pref_off_chan = (uint8_t)op_class;
     curr_peer->pref_off_chan_num = (uint8_t)chan;
-    curr_peer->op_class_for_pref_off_chan_is_set = 1;
+
+    if (curr_peer->op_class_for_pref_off_chan)
+        curr_peer->op_class_for_pref_off_chan_is_set = 1;
+    else
+        curr_peer->op_class_for_pref_off_chan_is_set = 0;
+
     mutex_unlock(&pHddCtx->tdls_lock);
     return 0;
 }

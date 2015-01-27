@@ -14891,9 +14891,9 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
             break;
         case NL80211_TDLS_SETUP:
             {
-                status = wlan_hdd_tdls_extctrl_config_peer(pAdapter,
-                                                           peer,
-                                                           NULL, 0, 0, 0, 0);
+                status = wlan_hdd_tdls_extctrl_config_peer(pAdapter, peer,
+                             NULL, pHddCtx->cfg_ini->fTDLSPrefOffChanNum,
+                             0, 0, 0);
                 if (0 != status)
                 {
                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
