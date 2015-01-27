@@ -353,7 +353,7 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .vht_cap.cap = IEEE80211_VHT_CAP_MAX_MPDU_LENGTH_11454
                             | IEEE80211_VHT_CAP_SHORT_GI_80
                             | IEEE80211_VHT_CAP_TXSTBC
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
                             | (IEEE80211_VHT_CAP_RXSTBC_MASK &
                               ( IEEE80211_VHT_CAP_RXSTBC_1
                               | IEEE80211_VHT_CAP_RXSTBC_2))
@@ -458,7 +458,7 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
     },
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
 /* Interface limits and combinations registered by the driver */
 
 /* STA ( + STA ) combination */
@@ -619,7 +619,8 @@ wlan_hdd_iface_combination[] = {
       .beacon_int_infra_match = true,
    },
 };
-#endif //(LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) ||
+         defined(WITH_BACKPORTS) */
 
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
@@ -838,7 +839,7 @@ wlan_hdd_extscan_results_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_MAX + 1] =
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
 static const struct wiphy_wowlan_support wowlan_support_cfg80211_init = {
     .flags = WIPHY_WOWLAN_MAGIC_PKT,
     .n_patterns = WOWL_MAX_PTRNS_ALLOWED,
@@ -996,7 +997,7 @@ void wlan_hdd_cfg80211_nan_init(hdd_context_t *pHddCtx)
  */
 static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
-                                        const void *data, int data_len)
+                                         const void *data, int data_len)
 {
     struct sme_ap_find_request_req  apfind_req;
     VOS_STATUS      status;
@@ -1183,7 +1184,7 @@ static int is_driver_dfs_capable(struct wiphy *wiphy,
     int ret_val;
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT)
+    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
 #endif
 
@@ -2519,6 +2520,7 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 {
 	struct sk_buff *skb = NULL;
 	uint8_t feature_flags[(NUM_QCA_WLAN_VENDOR_FEATURES + 7) / 8] = {0};
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
 
 	if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
@@ -2526,6 +2528,7 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 		wlan_hdd_cfg80211_set_feature (feature_flags,
 				QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD);
 	}
+#endif
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(feature_flags) +
 		NLMSG_HDRLEN);
@@ -5467,13 +5470,13 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     /* This will disable updating of NL channels from passive to
      * active if a beacon is received on passive channel. */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
     wiphy->regulatory_flags |= REGULATORY_DISABLE_BEACON_HINTS;
 #else
     wiphy->flags |=   WIPHY_FLAG_DISABLE_BEACON_HINTS;
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
     wiphy->flags |= WIPHY_FLAG_HAVE_AP_SME
                  |  WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD
                  |  WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL
@@ -5482,14 +5485,14 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
                     | WIPHY_FLAG_OFFCHAN_TX;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
     wiphy->regulatory_flags = REGULATORY_COUNTRY_IE_IGNORE;
 #else
     wiphy->country_ie_pref = NL80211_COUNTRY_IE_IGNORE_CORE;
 #endif
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
     wiphy->wowlan = &wowlan_support_cfg80211_init;
 #else
     wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;
@@ -5556,7 +5559,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     if( pCfg->advertiseConcurrentOperation )
     {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
        if( pCfg->enableMCC ) {
           int i;
           for (i = 0; i < ARRAY_SIZE(wlan_hdd_iface_combination); i++) {
@@ -5640,7 +5643,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT)
+    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
     if (pCfg->enableDFSMasterCap) {
         wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
     }
@@ -5896,7 +5899,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
 }
 #endif /* FEATURE_WLAN_WAPI*/
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
                                        beacon_data_t **ppBeacon,
                                        struct beacon_parameters *params)
@@ -5951,7 +5954,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
        return -ENOMEM;
     }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
     if(params->dtim_period || !old )
         beacon->dtim_period = params->dtim_period;
     else
@@ -6247,7 +6250,7 @@ static void wlan_hdd_add_extra_ie(hdd_adapter_t* pHostapdAdapter,
     return;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                             struct beacon_parameters *params)
 #else
@@ -6742,7 +6745,7 @@ end:
 }
 #endif /* DHCP_SERVER_OFFLOAD */
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
 #else
@@ -7105,7 +7108,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
     if (params->ssid != NULL)
     {
         vos_mem_copy(pConfig->SSIDinfo.ssid.ssId, params->ssid, params->ssid_len);
@@ -7421,7 +7424,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
    return 0;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
                                         struct net_device *dev,
                                         struct beacon_parameters *params)
@@ -7539,10 +7542,10 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
     EXIT();
     return status;
 }
+#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) &&
+          !defined(WITH_BACKPORTS) */
 
-#endif //(LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                                         struct net_device *dev)
 #else
@@ -7702,7 +7705,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     return ret;
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0))
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) || defined(WITH_BACKPORTS)
 
 static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
                                       struct net_device *dev,
@@ -7774,9 +7777,9 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             channel_type = NL80211_CHAN_HT40PLUS;
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)) || defined(WITH_BACKPORTS)
         wlan_hdd_cfg80211_set_channel(wiphy, dev,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
         params->channel, params->channel_type);
 #else
         params->chandef.chan, channel_type);
@@ -7857,8 +7860,8 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
     EXIT();
     return status;
 }
-
-#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) */
+#endif /* (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) ||
+          defined(WITH_BACKPORTS) */
 
 static int __wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct net_device *dev,
@@ -9799,7 +9802,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
             hddLog(LOG1, FL("NULL returned by cfg80211_inform_bss_frame"));
         } else {
             cfg80211_put_bss(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                              wiphy,
 #endif
                              bss_status);
@@ -10224,12 +10227,12 @@ static void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work)
  * later, scan dump command can be used to receive scan results
  */
 int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                             struct net_device *dev,
 #endif
                             struct cfg80211_scan_request *request)
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)) || defined(WITH_BACKPORTS)
    struct net_device *dev = request->wdev->netdev;
 #endif
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
@@ -10336,7 +10339,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     */
     status = wlan_hdd_tdls_scan_callback (pAdapter,
                                           wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                           dev,
 #endif
                                           request);
@@ -10636,7 +10639,7 @@ free_mem:
 }
 
 int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                             struct net_device *dev,
 #endif
                             struct cfg80211_scan_request *request)
@@ -10645,7 +10648,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     vos_ssr_protect(__func__);
     ret =  __wlan_hdd_cfg80211_scan(wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                    dev,
 #endif
                                    request);
@@ -12295,7 +12298,7 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
 
     /* Set Channel */
     if (NULL !=
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
                 params->chandef.chan)
 #else
                 params->channel)
@@ -12310,7 +12313,7 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
         /* Get channel number */
         channelNum =
                ieee80211_frequency_to_channel(
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
                                             params->chandef.chan->center_freq);
 #else
                                             params->channel->center_freq);
@@ -12604,7 +12607,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
  * This function is used to set the txpower
  */
 static int __wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) || defined(WITH_BACKPORTS)
         struct wireless_dev *wdev,
 #endif
         enum nl80211_tx_power_setting type,
@@ -12664,7 +12667,7 @@ static int __wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 }
 
 static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) || defined(WITH_BACKPORTS)
         struct wireless_dev *wdev,
 #endif
         enum nl80211_tx_power_setting type,
@@ -12673,7 +12676,7 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
     int ret;
     vos_ssr_protect(__func__);
     ret = __wlan_hdd_cfg80211_set_txpower(wiphy,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) || defined(WITH_BACKPORTS)
                                         wdev,
 #endif
                                         type,
@@ -12688,7 +12691,7 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
  * This function is used to read the txpower
  */
 static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) || defined(WITH_BACKPORTS)
                                          struct wireless_dev *wdev,
 #endif
                                          int *dbm)
@@ -13317,7 +13320,7 @@ static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
     return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
 static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
                    struct net_device *dev,
                    struct ieee80211_txq_params *params)
@@ -15381,7 +15384,7 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
 }
 
 static int wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0)) || defined(WITH_BACKPORTS)
                                       struct wireless_dev *wdev,
 #endif
                                       void *data, int len)
@@ -16952,7 +16955,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .del_virtual_intf = wlan_hdd_del_virtual_intf,
     .change_virtual_intf = wlan_hdd_cfg80211_change_iface,
     .change_station = wlan_hdd_change_station,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
     .add_beacon = wlan_hdd_cfg80211_add_beacon,
     .del_beacon = wlan_hdd_cfg80211_del_beacon,
     .set_beacon = wlan_hdd_cfg80211_set_beacon,
@@ -16966,7 +16969,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .get_key = wlan_hdd_cfg80211_get_key,
     .del_key = wlan_hdd_cfg80211_del_key,
     .set_default_key = wlan_hdd_cfg80211_set_default_key,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
     .set_channel = wlan_hdd_cfg80211_set_channel,
 #endif
     .scan = wlan_hdd_cfg80211_scan,

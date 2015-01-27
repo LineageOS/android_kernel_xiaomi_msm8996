@@ -1140,6 +1140,9 @@ struct hdd_adapter_s
 /* Set mac address locally administered bit */
 #define WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macaddr) (macaddr[0] &= 0xFD)
 
+#define HDD_DEFAULT_MCC_P2P_QUOTA    70
+#define HDD_RESET_MCC_P2P_QUOTA      50
+
 typedef struct hdd_adapter_list_node
 {
    hdd_list_node_t node;     // MUST be first element
@@ -1518,6 +1521,7 @@ struct hdd_context_s
     atomic_t auto_suspend_state;
     atomic_t auto_suspend_stop_requested;
 #endif
+    uint8_t miracast_value;
 };
 
 /*---------------------------------------------------------------------------
@@ -1753,5 +1757,10 @@ static inline void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx,
               bool delayed) {}
 static inline void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx) {}
 #endif
-
+int hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value);
+int hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
+					uint32_t set_value);
+int hdd_set_mas(hdd_adapter_t *hostapd_adapter, uint8_t filter_type);
+uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

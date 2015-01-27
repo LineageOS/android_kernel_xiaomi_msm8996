@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -755,6 +755,7 @@ typedef struct {
 	/* OCB Set Schedule Response */
 	ocb_set_sched_callback_t ocb_callback;
 	sir_ocb_set_sched_response_t *ocb_resp;
+	uint32_t miracast_value;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

@@ -99,6 +99,11 @@ ifeq ($(KERNEL_BUILD), 0)
         endif
 endif
 
+ifdef CPTCFG_QCA_CLD_WLAN
+	WLAN_ROOT := $(BACKPORT_PWD)/drivers/staging/qcacld-2.0
+	CONFIG_QCA_CLD_WLAN=$(CPTCFG_QCA_CLD_WLAN)
+endif
+
 ifeq ($(CONFIG_X86), y)
 CONFIG_NON_QC_PLATFORM := y
 endif
@@ -1197,8 +1202,9 @@ ifeq ($(CONFIG_IPA_UC_OFFLOAD), 1)
 CDEFINES += -DIPA_UC_OFFLOAD
 ifeq ($(CONFIG_ARCH_MDM9640), y)
 CDEFINES += -DIPA_UC_STA_OFFLOAD
-endif
+else
 CDEFINES += -DQCA_CONFIG_SMP
+endif
 endif
 endif
 
@@ -1333,6 +1339,10 @@ endif
 
 ifeq ($(CONFIG_ARCH_MDM9640), y)
 CDEFINES += -DFEATURE_AP_MCC_CH_AVOIDANCE
+endif
+
+ifdef CPTCFG_QCA_CLD_WLAN
+CDEFINES += -DWITH_BACKPORTS
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)

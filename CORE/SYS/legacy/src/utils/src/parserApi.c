@@ -1631,6 +1631,104 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
 
 } // End PopulateDot11fSuppRates.
 
+/**
+ * populate_dot11f_rates_tdls() - populate supported rates and
+ *                                extended supported rates IE.
+ * @p_mac gloabl - header.
+ * @p_supp_rates - pointer to supported rates IE
+ * @p_ext_supp_rates - pointer to extended supported rates IE
+ *
+ * This function populates the supported rates and extended supported
+ * rates IE based in the STA capability. If the number of rates
+ * supported is less than MAX_NUM_SUPPORTED_RATES, only supported rates
+ * IE is populated.
+ *
+ * Return: tSirRetStatus eSIR_SUCCESS on Success and eSIR_FAILURE
+ *         on failure.
+ */
+
+tSirRetStatus
+populate_dot11f_rates_tdls(tpAniSirGlobal p_mac,
+			   tDot11fIESuppRates *p_supp_rates,
+			   tDot11fIEExtSuppRates *p_ext_supp_rates)
+{
+	tSirMacRateSet temp_rateset;
+	tSirMacRateSet temp_rateset2;
+	uint32_t val, i;
+	uint32_t self_dot11mode = 0;
+
+	wlan_cfgGetInt(p_mac, WNI_CFG_DOT11_MODE, &self_dot11mode);
+
+	/**
+         * Include 11b rates only when the device configured in
+	 * auto, 11a/b/g or 11b_only
+         */
+	if ((self_dot11mode == WNI_CFG_DOT11_MODE_ALL) ||
+	    (self_dot11mode == WNI_CFG_DOT11_MODE_11A) ||
+	    (self_dot11mode == WNI_CFG_DOT11_MODE_11AC) ||
+	    (self_dot11mode == WNI_CFG_DOT11_MODE_11N) ||
+	    (self_dot11mode == WNI_CFG_DOT11_MODE_11G) ||
+	    (self_dot11mode == WNI_CFG_DOT11_MODE_11B) ) {
+		val = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+		wlan_cfgGetStr(p_mac, WNI_CFG_SUPPORTED_RATES_11B,
+				(tANI_U8 *)&temp_rateset.rate, &val);
+		temp_rateset.numRates = (tANI_U8) val;
+	}
+	else {
+	    temp_rateset.numRates = 0;
+	}
+
+	/* Include 11a rates when the device configured in non-11b mode */
+	if (!IS_DOT11_MODE_11B(self_dot11mode)) {
+		val = WNI_CFG_SUPPORTED_RATES_11A_LEN;
+		wlan_cfgGetStr(p_mac, WNI_CFG_SUPPORTED_RATES_11A,
+			(tANI_U8 *)&temp_rateset2.rate, &val);
+		temp_rateset2.numRates = (tANI_U8) val;
+	} else {
+		temp_rateset2.numRates = 0;
+	}
+
+	if ((temp_rateset.numRates + temp_rateset2.numRates) >
+					SIR_MAC_MAX_NUMBER_OF_RATES) {
+		limLog(p_mac, LOGP, FL("more than %d rates in CFG"),
+                                    SIR_MAC_MAX_NUMBER_OF_RATES);
+		return eSIR_FAILURE;
+	}
+
+	/**
+         * copy all rates in temp_rateset,
+         * there are SIR_MAC_MAX_NUMBER_OF_RATES rates max
+         */
+	for (i = 0; i < temp_rateset2.numRates; i++)
+		temp_rateset.rate[i + temp_rateset.numRates] =
+						temp_rateset2.rate[i];
+
+	temp_rateset.numRates += temp_rateset2.numRates;
+
+	if (temp_rateset.numRates <= MAX_NUM_SUPPORTED_RATES) {
+		p_supp_rates->num_rates = temp_rateset.numRates;
+		vos_mem_copy(p_supp_rates->rates, temp_rateset.rate,
+			     p_supp_rates->num_rates);
+		p_supp_rates->present = 1;
+	}  else { /* Populate extended capability as well */
+		p_supp_rates->num_rates = MAX_NUM_SUPPORTED_RATES;
+		vos_mem_copy(p_supp_rates->rates, temp_rateset.rate,
+			     p_supp_rates->num_rates);
+		p_supp_rates->present = 1;
+
+		p_ext_supp_rates->num_rates = temp_rateset.numRates -
+				     MAX_NUM_SUPPORTED_RATES;
+		vos_mem_copy(p_ext_supp_rates->rates,
+			     (tANI_U8 *)temp_rateset.rate +
+			     MAX_NUM_SUPPORTED_RATES,
+			     p_ext_supp_rates->num_rates);
+		p_ext_supp_rates->present = 1;
+	}
+
+	return eSIR_SUCCESS;
+
+} /* End populate_dot11f_rates_tdls */
+
 tSirRetStatus
 PopulateDot11fTPCReport(tpAniSirGlobal      pMac,
                         tDot11fIETPCReport *pDot11f,

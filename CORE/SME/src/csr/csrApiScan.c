@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -691,8 +691,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 /* Increase dwell time in case P2P Search and Miracast is not present*/
                 if(pScanRequest->p2pSearch &&
                     pScanRequest->ChannelInfo.numOfChannels == P2P_SOCIAL_CHANNELS
-                    && (!IS_MIRACAST_SESSION_PRESENT(pMac)))
-                {
+                    && (!(pMac->sme.miracast_value))) {
                     pScanRequest->maxChnTime += P2P_SEARCH_DWELL_TIME_INCREASE;
                 }
 

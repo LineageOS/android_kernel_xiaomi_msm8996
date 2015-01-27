@@ -3551,6 +3551,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_DOT11MC_DEFAULT,
                 CFG_SAP_DOT11MC_MIN,
                 CFG_SAP_DOT11MC_MAX ),
+
+   REG_VARIABLE( CFG_STA_MIRACAST_MCC_REST_TIME_VAL, WLAN_PARAM_Integer,
+                 hdd_config_t, sta_miracast_mcc_rest_time_val,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_STA_MIRACAST_MCC_REST_TIME_VAL_DEFAULT,
+                 CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MIN,
+                 CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MAX ),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -6018,6 +6025,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* Update 802.11p config */
    smeConfig->csrConfig.enable_dot11p = (pHddCtx->cfg_ini->dot11p_mode !=
                                              WLAN_HDD_11P_DISABLED);
+
+   smeConfig->f_sta_miracast_mcc_rest_time_val =
+                pHddCtx->cfg_ini->sta_miracast_mcc_rest_time_val;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

@@ -359,6 +359,16 @@ static const char *op_string[] = {
 	"RX_RESUME",
 	"STATS",
 };
+
+struct uc_rm_work_struct {
+	struct work_struct work;
+	enum ipa_rm_event event;
+};
+
+struct uc_op_work_struct {
+	struct work_struct work;
+	struct op_msg_type *msg;
+};
 #endif /* IPA_UC_OFFLOAD */
 
 struct hdd_ipa_priv {
@@ -372,6 +382,10 @@ struct hdd_ipa_priv {
 	 */
 	adf_os_spinlock_t rm_lock;
 	struct work_struct rm_work;
+#ifdef IPA_UC_OFFLOAD
+	struct uc_rm_work_struct uc_rm_work;
+	struct uc_op_work_struct uc_op_work[HDD_IPA_UC_OPCODE_MAX];
+#endif
 	vos_wake_lock_t wake_lock;
 	struct delayed_work wake_lock_work;
 	bool wake_lock_released;
@@ -840,20 +854,27 @@ static int hdd_ipa_uc_handle_last_discon(struct hdd_ipa_priv *hdd_ipa)
 	return 0;
 }
 
-static void
-hdd_ipa_uc_rm_notify_handler(void *context, void *rxpkt, u_int16_t staid)
+static void hdd_ipa_uc_rm_notify_handler(void *context, enum ipa_rm_event event)
 {
-	enum ipa_rm_event event_code;
-	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa = context;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	/*
+	 * When SSR is going on or driver is unloading, just return.
+	 */
+	status = wlan_hdd_validate_context(hdd_ipa->hdd_ctx);
+	if (0 != status) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "HDD context is not valid");
+		return;
+	}
 
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return;
 
-	vos_mem_copy(&event_code, rxpkt, sizeof(event_code));
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s, event code %d",
-		__func__, event_code);
+		__func__, event);
 
-	switch(event_code) {
+	switch (event) {
 	case IPA_RM_RESOURCE_GRANTED:
 		/* Differed RM Granted */
 		hdd_ipa_uc_enable_pipes(hdd_ipa);
@@ -877,37 +898,28 @@ hdd_ipa_uc_rm_notify_handler(void *context, void *rxpkt, u_int16_t staid)
 	default:
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 			"%s, invalid event code %d",
-			__func__, event_code);
+			__func__, event);
 		break;
 	}
 }
 
-static void
-hdd_ipa_uc_rm_notify_defer(void *hdd_ipa, enum ipa_rm_event event)
+static void hdd_ipa_uc_rm_notify_defer(struct work_struct *work)
 {
-	pVosSchedContext sched_ctx = get_vos_sched_ctxt();
-	struct VosTlshimPkt *pkt;
-	v_U8_t *event_code_pkt;
+	enum ipa_rm_event event;
+	struct uc_rm_work_struct *uc_rm_work = container_of(work,
+			struct uc_rm_work_struct, work);
+	struct hdd_ipa_priv *hdd_ipa = container_of(uc_rm_work,
+			struct hdd_ipa_priv, uc_rm_work);
 
-	if (unlikely(!sched_ctx))
-		return;
-
-	pkt = vos_alloc_tlshim_pkt(sched_ctx);
-	if (!pkt) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s, alloc fail", __func__);
-		return;
-	}
-
-	event_code_pkt = vos_mem_malloc(sizeof(unsigned int));
-	vos_mem_copy(event_code_pkt, &event, 1);
+	vos_ssr_protect(__func__);
+	event = uc_rm_work->event;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
 		"%s, posted event %d", __func__, event);
-	pkt->callback = (vos_tlshim_cb)hdd_ipa_uc_rm_notify_handler;
-	pkt->context = hdd_ipa;
-	pkt->Rxpkt = (void *) event_code_pkt;
-	pkt->staId = 0;
-	vos_indicate_rxpkt(sched_ctx, pkt);
+
+	hdd_ipa_uc_rm_notify_handler(hdd_ipa, event);
+	vos_ssr_unprotect(__func__);
+
+	return;
 }
 
 static int hdd_ipa_uc_proc_pending_event(struct hdd_ipa_priv *hdd_ipa)
@@ -939,13 +951,14 @@ static int hdd_ipa_uc_proc_pending_event(struct hdd_ipa_priv *hdd_ipa)
 	return 0;
 }
 
-static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
+static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 {
-	struct op_msg_type *msg;
+	struct op_msg_type *msg = op_msg;
 	struct ipa_uc_fw_stats *uc_fw_stat;
 	struct IpaHwStatsWDIInfoData_t ipa_stat;
 	struct hdd_ipa_priv *hdd_ipa;
 	hdd_context_t *hdd_ctx;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
 	if (!op_msg || !usr_ctxt) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -953,15 +966,26 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 		return;
 	}
 
-	msg = (struct op_msg_type *)op_msg;
 	if (HDD_IPA_UC_OPCODE_MAX <= msg->op_code) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 			"%s, INVALID OPCODE %d", __func__, msg->op_code);
+		adf_os_mem_free(op_msg);
 		return;
 	}
 
 	hdd_ctx = (hdd_context_t *)usr_ctxt;
 	hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
+
+	/*
+	 * When SSR is going on or driver is unloading, just return.
+	 */
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "HDD context is not valid");
+		adf_os_mem_free(op_msg);
+		return;
+	}
+
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"%s, OPCODE %s", __func__, op_string[msg->op_code]);
 
@@ -1196,6 +1220,63 @@ static void hdd_ipa_uc_op_cb(v_U8_t *op_msg, void *usr_ctxt)
 	adf_os_mem_free(op_msg);
 }
 
+static void hdd_ipa_uc_fw_op_event_handler(struct work_struct *work)
+{
+	struct op_msg_type *msg;
+	struct uc_op_work_struct *uc_op_work = container_of(work,
+			struct uc_op_work_struct, work);
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+
+	vos_ssr_protect(__func__);
+
+	msg = uc_op_work->msg;
+	uc_op_work->msg = NULL;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			"%s, posted msg %d", __func__, msg->op_code);
+
+	hdd_ipa_uc_op_cb(msg, hdd_ipa->hdd_ctx);
+
+	vos_ssr_unprotect(__func__);
+
+	return;
+}
+
+static void hdd_ipa_uc_op_event_handler(v_U8_t *op_msg, void *hdd_ctx)
+{
+	struct hdd_ipa_priv *hdd_ipa;
+	struct op_msg_type *msg;
+	struct uc_op_work_struct *uc_op_work;
+
+	if (NULL == hdd_ctx) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid HDD context");
+		goto end;
+	}
+
+	msg = (struct op_msg_type *)op_msg;
+	hdd_ipa = ((hdd_context_t *)hdd_ctx)->hdd_ipa;
+
+	if (unlikely(!hdd_ipa))
+		goto end;
+
+	if (HDD_IPA_UC_OPCODE_MAX <= msg->op_code) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "%s: Invalid OP Code (%d)",
+				__func__, msg->op_code);
+		goto end;
+	}
+
+	uc_op_work = &hdd_ipa->uc_op_work[msg->op_code];
+	if (uc_op_work->msg)
+		/* When the same uC OPCODE is already pended, just return */
+		goto end;
+
+	uc_op_work->msg = msg;
+	schedule_work(&uc_op_work->work);
+	return;
+
+end:
+	adf_os_mem_free(op_msg);
+}
+
 static uint8_t hdd_ipa_uc_get_iface_id(struct hdd_ipa_priv *hdd_ipa,
 	uint8_t session_id)
 {
@@ -1216,6 +1297,7 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	struct ipa_wdi_in_params  pipe_in;
 	struct ipa_wdi_out_params pipe_out;
 	struct hdd_ipa_priv *ipa_ctxt = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
+	uint8_t i;
 
 	vos_mem_zero(&pipe_in, sizeof(struct ipa_wdi_in_params));
 	vos_mem_zero(&pipe_out, sizeof(struct ipa_wdi_out_params));
@@ -1302,7 +1384,13 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 			(v_U32_t)hdd_ctx->rx_ready_doorbell_paddr);
 
 	WLANTL_RegisterOPCbFnc((pVosContextType)(hdd_ctx->pvosContext),
-			hdd_ipa_uc_op_cb, (void *)hdd_ctx);
+			hdd_ipa_uc_op_event_handler, (void *)hdd_ctx);
+
+	for (i = 0; i < HDD_IPA_UC_OPCODE_MAX; i++) {
+		cnss_init_work(&ipa_ctxt->uc_op_work[i].work,
+			hdd_ipa_uc_fw_op_event_handler);
+		ipa_ctxt->uc_op_work[i].msg = NULL;
+	}
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -1625,10 +1713,11 @@ static void hdd_ipa_rm_notify(void *user_data, enum ipa_rm_event event,
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			/* RM Notification comes with ISR context
-			 * it should be serialized into differed thread to avoid
+			 * it should be serialized into work queue to avoid
 			 * ISR sleep problem */
 			if (hdd_ipa->resource_loading) {
-				hdd_ipa_uc_rm_notify_defer(hdd_ipa, event);
+				hdd_ipa->uc_rm_work.event = event;
+				schedule_work(&hdd_ipa->uc_rm_work.work);
 			} else {
 				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 					"UCResource Grntd with invalid status");
@@ -1765,6 +1854,9 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 #else
 	INIT_WORK(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
 #endif
+#ifdef IPA_UC_OFFLOAD
+	cnss_init_work(&hdd_ipa->uc_rm_work.work, hdd_ipa_uc_rm_notify_defer);
+#endif
 	memset(&create_params, 0, sizeof(create_params));
 	create_params.name = IPA_RM_RESOURCE_WLAN_PROD;
 	create_params.reg_params.user_data = hdd_ipa;
@@ -1852,6 +1944,9 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 
 #ifdef WLAN_OPEN_SOURCE
 	cancel_work_sync(&hdd_ipa->rm_work);
+#ifdef IPA_UC_OFFLOAD
+	cancel_work_sync(&hdd_ipa->uc_rm_work.work);
+#endif
 #endif
 	adf_os_spinlock_destroy(&hdd_ipa->rm_lock);
 
@@ -2277,6 +2372,7 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct hdd_ipa_iface_context *iface_context;
 	adf_nbuf_t skb;
 	struct hdd_ipa_pm_tx_cb *pm_tx_cb = NULL;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
 	if (evt != IPA_RECEIVE) {
 		skb = (adf_nbuf_t) data;
@@ -2295,8 +2391,9 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	 * During SSR, there is no use in queueing the packets as STA has to
 	 * connect back any way
 	 */
-	if (hdd_ipa->hdd_ctx->isLogpInProgress ||
-			hdd_ipa->hdd_ctx->isUnloadInProgress) {
+	status = wlan_hdd_validate_context(hdd_ipa->hdd_ctx);
+	if (0 != status) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "HDD context is not valid");
 		ipa_free_skb(ipa_tx_desc);
 		iface_context->stats.num_tx_drop++;
 		return;
@@ -3090,8 +3187,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 					"%s: handle 1st con ret %d",
 					msg_ex->name, ret);
+			} else {
+				goto end;
 			}
-                }
+		}
 #endif
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
 		if (ret)
@@ -3214,7 +3313,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 					HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 						"%s: handle 1st con ret %d",
 						msg_ex->name, ret);
-				}
+				} else {
+					vos_lock_release(&hdd_ipa->event_lock);
+					return ret;
+                                }
 			}
 			vos_lock_release(&hdd_ipa->event_lock);
 		}
@@ -3770,6 +3872,12 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 		ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
 		vos_lock_destroy(&hdd_ipa->event_lock);
 		vos_list_destroy(&hdd_ipa->pending_event);
+#ifdef WLAN_OPEN_SOURCE
+		for (i = 0; i < HDD_IPA_UC_OPCODE_MAX; i++) {
+			cancel_work_sync(&hdd_ipa->uc_op_work[i].work);
+			hdd_ipa->uc_op_work[i].msg = NULL;
+		}
+#endif
 	} else
 #endif /* IPA_UC_OFFLOAD */
 	{

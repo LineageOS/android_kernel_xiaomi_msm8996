@@ -655,15 +655,13 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
     }
     swapBitField16(caps, ( tANI_U16* )&tdlsDisRsp.Capabilities );
 
-    /* populate supported rate IE */
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                     &tdlsDisRsp.SuppRates, psessionEntry );
+    /* populate supported rate and ext supported rate IE */
+    if (eSIR_FAILURE == populate_dot11f_rates_tdls(pMac, &tdlsDisRsp.SuppRates,
+                               &tdlsDisRsp.ExtSuppRates))
+        limLog(pMac, LOGE, FL("could not populate supported data rates"));
 
-    /* Populate extended supported rates */
-    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &tdlsDisRsp.ExtSuppRates, psessionEntry );
 
-    /* Populate extended supported rates */
+    /* Populate extended capability IE */
     PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsDisRsp.ExtCap);
 
     wlan_cfgGetInt(pMac,WNI_CFG_DOT11_MODE,&selfDot11Mode);
@@ -909,13 +907,9 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
     }
     swapBitField16(caps, ( tANI_U16* )&tdlsSetupReq.Capabilities );
 
-    /* populate supported rate IE */
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                              &tdlsSetupReq.SuppRates, psessionEntry );
-
-    /* Populate extended supported rates */
-    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &tdlsSetupReq.ExtSuppRates, psessionEntry );
+    /* populate supported rate and ext supported rate IE */
+    populate_dot11f_rates_tdls(pMac, &tdlsSetupReq.SuppRates,
+                               &tdlsSetupReq.ExtSuppRates);
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupReq.ExtCap);
@@ -1390,13 +1384,9 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
     }
     swapBitField16(caps, ( tANI_U16* )&tdlsSetupRsp.Capabilities );
 
-    /* ipopulate supported rate IE */
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &tdlsSetupRsp.SuppRates, psessionEntry );
-
-    /* Populate extended supported rates */
-    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &tdlsSetupRsp.ExtSuppRates, psessionEntry );
+    /* populate supported rate and ext supported rate IE */
+    populate_dot11f_rates_tdls(pMac, &tdlsSetupRsp.SuppRates,
+                               &tdlsSetupRsp.ExtSuppRates);
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupRsp.ExtCap);
