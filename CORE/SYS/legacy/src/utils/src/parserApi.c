@@ -2152,14 +2152,13 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     {
         pProbeResp->channelSwitchPresent = 1;
         vos_mem_copy( &pProbeResp->channelSwitchIE, &pr->ChanSwitchAnn,
-                       sizeof(tDot11fIEExtChanSwitchAnn) );
+                       sizeof(pProbeResp->channelSwitchIE) );
     }
 
-       if ( pr->ExtChanSwitchAnn.present )
-    {
-        pProbeResp->extChannelSwitchPresent = 1;
-        vos_mem_copy ( &pProbeResp->extChannelSwitchIE, &pr->ExtChanSwitchAnn,
-                       sizeof(tDot11fIEExtChanSwitchAnn) );
+    if (pr->sec_chan_offset_ele.present) {
+        pProbeResp->sec_chan_offset_present = 1;
+        vos_mem_copy(&pProbeResp->sec_chan_offset, &pr->sec_chan_offset_ele,
+                       sizeof(pProbeResp->sec_chan_offset));
     }
 
     if( pr->TPCReport.present)
@@ -3341,14 +3340,13 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     {
         pBeaconStruct->channelSwitchPresent = 1;
         vos_mem_copy( &pBeaconStruct->channelSwitchIE, &pBies->ChanSwitchAnn,
-                      sizeof(tDot11fIEChanSwitchAnn));
+                      sizeof(pBeaconStruct->channelSwitchIE));
     }
 
-    if ( pBies->ExtChanSwitchAnn.present)
-    {
-        pBeaconStruct->extChannelSwitchPresent= 1;
-        vos_mem_copy( &pBeaconStruct->extChannelSwitchIE, &pBies->ExtChanSwitchAnn,
-                      sizeof(tDot11fIEExtChanSwitchAnn));
+    if (pBies->sec_chan_offset_ele.present) {
+        pBeaconStruct->sec_chan_offset_present = 1;
+        vos_mem_copy(&pBeaconStruct->sec_chan_offset, &pBies->sec_chan_offset_ele,
+                      sizeof(pBeaconStruct->sec_chan_offset));
     }
 
     if ( pBies->Quiet.present )
@@ -3594,14 +3592,13 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     {
         pBeaconStruct->channelSwitchPresent = 1;
         vos_mem_copy( &pBeaconStruct->channelSwitchIE, &pBeacon->ChanSwitchAnn,
-                                                       sizeof(tDot11fIEChanSwitchAnn) );
+                                     sizeof(pBeaconStruct->channelSwitchIE) );
     }
 
-    if ( pBeacon->ExtChanSwitchAnn.present )
-    {
-        pBeaconStruct->extChannelSwitchPresent = 1;
-        vos_mem_copy( &pBeaconStruct->extChannelSwitchIE, &pBeacon->ExtChanSwitchAnn,
-                                                       sizeof(tDot11fIEExtChanSwitchAnn) );
+    if (pBeacon->sec_chan_offset_ele.present) {
+        pBeaconStruct->sec_chan_offset_present = 1;
+        vos_mem_copy(&pBeaconStruct->sec_chan_offset, &pBeacon->sec_chan_offset_ele,
+                                     sizeof(pBeaconStruct->sec_chan_offset));
     }
 
     if( pBeacon->TPCReport.present)

@@ -110,7 +110,7 @@ typedef struct sSirProbeRespBeacon
     tDot11fIEPowerConstraints localPowerConstraint;
     tDot11fIETPCReport        tpcReport;
     tDot11fIEChanSwitchAnn    channelSwitchIE;
-    tDot11fIEExtChanSwitchAnn extChannelSwitchIE;
+    tDot11fIEsec_chan_offset_ele sec_chan_offset;
     tSirMacAddr               bssid;
     tDot11fIEQuiet            quietIE;
     tDot11fIEHTCaps           HTCaps;
@@ -141,7 +141,7 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   rsnPresent;
     tANI_U8                   erpPresent;
     tANI_U8                   channelSwitchPresent;
-    tANI_U8                   extChannelSwitchPresent;
+    uint8_t                   sec_chan_offset_present;
     tANI_U8                   quietIEPresent;
     tANI_U8                   tpcReportPresent;
     tANI_U8                   powerConstraintPresent;
