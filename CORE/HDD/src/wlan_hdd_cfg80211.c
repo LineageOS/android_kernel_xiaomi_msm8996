@@ -7238,17 +7238,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
 #endif
 
+    if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
+        (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
+        pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
+        if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
+                                    (pHddCtx->isVHT80Allowed == false)) {
+            pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+        }
+    }
+
+    pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
+
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
-        if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
-            (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
-            pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
-            if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
-                                        (pHddCtx->isVHT80Allowed == false)) {
-                pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
-            }
-        }
-        pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
         sme_SelectCBMode(hHal,
             pConfig->SapHw_mode,
             pConfig->channel,
