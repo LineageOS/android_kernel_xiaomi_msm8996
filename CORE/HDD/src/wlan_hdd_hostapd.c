@@ -2470,6 +2470,7 @@ static iw_softap_setparam(struct net_device *dev,
                          __func__, set_value);
                  ret = hdd_wlan_go_set_mcc_p2p_quota(pHostapdAdapter,
                                                      set_value);
+                 break;
              }
 
          case QCASAP_TXRX_FWSTATS_RESET:

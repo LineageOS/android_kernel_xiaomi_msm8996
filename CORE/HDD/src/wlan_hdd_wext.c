@@ -6250,6 +6250,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
                 set_value);
             ret = hdd_wlan_set_mcc_p2p_quota(pAdapter, set_value);
+            break;
         }
        case WE_SET_DEBUG_LOG:
        {
