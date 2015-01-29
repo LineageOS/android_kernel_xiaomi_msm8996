@@ -2744,7 +2744,7 @@ static int wma_extscan_table_usage_event_handler (void *handle,
 		return -EINVAL;
 	}
 	tbl_usg_ind->requestId = event->request_id;
-	tbl_usg_ind->numResultsAvailable = event->maximum_entries;
+	tbl_usg_ind->numResultsAvailable = event->entries_in_use;
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,

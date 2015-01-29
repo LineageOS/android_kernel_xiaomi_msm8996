@@ -111,6 +111,7 @@ static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
             break;
     case AR6320_REV3_VERSION:
     case AR6320_REV3_2_VERSION:
+    case QCA9377_REV1_1_VERSION:
             memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0, sizeof(*pfw_files));
             break;
     default:
@@ -1570,6 +1571,7 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 		break;
 	case AR6320_REV3_VERSION:
 	case AR6320_REV3_2_VERSION:
+	case QCA9377_REV1_1_VERSION:
 		cmnos_core_clk_div_addr = AR6320V3_CORE_CLK_DIV_ADDR;
 		cmnos_cpu_pll_init_done_addr = AR6320V3_CPU_PLL_INIT_DONE_ADDR;
 		cmnos_cpu_speed_addr = AR6320V3_CPU_SPEED_ADDR;
@@ -2002,6 +2004,7 @@ int ol_download_firmware(struct ol_softc *scn)
 			case AR6320_REV2_VERSION:
 			case AR6320_REV3_VERSION:
 			case AR6320_REV3_2_VERSION:
+			case QCA9377_REV1_1_VERSION:
 			case AR6320_REV4_VERSION:
 			case AR6320_DEV_VERSION:
 			/* for SDIO, debug uart output gpio is 29, otherwise it is 6. */
@@ -2141,6 +2144,7 @@ static int ol_ath_get_reg_table(A_UINT32 target_version,
 		break;
 	case AR6320_REV3_VERSION:
 	case AR6320_REV3_2_VERSION:
+	case QCA9377_REV1_1_VERSION:
 		reg_table->section = (tgt_reg_section *)&ar6320v3_reg_table[0];
 		reg_table->section_size = sizeof(ar6320v3_reg_table)
 					/sizeof(ar6320v3_reg_table[0]);

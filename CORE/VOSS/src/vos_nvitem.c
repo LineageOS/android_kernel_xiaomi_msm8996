@@ -57,6 +57,11 @@
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#define IEEE80211_CHAN_PASSIVE_SCAN IEEE80211_CHAN_NO_IR
+#define IEEE80211_CHAN_NO_IBSS IEEE80211_CHAN_NO_IR
+#endif
+
 static v_REGDOMAIN_t cur_reg_domain = REGDOMAIN_COUNT;
 static char linux_reg_cc[2] = {0, 0};
 static v_REGDOMAIN_t temp_reg_domain = REGDOMAIN_COUNT;

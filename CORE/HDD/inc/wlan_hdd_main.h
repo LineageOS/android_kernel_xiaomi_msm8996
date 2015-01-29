@@ -1609,7 +1609,6 @@ VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
 
 void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy);
 VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter);
-void wlan_hdd_cfg80211_update_reg_info(struct wiphy *wiphy);
 VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx);
 void hdd_set_pwrparams(hdd_context_t *pHddCtx);
