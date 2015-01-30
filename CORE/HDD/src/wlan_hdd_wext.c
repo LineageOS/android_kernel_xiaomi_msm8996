@@ -551,6 +551,16 @@ static const struct qwlan_hw qwlan_hw_list[] = {
         .id = AR6320_REV3_2_VERSION,
         .subid = 0xA,
         .name = "QCA6174_REV3_2",
+    },
+    {
+        .id = AR6320_REV3_VERSION,
+        .subid = 0x0,
+        .name = "QCA9377_REV1",
+    },
+    {
+        .id = QCA9377_REV1_1_VERSION,
+        .subid = 0x1,
+        .name = "QCA9377_REV1_1",
     }
 };
 
@@ -6240,6 +6250,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             hddLog(LOG1, "iwpriv cmd to set MCC quota with val %dms",
                 set_value);
             ret = hdd_wlan_set_mcc_p2p_quota(pAdapter, set_value);
+            break;
         }
        case WE_SET_DEBUG_LOG:
        {

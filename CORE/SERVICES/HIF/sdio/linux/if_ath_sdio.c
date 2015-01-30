@@ -44,6 +44,7 @@
 #include "if_ath_sdio.h"
 #include "vos_api.h"
 #include "vos_sched.h"
+#include "regtable.h"
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -425,9 +426,20 @@ void hif_reset_soc(void *ol_sc)
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 {
-    *version = ((struct ol_softc *)ol_sc)->target_version;
-    /* Chip revision should be supported, set to 0 for now */
-    *revision = 0;
+    struct ol_softc *ol_sc_local = (struct ol_softc *)ol_sc;
+    A_UINT32 chip_id = 0;
+    A_STATUS rv;
+    rv = HIFDiagReadAccess(ol_sc_local->hif_hdl,
+             (CHIP_ID_ADDRESS | RTC_SOC_BASE_ADDRESS), &chip_id);
+    if (rv != A_OK) {
+        pr_warn("%s[%d]: get chip id fail\n", __func__, __LINE__);
+        ol_sc_local->target_revision = -1;
+    } else {
+        ol_sc_local->target_revision =
+            CHIP_ID_REVISION_GET(chip_id);
+    }
+    *version = ol_sc_local->target_version;
+    *revision = ol_sc_local->target_revision;
 }
 
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
