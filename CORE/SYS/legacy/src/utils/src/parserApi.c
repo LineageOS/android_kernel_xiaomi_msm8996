@@ -274,68 +274,16 @@ PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 void
-populate_dot11f_avoid_channels_ie(tpAniSirGlobal mac_ctx,
+populate_dot11f_avoid_channel_ie(tpAniSirGlobal mac_ctx,
                               tDot11fIEQComVendorIE *dot11f,
                               tpPESession pe_session)
 {
-	dot11f->present = pe_session->sap_advertise_avoid_ch_ie;
-
-	if (!dot11f->present)
+	if (!pe_session->sap_advertise_avoid_ch_ie)
 		return;
 
+	dot11f->present = true;
 	dot11f->type = QCOM_VENDOR_IE_MCC_AVOID_CH;
-
-	if(pe_session->htSecondaryChannelOffset ==
-		PHY_DOUBLE_CHANNEL_LOW_PRIMARY &&
-		pe_session->htSupportedChannelWidthSet == 1) {
-		dot11f->num_data = 2;
-		dot11f->data[0] = pe_session->currentOperChannel;
-		dot11f->data[1] = dot11f->data[0] + 4;
-	}
-
-	if(pe_session->htSecondaryChannelOffset ==
-		PHY_DOUBLE_CHANNEL_HIGH_PRIMARY &&
-		pe_session->htSupportedChannelWidthSet == 1) {
-		dot11f->num_data = 2;
-		dot11f->data[0] = pe_session->currentOperChannel;
-		dot11f->data[1] = dot11f->data[0] - 4;
-	}
-
-	if(pe_session->htSecondaryChannelOffset ==
-		PHY_SINGLE_CHANNEL_CENTERED ||
-		pe_session->htSupportedChannelWidthSet == 0) {
-		dot11f->num_data = 1;
-		dot11f->data[0] = pe_session->currentOperChannel;
-	}
-
-	if (pe_session->vhtCapability) {
-		if (pe_session->vhtTxChannelWidthSet ==
-			WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ) {
-			dot11f->num_data = 4;
-			if(pe_session->currentOperChannel >= 36 &&
-				pe_session->currentOperChannel <= 48) {
-				dot11f->data[0] = 36;
-			} else if(pe_session->currentOperChannel >= 52
-				&& pe_session->currentOperChannel <= 64) {
-				dot11f->data[0] = 52;
-			} else if(pe_session->currentOperChannel >= 100 &&
-				pe_session->currentOperChannel <= 112) {
-				dot11f->data[0] = 100;
-			} else if(pe_session->currentOperChannel >= 116 &&
-				pe_session->currentOperChannel <= 128) {
-				dot11f->data[0] = 116;
-			} else if(pe_session->currentOperChannel >= 132 &&
-				pe_session->currentOperChannel <= 144) {
-				dot11f->data[0] = 132;
-			} else if(pe_session->currentOperChannel >= 149 &&
-				pe_session->currentOperChannel <= 161) {
-				dot11f->data[0] = 149;
-			}
-			dot11f->data[1] = dot11f->data[0] + 4;
-			dot11f->data[2] = dot11f->data[0] + 8;
-			dot11f->data[3] = dot11f->data[0] + 12;
-		}
-	}
+	dot11f->channel = pe_session->currentOperChannel;
 }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
@@ -3828,13 +3776,10 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     if(pBeacon->QComVendorIE.present) {
         pBeaconStruct->AvoidChannelIE.present =
             pBeacon->QComVendorIE.present;
-        pBeaconStruct->AvoidChannelIE.num_data =
-            pBeacon->QComVendorIE.num_data;
         pBeaconStruct->AvoidChannelIE.type =
             pBeacon->QComVendorIE.type;
-        vos_mem_copy(pBeaconStruct->AvoidChannelIE.data,
-                     pBeacon->QComVendorIE.data,
-                     sizeof(pBeacon->QComVendorIE.data));
+        pBeaconStruct->AvoidChannelIE.channel =
+            pBeacon->QComVendorIE.channel;
     }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
