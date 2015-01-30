@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -180,6 +180,8 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         {
             *localConstraint = pBeaconStruct->eseTxPwr.power_limit;
         }
+        psessionEntry->is_ese_version_ie_present =
+                              pBeaconStruct->is_ese_ver_ie_present;
 #endif
         if (pBeaconStruct->powerConstraintPresent)
         {

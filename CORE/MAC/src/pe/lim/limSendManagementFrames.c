@@ -2327,9 +2327,14 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #endif
 
 #ifdef FEATURE_WLAN_ESE
-    /* ESE Version IE will be included in association request
-       when ESE is enabled on DUT through ini */
-    if (psessionEntry->pLimJoinReq->isESEFeatureIniEnabled)
+    /*
+     * ESE Version IE will be included in association request
+     * when ESE is enabled on DUT through ini and it is also
+     * advertised by the peer AP to which we are trying to
+     * associate to.
+     */
+    if (psessionEntry->is_ese_version_ie_present &&
+         pMac->roam.configParam.isEseIniFeatureEnabled)
     {
         PopulateDot11fESEVersion(&pFrm->ESEVersion);
     }
@@ -2676,9 +2681,14 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
 
 #ifdef FEATURE_WLAN_ESE
-    /* ESE Version IE will be included in reassociation request
-       when ESE is enabled on DUT through ini */
-    if (psessionEntry->pLimReAssocReq->isESEFeatureIniEnabled)
+    /*
+     * ESE Version IE will be included in association request
+     * when ESE is enabled on DUT through ini and it is also
+     * advertised by the peer AP to which we are trying to
+     * associate to.
+     */
+    if (psessionEntry->is_ese_version_ie_present &&
+         pMac->roam.configParam.isEseIniFeatureEnabled)
     {
         PopulateDot11fESEVersion(&frm.ESEVersion);
     }

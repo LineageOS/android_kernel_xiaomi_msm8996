@@ -488,6 +488,9 @@ typedef struct sPESession           // Added to Support BT-AMP
     bool sap_advertise_avoid_ch_ie;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     uint8_t sap_dot11mc;
+#ifdef FEATURE_WLAN_ESE
+    uint8_t is_ese_version_ie_present;
+#endif
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------
