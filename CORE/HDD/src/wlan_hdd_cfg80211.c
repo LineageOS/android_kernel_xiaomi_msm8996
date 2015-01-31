@@ -7238,17 +7238,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
 #endif
 
+    if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
+        (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
+        pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
+        if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
+                                    (pHddCtx->isVHT80Allowed == false)) {
+            pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+        }
+    }
+
+    pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
+
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
-        if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
-            (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
-            pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
-            if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
-                                        (pHddCtx->isVHT80Allowed == false)) {
-                pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
-            }
-        }
-        pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
         sme_SelectCBMode(hHal,
             pConfig->SapHw_mode,
             pConfig->channel,
@@ -8743,6 +8745,7 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     hdd_hostapd_state_t *pHostapdState;
     eHalStatus halStatus;
     hdd_context_t *pHddCtx;
+    hdd_ap_ctx_t *ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
 
     ENTER();
 
@@ -8941,20 +8944,15 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             }
         }
 
-        /* Saving WEP keys */
-        else if( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY  == setKey.encType ||
-                eCSR_ENCRYPT_TYPE_WEP104_STATICKEY  == setKey.encType  )
-        {
-            //Save the wep key in ap context. Issue setkey after the BSS is started.
-            hdd_ap_ctx_t *pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-            vos_mem_copy(&pAPCtx->wepKey[key_index], &setKey, sizeof(tCsrRoamSetKey));
-        }
+        if (pairwise ||
+                eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == setKey.encType ||
+                eCSR_ENCRYPT_TYPE_WEP104_STATICKEY  == setKey.encType)
+            vos_mem_copy(&ap_ctx->wepKey[key_index], &setKey,
+                                               sizeof(tCsrRoamSetKey));
         else
-        {
-            //Save the key in ap context. Issue setkey after the BSS is started.
-            hdd_ap_ctx_t *pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-            vos_mem_copy(&pAPCtx->groupKey, &setKey, sizeof(tCsrRoamSetKey));
-        }
+            vos_mem_copy(&ap_ctx->groupKey, &setKey,
+                                               sizeof(tCsrRoamSetKey));
+
     }
     else if ( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
               (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) )

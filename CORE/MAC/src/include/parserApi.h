@@ -166,6 +166,9 @@ typedef struct sSirProbeRespBeacon
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
     tDot11fIEQComVendorIE   AvoidChannelIE;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+#ifdef FEATURE_WLAN_ESE
+    uint8_t    is_ese_ver_ie_present;
+#endif
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
 // probe Request structure

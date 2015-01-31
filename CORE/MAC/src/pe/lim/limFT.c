@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -941,6 +941,8 @@ void limFillFTSession(tpAniSirGlobal pMac,
 #endif
 #ifdef FEATURE_WLAN_ESE
     pftSessionEntry->isESEconnection = psessionEntry->isESEconnection;
+    pftSessionEntry->is_ese_version_ie_present =
+                                 pBeaconStruct->is_ese_ver_ie_present;
 #endif
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_ESE || defined(FEATURE_WLAN_LFR)
     pftSessionEntry->isFastTransitionEnabled =

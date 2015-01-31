@@ -6814,7 +6814,7 @@ static bool wma_is_mcc_24G(WMA_HANDLE handle)
 	}
 	for (i = 0; i < wma_handle->max_bssid; i++) {
 		if (wma_handle->interfaces[i].handle &&
-				wma_handle->interfaces[i].conn_state) {
+				wma_handle->interfaces[i].vdev_up) {
 			if ((prev_chan != 0 &&
 				prev_chan != wma_handle->interfaces[i].mhz) &&
 				(wma_handle->interfaces[i].mhz <=

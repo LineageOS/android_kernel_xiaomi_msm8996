@@ -2307,6 +2307,9 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
 #endif
 
 #if defined FEATURE_WLAN_ESE
+    if (pr->ESEVersion.present) {
+        pProbeResp->is_ese_ver_ie_present = 1;
+    }
     if (pr->QBSSLoad.present)
     {
         vos_mem_copy(&pProbeResp->QBSSLoad, &pr->QBSSLoad, sizeof(tDot11fIEQBSSLoad));
@@ -3357,6 +3360,9 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
                       sizeof(tDot11fIEPowerConstraints));
     }
 #ifdef FEATURE_WLAN_ESE
+    if (pBies->ESEVersion.present) {
+         pBeaconStruct->is_ese_ver_ie_present = 1;
+    }
     if(pBies->ESETxmitPower.present)
     {
         pBeaconStruct->eseTxPwr.present = 1;
@@ -3759,6 +3765,9 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
 #endif
 
 #ifdef FEATURE_WLAN_ESE
+    if (pBeacon->ESEVersion.present) {
+         pBeaconStruct->is_ese_ver_ie_present = 1;
+    }
     if (pBeacon->ESETxmitPower.present)
     {
         /* copy ESE TPC info element */
