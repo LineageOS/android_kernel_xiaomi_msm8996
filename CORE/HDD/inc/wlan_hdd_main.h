@@ -513,8 +513,14 @@ typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 #endif /* FEATURE_WLAN_WAPI */
 
 typedef struct beacon_data_s {
-    u8 *head, *tail;
-    int head_len, tail_len;
+    u8 *head;
+    u8 *tail;
+    u8 *proberesp_ies;
+    u8 *assocresp_ies;
+    int head_len;
+    int tail_len;
+    int proberesp_ies_len;
+    int assocresp_ies_len;
     int dtim_period;
 } beacon_data_t;
 
@@ -1762,4 +1768,5 @@ int hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
 					uint32_t set_value);
 int hdd_set_mas(hdd_adapter_t *hostapd_adapter, uint8_t filter_type);
 uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

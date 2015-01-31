@@ -1129,4 +1129,6 @@ static inline int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr,
 int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
                                    hdd_adapter_t *pAdapter,
                                    u32 no_dfs_flag);
+
+int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter);
 #endif
