@@ -13223,6 +13223,8 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
         smsLog(pMac, LOGE, "Invalid Channel Change Resp Message: %d\n",
               status);
     }
+    vos_mem_free(pRoamInfo.channelChangeRespEvent);
+
     return status;
 }
 
