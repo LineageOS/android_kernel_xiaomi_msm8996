@@ -465,6 +465,11 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
 
 void smePushCommand( tpAniSirGlobal pMac, tSmeCmd *pCmd, tANI_BOOLEAN fHighPriority )
 {
+    if (!SME_IS_START(pMac)) {
+        smsLog(pMac, LOGE, FL("Sme in stop state"));
+        return;
+    }
+
     if ( fHighPriority )
     {
         csrLLInsertHead( &pMac->sme.smeCmdPendingList, &pCmd->Link, LL_ACCESS_LOCK );

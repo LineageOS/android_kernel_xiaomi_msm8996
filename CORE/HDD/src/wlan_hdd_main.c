@@ -9369,6 +9369,11 @@ VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
+   if (0 != wlan_hdd_validate_context(pHddCtx)) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return VOS_STATUS_E_PERM;
+   }
+
    if(pHddCtx->cfg_ini->fIsBmpsEnabled)
    {
       sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
