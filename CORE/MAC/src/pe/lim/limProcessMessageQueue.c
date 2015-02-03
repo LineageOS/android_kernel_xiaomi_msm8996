@@ -1804,16 +1804,27 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                  session_entry->sap_advertise_avoid_ch_ie =
                                             (tANI_U8)limMsg->bodyval;
 
-                 beacon_params.bssIdx = session_entry->bssIdx;
-                 schSetFixedBeaconFields(pMac, session_entry);
-
-                 beacon_params.beaconInterval =
-                 session_entry->beaconParams.beaconInterval;
-                 beacon_params.paramChangeBitmap |=
-                                         PARAM_BCN_INTERVAL_CHANGED;
-                 limSendBeaconParams(pMac,
-                                     &beacon_params,
-                                     session_entry);
+                 /*
+                  * if message comes for DFS channel, no need to update as:
+                  * 1) We wont have MCC with DFS channels. so no need to add
+                  *    Q2Q IE
+                  * 2) We cannot end up in DFS channel SCC by channel switch
+                  *    from non DFS MCC scenario, so no need to remove Q2Q IE
+                  * 3) There is however a case where device start MCC and then
+                  *    user modifies hostapd.conf and does SAP restart, in such
+                  *    a case, beacon params will be reset and thus will not
+                  *    contain Q2Q IE, by default.
+                  */
+                 if (vos_nv_getChannelEnabledState(
+                         session_entry->currentOperChannel) != NV_CHANNEL_DFS) {
+                     beacon_params.bssIdx = session_entry->bssIdx;
+                     beacon_params.beaconInterval =
+                         session_entry->beaconParams.beaconInterval;
+                     beacon_params.paramChangeBitmap |=
+                         PARAM_BCN_INTERVAL_CHANGED;
+                     schSetFixedBeaconFields(pMac, session_entry);
+                     limSendBeaconParams(pMac, &beacon_params, session_entry);
+                 }
              }
              vos_mem_free(limMsg->bodyptr);
              break;

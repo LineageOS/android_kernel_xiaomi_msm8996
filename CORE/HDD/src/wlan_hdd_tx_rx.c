@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1020,8 +1020,8 @@ void hdd_tx_timeout(struct net_device *dev)
    struct netdev_queue *txq;
    int i = 0;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-      "%s: Transmission timeout occurred", __func__);
+   hddLog(LOGE, FL("Transmission timeout occurred jiffies %lu trans_start %lu"),
+          jiffies, dev->trans_start);
    //Getting here implies we disabled the TX queues for too long. Queues are
    //disabled either because of disassociation or low resource scenarios. In
    //case of disassociation it is ok to ignore this. But if associated, we have
@@ -1044,8 +1044,8 @@ void hdd_tx_timeout(struct net_device *dev)
    for (i = 0; i < 8; i++)
    {
       txq = netdev_get_tx_queue(dev, i);
-      VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
-                "Queue%d status: %d", i, netif_tx_queue_stopped(txq));
+      hddLog(LOG1, FL("Queue%d status: %d txq->trans_start %lu"),
+             i, netif_tx_queue_stopped(txq), txq->trans_start);
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
