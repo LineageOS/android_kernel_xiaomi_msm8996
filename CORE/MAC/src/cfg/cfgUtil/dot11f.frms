@@ -2036,7 +2036,7 @@ IE Vendor3IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x16, 0x32)
 IE QComVendorIE (EID_VENDOR_SPECIFIC) OUI (0x00, 0xA0, 0xC6)
 {
     type,      1;
-    data[0..255];
+    channel,   1;
 }
 
 IE ESETrafStrmMet (EID_VENDOR_SPECIFIC) OUI (0x00, 0x40, 0x96, 0x07)

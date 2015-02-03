@@ -262,8 +262,7 @@ sap_check_n_add_channel(ptSapContext sap_ctx,
  * Detection of Q2Q IE indicates presence of another MDM device with its AP
  * operating in MCC mode. This function parses the scan results and processes
  * the Q2Q IE if found. It then extracts the channels and populates them in
- * sap_ctx sturct. It also increases the weights of those channels so that
- * ACS logic will avoid those channels in its selection algorigthm.
+ * sap_ctx struct.
  *
  * Return: void
  */
@@ -273,10 +272,8 @@ sap_process_avoid_ie(tHalHandle hal,
 		     ptSapContext sap_ctx,
 		     tScanResultHandle scan_result)
 {
-	uint8_t i;
 	uint32_t total_ie_len = 0;
 	uint8_t *temp_ptr = NULL;
-	uint8_t num_channels;
 	struct sAvoidChannelIE *avoid_ch_ie;
 	tCsrScanResultInfo *node = NULL;
 	tpAniSirGlobal mac_ctx = NULL;
@@ -296,21 +293,17 @@ sap_process_avoid_ie(tHalHandle hal,
 
 		if (temp_ptr) {
 			avoid_ch_ie = (struct sAvoidChannelIE*)temp_ptr;
-			num_channels = avoid_ch_ie->length -
-					SIR_MAC_QCOM_VENDOR_SIZE - 1;
 			if (avoid_ch_ie->type != QCOM_VENDOR_IE_MCC_AVOID_CH) {
 				continue;
 			}
 			sap_ctx->sap_detected_avoid_ch_ie.present = 1;
-			for (i = 0; i < num_channels; i++) {
-				VOS_TRACE( VOS_MODULE_ID_SAP,
-				VOS_TRACE_LEVEL_DEBUG,
-				"Q2Q IE - avoid ch %d",
-				avoid_ch_ie->channels[i]);
-				/* add this channel to to_avoid channel list */
-				sap_check_n_add_channel(sap_ctx,
-						avoid_ch_ie->channels[i]);
-			}
+			VOS_TRACE(VOS_MODULE_ID_SAP,
+				  VOS_TRACE_LEVEL_DEBUG,
+				  "Q2Q IE - avoid ch %d",
+				  avoid_ch_ie->channel);
+			/* add this channel to to_avoid channel list */
+			sap_check_n_add_channel(sap_ctx,
+						avoid_ch_ie->channel);
 		} /* if (temp_ptr) */
 		node = sme_ScanResultGetNext(hal, scan_result);
 	}

@@ -283,6 +283,7 @@ void hdd_flush_ibss_tx_queues( hdd_adapter_t *pAdapter, v_U8_t STAId)
           size <= HDD_TX_QUEUE_LOW_WATER_MARK &&
           netif_tx_queue_stopped(txq) )
       {
+         hddLog(LOG1, FL("Enabling queue for queue %d"), i);
          netif_tx_start_queue(txq);
          pAdapter->isTxSuspended[i] = VOS_FALSE;
       }
@@ -578,6 +579,7 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       {
          /* We want to process one packet at a time, so lets disable all TX queues
            * and re-enable the queues once we get TX feedback for this packet */
+         hddLog(LOG1, FL("Disabling queues"));
          netif_tx_stop_all_queues(pAdapter->dev);
          pAdapter->isTxSuspended[ac] = VOS_TRUE;
          spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
@@ -648,6 +650,7 @@ void hdd_tx_resume_timer_expired_handler(void *adapter_context)
       return;
    }
 
+   hddLog(LOG1, FL("Enabling queues"));
    netif_tx_wake_all_queues(pAdapter->dev);
    pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
    pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
@@ -691,6 +694,7 @@ void hdd_tx_resume_cb(void *adapter_context,
                   FL("flow control, tx queues un-pause avoided as we are in REASSOCIATING state"));
            return;
        }
+       hddLog(LOG1, FL("Enabling queues"));
        netif_tx_wake_all_queues(pAdapter->dev);
        pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
        pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
@@ -699,6 +703,7 @@ void hdd_tx_resume_cb(void *adapter_context,
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     else if (VOS_FALSE == tx_resume)  /* Pause TX  */
     {
+        hddLog(LOG1, FL("Disabling queues"));
         netif_tx_stop_all_queues(pAdapter->dev);
         if (VOS_TIMER_STATE_STOPPED ==
             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
@@ -833,6 +838,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                                 pAdapter->sessionId,
                                 pAdapter->tx_flow_low_watermark,
                                 pAdapter->tx_flow_high_watermark_offset)) {
+       hddLog(LOG1, FL("Disabling queues"));
        netif_tx_stop_all_queues(dev);
        if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
              (VOS_TIMER_STATE_STOPPED ==
@@ -1597,6 +1603,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
          {
             /* During TX open duration, TX frame count is larger than threshold
              * Block TX during Sleep time */
+            hddLog(LOG1, FL("Disabling queues"));
             netif_tx_stop_all_queues(pAdapter->dev);
             pHddCtx->tmInfo.qBlocked = VOS_TRUE;
             pHddCtx->tmInfo.lastblockTs = timestamp;

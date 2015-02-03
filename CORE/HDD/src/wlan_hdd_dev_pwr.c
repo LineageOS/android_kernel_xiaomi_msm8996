@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -133,6 +133,7 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
 
    /* Resume TX flow */
 
+   hddLog(LOG1, FL("Enabling queues"));
    netif_tx_wake_all_queues(staAdapater->dev);
    pHddCtx->tmInfo.qBlocked = VOS_FALSE;
    mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);

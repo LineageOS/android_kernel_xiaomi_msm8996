@@ -552,6 +552,7 @@ WLANSAP_RoamCallback
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     tpAniSirGlobal pMac = NULL;
+    tANI_U8 dfs_beacon_start_req = 0;
 
     if (NULL == hHal)
     {
@@ -986,14 +987,13 @@ WLANSAP_RoamCallback
             break;
 
         case eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND:
-            if (sapContext->csrRoamProfile.disableDFSChSwitch)
-            {
-                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                          "sapdfs: DFS channel switch disabled");
-                break;
-            }
             if (eSAP_DFS_CAC_WAIT == sapContext->sapsMachine)
             {
+                if (sapContext->csrRoamProfile.disableDFSChSwitch) {
+                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          "sapdfs: DFS channel switch disabled");
+                    break;
+                }
                 if (VOS_TRUE == pMac->sap.SapDfsInfo.sap_radar_found_status)
                 {
                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
@@ -1050,6 +1050,22 @@ WLANSAP_RoamCallback
         case eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_FAILURE:
         {
             eCsrPhyMode phyMode = sapContext->csrRoamProfile.phyMode;
+
+            if (sapContext->csrRoamProfile.disableDFSChSwitch) {
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                          "sapdfs: DFS channel switch disabled");
+                /*
+                 * Send a beacon start request to PE. CSA IE required
+                 * flag from beacon template will be cleared by now.
+                 * A new beacon template with no CSA IE will be sent
+                 * to firmware.
+                 */
+                dfs_beacon_start_req = VOS_TRUE;
+                halStatus = sme_RoamStartBeaconReq( hHal,
+                                                    sapContext->bssid,
+                                                    dfs_beacon_start_req);
+                break;
+            }
 
             /* Both success and failure cases are handled intentionally handled
              * together. Irrespective of whether the channel switch IE was

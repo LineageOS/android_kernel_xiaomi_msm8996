@@ -354,7 +354,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
     /* populate proprietary IE for MDM device operating in AP-MCC */
-    populate_dot11f_avoid_channels_ie(pMac, &pBcn2->QComVendorIE, psessionEntry);
+    populate_dot11f_avoid_channel_ie(pMac, &pBcn2->QComVendorIE, psessionEntry);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
     if (psessionEntry->dot11mode != WNI_CFG_DOT11_MODE_11B)

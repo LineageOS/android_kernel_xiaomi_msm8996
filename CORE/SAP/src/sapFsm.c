@@ -4469,6 +4469,13 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
         return 0;
     }
 
+    /*
+     * SAP needs to generate Channel Switch IE
+     * if the radar is found in the STARTED state
+     */
+    if (eSAP_STARTED == sapContext->sapsMachine)
+        pMac->sap.SapDfsInfo.csaIERequired = VOS_TRUE;
+
     if (sapContext->csrRoamProfile.disableDFSChSwitch)
     {
        return sapContext->channel;
@@ -4476,12 +4483,6 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
 
     /* set the Radar Found flag in SapDfsInfo */
     pMac->sap.SapDfsInfo.sap_radar_found_status = VOS_TRUE;
-
-    /* We need to generate Channel Switch IE if the radar is found in the
-     * operating state
-     */
-    if (eSAP_STARTED == sapContext->sapsMachine)
-        pMac->sap.SapDfsInfo.csaIERequired = VOS_TRUE;
 
     sapGet5GHzChannelList(sapContext);
 
