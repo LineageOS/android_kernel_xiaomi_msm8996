@@ -3146,6 +3146,7 @@ static void hdd_ocb_set_sched_callback(sir_ocb_set_sched_response_t *resp)
         resp->status = -1;
     } else {
         netif_carrier_on(adapter->dev);
+        hddLog(LOG1, FL("Enabling queues"));
         netif_tx_start_all_queues(adapter->dev);
     }
 
@@ -3237,6 +3238,7 @@ static int iw_set_dot11p_channel_sched(struct net_device *dev,
     sched_req->resp = sched_resp;
     sched_req->callback = hdd_ocb_set_sched_callback;
 
+    hddLog(LOG1, FL("Disabling queues"));
     netif_tx_disable(adapter->dev);
     netif_carrier_off(adapter->dev);
 
@@ -4560,6 +4562,7 @@ static int iw_set_mlme(struct net_device *dev,
                 /* Resetting authKeyMgmt */
                 (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->authKeyMgmt = 0;
 
+                hddLog(LOG1, FL("Disabling queues"));
                 netif_tx_disable(dev);
                 netif_carrier_off(dev);
                 pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;

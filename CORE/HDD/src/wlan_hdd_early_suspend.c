@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -314,6 +314,7 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    unsigned long rc;
 
    //Stop the Interface TX queue.
+   hddLog(LOG1, FL("Disabling queues"));
    netif_tx_disable(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
 
@@ -1407,6 +1408,7 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended)
        if (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
        {
           //stop the interface before putting the chip to standby
+          hddLog(LOG1, FL("Disabling queues"));
           netif_tx_disable(pAdapter->dev);
           netif_carrier_off(pAdapter->dev);
        }
@@ -1420,6 +1422,7 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended)
 
 send_suspend_ind:
        //stop all TX queues before suspend
+       hddLog(LOG1, FL("Disabling queues"));
        netif_tx_disable(pAdapter->dev);
 
       /* Keep this suspend indication at the end (before processing next adaptor)
@@ -1665,6 +1668,7 @@ void hdd_resume_wlan(void)
 
 send_resume_ind:
       //wake the tx queues
+      hddLog(LOG1, FL("Enabling queues"));
       netif_tx_wake_all_queues(pAdapter->dev);
 
       hdd_conf_resume_ind(pAdapter);

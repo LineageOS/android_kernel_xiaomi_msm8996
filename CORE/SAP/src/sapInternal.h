@@ -160,12 +160,6 @@ typedef struct sSapAcsChannelInfo {
 }tSapAcsChannelInfo;
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-/* max MDM devices in vicinity supported for this feature */
-#define SAP_MCC_CH_AVOIDANCE_MAX_DEV          1
-/* max SAP per MDM devices */
-#define SAP_MCC_CH_AVOIDANCE_MAX_SAP_PER_DEV  2
-/* max channels a SAP will take, 4 right now for 80 MHz */
-#define SAP_MCC_CH_AVOIDANCE_MAX_CH_PER_AP    4
 /*
  * In a setup having two MDM both operating in AP+AP MCC scenario
  * if both the AP decides to use same or close channel set, CTS to
@@ -179,9 +173,7 @@ typedef struct sSapAcsChannelInfo {
  */
 struct sap_avoid_channels_info {
 	bool       present;
-	uint8_t    channels[SAP_MCC_CH_AVOIDANCE_MAX_DEV *
-			SAP_MCC_CH_AVOIDANCE_MAX_SAP_PER_DEV *
-			SAP_MCC_CH_AVOIDANCE_MAX_CH_PER_AP];
+	uint8_t    channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
 };
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 

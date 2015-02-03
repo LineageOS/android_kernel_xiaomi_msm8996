@@ -67,7 +67,7 @@ struct sAvoidChannelIE {
 	uint8_t oui[3];
 	/* following must be 0x01 */
 	uint8_t type;
-	uint8_t channels[1];
+	uint8_t channel;
 };
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
@@ -599,9 +599,9 @@ PopulateDot11fChanSwitchWrapper(tpAniSirGlobal             pMac,
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 /* Populate a tDot11fIEQComVendorIE */
 void
-populate_dot11f_avoid_channels_ie(tpAniSirGlobal mac_ctx,
-				  tDot11fIEQComVendorIE *dot11f,
-				  tpPESession session_entry);
+populate_dot11f_avoid_channel_ie(tpAniSirGlobal mac_ctx,
+				 tDot11fIEQComVendorIE *dot11f,
+				 tpPESession session_entry);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 /// Populate a tDot11fIECountry

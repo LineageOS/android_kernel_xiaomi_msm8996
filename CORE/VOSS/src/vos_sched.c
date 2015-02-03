@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -414,6 +414,13 @@ TX_THREAD_START_FAILURE:
 MC_THREAD_START_FAILURE:
   //De-initialize all the message queues
   vos_sched_deinit_mqs(pSchedContext);
+
+
+#ifdef QCA_CONFIG_SMP
+  unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
+  vos_free_tlshim_pkt_freeq(gpVosSchedContext);
+#endif
+
   return VOS_STATUS_E_RESOURCES;
 
 } /* vos_sched_open() */

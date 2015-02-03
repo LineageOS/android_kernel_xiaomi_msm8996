@@ -8408,6 +8408,7 @@ int hdd_stop (struct net_device *dev)
    /* Disable TX on the interface, after this hard_start_xmit() will not
     * be called on that interface
     */
+   hddLog(LOG1, FL("Disabling queues"));
    netif_tx_disable(pAdapter->dev);
 
    /* Mark the interface status as "down" for outside world */
@@ -9369,6 +9370,11 @@ VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
+   if (0 != wlan_hdd_validate_context(pHddCtx)) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return VOS_STATUS_E_PERM;
+   }
+
    if(pHddCtx->cfg_ini->fIsBmpsEnabled)
    {
       sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
@@ -9643,6 +9649,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #endif
 #endif
          //Stop the Interface TX queue.
+         hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
          //netif_tx_disable(pWlanDev);
          netif_carrier_off(pAdapter->dev);
@@ -9706,6 +9713,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             goto err_free_netdev;
          }
 
+         hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
 
@@ -9783,6 +9791,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          hdd_init_tx_rx( pAdapter );
 
          //Stop the Interface TX queue.
+         hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
       }
@@ -10156,6 +10165,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
    ENTER();
 
+   hddLog(LOG1, FL("Disabling queues"));
    netif_tx_disable(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
    switch(pAdapter->device_mode)
@@ -10450,6 +10460,7 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
+      hddLog(LOG1, FL("Disabling queues"));
       netif_tx_disable(pAdapter->dev);
       netif_carrier_off(pAdapter->dev);
 
