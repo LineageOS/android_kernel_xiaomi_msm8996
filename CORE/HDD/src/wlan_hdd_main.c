@@ -14151,6 +14151,8 @@ void hdd_ch_avoid_cb
    static int          restart_sap_in_progress = 0;
    tHddAvoidFreqList   hdd_avoid_freq_list;
    tANI_U32            i;
+   hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+   VOS_STATUS status;
 
    /* Basic sanity */
    if (!hdd_context || !indi_param)
@@ -14263,45 +14265,56 @@ void hdd_ch_avoid_cb
    }
 #endif
 
-   /* If auto channel select is enabled
-    * preferred channel is in safe channel,
-    * re-start softap interface with safe channel.
-    * no overlap with preferred channel and safe channel
-    * do not re-start softap interface
-    * stay current operating channel. */
-   if ((hdd_ctxt->cfg_ini->apAutoChannelSelection) &&
-       (!hdd_find_prefd_safe_chnl(hdd_ctxt))) {
-      return;
-   }
+    if (0 == hdd_ctxt->unsafe_channel_count)
+       return;
 
-   if (hdd_ctxt->unsafe_channel_count) {
-       hostapd_adapter = hdd_get_adapter(hdd_ctxt, WLAN_HDD_SOFTAP);
-       if (hostapd_adapter)
-       {
-          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s : Current operation channel %d, sessionCtx.ap.sapConfig.channel %d",
-                    __func__,
-                    hostapd_adapter->sessionCtx.ap.operatingChannel,
-					hostapd_adapter->sessionCtx.ap.sapConfig.channel);
-          for (channel_loop = 0; channel_loop < hdd_ctxt->unsafe_channel_count; channel_loop++)
-          {
-              if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
-                  hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
-                  (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true) &&
-                  !restart_sap_in_progress)
-              {
-                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                            "%s: Restarting SAP", __func__);
-                  wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
-                  restart_sap_in_progress = 1;
-                  /* current operating channel is un-safe channel, restart driver */
-                  hdd_hostapd_stop(hostapd_adapter->dev);
-                  break;
-              }
-          }
-       }
-   }
-   return;
+    status = hdd_get_front_adapter(hdd_ctxt, &adapter_node);
+    while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+        hostapd_adapter = adapter_node->pAdapter;
+
+        if( hostapd_adapter && (WLAN_HDD_SOFTAP ==
+                               hostapd_adapter->device_mode)) {
+            /* If auto channel select is enabled
+             * preferred channel is in safe channel,
+             * re-start softap interface with safe channel.
+             * no overlap with preferred channel and safe channel
+             * do not re-start softap interface
+             * stay current operating channel.
+             */
+             if ((hostapd_adapter->sessionCtx.ap.sapConfig.
+                                            apAutoChannelSelection) &&
+                 (!hdd_find_prefd_safe_chnl(hdd_ctxt)))
+                 return;
+
+            hddLog(LOG1, FL("Current operation channel %d"),
+                      hostapd_adapter->sessionCtx.ap.operatingChannel);
+
+            hddLog(LOG1, FL("sessionCtx.ap.sapConfig.channel %d"),
+                      hostapd_adapter->sessionCtx.ap.sapConfig.channel);
+
+            for (channel_loop = 0;
+                 channel_loop < hdd_ctxt->unsafe_channel_count;
+                 channel_loop++) {
+                if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
+                     hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
+                     (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true)
+                      && !restart_sap_in_progress) {
+
+                    hddLog(LOG1, FL("Restarting SAP"));
+                    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
+                    restart_sap_in_progress = 1;
+                    /* current operating channel is un-safe channel,
+                     * restart driver
+                     */
+                    hdd_hostapd_stop(hostapd_adapter->dev);
+                    return;
+                }
+            }
+        }
+        status = hdd_get_next_adapter (hdd_ctxt, adapter_node, &next);
+        adapter_node = next;
+     }
+     return;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 

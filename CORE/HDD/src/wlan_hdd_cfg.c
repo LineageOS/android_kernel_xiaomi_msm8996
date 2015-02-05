@@ -731,16 +731,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
 
-   REG_VARIABLE( CFG_SAP_AUTO_CHANNEL_SELECTION_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, apAutoChannelSelection,
-#ifndef WLAN_FEATURE_MBSSID
-                 VAR_FLAGS_DYNAMIC_CFG |
-#endif
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_MIN,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_MAX ),
-
    REG_VARIABLE( CFG_ENABLE_LTE_COEX , WLAN_PARAM_Integer,
                  hdd_config_t, enableLTECoex,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3605,15 +3595,6 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
                  CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
 
-   REG_VARIABLE( CFG_SAP_AUTO_CHANNEL_SELECTION_NAME , WLAN_PARAM_Integer,
-                 mbssid_sap_dyn_ini_config_t, apAutoChannelSelection,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
-                 | VAR_FLAGS_DYNAMIC_CFG,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_MIN,
-                 CFG_SAP_AUTO_CHANNEL_SELECTION_MAX ),
-
-
    REG_VARIABLE_STRING( CFG_ONLY_ALLOWED_CHANNELS, WLAN_PARAM_String,
                         mbssid_sap_dyn_ini_config_t, acsAllowedChnls,
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_DYNAMIC_CFG,
@@ -3884,7 +3865,6 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]", pHddCtx->cfg_ini->nEnableListenMode);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]",pHddCtx->cfg_ini->apProtection);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]",pHddCtx->cfg_ini->apOBSSProtEnabled);
-  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApAutoChannelSelection] value = [%u]",pHddCtx->cfg_ini->apAutoChannelSelection);
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
   VOS_TRACE (VOS_MODULE_ID_HDD,
              VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4785,7 +4765,6 @@ v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter)
    sap_ini_cfg->apStartChannelNum = iniConfig->apStartChannelNum;
    sap_ini_cfg->apEndChannelNum = iniConfig->apEndChannelNum;
    sap_ini_cfg->apOperatingBand = iniConfig->apOperatingBand;
-   sap_ini_cfg->apAutoChannelSelection = iniConfig->apAutoChannelSelection;
    sap_ini_cfg->acsScanBandPreference = iniConfig->acsScanBandPreference;
    sap_ini_cfg->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
    vos_mem_copy(sap_ini_cfg->acsAllowedChnls, iniConfig->acsAllowedChnls,

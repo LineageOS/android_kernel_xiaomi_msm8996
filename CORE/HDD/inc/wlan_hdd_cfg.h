@@ -1450,24 +1450,6 @@ typedef enum
 #define HDD_MULTICAST_FILTER_LIST                              0x04
 #define HDD_MULTICAST_FILTER_LIST_CLEAR                        0x05
 
-/*
- *
- * SAP Auto Channel Enable
- * Notes:
- * Auto Channel selection for SAP configuration
- * 0 - Disable Auto Channel
- * 1 - Enable auto channel selection in auto mode.
- *     When enable auto channel, channel provided by Supplicant will be ignored.
- *
- * Default configuration: Auto channel is disabled.
- */
-
-#define CFG_SAP_AUTO_CHANNEL_SELECTION_NAME       "gApAutoChannelSelection"
-
-#define CFG_SAP_AUTO_CHANNEL_SELECTION_MIN        ( 0 )
-#define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
-#define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
-
 #define CFG_ONLY_ALLOWED_CHANNELS                   "gACSAllowedChannels"
 #define CFG_ONLY_ALLOWED_CHANNELS_DEFAULT           ""
 
@@ -2839,7 +2821,6 @@ typedef struct
    v_U8_t        apStartChannelNum;
    v_U8_t        apEndChannelNum;
    v_U8_t        apOperatingBand;
-   v_BOOL_t      apAutoChannelSelection;
    v_BOOL_t      apForce11ACFor11n;
    v_U8_t        enableLTECoex;
    v_U32_t       apKeepAlivePeriod;
@@ -3377,7 +3358,6 @@ typedef struct mbssid_sap_dyn_ini_config {
    v_U8_t        apStartChannelNum;
    v_U8_t        apEndChannelNum;
    v_U8_t        apOperatingBand;
-   v_BOOL_t      apAutoChannelSelection;
    char          acsAllowedChnls[CFG_MAX_STR_LEN];
    v_U8_t        acsScanBandPreference;
    v_U16_t       acsBandSwitchThreshold;
