@@ -121,6 +121,40 @@ static int hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info);
 //#define BMI_RSP_POLLING
 #define BMI_RSP_TO_MILLISEC  1000
 
+/**
+ * enum ce_host_index: index into the host copy engine attribute
+ * table
+ * @CE_HOST_H2T_HTC_CTRL: host->target HTC control and raw streams
+ * @CE_HOST_T2H_HTT_HTC_CTRL: target->host HTT + HTC control
+ * @CE_HOST_T2H_WMI: target->host WMI
+ * @CE_HOST_H2T_WMI: host->target WMI
+ * @CE_HOST_H2T_HTT: host->target HTT
+ * @CE_HOST_IPA2T_HTC_CTRL: ipa_uc->target HTC control
+ * @CE_HOST_TARGET_HIF: Target autonomous HIF_memcpy
+ * @CE_HOST_DIAG: ce_diag, the Diagnostic Window
+ * Note: This enum is closely tied to the host_CE_config_wlan
+ * table below. Please update the enum if the table is updated
+ */
+
+enum ce_host_index {
+	CE_HOST_H2T_HTC_CTRL = 0,
+	CE_HOST_T2H_HTT_HTC_CTRL = 1,
+	CE_HOST_T2H_WMI = 2,
+	CE_HOST_H2T_WMI = 3,
+	CE_HOST_H2T_HTT = 4,
+#ifndef IPA_UC_OFFLOAD
+	CE_HOST_UNUSED = 5,
+#else
+	CE_HOST_IPA2T_HTC_CTRL = 5,
+#endif
+	CE_HOST_TARGET_HIF = 6,
+	CE_HOST_DIAG = 7,
+};
+
+/**
+ * Note: This structure is closely tied to the enum above.
+ * Please update the enum if the table is updated
+ */
 static struct CE_attr host_CE_config_wlan[] =
 {
         { /* CE0 */ CE_ATTR_FLAGS, 0, 16, 256, 0, NULL, }, /* host->target HTC control and raw streams */
@@ -522,7 +556,14 @@ HIF_PCI_CE_recv_data(struct CE_handle *copyeng, void *ce_context, void *transfer
         }
         compl_queue_tail = compl_state;
 
-        adf_nbuf_unmap_single(scn->adf_dev, (adf_nbuf_t)transfer_context, ADF_OS_DMA_FROM_DEVICE);
+#ifdef HTC_CRP_DEBUG
+        if (CE_HOST_T2H_WMI == pipe_info->pipe_num)
+            adf_nbuf_unmap_single(scn->adf_dev, (adf_nbuf_t)transfer_context,
+                                  ADF_OS_DMA_BIDIRECTIONAL);
+        else
+#endif
+        adf_nbuf_unmap_single(scn->adf_dev, (adf_nbuf_t)transfer_context,
+                               ADF_OS_DMA_FROM_DEVICE);
 
         /*
          * EV #112693 - [Peregrine][ES1][WB342][Win8x86][Performance] BSoD_0x133 occurred in VHT80 UDP_DL
@@ -1451,10 +1492,27 @@ hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info)
             return 1;
         }
 
+#ifdef HTC_CRP_DEBUG
+#define HTC_DEBUG_PATTERN 0xF005BA11
+        if (CE_HOST_T2H_WMI == pipe_info->pipe_num) {
+            uint32_t * data;
+            data = (uint32_t *)adf_nbuf_data(nbuf);
+            *data = HTC_DEBUG_PATTERN;
+            *(data + 1) = HTC_DEBUG_PATTERN;
+            *(data + 2) = HTC_DEBUG_PATTERN;
+            *(data + 3) = HTC_DEBUG_PATTERN;
+        }
+#endif
         /*
          * adf_nbuf_peek_header(nbuf, &data, &unused);
          * CE_data = dma_map_single(dev, data, buf_sz, DMA_FROM_DEVICE);
          */
+#ifdef HTC_CRP_DEBUG
+        if (CE_HOST_T2H_WMI == pipe_info->pipe_num)
+            ret = adf_nbuf_map_single(scn->adf_dev, nbuf,
+                                      ADF_OS_DMA_BIDIRECTIONAL);
+        else
+#endif
         ret = adf_nbuf_map_single(scn->adf_dev, nbuf, ADF_OS_DMA_FROM_DEVICE);
 
         if (unlikely(ret != A_STATUS_OK)) {
@@ -1621,7 +1679,14 @@ hif_recv_buffer_cleanup_on_pipe(struct HIF_CE_pipe_info *pipe_info)
     }
     while (CE_revoke_recv_next(ce_hdl, &per_CE_context, (void **)&netbuf, &CE_data) == A_OK)
     {
+#ifdef HTC_CRP_DEBUG
+        if (CE_HOST_T2H_WMI == pipe_info->pipe_num)
+            adf_nbuf_unmap_single(scn->adf_dev, netbuf,
+                                  ADF_OS_DMA_BIDIRECTIONAL);
+        else
+#endif
         adf_nbuf_unmap_single(scn->adf_dev, netbuf, ADF_OS_DMA_FROM_DEVICE);
+
         adf_nbuf_free(netbuf);
     }
 }

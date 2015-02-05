@@ -6776,8 +6776,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     //pConfig->channel = pCommitConfig->channel;
 
     /*Protection parameter to enable or disable*/
-    pConfig->protEnabled =
-           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtEnabled;
+    pConfig->protEnabled = iniConfig->apProtEnabled;
 
     pConfig->dtim_period = pBeacon->dtim_period;
 
@@ -7147,8 +7146,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if ((0 == pHddCtx->cfg_ini->conc_custom_rule1) ||
         (pHddCtx->cfg_ini->conc_custom_rule1 &&
          WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode))
-    pConfig->cc_switch_mode =
-           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->WlanMccToSccSwitchMode;
+    pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
 #endif
 
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(BLACKLIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,
@@ -7210,13 +7208,16 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     /* Overwrite the hostapd setting for HW mode only for 11ac.
      * This is valid only if mode is set to 11n in hostapd and either AUTO or 11ac in .ini .
      * Otherwise, leave whatever is set in hostapd (a OR b OR g OR n mode) */
-    if( (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n) &&
+    if ((pConfig->SapHw_mode == eCSR_DOT11_MODE_11n) &&
          sapForce11ACFor11n &&
-        (( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO ) ||
-         ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ) ||
-         ( (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY )) )
-    {
-        if ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
+       ((iniConfig->dot11Mode == eHDD_DOT11_MODE_AUTO) ||
+        (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac) ||
+        (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY))) {
+        uint32_t operating_band = 0;
+
+        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,
+                     &operating_band);
+        if (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
             pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac_ONLY;
         else
             pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
@@ -7229,17 +7230,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
          THEN
              Fallback to 11N mode
         */
-        if ((((AUTO_CHANNEL_SELECT != pConfig->channel && pConfig->channel <= 14)
-                || (AUTO_CHANNEL_SELECT == pConfig->channel &&
+        if ((((AUTO_CHANNEL_SELECT != pConfig->channel &&
+               pConfig->channel <= 14) ||
+              (AUTO_CHANNEL_SELECT == pConfig->channel &&
 #ifdef WLAN_FEATURE_MBSSID
                 pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand
 #else
-                iniConfig->apOperatingBand
+                operating_band
 #endif
                 == eSAP_RF_SUBBAND_2_4_GHZ)) &&
-            (WLAN_HDD_GET_CTX(pHostapdAdapter)->cfg_ini->enableVhtFor24GHzBand
-                                                                 == FALSE)))
-        {
+            (iniConfig->enableVhtFor24GHzBand == FALSE))) {
+            hddLog(LOGW,
+                   FL("Setting hwmode to 11n, operating band(%d), Channel(%d)"),
+                   operating_band, pConfig->channel);
             pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
         }
     }
@@ -7264,8 +7267,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             &pConfig->vht_channel_width);
     }
     // ht_capab is not what the name conveys,this is used for protection bitmap
-    pConfig->ht_capab =
-                 (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
+    pConfig->ht_capab = iniConfig->apProtection;
 
     if ( 0 != wlan_hdd_cfg80211_update_apies(pHostapdAdapter, params) )
     {
@@ -7275,15 +7277,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
 
     //Uapsd Enabled Bit
-    pConfig->UapsdEnable =
-          (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apUapsdEnabled;
+    pConfig->UapsdEnable = iniConfig->apUapsdEnabled;
     //Enable OBSS protection
-    pConfig->obssProtEnabled =
-           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apOBSSProtEnabled;
+    pConfig->obssProtEnabled = iniConfig->apOBSSProtEnabled;
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP) {
-        pConfig->sap_dot11mc =
-                (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->sap_dot11mc;
+        pConfig->sap_dot11mc = iniConfig->sap_dot11mc;
     } else { /* for P2P-Go case */
         pConfig->sap_dot11mc = 1;
     }
