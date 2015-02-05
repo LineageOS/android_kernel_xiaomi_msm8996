@@ -253,6 +253,66 @@ sap_check_n_add_channel(ptSapContext sap_ctx,
 }
 
 /**
+ * sap_check_n_add_overlapped_chnls() - checks & add overlapped channels
+ *                                      to primary channel in 2.4Ghz band.
+ * @sap_ctx:           sap context.
+ * @primary_chnl:      primary channel to be avoided.
+ *
+ * sap_ctx contains sap_avoid_ch_info struct containing the list of channels on
+ * which MDM device's AP with MCC was detected. This function will add channels
+ * to that list after checking for duplicates.
+ *
+ * Return: true: if channel was added or already present
+ *   else false: if channel list was already full.
+ */
+static bool
+sap_check_n_add_overlapped_chnls(ptSapContext sap_ctx,
+                                 uint8_t primary_channel)
+{
+	uint8_t i = 0, j = 0, upper_chnl = 0, lower_chnl = 0;
+	struct sap_avoid_channels_info *ie_info =
+		&sap_ctx->sap_detected_avoid_ch_ie;
+	/*
+	 * if primary channel less than channel 1 or out of 2g band then
+	 * no further process is required. return true in this case.
+	 */
+	if (primary_channel < CHANNEL_1 || primary_channel > CHANNEL_14)
+		return true;
+
+	/* lower channel is one channel right before primary channel */
+	lower_chnl = primary_channel - 1;
+	/* upper channel is one channel right after primary channel */
+	upper_chnl = primary_channel + 1;
+
+	/* lower channel needs to be non-zero, zero is not valid channel */
+	if (lower_chnl > (CHANNEL_1 - 1)) {
+		for (i = 0; i < sizeof(ie_info->channels); i++) {
+			if (ie_info->channels[i] == lower_chnl)
+				break;
+			if (ie_info->channels[i] == 0) {
+				ie_info->channels[i] = lower_chnl;
+				break;
+			}
+		}
+	}
+	/* upper channel needs to be atleast last channel in 2.4Ghz band */
+	if (upper_chnl < (CHANNEL_14 + 1)) {
+		for (j = 0; j < sizeof(ie_info->channels); j++) {
+			if (ie_info->channels[j] == upper_chnl)
+				break;
+			if (ie_info->channels[j] == 0) {
+				ie_info->channels[j] = upper_chnl;
+				break;
+			}
+		}
+	}
+	if (i == sizeof(ie_info->channels) || j == sizeof(ie_info->channels))
+		return false;
+	else
+		return true;
+}
+
+/**
  * sap_process_avoid_ie() - processes the detected Q2Q IE
  * context's avoid_channels_info struct
  * @hal:                hal handle
@@ -303,6 +363,8 @@ sap_process_avoid_ie(tHalHandle hal,
 				  avoid_ch_ie->channel);
 			/* add this channel to to_avoid channel list */
 			sap_check_n_add_channel(sap_ctx,
+						avoid_ch_ie->channel);
+			sap_check_n_add_overlapped_chnls(sap_ctx,
 						avoid_ch_ie->channel);
 		} /* if (temp_ptr) */
 		node = sme_ScanResultGetNext(hal, scan_result);
@@ -789,12 +851,14 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
         chSafe = VOS_TRUE;
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-        if(sap_check_in_avoid_ch_list(pSapCtx, *pChans)) {
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                      "Ch %d used by another MDM device with SAP in MCC",
-                      *pChans);
-            chSafe = VOS_FALSE;
-            continue;
+        if(pMac->sap.sap_channel_avoidance) {
+            if(sap_check_in_avoid_ch_list(pSapCtx, *pChans)) {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "Ch %d used by another MDM device with SAP in MCC",
+                          *pChans);
+                chSafe = VOS_FALSE;
+                continue;
+            }
         }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 

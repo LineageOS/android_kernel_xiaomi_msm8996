@@ -1008,6 +1008,15 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 	struct wma_target_req *req_msg;
 	struct wma_txrx_node *iface;
 	wmi_vdev_start_response_event_fixed_param *resp_event;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
+						VOS_MODULE_ID_PE,
+						wma->vos_context);
+	if (NULL == mac_ctx) {
+		WMA_LOGE("%s: Failed to get mac_ctx", __func__);
+		return -EINVAL;
+	}
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 	resp_event = (wmi_vdev_start_response_event_fixed_param *)buf;
 
@@ -1047,7 +1056,8 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 	vos_timer_stop(&req_msg->event_timeout);
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-	if (resp_event->status == VOS_STATUS_SUCCESS)
+	if (resp_event->status == VOS_STATUS_SUCCESS
+	    && mac_ctx->sap.sap_channel_avoidance)
 		wma_find_mcc_ap(wma, resp_event->vdev_id, true);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
@@ -1768,6 +1778,15 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 	u_int8_t peer_id;
 	struct wma_txrx_node *iface;
 	int32_t status = 0;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
+						VOS_MODULE_ID_PE,
+						wma->vos_context);
+	if (NULL == mac_ctx) {
+		WMA_LOGE("%s: Failed to get mac_ctx", __func__);
+		return -EINVAL;
+	}
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 	WMA_LOGI("%s: Enter", __func__);
 	if (!buf) {
@@ -1845,7 +1864,10 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 		} else {
 			wma->interfaces[resp_event->vdev_id].vdev_up = FALSE;
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-			wma_find_mcc_ap(wma, resp_event->vdev_id, false);
+			if (mac_ctx->sap.sap_channel_avoidance)
+				wma_find_mcc_ap(wma,
+						resp_event->vdev_id,
+						false);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 		}
 		ol_txrx_vdev_flush(iface->handle);
@@ -9851,6 +9873,9 @@ void wma_vdev_resp_timer(void *data)
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
 	struct wma_target_req *msg;
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+	tpAniSirGlobal mac_ctx = NULL;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 
@@ -9866,6 +9891,16 @@ void wma_vdev_resp_timer(void *data)
 		vos_timer_stop(&tgt_req->event_timeout);
 		goto free_tgt_req;
 	}
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+	mac_ctx = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+						  wma->vos_context);
+	if (NULL == mac_ctx) {
+		WMA_LOGE("%s: Failed to get mac_ctx", __func__);
+		vos_timer_stop(&tgt_req->event_timeout);
+		goto free_tgt_req;
+	}
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 	WMA_LOGA("%s: request %d is timed out for vdev_id - %d", __func__,
 						tgt_req->msg_type, tgt_req->vdev_id);
@@ -9930,7 +9965,8 @@ void wma_vdev_resp_timer(void *data)
 		} else {
 			wma->interfaces[tgt_req->vdev_id].vdev_up = FALSE;
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-			wma_find_mcc_ap(wma, tgt_req->vdev_id, false);
+			if (mac_ctx->sap.sap_channel_avoidance)
+				wma_find_mcc_ap(wma, tgt_req->vdev_id, false);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 		}
 		ol_txrx_vdev_flush(iface->handle);

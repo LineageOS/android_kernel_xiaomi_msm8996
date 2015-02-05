@@ -637,6 +637,9 @@ typedef struct tagSapStruct
     //Information Required for SAP DFS Master mode
     tSapDfsInfo         SapDfsInfo;
     tSapCtxList         sapCtxList[SAP_MAX_NUM_SESSION];
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    bool sap_channel_avoidance;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 } tSapStruct, *tpSapStruct;
 
 #define WPS_PROBRSP_VER_PRESENT                          0x00000001

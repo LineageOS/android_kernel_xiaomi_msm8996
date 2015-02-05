@@ -3565,6 +3565,17 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_STA_MIRACAST_MCC_REST_TIME_VAL_DEFAULT,
                  CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MIN,
                  CFG_STA_MIRACAST_MCC_REST_TIME_VAL_MAX ),
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+   REG_VARIABLE(CFG_SAP_MCC_CHANNEL_AVOIDANCE_NAME,
+                WLAN_PARAM_Integer,
+                hdd_config_t,
+                sap_channel_avoidance,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                CFG_SAP_MCC_CHANNEL_AVOIDANCE_DEFAULT,
+                CFG_SAP_MCC_CHANNEL_AVOIDANCE_MIN,
+                CFG_SAP_MCC_CHANNEL_AVOIDANCE_MAX ),
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3874,6 +3885,12 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]",pHddCtx->cfg_ini->apProtection);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]",pHddCtx->cfg_ini->apOBSSProtEnabled);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApAutoChannelSelection] value = [%u]",pHddCtx->cfg_ini->apAutoChannelSelection);
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+  VOS_TRACE (VOS_MODULE_ID_HDD,
+             VOS_TRACE_LEVEL_INFO_HIGH,
+             "Name = [sap_channel_avoidance] value = [%u]",
+             pHddCtx->cfg_ini->sap_channel_avoidance);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSAllowedChannels] value = [%s]", pHddCtx->cfg_ini->acsAllowedChnls);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSBandSwitchThreshold] value = [%u]", pHddCtx->cfg_ini->acsBandSwitchThreshold);
 
@@ -5409,6 +5426,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 
            ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, &temp);
            temp = (temp & 0xFFFC) | pConfig->vhtRxMCS;
+
            if (pConfig->enable2x2)
                temp = (temp & 0xFFF3) | (pConfig->vhtRxMCS2x2 << 2);
 
@@ -6038,6 +6056,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->f_sta_miracast_mcc_rest_time_val =
                 pHddCtx->cfg_ini->sta_miracast_mcc_rest_time_val;
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+   smeConfig->sap_channel_avoidance =
+                pHddCtx->cfg_ini->sap_channel_avoidance;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

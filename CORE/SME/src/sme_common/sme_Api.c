@@ -1663,6 +1663,10 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    pMac->f_sta_miracast_mcc_rest_time_val =
         pSmeConfigParams->f_sta_miracast_mcc_rest_time_val;
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+   pMac->sap.sap_channel_avoidance = pSmeConfigParams->sap_channel_avoidance;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
    return status;
 }
 
@@ -4430,6 +4434,9 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
          sme_ReleaseGlobalLock( &pMac->sme );
          return status;
       }
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+      pParam->sap_channel_avoidance = pMac->sap.sap_channel_avoidance;
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
       pParam->fScanOffload = pMac->fScanOffload;
       pParam->fP2pListenOffload = pMac->fP2pListenOffload;
       pParam->max_intf_count = pMac->sme.max_intf_count;
