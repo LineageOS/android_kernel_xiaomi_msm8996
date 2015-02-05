@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1446,6 +1446,44 @@ extern "C" {
 /* NLO DBGIDs */
 #define NLO_DBGID_SSID_TO_BE_SCANNED_LIST 0
 #define NLO_DBGID_SSID_TO_BE_SKIPPED_LIST 1
+
+/* DSRC DBGIDs */
+#define  OCB_DBGID_VDEV_CREATE                          0
+#define  OCB_DBGID_VDEV_DELETE                          1
+#define  OCB_DBGID_CHAN_PAUSE                           2
+#define  OCB_DBGID_CHAN_UNPAUSE                         3
+#define  OCB_DBGID_PEER_CREATE                          4
+#define  OCB_DBGID_PEER_DELETE                          5
+#define  OCB_DBGID_DCC_START                            6
+#define  OCB_DBGID_DCC_STOP                             7
+#define  OCB_DBGID_SET_CONFIG_CMD                       8
+#define  OCB_DBGID_SET_UTC_TIME_CMD                     9
+#define  OCB_DBGID_START_TIMING_ADVERT_CMD              10
+#define  OCB_DBGID_STOP_TIMING_ADVERT_CMD               11
+#define  OCB_DBGID_GET_TSF_TIMER_CMD                    12
+#define  OCB_DBGID_GET_DCC_STATS_CMD                    13
+#define  OCB_DBGID_UPDATE_DCC_NDL_CMD                   14
+#define  OCB_DBGID_SET_CONFIG_RESP_EVENT                15
+#define  OCB_DBGID_GET_TSF_TIMER_RESP_EVENT             16
+#define  OCB_DBGID_GET_DCC_STATS_RESP_EVENT             17
+#define  OCB_DBGID_DCC_STATS_EVENT                      18
+#define  OCB_UPDATE_DCC_NDL_RESP_EVENT                  19
+#define  OCB_DBGID_GENERIC                              20
+/* Up to 255 reserved for OCB debug IDs */
+
+#define  DCC_DBGID_START                                256
+#define  DCC_DBGID_STOP                                 257
+#define  DCC_DBGID_DCC_STATS_EVENT                      258
+#define  DCC_DBGID_SM_INIT                              259
+#define  DCC_DBGID_SM_EVENT                             260
+#define  DCC_DBGID_SM_CHANGE                            261
+#define  DCC_DBGID_GET_TX_ALLOWED                       262
+#define  DCC_DBGID_NOTIFY_TX_COMPLETION                 263
+#define  DCC_DBGID_NOTIFY_RX                            264
+#define  DCC_DBGID_GET_TX_POWER                         265
+#define  DCC_DBGID_GET_TX_RATE                          266
+#define  DCC_DBGID_TICKLE_SCHED                         267
+#define  DCC_DBGID_GENERIC                              268
 
 #ifdef __cplusplus
 }
