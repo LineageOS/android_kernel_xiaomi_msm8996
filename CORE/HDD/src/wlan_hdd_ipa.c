@@ -302,6 +302,8 @@ struct hdd_ipa_stats {
 	uint64_t num_freeq_empty;
 	uint64_t num_pri_freeq_empty;
 	uint64_t num_rx_excep;
+	uint64_t num_tx_bcmc;
+	uint64_t num_tx_bcmc_err;
 };
 
 #ifdef IPA_UC_OFFLOAD
@@ -1047,12 +1049,16 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 			"IND RING SIZE: %d\n"
 			"IND RING DBELL : 0x%x\n"
 			"PROC DONE IND ADDR : 0x%x\n"
-			"NUM EXCP PKT : %llu",
+			"NUM EXCP PKT : %llu\n"
+			"NUM TX BCMC : %llu\n"
+			"NUM TX BCMC ERR : %llu",
 			hdd_ctx->rx_rdy_ring_base_paddr,
 			hdd_ctx->rx_rdy_ring_size,
 			hdd_ctx->rx_ready_doorbell_paddr,
 			hdd_ctx->rx_proc_done_idx_paddr,
-			hdd_ipa->stats.num_rx_excep);
+			hdd_ipa->stats.num_rx_excep,
+			hdd_ipa->stats.num_tx_bcmc,
+			hdd_ipa->stats.num_tx_bcmc_err);
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
 			"==== IPA_UC WLAN_HOST CONTROL ====\n"
 			"SAP NUM STAs: %d\n"
@@ -2163,8 +2169,14 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct ipa_tx_data_desc *done_desc_head, *done_desc, *tmp;
 	adf_nbuf_t skb;
 	uint8_t iface_id;
+	struct hdd_ipa_iface_context *iface_context;
 #ifdef IPA_UC_OFFLOAD
 	uint8_t session_id;
+#ifdef INTRA_BSS_FWD_OFFLOAD
+	struct ethhdr *eth;
+	adf_nbuf_t copy;
+	int ret;
+#endif
 #endif
 	adf_nbuf_t buf;
 
@@ -2197,7 +2209,8 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			return;
 		}
 
-		adapter = hdd_ipa->iface_context[iface_id].adapter;
+		iface_context = &hdd_ipa->iface_context[iface_id];
+		adapter = iface_context->adapter;
 
 		HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG,
 			"w2i -- skb", skb->data, 8);
@@ -2211,7 +2224,35 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			skb_pull(skb, HDD_IPA_WLAN_CLD_HDR_LEN);
 		}
 
-		hdd_ipa->iface_context[iface_id].stats.num_rx_ipa_excep++;
+		iface_context->stats.num_rx_ipa_excep++;
+
+#if defined(IPA_UC_OFFLOAD) && defined(INTRA_BSS_FWD_OFFLOAD)
+		eth = (struct ethhdr *)skb->data;
+
+		/*
+		 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send all Rx
+		 * packets to IPA uC, which need to be forwarded to other
+		 * interface.
+		 * And, since only IP packets are forwarded through IPA Ethernet
+		 * Bridging, non-IP exception packets should be forwarded to Tx
+		 * here.
+		 */
+		if (eth->h_proto != be16_to_cpu(ETH_P_IP)) {
+			copy = adf_nbuf_copy(skb);
+			if (copy) {
+				ret = hdd_softap_hard_start_xmit(
+					(struct sk_buff *)copy, adapter->dev);
+				if (ret) {
+					HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
+						"Forward packet tx fail");
+					hdd_ipa->stats.num_tx_bcmc_err++;
+				} else {
+					hdd_ipa->stats.num_tx_bcmc++;
+				}
+			}
+		}
+#endif
+
 		hdd_ipa_send_skb_to_network(skb, adapter);
 		break;
 	case IPA_WRITE_DONE:
