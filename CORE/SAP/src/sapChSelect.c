@@ -189,34 +189,6 @@ typedef enum {
 
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 /**
- * sap_check_in_avoid_ch_list() - checks if given channel present is channel
- * avoidance list
- * avoid_channels_info struct
- * @sap_ctx:        sap context.
- * @channel:        channel to be checked in sap_ctx's avoid ch list
- *
- * sap_ctx contains sap_avoid_ch_info strcut containing the list of channels on
- * which MDM device's AP with MCC was detected. This function checks if given
- * channel is present in that list.
- *
- * Return: true, if channel was present, false othersie.
- */
-bool
-sap_check_in_avoid_ch_list(ptSapContext sap_ctx, uint8_t channel)
-{
-	uint8_t i = 0;
-	struct sap_avoid_channels_info *ie_info =
-		&sap_ctx->sap_detected_avoid_ch_ie;
-
-	for (i = 0; i < sizeof(ie_info->channels); i++) {
-		if (ie_info->channels[i] == channel) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
  * sap_check_n_add_channel() - checks and add given channel in sap context's
  * avoid_channels_info struct
  * @sap_ctx:           sap context.
@@ -318,11 +290,13 @@ sap_check_n_add_overlapped_chnls(ptSapContext sap_ctx,
  * @hal:                hal handle
  * @sap_ctx:            sap context.
  * @scan_result:        scan results for ACS scan.
+ * @spect_info:         spectrum weights array to update
  *
  * Detection of Q2Q IE indicates presence of another MDM device with its AP
  * operating in MCC mode. This function parses the scan results and processes
  * the Q2Q IE if found. It then extracts the channels and populates them in
- * sap_ctx struct.
+ * sap_ctx struct. It also increases the weights of those channels so that
+ * ACS logic will avoid those channels in its selection algorithm.
  *
  * Return: void
  */
@@ -330,15 +304,19 @@ sap_check_n_add_overlapped_chnls(ptSapContext sap_ctx,
 void
 sap_process_avoid_ie(tHalHandle hal,
 		     ptSapContext sap_ctx,
-		     tScanResultHandle scan_result)
+		     tScanResultHandle scan_result,
+		     tSapChSelSpectInfo *spect_info)
 {
 	uint32_t total_ie_len = 0;
 	uint8_t *temp_ptr = NULL;
+	uint8_t i = 0;
 	struct sAvoidChannelIE *avoid_ch_ie;
 	tCsrScanResultInfo *node = NULL;
 	tpAniSirGlobal mac_ctx = NULL;
+	tSapSpectChInfo *spect_ch = NULL;
 
 	mac_ctx = PMAC_STRUCT(hal);
+	spect_ch = spect_info->pSpectCh;
 	node = sme_ScanResultGetFirst(hal, scan_result);
 
 	while (node) {
@@ -366,6 +344,16 @@ sap_process_avoid_ie(tHalHandle hal,
 						avoid_ch_ie->channel);
 			sap_check_n_add_overlapped_chnls(sap_ctx,
 						avoid_ch_ie->channel);
+			/*
+			 * Mark weight of these channel present in IE to MAX
+			 * so that ACS logic will to avoid thse channels
+			 */
+			for (i = 0; i < spect_info->numSpectChans; i++) {
+				if (spect_ch[i].chNum == avoid_ch_ie->channel) {
+					spect_ch[i].weight = ACS_WEIGHT_MAX;
+					break;
+				}
+			}
 		} /* if (temp_ptr) */
 		node = sme_ScanResultGetNext(hal, scan_result);
 	}
@@ -849,18 +837,6 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             channelnum < pSpectInfoParams->numSpectChans;
                 channelnum++, pChans++) {
         chSafe = VOS_TRUE;
-
-#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-        if(pMac->sap.sap_channel_avoidance) {
-            if(sap_check_in_avoid_ch_list(pSapCtx, *pChans)) {
-                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                          "Ch %d used by another MDM device with SAP in MCC",
-                          *pChans);
-                chSafe = VOS_FALSE;
-                continue;
-            }
-        }
-#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
         /* check if the channel is in NOL blacklist */
         if(sapDfsIsChannelInNolList(pSapCtx, *pChans,
@@ -2705,11 +2681,6 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 #endif /* SOFTAP_CHANNEL_RANGE */
     }
 
-#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
-    /* process avoid channel IE to collect all channels to avoid */
-    sap_process_avoid_ie(halHandle, pSapCtx, pScanResult);
-#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
-
     // Initialize the structure pointed by pSpectInfoParams
     if (sapChanSelInit( halHandle, pSpectInfoParams, pSapCtx ) != eSAP_TRUE ) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -2719,6 +2690,11 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 
     // Compute the weight of the entire spectrum in the operating band
     sapComputeSpectWeight( pSpectInfoParams, halHandle, pScanResult);
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+    /* process avoid channel IE to collect all channels to avoid */
+    sap_process_avoid_ie(halHandle, pSapCtx, pScanResult, pSpectInfoParams);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 #ifdef SOFTAP_CHANNEL_RANGE
     if (eCSR_BAND_ALL == pSapCtx->scanBandPreference)
