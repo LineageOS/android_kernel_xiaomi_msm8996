@@ -3031,15 +3031,17 @@ __limProcessSmeDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
                     break;
                 case eLIM_SME_WT_DEAUTH_STATE:
+                case eLIM_SME_WT_DISASSOC_STATE:
                     /*
-                     * PE Recieved a Deauth frame. Normally it gets
-                     * DEAUTH_CNF but it received DEAUTH_REQ. Which
+                     * PE Recieved a Deauth/Disassoc frame. Normally it gets
+                     * DEAUTH_CNF/DISASSOC_CNF but it received DEAUTH_REQ. Which
                      * means host is also trying to disconnect.
                      * PE can continue processing DEAUTH_REQ and send
                      * the response instead of failing the request.
-                     * SME will anyway ignore DEAUTH_IND that was sent
-                     * for deauth frame.
+                     * SME will anyway ignore DEAUTH_IND/DISASSOC_IND that
+                     * was sent for deauth/disassoc frame.
                      */
+                    psessionEntry->limSmeState = eLIM_SME_WT_DEAUTH_STATE;
                     limLog(pMac, LOG1, FL("Rcvd SME_DEAUTH_REQ while in "
                        "SME_WT_DEAUTH_STATE. "));
                     break;
