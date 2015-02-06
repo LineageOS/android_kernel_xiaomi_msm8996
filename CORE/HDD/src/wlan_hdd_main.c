@@ -14735,7 +14735,8 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 }
 #endif
 
-hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter)
+hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter,
+                                        bool check_start_bss)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(this_sap_adapter);
     hdd_adapter_t *pAdapter, *con_sap_adapter;
@@ -14747,12 +14748,16 @@ hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter)
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
     while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
         pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP) {
-            if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
-                if (pAdapter != this_sap_adapter) {
+        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP &&
+            pAdapter != this_sap_adapter) {
+            if (check_start_bss) {
+                if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
                     con_sap_adapter = pAdapter;
                     break;
                 }
+            } else {
+                    con_sap_adapter = pAdapter;
+                    break;
             }
         }
         status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext );
