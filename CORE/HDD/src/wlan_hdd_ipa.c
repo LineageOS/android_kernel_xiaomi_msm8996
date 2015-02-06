@@ -1082,7 +1082,7 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 
 		/* STATs from FW */
 		uc_fw_stat = (struct ipa_uc_fw_stats *)
-			(op_msg + sizeof(struct op_msg_type));
+			((v_U8_t *)op_msg + sizeof(struct op_msg_type));
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
 			"==== IPA_UC WLAN_FW TX ====\n"
 			"COMP RING BASE: 0x%x\n"
@@ -1206,7 +1206,7 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 		(HDD_IPA_UC_STAT_REASON_BW_CAL == hdd_ipa->stat_req_reason)) {
 		/* STATs from FW */
 		uc_fw_stat = (struct ipa_uc_fw_stats *)
-			(op_msg + sizeof(struct op_msg_type));
+			((v_U8_t *)op_msg + sizeof(struct op_msg_type));
 		vos_lock_acquire(&hdd_ipa->event_lock);
 		hdd_ipa->ipa_tx_packets_diff = uc_fw_stat->tx_pkts_completed -
 			hdd_ipa->ipa_p_tx_packets;
