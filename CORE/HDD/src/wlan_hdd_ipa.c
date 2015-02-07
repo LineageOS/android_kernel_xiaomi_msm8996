@@ -3114,7 +3114,7 @@ static void hdd_ipa_uc_offload_enable_disable(hdd_adapter_t *adapter,
 	 * layer as SAP updates and IPA doesn't have to do anything for these
 	 * updates so ignoring!
 	*/
-	if (WLAN_HDD_SOFTAP == adapter->device_mode && adapter->ipa_context)
+	if (adapter->ipa_context)
 		return;
 
 	vos_mem_zero(&ipa_offload_enable_disable,
