@@ -13794,62 +13794,6 @@ tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
     return VOS_STA;
 }
 
-/* Decide whether to allow/not the apps power collapse.
- * Allow apps power collapse if we are in connected state.
- * if not, allow only if we are in IMPS  */
-v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
-{
-    tPmcState pmcState = pmcGetPmcState(pHddCtx->hHal);
-    tANI_BOOLEAN scanRspPending;
-    tANI_BOOLEAN inMiddleOfRoaming;
-    hdd_config_t *pConfig = pHddCtx->cfg_ini;
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-    hdd_adapter_t *pAdapter = NULL;
-    VOS_STATUS status;
-    tVOS_CONCURRENCY_MODE concurrent_state = 0;
-
-    if (VOS_STA_SAP_MODE == hdd_get_conparam())
-        return TRUE;
-
-    concurrent_state = hdd_get_concurrency_mode();
-
-#ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
-    if(((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
-        (concurrent_state == (VOS_STA | VOS_P2P_GO))) &&
-        (IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE))
-        return TRUE;
-#endif
-
-    /*loop through all adapters. TBD fix for Concurrency */
-    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
-        pAdapter = pAdapterNode->pAdapter;
-        if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-          || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
-        {
-            scanRspPending = csrNeighborRoamScanRspPending(pHddCtx->hHal,
-                                                    pAdapter->sessionId);
-            inMiddleOfRoaming = csrNeighborMiddleOfRoaming(pHddCtx->hHal,
-                                                    pAdapter->sessionId);
-            if (((pConfig->fIsImpsEnabled || pConfig->fIsBmpsEnabled)
-                 && (pmcState != IMPS && pmcState != BMPS
-                  &&  pmcState != STOPPED && pmcState != STANDBY)) ||
-                 (eANI_BOOLEAN_TRUE == scanRspPending) ||
-                 (eANI_BOOLEAN_TRUE == inMiddleOfRoaming))
-            {
-                hddLog( LOGE, "%s: do not allow APPS power collapse-"
-                    "pmcState = %d scanRspPending = %d inMiddleOfRoaming = %d",
-                    __func__, pmcState, scanRspPending, inMiddleOfRoaming );
-                return FALSE;
-            }
-        }
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-        pAdapterNode = pNext;
-    }
-    return TRUE;
-}
-
 /* Decides whether to send suspend notification to Riva
  * if any adapter is in BMPS; then it is required */
 v_BOOL_t hdd_is_suspend_notify_allowed(hdd_context_t* pHddCtx)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -252,7 +252,6 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
                              v_VOID_t *pModuleContext );
 
-v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx);
 void vos_abort_mac_scan(tANI_U8 sessionId);
 
 /**
