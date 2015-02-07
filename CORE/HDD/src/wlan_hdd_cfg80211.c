@@ -9124,9 +9124,6 @@ static int __wlan_hdd_cfg80211_get_key(
 
     ENTER();
 
-    MTRACE(vos_trace(VOS_MODULE_ID_HDD,
-                     TRACE_CODE_HDD_CFG80211_GET_KEY,
-                     pAdapter->sessionId, params.cipher));
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
@@ -9165,6 +9162,10 @@ static int __wlan_hdd_cfg80211_get_key(
          params.cipher = IW_AUTH_CIPHER_NONE;
          break;
     }
+
+    MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                     TRACE_CODE_HDD_CFG80211_GET_KEY,
+                     pAdapter->sessionId, params.cipher));
 
     params.key_len = pRoamProfile->Keys.KeyLength[key_index];
     params.seq_len = 0;
