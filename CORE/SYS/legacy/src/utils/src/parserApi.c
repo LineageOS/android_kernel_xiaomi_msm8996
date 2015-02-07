@@ -2013,10 +2013,10 @@ sirConvertProbeReqFrame2Struct(tpAniSirGlobal  pMac,
         vos_mem_copy( &pProbeReq->HTCaps, &pr.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( pr.WscProbeReq.present )
-    {
+    if (pr.WscProbeReq.present) {
         pProbeReq->wscIePresent = 1;
-        memcpy(&pProbeReq->probeReqWscIeInfo, &pr.WscProbeReq, sizeof(tDot11fIEWscProbeReq));
+        vos_mem_copy(&pProbeReq->probeReqWscIeInfo, &pr.WscProbeReq,
+                      sizeof(tDot11fIEWscProbeReq));
     }
 #ifdef WLAN_FEATURE_11AC
     if ( pr.VHTCaps.present )

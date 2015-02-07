@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -198,7 +198,7 @@ void cmac_calc_mic(struct crypto_cipher *tfm, u8 *m,
         xor_128(x, m_last, y);
         crypto_cipher_encrypt_one(tfm, x, y);
 
-        memcpy(mac, x, CMAC_TLEN);
+        vos_mem_copy(mac, x, CMAC_TLEN);
 }
 #endif
 #endif
@@ -696,7 +696,7 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     }
 
     memset(hash_result, 0, 64);
-    memcpy(hash_buff, plaintext, psize);
+    vos_mem_copy(hash_buff, plaintext, psize);
     sg_init_one(&sg, hash_buff, psize);
 
     if (ksize) {
@@ -867,7 +867,7 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     }
 
     memset(hash_result, 0, 64);
-    memcpy(hash_buff, plaintext, psize);
+    vos_mem_copy(hash_buff, plaintext, psize);
     sg_init_one(&sg, hash_buff, psize);
 
     if (ksize) {
