@@ -12763,10 +12763,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef WLAN_OPEN_P2P_INTERFACE
       /* Open P2P device interface */
       if (pAdapter != NULL) {
-         if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) {
-            vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes,
-                        pHddCtx->cfg_ini->intfMacAddr[0].bytes,
-                        sizeof(tSirMacAddr));
+         if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
+             !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] &= 0x02)) {
+            vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,
+                         pHddCtx->cfg_ini->intfMacAddr[0].bytes,
+                         sizeof(tSirMacAddr));
 
             /* Generate the P2P Device Address.  This consists of the device's
              * primary MAC address with the locally administered bit set.
