@@ -5531,6 +5531,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 
            /* Set Reassoc threshold to (lookup rssi threshold + 5 dBm) */
+           pHddCtx->cfg_ini->nNeighborReassocRssiThreshold =
+                                                      lookUpThreshold + 5;
            sme_setNeighborReassocRssiThreshold(pHddCtx->hHal,
                                                pAdapter->sessionId,
                                                lookUpThreshold + 5);
