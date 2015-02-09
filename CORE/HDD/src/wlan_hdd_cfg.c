@@ -3566,6 +3566,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_MCC_CHANNEL_AVOIDANCE_MIN,
                 CFG_SAP_MCC_CHANNEL_AVOIDANCE_MAX ),
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+   REG_VARIABLE(CFG_ENABLE_NON_DFS_CHAN_ON_RADAR, WLAN_PARAM_Integer,
+                hdd_config_t, prefer_non_dfs_on_radar,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX),
+
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -6040,6 +6048,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->sap_channel_avoidance =
                 pHddCtx->cfg_ini->sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+   smeConfig->f_prefer_non_dfs_on_radar =
+                       pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

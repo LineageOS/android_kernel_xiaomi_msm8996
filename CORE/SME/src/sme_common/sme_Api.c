@@ -1670,6 +1670,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    pMac->sap.sap_channel_avoidance = pSmeConfigParams->sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+   pMac->f_prefer_non_dfs_on_radar =
+                       pSmeConfigParams->f_prefer_non_dfs_on_radar;
+
    return status;
 }
 
@@ -4447,6 +4450,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
 #ifdef FEATURE_BUS_AUTO_SUSPEND
       pParam->enable_bus_auto_suspend = pMac->sme.enable_bus_auto_suspend;
 #endif
+      pParam->f_prefer_non_dfs_on_radar = pMac->f_prefer_non_dfs_on_radar;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

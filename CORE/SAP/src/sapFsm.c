@@ -1362,8 +1362,12 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 {
     v_U32_t  random_byte = 0;
     v_U8_t   available_chnl_count = 0;
+    uint8_t  avail_dfs_chan_count = 0;
+    uint8_t  avail_non_dfs_chan_count = 0;
     v_U8_t   valid_chnl_count = 0;
     v_U8_t   availableChannels[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0,};
+    uint8_t  avail_dfs_chan_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0,};
+    uint8_t  avail_non_dfs_chan_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0,};
     v_U8_t   target_channel = 0;
     v_BOOL_t isChannelNol = VOS_FALSE;
     v_BOOL_t isOutOfRange = VOS_FALSE;
@@ -1671,30 +1675,51 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
          * no channels are avaialbe
          */
         if (available_chnl_count) {
-            vos_rand_get_bytes(0, (v_U8_t*)&random_byte, 1);
-            i = (random_byte + vos_timer_get_system_ticks()) %
-                 available_chnl_count;
-            /* Random channel selection from available list */
-            target_channel = availableChannels[i];
-            pMac->sap.SapDfsInfo.new_chanWidth = chanWidth;
-            pMac->sap.SapDfsInfo.new_cbMode = cbModeCurrent;
-            VOS_TRACE(VOS_MODULE_ID_SAP,
-                      VOS_TRACE_LEVEL_INFO_LOW,
-                      FL("sapdfs: New CB mode = %d"),
-                      pMac->sap.SapDfsInfo.new_cbMode);
-            VOS_TRACE(VOS_MODULE_ID_SAP,
-                      VOS_TRACE_LEVEL_INFO_LOW,
-                      FL("sapdfs: New Channel width = %d"),
-                      pMac->sap.SapDfsInfo.new_chanWidth);
-            VOS_TRACE(VOS_MODULE_ID_SAP,
-                      VOS_TRACE_LEVEL_INFO_LOW,
-                      FL("sapdfs: target_channel = %d"), target_channel);
-        }
-        else {
+            for (i=0;i<available_chnl_count;i++) {
+                if (VOS_IS_DFS_CH(availableChannels[i])) {
+                    avail_dfs_chan_list[avail_dfs_chan_count++] =
+                                                        availableChannels[i];
+                } else {
+                    avail_non_dfs_chan_list[avail_non_dfs_chan_count++] =
+                                                        availableChannels[i];
+                }
+            }
+        } else {
             VOS_TRACE(VOS_MODULE_ID_SAP,
                       VOS_TRACE_LEVEL_INFO_LOW,
                       FL("No target channel found"));
+            break;
         }
+
+        vos_rand_get_bytes(0, (v_U8_t*)&random_byte, 1);
+        /* Give preference to non-DFS channel */
+        if (!pMac->f_prefer_non_dfs_on_radar) {
+             i = (random_byte + vos_timer_get_system_ticks()) %
+                 available_chnl_count;
+             target_channel = availableChannels[i];
+        } else if (avail_non_dfs_chan_count) {
+            i = (random_byte + vos_timer_get_system_ticks()) %
+                 avail_non_dfs_chan_count;
+            target_channel = avail_non_dfs_chan_list[i];
+        } else {
+            i = (random_byte + vos_timer_get_system_ticks()) %
+                 avail_dfs_chan_count;
+            target_channel = avail_dfs_chan_list[i];
+        }
+
+        pMac->sap.SapDfsInfo.new_chanWidth = chanWidth;
+        pMac->sap.SapDfsInfo.new_cbMode = cbModeCurrent;
+        VOS_TRACE(VOS_MODULE_ID_SAP,
+                  VOS_TRACE_LEVEL_INFO_LOW,
+                  FL("sapdfs: New CB mode = %d"),
+                  pMac->sap.SapDfsInfo.new_cbMode);
+        VOS_TRACE(VOS_MODULE_ID_SAP,
+                  VOS_TRACE_LEVEL_INFO_LOW,
+                  FL("sapdfs: New Channel width = %d"),
+                  pMac->sap.SapDfsInfo.new_chanWidth);
+        VOS_TRACE(VOS_MODULE_ID_SAP,
+                  VOS_TRACE_LEVEL_INFO_LOW,
+                  FL("sapdfs: target_channel = %d"), target_channel);
         break;
     } while(1); /* this loop will iterate at max 3 times */
 
