@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2015,11 +2015,6 @@ vos_fetch_tl_cfg_parms
   pTLConfig->ip_checksum_offload = pConfig->enableIPChecksumOffload;
   pTLConfig->enable_rxthread = pConfig->enableRxThread;
 
-}
-
-v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx)
-{
-  return hdd_is_apps_power_collapse_allowed((hdd_context_t*) pHddCtx);
 }
 
 void vos_abort_mac_scan(v_U8_t sessionId)

@@ -2214,24 +2214,6 @@ static iw_softap_setparam(struct net_device *dev,
             }
             break;
 
-        case QCSAP_PARAM_AUTO_CHANNEL:
-            if ((0 != set_value) && (1 != set_value))
-            {
-                hddLog(LOGE, FL("Invalid setAutoChannel value %d"), set_value);
-                ret = -EINVAL;
-            }
-            else
-            {
-#ifdef WLAN_FEATURE_MBSSID
-                pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection =
-                                                                      set_value;
-#else
-                (WLAN_HDD_GET_CTX
-                (pHostapdAdapter))->cfg_ini->apAutoChannelSelection = set_value;
-#endif
-            }
-            break;
-
         case QCSAP_PARAM_SET_CHANNEL_CHANGE:
             if ( WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode )
             {
@@ -2867,17 +2849,6 @@ static iw_softap_getparam(struct net_device *dev,
             vos_trace_display();
             *value = 0;
             break;
-        }
-
-    case QCSAP_PARAM_AUTO_CHANNEL:
-        {
-#ifdef WLAN_FEATURE_MBSSID
-            *value = pHostapdAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
-#else
-            *value = (WLAN_HDD_GET_CTX
-                      (pHostapdAdapter))->cfg_ini->apAutoChannelSelection;
-#endif
-             break;
         }
 
     case QCSAP_PARAM_RTSCTS:
@@ -4651,8 +4622,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccLatency" },
    { QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccQuota" },
-   { QCSAP_PARAM_AUTO_CHANNEL,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setAutoChannel" },
    { QCSAP_PARAM_SET_CHANNEL_CHANGE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setChanChange" },
 
@@ -4845,8 +4814,6 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
   { QCSAP_PARAM_GET_WLAN_DBG, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getwlandbg" },
-  { QCSAP_PARAM_AUTO_CHANNEL, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getAutoChannel" },
   { QCSAP_GTX_BWMASK, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxBWMask" },
   { QCSAP_GTX_MINTPC, 0,

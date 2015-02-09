@@ -4541,15 +4541,12 @@ static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 #ifdef WLAN_FEATURE_MBSSID
      sap_config->acsBandSwitchThreshold =
                          adapter->sap_dyn_ini_cfg.acsBandSwitchThreshold;
-     sap_config->apAutoChannelSelection =
-                         adapter->sap_dyn_ini_cfg.apAutoChannelSelection;
      sap_config->apStartChannelNum =
                          adapter->sap_dyn_ini_cfg.apStartChannelNum;
      sap_config->apEndChannelNum =
                          adapter->sap_dyn_ini_cfg.apEndChannelNum;
 #else
      sap_config->acsBandSwitchThreshold = ini_config->acsBandSwitchThreshold;
-     sap_config->apAutoChannelSelection = ini_config->apAutoChannelSelection;
      sap_config->apStartChannelNum = ini_config->apStartChannelNum;
      sap_config->apEndChannelNum = ini_config->apEndChannelNum;
 #endif
@@ -4737,6 +4734,7 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 
     sap_config = &adapter->sessionCtx.ap.sapConfig;
     sap_config->channel = AUTO_CHANNEL_SELECT;
+    sap_config->apAutoChannelSelection = VOS_TRUE;
 #ifdef WLAN_FEATURE_MBSSID
     /*
      * Check if AP+AP case, once primary AP chooses a DFS
@@ -6562,12 +6560,8 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             channel set by supplicant
             */
 #ifndef QCA_HT_2040_COEX
-#ifdef WLAN_FEATURE_MBSSID
-            if (pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection)
-#else
-            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
-            if (cfg_param->apAutoChannelSelection)
-#endif
+            if ((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->
+                                          sapConfig.apAutoChannelSelection)
             {
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel =
                                                           AUTO_CHANNEL_SELECT;
@@ -9124,9 +9118,6 @@ static int __wlan_hdd_cfg80211_get_key(
 
     ENTER();
 
-    MTRACE(vos_trace(VOS_MODULE_ID_HDD,
-                     TRACE_CODE_HDD_CFG80211_GET_KEY,
-                     pAdapter->sessionId, params.cipher));
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
@@ -9165,6 +9156,10 @@ static int __wlan_hdd_cfg80211_get_key(
          params.cipher = IW_AUTH_CIPHER_NONE;
          break;
     }
+
+    MTRACE(vos_trace(VOS_MODULE_ID_HDD,
+                     TRACE_CODE_HDD_CFG80211_GET_KEY,
+                     pAdapter->sessionId, params.cipher));
 
     params.key_len = pRoamProfile->Keys.KeyLength[key_index];
     params.seq_len = 0;
