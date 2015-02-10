@@ -821,9 +821,9 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
             ("Insufficient memory for country code list"));
       return VOS_STATUS_E_NOMEM;
    }
-   for (i = 0; i < countryInfoTable.countryCount; i++)
-   {
-      memcpy( pBuffer, countryInfoTable.countryInfo[i].countryCode, VOS_COUNTRY_CODE_LEN );
+   for (i = 0; i < countryInfoTable.countryCount; i++) {
+      vos_mem_copy(pBuffer, countryInfoTable.countryInfo[i].countryCode,
+                   VOS_COUNTRY_CODE_LEN);
       pBuffer += (VOS_COUNTRY_CODE_LEN + paddingSize );
    }
    return VOS_STATUS_SUCCESS;
@@ -960,7 +960,9 @@ VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 {
 
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-   memcpy(&tableData->defaultCountryTable, &pnvEFSTable->halnv.tables.defaultCountryTable, sizeof(sDefaultCountry));
+   vos_mem_copy(&tableData->defaultCountryTable,
+                &pnvEFSTable->halnv.tables.defaultCountryTable,
+                sizeof(sDefaultCountry));
    pr_info("DefaultCountry is %c%c\n",
             tableData->defaultCountryTable.countryCode[0],
             tableData->defaultCountryTable.countryCode[1]);

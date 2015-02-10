@@ -145,7 +145,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_WOWL              2
 #define WE_SET_POWER         3
 #define WE_SET_MAX_ASSOC     4
-#define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
+/* 5 is unused */
 #define WE_SET_DATA_INACTIVITY_TO  6
 #define WE_SET_MAX_TX_POWER  7
 #define WE_SET_HIGHER_DTIM_TRANSITION   8
@@ -245,7 +245,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_WLAN_DBG      4
 #define WE_GET_MAX_ASSOC     6
 /* 7 is unused */
-#define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
+/* 8 is unused */
 #define WE_GET_CONCURRENCY_MODE 9
 #define WE_GET_NSS           11
 #define WE_GET_LDPC          12
@@ -5289,27 +5289,6 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             break;
         }
 
-        case WE_SET_SAP_AUTO_CHANNEL_SELECTION:
-        {
-            if (set_value == 0 || set_value == 1)
-            {
-#ifdef WLAN_FEATURE_MBSSID
-                pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection = set_value;
-#else
-                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection
-                                                                 = set_value;
-#endif
-            }
-            else
-            {
-                 hddLog(LOGE,
-                    "Invalid arg %d in WE_SET_SAP_AUTO_CHANNEL_SELECTION IOCTL",
-                    set_value);
-                 ret = -EINVAL;
-            }
-            break;
-         }
-
         case  WE_SET_DATA_INACTIVITY_TO:
         {
            if  ((set_value < CFG_DATA_INACTIVITY_TIMEOUT_MIN) ||
@@ -6516,16 +6495,6 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                       FL("failed to get ini parameter, WNI_CFG_ASSOC_STA_LIMIT"));
                 ret = -EIO;
             }
-            break;
-        }
-
-        case WE_GET_SAP_AUTO_CHANNEL_SELECTION:
-        {
-#ifdef WLAN_FEATURE_MBSSID
-            *value = pAdapter->sap_dyn_ini_cfg.apAutoChannelSelection;
-#else
-            *value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection;
-#endif
             break;
         }
         case WE_GET_CONCURRENCY_MODE:
@@ -9968,11 +9937,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setMaxAssoc" },
 
-    {   WE_SET_SAP_AUTO_CHANNEL_SELECTION,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        0,
-        "setAutoChannel" },
-
     {   WE_SET_DATA_INACTIVITY_TO,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -10378,11 +10342,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getMaxAssoc" },
-
-    {   WE_GET_SAP_AUTO_CHANNEL_SELECTION,
-        0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        "getAutoChannel" },
 
     {   WE_GET_CONCURRENCY_MODE,
         0,

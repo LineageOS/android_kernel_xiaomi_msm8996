@@ -5531,6 +5531,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 
            /* Set Reassoc threshold to (lookup rssi threshold + 5 dBm) */
+           pHddCtx->cfg_ini->nNeighborReassocRssiThreshold =
+                                                      lookUpThreshold + 5;
            sme_setNeighborReassocRssiThreshold(pHddCtx->hHal,
                                                pAdapter->sessionId,
                                                lookUpThreshold + 5);
@@ -13792,62 +13794,6 @@ tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
     return VOS_STA;
 }
 
-/* Decide whether to allow/not the apps power collapse.
- * Allow apps power collapse if we are in connected state.
- * if not, allow only if we are in IMPS  */
-v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
-{
-    tPmcState pmcState = pmcGetPmcState(pHddCtx->hHal);
-    tANI_BOOLEAN scanRspPending;
-    tANI_BOOLEAN inMiddleOfRoaming;
-    hdd_config_t *pConfig = pHddCtx->cfg_ini;
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-    hdd_adapter_t *pAdapter = NULL;
-    VOS_STATUS status;
-    tVOS_CONCURRENCY_MODE concurrent_state = 0;
-
-    if (VOS_STA_SAP_MODE == hdd_get_conparam())
-        return TRUE;
-
-    concurrent_state = hdd_get_concurrency_mode();
-
-#ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
-    if(((concurrent_state == (VOS_STA | VOS_P2P_CLIENT)) ||
-        (concurrent_state == (VOS_STA | VOS_P2P_GO))) &&
-        (IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE))
-        return TRUE;
-#endif
-
-    /*loop through all adapters. TBD fix for Concurrency */
-    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
-        pAdapter = pAdapterNode->pAdapter;
-        if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-          || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
-        {
-            scanRspPending = csrNeighborRoamScanRspPending(pHddCtx->hHal,
-                                                    pAdapter->sessionId);
-            inMiddleOfRoaming = csrNeighborMiddleOfRoaming(pHddCtx->hHal,
-                                                    pAdapter->sessionId);
-            if (((pConfig->fIsImpsEnabled || pConfig->fIsBmpsEnabled)
-                 && (pmcState != IMPS && pmcState != BMPS
-                  &&  pmcState != STOPPED && pmcState != STANDBY)) ||
-                 (eANI_BOOLEAN_TRUE == scanRspPending) ||
-                 (eANI_BOOLEAN_TRUE == inMiddleOfRoaming))
-            {
-                hddLog( LOGE, "%s: do not allow APPS power collapse-"
-                    "pmcState = %d scanRspPending = %d inMiddleOfRoaming = %d",
-                    __func__, pmcState, scanRspPending, inMiddleOfRoaming );
-                return FALSE;
-            }
-        }
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-        pAdapterNode = pNext;
-    }
-    return TRUE;
-}
-
 /* Decides whether to send suspend notification to Riva
  * if any adapter is in BMPS; then it is required */
 v_BOOL_t hdd_is_suspend_notify_allowed(hdd_context_t* pHddCtx)
@@ -14205,6 +14151,8 @@ void hdd_ch_avoid_cb
    static int          restart_sap_in_progress = 0;
    tHddAvoidFreqList   hdd_avoid_freq_list;
    tANI_U32            i;
+   hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+   VOS_STATUS status;
 
    /* Basic sanity */
    if (!hdd_context || !indi_param)
@@ -14317,45 +14265,56 @@ void hdd_ch_avoid_cb
    }
 #endif
 
-   /* If auto channel select is enabled
-    * preferred channel is in safe channel,
-    * re-start softap interface with safe channel.
-    * no overlap with preferred channel and safe channel
-    * do not re-start softap interface
-    * stay current operating channel. */
-   if ((hdd_ctxt->cfg_ini->apAutoChannelSelection) &&
-       (!hdd_find_prefd_safe_chnl(hdd_ctxt))) {
-      return;
-   }
+    if (0 == hdd_ctxt->unsafe_channel_count)
+       return;
 
-   if (hdd_ctxt->unsafe_channel_count) {
-       hostapd_adapter = hdd_get_adapter(hdd_ctxt, WLAN_HDD_SOFTAP);
-       if (hostapd_adapter)
-       {
-          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s : Current operation channel %d, sessionCtx.ap.sapConfig.channel %d",
-                    __func__,
-                    hostapd_adapter->sessionCtx.ap.operatingChannel,
-					hostapd_adapter->sessionCtx.ap.sapConfig.channel);
-          for (channel_loop = 0; channel_loop < hdd_ctxt->unsafe_channel_count; channel_loop++)
-          {
-              if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
-                  hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
-                  (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true) &&
-                  !restart_sap_in_progress)
-              {
-                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                            "%s: Restarting SAP", __func__);
-                  wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
-                  restart_sap_in_progress = 1;
-                  /* current operating channel is un-safe channel, restart driver */
-                  hdd_hostapd_stop(hostapd_adapter->dev);
-                  break;
-              }
-          }
-       }
-   }
-   return;
+    status = hdd_get_front_adapter(hdd_ctxt, &adapter_node);
+    while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+        hostapd_adapter = adapter_node->pAdapter;
+
+        if( hostapd_adapter && (WLAN_HDD_SOFTAP ==
+                               hostapd_adapter->device_mode)) {
+            /* If auto channel select is enabled
+             * preferred channel is in safe channel,
+             * re-start softap interface with safe channel.
+             * no overlap with preferred channel and safe channel
+             * do not re-start softap interface
+             * stay current operating channel.
+             */
+             if ((hostapd_adapter->sessionCtx.ap.sapConfig.
+                                            apAutoChannelSelection) &&
+                 (!hdd_find_prefd_safe_chnl(hdd_ctxt)))
+                 return;
+
+            hddLog(LOG1, FL("Current operation channel %d"),
+                      hostapd_adapter->sessionCtx.ap.operatingChannel);
+
+            hddLog(LOG1, FL("sessionCtx.ap.sapConfig.channel %d"),
+                      hostapd_adapter->sessionCtx.ap.sapConfig.channel);
+
+            for (channel_loop = 0;
+                 channel_loop < hdd_ctxt->unsafe_channel_count;
+                 channel_loop++) {
+                if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
+                     hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
+                     (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true)
+                      && !restart_sap_in_progress) {
+
+                    hddLog(LOG1, FL("Restarting SAP"));
+                    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
+                    restart_sap_in_progress = 1;
+                    /* current operating channel is un-safe channel,
+                     * restart driver
+                     */
+                    hdd_hostapd_stop(hostapd_adapter->dev);
+                    return;
+                }
+            }
+        }
+        status = hdd_get_next_adapter (hdd_ctxt, adapter_node, &next);
+        adapter_node = next;
+     }
+     return;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
