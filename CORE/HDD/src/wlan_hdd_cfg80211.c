@@ -4679,18 +4679,31 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
                                     const void *data, int data_len)
 {
 
-    hdd_adapter_t *adapter;
+    struct net_device *ndev = wdev->netdev;
+    hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
     hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
     tsap_Config_t *sap_config;
     tpWLAN_SAPEventCB acs_event_callback;
-    struct net_device *ndev = wdev->netdev;
     struct sk_buff *temp_skbuff;
     int status;
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1];
     u8 hw_mode;
     bool ht_enabled, ht40_enabled;
+    tHalHandle hHal;
+    tpAniSirGlobal pMac;
+#ifdef WLAN_FEATURE_11AC
+    v_BOOL_t sap_force11AC_for11n =
+#ifdef WLAN_FEATURE_MBSSID
+             adapter->sap_dyn_ini_cfg.apForce11ACFor11n;
+#else
+             hdd_ctx->cfg_ini->apForce11ACFor11n;
+#endif
+#endif
 
-    adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
+    hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+
+    pMac = PMAC_STRUCT(hHal);
+
 #ifndef WLAN_FEATURE_MBSSID
     hdd_config_t *hdd_config = (WLAN_HDD_GET_CTX(adapter))->cfg_ini;
 #endif
@@ -4780,6 +4793,11 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 #else
                   band_to_hw_mode(hdd_config->apOperatingBand)) {
 #endif
+
+            tSmeConfigParams smeConfig;
+            vos_mem_zero(&smeConfig, sizeof(smeConfig));
+            sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
+
             hddLog(LOGW,
                    FL("Conflict band setting between hostapd and driver!!"));
             switch (hw_mode) {
@@ -4799,6 +4817,11 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
                  hdd_config->apEndChannelNum =
                                          rfChannels[RF_CHAN_14].channelNum;
 #endif
+                 if (hw_mode == QCA_ACS_MODE_IEEE80211G)
+                     smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11g;
+                 else
+                     smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11b;
+
                  break;
            case  QCA_ACS_MODE_IEEE80211A:
 #ifdef WLAN_FEATURE_MBSSID
@@ -4816,12 +4839,15 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
                  hdd_config->sap_dyn_ini_cfg.apEndChannelNum =
                                          rfChannels[RF_CHAN_165].channelNum;
 #endif
+                 smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11a;
                  break;
            default:
                  hddLog(LOGE,
                    FL("Unsupported hw_mode!"));
                  goto out;
            }
+
+           sme_UpdateConfig(hdd_ctx->hHal, &smeConfig);
         }
     }
 
@@ -4839,8 +4865,32 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
         default:
             break;
         }
+
+        smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11n;
+
+#ifdef WLAN_FEATURE_11AC
+        /* Overwrite the hostapd setting for HW mode only for 11ac.
+         * This is valid only if mode is set to 11n in hostapd and
+         * either AUTO or 11ac in .ini .i*/
+        if(sap_force11AC_for11n &&
+            ((hdd_ctx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO) ||
+             (hdd_ctx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac) ||
+             (hdd_ctx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY))) {
+            if (hdd_ctx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
+                smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11ac_ONLY;
+            else
+                smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11ac;
+
+            /* for 2.4G */
+            if ((hw_mode == QCA_ACS_MODE_IEEE80211G) &&
+                   !hdd_ctx->cfg_ini->enableVhtFor24GHzBand)
+                smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11n;
+        }
+#endif
         sme_UpdateConfig(hdd_ctx->hHal, &smeConfig);
+        hddLog(LOG1, FL("phyMode is %d"), smeConfig.csrConfig.phyMode);
     }
+
 
     status = wlan_hdd_config_acs(hdd_ctx, adapter);
     if (status) {
