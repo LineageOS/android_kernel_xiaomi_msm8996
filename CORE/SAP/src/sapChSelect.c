@@ -2201,7 +2201,7 @@ void sapSortChlWeightHT80(tSapChSelSpectInfo *pSpectInfoParams)
         {
             /* some channels does not exist in pSectInfo array,
                skip this channel and those in the same HT80 width*/
-            pSpectInfo[j].weight = ACS_WEIGHT_MAX;
+            pSpectInfo[j].weight = ACS_WEIGHT_MAX * 4;
             if ((pSpectInfo[j].chNum +4) == pSpectInfo[j+1].chNum)
                 pSpectInfo[j+1].weight = ACS_WEIGHT_MAX * 4;
             if ((pSpectInfo[j].chNum +8) == pSpectInfo[j+2].chNum)
