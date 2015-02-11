@@ -2355,10 +2355,10 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 
 #if defined(CONFIG_HL_SUPPORT)
 #define MAX_SUPPORTED_PEERS_REV1_1 9
-#define MAX_SUPPORTED_PEERS_REV1_3 9
+#define MAX_SUPPORTED_PEERS 10
 #else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
-#define MAX_SUPPORTED_PEERS_REV1_3 32
+#define MAX_SUPPORTED_PEERS 32
 #endif
 
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
@@ -2374,8 +2374,8 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 			break;
 
 		default:
-			if(scn->max_no_of_peers > MAX_SUPPORTED_PEERS_REV1_3)
-				max_no_of_peers = MAX_SUPPORTED_PEERS_REV1_3;
+			if(scn->max_no_of_peers > MAX_SUPPORTED_PEERS)
+				max_no_of_peers = MAX_SUPPORTED_PEERS;
 			else
 				max_no_of_peers = scn->max_no_of_peers;
 			break;
