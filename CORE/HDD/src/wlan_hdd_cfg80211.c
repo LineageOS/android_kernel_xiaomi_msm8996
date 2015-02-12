@@ -12861,6 +12861,12 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         return 0;
     }
 
+    if (true == pHddStaCtx->hdd_ReassocScenario) {
+        hddLog(LOG1,
+               FL("Roaming is in progress, cannot continue with this request"));
+        return 0;
+    }
+
     status = wlan_hdd_validate_context(pHddCtx);
 
     if (0 != status)
