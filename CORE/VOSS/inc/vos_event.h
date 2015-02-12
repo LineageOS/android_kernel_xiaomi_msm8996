@@ -182,11 +182,6 @@ VOS_STATUS vos_event_reset( vos_event_t * event );
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_event_destroy( vos_event_t *event );
 
-// TODO: this is being removed and a stub exists currently to avoid
-// compiler errors
-VOS_STATUS vos_wait_events( vos_event_t *events, v_U8_t numEvents,
-                            v_U32_t timeout, v_U8_t *pEventIndex );
-
 /*----------------------------------------------------------------------------
 
   \brief vos_wait_single_event() - Waits for a single event to be set.

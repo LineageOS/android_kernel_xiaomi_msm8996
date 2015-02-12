@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -81,6 +81,9 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 
 #define SYS_MSG_COOKIE ( 0xFACE )
 
+/* SYS stop timeout 30 seconds */
+#define SYS_STOP_TIMEOUT (30000)
+
 // need to define FIELD_OFFSET for non-WM platforms
 #ifndef FIELD_OFFSET
 #define FIELD_OFFSET(x,y) offsetof(x,y)
@@ -133,7 +136,6 @@ VOS_STATUS sysStop( v_CONTEXT_t pVosContext )
 {
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_msg_t sysMsg;
-   v_U8_t evtIndex;
 
    /* Initialize the stop event */
    vosStatus = vos_event_init( &gStopEvt );
@@ -158,7 +160,7 @@ VOS_STATUS sysStop( v_CONTEXT_t pVosContext )
       vosStatus = VOS_STATUS_E_BADMSG;
    }
 
-   vosStatus = vos_wait_events( &gStopEvt, 1, 0, &evtIndex );
+   vosStatus = vos_wait_single_event(&gStopEvt, SYS_STOP_TIMEOUT);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS ( vosStatus ) );
 
    vosStatus = vos_event_destroy( &gStopEvt );

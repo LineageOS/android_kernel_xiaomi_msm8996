@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -242,63 +242,6 @@ VOS_STATUS vos_event_reset ( vos_event_t* event )
    return VOS_STATUS_SUCCESS;
 }
 
-
-/*----------------------------------------------------------------------------
-
-  \brief vos_wait_events() - Waits for the first event(s) to be set.
-
-   This API waits for any event in the input array of events to be
-   set.  The caller is blocked waiting any event in the array to be
-   set or for the timeout to occur.
-
-   If multiple events in the array are set, only one event is identified
-   in the return from this call as satisfying the wait condition.  The
-   caller is responsible for calling \a vos_wait_events() again to find
-   the other events that are set.
-
-  \param events - pointer to an array of events to wait on.
-
-  \param numEvents - Number of events in the events array to wait on.
-
-  \param timeout - Timeout value (in milliseconds).  This function returns
-         if this interval elapses, regardless if any of the events have
-         been set.  An input value of 0 for this timeout parameter means
-         to wait infinitely, meaning a timeout will never occur.
-
-  \param pEventIndex - This is a pointer to the location where the index of
-         the event in the event array that satisfied the wait because
-         the event was set.
-
-  \return VOS_STATUS_SUCCESS - the wait was satisifed by one of the events
-          in the event array being set.  The index into the event arry
-          that satisfied the wait can be found at *pEventIndex.
-
-          VOS_STATUS_E_TIMEOUT - the timeout interval elapsed before any of
-          the events were set.
-
-          VOS_STATUS_E_INVAL - At least one of the values specified in the
-          event array refers to an uninitialized event object.
-
-          VOS_STATUS_E_ABORTED - The event due to which the wait was aborted
-          is identified by the index in *pEventIndex.
-
-          VOS_STATUS_E_EMPTY - the events array is empty.  This condition
-          is detected by numEvents being 0 on input.
-
-          VOS_STATUS_E_FAULT - event or pEventIndex is an invalid pointer.
-
-          VOS_STATUS_E_FAILURE - default return value if it fails due to
-          unknown reasons
-
-  \sa
-   --------------------------------------------------------------------------*/
-VOS_STATUS vos_wait_events ( vos_event_t* events,
-                             v_U8_t numEvents, v_U32_t timeout,
-                             v_U8_t *pEventIndex )
-{
-
-   return vos_wait_single_event(events,timeout);
-}
 
 /*--------------------------------------------------------------------------
 
