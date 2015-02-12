@@ -11512,33 +11512,20 @@ int hdd_register_wext(struct net_device *dev)
 
 int hdd_UnregisterWext(struct net_device *dev)
 {
-#if 0
-   hdd_wext_state_t *wextBuf;
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	int islocked;
 
-   ENTER();
-   // Set up the pointer to the Wireless Extensions state structure
-   wextBuf = pAdapter->pWextState;
+	hddLog(LOG1, FL("dev(%p)"), dev);
 
-   // De-allocate the Wireless Extensions state structure
-   kfree(wextBuf);
+	if (dev != NULL) {
+		islocked = rtnl_is_locked();
+		if (!islocked)
+			rtnl_lock();
 
-   // Clear out the pointer to the Wireless Extensions state structure
-   pAdapter->pWextState = NULL;
+		dev->wireless_handlers = NULL;
 
-   EXIT();
-#endif
-	int islocked = rtnl_is_locked();
-
-	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "In %s", __func__);
-
-	if (!islocked)
-		rtnl_lock();
-
-	dev->wireless_handlers = NULL;
-
-	if (!islocked)
-		rtnl_unlock();
+		if (!islocked)
+			rtnl_unlock();
+	}
 
 	return 0;
 }
