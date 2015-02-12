@@ -11528,6 +11528,17 @@ int hdd_UnregisterWext(struct net_device *dev)
 
    EXIT();
 #endif
-   dev->wireless_handlers = NULL;
-   return 0;
+	int islocked = rtnl_is_locked();
+
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "In %s", __func__);
+
+	if (!islocked)
+		rtnl_lock();
+
+	dev->wireless_handlers = NULL;
+
+	if (!islocked)
+		rtnl_unlock();
+
+	return 0;
 }
