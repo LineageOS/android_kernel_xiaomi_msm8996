@@ -11717,10 +11717,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #ifdef IPA_OFFLOAD
    hdd_ipa_cleanup(pHddCtx);
 #endif
-   //Free up dynamically allocated members inside HDD Adapter
-   kfree(pHddCtx->cfg_ini);
-   pHddCtx->cfg_ini= NULL;
-
 
    /* free the power on lock from platform driver */
    if (free_riva_power_on_lock("wlan"))
@@ -11734,6 +11730,13 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_list_destroy(&pHddCtx->hdd_roc_req_q);
 
 free_hdd_ctx:
+
+   /* Free up dynamically allocated members inside HDD Adapter */
+   if (pHddCtx->cfg_ini) {
+       kfree(pHddCtx->cfg_ini);
+       pHddCtx->cfg_ini= NULL;
+   }
+
    /* FTM mode, WIPHY did not registered
       If un-register here, system crash will happen */
    if (VOS_FTM_MODE != hdd_get_conparam())
