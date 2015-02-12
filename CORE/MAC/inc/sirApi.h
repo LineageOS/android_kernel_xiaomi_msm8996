@@ -5792,7 +5792,8 @@ typedef struct
 
 #define RTT_INVALID                     0x00
 #define RTT_TIMING_MEAS_CAPABILITY      0x01
-#define RTT_FINE_TIMING_MEAS_CAPABILITY 0x02
+#define RTT_FINE_TIME_MEAS_INITIATOR_CAPABILITY    0x02
+#define RTT_FINE_TIME_MEAS_RESPONDER_CAPABILITY    0x03
 
 /* number of neighbor reports that we can handle in Neighbor Report Response */
 #define MAX_SUPPORTED_NEIGHBOR_RPT 15
