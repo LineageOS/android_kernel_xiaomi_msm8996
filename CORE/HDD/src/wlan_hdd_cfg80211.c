@@ -121,6 +121,11 @@
 #define GET_IE_LEN_IN_BSS_DESC(lenInBss) ( lenInBss + sizeof(lenInBss) - \
         ((uintptr_t)OFFSET_OF( tSirBssDescription, ieFields)))
 
+/*
+ * Android CTS verifier needs atleast this much wait time (in msec)
+ */
+#define MAX_REMAIN_ON_CHANNEL_DURATION    (5000)
+
 /* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
    check. The bit map is defined in:
 
@@ -5802,7 +5807,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     /*signal strength in mBm (100*dBm) */
     wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
-    wiphy->max_remain_on_channel_duration = 1000;
+    wiphy->max_remain_on_channel_duration = MAX_REMAIN_ON_CHANNEL_DURATION;
     wiphy->n_vendor_commands = ARRAY_SIZE(hdd_wiphy_vendor_commands);
     wiphy->vendor_commands = hdd_wiphy_vendor_commands;
 
