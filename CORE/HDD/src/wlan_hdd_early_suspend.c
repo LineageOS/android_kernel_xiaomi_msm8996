@@ -1223,10 +1223,20 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 
     wlanRxpFilterParam->setMcstBcstFilter = setfilter;
     halStatus = sme_ConfigureRxpFilter(pHddCtx->hHal, wlanRxpFilterParam);
+
+    if (setfilter && (eHAL_STATUS_SUCCESS == halStatus))
+       pHddCtx->hdd_mcastbcast_filter_set = TRUE;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s to post set/reset filter to"
+           "lower mac with status %d"
+           "configuredMcstBcstFilterSetting = %d"
+           "setMcstBcstFilter = %d",(eHAL_STATUS_SUCCESS != halStatus) ?
+           "Failed" : "Success", halStatus,
+           wlanRxpFilterParam->configuredMcstBcstFilterSetting,
+           wlanRxpFilterParam->setMcstBcstFilter);
+
     if (eHAL_STATUS_SUCCESS != halStatus)
         vos_mem_free(wlanRxpFilterParam);
-    if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
-       pHddCtx->hdd_mcastbcast_filter_set = TRUE;
 }
 
 static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
