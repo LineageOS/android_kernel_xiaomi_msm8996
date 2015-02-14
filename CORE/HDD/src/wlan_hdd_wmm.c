@@ -1576,7 +1576,10 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
 #ifdef FEATURE_WLAN_ESE
       hdd_wmm_disable_inactivity_timer(pQosContext);
 #endif
-      vos_flush_work(&pQosContext->wmmAcSetupImplicitQos);
+      if (pQosContext->handle == HDD_WMM_HANDLE_IMPLICIT
+          && pQosContext->magic == HDD_WMM_CTX_MAGIC)
+          vos_flush_work(&pQosContext->wmmAcSetupImplicitQos);
+
       hdd_wmm_free_context(pQosContext);
    }
 
