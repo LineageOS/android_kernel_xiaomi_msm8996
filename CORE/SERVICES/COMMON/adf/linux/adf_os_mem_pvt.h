@@ -177,21 +177,6 @@ __adf_os_str_cmp(const char *str1, const char *str2)
 }
 
 /**
- * @brief Copy from one string to another
- *
- * @param[in] dest  destination string
- * @param[in] src   source string
- * @param[in] bytes limit of num bytes to copy
- *
- * @retval    0     returns the initial value of dest
- */
-static inline char *
-__adf_os_str_ncopy(char *dest, const char *src, a_uint32_t bytes)
-{
-    return strncpy(dest, src, bytes);
-}
-
-/**
  * @brief Returns the length of a string
  *
  * @param[in] str   input string
