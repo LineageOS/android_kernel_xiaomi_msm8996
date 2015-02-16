@@ -12763,10 +12763,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef WLAN_OPEN_P2P_INTERFACE
       /* Open P2P device interface */
       if (pAdapter != NULL) {
-         if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) {
-            vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes,
-                        pHddCtx->cfg_ini->intfMacAddr[0].bytes,
-                        sizeof(tSirMacAddr));
+         if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
+             !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] &= 0x02)) {
+            vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,
+                         pHddCtx->cfg_ini->intfMacAddr[0].bytes,
+                         sizeof(tSirMacAddr));
 
             /* Generate the P2P Device Address.  This consists of the device's
              * primary MAC address with the locally administered bit set.
@@ -14735,7 +14736,8 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
 }
 #endif
 
-hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter)
+hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter,
+                                        bool check_start_bss)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(this_sap_adapter);
     hdd_adapter_t *pAdapter, *con_sap_adapter;
@@ -14747,12 +14749,16 @@ hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter)
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
     while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
         pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP) {
-            if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
-                if (pAdapter != this_sap_adapter) {
+        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP &&
+            pAdapter != this_sap_adapter) {
+            if (check_start_bss) {
+                if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {
                     con_sap_adapter = pAdapter;
                     break;
                 }
+            } else {
+                    con_sap_adapter = pAdapter;
+                    break;
             }
         }
         status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext );

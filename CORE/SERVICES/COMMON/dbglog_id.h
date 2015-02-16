@@ -1360,10 +1360,25 @@ extern "C" {
 #define NAN_DBGID_OTA_PKT_BASE                      NAN_DBGID_API_MSG_LAST
 #define NAN_DBGID_OTA_PKT_HEADER                    (NAN_DBGID_OTA_PKT_BASE + 0)
 #define NAN_DBGID_OTA_PKT_DATA                      (NAN_DBGID_OTA_PKT_BASE + 1)
-#define NAN_DBGID_OTA_PKT_LAST                      (NAN_DBGID_OTA_PKT_BASE + 2)
+#define NAN_DBGID_OTA_PKT_LAST                      (NAN_DBGID_OTA_PKT_BASE + 2) /*  not really the last! */
 
-#define NAN_DBGID_END                               NAN_DBGID_OTA_PKT_LAST
+#define NAN_DBGID_BEACON_RX_TIMES               (NAN_DBGID_OTA_PKT_LAST + 0)
+#define NAN_DBGID_BEACON_RX_MANDATORY_ATTRS     (NAN_DBGID_OTA_PKT_LAST + 1)
+#define NAN_DBGID_BEACON_RX_SID_ATTR            (NAN_DBGID_OTA_PKT_LAST + 2)
+#define NAN_DBGID_BEACON_RX_VSA_ATTR            (NAN_DBGID_OTA_PKT_LAST + 3)
+#define NAN_DBGID_BEACON_RX_AVG_RSSI            (NAN_DBGID_OTA_PKT_LAST + 4)
+#define NAN_DBGID_CANDIDATE_BEACONS             (NAN_DBGID_OTA_PKT_LAST + 5)
+#define NAN_DBGID_TSF_OFFSET                    (NAN_DBGID_OTA_PKT_LAST + 6)
+#define NAN_DBGID_ANCHORMASTER_RECORD_UPDATE_LAST       (NAN_DBGID_OTA_PKT_LAST + 7)
+#define NAN_DBGID_ANCHORMASTER_RECORD_EXPIRED2  (NAN_DBGID_OTA_PKT_LAST + 8)
+#define NAN_DBGID_BEACON_TX_SEND                (NAN_DBGID_OTA_PKT_LAST + 9)
+#define NAN_DBGID_BEACON_TX_CANCEL              (NAN_DBGID_OTA_PKT_LAST + 10)
+#define NAN_DBGID_NAN_SCAN_EVENT                (NAN_DBGID_OTA_PKT_LAST + 11)
+#define NAN_DBGID_NAN_SDF_QUEUED                (NAN_DBGID_OTA_PKT_LAST + 12)
+#define NAN_DBGID_NAN_BEACON_QUEUED             (NAN_DBGID_OTA_PKT_LAST + 13)
+#define NAN_DBGID_NAN_NOT_ALLOWED               (NAN_DBGID_OTA_PKT_LAST + 14)
 
+#define NAN_DBGID_END                           (NAN_DBGID_NAN_NOT_ALLOWED + 1)
 
 /* IBSS PS module DBGIDs*/
 #define IBSS_PS_DBGID_DEFINITION_START           0

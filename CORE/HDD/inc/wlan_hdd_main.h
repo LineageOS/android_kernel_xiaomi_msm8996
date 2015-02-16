@@ -94,7 +94,10 @@
 #define SOFTAP_BSS_STARTED     (4)
 #define DEVICE_IFACE_OPENED    (5)
 #define TDLS_INIT_DONE         (6)
-#define ACS_IN_PROGRESS        (7)
+#define ACS_PENDING            (7)
+
+/* HDD global event flags */
+#define ACS_IN_PROGRESS        (0)
 
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  2000
@@ -1088,6 +1091,9 @@ struct hdd_adapter_s
     mbssid_sap_dyn_ini_config_t sap_dyn_ini_cfg;
 #endif
     struct work_struct scan_block_work;
+    /* Using delayed work for ACS for Primary AP Startup to complete
+     * since CSR Config is same for both AP */
+    struct delayed_work acs_pending_work;
 #ifdef MSM_PLATFORM
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
@@ -1522,6 +1528,7 @@ struct hdd_context_s
     struct work_struct rocReqWork;
     hdd_list_t hdd_roc_req_q;
     bool mcc_mode;
+    unsigned long g_event_flags;
 #ifdef FEATURE_BUS_AUTO_SUSPEND
     vos_timer_t auto_suspend_timer;
     atomic_t auto_suspend_state;
@@ -1717,7 +1724,8 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len);
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
 
-hdd_adapter_t *hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter);
+hdd_adapter_t *hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter,
+                                       bool check_start_bss);
 
 boolean hdd_is_5g_supported(hdd_context_t * pHddCtx);
 

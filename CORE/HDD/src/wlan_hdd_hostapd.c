@@ -1127,7 +1127,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* reset the dfs_cac_status and dfs_cac_block_tx flag only when
              * the last BSS is stopped
              */
-            con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter);
+            con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter, true);
             if (!con_sap_adapter) {
                 pHddApCtx->dfs_cac_block_tx = TRUE;
                 pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
@@ -1638,19 +1638,22 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             return VOS_STATUS_E_FAILURE;
 #endif
             return VOS_STATUS_SUCCESS;
-
+#ifdef QCA_HT_2040_COEX
         case eSAP_ACS_CHANNEL_SELECTED:
-            hddLog(LOG1, FL("Received eSAP_ACS_CHANNEL_SELECTED"));
+            hddLog(LOG1, FL("ACS Completed for wlan%d"),
+                                              pHostapdAdapter->dev->ifindex);
+            clear_bit(ACS_PENDING, &pHostapdAdapter->event_flags);
+            clear_bit(ACS_IN_PROGRESS, &pHddCtx->g_event_flags);
             pHddApCtx->operatingChannel =
                  pSapEvent->sapevt.sapAcsChSelected.pri_channel;
             pHddApCtx->secondaryChannel =
                  pSapEvent->sapevt.sapAcsChSelected.sec_channel;
             /* send vendor event to hostapd */
-            wlan_hdd_cfg80211_acs_ch_select_evt(pHddCtx,
+            wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter,
                        pSapEvent->sapevt.sapAcsChSelected.pri_channel,
                        pSapEvent->sapevt.sapAcsChSelected.sec_channel);
             return VOS_STATUS_SUCCESS;
-
+#endif
         default:
             hddLog(LOG1,"SAP message is not handled");
             goto stopbss;
