@@ -417,7 +417,8 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     limSendSmeStartBssRsp(pMac, eWNI_SME_START_BSS_RSP,
                           ((tLimMlmStartCnf *) pMsgBuf)->resultCode,psessionEntry,
                           smesessionId,smetransactionId);
-    if (((tLimMlmStartCnf *) pMsgBuf)->resultCode == eSIR_SME_SUCCESS)
+    if ((psessionEntry != NULL) &&
+        (((tLimMlmStartCnf *) pMsgBuf)->resultCode == eSIR_SME_SUCCESS))
     {
         channelId = psessionEntry->pLimStartBssReq->channelId;
 
