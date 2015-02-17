@@ -1194,6 +1194,13 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket,
         pHtcHdr = (HTC_FRAME_HDR *) adf_nbuf_get_frag_vaddr(netbuf, 0);
         AR_DEBUG_ASSERT(pHtcHdr);
 
+        if (pPacket->ActualLength > (pEndpoint->TxCreditSize - HTC_HDR_LENGTH)) {
+            pPacket->ActualLength = pEndpoint->TxCreditSize - HTC_HDR_LENGTH;
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+            (" Packet Length %d exceeds endpoint credit size  %d \n           \
+               Set the packet length to credit size \n", pPacket->ActualLength,
+               pEndpoint->TxCreditSize));
+        }
         HTC_WRITE32(pHtcHdr, SM(pPacket->ActualLength, HTC_FRAME_HDR_PAYLOADLEN) |
                  SM(pPacket->PktInfo.AsTx.SendFlags, HTC_FRAME_HDR_FLAGS) |
                  SM(pPacket->Endpoint, HTC_FRAME_HDR_ENDPOINTID));

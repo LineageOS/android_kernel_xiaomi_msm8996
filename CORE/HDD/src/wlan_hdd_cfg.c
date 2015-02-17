@@ -1863,6 +1863,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_DFS_CHNL_SCAN_MIN,
                  CFG_ENABLE_DFS_CHNL_SCAN_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_DFS_PNO_CHNL_SCAN_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, enable_dfs_pno_chnl_scan,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ENABLE_DFS_PNO_CHNL_SCAN_DEFAULT,
+              CFG_ENABLE_DFS_PNO_CHNL_SCAN_MIN,
+              CFG_ENABLE_DFS_PNO_CHNL_SCAN_MAX ),
+
    REG_VARIABLE( CFG_ENABLE_DYNAMIC_DTIM_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableDynamicDTIM,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3566,6 +3573,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_MCC_CHANNEL_AVOIDANCE_MIN,
                 CFG_SAP_MCC_CHANNEL_AVOIDANCE_MAX ),
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+   REG_VARIABLE(CFG_ENABLE_NON_DFS_CHAN_ON_RADAR, WLAN_PARAM_Integer,
+                hdd_config_t, prefer_non_dfs_on_radar,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN,
+                CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX),
+
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4011,6 +4026,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBypass11d] Value = [%u] ",pHddCtx->cfg_ini->enableBypass11d);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableDFSChnlScan] Value = [%u] ",pHddCtx->cfg_ini->enableDFSChnlScan);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableDFSPnoChnlScan] Value = [%u] ",pHddCtx->cfg_ini->enable_dfs_pno_chnl_scan);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gReportMaxLinkSpeed] Value = [%u] ",pHddCtx->cfg_ini->reportMaxLinkSpeed);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [thermalMitigationEnable] Value = [%u] ",pHddCtx->cfg_ini->thermalMitigationEnable);
 #ifdef WLAN_FEATURE_11AC
@@ -6040,6 +6056,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->sap_channel_avoidance =
                 pHddCtx->cfg_ini->sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+   smeConfig->f_prefer_non_dfs_on_radar =
+                       pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

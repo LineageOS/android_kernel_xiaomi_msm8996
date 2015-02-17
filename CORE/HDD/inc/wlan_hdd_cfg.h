@@ -1193,6 +1193,11 @@ typedef enum
 #define CFG_ENABLE_DFS_CHNL_SCAN_MAX               ( 1 )
 #define CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT           ( 1 )
 
+#define CFG_ENABLE_DFS_PNO_CHNL_SCAN_NAME              "gEnableDFSPnoChnlScan"
+#define CFG_ENABLE_DFS_PNO_CHNL_SCAN_MIN               ( 0 )
+#define CFG_ENABLE_DFS_PNO_CHNL_SCAN_MAX               ( 1 )
+#define CFG_ENABLE_DFS_PNO_CHNL_SCAN_DEFAULT           ( 1 )
+
 typedef enum
 {
     eHDD_LINK_SPEED_REPORT_ACTUAL = 0,
@@ -2751,6 +2756,11 @@ enum dot11p_mode {
 #define CFG_SAP_MCC_CHANNEL_AVOIDANCE_DEFAULT    ( 0 )
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+#define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR           "gPreferNonDfsChanOnRadar"
+#define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN       (0)
+#define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX       (1)
+#define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT   (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3024,6 +3034,7 @@ typedef struct
    v_U32_t                     enableCloseLoop;
    v_U8_t                      enableBypass11d;
    v_U8_t                      enableDFSChnlScan;
+   v_U8_t                      enable_dfs_pno_chnl_scan;
    v_U8_t                      enableDynamicDTIM;
    v_U8_t                      enableAutomaticTxPowerControl;
    v_U8_t                      ShortGI40MhzEnable;
@@ -3350,6 +3361,7 @@ typedef struct
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
    bool                        sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+   uint8_t                     prefer_non_dfs_on_radar;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
