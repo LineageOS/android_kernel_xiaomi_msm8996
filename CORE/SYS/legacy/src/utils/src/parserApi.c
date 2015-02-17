@@ -1172,6 +1172,7 @@ PopulateDot11fExtCap(tpAniSirGlobal   pMac,
         p_ext_cap->bssCoexistMgmtSupport = 1;
     }
 #endif
+    p_ext_cap->extChanSwitch = 1;
     return eSIR_SUCCESS;
 }
 
