@@ -28664,6 +28664,55 @@ void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
 	wma_send_msg(wma, SIR_HAL_MIC_FAILURE_IND, (void *) mic_err_ind, 0);
 }
 
+void
+ol_indicate_err(
+    enum ol_rx_err_type err_type,
+    struct ol_error_info * err_info)
+{
+	switch (err_type) {
+		case OL_RX_ERR_TKIP_MIC:
+		{
+			void *g_vos_ctx = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+			tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, g_vos_ctx);
+			tpSirSmeMicFailureInd mic_err_ind;
+
+			mic_err_ind = vos_mem_malloc(sizeof(*mic_err_ind));
+			if (!mic_err_ind) {
+				WMA_LOGE("%s: Failed to allocate memory for MIC indication message", __func__);
+				return;
+			}
+			adf_os_mem_set((void *) mic_err_ind, 0, sizeof(*mic_err_ind));
+			mic_err_ind->messageType = eWNI_SME_MIC_FAILURE_IND;
+			mic_err_ind->length = sizeof(*mic_err_ind);
+			adf_os_mem_copy(mic_err_ind->bssId,
+				(v_MACADDR_t *) wma->interfaces[err_info->u.mic_err.vdev_id].bssid,
+				sizeof(tSirMacAddr));
+			WMA_LOGE("MIC error: BSSID:%02x:%02x:%02x:%02x:%02x:%02x\n",
+				   mic_err_ind->bssId[0], mic_err_ind->bssId[1],
+				   mic_err_ind->bssId[2], mic_err_ind->bssId[3],
+				   mic_err_ind->bssId[4], mic_err_ind->bssId[5]);
+			adf_os_mem_copy(mic_err_ind->info.taMacAddr,
+				(v_MACADDR_t *) err_info->u.mic_err.ta, sizeof(tSirMacAddr));
+			adf_os_mem_copy(mic_err_ind->info.srcMacAddr,
+				(v_MACADDR_t *) err_info->u.mic_err.sa, sizeof(tSirMacAddr));
+			adf_os_mem_copy(mic_err_ind->info.dstMacAddr,
+				(v_MACADDR_t *) err_info->u.mic_err.da, sizeof(tSirMacAddr));
+			mic_err_ind->info.keyId = err_info->u.mic_err.key_id;
+			mic_err_ind->info.multicast =
+					 IEEE80211_IS_MULTICAST(err_info->u.mic_err.da);
+			adf_os_mem_copy(mic_err_ind->info.TSC, (void*)&err_info->
+							 u.mic_err.pn, SIR_CIPHER_SEQ_CTR_SIZE);
+			wma_send_msg(wma, SIR_HAL_MIC_FAILURE_IND, (void *) mic_err_ind, 0);
+			break;
+		}
+		default:
+		{
+			WMA_LOGE("%s: unhandled ol error type %d", __func__, err_type);
+			break;
+		}
+	}
+}
+
 void WDA_TxAbort(v_U8_t vdev_id)
 {
 #define PEER_ALL_TID_BITMASK 0xffffffff

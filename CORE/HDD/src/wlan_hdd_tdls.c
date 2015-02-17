@@ -971,10 +971,8 @@ hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, u8 *mac)
 
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
 
-    if (NULL == pHddTdlsCtx)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("pHddTdlsCtx is NULL"));
+    if (NULL == pHddTdlsCtx) {
+        hddLog(LOG1, FL("pHddTdlsCtx is NULL"));
         vos_mem_free(peer);
         mutex_unlock(&pHddCtx->tdls_lock);
         return NULL;
@@ -1373,10 +1371,8 @@ int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, u8 *mac, u8 tx)
         return -1;
 
     curr_peer = wlan_hdd_tdls_get_peer(pAdapter, mac);
-    if (curr_peer == NULL)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("curr_peer is NULL"));
+    if (curr_peer == NULL) {
+        hddLog(LOG1, FL("curr_peer is NULL"));
         return -1;
     }
 

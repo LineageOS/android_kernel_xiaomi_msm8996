@@ -1109,9 +1109,10 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
 
 int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                                    struct cfg80211_wowlan *wow);
-
-void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_context_t *pHddCtx,
-                                        v_U8_t priChannel, v_U8_t secChannel);
+#ifdef QCA_HT_2040_COEX
+void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter,
+		uint8_t priChannel, uint8_t secChannel);
+#endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
 		uint8_t *req_rsn_ie, uint32_t req_rsn_length,

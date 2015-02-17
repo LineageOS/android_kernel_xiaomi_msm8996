@@ -613,7 +613,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
 
     /* Block All Scan during DFS operation and send null scan result */
-    con_sap_adapter = hdd_get_con_sap_adapter(pAdapter);
+    con_sap_adapter = hdd_get_con_sap_adapter(pAdapter, true);
     if (con_sap_adapter) {
         con_dfs_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
         if (con_dfs_ch == AUTO_CHANNEL_SELECT)
