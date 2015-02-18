@@ -2936,6 +2936,24 @@ void WLANTL_SetUcActive(void *vos_ctx,
 ==============================================================================*/
 void WLANTL_RegisterOPCbFnc(void *vos_ctx,
 	void (*func)(v_U8_t *op_msg, void *usr_ctxt), void *usr_ctxt);
+
+/*=============================================================================
+  FUNCTION    WLANTL_disable_intrabss_fwd
+
+  DESCRIPTION
+    Function to return if Intra-BSS FWD is disabled or not
+
+  PARAMETERS
+    IN
+    vdev : vdev handle
+
+  RETURN VALUE
+    bool : TRUE if Intra-BSS FWD is disabled, FALSE if not
+
+  SIDE EFFECTS
+
+==============================================================================*/
+bool WLANTL_disable_intrabss_fwd(void *vdev);
 #endif /* IPA_UC_OFFLOAD */
 
 /*=============================================================================
