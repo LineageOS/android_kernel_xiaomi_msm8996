@@ -13974,6 +13974,8 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
     eHalStatus status = eHAL_STATUS_FAILURE;
     int ret = 0;
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    hdd_config_t *config = NULL;
+    v_U32_t num_ignore_dfs_ch = 0;
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
@@ -13985,6 +13987,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         return ret;
     }
 
+    config = pHddCtx->cfg_ini;
     hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     if (NULL == hHal)
     {
@@ -14080,6 +14083,17 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
             {
                 if (request->channels[i]->hw_value == channels_allowed[indx])
                 {
+                    if ((!config->enable_dfs_pno_chnl_scan) &&
+                      (NV_CHANNEL_DFS ==
+                         vos_nv_getChannelEnabledState(channels_allowed[indx])))
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                        "%s : Dropping DFS channel : %d",
+                        __func__,channels_allowed[indx]);
+                        num_ignore_dfs_ch++;
+                        break;
+                    }
+
                    valid_ch[num_ch++] = request->channels[i]->hw_value;
                    len += snprintf(chList+len, 5, "%d ",
                                   request->channels[i]->hw_value);
@@ -14088,7 +14102,17 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
              }
          }
          hddLog(VOS_TRACE_LEVEL_INFO,"Channel-List: %s ", chList);
-     }
+
+         /*If all channels are DFS and dropped, then ignore the PNO request*/
+         if (num_ignore_dfs_ch == request->n_channels)
+         {
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                 "%s : All requested channels are DFS channels", __func__);
+             ret = -EINVAL;
+             goto error;
+         }
+    }
+
     /* Filling per profile  params */
     for (i = 0; i < pPnoRequest->ucNetworksCount; i++)
     {

@@ -2259,32 +2259,32 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac, tpSirProbeRespBeacon pBeacon,
       * if our own channel-bonding state is not enabled
       */
      if (psessionEntry->htSupportedChannelWidthSet) {
-         if (pBeacon->extChannelSwitchPresent) {
-             if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+         if (pBeacon->sec_chan_offset_present) {
+             if ((pBeacon->sec_chan_offset.secondaryChannelOffset ==
                                  PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
-                 (pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                 (pBeacon->sec_chan_offset.secondaryChannelOffset ==
                                  PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)) {
                  psessionEntry->gLimChannelSwitch.state =
                                       eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
                  psessionEntry->gLimChannelSwitch.secondarySubBand =
-                             pBeacon->extChannelSwitchIE.secondaryChannelOffset;
+                             pBeacon->sec_chan_offset.secondaryChannelOffset;
              }
 #ifdef WLAN_FEATURE_11AC
              if (psessionEntry->vhtCapability &&
                                pBeacon->WiderBWChanSwitchAnnPresent) {
                  if (pWiderChnlSwitch->newChanWidth ==
                                    WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ) {
-                     if (pBeacon->extChannelSwitchPresent) {
-                         if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                     if (pBeacon->sec_chan_offset_present) {
+                         if ((pBeacon->sec_chan_offset.secondaryChannelOffset ==
                                               PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
-                             (pBeacon->extChannelSwitchIE.secondaryChannelOffset ==
+                             (pBeacon->sec_chan_offset.secondaryChannelOffset ==
                                               PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)) {
                              psessionEntry->gLimChannelSwitch.state =
                                       eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
                              psessionEntry->gLimChannelSwitch.secondarySubBand =
                                 limGet11ACPhyCBState(pMac,
                                     psessionEntry->gLimChannelSwitch.primaryChannel,
-                                    pBeacon->extChannelSwitchIE.secondaryChannelOffset,
+                                    pBeacon->sec_chan_offset.secondaryChannelOffset,
                                     pWiderChnlSwitch->newCenterChanFreq0,
                                     psessionEntry);
                          }

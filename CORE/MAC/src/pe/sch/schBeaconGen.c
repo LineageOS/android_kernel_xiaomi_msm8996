@@ -310,6 +310,12 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
      * Initialize the 'new' fields at the end of the beacon
      */
 
+    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+       psessionEntry->dfsIncludeChanSwIe == VOS_TRUE) {
+           populate_dot_11_f_ext_chann_switch_ann(pMac,
+                           &pBcn2->ext_chan_switch_ann,
+                           psessionEntry);
+    }
 
     PopulateDot11fCountry( pMac, &pBcn2->Country, psessionEntry);
     if(pBcn1->Capabilities.qos)
