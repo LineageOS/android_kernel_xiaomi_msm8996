@@ -200,7 +200,7 @@ ol_tx_desc_ll(
 	tx_desc->htt_tx_desc_paddr,
         ol_tx_desc_id(pdev, tx_desc),
         netbuf,
-        &msdu_info->htt);
+        &msdu_info->htt, NULL, vdev->opmode == wlan_op_mode_ocb);
 
     /*
      * Initialize the fragmentation descriptor.
