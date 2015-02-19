@@ -3084,10 +3084,12 @@ static iw_softap_getchannel(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-
     int *value = (int *)extra;
 
-    *value = (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel;
+    *value = 0;
+    if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
+        *value = (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel;
+
     return 0;
 }
 
