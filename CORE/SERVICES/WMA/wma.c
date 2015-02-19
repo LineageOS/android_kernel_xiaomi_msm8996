@@ -22450,10 +22450,12 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 {
 	wmi_ipa_offload_enable_disable_cmd_fixed_param *cmd;
 	wmi_buf_t wmi_buf;
-	uint32_t   len;
+	uint32_t len;
 	u_int8_t *buf_ptr;
 #ifdef INTRA_BSS_FWD_OFFLOAD
 	ol_txrx_vdev_handle vdev;
+	struct txrx_pdev_cfg_t *cfg;
+	int32_t intra_bss_fwd = 0;
 #endif
 
 	if (!wma || !wma->wmi_handle) {
@@ -22507,17 +22509,25 @@ VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
 	}
 
 #ifdef INTRA_BSS_FWD_OFFLOAD
-	/* Check if VDEV is already deleted. If deleted dont
+	/* Check if VDEV is already deleted. If deleted, don't
 	 * send INTRA BSS FWD WMI command
 	 */
 	vdev = wma_find_vdev_by_id(wma, ipa_offload->vdev_id);
 	if (!vdev)
 		return VOS_STATUS_SUCCESS;
 
+	/* Disable Intra-BSS FWD offload when gDisableIntraBssFwd=1 in INI */
+	cfg = (struct txrx_pdev_cfg_t *)vdev->pdev->ctrl_pdev;
+	if (!ipa_offload->enable || cfg->rx_fwd_disabled) {
+		WMA_LOGE("%s: ipa_offload->enable=%d, rx_fwd_disabled=%d",
+			__func__, ipa_offload->enable, cfg->rx_fwd_disabled);
+		intra_bss_fwd = 1;
+	}
+
 	/* Disable/enable WMI_VDEV_PARAM_INTRA_BSS_FWD */
 	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
 		ipa_offload->vdev_id, WMI_VDEV_PARAM_INTRA_BSS_FWD,
-		ipa_offload->enable ? 0 : 1)) {
+		intra_bss_fwd)) {
 		WMA_LOGE("Failed to disable WMI_VDEV_PARAM_INTRA_BSS_FWD");
 		return VOS_STATUS_E_FAILURE;
 	}
