@@ -11840,7 +11840,10 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                                         eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
              *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
           }
+      } else {
+          *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
       }
+
       /*TODO: Set HT40+ / HT40- for channel 5-7 based on ACS */
       if (pMac->roam.configParam.channelBondingMode24GHz) {
           if (channel >= 1 && channel <= 5)
@@ -11876,6 +11879,8 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
                 *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
           }
+      } else {
+          *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
       }
 
       if (pMac->roam.configParam.channelBondingMode24GHz)
