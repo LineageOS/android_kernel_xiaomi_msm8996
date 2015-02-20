@@ -836,6 +836,15 @@ struct ol_txrx_vdev_t {
 #endif
 	u_int16_t wait_on_peer_id;
 	adf_os_comp_t wait_delete_comp;
+
+	/* last channel change event recieved */
+	struct {
+		bool is_valid;  /* whether the rest of the members are valid */
+		uint16_t mhz;
+		uint16_t band_center_freq1;
+		uint16_t band_center_freq2;
+		WLAN_PHY_MODE phy_mode;
+	} ocb_channel_event;
 };
 
 struct ol_rx_reorder_array_elem_t {
@@ -955,6 +964,16 @@ struct ol_txrx_peer_t {
 	u_int32_t rmf_pn_replays;
 	u_int8_t last_rmf_pn_valid;
 #endif
+
+        /* Properties of the last received PPDU */
+	int16_t last_pkt_rssi_cmb;
+	int16_t last_pkt_rssi[4];
+	uint8_t last_pkt_legacy_rate;
+	uint8_t last_pkt_legacy_rate_sel;
+	uint32_t last_pkt_timestamp_microsec;
+	uint8_t last_pkt_timestamp_submicrosec;
+	uint32_t last_pkt_tsf;
+	uint8_t last_pkt_tid;
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */

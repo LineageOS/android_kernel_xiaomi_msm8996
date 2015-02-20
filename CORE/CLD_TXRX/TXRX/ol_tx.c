@@ -512,7 +512,6 @@ ol_tx_non_std_ll(
  *
  * @msdu:   Pointer to OS packet (adf_nbuf_t)
  */
-#define HDD_ETHERTYPE_OCB_TX   0x8151
 #define OCB_HEADER_VERSION     1
 static bool parse_ocb_tx_header(adf_nbuf_t msdu,
                                 struct ocb_tx_ctrl_hdr_t *tx_ctrl)
@@ -522,10 +521,9 @@ static bool parse_ocb_tx_header(adf_nbuf_t msdu,
 
     /* Check if TX control header is present */
     eth_hdr_p = (struct ether_header *) adf_nbuf_data(msdu);
-    if (eth_hdr_p->ether_type != adf_os_htons(HDD_ETHERTYPE_OCB_TX)) {
+    if (eth_hdr_p->ether_type != adf_os_htons(ETHERTYPE_OCB_TX))
         /* TX control header is not present. Nothing to do.. */
         return true;
-    }
 
     /* Remove the ethernet header */
     adf_nbuf_pull_head(msdu, sizeof(struct ether_header));
@@ -534,9 +532,8 @@ static bool parse_ocb_tx_header(adf_nbuf_t msdu,
     tx_ctrl_hdr = (struct ocb_tx_ctrl_hdr_t*) adf_nbuf_data(msdu);
 
     if (tx_ctrl_hdr->version == OCB_HEADER_VERSION) {
-        if (tx_ctrl) {
+        if (tx_ctrl)
             adf_os_mem_copy(tx_ctrl, tx_ctrl_hdr, sizeof(*tx_ctrl_hdr));
-        }
     } else {
         /* The TX control header is invalid. */
         return false;
