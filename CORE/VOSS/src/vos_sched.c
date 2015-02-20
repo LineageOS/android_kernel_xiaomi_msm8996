@@ -111,6 +111,7 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
 
 #ifdef QCA_CONFIG_SMP
 #define VOS_CORE_PER_CLUSTER 4
+
 static int vos_set_cpus_allowed_ptr(struct task_struct *task,
                                     unsigned long cpu)
 {
@@ -123,7 +124,246 @@ static int vos_set_cpus_allowed_ptr(struct task_struct *task,
 #endif
 }
 
-static int vos_cpu_hotplug_notify(struct notifier_block *block,
+/**
+ * vos_sched_all_litl_cpu_mask - get cpu mask for all little cores
+ * @litl_mask:	little core cpu mask pointer
+ *
+ * When RX thread should attach to little core,
+ *   PERF mode
+ *   low throughput required
+ * RX thread affinity should be any little cores. cpu mask also should
+ * any little core cpus.
+ * Will give all little core cpu mask for little core affinity
+ *
+ * Return: None
+ */
+void vos_sched_all_litl_cpu_mask(struct cpumask *litl_mask)
+{
+	unsigned char litl_core_count = 0;
+	cpumask_clear(litl_mask);
+	for (litl_core_count = 0;
+		litl_core_count < VOS_CORE_PER_CLUSTER;
+		litl_core_count++) {
+		cpumask_set_cpu(litl_core_count, litl_mask);
+	}
+
+	return;
+}
+
+/**
+ * vos_sched_find_attach_cpu - find available cores and attach to required core
+ * @pSchedContext:	wlan scheduler context
+ * @high_throughput:	high throughput is required or not
+ *
+ * Find current online cores.
+ * high troughput required and PERF core online, then attach to last PERF core
+ * low throughput required or only little cores online, the attach any little
+ * core
+ *
+ * Return: 0 success
+ *         1 fail
+ */
+static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
+	bool high_throughput)
+{
+	unsigned long *online_perf_cpu = NULL;
+	unsigned long *online_litl_cpu = NULL;
+	unsigned long cpus;
+	unsigned char perf_core_count = 0;
+	unsigned char litl_core_count = 0;
+#ifdef WLAN_OPEN_SOURCE
+	struct cpumask litl_mask;
+#endif
+
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
+		"%s: num possible cpu %d",
+		__func__, num_possible_cpus());
+
+	/* Single cluster system, not need to handle this */
+	if (num_possible_cpus() < VOS_CORE_PER_CLUSTER)
+		return 0;
+
+	online_perf_cpu = vos_mem_malloc(
+		num_possible_cpus() * sizeof(unsigned long));
+	if (!online_perf_cpu) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: perf cpu cache alloc fail", __func__);
+		return 1;
+	}
+	vos_mem_zero(online_perf_cpu,
+		num_possible_cpus() * sizeof(unsigned long));
+
+	online_litl_cpu = vos_mem_malloc(
+		num_possible_cpus() * sizeof(unsigned long));
+	if (!online_litl_cpu) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: lttl cpu cache alloc fail", __func__);
+		vos_mem_free(online_perf_cpu);
+		return 1;
+	}
+	vos_mem_zero(online_litl_cpu,
+		num_possible_cpus() * sizeof(unsigned long));
+
+	/* Get Online perf CPU count */
+	for_each_online_cpu(cpus) {
+		if (cpus >= VOS_CORE_PER_CLUSTER) {
+			online_perf_cpu[perf_core_count] = cpus;
+			perf_core_count++;
+		} else {
+			online_litl_cpu[litl_core_count] = cpus;
+			litl_core_count++;
+		}
+	}
+
+	if ((!litl_core_count) && (!perf_core_count)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: Both Cluster off, do nothing", __func__);
+		vos_mem_free(online_perf_cpu);
+		vos_mem_free(online_litl_cpu);
+		return 0;
+	}
+
+	if ((high_throughput && perf_core_count) || (!litl_core_count)) {
+		/* Attach RX thread to PERF CPU */
+		if (pSchedContext->rx_thread_cpu !=
+			online_perf_cpu[perf_core_count - 1]) {
+			if (vos_set_cpus_allowed_ptr(
+				pSchedContext->TlshimRxThread,
+				online_perf_cpu[perf_core_count - 1])) {
+				VOS_TRACE(VOS_MODULE_ID_VOSS,
+					VOS_TRACE_LEVEL_ERROR,
+					"%s: rx thread perf core set fail",
+					__func__);
+				vos_mem_free(online_perf_cpu);
+				vos_mem_free(online_litl_cpu);
+				return 1;
+			}
+			pSchedContext->rx_thread_cpu =
+				online_perf_cpu[perf_core_count - 1];
+		}
+	} else {
+#ifdef WLAN_OPEN_SOURCE
+		/* Attach to any little core
+		 * Final decision should made by scheduler */
+		vos_sched_all_litl_cpu_mask(&litl_mask);
+		set_cpus_allowed_ptr(pSchedContext->TlshimRxThread, &litl_mask);
+#else
+		/* Attach RX thread to last little core CPU */
+		if (pSchedContext->rx_thread_cpu !=
+			online_perf_cpu[litl_core_count - 1]) {
+			if (vos_set_cpus_allowed_ptr(
+				pSchedContext->TlshimRxThread,
+				online_perf_cpu[litl_core_count - 1])) {
+				VOS_TRACE(VOS_MODULE_ID_VOSS,
+					VOS_TRACE_LEVEL_ERROR,
+					"%s: rx thread litl core set fail",
+					__func__);
+				vos_mem_free(online_perf_cpu);
+				vos_mem_free(online_litl_cpu);
+				return 1;
+			}
+			pSchedContext->rx_thread_cpu =
+				online_perf_cpu[litl_core_count - 1];
+		}
+#endif /* WLAN_OPEN_SOURCE */
+	}
+
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
+		"%s: NUM PERF CORE %d, HIGH TPUTR REQ %d, RX THRE CPU %lu",
+		__func__, perf_core_count,
+		(int)pSchedContext->high_throughput_required,
+		pSchedContext->rx_thread_cpu);
+
+	vos_mem_free(online_perf_cpu);
+	vos_mem_free(online_litl_cpu);
+	return 0;
+}
+
+/**
+ * vos_sched_handle_cpu_hot_plug - cpu hotplug event handler
+ *
+ * cpu hotplug indication handler
+ * will find online cores and will assign proper core based on perf requirement
+ *
+ * Return: 0 success
+ *         1 fail
+ */
+int vos_sched_handle_cpu_hot_plug(void)
+{
+	pVosSchedContext pSchedContext = get_vos_sched_ctxt();
+
+	if (!pSchedContext) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: invalid context", __func__);
+		return 1;
+	}
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL) ||
+		(vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)))
+		return 0;
+
+	vos_lock_acquire(&pSchedContext->affinity_lock);
+	if (vos_sched_find_attach_cpu(pSchedContext,
+		pSchedContext->high_throughput_required)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: handle hot plug fail", __func__);
+		vos_lock_release(&pSchedContext->affinity_lock);
+		return 1;
+	}
+	vos_lock_release(&pSchedContext->affinity_lock);
+	return 0;
+}
+
+/**
+ * vos_sched_handle_throughput_req - cpu throughput requirement handler
+ * @high_tput_required:	high throughput is required or not
+ *
+ * high or low throughput indication ahndler
+ * will find online cores and will assign proper core based on perf requirement
+ *
+ * Return: 0 success
+ *         1 fail
+ */
+int vos_sched_handle_throughput_req(bool high_tput_required)
+{
+	pVosSchedContext pSchedContext = get_vos_sched_ctxt();
+
+	if (!pSchedContext) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: invalid context", __func__);
+		return 1;
+	}
+
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL) ||
+		(vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)))
+		return 0;
+
+	vos_lock_acquire(&pSchedContext->affinity_lock);
+	if (vos_sched_find_attach_cpu(pSchedContext, high_tput_required)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: handle throughput req fail", __func__);
+		vos_lock_release(&pSchedContext->affinity_lock);
+		return 1;
+	}
+	pSchedContext->high_throughput_required = high_tput_required;
+	vos_lock_release(&pSchedContext->affinity_lock);
+	return 0;
+}
+
+/**
+ * __vos_cpu_hotplug_notify - cpu core on-off notification handler
+ * @block:	notifier block
+ * @state:	state of core
+ * @hcpu:	target cpu core
+ *
+ * pre-registered core status change notify callback function
+ * will handle only ONLINE, OFFLINE notification
+ * based on cpu architecture, rx thread affinity will be different
+ *
+ * Return: 0 success
+ *         1 fail
+ */
+static int __vos_cpu_hotplug_notify(struct notifier_block *block,
                                   unsigned long state, void *hcpu)
 {
    unsigned long cpu = (unsigned long) hcpu;
@@ -136,27 +376,30 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
    if ((NULL == pSchedContext) || (NULL == pSchedContext->TlshimRxThread))
        return NOTIFY_OK;
 
-   if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL))
-   {
+   if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL) ||
+      (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)))
        return NOTIFY_OK;
-   }
 
    num_cpus = num_possible_cpus();
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
              "%s: RX CORE %d, STATE %d, NUM CPUS %d",
               __func__, (int)affine_cpu, (int)state, num_cpus);
    multi_cluster = (num_cpus > VOS_CORE_PER_CLUSTER)?1:0;
+   if ((multi_cluster) &&
+       ((CPU_ONLINE == state) || (CPU_DEAD == state))) {
+      vos_sched_handle_cpu_hot_plug();
+      return NOTIFY_OK;
+   }
 
    switch (state) {
    case CPU_ONLINE:
-       if ((!multi_cluster) && (affine_cpu != 0))
+       if (affine_cpu != 0)
            return NOTIFY_OK;
 
        for_each_online_cpu(i) {
            if (i == 0)
                continue;
            pref_cpu = i;
-           if (!multi_cluster)
                break;
        }
        break;
@@ -169,7 +412,6 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
            if (i == 0)
                continue;
            pref_cpu = i;
-           if (!multi_cluster)
                break;
        }
    }
@@ -181,6 +423,32 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
        affine_cpu = pref_cpu;
 
    return NOTIFY_OK;
+}
+
+/**
+ * vos_cpu_hotplug_notify - cpu core on-off notification handler wrapper
+ * @block:	notifier block
+ * @state:	state of core
+ * @hcpu:	target cpu core
+ *
+ * pre-registered core status change notify callback function
+ * will handle only ONLINE, OFFLINE notification
+ * based on cpu architecture, rx thread affinity will be different
+ * wrapper function
+ *
+ * Return: 0 success
+ *         1 fail
+ */
+static int vos_cpu_hotplug_notify(struct notifier_block *block,
+                                  unsigned long state, void *hcpu)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __vos_cpu_hotplug_notify(block, state, hcpu);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static struct notifier_block vos_cpu_hotplug_notifier = {
@@ -293,6 +561,8 @@ vos_sched_open
   spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
   pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
+  vos_lock_init(&pSchedContext->affinity_lock);
+  pSchedContext->high_throughput_required = false;
 #endif
 
 
@@ -1431,23 +1701,19 @@ static int VosTlshimRxThread(void *arg)
    unsigned long pref_cpu = 0;
    bool shutdown = false;
    int status, i;
-   unsigned int num_cpus;
 
    set_user_nice(current, -1);
 #ifdef MSM_PLATFORM
    set_wake_up_idle(true);
 #endif
 
-   num_cpus = num_possible_cpus();
    /* Find the available cpu core other than cpu 0 and
     * bind the thread */
    for_each_online_cpu(i) {
        if (i == 0)
            continue;
        pref_cpu = i;
-       if (num_cpus <= VOS_CORE_PER_CLUSTER) {
            break;
-   }
    }
    if (pref_cpu != 0 && (!vos_set_cpus_allowed_ptr(current, pref_cpu)))
        affine_cpu = pref_cpu;
@@ -1569,6 +1835,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     vos_sched_deinit_mqs(gpVosSchedContext);
 
 #ifdef QCA_CONFIG_SMP
+    vos_lock_destroy(&gpVosSchedContext->affinity_lock);
     // Shut down Tlshim Rx thread
     set_bit(RX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->tlshimRxEvtFlg);
     set_bit(RX_POST_EVENT_MASK, &gpVosSchedContext->tlshimRxEvtFlg);
