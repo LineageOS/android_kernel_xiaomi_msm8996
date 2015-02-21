@@ -1899,7 +1899,7 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
 }
 
 int
-static iw_softap_set_ini_cfg(struct net_device *dev,
+static __iw_softap_set_ini_cfg(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
 {
@@ -1945,9 +1945,23 @@ static iw_softap_set_ini_cfg(struct net_device *dev,
 }
 
 int
-static iw_softap_get_ini_cfg(struct net_device *dev,
-                          struct iw_request_info *info,
-                          union iwreq_data *wrqu, char *extra)
+static iw_softap_set_ini_cfg(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_set_ini_cfg(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_get_ini_cfg(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
@@ -1976,9 +1990,23 @@ static iw_softap_get_ini_cfg(struct net_device *dev,
     return 0;
 }
 
-static int iw_softap_set_two_ints_getnone(struct net_device *dev,
-                                          struct iw_request_info *info,
-                                          union iwreq_data *wrqu, char *extra)
+int
+static iw_softap_get_ini_cfg(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_get_ini_cfg(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
+                                            struct iw_request_info *info,
+                                            union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
@@ -2012,10 +2040,23 @@ out:
     return ret;
 }
 
+static int iw_softap_set_two_ints_getnone(struct net_device *dev,
+                                          struct iw_request_info *info,
+                                          union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_set_two_ints_getnone(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 int
-static iw_softap_wowl_config_pattern(struct net_device *dev,
-                          struct iw_request_info *info,
-                          union iwreq_data *wrqu, char *extra)
+static __iw_softap_wowl_config_pattern(struct net_device *dev,
+                                       struct iw_request_info *info,
+                                       union iwreq_data *wrqu, char *extra)
 {
     int sub_cmd;
     int ret = 0; /* success */
@@ -2074,6 +2115,20 @@ static iw_softap_wowl_config_pattern(struct net_device *dev,
     }
     kfree(pBuffer);
     return ret;
+}
+
+int
+static iw_softap_wowl_config_pattern(struct net_device *dev,
+                                     struct iw_request_info *info,
+                                     union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_wowl_config_pattern(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static void print_mac_list(v_MACADDR_t *macList, v_U8_t size)
@@ -2146,9 +2201,9 @@ static VOS_STATUS hdd_print_acl(hdd_adapter_t *pHostapdAdapter)
 }
 
 int
-static iw_softap_setparam(struct net_device *dev,
-                          struct iw_request_info *info,
-                          union iwreq_data *wrqu, char *extra)
+static __iw_softap_setparam(struct net_device *dev,
+                            struct iw_request_info *info,
+                            union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     tHalHandle hHal;
@@ -2813,11 +2868,24 @@ static iw_softap_setparam(struct net_device *dev,
     return ret;
 }
 
-
 int
-static iw_softap_getparam(struct net_device *dev,
+static iw_softap_setparam(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_setparam(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_getparam(struct net_device *dev,
+                            struct iw_request_info *info,
+                            union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
@@ -3018,6 +3086,20 @@ static iw_softap_getparam(struct net_device *dev,
     return ret;
 }
 
+int
+static iw_softap_getparam(struct net_device *dev,
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_getparam(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 /* Usage:
     BLACK_LIST  = 0
     WHITE_LIST  = 1
@@ -3039,7 +3121,7 @@ static iw_softap_getparam(struct net_device *dev,
     iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 1 1
 */
 static
-int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
+int __iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
@@ -3078,10 +3160,24 @@ int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
     return ret;
 }
 
+static
+int iw_softap_modify_acl(struct net_device *dev,
+                         struct iw_request_info *info,
+                         union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_modify_acl(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 int
-static iw_softap_getchannel(struct net_device *dev,
-                        struct iw_request_info *info,
-                        union iwreq_data *wrqu, char *extra)
+static __iw_softap_getchannel(struct net_device *dev,
+                              struct iw_request_info *info,
+                              union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     int *value = (int *)extra;
@@ -3094,7 +3190,21 @@ static iw_softap_getchannel(struct net_device *dev,
 }
 
 int
-static iw_softap_set_max_tx_power(struct net_device *dev,
+static iw_softap_getchannel(struct net_device *dev,
+                            struct iw_request_info *info,
+                            union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_getchannel(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_set_max_tx_power(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3126,7 +3236,21 @@ static iw_softap_set_max_tx_power(struct net_device *dev,
 }
 
 int
-static iw_display_data_path_snapshot(struct net_device *dev,
+static iw_softap_set_max_tx_power(struct net_device *dev,
+                                  struct iw_request_info *info,
+                                  union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_set_max_tx_power(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_display_data_path_snapshot(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3144,7 +3268,21 @@ static iw_display_data_path_snapshot(struct net_device *dev,
 }
 
 int
-static iw_softap_set_tx_power(struct net_device *dev,
+static iw_display_data_path_snapshot(struct net_device *dev,
+                                     struct iw_request_info *info,
+                                     union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_display_data_path_snapshot(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_set_tx_power(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3173,10 +3311,24 @@ static iw_softap_set_tx_power(struct net_device *dev,
     return 0;
 }
 
+int
+static iw_softap_set_tx_power(struct net_device *dev,
+                              struct iw_request_info *info,
+                              union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_set_tx_power(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
 
 int
-static iw_softap_getassoc_stamacaddr(struct net_device *dev,
+static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3244,6 +3396,20 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
     return ret;
 }
 
+int
+static iw_softap_getassoc_stamacaddr(struct net_device *dev,
+                                   struct iw_request_info *info,
+                                   union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_getassoc_stamacaddr(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 /* Usage:
     mac addr will be accepted as a 6 octet mac address with each octet inputted in hex
     for e.g. 00:0a:f5:11:22:33 will be represented as 0x00 0x0a 0xf5 0x11 0x22 0x33
@@ -3258,7 +3424,7 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
 */
 
 int
-static iw_softap_disassoc_sta(struct net_device *dev,
+static __iw_softap_disassoc_sta(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3279,7 +3445,21 @@ static iw_softap_disassoc_sta(struct net_device *dev,
 }
 
 int
-static iw_softap_ap_stats(struct net_device *dev,
+static iw_softap_disassoc_sta(struct net_device *dev,
+                              struct iw_request_info *info,
+                              union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_disassoc_sta(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_ap_stats(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3322,9 +3502,23 @@ static iw_softap_ap_stats(struct net_device *dev,
 }
 
 int
-static iw_softap_get_stats(struct net_device *dev,
-                           struct iw_request_info *info,
-                           union iwreq_data *wrqu, char *extra)
+static iw_softap_ap_stats(struct net_device *dev,
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_ap_stats(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+int
+static __iw_softap_get_stats(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *p_host_adapter = netdev_priv(dev);
 
@@ -3333,7 +3527,21 @@ static iw_softap_get_stats(struct net_device *dev,
     return 0;
 }
 
-static int iw_softap_set_channel_range(struct net_device *dev,
+int
+static iw_softap_get_stats(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_get_stats(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static int __iw_softap_set_channel_range(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
 {
@@ -3361,7 +3569,20 @@ static int iw_softap_set_channel_range(struct net_device *dev,
     return ret;
 }
 
-int iw_softap_get_channel_list(struct net_device *dev,
+static int iw_softap_set_channel_range(struct net_device *dev,
+                                       struct iw_request_info *info,
+                                       union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_set_channel_range(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static int __iw_softap_get_channel_list(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
 {
@@ -3420,8 +3641,21 @@ int iw_softap_get_channel_list(struct net_device *dev,
     return 0;
 }
 
+int iw_softap_get_channel_list(struct net_device *dev,
+                               struct iw_request_info *info,
+                               union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_get_channel_list(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 static
-int iw_get_genie(struct net_device *dev,
+int __iw_get_genie(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3461,8 +3695,23 @@ int iw_get_genie(struct net_device *dev,
     EXIT();
     return 0;
 }
+
 static
-int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
+int iw_get_genie(struct net_device *dev,
+                 struct iw_request_info *info,
+                 union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_genie(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static
+int __iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -3494,6 +3743,20 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
     up(&pHddApCtx->semWpsPBCOverlapInd);
     EXIT();
     return 0;
+}
+
+static
+int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_WPSPBCProbeReqIEs(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**---------------------------------------------------------------------------
@@ -3878,10 +4141,10 @@ static int iw_get_mode(struct net_device *dev,
     return status;
 }
 
-static int iw_softap_setwpsie(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+static int __iw_softap_setwpsie(struct net_device *dev,
+                                struct iw_request_info *info,
+                                union iwreq_data *wrqu,
+                                char *extra)
 {
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 #ifndef WLAN_FEATURE_MBSSID
@@ -4223,10 +4486,24 @@ static int iw_softap_setwpsie(struct net_device *dev,
     return halStatus;
 }
 
-static int iw_softap_stopbss(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+static int iw_softap_setwpsie(struct net_device *dev,
+                              struct iw_request_info *info,
+                              union iwreq_data *wrqu,
+                              char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_setwpsie(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static int __iw_softap_stopbss(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu,
+                             char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     VOS_STATUS status = VOS_STATUS_SUCCESS;
@@ -4271,10 +4548,24 @@ static int iw_softap_stopbss(struct net_device *dev,
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
 
-static int iw_softap_version(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+static int iw_softap_stopbss(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu,
+                             char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_stopbss(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static int __iw_softap_version(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu,
+                             char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 
@@ -4282,6 +4573,20 @@ static int iw_softap_version(struct net_device *dev,
     hdd_wlan_get_version(pHostapdAdapter, wrqu, extra);
     EXIT();
     return 0;
+}
+
+static int iw_softap_version(struct net_device *dev,
+                             struct iw_request_info *info,
+                             union iwreq_data *wrqu,
+                             char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_version(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static VOS_STATUS
@@ -4323,10 +4628,10 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
     return VOS_STATUS_SUCCESS;
 }
 
-static int iw_softap_get_sta_info(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+static int __iw_softap_get_sta_info(struct net_device *dev,
+                                    struct iw_request_info *info,
+                                    union iwreq_data *wrqu,
+                                    char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     VOS_STATUS status;
@@ -4339,6 +4644,20 @@ static int iw_softap_get_sta_info(struct net_device *dev,
     wrqu->data.length = strlen(extra);
     EXIT();
     return 0;
+}
+
+static int iw_softap_get_sta_info(struct net_device *dev,
+                                  struct iw_request_info *info,
+                                  union iwreq_data *wrqu,
+                                  char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_softap_get_sta_info(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static int iw_set_ap_genie(struct net_device *dev,
@@ -4454,7 +4773,7 @@ VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
 
 
 static int
-iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
+__iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
@@ -4542,6 +4861,19 @@ iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
    }
 
    return 0;
+}
+
+static int
+iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_softap_linkspeed(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static const iw_handler      hostapd_handler[] =
