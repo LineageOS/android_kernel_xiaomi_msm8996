@@ -2213,29 +2213,43 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		iface_context->stats.num_rx_ipa_excep++;
 
 #if defined(IPA_UC_OFFLOAD) && defined(INTRA_BSS_FWD_OFFLOAD)
-		eth = (struct ethhdr *)skb->data;
-
-		/*
-		 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send all Rx
-		 * packets to IPA uC, which need to be forwarded to other
-		 * interface.
-		 * And, since only IP packets are forwarded through IPA Ethernet
-		 * Bridging, non-IP exception packets should be forwarded to Tx
-		 * here.
+		/* Disable to forward Intra-BSS Rx packets when
+		 * ap_isolate=1 in hostapd.conf
 		 */
-		if (eth->h_proto != be16_to_cpu(ETH_P_IP)) {
-			copy = adf_nbuf_copy(skb);
-			if (copy) {
-				ret = hdd_softap_hard_start_xmit(
-					(struct sk_buff *)copy, adapter->dev);
-				if (ret) {
-					HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
-						"Forward packet tx fail");
-					hdd_ipa->stats.num_tx_bcmc_err++;
-				} else {
-					hdd_ipa->stats.num_tx_bcmc++;
+		if (!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
+		{
+			/*
+			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
+			 * all Rx packets to IPA uC, which need to be forwarded
+			 * to other interface.
+			 * And, since only IP packets are forwarded through IPA
+			 * Ethernet Bridging, non-IP exception packets should be
+			 * forwarded to Tx here.
+			 */
+			eth = (struct ethhdr *)skb->data;
+			if (eth->h_proto != be16_to_cpu(ETH_P_IP)) {
+				copy = adf_nbuf_copy(skb);
+				if (copy) {
+					ret = hdd_softap_hard_start_xmit(
+						(struct sk_buff *)copy,
+						adapter->dev);
+					if (ret) {
+						HDD_IPA_LOG(
+							VOS_TRACE_LEVEL_DEBUG,
+							"Forward packet Tx fail"
+							);
+						hdd_ipa->stats.
+							num_tx_bcmc_err++;
+					} else {
+						hdd_ipa->stats.num_tx_bcmc++;
+					}
 				}
 			}
+		}
+		else
+		{
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+				"Intra-BSS FWD is disabled-skip forward to Tx");
 		}
 #endif
 

@@ -2430,6 +2430,27 @@ void WLANTL_RegisterOPCbFnc(void *vos_ctx,
 	wdi_in_ipa_uc_register_op_cb(((pVosContextType)vos_ctx)->pdev_txrx_ctx,
 		func, usr_ctxt);
 }
+
+/*=============================================================================
+  FUNCTION    WLANTL_disable_intrabss_fwd
+
+  DESCRIPTION
+    Function to return if Intra-BSS FWD is disabled or not
+
+  PARAMETERS
+    IN
+    vdev : vdev handle
+
+  RETURN VALUE
+    bool : TRUE if Intra-BSS FWD is disabled, FALSE if not
+
+  SIDE EFFECTS
+
+==============================================================================*/
+bool WLANTL_disable_intrabss_fwd(void *vdev)
+{
+	return ((ol_txrx_vdev_handle)vdev)->disable_intrabss_fwd;
+}
 #endif /* IPA_UC_OFFLOAD */
 
 /*=============================================================================
@@ -2479,4 +2500,3 @@ VOS_STATUS WLANTL_RegisterOCBPeer(void *vos_ctx, uint8_t *mac_addr,
 
 	return VOS_STATUS_SUCCESS;
 }
-
