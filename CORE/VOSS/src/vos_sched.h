@@ -73,6 +73,7 @@
 #endif
 #include <vos_mq.h>
 #include <adf_os_types.h>
+#include <vos_lock.h>
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -282,6 +283,15 @@ typedef struct _VosSchedContext
 
    /* cpu hotplug notifier */
    struct notifier_block *cpuHotPlugNotifier;
+
+   /* affinity lock */
+   vos_lock_t affinity_lock;
+
+   /* rx thread affinity cpu */
+   unsigned long rx_thread_cpu;
+
+   /* high throughput required */
+   bool high_throughput_required;
 #endif
 } VosSchedContext, *pVosSchedContext;
 
@@ -410,6 +420,9 @@ typedef struct _VosContextType
 ---------------------------------------------------------------------------*/
 
 #ifdef QCA_CONFIG_SMP
+int vos_sched_handle_cpu_hot_plug(void);
+int vos_sched_handle_throughput_req(bool high_tput_required);
+
 /*---------------------------------------------------------------------------
   \brief vos_drop_rxpkt_by_staid() - API to drop pending Rx packets for a sta
   The \a vos_drop_rxpkt_by_staid() drops queued packets for a station, to drop
@@ -469,6 +482,12 @@ void vos_free_tlshim_pkt(pVosSchedContext pSchedContext,
   \sa vos_free_tlshim_pkt_freeq()
   -------------------------------------------------------------------------*/
 void vos_free_tlshim_pkt_freeq(pVosSchedContext pSchedContext);
+#else
+static inline int vos_sched_handle_throughput_req(
+	bool high_tput_required)
+{
+	return 0;
+}
 #endif
 
 int vos_sched_is_tx_thread(int threadID);

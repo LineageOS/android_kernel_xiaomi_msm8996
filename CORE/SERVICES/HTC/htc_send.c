@@ -600,7 +600,12 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
         }
         LOCK_HTC_TX(target);
             /* store in look up queue to match completions */
-        HTC_PACKET_ENQUEUE(&pEndpoint->TxLookupQueue,pPacket);
+#ifdef ATH_11AC_TXCOMPACT
+        if (HTT_DATA_MSG_SVC != pEndpoint->ServiceID)
+#endif /* ATH_11AC_TXCOMPACT */
+        {
+            HTC_PACKET_ENQUEUE(&pEndpoint->TxLookupQueue,pPacket);
+        }
         INC_HTC_EP_STAT(pEndpoint,TxIssued,1);
         pEndpoint->ul_outstanding_cnt++;
         UNLOCK_HTC_TX(target);

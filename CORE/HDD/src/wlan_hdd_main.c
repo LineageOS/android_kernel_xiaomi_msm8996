@@ -12203,6 +12203,14 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                __func__, next_vote_level, tx_packets, rx_packets);
         pHddCtx->cur_vote_level = next_vote_level;
         cnss_request_bus_bandwidth(next_vote_level);
+
+        if (next_vote_level == CNSS_BUS_WIDTH_LOW) {
+            if (vos_sched_handle_throughput_req(false))
+                hddLog(LOGE, FL("low bandwidth set rx affinity fail"));
+        } else {
+            if (vos_sched_handle_throughput_req(true))
+                hddLog(LOGE, FL("high bandwidth set rx affinity fail"));
+        }
     }
 
     pHddCtx->prev_rx = rx_packets;
