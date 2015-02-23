@@ -2757,6 +2757,11 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
     v = sscanf(inPtr, "%31s ", tempBuf);
     if (1 != v) return -EINVAL;
 
+    /*
+     * Sigma DUT sends connected bssid and channel 0 to indicate
+     * driver to issue reassoc to same AP.
+     * Hence do not treat channel 0 as invalid.
+     */
     v = kstrtos32(tempBuf, 10, &tempInt);
     if ((v < 0) ||
         (tempInt <= 0) ||
@@ -6634,8 +6639,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            if(VOS_STATUS_SUCCESS !=
                          wlan_hdd_validate_operation_channel(pAdapter, channel))
            {
-               hddLog(VOS_TRACE_LEVEL_ERROR,
-                      "%s: Invalid Channel [%d] \n", __func__, channel);
+               hddLog(LOGE, FL("Invalid Channel [%d]"), channel);
                return -EINVAL;
            }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
