@@ -121,6 +121,11 @@
 #define GET_IE_LEN_IN_BSS_DESC(lenInBss) ( lenInBss + sizeof(lenInBss) - \
         ((uintptr_t)OFFSET_OF( tSirBssDescription, ieFields)))
 
+/*
+ * Android CTS verifier needs atleast this much wait time (in msec)
+ */
+#define MAX_REMAIN_ON_CHANNEL_DURATION    (5000)
+
 /* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
    check. The bit map is defined in:
 
@@ -4528,7 +4533,7 @@ static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 
         sap_config->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
 
-        if (con_sap_config && con_sap_config->channel == AUTO_CHANNEL_SELECT &&
+        if (con_sap_config && con_sap_config->acs_case == true &&
             hdd_ctx->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
 
             hddLog(LOG1, FL("Operating Band: PriAP: %d SecAP: %d"),
@@ -5040,9 +5045,9 @@ void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter,
 		INIT_DELAYED_WORK(&con_sap_adapter->acs_pending_work,
 				      wlan_hdd_cfg80211_start_pending_acs);
 #endif
-		/* Lets give 200ms for OBSS + START_BSS to complete */
+		/* Lets give 500ms for OBSS + START_BSS to complete */
 		schedule_delayed_work(&con_sap_adapter->acs_pending_work,
-							msecs_to_jiffies(200));
+							msecs_to_jiffies(500));
 		clear_bit(ACS_PENDING, &con_sap_adapter->event_flags);
 	}
 
@@ -5802,7 +5807,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     /*signal strength in mBm (100*dBm) */
     wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
-    wiphy->max_remain_on_channel_duration = 1000;
+    wiphy->max_remain_on_channel_duration = MAX_REMAIN_ON_CHANNEL_DURATION;
     wiphy->n_vendor_commands = ARRAY_SIZE(hdd_wiphy_vendor_commands);
     wiphy->vendor_commands = hdd_wiphy_vendor_commands;
 
@@ -6964,12 +6969,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"****pConfig->dtim_period=%d***",
                                       pConfig->dtim_period);
 
-    status = wlan_hdd_config_acs(pHddCtx, pHostapdAdapter);
-    if (status) {
-        hddLog(LOGE, FL("ACS config failed"));
-        return -EINVAL;
-    }
-
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
         pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
@@ -7071,6 +7070,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
         else
         {
+             status = wlan_hdd_config_acs(pHddCtx, pHostapdAdapter);
+             if (status) {
+                 hddLog(LOGE, FL("ACS config failed"));
+                 return -EINVAL;
+             }
+
              if(1 != pHddCtx->is_dynamic_channel_range_set)
              {
 #ifdef WLAN_FEATURE_MBSSID
@@ -12858,6 +12863,12 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated or"
                     " Invalid ssidlen, %d", __func__, ssidlen);
         /*To keep GUI happy*/
+        return 0;
+    }
+
+    if (true == pHddStaCtx->hdd_ReassocScenario) {
+        hddLog(LOG1,
+               FL("Roaming is in progress, cannot continue with this request"));
         return 0;
     }
 

@@ -850,6 +850,7 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tANI_U8 offload_scan_filter_p2p_result;
     tANI_U8 probeCounter;
     tANI_U8 maxProbe;
+    uint8_t retry_packet_cnt;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
