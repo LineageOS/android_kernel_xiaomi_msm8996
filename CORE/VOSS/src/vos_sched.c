@@ -70,7 +70,7 @@
 /* MAX iteration count to wait for Entry point to exit before
  * we proceed with SSR in WD Thread
  */
-#define MAX_SSR_WAIT_ITERATIONS 100
+#define MAX_SSR_WAIT_ITERATIONS 200
 #define MAX_SSR_PROTECT_LOG (16)
 
 static atomic_t ssr_protect_entry_count;
