@@ -58,6 +58,7 @@
 #include <ol_txrx_encap.h>    /* OL_TX_RESTORE_HDR, etc*/
 #endif
 #include <ol_tx_queue.h>
+#include <ol_txrx.h>
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
@@ -111,6 +112,31 @@
 #endif
 
 #ifdef QCA_LL_TX_FLOW_CT
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+#define OL_TX_FLOW_CT_UNPAUSE_OS_Q(pdev)                                          \
+do {                                                                              \
+    struct ol_txrx_vdev_t *vdev;                                                  \
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {                       \
+        if (adf_os_atomic_read(&vdev->os_q_paused) &&                             \
+                          (vdev->tx_fl_hwm != 0)) {                               \
+            adf_os_spin_lock(&pdev->tx_mutex);                                    \
+            if (((ol_tx_desc_pool_size_hl(vdev->pdev->ctrl_pdev) >> 1)            \
+               - TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED)                              \
+               - adf_os_atomic_read(&vdev->tx_desc_count)                         \
+               > vdev->tx_fl_hwm)                                                 \
+            {                                                                     \
+               adf_os_atomic_set(&vdev->os_q_paused, 0);                          \
+               adf_os_spin_unlock(&pdev->tx_mutex);                               \
+               vdev->osif_flow_control_cb(vdev->osif_dev,                         \
+                                          vdev->vdev_id, A_TRUE);                 \
+            }                                                                     \
+            else {                                                                \
+               adf_os_spin_unlock(&pdev->tx_mutex);                               \
+            }                                                                     \
+        }                                                                         \
+    }                                                                             \
+} while(0)
+#else
 #define OL_TX_FLOW_CT_UNPAUSE_OS_Q(pdev)                                          \
 do {                                                                              \
     struct ol_txrx_vdev_t *vdev;                                                  \
@@ -130,6 +156,7 @@ do {                                                                            
         }                                                                         \
     }                                                                             \
 } while(0)
+#endif
 #else
 #define OL_TX_FLOW_CT_UNPAUSE_OS_Q(pdev)
 #endif /* QCA_LL_TX_FLOW_CT */
