@@ -1390,9 +1390,12 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
 
     //If GO adapter exists and operating on same frequency
     //then we will not request remain on channel
-    if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
-                         == goAdapter->sessionCtx.ap.operatingChannel ) )
-    {
+    if (goAdapter && (ieee80211_frequency_to_channel(chan->center_freq)
+                         == goAdapter->sessionCtx.ap.operatingChannel)) {
+        /* if GO exist and is not off channel
+         * wait time should be zero
+         */
+        wait = 0;
         goto send_frame;
     }
 
@@ -2128,6 +2131,7 @@ struct net_device* __wlan_hdd_add_virtual_intf(
 {
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     hdd_adapter_t* pAdapter = NULL;
+    hdd_scaninfo_t *scan_info = NULL;
     int ret;
 
     ENTER();
@@ -2156,6 +2160,17 @@ struct net_device* __wlan_hdd_add_virtual_intf(
        return ERR_PTR(-EINVAL);
     }
 
+    pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+    if (pAdapter != NULL) {
+        scan_info = &pAdapter->scan_info;
+        if ((scan_info != NULL) && (scan_info->mScanPending)) {
+            hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
+                           eCSR_SCAN_ABORT_DEFAULT);
+            hddLog(LOG1, FL("Abort Scan while adding virtual interface"));
+        }
+    }
+
+    pAdapter = NULL;
     if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
         ((NL80211_IFTYPE_P2P_GO == type) ||
          (NL80211_IFTYPE_P2P_CLIENT == type)))

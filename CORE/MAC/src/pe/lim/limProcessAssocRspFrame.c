@@ -382,11 +382,14 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
             psessionEntry->limMlmState, psessionEntry->peSessionId);)
 #endif
         // Log error
-        if (!pHdr->fc.retry)
-        {
-            limLog(pMac, LOGE,
-               FL("received Re/Assoc rsp frame is not a retry frame"));
-            limPrintMlmState(pMac, LOGE, psessionEntry->limMlmState);
+        if (!pHdr->fc.retry) {
+            if (!(pMac->lim.retry_packet_cnt & 0xf)) {
+                limLog(pMac, LOGE,
+                   FL("received Re/Assoc rsp frame is not a retry frame"));
+                limPrintMlmState(pMac, LOGE, psessionEntry->limMlmState);
+            } else {
+                pMac->lim.retry_packet_cnt++;
+            }
         }
         vos_mem_free(pBeaconStruct);
         return;

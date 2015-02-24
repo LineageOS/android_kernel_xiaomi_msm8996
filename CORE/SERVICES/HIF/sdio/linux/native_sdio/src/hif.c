@@ -1277,7 +1277,9 @@ static int hifDeviceInserted(struct sdio_func *func, const struct sdio_device_id
     }
 
     if (device==NULL) {
-        addHifDevice(func);
+        if (addHifDevice(func) == NULL) {
+            return -1;
+        }
         device = getHifDevice(func);
 
         for (i=0; i<MAX_HIF_DEVICES; ++i) {
@@ -2225,6 +2227,10 @@ addHifDevice(struct sdio_func *func)
 #if HIF_USE_DMA_BOUNCE_BUFFER
     hifdevice->dma_buffer = A_MALLOC(HIF_DMA_BUFFER_SIZE);
     AR_DEBUG_ASSERT(hifdevice->dma_buffer != NULL);
+    if (hifdevice->dma_buffer == NULL) {
+       A_FREE(hifdevice);
+       return NULL;
+    }
 #endif
     hifdevice->func = func;
     hifdevice->powerConfig = HIF_DEVICE_POWER_UP;
