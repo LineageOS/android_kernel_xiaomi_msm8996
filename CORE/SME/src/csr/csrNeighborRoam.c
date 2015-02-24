@@ -5657,6 +5657,15 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
                pNeighborRoamInfo->neighborRoamState));
         return;
     }
+    if (eANI_BOOLEAN_FALSE ==
+        csrNeighborRoamGetHandoffAPInfo(pMac, &handoffNode, sessionId)) {
+         VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     FL("failed to obtain handoff AP"));
+         return;
+    }
+    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+               FL("HANDOFF CANDIDATE BSSID "MAC_ADDRESS_STR),
+               MAC_ADDR_ARRAY(handoffNode.pBssDescription->bssId));
 
     vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
     csrRoamCallCallback(pMac, sessionId, &roamInfo, roamId, eCSR_ROAM_FT_START,
@@ -5665,11 +5674,6 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
     vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
     CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING,
                                        sessionId)
-
-    csrNeighborRoamGetHandoffAPInfo(pMac, &handoffNode, sessionId);
-    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-               FL("HANDOFF CANDIDATE BSSID "MAC_ADDRESS_STR),
-                                            MAC_ADDR_ARRAY(handoffNode.pBssDescription->bssId));
 
 #ifdef FEATURE_WLAN_LFR_METRICS
     /* LFR metrics - pre-auth completion metric.
@@ -5780,21 +5784,21 @@ tANI_BOOLEAN csrNeighborRoamIs11rAssoc(tpAniSirGlobal pMac, tANI_U8 sessionId)
     \param  pMac - The handle returned by macOpen.
             pHandoffNode - AP node that is the hand-off candidate returned
 
-    \return VOID
+    \return true if able find handoff AP, false otherwise
 
 ---------------------------------------------------------------------------*/
-void csrNeighborRoamGetHandoffAPInfo(tpAniSirGlobal pMac,
+bool csrNeighborRoamGetHandoffAPInfo(tpAniSirGlobal pMac,
                                      tpCsrNeighborRoamBSSInfo pHandoffNode,
                                      tANI_U8 sessionId)
 {
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
                                      &pMac->roam.neighborRoamInfo[sessionId];
-    tpCsrNeighborRoamBSSInfo        pBssNode;
+    tpCsrNeighborRoamBSSInfo        pBssNode = NULL;
 
    if (NULL == pHandoffNode)
    {
       VOS_ASSERT(NULL != pHandoffNode);
-      return;
+      return false;
    }
 #ifdef WLAN_FEATURE_VOWIFI_11R
     if (pNeighborRoamInfo->is11rAssoc)
@@ -5834,9 +5838,11 @@ void csrNeighborRoamGetHandoffAPInfo(tpAniSirGlobal pMac,
                             FL("Number of Handoff candidates = %d"),
                             csrLLCount(&pNeighborRoamInfo->roamableAPList));
     }
+    if (NULL == pBssNode)
+       return false;
     vos_mem_copy(pHandoffNode, pBssNode, sizeof(tCsrNeighborRoamBSSInfo));
 
-    return;
+    return true;
 }
 
 /* ---------------------------------------------------------------------------
