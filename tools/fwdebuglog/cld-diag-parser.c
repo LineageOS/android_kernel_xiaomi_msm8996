@@ -472,10 +472,11 @@ diag_printf(const char *buf,  uint16_t vdevid,  uint16_t level,
            MSG_SPRINTF_1(MSG_SSID_WLAN, MSG_LEGACY_FATAL, "%s", pbuf);
        break;
        }
-    } else if (optionflag & CONSOLE_FLAG) {
+    }
+    if (optionflag & CONSOLE_FLAG) {
         android_printf("%s\n", pbuf);
     }
-    else if (optionflag & LOGFILE_FLAG) {
+    if (optionflag & LOGFILE_FLAG) {
         if (log_out)
             return fprintf(log_out, "%s\n", pbuf);
     }
@@ -1157,7 +1158,7 @@ void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
             WLAN_LOG_TO_DIAG(MSG_SSID_WLAN_RESERVED_10, MSG_LEGACY_MED,
                              wlanLog);
         }
-        else if (optionflag & LOGFILE_FLAG) {
+        if (optionflag & LOGFILE_FLAG) {
             int32_t  lrecord = 0;
             uint32_t res = 0;
             lrecord = *record;
@@ -1171,7 +1172,7 @@ void process_cnss_host_message(tAniNlHdr *wnl, int32_t optionflag,
             }
             *record = lrecord;
         }
-        else if (optionflag & CONSOLE_FLAG) {
+        if (optionflag & CONSOLE_FLAG) {
             android_printf("%s\n", wlanLog);
         }
         wlanLog = ++charCache;

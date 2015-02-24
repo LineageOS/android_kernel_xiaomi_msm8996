@@ -4821,6 +4821,7 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	struct net_device *ndev = wdev->netdev;
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
 	tsap_Config_t *sap_config;
 	struct sk_buff *temp_skbuff;
 	int status;
@@ -4895,6 +4896,13 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 				hdd_config->apEndChannelNum =
 					rfChannels[RF_CHAN_14].channelNum;
 #endif
+				if (hw_mode == QCA_ACS_MODE_IEEE80211G)
+					sme_SetPhyMode(hHal,
+						eCSR_DOT11_MODE_11g);
+				else
+					sme_SetPhyMode(hHal,
+						eCSR_DOT11_MODE_11b);
+
 				break;
 			case  QCA_ACS_MODE_IEEE80211A:
 #ifdef WLAN_FEATURE_MBSSID
@@ -4912,9 +4920,11 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 				hdd_config->sap_dyn_ini_cfg.apEndChannelNum =
 					rfChannels[RF_CHAN_165].channelNum;
 #endif
+				sme_SetPhyMode(hHal, eCSR_DOT11_MODE_11a);
 				break;
 			default:
-				hddLog(LOGE, FL("Unsupported hw_mode!"));
+				hddLog(LOGE,
+					FL("Unsupported hw_mode!"));
 				status = -EINVAL;
 				goto out;
 			}

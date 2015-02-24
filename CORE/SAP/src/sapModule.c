@@ -4029,13 +4029,8 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
     sapContext->sessionId = 0xff;
 
     pMac = PMAC_STRUCT( hHal );
-    if ((!pMac->roam.configParam.obssEnabled) &&
-        ((pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_abg) ||
-         (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11a) ||
-         (pMac->roam.configParam.phyMode == eCSR_DOT11_MODE_11g)))
-       sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_abg;
-    else
-       sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_11n;
+
+    sapContext->csrRoamProfile.phyMode = pMac->roam.configParam.phyMode;
 
     if ((pConfig->channel == AUTO_CHANNEL_SELECT) &&
         (sapContext->isScanSessionOpen == eSAP_FALSE)) {
