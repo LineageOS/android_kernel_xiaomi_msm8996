@@ -3135,7 +3135,8 @@ tSirRetStatus limProcesSmeTdlsLinkEstablishReq(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
 
-    vos_mem_set( (tANI_U8 *)pMsgTdlsLinkEstablishReq, sizeof(tpTdlsLinkEstablishParams), 0);
+    vos_mem_set((tANI_U8 *)pMsgTdlsLinkEstablishReq,
+                sizeof(tTdlsLinkEstablishParams), 0);
 
     pMsgTdlsLinkEstablishReq->staIdx = pStaDs->staIndex;
     pMsgTdlsLinkEstablishReq->isResponder = pTdlsLinkEstablishReq->isResponder;
