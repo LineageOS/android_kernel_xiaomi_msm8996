@@ -1145,4 +1145,17 @@ int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
                                    u32 no_dfs_flag);
 
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter);
+
+#if !(defined (SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC))
+static inline struct sk_buff *
+backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					int approxlen,
+					int event_idx, gfp_t gfp)
+{
+	return cfg80211_vendor_event_alloc(wiphy, approxlen, event_idx, gfp);
+}
+#define cfg80211_vendor_event_alloc backported_cfg80211_vendor_event_alloc
+#endif
+
 #endif
