@@ -70,7 +70,7 @@
 /* MAX iteration count to wait for Entry point to exit before
  * we proceed with SSR in WD Thread
  */
-#define MAX_SSR_WAIT_ITERATIONS 100
+#define MAX_SSR_WAIT_ITERATIONS 200
 #define MAX_SSR_PROTECT_LOG (16)
 
 static atomic_t ssr_protect_entry_count;
@@ -247,13 +247,14 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 		 * Final decision should made by scheduler */
 		vos_sched_all_litl_cpu_mask(&litl_mask);
 		set_cpus_allowed_ptr(pSchedContext->TlshimRxThread, &litl_mask);
+		pSchedContext->rx_thread_cpu = 0;
 #else
 		/* Attach RX thread to last little core CPU */
 		if (pSchedContext->rx_thread_cpu !=
-			online_perf_cpu[litl_core_count - 1]) {
+			online_litl_cpu[litl_core_count - 1]) {
 			if (vos_set_cpus_allowed_ptr(
 				pSchedContext->TlshimRxThread,
-				online_perf_cpu[litl_core_count - 1])) {
+				online_litl_cpu[litl_core_count - 1])) {
 				VOS_TRACE(VOS_MODULE_ID_VOSS,
 					VOS_TRACE_LEVEL_ERROR,
 					"%s: rx thread litl core set fail",
@@ -263,7 +264,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 				return 1;
 			}
 			pSchedContext->rx_thread_cpu =
-				online_perf_cpu[litl_core_count - 1];
+				online_litl_cpu[litl_core_count - 1];
 		}
 #endif /* WLAN_OPEN_SOURCE */
 	}
@@ -339,13 +340,13 @@ int vos_sched_handle_throughput_req(bool high_tput_required)
 		return 0;
 
 	vos_lock_acquire(&pSchedContext->affinity_lock);
+	pSchedContext->high_throughput_required = high_tput_required;
 	if (vos_sched_find_attach_cpu(pSchedContext, high_tput_required)) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 			"%s: handle throughput req fail", __func__);
 		vos_lock_release(&pSchedContext->affinity_lock);
 		return 1;
 	}
-	pSchedContext->high_throughput_required = high_tput_required;
 	vos_lock_release(&pSchedContext->affinity_lock);
 	return 0;
 }
