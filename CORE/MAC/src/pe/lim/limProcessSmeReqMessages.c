@@ -5974,6 +5974,7 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     tpPESession             psessionEntry;
     tANI_U8                 sessionId;  //PE sessionID
     tPowerdBm               maxTxPwr;
+    u_int32_t val = 0;
 #ifdef WLAN_FEATURE_11AC
     tANI_U32 centerChan;
     tANI_U32 chanWidth;
@@ -6076,6 +6077,25 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                   psessionEntry->htSupportedChannelWidthSet;
             psessionEntry->currentOperChannel =
                                   pChannelChangeReq->targetChannel;
+            psessionEntry->limRFBand =
+                                limGetRFBand(psessionEntry->currentOperChannel);
+            // Initialize 11h Enable Flag
+            if (SIR_BAND_5_GHZ == psessionEntry->limRFBand)
+            {
+                if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) !=
+                                               eSIR_SUCCESS)
+                    limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
+            }
+
+            psessionEntry->lim11hEnable = val;
+            psessionEntry->dot11mode = pChannelChangeReq->dot11mode;
+
+            vos_mem_copy((void*)&psessionEntry->rateSet,
+                                (void*)&pChannelChangeReq->operational_rateset,
+                                sizeof(tSirMacRateSet));
+            vos_mem_copy((void*)&psessionEntry->extRateSet,
+                                (void*)&pChannelChangeReq->extended_rateset,
+                                sizeof(tSirMacRateSet));
 
             limSetChannel(pMac, pChannelChangeReq->targetChannel,
                           psessionEntry->htSecondaryChannelOffset,

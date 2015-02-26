@@ -13165,26 +13165,26 @@ eHalStatus sme_set_mas(uint32_t val)
 /* -------------------------------------------------------------------------
    \fn sme_RoamChannelChangeReq
    \brief API to Indicate Channel change to new target channel
-   \param hHal - The handle returned by macOpen
-   \param targetChannel - New Channel to move the SAP to.
    \return eHalStatus
 ---------------------------------------------------------------------------*/
 eHalStatus sme_RoamChannelChangeReq(tHalHandle hHal, tCsrBssid bssid,
-                                    tANI_U8 targetChannel, eCsrPhyMode phyMode,
-                                    tANI_U32 cbMode, tANI_U32 vhtChannelWidth)
+                                    tANI_U32 cbMode, tCsrRoamProfile *pprofile)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    u_int8_t ch_mode;
+
+    ch_mode = (pprofile->ChannelInfo.ChannelList[0] <= 14) ?
+                      pMac->roam.configParam.channelBondingMode24GHz :
+                      pMac->roam.configParam.channelBondingMode5GHz;
 
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                   FL("sapdfs: requested CBmode=%d & new negotiated CBmode=%d"),
-                  cbMode, pMac->roam.configParam.channelBondingMode5GHz);
-        status = csrRoamChannelChangeReq(pMac, bssid, targetChannel,
-                         (tANI_U8)pMac->roam.configParam.channelBondingMode5GHz,
-                         (tANI_U8)vhtChannelWidth);
+                  cbMode, ch_mode);
+        status = csrRoamChannelChangeReq(pMac, bssid, ch_mode, pprofile);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return (status);
