@@ -78,6 +78,7 @@ typedef enum {
 	HDD_IPA_UC_OPCODE_RX_SUSPEND = 2,
 	HDD_IPA_UC_OPCODE_RX_RESUME  = 3,
 	HDD_IPA_UC_OPCODE_STATS      = 4,
+	HDD_IPA_UC_OPCODE_UC_READY   = 5,
 	/* keep this last */
 	HDD_IPA_UC_OPCODE_MAX
 } hdd_ipa_uc_op_code;
@@ -438,6 +439,9 @@ struct hdd_ipa_priv {
 	uint32_t ipa_p_tx_packets;
 	uint32_t ipa_p_rx_packets;
         hdd_ipa_uc_stat_reason stat_req_reason;
+	struct ipa_wdi_in_params cons_pipe_in;
+	struct ipa_wdi_in_params prod_pipe_in;
+	v_BOOL_t uc_loaded;
 #endif /* IPA_UC_OFFLOAD */
 };
 
@@ -457,6 +461,7 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data);
+static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type);
 
 #ifdef IPA_UC_OFFLOAD
 extern int process_wma_set_command(int sessid, int paramid,
@@ -954,6 +959,66 @@ static int hdd_ipa_uc_proc_pending_event(struct hdd_ipa_priv *hdd_ipa)
 	return 0;
 }
 
+static void hdd_ipa_uc_loaded_handler(struct hdd_ipa_priv *ipa_ctxt)
+{
+	hdd_context_t *hdd_ctx = ipa_ctxt->hdd_ctx;
+	struct ipa_wdi_out_params pipe_out;
+
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+		"%s : UC READY", __func__);
+	if (VOS_TRUE == ipa_ctxt->uc_loaded) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			"%s : UC already loaded", __func__);
+		return;
+	}
+
+	ipa_ctxt->uc_loaded = VOS_TRUE;
+	/* Connect pipe */
+	ipa_connect_wdi_pipe(&ipa_ctxt->cons_pipe_in, &pipe_out);
+	ipa_ctxt->tx_pipe_handle = pipe_out.clnt_hdl;
+	hdd_ctx->tx_comp_doorbell_paddr = (v_U32_t)pipe_out.uc_door_bell_pa;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+		"%s : TX PIPE Handle %d, DBPA 0x%x",
+		__func__, ipa_ctxt->tx_pipe_handle, (v_U32_t)pipe_out.uc_door_bell_pa);
+
+
+	ipa_connect_wdi_pipe(&ipa_ctxt->prod_pipe_in, &pipe_out);
+	ipa_ctxt->rx_pipe_handle = pipe_out.clnt_hdl;
+	hdd_ctx->rx_ready_doorbell_paddr = pipe_out.uc_door_bell_pa;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+		"%s : RX PIPE Handle %d, DBPA 0x%x",
+		__func__, ipa_ctxt->rx_pipe_handle, (v_U32_t)pipe_out.uc_door_bell_pa);
+
+	/* If already any STA connected, enable IPA/FW PIPEs */
+	if (ipa_ctxt->sap_num_connected_sta) {
+		hdd_ipa_uc_handle_first_con(ipa_ctxt);
+	}
+}
+void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
+{
+	struct hdd_ipa_priv *hdd_ipa;
+	struct op_msg_type *msg;
+	struct uc_op_work_struct *uc_op_work;
+
+	if (NULL == priv_ctxt) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Invalid IPA context");
+		return;
+	}
+
+	hdd_ipa = (struct hdd_ipa_priv *)priv_ctxt;
+	msg = (struct op_msg_type *)vos_mem_malloc(sizeof(struct op_msg_type));
+	msg->op_code = HDD_IPA_UC_OPCODE_UC_READY;
+
+	uc_op_work = &hdd_ipa->uc_op_work[msg->op_code];
+	if (uc_op_work->msg)
+		/* When the same uC OPCODE is already pended, just return */
+		return;
+
+	uc_op_work->msg = msg;
+	schedule_work(&uc_op_work->work);
+	return;
+}
+
 static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 {
 	struct op_msg_type *msg = op_msg;
@@ -962,6 +1027,9 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 	struct hdd_ipa_priv *hdd_ipa;
 	hdd_context_t *hdd_ctx;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	struct ipa_msg_meta meta;
+	struct ipa_wlan_msg *ipa_msg;
+	int ret = 0;
 
 	if (!op_msg || !usr_ctxt) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -998,17 +1066,59 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 		hdd_ipa->activated_fw_pipe++;
 		if (HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe) {
 			hdd_ipa->resource_loading = VOS_FALSE;
+
+			/* WDI enable message to IPA */
+			meta.msg_len = sizeof(*ipa_msg);
+			ipa_msg = adf_os_mem_alloc(NULL, meta.msg_len);
+			if (ipa_msg == NULL) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					"msg allocation failed");
+				adf_os_mem_free(op_msg);
+				vos_lock_release(&hdd_ipa->event_lock);
+				return;
+			}
+
+			meta.msg_type = WLAN_WDI_ENABLE;
+			hddLog(VOS_TRACE_LEVEL_INFO,
+				"ipa_send_msg(Evt:%d)", meta.msg_type);
+			ret = ipa_send_msg(&meta, ipa_msg, hdd_ipa_msg_free_fn);
+			if (ret) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					"ipa_send_msg(Evt:%d) - fail=%d",
+				meta.msg_type,  ret);
+				adf_os_mem_free(ipa_msg);
+			}
 			hdd_ipa_uc_proc_pending_event(hdd_ipa);
 		}
 		vos_lock_release(&hdd_ipa->event_lock);
-	}
-
-	if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
+	} else if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
 		(HDD_IPA_UC_OPCODE_RX_SUSPEND == msg->op_code)) {
 		vos_lock_acquire(&hdd_ipa->event_lock);
 		hdd_ipa->activated_fw_pipe--;
 		if (!hdd_ipa->activated_fw_pipe) {
 			hdd_ipa_uc_disable_pipes(hdd_ipa);
+
+			/* WDI disable message to IPA */
+			meta.msg_len = sizeof(*ipa_msg);
+			ipa_msg = adf_os_mem_alloc(NULL, meta.msg_len);
+			if (ipa_msg == NULL) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					"msg allocation failed");
+				vos_lock_release(&hdd_ipa->event_lock);
+				adf_os_mem_free(op_msg);
+				return;
+			}
+			meta.msg_type = WLAN_WDI_DISABLE;
+			hddLog(VOS_TRACE_LEVEL_INFO,
+				"ipa_send_msg(Evt:%d)", meta.msg_type);
+			ret = ipa_send_msg(&meta, ipa_msg, hdd_ipa_msg_free_fn);
+			if (ret) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					"ipa_send_msg(Evt:%d) - fail=%d",
+				meta.msg_type,  ret);
+				adf_os_mem_free(ipa_msg);
+			}
+
 			if ((hdd_ipa_is_rm_enabled(hdd_ipa)) &&
 			(!ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
 				/* Sync return success from IPA
@@ -1223,7 +1333,12 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 			uc_fw_stat->rx_num_ind_drop_no_buf +
 			uc_fw_stat->rx_num_pkts_indicated);
 		vos_lock_release(&hdd_ipa->event_lock);
+	} else if (HDD_IPA_UC_OPCODE_UC_READY == msg->op_code) {
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		hdd_ipa_uc_loaded_handler(hdd_ipa);
+		vos_lock_release(&hdd_ipa->event_lock);
 	}
+
 	adf_os_mem_free(op_msg);
 }
 
@@ -1290,6 +1405,10 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	struct ipa_wdi_out_params pipe_out;
 	struct hdd_ipa_priv *ipa_ctxt = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
 	uint8_t i;
+	struct ipa_wdi_db_params dbpa;
+
+	vos_mem_zero(&ipa_ctxt->cons_pipe_in, sizeof(struct ipa_wdi_in_params));
+	vos_mem_zero(&ipa_ctxt->prod_pipe_in, sizeof(struct ipa_wdi_in_params));
 
 	vos_mem_zero(&pipe_in, sizeof(struct ipa_wdi_in_params));
 	vos_mem_zero(&pipe_out, sizeof(struct ipa_wdi_out_params));
@@ -1323,22 +1442,37 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	pipe_in.u.dl.ce_ring_size = hdd_ctx->ce_sr_ring_size * 8;
 	pipe_in.u.dl.num_tx_buffers  = hdd_ctx->tx_num_alloc_buffer;
 
-	/* Connect WDI IPA PIPE */
-	ipa_connect_wdi_pipe(&pipe_in, &pipe_out);
-	/* Micro Controller Doorbell register */
-	hdd_ctx->tx_comp_doorbell_paddr = (v_U32_t)pipe_out.uc_door_bell_pa;
-	/* WLAN TX PIPE Handle */
-	ipa_ctxt->tx_pipe_handle = pipe_out.clnt_hdl;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"TX : CRBPA 0x%x, CRS %d, CERBPA 0x%x, CEDPA 0x%x,"
-		" CERZ %d, NB %d, CDBPAD 0x%x",
-		(unsigned int)pipe_in.u.dl.comp_ring_base_pa,
-		pipe_in.u.dl.comp_ring_size,
-		(unsigned int)pipe_in.u.dl.ce_ring_base_pa,
-		(unsigned int)pipe_in.u.dl.ce_door_bell_pa,
-		pipe_in.u.dl.ce_ring_size,
-		pipe_in.u.dl.num_tx_buffers,
-		(unsigned int)hdd_ctx->tx_comp_doorbell_paddr);
+	vos_mem_copy(&ipa_ctxt->cons_pipe_in,
+		&pipe_in,
+		sizeof(struct ipa_wdi_in_params));
+	dbpa.client = IPA_CLIENT_WLAN1_CONS;
+	ipa_uc_wdi_get_dbpa(&dbpa);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s CONS DB get dbpa 0x%x",
+		__func__, (unsigned int)dbpa.uc_door_bell_pa);
+	hdd_ctx->tx_comp_doorbell_paddr = dbpa.uc_door_bell_pa;
+	if (VOS_TRUE == ipa_ctxt->uc_loaded) {
+		/* Connect WDI IPA PIPE */
+		ipa_connect_wdi_pipe(&ipa_ctxt->cons_pipe_in, &pipe_out);
+		/* Micro Controller Doorbell register */
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s CONS DB pipe out 0x%x",
+			__func__, (unsigned int)pipe_out.uc_door_bell_pa);
+
+		hdd_ctx->tx_comp_doorbell_paddr = (v_U32_t)pipe_out.uc_door_bell_pa;
+		/* WLAN TX PIPE Handle */
+		ipa_ctxt->tx_pipe_handle = pipe_out.clnt_hdl;
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			"TX : CRBPA 0x%x, CRS %d, CERBPA 0x%x, CEDPA 0x%x,"
+			" CERZ %d, NB %d, CDBPAD 0x%x",
+			(unsigned int)pipe_in.u.dl.comp_ring_base_pa,
+			pipe_in.u.dl.comp_ring_size,
+			(unsigned int)pipe_in.u.dl.ce_ring_base_pa,
+			(unsigned int)pipe_in.u.dl.ce_door_bell_pa,
+			pipe_in.u.dl.ce_ring_size,
+			pipe_in.u.dl.num_tx_buffers,
+			(unsigned int)hdd_ctx->tx_comp_doorbell_paddr);
+	}
 
 	/* RX PIPE */
 	pipe_in.sys.ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
@@ -1360,17 +1494,29 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	pipe_in.u.ul.rdy_ring_size = hdd_ctx->rx_rdy_ring_size;
 	pipe_in.u.ul.rdy_ring_rp_pa = hdd_ctx->rx_proc_done_idx_paddr;
 
-
-	ipa_connect_wdi_pipe(&pipe_in, &pipe_out);
-	hdd_ctx->rx_ready_doorbell_paddr = pipe_out.uc_door_bell_pa;
-	ipa_ctxt->rx_pipe_handle = pipe_out.clnt_hdl;
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
-		"RX : RRBPA 0x%x, RRS %d, PDIPA 0x%x, RDY_DB_PAD 0x%x",
-		(unsigned int)pipe_in.u.ul.rdy_ring_base_pa,
-		pipe_in.u.ul.rdy_ring_size,
-		(unsigned int)pipe_in.u.ul.rdy_ring_rp_pa,
-		(unsigned int)hdd_ctx->rx_ready_doorbell_paddr);
-
+	vos_mem_copy(&ipa_ctxt->prod_pipe_in,
+		&pipe_in,
+		sizeof(struct ipa_wdi_in_params));
+	dbpa.client = IPA_CLIENT_WLAN1_PROD;
+	ipa_uc_wdi_get_dbpa(&dbpa);
+	hdd_ctx->rx_ready_doorbell_paddr = dbpa.uc_door_bell_pa;
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s PROD DB get dbpa 0x%x",
+		__func__, (unsigned int)dbpa.uc_door_bell_pa);
+	if (VOS_TRUE == ipa_ctxt->uc_loaded) {
+		ipa_connect_wdi_pipe(&ipa_ctxt->prod_pipe_in, &pipe_out);
+		hdd_ctx->rx_ready_doorbell_paddr = pipe_out.uc_door_bell_pa;
+		ipa_ctxt->rx_pipe_handle = pipe_out.clnt_hdl;
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s PROD DB pipe out 0x%x",
+			__func__, (unsigned int)pipe_out.uc_door_bell_pa);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			"RX : RRBPA 0x%x, RRS %d, PDIPA 0x%x, RDY_DB_PAD 0x%x",
+			(unsigned int)pipe_in.u.ul.rdy_ring_base_pa,
+			pipe_in.u.ul.rdy_ring_size,
+			(unsigned int)pipe_in.u.ul.rdy_ring_rp_pa,
+			(unsigned int)hdd_ctx->rx_ready_doorbell_paddr);
+	}
 	WLANTL_SetUcDoorbellPaddr((pVosContextType)(hdd_ctx->pvosContext),
 			(v_U32_t)hdd_ctx->tx_comp_doorbell_paddr,
 			(v_U32_t)hdd_ctx->rx_ready_doorbell_paddr);
@@ -3361,6 +3507,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
 				|| !hdd_ipa->sta_connected)
 #endif
+				&& (VOS_TRUE == hdd_ipa->uc_loaded)
 			) {
 				ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
 				if (!ret) {
@@ -3370,7 +3517,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				} else {
 					vos_lock_release(&hdd_ipa->event_lock);
 					return ret;
-                                }
+				}
 			}
 			vos_lock_release(&hdd_ipa->event_lock);
 		}
@@ -3403,6 +3550,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa) ||
 			!hdd_ipa->sta_connected)
 #endif
+			&& (VOS_TRUE == hdd_ipa->uc_loaded)
 		) {
 			hdd_ipa_uc_handle_last_discon(hdd_ipa);
 		}
@@ -3754,6 +3902,9 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	struct hdd_ipa_priv *hdd_ipa = NULL;
 	int ret, i;
 	struct hdd_ipa_iface_context *iface_context = NULL;
+#ifdef IPA_UC_OFFLOAD
+	struct ipa_wdi_uc_ready_params uc_ready_param;
+#endif /* IPA_UC_OFFLOAD */
 
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
@@ -3809,6 +3960,19 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 				goto fail_create_sys_pipe;
 		}
 #endif
+		hdd_ipa->uc_loaded = VOS_FALSE;
+		uc_ready_param.priv = (void *)hdd_ipa;
+		uc_ready_param.notify = hdd_ipa_uc_loaded_uc_cb;
+		if (ipa_uc_reg_rdyCB(&uc_ready_param)) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"UC Ready CB register fail");
+			goto fail_setup_rm;
+		}
+		if (TRUE == uc_ready_param.is_uC_ready) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"UC Ready");
+			hdd_ipa->uc_loaded = VOS_TRUE;
+		}
 		hdd_ipa_uc_ol_init(hdd_ctx);
 	} else
 #endif /* IPA_UC_OFFLOAD */
@@ -3918,12 +4082,14 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 
 #ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-			"%s: Disconnect TX PIPE", __func__);
-		ipa_disconnect_wdi_pipe(hdd_ipa->tx_pipe_handle);
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-			"%s: Disconnect RX PIPE", __func__);
-		ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
+		if (VOS_TRUE == hdd_ipa->uc_loaded) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Disconnect TX PIPE", __func__);
+			ipa_disconnect_wdi_pipe(hdd_ipa->tx_pipe_handle);
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Disconnect RX PIPE", __func__);
+			ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
+		}
 		vos_lock_destroy(&hdd_ipa->event_lock);
 		vos_list_destroy(&hdd_ipa->pending_event);
 #ifdef WLAN_OPEN_SOURCE
