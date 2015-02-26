@@ -534,7 +534,7 @@ ol_rx_sec_ind_handler(
 
     if (sec_type != htt_sec_type_wapi) {
         adf_os_mem_set(peer->tids_last_pn_valid, 0x00, OL_TXRX_NUM_EXT_TIDS);
-    } else if (sec_index == txrx_sec_mcast) {
+    } else if (sec_index == txrx_sec_mcast || peer->tids_last_pn_valid[0]) {
         for (i = 0; i < OL_TXRX_NUM_EXT_TIDS; i++) {
             /*
              * Setting PN valid bit for WAPI sec_type,
