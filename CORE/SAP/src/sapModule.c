@@ -73,6 +73,7 @@
 
 #include "sapInternal.h"
 #include "smeInside.h"
+#include "regdomain_common.h"
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -3148,6 +3149,9 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     v_PVOID_t hHal = NULL;
     tpAniSirGlobal pMac = NULL;
+    u_int32_t cbmode, vht_ch_width;
+    u_int8_t ch_bandwidth;
+
     sapContext = (ptSapContext)pSapCtx;
 
     if ( NULL == sapContext )
@@ -3164,12 +3168,44 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
                    "%s: Invalid HAL pointer from pvosGCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
+
     pMac = PMAC_STRUCT( hHal );
+
+    vht_ch_width = pMac->sap.SapDfsInfo.new_chanWidth;
+    sme_SelectCBMode(hHal,
+                     sapContext->csrRoamProfile.phyMode,
+                     pMac->sap.SapDfsInfo.target_channel,
+                     &vht_ch_width);
+
+    cbmode = (pMac->sap.SapDfsInfo.target_channel <= 14) ?
+                 pMac->roam.configParam.channelBondingMode24GHz :
+                 pMac->roam.configParam.channelBondingMode5GHz;
+    if (pMac->sap.SapDfsInfo.target_channel <= 14 ||
+        vht_ch_width == eHT_CHANNEL_WIDTH_40MHZ ||
+        vht_ch_width == eHT_CHANNEL_WIDTH_20MHZ)
+    {
+        switch (cbmode)
+        {
+          case eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY:
+              ch_bandwidth = BW40_HIGH_PRIMARY;
+              break;
+          case eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY:
+              ch_bandwidth = BW40_LOW_PRIMARY;
+              break;
+          case eCSR_INI_SINGLE_CHANNEL_CENTERED:
+          default:
+              ch_bandwidth = BW20;
+              break;
+        }
+    }
+    else
+        ch_bandwidth = BW80;
 
     halStatus = sme_RoamCsaIeRequest(hHal,
                                      sapContext->bssid,
                                      pMac->sap.SapDfsInfo.target_channel,
-                                     pMac->sap.SapDfsInfo.csaIERequired);
+                                     pMac->sap.SapDfsInfo.csaIERequired,
+                                     ch_bandwidth);
 
     if (halStatus == eHAL_STATUS_SUCCESS)
     {

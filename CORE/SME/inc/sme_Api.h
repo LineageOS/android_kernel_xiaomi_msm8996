@@ -3733,10 +3733,12 @@ eHalStatus sme_RoamStartBeaconReq( tHalHandle hHal,
    \param hHal - The handle returned by macOpen
    \param pDfsCsaReq - CSA IE request
    \param bssid - SAP bssid
+   \param ch_bandwidth - Channel offset
    \return eHalStatus
 ---------------------------------------------------------------------------*/
 eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
-                  tANI_U8 targetChannel, tANI_U8 csaIeReqd);
+                  tANI_U8 targetChannel, tANI_U8 csaIeReqd,
+                  u_int8_t ch_bandwidth);
 
 /* ---------------------------------------------------------------------------
     \fn sme_InitThermalInfo

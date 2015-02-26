@@ -1499,7 +1499,8 @@ eHalStatus csrRoamStartBeaconReq( tpAniSirGlobal pMac,
 
 eHalStatus
 csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
-                     tANI_U8 targetChannel, tANI_U8 csaIeReqd);
+                     tANI_U8 targetChannel, tANI_U8 csaIeReqd,
+                     u_int8_t ch_bandwidth);
 
 /*----------------------------------------------------------------------------
  \fn csrRoamModifyAddIEs
