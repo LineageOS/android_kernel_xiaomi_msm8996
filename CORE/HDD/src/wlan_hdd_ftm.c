@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -108,6 +108,7 @@ DEFINE_SPINLOCK(qcmbr_queue_lock);
 #endif
 #endif
 
+#define HDD_FTM_WMA_PRE_START_TIMEOUT (30000) /* 30 seconds */
 
 /**---------------------------------------------------------------------------
 
@@ -636,7 +637,8 @@ static VOS_STATUS vos_ftm_preStart(v_CONTEXT_t vosContext)
    }
 
    /* Need to update time out of complete */
-   vStatus = vos_wait_single_event( &pVosContext->wdaCompleteEvent, 1000);
+   vStatus = vos_wait_single_event(&pVosContext->wdaCompleteEvent,
+                  HDD_FTM_WMA_PRE_START_TIMEOUT);
    if ( vStatus != VOS_STATUS_SUCCESS )
    {
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
