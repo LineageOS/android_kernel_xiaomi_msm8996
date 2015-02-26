@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -527,8 +527,28 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_apfind_cmd_param,
     WMITLV_TAG_STRUC_wmi_apfind_event_hdr,
-    WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param,
-    WMITLV_TAG_STRUC_wmi_ocb_set_sched_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param, //DEPRECATED
+    WMITLV_TAG_STRUC_wmi_ocb_set_sched_event_fixed_param, // DEPRECATED
+    WMITLV_TAG_STRUC_wmi_ocb_set_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_set_config_resp_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_set_utc_time_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_start_timing_advert_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_stop_timing_advert_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_resp_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_get_stats_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_channel_stats_request,
+    WMITLV_TAG_STRUC_wmi_dcc_get_stats_resp_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_clear_stats_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_update_ndl_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_update_ndl_resp_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_dcc_stats_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_ocb_channel,
+    WMITLV_TAG_STRUC_wmi_ocb_schedule_element,
+    WMITLV_TAG_STRUC_wmi_dcc_ndl_stats_per_channel,
+    WMITLV_TAG_STRUC_wmi_dcc_ndl_chan,
+    WMITLV_TAG_STRUC_wmi_qos_parameter,
+    WMITLV_TAG_STRUC_wmi_dcc_ndl_active_state_config,
 } WMITLV_TAG_ID;
 
 /*
@@ -729,7 +749,15 @@ typedef enum {
     OP(WMI_SET_ANTENNA_DIVERSITY_CMDID) \
     OP(WMI_SAP_OFL_ENABLE_CMDID) \
     OP(WMI_APFIND_CMDID) \
-    OP(WMI_OCB_SET_SCHED_CMDID)
+    OP(WMI_OCB_SET_SCHED_CMDID) \
+    OP(WMI_OCB_SET_CONFIG_CMDID) \
+    OP(WMI_OCB_SET_UTC_TIME_CMDID) \
+    OP(WMI_OCB_START_TIMING_ADVERT_CMDID) \
+    OP(WMI_OCB_STOP_TIMING_ADVERT_CMDID) \
+    OP(WMI_OCB_GET_TSF_TIMER_CMDID) \
+    OP(WMI_DCC_GET_STATS_CMDID) \
+    OP(WMI_DCC_CLEAR_STATS_CMDID) \
+    OP(WMI_DCC_UPDATE_NDL_CMDID)
 
 
 /*
@@ -825,7 +853,12 @@ typedef enum {
     OP(WMI_PDEV_RESUME_EVENTID) \
     OP(WMI_SAP_OFL_ADD_STA_EVENTID) \
     OP(WMI_SAP_OFL_DEL_STA_EVENTID) \
-    OP(WMI_OCB_SET_SCHED_EVENTID)
+    OP(WMI_OCB_SET_SCHED_EVENTID) \
+    OP(WMI_OCB_SET_CONFIG_RESP_EVENTID) \
+    OP(WMI_OCB_GET_TSF_TIMER_RESP_EVENTID) \
+    OP(WMI_DCC_GET_STATS_RESP_EVENTID) \
+    OP(WMI_DCC_UPDATE_NDL_RESP_EVENTID) \
+    OP(WMI_DCC_STATS_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2028,10 +2061,60 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ENABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_APFIND_CMDID);
 
-/* Set OCB schedule cmd */
+/* Set OCB schedule cmd, DEPRECATED */
 #define WMITLV_TABLE_WMI_OCB_SET_SCHED_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param, wmi_ocb_set_sched_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_OCB_SET_SCHED_CMDID);
+
+/* Set OCB configuration cmd */
+#define WMITLV_TABLE_WMI_OCB_SET_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_set_config_cmd_fixed_param, wmi_ocb_set_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_channel, chan_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_ocb_channel, ocb_chan_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_qos_parameter, qos_parameter_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_chan, chan_cfg, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_active_state_config, ndl_active_state_config_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_ocb_schedule_element, schedule_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_SET_CONFIG_CMDID);
+
+/* Set UTC time cmd */
+#define WMITLV_TABLE_WMI_OCB_SET_UTC_TIME_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_set_utc_time_cmd_fixed_param, wmi_ocb_set_utc_time_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_SET_UTC_TIME_CMDID);
+
+/* Start timing advertisement cmd */
+#define WMITLV_TABLE_WMI_OCB_START_TIMING_ADVERT_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_start_timing_advert_cmd_fixed_param, wmi_ocb_start_timing_advert_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_START_TIMING_ADVERT_CMDID);
+
+/* Stop timing advertisement cmd */
+#define WMITLV_TABLE_WMI_OCB_STOP_TIMING_ADVERT_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_stop_timing_advert_cmd_fixed_param, wmi_ocb_stop_timing_advert_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_STOP_TIMING_ADVERT_CMDID);
+
+/* Get TSF timer cmd */
+#define WMITLV_TABLE_WMI_OCB_GET_TSF_TIMER_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_cmd_fixed_param, wmi_ocb_get_tsf_timer_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_GET_TSF_TIMER_CMDID);
+
+/* Get DCC stats cmd */
+#define WMITLV_TABLE_WMI_DCC_GET_STATS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_get_stats_cmd_fixed_param, wmi_dcc_get_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_channel_stats_request, channel_stats_request, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_GET_STATS_CMDID);
+
+/* Clear DCC stats cmd */
+#define WMITLV_TABLE_WMI_DCC_CLEAR_STATS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_clear_stats_cmd_fixed_param, wmi_dcc_clear_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_CLEAR_STATS_CMDID);
+
+/* Update DCC NDL cmd */
+#define WMITLV_TABLE_WMI_DCC_UPDATE_NDL_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_update_ndl_cmd_fixed_param, wmi_dcc_update_ndl_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_chan, chan_ndl_list, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_active_state_config, ndl_active_state_config_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_UPDATE_NDL_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -2515,10 +2598,37 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ADD_STA_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param, wmi_sap_ofl_del_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_DEL_STA_EVENTID);
 
-/* Set OCB schedule event */
+/* Set OCB schedule cmd, DEPRECATED */
 #define WMITLV_TABLE_WMI_OCB_SET_SCHED_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_ocb_set_sched_event_fixed_param, wmi_ocb_set_sched_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_OCB_SET_SCHED_EVENTID);
+
+/* Set OCB configuration response event */
+#define WMITLV_TABLE_WMI_OCB_SET_CONFIG_RESP_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_set_config_resp_event_fixed_param, wmi_ocb_set_config_resp_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_SET_CONFIG_RESP_EVENTID);
+
+/* Get TSF timer response event */
+#define WMITLV_TABLE_WMI_OCB_GET_TSF_TIMER_RESP_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_resp_event_fixed_param, wmi_ocb_get_tsf_timer_resp_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_OCB_GET_TSF_TIMER_RESP_EVENTID);
+
+/* Get DCC stats response event */
+#define WMITLV_TABLE_WMI_DCC_GET_STATS_RESP_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_get_stats_resp_event_fixed_param, wmi_dcc_get_stats_resp_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_stats_per_channel, stats_per_channel_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_GET_STATS_RESP_EVENTID);
+
+/* Update DCC NDL response event */
+#define WMITLV_TABLE_WMI_DCC_UPDATE_NDL_RESP_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_update_ndl_resp_event_fixed_param, wmi_dcc_update_ndl_resp_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_UPDATE_NDL_RESP_EVENTID);
+
+/* DCC stats event */
+#define WMITLV_TABLE_WMI_DCC_STATS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_stats_event_fixed_param, wmi_dcc_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_stats_per_channel, stats_per_channel_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_DCC_STATS_EVENTID);
 
 #ifdef __cplusplus
 }
