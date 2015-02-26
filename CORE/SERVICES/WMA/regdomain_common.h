@@ -80,7 +80,7 @@
 #include <a_types.h>
 #include "wlan_defs.h"
 
-#define MAX_CHANNELS_PER_OPERATING_CLASS  15
+#define MAX_CHANNELS_PER_OPERATING_CLASS  25
 
 enum EnumRd {
     /*
@@ -1842,6 +1842,7 @@ typedef enum offset
 	BW20 = 0,
 	BW40_LOW_PRIMARY = 1,
 	BW40_HIGH_PRIMARY = 3,
+	BW80,
 	BWALL
 } offset_t;
 
