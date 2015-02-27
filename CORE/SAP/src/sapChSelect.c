@@ -350,7 +350,16 @@ sap_process_avoid_ie(tHalHandle hal,
 			 */
 			for (i = 0; i < spect_info->numSpectChans; i++) {
 				if (spect_ch[i].chNum == avoid_ch_ie->channel) {
-					spect_ch[i].weight = ACS_WEIGHT_MAX;
+					/*
+					 * weight is set more than max so that,
+					 * in the case of other channels being
+					 * assigned max weight due to noise,
+					 * they may be preferred over channels
+					 * with Q2Q IE.
+					 */
+					spect_ch[i].weight = ACS_WEIGHT_MAX + 1;
+					spect_ch[i].weight_copy =
+							ACS_WEIGHT_MAX + 1;
 					break;
 				}
 			}

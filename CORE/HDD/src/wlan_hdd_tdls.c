@@ -483,7 +483,7 @@ static void wlan_hdd_tdls_schedule_scan(struct work_struct *work)
     scan_ctx->attempt++;
 
     wlan_hdd_cfg80211_scan(scan_ctx->wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                            scan_ctx->dev,
 #endif
                            scan_ctx->scan_request);
@@ -2497,7 +2497,7 @@ static void wlan_hdd_tdls_pre_setup(struct work_struct *work)
 
 int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
                             struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                             struct net_device *dev,
 #endif
                             struct cfg80211_scan_request *request)
@@ -2514,7 +2514,7 @@ int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
     scan_ctx = &pHddCtx->tdls_scan_ctxt;
 
     scan_ctx->wiphy = wiphy;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
     scan_ctx->dev = dev;
 #endif
 
@@ -2524,7 +2524,7 @@ int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
 
 static void wlan_hdd_tdls_scan_init_work(hdd_context_t *pHddCtx,
                                 struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                 struct net_device *dev,
 #endif
                                 struct cfg80211_scan_request *request,
@@ -2532,7 +2532,7 @@ static void wlan_hdd_tdls_scan_init_work(hdd_context_t *pHddCtx,
 {
     if (TDLS_CTX_MAGIC != pHddCtx->tdls_scan_ctxt.magic)
     {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
         wlan_hdd_tdls_copy_scan_context(pHddCtx, wiphy, dev, request);
 #else
         wlan_hdd_tdls_copy_scan_context(pHddCtx, wiphy, request);
@@ -2549,7 +2549,7 @@ static void wlan_hdd_tdls_scan_init_work(hdd_context_t *pHddCtx,
  */
 int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
                                 struct wiphy *wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                 struct net_device *dev,
 #endif
                                 struct cfg80211_scan_request *request)
@@ -2601,7 +2601,7 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
                     __func__, connectedTdlsPeers, pHddCtx->tdls_scan_ctxt.attempt, delay);
 
             wlan_hdd_tdls_scan_init_work (pHddCtx, wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                           dev,
 #endif
                                           request,
@@ -2698,7 +2698,7 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
                     delay);
 
             wlan_hdd_tdls_scan_init_work (pHddCtx, wiphy,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,6,0)) && !defined(WITH_BACKPORTS)
                                           dev,
 #endif
                                           request,
