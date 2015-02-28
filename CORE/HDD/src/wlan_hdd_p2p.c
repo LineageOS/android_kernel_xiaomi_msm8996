@@ -109,7 +109,6 @@ const char *p2p_action_frame_type[]={"GO Negotiation Request",
 tP2PConnectionStatus globalP2PConnectionStatus = P2P_NOT_ACTIVE;
 
 #endif
-#ifdef WLAN_FEATURE_TDLS_DEBUG
 #define MAX_TDLS_ACTION_FRAME_TYPE 11
 const char *tdls_action_frame_type[] = {"TDLS Setup Request",
                                         "TDLS Setup Response",
@@ -122,7 +121,6 @@ const char *tdls_action_frame_type[] = {"TDLS Setup Request",
                                         "TDLS Peer PSM Response",
                                         "TDLS Peer Traffic Response",
                                         "TDLS Discovery Request" };
-#endif
 
 extern struct net_device_ops net_ops_struct;
 
@@ -2643,31 +2641,29 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
             else if(pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET+1] == WLAN_HDD_PUBLIC_ACTION_TDLS_DISC_RESP)
             {
                 u8 *mac = &pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET+6];
-#ifdef WLAN_FEATURE_TDLS_DEBUG
-                hddLog(VOS_TRACE_LEVEL_ERROR,"[TDLS] TDLS Discovery Response," MAC_ADDRESS_STR " RSSI[%d] <--- OTA",
+                hddLog(VOS_TRACE_LEVEL_INFO,"[TDLS] TDLS Discovery Response," MAC_ADDRESS_STR " RSSI[%d] <--- OTA",
                  MAC_ADDR_ARRAY(mac),rxRssi);
-#endif
+
                 wlan_hdd_tdls_set_rssi(pAdapter, mac, rxRssi);
                 wlan_hdd_tdls_recv_discovery_resp(pAdapter, mac);
             }
 #endif
         }
-#ifdef WLAN_FEATURE_TDLS_DEBUG
         if(pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_TDLS_ACTION_FRAME)
         {
             actionFrmType = pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET+1];
             if(actionFrmType >= MAX_TDLS_ACTION_FRAME_TYPE)
             {
-                hddLog(VOS_TRACE_LEVEL_ERROR,"[TDLS] unknown[%d] <--- OTA",
+                hddLog(VOS_TRACE_LEVEL_INFO,"[TDLS] Action type[%d] <--- OTA",
                                                             actionFrmType);
             }
             else
             {
-                hddLog(VOS_TRACE_LEVEL_ERROR,"[TDLS] %s <--- OTA",
+                hddLog(VOS_TRACE_LEVEL_INFO,"[TDLS] %s <--- OTA",
                     tdls_action_frame_type[actionFrmType]);
             }
         }
-#endif
+
         if((pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_QOS_ACTION_FRAME)&&
              (pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET+1] == WLAN_HDD_QOS_MAP_CONFIGURE) )
         {

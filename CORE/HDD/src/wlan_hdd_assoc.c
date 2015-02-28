@@ -2740,7 +2740,6 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
     hddTdlsPeer_t *curr_peer;
     tANI_U32 reason;
 
-#ifdef WLAN_FEATURE_TDLS_DEBUG
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
     ("hdd_tdlsStatusUpdate: %s staIdx %d " MAC_ADDRESS_STR),
       roamResult == eCSR_ROAM_RESULT_ADD_TDLS_PEER ? "ADD_TDLS_PEER" :
@@ -2755,7 +2754,6 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
       "UNKNOWN",
        pRoamInfo->staId,
        MAC_ADDR_ARRAY(pRoamInfo->peerMac)) ;
-#endif
 
 #ifdef CONFIG_TDLS_IMPLICIT
     if (!pHddTdlsCtx)
