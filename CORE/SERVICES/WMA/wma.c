@@ -25158,25 +25158,16 @@ VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
 void wma_scan_completion_timeout(void *data)
 {
         tp_wma_handle wma_handle;
-        tSirScanOffloadEvent *scan_event;
         u_int8_t vdev_id;
 
         WMA_LOGE("%s: Timeout occured for scan command", __func__);
 
         wma_handle = (tp_wma_handle) data;
 
-        scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
-                                (sizeof(tSirScanOffloadEvent));
-        if (!scan_event) {
-                WMA_LOGE("%s: Memory allocation failed for tSirScanOffloadEvent", __func__);
-                return;
-        }
-
         vdev_id = wma_handle->wma_scan_timer_info.vdev_id;
 
         if (wma_handle->wma_scan_timer_info.scan_id !=
                 wma_handle->interfaces[vdev_id].scan_info.scan_id) {
-                vos_mem_free(scan_event);
                 WMA_LOGE("%s: Scan ID mismatch", __func__);
                 return;
         }

@@ -676,6 +676,9 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
         *pNumPacketsFetched = i;
         HTC_PACKET_QUEUE_ITERATE_ALLOW_REMOVE(pSyncCompletionQueue, pPacket){
             paddedLength = DEV_CALC_RECV_PADDED_LEN(pDev, pPacket->ActualLength);
+            if (pPacket->PktInfo.AsRx.HTCRxFlags & HTC_RX_PKT_LAST_BUNDLED_PKT_HAS_ADDTIONAL_BLOCK){
+                    paddedLength += HIF_MBOX_BLOCK_SIZE;
+            }
             A_MEMCPY(pPacket->pBuffer, pBuffer, paddedLength);
             pBuffer += paddedLength;
         }HTC_PACKET_QUEUE_ITERATE_END;
