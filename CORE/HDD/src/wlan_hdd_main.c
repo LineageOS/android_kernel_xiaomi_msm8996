@@ -7534,7 +7534,15 @@ static int hdd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
    return ret;
 }
 
-int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+/**
+ * __hdd_ioctl() - HDD ioctl handler
+ * @dev: pointer to net_device structure
+ * @ifr: pointer to ifreq structure
+ * @cmd: ioctl command
+ *
+ * Return: 0 for success and error number for failure.
+ */
+static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
@@ -7590,6 +7598,24 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    return ret;
 }
 
+/**
+ * hdd_ioctl() - Wrapper function to protect __hdd_ioctl() function from SSR
+ * @dev: pointer to net_device structure
+ * @ifr: pointer to ifreq structure
+ * @cmd: ioctl command
+ *
+ * Return: 0 for success and error number for failure.
+ */
+static int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_ioctl(dev, ifr, cmd);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
 
 
 /*
@@ -8311,18 +8337,15 @@ v_BOOL_t hdd_is_valid_mac_address(const tANI_U8 *pMacAddr)
     return (xdigit == 12 && (separator == 5 || separator == 0));
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_open() - HDD Open function
-
-  This is called in response to ifconfig up
-
-  \param  - dev Pointer to net_device structure
-
-  \return - 0 for success non-zero for failure
-
-  --------------------------------------------------------------------------*/
-int hdd_open (struct net_device *dev)
+/**
+ * __hdd_open() - HDD Open function
+ * @dev: pointer to net_device structure
+ *
+ * This is called in response to ifconfig up
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int __hdd_open(struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx =  WLAN_HDD_GET_CTX(pAdapter);
@@ -8369,25 +8392,42 @@ int hdd_open (struct net_device *dev)
    return ret;
 }
 
+/**
+ * hdd_open() - Wrapper function for __hdd_open to protect it from SSR
+ * @dev: pointer to net_device structure
+ *
+ * This is called in response to ifconfig up
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int hdd_open(struct net_device *dev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_open(dev);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+
 int hdd_mon_open (struct net_device *dev)
 {
    netif_start_queue(dev);
 
    return 0;
 }
-/**---------------------------------------------------------------------------
 
-  \brief hdd_stop() - HDD stop function
-
-  This is called in response to ifconfig down
-
-  \param  - dev Pointer to net_device structure
-
-  \return - 0 for success non-zero for failure
-
-  --------------------------------------------------------------------------*/
-
-int hdd_stop (struct net_device *dev)
+/**
+ * __hdd_stop() - HDD stop function
+ * @dev: pointer to net_device structure
+ *
+ * This is called in response to ifconfig down
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int __hdd_stop(struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx =  WLAN_HDD_GET_CTX(pAdapter);
@@ -8492,56 +8532,78 @@ int hdd_stop (struct net_device *dev)
    return 0;
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_uninit() - HDD uninit function
-
-  This is called during the netdev unregister to uninitialize all data
-associated with the device
-
-  \param  - dev Pointer to net_device structure
-
-  \return - void
-
-  --------------------------------------------------------------------------*/
-static void hdd_uninit (struct net_device *dev)
+/**
+ * hdd_stop() - Wrapper function for __hdd_stop to protect it from SSR
+ * @dev: pointer to net_device structure
+ *
+ * This is called in response to ifconfig down
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int hdd_stop (struct net_device *dev)
 {
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	int ret;
 
-   ENTER();
+	vos_ssr_protect(__func__);
+	ret = __hdd_stop(dev);
+	vos_ssr_unprotect(__func__);
 
-   do
-   {
-      if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: Invalid magic", __func__);
-         break;
-      }
-
-      if (NULL == pAdapter->pHddCtx)
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: NULL pHddCtx", __func__);
-         break;
-      }
-
-      if (dev != pAdapter->dev)
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: Invalid device reference", __func__);
-         /* we haven't validated all cases so let this go for now */
-      }
-
-      hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
-
-      /* after uninit our adapter structure will no longer be valid */
-      pAdapter->dev = NULL;
-      pAdapter->magic = 0;
-   } while (0);
-
-   EXIT();
+	return ret;
 }
+
+/**
+ * __hdd_uninit() - HDD uninit function
+ * @dev: pointer to net_device structure
+ *
+ * This is called during the netdev unregister to uninitialize all data
+ * associated with the device
+ *
+ * Return: none
+ */
+static void __hdd_uninit(struct net_device *dev)
+{
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	ENTER();
+
+	if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic) {
+		hddLog(LOGP, FL("Invalid magic"));
+		return;
+	}
+
+	if (NULL == pAdapter->pHddCtx) {
+		hddLog(LOGP, FL("NULL pHddCtx"));
+		return;
+	}
+
+	if (dev != pAdapter->dev)
+		hddLog(LOGP, FL("Invalid device reference"));
+
+	hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
+
+	/* After uninit our adapter structure will no longer be valid */
+	pAdapter->dev = NULL;
+	pAdapter->magic = 0;
+
+	EXIT();
+}
+
+/**
+ * hdd_uninit() - Wrapper function to protect __hdd_uninit from SSR
+ * @dev: pointer to net_device structure
+ *
+ * This is called during the netdev unregister to uninitialize all data
+ * associated with the device
+ *
+ * Return: none
+ */
+static void hdd_uninit(struct net_device *dev)
+{
+	vos_ssr_protect(__func__);
+	__hdd_uninit(dev);
+	vos_ssr_unprotect(__func__);
+}
+
 
 /**---------------------------------------------------------------------------
      \brief hdd_full_pwr_cbk() - HDD full power callback function
@@ -8657,32 +8719,50 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName,
    return VOS_STATUS_SUCCESS;
 }
 
-/**---------------------------------------------------------------------------
+/**
+ * __hdd_set_mac_address() - HDD set mac address
+ * @dev: pointer to net_device structure
+ * @addr: Pointer to the sockaddr
+ *
+ * This function sets the user specified mac address using
+ * the command ifconfig wlanX hw ether <mac adress>.
+ *
+ * Return: 0 for success.
+ */
+static int __hdd_set_mac_address(struct net_device *dev, void *addr)
+{
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	struct sockaddr *psta_mac_addr = addr;
 
-  \brief hdd_set_mac_address() -
+	ENTER();
 
-   This function sets the user specified mac address using
-   the command ifconfig wlanX hw ether <mac adress>.
+	memcpy(&pAdapter->macAddressCurrent, psta_mac_addr->sa_data, ETH_ALEN);
+	memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
 
-  \param  - dev - Pointer to the net device.
-              - addr - Pointer to the sockaddr.
-  \return - 0 for success, non zero for failure
+	EXIT();
+	return 0;
+}
 
-  --------------------------------------------------------------------------*/
-
+/**
+ * hdd_set_mac_address() - Wrapper function to protect __hdd_set_mac_address()
+ *			function from SSR
+ * @dev: pointer to net_device structure
+ * @addr: Pointer to the sockaddr
+ *
+ * This function sets the user specified mac address using
+ * the command ifconfig wlanX hw ether <mac adress>.
+ *
+ * Return: 0 for success.
+ */
 static int hdd_set_mac_address(struct net_device *dev, void *addr)
 {
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   struct sockaddr *psta_mac_addr = addr;
-   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+	int ret;
 
-   ENTER();
+	vos_ssr_protect(__func__);
+	ret = __hdd_set_mac_address(dev, addr);
+	vos_ssr_unprotect(__func__);
 
-   memcpy(&pAdapter->macAddressCurrent, psta_mac_addr->sa_data, ETH_ALEN);
-   memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
-
-   EXIT();
-   return halStatus;
+	return ret;
 }
 
 tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx)
