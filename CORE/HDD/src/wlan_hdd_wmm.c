@@ -1811,48 +1811,14 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb
    WLANTL_ACEnumType ac;
    sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    v_USHORT_t queueIndex;
-   v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   v_U8_t STAId;
-   v_U8_t *pSTAId = (v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
 
-   /*Get the Station ID*/
-   if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(pAdapter, pDestMacAddress, &STAId))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-            "%s: Failed to find right station", __func__);
-      *pSTAId = HDD_WLAN_INVALID_STA_ID;
-      goto done;
-   }
-
-   spin_lock_bh( &pAdapter->staInfo_lock );
-   if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-                   "%s: Station MAC address does not matching", __func__);
-
-      *pSTAId = HDD_WLAN_INVALID_STA_ID;
-      goto release_lock;
-   }
-   if (pAdapter->aStaInfo[STAId].isUsed && pAdapter->aStaInfo[STAId].isQosEnabled && (HDD_WMM_USER_MODE_NO_QOS != pHddCtx->cfg_ini->WmmMode))
-   {
+   if (HDD_WMM_USER_MODE_NO_QOS != pHddCtx->cfg_ini->WmmMode) {
       /* Get the user priority from IP header & corresponding AC */
       hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
-      //If 3/4th of Tx queue is used then place the DHCP packet in VOICE AC queue
-      if (pAdapter->aStaInfo[STAId].vosLowResource && is_dhcp_packet(skb))
-      {
-         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
-                    "%s: Making priority of DHCP packet as VOICE", __func__);
-         up = SME_QOS_WMM_UP_VO;
-         ac = hddWmmUpToAcMap[up];
-      }
    }
-   *pSTAId = STAId;
 
-release_lock:
-    spin_unlock_bh( &pAdapter->staInfo_lock );
-done:
    skb->priority = up;
    queueIndex = hddLinuxUpToAcMap[skb->priority];
 
