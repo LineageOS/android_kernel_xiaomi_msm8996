@@ -551,22 +551,16 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
     {
         /* Include HT Capability IE */
         PopulateDot11fHTCaps( pMac, NULL, htCap );
-        htCap->present = 1;
-        if (psessionEntry->currentOperChannel <= SIR_11B_CHANNEL_END)
-        {
-            /* hardcode NO channel bonding in 2.4Ghz */
-            htCap->supportedChannelWidthSet = 0;
-        }
-        else
-        {
-            //Placeholder to support different channel bonding mode of TDLS than AP.
-            htCap->supportedChannelWidthSet = 1; // hardcode it to max
-        }
+
+        /* Set channel width to 1 to indicate HT40 capability on TDLS link */
+        htCap->supportedChannelWidthSet = 1;
     }
     else
     {
         htCap->present = 0;
     }
+    limLog(pMac, LOG1, FL("HT present = %hu, Chan Width = %hu"),
+           htCap->present, htCap->supportedChannelWidthSet);
 #ifdef WLAN_FEATURE_11AC
     if (((psessionEntry->currentOperChannel <= SIR_11B_CHANNEL_END) &&
           pMac->roam.configParam.enableVhtFor24GHz) ||
@@ -592,6 +586,8 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
         /* Vht Disable from ini in 2.4 GHz */
         vhtCap->present = 0;
     }
+    limLog(pMac, LOG1, FL("VHT present = %hu, Chan Width = %hu"),
+           vhtCap->present, vhtCap->supportedChannelWidthSet);
 #endif
 }
 
