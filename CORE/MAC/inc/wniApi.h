@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -382,6 +382,7 @@ enum eWniMsgTypes
 #ifdef FEATURE_WLAN_EXTSCAN
     eWNI_SME_EXTSCAN_FULL_SCAN_RESULT_IND,
 #endif
+    eWNI_SME_FW_STATUS_IND,
     eWNI_SME_MSG_TYPES_END
 };
 

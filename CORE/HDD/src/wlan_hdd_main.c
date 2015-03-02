@@ -4641,6 +4641,101 @@ static void hdd_GetLink_statusCB(v_U8_t status, void *pContext)
 }
 
 /**
+ * hdd_get_fw_state_cb() - validates the context and notifies the caller
+ * @callback_context: caller context
+ *
+ * Return: none
+ */
+static void hdd_get_fw_state_cb(void *callback_context)
+{
+	struct statsContext *context;
+	hdd_adapter_t *adapter;
+
+	if (NULL == callback_context) {
+		hddLog(LOGE, FL("Bad pContext [%p]"), callback_context);
+		return;
+	}
+
+	context = callback_context;
+	adapter = context->pAdapter;
+
+	spin_lock(&hdd_context_lock);
+
+	if ((NULL == adapter) || (FW_STATUS_MAGIC != context->magic)) {
+		/* the caller presumably timed out so there is
+		 * nothing we can do
+		 */
+		spin_unlock(&hdd_context_lock);
+		hddLog(LOGE, FL("Invalid context, Adapter [%p] magic [%08x]"),
+			adapter, context->magic);
+		return;
+	}
+
+	/* context is valid so caller is still waiting */
+
+	/* paranoia: invalidate the magic */
+	context->magic = 0;
+
+	/* notify the caller */
+	complete(&context->completion);
+
+	/* serialization is complete */
+	spin_unlock(&hdd_context_lock);
+}
+
+/**
+ * wlan_hdd_get_fw_state() - get firmware state
+ * @adapter:     pointer to the adapter
+ *
+ * This function sends a request to firmware and waits
+ * on a timer to invoke the callback. if the callback is invoked then
+ * true will be returned or otherwise fail status will be returned.
+ *
+ * Return: true, firmware is active.
+ *         false, firmware is in bad state.
+ */
+bool wlan_hdd_get_fw_state(hdd_adapter_t *adapter)
+{
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	struct statsContext context;
+	eHalStatus hstatus = eHAL_STATUS_SUCCESS;
+	unsigned long rc;
+	bool fw_active = true;
+
+	if (wlan_hdd_validate_context(hdd_ctx) != 0) {
+		hddLog(LOGE, FL("HDD context is not valid!!!"));
+		return false;
+	}
+
+	init_completion(&context.completion);
+	context.pAdapter = adapter;
+	context.magic = FW_STATUS_MAGIC;
+	hstatus = sme_get_fw_state(WLAN_HDD_GET_HAL_CTX(adapter),
+				   hdd_get_fw_state_cb,
+				   &context);
+
+	if (eHAL_STATUS_SUCCESS != hstatus) {
+		hddLog(LOGE, FL("Unable to retrieve firmware status"));
+		fw_active = false;
+	} else {
+		/* request is sent -- wait for the response */
+		rc = wait_for_completion_timeout(&context.completion,
+			msecs_to_jiffies(WLAN_WAIT_TIME_LINK_STATUS));
+		if (!rc) {
+			hddLog(LOGE,
+				FL("SME timed out while retrieving firmware status"));
+			fw_active = false;
+		}
+	}
+
+	spin_lock(&hdd_context_lock);
+	context.magic = 0;
+	spin_unlock(&hdd_context_lock);
+
+	return fw_active;
+}
+
+/**
  * wlan_hdd_get_link_status() - get link status
  * @pAdapter:     pointer to the adapter
  *

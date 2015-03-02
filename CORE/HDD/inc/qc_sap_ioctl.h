@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -243,6 +243,7 @@ enum {
     QCSAP_IPA_UC_STAT,
     QCASAP_SET_PHYMODE,
     QCASAP_GET_TEMP_CMD,
+    QCSAP_GET_FW_STATUS
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,
