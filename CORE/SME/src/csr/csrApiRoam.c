@@ -18627,6 +18627,7 @@ void csrInitOperatingClasses(tHalHandle hHal)
     tANI_BOOLEAN found;
     tANI_U8 opClasses[SIR_MAC_MAX_SUPP_OPER_CLASSES];
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    u_int8_t ch_bandwidth;
 
     smsLog(pMac, LOG1, FL("Current Country = %c%c"),
                           pMac->scan.countryCodeCurrent[0],
@@ -18643,23 +18644,26 @@ void csrInitOperatingClasses(tHalHandle hHal)
     for (Index = 0;
          Index < numChannels && i < (SIR_MAC_MAX_SUPP_OPER_CLASSES - 1);
          Index++) {
-        class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
-                            pMac->scan.baseChannels.channelList[Index],
-                            BWALL);
-        smsLog(pMac, LOG4, FL("for chan %d, op class: %d"),
-               pMac->scan.baseChannels.channelList[Index],
-               class);
+        for (ch_bandwidth = BW20; ch_bandwidth < BWALL; ch_bandwidth++) {
+             class = regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+                                 pMac->scan.baseChannels.channelList[Index],
+                                 ch_bandwidth);
+             smsLog(pMac, LOG4, FL("for chan %d, op class: %d"),
+                    pMac->scan.baseChannels.channelList[Index],
+                    class);
 
-        found = FALSE;
-        for (j = 0 ; j < SIR_MAC_MAX_SUPP_OPER_CLASSES - 1; j++) {
-           if (opClasses[j] == class) {
-              found = TRUE;
-              break;
-           }
-        }
-        if (!found) {
-            opClasses[i]= class;
-            i++;
+             found = FALSE;
+             for (j = 0 ; j < SIR_MAC_MAX_SUPP_OPER_CLASSES - 1; j++) {
+                if (opClasses[j] == class) {
+                   found = TRUE;
+                   break;
+                }
+             }
+
+             if (!found) {
+                 opClasses[i]= class;
+                 i++;
+             }
         }
     }
 
