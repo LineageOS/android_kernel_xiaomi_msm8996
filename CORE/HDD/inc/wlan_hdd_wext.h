@@ -62,7 +62,7 @@
 
 #define MHZ 6
 
-#define WE_MAX_STR_LEN                                 1024
+#define WE_MAX_STR_LEN                                 IW_PRIV_SIZE_MASK
 #define WLAN_HDD_UI_BAND_AUTO                          0
 #define WLAN_HDD_UI_BAND_5_GHZ                         1
 #define WLAN_HDD_UI_BAND_2_4_GHZ                       2
