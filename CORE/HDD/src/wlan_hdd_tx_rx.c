@@ -47,6 +47,7 @@
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
+#include <vos_sched.h>
 #ifdef IPV6_MCAST_WAR
 #include <linux/if_ether.h>
 #endif
@@ -1012,15 +1013,17 @@ VOS_STATUS hdd_Ibss_GetStaId(hdd_station_ctx_t *pHddStaCtx, v_MACADDR_t *pMacAdd
     return VOS_STATUS_E_FAILURE;
 }
 
-/**============================================================================
-  @brief hdd_tx_timeout() - Function called by OS if there is any
-  timeout during transmission. Since HDD simply enqueues packet
-  and returns control to OS right away, this would never be invoked
-
-  @param dev : [in] pointer to Libra network device
-  @return    : None
-  ===========================================================================*/
-void hdd_tx_timeout(struct net_device *dev)
+/**
+ * __hdd_tx_timeout() - HDD tx timeout handler
+ * @dev: pointer to net_device structure
+ *
+ * Function called by OS if there is any timeout during transmission.
+ * Since HDD simply enqueues packet and returns control to OS right away,
+ * this would never be invoked
+ *
+ * Return: none
+ */
+static void __hdd_tx_timeout(struct net_device *dev)
 {
    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
    struct netdev_queue *txq;
@@ -1028,10 +1031,12 @@ void hdd_tx_timeout(struct net_device *dev)
 
    hddLog(LOGE, FL("Transmission timeout occurred jiffies %lu trans_start %lu"),
           jiffies, dev->trans_start);
-   //Getting here implies we disabled the TX queues for too long. Queues are
-   //disabled either because of disassociation or low resource scenarios. In
-   //case of disassociation it is ok to ignore this. But if associated, we have
-   //do possible recovery here
+   /*
+    * Getting here implies we disabled the TX queues for too long. Queues are
+    * disabled either because of disassociation or low resource scenarios. In
+    * case of disassociation it is ok to ignore this. But if associated, we have
+    * do possible recovery here.
+    */
 
    VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
               "num_bytes AC0: %d AC1: %d AC2: %d AC3: %d",
@@ -1047,8 +1052,7 @@ void hdd_tx_timeout(struct net_device *dev)
               pAdapter->isTxSuspended[2],
               pAdapter->isTxSuspended[3]);
 
-   for (i = 0; i < 8; i++)
-   {
+   for (i = 0; i < 8; i++) {
       txq = netdev_get_tx_queue(dev, i);
       hddLog(LOG1, FL("Queue%d status: %d txq->trans_start %lu"),
              i, netif_tx_queue_stopped(txq), txq->trans_start);
@@ -1056,6 +1060,23 @@ void hdd_tx_timeout(struct net_device *dev)
 
    VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
               "carrier state: %d", netif_carrier_ok(dev));
+}
+
+/**
+ * hdd_tx_timeout() - Wrapper function to protect __hdd_tx_timeout from SSR
+ * @dev: pointer to net_device structure
+ *
+ * Function called by OS if there is any timeout during transmission.
+ * Since HDD simply enqueues packet and returns control to OS right away,
+ * this would never be invoked
+ *
+ * Return: none
+ */
+void hdd_tx_timeout(struct net_device *dev)
+{
+	vos_ssr_protect(__func__);
+	__hdd_tx_timeout(dev);
+	vos_ssr_unprotect(__func__);
 }
 
 

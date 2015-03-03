@@ -10233,86 +10233,101 @@ allow_suspend:
 }
 
 /*
- * FUNCTION: hdd_isConnectionInProgress
+ * hdd_isConnectionInProgress() - HDD function to check connection in progress
+ * @pHddCtx - HDD context
+ * @is_roc - roc
+ *
  * Go through each adapter and check if Connection is in progress
  *
+ * Return: true if connection in progress; false otherwise.
  */
-v_BOOL_t hdd_isConnectionInProgress( hdd_context_t *pHddCtx )
+bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, bool is_roc)
 {
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-    hdd_station_ctx_t *pHddStaCtx = NULL;
-    hdd_adapter_t *pAdapter = NULL;
-    VOS_STATUS status = 0;
-    v_U8_t staId = 0;
-    v_U8_t *staMac = NULL;
+	hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+	hdd_station_ctx_t *pHddStaCtx = NULL;
+	hdd_adapter_t *pAdapter = NULL;
+	VOS_STATUS status = 0;
+	v_U8_t staId = 0;
+	v_U8_t *staMac = NULL;
 
-    if (TRUE == pHddCtx->btCoexModeSet)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-           FL("BTCoex Mode operation in progress"));
-        return VOS_TRUE;
-    }
+	if (TRUE == pHddCtx->btCoexModeSet) {
+		hddLog(LOG1, FL("BTCoex Mode operation in progress"));
+		return true;
+	}
 
-    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+	status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
 
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
-        pAdapter = pAdapterNode->pAdapter;
+	while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
+		pAdapter = pAdapterNode->pAdapter;
 
-        if( pAdapter )
-        {
-            hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
-                   hdd_device_mode_to_string(pAdapter->device_mode),
-                   pAdapter->device_mode);
-            if (((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-                 (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
-                 (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) &&
-                 (eConnectionState_Connecting ==
-                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                       "%s: %p(%d) Connection is in progress", __func__,
-                       WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
-                return VOS_TRUE;
-            }
-            if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-                    (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
-                    (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode))
-            {
-                pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-                if ((eConnectionState_Associated == pHddStaCtx->conn_info.connState) &&
-                        (VOS_FALSE == pHddStaCtx->conn_info.uIsAuthenticated))
-                {
-                    staMac = (v_U8_t *) &(pAdapter->macAddressCurrent.bytes[0]);
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                           "%s: client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange.",
-                           __func__,MAC_ADDR_ARRAY(staMac));
-                    return VOS_TRUE;
-                }
-            }
-            else if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
-                    (WLAN_HDD_P2P_GO == pAdapter->device_mode))
-            {
-                for (staId = 0; staId < WLAN_MAX_STA_COUNT; staId++)
-                {
-                    if ((pAdapter->aStaInfo[staId].isUsed) &&
-                            (WLANTL_STA_CONNECTED == pAdapter->aStaInfo[staId].tlSTAState))
-                    {
-                        staMac = (v_U8_t *) &(pAdapter->aStaInfo[staId].macAddrSTA.bytes[0]);
+		if (pAdapter) {
+			hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
+				hdd_device_mode_to_string(pAdapter->device_mode),
+				pAdapter->device_mode);
+			if ((((!is_roc) &&
+				(WLAN_HDD_INFRA_STATION ==
+					pAdapter->device_mode)) ||
+				(WLAN_HDD_P2P_CLIENT ==
+					pAdapter->device_mode) ||
+				(WLAN_HDD_P2P_DEVICE ==
+					pAdapter->device_mode)) &&
+				(eConnectionState_Connecting ==
+				(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->
+					conn_info.connState)) {
+				hddLog(LOGE,
+					FL("%p(%d) Connection is in progress"),
+					WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
+					pAdapter->sessionId);
+				return true;
+			}
 
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               "%s: client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
-                               "middle of WPS/EAPOL exchange.", __func__,
-                                MAC_ADDR_ARRAY(staMac));
-                        return VOS_TRUE;
-                    }
-                }
-            }
-        }
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-        pAdapterNode = pNext;
-    }
-    return VOS_FALSE;
+			if (((!is_roc) &&
+				(WLAN_HDD_INFRA_STATION ==
+					pAdapter->device_mode)) ||
+				(WLAN_HDD_P2P_CLIENT ==
+					pAdapter->device_mode) ||
+				(WLAN_HDD_P2P_DEVICE ==
+					pAdapter->device_mode)) {
+				pHddStaCtx =
+					WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+				if ((eConnectionState_Associated ==
+					pHddStaCtx->conn_info.connState) &&
+					(VOS_FALSE ==
+						pHddStaCtx->conn_info.
+							uIsAuthenticated)) {
+					staMac = (v_U8_t *) &(pAdapter->
+						macAddressCurrent.bytes[0]);
+					hddLog(LOGE,
+						FL("client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange."),
+						MAC_ADDR_ARRAY(staMac));
+					return true;
+				}
+			} else if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
+				   (WLAN_HDD_P2P_GO == pAdapter->device_mode)) {
+				for (staId = 0; staId < WLAN_MAX_STA_COUNT;
+					staId++) {
+					if ((pAdapter->aStaInfo[staId].
+							isUsed) &&
+						(WLANTL_STA_CONNECTED ==
+						 pAdapter->aStaInfo[staId].
+								tlSTAState)) {
+						staMac = (v_U8_t *) &(pAdapter->
+							aStaInfo[staId].
+							macAddrSTA.bytes[0]);
+
+					hddLog(LOGE,
+						FL("client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
+						"middle of WPS/EAPOL exchange."),
+						MAC_ADDR_ARRAY(staMac));
+					return true;
+					}
+				}
+			}
+		}
+		status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
+		pAdapterNode = pNext;
+	}
+	return false;
 }
 
 static void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work)
@@ -10483,9 +10498,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     /* Check if scan is allowed at this point of time.
      */
-    if (hdd_isConnectionInProgress(pHddCtx))
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Scan not allowed", __func__);
+    if (hdd_isConnectionInProgress(pHddCtx, false)) {
+        hddLog(LOGE, FL("Scan not allowed"));
         return -EBUSY;
     }
 
@@ -14039,6 +14053,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
      * that the wlan wakelock which was held in the wlan_hdd_cfg80211_scan
      * function.
      */
+    sme_ScanFlushResult(hHal, pAdapter->sessionId);
     if (TRUE == pScanInfo->mScanPending)
     {
         ret = wlan_hdd_scan_abort(pAdapter);

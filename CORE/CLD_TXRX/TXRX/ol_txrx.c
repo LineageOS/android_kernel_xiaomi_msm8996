@@ -2181,7 +2181,15 @@ ol_txrx_get_tx_resource(
 )
 {
    adf_os_spin_lock_bh(&vdev->pdev->tx_mutex);
-   if (vdev->pdev->tx_desc.num_free < (u_int16_t)low_watermark) {
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+   if (((ol_tx_desc_pool_size_hl(vdev->pdev->ctrl_pdev) >> 1)
+      - TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED)
+      - adf_os_atomic_read(&vdev->tx_desc_count)
+      < (u_int16_t)low_watermark)
+#else
+   if (vdev->pdev->tx_desc.num_free < (u_int16_t)low_watermark)
+#endif
+   {
       vdev->tx_fl_lwm = (u_int16_t)low_watermark;
       vdev->tx_fl_hwm = (u_int16_t)(low_watermark + high_watermark_offset);
       /* Not enough free resource, stop TX OS Q */
