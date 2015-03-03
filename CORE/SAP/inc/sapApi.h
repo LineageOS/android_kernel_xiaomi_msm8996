@@ -2094,6 +2094,20 @@ WLANSAP_Set_Dfs_Ignore_CAC(tHalHandle hHal, v_U8_t ignore_cac);
 VOS_STATUS
 WLANSAP_set_Dfs_Restrict_JapanW53(tHalHandle hHal, v_U8_t disable_Dfs_JapanW3);
 
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+/**
+ * wlan_sap_set_channel_avoidance() - sets sap mcc channel avoidance ini param
+ * @hal:                        hal handle
+ * @sap_channel_avoidance:      ini parameter value
+ *
+ * sets sap mcc channel avoidance ini param, to be called in sap_start
+ *
+ * Return: success of failure of operation
+ */
+VOS_STATUS
+wlan_sap_set_channel_avoidance(tHalHandle hal, bool sap_channel_avoidance);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
 /*==========================================================================
   FUNCTION    WLANSAP_set_Dfs_Preferred_Channel_location
 

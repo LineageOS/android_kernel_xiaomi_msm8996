@@ -7125,6 +7125,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
          */
         WLANSAP_set_Dfs_Preferred_Channel_location(hHal,
                                      iniConfig->gSapPreferredChanLocation);
+
+#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
+        wlan_sap_set_channel_avoidance(hHal, iniConfig->sap_channel_avoidance);
+#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     }
     else
     {

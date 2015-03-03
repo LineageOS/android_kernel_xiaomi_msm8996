@@ -1019,6 +1019,7 @@ void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
 	return;
 }
 
+#define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
 static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 {
 	struct op_msg_type *msg = op_msg;
@@ -1319,13 +1320,14 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 		uc_fw_stat = (struct ipa_uc_fw_stats *)
 			((v_U8_t *)op_msg + sizeof(struct op_msg_type));
 		vos_lock_acquire(&hdd_ipa->event_lock);
-		hdd_ipa->ipa_tx_packets_diff = uc_fw_stat->tx_pkts_completed -
-			hdd_ipa->ipa_p_tx_packets;
-		hdd_ipa->ipa_rx_packets_diff =
+		hdd_ipa->ipa_tx_packets_diff = HDD_BW_GET_DIFF(
+			uc_fw_stat->tx_pkts_completed,
+			hdd_ipa->ipa_p_tx_packets);
+		hdd_ipa->ipa_rx_packets_diff = HDD_BW_GET_DIFF(
 			(uc_fw_stat->rx_num_ind_drop_no_space +
 			uc_fw_stat->rx_num_ind_drop_no_buf +
-			uc_fw_stat->rx_num_pkts_indicated) -
-			hdd_ipa->ipa_p_rx_packets;
+			uc_fw_stat->rx_num_pkts_indicated),
+			hdd_ipa->ipa_p_rx_packets);
 
 		hdd_ipa->ipa_p_tx_packets = uc_fw_stat->tx_pkts_completed;
 		hdd_ipa->ipa_p_rx_packets =

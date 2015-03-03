@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2453,8 +2453,12 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
           return HDD_WLAN_WMM_STATUS_MODIFY_FAILED;
       }
 
-      // we were successful, save the status
-      pQosContext->lastStatus = status;
+      /* we were successful, save the status */
+      mutex_lock(&pAdapter->hddWmmStatus.wmmLock);
+      if (pQosContext->magic == HDD_WMM_CTX_MAGIC)
+          pQosContext->lastStatus = status;
+      mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
+
       return status;
    }
 
@@ -2542,8 +2546,11 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
    }
 #endif
 
-   // we were successful, save the status
-   pQosContext->lastStatus = status;
+   /* we were successful, save the status */
+   mutex_lock(&pAdapter->hddWmmStatus.wmmLock);
+   if (pQosContext->magic == HDD_WMM_CTX_MAGIC)
+       pQosContext->lastStatus = status;
+   mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
 
    return status;
 }
@@ -2653,7 +2660,11 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
    }
 
 #endif
-   pQosContext->lastStatus = status;
+   mutex_lock(&pAdapter->hddWmmStatus.wmmLock);
+   if (pQosContext->magic == HDD_WMM_CTX_MAGIC)
+       pQosContext->lastStatus = status;
+   mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
+
    return status;
 }
 
