@@ -10424,7 +10424,8 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	 * issuse VDEV RESTART, so we making is_channel_switch as
 	 * TRUE
 	 */
-	if (wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true)
+	if ((wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true) ||
+		params->restart_on_chan_switch == VOS_TRUE)
 		wma->interfaces[req.vdev_id].is_channel_switch = VOS_TRUE;
 
 	status = wma_vdev_start(wma, &req,
