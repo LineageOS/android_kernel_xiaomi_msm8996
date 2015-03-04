@@ -366,6 +366,7 @@ static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 		tAbortScanParams *abort_scan_req);
 
 void wma_send_ocb_set_sched_req(void *wma_handle, sir_ocb_sched_t *sched);
+static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -1117,6 +1118,12 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 			wma->ocb_callback(ocb_sched_resp);
 		}
 	}
+
+
+	if ((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
+		wma->interfaces[resp_event->vdev_id].vdev_up)
+		wma_set_sap_keepalive(wma, resp_event->vdev_id);
+
 	vos_timer_destroy(&req_msg->event_timeout);
 	adf_os_mem_free(req_msg);
 
@@ -15547,9 +15554,8 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 		return;
 	     }
 	     wma->interfaces[vdev_id].vdev_up = TRUE;
+		wma_set_sap_keepalive(wma, vdev_id);
 	}
-
-	wma_set_sap_keepalive(wma, vdev_id);
 }
 
 #if !defined(REMOVE_PKT_LOG)
