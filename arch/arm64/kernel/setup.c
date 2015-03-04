@@ -79,9 +79,6 @@ void __init early_init_dt_setup_hwversion_arch(unsigned long hw_version)
 }
 #endif
 
-unsigned int processor_id;
-EXPORT_SYMBOL(processor_id);
-
 unsigned long elf_hwcap __read_mostly;
 EXPORT_SYMBOL_GPL(elf_hwcap);
 
