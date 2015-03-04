@@ -4587,6 +4587,9 @@ typedef struct sSirChanChangeRequest
     tANI_U8      cbMode;
     tANI_U8      vht_channel_width;
     tANI_U8      bssid[VOS_MAC_ADDR_SIZE];
+    tANI_U32     dot11mode;
+    tSirMacRateSet      operational_rateset;
+    tSirMacRateSet      extended_rateset;
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 
 typedef struct sSirChanChangeResponse
@@ -4673,6 +4676,7 @@ typedef struct sSirDfsCsaIeRequest
     tANI_U8  targetChannel;
     tANI_U8  csaIeRequired;
     tANI_U8  bssid[VOS_MAC_ADDR_SIZE];
+    u_int8_t  ch_bandwidth;
 }tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
 
 /* Indication from lower layer indicating the completion of first beacon send

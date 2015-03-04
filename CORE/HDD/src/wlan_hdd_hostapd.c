@@ -1857,6 +1857,13 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
         return ret;
     }
 
+    if (pHddCtx->dfs_radar_found == VOS_TRUE)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Channel switch in progress!!",
+               __func__);
+        ret = -EBUSY;
+        return ret;
+    }
     /*
      * Set the dfs_radar_found flag to mimic channel change
      * when a radar is found. This will enable synchronizing

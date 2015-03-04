@@ -284,6 +284,15 @@ A_STATUS HIFRegBasedGetTargetInfo(HIF_DEVICE *device, struct bmi_target_info *ta
     A_STATUS status;
     A_UINT32 cid;
 
+    /* From scope, when first CMD53 send out, the core_clk is not ready.
+     * So wait 100 ms here to wait target ready to avoid -110 error
+     * when loading driver
+     */
+    if ((device->id->device & MANUFACTURER_ID_AR6K_BASE_MASK) ==
+        MANUFACTURER_ID_QCA9377_BASE) {
+        msleep(100);
+    }
+
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI, ("BMI Get Target Info: Enter (device: 0x%p)\n", device));
     cid = BMI_GET_TARGET_INFO;
 
