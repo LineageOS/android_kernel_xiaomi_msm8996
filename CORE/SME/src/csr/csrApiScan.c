@@ -5913,8 +5913,8 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                (NULL != pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList))
             {
                 len = pCommand->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
-                //allocate twice the channel
-                newChannelInfo.ChannelList = (tANI_U8 *)vos_mem_malloc(newChannelInfo.numOfChannels * 2);
+                /* Allocate twice the channel */
+                newChannelInfo.ChannelList = vos_mem_malloc(len * 2);
                 pChannel = pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList;
             }
             else

@@ -3760,60 +3760,94 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
 	return ret;
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief iw_set_auth_hostap() -
-   This function sets the auth type received from the wpa_supplicant.
-
-  \param  - dev - Pointer to the net device.
-              - info - Pointer to the iw_request_info.
-              - wrqu - Pointer to the iwreq_data.
-              - extra - Pointer to the data.
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
+/**
+ * __iw_set_auth_hostap() - This function sets the auth type received
+ *			from the wpa_supplicant.
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
 static int
-iw_set_auth_hostap(struct net_device *dev,struct iw_request_info *info,
-                   union iwreq_data *wrqu,char *extra)
+__iw_set_auth_hostap(struct net_device *dev,
+			struct iw_request_info *info,
+			union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
-   ENTER();
-   switch(wrqu->param.flags & IW_AUTH_INDEX)
-   {
-      case IW_AUTH_TKIP_COUNTERMEASURES:
-      {
-         if(wrqu->param.value) {
-            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                   "Counter Measure started %d", wrqu->param.value);
-            pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STARTED;
-         }
-         else {
-            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                   "Counter Measure stopped=%d", wrqu->param.value);
-            pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STOPED;
-         }
+	ENTER();
+	switch (wrqu->param.flags & IW_AUTH_INDEX) {
+	case IW_AUTH_TKIP_COUNTERMEASURES:
+		if (wrqu->param.value) {
+			hddLog(LOG2,
+				FL("Counter Measure started(%d)"),
+				wrqu->param.value);
+			pWextState->mTKIPCounterMeasures =
+						TKIP_COUNTER_MEASURE_STARTED;
+		} else {
+			hddLog(LOG2,
+				FL("Counter Measure stopped(%d)"),
+				wrqu->param.value);
+			pWextState->mTKIPCounterMeasures =
+						TKIP_COUNTER_MEASURE_STOPED;
+		}
 
-         hdd_softap_tkip_mic_fail_counter_measure(pAdapter,
-                                                  wrqu->param.value);
-      }
-      break;
+		hdd_softap_tkip_mic_fail_counter_measure(pAdapter,
+							 wrqu->param.value);
+		break;
 
-      default:
+	default:
+		hddLog(LOGW, FL("called with unsupported auth type %d"),
+			wrqu->param.flags & IW_AUTH_INDEX);
+		break;
+	}
 
-         hddLog(LOGW, "%s called with unsupported auth type %d", __func__,
-               wrqu->param.flags & IW_AUTH_INDEX);
-      break;
-   }
-
-   EXIT();
-   return 0;
+	EXIT();
+	return 0;
 }
 
-static int iw_set_ap_encodeext(struct net_device *dev,
-                        struct iw_request_info *info,
-                        union iwreq_data *wrqu, char *extra)
+/**
+ * iw_set_auth_hostap() - Wrapper function to protect __iw_set_auth_hostap
+ *			from the SSR.
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int
+iw_set_auth_hostap(struct net_device *dev,
+			struct iw_request_info *info,
+			union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_auth_hostap(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __iw_set_ap_encodeext() - set ap encode
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_set_ap_encodeext(struct net_device *dev,
+				 struct iw_request_info *info,
+				 union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 #ifndef WLAN_FEATURE_MBSSID
@@ -4001,6 +4035,30 @@ static int iw_set_ap_encodeext(struct net_device *dev,
    return retval;
 }
 
+/**
+ * iw_set_ap_encodeext() - Wrapper function to protect __iw_set_ap_encodeext
+ *			from the SSR.
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int iw_set_ap_encodeext(struct net_device *dev,
+                               struct iw_request_info *info,
+                               union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_ap_encodeext(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 static int iw_set_ap_mlme(struct net_device *dev,
                        struct iw_request_info *info,
@@ -4050,32 +4108,98 @@ static int iw_set_ap_mlme(struct net_device *dev,
 //    return status;
 }
 
+/**
+ * __iw_get_ap_rts_threshold() - get ap rts threshold
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_get_ap_rts_threshold(struct net_device *dev,
+				     struct iw_request_info *info,
+				     union iwreq_data *wrqu, char *extra)
+{
+	hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+	return hdd_wlan_get_rts_threshold(pHostapdAdapter, wrqu);
+}
+
+/**
+ * iw_get_ap_rts_threshold() - Wrapper function to protect
+ *			__iw_get_ap_rts_threshold from the SSR.
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
 static int iw_get_ap_rts_threshold(struct net_device *dev,
-            struct iw_request_info *info,
-            union iwreq_data *wrqu, char *extra)
+				   struct iw_request_info *info,
+				   union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-   v_U32_t status = 0;
+	int ret;
 
-   status = hdd_wlan_get_rts_threshold(pHostapdAdapter, wrqu);
+	vos_ssr_protect(__func__);
+	ret = __iw_get_ap_rts_threshold(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
 
-   return status;
+	return ret;
 }
 
+/**
+ * __iw_get_ap_frag_threshold() - get ap fragmentation threshold
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_get_ap_frag_threshold(struct net_device *dev,
+				      struct iw_request_info *info,
+				      union iwreq_data *wrqu, char *extra)
+{
+	hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+	return hdd_wlan_get_frag_threshold(pHostapdAdapter, wrqu);
+}
+
+/**
+ * iw_get_ap_frag_threshold() - Wrapper function to protect
+ *			__iw_get_ap_frag_threshold from the SSR.
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
 static int iw_get_ap_frag_threshold(struct net_device *dev,
-                                 struct iw_request_info *info,
-                                 union iwreq_data *wrqu, char *extra)
+				    struct iw_request_info *info,
+				    union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    v_U32_t status = 0;
+	int ret;
 
-    status = hdd_wlan_get_frag_threshold(pHostapdAdapter, wrqu);
+	vos_ssr_protect(__func__);
+	ret = __iw_get_ap_frag_threshold(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
 
-    return status;
+	return ret;
 }
 
-static int iw_get_ap_freq(struct net_device *dev, struct iw_request_info *info,
-             struct iw_freq *fwrq, char *extra)
+/**
+ * __iw_get_ap_freq() - get ap frequency
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_get_ap_freq(struct net_device *dev,
+                            struct iw_request_info *info,
+                            struct iw_freq *fwrq, char *extra)
 {
    v_U32_t status = FALSE, channel = 0, freq = 0;
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
@@ -4130,17 +4254,70 @@ static int iw_get_ap_freq(struct net_device *dev, struct iw_request_info *info,
    return 0;
 }
 
-static int iw_get_mode(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+/**
+ * iw_get_ap_freq() - Wrapper function to protect
+ *                    __iw_get_ap_freq from the SSR.
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int iw_get_ap_freq(struct net_device *dev,
+			  struct iw_request_info *info,
+			  struct iw_freq *wrqu, char *extra)
 {
-    int status = 0;
+	int ret;
 
+	vos_ssr_protect(__func__);
+	ret = __iw_get_ap_freq(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __iw_get_mode() - get mode
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_get_mode(struct net_device *dev,
+			 struct iw_request_info *info,
+			 union iwreq_data *wrqu,
+			 char *extra)
+{
     wrqu->mode = IW_MODE_MASTER;
 
-    return status;
+    return 0;
 }
+
+/**
+ * iw_get_mode() - Wrapper function to protect __iw_get_mode from the SSR.
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int iw_get_mode(struct net_device *dev,
+                       struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{
+        int ret;
+
+        vos_ssr_protect(__func__);
+        ret = __iw_get_mode(dev, info, wrqu, extra);
+        vos_ssr_unprotect(__func__);
+
+        return ret;
+}
+
 
 static int __iw_softap_setwpsie(struct net_device *dev,
                                 struct iw_request_info *info,
@@ -4661,10 +4838,20 @@ static int iw_softap_get_sta_info(struct net_device *dev,
 	return ret;
 }
 
-static int iw_set_ap_genie(struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+/**
+ * __iw_set_ap_genie() - set ap wpa/rsn ie
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int __iw_set_ap_genie(struct net_device *dev,
+			     struct iw_request_info *info,
+			     union iwreq_data *wrqu,
+			     char *extra)
 {
 
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
@@ -4707,6 +4894,32 @@ static int iw_set_ap_genie(struct net_device *dev,
     EXIT();
     return halStatus;
 }
+
+/**
+ * iw_set_ap_genie() - Wrapper function to protect __iw_set_ap_genie
+ *                      from the SSR.
+ *
+ * @dev - Pointer to the net device.
+ * @info - Pointer to the iw_request_info.
+ * @wrqu - Pointer to the iwreq_data.
+ * @extra - Pointer to the data.
+ *
+ * Return: 0 for success, non zero for failure.
+ */
+static int
+iw_set_ap_genie(struct net_device *dev,
+		struct iw_request_info *info,
+		union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_ap_genie(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
                                                tSirMacAddr macAddress)

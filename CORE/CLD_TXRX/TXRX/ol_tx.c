@@ -536,33 +536,7 @@ ol_tx_hl_base(
          */
         next = adf_nbuf_next(msdu);
 
-#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
-        if (adf_os_atomic_read(&vdev->tx_desc_count) >
-                    ((ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) >> 1)
-                     - TXRX_HL_TX_FLOW_CTRL_MGMT_RESERVED)) {
-#ifdef QCA_LL_TX_FLOW_CT
-            /* Give tx desc to avoid drop because net_if will stop later */
-            tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
-
-            adf_os_spin_lock_bh(&pdev->tx_mutex);
-            if ( !(adf_os_atomic_read(&vdev->os_q_paused)) ) {
-                /* pause netif_queue */
-                adf_os_atomic_set(&vdev->os_q_paused, 1);
-                adf_os_spin_unlock_bh(&pdev->tx_mutex);
-                vdev->osif_flow_control_cb(vdev->osif_dev,
-                                         vdev->vdev_id, A_FALSE);
-            } else {
-                adf_os_spin_unlock_bh(&pdev->tx_mutex);
-            }
-#else
-            tx_desc = NULL;
-#endif /* QCA_LL_TX_FLOW_CT */
-        } else {
-            tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
-        }
-#else  /* CONFIG_PER_VDEV_TX_DESC_POOL */
         tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
-#endif  /* CONFIG_PER_VDEV_TX_DESC_POOL */
 
         if (! tx_desc) {
             /*

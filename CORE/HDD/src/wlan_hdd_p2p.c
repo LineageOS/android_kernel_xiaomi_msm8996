@@ -744,7 +744,7 @@ void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 
 	/* If driver is busy then we can't run RoC */
 	if (hdd_ctx->isLoadInProgress || hdd_ctx->isUnloadInProgress ||
-	    hdd_isConnectionInProgress(hdd_ctx)) {
+	    hdd_isConnectionInProgress(hdd_ctx, true)) {
 		hddLog(LOGE,
 			FL("Wlan Load/Unload or Connection is in progress"));
 		return;
@@ -820,9 +820,8 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -EAGAIN;
     }
 
-    if (hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx)) {
-        hddLog( LOGE,
-                "%s: Connection is in progress", __func__);
+    if (hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx, true)) {
+        hddLog(LOGE, FL("Connection is in progress"));
         isBusy = VOS_TRUE;
     }
 
