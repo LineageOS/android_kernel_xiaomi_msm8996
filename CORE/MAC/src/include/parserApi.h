@@ -112,6 +112,7 @@ typedef struct sSirProbeRespBeacon
     tDot11fIEChanSwitchAnn    channelSwitchIE;
     tDot11fIEsec_chan_offset_ele sec_chan_offset;
     tDot11fIEext_chan_switch_ann ext_chan_switch;
+    tDot11fIESuppOperatingClasses supp_operating_classes;
     tSirMacAddr               bssid;
     tDot11fIEQuiet            quietIE;
     tDot11fIEHTCaps           HTCaps;
@@ -144,6 +145,7 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   channelSwitchPresent;
     uint8_t                   sec_chan_offset_present;
     uint8_t                   ext_chan_switch_present;
+    uint8_t                   supp_operating_class_present;
     tANI_U8                   quietIEPresent;
     tANI_U8                   tpcReportPresent;
     tANI_U8                   powerConstraintPresent;
@@ -983,7 +985,9 @@ PopulateDot11fWiderBWChanSwitchAnn(tpAniSirGlobal pMac,
 void PopulateDot11fTimeoutInterval( tpAniSirGlobal pMac,
                                     tDot11fIETimeoutInterval *pDot11f,
                                     tANI_U8 type, tANI_U32 value );
-
+void populate_dot11_supp_operating_classes(tpAniSirGlobal mac_ptr,
+                tDot11fIESuppOperatingClasses *dot_11_ptr,
+                tpPESession session_entry);
 #ifdef SAP_AUTH_OFFLOAD
 void
 sap_auth_offload_update_rsn_ie(tpAniSirGlobal pmac,

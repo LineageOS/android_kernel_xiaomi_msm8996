@@ -220,12 +220,15 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
                                       tANI_U8 chnlNumber,
                                       ePhyChanBondState secondaryChnlOffset,
-                                      tANI_U8 localPwrConstraint, tANI_U8 peSessionId)
+                                      tANI_U8 localPwrConstraint,
+                                      tANI_U8 peSessionId,
+                                      uint8_t is_restart)
 #else
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
                                       tANI_U8 chnlNumber,
                                       ePhyChanBondState secondaryChnlOffset,
-                                      tPowerdBm maxTxPower, tANI_U8 peSessionId)
+                                      tPowerdBm maxTxPower, tANI_U8 peSessionId,
+                                      uint8_t is_restart)
 #endif
 {
     tpSwitchChannelParams pChnlParams = NULL;
@@ -265,6 +268,8 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
        pChnlParams->isDfsChannel= VOS_TRUE;
     else
        pChnlParams->isDfsChannel = VOS_FALSE;
+
+    pChnlParams->restart_on_chan_switch = is_restart;
 
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);

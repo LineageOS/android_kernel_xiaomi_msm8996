@@ -723,7 +723,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
      * In case when cac timer is running for this SAP session then
      * avoid sending probe rsp out. It is violation of dfs specification.
      */
-    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+    if (((psessionEntry->pePersona == VOS_STA_SAP_MODE) ||
+         (psessionEntry->pePersona == VOS_P2P_GO_MODE)) &&
         (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
@@ -3885,7 +3886,8 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
      * In case when cac timer is running for this SAP session then
      * avoid sending disassoc out. It is violation of dfs specification.
      */
-    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+    if (((psessionEntry->pePersona == VOS_STA_SAP_MODE) ||
+        (psessionEntry->pePersona == VOS_P2P_GO_MODE)) &&
         (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
@@ -4090,7 +4092,8 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
      * In case when cac timer is running for this SAP session then
      * avoid deauth frame out. It is violation of dfs specification.
      */
-    if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) &&
+    if (((psessionEntry->pePersona == VOS_STA_SAP_MODE) ||
+        (psessionEntry->pePersona == VOS_P2P_GO_MODE)) &&
         (VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running))
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,

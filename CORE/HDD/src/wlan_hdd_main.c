@@ -8281,7 +8281,8 @@ void hdd_dfs_indicate_radar(void *context, void *param)
         while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
         {
             pAdapter = pAdapterNode->pAdapter;
-            if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
+            if (WLAN_HDD_SOFTAP == pAdapter->device_mode ||
+                WLAN_HDD_P2P_GO == pAdapter->device_mode)
             {
                 WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->dfs_cac_block_tx = VOS_TRUE;
             }
@@ -11829,12 +11830,7 @@ free_hdd_ctx:
        pHddCtx->cfg_ini= NULL;
    }
 
-   /* FTM mode, WIPHY did not registered
-      If un-register here, system crash will happen */
-   if (VOS_FTM_MODE != hdd_get_conparam())
-   {
-      wiphy_unregister(wiphy) ;
-   }
+   wiphy_unregister(wiphy) ;
    wiphy_free(wiphy) ;
    if (hdd_is_ssr_required())
    {
@@ -12592,16 +12588,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /*
     * cfg80211: Initialization  ...
     */
-#if !defined(LINUX_QCMBR)
-   if (VOS_FTM_MODE != hdd_get_conparam())
-#endif
-   {
-      if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini))
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,
-                 "%s: wlan_hdd_cfg80211_init return failure", __func__);
-          goto err_config;
-      }
+   if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini)) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: wlan_hdd_cfg80211_init return failure", __func__);
+      goto err_config;
    }
 
    /* Initialize struct for saving f/w log setting will be used
@@ -12841,9 +12831,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
           goto err_free_ftm_open;
       }
 #endif
+      /* registration of wiphy dev with cfg80211 */
+      if (0 > wlan_hdd_cfg80211_register(wiphy)) {
+          hddLog(LOGE, FL("wiphy register failed"));
+          goto err_free_ftm_open;
+      }
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       pHddCtx->isLoadInProgress = FALSE;
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded", __func__);
+
+      hddLog(LOGE, FL("FTM driver loaded"));
       complete(&wlan_start_comp);
       return VOS_STATUS_SUCCESS;
    }
@@ -14854,7 +14850,8 @@ hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter,
     status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
     while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status ) {
         pAdapter = pAdapterNode->pAdapter;
-        if (pAdapter && pAdapter->device_mode == WLAN_HDD_SOFTAP &&
+        if (pAdapter && ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
+            (pAdapter->device_mode == WLAN_HDD_P2P_GO)) &&
             pAdapter != this_sap_adapter) {
             if (check_start_bss) {
                 if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) {

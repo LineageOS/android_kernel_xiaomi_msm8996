@@ -79,9 +79,7 @@
 #include "cfgApi.h"
 #include "wniCfgAp.h"
 #include "wlan_hdd_misc.h"
-#ifdef FEATURE_WLAN_FORCE_SAP_SCC
 #include <vos_utils.h>
-#endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 #if defined CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -819,6 +817,155 @@ static void hdd_issue_stored_joinreq(hdd_adapter_t *sta_adapter,
     }
 }
 
+/**
+ * hdd_chan_change_notify() - Function to notify hostapd about channel change
+ * @hostapd_adapter	hostapd adapter
+ * @dev:		Net device structure
+ * @oper_chan:		New operating channel
+ *
+ * This function is used to notify hostapd about the channel change
+ *
+ * Return: Success on intimating userspace
+ *
+ */
+VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
+		struct net_device *dev,
+		uint8_t oper_chan)
+{
+	struct ieee80211_channel *chan;
+	struct cfg80211_chan_def chandef;
+	enum nl80211_channel_type channel_type;
+	eCsrPhyMode phy_mode;
+	ePhyChanBondState cb_mode;
+	uint32_t freq;
+	tHalHandle  hal = WLAN_HDD_GET_HAL_CTX(hostapd_adapter);
+
+	if (NULL == hal) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				"%s: hal is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	freq = vos_chan_to_freq(oper_chan);
+
+	chan = __ieee80211_get_channel(hostapd_adapter->wdev.wiphy, freq);
+
+	if (!chan) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				"%s: Invalid input frequency for channel conversion",
+				 __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	phy_mode = sme_GetPhyMode(hal);
+
+	if (oper_chan <= 14)
+		cb_mode = sme_GetCBPhyStateFromCBIniValue(
+				sme_GetChannelBondingMode24G(hal));
+	else
+		cb_mode = sme_GetCBPhyStateFromCBIniValue(
+				sme_GetChannelBondingMode5G(hal));
+
+	switch (phy_mode) {
+	case eCSR_DOT11_MODE_11n:
+	case eCSR_DOT11_MODE_11n_ONLY:
+	case eCSR_DOT11_MODE_11ac:
+	case eCSR_DOT11_MODE_11ac_ONLY:
+		if (cb_mode == PHY_SINGLE_CHANNEL_CENTERED)
+			channel_type = NL80211_CHAN_HT20;
+		else if (cb_mode == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+			channel_type = NL80211_CHAN_HT40MINUS;
+		else if (cb_mode == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+			channel_type = NL80211_CHAN_HT40PLUS;
+		else
+			channel_type = NL80211_CHAN_HT40PLUS;
+		break;
+	default:
+		channel_type = NL80211_CHAN_NO_HT;
+		break;
+	}
+
+	cfg80211_chandef_create(&chandef, chan, channel_type);
+
+	cfg80211_ch_switch_notify(dev, &chandef);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * hdd_send_radar_event() - Function to send radar events to user space
+ * @hdd_context:	HDD context
+ * @event:		Type of radar event
+ * @dfs_info:		Structure containing DFS channel and country
+ * @wdev:		Wireless device structure
+ *
+ * This function is used to send radar events such as CAC start, CAC
+ * end etc., to userspace
+ *
+ * Return: Success on sending notifying userspace
+ *
+ */
+VOS_STATUS hdd_send_radar_event(hdd_context_t *hdd_context,
+				eSapHddEvent event,
+				struct wlan_dfs_info dfs_info,
+				struct wireless_dev *wdev)
+{
+
+	struct sk_buff *vendor_event;
+	enum qca_nl80211_vendor_subcmds_index index;
+	uint32_t freq, ret;
+	uint32_t data_size;
+
+	if (!hdd_context) {
+		hddLog(LOGE, FL("HDD context is NULL"));
+                return VOS_STATUS_E_FAILURE;
+	}
+
+	freq = vos_chan_to_freq(dfs_info.channel);
+
+	switch (event) {
+	case eSAP_DFS_CAC_START:
+	    index =
+		QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED_INDEX;
+	    data_size = sizeof(uint32_t);
+	    break;
+	case eSAP_DFS_CAC_END:
+	    index =
+		QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED_INDEX;
+	    data_size = sizeof(uint32_t);
+	    break;
+	case eSAP_DFS_RADAR_DETECT:
+	    index =
+		QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED_INDEX;
+	    data_size = sizeof(uint32_t);
+	    break;
+	default:
+	    return VOS_STATUS_E_FAILURE;
+	}
+
+	vendor_event = cfg80211_vendor_event_alloc(hdd_context->wiphy,
+				wdev,
+				data_size + NLMSG_HDRLEN,
+				index,
+				GFP_KERNEL);
+	if (!vendor_event) {
+		hddLog(LOGE,
+		       FL("cfg80211_vendor_event_alloc failed for %d"), index);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = nla_put_u32(vendor_event, NL80211_ATTR_WIPHY_FREQ, freq);
+
+	if (ret) {
+		hddLog(LOGE, FL("NL80211_ATTR_WIPHY_FREQ put fail"));
+		kfree_skb(vendor_event);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+	return VOS_STATUS_SUCCESS;
+}
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -1149,6 +1296,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #ifdef WLAN_FEATURE_MBSSID
             pHddCtx->dev_dfs_cac_status = DFS_CAC_IN_PROGRESS;
 #endif
+            if (VOS_STATUS_SUCCESS !=
+                      hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_START,
+                                           dfs_info, &pHostapdAdapter->wdev)) {
+                      hddLog(LOGE, FL("Unable to indicate CAC start NL event"));
+            }
             break;
 
         case eSAP_DFS_CAC_END:
@@ -1158,6 +1310,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #ifdef WLAN_FEATURE_MBSSID
             pHddCtx->dev_dfs_cac_status = DFS_CAC_ALREADY_DONE;
 #endif
+            if (VOS_STATUS_SUCCESS !=
+                      hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_END,
+                                           dfs_info, &pHostapdAdapter->wdev)) {
+                      hddLog(LOGE, FL("Unable to indicate CAC end NL event"));
+            }
             break;
 
         case eSAP_DFS_RADAR_DETECT:
@@ -1166,6 +1323,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #ifdef WLAN_FEATURE_MBSSID
             pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
 #endif
+            if (VOS_STATUS_SUCCESS !=
+                      hdd_send_radar_event(pHddCtx, eSAP_DFS_RADAR_DETECT,
+                                           dfs_info, &pHostapdAdapter->wdev)) {
+                      hddLog(LOGE, FL("Unable to indicate Radar detect NL event"));
+            }
             break;
 
         case eSAP_DFS_NO_AVAILABLE_CHANNEL:
@@ -1577,9 +1739,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
              */
             pHddApCtx->operatingChannel =
                     pSapEvent->sapevt.sapChannelChange.operatingChannel;
-            /* TODO Need to indicate operating channel change to hostapd */
-            return VOS_STATUS_SUCCESS;
-
+            return hdd_chan_change_notify(pHostapdAdapter, dev,
+                           pSapEvent->sapevt.sapChannelChange.operatingChannel);
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         case eSAP_ACS_SCAN_SUCCESS_EVENT:
             pHddCtx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;

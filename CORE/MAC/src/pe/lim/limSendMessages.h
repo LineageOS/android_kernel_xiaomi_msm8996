@@ -72,11 +72,14 @@ tSirRetStatus limSetUserPos(tpAniSirGlobal pMac,
 #if defined WLAN_FEATURE_VOWIFI
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber,
                                       ePhyChanBondState secondaryChnlOffset,
-                                      tPowerdBm maxTxPower,tANI_U8 peSessionId);
+                                      tPowerdBm maxTxPower,tANI_U8 peSessionId,
+                                      uint8_t is_restart);
 #else
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber,
                                       ePhyChanBondState secondaryChnlOffset,
-                                      tANI_U8 localPwrConstraint,tANI_U8 peSessionId);
+                                      tANI_U8 localPwrConstraint,
+                                      tANI_U8 peSessionId,
+                                      uint8_t is_restart);
 #endif
 tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac,
                                 tSirMacEdcaParamRecord *pUpdatedEdcaParams,
