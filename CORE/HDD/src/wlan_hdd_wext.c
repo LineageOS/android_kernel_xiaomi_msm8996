@@ -129,7 +129,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
         {5520, 104}, {5540, 108}, {5560, 112}, {5580, 116}, {5600, 120},
         {5620, 124}, {5640, 128}, {5660, 132}, {5680, 136}, {5700, 140},
         {5720, 144}, {5745, 149}, {5765, 153}, {5785, 157}, {5805, 161},
-        {5825, 165} };
+        {5825, 165}, {5850, 170}, {5855, 171}, {5860, 172}, {5865, 173},
+        {5870, 174}, {5875, 175}, {5880, 176}, {5885, 177}, {5890, 178},
+        {5895, 179}, {5900, 180}, {5905, 181}, {5910, 182}, {5915, 183},
+        {5920, 184} };
 
 #define FREQ_CHAN_MAP_TABLE_SIZE (sizeof(freq_chan_map)/sizeof(freq_chan_map[0]))
 
@@ -2898,17 +2901,11 @@ static int iw_get_linkspeed_priv(struct net_device *dev,
 /* Structure definitions for WLAN_SET_DOT11P_CHANNEL_SCHED */
 #define NUM_AC                      (4)
 #define OCB_CHANNEL_MAX             (5)
-#define DOT11P_TX_PWR_MAX           (23)
 #define AIFSN_MIN                   (2)
 #define AIFSN_MAX                   (15)
 #define CW_MIN                      (1)
 #define CW_MAX                      (10)
 #define HDD_OCB_SET_SCHED_TIME_OUT  (1500)
-
-#define NUM_DOT11P_CHANNELS 9
-static const uint32_t valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
-    5860, 5870, 5880, 5890, 5900, 5910, 5920, 5875, 5905,
-};
 
 /**
  * struct ocb_qos_params - QoS Parameters for each AC
@@ -2942,6 +2939,7 @@ struct ocb_channel {
     uint32_t tx_rate;
     struct ocb_qos_params qos_params[NUM_AC];
     uint32_t per_packet_rx_stats;
+    uint32_t bandwidth;
 };
 
 /**
@@ -2957,34 +2955,14 @@ struct dot11p_channel_sched {
 };
 
 /**
- * dot11p_validate_channel() - Check if specified channel is valid
- * @channel:   Channel Frequency (MHz)
- *
- * Return: 0 on success. 1 on failure.
- */
-static int dot11p_validate_channel(uint32_t channel)
-{
-    int i;
-
-    for (i = 0; i < NUM_DOT11P_CHANNELS; i++) {
-        if (channel == valid_dot11p_channels[i]) {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-/**
- * dot11p_validate_qos_params() - Check if QoS parameters are valid
+ * dot11p_is_valid_qos() - Check if QoS parameters are valid
  * @qos_params:   Array of QoS parameters
  *
- * Return: 0 on success. 1 on failure.
+ * Return: true if valid, false otherwise.
  */
-static int dot11p_validate_qos_params(struct ocb_qos_params qos_params[])
+static bool dot11p_is_valid_qos(struct ocb_qos_params qos_params[])
 {
     int i;
-
     for (i = 0; i < NUM_AC; i++) {
         if ((!qos_params[i].aifsn) && (!qos_params[i].cwmin)
             && (!qos_params[i].cwmax)) {
@@ -2994,34 +2972,167 @@ static int dot11p_validate_qos_params(struct ocb_qos_params qos_params[])
         /* Validate AIFSN */
         if ((qos_params[i].aifsn < AIFSN_MIN)
             || (qos_params[i].aifsn > AIFSN_MAX)) {
-            return 1;
+            return false;
         }
 
         /* Validate CWMin */
         if ((qos_params[i].cwmin < CW_MIN)
             || (qos_params[i].cwmin > CW_MAX)) {
-            return 1;
+            return false;
         }
 
         /* Validate CWMax */
         if ((qos_params[i].cwmax < CW_MIN)
             || (qos_params[i].cwmax > CW_MAX)) {
-            return 1;
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
 
+#ifdef FEATURE_STATICALLY_ADD_11P_CHANNELS
+
+#define DOT11P_TX_PWR_MAX           (30)
+#define NUM_DOT11P_CHANNELS 9
+struct chan_info {
+    v_U32_t center_freq;
+    v_U32_t max_bandwidth;
+};
+
+struct chan_info valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
+    {5860, 10},
+    {5870, 10},
+    {5880, 10},
+    {5890, 10},
+    {5900, 10},
+    {5910, 10},
+    {5920, 10},
+    {5875, 20},
+    {5905, 20}
+};
+
 /**
- * dot11p_validate_sched() - Check if schedule is valid
- * @sched:   OCB channel schedule
+ * dot11p_is_valid_channel - returns true if the channel
+ * parameters is valid for a DSRC channel. This function of the
+ * function checks the channel parameters against a hardcoded
+ * list of valid channels based on the FCC rules.
  *
- * Return: 0 on success. 1 on failure.
+ * @param center_freq - the channel's center frequency
+ * @param bandwidth - the channel's bandwidth
+ * @param tx_power - transmit power
+ *
+ * @return bool - true if the channel is valid, false otherwise
  */
-int dot11p_validate_sched(struct dot11p_channel_sched *sched)
+static bool dot11p_is_valid_channel(struct wiphy *wiphy,
+                                    struct ocb_channel *channel)
 {
     int i;
+
+    for (i = 0; i < NUM_DOT11P_CHANNELS; i++) {
+        if (channel->channel_freq == valid_dot11p_channels[i].center_freq) {
+            if (channel->bandwidth == 0)
+                channel->bandwidth = valid_dot11p_channels[i].max_bandwidth;
+            else if (channel->bandwidth >
+                     valid_dot11p_channels[i].max_bandwidth)
+                return false;
+
+            if (channel->bandwidth != 5 && channel->bandwidth != 10 &&
+                    channel->bandwidth != 20)
+                return false;
+            if (channel->tx_power > DOT11P_TX_PWR_MAX)
+                return false;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+#else
+
+/**
+ * dot11p_is_valid_channel - returns true if the channel
+ * parameters is valid for a DSRC channel.
+ *
+ * @param center_freq - the channel's center frequency
+ * @param bandwidth - the channel's bandwidth
+ * @param tx_power - transmit power
+ *
+ * @return bool - true if the channel is valid, false otherwise
+ */
+static bool dot11p_is_valid_channel(struct wiphy *wiphy,
+                                    struct ocb_channel *channel)
+{
+    int band_idx, channel_idx;
+    struct ieee80211_supported_band* current_band;
+    struct ieee80211_channel* current_channel;
+
+    for (band_idx = 0; band_idx < IEEE80211_NUM_BANDS; band_idx++) {
+        current_band = wiphy->bands[band_idx];
+        if (!current_band)
+            continue;
+
+        for (channel_idx = 0; channel_idx < current_band->n_channels;
+                channel_idx++) {
+            current_channel = &current_band->channels[channel_idx];
+
+            if (channel->channel_freq == current_channel->center_freq) {
+                if (current_channel->flags & IEEE80211_CHAN_DISABLED)
+                    return false;
+
+                switch (channel->bandwidth) {
+                case 0:
+                    if (current_channel->flags & IEEE80211_CHAN_NO_10MHZ)
+                        channel->bandwidth = 5;
+                    else if (current_channel->flags & IEEE80211_CHAN_NO_20MHZ)
+                        channel->bandwidth = 10;
+                    else
+                        channel->bandwidth = 20;
+                    break;
+                case 5:
+                    break;
+                case 10:
+                    if (current_channel->flags & IEEE80211_CHAN_NO_10MHZ)
+                        return false;
+                    break;
+                case 20:
+                    if (current_channel->flags & IEEE80211_CHAN_NO_20MHZ)
+                        return false;
+                    break;
+                default:
+                    return false;
+                }
+
+                if (channel->tx_power > current_channel->max_power)
+                    return false;
+
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+#endif
+
+/**
+ * dot11p_validate_sched - validates the schedule against the
+ * current regulatory domain.
+ *
+ * @param pAdapter - The current adapter with the wiphy
+ *                 structure
+ * @param sched - The schedule that was provided from the user application
+ *
+ * @return int - 0 if the schedule was validated
+ */
+static int dot11p_validate_sched(hdd_adapter_t *pAdapter,
+                          struct dot11p_channel_sched *sched)
+{
+    int i;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     if ((sched->num_channels > OCB_CHANNEL_MAX)
         || (sched->num_channels == 0)) {
@@ -3029,15 +3140,9 @@ int dot11p_validate_sched(struct dot11p_channel_sched *sched)
     }
 
     for (i = 0; i < sched->num_channels; i++) {
-        /* Validate channel frequency */
-        if (dot11p_validate_channel(sched->channels[i].channel_freq)) {
+        if (!dot11p_is_valid_channel(pHddCtx->wiphy,
+                                     &sched->channels[i]))
             goto error;
-        }
-
-        /* Validate TX Power */
-        if (sched->channels[i].tx_power > DOT11P_TX_PWR_MAX) {
-            goto error;
-        }
 
         /* Validate TX Rate */
         switch (sched->channels[i].tx_rate) {
@@ -3056,7 +3161,7 @@ int dot11p_validate_sched(struct dot11p_channel_sched *sched)
         }
 
         /* Validate QoS Params */
-        if (dot11p_validate_qos_params(sched->channels[i].qos_params)) {
+        if (!(dot11p_is_valid_qos(sched->channels[i].qos_params))) {
             goto error;
         }
 
@@ -3069,7 +3174,7 @@ int dot11p_validate_sched(struct dot11p_channel_sched *sched)
     return 0;
 
 error:
-    return 1;
+    return -1;
 }
 
 /**
@@ -3204,7 +3309,7 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
     }
 
     sched = (struct dot11p_channel_sched *)extra;
-    if (dot11p_validate_sched(sched)) {
+    if (dot11p_validate_sched(adapter, sched)) {
         hddLog(LOGE, FL("OCB schedule validation failed!"));
         return -EINVAL;
     }
@@ -3235,6 +3340,7 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
     sched_ptr = &sched_req->sched;
     sched_ptr->num_channels = 1;
     sched_ptr->channels[0].chan_freq = sched->channels[0].channel_freq;
+    sched_ptr->channels[0].bandwidth = sched->channels[0].bandwidth;
     sched_ptr->channels[0].tx_power = sched->channels[0].tx_power;
     sched_ptr->channels[0].tx_rate = sched->channels[0].tx_rate;
     for (i = 0; i < NUM_AC; i++) {
@@ -5998,25 +6104,25 @@ static int __iw_setint_getnone(struct net_device *dev,
              break;
         }
 
-	case WE_SET_TXRX_FWSTATS:
-	{
+    case WE_SET_TXRX_FWSTATS:
+    {
            hddLog(LOG1, "WE_SET_TXRX_FWSTATS val %d", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
-			   (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
-			   set_value, VDEV_CMD);
-	   break;
-	}
+               (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+               set_value, VDEV_CMD);
+       break;
+    }
 
-	case WE_TXRX_FWSTATS_RESET:
-	{
+    case WE_TXRX_FWSTATS_RESET:
+    {
            hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
-			   (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
-			   set_value, VDEV_CMD);
-	   break;
-	}
+               (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
+               set_value, VDEV_CMD);
+       break;
+    }
 
-	case WE_PPS_PAID_MATCH:
+    case WE_PPS_PAID_MATCH:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
               return EINVAL;
@@ -6028,19 +6134,19 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
-	case WE_PPS_GID_MATCH:
-	{
-	   if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
-		return EINVAL;
-	   hddLog(LOG1, "WMI_VDEV_PPS_GID_MATCH val %d ", set_value);
+    case WE_PPS_GID_MATCH:
+    {
+       if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
+        return EINVAL;
+       hddLog(LOG1, "WMI_VDEV_PPS_GID_MATCH val %d ", set_value);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                            (int)WMI_VDEV_PPS_GID_MATCH,
                            set_value, PPS_CMD);
            break;
         }
 
-	case WE_PPS_EARLY_TIM_CLEAR:
-	{
+    case WE_PPS_EARLY_TIM_CLEAR:
+    {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
                return EINVAL;
            hddLog(LOG1, " WMI_VDEV_PPS_EARLY_TIM_CLEAR val %d ", set_value);
@@ -6050,7 +6156,7 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
-	case WE_PPS_EARLY_DTIM_CLEAR:
+    case WE_PPS_EARLY_DTIM_CLEAR:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
               return EINVAL;
@@ -6061,7 +6167,7 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
-	case WE_PPS_EOF_PAD_DELIM:
+    case WE_PPS_EOF_PAD_DELIM:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
                return EINVAL;
@@ -6072,7 +6178,7 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
-	case WE_PPS_MACADDR_MISMATCH:
+    case WE_PPS_MACADDR_MISMATCH:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
               return EINVAL;
@@ -6083,7 +6189,7 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
-	case WE_PPS_DELIM_CRC_FAIL:
+    case WE_PPS_DELIM_CRC_FAIL:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
               return EINVAL;
@@ -6095,7 +6201,7 @@ static int __iw_setint_getnone(struct net_device *dev,
         }
 
 
-	case WE_PPS_GID_NSTS_ZERO:
+    case WE_PPS_GID_NSTS_ZERO:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
                return EINVAL;
@@ -6107,7 +6213,7 @@ static int __iw_setint_getnone(struct net_device *dev,
         }
 
 
-	case WE_PPS_RSSI_CHECK:
+    case WE_PPS_RSSI_CHECK:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
                return EINVAL;
@@ -6144,7 +6250,7 @@ static int __iw_setint_getnone(struct net_device *dev,
         {
                hddLog(LOG1, "WE_SET_QPOWER_MAX_PSPOLL_COUNT val %d",
                       set_value);
-	       ret = process_wma_set_command((int)pAdapter->sessionId,
+           ret = process_wma_set_command((int)pAdapter->sessionId,
                                  (int)WMI_STA_PS_PARAM_QPOWER_PSPOLL_COUNT,
                                  set_value, QPOWER_CMD);
                break;
@@ -6879,7 +6985,7 @@ static int __iw_setnone_getint(struct net_device *dev,
             break;
         }
 
-	case WE_GET_PPS_PAID_MATCH:
+    case WE_GET_PPS_PAID_MATCH:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_PAID_MATCH");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6889,7 +6995,7 @@ static int __iw_setnone_getint(struct net_device *dev,
             break;
         }
 
-	case WE_GET_PPS_GID_MATCH:
+    case WE_GET_PPS_GID_MATCH:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_GID_MATCH");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6897,9 +7003,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_GID_MATCH,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_EARLY_TIM_CLEAR:
+    case WE_GET_PPS_EARLY_TIM_CLEAR:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_TIM_CLEAR");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6907,9 +7013,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_EARLY_TIM_CLEAR,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_EARLY_DTIM_CLEAR:
+    case WE_GET_PPS_EARLY_DTIM_CLEAR:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_EARLY_DTIM_CLEAR");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6917,9 +7023,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_EARLY_DTIM_CLEAR,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_EOF_PAD_DELIM:
+    case WE_GET_PPS_EOF_PAD_DELIM:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_EOF_PAD_DELIM");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6927,9 +7033,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_EOF_PAD_DELIM,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_MACADDR_MISMATCH:
+    case WE_GET_PPS_MACADDR_MISMATCH:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_MACADDR_MISMATCH");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6937,9 +7043,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_MACADDR_MISMATCH,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_DELIM_CRC_FAIL:
+    case WE_GET_PPS_DELIM_CRC_FAIL:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_DELIM_CRC_FAIL");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6947,9 +7053,9 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_DELIM_CRC_FAIL,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_GID_NSTS_ZERO:
+    case WE_GET_PPS_GID_NSTS_ZERO:
         {
             hddLog(LOG1, "GET WMI_VDEV_PPS_GID_NSTS_ZERO");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6957,10 +7063,10 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_GID_NSTS_ZERO,
                                          PPS_CMD);
             break;
-	}
+    }
 
-	case WE_GET_PPS_RSSI_CHECK:
-	{
+    case WE_GET_PPS_RSSI_CHECK:
+    {
 
             hddLog(LOG1, "GET WMI_VDEV_PPS_RSSI_CHECK");
             *value = wma_cli_get_command(wmapvosContext,
@@ -6968,7 +7074,7 @@ static int __iw_setnone_getint(struct net_device *dev,
                                          (int)WMI_VDEV_PPS_RSSI_CHECK,
                                          PPS_CMD);
             break;
-	}
+    }
 
         case WE_GET_QPOWER_MAX_PSPOLL_COUNT:
         {
@@ -10808,57 +10914,57 @@ static const struct iw_priv_args we_private_args[] = {
         "get_pwrgating" },
 
     {   WE_GET_PPS_PAID_MATCH,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_paid_match"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_paid_match"},
 
 
     {   WE_GET_PPS_GID_MATCH,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_gid_match"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_gid_match"},
 
 
     {   WE_GET_PPS_EARLY_TIM_CLEAR,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_tim_clear"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_tim_clear"},
 
 
     {   WE_GET_PPS_EARLY_DTIM_CLEAR,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_dtim_clear"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_dtim_clear"},
 
 
     {   WE_GET_PPS_EOF_PAD_DELIM,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_eof_delim"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_eof_delim"},
 
 
     {   WE_GET_PPS_MACADDR_MISMATCH,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_mac_match"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_mac_match"},
 
 
     {   WE_GET_PPS_DELIM_CRC_FAIL,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_delim_fail"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_delim_fail"},
 
 
     {   WE_GET_PPS_GID_NSTS_ZERO,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_nsts_zero"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_nsts_zero"},
 
 
     {   WE_GET_PPS_RSSI_CHECK,
-	0,
-	IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-	"get_rssi_chk"},
+    0,
+    IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+    "get_rssi_chk"},
 
     {   WE_GET_QPOWER_MAX_PSPOLL_COUNT,
         0,

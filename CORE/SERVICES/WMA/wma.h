@@ -110,7 +110,7 @@
 #define WMA_11G_CHANNEL_BEGIN           1
 #define WMA_11G_CHANNEL_END             14
 
-#define WMA_11P_CHANNEL_BEGIN           (172)
+#define WMA_11P_CHANNEL_BEGIN           (170)
 #define WMA_11P_CHANNEL_END             (184)
 
 #define WMA_LOGD(args...) \

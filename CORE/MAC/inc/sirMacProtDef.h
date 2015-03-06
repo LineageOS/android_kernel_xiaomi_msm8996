@@ -55,6 +55,8 @@
 #define SIR_11B_CHANNEL_END             14
 #define SIR_11A_FREQUENCY_OFFSET        4
 #define SIR_11B_FREQUENCY_OFFSET        1
+#define SIR_11P_CHANNEL_BEGIN           170
+#define SIR_11P_CHANNEL_END             184
 
 /// Current version of 802.11
 #define SIR_MAC_PROTOCOL_VERSION 0
