@@ -3404,6 +3404,13 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, eLIM_MLM_JOINED_STATE));
 
 
+        /*
+         * update the capability info based on recently
+         * received beacon/probe response frame
+         */
+        psessionEntry->limCurrentBssCaps =
+                limGetU16((tANI_U8 *)&pBPR->capabilityInfo);
+
         /**
          * Announce join success by sending
          * Join confirm to SME.
