@@ -1650,7 +1650,7 @@ static A_STATUS hifDisableFunc(HIF_DEVICE *device, struct sdio_func *func)
 
     ENTER();
     device = getHifDevice(func);
-    if (!IS_ERR(device->async_task)) {
+    if (!device->async_task) {
         init_completion(&device->async_completion);
         device->async_shutdown = 1;
         up(&device->sem_async);
@@ -1808,7 +1808,8 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
                                            "AR6K Async");
            if (IS_ERR(device->async_task)) {
                AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("AR6000: %s(), to create async task\n", __FUNCTION__));
-                return A_ERROR;
+               device->async_task = NULL;
+               return A_ERROR;
            }
            AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: start async task\n"));
            wake_up_process(device->async_task );
@@ -2288,8 +2289,22 @@ A_STATUS HIFAttachHTC(HIF_DEVICE *device, HTC_CALLBACKS *callbacks)
     return A_OK;
 }
 
+static void hif_flush_async_task(HIF_DEVICE *device)
+{
+    if (!device->async_task) {
+        init_completion(&device->async_completion);
+        device->async_shutdown = 1;
+        up(&device->sem_async);
+        wait_for_completion(&device->async_completion);
+        device->async_task = NULL;
+        sema_init(&device->sem_async, 0);
+    }
+
+}
+
 void HIFDetachHTC(HIF_DEVICE *device)
 {
+    hif_flush_async_task(device);
     A_MEMZERO(&device->htcCallbacks,sizeof(device->htcCallbacks));
 }
 
