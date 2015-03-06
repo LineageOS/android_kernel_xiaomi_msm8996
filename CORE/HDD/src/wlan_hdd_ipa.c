@@ -2477,7 +2477,6 @@ static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 
 	interface_id = adapter->sessionId;
 	++adapter->stats.tx_packets;
-	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
 
 	adf_os_spin_unlock_bh(&iface_context->interface_lock);
 
@@ -2489,11 +2488,15 @@ static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 #ifdef IPA_UC_STA_OFFLOAD
 	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr
 		+ sizeof(struct frag_header) + sizeof(struct ipa_header);
+	ipa_tx_desc->skb->len -=
+		sizeof(struct frag_header) + sizeof(struct ipa_header);
 #else
 	NBUF_MAPPED_PADDR_LO(skb) = ipa_tx_desc->dma_addr;
 #endif
 
 	NBUF_OWNER_PRIV_DATA(skb) = (unsigned long)ipa_tx_desc;
+
+	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
 
 	skb = WLANTL_SendIPA_DataFrame(hdd_ipa->hdd_ctx->pvosContext,
 			iface_context->tl_context, ipa_tx_desc->skb,
