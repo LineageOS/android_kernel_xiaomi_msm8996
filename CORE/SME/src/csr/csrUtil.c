@@ -144,7 +144,7 @@ static tCsrIELenInfo gCsrIELengthTable[] = {
 /* 056 */ { 0, 255 },
 /* 057 */ { 0, 255 },
 /* 058 */ { 0, 255 },
-/* 059 */ { 0, 255 },
+/* 059 */ { SIR_MAC_OPERATING_CLASS_EID_MIN, SIR_MAC_OPERATING_CLASS_EID_MAX },
 /* 060 */ { 0, 255 },
 /* 061 */ { 0, 255 },
 /* 062 */ { 0, 255 },

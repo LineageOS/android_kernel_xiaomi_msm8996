@@ -3017,6 +3017,7 @@ FRAME Beacon                              // C.f. Sec. 7.2.3.1
     OPTIE  PowerConstraints;
     OPTIE  ChanSwitchAnn;
     OPTIE  ext_chan_switch_ann;
+    OPTIE  SuppOperatingClasses;
     OPTIE  Quiet;
     OPTIE  TPCReport;
     OPTIE  ERPInfo;
@@ -3106,6 +3107,7 @@ FRAME Beacon2
     OPTIE  PowerConstraints;
     OPTIE  ChanSwitchAnn;
     OPTIE  ext_chan_switch_ann;
+    OPTIE  SuppOperatingClasses;
     OPTIE  Quiet;
     OPTIE  TPCReport;
     OPTIE  ERPInfo;
@@ -3165,6 +3167,7 @@ FRAME BeaconIEs
     OPTIE  PowerConstraints;
     OPTIE  ChanSwitchAnn;
     OPTIE  ext_chan_switch_ann;
+    OPTIE  SuppOperatingClasses;
     OPTIE  Quiet;
     OPTIE  TPCReport;
     OPTIE  ERPInfo;
@@ -3376,6 +3379,7 @@ FRAME ProbeResponse                       // 7.2.3.9
     OPTIE  PowerConstraints;
     OPTIE  ChanSwitchAnn;
     OPTIE  ext_chan_switch_ann;
+    OPTIE  SuppOperatingClasses;
     OPTIE  Quiet;
     OPTIE  TPCReport;
     OPTIE  ERPInfo;

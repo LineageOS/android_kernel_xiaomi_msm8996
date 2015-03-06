@@ -190,6 +190,13 @@ enum qca_nl80211_vendor_subcmds {
 
     /* Get the supported features by the driver */
     QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES = 55,
+
+    /* Off loaded DFS events */
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED = 56,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED = 57,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED = 58,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED = 59,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED = 60,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -236,6 +243,12 @@ enum qca_nl80211_vendor_subcmds_index {
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX,
 #endif
+    /* DFS */
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_STARTED_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_FINISHED_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_ABORTED_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_CAC_NOP_FINISHED_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_DFS_OFFLOAD_RADAR_DETECTED_INDEX,
 };
 
 /* EXT TDLS */
@@ -1132,4 +1145,17 @@ int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
                                    u32 no_dfs_flag);
 
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter);
+
+#if !(defined (SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC))
+static inline struct sk_buff *
+backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					int approxlen,
+					int event_idx, gfp_t gfp)
+{
+	return cfg80211_vendor_event_alloc(wiphy, approxlen, event_idx, gfp);
+}
+#define cfg80211_vendor_event_alloc backported_cfg80211_vendor_event_alloc
+#endif
+
 #endif

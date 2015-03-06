@@ -718,8 +718,10 @@ WLANSAP_RoamCallback
                {
                     ptSapContext pSapContext;
 
-                    if (VOS_STA_SAP_MODE ==
-                         pMac->sap.sapCtxList[intf].sapPersona &&
+                    if (((VOS_STA_SAP_MODE ==
+                         pMac->sap.sapCtxList[intf].sapPersona) ||
+                         (VOS_P2P_GO_MODE ==
+                         pMac->sap.sapCtxList[intf].sapPersona)) &&
                          pMac->sap.sapCtxList[intf].pSapContext != NULL )
                     {
                         pSapContext = pMac->sap.sapCtxList[intf].pSapContext;
@@ -1130,8 +1132,10 @@ WLANSAP_RoamCallback
                          for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
                          {
                               ptSapContext pSapContext;
-                              if ((VOS_STA_SAP_MODE ==
-                                  pMac->sap.sapCtxList[intf].sapPersona) &&
+                              if (((VOS_STA_SAP_MODE ==
+                                  pMac->sap.sapCtxList[intf].sapPersona) ||
+                                  (VOS_P2P_GO_MODE ==
+                                  pMac->sap.sapCtxList[intf].sapPersona)) &&
                                   (pMac->sap.sapCtxList[intf].pSapContext !=
                                    NULL))
                               {
