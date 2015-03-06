@@ -56,24 +56,24 @@
 
 /*
  * HTT version history:
- * 1.0 initial numbered version
- * 1.1 modifications to STATS messages.
- *     These modifications are not backwards compatible, but since the
- *     STATS messages themselves are non-essential (they are for debugging),
- *     the 1.1 version of the HTT message library as a whole is compatible
- *     with the 1.0 version.
- * 1.2 reset mask IE added to STATS_REQ message
- * 1.3 stat config IE added to STATS_REQ message
+ * 1.0  initial numbered version
+ * 1.1  modifications to STATS messages.
+ *      These modifications are not backwards compatible, but since the
+ *      STATS messages themselves are non-essential (they are for debugging),
+ *      the 1.1 version of the HTT message library as a whole is compatible
+ *      with the 1.0 version.
+ * 1.2  reset mask IE added to STATS_REQ message
+ * 1.3  stat config IE added to STATS_REQ message
  *----
- * 2.0 FW rx PPDU desc added to RX_IND message
- * 2.1 Enable msdu_ext/frag_desc banking change for WIFI2.0
+ * 2.0  FW rx PPDU desc added to RX_IND message
+ * 2.1  Enable msdu_ext/frag_desc banking change for WIFI2.0
  *----
- * 3.0 Remove HTT_H2T_MSG_TYPE_MGMT_TX message
- * 3.1 Added HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND message
- * 3.2 Added HTT_H2T_MSG_TYPE_WDI_IPA_CFG,
- *           HTT_H2T_MSG_TYPE_WDI_IPA_OP_REQUEST messages
- * 3.3 Added HTT_H2T_MSG_TYPE_AGGR_CFG_EX message
- * 3.4 Added tx_compl_req flag in HTT tx descriptor
+ * 3.0  Remove HTT_H2T_MSG_TYPE_MGMT_TX message
+ * 3.1  Added HTT_T2H_MSG_TYPE_RX_IN_ORD_PADDR_IND message
+ * 3.2  Added HTT_H2T_MSG_TYPE_WDI_IPA_CFG,
+ *            HTT_H2T_MSG_TYPE_WDI_IPA_OP_REQUEST messages
+ * 3.3  Added HTT_H2T_MSG_TYPE_AGGR_CFG_EX message
+ * 3.4  Added tx_compl_req flag in HTT tx descriptor
  * 3.5  Added flush and fail stats in rx_reorder stats structure
  * 3.6  Added frag flag in HTT RX INORDER PADDR IND header
  * 3.7  Made changes to support EOS Mac_core 3.0
@@ -96,9 +96,19 @@
  *          "remote ring" of rx buffers in host member in LL systems.
  *          Add RX_REMOTE_RING_BUFFER_INFO stats type for uploading these stats.
  * 3.12 Add "rx offload packet error" message with initial "MIC error" subtype
+ * 3.13 Add constants + macros to support 64-bit address format for the
+ *      tx fragments descriptor, the rx ring buffer, and the rx ring
+ *      index shadow register.
+ * 3.14 Add a method for the host to provide detailed per-frame tx specs:
+ *        - Add htt_tx_msdu_desc_ext_t struct def.
+ *        - Add TLV to specify whether the target supports the HTT tx MSDU
+ *          extension descriptor.
+ *        - Change a reserved bit in the HTT tx MSDU descriptor to an
+ *          "extension" bit, to specify whether a HTT tx MSDU extension
+ *          descriptor is present.
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 12
+#define HTT_CURRENT_VERSION_MINOR 14
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -106,6 +116,22 @@
 
 #define HTT_CHECK_SET_VAL(field, val) \
     A_ASSERT(!((val) & ~((field ## _M) >> (field ## _S))))
+
+/* macros to assist in sign-extending fields from HTT messages */
+#define HTT_SIGN_BIT_MASK(field) \
+    ((field ## _M + (1 << field ## _S)) >> 1)
+#define HTT_SIGN_BIT(_val, field) \
+    (_val & HTT_SIGN_BIT_MASK(field))
+#define HTT_SIGN_BIT_UNSHIFTED(_val, field) \
+    (HTT_SIGN_BIT(_val, field) >> field ## _S)
+#define HTT_SIGN_BIT_UNSHIFTED_MINUS_ONE(_val, field) \
+    (HTT_SIGN_BIT_UNSHIFTED(_val, field) - 1)
+#define HTT_SIGN_BIT_EXTENSION(_val, field) \
+    (~(HTT_SIGN_BIT_UNSHIFTED(_val, field) | \
+    HTT_SIGN_BIT_UNSHIFTED_MINUS_ONE(_val, field)))
+#define HTT_SIGN_BIT_EXTENSION_MASK(_val, field) \
+    (HTT_SIGN_BIT_EXTENSION(_val, field) & ~(field ## _M >> field ## _S))
+
 
 /*
  * TEMPORARY:
@@ -164,18 +190,18 @@ enum HTT_AC_WMM_MASK {
  * The bitmask contains 24 bits.
  */
 enum htt_dbg_stats_type {
-    HTT_DBG_STATS_WAL_PDEV_TXRX      = 0, /* bit 0 -> 0x1 */
-    HTT_DBG_STATS_RX_REORDER         = 1, /* bit 1 -> 0x2 */
-    HTT_DBG_STATS_RX_RATE_INFO       = 2, /* bit 2 -> 0x4 */
-    HTT_DBG_STATS_TX_PPDU_LOG        = 3, /* bit 3 -> 0x8 */
-    HTT_DBG_STATS_TX_RATE_INFO       = 4, /* bit 4 -> 0x10 */
-    HTT_DBG_STATS_TIDQ               = 5,  /* bit 5 -> 0x20 */
-    HTT_DBG_STATS_TXBF_INFO          = 6,  /* bit 6 -> 0x40 */
-    HTT_DBG_STATS_SND_INFO           = 7,  /* bit 7 -> 0x80 */
-    HTT_DBG_STATS_ERROR_INFO         = 8,  /* bit 8  -> 0x100 */
-    HTT_DBG_STATS_TX_SELFGEN_INFO    = 9,  /* bit 9  -> 0x200 */
-    HTT_DBG_STATS_TX_MU_INFO         = 10, /* bit 10 -> 0x400 */
-    HTT_DBG_STATS_SIFS_RESP_INFO     = 11, /* bit 11 -> 0x800 */
+    HTT_DBG_STATS_WAL_PDEV_TXRX              =  0, /* bit 0  ->    0x1 */
+    HTT_DBG_STATS_RX_REORDER                 =  1, /* bit 1  ->    0x2 */
+    HTT_DBG_STATS_RX_RATE_INFO               =  2, /* bit 2  ->    0x4 */
+    HTT_DBG_STATS_TX_PPDU_LOG                =  3, /* bit 3  ->    0x8 */
+    HTT_DBG_STATS_TX_RATE_INFO               =  4, /* bit 4  ->   0x10 */
+    HTT_DBG_STATS_TIDQ                       =  5, /* bit 5  ->   0x20 */
+    HTT_DBG_STATS_TXBF_INFO                  =  6, /* bit 6  ->   0x40 */
+    HTT_DBG_STATS_SND_INFO                   =  7, /* bit 7  ->   0x80 */
+    HTT_DBG_STATS_ERROR_INFO                 =  8, /* bit 8  ->  0x100 */
+    HTT_DBG_STATS_TX_SELFGEN_INFO            =  9, /* bit 9  ->  0x200 */
+    HTT_DBG_STATS_TX_MU_INFO                 = 10, /* bit 10 ->  0x400 */
+    HTT_DBG_STATS_SIFS_RESP_INFO             = 11, /* bit 11 ->  0x800 */
     HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO = 12, /* bit 12 -> 0x1000*/
     /* bits 13-23 currently reserved */
 
@@ -214,6 +240,7 @@ enum HTT_OPTION_TLV_TAGS {
     HTT_OPTION_TLV_TAG_LL_BUS_ADDR_SIZE         = 0x1,
     HTT_OPTION_TLV_TAG_HL_SUPPRESS_TX_COMPL_IND = 0x2,
     HTT_OPTION_TLV_TAG_MAX_TX_QUEUE_GROUPS      = 0x3,
+    HTT_OPTION_TLV_TAG_SUPPORT_TX_MSDU_DESC_EXT = 0x4,
 };
 
 PREPACK struct htt_option_tlv_header_t {
@@ -361,6 +388,40 @@ PREPACK struct htt_option_tlv_max_tx_queue_groups_t {
     A_UINT16 max_tx_queue_groups; /* max txq_group_id + 1 */
 } POSTPACK;
 
+/*
+ * HTT option TLV for specifying whether the target supports an extended
+ * version of the HTT tx descriptor.  If the target provides this TLV
+ * and specifies in the TLV that the target supports an extended version
+ * of the HTT tx descriptor, the target must check the "extension" bit in
+ * the HTT tx descriptor, and if the extension bit is set, to expect a
+ * HTT tx MSDU extension descriptor immediately following the HTT tx MSDU
+ * descriptor.  Furthermore, the target must provide room for the HTT
+ * tx MSDU extension descriptor in the target's TX_FRM buffer.
+ * This option is intended for systems where the host needs to explicitly
+ * control the transmission parameters such as tx power for individual
+ * tx frames.
+ * The SUPPORT_TX_MSDU_DESC_EXT TLB can be sent by the target to the host
+ * as a suffix to the VERSION_CONF message to explicitly specify whether
+ * the target supports the HTT tx MSDU extension descriptor.
+ * Lack of a SUPPORT_TX_MSDU_DESC_EXT from the target shall be interpreted
+ * by the host as lack of target support for the HTT tx MSDU extension
+ * descriptor; the host shall provide HTT tx MSDU extension descriptors in
+ * the HTT_H2T TX_FRM messages only if the target indicates it supports
+ * the HTT tx MSDU extension descriptor.
+ * The host is not required to provide the HTT tx MSDU extension descriptor
+ * just because the target supports it; the target must check the
+ * "extension" bit in the HTT tx MSDU descriptor to determine whether an
+ * extension descriptor is present.
+ */
+enum HTT_OPTION_TLV_SUPPORT_TX_MSDU_DESC_EXT_VALUES {
+    HTT_OPTION_TLV_TX_MSDU_DESC_EXT_NO_SUPPORT = 0x0,
+    HTT_OPTION_TLV_TX_MSDU_DESC_EXT_SUPPORT = 0x1,
+};
+PREPACK struct htt_option_tlv_support_tx_msdu_desc_ext_t {
+    struct htt_option_tlv_header_t hdr;
+    A_UINT16 tx_msdu_desc_ext_support; /* SUPPORT_TX_MSDU_DESC_EXT enum */
+} POSTPACK;
+
 
 /*=== host -> target messages ===============================================*/
 
@@ -466,13 +527,27 @@ enum htt_h2t_msg_type {
 #define HTT_TX_MSDU_LEN_MASK 0xffff;
 
 /*
+ * HTT_VAR_PADDR macros
+ * Allow physical / bus addresses to be either a single 32-bit value,
+ * or a 64-bit value, stored as a little-endian lo,hi pair of 32-bit parts
+ */
+#define HTT_VAR_PADDR32(var_name) \
+    A_UINT32 var_name
+#define HTT_VAR_PADDR64_LE(var_name)        \
+    struct {                                \
+        /* little-endian: lo precedes hi */ \
+        A_UINT32 lo;                        \
+        A_UINT32 hi;                        \
+    } var_name
+
+/*
  * TEMPLATE_HTT_TX_MSDU_DESC_T:
  * This macro defines a htt_tx_msdu_descXXX_t in which any physical
  * addresses are stored in a XXX-bit field.
  * This macro is used to define both htt_tx_msdu_desc32_t and
  * htt_tx_msdu_desc64_t structs.
  */
-#define TEMPLATE_HTT_TX_MSDU_DESC_T(_paddr_bits_)                              \
+#define TEMPLATE_HTT_TX_MSDU_DESC_T(_paddr_bits_, _paddr__frags_desc_ptr_)     \
 PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
 {                                                                              \
     /* DWORD 0: flags and meta-data */                                         \
@@ -547,7 +622,15 @@ PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
          */                                                                    \
         postponed: 1,                                                          \
                                                                                \
-        reserved_dword0_bits28: 1, /* unused */                                \
+        /* extension -                                                         \
+         * This flag indicates whether a HTT tx MSDU extension descriptor      \
+         * (htt_tx_msdu_desc_ext_t) follows this HTT tx MSDU descriptor.       \
+         *                                                                     \
+         * 0x0 - no extension MSDU descriptor is present                       \
+         * 0x1 - an extension MSDU descriptor immediately follows the          \
+         *       regular MSDU descriptor                                       \
+         */                                                                    \
+        extension: 1,                                                          \
                                                                                \
         /* cksum_offload -                                                     \
          * This flag indicates whether checksum offload is enabled or not      \
@@ -599,7 +682,7 @@ PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
          * (degenerate single-fragment) fragmentation descriptor is created    \
          * within the target.                                                  \
          */                                                                    \
-        A_UINT ## _paddr_bits_ frags_desc_ptr; /* little endian format */      \
+        _paddr__frags_desc_ptr_;                                               \
                                                                                \
         /* DWORD 3 (or 4): peerid, chanfreq */                                 \
         /*                                                                     \
@@ -625,8 +708,10 @@ PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
          * A_UINT32 reserved_dword3_bits0_31;                                  \
          */                                                                    \
 } POSTPACK
-TEMPLATE_HTT_TX_MSDU_DESC_T(32); /* define a htt_tx_msdu_desc32_t type */
-TEMPLATE_HTT_TX_MSDU_DESC_T(64); /* define a htt_tx_msdu_desc64_t type */
+/* define a htt_tx_msdu_desc32_t type */
+TEMPLATE_HTT_TX_MSDU_DESC_T(32, HTT_VAR_PADDR32(frags_desc_ptr));
+/* define a htt_tx_msdu_desc64_t type */
+TEMPLATE_HTT_TX_MSDU_DESC_T(64, HTT_VAR_PADDR64_LE(frags_desc_ptr));
 /*
  * Make htt_tx_msdu_desc_t be an alias for either
  * htt_tx_msdu_desc32_t or htt_tx_msdu_desc64_t
@@ -766,12 +851,31 @@ A_COMPILE_TIME_ASSERT(
 /* dword 2 */
 #define HTT_TX_DESC_FRAGS_DESC_PADDR_OFFSET_BYTES 8
 #define HTT_TX_DESC_FRAGS_DESC_PADDR_OFFSET_DWORD 2
-#define HTT_TX_DESC_FRAGS_DESC_PADDR_M 0xffffffff
-#define HTT_TX_DESC_FRAGS_DESC_PADDR_S 0
+/* for systems using 64-bit format for bus addresses */
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_HI_M 0xffffffff
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_HI_S 0
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_LO_M 0xffffffff
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_LO_S 0
+/* for systems using 32-bit format for bus addresses */
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_M    0xffffffff
+#define HTT_TX_DESC_FRAGS_DESC_PADDR_S    0
 
 /* dword 3 */
-#define HTT_TX_DESC_PEER_ID_OFFSET_BYTES 12
-#define HTT_TX_DESC_PEER_ID_OFFSET_DWORD 3
+#define HTT_TX_DESC_PEER_ID_OFFSET_BYTES_64 16
+#define HTT_TX_DESC_PEER_ID_OFFSET_BYTES_32 12
+#define HTT_TX_DESC_PEER_ID_OFFSET_DWORD_64 \
+        (HTT_TX_DESC_PEER_ID_OFFSET_BYTES_64 >> 2)
+#define HTT_TX_DESC_PEER_ID_OFFSET_DWORD_32 \
+        (HTT_TX_DESC_PEER_ID_OFFSET_BYTES_32 >> 2)
+
+#if HTT_PADDR64
+#define HTT_TX_DESC_PEER_ID_OFFSET_BYTES HTT_TX_DESC_PEER_ID_OFFSET_BYTES_64
+#define HTT_TX_DESC_PEER_ID_OFFSET_DWORD HTT_TX_DESC_PEER_ID_OFFSET_DWORD_64
+#else
+#define HTT_TX_DESC_PEER_ID_OFFSET_BYTES HTT_TX_DESC_PEER_ID_OFFSET_BYTES_32
+#define HTT_TX_DESC_PEER_ID_OFFSET_DWORD HTT_TX_DESC_PEER_ID_OFFSET_DWORD_32
+#endif
+
 #define HTT_TX_DESC_PEER_ID_M 0x0000ffff
 #define HTT_TX_DESC_PEER_ID_S 0
     /*
@@ -790,8 +894,21 @@ A_COMPILE_TIME_ASSERT(
     #define HTT_TX_DESC_PEERID_DESC_PADDR_S \
         HTT_TX_DESC_PEER_ID_S
 
-#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES 12 // to dword containing chan freq
-#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD 3
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_64 16 // to dword with chan freq
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_32 12 // to dword with chan freq
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD_64 \
+        (HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_64 >> 2)
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD_32 \
+        (HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_32 >> 2)
+
+#if HTT_PADDR64
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_64
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD_64
+#else
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES HTT_TX_DESC_CHAN_FREQ_OFFSET_BYTES_32
+#define HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD HTT_TX_DESC_CHAN_FREQ_OFFSET_DWORD_32
+#endif
+
 #define HTT_TX_DESC_CHAN_FREQ_M 0xffff0000
 #define HTT_TX_DESC_CHAN_FREQ_S 16
 
@@ -892,6 +1009,388 @@ A_COMPILE_TIME_ASSERT(
      } while (0)
 
 
+/* enums used in the HTT tx MSDU extension descriptor */
+enum {
+    htt_tx_guard_interval_regular = 0,
+    htt_tx_guard_interval_short   = 1,
+};
+
+enum {
+    htt_tx_preamble_type_ofdm = 0,
+    htt_tx_preamble_type_cck  = 1,
+    htt_tx_preamble_type_ht   = 2,
+    htt_tx_preamble_type_vht  = 3,
+};
+
+enum {
+    htt_tx_bandwidth_5MHz   = 0,
+    htt_tx_bandwidth_10MHz  = 1,
+    htt_tx_bandwidth_20MHz  = 2,
+    htt_tx_bandwidth_40MHz  = 3,
+    htt_tx_bandwidth_80MHz  = 4,
+    htt_tx_bandwidth_160MHz = 5, /* includes 80+80 */
+};
+
+/**
+ * @brief HTT tx MSDU extension descriptor
+ * @details
+ *  If the target supports HTT tx MSDU extension descriptors, the host has
+ *  the option of appending the following struct following the regular
+ *  HTT tx MSDU descriptor (and setting the "extension" flag in the regular
+ *  HTT tx MSDU descriptor, to show that the extension descriptor is present).
+ *  The HTT tx MSDU extension descriptors allows the host to provide detailed
+ *  tx specs for each frame.
+ */
+PREPACK struct htt_tx_msdu_desc_ext_t {
+    /* DWORD 0: flags */
+    A_UINT32
+        valid_pwr:            1, /* bit 0: if set, tx pwr spec is valid */
+        valid_mcs_mask:       1, /* bit 1: if set, tx MCS mask spec is valid */
+        valid_nss_mask:       1, /* bit 2: if set, tx Nss mask spec is valid */
+        valid_guard_interval: 1, /* bit 3: if set, tx guard intv spec is valid*/
+        valid_preamble_type_mask: 1, /* 4: if set, tx preamble mask is valid */
+        valid_chainmask:      1, /* bit 5: if set, tx chainmask spec is valid */
+        valid_retries:        1, /* bit 6: if set, tx retries spec is valid */
+        valid_bandwidth:      1, /* bit 7: if set, tx bandwidth spec is valid */
+        valid_expire_tsf:     1, /* bit 8: if set, tx expire TSF spec is valid*/
+        is_dsrc:              1, /* bit 9: if set, MSDU is a DSRC frame */
+        reserved0_31_7:      22; /* bits 31:10 - unused, set to 0x0 */
+
+    /* DWORD 1: tx power, tx rate, tx BW */
+    A_UINT32
+        /* pwr -
+         * Specify what power the tx frame needs to be transmitted at.
+         * The power a signed (two's complement) value is in units of 0.5 dBm.
+         * The value needs to be appropriately sign-extended when extracting
+         * the value from the message and storing it in a variable that is
+         * larger than A_INT8.  (The HTT_TX_MSDU_EXT_DESC_FLAG_PWR_GET macro
+         * automatically handles this sign-extension.)
+         * If the transmission uses multiple tx chains, this power spec is
+         * the total transmit power, assuming incoherent combination of
+         * per-chain power to produce the total power.
+         */
+        pwr: 8,
+
+        /* mcs_mask -
+         * Specify the allowable values for MCS index (modulation and coding)
+         * to use for transmitting the frame.
+         *
+         * For HT / VHT preamble types, this mask directly corresponds to
+         * the HT or VHT MCS indices that are allowed.  For each bit N set
+         * within the mask, MCS index N is allowed for transmitting the frame.
+         * For legacy CCK and OFDM rates, separate bits are provided for CCK
+         * rates versus OFDM rates, so the host has the option of specifying
+         * that the target must transmit the frame with CCK or OFDM rates
+         * (not HT or VHT), but leaving the decision to the target whether
+         * to use CCK or OFDM.
+         *
+         * For CCK and OFDM, the bits within this mask are interpreted as
+         * follows:
+         *     bit  0 -> CCK 1 Mbps rate is allowed
+         *     bit  1 -> CCK 2 Mbps rate is allowed
+         *     bit  2 -> CCK 5.5 Mbps rate is allowed
+         *     bit  3 -> CCK 11 Mbps rate is allowed
+         *     bit  4 -> OFDM BPSK modulation, 1/2 coding rate is allowed
+         *     bit  5 -> OFDM QPSK modulation, 1/2 coding rate is allowed
+         *     bit  6 -> OFDM QPSK modulation, 3/4 coding rate is allowed
+         *     bit  7 -> OFDM 16-QAM modulation, 1/2 coding rate is allowed
+         *     bit  8 -> OFDM 16-QAM modulation, 3/4 coding rate is allowed
+         *     bit  9 -> OFDM 64-QAM modulation, 2/3 coding rate is allowed
+         *     bit 10 -> OFDM 64-QAM modulation, 3/4 coding rate is allowed
+         *     bit 11 -> OFDM 64-QAM modulation, 5/6 coding rate is allowed
+         *
+         * The MCS index specification needs to be compatible with the
+         * bandwidth mask specification.  For example, a MCS index == 9
+         * specification is inconsistent with a preamble type == VHT,
+         * Nss == 1, and channel bandwidth == 20 MHz.
+         *
+         * Furthermore, the host has only a limited ability to specify to
+         * the target to select from HT + legacy rates, or VHT + legacy rates,
+         * since this mcs_mask can specify either HT/VHT rates or legacy rates.
+         */
+        mcs_mask: 12,
+
+        /* nss_mask -
+         * Specify which numbers of spatial streams (MIMO factor) are permitted.
+         * Each bit in this mask corresponds to a Nss value:
+         *     bit 0: if set, Nss = 1 (non-MIMO) is permitted
+         *     bit 1: if set, Nss = 2 (2x2 MIMO) is permitted
+         *     bit 2: if set, Nss = 3 (3x3 MIMO) is permitted
+         *     bit 3: if set, Nss = 4 (4x4 MIMO) is permitted
+         * The values in the Nss mask must be suitable for the recipient, e.g.
+         * a value of 0x4 (Nss = 3) cannot be specified for a tx frame to a
+         * recipient which only supports 2x2 MIMO.
+         */
+        nss_mask: 4,
+
+        /* guard_interval -
+         * Specify a htt_tx_guard_interval enum value to indicate whether
+         * the transmission should use a regular guard interval or a
+         * short guard interval.
+         */
+        guard_interval: 1,
+
+        /* preamble_type_mask -
+         * Specify which preamble types (CCK, OFDM, HT, VHT) the target
+         * may choose from for transmitting this frame.
+         * The bits in this mask correspond to the values in the
+         * htt_tx_preamble_type enum.  For example, to allow the target
+         * to transmit the frame as either CCK or OFDM, this field would
+         * be set to
+         *     (1 << htt_tx_preamble_type_ofdm) |
+         *     (1 << htt_tx_preamble_type_cck)
+         */
+        preamble_type_mask: 4,
+
+        reserved1_31_29: 3; /* unused, set to 0x0 */
+
+    /* DWORD 2: tx chain mask, tx retries */
+    A_UINT32
+        /* chain_mask - specify which chains to transmit from */
+        chain_mask: 4,
+
+        /* retry_limit -
+         * Specify the maximum number of transmissions, including the
+         * initial transmission, to attempt before giving up if no ack
+         * is received.
+         * If the tx rate is specified, then all retries shall use the
+         * same rate as the initial transmission.
+         * If no tx rate is specified, the target can choose whether to
+         * retain the original rate during the retransmissions, or to
+         * fall back to a more robust rate.
+         */
+        retry_limit: 4,
+
+        /* bandwidth_mask -
+         * Specify what channel widths may be used for the transmission.
+         * A value of zero indicates "don't care" - the target may choose
+         * the transmission bandwidth.
+         * The bits within this mask correspond to the htt_tx_bandwidth
+         * enum values - bit 0 is for 5 MHz, bit 1 is for 10 MHz, etc.
+         * The bandwidth_mask must be consistent with the preamble_type_mask
+         * and mcs_mask specs, if they are provided.  For example, 80 MHz and
+         * 160 MHz can only be enabled in the mask if preamble_type == VHT.
+         */
+        bandwidth_mask: 6,
+
+        reserved2_31_14: 18; /* unused, set to 0x0 */
+
+    /* DWORD 3: tx expiry time (TSF) LSBs */
+    A_UINT32 expire_tsf_lo;
+
+    /* DWORD 4: tx expiry time (TSF) MSBs */
+    A_UINT32 expire_tsf_hi;
+
+    A_UINT32 reserved_for_future_expansion_set_to_zero[3];
+} POSTPACK;
+
+/* DWORD 0 */
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_M                0x00000001
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_S                0
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_M           0x00000002
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_S           1
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_NSS_MASK_M           0x00000004
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_NSS_MASK_S           2
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_M     0x00000008
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_S     3
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_M 0x00000010
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_S 4
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_M         0x00000020
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_S         5
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_M            0x00000040
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_S            6
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_M          0x00000080
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_S          7
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_M        0x00000100
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_S        8
+#define HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_M                  0x00000200
+#define HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_S                  9
+
+/* DWORD 1 */
+#define HTT_TX_MSDU_EXT_DESC_PWR_M                           0x000000ff
+#define HTT_TX_MSDU_EXT_DESC_PWR_S                           0
+#define HTT_TX_MSDU_EXT_DESC_MCS_MASK_M                      0x000fff00
+#define HTT_TX_MSDU_EXT_DESC_MCS_MASK_S                      8
+#define HTT_TX_MSDU_EXT_DESC_NSS_MASK_M                      0x00f00000
+#define HTT_TX_MSDU_EXT_DESC_NSS_MASK_S                      20
+#define HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_M                0x01000000
+#define HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_S                24
+#define HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_M            0x1c000000
+#define HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_S            25
+
+/* DWORD 2 */
+#define HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_M                    0x0000000f
+#define HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_S                    0
+#define HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_M                   0x000000f0
+#define HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_S                   4
+#define HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_M                0x00003f00
+#define HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_S                8
+
+
+/* DWORD 0 */
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PWR_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_MCS_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL( \
+             HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL, _val); \
+         ((_var) |= ((_val) \
+             << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_GUARD_INTERVAL_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL( \
+             HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK, _val); \
+         ((_var) |= ((_val) \
+             << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_PREAMBLE_TYPE_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_CHAIN_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_RETRIES_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_BANDWIDTH_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_VALID_EXPIRE_TIME_S));\
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_M) >> \
+    HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_S)
+#define HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_FLAG_IS_DSRC_S)); \
+     } while (0)
+
+
+/* DWORD 1 */
+#define HTT_TX_MSDU_EXT_DESC_PWR_GET_BASE(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_PWR_M) >> \
+    HTT_TX_MSDU_EXT_DESC_PWR_S)
+#define HTT_TX_MSDU_EXT_DESC_PWR_GET(_var) \
+    (HTT_TX_MSDU_EXT_DESC_PWR_GET_BASE(_var)  | \
+    HTT_SIGN_BIT_EXTENSION_MASK(_var, HTT_TX_MSDU_EXT_DESC_PWR))
+#define HTT_TX_MSDU_EXT_DESC_PWR_SET(_var, _val) \
+    ((_var) |= (((_val) << HTT_TX_MSDU_EXT_DESC_PWR_S)) & \
+    HTT_TX_MSDU_EXT_DESC_PWR_M)
+
+#define HTT_TX_MSDU_EXT_DESC_MCS_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_MCS_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_MCS_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_MCS_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_MCS_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_MCS_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_NSS_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_NSS_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_NSS_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_NSS_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_NSS_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_NSS_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_M) >> \
+    HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_S)
+#define HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_GUARD_INTERVAL_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_PREAMBLE_TYPE_MASK_S)); \
+     } while (0)
+
+
+/* DWORD 2 */
+#define HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_CHAIN_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_CHAIN_MASK_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_M) >> \
+    HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_S)
+#define HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_RETRY_LIMIT_S)); \
+     } while (0)
+
+#define HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_GET(_var) \
+    (((_var) & HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_M) >> \
+    HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_S)
+#define HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK, _val); \
+         ((_var) |= ((_val) << HTT_TX_MSDU_EXT_DESC_BANDWIDTH_MASK_S)); \
+     } while (0)
+
+
 /**
  * @brief MAC DMA rx ring setup specification
  * @details
@@ -906,9 +1405,15 @@ A_COMPILE_TIME_ASSERT(
  *            |---------------------------------------------------------------|
  * header:    |            reserved           |   num rings   |    msg type   |
  *            |---------------------------------------------------------------|
- * payload 1: |             FW_IDX shadow register physical address           |
+ * payload 1: |       FW_IDX shadow register physical address (bits 31:0)     |
+#if HTT_PADDR64
+ *            |       FW_IDX shadow register physical address (bits 63:32)    |
+#endif
  *            |---------------------------------------------------------------|
- *            |                   rx ring base physical address               |
+ *            |                 rx ring base physical address (bits 31:0)     |
+#if HTT_PADDR64
+ *            |                 rx ring base physical address (bits 63:32)    |
+#endif
  *            |---------------------------------------------------------------|
  *            |      rx ring buffer size      |        rx ring length         |
  *            |---------------------------------------------------------------|
@@ -935,18 +1440,34 @@ A_COMPILE_TIME_ASSERT(
  *     Purpose: indicates whether the host is setting up one rx ring or two
  *     Value: 1 or 2
  * Payload:
- *   - IDX_SHADOW_REG_PADDR
- *     Bits 31:0
- *     Value: physical address of the host's FW_IDX shadow register
- *   - RING_BASE_PADDR
- *     Bits 31:0
- *     Value: physical address of the host's rx ring
+ *     for systems using 64-bit format for bus addresses:
+ *       - IDX_SHADOW_REG_PADDR_LO
+ *         Bits 31:0
+ *         Value: lower 4 bytes of physical address of the host's
+ *                FW_IDX shadow register
+ *       - IDX_SHADOW_REG_PADDR_HI
+ *         Bits 31:0
+ *         Value: upper 4 bytes of physical address of the host's
+ *                FW_IDX shadow register
+ *       - RING_BASE_PADDR_LO
+ *         Bits 31:0
+ *         Value: lower 4 bytes of physical address of the host's rx ring
+ *       - RING_BASE_PADDR_HI
+ *         Bits 31:0
+ *         Value: uppper 4 bytes of physical address of the host's rx ring
+ *     for systems using 32-bit format for bus addresses:
+ *       - IDX_SHADOW_REG_PADDR
+ *         Bits 31:0
+ *         Value: physical address of the host's FW_IDX shadow register
+ *       - RING_BASE_PADDR
+ *         Bits 31:0
+ *         Value: physical address of the host's rx ring
  *   - RING_LEN
  *     Bits 15:0
  *     Value: number of elements in the rx ring
  *   - RING_BUF_SZ
  *     Bits 31:16
- *     Value: size of the buffers reference by the rx ring, in byte units
+ *     Value: size of the buffers referenced by the rx ring, in byte units
  *   - ENABLED_FLAGS
  *     Bits 15:0
  *     Value: 1-bit flags to show whether different rx fields are enabled
@@ -1004,11 +1525,24 @@ A_COMPILE_TIME_ASSERT(
 /* header fields */
 #define HTT_RX_RING_CFG_NUM_RINGS_M      0xff00
 #define HTT_RX_RING_CFG_NUM_RINGS_S      8
+
 /* payload fields */
-#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_M 0xffffffff
-#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_S 0
-#define HTT_RX_RING_CFG_BASE_PADDR_M      0xffffffff
-#define HTT_RX_RING_CFG_BASE_PADDR_S      0
+/* for systems using a 64-bit format for bus addresses */
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_HI_M 0xffffffff
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_HI_S 0
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_LO_M 0xffffffff
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_LO_S 0
+#define HTT_RX_RING_CFG_BASE_PADDR_HI_M           0xffffffff
+#define HTT_RX_RING_CFG_BASE_PADDR_HI_S           0
+#define HTT_RX_RING_CFG_BASE_PADDR_LO_M           0xffffffff
+#define HTT_RX_RING_CFG_BASE_PADDR_LO_S           0
+
+/* for systems using a 32-bit format for bus addresses */
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_M    0xffffffff
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_S    0
+#define HTT_RX_RING_CFG_BASE_PADDR_M              0xffffffff
+#define HTT_RX_RING_CFG_BASE_PADDR_S              0
+
 #define HTT_RX_RING_CFG_LEN_M             0xffff
 #define HTT_RX_RING_CFG_LEN_S             0
 #define HTT_RX_RING_CFG_BUF_SZ_M          0xffff0000
@@ -1069,7 +1603,13 @@ A_COMPILE_TIME_ASSERT(
 #define HTT_RX_RING_CFG_OFFSET_FRAG_INFO_S     16
 
 #define HTT_RX_RING_CFG_HDR_BYTES 4
-#define HTT_RX_RING_CFG_PAYLD_BYTES 36
+#define HTT_RX_RING_CFG_PAYLD_BYTES_64 44
+#define HTT_RX_RING_CFG_PAYLD_BYTES_32 36
+#if HTT_PADDR64
+    #define HTT_RX_RING_CFG_PAYLD_BYTES HTT_RX_RING_CFG_PAYLD_BYTES_64
+#else
+    #define HTT_RX_RING_CFG_PAYLD_BYTES HTT_RX_RING_CFG_PAYLD_BYTES_32
+#endif
 #define HTT_RX_RING_CFG_BYTES(num_rings) \
     (HTT_RX_RING_CFG_HDR_BYTES + (num_rings) * HTT_RX_RING_CFG_PAYLD_BYTES)
 
@@ -1083,10 +1623,18 @@ A_COMPILE_TIME_ASSERT(
     } while (0)
 
 /* degenerate case for 32-bit fields */
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_HI_GET(_var) (_var)
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_HI_SET(_var, _val) (_var) = (_val)
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_LO_GET(_var) (_var)
+#define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_LO_SET(_var, _val) (_var) = (_val)
 #define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_GET(_var) (_var)
 #define HTT_RX_RING_CFG_IDX_SHADOW_REG_PADDR_SET(_var, _val) (_var) = (_val)
 
 /* degenerate case for 32-bit fields */
+#define HTT_RX_RING_CFG_BASE_PADDR_HI_GET(_var) (_var)
+#define HTT_RX_RING_CFG_BASE_PADDR_HI_SET(_var, _val) (_var) = (_val)
+#define HTT_RX_RING_CFG_BASE_PADDR_LO_GET(_var) (_var)
+#define HTT_RX_RING_CFG_BASE_PADDR_LO_SET(_var, _val) (_var) = (_val)
 #define HTT_RX_RING_CFG_BASE_PADDR_GET(_var) (_var)
 #define HTT_RX_RING_CFG_BASE_PADDR_SET(_var, _val) (_var) = (_val)
 
@@ -1966,11 +2514,17 @@ enum htt_t2h_msg_type {
  * |--------------------------------------------------------------------------|
  * |                  MSDU count        |        Reserved     |   vdev id     |
  * |--------------------------------------------------------------------------|
- * |                        MSDU 0 Bus address                                |
+ * |                        MSDU 0 bus address (bits 31:0)                    |
+#if HTT_PADDR64
+ * |                        MSDU 0 bus address (bits 63:32)                   |
+#endif
  * |--------------------------------------------------------------------------|
  * |     Reserved   | MSDU 0 FW Desc    |         MSDU 0 Length               |
  * |--------------------------------------------------------------------------|
- * |                        MSDU 1 Bus address                                |
+ * |                        MSDU 1 bus address (bits 31:0)                    |
+#if HTT_PADDR64
+ * |                        MSDU 1 bus address (bits 63:32)                   |
+#endif
  * |--------------------------------------------------------------------------|
  * |     Reserved   | MSDU 1 FW Desc    |         MSDU 1 Length               |
  * |--------------------------------------------------------------------------|
@@ -1992,7 +2546,7 @@ struct htt_rx_in_ord_paddr_ind_hdr_t
         msdu_cnt:   16;
 };
 
-struct htt_rx_in_ord_paddr_ind_msdu_t
+struct htt_rx_in_ord_paddr_ind_msdu32_t
 {
     A_UINT32 dma_addr;
     A_UINT32
@@ -2000,12 +2554,30 @@ struct htt_rx_in_ord_paddr_ind_msdu_t
         fw_desc: 8,
         reserved_1:8;
 };
+struct htt_rx_in_ord_paddr_ind_msdu64_t
+{
+    A_UINT32 dma_addr_lo;
+    A_UINT32 dma_addr_hi;
+    A_UINT32
+        length: 16,
+        fw_desc: 8,
+        reserved_1:8;
+};
+#if HTT_PADDR64
+    #define htt_rx_in_ord_paddr_ind_msdu_t htt_rx_in_ord_paddr_ind_msdu64_t
+#else
+    #define htt_rx_in_ord_paddr_ind_msdu_t htt_rx_in_ord_paddr_ind_msdu32_t
+#endif
 
 
 #define HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES (sizeof(struct htt_rx_in_ord_paddr_ind_hdr_t))
 #define HTT_RX_IN_ORD_PADDR_IND_HDR_DWORDS (HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES >> 2)
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTE_OFFSET  HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORD_OFFSET HTT_RX_IN_ORD_PADDR_IND_HDR_DWORDS
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES_64 (sizeof(struct htt_rx_in_ord_paddr_ind_msdu64_t))
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS_64 (HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES_64 >> 2)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES_32 (sizeof(struct htt_rx_in_ord_paddr_ind_msdu32_t))
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS_32 (HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES_32 >> 2)
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES (sizeof(struct htt_rx_in_ord_paddr_ind_msdu_t))
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_DWORDS (HTT_RX_IN_ORD_PADDR_IND_MSDU_BYTES >> 2)
 
@@ -2021,6 +2593,12 @@ struct htt_rx_in_ord_paddr_ind_msdu_t
 #define HTT_RX_IN_ORD_PADDR_IND_VAP_ID_S       0
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_M     0xffff0000
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_S     16
+/* for systems using 64-bit format for bus addresses */
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_M     0xffffffff
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_S     0
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_M     0xffffffff
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_S     0
+/* for systems using 32-bit format for bus addresses */
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_M        0xffffffff
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_S        0
 #define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M      0x00ff0000
@@ -2061,10 +2639,27 @@ struct htt_rx_in_ord_paddr_ind_msdu_t
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_GET(word) \
     (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_CNT_S)
 
-#define HTT_RX_IN_ORD_PADDR_IND_PADDR_SET(word, value)                              \
-    do {                                                                        \
-        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PADDR, value);                    \
-        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PADDR_S;                      \
+/* for systems using 64-bit format for bus addresses */
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_SET(word, value)                     \
+    do {                                                                      \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PADDR_HI, value);           \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_S;             \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_M) >> HTT_RX_IN_ORD_PADDR_IND_PADDR_HI_S)
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_SET(word, value)                     \
+        do {                                                                  \
+            HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PADDR_LO, value);       \
+            (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_S;         \
+        } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_GET(word) \
+        (((word) & HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_M) >> HTT_RX_IN_ORD_PADDR_IND_PADDR_LO_S)
+
+/* for systems using 32-bit format for bus addresses */
+#define HTT_RX_IN_ORD_PADDR_IND_PADDR_SET(word, value)                        \
+    do {                                                                      \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_PADDR, value);              \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_PADDR_S;                \
     } while (0)
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_GET(word) \
     (((word) & HTT_RX_IN_ORD_PADDR_IND_PADDR_M) >> HTT_RX_IN_ORD_PADDR_IND_PADDR_S)
@@ -4310,9 +4905,9 @@ struct rx_reorder_stats {
     A_UINT32 deliver_flush_offload;
     /* Flush due to out of buffer*/
     A_UINT32 deliver_flush_oob;
-	/* MPDUs dropped due to PN check fail */
+    /* MPDUs dropped due to PN check fail */
     A_UINT32 pn_fail;
-	/* MPDUs dropped due to unable to allocate memory  */
+    /* MPDUs dropped due to unable to allocate memory  */
     A_UINT32 store_fail;
     /* Number of times the tid pool alloc succeeded */
     A_UINT32 tid_pool_alloc_succ;
@@ -4547,11 +5142,17 @@ enum htt_dbg_stats_status {
  * |------------------------------------------------------------|
  * | DESC_SIZE    |  NUM_BANKS   | RES |SWP|pdev|    msg type   |
  * |------------------------------------------------------------|
- * |                     BANK0_BASE_ADDRESS                     |
+ * |                 BANK0_BASE_ADDRESS (bits 31:0)             |
+#if HTT_PADDR64
+ * |                 BANK0_BASE_ADDRESS (bits 63:32)            |
+#endif
  * |------------------------------------------------------------|
  * |                            ...                             |
  * |------------------------------------------------------------|
- * |                    BANK15_BASE_ADDRESS                     |
+ * |                 BANK15_BASE_ADDRESS (bits 31:0)            |
+#if HTT_PADDR64
+ * |                 BANK15_BASE_ADDRESS (bits 63:32)           |
+#endif
  * |------------------------------------------------------------|
  * |       BANK0_MAX_ID          |       BANK0_MIN_ID           |
  * |------------------------------------------------------------|
@@ -4563,10 +5164,23 @@ enum htt_dbg_stats_status {
  *  - MSG_TYPE
  *    Bits 7:0
  *    Value: 0x6
- *  - BANKx_BASE_ADDRESS
- *    Bits 31:0
- *    Purpose: Provide a mechanism to specify the base address of the MSDU_EXT
- *         bank physical/bus address.
+ *  for systems with 64-bit format for bus addresses:
+ *      - BANKx_BASE_ADDRESS_LO
+ *        Bits 31:0
+ *        Purpose: Provide a mechanism to specify the base address of the
+ *             MSDU_EXT bank physical/bus address.
+ *        Value: lower 4 bytes of MSDU_EXT bank physical / bus address
+ *      - BANKx_BASE_ADDRESS_HI
+ *        Bits 31:0
+ *        Purpose: Provide a mechanism to specify the base address of the
+ *             MSDU_EXT bank physical/bus address.
+ *        Value: higher 4 bytes of MSDU_EXT bank physical / bus address
+ *  for systems with 32-bit format for bus addresses:
+ *      - BANKx_BASE_ADDRESS
+ *        Bits 31:0
+ *        Purpose: Provide a mechanism to specify the base address of the
+ *             MSDU_EXT bank physical/bus address.
+ *        Value: MSDU_EXT bank physical / bus address
  *  - BANKx_MIN_ID
  *    Bits 15:0
  *    Purpose: Provide a mechanism to specify the min index that needs to
@@ -4658,7 +5272,9 @@ enum htt_dbg_stats_status {
  * This macro is used to define both htt_tx_frag_desc32_bank_cfg_t and
  * htt_tx_frag_desc64_bank_cfg_t structs.
  */
-#define TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(_paddr_bits_)                     \
+#define TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(                                  \
+    _paddr_bits_,                                                              \
+    _paddr__bank_base_address_)                                                \
 PREPACK struct htt_tx_frag_desc ## _paddr_bits_ ## _bank_cfg_t {               \
       /** word 0                                                               \
        * msg_type:     8,                                                      \
@@ -4674,13 +5290,13 @@ PREPACK struct htt_tx_frag_desc ## _paddr_bits_ ## _bank_cfg_t {               \
      * in little-endian order (bytes 0-3 in the first A_UINT32, bytes 4-7 in   \
      * the second A_UINT32).                                                   \
      */                                                                        \
-    A_UINT ## _paddr_bits_ bank_base_address[HTT_TX_MSDU_EXT_BANK_MAX];        \
+    _paddr__bank_base_address_[HTT_TX_MSDU_EXT_BANK_MAX];                      \
     A_UINT32 bank_info[HTT_TX_MSDU_EXT_BANK_MAX];                              \
 } POSTPACK
 /* define htt_tx_frag_desc32_bank_cfg_t */
-TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(32);
+TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(32, HTT_VAR_PADDR32(bank_base_address));
 /* define htt_tx_frag_desc64_bank_cfg_t */
-TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(64);
+TEMPLATE_HTT_TX_FRAG_DESC_BANK_CFG_T(64, HTT_VAR_PADDR64_LE(bank_base_address));
 /*
  * Make htt_tx_frag_desc_bank_cfg_t be an alias for either
  * htt_tx_frag_desc32_bank_cfg_t or htt_tx_frag_desc64_bank_cfg_t
