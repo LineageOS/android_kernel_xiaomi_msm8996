@@ -4789,6 +4789,15 @@ typedef struct sSirRoamOffloadSynchFail
 
 #ifdef FEATURE_WLAN_EXTSCAN
 
+/**
+ * typedef enum wifi_scan_flags - wifi scan flags
+ * @WIFI_SCAN_FLAG_INTERRUPTED: Indicates that scan results are not complete
+ *				because probes were not sent on some channels
+ */
+typedef enum {
+	WIFI_SCAN_FLAG_INTERRUPTED = 1,
+} wifi_scan_flags;
+
 typedef enum
 {
     WIFI_BAND_UNSPECIFIED,
@@ -4821,8 +4830,6 @@ typedef struct
    /* High threshold */
    tANI_S32       high;
 
-   /* Frequency in MHz*/
-   tANI_U32       channel;
 } tSirAPThresholdParam, *tpSirAPThresholdParam;
 
 typedef struct
@@ -4831,21 +4838,35 @@ typedef struct
     tANI_U8     sessionId;
 } tSirGetExtScanCapabilitiesReqParams, *tpSirGetExtScanCapabilitiesReqParams;
 
+/**
+ * struct tSirExtScanCapabilitiesEvent - extscan capabilities event
+ * @requestId: request identifier
+ * @status:    status
+ * @max_scan_cache_size: total space allocated for scan (in bytes)
+ * @max_scan_buckets: maximum number of channel buckets
+ * @max_ap_cache_per_scan: maximum number of APs that can be stored per scan
+ * @max_rssi_sample_size: number of RSSI samples used for averaging RSSI
+ * @ax_scan_reporting_threshold: max possible report_threshold
+ * @max_hotlist_aps: maximum number of entries for hotlist APs
+ * @max_significant_wifi_change_aps: maximum number of entries for
+ *				significant wifi change APs
+ * @max_bssid_history_entries: number of BSSID/RSSI entries that device can hold
+ */
 typedef struct
 {
-    tANI_U32    requestId;
-    tANI_U32    status;
+	uint32_t    requestId;
+	uint32_t    status;
 
-    tANI_U32    scanCacheSize;
-    tANI_U32    scanBuckets;
-    tANI_U32    maxApPerScan;
-    tANI_U32    maxRssiSampleSize;
-    tANI_U32    maxScanReportingThreshold;
+	uint32_t    max_scan_cache_size;
+	uint32_t    max_scan_buckets;
+	uint32_t    max_ap_cache_per_scan;
+	uint32_t    max_rssi_sample_size;
+	uint32_t    max_scan_reporting_threshold;
 
-    tANI_U32    maxHotlistAPs;
-    tANI_U32    maxSignificantWifiChangeAPs;
+	uint32_t    max_hotlist_aps;
+	uint32_t    max_significant_wifi_change_aps;
 
-    tANI_U32    maxBsidHistoryEntries;
+	uint32_t    max_bssid_history_entries;
 } tSirExtScanCapabilitiesEvent, *tpSirExtScanCapabilitiesEvent;
 
 
@@ -4900,19 +4921,53 @@ typedef struct
     tANI_U8       ieData[];
 } tSirWifiScanResult, *tpSirWifiScanResult;
 
-typedef struct
+/**
+ * struct extscan_hotlist_match - extscan hotlist match
+ * @requestId: request identifier
+ * @numOfAps: number of bssids retrieved by the scan
+ * @moreData: 0 - for last fragment
+ *	      1 - still more fragment(s) coming
+ * @ap: wifi scan result
+ */
+struct extscan_hotlist_match
 {
-    tANI_U32             requestId;
+	uint32_t    requestId;
+	uint32_t    numOfAps;
+	bool        moreData;
+	tSirWifiScanResult   ap[];
+};
 
-    tANI_U32             numOfAps;
+/**
+ * struct extscan_cached_scan_result - extscan cached scan result
+ * @scan_id: a unique identifier for the scan unit
+ * @flags: a bitmask with additional information about scan
+ * @num_results: number of bssids retrieved by the scan
+ * @ap: wifi scan bssid results info
+ */
+struct extscan_cached_scan_result
+{
+	uint32_t    scan_id;
+	uint32_t    flags;
+	uint32_t    num_results;
+	tSirWifiScanResult ap[];
+};
 
-    /*
-     * 0 - for last fragment
-     * 1 - still more fragment(s) coming
-     */
-    tANI_BOOLEAN         moreData;
-    tSirWifiScanResult   ap[];
-} tSirWifiScanResultEvent, *tpSirWifiScanResultEvent;
+/**
+ * struct extscan_cached_scan_results - extscan cached scan results
+ * @request_id: request identifier
+ * @more_data: 0 - for last fragment
+ *	       1 - still more fragment(s) coming
+ * @num_scan_ids: number of scan ids
+ * @result: wifi scan result
+ */
+struct extscan_cached_scan_results
+{
+	uint32_t    request_id;
+	bool        more_data;
+	uint32_t    num_scan_ids;
+	struct extscan_cached_scan_result  result[];
+};
+
 
 /*
  * Reported when each probe response is received, if reportEvents
@@ -4985,7 +5040,11 @@ typedef struct
     tANI_U32                maxAPperScan;
 
     /* in %, when buffer is this much full, wake up host */
-    tANI_U32                reportThreshold;
+    uint32_t                report_threshold_percent;
+
+    /* in number of scans, wake up host after these many scans */
+    uint32_t                report_threshold_num_scans;
+
     tANI_U32                requestId;
     tANI_U8                 sessionId;
 
@@ -5011,14 +5070,21 @@ typedef struct
     tANI_U32    status;
 } tSirExtScanStopRspParams, *tpSirExtScanStopRspParams;
 
+/**
+ * struct tSirExtScanSetBssidHotListReqParams - set hotlist request
+ * @requestId: request identifier
+ * @sessionId: session identifier
+ * @lost_ap_sample_size: number of samples to confirm AP loss
+ * @numAp: Number of hotlist APs
+ * @ap: hotlist APs
+ */
 typedef struct
 {
-    tANI_U32               requestId;
-    tANI_U8                sessionId;
-
-    /* Number of hotlist APs */
-    tANI_U32               numAp;
-    tSirAPThresholdParam   ap[WLAN_EXTSCAN_MAX_HOTLIST_APS];
+	uint32_t    requestId;
+	uint8_t     sessionId;
+	uint32_t    lost_ap_sample_size;
+	uint32_t    numAp;
+	tSirAPThresholdParam   ap[WLAN_EXTSCAN_MAX_HOTLIST_APS];
 } tSirExtScanSetBssidHotListReqParams, *tpSirExtScanSetBssidHotListReqParams;
 
 typedef struct
