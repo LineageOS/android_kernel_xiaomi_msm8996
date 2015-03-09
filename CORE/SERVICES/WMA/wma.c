@@ -22208,9 +22208,10 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->bucket_id = src_bucket->bucket;
 		dest_blist->base_period_multiplier =
 				src_bucket->period / base_period;
-		dest_blist->max_period = 0;
-		dest_blist->exp_backoff = 0;
-		dest_blist->exp_max_step_count = 0;
+		dest_blist->min_period = src_bucket->period;
+		dest_blist->max_period = src_bucket->max_period;
+		dest_blist->exp_backoff = src_bucket->exponent;
+		dest_blist->exp_max_step_count = src_bucket->step_count;
 		dest_blist->channel_band = src_bucket->band;
 		dest_blist->num_channels = src_bucket->numChannels;
 		dest_blist->notify_extscan_events =
@@ -22238,7 +22239,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		src_channel = src_bucket->channels;
 
 		/* save the channel info to later populate
-		 * the  channel TLV
+		 * the channel TLV
 		 */
 		for (k = 0; k < src_bucket->numChannels; k++) {
 			save_channel[count++].channel =

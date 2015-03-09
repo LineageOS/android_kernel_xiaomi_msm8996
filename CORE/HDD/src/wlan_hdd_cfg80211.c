@@ -194,6 +194,7 @@
  */
 
 #define EXTSCAN_EVENT_BUF_SIZE 4096
+#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT 30
 #endif
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -2400,6 +2401,36 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		hddLog(LOG1, FL("report events (%d)"),
 				pReqMsg->buckets[bktIndex].reportEvents);
 
+		/* Parse and fetch max period */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_MAX_PERIOD]) {
+			hddLog(LOGE, FL("attr max period failed"));
+			return -EINVAL;
+	        }
+		pReqMsg->buckets[bktIndex].max_period = nla_get_u32(
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_MAX_PERIOD]);
+		hddLog(LOG1, FL("max period (%u)"),
+			pReqMsg->buckets[bktIndex].max_period);
+
+		/* Parse and fetch exponent */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_EXPONENT]) {
+			hddLog(LOGE, FL("attr exponent failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].exponent = nla_get_u32(
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_EXPONENT]);
+		hddLog(LOG1, FL("exponent (%u)"),
+			pReqMsg->buckets[bktIndex].exponent);
+
+		/* Parse and fetch step count */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_STEP_COUNT]) {
+			hddLog(LOGE, FL("attr step count failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].step_count = nla_get_u32(
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_STEP_COUNT]);
+		hddLog(LOG1, FL("Step count (%u)"),
+			pReqMsg->buckets[bktIndex].step_count);
+
 		/* Framework shall pass the channel list if the input WiFi band is
 		 * WIFI_BAND_UNSPECIFIED.
 		 * If the input WiFi band is specified (any value other than
@@ -2440,7 +2471,7 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 							passive = 0;
 					pReqMsg->buckets[bktIndex].channels[j].
 					dwellTimeMs =
-					CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+					EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
 				}
 
 				hddLog(LOG1,
