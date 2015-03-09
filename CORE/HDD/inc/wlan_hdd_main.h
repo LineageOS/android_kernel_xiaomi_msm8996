@@ -1776,4 +1776,17 @@ int hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
 int hdd_set_mas(hdd_adapter_t *hostapd_adapter, uint8_t filter_type);
 uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx);
 
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+static inline bool hdd_link_layer_stats_supported(void)
+{
+	return true;
+}
+#else
+static inline bool hdd_link_layer_stats_supported(void)
+{
+	return false;
+}
+#endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
