@@ -86,6 +86,12 @@
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)
 
+#ifdef QCA_CONFIG_SMP
+#define NUM_CPUS NR_CPUS
+#else
+#define NUM_CPUS 1
+#endif
+
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  (0)
 #define SME_SESSION_OPENED     (1)
@@ -313,11 +319,10 @@ typedef struct hdd_tx_rx_stats_s
    // complete_cbk_stats
    __u32    txCompleted;
    // rx stats
-   __u32    rxChains;
-   __u32    rxPackets;
-   __u32    rxDropped;
-   __u32    rxDelivered;
-   __u32    rxRefused;
+   __u32    rxPackets[NUM_CPUS];
+   __u32    rxDropped[NUM_CPUS];
+   __u32    rxDelivered[NUM_CPUS];
+   __u32    rxRefused[NUM_CPUS];
 
    __u32    netq_disable_cnt;
    __u32    netq_enable_cnt;
@@ -1750,4 +1755,12 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 
 bool hdd_is_memdump_supported(void);
 
+#ifdef QCA_CONFIG_SMP
+int wlan_hdd_get_cpu(void);
+#else
+static inline int wlan_hdd_get_cpu(void)
+{
+	return 0;
+}
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

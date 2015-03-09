@@ -700,6 +700,16 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
 {
     hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
     v_U32_t len;
+    __u32 total_rxPkt = 0, total_rxDropped = 0;
+    __u32 total_rxDelv = 0, total_rxRefused = 0;
+    int i = 0;
+
+    for (; i < NUM_CPUS; i++) {
+        total_rxPkt += pStats->rxPackets[i];
+        total_rxDropped += pStats->rxDropped[i];
+        total_rxDelv += pStats->rxDelivered[i];
+        total_rxRefused += pStats->rxRefused[i];
+    }
 
     len = snprintf(buffer, buf_len,
         "\nTransmit"
@@ -707,15 +717,9 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         "\n  dropped BK %u, BE %u, VI %u, VO %u"
         "\n  classified BK %u, BE %u, VI %u, VO %u"
         "\n  completed %u,"
-        "\n\nReceive"
-        "\n  chains %u, packets %u, dropped %u, delivered %u, refused %u"
-        "\n"
-        "\nNetQueue State : %s"
-        "\n  disable %u, enable %u"
-        "\n\nTX_FLOW"
-        "\n  Current status : %s"
-        "\n  tx-flow timer trigger %u"
-        "\n  pause %u, unpause %u",
+        "\n\nReceive Total"
+        "\n  packets %u, dropped %u, delivered %u, refused %u"
+        "\n",
         pStats->txXmitCalled,
         pStats->txXmitDropped,
 
@@ -730,12 +734,23 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         pStats->txXmitClassifiedAC[WLANTL_AC_VO],
 
         pStats->txCompleted,
+        total_rxPkt, total_rxDropped, total_rxDelv, total_rxRefused);
 
-        pStats->rxChains,
-        pStats->rxPackets,
-        pStats->rxDropped,
-        pStats->rxDelivered,
-        pStats->rxRefused,
+    for (i = 0; i < NUM_CPUS; i++) {
+        len += snprintf(buffer+len, buf_len-len,
+            "\nReceive CPU: %d"
+            "\n  packets %u, dropped %u, delivered %u, refused %u",
+            i, pStats->rxPackets[i], pStats->rxDropped[i],
+            pStats->rxDelivered[i], pStats->rxRefused[i]);
+    }
+    len += snprintf(buffer+len, buf_len-len,
+        "\n"
+        "\nNetQueue State : %s"
+        "\n  disable %u, enable %u"
+        "\n\nTX_FLOW"
+        "\nCurrent status %s"
+        "\ntx-flow timer start count %u"
+        "\npause count %u, unpause count %u\n",
         (pStats->netq_state_off == TRUE ? "OFF" : "ON"),
         pStats->netq_disable_cnt,
         pStats->netq_enable_cnt,

@@ -14007,6 +14007,15 @@ bool hdd_is_memdump_supported(void)
 	return false;
 }
 
+#ifdef QCA_CONFIG_SMP
+int wlan_hdd_get_cpu()
+{
+	int cpu_index = get_cpu();
+	put_cpu();
+	return cpu_index;
+}
+#endif
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

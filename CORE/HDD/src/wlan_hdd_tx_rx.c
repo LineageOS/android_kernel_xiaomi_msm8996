@@ -1742,6 +1742,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    int rxstat;
    struct sk_buff *skb = NULL;
    struct sk_buff *skb_next;
+   unsigned int cpu_index;
 #ifdef QCA_PKT_PROTO_TRACE
    v_U8_t proto_type;
 #endif /* QCA_PKT_PROTO_TRACE */
@@ -1773,7 +1774,8 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
           pAdapter->magic);
        return VOS_STATUS_E_FAILURE;
    }
-   ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
+
+   cpu_index = wlan_hdd_get_cpu();
 
    // walk the chain until all are processed
    skb = (struct sk_buff *) rxBuf;
@@ -1783,7 +1785,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 
       if ((pHddStaCtx->conn_info.proxyARPService) &&
          cfg80211_is_gratuitous_arp_unsolicited_na(skb)) {
-            ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
+            ++pAdapter->hdd_stats.hddTxRxStats.rxDropped[cpu_index];
             VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
                "%s: Dropping HS 2.0 Gratuitous ARP or Unsolicited NA", __func__);
             kfree_skb(skb);
@@ -1813,7 +1815,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
       if (drop_ip6_mcast(skb)) {
          print_hex_dump_bytes("MAC Header",
             DUMP_PREFIX_NONE, skb_mac_header(skb), 16);
-         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped[cpu_index];
          VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
                "%s: Dropping multicast to self NA", __func__);
          kfree_skb(skb);
@@ -1822,7 +1824,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
          continue;
       }
 
-      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
+      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
 
@@ -1846,9 +1848,9 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
       }
 
       if (NET_RX_SUCCESS == rxstat)
-         ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered[cpu_index];
       else
-         ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
+         ++pAdapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
 
       skb = skb_next;
    }
