@@ -588,11 +588,14 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
         if (vdev->ll_pause.paused_reason & reason)
         {
             vdev->ll_pause.paused_reason &= ~reason;
+#ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
             if (reason == OL_TXQ_PAUSE_REASON_VDEV_SUSPEND) {
                 adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
                 ol_tx_vdev_ll_pause_start_timer(vdev);
             }
-            else if (!vdev->ll_pause.paused_reason) {
+            else
+#endif
+            if (!vdev->ll_pause.paused_reason) {
                 adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
                 ol_tx_vdev_ll_pause_queue_send(vdev);
             } else {

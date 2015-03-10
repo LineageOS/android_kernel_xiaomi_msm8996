@@ -54,6 +54,7 @@
 #define MIN_CHN_TIME_TO_FIND_GO 100
 #define MAX_CHN_TIME_TO_FIND_GO 100
 #define DIRECT_SSID_LEN 7
+#define MIN_11P_CHANNEL 170
 
 /*
  * Purpose of HIDDEN_TIMER
@@ -6185,9 +6186,10 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                        {
                           NVchannel_state = vos_nv_getChannelEnabledState(
                                   pSrcReq->ChannelInfo.ChannelList[index]);
-                          if ((NV_CHANNEL_ENABLE == NVchannel_state) ||
+                          if (pSrcReq->ChannelInfo.ChannelList[index] < MIN_11P_CHANNEL &&
+                              ((NV_CHANNEL_ENABLE == NVchannel_state) ||
                                   ((NV_CHANNEL_DFS == NVchannel_state) &&
-                                    !skip_dfs_chnl))
+                                    !skip_dfs_chnl)))
                           {
                              pDstReq->ChannelInfo.ChannelList[new_index] =
                                  pSrcReq->ChannelInfo.ChannelList[index];
@@ -6208,9 +6210,10 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                              * that is the only way to find p2p peers.
                              * This can happen only if band is set to 5Ghz mode.
                              */
-                            if((csrRoamIsValidChannel(pMac, pSrcReq->ChannelInfo.ChannelList[index])) ||
+                            if(pSrcReq->ChannelInfo.ChannelList[index] < MIN_11P_CHANNEL &&
+                               ((csrRoamIsValidChannel(pMac, pSrcReq->ChannelInfo.ChannelList[index])) ||
                                ((eCSR_SCAN_P2P_DISCOVERY == pSrcReq->requestType) &&
-                                CSR_IS_SOCIAL_CHANNEL(pSrcReq->ChannelInfo.ChannelList[index])))
+                                CSR_IS_SOCIAL_CHANNEL(pSrcReq->ChannelInfo.ChannelList[index]))))
                             {
                                 if( ((pSrcReq->skipDfsChnlInP2pSearch ||
                                     skip_dfs_chnl) &&
@@ -6273,13 +6276,22 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                     }
                     else
                     {
-                          smsLog(pMac, LOGE, FL("Couldn't get the valid Channel"
+                        smsLog(pMac, LOGE, FL("Couldn't get the valid Channel"
                                   " List, keeping requester's list"));
-                          vos_mem_copy(pDstReq->ChannelInfo.ChannelList,
-                                     pSrcReq->ChannelInfo.ChannelList,
-                                     pSrcReq->ChannelInfo.numOfChannels
-                                     * sizeof(*pDstReq->ChannelInfo.ChannelList));
-                        pDstReq->ChannelInfo.numOfChannels = pSrcReq->ChannelInfo.numOfChannels;
+                        new_index = 0;
+                        for ( index = 0;
+                                index < pSrcReq->ChannelInfo.numOfChannels;
+                                index++ )
+                        {
+                            if (pSrcReq->ChannelInfo.ChannelList[index] <
+                                  MIN_11P_CHANNEL)
+                            {
+                                pDstReq->ChannelInfo.ChannelList[new_index] =
+                                      pSrcReq->ChannelInfo.ChannelList[index];
+                                new_index++;
+                            }
+                        }
+                        pDstReq->ChannelInfo.numOfChannels = new_index;
                     }
                 }//Allocate memory for Channel List
             }

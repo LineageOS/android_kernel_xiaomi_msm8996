@@ -192,7 +192,7 @@ eCsrBand hdd_connGetConnectedBand( hdd_station_ctx_t *pHddStaCtx )
 
    if ( staChannel > 0 && staChannel < 14 )
        return eCSR_BAND_24;
-   else if (staChannel >= 36 && staChannel <= 165 )
+   else if (staChannel >= 36 && staChannel <= 184 )
       return eCSR_BAND_5G;
    else  /* If station is not connected return as eCSR_BAND_ALL */
       return eCSR_BAND_ALL;
