@@ -1311,6 +1311,9 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     fset |= WIFI_FEATURE_AP_STA;
 #endif
 
+    if (hdd_link_layer_stats_supported())
+        fset |= WIFI_FEATURE_LINK_LAYER_STATS;
+
     skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(fset) +
                                               NLMSG_HDRLEN);
 
