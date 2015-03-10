@@ -91,6 +91,20 @@ int ol_rx_pn_wapi_cmp(
     return pn_is_replay;
 }
 
+#if defined(CONFIG_HL_SUPPORT)
+#define OL_RX_PN_FARJUMP	0x1000
+#define OL_RX_PN_WRAP		0xffffffffffffffffULL
+int ol_rx_pn_farjump(
+	union htt_rx_pn_t *new_pn,
+	union htt_rx_pn_t *old_pn)
+{
+	u_int64_t pn_gap = (new_pn->pn128[0] < old_pn->pn128[0]) ?
+						(int64_t) ((OL_RX_PN_WRAP - old_pn->pn128[0]) + new_pn->pn128[0] + 1) :
+						new_pn->pn128[0] - old_pn->pn128[0];
+	return pn_gap > OL_RX_PN_FARJUMP;
+}
+#endif
+
 adf_nbuf_t
 ol_rx_pn_check_base(
     struct ol_txrx_vdev_t *vdev,
@@ -131,7 +145,9 @@ ol_rx_pn_check_base(
         adf_nbuf_t mpdu_tail, next_mpdu;
         union htt_rx_pn_t new_pn;
         int pn_is_replay = 0;
-
+#if defined(CONFIG_HL_SUPPORT)
+		int pn_is_farjump = 0;
+#endif
         rx_desc = htt_rx_msdu_desc_retrieve(pdev->htt_pdev, mpdu);
 
         /*
@@ -157,8 +173,15 @@ ol_rx_pn_check_base(
         } else {
             last_pn_valid = peer->tids_last_pn_valid[tid] = 1;
         }
+#if defined(CONFIG_HL_SUPPORT)
+		pn_is_farjump = ol_rx_pn_farjump(&new_pn, last_pn);
+#endif
 
-        if (pn_is_replay) {
+        if (pn_is_replay
+#if defined(CONFIG_HL_SUPPORT)
+			|| pn_is_farjump
+#endif
+			) {
             adf_nbuf_t msdu;
             static u_int32_t last_pncheck_print_time = 0;
             int log_level;
