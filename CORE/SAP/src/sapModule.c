@@ -706,6 +706,7 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
     pSapCtx->apAutoChannelSelection = VOS_TRUE;
     pSapCtx->apStartChannelNum = pConfig->apStartChannelNum;
     pSapCtx->apEndChannelNum = pConfig->apEndChannelNum;
+    pSapCtx->vht_channel_width = pConfig->vht_channel_width;
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     pSapCtx->skip_acs_scan_status = pConfig->skip_acs_scan_status;
     pSapCtx->skip_acs_scan_range1_endch = pConfig->skip_acs_scan_range1_endch;

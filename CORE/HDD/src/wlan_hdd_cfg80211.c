@@ -4566,7 +4566,7 @@ static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
      sap_config->apStartChannelNum = ini_config->apStartChannelNum;
      sap_config->apEndChannelNum = ini_config->apEndChannelNum;
 #endif
-
+     sap_config->vht_channel_width = ini_config->vhtChannelWidth;
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     hddLog(LOG1, FL("HDD_ACS_SKIP_STATUS = %d"), hdd_ctx->skip_acs_scan_status);
 
@@ -4763,6 +4763,8 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 		}
 	}
 #endif
+	hddLog(LOG1, FL("ACS CFG: HW_MODE: %d ACS_BW: %d"),
+			sap_config->acs_hw_mode, sap_config->acs_ch_width);
 
 	vos_mem_zero(&smeConfig, sizeof(smeConfig));
 	sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
@@ -4869,7 +4871,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	struct net_device *ndev = wdev->netdev;
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
-	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
 	tsap_Config_t *sap_config;
 	struct sk_buff *temp_skbuff;
 	int status;
@@ -4944,13 +4945,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 				hdd_config->apEndChannelNum =
 					rfChannels[RF_CHAN_14].channelNum;
 #endif
-				if (hw_mode == QCA_ACS_MODE_IEEE80211G)
-					sme_SetPhyMode(hHal,
-						eCSR_DOT11_MODE_11g);
-				else
-					sme_SetPhyMode(hHal,
-						eCSR_DOT11_MODE_11b);
-
 				break;
 			case  QCA_ACS_MODE_IEEE80211A:
 #ifdef WLAN_FEATURE_MBSSID
@@ -4968,7 +4962,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 				hdd_config->sap_dyn_ini_cfg.apEndChannelNum =
 					rfChannels[RF_CHAN_165].channelNum;
 #endif
-				sme_SetPhyMode(hHal, eCSR_DOT11_MODE_11a);
 				break;
 			default:
 				hddLog(LOGE,
