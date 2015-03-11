@@ -4977,8 +4977,9 @@ typedef struct
 struct extscan_hotlist_match
 {
 	uint32_t    requestId;
-	uint32_t    numOfAps;
 	bool        moreData;
+	bool        ap_found;
+	uint32_t    numOfAps;
 	tSirWifiScanResult   ap[];
 };
 

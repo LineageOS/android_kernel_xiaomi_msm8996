@@ -2879,8 +2879,8 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	struct extscan_hotlist_match  *dest_hotlist;
 	tSirWifiScanResult      *dest_ap;
 	wmi_extscan_wlan_descriptor    *src_hotlist;
-	int numap;
-	int j;
+	int numap, j, ap_found = 0;
+
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!pMac) {
@@ -2915,13 +2915,24 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	dest_ap = &dest_hotlist->ap[0];
 	dest_hotlist->numOfAps = event->total_entries;
 	dest_hotlist->requestId = event->config_request_id;
+	if (event->first_entry_index +
+		event->num_entries_in_page < event->total_entries)
+		dest_hotlist->moreData = 1;
+	else
+		dest_hotlist->moreData = 0;
+
 	WMA_LOGD("%s: Hotlist match: requestId: 0x%x,"
 		"numOfAps: %d", __func__,
 		 dest_hotlist->requestId, dest_hotlist->numOfAps);
 
+	/*
+	 * Currently firmware sends only one bss information in-case
+	 * of both hotlist ap found and lost.
+	 */
 	for (j = 0; j < numap; j++) {
 		dest_ap->channel = src_hotlist->channel;
 		dest_ap->ts = src_hotlist->tstamp;
+		ap_found = src_hotlist->flags & WMI_HOTLIST_FLAG_PRESENCE;
 		dest_ap->rtt = src_hotlist->rtt;
 		dest_ap->rtt_sd = src_hotlist->rtt_sd;
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
@@ -2935,6 +2946,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 		dest_ap++;
 		src_hotlist++;
 	}
+	dest_hotlist->ap_found = ap_found;
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_HOTLIST_MATCH_IND,
 				dest_hotlist);
@@ -22623,11 +22635,13 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 		cmd->total_entries = numap;
 		cmd->mode = 1;
 		cmd->num_entries_in_page = min_entries;
+		cmd->lost_ap_scan_count = photlist->lost_ap_sample_size;
 		cmd->first_entry_index = index;
 
-		WMA_LOGD("%s: vdev id:%d total_entries: %d num_entries: %d",
+		WMA_LOGD("%s: vdev id:%d total_entries: %d num_entries: %d lost_ap_sample_size: %d",
 			__func__, cmd->vdev_id, cmd->total_entries,
-			cmd->num_entries_in_page);
+			cmd->num_entries_in_page,
+			cmd->lost_ap_scan_count);
 
 		buf_ptr += sizeof(*cmd);
 		WMITLV_SET_HDR(buf_ptr,
