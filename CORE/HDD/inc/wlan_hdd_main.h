@@ -1536,6 +1536,11 @@ struct hdd_context_s
     atomic_t auto_suspend_stop_requested;
 #endif
     uint8_t miracast_value;
+    /* Dfs lock used to syncronize on sap channel switch during
+     * radar found indication and application triggered channel
+     * switch
+     */
+    struct mutex dfs_lock;
 };
 
 /*---------------------------------------------------------------------------
