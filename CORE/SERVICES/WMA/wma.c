@@ -11444,6 +11444,38 @@ wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
 }
 
+/**
+ * wma_send_echo_request() - send echo request to firmware
+ * @wma: wma context
+ *
+ * Return: none
+ */
+static void wma_send_echo_request(tp_wma_handle wma)
+{
+	wmi_echo_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __FUNCTION__);
+		return;
+	}
+
+	cmd = (wmi_echo_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_echo_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_echo_cmd_fixed_param));
+	cmd->value = true;
+
+	WMA_LOGD("Sent Echo request to firmware!");
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				WMI_ECHO_CMDID)) {
+		WMA_LOGE("Failed to send Echo cmd to firmware");
+		adf_nbuf_free(buf);
+	}
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -12047,7 +12079,6 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_VDEV_PARAM_FIXED_RATE:
 			ret = intr[vdev_id].config.tx_rate;
 			break;
-
 		default:
 			WMA_LOGE("Invalid cli_get vdev command/Not"
 					" yet implemented 0x%x", param_id);
@@ -23978,6 +24009,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(u_int32_t *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_GET_FW_STATUS_REQ:
+			wma_send_echo_request(wma_handle);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -25262,6 +25296,31 @@ static int wma_sap_ofl_del_sta_handler(void *handle, u_int8_t *data,
 }
 #endif /* SAP_AUTH_OFFLOAD */
 
+/**
+ * wma_echo_event_handler() - received echo response event from firmware
+ * @handle: wma context
+ * @event_buf: event buffer
+ * @len: length of event buffer
+ *
+ * Return: 0 on success
+ */
+static int wma_echo_event_handler(void *handle, u_int8_t *event_buf,
+		u_int32_t len)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	vos_msg_t sme_msg = {0};
+
+	WMA_LOGD("Received Echo reply from firmware!");
+	sme_msg.type = eWNI_SME_FW_STATUS_IND;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGE("%s: Fail to post firmware status ind msg", __func__);
+	}
+
+	return 0;
+}
+
 static int wma_ocb_set_sched_event_handler(void *handle, u_int8_t *event_buf,
 		u_int32_t len)
 {
@@ -25474,6 +25533,15 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		wma_ocb_set_sched_event_handler);
 	if (status) {
 		WMA_LOGE("Failed to register OCB set schedule event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+							WMI_ECHO_EVENTID,
+							wma_echo_event_handler);
+	if (status) {
+		WMA_LOGE("Failed to register echo event cb");
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}

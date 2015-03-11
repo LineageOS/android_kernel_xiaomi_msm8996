@@ -298,6 +298,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_GTX_BWMASK               54
 #define WE_GET_SCAN_BAND_PREFERENCE     55
 #define WE_GET_TEMPERATURE              56
+#define WE_GET_FW_STATUS                57
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -7133,6 +7134,13 @@ static int __iw_setnone_getint(struct net_device *dev,
             break;
         }
 
+        case WE_GET_FW_STATUS:
+        {
+            hddLog(LOG1, "WE_GET_FW_STATUS");
+            *value = wlan_hdd_get_fw_state(pAdapter);
+            break;
+        }
+
         default:
         {
            hddLog(LOGE, "Invalid IOCTL get_value command %d", value[0]);
@@ -10995,6 +11003,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_temp"},
+
+    {   WE_GET_FW_STATUS,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_fwstate"},
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
