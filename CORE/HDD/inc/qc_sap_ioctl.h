@@ -243,7 +243,9 @@ enum {
     QCSAP_IPA_UC_STAT,
     QCASAP_SET_PHYMODE,
     QCASAP_GET_TEMP_CMD,
-    QCSAP_GET_FW_STATUS
+    QCSAP_GET_FW_STATUS,
+    QCASAP_DUMP_STATS,
+    QCASAP_CLEAR_STATS,
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,

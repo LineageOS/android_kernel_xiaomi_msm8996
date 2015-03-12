@@ -3053,6 +3053,31 @@ static __iw_softap_setparam(struct net_device *dev,
                 ret = wlan_hdd_update_phymode(dev, hHal, set_value, phddctx);
                 break;
             }
+
+      case QCASAP_DUMP_STATS:
+            {
+                hddLog(LOG1, "QCASAP_DUMP_STATS val %d", set_value);
+                hdd_wlan_dump_stats(pHostapdAdapter, set_value);
+                break;
+            }
+      case QCASAP_CLEAR_STATS:
+            {
+                hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+
+                hddLog(LOG1, "QCASAP_CLEAR_STATS val %d", set_value);
+
+                if (set_value == WLAN_HDD_STATS) {
+                    memset(&pHostapdAdapter->stats, 0,
+                                 sizeof(pHostapdAdapter->stats));
+                    memset(&pHostapdAdapter->hdd_stats, 0,
+                                 sizeof(pHostapdAdapter->hdd_stats));
+                } else {
+                    WLANTL_clear_datapath_stats(hdd_ctx->pvosContext,
+                                                             set_value);
+                }
+
+                break;
+            }
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -5557,6 +5582,16 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "setphymode" },
+
+    {   QCASAP_DUMP_STATS,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dumpStats" },
+
+    {   QCASAP_CLEAR_STATS,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "clearStats" },
 
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },

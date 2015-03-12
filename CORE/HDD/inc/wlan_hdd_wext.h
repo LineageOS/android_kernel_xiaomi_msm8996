@@ -338,6 +338,8 @@ extern void hdd_wlan_get_version(hdd_adapter_t *pAdapter,
 extern void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
                                char *buffer, v_U16_t buf_len);
 
+extern void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value);
+
 extern int iw_get_scan(struct net_device *dev,
                        struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
