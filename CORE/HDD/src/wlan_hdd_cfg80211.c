@@ -177,12 +177,6 @@
     .flags = flag, \
 }
 
-#ifndef WLAN_FEATURE_TDLS_DEBUG
-#define TDLS_LOG_LEVEL VOS_TRACE_LEVEL_INFO
-#else
-#define TDLS_LOG_LEVEL VOS_TRACE_LEVEL_ERROR
-#endif
-
 #ifdef WLAN_FEATURE_VOWIFI_11R
 #define WLAN_AKM_SUITE_FT_8021X         0x000FAC03
 #define WLAN_AKM_SUITE_FT_PSK           0x000FAC04
@@ -8591,7 +8585,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     if ((eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode) ||
         (eTDLS_SUPPORT_DISABLED == pHddCtx->tdls_mode))
     {
-         VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: TDLS mode is disabled OR not enabled in FW."
                     MAC_ADDRESS_STR " Request declined.",
                     __func__, MAC_ADDR_ARRAY(mac));
@@ -8601,7 +8595,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     pTdlsPeer = wlan_hdd_tdls_get_peer(pAdapter, mac);
 
     if ( NULL == pTdlsPeer ) {
-        VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                "%s: " MAC_ADDRESS_STR " (update %d) not exist. return invalid",
                __func__, MAC_ADDR_ARRAY(mac), update);
         return -EINVAL;
@@ -8612,7 +8606,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
         ((pTdlsPeer->link_status >= eTDLS_LINK_CONNECTING) ||
          (TDLS_STA_INDEX_VALID(pTdlsPeer->staId))))
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                    "%s: " MAC_ADDRESS_STR
                    " link_status %d. staId %d. add station ignored.",
                    __func__, MAC_ADDR_ARRAY(mac), pTdlsPeer->link_status, pTdlsPeer->staId);
@@ -8623,7 +8617,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
         ((pTdlsPeer->link_status > eTDLS_LINK_CONNECTING) ||
          (!TDLS_STA_INDEX_VALID(pTdlsPeer->staId))))
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: " MAC_ADDRESS_STR
                    " link status %d. staId %d. change station %s.",
                    __func__, MAC_ADDR_ARRAY(mac), pTdlsPeer->link_status, pTdlsPeer->staId,
@@ -8676,23 +8670,23 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
     /* debug code */
     if (NULL != StaParams)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "%s: TDLS Peer Parameters.", __func__);
         if(StaParams->htcap_present)
         {
-            VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "ht_capa->cap_info: %0x", StaParams->HTCap.capInfo);
-            VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "ht_capa->extended_capabilities: %0x",
                       StaParams->HTCap.extendedHtCapInfo);
         }
-        VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "params->capability: %0x",StaParams->capability);
-        VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "params->ext_capab_len: %0x",StaParams->extn_capability[0]);
         if(StaParams->vhtcap_present)
         {
-            VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "rxMcsMap %x rxHighest %x txMcsMap %x txHighest %x",
                       StaParams->VHTCap.suppMcs.rxMcsMap, StaParams->VHTCap.suppMcs.rxHighest,
                       StaParams->VHTCap.suppMcs.txMcsMap, StaParams->VHTCap.suppMcs.txHighest);
@@ -8701,7 +8695,7 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
             int i = 0;
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Supported rates:");
             for (i = 0; i < sizeof(StaParams->supported_rates); i++)
-               VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "[%d]: %x ", i, StaParams->supported_rates[i]);
         }
     }  /* end debug code */
@@ -12225,7 +12219,7 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                 (pHddCtx->tdlsConnInfo[staIdx].staId)) {
                 uint8 *mac;
                 mac = pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes;
-                hddLog(TDLS_LOG_LEVEL,
+                hddLog(VOS_TRACE_LEVEL_INFO,
                        "%s: call sme_DeleteTdlsPeerSta staId %d sessionId %d " MAC_ADDRESS_STR,
                        __func__, pHddCtx->tdlsConnInfo[staIdx].staId,
                         pAdapter->sessionId,
@@ -13693,11 +13687,9 @@ static int __wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 
     set = params->sta_flags_set;
 
-#ifdef WLAN_FEATURE_TDLS_DEBUG
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: mask 0x%x set 0x%x " MAC_ADDRESS_STR,
                __func__, mask, set, MAC_ADDR_ARRAY(mac));
-#endif
 
     if (mask & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
         if (set & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
@@ -14483,7 +14475,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
 
     if (eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode)
     {
-         VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: TDLS mode is disabled OR not enabled in FW."
                     MAC_ADDRESS_STR " action %d declined.",
                     __func__, MAC_ADDR_ARRAY(peer), action_code);
@@ -14505,7 +14497,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
        /* if tdls_mode is disabled to respond to peer's request */
         if (eTDLS_SUPPORT_DISABLED == pHddCtx->tdls_mode)
         {
-             VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                         "%s: " MAC_ADDRESS_STR
                         " TDLS mode is disabled. action %d declined.",
                         __func__, MAC_ADDR_ARRAY(peer), action_code);
@@ -14574,12 +14566,10 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     }
     vos_mem_copy(peerMac, peer, 6);
 
-#ifdef WLAN_FEATURE_TDLS_DEBUG
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: " MAC_ADDRESS_STR " action %d, dialog_token %d status %d, len = %zu",
                "tdls_mgmt", MAC_ADDR_ARRAY(peer),
                action_code, dialog_token, status_code, len);
-#endif
 
     /*Except teardown responder will not be used so just make 0*/
     responder = 0;
@@ -14612,7 +14602,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
         {
             if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
             {
-                VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: Sending frame action_code %u.Disable BMPS",
                           __func__, action_code);
                 hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
