@@ -990,6 +990,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif
 
 #define WDA_SET_SCAN_MAC_OUI_REQ              SIR_HAL_SET_SCAN_MAC_OUI_REQ
+#define WDA_GET_FW_STATUS_REQ                 SIR_HAL_GET_FW_STATUS_REQ
 
 #ifdef DHCP_SERVER_OFFLOAD
 #define WDA_SET_DHCP_SERVER_OFFLOAD_CMD       SIR_HAL_SET_DHCP_SERVER_OFFLOAD

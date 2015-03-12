@@ -4105,6 +4105,10 @@ eHalStatus sme_getLinkStatus(tHalHandle hHal,
                              void *pContext,
                              tANI_U8 sessionId);
 
+eHalStatus sme_get_fw_state(tHalHandle hHal,
+                             tcsr_fw_state_callback callback,
+                             void *context);
+
 /* ---------------------------------------------------------------------------
    \fn sme_GetTemperature
    \brief SME API to get the pdev temperature

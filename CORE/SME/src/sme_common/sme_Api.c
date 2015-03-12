@@ -2844,6 +2844,13 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 break;
           }
 #endif
+          case eWNI_SME_FW_STATUS_IND:
+               if (pMac->sme.fw_state_callback)
+                   pMac->sme.fw_state_callback(pMac->sme.fw_state_context);
+
+               pMac->sme.fw_state_callback = NULL;
+               pMac->sme.fw_state_context = NULL;
+               break;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -5535,6 +5542,41 @@ eHalStatus sme_getLinkStatus(tHalHandle hHal,
    }
 
    return (status);
+}
+
+/**
+ * sme_get_fw_state() - post message to wma to get firmware state
+ * @callback: HDD callback to be called on receiving firmware state
+ * @pcontext: callback context
+ *
+ * Return: eHAL_STATUS_SUCCESS on success or failure status
+ */
+eHalStatus sme_get_fw_state(tHalHandle hHal,
+				tcsr_fw_state_callback callback,
+				void *context)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hHal);
+	vos_msg_t vos_message;
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		vos_message.type = WDA_GET_FW_STATUS_REQ;
+		vos_message.bodyptr = NULL;
+		vos_message.reserved = 0;
+
+		if (!VOS_IS_STATUS_SUCCESS(
+			vos_mq_post_message(VOS_MODULE_ID_WDA, &vos_message))) {
+			smsLog(mac, LOGE, FL("Post firmware STATUS MSG fail"));
+			mac->sme.fw_state_context = NULL;
+			mac->sme.fw_state_callback = NULL;
+			status = eHAL_STATUS_FAILURE;
+		}
+
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return status;
 }
 
 /* ---------------------------------------------------------------------------

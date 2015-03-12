@@ -3245,6 +3245,12 @@ static __iw_softap_getparam(struct net_device *dev,
             ret = wlan_hdd_get_temperature(pHostapdAdapter, wrqu, extra);
             break;
         }
+    case QCSAP_GET_FW_STATUS:
+        {
+            hddLog(LOG1, "QCSAP_GET_FW_STATUS");
+            *value = wlan_hdd_get_fw_state(pHostapdAdapter);
+            break;
+        }
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -5565,6 +5571,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_nss" },
   { QCASAP_GET_TEMP_CMD, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_temp" },
+  { QCSAP_GET_FW_STATUS, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_fwstate" },
 
   { QCSAP_IOCTL_GET_STAWPAIE,
       IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
