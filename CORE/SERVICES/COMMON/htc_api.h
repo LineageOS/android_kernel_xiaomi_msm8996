@@ -691,5 +691,7 @@ void HTCIpaGetCEResource(HTC_HANDLE htc_handle,
 
 
 void HTCEndpointDumpCreditStats(HTC_HANDLE HTCHandle, HTC_ENDPOINT_ID Endpoint);
+void HTCDumpBundleStats(HTC_HANDLE HTCHandle);
+void HTCClearBundleStats(HTC_HANDLE HTCHandle);
 
 #endif /* _HTC_API_H_ */

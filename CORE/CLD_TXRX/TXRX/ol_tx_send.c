@@ -611,7 +611,99 @@ ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
     tx_desc = &td_array[tx_desc_id].tx_desc;
     txq = (struct ol_tx_frms_queue_t *)(tx_desc->txq);
     ol_tx_txq_group_credit_update(pdev, txq, credit, absolute);
+    OL_TX_UPDATE_GROUP_CREDIT_STATS(pdev);
 }
+
+#ifdef DEBUG_HL_LOGGING
+void
+ol_tx_update_group_credit_stats(ol_txrx_pdev_handle pdev)
+{
+    uint16 curr_index;
+    uint8 i;
+
+    adf_os_spin_lock_bh(&pdev->grp_stat_spinlock);
+    pdev->grp_stats.last_valid_index++;
+    if (pdev->grp_stats.last_valid_index > (OL_TX_GROUP_STATS_LOG_SIZE - 1)) {
+        pdev->grp_stats.last_valid_index -= OL_TX_GROUP_STATS_LOG_SIZE;
+        pdev->grp_stats.wrap_around = 1;
+    }
+    curr_index = pdev->grp_stats.last_valid_index;
+
+    for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
+        pdev->grp_stats.stats[curr_index].grp[i].member_vdevs =
+        OL_TXQ_GROUP_VDEV_ID_MASK_GET(pdev->txq_grps[i].membership);
+        pdev->grp_stats.stats[curr_index].grp[i].credit =
+                  adf_os_atomic_read(&pdev->txq_grps[i].credit);
+    }
+
+    adf_os_spin_unlock_bh(&pdev->grp_stat_spinlock);
+}
+
+void
+ol_tx_dump_group_credit_stats(ol_txrx_pdev_handle pdev)
+{
+    uint16 i,j, is_break = 0;
+    int16 curr_index, old_index, wrap_around;
+    uint16 curr_credit, old_credit, mem_vdevs;
+
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,"Group credit stats:");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                                      "  No: GrpID: Credit: Change: vdev_map");
+
+    adf_os_spin_lock_bh(&pdev->grp_stat_spinlock);
+    curr_index = pdev->grp_stats.last_valid_index;
+    wrap_around = pdev->grp_stats.wrap_around;
+    adf_os_spin_unlock_bh(&pdev->grp_stat_spinlock);
+
+    if(curr_index < 0) {
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,"Not initialized");
+        return;
+    }
+
+    for (i = 0; i < OL_TX_GROUP_STATS_LOG_SIZE; i++) {
+        old_index = curr_index - 1;
+        if (old_index < 0) {
+            if (wrap_around == 0)
+                is_break = 1;
+            else
+                old_index = OL_TX_GROUP_STATS_LOG_SIZE - 1;
+        }
+
+        for (j = 0; j < OL_TX_MAX_TXQ_GROUPS; j++) {
+            adf_os_spin_lock_bh(&pdev->grp_stat_spinlock);
+            curr_credit = pdev->grp_stats.stats[curr_index].grp[j].credit;
+            if (!is_break)
+                old_credit = pdev->grp_stats.stats[old_index].grp[j].credit;
+            mem_vdevs = pdev->grp_stats.stats[curr_index].grp[j].member_vdevs;
+            adf_os_spin_unlock_bh(&pdev->grp_stat_spinlock);
+
+            if (!is_break)
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                      "%4d: %5d: %6d %6d %8x",curr_index, j,
+                      curr_credit, (curr_credit - old_credit),
+                      mem_vdevs);
+            else
+                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                      "%4d: %5d: %6d %6s %8x",curr_index, j,
+                      curr_credit, "NA", mem_vdevs);
+       }
+
+       if (is_break)
+           break;
+
+       curr_index = old_index;
+    }
+}
+
+void ol_tx_clear_group_credit_stats(ol_txrx_pdev_handle pdev)
+{
+    adf_os_spin_lock_bh(&pdev->grp_stat_spinlock);
+    adf_os_mem_zero(&pdev->grp_stats, sizeof(pdev->grp_stats));
+    pdev->grp_stats.last_valid_index = -1;
+    pdev->grp_stats.wrap_around= 0;
+    adf_os_spin_unlock_bh(&pdev->grp_stat_spinlock);
+}
+#endif
 #endif
 
 /*

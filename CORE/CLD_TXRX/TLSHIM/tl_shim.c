@@ -2528,3 +2528,31 @@ VOS_STATUS WLANTL_RegisterOCBPeer(void *vos_ctx, uint8_t *mac_addr,
 
 	return VOS_STATUS_SUCCESS;
 }
+
+void WLANTL_display_datapath_stats(void *vos_ctx, uint16_t value)
+{
+	ol_txrx_pdev_handle pdev;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev) {
+		TLSHIM_LOGE("%s: Unable to find pdev!", __func__);
+		return;
+	}
+
+	wdi_in_display_stats(pdev, value);
+	return;
+}
+
+void WLANTL_clear_datapath_stats(void *vos_ctx, uint16_t bitmap)
+{
+	ol_txrx_pdev_handle pdev;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev) {
+		TLSHIM_LOGE("%s: Unable to find pdev!", __func__);
+		return;
+	}
+
+	wdi_in_clear_stats(pdev, bitmap);
+	return;
+}

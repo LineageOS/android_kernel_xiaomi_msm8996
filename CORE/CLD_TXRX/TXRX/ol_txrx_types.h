@@ -373,6 +373,18 @@ struct ol_tx_queue_group_t {
 };
 #define OL_TX_MAX_TXQ_GROUPS 2
 
+#define OL_TX_GROUP_STATS_LOG_SIZE 128
+struct ol_tx_group_credit_stats_t {
+	struct {
+		struct {
+			u_int16_t member_vdevs;
+			u_int16_t credit;
+		} grp[OL_TX_MAX_TXQ_GROUPS];
+	}stats[OL_TX_GROUP_STATS_LOG_SIZE];
+	u_int16_t last_valid_index;
+	u_int16_t wrap_around;
+};
+
 /*
  * As depicted in the diagram below, the pdev contains an array of
  * NUM_EXT_TID ol_tx_active_queues_in_tid_t elements.
@@ -664,8 +676,9 @@ struct ol_txrx_pdev_t {
 	        u_int16_t rsrc_threshold_hi;
 	} tx_queue;
 
-#if defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT)
-#define OL_TXQ_LOG_SIZE 1024
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+#define OL_TXQ_LOG_SIZE 512
+	adf_os_spinlock_t txq_log_spinlock;
 	struct {
 		int size;
 		int oldest_record_offset;
@@ -742,6 +755,10 @@ struct ol_txrx_pdev_t {
     void *osif_dev;
 #endif /* IPA_UC_OFFLOAD */
 	struct ol_tx_queue_group_t txq_grps[OL_TX_MAX_TXQ_GROUPS];
+#ifdef DEBUG_HL_LOGGING
+	adf_os_spinlock_t grp_stat_spinlock;
+	struct ol_tx_group_credit_stats_t grp_stats;
+#endif
 	u_int8_t ocb_peer_valid;
 	struct ol_txrx_peer_t *ocb_peer;
 	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];

@@ -660,14 +660,20 @@ ol_txrx_pdev_attach(
 
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "Created pdev %p\n", pdev);
 
-    #if defined(CONFIG_HL_SUPPORT) && defined(ENABLE_TX_QUEUE_LOG)
+    #if defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING)
+    adf_os_spinlock_init(&pdev->txq_log_spinlock);
     pdev->txq_log.size = OL_TXQ_LOG_SIZE;
     pdev->txq_log.oldest_record_offset = 0;
     pdev->txq_log.offset = 0;
     pdev->txq_log.allow_wrap = 1;
     pdev->txq_log.wrapped = 0;
-    #endif /* defined(CONFIG_HL_SUPPORT) && defined(ENABLE_TX_QUEUE_LOG) */
+    #endif /* defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING) */
 
+#ifdef DEBUG_HL_LOGGING
+    adf_os_spinlock_init(&pdev->grp_stat_spinlock);
+    pdev->grp_stats.last_valid_index = -1;
+    pdev->grp_stats.wrap_around= 0;
+#endif
     pdev->cfg.host_addba = ol_cfg_host_addba(ctrl_pdev);
 
     #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
@@ -893,6 +899,15 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 
     OL_RX_REORDER_TRACE_DETACH(pdev);
     OL_RX_PN_TRACE_DETACH(pdev);
+
+#if defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING)
+    adf_os_spinlock_destroy(&pdev->txq_log_spinlock);
+#endif
+
+#ifdef DEBUG_HL_LOGGING
+    adf_os_spinlock_destroy(&pdev->grp_stat_spinlock);
+#endif
+
     /*
      * WDI event detach
      */
@@ -2104,16 +2119,19 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
 void
 ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
 {
-    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO, "txrx stats:\n");
+
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR, "TXRX Stats:");
     if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC) {
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-            "  tx: %lld msdus (%lld B)\n",
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+            "  tx: %lld msdus (%lld B) rejected %lld (%lld B)",
             pdev->stats.pub.tx.delivered.pkts,
-            pdev->stats.pub.tx.delivered.bytes);
+            pdev->stats.pub.tx.delivered.bytes,
+            pdev->stats.pub.tx.dropped.host_reject.pkts,
+            pdev->stats.pub.tx.dropped.host_reject.bytes);
     } else { /* full */
         VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-            "  tx: sent %lld msdus (%lld B), "
-            "rejected %lld (%lld B), dropped %lld (%lld B)\n",
+            "  tx: sent %lld msdus (%lld B), rejected %lld (%lld B)"
+            "  dropped %lld (%lld B)\n",
             pdev->stats.pub.tx.delivered.pkts,
             pdev->stats.pub.tx.delivered.bytes,
             pdev->stats.pub.tx.dropped.host_reject.pkts,
@@ -2135,8 +2153,8 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.dropped.no_ack.pkts,
             pdev->stats.pub.tx.dropped.no_ack.bytes);
     }
-    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-        "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs\n",
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+        "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs",
         pdev->stats.priv.rx.normal.ppdus,
         pdev->stats.priv.rx.normal.mpdus,
         pdev->stats.pub.rx.delivered.pkts,
@@ -2147,6 +2165,22 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             "    forwarded %lld msdus, %lld bytes\n",
             pdev->stats.pub.rx.forwarded.pkts,
             pdev->stats.pub.rx.forwarded.bytes);
+    }
+}
+
+void
+ol_txrx_stats_clear(ol_txrx_pdev_handle pdev)
+{
+    if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC) {
+       pdev->stats.pub.tx.delivered.pkts = 0;
+       pdev->stats.pub.tx.delivered.bytes = 0;
+       pdev->stats.pub.tx.dropped.host_reject.pkts = 0;
+       pdev->stats.pub.tx.dropped.host_reject.bytes = 0;
+       adf_os_mem_zero(&pdev->stats.pub.rx.delivered,
+                       sizeof(pdev->stats.pub.rx.delivered));
+       adf_os_mem_zero(&pdev->stats.priv.rx, sizeof(pdev->stats.priv.rx));
+    } else { /* Full */
+       adf_os_mem_zero(&pdev->stats, sizeof(pdev->stats));
     }
 }
 
@@ -2365,4 +2399,70 @@ void ol_txrx_ipa_uc_get_stat(ol_txrx_pdev_handle pdev)
 }
 
 #endif /* IPA_UC_OFFLOAD */
+
+void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
+{
+
+    switch(value)
+    {
+        case WLAN_TXRX_STATS:
+            ol_txrx_stats_display(pdev);
+            break;
+#ifdef CONFIG_HL_SUPPORT
+        case WLAN_SCHEDULER_STATS:
+            ol_tx_sched_cur_state_display(pdev);
+            ol_tx_sched_stats_display(pdev);
+            break;
+        case WLAN_TX_QUEUE_STATS:
+            ol_tx_queue_log_display(pdev);
+            break;
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+        case WLAN_CREDIT_STATS:
+            OL_TX_DUMP_GROUP_CREDIT_STATS(pdev);
+            break;
+#endif
+
+#ifdef DEBUG_HL_LOGGING
+        case WLAN_BUNDLE_STATS:
+            htt_dump_bundle_stats(pdev->htt_pdev);
+            break;
+#endif
+#endif
+        default:
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Unknown value",__func__);
+            break;
+    }
+}
+
+void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
+{
+
+    switch(value)
+    {
+        case WLAN_TXRX_STATS:
+            ol_txrx_stats_clear(pdev);
+            break;
+#ifdef CONFIG_HL_SUPPORT
+        case WLAN_SCHEDULER_STATS:
+            ol_tx_sched_stats_clear(pdev);
+            break;
+        case WLAN_TX_QUEUE_STATS:
+            ol_tx_queue_log_clear(pdev);
+            break;
+#ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
+        case WLAN_CREDIT_STATS:
+            OL_TX_CLEAR_GROUP_CREDIT_STATS(pdev);
+            break;
+#endif
+        case WLAN_BUNDLE_STATS:
+            htt_clear_bundle_stats(pdev->htt_pdev);
+            break;
+#endif
+        default:
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: Unknown value",__func__);
+            break;
+    }
+}
 

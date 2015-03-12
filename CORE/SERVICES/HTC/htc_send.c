@@ -413,6 +413,13 @@ static A_STATUS HTCSendBundledNetbuf(HTC_TARGET *target,
             data_len,
             data_len / pEndpoint->TxCreditSize);
 #endif
+
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+    if((data_len / pEndpoint->TxCreditSize) <= HTC_MAX_MSG_PER_BUNDLE_TX) {
+        target->tx_bundle_stats[data_len / pEndpoint->TxCreditSize]++;
+    }
+#endif
+
     status = HIFSend_head(target->hif_dev,
                pEndpoint->UL_PipeID,
                pEndpoint->Id,
@@ -623,6 +630,10 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
             pEndpoint->Id,
             pEndpoint->TxCreditSize,
             HTC_HDR_LENGTH + pPacket->ActualLength);
+#endif
+
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+        target->tx_bundle_stats[0]++;
 #endif
 
 	target->CE_send_cnt++;
@@ -1347,6 +1358,10 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket,
             pEndpoint->Id,
             pEndpoint->TxCreditSize,
             HTC_HDR_LENGTH + pPacket->ActualLength);
+#endif
+
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+        target->tx_bundle_stats[0]++;
 #endif
 
         if (adf_os_unlikely(A_FAILED(status))) {

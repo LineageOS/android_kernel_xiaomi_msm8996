@@ -271,7 +271,14 @@ do {                                                                            
 
 #elif /*---*/ TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC
 
-#define TXRX_STATS_MSDU_LIST_INCR(pdev, field, netbuf_list)
+#define TXRX_STATS_MSDU_LIST_INCR(pdev, field, netbuf_list) \
+    do { \
+        adf_nbuf_t tmp_list = netbuf_list; \
+        while (tmp_list) { \
+            TXRX_STATS_MSDU_INCR(pdev, field, tmp_list); \
+            tmp_list = adf_nbuf_next(tmp_list); \
+        } \
+    } while (0)
 
 #define TXRX_STATS_MSDU_INCR_TX_STATUS(status, pdev, netbuf) \
     do { \

@@ -950,3 +950,54 @@ void HTCIpaGetCEResource(HTC_HANDLE htc_handle,
 }
 #endif /* IPA_UC_OFFLOAD */
 
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+
+void HTCDumpBundleStats(HTC_HANDLE HTCHandle)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+    int total, i;
+
+    total = 0;
+    for (i = 0; i < HTC_MAX_MSG_PER_BUNDLE_RX; i++) {
+        total += target->rx_bundle_stats[i];
+    }
+
+    if (total) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("RX Bundle stats:\n"));
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("Total RX packets: %d\n", total));
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,(
+            "Number of bundle: Number of packets\n"));
+        for (i = 0; i < HTC_MAX_MSG_PER_BUNDLE_RX; i++) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ANY,
+                ("%10d:%10d(%2d%s)\n",(i+1), target->rx_bundle_stats[i],
+                ((target->rx_bundle_stats[i]*100)/total), "%"));
+        }
+    }
+
+
+    total = 0;
+    for (i = 0; i < HTC_MAX_MSG_PER_BUNDLE_TX; i++) {
+        total += target->tx_bundle_stats[i];
+    }
+
+    if (total) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("TX Bundle stats:\n"));
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("Total TX packets: %d\n", total));
+        AR_DEBUG_PRINTF(ATH_DEBUG_ANY,
+            ("Number of bundle: Number of packets\n"));
+        for (i = 0; i < HTC_MAX_MSG_PER_BUNDLE_TX; i++) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ANY,
+                ("%10d:%10d(%2d%s)\n",(i+1), target->tx_bundle_stats[i],
+                ((target->tx_bundle_stats[i]*100)/total), "%"));
+        }
+    }
+}
+
+void HTCClearBundleStats (HTC_HANDLE HTCHandle)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+
+    adf_os_mem_zero(&target->rx_bundle_stats, sizeof(target->rx_bundle_stats));
+    adf_os_mem_zero(&target->tx_bundle_stats, sizeof(target->tx_bundle_stats));
+}
+#endif

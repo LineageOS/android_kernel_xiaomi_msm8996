@@ -610,3 +610,16 @@ htt_ipa_uc_set_doorbell_paddr(htt_pdev_handle pdev,
 }
 #endif /* IPA_UC_OFFLOAD */
 
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+
+void htt_dump_bundle_stats(htt_pdev_handle pdev)
+{
+    HTCDumpBundleStats(pdev->htc_pdev);
+}
+
+void htt_clear_bundle_stats(htt_pdev_handle pdev)
+{
+    HTCClearBundleStats(pdev->htc_pdev);
+}
+#endif
+

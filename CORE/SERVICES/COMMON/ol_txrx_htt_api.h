@@ -183,7 +183,29 @@ ol_tx_desc_update_group_credit(
     ol_txrx_pdev_handle pdev,
     u_int16_t tx_desc_id,
     int credit, u_int8_t absolute);
+
+
 #define OL_TX_DESC_UPDATE_GROUP_CREDIT ol_tx_desc_update_group_credit
+
+#ifdef DEBUG_HL_LOGGING
+void
+ol_tx_update_group_credit_stats(ol_txrx_pdev_handle pdev);
+
+void
+ol_tx_dump_group_credit_stats(ol_txrx_pdev_handle pdev);
+
+void
+ol_tx_clear_group_credit_stats(ol_txrx_pdev_handle pdev);
+
+#define OL_TX_UPDATE_GROUP_CREDIT_STATS ol_tx_update_group_credit_stats
+#define OL_TX_DUMP_GROUP_CREDIT_STATS ol_tx_dump_group_credit_stats
+#define OL_TX_CLEAR_GROUP_CREDIT_STATS ol_tx_clear_group_credit_stats
+#else
+#define OL_TX_UPDATE_GROUP_CREDIT_STATS(pdev) /* no -op*/
+#define OL_TX_DUMP_GROUP_CREDIT_STATS(pdev) /* no -op*/
+#define OL_TX_CLEAR_GROUP_CREDIT_STATS(pdev) /* no -op*/
+#endif
+
 #else
 #define OL_TX_DESC_UPDATE_GROUP_CREDIT(pdev, tx_desc_id, credit, absolute) /* no-op */
 #endif

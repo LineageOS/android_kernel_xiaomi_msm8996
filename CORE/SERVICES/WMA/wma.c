@@ -27440,6 +27440,8 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t is_high_latency;
 	ol_txrx_vdev_handle txrx_vdev;
+	ol_txrx_pdev_handle txrx_pdev;
+	pVosContextType vos_handle;
 	enum frame_index tx_frm_index =
 		GENERIC_NODOWNLD_NOACK_COMP_INDEX;
 	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
@@ -27467,6 +27469,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
                 wma_handle->vos_context);
 	/* Get the vdev handle from vdev id */
 	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
+	vos_handle = (pVosContextType)(wma_handle->vos_context);
+	/* Get the txRx Pdev handle */
+	txrx_pdev = (ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
 	if(!txrx_vdev) {
 		WMA_LOGE("TxRx Vdev Handle is NULL");
@@ -27829,6 +27834,11 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			 * we didn't get Download Complete for almost
 			 * WMA_TX_FRAME_COMPLETE_TIMEOUT (1 sec)
 			 */
+#ifdef CONFIG_HL_SUPPORT
+			 /* display scheduler stats */
+			 wdi_in_display_stats(txrx_pdev, WLAN_SCHEDULER_STATS);
+			 wdi_in_display_stats(txrx_pdev, WLAN_TX_QUEUE_STATS);
+#endif
 		}
 	} else {
 		/*

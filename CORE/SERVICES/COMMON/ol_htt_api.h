@@ -314,4 +314,16 @@ void
 htt_ipa_uc_detach(struct htt_pdev_t *pdev);
 #endif /* IPA_UC_OFFLOAD */
 
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+void
+htt_dump_bundle_stats(struct htt_pdev_t *pdev);
+void
+htt_clear_bundle_stats(struct htt_pdev_t *pdev);
+#else
+
+#define htt_dump_bundle_stats(pdev) /*no-op*/
+#define htt_clear_bundle_stats(pdev) /*no-op*/
+
+#endif
+
 #endif /* _OL_HTT_API__H_ */
