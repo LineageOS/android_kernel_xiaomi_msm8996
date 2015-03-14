@@ -494,7 +494,7 @@ eHalStatus csrTdlsProcessAddSta( tpAniSirGlobal pMac, tSmeCmd *cmd )
                   tdlsAddStaCmdInfo->supportedRates, tdlsAddStaCmdInfo->supportedRatesLen);
 
     // Send the request to PE.
-    smsLog( pMac, LOGE, "sending TDLS Add Sta req to PE " );
+    smsLog( pMac, LOG1, "sending TDLS Add Sta req to PE " );
     status = tdlsSendMessage(pMac, eWNI_SME_TDLS_ADD_STA_REQ,
             (void *)tdlsAddStaReq , sizeof(tSirTdlsAddStaReq)) ;
     if(!HAL_STATUS_SUCCESS( status ) )
@@ -547,11 +547,7 @@ eHalStatus csrTdlsProcessDelSta( tpAniSirGlobal pMac, tSmeCmd *cmd )
             tdlsDelStaCmdInfo->peerMac, sizeof(tSirMacAddr)) ;
 
     // Send the request to PE.
-#ifdef WLAN_FEATURE_TDLS_DEBUG
-    smsLog( pMac, LOGE,
-#else
     smsLog( pMac, LOG1,
-#endif
         "sending TDLS Del Sta "MAC_ADDRESS_STR" req to PE",
          MAC_ADDR_ARRAY(tdlsDelStaCmdInfo->peerMac));
     status = tdlsSendMessage(pMac, eWNI_SME_TDLS_DEL_STA_REQ,

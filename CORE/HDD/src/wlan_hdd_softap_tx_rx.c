@@ -292,7 +292,13 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
    else
    {
-      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+       if (VOS_STATUS_SUCCESS !=
+           hdd_softap_GetStaId(pAdapter, pDestMacAddress, &STAId)) {
+         VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                    "%s: Failed to find the station id", __func__);
+           goto drop_pkt;
+       }
+
       if (STAId == HDD_WLAN_INVALID_STA_ID)
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
