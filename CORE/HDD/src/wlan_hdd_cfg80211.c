@@ -829,7 +829,7 @@ wlan_hdd_extscan_config_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS] = { .type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_BASE_PERIOD] = { .type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_MAX_AP_PER_SCAN] = { .type = NLA_U32 },
-    [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD] = { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD_PERCENT] = { .type = NLA_U8 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS] = { .type = NLA_U8 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_CACHED_SCAN_RESULTS_CONFIG_PARAM_FLUSH] = { .type = NLA_U8 },
 
@@ -2050,270 +2050,303 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     return -EINVAL;
 }
 
+static int hdd_extscan_start_fill_bucket_channel_spec(
+			hdd_context_t *pHddCtx,
+			tpSirWifiScanCmdReqParams pReqMsg,
+			struct nlattr **tb)
+{
+	struct nlattr *bucket[
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
+	struct nlattr *channel[
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
+	struct nlattr *buckets;
+	struct nlattr *channels;
+	int rem1, rem2;
+	eHalStatus status;
+	uint8_t bktIndex, j, numChannels;
+	uint32_t chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
+
+	bktIndex = 0;
+	nla_for_each_nested(buckets,
+			tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC], rem1) {
+		if (nla_parse(bucket,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
+			nla_data(buckets), nla_len(buckets), NULL)) {
+			hddLog(LOGE, FL("nla_parse failed"));
+			return -EINVAL;
+		}
+
+		/* Parse and fetch bucket spec */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]) {
+			hddLog(LOGE, FL("attr bucket index failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].bucket = nla_get_u8(
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]);
+		hddLog(LOG1, FL("Bucket spec Index (%d)"),
+				pReqMsg->buckets[bktIndex].bucket);
+
+		/* Parse and fetch wifi band */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]) {
+			hddLog(LOGE, FL("attr wifi band failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].band = nla_get_u8(
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]);
+		hddLog(LOG1, FL("Wifi band (%d)"),
+			pReqMsg->buckets[bktIndex].band);
+
+		/* Parse and fetch period */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]) {
+			hddLog(LOGE, FL("attr period failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].period = nla_get_u32(
+		bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]);
+		hddLog(LOG1, FL("period (%d)"),
+			pReqMsg->buckets[bktIndex].period);
+
+		/* Parse and fetch report events */
+		if (!bucket[
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]) {
+			hddLog(LOGE, FL("attr report events failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].reportEvents = nla_get_u8(
+			bucket[
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]);
+		hddLog(LOG1, FL("report events (%d)"),
+				pReqMsg->buckets[bktIndex].reportEvents);
+
+		/* Framework shall pass the channel list if the input WiFi band is
+		 * WIFI_BAND_UNSPECIFIED.
+		 * If the input WiFi band is specified (any value other than
+		 * WIFI_BAND_UNSPECIFIED) then driver populates the channel list */
+		if (pReqMsg->buckets[bktIndex].band != WIFI_BAND_UNSPECIFIED) {
+			numChannels = 0;
+			hddLog(LOG1, "WiFi band is specified, driver to fill channel list");
+			status = sme_GetValidChannelsByBand(pHddCtx->hHal,
+						pReqMsg->buckets[bktIndex].band,
+						chanList, &numChannels);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				hddLog(LOGE,
+				       FL("sme_GetValidChannelsByBand failed (err=%d)"),
+				       status);
+				return -EINVAL;
+			}
+
+			pReqMsg->buckets[bktIndex].numChannels =
+				VOS_MIN(numChannels, WLAN_EXTSCAN_MAX_CHANNELS);
+			hddLog(LOG1, FL("Num channels (%d)"),
+					pReqMsg->buckets[bktIndex].numChannels);
+
+			for (j = 0; j < pReqMsg->buckets[bktIndex].numChannels;
+				j++) {
+				pReqMsg->buckets[bktIndex].channels[j].channel =
+							chanList[j];
+				pReqMsg->buckets[bktIndex].channels[j].
+							chnlClass = 0;
+				if (CSR_IS_CHANNEL_DFS(
+					vos_freq_to_chan(chanList[j]))) {
+					pReqMsg->buckets[bktIndex].channels[j].
+								passive = 1;
+					pReqMsg->buckets[bktIndex].channels[j].
+					dwellTimeMs =
+					CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+				} else {
+					pReqMsg->buckets[bktIndex].channels[j].
+							passive = 0;
+					pReqMsg->buckets[bktIndex].channels[j].
+					dwellTimeMs =
+					CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+				}
+
+				hddLog(LOG1,
+					"Channel(%u) Passive(%u) Dwell time(%u ms) Class(%u)",
+					pReqMsg->buckets[bktIndex].channels[j].channel,
+					pReqMsg->buckets[bktIndex].channels[j].passive,
+					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs,
+					pReqMsg->buckets[bktIndex].channels[j].chnlClass);
+			}
+			continue;
+		}
+
+		/* Parse and fetch number of channels */
+		if (!bucket[
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]) {
+			hddLog(LOGE, FL("attr num channels failed"));
+			return -EINVAL;
+		}
+		pReqMsg->buckets[bktIndex].numChannels =
+		nla_get_u32(bucket[
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]);
+		hddLog(LOG1, FL("num channels (%d)"),
+				pReqMsg->buckets[bktIndex].numChannels);
+
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC]) {
+			hddLog(LOGE, FL("attr channel spec failed"));
+			return -EINVAL;
+		}
+
+		j = 0;
+		nla_for_each_nested(channels,
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC], rem2) {
+			if (nla_parse(channel,
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
+				nla_data(channels), nla_len(channels),
+				wlan_hdd_extscan_config_policy)) {
+				hddLog(LOGE, FL("nla_parse failed"));
+				return -EINVAL;
+			}
+
+			/* Parse and fetch channel */
+			if (!channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_CHANNEL]) {
+				hddLog(LOGE, FL("attr channel failed"));
+				return -EINVAL;
+			}
+			pReqMsg->buckets[bktIndex].channels[j].channel =
+				nla_get_u32(channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_CHANNEL]);
+			hddLog(LOG1, FL("channel (%u)"),
+				pReqMsg->buckets[bktIndex].channels[j].channel);
+
+			/* Parse and fetch dwell time */
+			if (!channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_DWELL_TIME]) {
+				hddLog(LOGE, FL("attr dwelltime failed"));
+				return -EINVAL;
+			}
+			pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
+				nla_get_u32(channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_DWELL_TIME]);
+			hddLog(LOG1, FL("Dwell time (%u ms)"),
+				pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
+
+			/* Parse and fetch channel spec passive */
+			if (!channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]) {
+				hddLog(LOGE,
+					FL("attr channel spec passive failed"));
+				return -EINVAL;
+			}
+			pReqMsg->buckets[bktIndex].channels[j].passive =
+				nla_get_u8(channel[
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]);
+			hddLog(LOG1, FL("Chnl spec passive (%u)"),
+				pReqMsg->buckets[bktIndex].channels[j].passive);
+			j++;
+		}
+		bktIndex++;
+	}
+	return 0;
+}
+
 static int wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
                                            struct wireless_dev *wdev,
                                            const void *data,
                                            int data_len)
 {
-    tpSirWifiScanCmdReqParams pReqMsg       = NULL;
-    struct net_device *dev                  = wdev->netdev;
-    hdd_adapter_t *pAdapter                 = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx                  = wiphy_priv(wiphy);
-    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
-    struct nlattr *bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
-    struct nlattr *channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
-    struct nlattr *buckets;
-    struct nlattr *channels;
-    int rem1, rem2;
-    eHalStatus status;
-    tANI_U8 bktIndex, j, numChannels;
-    tANI_U32 chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
+	tpSirWifiScanCmdReqParams pReqMsg       = NULL;
+	struct net_device *dev                  = wdev->netdev;
+	hdd_adapter_t *pAdapter                 = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *pHddCtx                  = wiphy_priv(wiphy);
+	struct nlattr *tb[
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
+	eHalStatus status;
 
-    ENTER();
+	ENTER();
 
-    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
-                    data, data_len,
-                    wlan_hdd_extscan_config_policy)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid ATTR"));
-        return -EINVAL;
-    }
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
+		data, data_len,
+		wlan_hdd_extscan_config_policy)) {
+		hddLog(LOGE, FL("Invalid ATTR"));
+		return -EINVAL;
+	}
 
-    pReqMsg = vos_mem_malloc(sizeof(*pReqMsg));
-    if (!pReqMsg) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("vos_mem_malloc failed"));
-        return -ENOMEM;
-    }
+	pReqMsg = vos_mem_malloc(sizeof(*pReqMsg));
+	if (!pReqMsg) {
+		hddLog(LOGE, FL("vos_mem_malloc failed"));
+		return -ENOMEM;
+	}
 
-    /* Parse and fetch request Id */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr request id failed"));
-        goto fail;
-    }
+	/* Parse and fetch request Id */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]) {
+		hddLog(LOGE, FL("attr request id failed"));
+		goto fail;
+	}
 
-    pReqMsg->requestId = nla_get_u32(
-              tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]);
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Req Id (%d)"), pReqMsg->requestId);
+	pReqMsg->requestId = nla_get_u32(
+		tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]);
+	hddLog(LOG1, FL("Req Id (%d)"), pReqMsg->requestId);
 
-    pReqMsg->sessionId = pAdapter->sessionId;
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Session Id (%d)"), pReqMsg->sessionId);
+	pReqMsg->sessionId = pAdapter->sessionId;
+	hddLog(LOG1, FL("Session Id (%d)"), pReqMsg->sessionId);
 
-    /* Parse and fetch base period */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_BASE_PERIOD]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr base period failed"));
-        goto fail;
-    }
-    pReqMsg->basePeriod = nla_get_u32(
-              tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_BASE_PERIOD]);
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Base Period (%d)"),
-                                         pReqMsg->basePeriod);
+	/* Parse and fetch base period */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_BASE_PERIOD]) {
+		hddLog(LOGE, FL("attr base period failed"));
+		goto fail;
+	}
+	pReqMsg->basePeriod = nla_get_u32(
+		tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_BASE_PERIOD]);
+	hddLog(LOG1, FL("Base Period (%d)"),
+				pReqMsg->basePeriod);
 
-    /* Parse and fetch max AP per scan */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_MAX_AP_PER_SCAN]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr max_ap_per_scan failed"));
-        goto fail;
-    }
-    pReqMsg->maxAPperScan = nla_get_u32(
-             tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_MAX_AP_PER_SCAN]);
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Max AP per Scan (%d)"),
-                                         pReqMsg->maxAPperScan);
+	/* Parse and fetch max AP per scan */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_MAX_AP_PER_SCAN]) {
+		hddLog(LOGE, FL("attr max_ap_per_scan failed"));
+		goto fail;
+	}
+	pReqMsg->maxAPperScan = nla_get_u32(
+	tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_MAX_AP_PER_SCAN]);
+	hddLog(LOG1, FL("Max AP per Scan (%d)"),
+				pReqMsg->maxAPperScan);
 
-    /* Parse and fetch report threshold */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr report_threshold failed"));
-        goto fail;
-    }
-    pReqMsg->reportThreshold = nla_get_u8(
-            tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD]);
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Report Threshold (%d)"),
-                                         pReqMsg->reportThreshold);
+	/* Parse and fetch report threshold */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD_PERCENT]) {
+		hddLog(LOGE, FL("attr report_threshold failed"));
+		goto fail;
+	}
+	pReqMsg->reportThreshold = nla_get_u8(
+		tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD_PERCENT]);
+	hddLog(LOG1, FL("Report Threshold (%d)"), pReqMsg->reportThreshold);
 
-    /* Parse and fetch number of buckets */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr number of buckets failed"));
-        goto fail;
-    }
-    pReqMsg->numBuckets = nla_get_u8(
-                 tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS]);
-    if (pReqMsg->numBuckets > WLAN_EXTSCAN_MAX_BUCKETS) {
-        hddLog(VOS_TRACE_LEVEL_WARN, FL("Exceeded MAX number of buckets "
-          "Setting numBuckets to %u"), WLAN_EXTSCAN_MAX_BUCKETS);
-        pReqMsg->numBuckets = WLAN_EXTSCAN_MAX_BUCKETS;
-    }
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Number of Buckets (%d)"),
+	/* Parse and fetch number of buckets */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS]) {
+		hddLog(LOGE, FL("attr number of buckets failed"));
+		goto fail;
+	}
+	pReqMsg->numBuckets = nla_get_u8(
+		tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS]);
+	if (pReqMsg->numBuckets > WLAN_EXTSCAN_MAX_BUCKETS) {
+		hddLog(LOGW, FL("Exceeded MAX number of buckets "
+			"Setting numBuckets to %u"), WLAN_EXTSCAN_MAX_BUCKETS);
+		pReqMsg->numBuckets = WLAN_EXTSCAN_MAX_BUCKETS;
+	}
+	hddLog(LOG1, FL("Number of Buckets (%d)"),
                                          pReqMsg->numBuckets);
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC]) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr bucket spec failed"));
-        goto fail;
-    }
+	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC]) {
+		hddLog(LOGE, FL("attr bucket spec failed"));
+		goto fail;
+	}
 
-    bktIndex = 0;
-    nla_for_each_nested(buckets,
-                tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC], rem1) {
-        if (nla_parse(bucket,
-            QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
-            nla_data(buckets), nla_len(buckets), NULL)) { //policy
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla_parse failed"));
-            goto fail;
-        }
+	if (hdd_extscan_start_fill_bucket_channel_spec(pHddCtx, pReqMsg, tb))
+		goto fail;
 
-        /* Parse and fetch bucket spec */
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr bucket index failed"));
-            goto fail;
-        }
-        pReqMsg->buckets[bktIndex].bucket = nla_get_u8(
-                       bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("Bucket spec Index (%d)"),
-                                     pReqMsg->buckets[bktIndex].bucket);
+	status = sme_ExtScanStart(pHddCtx->hHal, pReqMsg);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		hddLog(LOGE,
+			FL("sme_ExtScanStart failed(err=%d)"), status);
+		vos_mem_free(pReqMsg);
+		return -EINVAL;
+	}
 
-        /* Parse and fetch wifi band */
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr wifi band failed"));
-            goto fail;
-        }
-        pReqMsg->buckets[bktIndex].band = nla_get_u8(
-                        bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("Wifi band (%d)"),
-                           pReqMsg->buckets[bktIndex].band);
-
-        /* Parse and fetch period */
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr period failed"));
-            goto fail;
-        }
-        pReqMsg->buckets[bktIndex].period = nla_get_u32(
-                      bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("period (%d)"),
-                           pReqMsg->buckets[bktIndex].period);
-
-        /* Parse and fetch report events */
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr report events failed"));
-            goto fail;
-        }
-        pReqMsg->buckets[bktIndex].reportEvents = nla_get_u8(
-               bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("report events (%d)"),
-                           pReqMsg->buckets[bktIndex].reportEvents);
-
-        /* Framework shall pass the channel list if the input WiFi band is
-         * WIFI_BAND_UNSPECIFIED.
-         * If the input WiFi band is specified (any value other than
-         * WIFI_BAND_UNSPECIFIED) then driver populates the channel list */
-        if (pReqMsg->buckets[bktIndex].band != WIFI_BAND_UNSPECIFIED) {
-            numChannels = 0;
-            hddLog(LOG1, "WiFi band is specified, driver to fill channel list");
-            status = sme_GetValidChannelsByBand(pHddCtx->hHal,
-                                       pReqMsg->buckets[bktIndex].band,
-                                       chanList, &numChannels);
-            if (!HAL_STATUS_SUCCESS(status)) {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("sme_GetValidChannelsByBand failed (err=%d)"), status);
-                goto fail;
-            }
-
-            pReqMsg->buckets[bktIndex].numChannels =
-                                VOS_MIN(numChannels, WLAN_EXTSCAN_MAX_CHANNELS);
-            hddLog(LOG1, FL("Num channels (%d)"),
-                         pReqMsg->buckets[bktIndex].numChannels);
-
-            for (j = 0; j < pReqMsg->buckets[bktIndex].numChannels; j++) {
-                pReqMsg->buckets[bktIndex].channels[j].channel = chanList[j];
-                pReqMsg->buckets[bktIndex].channels[j].chnlClass = 0;
-                if (CSR_IS_CHANNEL_DFS(vos_freq_to_chan(chanList[j]))) {
-                    pReqMsg->buckets[bktIndex].channels[j].passive = 1;
-                    pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
-                                           CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
-                } else {
-                    pReqMsg->buckets[bktIndex].channels[j].passive = 0;
-                    pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
-                                           CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
-                }
-
-                hddLog(LOG1,
-                       "Channel(%u) Passive(%u) Dwell time(%u ms) Class(%u)",
-                       pReqMsg->buckets[bktIndex].channels[j].channel,
-                       pReqMsg->buckets[bktIndex].channels[j].passive,
-                       pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs,
-                       pReqMsg->buckets[bktIndex].channels[j].chnlClass);
-            }
-            continue;
-        }
-
-        /* Parse and fetch number of channels */
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr num channels failed"));
-            goto fail;
-        }
-        pReqMsg->buckets[bktIndex].numChannels = nla_get_u32(
-           bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]);
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("num channels (%d)"),
-                           pReqMsg->buckets[bktIndex].numChannels);
-
-        if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr channel spec failed"));
-            goto fail;
-        }
-
-        j = 0;
-        nla_for_each_nested(channels,
-                    bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC], rem2) {
-            if (nla_parse(channel,
-                QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
-                nla_data(channels), nla_len(channels),
-                wlan_hdd_extscan_config_policy)) {
-                hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla_parse failed"));
-                goto fail;
-            }
-
-            /* Parse and fetch channel */
-            if (!channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_CHANNEL]) {
-                hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr channel failed"));
-                goto fail;
-            }
-            pReqMsg->buckets[bktIndex].channels[j].channel = nla_get_u32(
-                   channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_CHANNEL]);
-            hddLog(VOS_TRACE_LEVEL_INFO, FL("channel (%u)"),
-                         pReqMsg->buckets[bktIndex].channels[j].channel);
-
-            /* Parse and fetch dwell time */
-            if (!channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_DWELL_TIME]) {
-                hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr dwelltime failed"));
-                goto fail;
-            }
-            pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs = nla_get_u32(
-                channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_DWELL_TIME]);
-            hddLog(VOS_TRACE_LEVEL_INFO, FL("Dwell time (%u ms)"),
-                     pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
-
-            /* Parse and fetch channel spec passive */
-            if (!channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]) {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                                     FL("attr channel spec passive failed"));
-                goto fail;
-            }
-            pReqMsg->buckets[bktIndex].channels[j].passive = nla_get_u8(
-                   channel[QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]);
-            hddLog(VOS_TRACE_LEVEL_INFO, FL("Chnl spec passive (%u)"),
-                     pReqMsg->buckets[bktIndex].channels[j].passive);
-            j++;
-        }
-        bktIndex++;
-    }
-
-    status = sme_ExtScanStart(pHddCtx->hHal, pReqMsg);
-    if (!HAL_STATUS_SUCCESS(status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                     FL("sme_ExtScanStart failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
-    }
-
-    return 0;
+	return 0;
 
 fail:
-    vos_mem_free(pReqMsg);
-    return -EINVAL;
+	vos_mem_free(pReqMsg);
+	return -EINVAL;
 }
 
 static int wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
@@ -16203,7 +16236,7 @@ wlan_hdd_cfg80211_extscan_get_capabilities_ind(void *ctx,
        QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_REPORTING_THRESHOLD,
        pData->maxScanReportingThreshold) ||
         nla_put_u32(skb,
-           QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_APS,
+           QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_BSSIDS,
            pData->maxHotlistAPs) ||
         nla_put_u32(skb,
         QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SIGNIFICANT_WIFI_CHANGE_APS,
@@ -16547,7 +16580,7 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||
         nla_put_u32(skb,
-                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_NUM_RESULTS_AVAILABLE,
+                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE,
                     pData->numOfAps)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("put fail"));
         goto fail;
@@ -16677,7 +16710,7 @@ wlan_hdd_cfg80211_extscan_hotlist_match_ind(void *ctx,
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||
         nla_put_u32(skb,
-                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_NUM_RESULTS_AVAILABLE,
+                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE,
                     pData->numOfAps)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("put fail"));
         goto fail;
@@ -16795,7 +16828,7 @@ wlan_hdd_cfg80211_extscan_signif_wifi_change_results_ind(
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                          pData->requestId) ||
         nla_put_u32(skb,
-                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_NUM_RESULTS_AVAILABLE,
+                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE,
                     pData->numResults)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("put fail"));
         goto fail;
@@ -16995,7 +17028,7 @@ wlan_hdd_cfg80211_extscan_scan_res_available_event(void *ctx,
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||
         nla_put_u32(skb,
-                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_NUM_RESULTS_AVAILABLE,
+                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE,
                     pData->numResultsAvailable)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
         goto nla_put_failure;
