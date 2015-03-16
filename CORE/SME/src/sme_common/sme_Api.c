@@ -2843,6 +2843,14 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 vos_mem_free(pMsg->bodyptr);
                 break;
           }
+          case eWNI_SME_EPNO_NETWORK_FOUND_IND:
+          {
+                pMac->sme.pExtScanIndCb(pMac->hHdd,
+                                        eSIR_EPNO_NETWORK_FOUND_IND,
+                                        pMsg->bodyptr);
+                vos_mem_free(pMsg->bodyptr);
+                break;
+          }
 #endif
           case eWNI_SME_FW_STATUS_IND:
                if (pMac->sme.fw_state_callback)
@@ -14319,6 +14327,77 @@ eHalStatus sme_getCachedResults (tHalHandle hHal,
     }
     return status;
 }
+
+/**
+ * sme_set_epno_list() - set epno network list
+ * @hHal: global hal handle
+ * @input: request message
+ *
+ * This function constructs the vos message and fill in message type,
+ * bodyptr with %input and posts it to WDA queue.
+ *
+ * Return: eHalStatus enumeration
+ */
+eHalStatus sme_set_epno_list(tHalHandle hal,
+				struct wifi_epno_params *input)
+{
+        eHalStatus status     = eHAL_STATUS_SUCCESS;
+        VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac   = PMAC_STRUCT(hal);
+	vos_msg_t vos_message;
+	struct wifi_epno_params *req_msg;
+	int len, i;
+
+	smsLog(mac, LOG1, FL("enter"));
+	len = sizeof(*req_msg) +
+		(input->num_networks * sizeof(struct wifi_epno_network));
+	req_msg = vos_mem_malloc(len);
+	if (!req_msg) {
+		smsLog(mac, LOGE, FL("vos_mem_malloc failed"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	vos_mem_zero(req_msg, len);
+	req_msg->num_networks = input->num_networks;
+	req_msg->request_id = input->request_id;
+	req_msg->session_id = input->session_id;
+	for (i = 0; i < req_msg->num_networks; i++) {
+		req_msg->networks[i].rssi_threshold =
+				input->networks[i].rssi_threshold;
+		req_msg->networks[i].flags = input->networks[i].flags;
+		req_msg->networks[i].auth_bit_field =
+				input->networks[i].auth_bit_field;
+		req_msg->networks[i].ssid.length =
+				input->networks[i].ssid.length;
+		vos_mem_copy(req_msg->networks[i].ssid.ssId,
+				input->networks[i].ssid.ssId,
+				req_msg->networks[i].ssid.length);
+	}
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (status != eHAL_STATUS_SUCCESS) {
+		smsLog(mac, LOGE,
+			FL("sme_AcquireGlobalLock failed!(status=%d)"),
+			status);
+		vos_mem_free(req_msg);
+		return status;
+	}
+
+	/* Serialize the req through MC thread */
+	vos_message.bodyptr = req_msg;
+	vos_message.type    = WDA_SET_EPNO_LIST_REQ;
+	vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		smsLog(mac, LOGE,
+			FL("vos_mq_post_message failed!(err=%d)"),
+			vos_status);
+		vos_mem_free(req_msg);
+		status = eHAL_STATUS_FAILURE;
+	}
+	sme_ReleaseGlobalLock(&mac->sme);
+        return status;
+}
+
 
 eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
                          void (*pExtScanIndCb)(void *, const tANI_U16, void *))

@@ -3045,7 +3045,6 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	buf_len = sizeof(*dest_cachelist) +
 			(sizeof(*dest_result) * scan_ids_cnt) +
 			(sizeof(*dest_ap) * numap);
-	WMA_LOGD("%s: buf_len %d", __func__, buf_len);
 	dest_cachelist = vos_mem_malloc(buf_len);
 	if (!dest_cachelist) {
 		WMA_LOGE("%s: Allocation failed for cached"
@@ -3133,7 +3132,6 @@ noresults:
 	WMA_LOGD("%s: sending cached results event", __func__);
 	return 0;
 }
-
 
 static int wma_extscan_change_results_event_handler(void *handle,
 				u_int8_t  *cmd_param_info, u_int32_t len)
@@ -22599,6 +22597,118 @@ VOS_STATUS  wma_extscan_get_capabilities(tp_wma_handle wma,
 	}
 	return VOS_STATUS_SUCCESS;
 }
+
+/** wma_set_epno_network_list() - set epno network list
+ * @wma: WMA handle
+ * @req: epno config params request structure
+ *
+ * This function reads the incoming epno config request structure
+ * and constructs the WMI message to the firmware.
+ *
+ * Returns: 0 on success, error number otherwise
+ */
+static int wma_set_epno_network_list(tp_wma_handle wma,
+					struct wifi_epno_params *req)
+{
+	wmi_nlo_config_cmd_fixed_param *cmd;
+	nlo_configured_parameters *nlo_list;
+	u_int8_t i, *buf_ptr;
+	wmi_buf_t buf;
+	uint32_t len;
+	int ret;
+
+	WMA_LOGD("wma_set_epno_network_list");
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
+		return -EINVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled", __func__);
+		return -EINVAL;
+	}
+
+	/* TLV place holder for array of structures
+	 * nlo_configured_parameters(nlo_list) */
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE;
+	len += sizeof(nlo_configured_parameters) *
+				MIN(req->num_networks, WMI_NLO_MAX_SSIDS);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_nlo_config_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_nlo_config_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			       wmi_nlo_config_cmd_fixed_param));
+	cmd->vdev_id = req->session_id;
+	cmd->flags = WMI_NLO_CONFIG_ENLO;
+
+	buf_ptr += sizeof(wmi_nlo_config_cmd_fixed_param);
+
+	cmd->no_of_ssids = MIN(req->num_networks, WMI_NLO_MAX_SSIDS);
+	WMA_LOGD("SSID count: %d", cmd->no_of_ssids);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		       cmd->no_of_ssids * sizeof(nlo_configured_parameters));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	nlo_list = (nlo_configured_parameters *) buf_ptr;
+	for (i = 0; i < cmd->no_of_ssids; i++) {
+		WMITLV_SET_HDR(&nlo_list[i].tlv_header,
+			WMITLV_TAG_ARRAY_BYTE,
+			WMITLV_GET_STRUCT_TLVLEN(nlo_configured_parameters));
+		/* Copy ssid and it's length */
+		nlo_list[i].ssid.valid = TRUE;
+		nlo_list[i].ssid.ssid.ssid_len = req->networks[i].ssid.length;
+		vos_mem_copy(nlo_list[i].ssid.ssid.ssid,
+			     req->networks[i].ssid.ssId,
+			     nlo_list[i].ssid.ssid.ssid_len);
+		WMA_LOGD("index: %d ssid: %.*s len: %d", i,
+			 nlo_list[i].ssid.ssid.ssid_len,
+			 (char *) nlo_list[i].ssid.ssid.ssid,
+			 nlo_list[i].ssid.ssid.ssid_len);
+
+		/* Copy rssi threshold */
+		nlo_list[i].rssi_cond.valid = TRUE;
+		nlo_list[i].rssi_cond.rssi =
+			req->networks[i].rssi_threshold;
+		WMA_LOGD("RSSI threshold : %d dBm",
+			nlo_list[i].rssi_cond.rssi);
+
+		/* Copy pno flags */
+		nlo_list[i].bcast_nw_type.valid = TRUE;
+		nlo_list[i].bcast_nw_type.bcast_nw_type =
+				req->networks[i].flags;
+		WMA_LOGD("PNO flags (%u)",
+				nlo_list[i].bcast_nw_type.bcast_nw_type);
+
+		/* Copy auth bit field */
+		nlo_list[i].auth_type.valid = TRUE;
+		nlo_list[i].auth_type.auth_type =
+				req->networks[i].auth_bit_field;
+		WMA_LOGD("Auth bit field (%u)",
+				nlo_list[i].auth_type.auth_type);
+	}
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send nlo wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("set ePNO list request sent successfully for vdev %d",
+		 req->session_id);
+
+	return 0;
+}
 #endif
 
 VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
@@ -23980,6 +24090,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_EXTSCAN_GET_CAPABILITIES_REQ:
 			wma_extscan_get_capabilities(wma_handle,
 				(tSirGetExtScanCapabilitiesReqParams *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+		break;
+		case WDA_SET_EPNO_LIST_REQ:
+			wma_set_epno_network_list(wma_handle,
+				(struct wifi_epno_params *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 		break;
 #endif

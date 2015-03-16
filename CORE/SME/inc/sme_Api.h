@@ -3977,6 +3977,9 @@ eHalStatus sme_ResetSignificantChange (tHalHandle hHal,
 eHalStatus sme_getCachedResults (tHalHandle hHal,
                       tSirExtScanGetCachedResultsReqParams *pCachedResultsReq);
 
+eHalStatus sme_set_epno_list(tHalHandle hal,
+                                struct wifi_epno_params *req_msg);
+
 /* ---------------------------------------------------------------------------
     \fn sme_ExtScanRegisterCallback
     \brief  SME API to register extscan notification callback

@@ -702,6 +702,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_MAS                    (SIR_HAL_ITC_MSG_TYPES_BEGIN + 311)
 #define SIR_HAL_SET_MIRACAST               (SIR_HAL_ITC_MSG_TYPES_BEGIN + 312)
 
+#define SIR_HAL_SET_EPNO_LIST_REQ          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 313)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

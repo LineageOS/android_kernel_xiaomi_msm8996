@@ -121,6 +121,7 @@ typedef enum
     eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
     eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
     eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
+    eSIR_EPNO_NETWORK_FOUND_IND,
 
     /* Keep this last */
     eSIR_EXTSCAN_CALLBACK_TYPE_MAX,
@@ -4969,21 +4970,42 @@ struct extscan_cached_scan_results
 };
 
 
-/*
+/**
+ * struct tSirWifiFullScanResultEvent - extscan full scan event
+ * @request_id: request identifier
+ * @moreData: 0 - for last fragment
+ *             1 - still more fragment(s) coming
+ * @ap: bssid info
+ *
  * Reported when each probe response is received, if reportEvents
  * enabled in tSirWifiScanCmdReqParams
  */
 typedef struct
 {
-    tANI_U32               requestId;
-
-    /*
-     * 0 - for last fragment
-     * 1 - still more fragment(s) coming
-     */
-    tANI_BOOLEAN           moreData;
-    tSirWifiScanResult     ap;
+	uint32_t            requestId;
+	bool                moreData;
+	tSirWifiScanResult  ap;
 } tSirWifiFullScanResultEvent, *tpSirWifiFullScanResultEvent;
+
+/**
+ * struct pno_match_found - epno match found
+ * @request_id: request identifier
+ * @moreData: 0 - for last fragment
+     * 1 - still more fragment(s) coming
+ * @num_results: number of bssids, driver sends this event to upper layer
+ *		 for every beacon, hence %num_results is always set to 1.
+ * @ap: bssid info
+ *
+ * Reported when each beacon probe response is received with
+ * epno match found tag.
+     */
+struct pno_match_found
+{
+	uint32_t            request_id;
+	bool                more_data;
+	uint32_t            num_results;
+	tSirWifiScanResult  ap[];
+};
 
 
 typedef struct
@@ -5175,6 +5197,45 @@ typedef struct
 } tSirExtScanResultsAvailableIndParams,
   *tpSirExtScanResultsAvailableIndParams;
 
+typedef struct
+{
+    tANI_U32   requestId;
+    tANI_U32   status;
+    tANI_U8    scanEventType;
+} tSirExtScanOnScanEventIndParams,
+  *tpSirExtScanOnScanEventIndParams;
+
+/**
+ * struct wifi_epno_network - enhanced pno network block
+ * @ssid: ssid
+ * @rssi_threshold: threshold for considering this SSID as found, required
+ *		    granularity for this threshold is 4dBm to 8dBm
+ * @flags: WIFI_PNO_FLAG_XXX
+ * @auth_bit_field: auth bit field for matching WPA IE
+ */
+struct wifi_epno_network
+{
+	tSirMacSSid  ssid;
+	int8_t       rssi_threshold;
+	uint8_t      flags;
+	uint8_t      auth_bit_field;
+};
+
+/**
+ * struct wifi_epno_params - enhanced pno network params
+ * @num_networks: number of ssids
+ * @networks: PNO networks
+ */
+struct wifi_epno_params
+{
+	uint32_t    request_id;
+	uint32_t    session_id;
+	uint32_t    num_networks;
+	struct wifi_epno_network networks[];
+};
+
+#endif /* FEATURE_WLAN_EXTSCAN */
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 typedef struct
 {
@@ -5186,16 +5247,6 @@ typedef struct
     tANI_U32    shutdown_reason;
 } tSirAutoShutdownEvtParams;
 #endif
-
-typedef struct
-{
-    tANI_U32   requestId;
-    tANI_U32   status;
-    tANI_U8    scanEventType;
-} tSirExtScanOnScanEventIndParams,
-  *tpSirExtScanOnScanEventIndParams;
-
-#endif /* FEATURE_WLAN_EXTSCAN */
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 
