@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5000,6 +5000,12 @@ typedef struct {
     A_UINT32 roam_scan_rssi_thresh;
     /** When using Hw generated beacon RSSI interrupts */
     A_UINT32 roam_rssi_thresh_diff;
+    /** 5G scan max count */
+    A_UINT32 hirssi_scan_max_count;
+    /** 5G scan rssi change threshold value */
+    A_UINT32 hirssi_scan_delta;
+    /** 5G scan upper bound */
+    A_UINT32 hirssi_upper_bound;
 } wmi_roam_scan_rssi_threshold_fixed_param;
 
 /**
@@ -5030,6 +5036,8 @@ typedef struct {
     A_UINT32 roam_scan_rssi_change_thresh;
     /** When using Hw generated beacon RSSI interrupts */
     A_UINT32 bcn_rssi_weight;
+    /** Minimum delay between two 5G scans */
+    A_UINT32 hirssi_delay_btw_scans;
 } wmi_roam_scan_rssi_change_threshold_fixed_param;
 
 #define WMI_ROAM_SCAN_CHAN_LIST_TYPE_NONE 0x1
