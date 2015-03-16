@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -613,6 +613,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_DCC_GET_STATS_CMDID);
 		CASE_RETURN_STRING(WMI_DCC_CLEAR_STATS_CMDID);
 		CASE_RETURN_STRING(WMI_DCC_UPDATE_NDL_CMDID);
+		CASE_RETURN_STRING(WMI_ROAM_FILTER_CMDID);
 	}
 	return "Invalid WMI cmd";
 }

@@ -430,6 +430,8 @@ typedef enum {
     WMI_ROAM_SET_RIC_REQUEST_CMDID,
     /** Invoke roaming forcefully */
     WMI_ROAM_INVOKE_CMDID,
+    /** roaming filter cmd to allow further filtering of roaming candidate */
+    WMI_ROAM_FILTER_CMDID,
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -5009,6 +5011,24 @@ typedef struct {
     A_UINT32 hirssi_upper_bound;
 } wmi_roam_scan_rssi_threshold_fixed_param;
 
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_FIXED  0x0
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR 0x1
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LOG    0x2
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_EXP    0x3
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param */
+    A_UINT32 boost_threshold_5g; /** RSSI threshold above which 5GHz RSSI is favored */
+    A_UINT32 penalty_threshold_5g; /** RSSI threshold below which 5GHz RSSI is penalized */
+    A_UINT32 boost_algorithm_5g; /** 0 == fixed, 1 == linear, 2 == logarithm ..etc */
+    A_UINT32 boost_factor_5g; /** factor by which 5GHz RSSI is boosted */
+    A_UINT32 penalty_algorithm_5g; /** 0 == fixed, 1 == linear, 2 == logarithm ..etc */
+    A_UINT32 penalty_factor_5g; /** factor by which 5GHz RSSI is penalized */
+    A_UINT32 max_boost_5g; /** maximum boost that can be applied to a 5GHz RSSI */
+    A_UINT32 max_penalty_5g; /** maximum penality that can be applied to a 5GHz RSSI */
+    A_UINT32 good_rssi_threshold; /**  RSSI below which roam is kicked in by background scan, although rssi is still good */
+} wmi_roam_scan_extended_threshold_param;
+
 /**
  * WMI_ROAM_SCAN_PERIOD: period for roam scan.
  *  Applicable when the scan mode is Periodic or both.
@@ -5420,6 +5440,24 @@ typedef struct {
      *     wmi_mac_addr bssid_list[];
      */
 } wmi_roam_invoke_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_filter_list_fixed_param */
+    A_UINT32 vdev_id; /** Unique id identifying the VDEV on which roaming filter is adopted */
+    A_UINT32 flags; /** flags for filter */
+    A_UINT32 op_bitmap; /** 32 bit bitmap to be set on. bit0 = first param, bit 1 = second param...etc. Can be or'ed */
+    A_UINT32 num_bssid_black_list; /* number of blacklist in the TLV variable bssid_black_list */
+    A_UINT32 num_ssid_white_list; /* number of whitelist in the TLV variable ssid_white_list */
+    A_UINT32 num_bssid_preferred_list; /* only for lfr 3.0. number of preferred list & factor in the TLV */
+    /**
+     * TLV (tag length value ) parameters follows roam_filter_list_cmd
+     * The TLV's are:
+     *     wmi_mac_addr bssid_black_list[];
+     *     wmi_ssid ssid_white_list[];
+     *     wmi_mac_addr bssid_preferred_list[];
+     *     A_UINT32 bssid_preferred_factor[];
+     */
+} wmi_roam_filter_fixed_param;
 
 /** WMI_PROFILE_MATCH_EVENT: offload scan
  * generated when ever atleast one of the matching profiles is found
