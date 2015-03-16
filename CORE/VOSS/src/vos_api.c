@@ -2405,7 +2405,7 @@ v_U64_t vos_get_monotonic_boottime(void)
    cnss_get_monotonic_boottime(&ts);
    return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
 #else
-   return adf_os_ticks_to_msecs(adf_os_ticks()) * 1000;
+   return ((v_U64_t)adf_os_ticks_to_msecs(adf_os_ticks()) * 1000);
 #endif
 }
 
