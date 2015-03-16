@@ -3616,6 +3616,8 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
         }
 
         ChannelList.numChannels = numChannels;
+        /* Store the channel + power info in the global place: Cfg */
+        csrApplyPower2Current(pMac);
         csrSetCfgValidChannelList(pMac, ChannelList.channelList, ChannelList.numChannels);
 
         // extend scan capability
@@ -3636,7 +3638,6 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
     {
         smsLog( pMac, LOGE, FL("  11D channel list is empty"));
     }
-    csrApplyPower2Current( pMac );     // Store the channel+power info in the global place: Cfg
     csrSetCfgCountryCode(pMac, countryCode);
 }
 
