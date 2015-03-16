@@ -93,7 +93,7 @@
 #define QCOM_OUI2         0xA0
 #define QCOM_OUI3         0xC6
 #define QCOM_VENDOR_IE_AGE_TYPE  0x100
-#define QCOM_VENDOR_IE_AGE_LEN   11
+#define QCOM_VENDOR_IE_AGE_LEN   (sizeof(qcom_ie_age) - 2)
 
 #ifdef FEATURE_WLAN_TDLS
 #define WLAN_IS_TDLS_SETUP_ACTION(action) \
@@ -113,6 +113,7 @@ typedef struct {
    u8 oui_3;
    u32 type;
    u32 age;
+   u32 tsf_delta;
 }__attribute__((packed)) qcom_ie_age ;
 #endif
 

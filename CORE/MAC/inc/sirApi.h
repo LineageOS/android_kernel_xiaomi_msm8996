@@ -716,6 +716,7 @@ typedef struct sSirBssDescription
     tANI_U32             WscIeLen;
     tANI_U8              WscIeProbeRsp[WSCIE_PROBE_RSP_LEN];
     tANI_U8              reservedPadding4;
+    tANI_U32             tsf_delta;
 
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;

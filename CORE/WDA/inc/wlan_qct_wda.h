@@ -477,6 +477,9 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
 #define WDA_GET_RX_PAYLOAD_LEN(pRxMeta) \
      (((t_packetmeta *)pRxMeta)->mpdu_data_len)
 
+#define WDA_GET_RX_TSF_DELTA(pRxMeta) \
+    (((t_packetmeta *)pRxMeta)->tsf_delta)
+
 #define WDA_GET_RX_MAC_RATE_IDX(pRxMeta) 0
 
 #define WDA_GET_RX_MPDU_DATA(pRxMeta) \
