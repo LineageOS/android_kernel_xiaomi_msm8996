@@ -23542,6 +23542,76 @@ VOS_STATUS wma_process_set_miracast(tp_wma_handle wma, u_int32_t *miracast_val)
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_config_stats_factor() - Function to configure stats avg. factor
+ * @wma:  pointer to WMA handle
+ * @avg_factor:	stats. avg. factor passed down by userspace
+ *
+ * This function configures the avg. stats value in firmware
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_config_stats_factor(tp_wma_handle wma,
+				   struct sir_stats_avg_factor *avg_factor)
+{
+	int ret;
+
+	if (NULL == wma || NULL == avg_factor) {
+		WMA_LOGE("%s: Invalid input of stats avg factor", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					    avg_factor->vdev_id,
+					    WMI_VDEV_PARAM_STATS_AVG_FACTOR,
+					    avg_factor->stats_avg_factor);
+	if (ret) {
+		WMA_LOGE(" failed to set avg_factor for vdev_id %d",
+			 avg_factor->vdev_id);
+	}
+
+	WMA_LOGD("%s: Set stats_avg_factor %d for vdev_id %d", __func__,
+		 avg_factor->stats_avg_factor, avg_factor->vdev_id);
+
+	return ret;
+}
+
+/**
+ * wma_config_guard_time() - Function to set guard time in firmware
+ * @wma:  pointer to WMA handle
+ * @guard_time:  guard time passed down by userspace
+ *
+ * This function configures the guard time in firmware
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_config_guard_time(tp_wma_handle wma,
+				 struct sir_guard_time_request *guard_time)
+{
+	int ret;
+
+	if (NULL == wma || NULL == guard_time) {
+		WMA_LOGE("%s: Invalid input of guard time", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					      guard_time->vdev_id,
+					      WMI_VDEV_PARAM_RX_LEAK_WINDOW,
+					      guard_time->guard_time);
+	if (ret) {
+		WMA_LOGE(" failed to set guard time for vdev_id %d",
+			 guard_time->vdev_id);
+	}
+
+	WMA_LOGD("Set guard time %d for vdev_id %d",
+		 guard_time->guard_time, guard_time->vdev_id);
+
+	return ret;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -24248,6 +24318,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_GET_FW_STATUS_REQ:
 			wma_send_echo_request(wma_handle);
+			break;
+		case SIR_HAL_CONFIG_STATS_FACTOR:
+			wma_config_stats_factor(wma_handle,
+				(struct sir_stats_avg_factor *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_CONFIG_GUARD_TIME:
+			wma_config_guard_time(wma_handle,
+				(struct sir_guard_time_request *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

@@ -5775,6 +5775,28 @@ typedef struct sir_ocb_set_sched_request
     ocb_callback_t callback;
 } sir_ocb_set_sched_request_t;
 
+/**
+ * struct sir_stats_avg_factor
+ * @vdev_id: session id
+ * @stats_avg_factor: average factor
+ */
+struct sir_stats_avg_factor
+{
+	uint8_t vdev_id;
+	uint16_t stats_avg_factor;
+};
+
+/**
+ * struct sir_guard_time_request
+ * @vdev_id: session id
+ * @guard_time: guard time
+ */
+struct sir_guard_time_request
+{
+	uint8_t vdev_id;
+	uint32_t guard_time;
+};
+
 /* Max number of rates allowed in Supported Rates IE */
 #define MAX_NUM_SUPPORTED_RATES (8)
 

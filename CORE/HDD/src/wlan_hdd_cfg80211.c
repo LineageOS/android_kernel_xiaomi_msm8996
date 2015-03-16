@@ -5562,6 +5562,89 @@ fail:
     return rc;
 }
 
+static const struct nla_policy
+wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
+                            +1] =
+{
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR] = {.type = NLA_U16 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
+};
+
+
+/**
+ * wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
+ * vendor command
+ *
+ * @wiphy: wiphy device pointer
+ * @wdev: wireless device pointer
+ * @data: Vendor command data buffer
+ * @data_len: Buffer length
+ *
+ * Handles QCA_WLAN_VENDOR_ATTR_CONFIG_MAX.
+ *
+ * Return: EOK or other error codes.
+ */
+static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
+						    struct wireless_dev *wdev,
+						    const void *data,
+						    int data_len)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
+	int ret_val1 = 0;
+	int ret_val2 = 0;
+	u32 dynamic_dtim;
+	u16 stats_avg_factor;
+	u32 guard_time;
+	eHalStatus status;
+
+	if ((ret_val1 = wlan_hdd_validate_context(pHddCtx))) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return ret_val1;
+	}
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_CONFIG_MAX,
+		      data, data_len,
+		      wlan_hdd_wifi_config_policy)) {
+		hddLog(LOGE, FL("invalid attr"));
+		return -EINVAL;
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]) {
+		dynamic_dtim = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]);
+		pHddCtx->cfg_ini->enableDynamicDTIM = dynamic_dtim;
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR]) {
+		stats_avg_factor = nla_get_u16(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR]);
+		status = sme_configure_stats_avg_factor(pHddCtx->hHal,
+							pAdapter->sessionId,
+							stats_avg_factor);
+
+		if (eHAL_STATUS_SUCCESS != status)
+			ret_val1 = -EPERM;
+	}
+
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME]) {
+		guard_time = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME]);
+		status = sme_configure_guard_time(pHddCtx->hHal,
+						  pAdapter->sessionId,
+						  guard_time);
+
+		if (eHAL_STATUS_SUCCESS != status)
+			ret_val2 = -EPERM;
+	}
+
+	return (ret_val1 | ret_val2);
+}
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -5803,6 +5886,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_keymgmt_set_key
     },
 #endif
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = (void *)wlan_hdd_cfg80211_wifi_configuration_set
+    },
 };
 
 

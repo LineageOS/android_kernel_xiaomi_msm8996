@@ -1304,6 +1304,27 @@ enum qca_wlan_vendor_acs_hw_mode {
         QCA_ACS_MODE_IEEE80211AD,
 };
 
+/**
+ * enum qca_wlan_vendor_config: wifi config attr
+ *
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_INVALID: invalid config
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM: dynamic dtim
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR: stats avg. factor
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME: guard time
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_LAST: last config
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_MAX: max config
+ */
+enum qca_wlan_vendor_config {
+	QCA_WLAN_VENDOR_ATTR_CONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME,
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
+	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST - 1
+};
+
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
                                       );

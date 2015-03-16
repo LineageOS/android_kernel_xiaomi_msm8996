@@ -15209,3 +15209,117 @@ bool sme_validate_sap_channel_switch(tHalHandle hal,
 	return (intf_channel == 0)? true : false;
 }
 #endif
+
+/**
+ * sme_configure_stats_avg_factor() - function to config avg. stats factor
+ * @hHal: hHal
+ * @session_id: session ID
+ * @stats_avg_factor: average stats factor
+ *
+ * This function configures the guard time in firmware
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_configure_stats_avg_factor(tHalHandle hHal, tANI_U8 session_id,
+                                          tANI_U16 stats_avg_factor)
+{
+	vos_msg_t msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+	struct sir_stats_avg_factor *stats_factor;
+
+	stats_factor = vos_mem_malloc(sizeof(*stats_factor));
+
+	if (!stats_factor) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Not able to allocate memory for WDA_SET_MDNS_RESPONSE_CMD",
+			  __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+
+	if (eHAL_STATUS_SUCCESS == status) {
+
+		stats_factor->vdev_id = session_id;
+		stats_factor->stats_avg_factor = stats_avg_factor;
+
+		/* serialize the req through MC thread */
+		msg.type     = SIR_HAL_CONFIG_STATS_FACTOR;
+		msg.bodyptr  = stats_factor;
+
+		if (!VOS_IS_STATUS_SUCCESS(
+			    vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+			VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				   "%s: Not able to post SIR_HAL_CONFIG_STATS_FACTOR to WMA!",
+				   __func__);
+			vos_mem_free(stats_factor);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+	} else {
+		VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			   "%s: sme_AcquireGlobalLock error!",
+			   __func__);
+		vos_mem_free(stats_factor);
+	}
+
+	return status;
+}
+
+/**
+ * sme_configure_guard_time() - function to configure guard time
+ * @hHal:   SME API to enable/disable DFS channel scan
+ * @session_id: session ID
+ * @guard_time: Guard time
+ *
+ * This function configures the guard time in firmware
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_configure_guard_time(tHalHandle hHal, tANI_U8 session_id,
+                                    tANI_U32 guard_time)
+{
+	vos_msg_t msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal pMac  = PMAC_STRUCT(hHal);
+	struct sir_guard_time_request *g_time;
+
+	g_time = vos_mem_malloc(sizeof(g_time));
+
+	if (!g_time) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Not able to allocate memory for WDA_SET_MDNS_RESPONSE_CMD",
+			  __func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+
+	if (eHAL_STATUS_SUCCESS == status) {
+
+		g_time->vdev_id = session_id;
+		g_time->guard_time = guard_time;
+
+		/* serialize the req through MC thread */
+		msg.type     = SIR_HAL_CONFIG_GUARD_TIME;
+		msg.bodyptr  = g_time;
+
+		if (!VOS_IS_STATUS_SUCCESS(
+			    vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+			VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				   "%s: Not able to post SIR_HAL_CONFIG_GUARD_TIME to WDA!",
+				   __func__);
+			vos_mem_free(g_time);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+	} else {
+		VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			   "%s: sme_AcquireGlobalLock error!",
+			   __func__);
+		vos_mem_free(g_time);
+	}
+
+	return status;
+}
