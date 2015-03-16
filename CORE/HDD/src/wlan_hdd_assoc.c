@@ -1558,7 +1558,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             ft_carrier_on = TRUE;
         }
 #endif
-        pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
+        /* Check for STAID */
+        if ((WLAN_MAX_STA_COUNT + 3) > pRoamInfo->staId)
+           pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
+        else
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Wrong Staid: %d", __func__,
+                                                       pRoamInfo->staId);
 
 #ifdef IPA_OFFLOAD
         if (hdd_ipa_is_enabled(pHddCtx))
