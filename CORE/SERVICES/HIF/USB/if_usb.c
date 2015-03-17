@@ -29,6 +29,7 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/if_arp.h>
+#include <linux/usb/hcd.h>
 #include "if_usb.h"
 #include "hif_usb_internal.h"
 #include "bmi_msg.h"		/* TARGET_TYPE_ */
@@ -112,6 +113,44 @@ static int hif_usb_reboot(struct notifier_block *nb, unsigned long val,
 	return NOTIFY_DONE;
 }
 
+/*
+ * Disable lpm feature of usb2.0.
+ */
+static int hif_usb_disable_lpm(struct usb_device *udev)
+{
+	struct usb_hcd *hcd;
+	int ret = -EPERM;
+	pr_info("Enter:%s,Line:%d\n", __func__, __LINE__);
+	if (!udev || !udev->bus) {
+		pr_err("Invalid input parameters\n");
+	} else {
+		hcd = bus_to_hcd(udev->bus);
+		if (udev->usb2_hw_lpm_enabled) {
+			if (hcd->driver->set_usb2_hw_lpm) {
+				ret = hcd->driver->set_usb2_hw_lpm(hcd,
+							udev, FALSE);
+				if (!ret) {
+					udev->usb2_hw_lpm_enabled = FALSE;
+					udev->usb2_hw_lpm_capable = FALSE;
+					pr_info("%s: LPM is disabled\n",
+								__func__);
+				} else {
+					pr_info("%s: Fail to disable LPM\n",
+								__func__);
+				}
+			} else {
+				pr_info("%s: hcd doesn't support LPM\n",
+							__func__);
+			}
+		} else {
+			pr_info("%s: LPM isn't enabled\n", __func__);
+		}
+	}
+
+	pr_info("Exit:%s,Line:%d\n", __func__, __LINE__);
+	return ret;
+}
+
 static int
 hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
@@ -159,6 +198,8 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 		pr_info("%s[%d]\n\r", __func__, __LINE__);
 	}
 	usb_set_interface(pdev, 0, 0);
+	/* disable lpm to avoid usb2.0 probe timeout */
+	hif_usb_disable_lpm(pdev);
 
 	if (hif_usb_configure(sc, &ol_sc->hif_hdl, interface))
 		goto err_config;
