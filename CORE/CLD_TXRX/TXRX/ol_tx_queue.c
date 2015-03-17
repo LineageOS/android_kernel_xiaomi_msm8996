@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -402,6 +402,10 @@ ol_txrx_peer_tid_unpause_base(
      * have been removed.
      */
     TXRX_ASSERT2(txq->paused_count.total > 0);
+    /* return, if not already paused */
+    if (txq->paused_count.total == 0)
+        return;
+
     if (--txq->paused_count.total == 0) {
         struct ol_tx_sched_notify_ctx_t notify_ctx;
 
