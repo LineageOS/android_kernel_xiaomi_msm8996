@@ -422,9 +422,11 @@ ol_txrx_peer_tid_unpause_base(
              * the scheduler function takes the lock, temporarily
              * release the lock.
              */
+            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
             adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
             ol_tx_sched(pdev);
             adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+            adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         }
     }
 }
@@ -547,11 +549,14 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
 #if defined(CONFIG_HL_SUPPORT)
         struct ol_txrx_pdev_t *pdev = vdev->pdev;
         struct ol_txrx_peer_t *peer;
+        /* use peer_ref_mutex before accessing peer_list */
+        adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
             ol_txrx_peer_pause_base(pdev, peer);
         }
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
@@ -573,6 +578,9 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
 #if defined(CONFIG_HL_SUPPORT)
         struct ol_txrx_pdev_t *pdev = vdev->pdev;
         struct ol_txrx_peer_t *peer;
+
+        /* take peer_ref_mutex before accessing peer_list */
+        adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
 
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
@@ -582,6 +590,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
             }
         }
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+        adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     } else {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
