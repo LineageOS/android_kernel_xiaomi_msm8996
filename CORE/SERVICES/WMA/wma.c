@@ -3234,6 +3234,87 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	vos_mem_free(dest_chglist);
 	return 0;
 }
+
+/**
+ * wma_passpoint_match_event_handler() - passpoint match found event handler
+ * @handle: WMA handle
+ * @cmd_param_info: event data
+ * @len: event data length
+ *
+ * This is the passpoint match found event handler; it reads event data from
+ * @cmd_param_info and fill in the destination buffer and sends indication
+ * up layer.
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_passpoint_match_event_handler(void *handle,
+					     uint8_t  *cmd_param_info,
+					     uint32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_PASSPOINT_MATCH_EVENTID_param_tlvs *param_buf;
+	wmi_passpoint_event_hdr  *event;
+	struct wifi_passpoint_match  *dest_match;
+	tSirWifiScanResult      *dest_ap;
+	uint8_t *buf_ptr;
+
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pMac) {
+		WMA_LOGE("%s: Invalid pMac", __func__);
+		return -EINVAL;
+	}
+	if (!pMac->sme.pExtScanIndCb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+        }
+	param_buf = (WMI_PASSPOINT_MATCH_EVENTID_param_tlvs *) cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid passpoint match event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+	buf_ptr = (uint8_t *)param_buf->fixed_param;
+
+	dest_match = vos_mem_malloc(sizeof(*dest_match) +
+				event->ie_length + event->anqp_length);
+	if (!dest_match) {
+		WMA_LOGE("%s: Allocation failed for passpoint match buffer",
+			__func__);
+		return -EINVAL;
+	}
+	dest_ap = &dest_match->ap;
+	dest_match->request_id = 0;
+	dest_match->id = event->id;
+	dest_match->anqp_len = event->anqp_length;
+	WMA_LOGD("%s: passpoint match: id: (%u) anqp length(%u)", __func__,
+		 dest_match->id, dest_match->anqp_len);
+
+	dest_ap->channel = event->channel_mhz;
+	dest_ap->ts = event->timestamp;
+	dest_ap->rtt = event->rtt;
+	dest_ap->rssi = event->rssi;
+	dest_ap->rtt_sd = event->rtt_sd;
+	dest_ap->beaconPeriod = event->beacon_period;
+	dest_ap->capability = event->capability;
+	dest_ap->ieLength = event->ie_length;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&event->bssid, dest_ap->bssid);
+	vos_mem_copy(dest_ap->ssid, event->ssid.ssid,
+				event->ssid.ssid_len);
+	dest_ap->ssid[event->ssid.ssid_len] = '\0';
+	vos_mem_copy(dest_ap->ieData, buf_ptr + sizeof(*event) +
+			WMI_TLV_HDR_SIZE, dest_ap->ieLength);
+	vos_mem_copy(dest_match->anqp, buf_ptr + sizeof(*event) +
+			WMI_TLV_HDR_SIZE + dest_ap->ieLength,
+			dest_match->anqp_len);
+
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
+				eSIR_PASSPOINT_NETWORK_FOUND_IND,
+				dest_match);
+	WMA_LOGD("%s: sending passpoint match event to hdd", __func__);
+	vos_mem_free(dest_match);
+	return 0;
+}
 #endif
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -5346,6 +5427,10 @@ wma_register_extscan_event_handler(tp_wma_handle wma_handle)
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 			WMI_EXTSCAN_CACHED_RESULTS_EVENTID,
 			wma_extscan_cached_results_event_handler);
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_PASSPOINT_MATCH_EVENTID,
+			wma_passpoint_match_event_handler);
 	return;
 }
 
@@ -22942,6 +23027,149 @@ static int wma_set_epno_network_list(tp_wma_handle wma,
 
 	return 0;
 }
+
+/**
+ * wma_set_passpoint_network_list() - set passpoint network list
+ * @handle: WMA handle
+ * @req: passpoint network request structure
+ *
+ * This function reads the incoming @req and fill in the destination
+ * WMI structure and send down the passpoint configs down to the firmware
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_set_passpoint_network_list(tp_wma_handle wma,
+					struct wifi_passpoint_req *req)
+{
+	wmi_passpoint_config_cmd_fixed_param *cmd;
+	u_int8_t i, j, *bytes;
+	wmi_buf_t buf;
+	uint32_t len;
+	int ret;
+
+	WMA_LOGD("wma_set_passpoint_network_list");
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
+		return -EINVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled", __func__);
+		return -EINVAL;
+	}
+
+	len = sizeof(*cmd);
+	for (i = 0; i < req->num_networks; i++) {
+		buf = wmi_buf_alloc(wma->wmi_handle, len);
+		if (!buf) {
+			WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+			return -ENOMEM;
+		}
+
+		cmd = (wmi_passpoint_config_cmd_fixed_param *)
+				wmi_buf_data(buf);
+
+		WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_passpoint_config_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_passpoint_config_cmd_fixed_param));
+		cmd->id = req->networks[i].id;
+		WMA_LOGD("%s: network id: %u", __func__, cmd->id);
+		vos_mem_copy(cmd->realm, req->networks[i].realm,
+			strlen(req->networks[i].realm) + 1);
+		WMA_LOGD("%s: realm: %s", __func__, cmd->realm);
+		for (j = 0; j < PASSPOINT_ROAMING_CONSORTIUM_ID_NUM; j++) {
+			bytes = (uint8_t *) &req->networks[i].roaming_consortium_ids[j];
+			WMA_LOGD("index: %d rcids: %02x %02x %02x %02x %02x %02x %02x %02x",
+				j, bytes[0], bytes[1], bytes[2], bytes[3],
+				bytes[4], bytes[5], bytes[6], bytes[7]);
+
+			vos_mem_copy(&cmd->roaming_consortium_ids[j],
+				&req->networks[i].roaming_consortium_ids[j],
+				PASSPOINT_ROAMING_CONSORTIUM_ID_LEN);
+		}
+		vos_mem_copy(cmd->plmn, req->networks[i].plmn,
+				PASSPOINT_PLMN_ID_LEN);
+		WMA_LOGD("%s: plmn: [%02x %02x %02x]", __func__,
+			cmd->plmn[0], cmd->plmn[1], cmd->plmn[2]);
+
+		ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+					   WMI_PASSPOINT_LIST_CONFIG_CMDID);
+		if (ret) {
+			WMA_LOGE("%s: Failed to send set passpoint network list wmi cmd",
+				 __func__);
+			wmi_buf_free(buf);
+			return -EINVAL;
+		}
+	}
+
+	WMA_LOGD("Set passpoint network list request is sent successfully for vdev %d",
+		 req->session_id);
+
+	return 0;
+}
+
+/**
+ * wma_reset_passpoint_network_list() - reset passpoint network list
+ * @handle: WMA handle
+ * @req: passpoint network request structure
+ *
+ * This function sends down WMI command with network id set to wildcard id.
+ * firmware shall clear all the config entries
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_reset_passpoint_network_list(tp_wma_handle wma,
+					struct wifi_passpoint_req *req)
+{
+	wmi_passpoint_config_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint32_t len;
+	int ret;
+
+	WMA_LOGD("wma_reset_passpoint_network_list");
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
+		return -EINVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled", __func__);
+		return -EINVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_passpoint_config_cmd_fixed_param *) wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_passpoint_config_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_passpoint_config_cmd_fixed_param));
+	cmd->id = WMI_PASSPOINT_NETWORK_ID_WILDCARD;
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_PASSPOINT_LIST_CONFIG_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send reset passpoint network list wmi cmd",
+			 __func__);
+		wmi_buf_free(buf);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("Reset passpoint network list request is sent successfully for vdev %d",
+		 req->session_id);
+
+	return 0;
+}
+
 #endif
 
 VOS_STATUS  wma_ipa_offload_enable_disable(tp_wma_handle wma,
@@ -24399,6 +24627,20 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_epno_network_list(wma_handle,
 				(struct wifi_epno_params *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+		break;
+		case WDA_SET_PASSPOINT_LIST_REQ:
+			/* Issue reset passpoint network list first and clear
+			 * the entries */
+			wma_reset_passpoint_network_list(wma_handle,
+				(struct wifi_passpoint_req *)msg->bodyptr);
+
+			wma_set_passpoint_network_list(wma_handle,
+				(struct wifi_passpoint_req *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+		break;
+		case WDA_RESET_PASSPOINT_LIST_REQ:
+			wma_reset_passpoint_network_list(wma_handle,
+				(struct wifi_passpoint_req *)msg->bodyptr);
 		break;
 #endif
 		case WDA_SET_SCAN_MAC_OUI_REQ:

@@ -122,6 +122,7 @@ typedef enum
     eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
     eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
     eSIR_EPNO_NETWORK_FOUND_IND,
+    eSIR_PASSPOINT_NETWORK_FOUND_IND,
 
     /* Keep this last */
     eSIR_EXTSCAN_CALLBACK_TYPE_MAX,
@@ -5280,6 +5281,54 @@ struct wifi_epno_params
 	uint32_t    session_id;
 	uint32_t    num_networks;
 	struct wifi_epno_network networks[];
+};
+
+#define SIR_PASSPOINT_REALM_LEN 256
+#define SIR_PASSPOINT_ROAMING_CONSORTIUM_ID_NUM 16
+#define SIR_PASSPOINT_PLMN_LEN 3
+/**
+ * struct wifi_passpoint_network - passpoint network block
+ * @id: identifier of this network block
+ * @realm: null terminated UTF8 encoded realm, 0 if unspecified
+ * @roaming_consortium_ids: roaming consortium ids to match, 0s if unspecified
+ * @plmn: mcc/mnc combination as per rules, 0s if unspecified
+ */
+struct wifi_passpoint_network
+{
+	uint32_t id;
+	uint8_t  realm[SIR_PASSPOINT_REALM_LEN];
+	int64_t  roaming_consortium_ids[SIR_PASSPOINT_ROAMING_CONSORTIUM_ID_NUM];
+	uint8_t  plmn[SIR_PASSPOINT_PLMN_LEN];
+};
+
+/**
+ * struct wifi_passpoint_req - passpoint request
+ * @request_id: request identifier
+ * @num_networks: number of networks
+ * @networks: passpoint networks
+ */
+struct wifi_passpoint_req
+{
+	uint32_t request_id;
+	uint32_t session_id;
+	uint32_t num_networks;
+	struct wifi_passpoint_network networks[];
+};
+
+/**
+ * struct wifi_passpoint_match - wifi passpoint network match
+ * @id: network block identifier for the matched network
+ * @anqp_len: length of ANQP blob
+ * @ap: scan result, with channel and beacon information
+ * @anqp: ANQP data, in the information_element format
+ */
+struct wifi_passpoint_match
+{
+	uint32_t  request_id;
+	uint32_t  id;
+	uint32_t  anqp_len;
+	tSirWifiScanResult ap;
+	uint8_t   anqp[];
 };
 
 #endif /* FEATURE_WLAN_EXTSCAN */
