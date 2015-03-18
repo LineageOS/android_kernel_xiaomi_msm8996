@@ -527,7 +527,7 @@ ol_tx_hl_base(
     while (msdu) {
         adf_nbuf_t next;
         struct ol_tx_frms_queue_t *txq;
-        struct ol_tx_desc_t *tx_desc;
+        struct ol_tx_desc_t *tx_desc = NULL;
 
         /*
          * The netbuf will get stored into a (peer-TID) tx queue list
@@ -536,8 +536,13 @@ ol_tx_hl_base(
          */
         next = adf_nbuf_next(msdu);
 
+#if defined(CONFIG_TX_DESC_MGMT_RESERVE)
+        if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) > TXRX_HL_TX_DESC_MGMT_RESERVED) {
+            tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
+        }
+#else
         tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
-
+#endif
         if (! tx_desc) {
             /*
              * If we're out of tx descs, there's no need to try to allocate
