@@ -1724,6 +1724,10 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
     tWLAN_SAPEvent sapEvent;
     tpAniSirGlobal pMac = NULL;
     v_PVOID_t hHal = NULL;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    bool valid;
+#endif
+    tSmeConfigParams  sme_config;
 
     sapContext = VOS_GET_SAP_CB( pvosGCtx );
     if (NULL == sapContext)
@@ -1752,6 +1756,21 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
          (vos_nv_getChannelEnabledState(targetChannel) == NV_CHANNEL_DFS &&
           !vos_concurrent_open_sessions_running())) )
     {
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+         /*
+          * validate target channel switch w.r.t various concurrency rules set.
+          */
+         valid = sme_validate_sap_channel_switch(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+                  targetChannel, sapContext->csrRoamProfile.phyMode,
+                  sapContext->cc_switch_mode, sapContext->sessionId);
+         if (!valid)
+         {
+             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       FL("Channel switch to %u is not allowed due to concurrent channel interference"),
+                          targetChannel);
+             return VOS_STATUS_E_FAULT;
+         }
+#endif
         /*
          * Post a CSA IE request to SAP state machine with
          * target channel information and also CSA IE required
@@ -1760,6 +1779,19 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
          */
          if (eSAP_STARTED == sapContext->sapsMachine)
          {
+             /*
+              * currently OBSS scan is done in hostapd, so to avoid
+              * SAP coming up in HT40 on channel switch we are
+              * disabling channel bonding in 2.4ghz.
+              */
+             if (targetChannel <= RF_CHAN_14)
+             {
+                 sme_GetConfigParam(pMac, &sme_config);
+                 sme_config.csrConfig.channelBondingMode24GHz =
+                                         eCSR_INI_SINGLE_CHANNEL_CENTERED;
+                 sme_UpdateConfig(pMac, &sme_config);
+             }
+
              /*
               * Copy the requested target channel
               * to sap context.

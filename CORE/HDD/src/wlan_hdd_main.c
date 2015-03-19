@@ -8344,7 +8344,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
  * Actions: Stop the netif Tx queues,Indicate Radar present
  * in HDD context for future usage.
  */
-void hdd_dfs_indicate_radar(void *context, void *param)
+bool hdd_dfs_indicate_radar(void *context, void *param)
 {
     hdd_context_t *pHddCtx= (hdd_context_t *)context;
     struct hdd_dfs_radar_ind *hdd_radar_event =
@@ -8354,23 +8354,25 @@ void hdd_dfs_indicate_radar(void *context, void *param)
     hdd_adapter_t *pAdapter;
     VOS_STATUS status;
 
-    if (pHddCtx == NULL)
+    if (!pHddCtx || !hdd_radar_event || pHddCtx->cfg_ini->disableDFSChSwitch)
     {
-        return;
-    }
-    if (hdd_radar_event == NULL)
-    {
-        return;
-    }
-
-    if (pHddCtx->cfg_ini->disableDFSChSwitch)
-    {
-        return;
+        return false;
     }
 
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {
+        mutex_lock(&pHddCtx->dfs_lock);
+        if (pHddCtx->dfs_radar_found)
+        {
+            /* Application already triggered channel switch
+             * on current channel, so return here
+             */
+            mutex_unlock(&pHddCtx->dfs_lock);
+            return false;
+        }
+
         pHddCtx->dfs_radar_found = VOS_TRUE;
+        mutex_unlock(&pHddCtx->dfs_lock);
 
         status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
         while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -8386,6 +8388,8 @@ void hdd_dfs_indicate_radar(void *context, void *param)
             pAdapterNode = pNext;
         }
     }
+
+    return true;
 }
 
 /**---------------------------------------------------------------------------
@@ -12620,6 +12624,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->tdls_lock);
 #endif
 
+   mutex_init(&pHddCtx->dfs_lock);
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
    if(pHddCtx->cfg_ini == NULL)

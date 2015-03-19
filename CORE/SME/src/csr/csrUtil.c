@@ -835,6 +835,8 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
                             VOS_STA_SAP_MODE)) &&
                        (pSession->connectState !=
                              eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                      if (pSession->ch_switch_in_progress)
+                          continue;
                 /*
                  * if conc_custom_rule1 is defined then we don't want p2pgo to
                  * follow SAP's channel or SAP to follow P2PGO's channel.
