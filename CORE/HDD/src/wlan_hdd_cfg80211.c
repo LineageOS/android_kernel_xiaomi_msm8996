@@ -4746,6 +4746,12 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 				hddLog(LOG1,
 					FL("Overriding guest AP's channel"));
 				sap_config->channel = con_ch;
+				sap_config->apStartChannelNum =
+					con_sap_adapter->sessionCtx.ap.sapConfig.apStartChannelNum;
+				sap_config->apEndChannelNum =
+					con_sap_adapter->sessionCtx.ap.sapConfig.apEndChannelNum;
+				sap_config->apAutoChannelSelection =
+					con_sap_adapter->sessionCtx.ap.sapConfig.apAutoChannelSelection;
 				/* notify hostapd about channel */
 				wlan_hdd_cfg80211_acs_ch_select_evt(adapter,
 				con_sap_adapter->sessionCtx.ap.operatingChannel,

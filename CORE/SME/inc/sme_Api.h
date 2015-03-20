@@ -4271,4 +4271,9 @@ eHalStatus sme_set_mas(tANI_U32 val);
  *
  */
 eHalStatus sme_set_miracast(tHalHandle hal, uint8_t filter_type);
+bool sme_validate_sap_channel_switch(tHalHandle hal,
+					uint16_t sap_ch,
+					eCsrPhyMode sap_phy_mode,
+					uint8_t cc_switch_mode,
+					uint32_t session_id);
 #endif //#if !defined( __SME_API_H )

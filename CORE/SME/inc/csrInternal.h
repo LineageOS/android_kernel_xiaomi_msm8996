@@ -1008,6 +1008,7 @@ typedef struct tagCsrRoamSession
                                * bssid's we are trying to join.
                                */
     tCsrRoamStoredProfile stored_roam_profile;
+    bool ch_switch_in_progress;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct

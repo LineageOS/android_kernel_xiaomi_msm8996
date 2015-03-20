@@ -312,7 +312,7 @@ typedef void (*wda_tgt_cfg_cb) (void *context, void *param);
  * to stop accepting data Tx packets from netif as radar is
  * found on the current operating channel
  */
-typedef void (*wda_dfs_radar_indication_cb) (void *context, void *param);
+typedef bool (*wda_dfs_radar_indication_cb) (void *context, void *param);
 
 typedef struct
 {

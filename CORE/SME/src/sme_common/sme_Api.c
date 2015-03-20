@@ -15091,3 +15091,42 @@ VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input)
 }
 #endif /* WLAN_FEATURE_APFIND */
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/*
+ * sme_validate_sap_channel_switch() - validate target channel switch w.r.t
+ *      concurreny rules set to avoid channel interference.
+ * @hal - Hal context
+ * @sap_phy_mode - phy mode of SAP
+ * @cc_switch_mode - concurreny switch mode
+ * @session_id - sme session id.
+ *
+ * Return: true if there is no channel interference else return false
+ */
+bool sme_validate_sap_channel_switch(tHalHandle hal,
+                   uint16_t sap_ch,
+                   eCsrPhyMode sap_phy_mode,
+                   uint8_t cc_switch_mode,
+                   uint32_t session_id)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	tCsrRoamSession *session = CSR_GET_SESSION(mac, session_id);
+	uint16_t intf_channel = 0;
+
+	session->ch_switch_in_progress = true;
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(status))	{
+		intf_channel = csrCheckConcurrentChannelOverlap(mac, sap_ch,
+						sap_phy_mode,
+						cc_switch_mode);
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		smsLog(mac, LOGE, FL(" sme_AcquireGlobalLock error!"));
+		session->ch_switch_in_progress = false;
+		return false;
+	}
+
+	session->ch_switch_in_progress = false;
+	return (intf_channel == 0)? true : false;
+}
+#endif
