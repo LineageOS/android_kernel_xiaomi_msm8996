@@ -3292,14 +3292,24 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 
 	WMA_LOGD("Iface Stats:");
 	WMA_LOGD("beacon_rx %u mgmt_rx %u mgmt_action_rx %u mgmt_action_tx %u "
-		"rssi_mgmt %u rssi_data %u rssi_ack %u num_peers %u "
-		"num_peer_events %u num_ac %u roam_state %u",
-		link_stats->beacon_rx, link_stats->mgmt_rx,
-		link_stats->mgmt_action_rx, link_stats->mgmt_action_tx,
-		link_stats->rssi_mgmt, link_stats->rssi_data,
-		link_stats->rssi_ack, link_stats->num_peers,
-		link_stats->num_peer_events, link_stats->num_ac,
-		link_stats->roam_state);
+		 "rssi_mgmt %u rssi_data %u rssi_ack %u num_peers %u "
+		 "num_peer_events %u num_ac %u roam_state %u"
+		 " avg_bcn_spread_offset_high %u"
+		 " avg_bcn_spread_offset_high %u"
+		 " is leaky_ap %u"
+		 " avg_rx_frames_leaked %u"
+		 " rx_leak_window %u",
+		 link_stats->beacon_rx, link_stats->mgmt_rx,
+		 link_stats->mgmt_action_rx, link_stats->mgmt_action_tx,
+		 link_stats->rssi_mgmt, link_stats->rssi_data,
+		 link_stats->rssi_ack, link_stats->num_peers,
+		 link_stats->num_peer_events, link_stats->num_ac,
+		 link_stats->roam_state,
+		 link_stats->avg_bcn_spread_offset_high,
+		 link_stats->avg_bcn_spread_offset_low,
+		 link_stats->is_leaky_ap,
+		 link_stats->avg_rx_frms_leaked,
+		 link_stats->rx_leak_window);
 
 	vos_mem_zero(link_stats_results, link_stats_results_size);
 

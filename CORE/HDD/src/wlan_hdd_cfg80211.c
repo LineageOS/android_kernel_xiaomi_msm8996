@@ -2975,6 +2975,7 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
     int i = 0;
     struct nlattr *wmmInfo;
     struct nlattr *wmmStats;
+    u64 average_tsf_offset;
 
     if (FALSE == put_wifi_interface_info(
             &pWifiIfaceStat->info,
@@ -2985,6 +2986,12 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
         return FALSE;
 
     }
+
+    average_tsf_offset =  pWifiIfaceStat->avg_bcn_spread_offset_high;
+    average_tsf_offset =  (average_tsf_offset << 32) |
+        pWifiIfaceStat->avg_bcn_spread_offset_low ;
+
+    printk("putting interface values\n");
 
     if (nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
@@ -3009,7 +3016,19 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
                     pWifiIfaceStat->rssiData) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_ACK,
-                    pWifiIfaceStat->rssiAck))
+                    pWifiIfaceStat->rssiAck) ||
+        nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_DETECTED,
+                    pWifiIfaceStat->is_leaky_ap) ||
+        nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_AVG_NUM_FRAMES_LEAKED,
+                    pWifiIfaceStat->avg_rx_frms_leaked) ||
+        nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_GUARD_TIME,
+                    pWifiIfaceStat->rx_leak_window) ||
+        nla_put_u64(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_AVERAGE_TSF_OFFSET,
+                    average_tsf_offset))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                FL("QCA_WLAN_VENDOR_ATTR put fail"));
@@ -3393,14 +3412,24 @@ static void hdd_link_layer_process_iface_stats(hdd_adapter_t *pAdapter,
            " mgmtActionTx %u "
            " rssiMgmt %u "
            " rssiData %u "
-           " rssiAck  %u",
+           " rssiAck %u "
+           " avg_bcn_spread_offset_high %u"
+           " avg_bcn_spread_offset_low %u"
+           " is leaky_ap %u"
+           " avg_rx_frms_leaked %u"
+           " rx_leak_window %u",
            pWifiIfaceStat->beaconRx,
            pWifiIfaceStat->mgmtRx,
            pWifiIfaceStat->mgmtActionRx,
            pWifiIfaceStat->mgmtActionTx,
            pWifiIfaceStat->rssiMgmt,
            pWifiIfaceStat->rssiData,
-           pWifiIfaceStat->rssiAck );
+           pWifiIfaceStat->rssiAck,
+           pWifiIfaceStat->avg_bcn_spread_offset_high,
+           pWifiIfaceStat->avg_bcn_spread_offset_low,
+           pWifiIfaceStat->is_leaky_ap,
+           pWifiIfaceStat->avg_rx_frms_leaked,
+           pWifiIfaceStat->rx_leak_window);
 
     for (i = 0; i < WIFI_AC_MAX; i++)
     {

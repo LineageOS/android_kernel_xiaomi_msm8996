@@ -5581,6 +5581,27 @@ typedef struct
     tANI_U32            rssiData;
     /* access Point ACK RSSI (averaged) from connected AP */
     tANI_U32            rssiAck;
+    /** number of peers */
+    tANI_U32 num_peers;
+    /** Indicates how many peer_stats events will be sent depending on the num_peers. */
+    tANI_U32 num_peer_events;
+    /** number of ac */
+    tANI_U32 num_ac;
+    /** Roaming Stat */
+    tANI_U32 roam_state;
+    /** Average Beacon spread offset is the averaged time delay between TBTT and beacon TSF */
+    /** Upper 32 bits of averaged 64 bit beacon spread offset */
+    tANI_U32 avg_bcn_spread_offset_high;
+    /** Lower 32 bits of averaged 64 bit beacon spread offset */
+    tANI_U32 avg_bcn_spread_offset_low;
+    /** Takes value of 1 if AP leaks packets after sending an ACK for PM=1 otherwise 0 */
+    tANI_U32 is_leaky_ap;
+    /** Average number of frames received from AP after receiving the ACK for a frame with PM=1 */
+    tANI_U32 avg_rx_frms_leaked;
+    /** Rx leak watch window currently in force to minimize data loss because of leaky AP. Rx leak window is the
+        time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
+        a data frame with PM bit set) */
+    tANI_U32 rx_leak_window;
     /* per ac data packet statistics */
     tSirWifiWmmAcStat    AccessclassStats[WIFI_AC_MAX];
 } tSirWifiIfaceStat, *tpSirWifiIfaceStat;
