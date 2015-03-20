@@ -15398,3 +15398,93 @@ eHalStatus sme_configure_guard_time(tHalHandle hHal, tANI_U8 session_id,
 
 	return status;
 }
+
+/**
+ * sme_update_roam_scan_hi_rssi_scan_params() - update high rssi scan
+ *         params
+ * @hal_handle - The handle returned by macOpen.
+ * @session_id - Session Identifier
+ * @notify_id - Identifies 1 of the 4 parameters to be modified
+ * @val New value of the parameter
+ *
+ * Return: eHAL_STATUS_SUCCESS - SME update config successful.
+ *         Other status means SME failed to update
+ */
+
+eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
+	uint8_t session_id,
+	uint32_t notify_id,
+	int32_t val)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status  = eHAL_STATUS_SUCCESS;
+	tCsrNeighborRoamConfig *nr_config = NULL;
+	tpCsrNeighborRoamControlInfo nr_info = NULL;
+	uint32_t reason = 0;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		nr_config = &mac_ctx->roam.configParam.neighborRoamConfig;
+		nr_info   = &mac_ctx->roam.neighborRoamInfo[session_id];
+		switch (notify_id) {
+		case eCSR_HI_RSSI_SCAN_MAXCOUNT_ID:
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				"%s: gRoamScanHirssiMaxCount is changed from %d to %d",
+				__func__, nr_config->nhi_rssi_scan_max_count,
+				val);
+			nr_config->nhi_rssi_scan_max_count = val;
+			nr_info->cfgParams.hi_rssi_scan_max_count = val;
+			reason = REASON_ROAM_SCAN_HI_RSSI_MAXCOUNT_CHANGED;
+		break;
+
+		case eCSR_HI_RSSI_SCAN_RSSI_DELTA_ID:
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				"%s: gRoamScanHiRssiDelta is changed from %d to %d",
+				__func__, nr_config->nhi_rssi_scan_rssi_delta,
+				val);
+			nr_config->nhi_rssi_scan_rssi_delta = val;
+			nr_info->cfgParams.hi_rssi_scan_rssi_delta = val;
+			reason = REASON_ROAM_SCAN_HI_RSSI_DELTA_CHANGED;
+			break;
+
+		case eCSR_HI_RSSI_SCAN_DELAY_ID:
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				"%s: gRoamScanHiRssiDelay is changed from %d to %d",
+				__func__, nr_config->nhi_rssi_scan_delay,
+				val);
+			nr_config->nhi_rssi_scan_delay = val;
+			nr_info->cfgParams.hi_rssi_scan_delay = val;
+			reason = REASON_ROAM_SCAN_HI_RSSI_DELAY_CHANGED;
+			break;
+
+		case eCSR_HI_RSSI_SCAN_RSSI_UB_ID:
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				"%s: gRoamScanHiRssiUpperBound is changed from %d to %d",
+				__func__,
+				nr_config->nhi_rssi_scan_rssi_ub,
+				val);
+			nr_config->nhi_rssi_scan_rssi_ub = val;
+			nr_info->cfgParams.hi_rssi_scan_rssi_ub = val;
+			reason = REASON_ROAM_SCAN_HI_RSSI_UB_CHANGED;
+			break;
+
+		default:
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: invalid parameter notify_id %d", __func__,
+				notify_id);
+			status = eHAL_STATUS_INVALID_PARAMETER;
+			break;
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+	if (mac_ctx->roam.configParam.isRoamOffloadScanEnabled &&
+		status == eHAL_STATUS_SUCCESS) {
+		csrRoamOffloadScan(mac_ctx, session_id,
+			ROAM_SCAN_OFFLOAD_UPDATE_CFG, reason);
+	}
+#endif
+
+	return status;
+}
+

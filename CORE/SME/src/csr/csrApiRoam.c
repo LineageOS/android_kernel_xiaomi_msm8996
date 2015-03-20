@@ -16940,6 +16940,15 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
 #endif
    vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
        sizeof(pRequestBuf->roam_params));
+   pRequestBuf->hi_rssi_scan_max_count =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count;
+   pRequestBuf->hi_rssi_scan_rssi_delta =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta;
+   pRequestBuf->hi_rssi_scan_delay =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay;
+   pRequestBuf->hi_rssi_scan_rssi_ub =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub;
+
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;

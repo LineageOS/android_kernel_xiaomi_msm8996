@@ -510,6 +510,10 @@ typedef struct tagCsrNeighborRoamConfig
     tANI_U8        nRoamBmissFinalBcnt;
     tANI_U8        nRoamBeaconRssiWeight;
     tANI_U8        delay_before_vdev_stop;
+    uint32_t       nhi_rssi_scan_max_count;
+    uint32_t       nhi_rssi_scan_rssi_delta;
+    uint32_t       nhi_rssi_scan_delay;
+    int32_t        nhi_rssi_scan_rssi_ub;
 }tCsrNeighborRoamConfig;
 #endif
 

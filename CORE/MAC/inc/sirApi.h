@@ -3784,6 +3784,10 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   RoamKeyMgmtOffloadEnabled;
 #endif
   struct roam_ext_params roam_params;
+  uint32_t  hi_rssi_scan_max_count;
+  uint32_t  hi_rssi_scan_rssi_delta;
+  uint32_t  hi_rssi_scan_delay;
+  int32_t   hi_rssi_scan_rssi_ub;
 
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 

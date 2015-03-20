@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5391,6 +5391,14 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId)
     vos_mem_copy(pNeighborRoamInfo->cfgParams.channelInfo.ChannelList,
                         pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.channelList,
                         pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.numChannels);
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_max_count;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_rssi_delta;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_delay;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_rssi_ub;
 
     vos_mem_set(pNeighborRoamInfo->currAPbssid, sizeof(tCsrBssid), 0);
     pNeighborRoamInfo->currentNeighborLookupThreshold =
@@ -5405,6 +5413,7 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId)
         pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt;
     pNeighborRoamInfo->currentRoamBeaconRssiWeight =
         pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight;
+
 #ifdef FEATURE_WLAN_LFR
     pNeighborRoamInfo->lookupDOWNRssi = 0;
     pNeighborRoamInfo->uEmptyScanCount = 0;

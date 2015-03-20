@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -77,6 +77,10 @@ typedef struct sCsrNeighborRoamCfgParams
     tANI_U8         nRoamBmissFinalBcnt;
     tANI_U8         nRoamBeaconRssiWeight;
     tANI_U8         delay_before_vdev_stop;
+    uint32_t        hi_rssi_scan_max_count;
+    uint32_t        hi_rssi_scan_rssi_delta;
+    uint32_t        hi_rssi_scan_delay;
+    int32_t        hi_rssi_scan_rssi_ub;
 } tCsrNeighborRoamCfgParams, *tpCsrNeighborRoamCfgParams;
 
 #define CSR_NEIGHBOR_ROAM_INVALID_CHANNEL_INDEX    255
@@ -328,6 +332,11 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_ROAM_SET_FAVORED_BSSID               27
 #define REASON_ROAM_GOOD_RSSI_CHANGED               28
 #define REASON_ROAM_SET_BLACKLIST_BSSID             29
+#define REASON_ROAM_SCAN_HI_RSSI_MAXCOUNT_CHANGED   30
+#define REASON_ROAM_SCAN_HI_RSSI_DELTA_CHANGED      31
+#define REASON_ROAM_SCAN_HI_RSSI_DELAY_CHANGED      32
+#define REASON_ROAM_SCAN_HI_RSSI_UB_CHANGED         33
+
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                               tANI_U8 command, tANI_U8 reason);
 eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac,

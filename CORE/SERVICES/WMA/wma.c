@@ -8239,11 +8239,18 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     wmi_roam_scan_rssi_threshold_fixed_param *rssi_threshold_fp;
     wmi_roam_scan_extended_threshold_param *ext_thresholds = NULL;
     struct roam_ext_params *roam_params;
+    uint32_t hirssi_scan_max_count;
+    uint32_t hirssi_scan_delta;
+    int32_t hirssi_upper_bound;
 
     /* Send rssi threshold */
     roam_params = &roam_req->roam_params;
     rssi_thresh = roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT;
     rssi_thresh_diff = roam_req->OpportunisticScanThresholdDiff;
+    hirssi_scan_max_count = roam_req->hi_rssi_scan_max_count;
+    hirssi_scan_delta = roam_req->hi_rssi_scan_rssi_delta;
+    hirssi_upper_bound = roam_req->hi_rssi_scan_rssi_ub -
+                                 WMA_NOISE_FLOOR_DBM_DEFAULT;
     len = sizeof(wmi_roam_scan_rssi_threshold_fixed_param);
     len += WMI_TLV_HDR_SIZE; /* TLV for ext_thresholds*/
     len += sizeof(wmi_roam_scan_extended_threshold_param);
@@ -8263,6 +8270,10 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     rssi_threshold_fp->vdev_id = roam_req->sessionId;
     rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh & 0x000000ff;
     rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff & 0x000000ff;
+    rssi_threshold_fp->hirssi_scan_max_count = hirssi_scan_max_count;
+    rssi_threshold_fp->hirssi_scan_delta = hirssi_scan_delta;
+    rssi_threshold_fp->hirssi_upper_bound = hirssi_upper_bound & 0x00000ff;
+
     buf_ptr += sizeof(wmi_roam_scan_rssi_threshold_fixed_param);
     WMITLV_SET_HDR(buf_ptr,
                WMITLV_TAG_ARRAY_STRUC,
@@ -8289,6 +8300,7 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
       WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param,
       WMITLV_GET_STRUCT_TLVLEN
       (wmi_roam_scan_extended_threshold_param));
+
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_THRESHOLD);
     if (status != EOK) {
@@ -8298,8 +8310,15 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
         goto error;
     }
 
-    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD roam_scan_rssi_thresh=%d, roam_rssi_thresh_diff=%d",
-                    __func__, rssi_thresh, rssi_thresh_diff);
+    WMA_LOGI(
+            "%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD roam_scan_rssi_thresh=%d, roam_rssi_thresh_diff=%d",
+            __func__, rssi_thresh, rssi_thresh_diff);
+    WMA_LOGI(
+            "%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD hirssi_scan max_count=%d, delta=%d",
+            __func__, hirssi_scan_max_count, hirssi_scan_delta);
+    WMA_LOGI(
+            "%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD hirssi_upper_bound=%d",
+            __func__, hirssi_upper_bound);
     return VOS_STATUS_SUCCESS;
 error:
     wmi_buf_free(buf);
@@ -8366,9 +8385,10 @@ error:
  * Returns    :
  */
 VOS_STATUS wma_roam_scan_offload_rssi_change(tp_wma_handle wma_handle,
+        u_int32_t vdev_id,
         A_INT32 rssi_change_thresh,
         A_UINT32 bcn_rssi_weight,
-        u_int32_t vdev_id)
+        A_UINT32 hirssi_delay_btw_scans)
 {
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     wmi_buf_t buf = NULL;
@@ -8395,6 +8415,7 @@ VOS_STATUS wma_roam_scan_offload_rssi_change(tp_wma_handle wma_handle,
     rssi_change_fp->vdev_id = vdev_id;
     rssi_change_fp->roam_scan_rssi_change_thresh = rssi_change_thresh;
     rssi_change_fp->bcn_rssi_weight = bcn_rssi_weight;
+    rssi_change_fp->hirssi_delay_btw_scans = hirssi_delay_btw_scans;
 
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_CHANGE_THRESHOLD);
@@ -8407,6 +8428,8 @@ VOS_STATUS wma_roam_scan_offload_rssi_change(tp_wma_handle wma_handle,
 
     WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_RSSI_CHANGE_THERSHOLD roam_scan_rssi_change_thresh=%d, bcn_rssi_weight=%d",
                     __func__, rssi_change_thresh, bcn_rssi_weight);
+    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_RSSI_CHANGE_THERSHOLD hirssi_delay_btw_scans=%d",
+                    __func__, hirssi_delay_btw_scans);
     return VOS_STATUS_SUCCESS;
 error:
     wmi_buf_free(buf);
@@ -9135,9 +9158,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              * 2 times the current beacon's rssi.
              */
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
+                    roam_req->sessionId,
                     roam_req->RoamRescanRssiDiff,
                     roam_req->RoamBeaconRssiWeight,
-                    roam_req->sessionId);
+                    roam_req->hi_rssi_scan_delay);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -9311,9 +9335,10 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             vos_status = wma_roam_scan_offload_rssi_change(wma_handle,
+                    roam_req->sessionId,
                     roam_req->RoamRescanRssiDiff,
                     roam_req->RoamBeaconRssiWeight,
-                    roam_req->sessionId);
+                    roam_req->hi_rssi_scan_delay);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }

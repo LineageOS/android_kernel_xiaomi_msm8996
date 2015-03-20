@@ -4286,4 +4286,9 @@ eHalStatus sme_configure_stats_avg_factor(tHalHandle hHal, tANI_U8 session_id,
 
 eHalStatus sme_configure_guard_time(tHalHandle hHal, tANI_U8 session_id,
                                     tANI_U32 guard_time);
+eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
+	uint8_t session_id,
+	uint32_t notify_id,
+	int32_t val);
+
 #endif //#if !defined( __SME_API_H )
