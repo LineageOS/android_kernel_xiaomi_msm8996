@@ -2033,6 +2033,9 @@ typedef struct {
 /** flag indicating that the the  mgmt frame (probe req/beacon) is received in the context of extscan performed by FW */
 #define WMI_MGMT_RX_HDR_EXTSCAN     0x01
 
+/** flag indicating that the the  mgmt frame (probe req/beacon) is received in the context of matched network by FW ENLO */
+#define WMI_MGMT_RX_HDR_ENLO     0x02
+
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mgmt_rx_hdr */
     /** channel on which this frame is received. */
@@ -6319,24 +6322,24 @@ typedef enum _WMI_NLO_SSID_BcastNwType
 #define WMI_NLO_CONFIG_FAST_SCAN        (0x1 << 5)
 #define WMI_NLO_CONFIG_SSID_HIDE_EN     (0x1 << 6)
 /* This bit is used to indicate if EPNO or supplicant PNO is enabled. Only one of them can be enabled at a given time */
-#define WMI_NLO_CONFIG_EPNO             (0x1 << 7)
+#define WMI_NLO_CONFIG_ENLO             (0x1 << 7)
 
 /* Whether directed scan needs to be performed (for hidden SSIDs) */
-#define WIFI_PNO_FLAG_DIRECTED_SCAN      1
+#define WMI_ENLO_FLAG_DIRECTED_SCAN      1
 /* Whether PNO event shall be triggered if the network is found on A band */
-#define WIFI_PNO_FLAG_A_BAND             2
+#define WMI_ENLO_FLAG_A_BAND             2
 /* Whether PNO event shall be triggered if the network is found on G band */
-#define WIFI_PNO_FLAG_G_BAND             4
+#define WMI_ENLO_FLAG_G_BAND             4
 /* Whether strict matching is required (i.e. firmware shall not match on the entire SSID) */
-#define WIFI_PNO_FLAG_STRICT_MATCH       8
+#define WMI_ENLO_FLAG_STRICT_MATCH       8
 
 /* Code for matching the beacon AUTH IE - additional codes TBD */
 /* open */
-#define WIFI_PNO_AUTH_CODE_OPEN  1
+#define WMI_ENLO_AUTH_CODE_OPEN  1
 /* WPA_PSK or WPA2PSK */
-#define WIFI_PNO_AUTH_CODE_PSK   2
+#define WMI_ENLO_AUTH_CODE_PSK   2
 /* any EAPOL */
-#define WIFI_PNO_AUTH_CODE_EAPOL 4
+#define WMI_ENLO_AUTH_CODE_EAPOL 4
 
 /* NOTE: wmi_nlo_ssid_param structure can't be changed without breaking the compatibility */
 typedef struct wmi_nlo_ssid_param
@@ -6364,7 +6367,7 @@ typedef struct wmi_nlo_bcast_nw_param
 {
     A_UINT32 valid;
     /* If WMI_NLO_CONFIG_EPNO is not set. Supplicant PNO is enabled. The value should be true/false
-    Otherwise EPNO is enabled. bcast_nw_type would be used as a bit flag contains WIFI_PNO_FLAG_XXX */
+       Otherwise EPNO is enabled. bcast_nw_type would be used as a bit flag contains WMI_ENLO_FLAG_XXX */
     A_UINT32 bcast_nw_type;
 } wmi_nlo_bcast_nw_param;
 
