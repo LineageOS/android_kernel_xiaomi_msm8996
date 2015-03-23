@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -430,6 +430,8 @@ typedef enum {
     WMI_ROAM_SET_RIC_REQUEST_CMDID,
     /** Invoke roaming forcefully */
     WMI_ROAM_INVOKE_CMDID,
+    /** roaming filter cmd to allow further filtering of roaming candidate */
+    WMI_ROAM_FILTER_CMDID,
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -4411,6 +4413,7 @@ typedef struct {
             WMI_PEER_TYPE_DEFAULT = 0, /* Generic/Non-BSS/Self Peer */
             WMI_PEER_TYPE_BSS = 1,     /* Peer is BSS Peer entry */
             WMI_PEER_TYPE_TDLS = 2,    /* Peer is a TDLS Peer */
+            WMI_PEER_TYPE_OCB = 3,     /* Peer is a OCB Peer */
             WMI_PEER_TYPE_HOST_MAX = 127, /* Host <-> Target Peer type
                                            * is assigned up to 127 */
                                           /* Reserved from 128 - 255 for
@@ -5000,7 +5003,31 @@ typedef struct {
     A_UINT32 roam_scan_rssi_thresh;
     /** When using Hw generated beacon RSSI interrupts */
     A_UINT32 roam_rssi_thresh_diff;
+    /** 5G scan max count */
+    A_UINT32 hirssi_scan_max_count;
+    /** 5G scan rssi change threshold value */
+    A_UINT32 hirssi_scan_delta;
+    /** 5G scan upper bound */
+    A_UINT32 hirssi_upper_bound;
 } wmi_roam_scan_rssi_threshold_fixed_param;
+
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_FIXED  0x0
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR 0x1
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LOG    0x2
+#define WMI_ROAM_5G_BOOST_PENALIZE_ALGO_EXP    0x3
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param */
+    A_UINT32 boost_threshold_5g; /** RSSI threshold above which 5GHz RSSI is favored */
+    A_UINT32 penalty_threshold_5g; /** RSSI threshold below which 5GHz RSSI is penalized */
+    A_UINT32 boost_algorithm_5g; /** 0 == fixed, 1 == linear, 2 == logarithm ..etc */
+    A_UINT32 boost_factor_5g; /** factor by which 5GHz RSSI is boosted */
+    A_UINT32 penalty_algorithm_5g; /** 0 == fixed, 1 == linear, 2 == logarithm ..etc */
+    A_UINT32 penalty_factor_5g; /** factor by which 5GHz RSSI is penalized */
+    A_UINT32 max_boost_5g; /** maximum boost that can be applied to a 5GHz RSSI */
+    A_UINT32 max_penalty_5g; /** maximum penality that can be applied to a 5GHz RSSI */
+    A_UINT32 good_rssi_threshold; /**  RSSI below which roam is kicked in by background scan, although rssi is still good */
+} wmi_roam_scan_extended_threshold_param;
 
 /**
  * WMI_ROAM_SCAN_PERIOD: period for roam scan.
@@ -5030,6 +5057,8 @@ typedef struct {
     A_UINT32 roam_scan_rssi_change_thresh;
     /** When using Hw generated beacon RSSI interrupts */
     A_UINT32 bcn_rssi_weight;
+    /** Minimum delay between two 5G scans */
+    A_UINT32 hirssi_delay_btw_scans;
 } wmi_roam_scan_rssi_change_threshold_fixed_param;
 
 #define WMI_ROAM_SCAN_CHAN_LIST_TYPE_NONE 0x1
@@ -5411,6 +5440,24 @@ typedef struct {
      *     wmi_mac_addr bssid_list[];
      */
 } wmi_roam_invoke_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_filter_list_fixed_param */
+    A_UINT32 vdev_id; /** Unique id identifying the VDEV on which roaming filter is adopted */
+    A_UINT32 flags; /** flags for filter */
+    A_UINT32 op_bitmap; /** 32 bit bitmap to be set on. bit0 = first param, bit 1 = second param...etc. Can be or'ed */
+    A_UINT32 num_bssid_black_list; /* number of blacklist in the TLV variable bssid_black_list */
+    A_UINT32 num_ssid_white_list; /* number of whitelist in the TLV variable ssid_white_list */
+    A_UINT32 num_bssid_preferred_list; /* only for lfr 3.0. number of preferred list & factor in the TLV */
+    /**
+     * TLV (tag length value ) parameters follows roam_filter_list_cmd
+     * The TLV's are:
+     *     wmi_mac_addr bssid_black_list[];
+     *     wmi_ssid ssid_white_list[];
+     *     wmi_mac_addr bssid_preferred_list[];
+     *     A_UINT32 bssid_preferred_factor[];
+     */
+} wmi_roam_filter_fixed_param;
 
 /** WMI_PROFILE_MATCH_EVENT: offload scan
  * generated when ever atleast one of the matching profiles is found
@@ -9542,8 +9589,11 @@ typedef struct {
     /** TLV tag and len; tag equals
      * WMITLV_TAG_STRUC_wmi_ocb_set_config_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /** VDEV id(interface) that is being configured */
+    A_UINT32 vdev_id;
     A_UINT32 channel_count;
     A_UINT32 schedule_size;
+    A_UINT32 flags;
 
     /** This is followed by a TLV array of wmi_channel. */
     /** This is followed by a TLV array of wmi_ocb_channel. */
@@ -9553,11 +9603,19 @@ typedef struct {
     /** This is followed by a TLV array of wmi_ocb_schedule_element. */
 } wmi_ocb_set_config_cmd_fixed_param;
 
+#define EXPIRY_TIME_IN_TSF_TIMESTAMP_OFFSET     0
+#define EXPIRY_TIME_IN_TSF_TIMESTAMP_MASK       1
+
+#define WMI_OCB_EXPIRY_TIME_IN_TSF(ptr) \
+    (((ptr)->flags & EXPIRY_TIME_IN_TSF_TIMESTAMP_MASK) >> EXPIRY_TIME_IN_TSF_TIMESTAMP_OFFSET)
+
 /** Data structure for the response to the WMI_OCB_SET_CONFIG_CMDID command. */
 typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_set_config_resp_event_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 status;
 } wmi_ocb_set_config_resp_event_fixed_param;
 
@@ -9571,6 +9629,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_set_utc_time_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     /** 10 bytes of the utc time. */
     A_UINT32 utc_time[WMI_PACKED_ARR_SIZE(SIZE_UTC_TIME,SIZE_BYTE)];
     /** 5 bytes of the time error. */
@@ -9589,6 +9649,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_start_timing_advert_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     /** Number of times the TA is sent every 5 seconds. */
     A_UINT32 repeat_rate;
     /** The frequency on which to transmit. */
@@ -9609,6 +9671,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_stop_timing_advert_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 channel_freq; /* MHz units */
 } wmi_ocb_stop_timing_advert_cmd_fixed_param;
 
@@ -9617,6 +9681,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 reserved;
 } wmi_ocb_get_tsf_timer_cmd_fixed_param;
 
@@ -9625,6 +9691,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_ocb_get_tsf_timer_resp_event_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 tsf_timer_high;
     A_UINT32 tsf_timer_low;
 } wmi_ocb_get_tsf_timer_resp_event_fixed_param;
@@ -9770,6 +9838,9 @@ typedef struct {
      *  WMITLV_TAG_STRUC_wmi_dcc_get_stats_cmd_fixed_param */
     A_UINT32 tlv_header;
 
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
+
     /** The number of channels for which stats are being requested. */
     A_UINT32 num_channels;
 
@@ -9793,6 +9864,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_dcc_get_stats_resp_event_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     /** Number of channels in the response. */
     A_UINT32 num_channels;
     /** This is followed by a TLV array of wmi_dcc_ndl_stats_per_channel. */
@@ -9803,6 +9876,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_dcc_clear_stats_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 dcc_stats_bitmap;
 } wmi_dcc_clear_stats_cmd_fixed_param;
 
@@ -9811,6 +9886,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_dcc_stats_event_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     /** The number of channels in the response. */
     A_UINT32 num_channels;
 
@@ -10001,6 +10078,8 @@ typedef struct {
 
 #define WMI_NDL_MIN_DCC_SAMPLING_GET(ptr)       WMI_GET_BITS((ptr)->ndl_min_dcc_sampling, 0, 10)
 #define WMI_NDL_MIN_DCC_SAMPLING_SET(ptr,val)   WMI_SET_BITS((ptr)->ndl_min_dcc_sampling, 0, 10, val)
+#define WMI_NDL_MEASURE_INTERVAL_GET(ptr)       WMI_GET_BITS((ptr)->ndl_min_dcc_sampling, 10, 16)
+#define WMI_NDL_MEASURE_INTERVAL_SET(ptr,val)   WMI_SET_BITS((ptr)->ndl_min_dcc_sampling, 10, 16, val)
 
 #define WMI_NDL_DCC_ENABLE_GET(ptr)             WMI_GET_BITS((ptr)->dcc_flags, 0, 1)
 #define WMI_NDL_DCC_ENABLE_SET(ptr,val)         WMI_SET_BITS((ptr)->dcc_flags, 0, 1, val)
@@ -10050,10 +10129,10 @@ typedef struct {
 #define WMI_NDL_MAX_CS_RANGE_GET(ptr)               WMI_GET_BITS((ptr)->receive_model_parameter, 8, 13)
 #define WMI_NDL_MAX_CS_RANGE_SET(ptr,val)           WMI_SET_BITS((ptr)->receive_model_parameter, 8, 13, val)
 #define WMI_NDL_REF_PATH_LOSS_GET(ptr)              WMI_GET_BITS((ptr)->receive_model_parameter, 21, 6)
-#define WMI_NDL_REF_PATH_LOSS_SET(ptr,val)          WMI_GET_BITS((ptr)->receive_model_parameter, 21, 6, val)
+#define WMI_NDL_REF_PATH_LOSS_SET(ptr,val)          WMI_SET_BITS((ptr)->receive_model_parameter, 21, 6, val)
 
 #define WMI_NDL_MIN_SNR_GET(ptr)                    WMI_GET_BITS((ptr)->receive_model_parameter_2, 0, 8)
-#define WMI_NDL_MIN_SNR_SET(ptr,val)                WMI_GET_BITS((ptr)->receive_model_parameter_2, 0, 8, val)
+#define WMI_NDL_MIN_SNR_SET(ptr,val)                WMI_SET_BITS((ptr)->receive_model_parameter_2, 0, 8, val)
 
 #define WMI_NDL_SNR_BACKOFF_GET(ptr,mcs)        wmi_packed_arr_get_bits((ptr)->snr_backoff_mcs, mcs, SIZE_NDLTYPE_SNR)
 #define WMI_NDL_SNR_BACKOFF_SET(ptr,mcs,val)    wmi_packed_arr_set_bits((ptr)->snr_backoff_mcs, mcs, SIZE_NDLTYPE_SNR, val)
@@ -10087,6 +10166,9 @@ typedef struct {
      *  WMITLV_TAG_STRUC_wmi_dcc_update_ndl_cmd_fixed_param */
     A_UINT32 tlv_header;
 
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
+
     /** The number of channels in the request. */
     A_UINT32 num_channel;
 
@@ -10098,6 +10180,8 @@ typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_dcc_update_ndl_resp_event_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     A_UINT32 status;
 } wmi_dcc_update_ndl_resp_event_fixed_param;
 
@@ -10144,6 +10228,8 @@ typedef struct {
     /** TLV tag and len; tag equals
     * WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param */
     A_UINT32 tlv_header;
+    /* VDEV identifier */
+    A_UINT32 vdev_id;
     /** Number of valid channels in the channels array */
     A_UINT32 num_channels;
     /** The array of channels */

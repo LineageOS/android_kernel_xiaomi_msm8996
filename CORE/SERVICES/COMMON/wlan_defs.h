@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2010, 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2004-2010, 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -28,6 +28,8 @@
 #ifndef __WLANDEFS_H__
 #define __WLANDEFS_H__
 
+#include <a_osapi.h> /* A_COMPILE_TIME_ASSERT */
+
 /*
  * This file contains WLAN definitions that may be used across both
  * Host and Target software.
@@ -38,6 +40,9 @@
 #define MAX_SPATIAL_STREAM   3
 #endif
 
+#ifndef CONFIG_160MHZ_SUPPORT
+#define CONFIG_160MHZ_SUPPORT 0 /* default: 160 MHz channels not supported */
+#endif
 
 typedef enum {
     MODE_11A        = 0,   /* 11a Mode */
@@ -51,13 +56,33 @@ typedef enum {
     MODE_11AC_VHT20 = 8,
     MODE_11AC_VHT40 = 9,
     MODE_11AC_VHT80 = 10,
-//    MODE_11AC_VHT160 = 11,
     MODE_11AC_VHT20_2G = 11,
     MODE_11AC_VHT40_2G = 12,
     MODE_11AC_VHT80_2G = 13,
-    MODE_UNKNOWN    = 14,
-    MODE_MAX        = 14
+#if CONFIG_160MHZ_SUPPORT != 0
+    MODE_11AC_VHT80_80 = 14,
+    MODE_11AC_VHT160   = 15,
+#endif
+
+    MODE_UNKNOWN,
+    MODE_UNKNOWN_NO_160MHZ_SUPPORT = 14,
+    MODE_UNKNOWN_160MHZ_SUPPORT = 16,
+
+    MODE_MAX        = MODE_UNKNOWN,
+    MODE_MAX_NO_160_MHZ_SUPPORT = MODE_UNKNOWN_NO_160MHZ_SUPPORT,
+    MODE_MAX_160_MHZ_SUPPORT    = MODE_UNKNOWN_160MHZ_SUPPORT,
+
 } WLAN_PHY_MODE;
+
+#if CONFIG_160MHZ_SUPPORT == 0
+A_COMPILE_TIME_ASSERT(
+    mode_unknown_value_consistency_Check,
+    MODE_UNKNOWN == MODE_UNKNOWN_NO_160MHZ_SUPPORT);
+#else
+A_COMPILE_TIME_ASSERT(
+    mode_unknown_value_consistency_Check,
+    MODE_UNKNOWN == MODE_UNKNOWN_160MHZ_SUPPORT);
+#endif
 
 typedef enum {
     VHT_MODE_NONE = 0,  /* NON VHT Mode, e.g., HT, DSSS, CCK */
@@ -83,10 +108,17 @@ typedef enum {
 #define A_RATEMASK_NUM_OCTET (sizeof (A_RATEMASK))
 #define A_RATEMASK_NUM_BITS ((sizeof (A_RATEMASK)) << 3)
 
-
+#if CONFIG_160MHZ_SUPPORT != 0
+#define IS_MODE_VHT(mode) (((mode) == MODE_11AC_VHT20) || \
+        ((mode) == MODE_11AC_VHT40)     || \
+        ((mode) == MODE_11AC_VHT80)     || \
+        ((mode) == MODE_11AC_VHT80_80) || \
+        ((mode) == MODE_11AC_VHT160))
+#else
 #define IS_MODE_VHT(mode) (((mode) == MODE_11AC_VHT20) || \
         ((mode) == MODE_11AC_VHT40) || \
         ((mode) == MODE_11AC_VHT80))
+#endif
 
 #define IS_MODE_VHT_2G(mode) (((mode) == MODE_11AC_VHT20_2G) || \
         ((mode) == MODE_11AC_VHT40_2G) || \
@@ -230,17 +262,19 @@ typedef struct {
 /* NOTE: NUM_DYN_BW and NUM_SCHED_ENTRIES cannot be changed without breaking WMI Compatibility */
 #define NUM_SCHED_ENTRIES           2
 #define NUM_DYN_BW_MAX              4
-/* Current Product only uses 20/40/80 */
-#define NUM_DYN_BW                  3
+/* Some products only use 20/40/80; some use 20/40/80/160 */
+#ifndef NUM_DYN_BW
+#define NUM_DYN_BW                  3 /* default: support up through 80 MHz */
+#endif
 
 #define NUM_DYN_BW_MASK             0x3
 
 #define PROD_SCHED_BW_ENTRIES       (NUM_SCHED_ENTRIES * NUM_DYN_BW)
 typedef A_UINT8 A_RATE;
 
-#if NUM_DYN_BW  > 3
-// Extend rate table module for 80+80/160 MHz first
-#error "Extend rate table module for 80+80/160 MHz first"
+#if NUM_DYN_BW  > 4
+// Extend rate table module first
+#error "Extend rate table module first"
 #endif
 
 #if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
@@ -369,7 +403,6 @@ typedef enum {
     AUTO_DTIM   = 0x04,
 } BEACON_DTIM_POLICY;
 
-#if defined (AR900B)
 /* During test it is observed that 6 * 400 = 2400 can
  * be alloced in addition to CFG_TGT_NUM_MSDU_DESC.
  * If there is any change memory requirement, this number
@@ -396,7 +429,6 @@ typedef enum {
  * smart antenna = 50
  */
 #define MEMORY_REQ_FOR_PEER 800
-#endif
 
 /*
  * NB: it is important to keep all the fields in the structure dword long
@@ -513,12 +545,10 @@ struct wlan_dbg_rx_stats {
 #endif
 };
 
-#if defined(AR900B)
 struct wlan_dbg_mem_stats {
     A_UINT32 iram_free_size;
     A_UINT32 dram_free_size;
 };
-#endif
 
 struct wlan_dbg_peer_stats {
 
@@ -561,19 +591,13 @@ typedef struct {
     A_UINT32 ack_rssi;
 } wlan_dbg_tx_rate_info_t ;
 
-#if defined(AR900B)
 #define WHAL_DBG_PHY_ERR_MAXCNT 18
 #define WHAL_DBG_SIFS_STATUS_MAXCNT 8
 #define WHAL_DBG_SIFS_ERR_MAXCNT 8
-#define WHAL_DBG_CMD_RESULT_MAXCNT 8
+#define WHAL_DBG_CMD_RESULT_MAXCNT 10
 #define WHAL_DBG_CMD_STALL_ERR_MAXCNT 4
-#define WHAL_DBG_CMD_RESULT_MAXCNT 8
-#define WHAL_DBG_FLUSH_REASON_MAXCNT 18
+#define WHAL_DBG_FLUSH_REASON_MAXCNT 40
 
-#define WHAL_DBG_PHY_ERR_MAXCNT 18
-#define WHAL_DBG_SIFS_ERR_MAXCNT 8
-#define WHAL_DBG_CMD_STALL_ERR_MAXCNT 4
-#define WHAL_DBG_FLUSH_REASON_MAXCNT 18
 typedef enum {
     WIFI_URRN_STATS_FIRST_PKT,
     WIFI_URRN_STATS_BETWEEN_MPDU,
@@ -603,12 +627,17 @@ typedef struct wlan_dbg_wifi2_error2_stats {
     A_UINT32 sifs_errs[WHAL_DBG_SIFS_ERR_MAXCNT];
 }wlan_dbg_wifi2_error2_stats_t;
 
+#define WLAN_DBG_STATS_SIZE_TXBF_VHT 10
+#define WLAN_DBG_STATS_SIZE_TXBF_HT 8
+#define WLAN_DBG_STATS_SIZE_TXBF_OFDM 8
+#define WLAN_DBG_STATS_SIZE_TXBF_CCK 7
+
 typedef struct wlan_dbg_txbf_data_stats {
-    A_UINT32 tx_txbf_vht[10];
-    A_UINT32 rx_txbf_vht[10];
-    A_UINT32 tx_txbf_ht[8];
-    A_UINT32 tx_txbf_ofdm[8];
-    A_UINT32 tx_txbf_cck[7];
+    A_UINT32 tx_txbf_vht[WLAN_DBG_STATS_SIZE_TXBF_VHT];
+    A_UINT32 rx_txbf_vht[WLAN_DBG_STATS_SIZE_TXBF_VHT];
+    A_UINT32 tx_txbf_ht[WLAN_DBG_STATS_SIZE_TXBF_HT];
+    A_UINT32 tx_txbf_ofdm[WLAN_DBG_STATS_SIZE_TXBF_OFDM];
+    A_UINT32 tx_txbf_cck[WLAN_DBG_STATS_SIZE_TXBF_CCK];
 } wlan_dbg_txbf_data_stats_t;
 
 struct wlan_dbg_tx_mu_stats {
@@ -661,7 +690,6 @@ typedef struct wlan_dbg_stats_wifi2 {
     struct wlan_dbg_tx_mu_stats tx_mu;
     wlan_dgb_sifs_resp_stats_t sifs_resp_info;
 } wlan_dbg_wifi2_stats_t;
-#endif
 
 typedef struct {
     wlan_dbg_rx_rate_info_t rx_phy_info;
@@ -678,7 +706,6 @@ struct wlan_dbg_stats {
     struct wlan_dbg_peer_stats peer;
 };
 
-#if defined(AR900B)
 #define DBG_STATS_MAX_HWQ_NUM 10
 #define DBG_STATS_MAX_TID_NUM 20
 #define DBG_STATS_MAX_CONG_NUM 16
@@ -692,6 +719,5 @@ struct wlan_dbg_tidq_stats{
     A_UINT32 wlan_dbg_tid_txq_status;
     struct wlan_dbg_txq_stats txq_st;
 };
-#endif
 
 #endif /* __WLANDEFS_H__ */
