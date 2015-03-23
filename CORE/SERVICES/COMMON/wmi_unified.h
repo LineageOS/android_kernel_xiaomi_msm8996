@@ -562,6 +562,9 @@ typedef enum {
     /** APFIND Config */
     WMI_APFIND_CMDID,
 
+    /** Passpoint list config  */
+    WMI_PASSPOINT_LIST_CONFIG_CMDID,
+
     /* GTK offload Specific WMI commands*/
     WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
 
@@ -919,6 +922,9 @@ typedef enum {
 
     /** APFIND specific events */
     WMI_APFIND_EVENTID,
+
+    /** passpoint network match event */
+    WMI_PASSPOINT_MATCH_EVENTID,
 
     /** GTK offload stautus event requested by host */
     WMI_GTK_OFFLOAD_STATUS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_GTK_OFL),
@@ -3181,6 +3187,19 @@ typedef struct {
     A_UINT32 num_ac;
     /** Roaming Stat */
     A_UINT32 roam_state;
+    /** Average Beacon spread offset is the averaged time delay between TBTT and beacon TSF */
+    /** Upper 32 bits of averaged 64 bit beacon spread offset */
+    A_UINT32 avg_bcn_spread_offset_high;
+    /** Lower 32 bits of averaged 64 bit beacon spread offset */
+    A_UINT32 avg_bcn_spread_offset_low;
+    /** Takes value of 1 if AP leaks packets after sending an ACK for PM=1 otherwise 0 */
+    A_UINT32 is_leaky_ap;
+    /** Average number of frames received from AP after receiving the ACK for a frame with PM=1 */
+    A_UINT32 avg_rx_frms_leaked;
+    /** Rx leak watch window currently in force to minimize data loss because of leaky AP. Rx leak window is the
+        time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
+        a data frame with PM bit set) */
+    A_UINT32 rx_leak_window;
 } wmi_iface_link_stats;
 
 /** Interface statistics (once started) reset and start afresh after each connection */
@@ -3782,6 +3801,16 @@ typedef enum {
 
     /* Enable/Disable 1 RX chain usage during the ATIM window */
     WMI_VDEV_PARAM_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE,
+
+    /* RX Leak window is the time driver waits before shutting down
+     * the radio or switching the channel and after receiving an ACK
+     * for a data frame with PM bit set) */
+    WMI_VDEV_PARAM_RX_LEAK_WINDOW,
+
+    /** Averaging factor(16 bit value) is used in the calculations to
+     * perform averaging of different link level statistics like average
+     * beacon spread or average number of frames leaked */
+    WMI_VDEV_PARAM_STATS_AVG_FACTOR,
 
 } WMI_VDEV_PARAM;
 
@@ -6415,6 +6444,89 @@ typedef struct wmi_nlo_event
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nlo_event */
     A_UINT32    vdev_id;
 }wmi_nlo_event;
+
+
+/* WMI_PASSPOINT_CONFIG_SET
+ * Sets a list for passpoint networks for PNO purposes;
+ * it should be matched against any passpoint networks found
+ * during regular PNO scan.
+ */
+#define WMI_PASSPOINT_CONFIG_SET       (0x1 << 0)
+/* WMI_PASSPOINT_CONFIG_RESET
+ * Reset passpoint network list -
+ * no Passpoint networks should be matched after this.
+ */
+#define WMI_PASSPOINT_CONFIG_RESET     (0x1 << 1)
+
+#define PASSPOINT_REALM_LEN                  256
+#define PASSPOINT_ROAMING_CONSORTIUM_ID_LEN  5
+#define PASSPOINT_ROAMING_CONSORTIUM_ID_NUM  16
+#define PASSPOINT_PLMN_ID_LEN                3
+#define PASSPOINT_PLMN_ID_ALLOC_LEN /* round up to A_UINT32 boundary */ \
+    (((PASSPOINT_PLMN_ID_LEN + 3) >> 2) << 2)
+
+/*
+ * Confirm PASSPOINT_REALM_LEN is a multiple of 4, so the
+ *     A_UINT8 realm[PASSPOINT_REALM_LEN]
+ * array will end on a 4-byte boundary.
+ * (This 4-byte alignment simplifies endianness-correction byte swapping.)
+ */
+A_COMPILE_TIME_ASSERT(
+    check_passpoint_realm_size,
+    (PASSPOINT_REALM_LEN % sizeof(A_UINT32)) == 0);
+
+/*
+ * Confirm the product of PASSPOINT_ROAMING_CONSORTIUM_ID_NUM and
+ * PASSPOINT_ROAMING_CONSORTIUM_ID_LEN is a multiple of 4, so the
+ * roaming_consortium_ids array below will end on a 4-byte boundary.
+ * (This 4-byte alignment simplifies endianness-correction byte swapping.)
+ */
+A_COMPILE_TIME_ASSERT(
+    check_passpoint_roaming_consortium_ids_size,
+    ((PASSPOINT_ROAMING_CONSORTIUM_ID_NUM*PASSPOINT_ROAMING_CONSORTIUM_ID_LEN) % sizeof(A_UINT32)) == 0);
+
+/* wildcard ID to allow an action (reset) to apply to all networks */
+#define WMI_PASSPOINT_NETWORK_ID_WILDCARD 0xFFFFFFFF
+typedef struct wmi_passpoint_config {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals wmi_passpoint_config_cmd_fixed_param */
+    /* (network) id
+     * identifier of the matched network, report this in event
+     * This id can be a wildcard (WMI_PASSPOINT_NETWORK_ID_WILDCARD)
+     * that indicates the action should be applied to all networks.
+     * Currently, the only action that is applied to all networks is "reset".
+     * If a non-wildcard ID is specified, that particular network is configured.
+     * If a wildcard ID is specified, all networks are reset.
+     */
+    A_UINT32 id;
+    A_UINT32 req_id;
+    A_UINT8  realm[PASSPOINT_REALM_LEN]; /*null terminated UTF8 encoded realm, 0 if unspecified*/
+    A_UINT8  roaming_consortium_ids[PASSPOINT_ROAMING_CONSORTIUM_ID_NUM][PASSPOINT_ROAMING_CONSORTIUM_ID_LEN]; /*roaming consortium ids to match, 0s if unspecified*/
+                                                                                                              /*This would be bytes-stream as same as defition of realm id in 802.11 standard*/
+    A_UINT8  plmn[PASSPOINT_PLMN_ID_ALLOC_LEN]; /*PLMN id mcc/mnc combination as per rules, 0s if unspecified */
+} wmi_passpoint_config_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;    /* TLV tag and len; tag equals wmi_passpoint_event_hdr */
+    A_UINT32 id;            /* identifier of the matched network */
+    A_UINT32 vdev_id;
+    A_UINT32 timestamp;     /* time since boot (in microsecond) when the result was retrieved*/
+    wmi_ssid ssid;
+    wmi_mac_addr    bssid;  /* bssid of the network */
+    A_UINT32 channel_mhz;   /* channel frequency in MHz */
+    A_UINT32 rssi;          /* rssi value */
+    A_UINT32 rtt;           /* timestamp in nanoseconds*/
+    A_UINT32 rtt_sd;        /* standard deviation in rtt */
+    A_UINT32 beacon_period; /* beacon advertised in the beacon */
+    A_UINT32 capability;    /* capabilities advertised in the beacon */
+    A_UINT32 ie_length;     /* size of the ie_data blob */
+    A_UINT32 anqp_length;   /* length of ANQP blob */
+/* Following this structure is the byte stream of ie data of length ie_buf_len:
+ *  A_UINT8 ie_data[];      // length in byte given by field ie_length, blob of ie data in beacon
+ *  A_UINT8 anqp_ie[];      // length in byte given by field anqp_len, blob of anqp data of IE
+ *  Implicitly, combing ie_data and anqp_ie into a single bufp, and the bytes stream of each ie should be same as BEACON/Action-frm  by 802.11 spec.
+ */
+} wmi_passpoint_event_hdr;
+
 
 #define GTK_OFFLOAD_OPCODE_MASK				0xFF000000
 /** Enable GTK offload, and provided parameters KEK,KCK and replay counter values */

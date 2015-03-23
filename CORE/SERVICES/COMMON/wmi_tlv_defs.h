@@ -551,6 +551,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_dcc_ndl_active_state_config,
     WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param,
     WMITLV_TAG_STRUC_wmi_roam_filter_fixed_param,
+    WMITLV_TAG_STRUC_wmi_passpoint_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_passpoint_event_hdr,
 } WMITLV_TAG_ID;
 
 /*
@@ -760,8 +762,8 @@ typedef enum {
     OP(WMI_DCC_GET_STATS_CMDID) \
     OP(WMI_DCC_CLEAR_STATS_CMDID) \
     OP(WMI_DCC_UPDATE_NDL_CMDID) \
-    OP(WMI_ROAM_FILTER_CMDID)
-
+    OP(WMI_ROAM_FILTER_CMDID) \
+    OP(WMI_PASSPOINT_LIST_CONFIG_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -861,7 +863,8 @@ typedef enum {
     OP(WMI_OCB_GET_TSF_TIMER_RESP_EVENTID) \
     OP(WMI_DCC_GET_STATS_RESP_EVENTID) \
     OP(WMI_DCC_UPDATE_NDL_RESP_EVENTID) \
-    OP(WMI_DCC_STATS_EVENTID)
+    OP(WMI_DCC_STATS_EVENTID) \
+    OP(WMI_PASSPOINT_MATCH_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1312,13 +1315,19 @@ WMITLV_CREATE_PARAM_STRUC(WMI_CLEAR_LINK_STATS_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_LINK_STATS_CMDID);
 
-/* Netwrok list offload config Cmd */
+/* Network list offload config Cmd */
 #define WMITLV_TABLE_WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_nlo_config_cmd_fixed_param, wmi_nlo_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, nlo_configured_parameters, nlo_list, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
+
+/* Passpoint list offload config Cmd */
+#define WMITLV_TABLE_WMI_PASSPOINT_LIST_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_passpoint_config_cmd_fixed_param, wmi_passpoint_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_PASSPOINT_LIST_CONFIG_CMDID);
 
 /* CSA offload enable Cmd */
 #define WMITLV_TABLE_WMI_CSA_OFFLOAD_ENABLE_CMDID(id,op,buf,len) \
@@ -2477,23 +2486,30 @@ WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_apfind_event_hdr, wmi_apfind_eve
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
     WMITLV_CREATE_PARAM_STRUC(WMI_APFIND_EVENTID);
 
+/* WMI_PASSPOINT_MATCH_EVENTID */
+#define WMITLV_TABLE_WMI_PASSPOINT_MATCH_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_passpoint_event_hdr, wmi_passpoint_event_hdr, fixed_param, WMITLV_SIZE_FIX)   \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+    WMITLV_CREATE_PARAM_STRUC(WMI_PASSPOINT_MATCH_EVENTID);
+
 /* Chatter query reply event */
-#define WMITLV_TABLE_WMI_CHATTER_PC_QUERY_EVENTID(id,op,buf,len)                                                                                                 \
+#define WMITLV_TABLE_WMI_CHATTER_PC_QUERY_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chatter_query_reply_event_fixed_param, wmi_chatter_query_reply_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_CHATTER_PC_QUERY_EVENTID);
 
 /* Upload H_CV info event */
-#define WMITLV_TABLE_WMI_UPLOADH_EVENTID(id,op,buf,len)                                                                                                 \
+#define WMITLV_TABLE_WMI_UPLOADH_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_upload_h_hdr, wmi_upload_h_hdr, hdr, WMITLV_SIZE_FIX)   \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
     WMITLV_CREATE_PARAM_STRUC(WMI_UPLOADH_EVENTID);
 
 /* Capture H info event */
-#define WMITLV_TABLE_WMI_CAPTUREH_EVENTID(id,op,buf,len)                                                                                                 \
+#define WMITLV_TABLE_WMI_CAPTUREH_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_capture_h_event_hdr, wmi_capture_h_event_hdr, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_CAPTUREH_EVENTID);
+
 /* TDLS Peer Update event */
-#define WMITLV_TABLE_WMI_TDLS_PEER_EVENTID(id,op,buf,len)                                                                                                 \
+#define WMITLV_TABLE_WMI_TDLS_PEER_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tdls_peer_event_fixed_param, wmi_tdls_peer_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_TDLS_PEER_EVENTID);
 
