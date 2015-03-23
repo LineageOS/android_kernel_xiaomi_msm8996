@@ -4691,6 +4691,9 @@ typedef struct {
 /* Set peer advertised IBSS atim window length */
 #define WMI_PEER_IBSS_ATIM_WINDOW_LENGTH                0xC
 
+/** peer phy mode */
+#define WMI_PEER_PHYMODE                                0xD
+
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
 #define WMI_PEER_MIMO_PS_STATIC                        0x1
@@ -8644,7 +8647,7 @@ typedef struct {
     A_UINT32        forwarding_flags;
     /** ExtScan configuration flags - wmi_extscan_configuration_flags */
     A_UINT32        configuration_flags;
-    /** multiplier to be applied to the periodic scan's base period */
+    /** DEPRECATED member: multiplier to be applied to the periodic scan's base period */
     A_UINT32        base_period_multiplier;
     /** dwell time in msec on active channels - use defaults if 0 */
     A_UINT32        min_dwell_time_active;
@@ -8656,6 +8659,18 @@ typedef struct {
     A_UINT32        channel_band;
     /** number of channels (if channel_band is WMI_CHANNEL_UNSPECIFIED) */
     A_UINT32        num_channels;
+   /** scan period upon start or restart of the bucket - periodicity of the bucket to begin with */
+    A_UINT32        min_period;
+    /** period above which exponent is not applied anymore */
+    A_UINT32        max_period;
+    /** back off value to be applied to bucket's periodicity after exp_max_step_count scan cycles
+      * new_bucket_period = last_bucket_period + last_exponent_period * exp_backoff
+      */
+    A_UINT32        exp_backoff;
+    /** number of scans performed at a given periodicity after which exponential back off value is
+       * applied to current periodicity to obtain a newer one
+       */
+    A_UINT32        exp_max_step_count;
 /** Followed by the variable length TLV chan_list:
  *  wmi_extscan_bucket_channel chan_list[] */
 } wmi_extscan_bucket;
@@ -8733,6 +8748,8 @@ typedef struct {
     A_UINT32     ie_len;
     /** number of buckets in the TLV bucket_list[] */
     A_UINT32     num_buckets;
+    /** in number of scans, send notifications to host after these many scans */
+    A_UINT32    report_threshold_num_scans;
     /** number of channels in channel_list[] determined by the
         sum of wmi_extscan_bucket.num_channels in array  */
 
@@ -8839,10 +8856,12 @@ typedef struct {
     A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**bssid */
     wmi_mac_addr    bssid;
-    /**RSSI threshold for reporting */
+    /**RSSI min threshold for reporting */
     A_UINT32        min_rssi;
-    /**channel number */
+    /**Deprecated entry - channel number */
     A_UINT32        channel;
+    /** RSSI max threshold for reporting */
+    A_UINT32        max_rssi;
 } wmi_extscan_hotlist_entry;
 
 typedef struct {
@@ -8863,6 +8882,8 @@ typedef struct {
     A_UINT32    first_entry_index;
     /**number of bssids in this page */
     A_UINT32    num_entries_in_page;
+    /** number of consecutive scans to confirm loss of contact with AP */
+    A_UINT32    lost_ap_scan_count;
     /* Following this structure is the TLV:
      *     wmi_extscan_hotlist_entry hotlist[];    // number of elements given by field num_page_entries.
      */
@@ -9009,12 +9030,21 @@ typedef struct {
     A_UINT32     maximum_entries;
 } wmi_extscan_table_usage_event_fixed_param;
 
+typedef enum {
+    WMI_SCAN_STATUS_INTERRUPTED = 1      /* Indicates scan got interrupted i.e. aborted or pre-empted for a long time (> 1sec)
+                                            this can be used to discard scan results */
+} wmi_scan_status_flags;
+
 typedef struct {
     A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**RSSI */
     A_UINT32    rssi;
     /**time stamp in seconds */
     A_UINT32    tstamp;
+    /** Extscan cycle during which this entry was scanned */
+    A_UINT32    scan_cycle_id;
+    /** flag to indicate if the given result was obtained as part of interrupted (aborted/large time gap preempted) scan */
+    A_UINT32    flags;
 } wmi_extscan_rssi_info;
 
 typedef struct {
