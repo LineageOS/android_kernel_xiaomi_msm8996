@@ -675,6 +675,7 @@ typedef struct tagCsrConfig
     v_U8_t conc_custom_rule1;
     v_U8_t conc_custom_rule2;
     v_U8_t is_sta_connection_in_5gz_enabled;
+    struct roam_ext_params roam_params;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

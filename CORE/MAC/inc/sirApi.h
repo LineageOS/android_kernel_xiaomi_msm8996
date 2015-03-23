@@ -3700,6 +3700,30 @@ typedef enum {
         SIR_ROAMING_DFS_CHANNEL_ENABLED_NORMAL = 1,
         SIR_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE = 2
 } eSirDFSRoamScanMode;
+#define MAX_SSID_ALLOWED_LIST 4
+#define MAX_BSSID_AVOID_LIST  16
+#define MAX_BSSID_FAVORED     16
+struct roam_ext_params {
+	uint8_t num_bssid_avoid_list;
+	uint8_t num_ssid_allowed_list;
+	uint8_t num_bssid_favored;
+	tSirMacSSid ssid_allowed_list[MAX_SSID_ALLOWED_LIST];
+	tSirMacAddr bssid_avoid_list[MAX_BSSID_AVOID_LIST];
+	tSirMacAddr bssid_favored[MAX_BSSID_FAVORED];
+	uint8_t bssid_favored_factor[MAX_BSSID_FAVORED];
+	int raise_rssi_thresh_5g;
+	int drop_rssi_thresh_5g;
+	uint8_t raise_rssi_type_5g;
+	uint8_t raise_factor_5g;
+	uint8_t drop_rssi_type_5g;
+	uint8_t drop_factor_5g;
+	int max_raise_rssi_5g;
+	int max_drop_rssi_5g;
+	int good_rssi_threshold;
+	int rssi_diff;
+	int good_rssi_roam;
+	bool is_5g_pref_enabled;
+};
 
 typedef struct sSirRoamOffloadScanReq
 {
@@ -3712,7 +3736,7 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8     RoamRssiDiff;
   tANI_U8     ChannelCacheType;
   tANI_U8     Command;
-  tANI_U8     StartScanReason;
+  tANI_U8     reason;
   tANI_U16    NeighborScanTimerPeriod;
   tANI_U16    NeighborRoamScanRefreshPeriod;
   tANI_U16    NeighborScanChannelMinTime;
@@ -3759,6 +3783,8 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U32  R0KH_ID_Length;
   tANI_U8   RoamKeyMgmtOffloadEnabled;
 #endif
+  struct roam_ext_params roam_params;
+
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
 typedef struct sSirRoamOffloadScanRsp

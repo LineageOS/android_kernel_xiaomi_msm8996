@@ -16681,7 +16681,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     pRequestBuf->RoamRssiDiff =
             pMac->roam.configParam.RoamRssiDiff;
     pRequestBuf->Command = command;
-    pRequestBuf->StartScanReason = reason;
+    pRequestBuf->reason = reason;
     pRequestBuf->NeighborScanTimerPeriod =
             pNeighborRoamInfo->cfgParams.neighborScanPeriod;
     pRequestBuf->NeighborRoamScanRefreshPeriod =
@@ -16900,6 +16900,8 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        csrRoamOffload(pMac, pRequestBuf, pSession);
    }
 #endif
+   vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
+       sizeof(pRequestBuf->roam_params));
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;
