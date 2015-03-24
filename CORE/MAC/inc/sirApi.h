@@ -102,6 +102,7 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 #define WLAN_EXTSCAN_MAX_BUCKETS                  16
 #define WLAN_EXTSCAN_MAX_HOTLIST_APS              128
 #define WLAN_EXTSCAN_MAX_SIGNIFICANT_CHANGE_APS   64
+#define WLAN_EXTSCAN_MAX_HOTLIST_SSIDS            8
 
 typedef enum
 {
@@ -123,6 +124,7 @@ typedef enum
     eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
     eSIR_EPNO_NETWORK_FOUND_IND,
     eSIR_PASSPOINT_NETWORK_FOUND_IND,
+    eSIR_EXTSCAN_HOTLIST_SSID_MATCH_IND,
 
     /* Keep this last */
     eSIR_EXTSCAN_CALLBACK_TYPE_MAX,
@@ -4996,6 +4998,26 @@ struct extscan_cached_scan_result
 };
 
 /**
+ * struct tSirWifiScanResultEvent - wifi scan result event
+ * @requestId: request identifier
+ * @ap_found: flag to indicate ap found or not
+ *		true: AP was found
+ *		false: AP was lost
+ * @numOfAps: number of aps
+ * @moreData: more data
+ * @ap: bssid information
+ *
+ */
+typedef struct
+{
+	uint32_t     requestId;
+	bool         ap_found;
+	uint32_t     numOfAps;
+	bool         moreData;
+	tSirWifiScanResult   ap[];
+} tSirWifiScanResultEvent, *tpSirWifiScanResultEvent;
+
+/**
  * struct extscan_cached_scan_results - extscan cached scan results
  * @request_id: request identifier
  * @more_data: 0 - for last fragment
@@ -5177,6 +5199,37 @@ typedef struct
     tANI_U32    status;
 } tSirExtScanResetBssidHotlistRspParams,
   *tpSirExtScanResetBssidHotlistRspParams;
+
+/**
+ * struct sir_ssid_hotlist_param - param for SSID Hotlist
+ * @ssid: SSID which is being hotlisted
+ * @band: Band in which the given SSID should be scanned
+ * @rssi_low: Low bound on RSSI
+ * @rssi_high: High bound on RSSI
+ */
+struct sir_ssid_hotlist_param {
+	tSirMacSSid ssid;
+	uint8_t band;
+	int32_t rssi_low;
+	int32_t rssi_high;
+};
+
+/**
+ * struct sir_set_ssid_hotlist_request - set SSID hotlist request struct
+ * @request_id: ID of the request
+ * @session_id: ID of the session
+ * @lost_ssid_sample_size: Number of consecutive scans in which the SSID
+ *	must not be seen in order to consider the SSID "lost"
+ * @ssid_count: Number of valid entries in the @ssids array
+ * @ssids: Array that defines the SSIDs that are in the hotlist
+ */
+struct sir_set_ssid_hotlist_request {
+	uint32_t request_id;
+	uint8_t session_id;
+	uint32_t lost_ssid_sample_size;
+	uint32_t ssid_count;
+	struct sir_ssid_hotlist_param ssids[WLAN_EXTSCAN_MAX_HOTLIST_SSIDS];
+};
 
 typedef struct
 {
