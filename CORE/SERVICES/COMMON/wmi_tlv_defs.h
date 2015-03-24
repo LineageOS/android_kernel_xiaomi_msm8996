@@ -553,6 +553,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_roam_filter_fixed_param,
     WMITLV_TAG_STRUC_wmi_passpoint_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_passpoint_event_hdr,
+    WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_extscan_hotlist_ssid_match_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -732,6 +734,7 @@ typedef enum {
     OP(WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID) \
     OP(WMI_EXTSCAN_SET_CAPABILITIES_CMDID) \
     OP(WMI_EXTSCAN_GET_CAPABILITIES_CMDID) \
+    OP(WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID) \
     OP(WMI_D0_WOW_ENABLE_DISABLE_CMDID) \
     OP(WMI_UNIT_TEST_CMDID) \
     OP(WMI_ROAM_SYNCH_COMPLETE) \
@@ -847,6 +850,7 @@ typedef enum {
     OP(WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID) \
     OP(WMI_EXTSCAN_HOTLIST_MATCH_EVENTID) \
     OP(WMI_EXTSCAN_CAPABILITIES_EVENTID) \
+    OP(WMI_EXTSCAN_HOTLIST_SSID_MATCH_EVENTID) \
     OP(WMI_D0_WOW_DISABLE_ACK_EVENTID) \
     OP(WMI_ROAM_SYNCH_EVENTID) \
     OP(WMI_LPI_STATUS_EVENTID) \
@@ -1090,6 +1094,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_SET_CAPABILITIES_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extscan_get_capabilities_cmd_fixed_param, wmi_extscan_get_capabilities_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_GET_CAPABILITIES_CMDID);
+
+/* Start SSID Hot List Monitoring Cmd */
+#define WMITLV_TABLE_WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param, wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_extscan_hotlist_ssid_entry, hotlist_ssid, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID);
 
 /* P2P set vendor ID data Cmd */
 #define WMITLV_TABLE_WMI_P2P_SET_VENDOR_IE_DATA_CMDID(id,op,buf,len) \
@@ -2209,6 +2220,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_HOTLIST_MATCH_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_extscan_hotlist_monitor_capabilities, hotlist_capabilities, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_CAPABILITIES_EVENTID);
+
+/* ExtScan Hot List Match Event */
+#define WMITLV_TABLE_WMI_EXTSCAN_HOTLIST_SSID_MATCH_EVENTID(id,op,buf,len)                                                                                                 \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extscan_hotlist_ssid_match_event_fixed_param, wmi_extscan_hotlist_ssid_match_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_extscan_wlan_descriptor, hotlist_ssid_match, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_HOTLIST_SSID_MATCH_EVENTID);
 
 /* Update_whal_mib_stats Event */
 #define WMITLV_TABLE_WMI_UPDATE_WHAL_MIB_STATS_EVENTID(id,op,buf,len)                                                                                                 \

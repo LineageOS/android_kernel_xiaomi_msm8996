@@ -748,6 +748,7 @@ typedef enum {
     WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID,
     WMI_EXTSCAN_SET_CAPABILITIES_CMDID,
     WMI_EXTSCAN_GET_CAPABILITIES_CMDID,
+    WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID,
 
     /** DHCP server offload commands */
     WMI_SET_DHCP_SERVER_OFFLOAD_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_DHCP_OFL),
@@ -1033,6 +1034,7 @@ typedef enum {
     WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
     WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
     WMI_EXTSCAN_CAPABILITIES_EVENTID,
+    WMI_EXTSCAN_HOTLIST_SSID_MATCH_EVENTID,
 
     /* mDNS offload events */
     WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
@@ -8890,6 +8892,43 @@ typedef struct {
 } wmi_extscan_configure_hotlist_monitor_cmd_fixed_param;
 
 typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**ssid */
+    wmi_ssid        ssid;
+    /**band */
+    A_UINT32        band;
+    /**RSSI threshold for reporting */
+    A_UINT32        min_rssi;
+    A_UINT32        max_rssi;
+} wmi_extscan_hotlist_ssid_entry;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param */
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting hotlist ssid monitoring */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** operation mode: start/stop */
+    A_UINT32    mode;    // wmi_extscan_operation_mode
+    /**total number of ssids (in all pages) */
+    A_UINT32    total_entries;
+    /**index of the first ssid entry found in the TLV wmi_extscan_hotlist_ssid_entry*/
+    A_UINT32    first_entry_index;
+    /**number of ssids in this page */
+    A_UINT32    num_entries_in_page;
+    /** number of consecutive scans to confirm loss of an ssid **/
+    A_UINT32    lost_ap_scan_count;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_hotlist_ssid_entry hotlist_ssid[];    // number of elements given by field num_page_entries.
+     */
+} wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param;
+
+
+typedef struct {
     A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /** table ID - to allow support for multiple simultaneous tables */
     A_UINT32    table_id;
@@ -9189,6 +9228,27 @@ typedef struct {
 } wmi_extscan_hotlist_match_event_fixed_param;
 
 typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_hotlist_match_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_request_id;
+    /** Requestor ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**total number of ssids (in all pages) */
+    A_UINT32     total_entries;
+    /**index of the first ssid entry found in the TLV wmi_extscan_wlan_descriptor*/
+    A_UINT32     first_entry_index;
+    /**number of ssids in this page */
+    A_UINT32     num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_wlan_descriptor hotlist_match[];    // number of descriptors given by field num_entries_in_page.
+     */
+} wmi_extscan_hotlist_ssid_match_event_fixed_param;
+
+typedef struct {
     A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_capabilities_event_fixed_param */
     /** Request ID of the WMI_EXTSCAN_GET_CAPABILITIES_CMDID */
     A_UINT32     request_id;
@@ -9214,6 +9274,17 @@ typedef struct {
     A_UINT32     num_extscan_wlan_change_capabilities;
     /** number of extscan hotlist capabilities (one per table)  */
     A_UINT32     num_extscan_hotlist_capabilities;
+    /* max number of roaming ssid whitelist firmware can support */
+    A_UINT32 num_roam_ssid_whitelist;
+    /* max number of blacklist bssid firmware can support */
+    A_UINT32 num_roam_bssid_blacklist;
+    /* max number of preferred list firmware can support */
+    A_UINT32 num_roam_bssid_preferred_list;
+    /* max number of hotlist ssids firmware can support */
+    A_UINT32 num_extscan_hotlist_ssid;
+    /* max number of epno networks firmware can support */
+    A_UINT32 num_epno_networks;
+
     /* Following this structure are the TLVs describing the capabilities of of the various types of lists. The FW theoretically
      * supports multiple lists of each type.
      *
