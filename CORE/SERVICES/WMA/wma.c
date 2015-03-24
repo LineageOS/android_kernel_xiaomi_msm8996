@@ -5985,6 +5985,7 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 	}
 	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
 	if (!peer) {
+		WMA_LOGE("%s : Unable to attach peer %pM", __func__, peer_addr);
 		goto err;
 	}
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
