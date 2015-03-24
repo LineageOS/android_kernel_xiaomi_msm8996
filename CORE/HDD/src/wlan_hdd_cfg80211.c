@@ -9208,7 +9208,7 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
        )
     {
         beacon_data_t  *old, *new;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
 
