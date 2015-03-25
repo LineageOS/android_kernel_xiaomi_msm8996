@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2014, 2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -143,7 +143,7 @@ void HTCDump(HTC_HANDLE HTCHandle, u_int8_t CmdId, bool start)
 static void HTCCleanup(HTC_TARGET *target)
 {
     HTC_PACKET *pPacket;
-    //adf_nbuf_t netbuf;
+    adf_nbuf_t netbuf;
 
     if (target->hif_dev != NULL) {
         HIFDetachHTC(target->hif_dev);
@@ -164,6 +164,12 @@ static void HTCCleanup(HTC_TARGET *target)
     pPacket = target->pBundleFreeTxList;
     while (pPacket) {
         HTC_PACKET *pPacketTmp = (HTC_PACKET *)pPacket->ListLink.pNext;
+        if(pPacket->pContext != NULL) {
+           A_FREE(pPacket->pContext);
+        }
+        netbuf = GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+        if(netbuf != NULL)
+            adf_nbuf_free(netbuf);
         A_FREE(pPacket);
         pPacket = pPacketTmp;
     }
