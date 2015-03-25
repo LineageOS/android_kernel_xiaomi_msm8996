@@ -3671,6 +3671,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN,
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX),
 
+   REG_VARIABLE(CFG_INFORM_BSS_RSSI_RAW_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, inform_bss_rssi_raw,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_INFORM_BSS_RSSI_RAW_DEFAULT,
+                CFG_INFORM_BSS_RSSI_RAW_MIN,
+                CFG_INFORM_BSS_RSSI_RAW_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID

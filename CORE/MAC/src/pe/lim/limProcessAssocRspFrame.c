@@ -329,7 +329,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
               "and mlmstate: %d RSSI %d from "MAC_ADDRESS_STR),subType,
               psessionEntry->peSessionId,
               GET_LIM_SYSTEM_ROLE(psessionEntry), psessionEntry->limMlmState,
-              (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)),
+              (uint)abs((tANI_S8)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo)),
               MAC_ADDR_ARRAY(pHdr->sa));
 
     pBeaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
