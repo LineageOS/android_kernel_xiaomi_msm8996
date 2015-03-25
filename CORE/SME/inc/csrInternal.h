@@ -80,6 +80,10 @@
 ( \
    (((pMac)->roam.configParam.nSelect5GHzMargin)?eANI_BOOLEAN_TRUE:eANI_BOOLEAN_FALSE) \
 )
+#define CSR_IS_SELECT_5G_PREFERRED(pMac) \
+( \
+   (((pMac)->roam.configParam.roam_params.is_5g_pref_enabled)?eANI_BOOLEAN_TRUE:eANI_BOOLEAN_FALSE) \
+)
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 #define CSR_IS_ROAM_PREFER_5GHZ( pMac ) \

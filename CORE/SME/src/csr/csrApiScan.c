@@ -1921,22 +1921,69 @@ eHalStatus csrScanResultPurge(tpAniSirGlobal pMac, tScanResultHandle hScanList)
 }
 
 
-static tANI_U32 csrGetBssPreferValue(tpAniSirGlobal pMac, int rssi)
+static tANI_U32 csrGetBssPreferValue(tpAniSirGlobal pMac, int rssi,
+		int roaming_scan, tCsrBssid *bssid, int channel_id)
 {
-    tANI_U32 ret = 0;
-    int i = CSR_NUM_RSSI_CAT - 1;
+	tANI_U32 ret = 0;
+	int i, modified_thresh;
+	struct roam_ext_params *roam_params;
 
-    while(i >= 0)
-    {
-        if(rssi >= pMac->roam.configParam.RSSICat[i])
-        {
-            ret = pMac->roam.configParam.BssPreferValue[i];
-            break;
-        }
-        i--;
-    };
+	if (roaming_scan) {
+		roam_params = &pMac->roam.configParam.roam_params;
+		/* If the 5G pref feature is enabled, apply the roaming
+		 * parameters to boost or penalize the rssi.*/
+		if (CSR_IS_SELECT_5G_PREFERRED(pMac) &&
+				CSR_IS_CHANNEL_5GHZ(channel_id)) {
+			/*
+			 * Boost Factor =
+			 *       boost_factor * (Actual RSSI - boost Threshold)
+			 * Penalty Factor =
+			 *    penalty factor * (penalty threshold - Actual RSSI)
+			 */
+			/* Check and boost the threshold*/
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				FL("Actual RSSI: %d"), rssi);
+			if (rssi > roam_params->raise_rssi_thresh_5g) {
+				modified_thresh = roam_params->raise_factor_5g *
+				(rssi - roam_params->raise_rssi_thresh_5g);
+				rssi += CSR_MAX(roam_params->max_raise_rssi_5g,
+						modified_thresh);
+			}
+			/* Check and penalize the threshold */
+			else if(rssi < roam_params->drop_rssi_thresh_5g) {
+				modified_thresh = roam_params->drop_factor_5g *
+				(roam_params->drop_rssi_thresh_5g - rssi);
+				rssi -= CSR_MAX(roam_params->max_drop_rssi_5g,
+					modified_thresh);
+			}
+		}
+		/* Check if there are preferred bssid and then apply the
+		 * preferred score*/
+		if (roam_params->num_bssid_favored) {
+			for (i=0; i<roam_params->num_bssid_favored; i++) {
+				if (csrIsMacAddressEqual(pMac,
+					&roam_params->bssid_favored[i],
+					bssid)) {
+				rssi += roam_params->bssid_favored_factor[i];
+				}
+			}
+		}
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				FL("Modified RSSI: %d"), rssi);
+	}
 
-    return (ret);
+	i = CSR_NUM_RSSI_CAT - 1;
+	while(i >= 0)
+	{
+		if(rssi >= pMac->roam.configParam.RSSICat[i])
+		{
+			ret = pMac->roam.configParam.BssPreferValue[i];
+			break;
+		}
+		i--;
+	};
+
+	return (ret);
 }
 
 
@@ -1945,7 +1992,7 @@ static tANI_U32 csrGetBssCapValue(tpAniSirGlobal pMac, tSirBssDescription *pBssD
 {
     tANI_U32 ret = CSR_BSS_CAP_VALUE_NONE;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
-    if(CSR_IS_ROAM_PREFER_5GHZ(pMac))
+    if(CSR_IS_ROAM_PREFER_5GHZ(pMac) || CSR_IS_SELECT_5G_PREFERRED(pMac))
     {
         if((pBssDesc) && CSR_IS_CHANNEL_5GHZ(pBssDesc->channelId))
         {
@@ -2046,9 +2093,8 @@ static void csrScanAddResult(tpAniSirGlobal pMac, tCsrScanResult *pResult,
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
                                         &pMac->roam.neighborRoamInfo[sessionId];
 #endif
-
-    pResult->preferValue =
-            csrGetBssPreferValue(pMac, (int)pResult->Result.BssDescriptor.rssi);
+    pResult->preferValue = csrGetBssPreferValue(pMac,
+        (int)pResult->Result.BssDescriptor.rssi, 0, NULL, 0);
     pResult->capValue =
             csrGetBssCapValue(pMac, &pResult->Result.BssDescriptor, pIes);
     csrLLInsertTail( &pMac->scan.scanResultList, &pResult->Link, LL_ACCESS_LOCK );
@@ -2078,27 +2124,38 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
     tDot11fBeaconIEs *pIes, *pNewIes;
     tANI_BOOLEAN fMatch;
     tANI_U16 i = 0;
+    struct roam_ext_params *roam_params = NULL;
 
     if(phResult)
     {
         *phResult = CSR_INVALID_SCANRESULT_HANDLE;
     }
 
-    if (pMac->roam.configParam.nSelect5GHzMargin)
+    if (pMac->roam.configParam.nSelect5GHzMargin ||
+	(CSR_IS_SELECT_5G_PREFERRED(pMac) && pFilter->scan_filter_for_roam))
     {
         pMac->scan.inScanResultBestAPRssi = -128;
+	roam_params = &pMac->roam.configParam.roam_params;
 #ifdef WLAN_DEBUG_ROAM_OFFLOAD
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                   FL("nSelect5GHzMargin"));
 #endif
         csrLLLock(&pMac->scan.scanResultList);
-
+  /* For roaming scans and 5G preferred roaming, there is no
+   * need to check the filter match and also re-program the
+   * RSSI bucket categories, since we use the RSSI values
+   * while setting the preference value for the BSS.
+   * There is no need to check the match for roaming since
+   * it is already done.*/
+	if(!(CSR_IS_SELECT_5G_PREFERRED(pMac)
+               && pFilter->scan_filter_for_roam)) {
         /* Find out the best AP Rssi going thru the scan results */
         pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
         while ( NULL != pEntry)
         {
             pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
             fMatch = FALSE;
+
 
             if (pFilter)
             for(i = 0; i < pFilter->SSIDs.numOfSSIDs; i++)
@@ -2160,19 +2217,29 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
             }
             pEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
         }
+   }
 
-        if ( -128 != pMac->scan.inScanResultBestAPRssi)
+        if ((-128 != pMac->scan.inScanResultBestAPRssi) ||
+		(CSR_IS_SELECT_5G_PREFERRED(pMac) &&
+                 pFilter->scan_filter_for_roam))
         {
             smsLog(pMac, LOG1, FL("Best AP Rssi is %d"), pMac->scan.inScanResultBestAPRssi);
             /* Modify Rssi category based on best AP Rssi */
+	    if (-128 != pMac->scan.inScanResultBestAPRssi)
             csrAssignRssiForCategory(pMac, pMac->scan.inScanResultBestAPRssi, pMac->roam.configParam.bCatRssiOffset);
+
             pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
             while ( NULL != pEntry)
             {
                 pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
 
-                /* re-assign preference value based on modified rssi bucket */
-                pBssDesc->preferValue = csrGetBssPreferValue(pMac, (int)pBssDesc->Result.BssDescriptor.rssi);
+                /* re-assign preference value based on (modified rssi bucket (or)
+                 * prefer 5G feature.*/
+                pBssDesc->preferValue = csrGetBssPreferValue(pMac,
+                  (int)pBssDesc->Result.BssDescriptor.rssi,
+                  pFilter->scan_filter_for_roam,
+                  &pBssDesc->Result.BssDescriptor.bssId,
+                  pBssDesc->Result.BssDescriptor.channelId);
 
                 smsLog(pMac, LOG2, FL("BSSID("MAC_ADDRESS_STR
                        ") Rssi(%d) Chnl(%d) PrefVal(%u) SSID=%.*s"),
