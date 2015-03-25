@@ -3977,6 +3977,9 @@ eHalStatus sme_ResetSignificantChange (tHalHandle hHal,
 eHalStatus sme_getCachedResults (tHalHandle hHal,
                       tSirExtScanGetCachedResultsReqParams *pCachedResultsReq);
 
+eHalStatus sme_set_epno_list(tHalHandle hal,
+                                struct wifi_epno_params *req_msg);
+
 /* ---------------------------------------------------------------------------
     \fn sme_ExtScanRegisterCallback
     \brief  SME API to register extscan notification callback
@@ -4276,4 +4279,10 @@ bool sme_validate_sap_channel_switch(tHalHandle hal,
 					eCsrPhyMode sap_phy_mode,
 					uint8_t cc_switch_mode,
 					uint32_t session_id);
+
+eHalStatus sme_configure_stats_avg_factor(tHalHandle hHal, tANI_U8 session_id,
+					  tANI_U16 stats_avg_factor);
+
+eHalStatus sme_configure_guard_time(tHalHandle hHal, tANI_U8 session_id,
+                                    tANI_U32 guard_time);
 #endif //#if !defined( __SME_API_H )

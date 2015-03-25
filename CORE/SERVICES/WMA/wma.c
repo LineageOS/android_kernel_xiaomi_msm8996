@@ -2826,26 +2826,26 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 		return -EINVAL;
 	}
 	dest_capab->requestId = event->request_id;
-	dest_capab->scanBuckets = src_cache->max_buckets;
-	dest_capab->scanCacheSize = src_cache->scan_cache_entry_size;
-	dest_capab->maxApPerScan = src_cache->max_bssid_per_scan;
-	dest_capab->maxScanReportingThreshold =
+	dest_capab->max_scan_buckets = src_cache->max_buckets;
+	dest_capab->max_scan_cache_size = src_cache->scan_cache_entry_size;
+	dest_capab->max_ap_cache_per_scan = src_cache->max_bssid_per_scan;
+	dest_capab->max_scan_reporting_threshold =
 				src_cache->max_table_usage_threshold;
 
-	dest_capab->maxHotlistAPs = src_hotlist->max_hotlist_entries;
-	dest_capab->maxRssiSampleSize =
+	dest_capab->max_hotlist_aps = src_hotlist->max_hotlist_entries;
+	dest_capab->max_rssi_sample_size =
 				src_change->max_rssi_averaging_samples;
-	dest_capab->maxBsidHistoryEntries =
+	dest_capab->max_bssid_history_entries =
 				src_change->max_rssi_history_entries;
-	dest_capab->maxSignificantWifiChangeAPs =
+	dest_capab->max_significant_wifi_change_aps =
 				src_change->max_wlan_change_entries;
 	dest_capab->status = 0;
 
-	WMA_LOGD("%s: Capabilities: scanBuckets: %d,"
-		 "maxHotlistAPs: %d,scanCacheSize: %d",
-		 __func__, dest_capab->scanBuckets,
-		dest_capab->maxHotlistAPs,
-		dest_capab->scanCacheSize);
+	WMA_LOGD("%s: Capabilities: max_scan_buckets: %d,"
+		 "max_hotlist_aps: %d,max_scan_cache_size: %d",
+		 __func__, dest_capab->max_scan_buckets,
+		dest_capab->max_hotlist_aps,
+		dest_capab->max_scan_cache_size);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
@@ -2861,7 +2861,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_EXTSCAN_HOTLIST_MATCH_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_hotlist_match_event_fixed_param  *event;
-	tSirWifiScanResultEvent  *dest_hotlist;
+	struct extscan_hotlist_match  *dest_hotlist;
 	tSirWifiScanResult      *dest_ap;
 	wmi_extscan_wlan_descriptor    *src_hotlist;
 	int numap;
@@ -2934,13 +2934,18 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_cached_results_event_fixed_param  *event;
-	tSirWifiScanResultEvent *dest_cachelist;
+	struct extscan_cached_scan_results *dest_cachelist;
+	struct extscan_cached_scan_result *dest_result;
+	struct extscan_cached_scan_results empty_cachelist;
 	tSirWifiScanResult  *dest_ap;
 	wmi_extscan_wlan_descriptor  *src_hotlist;
 	wmi_extscan_rssi_info  *src_rssi;
-	int numap;
-	int j;
-	int moredata;
+	int numap, i, j, moredata, scan_ids_cnt;
+	int prev_scan_id, buf_len;
+	wmi_extscan_wlan_descriptor  *src_hotlist1;
+	wmi_extscan_rssi_info  *src_rssi1;
+	char bssid1[6];
+	char ssid1[33];
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
@@ -2958,60 +2963,173 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		WMA_LOGE("%s: Invalid cached results event", __func__);
 		return -EINVAL;
 	}
+
 	event = param_buf->fixed_param;
 	src_hotlist = param_buf->bssid_list;
 	src_rssi = param_buf->rssi_list;
-	if (!src_hotlist || !src_rssi) {
-		WMA_LOGE("%s: Cached_results AP's list invalid",
-			__func__);
-		return -EINVAL;
-        }
-	if (event->first_entry_index +
-		event->num_entries_in_page < event->total_entries) {
-		moredata = 1;
-	} else {
-		moredata = 0;
-	}
 	numap = event->num_entries_in_page;
-	if (!src_hotlist || !numap) {
-		WMA_LOGE("%s: cached results AP's list invalid", __func__);
-		return -EINVAL;
+	WMA_LOGD("nummap (%d)\n", numap);
+	if (!src_hotlist || !src_rssi || !numap) {
+		WMA_LOGE("%s: Cached results empty, send 0 results", __func__);
+		goto noresults;
+        }
+
+	if (event->first_entry_index +
+		event->num_entries_in_page < event->total_entries)
+		moredata = 1;
+	else
+		moredata = 0;
+
+	src_hotlist1 = src_hotlist;
+	src_rssi1 = src_rssi;
+	/* Just print fw data */
+	WMA_LOGD("request id (%d)\n", event->request_id);
+	WMA_LOGD("more data (%d)\n", moredata);
+	WMA_LOGD("requestor_id (%u)\n", event->requestor_id);
+	WMA_LOGD("vdev_id (%u)\n", event->vdev_id);
+	WMA_LOGD("extscan_request_id (%u)\n", event->extscan_request_id);
+	WMA_LOGD("extscan_requestor_id (%u)\n", event->extscan_requestor_id);
+	WMA_LOGD("extscan_vdev_id (%u)\n", event->extscan_vdev_id);
+	WMA_LOGD("table id(%u)\n", event->table_id);
+	WMA_LOGD("current_tstamp(%u)\n", event->current_tstamp);
+	WMA_LOGD("total_entries(%u)\n", event->total_entries);
+	WMA_LOGD("first_entry_index (%u)\n", event->first_entry_index);
+	WMA_LOGD("num_entries_in_page(%u)\n", event->num_entries_in_page);
+
+	WMA_LOGE("bssid list \n");
+	for (i = 0; i < numap; i++) {
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist1->bssid, bssid1);
+		vos_mem_set (ssid1, 33, '\0');
+		vos_mem_copy(ssid1, src_hotlist1->ssid.ssid, src_hotlist1->ssid.ssid_len);
+		WMA_LOGD("bssid %02x:%02x:%02x:%02x:%02x:%02x\n", bssid1[0], bssid1[1], bssid1[2], bssid1[3], bssid1[4], bssid1[5]);
+		WMA_LOGD("ssid (%s)\n", ssid1);
+		WMA_LOGD("channel (%u)\n", src_hotlist1->channel);
+		WMA_LOGD("capability (%u)\n", src_hotlist1->capabilities);
+		WMA_LOGD("beacon interval (%u)\n", src_hotlist1->beacon_interval);
+		WMA_LOGD("tstamp (%u)\n", src_hotlist1->tstamp);
+		WMA_LOGD("flags (%d)\n", src_hotlist1->flags);
+		WMA_LOGD("rtt (%u)\n", src_hotlist1->rtt);
+		WMA_LOGD("rtt_sd (%u)\n", src_hotlist1->rtt_sd);
+		WMA_LOGD("number_rssi_samples (%u)\n", src_hotlist1->number_rssi_samples);
+		WMA_LOGD("ie length (%u)\n", src_hotlist1->ie_length);
+		src_hotlist1++;
 	}
-	dest_cachelist = vos_mem_malloc(sizeof(*dest_cachelist) +
-					sizeof(*dest_ap) * numap);
+
+	WMA_LOGE("rssi list \n");
+	for (i = 0; i < numap; i++) {
+		WMA_LOGD("rssi (%d)\n", src_rssi1->rssi);
+		WMA_LOGD("tstamp (%u)\n", src_rssi1->tstamp);
+		WMA_LOGD("scan id (%d)\n", src_rssi1->scan_cycle_id);
+		WMA_LOGD("flags (%d)\n", src_rssi1->flags);
+		src_rssi1++;
+	}
+
+
+	/* Find the unique number of scan_id's for grouping */
+	prev_scan_id = src_rssi->scan_cycle_id;
+	WMA_LOGD("%s: numap(%d) prev_scan_id(%d) scan_cycle_id(%d)",
+		 __func__, numap, prev_scan_id, src_rssi->scan_cycle_id);
+
+	scan_ids_cnt = 1;
+	for (j = 1; j < numap; j++) {
+		src_rssi++;
+
+		if (prev_scan_id != src_rssi->scan_cycle_id) {
+			scan_ids_cnt++;
+			prev_scan_id = src_rssi->scan_cycle_id;
+			WMA_LOGD("%s: prev_scan_id(%d) scan_cycle_id(%d)",
+			 __func__, prev_scan_id, src_rssi->scan_cycle_id);
+		}
+	}
+	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
+	buf_len = sizeof(*dest_cachelist) +
+			(sizeof(*dest_result) * scan_ids_cnt) +
+			(sizeof(*dest_ap) * numap);
+	dest_cachelist = vos_mem_malloc(buf_len);
 	if (!dest_cachelist) {
 		WMA_LOGE("%s: Allocation failed for cached"
 			"results event", __func__);
-		return -EINVAL;
+		return -ENOMEM;
 	}
-	dest_ap = &dest_cachelist->ap[0];
-	dest_cachelist->requestId = event->request_id;
-	dest_cachelist->numOfAps = event->num_entries_in_page;
-	dest_cachelist->moreData = moredata;
+	vos_mem_zero(dest_cachelist, buf_len);
+	dest_cachelist->request_id = event->request_id;
+	dest_cachelist->more_data = moredata;
+	dest_cachelist->num_scan_ids = scan_ids_cnt;
+	dest_result = &dest_cachelist->result[0];
+	dest_ap = &dest_result->ap[0];
 
+	src_rssi = param_buf->rssi_list;
+	prev_scan_id = dest_result->scan_id = src_rssi->scan_cycle_id;
+	dest_result->flags = src_rssi->flags;
+	dest_result->num_results = 0;
 	for (j = 0; j < numap; j++) {
+		if (prev_scan_id == src_rssi->scan_cycle_id) {
+			dest_result->num_results++;
+		} else {
+			dest_result++;
+			prev_scan_id = dest_result->scan_id =
+						src_rssi->scan_cycle_id;
+			dest_result->flags = src_rssi->flags;
+			dest_result->num_results = 0;
+			dest_ap = &dest_result->ap[0];
+		}
 		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = src_hotlist->tstamp * WMA_SEC_TO_USEC;
+		dest_ap->ts = src_rssi->tstamp * WMA_SEC_TO_USEC;
 		dest_ap->rtt = src_hotlist->rtt;
 		dest_ap->rtt_sd = src_hotlist->rtt_sd;
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
 		dest_ap->capability = src_hotlist->capabilities;
-		dest_ap->ieLength = src_hotlist-> ie_length;
+		dest_ap->ieLength = src_hotlist->ie_length;
 		dest_ap->rssi = src_rssi->rssi;
-		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid, dest_ap->bssid);
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
+					dest_ap->bssid);
 
 		vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
-					src_hotlist->ssid.ssid_len);
+				src_hotlist->ssid.ssid_len);
 		dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
+
 		dest_ap++;
 		src_hotlist++;
 		src_rssi++;
 	}
+
+	/* Print the data */
+	WMA_LOGI("request id (%d)", dest_cachelist->request_id);
+	WMA_LOGI("more data (%d)", dest_cachelist->more_data);
+	WMA_LOGI("num_scan_ids (%d)", dest_cachelist->num_scan_ids);
+	dest_result = &dest_cachelist->result[0];
+	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
+		WMA_LOGI("scan id (%d)", dest_result->scan_id);
+		WMA_LOGI("flags (%d)", dest_result->flags);
+		WMA_LOGI("num results (%d)", dest_result->num_results);
+		dest_ap = &dest_result->ap[0];
+		for (j = 0; j < dest_result->num_results; j++) {
+			WMA_LOGI("ts (%llu)", dest_ap->ts);
+			WMA_LOGI("ssid (%s)", dest_ap->ssid);
+			WMA_LOGI("rtt (%u)", dest_ap->rtt);
+			WMA_LOGI("channel (%u)", dest_ap->channel);
+			WMA_LOGI("beacon period (%u)", dest_ap->beaconPeriod);
+			dest_ap++;
+		}
+		dest_result++;
+	}
+
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
 	WMA_LOGD("%s: sending cached results event", __func__);
 	vos_mem_free(dest_cachelist);
+	return 0;
+
+noresults:
+        empty_cachelist.request_id = event->request_id;
+        empty_cachelist.more_data = 0;
+        empty_cachelist.num_scan_ids = 0;
+
+	pMac->sme.pExtScanIndCb(pMac->hHdd,
+				eSIR_EXTSCAN_CACHED_RESULTS_IND,
+				&empty_cachelist);
+	WMA_LOGD("%s: sending cached results event", __func__);
 	return 0;
 }
 
@@ -3174,14 +3292,24 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 
 	WMA_LOGD("Iface Stats:");
 	WMA_LOGD("beacon_rx %u mgmt_rx %u mgmt_action_rx %u mgmt_action_tx %u "
-		"rssi_mgmt %u rssi_data %u rssi_ack %u num_peers %u "
-		"num_peer_events %u num_ac %u roam_state %u",
-		link_stats->beacon_rx, link_stats->mgmt_rx,
-		link_stats->mgmt_action_rx, link_stats->mgmt_action_tx,
-		link_stats->rssi_mgmt, link_stats->rssi_data,
-		link_stats->rssi_ack, link_stats->num_peers,
-		link_stats->num_peer_events, link_stats->num_ac,
-		link_stats->roam_state);
+		 "rssi_mgmt %u rssi_data %u rssi_ack %u num_peers %u "
+		 "num_peer_events %u num_ac %u roam_state %u"
+		 " avg_bcn_spread_offset_high %u"
+		 " avg_bcn_spread_offset_high %u"
+		 " is leaky_ap %u"
+		 " avg_rx_frames_leaked %u"
+		 " rx_leak_window %u",
+		 link_stats->beacon_rx, link_stats->mgmt_rx,
+		 link_stats->mgmt_action_rx, link_stats->mgmt_action_tx,
+		 link_stats->rssi_mgmt, link_stats->rssi_data,
+		 link_stats->rssi_ack, link_stats->num_peers,
+		 link_stats->num_peer_events, link_stats->num_ac,
+		 link_stats->roam_state,
+		 link_stats->avg_bcn_spread_offset_high,
+		 link_stats->avg_bcn_spread_offset_low,
+		 link_stats->is_leaky_ap,
+		 link_stats->avg_rx_frms_leaked,
+		 link_stats->rx_leak_window);
 
 	vos_mem_zero(link_stats_results, link_stats_results_size);
 
@@ -21803,7 +21931,8 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->min_dwell_time_passive = dwelltime;
 	cmd->max_dwell_time_passive = dwelltime;
 	cmd->max_bssids_per_scan_cycle = pstart->maxAPperScan;
-	cmd->max_table_usage = pstart->reportThreshold;
+	cmd->max_table_usage = pstart->report_threshold_percent;
+	cmd->report_threshold_num_scans = pstart->report_threshold_num_scans;
 
 	cmd->repeat_probe_time = WMA_EXTSCAN_REPEAT_PROBE;
 	cmd->max_scan_time = WMA_EXTSCAN_MAX_SCAN_TIME;
@@ -21857,6 +21986,9 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->bucket_id = src_bucket->bucket;
 		dest_blist->base_period_multiplier =
 				src_bucket->period / base_period;
+		dest_blist->max_period = 0;
+		dest_blist->exp_backoff = 0;
+		dest_blist->exp_max_step_count = 0;
 		dest_blist->channel_band = src_bucket->band;
 		dest_blist->num_channels = src_bucket->numChannels;
 		dest_blist->notify_extscan_events =
@@ -22102,7 +22234,6 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 					wmi_extscan_hotlist_entry));
 
 			dest_hotlist->min_rssi = src_ap->low;
-			dest_hotlist->channel = src_ap->channel;
 			WMI_CHAR_ARRAY_TO_MAC_ADDR(src_ap->bssid,
 						&dest_hotlist->bssid);
 
@@ -22278,12 +22409,10 @@ VOS_STATUS wma_get_buf_extscan_change_monitor_cmd(tp_wma_handle wma_handle,
 
 		dest_chglist->lower_rssi_limit = src_ap->low;
 		dest_chglist->upper_rssi_limit = src_ap->high;
-		dest_chglist->channel = src_ap->channel;
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(src_ap->bssid,
 					&dest_chglist->bssid);
 
-		WMA_LOGD("%s:channel:%x min_rssi %d",
-			__func__, dest_chglist->channel,
+		WMA_LOGD("%s:min_rssi %d", __func__,
 			dest_chglist->lower_rssi_limit);
 		dest_chglist++;
 		src_ap++;
@@ -22477,6 +22606,118 @@ VOS_STATUS  wma_extscan_get_capabilities(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
+}
+
+/** wma_set_epno_network_list() - set epno network list
+ * @wma: WMA handle
+ * @req: epno config params request structure
+ *
+ * This function reads the incoming epno config request structure
+ * and constructs the WMI message to the firmware.
+ *
+ * Returns: 0 on success, error number otherwise
+ */
+static int wma_set_epno_network_list(tp_wma_handle wma,
+					struct wifi_epno_params *req)
+{
+	wmi_nlo_config_cmd_fixed_param *cmd;
+	nlo_configured_parameters *nlo_list;
+	u_int8_t i, *buf_ptr;
+	wmi_buf_t buf;
+	uint32_t len;
+	int ret;
+
+	WMA_LOGD("wma_set_epno_network_list");
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue cmd", __func__);
+		return -EINVAL;
+	}
+	if (!WMI_SERVICE_IS_ENABLED(wma->wmi_service_bitmap,
+			WMI_SERVICE_EXTSCAN)) {
+		WMA_LOGE("%s: extscan not enabled", __func__);
+		return -EINVAL;
+	}
+
+	/* TLV place holder for array of structures
+	 * nlo_configured_parameters(nlo_list) */
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE;
+	len += sizeof(nlo_configured_parameters) *
+				MIN(req->num_networks, WMI_NLO_MAX_SSIDS);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_nlo_config_cmd_fixed_param *) wmi_buf_data(buf);
+
+	buf_ptr = (u_int8_t *) cmd;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_nlo_config_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			       wmi_nlo_config_cmd_fixed_param));
+	cmd->vdev_id = req->session_id;
+	cmd->flags = WMI_NLO_CONFIG_ENLO;
+
+	buf_ptr += sizeof(wmi_nlo_config_cmd_fixed_param);
+
+	cmd->no_of_ssids = MIN(req->num_networks, WMI_NLO_MAX_SSIDS);
+	WMA_LOGD("SSID count: %d", cmd->no_of_ssids);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		       cmd->no_of_ssids * sizeof(nlo_configured_parameters));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	nlo_list = (nlo_configured_parameters *) buf_ptr;
+	for (i = 0; i < cmd->no_of_ssids; i++) {
+		WMITLV_SET_HDR(&nlo_list[i].tlv_header,
+			WMITLV_TAG_ARRAY_BYTE,
+			WMITLV_GET_STRUCT_TLVLEN(nlo_configured_parameters));
+		/* Copy ssid and it's length */
+		nlo_list[i].ssid.valid = TRUE;
+		nlo_list[i].ssid.ssid.ssid_len = req->networks[i].ssid.length;
+		vos_mem_copy(nlo_list[i].ssid.ssid.ssid,
+			     req->networks[i].ssid.ssId,
+			     nlo_list[i].ssid.ssid.ssid_len);
+		WMA_LOGD("index: %d ssid: %.*s len: %d", i,
+			 nlo_list[i].ssid.ssid.ssid_len,
+			 (char *) nlo_list[i].ssid.ssid.ssid,
+			 nlo_list[i].ssid.ssid.ssid_len);
+
+		/* Copy rssi threshold */
+		nlo_list[i].rssi_cond.valid = TRUE;
+		nlo_list[i].rssi_cond.rssi =
+			req->networks[i].rssi_threshold;
+		WMA_LOGD("RSSI threshold : %d dBm",
+			nlo_list[i].rssi_cond.rssi);
+
+		/* Copy pno flags */
+		nlo_list[i].bcast_nw_type.valid = TRUE;
+		nlo_list[i].bcast_nw_type.bcast_nw_type =
+				req->networks[i].flags;
+		WMA_LOGD("PNO flags (%u)",
+				nlo_list[i].bcast_nw_type.bcast_nw_type);
+
+		/* Copy auth bit field */
+		nlo_list[i].auth_type.valid = TRUE;
+		nlo_list[i].auth_type.auth_type =
+				req->networks[i].auth_bit_field;
+		WMA_LOGD("Auth bit field (%u)",
+				nlo_list[i].auth_type.auth_type);
+	}
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send nlo wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("set ePNO list request sent successfully for vdev %d",
+		 req->session_id);
+
+	return 0;
 }
 #endif
 
@@ -23311,6 +23552,76 @@ VOS_STATUS wma_process_set_miracast(tp_wma_handle wma, u_int32_t *miracast_val)
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_config_stats_factor() - Function to configure stats avg. factor
+ * @wma:  pointer to WMA handle
+ * @avg_factor:	stats. avg. factor passed down by userspace
+ *
+ * This function configures the avg. stats value in firmware
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_config_stats_factor(tp_wma_handle wma,
+				   struct sir_stats_avg_factor *avg_factor)
+{
+	int ret;
+
+	if (NULL == wma || NULL == avg_factor) {
+		WMA_LOGE("%s: Invalid input of stats avg factor", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					    avg_factor->vdev_id,
+					    WMI_VDEV_PARAM_STATS_AVG_FACTOR,
+					    avg_factor->stats_avg_factor);
+	if (ret) {
+		WMA_LOGE(" failed to set avg_factor for vdev_id %d",
+			 avg_factor->vdev_id);
+	}
+
+	WMA_LOGD("%s: Set stats_avg_factor %d for vdev_id %d", __func__,
+		 avg_factor->stats_avg_factor, avg_factor->vdev_id);
+
+	return ret;
+}
+
+/**
+ * wma_config_guard_time() - Function to set guard time in firmware
+ * @wma:  pointer to WMA handle
+ * @guard_time:  guard time passed down by userspace
+ *
+ * This function configures the guard time in firmware
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+VOS_STATUS wma_config_guard_time(tp_wma_handle wma,
+				 struct sir_guard_time_request *guard_time)
+{
+	int ret;
+
+	if (NULL == wma || NULL == guard_time) {
+		WMA_LOGE("%s: Invalid input of guard time", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					      guard_time->vdev_id,
+					      WMI_VDEV_PARAM_RX_LEAK_WINDOW,
+					      guard_time->guard_time);
+	if (ret) {
+		WMA_LOGE(" failed to set guard time for vdev_id %d",
+			 guard_time->vdev_id);
+	}
+
+	WMA_LOGD("Set guard time %d for vdev_id %d",
+		 guard_time->guard_time, guard_time->vdev_id);
+
+	return ret;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -23861,6 +24172,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(tSirGetExtScanCapabilitiesReqParams *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 		break;
+		case WDA_SET_EPNO_LIST_REQ:
+			wma_set_epno_network_list(wma_handle,
+				(struct wifi_epno_params *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+		break;
 #endif
 		case WDA_SET_SCAN_MAC_OUI_REQ:
 			wma_scan_probe_setoui(wma_handle, msg->bodyptr);
@@ -24012,6 +24328,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_GET_FW_STATUS_REQ:
 			wma_send_echo_request(wma_handle);
+			break;
+		case SIR_HAL_CONFIG_STATS_FACTOR:
+			wma_config_stats_factor(wma_handle,
+				(struct sir_stats_avg_factor *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_CONFIG_GUARD_TIME:
+			wma_config_guard_time(wma_handle,
+				(struct sir_guard_time_request *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

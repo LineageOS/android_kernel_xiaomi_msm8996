@@ -513,12 +513,15 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
      (((t_packetmeta *)pRxMeta)->roamCandidateInd)
 #define WDA_GET_SESSIONID(pRxMeta) \
      (((t_packetmeta *)pRxMeta)->sessionId)
-
+#define WMA_GET_SCAN_SRC(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->scan_src)
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
 #define WMA_IS_EXTSCAN_SCAN_SRC(pRxMeta) \
-     ((((t_packetmeta *)pRxMeta)->scan_src) == WMI_MGMT_RX_HDR_EXTSCAN)
+     ((((t_packetmeta *)pRxMeta)->scan_src) & WMI_MGMT_RX_HDR_EXTSCAN)
+#define WMA_IS_EPNO_SCAN_SRC(pRxMeta) \
+     ((((t_packetmeta *)pRxMeta)->scan_src) & WMI_MGMT_RX_HDR_ENLO)
 #endif /* FEATURE_WLAN_EXTSCAN */
 
 #define WDA_GET_RX_SNR(pRxMeta) \
@@ -970,6 +973,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_EXTSCAN_SET_SIGNF_CHANGE_REQ    SIR_HAL_EXTSCAN_SET_SIGNF_CHANGE_REQ
 #define WDA_EXTSCAN_RESET_SIGNF_CHANGE_REQ  SIR_HAL_EXTSCAN_RESET_SIGNF_CHANGE_REQ
 #define WDA_EXTSCAN_GET_CACHED_RESULTS_REQ  SIR_HAL_EXTSCAN_GET_CACHED_RESULTS_REQ
+#define WDA_SET_EPNO_LIST_REQ               SIR_HAL_SET_EPNO_LIST_REQ
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
