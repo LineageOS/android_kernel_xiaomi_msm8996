@@ -4874,10 +4874,17 @@ typedef struct
  * @max_ap_cache_per_scan: maximum number of APs that can be stored per scan
  * @max_rssi_sample_size: number of RSSI samples used for averaging RSSI
  * @ax_scan_reporting_threshold: max possible report_threshold
- * @max_hotlist_aps: maximum number of entries for hotlist APs
+ * @max_hotlist_bssids: maximum number of entries for hotlist APs
  * @max_significant_wifi_change_aps: maximum number of entries for
  *				significant wifi change APs
  * @max_bssid_history_entries: number of BSSID/RSSI entries that device can hold
+ * @max_hotlist_ssids: maximum number of entries for hotlist SSIDs
+ * @max_number_epno_networks: max number of epno entries
+ * @max_number_epno_networks_by_ssid: max number of epno entries
+ *			if ssid is specified, that is, epno entries for
+ *			which an exact match is required,
+ *			or entries corresponding to hidden ssids
+ * @max_number_of_white_listed_ssid: max number of white listed SSIDs
  */
 typedef struct
 {
@@ -4890,10 +4897,14 @@ typedef struct
 	uint32_t    max_rssi_sample_size;
 	uint32_t    max_scan_reporting_threshold;
 
-	uint32_t    max_hotlist_aps;
+	uint32_t    max_hotlist_bssids;
 	uint32_t    max_significant_wifi_change_aps;
 
 	uint32_t    max_bssid_history_entries;
+	uint32_t    max_hotlist_ssids;
+	uint32_t    max_number_epno_networks;
+	uint32_t    max_number_epno_networks_by_ssid;
+	uint32_t    max_number_of_white_listed_ssid;
 } tSirExtScanCapabilitiesEvent, *tpSirExtScanCapabilitiesEvent;
 
 

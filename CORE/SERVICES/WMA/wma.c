@@ -2832,20 +2832,35 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	dest_capab->max_scan_reporting_threshold =
 				src_cache->max_table_usage_threshold;
 
-	dest_capab->max_hotlist_aps = src_hotlist->max_hotlist_entries;
+	dest_capab->max_hotlist_bssids = src_hotlist->max_hotlist_entries;
 	dest_capab->max_rssi_sample_size =
 				src_change->max_rssi_averaging_samples;
 	dest_capab->max_bssid_history_entries =
 				src_change->max_rssi_history_entries;
 	dest_capab->max_significant_wifi_change_aps =
 				src_change->max_wlan_change_entries;
+	dest_capab->max_hotlist_ssids =
+				event->num_extscan_hotlist_ssid;
+	dest_capab->max_number_epno_networks =
+				event->num_epno_networks;
+	dest_capab->max_number_epno_networks_by_ssid =
+				event->num_epno_networks;
+	dest_capab->max_number_of_white_listed_ssid =
+				event->num_roam_ssid_whitelist;
 	dest_capab->status = 0;
 
 	WMA_LOGD("%s: Capabilities: max_scan_buckets: %d,"
-		 "max_hotlist_aps: %d,max_scan_cache_size: %d",
+		 "max_hotlist_bssids: %d, max_scan_cache_size: %d",
 		 __func__, dest_capab->max_scan_buckets,
-		dest_capab->max_hotlist_aps,
+		dest_capab->max_hotlist_bssids,
 		dest_capab->max_scan_cache_size);
+	WMA_LOGD("%s: Capabilities: max_hotlist_ssids: %d,"
+		 "max_number_epno_networks: %d, max_number_epno_networks_by_ssid: %d,"
+		 "max_number_of_white_listed_ssid: %d",
+		 __func__, dest_capab->max_hotlist_ssids,
+		dest_capab->max_number_epno_networks,
+		dest_capab->max_number_epno_networks_by_ssid,
+		dest_capab->max_number_of_white_listed_ssid);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
