@@ -114,7 +114,8 @@ tSirRetStatus
 sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                          tANI_U32 subType)
 {
-    static tANI_U32 lastDeauthPacketTime = 0;
+    static tANI_U32 lastDeauthPacketTime = 0, lastDisassocPacketTime = 0;
+    tANI_U32 framecount;
     tSirRetStatus ret;
     void*         pBd;
     tMgmtFrmDropReason dropReason;
@@ -137,6 +138,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, WDA_GET_RX_MPDU_DATA(pBd), WDA_GET_RX_PAYLOAD_LEN(pBd));)
 
     pMac->sys.gSysFrameCount[type][subType]++;
+    framecount = pMac->sys.gSysFrameCount[type][subType];
 
     if(type == SIR_MAC_MGMT_FRAME)
     {
@@ -153,11 +155,17 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                     goto fail;
                 }
             }
-            if ((subType == SIR_MAC_MGMT_DEAUTH) && (pMac->sys.gSysFrameCount[type][subType] >= MAX_DEAUTH_ALLOWED))
+            if (((subType == SIR_MAC_MGMT_DEAUTH) ||
+                     (subType == SIR_MAC_MGMT_DISASSOC)) &&
+                 (framecount >= MAX_DEAUTH_ALLOWED))
             {
-                tANI_U32 timeNow = adf_os_ticks();
-                tANI_U32 timeGap = adf_os_ticks_to_msecs(timeNow -
+                tANI_U32 timeNow = adf_os_ticks(), timeGap;
+                if (subType == SIR_MAC_MGMT_DEAUTH)
+                    timeGap = adf_os_ticks_to_msecs(timeNow -
                                               lastDeauthPacketTime);
+                else
+                    timeGap = adf_os_ticks_to_msecs(timeNow -
+                                              lastDisassocPacketTime);
                 if (timeGap < 1000) {
 #ifdef WLAN_FEATURE_11W
                     pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
@@ -189,6 +197,21 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                        MAC_ADDR_ARRAY(pMacHdr->bssId),
                        pMac->sys.gSysFrameCount[type][subType] ););
                 lastDeauthPacketTime = adf_os_ticks();
+            }
+            if (subType == SIR_MAC_MGMT_DISASSOC)
+            {
+                tpSirMacMgmtHdr pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
+                PELOGE(sysLog( pMac, LOGE,
+                       FL("DISASSOC frame allowed: "
+                       "da: " MAC_ADDRESS_STR ", "
+                       "sa: " MAC_ADDRESS_STR ", "
+                       "bssid: " MAC_ADDRESS_STR ", "
+                       "DISASSOC count so far: %d\n"),
+                       MAC_ADDR_ARRAY(pMacHdr->da),
+                       MAC_ADDR_ARRAY(pMacHdr->sa),
+                       MAC_ADDR_ARRAY(pMacHdr->bssId),
+                       pMac->sys.gSysFrameCount[type][subType] ););
+                lastDisassocPacketTime = adf_os_ticks();
             }
 
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
