@@ -41,7 +41,11 @@
 #define TXRX_STATS_LEVEL_FULL  2
 
 #ifndef TXRX_STATS_LEVEL
+#ifdef CONFIG_HL_SUPPORT
 #define TXRX_STATS_LEVEL TXRX_STATS_LEVEL_BASIC
+#else
+#define TXRX_STATS_LEVEL TXRX_STATS_LEVEL_FULL
+#endif
 #endif
 
 typedef struct {
@@ -83,8 +87,14 @@ struct ol_txrx_stats {
     struct {
         /* MSDUs given to the OS shim */
         ol_txrx_stats_elem delivered;
-        /* MSDUs forwarded from the rx path to the tx path */
-        ol_txrx_stats_elem forwarded;
+        struct {
+            /* MSDUs forwarded to network stack */
+            u_int32_t packets_stack;
+            /* MSDUs forwarded from the rx path to the tx path */
+            u_int32_t packets_fwd;
+            /* MSDUs forwarded to stack and tx path */
+            u_int32_t packets_stack_n_fwd;
+       } intra_bss_fwd;
     } rx;
 };
 

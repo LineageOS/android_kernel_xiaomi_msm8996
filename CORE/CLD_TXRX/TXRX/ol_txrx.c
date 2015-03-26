@@ -2156,18 +2156,18 @@ void
 ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
 {
 
-    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR, "TXRX Stats:");
+    adf_os_print("TXRX Stats:\n");
     if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC) {
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-            "  tx: %lld msdus (%lld B) rejected %lld (%lld B)",
+        adf_os_print(
+            "  tx: %lld msdus (%lld B) rejected %lld (%lld B) \n",
             pdev->stats.pub.tx.delivered.pkts,
             pdev->stats.pub.tx.delivered.bytes,
             pdev->stats.pub.tx.dropped.host_reject.pkts,
             pdev->stats.pub.tx.dropped.host_reject.bytes);
     } else { /* full */
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-            "  tx: sent %lld msdus (%lld B), rejected %lld (%lld B)"
-            "  dropped %lld (%lld B)\n",
+        adf_os_print(
+            "  tx: sent %lld msdus (%lld B), rejected %lld (%lld B)\n"
+            "      dropped %lld (%lld B)\n",
             pdev->stats.pub.tx.delivered.pkts,
             pdev->stats.pub.tx.delivered.bytes,
             pdev->stats.pub.tx.dropped.host_reject.pkts,
@@ -2178,7 +2178,7 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.dropped.download_fail.bytes
               + pdev->stats.pub.tx.dropped.target_discard.bytes
               + pdev->stats.pub.tx.dropped.no_ack.bytes);
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        adf_os_print(
             "    download fail: %lld (%lld B), "
             "target discard: %lld (%lld B), "
             "no ack: %lld (%lld B)\n",
@@ -2207,19 +2207,19 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.comp_histogram.pkts_51_60,
             pdev->stats.pub.tx.comp_histogram.pkts_61_plus);
     }
-    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-        "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs",
+    adf_os_print(
+        "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs\n",
         pdev->stats.priv.rx.normal.ppdus,
         pdev->stats.priv.rx.normal.mpdus,
         pdev->stats.pub.rx.delivered.pkts,
         pdev->stats.pub.rx.delivered.bytes,
         pdev->stats.priv.rx.err.mpdu_bad);
-    if (TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_FULL) {
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-            "    forwarded %lld msdus, %lld bytes\n",
-            pdev->stats.pub.rx.forwarded.pkts,
-            pdev->stats.pub.rx.forwarded.bytes);
-    }
+
+    adf_os_print(
+        "  fwd to stack %d, fwd to fw %d, fwd to stack & fw  %d\n",
+        pdev->stats.pub.rx.intra_bss_fwd.packets_stack,
+        pdev->stats.pub.rx.intra_bss_fwd.packets_fwd,
+        pdev->stats.pub.rx.intra_bss_fwd.packets_stack_n_fwd);
 }
 
 void
@@ -2230,8 +2230,8 @@ ol_txrx_stats_clear(ol_txrx_pdev_handle pdev)
        pdev->stats.pub.tx.delivered.bytes = 0;
        pdev->stats.pub.tx.dropped.host_reject.pkts = 0;
        pdev->stats.pub.tx.dropped.host_reject.bytes = 0;
-       adf_os_mem_zero(&pdev->stats.pub.rx.delivered,
-                       sizeof(pdev->stats.pub.rx.delivered));
+       adf_os_mem_zero(&pdev->stats.pub.rx,
+                       sizeof(pdev->stats.pub.rx));
        adf_os_mem_zero(&pdev->stats.priv.rx, sizeof(pdev->stats.priv.rx));
     } else { /* Full */
        adf_os_mem_zero(&pdev->stats, sizeof(pdev->stats));
