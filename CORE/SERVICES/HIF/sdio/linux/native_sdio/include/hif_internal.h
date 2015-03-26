@@ -112,7 +112,7 @@ struct hif_device {
     A_BOOL swap_mailbox;
 };
 
-#define HIF_DMA_BUFFER_SIZE (56 * 1024)
+#define HIF_DMA_BUFFER_SIZE (4 * 1024)
 #define CMD53_FIXED_ADDRESS 1
 #define CMD53_INCR_ADDRESS  2
 

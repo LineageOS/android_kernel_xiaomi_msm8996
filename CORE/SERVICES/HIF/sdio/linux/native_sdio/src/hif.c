@@ -406,6 +406,12 @@ __HIFReadWrite(HIF_DEVICE *device,
                 tbuffer = device->dma_buffer;
                     /* copy the write data to the dma buffer */
                 AR_DEBUG_ASSERT(length <= HIF_DMA_BUFFER_SIZE);
+                if (length > HIF_DMA_BUFFER_SIZE) {
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+                            ("AR6000: Invalid write length: %d\n", length));
+                    status = A_EINVAL;
+                    break;
+                }
                 memcpy(tbuffer, buffer, length);
                 bounced = TRUE;
             } else {
@@ -428,6 +434,12 @@ __HIFReadWrite(HIF_DEVICE *device,
             if (BUFFER_NEEDS_BOUNCE(buffer)) {
                 AR_DEBUG_ASSERT(device->dma_buffer != NULL);
                 AR_DEBUG_ASSERT(length <= HIF_DMA_BUFFER_SIZE);
+                if (length > HIF_DMA_BUFFER_SIZE) {
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+                            ("AR6000: Invalid read length: %d\n", length));
+                    status = A_EINVAL;
+                    break;
+                }
                 tbuffer = device->dma_buffer;
                 bounced = TRUE;
             } else {
