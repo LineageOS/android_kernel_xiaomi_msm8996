@@ -2188,6 +2188,24 @@ ol_txrx_stats_display(ol_txrx_pdev_handle pdev)
             pdev->stats.pub.tx.dropped.target_discard.bytes,
             pdev->stats.pub.tx.dropped.no_ack.pkts,
             pdev->stats.pub.tx.dropped.no_ack.bytes);
+        adf_os_print(
+            "Tx completion per interrupt:\n"
+            "Single Packet  %d\n"
+            " 2-10 Packets  %d\n"
+            "11-20 Packets  %d\n"
+            "21-30 Packets  %d\n"
+            "31-40 Packets  %d\n"
+            "41-50 Packets  %d\n"
+            "51-60 Packets  %d\n"
+            "  60+ Packets  %d\n",
+            pdev->stats.pub.tx.comp_histogram.pkts_1,
+            pdev->stats.pub.tx.comp_histogram.pkts_2_10,
+            pdev->stats.pub.tx.comp_histogram.pkts_11_20,
+            pdev->stats.pub.tx.comp_histogram.pkts_21_30,
+            pdev->stats.pub.tx.comp_histogram.pkts_31_40,
+            pdev->stats.pub.tx.comp_histogram.pkts_41_50,
+            pdev->stats.pub.tx.comp_histogram.pkts_51_60,
+            pdev->stats.pub.tx.comp_histogram.pkts_61_plus);
     }
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
         "  rx: %lld ppdus, %lld mpdus, %lld msdus, %lld bytes, %lld errs",

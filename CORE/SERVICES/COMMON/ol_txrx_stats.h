@@ -68,6 +68,17 @@ struct ol_txrx_stats {
             /* MSDUs which the target sent but couldn't get an ack for */
             ol_txrx_stats_elem no_ack;
         } dropped;
+        /* contains information of packets recevied per tx completion*/
+        struct {
+            u_int32_t pkts_1;
+            u_int32_t pkts_2_10;
+            u_int32_t pkts_11_20;
+            u_int32_t pkts_21_30;
+            u_int32_t pkts_31_40;
+            u_int32_t pkts_41_50;
+            u_int32_t pkts_51_60;
+            u_int32_t pkts_61_plus;
+        } comp_histogram;
     } tx;
     struct {
         /* MSDUs given to the OS shim */
