@@ -3831,8 +3831,6 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
     average_tsf_offset =  (average_tsf_offset << 32) |
         pWifiIfaceStat->avg_bcn_spread_offset_low ;
 
-    printk("putting interface values\n");
-
     if (nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_NUM_PEERS,
                     num_peers) ||
@@ -6463,16 +6461,15 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
-	int ret_val1 = 0;
-	int ret_val2 = 0;
+	int ret_val = 0;
 	u32 dynamic_dtim;
 	u16 stats_avg_factor;
 	u32 guard_time;
 	eHalStatus status;
 
-	if ((ret_val1 = wlan_hdd_validate_context(pHddCtx))) {
+	if ((ret_val = wlan_hdd_validate_context(pHddCtx))) {
 		hddLog(LOGE, FL("HDD context is not valid"));
-		return ret_val1;
+		return ret_val;
 	}
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_CONFIG_MAX,
@@ -6486,6 +6483,13 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		dynamic_dtim = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]);
 		pHddCtx->cfg_ini->enableDynamicDTIM = dynamic_dtim;
+
+		status = sme_configure_dynamic_dtim(pHddCtx->hHal,
+							pAdapter->sessionId,
+							dynamic_dtim);
+
+		if (eHAL_STATUS_SUCCESS != status)
+			ret_val = -EPERM;
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR]) {
@@ -6496,7 +6500,7 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 							stats_avg_factor);
 
 		if (eHAL_STATUS_SUCCESS != status)
-			ret_val1 = -EPERM;
+			ret_val = -EPERM;
 	}
 
 
@@ -6508,10 +6512,10 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 						  guard_time);
 
 		if (eHAL_STATUS_SUCCESS != status)
-			ret_val2 = -EPERM;
+			ret_val = -EPERM;
 	}
 
-	return (ret_val1 | ret_val2);
+	return ret_val;
 }
 
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
