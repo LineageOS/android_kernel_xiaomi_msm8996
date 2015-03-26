@@ -411,6 +411,12 @@ typedef struct tagCsrScanResultFilter
     tANI_U8 MFPRequired;
     tANI_U8 MFPCapable;
 #endif
+    /* The following flag is used to distinguish the
+     * roaming case while building the scan filter and
+     * applying it on to the scan results. This is mainly
+     * used to support whitelist ssid feature.
+     */
+    uint8_t scan_filter_for_roam;
 }tCsrScanResultFilter;
 
 

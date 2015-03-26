@@ -378,7 +378,8 @@ void sme_SetCurrDeviceMode (tHalHandle hHal, tVOS_CON_MODE currDeviceMode);
 eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId,
                          csrRoamSessionCloseCallback callback, void *pContext);
 
-
+eHalStatus sme_update_roam_params(tHalHandle hHal, uint8_t session_id,
+		struct roam_ext_params roam_params_src, int update_param);
 
 /*--------------------------------------------------------------------------
 
