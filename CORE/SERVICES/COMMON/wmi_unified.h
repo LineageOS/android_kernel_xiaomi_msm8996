@@ -562,6 +562,9 @@ typedef enum {
     /** APFIND Config */
     WMI_APFIND_CMDID,
 
+    /** Passpoint list config  */
+    WMI_PASSPOINT_LIST_CONFIG_CMDID,
+
     /* GTK offload Specific WMI commands*/
     WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
 
@@ -745,6 +748,7 @@ typedef enum {
     WMI_EXTSCAN_GET_WLAN_CHANGE_RESULTS_CMDID,
     WMI_EXTSCAN_SET_CAPABILITIES_CMDID,
     WMI_EXTSCAN_GET_CAPABILITIES_CMDID,
+    WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID,
 
     /** DHCP server offload commands */
     WMI_SET_DHCP_SERVER_OFFLOAD_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_DHCP_OFL),
@@ -920,6 +924,9 @@ typedef enum {
     /** APFIND specific events */
     WMI_APFIND_EVENTID,
 
+    /** passpoint network match event */
+    WMI_PASSPOINT_MATCH_EVENTID,
+
     /** GTK offload stautus event requested by host */
     WMI_GTK_OFFLOAD_STATUS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_GTK_OFL),
 
@@ -1027,6 +1034,7 @@ typedef enum {
     WMI_EXTSCAN_WLAN_CHANGE_RESULTS_EVENTID,
     WMI_EXTSCAN_HOTLIST_MATCH_EVENTID,
     WMI_EXTSCAN_CAPABILITIES_EVENTID,
+    WMI_EXTSCAN_HOTLIST_SSID_MATCH_EVENTID,
 
     /* mDNS offload events */
     WMI_MDNS_STATS_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MDNS_OFL),
@@ -2032,6 +2040,9 @@ typedef struct {
 
 /** flag indicating that the the  mgmt frame (probe req/beacon) is received in the context of extscan performed by FW */
 #define WMI_MGMT_RX_HDR_EXTSCAN     0x01
+
+/** flag indicating that the the  mgmt frame (probe req/beacon) is received in the context of matched network by FW ENLO */
+#define WMI_MGMT_RX_HDR_ENLO     0x02
 
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mgmt_rx_hdr */
@@ -3178,6 +3189,19 @@ typedef struct {
     A_UINT32 num_ac;
     /** Roaming Stat */
     A_UINT32 roam_state;
+    /** Average Beacon spread offset is the averaged time delay between TBTT and beacon TSF */
+    /** Upper 32 bits of averaged 64 bit beacon spread offset */
+    A_UINT32 avg_bcn_spread_offset_high;
+    /** Lower 32 bits of averaged 64 bit beacon spread offset */
+    A_UINT32 avg_bcn_spread_offset_low;
+    /** Takes value of 1 if AP leaks packets after sending an ACK for PM=1 otherwise 0 */
+    A_UINT32 is_leaky_ap;
+    /** Average number of frames received from AP after receiving the ACK for a frame with PM=1 */
+    A_UINT32 avg_rx_frms_leaked;
+    /** Rx leak watch window currently in force to minimize data loss because of leaky AP. Rx leak window is the
+        time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
+        a data frame with PM bit set) */
+    A_UINT32 rx_leak_window;
 } wmi_iface_link_stats;
 
 /** Interface statistics (once started) reset and start afresh after each connection */
@@ -3779,6 +3803,16 @@ typedef enum {
 
     /* Enable/Disable 1 RX chain usage during the ATIM window */
     WMI_VDEV_PARAM_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_ENABLE,
+
+    /* RX Leak window is the time driver waits before shutting down
+     * the radio or switching the channel and after receiving an ACK
+     * for a data frame with PM bit set) */
+    WMI_VDEV_PARAM_RX_LEAK_WINDOW,
+
+    /** Averaging factor(16 bit value) is used in the calculations to
+     * perform averaging of different link level statistics like average
+     * beacon spread or average number of frames leaked */
+    WMI_VDEV_PARAM_STATS_AVG_FACTOR,
 
 } WMI_VDEV_PARAM;
 
@@ -4658,6 +4692,9 @@ typedef struct {
 
 /* Set peer advertised IBSS atim window length */
 #define WMI_PEER_IBSS_ATIM_WINDOW_LENGTH                0xC
+
+/** peer phy mode */
+#define WMI_PEER_PHYMODE                                0xD
 
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
@@ -6318,6 +6355,25 @@ typedef enum _WMI_NLO_SSID_BcastNwType
 #define WMI_NLO_CONFIG_SLOW_SCAN        (0x1 << 4)
 #define WMI_NLO_CONFIG_FAST_SCAN        (0x1 << 5)
 #define WMI_NLO_CONFIG_SSID_HIDE_EN     (0x1 << 6)
+/* This bit is used to indicate if EPNO or supplicant PNO is enabled. Only one of them can be enabled at a given time */
+#define WMI_NLO_CONFIG_ENLO             (0x1 << 7)
+
+/* Whether directed scan needs to be performed (for hidden SSIDs) */
+#define WMI_ENLO_FLAG_DIRECTED_SCAN      1
+/* Whether PNO event shall be triggered if the network is found on A band */
+#define WMI_ENLO_FLAG_A_BAND             2
+/* Whether PNO event shall be triggered if the network is found on G band */
+#define WMI_ENLO_FLAG_G_BAND             4
+/* Whether strict matching is required (i.e. firmware shall not match on the entire SSID) */
+#define WMI_ENLO_FLAG_STRICT_MATCH       8
+
+/* Code for matching the beacon AUTH IE - additional codes TBD */
+/* open */
+#define WMI_ENLO_AUTH_CODE_OPEN  1
+/* WPA_PSK or WPA2PSK */
+#define WMI_ENLO_AUTH_CODE_PSK   2
+/* any EAPOL */
+#define WMI_ENLO_AUTH_CODE_EAPOL 4
 
 /* NOTE: wmi_nlo_ssid_param structure can't be changed without breaking the compatibility */
 typedef struct wmi_nlo_ssid_param
@@ -6344,6 +6400,8 @@ typedef struct wmi_nlo_auth_param
 typedef struct wmi_nlo_bcast_nw_param
 {
     A_UINT32 valid;
+    /* If WMI_NLO_CONFIG_EPNO is not set. Supplicant PNO is enabled. The value should be true/false
+       Otherwise EPNO is enabled. bcast_nw_type would be used as a bit flag contains WMI_ENLO_FLAG_XXX */
     A_UINT32 bcast_nw_type;
 } wmi_nlo_bcast_nw_param;
 
@@ -6391,6 +6449,89 @@ typedef struct wmi_nlo_event
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_nlo_event */
     A_UINT32    vdev_id;
 }wmi_nlo_event;
+
+
+/* WMI_PASSPOINT_CONFIG_SET
+ * Sets a list for passpoint networks for PNO purposes;
+ * it should be matched against any passpoint networks found
+ * during regular PNO scan.
+ */
+#define WMI_PASSPOINT_CONFIG_SET       (0x1 << 0)
+/* WMI_PASSPOINT_CONFIG_RESET
+ * Reset passpoint network list -
+ * no Passpoint networks should be matched after this.
+ */
+#define WMI_PASSPOINT_CONFIG_RESET     (0x1 << 1)
+
+#define PASSPOINT_REALM_LEN                  256
+#define PASSPOINT_ROAMING_CONSORTIUM_ID_LEN  5
+#define PASSPOINT_ROAMING_CONSORTIUM_ID_NUM  16
+#define PASSPOINT_PLMN_ID_LEN                3
+#define PASSPOINT_PLMN_ID_ALLOC_LEN /* round up to A_UINT32 boundary */ \
+    (((PASSPOINT_PLMN_ID_LEN + 3) >> 2) << 2)
+
+/*
+ * Confirm PASSPOINT_REALM_LEN is a multiple of 4, so the
+ *     A_UINT8 realm[PASSPOINT_REALM_LEN]
+ * array will end on a 4-byte boundary.
+ * (This 4-byte alignment simplifies endianness-correction byte swapping.)
+ */
+A_COMPILE_TIME_ASSERT(
+    check_passpoint_realm_size,
+    (PASSPOINT_REALM_LEN % sizeof(A_UINT32)) == 0);
+
+/*
+ * Confirm the product of PASSPOINT_ROAMING_CONSORTIUM_ID_NUM and
+ * PASSPOINT_ROAMING_CONSORTIUM_ID_LEN is a multiple of 4, so the
+ * roaming_consortium_ids array below will end on a 4-byte boundary.
+ * (This 4-byte alignment simplifies endianness-correction byte swapping.)
+ */
+A_COMPILE_TIME_ASSERT(
+    check_passpoint_roaming_consortium_ids_size,
+    ((PASSPOINT_ROAMING_CONSORTIUM_ID_NUM*PASSPOINT_ROAMING_CONSORTIUM_ID_LEN) % sizeof(A_UINT32)) == 0);
+
+/* wildcard ID to allow an action (reset) to apply to all networks */
+#define WMI_PASSPOINT_NETWORK_ID_WILDCARD 0xFFFFFFFF
+typedef struct wmi_passpoint_config {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals wmi_passpoint_config_cmd_fixed_param */
+    /* (network) id
+     * identifier of the matched network, report this in event
+     * This id can be a wildcard (WMI_PASSPOINT_NETWORK_ID_WILDCARD)
+     * that indicates the action should be applied to all networks.
+     * Currently, the only action that is applied to all networks is "reset".
+     * If a non-wildcard ID is specified, that particular network is configured.
+     * If a wildcard ID is specified, all networks are reset.
+     */
+    A_UINT32 id;
+    A_UINT32 req_id;
+    A_UINT8  realm[PASSPOINT_REALM_LEN]; /*null terminated UTF8 encoded realm, 0 if unspecified*/
+    A_UINT8  roaming_consortium_ids[PASSPOINT_ROAMING_CONSORTIUM_ID_NUM][PASSPOINT_ROAMING_CONSORTIUM_ID_LEN]; /*roaming consortium ids to match, 0s if unspecified*/
+                                                                                                              /*This would be bytes-stream as same as defition of realm id in 802.11 standard*/
+    A_UINT8  plmn[PASSPOINT_PLMN_ID_ALLOC_LEN]; /*PLMN id mcc/mnc combination as per rules, 0s if unspecified */
+} wmi_passpoint_config_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header;    /* TLV tag and len; tag equals wmi_passpoint_event_hdr */
+    A_UINT32 id;            /* identifier of the matched network */
+    A_UINT32 vdev_id;
+    A_UINT32 timestamp;     /* time since boot (in microsecond) when the result was retrieved*/
+    wmi_ssid ssid;
+    wmi_mac_addr    bssid;  /* bssid of the network */
+    A_UINT32 channel_mhz;   /* channel frequency in MHz */
+    A_UINT32 rssi;          /* rssi value */
+    A_UINT32 rtt;           /* timestamp in nanoseconds*/
+    A_UINT32 rtt_sd;        /* standard deviation in rtt */
+    A_UINT32 beacon_period; /* beacon advertised in the beacon */
+    A_UINT32 capability;    /* capabilities advertised in the beacon */
+    A_UINT32 ie_length;     /* size of the ie_data blob */
+    A_UINT32 anqp_length;   /* length of ANQP blob */
+/* Following this structure is the byte stream of ie data of length ie_buf_len:
+ *  A_UINT8 ie_data[];      // length in byte given by field ie_length, blob of ie data in beacon
+ *  A_UINT8 anqp_ie[];      // length in byte given by field anqp_len, blob of anqp data of IE
+ *  Implicitly, combing ie_data and anqp_ie into a single bufp, and the bytes stream of each ie should be same as BEACON/Action-frm  by 802.11 spec.
+ */
+} wmi_passpoint_event_hdr;
+
 
 #define GTK_OFFLOAD_OPCODE_MASK				0xFF000000
 /** Enable GTK offload, and provided parameters KEK,KCK and replay counter values */
@@ -8508,7 +8649,7 @@ typedef struct {
     A_UINT32        forwarding_flags;
     /** ExtScan configuration flags - wmi_extscan_configuration_flags */
     A_UINT32        configuration_flags;
-    /** multiplier to be applied to the periodic scan's base period */
+    /** DEPRECATED member: multiplier to be applied to the periodic scan's base period */
     A_UINT32        base_period_multiplier;
     /** dwell time in msec on active channels - use defaults if 0 */
     A_UINT32        min_dwell_time_active;
@@ -8520,6 +8661,18 @@ typedef struct {
     A_UINT32        channel_band;
     /** number of channels (if channel_band is WMI_CHANNEL_UNSPECIFIED) */
     A_UINT32        num_channels;
+   /** scan period upon start or restart of the bucket - periodicity of the bucket to begin with */
+    A_UINT32        min_period;
+    /** period above which exponent is not applied anymore */
+    A_UINT32        max_period;
+    /** back off value to be applied to bucket's periodicity after exp_max_step_count scan cycles
+      * new_bucket_period = last_bucket_period + last_exponent_period * exp_backoff
+      */
+    A_UINT32        exp_backoff;
+    /** number of scans performed at a given periodicity after which exponential back off value is
+       * applied to current periodicity to obtain a newer one
+       */
+    A_UINT32        exp_max_step_count;
 /** Followed by the variable length TLV chan_list:
  *  wmi_extscan_bucket_channel chan_list[] */
 } wmi_extscan_bucket;
@@ -8597,6 +8750,8 @@ typedef struct {
     A_UINT32     ie_len;
     /** number of buckets in the TLV bucket_list[] */
     A_UINT32     num_buckets;
+    /** in number of scans, send notifications to host after these many scans */
+    A_UINT32    report_threshold_num_scans;
     /** number of channels in channel_list[] determined by the
         sum of wmi_extscan_bucket.num_channels in array  */
 
@@ -8703,10 +8858,12 @@ typedef struct {
     A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**bssid */
     wmi_mac_addr    bssid;
-    /**RSSI threshold for reporting */
+    /**RSSI min threshold for reporting */
     A_UINT32        min_rssi;
-    /**channel number */
+    /**Deprecated entry - channel number */
     A_UINT32        channel;
+    /** RSSI max threshold for reporting */
+    A_UINT32        max_rssi;
 } wmi_extscan_hotlist_entry;
 
 typedef struct {
@@ -8727,10 +8884,49 @@ typedef struct {
     A_UINT32    first_entry_index;
     /**number of bssids in this page */
     A_UINT32    num_entries_in_page;
+    /** number of consecutive scans to confirm loss of contact with AP */
+    A_UINT32    lost_ap_scan_count;
     /* Following this structure is the TLV:
      *     wmi_extscan_hotlist_entry hotlist[];    // number of elements given by field num_page_entries.
      */
 } wmi_extscan_configure_hotlist_monitor_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
+    /**ssid */
+    wmi_ssid        ssid;
+    /**band */
+    A_UINT32        band;
+    /**RSSI threshold for reporting */
+    A_UINT32        min_rssi;
+    A_UINT32        max_rssi;
+} wmi_extscan_hotlist_ssid_entry;
+
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param */
+    /** Request ID - to identify command. Cannot be 0 */
+    A_UINT32    request_id;
+    /** Requestor ID - client requesting hotlist ssid monitoring */
+    A_UINT32    requestor_id;
+    /** VDEV id(interface) that is requesting scan */
+    A_UINT32    vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32    table_id;
+    /** operation mode: start/stop */
+    A_UINT32    mode;    // wmi_extscan_operation_mode
+    /**total number of ssids (in all pages) */
+    A_UINT32    total_entries;
+    /**index of the first ssid entry found in the TLV wmi_extscan_hotlist_ssid_entry*/
+    A_UINT32    first_entry_index;
+    /**number of ssids in this page */
+    A_UINT32    num_entries_in_page;
+    /** number of consecutive scans to confirm loss of an ssid **/
+    A_UINT32    lost_ap_scan_count;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_hotlist_ssid_entry hotlist_ssid[];    // number of elements given by field num_page_entries.
+     */
+} wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param;
+
 
 typedef struct {
     A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
@@ -8873,12 +9069,21 @@ typedef struct {
     A_UINT32     maximum_entries;
 } wmi_extscan_table_usage_event_fixed_param;
 
+typedef enum {
+    WMI_SCAN_STATUS_INTERRUPTED = 1      /* Indicates scan got interrupted i.e. aborted or pre-empted for a long time (> 1sec)
+                                            this can be used to discard scan results */
+} wmi_scan_status_flags;
+
 typedef struct {
     A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**RSSI */
     A_UINT32    rssi;
     /**time stamp in seconds */
     A_UINT32    tstamp;
+    /** Extscan cycle during which this entry was scanned */
+    A_UINT32    scan_cycle_id;
+    /** flag to indicate if the given result was obtained as part of interrupted (aborted/large time gap preempted) scan */
+    A_UINT32    flags;
 } wmi_extscan_rssi_info;
 
 typedef struct {
@@ -9023,6 +9228,27 @@ typedef struct {
 } wmi_extscan_hotlist_match_event_fixed_param;
 
 typedef struct {
+    A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_hotlist_match_event_fixed_param */
+    /** Request ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_request_id;
+    /** Requestor ID of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_requestor_id;
+    /** VDEV id(interface) of the WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID that configured the table */
+    A_UINT32     config_vdev_id;
+    /** table ID - to allow support for multiple simultaneous tables */
+    A_UINT32     table_id;
+    /**total number of ssids (in all pages) */
+    A_UINT32     total_entries;
+    /**index of the first ssid entry found in the TLV wmi_extscan_wlan_descriptor*/
+    A_UINT32     first_entry_index;
+    /**number of ssids in this page */
+    A_UINT32     num_entries_in_page;
+    /* Following this structure is the TLV:
+     *     wmi_extscan_wlan_descriptor hotlist_match[];    // number of descriptors given by field num_entries_in_page.
+     */
+} wmi_extscan_hotlist_ssid_match_event_fixed_param;
+
+typedef struct {
     A_UINT32     tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_extscan_capabilities_event_fixed_param */
     /** Request ID of the WMI_EXTSCAN_GET_CAPABILITIES_CMDID */
     A_UINT32     request_id;
@@ -9048,6 +9274,17 @@ typedef struct {
     A_UINT32     num_extscan_wlan_change_capabilities;
     /** number of extscan hotlist capabilities (one per table)  */
     A_UINT32     num_extscan_hotlist_capabilities;
+    /* max number of roaming ssid whitelist firmware can support */
+    A_UINT32 num_roam_ssid_whitelist;
+    /* max number of blacklist bssid firmware can support */
+    A_UINT32 num_roam_bssid_blacklist;
+    /* max number of preferred list firmware can support */
+    A_UINT32 num_roam_bssid_preferred_list;
+    /* max number of hotlist ssids firmware can support */
+    A_UINT32 num_extscan_hotlist_ssid;
+    /* max number of epno networks firmware can support */
+    A_UINT32 num_epno_networks;
+
     /* Following this structure are the TLVs describing the capabilities of of the various types of lists. The FW theoretically
      * supports multiple lists of each type.
      *
