@@ -4673,6 +4673,27 @@ static int sapStopDfsCacTimer(ptSapContext sapContext)
     return 0;
 }
 
+/**
+ * sap_is_channel_bonding_etsi_weather_channel() - Routine to check if
+ *                                                 sap channel is bonded to
+ *                                                 weather radar channel.
+ * @sap_context:                                   SAP context
+ *
+ * Check if the current SAP operating channel is bonded to weather radar
+ * channel in ETSI domain.
+ *
+ * Return: True if bonded to weather channel in ETSI
+ */
+static bool
+sap_is_channel_bonding_etsi_weather_channel(ptSapContext sap_context)
+{
+    if(IS_CH_BONDING_WITH_WEATHER_CH(sap_context->channel) &&
+      (sap_context->vht_channel_width != eHT_CHANNEL_WIDTH_20MHZ)) {
+        return true;
+    }
+    return false;
+}
+
 /*
  * Function to start the DFS CAC Timer
  * when SAP is started on a DFS channel
@@ -4711,7 +4732,8 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
     vos_nv_getRegDomainFromCountryCode(&regDomain,
                     sapContext->csrRoamProfile.countryCode, COUNTRY_QUERY);
     if ((regDomain == REGDOMAIN_ETSI) &&
-       (IS_ETSI_WEATHER_CH(sapContext->channel)))
+       ((IS_ETSI_WEATHER_CH(sapContext->channel)) ||
+       (sap_is_channel_bonding_etsi_weather_channel(sapContext))))
     {
         cacTimeOut = ETSI_WEATHER_CH_CAC_TIMEOUT;
     }
