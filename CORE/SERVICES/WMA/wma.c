@@ -8280,12 +8280,8 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     ext_thresholds->penalty_algorithm_5g =
       WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR;
     ext_thresholds->penalty_factor_5g = roam_params->drop_factor_5g;
-    ext_thresholds->max_boost_5g =
-      (roam_params->max_raise_rssi_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
-      0x000000ff;
-    ext_thresholds->max_penalty_5g =
-      (roam_params->max_drop_rssi_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
-      0x000000ff;
+    ext_thresholds->max_boost_5g = roam_params->max_raise_rssi_5g;
+    ext_thresholds->max_penalty_5g = roam_params->max_drop_rssi_5g;
     ext_thresholds->good_rssi_threshold =
       (roam_params->good_rssi_threshold - WMA_NOISE_FLOOR_DBM_DEFAULT) &
       0x000000ff;
@@ -8857,6 +8853,7 @@ VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
 	roam_params = &roam_req->roam_params;
 	len = sizeof(wmi_roam_filter_fixed_param);
 	len += WMI_TLV_HDR_SIZE;
+    if (roam_req->Command != ROAM_SCAN_OFFLOAD_STOP) {
 	switch (roam_req->reason) {
 	case REASON_ROAM_SET_BLACKLIST_BSSID:
 		op_bitmap |= 0x1;
@@ -8882,6 +8879,18 @@ VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
 		return VOS_STATUS_SUCCESS;
 		break;
 	}
+    } else {
+	    /* In case of STOP command, reset all the variables
+	     * except for blacklist BSSID which should be retained
+	     * across connections.*/
+	    op_bitmap = 0x2 | 0x4;
+	    num_ssid_white_list = roam_params->num_ssid_allowed_list;
+	    len += num_ssid_white_list * sizeof(wmi_ssid);
+	    num_bssid_preferred_list = roam_params->num_bssid_favored;
+	    len += num_bssid_preferred_list * sizeof(wmi_mac_addr);
+	    len += num_bssid_preferred_list * sizeof(A_UINT32);
+	    len += (2 * WMI_TLV_HDR_SIZE);
+    }
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!buf) {
@@ -9177,6 +9186,11 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                                                        NULL,
                                                        WMI_ROAM_SCAN_MODE_NONE,
                                                        roam_req->sessionId);
+            }
+            vos_status = wma_roam_scan_filter(wma_handle, roam_req);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                WMA_LOGE("Sending update for roam scan filter failed");
+                break;
             }
 
             if (roam_req->reason == REASON_OS_REQUESTED_ROAMING_NOW) {

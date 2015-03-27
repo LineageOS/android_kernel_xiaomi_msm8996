@@ -2125,14 +2125,17 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
     tANI_BOOLEAN fMatch;
     tANI_U16 i = 0;
     struct roam_ext_params *roam_params = NULL;
+    uint8_t scan_filter_for_roam = 0;
 
     if(phResult)
     {
         *phResult = CSR_INVALID_SCANRESULT_HANDLE;
     }
+    if (pFilter)
+       scan_filter_for_roam = pFilter->scan_filter_for_roam;
 
     if (pMac->roam.configParam.nSelect5GHzMargin ||
-	(CSR_IS_SELECT_5G_PREFERRED(pMac) && pFilter->scan_filter_for_roam))
+       (CSR_IS_SELECT_5G_PREFERRED(pMac) && scan_filter_for_roam))
     {
         pMac->scan.inScanResultBestAPRssi = -128;
 	roam_params = &pMac->roam.configParam.roam_params;
@@ -2147,8 +2150,8 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
    * while setting the preference value for the BSS.
    * There is no need to check the match for roaming since
    * it is already done.*/
-	if(!(CSR_IS_SELECT_5G_PREFERRED(pMac)
-               && pFilter->scan_filter_for_roam)) {
+  if(!(CSR_IS_SELECT_5G_PREFERRED(pMac)
+               && scan_filter_for_roam)) {
         /* Find out the best AP Rssi going thru the scan results */
         pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
         while ( NULL != pEntry)
@@ -2220,8 +2223,8 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
    }
 
         if ((-128 != pMac->scan.inScanResultBestAPRssi) ||
-		(CSR_IS_SELECT_5G_PREFERRED(pMac) &&
-                 pFilter->scan_filter_for_roam))
+             (CSR_IS_SELECT_5G_PREFERRED(pMac) &&
+              scan_filter_for_roam))
         {
             smsLog(pMac, LOG1, FL("Best AP Rssi is %d"), pMac->scan.inScanResultBestAPRssi);
             /* Modify Rssi category based on best AP Rssi */
@@ -2237,7 +2240,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                  * prefer 5G feature.*/
                 pBssDesc->preferValue = csrGetBssPreferValue(pMac,
                   (int)pBssDesc->Result.BssDescriptor.rssi,
-                  pFilter->scan_filter_for_roam,
+                  scan_filter_for_roam,
                   &pBssDesc->Result.BssDescriptor.bssId,
                   pBssDesc->Result.BssDescriptor.channelId);
 
