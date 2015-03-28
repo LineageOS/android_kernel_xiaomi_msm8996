@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4754,6 +4754,42 @@ csrNeighborRoamNeighborLookupDOWNCallback (v_PVOID_t pAdapter,
     return vosStatus;
 }
 
+/**
+ * csr_roam_reset_roam_params - API to reset the roaming parameters
+ * @mac_ptr:          Pointer to the global MAC structure
+ *
+ * The BSSID blacklist should not be cleared since it has to
+ * be used across connections. These parameters will be cleared
+ * and sent to firmware with with the roaming STOP command.
+ *
+ * Return: VOID
+ */
+void csr_roam_reset_roam_params(tpAniSirGlobal mac_ptr)
+{
+	struct roam_ext_params *roam_params = NULL;
+
+	/* clear all the parameters except BSSID blacklist,
+	 * which needs to be retained across connections. */
+	roam_params = &mac_ptr->roam.configParam.roam_params;
+	roam_params->num_ssid_allowed_list = 0;
+	roam_params->num_bssid_favored = 0;
+	vos_mem_set(&roam_params->ssid_allowed_list, 0,
+			sizeof(tSirMacSSid) * MAX_SSID_ALLOWED_LIST);
+	vos_mem_set(&roam_params->bssid_favored, 0,
+			sizeof(tSirMacAddr) * MAX_BSSID_FAVORED);
+	roam_params->raise_rssi_thresh_5g = 0;
+	roam_params->drop_rssi_thresh_5g = 0;
+	roam_params->raise_rssi_type_5g = 0;
+	roam_params->raise_factor_5g = 0;
+	roam_params->drop_rssi_type_5g = 0;
+	roam_params->drop_factor_5g = 0;
+	roam_params->max_raise_rssi_5g = 0;
+	roam_params->max_drop_rssi_5g = 0;
+	roam_params->good_rssi_threshold = 0;
+	roam_params->rssi_diff = 0;
+	roam_params->good_rssi_roam = 0;
+	roam_params->is_5g_pref_enabled = 0;
+}
 
 /* ---------------------------------------------------------------------------
 
@@ -4793,6 +4829,10 @@ eHalStatus csrNeighborRoamIndicateDisconnect(tpAniSirGlobal pMac,
     /*Free the current previous profile and move the current profile to prev profile.*/
     csrRoamFreeConnectProfile(pMac, pPrevProfile);
     csrRoamCopyConnectProfile(pMac, sessionId, pPrevProfile);
+
+    /* clear the roaming parameters that are per connection.
+     * For a new connection, they have to be programmed again. */
+     csr_roam_reset_roam_params(pMac);
 #endif
     if (NULL != pSession)
     {
@@ -5351,6 +5391,14 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId)
     vos_mem_copy(pNeighborRoamInfo->cfgParams.channelInfo.ChannelList,
                         pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.channelList,
                         pMac->roam.configParam.neighborRoamConfig.neighborScanChanList.numChannels);
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_max_count;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_rssi_delta;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_delay;
+    pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub =
+            pMac->roam.configParam.neighborRoamConfig.nhi_rssi_scan_rssi_ub;
 
     vos_mem_set(pNeighborRoamInfo->currAPbssid, sizeof(tCsrBssid), 0);
     pNeighborRoamInfo->currentNeighborLookupThreshold =
@@ -5365,6 +5413,7 @@ eHalStatus csrNeighborRoamInit(tpAniSirGlobal pMac, tANI_U8 sessionId)
         pNeighborRoamInfo->cfgParams.nRoamBmissFinalBcnt;
     pNeighborRoamInfo->currentRoamBeaconRssiWeight =
         pNeighborRoamInfo->cfgParams.nRoamBeaconRssiWeight;
+
 #ifdef FEATURE_WLAN_LFR
     pNeighborRoamInfo->lookupDOWNRssi = 0;
     pNeighborRoamInfo->uEmptyScanCount = 0;
