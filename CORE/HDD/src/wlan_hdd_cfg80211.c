@@ -2061,13 +2061,13 @@ static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Number of AP (%d)"), pReqMsg->numAp);
 
     /* Parse and fetch lost ap sample size */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SIGNIFICANT_CHANGE_PARAMS_LOST_AP_SAMPLE_SIZE]) {
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BSSID_HOTLIST_PARAMS_LOST_AP_SAMPLE_SIZE]) {
         hddLog(LOGE, FL("attr lost ap sample size failed"));
         goto fail;
     }
 
     pReqMsg->lost_ap_sample_size = nla_get_u32(
-              tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SIGNIFICANT_CHANGE_PARAMS_LOST_AP_SAMPLE_SIZE]);
+              tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BSSID_HOTLIST_PARAMS_LOST_AP_SAMPLE_SIZE]);
     hddLog(LOG1, FL("Lost ap sample size (%d)"), pReqMsg->lost_ap_sample_size);
 
     pReqMsg->sessionId = pAdapter->sessionId;
@@ -2112,12 +2112,6 @@ static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
             tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_RSSI_HIGH]);
         hddLog(VOS_TRACE_LEVEL_INFO, FL("RSSI High (%d)"),
                                          pReqMsg->ap[i].high);
-
-        /* Parse and fetch channel */
-        if (!tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_CHANNEL]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr channel failed"));
-            goto fail;
-        }
         i++;
     }
 
@@ -18721,14 +18715,24 @@ static void
 wlan_hdd_cfg80211_passpoint_match_found(void *ctx,
 					struct wifi_passpoint_match *data)
 {
-	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
+	hdd_context_t *pHddCtx  = ctx;
 	struct sk_buff *skb     = NULL;
+	uint32_t len, i, num_matches = 1, more_data = 0;
+	struct nlattr *nla_aps;
+	struct nlattr *nla_bss;
+	struct nlattr *nla_b;
 
 	ENTER();
 
 	if (wlan_hdd_validate_context(pHddCtx) || !data) {
 		hddLog(LOGE, FL("HDD context is invalid or data(%p) is null"),
 			data);
+		return;
+	}
+
+	len = sizeof(*data) + data->ap.ieLength + data->anqp_len;
+	if (len >= EXTSCAN_EVENT_BUF_SIZE) {
+		hddLog(LOGE, FL("Result exceeded NL size limitation, drop it"));
 		return;
 	}
 
@@ -18743,96 +18747,136 @@ wlan_hdd_cfg80211_passpoint_match_found(void *ctx,
 		return;
 	}
 
-	data->ap.channel = vos_chan_to_freq(data->ap.channel);
-	hddLog(LOG1, "Id (%u) ANQP length (%u)",
-		data->id, data->anqp_len);
-	hddLog(LOG1, "AP Info: Timestamp(0x%llX) Ssid (%s) "
-				"Bssid (" MAC_ADDRESS_STR ") "
-				"Channel (%u) "
-				"Rssi (%d) "
-				"RTT (%u) "
-				"RTT_SD (%u) "
-				"Bcn Period (%d) "
-				"Capability (0x%X) "
-				"IE Length (%d)",
-				data->ap.ts,
-				data->ap.ssid,
-				MAC_ADDR_ARRAY(data->ap.bssid),
-				data->ap.channel,
-				data->ap.rssi,
-				data->ap.rtt,
-				data->ap.rtt_sd,
-				data->ap.beaconPeriod,
-				data->ap.capability,
-				data->ap.ieLength);
-	hddLog(LOG1, "Beacon IE hexdump");
-	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-				data->ap.ieData, data->ap.ieLength);
-	hddLog(LOG1, "ANQP blob hexdump");
-	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-				data->anqp, data->anqp_len);
+	hddLog(LOG1, "Req Id (%u) Id (%u) ANQP length (%u) num_matches (%u)",
+		data->request_id, data->id, data->anqp_len, num_matches);
+	for (i = 0; i < num_matches; i++) {
+		data->ap.channel = vos_chan_to_freq(data->ap.channel);
+		hddLog(LOG1, "AP Info: Timestamp(0x%llX) Ssid (%s) "
+					"Bssid (" MAC_ADDRESS_STR ") "
+					"Channel (%u) "
+					"Rssi (%d) "
+					"RTT (%u) "
+					"RTT_SD (%u) "
+					"Bcn Period (%d) "
+					"Capability (0x%X) "
+					"IE Length (%d)",
+					data->ap.ts,
+					data->ap.ssid,
+					MAC_ADDR_ARRAY(data->ap.bssid),
+					data->ap.channel,
+					data->ap.rssi,
+					data->ap.rtt,
+					data->ap.rtt_sd,
+					data->ap.beaconPeriod,
+					data->ap.capability,
+					data->ap.ieLength);
+		hddLog(LOG1, "Beacon IE hexdump");
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+					data->ap.ieData, data->ap.ieLength);
+		hddLog(LOG1, "ANQP blob hexdump");
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+					data->anqp, data->anqp_len);
+	}
 
 	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
 		data->request_id) ||
 	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ID,
-		data->id) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ANQP_LEN,
-		data->anqp_len) ||
-	    nla_put_u64(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
-		data->ap.ts) ||
-	    nla_put(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_SSID,
-		sizeof(data->ap.ssid),
-		data->ap.ssid) ||
-	    nla_put(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_BSSID,
-		sizeof(data->ap.bssid),
-		data->ap.bssid) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_CHANNEL,
-		data->ap.channel) ||
-	    nla_put_s32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RSSI,
-		data->ap.rssi) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RTT,
-		data->ap.rtt) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RTT_SD,
-		data->ap.rtt_sd) ||
-	    nla_put_u16(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_BEACON_PERIOD,
-		data->ap.beaconPeriod) ||
-	    nla_put_u16(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_CAPABILITY,
-		data->ap.capability) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_LENGTH,
-		data->ap.ieLength)) {
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_NETWORK_FOUND_NUM_MATCHES,
+		num_matches) ||
+	    nla_put_u8(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_MORE_DATA,
+		more_data)) {
 		hddLog(LOGE, FL("nla put fail"));
-		goto nla_put_failure;
+		goto fail;
 	}
 
-	if (data->ap.ieLength) {
-		if (nla_put(skb,
-			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_DATA,
-			data->ap.ieLength, data->ap.ieData))
-		goto nla_put_failure;
-	}
+	nla_aps = nla_nest_start(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_RESULT_LIST);
+	if (!nla_aps)
+		goto fail;
 
-	if (data->anqp_len) {
-		if (nla_put(skb,
-			QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ANQP,
-			data->anqp_len, data->anqp))
-		goto nla_put_failure;
-	}
+	for (i = 0; i < num_matches; i++) {
+		struct nlattr *nla_ap;
 
+		nla_ap = nla_nest_start(skb, i);
+		if (!nla_ap)
+			goto fail;
+
+		if (nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ID,
+			data->id) ||
+		    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ANQP_LEN,
+			data->anqp_len)) {
+			goto fail;
+		}
+
+		if (data->anqp_len)
+			if (nla_put(skb,
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_PNO_RESULTS_PASSPOINT_MATCH_ANQP,
+				data->anqp_len, data->anqp))
+				goto fail;
+
+		nla_bss = nla_nest_start(skb,
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_LIST);
+		if (!nla_bss)
+			goto fail;
+
+		nla_b = nla_nest_start(skb, 0);
+		if (!nla_b)
+			goto fail;
+
+		if (nla_put_u64(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
+			data->ap.ts) ||
+		    nla_put(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_SSID,
+			sizeof(data->ap.ssid),
+			data->ap.ssid) ||
+		    nla_put(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_BSSID,
+			sizeof(data->ap.bssid),
+			data->ap.bssid) ||
+		    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_CHANNEL,
+			data->ap.channel) ||
+		    nla_put_s32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RSSI,
+			data->ap.rssi) ||
+		    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RTT,
+			data->ap.rtt) ||
+		    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_RTT_SD,
+			data->ap.rtt_sd) ||
+		    nla_put_u16(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_BEACON_PERIOD,
+			data->ap.beaconPeriod) ||
+		    nla_put_u16(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_CAPABILITY,
+			data->ap.capability) ||
+		    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_LENGTH,
+			data->ap.ieLength))
+			goto fail;
+
+		if (data->ap.ieLength)
+			if (nla_put(skb,
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_DATA,
+				data->ap.ieLength,
+				data->ap.ieData))
+				goto fail;
+
+		nla_nest_end(skb, nla_b);
+		nla_nest_end(skb, nla_bss);
+		nla_nest_end(skb, nla_ap);
+	}
+	nla_nest_end(skb, nla_aps);
 
 	cfg80211_vendor_event(skb, GFP_KERNEL);
 	return;
 
-nla_put_failure:
+fail:
 	kfree_skb(skb);
 	return;
 }
@@ -18930,6 +18974,7 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
     case eSIR_PASSPOINT_NETWORK_FOUND_IND:
             wlan_hdd_cfg80211_passpoint_match_found(ctx,
                                     (struct wifi_passpoint_match *) pMsg);
+            break;
 
     case eSIR_EXTSCAN_HOTLIST_SSID_MATCH_IND:
             wlan_hdd_cfg80211_extscan_hotlist_ssid_match_ind(ctx,
