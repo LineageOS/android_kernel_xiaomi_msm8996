@@ -296,6 +296,7 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
                                     tANI_U8  *pOutputChannelList,
                                     tANI_U8  outputNumOfChannels,
                                     tANI_U8  *pMergedOutputNumOfChannels);
+void csr_roam_reset_roam_params(tpAniSirGlobal mac_ptr);
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 #define ROAM_SCAN_OFFLOAD_START                     1
 #define ROAM_SCAN_OFFLOAD_STOP                      2

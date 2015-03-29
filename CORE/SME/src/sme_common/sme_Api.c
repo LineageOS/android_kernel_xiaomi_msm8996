@@ -1704,6 +1704,8 @@ eHalStatus sme_update_roam_params(tHalHandle hHal,
 			roam_params_src.raise_factor_5g;
 		roam_params_dst->drop_factor_5g =
 			roam_params_src.drop_factor_5g;
+		roam_params_dst->max_raise_rssi_5g =
+			roam_params_src.max_raise_rssi_5g;
 		roam_params_dst->max_drop_rssi_5g=
 			roam_params_src.max_drop_rssi_5g;
 		roam_params_dst->is_5g_pref_enabled = true;

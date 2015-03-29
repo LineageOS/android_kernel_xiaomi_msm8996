@@ -3791,6 +3791,7 @@ typedef struct sSirRoamOffloadScanReq
   uint32_t  hi_rssi_scan_rssi_delta;
   uint32_t  hi_rssi_scan_delay;
   int32_t   hi_rssi_scan_rssi_ub;
+  uint8_t  middle_of_roaming;
 
 } tSirRoamOffloadScanReq, *tpSirRoamOffloadScanReq;
 
