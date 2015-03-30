@@ -8406,6 +8406,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         wlan_sap_set_channel_avoidance(hHal, iniConfig->sap_channel_avoidance);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     }
+    else if (pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
+    {
+       pConfig->countryCode[0] = pHddCtx->reg.alpha2[0];
+       pConfig->countryCode[1] = pHddCtx->reg.alpha2[1];
+       pConfig->ieee80211d = 0;
+    }
     else
     {
         pConfig->ieee80211d = 0;
