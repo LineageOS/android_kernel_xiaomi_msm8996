@@ -8355,9 +8355,7 @@ bool hdd_dfs_indicate_radar(void *context, void *param)
     VOS_STATUS status;
 
     if (!pHddCtx || !hdd_radar_event || pHddCtx->cfg_ini->disableDFSChSwitch)
-    {
-        return false;
-    }
+        return true;
 
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {

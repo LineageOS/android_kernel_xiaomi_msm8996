@@ -1303,6 +1303,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                                            dfs_info, &pHostapdAdapter->wdev)) {
                       hddLog(LOGE, FL("Unable to indicate CAC start NL event"));
             }
+
+            pHddCtx->dfs_radar_found = VOS_FALSE;
             break;
 
         case eSAP_DFS_CAC_END:
