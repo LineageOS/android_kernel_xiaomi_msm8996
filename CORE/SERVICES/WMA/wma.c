@@ -13631,6 +13631,13 @@ static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 			wma->dfs_ic->last_radar_found_chan)
 			wma->dfs_ic->last_radar_found_chan = 0;
         case VOS_P2P_GO_MODE:
+		/*If current bring up P2P channel matches the previous
+		 *radar found channel then reset the last_radar_found_chan
+		 *variable to avoid race conditions.
+		 */
+		if (params->currentOperChannel ==
+				wma->dfs_ic->last_radar_found_chan)
+			wma->dfs_ic->last_radar_found_chan = 0;
 		wma_add_bss_ap_mode(wma, params);
                 break;
 
