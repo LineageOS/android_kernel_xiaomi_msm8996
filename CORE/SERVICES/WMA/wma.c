@@ -1224,6 +1224,10 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		0,
 		CFG_TGT_NUM_TDLS_CONC_SLEEP_STAS,
 		CFG_TGT_NUM_TDLS_CONC_BUFFER_STAS,
+		0,
+		CFG_TGT_NUM_OCB_VDEVS,
+		CFG_TGT_NUM_OCB_CHANNELS,
+		CFG_TGT_NUM_OCB_SCHEDULES,
 	};
 
 	/* Update the max number of peers */
