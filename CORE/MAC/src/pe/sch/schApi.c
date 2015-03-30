@@ -575,3 +575,89 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
 
     return retCode;
 }
+
+/**
+ * schGenTimingAdvertFrame() - Generate the TA frame and populate the buffer
+ * @pMac: the global MAC context
+ * @self_addr: the self MAC address
+ * @buf: the buffer that will contain the frame
+ * @timestamp_offset: return for the offset of the timestamp field
+ * @time_value_offset: return for the time_value field in the TA IE
+ *
+ * Return: the length of the buffer.
+ */
+int schGenTimingAdvertFrame(tpAniSirGlobal mac_ctx, tSirMacAddr self_addr,
+    uint8_t **buf, uint32_t *timestamp_offset, uint32_t *time_value_offset)
+{
+    tDot11fTimingAdvertisementFrame frame;
+    uint32_t payload_size, buf_size;
+    int status;
+    v_MACADDR_t wildcard_bssid = {
+        {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    };
+
+    vos_mem_zero((uint8_t*)&frame, sizeof(tDot11fTimingAdvertisementFrame));
+
+    /* Populate the TA fields */
+    status = PopulateDot11fTimingAdvertFrame(mac_ctx, &frame);
+    if (status) {
+      schLog(mac_ctx, LOGE, FL("Error populating TA frame %x"), status);
+      return status;
+    }
+
+    status = dot11fGetPackedTimingAdvertisementFrameSize(mac_ctx, &frame,
+        &payload_size);
+    if (DOT11F_FAILED(status)) {
+        schLog(mac_ctx, LOGE, FL("Error getting packed frame size %x"), status);
+        return status;
+    } else if (DOT11F_WARNED(status)) {
+        schLog(mac_ctx, LOGW, FL("Warning getting packed frame size"));
+    }
+
+    buf_size = sizeof(tSirMacMgmtHdr) + payload_size;
+    *buf = vos_mem_malloc(buf_size);
+    if (*buf == NULL) {
+        schLog(mac_ctx, LOGE, FL("Cannot allocate memory"));
+    }
+    vos_mem_zero(*buf, buf_size);
+
+    payload_size = 0;
+    status = dot11fPackTimingAdvertisementFrame(mac_ctx, &frame,
+        *buf + sizeof(tSirMacMgmtHdr), buf_size - sizeof(tSirMacMgmtHdr),
+        &payload_size);
+    schLog(mac_ctx, LOGE, FL("TA payload size2 = %d"), payload_size);
+    if (DOT11F_FAILED(status)) {
+        schLog(mac_ctx, LOGE, FL("Error packing frame %x"), status);
+        goto fail;
+    } else if (DOT11F_WARNED(status)) {
+        schLog(mac_ctx, LOGE, FL("Warning packing frame"));
+    }
+
+    limPopulateMacHeader(mac_ctx, *buf, SIR_MAC_MGMT_FRAME,
+        SIR_MAC_MGMT_TIME_ADVERT, wildcard_bssid.bytes, self_addr);
+
+    /* The timestamp field is right after the header */
+    *timestamp_offset = sizeof(tSirMacMgmtHdr);
+
+    *time_value_offset = sizeof(tSirMacMgmtHdr) + sizeof(tDot11fFfTimeStamp) +
+        sizeof(tDot11fFfCapabilities);
+
+    /* Add the Country IE length */
+    dot11fGetPackedIECountry(mac_ctx, &frame.Country, time_value_offset);
+    /* Add 2 for Country IE EID and Length fields */
+    *time_value_offset += 2;
+
+    /* Add the PowerConstraint IE size */
+    if (frame.Country.present == 1)
+        *time_value_offset += 3;
+
+    /* Add the offset inside TA IE */
+    *time_value_offset += 3;
+
+    return payload_size + sizeof(tSirMacMgmtHdr);
+
+fail:
+    if (*buf)
+        vos_mem_free(*buf);
+    return status;
+}
