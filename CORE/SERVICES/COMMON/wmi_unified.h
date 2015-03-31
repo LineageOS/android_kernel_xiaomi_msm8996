@@ -2069,6 +2069,15 @@ typedef struct {
     A_UINT32 flags;
     /** combined RSSI, i.e. the sum of the snr + noise floor (dBm units) */
     A_INT32 rssi;
+    /** delta between local TSF(TSF timestamp when frame was RXd)
+     *  and remote TSF(TSF timestamp in the IE for mgmt frame -
+     *  beacon,proberesp for e.g). If remote TSF is not available,
+     *  delta set to 0.
+     *  Although tsf_delta is stored as A_UINT32, it can be negative,
+     *  and thus would need to be sign-extended if added to a value
+     *  larger than 32 bits.
+     */
+    A_UINT32 tsf_delta;
 
     /* This TLV is followed by array of bytes:
          * // management frame buffer
