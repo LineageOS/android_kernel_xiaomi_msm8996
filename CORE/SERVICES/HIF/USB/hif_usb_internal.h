@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -128,6 +128,7 @@ typedef struct _HIF_DEVICE_USB {
 	struct hif_usb_softc *sc;
 	A_BOOL is_bundle_enabled;
 	A_UINT16 rx_bundle_cnt;
+	A_UINT32 rx_bundle_buf_len;
 } HIF_DEVICE_USB;
 extern unsigned int hif_usb_disable_rxdata2;
 

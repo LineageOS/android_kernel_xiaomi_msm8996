@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1039,6 +1039,8 @@ void HIFSetBundleMode(HIF_DEVICE *hif_device, bool enabled, int rx_bundle_cnt)
 	if (device->is_bundle_enabled && (device->rx_bundle_cnt == 0)) {
 		device->rx_bundle_cnt = 1;
 	}
+	device->rx_bundle_buf_len = device->rx_bundle_cnt *
+		                        HIF_USB_RX_BUNDLE_ONE_PKT_SIZE;
 
 	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_IN,
 			("athusb bundle %s cnt %d\n",

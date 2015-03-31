@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -741,9 +741,8 @@ static void usb_hif_usb_recv_bundle_complete(struct urb *urb)
 	if (A_SUCCESS(status)) {
 		if (pipe->urb_cnt >= pipe->urb_cnt_thresh) {
 			/* our free urbs are piling up, post more transfers */
-			usb_hif_post_recv_bundle_transfers(pipe, 0
-			/* pass zero for not allocating urb-buffer again */
-			    );
+			usb_hif_post_recv_bundle_transfers(pipe,
+						pipe->device->rx_bundle_buf_len);
 		}
 	}
 
@@ -891,7 +890,7 @@ static void usb_hif_post_recv_bundle_transfers(HIF_USB_PIPE *recv_pipe,
 		if (NULL == urb_context)
 			break;
 
-		if (buffer_length) {
+		if (NULL == urb_context->buf) {
 			urb_context->buf =
 			    adf_nbuf_alloc(NULL, buffer_length, 0, 4, FALSE);
 			if (NULL == urb_context->buf) {
@@ -907,8 +906,7 @@ static void usb_hif_post_recv_bundle_transfers(HIF_USB_PIPE *recv_pipe,
 				  recv_pipe->device->udev,
 				  recv_pipe->usb_pipe_handle,
 				  data,
-				  (recv_pipe->device->rx_bundle_cnt *
-				   HIF_USB_RX_BUNDLE_ONE_PKT_SIZE),
+				  buffer_length,
 				  usb_hif_usb_recv_bundle_complete,
 				  urb_context);
 
@@ -965,9 +963,8 @@ void usb_hif_start_recv_pipes(HIF_DEVICE_USB *device)
 	printk("Post URBs to RX_DATA_PIPE: %d\n",
 		device->pipes[HIF_RX_DATA_PIPE].urb_cnt);
 	if (device->is_bundle_enabled) {
-		buf_len = device->rx_bundle_cnt *
-				HIF_USB_RX_BUNDLE_ONE_PKT_SIZE;
-		usb_hif_post_recv_bundle_transfers(pipe, buf_len);
+		usb_hif_post_recv_bundle_transfers(pipe,
+					pipe->device->rx_bundle_buf_len);
 	} else {
 		buf_len = HIF_USB_RX_BUFFER_SIZE;
 		usb_hif_post_recv_transfers(pipe, buf_len);
