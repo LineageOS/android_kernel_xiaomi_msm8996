@@ -473,12 +473,13 @@ void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter)
                      pAdapter->is_roc_inprogress = FALSE;
                 }
                 mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
-
             }
+            /* hold the lock before break from the loop */
+            mutex_lock(&cfgState->remain_on_chan_ctx_lock);
             break;
        }
        mutex_lock(&cfgState->remain_on_chan_ctx_lock);
-   }
+   } /* end of while */
    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
 }

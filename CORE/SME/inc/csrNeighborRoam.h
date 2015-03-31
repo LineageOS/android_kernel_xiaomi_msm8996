@@ -323,6 +323,11 @@ VOS_STATUS csrNeighborRoamMergeChannelLists(tpAniSirGlobal pMac,
 #define REASON_ROAM_BEACON_RSSI_WEIGHT_CHANGED      22
 #define REASON_ROAM_DFS_SCAN_MODE_CHANGED           23
 #define REASON_ROAM_ABORT_ROAM_SCAN                 24
+#define REASON_ROAM_EXT_SCAN_PARAMS_CHANGED         25
+#define REASON_ROAM_SET_SSID_ALLOWED                26
+#define REASON_ROAM_SET_FAVORED_BSSID               27
+#define REASON_ROAM_GOOD_RSSI_CHANGED               28
+#define REASON_ROAM_SET_BLACKLIST_BSSID             29
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                               tANI_U8 command, tANI_U8 reason);
 eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac,

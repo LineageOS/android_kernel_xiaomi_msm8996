@@ -1676,6 +1676,81 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    return status;
 }
 
+/**
+ * sme_update_roam_params - Store/Update the roaming params
+ * @hHal                    Handle for Hal layer
+ * @session_id              SME Session ID
+ * @roam_params_src         The source buffer to copy
+ * @update_param            Type of parameter to be updated
+ *
+ * Return: Return the status of the updation.
+ */
+eHalStatus sme_update_roam_params(tHalHandle hHal,
+	uint8_t session_id, struct roam_ext_params roam_params_src,
+	int update_param)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	struct roam_ext_params *roam_params_dst;
+	uint8_t i;
+
+	roam_params_dst = &pMac->roam.configParam.roam_params;
+	switch(update_param) {
+	case REASON_ROAM_EXT_SCAN_PARAMS_CHANGED:
+		roam_params_dst->raise_rssi_thresh_5g =
+			roam_params_src.raise_rssi_thresh_5g;
+		roam_params_dst->drop_rssi_thresh_5g =
+			roam_params_src.drop_rssi_thresh_5g;
+		roam_params_dst->raise_factor_5g=
+			roam_params_src.raise_factor_5g;
+		roam_params_dst->drop_factor_5g =
+			roam_params_src.drop_factor_5g;
+		roam_params_dst->max_drop_rssi_5g=
+			roam_params_src.max_drop_rssi_5g;
+		roam_params_dst->is_5g_pref_enabled = true;
+		break;
+	case REASON_ROAM_SET_SSID_ALLOWED:
+		vos_mem_set(&roam_params_dst->ssid_allowed_list, 0,
+				sizeof(tSirMacSSid) * MAX_SSID_ALLOWED_LIST);
+		roam_params_dst->num_ssid_allowed_list=
+			roam_params_src.num_ssid_allowed_list;
+		for (i=0; i<roam_params_dst->num_ssid_allowed_list; i++) {
+			roam_params_dst->ssid_allowed_list[i].length =
+				roam_params_src.ssid_allowed_list[i].length;
+			vos_mem_copy(roam_params_dst->ssid_allowed_list[i].ssId,
+				roam_params_src.ssid_allowed_list[i].ssId,
+				roam_params_dst->ssid_allowed_list[i].length);
+		}
+		break;
+	case REASON_ROAM_SET_FAVORED_BSSID:
+		vos_mem_set(&roam_params_dst->bssid_favored, 0,
+			sizeof(tSirMacAddr) * MAX_BSSID_FAVORED);
+		roam_params_dst->num_bssid_favored=
+			roam_params_src.num_bssid_favored;
+		for (i=0; i<roam_params_dst->num_bssid_favored; i++) {
+			vos_mem_copy(&roam_params_dst->bssid_favored[i],
+				&roam_params_src.bssid_favored[i],
+				sizeof(tSirMacAddr));
+			roam_params_dst->bssid_favored_factor[i] =
+				roam_params_src.bssid_favored_factor[i];
+		}
+		break;
+	case REASON_ROAM_SET_BLACKLIST_BSSID:
+		vos_mem_set(&roam_params_dst->bssid_avoid_list, 0,
+			sizeof(tSirMacAddr) * MAX_BSSID_AVOID_LIST);
+		roam_params_dst->num_bssid_avoid_list =
+			roam_params_src.num_bssid_avoid_list;
+		for (i=0; i<roam_params_dst->num_bssid_avoid_list; i++) {
+			vos_mem_copy(&roam_params_dst->bssid_avoid_list[i],
+				&roam_params_src.bssid_avoid_list[i],
+				sizeof(tSirMacAddr));
+		}
+	default:
+		break;
+	}
+	csrRoamOffloadScan(pMac, session_id, ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+			update_param);
+	return 0;
+}
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 void sme_ProcessGetGtkInfoRsp( tHalHandle hHal,
                             tpSirGtkOffloadGetInfoRspParams pGtkOffloadGetInfoRsp)

@@ -80,6 +80,10 @@
 ( \
    (((pMac)->roam.configParam.nSelect5GHzMargin)?eANI_BOOLEAN_TRUE:eANI_BOOLEAN_FALSE) \
 )
+#define CSR_IS_SELECT_5G_PREFERRED(pMac) \
+( \
+   (((pMac)->roam.configParam.roam_params.is_5g_pref_enabled)?eANI_BOOLEAN_TRUE:eANI_BOOLEAN_FALSE) \
+)
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 #define CSR_IS_ROAM_PREFER_5GHZ( pMac ) \
@@ -675,6 +679,7 @@ typedef struct tagCsrConfig
     v_U8_t conc_custom_rule1;
     v_U8_t conc_custom_rule2;
     v_U8_t is_sta_connection_in_5gz_enabled;
+    struct roam_ext_params roam_params;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

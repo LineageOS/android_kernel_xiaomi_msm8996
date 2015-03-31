@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4857,7 +4857,10 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
     tANI_U32 i;
     tDot11fBeaconIEs *pIes = NULL;
     tANI_U8 *pb;
+    tCsrBssid *blacklist_bssid = NULL;
+    struct roam_ext_params *roam_params;
 
+    roam_params = &pMac->roam.configParam.roam_params;
     do {
         if( ( NULL == ppIes ) || ( *ppIes ) == NULL )
         {
@@ -4877,7 +4880,24 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         fCheck = (!pFilter->p2pResult || pIes->P2PBeaconProbeRes.present);
         if(!fCheck) break;
 
-        if(pIes->SSID.present)
+        /* Check for Blacklist BSSID's and avoid connections */
+        fCheck = false;
+        blacklist_bssid = (tCsrBssid *)&roam_params->bssid_avoid_list;
+        for (i = 0; i < roam_params->num_bssid_avoid_list; i++) {
+          if (csrIsMacAddressEqual(pMac, blacklist_bssid,
+               (tCsrBssid *)pBssDesc->bssId)) {
+                 fCheck = true;
+                 break;
+          }
+          blacklist_bssid++;
+        }
+        if(fCheck) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "Do not Attempt connection to blacklist bssid");
+            break;
+        }
+
+	if(pIes->SSID.present)
         {
             for(i = 0; i < pFilter->SSIDs.numOfSSIDs; i++)
             {
@@ -4903,7 +4923,6 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
             }
         }
         if(!fCheck) break;
-
         fCheck = eANI_BOOLEAN_TRUE;
         for(i = 0; i < pFilter->ChannelInfo.numOfChannels; i++)
         {

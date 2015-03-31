@@ -1782,6 +1782,7 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
                                       &pMac->roam.neighborRoamInfo[sessionId];
     tCsrRoamConnectedProfile *pCurProfile = &pMac->roam.roamSession[sessionId].connectedProfile;
     tANI_U8 i = 0;
+    struct roam_ext_params *roam_params;
 
     VOS_ASSERT(pScanFilter != NULL);
     if (pScanFilter == NULL)
@@ -1789,9 +1790,10 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
 
     vos_mem_zero(pScanFilter, sizeof(tCsrScanResultFilter));
 
+    roam_params = &pMac->roam.configParam.roam_params;
     /* We dont want to set BSSID based Filter */
     pScanFilter->BSSIDs.numOfBSSIDs = 0;
-
+    pScanFilter->scan_filter_for_roam = 1;
     //only for HDD requested handoff fill in the BSSID in the filter
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
     if (pNeighborRoamInfo->uOsRequestedHandoff)
@@ -1814,24 +1816,51 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
         }
     }
 #endif
-    /* Populate all the information from the connected profile */
-    pScanFilter->SSIDs.numOfSSIDs = 1;
-    pScanFilter->SSIDs.SSIDList = vos_mem_malloc(sizeof(tCsrSSIDInfo));
-    if (NULL == pScanFilter->SSIDs.SSIDList)
-    {
-        smsLog(pMac, LOGE, FL("Scan Filter SSID mem alloc failed"));
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-    pScanFilter->SSIDs.SSIDList->handoffPermitted = 1;
-    pScanFilter->SSIDs.SSIDList->ssidHidden = 0;
-    pScanFilter->SSIDs.SSIDList->SSID.length =  pCurProfile->SSID.length;
-    vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList->SSID.ssId, (void *)pCurProfile->SSID.ssId, pCurProfile->SSID.length);
+    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+        FL("No of Allowed SSID List:%d"), roam_params->num_ssid_allowed_list);
+    if (roam_params->num_ssid_allowed_list) {
+        pScanFilter->SSIDs.numOfSSIDs = (1 + roam_params->num_ssid_allowed_list);
+        pScanFilter->SSIDs.SSIDList = vos_mem_malloc(sizeof(tCsrSSIDInfo) * pScanFilter->SSIDs.numOfSSIDs);
+        if (NULL == pScanFilter->SSIDs.SSIDList) {
+           smsLog(pMac, LOGE, FL("Scan Filter SSID mem alloc failed"));
+           return eHAL_STATUS_FAILED_ALLOC;
+        }
+        for(i = 0; i < roam_params->num_ssid_allowed_list; i++) {
+          pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
+          pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
+          vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
+            roam_params->ssid_allowed_list[i].ssId,
+            roam_params->ssid_allowed_list[i].length);
+          pScanFilter->SSIDs.SSIDList[i].SSID.length =
+            roam_params->ssid_allowed_list[i].length;
+        }
+        vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
+            (void *)pCurProfile->SSID.ssId,
+            pCurProfile->SSID.length);
+        pScanFilter->SSIDs.SSIDList[i].SSID.length =
+            pCurProfile->SSID.length;
+        pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
+        pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
+    } else {
+        /* Populate all the information from the connected profile */
+        pScanFilter->SSIDs.numOfSSIDs = 1;
+        pScanFilter->SSIDs.SSIDList = vos_mem_malloc(sizeof(tCsrSSIDInfo));
+        if (NULL == pScanFilter->SSIDs.SSIDList) {
+          smsLog(pMac, LOGE, FL("Scan Filter SSID mem alloc failed"));
+          return eHAL_STATUS_FAILED_ALLOC;
+        }
+        pScanFilter->SSIDs.SSIDList->handoffPermitted = 1;
+        pScanFilter->SSIDs.SSIDList->ssidHidden = 0;
+        pScanFilter->SSIDs.SSIDList->SSID.length =  pCurProfile->SSID.length;
+        vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList->SSID.ssId,
+          (void *)pCurProfile->SSID.ssId, pCurProfile->SSID.length);
 
     NEIGHBOR_ROAM_DEBUG(pMac, LOG1, FL("Filtering for SSID %.*s from scan results,"
                                 "length of SSID = %u"),
                                 pScanFilter->SSIDs.SSIDList->SSID.length,
                                 pScanFilter->SSIDs.SSIDList->SSID.ssId,
                                 pScanFilter->SSIDs.SSIDList->SSID.length);
+    }
     pScanFilter->authType.numEntries = 1;
     pScanFilter->authType.authType[0] = pCurProfile->AuthType;
 
@@ -2044,7 +2073,7 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
 
                 if (abs(CurrAPRssi) < abs(pScanResult->BssDescriptor.rssi)) {
                     /* Do not roam to an AP with worse RSSI than the current */
-                    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                "%s: [INFOLOG]Current AP rssi=%d new ap rssi "
                                "worse=%d", __func__,
                                CurrAPRssi,
@@ -2058,7 +2087,7 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                      */
                     if (abs(abs(CurrAPRssi) -
                          abs(pScanResult->BssDescriptor.rssi)) < RoamRssiDiff) {
-                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                    "%s: [INFOLOG]Current AP rssi=%d new ap "
                                    "rssi=%d not good enough, roamRssiDiff=%d",
                                     __func__,
@@ -2067,7 +2096,7 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                                    RoamRssiDiff);
                         continue;
                     } else {
-                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                                  "%s: [INFOLOG]Current AP rssi=%d new ap "
                                  "rssi better=%d",
                                   __func__,

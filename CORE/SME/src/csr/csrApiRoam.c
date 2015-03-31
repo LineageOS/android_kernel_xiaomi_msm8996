@@ -8452,6 +8452,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
        if(HAL_STATUS_SUCCESS(status))
        {
            vos_mem_set(pScanFilter, sizeof(tCsrScanResultFilter), 0);
+	   pScanFilter->scan_filter_for_roam = 1;
            status = csrRoamPrepareFilterFromProfile(pMac,
                                      &pNeighborRoamInfo->csrNeighborRoamProfile,
                                      pScanFilter);
@@ -9347,8 +9348,12 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
                                            tCsrScanResultFilter *pScanFilter)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U32 size = 0;
+    uint32_t size = 0;
     tANI_U8  index = 0;
+    struct roam_ext_params *roam_params;
+    uint8_t i;
+
+    roam_params = &pMac->roam.configParam.roam_params;
 
     do
     {
@@ -9379,6 +9384,35 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
                 //We always use index 1 for self SSID. Index 0 for peer's SSID that we want to join
                 pScanFilter->SSIDs.numOfSSIDs = 1;
             }
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+              FL("No of Allowed List:%d"), roam_params->num_ssid_allowed_list);
+          if (pScanFilter->scan_filter_for_roam
+                && roam_params->num_ssid_allowed_list) {
+             pScanFilter->SSIDs.numOfSSIDs =
+                (1 + roam_params->num_ssid_allowed_list);
+             size = sizeof(tCsrSSIDInfo) * pScanFilter->SSIDs.numOfSSIDs;
+             pScanFilter->SSIDs.SSIDList = vos_mem_malloc(size);
+          if ( NULL == pScanFilter->SSIDs.SSIDList)
+             status = eHAL_STATUS_FAILURE;
+          else
+             status = eHAL_STATUS_SUCCESS;
+          if(!HAL_STATUS_SUCCESS(status))
+             break;
+          for (i=0; i<roam_params->num_ssid_allowed_list; i++) {
+             vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
+               roam_params->ssid_allowed_list[i].ssId,
+               roam_params->ssid_allowed_list[i].length);
+             pScanFilter->SSIDs.SSIDList[i].SSID.length =
+               roam_params->ssid_allowed_list[i].length;
+             pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
+             pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
+          }
+           vos_mem_copy(pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
+           pProfile->SSIDs.SSIDList->SSID.ssId,
+           pProfile->SSIDs.SSIDList->SSID.length);
+           pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
+           pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
+          } else {
             size = sizeof(tCsrSSIDInfo) * pProfile->SSIDs.numOfSSIDs;
             pScanFilter->SSIDs.SSIDList = vos_mem_malloc(size);
             if ( NULL == pScanFilter->SSIDs.SSIDList )
@@ -9391,6 +9425,7 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
             }
             vos_mem_copy(pScanFilter->SSIDs.SSIDList, pProfile->SSIDs.SSIDList,
                          size);
+          }
         }
         if(!pProfile->ChannelInfo.ChannelList || (pProfile->ChannelInfo.ChannelList[0] == 0) )
         {
@@ -16681,7 +16716,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     pRequestBuf->RoamRssiDiff =
             pMac->roam.configParam.RoamRssiDiff;
     pRequestBuf->Command = command;
-    pRequestBuf->StartScanReason = reason;
+    pRequestBuf->reason = reason;
     pRequestBuf->NeighborScanTimerPeriod =
             pNeighborRoamInfo->cfgParams.neighborScanPeriod;
     pRequestBuf->NeighborRoamScanRefreshPeriod =
@@ -16900,6 +16935,8 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        csrRoamOffload(pMac, pRequestBuf, pSession);
    }
 #endif
+   vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
+       sizeof(pRequestBuf->roam_params));
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;

@@ -2832,20 +2832,35 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	dest_capab->max_scan_reporting_threshold =
 				src_cache->max_table_usage_threshold;
 
-	dest_capab->max_hotlist_aps = src_hotlist->max_hotlist_entries;
+	dest_capab->max_hotlist_bssids = src_hotlist->max_hotlist_entries;
 	dest_capab->max_rssi_sample_size =
 				src_change->max_rssi_averaging_samples;
 	dest_capab->max_bssid_history_entries =
 				src_change->max_rssi_history_entries;
 	dest_capab->max_significant_wifi_change_aps =
 				src_change->max_wlan_change_entries;
+	dest_capab->max_hotlist_ssids =
+				event->num_extscan_hotlist_ssid;
+	dest_capab->max_number_epno_networks =
+				event->num_epno_networks;
+	dest_capab->max_number_epno_networks_by_ssid =
+				event->num_epno_networks;
+	dest_capab->max_number_of_white_listed_ssid =
+				event->num_roam_ssid_whitelist;
 	dest_capab->status = 0;
 
 	WMA_LOGD("%s: Capabilities: max_scan_buckets: %d,"
-		 "max_hotlist_aps: %d,max_scan_cache_size: %d",
+		 "max_hotlist_bssids: %d, max_scan_cache_size: %d",
 		 __func__, dest_capab->max_scan_buckets,
-		dest_capab->max_hotlist_aps,
+		dest_capab->max_hotlist_bssids,
 		dest_capab->max_scan_cache_size);
+	WMA_LOGD("%s: Capabilities: max_hotlist_ssids: %d,"
+		 "max_number_epno_networks: %d, max_number_epno_networks_by_ssid: %d,"
+		 "max_number_of_white_listed_ssid: %d",
+		 __func__, dest_capab->max_hotlist_ssids,
+		dest_capab->max_number_epno_networks,
+		dest_capab->max_number_epno_networks_by_ssid,
+		dest_capab->max_number_of_white_listed_ssid);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_GET_CAPABILITIES_IND,
@@ -3074,7 +3089,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 			dest_ap = &dest_result->ap[0];
 		}
 		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = src_rssi->tstamp * WMA_SEC_TO_USEC;
+		dest_ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
 		dest_ap->rtt = src_hotlist->rtt;
 		dest_ap->rtt_sd = src_hotlist->rtt_sd;
 		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
@@ -8214,19 +8229,24 @@ error:
  * Returns    :
  */
 VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
-        A_INT32 rssi_thresh,
-        A_INT32 rssi_thresh_diff,
-        u_int32_t vdev_id)
+         tSirRoamOffloadScanReq *roam_req)
 {
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     wmi_buf_t buf = NULL;
     int status = 0;
-    int len;
+    int len, rssi_thresh, rssi_thresh_diff;
     u_int8_t *buf_ptr;
     wmi_roam_scan_rssi_threshold_fixed_param *rssi_threshold_fp;
+    wmi_roam_scan_extended_threshold_param *ext_thresholds = NULL;
+    struct roam_ext_params *roam_params;
 
     /* Send rssi threshold */
+    roam_params = &roam_req->roam_params;
+    rssi_thresh = roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT;
+    rssi_thresh_diff = roam_req->OpportunisticScanThresholdDiff;
     len = sizeof(wmi_roam_scan_rssi_threshold_fixed_param);
+    len += WMI_TLV_HDR_SIZE; /* TLV for ext_thresholds*/
+    len += sizeof(wmi_roam_scan_extended_threshold_param);
     buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
     if (!buf) {
         WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
@@ -8240,10 +8260,39 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
                WMITLV_GET_STRUCT_TLVLEN(
                    wmi_roam_scan_rssi_threshold_fixed_param));
     /* fill in threshold values */
-    rssi_threshold_fp->vdev_id = vdev_id;
+    rssi_threshold_fp->vdev_id = roam_req->sessionId;
     rssi_threshold_fp->roam_scan_rssi_thresh = rssi_thresh & 0x000000ff;
     rssi_threshold_fp->roam_rssi_thresh_diff = rssi_thresh_diff & 0x000000ff;
-
+    buf_ptr += sizeof(wmi_roam_scan_rssi_threshold_fixed_param);
+    WMITLV_SET_HDR(buf_ptr,
+               WMITLV_TAG_ARRAY_STRUC,
+               sizeof(wmi_roam_scan_extended_threshold_param));
+    buf_ptr += WMI_TLV_HDR_SIZE;
+    ext_thresholds = (wmi_roam_scan_extended_threshold_param *) buf_ptr;
+    ext_thresholds->boost_threshold_5g =
+      (roam_params->raise_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+      0x000000ff;
+    ext_thresholds->penalty_threshold_5g =
+      (roam_params->drop_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+      0x000000ff;
+    ext_thresholds->boost_algorithm_5g = WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR;
+    ext_thresholds->boost_factor_5g = roam_params->raise_factor_5g;
+    ext_thresholds->penalty_algorithm_5g =
+      WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR;
+    ext_thresholds->penalty_factor_5g = roam_params->drop_factor_5g;
+    ext_thresholds->max_boost_5g =
+      (roam_params->max_raise_rssi_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+      0x000000ff;
+    ext_thresholds->max_penalty_5g =
+      (roam_params->max_drop_rssi_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+      0x000000ff;
+    ext_thresholds->good_rssi_threshold =
+      (roam_params->good_rssi_threshold - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+      0x000000ff;
+    WMITLV_SET_HDR(&ext_thresholds->tlv_header,
+      WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param,
+      WMITLV_GET_STRUCT_TLVLEN
+      (wmi_roam_scan_extended_threshold_param));
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_THRESHOLD);
     if (status != EOK) {
@@ -8789,6 +8838,131 @@ error:
     return vos_status;
 }
 
+VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
+                tSirRoamOffloadScanReq *roam_req)
+{
+	wmi_buf_t buf = NULL;
+	int status = 0, i;
+	uint32_t len, num_bssid_black_list = 0, num_ssid_white_list = 0,
+	   num_bssid_preferred_list = 0;
+	uint32_t op_bitmap = 0;
+	uint8_t *buf_ptr;
+	wmi_roam_filter_fixed_param *roam_filter;
+	uint8_t *bssid_src_ptr = NULL;
+	wmi_mac_addr *bssid_dst_ptr = NULL;
+	wmi_ssid *ssid_ptr = NULL;
+	uint32_t *bssid_preferred_factor_ptr = NULL;
+	struct roam_ext_params *roam_params;
+
+	roam_params = &roam_req->roam_params;
+	len = sizeof(wmi_roam_filter_fixed_param);
+	len += WMI_TLV_HDR_SIZE;
+	switch (roam_req->reason) {
+	case REASON_ROAM_SET_BLACKLIST_BSSID:
+		op_bitmap |= 0x1;
+		num_bssid_black_list = roam_params->num_bssid_avoid_list;
+		len += num_bssid_black_list * sizeof(wmi_mac_addr);
+		len += WMI_TLV_HDR_SIZE;
+		break;
+	case REASON_ROAM_SET_SSID_ALLOWED:
+		op_bitmap |= 0x2;
+		num_ssid_white_list = roam_params->num_ssid_allowed_list;
+		len += num_ssid_white_list * sizeof(wmi_ssid);
+		len += WMI_TLV_HDR_SIZE;
+		break;
+	case REASON_ROAM_SET_FAVORED_BSSID:
+		op_bitmap |= 0x4;
+		num_bssid_preferred_list = roam_params->num_bssid_favored;
+		len += num_bssid_preferred_list * sizeof(wmi_mac_addr);
+		len += WMI_TLV_HDR_SIZE;
+		len += num_bssid_preferred_list * sizeof(A_UINT32);
+		break;
+	default:
+		WMA_LOGD("%s : Roam Filter need not be sent", __func__);
+		return VOS_STATUS_SUCCESS;
+		break;
+	}
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	roam_filter = (wmi_roam_filter_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&roam_filter->tlv_header,
+		WMITLV_TAG_STRUC_wmi_roam_filter_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_roam_filter_fixed_param));
+	/* fill in fixed values */
+	roam_filter->vdev_id = roam_req->sessionId;
+	roam_filter->flags = 0;
+	roam_filter->op_bitmap = op_bitmap;
+	roam_filter->num_bssid_black_list = num_bssid_black_list;
+	roam_filter->num_ssid_white_list = num_ssid_white_list;
+	roam_filter->num_bssid_preferred_list = num_bssid_preferred_list;
+	buf_ptr += sizeof(wmi_roam_filter_fixed_param);
+
+	WMITLV_SET_HDR((buf_ptr),
+		WMITLV_TAG_ARRAY_FIXED_STRUC,
+		(num_bssid_black_list * sizeof(wmi_mac_addr)));
+	bssid_src_ptr = (uint8_t *)&roam_params->bssid_avoid_list;
+	bssid_dst_ptr = (wmi_mac_addr *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	for(i=0; i<num_bssid_black_list; i++) {
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid_src_ptr, bssid_dst_ptr);
+		bssid_src_ptr += sizeof(ATH_MAC_LEN);
+		bssid_dst_ptr++;
+	}
+	buf_ptr += WMI_TLV_HDR_SIZE + (num_bssid_black_list * sizeof(wmi_mac_addr));
+	WMITLV_SET_HDR((buf_ptr),
+		WMITLV_TAG_ARRAY_FIXED_STRUC,
+		(num_ssid_white_list * sizeof(wmi_ssid)));
+	ssid_ptr = (wmi_ssid *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	for(i=0; i<num_ssid_white_list; i++) {
+		memcpy(&ssid_ptr->ssid, &roam_params->ssid_allowed_list[i].ssId,
+			roam_params->ssid_allowed_list[i].length);
+		ssid_ptr->ssid_len = roam_params->ssid_allowed_list[i].length;
+		WMA_LOGD("%s: Passing SSID of length=%d", __func__,ssid_ptr->ssid_len);
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+				(uint8_t *)ssid_ptr->ssid,
+				ssid_ptr->ssid_len);
+		ssid_ptr++;
+	}
+	buf_ptr += WMI_TLV_HDR_SIZE + (num_ssid_white_list * sizeof(wmi_ssid));
+	WMITLV_SET_HDR((buf_ptr),
+		WMITLV_TAG_ARRAY_FIXED_STRUC,
+		(num_bssid_preferred_list * sizeof(wmi_mac_addr)));
+	bssid_src_ptr = (uint8_t *)&roam_params->bssid_favored;
+	bssid_dst_ptr = (wmi_mac_addr *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	for(i=0; i<num_bssid_preferred_list; i++) {
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid_src_ptr,
+				(wmi_mac_addr *)bssid_dst_ptr);
+		bssid_src_ptr += sizeof(ATH_MAC_LEN);
+		bssid_dst_ptr++;
+	}
+	buf_ptr += WMI_TLV_HDR_SIZE +
+		(num_bssid_preferred_list * sizeof(wmi_mac_addr));
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(num_bssid_preferred_list * sizeof(uint32_t)));
+	bssid_preferred_factor_ptr = (uint32_t *)(buf_ptr + WMI_TLV_HDR_SIZE);
+	for (i=0; i<num_bssid_preferred_list; i++) {
+		*bssid_preferred_factor_ptr = roam_params->bssid_favored_factor[i];
+		bssid_preferred_factor_ptr++;
+	}
+	buf_ptr += WMI_TLV_HDR_SIZE + (num_bssid_preferred_list * sizeof(uint32_t));
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+		len, WMI_ROAM_FILTER_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_cmd_send WMI_ROAM_FILTER_CMDID returned Error %d",
+				status);
+		goto error;
+	}
+	return VOS_STATUS_SUCCESS;
+error:
+	wmi_buf_free(buf);
+	return VOS_STATUS_E_FAILURE;
+}
+
 VOS_STATUS wma_roam_scan_bmiss_cnt(tp_wma_handle wma_handle,
         A_INT32 first_bcnt,
         A_UINT32 final_bcnt,
@@ -8883,7 +9057,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     struct wma_txrx_node *intr = NULL;
 
     WMA_LOGI("%s: command 0x%x, reason %d", __func__, roam_req->Command,
-                                            roam_req->StartScanReason);
+                                            roam_req->reason);
 
     if (NULL == pMac)
     {
@@ -8914,9 +9088,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             wma_handle->suitable_ap_hb_failure = FALSE;
 
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-                    (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                    roam_req->OpportunisticScanThresholdDiff,
-                    roam_req->sessionId);
+                                                           roam_req);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
@@ -8984,6 +9156,14 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                     roam_req,
                     mode,
                     roam_req->sessionId);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                break;
+            }
+            vos_status = wma_roam_scan_filter(wma_handle, roam_req);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                WMA_LOGE("Sending start for roam scan filter failed");
+                break;
+            }
             break;
 
         case ROAM_SCAN_OFFLOAD_STOP:
@@ -8999,7 +9179,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                                                        roam_req->sessionId);
             }
 
-            if (roam_req->StartScanReason == REASON_OS_REQUESTED_ROAMING_NOW) {
+            if (roam_req->reason == REASON_OS_REQUESTED_ROAMING_NOW) {
                 vos_msg_t vosMsg;
                 tSirRoamOffloadScanRsp *scan_offload_rsp;
                 scan_offload_rsp = vos_mem_malloc(sizeof(*scan_offload_rsp));
@@ -9010,7 +9190,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                 }
                 vosMsg.type = eWNI_SME_ROAM_SCAN_OFFLOAD_RSP;
                 scan_offload_rsp->sessionId = roam_req->sessionId;
-                scan_offload_rsp->reason = roam_req->StartScanReason;
+                scan_offload_rsp->reason = roam_req->reason;
                 vosMsg.bodyptr = scan_offload_rsp;
                 /*
                  * Since REASSOC request is processed in Roam_Scan_Offload_Rsp
@@ -9042,7 +9222,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              * and WMI_ROAM_REASON_SUITABLE_AP event was received earlier,
              * now it is time to call it heartbeat failure.
              */
-            if ((roam_req->StartScanReason == REASON_PREAUTH_FAILED_FOR_ALL)
+            if ((roam_req->reason == REASON_PREAUTH_FAILED_FOR_ALL)
                   && wma_handle->suitable_ap_hb_failure) {
                 WMA_LOGE("%s: Sending heartbeat failure after preauth failures",
                            __func__);
@@ -9073,6 +9253,11 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
+            vos_status = wma_roam_scan_filter(wma_handle, roam_req);
+            if (vos_status != VOS_STATUS_SUCCESS) {
+                WMA_LOGE("Sending update for roam scan filter failed");
+                break;
+            }
 
             /*
              * Runtime (after association) changes to rssi thresholds and other parameters.
@@ -9087,9 +9272,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
             }
 
             vos_status = wma_roam_scan_offload_rssi_thresh(wma_handle,
-                    (roam_req->LookupThreshold - WMA_NOISE_FLOOR_DBM_DEFAULT),
-                    roam_req->OpportunisticScanThresholdDiff,
-                    roam_req->sessionId);
+                                                           roam_req);
             if (vos_status != VOS_STATUS_SUCCESS) {
                 break;
             }
