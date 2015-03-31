@@ -3948,6 +3948,10 @@ eHalStatus sme_SetBssHotlist (tHalHandle hHal,
 eHalStatus sme_ResetBssHotlist (tHalHandle hHal,
                              tSirExtScanResetBssidHotlistReqParams *pResetReq);
 
+eHalStatus
+sme_set_ssid_hotlist(tHalHandle hal,
+		     struct sir_set_ssid_hotlist_request *request);
+
 /* ---------------------------------------------------------------------------
     \fn sme_SetSignificantChange
     \brief  SME API to set significant change
@@ -3980,6 +3984,10 @@ eHalStatus sme_getCachedResults (tHalHandle hHal,
 
 eHalStatus sme_set_epno_list(tHalHandle hal,
                                 struct wifi_epno_params *req_msg);
+eHalStatus sme_set_passpoint_list(tHalHandle hal,
+				  struct wifi_passpoint_req *req_msg);
+eHalStatus sme_reset_passpoint_list(tHalHandle hal,
+				    struct wifi_passpoint_req *req_msg);
 
 /* ---------------------------------------------------------------------------
     \fn sme_ExtScanRegisterCallback
@@ -4286,4 +4294,9 @@ eHalStatus sme_configure_stats_avg_factor(tHalHandle hHal, tANI_U8 session_id,
 
 eHalStatus sme_configure_guard_time(tHalHandle hHal, tANI_U8 session_id,
                                     tANI_U32 guard_time);
+eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
+	uint8_t session_id,
+	uint32_t notify_id,
+	int32_t val);
+
 #endif //#if !defined( __SME_API_H )

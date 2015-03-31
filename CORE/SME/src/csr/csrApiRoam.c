@@ -13720,9 +13720,12 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf++;
 
         // txBFCsnValue
-        txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
-        if (IS_BSS_VHT_CAPABLE(pIes->VHTCaps)) {
-            txBFCsnValue = MIN(txBFCsnValue, pIes->VHTCaps.numSoundingDim);
+        if (IS_BSS_VHT_CAPABLE(pIes->VHTCaps) &&
+			pMac->roam.configParam.txBFEnable) {
+		txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
+		if (pIes->VHTCaps.numSoundingDim)
+			txBFCsnValue = MIN(txBFCsnValue,
+					pIes->VHTCaps.numSoundingDim);
         }
         *pBuf = txBFCsnValue;
         pBuf++;
@@ -16937,6 +16940,15 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
 #endif
    vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
        sizeof(pRequestBuf->roam_params));
+   pRequestBuf->hi_rssi_scan_max_count =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count;
+   pRequestBuf->hi_rssi_scan_rssi_delta =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta;
+   pRequestBuf->hi_rssi_scan_delay =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay;
+   pRequestBuf->hi_rssi_scan_rssi_ub =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub;
+
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;
