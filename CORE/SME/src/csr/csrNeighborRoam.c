@@ -4755,40 +4755,23 @@ csrNeighborRoamNeighborLookupDOWNCallback (v_PVOID_t pAdapter,
 }
 
 /**
- * csr_roam_reset_roam_params - API to reset the roaming parameters
- * @mac_ptr:          Pointer to the global MAC structure
- *
- * The BSSID blacklist should not be cleared since it has to
- * be used across connections. These parameters will be cleared
- * and sent to firmware with with the roaming STOP command.
+ * csr_roam_reset_roam_params() - API to reset the roaming parameters
+ * @mac_ctx:       Global MAC Context pointer.
  *
  * Return: VOID
  */
-void csr_roam_reset_roam_params(tpAniSirGlobal mac_ptr)
+void csr_roam_reset_roam_params(tpAniSirGlobal mac_ctx)
 {
 	struct roam_ext_params *roam_params = NULL;
-
-	/* clear all the parameters except BSSID blacklist,
-	 * which needs to be retained across connections. */
-	roam_params = &mac_ptr->roam.configParam.roam_params;
+	/* clear all the whitelist and preferred BSSID parameters,
+	 * remaining needs to be retained across connections. */
+	roam_params = &mac_ctx->roam.configParam.roam_params;
 	roam_params->num_ssid_allowed_list = 0;
 	roam_params->num_bssid_favored = 0;
 	vos_mem_set(&roam_params->ssid_allowed_list, 0,
-			sizeof(tSirMacSSid) * MAX_SSID_ALLOWED_LIST);
+		sizeof(tSirMacSSid) * MAX_SSID_ALLOWED_LIST);
 	vos_mem_set(&roam_params->bssid_favored, 0,
-			sizeof(tSirMacAddr) * MAX_BSSID_FAVORED);
-	roam_params->raise_rssi_thresh_5g = 0;
-	roam_params->drop_rssi_thresh_5g = 0;
-	roam_params->raise_rssi_type_5g = 0;
-	roam_params->raise_factor_5g = 0;
-	roam_params->drop_rssi_type_5g = 0;
-	roam_params->drop_factor_5g = 0;
-	roam_params->max_raise_rssi_5g = 0;
-	roam_params->max_drop_rssi_5g = 0;
-	roam_params->good_rssi_threshold = 0;
-	roam_params->rssi_diff = 0;
-	roam_params->good_rssi_roam = 0;
-	roam_params->is_5g_pref_enabled = 0;
+		sizeof(tSirMacAddr) * MAX_BSSID_FAVORED);
 }
 
 /* ---------------------------------------------------------------------------

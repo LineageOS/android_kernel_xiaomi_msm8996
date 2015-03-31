@@ -16630,6 +16630,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    tANI_U32 host_channels = 0;
    eCsrBand eBand;
    tANI_U8 ChannelCacheStr[128] = {0};
+   struct roam_ext_params *roam_params_dst;
    currChannelListInfo = &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo;
 
    pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -16691,8 +16692,17 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     vos_mem_zero(pRequestBuf, sizeof(tSirRoamOffloadScanReq));
     /* If command is STOP, then pass down ScanOffloadEnabled as Zero.This will handle the case of
      * host driver reloads, but Riva still up and running*/
-    if(command == ROAM_SCAN_OFFLOAD_STOP)
-       pRequestBuf->RoamScanOffloadEnabled = 0;
+    if(command == ROAM_SCAN_OFFLOAD_STOP) {
+      /* clear the roaming parameters that are per connection.
+       * For a new connection, they have to be programmed again.
+       */
+      if (csrNeighborMiddleOfRoaming((tHalHandle)pMac, sessionId)) {
+          pRequestBuf->middle_of_roaming = 1;
+      } else {
+          csr_roam_reset_roam_params(pMac);
+      }
+      pRequestBuf->RoamScanOffloadEnabled = 0;
+    }
     else
        pRequestBuf->RoamScanOffloadEnabled = pMac->roam.configParam.isRoamOffloadScanEnabled;
     vos_mem_copy(pRequestBuf->ConnectedNetwork.currAPbssid,
@@ -16939,6 +16949,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        csrRoamOffload(pMac, pRequestBuf, pSession);
    }
 #endif
+   roam_params_dst = &pRequestBuf->roam_params;
    vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
        sizeof(pRequestBuf->roam_params));
    pRequestBuf->hi_rssi_scan_max_count =
@@ -16950,6 +16961,35 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    pRequestBuf->hi_rssi_scan_rssi_ub =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub;
 
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+     "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d"
+     "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d"
+     "raise_factor_5g:%d, drop_rssi_type_5g:%d, drop_factor_5g:%d"
+     "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, good_rssi_threshold:%d",
+     roam_params_dst->num_bssid_avoid_list,
+     roam_params_dst->num_ssid_allowed_list, roam_params_dst->num_bssid_favored,
+     roam_params_dst->raise_rssi_thresh_5g,
+     roam_params_dst->drop_rssi_thresh_5g, roam_params_dst->raise_rssi_type_5g,
+     roam_params_dst->raise_factor_5g, roam_params_dst->drop_rssi_type_5g,
+     roam_params_dst->drop_factor_5g, roam_params_dst->max_raise_rssi_5g,
+     roam_params_dst->max_drop_rssi_5g, roam_params_dst->good_rssi_threshold);
+
+    for (i = 0; i < roam_params_dst->num_bssid_avoid_list; i++) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+          "Blacklist Bssid("MAC_ADDRESS_STR")",
+           MAC_ADDR_ARRAY(roam_params_dst->bssid_avoid_list[i]));
+    }
+    for (i = 0; i < roam_params_dst->num_ssid_allowed_list; i++) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG, "Whitelist: %.*s",
+            roam_params_dst->ssid_allowed_list[i].length,
+            roam_params_dst->ssid_allowed_list[i].ssId);
+    }
+    for (i = 0; i < roam_params_dst->num_bssid_favored; i++) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+          "Preferred Bssid("MAC_ADDRESS_STR") score=%d",
+           MAC_ADDR_ARRAY(roam_params_dst->bssid_favored[i]),
+           roam_params_dst->bssid_favored_factor[i]);
+    }
    msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;

@@ -9143,7 +9143,7 @@ VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
 	bssid_dst_ptr = (wmi_mac_addr *)(buf_ptr + WMI_TLV_HDR_SIZE);
 	for(i=0; i<num_bssid_black_list; i++) {
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid_src_ptr, bssid_dst_ptr);
-		bssid_src_ptr += sizeof(ATH_MAC_LEN);
+		bssid_src_ptr += ATH_MAC_LEN;
 		bssid_dst_ptr++;
 	}
 	buf_ptr += WMI_TLV_HDR_SIZE + (num_bssid_black_list * sizeof(wmi_mac_addr));
@@ -9170,7 +9170,7 @@ VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
 	for(i=0; i<num_bssid_preferred_list; i++) {
 		WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid_src_ptr,
 				(wmi_mac_addr *)bssid_dst_ptr);
-		bssid_src_ptr += sizeof(ATH_MAC_LEN);
+		bssid_src_ptr += ATH_MAC_LEN;
 		bssid_dst_ptr++;
 	}
 	buf_ptr += WMI_TLV_HDR_SIZE +
@@ -9412,11 +9412,19 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                                                        WMI_ROAM_SCAN_MODE_NONE,
                                                        roam_req->sessionId);
             }
-            vos_status = wma_roam_scan_filter(wma_handle, roam_req);
-            if (vos_status != VOS_STATUS_SUCCESS) {
-                WMA_LOGE("Sending update for roam scan filter failed");
-                break;
-            }
+            /*
+             * If the STOP command is due to a disconnect, then
+             * send the filter command to clear all the filter
+             * entries. If it is roaming scenario, then do not
+             * send the cleared entries.
+             */
+             if (!roam_req->middle_of_roaming) {
+               vos_status = wma_roam_scan_filter(wma_handle, roam_req);
+               if (vos_status != VOS_STATUS_SUCCESS) {
+                 WMA_LOGE("Sending update for roam scan filter failed");
+                 break;
+               }
+             }
 
             if (roam_req->reason == REASON_OS_REQUESTED_ROAMING_NOW) {
                 vos_msg_t vosMsg;
@@ -13631,6 +13639,13 @@ static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 			wma->dfs_ic->last_radar_found_chan)
 			wma->dfs_ic->last_radar_found_chan = 0;
         case VOS_P2P_GO_MODE:
+		/*If current bring up P2P channel matches the previous
+		 *radar found channel then reset the last_radar_found_chan
+		 *variable to avoid race conditions.
+		 */
+		if (params->currentOperChannel ==
+				wma->dfs_ic->last_radar_found_chan)
+			wma->dfs_ic->last_radar_found_chan = 0;
 		wma_add_bss_ap_mode(wma, params);
                 break;
 
