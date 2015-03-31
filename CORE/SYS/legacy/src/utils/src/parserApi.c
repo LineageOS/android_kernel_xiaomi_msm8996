@@ -5518,6 +5518,7 @@ sap_auth_offload_update_rsn_ie( tpAniSirGlobal pmac,
         break;
         }
     }
+    vos_mem_free(pdot11f_rsn);
 }
 #endif /* SAP_AUTH_OFFLOAD */
 // parserApi.c ends here.
