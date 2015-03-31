@@ -244,11 +244,27 @@ typedef struct
    v_U8_t  mode;
 } vos_event_wlan_btc_type;
 
+/*-------------------------------------------------------------------------
+  Event ID: EVENT_WLAN_EAPOL
+  ------------------------------------------------------------------------*/
+struct vos_event_wlan_eapol
+{
+	uint8_t   event_sub_type;
+	uint8_t   eapol_packet_type;
+	uint16_t  eapol_key_info;
+	uint16_t  eapol_rate;
+	uint8_t   dest_addr[6];
+	uint8_t   src_addr[6];
+};
 
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
 
+enum wifi_connectivity_events {
+	WIFI_EVENT_DRIVER_EAPOL_FRAME_TRANSMIT_REQUESTED,
+	WIFI_EVENT_DRIVER_EAPOL_FRAME_RECEIVED,
+};
 
 #ifdef __cplusplus
 }

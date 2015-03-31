@@ -2062,6 +2062,9 @@ typedef struct {
     A_UINT32 rssi_ctl[ATH_MAX_ANTENNA];
     /** information about the management frame e.g. can give a scan source for a scan result mgmt frame */
     A_UINT32 flags;
+    /** combined RSSI, i.e. the sum of the snr + noise floor (dBm units) */
+    A_INT32 rssi;
+
     /* This TLV is followed by array of bytes:
          * // management frame buffer
          *   A_UINT8 bufp[];
@@ -2419,7 +2422,7 @@ typedef struct{
 }wmi_csa_event_fixed_param;
 
 typedef enum {
-    /** TX chian mask */
+    /** TX chain mask */
     WMI_PDEV_PARAM_TX_CHAIN_MASK = 0x1,
     /** RX chian mask */
     WMI_PDEV_PARAM_RX_CHAIN_MASK,
@@ -2539,6 +2542,8 @@ typedef enum {
     WMI_PDEV_PARAM_WHAL_MIB_STATS_UPDATE_ENABLE,
     /** ht/vht info based on vdev */
     WMI_PDEV_PARAM_VDEV_RATE_STATS_UPDATE_PERIOD,
+    /** Set CTS channel BW for dynamic BW adjustment feature */
+    WMI_PDEV_PARAM_CTS_CBW,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -2559,6 +2564,16 @@ typedef enum {
     /** Enable Disable debug */
     WMI_DBGLOG_REPORT_ENABLE
 } WMI_DBG_PARAM;
+
+/* param_value for param_id WMI_PDEV_PARAM_CTS_CBW */
+typedef enum {
+    WMI_CTS_CBW_INVALID = 0,
+    WMI_CTS_CBW_20,
+    WMI_CTS_CBW_40,
+    WMI_CTS_CBW_80,
+    WMI_CTS_CBW_80_80,
+    WMI_CTS_CBW_160,
+} WMI_CTS_CBW;
 
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_param_cmd_fixed_param */
@@ -9078,7 +9093,7 @@ typedef struct {
     A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**RSSI */
     A_UINT32    rssi;
-    /**time stamp in seconds */
+    /**time stamp in milliseconds */
     A_UINT32    tstamp;
     /** Extscan cycle during which this entry was scanned */
     A_UINT32    scan_cycle_id;
@@ -9098,7 +9113,7 @@ typedef struct {
     A_UINT32        capabilities;
     /* beacon interval in TUs */
     A_UINT32        beacon_interval;
-    /**time stamp in seconds - time last seen */
+    /**time stamp in milliseconds - time last seen */
     A_UINT32        tstamp;
     /**flags - _tExtScanEntryFlags */
     A_UINT32        flags;
@@ -9153,7 +9168,7 @@ typedef struct {
     A_UINT32        tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_ARRAY_STRUC */
     /**bssid */
     wmi_mac_addr    bssid;
-    /**time stamp in seconds */
+    /**time stamp in milliseconds */
     A_UINT32        tstamp;
     /**upper RSSI limit */
     A_UINT32        upper_rssi_limit;
