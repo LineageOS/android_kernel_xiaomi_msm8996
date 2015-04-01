@@ -426,7 +426,8 @@ static A_STATUS HTCSendBundledNetbuf(HTC_TARGET *target,
                data_len,
                bundleBuf);
     if (status != A_OK){
-        adf_os_print("%s:HIFSend_head failed(len=%d).\n", __FUNCTION__, data_len);
+        adf_os_print("%s:HIFSend_head failed(len=%zu).\n", __FUNCTION__,
+                data_len);
     }
     return status;
 }
