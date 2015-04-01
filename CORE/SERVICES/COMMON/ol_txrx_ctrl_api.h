@@ -65,13 +65,14 @@ enum wlan_op_mode {
 #define OL_TXQ_PAUSE_REASON_VDEV_SUSPEND      (1 << 4)
 
 /* command options for dumpStats*/
-#define WLAN_HDD_STATS        0
-#define WLAN_TXRX_STATS       1
+#define WLAN_HDD_STATS               0
+#define WLAN_TXRX_STATS              1
+#define WLAN_TXRX_HIST_STATS         2
 #ifdef CONFIG_HL_SUPPORT
-#define WLAN_SCHEDULER_STATS  2
-#define WLAN_TX_QUEUE_STATS   3
-#define WLAN_BUNDLE_STATS     4
-#define WLAN_CREDIT_STATS     5
+#define WLAN_SCHEDULER_STATS        21
+#define WLAN_TX_QUEUE_STATS         22
+#define WLAN_BUNDLE_STATS           23
+#define WLAN_CREDIT_STATS           24
 #endif
 
 /**
