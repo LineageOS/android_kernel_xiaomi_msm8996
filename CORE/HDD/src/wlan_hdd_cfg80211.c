@@ -9208,7 +9208,7 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
        )
     {
         beacon_data_t  *old, *new;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
 
@@ -10991,6 +10991,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 #ifdef CONFIG_CNSS
     struct timespec ts;
 #endif
+    hdd_config_t *cfg_param = NULL;
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
@@ -10999,6 +11000,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         return NULL;
     }
 
+    cfg_param = pHddCtx->cfg_ini;
     mgmt = kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
     if (!mgmt) {
         hddLog(LOGE, FL("memory allocation failed"));
@@ -11087,8 +11089,15 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
        return NULL;
     }
 
+    /* Based on .ini configuration, raw rssi can be reported for bss.
+     * Raw rssi is typically used for estimating power.
+     */
+
+    rssi = (cfg_param->inform_bss_rssi_raw) ? bss_desc->rssi_raw :
+                                              bss_desc->rssi;
+
     /* Supplicant takes the signal strength in terms of mBm(100*dBm) */
-    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0)) * 100;
+    rssi = (VOS_MIN(rssi, 0)) * 100;
 
     hddLog(LOG1, FL("BSSID: "MAC_ADDRESS_STR" Channel:%d RSSI:%d"),
            MAC_ADDR_ARRAY(mgmt->bssid), chan->center_freq, (int)(rssi/100));

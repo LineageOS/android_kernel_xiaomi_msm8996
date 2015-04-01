@@ -239,6 +239,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_EARLY_RX_DRIFT_SAMPLE          82
 /* Private ioctl for packet power save */
 #define WE_PPS_5G_EBT                         83
+#define WE_SET_CTS_CBW                        84
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -5880,6 +5881,15 @@ static int __iw_setint_getnone(struct net_device *dev,
            break;
         }
 
+        case WE_SET_CTS_CBW:
+        {
+           hddLog(LOG1, "WE_SET_CTS_CBW val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_CTS_CBW,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+
         case WE_SET_11N_RATE:
         {
            u_int8_t preamble = 0, nss = 0, rix = 0;
@@ -10486,6 +10496,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "cwmenable" },
+
+    {   WE_SET_CTS_CBW,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "cts_cbw" },
 
     {  WE_SET_GTX_HT_MCS,
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
