@@ -937,7 +937,18 @@ extern "C" {
 #define ROAM_CANDIDATE_INFO       71
 #define ROAM_CANDIDATE_FILTER_MATCH 72
 #define ROAM_CANDIDATE_RSSI_ADJUST  73
-#define ROAM_DBGID_DEFINITION_END   74
+#define ROAM_CONFIG_ROAM_FILTER     74
+#define ROAM_EXTENDED_RSSI_TRESHOLD_1 75
+#define ROAM_EXTENDED_RSSI_TRESHOLD_2 76
+#define ROAM_BLACKLIST_BSSID        77
+#define ROAM_WHITELIST_SSID         78
+#define ROAM_WHITELIST_SSID_2       79
+#define ROAM_PREFERRED_BSSID        80
+#define ROAM_PREFERRED_FACTOR       81
+#define ROAM_SCAN_HIRSSI_THRESHOLD      82
+#define ROAM_SCAN_HIRSSI_CHECK          83
+#define ROAM_SCAN_HIRSSI_TIMER_EXPIRED  84
+#define ROAM_DBGID_DEFINITION_END   85
 
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
@@ -1489,6 +1500,13 @@ extern "C" {
 #define  OCB_DBGID_DCC_STATS_EVENT                      18
 #define  OCB_UPDATE_DCC_NDL_RESP_EVENT                  19
 #define  OCB_DBGID_GENERIC                              20
+#define  OCB_DBGID_VDEV_START                           21
+#define  OCB_DBGID_CHANNEL_SCHED_EVENT                  22
+#define  OCB_DBGID_GPS_EVENT_START                      23
+#define  OCB_DBGID_GPS_EVENT_END                        24
+#define  OCB_DBGID_TX_TA_FRAME                          25
+#define  OCB_DBGID_RX_TA_FRAME                          26
+
 /* Up to 255 reserved for OCB debug IDs */
 
 #define  DCC_DBGID_START                                256
@@ -1504,6 +1522,8 @@ extern "C" {
 #define  DCC_DBGID_GET_TX_RATE                          266
 #define  DCC_DBGID_TICKLE_SCHED                         267
 #define  DCC_DBGID_GENERIC                              268
+#define  DCC_DBGID_RX_PATH                              269
+#define  DCC_DBGID_TX_PATH                              270
 
 #ifdef __cplusplus
 }
