@@ -9408,6 +9408,8 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
              pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
              pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
           }
+           pScanFilter->SSIDs.SSIDList[i].SSID.length =
+             pProfile->SSIDs.SSIDList->SSID.length;
            vos_mem_copy(pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
            pProfile->SSIDs.SSIDList->SSID.ssId,
            pProfile->SSIDs.SSIDList->SSID.length);
@@ -16631,6 +16633,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    eCsrBand eBand;
    tANI_U8 ChannelCacheStr[128] = {0};
    struct roam_ext_params *roam_params_dst;
+   struct roam_ext_params *roam_params_src;
    currChannelListInfo = &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo;
 
    pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -16727,8 +16730,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pNeighborRoamInfo->cfgParams.nOpportunisticThresholdDiff;
     pRequestBuf->RoamRescanRssiDiff =
             pNeighborRoamInfo->cfgParams.nRoamRescanRssiDiff;
-    pRequestBuf->RoamRssiDiff =
-            pMac->roam.configParam.RoamRssiDiff;
     pRequestBuf->Command = command;
     pRequestBuf->reason = reason;
     pRequestBuf->NeighborScanTimerPeriod =
@@ -16950,6 +16951,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    }
 #endif
    roam_params_dst = &pRequestBuf->roam_params;
+   roam_params_src = &pMac->roam.configParam.roam_params;
    vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
        sizeof(pRequestBuf->roam_params));
    pRequestBuf->hi_rssi_scan_max_count =
@@ -16960,7 +16962,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay;
    pRequestBuf->hi_rssi_scan_rssi_ub =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_ub;
-
+   /* rssi_diff which is updated via framework is equivalent to the
+    * INI RoamRssiDiff parameter and hence should be updated.*/
+   if (roam_params_src->rssi_diff)
+        pMac->roam.configParam.RoamRssiDiff = roam_params_src->rssi_diff;
+   pRequestBuf->RoamRssiDiff =
+        pMac->roam.configParam.RoamRssiDiff;
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
      "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d"
      "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d"

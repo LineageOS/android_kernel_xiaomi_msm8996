@@ -8481,12 +8481,24 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
                sizeof(wmi_roam_scan_extended_threshold_param));
     buf_ptr += WMI_TLV_HDR_SIZE;
     ext_thresholds = (wmi_roam_scan_extended_threshold_param *) buf_ptr;
-    ext_thresholds->boost_threshold_5g =
-      (roam_params->raise_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
-      0x000000ff;
-    ext_thresholds->penalty_threshold_5g =
-      (roam_params->drop_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
-      0x000000ff;
+    /* The current Noise floor in firmware is -96dBm. Penalty/Boost threshold is
+     * applied on a weaker signal to make it even more weaker. So, there
+     * is a chance that the user may configure a very low Penalty/Boost
+     * threshold beyond the noise floor. If that is the case, then suppress
+     * the penalty/boost threshold to the noise floor.
+     */
+    if (roam_params->raise_rssi_thresh_5g < WMA_NOISE_FLOOR_DBM_DEFAULT)
+         ext_thresholds->penalty_threshold_5g = 0;
+    else
+         ext_thresholds->boost_threshold_5g =
+          (roam_params->raise_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+          0x000000ff;
+    if (roam_params->drop_rssi_thresh_5g < WMA_NOISE_FLOOR_DBM_DEFAULT)
+         ext_thresholds->penalty_threshold_5g = 0;
+    else
+         ext_thresholds->penalty_threshold_5g =
+           (roam_params->drop_rssi_thresh_5g - WMA_NOISE_FLOOR_DBM_DEFAULT) &
+            0x000000ff;
     ext_thresholds->boost_algorithm_5g = WMI_ROAM_5G_BOOST_PENALIZE_ALGO_LINEAR;
     ext_thresholds->boost_factor_5g = roam_params->raise_factor_5g;
     ext_thresholds->penalty_algorithm_5g =
@@ -9421,7 +9433,7 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
              if (!roam_req->middle_of_roaming) {
                vos_status = wma_roam_scan_filter(wma_handle, roam_req);
                if (vos_status != VOS_STATUS_SUCCESS) {
-                 WMA_LOGE("Sending update for roam scan filter failed");
+                WMA_LOGE("Sending clear for roam scan filter failed");
                  break;
                }
              }
