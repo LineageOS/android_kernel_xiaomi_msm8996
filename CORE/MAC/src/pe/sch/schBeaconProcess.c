@@ -536,7 +536,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                          FL(" received VHTOP CHWidth %d staIdx = %d"),
                          pBeacon->VHTOperation.chanWidth,
                          pStaDs->staIndex);)
-                   PELOG1(schLog(pMac, LOG1, FL(" MAC - %0x:%0x:%0x:%0x:%0x:%0x"),
+                PELOG1(schLog(pMac, LOG1, FL(" MAC - %0x:%0x:%0x:%0x:%0x:%0x"),
                             pMh->sa[0],
                             pMh->sa[1],
                             pMh->sa[2],
@@ -544,40 +544,47 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                             pMh->sa[4],
                             pMh->sa[5]);)
 
-                   if (pBeacon->VHTOperation.chanWidth ==
+                if (pBeacon->VHTOperation.chanWidth ==
                          WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
-                   {
-                      PELOG1(schLog(pMac, LOG1,
-                               FL("Updating the CH Width to 80MHz"));)
-                         pStaDs->vhtSupportedChannelWidthSet =
-                         WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
-                      pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
-                      chWidth = eHT_CHANNEL_WIDTH_80MHZ;
-                   }
-                   else if (pBeacon->VHTOperation.chanWidth ==
-                         WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
-                   {
-                      pStaDs->vhtSupportedChannelWidthSet =
-                         WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
-                      if (pBeacon->HTCaps.supportedChannelWidthSet)
-                      {
-                         PELOG1(schLog(pMac, LOG1,
-                                  FL("Updating the CH Width to 40MHz"));)
+                {
+                    PELOG1(schLog(pMac, LOG1,
+                                FL("Updating the CH Width to 80MHz"));)
+                        pStaDs->vhtSupportedChannelWidthSet =
+                        WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+                    pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
+                    chWidth = eHT_CHANNEL_WIDTH_80MHZ;
+                }
+                else if (pBeacon->VHTOperation.chanWidth ==
+                        WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
+                {
+                    pStaDs->vhtSupportedChannelWidthSet =
+                        WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+                    if (pBeacon->HTCaps.supportedChannelWidthSet)
+                    {
+                        PELOG1(schLog(pMac, LOG1,
+                                    FL("Updating the CH Width to 40MHz"));)
                             pStaDs->htSupportedChannelWidthSet =
                             eHT_CHANNEL_WIDTH_40MHZ;
-                         chWidth = eHT_CHANNEL_WIDTH_40MHZ;
-                      }
-                      else
-                      {
-                         PELOG1(schLog(pMac, LOG1,
-                                  FL("Updating the CH Width to 20MHz"));)
+                        chWidth = eHT_CHANNEL_WIDTH_40MHZ;
+                    }
+                    else
+                    {
+                        PELOG1(schLog(pMac, LOG1,
+                                    FL("Updating the CH Width to 20MHz"));)
                             pStaDs->htSupportedChannelWidthSet =
                             eHT_CHANNEL_WIDTH_20MHZ;
-                         chWidth = eHT_CHANNEL_WIDTH_20MHZ;
-                      }
-                   }
+                        chWidth = eHT_CHANNEL_WIDTH_20MHZ;
+                    }
+                }
                 limCheckVHTOpModeChange(pMac, psessionEntry,
-                      chWidth, pStaDs->staIndex, pMh->sa);
+                        chWidth, pStaDs->staIndex, pMh->sa);
+
+                /* Update Nss also */
+                if (pStaDs->vhtSupportedRxNss != (pBeacon->OperatingMode.rxNSS + 1)) {
+                    pStaDs->vhtSupportedRxNss = pBeacon->OperatingMode.rxNSS + 1;
+                    limSetNssChange( pMac, psessionEntry, pStaDs->vhtSupportedRxNss,
+                            pStaDs->staIndex, pMh->sa);
+                }
              }
           }
        }
