@@ -2804,7 +2804,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	wmi_extscan_hotlist_monitor_capabilities  *src_hotlist;
 	wmi_extscan_wlan_change_monitor_capabilities *src_change;
 
-	tSirExtScanCapabilitiesEvent  *dest_capab;
+	struct ext_scan_capabilities_response  *dest_capab;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!pMac) {

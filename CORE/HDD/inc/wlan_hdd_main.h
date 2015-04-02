@@ -1248,17 +1248,19 @@ typedef struct
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
  * struct hdd_ext_scan_context - hdd ext scan context
+ *
  * @request_id: userspace-assigned ID associated with the request
  * @response_event: Ext scan wait event
  * @response_status: Status returned by FW in response to a request
- *
+ * @capability_response: Ext scan capability response data from target
  */
 struct hdd_ext_scan_context {
 	uint32_t request_id;
 	int response_status;
 	struct completion response_event;
+	struct ext_scan_capabilities_response capability_response;
 };
-#endif
+#endif /* End of FEATURE_WLAN_EXTSCAN */
 
 /** Adapter stucture definition */
 
@@ -1560,9 +1562,11 @@ struct hdd_context_s
      * switch
      */
     struct mutex dfs_lock;
+
 #ifdef FEATURE_WLAN_EXTSCAN
     struct hdd_ext_scan_context ext_scan_context;
 #endif /* FEATURE_WLAN_EXTSCAN */
+
 };
 
 /*---------------------------------------------------------------------------
