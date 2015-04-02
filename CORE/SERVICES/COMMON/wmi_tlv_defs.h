@@ -555,6 +555,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_passpoint_event_hdr,
     WMITLV_TAG_STRUC_wmi_extscan_configure_hotlist_ssid_monitor_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_extscan_hotlist_ssid_match_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_tsf_report_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -766,7 +768,8 @@ typedef enum {
     OP(WMI_DCC_CLEAR_STATS_CMDID) \
     OP(WMI_DCC_UPDATE_NDL_CMDID) \
     OP(WMI_ROAM_FILTER_CMDID) \
-    OP(WMI_PASSPOINT_LIST_CONFIG_CMDID)
+    OP(WMI_PASSPOINT_LIST_CONFIG_CMDID) \
+    OP(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -868,7 +871,8 @@ typedef enum {
     OP(WMI_DCC_GET_STATS_RESP_EVENTID) \
     OP(WMI_DCC_UPDATE_NDL_RESP_EVENTID) \
     OP(WMI_DCC_STATS_EVENTID) \
-    OP(WMI_PASSPOINT_MATCH_EVENTID)
+    OP(WMI_PASSPOINT_MATCH_EVENTID) \
+    OP(WMI_VDEV_TSF_REPORT_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2149,6 +2153,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DCC_UPDATE_NDL_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, bssid_preferred_factor, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_FILTER_CMDID);
 
+/* TSF timestamp action cmd */
+#define WMITLV_TABLE_WMI_VDEV_TSF_TSTAMP_ACTION_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param, wmi_vdev_tsf_tstamp_action_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2676,6 +2685,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DCC_UPDATE_NDL_RESP_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_dcc_stats_event_fixed_param, wmi_dcc_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_dcc_ndl_stats_per_channel, stats_per_channel_list, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_DCC_STATS_EVENTID);
+
+/* Read TSF timer response event */
+#define WMITLV_TABLE_WMI_VDEV_TSF_REPORT_EVENTID(id,op,buf,len) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_tsf_report_event_fixed_param, wmi_vdev_tsf_report_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_REPORT_EVENTID);
 
 #ifdef __cplusplus
 }

@@ -1091,13 +1091,13 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
          *     bit  2 -> CCK 5.5 Mbps rate is allowed
          *     bit  3 -> CCK 11 Mbps rate is allowed
          *     bit  4 -> OFDM BPSK modulation, 1/2 coding rate is allowed
-         *     bit  5 -> OFDM QPSK modulation, 1/2 coding rate is allowed
-         *     bit  6 -> OFDM QPSK modulation, 3/4 coding rate is allowed
-         *     bit  7 -> OFDM 16-QAM modulation, 1/2 coding rate is allowed
-         *     bit  8 -> OFDM 16-QAM modulation, 3/4 coding rate is allowed
-         *     bit  9 -> OFDM 64-QAM modulation, 2/3 coding rate is allowed
-         *     bit 10 -> OFDM 64-QAM modulation, 3/4 coding rate is allowed
-         *     bit 11 -> OFDM 64-QAM modulation, 5/6 coding rate is allowed
+         *     bit  5 -> OFDM BPSK modulation, 3/4 coding rate is allowed
+         *     bit  6 -> OFDM QPSK modulation, 1/2 coding rate is allowed
+         *     bit  7 -> OFDM QPSK modulation, 3/4 coding rate is allowed
+         *     bit  8 -> OFDM 16-QAM modulation, 1/2 coding rate is allowed
+         *     bit  9 -> OFDM 16-QAM modulation, 3/4 coding rate is allowed
+         *     bit 10 -> OFDM 64-QAM modulation, 2/3 coding rate is allowed
+         *     bit 11 -> OFDM 64-QAM modulation, 3/4 coding rate is allowed
          *
          * The MCS index specification needs to be compatible with the
          * bandwidth mask specification.  For example, a MCS index == 9
@@ -3271,14 +3271,14 @@ A_COMPILE_TIME_ASSERT(HTT_RX_IND_hdr_size_quantum,
 #define HTT_RX_IND_START_VALID_M           0x80000000
 #define HTT_RX_IND_START_VALID_S           31
 
-#define HTT_RX_IND_RSSI_PRI20_S            0x000000ff
-#define HTT_RX_IND_RSSI_PRI20_M            0
-#define HTT_RX_IND_RSSI_EXT20_S            0x0000ff00
-#define HTT_RX_IND_RSSI_EXT20_M            8
-#define HTT_RX_IND_RSSI_EXT40_S            0x00ff0000
-#define HTT_RX_IND_RSSI_EXT40_M            16
-#define HTT_RX_IND_RSSI_EXT80_S            0xff000000
-#define HTT_RX_IND_RSSI_EXT80_M            24
+#define HTT_RX_IND_RSSI_PRI20_M            0x000000ff
+#define HTT_RX_IND_RSSI_PRI20_S            0
+#define HTT_RX_IND_RSSI_EXT20_M            0x0000ff00
+#define HTT_RX_IND_RSSI_EXT20_S            8
+#define HTT_RX_IND_RSSI_EXT40_M            0x00ff0000
+#define HTT_RX_IND_RSSI_EXT40_S            16
+#define HTT_RX_IND_RSSI_EXT80_M            0xff000000
+#define HTT_RX_IND_RSSI_EXT80_S            24
 
 #define HTT_RX_IND_VHT_SIG_A1_M            0x00ffffff
 #define HTT_RX_IND_VHT_SIG_A1_S            0

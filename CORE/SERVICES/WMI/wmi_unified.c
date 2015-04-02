@@ -230,6 +230,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 
 		CASE_RETURN_STRING(WMI_VDEV_PLMREQ_START_CMDID);
 		CASE_RETURN_STRING(WMI_VDEV_PLMREQ_STOP_CMDID);
+		CASE_RETURN_STRING(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
 
 		/* peer specific commands */
 
