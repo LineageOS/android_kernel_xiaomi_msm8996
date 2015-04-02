@@ -3899,9 +3899,9 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	struct hdd_ipa_iface_context *iface_context = NULL;
 #ifdef IPA_UC_OFFLOAD
 	struct ipa_wdi_uc_ready_params uc_ready_param;
-#endif /* IPA_UC_OFFLOAD */
 	struct ipa_msg_meta meta;
 	struct ipa_wlan_msg *ipa_msg;
+#endif /* IPA_UC_OFFLOAD */
 
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
