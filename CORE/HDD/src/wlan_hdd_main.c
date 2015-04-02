@@ -12607,7 +12607,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
-
+#ifdef FEATURE_WLAN_EXTSCAN
+   init_completion(&pHddCtx->ext_scan_context.response_event);
+#endif /* FEATURE_WLAN_EXTSCAN */
    init_completion(&pHddCtx->linux_reg_req);
 
    spin_lock_init(&pHddCtx->schedScan_lock);

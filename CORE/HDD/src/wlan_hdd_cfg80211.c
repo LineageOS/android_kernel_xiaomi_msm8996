@@ -2022,9 +2022,13 @@ static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     struct nlattr *tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     struct nlattr *apTh;
+    struct hdd_ext_scan_context *context;
+    uint32_t request_id;
     eHalStatus status;
     tANI_U8 i;
     int rem;
+    int retval;
+    unsigned long rc;
 
     ENTER();
 
@@ -2115,15 +2119,35 @@ static int wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
         i++;
     }
 
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    INIT_COMPLETION(context->response_event);
+    context->request_id = request_id = pReqMsg->requestId;
+    spin_unlock(&hdd_context_lock);
+
     status = sme_SetBssHotlist(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("sme_SetBssHotlist failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
+        hddLog(LOGE, FL("sme_SetBssHotlist failed(err=%d)"), status);
+        goto fail;
     }
 
-    return 0;
+    /* request was sent -- wait for the response */
+    rc = wait_for_completion_timeout(&context->response_event,
+                                     msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
+
+    if (!rc) {
+       hddLog(LOGE, FL("sme_SetBssHotlist timed out"));
+       retval = -ETIMEDOUT;
+    } else {
+       spin_lock(&hdd_context_lock);
+       if (context->request_id == request_id)
+          retval = context->response_status;
+       else
+          retval = -EINVAL;
+       spin_unlock(&hdd_context_lock);
+    }
+
+    return retval;
 
 fail:
     vos_mem_free(pReqMsg);
@@ -2953,7 +2977,11 @@ static int wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter                      = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx                       = wiphy_priv(wiphy);
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
+    struct hdd_ext_scan_context *context;
+    uint32_t request_id;
     eHalStatus status;
+    int retval;
+    unsigned long rc;
 
     ENTER();
 
@@ -2983,15 +3011,34 @@ static int wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Session Id (%d)"), pReqMsg->sessionId);
 
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    INIT_COMPLETION(context->response_event);
+    context->request_id = request_id = pReqMsg->requestId;
+    spin_unlock(&hdd_context_lock);
+
     status = sme_ResetBssHotlist(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                          FL("sme_ResetBssHotlist failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
+        hddLog(LOGE, FL("sme_ResetBssHotlist failed(err=%d)"), status);
+        goto fail;
     }
 
-    return 0;
+    /* request was sent -- wait for the response */
+    rc = wait_for_completion_timeout(&context->response_event,
+                                     msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
+    if (!rc) {
+       hddLog(LOGE, FL("sme_ResetBssHotlist timed out"));
+       retval = -ETIMEDOUT;
+    } else {
+       spin_lock(&hdd_context_lock);
+       if (context->request_id == request_id)
+          retval = context->response_status;
+       else
+          retval = -EINVAL;
+       spin_unlock(&hdd_context_lock);
+    }
+
+    return retval;
 
 fail:
     vos_mem_free(pReqMsg);
@@ -17610,42 +17657,27 @@ static void
 wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(void *ctx,
                                      tpSirExtScanSetBssidHotListRspParams pData)
 {
-    hdd_context_t *pHddCtx    = (hdd_context_t *)ctx;
-    struct sk_buff *skb       = NULL;
+    hdd_context_t *pHddCtx = ctx;
+    struct hdd_ext_scan_context *context;
 
     ENTER();
 
     if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "
-                                         "or pData(%p) is null"), pData);
+        hddLog(LOGE, FL("HDD context is not valid or pData(%p) is null"),
+               pData);
         return;
     }
-    skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-                     NULL,
-                     EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
-                     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_BSSID_HOTLIST_INDEX,
-                     GFP_KERNEL);
 
-    if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
-        return;
+    hddLog(LOG1, FL("request %u status %u"), pData->requestId, pData->status);
+
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    if (context->request_id == pData->requestId) {
+       context->response_status = pData->status ? -EINVAL : 0;
+       complete(&context->response_event);
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "Status (%u)", pData->status);
+    spin_unlock(&hdd_context_lock);
 
-    if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-                         pData->requestId) ||
-        nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS, pData->status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-        goto nla_put_failure;
-    }
-
-    cfg80211_vendor_event(skb, GFP_KERNEL);
-    return;
-
-nla_put_failure:
-    kfree_skb(skb);
     return;
 }
 
@@ -17653,42 +17685,27 @@ static void
 wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(void *ctx,
                                    tpSirExtScanResetBssidHotlistRspParams pData)
 {
-    hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
-    struct sk_buff *skb     = NULL;
+    hdd_context_t *pHddCtx = ctx;
+    struct hdd_ext_scan_context *context;
 
     ENTER();
 
     if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "
-                                         "or pData(%p) is null"), pData);
+        hddLog(LOGE, FL("HDD context is not valid or pData(%p) is null"),
+               pData);
         return;
     }
 
-    skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-                   NULL,
-                   EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
-                   QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_BSSID_HOTLIST_INDEX,
-                   GFP_KERNEL);
+    hddLog(LOG1, FL("request %u status %u"), pData->requestId, pData->status);
 
-    if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
-        return;
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    if (context->request_id == pData->requestId) {
+       context->response_status = pData->status ? -EINVAL : 0;
+       complete(&context->response_event);
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
+    spin_unlock(&hdd_context_lock);
 
-    if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-                         pData->requestId) ||
-        nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS, pData->status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-        goto nla_put_failure;
-    }
-
-    cfg80211_vendor_event(skb, GFP_KERNEL);
-    return;
-
-nla_put_failure:
-    kfree_skb(skb);
     return;
 }
 
