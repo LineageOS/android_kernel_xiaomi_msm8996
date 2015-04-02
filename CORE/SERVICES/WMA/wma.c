@@ -22439,9 +22439,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->exp_max_step_count = src_bucket->step_count;
 		dest_blist->channel_band = src_bucket->band;
 		dest_blist->num_channels = src_bucket->numChannels;
-		dest_blist->notify_extscan_events =
-				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT |
-					WMI_EXTSCAN_BUCKET_OVERRUN_EVENT;
+		dest_blist->notify_extscan_events = 0;
 		if (src_bucket->reportEvents >= 2) {
 			dest_blist->forwarding_flags =
 				WMI_EXTSCAN_FORWARD_FRAME_TO_HOST;
