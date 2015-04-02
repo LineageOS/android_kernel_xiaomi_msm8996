@@ -2661,6 +2661,17 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		extscan_ind->requestId = event->request_id;
 		event_type = eSIR_EXTSCAN_CACHED_RESULTS_RSP;
 		break;
+	case WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID:
+		extscan_ind->status = event->status;
+		extscan_ind->requestId = event->request_id;
+		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
+			event_type =
+				eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP;
+		} else {
+			event_type =
+				eSIR_EXTSCAN_SET_SSID_HOTLIST_RSP;
+		}
+		break;
 	default:
 		WMA_LOGE("%s: Unknown event(%d) from target",
 			__func__, event->status);

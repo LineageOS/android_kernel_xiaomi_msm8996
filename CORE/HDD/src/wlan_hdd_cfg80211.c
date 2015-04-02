@@ -2200,11 +2200,15 @@ wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 	struct nlattr *tb[PARAM_MAX + 1];
 	struct nlattr *tb2[PARAM_MAX + 1];
 	struct nlattr *ssids;
+	struct hdd_ext_scan_context *context;
+	uint32_t request_id;
 	char ssid_string[SIR_MAC_MAX_SSID_LENGTH + 1];
 	int ssid_len;
 	eHalStatus status;
 	int i;
 	int rem;
+	int retval;
+	unsigned long rc;
 
 	ENTER();
 
@@ -2306,6 +2310,12 @@ wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 		i++;
 	}
 
+	context = &hdd_ctx->ext_scan_context;
+	spin_lock(&hdd_context_lock);
+	INIT_COMPLETION(context->response_event);
+	context->request_id = request_id = request->request_id;
+	spin_unlock(&hdd_context_lock);
+
 	status = sme_set_ssid_hotlist(hdd_ctx->hHal, request);
 	if (!HAL_STATUS_SUCCESS(status)) {
 		hddLog(LOGE,
@@ -2314,7 +2324,24 @@ wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 	}
 
 	vos_mem_free(request);
-	return 0;
+
+	/* request was sent -- wait for the response */
+	rc = wait_for_completion_timeout(&context->response_event,
+					 msecs_to_jiffies
+						(WLAN_WAIT_TIME_EXTSCAN));
+	if (!rc) {
+		hddLog(LOGE, FL("sme_set_ssid_hotlist timed out"));
+		retval = -ETIMEDOUT;
+	} else {
+		spin_lock(&hdd_context_lock);
+		if (context->request_id == request_id)
+			retval = context->response_status;
+		else
+			retval = -EINVAL;
+		spin_unlock(&hdd_context_lock);
+	}
+
+	return retval;
 
 fail:
 	vos_mem_free(request);
@@ -3074,7 +3101,11 @@ wlan_hdd_cfg80211_extscan_reset_ssid_hotlist(struct wiphy *wiphy,
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct nlattr *tb[PARAM_MAX + 1];
+	struct hdd_ext_scan_context *context;
+	uint32_t request_id;
 	eHalStatus status;
+	int retval;
+	unsigned long rc;
 
 	ENTER();
 
@@ -3106,6 +3137,12 @@ wlan_hdd_cfg80211_extscan_reset_ssid_hotlist(struct wiphy *wiphy,
 	request->lost_ssid_sample_size = 0;
 	request->ssid_count = 0;
 
+	context = &hdd_ctx->ext_scan_context;
+	spin_lock(&hdd_context_lock);
+	INIT_COMPLETION(context->response_event);
+	context->request_id = request_id = request->request_id;
+	spin_unlock(&hdd_context_lock);
+
 	status = sme_set_ssid_hotlist(hdd_ctx->hHal, request);
 	if (!HAL_STATUS_SUCCESS(status)) {
 		hddLog(LOGE,
@@ -3114,7 +3151,24 @@ wlan_hdd_cfg80211_extscan_reset_ssid_hotlist(struct wiphy *wiphy,
 	}
 
 	vos_mem_free(request);
-	return 0;
+
+	/* request was sent -- wait for the response */
+	rc = wait_for_completion_timeout(&context->response_event,
+					 msecs_to_jiffies
+						(WLAN_WAIT_TIME_EXTSCAN));
+	if (!rc) {
+		hddLog(LOGE, FL("sme_reset_ssid_hotlist timed out"));
+		retval = -ETIMEDOUT;
+	} else {
+		spin_lock(&hdd_context_lock);
+		if (context->request_id == request_id)
+			retval = context->response_status;
+		else
+			retval = -EINVAL;
+		spin_unlock(&hdd_context_lock);
+	}
+
+	return retval;
 
 fail:
 	vos_mem_free(request);
@@ -6839,6 +6893,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_reset_passpoint_list
     },
     {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
         .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_SSID_HOTLIST,
         .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
                  WIPHY_VENDOR_CMD_NEED_NETDEV |
@@ -18120,6 +18175,49 @@ fail:
 }
 
 /**
+ * wlan_hdd_cfg80211_extscan_generic_rsp() -
+ *	Handle a generic ExtScan Response message
+ * @ctx: HDD context registered with SME
+ * @response: The ExtScan response from firmware
+ *
+ * This function will handle a generic ExtScan response message from
+ * firmware and will communicate the result to the userspace thread
+ * that is waiting for the response.
+ *
+ * Return: none
+ */
+static void
+wlan_hdd_cfg80211_extscan_generic_rsp
+	(void *ctx,
+	 struct sir_extscan_generic_response *response)
+{
+	hdd_context_t *hdd_ctx = ctx;
+	struct hdd_ext_scan_context *context;
+
+	ENTER();
+
+	if (wlan_hdd_validate_context(hdd_ctx) || !response) {
+		hddLog(LOGE,
+		       FL("HDD context is not valid or response(%p) is null"),
+		       response);
+		return;
+	}
+
+	hddLog(LOG1, FL("request %u status %u"),
+	       response->request_id, response->status);
+
+	context = &hdd_ctx->ext_scan_context;
+	spin_lock(&hdd_context_lock);
+	if (context->request_id == response->request_id) {
+		context->response_status = response->status ? -EINVAL : 0;
+		complete(&context->response_event);
+	}
+	spin_unlock(&hdd_context_lock);
+
+	return;
+}
+
+/**
  * wlan_hdd_cfg80211_extscan_hotlist_ssid_match_ind() -
  *	Handle an SSID hotlist match event
  * @ctx: HDD context registered with SME
@@ -19014,6 +19112,11 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
             wlan_hdd_cfg80211_passpoint_match_found(ctx,
                                     (struct wifi_passpoint_match *) pMsg);
             break;
+
+    case eSIR_EXTSCAN_SET_SSID_HOTLIST_RSP:
+    case eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP:
+	    wlan_hdd_cfg80211_extscan_generic_rsp(ctx, pMsg);
+	    break;
 
     case eSIR_EXTSCAN_HOTLIST_SSID_MATCH_IND:
             wlan_hdd_cfg80211_extscan_hotlist_ssid_match_ind(ctx,
