@@ -2374,9 +2374,13 @@ static int wlan_hdd_cfg80211_extscan_set_significant_change(
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     struct nlattr *tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     struct nlattr *apTh;
+    struct hdd_ext_scan_context *context;
+    uint32_t request_id;
     eHalStatus status;
     tANI_U8 i;
     int rem;
+    int retval;
+    unsigned long rc;
 
     ENTER();
 
@@ -2489,23 +2493,38 @@ static int wlan_hdd_cfg80211_extscan_set_significant_change(
         hddLog(VOS_TRACE_LEVEL_INFO,
                                     FL("RSSI High (%d)"), pReqMsg->ap[i].high);
 
-        /* Parse and fetch channel */
-        if (!tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_CHANNEL]) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr channel failed"));
-            goto fail;
-        }
         i++;
     }
 
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    INIT_COMPLETION(context->response_event);
+    context->request_id = request_id = pReqMsg->requestId;
+    spin_unlock(&hdd_context_lock);
+
     status = sme_SetSignificantChange(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("sme_SetSignificantChange failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
+        hddLog(LOGE, FL("sme_SetSignificantChange failed(err=%d)"), status);
+        goto fail;
     }
 
-    return 0;
+    /* request was sent -- wait for the response */
+    rc = wait_for_completion_timeout(&context->response_event,
+                                     msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
+
+    if (!rc) {
+       hddLog(LOGE, FL("sme_SetSignificantChange timed out"));
+       retval = -ETIMEDOUT;
+    } else {
+       spin_lock(&hdd_context_lock);
+       if (context->request_id == request_id)
+          retval = context->response_status;
+       else
+          retval = -EINVAL;
+       spin_unlock(&hdd_context_lock);
+    }
+
+    return retval;
 
 fail:
     vos_mem_free(pReqMsg);
@@ -3193,7 +3212,11 @@ static int wlan_hdd_cfg80211_extscan_reset_significant_change(
     hdd_adapter_t *pAdapter                           = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx                            = wiphy_priv(wiphy);
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
+    struct hdd_ext_scan_context *context;
+    uint32_t request_id;
     eHalStatus status;
+    int retval;
+    unsigned long rc;
 
     ENTER();
 
@@ -3223,15 +3246,35 @@ static int wlan_hdd_cfg80211_extscan_reset_significant_change(
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Session Id (%d)"), pReqMsg->sessionId);
 
+    context = &pHddCtx->ext_scan_context;
+    spin_lock(&hdd_context_lock);
+    INIT_COMPLETION(context->response_event);
+    context->request_id = request_id = pReqMsg->requestId;
+    spin_unlock(&hdd_context_lock);
+
     status = sme_ResetSignificantChange(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("sme_ResetSignificantChange failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
+        hddLog(LOGE, FL("sme_ResetSignificantChange failed(err=%d)"), status);
+        goto fail;
     }
 
-    return 0;
+    /* request was sent -- wait for the response */
+    rc = wait_for_completion_timeout(&context->response_event,
+                                     msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
+
+    if (!rc) {
+       hddLog(LOGE, FL("sme_ResetSignificantChange timed out"));
+       retval = -ETIMEDOUT;
+    } else {
+       spin_lock(&hdd_context_lock);
+       if (context->request_id == request_id)
+          retval = context->response_status;
+       else
+          retval = -EINVAL;
+       spin_unlock(&hdd_context_lock);
+    }
+
+    return retval;
 
 fail:
     vos_mem_free(pReqMsg);
@@ -17708,152 +17751,6 @@ nla_put_failure:
 }
 
 
-static void
-wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(void *ctx,
-                                     tpSirExtScanSetBssidHotListRspParams pData)
-{
-    hdd_context_t *pHddCtx = ctx;
-    struct hdd_ext_scan_context *context;
-
-    ENTER();
-
-    if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(LOGE, FL("HDD context is not valid or pData(%p) is null"),
-               pData);
-        return;
-    }
-
-    hddLog(LOG1, FL("request %u status %u"), pData->requestId, pData->status);
-
-    context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
-    if (context->request_id == pData->requestId) {
-       context->response_status = pData->status ? -EINVAL : 0;
-       complete(&context->response_event);
-    }
-    spin_unlock(&hdd_context_lock);
-
-    return;
-}
-
-static void
-wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(void *ctx,
-                                   tpSirExtScanResetBssidHotlistRspParams pData)
-{
-    hdd_context_t *pHddCtx = ctx;
-    struct hdd_ext_scan_context *context;
-
-    ENTER();
-
-    if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(LOGE, FL("HDD context is not valid or pData(%p) is null"),
-               pData);
-        return;
-    }
-
-    hddLog(LOG1, FL("request %u status %u"), pData->requestId, pData->status);
-
-    context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
-    if (context->request_id == pData->requestId) {
-       context->response_status = pData->status ? -EINVAL : 0;
-       complete(&context->response_event);
-    }
-    spin_unlock(&hdd_context_lock);
-
-    return;
-}
-
-
-static void
-wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(void *ctx,
-                                tpSirExtScanSetSignificantChangeRspParams pData)
-{
-    hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
-    struct sk_buff *skb     = NULL;
-
-    ENTER();
-
-    if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "
-                                         "or pData(%p) is null"), pData);
-        return;
-    }
-
-    skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-                NULL,
-                EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
-                QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_SET_SIGNIFICANT_CHANGE_INDEX,
-                GFP_KERNEL);
-
-    if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
-        return;
-    }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "Status (%u)", pData->status);
-
-    if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-                         pData->requestId) ||
-        nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS, pData->status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-        goto nla_put_failure;
-    }
-
-    cfg80211_vendor_event(skb, GFP_KERNEL);
-    return;
-
-nla_put_failure:
-    kfree_skb(skb);
-    return;
-}
-
-
-static void
-wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(void *ctx,
-                              tpSirExtScanResetSignificantChangeRspParams pData)
-{
-    hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
-    struct sk_buff *skb     = NULL;
-
-    ENTER();
-
-    if (wlan_hdd_validate_context(pHddCtx) || !pData) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "
-                                         "or pData(%p) is null"), pData);
-        return;
-    }
-
-    skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-              NULL,
-              EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
-              QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_RESET_SIGNIFICANT_CHANGE_INDEX,
-              GFP_KERNEL);
-
-    if (!skb) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                  FL("cfg80211_vendor_event_alloc failed"));
-        return;
-    }
-    hddLog(VOS_TRACE_LEVEL_INFO, "Req Id (%u)", pData->requestId);
-    hddLog(VOS_TRACE_LEVEL_INFO, "Status (%u)", pData->status);
-
-    if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-                         pData->requestId) ||
-        nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS, pData->status)) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-        goto nla_put_failure;
-    }
-
-    cfg80211_vendor_event(skb, GFP_KERNEL);
-    return;
-
-nla_put_failure:
-    kfree_skb(skb);
-    return;
-}
-
 /** wlan_hdd_cfg80211_extscan_cached_results_ind() - get cached results
  * @ctx: hdd global context
  * @data: cached results
@@ -19049,26 +18946,6 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
                    FL("Rcvd eSIR_EXTSCAN_CACHED_RESULTS_RSP"));
             break;
 
-    case eSIR_EXTSCAN_SET_BSSID_HOTLIST_RSP:
-            wlan_hdd_cfg80211_extscan_set_bss_hotlist_rsp(ctx,
-                                    (tpSirExtScanSetBssidHotListRspParams)pMsg);
-            break;
-
-    case eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP:
-            wlan_hdd_cfg80211_extscan_reset_bss_hotlist_rsp(ctx,
-                                  (tpSirExtScanResetBssidHotlistRspParams)pMsg);
-            break;
-
-    case eSIR_EXTSCAN_SET_SIGNIFICANT_WIFI_CHANGE_RSP:
-            wlan_hdd_cfg80211_extscan_set_signf_wifi_change_rsp(ctx,
-                               (tpSirExtScanSetSignificantChangeRspParams)pMsg);
-            break;
-
-    case eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP:
-            wlan_hdd_cfg80211_extscan_reset_signf_wifi_change_rsp(ctx,
-                             (tpSirExtScanResetSignificantChangeRspParams)pMsg);
-            break;
-
     case eSIR_EXTSCAN_GET_CAPABILITIES_IND:
             wlan_hdd_cfg80211_extscan_get_capabilities_ind(ctx,
                                            (tpSirExtScanCapabilitiesEvent)pMsg);
@@ -19113,6 +18990,10 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
                                     (struct wifi_passpoint_match *) pMsg);
             break;
 
+    case eSIR_EXTSCAN_SET_BSSID_HOTLIST_RSP:
+    case eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP:
+    case eSIR_EXTSCAN_SET_SIGNIFICANT_WIFI_CHANGE_RSP:
+    case eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP:
     case eSIR_EXTSCAN_SET_SSID_HOTLIST_RSP:
     case eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP:
 	    wlan_hdd_cfg80211_extscan_generic_rsp(ctx, pMsg);
