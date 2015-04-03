@@ -355,12 +355,13 @@ struct ipa_uc_pending_event {
 	uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
 };
 
-static const char *op_string[] = {
+static const char *op_string[HDD_IPA_UC_OPCODE_MAX] = {
 	"TX_SUSPEND",
 	"TX_RESUME",
 	"RX_SUSPEND",
 	"RX_RESUME",
 	"STATS",
+	"OPCODE_MAX"
 };
 
 struct uc_rm_work_struct {
@@ -1008,6 +1009,11 @@ void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv_ctxt;
 	msg = (struct op_msg_type *)vos_mem_malloc(sizeof(struct op_msg_type));
+        if (!msg) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "op_msg allocation fails");
+		return;
+        }
+
 	msg->op_code = HDD_IPA_UC_OPCODE_UC_READY;
 
 	uc_op_work = &hdd_ipa->uc_op_work[msg->op_code];
