@@ -1664,7 +1664,8 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 
   if (NULL == pMsgWrapper) {
       debug_count = atomic_inc_return(&vos_wrapper_empty_count);
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      if (1 == debug_count)
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: VOS Core run out of message wrapper %d",
               __func__, debug_count);
 
