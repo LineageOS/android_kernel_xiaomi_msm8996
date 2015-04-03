@@ -78,6 +78,8 @@
 #define BLACKLIST_OUI_TYPE   "\x00\x50\x00\x00"
 #define WHITELIST_OUI_TYPE   "\x00\x50\x00\x01"
 #define WPA_OUI_TYPE_SIZE  4
+#define WMM_OUI_TYPE   "\x00\x50\xf2\x02\x01"
+#define WMM_OUI_TYPE_SIZE  5
 
 #define WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY 127
 #define BASIC_RATE_MASK   0x80

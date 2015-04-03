@@ -1620,7 +1620,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
     if(pParam)
     {
         pMac->roam.configParam.WMMSupportMode = pParam->WMMSupportMode;
-        cfgSetInt(pMac, WNI_CFG_WME_ENABLED, pParam->WMMSupportMode);
+        cfgSetInt(pMac, WNI_CFG_WME_ENABLED,
+                        (pParam->WMMSupportMode == eCsrRoamWmmNoQos)? 0:1);
         pMac->roam.configParam.Is11eSupportEnabled = pParam->Is11eSupportEnabled;
         pMac->roam.configParam.FragmentationThreshold = pParam->FragmentationThreshold;
         pMac->roam.configParam.Is11dSupportEnabled = pParam->Is11dSupportEnabled;
