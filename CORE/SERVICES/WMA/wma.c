@@ -19792,11 +19792,19 @@ static void wma_process_update_opmode(tp_wma_handle wma_handle,
 static void wma_process_update_rx_nss(tp_wma_handle wma_handle,
                                 tUpdateRxNss *update_rx_nss)
 {
-        WMA_LOGD("%s: Rx Nss = %d", __func__, update_rx_nss->rxNss);
+	struct wma_txrx_node *intr =
+		&wma_handle->interfaces[update_rx_nss->smesessionId];
+	int rxNss = update_rx_nss->rxNss;
 
-        wma_set_peer_param(wma_handle, update_rx_nss->peer_mac,
-                           WMI_PEER_NSS, update_rx_nss->rxNss,
-                           update_rx_nss->smesessionId);
+	wma_update_txrx_chainmask(wma_handle->num_rf_chains, &rxNss);
+	intr->nss = (tANI_U8) rxNss;
+	update_rx_nss->rxNss = (tANI_U32) rxNss;
+
+	WMA_LOGD("%s: Rx Nss = %d", __func__, update_rx_nss->rxNss);
+
+	wma_set_peer_param(wma_handle, update_rx_nss->peer_mac,
+			WMI_PEER_NSS, update_rx_nss->rxNss,
+			update_rx_nss->smesessionId);
 }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
