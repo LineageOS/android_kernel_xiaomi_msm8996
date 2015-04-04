@@ -2789,6 +2789,14 @@ enum dot11p_mode {
 #define CFG_ROAM_SCAN_HI_RSSI_UB_MAX               (-30)
 #define CFG_ROAM_SCAN_HI_RSSI_UB_DEFAULT           (-45)
 
+/* Option to report rssi in cfg80211_inform_bss_frame()
+ * 0 = use rssi value based on noise floor = -96 dBm
+ * 1 = use rssi value based on actual noise floor in hardware
+ */
+#define CFG_INFORM_BSS_RSSI_RAW_NAME               "gInformBssRssiRaw"
+#define CFG_INFORM_BSS_RSSI_RAW_MIN                (0)
+#define CFG_INFORM_BSS_RSSI_RAW_MAX                (1)
+#define CFG_INFORM_BSS_RSSI_RAW_DEFAULT            (1)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3395,6 +3403,7 @@ typedef struct
    bool                        sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
    uint8_t                     prefer_non_dfs_on_radar;
+   uint8_t                     inform_bss_rssi_raw;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

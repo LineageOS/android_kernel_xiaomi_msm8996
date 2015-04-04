@@ -245,10 +245,14 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pBssDescr->bssId, 6 );
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG4, (tANI_U8*)pRxPacketInfo, 36 );)
 
-    pBssDescr->rssi = (tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo);
+    pBssDescr->rssi = (tANI_S8)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo);
+    pBssDescr->rssi_raw = (tANI_S8)WDA_GET_RX_RSSI_RAW(pRxPacketInfo);
 
     //SINR no longer reported by HW
     pBssDescr->sinr = 0;
+    limLog(pMac, LOG3,
+        FL(MAC_ADDRESS_STR " rssi: normalized = %d, absolute = %d"),
+        MAC_ADDR_ARRAY(pHdr->bssId), pBssDescr->rssi, pBssDescr->rssi_raw);
 
     pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
