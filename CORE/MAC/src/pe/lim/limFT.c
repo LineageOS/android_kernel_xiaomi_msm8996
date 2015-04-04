@@ -261,7 +261,9 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         /* Post the FT Pre Auth Response to SME */
         limPostFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
-        bufConsumed = TRUE;
+        /* return FALSE, since the Pre-Auth Req will be freed in
+         * limPostFTPreAuthRsp on failure
+         */
         return bufConsumed;
     }
 
@@ -1143,6 +1145,14 @@ void limPostFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
       pFTPreAuthRsp->ft_ies_length = auth_rsp_length;
    }
 
+   if (status != eSIR_SUCCESS) {
+       /* Ensure that on Pre-Auth failure the cached Pre-Auth Req and
+        * other allocated memory is freed up before returning.
+        */
+       limLog(pMac, LOG1, "Pre-Auth Failed, Cleanup!");
+       limFTCleanup(pMac, psessionEntry);
+   }
+
    mmhMsg.type = pFTPreAuthRsp->messageType;
    mmhMsg.bodyptr = pFTPreAuthRsp;
    mmhMsg.bodyval = 0;
@@ -1449,6 +1459,13 @@ void limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac)
          psessionEntry->ftPEContext.pFTPreAuthReq) {
       limLog(pMac,LOGE,FL("pFTPreAuthReq is NULL"));
       return;
+   }
+
+   if (psessionEntry->ftPEContext.pFTPreAuthReq == NULL) {
+       limLog(pMac, LOGE, FL("Auth Rsp might already be posted to SME and "
+              "ftcleanup done! sessionId:%d"),
+              pMac->lim.limTimers.gLimFTPreAuthRspTimer.sessionId);
+       return;
    }
 
    /* To handle the race condition where we recieve preauth rsp after
