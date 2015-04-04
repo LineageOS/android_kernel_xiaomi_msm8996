@@ -1814,6 +1814,8 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
               * request was issued.
               */
              pMac->sap.SapDfsInfo.sap_radar_found_status = VOS_TRUE;
+             pMac->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
+             sap_CacResetNotify(hHal);
 
              /*
               * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START

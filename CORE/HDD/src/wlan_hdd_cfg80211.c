@@ -11837,8 +11837,14 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     }
     else
     {
-        /* Set the scan type to default type, in this case it is ACTIVE */
-        scanRequest.scanType = pHddCtx->ioctl_scan_mode;
+        /*
+         *Set the scan type to passive if there is no ssid list provided else
+         *set default type configured in the driver.
+         */
+        if (!request->ssids)
+            scanRequest.scanType = eSIR_PASSIVE_SCAN;
+        else
+            scanRequest.scanType = pHddCtx->ioctl_scan_mode;
     }
     scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
     scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
