@@ -12148,6 +12148,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			HTCDump(wma->htc_handle, PCIE_DUMP, false);
 			break;
 #endif
+		case GEN_PARAM_DYNAMIC_DTIM:
+			wma->staDynamicDtim = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
 			break;
@@ -29930,6 +29933,9 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 			return;
 		}
 
+		WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
+			vdev_id, listen_interval);
+
 		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
 							WMI_VDEV_PARAM_LISTEN_INTERVAL,
 							listen_interval);
@@ -29938,9 +29944,6 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 			WMA_LOGE("Failed to Set Listen Interval vdevId %d",
 				vdev_id);
 		}
-
-		WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
-			vdev_id, listen_interval);
 
 		if (is_qpower_enabled) {
 			WMA_LOGD("disable Qpower in suspend mode!");

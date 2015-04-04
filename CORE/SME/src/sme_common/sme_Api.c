@@ -15657,3 +15657,60 @@ eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
 	return status;
 }
 
+/**
+ * sme_configure_dynamic_dtim() - function to configure dynamic dtim
+ * @h_hal: SME API to enable/disable dynamic DTIM
+ * @session_id: session ID
+ * @dynamic_dtim: dynamic dtim value
+ *
+ * This function configures the guard time in firmware
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_configure_dynamic_dtim(tHalHandle h_hal, tANI_U8 session_id,
+				      tANI_U32 dynamic_dtim)
+{
+	vos_msg_t msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal pMac  = PMAC_STRUCT(h_hal);
+	wda_cli_set_cmd_t *iwcmd;
+
+	iwcmd = vos_mem_malloc(sizeof(*iwcmd));
+	if (NULL == iwcmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME,
+			  VOS_TRACE_LEVEL_FATAL,
+			  "%s: vos_mem_alloc failed", __func__);
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+
+	if (eHAL_STATUS_SUCCESS == status) {
+
+		vos_mem_zero((void *)iwcmd, sizeof(*iwcmd));
+		iwcmd->param_value = dynamic_dtim;
+		iwcmd->param_vdev_id = session_id;
+		iwcmd->param_id = GEN_PARAM_DYNAMIC_DTIM;
+		iwcmd->param_vp_dev = GEN_CMD;
+		msg.type = WDA_CLI_SET_CMD;
+		msg.reserved = 0;
+		msg.bodyptr = (void *)iwcmd;
+
+		if (!VOS_IS_STATUS_SUCCESS(
+			    vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+			VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				   "%s: Not able to post SIR_HAL_CONFIG_GUARD_TIME to WDA!",
+				   __func__);
+			vos_mem_free(iwcmd);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+	} else {
+		VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			   "%s: sme_AcquireGlobalLock error!",
+			   __func__);
+		vos_mem_free(iwcmd);
+	}
+
+	return status;
+}
