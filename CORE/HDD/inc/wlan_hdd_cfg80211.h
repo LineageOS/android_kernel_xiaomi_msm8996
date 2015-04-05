@@ -1114,23 +1114,6 @@ enum qca_wlan_vendor_attr_ocb_set_sched
         QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_AFTER_LAST - 1,
 };
 
-/* NL attributes for data used by
- * QCA_NL80211_VENDOR_SUBCMD_SET|GET_WIFI_CONFIGURATION sub commands.
- */
-enum qca_wlan_vendor_attr_wifi_config {
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_INVALID = 0,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_DYNAMIC_DTIM = 1,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_STATS_AVG_FACTOR = 2,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_GUARD_TIME = 3,
-	/* keep last */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_AFTER_LAST,
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_MAX =
-		QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_AFTER_LAST - 1,
-};
-
 enum qca_wlan_vendor_attr_pno_config_params {
 	QCA_WLAN_VENDOR_ATTR_PNO_INVALID = 0,
 	/* NL attributes for data used by

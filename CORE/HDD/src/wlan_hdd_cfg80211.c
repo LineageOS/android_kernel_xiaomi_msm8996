@@ -18784,7 +18784,6 @@ wlan_hdd_cfg80211_passpoint_match_found(void *ctx,
 	hddLog(LOG1, "Req Id (%u) Id (%u) ANQP length (%u) num_matches (%u)",
 		data->request_id, data->id, data->anqp_len, num_matches);
 	for (i = 0; i < num_matches; i++) {
-		data->ap.channel = vos_chan_to_freq(data->ap.channel);
 		hddLog(LOG1, "AP Info: Timestamp(0x%llX) Ssid (%s) "
 					"Bssid (" MAC_ADDRESS_STR ") "
 					"Channel (%u) "
