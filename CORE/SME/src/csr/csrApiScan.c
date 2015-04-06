@@ -1920,57 +1920,96 @@ eHalStatus csrScanResultPurge(tpAniSirGlobal pMac, tScanResultHandle hScanList)
     return (status);
 }
 
+/**
+ * csr_get_altered_rssi() - Artificially increase/decrease RSSI
+ * @mac_ctx:         Global MAC Context pointer.
+ * @rssi:            Actual RSSI of the AP.
+ * @channel_id:      Channel on which the AP is parked.
+ * @bssid:           BSSID of the AP to connect to.
+ *
+ * This routine will apply the boost and penalty parameters
+ * if the channel_id is of 5G band and it will also apply
+ * the preferred bssid score if there is a match between
+ * the bssid and the global preferred bssid list.
+ *
+ * Return:          The modified RSSI Value
+ */
+static int csr_get_altered_rssi(tpAniSirGlobal mac_ctx, int rssi,
+		uint8_t channel_id, tCsrBssid *bssid)
+{
+	int modified_rssi;
+	int boost_factor;
+	int penalty_factor;
+	int i;
+	struct roam_ext_params *roam_params;
+	modified_rssi = rssi;
+	roam_params = &mac_ctx->roam.configParam.roam_params;
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+			FL("LFR: Actual Rssi:%d"), rssi);
+	/* If the 5G pref feature is enabled, apply the roaming
+	 * parameters to boost or penalize the rssi.
+	 * Boost Factor = boost_factor * (Actual RSSI - boost Threshold)
+	 * Penalty Factor = penalty factor * (penalty threshold - Actual RSSI)
+	*/
+	if (CSR_IS_SELECT_5G_PREFERRED(mac_ctx)) {
+		if (CSR_IS_CHANNEL_5GHZ(channel_id)) {
+			if (rssi > roam_params->raise_rssi_thresh_5g) {
+				/* Check and boost the threshold*/
+				boost_factor = roam_params->raise_factor_5g *
+				(rssi - roam_params->raise_rssi_thresh_5g);
+				/* Check and penalize the threshold */
+				modified_rssi +=
+					CSR_MIN(roam_params->max_raise_rssi_5g,
+					boost_factor);
+			} else if(rssi < roam_params->drop_rssi_thresh_5g) {
+				penalty_factor = roam_params->drop_factor_5g *
+				(roam_params->drop_rssi_thresh_5g - rssi);
+				modified_rssi -=
+					CSR_MAX(roam_params->max_drop_rssi_5g,
+					penalty_factor);
+			}
+		}
+	}
+	/* Check if there are preferred bssid and then apply the
+	 * preferred score*/
+	if (roam_params->num_bssid_favored) {
+		for (i=0; i<roam_params->num_bssid_favored; i++) {
+			if (csrIsMacAddressEqual(mac_ctx,
+				&roam_params->bssid_favored[i],
+				bssid)) {
+				modified_rssi +=
+				roam_params->bssid_favored_factor[i];
+			}
+		}
+	}
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+		FL("LFR: Modified Rssi:%d"), modified_rssi);
+	return modified_rssi;
+}
 
+/**
+ * csrGetBssPreferValue() - Get BSS Preference Value
+ * @pMac:         Global MAC Context pointer.
+ * @rssi:         Actual RSSI of the AP.
+ * @roaming_scan  if the scan is because of roaming
+ * @bssid:        BSSID of the AP to connect to.
+ * @channel_id:   Channel on which the AP is parked.
+ *
+ *
+ * This routine helps in determining the preference value
+ * of a particular BSS in the scan result which is further
+ * used in the sorting logic of the final candidate AP's.
+ *
+ * Return:          The preference Value for a BSS.
+ */
 static tANI_U32 csrGetBssPreferValue(tpAniSirGlobal pMac, int rssi,
 		int roaming_scan, tCsrBssid *bssid, int channel_id)
 {
 	tANI_U32 ret = 0;
-	int i, modified_thresh;
-	struct roam_ext_params *roam_params;
+	int i;
 
-	if (roaming_scan) {
-		roam_params = &pMac->roam.configParam.roam_params;
-		/* If the 5G pref feature is enabled, apply the roaming
-		 * parameters to boost or penalize the rssi.*/
-		if (CSR_IS_SELECT_5G_PREFERRED(pMac) &&
-				CSR_IS_CHANNEL_5GHZ(channel_id)) {
-			/*
-			 * Boost Factor =
-			 *       boost_factor * (Actual RSSI - boost Threshold)
-			 * Penalty Factor =
-			 *    penalty factor * (penalty threshold - Actual RSSI)
-			 */
-			/* Check and boost the threshold*/
-			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-				FL("Actual RSSI: %d"), rssi);
-			if (rssi > roam_params->raise_rssi_thresh_5g) {
-				modified_thresh = roam_params->raise_factor_5g *
-				(rssi - roam_params->raise_rssi_thresh_5g);
-				rssi += CSR_MAX(roam_params->max_raise_rssi_5g,
-						modified_thresh);
-			}
-			/* Check and penalize the threshold */
-			else if(rssi < roam_params->drop_rssi_thresh_5g) {
-				modified_thresh = roam_params->drop_factor_5g *
-				(roam_params->drop_rssi_thresh_5g - rssi);
-				rssi -= CSR_MAX(roam_params->max_drop_rssi_5g,
-					modified_thresh);
-			}
-		}
-		/* Check if there are preferred bssid and then apply the
-		 * preferred score*/
-		if (roam_params->num_bssid_favored) {
-			for (i=0; i<roam_params->num_bssid_favored; i++) {
-				if (csrIsMacAddressEqual(pMac,
-					&roam_params->bssid_favored[i],
-					bssid)) {
-				rssi += roam_params->bssid_favored_factor[i];
-				}
-			}
-		}
-		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-				FL("Modified RSSI: %d"), rssi);
-	}
+	if (roaming_scan)
+		rssi = csr_get_altered_rssi(pMac, rssi, channel_id, bssid);
 
 	i = CSR_NUM_RSSI_CAT - 1;
 	while(i >= 0)
@@ -2004,10 +2043,10 @@ static tANI_U32 csrGetBssCapValue(tpAniSirGlobal pMac, tSirBssDescription *pBssD
     if (pIes && !CSR_IS_SELECT_5GHZ_MARGIN(pMac))
     {
         //We only care about 11N capability
-        if(pIes->HTCaps.present)
-        {
+        if (pIes->VHTCaps.present)
+            ret += CSR_BSS_CAP_VALUE_VHT;
+        else if (pIes->HTCaps.present)
             ret += CSR_BSS_CAP_VALUE_HT;
-        }
         if(CSR_IS_QOS_BSS(pIes))
         {
             ret += CSR_BSS_CAP_VALUE_WMM;
@@ -2022,33 +2061,79 @@ static tANI_U32 csrGetBssCapValue(tpAniSirGlobal pMac, tSirBssDescription *pBssD
     return (ret);
 }
 
-
-/* To check whether pBss1 is better than pBss2 */
-static tANI_BOOLEAN csrIsBetterBss(tCsrScanResult *pBss1, tCsrScanResult *pBss2)
+/**
+ * csr_is_better_rssi() - Is bss1 better than bss2
+ * @mac_ctx:             Global MAC Context pointer.
+ * @bss1:                Pointer to the first BSS.
+ * @bss2:                Pointer to the second BSS.
+ * @roaming_scan_filter  if the scan is because of roaming
+ *
+ *
+ * This routine helps in determining the preference value
+ * of a particular BSS in the scan result which is further
+ * used in the sorting logic of the final candidate AP's.
+ *
+ * Return:          true, if bss1 is better than bss2
+ *                  false, if bss2 is better than bss1.
+ */
+static bool csr_is_better_rssi(tpAniSirGlobal mac_ctx,
+		tCsrScanResult *bss1, tCsrScanResult *bss2,
+		int roaming_scan_filter)
 {
-    tANI_BOOLEAN ret;
+	bool ret;
+	int rssi1, rssi2;
 
-    if(CSR_IS_BETTER_PREFER_VALUE(pBss1->preferValue, pBss2->preferValue))
-    {
-        ret = eANI_BOOLEAN_TRUE;
-    }
-    else if(CSR_IS_EQUAL_PREFER_VALUE(pBss1->preferValue, pBss2->preferValue))
-    {
-        if(CSR_IS_BETTER_CAP_VALUE(pBss1->capValue, pBss2->capValue))
-        {
-            ret = eANI_BOOLEAN_TRUE;
-        }
-        else
-        {
-            ret = eANI_BOOLEAN_FALSE;
-        }
-    }
-    else
-    {
-        ret = eANI_BOOLEAN_FALSE;
-    }
+	rssi1 = bss1->Result.BssDescriptor.rssi;
+	rssi2 = bss2->Result.BssDescriptor.rssi;
+	if (!roaming_scan_filter)
+		if (CSR_IS_BETTER_RSSI(rssi1, rssi2))
+			ret = true;
+		else
+			ret = false;
+	else {
+		/* Apply the boost and penlty logic and check
+		 * which is the best RSSI*/
+		rssi1 = csr_get_altered_rssi(mac_ctx, rssi1,
+				bss1->Result.BssDescriptor.channelId,
+				&bss1->Result.BssDescriptor.bssId);
+		rssi2 = csr_get_altered_rssi(mac_ctx, rssi2,
+				bss2->Result.BssDescriptor.channelId,
+				&bss2->Result.BssDescriptor.bssId);
+		if (CSR_IS_BETTER_RSSI(rssi1, rssi2))
+			ret = true;
+		else
+			ret = false;
+	}
+	return ret;
+}
+/* To check whether pBss1 is better than pBss2 */
+static tANI_BOOLEAN csrIsBetterBss(tpAniSirGlobal mac_ctx,
+		tCsrScanResult *pBss1, tCsrScanResult *pBss2,
+		int roam_scan_filter)
+{
+	tANI_BOOLEAN ret;
 
-    return (ret);
+	if(CSR_IS_BETTER_PREFER_VALUE(pBss1->preferValue, pBss2->preferValue))
+		ret = eANI_BOOLEAN_TRUE;
+	else if(CSR_IS_EQUAL_PREFER_VALUE
+		(pBss1->preferValue, pBss2->preferValue)) {
+		if(CSR_IS_BETTER_CAP_VALUE(pBss1->capValue, pBss2->capValue))
+			ret = eANI_BOOLEAN_TRUE;
+		else if (CSR_IS_EQUAL_CAP_VALUE
+			(pBss1->capValue, pBss2->capValue)) {
+			if (csr_is_better_rssi
+				(mac_ctx, pBss1, pBss2, roam_scan_filter))
+				ret = eANI_BOOLEAN_TRUE;
+			else
+				ret = eANI_BOOLEAN_FALSE;
+		}
+		else
+			ret = eANI_BOOLEAN_FALSE;
+	}
+	else
+		ret = eANI_BOOLEAN_FALSE;
+
+	return (ret);
 }
 
 
@@ -2137,8 +2222,10 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
     if (pMac->roam.configParam.nSelect5GHzMargin ||
        (CSR_IS_SELECT_5G_PREFERRED(pMac) && scan_filter_for_roam))
     {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                  FL("LFR: Filter is prepared for roaming"));
         pMac->scan.inScanResultBestAPRssi = -128;
-	roam_params = &pMac->roam.configParam.roam_params;
+        roam_params = &pMac->roam.configParam.roam_params;
 #ifdef WLAN_DEBUG_ROAM_OFFLOAD
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                   FL("nSelect5GHzMargin"));
@@ -2378,8 +2465,15 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                     while(pTmpEntry)
                     {
                         pTmpResult = GET_BASE_ADDR( pTmpEntry, tCsrScanResult, Link );
-                        if(csrIsBetterBss(pResult, pTmpResult))
+                       if(csrIsBetterBss(pMac, pResult, pTmpResult,
+                                          scan_filter_for_roam))
                         {
+                           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                             FL("BSSID("MAC_ADDRESS_STR") better than BSSID("MAC_ADDRESS_STR")"),
+                             MAC_ADDR_ARRAY
+                             (pResult->Result.BssDescriptor.bssId),
+                             MAC_ADDR_ARRAY
+                             (pTmpResult->Result.BssDescriptor.bssId));
                             csrLLInsertEntry(&pRetList->List, pTmpEntry, &pResult->Link, LL_ACCESS_NOLOCK);
                             //To indicate we are done
                             pResult = NULL;
@@ -2389,7 +2483,11 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                     }
                     if(pResult != NULL)
                     {
-                        //This one is not better than any one
+                        /* This one is'nt better than anyone or the first one */
+                           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                             FL("Insert BSSID("MAC_ADDRESS_STR") to TAIL"),
+                             MAC_ADDR_ARRAY
+                             (pResult->Result.BssDescriptor.bssId));
                         csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
                     }
                 }
