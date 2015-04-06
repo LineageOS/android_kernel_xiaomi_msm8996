@@ -177,6 +177,13 @@ static void HTCCleanup(HTC_TARGET *target)
     pPacket = target->pBundleFreeRxList;
     while (pPacket) {
         HTC_PACKET *pPacketTmp = (HTC_PACKET *)pPacket->ListLink.pNext;
+        if (pPacket->pContext != NULL) {
+            A_FREE(pPacket->pContext);
+        }
+        netbuf = (adf_nbuf_t)GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket);
+        if (netbuf != NULL) {
+            adf_nbuf_free(netbuf);
+        }
         A_FREE(pPacket);
         pPacket = pPacketTmp;
     }

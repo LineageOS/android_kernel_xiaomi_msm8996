@@ -1620,7 +1620,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
     if(pParam)
     {
         pMac->roam.configParam.WMMSupportMode = pParam->WMMSupportMode;
-        cfgSetInt(pMac, WNI_CFG_WME_ENABLED, pParam->WMMSupportMode);
+        cfgSetInt(pMac, WNI_CFG_WME_ENABLED,
+                        (pParam->WMMSupportMode == eCsrRoamWmmNoQos)? 0:1);
         pMac->roam.configParam.Is11eSupportEnabled = pParam->Is11eSupportEnabled;
         pMac->roam.configParam.FragmentationThreshold = pParam->FragmentationThreshold;
         pMac->roam.configParam.Is11dSupportEnabled = pParam->Is11dSupportEnabled;
@@ -8321,7 +8322,8 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
 #if defined(WLAN_FEATURE_VOWIFI_11R) || defined(FEATURE_WLAN_ESE) || \
     defined(FEATURE_WLAN_LFR)
         if ((eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE == pSmeJoinRsp->statusCode) ||
-            (eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode)) {
+            (eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode) ||
+            (eSIR_SME_INVALID_PARAMETERS == pSmeJoinRsp->statusCode)) {
                 /* Inform HDD to turn off FT flag in HDD */
                 if (pNeighborRoamInfo) {
                     vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
@@ -16634,6 +16636,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    tANI_U8 ChannelCacheStr[128] = {0};
    struct roam_ext_params *roam_params_dst;
    struct roam_ext_params *roam_params_src;
+   uint8_t op_channel;
    currChannelListInfo = &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo;
 
    pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -16956,8 +16959,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        sizeof(pRequestBuf->roam_params));
    pRequestBuf->hi_rssi_scan_max_count =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count;
-   pRequestBuf->hi_rssi_scan_rssi_delta =
-           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta;
    pRequestBuf->hi_rssi_scan_delay =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_delay;
    pRequestBuf->hi_rssi_scan_rssi_ub =
@@ -16968,10 +16969,32 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         pMac->roam.configParam.RoamRssiDiff = roam_params_src->rssi_diff;
    pRequestBuf->RoamRssiDiff =
         pMac->roam.configParam.RoamRssiDiff;
+   op_channel = pSession->connectedProfile.operationChannel;
+   /* If the current operation channel is 5G frequency band, then
+    * there is no need to enable the HI_RSSI feature. This feature
+    * is useful only if we are connected to a 2.4 GHz AP and we wish
+    * to connect to a better 5GHz AP is available.*/
+   if(CSR_IS_CHANNEL_5GHZ(op_channel)) {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+        "Disabling HI_RSSI feature since the connected AP is 5GHz");
+      pRequestBuf->hi_rssi_scan_rssi_delta = 0;
+   }
+   else {
+      pRequestBuf->hi_rssi_scan_rssi_delta =
+           pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta;
+   }
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+      "hi_rssi_delta=%d, hi_rssi_max_count=%d,"
+      "hi_rssi_delay=%d, hi_rssi_ub=%d",
+      pRequestBuf->hi_rssi_scan_rssi_delta,
+      pRequestBuf->hi_rssi_scan_max_count,
+      pRequestBuf->hi_rssi_scan_delay,
+      pRequestBuf->hi_rssi_scan_rssi_ub);
+
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-     "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d"
-     "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d"
-     "raise_factor_5g:%d, drop_rssi_type_5g:%d, drop_factor_5g:%d"
+     "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d,"
+     "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d,"
+     "raise_factor_5g:%d, drop_rssi_type_5g:%d, drop_factor_5g:%d,"
      "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, good_rssi_threshold:%d",
      roam_params_dst->num_bssid_avoid_list,
      roam_params_dst->num_ssid_allowed_list, roam_params_dst->num_bssid_favored,

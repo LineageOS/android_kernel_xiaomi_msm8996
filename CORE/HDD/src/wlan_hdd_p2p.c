@@ -969,6 +969,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hddLog( LOG1, "Ready on chan ind");
 
+    pAdapter->startRocTs = vos_timer_get_system_time();
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pRemainChanCtx = cfgState->remain_on_chan_ctx;
     if( pRemainChanCtx != NULL )
@@ -1322,7 +1323,18 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
     //If the wait is coming as 0 with off channel set
     //then set the wait to 200 ms
     if (offchan && !wait)
+    {
         wait = ACTION_FRAME_DEFAULT_WAIT;
+        if (cfgState->remain_on_chan_ctx)
+        {
+            tANI_U32 current_time = vos_timer_get_system_time();
+            int remaining_roc_time =
+                       ((int) cfgState->remain_on_chan_ctx->duration -
+                                 (current_time - pAdapter->startRocTs));
+            if ( remaining_roc_time > ACTION_FRAME_DEFAULT_WAIT)
+                wait = remaining_roc_time;
+        }
+    }
 
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??

@@ -526,6 +526,15 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                       pBeacon->OperatingMode.chanWidth,
                       pStaDs->staIndex, pMh->sa);
              }
+             /* Update Nss setting */
+             if (pStaDs->vhtSupportedRxNss !=
+                     (pBeacon->OperatingMode.rxNSS + 1)) {
+                 pStaDs->vhtSupportedRxNss =
+                     (pBeacon->OperatingMode.rxNSS + 1);
+                 limSetNssChange( pMac, psessionEntry,
+                         pStaDs->vhtSupportedRxNss,
+                         pStaDs->staIndex, pMh->sa);
+             }
           }
           else if (psessionEntry->vhtCapability && pBeacon->VHTOperation.present)
           {
@@ -579,12 +588,6 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                 limCheckVHTOpModeChange(pMac, psessionEntry,
                         chWidth, pStaDs->staIndex, pMh->sa);
 
-                /* Update Nss also */
-                if (pStaDs->vhtSupportedRxNss != (pBeacon->OperatingMode.rxNSS + 1)) {
-                    pStaDs->vhtSupportedRxNss = pBeacon->OperatingMode.rxNSS + 1;
-                    limSetNssChange( pMac, psessionEntry, pStaDs->vhtSupportedRxNss,
-                            pStaDs->staIndex, pMh->sa);
-                }
              }
           }
        }

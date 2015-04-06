@@ -78,6 +78,8 @@
 #define BLACKLIST_OUI_TYPE   "\x00\x50\x00\x00"
 #define WHITELIST_OUI_TYPE   "\x00\x50\x00\x01"
 #define WPA_OUI_TYPE_SIZE  4
+#define WMM_OUI_TYPE   "\x00\x50\xf2\x02\x01"
+#define WMM_OUI_TYPE_SIZE  5
 
 #define WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY 127
 #define BASIC_RATE_MASK   0x80
@@ -1110,23 +1112,6 @@ enum qca_wlan_vendor_attr_ocb_set_sched
     QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_MAX =
         QCA_WLAN_VENDOR_ATTR_OCB_SET_SCHED_AFTER_LAST - 1,
-};
-
-/* NL attributes for data used by
- * QCA_NL80211_VENDOR_SUBCMD_SET|GET_WIFI_CONFIGURATION sub commands.
- */
-enum qca_wlan_vendor_attr_wifi_config {
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_INVALID = 0,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_DYNAMIC_DTIM = 1,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_STATS_AVG_FACTOR = 2,
-	/* Unsigned 32-bit value */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_GUARD_TIME = 3,
-	/* keep last */
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_AFTER_LAST,
-	QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_MAX =
-		QCA_WLAN_VENDOR_ATTR_WIFI_CONFIG_AFTER_LAST - 1,
 };
 
 enum qca_wlan_vendor_attr_pno_config_params {

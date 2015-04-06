@@ -124,6 +124,8 @@ typedef enum
     eSIR_EXTSCAN_FULL_SCAN_RESULT_IND,
     eSIR_EPNO_NETWORK_FOUND_IND,
     eSIR_PASSPOINT_NETWORK_FOUND_IND,
+    eSIR_EXTSCAN_SET_SSID_HOTLIST_RSP,
+    eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP,
     eSIR_EXTSCAN_HOTLIST_SSID_MATCH_IND,
 
     /* Keep this last */
@@ -5147,6 +5149,17 @@ typedef struct
     tSirWifiScanBucketSpec  buckets[WLAN_EXTSCAN_MAX_BUCKETS];
 } tSirWifiScanCmdReqParams, *tpSirWifiScanCmdReqParams;
 
+/**
+ * struct sir_extscan_generic_response -
+ *	Generic ExtScan Response structure
+ * @request_id: ID of the request
+ * @status: operation status returned by firmware
+ */
+struct sir_extscan_generic_response {
+	uint32_t request_id;
+	uint32_t status;
+};
+
 typedef struct
 {
     tANI_U32    requestId;
@@ -5185,22 +5198,9 @@ typedef struct
 typedef struct
 {
     tANI_U32    requestId;
-    tANI_U32    status;
-} tSirExtScanSetBssidHotListRspParams, *tpSirExtScanSetBssidHotListRspParams;
-
-typedef struct
-{
-    tANI_U32    requestId;
     tANI_U8     sessionId;
 } tSirExtScanResetBssidHotlistReqParams,
   *tpSirExtScanResetBssidHotlistReqParams;
-
-typedef struct
-{
-    tANI_U32    requestId;
-    tANI_U32    status;
-} tSirExtScanResetBssidHotlistRspParams,
-  *tpSirExtScanResetBssidHotlistRspParams;
 
 /**
  * struct sir_ssid_hotlist_param - param for SSID Hotlist
@@ -5256,13 +5256,6 @@ typedef struct
 
 typedef struct
 {
-    tANI_U32      requestId;
-    tANI_U32      status;
-} tSirExtScanSetSignificantChangeRspParams,
-  *tpSirExtScanSetSignificantChangeRspParams;
-
-typedef struct
-{
     tSirMacAddr  bssid;
     tANI_U32     channel;
     tANI_U32     numOfRssi;
@@ -5286,13 +5279,6 @@ typedef struct
     tANI_U8     sessionId;
 } tSirExtScanResetSignificantChangeReqParams,
   *tpSirExtScanResetSignificantChangeReqParams;
-
-typedef struct
-{
-    tANI_U32    requestId;
-    tANI_U32    status;
-} tSirExtScanResetSignificantChangeRspParams,
-  *tpSirExtScanResetSignificantChangeRspParams;
 
 typedef struct
 {
