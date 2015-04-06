@@ -12000,9 +12000,17 @@ void __hdd_wlan_exit(void)
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
 void hdd_skip_acs_scan_timer_handler(void * data)
 {
-    hdd_context_t *pHddCtx = (hdd_context_t *) data;
+    hdd_context_t *hdd_ctx = (hdd_context_t *) data;
+    hdd_adapter_t *ap_adapter;
+
     hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
-    pHddCtx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+    hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+
+    /* Get first SAP adapter to clear results */
+    ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
+    if (!hdd_ctx->hHal || !ap_adapter)
+        return;
+    sme_ScanFlushResult(hdd_ctx->hHal, ap_adapter->sessionId);
 }
 #endif
 
@@ -12607,7 +12615,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
-
+#ifdef FEATURE_WLAN_EXTSCAN
+   init_completion(&pHddCtx->ext_scan_context.response_event);
+#endif /* FEATURE_WLAN_EXTSCAN */
    init_completion(&pHddCtx->linux_reg_req);
 
    spin_lock_init(&pHddCtx->schedScan_lock);
