@@ -1369,10 +1369,14 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
      * use the stored original value when you call this function next time
      * so fall back mechanism always starts with original ini value.
      */
+
     if (pMac->sap.SapDfsInfo.orig_cbMode == 0)
     {
-        pMac->sap.SapDfsInfo.orig_cbMode =
-              pMac->roam.configParam.channelBondingMode5GHz;
+        pMac->sap.SapDfsInfo.orig_cbMode = sme_SelectCBMode(hHal,
+                                         sapContext->csrRoamProfile.phyMode,
+                                         sapContext->channel,
+                                         &sapContext->vht_channel_width,
+                                         sapContext->ch_width_orig);
         cbModeCurrent = pMac->sap.SapDfsInfo.orig_cbMode;
     }
     else
@@ -1388,7 +1392,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     if (pMac->sap.SapDfsInfo.orig_chanWidth == 0)
     {
         pMac->sap.SapDfsInfo.orig_chanWidth =
-                  sapContext->vht_ch_width_orig;
+                  sapContext->ch_width_orig;
         chanWidth = pMac->sap.SapDfsInfo.orig_chanWidth;
     }
     else
@@ -1700,14 +1704,21 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 v_BOOL_t
 sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber)
 {
-    if (!sapContext->apAutoChannelSelection)
+    int i = 0;
+    if (!sapContext->acs_cfg->acs_mode)
         return VOS_FALSE;
 
-    if ((channelNumber < sapContext->apStartChannelNum) ||
-        (channelNumber > sapContext->apEndChannelNum))
-        return VOS_TRUE;
-
-    return VOS_FALSE;
+    if ((channelNumber >= sapContext->acs_cfg->start_ch) ||
+        (channelNumber <= sapContext->acs_cfg->end_ch)) {
+        if (!sapContext->acs_cfg->ch_list) {
+            return VOS_FALSE;
+        } else {
+            for (i = 0; i < sapContext->acs_cfg->ch_list_count; i++)
+                if (channelNumber == sapContext->acs_cfg->ch_list[i])
+                    return VOS_FALSE;
+        }
+    }
+    return VOS_TRUE;
 }
 
 /*
@@ -2102,7 +2113,8 @@ sapGotoChannelSel
                   Else take whatever comes from configuartion*/
             sapContext->channel = channel;
             sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
-                                channel, &sapContext->vht_channel_width);
+                                channel, &sapContext->vht_channel_width,
+                                sapContext->ch_width_orig);
         }
 #endif
     }
@@ -2111,9 +2123,9 @@ sapGotoChannelSel
     {
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "%s skip_acs_status = %d ", __func__,
-                    sapContext->skip_acs_scan_status);
-        if (sapContext->skip_acs_scan_status != eSAP_SKIP_ACS_SCAN) {
+                   "%s acs_cfg->skip_status = %d ", __func__,
+                    sapContext->acs_cfg->skip_scan_status);
+        if (sapContext->acs_cfg->skip_scan_status != eSAP_SKIP_ACS_SCAN) {
 #endif
             vos_mem_zero(&scanRequest, sizeof(scanRequest));
 
@@ -2159,7 +2171,7 @@ sapGotoChannelSel
                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                     "In %s, calling sme_ScanRequest", __func__);
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-                if (sapContext->skip_acs_scan_status == eSAP_DO_NEW_ACS_SCAN) {
+                if (sapContext->acs_cfg->skip_scan_status == eSAP_DO_NEW_ACS_SCAN) {
 #endif
                     sme_ScanFlushResult(hHal, sapContext->sessionId);
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
@@ -2240,10 +2252,10 @@ sapGotoChannelSel
                 }
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
             } else
-               sapContext->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+               sapContext->acs_cfg->skip_scan_status = eSAP_SKIP_ACS_SCAN;
         }
 
-        if (sapContext->skip_acs_scan_status == eSAP_SKIP_ACS_SCAN) {
+        if (sapContext->acs_cfg->skip_scan_status == eSAP_SKIP_ACS_SCAN) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "## %s SKIPPED ACS SCAN", __func__);
             if (VOS_TRUE == sapDoAcsPreStartBss)
@@ -2652,15 +2664,20 @@ sapSignalHDDevent
             sapApAppEvent.sapHddEventCode = sapHddevent;
             if ( eSAP_STATUS_SUCCESS == (eSapStatus )context)
             {
-                sapApAppEvent.sapevt.sapAcsChSelected.pri_channel =
-                                                      sapContext->channel;
-                sapApAppEvent.sapevt.sapAcsChSelected.sec_channel =
-                                                      sapContext->secondary_ch;
+                sapApAppEvent.sapevt.sapChSelected.pri_ch =
+                                                      sapContext->acs_cfg->pri_ch;
+                sapApAppEvent.sapevt.sapChSelected.ht_sec_ch =
+                                                      sapContext->acs_cfg->ht_sec_ch;
+                sapApAppEvent.sapevt.sapChSelected.ch_width =
+                                                      sapContext->acs_cfg->ch_width;
+                sapApAppEvent.sapevt.sapChSelected.vht_seg0_center_ch =
+                                             sapContext->acs_cfg->vht_seg0_center_ch;
+                sapApAppEvent.sapevt.sapChSelected.vht_seg1_center_ch =
+                                             sapContext->acs_cfg->vht_seg1_center_ch;
             }
             else if (eSAP_STATUS_FAILURE == (eSapStatus )context)
             {
-                sapApAppEvent.sapevt.sapAcsChSelected.pri_channel = 0;
-                sapApAppEvent.sapevt.sapAcsChSelected.sec_channel = 0;
+                sapApAppEvent.sapevt.sapChSelected.pri_ch = 0;
             }
             break;
 
@@ -2869,9 +2886,24 @@ sapSignalHDDevent
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                     "In %s, SAP event callback event = %s",
                     __func__, "eSAP_CHANNEL_CHANGE_EVENT");
+            /* Reconfig ACS result info. For DFS AP-AP Mode Sec AP ACS
+             * follows pri AP
+             */
+            sapContext->acs_cfg->pri_ch = sapContext->channel;
+            sapContext->acs_cfg->ch_width = sapContext->vht_channel_width;
+            sap_config_acs_result(hHal, sapContext, 0);
+
             sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
-            sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
-               pMac->sap.SapDfsInfo.target_channel;
+            sapApAppEvent.sapevt.sapChSelected.pri_ch =
+                                                sapContext->acs_cfg->pri_ch;
+            sapApAppEvent.sapevt.sapChSelected.ht_sec_ch =
+                                            sapContext->acs_cfg->ht_sec_ch;
+            sapApAppEvent.sapevt.sapChSelected.ch_width =
+                                            sapContext->acs_cfg->ch_width;
+            sapApAppEvent.sapevt.sapChSelected.vht_seg0_center_ch =
+                                        sapContext->acs_cfg->vht_seg0_center_ch;
+            sapApAppEvent.sapevt.sapChSelected.vht_seg1_center_ch =
+                                        sapContext->acs_cfg->vht_seg1_center_ch;
             break;
 
         case eSAP_DFS_NOL_GET:
@@ -3395,21 +3427,15 @@ sapFsm
                              "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
                             __func__,sapContext->channel, con_ch);
                          sapContext->channel = con_ch;
-                         sme_SelectCBMode(hHal,
-                                         sapContext->csrRoamProfile.phyMode,
-                                         sapContext->channel,
-                                         &sapContext->vht_channel_width);
-                     }
+                    }
                  }
 #endif
 
-                 /* get the bonding mode */
-                 if (sapContext->channel <= 14)
-                    cbMode = sme_GetCBPhyStateFromCBIniValue(
-                                sme_GetChannelBondingMode24G(hHal));
-                 else
-                    cbMode = sme_GetCBPhyStateFromCBIniValue(
-                                sme_GetChannelBondingMode5G(hHal));
+                 cbMode = sme_SelectCBMode(hHal,
+                                        sapContext->csrRoamProfile.phyMode,
+                                        sapContext->channel,
+                                        &sapContext->vht_channel_width,
+                                        sapContext->ch_width_orig);
 
 #ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
                  temp_chan = sapContext->channel;
@@ -3448,7 +3474,8 @@ sapFsm
                      sapContext->channel = ch;
                      sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
                                        sapContext->channel,
-                                       &sapContext->vht_channel_width);
+                                       &sapContext->vht_channel_width,
+                                       sapContext->ch_width_orig);
                  }
                  if (sapContext->channel > 14 &&
                          (sapContext->csrRoamProfile.phyMode ==
@@ -3485,17 +3512,13 @@ sapFsm
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                          "%s: notify hostapd about channel selection: %d",
                          __func__, sapContext->channel);
-                 if (sapContext->apAutoChannelSelection &&
+                 if (sapContext->acs_cfg->acs_mode &&
                      (sapContext->csrRoamProfile.phyMode ==
                                                    eCSR_DOT11_MODE_11n ||
                       sapContext->csrRoamProfile.phyMode ==
                                                    eCSR_DOT11_MODE_11n_ONLY)) {
-                     tSap_Event sapApAppEvent;
-                     sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
-                     sapApAppEvent.sapevt.sapChannelChange.operatingChannel =
-                                                       sapContext->channel;
-                     (*sapContext->pfnSapEventCallback) (&sapApAppEvent,
-                                                       sapContext->pUsrContext);
+                     sapSignalHDDevent(sapContext, NULL, eSAP_CHANNEL_CHANGE_EVENT,
+                                        (v_PVOID_t) eSAP_STATUS_SUCCESS);
                  }
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
             }
@@ -3546,7 +3569,8 @@ sapFsm
                 {
                    sme_SelectCBMode(hHal, phyMode,
                                     pMac->sap.SapDfsInfo.target_channel,
-                                    &sapContext->vht_channel_width);
+                                    &sapContext->vht_channel_width,
+                                    sapContext->ch_width_orig);
                 }
 
                 for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
@@ -3708,8 +3732,7 @@ sapFsm
                  /* The operating channel has changed, update hostapd */
                  sapContext->channel =
                      (tANI_U8)pMac->sap.SapDfsInfo.target_channel;
-
-                 sapContext->sapsMachine = eSAP_STARTED;
+                sapContext->sapsMachine = eSAP_STARTED;
 
                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                            "In %s, from state %s => %s",
@@ -4219,9 +4242,6 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
                                  v_U8_t **channelList, v_U8_t *numberOfChannels)
 {
-    v_U32_t cfg_startChannelNum;
-    v_U32_t cfg_endChannelNum;
-    v_U32_t operatingBand;
     v_U8_t  loopCount;
     v_U8_t *list;
     v_U8_t channelCount;
@@ -4245,22 +4265,19 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
 
     if ( eCSR_BAND_ALL == sapContext->scanBandPreference)
     {
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &cfg_startChannelNum);
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &cfg_endChannelNum);
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+        startChannelNum = sapContext->acs_cfg->start_ch;
+        endChannelNum = sapContext->acs_cfg->end_ch;
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+             "%s: startChannel %d, EndChannel %d, HW:%d",
+             __func__, startChannelNum, endChannelNum,
+             sapContext->acs_cfg->hw_mode);
+
+        WLANSAP_extend_to_acs_range(&startChannelNum, &endChannelNum,
+                            &bandStartChannel, &bandEndChannel);
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                 "%s: startChannel %d,EndChannel %d,Operatingband:%d",
-                 __func__,startChannelNum,endChannelNum,operatingBand);
-
-        startChannelNum = cfg_startChannelNum;
-        endChannelNum = cfg_endChannelNum;
-        WLANSAP_extend_to_acs_range(operatingBand, &startChannelNum, &endChannelNum,
-                                &bandStartChannel, &bandEndChannel);
-
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                 "%s: expanded startChannel %d,EndChannel %d,Operatingband:%d",
-                 __func__,startChannelNum,endChannelNum,operatingBand);
+             "%s: expanded startChannel %d,EndChannel %d",
+             __func__,startChannelNum,endChannelNum);
     }
     else
     {
@@ -4350,12 +4367,12 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
                             v_U8_t ch;
                             ch = rfChannels[loopCount].channelNum;
-                            if ((sapContext->skip_acs_scan_status
+                            if ((sapContext->acs_cfg->skip_scan_status
                                 == eSAP_DO_PAR_ACS_SCAN)) {
-                                if ((ch >= sapContext->skip_acs_scan_range1_stch &&
-                                ch <= sapContext->skip_acs_scan_range1_endch) ||
-                                (ch >= sapContext->skip_acs_scan_range2_stch &&
-                                ch <= sapContext->skip_acs_scan_range2_endch)) {
+                                if ((ch >= sapContext->acs_cfg->skip_scan_range1_stch &&
+                                ch <= sapContext->acs_cfg->skip_scan_range1_endch) ||
+                                (ch >= sapContext->acs_cfg->skip_scan_range2_stch &&
+                                ch <= sapContext->acs_cfg->skip_scan_range2_endch)) {
 
                                     list[channelCount] =
                                         rfChannels[loopCount].channelNum;

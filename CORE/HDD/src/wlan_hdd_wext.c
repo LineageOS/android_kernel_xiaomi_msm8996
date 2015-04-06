@@ -323,8 +323,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
-/* 2 is unused */
-#define WE_SET_SAP_CHANNELS  3
+/* 2,3 is unused */
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 5)
@@ -2987,30 +2986,6 @@ static int iw_get_rssi(struct net_device *dev,
 
    /* a value is being successfully returned */
    return rc;
-}
-
-/*
- * Support for SoftAP channel range private command
- */
-static int iw_softap_set_channel_range( struct net_device *dev,
-                                        int startChannel,
-                                        int endChannel,
-                                        int band)
-{
-    VOS_STATUS status;
-    int ret = 0;
-    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
-
-    status = WLANSAP_SetChannelRange(hHal, startChannel, endChannel, band);
-
-    if (VOS_STATUS_SUCCESS != status)
-    {
-        ret = -EINVAL;
-    }
-    pHddCtx->is_dynamic_channel_range_set = 1;
-    return ret;
 }
 
 VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
@@ -6792,10 +6767,6 @@ static int __iw_set_three_ints_getnone(struct net_device *dev,
 
     case WE_SET_WLAN_DBG:
        vos_trace_setValue( value[1], value[2], value[3]);
-       break;
-
-    case WE_SET_SAP_CHANNELS:
-       ret = iw_softap_set_channel_range( dev, value[1], value[2], value[3]);
        break;
 
     default:
@@ -10686,10 +10657,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setwlandbg" },
 
-    {   WE_SET_SAP_CHANNELS,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
-        0,
-        "setsapchannels" },
      /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_THREE_INT,
         0,

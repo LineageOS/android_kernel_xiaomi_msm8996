@@ -11854,7 +11854,7 @@ static const char* sme_CBMode2String( tANI_U32 mode)
  */
 static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
       tSmeConfigParams  *smeConfig,
-      tANI_U8 channel, tANI_U32 *vht_channel_width)
+      uint8_t channel, uint16_t *vht_channel_width)
 {
 
    const tANI_U8 step = 4;
@@ -12004,154 +12004,102 @@ static VOS_STATUS sme_AdjustCBMode(tAniSirGlobal* pMac,
 /*
  * SME API to determine the channel bonding mode
  */
-VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
-                            tANI_U8 channel, tANI_U32 *vht_channel_width)
+eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
+                            uint8_t channel, uint16_t *vht_channel_width,
+                            uint16_t ch_width_orig)
 {
    tSmeConfigParams  smeConfig;
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
-
-   if (
-#ifdef WLAN_FEATURE_11AC
-         eCSR_DOT11_MODE_11ac != eCsrPhyMode &&
-         eCSR_DOT11_MODE_11ac_ONLY != eCsrPhyMode &&
-#endif
-         eCSR_DOT11_MODE_11n != eCsrPhyMode &&
-         eCSR_DOT11_MODE_11n_ONLY != eCsrPhyMode &&
-
-         eCSR_DOT11_MODE_11a != eCsrPhyMode &&
-         eCSR_DOT11_MODE_11b != eCsrPhyMode &&
-         eCSR_DOT11_MODE_11g != eCsrPhyMode &&
-
-         eCSR_DOT11_MODE_abg != eCsrPhyMode
-      )
-   {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                "%s: Incorrect PhyMode, CB mode is not selected", __func__);
-      *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
-      return VOS_STATUS_SUCCESS;
-   }
-
-   /* If channel bonding mode is not required */
-   if ( !pMac->roam.configParam.channelBondingMode5GHz
-       && !pMac->roam.configParam.channelBondingMode24GHz) {
-      *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
-      return VOS_STATUS_SUCCESS;
-   }
-
+   eIniChanBondState cb_mode = eCSR_INI_SINGLE_CHANNEL_CENTERED;
+   /* Donot check pMac->roam.configParam.channelBondingMode5GHz / 24GHz
+    * Doing so results in circular reference
+    */
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                "%s: channel - %d, channel_width - %d\n", __func__, channel,
-                *vht_channel_width);
+                "%s: HW: %d CH: %d ORIG_BW: %d\n", __func__, eCsrPhyMode,
+                channel, ch_width_orig);
+
+   *vht_channel_width = ch_width_orig;
    vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
    sme_GetConfigParam(pMac, &smeConfig);
 
    if ((eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
-        (eHT_CHANNEL_WIDTH_80MHZ == *vht_channel_width)) {
-       if (pMac->roam.configParam.channelBondingMode5GHz) {
-          if (channel== 36 || channel == 52 || channel == 100 ||
+        (eHT_CHANNEL_WIDTH_80MHZ == ch_width_orig)) {
+      if (channel== 36 || channel == 52 || channel == 100 ||
                 channel == 116 || channel == 149) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig.csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
-          } else if (channel == 40 || channel == 56 || channel == 104 ||
+      } else if (channel == 40 || channel == 56 || channel == 104 ||
                      channel == 120 || channel == 153) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig.csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
-          } else if (channel == 44 || channel == 60 || channel == 108 ||
+      } else if (channel == 44 || channel == 60 || channel == 108 ||
                      channel == 124 || channel == 157) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig.csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
-          } else if (channel == 48 || channel == 64 || channel == 112 ||
+      } else if (channel == 48 || channel == 64 || channel == 112 ||
                      channel == 128 || channel == 144 || channel == 161) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig.csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
-          } else if (channel == 165 || channel == 140) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
-                                        eCSR_INI_SINGLE_CHANNEL_CENTERED;
-             *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
-          } else if (channel == 132) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+      } else if (channel == 165 || channel == 140) {
+          smeConfig.csrConfig.channelBondingMode5GHz =
+                                     eCSR_INI_SINGLE_CHANNEL_CENTERED;
+          *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
+      } else if (channel == 132) {
+          smeConfig.csrConfig.channelBondingMode5GHz =
                                         eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-             *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
-          } else if (channel == 136) {
-             smeConfig.csrConfig.channelBondingMode5GHz =
+          *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+      } else if (channel == 136) {
+          smeConfig.csrConfig.channelBondingMode5GHz =
                                         eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-             *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
-          }
-      } else {
+          *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+      } else if (channel >= 1 && channel <= 5) {
+          smeConfig.csrConfig.channelBondingMode24GHz =
+                eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+          *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+      } else if (channel >= 6 && channel <= 13) {
+          smeConfig.csrConfig.channelBondingMode24GHz =
+                eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+          *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+      } else if (channel ==14) {
+          smeConfig.csrConfig.channelBondingMode24GHz =
+                eCSR_INI_SINGLE_CHANNEL_CENTERED;
           *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
       }
-
-      /*TODO: Set HT40+ / HT40- for channel 5-7 based on ACS */
-      if (pMac->roam.configParam.channelBondingMode24GHz) {
-          if (channel >= 1 && channel <= 5)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-          else if (channel >= 6 && channel <= 13)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-          else if (channel ==14)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-                eCSR_INI_SINGLE_CHANNEL_CENTERED;
-      }
    } else if ((eCSR_DOT11_MODE_11n == eCsrPhyMode ||
-        eCSR_DOT11_MODE_11n_ONLY == eCsrPhyMode) ||
-        ((eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11n_ONLY == eCsrPhyMode ||
+        eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
-        (eHT_CHANNEL_WIDTH_40MHZ == *vht_channel_width))) {
-        if (pMac->roam.configParam.channelBondingMode5GHz) {
-            if (channel== 40 || channel == 48 || channel == 56 ||
+        (eHT_CHANNEL_WIDTH_40MHZ == ch_width_orig)) {
+       if (channel== 40 || channel == 48 || channel == 56 ||
                 channel == 64 || channel == 104 || channel == 112 ||
                 channel == 120 || channel == 128 || channel == 136 ||
                 channel == 153 || channel == 161) {
-                smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig.csrConfig.channelBondingMode5GHz =
                                     eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-            } else if (channel== 36 || channel == 44 || channel == 52 ||
+       } else if (channel== 36 || channel == 44 || channel == 52 ||
                 channel == 60 || channel == 100 || channel == 108 ||
                 channel == 116 || channel == 124 || channel == 132 ||
                 channel == 149 || channel == 157) {
-                smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig.csrConfig.channelBondingMode5GHz =
                                         eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-            } else if (channel == 165 || channel == 140) {
-                smeConfig.csrConfig.channelBondingMode5GHz =
+       } else if (channel == 165 || channel == 140) {
+           smeConfig.csrConfig.channelBondingMode5GHz =
                                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
-                *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
-          }
-      } else {
-          *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
-      }
-
-      if (pMac->roam.configParam.channelBondingMode24GHz)
-      {
-          if (channel >= 1 && channel <= 5)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-              eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-          else if (channel >= 6 && channel <= 13)
-             smeConfig.csrConfig.channelBondingMode24GHz =
-              eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-          else if (channel ==14)
-             smeConfig.csrConfig.channelBondingMode24GHz =
+           *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
+       } else if (channel >= 1 && channel <= 5) {
+           smeConfig.csrConfig.channelBondingMode24GHz =
+                                           eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+       } else if (channel >= 6 && channel <= 13) {
+           smeConfig.csrConfig.channelBondingMode24GHz =
+                                           eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+       } else if (channel ==14) {
+           smeConfig.csrConfig.channelBondingMode24GHz =
               eCSR_INI_SINGLE_CHANNEL_CENTERED;
-      }
-   }
-
-   /*
-      for 802.11a phy mode, channel bonding should be zero.
-      From default config, it is set as PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3
-      through csrChangeDefaultConfigParam function. We will override this
-      value here.
-      for 802.11g only phy mode also channel bonding should be zero.
-   */
-   if (eCSR_DOT11_MODE_11a == eCsrPhyMode ||
-       eCSR_DOT11_MODE_abg == eCsrPhyMode) {
-        smeConfig.csrConfig.channelBondingMode5GHz =
-                                 eCSR_INI_SINGLE_CHANNEL_CENTERED;
-   } else if (eCSR_DOT11_MODE_11g_ONLY == eCsrPhyMode)
-        smeConfig.csrConfig.channelBondingMode24GHz =
-                                 eCSR_INI_SINGLE_CHANNEL_CENTERED;
-
-   if ((eHT_CHANNEL_WIDTH_20MHZ == *vht_channel_width) &&
-       (eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
-        eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode)) {
+           *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
+       }
+   } else {
+       *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
        if (channel <= 14) {
            smeConfig.csrConfig.channelBondingMode24GHz =
                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
@@ -12162,14 +12110,14 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
    }
 
    sme_AdjustCBMode(pMac, &smeConfig, channel, vht_channel_width);
-
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-         "%s cbmode selected=%d", (channel <= 14) ? "2G" : "5G",
-         (channel <= 14) ? smeConfig.csrConfig.channelBondingMode24GHz :
-                        smeConfig.csrConfig.channelBondingMode5GHz);
-
    sme_UpdateConfig (pMac, &smeConfig);
-   return VOS_STATUS_SUCCESS;
+   cb_mode = (channel <= 14) ? smeConfig.csrConfig.channelBondingMode24GHz :
+                        smeConfig.csrConfig.channelBondingMode5GHz;
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: CH: %d NEW_BW: %d %s-CB_Mode:%d", __func__, channel,
+         *vht_channel_width, (channel <=14) ? "2G" : "5G", cb_mode);
+
+   return cb_mode;
 }
 
 /*convert the ini value to the ENUM used in csr and MAC for CB state*/
@@ -13213,35 +13161,6 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId,
       sme_ReleaseGlobalLock(&pMac->sme );
    }
    return (status);
-}
-
-/* ---------------------------------------------------------------------------
-
-    \fn sme_SetPhyCBMode24G
-
-    \brief Changes PHY channel bonding mode
-
-    \param hHal - The handle returned by macOpen.
-
-    \param cbMode new channel bonding mode which is to set
-
-    \return eHalStatus  SUCCESS.
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-    if (NULL == pMac)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s: invalid context", __func__);
-        return eHAL_STATUS_FAILURE;
-    }
-
-    pMac->roam.configParam.channelBondingMode24GHz = phyCBMode;
-
-    return eHAL_STATUS_SUCCESS;
 }
 #endif
 

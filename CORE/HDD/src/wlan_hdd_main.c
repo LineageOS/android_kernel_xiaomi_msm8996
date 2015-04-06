@@ -4319,23 +4319,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            }
 
        }
-       /*
-        * Command should be a string having format
-        * SET_SAP_CHANNEL_LIST <num of channels> <channels separated by spaces>
-        */
-       else if (strncmp(command, "SET_SAP_CHANNEL_LIST", 20) == 0)
-       {
-           tANI_U8 *ptr = command;
-
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                      " Received Command to Set Preferred Channels for SAP in %s", __func__);
-
-#ifdef WLAN_FEATURE_MBSSID
-           ret = sapSetPreferredChannel(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), ptr);
-#else
-           ret = sapSetPreferredChannel(ptr);
-#endif
-       }
        else if (strncmp(command, "SETSUSPENDMODE", 14) == 0)
        {
        }
@@ -8802,7 +8785,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                   "STA-AP Mode DFS not supported. Restart SAP with Non DFS ACS"
                   );
               ap_adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
-              ap_adapter->sessionCtx.ap.sapConfig.acs_case = true;
+              ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = true;
               wlan_hdd_restart_sap(ap_adapter);
           }
       }
@@ -12965,28 +12948,28 @@ VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx)
 }
 
 #ifdef FEATURE_WLAN_CH_AVOID
-/**---------------------------------------------------------------------------
+/**
+ * hdd_find_prefd_safe_chnl : Finds safe channel within preferred channel
+ * @hdd_ctxt: hdd context pointer
+ * @ap_adapter: hdd hostapd adapter pointer
+ *
+ * If auto channel selection enabled:
+ * Preferred and safe channel should be used
+ * If no overlapping, preferred channel should be used
+ *
+ * Return:
+ * 1: found preferred safe channel
+ * 0: could not found preferred safe channel
+ */
 
-  \brief hdd_find_prefd_safe_chnl() -
-
-  Try to find safe channel within preferred channel
-  In case auto channel selection enabled
-    - Preferred and safe channel should be used
-    - If no overlapping, preferred channel should be used
-
-  \param  - hdd_ctxt hdd context pointer
-
-  \return - 1: found preferred safe channel
-            0: could not found preferred safe channel
-
-  --------------------------------------------------------------------------*/
-static v_U8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt)
+static uint8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt,
+                                                  hdd_adapter_t *ap_adapter)
 {
-   v_U16_t             safe_channels[NUM_20MHZ_RF_CHANNELS];
-   v_U16_t             safe_channel_count;
-   v_U8_t              is_unsafe = 1;
-   v_U16_t             i;
-   v_U16_t             channel_loop;
+   uint16_t             safe_channels[NUM_20MHZ_RF_CHANNELS];
+   uint16_t             safe_channel_count;
+   uint8_t              is_unsafe = 1;
+   uint16_t             i;
+   uint16_t             channel_loop;
 
    safe_channel_count = 0;
    for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
@@ -13010,11 +12993,13 @@ static v_U8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt)
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
              "perferred range %d - %d",
-             hdd_ctxt->cfg_ini->apStartChannelNum,
-             hdd_ctxt->cfg_ini->apEndChannelNum);
+             ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.start_ch,
+             ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.end_ch);
    for (i = 0; i < safe_channel_count; i++) {
-      if ((safe_channels[i] >= hdd_ctxt->cfg_ini->apStartChannelNum) &&
-          (safe_channels[i] <= hdd_ctxt->cfg_ini->apEndChannelNum)) {
+      if ((safe_channels[i] >=
+                    ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.start_ch) &&
+          (safe_channels[i] <=
+                    ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.end_ch)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
              "safe channel %d is in perferred range", safe_channels[i]);
          return 1;
@@ -13186,9 +13171,8 @@ void hdd_ch_avoid_cb
              * do not re-start softap interface
              * stay current operating channel.
              */
-             if ((hostapd_adapter->sessionCtx.ap.sapConfig.
-                                            apAutoChannelSelection) &&
-                 (!hdd_find_prefd_safe_chnl(hdd_ctxt)))
+             if ((hostapd_adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode) &&
+                 (!hdd_find_prefd_safe_chnl(hdd_ctxt, hostapd_adapter)))
                  return;
 
             hddLog(LOG1, FL("Current operation channel %d"),
@@ -13202,7 +13186,8 @@ void hdd_ch_avoid_cb
                  channel_loop++) {
                 if (((hdd_ctxt->unsafe_channel_list[channel_loop] ==
                      hostapd_adapter->sessionCtx.ap.operatingChannel)) &&
-                     (hostapd_adapter->sessionCtx.ap.sapConfig.acs_case == true)
+                     (hostapd_adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode
+                                                                       == true)
                       && !restart_sap_in_progress) {
 
                     hddLog(LOG1, FL("Restarting SAP"));
@@ -13713,8 +13698,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(sta_adapter);
     tHalHandle hHal;
     hdd_ap_ctx_t *pHddApCtx;
-    v_U16_t intf_ch = 0;
-    v_U32_t vht_channel_width = 0;
+    uint16_t intf_ch = 0, vht_channel_width = 0;
 
    if ((pHddCtx->cfg_ini->WlanMccToSccSwitchMode == VOS_MCC_TO_SCC_SWITCH_DISABLE)
        || !(vos_concurrent_open_sessions_running()
@@ -13748,7 +13732,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     sme_SelectCBMode(hHal,
                      pHddApCtx->sapConfig.SapHw_mode,
                      pHddApCtx->sapConfig.channel,
-                     &vht_channel_width);
+                     &vht_channel_width, pHddApCtx->sapConfig.ch_width_orig);
 #ifdef WLAN_FEATURE_MBSSID
     wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);
 #else

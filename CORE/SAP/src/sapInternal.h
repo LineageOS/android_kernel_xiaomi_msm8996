@@ -252,8 +252,8 @@ typedef struct sSapContext {
     v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN];
     v_U8_t            *channelList;
     tSapChannelListInfo SapChnlList;
-    v_U32_t           vht_channel_width;
-    v_U32_t           vht_ch_width_orig;
+    uint16_t           vht_channel_width;
+    uint16_t           ch_width_orig;
 
     // session to scan
     tANI_BOOLEAN        isScanSessionOpen;
@@ -273,20 +273,10 @@ typedef struct sSapContext {
     v_U16_t            acsBandSwitchThreshold;
     tSapAcsChannelInfo acsBestChannelInfo;
     tANI_BOOLEAN       enableOverLapCh;
-    v_BOOL_t           apAutoChannelSelection;
-    v_U8_t             apStartChannelNum;
-    v_U8_t             apEndChannelNum;
-    v_U8_t             acs_case;
-    uint8_t            acs_ch_width;
+
+    struct sap_acs_cfg *acs_cfg;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
-#endif
-#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-    v_U8_t          skip_acs_scan_status;
-    v_U8_t          skip_acs_scan_range1_stch;
-    v_U8_t          skip_acs_scan_range1_endch;
-    v_U8_t          skip_acs_scan_range2_stch;
-    v_U8_t          skip_acs_scan_range2_endch;
 #endif
 
 #if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) ||\
@@ -1079,6 +1069,9 @@ RETURN VALUE  :v_BOOL_t
 SIDE EFFECTS
 ---------------------------------------------------------------------------*/
 v_BOOL_t sapDfsIsChannelInPreferredLocation(tHalHandle hHal, v_U8_t channelID);
+
+void sap_config_acs_result(tHalHandle hal, ptSapContext sap_ctx,
+                                                             uint32_t sec_ch);
 
 #ifdef __cplusplus
 }

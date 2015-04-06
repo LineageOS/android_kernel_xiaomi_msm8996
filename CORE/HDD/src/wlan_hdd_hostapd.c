@@ -385,23 +385,6 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
    {
       hdd_setP2pOpps(pAdapter->dev, command);
    }
-   else if (strncmp(command, "SET_SAP_CHANNEL_LIST", 20) == 0)
-   {
-      /*
-       * command should be a string having format
-       * SET_SAP_CHANNEL_LIST <num channels> <channels separated by spaces>
-       */
-      hddLog(VOS_TRACE_LEVEL_INFO,
-             "%s: Received Command to Set Preferred Channels for SAP",
-             __func__);
-
-#ifdef WLAN_FEATURE_MBSSID
-      ret = sapSetPreferredChannel(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter),
-                                   command);
-#else
-      ret = sapSetPreferredChannel(command);
-#endif
-   }
    else if (strncmp(command, "MIRACAST", 8) == 0)
    {
        hddLog(VOS_TRACE_LEVEL_INFO, "%s: Received MIRACAST command", __func__);
@@ -1729,7 +1712,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hddLog(LOG1, FL("Received eSAP_CHANNEL_CHANGE_EVENT event"));
             /* Prevent suspend for new channel */
             hdd_hostapd_channel_prevent_suspend(pHostapdAdapter,
-                    pSapEvent->sapevt.sapChannelChange.operatingChannel);
+                    pSapEvent->sapevt.sapChSelected.pri_ch);
             /* Allow suspend for old channel */
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
@@ -1741,9 +1724,21 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
              * restiction
              */
             pHddApCtx->operatingChannel =
-                    pSapEvent->sapevt.sapChannelChange.operatingChannel;
+                 pSapEvent->sapevt.sapChSelected.pri_ch;
+            pHddApCtx->sapConfig.acs_cfg.pri_ch =
+                 pSapEvent->sapevt.sapChSelected.pri_ch;
+            pHddApCtx->sapConfig.acs_cfg.ht_sec_ch =
+                 pSapEvent->sapevt.sapChSelected.ht_sec_ch;
+            pHddApCtx->sapConfig.acs_cfg.vht_seg0_center_ch =
+                 pSapEvent->sapevt.sapChSelected.vht_seg0_center_ch;
+            pHddApCtx->sapConfig.acs_cfg.vht_seg1_center_ch =
+                 pSapEvent->sapevt.sapChSelected.vht_seg1_center_ch;
+            pHddApCtx->sapConfig.acs_cfg.ch_width =
+                 pSapEvent->sapevt.sapChSelected.ch_width;
+
+            /* TODO Need to indicate operating channel change to hostapd */
             return hdd_chan_change_notify(pHostapdAdapter, dev,
-                           pSapEvent->sapevt.sapChannelChange.operatingChannel);
+                           pSapEvent->sapevt.sapChSelected.pri_ch);
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         case eSAP_ACS_SCAN_SUCCESS_EVENT:
             pHddCtx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
@@ -1802,22 +1797,24 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             return VOS_STATUS_E_FAILURE;
 #endif
             return VOS_STATUS_SUCCESS;
-#ifdef QCA_HT_2040_COEX
         case eSAP_ACS_CHANNEL_SELECTED:
             hddLog(LOG1, FL("ACS Completed for wlan%d"),
                                               pHostapdAdapter->dev->ifindex);
             clear_bit(ACS_PENDING, &pHostapdAdapter->event_flags);
             clear_bit(ACS_IN_PROGRESS, &pHddCtx->g_event_flags);
-            pHddApCtx->operatingChannel =
-                 pSapEvent->sapevt.sapAcsChSelected.pri_channel;
-            pHddApCtx->secondaryChannel =
-                 pSapEvent->sapevt.sapAcsChSelected.sec_channel;
+            pHddApCtx->sapConfig.acs_cfg.pri_ch =
+                 pSapEvent->sapevt.sapChSelected.pri_ch;
+            pHddApCtx->sapConfig.acs_cfg.ht_sec_ch =
+                 pSapEvent->sapevt.sapChSelected.ht_sec_ch;
+            pHddApCtx->sapConfig.acs_cfg.vht_seg0_center_ch =
+                 pSapEvent->sapevt.sapChSelected.vht_seg0_center_ch;
+            pHddApCtx->sapConfig.acs_cfg.vht_seg1_center_ch =
+                 pSapEvent->sapevt.sapChSelected.vht_seg1_center_ch;
+            pHddApCtx->sapConfig.acs_cfg.ch_width =
+                 pSapEvent->sapevt.sapChSelected.ch_width;
             /* send vendor event to hostapd */
-            wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter,
-                       pSapEvent->sapevt.sapAcsChSelected.pri_channel,
-                       pSapEvent->sapevt.sapAcsChSelected.sec_channel);
+            wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
             return VOS_STATUS_SUCCESS;
-#endif
         default:
             hddLog(LOG1,"SAP message is not handled");
             goto stopbss;
@@ -3827,47 +3824,6 @@ static iw_softap_get_stats(struct net_device *dev,
 	return ret;
 }
 
-static int __iw_softap_set_channel_range(struct net_device *dev,
-                          struct iw_request_info *info,
-                          union iwreq_data *wrqu, char *extra)
-{
-    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
-
-    int *value = (int *)extra;
-    int startChannel = value[0];
-    int endChannel = value[1];
-    int band = value[2];
-    VOS_STATUS status;
-    int ret = 0; /* success */
-
-    status = WLANSAP_SetChannelRange(hHal,startChannel,endChannel,band);
-    if(status != VOS_STATUS_SUCCESS)
-    {
-      hddLog( LOGE, FL("iw_softap_set_channel_range:  startChannel = %d, endChannel = %d band = %d"),
-                                  startChannel,endChannel, band);
-      ret = -EINVAL;
-    }
-
-    pHddCtx->is_dynamic_channel_range_set = 1;
-
-    return ret;
-}
-
-static int iw_softap_set_channel_range(struct net_device *dev,
-                                       struct iw_request_info *info,
-                                       union iwreq_data *wrqu, char *extra)
-{
-	int ret;
-
-	vos_ssr_protect(__func__);
-	ret = __iw_softap_set_channel_range(dev, info, wrqu, extra);
-	vos_ssr_unprotect(__func__);
-
-	return ret;
-}
-
 static int __iw_softap_get_channel_list(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
@@ -5855,7 +5811,6 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_GET_STATS - SIOCIWFIRSTPRIV] = iw_softap_get_stats,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
-   [QCSAP_IOCTL_SET_CHANNEL_RANGE - SIOCIWFIRSTPRIV] = iw_softap_set_channel_range,
    [QCSAP_IOCTL_MODIFY_ACL - SIOCIWFIRSTPRIV]   = iw_softap_modify_acl,
    [QCSAP_IOCTL_GET_CHANNEL_LIST - SIOCIWFIRSTPRIV]   = iw_softap_get_channel_list,
    [QCSAP_IOCTL_GET_STA_INFO - SIOCIWFIRSTPRIV] = iw_softap_get_sta_info,
@@ -6016,7 +5971,10 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
-    pAdapter->sessionCtx.ap.sapConfig.acs_case = false;
+    pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
+    vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+    vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,
+                                                   sizeof(struct sap_acs_cfg));
     return status;
 
 error_wmm_init:

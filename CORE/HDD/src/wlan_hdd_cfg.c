@@ -738,36 +738,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_FRAMES_PROCESSING_TH_MIN,
                  CFG_FRAMES_PROCESSING_TH_MAX ),
 
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_START_CHANNEL , WLAN_PARAM_Integer,
-                 hdd_config_t, apStartChannelNum,
-#ifndef WLAN_FEATURE_MBSSID
-                 VAR_FLAGS_DYNAMIC_CFG |
-#endif
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX ),
-
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_END_CHANNEL , WLAN_PARAM_Integer,
-                 hdd_config_t, apEndChannelNum,
-#ifndef WLAN_FEATURE_MBSSID
-                 VAR_FLAGS_DYNAMIC_CFG |
-#endif
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX ),
-
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_OPERATING_BAND , WLAN_PARAM_Integer,
-                 hdd_config_t, apOperatingBand,
-#ifndef WLAN_FEATURE_MBSSID
-                 VAR_FLAGS_DYNAMIC_CFG |
-#endif
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
-
    REG_VARIABLE( CFG_ENABLE_LTE_COEX , WLAN_PARAM_Integer,
                  hdd_config_t, enableLTECoex,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2955,14 +2925,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_OVERLAP_CH_MIN,
                  CFG_ENABLE_OVERLAP_CH_MAX ),
 
-   REG_VARIABLE_STRING( CFG_ONLY_ALLOWED_CHANNELS, WLAN_PARAM_String,
-                        hdd_config_t, acsAllowedChnls,
-#ifndef WLAN_FEATURE_MBSSID
-                        VAR_FLAGS_DYNAMIC_CFG |
-#endif
-                        VAR_FLAGS_OPTIONAL,
-                        (void *)CFG_ONLY_ALLOWED_CHANNELS_DEFAULT),
-
    REG_VARIABLE( CFG_REG_CHANGE_DEF_COUNTRY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fRegChangeDefCountry,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3680,35 +3642,6 @@ REG_TABLE_ENTRY g_registry_table[] =
 #ifdef WLAN_FEATURE_MBSSID
 REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
 {
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_START_CHANNEL , WLAN_PARAM_Integer,
-                 mbssid_sap_dyn_ini_config_t, apStartChannelNum,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
-                 | VAR_FLAGS_DYNAMIC_CFG,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN,
-                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX ),
-
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_END_CHANNEL , WLAN_PARAM_Integer,
-                 mbssid_sap_dyn_ini_config_t, apEndChannelNum,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
-                 | VAR_FLAGS_DYNAMIC_CFG,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN,
-                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX ),
-
-   REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_OPERATING_BAND , WLAN_PARAM_Integer,
-                 mbssid_sap_dyn_ini_config_t, apOperatingBand,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
-                 | VAR_FLAGS_DYNAMIC_CFG,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
-                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
-
-   REG_VARIABLE_STRING( CFG_ONLY_ALLOWED_CHANNELS, WLAN_PARAM_String,
-                        mbssid_sap_dyn_ini_config_t, acsAllowedChnls,
-                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_DYNAMIC_CFG,
-                        (void *)CFG_ONLY_ALLOWED_CHANNELS_DEFAULT),
-
    REG_VARIABLE( CFG_SAP_SCAN_BAND_PREFERENCE, WLAN_PARAM_Integer,
                  mbssid_sap_dyn_ini_config_t, acsScanBandPreference,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK
@@ -3973,7 +3906,6 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
              "Name = [sap_channel_avoidance] value = [%u]",
              pHddCtx->cfg_ini->sap_channel_avoidance);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
-  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSAllowedChannels] value = [%s]", pHddCtx->cfg_ini->acsAllowedChnls);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSBandSwitchThreshold] value = [%u]", pHddCtx->cfg_ini->acsBandSwitchThreshold);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);
@@ -4880,13 +4812,9 @@ v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter)
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    hdd_config_t *iniConfig = pHddCtx->cfg_ini;
    mbssid_sap_dyn_ini_config_t *sap_ini_cfg = &pAdapter->sap_dyn_ini_cfg;
-   sap_ini_cfg->apStartChannelNum = iniConfig->apStartChannelNum;
-   sap_ini_cfg->apEndChannelNum = iniConfig->apEndChannelNum;
-   sap_ini_cfg->apOperatingBand = iniConfig->apOperatingBand;
+
    sap_ini_cfg->acsScanBandPreference = iniConfig->acsScanBandPreference;
    sap_ini_cfg->acsBandSwitchThreshold = iniConfig->acsBandSwitchThreshold;
-   vos_mem_copy(sap_ini_cfg->acsAllowedChnls, iniConfig->acsAllowedChnls,
-                                                              CFG_MAX_STR_LEN);
 }
 #endif
 
