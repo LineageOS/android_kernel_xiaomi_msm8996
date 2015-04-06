@@ -782,7 +782,8 @@ WMA_INC :=	-I$(WLAN_ROOT)/$(WMA_DIR)
 WMA_OBJS :=	$(WMA_DIR)/regdomain.o \
 		$(WMA_DIR)/wlan_nv.o \
 		$(WMA_DIR)/wma.o \
-		$(WMA_DIR)/wma_dfs_interface.o
+		$(WMA_DIR)/wma_dfs_interface.o \
+		$(WMA_DIR)/wma_ocb.o
 
 
 ############ WDA ############
