@@ -1292,11 +1292,23 @@ eHalStatus csrNeighborRoamAddBssIdToPreauthFailList(tpAniSirGlobal pMac,
                                                     tANI_U8 sessionId,
                                                     tSirMacAddr bssId)
 {
+    tANI_U8 i = 0;
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
                                  &pMac->roam.neighborRoamInfo[sessionId];
 
-    NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL(" Added BSSID "MAC_ADDRESS_STR
+    NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("Added BSSID "MAC_ADDRESS_STR
                         " to Preauth failed list"), MAC_ADDR_ARRAY(bssId));
+
+    for (i = 0; i < pNeighborRoamInfo->FTRoamInfo.preAuthFailList.numMACAddress;
+                i++) {
+        if (VOS_TRUE == vos_mem_compare(
+                    pNeighborRoamInfo->FTRoamInfo.preAuthFailList.macAddress[i],
+                    bssId, sizeof(tSirMacAddr))) {
+            smsLog(pMac, LOGW, FL("BSSID "MAC_ADDRESS_STR" already present in preauth fail list"),
+                   MAC_ADDR_ARRAY(bssId));
+            return eHAL_STATUS_SUCCESS;
+        }
+    }
 
     if ((pNeighborRoamInfo->FTRoamInfo.preAuthFailList.numMACAddress + 1) >
             MAX_NUM_PREAUTH_FAIL_LIST_ADDRESS)
