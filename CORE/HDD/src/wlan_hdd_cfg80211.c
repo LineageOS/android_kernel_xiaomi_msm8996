@@ -8643,6 +8643,27 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
+#ifndef QCA_HT_2040_COEX
+        /*
+         * Restore the channel bonding parameter to avoid
+         * falling to previous SAP configuration in concurrency
+         * scenarios.
+         */
+        tSmeConfigParams *sme_config;
+
+        sme_config = vos_mem_malloc(sizeof(*sme_config));
+        if (!sme_config) {
+            hddLog(LOGE, FL("memory allocation failed for sme_config"));
+            return -ENOMEM;
+        }
+
+        vos_mem_zero(sme_config, sizeof(*sme_config));
+        sme_GetConfigParam(hHal, sme_config);
+        sme_config->csrConfig.channelBondingMode5GHz =
+                           pHddCtx->cfg_ini->nChannelBondingMode5GHz;
+        sme_UpdateConfig(hHal, sme_config);
+        vos_mem_free(sme_config);
+#endif
         pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
                                        WLAN_EID_COUNTRY);
         if(memcmp(pHddCtx->cfg_ini->apCntryCode, CFG_AP_COUNTRY_CODE_DEFAULT, 3) != 0)
