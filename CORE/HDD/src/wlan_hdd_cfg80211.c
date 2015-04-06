@@ -6410,7 +6410,6 @@ static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 }
 
 
-#ifdef QCA_HT_2040_COEX
 const struct
 nla_policy qca_wlan_acs_vendor_attr[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1] =
 {
@@ -6453,18 +6452,6 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	tsap_Config_t *sap_config;
 	tpWLAN_SAPEventCB acs_event_callback;
 	int status;
-#ifndef WLAN_FEATURE_MBSSID
-	hdd_config_t *hdd_config = hdd_ctx->cfg_ini;
-#endif
-#ifdef WLAN_FEATURE_11AC
-	bool sap_force11AC_for11n =
-#ifdef WLAN_FEATURE_MBSSID
-		adapter->sap_dyn_ini_cfg.apForce11ACFor11n;
-#else
-		hdd_ctx->cfg_ini->apForce11ACFor11n;
-#endif
-#endif
-	tSmeConfigParams smeConfig;
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->channel = AUTO_CHANNEL_SELECT;
@@ -6519,55 +6506,6 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	hddLog(LOG1, FL("ACS CFG: HW_MODE: %d ACS_BW: %d"),
 			sap_config->acs_hw_mode, sap_config->acs_ch_width);
 
-	vos_mem_zero(&smeConfig, sizeof(smeConfig));
-	sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
-	if (sap_config->acs_ch_width == 40) {
-		switch (adapter->sap_dyn_ini_cfg.apOperatingBand) {
-		case eSAP_RF_SUBBAND_2_4_GHZ:
-			smeConfig.csrConfig.channelBondingMode24GHz = 1;
-			break;
-		case eSAP_RF_SUBBAND_5_LOW_GHZ:
-		case eSAP_RF_SUBBAND_5_MID_GHZ:
-		case eSAP_RF_SUBBAND_5_HIGH_GHZ:
-		case eSAP_RF_SUBBAND_5_ALL_GHZ:
-			smeConfig.csrConfig.channelBondingMode5GHz = 1;
-			break;
-		default:
-			break;
-		}
-
-		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11n;
-
-#ifdef WLAN_FEATURE_11AC
-		/* Overwrite the hostapd setting for HW mode only for 11ac.
-		 * This is valid only if mode is set to 11n in hostapd and
-		 * either AUTO or 11ac in .ini
-		 */
-		if (sap_force11AC_for11n &&
-			((hdd_ctx->cfg_ini->dot11Mode ==
-						eHDD_DOT11_MODE_AUTO) ||
-			(hdd_ctx->cfg_ini->dot11Mode ==
-						eHDD_DOT11_MODE_11ac) ||
-			(hdd_ctx->cfg_ini->dot11Mode ==
-						eHDD_DOT11_MODE_11ac_ONLY))) {
-
-			if ((sap_config->acs_hw_mode
-				 == eCSR_DOT11_MODE_11g) &&
-				!hdd_ctx->cfg_ini->enableVhtFor24GHzBand)
-				sap_config->acs_hw_mode =
-						eCSR_DOT11_MODE_11n;
-			else if (hdd_ctx->cfg_ini->dot11Mode ==
-						eHDD_DOT11_MODE_11ac_ONLY)
-				sap_config->acs_hw_mode =
-						eCSR_DOT11_MODE_11ac_ONLY;
-			else
-				sap_config->acs_hw_mode = eCSR_DOT11_MODE_11ac;
-		}
-#endif
-		hddLog(LOG1, FL("phyMode is %d"), sap_config->acs_hw_mode);
-	}
-	sme_UpdateConfig(hdd_ctx->hHal, &smeConfig);
-
 	status = wlan_hdd_config_acs(hdd_ctx, adapter);
 	if (status) {
 		hddLog(LOGE, FL("ACS config failed"));
@@ -6583,7 +6521,7 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 #ifdef WLAN_FEATURE_MBSSID
 		WLAN_HDD_GET_SAP_CTX_PTR(adapter),
 #else
-		pVosContext,
+		hdd_ctx->pvosContext,
 #endif
 		acs_event_callback, sap_config, (v_PVOID_t)adapter->dev);
 
@@ -6623,16 +6561,17 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	int status;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1];
 	u8 hw_mode;
-	bool ht_enabled, ht40_enabled;
 #ifndef WLAN_FEATURE_MBSSID
 	hdd_config_t *hdd_config = (WLAN_HDD_GET_CTX(adapter))->cfg_ini;
 #endif
+	bool ht_enabled, ht40_enabled, vht_enabled;
 
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		goto out;
 	}
+	sap_config = &adapter->sessionCtx.ap.sapConfig;
 
 	status = nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ACS_MAX, data, data_len,
 						qca_wlan_acs_vendor_attr);
@@ -6660,6 +6599,22 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	else
 		ht40_enabled = 0;
 
+	if (tb[QCA_WLAN_VENDOR_ATTR_ACS_VHT_ENABLED])
+		vht_enabled =
+			nla_get_flag(tb[QCA_WLAN_VENDOR_ATTR_ACS_VHT_ENABLED]);
+	else
+		vht_enabled = 0;
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH]) {
+		sap_config->acs_ch_width =
+			nla_get_u16(tb[QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH]);
+	} else {
+		if (ht_enabled && ht40_enabled)
+			sap_config->acs_ch_width = 40;
+		else
+			sap_config->acs_ch_width = 20;
+	}
+
 	/* ***Note*** Donot set SME config related to ACS operation here because
 	 * ACS operation is not synchronouse and ACS for Second AP may come when
 	 * ACS operation for first AP is going on. So only do_acs is split to
@@ -6667,7 +6622,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	 * pass paremeters from HDD to SAP is global. Thus All ACS related SME
 	 * config shall be set only from start_acs.
 	 */
-	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->channel = AUTO_CHANNEL_SELECT;
 	if (hw_mode == QCA_ACS_MODE_IEEE80211G)
 		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11g;
@@ -6675,6 +6629,11 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11b;
 	else if (hw_mode == QCA_ACS_MODE_IEEE80211A)
 		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11a;
+
+	if (ht_enabled)
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11n;
+	if (vht_enabled)
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11ac;
 
 	if (1 != hdd_ctx->is_dynamic_channel_range_set) {
 		if (hw_mode !=
@@ -6718,7 +6677,7 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 					eSAP_RF_SUBBAND_5_ALL_GHZ;
 				hdd_config->apStartChannelNum =
 					rfChannels[RF_CHAN_36].channelNum;
-				hdd_config->sap_dyn_ini_cfg.apEndChannelNum =
+				hdd_config->apEndChannelNum =
 					rfChannels[RF_CHAN_165].channelNum;
 #endif
 				break;
@@ -6730,11 +6689,6 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 			}
 		}
 	}
-
-	if (ht_enabled && ht40_enabled)
-		sap_config->acs_ch_width = 40;
-	else
-		sap_config->acs_ch_width = 20;
 
 	if (test_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags)) {
 		/* ***Note*** Completion variable usage is not allowed here since
@@ -6805,7 +6759,7 @@ void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter,
 
 	vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
 			NULL,
-			2 * sizeof(u8) + 4 + NLMSG_HDRLEN,
+			3 * sizeof(u8) + 4 + NLMSG_HDRLEN,
 			QCA_NL80211_VENDOR_SUBCMD_DO_ACS_INDEX,
 			GFP_KERNEL);
 
@@ -6851,6 +6805,16 @@ void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter,
 		return;
 	}
 
+	ret_val = nla_put_u8(vendor_event, QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH,
+				adapter->sessionCtx.ap.sapConfig.acs_ch_width);
+	if (ret_val) {
+		hddLog(LOGE,
+			FL(
+			"QCA_WLAN_VENDOR_ATTR_ACS_SECONDARY_CHANNEL put fail"));
+		kfree_skb(vendor_event);
+		return;
+	}
+
 	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
 	/* ***Note*** As already mentioned Completion variable usage is not
 	 * allowed here since ACS scan operation may take max 2.2 sec.
@@ -6886,7 +6850,6 @@ void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter,
 
 	return;
 }
-#endif
 
 static const struct nla_policy
 wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
@@ -7277,7 +7240,6 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
     },
 #endif /* WLAN_FEATURE_APFIND */
 
-#ifdef QCA_HT_2040_COEX
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
         .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_DO_ACS,
@@ -7286,7 +7248,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = wlan_hdd_cfg80211_do_acs
     },
-#endif
+
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
         .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES,
@@ -8132,7 +8094,7 @@ static int wlan_hdd_rate_is_11g(u8 rate)
 }
 
 /* Check for 11g rate and set proper 11g only mode */
-static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
+static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht, u8* require_vht,
                      u8* pCheckRatesfor11g, eCsrPhyMode* pSapHw_mode)
 {
     u8 i, num_rates = pIe[0];
@@ -8153,9 +8115,13 @@ static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
                *pCheckRatesfor11g = FALSE;
             }
         }
-        else if((BASIC_RATE_MASK | WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY) == pIe[i])
-        {
+        else if ((BASIC_RATE_MASK | WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY) ==
+                                                                      pIe[i]) {
             *require_ht = TRUE;
+        }
+        else if ((BASIC_RATE_MASK | WLAN_BSS_MEMBERSHIP_SELECTOR_VHT_PHY) ==
+                                                                      pIe[i]) {
+            *require_vht = TRUE;
         }
     }
     return;
@@ -8167,43 +8133,44 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
     struct ieee80211_mgmt *pMgmt_frame = (struct ieee80211_mgmt*)pBeacon->head;
     u8 checkRatesfor11g = TRUE;
-    u8 require_ht = FALSE;
+    u8 require_ht = FALSE, require_vht = false;
     u8 *pIe=NULL;
 
     pConfig->SapHw_mode= eCSR_DOT11_MODE_11b;
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
                                        pBeacon->head_len, WLAN_EID_SUPP_RATES);
-    if (pIe != NULL)
-    {
+    if (pIe != NULL) {
         pIe += 1;
-        wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
-                               &pConfig->SapHw_mode);
+        wlan_hdd_check_11gmode(pIe, &require_ht, &require_vht, &checkRatesfor11g,
+                                                         &pConfig->SapHw_mode);
     }
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
-                                WLAN_EID_EXT_SUPP_RATES);
-    if (pIe != NULL)
-    {
-
+                                                     WLAN_EID_EXT_SUPP_RATES);
+    if (pIe != NULL) {
         pIe += 1;
-        wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
+        wlan_hdd_check_11gmode(pIe, &require_ht, &require_vht, &checkRatesfor11g,
                                &pConfig->SapHw_mode);
     }
 
-    if( pConfig->channel > 14 )
-    {
+    if (pConfig->channel > 14)
         pConfig->SapHw_mode= eCSR_DOT11_MODE_11a;
+
+    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
+                                                        WLAN_EID_HT_CAPABILITY);
+    if (pIe) {
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11n;
+        if (require_ht)
+            pConfig->SapHw_mode= eCSR_DOT11_MODE_11n_ONLY;
     }
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
-                                       WLAN_EID_HT_CAPABILITY);
-
-    if(pIe)
-    {
-        pConfig->SapHw_mode= eCSR_DOT11_MODE_11n;
-        if(require_ht)
-            pConfig->SapHw_mode= eCSR_DOT11_MODE_11n_ONLY;
+                                                       WLAN_EID_VHT_CAPABILITY);
+    if (pIe) {
+        pConfig->SapHw_mode= eCSR_DOT11_MODE_11ac;
+        if (require_vht)
+            pConfig->SapHw_mode= eCSR_DOT11_MODE_11ac_ONLY;
     }
 }
 
@@ -8565,9 +8532,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
 #ifdef QCA_HT_2040_COEX
     tSmeConfigParams smeConfig;
 #endif
-
     ENTER();
-
 
     if( NULL == dev )
     {
@@ -8872,14 +8837,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hdd_config_t *iniConfig;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     tSmeConfigParams sme_config;
-#ifdef WLAN_FEATURE_11AC
-    v_BOOL_t sapForce11ACFor11n =
-#ifdef WLAN_FEATURE_MBSSID
-             pHostapdAdapter->sap_dyn_ini_cfg.apForce11ACFor11n;
-#else
-             pHddCtx->cfg_ini->apForce11ACFor11n;
-#endif
-#endif
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     u_int16_t prev_rsn_length = 0;
@@ -9387,60 +9344,19 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
 
 #ifdef WLAN_FEATURE_11AC
-    /* Overwrite the hostapd setting for HW mode only for 11ac.
-     * This is valid only if mode is set to 11n in hostapd and either AUTO or 11ac in .ini .
-     * Otherwise, leave whatever is set in hostapd (a OR b OR g OR n mode) */
-    if ((pConfig->SapHw_mode == eCSR_DOT11_MODE_11n) &&
-         sapForce11ACFor11n &&
-       ((iniConfig->dot11Mode == eHDD_DOT11_MODE_AUTO) ||
-        (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac) ||
-        (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY))) {
-        uint32_t operating_band = 0;
-
-        ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,
-                     &operating_band);
-        if (iniConfig->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)
-            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac_ONLY;
-        else
-            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
-
-        /* If ACS disable and selected channel <= 14
-             OR
-             ACS enabled and ACS operating band is chosen as 2.4
-         AND
-             VHT in 2.4G Disabled
-         THEN
-             Fallback to 11N mode
-        */
-        if ((((AUTO_CHANNEL_SELECT != pConfig->channel &&
-               pConfig->channel <= 14) ||
-              (AUTO_CHANNEL_SELECT == pConfig->channel &&
-#ifdef WLAN_FEATURE_MBSSID
-                pHostapdAdapter->sap_dyn_ini_cfg.apOperatingBand
-#else
-                operating_band
-#endif
-                == eSAP_RF_SUBBAND_2_4_GHZ)) &&
-            (iniConfig->enableVhtFor24GHzBand == FALSE))) {
-            hddLog(LOGW,
-                   FL("Setting hwmode to 11n, operating band(%d), Channel(%d)"),
-                   operating_band, pConfig->channel);
-            pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
-        }
-    }
-#endif
-
-    if ((eCSR_DOT11_MODE_11ac == pConfig->SapHw_mode) ||
-        (eCSR_DOT11_MODE_11ac_ONLY == pConfig->SapHw_mode)) {
-        pConfig->vht_channel_width = pHddCtx->cfg_ini->vhtChannelWidth;
-        if ((pConfig->vht_channel_width == eHT_CHANNEL_WIDTH_80MHZ) &&
-                                    (pHddCtx->isVHT80Allowed == false)) {
+    if (pConfig->vht_channel_width == NL80211_CHAN_WIDTH_80) {
+        if (pHddCtx->isVHT80Allowed == false)
             pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
-        }
-    }
+        else
+            pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_80MHZ;
+    }  else if (pConfig->vht_channel_width == NL80211_CHAN_WIDTH_40)
+        pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
+    else
+        pConfig->vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
+
+#endif
 
     pConfig->vht_ch_width_orig = pConfig->vht_channel_width;
-
     if ( AUTO_CHANNEL_SELECT != pConfig->channel )
     {
         sme_SelectCBMode(hHal,
@@ -9978,7 +9894,8 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         default:
             pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_AUTO_SWITCH;
         }
-
+        pAdapter->sessionCtx.ap.sapConfig.vht_channel_width =
+                                             params->chandef.width;
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
     }

@@ -277,6 +277,7 @@ typedef struct sSapContext {
     v_U8_t             apStartChannelNum;
     v_U8_t             apEndChannelNum;
     v_U8_t             acs_case;
+    uint8_t            acs_ch_width;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t             cc_switch_mode;
 #endif

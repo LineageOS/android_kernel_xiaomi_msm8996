@@ -250,11 +250,6 @@ typedef enum
 #endif
 #define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11a
 
-#define CFG_SAP_FORCE_11AC_FOR_11N             "gSapForce11ACFor11n"
-#define CFG_SAP_FORCE_11AC_FOR_11N_MIN         ( 0 )
-#define CFG_SAP_FORCE_11AC_FOR_11N_MAX         ( 1 )
-#define CFG_SAP_FORCE_11AC_FOR_11N_DEFAULT     ( 1 )
-
 #define CFG_CHANNEL_BONDING_MODE_24GHZ_NAME    "gChannelBondingMode24GHz"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN
 #define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX
@@ -2873,7 +2868,6 @@ typedef struct
    v_U8_t        apStartChannelNum;
    v_U8_t        apEndChannelNum;
    v_U8_t        apOperatingBand;
-   v_BOOL_t      apForce11ACFor11n;
    v_U8_t        enableLTECoex;
    v_U32_t       apKeepAlivePeriod;
    v_U32_t       goKeepAlivePeriod;
@@ -3420,7 +3414,6 @@ typedef struct mbssid_sap_dyn_ini_config {
    char          acsAllowedChnls[CFG_MAX_STR_LEN];
    v_U8_t        acsScanBandPreference;
    v_U16_t       acsBandSwitchThreshold;
-   v_BOOL_t      apForce11ACFor11n;
 } mbssid_sap_dyn_ini_config_t;
 #endif
 

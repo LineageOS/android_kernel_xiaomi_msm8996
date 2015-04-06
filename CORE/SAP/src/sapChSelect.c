@@ -2516,39 +2516,6 @@ void sapSortChlWeightAll(ptSapContext pSapCtx,
 
 }
 
-eChannelWidthInfo sapGetChannelWidthInfo(tHalHandle halHandle, ptSapContext pSapCtx,
-                                 v_U32_t operatingBand, eCsrPhyMode phyMode)
-{
-    v_U32_t cbMode;
-    eChannelWidthInfo chWidth = CHWIDTH_HT20;
-    tpAniSirGlobal pMac = PMAC_STRUCT(halHandle);
-
-    /* get cbMode based on if obss is enabled */
-    cbMode = (pMac->roam.configParam.obssEnabled) ? 1:0;
-
-    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                  "%s: cbMode=%d, phyMode=%d",
-               __func__, cbMode, phyMode);
-
-    if (phyMode == eCSR_DOT11_MODE_11n ||
-        phyMode == eCSR_DOT11_MODE_11n_ONLY)
-    {
-        if (cbMode)
-            chWidth = CHWIDTH_HT40;
-        else
-            chWidth = CHWIDTH_HT20;
-    }
-    else if (pSapCtx->csrRoamProfile.phyMode == eCSR_DOT11_MODE_11ac ||
-        pSapCtx->csrRoamProfile.phyMode == eCSR_DOT11_MODE_11ac_ONLY) {
-        chWidth = CHWIDTH_HT80;
-    }
-    else {
-        /* Sorting the channels as per weights as 20MHz channels */
-        chWidth = CHWIDTH_HT20;
-    }
-
-    return chWidth;
-}
 /*==========================================================================
   FUNCTION    sapFilterOverLapCh
 
@@ -2734,7 +2701,13 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     pSapCtx->acsBestChannelInfo.channelNum = 0;
     pSapCtx->acsBestChannelInfo.weight = CFG_ACS_BAND_SWITCH_THRESHOLD_MAX;
     /* find the channel width info */
-    chWidth = sapGetChannelWidthInfo(halHandle, pSapCtx, operatingBand, pSapCtx->csrRoamProfile.phyMode);
+    if (pSapCtx->acs_ch_width == 80)
+        chWidth = CHWIDTH_HT80;
+    else if (pSapCtx->acs_ch_width == 40)
+        chWidth = CHWIDTH_HT40;
+    else
+        chWidth = CHWIDTH_HT20;
+
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                "In %s, chWidth=%u", __func__, chWidth);
 
