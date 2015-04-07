@@ -2862,11 +2862,22 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 				event->num_roam_ssid_whitelist;
 	dest_capab->status = 0;
 
+	WMA_LOGD("%s: request_id: %u status: %d",
+		__func__, dest_capab->requestId, dest_capab->status);
+
 	WMA_LOGD("%s: Capabilities: max_scan_buckets: %d,"
-		 "max_hotlist_bssids: %d, max_scan_cache_size: %d",
+		"max_hotlist_bssids: %d, max_scan_cache_size: %d,"
+		"max_ap_cache_per_scan: %d, max_scan_reporting_threshold: %d,"
+		"max_rssi_sample_size: %d, max_bssid_history_entries: %d,"
+		"max_significant_wifi_change_aps: %d",
 		 __func__, dest_capab->max_scan_buckets,
 		dest_capab->max_hotlist_bssids,
-		dest_capab->max_scan_cache_size);
+		dest_capab->max_scan_cache_size,
+		dest_capab->max_ap_cache_per_scan,
+		dest_capab->max_scan_reporting_threshold,
+		dest_capab->max_rssi_sample_size,
+		dest_capab->max_bssid_history_entries,
+		dest_capab->max_significant_wifi_change_aps);
 	WMA_LOGD("%s: Capabilities: max_hotlist_ssids: %d,"
 		 "max_number_epno_networks: %d, max_number_epno_networks_by_ssid: %d,"
 		 "max_number_of_white_listed_ssid: %d",

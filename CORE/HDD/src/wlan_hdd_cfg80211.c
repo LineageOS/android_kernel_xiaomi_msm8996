@@ -1876,6 +1876,39 @@ void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx)
 
 #ifdef FEATURE_WLAN_EXTSCAN
 
+/*
+ * define short names for the global vendor params
+ * used by wlan_hdd_send_ext_scan_capability()
+ */
+#define PARAM_REQUEST_ID \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID
+#define PARAM_STATUS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS
+#define MAX_SCAN_CACHE_SIZE \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_CACHE_SIZE
+#define MAX_SCAN_BUCKETS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_BUCKETS
+#define MAX_AP_CACHE_PER_SCAN \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_AP_CACHE_PER_SCAN
+#define MAX_RSSI_SAMPLE_SIZE \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_RSSI_SAMPLE_SIZE
+#define MAX_SCAN_RPT_THRHOLD \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_REPORTING_THRESHOLD
+#define MAX_HOTLIST_BSSIDS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_BSSIDS
+#define MAX_SIGNIFICANT_WIFI_CHANGE_APS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SIGNIFICANT_WIFI_CHANGE_APS
+#define MAX_BSSID_HISTORY_ENTRIES \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_BSSID_HISTORY_ENTRIES
+#define MAX_HOTLIST_SSIDS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_SSIDS
+#define MAX_NUM_EPNO_NETS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS
+#define MAX_NUM_EPNO_NETS_BY_SSID \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS_BY_SSID
+#define MAX_NUM_WHITELISTED_SSID \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_WHITELISTED_SSID
+
 /**
  * wlan_hdd_send_ext_scan_capability - send ext scan capability to user space
  * @hdd_ctx: Pointer to hdd context
@@ -1887,6 +1920,7 @@ static int wlan_hdd_send_ext_scan_capability(hdd_context_t *hdd_ctx)
 	int ret;
 	struct sk_buff *skb;
 	struct ext_scan_capabilities_response *data;
+	uint32_t nl_buf_len;
 
 	ret = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != ret) {
@@ -1896,9 +1930,23 @@ static int wlan_hdd_send_ext_scan_capability(hdd_context_t *hdd_ctx)
 
 	data = &(hdd_ctx->ext_scan_context.capability_response);
 
-	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy,
-			sizeof(struct ext_scan_capabilities_response)
-			+ NLMSG_HDRLEN);
+	nl_buf_len = NLMSG_HDRLEN;
+	nl_buf_len += (sizeof(data->requestId) + NLA_HDRLEN) +
+	(sizeof(data->status) + NLA_HDRLEN) +
+	(sizeof(data->max_scan_cache_size) + NLA_HDRLEN) +
+	(sizeof(data->max_scan_buckets) + NLA_HDRLEN) +
+	(sizeof(data->max_ap_cache_per_scan) + NLA_HDRLEN) +
+	(sizeof(data->max_rssi_sample_size) + NLA_HDRLEN) +
+	(sizeof(data->max_scan_reporting_threshold) + NLA_HDRLEN) +
+	(sizeof(data->max_hotlist_bssids) + NLA_HDRLEN) +
+	(sizeof(data->max_significant_wifi_change_aps) + NLA_HDRLEN) +
+	(sizeof(data->max_bssid_history_entries) + NLA_HDRLEN) +
+	(sizeof(data->max_hotlist_ssids) + NLA_HDRLEN) +
+	(sizeof(data->max_number_epno_networks) + NLA_HDRLEN) +
+	(sizeof(data->max_number_epno_networks_by_ssid) + NLA_HDRLEN) +
+	(sizeof(data->max_number_of_white_listed_ssid) + NLA_HDRLEN);
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy, nl_buf_len);
 
 	if (!skb) {
 		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
@@ -1906,6 +1954,7 @@ static int wlan_hdd_send_ext_scan_capability(hdd_context_t *hdd_ctx)
 	}
 
 	hddLog(LOG1, "Req Id (%u)", data->requestId);
+	hddLog(LOG1, "Status (%u)", data->status);
 	hddLog(LOG1, "Scan cache size (%u)", data->max_scan_cache_size);
 	hddLog(LOG1, "Scan buckets (%u)", data->max_scan_buckets);
 	hddLog(LOG1, "Max AP per scan (%u)", data->max_ap_cache_per_scan);
@@ -1926,48 +1975,28 @@ static int wlan_hdd_send_ext_scan_capability(hdd_context_t *hdd_ctx)
 	hddLog(LOG1, "max_number_of_white_listed_ssid (%u)",
 					data->max_number_of_white_listed_ssid);
 
-	if (nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-		data->requestId) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS,
-		data->status) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_CACHE_SIZE,
-		data->max_scan_cache_size) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_BUCKETS,
-		data->max_scan_buckets) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_AP_CACHE_PER_SCAN,
-		data->max_ap_cache_per_scan) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_RSSI_SAMPLE_SIZE,
-		data->max_rssi_sample_size) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_REPORTING_THRESHOLD,
-		data->max_scan_reporting_threshold) ||
-	    nla_put_u32(skb,
-	        QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_BSSIDS,
-		data->max_hotlist_bssids) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SIGNIFICANT_WIFI_CHANGE_APS,
-		data->max_significant_wifi_change_aps) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_BSSID_HISTORY_ENTRIES,
-		data->max_bssid_history_entries) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_SSIDS,
-		data->max_hotlist_ssids) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS,
-		data->max_number_epno_networks) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS_BY_SSID,
-		data->max_number_epno_networks_by_ssid) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_WHITELISTED_SSID,
-		data->max_number_of_white_listed_ssid)) {
+	if (nla_put_u32(skb, PARAM_REQUEST_ID, data->requestId) ||
+	    nla_put_u32(skb, PARAM_STATUS, data->status) ||
+	    nla_put_u32(skb, MAX_SCAN_CACHE_SIZE, data->max_scan_cache_size) ||
+	    nla_put_u32(skb, MAX_SCAN_BUCKETS, data->max_scan_buckets) ||
+	    nla_put_u32(skb, MAX_AP_CACHE_PER_SCAN,
+			data->max_ap_cache_per_scan) ||
+	    nla_put_u32(skb, MAX_RSSI_SAMPLE_SIZE,
+			data->max_rssi_sample_size) ||
+	    nla_put_u32(skb, MAX_SCAN_RPT_THRHOLD,
+			data->max_scan_reporting_threshold) ||
+	    nla_put_u32(skb, MAX_HOTLIST_BSSIDS, data->max_hotlist_bssids) ||
+	    nla_put_u32(skb, MAX_SIGNIFICANT_WIFI_CHANGE_APS,
+			data->max_significant_wifi_change_aps) ||
+	    nla_put_u32(skb, MAX_BSSID_HISTORY_ENTRIES,
+			data->max_bssid_history_entries) ||
+	    nla_put_u32(skb, MAX_HOTLIST_SSIDS,	data->max_hotlist_ssids) ||
+	    nla_put_u32(skb, MAX_NUM_EPNO_NETS,
+			data->max_number_epno_networks) ||
+	    nla_put_u32(skb, MAX_NUM_EPNO_NETS_BY_SSID,
+			data->max_number_epno_networks_by_ssid) ||
+	    nla_put_u32(skb, MAX_NUM_WHITELISTED_SSID,
+			data->max_number_of_white_listed_ssid)) {
 		hddLog(LOGE, FL("nla put fail"));
 		goto nla_put_failure;
 	}
@@ -1979,6 +2008,24 @@ nla_put_failure:
 	kfree_skb(skb);
 	return -EINVAL;
 }
+/*
+ * done with short names for the global vendor params
+ * used by wlan_hdd_send_ext_scan_capability()
+ */
+#undef PARAM_REQUEST_ID
+#undef PARAM_STATUS
+#undef MAX_SCAN_CACHE_SIZE
+#undef MAX_SCAN_BUCKETS
+#undef MAX_AP_CACHE_PER_SCAN
+#undef MAX_RSSI_SAMPLE_SIZE
+#undef MAX_SCAN_RPT_THRHOLD
+#undef MAX_HOTLIST_BSSIDS
+#undef MAX_SIGNIFICANT_WIFI_CHANGE_APS
+#undef MAX_BSSID_HISTORY_ENTRIES
+#undef MAX_HOTLIST_SSIDS
+#undef MAX_NUM_EPNO_NETS
+#undef MAX_NUM_EPNO_NETS_BY_SSID
+#undef MAX_NUM_WHITELISTED_SSID
 
 static int wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
                                                 struct wireless_dev *wdev,
