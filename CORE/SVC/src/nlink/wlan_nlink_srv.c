@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -282,4 +282,21 @@ static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
          "NLINK: No handler for Netlink Msg [0x%X]", type);
    }
+}
+
+/**
+ * nl_srv_is_initialized() - This function is used check if the netlink
+ * service is initialized
+ *
+ * This function is used check if the netlink service is initialized
+ *
+ * Return: Return -EPERM if the service is not initialized
+ *
+ */
+int nl_srv_is_initialized()
+{
+	if (nl_srv_sock)
+		return 0;
+	else
+		return -EPERM;
 }

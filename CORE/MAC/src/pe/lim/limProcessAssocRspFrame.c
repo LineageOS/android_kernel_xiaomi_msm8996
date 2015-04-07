@@ -668,6 +668,14 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
             (pAssocRsp->TimeoutInterval.timeoutType ==
                SIR_MAC_TI_TYPE_ASSOC_COMEBACK) ) {
             tANI_U16 timeout_value = pAssocRsp->TimeoutInterval.timeoutValue;
+            if (timeout_value < 10) {
+                /*
+                 * if this value is less than 10 then our timer will fail to
+                 * start and due to this we will never re-attempt. Better
+                 * modify the timer value here.
+                 */
+                timeout_value = 10;
+            }
             PELOGE(limLog(pMac, LOG1,
                    FL("ASSOC response with eSIR_MAC_TRY_AGAIN_LATER recvd. "
                    "Starting timer to wait timeout=%d."),

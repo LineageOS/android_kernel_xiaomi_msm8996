@@ -1892,11 +1892,119 @@ void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx)
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
+
+/**
+ * wlan_hdd_send_ext_scan_capability - send ext scan capability to user space
+ * @hdd_ctx: Pointer to hdd context
+ *
+ * Return: 0 for success, non-zero for failure
+ */
+static int wlan_hdd_send_ext_scan_capability(hdd_context_t *hdd_ctx)
+{
+	int ret;
+	struct sk_buff *skb;
+	struct ext_scan_capabilities_response *data;
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret) {
+		hddLog(LOGE, FL("hdd_context is invalid"));
+		return ret;
+	}
+
+	data = &(hdd_ctx->ext_scan_context.capability_response);
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy,
+			sizeof(struct ext_scan_capabilities_response)
+			+ NLMSG_HDRLEN);
+
+	if (!skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		return -ENOMEM;
+	}
+
+	hddLog(LOG1, "Req Id (%u)", data->requestId);
+	hddLog(LOG1, "Scan cache size (%u)", data->max_scan_cache_size);
+	hddLog(LOG1, "Scan buckets (%u)", data->max_scan_buckets);
+	hddLog(LOG1, "Max AP per scan (%u)", data->max_ap_cache_per_scan);
+	hddLog(LOG1, "max_rssi_sample_size (%u)",
+					data->max_rssi_sample_size);
+	hddLog(LOG1, "max_scan_reporting_threshold (%u)",
+					data->max_scan_reporting_threshold);
+	hddLog(LOG1, "max_hotlist_bssids (%u)", data->max_hotlist_bssids);
+	hddLog(LOG1, "max_significant_wifi_change_aps (%u)",
+					data->max_significant_wifi_change_aps);
+	hddLog(LOG1, "max_bssid_history_entries (%u)",
+					data->max_bssid_history_entries);
+	hddLog(LOG1, "max_hotlist_ssids (%u)", data->max_hotlist_ssids);
+	hddLog(LOG1, "max_number_epno_networks (%u)",
+					data->max_number_epno_networks);
+	hddLog(LOG1, "max_number_epno_networks_by_ssid (%u)",
+					data->max_number_epno_networks_by_ssid);
+	hddLog(LOG1, "max_number_of_white_listed_ssid (%u)",
+					data->max_number_of_white_listed_ssid);
+
+	if (nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
+		data->requestId) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS,
+		data->status) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_CACHE_SIZE,
+		data->max_scan_cache_size) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_BUCKETS,
+		data->max_scan_buckets) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_AP_CACHE_PER_SCAN,
+		data->max_ap_cache_per_scan) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_RSSI_SAMPLE_SIZE,
+		data->max_rssi_sample_size) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_REPORTING_THRESHOLD,
+		data->max_scan_reporting_threshold) ||
+	    nla_put_u32(skb,
+	        QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_BSSIDS,
+		data->max_hotlist_bssids) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SIGNIFICANT_WIFI_CHANGE_APS,
+		data->max_significant_wifi_change_aps) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_BSSID_HISTORY_ENTRIES,
+		data->max_bssid_history_entries) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_SSIDS,
+		data->max_hotlist_ssids) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS,
+		data->max_number_epno_networks) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS_BY_SSID,
+		data->max_number_epno_networks_by_ssid) ||
+	    nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_WHITELISTED_SSID,
+		data->max_number_of_white_listed_ssid)) {
+		hddLog(LOGE, FL("nla put fail"));
+		goto nla_put_failure;
+	}
+
+	cfg80211_vendor_cmd_reply(skb);
+	return 0;
+
+nla_put_failure:
+	kfree_skb(skb);
+	return -EINVAL;
+}
+
 static int wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
                                                 struct wireless_dev *wdev,
                                                 const void *data,
                                                 int data_len)
 {
+    int ret;
+    unsigned long rc;
+    struct hdd_ext_scan_context *context;
     tpSirGetExtScanCapabilitiesReqParams pReqMsg = NULL;
     struct net_device *dev                     = wdev->netdev;
     hdd_adapter_t *pAdapter                    = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -1931,15 +2039,32 @@ static int wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Session Id (%d)"), pReqMsg->sessionId);
 
+    spin_lock(&hdd_context_lock);
+    context = &pHddCtx->ext_scan_context;
+    context->request_id = pReqMsg->requestId;
+    INIT_COMPLETION(context->response_event);
+    spin_unlock(&hdd_context_lock);
+
+
     status = sme_ExtScanGetCapabilities(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                FL("sme_ExtScanGetCapabilities failed(err=%d)"), status);
-        vos_mem_free(pReqMsg);
-        return -EINVAL;
+        goto fail;
     }
 
-    return 0;
+    rc = wait_for_completion_timeout(&context->response_event,
+             msecs_to_jiffies(WLAN_WAIT_TIME_EXTSCAN));
+    if (!rc) {
+        hddLog(LOGE, FL("Target response timed out"));
+        return -ETIMEDOUT;
+    }
+
+    ret = wlan_hdd_send_ext_scan_capability(pHddCtx);
+    if (ret)
+        hddLog(LOGE, FL("Failed to send ext scan capability to user space"));
+
+    return ret;
 
 fail:
     vos_mem_free(pReqMsg);
@@ -11696,12 +11821,12 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 
 allow_suspend:
     /* release the wake lock at the end of the scan*/
-    hdd_allow_suspend();
+    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
     /* Acquire wakelock to handle the case where APP's tries to suspend
      * immediately after the driver gets connect request(i.e after scan)
      * from supplicant, this result in app's is suspending and not able
      * to process the connect request to AP */
-    hdd_prevent_suspend_timeout(1000);
+    hdd_prevent_suspend_timeout(1000, WIFI_POWER_EVENT_WAKELOCK_SCAN);
 
 #ifdef FEATURE_WLAN_TDLS
     wlan_hdd_tdls_scan_done_callback(pAdapter);
@@ -12194,7 +12319,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      * 2) Connected scenario: If we allow the suspend during the scan, RIVA will
      * be stuck in full power because of resume BMPS
      */
-    hdd_prevent_suspend();
+    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
 #ifdef CONFIG_CNSS
     cnss_prevent_auto_suspend(__func__);
 #endif
@@ -12224,7 +12349,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
            status = -EIO;
         }
 
-        hdd_allow_suspend();
+        hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
 #ifdef CONFIG_CNSS
         cnss_allow_auto_suspend(__func__);
 #endif
@@ -17269,7 +17394,8 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
                  * results in app's is in suspended state and not able to
                  * process the connect request to AP
                  */
-                hdd_prevent_suspend_timeout(2000);
+                hdd_prevent_suspend_timeout(2000,
+                                         WIFI_POWER_EVENT_WAKELOCK_RESUME_WLAN);
                 cfg80211_sched_scan_results(pHddCtx->wiphy);
             }
 
@@ -17590,113 +17716,46 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
 
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
- * wlan_hdd_cfg80211_extscan_get_capabilities_ind() - get capabilities ind
+ * wlan_hdd_cfg80211_extscan_get_capabilities_rsp() - response from target
  * @ctx: hdd global context
  * @data: capabilities data
  *
  * Return: none
  */
 static void
-wlan_hdd_cfg80211_extscan_get_capabilities_ind(void *ctx,
-                                            tpSirExtScanCapabilitiesEvent data)
+wlan_hdd_cfg80211_extscan_get_capabilities_rsp(void *ctx,
+	struct ext_scan_capabilities_response *data)
 {
-	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
-	struct sk_buff *skb     = NULL;
+	struct hdd_ext_scan_context *context;
+	hdd_context_t *hdd_ctx  = (hdd_context_t *)ctx;
 
 	ENTER();
 
-	if (wlan_hdd_validate_context(pHddCtx) || !data) {
+	if (wlan_hdd_validate_context(hdd_ctx) || !data) {
 		hddLog(LOGE, FL("HDD context is invalid or data(%p) is null"),
 			data);
 		return;
 	}
 
-	skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
-			NULL,
-			EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
-			QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_GET_CAPABILITIES_INDEX,
-			GFP_KERNEL);
+	spin_lock(&hdd_context_lock);
 
-	if (!skb) {
-		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+	context = &hdd_ctx->ext_scan_context;
+	/* validate response received from target*/
+	if (context->request_id != data->requestId) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(LOGE,
+			FL("Target response id did not match: request_id %d resposne_id %d"),
+			context->request_id, data->requestId);
 		return;
+	} else {
+		context->capability_response = *data;
+		complete(&context->response_event);
 	}
 
-	hddLog(LOG1, "Req Id (%u)", data->requestId);
-	hddLog(LOG1, "Scan cache size (%u)", data->max_scan_cache_size);
-	hddLog(LOG1, "Scan buckets (%u)", data->max_scan_buckets);
-	hddLog(LOG1, "Max AP per scan (%u)", data->max_ap_cache_per_scan);
-	hddLog(LOG1, "max_rssi_sample_size (%u)",
-					data->max_rssi_sample_size);
-	hddLog(LOG1, "max_scan_reporting_threshold (%u)",
-					data->max_scan_reporting_threshold);
-	hddLog(LOG1, "max_hotlist_bssids (%u)", data->max_hotlist_bssids);
-	hddLog(LOG1, "max_significant_wifi_change_aps (%u)",
-					data->max_significant_wifi_change_aps);
-	hddLog(LOG1, "max_bssid_history_entries (%u)",
-					data->max_bssid_history_entries);
-	hddLog(LOG1, "max_hotlist_ssids (%u)", data->max_hotlist_ssids);
-	hddLog(LOG1, "max_number_epno_networks (%u)",
-					data->max_number_epno_networks);
-	hddLog(LOG1, "max_number_epno_networks_by_ssid (%u)",
-					data->max_number_epno_networks_by_ssid);
-	hddLog(LOG1, "max_number_of_white_listed_ssid (%u)",
-					data->max_number_of_white_listed_ssid);
+	spin_unlock(&hdd_context_lock);
 
-	if (nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
-		data->requestId) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_STATUS,
-		data->status) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_CACHE_SIZE,
-		data->max_scan_cache_size) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_BUCKETS,
-		data->max_scan_buckets) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_AP_CACHE_PER_SCAN,
-		data->max_ap_cache_per_scan) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_RSSI_SAMPLE_SIZE,
-		data->max_rssi_sample_size) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SCAN_REPORTING_THRESHOLD,
-		data->max_scan_reporting_threshold) ||
-	    nla_put_u32(skb,
-	        QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_BSSIDS,
-		data->max_hotlist_bssids) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_SIGNIFICANT_WIFI_CHANGE_APS,
-		data->max_significant_wifi_change_aps) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_BSSID_HISTORY_ENTRIES,
-		data->max_bssid_history_entries) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_HOTLIST_SSIDS,
-		data->max_hotlist_ssids) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS,
-		data->max_number_epno_networks) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_EPNO_NETS_BY_SSID,
-		data->max_number_epno_networks_by_ssid) ||
-	    nla_put_u32(skb,
-		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CAPABILITIES_MAX_NUM_WHITELISTED_SSID,
-		data->max_number_of_white_listed_ssid)) {
-		hddLog(LOGE, FL("nla put fail"));
-		goto nla_put_failure;
-	}
-
-	cfg80211_vendor_event(skb, GFP_KERNEL);
-	return;
-
-nla_put_failure:
-	kfree_skb(skb);
 	return;
 }
-
 
 static void
 wlan_hdd_cfg80211_extscan_start_rsp(void *ctx, tpSirExtScanStartRspParams pData)
@@ -18977,8 +19036,8 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
             break;
 
     case eSIR_EXTSCAN_GET_CAPABILITIES_IND:
-            wlan_hdd_cfg80211_extscan_get_capabilities_ind(ctx,
-                                           (tpSirExtScanCapabilitiesEvent)pMsg);
+            wlan_hdd_cfg80211_extscan_get_capabilities_rsp(ctx,
+                    (struct ext_scan_capabilities_response *)pMsg);
             break;
 
     case eSIR_EXTSCAN_HOTLIST_MATCH_IND:

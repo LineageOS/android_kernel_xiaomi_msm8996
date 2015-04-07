@@ -168,7 +168,8 @@ void hdd_hostapd_channel_allow_suspend(hdd_adapter_t *pAdapter,
     if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(channel)) {
         if (atomic_dec_and_test(&pHddCtx->sap_dfs_ref_cnt)) {
             hddLog(LOGE, FL("DFS: allowing suspend (chan %d)"), channel);
-            vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock);
+            vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock,
+                                  WIFI_POWER_EVENT_WAKELOCK_DFS);
         }
     }
 }
@@ -206,7 +207,8 @@ void hdd_hostapd_channel_prevent_suspend(hdd_adapter_t *pAdapter,
     if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(channel)) {
         if (atomic_inc_return(&pHddCtx->sap_dfs_ref_cnt) == 1) {
             hddLog(LOGE, FL("DFS: preventing suspend (chan %d)"), channel);
-            vos_wake_lock_acquire(&pHddCtx->sap_dfs_wakelock);
+            vos_wake_lock_acquire(&pHddCtx->sap_dfs_wakelock,
+                                  WIFI_POWER_EVENT_WAKELOCK_DFS);
         }
     }
 }
@@ -224,7 +226,8 @@ void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx)
 {
     if (atomic_read(&pHddCtx->sap_dfs_ref_cnt)) {
         /* Release wakelock */
-        vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock);
+        vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock,
+                              WIFI_POWER_EVENT_WAKELOCK_DRIVER_EXIT);
         /* Reset the reference count */
         atomic_set(&pHddCtx->sap_dfs_ref_cnt, 0);
         hddLog(LOGE, FL("DFS: allowing suspend"));
@@ -1471,7 +1474,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_FALSE);
 #endif
             vos_wake_lock_timeout_acquire(&pHddCtx->sap_wake_lock,
-                                          HDD_SAP_WAKE_LOCK_DURATION);
+                                          HDD_SAP_WAKE_LOCK_DURATION,
+                                          WIFI_POWER_EVENT_WAKELOCK_SAP);
             {
                struct station_info staInfo;
                v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
