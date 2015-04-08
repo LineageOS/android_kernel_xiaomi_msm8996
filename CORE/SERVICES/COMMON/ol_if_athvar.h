@@ -282,6 +282,7 @@ struct ol_softc {
 #ifdef WLAN_FEATURE_LPSS
     bool                    enablelpasssupport;
 #endif
+    bool                    enableRamdumpCollection;
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR

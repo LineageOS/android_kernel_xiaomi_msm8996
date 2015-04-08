@@ -1298,7 +1298,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 #if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 	/* Collect the RAM dump through a workqueue */
-	ol_schedule_ramdump_work(scn);
+	if (scn->enableRamdumpCollection)
+		ol_schedule_ramdump_work(scn);
+	else
+		printk("%s: athdiag read for target reg\n", __func__);
 #endif
 
 	return;

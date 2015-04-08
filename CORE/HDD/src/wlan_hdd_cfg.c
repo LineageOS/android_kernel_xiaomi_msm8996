@@ -3639,6 +3639,14 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_ENABLE_AUTO_SUSPEND_MIN,
               CFG_ENABLE_AUTO_SUSPEND_MAX ),
 #endif
+
+   REG_VARIABLE( CFG_ENABLE_RAMDUMP_COLLECTION, WLAN_PARAM_Integer,
+                 hdd_config_t, is_ramdump_enabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_RAMDUMP_COLLECTION_DEFAULT,
+                 CFG_ENABLE_RAMDUMP_COLLECTION_MIN,
+                 CFG_ENABLE_RAMDUMP_COLLECTION_MAX ),
+
    REG_VARIABLE(CFG_SAP_DOT11MC, WLAN_PARAM_Integer,
                 hdd_config_t, sap_dot11mc,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4363,6 +4371,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [gEnableBusAutoSuspend] Value = [%u]",
                    pHddCtx->cfg_ini->enable_bus_auto_suspend);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Name = [gEnableDumpCollect] Value = [%u]",
+                     pHddCtx->cfg_ini->is_ramdump_enabled);
+
   hddLog(LOG2, "Name = [gP2PListenDeferInterval] Value = [%u]",
                    pHddCtx->cfg_ini->p2p_listen_defer_interval);
 }
