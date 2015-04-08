@@ -200,7 +200,7 @@ void hdd_hostapd_channel_prevent_suspend(hdd_adapter_t *pAdapter,
 
     /* Return if BSS is already started && wakelock is acquired */
     if ((pHostapdState->bssState == BSS_START) &&
-            (atomic_read(&pHddCtx->sap_dfs_ref_cnt) > 1))
+            (atomic_read(&pHddCtx->sap_dfs_ref_cnt) >= 1))
         return;
 
     /* Acquire wakelock if we have at least one DFS channel in use */
