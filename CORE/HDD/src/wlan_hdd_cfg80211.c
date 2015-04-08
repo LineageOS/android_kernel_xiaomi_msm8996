@@ -194,6 +194,8 @@
 
 #define EXTSCAN_EVENT_BUF_SIZE 4096
 #define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT 30
+#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MIN 30
+#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MAX 110
 #endif
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -2881,6 +2883,7 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 			hddLog(LOGE, FL("attr num channels failed"));
 			return -EINVAL;
 		}
+
 		pReqMsg->buckets[bktIndex].numChannels =
 		nla_get_u32(bucket[
 		QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_NUM_CHANNEL_SPECS]);
@@ -2924,7 +2927,27 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 			pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
 				nla_get_u32(channel[
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_DWELL_TIME]);
-			hddLog(LOG1, FL("Dwell time (%u ms)"),
+
+			/* Override dwell time if required */
+			if (pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs <
+				EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MIN ||
+				pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs >
+				EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MAX) {
+				hddLog(LOG1, FL("WiFi band is unspecified, dwellTime:%d"),
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
+
+				if (CSR_IS_CHANNEL_DFS(
+					vos_freq_to_chan(
+						pReqMsg->buckets[bktIndex].channels[j].channel))) {
+					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
+						CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+				} else {
+					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
+						EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+				}
+			}
+
+			hddLog(LOG1, FL("New Dwell time (%u ms)"),
 				pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
 
 			/* Parse and fetch channel spec passive */
@@ -2939,6 +2962,15 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]);
 			hddLog(LOG1, FL("Chnl spec passive (%u)"),
 				pReqMsg->buckets[bktIndex].channels[j].passive);
+
+			/* Override scan type if required */
+			if (CSR_IS_CHANNEL_DFS(
+				vos_freq_to_chan(
+					pReqMsg->buckets[bktIndex].channels[j].channel))) {
+				pReqMsg->buckets[bktIndex].channels[j].passive = TRUE;
+			} else {
+				pReqMsg->buckets[bktIndex].channels[j].passive = FALSE;
+			}
 			j++;
 		}
 		bktIndex++;
