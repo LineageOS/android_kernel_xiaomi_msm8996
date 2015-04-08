@@ -1252,11 +1252,13 @@ typedef struct
  * @request_id: userspace-assigned ID associated with the request
  * @response_event: Ext scan wait event
  * @response_status: Status returned by FW in response to a request
+ * @ignore_cached_results: Flag to ignore cached results or not
  * @capability_response: Ext scan capability response data from target
  */
 struct hdd_ext_scan_context {
 	uint32_t request_id;
 	int response_status;
+	bool ignore_cached_results;
 	struct completion response_event;
 	struct ext_scan_capabilities_response capability_response;
 };
