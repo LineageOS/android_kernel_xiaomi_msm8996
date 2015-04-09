@@ -8615,8 +8615,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     clear_bit(ACS_IN_PROGRESS, &pHddCtx->g_event_flags);
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
-    vos_mem_zero(&sme_config, sizeof (tSmeConfigParams));
-    sme_GetConfigParam(pHddCtx->hHal, &sme_config);
 
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
 
@@ -9093,6 +9091,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      * As per spec 11n/11AC STA are QOS STA and may not connect to nonQOS 11n AP
      * Default enable QOS for SAP
      */
+    vos_mem_zero(&sme_config, sizeof(tSmeConfigParams));
+    sme_GetConfigParam(pHddCtx->hHal, &sme_config);
     sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmAuto;
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(WMM_OUI_TYPE, WMM_OUI_TYPE_SIZE,
                                          pBeacon->tail, pBeacon->tail_len);
@@ -9100,6 +9100,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  pConfig->SapHw_mode == eCSR_DOT11_MODE_11g ||
                  pConfig->SapHw_mode == eCSR_DOT11_MODE_11b))
         sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmNoQos;
+    sme_UpdateConfig(pHddCtx->hHal, &sme_config);
+
 
 #ifdef WLAN_FEATURE_11AC
     /* Overwrite the hostapd setting for HW mode only for 11ac.
@@ -9226,9 +9228,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->dfs_cac_block_tx = VOS_TRUE;
-
-    /* Apply updated SME config before start BSS */
-    sme_UpdateConfig(pHddCtx->hHal, &sme_config);
 
     status = WLANSAP_StartBss(
 #ifdef WLAN_FEATURE_MBSSID
