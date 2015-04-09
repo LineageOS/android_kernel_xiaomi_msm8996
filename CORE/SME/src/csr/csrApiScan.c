@@ -5216,6 +5216,13 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
                            csrLLCount(&pMac->scan.tempScanResults),
                            pScanRsp->statusCode);
         smsLog(pMac, LOG1, "scan reason is %d", pCommand->u.scanCmd.reason);
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+        csr_diag_event_report(pMac, eCSR_EVENT_SCAN_COMPLETE, eSIR_SUCCESS,
+                              eSIR_SUCCESS);
+        if (csrLLCount(&pMac->scan.tempScanResults) > 0)
+            csr_diag_event_report(pMac, eCSR_EVENT_SCAN_RES_FOUND, eSIR_SUCCESS,
+                                  eSIR_SUCCESS);
+#endif
         fRemoveCommand = csrScanComplete( pMac, pScanRsp );
         fRet = eANI_BOOLEAN_TRUE;
     }//if ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode )

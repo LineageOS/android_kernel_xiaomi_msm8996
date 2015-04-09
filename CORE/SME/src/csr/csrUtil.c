@@ -5934,3 +5934,35 @@ VOS_STATUS csrAddToChannelListFront(
     return eHAL_STATUS_SUCCESS;
 }
 #endif
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * csr_diag_event_report() - send PE diag event
+ * @pmac:        pointer to global MAC context.
+ * @event_typev: sub event type for DIAG event.
+ * @status:      status of the event
+ * @reasoncode:  reasoncode for the given status
+ *
+ * This function is called to send diag event
+ *
+ * Return:   NA
+ */
+
+void csr_diag_event_report(tpAniSirGlobal pmac, uint16_t event_type,
+			   uint16_t status, uint16_t reasoncode)
+{
+	tSirMacAddr nullbssid = { 0, 0, 0, 0, 0, 0 };
+	WLAN_VOS_DIAG_EVENT_DEF(diag_event, vos_event_wlan_pe_payload_type);
+
+	vos_mem_set(&diag_event, sizeof(vos_event_wlan_pe_payload_type), 0);
+
+	vos_mem_copy(diag_event.bssid, nullbssid, sizeof(tSirMacAddr));
+	diag_event.sme_state = (tANI_U16)pmac->lim.gLimSmeState;
+	diag_event.mlm_state = (tANI_U16)pmac->lim.gLimMlmState;
+	diag_event.event_type = event_type;
+	diag_event.status = status;
+	diag_event.reason_code = reasoncode;
+
+	WLAN_VOS_DIAG_EVENT_REPORT(&diag_event, EVENT_WLAN_PE);
+	return;
+}
+#endif

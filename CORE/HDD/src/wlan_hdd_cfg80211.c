@@ -108,6 +108,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include "wlan_hdd_mdns_offload.h"
+#include "qwlan_version.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -5235,6 +5236,85 @@ static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
 	return 0;
 }
 
+static const struct
+nla_policy
+qca_wlan_vendor_get_wifi_info_policy[
+				QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX +1] = {
+	[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_DRIVER_VERSION] = {.type = NLA_U8 },
+	[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION] = {.type = NLA_U8 },
+};
+
+/**
+ * wlan_hdd_cfg80211_get_wifi_info() - Get the wifi driver related info
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This is called when wlan driver needs to send wifi driver related info
+ * (driver/fw version) to the user space application upon request.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX + 1];
+	tSirVersionString version;
+	uint32_t version_len;
+	uint32_t major_spid = 0, minor_spid = 0, siid = 0, crmid = 0;
+	uint8_t attr;
+	int status;
+	struct sk_buff *reply_skb = NULL;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	if (nla_parse(tb_vendor, QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX, data,
+		      data_len, qca_wlan_vendor_get_wifi_info_policy)) {
+		hddLog(LOGE, FL("WIFI_INFO_GET NL CMD parsing failed"));
+		return -EINVAL;
+	}
+
+	if (tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_DRIVER_VERSION]) {
+		hddLog(LOG1, FL("Rcvd req for Driver version"));
+		strlcpy(version, QWLAN_VERSIONSTR, sizeof(version));
+		attr = QCA_WLAN_VENDOR_ATTR_WIFI_INFO_DRIVER_VERSION;
+	} else if (tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION]) {
+		hddLog(LOG1, FL("Rcvd req for FW version"));
+		hdd_get_fw_version(hdd_ctx, &major_spid, &minor_spid, &siid,
+				   &crmid);
+		snprintf(version, sizeof(version), "%d:%d:%d:%d",
+			 major_spid, minor_spid, siid, crmid);
+		attr = QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION;
+	} else {
+		hddLog(LOGE, FL("Invalid attribute in get wifi info request"));
+		return -EINVAL;
+	}
+
+	version_len = strlen(version);
+	reply_skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy,
+			version_len + NLA_HDRLEN + NLMSG_HDRLEN);
+	if (!reply_skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		return -ENOMEM;
+	}
+
+	if (nla_put(reply_skb, attr, version_len, version)) {
+		hddLog(LOGE, FL("nla put fail"));
+		kfree_skb(reply_skb);
+		return -EINVAL;
+	}
+
+	return cfg80211_vendor_cmd_reply(reply_skb);
+}
+
 /**
  * wlan_hdd_send_roam_auth_event() - Send the roamed and authorized event
  * @hdd_ctx_ptr:   pointer to HDD Context.
@@ -6122,13 +6202,6 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 
 	vos_mem_zero(&smeConfig, sizeof(smeConfig));
 	sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
-	if (sap_config->acs_hw_mode == QCA_ACS_MODE_IEEE80211G)
-		smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11g;
-	else if (sap_config->acs_hw_mode == QCA_ACS_MODE_IEEE80211B)
-		smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11b;
-	else if (sap_config->acs_hw_mode == QCA_ACS_MODE_IEEE80211A)
-		smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11a;
-
 	if (sap_config->acs_ch_width == 40) {
 		switch (adapter->sap_dyn_ini_cfg.apOperatingBand) {
 		case eSAP_RF_SUBBAND_5_ALL_GHZ:
@@ -6141,7 +6214,7 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 			break;
 		}
 
-		smeConfig.csrConfig.phyMode = eCSR_DOT11_MODE_11n;
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11n;
 
 #ifdef WLAN_FEATURE_11AC
 		/* Overwrite the hostapd setting for HW mode only for 11ac.
@@ -6155,23 +6228,21 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 						eHDD_DOT11_MODE_11ac) ||
 			(hdd_ctx->cfg_ini->dot11Mode ==
 						eHDD_DOT11_MODE_11ac_ONLY))) {
-			if (hdd_ctx->cfg_ini->dot11Mode ==
+
+			if ((sap_config->acs_hw_mode
+				 == eCSR_DOT11_MODE_11g) &&
+				!hdd_ctx->cfg_ini->enableVhtFor24GHzBand)
+				sap_config->acs_hw_mode =
+						eCSR_DOT11_MODE_11n;
+			else if (hdd_ctx->cfg_ini->dot11Mode ==
 						eHDD_DOT11_MODE_11ac_ONLY)
-				smeConfig.csrConfig.phyMode =
+				sap_config->acs_hw_mode =
 						eCSR_DOT11_MODE_11ac_ONLY;
 			else
-				smeConfig.csrConfig.phyMode =
-						eCSR_DOT11_MODE_11ac;
-
-			/* for 2.4G */
-			if ((sap_config->acs_hw_mode
-				 == QCA_ACS_MODE_IEEE80211G) &&
-				!hdd_ctx->cfg_ini->enableVhtFor24GHzBand)
-				smeConfig.csrConfig.phyMode =
-						eCSR_DOT11_MODE_11n;
+				sap_config->acs_hw_mode = eCSR_DOT11_MODE_11ac;
 		}
 #endif
-		hddLog(LOG1, FL("phyMode is %d"), smeConfig.csrConfig.phyMode);
+		hddLog(LOG1, FL("phyMode is %d"), sap_config->acs_hw_mode);
 	}
 	sme_UpdateConfig(hdd_ctx->hHal, &smeConfig);
 
@@ -6276,7 +6347,12 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	 */
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->channel = AUTO_CHANNEL_SELECT;
-	sap_config->acs_hw_mode = hw_mode;
+	if (hw_mode == QCA_ACS_MODE_IEEE80211G)
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11g;
+	else if (hw_mode == QCA_ACS_MODE_IEEE80211B)
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11b;
+	else if (hw_mode == QCA_ACS_MODE_IEEE80211A)
+		sap_config->acs_hw_mode = eCSR_DOT11_MODE_11a;
 
 	if (1 != hdd_ctx->is_dynamic_channel_range_set) {
 		if (hw_mode !=
@@ -7104,6 +7180,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_extscan_reset_ssid_hotlist
     },
 #endif /* FEATURE_WLAN_EXTSCAN */
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_INFO,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV,
+        .doit = wlan_hdd_cfg80211_get_wifi_info
+    },
+
 };
 
 
@@ -8531,8 +8615,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     clear_bit(ACS_IN_PROGRESS, &pHddCtx->g_event_flags);
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
-    vos_mem_zero(&sme_config, sizeof (tSmeConfigParams));
-    sme_GetConfigParam(pHddCtx->hHal, &sme_config);
 
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
 
@@ -8555,6 +8637,27 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP)
     {
+#ifndef QCA_HT_2040_COEX
+        /*
+         * Restore the channel bonding parameter to avoid
+         * falling to previous SAP configuration in concurrency
+         * scenarios.
+         */
+        tSmeConfigParams *sme_config;
+
+        sme_config = vos_mem_malloc(sizeof(*sme_config));
+        if (!sme_config) {
+            hddLog(LOGE, FL("memory allocation failed for sme_config"));
+            return -ENOMEM;
+        }
+
+        vos_mem_zero(sme_config, sizeof(*sme_config));
+        sme_GetConfigParam(hHal, sme_config);
+        sme_config->csrConfig.channelBondingMode5GHz =
+                           pHddCtx->cfg_ini->nChannelBondingMode5GHz;
+        sme_UpdateConfig(hHal, sme_config);
+        vos_mem_free(sme_config);
+#endif
         pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
                                        WLAN_EID_COUNTRY);
         if(memcmp(pHddCtx->cfg_ini->apCntryCode, CFG_AP_COUNTRY_CODE_DEFAULT, 3) != 0)
@@ -8988,6 +9091,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      * As per spec 11n/11AC STA are QOS STA and may not connect to nonQOS 11n AP
      * Default enable QOS for SAP
      */
+    vos_mem_zero(&sme_config, sizeof(tSmeConfigParams));
+    sme_GetConfigParam(pHddCtx->hHal, &sme_config);
     sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmAuto;
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(WMM_OUI_TYPE, WMM_OUI_TYPE_SIZE,
                                          pBeacon->tail, pBeacon->tail_len);
@@ -8995,6 +9100,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  pConfig->SapHw_mode == eCSR_DOT11_MODE_11g ||
                  pConfig->SapHw_mode == eCSR_DOT11_MODE_11b))
         sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmNoQos;
+    sme_UpdateConfig(pHddCtx->hHal, &sme_config);
+
 
 #ifdef WLAN_FEATURE_11AC
     /* Overwrite the hostapd setting for HW mode only for 11ac.
@@ -9121,9 +9228,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->dfs_cac_block_tx = VOS_TRUE;
-
-    /* Apply updated SME config before start BSS */
-    sme_UpdateConfig(pHddCtx->hHal, &sme_config);
 
     status = WLANSAP_StartBss(
 #ifdef WLAN_FEATURE_MBSSID
