@@ -25,8 +25,6 @@ ifeq ($(KERNEL_BUILD),1)
 	MODNAME := wlan
 	WLAN_ROOT := drivers/staging/qcacld-2.0
 	WLAN_OPEN_SOURCE := 1
-	CONFIG_QCA_WIFI_2_0 := 1
-	CONFIG_QCA_WIFI_ISOC := 0
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
@@ -90,7 +88,7 @@ ifeq ($(KERNEL_BUILD), 0)
 
         ifneq ($(CONFIG_MOBILE_ROUTER), y)
         #Flag to enable NAN
-        CONFIG_FEATURE_NAN := y
+        CONFIG_WLAN_FEATURE_NAN := y
         endif
 
         #Flag to enable Linux QCMBR feature as default feature
@@ -573,7 +571,7 @@ SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
 
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
-ifeq ($(CONFIG_FEATURE_NAN),y)
+ifeq ($(CONFIG_WLAN_FEATURE_NAN),y)
 SME_NAN_OBJS = $(SME_SRC_DIR)/nan/nan_Api.o
 endif
 
@@ -1098,7 +1096,7 @@ ifeq ($(CONFIG_FEATURE_STATS_EXT), 1)
 CDEFINES += -DWLAN_FEATURE_STATS_EXT
 endif
 
-ifeq ($(CONFIG_FEATURE_NAN),y)
+ifeq ($(CONFIG_WLAN_FEATURE_NAN),y)
 CDEFINES += -DWLAN_FEATURE_NAN
 endif
 
