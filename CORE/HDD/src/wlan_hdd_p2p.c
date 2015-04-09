@@ -301,7 +301,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pAdapter->is_roc_inprogress = FALSE;
     mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
-    hdd_allow_suspend();
+    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
     p2p_allow_bus_auto_suspend();
     return eHAL_STATUS_SUCCESS;
 }
@@ -388,7 +388,7 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
                     " indication",
                     __func__);
         }
-        hdd_allow_suspend();
+        hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
         p2p_allow_bus_auto_suspend();
     } else
         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
@@ -534,7 +534,7 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
                          (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
     }
 
-    hdd_allow_suspend();
+    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
     p2p_allow_bus_auto_suspend();
 }
 
@@ -588,7 +588,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
 
 
     p2p_prevent_bus_auto_suspend();
-    hdd_prevent_suspend();
+    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
     INIT_COMPLETION(pAdapter->rem_on_chan_ready_event);
 
     //call sme API to start remain on channel.
@@ -612,7 +612,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
             pAdapter->is_roc_inprogress = FALSE;
             mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
             vos_mem_free(pRemainChanCtx);
-            hdd_allow_suspend();
+            hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
             p2p_allow_bus_auto_suspend();
             return -EINVAL;
         }
@@ -647,7 +647,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
            pAdapter->is_roc_inprogress = FALSE;
            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
            vos_mem_free (pRemainChanCtx);
-           hdd_allow_suspend();
+           hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
            p2p_allow_bus_auto_suspend();
            return -EINVAL;
         }
@@ -670,7 +670,7 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
 #else
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 #endif
-            hdd_allow_suspend();
+            hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
             p2p_allow_bus_auto_suspend();
             return -EINVAL;
         }
@@ -1194,7 +1194,7 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
         hddLog( LOGE,
                 "%s:wait on cancel_rem_on_chan_var timed out ", __func__);
     }
-    hdd_allow_suspend();
+    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
     p2p_allow_bus_auto_suspend();
 
     return 0;
@@ -1782,7 +1782,8 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     memset( skb->cb, 0, sizeof( skb->cb ) );
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
     vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-                                  HDD_WAKE_LOCK_DURATION);
+                                  HDD_WAKE_LOCK_DURATION,
+                                  WIFI_POWER_EVENT_WAKELOCK_HOLD_RX);
 #endif
     if (in_interrupt())
         netif_rx( skb );
@@ -2413,7 +2414,8 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      skb->ip_summed = CHECKSUM_NONE;
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
      vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
-                                   HDD_WAKE_LOCK_DURATION);
+                                   HDD_WAKE_LOCK_DURATION,
+                                   WIFI_POWER_EVENT_WAKELOCK_HOLD_RX);
 #endif
      rxstat = netif_rx_ni(skb);
      if( NET_RX_SUCCESS == rxstat )

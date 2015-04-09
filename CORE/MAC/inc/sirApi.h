@@ -4876,7 +4876,8 @@ typedef struct
 } tSirGetExtScanCapabilitiesReqParams, *tpSirGetExtScanCapabilitiesReqParams;
 
 /**
- * struct tSirExtScanCapabilitiesEvent - extscan capabilities event
+ * struct ext_scan_capabilities_response - extscan capabilities response data
+ *					   from target
  * @requestId: request identifier
  * @status:    status
  * @max_scan_cache_size: total space allocated for scan (in bytes)
@@ -4896,7 +4897,7 @@ typedef struct
  *			or entries corresponding to hidden ssids
  * @max_number_of_white_listed_ssid: max number of white listed SSIDs
  */
-typedef struct
+struct ext_scan_capabilities_response
 {
 	uint32_t    requestId;
 	uint32_t    status;
@@ -4915,7 +4916,7 @@ typedef struct
 	uint32_t    max_number_epno_networks;
 	uint32_t    max_number_epno_networks_by_ssid;
 	uint32_t    max_number_of_white_listed_ssid;
-} tSirExtScanCapabilitiesEvent, *tpSirExtScanCapabilitiesEvent;
+};
 
 
 typedef struct

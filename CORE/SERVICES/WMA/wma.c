@@ -2727,12 +2727,14 @@ static int wma_extscan_operations_event_handler(void *handle,
 		oprn_ind->status = 0;
 		break;
 	case WMI_EXTSCAN_CYCLE_STARTED_EVENT:
-		vos_wake_lock_acquire(&wma->extscan_wake_lock);
+		vos_wake_lock_acquire(&wma->extscan_wake_lock,
+				      WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
 		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_STARTED_EVENT",
 			 __func__);
 		goto exit_handler;
 	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
-		vos_wake_lock_release(&wma->extscan_wake_lock);
+		vos_wake_lock_release(&wma->extscan_wake_lock,
+				      WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
 		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_COMPLETED_EVENT",
 			__func__);
 		goto exit_handler;
@@ -2804,7 +2806,7 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 	wmi_extscan_hotlist_monitor_capabilities  *src_hotlist;
 	wmi_extscan_wlan_change_monitor_capabilities *src_change;
 
-	tSirExtScanCapabilitiesEvent  *dest_capab;
+	struct ext_scan_capabilities_response  *dest_capab;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!pMac) {
@@ -14496,7 +14498,8 @@ static void wma_prevent_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt++;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers) {
-		vos_wake_lock_acquire(&wma->wow_wake_lock);
+		vos_wake_lock_acquire(&wma->wow_wake_lock,
+				WIFI_POWER_EVENT_WAKELOCK_ADD_STA);
 		WMA_LOGW("%s: %d clients connected, prevent suspend",
 			 __func__, wma->ap_client_cnt);
 	}
@@ -14507,7 +14510,8 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt--;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers - 1) {
-		vos_wake_lock_release(&wma->wow_wake_lock);
+		vos_wake_lock_release(&wma->wow_wake_lock,
+                                      WIFI_POWER_EVENT_WAKELOCK_DEL_STA);
 		WMA_LOGW("%s: %d clients connected, allow suspend",
 			 __func__, wma->ap_client_cnt);
 	}
@@ -17871,7 +17875,8 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	if (wake_lock_duration) {
 		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock,
-					      wake_lock_duration);
+					      wake_lock_duration,
+					      WIFI_POWER_EVENT_WAKELOCK_WOW);
 		WMA_LOGA("Holding %d msec wake_lock", wake_lock_duration);
 	}
 
@@ -19547,7 +19552,8 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 		WMA_LOGD("WDA_WLAN_AUTO_RESUME_IND posted  %d", ret);
 	}
 #endif
-	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000);
+	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000,
+				      WIFI_POWER_EVENT_WAKELOCK_WOW);
 
 	return ret;
 }
@@ -25567,7 +25573,8 @@ static int wma_nlo_match_evt_handler(void *handle, u_int8_t *event,
 		node->nlo_match_evt_received = TRUE;
 
 	vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
-				      WMA_PNO_WAKE_LOCK_TIMEOUT);
+				      WMA_PNO_WAKE_LOCK_TIMEOUT,
+				      WIFI_POWER_EVENT_WAKELOCK_PNO);
 
 	return 0;
 }
@@ -28301,7 +28308,8 @@ void wma_target_suspend_acknowledge(void *context)
 	wma->wow_nack = wow_nack;
 	vos_event_set(&wma->target_suspend);
 	if (wow_nack)
-		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, WMA_WAKE_LOCK_TIMEOUT);
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, WMA_WAKE_LOCK_TIMEOUT,
+					      WIFI_POWER_EVENT_WAKELOCK_WOW);
 }
 
 int wma_resume_target(WMA_HANDLE handle)
