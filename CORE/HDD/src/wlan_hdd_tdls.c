@@ -494,11 +494,43 @@ static void wlan_hdd_tdls_schedule_scan(struct work_struct *work)
                            scan_ctx->scan_request);
 }
 
+/* stop all monitoring timers per Adapter */
+static void wlan_hdd_tdls_monitor_timers_stop(tdlsCtx_t *pHddTdlsCtx)
+{
+#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
+    vos_timer_stop(&pHddTdlsCtx->peerDiscoverTimer);
+#endif
+    vos_timer_stop(&pHddTdlsCtx->peerDiscoveryTimeoutTimer);
+}
+
+/* stop all per peer timers */
+static void wlan_hdd_tdls_peer_timers_stop(tdlsCtx_t *pHddTdlsCtx)
+{
+    int i;
+    struct list_head *head;
+    struct list_head *pos;
+    hddTdlsPeer_t *curr_peer;
+    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
+    {
+        head = &pHddTdlsCtx->peer_list[i];
+        list_for_each (pos, head) {
+            curr_peer = list_entry (pos, hddTdlsPeer_t, node);
+            vos_timer_stop( &curr_peer->initiatorWaitTimeoutTimer );
+        }
+    }
+}
+
+/* stop all the tdls timers running */
+static void wlan_hdd_tdls_timers_stop(tdlsCtx_t *pHddTdlsCtx)
+{
+    wlan_hdd_tdls_monitor_timers_stop(pHddTdlsCtx);
+    wlan_hdd_tdls_peer_timers_stop(pHddTdlsCtx);
+}
 
 int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-    tdlsCtx_t *pHddTdlsCtx;
+    tdlsCtx_t *pHddTdlsCtx = NULL;
     int i;
     v_U8_t staIdx;
     tdlsInfo_t *tInfo;
@@ -569,9 +601,38 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
                 pHddTdlsCtx);
 
         pAdapter->sessionCtx.station.pHddTdlsCtx = pHddTdlsCtx;
-    }
 
-    pHddTdlsCtx = pAdapter->sessionCtx.station.pHddTdlsCtx;
+        for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
+            INIT_LIST_HEAD(&pHddTdlsCtx->peer_list[i]);
+    } else {
+        struct list_head *head, *pos, *q;
+        hddTdlsPeer_t *tmp = NULL;
+
+        pHddTdlsCtx = pAdapter->sessionCtx.station.pHddTdlsCtx;
+
+        /* stop all timers */
+        wlan_hdd_tdls_timers_stop(pHddTdlsCtx);
+
+        /* remove entries from peer list only if peer is not forced */
+        for (i = 0; i < TDLS_PEER_LIST_SIZE; i++) {
+            head = &pHddTdlsCtx->peer_list[i];
+            list_for_each_safe(pos, q, head) {
+                tmp = list_entry(pos, hddTdlsPeer_t, node);
+                if (FALSE == tmp->isForcedPeer) {
+                    vos_timer_destroy(&tmp->initiatorWaitTimeoutTimer);
+                    list_del(pos);
+                    vos_mem_free(tmp);
+                    tmp = NULL;
+                } else {
+                    tmp->link_status = eTDLS_LINK_IDLE;
+                    tmp->reason = eTDLS_LINK_UNSPECIFIED;
+                    tmp->discovery_attempt = 0;
+                }
+            }
+        }
+        /* reset tdls peer count to 0 */
+        pHddCtx->connected_peer_count = 0;
+    }
 
     /* initialize TDLS global context */
     pHddCtx->connected_peer_count = 0;
@@ -594,11 +655,6 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     }
 
     pHddTdlsCtx->pAdapter = pAdapter;
-
-    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
-    {
-        INIT_LIST_HEAD(&pHddTdlsCtx->peer_list[i]);
-    }
 
     pHddTdlsCtx->curr_candidate = NULL;
     pHddTdlsCtx->magic = 0;
@@ -907,39 +963,6 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     vos_mem_free(pHddTdlsCtx);
     pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
     pHddTdlsCtx = NULL;
-}
-
-/* stop all monitoring timers per Adapter */
-static void wlan_hdd_tdls_monitor_timers_stop(tdlsCtx_t *pHddTdlsCtx)
-{
-#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
-    vos_timer_stop(&pHddTdlsCtx->peerDiscoverTimer);
-#endif
-    vos_timer_stop(&pHddTdlsCtx->peerDiscoveryTimeoutTimer);
-}
-
-/* stop all per peer timers */
-static void wlan_hdd_tdls_peer_timers_stop(tdlsCtx_t *pHddTdlsCtx)
-{
-    int i;
-    struct list_head *head;
-    struct list_head *pos;
-    hddTdlsPeer_t *curr_peer;
-    for (i = 0; i < TDLS_PEER_LIST_SIZE; i++)
-    {
-        head = &pHddTdlsCtx->peer_list[i];
-        list_for_each (pos, head) {
-            curr_peer = list_entry (pos, hddTdlsPeer_t, node);
-            vos_timer_stop( &curr_peer->initiatorWaitTimeoutTimer );
-        }
-    }
-}
-
-/* stop all the tdls timers running */
-static void wlan_hdd_tdls_timers_stop(tdlsCtx_t *pHddTdlsCtx)
-{
-    wlan_hdd_tdls_monitor_timers_stop(pHddTdlsCtx);
-    wlan_hdd_tdls_peer_timers_stop(pHddTdlsCtx);
 }
 
 /* if mac address exist, return pointer
