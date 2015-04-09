@@ -821,7 +821,7 @@ VosMCThread
     {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: wait_event_interruptible returned -ERESTARTSYS", __func__);
-      break;
+      VOS_BUG(0);
     }
     clear_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
 

@@ -58,6 +58,8 @@
 #define ADF_NBUF_TRAC_IPV4_HEADER_SIZE  20
 #define ADF_NBUF_TRAC_DHCP_SRV_PORT     67
 #define ADF_NBUF_TRAC_DHCP_CLI_PORT     68
+#define ADF_NBUF_TRAC_ETH_TYPE_OFFSET   12
+#define ADF_NBUF_TRAC_EAPOL_ETH_TYPE    0x888E
 
 /**
  * @brief Platform indepedent packet abstraction
@@ -1151,4 +1153,16 @@ adf_nbuf_is_dhcp_pkt(adf_nbuf_t buf)
     return (__adf_nbuf_is_dhcp_pkt(buf));
 }
 
+/**
+ * @brief this will return if the skb data is a eapol packet or not
+ *
+ * @param[in] buf       buffer
+ *
+ * @return A_STATUS_OK if packet is EAPOL packet
+ */
+static inline a_status_t
+adf_nbuf_is_eapol_pkt(adf_nbuf_t buf)
+{
+    return (__adf_nbuf_is_eapol_pkt(buf));
+}
 #endif

@@ -536,9 +536,15 @@ ol_tx_hl_base(
          */
         next = adf_nbuf_next(msdu);
 
-#if defined(CONFIG_TX_DESC_MGMT_RESERVE)
-        if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) > TXRX_HL_TX_DESC_MGMT_RESERVED) {
+#if defined(CONFIG_TX_DESC_HI_PRIO_RESERVE)
+        if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) >
+                                        TXRX_HL_TX_DESC_HI_PRIO_RESERVED) {
             tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
+        } else if ((adf_nbuf_is_dhcp_pkt(msdu) == A_STATUS_OK)
+                          || (adf_nbuf_is_eapol_pkt(msdu) == A_STATUS_OK)) {
+            tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
+            TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                "Provided tx descriptor from reserve pool for DHCP/EAPOL\n");
         }
 #else
         tx_desc = ol_tx_desc_hl(pdev, vdev, msdu, &tx_msdu_info);
