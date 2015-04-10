@@ -557,6 +557,9 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_extscan_hotlist_ssid_match_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_vdev_tsf_report_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_get_fw_mem_dump_fixed_param,
+    WMITLV_TAG_STRUC_wmi_update_fw_mem_dump_fixed_param,
+    WMITLV_TAG_STRUC_wmi_fw_mem_dump_params
 } WMITLV_TAG_ID;
 
 /*
@@ -769,7 +772,8 @@ typedef enum {
     OP(WMI_DCC_UPDATE_NDL_CMDID) \
     OP(WMI_ROAM_FILTER_CMDID) \
     OP(WMI_PASSPOINT_LIST_CONFIG_CMDID) \
-    OP(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID)
+    OP(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID) \
+    OP(WMI_GET_FW_MEM_DUMP_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -872,7 +876,8 @@ typedef enum {
     OP(WMI_DCC_UPDATE_NDL_RESP_EVENTID) \
     OP(WMI_DCC_STATS_EVENTID) \
     OP(WMI_PASSPOINT_MATCH_EVENTID) \
-    OP(WMI_VDEV_TSF_REPORT_EVENTID)
+    OP(WMI_VDEV_TSF_REPORT_EVENTID) \
+    OP(WMI_UPDATE_FW_MEM_DUMP_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1311,6 +1316,15 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_SPECTRAL_SCAN_ENABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param, wmi_request_stats_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_STATS_CMDID);
+
+
+/* Request for memory dump stats Cmd */
+#define WMITLV_TABLE_WMI_GET_FW_MEM_DUMP_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_get_fw_mem_dump_fixed_param, wmi_get_fw_mem_dump_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_fw_mem_dump, fw_mem_dump_params, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_GET_FW_MEM_DUMP_CMDID);
+
 
 /* Set config params */
 #define WMITLV_TABLE_WMI_START_LINK_STATS_CMDID(id,op,buf,len) \
@@ -2457,6 +2471,14 @@ WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_STATS_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_rate_stats_event_fixed_param, wmi_vdev_rate_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_vdev_rate_ht_info, ht_info, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_VDEV_RATE_STATS_EVENTID);
+
+
+/* Update memory dump complete Event */
+#define  WMITLV_TABLE_WMI_UPDATE_FW_MEM_DUMP_EVENTID(id,op,buf,len)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_update_fw_mem_dump_fixed_param, wmi_update_fw_mem_dump_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_FW_MEM_DUMP_EVENTID);
+
 /* Update iface link stats Event */
 #define WMITLV_TABLE_WMI_IFACE_LINK_STATS_EVENTID(id,op,buf,len)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_iface_link_stats_event_fixed_param, wmi_iface_link_stats_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \

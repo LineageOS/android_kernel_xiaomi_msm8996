@@ -9392,7 +9392,7 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
           if (pScanFilter->scan_filter_for_roam
                 && roam_params->num_ssid_allowed_list) {
              pScanFilter->SSIDs.numOfSSIDs =
-                (1 + roam_params->num_ssid_allowed_list);
+                    roam_params->num_ssid_allowed_list;
              size = sizeof(tCsrSSIDInfo) * pScanFilter->SSIDs.numOfSSIDs;
              pScanFilter->SSIDs.SSIDList = vos_mem_malloc(size);
           if ( NULL == pScanFilter->SSIDs.SSIDList)
@@ -9410,13 +9410,6 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
              pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
              pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
           }
-           pScanFilter->SSIDs.SSIDList[i].SSID.length =
-             pProfile->SSIDs.SSIDList->SSID.length;
-           vos_mem_copy(pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
-           pProfile->SSIDs.SSIDList->SSID.ssId,
-           pProfile->SSIDs.SSIDList->SSID.length);
-           pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
-           pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
           } else {
             size = sizeof(tCsrSSIDInfo) * pProfile->SSIDs.numOfSSIDs;
             pScanFilter->SSIDs.SSIDList = vos_mem_malloc(size);
@@ -16619,6 +16612,54 @@ void csrRoamOffload(tpAniSirGlobal pMac, tSirRoamOffloadScanReq *pRequestBuf,
 }
 #endif
 
+/**
+ * check_allowed_ssid_list() - Check the WhiteList
+ * @req_buffer:      Buffer which contains the connected profile SSID.
+ * @roam_params:     Buffer which contains the whitelist SSID's.
+ *
+ * Check if the connected profile SSID exists in the whitelist.
+ * It is assumed that the framework provides this also in the whitelist.
+ * If it exists there is no issue. Otherwise add it to the list.
+ *
+ * Return: None
+ */
+static void check_allowed_ssid_list(tSirRoamOffloadScanReq *req_buffer,
+		struct roam_ext_params *roam_params)
+{
+	int i = 0;
+	bool match = false;
+	for (i = 0; i < roam_params->num_ssid_allowed_list; i++) {
+		if ((roam_params->ssid_allowed_list[i].length ==
+			req_buffer->ConnectedNetwork.ssId.length) &&
+			vos_mem_compare(roam_params->ssid_allowed_list[i].ssId,
+			req_buffer->ConnectedNetwork.ssId.ssId,
+			roam_params->ssid_allowed_list[i].length)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				"Whitelist contains connected profile SSID");
+			match = true;
+			break;
+		}
+	}
+	if (!match) {
+		if (roam_params->num_ssid_allowed_list >=
+			MAX_SSID_ALLOWED_LIST) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				"Whitelist is FULL. Cannot Add another entry");
+			return;
+		}
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+			"Adding Connected profile SSID to whitelist");
+		/* i is the next available index to add the entry.*/
+		i = roam_params->num_ssid_allowed_list;
+		vos_mem_copy(roam_params->ssid_allowed_list[i].ssId,
+				req_buffer->ConnectedNetwork.ssId.ssId,
+				req_buffer->ConnectedNetwork.ssId.length);
+		roam_params->ssid_allowed_list[i].length =
+			req_buffer->ConnectedNetwork.ssId.length;
+		roam_params->num_ssid_allowed_list++;
+	}
+}
+
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                               tANI_U8 command, tANI_U8 reason)
 {
@@ -16678,9 +16719,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
 
    if ((pMac->roam.neighborRoamInfo[sessionId].neighborRoamState ==
         eCSR_NEIGHBOR_ROAM_STATE_INIT) &&
-       (command != ROAM_SCAN_OFFLOAD_STOP))
+       (command != ROAM_SCAN_OFFLOAD_STOP) &&
+       (reason != REASON_ROAM_SET_BLACKLIST_BSSID))
    {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
             FL("Scan Command not sent to FW with state = %s and cmd=%d"),
             macTraceGetNeighbourRoamState(
             pMac->roam.neighborRoamInfo[sessionId].neighborRoamState), command);
@@ -16725,8 +16767,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pMac->roam.roamSession[sessionId].connectedProfile.EncryptionType;
     pRequestBuf->ConnectedNetwork.mcencryption =
             pMac->roam.roamSession[sessionId].connectedProfile.mcEncryptionType;
-    pRequestBuf->LookupThreshold =
-            (v_S7_t)pNeighborRoamInfo->cfgParams.neighborLookupThreshold * (-1);
     pRequestBuf->delay_before_vdev_stop =
             pNeighborRoamInfo->cfgParams.delay_before_vdev_stop;
     pRequestBuf->OpportunisticScanThresholdDiff =
@@ -16955,8 +16995,18 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
 #endif
    roam_params_dst = &pRequestBuf->roam_params;
    roam_params_src = &pMac->roam.configParam.roam_params;
-   vos_mem_copy(&pRequestBuf->roam_params, &pMac->roam.configParam.roam_params,
-       sizeof(pRequestBuf->roam_params));
+   if (reason == REASON_ROAM_SET_SSID_ALLOWED)
+      check_allowed_ssid_list(pRequestBuf, roam_params_src);
+   /* Configure the lookup threshold either from INI or from framework.
+    * If both are present, give higher priority to the one from framework.
+    */
+   if (roam_params_src->alert_rssi_threshold)
+       pRequestBuf->LookupThreshold = roam_params_src->alert_rssi_threshold;
+   else
+       pRequestBuf->LookupThreshold =
+         (v_S7_t)pNeighborRoamInfo->cfgParams.neighborLookupThreshold * (-1);
+   vos_mem_copy(roam_params_dst, roam_params_src,
+               sizeof(struct roam_ext_params));
    pRequestBuf->hi_rssi_scan_max_count =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_max_count;
    pRequestBuf->hi_rssi_scan_delay =
@@ -16995,14 +17045,16 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
      "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d,"
      "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d,"
      "raise_factor_5g:%d, drop_rssi_type_5g:%d, drop_factor_5g:%d,"
-     "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, good_rssi_threshold:%d",
+     "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, good_rssi_threshold:%d,"
+     "alert_rssi_threshold:%d",
      roam_params_dst->num_bssid_avoid_list,
      roam_params_dst->num_ssid_allowed_list, roam_params_dst->num_bssid_favored,
      roam_params_dst->raise_rssi_thresh_5g,
      roam_params_dst->drop_rssi_thresh_5g, roam_params_dst->raise_rssi_type_5g,
      roam_params_dst->raise_factor_5g, roam_params_dst->drop_rssi_type_5g,
      roam_params_dst->drop_factor_5g, roam_params_dst->max_raise_rssi_5g,
-     roam_params_dst->max_drop_rssi_5g, roam_params_dst->good_rssi_threshold);
+     roam_params_dst->max_drop_rssi_5g, roam_params_dst->good_rssi_threshold,
+     roam_params_dst->alert_rssi_threshold);
 
     for (i = 0; i < roam_params_dst->num_bssid_avoid_list; i++) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
