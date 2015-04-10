@@ -2558,6 +2558,8 @@ typedef enum {
     WMI_PDEV_PARAM_VDEV_RATE_STATS_UPDATE_PERIOD,
     /** Set CTS channel BW for dynamic BW adjustment feature */
     WMI_PDEV_PARAM_CTS_CBW,
+    /** Set GPIO pin info used by WNTS */
+    WMI_PDEV_PARAM_WNTS_CONFIG,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -7877,6 +7879,9 @@ typedef struct {
     /* Set LED enablement defined in wmi_config_led_enable_flag */
     A_UINT32 led_enable;
 } wmi_pdev_set_led_config_cmd_fixed_param;
+
+#define WMI_WNTS_CFG_GPIO_PIN_NUM_OFFSET 0
+#define WMI_WNTS_CFG_GPIO_PIN_NUM_MASK   0xff
 
 /** WMI_PEER_INFO_REQ_CMDID
  *   Request FW to provide peer info */

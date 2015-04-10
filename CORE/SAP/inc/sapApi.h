@@ -488,7 +488,7 @@ typedef struct sap_Config {
     v_U8_t          apOperatingBand;
     v_U8_t          acs_case;
     v_U8_t          acs_ch_width;
-    v_U8_t          acs_hw_mode;
+    v_U32_t         acs_hw_mode;
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     v_U8_t          skip_acs_scan_status;
     v_U8_t          skip_acs_scan_range1_stch;

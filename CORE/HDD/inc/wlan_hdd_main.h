@@ -1821,5 +1821,8 @@ static inline bool hdd_link_layer_stats_supported(void)
 }
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
+void hdd_get_fw_version(hdd_context_t *hdd_ctx,
+			uint32_t *major_spid, uint32_t *minor_spid,
+			uint32_t *siid, uint32_t *crmid);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

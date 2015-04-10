@@ -15513,6 +15513,30 @@ int32_t hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapater,
 	return ret;
 }
 
+/**
+ * hdd_get_fw_version() - Get FW version
+ * @hdd_ctx:     pointer to HDD context.
+ * @major_spid:  FW version - major spid.
+ * @minor_spid:  FW version - minor spid
+ * @ssid:        FW version - ssid
+ * @crmid:       FW version - crmid
+ *
+ * This function is called to get the firmware build version stored
+ * as part of the HDD context
+ *
+ * Return:   None
+ */
+
+void hdd_get_fw_version(hdd_context_t *hdd_ctx,
+			uint32_t *major_spid, uint32_t *minor_spid,
+			uint32_t *siid, uint32_t *crmid)
+{
+	*major_spid = (hdd_ctx->target_fw_version & 0xf0000000) >> 28;
+	*minor_spid = (hdd_ctx->target_fw_version & 0xf000000) >> 24;
+	*siid = (hdd_ctx->target_fw_version & 0xf00000) >> 20;
+	*crmid = hdd_ctx->target_fw_version & 0x7fff;
+}
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
