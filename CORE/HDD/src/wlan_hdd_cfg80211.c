@@ -1316,16 +1316,6 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
         fset |= WIFI_FEATURE_D2AP_RTT;
     }
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-    if (fset & WIFI_FEATURE_EXTSCAN) {
-        hddLog(LOG1, FL("Batch scan is supported as extscan is supported"));
-        fset &= ~WIFI_FEATURE_BATCH_SCAN;
-    } else if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
-        hddLog(LOG1, FL("Batch scan (legacy) is supported by firmware"));
-        fset |= WIFI_FEATURE_BATCH_SCAN;
-    }
-#endif
-
 #ifdef FEATURE_WLAN_SCAN_PNO
     if (pHddCtx->cfg_ini->configPNOScanSupport &&
         sme_IsFeatureSupportedByFW(PNO)) {
