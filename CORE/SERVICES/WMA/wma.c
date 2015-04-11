@@ -5771,7 +5771,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	}
 
 	/* attach the wmi */
-	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete);
+	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete,
+						adf_dev);
 	if (!wmi_handle) {
 		WMA_LOGP("%s: failed to attach WMI", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -41,14 +41,9 @@ typedef adf_nbuf_t wmi_buf_t;
 #define wmi_buf_free(_buf) adf_nbuf_free(_buf)
 #define wmi_buf_data(_buf) adf_nbuf_data(_buf)
 
-/**
- * attach for unified WMI
- *
- *  @param scn_handle      : handle to SCN.
- *  @return opaque handle.
- */
 void *
-wmi_unified_attach(void *scn_handle, void (*func) (void*));
+wmi_unified_attach(void *scn_handle, void (*func) (void*),
+		adf_os_device_t osdev);
 /**
  * detach for unified WMI
  *
