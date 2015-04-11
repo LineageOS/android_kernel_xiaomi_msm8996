@@ -12975,7 +12975,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       /* Open P2P device interface */
       if (pAdapter != NULL) {
          if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
-             !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] &= 0x02)) {
+             !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] & 0x02)) {
             vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,
                          pHddCtx->cfg_ini->intfMacAddr[0].bytes,
                          sizeof(tSirMacAddr));
