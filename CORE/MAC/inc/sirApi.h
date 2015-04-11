@@ -5000,7 +5000,7 @@ struct extscan_cached_scan_result
 	uint32_t    scan_id;
 	uint32_t    flags;
 	uint32_t    num_results;
-	tSirWifiScanResult ap[];
+	tSirWifiScanResult *ap;
 };
 
 /**
@@ -5036,7 +5036,7 @@ struct extscan_cached_scan_results
 	uint32_t    request_id;
 	bool        more_data;
 	uint32_t    num_scan_ids;
-	struct extscan_cached_scan_result  result[];
+	struct extscan_cached_scan_result  *result;
 };
 
 

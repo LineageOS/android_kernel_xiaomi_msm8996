@@ -2979,6 +2979,214 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	return 0;
 }
 
+/** wma_extscan_find_unique_scan_ids() - find unique scan ids
+ * @cmd_param_info: event data.
+ *
+ * This utility function parses the input bss table of information
+ * and find the unique number of scan ids
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_extscan_find_unique_scan_ids(const u_int8_t *cmd_param_info)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	int prev_scan_id, scan_ids_cnt, i;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+
+	/* Find the unique number of scan_id's for grouping */
+	prev_scan_id = src_rssi->scan_cycle_id;
+	scan_ids_cnt = 1;
+	for (i = 1; i < event->num_entries_in_page; i++) {
+		src_rssi++;
+
+		if (prev_scan_id != src_rssi->scan_cycle_id) {
+			scan_ids_cnt++;
+			prev_scan_id = src_rssi->scan_cycle_id;
+		}
+	}
+
+	return scan_ids_cnt;
+}
+
+/** wma_fill_num_results_per_scan_id() - fill number of bss per scan id
+ * @cmd_param_info: event data.
+ * @scan_id_group: pointer to scan id group.
+ *
+ * This utility function parses the input bss table of information
+ * and finds how many bss are there per unique scan id.
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_fill_num_results_per_scan_id(const u_int8_t *cmd_param_info,
+			struct extscan_cached_scan_result *scan_id_group)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	int i, prev_scan_id;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+	t_scan_id_grp = scan_id_group;
+
+	prev_scan_id = src_rssi->scan_cycle_id;
+
+	t_scan_id_grp->scan_id = src_rssi->scan_cycle_id;
+	t_scan_id_grp->flags = src_rssi->flags;
+	t_scan_id_grp->num_results = 1;
+	for (i = 1; i < event->num_entries_in_page; i++) {
+		src_rssi++;
+		if (prev_scan_id == src_rssi->scan_cycle_id) {
+			t_scan_id_grp->num_results++;
+		} else {
+			t_scan_id_grp++;
+			prev_scan_id = t_scan_id_grp->scan_id =
+				src_rssi->scan_cycle_id;
+			t_scan_id_grp->flags = src_rssi->flags;
+			t_scan_id_grp->num_results = 1;
+		}
+	}
+	return 0;
+}
+
+/** wma_group_num_bss_to_scan_id() - group bss to scan id table
+ * @cmd_param_info: event data.
+ * @cached_result: pointer to cached table.
+ *
+ * This function reads the bss information from the format
+ * ------------------------------------------------------------------------
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_1 | flags |
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_2 | flags |
+ * ........................................................................
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_N | flags |
+ * ------------------------------------------------------------------------
+ *
+ * and converts it into the below format and store it
+ *
+ * ------------------------------------------------------------------------
+ * | scan id_1 | -> bss info_1 -> bss info_2 -> .... bss info_M1
+ * | scan id_2 | -> bss info_1 -> bss info_2 -> .... bss info_M2
+ * ......................
+ * | scan id_N | -> bss info_1 -> bss info_2 -> .... bss info_Mn
+ * ------------------------------------------------------------------------
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
+			struct extscan_cached_scan_results *cached_result)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	struct extscan_cached_scan_results *t_cached_result;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	int i, j;
+	tSirWifiScanResult *ap;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+	t_cached_result = cached_result;
+	t_scan_id_grp = &t_cached_result->result[0];
+
+	WMA_LOGD("%s: num_scan_ids:%d", __func__,
+			t_cached_result->num_scan_ids);
+	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
+		WMA_LOGD("%s: num_results:%d", __func__,
+			t_scan_id_grp->num_results);
+		t_scan_id_grp->ap = vos_mem_malloc(t_scan_id_grp->num_results *
+						sizeof(*ap));
+		if (!t_scan_id_grp->ap) {
+			WMA_LOGD("%s: vos_mem_malloc failed", __func__);
+			return -ENOMEM;
+		}
+
+		ap = &t_scan_id_grp->ap[0];
+		for (j = 0; j < t_scan_id_grp->num_results; j++) {
+			ap->channel = src_hotlist->channel;
+			ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
+			ap->rtt = src_hotlist->rtt;
+			ap->rtt_sd = src_hotlist->rtt_sd;
+			ap->beaconPeriod = src_hotlist->beacon_interval;
+			ap->capability = src_hotlist->capabilities;
+			ap->ieLength = src_hotlist->ie_length;
+			ap->rssi = src_rssi->rssi;
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
+						ap->bssid);
+
+			vos_mem_copy(ap->ssid, src_hotlist->ssid.ssid,
+					src_hotlist->ssid.ssid_len);
+			ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
+			ap++;
+			src_rssi++;
+			src_hotlist++;
+		}
+		t_scan_id_grp++;
+	}
+	return 0;
+}
+
+/** wma_extscan_print_scan_id_group_results() - print scan id cached results
+ * @cached_result: cached result.
+ *
+ * This debug utility function prints the cached result.
+ *
+ * Return: 0 on success; error number otherwise
+ */
+
+static int wma_extscan_print_scan_id_group_results(
+			struct extscan_cached_scan_results *cached_result)
+{
+	struct extscan_cached_scan_results *t_cached_result;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	tSirWifiScanResult *ap;
+	int i, j;
+
+	t_cached_result = cached_result;
+	t_scan_id_grp = &t_cached_result->result[0];
+
+	WMA_LOGD("Request id (%d)", t_cached_result->request_id);
+	WMA_LOGD("More data (%d)", t_cached_result->more_data);
+	WMA_LOGD("Num_scan_ids (%d)", t_cached_result->num_scan_ids);
+	WMA_LOGD("%s: num_scan_ids:%d", __func__,
+			t_cached_result->num_scan_ids);
+
+	t_scan_id_grp = &t_cached_result->result[0];
+	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
+		WMA_LOGD("Scan id (%d)", t_scan_id_grp->scan_id);
+		WMA_LOGD("Flags (%d)", t_scan_id_grp->flags);
+		WMA_LOGD("Num results (%d)", t_scan_id_grp->num_results);
+
+		ap = &t_scan_id_grp->ap[0];
+		for (j = 0; j < t_scan_id_grp->num_results; j++) {
+			WMA_LOGD("timestamp (%llu)", ap->ts);
+			WMA_LOGD("ssid (%s)", ap->ssid);
+			WMA_LOGD("rtt (%u)", ap->rtt);
+			WMA_LOGD("Channel (%u)", ap->channel);
+			WMA_LOGD("Beacon period (%u)", ap->beaconPeriod);
+			ap++;
+		}
+		t_scan_id_grp++;
+	}
+	return 0;
+}
+
 static int wma_extscan_cached_results_event_handler(void *handle,
 		     u_int8_t  *cmd_param_info, u_int32_t len)
 {
@@ -2988,11 +3196,10 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	struct extscan_cached_scan_results *dest_cachelist;
 	struct extscan_cached_scan_result *dest_result;
 	struct extscan_cached_scan_results empty_cachelist;
-	tSirWifiScanResult  *dest_ap;
 	wmi_extscan_wlan_descriptor  *src_hotlist;
 	wmi_extscan_rssi_info  *src_rssi;
-	int numap, i, j, moredata, scan_ids_cnt;
-	int prev_scan_id, buf_len;
+	int numap, i, moredata, scan_ids_cnt;
+	int buf_len;
 	wmi_extscan_wlan_descriptor  *src_hotlist1;
 	wmi_extscan_rssi_info  *src_rssi1;
 	char bssid1[6];
@@ -3075,100 +3282,44 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		src_rssi1++;
 	}
 
-
-	/* Find the unique number of scan_id's for grouping */
-	prev_scan_id = src_rssi->scan_cycle_id;
-	WMA_LOGD("%s: numap(%d) prev_scan_id(%d) scan_cycle_id(%d)",
-		 __func__, numap, prev_scan_id, src_rssi->scan_cycle_id);
-
-	scan_ids_cnt = 1;
-	for (j = 1; j < numap; j++) {
-		src_rssi++;
-
-		if (prev_scan_id != src_rssi->scan_cycle_id) {
-			scan_ids_cnt++;
-			prev_scan_id = src_rssi->scan_cycle_id;
-			WMA_LOGD("%s: prev_scan_id(%d) scan_cycle_id(%d)",
-			 __func__, prev_scan_id, src_rssi->scan_cycle_id);
-		}
-	}
-	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
-	buf_len = sizeof(*dest_cachelist) +
-			(sizeof(*dest_result) * scan_ids_cnt) +
-			(sizeof(*dest_ap) * numap);
-	dest_cachelist = vos_mem_malloc(buf_len);
+	dest_cachelist = vos_mem_malloc(sizeof(*dest_cachelist));
 	if (!dest_cachelist) {
-		WMA_LOGE("%s: Allocation failed for cached"
+		WMA_LOGE("%s: Allocation failed for cached "
 			"results event", __func__);
 		return -ENOMEM;
 	}
-	vos_mem_zero(dest_cachelist, buf_len);
+	vos_mem_zero(dest_cachelist, sizeof(*dest_cachelist));
 	dest_cachelist->request_id = event->request_id;
 	dest_cachelist->more_data = moredata;
+
+	scan_ids_cnt = wma_extscan_find_unique_scan_ids(cmd_param_info);
+	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
 	dest_cachelist->num_scan_ids = scan_ids_cnt;
-	dest_result = &dest_cachelist->result[0];
-	dest_ap = &dest_result->ap[0];
 
-	src_rssi = param_buf->rssi_list;
-	prev_scan_id = dest_result->scan_id = src_rssi->scan_cycle_id;
-	dest_result->flags = src_rssi->flags;
-	dest_result->num_results = 0;
-	for (j = 0; j < numap; j++) {
-		if (prev_scan_id == src_rssi->scan_cycle_id) {
-			dest_result->num_results++;
-		} else {
-			dest_result++;
-			prev_scan_id = dest_result->scan_id =
-						src_rssi->scan_cycle_id;
-			dest_result->flags = src_rssi->flags;
-			dest_result->num_results = 0;
-			dest_ap = &dest_result->ap[0];
-		}
-		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
-		dest_ap->rtt = src_hotlist->rtt;
-		dest_ap->rtt_sd = src_hotlist->rtt_sd;
-		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
-		dest_ap->capability = src_hotlist->capabilities;
-		dest_ap->ieLength = src_hotlist->ie_length;
-		dest_ap->rssi = src_rssi->rssi;
-		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
-					dest_ap->bssid);
-
-		vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
-				src_hotlist->ssid.ssid_len);
-		dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
-
-		dest_ap++;
-		src_hotlist++;
-		src_rssi++;
+	buf_len = sizeof(*dest_result) * scan_ids_cnt;
+	dest_cachelist->result = vos_mem_malloc(buf_len);
+	if (!dest_cachelist->result) {
+		WMA_LOGE("%s: Allocation failed for scanid grouping", __func__);
+		vos_mem_free(dest_cachelist);
+		return -ENOMEM;
 	}
 
-	/* Print the data */
-	WMA_LOGI("request id (%d)", dest_cachelist->request_id);
-	WMA_LOGI("more data (%d)", dest_cachelist->more_data);
-	WMA_LOGI("num_scan_ids (%d)", dest_cachelist->num_scan_ids);
-	dest_result = &dest_cachelist->result[0];
-	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
-		WMA_LOGI("scan id (%d)", dest_result->scan_id);
-		WMA_LOGI("flags (%d)", dest_result->flags);
-		WMA_LOGI("num results (%d)", dest_result->num_results);
-		dest_ap = &dest_result->ap[0];
-		for (j = 0; j < dest_result->num_results; j++) {
-			WMA_LOGI("ts (%llu)", dest_ap->ts);
-			WMA_LOGI("ssid (%s)", dest_ap->ssid);
-			WMA_LOGI("rtt (%u)", dest_ap->rtt);
-			WMA_LOGI("channel (%u)", dest_ap->channel);
-			WMA_LOGI("beacon period (%u)", dest_ap->beaconPeriod);
-			dest_ap++;
-		}
-		dest_result++;
-	}
+	dest_result = dest_cachelist->result;
+	wma_fill_num_results_per_scan_id(cmd_param_info, dest_result);
+	wma_group_num_bss_to_scan_id(cmd_param_info, dest_cachelist);
+	wma_extscan_print_scan_id_group_results(dest_cachelist);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
 	WMA_LOGD("%s: sending cached results event", __func__);
+
+	dest_result = dest_cachelist->result;
+	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
+		vos_mem_free(dest_result->ap);
+		dest_result++;
+	}
+	vos_mem_free(dest_cachelist->result);
 	vos_mem_free(dest_cachelist);
 	return 0;
 
