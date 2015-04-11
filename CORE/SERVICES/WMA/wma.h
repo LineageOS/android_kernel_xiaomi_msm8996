@@ -545,6 +545,9 @@ struct wma_txrx_node {
 	void *plink_status_req;
 	void *psnr_req;
 	u_int8_t delay_before_vdev_stop;
+#ifdef FEATURE_WLAN_EXTSCAN
+	bool extscan_in_progress;
+#endif
 };
 
 #if defined(QCA_WIFI_FTM)

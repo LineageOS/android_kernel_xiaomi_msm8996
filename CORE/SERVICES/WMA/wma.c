@@ -2862,11 +2862,22 @@ static int wma_extscan_capabilities_event_handler (void *handle,
 				event->num_roam_ssid_whitelist;
 	dest_capab->status = 0;
 
+	WMA_LOGD("%s: request_id: %u status: %d",
+		__func__, dest_capab->requestId, dest_capab->status);
+
 	WMA_LOGD("%s: Capabilities: max_scan_buckets: %d,"
-		 "max_hotlist_bssids: %d, max_scan_cache_size: %d",
+		"max_hotlist_bssids: %d, max_scan_cache_size: %d,"
+		"max_ap_cache_per_scan: %d, max_scan_reporting_threshold: %d,"
+		"max_rssi_sample_size: %d, max_bssid_history_entries: %d,"
+		"max_significant_wifi_change_aps: %d",
 		 __func__, dest_capab->max_scan_buckets,
 		dest_capab->max_hotlist_bssids,
-		dest_capab->max_scan_cache_size);
+		dest_capab->max_scan_cache_size,
+		dest_capab->max_ap_cache_per_scan,
+		dest_capab->max_scan_reporting_threshold,
+		dest_capab->max_rssi_sample_size,
+		dest_capab->max_bssid_history_entries,
+		dest_capab->max_significant_wifi_change_aps);
 	WMA_LOGD("%s: Capabilities: max_hotlist_ssids: %d,"
 		 "max_number_epno_networks: %d, max_number_epno_networks_by_ssid: %d,"
 		 "max_number_of_white_listed_ssid: %d",
@@ -19109,6 +19120,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	v_BOOL_t connected = FALSE, pno_in_progress = FALSE;
 	VOS_STATUS ret;
 	u_int8_t i;
+	bool extscan_in_progress = false;
 
 	wma->no_of_suspend_ind++;
 
@@ -19172,6 +19184,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 *  1) Is any one of vdev in beaconning mode (in AP mode) ?
 	 *  2) Is any one of vdev in connected state (in STA mode) ?
 	 *  3) Is PNO in progress in any one of vdev ?
+	 *  4) Is Extscan in progress in any one of vdev ?
 	 */
 	for (i = 0; i < wma->max_bssid; i++) {
 		if ( (wma_is_vdev_in_ap_mode(wma, i)
@@ -19198,6 +19211,13 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 			break;
 		}
 #endif
+#ifdef FEATURE_WLAN_EXTSCAN
+		if (wma->interfaces[i].extscan_in_progress) {
+			WMA_LOGD("Extscan is in progress, enabling wow");
+			extscan_in_progress = true;
+			break;
+		}
+#endif
 	}
 	for (i = 0; i < wma->max_bssid; i++) {
 		wma->wow.gtk_pdev_enable |= wma->wow.gtk_err_enable[i];
@@ -19206,8 +19226,8 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 						wma->wow.gtk_pdev_enable);
 	}
 
-	if (!connected && !pno_in_progress) {
-		WMA_LOGD("All vdev are in disconnected state, skipping wow");
+	if (!connected && !pno_in_progress && !extscan_in_progress) {
+		WMA_LOGD("All vdev are in disconnected state and pno/extscan is not in progress, skipping wow");
 		vos_mem_free(info);
 		goto send_ready_to_suspend;
 	}
@@ -22573,6 +22593,11 @@ VOS_STATUS wma_start_extscan(tp_wma_handle wma,
 		adf_nbuf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
+
+	wma->interfaces[pstart->sessionId].extscan_in_progress = true;
+	WMA_LOGD("Extscan start request sent successfully for vdev %d",
+		 pstart->sessionId);
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -22617,6 +22642,11 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
 		adf_nbuf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
+
+	wma->interfaces[pstopcmd->sessionId].extscan_in_progress = false;
+	WMA_LOGD("Extscan stop request sent successfully for vdev %d",
+		 pstopcmd->sessionId);
+
 	return VOS_STATUS_SUCCESS;
 }
 
