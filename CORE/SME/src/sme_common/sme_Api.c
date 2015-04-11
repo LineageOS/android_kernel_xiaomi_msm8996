@@ -1708,6 +1708,8 @@ eHalStatus sme_update_roam_params(tHalHandle hHal,
 			roam_params_src.max_raise_rssi_5g;
 		roam_params_dst->max_drop_rssi_5g=
 			roam_params_src.max_drop_rssi_5g;
+		roam_params_dst->alert_rssi_threshold =
+			roam_params_src.alert_rssi_threshold;
 		roam_params_dst->is_5g_pref_enabled = true;
 		break;
 	case REASON_ROAM_SET_SSID_ALLOWED:
@@ -1746,11 +1748,12 @@ eHalStatus sme_update_roam_params(tHalHandle hHal,
 				&roam_params_src.bssid_avoid_list[i],
 				sizeof(tSirMacAddr));
 		}
+		break;
 	default:
 		break;
 	}
-	csrRoamOffloadScan(pMac, session_id, ROAM_SCAN_OFFLOAD_UPDATE_CFG,
-			update_param);
+	csrRoamOffloadScan(pMac, session_id,
+		ROAM_SCAN_OFFLOAD_UPDATE_CFG, update_param);
 	return 0;
 }
 #ifdef WLAN_FEATURE_GTK_OFFLOAD

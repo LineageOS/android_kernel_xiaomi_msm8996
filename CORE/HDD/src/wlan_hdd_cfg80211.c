@@ -89,11 +89,9 @@
 #include "vos_utils.h"
 #include "vos_sched.h"
 #include <qc_sap_ioctl.h>
-#ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #include "wlan_hdd_wmm.h"
 #include "wlan_qct_wda.h"
-#endif
 #include "wlan_nv.h"
 #include "wlan_hdd_dev_pwr.h"
 #ifdef CONFIG_CNSS
@@ -1529,19 +1527,19 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 		data, data_len,
 		NULL)) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid ATTR"));
+		hddLog(LOGE, FL("Invalid ATTR"));
 		return -EINVAL;
 	}
 	/* Parse and fetch Command Type*/
 	if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_SUBCMD]) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("roam cmd type failed"));
+		hddLog(LOGE, FL("roam cmd type failed"));
 		goto fail;
 	}
 	session_id = pAdapter->sessionId;
 	vos_mem_set(&roam_params, sizeof(roam_params),0);
 	cmd_type = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_ROAMING_SUBCMD]);
 	if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_REQ_ID]) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("attr request id failed"));
+		hddLog(LOGE, FL("attr request id failed"));
 		goto fail;
 	}
 	req_id = nla_get_u32(
@@ -1552,8 +1550,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SSID_WHITE_LIST:
 		/* Parse and fetch number of allowed ssid */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_NUM_NETWORKS]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("attr num of allowed ssid failed"));
+			hddLog(LOGE, FL("attr num of allowed ssid failed"));
 			goto fail;
 		}
 		roam_params.num_ssid_allowed_list = nla_get_u32(
@@ -1569,14 +1566,12 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_MAX,
 				nla_data(curr_attr), nla_len(curr_attr),
 				NULL)) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("nla_parse failed"));
+				hddLog(LOGE, FL("nla_parse failed"));
 				goto fail;
 			}
 			/* Parse and Fetch allowed SSID list*/
 			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("attr allowed ssid failed"));
+				hddLog(LOGE, FL("attr allowed ssid failed"));
 				goto fail;
 			}
 			buf = nla_data(tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]);
@@ -1598,8 +1593,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SET_EXTSCAN_ROAM_PARAMS:
 		/* Parse and fetch 5G Boost Threshold */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_BOOST_THRESHOLD]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("5G boost threshold failed"));
+			hddLog(LOGE, FL("5G boost threshold failed"));
 			goto fail;
 		}
 		roam_params.raise_rssi_thresh_5g = nla_get_s32(
@@ -1609,8 +1603,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.raise_rssi_thresh_5g);
 		/* Parse and fetch 5G Penalty Threshold */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_PENALTY_THRESHOLD]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("5G penalty threshold failed"));
+			hddLog(LOGE, FL("5G penalty threshold failed"));
 			goto fail;
 		}
 		roam_params.drop_rssi_thresh_5g = nla_get_s32(
@@ -1620,8 +1613,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.drop_rssi_thresh_5g);
 		/* Parse and fetch 5G Boost Factor */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_BOOST_FACTOR]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("5G boost Factor failed"));
+			hddLog(LOGE, FL("5G boost Factor failed"));
 			goto fail;
 		}
 		roam_params.raise_factor_5g = nla_get_u32(
@@ -1630,8 +1622,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.raise_factor_5g);
 		/* Parse and fetch 5G Penalty factor */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_PENALTY_FACTOR]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("5G Penalty Factor failed"));
+			hddLog(LOGE, FL("5G Penalty Factor failed"));
 			goto fail;
 		}
 		roam_params.drop_factor_5g = nla_get_u32(
@@ -1641,8 +1632,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.drop_factor_5g);
 		/* Parse and fetch 5G Max Boost */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_MAX_BOOST]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("5G Max Boost failed"));
+			hddLog(LOGE, FL("5G Max Boost failed"));
 			goto fail;
 		}
 		roam_params.max_raise_rssi_5g = nla_get_u32(
@@ -1651,8 +1641,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.max_raise_rssi_5g);
 		/* Parse and fetch Rssi Diff */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_LAZY_ROAM_HISTERESYS]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Rssi Diff failed"));
+			hddLog(LOGE, FL("Rssi Diff failed"));
 			goto fail;
 		}
 		roam_params.rssi_diff = nla_get_s32(
@@ -1661,15 +1650,14 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			roam_params.rssi_diff);
 		/* Parse and fetch Good Rssi Threshold */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_ALERT_ROAM_RSSI_TRIGGER]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Good Rssi Threshold failed"));
+			hddLog(LOGE, FL("Alert Rssi Threshold failed"));
 			goto fail;
 		}
-		roam_params.good_rssi_threshold = nla_get_u32(
+		roam_params.alert_rssi_threshold = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_ALERT_ROAM_RSSI_TRIGGER]);
 		hddLog(VOS_TRACE_LEVEL_DEBUG,
-			FL("Good RSSI Threshold (%d)"),
-			roam_params.good_rssi_threshold);
+			FL("Alert RSSI Threshold (%d)"),
+			roam_params.alert_rssi_threshold);
 		sme_update_roam_params(pHddCtx->hHal, session_id,
 			roam_params,
 			REASON_ROAM_EXT_SCAN_PARAMS_CHANGED);
@@ -1677,8 +1665,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SET_LAZY_ROAM:
 		/* Parse and fetch Activate Good Rssi Roam */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_ENABLE]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Activate Good Rssi Roam failed"));
+			hddLog(LOGE, FL("Activate Good Rssi Roam failed"));
 			goto fail;
 		}
 		roam_params.good_rssi_roam = nla_get_s32(
@@ -1692,8 +1679,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SET_BSSID_PREFS:
 		/* Parse and fetch number of preferred BSSID */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_NUM_BSSID]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("attr num of preferred bssid failed"));
+			hddLog(LOGE, FL("attr num of preferred bssid failed"));
 			goto fail;
 		}
 		roam_params.num_bssid_favored = nla_get_u32(
@@ -1709,14 +1695,12 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 				nla_data(curr_attr), nla_len(curr_attr),
 				NULL)) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("nla_parse failed"));
+				hddLog(LOGE, FL("nla_parse failed"));
 				goto fail;
 			}
 			/* Parse and fetch MAC address */
 			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_BSSID]) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("attr mac address failed"));
+				hddLog(LOGE, FL("attr mac address failed"));
 				goto fail;
 			}
 			nla_memcpy(roam_params.bssid_favored[i],
@@ -1726,8 +1710,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				MAC_ADDR_ARRAY(roam_params.bssid_favored[i]));
 			/* Parse and fetch preference factor*/
 			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_RSSI_MODIFIER]) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("BSSID Preference score failed"));
+				hddLog(LOGE, FL("BSSID Preference score failed"));
 				goto fail;
 			}
 			roam_params.bssid_favored_factor[i] = nla_get_u32(
@@ -1743,8 +1726,7 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SET_BLACKLIST_BSSID:
 		/* Parse and fetch number of blacklist BSSID */
 		if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_NUM_BSSID]) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("attr num of blacklist bssid failed"));
+			hddLog(LOGE, FL("attr num of blacklist bssid failed"));
 			goto fail;
 		}
 		roam_params.num_bssid_avoid_list = nla_get_u32(
@@ -1760,14 +1742,12 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 				nla_data(curr_attr), nla_len(curr_attr),
 				NULL)) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("nla_parse failed"));
+				hddLog(LOGE, FL("nla_parse failed"));
 				goto fail;
 			}
 			/* Parse and fetch MAC address */
 			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID]) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-					FL("attr blacklist addr failed"));
+				hddLog(LOGE, FL("attr blacklist addr failed"));
 				goto fail;
 			}
 			nla_memcpy(roam_params.bssid_avoid_list[i],
@@ -9920,6 +9900,8 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
     /* Reset the current device mode bit mask */
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
+
+    hdd_tdls_notify_mode_change(pAdapter, pHddCtx);
 
     if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
         (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||

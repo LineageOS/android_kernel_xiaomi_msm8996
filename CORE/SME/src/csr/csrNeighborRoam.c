@@ -1819,8 +1819,9 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
     VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
         FL("No of Allowed SSID List:%d"), roam_params->num_ssid_allowed_list);
     if (roam_params->num_ssid_allowed_list) {
-        pScanFilter->SSIDs.numOfSSIDs = (1 + roam_params->num_ssid_allowed_list);
-        pScanFilter->SSIDs.SSIDList = vos_mem_malloc(sizeof(tCsrSSIDInfo) * pScanFilter->SSIDs.numOfSSIDs);
+        pScanFilter->SSIDs.numOfSSIDs = (roam_params->num_ssid_allowed_list);
+        pScanFilter->SSIDs.SSIDList =
+           vos_mem_malloc(sizeof(tCsrSSIDInfo) * pScanFilter->SSIDs.numOfSSIDs);
         if (NULL == pScanFilter->SSIDs.SSIDList) {
            smsLog(pMac, LOGE, FL("Scan Filter SSID mem alloc failed"));
            return eHAL_STATUS_FAILED_ALLOC;
@@ -1834,13 +1835,6 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
           pScanFilter->SSIDs.SSIDList[i].SSID.length =
             roam_params->ssid_allowed_list[i].length;
         }
-        vos_mem_copy((void *)pScanFilter->SSIDs.SSIDList[i].SSID.ssId,
-            (void *)pCurProfile->SSID.ssId,
-            pCurProfile->SSID.length);
-        pScanFilter->SSIDs.SSIDList[i].SSID.length =
-            pCurProfile->SSID.length;
-        pScanFilter->SSIDs.SSIDList[i].handoffPermitted = 1;
-        pScanFilter->SSIDs.SSIDList[i].ssidHidden = 0;
     } else {
         /* Populate all the information from the connected profile */
         pScanFilter->SSIDs.numOfSSIDs = 1;
@@ -4764,17 +4758,15 @@ csrNeighborRoamNeighborLookupDOWNCallback (v_PVOID_t pAdapter,
 void csr_roam_reset_roam_params(tpAniSirGlobal mac_ctx)
 {
 	struct roam_ext_params *roam_params = NULL;
-	/* clear all the whitelist and preferred BSSID parameters,
+	/* clear all the whitelist parameters,
 	 * remaining needs to be retained across connections. */
-	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-			FL("Whitelist and preferred BSSID are reset"));
+
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Roaming parameters are reset"));
 	roam_params = &mac_ctx->roam.configParam.roam_params;
 	roam_params->num_ssid_allowed_list = 0;
-	roam_params->num_bssid_favored = 0;
 	vos_mem_set(&roam_params->ssid_allowed_list, 0,
 		sizeof(tSirMacSSid) * MAX_SSID_ALLOWED_LIST);
-	vos_mem_set(&roam_params->bssid_favored, 0,
-		sizeof(tSirMacAddr) * MAX_BSSID_FAVORED);
 }
 
 /* ---------------------------------------------------------------------------
