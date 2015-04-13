@@ -22654,20 +22654,41 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
-static int wma_get_hotlist_entries_per_page(void *cmd, int numap)
+/** wma_get_hotlist_entries_per_page() - hotlist entries per page
+ * @cmd: size of command structure.
+ * @per_entry_size: per entry size.
+ *
+ * This utility function calculates how many hotlist entries can
+ * fit in one page.
+ *
+ * Return: number of entries
+ */
+static inline int wma_get_hotlist_entries_per_page(size_t cmd_size,
+						   size_t per_entry_size)
 {
 	uint32_t avail_space = 0;
 	int num_entries = 0;
 
-	/* Calculate num of hot list entries that can
-	 * be passed in  wma message request.
+	/* Calculate number of hotlist entries that can
+	 * be passed in wma message request.
 	 */
 	avail_space = WMA_MAX_EXTSCAN_MSG_SIZE -
-				(sizeof(*cmd) - sizeof(WMI_TLV_HDR_SIZE));
-	num_entries = avail_space / sizeof(wmi_extscan_hotlist_entry);
+				(cmd_size - WMI_TLV_HDR_SIZE);
+	num_entries = avail_space / per_entry_size;
 	return num_entries;
 }
 
+/** wma_get_buf_extscan_hotlist_cmd() - extscan hotlist command
+ * @wma_handle: pointer to WMA handle
+ * @photlist: pointer to input hotlist request message
+ * @buf_len: buffer len
+ *
+ * This function constructs the WMA set bssid hotlist command message
+ * and based on the maximum length of the WMA command buf, it issues
+ * multiple request.
+ *
+ * Return: VOS_STATUS enumeration.
+ */
 VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 			tSirExtScanSetBssidHotListReqParams *photlist,
 			int *buf_len)
@@ -22692,25 +22713,23 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 	 * to be non zero value
 	 */
 	if (!numap) {
-		WMA_LOGE("%s: Invalid number of bssid's",
-			__func__);
+		WMA_LOGE("%s: Invalid number of bssid's", __func__);
 		return VOS_STATUS_E_INVAL;
 	}
-	num_entries = wma_get_hotlist_entries_per_page(
-					cmd, numap);
+	num_entries = wma_get_hotlist_entries_per_page(sizeof(*cmd),
+							sizeof(*dest_hotlist));
 
 	/* Split the hot list entry pages and send multiple command
 	 * requests if the buffer reaches  the maximum request size
 	 */
 	while (index < numap) {
-		min_entries = MIN(num_entries, numap);
+		min_entries = VOS_MIN(num_entries, numap);
 		len += min_entries * sizeof(wmi_extscan_hotlist_entry);
 		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 		if (!buf) {
-			WMA_LOGP("%s: failed to allocate memory"
-				"for start extscan cmd",
+			WMA_LOGP("%s: failed to allocate memory for start extscan cmd",
 				__func__);
-			return VOS_STATUS_E_FAILURE;
+			return VOS_STATUS_E_NOMEM;
 		}
 		buf_ptr = (u_int8_t *)wmi_buf_data(buf);
 		cmd = (wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *)
