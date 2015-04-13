@@ -2781,8 +2781,17 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
 
             break;
 
-        default: // eLIM_AP_ROLE
+	case eLIM_AP_ROLE:
+	case eLIM_P2P_DEVICE_GO:
+		if(VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
+			limLog(pMac, LOGE,
+				FL("CAC timer is running, drop disassoc from going out"));
+			mlmDisassocCnf.resultCode = eSIR_SME_SUCCESS;
+			goto end;
+		}
+		break;
 
+        default:
             // Fall through
             break;
 
@@ -3136,7 +3145,17 @@ limProcessMlmDeauthReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U3
 
             return;
 
-        default: // eLIM_AP_ROLE
+	case eLIM_AP_ROLE:
+	case eLIM_P2P_DEVICE_GO:
+		if(VOS_TRUE == pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
+			limLog(pMac, LOGE,
+				FL("CAC timer is running, drop deauth from going out"));
+			mlmDeauthCnf.resultCode = eSIR_SME_SUCCESS;
+			goto end;
+		}
+		break;
+
+        default:
             break;
 
     } // end switch (psessionEntry->limSystemRole)
