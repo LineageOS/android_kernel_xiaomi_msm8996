@@ -89,9 +89,11 @@
 #include "vos_utils.h"
 #include "vos_sched.h"
 #include <qc_sap_ioctl.h>
+#ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #include "wlan_hdd_wmm.h"
 #include "wlan_qct_wda.h"
+#endif
 #include "wlan_nv.h"
 #include "wlan_hdd_dev_pwr.h"
 #ifdef CONFIG_CNSS
@@ -10012,8 +10014,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
     /* Reset the current device mode bit mask */
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
-
-    hdd_tdls_notify_mode_change(pAdapter, pHddCtx);
 
     if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
         (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||

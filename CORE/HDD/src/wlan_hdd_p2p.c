@@ -46,7 +46,9 @@
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
 #include <net/ieee80211_radiotap.h>
+#ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
+#endif
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -2177,7 +2179,6 @@ struct net_device* __wlan_hdd_add_virtual_intf(
                            eCSR_SCAN_ABORT_DEFAULT);
             hddLog(LOG1, FL("Abort Scan while adding virtual interface"));
         }
-        wlan_hdd_tdls_disable_offchan_and_teardown_links(pHddCtx);
     }
 
     pAdapter = NULL;
