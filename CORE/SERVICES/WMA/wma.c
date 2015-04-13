@@ -105,6 +105,9 @@
 
 #include "dfs.h"
 #include "radar_filters.h"
+
+#include "wma_ocb.h"
+
 /* ################### defines ################### */
 /*
  * TODO: Following constant should be shared by firwmare in
@@ -277,13 +280,7 @@ static void wma_data_tx_ack_comp_hdlr(void *wma_context,
 static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                                             tpDelStaSelfParams pdel_sta_self_req_param,
                                             u_int8_t generateRsp);
-static struct wma_target_req *
-wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-		  u_int32_t msg_type, u_int8_t type, void *params,
-		  u_int32_t timeout);
 static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id);
-static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-				u_int8_t type);
 
 static tANI_U32 gFwWlanFeatCaps;
 
@@ -365,7 +362,6 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 		tAbortScanParams *abort_scan_req);
 
-void wma_send_ocb_set_sched_req(void *wma_handle, sir_ocb_sched_t *sched);
 static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
@@ -1096,26 +1092,16 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		tpAddBssParams bssParams = (tpAddBssParams) req_msg->user_data;
                 vos_mem_copy(iface->bssid, bssParams->bssId, ETH_ALEN);
 		wma_vdev_start_rsp(wma, bssParams, resp_event);
-	} else if (req_msg->msg_type == WDA_OCB_SET_SCHED_REQUEST) {
-		sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
-
-		/* Send VDEV UP command to FW */
+	} else if (req_msg->msg_type == WDA_OCB_SET_CONFIG_CMD) {
 		if (wmi_unified_vdev_up_send(wma->wmi_handle,
-			resp_event->vdev_id,
-			iface->aid,
-			iface->bssid) < 0) {
-			WMA_LOGE("%s : failed to send vdev up", __func__);
+					     resp_event->vdev_id, iface->aid,
+					     iface->bssid) < 0) {
+			WMA_LOGE(FL("failed to send vdev up"));
 			return -EEXIST;
 		}
 		iface->vdev_up = TRUE;
 
-		/* Invoke the callback function */
-		if (ocb_sched_resp) {
-			ocb_sched_resp->status = 0;
-		}
-		if (wma->ocb_callback) {
-			wma->ocb_callback(ocb_sched_resp);
-		}
+		wma_ocb_start_resp_ind_cont(wma);
 	}
 
 
@@ -1238,6 +1224,10 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		0,
 		CFG_TGT_NUM_TDLS_CONC_SLEEP_STAS,
 		CFG_TGT_NUM_TDLS_CONC_BUFFER_STAS,
+		0,
+		CFG_TGT_NUM_OCB_VDEVS,
+		CFG_TGT_NUM_OCB_CHANNELS,
+		CFG_TGT_NUM_OCB_SCHEDULES,
 	};
 
 	/* Update the max number of peers */
@@ -2979,6 +2969,214 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	return 0;
 }
 
+/** wma_extscan_find_unique_scan_ids() - find unique scan ids
+ * @cmd_param_info: event data.
+ *
+ * This utility function parses the input bss table of information
+ * and find the unique number of scan ids
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_extscan_find_unique_scan_ids(const u_int8_t *cmd_param_info)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	int prev_scan_id, scan_ids_cnt, i;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+
+	/* Find the unique number of scan_id's for grouping */
+	prev_scan_id = src_rssi->scan_cycle_id;
+	scan_ids_cnt = 1;
+	for (i = 1; i < event->num_entries_in_page; i++) {
+		src_rssi++;
+
+		if (prev_scan_id != src_rssi->scan_cycle_id) {
+			scan_ids_cnt++;
+			prev_scan_id = src_rssi->scan_cycle_id;
+		}
+	}
+
+	return scan_ids_cnt;
+}
+
+/** wma_fill_num_results_per_scan_id() - fill number of bss per scan id
+ * @cmd_param_info: event data.
+ * @scan_id_group: pointer to scan id group.
+ *
+ * This utility function parses the input bss table of information
+ * and finds how many bss are there per unique scan id.
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_fill_num_results_per_scan_id(const u_int8_t *cmd_param_info,
+			struct extscan_cached_scan_result *scan_id_group)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	int i, prev_scan_id;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+	t_scan_id_grp = scan_id_group;
+
+	prev_scan_id = src_rssi->scan_cycle_id;
+
+	t_scan_id_grp->scan_id = src_rssi->scan_cycle_id;
+	t_scan_id_grp->flags = src_rssi->flags;
+	t_scan_id_grp->num_results = 1;
+	for (i = 1; i < event->num_entries_in_page; i++) {
+		src_rssi++;
+		if (prev_scan_id == src_rssi->scan_cycle_id) {
+			t_scan_id_grp->num_results++;
+		} else {
+			t_scan_id_grp++;
+			prev_scan_id = t_scan_id_grp->scan_id =
+				src_rssi->scan_cycle_id;
+			t_scan_id_grp->flags = src_rssi->flags;
+			t_scan_id_grp->num_results = 1;
+		}
+	}
+	return 0;
+}
+
+/** wma_group_num_bss_to_scan_id() - group bss to scan id table
+ * @cmd_param_info: event data.
+ * @cached_result: pointer to cached table.
+ *
+ * This function reads the bss information from the format
+ * ------------------------------------------------------------------------
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_1 | flags |
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_2 | flags |
+ * ........................................................................
+ * | bss info {rssi, channel, ssid, bssid, timestamp} | scan id_N | flags |
+ * ------------------------------------------------------------------------
+ *
+ * and converts it into the below format and store it
+ *
+ * ------------------------------------------------------------------------
+ * | scan id_1 | -> bss info_1 -> bss info_2 -> .... bss info_M1
+ * | scan id_2 | -> bss info_1 -> bss info_2 -> .... bss info_M2
+ * ......................
+ * | scan id_N | -> bss info_1 -> bss info_2 -> .... bss info_Mn
+ * ------------------------------------------------------------------------
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
+			struct extscan_cached_scan_results *cached_result)
+{
+	WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_cached_results_event_fixed_param  *event;
+	wmi_extscan_wlan_descriptor  *src_hotlist;
+	wmi_extscan_rssi_info  *src_rssi;
+	struct extscan_cached_scan_results *t_cached_result;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	int i, j;
+	tSirWifiScanResult *ap;
+
+	param_buf = (WMI_EXTSCAN_CACHED_RESULTS_EVENTID_param_tlvs *)
+						cmd_param_info;
+	event = param_buf->fixed_param;
+	src_hotlist = param_buf->bssid_list;
+	src_rssi = param_buf->rssi_list;
+	t_cached_result = cached_result;
+	t_scan_id_grp = &t_cached_result->result[0];
+
+	WMA_LOGD("%s: num_scan_ids:%d", __func__,
+			t_cached_result->num_scan_ids);
+	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
+		WMA_LOGD("%s: num_results:%d", __func__,
+			t_scan_id_grp->num_results);
+		t_scan_id_grp->ap = vos_mem_malloc(t_scan_id_grp->num_results *
+						sizeof(*ap));
+		if (!t_scan_id_grp->ap) {
+			WMA_LOGD("%s: vos_mem_malloc failed", __func__);
+			return -ENOMEM;
+		}
+
+		ap = &t_scan_id_grp->ap[0];
+		for (j = 0; j < t_scan_id_grp->num_results; j++) {
+			ap->channel = src_hotlist->channel;
+			ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
+			ap->rtt = src_hotlist->rtt;
+			ap->rtt_sd = src_hotlist->rtt_sd;
+			ap->beaconPeriod = src_hotlist->beacon_interval;
+			ap->capability = src_hotlist->capabilities;
+			ap->ieLength = src_hotlist->ie_length;
+			ap->rssi = src_rssi->rssi;
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
+						ap->bssid);
+
+			vos_mem_copy(ap->ssid, src_hotlist->ssid.ssid,
+					src_hotlist->ssid.ssid_len);
+			ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
+			ap++;
+			src_rssi++;
+			src_hotlist++;
+		}
+		t_scan_id_grp++;
+	}
+	return 0;
+}
+
+/** wma_extscan_print_scan_id_group_results() - print scan id cached results
+ * @cached_result: cached result.
+ *
+ * This debug utility function prints the cached result.
+ *
+ * Return: 0 on success; error number otherwise
+ */
+
+static int wma_extscan_print_scan_id_group_results(
+			struct extscan_cached_scan_results *cached_result)
+{
+	struct extscan_cached_scan_results *t_cached_result;
+	struct extscan_cached_scan_result *t_scan_id_grp;
+	tSirWifiScanResult *ap;
+	int i, j;
+
+	t_cached_result = cached_result;
+	t_scan_id_grp = &t_cached_result->result[0];
+
+	WMA_LOGD("Request id (%d)", t_cached_result->request_id);
+	WMA_LOGD("More data (%d)", t_cached_result->more_data);
+	WMA_LOGD("Num_scan_ids (%d)", t_cached_result->num_scan_ids);
+	WMA_LOGD("%s: num_scan_ids:%d", __func__,
+			t_cached_result->num_scan_ids);
+
+	t_scan_id_grp = &t_cached_result->result[0];
+	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
+		WMA_LOGD("Scan id (%d)", t_scan_id_grp->scan_id);
+		WMA_LOGD("Flags (%d)", t_scan_id_grp->flags);
+		WMA_LOGD("Num results (%d)", t_scan_id_grp->num_results);
+
+		ap = &t_scan_id_grp->ap[0];
+		for (j = 0; j < t_scan_id_grp->num_results; j++) {
+			WMA_LOGD("timestamp (%llu)", ap->ts);
+			WMA_LOGD("ssid (%s)", ap->ssid);
+			WMA_LOGD("rtt (%u)", ap->rtt);
+			WMA_LOGD("Channel (%u)", ap->channel);
+			WMA_LOGD("Beacon period (%u)", ap->beaconPeriod);
+			ap++;
+		}
+		t_scan_id_grp++;
+	}
+	return 0;
+}
+
 static int wma_extscan_cached_results_event_handler(void *handle,
 		     u_int8_t  *cmd_param_info, u_int32_t len)
 {
@@ -2988,11 +3186,10 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	struct extscan_cached_scan_results *dest_cachelist;
 	struct extscan_cached_scan_result *dest_result;
 	struct extscan_cached_scan_results empty_cachelist;
-	tSirWifiScanResult  *dest_ap;
 	wmi_extscan_wlan_descriptor  *src_hotlist;
 	wmi_extscan_rssi_info  *src_rssi;
-	int numap, i, j, moredata, scan_ids_cnt;
-	int prev_scan_id, buf_len;
+	int numap, i, moredata, scan_ids_cnt;
+	int buf_len;
 	wmi_extscan_wlan_descriptor  *src_hotlist1;
 	wmi_extscan_rssi_info  *src_rssi1;
 	char bssid1[6];
@@ -3075,100 +3272,44 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 		src_rssi1++;
 	}
 
-
-	/* Find the unique number of scan_id's for grouping */
-	prev_scan_id = src_rssi->scan_cycle_id;
-	WMA_LOGD("%s: numap(%d) prev_scan_id(%d) scan_cycle_id(%d)",
-		 __func__, numap, prev_scan_id, src_rssi->scan_cycle_id);
-
-	scan_ids_cnt = 1;
-	for (j = 1; j < numap; j++) {
-		src_rssi++;
-
-		if (prev_scan_id != src_rssi->scan_cycle_id) {
-			scan_ids_cnt++;
-			prev_scan_id = src_rssi->scan_cycle_id;
-			WMA_LOGD("%s: prev_scan_id(%d) scan_cycle_id(%d)",
-			 __func__, prev_scan_id, src_rssi->scan_cycle_id);
-		}
-	}
-	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
-	buf_len = sizeof(*dest_cachelist) +
-			(sizeof(*dest_result) * scan_ids_cnt) +
-			(sizeof(*dest_ap) * numap);
-	dest_cachelist = vos_mem_malloc(buf_len);
+	dest_cachelist = vos_mem_malloc(sizeof(*dest_cachelist));
 	if (!dest_cachelist) {
-		WMA_LOGE("%s: Allocation failed for cached"
+		WMA_LOGE("%s: Allocation failed for cached "
 			"results event", __func__);
 		return -ENOMEM;
 	}
-	vos_mem_zero(dest_cachelist, buf_len);
+	vos_mem_zero(dest_cachelist, sizeof(*dest_cachelist));
 	dest_cachelist->request_id = event->request_id;
 	dest_cachelist->more_data = moredata;
+
+	scan_ids_cnt = wma_extscan_find_unique_scan_ids(cmd_param_info);
+	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
 	dest_cachelist->num_scan_ids = scan_ids_cnt;
-	dest_result = &dest_cachelist->result[0];
-	dest_ap = &dest_result->ap[0];
 
-	src_rssi = param_buf->rssi_list;
-	prev_scan_id = dest_result->scan_id = src_rssi->scan_cycle_id;
-	dest_result->flags = src_rssi->flags;
-	dest_result->num_results = 0;
-	for (j = 0; j < numap; j++) {
-		if (prev_scan_id == src_rssi->scan_cycle_id) {
-			dest_result->num_results++;
-		} else {
-			dest_result++;
-			prev_scan_id = dest_result->scan_id =
-						src_rssi->scan_cycle_id;
-			dest_result->flags = src_rssi->flags;
-			dest_result->num_results = 0;
-			dest_ap = &dest_result->ap[0];
-		}
-		dest_ap->channel = src_hotlist->channel;
-		dest_ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
-		dest_ap->rtt = src_hotlist->rtt;
-		dest_ap->rtt_sd = src_hotlist->rtt_sd;
-		dest_ap->beaconPeriod = src_hotlist->beacon_interval;
-		dest_ap->capability = src_hotlist->capabilities;
-		dest_ap->ieLength = src_hotlist->ie_length;
-		dest_ap->rssi = src_rssi->rssi;
-		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist->bssid,
-					dest_ap->bssid);
-
-		vos_mem_copy(dest_ap->ssid, src_hotlist->ssid.ssid,
-				src_hotlist->ssid.ssid_len);
-		dest_ap->ssid[src_hotlist->ssid.ssid_len] = '\0';
-
-		dest_ap++;
-		src_hotlist++;
-		src_rssi++;
+	buf_len = sizeof(*dest_result) * scan_ids_cnt;
+	dest_cachelist->result = vos_mem_malloc(buf_len);
+	if (!dest_cachelist->result) {
+		WMA_LOGE("%s: Allocation failed for scanid grouping", __func__);
+		vos_mem_free(dest_cachelist);
+		return -ENOMEM;
 	}
 
-	/* Print the data */
-	WMA_LOGI("request id (%d)", dest_cachelist->request_id);
-	WMA_LOGI("more data (%d)", dest_cachelist->more_data);
-	WMA_LOGI("num_scan_ids (%d)", dest_cachelist->num_scan_ids);
-	dest_result = &dest_cachelist->result[0];
-	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
-		WMA_LOGI("scan id (%d)", dest_result->scan_id);
-		WMA_LOGI("flags (%d)", dest_result->flags);
-		WMA_LOGI("num results (%d)", dest_result->num_results);
-		dest_ap = &dest_result->ap[0];
-		for (j = 0; j < dest_result->num_results; j++) {
-			WMA_LOGI("ts (%llu)", dest_ap->ts);
-			WMA_LOGI("ssid (%s)", dest_ap->ssid);
-			WMA_LOGI("rtt (%u)", dest_ap->rtt);
-			WMA_LOGI("channel (%u)", dest_ap->channel);
-			WMA_LOGI("beacon period (%u)", dest_ap->beaconPeriod);
-			dest_ap++;
-		}
-		dest_result++;
-	}
+	dest_result = dest_cachelist->result;
+	wma_fill_num_results_per_scan_id(cmd_param_info, dest_result);
+	wma_group_num_bss_to_scan_id(cmd_param_info, dest_cachelist);
+	wma_extscan_print_scan_id_group_results(dest_cachelist);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
 	WMA_LOGD("%s: sending cached results event", __func__);
+
+	dest_result = dest_cachelist->result;
+	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
+		vos_mem_free(dest_result->ap);
+		dest_result++;
+	}
+	vos_mem_free(dest_cachelist->result);
 	vos_mem_free(dest_cachelist);
 	return 0;
 
@@ -10235,8 +10376,8 @@ tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset)
         return band_center_chan;
 }
 
-static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
-				 struct wma_vdev_start_req *req, v_BOOL_t isRestart)
+VOS_STATUS wma_vdev_start(tp_wma_handle wma,
+			  struct wma_vdev_start_req *req, v_BOOL_t isRestart)
 {
 	wmi_vdev_start_request_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
@@ -10678,36 +10819,22 @@ error0:
 					tgt_req->vdev_id, peer,
 					VOS_FALSE);
 		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
-	} else if (tgt_req->msg_type == WDA_OCB_SET_SCHED_REQUEST) {
+	} else if (tgt_req->msg_type == WDA_OCB_SET_CONFIG_CMD) {
 		struct wma_txrx_node *iface;
-		sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
 
-		WMA_LOGE("%s: WDA_OCB_SET_SCHED_REQUEST timed out", __func__);
-
-		/* Set vdev_up to FALSE */
+		WMA_LOGE(FL("Failed to send OCB set config cmd"));
 		iface = &wma->interfaces[tgt_req->vdev_id];
 		iface->vdev_up = FALSE;
-
-		/* Send callback to upper layers with error code */
-		if (ocb_sched_resp) {
-			ocb_sched_resp->status = VOS_STATUS_E_TIMEOUT;
-		}
-		/* Call HDD Callback */
-		if (wma->ocb_callback) {
-			wma->ocb_callback(ocb_sched_resp);
-		} else {
-			WMA_LOGE("%s: HDD callback is null for OCB Set Schedule\n",
-				__func__);
-		}
+		wma_ocb_set_config_resp(wma, VOS_STATUS_E_TIMEOUT);
 	}
 free_tgt_req:
 	vos_timer_destroy(&tgt_req->event_timeout);
 	adf_os_mem_free(tgt_req);
 }
 
-static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-						u_int32_t msg_type, u_int8_t type,
-						void *params, u_int32_t timeout)
+struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+					 u_int32_t msg_type, u_int8_t type,
+					 void *params, u_int32_t timeout)
 {
 	struct wma_target_req *req;
 
@@ -10732,7 +10859,7 @@ static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev
 	return req;
 }
 
-static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 				u_int8_t type)
 {
 	struct wma_target_req *req_msg;
@@ -17542,6 +17669,11 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 #endif
 	case WOW_REASON_CLIENT_KICKOUT_EVENT:
 		return "WOW_REASON_CLIENT_KICKOUT_EVENT";
+
+#ifdef FEATURE_WLAN_EXTSCAN
+	case WOW_REASON_EXTSCAN:
+		return "WOW_REASON_EXTSCAN";
+#endif
 	}
 	return "unknown";
 }
@@ -17880,6 +18012,13 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		}
 		break;
 	}
+#ifdef FEATURE_WLAN_EXTSCAN
+	case WOW_REASON_EXTSCAN:
+		{
+			WMA_LOGD("Host woken up because of extscan reason");
+		}
+		break;
+#endif
 	default:
 		break;
 	}
@@ -18731,7 +18870,8 @@ end:
  * wakeup trigger events.
  */
 static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
-					    v_BOOL_t pno_in_progress)
+					    v_BOOL_t pno_in_progress,
+						bool extscan_in_progress)
 {
 	struct wma_txrx_node *iface;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
@@ -18980,6 +19120,17 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		WMA_LOGD("IBSS Beacon based wakeup is %s in fw",
 			ibss_vdev_available ? "enabled" : "disabled");
 	}
+#endif
+
+#ifdef FEATURE_WLAN_EXTSCAN
+	ret = wma_add_wow_wakeup_event(wma, WOW_EXTSCAN_EVENT,
+					extscan_in_progress);
+
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to Configure WOW_EXTSCAN_EVENT to FW");
+		goto end;
+	} else
+		WMA_LOGD("Successfully Configured WOW_EXTSCAN_EVENT to FW");
 #endif
 
 	/* WOW is enabled in pcie suspend callback */
@@ -19256,7 +19407,8 @@ enable_wow:
 	}
 #endif
 
-	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
+	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress,
+					extscan_in_progress);
 	if (ret != VOS_STATUS_SUCCESS) {
 		vos_mem_free(info);
 		wma_send_status_to_suspend_ind(wma, FALSE);
@@ -19344,7 +19496,7 @@ static VOS_STATUS wma_auto_suspend_req(tp_wma_handle wma,
 
 	WMA_LOGD("WOW Suspend");
 
-	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress);
+	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress, false);
 	if (ret != VOS_STATUS_SUCCESS) {
 		wma_send_status_to_suspend_ind(wma, false);
 		return ret;
@@ -24128,137 +24280,6 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 }
 #endif /* SAP_AUTH_OFFLOAD */
 
-/* TODO-OCB: This function is currently not called. It should be used
- * when firmware supports the OCB Set Schedule command
- */
-/**
- * wma_send_ocb_set_sched_req() - send the OCB schedule to the FW
- *
- * @wma_handle: context with which the handler is registered.
- * @sched: the schedule to be set.
- */
-void wma_send_ocb_set_sched_req(void *wma_handle, sir_ocb_sched_t *sched)
-{
-	int32_t ret;
-	tp_wma_handle wma = (tp_wma_handle)wma_handle;
-	wmi_ocb_set_sched_cmd_fixed_param *cmd;
-	wmi_buf_t buf;
-	int i;
-	int j;
-
-	buf = wmi_buf_alloc(wma->wmi_handle,
-		sizeof(wmi_ocb_set_sched_cmd_fixed_param));
-	if (!buf) {
-		WMA_LOGE("Failed to allocate memory");
-		return;
-	}
-
-	cmd = (wmi_ocb_set_sched_cmd_fixed_param *)wmi_buf_data(buf);
-
-	/* Populate the WMI TLV Header */
-	WMITLV_SET_HDR(&cmd->tlv_header,
-		WMITLV_TAG_STRUC_wmi_ocb_set_sched_cmd_fixed_param,
-		WMITLV_GET_STRUCT_TLVLEN(wmi_ocb_set_sched_cmd_fixed_param));
-
-	/* Populate the WMI command */
-	cmd->num_channels = sched->num_channels;
-	cmd->off_channel_tx = sched->off_channel_tx;
-	for (i = 0; i < cmd->num_channels; i++) {
-		cmd->channels[i].chan_freq = sched->channels[i].chan_freq;
-		cmd->channels[i].duration = sched->channels[i].duration;
-		cmd->channels[i].start_guard_interval =
-			sched->channels[i].start_guard_interval;
-		cmd->channels[i].end_guard_interval =
-			sched->channels[i].end_guard_interval;
-		cmd->channels[i].tx_power = sched->channels[i].tx_power;
-		cmd->channels[i].tx_rate = sched->channels[i].tx_rate;
-		cmd->channels[i].rx_stats = sched->channels[i].rx_stats;
-		for (j = 0; j < NUM_AC; j++) {
-			cmd->channels[i].qos_params[j].aifsn =
-				sched->channels[i].qos_params[j].aifsn;
-			cmd->channels[i].qos_params[j].cwmin =
-				sched->channels[i].qos_params[j].cwmin;
-			cmd->channels[i].qos_params[j].cwmax =
-				sched->channels[i].qos_params[j].cwmax;
-		}
-	}
-
-	ret = wmi_unified_cmd_send(wma->wmi_handle, buf,
-		sizeof(wmi_ocb_set_sched_cmd_fixed_param),
-		WMI_OCB_SET_SCHED_CMDID);
-	if (ret != EOK) {
-		WMA_LOGE("%s: Failed to send notify cmd ret = %d", __func__, ret);
-		wmi_buf_free(buf);
-	}
-}
-
-#define OCB_FREQ_TO_CHAN(x) (((x) - 5000) / 5)
-
-static void wma_ocb_set_sched_req(void *wma_handle,
-		sir_ocb_set_sched_request_t *sched_req)
-{
-	tp_wma_handle wma = (tp_wma_handle)wma_handle;
-	struct wma_vdev_start_req req;
-	struct wma_target_req *msg;
-	VOS_STATUS status = VOS_STATUS_SUCCESS;
-	sir_ocb_sched_t *sched = &sched_req->sched;
-	u_int8_t vdev_id;
-
-	WMA_LOGD("%s: Enter", __func__);
-
-	/* Store callback function */
-	wma->ocb_callback = sched_req->callback;
-	wma->ocb_resp = sched_req->resp;
-
-	vos_mem_zero(&req, sizeof(req));
-
-	vdev_id = sched_req->session_id;
-
-	/* vdev not yet up. Send vdev start request and wait for response.
-	 * OCB Set Schedule request should be sent on receiving
-	 * vdev start response message */
-	req.vdev_id = vdev_id;
-
-	/* Enqueue OCB Set Schedule request message */
-	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_OCB_SET_SCHED_REQUEST,
-		WMA_TARGET_REQ_TYPE_VDEV_START,
-		(void *)sched_req, 1000);
-	if (!msg) {
-		WMA_LOGP("%s: Failed to fill OCB set schedule request for vdev %d",
-			__func__, req.vdev_id);
-		status = VOS_STATUS_E_NOMEM;
-		return;
-	}
-
-	req.chan = OCB_FREQ_TO_CHAN(sched->channels[0].chan_freq);
-	req.max_txpow = sched->channels[0].tx_power;
-	switch (sched->channels[0].bandwidth) {
-	case 10:
-		req.is_half_rate = true;
-		req.is_quarter_rate = false;
-		break;
-	case 5:
-		req.is_half_rate = false;
-		req.is_quarter_rate = true;
-		break;
-	default:
-		req.is_half_rate = false;
-		req.is_quarter_rate = false;
-	}
-
-	if (wma->interfaces[vdev_id].vdev_up) {
-		wma->interfaces[vdev_id].vdev_up = FALSE;
-	}
-
-	status = wma_vdev_start(wma, &req, VOS_FALSE);
-	if (status != VOS_STATUS_SUCCESS) {
-		wma_remove_vdev_req(wma, req.vdev_id,
-			WMA_TARGET_REQ_TYPE_VDEV_START);
-		WMA_LOGP("%s: vdev start failed status = %d", __func__,
-			status);
-	}
-}
-
 /**
  * wma_process_set_mas() - Function to enable/disable MAS
  * @wma:	Pointer to WMA handle
@@ -25079,13 +25100,45 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_APFIND */
-		case WDA_OCB_SET_SCHED_REQUEST:
-			wma_ocb_set_sched_req(wma_handle,
-				(sir_ocb_set_sched_request_t *)(msg->bodyptr));
-			/* no need to vos_mem_free(msg->bodyptr) here. This synchronous
-			 *   request is waiting on completion in
-			 *   iw_set_dot11p_channel_sched()
-			 *   which will clean up the request buffer. */
+		case WDA_OCB_SET_CONFIG_CMD:
+			wma_ocb_set_config_req(wma_handle,
+				(struct sir_ocb_config *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_OCB_SET_UTC_TIME_CMD:
+			wma_ocb_set_utc_time(wma_handle,
+				(struct sir_ocb_utc *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_OCB_START_TIMING_ADVERT_CMD:
+			wma_ocb_start_timing_advert(wma_handle,
+				(struct sir_ocb_timing_advert *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_OCB_STOP_TIMING_ADVERT_CMD:
+			wma_ocb_stop_timing_advert(wma_handle,
+				(struct sir_ocb_timing_advert *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_DCC_CLEAR_STATS_CMD:
+			wma_dcc_clear_stats(wma_handle,
+				(struct sir_dcc_clear_stats *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_OCB_GET_TSF_TIMER_CMD:
+			wma_ocb_get_tsf_timer(wma_handle,
+				(struct sir_ocb_get_tsf_timer *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_DCC_GET_STATS_CMD:
+			wma_dcc_get_stats(wma_handle,
+				(struct sir_dcc_get_stats *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_DCC_UPDATE_NDL_CMD:
+			wma_dcc_update_ndl(wma_handle,
+				(struct sir_dcc_update_ndl *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 #ifdef FEATURE_BUS_AUTO_SUSPEND
 		case WDA_WLAN_AUTO_SUSPEND_IND:
@@ -26431,36 +26484,6 @@ static int wma_echo_event_handler(void *handle, u_int8_t *event_buf,
 	return 0;
 }
 
-static int wma_ocb_set_sched_event_handler(void *handle, u_int8_t *event_buf,
-		u_int32_t len)
-{
-	tp_wma_handle wma = (tp_wma_handle)handle;
-	WMI_OCB_SET_SCHED_EVENTID_param_tlvs *param_tlvs;
-	wmi_ocb_set_sched_event_fixed_param *fix_param;
-	sir_ocb_set_sched_response_t *ocb_sched_resp = wma->ocb_resp;
-
-	param_tlvs = (WMI_OCB_SET_SCHED_EVENTID_param_tlvs *)event_buf;
-	fix_param = param_tlvs->fixed_param;
-
-	if (ocb_sched_resp) {
-		ocb_sched_resp->status = fix_param->status;
-	} else {
-		WMA_LOGE("%s: OCB Sched Response is null for OCB Set Schedule\n",
-			__func__);
-		return 0;
-	}
-
-	/* Call HDD Callback */
-	if (wma->ocb_callback) {
-		wma->ocb_callback(ocb_sched_resp);
-	} else {
-		WMA_LOGE("%s: HDD callback is null for OCB Set Schedule\n",
-			__func__);
-	}
-
-	return 0;
-}
-
 /* function   : wma_start
  * Description :
  * Args       :
@@ -26637,15 +26660,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		goto end;
 	}
 
-	/* Register event handler for OCB Set Schedule event */
-	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-		WMI_OCB_SET_SCHED_EVENTID,
-		wma_ocb_set_sched_event_handler);
-	if (status) {
-		WMA_LOGE("Failed to register OCB set schedule event cb");
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto end;
-	}
+	status = wma_ocb_register_event_handlers(wma_handle);
 
 	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
 							WMI_ECHO_EVENTID,

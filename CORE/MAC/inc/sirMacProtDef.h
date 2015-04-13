@@ -118,6 +118,7 @@
 #define SIR_MAC_MGMT_REASSOC_RSP  0x3
 #define SIR_MAC_MGMT_PROBE_REQ    0x4
 #define SIR_MAC_MGMT_PROBE_RSP    0x5
+#define SIR_MAC_MGMT_TIME_ADVERT  0x6
 #define SIR_MAC_MGMT_BEACON       0x8
 #define SIR_MAC_MGMT_ATIM         0x9
 #define SIR_MAC_MGMT_DISASSOC     0xA

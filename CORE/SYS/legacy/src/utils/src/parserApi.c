@@ -5045,67 +5045,47 @@ tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
     }
 
     pDot11f->Manufacturer.present = 1;
-    cfgStrLen = WNI_CFG_MANUFACTURER_NAME_LEN - 1;
+    cfgStrLen = WNI_CFG_MANUFACTURER_NAME_LEN;
     if (wlan_cfgGetStr(pMac,
                   WNI_CFG_MANUFACTURER_NAME,
                   pDot11f->Manufacturer.name,
-                  &cfgStrLen) != eSIR_SUCCESS)
-    {
+                  &cfgStrLen) != eSIR_SUCCESS) {
         pDot11f->Manufacturer.num_name = 0;
-        *(pDot11f->Manufacturer.name) = '\0';
-    }
-    else
-    {
+    } else {
         pDot11f->Manufacturer.num_name = (tANI_U8) (cfgStrLen & 0x000000FF);
-        pDot11f->Manufacturer.name[cfgStrLen] = '\0';
     }
 
     pDot11f->ModelName.present = 1;
-    cfgStrLen = WNI_CFG_MODEL_NAME_LEN - 1;
+    cfgStrLen = WNI_CFG_MODEL_NAME_LEN;
     if (wlan_cfgGetStr(pMac,
                   WNI_CFG_MODEL_NAME,
                   pDot11f->ModelName.text,
-                  &cfgStrLen) != eSIR_SUCCESS)
-    {
+                  &cfgStrLen) != eSIR_SUCCESS) {
         pDot11f->ModelName.num_text = 0;
-        *(pDot11f->ModelName.text) = '\0';
-    }
-    else
-    {
+    } else {
         pDot11f->ModelName.num_text = (tANI_U8) (cfgStrLen & 0x000000FF);
-        pDot11f->ModelName.text[cfgStrLen] = '\0';
     }
 
     pDot11f->ModelNumber.present = 1;
-    cfgStrLen = WNI_CFG_MODEL_NUMBER_LEN - 1;
+    cfgStrLen = WNI_CFG_MODEL_NUMBER_LEN;
     if (wlan_cfgGetStr(pMac,
                   WNI_CFG_MODEL_NUMBER,
                   pDot11f->ModelNumber.text,
-                  &cfgStrLen) != eSIR_SUCCESS)
-    {
+                  &cfgStrLen) != eSIR_SUCCESS) {
         pDot11f->ModelNumber.num_text = 0;
-        *(pDot11f->ModelNumber.text) = '\0';
-    }
-    else
-    {
+    } else {
         pDot11f->ModelNumber.num_text = (tANI_U8) (cfgStrLen & 0x000000FF);
-        pDot11f->ModelNumber.text[cfgStrLen] = '\0';
     }
 
     pDot11f->SerialNumber.present = 1;
-    cfgStrLen = WNI_CFG_MANUFACTURER_PRODUCT_VERSION_LEN - 1;
+    cfgStrLen = WNI_CFG_MANUFACTURER_PRODUCT_VERSION_LEN;
     if (wlan_cfgGetStr(pMac,
                   WNI_CFG_MANUFACTURER_PRODUCT_VERSION,
                   pDot11f->SerialNumber.text,
-                  &cfgStrLen) != eSIR_SUCCESS)
-    {
+                  &cfgStrLen) != eSIR_SUCCESS) {
         pDot11f->SerialNumber.num_text = 0;
-        *(pDot11f->SerialNumber.text) = '\0';
-    }
-    else
-    {
+    } else {
         pDot11f->SerialNumber.num_text = (tANI_U8) (cfgStrLen & 0x000000FF);
-        pDot11f->SerialNumber.text[cfgStrLen] = '\0';
     }
 
     pDot11f->PrimaryDeviceType.present = 1;
@@ -5137,19 +5117,14 @@ tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
        pDot11f->PrimaryDeviceType.sub_category = (tANI_U16) val;
 
     pDot11f->DeviceName.present = 1;
-    cfgStrLen = WNI_CFG_MANUFACTURER_PRODUCT_NAME_LEN - 1;
+    cfgStrLen = WNI_CFG_MANUFACTURER_PRODUCT_NAME_LEN;
     if (wlan_cfgGetStr(pMac,
                   WNI_CFG_MANUFACTURER_PRODUCT_NAME,
                   pDot11f->DeviceName.text,
-                  &cfgStrLen) != eSIR_SUCCESS)
-    {
+                  &cfgStrLen) != eSIR_SUCCESS) {
         pDot11f->DeviceName.num_text = 0;
-        *(pDot11f->DeviceName.text) = '\0';
-    }
-    else
-    {
+    } else {
         pDot11f->DeviceName.num_text = (tANI_U8) (cfgStrLen & 0x000000FF);
-        pDot11f->DeviceName.text[cfgStrLen] = '\0';
     }
 
     if (wlan_cfgGetInt(pMac,
@@ -5521,4 +5496,74 @@ sap_auth_offload_update_rsn_ie( tpAniSirGlobal pmac,
     vos_mem_free(pdot11f_rsn);
 }
 #endif /* SAP_AUTH_OFFLOAD */
+
+
+/**
+ * PopulateDot11fTimingAdvertFrame() - Populate the TA mgmt frame fields
+ * @pMac: the MAC context
+ * @frame: pointer to the TA frame
+ *
+ * Return: The SIR status.
+ */
+tSirRetStatus PopulateDot11fTimingAdvertFrame(tpAniSirGlobal mac_ctx,
+    tDot11fTimingAdvertisementFrame *frame)
+{
+    uint32_t val, codelen, len;
+    uint16_t item;
+    uint8_t temp[CFG_MAX_STR_LEN], code[3];
+    tSirRetStatus nSirStatus;
+
+    /* Capabilities */
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_PRIVACY_ENABLED, &val);
+    if (val)
+        frame->Capabilities.privacy = 1;
+
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_SHORT_PREAMBLE, &val);
+    if (val)
+        frame->Capabilities.shortPreamble = 1;
+
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_11H_ENABLED, &val);
+    if (val)
+        frame->Capabilities.spectrumMgt = 1;
+
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_QOS_ENABLED, &val);
+    if (val)
+        frame->Capabilities.qos = 1;
+
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_APSD_ENABLED, &val);
+    if (val)
+        frame->Capabilities.apsd = 1;
+
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_BLOCK_ACK_ENABLED, &val);
+    frame->Capabilities.delayedBA =
+        (uint16_t)((val >> WNI_CFG_BLOCK_ACK_ENABLED_DELAYED) & 1);
+    frame->Capabilities.immediateBA =
+        (uint16_t)((val >> WNI_CFG_BLOCK_ACK_ENABLED_IMMEDIATE) & 1);
+
+    /* Country */
+    item = WNI_CFG_MAX_TX_POWER_5;
+    CFG_GET_STR(nSirStatus, mac_ctx, item, temp, len,
+                WNI_CFG_MAX_TX_POWER_5_LEN);
+    item = WNI_CFG_COUNTRY_CODE;
+    CFG_GET_STR(nSirStatus, mac_ctx, item, code, codelen, 3);
+    vos_mem_copy(&frame->Country, code, codelen);
+    if(len > MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE)
+        len = MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE;
+
+    frame->Country.num_triplets = (uint8_t)(len / 3);
+    vos_mem_copy((uint8_t*)&frame->Country.triplets, temp, len);
+    frame->Country.present = 1;
+
+    /* PowerConstraints */
+    wlan_cfgGetInt(mac_ctx, WNI_CFG_LOCAL_POWER_CONSTRAINT, &val);
+    frame->PowerConstraints.localPowerConstraints = (uint8_t)val;
+    frame->PowerConstraints.present = 1;
+
+    /* TimeAdvertisement */
+    frame->TimeAdvertisement.present = 1;
+    frame->TimeAdvertisement.timing_capabilities = 1;
+
+    return nSirStatus;
+}
+
 // parserApi.c ends here.

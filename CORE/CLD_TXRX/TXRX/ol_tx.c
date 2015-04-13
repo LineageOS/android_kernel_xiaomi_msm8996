@@ -505,6 +505,45 @@ ol_tx_non_std_ll(
 /* tx filtering is handled within the target FW */
 #define TX_FILTER_CHECK(tx_msdu_info) 0 /* don't filter */
 
+
+/**
+ * parse_ocb_tx_header() - Function to check for OCB
+ * TX control header on a packet and extract it if present
+ *
+ * @msdu:   Pointer to OS packet (adf_nbuf_t)
+ */
+#define OCB_HEADER_VERSION     1
+static bool parse_ocb_tx_header(adf_nbuf_t msdu,
+                                struct ocb_tx_ctrl_hdr_t *tx_ctrl)
+{
+    struct ether_header *eth_hdr_p;
+    struct ocb_tx_ctrl_hdr_t *tx_ctrl_hdr;
+
+    /* Check if TX control header is present */
+    eth_hdr_p = (struct ether_header *) adf_nbuf_data(msdu);
+    if (eth_hdr_p->ether_type != adf_os_htons(ETHERTYPE_OCB_TX))
+        /* TX control header is not present. Nothing to do.. */
+        return true;
+
+    /* Remove the ethernet header */
+    adf_nbuf_pull_head(msdu, sizeof(struct ether_header));
+
+    /* Parse the TX control header */
+    tx_ctrl_hdr = (struct ocb_tx_ctrl_hdr_t*) adf_nbuf_data(msdu);
+
+    if (tx_ctrl_hdr->version == OCB_HEADER_VERSION) {
+        if (tx_ctrl)
+            adf_os_mem_copy(tx_ctrl, tx_ctrl_hdr, sizeof(*tx_ctrl_hdr));
+    } else {
+        /* The TX control header is invalid. */
+        return false;
+    }
+
+    /* Remove the TX control header */
+    adf_nbuf_pull_head(msdu, tx_ctrl_hdr->length);
+    return true;
+}
+
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -515,6 +554,8 @@ ol_tx_hl_base(
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
     struct ol_txrx_msdu_info_t tx_msdu_info;
+    struct ocb_tx_ctrl_hdr_t tx_ctrl;
+
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
     tx_msdu_info.peer = NULL;
 
@@ -528,6 +569,8 @@ ol_tx_hl_base(
         adf_nbuf_t next;
         struct ol_tx_frms_queue_t *txq;
         struct ol_tx_desc_t *tx_desc = NULL;
+
+        adf_os_mem_zero(&tx_ctrl, sizeof(tx_ctrl));
 
         /*
          * The netbuf will get stored into a (peer-TID) tx queue list
@@ -586,6 +629,14 @@ ol_tx_hl_base(
         tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
         tx_msdu_info.htt.action.tx_comp_req = tx_comp_req;
 
+        /* If the vdev is in OCB mode, parse the tx control header. */
+        if (vdev->opmode == wlan_op_mode_ocb) {
+            if (!parse_ocb_tx_header(msdu, &tx_ctrl)) {
+                /* There was an error parsing the header. Skip this packet. */
+                goto MSDU_LOOP_BOTTOM;
+            }
+        }
+
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
 
         if ((!txq) || TX_FILTER_CHECK(&tx_msdu_info)) {
@@ -643,7 +694,7 @@ ol_tx_hl_base(
 	    tx_desc->htt_tx_desc_paddr,
             ol_tx_desc_id(pdev, tx_desc),
             msdu,
-            &tx_msdu_info.htt);
+            &tx_msdu_info.htt, &tx_ctrl, vdev->opmode == wlan_op_mode_ocb);
         /*
          * If debug display is enabled, show the meta-data being
          * downloaded to the target via the HTT tx descriptor.
@@ -849,7 +900,7 @@ ol_txrx_mgmt_send(
 	    tx_desc->htt_tx_desc_paddr,
             ol_tx_desc_id(pdev, tx_desc),
             tx_mgmt_frm,
-            &tx_msdu_info.htt);
+            &tx_msdu_info.htt, NULL, 0);
         htt_tx_desc_display(tx_desc->htt_tx_desc);
         htt_tx_desc_set_chanfreq(tx_desc->htt_tx_desc, chanfreq);
 

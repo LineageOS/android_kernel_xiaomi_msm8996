@@ -354,6 +354,7 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_ftm.o \
 		$(HDD_SRC_DIR)/wlan_hdd_hostapd.o \
 		$(HDD_SRC_DIR)/wlan_hdd_main.o \
+		$(HDD_SRC_DIR)/wlan_hdd_ocb.o \
 		$(HDD_SRC_DIR)/wlan_hdd_oemdata.o \
 		$(HDD_SRC_DIR)/wlan_hdd_scan.o \
 		$(HDD_SRC_DIR)/wlan_hdd_softap_tx_rx.o \
@@ -782,7 +783,8 @@ WMA_INC :=	-I$(WLAN_ROOT)/$(WMA_DIR)
 WMA_OBJS :=	$(WMA_DIR)/regdomain.o \
 		$(WMA_DIR)/wlan_nv.o \
 		$(WMA_DIR)/wma.o \
-		$(WMA_DIR)/wma_dfs_interface.o
+		$(WMA_DIR)/wma_dfs_interface.o \
+		$(WMA_DIR)/wma_ocb.o
 
 
 ############ WDA ############

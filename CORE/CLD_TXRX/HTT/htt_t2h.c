@@ -669,6 +669,25 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             break;
      }
 
+    case HTT_T2H_MSG_TYPE_CHAN_CHANGE:
+    {
+        /** primary channel frequency in mhz */
+        A_UINT16 mhz;
+        /** Center frequency 1 in MHz*/
+        A_UINT16 band_center_freq1;
+        /** Center frequency 2 in MHz - valid only for 11acvht 80plus80 mode*/
+        A_UINT16 band_center_freq2;
+        /* phy mode */
+        WLAN_PHY_MODE phy_mode;
+
+        mhz = (A_UINT16)(*(msg_word + 1));
+        band_center_freq1 = (A_UINT16)(*(msg_word + 2));
+        band_center_freq2 = (A_UINT16)(*(msg_word + 3));
+        phy_mode = (WLAN_PHY_MODE)(*(msg_word + 4));
+        ol_rx_chan_change_handler(pdev->txrx_pdev, mhz, band_center_freq1,
+                                  band_center_freq2, phy_mode);
+    }
+
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);
         return ;
@@ -773,6 +792,17 @@ htt_rx_ind_mpdu_range_info(
 }
 
 #define HTT_TGT_NOISE_FLOOR_DBM (-95) /* approx */
+
+/**
+ * htt_rx_ind_rssi_dbm() - Return the RSSI provided in a rx indication message.
+ *
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ *
+ * Return the RSSI from an rx indication message, converted to dBm units.
+ *
+ * Return: RSSI in dBm, or HTT_INVALID_RSSI
+ */
 int16_t
 htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 {
@@ -793,6 +823,170 @@ htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
         rssi + HTT_TGT_NOISE_FLOOR_DBM;
 }
 
+/**
+ * htt_rx_ind_rssi_dbm_chain() - Return the RSSI for a chain provided in a rx indication message.
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ * @chain:      the index of the chain (0-4)
+ *
+ * Return the RSSI for a chain from an rx indication message,
+ * converted to dBm units.
+ *
+ * Return: RSSI in dBm, or HTT_INVALID_RSSI
+ */
+int16_t
+htt_rx_ind_rssi_dbm_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+                          int8_t chain)
+{
+    int16_t rssi;
+    u_int32_t *msg_word;
+
+    if (chain < 0 || chain > 3) {
+        return HTT_RSSI_INVALID;
+    }
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+        return HTT_RSSI_INVALID;
+    }
+
+    msg_word += 1 + chain;
+
+    rssi = HTT_RX_IND_RSSI_PRI20_GET(*msg_word);
+    return (HTT_TGT_RSSI_INVALID == rssi) ?
+        HTT_RSSI_INVALID :
+        rssi + HTT_TGT_NOISE_FLOOR_DBM;
+}
+
+/**
+ * htt_rx_ind_legacy_rate() - Return the data rate
+ * @pdev:        the HTT instance the rx data was received on
+ * @rx_ind_msg:  the netbuf containing the rx indication message
+ * @legacy_rate: (output) the data rate
+ *      The legacy_rate parameter's value depends on the
+ *      legacy_rate_sel value.
+ *      If legacy_rate_sel is 0:
+ *              0x8: OFDM 48 Mbps
+ *              0x9: OFDM 24 Mbps
+ *              0xA: OFDM 12 Mbps
+ *              0xB: OFDM 6 Mbps
+ *              0xC: OFDM 54 Mbps
+ *              0xD: OFDM 36 Mbps
+ *              0xE: OFDM 18 Mbps
+ *              0xF: OFDM 9 Mbps
+ *      If legacy_rate_sel is 1:
+ *              0x8: CCK 11 Mbps long preamble
+ *              0x9: CCK 5.5 Mbps long preamble
+ *              0xA: CCK 2 Mbps long preamble
+ *              0xB: CCK 1 Mbps long preamble
+ *              0xC: CCK 11 Mbps short preamble
+ *              0xD: CCK 5.5 Mbps short preamble
+ *              0xE: CCK 2 Mbps short preamble
+ *      -1 on error.
+ * @legacy_rate_sel: (output) 0 to indicate OFDM, 1 to indicate CCK.
+ *      -1 on error.
+ *
+ * Return the data rate provided in a rx indication message.
+ */
+void
+htt_rx_ind_legacy_rate(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+    uint8_t *legacy_rate, uint8_t *legacy_rate_sel)
+{
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+        *legacy_rate = -1;
+        *legacy_rate_sel = -1;
+        return;
+    }
+
+    *legacy_rate = HTT_RX_IND_LEGACY_RATE_GET(*msg_word);
+    *legacy_rate_sel = HTT_RX_IND_LEGACY_RATE_SEL_GET(*msg_word);
+}
+
+/**
+ * htt_rx_ind_timestamp() - Return the timestamp
+ * @pdev:                  the HTT instance the rx data was received on
+ * @rx_ind_msg:            the netbuf containing the rx indication message
+ * @timestamp_microsec:    (output) the timestamp to microsecond resolution.
+ *                         -1 on error.
+ * @timestamp_submicrosec: the submicrosecond portion of the
+ *                         timestamp. -1 on error.
+ *
+ * Return the timestamp provided in a rx indication message.
+ */
+void
+htt_rx_ind_timestamp(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+    uint32_t *timestamp_microsec, uint8_t *timestamp_submicrosec)
+{
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_END_VALID_GET(*msg_word)) {
+        *timestamp_microsec = -1;
+        *timestamp_submicrosec = -1;
+        return;
+    }
+
+    *timestamp_microsec = *(msg_word + 6);
+    *timestamp_submicrosec =
+            HTT_RX_IND_TIMESTAMP_SUBMICROSEC_GET(*msg_word);
+}
+
+/**
+ * htt_rx_ind_tsf32() - Return the TSF timestamp
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ *
+ * Return the TSF timestamp provided in a rx indication message.
+ *
+ * Return: TSF timestamp
+ */
+uint32_t
+htt_rx_ind_tsf32(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
+{
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_END_VALID_GET(*msg_word)) {
+        return -1;
+    }
+
+    return *(msg_word + 5);
+}
+
+/**
+ * htt_rx_ind_ext_tid() - Return the extended traffic ID provided in a rx indication message.
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ *
+ * Return the extended traffic ID in a rx indication message.
+ *
+ * Return: Extended TID
+ */
+uint8_t
+htt_rx_ind_ext_tid(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
+{
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg));
+
+    return HTT_RX_IND_EXT_TID_GET(*msg_word);
+}
 
 /*--- stats confirmation message ---*/
 

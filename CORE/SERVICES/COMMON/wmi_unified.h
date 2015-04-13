@@ -5551,6 +5551,13 @@ typedef struct {
      */
 } wmi_roam_invoke_cmd_fixed_param;
 
+/* Definition for op_bitmap */
+enum {
+    ROAM_FILTER_OP_BITMAP_BLACK_LIST =   0x1,
+    ROAM_FILTER_OP_BITMAP_WHITE_LIST =   0x2,
+    ROAM_FILTER_OP_BITMAP_PREFER_BSSID = 0x4,
+};
+
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_filter_list_fixed_param */
     A_UINT32 vdev_id; /** Unique id identifying the VDEV on which roaming filter is adopted */
@@ -5847,6 +5854,7 @@ typedef enum event_type_e {
     WOW_BEACON_EVENT,
     WOW_CLIENT_KICKOUT_EVENT,
     WOW_NAN_EVENT,
+    WOW_EXTSCAN_EVENT,
 } WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -5880,6 +5888,7 @@ typedef enum wake_reason_e {
     WOW_REASON_BEACON_RECV,
     WOW_REASON_CLIENT_KICKOUT_EVENT,
     WOW_REASON_NAN_EVENT,
+    WOW_REASON_EXTSCAN,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 

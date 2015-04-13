@@ -1132,7 +1132,7 @@ NONE
 * Manufacture Name (from eeprom)
 *
 
-WNI_CFG_MANUFACTURER_NAME    S    65    8
+WNI_CFG_MANUFACTURER_NAME    S    64    8
 V    RO    NP
 NONE
 8    0x51 0x75 0x61 0x6c 0x63 0x6f 0x6D 0x6D
@@ -1144,7 +1144,7 @@ NONE
 * Model Number (from eeprom)
 *
 
-WNI_CFG_MODEL_NUMBER    S    33    8
+WNI_CFG_MODEL_NUMBER    S    32    8
 V    RO    NP
 NONE
 6    0x4d 0x4e 0x31 0x32 0x33 0x34
@@ -1159,7 +1159,7 @@ NONE
 * WFR4031
 *
 
-WNI_CFG_MODEL_NAME    S    33    8
+WNI_CFG_MODEL_NAME    S    32    8
 V    RO    NP
 NONE
 7    0x57 0x46 0x52 0x34 0x30 0x33 0x31
@@ -1174,7 +1174,7 @@ NONE
 * Manufacture Product Name (from eeprom)
 *
 
-WNI_CFG_MANUFACTURER_PRODUCT_NAME    S    33    8
+WNI_CFG_MANUFACTURER_PRODUCT_NAME    S    32    8
 V    RO    NP
 NONE
 6    0x31 0x31 0x6e 0x2D 0x41 0x50
@@ -1187,7 +1187,7 @@ NONE
 * Manufacture Product Version (from eeprom)
 *
 
-WNI_CFG_MANUFACTURER_PRODUCT_VERSION    S    33    8
+WNI_CFG_MANUFACTURER_PRODUCT_VERSION    S    32    8
 V    RO    NP
 NONE
 6    0x53 0x4e 0x31 0x32 0x33 0x34

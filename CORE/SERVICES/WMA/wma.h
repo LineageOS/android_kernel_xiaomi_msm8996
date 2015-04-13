@@ -221,8 +221,6 @@ static const t_probeTime_dwellTime
 
 typedef void (*txFailIndCallback)(u_int8_t *peer_mac, u_int8_t seqNo);
 
-typedef void (*ocb_set_sched_callback_t)(sir_ocb_set_sched_response_t *resp);
-
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
@@ -587,7 +585,18 @@ typedef struct {
 	u_int32_t ibssPs1RxChainInAtimEnable;
 }ibss_power_save_params;
 
-typedef struct {
+#define MAX_REQUEST_HANDLERS 20
+
+struct wma_handle;
+typedef VOS_STATUS (*wma_request_handler)(struct wma_handle *wma_handle,
+			void *request, void **response);
+
+typedef struct request_handler_entry {
+	int request_type;
+	wma_request_handler handler;
+} request_handler_entry_t;
+
+typedef struct wma_handle {
 	void *wmi_handle;
 	void *htc_handle;
 	void *vos_context;
@@ -756,9 +765,9 @@ typedef struct {
 	atomic_t in_d0wow;
 #endif
 
-	/* OCB Set Schedule Response */
-	ocb_set_sched_callback_t ocb_callback;
-	sir_ocb_set_sched_response_t *ocb_resp;
+	/* OCB request contexts */
+	struct sir_ocb_config *ocb_config_req;
+
 	uint32_t miracast_value;
 }t_wma_handle, *tp_wma_handle;
 
@@ -1573,4 +1582,13 @@ typedef struct wma_roam_invoke_cmd
     u_int8_t bssid[6];
     v_U32_t channel;
 }t_wma_roam_invoke_cmd;
+
+struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+	u_int32_t msg_type, u_int8_t type, void *params, u_int32_t timeout);
+
+VOS_STATUS wma_vdev_start(tp_wma_handle wma, struct wma_vdev_start_req *req,
+	v_BOOL_t isRestart);
+
+void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id, u_int8_t type);
+
 #endif

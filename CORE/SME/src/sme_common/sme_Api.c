@@ -2939,6 +2939,69 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                pMac->sme.fw_state_callback = NULL;
                pMac->sme.fw_state_context = NULL;
                break;
+          case eWNI_SME_OCB_SET_CONFIG_RSP:
+               if (pMac->sme.ocb_set_config_callback) {
+                   pMac->sme.ocb_set_config_callback(
+                       pMac->sme.ocb_set_config_context,
+                       pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback is NULL."));
+               }
+               pMac->sme.ocb_set_config_callback = NULL;
+               pMac->sme.ocb_set_config_context = NULL;
+               vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_OCB_GET_TSF_TIMER_RSP:
+               if (pMac->sme.ocb_get_tsf_timer_callback) {
+                   pMac->sme.ocb_get_tsf_timer_callback(
+                       pMac->sme.ocb_get_tsf_timer_context,
+                       pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback is NULL."));
+               }
+               pMac->sme.ocb_get_tsf_timer_callback = NULL;
+               pMac->sme.ocb_get_tsf_timer_context = NULL;
+               vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_DCC_GET_STATS_RSP:
+               if (pMac->sme.dcc_get_stats_callback) {
+                   pMac->sme.dcc_get_stats_callback(
+                       pMac->sme.dcc_get_stats_context,
+                       pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback or context is NULL."));
+               }
+               pMac->sme.dcc_get_stats_callback = NULL;
+               pMac->sme.dcc_get_stats_context = NULL;
+               vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_DCC_UPDATE_NDL_RSP:
+               if (pMac->sme.dcc_update_ndl_callback) {
+                   pMac->sme.dcc_update_ndl_callback(
+                       pMac->sme.dcc_update_ndl_context,
+                       pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback or context is NULL."));
+               }
+               pMac->sme.dcc_update_ndl_callback = NULL;
+               pMac->sme.dcc_update_ndl_context = NULL;
+               vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_DCC_STATS_EVENT:
+               if (pMac->sme.dcc_stats_event_callback) {
+                   pMac->sme.dcc_stats_event_callback(
+                       pMac->sme.dcc_stats_event_context,
+                       pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback or context is NULL."));
+               }
+               vos_mem_free(pMsg->bodyptr);
+               break;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -12488,28 +12551,487 @@ void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
     mac->enable_dot11p = enable_dot11p;
 }
 
-/* -------------------------------------------------------------------------
-   \fn sme_ocb_set_sched_req
-   \brief API to Indicate OCB Set Schedule Request
-   \param sched_req - Schedule Request
-   \return eHalStatus
----------------------------------------------------------------------------*/
-eHalStatus sme_ocb_set_sched_req(sir_ocb_set_sched_request_t *sched_req)
+/**
+ * copy_sir_ocb_config() - Performs deep copy of an OCB configuration
+ * @src: the source configuration
+ *
+ * Return: pointer to the copied OCB configuration
+ */
+static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src)
 {
-    vos_msg_t msg;
+	struct sir_ocb_config *dst;
+	uint32_t length;
+	void *cursor;
 
-    msg.type = WDA_OCB_SET_SCHED_REQUEST;
-    msg.reserved = 0;
-    msg.bodyptr = sched_req;
-    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-            "%s: Not able to post WDA_OCB_SET_SCHED_REQUEST message to WDA",
-            __func__);
-        return eHAL_STATUS_FAILURE;
-    }
+	length = sizeof(*src) +
+		src->channel_count * sizeof(*src->channels) +
+		src->schedule_size * sizeof(*src->schedule) +
+		src->dcc_ndl_chan_list_len +
+		src->dcc_ndl_active_state_list_len;
 
-    return eHAL_STATUS_SUCCESS;
+	dst = vos_mem_malloc(length);
+	if (!dst)
+		return NULL;
+
+	*dst = *src;
+
+	cursor = dst;
+	cursor += sizeof(*dst);
+	dst->channels = cursor;
+	cursor += src->channel_count * sizeof(*src->channels);
+	vos_mem_copy(dst->channels, src->channels,
+		     src->channel_count * sizeof(*src->channels));
+	dst->schedule = cursor;
+	cursor += src->schedule_size * sizeof(*src->schedule);
+	vos_mem_copy(dst->schedule, src->schedule,
+		     src->schedule_size * sizeof(*src->schedule));
+	dst->dcc_ndl_chan_list = cursor;
+	cursor += src->dcc_ndl_chan_list_len;
+	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
+		     src->dcc_ndl_chan_list_len);
+	dst->dcc_ndl_active_state_list = cursor;
+	cursor += src->dcc_ndl_active_state_list_len;
+	vos_mem_copy(dst->dcc_ndl_active_state_list,
+		     src->dcc_ndl_active_state_list,
+		     src->dcc_ndl_active_state_list_len);
+	return dst;
+}
+
+/**
+ * sme_ocb_set_config() - Set the OCB configuration
+ * @hHal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ * @config: the OCB configuration
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
+                              ocb_callback callback,
+                              struct sir_ocb_config *config)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	vos_msg_t msg = {0};
+	struct sir_ocb_config *msg_body;
+
+	/* Lock the SME structure */
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+
+	/* Check if there is a pending request and return an error if one exists */
+	if (pMac->sme.ocb_set_config_callback) {
+		status = eHAL_STATUS_FW_PS_BUSY;
+		goto end;
+	}
+
+	msg_body = sme_copy_sir_ocb_config(config);
+
+	if (!msg_body) {
+		status = eHAL_STATUS_FAILED_ALLOC;
+		goto end;
+	}
+
+	msg.type = WDA_OCB_SET_CONFIG_CMD;
+	msg.bodyptr = msg_body;
+
+	/* Set the request callback and context */
+	pMac->sme.ocb_set_config_callback = callback;
+	pMac->sme.ocb_set_config_context = context;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		      FL("Error posting message to WDA: %d"), vos_status);
+		pMac->sme.ocb_set_config_callback = callback;
+		pMac->sme.ocb_set_config_context = context;
+		vos_mem_free(msg_body);
+		goto end;
+	}
+
+end:
+	sme_ReleaseGlobalLock(&pMac->sme);
+
+	if (status)
+		return status;
+	if (vos_status)
+		return eHAL_STATUS_FAILURE;
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_ocb_set_utc_time() - Set the OCB UTC time
+ * @utc: the UTC time struct
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_ocb_set_utc_time(struct sir_ocb_utc *utc)
+{
+	vos_msg_t msg = {0};
+	struct sir_ocb_utc *sme_utc;
+
+	sme_utc = vos_mem_malloc(sizeof(*sme_utc));
+	if (!sme_utc) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+	*sme_utc = *utc;
+
+	msg.type = WDA_OCB_SET_UTC_TIME_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_utc;
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+						       &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(utc);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_ocb_start_timing_advert() - Start sending timing advert frames
+ * @timing_advert: the timing advertisement struct
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_ocb_start_timing_advert(
+    struct sir_ocb_timing_advert *timing_advert)
+{
+	vos_msg_t msg;
+	void *buf;
+	struct sir_ocb_timing_advert *sme_timing_advert;
+
+	buf = vos_mem_malloc(sizeof(*sme_timing_advert) +
+			     timing_advert->template_length);
+	if (!buf) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to allocate memory for start TA"));
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	sme_timing_advert = (struct sir_ocb_timing_advert *)buf;
+	*sme_timing_advert = *timing_advert;
+	sme_timing_advert->template_value = buf + sizeof(*sme_timing_advert);
+	vos_mem_copy(sme_timing_advert->template_value,
+	timing_advert->template_value, timing_advert->template_length);
+
+	msg.type = WDA_OCB_START_TIMING_ADVERT_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = buf;
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+						       &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post msg to WDA"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_ocb_stop_timing_advert() - Stop sending timing advert frames on a channel
+ * @timing_advert: the timing advertisement struct
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_ocb_stop_timing_advert(
+    struct sir_ocb_timing_advert *timing_advert)
+{
+	vos_msg_t msg;
+	struct sir_ocb_timing_advert *sme_timing_advert;
+
+	sme_timing_advert = vos_mem_malloc(sizeof(*timing_advert));
+	if (!sme_timing_advert) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to allocate memory for stop TA"));
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+	*sme_timing_advert = *timing_advert;
+
+	msg.type = WDA_OCB_STOP_TIMING_ADVERT_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_timing_advert;
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+						       &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post msg to WDA"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_ocb_get_tsf_timer() - Get the TSF timer value
+ * @hHal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ * @request: the TSF timer request
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_ocb_get_tsf_timer(tHalHandle hHal, void *context,
+                                 ocb_callback callback,
+                                 struct sir_ocb_get_tsf_timer *request)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	vos_msg_t msg = {0};
+	struct sir_ocb_get_tsf_timer *msg_body;
+
+	/* Lock the SME structure */
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+
+	/* Check if there is a pending request */
+	if (pMac->sme.ocb_get_tsf_timer_callback) {
+		status = eHAL_STATUS_FW_PS_BUSY;
+		goto end;
+	}
+
+	/* Allocate memory for the WMI request, and copy the parameter */
+	msg_body = vos_mem_malloc(sizeof(*msg_body));
+	if (!msg_body) {
+		status = eHAL_STATUS_FAILED_ALLOC;
+		goto end;
+	}
+	*msg_body = *request;
+
+	msg.type = WDA_OCB_GET_TSF_TIMER_CMD;
+	msg.bodyptr = msg_body;
+
+	/* Set the request callback and the context */
+	pMac->sme.ocb_get_tsf_timer_callback = callback;
+	pMac->sme.ocb_get_tsf_timer_context = context;
+
+	/* Post the message to WDA */
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Error posting message to WDA: %d"), vos_status);
+		pMac->sme.ocb_get_tsf_timer_callback = NULL;
+		pMac->sme.ocb_get_tsf_timer_context = NULL;
+		vos_mem_free(msg_body);
+		goto end;
+	}
+
+end:
+	sme_ReleaseGlobalLock(&pMac->sme);
+
+	if (status)
+		return status;
+	if (vos_status)
+		return eHAL_STATUS_FAILURE;
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_dcc_get_stats() - Get the DCC stats
+ * @hHal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ * @request: the get DCC stats request
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_dcc_get_stats(tHalHandle hHal, void *context,
+                             ocb_callback callback,
+                             struct sir_dcc_get_stats *request)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	vos_msg_t msg = {0};
+	struct sir_dcc_get_stats *msg_body;
+
+	/* Lock the SME structure */
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+	/* Check if there is a pending request */
+	if (pMac->sme.dcc_get_stats_callback) {
+		status = eHAL_STATUS_FW_PS_BUSY;
+		goto end;
+	}
+
+	/* Allocate memory for the WMI request, and copy the parameter */
+	msg_body = vos_mem_malloc(sizeof(*msg_body) +
+				  request->request_array_len);
+	if (!msg_body) {
+		status = eHAL_STATUS_FAILED_ALLOC;
+		goto end;
+	}
+	*msg_body = *request;
+	msg_body->request_array = (void *)msg_body + sizeof(*msg_body);
+	vos_mem_copy(msg_body->request_array, request->request_array,
+		     request->request_array_len);
+
+	msg.type = WDA_DCC_GET_STATS_CMD;
+	msg.bodyptr = msg_body;
+
+	/* Set the request callback and context */
+	pMac->sme.dcc_get_stats_callback = callback;
+	pMac->sme.dcc_get_stats_context = context;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Error posting message to WDA: %d"), vos_status);
+		pMac->sme.dcc_get_stats_callback = callback;
+		pMac->sme.dcc_get_stats_context = context;
+		vos_mem_free(msg_body);
+		goto end;
+	}
+
+end:
+	sme_ReleaseGlobalLock(&pMac->sme);
+
+	if (status)
+		return status;
+	if (vos_status)
+		return eHAL_STATUS_FAILURE;
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_dcc_clear_stats() - Clear the DCC stats
+ * @vdev_id: vdev id for OCB interface
+ * @dcc_stats_bitmap: the entries in the stats to clear
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_dcc_clear_stats(uint32_t vdev_id, uint32_t dcc_stats_bitmap)
+{
+	vos_msg_t msg = {0};
+	struct sir_dcc_clear_stats *request =
+		vos_mem_malloc(sizeof(struct sir_dcc_clear_stats));
+
+	vos_mem_zero(request, sizeof(*request));
+	request->vdev_id = vdev_id;
+	request->dcc_stats_bitmap = dcc_stats_bitmap;
+
+	msg.type = WDA_DCC_CLEAR_STATS_CMD;
+	msg.bodyptr = request;
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+						       &msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post msg to WDA"));
+		vos_mem_free(request);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_dcc_update_ndl() - Update the DCC settings
+ * @hHal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ * @request: the update DCC request
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void *context,
+                              ocb_callback callback,
+                              struct sir_dcc_update_ndl *request)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	vos_msg_t msg = {0};
+	struct sir_dcc_update_ndl *msg_body;
+
+	/* Lock the SME structure */
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+
+	/* Check if there is a pending request */
+	if (pMac->sme.dcc_update_ndl_callback) {
+		status = eHAL_STATUS_FW_PS_BUSY;
+		goto end;
+	}
+
+	/* Allocate memory for the WMI request, and copy the parameter */
+	msg_body = vos_mem_malloc(sizeof(*msg_body) +
+				  request->dcc_ndl_chan_list_len +
+				  request->dcc_ndl_active_state_list_len);
+	if (!msg_body) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to allocate memory"));
+		status = eHAL_STATUS_FAILED_ALLOC;
+		goto end;
+	}
+
+	*msg_body = *request;
+
+	msg_body->dcc_ndl_chan_list = (void *)msg_body + sizeof(*msg_body);
+	msg_body->dcc_ndl_active_state_list = msg_body->dcc_ndl_chan_list +
+		request->dcc_ndl_chan_list_len;
+	vos_mem_copy(msg_body->dcc_ndl_chan_list, request->dcc_ndl_chan_list,
+		     request->dcc_ndl_active_state_list_len);
+	vos_mem_copy(msg_body->dcc_ndl_active_state_list,
+		     request->dcc_ndl_active_state_list,
+		     request->dcc_ndl_active_state_list_len);
+
+	msg.type = WDA_DCC_UPDATE_NDL_CMD;
+	msg.bodyptr = msg_body;
+
+	/* Set the request callback and the context */
+	pMac->sme.dcc_update_ndl_callback = callback;
+	pMac->sme.dcc_update_ndl_context = context;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Error posting message to WDA: %d"), vos_status);
+		pMac->sme.dcc_update_ndl_callback = NULL;
+		pMac->sme.dcc_update_ndl_context = NULL;
+		vos_mem_free(msg_body);
+		goto end;
+	}
+
+end:
+	sme_ReleaseGlobalLock(&pMac->sme);
+
+	if (status)
+		return status;
+	if (vos_status)
+		return eHAL_STATUS_FAILURE;
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_register_for_dcc_stats_event() - Register for the periodic DCC stats
+ *                                      event
+ * @hHal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void *context,
+                                            ocb_callback callback)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	eHalStatus status = eHAL_STATUS_FAILURE;
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	pMac->sme.dcc_stats_event_callback = callback;
+	pMac->sme.dcc_stats_event_context = context;
+	sme_ReleaseGlobalLock(&pMac->sme);
+
+	return 0;
 }
 
 void sme_getRecoveryStats(tHalHandle hHal) {
