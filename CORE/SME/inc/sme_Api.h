@@ -4256,8 +4256,8 @@ bool sme_validate_sap_channel_switch(tHalHandle hal,
 					uint8_t cc_switch_mode,
 					uint32_t session_id);
 
-eHalStatus sme_configure_dynamic_dtim(tHalHandle hHal, tANI_U8 session_id,
-					  tANI_U32 dynamic_dtim);
+eHalStatus sme_configure_modulated_dtim(tHalHandle hHal, tANI_U8 session_id,
+					tANI_U32 modulated_dtim);
 
 eHalStatus sme_configure_stats_avg_factor(tHalHandle hHal, tANI_U8 session_id,
 					  tANI_U16 stats_avg_factor);

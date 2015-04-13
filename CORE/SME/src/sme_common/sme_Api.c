@@ -16087,17 +16087,17 @@ eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
 }
 
 /**
- * sme_configure_dynamic_dtim() - function to configure dynamic dtim
- * @h_hal: SME API to enable/disable dynamic DTIM
+ * sme_configure_modulated_dtim() - function to configure modulated dtim
+ * @h_hal: SME API to enable/disable modulated DTIM instantaneously
  * @session_id: session ID
- * @dynamic_dtim: dynamic dtim value
+ * @modulated_dtim: modulated dtim value
  *
  * This function configures the guard time in firmware
  *
  * Return: eHalStatus
  */
-eHalStatus sme_configure_dynamic_dtim(tHalHandle h_hal, tANI_U8 session_id,
-				      tANI_U32 dynamic_dtim)
+eHalStatus sme_configure_modulated_dtim(tHalHandle h_hal, tANI_U8 session_id,
+				      tANI_U32 modulated_dtim)
 {
 	vos_msg_t msg;
 	eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -16117,9 +16117,9 @@ eHalStatus sme_configure_dynamic_dtim(tHalHandle h_hal, tANI_U8 session_id,
 	if (eHAL_STATUS_SUCCESS == status) {
 
 		vos_mem_zero((void *)iwcmd, sizeof(*iwcmd));
-		iwcmd->param_value = dynamic_dtim;
+		iwcmd->param_value = modulated_dtim;
 		iwcmd->param_vdev_id = session_id;
-		iwcmd->param_id = GEN_PARAM_DYNAMIC_DTIM;
+		iwcmd->param_id = GEN_PARAM_MODULATED_DTIM;
 		iwcmd->param_vp_dev = GEN_CMD;
 		msg.type = WDA_CLI_SET_CMD;
 		msg.reserved = 0;

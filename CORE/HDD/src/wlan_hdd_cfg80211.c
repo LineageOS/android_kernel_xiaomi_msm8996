@@ -6734,7 +6734,7 @@ static const struct nla_policy
 wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
                             +1] =
 {
-	[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
 };
@@ -6763,7 +6763,7 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
 	int ret_val = 0;
-	u32 dynamic_dtim;
+	u32 modulated_dtim;
 	u16 stats_avg_factor;
 	u32 guard_time;
 	eHalStatus status;
@@ -6780,14 +6780,13 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
-	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]) {
-		dynamic_dtim = nla_get_u32(
-			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]);
-		pHddCtx->cfg_ini->enableDynamicDTIM = dynamic_dtim;
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM]) {
+		modulated_dtim = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM]);
 
-		status = sme_configure_dynamic_dtim(pHddCtx->hHal,
+		status = sme_configure_modulated_dtim(pHddCtx->hHal,
 							pAdapter->sessionId,
-							dynamic_dtim);
+							modulated_dtim);
 
 		if (eHAL_STATUS_SUCCESS != status)
 			ret_val = -EPERM;

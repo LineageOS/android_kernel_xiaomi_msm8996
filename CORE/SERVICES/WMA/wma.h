@@ -546,6 +546,8 @@ struct wma_txrx_node {
 #ifdef FEATURE_WLAN_EXTSCAN
 	bool extscan_in_progress;
 #endif
+	uint32_t alt_modulated_dtim;
+	bool alt_modulated_dtim_enabled;
 };
 
 #if defined(QCA_WIFI_FTM)

@@ -12199,8 +12199,57 @@ static void wma_send_echo_request(tp_wma_handle wma)
 	}
 }
 
+/**
+ * wma_set_modulated_dtim() - function to configure modulated dtim
+ * @wma: wma handle
+ * @privcmd: structure containing parameters
+ *
+ * This function configures the modulated dtim in firmware
+ *
+ * Return: none
+ */
+static void wma_set_modulated_dtim(tp_wma_handle wma,
+				   wda_cli_set_cmd_t *privcmd)
+{
+	uint8_t vdev_id = privcmd->param_vdev_id;
+	struct wma_txrx_node *iface =
+		&wma->interfaces[vdev_id];
+
+	uint32_t listen_interval;
+	int ret;
+
+	iface->alt_modulated_dtim = privcmd->param_value;
+
+	if (1 != privcmd->param_value)
+		iface->alt_modulated_dtim_enabled = true;
+	else
+		iface->alt_modulated_dtim_enabled = false;
+
+	if (true == iface->alt_modulated_dtim_enabled) {
+
+		listen_interval = iface->alt_modulated_dtim
+			* iface->dtimPeriod;
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						privcmd->param_vdev_id,
+						WMI_VDEV_PARAM_LISTEN_INTERVAL,
+						listen_interval);
+		if (ret)
+			/* Even if it fails, continue */
+			WMA_LOGW("Failed to set listen interval %d",
+				 listen_interval);
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						privcmd->param_vdev_id,
+						WMI_VDEV_PARAM_DTIM_POLICY ,
+						NORMAL_DTIM);
+		if (ret)
+			WMA_LOGE("Failed to Set to Normal DTIM policy");
+	}
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
-					wda_cli_set_cmd_t *privcmd)
+				    wda_cli_set_cmd_t *privcmd)
 {
 	int ret = 0, vid = privcmd->param_vdev_id, pps_val = 0;
 	struct wma_txrx_node *intr = wma->interfaces;
@@ -12311,8 +12360,10 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			HTCDump(wma->htc_handle, PCIE_DUMP, false);
 			break;
 #endif
-		case GEN_PARAM_DYNAMIC_DTIM:
-			wma->staDynamicDtim = privcmd->param_value;
+		case GEN_PARAM_MODULATED_DTIM:
+
+			wma_set_modulated_dtim(wma, privcmd);
+
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -29634,7 +29685,8 @@ static void wma_set_suspend_dtim(tp_wma_handle wma)
 	}
 
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma->interfaces[i].handle) {
+		if ((wma->interfaces[i].handle) &&
+		    (false == wma->interfaces[i].alt_modulated_dtim_enabled)) {
 			wma_set_vdev_suspend_dtim(wma, i);
 		}
 	}
@@ -29708,7 +29760,8 @@ static void wma_set_resume_dtim(tp_wma_handle wma)
 	}
 
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma->interfaces[i].handle) {
+		if ((wma->interfaces[i].handle) &&
+		    (false == wma->interfaces[i].alt_modulated_dtim_enabled)) {
 			wma_set_vdev_resume_dtim(wma, i);
 		}
 	}
