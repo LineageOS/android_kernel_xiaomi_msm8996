@@ -1316,16 +1316,6 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
         fset |= WIFI_FEATURE_D2AP_RTT;
     }
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-    if (fset & WIFI_FEATURE_EXTSCAN) {
-        hddLog(LOG1, FL("Batch scan is supported as extscan is supported"));
-        fset &= ~WIFI_FEATURE_BATCH_SCAN;
-    } else if (sme_IsFeatureSupportedByFW(BATCH_SCAN)) {
-        hddLog(LOG1, FL("Batch scan (legacy) is supported by firmware"));
-        fset |= WIFI_FEATURE_BATCH_SCAN;
-    }
-#endif
-
 #ifdef FEATURE_WLAN_SCAN_PNO
     if (pHddCtx->cfg_ini->configPNOScanSupport &&
         sme_IsFeatureSupportedByFW(PNO)) {
@@ -6744,7 +6734,7 @@ static const struct nla_policy
 wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
                             +1] =
 {
-	[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
 };
@@ -6773,7 +6763,7 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
 	int ret_val = 0;
-	u32 dynamic_dtim;
+	u32 modulated_dtim;
 	u16 stats_avg_factor;
 	u32 guard_time;
 	eHalStatus status;
@@ -6790,14 +6780,13 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
-	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]) {
-		dynamic_dtim = nla_get_u32(
-			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM]);
-		pHddCtx->cfg_ini->enableDynamicDTIM = dynamic_dtim;
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM]) {
+		modulated_dtim = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM]);
 
-		status = sme_configure_dynamic_dtim(pHddCtx->hHal,
+		status = sme_configure_modulated_dtim(pHddCtx->hHal,
 							pAdapter->sessionId,
-							dynamic_dtim);
+							modulated_dtim);
 
 		if (eHAL_STATUS_SUCCESS != status)
 			ret_val = -EPERM;
@@ -7717,7 +7706,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     ENTER();
     if (params->head && !params->head_len)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   FL("head_len is NULL"));
         return -EINVAL;
     }
@@ -7726,8 +7715,8 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
 
     if (!params->head && !old)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("session(%d) old and new heads points to NULL"),
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("session(%d) old and new heads point to NULL"),
                      pAdapter->sessionId);
         return -EINVAL;
     }
@@ -7778,12 +7767,12 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
     if (params->dtim_period)
         beacon->dtim_period = params->dtim_period;
-    else
+    else if (old)
         beacon->dtim_period = old->dtim_period;
 #else
     if (dtim_period)
         beacon->dtim_period = dtim_period;
-    else
+    else if (old)
         beacon->dtim_period = old->dtim_period;
 #endif
 
@@ -7801,17 +7790,20 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     beacon->proberesp_ies_len = proberesp_ies_len;
     beacon->assocresp_ies_len= assocresp_ies_len;
 
-    memcpy(beacon->head, head, head_len);
-    memcpy(beacon->tail, tail, tail_len);
-    memcpy(beacon->proberesp_ies, proberesp_ies, proberesp_ies_len);
-    memcpy(beacon->assocresp_ies, assocresp_ies, assocresp_ies_len);
+    if (head && head_len)
+        memcpy(beacon->head, head, head_len);
+    if (tail && tail_len)
+        memcpy(beacon->tail, tail, tail_len);
+    if (proberesp_ies && proberesp_ies_len)
+        memcpy(beacon->proberesp_ies, proberesp_ies, proberesp_ies_len);
+    if (assocresp_ies && assocresp_ies_len)
+        memcpy(beacon->assocresp_ies, assocresp_ies, assocresp_ies_len);
 
     *ppBeacon = beacon;
 
     kfree(old);
 
     return 0;
-
 }
 
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)

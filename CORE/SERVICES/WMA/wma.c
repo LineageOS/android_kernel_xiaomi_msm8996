@@ -12199,8 +12199,57 @@ static void wma_send_echo_request(tp_wma_handle wma)
 	}
 }
 
+/**
+ * wma_set_modulated_dtim() - function to configure modulated dtim
+ * @wma: wma handle
+ * @privcmd: structure containing parameters
+ *
+ * This function configures the modulated dtim in firmware
+ *
+ * Return: none
+ */
+static void wma_set_modulated_dtim(tp_wma_handle wma,
+				   wda_cli_set_cmd_t *privcmd)
+{
+	uint8_t vdev_id = privcmd->param_vdev_id;
+	struct wma_txrx_node *iface =
+		&wma->interfaces[vdev_id];
+
+	uint32_t listen_interval;
+	int ret;
+
+	iface->alt_modulated_dtim = privcmd->param_value;
+
+	if (1 != privcmd->param_value)
+		iface->alt_modulated_dtim_enabled = true;
+	else
+		iface->alt_modulated_dtim_enabled = false;
+
+	if (true == iface->alt_modulated_dtim_enabled) {
+
+		listen_interval = iface->alt_modulated_dtim
+			* iface->dtimPeriod;
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						privcmd->param_vdev_id,
+						WMI_VDEV_PARAM_LISTEN_INTERVAL,
+						listen_interval);
+		if (ret)
+			/* Even if it fails, continue */
+			WMA_LOGW("Failed to set listen interval %d",
+				 listen_interval);
+
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+						privcmd->param_vdev_id,
+						WMI_VDEV_PARAM_DTIM_POLICY ,
+						NORMAL_DTIM);
+		if (ret)
+			WMA_LOGE("Failed to Set to Normal DTIM policy");
+	}
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
-					wda_cli_set_cmd_t *privcmd)
+				    wda_cli_set_cmd_t *privcmd)
 {
 	int ret = 0, vid = privcmd->param_vdev_id, pps_val = 0;
 	struct wma_txrx_node *intr = wma->interfaces;
@@ -12311,8 +12360,10 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			HTCDump(wma->htc_handle, PCIE_DUMP, false);
 			break;
 #endif
-		case GEN_PARAM_DYNAMIC_DTIM:
-			wma->staDynamicDtim = privcmd->param_value;
+		case GEN_PARAM_MODULATED_DTIM:
+
+			wma_set_modulated_dtim(wma, privcmd);
+
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -21601,154 +21652,6 @@ static void wma_process_update_userpos(tp_wma_handle wma_handle,
 
 }
 #endif
-#ifdef FEATURE_WLAN_BATCH_SCAN
-
-/* function   : wma_batch_scan_enable
- * Description : This function handles WDA_SET_BATCH_SCAN_REQ from UMAC
-                and sends WMI_BATCH_SCAN_ENABLE_CMDID to target
- * Args       :
-                handle  : Pointer to WMA handle
- *              rep     : Pointer to batch scan enable request from UMAC
- * Returns    :
- *              VOS_STATUS_SUCCESS for success otherwise failure
- */
-VOS_STATUS wma_batch_scan_enable
-(
-    tp_wma_handle wma,
-    tSirSetBatchScanReq *pReq
-)
-{
-    int ret;
-    u_int8_t *p;
-    u_int16_t len;
-    wmi_buf_t buf;
-    wmi_batch_scan_enable_cmd_fixed_param *p_bs_enable_cmd;
-
-    len = sizeof(wmi_batch_scan_enable_cmd_fixed_param);
-    buf = wmi_buf_alloc(wma->wmi_handle, len);
-    if (!buf)
-    {
-        WMA_LOGE("%s %d: No WMI resource!", __func__, __LINE__);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    p = (u_int8_t *) wmi_buf_data(buf);
-    vos_mem_zero(p, len);
-    p_bs_enable_cmd = (wmi_batch_scan_enable_cmd_fixed_param *)p;
-
-    WMITLV_SET_HDR(&p_bs_enable_cmd->tlv_header,
-        WMITLV_TAG_STRUC_wmi_batch_scan_enable_cmd_fixed_param,
-        WMITLV_GET_STRUCT_TLVLEN(wmi_batch_scan_enable_cmd_fixed_param));
-
-    p_bs_enable_cmd->vdev_id = pReq->sessionId;
-    p_bs_enable_cmd->numScan2Batch = pReq->numberOfScansToBatch;
-    p_bs_enable_cmd->bestNetworks = pReq->bestNetwork;
-    p_bs_enable_cmd->scanInterval = pReq->scanFrequency;
-    p_bs_enable_cmd->rfBand = pReq->rfBand;
-    p_bs_enable_cmd->rtt = pReq->rtt;
-
-    ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
-              WMI_BATCH_SCAN_ENABLE_CMDID);
-
-    WMA_LOGE("batch scan cmd sent len: %d, vdev %d command id: %d, status: %d",
-        len, p_bs_enable_cmd->vdev_id, WMI_BATCH_SCAN_ENABLE_CMDID, ret);
-
-    return VOS_STATUS_SUCCESS;
-}
-
-/* function   : wma_batch_scan_disable
- * Description : This function handles WDA_STOP_BATCH_SCAN_REQ from UMAC
-                and sends WMI_BATCH_SCAN_DISABLE_CMDID to target
- * Args       :
-                handle  : Pointer to WMA handle
- *              rep     : Pointer to batch scan disable request from UMAC
- * Returns    :
- *              VOS_STATUS_SUCCESS for success otherwise failure
- */
-VOS_STATUS wma_batch_scan_disable
-(
-    tp_wma_handle wma,
-    tSirStopBatchScanInd *pReq
-)
-{
-    int ret;
-    u_int8_t *p;
-    wmi_buf_t buf;
-    u_int16_t len;
-    wmi_batch_scan_disable_cmd_fixed_param *p_bs_disable_cmd;
-
-    len = sizeof(wmi_batch_scan_disable_cmd_fixed_param);
-    buf = wmi_buf_alloc(wma->wmi_handle, len);
-    if (!buf)
-    {
-        WMA_LOGE("%s %d: No WMI resource!", __func__, __LINE__);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    p = (u_int8_t *) wmi_buf_data(buf);
-    p_bs_disable_cmd = (wmi_batch_scan_disable_cmd_fixed_param *)p;
-    vos_mem_zero(p, len);
-
-    WMITLV_SET_HDR(&p_bs_disable_cmd->tlv_header,
-        WMITLV_TAG_STRUC_wmi_batch_scan_disable_cmd_fixed_param,
-        WMITLV_GET_STRUCT_TLVLEN(wmi_batch_scan_disable_cmd_fixed_param));
-
-    ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
-              WMI_BATCH_SCAN_DISABLE_CMDID);
-
-    WMA_LOGE("batch scan command sent len: %d, command id: %d, status: %d",
-        len, WMI_BATCH_SCAN_DISABLE_CMDID, ret);
-
-    return VOS_STATUS_SUCCESS;
-}
-
-/* function   : wma_batch_scan_trigger_result
- * Description : This function handles WDA_TRIGGER_BATCH_SCAN_RESULT_IND from
-                UMAC and sends WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID to target
- * Args       :
-                handle  : Pointer to WMA handle
- *              rep     : Pointer to batch scan trigger request from UMAC
- * Returns    :
- *              VOS_STATUS_SUCCESS for success otherwise failure
- */
-VOS_STATUS wma_batch_scan_trigger_result
-(
-    tp_wma_handle wma,
-    tSirTriggerBatchScanResultInd *pReq
-)
-{
-    int ret;
-    u_int8_t *p;
-    wmi_buf_t buf;
-    u_int16_t len;
-    wmi_batch_scan_trigger_result_cmd_fixed_param *p_bs_trigger_result_cmd;
-
-    len = sizeof(wmi_batch_scan_trigger_result_cmd_fixed_param);
-    buf = wmi_buf_alloc(wma->wmi_handle, len);
-    if (!buf)
-    {
-        WMA_LOGE("%s %d : No WMI resource!", __func__, __LINE__);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    p = (u_int8_t *) wmi_buf_data(buf);
-    p_bs_trigger_result_cmd =(wmi_batch_scan_trigger_result_cmd_fixed_param *)p;
-    vos_mem_zero(p, len);
-
-    WMITLV_SET_HDR(&p_bs_trigger_result_cmd->tlv_header,
-       WMITLV_TAG_STRUC_wmi_batch_scan_trigger_result_cmd_fixed_param,
-       WMITLV_GET_STRUCT_TLVLEN(wmi_batch_scan_trigger_result_cmd_fixed_param));
-
-    ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
-              WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID);
-
-    WMA_LOGE("batch scan command sent len: %d, command id: %d, status: %d",
-        len, WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID, ret);
-
-    return VOS_STATUS_SUCCESS;
-}
-#endif
-
 
 /* function   : wma_process_init_thermal_info
  * Description : This function initializes the thermal management table in WMA,
@@ -22802,20 +22705,41 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
-static int wma_get_hotlist_entries_per_page(void *cmd, int numap)
+/** wma_get_hotlist_entries_per_page() - hotlist entries per page
+ * @cmd: size of command structure.
+ * @per_entry_size: per entry size.
+ *
+ * This utility function calculates how many hotlist entries can
+ * fit in one page.
+ *
+ * Return: number of entries
+ */
+static inline int wma_get_hotlist_entries_per_page(size_t cmd_size,
+						   size_t per_entry_size)
 {
 	uint32_t avail_space = 0;
 	int num_entries = 0;
 
-	/* Calculate num of hot list entries that can
-	 * be passed in  wma message request.
+	/* Calculate number of hotlist entries that can
+	 * be passed in wma message request.
 	 */
 	avail_space = WMA_MAX_EXTSCAN_MSG_SIZE -
-				(sizeof(*cmd) - sizeof(WMI_TLV_HDR_SIZE));
-	num_entries = avail_space / sizeof(wmi_extscan_hotlist_entry);
+				(cmd_size - WMI_TLV_HDR_SIZE);
+	num_entries = avail_space / per_entry_size;
 	return num_entries;
 }
 
+/** wma_get_buf_extscan_hotlist_cmd() - extscan hotlist command
+ * @wma_handle: pointer to WMA handle
+ * @photlist: pointer to input hotlist request message
+ * @buf_len: buffer len
+ *
+ * This function constructs the WMA set bssid hotlist command message
+ * and based on the maximum length of the WMA command buf, it issues
+ * multiple request.
+ *
+ * Return: VOS_STATUS enumeration.
+ */
 VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 			tSirExtScanSetBssidHotListReqParams *photlist,
 			int *buf_len)
@@ -22840,25 +22764,23 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 	 * to be non zero value
 	 */
 	if (!numap) {
-		WMA_LOGE("%s: Invalid number of bssid's",
-			__func__);
+		WMA_LOGE("%s: Invalid number of bssid's", __func__);
 		return VOS_STATUS_E_INVAL;
 	}
-	num_entries = wma_get_hotlist_entries_per_page(
-					cmd, numap);
+	num_entries = wma_get_hotlist_entries_per_page(sizeof(*cmd),
+							sizeof(*dest_hotlist));
 
 	/* Split the hot list entry pages and send multiple command
 	 * requests if the buffer reaches  the maximum request size
 	 */
 	while (index < numap) {
-		min_entries = MIN(num_entries, numap);
+		min_entries = VOS_MIN(num_entries, numap);
 		len += min_entries * sizeof(wmi_extscan_hotlist_entry);
 		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 		if (!buf) {
-			WMA_LOGP("%s: failed to allocate memory"
-				"for start extscan cmd",
+			WMA_LOGP("%s: failed to allocate memory for start extscan cmd",
 				__func__);
-			return VOS_STATUS_E_FAILURE;
+			return VOS_STATUS_E_NOMEM;
 		}
 		buf_ptr = (u_int8_t *)wmi_buf_data(buf);
 		cmd = (wmi_extscan_configure_hotlist_monitor_cmd_fixed_param *)
@@ -24769,25 +24691,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			  (tTdlsChanSwitchParams*)msg->bodyptr);
 			break;
 #endif /* FEATURE_WLAN_TDLS */
-#ifdef FEATURE_WLAN_BATCH_SCAN
-		case WDA_SET_BATCH_SCAN_REQ:
-                        wma_batch_scan_enable(wma_handle,
-                            (tSirSetBatchScanReq *)msg->bodyptr);
-                        vos_mem_free(msg->bodyptr);
-                        break;
-
-		case WDA_STOP_BATCH_SCAN_IND:
-                        wma_batch_scan_disable(wma_handle,
-                            (tSirStopBatchScanInd *)msg->bodyptr);
-                        vos_mem_free(msg->bodyptr);
-                        break;
-
-		case WDA_TRIGGER_BATCH_SCAN_RESULT_IND:
-                        wma_batch_scan_trigger_result(wma_handle,
-                            (tSirTriggerBatchScanResultInd *)msg->bodyptr);
-                        vos_mem_free(msg->bodyptr);
-                        break;
-#endif
 		case WDA_ADD_PERIODIC_TX_PTRN_IND:
 			wma_ProcessAddPeriodicTxPtrnInd(wma_handle,
 				(tSirAddPeriodicTxPtrn *)msg->bodyptr);
@@ -25996,247 +25899,6 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	return 0;
 }
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-
-/* function   : wma_batch_scan_result_event_handler
- * Description : Batch scan result event handler from target. This function
- *              converts target batch scan response into HDD readable format
- *              and calls HDD supplied callback
- * Args       :
-                handle  : Pointer to WMA handle
- *              data    : Pointer to batch scan response data from target
-                datalen : Length of response data from target
- * Returns    :
- */
-static int
-wma_batch_scan_result_event_handler
-(
-    void *handle,
-    u_int8_t *data,
-    u_int32_t datalen
-)
-{
-    void *pCallbackContext;
-    tSirBatchScanList *pHddScanList;
-    tSirBatchScanResultIndParam *pHddResult;
-    tSirBatchScanNetworkInfo *pHddApMetaInfo;
-    tp_wma_handle wma = (tp_wma_handle) handle;
-    wmi_batch_scan_result_scan_list *scan_list;
-    wmi_batch_scan_result_network_info *network_info;
-    wmi_batch_scan_result_event_fixed_param *fix_param;
-    WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *param_tlvs;
-    u_int8_t bssid[IEEE80211_ADDR_LEN], ssid[33], *ssid_temp;
-    u_int32_t temp, count1, count2, scan_num, netinfo_num, total_size;
-    u_int32_t nextScanListOffset, nextApMetaInfoOffset, numNetworkInScanList;
-    tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
-                                              wma->vos_context);
-
-    total_size = 0;
-    param_tlvs = (WMI_BATCH_SCAN_RESULT_EVENTID_param_tlvs *)data;
-    fix_param = param_tlvs->fixed_param;
-    scan_list = param_tlvs->scan_list;
-    network_info = param_tlvs->network_list;
-    scan_num = fix_param->numScanLists;
-
-    WMA_LOGE("%s: scan_num %d isLast %d", __func__, scan_num,
-       fix_param->isLastResult);
-
-    if (NULL == pMac)
-    {
-	    WMA_LOGE("%s: Could not parse target response scan_num %d pMac %p",
-			__func__, scan_num, pMac);
-	    return 0;
-    }
-
-    if (0 == scan_num)
-    {
-	    WMA_LOGE("%s: Could not parse target response scan_num %d pMac %p",
-			__func__, scan_num, pMac);
-	    pHddResult = NULL;
-	    goto done;
-    }
-
-    for(count1 = 0; count1 < scan_num; count1++)
-    {
-        total_size += (sizeof(tSirBatchScanNetworkInfo) *
-                            scan_list->numNetworksInScanList);
-        netinfo_num = scan_list->numNetworksInScanList;
-        WMA_LOGD("scanId %d numNetworksInScanList %d "
-           "netWorkStartIndex %d", scan_list->scanId,
-        scan_list->numNetworksInScanList, scan_list->netWorkStartIndex);
-        scan_list++;
-    }
-    total_size += (sizeof(tSirBatchScanResultIndParam) +
-                   sizeof(tSirBatchScanList) * scan_num);
-    WMA_LOGE("%s: Batch scan response length %d", __func__, total_size);
-    pHddResult = (tSirBatchScanResultIndParam *)vos_mem_malloc(total_size);
-    if (NULL == pHddResult)
-    {
-        WMA_LOGE("%s:Could not allocate memory for len %d", __func__,
-            total_size);
-        goto done;
-    }
-
-    /*
-     Parse target response and fill it in HDD format as shown below
-     Target Response:
-     ===============
-     | scan result | scan list 0 | scan list 1 | scan list 2 | ----
-     | scan list N | network info 1to n1 | network info 1 to n2 |----
-     | network info 1 to Nn |
-
-     HDD requested format:
-     ====================
-     | scan result | scan list 0 | network info 1 to n1 | scan list 2 |
-     | network info 1 to n2 | scan list 3 | network info 1 to n3 | ----
-     | scan list N | network info 1 to Nn |
-    */
-    vos_mem_zero((u_int8_t*)pHddResult, total_size);
-    pHddResult->timestamp = fix_param->timestamp;
-    pHddResult->numScanLists = fix_param->numScanLists;
-    pHddResult->isLastResult = fix_param->isLastResult;
-    scan_list = param_tlvs->scan_list;
-    network_info = param_tlvs->network_list;
-    nextScanListOffset = 0;
-    nextApMetaInfoOffset = 0;
-    numNetworkInScanList = 0;
-
-    for(count1 = 0; count1 < scan_num; count1++)
-    {
-        pHddScanList = (tSirBatchScanList *)((tANI_U8 *)pHddResult->scanResults +
-                                              nextScanListOffset);
-        pHddScanList->scanId = scan_list->scanId;
-        pHddScanList->numNetworksInScanList = scan_list->numNetworksInScanList;
-        numNetworkInScanList = pHddScanList->numNetworksInScanList;
-
-        /*Initialize next AP meta info offset for next scan list*/
-        nextApMetaInfoOffset = 0;
-
-        for (count2 = 0; count2 < scan_list->numNetworksInScanList; count2++)
-        {
-            int8_t raw_rssi;
-
-            pHddApMetaInfo =
-              (tSirBatchScanNetworkInfo *)(pHddScanList->scanList +
-                                                nextApMetaInfoOffset);
-
-            WMI_MAC_ADDR_TO_CHAR_ARRAY(&network_info->bssid, &bssid[0]);
-            vos_mem_copy(pHddApMetaInfo->bssid, bssid, IEEE80211_ADDR_LEN);
-            if (network_info->ssid.ssid_len <= 32)
-            {
-               ssid_temp = (u_int8_t *)network_info->ssid.ssid;
-               for(temp = 0; temp < network_info->ssid.ssid_len; temp++)
-               {
-                  ssid[temp] = *ssid_temp;
-                  ssid_temp++;
-               }
-               ssid[temp] = '\0';
-               vos_mem_copy(pHddApMetaInfo->ssid, ssid,
-                                (network_info->ssid.ssid_len + 1));
-               WMA_LOGD("ssid %s",pHddApMetaInfo->ssid);
-            }
-            else
-            {
-               WMA_LOGE("invalid ssid_len %d received from target",
-                   network_info->ssid.ssid_len);
-               pHddApMetaInfo->ssid[0] = '\0';
-            }
-            pHddApMetaInfo->ch = network_info->ch;
-            raw_rssi = ((int32_t)network_info->rssi + WMA_TGT_NOISE_FLOOR_DBM);
-            if (raw_rssi < 0)
-                raw_rssi = raw_rssi * (-1);
-            pHddApMetaInfo->rssi = raw_rssi;
-            pHddApMetaInfo->timestamp = network_info->timestamp;
-
-            WMA_LOGD("ch %d rssi %d timestamp %d",pHddApMetaInfo->ch,
-            pHddApMetaInfo->rssi, pHddApMetaInfo->timestamp);
-
-            nextApMetaInfoOffset += sizeof(tSirBatchScanNetworkInfo);
-            network_info++;
-        }
-
-        nextScanListOffset +=  ((sizeof(tSirBatchScanList) - sizeof(tANI_U8))
-                                + (sizeof(tSirBatchScanNetworkInfo)
-                                * numNetworkInScanList));
-        scan_list++;
-    }
-
-done:
-
-    pCallbackContext = pMac->pmc.batchScanResultCallbackContext;
-    /*call hdd callback with set batch scan response data*/
-    if (pMac->pmc.batchScanResultCallback)
-    {
-        pMac->pmc.batchScanResultCallback(pCallbackContext, (void *)pHddResult);
-    }
-    else
-    {
-        WMA_LOGE("%s:HDD callback is null", __func__);
-    }
-
-    /*free if memory was allocated*/
-    if (pHddResult)
-    {
-        vos_mem_free(pHddResult);
-    }
-
-    return 0;
-}
-
-/* function   : wma_batch_scan_enable_event_handler
- * Description : Batch scan enable event handler from target. This function
- *              gets minimum no of supported batch scan info from target
- *              and calls HDD supplied callback
- * Args       :
-                handle  : Pointer to WMA handle
- *              data    : Pointer to batch scan enable data from target
-                datalen : Length of response data from target
- * Returns    :
- */
-static int
-wma_batch_scan_enable_event_handler
-(
-    void *handle,
-    u_int8_t *data,
-    u_int32_t datalen
-)
-{
-    void *pCallbackContext;
-    tSirSetBatchScanRsp hddSetBatchScanRsp;
-    tp_wma_handle wma = (tp_wma_handle) handle;
-    WMI_BATCH_SCAN_ENABLED_EVENTID_param_tlvs *param_tlvs;
-    wmi_batch_scan_enabled_event_fixed_param *fix_param;
-    tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
-                                              wma->vos_context);
-
-    param_tlvs = (WMI_BATCH_SCAN_ENABLED_EVENTID_param_tlvs *)data;
-    fix_param = param_tlvs->fixed_param;
-
-    WMA_LOGD("%s: support number of scan %d",__func__,
-        fix_param->supportedMscan);
-
-    /*Call HDD callback*/
-    if (NULL == pMac)
-    {
-        WMA_LOGE("%s: pMac is NULL", __func__);
-        return -1;
-    }
-    hddSetBatchScanRsp.nScansToBatch = fix_param->supportedMscan;
-    pCallbackContext = pMac->pmc.setBatchScanReqCallbackContext;
-    /*Call hdd callback with set batch scan response data*/
-    if (pMac->pmc.setBatchScanReqCallback)
-    {
-       pMac->pmc.setBatchScanReqCallback(pCallbackContext, &hddSetBatchScanRsp);
-    }
-    else
-    {
-       WMA_LOGE("%s:HDD callback is null", __func__);
-    }
-
-    return 0;
-}
-#endif
-
 #ifdef FEATURE_WLAN_CH_AVOID
 /* Process channel to avoid event comes from FW.
  */
@@ -26594,38 +26256,6 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 			WMI_TX_PAUSE_EVENTID,
 			wma_mcc_vdev_tx_pause_evt_handler);
 #endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL */
-#ifdef FEATURE_WLAN_BATCH_SCAN
-    if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
-           WMI_SERVICE_BATCH_SCAN))
-    {
-
-        WMA_LOGD("FW supports batch scan, registering batch scan handler");
-
-        status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-                     WMI_BATCH_SCAN_RESULT_EVENTID,
-                     wma_batch_scan_result_event_handler);
-        if (status)
-        {
-            WMA_LOGE("Failed to register batch scan result event cb");
-            vos_status = VOS_STATUS_E_FAILURE;
-            goto end;
-        }
-
-        status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
-            WMI_BATCH_SCAN_ENABLED_EVENTID,
-            wma_batch_scan_enable_event_handler);
-        if (status)
-        {
-            WMA_LOGE("Failed to register batch scan enable event cb");
-            vos_status = VOS_STATUS_E_FAILURE;
-            goto end;
-        }
-    }
-    else
-    {
-        WMA_LOGE("Target does not support batch scan feature");
-    }
-#endif
 
 #ifdef FEATURE_WLAN_CH_AVOID
 	WMA_LOGD("Registering channel to avoid handler");
@@ -27105,13 +26735,6 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* PNO offload */
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
 		cfg->pno_offload = TRUE;
-#endif
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
-		WMI_SERVICE_BATCH_SCAN)){
-		gFwWlanFeatCaps |= (1 << BATCH_SCAN);
-	}
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
@@ -29743,17 +29366,21 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,wma->vos_context);
 	pmac = (tpAniSirGlobal)
 		vos_get_context(VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pmac) {
+		WMA_LOGE("%s:Invalid MAC handle", __func__);
+		return -ENOENT;
+	}
 
 	if (wma->dfs_ic != ic)
 	{
-		WMA_LOGE("%s:DFS- Invalid WMA handle",__func__);
+		WMA_LOGE("%s:DFS- Invalid WMA handle", __func__);
 		return -ENOENT;
 	}
 	radar_event = (struct wma_dfs_radar_indication *)
 		vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
 	if (radar_event == NULL)
 	{
-		WMA_LOGE("%s:DFS- Invalid radar_event",__func__);
+		WMA_LOGE("%s:DFS- Invalid radar_event", __func__);
 		return -ENOENT;
 	}
 
@@ -29903,6 +29530,12 @@ ol_indicate_err(
 			void *g_vos_ctx = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 			tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, g_vos_ctx);
 			tpSirSmeMicFailureInd mic_err_ind;
+
+			if (!wma) {
+				WMA_LOGE("%s: MIC error: Null wma handle",
+					 __func__);
+				return;
+			}
 
 			mic_err_ind = vos_mem_malloc(sizeof(*mic_err_ind));
 			if (!mic_err_ind) {
@@ -30062,7 +29695,8 @@ static void wma_set_suspend_dtim(tp_wma_handle wma)
 	}
 
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma->interfaces[i].handle) {
+		if ((wma->interfaces[i].handle) &&
+		    (false == wma->interfaces[i].alt_modulated_dtim_enabled)) {
 			wma_set_vdev_suspend_dtim(wma, i);
 		}
 	}
@@ -30136,7 +29770,8 @@ static void wma_set_resume_dtim(tp_wma_handle wma)
 	}
 
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma->interfaces[i].handle) {
+		if ((wma->interfaces[i].handle) &&
+		    (false == wma->interfaces[i].alt_modulated_dtim_enabled)) {
 			wma_set_vdev_resume_dtim(wma, i);
 		}
 	}
