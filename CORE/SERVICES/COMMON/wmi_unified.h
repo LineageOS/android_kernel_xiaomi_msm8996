@@ -4832,6 +4832,7 @@ typedef struct {
 #define WMI_PEER_PMF            0x08000000  /* Robust Management Frame Protection enabled */
 /** CAUTION TODO: Place holder for WLAN_PEER_F_PS_PRESEND_REQUIRED = 0x10000000. Need to be clean up */
 #define WMI_PEER_IS_P2P_CAPABLE 0x20000000  /* P2P capable peer */
+#define WMI_PEER_160MHZ         0x40000000  /* 160 MHz enabled */
 #define WMI_PEER_SAFEMODE_EN    0x80000000  /* Fips Mode Enabled */
 
 /**
