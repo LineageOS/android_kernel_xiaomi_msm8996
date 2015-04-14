@@ -1053,6 +1053,10 @@ struct hdd_adapter_s
 	struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
 	struct sir_dcc_get_stats_response *dcc_get_stats_resp;
 	struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
+
+	/* MAC addresses used for OCB interfaces */
+	tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
+	int ocb_mac_addr_count;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
