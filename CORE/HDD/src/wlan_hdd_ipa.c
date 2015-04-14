@@ -379,6 +379,7 @@ static uint8_t vdev_to_iface[CSR_ROAM_SESSION_MAX];
 struct hdd_ipa_priv {
 	struct hdd_ipa_sys_pipe sys_pipe[HDD_IPA_MAX_SYSBAM_PIPE];
 	struct hdd_ipa_iface_context iface_context[HDD_IPA_MAX_IFACE];
+	uint8_t num_iface;
 	enum hdd_ipa_rm_state rm_state;
 	/*
 	 * IPA driver can send RM notifications with IRQ disabled so using adf
@@ -3110,6 +3111,12 @@ static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 	iface_context->tl_context = NULL;
 	adf_os_spin_unlock_bh(&iface_context->interface_lock);
 	iface_context->ifa_address = 0;
+	if (!iface_context->hdd_ipa->num_iface) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"NUM INTF 0, Invalid");
+		VOS_ASSERT(0);
+	}
+	iface_context->hdd_ipa->num_iface--;
 }
 
 
@@ -3170,6 +3177,7 @@ static int hdd_ipa_setup_iface(struct hdd_ipa_priv *hdd_ipa,
 	if (ret)
 		goto cleanup_header;
 
+	hdd_ipa->num_iface++;
 	return ret;
 
 cleanup_header:
@@ -3386,6 +3394,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			SIR_STA_RX_DATA_OFFLOAD, 1);
 		}
 
+		vos_lock_acquire(&hdd_ipa->event_lock);
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
@@ -3399,13 +3408,18 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 					"%s: handle 1st con ret %d",
 					msg_ex->name, ret);
 			} else {
+				vos_lock_release(&hdd_ipa->event_lock);
 				goto end;
 			}
 		}
 #endif
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
-		if (ret)
+		if (ret) {
+#ifdef IPA_UC_OFFLOAD
+			vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 			goto end;
+		}
 
 #ifdef IPA_UC_OFFLOAD
 		vdev_to_iface[adapter->sessionId] =
@@ -3414,7 +3428,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #ifdef IPA_UC_STA_OFFLOAD
 		hdd_ipa->sta_connected = 1;
 #endif
-#endif
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		break;
 
 	case WLAN_AP_CONNECT:
@@ -3438,13 +3453,16 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_AP_RX_DATA_OFFLOAD, 1);
 		}
-#endif
-
+		vos_lock_acquire(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
 		if (ret) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 				"%s: Evt: %d, Interface setup failed",
 				msg_ex->name, meta.msg_type);
+#ifdef IPA_UC_OFFLOAD
+			vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 			goto end;
 		}
 
@@ -3452,11 +3470,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		vdev_to_iface[adapter->sessionId] =
 			((struct hdd_ipa_iface_context *)
 				(adapter->ipa_context))->iface_id;
-#endif
-
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		break;
 
 	case WLAN_STA_DISCONNECT:
+#ifdef IPA_UC_OFFLOAD
+		vos_lock_acquire(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		hdd_ipa_cleanup_iface(adapter->ipa_context);
 
 #if defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)
@@ -3473,7 +3494,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				msg_ex->name);
 		} else {
 			/* Disable IPA UC TX PIPE when STA disconnected */
-			if (!hdd_ipa->sap_num_connected_sta) {
+			if ((!hdd_ipa->sap_num_connected_sta) ||
+				((!hdd_ipa->num_iface) &&
+					(HDD_IPA_UC_NUM_WDI_PIPE ==
+					hdd_ipa->activated_fw_pipe))) {
 				hdd_ipa_uc_handle_last_discon(hdd_ipa);
 			}
 		}
@@ -3484,6 +3508,9 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
 #endif
+#ifdef IPA_UC_OFFLOAD
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		break;
 
 	case WLAN_AP_DISCONNECT:
@@ -3494,15 +3521,26 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			return -EINVAL;
 		}
 
+#ifdef IPA_UC_OFFLOAD
+		vos_lock_acquire(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		hdd_ipa_cleanup_iface(adapter->ipa_context);
 
 #ifdef IPA_UC_OFFLOAD
+		if ((!hdd_ipa->num_iface) &&
+			(HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe)) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"NO INTF left, but still pipe, clean up");
+			hdd_ipa_uc_handle_last_discon(hdd_ipa);
+		}
+
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_AP_RX_DATA_OFFLOAD, 0);
 			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
-#endif
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 		break;
 
 	case WLAN_CLIENT_CONNECT_EX:
@@ -3982,6 +4020,7 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	hdd_ctx->hdd_ipa = hdd_ipa;
 	ghdd_ipa = hdd_ipa;
 	hdd_ipa->hdd_ctx = hdd_ctx;
+	hdd_ipa->num_iface = 0;
 
 	/* Create the interface context */
 	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
