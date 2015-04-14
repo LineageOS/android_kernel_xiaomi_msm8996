@@ -2589,7 +2589,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 	tp_wma_handle wma = (tp_wma_handle)handle;
 	WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_start_stop_event_fixed_param *event;
-	tSirExtScanStartRspParams   *extscan_ind;
+	struct sir_extscan_generic_response   *extscan_ind;
 	u_int16_t event_type;
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
@@ -2617,16 +2617,16 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 	case WMI_EXTSCAN_START_CMDID:
 		event_type = eSIR_EXTSCAN_START_RSP;
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		break;
 	case WMI_EXTSCAN_STOP_CMDID:
 		event_type = eSIR_EXTSCAN_STOP_RSP;
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		break;
 	case WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP;
@@ -2637,7 +2637,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		break;
 	case WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP;
@@ -2648,12 +2648,12 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		break;
 	case WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		event_type = eSIR_EXTSCAN_CACHED_RESULTS_RSP;
 		break;
 	case WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP;
@@ -2672,7 +2672,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 				event_type, extscan_ind);
 	WMA_LOGD("%s: sending event to umac for requestid %x"
 		"with status %d", __func__,
-		extscan_ind->requestId, extscan_ind->status);
+		extscan_ind->request_id, extscan_ind->status);
 	vos_mem_free(extscan_ind);
 	return 0;
 }
