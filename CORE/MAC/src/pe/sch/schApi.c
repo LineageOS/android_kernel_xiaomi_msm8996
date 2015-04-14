@@ -618,6 +618,7 @@ int schGenTimingAdvertFrame(tpAniSirGlobal mac_ctx, tSirMacAddr self_addr,
     *buf = vos_mem_malloc(buf_size);
     if (*buf == NULL) {
         schLog(mac_ctx, LOGE, FL("Cannot allocate memory"));
+        return eSIR_FAILURE;
     }
     vos_mem_zero(*buf, buf_size);
 
