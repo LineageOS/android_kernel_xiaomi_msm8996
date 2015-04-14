@@ -1,4 +1,4 @@
-/*copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+/*copyright (c) 2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -23,6 +23,19 @@
  * under proprietary terms before Copyright ownership was assigned
  * to the Linux Foundation.
  */
+
+#ifndef __WMA_OCB_H
+#define __WMA_OCB_H
+
+#include "wma.h"
+#include "sirApi.h"
+
+#define OCB_FREQ_TO_CHAN(x) (((x) - 5000) / 5)
+
+int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status);
+
+int wma_ocb_set_config_req(tp_wma_handle handle,
+			   struct sir_ocb_config *config_req);
 
 int wma_ocb_set_config_event_handler(void *handle, uint8_t *event_buf,
 				     uint32_t len);
