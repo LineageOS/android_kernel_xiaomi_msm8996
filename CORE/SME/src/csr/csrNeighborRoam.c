@@ -2800,19 +2800,31 @@ if (csrRoamIsRoamOffloadScanEnabled(pMac))
    {
     if (!tempVal || !roamNow)
     {
-       if (pNeighborRoamInfo->uOsRequestedHandoff)
-       {
-          csrRoamOffloadScan(pMac, sessionId, ROAM_SCAN_OFFLOAD_START,
-                             REASON_NO_CAND_FOUND_OR_NOT_ROAMING_NOW);
-          pNeighborRoamInfo->uOsRequestedHandoff = 0;
-       }
-       else
-       {
-         /* There is no candidate or We are not roaming Now.
-          * Inform the FW to restart Roam Offload Scan  */
-          csrRoamOffloadScan(pMac, sessionId, ROAM_SCAN_OFFLOAD_RESTART,
-                             REASON_NO_CAND_FOUND_OR_NOT_ROAMING_NOW);
-       }
+        if ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) ||
+            (eSME_ROAM_TRIGGER_FAST_ROAM == pNeighborRoamInfo->cfgRoamEn))
+        {
+           /* This is ioctl based roaming if we did not find any roamable
+            * candidate then just log it. */
+           smsLog(pMac, LOGE,
+                  FL("tempVal = %u, roamNow = %d uOsRequestedHandoff = %d"),
+                  tempVal, roamNow, pNeighborRoamInfo->uOsRequestedHandoff);
+        }
+        else
+        {
+           if (pNeighborRoamInfo->uOsRequestedHandoff)
+           {
+              csrRoamOffloadScan(pMac, sessionId, ROAM_SCAN_OFFLOAD_START,
+                                 REASON_NO_CAND_FOUND_OR_NOT_ROAMING_NOW);
+              pNeighborRoamInfo->uOsRequestedHandoff = 0;
+           }
+           else
+           {
+            /* There is no candidate or We are not roaming Now.
+             * Inform the FW to restart Roam Offload Scan  */
+              csrRoamOffloadScan(pMac, sessionId, ROAM_SCAN_OFFLOAD_RESTART,
+                                 REASON_NO_CAND_FOUND_OR_NOT_ROAMING_NOW);
+           }
+        }
        CSR_NEIGHBOR_ROAM_STATE_TRANSITION(eCSR_NEIGHBOR_ROAM_STATE_CONNECTED,
                                           sessionId);
     }
