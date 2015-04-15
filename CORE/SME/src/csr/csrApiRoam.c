@@ -18106,8 +18106,12 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
    pSession->ftSmeContext.FTState = eFT_AUTH_COMPLETE;
    // Indicate SME QoS module the completion of Preauth success. This will trigger the creation of RIC IEs
    pSession->ftSmeContext.psavedFTPreAuthRsp = pFTPreAuthRsp;
-   /* No need to notify qos module if this is a non 11r roam*/
-   if (csrRoamIs11rAssoc(pMac, pFTPreAuthRsp->smeSessionId))
+   /* No need to notify qos module if this is a non 11r & ESE roam*/
+   if (csrRoamIs11rAssoc(pMac, pFTPreAuthRsp->smeSessionId)
+#if defined(FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_ESE_UPLOAD)
+       || csrRoamIsESEAssoc(pMac, pFTPreAuthRsp->smeSessionId)
+#endif
+      )
    {
       sme_QosCsrEventInd(pMac,
             pSession->ftSmeContext.smeSessionId,
