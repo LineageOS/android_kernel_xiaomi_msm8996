@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -53,13 +53,32 @@
 #include "parserApi.h"
 
 tSirRetStatus
-limValidateIEInformationInProbeRspFrame (tANI_U8 *pRxPacketInfo)
+limValidateIEInformationInProbeRspFrame (tpAniSirGlobal pMac,
+                                         tANI_U8 *pRxPacketInfo)
 {
    tSirRetStatus       status = eSIR_SUCCESS;
+   tANI_U8             *pFrame;
+   tANI_U32            nFrame;
+   tANI_U32            nMissingRsnBytes;
 
+   /*
+    * Validate a Probe response frame for malformed frame.
+    * If the frame is malformed then do not consider as it
+    * may cause problem fetching wrong IE values
+    */
    if (WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) < (SIR_MAC_B_PR_SSID_OFFSET + SIR_MAC_MIN_IE_LEN))
    {
-      status = eSIR_FAILURE;
+      return eSIR_FAILURE;
+   }
+
+   pFrame = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+   nFrame = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+   nMissingRsnBytes = 0;
+
+   status = sirvalidateandrectifyies(pMac, pFrame, nFrame, &nMissingRsnBytes);
+   if ( status == eSIR_SUCCESS )
+   {
+       WDA_GET_RX_MPDU_LEN(pRxPacketInfo) += nMissingRsnBytes;
    }
 
    return status;
@@ -136,7 +155,8 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
    }
 
    // Validate IE information before processing Probe Response Frame
-   if (limValidateIEInformationInProbeRspFrame(pRxPacketInfo) != eSIR_SUCCESS)
+   if (limValidateIEInformationInProbeRspFrame(pMac, pRxPacketInfo)
+       != eSIR_SUCCESS)
    {
        PELOG1(limLog(pMac, LOG1,
                  FL("Parse error ProbeResponse, length=%d"), frameLen);)
@@ -370,7 +390,8 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     }
 #endif
      // Validate IE information before processing Probe Response Frame
-    if (limValidateIEInformationInProbeRspFrame(pRxPacketInfo) != eSIR_SUCCESS)
+    if (limValidateIEInformationInProbeRspFrame(pMac, pRxPacketInfo)
+        != eSIR_SUCCESS)
     {
        PELOG1(limLog(pMac, LOG1,FL("Parse error ProbeResponse, length=%d"),
               frameLen);)

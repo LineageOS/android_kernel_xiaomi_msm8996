@@ -71,6 +71,13 @@ struct sAvoidChannelIE {
 };
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+#define SIZE_OF_FIXED_PARAM ( 12 )
+#define SIZE_OF_TAG_PARAM_NUM  ( 1 )
+#define SIZE_OF_TAG_PARAM_LEN ( 1 )
+#define RSNIEID ( 0x30 )
+#define RSNIE_CAPABILITY_LEN ( 2 )
+#define DEFAULT_RSNIE_CAP_VAL ( 0x00 )
+
 typedef struct sSirCountryInformation
 {
     tANI_U8 countryString[COUNTRY_STRING_LENGTH];
@@ -537,8 +544,6 @@ sirConvertQosMapConfigureFrame2Struct(tpAniSirGlobal    pMac,
                           tANI_U32               nFrame,
                           tSirQosMapSet      *pQosMapSet);
 
-
-
 /**
  * \brief Populated a tDot11fFfCapabilities
  *
@@ -996,3 +1001,8 @@ sap_auth_offload_update_rsn_ie(tpAniSirGlobal pmac,
 
 tSirRetStatus PopulateDot11fTimingAdvertFrame(tpAniSirGlobal pMac,
     tDot11fTimingAdvertisementFrame *frame);
+
+tSirRetStatus sirvalidateandrectifyies(tpAniSirGlobal pMac,
+                                       tANI_U8 *pMgmtFrame,
+                                       tANI_U32 nFrameBytes,
+                                       tANI_U32 *nMissingRsnBytes);
