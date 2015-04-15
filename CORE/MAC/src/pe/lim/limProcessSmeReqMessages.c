@@ -6507,6 +6507,7 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         /* Channel switch announcement needs to be included in beacon */
         psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
         psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
+        psessionEntry->gLimChannelSwitch.switchMode = 1;
         psessionEntry->gLimChannelSwitch.secondarySubBand =
                                          pDfsCsaIeRequest->ch_bandwidth;
 
