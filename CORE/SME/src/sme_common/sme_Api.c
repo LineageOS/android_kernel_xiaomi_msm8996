@@ -13942,7 +13942,6 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     u_int8_t *pLevel = vos_mem_malloc(sizeof(*pLevel));
 
-    pLevel = vos_mem_malloc(sizeof(*pLevel));
     if (NULL == pLevel)
     {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
