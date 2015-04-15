@@ -94,5 +94,6 @@ struct wmi_unified {
 #ifdef FEATURE_WLAN_D0WOW
 	A_BOOL in_d0wow;
 #endif
+	adf_os_device_t osdev;
 };
 #endif

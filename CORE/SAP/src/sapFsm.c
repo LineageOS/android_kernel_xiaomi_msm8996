@@ -66,6 +66,7 @@
 #include "pmcApi.h"
 #include "wlan_nv.h"
 #include "vos_utils.h"
+#include "_ieee80211_common.h"
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -1208,37 +1209,6 @@ static v_U8_t sapPopulateAvailableChannels(chan_bonding_bitmap *pBitmap,
 }
 
 /*
- * FUNCTION  sapFetchRegulatoryDomain
- *
- * DESCRIPTION Fetches the Regulatory domain based up on the coutry code.
- *
- * DEPENDENCIES PARAMETERS
- * IN hHAL : HAL pointer
- *
- * RETURN VALUE  : v_REGDOMAIN_t, returns the regulatory domain
- *
- * SIDE EFFECTS
- */
-v_REGDOMAIN_t sapFetchRegulatoryDomain(tHalHandle hHal)
-{
-    tpAniSirGlobal pMac;
-    v_COUNTRYCODE_t country_code;
-    v_REGDOMAIN_t regDomain;
-    pMac = PMAC_STRUCT(hHal);
-
-    /*
-     * Fetch the REG DOMAIN from the country code.
-     */
-    country_code[0] = pMac->scan.countryCodeCurrent[0];
-    country_code[1] = pMac->scan.countryCodeCurrent[1];
-
-    vos_nv_getRegDomainFromCountryCode(&regDomain,
-                   country_code, COUNTRY_QUERY);
-
-    return regDomain;
-}
-
-/*
  * FUNCTION  sapDfsIsW53Invalid
  *
  * DESCRIPTION Checks if the passed channel is W53 and returns if
@@ -1378,8 +1348,8 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     tpAniSirGlobal pMac;
     tANI_U32 chanWidth;
     ePhyChanBondState cbModeCurrent;
-    v_REGDOMAIN_t regDomain;
     v_U8_t   *tempChannels = NULL;
+    uint8_t dfs_region;
 
     if (NULL == hHal) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -1433,7 +1403,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
         return target_channel;
     }
 
-    regDomain = sapFetchRegulatoryDomain(hHal);
+    vos_nv_get_dfs_region(&dfs_region);
 
     /*
      * valid_chnl_count will be used to find number of valid channels
@@ -1462,7 +1432,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
          * channels only based up on the SAP Channel location
          * indicated by "sap_operating_channel_location" param.
          */
-        if (REGDOMAIN_JAPAN == regDomain)
+        if (DFS_MKK4_DOMAIN == dfs_region)
         {
             /*
              * Check for JAPAN W53 Channel operation capability
@@ -4702,9 +4672,9 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
 {
     VOS_STATUS status;
     v_U32_t cacTimeOut;
-    v_REGDOMAIN_t regDomain;
     tHalHandle hHal = NULL;
     tpAniSirGlobal pMac = NULL;
+    uint8_t dfs_region;
 
     if (sapContext == NULL)
     {
@@ -4729,9 +4699,10 @@ int sapStartDfsCacTimer(ptSapContext sapContext)
         return 2;
     }
     cacTimeOut = DEFAULT_CAC_TIMEOUT;
-    vos_nv_getRegDomainFromCountryCode(&regDomain,
-                    sapContext->csrRoamProfile.countryCode, COUNTRY_QUERY);
-    if ((regDomain == REGDOMAIN_ETSI) &&
+
+    vos_nv_get_dfs_region(&dfs_region);
+
+    if ((dfs_region == DFS_ETSI_DOMAIN) &&
        ((IS_ETSI_WEATHER_CH(sapContext->channel)) ||
        (sap_is_channel_bonding_etsi_weather_channel(sapContext))))
     {

@@ -34,9 +34,9 @@
 \brief       Linux HDD TDLS include file
 ==========================================================================*/
 
-#define MAX_NUM_TDLS_PEER           3
-
 #ifdef FEATURE_WLAN_TDLS
+
+#define MAX_NUM_TDLS_PEER           3
 
 #define TDLS_SUB_DISCOVERY_PERIOD   100
 

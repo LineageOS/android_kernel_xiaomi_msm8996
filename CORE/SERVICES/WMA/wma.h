@@ -1119,6 +1119,7 @@ extern void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 		u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G);
 void wma_get_modeselect(tp_wma_handle wma, u_int32_t *modeSelect);
 
+void wma_set_dfs_regdomain(tp_wma_handle wma, uint8_t dfs_region);
 
 /**
   * Frame index

@@ -1101,6 +1101,75 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
     return VOS_STATUS_SUCCESS;
 }
 
+/* vos_nv_set_dfs_region() - set the dfs_region
+ *
+ * @dfs_region: the dfs_region to set
+ *
+ * Return: VOS_STATUS_SUCCESS if dfs_region set correctly
+ *         VOS_STATUS_E_EXISTS if vos_context not found
+ */
+VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region)
+{
+	v_CONTEXT_t vos_ctx_ptr = NULL;
+	hdd_context_t *hdd_ctx_ptr= NULL;
+
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if (NULL != vos_ctx_ptr)
+		hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+	else
+		return VOS_STATUS_E_EXISTS;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+
+	hdd_ctx_ptr->reg.dfs_region = dfs_region;
+
+#else
+
+	/* remap the ctl code to dfs region code */
+	switch(hdd_ctx_ptr->reg.ctl_5g) {
+	case REGDOMAIN_FCC:
+		hdd_ctx_ptr->reg.dfs_region = DFS_FCC_DOMAIN;
+		break;
+	case REGDOMAIN_ETSI:
+		hdd_ctx_ptr->reg.dfs_region = DFS_ETSI_DOMAIN;
+		break;
+	case REGDOMAIN_JAPAN:
+		hdd_ctx_ptr->reg.dfs_region = DFS_MKK4_DOMAIN;
+		break;
+	default:
+		/* set default dfs_region to FCC */
+		hdd_ctx_ptr->reg.dfs_region = DFS_FCC_DOMAIN;
+		break;
+	}
+#endif
+	return VOS_STATUS_SUCCESS;
+}
+
+/* vos_nv_get_dfs_region() - get the dfs_region
+ *
+ * @dfs_region: the dfs_region to return
+ *
+ * Return: VOS_STATUS_SUCCESS if dfs_region set correctly
+ *         VOS_STATUS_E_EXISTS if vos_context not found
+ */
+VOS_STATUS vos_nv_get_dfs_region(uint8_t *dfs_region)
+{
+	v_CONTEXT_t vos_ctx_ptr = NULL;
+	hdd_context_t *hdd_ctx_ptr = NULL;
+
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if (NULL != vos_ctx_ptr)
+		hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+	else
+		return VOS_STATUS_E_EXISTS;
+
+	*dfs_region = hdd_ctx_ptr->reg.dfs_region;
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /**------------------------------------------------------------------------
   \brief vos_nv_getRegDomainFromCountryCode() - get the regulatory domain of
   a country given its country code
@@ -1610,7 +1679,11 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     v_BOOL_t isVHT80Allowed;
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-               "cfg80211 reg notifier callback for country for initiator %d", request->initiator);
+              FL("country: %c%c, initiator %d, dfs_region: %d"),
+              request->alpha2[0],
+              request->alpha2[1],
+              request->initiator,
+              request->dfs_region);
 
     if (TRUE == isWDresetInProgress())
     {
@@ -1747,6 +1820,12 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 
         /* send CTL info to firmware */
         regdmn_set_regval(&pHddCtx->reg);
+
+        /* set dfs_region info */
+        vos_nv_set_dfs_region(request->dfs_region);
+
+        regdmn_set_dfs_region(&pHddCtx->reg);
+
     default:
         break;
     }

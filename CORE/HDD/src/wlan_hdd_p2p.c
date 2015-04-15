@@ -2177,10 +2177,12 @@ struct net_device* __wlan_hdd_add_virtual_intf(
                            eCSR_SCAN_ABORT_DEFAULT);
             hddLog(LOG1, FL("Abort Scan while adding virtual interface"));
         }
-        wlan_hdd_tdls_disable_offchan_and_teardown_links(pHddCtx);
     }
 
     pAdapter = NULL;
+
+    wlan_hdd_tdls_disable_offchan_and_teardown_links(pHddCtx);
+
     if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
         ((NL80211_IFTYPE_P2P_GO == type) ||
          (NL80211_IFTYPE_P2P_CLIENT == type)))

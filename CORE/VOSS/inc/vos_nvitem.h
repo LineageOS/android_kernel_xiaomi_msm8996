@@ -244,6 +244,9 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
   -------------------------------------------------------------------------*/
 eNVChannelEnabledType vos_nv_getChannelEnabledState(v_U32_t rfChannel);
 
+VOS_STATUS vos_nv_get_dfs_region(uint8_t *dfs_region);
+VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region);
+
 #define VOS_IS_DFS_CH(channel) (vos_nv_getChannelEnabledState((channel)) == \
                                    NV_CHANNEL_DFS)
 

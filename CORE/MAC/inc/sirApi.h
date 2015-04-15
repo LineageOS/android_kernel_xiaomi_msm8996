@@ -5089,20 +5089,8 @@ struct sir_extscan_generic_response {
 typedef struct
 {
     tANI_U32    requestId;
-    tANI_U32    status;
-} tSirExtScanStartRspParams, *tpSirExtScanStartRspParams;
-
-typedef struct
-{
-    tANI_U32    requestId;
     tANI_U8     sessionId;
 } tSirExtScanStopReqParams, *tpSirExtScanStopReqParams;
-
-typedef struct
-{
-    tANI_U32    requestId;
-    tANI_U32    status;
-} tSirExtScanStopRspParams, *tpSirExtScanStopRspParams;
 
 /**
  * struct tSirExtScanSetBssidHotListReqParams - set hotlist request
