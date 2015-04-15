@@ -12817,7 +12817,11 @@ eHalStatus sme_dcc_clear_stats(uint32_t vdev_id, uint32_t dcc_stats_bitmap)
 	vos_msg_t msg = {0};
 	struct sir_dcc_clear_stats *request =
 		vos_mem_malloc(sizeof(struct sir_dcc_clear_stats));
-
+	if (!request) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to allocate memory"));
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
 	vos_mem_zero(request, sizeof(*request));
 	request->vdev_id = vdev_id;
 	request->dcc_stats_bitmap = dcc_stats_bitmap;
