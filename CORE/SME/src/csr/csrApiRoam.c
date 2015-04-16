@@ -1923,6 +1923,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->is_sta_connection_in_5gz_enabled;
 
         pMac->enable_dot11p = pParam->enable_dot11p;
+        pMac->roam.configParam.sendDeauthBeforeCon =
+                               pParam->sendDeauthBeforeCon;
     }
 
     return status;
@@ -2085,6 +2087,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                      pMac->roam.configParam.conc_custom_rule2;
         pParam->is_sta_connection_in_5gz_enabled =
                      pMac->roam.configParam.is_sta_connection_in_5gz_enabled;
+        pParam->sendDeauthBeforeCon =
+                     pMac->roam.configParam.sendDeauthBeforeCon;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);

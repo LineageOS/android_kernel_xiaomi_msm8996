@@ -3813,8 +3813,40 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
     if(wlan_cfgGetInt(pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("failed to get WNI_CFG_TRIG_STA_BK_SCAN cfg value!"));
     pMac->lim.gLimTriggerBackgroundScanDuringQuietBss = (val) ? 1 : 0;
-    // Apply previously set configuration at HW
+    /* Apply previously set configuration at HW */
     limApplyConfiguration(pMac, psessionEntry);
+
+    /*
+     * If sendDeauthBeforeCon is enabled, Send Deauth first to AP if last
+     * disconnection was caused by HB failure.
+     */
+    if(pMac->roam.configParam.sendDeauthBeforeCon)
+    {
+       int apCount;
+
+       for(apCount = 0; apCount < 2; apCount++)
+       {
+
+           if (vos_mem_compare(psessionEntry->pLimMlmJoinReq->bssDescription.bssId,
+                    pMac->lim.gLimHeartBeatApMac[apCount], sizeof(tSirMacAddr)))
+           {
+               limLog(pMac, LOGE, FL("Index %d Sessionid: %d Send deauth on "
+                 "channel %d to BSSID: "MAC_ADDRESS_STR ), apCount,
+                 psessionEntry->peSessionId, psessionEntry->currentOperChannel,
+                 MAC_ADDR_ARRAY(psessionEntry->pLimMlmJoinReq->bssDescription.
+                                                                      bssId));
+
+               limSendDeauthMgmtFrame( pMac, eSIR_MAC_UNSPEC_FAILURE_REASON,
+                     psessionEntry->pLimMlmJoinReq->bssDescription.bssId,
+                     psessionEntry, FALSE );
+
+               vos_mem_zero(pMac->lim.gLimHeartBeatApMac[apCount],
+                       sizeof(tSirMacAddr));
+               break;
+           }
+       }
+    }
+
     /// Wait for Beacon to announce join success
     vos_mem_copy(ssId.ssId,
                  psessionEntry->ssId.ssId,
@@ -3823,11 +3855,11 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
 
     limDeactivateAndChangeTimer(pMac, eLIM_PERIODIC_JOIN_PROBE_REQ_TIMER);
 
-    //assign appropriate sessionId to the timer object
+    /* assign appropriate sessionId to the timer object */
     pMac->lim.limTimers.gLimPeriodicJoinProbeReqTimer.sessionId = psessionEntry->peSessionId;
-    limLog(pMac, LOG1, FL("Sessionid: %d Send Probe req on channel %d ssid: %s "
-        "BSSID: "MAC_ADDRESS_STR), psessionEntry->peSessionId,
-         psessionEntry->currentOperChannel, ssId.ssId,
+    limLog(pMac, LOG1, FL("Sessionid: %d Send Probe req on channel %d ssid:%.*s"
+            "BSSID: "MAC_ADDRESS_STR), psessionEntry->peSessionId,
+            psessionEntry->currentOperChannel, ssId.length, ssId.ssId,
          MAC_ADDR_ARRAY(psessionEntry->pLimMlmJoinReq->bssDescription.bssId));
 
     /*
