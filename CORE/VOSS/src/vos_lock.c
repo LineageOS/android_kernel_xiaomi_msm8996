@@ -54,7 +54,7 @@
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
-
+#include "vos_diag_core_event.h"
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -573,8 +573,11 @@ VOS_STATUS vos_wake_lock_acquire(vos_wake_lock_t *pLock,
 VOS_STATUS vos_wake_lock_timeout_acquire(vos_wake_lock_t *pLock, v_U32_t msec,
                                          uint32_t reason)
 {
-    vos_log_wlock_diag(reason, vos_wake_lock_name(pLock), msec,
+    if (WIFI_POWER_EVENT_WAKELOCK_HOLD_RX != reason) {
+        vos_log_wlock_diag(reason, vos_wake_lock_name(pLock), msec,
                        WIFI_POWER_EVENT_WAKELOCK_TAKEN);
+    }
+
 #if defined CONFIG_CNSS
     cnss_pm_wake_lock_timeout(pLock, msec);
 #elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
