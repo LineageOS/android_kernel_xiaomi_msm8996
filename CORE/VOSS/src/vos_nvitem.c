@@ -1115,9 +1115,12 @@ VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region)
 
 	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
-	if (NULL != vos_ctx_ptr)
-		hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
-	else
+	if (NULL == vos_ctx_ptr)
+		return VOS_STATUS_E_EXISTS;
+
+	hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+
+	if (NULL == hdd_ctx_ptr)
 		return VOS_STATUS_E_EXISTS;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
@@ -1160,9 +1163,12 @@ VOS_STATUS vos_nv_get_dfs_region(uint8_t *dfs_region)
 
 	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
-	if (NULL != vos_ctx_ptr)
-		hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
-	else
+	if (NULL == vos_ctx_ptr)
+		return VOS_STATUS_E_EXISTS;
+
+	hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+
+	if (NULL == hdd_ctx_ptr)
 		return VOS_STATUS_E_EXISTS;
 
 	*dfs_region = hdd_ctx_ptr->reg.dfs_region;
