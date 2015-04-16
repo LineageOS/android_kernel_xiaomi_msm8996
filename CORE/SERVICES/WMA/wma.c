@@ -8607,6 +8607,7 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     uint32_t hirssi_scan_max_count;
     uint32_t hirssi_scan_delta;
     int32_t hirssi_upper_bound;
+    int32_t good_rssi_threshold;
 
     /* Send rssi threshold */
     roam_params = &roam_req->roam_params;
@@ -8670,9 +8671,14 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     ext_thresholds->penalty_factor_5g = roam_params->drop_factor_5g;
     ext_thresholds->max_boost_5g = roam_params->max_raise_rssi_5g;
     ext_thresholds->max_penalty_5g = roam_params->max_drop_rssi_5g;
+    if (roam_params->good_rssi_roam)
+       good_rssi_threshold = WMA_NOISE_FLOOR_DBM_DEFAULT;
+    else
+       good_rssi_threshold = 0;
     ext_thresholds->good_rssi_threshold =
-      (roam_params->good_rssi_threshold - WMA_NOISE_FLOOR_DBM_DEFAULT) &
-      0x000000ff;
+      (good_rssi_threshold - WMA_NOISE_FLOOR_DBM_DEFAULT) & 0x000000ff;
+    WMA_LOGD("WMA --> good_rssi_threshold=%d",
+              ext_thresholds->good_rssi_threshold);
     WMITLV_SET_HDR(&ext_thresholds->tlv_header,
       WMITLV_TAG_STRUC_wmi_roam_scan_extended_threshold_param,
       WMITLV_GET_STRUCT_TLVLEN

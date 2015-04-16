@@ -17047,16 +17047,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
      "num_bssid_avoid_list: %d, num_ssid_allowed_list:%d, num_bssid_favored:%d,"
      "raise_rssi_thresh_5g: %d, drop_rssi_thresh_5g:%d, raise_rssi_type_5g:%d,"
      "raise_factor_5g:%d, drop_rssi_type_5g:%d, drop_factor_5g:%d,"
-     "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, good_rssi_threshold:%d,"
-     "alert_rssi_threshold:%d",
+     "max_raise_rssi_5g=%d, max_drop_rssi_5g:%d, alert_rssi_threshold:%d",
      roam_params_dst->num_bssid_avoid_list,
      roam_params_dst->num_ssid_allowed_list, roam_params_dst->num_bssid_favored,
      roam_params_dst->raise_rssi_thresh_5g,
      roam_params_dst->drop_rssi_thresh_5g, roam_params_dst->raise_rssi_type_5g,
      roam_params_dst->raise_factor_5g, roam_params_dst->drop_rssi_type_5g,
      roam_params_dst->drop_factor_5g, roam_params_dst->max_raise_rssi_5g,
-     roam_params_dst->max_drop_rssi_5g, roam_params_dst->good_rssi_threshold,
-     roam_params_dst->alert_rssi_threshold);
+     roam_params_dst->max_drop_rssi_5g, roam_params_dst->alert_rssi_threshold);
 
     for (i = 0; i < roam_params_dst->num_bssid_avoid_list; i++) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
