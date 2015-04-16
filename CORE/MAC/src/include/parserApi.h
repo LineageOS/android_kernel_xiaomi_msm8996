@@ -994,3 +994,5 @@ sap_auth_offload_update_rsn_ie(tpAniSirGlobal pmac,
                             tDot11fIERSNOpaque *pdot11f);
 #endif /* SAP_AUTH_OFFLOAD */
 
+tSirRetStatus PopulateDot11fTimingAdvertFrame(tpAniSirGlobal pMac,
+    tDot11fTimingAdvertisementFrame *frame);

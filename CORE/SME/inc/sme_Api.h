@@ -3832,13 +3832,34 @@ eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
 ---------------------------------------------------------------------------*/
 void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p);
 
-/* -------------------------------------------------------------------------
-   \fn sme_ocb_set_sched_req
-   \brief API to Indicate OCB Set Schedule Request
-   \param sched_req - Schedule Request
-   \return eHalStatus
----------------------------------------------------------------------------*/
-eHalStatus sme_ocb_set_sched_req(sir_ocb_set_sched_request_t *sched_req);
+eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
+                              ocb_callback callback,
+                              struct sir_ocb_config *config);
+
+eHalStatus sme_ocb_set_utc_time(struct sir_ocb_utc *utc);
+
+eHalStatus sme_ocb_start_timing_advert(struct sir_ocb_timing_advert
+                                       *timing_advert);
+
+eHalStatus sme_ocb_stop_timing_advert(struct sir_ocb_timing_advert
+                                      *timing_advert);
+
+eHalStatus sme_ocb_get_tsf_timer(tHalHandle hHal, void *context,
+                                 ocb_callback callback,
+                                 struct sir_ocb_get_tsf_timer *request);
+
+eHalStatus sme_dcc_get_stats(tHalHandle hHal, void *context,
+                             ocb_callback callback,
+                             struct sir_dcc_get_stats *request);
+
+eHalStatus sme_dcc_clear_stats(uint32_t vdev_id, uint32_t dcc_stats_bitmap);
+
+eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void* context,
+                              ocb_callback callback,
+                              struct sir_dcc_update_ndl *request);
+
+eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void* context,
+                                            ocb_callback callback);
 
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode

@@ -100,6 +100,7 @@ const EID_SEC_CHAN_OFFSET            =  62;
 const EID_RSNI                       =  65;
 const EID_RRM_MEAS_PILOT_TX_INFO     =  66;
 const EID_WAPI                       =  68;
+const EID_TIME_ADVERTISEMENT         =  69;
 const EID_RRM_ENABLED_CAPS           =  70;
 const EID_MULTIPLE_BSSID             =  71;
 const EID_20_40_BSS_COEXISTENCE      =  72;
@@ -2565,6 +2566,13 @@ CONTAINERIE RICDataDesc
   OPTIE  WMMSchedule;
 }
 
+IE TimeAdvertisement (EID_TIME_ADVERTISEMENT)   // 8.4.2.63
+{
+    timing_capabilities, 1;
+    time_value[10];
+    time_error[5];
+}
+
 /////////////////////////////////////////////////////////////////////////////
 //                                MULTIIEs                                 //
 /////////////////////////////////////////////////////////////////////////////
@@ -3964,6 +3972,19 @@ FRAME HT2040BSSCoexistenceManagementActionFrame
     FF     Action;
     MANDIE HT2040BSSCoexistence;
     MANDIE HT2040BSSIntolerantReport;
+}
+
+FRAME TimingAdvertisementFrame            // 8.3.3.15
+{
+    FF     TimeStamp;
+    FF     Capabilities;
+    OPTIE  Country;
+    OPTIE  PowerConstraints;
+    OPTIE  TimeAdvertisement;
+    OPTIE  ExtCap;
+    OPTIE  Vendor1IE;
+    OPTIE  Vendor2IE;
+    OPTIE  Vendor3IE;
 }
 
 // Local Variables:

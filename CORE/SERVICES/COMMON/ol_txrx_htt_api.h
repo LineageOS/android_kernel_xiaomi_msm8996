@@ -657,4 +657,13 @@ u_int32_t ol_tx_get_max_tx_groups_supported(struct ol_txrx_pdev_t *pdev);
 #else
 #define OL_TX_GET_MAX_GROUPS(pdev) 0
 #endif
+
+void
+ol_rx_chan_change_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t mhz,
+    u_int16_t band_center_freq1,
+    u_int16_t band_center_freq2,
+    WLAN_PHY_MODE phy_mode);
+
 #endif /* _OL_TXRX_HTT_API__H_ */

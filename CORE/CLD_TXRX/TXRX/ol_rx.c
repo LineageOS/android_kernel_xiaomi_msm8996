@@ -57,6 +57,7 @@
 #include <ipv4.h>    /* IPv4 header defs */
 #include <ipv6_defs.h>    /* IPv6 header defs */
 #include <ol_vowext_dbg_defs.h>
+#include <wma.h>
 
 #ifdef HTT_RX_RESTORE
 #if  defined(CONFIG_CNSS)
@@ -207,7 +208,7 @@ ol_rx_indication_handler(
     u_int8_t tid,
     int num_mpdu_ranges)
 {
-    int mpdu_range;
+    int mpdu_range, i;
     unsigned seq_num_start = 0, seq_num_end = 0;
     a_bool_t rx_ind_release = A_FALSE;
     struct ol_txrx_vdev_t *vdev = NULL;
@@ -226,6 +227,22 @@ ol_rx_indication_handler(
     if (peer) {
         vdev = peer->vdev;
         OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg);
+
+        if (vdev->opmode == wlan_op_mode_ocb) {
+            htt_rx_ind_legacy_rate(pdev->htt_pdev, rx_ind_msg,
+                                   &peer->last_pkt_legacy_rate,
+                                   &peer->last_pkt_legacy_rate_sel);
+            peer->last_pkt_rssi_cmb = htt_rx_ind_rssi_dbm(pdev->htt_pdev,
+                                                          rx_ind_msg);
+            for (i = 0; i < 4; i++)
+                peer->last_pkt_rssi[i] = htt_rx_ind_rssi_dbm_chain(
+                    pdev->htt_pdev, rx_ind_msg, i);
+            htt_rx_ind_timestamp(pdev->htt_pdev, rx_ind_msg,
+                                 &peer->last_pkt_timestamp_microsec,
+                                 &peer->last_pkt_timestamp_submicrosec);
+            peer->last_pkt_tsf = htt_rx_ind_tsf32(pdev->htt_pdev, rx_ind_msg);
+            peer->last_pkt_tid = htt_rx_ind_ext_tid(pdev->htt_pdev, rx_ind_msg);
+        }
     }
 
     TXRX_STATS_INCR(pdev, priv.rx.normal.ppdus);
@@ -931,6 +948,73 @@ DONE:
                 adf_nbuf_set_next(deliver_list_tail, NULL); /* add NULL terminator */
             }
         } else {
+            /* If this is for OCB, then prepend the RX stats header. */
+            if (vdev->opmode == wlan_op_mode_ocb) {
+                struct ether_header eth_header = {{0}};
+                struct ocb_rx_stats_hdr_t rx_header = {0};
+                /* Construct the RX stats header and push that to the front
+                   of the packet. */
+                rx_header.version = 1;
+                rx_header.length = sizeof(rx_header);
+                rx_header.channel_freq = (vdev->ocb_channel_event.is_valid) ?
+                    vdev->ocb_channel_event.mhz
+                    : 0;
+                rx_header.rssi_cmb = peer->last_pkt_rssi_cmb;
+                adf_os_mem_copy(rx_header.rssi, peer->last_pkt_rssi,
+                                sizeof(rx_header.rssi));
+                if (peer->last_pkt_legacy_rate_sel == 0) {
+                    switch (peer->last_pkt_legacy_rate) {
+                        case 0x8:
+                            rx_header.datarate = 6;
+                            break;
+                        case 0x9:
+                            rx_header.datarate = 4;
+                            break;
+                        case 0xA:
+                            rx_header.datarate = 2;
+                            break;
+                        case 0xB:
+                            rx_header.datarate = 0;
+                            break;
+                        case 0xC:
+                            rx_header.datarate = 7;
+                            break;
+                        case 0xD:
+                            rx_header.datarate = 5;
+                            break;
+                        case 0xE:
+                            rx_header.datarate = 3;
+                            break;
+                        case 0xF:
+                            rx_header.datarate = 1;
+                            break;
+                        default:
+                            rx_header.datarate = 0xFF;
+                            break;
+                    }
+                } else {
+                    rx_header.datarate = 0xFF;
+                }
+
+                rx_header.timestamp_microsec =
+                    peer->last_pkt_timestamp_microsec;
+                rx_header.timestamp_submicrosec =
+                    peer->last_pkt_timestamp_submicrosec;
+                rx_header.tsf32 = peer->last_pkt_tsf;
+                rx_header.ext_tid = peer->last_pkt_tid;
+
+                adf_nbuf_push_head(msdu, sizeof(rx_header));
+                adf_os_mem_copy(adf_nbuf_data(msdu), &rx_header,
+                                sizeof(rx_header));
+
+                /* Construct the ethernet header with type 0x8152 and push
+                   that to the front of the packet to indicate the RX stats
+                   header. */
+                eth_header.ether_type = adf_os_htons(ETHERTYPE_OCB_RX);
+                adf_nbuf_push_head(msdu, sizeof(eth_header));
+                adf_os_mem_copy(adf_nbuf_data(msdu), &eth_header,
+                                sizeof(eth_header));
+            }
             OL_RX_PEER_STATS_UPDATE(peer, msdu);
             OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
             TXRX_STATS_MSDU_INCR(vdev->pdev, rx.delivered, msdu);
@@ -1173,6 +1257,48 @@ ol_rx_offload_paddr_deliver_ind_handler(
         msdu_count--;
     }
     htt_rx_msdu_buff_replenish(htt_pdev);
+}
+
+/**
+ * ol_rx_chan_change_handler() - Process a channel change event from the target.
+ * @pdev:               the data physical device that received the frames
+ *                      (registered with HTT as a context pointer during attach
+ *                      time)
+ * @mhz:                primary channel frequency in MHz
+ * @band_center_freq1:  center frequency 1 in MHz
+ * @band_center_freq2:  Center frequency 2 in MHz - valid only for
+ *                          11acvht 80plus80 mode
+ * @phy_mode:           baseband modem operating mode
+ *
+ * The target sends a channel change event. Indicating the data recieved
+ * following this event is on the particular channel until the next channel
+ * change event.
+ */
+void
+ol_rx_chan_change_handler(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t mhz,
+    u_int16_t band_center_freq1,
+    u_int16_t band_center_freq2,
+    WLAN_PHY_MODE phy_mode)
+{
+    struct ol_txrx_vdev_t *vdev = NULL;
+    /* todo: this is temporary until firmware
+       supports the vdev-id on this event. */
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        if (wlan_op_mode_ocb == vdev->opmode) {
+            break;
+        }
+    }
+    if (!vdev) {
+        return;
+    }
+
+    vdev->ocb_channel_event.is_valid          = true;
+    vdev->ocb_channel_event.mhz               = mhz;
+    vdev->ocb_channel_event.band_center_freq1 = band_center_freq1;
+    vdev->ocb_channel_event.band_center_freq2 = band_center_freq2;
+    vdev->ocb_channel_event.phy_mode          = phy_mode;
 }
 
 void
