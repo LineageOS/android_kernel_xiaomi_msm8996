@@ -3350,6 +3350,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			VOS_MAC_ADDR_SIZE);
 		vos_list_insert_back(&hdd_ipa->pending_event,
 				&pending_evet->node);
+		return -ENOMEM;
 	}
 #endif /* IPA_UC_OFFLOAD */
 
@@ -3358,15 +3359,24 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	switch (type) {
 	case WLAN_STA_CONNECT:
 #if defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)
-		if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
-			hdd_ipa_uc_offload_enable_disable(adapter, SIR_STA_RX_DATA_OFFLOAD, 1);
+		/* STA alreadu connected and without disconnect, connect again
+		 * This is Roaming scenario */
+		if (hdd_ipa->sta_connected) {
+			hdd_ipa_cleanup_iface(adapter->ipa_context);
 		}
-		hdd_ipa->sta_connected = 1;
+
+		if ((hdd_ipa_uc_sta_is_enabled(hdd_ipa)) &&
+			(!hdd_ipa->sta_connected)) {
+			hdd_ipa_uc_offload_enable_disable(adapter,
+			SIR_STA_RX_DATA_OFFLOAD, 1);
+		}
+
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
 				msg_ex->name, meta.msg_type);
-		} else if (!hdd_ipa->sap_num_connected_sta) {
+		} else if ((!hdd_ipa->sap_num_connected_sta) &&
+				(!hdd_ipa->sta_connected)) {
 			/* Enable IPA UC TX PIPE when STA connected */
 			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
 			if (!ret) {
@@ -3386,11 +3396,20 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		vdev_to_iface[adapter->sessionId] =
 			((struct hdd_ipa_iface_context *)
 				(adapter->ipa_context))->iface_id;
+#ifdef IPA_UC_STA_OFFLOAD
+		hdd_ipa->sta_connected = 1;
 #endif
-
+#endif
 		break;
 
 	case WLAN_AP_CONNECT:
+		if (adapter->ipa_context) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Evt: %d, SAP already connected",
+				msg_ex->name, meta.msg_type);
+			return -EINVAL;
+		}
+
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
@@ -3399,8 +3418,12 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #endif
 
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
-		if (ret)
+		if (ret) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Evt: %d, Interface setup failed",
+				msg_ex->name, meta.msg_type);
 			goto end;
+		}
 
 #ifdef IPA_UC_OFFLOAD
 		vdev_to_iface[adapter->sessionId] =
@@ -3414,6 +3437,12 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		hdd_ipa_cleanup_iface(adapter->ipa_context);
 
 #if defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)
+		if (!hdd_ipa->sta_connected) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Evt: %d, STA already disconnected",
+				msg_ex->name, meta.msg_type);
+			return -EINVAL;
+		}
 		hdd_ipa->sta_connected = 0;
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
@@ -3435,6 +3464,13 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		break;
 
 	case WLAN_AP_DISCONNECT:
+		if (!adapter->ipa_context) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Evt: %d, SAP already disconnected",
+				msg_ex->name, meta.msg_type);
+			return -EINVAL;
+		}
+
 		hdd_ipa_cleanup_iface(adapter->ipa_context);
 
 #ifdef IPA_UC_OFFLOAD
