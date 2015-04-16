@@ -1328,7 +1328,7 @@ enum qca_wlan_vendor_acs_hw_mode {
  * enum qca_wlan_vendor_config: wifi config attr
  *
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_INVALID: invalid config
- * @QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM: dynamic dtim
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM: dynamic dtim
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR: stats avg. factor
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME: guard time
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_LAST: last config
@@ -1336,7 +1336,7 @@ enum qca_wlan_vendor_acs_hw_mode {
  */
 enum qca_wlan_vendor_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_INVALID = 0,
-	QCA_WLAN_VENDOR_ATTR_CONFIG_DYNAMIC_DTIM,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME,
 	/* keep last */

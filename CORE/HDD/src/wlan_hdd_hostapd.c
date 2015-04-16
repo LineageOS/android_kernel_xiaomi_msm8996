@@ -384,12 +384,6 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
    {
       hdd_setP2pOpps(pAdapter->dev, command);
    }
-#ifdef FEATURE_WLAN_BATCH_SCAN
-   else if (strncmp(command, "WLS_BATCHING", 12) == 0)
-   {
-      ret = hdd_handle_batch_scan_ioctl(pAdapter, priv_data, command);
-   }
-#endif
    else if (strncmp(command, "SET_SAP_CHANNEL_LIST", 20) == 0)
    {
       /*
