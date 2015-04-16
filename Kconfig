@@ -49,4 +49,8 @@ config CONFIG_WLAN_SYNC_TSF
 	bool "Enable QCOM sync multi devices tsf feature"
 	default n
 
+config CONFIG_FEATURE_MEMDUMP
+	bool "Enable MEMDUMP feature"
+	default n
+
 endif # QCA_CLD_WLAN

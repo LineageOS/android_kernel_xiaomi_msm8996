@@ -97,6 +97,8 @@ ifeq ($(KERNEL_BUILD), 0)
         ifeq ($(CONFIG_ROME_IF),usb)
                 CONFIG_LINUX_QCMBR :=y
         endif
+	#Flag to enable memdump feature
+	CONFIG_FEATURE_MEMDUMP := y
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -383,6 +385,10 @@ endif
 
 ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tsf.o
+endif
+
+ifeq ($(CONFIG_FEATURE_MEMDUMP),y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_memdump.o
 endif
 
 ############ EPPING ############
@@ -1369,6 +1375,10 @@ endif
 
 ifeq ($(CONFIG_STATICALLY_ADD_11P_CHANNELS),y)
 CDEFINES += -DFEATURE_STATICALLY_ADD_11P_CHANNELS
+endif
+
+ifeq ($(CONFIG_FEATURE_MEMDUMP),y)
+CDEFINES += -DWLAN_FEATURE_MEMDUMP
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
