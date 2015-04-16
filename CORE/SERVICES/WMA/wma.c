@@ -341,8 +341,6 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 void wma_process_roam_synch_fail(WMA_HANDLE handle,
 		tSirRoamOffloadSynchFail *synchfail);
 #endif
-/* Configure the regulatory domain for DFS radar filter initialization*/
-void wma_set_dfs_regdomain(tp_wma_handle wma);
 
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 				t_thermal_cmd_params thermal_info);
@@ -2589,7 +2587,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 	tp_wma_handle wma = (tp_wma_handle)handle;
 	WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_start_stop_event_fixed_param *event;
-	tSirExtScanStartRspParams   *extscan_ind;
+	struct sir_extscan_generic_response   *extscan_ind;
 	u_int16_t event_type;
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
@@ -2617,16 +2615,16 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 	case WMI_EXTSCAN_START_CMDID:
 		event_type = eSIR_EXTSCAN_START_RSP;
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		break;
 	case WMI_EXTSCAN_STOP_CMDID:
 		event_type = eSIR_EXTSCAN_STOP_RSP;
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		break;
 	case WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_SIGNIFICANT_WIFI_CHANGE_RSP;
@@ -2637,7 +2635,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		break;
 	case WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_BSSID_HOTLIST_RSP;
@@ -2648,12 +2646,12 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		break;
 	case WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		event_type = eSIR_EXTSCAN_CACHED_RESULTS_RSP;
 		break;
 	case WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID:
 		extscan_ind->status = event->status;
-		extscan_ind->requestId = event->request_id;
+		extscan_ind->request_id = event->request_id;
 		if (event->mode == WMI_EXTSCAN_MODE_STOP) {
 			event_type =
 				eSIR_EXTSCAN_RESET_SSID_HOTLIST_RSP;
@@ -2672,7 +2670,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 				event_type, extscan_ind);
 	WMA_LOGD("%s: sending event to umac for requestid %x"
 		"with status %d", __func__,
-		extscan_ind->requestId, extscan_ind->status);
+		extscan_ind->request_id, extscan_ind->status);
 	vos_mem_free(extscan_ind);
 	return 0;
 }
@@ -5773,7 +5771,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	}
 
 	/* attach the wmi */
-	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete);
+	wmi_handle = wmi_unified_attach(wma_handle, wma_wow_tx_complete,
+						adf_dev);
 	if (!wmi_handle) {
 		WMA_LOGP("%s: failed to attach WMI", __func__);
 		vos_status = VOS_STATUS_E_NOMEM;
@@ -18335,6 +18334,7 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	cmd->enable = 1;
 
 	vos_event_reset(&wma->target_suspend);
+	wma->wow_nack = 0;
 
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
 	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
@@ -18362,6 +18362,11 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 			wmi_get_pending_cmds(wma->wmi_handle));
 		VOS_BUG(0);
 		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (wma->wow_nack) {
+		WMA_LOGE("FW not ready for D0WOW.");
+		return VOS_STATUS_E_AGAIN;
 	}
 
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
@@ -27280,8 +27285,6 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 
 	vos_event_set(&wma_handle->wma_ready_event);
 
-	wma_set_dfs_regdomain(wma_handle);
-
 	WMA_LOGD("Exit");
 }
 
@@ -29260,53 +29263,17 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
 /*
  * Configure the regulatory domain for DFS radar filter initialization
  */
-void wma_set_dfs_regdomain(tp_wma_handle wma)
+void wma_set_dfs_regdomain(tp_wma_handle wma, uint8_t dfs_region)
 {
-	u_int8_t ctl;
-	u_int32_t regdmn = wma->reg_cap.eeprom_rd;
-	u_int32_t regdmn5G;
-
-	if (regdmn < 0)
-	{
-		WMA_LOGE("%s:DFS-Invalid regdomain",__func__);
-		/*
-		 * Set the DFS reg domain to unintlialized domain
-		 * to indicate dfs regdomain configuration failure
-		 */
-		wma->dfs_ic->current_dfs_regdomain = DFS_UNINIT_DOMAIN;
-		return;
-	}
-
-	regdmn5G = get_regdmn_5g(regdmn);
-	ctl = regdmn_get_ctl_for_regdmn(regdmn5G);
-
-	if (!ctl)
-	{
-		WMA_LOGI("%s:DFS-Invalid CTL",__func__);
-		/*
-		 * Set the DFS reg domain to unintlialized domain
-		 * to indicate dfs regdomain configuration failure
-		 */
-		wma->dfs_ic->current_dfs_regdomain = DFS_UNINIT_DOMAIN;
-		return;
-	}
-	if (ctl == FCC)
-	{
-		WMA_LOGI("%s:DFS- CTL = FCC",__func__);
+	/* dfs information is passed */
+	if (dfs_region > DFS_MKK4_DOMAIN || dfs_region == DFS_UNINIT_DOMAIN)
+		/* assign DFS_FCC_DOMAIN as default domain*/
 		wma->dfs_ic->current_dfs_regdomain = DFS_FCC_DOMAIN;
-	}
-	else if (ctl == ETSI)
-	{
-		WMA_LOGI("%s:DFS- CTL = ETSI",__func__);
-		wma->dfs_ic->current_dfs_regdomain = DFS_ETSI_DOMAIN;
-	}
-	else if (ctl == MKK)
-	{
-		WMA_LOGI("%s:DFS- CTL = MKK",__func__);
-		wma->dfs_ic->current_dfs_regdomain = DFS_MKK4_DOMAIN;
-	}
-	WMA_LOGI("%s: ****** Current Reg Domain: %d *******", __func__,
-			wma->dfs_ic->current_dfs_regdomain);
+	else
+		wma->dfs_ic->current_dfs_regdomain = dfs_region;
+
+	WMA_LOGI("%s: DFS Region Domain: %d", __func__,
+		 wma->dfs_ic->current_dfs_regdomain);
 }
 
 int wma_get_channels(struct ieee80211_channel *ichan,

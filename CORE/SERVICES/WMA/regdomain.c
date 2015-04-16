@@ -552,8 +552,33 @@ void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
 		if (rd == regdomain5G)
 			ctl_5g = ctl;
 	}
+
+	/* save the ctl information for future reference */
+	reg->ctl_5g = ctl_5g;
+	reg->ctl_2g = ctl_2g;
+
 	wma_send_regdomain_info(reg->reg_domain, regpair->regDmn2GHz,
 			regpair->regDmn5GHz, ctl_2g, ctl_5g);
+}
+
+/* regdmn_set_dfs_region() - to set the dfs region to wma
+ *
+ * @reg: the regulatory handle
+ *
+ * Return: none
+ */
+void regdmn_set_dfs_region(struct regulatory *reg)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (!wma) {
+		WMA_LOGE("%s: Unable to get WMA handle", __func__);
+		return;
+	}
+
+	WMA_LOGE("%s: dfs_region: %d", __func__, reg->dfs_region);
+	wma_set_dfs_regdomain(wma, reg->dfs_region);
 }
 
 void regdmn_set_regval(struct regulatory *reg)

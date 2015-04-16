@@ -857,12 +857,26 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 		if (idx == -1) {
 			wmitlv_free_allocated_event_tlvs(id,
 				&wmi_cmd_struct_ptr);
+#ifdef HTC_CRP_DEBUG
+			adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+				ADF_OS_DMA_BIDIRECTIONAL);
+#else
+			adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+				ADF_OS_DMA_FROM_DEVICE);
+#endif
 			adf_nbuf_free(evt_buf);
 			return;
 		}
 		wmi_handle->event_handler[idx](wmi_handle->scn_handle,
 			       wmi_cmd_struct_ptr, len);
 		wmitlv_free_allocated_event_tlvs(id, &wmi_cmd_struct_ptr);
+#ifdef HTC_CRP_DEBUG
+		adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+					ADF_OS_DMA_BIDIRECTIONAL);
+#else
+		adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+					ADF_OS_DMA_FROM_DEVICE);
+#endif
 		adf_nbuf_free(evt_buf);
 		return;
 	}
@@ -952,6 +966,13 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 	}
 end:
 	wmitlv_free_allocated_event_tlvs(id, &wmi_cmd_struct_ptr);
+#ifdef HTC_CRP_DEBUG
+	adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+		ADF_OS_DMA_BIDIRECTIONAL);
+#else
+	adf_nbuf_unmap_single(wmi_handle->osdev, evt_buf,
+		ADF_OS_DMA_FROM_DEVICE);
+#endif
 	adf_nbuf_free(evt_buf);
 }
 
@@ -972,10 +993,18 @@ void wmi_rx_event_work(struct work_struct *work)
 	}
 }
 
-/* WMI Initialization functions */
+/**
+ * wmi_unified_attach() - wmi initialization function
+ * @scn_handle: Scn handle
+ * @func: Tx complete callback
+ * @osdev: Pointer to adf context
+ *
+ * Return: none
+ */
 
 void *
-wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func)
+wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func,
+                   adf_os_device_t osdev)
 {
     struct wmi_unified *wmi_handle;
     wmi_handle = (struct wmi_unified *)OS_MALLOC(NULL, sizeof(struct wmi_unified), GFP_ATOMIC);
@@ -998,6 +1027,7 @@ wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func)
     adf_os_spinlock_init(&wmi_handle->wmi_record_lock);
 #endif
     wmi_handle->wma_wow_tx_complete_cbk = func;
+    wmi_handle->osdev = osdev;
     return wmi_handle;
 }
 
@@ -1010,6 +1040,13 @@ wmi_unified_detach(struct wmi_unified* wmi_handle)
     adf_os_spin_lock_bh(&wmi_handle->eventq_lock);
     buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
     while (buf) {
+#ifdef HTC_CRP_DEBUG
+       adf_nbuf_unmap_single(wmi_handle->osdev, buf,
+           ADF_OS_DMA_BIDIRECTIONAL);
+#else
+       adf_nbuf_unmap_single(wmi_handle->osdev, buf,
+           ADF_OS_DMA_FROM_DEVICE);
+#endif
 	adf_nbuf_free(buf);
 	buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
     }
@@ -1039,6 +1076,8 @@ void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 		((u_int32_t *)adf_nbuf_data(wmi_cmd_buf) + 2));
 	adf_os_spin_unlock_bh(&wmi_handle->wmi_record_lock);
 #endif
+	adf_nbuf_unmap(wmi_handle->osdev, wmi_cmd_buf,
+		ADF_OS_DMA_FROM_DEVICE);
 	adf_nbuf_free(wmi_cmd_buf);
 	adf_os_mem_free(htc_pkt);
 	adf_os_atomic_dec(&wmi_handle->pending_cmds);

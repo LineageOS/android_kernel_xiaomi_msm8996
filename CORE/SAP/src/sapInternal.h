@@ -1042,19 +1042,6 @@ v_BOOL_t is_concurrent_sap_ready_for_channel_change(tHalHandle hHal,
  *
  */
 v_U8_t sap_get_total_number_sap_intf(tHalHandle hHal);
-/*---------------------------------------------------------------------------
-FUNCTION  sapFetchRegulatoryDomain
-
-DESCRIPTION Fetches the Regulatory domain based up on the coutry code.
-
-DEPENDENCIES PARAMETERS
-IN hHAL : HAL pointer
-
-RETURN VALUE  : v_REGDOMAIN_t, returns the regulatory domain
-
-SIDE EFFECTS
----------------------------------------------------------------------------*/
-v_REGDOMAIN_t sapFetchRegulatoryDomain(tHalHandle hHal);
 
 /*---------------------------------------------------------------------------
 FUNCTION  sapDfsIsW53Invalid
