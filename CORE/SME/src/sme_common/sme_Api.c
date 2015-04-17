@@ -1749,6 +1749,10 @@ eHalStatus sme_update_roam_params(tHalHandle hHal,
 				sizeof(tSirMacAddr));
 		}
 		break;
+	case REASON_ROAM_GOOD_RSSI_CHANGED:
+		roam_params_dst->good_rssi_roam =
+			roam_params_src.good_rssi_roam;
+		break;
 	default:
 		break;
 	}

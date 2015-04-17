@@ -6472,10 +6472,13 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	sme_GetConfigParam(hdd_ctx->hHal, &smeConfig);
 	if (sap_config->acs_ch_width == 40) {
 		switch (adapter->sap_dyn_ini_cfg.apOperatingBand) {
-		case eSAP_RF_SUBBAND_5_ALL_GHZ:
+		case eSAP_RF_SUBBAND_2_4_GHZ:
 			smeConfig.csrConfig.channelBondingMode24GHz = 1;
 			break;
-		case eSAP_RF_SUBBAND_2_4_GHZ:
+		case eSAP_RF_SUBBAND_5_LOW_GHZ:
+		case eSAP_RF_SUBBAND_5_MID_GHZ:
+		case eSAP_RF_SUBBAND_5_HIGH_GHZ:
+		case eSAP_RF_SUBBAND_5_ALL_GHZ:
 			smeConfig.csrConfig.channelBondingMode5GHz = 1;
 			break;
 		default:

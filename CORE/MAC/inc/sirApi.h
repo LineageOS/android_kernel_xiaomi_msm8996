@@ -3719,7 +3719,6 @@ struct roam_ext_params {
 	int max_raise_rssi_5g;
 	int max_drop_rssi_5g;
 	int alert_rssi_threshold;
-	int good_rssi_threshold;
 	int rssi_diff;
 	int good_rssi_roam;
 	bool is_5g_pref_enabled;
