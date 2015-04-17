@@ -2293,6 +2293,10 @@ static int hdd_ipa_ipv4_changed(struct notifier_block *nb,
 	return 0;
 }
 
+
+#define FW_RX_DESC_DISCARD_M 0x1
+#define FW_RX_DESC_FORWARD_M 0x2
+
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data)
 {
@@ -2305,8 +2309,8 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 #ifdef IPA_UC_OFFLOAD
 	uint8_t session_id;
 #ifdef INTRA_BSS_FWD_OFFLOAD
-	struct ethhdr *eth;
 	adf_nbuf_t copy;
+	uint8_t fw_desc;
 	int ret;
 #endif
 #endif
@@ -2368,12 +2372,19 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
 			 * all Rx packets to IPA uC, which need to be forwarded
 			 * to other interface.
-			 * And, since only IP packets are forwarded through IPA
-			 * Ethernet Bridging, non-IP exception packets should be
-			 * forwarded to Tx here.
+			 * And, IPA driver will send back to WLAN host driver 
+			 * through exception pipe with fw_desc field set by FW.
+			 * Here we are checking fw_desc field for FORWARD bit
+			 * set, and forward to Tx. Then copy to kernel stack
+			 * only when DISCARD bit is not set.
 			 */
-			eth = (struct ethhdr *)skb->data;
-			if (eth->h_proto != be16_to_cpu(ETH_P_IP)) {
+			fw_desc = (uint8_t)skb->cb[1];
+
+			if (fw_desc & FW_RX_DESC_FORWARD_M) {
+				HDD_IPA_LOG(
+					VOS_TRACE_LEVEL_DEBUG,
+					"Forward packet to Tx (fw_desc=%d)",
+					fw_desc);
 				copy = adf_nbuf_copy(skb);
 				if (copy) {
 					ret = hdd_softap_hard_start_xmit(
@@ -2391,6 +2402,10 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 					}
 				}
 			}
+
+			if (fw_desc & FW_RX_DESC_DISCARD_M)
+				break;
+
 		}
 		else
 		{
