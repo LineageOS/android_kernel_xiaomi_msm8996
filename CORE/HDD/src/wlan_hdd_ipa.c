@@ -3404,10 +3404,18 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 	case WLAN_AP_CONNECT:
 		if (adapter->ipa_context) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-				"%s: Evt: %d, SAP already connected",
-				msg_ex->name, meta.msg_type);
-			return -EINVAL;
+			/* For DFS channel we get two start_bss event before
+			 * and after CAC, so dont return error.
+			 */
+			if(VOS_IS_DFS_CH(
+				adapter->sessionCtx.ap.operatingChannel)) {
+				return 0;
+			} else {
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+					"%s: Evt: %d, SAP already connected",
+					msg_ex->name, meta.msg_type);
+				return -EINVAL;
+			}
 		}
 
 #ifdef IPA_UC_OFFLOAD
