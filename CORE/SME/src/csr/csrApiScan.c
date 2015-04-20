@@ -2714,18 +2714,20 @@ eHalStatus csrScanFilterResults(tpAniSirGlobal pMac)
         smsLog( pMac, LOGE, "Failed to get Channel list from CFG");
     }
 
-    pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_LOCK );
+    csrLLLock(&pMac->scan.scanResultList);
+
+    pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
     while( pEntry )
     {
         pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
-        pTempEntry = csrLLNext( &pMac->scan.scanResultList, pEntry,
-                                                            LL_ACCESS_LOCK );
+        pTempEntry = csrLLNext(&pMac->scan.scanResultList, pEntry,
+                                                            LL_ACCESS_NOLOCK);
         if(csrCheck11dChannel(pBssDesc->Result.BssDescriptor.channelId,
                                               pMac->roam.validChannelList, len))
         {
             /* Remove Scan result which does not have 11d channel */
-            if( csrLLRemoveEntry( &pMac->scan.scanResultList, pEntry,
-                                                              LL_ACCESS_LOCK ))
+            if( csrLLRemoveEntry(&pMac->scan.scanResultList, pEntry,
+                                                              LL_ACCESS_NOLOCK))
             {
                 csrFreeScanResultEntry( pMac, pBssDesc );
             }
@@ -2738,18 +2740,21 @@ eHalStatus csrScanFilterResults(tpAniSirGlobal pMac)
         pEntry = pTempEntry;
     }
 
-    pEntry = csrLLPeekHead( &pMac->scan.tempScanResults, LL_ACCESS_LOCK );
+    csrLLUnlock(&pMac->scan.scanResultList);
+    csrLLLock(&pMac->scan.tempScanResults);
+
+    pEntry = csrLLPeekHead(&pMac->scan.tempScanResults, LL_ACCESS_NOLOCK);
     while( pEntry )
     {
         pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
-        pTempEntry = csrLLNext( &pMac->scan.tempScanResults, pEntry,
-                                                            LL_ACCESS_LOCK );
+        pTempEntry = csrLLNext(&pMac->scan.tempScanResults, pEntry,
+                                                            LL_ACCESS_NOLOCK);
         if(csrCheck11dChannel(pBssDesc->Result.BssDescriptor.channelId,
                               pMac->roam.validChannelList, len))
         {
             /* Remove Scan result which does not have 11d channel */
-            if( csrLLRemoveEntry( &pMac->scan.tempScanResults, pEntry,
-                        LL_ACCESS_LOCK ))
+            if(csrLLRemoveEntry(&pMac->scan.tempScanResults, pEntry,
+                        LL_ACCESS_NOLOCK))
             {
                 csrFreeScanResultEntry( pMac, pBssDesc );
             }
@@ -2761,6 +2766,8 @@ eHalStatus csrScanFilterResults(tpAniSirGlobal pMac)
         }
         pEntry = pTempEntry;
     }
+
+    csrLLUnlock(&pMac->scan.tempScanResults);
     return status;
 }
 
@@ -2978,7 +2985,8 @@ tANI_BOOLEAN csrRemoveDupBssDescription( tpAniSirGlobal pMac, tSirBssDescription
     // Walk through all the chained BssDescriptions.  If we find a chained BssDescription that
     // matches the BssID of the BssDescription passed in, then these must be duplicate scan
     // results for this Bss.  In that case, remove the 'old' Bss description from the linked list.
-    pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_LOCK );
+    csrLLLock(&pMac->scan.scanResultList);
+    pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
 
     while( pEntry )
     {
@@ -3004,7 +3012,8 @@ tANI_BOOLEAN csrRemoveDupBssDescription( tpAniSirGlobal pMac, tSirBssDescription
             pSirBssDescr->rssi_raw = (tANI_S8) rssi_new;
 
             // Remove the 'old' entry from the list....
-            if( csrLLRemoveEntry( &pMac->scan.scanResultList, pEntry, LL_ACCESS_LOCK ) )
+            if(csrLLRemoveEntry(&pMac->scan.scanResultList, pEntry,
+                      LL_ACCESS_NOLOCK))
             {
                 // !we need to free the memory associated with this node
                 //If failed to remove, assuming someone else got it.
@@ -3024,8 +3033,10 @@ tANI_BOOLEAN csrRemoveDupBssDescription( tpAniSirGlobal pMac, tSirBssDescription
             break;
         }
 
-        pEntry = csrLLNext( &pMac->scan.scanResultList, pEntry, LL_ACCESS_LOCK );
+        pEntry = csrLLNext(&pMac->scan.scanResultList, pEntry,
+                            LL_ACCESS_NOLOCK);
     }
+    csrLLUnlock(&pMac->scan.scanResultList);
 
     return fRC;
 }
@@ -3244,7 +3255,8 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
     tmpSsid.length = 0;
 
     // remove the BSS descriptions from temporary list
-    while( ( pEntry = csrLLRemoveTail( &pMac->scan.tempScanResults, LL_ACCESS_LOCK ) ) != NULL)
+    while ((pEntry = csrLLRemoveTail(&pMac->scan.tempScanResults,
+                                      LL_ACCESS_LOCK)) != NULL)
     {
         pBssDescription = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
 
@@ -4800,10 +4812,11 @@ static void csrScanRemoveDupBssDescriptionFromInterimList( tpAniSirGlobal pMac,
     tListElem *pEntry;
     tCsrScanResult *pCsrBssDescription;
 
+    csrLLLock(&pMac->scan.tempScanResults);
     // Walk through all the chained BssDescriptions.  If we find a chained BssDescription that
     // matches the BssID of the BssDescription passed in, then these must be duplicate scan
     // results for this Bss.  In that case, remove the 'old' Bss description from the linked list.
-    pEntry = csrLLPeekHead( &pMac->scan.tempScanResults, LL_ACCESS_LOCK );
+    pEntry = csrLLPeekHead(&pMac->scan.tempScanResults, LL_ACCESS_NOLOCK);
     while( pEntry )
     {
         pCsrBssDescription = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
@@ -4818,7 +4831,8 @@ static void csrScanRemoveDupBssDescriptionFromInterimList( tpAniSirGlobal pMac,
                                     ((tANI_S32)pCsrBssDescription->Result.BssDescriptor.rssi * (100 - CSR_SCAN_RESULT_RSSI_WEIGHT) )) / 100 );
 
             // Remove the 'old' entry from the list....
-            if( csrLLRemoveEntry( &pMac->scan.tempScanResults, pEntry, LL_ACCESS_LOCK ) )
+            if(csrLLRemoveEntry(&pMac->scan.tempScanResults, pEntry,
+                          LL_ACCESS_NOLOCK))
             {
                 csrCheckNSaveWscIe(pMac, pSirBssDescr, &pCsrBssDescription->Result.BssDescriptor);
                 // we need to free the memory associated with this node
@@ -4829,8 +4843,10 @@ static void csrScanRemoveDupBssDescriptionFromInterimList( tpAniSirGlobal pMac,
             break;
         }
 
-        pEntry = csrLLNext( &pMac->scan.tempScanResults, pEntry, LL_ACCESS_LOCK );
+        pEntry = csrLLNext(&pMac->scan.tempScanResults, pEntry,
+                                 LL_ACCESS_NOLOCK);
     }
+    csrLLUnlock(&pMac->scan.tempScanResults);
 }
 
 
@@ -5621,7 +5637,8 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
                MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId),
                pResult->Result.BssDescriptor.channelId);
         //No need to hold the spin lock because caller should hold the lock for pMac->scan.scanResultList
-        if( csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link, LL_ACCESS_NOLOCK) )
+        if(csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link,
+                                 LL_ACCESS_NOLOCK))
         {
             if (csrIsMacAddressEqual(pMac,
                        (tCsrBssid *) pResult->Result.BssDescriptor.bssId,
@@ -5652,10 +5669,11 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
     for(i = 0; i < pScanChnInfo->numChn; i++)
     {
         pChnInfo = &pScanChnInfo->scanChn[i];
-        pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_NOLOCK );
+        pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
         while( pEntry )
         {
-            tmpEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
+            tmpEntry = csrLLNext(&pMac->scan.scanResultList,
+                                          pEntry, LL_ACCESS_NOLOCK);
             pResult = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
             if(pResult->Result.BssDescriptor.channelId == pChnInfo->channelId)
             {
@@ -6894,7 +6912,8 @@ static void csrScanResultCfgAgingTimerHandler(void *pv)
     pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_NOLOCK );
     while( pEntry )
     {
-        tmpEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
+        tmpEntry = csrLLNext(&pMac->scan.scanResultList, pEntry,
+                                      LL_ACCESS_NOLOCK);
         pResult = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
         if((curTime - pResult->Result.BssDescriptor.nReceivedTime) > ageOutTime)
         {
@@ -8701,7 +8720,7 @@ void csrInitOccupiedChannelsList(tpAniSirGlobal pMac, tANI_U8 sessionId)
   pMac->scan.occupiedChannels[sessionId].numChannels = 0;
 
   csrLLLock(&pMac->scan.scanResultList);
-  pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_NOLOCK );
+  pEntry = csrLLPeekHead(&pMac->scan.scanResultList, LL_ACCESS_NOLOCK);
   while( pEntry )
   {
       pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
@@ -8726,7 +8745,7 @@ void csrInitOccupiedChannelsList(tpAniSirGlobal pMac, tANI_U8 sessionId)
           vos_mem_free(pIes);
       }
 
-      pEntry = csrLLNext( &pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK );
+      pEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
   }//while
   csrLLUnlock(&pMac->scan.scanResultList);
 }
