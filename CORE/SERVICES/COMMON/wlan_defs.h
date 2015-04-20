@@ -34,10 +34,13 @@
  * This file contains WLAN definitions that may be used across both
  * Host and Target software.
  */
-#if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
-#define MAX_SPATIAL_STREAM   4
-#else
-#define MAX_SPATIAL_STREAM   3
+/*
+ * MAX_SPATIAL_STREAM should be defined in a fwconfig_xxx.h file,
+ * but for now provide a default value here in case it's not defined
+ * in the fwconfig_xxx.h file.
+ */
+#ifndef MAX_SPATIAL_STREAM
+#define MAX_SPATIAL_STREAM 3
 #endif
 
 #ifndef CONFIG_160MHZ_SUPPORT
@@ -141,29 +144,30 @@ typedef enum {
 #define IS_MODE_11GONLY(mode)   ((mode) == MODE_11GONLY)
 
 enum {
-    REGDMN_MODE_11A              = 0x00001,      /* 11a channels */
-    REGDMN_MODE_TURBO            = 0x00002,      /* 11a turbo-only channels */
-    REGDMN_MODE_11B              = 0x00004,      /* 11b channels */
-    REGDMN_MODE_PUREG            = 0x00008,      /* 11g channels (OFDM only) */
-    REGDMN_MODE_11G              = 0x00008,      /* XXX historical */
-    REGDMN_MODE_108G             = 0x00020,      /* 11g+Turbo channels */
-    REGDMN_MODE_108A             = 0x00040,      /* 11a+Turbo channels */
-    REGDMN_MODE_XR               = 0x00100,      /* XR channels */
-    REGDMN_MODE_11A_HALF_RATE    = 0x00200,      /* 11A half rate channels */
-    REGDMN_MODE_11A_QUARTER_RATE = 0x00400,      /* 11A quarter rate channels */
-    REGDMN_MODE_11NG_HT20        = 0x00800,      /* 11N-G HT20 channels */
-    REGDMN_MODE_11NA_HT20        = 0x01000,      /* 11N-A HT20 channels */
-    REGDMN_MODE_11NG_HT40PLUS    = 0x02000,      /* 11N-G HT40 + channels */
-    REGDMN_MODE_11NG_HT40MINUS   = 0x04000,      /* 11N-G HT40 - channels */
-    REGDMN_MODE_11NA_HT40PLUS    = 0x08000,      /* 11N-A HT40 + channels */
-    REGDMN_MODE_11NA_HT40MINUS   = 0x10000,      /* 11N-A HT40 - channels */
-    REGDMN_MODE_11AC_VHT20       = 0x20000,      /* 5Ghz, VHT20 */
-    REGDMN_MODE_11AC_VHT40PLUS   = 0x40000,      /* 5Ghz, VHT40 + channels */
-    REGDMN_MODE_11AC_VHT40MINUS  = 0x80000,      /* 5Ghz  VHT40 - channels */
-    REGDMN_MODE_11AC_VHT80       = 0x100000,     /* 5Ghz, VHT80 channels */
-    REGDMN_MODE_11AC_VHT20_2G    = 0x200000,     /* 2Ghz, VHT20 */
-    REGDMN_MODE_11AC_VHT40_2G    = 0x400000,     /* 2Ghz, VHT40 */
-    REGDMN_MODE_11AC_VHT80_2G    = 0x800000,     /* 2Ghz, VHT80 */
+    REGDMN_MODE_11A              = 0x00000001,  /* 11a channels */
+    REGDMN_MODE_TURBO            = 0x00000002,  /* 11a turbo-only channels */
+    REGDMN_MODE_11B              = 0x00000004,  /* 11b channels */
+    REGDMN_MODE_PUREG            = 0x00000008,  /* 11g channels (OFDM only) */
+    REGDMN_MODE_11G              = 0x00000008,  /* XXX historical */
+    REGDMN_MODE_108G             = 0x00000020,  /* 11g+Turbo channels */
+    REGDMN_MODE_108A             = 0x00000040,  /* 11a+Turbo channels */
+    REGDMN_MODE_XR               = 0x00000100,  /* XR channels */
+    REGDMN_MODE_11A_HALF_RATE    = 0x00000200,  /* 11A half rate channels */
+    REGDMN_MODE_11A_QUARTER_RATE = 0x00000400,  /* 11A quarter rate channels */
+    REGDMN_MODE_11NG_HT20        = 0x00000800,  /* 11N-G HT20 channels */
+    REGDMN_MODE_11NA_HT20        = 0x00001000,  /* 11N-A HT20 channels */
+    REGDMN_MODE_11NG_HT40PLUS    = 0x00002000,  /* 11N-G HT40 + channels */
+    REGDMN_MODE_11NG_HT40MINUS   = 0x00004000,  /* 11N-G HT40 - channels */
+    REGDMN_MODE_11NA_HT40PLUS    = 0x00008000,  /* 11N-A HT40 + channels */
+    REGDMN_MODE_11NA_HT40MINUS   = 0x00010000,  /* 11N-A HT40 - channels */
+    REGDMN_MODE_11AC_VHT20       = 0x00020000,  /* 5Ghz, VHT20 */
+    REGDMN_MODE_11AC_VHT40PLUS   = 0x00040000,  /* 5Ghz, VHT40 + channels */
+    REGDMN_MODE_11AC_VHT40MINUS  = 0x00080000,  /* 5Ghz  VHT40 - channels */
+    REGDMN_MODE_11AC_VHT80       = 0x000100000, /* 5Ghz, VHT80 channels */
+    REGDMN_MODE_11AC_VHT20_2G    = 0x000200000, /* 2Ghz, VHT20 */
+    REGDMN_MODE_11AC_VHT40_2G    = 0x000400000, /* 2Ghz, VHT40 */
+    REGDMN_MODE_11AC_VHT80_2G    = 0x000800000, /* 2Ghz, VHT80 */
+    REGDMN_MODE_11AC_VHT160      = 0x001000000, /* 5Ghz, VHT160 */
 };
 
 #define REGDMN_MODE_ALL       (0xFFFFFFFF)       /* REGDMN_MODE_ALL is defined out of the enum
@@ -344,9 +348,18 @@ typedef struct{
     A_UINT8     sh_pream;
     A_UINT8     bw_in_service;
     A_RATE      probe_rix;
+    A_UINT8     dd_profile;
 } RC_TX_RATE_INFO;
 
 
+/*
+ * Temporarily continue to provide the WHAL_RC_INIT_RC_MASKS def in wlan_defs.h
+ * for older targets.
+ * The WHAL_RX_INIT_RC_MASKS macro def needs to be moved into ratectrl_11ac.h
+ * for all targets, but until this is complete, the WHAL_RC_INIT_RC_MASKS def
+ * will be maintained here in its old location.
+ */
+#if CONFIG_160MHZ_SUPPORT == 0
 #define WHAL_RC_INIT_RC_MASKS(_rm) do {                                     \
         _rm[WHAL_RC_MASK_IDX_NON_HT] = A_RATEMASK_OFDM_CCK;                 \
         _rm[WHAL_RC_MASK_IDX_HT_20] = A_RATEMASK_HT_20;                     \
@@ -355,6 +368,7 @@ typedef struct{
         _rm[WHAL_RC_MASK_IDX_VHT_40] = A_RATEMASK_VHT_40;                   \
         _rm[WHAL_RC_MASK_IDX_VHT_80] = A_RATEMASK_VHT_80;                   \
         } while (0)
+#endif
 
 /**
  * strucutre describing host memory chunk.
