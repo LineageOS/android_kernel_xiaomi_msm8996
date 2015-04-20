@@ -176,6 +176,10 @@ int nl_srv_ucast(struct sk_buff *skb, int dst_pid, int flag)
 int nl_srv_bcast(struct sk_buff *skb)
 {
    int err;
+   int flags = GFP_KERNEL;
+
+   if (in_interrupt() || irqs_disabled() || in_atomic())
+       flags = GFP_ATOMIC;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
    NETLINK_CB(skb).pid = 0; //sender's pid
@@ -184,7 +188,7 @@ int nl_srv_bcast(struct sk_buff *skb)
 #endif
    NETLINK_CB(skb).dst_group = WLAN_NLINK_MCAST_GRP_ID; //destination group
 
-   err = netlink_broadcast(nl_srv_sock, skb, 0, WLAN_NLINK_MCAST_GRP_ID, GFP_KERNEL);
+   err = netlink_broadcast(nl_srv_sock, skb, 0, WLAN_NLINK_MCAST_GRP_ID, flags);
 
    if (err < 0)
    {
