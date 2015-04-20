@@ -2373,7 +2373,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
 			 * all Rx packets to IPA uC, which need to be forwarded
 			 * to other interface.
-			 * And, IPA driver will send back to WLAN host driver 
+			 * And, IPA driver will send back to WLAN host driver
 			 * through exception pipe with fw_desc field set by FW.
 			 * Here we are checking fw_desc field for FORWARD bit
 			 * set, and forward to Tx. Then copy to kernel stack
@@ -3433,20 +3433,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		break;
 
 	case WLAN_AP_CONNECT:
-		if (adapter->ipa_context) {
-			/* For DFS channel we get two start_bss event before
-			 * and after CAC, so dont return error.
-			 */
-			if(VOS_IS_DFS_CH(
-				adapter->sessionCtx.ap.operatingChannel)) {
-				return 0;
-			} else {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-					"%s: Evt: %d, SAP already connected",
-					msg_ex->name, meta.msg_type);
-				return -EINVAL;
-			}
-		}
+		/* For DFS channel we get two start_bss event (before and after
+		 * CAC). Also when ACS range includes both DFS and non DFS
+		 * channels, we could possibly change channel many times due to
+		 * RADAR detection and chosen channel may not be a DFS channels.
+		 * So dont return error here. Just discard the event.
+		 */
+		if (adapter->ipa_context)
+			return 0;
 
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
