@@ -8825,6 +8825,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                     hddLog(VOS_TRACE_LEVEL_ERROR,
                         "Overriding guest AP's channel !!");
                     pConfig->channel = con_ch;
+                    pConfig->apStartChannelNum =
+                        con_sap_adapter->sessionCtx.ap.sapConfig.apStartChannelNum;
+                    pConfig->apEndChannelNum =
+                        con_sap_adapter->sessionCtx.ap.sapConfig.apEndChannelNum;
+                    pConfig->apAutoChannelSelection =
+                        con_sap_adapter->sessionCtx.ap.sapConfig.apAutoChannelSelection;
                 }
             } else {
                 /* We have idle AP interface (no active SAP running on it
