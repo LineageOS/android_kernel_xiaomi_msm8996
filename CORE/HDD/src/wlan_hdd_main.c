@@ -10616,6 +10616,7 @@ free_hdd_ctx:
    }
 
    wiphy_unregister(wiphy) ;
+
    wiphy_free(wiphy) ;
    if (hdd_is_ssr_required())
    {
@@ -11374,9 +11375,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     * cfg80211: Initialization  ...
     */
    if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini)) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: wlan_hdd_cfg80211_init return failure", __func__);
-      goto err_config;
+          hddLog(LOGE,
+                 "%s: wlan_hdd_cfg80211_init return failure", __func__);
+          goto err_config;
    }
 
    /* Initialize struct for saving f/w log setting will be used
@@ -11616,11 +11617,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
           goto err_free_ftm_open;
       }
 #endif
+
       /* registration of wiphy dev with cfg80211 */
       if (0 > wlan_hdd_cfg80211_register(wiphy)) {
           hddLog(LOGE, FL("wiphy register failed"));
           goto err_free_ftm_open;
       }
+
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       pHddCtx->isLoadInProgress = FALSE;
 
