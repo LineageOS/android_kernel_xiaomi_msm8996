@@ -9288,8 +9288,9 @@ typedef struct {
 
 enum _tExtScanEntryFlags
 {
-    WMI_HOTLIST_FLAG_NONE     = 0x00,
-    WMI_HOTLIST_FLAG_PRESENCE = 0x01
+    WMI_HOTLIST_FLAG_NONE           = 0x00,
+    WMI_HOTLIST_FLAG_PRESENCE       = 0x01,
+    WMI_HOTLIST_FLAG_DUPLICATE_SSID = 0x80,
 };
 
 typedef struct {
