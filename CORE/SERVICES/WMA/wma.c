@@ -12219,18 +12219,21 @@ static void wma_set_modulated_dtim(tp_wma_handle wma,
 	uint8_t vdev_id = privcmd->param_vdev_id;
 	struct wma_txrx_node *iface =
 		&wma->interfaces[vdev_id];
-
+	bool prev_dtim_enabled;
 	uint32_t listen_interval;
 	int ret;
 
 	iface->alt_modulated_dtim = privcmd->param_value;
+
+	prev_dtim_enabled = iface->alt_modulated_dtim_enabled;
 
 	if (1 != privcmd->param_value)
 		iface->alt_modulated_dtim_enabled = true;
 	else
 		iface->alt_modulated_dtim_enabled = false;
 
-	if (true == iface->alt_modulated_dtim_enabled) {
+	if ((true == iface->alt_modulated_dtim_enabled) ||
+	    (true == prev_dtim_enabled)) {
 
 		listen_interval = iface->alt_modulated_dtim
 			* iface->dtimPeriod;
