@@ -14225,6 +14225,22 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 	*crmid = hdd_ctx->target_fw_version & 0x7fff;
 }
 
+/**
+ * hdd_is_memdump_supported() - to check if memdump feature support
+ *
+ * This function is used to check if memdump feature is supported in
+ * the host driver
+ *
+ * Return: true if supported and false otherwise
+ */
+bool hdd_is_memdump_supported(void)
+{
+#ifdef WLAN_FEATURE_MEMDUMP
+	return true;
+#endif
+	return false;
+}
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

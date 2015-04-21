@@ -220,8 +220,10 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_PNO_PASSPOINT_NETWORK_FOUND = 73,
 
     /* Wi-Fi Configuration subcommands */
-   QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION = 74,
-   QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_CONFIGURATION = 75,
+    QCA_NL80211_VENDOR_SUBCMD_SET_WIFI_CONFIGURATION = 74,
+    QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_CONFIGURATION = 75,
+
+    QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET = 76,
 
 	/* OCB commands */
 	QCA_NL80211_VENDOR_SUBCMD_OCB_SET_CONFIG = 92,
@@ -1249,6 +1251,27 @@ enum qca_wlan_vendor_attr_get_wifi_info {
 };
 
 /**
+ * enum qca_wlan_vendor_attr_get_logger_features - value for logger
+ *						   supported features
+ * @QCA_WLAN_VENDOR_ATTR_LOGGER_INVALID - Invalid
+ * @QCA_WLAN_VENDOR_ATTR_LOGGER_SUPPORTED - Indicate the supported features
+ * @QCA_WLAN_VENDOR_ATTR_LOGGER_AFTER_LAST - To keep track of the last enum
+ * @QCA_WLAN_VENDOR_ATTR_LOGGER_MAX - max value possible for this type
+ *
+ * enum values are used for NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET sub command.
+ */
+enum qca_wlan_vendor_attr_get_logger_features {
+	QCA_WLAN_VENDOR_ATTR_LOGGER_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_LOGGER_SUPPORTED = 1,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_LOGGER_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LOGGER_MAX =
+		QCA_WLAN_VENDOR_ATTR_LOGGER_AFTER_LAST - 1,
+};
+
+/**
  * enum qca_wlan_vendor_features - vendor device/driver features
  * @QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD: Device supports key
  * management offload, a mechanism where the station's firmware
@@ -1287,6 +1310,25 @@ enum qca_wlan_vendor_features {
 #define WIFI_FEATURE_HAL_EPNO           0x40000  /* WiFi PNO enhanced */
 
 /* Add more features here */
+
+/**
+ * enum wifi_logger_supported_features - values for supported logger features
+ * @WIFI_LOGGER_MEMORY_DUMP_SUPPORTED - Memory dump of FW
+ * @WIFI_LOGGER_PER_PACKET_TX_RX_STATUS_SUPPORTED - Per packet statistics
+ * @WIFI_LOGGER_CONNECT_EVENT_SUPPORTED - Logging of Connectivity events
+ * @WIFI_LOGGER_POWER_EVENT_SUPPORTED - Power of driver
+ * @WIFI_LOGGER_WAKE_LOCK_SUPPORTED - Wakelock of driver
+ * @WIFI_LOGGER_WATCHDOG_TIMER_SUPPORTED - monitor FW health
+ */
+enum wifi_logger_supported_features {
+	WIFI_LOGGER_MEMORY_DUMP_SUPPORTED = (1 << (0)),
+	WIFI_LOGGER_PER_PACKET_TX_RX_STATUS_SUPPORTED = (1 << (1)),
+	WIFI_LOGGER_CONNECT_EVENT_SUPPORTED = (1 << (2)),
+	WIFI_LOGGER_POWER_EVENT_SUPPORTED = (1 << (3)),
+	WIFI_LOGGER_WAKE_LOCK_SUPPORTED = (1 << (4)),
+	WIFI_LOGGER_VERBOSE_SUPPORTED = (1 << (5)),
+	WIFI_LOGGER_WATCHDOG_TIMER_SUPPORTED = (1 << (6)),
+};
 
 
 #if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)

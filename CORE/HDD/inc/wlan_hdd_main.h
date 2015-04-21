@@ -1748,4 +1748,6 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 			uint32_t *major_spid, uint32_t *minor_spid,
 			uint32_t *siid, uint32_t *crmid);
 
+bool hdd_is_memdump_supported(void);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -5584,6 +5584,59 @@ wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 }
 
 /**
+ * wlan_hdd_cfg80211_get_logger_supp_feature() - Get the wifi logger features
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This is called by userspace to know the supported logger features
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_get_logger_supp_feature(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	int status;
+	uint32_t features;
+	struct sk_buff *reply_skb = NULL;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	features = 0;
+
+	if (hdd_is_memdump_supported())
+		features |= WIFI_LOGGER_MEMORY_DUMP_SUPPORTED;
+	features |= WIFI_LOGGER_PER_PACKET_TX_RX_STATUS_SUPPORTED;
+	features |= WIFI_LOGGER_CONNECT_EVENT_SUPPORTED;
+	features |= WIFI_LOGGER_WAKE_LOCK_SUPPORTED;
+
+	reply_skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy,
+			sizeof(uint32_t) + NLA_HDRLEN + NLMSG_HDRLEN);
+	if (!reply_skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		return -ENOMEM;
+	}
+
+	hddLog(LOG1, FL("Supported logger features: 0x%0x"), features);
+	if (nla_put_u32(reply_skb, QCA_WLAN_VENDOR_ATTR_LOGGER_SUPPORTED,
+				   features)) {
+		hddLog(LOGE, FL("nla put fail"));
+		kfree_skb(reply_skb);
+		return -EINVAL;
+	}
+
+	return cfg80211_vendor_cmd_reply(reply_skb);
+}
+
+/**
  * wlan_hdd_send_roam_auth_event() - Send the roamed and authorized event
  * @hdd_ctx_ptr:   pointer to HDD Context.
  * @bssid:    pointer to bssid of roamed AP.
@@ -7280,6 +7333,15 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 				 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_dcc_update_ndl
 	},
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_get_logger_supp_feature
+    },
+
 };
 
 
