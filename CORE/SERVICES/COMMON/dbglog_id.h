@@ -1065,6 +1065,13 @@ extern "C" {
 #define RTT_CHANNEL_SWITCH_PREEMPT    18
 #define RTT_CHANNEL_SWITCH_STOP       19
 #define RTT_TIMER_START               20
+#define RTT_FTM_PARAM_INFO            21
+#define RTT_RX_TM_FRAME               22
+#define RTT_INITR_TSTAMP              23
+#define RTT_RSPDR_TSTAMP              24
+#define RTT_TX_COMP_STATUS            25
+#define RTT_ERROR_WMI_EVENT           26
+
 /* WLAN HB module DBGIDs */
 #define WLAN_HB_DBGID_DEFINITION_START                  0
 #define WLAN_HB_DBGID_INIT                              1
