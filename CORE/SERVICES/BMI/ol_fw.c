@@ -1298,7 +1298,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 #if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 	/* Collect the RAM dump through a workqueue */
-	ol_schedule_ramdump_work(scn);
+	if (scn->enableRamdumpCollection)
+		ol_schedule_ramdump_work(scn);
+	else
+		printk("%s: athdiag read for target reg\n", __func__);
 #endif
 
 	return;
@@ -2353,12 +2356,12 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 }
 #endif
 
+
+#define MAX_SUPPORTED_PEERS 32
 #if defined(CONFIG_HL_SUPPORT)
 #define MAX_SUPPORTED_PEERS_REV1_1 9
-#define MAX_SUPPORTED_PEERS 10
 #else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
-#define MAX_SUPPORTED_PEERS 32
 #endif
 
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)

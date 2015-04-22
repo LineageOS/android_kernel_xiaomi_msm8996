@@ -129,7 +129,7 @@ ol_tx_queue_discard(
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
 
-#if defined(CONFIG_HL_SUPPORT) && defined(ENABLE_TX_QUEUE_LOG)
+#if defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING)
 
 void
 ol_tx_queue_log_sched(
@@ -146,7 +146,7 @@ ol_tx_queue_log_sched(
 #define OL_TX_QUEUE_LOG_SCHED(\
     pdev, credit, num_active_tids, active_bitmap, data)
 
-#endif /* defined(CONFIG_HL_SUPPORT) && defined(ENABLE_TX_QUEUE_LOG) */
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING) */
 
 #if defined(CONFIG_HL_SUPPORT) && TXRX_DEBUG_LEVEL > 5
 /**

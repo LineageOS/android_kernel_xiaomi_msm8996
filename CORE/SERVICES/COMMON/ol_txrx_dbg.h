@@ -149,8 +149,10 @@ void ol_txrx_stats_display(ol_txrx_pdev_handle pdev);
 int
 ol_txrx_stats_publish(ol_txrx_pdev_handle pdev, struct ol_txrx_stats *buf);
 
+void ol_txrx_stats_clear(ol_txrx_pdev_handle pdev);
 #else
 #define ol_txrx_stats_display(pdev)
+#define ol_txrx_stats_clear(pdev)
 #define ol_txrx_stats_publish(pdev, buf) TXRX_STATS_LEVEL_OFF
 #endif /* TXRX_STATS_LEVEL */
 
@@ -208,18 +210,20 @@ ol_rx_pn_trace_display(ol_txrx_pdev_handle pdev, int just_once);
 
 /*--- tx queue log debug feature ---*/
 /* uncomment this to enable the tx queue log feature */
-//#define ENABLE_TX_QUEUE_LOG 1
 
-#if defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT)
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
 
 void
 ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 
+void ol_tx_queue_log_clear(ol_txrx_pdev_handle pdev);
+
 #else
 
 #define ol_tx_queue_log_display(pdev)
+#define ol_tx_queue_log_clear(pdev)
 
-#endif /* defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT) */
+#endif /* defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT) */
 
 #endif /* ATH_PERF_PWR_OFFLOAD  */ /*----------------------------------------*/
 

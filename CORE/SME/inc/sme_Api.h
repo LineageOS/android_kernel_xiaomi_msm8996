@@ -4201,6 +4201,10 @@ eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
                       struct tSirSapOffloadInfo *sap_auth_offload_info);
 #endif /* SAP_AUTH_OFFLOAD */
 
+eHalStatus sme_set_tsfcb(tHalHandle hHal,
+	int (*pcallbackfn)(void *pcallbackcontext, struct stsf *ptsf),
+	void *pcallbackcontext);
+
 #ifdef WLAN_FEATURE_APFIND
 VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input);
 #endif /* WLAN_FEATURE_APFIND */

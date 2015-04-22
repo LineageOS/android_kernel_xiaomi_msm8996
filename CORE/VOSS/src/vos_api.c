@@ -352,7 +352,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifdef WLAN_FEATURE_LPSS
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
-
+   scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,

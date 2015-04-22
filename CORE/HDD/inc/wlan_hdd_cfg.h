@@ -1198,6 +1198,11 @@ typedef enum
 #define CFG_ENABLE_DFS_PNO_CHNL_SCAN_MAX               ( 1 )
 #define CFG_ENABLE_DFS_PNO_CHNL_SCAN_DEFAULT           ( 1 )
 
+#define CFG_ENABLE_RAMDUMP_COLLECTION              "gEnableDumpCollect"
+#define CFG_ENABLE_RAMDUMP_COLLECTION_MIN          ( 0 )
+#define CFG_ENABLE_RAMDUMP_COLLECTION_MAX          ( 1 )
+#define CFG_ENABLE_RAMDUMP_COLLECTION_DEFAULT      ( 1 )
+
 typedef enum
 {
     eHDD_LINK_SPEED_REPORT_ACTUAL = 0,
@@ -3332,7 +3337,6 @@ typedef struct
 #ifdef WLAN_FEATURE_LPSS
    v_BOOL_t                    enablelpasssupport;
 #endif
-
    v_BOOL_t                    enableSelfRecovery;
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
    v_U8_t                      SapSccChanAvoidance;
@@ -3396,6 +3400,7 @@ typedef struct
 #ifdef FEATURE_BUS_AUTO_SUSPEND
    bool                        enable_bus_auto_suspend;
 #endif
+   bool                        is_ramdump_enabled;
    uint16_t                    p2p_listen_defer_interval;
    uint8_t                     sap_dot11mc;
    uint32_t                    sta_miracast_mcc_rest_time_val;

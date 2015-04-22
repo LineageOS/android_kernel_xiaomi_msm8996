@@ -391,6 +391,7 @@ enum eWniMsgTypes
     eWNI_SME_DCC_UPDATE_NDL_RSP,
     eWNI_SME_DCC_STATS_EVENT,
 
+    eWNI_SME_TSF_EVENT,
     eWNI_SME_MSG_TYPES_END
 };
 

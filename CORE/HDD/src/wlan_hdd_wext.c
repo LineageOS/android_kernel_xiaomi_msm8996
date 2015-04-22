@@ -108,6 +108,7 @@
 #endif
 
 #include "wlan_hdd_ocb.h"
+#include "wlan_hdd_tsf.h"
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #define MAX_OEM_DATA_RSP_LEN            2047
@@ -242,6 +243,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl for packet power save */
 #define WE_PPS_5G_EBT                         83
 #define WE_SET_CTS_CBW                        84
+#define WE_DUMP_STATS                         85
+#define WE_CLEAR_STATS                        86
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -302,6 +305,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_SCAN_BAND_PREFERENCE     55
 #define WE_GET_TEMPERATURE              56
 #define WE_GET_FW_STATUS                57
+#define WE_CAP_TSF                      58
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -347,7 +351,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
-#define WE_CLEAR_STATS       1
 #define WE_ENABLE_DXE_STALL_DETECT 6
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
@@ -401,7 +404,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* (SIOCIWFIRSTPRIV + 10) is currently unused */
 /* (SIOCIWFIRSTPRIV + 12) is currently unused */
 /* (SIOCIWFIRSTPRIV + 14) is currently unused */
-/* (SIOCIWFIRSTPRIV + 15) is currently unused */
+
+#define WLAN_PRIV_SET_NONE_GET_THREE_INT   (SIOCIWFIRSTPRIV + 15)
+#define WE_GET_TSF      1
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 /* Private ioctls for setting the measurement configuration */
@@ -736,9 +741,28 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         pStats->txflow_pause_cnt,
         pStats->txflow_unpause_cnt
         );
-    *length = strlen(buffer) + 1;
+        *length = strlen(buffer) + 1;
+
 }
 
+/**---------------------------------------------------------------------------
+
+  \brief hdd_wlan_dump_stats -
+
+   Helper function to dump stats
+
+  \param  - pAdapter Pointer to the adapter.
+            value - value given by user
+
+  \return - none
+
+  --------------------------------------------------------------------------*/
+void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value)
+{
+    hdd_context_t* hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+
+    WLANTL_display_datapath_stats(hdd_ctx->pvosContext, value);
+}
 
 /**---------------------------------------------------------------------------
 
@@ -5624,6 +5648,27 @@ static int __iw_setint_getnone(struct net_device *dev,
        break;
     }
 
+    case WE_DUMP_STATS:
+    {
+         hddLog(LOG1, "WE_DUMP_STATS val %d", set_value);
+         hdd_wlan_dump_stats(pAdapter, set_value);
+         break;
+    }
+
+    case WE_CLEAR_STATS:
+    {
+         hdd_context_t* hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+
+         hddLog(LOG1, "WE_CLEAR_STATS val %d", set_value);
+         if (set_value ==  WLAN_HDD_STATS) {
+             memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
+             memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
+         } else {
+             WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
+         }
+         break;
+    }
+
     case WE_PPS_PAID_MATCH:
         {
            if(pAdapter->device_mode != WLAN_HDD_INFRA_STATION)
@@ -6095,6 +6140,63 @@ static int __iw_setchar_getnone(struct net_device *dev,
     kfree(pBuffer);
     return ret;
 }
+
+/**
+ * __iw_setnone_get_threeint() - return three value to up layer.
+ *
+ * @dev: pointer of net_device of this wireless card
+ * @info: meta data about Request sent
+ * @wrqu: include request info
+ * @extra: buf used for in/Output
+ *
+ * Return: execute result
+ */
+static int __iw_setnone_get_threeint(struct net_device *dev,
+				 struct iw_request_info *info,
+				 union iwreq_data *wrqu, char *extra)
+{
+	int ret = 0; /* success */
+	uint32_t *value = (int *)extra;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("param = %d"), value[0]);
+
+	switch (value[0]) {
+	case WE_GET_TSF:
+		ret = hdd_indicate_tsf(adapter, value, 3);
+		break;
+	default:
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("Invalid IOCTL get_value command %d"),
+			value[0]);
+		break;
+	}
+	return ret;
+}
+
+/**
+ * iw_setnone_get_threeint() - return three value to up layer.
+ *
+ * @dev: pointer of net_device of this wireless card
+ * @info: meta data about Request sent
+ * @wrqu: include request info
+ * @extra: buf used for in/Output
+ *
+ * Return: execute result
+ */
+static int iw_setnone_get_threeint(struct net_device *dev,
+				struct iw_request_info *info,
+				union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_setnone_get_threeint(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 static int iw_setchar_getnone(struct net_device *dev,
                               struct iw_request_info *info,
@@ -6641,7 +6743,11 @@ static int __iw_setnone_getint(struct net_device *dev,
             *value = wlan_hdd_get_fw_state(pAdapter);
             break;
         }
-
+        case WE_CAP_TSF:
+        {
+            ret = hdd_capture_tsf(pAdapter, (uint32_t *)value, 1);
+            break;
+        }
         default:
         {
            hddLog(LOGE, "Invalid IOCTL get_value command %d", value[0]);
@@ -7209,14 +7315,6 @@ static int __iw_setnone_getnone(struct net_device *dev,
 
     switch (sub_cmd)
     {
-        case WE_CLEAR_STATS:
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: clearing", __func__);
-            memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
-            memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
-            break;
-        }
-
         case WE_GET_RECOVERY_STAT:
         {
             tHalHandle hal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -9805,6 +9903,7 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_GET_CHAR_SET_NONE      - SIOCIWFIRSTPRIV]  = iw_get_char_setnone,
    [WLAN_PRIV_SET_NONE_GET_NONE     - SIOCIWFIRSTPRIV]   = iw_setnone_getnone, //action priv ioctl
    [WLAN_PRIV_SET_VAR_INT_GET_NONE  - SIOCIWFIRSTPRIV]   = iw_set_var_ints_getnone,
+   [WLAN_PRIV_SET_NONE_GET_THREE_INT - SIOCIWFIRSTPRIV]  = iw_setnone_get_threeint,
    [WLAN_PRIV_ADD_TSPEC             - SIOCIWFIRSTPRIV]   = iw_add_tspec,
    [WLAN_PRIV_DEL_TSPEC             - SIOCIWFIRSTPRIV]   = iw_del_tspec,
    [WLAN_PRIV_GET_TSPEC             - SIOCIWFIRSTPRIV]   = iw_get_tspec,
@@ -10257,6 +10356,16 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "" },
 
+    {   WE_DUMP_STATS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dumpStats" },
+
+    {   WE_CLEAR_STATS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "clearStats" },
+
     /* handlers for sub-ioctl */
     {   WE_GET_11D_STATE,
         0,
@@ -10525,7 +10634,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_fwstate"},
-
+#ifdef WLAN_FEATURE_TSF
+    {   WE_CAP_TSF,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "cap_tsf"},
+#endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
         IW_PRIV_TYPE_CHAR| 512,
@@ -10576,7 +10690,17 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
         "setsapchannels" },
-
+     /* handlers for main ioctl */
+    {   WLAN_PRIV_SET_NONE_GET_THREE_INT,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        "" },
+#ifdef WLAN_FEATURE_TSF
+    {   WE_GET_TSF,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        "get_tsf" },
+#endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_GET_CHAR_SET_NONE,
         0,
@@ -10651,10 +10775,6 @@ static const struct iw_priv_args we_private_args[] = {
         "" },
 
     /* handlers for sub-ioctl */
-    {   WE_CLEAR_STATS,
-        0,
-        0,
-        "clearStats" },
     {   WE_GET_RECOVERY_STAT,
         0,
         0,

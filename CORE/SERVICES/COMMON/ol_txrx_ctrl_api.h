@@ -64,6 +64,16 @@ enum wlan_op_mode {
 #define OL_TXQ_PAUSE_REASON_VDEV_STOP         (1 << 3)
 #define OL_TXQ_PAUSE_REASON_VDEV_SUSPEND      (1 << 4)
 
+/* command options for dumpStats*/
+#define WLAN_HDD_STATS        0
+#define WLAN_TXRX_STATS       1
+#ifdef CONFIG_HL_SUPPORT
+#define WLAN_SCHEDULER_STATS  2
+#define WLAN_TX_QUEUE_STATS   3
+#define WLAN_BUNDLE_STATS     4
+#define WLAN_CREDIT_STATS     5
+#endif
+
 /**
  * @brief Set up the data SW subsystem.
  * @details
@@ -1264,5 +1274,8 @@ void ol_txrx_set_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *pe
  *      Otherwise, returns A_FALSE
  */
 a_bool_t ol_txrx_get_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t **peer);
+
+void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
+void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

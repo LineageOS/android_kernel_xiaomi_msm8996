@@ -662,6 +662,11 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
        HTC_PACKET_QUEUE_DEPTH(pSyncCompletionQueue), totalLength);
 #endif
 
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+    if (HTC_PACKET_QUEUE_DEPTH(pSyncCompletionQueue) <= HTC_MAX_MSG_PER_BUNDLE_RX)
+        target->rx_bundle_stats[HTC_PACKET_QUEUE_DEPTH(pSyncCompletionQueue) - 1]++;
+#endif
+
     status = HIFSyncRead(pDev->HIFDevice,
                 pDev->MailBoxInfo.MboxAddresses[(int)MailBoxIndex],
                 pBundleBuffer,
@@ -825,6 +830,10 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                 }
 #if DEBUG_BUNDLE
                 adf_os_print("Recv single packet, length %d.\n", pPacket->ActualLength);
+#endif
+
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
+                target->rx_bundle_stats[0]++;
 #endif
 
                 /* go fetch the packet */

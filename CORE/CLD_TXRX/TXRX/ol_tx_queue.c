@@ -39,9 +39,10 @@
 #include <ol_tx.h>            /* ol_tx_vdev_ll_pause_queue_send */
 #include <ol_tx_sched.h>      /* ol_tx_sched_notify, etc. */
 #include <ol_tx_queue.h>
-#include <ol_txrx_dbg.h>      /* ENABLE_TX_QUEUE_LOG */
+#include <ol_txrx_dbg.h>      /* DEBUG_HL_LOGGING */
 #include <ol_txrx.h>          /* ol_tx_desc_pool_size_hl */
 #include <adf_os_types.h>     /* a_bool_t */
+#include <ol_txrx_peer_find.h>
 
 
 #if defined(CONFIG_HL_SUPPORT)
@@ -51,7 +52,7 @@
 #endif
 
 /*--- function prototypes for optional queue log feature --------------------*/
-#if defined(ENABLE_TX_QUEUE_LOG)
+#if defined(DEBUG_HL_LOGGING)
 
 void
 ol_tx_queue_log_enqueue(
@@ -830,7 +831,7 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev)
 
 /*--- queue event log -------------------------------------------------------*/
 
-#if defined(ENABLE_TX_QUEUE_LOG)
+#if defined(DEBUG_HL_LOGGING)
 
 static void
 ol_tx_queue_log_entry_type_info(
@@ -987,7 +988,9 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
 {
     int size, align, align_pad;
     u_int8_t type;
+    struct ol_txrx_peer_t *peer;
 
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
     type = pdev->txq_log.data[offset];
     ol_tx_queue_log_entry_type_info(
         &pdev->txq_log.data[offset], &size, &align, 1);
@@ -996,48 +999,87 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
     switch (type) {
     case ol_tx_log_entry_type_enqueue:
         {
-            struct ol_tx_log_queue_add_t *record;
-            record = (struct ol_tx_log_queue_add_t *)
-                &pdev->txq_log.data[offset + 1 + align_pad];
-            if (record->peer_id != 0xffff) {
-                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "  added %d frms (%d bytes) for peer %d, tid %d\n",
-                    record->num_frms, record->num_bytes,
-                    record->peer_id, record->tid);
+            struct ol_tx_log_queue_add_t record;
+            adf_os_mem_copy(&record,
+                            &pdev->txq_log.data[offset + 1 + align_pad],
+                            sizeof(struct ol_tx_log_queue_add_t));
+            adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+
+            if (record.peer_id != 0xffff) {
+                peer = ol_txrx_peer_find_by_id(pdev, record.peer_id);
+                if (peer != NULL)
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "       Q: %6d  %5d  %3d  %4d (%02x:%02x:%02x:%02x:%02x:%02x)",
+                        record.num_frms, record.num_bytes, record.tid,
+                        record.peer_id,
+                        peer->mac_addr.raw[0], peer->mac_addr.raw[1],
+                        peer->mac_addr.raw[2], peer->mac_addr.raw[3],
+                        peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
+               else
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "       Q: %6d  %5d  %3d  %4d",
+                        record.num_frms, record.num_bytes,
+                        record.tid, record.peer_id);
             } else {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "  added %d frms (%d bytes) vdev tid %d\n",
-                    record->num_frms, record->num_bytes, record->tid);
+                    "       Q: %6d  %5d  %3d  from vdev",
+                    record.num_frms, record.num_bytes, record.tid);
             }
             break;
         }
     case ol_tx_log_entry_type_dequeue:
         {
-            struct ol_tx_log_queue_add_t *record;
-            record = (struct ol_tx_log_queue_add_t *)
-                &pdev->txq_log.data[offset + 1 + align_pad];
-            if (record->peer_id != 0xffff) {
-                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "  download %d frms (%d bytes) from peer %d, tid %d\n",
-                    record->num_frms, record->num_bytes,
-                    record->peer_id, record->tid);
+            struct ol_tx_log_queue_add_t record;
+            adf_os_mem_copy(&record,
+                            &pdev->txq_log.data[offset + 1 + align_pad],
+                            sizeof(struct ol_tx_log_queue_add_t));
+            adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+
+            if (record.peer_id != 0xffff) {
+                peer = ol_txrx_peer_find_by_id(pdev, record.peer_id);
+                if (peer != NULL)
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "      DQ: %6d  %5d  %3d  %4d (%02x:%02x:%02x:%02x:%02x:%02x)",
+                        record.num_frms, record.num_bytes, record.tid,
+                        record.peer_id,
+                        peer->mac_addr.raw[0], peer->mac_addr.raw[1],
+                        peer->mac_addr.raw[2], peer->mac_addr.raw[3],
+                        peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
+                else
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "      DQ: %6d  %5d  %3d  %4d",
+                        record.num_frms, record.num_bytes,
+                        record.tid, record.peer_id);
             } else {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "  download %d frms (%d bytes) from vdev tid %d\n",
-                    record->num_frms, record->num_bytes, record->tid);
+                    "      DQ: %6d  %5d  %3d  from vdev",
+                    record.num_frms, record.num_bytes, record.tid);
             }
             break;
         }
     case ol_tx_log_entry_type_queue_free:
         {
-            struct ol_tx_log_queue_add_t *record;
-            record = (struct ol_tx_log_queue_add_t *)
-                &pdev->txq_log.data[offset + 1 + align_pad];
-            if (record->peer_id != 0xffff) {
-                VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "  peer %d, tid %d queue removed (%d frms, %d bytes)\n",
-                    record->peer_id, record->tid,
-                    record->num_frms, record->num_bytes);
+            struct ol_tx_log_queue_add_t record;
+            adf_os_mem_copy(&record,
+                            &pdev->txq_log.data[offset + 1 + align_pad],
+                            sizeof(struct ol_tx_log_queue_add_t));
+            adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+
+            if (record.peer_id != 0xffff) {
+                peer = ol_txrx_peer_find_by_id(pdev, record.peer_id);
+                if (peer != NULL)
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "     F: %6d  %5d  %3d  %4d (%02x:%02x:%02x:%02x:%02x:%02x)",
+                        record.num_frms, record.num_bytes, record.tid,
+                        record.peer_id,
+                        peer->mac_addr.raw[0], peer->mac_addr.raw[1],
+                        peer->mac_addr.raw[2], peer->mac_addr.raw[3],
+                        peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
+                else
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "      F: %6d  %5d  %3d  %4d",
+                        record.num_frms, record.num_bytes,
+                        record.tid, record.peer_id);
             } else {
                 /* shouldn't happen */
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
@@ -1050,18 +1092,21 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
         {
             int i, j;
             u_int32_t active_bitmap;
-            struct ol_tx_log_queue_state_var_sz_t *record;
+            struct ol_tx_log_queue_state_var_sz_t record;
             u_int8_t *data;
 
-            record = (struct ol_tx_log_queue_state_var_sz_t *)
-                &pdev->txq_log.data[offset + 1 + align_pad];
-            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                "  credit = %d, active category bitmap = %#x\n",
-                record->credit, record->active_bitmap);
-            data = &record->data[0];
+            adf_os_mem_copy(&record,
+                            &pdev->txq_log.data[offset + 1 + align_pad],
+                            sizeof(struct ol_tx_log_queue_state_var_sz_t));
+            adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+
+            VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                "       S: bitmap = %#x",
+                 record.active_bitmap);
+            data = &record.data[0];
             j = 0;
             i = 0;
-            active_bitmap = record->active_bitmap;
+            active_bitmap = record.active_bitmap;
             while (active_bitmap) {
                 if (active_bitmap & 0x1) {
                     u_int16_t frms;
@@ -1070,8 +1115,8 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
                     frms = data[0] | (data[1] << 8);
                     bytes = (data[2] <<  0) | (data[3] <<  8) |
                             (data[4] << 16) | (data[5] << 24);
-                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                        "    cat %d: %d frms, %d bytes\n",
+                    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                        "  cat %2d: %6d  %5d",
                         i, frms, bytes);
                     data += 6;
                     j++;
@@ -1085,10 +1130,12 @@ ol_tx_queue_log_record_display(struct ol_txrx_pdev_t *pdev, int offset)
     //case ol_tx_log_entry_type_drop:
 
     case ol_tx_log_entry_type_wrap:
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
         return -1 * offset; /* go back to the top */
 
     default:
-        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
             "  *** invalid tx log entry type (%d)\n", type);
         return 0; /* error */
     };
@@ -1101,16 +1148,21 @@ ol_tx_queue_log_display(struct ol_txrx_pdev_t *pdev)
 {
     int offset;
     int unwrap;
-    offset = pdev->txq_log.oldest_record_offset;
 
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
+    offset = pdev->txq_log.oldest_record_offset;
+    unwrap = pdev->txq_log.wrapped;
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
     /*
      * In theory, this should use mutex to guard against the offset
      * being changed while in use, but since this is just for debugging,
      * don't bother.
      */
-    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-        "tx queue log:\n");
-    unwrap = pdev->txq_log.wrapped;
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+        "Tx queue log:");
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+        "      : Frames  Bytes  TID  PEER");
+
     while (unwrap || offset != pdev->txq_log.offset) {
         int delta = ol_tx_queue_log_record_display(pdev, offset);
         if (delta == 0) {
@@ -1134,8 +1186,10 @@ ol_tx_queue_log_enqueue(
     struct ol_tx_log_queue_add_t *log_elem;
     tid = msdu_info->htt.info.ext_tid;
 
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
     log_elem = ol_tx_queue_log_alloc(pdev, ol_tx_log_entry_type_enqueue, 0);
     if (!log_elem) {
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
         return;
     }
 
@@ -1143,6 +1197,7 @@ ol_tx_queue_log_enqueue(
     log_elem->num_bytes = bytes;
     log_elem->peer_id = peer_id;
     log_elem->tid = tid;
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
 }
 
 void
@@ -1156,8 +1211,10 @@ ol_tx_queue_log_dequeue(
     struct ol_tx_log_queue_add_t *log_elem;
 
     ext_tid = txq->ext_tid;
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
     log_elem = ol_tx_queue_log_alloc(pdev, ol_tx_log_entry_type_dequeue, 0);
     if (!log_elem) {
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
         return;
     }
 
@@ -1176,6 +1233,7 @@ ol_tx_queue_log_dequeue(
     log_elem->num_bytes = bytes;
     log_elem->peer_id = peer_id;
     log_elem->tid = ext_tid;
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
 }
 
 void
@@ -1187,8 +1245,10 @@ ol_tx_queue_log_free(
     u_int16_t peer_id;
     struct ol_tx_log_queue_add_t *log_elem;
 
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
     log_elem = ol_tx_queue_log_alloc(pdev, ol_tx_log_entry_type_queue_free, 0);
     if (!log_elem) {
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
         return;
     }
 
@@ -1207,6 +1267,7 @@ ol_tx_queue_log_free(
     log_elem->num_bytes = bytes;
     log_elem->peer_id = peer_id;
     log_elem->tid = tid;
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
 }
 
 void
@@ -1223,10 +1284,12 @@ ol_tx_queue_log_sched(
     data_size = sizeof(u_int32_t) /* bytes */ + sizeof(u_int16_t) /* frms */;
     data_size *= *num_cats;
 
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
     log_elem = ol_tx_queue_log_alloc(
         pdev, ol_tx_log_entry_type_queue_state, data_size);
     if (!log_elem) {
         *num_cats = 0;
+        adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
         return;
     }
     log_elem->num_cats_active = *num_cats;
@@ -1235,9 +1298,22 @@ ol_tx_queue_log_sched(
 
     *active_bitmap = &log_elem->active_bitmap;
     *data = &log_elem->data[0];
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
 }
 
-#endif /* defined(ENABLE_TX_QUEUE_LOG) */
+void
+ol_tx_queue_log_clear(struct ol_txrx_pdev_t *pdev)
+{
+    adf_os_spin_lock_bh(&pdev->txq_log_spinlock);
+    adf_os_mem_zero(&pdev->txq_log, sizeof(pdev->txq_log));
+    pdev->txq_log.size = OL_TXQ_LOG_SIZE;
+    pdev->txq_log.oldest_record_offset = 0;
+    pdev->txq_log.offset = 0;
+    pdev->txq_log.allow_wrap = 1;
+    pdev->txq_log.wrapped = 0;
+    adf_os_spin_unlock_bh(&pdev->txq_log_spinlock);
+}
+#endif /* defined(DEBUG_HL_LOGGING) */
 
 /*--- queue state printouts -------------------------------------------------*/
 
@@ -1353,6 +1429,7 @@ void ol_tx_txq_group_credit_update(
             ol_txrx_update_group_credit(txq->group_ptrs[i], credit, absolute);
         }
     }
+    OL_TX_UPDATE_GROUP_CREDIT_STATS(pdev);
 }
 
 void

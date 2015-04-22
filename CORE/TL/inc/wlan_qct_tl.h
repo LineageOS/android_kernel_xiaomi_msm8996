@@ -2982,4 +2982,7 @@ bool WLANTL_disable_intrabss_fwd(void *vdev);
 VOS_STATUS WLANTL_RegisterOCBPeer(void *vos_ctx, uint8_t *mac_addr,
     uint8_t *peer_id);
 
+void WLANTL_display_datapath_stats(void *vos_ctx, uint16_t bitmap);
+void WLANTL_clear_datapath_stats(void *vos_ctx, uint16_t bitmap);
+
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

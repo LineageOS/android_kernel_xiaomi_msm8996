@@ -561,6 +561,23 @@ wdi_in_mgmt_send(
     u_int16_t chanfreq);
 
 /**
+ * wdi_in_display_stats - display txrx stats
+ * @pdev: txrx pdev context
+ * @value: value
+ */
+void
+wdi_in_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value);
+
+
+/**
+ * wdi_in_clear_stats - clear txrx stats
+ * @pdev: txrx pdev context
+ * @value: value
+ */
+void
+wdi_in_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t value);
+
+/**
  * @brief Setup the monitor mode vap (vdev) for this pdev
  * @details
  *  When a non-NULL vdev handle is registered as the monitor mode vdev, all
@@ -1153,9 +1170,8 @@ ol_rx_pn_trace_display(ol_txrx_pdev_handle pdev, int just_once);
 
 /*--- tx queue log debug feature ---*/
 /* uncomment this to enable the tx queue log feature */
-//#define ENABLE_TX_QUEUE_LOG 1
 
-#if defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT)
+#if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
 
 void
 ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
@@ -1164,7 +1180,7 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 
 #define ol_tx_queue_log_display(pdev)
 
-#endif /* defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT) */
+#endif /* defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT) */
 
 #endif /* ATH_PERF_PWR_OFFLOAD  */ /*----------------------------------------*/
 
@@ -1194,6 +1210,8 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_data_tx_cb_set ol_txrx_data_tx_cb_set
 #define wdi_in_mgmt_tx_cb_set ol_txrx_mgmt_tx_cb_set
 #define wdi_in_mgmt_send ol_txrx_mgmt_send
+#define wdi_in_display_stats ol_txrx_display_stats
+#define wdi_in_clear_stats ol_txrx_clear_stats
 #define wdi_in_set_monitor_mode_vap ol_txrx_set_monitor_mode_vap
 #define wdi_in_set_curchan ol_txrx_set_curchan
 #define wdi_in_get_tx_pending ol_txrx_get_tx_pending

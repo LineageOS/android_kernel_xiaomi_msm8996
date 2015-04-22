@@ -781,6 +781,7 @@ void htt_tx_group_credit_process(struct htt_pdev_t *pdev, u_int32_t *msg_word)
       more_group_present = HTT_TXQ_GROUP_EXT_GET(*(msg_word+1+group_offset));
       group_offset += HTT_TX_GROUP_INDEX_OFFSET;
    }
+   OL_TX_UPDATE_GROUP_CREDIT_STATS(pdev->txrx_pdev);
 }
 #endif
 
