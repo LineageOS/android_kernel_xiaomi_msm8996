@@ -24106,6 +24106,7 @@ VOS_STATUS wma_set_led_flashing(tp_wma_handle wma_handle,
 	cmd->pattern_id = flashing->pattern_id;
 	cmd->led_x0 = flashing->led_x0;
 	cmd->led_x1 = flashing->led_x1;
+	cmd->gpio_num = flashing->gpio_num;
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					WMI_PDEV_SET_LED_FLASHING_CMDID);

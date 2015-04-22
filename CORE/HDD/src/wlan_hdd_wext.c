@@ -7679,9 +7679,9 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
         case WE_LED_FLASHING_PARAM:
             {
                 int i;
-                if (num_args != 4) {
+                if (num_args != 5) {
                     hddLog(LOGE,
-                          FL("gpio_control: 4 parameters are required"));
+                          FL("gpio_control: 5 parameters are required"));
                     return -EINVAL;
                 }
 
@@ -7693,9 +7693,9 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                     }
                 }
                 sme_SetLedFlashing(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                    0, apps_args[0], apps_args[1]);
+                    0, apps_args[0], apps_args[1], apps_args[4]);
                 sme_SetLedFlashing(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                    1, apps_args[2], apps_args[3]);
+                    1, apps_args[2], apps_args[3], apps_args[4]);
             }
             break;
 #endif

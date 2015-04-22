@@ -15634,10 +15634,11 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
     \brief  API to set the Led flashing parameters.
     \param  hHal - The handle returned by macOpen.
     \param  x0, x1 -  led flashing parameters
+    \param  gpio_num -  GPIO number
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
-                               tANI_U32 x0, tANI_U32 x1)
+                               tANI_U32 x0, tANI_U32 x1, tANI_U32 gpio_num)
 {
     eHalStatus status    = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
@@ -15655,6 +15656,7 @@ eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
     ledflashing->pattern_id = type;
     ledflashing->led_x0 = x0;
     ledflashing->led_x1 = x1;
+    ledflashing->gpio_num = gpio_num;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme))) {
         /* Serialize the req through MC thread */

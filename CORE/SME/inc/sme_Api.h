@@ -4145,10 +4145,11 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
     \brief  API to set the LED flashing feature.
     \param  hHal - The handle returned by macOpen.
     \param  x0, x1 -  led flashing parameters
+    \param  gpio_num -  GPIO number
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
-                               tANI_U32 x0, tANI_U32 x1);
+                               tANI_U32 x0, tANI_U32 x1, tANI_U32 gpio_num);
 #endif
 /* ---------------------------------------------------------------------------
     \fn sme_handle_dfS_chan_scan

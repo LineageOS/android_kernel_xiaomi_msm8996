@@ -5740,6 +5740,7 @@ typedef struct
   tANI_U32 pattern_id; /* pattern identifier. 0: disconnected 1: connected*/
   tANI_U32 led_x0; /* led flashing parameter0 */
   tANI_U32 led_x1; /* led flashing parameter1 */
+  tANI_U32 gpio_num; /* GPIO number */
 } tSirLedFlashingReq, *tpSirLedFlashingReq;
 #endif
 
