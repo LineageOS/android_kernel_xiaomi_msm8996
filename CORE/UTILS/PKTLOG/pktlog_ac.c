@@ -32,11 +32,6 @@
 #include "vos_api.h"
 #include "wlan_qct_wda.h"
 
-void pktlog_init(struct ol_softc *scn);
-int pktlog_enable(struct ol_softc *scn, int32_t log_state);
-int pktlog_setsize(struct ol_softc *scn, int32_t log_state);
-int pktlog_disable(struct ol_softc *scn);
-
 wdi_event_subscribe PKTLOG_TX_SUBSCRIBER;
 wdi_event_subscribe PKTLOG_RX_SUBSCRIBER;
 wdi_event_subscribe PKTLOG_RX_REMOTE_SUBSCRIBER;

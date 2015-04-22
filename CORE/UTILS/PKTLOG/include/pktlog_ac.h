@@ -123,8 +123,29 @@ void pktlog_callback(void *pdev, enum WDI_EVENT event, void *log_data);
 		}				\
 	} while (0)
 
+void pktlog_init(struct ol_softc *scn);
+int pktlog_enable(struct ol_softc *scn, int32_t log_state);
+int pktlog_setsize(struct ol_softc *scn, int32_t log_state);
+int pktlog_disable(struct ol_softc *scn);
+
 #else /* REMOVE_PKT_LOG */
 #define ol_pktlog_attach(_scn)	({ (void)_scn; })
 #define ol_pktlog_detach(_scn)	({ (void)_scn; })
+static inline void pktlog_init(struct ol_softc *scn)
+{
+	return;
+}
+static int pktlog_enable(struct ol_softc *scn, int32_t log_state)
+{
+	return 0;
+}
+static int pktlog_setsize(struct ol_softc *scn, int32_t log_state)
+{
+	return 0;
+}
+static int pktlog_disable(struct ol_softc *scn)
+{
+	return 0;
+}
 #endif /* REMOVE_PKT_LOG */
 #endif /* _PKTLOG_AC_H_ */

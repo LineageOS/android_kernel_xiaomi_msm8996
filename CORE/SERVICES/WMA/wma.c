@@ -24664,6 +24664,49 @@ static VOS_STATUS wma_process_fw_mem_dump_req(tp_wma_handle wma,
 }
 #endif /* WLAN_FEATURE_MEMDUMP */
 
+#if !defined(REMOVE_PKT_LOG)
+/**
+ * wma_set_wifi_start_logger() - Send the WMA commands to start/stop logging
+ * @wma_handle: WMA handle
+ * @start_log: Struture containing the start wifi logger params
+ *
+ * This function is used to send the WMA commands to start/stop logging
+ *
+ * Return: None
+ *
+ */
+void wma_set_wifi_start_logger(void *wma_handle,
+		struct sir_wifi_start_log *start_log)
+{
+	void *vos_context;
+	struct ol_softc *scn;
+	uint32_t log_state;
+
+	if (!start_log) {
+		WMA_LOGE("%s: start_log pointer is NULL", __func__);
+		return;
+	}
+	if (!wma_handle) {
+		WMA_LOGE("%s: Invalid wma handle", __func__);
+		return;
+	}
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
+
+	log_state = ATH_PKTLOG_ANI | ATH_PKTLOG_RCUPDATE | ATH_PKTLOG_RCFIND |
+		ATH_PKTLOG_RX | ATH_PKTLOG_TX | ATH_PKTLOG_TEXT;
+
+	if (start_log->verbose_level == WLAN_LOG_LEVEL_ACTIVE) {
+		pktlog_enable(scn, log_state);
+		WMA_LOGI("%s: Enabling per packet stats", __func__);
+	} else {
+		pktlog_enable(scn, 0);
+		WMA_LOGI("%s: Disabling per packet stats", __func__);
+	}
+}
+#endif
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -25418,6 +25461,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(struct fw_dump_req*)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
                         break;
+		case SIR_HAL_START_STOP_PACKET_STATS:
+			wma_set_wifi_start_logger(wma_handle,
+					(struct sir_wifi_start_log *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

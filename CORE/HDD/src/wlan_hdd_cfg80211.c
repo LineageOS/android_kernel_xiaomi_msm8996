@@ -6986,6 +6986,101 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	return ret_val;
 }
 
+static const struct
+nla_policy
+qca_wlan_vendor_wifi_logger_start_policy
+[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID]
+		= {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL]
+		= {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS]
+		= {.type = NLA_U32 },
+};
+
+/**
+ * wlan_hdd_cfg80211_wifi_logger_start() - This function is used to enable
+ * or disable the collection of packet statistics from the firmware
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function is used to enable or disable the collection of packet
+ * statistics from the firmware
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
+					       struct wireless_dev *wdev,
+					       const void *data,
+					       int data_len)
+{
+	eHalStatus status;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX + 1];
+	struct sir_wifi_start_log start_log;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX,
+		      data, data_len,
+		      qca_wlan_vendor_wifi_logger_start_policy)) {
+		hddLog(LOGE, FL("Invalid attribute"));
+		return -EINVAL;
+	}
+
+	/* Parse and fetch ring id */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID]) {
+		hddLog(LOGE, FL("attr ATTR failed"));
+		return -EINVAL;
+	}
+	start_log.ring_id = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID]);
+	hddLog(LOGE, FL("Ring ID=%d"), start_log.ring_id);
+
+	/* Parse and fetch verbose level */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL]) {
+		hddLog(LOGE, FL("attr verbose_level failed"));
+		return -EINVAL;
+	}
+	start_log.verbose_level = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL]);
+	hddLog(LOGE, FL("verbose_level=%d"), start_log.verbose_level);
+
+	/* Parse and fetch flag */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS]) {
+		hddLog(LOGE, FL("attr flag failed"));
+		return -EINVAL;
+	}
+	start_log.flag = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS]);
+	hddLog(LOGE, FL("flag=%d"), start_log.flag);
+
+	vos_set_ring_log_level(start_log.ring_id, start_log.verbose_level);
+
+	if (start_log.ring_id == RING_ID_WAKELOCK) {
+		/* Start/stop wakelock events */
+		if (start_log.verbose_level > WLAN_LOG_LEVEL_OFF)
+			vos_set_wakelock_logging(true);
+		else
+			vos_set_wakelock_logging(false);
+		return 0;
+	}
+
+	status = sme_wifi_start_logger(hdd_ctx->hHal, start_log);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		hddLog(LOGE, FL("sme_wifi_start_logger failed(err=%d)"),
+			status);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -7360,6 +7455,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_get_fw_mem_dump
     },
 #endif /* WLAN_FEATURE_MEMDUMP */
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_START,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV,
+		.doit = (void *)wlan_hdd_cfg80211_wifi_logger_start
+	},
+
 };
 
 

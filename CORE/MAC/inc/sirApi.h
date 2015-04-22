@@ -3995,6 +3995,20 @@ typedef struct
   tSirMacAddr  bssId;
 } tSirGtkOffloadParams, *tpSirGtkOffloadParams;
 
+/**
+ * struct sir_wifi_start_log - Structure to store the params sent to start/
+ * stop logging
+ * @name:          Attribute which indicates the type of logging like per packet
+ *                 statistics, connectivity etc.
+ * @verbose_level: Verbose level which can be 0,1,2,3
+ * @flag:          Flag field for future use
+ */
+struct sir_wifi_start_log {
+	uint32_t ring_id;
+	uint32_t verbose_level;
+	uint32_t flag;
+};
+
 /*---------------------------------------------------------------------------
 * WDA_GTK_OFFLOAD_GETINFO_REQ
 *--------------------------------------------------------------------------*/
