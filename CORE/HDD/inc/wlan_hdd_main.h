@@ -975,6 +975,14 @@ struct hdd_adapter_s
       hdd_mon_ctx_t monitor;
    }sessionCtx;
 
+#ifdef WLAN_FEATURE_TSF
+   /* tsf value get from firmware */
+   uint32_t tsf_low;
+   uint32_t tsf_high;
+   /* current in capture tsf state or not */
+   enum hdd_tsf_capture_state tsf_state;
+#endif
+
    hdd_cfg80211_state_t cfg80211State;
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING

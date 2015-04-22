@@ -7900,6 +7900,122 @@ VOS_STATUS WDA_GetSnr(tAniGetSnrReq *psnr_req)
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_TSF
+/**
+ * wma_capture_tsf() - send wmi to fw to capture tsf
+ *
+ * @wma_handle: wma handler
+ * @vdev_id: vdev id
+ *
+ * Return: wmi send state
+ */
+static VOS_STATUS wma_capture_tsf(tp_wma_handle wma_handle, uint32_t vdev_id)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	wmi_vdev_tsf_tstamp_action_cmd_fixed_param *cmd;
+	int status;
+	int len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: failed to allocate memory for cap tsf cmd",
+			 __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_vdev_tsf_tstamp_action_cmd_fixed_param *) wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	cmd->tsf_action = TSF_TSTAMP_CAPTURE_REQ;
+
+	WMA_LOGD("%s :vdev_id %u, TSF_TSTAMP_CAPTURE_REQ",
+		__func__, cmd->vdev_id);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		wmi_vdev_tsf_tstamp_action_cmd_fixed_param));
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				len, WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_cmd_send returned Error %d", status);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
+
+	return VOS_STATUS_SUCCESS;
+
+error:
+	if (buf)
+		adf_nbuf_free(buf);
+	return vos_status;
+}
+
+/**
+ * wma_reset_tsf_gpio() - send wmi to fw to reset GPIO
+ *
+ * @wma_handle: wma handler
+ * @vdev_id: vdev id
+ *
+ * Return: wmi send state
+ */
+static VOS_STATUS wma_reset_tsf_gpio(tp_wma_handle wma_handle, uint32_t vdev_id)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	wmi_vdev_tsf_tstamp_action_cmd_fixed_param *cmd;
+	int status;
+	int len = sizeof(*cmd);
+	uint8_t *buf_ptr;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: failed to allocate memory for reset tsf gpio",
+				__func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_vdev_tsf_tstamp_action_cmd_fixed_param *) buf_ptr;
+	cmd->vdev_id = vdev_id;
+	cmd->tsf_action = TSF_TSTAMP_CAPTURE_RESET;
+
+	WMA_LOGD("%s :vdev_id %u, TSF_TSTAMP_CAPTURE_RESET",
+			__func__, cmd->vdev_id);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		wmi_vdev_tsf_tstamp_action_cmd_fixed_param));
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				len, WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
+
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_cmd_send returned Error %d", status);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
+	return VOS_STATUS_SUCCESS;
+
+error:
+	if (buf)
+		adf_nbuf_free(buf);
+	return vos_status;
+}
+#else
+static VOS_STATUS wma_capture_tsf(tp_wma_handle wma_handle, uint32_t vdev_id)
+{
+    return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wma_reset_tsf_gpio(tp_wma_handle wma_handle, uint32_t vdev_id)
+{
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /* function   : wma_start_scan
  * Description :
  * Args       :
@@ -12362,6 +12478,12 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case GEN_PARAM_CRASH_INJECT:
 			ret = wmi_crash_inject(wma->wmi_handle,
 				privcmd->param_value, privcmd->param_sec_value);
+			break;
+		case GEN_PARAM_CAPTURE_TSF:
+			ret = wma_capture_tsf(wma, privcmd->param_value);
+			break;
+		case GEN_PARAM_RESET_TSF_GPIO:
+			ret = wma_reset_tsf_gpio(wma, privcmd->param_value);
 			break;
 #ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
 		case GEN_PARAM_DUMP_PCIE_ACCESS_LOG:
@@ -26136,6 +26258,58 @@ static int wma_sap_ofl_del_sta_handler(void *handle, u_int8_t *data,
 #endif /* SAP_AUTH_OFFLOAD */
 
 /**
+ * wma_vdev_tsf_handler() - handle tsf event indicated by FW
+ *
+ * @handle: wma context
+ * @data: event buffer
+ * @data len: length of event buffer
+ *
+ * Return: 0 on success
+ */
+static int wma_vdev_tsf_handler(void *handle, uint8_t *data,
+				uint32_t data_len)
+{
+	vos_msg_t vos_msg = {0};
+	WMI_VDEV_TSF_REPORT_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_tsf_report_event_fixed_param *tsf_event;
+	struct stsf *ptsf;
+
+	if (data == NULL) {
+		WMA_LOGE("%s: invalid pointer", __func__);
+		return -EINVAL;
+	}
+	ptsf = vos_mem_malloc(sizeof(*ptsf));
+	if (NULL == ptsf) {
+		WMA_LOGE("%s: failed to allocate sSirtsf memory", __func__);
+		return -ENOMEM;
+	}
+
+	param_buf = (WMI_VDEV_TSF_REPORT_EVENTID_param_tlvs *)data;
+	tsf_event = param_buf->fixed_param;
+
+	ptsf->vdev_id = tsf_event->vdev_id;
+	ptsf->tsf_low = tsf_event->tsf_low;
+	ptsf->tsf_high = tsf_event->tsf_high;
+
+	WMA_LOGD("%s: receive WMI_VDEV_TSF_REPORT_EVENTID ", __func__);
+	WMA_LOGD("%s: vdev_id = %u,tsf_low =%u, tsf_high = %u", __func__,
+			 ptsf->vdev_id, ptsf->tsf_low, ptsf->tsf_high);
+
+	vos_msg.type = eWNI_SME_TSF_EVENT;
+	vos_msg.bodyptr = ptsf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+		vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg)) {
+
+		WMA_LOGP("%s: Failed to post eWNI_SME_TSF_EVENT", __func__);
+		vos_mem_free(ptsf);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+/**
  * wma_echo_event_handler() - received echo response event from firmware
  * @handle: wma context
  * @event_buf: event buffer
@@ -26381,6 +26555,15 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		}
 	}
 #endif /* SAP_AUTH_OFFLOAD */
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_VDEV_TSF_REPORT_EVENTID,
+				wma_vdev_tsf_handler);
+	if (0 != status) {
+		WMA_LOGP("%s: Failed to register tsf callback", __func__);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
 
 end:
 	WMA_LOGD("%s: Exit", __func__);

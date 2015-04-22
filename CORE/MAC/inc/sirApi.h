@@ -5805,6 +5805,21 @@ struct tSirSapOffloadInfo
 #endif /* SAP_AUTH_OFFLOAD */
 
 /**
+ * struct stsf - the basic stsf structure
+ *
+ * @vdev_id: vdev id
+ * @tsf_low: low 32bits of tsf
+ * @tsf_high: high 32bits of tsf
+ *
+ * driver use this struct to store the tsf info
+ */
+struct stsf {
+	uint32_t vdev_id;
+	uint32_t tsf_low;
+	uint32_t tsf_high;
+};
+
+/**
  * OCB structures
  */
 

@@ -2872,6 +2872,16 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    vos_mem_free(pMsg->bodyptr);
                }
                break;
+          case eWNI_SME_TSF_EVENT:
+               if (pMac->sme.get_tsf_cb) {
+                   pMac->sme.get_tsf_cb(pMac->sme.get_tsf_cxt,
+                                      (struct stsf *)pMsg->bodyptr);
+               }
+               if (pMsg->bodyptr) {
+                   vos_mem_free(pMsg->bodyptr);
+                   pMsg->bodyptr = NULL;
+               }
+               break;
 #ifdef WLAN_FEATURE_NAN
           case eWNI_SME_NAN_EVENT:
                 if (pMsg->bodyptr)
@@ -16148,5 +16158,33 @@ eHalStatus sme_configure_modulated_dtim(tHalHandle h_hal, tANI_U8 session_id,
 		vos_mem_free(iwcmd);
 	}
 
+	return status;
+}
+
+/**
+ * sme_set_tsfcb() - set callback which to handle WMI_VDEV_TSF_REPORT_EVENTID
+ *
+ * @hHal: Handler return by macOpen.
+ * @pcallbackfn: callback to handle the tsf event
+ * @pcallbackcontext: callback context
+ *
+ * Return: eHalStatus.
+ */
+eHalStatus sme_set_tsfcb
+(
+	tHalHandle hHal,
+	int (*pcallbackfn)(void *pcallbackcontext, struct stsf *pTsf),
+	void *pcallbackcontext
+)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	eHalStatus status;
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		pMac->sme.get_tsf_cb = pcallbackfn;
+		pMac->sme.get_tsf_cxt = pcallbackcontext;
+		sme_ReleaseGlobalLock(&pMac->sme);
+	}
 	return status;
 }

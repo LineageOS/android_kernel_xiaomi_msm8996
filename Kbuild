@@ -381,6 +381,10 @@ ifeq ($(CONFIG_QCOM_TDLS),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tdls.o
 endif
 
+ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
+HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tsf.o
+endif
+
 ############ EPPING ############
 EPPING_DIR :=	CORE/EPPING
 EPPING_INC_DIR :=	$(EPPING_DIR)/inc
@@ -1340,6 +1344,11 @@ endif
 # Enable feature Software AP Authentication Offload
 ifeq ($(SAP_AUTH_OFFLOAD),1)
 CDEFINES += -DSAP_AUTH_OFFLOAD
+endif
+
+# Enable featue sync tsf between multi devices
+ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
+CDEFINES += -DWLAN_FEATURE_TSF
 endif
 
 # Enable target dump for non-qualcomm platform
