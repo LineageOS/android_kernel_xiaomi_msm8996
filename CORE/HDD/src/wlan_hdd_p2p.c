@@ -1024,7 +1024,13 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
         // Check for cached action frame
         if(pRemainChanCtx->action_pkt_buff.frame_length != 0)
         {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0)) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(WITH_BACKPORTS)
+          cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr,
+                      pRemainChanCtx->action_pkt_buff.freq, 0,
+                      pRemainChanCtx->action_pkt_buff.frame_ptr,
+                      pRemainChanCtx->action_pkt_buff.frame_length,
+                      NL80211_RXMGMT_FLAG_ANSWERED);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
           cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr,
                       pRemainChanCtx->action_pkt_buff.freq, 0,
                       pRemainChanCtx->action_pkt_buff.frame_ptr,
@@ -2720,7 +2726,10 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
 
     //Indicate Frame Over Normal Interface
     hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0)) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(WITH_BACKPORTS)
+    cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, 0, pbFrames,
+                     nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
     cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, 0, pbFrames,
                      nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED, GFP_ATOMIC);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
