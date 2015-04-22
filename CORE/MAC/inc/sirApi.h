@@ -5099,7 +5099,7 @@ typedef struct
  */
 struct sir_extscan_generic_response {
 	uint32_t request_id;
-	uint32_t status;
+	int32_t status;
 };
 
 typedef struct

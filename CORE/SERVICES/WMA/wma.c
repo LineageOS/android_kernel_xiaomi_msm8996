@@ -2625,46 +2625,61 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 }
 
 #ifdef FEATURE_WLAN_EXTSCAN
-static int wma_extscan_start_stop_event_handler(void *handle,
-		u_int8_t *cmd_param_info, u_int32_t len)
+/**
+ * wma_extscan_rsp_handler() - extscan rsp handler
+ * @wma: WMA global handle
+ * @buf: event fixed param buffer
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wma_extscan_rsp_handler(tp_wma_handle wma, uint8_t *buf)
 {
-	tp_wma_handle wma = (tp_wma_handle)handle;
-	WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *param_buf;
 	wmi_extscan_start_stop_event_fixed_param *event;
 	struct sir_extscan_generic_response   *extscan_ind;
-	u_int16_t event_type;
-	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(
+	uint16_t event_type;
+	uint8_t vdev_id;
+	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
-	if (!pMac) {
-		WMA_LOGE("%s: Invalid pMac", __func__);
+	WMA_LOGI("%s: Enter", __func__);
+	if (!mac_ctx) {
+		WMA_LOGE("%s: Invalid mac_ctx", __func__);
 		return -EINVAL;
 	}
-	if (!pMac->sme.pExtScanIndCb) {
+	if (!mac_ctx->sme.pExtScanIndCb) {
 		WMA_LOGE("%s: Callback not registered", __func__);
 		return -EINVAL;
         }
-	param_buf = (WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *)
-					cmd_param_info;
-	if (!param_buf) {
-		WMA_LOGE("%s: Invalid extscan event", __func__);
+	if (!buf) {
+		WMA_LOGE("Invalid event buffer");
 		return -EINVAL;
 	}
-	event = param_buf->fixed_param;
+
+	event = (wmi_extscan_start_stop_event_fixed_param *)buf;
+	vdev_id = event->vdev_id;
 	extscan_ind = vos_mem_malloc(sizeof(*extscan_ind));
 	if (!extscan_ind) {
 		WMA_LOGE("%s: extscan memory allocation failed", __func__);
-		return -EINVAL;
+		return -ENOMEM;
 	}
+
 	switch (event->command) {
 	case WMI_EXTSCAN_START_CMDID:
 		event_type = eSIR_EXTSCAN_START_RSP;
 		extscan_ind->status = event->status;
 		extscan_ind->request_id = event->request_id;
+
+		if (!extscan_ind->status)
+		        wma->interfaces[vdev_id].extscan_in_progress = true;
+
 		break;
 	case WMI_EXTSCAN_STOP_CMDID:
 		event_type = eSIR_EXTSCAN_STOP_RSP;
 		extscan_ind->status = event->status;
 		extscan_ind->request_id = event->request_id;
+
+		if (!extscan_ind->status)
+		        wma->interfaces[vdev_id].extscan_in_progress = false;
+
 		break;
 	case WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID:
 		extscan_ind->status = event->status;
@@ -2705,19 +2720,71 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		}
 		break;
 	default:
-		WMA_LOGE("%s: Unknown event(%d) from target",
-			__func__, event->status);
+		WMA_LOGE("%s: Unknown event %d from target vdev_id %u",
+			__func__, event->status, vdev_id);
 		vos_mem_free(extscan_ind);
 		return -EINVAL;
 	}
-	pMac->sme.pExtScanIndCb(pMac->hHdd,
+	mac_ctx->sme.pExtScanIndCb(mac_ctx->hHdd,
 				event_type, extscan_ind);
-	WMA_LOGD("%s: sending event to umac for requestid %x"
-		"with status %d", __func__,
+	WMA_LOGD("%s: sending event to umac for requestid %u with status %d",
+		__func__,
 		extscan_ind->request_id, extscan_ind->status);
 	vos_mem_free(extscan_ind);
 	return 0;
 }
+
+/**
+ * wma_extscan_start_stop_event_handler() - extscan event handler
+ * @handle: WMA global handle
+ * @cmd_param_info: command event data
+ * @len: Length of @cmd_param_info
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wma_extscan_start_stop_event_handler(void *handle,
+					uint8_t *cmd_param_info, uint32_t len)
+{
+	WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *param_buf;
+	wmi_extscan_start_stop_event_fixed_param *event;
+	u_int8_t *buf;
+	int buf_len = sizeof(*event);
+	vos_msg_t vos_msg = {0};
+
+	WMA_LOGI("%s: Enter", __func__);
+	param_buf = (WMI_EXTSCAN_START_STOP_EVENTID_param_tlvs *)
+					cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid extscan event", __func__);
+		return -EINVAL;
+	}
+
+	event = param_buf->fixed_param;
+	buf = vos_mem_malloc(buf_len);
+	if (!buf) {
+		WMA_LOGE("%s: extscan memory allocation failed", __func__);
+		return -ENOMEM;
+	}
+
+	vos_mem_zero(buf, buf_len);
+	vos_mem_copy(buf, (u_int8_t *)event, buf_len);
+
+	vos_msg.type = WDA_EXTSCAN_STATUS_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_EXTSCAN_STATUS_IND msg",
+			__func__);
+		vos_mem_free(buf);
+		return -EINVAL;
+	}
+	WMA_LOGD("WDA_EXTSCAN_STATUS_IND posted");
+
+	return 0;
+}
+
 
 static int wma_extscan_operations_event_handler(void *handle,
 		u_int8_t *cmd_param_info, u_int32_t len)
@@ -22878,7 +22945,6 @@ VOS_STATUS wma_start_extscan(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	wma->interfaces[pstart->sessionId].extscan_in_progress = true;
 	WMA_LOGD("Extscan start request sent successfully for vdev %d",
 		 pstart->sessionId);
 
@@ -22927,7 +22993,6 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	wma->interfaces[pstopcmd->sessionId].extscan_in_progress = false;
 	WMA_LOGD("Extscan stop request sent successfully for vdev %d",
 		 pstopcmd->sessionId);
 
@@ -25261,6 +25326,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_RESET_PASSPOINT_LIST_REQ:
 			wma_reset_passpoint_network_list(wma_handle,
 				(struct wifi_passpoint_req *)msg->bodyptr);
+		break;
+		case WDA_EXTSCAN_STATUS_IND:
+			wma_extscan_rsp_handler(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 		break;
 #endif
 		case WDA_SET_SCAN_MAC_OUI_REQ:

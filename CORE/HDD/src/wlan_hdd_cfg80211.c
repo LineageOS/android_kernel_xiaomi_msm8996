@@ -18810,7 +18810,7 @@ wlan_hdd_cfg80211_extscan_generic_rsp
 		return;
 	}
 
-	hddLog(LOG1, FL("request %u status %u"),
+	hddLog(LOG1, FL("request %u status %d"),
 	       response->request_id, response->status);
 
 	context = &hdd_ctx->ext_scan_context;
