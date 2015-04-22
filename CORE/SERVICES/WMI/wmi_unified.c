@@ -124,7 +124,7 @@ wmi_buf_alloc(wmi_unified_t wmi_handle, u_int16_t len)
 	wmi_buf_t wmi_buf;
 
 	if (roundup(len + WMI_MIN_HEAD_ROOM, 4) >
-				WMI_MAX_LEN_BYTES) {
+				wmi_handle->max_msg_len) {
 		VOS_ASSERT(0);
 		return NULL;
 	}
@@ -1115,6 +1115,7 @@ wmi_unified_connect_htc_service(struct wmi_unified * wmi_handle, void *htc_handl
     }
     wmi_handle->wmi_endpoint_id = response.Endpoint;
     wmi_handle->htc_handle = htc_handle;
+    wmi_handle->max_msg_len = response.MaxMsgLength;
 
     return EOK;
 }
