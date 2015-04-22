@@ -2131,7 +2131,11 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
          if (pRoamInfo->pBssDesc)
          {
             struct cfg80211_bss *bss;
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)) || defined(WITH_BACKPORTS)
+            struct ieee80211_channel *chan;
+            int chan_no;
+            unsigned int freq;
+#endif
             /* we created the IBSS, notify supplicant */
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: %s: created ibss "
                    MAC_ADDRESS_STR,
@@ -2147,7 +2151,28 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
                       __func__, pAdapter->dev->name);
                return;
             }
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)) || defined(WITH_BACKPORTS)
+            chan_no = pRoamInfo->pBssDesc->channelId;
+
+            if (chan_no <= 14)
+                freq = ieee80211_channel_to_frequency(chan_no,
+                                                      IEEE80211_BAND_2GHZ);
+            else
+                freq = ieee80211_channel_to_frequency(chan_no,
+                                                      IEEE80211_BAND_5GHZ);
+
+            chan = ieee80211_get_channel(pAdapter->wdev.wiphy, freq);
+
+            if (chan)
+                cfg80211_ibss_joined(pAdapter->dev, bss->bssid,
+                                     chan, GFP_KERNEL);
+            else
+                hddLog(LOGE, FL("%s: chanId: %d, can't find channel"),
+                       pAdapter->dev->name,
+                       (int)pRoamInfo->pBssDesc->channelId);
+#else
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
+#endif
             cfg80211_put_bss(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
                              pHddCtx->wiphy,
