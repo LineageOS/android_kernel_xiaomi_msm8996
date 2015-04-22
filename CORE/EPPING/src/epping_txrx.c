@@ -355,7 +355,12 @@ epping_adapter_t *epping_add_adapter(epping_context_t *pEpping_ctx,
    struct net_device *dev;
    epping_adapter_t *pAdapter;
 
-   dev = alloc_netdev(sizeof(epping_adapter_t), "wifi%d", ether_setup);
+   dev = alloc_netdev(sizeof(epping_adapter_t),
+                      "wifi%d",
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
+                      NET_NAME_UNKNOWN,
+#endif
+                      ether_setup);
    if (dev == NULL) {
       EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
          "%s: Cannot allocate epping_adapter_t\n", __func__);

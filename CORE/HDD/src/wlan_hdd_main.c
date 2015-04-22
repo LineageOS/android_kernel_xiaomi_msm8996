@@ -7757,7 +7757,13 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
    /*
     * cfg80211 initialization and registration....
     */
-   pWlanDev = alloc_netdev_mq(sizeof( hdd_adapter_t ), name, ether_setup, NUM_TX_QUEUES);
+   pWlanDev = alloc_netdev_mq(sizeof( hdd_adapter_t ),
+                              name,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
+                              NET_NAME_UNKNOWN,
+#endif
+                              ether_setup,
+                              NUM_TX_QUEUES);
 
    if(pWlanDev != NULL)
    {
