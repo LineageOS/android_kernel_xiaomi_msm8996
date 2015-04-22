@@ -1794,6 +1794,14 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    vos_clear_concurrent_session_count();
 
+#ifdef MSM_PLATFORM
+   if (VOS_TIMER_STATE_RUNNING ==
+           vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
+   {
+      vos_timer_stop(&pHddCtx->bus_bw_timer);
+   }
+#endif
+
    hdd_stop_auto_suspend_attempt(pHddCtx);
 
    hdd_reset_all_adapters(pHddCtx);
