@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -48,12 +48,23 @@
 #define PKTLOG_MODE_SYSTEM	1
 #define PKTLOG_MODE_ADAPTER	2
 
+/*
+ * The proc entry starts with magic number and version field which will be
+ * used by post processing scripts. These fields are not needed by applications
+ * that do not use these scripts. This is skipped using the offset value.
+ */
+#define PKTLOG_READ_OFFSET    8
+
 /* Opaque softc */
 struct ol_ath_generic_softc_t;
 typedef struct ol_ath_generic_softc_t* ol_ath_generic_softc_handle;
 extern void pktlog_disable_adapter_logging(struct ol_softc *scn);
 extern int pktlog_alloc_buf(struct ol_softc *scn);
 extern void pktlog_release_buf(struct ol_softc *scn);
+
+ssize_t pktlog_read_proc_entry(char *buf, size_t nbytes, loff_t *ppos,
+			       struct ath_pktlog_info *pl_info);
+int pktlog_send_per_pkt_stats_to_user(void);
 
 struct ol_pl_arch_dep_funcs {
 	void (*pktlog_init) (struct ol_softc *scn);
