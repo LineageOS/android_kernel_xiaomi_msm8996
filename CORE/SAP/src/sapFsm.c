@@ -1310,7 +1310,7 @@ v_BOOL_t sapDfsIsChannelInPreferredLocation(tHalHandle hHal, v_U8_t channelID)
  *
  * Return: true, if channel was present, false othersie.
  */
-static bool
+bool
 sap_check_in_avoid_ch_list(ptSapContext sap_ctx, uint8_t channel)
 {
 	uint8_t i = 0;
