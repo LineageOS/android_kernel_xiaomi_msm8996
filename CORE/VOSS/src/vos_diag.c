@@ -246,9 +246,19 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
 
      /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if (!pVosContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: vos context is NULL", __func__);
+        return;
+    }
 
      /*Get the Hdd Context */
     pHddCtx = ((VosContextType*)(pVosContext))->pHDDContext;
+    if (!pHddCtx) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: hdd context is NULL", __func__);
+        return;
+    }
 
     /* Send the log data to the ptt app only if it is registered with the wlan driver*/
     if(pHddCtx->ptt_pid != INVALID_PID)
