@@ -284,6 +284,32 @@ adf_nbuf_alloc(adf_os_device_t      osdev,
     return __adf_nbuf_alloc(osdev, size, reserve,align, prio);
 }
 
+#ifdef QCA_ARP_SPOOFING_WAR
+/**
+ * adf_rx_nbuf_alloc() Allocate adf_nbuf for Rx packet
+ *
+ * The nbuf created is guarenteed to have only 1 physical segment
+ *
+ * @hdl:   platform device object
+ * @size:  data buffer size for this adf_nbuf including max header
+ *                  size
+ * @reserve:  headroom to start with.
+ * @align:    alignment for the start buffer.
+ * @prio:   Indicate if the nbuf is high priority (some OSes e.g darwin
+ *                   polls few times if allocation fails and priority is  TRUE)
+ *
+ * Return: The new adf_nbuf instance or NULL if there's not enough memory.
+ */
+static inline adf_nbuf_t
+adf_rx_nbuf_alloc(adf_os_device_t      osdev,
+               adf_os_size_t        size,
+               int                  reserve,
+               int                  align,
+               int                  prio)
+{
+    return __adf_rx_nbuf_alloc(osdev, size, reserve,align, prio);
+}
+#endif
 
 /**
  * @brief Free adf_nbuf
