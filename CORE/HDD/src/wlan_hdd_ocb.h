@@ -47,11 +47,11 @@ struct ocb_qos_params {
 
 /**
  * struct ocb_channel - Parameters for each OCB channel
- * @channel_freq:           Channel Frequency (MHz)
+ * @channel_freq:           Channel Center Frequency (MHz)
  * @duration:               Channel Duration (ms)
  * @start_guard_interval:   Start Guard Interval (ms)
- * @end_guard_interval:     End Guard Interval (ms)
- * @tx_power:               Transmit Power (dBm)
+ * @channel_bandwidth:      Channel Bandwidth (MHz)
+ * @tx_power:               Transmit Power (1/2 dBm)
  * @tx_rate:                Transmit Data Rate (mbit)
  * @qos_params:             Array of QoS Parameters
  * @per_packet_rx_stats:    Enable per packet RX statistics
@@ -60,7 +60,7 @@ struct ocb_channel {
 	uint32_t channel_freq;
 	uint32_t duration;
 	uint32_t start_guard_interval;
-	uint32_t end_guard_interval;
+	uint32_t channel_bandwidth;
 	uint32_t tx_power;
 	uint32_t tx_rate;
 	struct ocb_qos_params qos_params[MAX_NUM_AC];

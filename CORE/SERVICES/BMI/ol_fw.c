@@ -2357,11 +2357,16 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 #endif
 
 
-#define MAX_SUPPORTED_PEERS 32
 #if defined(CONFIG_HL_SUPPORT)
 #define MAX_SUPPORTED_PEERS_REV1_1 9
+#ifdef HIF_SDIO
+#define MAX_SUPPORTED_PEERS 32
+#else
+#define MAX_SUPPORTED_PEERS 10
+#endif
 #else
 #define MAX_SUPPORTED_PEERS_REV1_1 14
+#define MAX_SUPPORTED_PEERS 32
 #endif
 
 u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)

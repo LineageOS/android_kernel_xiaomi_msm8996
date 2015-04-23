@@ -123,6 +123,7 @@ static int dot11p_validate_qos_params(struct sir_qos_params qos_params[])
 #ifdef FEATURE_STATICALLY_ADD_11P_CHANNELS
 
 #define DOT11P_TX_PWR_MAX	30
+#define DOT11P_TX_ANTENNA_MAX	6
 #define NUM_DOT11P_CHANNELS	9
 /*
  * If FEATURE_STATICALLY_ADD_11P_CHANNELS
@@ -160,6 +161,8 @@ struct chan_info valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
  * @center_freq: the channel's center frequency
  * @bandwidth: the channel's bandwidth
  * @tx_power: transmit power
+ * @reg_power: (output) the max tx power from the regulatory domain
+ * @antenna_max: (output) the max antenna gain from the regulatory domain
  *
  * This function of the function checks the channel parameters against a
  * hardcoded list of valid channels based on the FCC rules.
@@ -167,12 +170,18 @@ struct chan_info valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
  * Return: 0 if the channel is valid, error code otherwise.
  */
 static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
-	uint32_t channel_freq, uint32_t bandwidth, uint32_t tx_power)
+	uint32_t channel_freq, uint32_t bandwidth, uint32_t tx_power,
+	uint8_t *reg_power, uint8_t *antenna_max)
 {
 	int i;
 
 	for (i = 0; i < NUM_DOT11P_CHANNELS; i++) {
 		if (channel_freq == valid_dot11p_channels[i].center_freq) {
+			if (reg_power)
+				*reg_power = DOT11P_TX_PWR_MAX;
+			if (antenna_max)
+				*antenna_max = DOT11P_TX_ANTENNA_MAX;
+
 			if (bandwidth == 0)
 				bandwidth =
 					valid_dot11p_channels[i].max_bandwidth;
@@ -198,6 +207,8 @@ static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
  * @center_freq: the channel's center frequency
  * @bandwidth: the channel's bandwidth
  * @tx_power: transmit power
+ * @reg_power: (output) the max tx power from the regulatory domain
+ * @antenna_max: (output) the max antenna gain from the regulatory domain
  *
  * This function of the function checks the channel parameters against a
  * hardcoded list of valid channels based on the FCC rules.
@@ -205,7 +216,8 @@ static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
  * Return: 0 if the channel is valid, error code otherwise.
  */
 static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
-	uint32_t channel_freq, uint32_t bandwidth, uint32_t tx_power)
+	uint32_t channel_freq, uint32_t bandwidth, uint32_t tx_power,
+	uint8_t *reg_power, uint8_t *antenna_max)
 {
 	return -EINVAL;
 }
@@ -216,12 +228,15 @@ static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
  * @center_freq: the channel's center frequency
  * @bandwidth: the channel's bandwidth
  * @tx_power: transmit power
+ * @reg_power: (output) the max tx power from the regulatory domain
+ * @antenna_max: (output) the max antenna gain from the regulatory domain
  *
  * Return: 0 if the channel is valid, error code otherwise.
  */
 static int dot11p_validate_channel(struct wiphy *wiphy,
 				   uint32_t channel_freq, uint32_t bandwidth,
-				   uint32_t tx_power)
+				   uint32_t tx_power, uint8_t *reg_power,
+				   uint8_t *antenna_max)
 {
 	int band_idx, channel_idx;
 	struct ieee80211_supported_band *current_band;
@@ -240,6 +255,13 @@ static int dot11p_validate_channel(struct wiphy *wiphy,
 				if (current_channel->flags &
 				    IEEE80211_CHAN_DISABLED)
 					return -EINVAL;
+
+				if (reg_power)
+					*reg_power =
+					    current_channel->max_reg_power;
+				if (antenna_max)
+					*antenna_max =
+					    current_channel->max_antenna_gain;
 
 				switch (bandwidth) {
 				case 0:
@@ -277,7 +299,7 @@ static int dot11p_validate_channel(struct wiphy *wiphy,
 	}
 
 	return dot11p_validate_channel_static_channels(wiphy, channel_freq,
-						       bandwidth, tx_power);
+		bandwidth, tx_power, reg_power, antenna_max);
 }
 
 /**
@@ -296,7 +318,9 @@ static int hdd_ocb_validate_config(hdd_adapter_t *adapter,
 		if (dot11p_validate_channel(hdd_ctx->wiphy,
 					    config->channels[i].chan_freq,
 					    config->channels[i].bandwidth,
-					    config->channels[i].max_pwr)) {
+					    config->channels[i].max_pwr,
+					    &config->channels[i].reg_pwr,
+					    &config->channels[i].antenna_max)) {
 			hddLog(LOGE, FL("Invalid channel frequency %d"),
 				config->channels[i].chan_freq);
 			return -EINVAL;
@@ -586,24 +610,55 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
 	/* Identify the vdev interface */
 	config->session_id = adapter->sessionId;
 
+	/* Release all the mac addresses used for OCB */
+	for (i = 0; i < adapter->ocb_mac_addr_count; i++) {
+		wlan_hdd_release_intf_addr(adapter->pHddCtx,
+					   adapter->ocb_mac_address[i]);
+	}
+	adapter->ocb_mac_addr_count = 0;
+
 	for (i = 0; i < config->channel_count; i++) {
 		config->channels[i].chan_freq = sched->channels[i].channel_freq;
-		config->channels[i].max_pwr = sched->channels[i].tx_power;
-		config->channels[i].min_pwr = sched->channels[i].tx_power;
-		config->channels[i].bandwidth = 10;
+		/*
+		 * tx_power is divided by 2 because ocb_channel.tx_power is
+		 * in half dB increments and sir_ocb_config_channel.max_pwr
+		 * is in 1 dB increments.
+		 */
+		config->channels[i].max_pwr = sched->channels[i].tx_power / 2;
+		config->channels[i].min_pwr = 0;
+		config->channels[i].bandwidth =
+			sched->channels[i].channel_bandwidth;
+		/* assume 10 as default if not provided */
+		if (config->channels[i].bandwidth == 0) {
+			config->channels[i].bandwidth = 10;
+		}
 
 		/*
 		 * Setup locally administered mac addresses for each channel.
 		 * First channel uses the adapter's address.
 		 */
-		mac_addr = wlan_hdd_get_intf_addr(adapter->pHddCtx);
-		if (mac_addr == NULL) {
-			hddLog(LOGE, FL("Cannot obtain mac address"));
-			goto fail;
+		if (i == 0) {
+			vos_mem_copy(config->channels[i].mac_address,
+				     adapter->macAddressCurrent.bytes,
+				     sizeof(tSirMacAddr));
+		} else {
+			mac_addr = wlan_hdd_get_intf_addr(adapter->pHddCtx);
+			if (mac_addr == NULL) {
+				hddLog(LOGE, FL("Cannot obtain mac address"));
+				rc = -EINVAL;
+				goto fail;
+			}
+			vos_mem_copy(config->channels[i].mac_address,
+				     mac_addr, sizeof(tSirMacAddr));
+			/* Save the mac address to release later */
+			vos_mem_copy(adapter->ocb_mac_address[
+				     adapter->ocb_mac_addr_count],
+				     mac_addr,
+				     sizeof(adapter->ocb_mac_address[
+				     adapter->ocb_mac_addr_count]));
+			adapter->ocb_mac_addr_count++;
 		}
-		vos_mem_copy(config->channels[i].mac_address,
-			     (i == 0) ? adapter->macAddressCurrent.bytes :
-				mac_addr, sizeof(tSirMacAddr));
+
 		for (j = 0; j < MAX_NUM_AC; j++) {
 			config->channels[i].qos_params[j].aifsn =
 				sched->channels[i].qos_params[j].aifsn;
@@ -757,6 +812,52 @@ static const struct nla_policy qca_wlan_vendor_dcc_update_ndl[
 };
 
 /**
+ * struct wlan_hdd_ocb_config_channel
+ * @chan_freq: frequency of the channel
+ * @bandwidth: bandwidth of the channel, either 10 or 20 MHz
+ * @mac_address: MAC address assigned to this channel
+ * @qos_params: QoS parameters
+ * @max_pwr: maximum transmit power of the channel (1/2 dBm)
+ * @min_pwr: minimum transmit power of the channel (1/2 dBm)
+ */
+struct wlan_hdd_ocb_config_channel {
+	uint32_t chan_freq;
+	uint32_t bandwidth;
+	tSirMacAddr mac_address;
+	sir_qos_params_t qos_params[MAX_NUM_AC];
+	uint32_t max_pwr;
+	uint32_t min_pwr;
+};
+
+static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
+    struct sir_ocb_config_channel *dest,
+    struct wlan_hdd_ocb_config_channel *src,
+    uint32_t channel_count)
+{
+	uint32_t i;
+
+	vos_mem_zero(dest, channel_count * sizeof(*dest));
+
+	for (i = 0; i < channel_count; i++) {
+		dest[i].chan_freq = src[i].chan_freq;
+		dest[i].bandwidth = src[i].bandwidth;
+		vos_mem_copy(dest[i].mac_address, src[i].mac_address,
+			     sizeof(dest[i].mac_address));
+		vos_mem_copy(dest[i].qos_params, src[i].qos_params,
+			     sizeof(dest[i].qos_params));
+		/*
+		 *  max_pwr and min_pwr are divided by 2 because
+		 *  wlan_hdd_ocb_config_channel.max_pwr and min_pwr
+		 *  are in 1/2 dB increments and
+		 *  sir_ocb_config_channel.max_pwr and min_pwr are in
+		 *  1 dB increments.
+		 */
+		dest[i].max_pwr = src[i].max_pwr / 2;
+		dest[i].min_pwr = (src[i].min_pwr + 1) / 2;
+	}
+}
+
+/**
  * wlan_hdd_cfg80211_ocb_set_config() - Interface for set config command
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
@@ -784,6 +885,7 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	int channel_count, schedule_size;
 	struct sir_ocb_config *config;
 	int rc = -EINVAL;
+	uint8_t *mac_addr;
 
 	ENTER();
 
@@ -848,22 +950,47 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 		hddLog(LOGE, FL("No channel present"));
 		goto fail;
 	}
-	if (nla_len(channel_array) != channel_count*sizeof(*config->channels)) {
+	if (nla_len(channel_array) != channel_count *
+	    sizeof(struct wlan_hdd_ocb_config_channel)) {
 		hddLog(LOGE, FL("CHANNEL_ARRAY is not the correct size"));
 		goto fail;
 	}
-	vos_mem_copy(config->channels, nla_data(channel_array),
-		nla_len(channel_array));
+	wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
+	    config->channels, nla_data(channel_array), channel_count);
+
+	/* Release all the mac addresses used for OCB */
+	for (i = 0; i < adapter->ocb_mac_addr_count; i++) {
+		wlan_hdd_release_intf_addr(adapter->pHddCtx,
+					   adapter->ocb_mac_address[i]);
+	}
+	adapter->ocb_mac_addr_count = 0;
 
 	/*
 	 * Setup locally administered mac addresses for each channel.
 	 * First channel uses the adapter's address.
 	 */
-	for (i = 0; i < config->channel_count; i++)
-		vos_mem_copy(config->channels[i].mac_address,
-			(i == 0) ? adapter->macAddressCurrent.bytes :
-				wlan_hdd_get_intf_addr(adapter->pHddCtx),
-			sizeof(tSirMacAddr));
+	for (i = 0; i < config->channel_count; i++) {
+		if (i == 0) {
+			vos_mem_copy(config->channels[i].mac_address,
+				adapter->macAddressCurrent.bytes,
+				sizeof(tSirMacAddr));
+		} else {
+			mac_addr = wlan_hdd_get_intf_addr(adapter->pHddCtx);
+			if (mac_addr == NULL) {
+				hddLog(LOGE, FL("Cannot obtain mac address"));
+				goto fail;
+			}
+			vos_mem_copy(config->channels[i].mac_address,
+				mac_addr, sizeof(tSirMacAddr));
+			/* Save the mac address to release later */
+			vos_mem_copy(adapter->ocb_mac_address[
+				     adapter->ocb_mac_addr_count],
+				     config->channels[i].mac_address,
+				     sizeof(adapter->ocb_mac_address[
+				     adapter->ocb_mac_addr_count]));
+			adapter->ocb_mac_addr_count++;
+		}
+	}
 
 	/* Read the schedule array */
 	sched_array = tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_SCHEDULE_ARRAY];

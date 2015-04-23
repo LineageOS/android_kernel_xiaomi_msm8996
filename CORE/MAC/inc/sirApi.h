@@ -5851,8 +5851,10 @@ typedef void (*dcc_stats_event_callback_t)(void *hdd_ctx, uint32_t vdev_id,
  * @bandwidth: bandwidth of the channel, either 10 or 20 MHz
  * @mac_address: MAC address assigned to this channel
  * @qos_params: QoS parameters
- * @max_pwr: maximum transmit power of the channel
- * @min_pwr: minimum transmit power of the channel
+ * @max_pwr: maximum transmit power of the channel (dBm)
+ * @min_pwr: minimum transmit power of the channel (dBm)
+ * @reg_pwr: maximum transmit power specified by the regulatory domain (dBm)
+ * @antenna_max: maximum antenna gain specified by the regulatory domain (dB)
  */
 struct sir_ocb_config_channel {
 	uint32_t chan_freq;
@@ -5861,6 +5863,8 @@ struct sir_ocb_config_channel {
 	sir_qos_params_t qos_params[MAX_NUM_AC];
 	uint32_t max_pwr;
 	uint32_t min_pwr;
+	uint8_t reg_pwr;
+	uint8_t antenna_max;
 };
 
 /**

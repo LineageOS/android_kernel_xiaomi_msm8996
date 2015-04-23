@@ -1053,6 +1053,10 @@ struct hdd_adapter_s
 	struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
 	struct sir_dcc_get_stats_response *dcc_get_stats_resp;
 	struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
+
+	/* MAC addresses used for OCB interfaces */
+	tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
+	int ocb_mac_addr_count;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1743,5 +1747,7 @@ static inline void hdd_init_ll_stats_ctx(hdd_context_t *hdd_ctx)
 void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 			uint32_t *major_spid, uint32_t *minor_spid,
 			uint32_t *siid, uint32_t *crmid);
+
+bool hdd_is_memdump_supported(void);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

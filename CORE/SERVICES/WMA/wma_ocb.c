@@ -273,7 +273,9 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 		WMI_SET_CHANNEL_MAX_POWER(chan, config->channels[i].max_pwr);
 		WMI_SET_CHANNEL_MIN_POWER(chan, config->channels[i].min_pwr);
 		WMI_SET_CHANNEL_MAX_TX_POWER(chan, config->channels[i].max_pwr);
-		WMI_SET_CHANNEL_ANTENNA_MAX(chan, config->channels[i].max_pwr);
+		WMI_SET_CHANNEL_REG_POWER(chan, config->channels[i].reg_pwr);
+		WMI_SET_CHANNEL_ANTENNA_MAX(chan,
+					    config->channels[i].antenna_max);
 
 		if (config->channels[i].bandwidth < 10)
 			WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_QUARTER_RATE);
