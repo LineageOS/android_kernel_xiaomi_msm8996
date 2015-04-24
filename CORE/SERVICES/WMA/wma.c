@@ -2780,7 +2780,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
 		vos_mem_free(buf);
 		return -EINVAL;
 	}
-	WMA_LOGD("WDA_EXTSCAN_STATUS_IND posted");
+	WMA_LOGI("WDA_EXTSCAN_STATUS_IND posted");
 
 	return 0;
 }
@@ -2812,8 +2812,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 	oprn_event = param_buf->fixed_param;
 	oprn_ind = vos_mem_malloc(sizeof(*oprn_ind));
 	if (!oprn_ind) {
-		WMA_LOGE("%s: extscan memory allocation failed",
-			__func__);
+		WMA_LOGE("%s: extscan memory allocation failed", __func__);
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
 	}
@@ -2838,7 +2837,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 			__func__);
 		goto exit_handler;
 	default:
-		WMA_LOGE("%s: Unknown event(%d) from target",
+		WMA_LOGE("%s: Unknown event %d from target",
 			__func__, oprn_event->event);
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
@@ -2847,8 +2846,7 @@ static int wma_extscan_operations_event_handler(void *handle,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
 exit_handler:
-	WMA_LOGD("%s: sending scan progress event to hdd",
-		__func__);
+	WMA_LOGD("%s: sending scan progress event to hdd", __func__);
 	vos_mem_free(oprn_ind);
 	return 0;
 }
@@ -2879,8 +2877,7 @@ static int wma_extscan_table_usage_event_handler (void *handle,
 	event = param_buf->fixed_param;
 	tbl_usg_ind =  vos_mem_malloc(sizeof(*tbl_usg_ind));
 	if (!tbl_usg_ind) {
-		WMA_LOGE("%s: table usage allocation failed",
-			 __func__);
+		WMA_LOGE("%s: table usage allocation failed", __func__);
 		return -EINVAL;
 	}
 	tbl_usg_ind->requestId = event->request_id;
@@ -2889,8 +2886,7 @@ static int wma_extscan_table_usage_event_handler (void *handle,
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_RES_AVAILABLE_IND,
 				tbl_usg_ind);
-	WMA_LOGD("%s: sending scan_res available event to hdd",
-		__func__);
+	WMA_LOGD("%s: sending scan_res available event to hdd", __func__);
 	vos_mem_free(tbl_usg_ind);
 	return 0;
 }
@@ -3031,8 +3027,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	dest_hotlist = vos_mem_malloc(sizeof(*dest_hotlist) +
 					sizeof(*dest_ap) * numap);
 	if (!dest_hotlist) {
-		WMA_LOGE("%s: Allocation failed for hotlist buffer",
-			__func__);
+		WMA_LOGE("%s: Allocation failed for hotlist buffer", __func__);
 		return -EINVAL;
 	}
 	dest_ap = &dest_hotlist->ap[0];
@@ -3044,7 +3039,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	else
 		dest_hotlist->moreData = 0;
 
-	WMA_LOGD("%s: Hotlist match: requestId: 0x%x,"
+	WMA_LOGD("%s: Hotlist match: requestId: %u,"
 		"numOfAps: %d", __func__,
 		 dest_hotlist->requestId, dest_hotlist->numOfAps);
 
@@ -3241,51 +3236,6 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 	return 0;
 }
 
-/** wma_extscan_print_scan_id_group_results() - print scan id cached results
- * @cached_result: cached result.
- *
- * This debug utility function prints the cached result.
- *
- * Return: 0 on success; error number otherwise
- */
-
-static int wma_extscan_print_scan_id_group_results(
-			struct extscan_cached_scan_results *cached_result)
-{
-	struct extscan_cached_scan_results *t_cached_result;
-	struct extscan_cached_scan_result *t_scan_id_grp;
-	tSirWifiScanResult *ap;
-	int i, j;
-
-	t_cached_result = cached_result;
-	t_scan_id_grp = &t_cached_result->result[0];
-
-	WMA_LOGD("Request id (%d)", t_cached_result->request_id);
-	WMA_LOGD("More data (%d)", t_cached_result->more_data);
-	WMA_LOGD("Num_scan_ids (%d)", t_cached_result->num_scan_ids);
-	WMA_LOGD("%s: num_scan_ids:%d", __func__,
-			t_cached_result->num_scan_ids);
-
-	t_scan_id_grp = &t_cached_result->result[0];
-	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
-		WMA_LOGD("Scan id (%d)", t_scan_id_grp->scan_id);
-		WMA_LOGD("Flags (%d)", t_scan_id_grp->flags);
-		WMA_LOGD("Num results (%d)", t_scan_id_grp->num_results);
-
-		ap = &t_scan_id_grp->ap[0];
-		for (j = 0; j < t_scan_id_grp->num_results; j++) {
-			WMA_LOGD("timestamp (%llu)", ap->ts);
-			WMA_LOGD("ssid (%s)", ap->ssid);
-			WMA_LOGD("rtt (%u)", ap->rtt);
-			WMA_LOGD("Channel (%u)", ap->channel);
-			WMA_LOGD("Beacon period (%u)", ap->beaconPeriod);
-			ap++;
-		}
-		t_scan_id_grp++;
-	}
-	return 0;
-}
-
 static int wma_extscan_cached_results_event_handler(void *handle,
 		     u_int8_t  *cmd_param_info, u_int32_t len)
 {
@@ -3299,10 +3249,6 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	wmi_extscan_rssi_info  *src_rssi;
 	int numap, i, moredata, scan_ids_cnt;
 	int buf_len;
-	wmi_extscan_wlan_descriptor  *src_hotlist1;
-	wmi_extscan_rssi_info  *src_rssi1;
-	char bssid1[6];
-	char ssid1[33];
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
@@ -3325,7 +3271,9 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	src_hotlist = param_buf->bssid_list;
 	src_rssi = param_buf->rssi_list;
 	numap = event->num_entries_in_page;
-	WMA_LOGD("nummap (%d)\n", numap);
+	WMA_LOGI("Total_entries %u first_entry_index %u", event->total_entries,
+			event->first_entry_index);
+	WMA_LOGI("num_entries_in_page %d", numap);
 	if (!src_hotlist || !src_rssi || !numap) {
 		WMA_LOGE("%s: Cached results empty, send 0 results", __func__);
 		goto noresults;
@@ -3337,54 +3285,9 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	else
 		moredata = 0;
 
-	src_hotlist1 = src_hotlist;
-	src_rssi1 = src_rssi;
-	/* Just print fw data */
-	WMA_LOGD("request id (%d)\n", event->request_id);
-	WMA_LOGD("more data (%d)\n", moredata);
-	WMA_LOGD("requestor_id (%u)\n", event->requestor_id);
-	WMA_LOGD("vdev_id (%u)\n", event->vdev_id);
-	WMA_LOGD("extscan_request_id (%u)\n", event->extscan_request_id);
-	WMA_LOGD("extscan_requestor_id (%u)\n", event->extscan_requestor_id);
-	WMA_LOGD("extscan_vdev_id (%u)\n", event->extscan_vdev_id);
-	WMA_LOGD("table id(%u)\n", event->table_id);
-	WMA_LOGD("current_tstamp(%u)\n", event->current_tstamp);
-	WMA_LOGD("total_entries(%u)\n", event->total_entries);
-	WMA_LOGD("first_entry_index (%u)\n", event->first_entry_index);
-	WMA_LOGD("num_entries_in_page(%u)\n", event->num_entries_in_page);
-
-	WMA_LOGE("bssid list \n");
-	for (i = 0; i < numap; i++) {
-		WMI_MAC_ADDR_TO_CHAR_ARRAY(&src_hotlist1->bssid, bssid1);
-		vos_mem_set (ssid1, 33, '\0');
-		vos_mem_copy(ssid1, src_hotlist1->ssid.ssid, src_hotlist1->ssid.ssid_len);
-		WMA_LOGD("bssid %02x:%02x:%02x:%02x:%02x:%02x\n", bssid1[0], bssid1[1], bssid1[2], bssid1[3], bssid1[4], bssid1[5]);
-		WMA_LOGD("ssid (%s)\n", ssid1);
-		WMA_LOGD("channel (%u)\n", src_hotlist1->channel);
-		WMA_LOGD("capability (%u)\n", src_hotlist1->capabilities);
-		WMA_LOGD("beacon interval (%u)\n", src_hotlist1->beacon_interval);
-		WMA_LOGD("tstamp (%u)\n", src_hotlist1->tstamp);
-		WMA_LOGD("flags (%d)\n", src_hotlist1->flags);
-		WMA_LOGD("rtt (%u)\n", src_hotlist1->rtt);
-		WMA_LOGD("rtt_sd (%u)\n", src_hotlist1->rtt_sd);
-		WMA_LOGD("number_rssi_samples (%u)\n", src_hotlist1->number_rssi_samples);
-		WMA_LOGD("ie length (%u)\n", src_hotlist1->ie_length);
-		src_hotlist1++;
-	}
-
-	WMA_LOGE("rssi list \n");
-	for (i = 0; i < numap; i++) {
-		WMA_LOGD("rssi (%d)\n", src_rssi1->rssi);
-		WMA_LOGD("tstamp (%u)\n", src_rssi1->tstamp);
-		WMA_LOGD("scan id (%d)\n", src_rssi1->scan_cycle_id);
-		WMA_LOGD("flags (%d)\n", src_rssi1->flags);
-		src_rssi1++;
-	}
-
 	dest_cachelist = vos_mem_malloc(sizeof(*dest_cachelist));
 	if (!dest_cachelist) {
-		WMA_LOGE("%s: Allocation failed for cached "
-			"results event", __func__);
+		WMA_LOGE("%s: vos_mem_malloc failed", __func__);
 		return -ENOMEM;
 	}
 	vos_mem_zero(dest_cachelist, sizeof(*dest_cachelist));
@@ -3392,13 +3295,13 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	dest_cachelist->more_data = moredata;
 
 	scan_ids_cnt = wma_extscan_find_unique_scan_ids(cmd_param_info);
-	WMA_LOGD("%s: scan_ids_cnt %d", __func__, scan_ids_cnt);
+	WMA_LOGI("scan_ids_cnt %d", scan_ids_cnt);
 	dest_cachelist->num_scan_ids = scan_ids_cnt;
 
 	buf_len = sizeof(*dest_result) * scan_ids_cnt;
 	dest_cachelist->result = vos_mem_malloc(buf_len);
 	if (!dest_cachelist->result) {
-		WMA_LOGE("%s: Allocation failed for scanid grouping", __func__);
+		WMA_LOGE("%s: vos_mem_malloc failed", __func__);
 		vos_mem_free(dest_cachelist);
 		return -ENOMEM;
 	}
@@ -3406,12 +3309,11 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	dest_result = dest_cachelist->result;
 	wma_fill_num_results_per_scan_id(cmd_param_info, dest_result);
 	wma_group_num_bss_to_scan_id(cmd_param_info, dest_cachelist);
-	wma_extscan_print_scan_id_group_results(dest_cachelist);
 
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
-	WMA_LOGD("%s: sending cached results event", __func__);
+	WMA_LOGI("%s: sending cached results event", __func__);
 
 	dest_result = dest_cachelist->result;
 	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
@@ -3430,7 +3332,7 @@ noresults:
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				&empty_cachelist);
-	WMA_LOGD("%s: sending cached results event", __func__);
+	WMA_LOGI("%s: sending cached results event", __func__);
 	return 0;
 }
 
@@ -3472,25 +3374,23 @@ static int wma_extscan_change_results_event_handler(void *handle,
 	numap = event->num_entries_in_page;
 
 	if (!src_chglist || !numap) {
-		WMA_LOGE("%s: changed monitor results AP's"
-			"list invalid", __func__);
+		WMA_LOGE("%s: Results invalid", __func__);
 		return -EINVAL;
 	}
 	for (i = 0; i < numap; i++) {
 		rssi_num += src_chglist->num_rssi_samples;
 	}
 	if (event->first_entry_index +
-		event->num_entries_in_page < event->total_entries) {
+		event->num_entries_in_page < event->total_entries)
 		moredata = 1;
-	} else {
+	else
 		moredata = 0;
-	}
+
 	dest_chglist = vos_mem_malloc(sizeof(*dest_chglist) +
 			sizeof(*dest_ap) * numap +
 			sizeof(tANI_S32) * rssi_num);
 	if (!dest_chglist) {
-		WMA_LOGE("%s: Allocation failed for change monitor",
-			__func__);
+		WMA_LOGE("%s: vos_mem_malloc failed", __func__);
 		return -EINVAL;
 	}
 	dest_ap = &dest_chglist->ap[0];
@@ -3565,15 +3465,14 @@ static int wma_passpoint_match_event_handler(void *handle,
 	dest_match = vos_mem_malloc(sizeof(*dest_match) +
 				event->ie_length + event->anqp_length);
 	if (!dest_match) {
-		WMA_LOGE("%s: Allocation failed for passpoint match buffer",
-			__func__);
+		WMA_LOGE("%s: vos_mem_malloc failed", __func__);
 		return -EINVAL;
 	}
 	dest_ap = &dest_match->ap;
 	dest_match->request_id = 0;
 	dest_match->id = event->id;
 	dest_match->anqp_len = event->anqp_length;
-	WMA_LOGD("%s: passpoint match: id: (%u) anqp length(%u)", __func__,
+	WMA_LOGI("%s: passpoint match: id: %u anqp length %u", __func__,
 		 dest_match->id, dest_match->anqp_len);
 
 	dest_ap->channel = event->channel_mhz;
@@ -3655,8 +3554,7 @@ wma_extscan_hotlist_ssid_match_event_handler(void *handle,
 	dest_hotlist = vos_mem_malloc(sizeof(*dest_hotlist) +
 					sizeof(*dest_ap) * numap);
 	if (!dest_hotlist) {
-		WMA_LOGE("%s: Allocation failed for hotlist buffer",
-			__func__);
+		WMA_LOGE("%s: Allocation failed for hotlist buffer", __func__);
 		return -EINVAL;
 	}
 
@@ -3670,7 +3568,7 @@ wma_extscan_hotlist_ssid_match_event_handler(void *handle,
 	else
 		dest_hotlist->moreData = 0;
 
-	WMA_LOGD("%s: Hotlist match: requestId: 0x%x,numOfAps: %d", __func__,
+	WMA_LOGD("%s: Hotlist match: requestId: %u, numOfAps: %d", __func__,
 		 dest_hotlist->requestId, dest_hotlist->numOfAps);
 
 	for (j = 0; j < numap; j++) {
