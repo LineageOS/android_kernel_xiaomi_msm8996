@@ -15052,14 +15052,14 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         nss = pAdapter->hdd_stats.ClassA_stat.rx_frag_cnt;
 
         if (eHDD_LINK_SPEED_REPORT_ACTUAL == pCfg->reportMaxLinkSpeed) {
+            /* Get current rate flags if report actual */
             rate_flags = pAdapter->hdd_stats.ClassA_stat.promiscuous_rx_frag_cnt;
-            if (pAdapter->hdd_stats.ClassA_stat.mcs_index == INVALID_MCS_IDX) {
-                rate_flags = eHAL_TX_RATE_LEGACY;
-                pAdapter->hdd_stats.ClassA_stat.mcs_index = 0;
-            }
         }
-        else
+
+        if (pAdapter->hdd_stats.ClassA_stat.mcs_index == INVALID_MCS_IDX) {
+            rate_flags = eHAL_TX_RATE_LEGACY;
             pAdapter->hdd_stats.ClassA_stat.mcs_index = 0;
+        }
     }
 #ifdef LINKSPEED_DEBUG_ENABLED
     pr_info("RSSI %d, RLMS %u, rate %d, rssi high %d, rssi mid %d, rssi low %d, rate_flags 0x%x, MCS %d\n",
