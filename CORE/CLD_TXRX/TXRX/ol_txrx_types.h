@@ -152,7 +152,7 @@ struct ol_tx_desc_t {
 	/* used by tx encap, to restore the os buf start offset after tx complete*/
 	u_int8_t orig_l2_hdr_bytes;
 #endif
-#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+#if defined(CONFIG_HL_SUPPORT)
 	struct ol_txrx_vdev_t* vdev;
 #endif
 	void *txq;
