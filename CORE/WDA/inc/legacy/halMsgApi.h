@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1054,6 +1054,7 @@ typedef struct sLinkStateParams
     int ft;
     void * session;
 #endif
+    v_BOOL_t status;
 } tLinkStateParams, * tpLinkStateParams;
 
 
