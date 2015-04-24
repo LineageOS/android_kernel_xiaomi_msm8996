@@ -1033,6 +1033,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_UPDATE_Q2Q_IE_IND                 SIR_HAL_UPDATE_Q2Q_IE_IND
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+#define WDA_FW_MEM_DUMP_REQ                   SIR_HAL_FW_MEM_DUMP_REQ
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

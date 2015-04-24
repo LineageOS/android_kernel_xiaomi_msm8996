@@ -110,6 +110,8 @@
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
+#include "wlan_hdd_memdump.h"
+
 extern int hdd_hostapd_stop (struct net_device *dev);
 void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #endif /* FEATURE_WLAN_CH_AVOID */
@@ -11114,6 +11116,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_adapter_t *pValidAdapter = NULL;
 #endif /* IPA_UC_OFFLOAD */
 
+    if (wlan_hdd_validate_context(pHddCtx))
+        return;
+
     for (status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
             NULL != pAdapterNode && VOS_STATUS_SUCCESS == status;
             status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pAdapterNode))
@@ -11152,16 +11157,18 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
     }
-#ifdef IPA_UC_OFFLOAD
-    hdd_ipa_uc_stat_query(pHddCtx, &ipa_tx_packets, &ipa_rx_packets);
-    tx_packets += (uint64_t)ipa_tx_packets;
-    rx_packets += (uint64_t)ipa_rx_packets;
-#endif /* IPA_UC_OFFLOAD */
+
     if (!connected) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "bus bandwidth timer running in disconnected state");
         return;
     }
+
+#ifdef IPA_UC_OFFLOAD
+    hdd_ipa_uc_stat_query(pHddCtx, &ipa_tx_packets, &ipa_rx_packets);
+    tx_packets += (uint64_t)ipa_tx_packets;
+    rx_packets += (uint64_t)ipa_rx_packets;
+#endif /* IPA_UC_OFFLOAD */
 
     hdd_cnss_request_bus_bandwidth(pHddCtx, tx_packets, rx_packets);
 
@@ -12282,6 +12289,7 @@ static int hdd_driver_init( void)
        break;
    } else {
        pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
+       memdump_init();
        return 0;
    }
 
@@ -12302,7 +12310,7 @@ static int hdd_driver_init( void)
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
       wlan_logging_sock_deinit_svc();
 #endif
-
+      memdump_deinit();
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
@@ -12408,6 +12416,7 @@ static void hdd_driver_exit(void)
    }
 
    vos_wait_for_work_thread_completion(__func__);
+   memdump_deinit();
 
    hif_unregister_driver();
 

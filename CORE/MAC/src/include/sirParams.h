@@ -708,6 +708,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_DCC_CLEAR_STATS_CMD         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 325)
 #define SIR_HAL_DCC_UPDATE_NDL_CMD          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 326)
 
+#define SIR_HAL_FW_MEM_DUMP_REQ            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 327)
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

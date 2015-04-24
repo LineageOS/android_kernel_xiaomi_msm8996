@@ -109,6 +109,8 @@
 #include "wlan_hdd_ocb.h"
 #include "qwlan_version.h"
 
+#include "wlan_hdd_memdump.h"
+
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
@@ -1223,6 +1225,12 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
 		.vendor_id = QCA_NL80211_VENDOR_ID,
 		.subcmd = QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT
 	},
+#ifdef WLAN_FEATURE_MEMDUMP
+    [QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP
+    },
+#endif /* WLAN_FEATURE_MEMDUMP */
 };
 
 static int is_driver_dfs_capable(struct wiphy *wiphy,
@@ -7342,6 +7350,16 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .doit = wlan_hdd_cfg80211_get_logger_supp_feature
     },
 
+#ifdef WLAN_FEATURE_MEMDUMP
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_get_fw_mem_dump
+    },
+#endif /* WLAN_FEATURE_MEMDUMP */
 };
 
 

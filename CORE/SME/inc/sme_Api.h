@@ -4026,6 +4026,11 @@ eHalStatus sme_SetLinkLayerStatsIndCB
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
+eHalStatus sme_fw_mem_dump(tHalHandle hHal, void *recvd_req);
+eHalStatus sme_fw_mem_dump_register_cb(tHalHandle hHal,
+    void (*callback_routine)(void *cb_context, struct fw_dump_rsp *rsp));
+eHalStatus sme_fw_mem_dump_unregister_cb(tHalHandle hHal);
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /*--------------------------------------------------------------------------
   \brief sme_UpdateRoamOffloadEnabled() - enable/disable roam offload feature
@@ -4140,10 +4145,11 @@ eHalStatus sme_setDhcpSrvOffload(tHalHandle hHal,
     \brief  API to set the LED flashing feature.
     \param  hHal - The handle returned by macOpen.
     \param  x0, x1 -  led flashing parameters
+    \param  gpio_num -  GPIO number
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
-                               tANI_U32 x0, tANI_U32 x1);
+                               tANI_U32 x0, tANI_U32 x1, tANI_U32 gpio_num);
 #endif
 /* ---------------------------------------------------------------------------
     \fn sme_handle_dfS_chan_scan

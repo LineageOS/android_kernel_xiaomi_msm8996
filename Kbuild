@@ -25,8 +25,6 @@ ifeq ($(KERNEL_BUILD),1)
 	MODNAME := wlan
 	WLAN_ROOT := drivers/staging/qcacld-2.0
 	WLAN_OPEN_SOURCE := 1
-	CONFIG_QCA_WIFI_2_0 := 1
-	CONFIG_QCA_WIFI_ISOC := 0
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
@@ -90,13 +88,15 @@ ifeq ($(KERNEL_BUILD), 0)
 
         ifneq ($(CONFIG_MOBILE_ROUTER), y)
         #Flag to enable NAN
-        CONFIG_FEATURE_NAN := y
+        CONFIG_WLAN_FEATURE_NAN := y
         endif
 
         #Flag to enable Linux QCMBR feature as default feature
         ifeq ($(CONFIG_ROME_IF),usb)
                 CONFIG_LINUX_QCMBR :=y
         endif
+	#Flag to enable memdump feature
+	CONFIG_FEATURE_MEMDUMP := y
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -385,6 +385,10 @@ ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tsf.o
 endif
 
+ifeq ($(CONFIG_FEATURE_MEMDUMP),y)
+HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_memdump.o
+endif
+
 ############ EPPING ############
 EPPING_DIR :=	CORE/EPPING
 EPPING_INC_DIR :=	$(EPPING_DIR)/inc
@@ -567,7 +571,7 @@ SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
 
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
-ifeq ($(CONFIG_FEATURE_NAN),y)
+ifeq ($(CONFIG_WLAN_FEATURE_NAN),y)
 SME_NAN_OBJS = $(SME_SRC_DIR)/nan/nan_Api.o
 endif
 
@@ -1092,7 +1096,7 @@ ifeq ($(CONFIG_FEATURE_STATS_EXT), 1)
 CDEFINES += -DWLAN_FEATURE_STATS_EXT
 endif
 
-ifeq ($(CONFIG_FEATURE_NAN),y)
+ifeq ($(CONFIG_WLAN_FEATURE_NAN),y)
 CDEFINES += -DWLAN_FEATURE_NAN
 endif
 
@@ -1369,6 +1373,10 @@ endif
 
 ifeq ($(CONFIG_STATICALLY_ADD_11P_CHANNELS),y)
 CDEFINES += -DFEATURE_STATICALLY_ADD_11P_CHANNELS
+endif
+
+ifeq ($(CONFIG_FEATURE_MEMDUMP),y)
+CDEFINES += -DWLAN_FEATURE_MEMDUMP
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
