@@ -1040,7 +1040,8 @@ typedef struct CSAOffloadParams {
    tSirMacAddr bssId;
 }*tpCSAOffloadParams, tCSAOffloadParams;
 
-typedef void (*tpSetLinkStateCallback)(tpAniSirGlobal pMac, void *msgParam );
+typedef void (*tpSetLinkStateCallback)(tpAniSirGlobal pMac, void *msgParam,
+		 bool status);
 
 typedef struct sLinkStateParams
 {

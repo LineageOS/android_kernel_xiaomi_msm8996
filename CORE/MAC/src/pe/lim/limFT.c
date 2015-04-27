@@ -1279,6 +1279,72 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
    }
 }
 
+/**
+ * lim_ft_reassoc_set_link_state_callback()- registered callback to perform post
+ *		peer creation operations
+ *
+ * @mac: pointer to global mac structure
+ * @callback_arg: registered callback argument
+ * @status: peer creation status
+ *
+ * this is registered callback function during ft reassoc scenario to perform
+ * post peer creation operation based on the peer creation status
+ *
+ * Return: none
+ */
+void lim_ft_reassoc_set_link_state_callback(tpAniSirGlobal mac,
+		 void  *callback_arg, bool status)
+{
+	tpPESession session_entry;
+	tSirMsgQ msg_q;
+	tLimMlmReassocReq *mlm_reassoc_req = (tLimMlmReassocReq *) callback_arg;
+	tSirRetStatus ret_code = eSIR_SME_RESOURCES_UNAVAILABLE;
+	tLimMlmReassocCnf mlm_reassoc_cnf = {0};
+	session_entry = peFindSessionBySessionId(mac,
+				mlm_reassoc_req->sessionId);
+	if (!status) {
+		limLog(mac, LOGE, FL("Failed to find pe session for session id:%d"),
+			mlm_reassoc_req->sessionId);
+		goto failure;
+	}
+
+	/*
+	 * we need to defer the message until we get the
+	 * response back from HAL
+	 */
+	SET_LIM_PROCESS_DEFD_MESGS(mac, false);
+
+	msg_q.type = SIR_HAL_ADD_BSS_REQ;
+	msg_q.reserved = 0;
+	msg_q.bodyptr = session_entry->ftPEContext.pAddBssReq;
+	msg_q.bodyval = 0;
+
+#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
+	limLog(mac, LOG1, FL("Sending SIR_HAL_ADD_BSS_REQ..."));
+#endif
+	MTRACE(macTraceMsgTx(mac, session_entry->peSessionId, msg_q.type));
+	ret_code = wdaPostCtrlMsg(mac, &msg_q);
+	if(eSIR_SUCCESS != ret_code) {
+		vos_mem_free(session_entry->ftPEContext.pAddBssReq);
+		limLog(mac, LOGE, FL("Post ADD_BSS_REQ failed reason=%X"),
+			ret_code);
+		session_entry->ftPEContext.pAddBssReq = NULL;
+		goto failure;
+	}
+
+	session_entry->pLimMlmReassocReq = mlm_reassoc_req;
+	session_entry->ftPEContext.pAddBssReq = NULL;
+	return;
+
+failure:
+	vos_mem_free(mlm_reassoc_req);
+	mlm_reassoc_cnf.resultCode = eSIR_SME_FT_REASSOC_FAILURE;
+	mlm_reassoc_cnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+	/* Update PE session Id*/
+	mlm_reassoc_cnf.sessionId = session_entry->peSessionId;
+	limPostSmeMessage(mac, LIM_MLM_REASSOC_CNF,
+				(tANI_U32 *) &mlm_reassoc_cnf);
+}
 
 /*------------------------------------------------------------------
  *
@@ -1294,9 +1360,8 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
     tLimMlmReassocReq  *pMlmReassocReq;
     tANI_U16 caps;
     tANI_U32 val;
-    tSirMsgQ msgQ;
-    tSirRetStatus retCode;
     tANI_U32 teleBcnEn = 0;
+    tLimMlmReassocCnf mlm_reassoc_cnf = {0};
 
     chanNum = psessionEntry->currentOperChannel;
     limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf, &smeSessionId, &transactionId);
@@ -1317,13 +1382,13 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
 
     if (NULL == psessionEntry->ftPEContext.pAddBssReq) {
         limLog(pMac, LOGE, FL("pAddBssReq is NULL"));
-        return;
+        goto end;
     }
     pMlmReassocReq = vos_mem_malloc(sizeof(tLimMlmReassocReq));
     if (NULL == pMlmReassocReq) {
         limLog(pMac, LOGE,
                FL("call to AllocateMemory failed for mlmReassocReq"));
-        return;
+        goto end;
     }
 
     vos_mem_copy(pMlmReassocReq->peerMacAddr,
@@ -1340,7 +1405,7 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
         limLog(pMac, LOGE,
                FL("could not retrieve ReassocFailureTimeout value"));
         vos_mem_free(pMlmReassocReq);
-        return;
+        goto end;
     }
 
     if (cfgGetCapabilityInfo(pMac, &caps,psessionEntry) != eSIR_SUCCESS) {
@@ -1350,7 +1415,7 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
          */
         limLog(pMac, LOGE, FL("could not retrieve Capabilities value"));
         vos_mem_free(pMlmReassocReq);
-        return;
+        goto end;
     }
     pMlmReassocReq->capabilityInfo = caps;
 
@@ -1364,7 +1429,7 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
        eSIR_SUCCESS) {
        limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_TELE_BCN_WAKEUP_EN"));
        vos_mem_free(pMlmReassocReq);
-       return;
+       goto end;
     }
 
     if (teleBcnEn) {
@@ -1376,7 +1441,7 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
           */
           limLog(pMac, LOGE, FL("could not retrieve ListenInterval"));
           vos_mem_free(pMlmReassocReq);
-          return;
+          goto end;
        }
     }
     else {
@@ -1387,39 +1452,27 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
             */
          limLog(pMac, LOGE, FL("could not retrieve ListenInterval"));
          vos_mem_free(pMlmReassocReq);
-         return;
+         goto end;
       }
-    }
-    if (limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, psessionEntry->bssId,
-                     psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS) {
-        vos_mem_free(pMlmReassocReq);
-        return;
     }
 
     pMlmReassocReq->listenInterval = (tANI_U16) val;
-    psessionEntry->pLimMlmReassocReq = pMlmReassocReq;
-
-    /* we need to defer the message until we get the response back from HAL */
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-
-    msgQ.type = SIR_HAL_ADD_BSS_REQ;
-    msgQ.reserved = 0;
-    msgQ.bodyptr = psessionEntry->ftPEContext.pAddBssReq;
-    msgQ.bodyval = 0;
-
-#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    limLog( pMac, LOG1, FL( "Sending SIR_HAL_ADD_BSS_REQ..." ));
-#endif
-    MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-    retCode = wdaPostCtrlMsg( pMac, &msgQ );
-    if( eSIR_SUCCESS != retCode) {
-        vos_mem_free(psessionEntry->ftPEContext.pAddBssReq);
-        limLog( pMac, LOGE, FL("Posting ADD_BSS_REQ to HAL failed, reason=%X"),
-                retCode );
+    if (limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, psessionEntry->bssId,
+                        psessionEntry->selfMacAddr,
+                        lim_ft_reassoc_set_link_state_callback,
+                        pMlmReassocReq) != eSIR_SUCCESS) {
+        vos_mem_free(pMlmReassocReq);
+        goto end;
     }
-
-    psessionEntry->ftPEContext.pAddBssReq = NULL;
     return;
+
+end:
+    mlm_reassoc_cnf.resultCode = eSIR_SME_FT_REASSOC_FAILURE;
+    mlm_reassoc_cnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+    /* Update PE session Id*/
+    mlm_reassoc_cnf.sessionId = psessionEntry->peSessionId;
+    limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF,
+                       (tANI_U32 *) &mlm_reassoc_cnf);
 }
 
 /*------------------------------------------------------------------
