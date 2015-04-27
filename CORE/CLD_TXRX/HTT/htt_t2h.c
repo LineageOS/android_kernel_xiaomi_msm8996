@@ -302,7 +302,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                 }
             }
             OL_TX_DESC_UPDATE_GROUP_CREDIT(
-                pdev->txrx_pdev, compl_msg->desc_id, 1, 0);
+                pdev->txrx_pdev, compl_msg->desc_id, 1, 0, compl_msg->status);
             ol_tx_single_completion_handler(
                 pdev->txrx_pdev, compl_msg->status, compl_msg->desc_id);
             HTT_TX_SCHED(pdev);

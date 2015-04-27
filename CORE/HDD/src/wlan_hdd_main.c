@@ -11275,6 +11275,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->wiphy = wiphy;
    pHddCtx->isLoadInProgress = TRUE;
    pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
+   vos_set_wakelock_logging(false);
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 

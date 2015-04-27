@@ -1732,26 +1732,6 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     switch (request->initiator)
     {
     case NL80211_REGDOM_SET_BY_DRIVER:
-
-        if ( VOS_TRUE == init_by_driver)
-        {
-            isVHT80Allowed = pHddCtx->isVHT80Allowed;
-            if (create_linux_regulatory_entry(wiphy, nBandCapability) == 0)
-            {
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                          (" regulatory entry created"));
-            }
-            if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
-            {
-                hdd_checkandupdate_phymode( pHddCtx);
-            }
-            complete(&pHddCtx->linux_reg_req);
-            break;
-        }
-
-        /* we purposely want to fall thru since the processing is same
-           as other 2 conditions */
-
     case NL80211_REGDOM_SET_BY_CORE:
     case NL80211_REGDOM_SET_BY_USER:
 
@@ -1819,10 +1799,12 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
             }
         }
 
-        if ((VOS_FALSE == init_by_driver) &&
-            (request->initiator != NL80211_REGDOM_SET_BY_CORE))
-            init_by_reg_core = VOS_TRUE;
-
+        if (VOS_FALSE == init_by_driver) {
+            if (request->initiator != NL80211_REGDOM_SET_BY_CORE)
+                init_by_reg_core = VOS_TRUE;
+        } else
+            if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER)
+                complete(&pHddCtx->linux_reg_req);
 
         /* send CTL info to firmware */
         regdmn_set_regval(&pHddCtx->reg);

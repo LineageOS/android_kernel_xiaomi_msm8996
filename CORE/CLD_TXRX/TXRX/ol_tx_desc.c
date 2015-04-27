@@ -96,8 +96,10 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     if (!tx_desc) {
         return NULL;
     }
-#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
+#if defined(CONFIG_HL_SUPPORT)
     tx_desc->vdev = vdev;
+#endif
+#if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     adf_os_atomic_inc(&vdev->tx_desc_count);
 #endif
 
@@ -152,6 +154,8 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
     }
 #endif /* QCA_LL_TX_FLOW_CT */
     adf_os_atomic_dec(&tx_desc->vdev->tx_desc_count);
+#endif
+#if defined(CONFIG_HL_SUPPORT)
     tx_desc->vdev = NULL;
 #endif
     adf_os_spin_unlock_bh(&pdev->tx_mutex);

@@ -131,6 +131,9 @@ enum htt_tx_status {
 
     /* download_fail - the host could not deliver the tx frame to the target */
     htt_tx_status_download_fail = HTT_HOST_ONLY_STATUS_CODE_START,
+
+    /* peer_del - tx completion for alreay deleted peer used for HL case */
+    htt_tx_status_peer_del = HTT_TX_COMPL_IND_STAT_PEER_DEL,
 };
 
 /**
@@ -182,9 +185,7 @@ void
 ol_tx_desc_update_group_credit(
     ol_txrx_pdev_handle pdev,
     u_int16_t tx_desc_id,
-    int credit, u_int8_t absolute);
-
-
+    int credit, u_int8_t absolute, enum htt_tx_status status);
 #define OL_TX_DESC_UPDATE_GROUP_CREDIT ol_tx_desc_update_group_credit
 
 #ifdef DEBUG_HL_LOGGING
@@ -207,7 +208,7 @@ ol_tx_clear_group_credit_stats(ol_txrx_pdev_handle pdev);
 #endif
 
 #else
-#define OL_TX_DESC_UPDATE_GROUP_CREDIT(pdev, tx_desc_id, credit, absolute) /* no-op */
+#define OL_TX_DESC_UPDATE_GROUP_CREDIT(pdev, tx_desc_id, credit, absolute, status) /* no-op */
 #endif
 
 /**

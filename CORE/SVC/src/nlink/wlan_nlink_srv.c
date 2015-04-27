@@ -99,6 +99,7 @@ void nl_srv_exit(void)
 #endif /* WLAN_KD_READY_NOTIFIER */
 {
    netlink_kernel_release(nl_srv_sock);
+   nl_srv_sock = NULL;
 }
 
 /*

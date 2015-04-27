@@ -1390,6 +1390,26 @@ enum qca_wlan_vendor_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST - 1
 };
 
+/**
+ * enum qca_wlan_vendor_attr_wifi_logger_start - Enum for wifi logger starting
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_INVALID: Invalid attribute
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID: Ring ID
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL: Verbose level
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS: Flag
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_AFTER_LAST: Last value
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX: Max value
+ */
+enum qca_wlan_vendor_attr_wifi_logger_start {
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID = 1,
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL = 2,
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS = 3,
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX =
+		QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_AFTER_LAST - 1,
+};
+
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
                                       );
