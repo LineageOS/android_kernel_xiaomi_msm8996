@@ -587,21 +587,24 @@ int pktlog_send_per_pkt_stats_to_user(void)
 	ol_txrx_pdev_handle txrx_pdev =
 		vos_get_context(VOS_MODULE_ID_TXRX, vos);
 	struct ath_pktlog_info *pl_info;
+	bool read_complete;
 
 	if (!txrx_pdev) {
-		printk(PKTLOG_TAG "%s: Invalid TxRx handle \n", __func__);
+		printk(PKTLOG_TAG " %s: Invalid TxRx handle\n", __func__);
 		return -EINVAL;
 	}
 
 	pl_info = txrx_pdev->pl_dev->pl_info;
 
 	if (!pl_info || !pl_info->buf) {
-		printk(PKTLOG_TAG "%s: Shouldnt happen. pl_info is invalid \n",
+		printk(PKTLOG_TAG " %s: Shouldnt happen. pl_info is invalid\n",
 			 __func__);
 		return -EINVAL;
 	}
 
 	if (pl_info->buf->rd_offset == -1) {
+		printk(PKTLOG_TAG " %s: Shouldnt happen. No write yet!\n",
+			__func__);
 		return -EINVAL;
 	}
 
@@ -610,7 +613,8 @@ int pktlog_send_per_pkt_stats_to_user(void)
 			    vos_mem_malloc(sizeof(struct vos_log_pktlog_info) +
 						VOS_LOG_PKT_LOG_SIZE);
 		if (!pktlog) {
-			printk(PKTLOG_TAG "%s: Memory allocation failed \n", __func__);
+			printk(PKTLOG_TAG " %s: Memory allocation failed\n",
+				__func__);
 			return -ENOMEM;
 		}
 
@@ -629,7 +633,7 @@ int pktlog_send_per_pkt_stats_to_user(void)
 		ret_val = pktlog_read_proc_entry(pktlog->buf,
 						 VOS_LOG_PKT_LOG_SIZE,
 						 &pl_info->buf->offset,
-						 pl_info);
+						 pl_info, &read_complete);
 		if (ret_val) {
 			int index = 0;
 			struct ath_pktlog_hdr *temp;
@@ -637,7 +641,8 @@ int pktlog_send_per_pkt_stats_to_user(void)
 				if ((ret_val - index) <
 						sizeof(struct ath_pktlog_hdr)) {
 					/* Partial header */
-					pl_info->buf->offset -= (ret_val - index);
+					pl_info->buf->offset -=
+							(ret_val - index);
 					ret_val = index;
 					break;
 				}
@@ -646,7 +651,8 @@ int pktlog_send_per_pkt_stats_to_user(void)
 				if ((ret_val - index) < (temp->size +
 					    sizeof(struct ath_pktlog_hdr))) {
 					/* Partial record payload */
-					pl_info->buf->offset -= (ret_val - index);
+					pl_info->buf->offset -=
+							(ret_val - index);
 					ret_val = index;
 					break;
 				}
@@ -665,7 +671,7 @@ int pktlog_send_per_pkt_stats_to_user(void)
 		} else {
 			vos_mem_free(pktlog);
 		}
-	} while (ret_val);
+	} while (read_complete == false);
 
 	return 0;
 }
@@ -673,10 +679,11 @@ int pktlog_send_per_pkt_stats_to_user(void)
 /**
  * pktlog_read_proc_entry() - This function is used to read data from the
  * proc entry into the readers buffer
- * @buf:     Readers buffer
- * @nbytes:  Number of bytes to read
- * @ppos:    Offset within the drivers buffer
- * @pl_info: Packet log information pointer
+ * @buf:           Readers buffer
+ * @nbytes:        Number of bytes to read
+ * @ppos:          Offset within the drivers buffer
+ * @pl_info:       Packet log information pointer
+ * @read_complete: Boolean value indication whether read is complete
  *
  * This function is used to read data from the proc entry into the readers
  * buffer. Its functionality is similar to 'pktlog_read' which does
@@ -687,7 +694,8 @@ int pktlog_send_per_pkt_stats_to_user(void)
  */
 ssize_t
 pktlog_read_proc_entry(char *buf, size_t nbytes, loff_t *ppos,
-		       struct ath_pktlog_info *pl_info)
+		       struct ath_pktlog_info *pl_info,
+		       bool *read_complete)
 {
 	size_t bufhdr_size;
 	size_t count = 0, ret_val = 0;
@@ -696,8 +704,12 @@ pktlog_read_proc_entry(char *buf, size_t nbytes, loff_t *ppos,
 	int fold_offset, ppos_data, cur_rd_offset, cur_wr_offset;
 	struct ath_pktlog_buf *log_buf = pl_info->buf;
 
-	if (log_buf == NULL)
+	*read_complete = false;
+
+	if (log_buf == NULL) {
+		*read_complete = true;
 		return 0;
+	}
 
 	if (*ppos == 0 && pl_info->log_state) {
 		pl_info->saved_state = pl_info->log_state;
@@ -803,11 +815,14 @@ rd_done:
 		 * So, if some data is written into, lets not reset the pointers.
 		 * We can continue to read from the offset position
 		 */
-		if (cur_wr_offset == log_buf->wr_offset) {
+		if (cur_wr_offset != log_buf->wr_offset) {
+			*read_complete = false;
+		} else {
 			pl_info->buf->rd_offset = -1;
 			pl_info->buf->wr_offset = 0;
 			pl_info->buf->bytes_written = 0;
 			pl_info->buf->offset = PKTLOG_READ_OFFSET;
+			*read_complete = true;
 		}
 		PKTLOG_UNLOCK(pl_info);
 	}
