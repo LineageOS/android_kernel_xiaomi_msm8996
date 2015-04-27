@@ -106,9 +106,18 @@
  *        - Change a reserved bit in the HTT tx MSDU descriptor to an
  *          "extension" bit, to specify whether a HTT tx MSDU extension
  *          descriptor is present.
+ * 3.15 Add HW rx desc info to per-MSDU info elems in RX_IN_ORD_PADDR_IND msg.
+ *      (This allows the host to obtain key information about the MSDU
+ *      from a memory location already in the cache, rather than taking a
+ *      cache miss for each MSDU by reading the HW rx descs.)
+ * 3.16 Add htt_pkt_type_eth2 and define pkt_subtype flags to indicate
+ *      whether a copy-engine classification result is appended to TX_FRM.
+ * 3.17 Add a version of the WDI_IPA_CFG message; add RX_RING2 to WDI_IPA_CFG
+ * 3.18 Add a PEER_DEL tx completion indication status, for HL cleanup of
+ *      tx frames in the target after the peer has already been deleted.
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 14
+#define HTT_CURRENT_VERSION_MINOR 17
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -560,9 +569,33 @@ PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
          * FIX THIS: ADD COMPLETE SPECS FOR THIS FIELDS VALUE, e.g.            \
          *     pkt_type    | pkt_subtype                                       \
          *     ==============================================================  \
-         *     802.3       | n/a                                               \
+         *     802.3       | bit 0:3    - Reserved                             \
+         *                 | bit 4: 0x0 - Copy-Engine Classification Results   \
+         *                 |              not appended to the HTT message      \
+         *                 |        0x1 - Copy-Engine Classification Results   \
+         *                 |              appended to the HTT message in the   \
+         *                 |              format:                              \
+         *                 |              [HTT tx desc, frame header,          \
+         *                 |              CE classification results]           \
+         *                 |              The CE classification results begin  \
+         *                 |              at the next 4-byte boundary after    \
+         *                 |              the frame header.                    \
          *     ------------+-------------------------------------------------  \
-         *     native WiFi | n/a                                               \
+         *     Eth2        | bit 0:3    - Reserved                             \
+         *                 | bit 4: 0x0 - Copy-Engine Classification Results   \
+         *                 |              not appended to the HTT message      \
+         *                 |        0x1 - Copy-Engine Classification Results   \
+         *                 |              appended to the HTT message.         \
+         *                 |              See the above specification of the   \
+         *                 |              CE classification results location.  \
+         *     ------------+-------------------------------------------------  \
+         *     native WiFi | bit 0:3    - Reserved                             \
+         *                 | bit 4: 0x0 - Copy-Engine Classification Results   \
+         *                 |              not appended to the HTT message      \
+         *                 |        0x1 - Copy-Engine Classification Results   \
+         *                 |              appended to the HTT message.         \
+         *                 |              See the above specification of the   \
+         *                 |              CE classification results location.  \
          *     ------------+-------------------------------------------------  \
          *     mgmt        | 0x0 - 802.11 MAC header absent                    \
          *                 | 0x1 - 802.11 MAC header present                   \
@@ -577,7 +610,12 @@ PREPACK struct htt_tx_msdu_desc ## _paddr_bits_ ## _t                          \
          *                 |        0x1 - don't perform tx classification;     \
          *                 |              insert the frame into the "misc"     \
          *                 |              tx queue                             \
-         *                 | bit 4: reserved                                   \
+         *                 | bit 4: 0x0 - Copy-Engine Classification Results   \
+         *                 |              not appended to the HTT message      \
+         *                 |        0x1 - Copy-Engine Classification Results   \
+         *                 |              appended to the HTT message.         \
+         *                 |              See the above specification of the   \
+         *                 |              CE classification results location.  \
          */                                                                    \
         pkt_subtype: 5,                                                        \
                                                                                \
@@ -2137,25 +2175,74 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
  *  The HTT WDI_IPA config message is created/sent by host at driver
  *  init time. It contains information about data structures used on
  *  WDI_IPA TX and RX path.
+ *  TX CE ring is used for pushing packet metadata from IPA uC
+ *  to WLAN FW
+ *  TX Completion ring is used for generating TX completions from
+ *  WLAN FW to IPA uC
+ *  RX Indication ring is used for indicating RX packets from FW
+ *  to IPA uC
+ *  RX Ring2 is used as either completion ring or as second
+ *  indication ring. when Ring2 is used as completion ring, IPA uC
+ *  puts completed RX packet meta data to Ring2. when Ring2 is used
+ *  as second indication ring, RX packets for LTE-WLAN aggregation are
+ *  indicated in Ring2, other RX packets (e.g. hotspot related) are
+ *  indicated in RX Indication ring. Please see WDI_IPA specification
+ *  for more details.
  *     |31            24|23            16|15             8|7              0|
  *     |----------------+----------------+----------------+----------------|
  *     |        tx pkt pool size         |      Rsvd      |     msg_type   |
  *     |-------------------------------------------------------------------|
- *     |                         tx comp ring base                         |
+ *     |                 tx comp ring base (bits 31:0)                     |
+#if HTT_PADDR64
+ *     |                 tx comp ring base (bits 63:32)                    |
+#endif
  *     |-------------------------------------------------------------------|
  *     |                         tx comp ring size                         |
  *     |-------------------------------------------------------------------|
- *     |                   tx comp WR_IDX physical address                 |
+ *     |            tx comp WR_IDX physical address (bits 31:0)            |
+#if HTT_PADDR64
+ *     |            tx comp WR_IDX physical address (bits 63:32)           |
+#endif
  *     |-------------------------------------------------------------------|
- *     |                   tx CE WR_IDX physical address                   |
+ *     |            tx CE WR_IDX physical address (bits 31:0)              |
+#if HTT_PADDR64
+ *     |            tx CE WR_IDX physical address (bits 63:32)             |
+#endif
  *     |-------------------------------------------------------------------|
- *     |                      rx indication ring base                      |
+ *     |             rx indication ring base (bits 31:0)                   |
+#if HTT_PADDR64
+ *     |             rx indication ring base (bits 63:32)                  |
+#endif
  *     |-------------------------------------------------------------------|
  *     |                      rx indication ring size                      |
  *     |-------------------------------------------------------------------|
- *     |                    rx ind RD_IDX physical address                 |
+ *     |             rx ind RD_IDX physical address (bits 31:0)            |
+#if HTT_PADDR64
+ *     |             rx ind RD_IDX physical address (bits 63:32)           |
+#endif
  *     |-------------------------------------------------------------------|
- *     |                    rx ind WR_IDX physical address                 |
+ *     |             rx ind WR_IDX physical address (bits 31:0)            |
+#if HTT_PADDR64
+ *     |             rx ind WR_IDX physical address (bits 63:32)           |
+#endif
+ *     |-------------------------------------------------------------------|
+ *     |-------------------------------------------------------------------|
+ *     |                    rx ring2 base (bits 31:0)                      |
+#if HTT_PADDR64
+ *     |                    rx ring2 base (bits 63:32)                     |
+#endif
+ *     |-------------------------------------------------------------------|
+ *     |                        rx ring2 size                              |
+ *     |-------------------------------------------------------------------|
+ *     |             rx ring2 RD_IDX physical address (bits 31:0)          |
+#if HTT_PADDR64
+ *     |             rx ring2 RD_IDX physical address (bits 63:32)         |
+#endif
+ *     |-------------------------------------------------------------------|
+ *     |             rx ring2 WR_IDX physical address (bits 31:0)          |
+#if HTT_PADDR64
+ *     |             rx ring2 WR_IDX physical address (bits 63:32)         |
+#endif
  *     |-------------------------------------------------------------------|
  *
  * Header fields:
@@ -2168,38 +2255,150 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
  *     Bits 15:0
  *     Purpose: Total number of TX packet buffer pool allocated by Host for
  *              WDI_IPA TX path
- *   - TX_COMP_RING_BASE_ADDR
- *     Bits 31:0
- *     Purpose: TX Completion Ring base address in DDR
- *   - TX_COMP_RING_SIZE
- *     Bits 31:0
- *     Purpose: TX Completion Ring size (must be power of 2)
- *   - TX_COMP_WR_IDX_ADDR
- *     Bits 31:0
- *     Purpose: IPA doorbell register address OR DDR address where WIFI FW
- *              updates the Write Index for WDI_IPA TX completion ring
- *   - TX_CE_WR_IDX_ADDR
- *     Bits 31:0
- *     Purpose: DDR address where IPA uC
- *              updates the WR Index for TX CE ring
- *              (needed for fusion platforms)
- *   - RX_IND_RING_BASE_ADDR
- *     Bits 31:0
- *     Purpose: RX Indication Ring base address in DDR
- *   - RX_IND_RING_SIZE
- *     Bits 31:0
- *     Purpose: RX Indication Ring size
- *   - RX_IND_RD_IDX_ADDR
- *     Bits 31:0
- *     Purpose: DDR address where IPA uC updates the Read Index for WDI_IPA
- *              RX indication ring
- *   - RX_IND_WR_IDX_ADDR
- *     Bits 31:0
- *     Purpose: IPA doorbell register address OR DDR address where WIFI FW
- *              updates the Write Index for WDI_IPA RX indication ring
+ *   For systems using 32-bit format for bus addresses:
+ *     - TX_COMP_RING_BASE_ADDR
+ *       Bits 31:0
+ *       Purpose: TX Completion Ring base address in DDR
+ *     - TX_COMP_RING_SIZE
+ *       Bits 31:0
+ *       Purpose: TX Completion Ring size (must be power of 2)
+ *     - TX_COMP_WR_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: IPA doorbell register address OR DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA TX completion ring
+ *     - TX_CE_WR_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: DDR address where IPA uC
+ *                updates the WR Index for TX CE ring
+ *                (needed for fusion platforms)
+ *     - RX_IND_RING_BASE_ADDR
+ *       Bits 31:0
+ *       Purpose: RX Indication Ring base address in DDR
+ *     - RX_IND_RING_SIZE
+ *       Bits 31:0
+ *       Purpose: RX Indication Ring size
+ *     - RX_IND_RD_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: DDR address where IPA uC updates the Read Index for WDI_IPA
+ *                RX indication ring
+ *     - RX_IND_WR_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: IPA doorbell register address OR DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA RX indication ring
+ *     - RX_RING2_BASE_ADDR
+ *       Bits 31:0
+ *       Purpose: Second RX Ring(Indication or completion)base address in DDR
+ *     - RX_RING2_SIZE
+ *       Bits 31:0
+ *       Purpose: Second RX  Ring size (must be >= RX_IND_RING_SIZE)
+ *     - RX_RING2_RD_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring, DDR address where
+ *                IPA uC updates the Read Index for Ring2.
+ *                If Second RX ring is completion ring, this is NOT used
+ *     - RX_RING2_WR_IDX_ADDR
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring,  DDR address where
+ *                WIFI FW updates the Write Index for WDI_IPA RX ring2
+ *                If second RX ring is completion ring, DDR address where
+ *                IPA uC updates the Write Index for Ring 2.
+ *   For systems using 64-bit format for bus addresses:
+ *     - TX_COMP_RING_BASE_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of TX Completion Ring base physical address in DDR
+ *     - TX_COMP_RING_BASE_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of TX Completion Ring base physical address in DDR
+ *     - TX_COMP_RING_SIZE
+ *       Bits 31:0
+ *       Purpose: TX Completion Ring size (must be power of 2)
+ *     - TX_COMP_WR_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of IPA doorbell register address OR
+ *                Lower 4 bytes of DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA TX completion ring
+ *     - TX_COMP_WR_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of IPA doorbell register address OR
+ *                Higher 4 bytes of DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA TX completion ring
+ *     - TX_CE_WR_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of DDR address where IPA uC
+ *                updates the WR Index for TX CE ring
+ *                (needed for fusion platforms)
+ *     - TX_CE_WR_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of DDR address where IPA uC
+ *                updates the WR Index for TX CE ring
+ *                (needed for fusion platforms)
+ *     - RX_IND_RING_BASE_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of RX Indication Ring base address in DDR
+ *     - RX_IND_RING_BASE_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of RX Indication Ring base address in DDR
+ *     - RX_IND_RING_SIZE
+ *       Bits 31:0
+ *       Purpose: RX Indication Ring size
+ *     - RX_IND_RD_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of DDR address where IPA uC updates the Read Index
+ *                for WDI_IPA RX indication ring
+ *     - RX_IND_RD_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of DDR address where IPA uC updates the Read Index
+ *                for WDI_IPA RX indication ring
+ *     - RX_IND_WR_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of IPA doorbell register address OR
+ *                Lower 4 bytes of DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA RX indication ring
+ *     - RX_IND_WR_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of IPA doorbell register address OR
+ *                Higher 4 bytes of DDR address where WIFI FW
+ *                updates the Write Index for WDI_IPA RX indication ring
+ *     - RX_RING2_BASE_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: Lower 4 bytes of Second RX Ring(Indication OR completion)base address in DDR
+ *     - RX_RING2_BASE_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: Higher 4 bytes of Second RX Ring(Indication OR completion)base address in DDR
+ *     - RX_RING2_SIZE
+ *       Bits 31:0
+ *       Purpose: Second RX  Ring size (must be >= RX_IND_RING_SIZE)
+ *     - RX_RING2_RD_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring, lower 4 bytes of
+ *                DDR address where IPA uC updates the Read Index for Ring2.
+ *                If Second RX ring is completion ring, this is NOT used
+ *     - RX_RING2_RD_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring, higher 4 bytes of
+ *                DDR address where IPA uC updates the Read Index for Ring2.
+ *                If Second RX ring is completion ring, this is NOT used
+ *     - RX_RING2_WR_IDX_ADDR_LO
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring, lower 4 bytes of
+ *                DDR address where WIFI FW updates the Write Index
+ *                for WDI_IPA RX ring2
+ *                If second RX ring is completion ring, lower 4 bytes of
+ *                DDR address where IPA uC updates the Write Index for Ring 2.
+ *     - RX_RING2_WR_IDX_ADDR_HI
+ *       Bits 31:0
+ *       Purpose: If Second RX ring is Indication ring, higher 4 bytes of
+ *                DDR address where WIFI FW updates the Write Index
+ *                for WDI_IPA RX ring2
+ *                If second RX ring is completion ring, higher 4 bytes of
+ *                DDR address where IPA uC updates the Write Index for Ring 2.
  */
 
-#define HTT_WDI_IPA_CFG_SZ                           36 /* bytes */
+#if HTT_PADDR64
+#define HTT_WDI_IPA_CFG_SZ                           88 /* bytes */
+#else
+#define HTT_WDI_IPA_CFG_SZ                           52 /* bytes */
+#endif
 
 #define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_M           0xffff0000
 #define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S           16
@@ -2207,17 +2406,41 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_M     0xffffffff
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S     0
 
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_M  0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_S  0
+
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_M  0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_S  0
+
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_M          0xffffffff
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_S          0
 
 #define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_M        0xffffffff
 #define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S        0
 
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_M     0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_S     0
+
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_M     0xffffffff
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_S     0
+
 #define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_M          0xffffffff
 #define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S          0
 
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_M       0xffffffff
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_S       0
+
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_M       0xffffffff
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_S       0
+
 #define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_M      0xffffffff
 #define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S      0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_M   0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_S   0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_M   0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_S   0
 
 #define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_M           0xffffffff
 #define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_S           0
@@ -2225,8 +2448,50 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
 #define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_M         0xffffffff
 #define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S         0
 
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_S      0
+
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_S      0
+
 #define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_M         0xffffffff
 #define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S         0
+
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_S      0
+
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_S      0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_M         0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_S         0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_S      0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_M      0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_S      0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_SIZE_M              0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_SIZE_S              0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_M       0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_S       0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_M    0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_S    0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_M    0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_S    0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_M       0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_S       0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_M    0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_S    0
+
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_M    0xffffffff
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_S    0
 
 #define HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_M) >> HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S)
@@ -2236,12 +2501,31 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_PKT_POOL_SIZE_S)); \
     } while (0)
 
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_M) >> HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S)
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_SET(_var, _val) \
     do {                                                     \
         HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR, _val);  \
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_M) >> HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_M) >> HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_BASE_ADDR_LO_S)); \
     } while (0)
 
 #define HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_GET(_var) \
@@ -2252,6 +2536,7 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_RING_SIZE_S)); \
     } while (0)
 
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S)
 #define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_SET(_var, _val) \
@@ -2260,6 +2545,26 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_S)); \
     } while (0)
 
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_COMP_WR_IDX_ADDR_LO_S)); \
+    } while (0)
+
+
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S)
 #define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_SET(_var, _val) \
@@ -2268,12 +2573,49 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_S)); \
     } while (0)
 
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_TX_CE_WR_IDX_ADDR_LO_S)); \
+    } while (0)
+
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S)
 #define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_SET(_var, _val) \
     do {                                                     \
         HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR, _val);  \
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_BASE_ADDR_LO_S)); \
     } while (0)
 
 #define HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_GET(_var) \
@@ -2284,6 +2626,7 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RING_SIZE_S)); \
     } while (0)
 
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S)
 #define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_SET(_var, _val) \
@@ -2292,6 +2635,25 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_S)); \
     } while (0)
 
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_RD_IDX_ADDR_LO_S)); \
+    } while (0)
+
+/* for systems using 32-bit format for bus addr */
 #define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_GET(_var) \
     (((_var) & HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S)
 #define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_SET(_var, _val) \
@@ -2300,30 +2662,174 @@ PREPACK struct htt_tx_msdu_desc_ext_t {
         ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_S)); \
     } while (0)
 
-PREPACK struct htt_wdi_ipa_cfg_t
-{
-    /* DWORD 0: flags and meta-data */
-    A_UINT32
-        msg_type: 8, /* HTT_H2T_MSG_TYPE_WDI_IPA_CFG */
-        reserved: 8,
-        tx_pkt_pool_size: 16;
-    /* DWORD 1 */
-    A_UINT32 tx_comp_ring_base_addr;
-    /* DWORD 2 */
-    A_UINT32 tx_comp_ring_size;
-    /* DWORD 3 */
-    A_UINT32 tx_comp_wr_idx_addr;
-    /* DWORD 4*/
-    A_UINT32 tx_ce_wr_idx_addr;
-    /* DWORD 5 */
-    A_UINT32 rx_ind_ring_base_addr;
-    /* DWORD 6 */
-    A_UINT32 rx_ind_ring_size;
-    /* DWORD 7 */
-    A_UINT32 rx_ind_rd_idx_addr;
-    /* DWORD 8 */
-    A_UINT32 rx_ind_wr_idx_addr;
-} POSTPACK;
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_IND_WR_IDX_ADDR_LO_S)); \
+    } while (0)
+
+/* for systems using 32-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_M) >> HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_BASE_ADDR_LO_S)); \
+    } while (0)
+
+#define HTT_WDI_IPA_CFG_RX_RING2_SIZE_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_SIZE_M) >> HTT_WDI_IPA_CFG_RX_RING2_SIZE_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_SIZE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_SIZE_S)); \
+    } while (0)
+
+/* for systems using 32-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_RD_IDX_ADDR_LO_S)); \
+    } while (0)
+
+/* for systems using 32-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_M) >> HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_M) >> HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_HI_S)); \
+    } while (0)
+
+/* for systems using 64-bit format for bus addr */
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_GET(_var) \
+    (((_var) & HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_M) >> HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_S)
+#define HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO, _val);  \
+        ((_var) |= ((_val) << HTT_WDI_IPA_CFG_RX_RING2_WR_IDX_ADDR_LO_S)); \
+    } while (0)
+
+/*
+ * TEMPLATE_HTT_WDI_IPA_CONFIG_T:
+ * This macro defines a htt_wdi_ipa_configXXX_t in which any physical
+ * addresses are stored in a XXX-bit field.
+ * This macro is used to define both htt_wdi_ipa_config32_t and
+ * htt_wdi_ipa_config64_t structs.
+ */
+#define TEMPLATE_HTT_WDI_IPA_CONFIG_T(_paddr_bits_, \
+                                      _paddr__tx_comp_ring_base_addr_, \
+                                      _paddr__tx_comp_wr_idx_addr_, \
+                                      _paddr__tx_ce_wr_idx_addr_, \
+                                      _paddr__rx_ind_ring_base_addr_, \
+                                      _paddr__rx_ind_rd_idx_addr_, \
+                                      _paddr__rx_ind_wr_idx_addr_, \
+                                      _paddr__rx_ring2_base_addr_,\
+                                      _paddr__rx_ring2_rd_idx_addr_,\
+                                      _paddr__rx_ring2_wr_idx_addr_)      \
+PREPACK struct htt_wdi_ipa_cfg ## _paddr_bits_ ## _t \
+{ \
+  /* DWORD 0: flags and meta-data */ \
+    A_UINT32 \
+        msg_type: 8, /* HTT_H2T_MSG_TYPE_WDI_IPA_CFG */ \
+        reserved: 8, \
+        tx_pkt_pool_size: 16;\
+    /* DWORD 1  */\
+    _paddr__tx_comp_ring_base_addr_;\
+    /* DWORD 2 (or 3)*/\
+    A_UINT32 tx_comp_ring_size;\
+    /* DWORD 3 (or 4)*/\
+    _paddr__tx_comp_wr_idx_addr_;\
+    /* DWORD 4 (or 6)*/\
+    _paddr__tx_ce_wr_idx_addr_;\
+    /* DWORD 5 (or 8)*/\
+    _paddr__rx_ind_ring_base_addr_;\
+    /* DWORD 6 (or 10)*/\
+    A_UINT32 rx_ind_ring_size;\
+    /* DWORD 7 (or 11)*/\
+    _paddr__rx_ind_rd_idx_addr_;\
+    /* DWORD 8 (or 13)*/\
+    _paddr__rx_ind_wr_idx_addr_;\
+    /* DWORD 9 (or 15)*/\
+    _paddr__rx_ring2_base_addr_;\
+    /* DWORD 10 (or 17) */\
+    A_UINT32 rx_ring2_size;\
+    /* DWORD 11 (or 18) */\
+    _paddr__rx_ring2_rd_idx_addr_;\
+    /* DWORD 12 (or 20) */\
+    _paddr__rx_ring2_wr_idx_addr_;\
+} POSTPACK
+
+/* define a htt_wdi_ipa_config32_t type */
+TEMPLATE_HTT_WDI_IPA_CONFIG_T(32, HTT_VAR_PADDR32(tx_comp_ring_base_addr), HTT_VAR_PADDR32(tx_comp_wr_idx_addr), HTT_VAR_PADDR32(tx_ce_wr_idx_addr), HTT_VAR_PADDR32(rx_ind_ring_base_addr), HTT_VAR_PADDR32(rx_ind_rd_idx_addr),HTT_VAR_PADDR32(rx_ind_wr_idx_addr), HTT_VAR_PADDR32(rx_ring2_base_addr), HTT_VAR_PADDR32(rx_ring2_rd_idx_addr), HTT_VAR_PADDR32(rx_ring2_wr_idx_addr));
+
+/* define a htt_wdi_ipa_config64_t type */
+TEMPLATE_HTT_WDI_IPA_CONFIG_T(64, HTT_VAR_PADDR64_LE(tx_comp_ring_base_addr), HTT_VAR_PADDR64_LE(tx_comp_wr_idx_addr), HTT_VAR_PADDR64_LE(tx_ce_wr_idx_addr), HTT_VAR_PADDR64_LE(rx_ind_ring_base_addr), HTT_VAR_PADDR64_LE(rx_ind_rd_idx_addr), HTT_VAR_PADDR64_LE(rx_ind_wr_idx_addr), HTT_VAR_PADDR64_LE(rx_ring2_base_addr), HTT_VAR_PADDR64_LE(rx_ring2_rd_idx_addr), HTT_VAR_PADDR64_LE(rx_ring2_wr_idx_addr));
+
+#if HTT_PADDR64
+    #define htt_wdi_ipa_cfg_t htt_wdi_ipa_cfg64_t
+#else
+    #define htt_wdi_ipa_cfg_t htt_wdi_ipa_cfg32_t
+#endif
 
 enum htt_wdi_ipa_op_code {
     HTT_WDI_IPA_OPCODE_TX_SUSPEND           = 0,
@@ -2519,15 +3025,28 @@ enum htt_t2h_msg_type {
  * |                        MSDU 0 bus address (bits 63:32)                   |
 #endif
  * |--------------------------------------------------------------------------|
- * |     Reserved   | MSDU 0 FW Desc    |         MSDU 0 Length               |
+ * |    MSDU info   | MSDU 0 FW Desc    |         MSDU 0 Length               |
  * |--------------------------------------------------------------------------|
  * |                        MSDU 1 bus address (bits 31:0)                    |
 #if HTT_PADDR64
  * |                        MSDU 1 bus address (bits 63:32)                   |
 #endif
  * |--------------------------------------------------------------------------|
- * |     Reserved   | MSDU 1 FW Desc    |         MSDU 1 Length               |
+ * |    MSDU info   | MSDU 1 FW Desc    |         MSDU 1 Length               |
  * |--------------------------------------------------------------------------|
+ */
+
+
+/** @brief - MSDU info byte for TCP_CHECKSUM_OFFLOAD use
+ *
+ * @details
+ *                            bits
+ * |  7  | 6  |   5   |    4   |   3    |    2    |    1    |     0     |
+ * |-----+----+-------+--------+--------+---------+---------+-----------|
+ * | reserved | is IP | is UDP | is TCP | is IPv6 |IP chksum|  TCP/UDP  |
+ * |          | frag  |        |        |         | fail    |chksum fail|
+ * |-----+----+-------+--------+--------+---------+---------+-----------|
+ * (see fw_rx_msdu_info def in wal_rx_desc.h)
  */
 
 struct htt_rx_in_ord_paddr_ind_hdr_t
@@ -2552,7 +3071,7 @@ struct htt_rx_in_ord_paddr_ind_msdu32_t
     A_UINT32
         length: 16,
         fw_desc: 8,
-        reserved_1:8;
+        msdu_info:8;
 };
 struct htt_rx_in_ord_paddr_ind_msdu64_t
 {
@@ -2561,7 +3080,7 @@ struct htt_rx_in_ord_paddr_ind_msdu64_t
     A_UINT32
         length: 16,
         fw_desc: 8,
-        reserved_1:8;
+        msdu_info:8;
 };
 #if HTT_PADDR64
     #define htt_rx_in_ord_paddr_ind_msdu_t htt_rx_in_ord_paddr_ind_msdu64_t
@@ -2601,10 +3120,12 @@ struct htt_rx_in_ord_paddr_ind_msdu64_t
 /* for systems using 32-bit format for bus addresses */
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_M        0xffffffff
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_S        0
-#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M      0x00ff0000
-#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S      16
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_M     0x0000ffff
 #define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S     0
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M      0x00ff0000
+#define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S      16
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_M    0xff000000
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_S    24
 
 
 #define HTT_RX_IN_ORD_PADDR_IND_EXT_TID_SET(word, value)                              \
@@ -2664,6 +3185,14 @@ struct htt_rx_in_ord_paddr_ind_msdu64_t
 #define HTT_RX_IN_ORD_PADDR_IND_PADDR_GET(word) \
     (((word) & HTT_RX_IN_ORD_PADDR_IND_PADDR_M) >> HTT_RX_IN_ORD_PADDR_IND_PADDR_S)
 
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_SET(word, value)                              \
+    do {                                                                         \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S;                      \
+    } while (0)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S)
+
 #define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_SET(word, value)                              \
     do {                                                                       \
         HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_FW_DESC, value);                    \
@@ -2672,13 +3201,13 @@ struct htt_rx_in_ord_paddr_ind_msdu64_t
 #define HTT_RX_IN_ORD_PADDR_IND_FW_DESC_GET(word) \
     (((word) & HTT_RX_IN_ORD_PADDR_IND_FW_DESC_M) >> HTT_RX_IN_ORD_PADDR_IND_FW_DESC_S)
 
-#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_SET(word, value)                              \
-    do {                                                                         \
-        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN, value);                    \
-        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S;                      \
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_SET(word, value)                              \
+    do {                                                                       \
+        HTT_CHECK_SET_VAL(HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO, value);                    \
+        (word) |= (value)  << HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_S;                      \
     } while (0)
-#define HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_GET(word) \
-    (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_S)
+#define HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_GET(word) \
+    (((word) & HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_M) >> HTT_RX_IN_ORD_PADDR_IND_MSDU_INFO_S)
 
 #define HTT_RX_IN_ORD_PADDR_IND_OFFLOAD_SET(word, value)                              \
     do {                                                                        \
@@ -4574,6 +5103,14 @@ PREPACK struct htt_txq_group {
 #define HTT_TX_COMPL_IND_STAT_DISCARD     1
 #define HTT_TX_COMPL_IND_STAT_NO_ACK      2
 #define HTT_TX_COMPL_IND_STAT_POSTPONE    3
+/*
+ * The PEER_DEL tx completion status is used for HL cases
+ * where the peer the frame is for has been deleted.
+ * The host has already discarded its copy of the frame, but
+ * it still needs the tx completion to restore its credit.
+ */
+#define HTT_TX_COMPL_IND_STAT_PEER_DEL    4
+
 
 #define HTT_TX_COMPL_IND_APPEND_SET_MORE_RETRY(f)  ((f) |= 0x1)
 #define HTT_TX_COMPL_IND_APPEND_CLR_MORE_RETRY(f)  ((f) &= (~0x1))
