@@ -10736,6 +10736,24 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		 chan->band_center_freq2, chan->reg_info_1, chan->reg_info_2,
 		 req->max_txpow);
 
+	/* Store vdev params in SAP mode which can be used in vdev restart */
+	if (intr[req->vdev_id].type == WMI_VDEV_TYPE_AP &&
+		intr[req->vdev_id].sub_type == 0) {
+		intr[req->vdev_id].vdev_restart_params.vdev_id = req->vdev_id;
+		intr[req->vdev_id].vdev_restart_params.ssid.ssid_len = cmd->ssid.ssid_len;
+		vos_mem_copy(intr[req->vdev_id].vdev_restart_params.ssid.ssid, cmd->ssid.ssid,
+				cmd->ssid.ssid_len);
+		intr[req->vdev_id].vdev_restart_params.flags = cmd->flags;
+		intr[req->vdev_id].vdev_restart_params.requestor_id = cmd->requestor_id;
+		intr[req->vdev_id].vdev_restart_params.disable_hw_ack = cmd->disable_hw_ack;
+		intr[req->vdev_id].vdev_restart_params.chan.mhz = chan->mhz;
+		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq1 = chan->band_center_freq1;
+		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq2 = chan->band_center_freq1;
+		intr[req->vdev_id].vdev_restart_params.chan.info = chan->info;
+		intr[req->vdev_id].vdev_restart_params.chan.reg_info_1 = chan->reg_info_1;
+		intr[req->vdev_id].vdev_restart_params.chan.reg_info_2 = chan->reg_info_2;
+	}
+
 	if (isRestart) {
 		/*
 		* Marking the VDEV UP STATUS to FALSE
@@ -10761,24 +10779,6 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		WMA_LOGP("%s: Failed to send vdev start command", __func__);
 		adf_nbuf_free(buf);
 		return VOS_STATUS_E_FAILURE;
-	}
-
-	/* Store vdev params in SAP mode which can be used in vdev restart */
-	if (intr[req->vdev_id].type == WMI_VDEV_TYPE_AP &&
-		intr[req->vdev_id].sub_type == 0) {
-		intr[req->vdev_id].vdev_restart_params.vdev_id = req->vdev_id;
-		intr[req->vdev_id].vdev_restart_params.ssid.ssid_len = cmd->ssid.ssid_len;
-		vos_mem_copy(intr[req->vdev_id].vdev_restart_params.ssid.ssid, cmd->ssid.ssid,
-				cmd->ssid.ssid_len);
-		intr[req->vdev_id].vdev_restart_params.flags = cmd->flags;
-		intr[req->vdev_id].vdev_restart_params.requestor_id = cmd->requestor_id;
-		intr[req->vdev_id].vdev_restart_params.disable_hw_ack = cmd->disable_hw_ack;
-		intr[req->vdev_id].vdev_restart_params.chan.mhz = chan->mhz;
-		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq1 = chan->band_center_freq1;
-		intr[req->vdev_id].vdev_restart_params.chan.band_center_freq2 = chan->band_center_freq1;
-		intr[req->vdev_id].vdev_restart_params.chan.info = chan->info;
-		intr[req->vdev_id].vdev_restart_params.chan.reg_info_1 = chan->reg_info_1;
-		intr[req->vdev_id].vdev_restart_params.chan.reg_info_2 = chan->reg_info_2;
 	}
 
 	return VOS_STATUS_SUCCESS;
