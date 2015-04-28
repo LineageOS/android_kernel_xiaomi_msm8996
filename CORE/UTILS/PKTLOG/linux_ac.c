@@ -622,6 +622,7 @@ int pktlog_send_per_pkt_stats_to_user(void)
 		vos_log_set_code(pktlog, LOG_WLAN_PKT_LOG_INFO_C);
 
 		pktlog->buf_len = 0;
+		pktlog->version = VERSION_LOG_WLAN_PKT_LOG_INFO_C;
 
 		/*
 		 * @ret_val: ret_val gives the actual data read from the buffer.
