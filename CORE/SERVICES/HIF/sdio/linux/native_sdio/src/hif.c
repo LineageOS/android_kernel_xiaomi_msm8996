@@ -2036,7 +2036,7 @@ static int hifDeviceSuspend(struct device *dev)
             }
 
             if (wma_is_wow_mode_selected(temp_module)) {
-                if (wma_enable_wow_in_fw(temp_module)) {
+                if (wma_enable_wow_in_fw(temp_module, 0)) {
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("wow mode failure\n"));
                     return -1;
                 }
@@ -2171,8 +2171,8 @@ static int hifDeviceResume(struct device *dev)
 
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     if (!wma_is_wow_mode_selected(temp_module)) {
-        wma_resume_target(temp_module);
-    } else if (wma_disable_wow_in_fw(temp_module)) {
+        wma_resume_target(temp_module, 0);
+    } else if (wma_disable_wow_in_fw(temp_module, 0)) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("%s: disable wow in fw failed\n", __func__));
         status = (-1);
     }

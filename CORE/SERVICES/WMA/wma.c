@@ -6023,6 +6023,13 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 
+	vos_status = vos_event_init(&wma_handle->runtime_suspend);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("%s: runtime suspend event initialization failed",
+				__func__);
+		goto err_event_init;
+	}
+
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
@@ -14874,14 +14881,18 @@ out:
 #ifdef FEATURE_WLAN_D0WOW
 static void wma_add_pm_vote(tp_wma_handle wma)
 {
-	if (++wma->ap_client_cnt == 1)
+	if (++wma->ap_client_cnt == 1) {
+		vos_runtime_pm_prevent_suspend();
 		vos_pm_control(DISABLE_PCIE_POWER_COLLAPSE);
+	}
 }
 
 static void wma_del_pm_vote(tp_wma_handle wma)
 {
-	if (--wma->ap_client_cnt == 0)
+	if (--wma->ap_client_cnt == 0) {
+		vos_runtime_pm_allow_suspend();
 		vos_pm_control(ENABLE_PCIE_POWER_COLLAPSE);
+	}
 }
 
 int wma_get_client_count(WMA_HANDLE handle)
@@ -14895,6 +14906,7 @@ static void wma_prevent_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt++;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers) {
+		vos_runtime_pm_prevent_suspend();
 		vos_wake_lock_acquire(&wma->wow_wake_lock,
 				WIFI_POWER_EVENT_WAKELOCK_ADD_STA);
 		WMA_LOGW("%s: %d clients connected, prevent suspend",
@@ -14907,6 +14919,7 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt--;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers - 1) {
+		vos_runtime_pm_allow_suspend();
 		vos_wake_lock_release(&wma->wow_wake_lock,
                                       WIFI_POWER_EVENT_WAKELOCK_DEL_STA);
 		WMA_LOGW("%s: %d clients connected, allow suspend",
@@ -17821,12 +17834,19 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma, u_int8_t sessionId)
 
 #endif
 
-static void wma_send_status_to_suspend_ind(tp_wma_handle wma, boolean suspended)
+static void wma_send_status_to_suspend_ind(tp_wma_handle wma, boolean suspended,
+		bool runtime_pm)
 {
 	tSirReadyToSuspendInd *ready_to_suspend;
 	VOS_STATUS status;
 	vos_msg_t vos_msg;
 	u_int8_t len;
+
+	if (runtime_pm) {
+		WMA_LOGD("Runtime PM: Posting ready to suspend indication");
+		vos_event_set(&wma->runtime_suspend);
+		return;
+	}
 
 	WMA_LOGD("Posting ready to suspend indication to umac");
 
@@ -18672,7 +18692,7 @@ error:
 #endif /* FEATURE_WLAN_D0WOW */
 
 /* Enables WOW in firmware. */
-int wma_enable_wow_in_fw(WMA_HANDLE handle)
+int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 {
 	tp_wma_handle wma = handle;
 	wmi_wow_enable_cmd_fixed_param *cmd;
@@ -18726,7 +18746,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle)
 		host_credits, wmi_pending_cmds);
 
 #if !defined(HIF_SDIO)
-	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
+	if (!runtime_pm && host_credits < WMI_WOW_REQUIRED_CREDITS) {
 		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
 			"Credits:%d, pending_cmds:%d\n", __func__,
 				host_credits, wmi_pending_cmds);
@@ -18976,7 +18996,7 @@ static VOS_STATUS wma_wow_sta_ra_filter(tp_wma_handle wma, u_int8_t vdev_id)
 
 /* Configures default WOW pattern for the given vdev_id which is in STA mode. */
 static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
-			      u_int8_t *enable_ptrn_match)
+			      u_int8_t *enable_ptrn_match, bool runtime_pm)
 {
 	u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
 	u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
@@ -19033,7 +19053,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	 * from ini file, configure broad cast arp pattern
 	 * to fw, so that host can wake up
 	 */
-	if (!(wma->ol_ini_info & 0x1)) {
+	if (runtime_pm || !(wma->ol_ini_info & 0x1)) {
 		/* Setup all ARP pkt pattern */
 		ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
 				wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
@@ -19046,7 +19066,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	}
 
 	/* for NS or NDP offload packets */
-	if (!(wma->ol_ini_info & 0x2)) {
+	if (runtime_pm || !(wma->ol_ini_info & 0x2)) {
 		/* Setup all NS pkt pattern */
 		ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
 				wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
@@ -19130,18 +19150,22 @@ static void wma_unpause_vdev(tp_wma_handle wma) {
 	}
 }
 
-static VOS_STATUS wma_resume_req(tp_wma_handle wma)
+static VOS_STATUS wma_resume_req(tp_wma_handle wma, bool runtime_pm)
 {
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 	u_int8_t ptrn_id;
 
-	wma->no_of_resume_ind ++;
+	if (runtime_pm)
+		goto skip_vdev_suspend;
+
+	wma->no_of_resume_ind++;
 
 	if (wma->no_of_resume_ind < wma_get_vdev_count(wma))
 		return VOS_STATUS_SUCCESS;
 
 	wma->no_of_resume_ind = 0;
 
+skip_vdev_suspend:
 	WMA_LOGD("Clearing already configured wow patterns in fw");
 
 	/* Clear existing wow patterns in FW. */
@@ -19167,8 +19191,8 @@ end:
  * wakeup trigger events.
  */
 static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
-					    v_BOOL_t pno_in_progress,
-						bool extscan_in_progress)
+				    v_BOOL_t pno_in_progress,
+				bool extscan_in_progress, bool runtime_pm)
 {
 	struct wma_txrx_node *iface;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
@@ -19223,7 +19247,8 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		else
 		{
 			/* Configure STA mode default wow patterns */
-			ret = wma_wow_sta(wma, vdev_id, &enable_ptrn_match);
+			ret = wma_wow_sta(wma, vdev_id, &enable_ptrn_match,
+					runtime_pm);
 		}
 
 #ifdef FEATURE_WLAN_RA_FILTERING
@@ -19564,11 +19589,16 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 /* Handles suspend indication request received from umac. */
 static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 {
-	struct wma_txrx_node *iface;
 	v_BOOL_t connected = FALSE, pno_in_progress = FALSE;
 	VOS_STATUS ret;
 	u_int8_t i;
 	bool extscan_in_progress = false;
+	struct wma_txrx_node *iface;
+
+	if (info == NULL) {
+		WMA_LOGD("runtime PM: Request to suspend all interfaces");
+		goto suspend_all_iface;
+	}
 
 	wma->no_of_suspend_ind++;
 
@@ -19613,6 +19643,14 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 
 	wma->no_of_suspend_ind = 0;
 	wma->wow.gtk_pdev_enable = 0;
+
+suspend_all_iface:
+	for (i = 0; i < wma->max_bssid && info == NULL; i++) {
+		wma->interfaces[i].conn_state =
+			!!(wma->interfaces[i].vdev_up &&
+				!wma_is_vdev_in_ap_mode(wma, i));
+	}
+
 	/*
 	 * Enable WOW if any one of the condition meets,
 	 *  1) Is any one of vdev in beaconning mode (in AP mode) ?
@@ -19691,10 +19729,10 @@ enable_wow:
 #endif
 
 	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress,
-					extscan_in_progress);
+			extscan_in_progress, info ? true: false);
 	if (ret != VOS_STATUS_SUCCESS) {
+		wma_send_status_to_suspend_ind(wma, FALSE, info == NULL);
 		vos_mem_free(info);
-		wma_send_status_to_suspend_ind(wma, FALSE);
 		return ret;
 	}
 	vos_mem_free(info);
@@ -19702,12 +19740,14 @@ enable_wow:
 send_ready_to_suspend:
 	/* Set the Suspend DTIM Parameters */
 	wma_set_suspend_dtim(wma);
-	wma_send_status_to_suspend_ind(wma, TRUE);
 
 	/* to handle race between hif_pci_suspend and
 	* unpause/pause tx handler
 	*/
 	wma_set_wow_bus_suspend(wma, 1);
+
+	wma_send_status_to_suspend_ind(wma, TRUE, info == NULL);
+
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -19860,7 +19900,7 @@ error:
 #endif /* FEATURE_WLAN_D0WOW */
 
 /* Disable wow in PCIe resume context. */
-int wma_disable_wow_in_fw(WMA_HANDLE handle)
+int wma_disable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 {
 	tp_wma_handle wma = handle;
 	VOS_STATUS ret;
@@ -19892,7 +19932,8 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle)
 	/* Unpause the vdev as we are resuming */
 	wma_unpause_vdev(wma);
 
-	vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000,
+	if (!runtime_pm)
+		vos_wake_lock_timeout_acquire(&wma->wow_wake_lock, 2000,
 				      WIFI_POWER_EVENT_WAKELOCK_WOW);
 
 	return ret;
@@ -24637,6 +24678,11 @@ void wma_set_wifi_start_logger(void *wma_handle,
 	vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	scn = vos_get_context(VOS_MODULE_ID_HIF, vos_context);
 
+	if (!scn) {
+		WMA_LOGE("%s: ol_softc context is NULL\n", __func__);
+		return;
+	}
+
 	log_state = ATH_PKTLOG_ANI | ATH_PKTLOG_RCUPDATE | ATH_PKTLOG_RCFIND |
 		ATH_PKTLOG_RX | ATH_PKTLOG_TX | ATH_PKTLOG_TEXT;
 
@@ -25115,7 +25161,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_WLAN_RESUME_REQ:
-			wma_resume_req(wma_handle);
+			wma_resume_req(wma_handle, false);
 			break;
 
 #ifdef WLAN_FEATURE_STATS_EXT
@@ -25388,6 +25434,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(struct sir_dcc_update_ndl *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+#ifdef FEATURE_RUNTIME_PM
+		case WDA_RUNTIME_PM_SUSPEND_IND:
+			wma_suspend_req(wma_handle, NULL);
+			break;
+		case WDA_RUNTIME_PM_RESUME_IND:
+			wma_resume_req(wma_handle, true);
+			break;
+#endif
 		case SIR_HAL_SET_MAS:
 			wma_process_set_mas(wma_handle,
 				(u_int32_t *)msg->bodyptr);
@@ -27053,6 +27107,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_event_destroy(&wma_handle->target_suspend);
 	vos_event_destroy(&wma_handle->wma_resume_event);
 	vos_event_destroy(&wma_handle->wow_tx_complete);
+	vos_event_destroy(&wma_handle->runtime_suspend);
 	wma_cleanup_vdev_resp(wma_handle);
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(
@@ -28454,7 +28509,7 @@ void wma_target_suspend_acknowledge(void *context)
 					      WIFI_POWER_EVENT_WAKELOCK_WOW);
 }
 
-int wma_resume_target(WMA_HANDLE handle)
+int wma_resume_target(WMA_HANDLE handle, int runtime_pm)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	wmi_buf_t wmibuf;
@@ -28478,6 +28533,10 @@ int wma_resume_target(WMA_HANDLE handle)
 		WMA_LOGE("Failed to send WMI_PDEV_RESUME_CMDID command");
 		wmi_buf_free(wmibuf);
 	}
+
+	if (runtime_pm)
+		goto end;
+
 	wmi_pending_cmds = wmi_get_pending_cmds(wma_handle->wmi_handle);
 	while (wmi_pending_cmds && timeout++ < WMA_MAX_RESUME_RETRY) {
 		msleep(100);
@@ -28489,6 +28548,7 @@ int wma_resume_target(WMA_HANDLE handle)
 		ret = -1;
 	}
 
+end:
 	if (EOK == ret)
 		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 
@@ -30254,5 +30314,64 @@ void wma_process_roam_synch_fail(WMA_HANDLE handle,
 	wma_handle->interfaces[synchfail->sessionId].roam_synch_in_progress =
 		VOS_FALSE;
 	adf_os_spin_unlock_bh(&wma_handle->roam_synch_lock);
+}
+#endif
+
+#ifdef FEATURE_RUNTIME_PM
+int wma_runtime_suspend_req(WMA_HANDLE handle)
+{
+	vos_msg_t       vosMessage;
+	VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+	int ret = 0;
+	tp_wma_handle wma = (tp_wma_handle) handle;
+
+	wmi_set_runtime_pm_inprogress(wma->wmi_handle, TRUE);
+	vos_event_reset(&wma->runtime_suspend);
+
+	vosMessage.bodyptr = NULL;
+	vosMessage.type    = WDA_RUNTIME_PM_SUSPEND_IND;
+	vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage );
+
+	if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+		ret = -EAGAIN;
+		goto out;
+	}
+
+	if (vos_wait_single_event(&wma->runtime_suspend,
+				WMA_TGT_SUSPEND_COMPLETE_TIMEOUT) !=
+			VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to get runtime suspend event");
+		ret = -EAGAIN;
+		goto out;
+	}
+
+	/* Check if suspend completed, if not return failure */
+	if (!wma_get_wow_bus_suspend(wma)) {
+		WMA_LOGE("Runtime Suspend Failed: %d",
+				wma_get_wow_bus_suspend(wma));
+		ret = -EAGAIN;
+	}
+out:
+	if (ret)
+		wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
+	return ret;
+}
+
+int wma_runtime_resume_req(WMA_HANDLE handle)
+{
+	vos_msg_t       vosMessage;
+	VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	int ret = 0;
+
+	vosMessage.bodyptr = NULL;
+	vosMessage.type    = WDA_RUNTIME_PM_RESUME_IND;
+	vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage );
+
+	if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+		ret = -EAGAIN;
+
+	wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
+	return ret;
 }
 #endif
