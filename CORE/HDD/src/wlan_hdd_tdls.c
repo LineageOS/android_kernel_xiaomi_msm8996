@@ -1112,7 +1112,7 @@ hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, const u8 *mac)
 }
 
 int wlan_hdd_tdls_set_cap(hdd_adapter_t *pAdapter,
-                                   u8* mac,
+                                   const u8* mac,
                                    tTDLSCapType cap)
 {
     hddTdlsPeer_t *curr_peer;
@@ -1378,7 +1378,8 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
     return 0;
 }
 
-int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter, u8 *mac,
+int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter,
+                                            const u8 *mac,
                                             tCsrTdlsLinkEstablishParams* tdlsLinkEstablishParams)
 {
     hddTdlsPeer_t *curr_peer;
@@ -1414,7 +1415,8 @@ int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter, u8 *mac,
     return 0;
 }
 
-int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi)
+int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, const u8 *mac,
+                           tANI_S8 rxRssi)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1431,7 +1433,8 @@ int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi)
     return 0;
 }
 
-int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 responder)
+int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, const u8 *mac,
+                                tANI_U8 responder)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1448,7 +1451,8 @@ int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 respon
     return 0;
 }
 
-int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 uSignature)
+int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, const u8 *mac,
+                                tANI_U8 uSignature)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1476,7 +1480,8 @@ void wlan_hdd_tdls_extract_sa(struct sk_buff *skb, u8 *mac)
     memcpy(mac, skb->data+6, 6);
 }
 
-int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, u8 *mac, u8 tx)
+int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, const u8 *mac,
+                                      u8 tx)
 {
     hddTdlsPeer_t *curr_peer;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -1927,7 +1932,7 @@ void wlan_hdd_update_tdls_info(hdd_adapter_t *adapter, bool tdls_prohibited,
     return;
 }
 
-int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, u8 *mac, u8 staId)
+int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, const u8 *mac, u8 staId)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1944,7 +1949,7 @@ int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, u8 *mac, u8 staId)
     return 0;
 }
 
-int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter, uint8_t *mac,
+int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter, const uint8_t *mac,
                                     uint32_t chan, uint32_t max_latency,
                                     uint32_t op_class, uint32_t min_bandwidth)
 {
@@ -1975,7 +1980,7 @@ int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter, uint8_t *mac,
     return 0;
 }
 
-int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, u8 *mac,
+int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, const u8 *mac,
                                  tANI_BOOLEAN forcePeer)
 {
     hddTdlsPeer_t *curr_peer;
@@ -2050,7 +2055,8 @@ hddTdlsPeer_t *wlan_hdd_tdls_find_peer(hdd_adapter_t *pAdapter,
     return NULL;
 }
 
-hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx, u8 *mac)
+hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx,
+                                           const u8 *mac)
 {
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     hdd_adapter_t *pAdapter = NULL;
@@ -2083,7 +2089,7 @@ hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx, u8 *mac)
 }
 
 
-int wlan_hdd_tdls_reset_peer(hdd_adapter_t *pAdapter, u8 *mac)
+int wlan_hdd_tdls_reset_peer(hdd_adapter_t *pAdapter, const u8 *mac)
 {
     hdd_context_t *pHddCtx;
     hddTdlsPeer_t *curr_peer;
@@ -2952,7 +2958,7 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
 }
 
 int wlan_hdd_tdls_get_status(hdd_adapter_t *pAdapter,
-                             tANI_U8* mac,
+                             const tANI_U8* mac,
                              tANI_S32 *state,
                              tANI_S32 *reason)
 {

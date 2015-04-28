@@ -1440,7 +1440,8 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t *pAdapter,
 
 #ifdef FEATURE_WLAN_WAPI
 void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter,
-              u8 key_index, const u8 *mac_addr, u8 *key , int key_Len);
+                                    u8 key_index, const u8 *mac_addr,
+                                    const u8 *key , int key_Len);
 #endif
 struct wiphy *wlan_hdd_cfg80211_wiphy_alloc(int priv_size);
 
