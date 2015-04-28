@@ -105,6 +105,11 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
 
         return;
     }
+    if (!lim_validate_received_frame_a1_addr(pMac, pHdr->da, psessionEntry)) {
+        limLog(pMac, LOGE,
+               FL("rx frame doesn't have valid a1 address, dropping it"));
+        return;
+    }
 
     if (LIM_IS_STA_ROLE(psessionEntry) &&
         (eLIM_SME_WT_DISASSOC_STATE == psessionEntry->limSmeState)) {

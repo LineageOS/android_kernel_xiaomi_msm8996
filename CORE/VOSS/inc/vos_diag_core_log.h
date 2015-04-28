@@ -66,6 +66,9 @@ extern "C" {
 #define VOS_LOG_MAX_WOW_PTRN_MASK_SIZE                      16
 #define VOS_LOG_PKT_LOG_SIZE                                2048
 
+/* Version to be updated whenever format of vos_log_pktlog_info changes */
+#define VERSION_LOG_WLAN_PKT_LOG_INFO_C                     1
+
 /*---------------------------------------------------------------------------
    This packet contains the scan results of the recent scan operation
    LOG_WLAN_SCAN_C                                 0x1496
@@ -378,6 +381,7 @@ typedef struct
  */
 struct vos_log_pktlog_info {
 	log_hdr_type log_hdr;
+	uint32_t version;
 	uint32_t seq_no;
 	uint32_t buf_len;
 	uint8_t buf[];

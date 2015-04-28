@@ -561,10 +561,11 @@ static void csrScan2GOnyRequest(tpAniSirGlobal pMac,tSmeCmd *pScanCmd,
         return;
     }
 
-    if (pScanCmd->u.scanCmd.scanID ||
+    if ((pScanCmd->u.scanCmd.scanID != FIRST_SCAN_ID) ||
        (eCSR_SCAN_REQUEST_FULL_SCAN != pScanRequest->requestType))
            return;
 
+    smsLog( pMac, LOG1, FL("Scanning only 2G Channels during first scan"));
     /* Construct valid Supported 2.4 GHz Channel List */
     for( index = 0; index < ARRAY_SIZE(channelList2G); index++ )
     {
@@ -730,7 +731,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 // If it is the first scan request from HDD, CSR checks if it is for 11d.
                 // If it is not, CSR will save the scan request in the pending cmd queue
                 // & issue an 11d scan request to PE.
-                if (((0 == pScanCmd->u.scanCmd.scanID)
+                if (((FIRST_SCAN_ID == pScanCmd->u.scanCmd.scanID)
                    && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType))
 #ifdef SOFTAP_CHANNEL_RANGE
                    && (eCSR_SCAN_SOFTAP_CHANNEL_RANGE != pScanRequest->requestType)
@@ -850,7 +851,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 //Once we turn on Wifi
                 if(pMac->scan.fFirstScanOnly2GChnl)
                 {
-                    smsLog( pMac, LOG1, FL("Scanning only 2G Channels during first scan"));
                     csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
                 }
 

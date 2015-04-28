@@ -35,6 +35,11 @@
 #include <sme_Api.h>
 #include <wlan_hdd_includes.h>
 #include "wlan_hdd_memdump.h"
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/version.h>
+#include <linux/proc_fs.h> /* Necessary because we use the proc fs */
+#include <linux/uaccess.h> /* for copy_to_user */
 
 /**
  * memdump_cleanup_timer_cb() - Timer callback function for memory dump cleanup.
@@ -265,6 +270,33 @@ int wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
 
 static struct proc_dir_entry *proc_file, *proc_dir;
 
+/** memdump_get_file_data() - get data available in proc file
+ *
+ * @file - handle for the proc file.
+ *
+ * This function is used to retrieve the data passed while
+ * creating proc file entry.
+ *
+ * Return: void pointer to hdd_context
+ */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)) || defined(WITH_BACKPORTS)
+static void *memdump_get_file_data(struct file *file)
+{
+	void *hdd_ctx;
+
+	hdd_ctx = PDE_DATA(file_inode(file));
+	return hdd_ctx;
+}
+#else
+static void *memdump_get_file_data(struct file *file)
+{
+	void *hdd_ctx;
+
+	hdd_ctx = PDE(file->f_path.dentry->d_inode)->data;
+	return hdd_ctx;
+}
+#endif
+
 /**
  * memdump_read() - perform read operation in memory dump proc file
  *
@@ -281,10 +313,12 @@ static ssize_t memdump_read(struct file *file, char __user *buf,
 					size_t count, loff_t *pos)
 {
 	int status;
-	hdd_context_t *hdd_ctx = (hdd_context_t *)PDE_DATA(file_inode(file));
+	hdd_context_t *hdd_ctx;
 	adf_os_dma_addr_t paddr;
 	adf_os_dma_addr_t dma_ctx;
 	adf_os_device_t adf_ctx;
+
+	hdd_ctx = memdump_get_file_data(file);
 
 	hddLog(LOG1, FL("Read req for size:%zu pos:%llu"), count, *pos);
 	status = wlan_hdd_validate_context(hdd_ctx);
