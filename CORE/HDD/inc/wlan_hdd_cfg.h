@@ -2780,6 +2780,12 @@ enum dot11p_mode {
 #define CFG_INFORM_BSS_RSSI_RAW_MAX                (1)
 #define CFG_INFORM_BSS_RSSI_RAW_DEFAULT            (1)
 
+/* GPIO pin to toogle when capture tsf */
+#define CFG_SET_TSF_GPIO_PIN_NAME                  "gtsf_gpio_pin"
+#define CFG_SET_TSF_GPIO_PIN_MIN                   (0)
+#define CFG_SET_TSF_GPIO_PIN_MAX                   (255)
+#define CFG_SET_TSF_GPIO_PIN_DEFAULT               (34)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3381,6 +3387,7 @@ typedef struct
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
    uint8_t                     prefer_non_dfs_on_radar;
    uint8_t                     inform_bss_rssi_raw;
+   uint32_t                    tsf_gpio_pin;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

@@ -11216,6 +11216,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
+   eHalStatus hal_status;
    int ret;
    int i;
    struct wiphy *wiphy;
@@ -11973,6 +11974,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Error setting txlimit in sme", __func__);
+   }
+
+   hal_status = sme_set_tsf_gpio(pHddCtx->hHal, pHddCtx->cfg_ini->tsf_gpio_pin);
+
+   if (eHAL_STATUS_SUCCESS != hal_status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+            FL("set tsf GPIO fail"));
    }
 
 #ifdef MSM_PLATFORM

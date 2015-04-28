@@ -1038,6 +1038,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 #define WDA_FW_MEM_DUMP_REQ                   SIR_HAL_FW_MEM_DUMP_REQ
+#define WDA_TSF_GPIO_PIN                      SIR_HAL_TSF_GPIO_PIN_REQ
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

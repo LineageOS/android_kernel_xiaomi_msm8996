@@ -4282,4 +4282,14 @@ eHalStatus sme_update_roam_scan_hi_rssi_scan_params(tHalHandle hal_handle,
 eHalStatus sme_wifi_start_logger(tHalHandle hal,
 		struct sir_wifi_start_log start_log);
 
+#ifdef WLAN_FEATURE_TSF
+eHalStatus sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue);
+#else
+static inline eHalStatus
+sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
+{
+	return eHAL_STATUS_FAILURE;
+}
+#endif
+
 #endif //#if !defined( __SME_API_H )

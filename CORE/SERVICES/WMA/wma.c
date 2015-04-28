@@ -22356,6 +22356,47 @@ VOS_STATUS wma_notify_modem_power_state(void *wda_handle,
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_TSF
+/**
+ * wma_set_tsf_gpio_pin() - send wmi cmd to configure gpio pin
+ *
+ * @handle: wma handler
+ * @pin: GPIO pin id
+ *
+ * Return: VOS_STATUS
+ */
+static VOS_STATUS wma_set_tsf_gpio_pin(WMA_HANDLE handle,
+			uint32_t pin)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	int32_t ret;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not set gpio",
+			 __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	WMA_LOGD("%s: set tsf gpio pin: %d",
+			__func__, pin);
+
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+			WMI_PDEV_PARAM_WNTS_CONFIG, pin);
+	if (ret) {
+		WMA_LOGE("%s: Failed to set tsf gpio pin (%d)",
+				__func__, ret);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static inline VOS_STATUS wma_set_tsf_gpio_pin(WMA_HANDLE handle,
+			uint32_t pin)
+{
+	return VOS_STATUS_E_INVAL;
+}
+#endif
+
 #ifdef WLAN_FEATURE_STATS_EXT
 VOS_STATUS wma_stats_ext_req(void *wda_handle,
 			     tpStatsExtRequest preq)
@@ -25446,6 +25487,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_wifi_start_logger(wma_handle,
 					(struct sir_wifi_start_log *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_TSF_GPIO_PIN:
+			wma_set_tsf_gpio_pin(wma_handle, msg->bodyval);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
