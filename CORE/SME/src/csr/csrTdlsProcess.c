@@ -149,7 +149,9 @@ eHalStatus csrTdlsSendMgmtReq(tHalHandle hHal, tANI_U8 sessionId, tCsrTdlsSendMg
 /*
  * TDLS request API, called from HDD to add a TDLS peer
  */
-eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
+eHalStatus csrTdlsChangePeerSta(tHalHandle hHal,
+                                tANI_U8 sessionId,
+                                const tSirMacAddr peerMac,
                                 tCsrStaParams *pstaParams)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -270,7 +272,9 @@ VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
 /*
  * TDLS request API, called from HDD to add a TDLS peer
  */
-eHalStatus csrTdlsAddPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
+eHalStatus csrTdlsAddPeerSta(tHalHandle hHal,
+                             tANI_U8 sessionId,
+                             const tSirMacAddr peerMac)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tSmeCmd *tdlsAddStaCmd ;

@@ -3391,7 +3391,8 @@ VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     \param  staParams - Peer Station Parameters.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
+VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac,
                                  tCsrStaParams *pstaParams);
 /* ---------------------------------------------------------------------------
     \fn sme_AddTdlsPeerSta
@@ -3400,7 +3401,9 @@ VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     \param  peerMac - peer's Mac Address.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
+VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal,
+                              tANI_U8 sessionId,
+                              const tSirMacAddr peerMac);
 /* ---------------------------------------------------------------------------
     \fn sme_DeleteTdlsPeerSta
     \brief  API to Delete TDLS peer sta entry.
@@ -3569,9 +3572,10 @@ eHalStatus smeIssueFastRoamNeighborAPEvent (tHalHandle hHal,
                                             tSmeFastRoamTrigger fastRoamTrig,
                                             tANI_U8 sessionId);
 
-eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId,
-                                      tANI_U8 *pBSSId,
-                                      tANI_BOOLEAN flush_cache );
+eHalStatus sme_RoamDelPMKIDfromCache(tHalHandle hHal,
+                                     tANI_U8 sessionId,
+                                     const tANI_U8 *pBSSId,
+                                     tANI_BOOLEAN flush_cache);
 
 void smeGetCommandQStatus( tHalHandle hHal );
 

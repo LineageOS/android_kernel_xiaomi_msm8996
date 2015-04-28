@@ -286,8 +286,13 @@ VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
                                           tANI_U8 sessionId,
                                           tSirMacAddr peerMac,
                                           tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams);
-eHalStatus csrTdlsAddPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
-eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac, tCsrStaParams *pstaParams);
+eHalStatus csrTdlsAddPeerSta(tHalHandle hHal,
+                             tANI_U8 sessionId,
+                             const tSirMacAddr peerMac);
+eHalStatus csrTdlsChangePeerSta(tHalHandle hHal,
+                                tANI_U8 sessionId,
+                                const tSirMacAddr peerMac,
+                                tCsrStaParams *pstaParams);
 eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
 eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac,tSmeCmd *pCommand );
 eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd );

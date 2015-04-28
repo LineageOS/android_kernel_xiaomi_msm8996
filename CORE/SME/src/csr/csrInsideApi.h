@@ -1050,8 +1050,10 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
                                          tCsrBssid bssid, tANI_U8 channel);
 
 eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac);
-eHalStatus csrRoamDelPMKIDfromCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                     tANI_U8 *pBSSId, tANI_BOOLEAN flush_cache );
+eHalStatus csrRoamDelPMKIDfromCache(tpAniSirGlobal pMac,
+                                    tANI_U32 sessionId,
+                                    const tANI_U8 *pBSSId,
+                                    tANI_BOOLEAN flush_cache);
 
 tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac);
 void csrAddVoteForCountryInfo(tpAniSirGlobal pMac, tANI_U8 *pCountryCode);
