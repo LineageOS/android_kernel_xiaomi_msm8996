@@ -612,5 +612,7 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac,
 void lim_sap_offload_del_sta(tpAniSirGlobal pmac,
                             tpSirMsgQ lim_msgq);
 #endif /* SAP_AUTH_OFFLOAD */
+bool lim_validate_received_frame_a1_addr(tpAniSirGlobal mac_ctx,
+		tSirMacAddr a1, tpPESession session);
 
 #endif /* __LIM_UTILS_H */
