@@ -1137,6 +1137,9 @@ typedef struct sSirSmeJoinRsp
     bool tdls_chan_swit_prohibited;
 #endif
 
+    uint8_t         nss;
+    uint32_t        max_rate_flags;
+
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
 #endif
@@ -1181,6 +1184,10 @@ typedef struct sSirSmeChanInfo
     tANI_U32 reg_info_1;
     /* contains antennamax */
     tANI_U32 reg_info_2;
+    /* number of spatial streams */
+    uint8_t  nss;
+    /* rate flags */
+    uint32_t rate_flags;
 } tSirSmeChanInfo, *tpSirSmeChanInfo;
 /// Definition for Association indication from peer
 /// MAC --->

@@ -313,6 +313,8 @@ hdd_connSaveConnectInfo(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,
           pHddStaCtx->conn_info.dot11Mode = pRoamInfo->u.pConnectedProfile->dot11Mode;
 
           pHddStaCtx->conn_info.proxyARPService = pRoamInfo->u.pConnectedProfile->proxyARPService;
+          pHddStaCtx->conn_info.nss        = pRoamInfo->chan_info.nss;
+          pHddStaCtx->conn_info.rate_flags = pRoamInfo->chan_info.rate_flags;
       }
    }
 

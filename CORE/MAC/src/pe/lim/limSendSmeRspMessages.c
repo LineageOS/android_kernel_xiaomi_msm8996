@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -233,6 +233,66 @@ limSendSmeRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 } /*** end limSendSmeRsp() ***/
 
+/**
+ * lim_get_max_rate_flags()
+ *
+ *FUNCTION:
+ * This function is called to get the rate flags for a connection
+ * from the station ds structure depending on the ht and the vht
+ * channel width supported.
+ *
+ *PARAMS:
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param mac_ctx      Pointer to Global MAC structure
+ * @param sta_ds       station ds structure
+ *
+ * @return rate_flags
+ */
+uint32_t lim_get_max_rate_flags(tpAniSirGlobal mac_ctx, tpDphHashNode sta_ds)
+{
+	uint32_t rate_flags = 0;
+
+	if (sta_ds == NULL) {
+		limLog(mac_ctx, LOGE, FL("sta_ds is NULL"));
+		return rate_flags;
+	}
+
+	if (!sta_ds->mlmStaContext.htCapability &&
+	    !sta_ds->mlmStaContext.vhtCapability) {
+		rate_flags |= eHAL_TX_RATE_LEGACY;
+	} else {
+		if (sta_ds->mlmStaContext.vhtCapability) {
+			if (WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ ==
+				sta_ds->vhtSupportedChannelWidthSet) {
+				rate_flags |= eHAL_TX_RATE_VHT80;
+			} else if (WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ ==
+					sta_ds->vhtSupportedChannelWidthSet) {
+				if (sta_ds->htSupportedChannelWidthSet)
+					rate_flags |= eHAL_TX_RATE_VHT40;
+				else
+					rate_flags |= eHAL_TX_RATE_VHT20;
+			}
+		} else if (sta_ds->mlmStaContext.htCapability) {
+			if (sta_ds->htSupportedChannelWidthSet)
+				rate_flags |= eHAL_TX_RATE_HT40;
+			else
+				rate_flags |= eHAL_TX_RATE_HT20;
+		}
+	}
+
+	if (sta_ds->htShortGI20Mhz || sta_ds->htShortGI40Mhz)
+		rate_flags |= eHAL_TX_RATE_SGI;
+
+	return rate_flags;
+}
 
 /**
  * limSendSmeJoinReassocRspAfterResume()
@@ -383,6 +443,9 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
                 pSirSmeJoinRsp->tdls_chan_swit_prohibited =
                                   psessionEntry->tdls_chan_swit_prohibited;
 #endif
+                pSirSmeJoinRsp->nss = pStaDs->nss;
+                pSirSmeJoinRsp->max_rate_flags =
+                                lim_get_max_rate_flags(pMac, pStaDs);
             }
         }
 

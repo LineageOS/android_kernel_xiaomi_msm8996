@@ -451,6 +451,8 @@ tANI_BOOLEAN limIsNOAInsertReqd(tpAniSirGlobal pMac);
 tANI_BOOLEAN limIsconnectedOnDFSChannel(tANI_U8 currentChannel);
 tANI_U8 limGetCurrentOperatingChannel(tpAniSirGlobal pMac);
 
+uint32_t lim_get_max_rate_flags(tpAniSirGlobal mac_ctx, tpDphHashNode sta_ds);
+
 #ifdef WLAN_FEATURE_11AC
 tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry,
                                       tANI_U8 chanWidth, tANI_U8 staId, tANI_U8 *peerMac);

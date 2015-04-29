@@ -723,6 +723,12 @@ typedef struct {
 
    /** The station entry for which Deauth is in progress  */
    v_BOOL_t isDeauthInProgress;
+
+   /** Number of spatial streams supported */
+   uint8_t   nss;
+
+   /** Rate Flags for this connection */
+   uint32_t  rate_flags;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s

@@ -5778,6 +5778,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
                     roamInfo.timingMeasCap = pJoinRsp->timingMeasCap;
+                    roamInfo.chan_info.nss = pJoinRsp->nss;
+                    roamInfo.chan_info.rate_flags = pJoinRsp->max_rate_flags;
 #ifdef FEATURE_WLAN_TDLS
                     roamInfo.tdls_prohibited = pJoinRsp->tdls_prohibited;
                     roamInfo.tdls_chan_swit_prohibited =

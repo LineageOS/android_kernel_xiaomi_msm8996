@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -495,6 +495,8 @@ typedef struct sDphHashNode
     tANI_U8 timingMeasCap;
     /* key installed for this STA or not in the firmware */
     tANI_U8 isKeyInstalled;
+
+    uint8_t nss;
 
     /* When a station with already an existing dph entry tries to
 
