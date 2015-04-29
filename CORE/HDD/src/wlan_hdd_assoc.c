@@ -2035,13 +2035,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                       default_sap_channel);
         }
         hdd_ap_ctx->sapConfig.vht_channel_width =
-                                            pHddCtx->cfg_ini->vhtChannelWidth;
-        hdd_ap_ctx->sapConfig.vht_ch_width_orig =
-                                            pHddCtx->cfg_ini->vhtChannelWidth;
+                                            hdd_ap_ctx->sapConfig.ch_width_orig;
         sme_SelectCBMode(WLAN_HDD_GET_HAL_CTX(sap_adapter),
                          hdd_ap_ctx->sapConfig.SapHw_mode,
                          hdd_ap_ctx->operatingChannel,
-                         &hdd_ap_ctx->sapConfig.vht_channel_width);
+                         &hdd_ap_ctx->sapConfig.vht_channel_width,
+                         hdd_ap_ctx->sapConfig.ch_width_orig);
         /*
          * Create a workqueue and let the workqueue handle the restarting
          * sap task. if we directly call sap restart function without

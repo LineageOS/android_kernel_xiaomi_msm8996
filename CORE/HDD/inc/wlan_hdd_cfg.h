@@ -250,11 +250,6 @@ typedef enum
 #endif
 #define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11a
 
-#define CFG_SAP_FORCE_11AC_FOR_11N             "gSapForce11ACFor11n"
-#define CFG_SAP_FORCE_11AC_FOR_11N_MIN         ( 0 )
-#define CFG_SAP_FORCE_11AC_FOR_11N_MAX         ( 1 )
-#define CFG_SAP_FORCE_11AC_FOR_11N_DEFAULT     ( 1 )
-
 #define CFG_CHANNEL_BONDING_MODE_24GHZ_NAME    "gChannelBondingMode24GHz"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN
 #define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX
@@ -430,21 +425,6 @@ typedef enum
 #define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
 #define CFG_FRAMES_PROCESSING_TH_DEFAULT       ( 0 )
-
-#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL    "gAPChannelSelectStartChannel"
-#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN                (0)
-#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX                (0xFF)
-#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT            (0)
-
-#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL "gAPChannelSelectEndChannel"
-#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN                  (0)
-#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX                  (0xFF)
-#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT              (11)
-
-#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND "gAPChannelSelectOperatingBand"
-#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN       (0)
-#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX               (0x5)
-#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT           (0)
 
 #define CFG_DISABLE_PACKET_FILTER "gDisablePacketFilter"
 #define CFG_DISABLE_PACKET_FILTER_MIN       (0)
@@ -1459,9 +1439,6 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST    0x03
 #define HDD_MULTICAST_FILTER_LIST                              0x04
 #define HDD_MULTICAST_FILTER_LIST_CLEAR                        0x05
-
-#define CFG_ONLY_ALLOWED_CHANNELS                   "gACSAllowedChannels"
-#define CFG_ONLY_ALLOWED_CHANNELS_DEFAULT           ""
 
 /* ACS Scan band preference
  * 0 -- No preference
@@ -2870,10 +2847,6 @@ typedef struct
    v_BOOL_t      apDisableIntraBssFwd;
    v_U8_t        nEnableListenMode;
    v_U32_t       nAPAutoShutOff;
-   v_U8_t        apStartChannelNum;
-   v_U8_t        apEndChannelNum;
-   v_U8_t        apOperatingBand;
-   v_BOOL_t      apForce11ACFor11n;
    v_U8_t        enableLTECoex;
    v_U32_t       apKeepAlivePeriod;
    v_U32_t       goKeepAlivePeriod;
@@ -3252,7 +3225,6 @@ typedef struct
    v_U8_t                      gSapPreferredChanLocation;
    v_U8_t                      gDisableDfsJapanW53;
    v_BOOL_t                    gEnableOverLapCh;
-   char                        acsAllowedChnls[CFG_MAX_STR_LEN];
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
 #ifdef QCA_LL_TX_FLOW_CT
@@ -3414,13 +3386,8 @@ typedef struct
 #ifdef WLAN_FEATURE_MBSSID
 typedef struct mbssid_sap_dyn_ini_config {
    /* ACS Parameters */
-   v_U8_t        apStartChannelNum;
-   v_U8_t        apEndChannelNum;
-   v_U8_t        apOperatingBand;
-   char          acsAllowedChnls[CFG_MAX_STR_LEN];
    v_U8_t        acsScanBandPreference;
    v_U16_t       acsBandSwitchThreshold;
-   v_BOOL_t      apForce11ACFor11n;
 } mbssid_sap_dyn_ini_config_t;
 #endif
 

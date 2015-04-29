@@ -615,9 +615,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
     /* Block All Scan during DFS operation and send null scan result */
     con_sap_adapter = hdd_get_con_sap_adapter(pAdapter, true);
     if (con_sap_adapter) {
-        con_dfs_ch = con_sap_adapter->sessionCtx.ap.sapConfig.channel;
-        if (con_dfs_ch == AUTO_CHANNEL_SELECT)
-            con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+        con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
 
         if (VOS_IS_DFS_CH(con_dfs_ch)) {
             hddLog(LOGW, "%s:##In DFS Master mode. Scan aborted", __func__);

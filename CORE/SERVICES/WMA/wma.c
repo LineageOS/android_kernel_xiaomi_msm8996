@@ -15778,7 +15778,9 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	ol_txrx_peer_handle peer;
 	u_int8_t vdev_id, peer_id;
 	v_BOOL_t roam_synch_in_progress = VOS_FALSE;
+	VOS_STATUS status;
 
+	params->status = VOS_TRUE;
 	WMA_LOGD("%s: state %d selfmac %pM", __func__,
 		 params->state, params->selfMacAddr);
 	if ((params->state != eSIR_LINK_PREASSOC_STATE) &&
@@ -15813,9 +15815,11 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 			roam_synch_in_progress = VOS_TRUE;
 		}
 #endif
-		wma_create_peer(wma, pdev, vdev, params->bssid,
+		status = wma_create_peer(wma, pdev, vdev, params->bssid,
 		                WMI_PEER_TYPE_DEFAULT, vdev_id,
 				roam_synch_in_progress);
+		if (status != VOS_STATUS_SUCCESS)
+			params->status = VOS_FALSE;
 	}
 	else {
 		WMA_LOGD("%s, vdev_id: %d, pausing tx_ll_queue for VDEV_STOP",

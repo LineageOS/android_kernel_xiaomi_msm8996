@@ -239,15 +239,6 @@ typedef enum  {
     eSAP_WPSPBC_ONE_WPSPBC_PROBE_REQ_IN120S,    /* One WPS probe request in 120 second  */
 }eWPSPBCOverlap;
 
-typedef enum {
-        eSAP_RF_SUBBAND_2_4_GHZ      = 0,
-        eSAP_RF_SUBBAND_5_LOW_GHZ    = 1,    //Low & Mid U-NII
-        eSAP_RF_SUBBAND_5_MID_GHZ    = 2,    //ETSI
-        eSAP_RF_SUBBAND_5_HIGH_GHZ   = 3,    //High U-NII
-        eSAP_RF_SUBBAND_4_9_GHZ      = 4,
-        eSAP_RF_SUBBAND_5_ALL_GHZ    = 5,    //All 5 GHZ,
-}eSapOperatingBand;
-
 /*----------------------------------------------------------------------------
  *  Typedefs
  * -------------------------------------------------------------------------*/
@@ -384,19 +375,18 @@ typedef struct sap_MaxAssocExceededEvent_s {
     v_MACADDR_t    macaddr;
 } tSap_MaxAssocExceededEvent;
 
-typedef struct sap_OperatingChannelChangeEvent_s {
-   tANI_U8 operatingChannel;
-} tSap_OperatingChannelChangeEvent;
-
 typedef struct sap_DfsNolInfo_s {
    v_U16_t   sDfsList;       /* size of pDfsList in byte */
    v_PVOID_t pDfsList;       /* pointer to pDfsList buffer */
 } tSap_DfsNolInfo;
 
-typedef struct sap_AcsChSelected_s {
-   v_U8_t   pri_channel;
-   v_U8_t   sec_channel;
-} tSap_AcsChSelectedEvent;
+typedef struct sap_ChSelected_s {
+   uint16_t pri_ch;
+   uint16_t ht_sec_ch;
+   uint16_t vht_seg0_center_ch;
+   uint16_t vht_seg1_center_ch;
+   uint16_t ch_width;
+} tSap_ChSelectedEvent;
 
 /*
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call
@@ -421,10 +411,9 @@ typedef struct sap_Event_s {
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */
         tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
         tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
-        tSap_OperatingChannelChangeEvent          sapChannelChange; /* eSAP_CHANNEL_CHANGE_EVENT */
         tSap_DfsNolInfo                           sapDfsNolInfo;    /*eSAP_DFS_NOL_XXX */
         /*eSAP_ACS_CHANNEL_SELECTED */
-        tSap_AcsChSelectedEvent                   sapAcsChSelected;
+        tSap_ChSelectedEvent                      sapChSelected;
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -439,6 +428,31 @@ typedef __ani_attr_pre_packed struct sap_SSIDInfo {
     v_U8_t       ssidHidden; /*SSID shouldn't/should be broadcast in probe RSP and beacon*/
 } __ani_attr_packed tSap_SSIDInfo_t;
 
+struct sap_acs_cfg {
+    /* ACS Algo Input */
+    uint8_t    acs_mode;
+    uint32_t    hw_mode;
+    uint8_t    start_ch;
+    uint8_t    end_ch;
+    uint8_t    *ch_list;
+    uint8_t    ch_list_count;
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+    uint8_t    skip_scan_status;
+    uint8_t    skip_scan_range1_stch;
+    uint8_t    skip_scan_range1_endch;
+    uint8_t    skip_scan_range2_stch;
+    uint8_t    skip_scan_range2_endch;
+#endif
+
+    uint16_t   ch_width;
+    /* ACS Algo Output */
+    uint8_t    pri_ch;
+    uint8_t    ht_sec_ch;
+    uint8_t    vht_seg0_center_ch;
+    uint8_t    vht_seg1_center_ch;
+};
+
+
 typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
     eCsrPhyMode     SapHw_mode; /* Wireless Mode */
@@ -451,8 +465,8 @@ typedef struct sap_Config {
     v_MACADDR_t     self_macaddr; //self macaddress or BSSID
 
     v_U8_t          channel;         /* Operation channel */
-    v_U32_t         vht_channel_width;
-    v_U32_t         vht_ch_width_orig;
+    uint16_t         vht_channel_width;
+    uint16_t         ch_width_orig;
     v_U8_t          max_num_sta;     /* maximum number of STAs in station table */
     v_U8_t          dtim_period;     /* dtim interval */
     v_U8_t          num_accept_mac;
@@ -480,23 +494,8 @@ typedef struct sap_Config {
     v_U8_t          disableDFSChSwitch;
     eCsrBand        scanBandPreference;
     v_BOOL_t        enOverLapCh;
-    char            acsAllowedChnls[MAX_CHANNEL_LIST_LEN];
     v_U16_t         acsBandSwitchThreshold;
-    v_BOOL_t        apAutoChannelSelection;
-    v_U8_t          apStartChannelNum;
-    v_U8_t          apEndChannelNum;
-    v_U8_t          apOperatingBand;
-    v_U8_t          acs_case;
-    v_U8_t          acs_ch_width;
-    v_U32_t         acs_hw_mode;
-#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-    v_U8_t          skip_acs_scan_status;
-    v_U8_t          skip_acs_scan_range1_stch;
-    v_U8_t          skip_acs_scan_range1_endch;
-    v_U8_t          skip_acs_scan_range2_stch;
-    v_U8_t          skip_acs_scan_range2_endch;
-#endif
-
+    struct sap_acs_cfg acs_cfg;
 #ifdef WLAN_FEATURE_11W
     v_BOOL_t        mfpRequired;
     v_BOOL_t        mfpCapable;
@@ -1276,33 +1275,6 @@ WLANSAP_DeauthSta
 ============================================================================*/
 VOS_STATUS
 WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel);
-
-/*==========================================================================
-  FUNCTION    WLANSAP_SetChannelRange
-
-  DESCRIPTION
-      This api function sets the range of channels for SoftAP.
-
-  DEPENDENCIES
-    NA.
-
-  PARAMETERS
-
-    IN
-    startChannel         : start channel
-    endChannel           : End channel
-    operatingBand        : Operating band (2.4GHz/5GHz)
-
-  RETURN VALUE
-    The VOS_STATUS code associated with performing the operation
-
-    VOS_STATUS_SUCCESS:  Success
-
-  SIDE EFFECTS
-============================================================================*/
-VOS_STATUS
-WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel,
-                          eSapOperatingBand operatingBand);
 
 /*==========================================================================
   FUNCTION    WLANSAP_SetKeySta
@@ -2287,8 +2259,7 @@ RETURN VALUE NONE
 
 SIDE EFFECTS
 ============================================================================*/
-v_VOID_t WLANSAP_extend_to_acs_range(v_U8_t operatingBand,
-                                  v_U8_t *startChannelNum,
+v_VOID_t WLANSAP_extend_to_acs_range(v_U8_t *startChannelNum,
                                   v_U8_t *endChannelNum,
                                   v_U8_t *bandStartChannel,
                                   v_U8_t *bandEndChannel);

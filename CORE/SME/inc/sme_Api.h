@@ -3473,8 +3473,9 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 /*
  * SME API to determine the channel bonding mode
  */
-VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
-                            tANI_U8 channel, tANI_U32 *vht_channel_width);
+eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
+                            uint8_t channel, uint16_t *vht_channel_width,
+                            uint16_t ch_width_orig);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /*--------------------------------------------------------------------------
@@ -3605,7 +3606,6 @@ VOS_STATUS sme_notify_ht2040_mode(tHalHandle hHal, tANI_U16 staId,
              v_MACADDR_t macAddrSTA, v_U8_t sessionId, tANI_U8 channel_type);
 eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId,
                               tANI_U8 channel_type, tANI_BOOLEAN obssEnabled);
-eHalStatus sme_SetPhyCBMode24G(tHalHandle hHal, ePhyChanBondState phyCBMode);
 #endif
 
 eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,

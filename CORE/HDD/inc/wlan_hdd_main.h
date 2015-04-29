@@ -755,8 +755,6 @@ struct hdd_ap_ctx_s
 
    v_U8_t   operatingChannel;
 
-   v_U8_t   secondaryChannel;
-
    v_BOOL_t uIsAuthenticated;
 
    eCsrEncryptionType ucEncryptType;
@@ -1342,10 +1340,6 @@ struct hdd_context_s
    vos_timer_t hdd_restart_timer;
    atomic_t isRestartInProgress;
    u_int8_t hdd_restart_retries;
-
-   /*is_dyanmic_channel_range_set is set to 1 when Softap_set_channel_range
-        is invoked*/
-   v_BOOL_t is_dynamic_channel_range_set;
 
    vos_wake_lock_t sap_wake_lock;
 

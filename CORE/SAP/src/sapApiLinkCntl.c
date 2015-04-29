@@ -236,7 +236,8 @@ WLANSAP_ScanCallback
 
     sme_SelectCBMode(halHandle,
                      psapContext->csrRoamProfile.phyMode,
-                     psapContext->channel, &psapContext->vht_channel_width);
+                     psapContext->channel, &psapContext->vht_channel_width,
+                     psapContext->ch_width_orig);
 #ifdef SOFTAP_CHANNEL_RANGE
     if(psapContext->channelList != NULL)
     {
@@ -260,6 +261,63 @@ WLANSAP_ScanCallback
 
     return sapstatus;
 }// WLANSAP_ScanCallback
+
+/**
+ * sap_config_acs_result : Generate ACS result params based on ch constraints
+ * @sap_ctx: pointer to SAP context data struct
+ * @hal: HAL Handle pointer
+ *
+ * This function calculates the ACS result params: ht sec channel, vht channel
+ * information and channel bonding based on selected ACS channel.
+ *
+ * Return: None
+ */
+
+void sap_config_acs_result(tHalHandle hal, ptSapContext sap_ctx, uint32_t sec_ch)
+{
+	uint32_t channel = sap_ctx->acs_cfg->pri_ch;
+	uint8_t cb_mode = eCSR_INI_SINGLE_CHANNEL_CENTERED;
+
+	sap_ctx->acs_cfg->vht_seg0_center_ch = 0;
+	sap_ctx->acs_cfg->vht_seg1_center_ch = 0;
+	sap_ctx->acs_cfg->ht_sec_ch = 0;
+
+	cb_mode = sme_SelectCBMode(hal, sap_ctx->csrRoamProfile.phyMode,
+					channel, &sap_ctx->acs_cfg->ch_width,
+					sap_ctx->acs_cfg->ch_width);
+
+	if (sec_ch >= 5 && sec_ch <= 7) {
+		if (sec_ch > sap_ctx->acs_cfg->pri_ch)
+			cb_mode = eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
+		else
+			cb_mode = eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
+	}
+
+	if (cb_mode == eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch + 4;
+	} else if (cb_mode == eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch - 4;
+	} else if (cb_mode == eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch + 4;
+		sap_ctx->acs_cfg->vht_seg0_center_ch = sap_ctx->acs_cfg->pri_ch
+									 + 6;
+	} else if (cb_mode == eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch - 4;
+		sap_ctx->acs_cfg->vht_seg0_center_ch = sap_ctx->acs_cfg->pri_ch
+									 + 2;
+	} else if (cb_mode == eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch + 4;
+		sap_ctx->acs_cfg->vht_seg0_center_ch = sap_ctx->acs_cfg->pri_ch
+									 - 2;
+	} else if (cb_mode == eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH) {
+		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch - 4;
+		sap_ctx->acs_cfg->vht_seg0_center_ch = sap_ctx->acs_cfg->pri_ch
+									 - 6;
+	}
+
+}
+
+
 
 /*==========================================================================
 
@@ -304,10 +362,6 @@ WLANSAP_PreStartBssAcsScanCallback
     v_U8_t operChannel = 0;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
-#ifdef SOFTAP_CHANNEL_RANGE
-    v_U32_t operatingBand;
-#endif
-    tpAniSirGlobal    pMac = PMAC_STRUCT(halHandle);
 
     if ( eCSR_SCAN_SUCCESS == scanStatus)
     {
@@ -413,52 +467,8 @@ WLANSAP_PreStartBssAcsScanCallback
              * Valid Channel Found from scan results.
              */
             psapContext->channel = operChannel;
-        }
-
-        sme_SelectCBMode(halHandle,
-                         psapContext->csrRoamProfile.phyMode,
-                         psapContext->channel,
-                         &psapContext->vht_channel_width);
-
-        /* determine secondary channel for 11n / 11ac mode */
-        if ((eCSR_DOT11_MODE_11n == psapContext->csrRoamProfile.phyMode) ||
-            (eCSR_DOT11_MODE_11n_ONLY == psapContext->csrRoamProfile.phyMode)
-#ifdef WLAN_FEATURE_11AC
-            || (eCSR_DOT11_MODE_11ac == psapContext->csrRoamProfile.phyMode) ||
-            (eCSR_DOT11_MODE_11ac_ONLY == psapContext->csrRoamProfile.phyMode)
-#endif
-            ) {
-            ePhyChanBondState cbMode;
-
-            if (psapContext->channel > 14)
-                cbMode = pMac->roam.configParam.channelBondingMode5GHz;
-            else
-                cbMode = pMac->roam.configParam.channelBondingMode24GHz;
-
-            switch (cbMode) {
-            case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
-#ifdef WLAN_FEATURE_11AC
-            case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
-            case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
-#endif
-                psapContext->secondary_ch = psapContext->channel + 4;
-                break;
-            case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
-#ifdef WLAN_FEATURE_11AC
-            case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
-            case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
-#endif
-                psapContext->secondary_ch = psapContext->channel - 4;
-                break;
-            case PHY_SINGLE_CHANNEL_CENTERED:
-            default:
-                psapContext->secondary_ch = 0;
-                break;
-            }
-
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-                           FL("psapContext->secondary_ch=%d"),
-                           psapContext->secondary_ch);
+            sap_config_acs_result(halHandle, psapContext,
+                                             psapContext->acs_cfg->ht_sec_ch);
         }
 
 #ifdef SOFTAP_CHANNEL_RANGE
@@ -492,16 +502,10 @@ WLANSAP_PreStartBssAcsScanCallback
                    FL("CSR scanStatus = %s (%d), choose default channel"),
                    "eCSR_SCAN_ABORT/FAILURE", scanStatus );
 #ifdef SOFTAP_CHANNEL_RANGE
-        /*
-         * if scan failed, select default channel in the
-         * BAND(2.4GHz/5GHZ)
-         */
-        ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,
-                      &operatingBand);
-        if(eSAP_RF_SUBBAND_2_4_GHZ == operatingBand )
-            psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
-        else
+        if(psapContext->acs_cfg->hw_mode == eCSR_DOT11_MODE_11a)
             psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
+        else
+            psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
 #else
         psapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
 #endif
@@ -1113,7 +1117,8 @@ WLANSAP_RoamCallback
                 {
                      sme_SelectCBMode(hHal, phyMode,
                                       pMac->sap.SapDfsInfo.target_channel,
-                                      &sapContext->vht_channel_width);
+                                      &sapContext->vht_channel_width,
+                                      sapContext->ch_width_orig);
                 }
 
                 /*
