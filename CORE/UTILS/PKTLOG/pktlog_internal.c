@@ -172,7 +172,15 @@ pktlog_getbuf(struct ol_pktlog_dev_t *pl_dev,
 		PKTLOG_UNLOCK(pl_info);
 	}
 
-	pktlog_check_threshold(pl_info, log_size);
+	/*
+	 * We do not want to do this packet stats related processing when
+	 * packet log tool is run. i.e., we want this processing to be
+	 * done only when start logging command of packet stats is initiated.
+	 */
+	if (vos_get_ring_log_level(RING_ID_PER_PACKET_STATS) ==
+							WLAN_LOG_LEVEL_ACTIVE)
+		pktlog_check_threshold(pl_info, log_size);
+
 	return plarg.buf;
 }
 

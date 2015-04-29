@@ -45,6 +45,7 @@
 #include <pktlog_ac.h>
 #include "i_vos_diag_core_log.h"
 #include "vos_diag_core_log.h"
+#include "aniGlobal.h"
 
 #define PKTLOG_TAG		"ATH_PKTLOG"
 #define PKTLOG_DEVNAME_SIZE	32
@@ -588,6 +589,18 @@ int pktlog_send_per_pkt_stats_to_user(void)
 		vos_get_context(VOS_MODULE_ID_TXRX, vos);
 	struct ath_pktlog_info *pl_info;
 	bool read_complete;
+
+	/*
+	 * We do not want to do this packet stats related processing when
+	 * packet log tool is run. i.e., we want this processing to be
+	 * done only when start logging command of packet stats is initiated.
+	 */
+	if ((vos_get_ring_log_level(RING_ID_PER_PACKET_STATS) <
+				WLAN_LOG_LEVEL_ACTIVE)) {
+		printk(PKTLOG_TAG " %s: Shouldnt happen. Logging not started\n",
+			__func__);
+		return -EINVAL;
+	}
 
 	if (!txrx_pdev) {
 		printk(PKTLOG_TAG " %s: Invalid TxRx handle\n", __func__);
