@@ -6807,7 +6807,8 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	u32 guard_time;
 	eHalStatus status;
 
-	if ((ret_val = wlan_hdd_validate_context(pHddCtx))) {
+	ret_val = wlan_hdd_validate_context(pHddCtx);
+	if (!ret_val) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return ret_val;
 	}

@@ -3706,7 +3706,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 		 "rssi_mgmt %u rssi_data %u rssi_ack %u num_peers %u "
 		 "num_peer_events %u num_ac %u roam_state %u"
 		 " avg_bcn_spread_offset_high %u"
-		 " avg_bcn_spread_offset_high %u"
+		 " avg_bcn_spread_offset_low %u"
 		 " is leaky_ap %u"
 		 " avg_rx_frames_leaked %u"
 		 " rx_leak_window %u",
