@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -283,6 +283,10 @@ struct ol_softc {
     bool                    enablelpasssupport;
 #endif
     bool                    enableRamdumpCollection;
+#ifdef FEATURE_RUNTIME_PM
+    bool enable_runtime_pm;
+    u_int32_t runtime_pm_delay;
+#endif
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR
