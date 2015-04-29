@@ -868,16 +868,10 @@ static void tlshim_data_rx_cb(struct txrx_tl_shim_ctx *tl_shim,
 	} else
 		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
 
-	buf = buf_list;
-	while (buf) {
-		next_buf = adf_nbuf_queue_next(buf);
-		adf_nbuf_set_next(buf, NULL); /* Add NULL terminator */
-		ret = data_rx(vos_ctx, buf, staid);
-		if (ret != VOS_STATUS_SUCCESS) {
-			TLSHIM_LOGE("Frame Rx to HDD failed");
-			adf_nbuf_free(buf);
-		}
-		buf = next_buf;
+	ret = data_rx(vos_ctx, buf_list, staid);
+	if (ret != VOS_STATUS_SUCCESS) {
+		TLSHIM_LOGE("Frame Rx to HDD failed");
+		goto free_buf;
 	}
 	return;
 
