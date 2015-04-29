@@ -164,6 +164,9 @@ typedef struct
 //IOCTL to configure MCC params
 #define WE_MCC_CONFIG_CREDENTIAL 3
 #define WE_MCC_CONFIG_PARAMS  4
+#ifdef MEMORY_DEBUG
+#define WE_MEM_TRACE_DUMP     11
+#endif
 
 #define QCSAP_IOCTL_MODIFY_ACL          (SIOCIWFIRSTPRIV+18)
 #define QCSAP_IOCTL_GET_CHANNEL_LIST    (SIOCIWFIRSTPRIV+19)

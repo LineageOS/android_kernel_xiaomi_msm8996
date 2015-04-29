@@ -5723,6 +5723,14 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "setMccConfig" },
 
+#ifdef MEMORY_DEBUG
+    /* handlers for sub ioctl */
+    {   WE_MEM_TRACE_DUMP,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0,
+        "memTraceLog" },
+#endif
+
     /* handlers for main ioctl */
     {   QCSAP_IOCTL_MODIFY_ACL,
         IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 8,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2013,2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,7 +43,23 @@
 #include <wcnss_api.h>
 #endif
 #endif
+#include <i_vos_types.h>
 
+#ifdef MEMORY_DEBUG
+#define adf_os_mem_alloc(_osdev, _size) adf_os_mem_alloc_debug(_osdev,\
+			_size, __FILE__, __LINE__)
+
+void *
+adf_os_mem_alloc_debug(adf_os_device_t osdev, adf_os_size_t size,
+			const char *fileName, a_uint32_t lineNum);
+
+
+#define adf_os_mem_free(_buf)  adf_os_mem_free_debug(_buf)
+
+void
+adf_os_mem_free_debug(void *buf);
+
+#else
 /**
  * @brief Allocate a memory buffer. Note this call can block.
  *
@@ -70,9 +86,6 @@ adf_os_mem_alloc(adf_os_device_t osdev, adf_os_size_t size)
     return __adf_os_mem_alloc(osdev, size);
 }
 
-void *
-adf_os_mem_alloc_outline(adf_os_device_t osdev, adf_os_size_t size);
-
 /**
  * @brief Free malloc'ed buffer
  *
@@ -90,6 +103,11 @@ adf_os_mem_free(void *buf)
 
     __adf_os_mem_free(buf);
 }
+
+#endif
+
+void *
+adf_os_mem_alloc_outline(adf_os_device_t osdev, adf_os_size_t size);
 
 void
 adf_os_mem_free_outline(void *buf);
