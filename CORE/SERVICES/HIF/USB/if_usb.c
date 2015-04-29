@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -688,7 +688,7 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 	((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
 
-int hif_pm_runtime_get(void)
+int hif_pm_runtime_prevent_suspend(void *ol_sc)
 {
 	if (usb_sc && usb_sc->interface)
 		return usb_autopm_get_interface_async(usb_sc->interface);
@@ -698,7 +698,7 @@ int hif_pm_runtime_get(void)
 	}
 }
 
-int hif_pm_runtime_put(void)
+int hif_pm_runtime_allow_suspend(void *ol_sc)
 {
 	if (usb_sc && usb_sc->interface)
 		usb_autopm_put_interface_async(usb_sc->interface);
