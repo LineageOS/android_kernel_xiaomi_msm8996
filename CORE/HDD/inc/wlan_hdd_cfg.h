@@ -2726,13 +2726,6 @@ enum dot11p_mode {
 #define CFG_DOT11P_MODE_MIN              ( WLAN_HDD_11P_DISABLED )
 #define CFG_DOT11P_MODE_MAX              ( WLAN_HDD_11P_CONCURRENT )
 
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-#define CFG_ENABLE_AUTO_SUSPEND                   "gEnableBusAutoSuspend"
-#define CFG_ENABLE_AUTO_SUSPEND_MIN               ( 0 )
-#define CFG_ENABLE_AUTO_SUSPEND_MAX               ( 1 )
-#define CFG_ENABLE_AUTO_SUSPEND_DEFAULT           ( 0 )
-#endif
-
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_NAME        "gP2PListenDeferInterval"
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_MIN         (100)
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_MAX         (200)
@@ -3418,9 +3411,6 @@ typedef struct
    uint8_t                     sap_auth_offload_key[WLAN_PSK_STRING_LENGTH];
 #endif /* SAP_AUTH_OFFLOAD */
    uint8_t                     dot11p_mode;
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-   bool                        enable_bus_auto_suspend;
-#endif
    bool                        is_ramdump_enabled;
    uint16_t                    p2p_listen_defer_interval;
    uint8_t                     sap_dot11mc;

@@ -1489,11 +1489,6 @@ struct hdd_context_s
     hdd_list_t hdd_roc_req_q;
     bool mcc_mode;
     unsigned long g_event_flags;
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-    vos_timer_t auto_suspend_timer;
-    atomic_t auto_suspend_state;
-    atomic_t auto_suspend_stop_requested;
-#endif
     uint8_t miracast_value;
     /* Dfs lock used to syncronize on sap channel switch during
      * radar found indication and application triggered channel
@@ -1717,14 +1712,6 @@ static inline void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter) {}
 static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter) {}
 #endif
 int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed);
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx, bool delayed);
-void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx);
-#else
-static inline void hdd_start_auto_suspend_attempt(hdd_context_t *hdd_ctx,
-              bool delayed) {}
-static inline void hdd_stop_auto_suspend_attempt(hdd_context_t *hdd_ctx) {}
-#endif
 int hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,
 					uint32_t set_value);
 int hdd_wlan_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,

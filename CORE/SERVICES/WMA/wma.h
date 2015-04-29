@@ -754,13 +754,6 @@ typedef struct wma_handle {
 
 	u_int32_t hw_bd_id;
 	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-	/* Callback registered by auto suspend to indicate HDD that driver
-	 * resumed from auto suspend. This callback is only needed for
-	 * auto resume.
-	 */
-	void (*resumed_cb)(void *param);
-#endif
 
 #ifdef FEATURE_WLAN_D0WOW
 	atomic_t in_d0wow;
