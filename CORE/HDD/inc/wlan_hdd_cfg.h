@@ -1142,6 +1142,18 @@ typedef enum
 #define CFG_ENABLE_HOST_SSDP_MAX               ( 1 )
 #define CFG_ENABLE_HOST_SSDP_DEFAULT           ( 1 )
 
+#ifdef FEATURE_RUNTIME_PM
+#define CFG_ENABLE_RUNTIME_PM                  "gRuntimePM"
+#define CFG_ENABLE_RUNTIME_PM_MIN              ( 0 )
+#define CFG_ENABLE_RUNTIME_PM_MAX              ( 1 )
+#define CFG_ENABLE_RUNTIME_PM_DEFAULT          ( 0 )
+
+#define CFG_RUNTIME_PM_AUTO_NAME               "gRuntimePMDelay"
+#define CFG_RUNTIME_PM_AUTO_MIN                ( 100 )
+#define CFG_RUNTIME_PM_AUTO_MAX                ( 10000 )
+#define CFG_RUNTIME_PM_AUTO_DEFAULT            ( 500 )
+#endif
+
 #define CFG_ENABLE_HOST_NSOFFLOAD_NAME         "hostNSOffload"
 #define CFG_ENABLE_HOST_NSOFFLOAD_MIN          ( 0 )
 #define CFG_ENABLE_HOST_NSOFFLOAD_MAX          ( 1 )
@@ -3048,6 +3060,12 @@ typedef struct
    v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                    fhostArpOffload;
    v_BOOL_t                    ssdp;
+
+#ifdef FEATURE_RUNTIME_PM
+   v_BOOL_t                    runtime_pm;
+   v_U32_t                     runtime_pm_delay;
+#endif
+
 #ifdef FEATURE_WLAN_RA_FILTERING
    v_BOOL_t                    IsRArateLimitEnabled;
    v_U16_t                     RArateLimitInterval;

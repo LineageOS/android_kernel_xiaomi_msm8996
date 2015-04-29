@@ -221,6 +221,19 @@ VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
 
 } /* vos_preClose()*/
 
+#ifdef FEATURE_RUNTIME_PM
+static inline void vos_runtime_pm_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx)
+{
+	scn->enable_runtime_pm = pHddCtx->cfg_ini->runtime_pm;
+	scn->runtime_pm_delay = pHddCtx->cfg_ini->runtime_pm_delay;
+}
+#else
+static inline void vos_runtime_pm_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx) { }
+#endif
+
+
 /*---------------------------------------------------------------------------
 
   \brief vos_open() - Open the vOSS Module
@@ -357,6 +370,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
    scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
+
+   vos_runtime_pm_config(scn, pHddCtx);
+
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
