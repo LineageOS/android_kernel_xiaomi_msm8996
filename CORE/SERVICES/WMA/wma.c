@@ -22920,17 +22920,18 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
  *
  * Return: number of entries
  */
-static inline int wma_get_hotlist_entries_per_page(size_t cmd_size,
+static inline int wma_get_hotlist_entries_per_page(wmi_unified_t wmi_handle,
+						   size_t cmd_size,
 						   size_t per_entry_size)
 {
 	uint32_t avail_space = 0;
 	int num_entries = 0;
+	uint16_t max_msg_len = wmi_get_max_msg_len(wmi_handle);
 
 	/* Calculate number of hotlist entries that can
 	 * be passed in wma message request.
 	 */
-	avail_space = WMA_MAX_EXTSCAN_MSG_SIZE -
-				(cmd_size - WMI_TLV_HDR_SIZE);
+	avail_space = max_msg_len - cmd_size;
 	num_entries = avail_space / per_entry_size;
 	return num_entries;
 }
@@ -22973,19 +22974,19 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 		WMA_LOGE("%s: Invalid number of bssid's", __func__);
 		return VOS_STATUS_E_INVAL;
 	}
-	num_entries = wma_get_hotlist_entries_per_page(sizeof(*cmd),
+	num_entries = wma_get_hotlist_entries_per_page(wma_handle->wmi_handle,
+							cmd_len,
 							sizeof(*dest_hotlist));
 
 	/* Split the hot list entry pages and send multiple command
-	 * requests if the buffer reaches  the maximum request size
+	 * requests if the buffer reaches the maximum request size
 	 */
 	while (index < numap) {
 		min_entries = VOS_MIN(num_entries, numap);
 		len += min_entries * sizeof(wmi_extscan_hotlist_entry);
 		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 		if (!buf) {
-			WMA_LOGP("%s: failed to allocate memory for start extscan cmd",
-				__func__);
+			WMA_LOGP("%s: wmi_buf_alloc failed", __func__);
 			return VOS_STATUS_E_NOMEM;
 		}
 		buf_ptr = (u_int8_t *)wmi_buf_data(buf);
@@ -23032,8 +23033,7 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 			WMI_CHAR_ARRAY_TO_MAC_ADDR(src_ap->bssid,
 						&dest_hotlist->bssid);
 
-			WMA_LOGD("%s:channel:%d min_rssi %d",
-				__func__, dest_hotlist->channel,
+			WMA_LOGD("%s: min_rssi %d", __func__,
 				dest_hotlist->min_rssi);
 			WMA_LOGD("%s: bssid mac_addr31to0: 0x%x, mac_addr47to32: 0x%x",
 				__func__, dest_hotlist->bssid.mac_addr31to0,
@@ -23074,8 +23074,8 @@ VOS_STATUS wma_extscan_start_hotlist_monitor(tp_wma_handle wma,
 	vos_status = wma_get_buf_extscan_hotlist_cmd(wma, photlist,
 						&len);
 	if (vos_status != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("%s: Failed to get buffer"
-			"for hotlist scan cmd", __func__);
+		WMA_LOGE("%s: Failed to get buffer for hotlist scan cmd",
+			__func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
