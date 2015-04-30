@@ -2826,6 +2826,66 @@ static int wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     return -EINVAL;
 }
 
+/**
+ * hdd_extscan_update_dwell_time_limits() - update dwell times
+ * @req_msg: Pointer to request message
+ * @bkt_idx: Index of current bucket being processed
+ * @active_min: minimum active dwell time
+ * @active_max: maximum active dwell time
+ * @passive_min: minimum passive dwell time
+ * @passive_max: maximum passive dwell time
+ *
+ * Return: none
+ */
+static void hdd_extscan_update_dwell_time_limits(
+			tpSirWifiScanCmdReqParams req_msg, uint32_t bkt_idx,
+			uint32_t active_min, uint32_t active_max,
+			uint32_t passive_min, uint32_t passive_max)
+{
+	/* update per-bucket dwell times */
+	if (req_msg->buckets[bkt_idx].min_dwell_time_active >
+			active_min) {
+		req_msg->buckets[bkt_idx].min_dwell_time_active =
+			active_min;
+	}
+	if (req_msg->buckets[bkt_idx].max_dwell_time_active <
+			active_max) {
+		req_msg->buckets[bkt_idx].max_dwell_time_active =
+			active_max;
+	}
+	if (req_msg->buckets[bkt_idx].min_dwell_time_passive >
+			passive_min) {
+		req_msg->buckets[bkt_idx].min_dwell_time_passive =
+			passive_min;
+	}
+	if (req_msg->buckets[bkt_idx].max_dwell_time_passive <
+			passive_max) {
+		req_msg->buckets[bkt_idx].max_dwell_time_passive =
+			passive_max;
+	}
+	/* update dwell-time across all buckets */
+	if (req_msg->min_dwell_time_active >
+			req_msg->buckets[bkt_idx].min_dwell_time_active) {
+		req_msg->min_dwell_time_active =
+			req_msg->buckets[bkt_idx].min_dwell_time_active;
+	}
+	if (req_msg->max_dwell_time_active <
+			req_msg->buckets[bkt_idx].max_dwell_time_active) {
+		req_msg->max_dwell_time_active =
+			req_msg->buckets[bkt_idx].max_dwell_time_active;
+	}
+	if (req_msg->min_dwell_time_passive >
+			req_msg->buckets[bkt_idx].min_dwell_time_passive) {
+		req_msg->min_dwell_time_passive =
+			req_msg->buckets[bkt_idx].min_dwell_time_passive;
+	}
+	if (req_msg->max_dwell_time_passive >
+			req_msg->buckets[bkt_idx].max_dwell_time_passive) {
+		req_msg->max_dwell_time_passive =
+			req_msg->buckets[bkt_idx].max_dwell_time_passive;
+	}
+}
+
 static int hdd_extscan_start_fill_bucket_channel_spec(
 			hdd_context_t *pHddCtx,
 			tpSirWifiScanCmdReqParams pReqMsg,
@@ -2842,7 +2902,24 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 	uint8_t bktIndex, j, numChannels;
 	uint32_t chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
 
+	uint32_t min_dwell_time_active_bucket =
+		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+	uint32_t max_dwell_time_active_bucket =
+		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+	uint32_t min_dwell_time_passive_bucket =
+		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+	uint32_t max_dwell_time_passive_bucket =
+		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+
 	bktIndex = 0;
+	pReqMsg->min_dwell_time_active =
+		pReqMsg->max_dwell_time_active =
+		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+
+	pReqMsg->min_dwell_time_passive =
+		pReqMsg->max_dwell_time_passive =
+		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+
 	nla_for_each_nested(buckets,
 			tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC], rem1) {
 		if (nla_parse(bucket,
@@ -2924,8 +3001,17 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		hddLog(LOG1, FL("Step count %u"),
 			pReqMsg->buckets[bktIndex].step_count);
 
-		/* Framework shall pass the channel list if the input WiFi band
-		 * is WIFI_BAND_UNSPECIFIED.
+		/* start with known good values for bucket dwell times */
+		pReqMsg->buckets[bktIndex].min_dwell_time_active =
+		pReqMsg->buckets[bktIndex].max_dwell_time_active =
+			EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+
+		pReqMsg->buckets[bktIndex].min_dwell_time_passive =
+		pReqMsg->buckets[bktIndex].max_dwell_time_passive =
+			CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+
+		/* Framework shall pass the channel list if the input WiFi band is
+		 * WIFI_BAND_UNSPECIFIED.
 		 * If the input WiFi band is specified (any value other than
 		 * WIFI_BAND_UNSPECIFIED) then driver populates the channel list
 		 */
@@ -2960,12 +3046,34 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 					pReqMsg->buckets[bktIndex].channels[j].
 					dwellTimeMs =
 					CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+					/* reconfigure per-bucket dwell time */
+					if (min_dwell_time_passive_bucket >
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+						min_dwell_time_passive_bucket =
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+					}
+					if (max_dwell_time_passive_bucket <
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+						max_dwell_time_passive_bucket =
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+					}
 				} else {
 					pReqMsg->buckets[bktIndex].channels[j].
-							passive = 0;
+						passive = 0;
 					pReqMsg->buckets[bktIndex].channels[j].
-					dwellTimeMs =
-					EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+						dwellTimeMs =
+						EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+					/* reconfigure per-bucket dwell times */
+					if (min_dwell_time_active_bucket >
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+						min_dwell_time_active_bucket =
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+					}
+					if (max_dwell_time_active_bucket <
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+						max_dwell_time_active_bucket =
+							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+					}
 				}
 
 				hddLog(LOG1,
@@ -2975,6 +3083,22 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs,
 					pReqMsg->buckets[bktIndex].channels[j].chnlClass);
 			}
+
+			hdd_extscan_update_dwell_time_limits(
+					pReqMsg, bktIndex,
+					min_dwell_time_active_bucket,
+					max_dwell_time_active_bucket,
+					min_dwell_time_passive_bucket,
+					max_dwell_time_passive_bucket);
+
+			hddLog(LOG1, FL("bktIndex:%d actv_min:%d actv_max:%d pass_min:%d pass_max:%d"),
+					bktIndex,
+					pReqMsg->buckets[bktIndex].min_dwell_time_active,
+					pReqMsg->buckets[bktIndex].max_dwell_time_active,
+					pReqMsg->buckets[bktIndex].min_dwell_time_passive,
+					pReqMsg->buckets[bktIndex].max_dwell_time_passive);
+
+			bktIndex++;
 			continue;
 		}
 
@@ -3052,6 +3176,32 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 			hddLog(LOG1, FL("New Dwell time (%u ms)"),
 				pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
 
+			if (CSR_IS_CHANNEL_DFS(
+						vos_freq_to_chan(
+						pReqMsg->buckets[bktIndex].channels[j].channel))) {
+				if(min_dwell_time_passive_bucket >
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+					min_dwell_time_passive_bucket =
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+				}
+				if(max_dwell_time_passive_bucket <
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+					max_dwell_time_passive_bucket =
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+				}
+			} else {
+				if(min_dwell_time_active_bucket >
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+					min_dwell_time_active_bucket =
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+				}
+				if(max_dwell_time_active_bucket <
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
+					max_dwell_time_active_bucket =
+						pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs;
+				}
+			}
+
 			/* Parse and fetch channel spec passive */
 			if (!channel[
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CHANNEL_SPEC_PASSIVE]) {
@@ -3073,10 +3223,33 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 			} else {
 				pReqMsg->buckets[bktIndex].channels[j].passive = FALSE;
 			}
+
 			j++;
 		}
+
+		hdd_extscan_update_dwell_time_limits(
+					pReqMsg, bktIndex,
+					min_dwell_time_active_bucket,
+					max_dwell_time_active_bucket,
+					min_dwell_time_passive_bucket,
+					max_dwell_time_passive_bucket);
+
+		hddLog(LOG1, FL("bktIndex:%d actv_min:%d actv_max:%d pass_min:%d pass_max:%d"),
+				bktIndex,
+				pReqMsg->buckets[bktIndex].min_dwell_time_active,
+				pReqMsg->buckets[bktIndex].max_dwell_time_active,
+				pReqMsg->buckets[bktIndex].min_dwell_time_passive,
+				pReqMsg->buckets[bktIndex].max_dwell_time_passive);
+
 		bktIndex++;
 	}
+
+	hddLog(LOG1, FL("Global: actv_min:%d actv_max:%d pass_min:%d pass_max:%d"),
+				pReqMsg->min_dwell_time_active,
+				pReqMsg->max_dwell_time_active,
+				pReqMsg->min_dwell_time_passive,
+				pReqMsg->max_dwell_time_passive);
+
 	return 0;
 }
 

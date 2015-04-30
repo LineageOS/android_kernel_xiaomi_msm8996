@@ -5059,6 +5059,10 @@ typedef struct
  *		at a given period and until the exponent is applied
  * @numChannels: channels to scan; these may include DFS channels
  *		Note that a given channel may appear in multiple buckets
+ * @min_dwell_time_active: per bucket minimum active dwell time
+ * @max_dwell_time_active: per bucket maximum active dwell time
+ * @min_dwell_time_passive: per bucket minimum passive dwell time
+ * @max_dwell_time_passive: per bucket maximum passive dwell time
  * @channels: Channel list
  */
 typedef struct
@@ -5071,26 +5075,45 @@ typedef struct
 	uint32_t        exponent;
 	uint32_t        step_count;
 	uint32_t        numChannels;
+
+	uint32_t        min_dwell_time_active;
+	uint32_t        max_dwell_time_active;
+	uint32_t        min_dwell_time_passive;
+	uint32_t        max_dwell_time_passive;
 	tSirWifiScanChannelSpec channels[WLAN_EXTSCAN_MAX_CHANNELS];
 } tSirWifiScanBucketSpec, *tpSirWifiScanBucketSpec;
 
+/**
+ * struct tSirWifiScanCmdReqParams - extscan request parameters
+ * @basePeriod: base period
+ * @maxAPperScan: Max number of APs to report per scan
+ * @report_threshold_percent: threshold at which framework should be informed
+ * @report_threshold_num_scans: number of scans after which wake up the host
+ * @requestId: Request id
+ * @sessionId: Session id
+ * @numBuckets: number of buckets to scan
+ * @min_dwell_time_active: per bucket minimum active dwell time
+ * @max_dwell_time_active: per bucket maximum active dwell time
+ * @min_dwell_time_passive: per bucket minimum passive dwell time
+ * @max_dwell_time_passive: per bucket maximum passive dwell time
+ * @buckets: bucket list
+ */
 typedef struct
 {
-    /* Base timer period */
-    tANI_U32                basePeriod;
-    tANI_U32                maxAPperScan;
+	tANI_U32                basePeriod;
+	tANI_U32                maxAPperScan;
+	uint32_t                report_threshold_percent;
+	uint32_t                report_threshold_num_scans;
 
-    /* in %, when buffer is this much full, wake up host */
-    uint32_t                report_threshold_percent;
+	tANI_U32                requestId;
+	tANI_U8                 sessionId;
+	tANI_U32                numBuckets;
 
-    /* in number of scans, wake up host after these many scans */
-    uint32_t                report_threshold_num_scans;
-
-    tANI_U32                requestId;
-    tANI_U8                 sessionId;
-
-    tANI_U32                numBuckets;
-    tSirWifiScanBucketSpec  buckets[WLAN_EXTSCAN_MAX_BUCKETS];
+	uint32_t                min_dwell_time_active;
+	uint32_t                max_dwell_time_active;
+	uint32_t                min_dwell_time_passive;
+	uint32_t                max_dwell_time_passive;
+	tSirWifiScanBucketSpec  buckets[WLAN_EXTSCAN_MAX_BUCKETS];
 } tSirWifiScanCmdReqParams, *tpSirWifiScanCmdReqParams;
 
 /**
