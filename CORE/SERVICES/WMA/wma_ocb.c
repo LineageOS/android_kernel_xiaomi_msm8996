@@ -139,6 +139,7 @@ int wma_ocb_set_config_req(tp_wma_handle wma_handle,
 			return status;
 		}
 		req.chan = OCB_FREQ_TO_CHAN(config_req->channels[0].chan_freq);
+		req.vdev_id = msg->vdev_id;
 
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
