@@ -1180,6 +1180,39 @@ wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	return ret;
 }
 
+VOS_STATUS wma_roam_scan_bmiss_cnt(tp_wma_handle wma_handle,
+	A_INT32 first_bcnt,
+	A_UINT32 final_bcnt,
+	u_int32_t vdev_id)
+{
+	int status = 0;
+
+	WMA_LOGI("%s: first_bcnt=%d, final_bcnt=%d", __func__,
+		 first_bcnt, final_bcnt);
+
+	status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+		vdev_id,
+		WMI_VDEV_PARAM_BMISS_FIRST_BCNT,
+		first_bcnt);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_vdev_set_param_send"
+		"WMI_VDEV_PARAM_BMISS_FIRST_BCNT returned Error %d",status);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+		vdev_id,
+		WMI_VDEV_PARAM_BMISS_FINAL_BCNT,
+		final_bcnt);
+	if (status != EOK) {
+		WMA_LOGE("wmi_unified_vdev_set_param_send"
+		"WMI_VDEV_PARAM_BMISS_FINAL_BCNT returned Error %d",status);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 {
 	struct ol_softc *scn;
@@ -7183,6 +7216,15 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 				WMI_ROAM_BMISS_FINAL_SCAN_ENABLE_FLAG));
 	}
 
+	/* Initialize BMISS parameters */
+	if ((self_sta_req->type == WMI_VDEV_TYPE_STA) &&
+		(self_sta_req->subType == 0)) {
+		wma_roam_scan_bmiss_cnt(wma_handle,
+		mac->roam.configParam.neighborRoamConfig.nRoamBmissFirstBcnt,
+		mac->roam.configParam.neighborRoamConfig.nRoamBmissFinalBcnt,
+		self_sta_req->sessionId);
+	}
+
 	if (wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED,
 	        &cfg_val) == eSIR_SUCCESS) {
 	        WMA_LOGD("%s: setting ini value for WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED: %d",
@@ -9550,38 +9592,6 @@ VOS_STATUS wma_roam_scan_filter(tp_wma_handle wma_handle,
 error:
 	wmi_buf_free(buf);
 	return VOS_STATUS_E_FAILURE;
-}
-
-VOS_STATUS wma_roam_scan_bmiss_cnt(tp_wma_handle wma_handle,
-        A_INT32 first_bcnt,
-        A_UINT32 final_bcnt,
-        u_int32_t vdev_id)
-{
-    int status = 0;
-
-    WMA_LOGI("%s: first_bcnt=%d, final_bcnt=%d", __func__, first_bcnt, final_bcnt);
-
-    status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-          vdev_id,
-          WMI_VDEV_PARAM_BMISS_FIRST_BCNT,
-          first_bcnt);
-    if (status != EOK) {
-        WMA_LOGE("wmi_unified_vdev_set_param_send WMI_VDEV_PARAM_BMISS_FIRST_BCNT returned Error %d",
-            status);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    status = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-          vdev_id,
-          WMI_VDEV_PARAM_BMISS_FINAL_BCNT,
-          final_bcnt);
-    if (status != EOK) {
-        WMA_LOGE("wmi_unified_vdev_set_param_send WMI_VDEV_PARAM_BMISS_FINAL_BCNT returned Error %d",
-            status);
-        return VOS_STATUS_E_FAILURE;
-    }
-
-    return VOS_STATUS_SUCCESS;
 }
 
 VOS_STATUS wma_roam_scan_offload_command(tp_wma_handle wma_handle,

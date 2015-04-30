@@ -1584,7 +1584,9 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 	peer = ol_txrx_peer_find_by_local_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_id);
-	if (!peer)
+
+	if ((peer == NULL) ||
+                (adf_os_atomic_read(&peer->delete_in_progress) == 1))
 		return VOS_STATUS_E_FAULT;
 
 	if (sta_state == WLANTL_STA_CONNECTED)
