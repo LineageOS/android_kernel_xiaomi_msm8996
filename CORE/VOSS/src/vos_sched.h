@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -415,6 +415,7 @@ typedef struct _VosContextType
    uint32_t wakelock_log_level;
    uint32_t connectivity_log_level;
    uint32_t packet_stats_log_level;
+   uint8_t multicast_logging;
 
 } VosContextType, *pVosContextType;
 

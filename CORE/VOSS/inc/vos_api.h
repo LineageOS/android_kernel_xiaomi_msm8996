@@ -341,5 +341,7 @@ void vos_set_wakelock_logging(bool value);
 bool vos_is_wakelock_enabled(void);
 void vos_set_ring_log_level(uint32_t ring_id, uint32_t log_level);
 enum wifi_driver_log_level vos_get_ring_log_level(uint32_t ring_id);
+void vos_set_multicast_logging(uint8_t value);
+uint8_t vos_is_multicast_logging(void);
 
 #endif // if !defined __VOS_API_H

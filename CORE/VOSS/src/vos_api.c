@@ -2518,3 +2518,49 @@ enum wifi_driver_log_level vos_get_ring_log_level(uint32_t ring_id)
 
 	return WLAN_LOG_LEVEL_OFF;
 }
+
+/**
+ * vos_set_multicast_logging() - Set mutlicast logging value
+ * @value: Value of multicast logging
+ *
+ * Set the multicast logging value which will indicate
+ * whether to multicast host and fw messages even
+ * without any registration by userspace entity
+ *
+ * Return: None
+ */
+void vos_set_multicast_logging(uint8_t value)
+{
+	VosContextType *vos_context;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if (!vos_context) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				"%s: vos context is Invald", __func__);
+		return;
+	}
+	vos_context->multicast_logging = value;
+}
+
+/**
+ * vos_is_multicast_logging() - Get multicast logging value
+ *
+ * Get the multicast logging value which will indicate
+ * whether to multicast host and fw messages even
+ * without any registration by userspace entity
+ *
+ * Return: 0 - Multicast logging disabled, 1 - Multicast logging enabled
+ */
+uint8_t vos_is_multicast_logging(void)
+{
+	VosContextType *vos_context;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if (!vos_context) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				"%s: vos context is Invald", __func__);
+		return 0;
+	}
+
+	return vos_context->multicast_logging;
+}

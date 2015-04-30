@@ -2786,6 +2786,11 @@ enum dot11p_mode {
 #define CFG_SET_TSF_GPIO_PIN_MAX                   (255)
 #define CFG_SET_TSF_GPIO_PIN_DEFAULT               (34)
 
+#define CFG_MULTICAST_HOST_FW_MSGS          "gMulticastHostFwMsgs"
+#define CFG_MULTICAST_HOST_FW_MSGS_MIN      (0)
+#define CFG_MULTICAST_HOST_FW_MSGS_MAX      (1)
+#define CFG_MULTICAST_HOST_FW_MSGS_DEFAULT  (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3388,6 +3393,7 @@ typedef struct
    uint8_t                     prefer_non_dfs_on_radar;
    uint8_t                     inform_bss_rssi_raw;
    uint32_t                    tsf_gpio_pin;
+   uint8_t                     multicast_host_fw_msgs;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
