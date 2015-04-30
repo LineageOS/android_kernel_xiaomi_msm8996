@@ -750,10 +750,10 @@ typedef struct sSirSmeStartBssRsp
     tSirBssType         bssType;//Add new type for WDS mode
     tANI_U16            beaconInterval;//Beacon Interval for both type
     tANI_U32            staId;  /* Station ID for Self */
-    tSirBssDescription  bssDescription;//Peer BSS description
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
 #endif
+    tSirBssDescription  bssDescription;//Peer BSS description
 } tSirSmeStartBssRsp, *tpSirSmeStartBssRsp;
 
 
@@ -1137,10 +1137,11 @@ typedef struct sSirSmeJoinRsp
     bool tdls_chan_swit_prohibited;
 #endif
 
-    tANI_U8         frames[ 1 ];
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
 #endif
+
+    tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
 /// Definition for Authentication indication from peer
