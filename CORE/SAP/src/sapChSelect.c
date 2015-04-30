@@ -89,14 +89,11 @@
 
 #define SET_ACS_BAND(acs_band, pSapCtx) \
 { \
-        if (pSapCtx->acs_cfg->hw_mode == eCSR_DOT11_MODE_11n || \
-                pSapCtx->acs_cfg->hw_mode == eCSR_DOT11_MODE_11ac) { \
-            if (pSapCtx->acs_cfg->start_ch <= 14 && \
-                pSapCtx->acs_cfg->end_ch <= 14) \
-                acs_band = eCSR_DOT11_MODE_11g; \
-            else \
-                acs_band = eCSR_DOT11_MODE_11a;\
-        } \
+    if (pSapCtx->acs_cfg->start_ch <= 14 && \
+            pSapCtx->acs_cfg->end_ch <= 14) \
+        acs_band = eCSR_DOT11_MODE_11g; \
+    else \
+        acs_band = eCSR_DOT11_MODE_11a;\
 }
 
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -1538,7 +1535,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 
     tCsrScanResultInfo *pScanResult;
     tSapSpectChInfo *pSpectCh   = pSpectInfoParams->pSpectCh;
-    v_U32_t operatingBand;
+    v_U32_t operatingBand = eCSR_DOT11_MODE_11g;
     v_U16_t channelWidth;
     v_U16_t secondaryChannelOffset;
     v_U16_t centerFreq;
