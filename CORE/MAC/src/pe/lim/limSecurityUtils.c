@@ -1067,6 +1067,8 @@ void limSendSetStaKeyReq( tpAniSirGlobal pMac,
           else
           {
              limLog( pMac, LOGE, FL( "Wrong Key Index %d" ), defWEPIdx);
+             vos_mem_free (pSetStaKeyParams);
+             return;
           }
       }
       break;
