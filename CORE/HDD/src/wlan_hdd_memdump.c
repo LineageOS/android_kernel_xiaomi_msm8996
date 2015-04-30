@@ -477,6 +477,11 @@ int memdump_init(void)
 		return -EINVAL;
 	}
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Not initializing memdump in FTM mode"));
+		return -EINVAL;
+	}
+
 	cb_status = sme_fw_mem_dump_register_cb(hdd_ctx->hHal,
 				wlan_hdd_cfg80211_fw_mem_dump_cb);
 	if (eHAL_STATUS_SUCCESS != cb_status) {
@@ -527,6 +532,11 @@ void memdump_deinit(void) {
 	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
 	if(!hdd_ctx) {
 		hddLog(LOGE , FL("Invalid HDD context"));
+		return;
+	}
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Not deinitializing memdump in FTM mode"));
 		return;
 	}
 
