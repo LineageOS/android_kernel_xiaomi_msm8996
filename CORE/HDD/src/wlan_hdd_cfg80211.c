@@ -949,7 +949,7 @@ static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
     int ret_val = -1;
 
     nan_req.request_data_len = data_len;
-    nan_req.request_data = (void *)data;
+    nan_req.request_data = data;
 
     status = sme_NanRequest(&nan_req);
     if (VOS_STATUS_SUCCESS == status) {
@@ -1041,7 +1041,7 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
     int ret_val = -EIO;
 
     apfind_req.request_data_len = data_len;
-    apfind_req.request_data = (void *)data;
+    apfind_req.request_data = data;
 
     status = sme_apfind_set_cmd(&apfind_req);
     if (VOS_STATUS_SUCCESS == status) {

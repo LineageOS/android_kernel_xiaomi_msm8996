@@ -211,7 +211,7 @@ typedef struct {
 #ifdef WLAN_FEATURE_APFIND
 struct sme_ap_find_request_req{
     u_int16_t request_data_len;
-    u_int8_t* request_data;
+    const u_int8_t* request_data;
 };
 #endif /* WLAN_FEATURE_APFIND */
 
