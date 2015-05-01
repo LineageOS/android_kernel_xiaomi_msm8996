@@ -67,15 +67,6 @@ LOCAL_MODULE_TAGS         := debug
 LOCAL_MODULE_DEBUG_ENABLE := true
 LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
-ifeq ($(WLAN_OPEN_SOURCE),1)
-# Build the tools component only if ONE_SHOT_MAKEFILE
-# variable is not defined.
-ifeq ($(ONE_SHOT_MAKEFILE),)
-include $(WLAN_BLD_DIR)/qcacld-2.0/tools/athdiag/Android.mk
-include $(WLAN_BLD_DIR)/qcacld-2.0/tools/fwdebuglog/Android.mk
-include $(WLAN_BLD_DIR)/qcacld-2.0/tools/pktlog/Android.mk
-endif
-endif
 ###########################################################
 
 # Create Symbolic link for built <WLAN_CHIPSET>_wlan.ko driver from
