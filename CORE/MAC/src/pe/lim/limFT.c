@@ -1302,9 +1302,9 @@ void lim_ft_reassoc_set_link_state_callback(tpAniSirGlobal mac,
 	tLimMlmReassocCnf mlm_reassoc_cnf = {0};
 	session_entry = peFindSessionBySessionId(mac,
 				mlm_reassoc_req->sessionId);
-	if (!status) {
-		limLog(mac, LOGE, FL("Failed to find pe session for session id:%d"),
-			mlm_reassoc_req->sessionId);
+	if (!status || !session_entry) {
+		limLog(mac, LOGE, FL("Failed: session:%p for session id:%d status:%d"),
+			session_entry, mlm_reassoc_req->sessionId, status);
 		goto failure;
 	}
 
