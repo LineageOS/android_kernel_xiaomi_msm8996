@@ -1564,7 +1564,7 @@ VOS_STATUS
 WLANSAP_DisassocSta
 (
     v_PVOID_t pCtx,
-    v_U8_t *pPeerStaMac
+    const v_U8_t *pPeerStaMac
 )
 {
     ptSapContext pSapCtx = VOS_GET_SAP_CB(pCtx);

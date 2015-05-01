@@ -944,10 +944,10 @@ void csrCallRoamingCompletionCallback(tpAniSirGlobal pMac, tCsrRoamSession *pSes
     \param reason - reason code, be one of the tSirMacReasonCodes
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus csrRoamIssueDisassociateStaCmd( tpAniSirGlobal pMac,
-                                           tANI_U32 sessionId,
-                                           tANI_U8 *pPeerMacAddr,
-                                           tANI_U32 reason);
+eHalStatus csrRoamIssueDisassociateStaCmd(tpAniSirGlobal pMac,
+                                          tANI_U32 sessionId,
+                                          const tANI_U8 *pPeerMacAddr,
+                                          tANI_U32 reason);
 
 /* ---------------------------------------------------------------------------
     \fn csrRoamIssueDeauthSta

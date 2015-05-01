@@ -217,9 +217,9 @@ eHalStatus csrTdlsChangePeerSta(tHalHandle hHal,
  * TDLS request API, called from HDD to Send Link Establishment Parameters
  */
 VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
-                                                 tANI_U8 sessionId,
-                                                 tSirMacAddr peerMac,
-                                                 tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams)
+                                          tANI_U8 sessionId,
+                                          const tSirMacAddr peerMac,
+                                          tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tSmeCmd *tdlsLinkEstablishCmd;
@@ -311,7 +311,8 @@ eHalStatus csrTdlsAddPeerSta(tHalHandle hHal,
 /*
  * TDLS request API, called from HDD to delete a TDLS peer
  */
-eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
+eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                             const tSirMacAddr peerMac)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tSmeCmd *tdlsDelStaCmd ;

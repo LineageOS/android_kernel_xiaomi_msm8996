@@ -2906,7 +2906,7 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
   ---------------------------------------------------------------------------*/
 eHalStatus csrRoamIssueDisassociateStaCmd( tpAniSirGlobal pMac,
                                            tANI_U32 sessionId,
-                                           tANI_U8 *pPeerMacAddr,
+                                           const tANI_U8 *pPeerMacAddr,
                                            tANI_U32 reason)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
