@@ -888,7 +888,12 @@ static void hdd_ipa_uc_rm_notify_handler(void *context, enum ipa_rm_event event)
 	switch (event) {
 	case IPA_RM_RESOURCE_GRANTED:
 		/* Differed RM Granted */
-		hdd_ipa_uc_enable_pipes(hdd_ipa);
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		if ((VOS_FALSE == hdd_ipa->resource_unloading) &&
+			(!hdd_ipa->activated_fw_pipe)) {
+			hdd_ipa_uc_enable_pipes(hdd_ipa);
+		}
+		vos_lock_release(&hdd_ipa->event_lock);
 		if (hdd_ipa->pending_cons_req) {
 			ipa_rm_notify_completion(IPA_RM_RESOURCE_GRANTED,
 				IPA_RM_RESOURCE_WLAN_CONS);
@@ -1854,13 +1859,8 @@ static void hdd_ipa_rm_notify(void *user_data, enum ipa_rm_event event,
 			/* RM Notification comes with ISR context
 			 * it should be serialized into work queue to avoid
 			 * ISR sleep problem */
-			if (hdd_ipa->resource_loading) {
-				hdd_ipa->uc_rm_work.event = event;
-				schedule_work(&hdd_ipa->uc_rm_work.work);
-			} else {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"UCResource Grntd with invalid status");
-			}
+			hdd_ipa->uc_rm_work.event = event;
+			schedule_work(&hdd_ipa->uc_rm_work.work);
 			break;
 		}
 #endif /* IPA_UC_OFFLOAD */

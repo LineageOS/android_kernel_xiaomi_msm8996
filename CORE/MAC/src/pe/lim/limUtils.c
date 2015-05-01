@@ -7948,14 +7948,14 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
         sta_ds->timingMeasCap |= (p_ext_cap->timingMeas)?
                                   RTT_TIMING_MEAS_CAPABILITY :
                                   RTT_INVALID;
-        sta_ds->timingMeasCap |= (p_ext_cap->fineTimingMeas)?
-                                  RTT_FINE_TIMING_MEAS_CAPABILITY :
+        sta_ds->timingMeasCap |= (p_ext_cap->fine_time_meas_initiator)?
+                                  RTT_FINE_TIME_MEAS_INITIATOR_CAPABILITY :
                                   RTT_INVALID;
 
         PELOG1(limLog(pMac, LOG1,
-               FL("ExtCap present, timingMeas: %d fineTimingMeas: %d"),
+               FL("ExtCap present, timingMeas: %d ftm_initiator: %d"),
                p_ext_cap->timingMeas,
-               p_ext_cap->fineTimingMeas);)
+               p_ext_cap->fine_time_meas_initiator);)
     } else {
         sta_ds->timingMeasCap = 0;
         PELOG1(limLog(pmac, LOG1, FL("ExtCap not present"));)

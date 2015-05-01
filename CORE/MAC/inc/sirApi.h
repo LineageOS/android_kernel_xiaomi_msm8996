@@ -716,6 +716,7 @@ typedef struct sSirBssDescription
     tANI_U32             WscIeLen;
     tANI_U8              WscIeProbeRsp[WSCIE_PROBE_RSP_LEN];
     tANI_U8              reservedPadding4;
+    tANI_U32             tsf_delta;
 
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;
@@ -749,10 +750,10 @@ typedef struct sSirSmeStartBssRsp
     tSirBssType         bssType;//Add new type for WDS mode
     tANI_U16            beaconInterval;//Beacon Interval for both type
     tANI_U32            staId;  /* Station ID for Self */
-    tSirBssDescription  bssDescription;//Peer BSS description
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
 #endif
+    tSirBssDescription  bssDescription;//Peer BSS description
 } tSirSmeStartBssRsp, *tpSirSmeStartBssRsp;
 
 
@@ -1136,10 +1137,11 @@ typedef struct sSirSmeJoinRsp
     bool tdls_chan_swit_prohibited;
 #endif
 
-    tANI_U8         frames[ 1 ];
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tSirSmeHTProfile    HTProfile;
 #endif
+
+    tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
 /// Definition for Authentication indication from peer
@@ -5792,7 +5794,8 @@ typedef struct
 
 #define RTT_INVALID                     0x00
 #define RTT_TIMING_MEAS_CAPABILITY      0x01
-#define RTT_FINE_TIMING_MEAS_CAPABILITY 0x02
+#define RTT_FINE_TIME_MEAS_INITIATOR_CAPABILITY    0x02
+#define RTT_FINE_TIME_MEAS_RESPONDER_CAPABILITY    0x03
 
 /* number of neighbor reports that we can handle in Neighbor Report Response */
 #define MAX_SUPPORTED_NEIGHBOR_RPT 15
