@@ -8563,6 +8563,10 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             }
             (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
+                                                     eHT_CHANNEL_WIDTH_40MHZ;
+#endif
             vos_mem_zero(&smeConfig, sizeof(smeConfig));
             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
 
@@ -8576,6 +8580,10 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     smeConfig.csrConfig.channelBondingMode5GHz =
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
+                                                     eHT_CHANNEL_WIDTH_20MHZ;
+#endif
                 break;
 
             case NL80211_CHAN_HT40MINUS:
@@ -9177,6 +9185,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmNoQos;
     sme_UpdateConfig(pHddCtx->hHal, &sme_config);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+    /* Linux kernel < 3.8 does not support ch width param. So for
+     * 11AC get from ch width from ini file only if ht40 is enabled.
+     * VHT80 depends on HT40 config.
+     */
+    if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac)
+        if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+            pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
+#endif
 
     if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80) {
         if (pHddCtx->isVHT80Allowed == false)
@@ -9684,7 +9701,6 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
-
         old = pAdapter->sessionCtx.ap.beacon;
 
         if (old)
@@ -9728,8 +9744,11 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         default:
             pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_AUTO_SWITCH;
         }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
         pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
                                              params->chandef.width;
+#endif
 
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
