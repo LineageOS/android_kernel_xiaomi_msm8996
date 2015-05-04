@@ -4199,6 +4199,9 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
     tANI_U8 numOfChannels = 0;
     tANI_U8   channelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
     tpCsrChannelInfo    currChannelListInfo;
+    tANI_U8   scanChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    int       outputNumOfChannels = 0;
+
     currChannelListInfo = &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo;
 
     if (
@@ -4251,15 +4254,30 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
                 smsLog(pMac, LOGE, FL("Received wrong number of Channel list"));
                 return VOS_STATUS_E_INVAL;
             }
+            /* Remove the DFS channels from CFG channel list when '
+                        gAllowRoamToDFS is disabled */
+            if (pMac->roam.configParam.allowDFSChannelRoam == FALSE) {
+                for (i = 0; i < numOfChannels; i++) {
+                    if (!(CSR_IS_CHANNEL_DFS(channelList[i]))) {
+                         scanChannelList[outputNumOfChannels++] = channelList[i];
+                    }
+                }
+            } else {
+            /* Move all the channels to roam scan channel list */
+                vos_mem_copy(scanChannelList,
+                          channelList,
+                          numOfChannels * sizeof(uint8_t));
+                outputNumOfChannels = numOfChannels;
+            }
             currChannelListInfo->ChannelList =
-                vos_mem_malloc(numOfChannels*sizeof(tANI_U8));
+                vos_mem_malloc(outputNumOfChannels * sizeof(uint8_t));
             if (NULL == currChannelListInfo->ChannelList)
             {
                 smsLog(pMac, LOGE, FL("Memory allocation for Channel list failed"));
                 return VOS_STATUS_E_RESOURCES;
             }
             vos_mem_copy(currChannelListInfo->ChannelList,
-                  channelList, numOfChannels * sizeof(tANI_U8));
+                  scanChannelList, outputNumOfChannels * sizeof(tANI_U8));
         }
 #ifdef FEATURE_WLAN_LFR
         else if ((pNeighborRoamInfo->uScanMode == DEFAULT_SCAN) &&
@@ -4338,7 +4356,26 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
                             numOfChannels * sizeof(tANI_U8));
                 }
 
-                currChannelListInfo->ChannelList = vos_mem_malloc(numOfChannels * sizeof(tANI_U8));
+                /* Remove the DFS channels from CFG channel list when
+                 * gAllowRoamToDFS is disabled
+                 */
+                if (pMac->roam.configParam.allowDFSChannelRoam == FALSE) {
+                   for (i = 0; i < numOfChannels; i++) {
+                       if (!(CSR_IS_CHANNEL_DFS(channelList[i]))) {
+                            scanChannelList[outputNumOfChannels++] =
+                                                              channelList[i];
+                       }
+                   }
+                } else {
+                    vos_mem_copy(scanChannelList,
+                            channelList,
+                            numOfChannels * (sizeof(uint8_t)));
+                    outputNumOfChannels = numOfChannels;
+                }
+
+
+                currChannelListInfo->ChannelList =
+                    vos_mem_malloc(outputNumOfChannels * sizeof(tANI_U8));
 
                 if (NULL == currChannelListInfo->ChannelList)
                 {
@@ -4350,8 +4387,8 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac,
                     numOfChannels = WNI_CFG_VALID_CHANNEL_LIST_LEN;
                 }
                 vos_mem_copy(currChannelListInfo->ChannelList,
-                        channelList,
-                        numOfChannels * sizeof(tANI_U8));
+                        scanChannelList,
+                        outputNumOfChannels * sizeof(tANI_U8));
             }
             else
             {
