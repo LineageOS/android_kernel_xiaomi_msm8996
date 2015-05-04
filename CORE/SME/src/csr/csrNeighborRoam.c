@@ -5584,6 +5584,7 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
 
     extern void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisassocRsp *pSmeDisassocRsp );
     tANI_U32 roamId = 0;
+    eHalStatus status;
 
 #ifdef FEATURE_WLAN_LFR_METRICS
     tCsrRoamInfo *roamInfoMetrics;
@@ -5638,8 +5639,13 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
      * update only the BSSID and channel number. This should happen before
      * issuing disconnect.
      */
-    csrRoamCopyConnectedProfile(pMac, sessionId,
+    status = csrRoamCopyConnectedProfile(pMac, sessionId,
                                 &pNeighborRoamInfo->csrNeighborRoamProfile);
+    if (eHAL_STATUS_SUCCESS != status) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+               FL("csrRoamCopyConnectedProfile returned failed %d"), status);
+        return;
+    }
     vos_mem_copy(pNeighborRoamInfo->csrNeighborRoamProfile.BSSIDs.bssid, handoffNode.pBssDescription->bssId, sizeof(tSirMacAddr));
     pNeighborRoamInfo->csrNeighborRoamProfile.ChannelInfo.ChannelList[0] = handoffNode.pBssDescription->channelId;
 
