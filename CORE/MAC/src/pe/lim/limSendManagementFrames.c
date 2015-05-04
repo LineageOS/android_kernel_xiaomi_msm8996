@@ -2347,6 +2347,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #ifndef FEATURE_DISABLE_RM
         PopulateDot11fESERadMgmtCap(&pFrm->ESERadMgmtCap);
 #endif
+        PopulateDot11fESEVersion(&pFrm->ESEVersion);
     }
 #endif
 
@@ -2705,6 +2706,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #ifndef FEATURE_DISABLE_RM
         PopulateDot11fESERadMgmtCap(&frm.ESERadMgmtCap);
 #endif
+        PopulateDot11fESEVersion(&frm.ESEVersion);
     }
 #endif //FEATURE_WLAN_ESE
 #endif //FEATURE_WLAN_ESE || FEATURE_WLAN_LFR
