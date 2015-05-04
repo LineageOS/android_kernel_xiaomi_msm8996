@@ -6807,7 +6807,8 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	u32 guard_time;
 	eHalStatus status;
 
-	if ((ret_val = wlan_hdd_validate_context(pHddCtx))) {
+	ret_val = wlan_hdd_validate_context(pHddCtx);
+	if (!ret_val) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return ret_val;
 	}
@@ -8563,6 +8564,10 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             }
             (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
+                                                     eHT_CHANNEL_WIDTH_40MHZ;
+#endif
             vos_mem_zero(&smeConfig, sizeof(smeConfig));
             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
 
@@ -8576,6 +8581,10 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     smeConfig.csrConfig.channelBondingMode5GHz =
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
+                                                     eHT_CHANNEL_WIDTH_20MHZ;
+#endif
                 break;
 
             case NL80211_CHAN_HT40MINUS:
@@ -9177,6 +9186,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmNoQos;
     sme_UpdateConfig(pHddCtx->hHal, &sme_config);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+    /* Linux kernel < 3.8 does not support ch width param. So for
+     * 11AC get from ch width from ini file only if ht40 is enabled.
+     * VHT80 depends on HT40 config.
+     */
+    if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac)
+        if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+            pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
+#endif
 
     if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80) {
         if (pHddCtx->isVHT80Allowed == false)
@@ -9684,7 +9702,6 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
-
         old = pAdapter->sessionCtx.ap.beacon;
 
         if (old)
@@ -9728,8 +9745,11 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         default:
             pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_AUTO_SWITCH;
         }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
         pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
                                              params->chandef.width;
+#endif
 
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
@@ -12788,7 +12808,8 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
  * This function is used to start the association process
  */
 int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
-        const u8 *ssid, size_t ssid_len, const u8 *bssid, u8 operatingChannel)
+        const u8 *ssid, size_t ssid_len, const u8 *bssid,
+        const u8 *bssid_hint, u8 operatingChannel)
 {
     int status = 0;
     hdd_wext_state_t *pWextState;
@@ -12859,6 +12880,21 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
              */
             vos_mem_copy((void *)(pWextState->req_bssId), bssid,
                     VOS_MAC_ADDR_SIZE);
+        }
+        else if (bssid_hint)
+        {
+            pRoamProfile->BSSIDs.numOfBSSIDs = 1;
+            vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid_hint,
+                    VOS_MAC_ADDR_SIZE);
+            /* Save BSSID in separate variable as well, as RoamProfile
+               BSSID is getting zeroed out in the association process. And in
+               case of join failure we should send valid BSSID to supplicant
+             */
+            vos_mem_copy((void *)(pWextState->req_bssId), bssid_hint,
+                    VOS_MAC_ADDR_SIZE);
+            hddLog(LOGW, FL(" bssid_hint "MAC_ADDRESS_STR),
+                   MAC_ADDR_ARRAY(bssid_hint));
+
         }
         else
         {
@@ -13819,10 +13855,12 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     if (req->channel) {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                                   req->ssid_len, req->bssid,
+                                                  req->bssid_hint,
                                                   req->channel->hw_value);
     } else {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                                  req->ssid_len, req->bssid, 0);
+                                                  req->ssid_len, req->bssid,
+                                                  req->bssid_hint, 0);
     }
 
     if (0 > status) {
@@ -14325,7 +14363,7 @@ static int __wlan_hdd_cfg80211_join_ibss(struct wiphy *wiphy,
 
     /* Issue connect start */
     status = wlan_hdd_cfg80211_connect_start(pAdapter, params->ssid,
-            params->ssid_len, params->bssid,
+            params->ssid_len, params->bssid, NULL,
             pHddStaCtx->conn_info.operationChannel);
 
     if (0 > status)

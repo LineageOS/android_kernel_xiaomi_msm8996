@@ -1468,7 +1468,11 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
         int i;
         int rv;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)) || defined(WITH_BACKPORTS)
+        rv = pci_enable_msi_range(sc->pdev, MSI_NUM_REQUEST, MSI_NUM_REQUEST);
+#else
         rv = pci_enable_msi_block(sc->pdev, MSI_NUM_REQUEST);
+#endif
 
 	if (rv == 0) { /* successfully allocated all MSI interrupts */
 		/*
