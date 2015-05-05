@@ -2943,16 +2943,16 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
         case eTDLS_LINK_IDLE:
         case eTDLS_LINK_DISCOVERING:
         case eTDLS_LINK_DISCOVERED:
-            *state = WIFI_TDLS_ENABLED;
+            *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
         case eTDLS_LINK_CONNECTING:
-            *state = WIFI_TDLS_TRYING;
+            *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
         case eTDLS_LINK_CONNECTED:
-            *state = WIFI_TDLS_ESTABLISHED;
+            *state = QCA_WIFI_HAL_TDLS_ESTABLISHED;
             break;
         case eTDLS_LINK_TEARING:
-            *state = WIFI_TDLS_DROPPED;
+            *state = QCA_WIFI_HAL_TDLS_DROPPED;
             break;
     }
 }

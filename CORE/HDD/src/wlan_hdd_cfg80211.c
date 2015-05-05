@@ -7034,6 +7034,80 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	return ret_val;
 }
 
+#ifdef FEATURE_WLAN_TDLS
+
+/* TDLS capabilities params */
+#define PARAM_MAX_TDLS_SESSION \
+		QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_MAX_CONC_SESSIONS
+#define PARAM_TDLS_FEATURE_SUPPORT \
+		QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_FEATURES_SUPPORTED
+
+/**
+ * wlan_hdd_cfg80211_get_tdls_capabilities() - Provide TDLS Capabilites.
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function provides TDLS capabilities
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	eHalStatus status;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct sk_buff *skb = NULL;
+	uint32_t set = 0;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (eHAL_STATUS_SUCCESS != status) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, (2 * sizeof(u32)) +
+						   NLMSG_HDRLEN);
+	if (!skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		goto fail;
+	}
+
+	if (FALSE == hdd_ctx->cfg_ini->fEnableTDLSSupport) {
+		hddLog(LOGE,
+			FL("TDLS feature not Enabled or Not supported in FW"));
+		if (nla_put_u32(skb, PARAM_MAX_TDLS_SESSION, 0) ||
+			nla_put_u32(skb, PARAM_TDLS_FEATURE_SUPPORT, 0)) {
+			hddLog(LOGE, FL("nla put fail"));
+			goto fail;
+		}
+	} else {
+		set = set | WIFI_TDLS_SUPPORT;
+		set = set | (hdd_ctx->cfg_ini->fTDLSExternalControl ?
+					WIFI_TDLS_EXTERNAL_CONTROL_SUPPORT : 0);
+		set = set | (hdd_ctx->cfg_ini->fEnableTDLSOffChannel ?
+					WIIF_TDLS_OFFCHANNEL_SUPPORT : 0);
+		hddLog(LOG1, FL("TDLS Feature supported value %x"), set);
+		if (nla_put_u32(skb, PARAM_MAX_TDLS_SESSION,
+				 hdd_ctx->max_num_tdls_sta) ||
+			nla_put_u32(skb, PARAM_TDLS_FEATURE_SUPPORT,
+				 set)) {
+			hddLog(LOGE, FL("nla put fail"));
+			goto fail;
+		}
+	}
+	return cfg80211_vendor_cmd_reply(skb);
+fail:
+	if (skb)
+		kfree_skb(skb);
+	return -EINVAL;
+}
+
+#endif
+
 static const struct
 nla_policy
 qca_wlan_vendor_wifi_logger_start_policy
@@ -7509,7 +7583,16 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = (void *)wlan_hdd_cfg80211_wifi_logger_start
 	},
-
+#ifdef FEATURE_WLAN_TDLS
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_TDLS_GET_CAPABILITIES,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV |
+			WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_get_tdls_capabilities
+	}
+#endif
 };
 
 

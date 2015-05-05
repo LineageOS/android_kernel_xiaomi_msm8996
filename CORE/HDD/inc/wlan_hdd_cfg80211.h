@@ -226,6 +226,7 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_CONFIGURATION = 75,
 
     QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET = 76,
+    QCA_NL80211_VENDOR_SUBCMD_TDLS_GET_CAPABILITIES = 78,
 
 	/* OCB commands */
 	QCA_NL80211_VENDOR_SUBCMD_OCB_SET_CONFIG = 92,
@@ -358,6 +359,18 @@ enum qca_wlan_vendor_attr_tdls_state {
     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAX =
         QCA_WLAN_VENDOR_ATTR_TDLS_STATE_AFTER_LAST - 1,
+};
+
+/* enum's to provide TDLS capabilites */
+enum qca_wlan_vendor_attr_get_tdls_capabilities {
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_MAX_CONC_SESSIONS = 1,
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_FEATURES_SUPPORTED = 2,
+
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_MAX =
+	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_AFTER_LAST - 1,
 };
 
 enum qca_wlan_vendor_attr {
@@ -1315,6 +1328,9 @@ enum qca_wlan_vendor_features {
 #define WIFI_FEATURE_HAL_EPNO           0x40000  /* WiFi PNO enhanced */
 
 /* Add more features here */
+#define WIFI_TDLS_SUPPORT			BIT(0)
+#define WIFI_TDLS_EXTERNAL_CONTROL_SUPPORT	BIT(1)
+#define WIIF_TDLS_OFFCHANNEL_SUPPORT		BIT(2)
 
 /**
  * enum wifi_logger_supported_features - values for supported logger features
