@@ -12190,6 +12190,10 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 	{
 		ol_txrx_pdev_handle pdev;
 
+		if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+			WMA_LOGE("%s: Driver load/unload in progress", __func__);
+			return -EINVAL;
+		}
 		pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 			wma_handle->vos_context);
 		if (!pdev) {
