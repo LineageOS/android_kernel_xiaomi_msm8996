@@ -14116,12 +14116,21 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     if (req->channel) {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                                   req->ssid_len, req->bssid,
+                          #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0))
                                                   req->bssid_hint,
+                          #else
+                                                  NULL,
+                          #endif
                                                   req->channel->hw_value);
     } else {
         status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                                   req->ssid_len, req->bssid,
-                                                  req->bssid_hint, 0);
+                          #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0))
+                                                  req->bssid_hint,
+                          #else
+                                                  NULL,
+                          #endif
+                                                  0);
     }
 
     if (0 > status) {
