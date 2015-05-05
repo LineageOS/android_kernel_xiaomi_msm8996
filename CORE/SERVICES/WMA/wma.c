@@ -30064,15 +30064,9 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 		u_int32_t max_mod_dtim;
 
 		if (wma->staDynamicDtim) {
-			if (iface->dtimPeriod <
-				WMA_DYNAMIC_DTIM_SETTING_THRESHOLD) {
-				/* Set DTIM Policy to Normal DTIM */
-				/* Configure LI = Dynamic DTIM Value */
-				listen_interval = wma->staDynamicDtim;
-			} else {
-				return;
-			}
-		} else if ((wma->staModDtim)&& (wma->staMaxLIModDtim)) {
+			listen_interval = wma->staDynamicDtim;
+		} else if ((wma->staModDtim) &&
+			   (wma->staMaxLIModDtim)) {
 			/*
 			  * When the system is in suspend
 			  * (maximum beacon will be at 1s == 10)

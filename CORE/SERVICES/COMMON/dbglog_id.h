@@ -860,7 +860,8 @@ extern "C" {
 #define SWBMISS_DBGID_DEFINITION_START  0
 #define SWBMISS_ENABLED                 1
 #define SWBMISS_DISABLED                2
-#define SWBMISS_DBGID_DEFINITION_END    3
+#define SWBMISS_UPDATE_BEACON_RSSI      3
+#define SWBMISS_DBGID_DEFINITION_END    4
 
 /* WLAN module DBGIDS */
 #define ROAM_DBGID_DEFINITION_START 0
@@ -948,7 +949,8 @@ extern "C" {
 #define ROAM_SCAN_HIRSSI_THRESHOLD      82
 #define ROAM_SCAN_HIRSSI_CHECK          83
 #define ROAM_SCAN_HIRSSI_TIMER_EXPIRED  84
-#define ROAM_DBGID_DEFINITION_END   85
+#define ROAM_SCAN_EXTSCAN_CHECK         85
+#define ROAM_DBGID_DEFINITION_END   86
 
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
@@ -1071,6 +1073,7 @@ extern "C" {
 #define RTT_RSPDR_TSTAMP              24
 #define RTT_TX_COMP_STATUS            25
 #define RTT_ERROR_WMI_EVENT           26
+#define RTT_MEASUREMENT_VALUES        27
 
 /* WLAN HB module DBGIDs */
 #define WLAN_HB_DBGID_DEFINITION_START                  0
