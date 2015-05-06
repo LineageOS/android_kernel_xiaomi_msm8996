@@ -778,11 +778,12 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                                    rem_on_channel_request_type_t request_type )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+    hdd_context_t *pHddCtx = NULL;
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     v_BOOL_t isBusy = VOS_FALSE;
     v_SIZE_t size = 0;
     hdd_adapter_t *sta_adapter;
+    int ret = 0;
 
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
@@ -804,17 +805,11 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
      * and which is resulting in crash. So not allowing any remain on
      * channel requets when Load/Unload is in progress
      */
-    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadInProgress ||
-        ((hdd_context_t*)pAdapter->pHddCtx)->isUnloadInProgress) {
-        hddLog( LOGE,
-                "%s: Wlan Load/Unload is in progress", __func__);
-        return -EBUSY;
-    }
-
-    if (((hdd_context_t*)pAdapter->pHddCtx)->isLogpInProgress) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        return -EAGAIN;
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+        hddLog(LOGE, FL("HDD context is not valid"));
+        return ret;
     }
 
     if (hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx, true)) {
