@@ -828,7 +828,8 @@ static const struct nla_policy qca_wlan_vendor_dcc_update_ndl[
 struct wlan_hdd_ocb_config_channel {
 	uint32_t chan_freq;
 	uint32_t bandwidth;
-	tSirMacAddr mac_address;
+	uint16_t flags;
+	uint8_t reserved[4];
 	sir_qos_params_t qos_params[MAX_NUM_AC];
 	uint32_t max_pwr;
 	uint32_t min_pwr;
@@ -846,8 +847,6 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 	for (i = 0; i < channel_count; i++) {
 		dest[i].chan_freq = src[i].chan_freq;
 		dest[i].bandwidth = src[i].bandwidth;
-		vos_mem_copy(dest[i].mac_address, src[i].mac_address,
-			     sizeof(dest[i].mac_address));
 		vos_mem_copy(dest[i].qos_params, src[i].qos_params,
 			     sizeof(dest[i].qos_params));
 		/*
@@ -859,6 +858,7 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 		 */
 		dest[i].max_pwr = src[i].max_pwr / 2;
 		dest[i].min_pwr = (src[i].min_pwr + 1) / 2;
+		dest[i].flags = src[i].flags;
 	}
 }
 

@@ -44,6 +44,44 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 	VOS_STATUS vos_status;
 	struct sir_ocb_set_config_response *resp;
 	vos_msg_t msg = {0};
+	struct sir_ocb_config *req = wma_handle->ocb_config_req;
+	ol_txrx_vdev_handle vdev = (req ?
+		wma_handle->interfaces[req->session_id].handle : 0);
+
+	/*
+	 * If the command was successful, save the channel information in the
+	 * vdev.
+	 */
+	if (status == VOS_STATUS_SUCCESS) {
+		if (vdev && req) {
+			if (vdev->ocb_channel_info)
+				vos_mem_free(vdev->ocb_channel_info);
+			vdev->ocb_channel_count =
+				req->channel_count;
+			if (req->channel_count) {
+				int i;
+				int buf_size = sizeof(*vdev->ocb_channel_info) *
+				    req->channel_count;
+				vdev->ocb_channel_info =
+					vos_mem_malloc(buf_size);
+				vos_mem_zero(vdev->ocb_channel_info, buf_size);
+				for (i = 0; i < req->channel_count; i++) {
+					vdev->ocb_channel_info[i].chan_freq =
+						req->channels[i].chan_freq;
+					if (req->channels[i].flags &
+					  OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR)
+						vdev->ocb_channel_info[i].
+						disable_rx_stats_hdr = 1;
+				}
+			} else {
+				vdev->ocb_channel_info = 0;
+			}
+		}
+	}
+
+	/* Free the configuration that was saved in wma_ocb_set_config. */
+	vos_mem_free(wma_handle->ocb_config_req);
+	wma_handle->ocb_config_req = 0;
 
 	resp = vos_mem_malloc(sizeof(*resp));
 	if (!resp)
@@ -167,12 +205,6 @@ int wma_ocb_start_resp_ind_cont(tp_wma_handle wma_handle)
 	}
 
 	vos_status = wma_ocb_set_config(wma_handle, wma_handle->ocb_config_req);
-	/*
-	 * Depending on the return value from the request handler, either
-	 * we need to save the context or delete it.
-	 */
-	vos_mem_free(wma_handle->ocb_config_req);
-	wma_handle->ocb_config_req = 0;
 	return vos_status;
 }
 
@@ -369,9 +401,24 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 		buf_ptr += sizeof(*sched_elem);
 	}
 
+	/*
+	 * Save the configuration so that it can be used in
+	 * wma_ocb_set_config_event_handler.
+	 */
+	if (wma_handle->ocb_config_req != config) {
+		if (wma_handle->ocb_config_req)
+			vos_mem_free(wma_handle->ocb_config_req);
+		wma_handle->ocb_config_req = copy_sir_ocb_config(config);
+	}
+
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				   WMI_OCB_SET_CONFIG_CMDID);
 	if (ret != EOK) {
+		if (wma_handle->ocb_config_req) {
+			vos_mem_free(wma_handle->ocb_config_req);
+			wma_handle->ocb_config_req = 0;
+		}
+
 		WMA_LOGE("Failed to set OCB config");
 		wmi_buf_free(buf);
 		return -EIO;
