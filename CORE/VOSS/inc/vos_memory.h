@@ -209,7 +209,7 @@ v_VOID_t vos_mem_move( v_VOID_t *pDst, const v_VOID_t *pSrc, v_SIZE_t numBytes )
                        locations are equal or not equal.
 
   -------------------------------------------------------------------------------*/
-v_BOOL_t vos_mem_compare( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBytes );
+v_BOOL_t vos_mem_compare(const v_VOID_t *pMemory1, const v_VOID_t *pMemory2, v_U32_t numBytes );
 
 
 /** ---------------------------------------------------------------------------

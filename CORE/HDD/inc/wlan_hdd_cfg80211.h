@@ -1440,7 +1440,8 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t *pAdapter,
 
 #ifdef FEATURE_WLAN_WAPI
 void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter,
-              u8 key_index, const u8 *mac_addr, u8 *key , int key_Len);
+                                    u8 key_index, const u8 *mac_addr,
+                                    const u8 *key , int key_Len);
 #endif
 struct wiphy *wlan_hdd_cfg80211_wiphy_alloc(int priv_size);
 
@@ -1483,15 +1484,22 @@ extern void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext
 void* wlan_hdd_change_country_code_cb(void *pAdapter);
 void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel);
 
-v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid);
+v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(const v_U8_t *pIes,
+                                     int length,
+                                     v_U8_t eid);
 
 #ifdef CFG80211_DEL_STA_V2
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                   struct net_device *dev,
                                   struct station_del_parameters *param);
 #else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)) || defined(WITH_BACKPORTS)
+int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
+                                  struct net_device *dev, const u8 *mac);
+#else
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                   struct net_device *dev, u8 *mac);
+#endif
 #endif
 
 #if  defined(QCA_WIFI_FTM)     && defined(CONFIG_NL80211_TESTMODE)

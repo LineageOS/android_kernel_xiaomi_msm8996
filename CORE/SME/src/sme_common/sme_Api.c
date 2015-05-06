@@ -391,6 +391,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
 {
     tSmeCmd *pRetCmd = NULL, *pTempCmd = NULL;
     tListElem *pEntry;
+    static int smeCommandQueueFull = 0;
 
     pEntry = csrLLRemoveHead( &pMac->sme.smeCmdFreeList, LL_ACCESS_LOCK );
 
@@ -402,6 +403,8 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
     if ( pEntry )
     {
         pRetCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        /* reset when free list is available */
+        smeCommandQueueFull = 0;
     }
     else {
         int idx = 1;
@@ -426,11 +429,14 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         //dump what is in the pending queue
         csrLLLock(&pMac->sme.smeCmdPendingList);
         pEntry = csrLLPeekHead( &pMac->sme.smeCmdPendingList, LL_ACCESS_NOLOCK );
-        while(pEntry)
+        while(pEntry && !smeCommandQueueFull)
         {
             pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-            smsLog( pMac, LOGE, "Out of command buffer.... SME pending command #%d (0x%X)",
-                    idx++, pTempCmd->command );
+            /* Print only 1st five commands from pending queue. */
+            if (idx <= 5)
+                smsLog( pMac, LOGE, "Out of command buffer.... SME pending command #%d (0x%X)",
+                        idx, pTempCmd->command );
+            idx++;
             if( eSmeCsrCommandMask & pTempCmd->command )
             {
                 //CSR command is stuck. See what the reason code is for that command
@@ -438,6 +444,8 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             }
             pEntry = csrLLNext( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
         }
+        /* Increament static variable so that it prints pending command only once*/
+        smeCommandQueueFull++;
         csrLLUnlock(&pMac->sme.smeCmdPendingList);
 
         //There may be some more command in CSR's own pending queue
@@ -4096,7 +4104,7 @@ eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId)
     \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results
   -------------------------------------------------------------------------------*/
 eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
-                                tANI_U8 *pPeerMacAddr)
+                                 const tANI_U8 *pPeerMacAddr)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4420,7 +4428,7 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId,
 }
 
 eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId,
-                                      tANI_U8 *pBSSId,
+                                      const tANI_U8 *pBSSId,
                                       tANI_BOOLEAN flush_cache )
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -11214,9 +11222,9 @@ tANI_U8 sme_IsFeatureSupportedByFW(tANI_U8 featEnumValue)
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
 VOS_STATUS sme_SendTdlsLinkEstablishParams(tHalHandle hHal,
-                                                   tANI_U8 sessionId,
-                                                   tSirMacAddr peerMac,
-                                                   tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams)
+                                           tANI_U8 sessionId,
+                                           const tSirMacAddr peerMac,
+                                           tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams)
 {
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
@@ -11246,7 +11254,7 @@ VOS_STATUS sme_SendTdlsLinkEstablishParams(tHalHandle hHal,
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
 VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
-                                 tSirMacAddr peerMac, tANI_U8 frame_type,
+                                 const tSirMacAddr peerMac, tANI_U8 frame_type,
                                  tANI_U8 dialog, tANI_U16 statusCode,
                                  tANI_U32 peerCapability, tANI_U8 *buf,
                                  tANI_U8 len, tANI_U8 responder)
@@ -11283,7 +11291,8 @@ VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
     \param  staParams - Peer Station Parameters
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
+VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac,
                                  tCsrStaParams *pstaParams)
 {
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
@@ -11298,7 +11307,7 @@ VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrTdlsChangePeerSta(hHal, sessionId, peerMac,pstaParams);
+        status = csrTdlsChangePeerSta(hHal, sessionId, peerMac, pstaParams);
 
         sme_ReleaseGlobalLock( &pMac->sme );
     }
@@ -11314,7 +11323,8 @@ VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     \param  peerMac - peer's Mac Address.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
+VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                              const tSirMacAddr peerMac)
 {
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
@@ -11337,7 +11347,9 @@ VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr pe
     \param  peerMac - peer's Mac Address.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_DeleteTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac)
+VOS_STATUS sme_DeleteTdlsPeerSta(tHalHandle hHal,
+                                 tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac)
 {
     eHalStatus          status    = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);

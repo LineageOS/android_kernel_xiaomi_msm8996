@@ -772,7 +772,8 @@ eHalStatus sme_RoamGetAssociatedStas(tHalHandle hHal, tANI_U8 sessionId,
     \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
     \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPeerMacAddr);
+eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tANI_U8 *pPeerMacAddr);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamDeauthSta
@@ -3363,9 +3364,9 @@ tANI_U8 sme_IsFeatureSupportedByFW(tANI_U8 featEnumValue);
     -------------------------------------------------------------------------*/
 
 VOS_STATUS sme_SendTdlsLinkEstablishParams(tHalHandle hHal,
-                                                   tANI_U8 sessionId,
-                                                   tSirMacAddr peerMac,
-                                                   tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams);
+                                           tANI_U8 sessionId,
+                                           const tSirMacAddr peerMac,
+                                           tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams);
 
 /* ---------------------------------------------------------------------------
     \fn sme_SendTdlsMgmtFrame
@@ -3381,8 +3382,11 @@ VOS_STATUS sme_SendTdlsLinkEstablishParams(tHalHandle hHal,
     \param responder - Tdls request type
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
-      tANI_U8 frame_type, tANI_U8 dialog, tANI_U16 status, tANI_U32 peerCapability, tANI_U8 *buf, tANI_U8 len, tANI_U8 responder);
+VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac, tANI_U8 frame_type,
+                                 tANI_U8 dialog, tANI_U16 status,
+                                 tANI_U32 peerCapability, tANI_U8 *buf,
+                                 tANI_U8 len, tANI_U8 responder);
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeTdlsPeerSta
     \brief  API to Update TDLS peer sta parameters.
@@ -3391,7 +3395,8 @@ VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     \param  staParams - Peer Station Parameters.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
+VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac,
                                  tCsrStaParams *pstaParams);
 /* ---------------------------------------------------------------------------
     \fn sme_AddTdlsPeerSta
@@ -3400,7 +3405,9 @@ VOS_STATUS sme_ChangeTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr
     \param  peerMac - peer's Mac Address.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
+VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal,
+                              tANI_U8 sessionId,
+                              const tSirMacAddr peerMac);
 /* ---------------------------------------------------------------------------
     \fn sme_DeleteTdlsPeerSta
     \brief  API to Delete TDLS peer sta entry.
@@ -3408,7 +3415,8 @@ VOS_STATUS sme_AddTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr pe
     \param  peerMac - peer's Mac Address.
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
-VOS_STATUS sme_DeleteTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
+VOS_STATUS sme_DeleteTdlsPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                                 const tSirMacAddr peerMac);
 /* ---------------------------------------------------------------------------
     \fn sme_SetTdlsPowerSaveProhibited
     \API to set/reset the isTdlsPowerSaveProhibited.
@@ -3569,9 +3577,10 @@ eHalStatus smeIssueFastRoamNeighborAPEvent (tHalHandle hHal,
                                             tSmeFastRoamTrigger fastRoamTrig,
                                             tANI_U8 sessionId);
 
-eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId,
-                                      tANI_U8 *pBSSId,
-                                      tANI_BOOLEAN flush_cache );
+eHalStatus sme_RoamDelPMKIDfromCache(tHalHandle hHal,
+                                     tANI_U8 sessionId,
+                                     const tANI_U8 *pBSSId,
+                                     tANI_BOOLEAN flush_cache);
 
 void smeGetCommandQStatus( tHalHandle hHal );
 

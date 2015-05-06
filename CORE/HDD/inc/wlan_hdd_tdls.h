@@ -164,7 +164,7 @@ typedef enum {
     WIFI_TDLS_FAILED                   /* Direct link failed */
 } tdls_state_t;
 
-typedef int (*cfg80211_exttdls_callback)(tANI_U8* mac,
+typedef int (*cfg80211_exttdls_callback)(const tANI_U8* mac,
                                          tANI_S32 state,
                                          tANI_S32 reason,
                                          void *ctx);
@@ -269,45 +269,53 @@ void wlan_hdd_tdls_extract_da(struct sk_buff *skb, u8 *mac);
 
 void wlan_hdd_tdls_extract_sa(struct sk_buff *skb, u8 *mac);
 
-int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, u8 *mac, u8 tx);
+int wlan_hdd_tdls_increment_pkt_count(hdd_adapter_t *pAdapter, const u8 *mac,
+                                      u8 tx);
 
-int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, u8 *mac, u8 staId);
+int wlan_hdd_tdls_set_sta_id(hdd_adapter_t *pAdapter, const u8 *mac, u8 staId);
 
-hddTdlsPeer_t *wlan_hdd_tdls_find_peer(hdd_adapter_t *pAdapter, u8 *mac, tANI_BOOLEAN mutexLock);
+hddTdlsPeer_t *wlan_hdd_tdls_find_peer(hdd_adapter_t *pAdapter,
+                                       const u8 *mac, tANI_BOOLEAN mutexLock);
 
-hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx, u8 *mac);
+hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx,
+                                           const u8 *mac);
 
-int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter, u8 *mac,
+int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter,
+                                            const u8 *mac,
                                             tCsrTdlsLinkEstablishParams* tdlsLinkEstablishParams);
-hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, u8 *mac);
+hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, const u8 *mac);
 
-int wlan_hdd_tdls_set_cap(hdd_adapter_t *pAdapter, u8* mac, tTDLSCapType cap);
+int wlan_hdd_tdls_set_cap(hdd_adapter_t *pAdapter, const u8* mac,
+                          tTDLSCapType cap);
 
 void wlan_hdd_tdls_set_peer_link_status(hddTdlsPeer_t *curr_peer,
                                         tTDLSLinkStatus status,
                                         tTDLSLinkReason reason);
 void wlan_hdd_tdls_set_link_status(hdd_adapter_t *pAdapter,
-                                   u8* mac,
+                                   const u8* mac,
                                    tTDLSLinkStatus linkStatus,
                                    tTDLSLinkReason reason);
 
 int wlan_hdd_tdls_recv_discovery_resp(hdd_adapter_t *pAdapter, u8 *mac);
 
 int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
-                                u8 *mac,
+                                const u8 *mac,
                                 tCsrStaParams *StaParams,
                                 tANI_BOOLEAN isBufSta,
                                 tANI_BOOLEAN isOffChannelSupported);
 
-int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi);
+int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, const u8 *mac,
+                           tANI_S8 rxRssi);
 
-int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 responder);
+int wlan_hdd_tdls_set_responder(hdd_adapter_t *pAdapter, const u8 *mac,
+                                tANI_U8 responder);
 
-int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, u8 *mac, tANI_U8 uSignature);
+int wlan_hdd_tdls_set_signature(hdd_adapter_t *pAdapter, const u8 *mac,
+                                tANI_U8 uSignature);
 
 int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *config);
 
-int wlan_hdd_tdls_reset_peer(hdd_adapter_t *pAdapter, u8 *mac);
+int wlan_hdd_tdls_reset_peer(hdd_adapter_t *pAdapter, const u8 *mac);
 
 tANI_U16 wlan_hdd_tdlsConnectedPeers(hdd_adapter_t *pAdapter);
 
@@ -325,7 +333,9 @@ void wlan_hdd_tdls_decrement_peer_count(hdd_adapter_t *pAdapter);
 
 void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
 
-hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx, u8* mac, u8 skip_self);
+hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx,
+                                         const u8* mac,
+                                         u8 skip_self);
 
 int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
                             struct wiphy *wiphy,
@@ -356,17 +366,18 @@ void wlan_hdd_tdls_pre_setup_init_work(tdlsCtx_t *pHddTdlsCtx,
 #endif
 
 int wlan_hdd_tdls_set_extctrl_param(hdd_adapter_t *pAdapter,
-                                    uint8_t  *mac,
+                                    const uint8_t  *mac,
                                     uint32_t chan,
                                     uint32_t max_latency,
                                     uint32_t op_class,
                                     uint32_t min_bandwidth);
 
-int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, u8 *mac,
+int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, const u8 *mac,
                                  tANI_BOOLEAN forcePeer);
-int wlan_hdd_tdls_extctrl_deconfig_peer(hdd_adapter_t *pAdapter, u8 *peer);
+int wlan_hdd_tdls_extctrl_deconfig_peer(hdd_adapter_t *pAdapter,
+                                        const u8 *peer);
 int wlan_hdd_tdls_extctrl_config_peer(hdd_adapter_t *pAdapter,
-                                      u8 *peer,
+                                      const u8 *peer,
                                       cfg80211_exttdls_callback callback,
                                       uint32_t chan,
                                       uint32_t max_latency,
@@ -378,7 +389,7 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *pHddCtx);
 
 /* EXT TDLS */
 int wlan_hdd_tdls_get_status(hdd_adapter_t *pAdapter,
-                             tANI_U8* mac,
+                             const tANI_U8* mac,
                              tANI_S32 *state,
                              tANI_S32 *reason);
 void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,

@@ -2906,7 +2906,7 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
   ---------------------------------------------------------------------------*/
 eHalStatus csrRoamIssueDisassociateStaCmd( tpAniSirGlobal pMac,
                                            tANI_U32 sessionId,
-                                           tANI_U8 *pPeerMacAddr,
+                                           const tANI_U8 *pPeerMacAddr,
                                            tANI_U32 reason)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -12628,7 +12628,7 @@ eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
 }
 
 eHalStatus csrRoamDelPMKIDfromCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                                     tANI_U8 *pBSSId,
+                                     const tANI_U8 *pBSSId,
                                      tANI_BOOLEAN flush_cache )
 {
     eHalStatus status = eHAL_STATUS_FAILURE;

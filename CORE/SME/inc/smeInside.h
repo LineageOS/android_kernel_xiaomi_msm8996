@@ -284,11 +284,15 @@ tANI_BOOLEAN csrRoamGetConcurrencyConnectStatusForBmps(tpAniSirGlobal pMac);
 eHalStatus csrTdlsSendMgmtReq(tHalHandle hHal, tANI_U8 sessionId, tCsrTdlsSendMgmt *tdlsSendMgmt);
 VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
                                           tANI_U8 sessionId,
-                                          tSirMacAddr peerMac,
+                                          const tSirMacAddr peerMac,
                                           tCsrTdlsLinkEstablishParams *tdlsLinkEstablishParams);
-eHalStatus csrTdlsAddPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
-eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac, tCsrStaParams *pstaParams);
-eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac);
+eHalStatus csrTdlsAddPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                             const tSirMacAddr peerMac);
+eHalStatus csrTdlsChangePeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                                const tSirMacAddr peerMac,
+                                tCsrStaParams *pstaParams);
+eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId,
+                             const tSirMacAddr peerMac);
 eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac,tSmeCmd *pCommand );
 eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd );
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,v_U16_t msg_type,

@@ -1216,7 +1216,7 @@ VOS_STATUS
 WLANSAP_DisassocSta
 (
     v_PVOID_t pvosGCtx,
-    v_U8_t *pPeerStaMac
+    const v_U8_t *pPeerStaMac
 );
 
 /*==========================================================================

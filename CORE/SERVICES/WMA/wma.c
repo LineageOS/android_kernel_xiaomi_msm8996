@@ -14710,6 +14710,12 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		iface->aid = params->assocId;
 		goto out;
 	}
+	if (wma->interfaces[params->smesessionId].vdev_up == true) {
+		WMA_LOGE("%s: vdev id %d is already UP for %pM", __func__,
+			params->smesessionId, params->bssId);
+		status = VOS_STATUS_E_FAILURE;
+		goto out;
+	}
 	if (peer != NULL && peer->state == ol_txrx_peer_state_disc) {
 		/*
 		 * This is the case for reassociation.
@@ -22675,7 +22681,6 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	int num_bssid = 0;
 	int ie_len = 0;
 
-	u_int32_t dwelltime = src_channel->dwellTimeMs;
 	uint32_t base_period = pstart->basePeriod;
 
 	WMA_LOGD("%s: Extscan start:num_Channels is %d",
@@ -22734,10 +22739,10 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	/* The max dwell time is retrieved from the first channel
 	 * of the first bucket and kept common for all channels.
 	 */
-	cmd->min_dwell_time_active = dwelltime;
-	cmd->max_dwell_time_active = dwelltime;
-	cmd->min_dwell_time_passive = dwelltime;
-	cmd->max_dwell_time_passive = dwelltime;
+	cmd->min_dwell_time_active = pstart->min_dwell_time_active;
+	cmd->max_dwell_time_active = pstart->max_dwell_time_active;
+	cmd->min_dwell_time_passive = pstart->min_dwell_time_passive;
+	cmd->max_dwell_time_passive = pstart->max_dwell_time_passive;
 	cmd->max_bssids_per_scan_cycle = pstart->maxAPperScan;
 	cmd->max_table_usage = pstart->report_threshold_percent;
 	cmd->report_threshold_num_scans = pstart->report_threshold_num_scans;
@@ -22816,10 +22821,10 @@ static VOS_STATUS wma_process_ll_stats_getReq
 				WMI_EXTSCAN_CYCLE_STARTED_EVENT |
 				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT;
 
-		dest_blist->min_dwell_time_active = dwelltime;
-		dest_blist->max_dwell_time_active = dwelltime;
-		dest_blist->min_dwell_time_passive = dwelltime;
-		dest_blist->max_dwell_time_passive = dwelltime;
+		dest_blist->min_dwell_time_active = src_bucket->min_dwell_time_active;
+		dest_blist->max_dwell_time_active = src_bucket->max_dwell_time_active;
+		dest_blist->min_dwell_time_passive = src_bucket->min_dwell_time_passive;
+		dest_blist->max_dwell_time_passive = src_bucket->max_dwell_time_passive;
 		src_channel = src_bucket->channels;
 
 		/* save the channel info to later populate
