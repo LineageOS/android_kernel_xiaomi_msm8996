@@ -1143,7 +1143,7 @@ VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region)
 	if (NULL == hdd_ctx_ptr)
 		return VOS_STATUS_E_EXISTS;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) || defined(WITH_BACKPORTS)
 
 	hdd_ctx_ptr->reg.dfs_region = dfs_region;
 
@@ -1151,13 +1151,13 @@ VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region)
 
 	/* remap the ctl code to dfs region code */
 	switch(hdd_ctx_ptr->reg.ctl_5g) {
-	case REGDOMAIN_FCC:
+	case FCC:
 		hdd_ctx_ptr->reg.dfs_region = DFS_FCC_DOMAIN;
 		break;
-	case REGDOMAIN_ETSI:
+	case ETSI:
 		hdd_ctx_ptr->reg.dfs_region = DFS_ETSI_DOMAIN;
 		break;
-	case REGDOMAIN_JAPAN:
+	case MKK:
 		hdd_ctx_ptr->reg.dfs_region = DFS_MKK4_DOMAIN;
 		break;
 	default:
