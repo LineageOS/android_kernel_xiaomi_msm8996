@@ -710,63 +710,83 @@ static void vos_reg_apply_world_flags(struct wiphy *wiphy,
 }
 
 static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
-      struct wiphy *wiphy)
+			   struct wiphy *wiphy)
 {
-   const struct ieee80211_regdomain *regd;
+	const struct ieee80211_regdomain *regd;
 
-   if  (pHddCtx->cfg_ini->fRegChangeDefCountry) {
-       regd = vos_custom_world_regdomain();
+	if (pHddCtx->cfg_ini->fRegChangeDefCountry) {
+		regd = vos_custom_world_regdomain();
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
-       wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+		wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
-       wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+		wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
 #endif
-   }
-   else if (is_world_regd(reg->reg_domain))
-   {
-       regd = vos_world_regdomain(reg);
+	} else if (is_world_regd(reg->reg_domain)) {
+		regd = vos_world_regdomain(reg);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
-       wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+		wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
 #else
-       wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+		wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
 #endif
-   }
-   else
-   {
-       regd = vos_default_world_regdomain();
+	} else {
+		regd = vos_default_world_regdomain();
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
-       wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
+		wiphy->regulatory_flags |= REGULATORY_STRICT_REG;
 #else
-       wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
+		wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
 #endif
-   }
-   wiphy_apply_custom_regulatory(wiphy, regd);
-   vos_reg_apply_radar_flags(wiphy);
-   vos_reg_apply_world_flags(wiphy, NL80211_REGDOM_SET_BY_DRIVER, reg);
-   return 0;
+	}
+
+	/*
+	 * save the original driver regulatory flags
+	 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
+	pHddCtx->reg.reg_flags = wiphy->regulatory_flags;
+#else
+	pHddCtx->reg.reg_flags = wiphy->flags;
+#endif
+
+	wiphy_apply_custom_regulatory(wiphy, regd);
+
+	/*
+	 * restore the driver regulatory flags since
+	 * wiphy_apply_custom_regulatory may have
+	 * changed them
+	 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
+	wiphy->regulatory_flags = pHddCtx->reg.reg_flags;
+#else
+	wiphy->flags = pHddCtx->reg.reg_flags;
+#endif
+
+	vos_reg_apply_radar_flags(wiphy);
+	vos_reg_apply_world_flags(wiphy, NL80211_REGDOM_SET_BY_DRIVER, reg);
+
+	return 0;
 }
 
 static int reg_init_from_eeprom(hdd_context_t *pHddCtx, struct regulatory *reg,
-      struct wiphy *wiphy)
+				struct wiphy *wiphy)
 {
-   int ret_val = 0;
-   ret_val = regdmn_get_country_alpha2(reg);
-   if (ret_val) {
-      adf_os_print(KERN_ERR "Error in getting country code\n");
-      return ret_val;
-   }
+	int ret_val = 0;
 
-   reg->cc_src = COUNTRY_CODE_SET_BY_DRIVER;
+	ret_val = regdmn_get_country_alpha2(reg);
+	if (ret_val) {
+		adf_os_print(KERN_ERR "Error in getting country code\n");
+		return ret_val;
+	}
 
-   /* update default country code */
-   pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[0] =
-      reg->alpha2[0];
-   pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[1] =
-      reg->alpha2[1];
+	reg->cc_src = COUNTRY_CODE_SET_BY_DRIVER;
 
-   regd_init_wiphy(pHddCtx, reg, wiphy);
+	/* update default country code */
+	pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[0] =
+		reg->alpha2[0];
+	pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[1] =
+		reg->alpha2[1];
 
-   return ret_val;
+	regd_init_wiphy(pHddCtx, reg, wiphy);
+
+	return ret_val;
 }
 
 static void vos_update_reg_info(hdd_context_t *pHddCtx)
@@ -1735,18 +1755,47 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     case NL80211_REGDOM_SET_BY_CORE:
     case NL80211_REGDOM_SET_BY_USER:
 
-        /* first lookup the country in the local database */
-        country_code[0] = request->alpha2[0];
-        country_code[1] = request->alpha2[1];
+        if ((VOS_FALSE == init_by_driver) &&
+            (VOS_FALSE == init_by_reg_core)) {
 
-        pHddCtx->reg.alpha2[0] = request->alpha2[0];
-        pHddCtx->reg.alpha2[1] = request->alpha2[1];
+            if (NL80211_REGDOM_SET_BY_CORE == request->initiator) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
+                return;
+#else
+                return 0;
+#endif
+            }
+            init_by_reg_core = VOS_TRUE;
+        }
+
+        if ((NL80211_REGDOM_SET_BY_DRIVER == request->initiator) &&
+            (VOS_TRUE == init_by_driver)) {
+
+            /*
+             * restore the driver regulatory flags since
+             * regulatory_hint may have
+             * changed them
+             */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
+            wiphy->regulatory_flags = pHddCtx->reg.reg_flags;;
+#else
+            wiphy->flags = pHddCtx->reg.reg_flags;
+#endif
+            complete(&pHddCtx->linux_reg_req);
+        }
 
         if (NL80211_REGDOM_SET_BY_CORE == request->initiator)
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_CORE;
         else if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator)
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_DRIVER;
         else pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
+
+        /* first lookup the country in the local database */
+        country_code[0] = request->alpha2[0];
+        country_code[1] = request->alpha2[1];
+
+        pHddCtx->reg.alpha2[0] = request->alpha2[0];
+        pHddCtx->reg.alpha2[1] = request->alpha2[1];
 
         vos_update_reg_info(pHddCtx);
         vos_reg_apply_world_flags(wiphy, request->initiator, &pHddCtx->reg);
@@ -1785,26 +1834,17 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         linux_reg_cc[0] = country_code[0];
         linux_reg_cc[1] = country_code[1];
 
-        if ((VOS_TRUE == init_by_reg_core) || (VOS_TRUE == init_by_driver)) {
-            /* now pass the new country information to sme */
-            if (request->alpha2[0] == '0' && request->alpha2[1] == '0')
-            {
-                sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
-                                             REGDOMAIN_COUNT);
-            }
-            else
-            {
-                sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
-                                         temp_reg_domain);
-            }
+        /* now pass the new country information to sme */
+        if (request->alpha2[0] == '0' && request->alpha2[1] == '0')
+        {
+            sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
+                                         REGDOMAIN_COUNT);
         }
-
-        if (VOS_FALSE == init_by_driver) {
-            if (request->initiator != NL80211_REGDOM_SET_BY_CORE)
-                init_by_reg_core = VOS_TRUE;
-        } else
-            if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER)
-                complete(&pHddCtx->linux_reg_req);
+        else
+        {
+            sme_GenericChangeCountryCode(pHddCtx->hHal, country_code,
+                                         temp_reg_domain);
+        }
 
         /* send CTL info to firmware */
         regdmn_set_regval(&pHddCtx->reg);
