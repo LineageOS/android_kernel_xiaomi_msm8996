@@ -14710,6 +14710,12 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		iface->aid = params->assocId;
 		goto out;
 	}
+	if (wma->interfaces[params->smesessionId].vdev_up == true) {
+		WMA_LOGE("%s: vdev id %d is already UP for %pM", __func__,
+			params->smesessionId, params->bssId);
+		status = VOS_STATUS_E_FAILURE;
+		goto out;
+	}
 	if (peer != NULL && peer->state == ol_txrx_peer_state_disc) {
 		/*
 		 * This is the case for reassociation.
