@@ -1043,7 +1043,7 @@ end:
 }
 #endif
 
-static int hdd_netdev_notifier_call(struct notifier_block * nb,
+static int __hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
 {
@@ -1126,6 +1126,27 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    }
 
    return NOTIFY_DONE;
+}
+
+/**
+ * hdd_netdev_notifier_call() - netdev notifier callback function
+ * @nb: pointer to notifier block
+ * @state: state
+ * @ndev: ndev pointer
+ *
+ * Return: 0 on success, error number otherwise.
+ */
+static int hdd_netdev_notifier_call(struct notifier_block * nb,
+					unsigned long state,
+					void *ndev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_netdev_notifier_call(nb, state, ndev);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 struct notifier_block hdd_netdev_notifier = {
