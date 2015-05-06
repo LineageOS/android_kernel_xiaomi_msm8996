@@ -12500,9 +12500,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     }
     if (TRUE == pHddCtx->tmInfo.tmAction.enterImps)
     {
+        mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: MAX TM Level Scan not allowed", __func__);
-        mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
         return -EBUSY;
     }
     mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);

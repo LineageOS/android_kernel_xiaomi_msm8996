@@ -1129,10 +1129,10 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     if( (cfgState->remain_on_chan_ctx == NULL) ||
         (cfgState->remain_on_chan_ctx->cookie != cookie) )
     {
+        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
         hddLog( LOGE,
             "%s: No Remain on channel pending with specified cookie value",
              __func__);
-        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
         return -EINVAL;
     }
 
@@ -1449,12 +1449,12 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
                    vos_timer_stop(&cfgState->remain_on_chan_ctx->hdd_remain_on_chan_timer);
                    status = vos_timer_start(&cfgState->remain_on_chan_ctx->hdd_remain_on_chan_timer,
                                                         wait);
+                   mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
                    if(status != VOS_STATUS_SUCCESS)
                    {
                       hddLog( LOGE, "%s: Remain on Channel timer start failed",
                                     __func__);
                    }
-                   mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
                    goto send_frame;
                } else {
 

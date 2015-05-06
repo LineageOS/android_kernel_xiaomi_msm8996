@@ -13873,9 +13873,9 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
             vos_status = vos_wait_single_event(&hostapd_state->stop_bss_event,
                                                10000);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+                mutex_unlock(&hdd_ctx->sap_lock);
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                           FL("SAP Stop Failed"));
-                mutex_unlock(&hdd_ctx->sap_lock);
                 return;
             }
         }
