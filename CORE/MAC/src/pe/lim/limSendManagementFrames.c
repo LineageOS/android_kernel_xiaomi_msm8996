@@ -1026,7 +1026,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         if (total_noaLen > (SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN))
         {
             limLog(pMac, LOGE,
-                  FL("Not able to insert NoA because of length constraint"));
+                  FL("Not able to insert NoA, total len=%d"), total_noaLen);
             vos_mem_free(addIE);
             vos_mem_free(pFrm);
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
@@ -2347,6 +2347,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #ifndef FEATURE_DISABLE_RM
         PopulateDot11fESERadMgmtCap(&pFrm->ESERadMgmtCap);
 #endif
+        PopulateDot11fESEVersion(&pFrm->ESEVersion);
     }
 #endif
 
@@ -2705,6 +2706,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #ifndef FEATURE_DISABLE_RM
         PopulateDot11fESERadMgmtCap(&frm.ESERadMgmtCap);
 #endif
+        PopulateDot11fESEVersion(&frm.ESEVersion);
     }
 #endif //FEATURE_WLAN_ESE
 #endif //FEATURE_WLAN_ESE || FEATURE_WLAN_LFR

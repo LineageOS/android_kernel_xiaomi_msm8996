@@ -323,6 +323,7 @@ struct regulatory {
     uint8_t ctl_5g;
     const void *regpair;
     COUNTRY_CODE_SOURCE cc_src;
+    uint32_t reg_flags;
 };
 /* Multi-Device RegDomain Support */
 typedef struct ath_hal_reg_dmn_tables {

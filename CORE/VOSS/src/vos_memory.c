@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -74,11 +74,25 @@ static v_U8_t WLAN_MEM_TAIL[]   =  {0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x
 struct s_vos_mem_struct
 {
    hdd_list_node_t pNode;
-   char* fileName;
+   const char *fileName;
    unsigned int lineNum;
    unsigned int size;
    v_U8_t header[8];
 };
+
+#ifdef MEM_USAGE_TRACE
+#define MIN_TRACE_SIZE (50 * 1024)
+#define MAX_USAGE_TRACE_BUF_NUM 20
+struct s_vos_mem_usage_struct {
+	const char *fileName;
+	unsigned int lineNum;
+	unsigned int size;
+	unsigned int peakCount;
+	unsigned int activeCount;
+};
+static unsigned int g_usage_index = 0;
+static struct s_vos_mem_usage_struct g_usage_mem_buf[MAX_USAGE_TRACE_BUF_NUM];
+#endif
 #endif
 
 /*---------------------------------------------------------------------------
@@ -97,10 +111,151 @@ struct s_vos_mem_struct
  * External Function implementation
  * ------------------------------------------------------------------------*/
 #ifdef MEMORY_DEBUG
+#ifdef MEM_USAGE_TRACE
+static void
+init_trace_usage(void)
+{
+	g_usage_index = 0;
+	memset(&g_usage_mem_buf[0], 0, sizeof(g_usage_mem_buf));
+	pr_info("%s: Mem Usage Trace Enabled ******\n", __func__);
+}
+
+static void
+alloc_trace_usage(const char *fileName, unsigned int lineNum,
+		unsigned int size)
+{
+	unsigned int i;
+	struct s_vos_mem_usage_struct *p;
+
+	if (size < MIN_TRACE_SIZE)
+		return;
+
+	for (i = 0 ; i < g_usage_index; i++) {
+		p = &g_usage_mem_buf[i];
+		if (p->fileName == fileName && p->lineNum == lineNum &&
+			p->size == size) {
+			p->activeCount++;
+			if (p->activeCount > p->peakCount) {
+				p->peakCount = p->activeCount;
+			}
+			return;
+		}
+	}
+
+	if (g_usage_index >= MAX_USAGE_TRACE_BUF_NUM) {
+		pr_err("usage trace buf overflow\n");
+		return;
+	}
+	i = g_usage_index;
+	g_usage_index++;
+
+	p = &g_usage_mem_buf[i];
+	p->fileName = fileName;
+	p->lineNum = lineNum;
+	p->size = size;
+	p->activeCount = 1;
+	p->peakCount = 1;
+}
+
+static void
+free_trace_usage(const char *fileName, unsigned int lineNum,
+		unsigned int size)
+{
+	unsigned int i;
+	struct s_vos_mem_usage_struct *p;
+
+	if (size < MIN_TRACE_SIZE)
+		return;
+
+	for (i = 0 ; i < g_usage_index; i++) {
+		p = &g_usage_mem_buf[i];
+		if (p->fileName == fileName && p->lineNum == lineNum &&
+			p->size == size) {
+			p->activeCount--;
+			return;
+		}
+	}
+}
+
+static void dump_trace_usage(void)
+{
+	unsigned int i;
+	struct s_vos_mem_usage_struct *p;
+
+	for (i = 0 ; i < g_usage_index; i++) {
+		p = &g_usage_mem_buf[i];
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			"%s: size %d active %d peak %d file %s %d",
+			__func__, p->size, p->activeCount, p->peakCount,
+			p->fileName, p->lineNum);
+	}
+}
+#else
+static inline void init_trace_usage(void)
+{
+	return;
+}
+
+static inline void
+alloc_trace_usage(const char *fileName, unsigned int lineNum,
+		unsigned int size)
+{
+	return;
+}
+
+static inline void
+free_trace_usage(const char *fileName, unsigned int lineNum,
+		unsigned int size)
+{
+	return;
+}
+
+static inline void dump_trace_usage(void)
+{
+	return;
+}
+#endif
+
+void vos_mem_trace_dump(int level)
+{
+	hdd_list_node_t *pNode;
+	hdd_list_node_t *pNodeNext = NULL;
+	unsigned int totalUsed = 0;
+	int i = 0;
+	VOS_STATUS vosStatus;
+	struct s_vos_mem_struct *memStruct;
+
+	spin_lock(&vosMemList.lock);
+	hdd_list_peek_front(&vosMemList, &pNodeNext);
+	do {
+		if (pNodeNext == NULL)
+			break;
+		pNode = pNodeNext;
+		memStruct = (struct s_vos_mem_struct *)pNode;
+		totalUsed += memStruct->size;
+		if (level >= 1) {
+			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+				"vos_mem [%04d] @ File %s, @Line %d, size %d",
+				i, memStruct->fileName, memStruct->lineNum,
+				memStruct->size);
+		}
+		i++;
+		pNodeNext = NULL;
+	} while ((vosStatus = hdd_list_peek_next(&vosMemList,
+		pNode, &pNodeNext)) == VOS_STATUS_SUCCESS);
+	spin_unlock(&vosMemList.lock);
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+		"vos_mem [total active] count %d size %d", i, totalUsed);
+
+	dump_trace_usage();
+}
+
 void vos_mem_init()
 {
    /* Initalizing the list with maximum size of 60000 */
    hdd_list_init(&vosMemList, 60000);
+   init_trace_usage();
+   pr_info("%s: Memory Debug Enabled ******\n", __func__);
    return;
 }
 
@@ -115,7 +270,7 @@ void vos_mem_clean()
        VOS_STATUS vosStatus;
 
        struct s_vos_mem_struct* memStruct;
-       char* prev_mleak_file = "";
+       const char *prev_mleak_file = "";
        unsigned int prev_mleak_lineNum = 0;
        unsigned int prev_mleak_sz = 0;
        unsigned int mleak_cnt = 0;
@@ -170,6 +325,8 @@ void vos_mem_clean()
        BUG_ON(0);
 #endif
     }
+
+    dump_trace_usage();
 }
 
 void vos_mem_exit()
@@ -178,7 +335,8 @@ void vos_mem_exit()
     hdd_list_destroy(&vosMemList);
 }
 
-v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
+v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
+                                          v_U32_t lineNum)
 {
    struct s_vos_mem_struct* memStruct;
    v_VOID_t* memPtr = NULL;
@@ -194,7 +352,7 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
        return NULL;
    }
 
-   if (in_interrupt() || in_atomic())
+   if (in_interrupt() || in_atomic() || irqs_disabled())
    {
        flags = GFP_ATOMIC;
    }
@@ -226,6 +384,7 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 
       spin_lock_irqsave(&vosMemList.lock, IrqFlags);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      alloc_trace_usage(fileName, lineNum, size);
       spin_unlock_irqrestore(&vosMemList.lock, IrqFlags);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
@@ -254,6 +413,8 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
 
         spin_lock_irqsave(&vosMemList.lock, IrqFlags);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        free_trace_usage(memStruct->fileName, memStruct->lineNum,
+                         memStruct->size);
         spin_unlock_irqrestore(&vosMemList.lock, IrqFlags);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
@@ -476,6 +637,7 @@ v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t line
 
       spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      alloc_trace_usage(fileName, lineNum, size);
       spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
@@ -498,6 +660,8 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
 
         spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        free_trace_usage(memStruct->fileName, memStruct->lineNum,
+                             memStruct->size);
         spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)

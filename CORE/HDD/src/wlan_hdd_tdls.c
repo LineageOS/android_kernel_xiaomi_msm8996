@@ -631,10 +631,10 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     {
         pHddCtx->tdls_mode = eTDLS_SUPPORT_NOT_ENABLED;
         pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
+        mutex_unlock(&pHddCtx->tdls_lock);
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s TDLS not enabled (%d) or FW doesn't support",
                __func__, pHddCtx->cfg_ini->fEnableTDLSSupport);
-        mutex_unlock(&pHddCtx->tdls_lock);
         return 0;
     }
     /* TDLS is supported only in STA / P2P Client modes,
@@ -663,9 +663,9 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
         pHddTdlsCtx = vos_mem_malloc(sizeof(tdlsCtx_t));
 
         if (NULL == pHddTdlsCtx) {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s malloc failed!", __func__);
             pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
             mutex_unlock(&pHddCtx->tdls_lock);
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s malloc failed!", __func__);
             return -1;
         }
         /* initialize TDLS pAdater context */
@@ -1086,9 +1086,9 @@ hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, const u8 *mac)
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
 
     if (NULL == pHddTdlsCtx) {
-        hddLog(LOG1, FL("pHddTdlsCtx is NULL"));
         vos_mem_free(peer);
         mutex_unlock(&pHddCtx->tdls_lock);
+        hddLog(LOG1, FL("pHddTdlsCtx is NULL"));
         return NULL;
     }
 
@@ -1641,9 +1641,9 @@ static void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
 
     if (pHddCtx->tdls_mode == tdls_mode)
     {
+        mutex_unlock(&pHddCtx->tdls_lock);
         hddLog(VOS_TRACE_LEVEL_INFO,
                "%s already in mode %d", __func__, (int)tdls_mode);
-        mutex_unlock(&pHddCtx->tdls_lock);
         return;
     }
 
@@ -2232,9 +2232,9 @@ void wlan_hdd_tdls_disconnection_callback(hdd_adapter_t *pAdapter)
 
     if (NULL == pHddTdlsCtx)
     {
+       mutex_unlock(&pHddCtx->tdls_lock);
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 FL("pHddTdlsCtx is NULL"));
-        mutex_unlock(&pHddCtx->tdls_lock);
         return;
     }
     pHddTdlsCtx->discovery_sent_cnt = 0;
@@ -2943,16 +2943,16 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
         case eTDLS_LINK_IDLE:
         case eTDLS_LINK_DISCOVERING:
         case eTDLS_LINK_DISCOVERED:
-            *state = WIFI_TDLS_ENABLED;
+            *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
         case eTDLS_LINK_CONNECTING:
-            *state = WIFI_TDLS_TRYING;
+            *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
         case eTDLS_LINK_CONNECTED:
-            *state = WIFI_TDLS_ESTABLISHED;
+            *state = QCA_WIFI_HAL_TDLS_ESTABLISHED;
             break;
         case eTDLS_LINK_TEARING:
-            *state = WIFI_TDLS_DROPPED;
+            *state = QCA_WIFI_HAL_TDLS_DROPPED;
             break;
     }
 }

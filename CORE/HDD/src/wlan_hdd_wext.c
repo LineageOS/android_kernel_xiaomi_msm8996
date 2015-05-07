@@ -385,6 +385,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #ifdef WLAN_FEATURE_GPIO_LED_FLASHING
 #define WE_LED_FLASHING_PARAM    10
 #endif
+#ifdef MEMORY_DEBUG
+#define WE_MEM_TRACE_DUMP     11
+#endif
 #ifdef FEATURE_WLAN_TDLS
 #undef  MAX_VAR_ARGS
 #define MAX_VAR_ARGS         11
@@ -7670,6 +7673,18 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
             }
             break;
 #endif
+
+#ifdef MEMORY_DEBUG
+        case WE_MEM_TRACE_DUMP:
+            {
+                int level = 0;
+                if (num_args >= 1) {
+                    level = apps_args[0];
+                }
+                vos_mem_trace_dump(level);
+            }
+            break;
+#endif
         default:
             {
                 hddLog(LOGE, FL("Invalid IOCTL command %d"), sub_cmd );
@@ -10849,6 +10864,14 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0,
         "gpio_control" },
+#endif
+
+#ifdef MEMORY_DEBUG
+    /* handlers for sub ioctl */
+    {   WE_MEM_TRACE_DUMP,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0,
+        "memTraceLog" },
 #endif
 
     /* handlers for main ioctl */

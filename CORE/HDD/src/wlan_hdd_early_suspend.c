@@ -543,7 +543,7 @@ void hdd_conf_gtk_offload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
 #endif /*WLAN_FEATURE_GTK_OFFLOAD*/
 
 #ifdef WLAN_NS_OFFLOAD
-static int wlan_hdd_ipv6_changed(struct notifier_block *nb,
+static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
                                    unsigned long data, void *arg)
 {
     struct inet6_ifaddr *ifa = (struct inet6_ifaddr *)arg;
@@ -567,6 +567,30 @@ static int wlan_hdd_ipv6_changed(struct notifier_block *nb,
     }
 
     return NOTIFY_DONE;
+}
+
+/**
+ * wlan_hdd_ipv6_changed() - IPv6 change notifier callback
+ * @nb: pointer to notifier block
+ * @data: data
+ * @arg: arg
+ *
+ * This is the IPv6 notifier callback function gets invoked
+ * if any change in IP and then invoke the function @__wlan_hdd_ipv6_changed
+ * to reconfigure the offload parameters.
+ *
+ * Return: 0 on success, error number otherwise.
+ */
+static int wlan_hdd_ipv6_changed(struct notifier_block *nb,
+				unsigned long data, void *arg)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_ipv6_changed(nb, data, arg);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**----------------------------------------------------------------------------
@@ -973,7 +997,7 @@ void hdd_ipv4_notifier_work_queue(struct work_struct *work)
     }
 }
 
-static int wlan_hdd_ipv4_changed(struct notifier_block *nb,
+static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
                                    unsigned long data, void *arg)
 {
     struct in_ifaddr *ifa = (struct in_ifaddr *)arg;
@@ -1012,6 +1036,30 @@ static int wlan_hdd_ipv4_changed(struct notifier_block *nb,
     }
 
     return NOTIFY_DONE;
+}
+
+/**
+ * wlan_hdd_ipv4_changed() - IPv4 change notifier callback
+ * @nb: pointer to notifier block
+ * @data: data
+ * @arg: arg
+ *
+ * This is the IPv4 notifier callback function gets invoked
+ * if any change in IP and then invoke the function @__wlan_hdd_ipv4_changed
+ * to reconfigure the offload parameters.
+ *
+ * Return: 0 on success, error number otherwise.
+ */
+static int wlan_hdd_ipv4_changed(struct notifier_block *nb,
+				unsigned long data, void *arg)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_ipv4_changed(nb, data, arg);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**----------------------------------------------------------------------------

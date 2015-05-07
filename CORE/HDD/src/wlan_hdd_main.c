@@ -1043,7 +1043,7 @@ end:
 }
 #endif
 
-static int hdd_netdev_notifier_call(struct notifier_block * nb,
+static int __hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
 {
@@ -1126,6 +1126,27 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    }
 
    return NOTIFY_DONE;
+}
+
+/**
+ * hdd_netdev_notifier_call() - netdev notifier callback function
+ * @nb: pointer to notifier block
+ * @state: state
+ * @ndev: ndev pointer
+ *
+ * Return: 0 on success, error number otherwise.
+ */
+static int hdd_netdev_notifier_call(struct notifier_block * nb,
+					unsigned long state,
+					void *ndev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_netdev_notifier_call(nb, state, ndev);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 struct notifier_block hdd_netdev_notifier = {
@@ -13873,9 +13894,9 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
             vos_status = vos_wait_single_event(&hostapd_state->stop_bss_event,
                                                10000);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+                mutex_unlock(&hdd_ctx->sap_lock);
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                           FL("SAP Stop Failed"));
-                mutex_unlock(&hdd_ctx->sap_lock);
                 return;
             }
         }
