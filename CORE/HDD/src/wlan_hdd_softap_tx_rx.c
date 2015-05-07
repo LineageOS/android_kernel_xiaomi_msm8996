@@ -1093,6 +1093,12 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
        return VOS_STATUS_E_FAILURE;
    }
 
+   if (!pAdapter->dev) {
+       VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_FATAL,
+          "Invalid DEV(NULL) Drop packets");
+       return VOS_STATUS_E_FAILURE;
+   }
+
    ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
 
    // walk the chain until all are processed
@@ -1101,13 +1107,6 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    while (NULL != skb) {
       skb_next = skb->next;
       skb->dev = pAdapter->dev;
-      if (skb->dev == NULL) {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                   "%s: ERROR!!Invalid netdevice", __func__);
-         kfree_skb(skb);
-         skb = skb_next;
-         continue;
-      }
 
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
       ++pAdapter->stats.rx_packets;
