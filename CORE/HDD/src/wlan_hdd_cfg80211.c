@@ -9617,13 +9617,21 @@ VOS_STATUS wlan_hdd_validate_operation_channel(hdd_adapter_t *pAdapter,int chann
 }
 
 /**
- * FUNCTION: wlan_hdd_cfg80211_set_channel
+ * __wlan_hdd_cfg80211_set_channel() - cfg80211 set channel
+ * @wiphy: pointer to wiphy structure
+ * @dev: pointer to net_device structure
+ * @chan: pointer to ieee80211_channel structure
+ * @channel_type: channel type
+ *
  * This function is used to set the channel number
+ *
+ * Return; 0 on success, error number otherwise
  */
-static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
-                                   struct ieee80211_channel *chan,
-                                   enum nl80211_channel_type channel_type
-                                 )
+static int
+__wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
+				struct net_device *dev,
+				struct ieee80211_channel *chan,
+				enum nl80211_channel_type channel_type)
 {
     hdd_adapter_t *pAdapter = NULL;
     v_U32_t num_ch = 0;
@@ -9809,6 +9817,32 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
     return status;
 }
 
+/**
+ * wlan_hdd_cfg80211_set_channel() - cfg80211 set channel
+ * @wiphy: pointer to wiphy structure
+ * @dev: pointer to net_device structure
+ * @chan: pointer to ieee80211_channel structure
+ * @channel_type: channel type
+ *
+ * This is the cfg80211 set channel handler function which invokes
+ * the internal function @__wlan_hdd_cfg80211_set_channel with
+ * SSR protection.
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
+					struct net_device *dev,
+					struct ieee80211_channel *chan,
+					enum nl80211_channel_type channel_type)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_set_channel(wiphy, dev, chan, channel_type);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
 
 #ifdef DHCP_SERVER_OFFLOAD
 static void wlan_hdd_set_dhcp_server_offload(hdd_adapter_t *pHostapdAdapter)
@@ -11827,13 +11861,22 @@ static bool wlan_hdd_is_duplicate_channel(tANI_U8 *arr,
 }
 #endif /* FEATURE_WLAN_TDLS */
 
+/**
+ * __wlan_hdd_change_station() - change station
+ * @wiphy: Pointer to the wiphy structure
+ * @dev: Pointer to the net device.
+ * @mac: bssid
+ * @params: Pointer to station parameters
+ *
+ * Return: 0 for success, error number on failure.
+ */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)) || defined(WITH_BACKPORTS)
-static int wlan_hdd_change_station(struct wiphy *wiphy,
+static int __wlan_hdd_change_station(struct wiphy *wiphy,
                                          struct net_device *dev,
                                          const u8 *mac,
                                          struct station_parameters *params)
 #else
-static int wlan_hdd_change_station(struct wiphy *wiphy,
+static int __wlan_hdd_change_station(struct wiphy *wiphy,
                                          struct net_device *dev,
                                          u8 *mac,
                                          struct station_parameters *params)
@@ -12043,6 +12086,40 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     }
     EXIT();
     return ret;
+}
+
+/**
+ * wlan_hdd_change_station() - cfg80211 change station handler function
+ * @wiphy: Pointer to the wiphy structure
+ * @dev: Pointer to the net device.
+ * @mac: bssid
+ * @params: Pointer to station parameters
+ *
+ * This is the cfg80211 change station handler function which invokes
+ * the internal function @__wlan_hdd_change_station with
+ * SSR protection.
+ *
+ * Return: 0 for success, error number on failure.
+ */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)) || defined(WITH_BACKPORTS)
+static int wlan_hdd_change_station(struct wiphy *wiphy,
+				   struct net_device *dev,
+				   const u8 *mac,
+				   struct station_parameters *params)
+#else
+static int wlan_hdd_change_station(struct wiphy *wiphy,
+				   struct net_device *dev,
+				   u8 *mac,
+				   struct station_parameters *params)
+#endif
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_change_station(wiphy, dev, mac, params);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /*
@@ -12503,16 +12580,22 @@ static int wlan_hdd_cfg80211_get_key(
     return ret;
 }
 
-/*
- * FUNCTION: wlan_hdd_cfg80211_del_key
+/**
+ * __wlan_hdd_cfg80211_del_key() - cfg80211 delete key
+ * @wiphy: Pointer to wiphy structure.
+ * @ndev: Pointer to net_device structure.
+ * @key_index: key index
+ * @pairwise: pairwise
+ * @mac_addr: mac address
+ *
  * This function is used to delete the key information
+ *
+ * Return: 0 for success, error number on failure.
  */
-static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
-                                      struct net_device *ndev,
-                                      u8 key_index,
-                                      bool pairwise,
-                                      const u8 *mac_addr
-                                    )
+static int __wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
+					struct net_device *ndev,
+					u8 key_index,
+					bool pairwise, const u8 *mac_addr)
 {
     int status = 0;
 
@@ -12608,6 +12691,35 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
 #endif
     EXIT();
     return status;
+}
+
+/**
+ * wlan_hdd_cfg80211_del_key() - cfg80211 delete key handler function
+ * @wiphy: Pointer to wiphy structure.
+ * @dev: Pointer to net_device structure.
+ * @key_index: key index
+ * @pairwise: pairwise
+ * @mac_addr: mac address
+ *
+ * This is the cfg80211 delete key handler function which invokes
+ * the internal function @__wlan_hdd_cfg80211_del_key with
+ * SSR protection.
+ *
+ * Return: 0 for success, error number on failure.
+ */
+static int wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
+					struct net_device *dev,
+					u8 key_index,
+					bool pairwise, const u8 *mac_addr)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_del_key(wiphy, dev, key_index,
+					  pairwise, mac_addr);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /*
@@ -16012,12 +16124,18 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
    return ret;
 }
 
-/*
- * FUNCTION: wlan_hdd_cfg80211_get_txpower
+/**
+ * __wlan_hdd_cfg80211_get_txpower() - cfg80211 get txpower
+ * @wiphy: Pointer to wiphy structure.
+ * @wdev: Pointer to wireless_dev structure.
+ * @dbm: dbm
+ *
  * This function is used to read the txpower
+ *
+ * Return: 0 for success, error number on failure.
  */
-static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) || defined(WITH_BACKPORTS)
+static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0) || defined(WITH_BACKPORTS)
                                          struct wireless_dev *wdev,
 #endif
                                          int *dbm)
@@ -16052,6 +16170,37 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 
     EXIT();
     return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_txpower() - cfg80211 get power handler function
+ * @wiphy: Pointer to wiphy structure.
+ * @wdev: Pointer to wireless_dev structure.
+ * @dbm: dbm
+ *
+ * This is the cfg80211 get txpower handler function which invokes
+ * the internal function @__wlan_hdd_cfg80211_get_txpower with
+ * SSR protection.
+ *
+ * Return: 0 for success, error number on failure.
+ */
+static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0) || defined(WITH_BACKPORTS)
+					 struct wireless_dev *wdev,
+#endif
+					 int *dbm)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_txpower(wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0) || defined(WITH_BACKPORTS)
+						wdev,
+#endif
+						dbm);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 
@@ -16667,8 +16816,15 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
     return ret;
 }
 
-
-static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
+/**
+ * __wlan_hdd_set_default_mgmt_key() - set default mgmt key
+ * @wiphy: pointer to wiphy
+ * @netdev: pointer to net_device structure
+ * @key_index: key index
+ *
+ * Return: 0 on success
+ */
+static int __wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
                          struct net_device *netdev,
                          u8 key_index)
 {
@@ -16676,20 +16832,85 @@ static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
     return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) || defined(WITH_BACKPORTS)
-static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
-                   struct net_device *dev,
-                   struct ieee80211_txq_params *params)
+/**
+ * wlan_hdd_set_default_mgmt_key() - SSR wrapper for
+ *				wlan_hdd_set_default_mgmt_key
+ * @wiphy: pointer to wiphy
+ * @netdev: pointer to net_device structure
+ * @key_index: key index
+ *
+ * Return: 0 on success, error number on failure
+ */
+static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
+					   struct net_device *netdev,
+					   u8 key_index)
 {
-    ENTER();
-    return 0;
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_set_default_mgmt_key(wiphy, netdev, key_index);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __wlan_hdd_set_txq_params() - set tx queue parameters
+ * @wiphy: pointer to wiphy
+ * @netdev: pointer to net_device structure
+ * @params: pointer to ieee80211_txq_params
+ *
+ * Return: 0 on success
+ */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || defined(WITH_BACKPORTS)
+static int __wlan_hdd_set_txq_params(struct wiphy *wiphy,
+				     struct net_device *dev,
+				     struct ieee80211_txq_params *params)
+{
+	ENTER();
+	return 0;
+}
+#else
+static int __wlan_hdd_set_txq_params(struct wiphy *wiphy,
+				     struct ieee80211_txq_params *params)
+{
+	ENTER();
+	return 0;
+}
+#endif
+
+/**
+ * wlan_hdd_set_txq_params() - SSR wrapper for wlan_hdd_set_txq_params
+ * @wiphy: pointer to wiphy
+ * @netdev: pointer to net_device structure
+ * @params: pointer to ieee80211_txq_params
+ *
+ * Return: 0 on success, error number on failure
+ */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || defined(WITH_BACKPORTS)
+static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
+				   struct net_device *dev,
+				   struct ieee80211_txq_params *params)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_set_txq_params(wiphy, dev, params);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 #else
 static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
-                   struct ieee80211_txq_params *params)
+				   struct ieee80211_txq_params *params)
 {
-    ENTER();
-    return 0;
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_set_txq_params(wiphy, params);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 #endif //LINUX_VERSION_CODE
 
@@ -16843,7 +17064,8 @@ int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
     vos_ssr_protect(__func__);
 #ifdef CFG80211_DEL_STA_V2
     if (NULL == param) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid argumet passed", __func__);
+        hddLog(LOGE, FL("Invalid argument passed"));
+        vos_ssr_unprotect(__func__);
         return -EINVAL;
     }
 
@@ -17685,37 +17907,51 @@ static int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 
 #ifdef FEATURE_WLAN_TDLS
 
+/**
+ * __wlan_hdd_cfg80211_tdls_mgmt() - cfg80211 tdls mgmt handler function
+ * @wiphy: Pointer to wiphy structure.
+ * @dev: Pointer to net_device structure.
+ * @peer: peer address
+ * @action_code: action code
+ * @dialog_token: dialog token
+ * @status_code: status code
+ * @peer_capability: peer capability
+ * @buf: buffer
+ * @len: Length of @buf
+ *
+ * Return: 0 for success, error number on failure.
+ */
 #if TDLS_MGMT_VERSION2
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                                        struct net_device *dev,
                                        u8 *peer, u8 action_code,
                                        u8 dialog_token,
                                        u16 status_code, u32 peer_capability,
                                        const u8 *buf, size_t len)
 #else /* TDLS_MGMT_VERSION2 */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
+static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                                        struct net_device *dev,
                                        const u8 *peer, u8 action_code,
                                        u8 dialog_token, u16 status_code,
                                        u32 peer_capability, bool initiator,
                                        const u8 *buf, size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0))
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                                        struct net_device *dev,
                                        const u8 *peer, u8 action_code,
                                        u8 dialog_token, u16 status_code,
                                        u32 peer_capability, const u8 *buf,
                                        size_t len)
-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0))
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                                        struct net_device *dev,
                                        u8 *peer, u8 action_code,
                                        u8 dialog_token,
                                        u16 status_code, u32 peer_capability,
                                        const u8 *buf, size_t len)
 #else
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                                        struct net_device *dev,
                                        u8 *peer, u8 action_code,
                                        u8 dialog_token,
@@ -17961,6 +18197,95 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     }
 
     return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_tdls_mgmt() - cfg80211 tdls mgmt handler function
+ * @wiphy: Pointer to wiphy structure.
+ * @dev: Pointer to net_device structure.
+ * @peer: peer address
+ * @action_code: action code
+ * @dialog_token: dialog token
+ * @status_code: status code
+ * @peer_capability: peer capability
+ * @buf: buffer
+ * @len: Length of @buf
+ *
+ * This is the cfg80211 tdls mgmt handler function which invokes
+ * the internal function @__wlan_hdd_cfg80211_tdls_mgmt with
+ * SSR protection.
+ *
+ * Return: 0 for success, error number on failure.
+ */
+#if TDLS_MGMT_VERSION2
+static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+					struct net_device *dev,
+					u8 *peer, u8 action_code,
+					u8 dialog_token,
+					u16 status_code, u32 peer_capability,
+					const u8 *buf, size_t len)
+#else /* TDLS_MGMT_VERSION2 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
+static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+					struct net_device *dev,
+					const u8 *peer, u8 action_code,
+					u8 dialog_token, u16 status_code,
+					u32 peer_capability, bool initiator,
+					const u8 *buf, size_t len)
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+					struct net_device *dev,
+					const u8 *peer, u8 action_code,
+					u8 dialog_token, u16 status_code,
+					u32 peer_capability, const u8 *buf,
+					size_t len)
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+					struct net_device *dev,
+					u8 *peer, u8 action_code,
+					u8 dialog_token,
+					u16 status_code, u32 peer_capability,
+					const u8 *buf, size_t len)
+#else
+static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
+					struct net_device *dev,
+					u8 *peer, u8 action_code,
+					u8 dialog_token,
+					u16 status_code, const u8 *buf,
+					size_t len)
+#endif
+#endif
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+#if TDLS_MGMT_VERSION2
+	ret = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
+						dialog_token, status_code,
+						peer_capability, buf, len);
+#else /* TDLS_MGMT_VERSION2 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
+	ret = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
+					dialog_token, status_code,
+					peer_capability, initiator,
+					buf, len);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+	ret = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
+					dialog_token, status_code,
+					peer_capability, buf, len);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+	ret = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
+					dialog_token, status_code,
+					peer_capability, buf, len);
+#else
+	ret = __wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, action_code,
+					dialog_token, status_code, buf, len);
+#endif
+#endif
+
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 int wlan_hdd_tdls_extctrl_config_peer(hdd_adapter_t *pAdapter,
@@ -18582,12 +18907,18 @@ int wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy,
     return ret;
 }
 #endif /*WLAN_FEATURE_GTK_OFFLOAD*/
-/*
- * FUNCTION: wlan_hdd_cfg80211_set_mac_acl
- * This function is used to set access control policy
+
+/**
+ * __wlan_hdd_cfg80211_set_mac_acl() - Set access control policy
+ * @wiphy: pointer to wiphy structure
+ * @dev: pointer to net_device
+ * @params: pointer to cfg80211_acl_data
+ *
+ * Return; 0 on success, error number otherwise
  */
-static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
-                struct net_device *dev, const struct cfg80211_acl_data *params)
+static int __wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
+					struct net_device *dev,
+					const struct cfg80211_acl_data *params)
 {
     int i;
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
@@ -18713,6 +19044,29 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
     }
 
     return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_set_mac_acl() - SSR wrapper for
+ *				__wlan_hdd_cfg80211_set_mac_acl
+ * @wiphy: pointer to wiphy structure
+ * @dev: pointer to net_device
+ * @params: pointer to cfg80211_acl_data
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int
+wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
+			      struct net_device *dev,
+			      const struct cfg80211_acl_data *params)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_set_mac_acl(wiphy, dev, params);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #ifdef WLAN_NL80211_TESTMODE

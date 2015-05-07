@@ -63,6 +63,7 @@
 
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
+#include <vos_sched.h>
 
 
 #define WEXT_CSCAN_HEADER               "CSCAN S\x01\x00\x00S\x00"
@@ -579,24 +580,20 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     return eHAL_STATUS_SUCCESS;
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief iw_set_scan() -
-
-   This function process the scan request from the wpa_supplicant
-   and set the scan request to the SME
-
-  \param  - dev - Pointer to the net device.
-              - info - Pointer to the iw_request_info.
-              - wrqu - Pointer to the iwreq_data.
-              - extra - Pointer to the data.
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-
-int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
-                 union iwreq_data *wrqu, char *extra)
+/**
+ * __iw_set_scan() - set scan request
+ * @dev: Pointer to the net device.
+ * @info: Pointer to the iw_request_info.
+ * @wrqu: Pointer to the iwreq_data.
+ * @extra: Pointer to the data.
+ *
+ * This function process the scan request from the wpa_supplicant
+ * and set the scan request to the SME
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_set_scan(struct net_device *dev, struct iw_request_info *info,
+			 union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -749,24 +746,41 @@ error:
    return status;
 }
 
-/**---------------------------------------------------------------------------
+/**
+ * iw_set_scan() - SSR wrapper for __iw_set_scan
+ * @dev: Pointer to the net device.
+ * @info: Pointer to the iw_request_info.
+ * @wrqu: Pointer to the iwreq_data.
+ * @extra: Pointer to the data.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
+		 union iwreq_data *wrqu, char *extra)
+{
+	int ret;
 
-  \brief iw_get_scan() -
+	vos_ssr_protect(__func__);
+	ret = __iw_set_scan(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
 
-   This function returns the scan results to the wpa_supplicant
+	return ret;
+}
 
-  \param  - dev - Pointer to the net device.
-              - info - Pointer to the iw_request_info.
-              - wrqu - Pointer to the iwreq_data.
-              - extra - Pointer to the data.
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-
-int iw_get_scan(struct net_device *dev,
-                         struct iw_request_info *info,
-                         union iwreq_data *wrqu, char *extra)
+/**
+ * __iw_get_scan() - get scan results
+ * @dev: Pointer to the net device.
+ * @info: Pointer to the iw_request_info.
+ * @wrqu: Pointer to the iwreq_data.
+ * @extra: Pointer to the data.
+ *
+ * This function returns the scan results to the wpa_supplicant
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_get_scan(struct net_device *dev,
+			 struct iw_request_info *info,
+			 union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -831,6 +845,28 @@ int iw_get_scan(struct net_device *dev,
    EXIT();
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit total %d BSS reported !!!",__func__, i);
    return status;
+}
+
+/**
+ * iw_get_scan() - SSR wrapper function for __iw_get_scan
+ * @dev: Pointer to the net device.
+ * @info: Pointer to the iw_request_info.
+ * @wrqu: Pointer to the iwreq_data.
+ * @extra: Pointer to the data.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_get_scan(struct net_device *dev,
+			 struct iw_request_info *info,
+			 union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_scan(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #if 0

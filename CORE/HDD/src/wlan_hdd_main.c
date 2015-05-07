@@ -6945,12 +6945,33 @@ static int hdd_open(struct net_device *dev)
 	return ret;
 }
 
-
-int hdd_mon_open (struct net_device *dev)
+/**
+ * __hdd_mon_open() - HDD monitor open
+ * @dev: pointer to net_device
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int __hdd_mon_open(struct net_device *dev)
 {
-   netif_start_queue(dev);
+	netif_start_queue(dev);
+	return 0;
+}
 
-   return 0;
+/**
+ * hdd_mon_open() - SSR wrapper function for __hdd_mon_open
+ * @dev: pointer to net_device
+ *
+ * Return: 0 for success and error number for failure
+ */
+static int hdd_mon_open(struct net_device *dev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_mon_open(dev);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #ifdef MODULE
@@ -7446,18 +7467,13 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
 }
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-/**---------------------------------------------------------------------------
-
-  \brief hdd_set_multicast_list() -
-
-  This used to set the multicast address list.
-
-  \param  - dev - Pointer to the WLAN device.
-  - skb - Pointer to OS packet (sk_buff).
-  \return - success/fail
-
-  --------------------------------------------------------------------------*/
-static void hdd_set_multicast_list(struct net_device *dev)
+/**
+ * __hdd_set_multicast_list() - set the multicast address list
+ * @dev: pointer to net_device
+ *
+ * Return: none
+ */
+static void __hdd_set_multicast_list(struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    int mc_count;
@@ -7497,6 +7513,19 @@ static void hdd_set_multicast_list(struct net_device *dev)
       }
    }
    return;
+}
+
+/**
+ * hdd_set_multicast_list() - SSR wrapper function for __hdd_set_multicast_list
+ * @dev: pointer to net_device
+ *
+ * Return: none
+ */
+static void hdd_set_multicast_list(struct net_device *dev)
+{
+	vos_ssr_protect(__func__);
+	__hdd_set_multicast_list(dev);
+	vos_ssr_unprotect(__func__);
 }
 #endif
 

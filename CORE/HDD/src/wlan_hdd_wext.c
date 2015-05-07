@@ -1700,24 +1700,85 @@ int hdd_set_rx_stbc(hdd_adapter_t *adapter, int value)
 	return ret;
 }
 
-static int iw_set_commit(struct net_device *dev, struct iw_request_info *info,
-                         union iwreq_data *wrqu, char *extra)
+/**
+ * __iw_set_commit() - set commit
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_set_commit(struct net_device *dev, struct iw_request_info *info,
+			   union iwreq_data *wrqu, char *extra)
 {
-    hddLog( LOG1, "In %s", __func__);
-    /* Do nothing for now */
-    return 0;
+	ENTER();
+	/* Do nothing for now */
+	return 0;
 }
 
+/**
+ * iw_set_commit() - SSR wrapper function for __iw_set_commit
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_set_commit(struct net_device *dev, struct iw_request_info *info,
+		  union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_commit(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __iw_get_name() - get name
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_get_name(struct net_device *dev,
+			 struct iw_request_info *info,
+			 char *wrqu, char *extra)
+{
+	ENTER();
+	strlcpy(wrqu, "Qcom:802.11n", IFNAMSIZ);
+	EXIT();
+	return 0;
+}
+
+/**
+ * __iw_get_name() - SSR wrapper for __iw_get_name
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
 static int iw_get_name(struct net_device *dev,
-                       struct iw_request_info *info,
-                       char *wrqu, char *extra)
+			 struct iw_request_info *info,
+			 char *wrqu, char *extra)
 {
+	int ret;
 
-    ENTER();
-    strlcpy(wrqu, "Qcom:802.11n", IFNAMSIZ);
-    EXIT();
-    return 0;
+	vos_ssr_protect(__func__);
+	ret = __iw_get_name(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
+
 
 static int iw_set_mode(struct net_device *dev,
                              struct iw_request_info *info,
@@ -2538,20 +2599,82 @@ static int iw_set_frag_threshold(struct net_device *dev,
    return 0;
 }
 
-static int iw_get_power_mode(struct net_device *dev,
-                             struct iw_request_info *info,
-                             union iwreq_data *wrqu, char *extra)
+/**
+ * __iw_get_power_mode() - get power mode
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_get_power_mode(struct net_device *dev,
+			       struct iw_request_info *info,
+			       union iwreq_data *wrqu, char *extra)
 {
-   ENTER();
-   return -EOPNOTSUPP;
+	ENTER();
+	return -EOPNOTSUPP;
 }
 
-static int iw_set_power_mode(struct net_device *dev,
-                             struct iw_request_info *info,
-                             union iwreq_data *wrqu, char *extra)
+/**
+ * iw_get_power_mode() - SSR wrapper function for __iw_get_power_mode
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_get_power_mode(struct net_device *dev,
+		      struct iw_request_info *info,
+		      union iwreq_data *wrqu, char *extra)
 {
-    ENTER();
-    return -EOPNOTSUPP;
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_power_mode(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __iw_set_power_mode() - set power mode
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_set_power_mode(struct net_device *dev,
+			       struct iw_request_info *info,
+			       union iwreq_data *wrqu, char *extra)
+{
+	ENTER();
+	return -EOPNOTSUPP;
+}
+
+/**
+ * iw_set_power_mode() - SSR wrapper function for __iw_set_power_mode
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_set_power_mode(struct net_device *dev,
+		      struct iw_request_info *info,
+		      union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_power_mode(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
@@ -3782,27 +3905,114 @@ done:
     return rc;
 }
 
+/**
+ * __iw_set_nick() - set nick
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_set_nick(struct net_device *dev,
+			 struct iw_request_info *info,
+			 union iwreq_data *wrqu, char *extra)
+{
+	ENTER();
+	return 0;
+}
+
+/**
+ * iw_set_nick() - SSR wrapper for __iw_set_nick
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
 static int iw_set_nick(struct net_device *dev,
-                       struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra)
+		       struct iw_request_info *info,
+		       union iwreq_data *wrqu, char *extra)
 {
-   ENTER();
-   return 0;
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_nick(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
+/**
+ * __iw_get_nick() - get nick
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_get_nick(struct net_device *dev,
+		       struct iw_request_info *info,
+		       union iwreq_data *wrqu, char *extra)
+{
+	ENTER();
+	return 0;
+}
+
+/**
+ * iw_get_nick() - SSR wrapper for __iw_get_nick
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
 static int iw_get_nick(struct net_device *dev,
-                       struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra)
+		       struct iw_request_info *info,
+		       union iwreq_data *wrqu, char *extra)
 {
-   ENTER();
-   return 0;
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_nick(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
+/**
+ * __get_wireless_stats() - get wireless stats
+ * @dev: pointer to net_device
+ *
+ * Return: %NULL
+ */
+static struct iw_statistics *__get_wireless_stats(struct net_device *dev)
+{
+	ENTER();
+	return NULL;
+}
+
+/**
+ * get_wireless_stats() - SSR wrapper for __get_wireless_stats
+ * @dev: pointer to net_device
+ *
+ * Return: pointer to iw_statistics
+ */
 static struct iw_statistics *get_wireless_stats(struct net_device *dev)
 {
-   ENTER();
-   return NULL;
+	struct iw_statistics *iw_stats;
+
+	ENTER();
+	vos_ssr_protect(__func__);
+	iw_stats = __get_wireless_stats(dev);
+	vos_ssr_unprotect(__func__);
+
+	return iw_stats;
 }
+
 
 static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
                         union iwreq_data *wrqu,char *extra)

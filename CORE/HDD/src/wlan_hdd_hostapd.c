@@ -238,19 +238,15 @@ void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx)
     vos_wake_lock_destroy(&pHddCtx->sap_dfs_wakelock);
 }
 
-
-/**---------------------------------------------------------------------------
-
-  \brief hdd_hostapd_open() - HDD Open function for hostapd interface
-
-  This is called in response to ifconfig up
-
-  \param  - dev Pointer to net_device structure
-
-  \return - 0 for success non-zero for failure
-
-  --------------------------------------------------------------------------*/
-static int hdd_hostapd_open (struct net_device *dev)
+/**
+ * __hdd_hostapd_open() - HDD Open function for hostapd interface
+ * @dev: pointer to net device
+ *
+ * This is called in response to ifconfig up
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __hdd_hostapd_open(struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = netdev_priv(dev);
 
@@ -275,18 +271,33 @@ done:
    EXIT();
    return 0;
 }
-/**---------------------------------------------------------------------------
 
-  \brief hdd_hostapd_stop() - HDD stop function for hostapd interface
+/**
+ * hdd_hostapd_open() - SSR wrapper for __hdd_hostapd_open
+ * @dev: pointer to net device
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int hdd_hostapd_open(struct net_device *dev)
+{
+	int ret;
 
-  This is called in response to ifconfig down
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_open(dev);
+	vos_ssr_unprotect(__func__);
 
-  \param  - dev Pointer to net_device structure
+	return ret;
+}
 
-  \return - 0 for success non-zero for failure
-
-  --------------------------------------------------------------------------*/
-int hdd_hostapd_stop (struct net_device *dev)
+/**
+ * __hdd_hostapd_stop() - HDD stop function for hostapd interface
+ * @dev: pointer to net_device
+ *
+ * This is called in response to ifconfig down
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __hdd_hostapd_stop(struct net_device *dev)
 {
    ENTER();
 
@@ -302,19 +313,36 @@ int hdd_hostapd_stop (struct net_device *dev)
    EXIT();
    return 0;
 }
-/**---------------------------------------------------------------------------
 
-  \brief hdd_hostapd_uninit() - HDD uninit function
+/**
+ * hdd_hostapd_stop() - SSR wrapper for__hdd_hostapd_stop
+ * @dev: pointer to net_device
+ *
+ * This is called in response to ifconfig down
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int hdd_hostapd_stop(struct net_device *dev)
+{
+	int ret;
 
-  This is called during the netdev unregister to uninitialize all data
-associated with the device
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_stop(dev);
+	vos_ssr_unprotect(__func__);
 
-  \param  - dev Pointer to net_device structure
+	return ret;
+}
 
-  \return - void
-
-  --------------------------------------------------------------------------*/
-static void hdd_hostapd_uninit (struct net_device *dev)
+/**
+ * __hdd_hostapd_uninit() - HDD uninit function
+ * @dev: pointer to net_device
+ *
+ * This is called during the netdev unregister to uninitialize all data
+ * associated with the device
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static void __hdd_hostapd_uninit(struct net_device *dev)
 {
    hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
 
@@ -331,9 +359,47 @@ static void hdd_hostapd_uninit (struct net_device *dev)
    EXIT();
 }
 
-static int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
+/**
+ * hdd_hostapd_uninit() - SSR wrapper for __hdd_hostapd_uninit
+ * @dev: pointer to net_device
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static void hdd_hostapd_uninit(struct net_device *dev)
+{
+	vos_ssr_protect(__func__);
+	__hdd_hostapd_uninit(dev);
+	vos_ssr_unprotect(__func__);
+}
+
+/**
+ * __hdd_hostapd_change_mtu() - change mtu
+ * @dev: pointer to net_device
+ * @new_mtu: new mtu
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
 {
     return 0;
+}
+
+/**
+ * hdd_hostapd_change_mtu() - SSR wrapper for __hdd_hostapd_change_mtu
+ * @dev: pointer to net_device
+ * @new_mtu: new mtu
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_change_mtu(dev, new_mtu);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
@@ -459,8 +525,16 @@ static int hdd_hostapd_driver_ioctl(hdd_adapter_t *pAdapter, struct ifreq *ifr)
    return ret;
 }
 
-static int hdd_hostapd_ioctl(struct net_device *dev,
-                             struct ifreq *ifr, int cmd)
+/**
+ * __hdd_hostapd_ioctl() - hostapd ioctl
+ * @dev: pointer to net_device
+ * @ifr: pointer to ifreq structure
+ * @cmd: command
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int __hdd_hostapd_ioctl(struct net_device *dev,
+				struct ifreq *ifr, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_context_t *pHddCtx;
@@ -505,6 +579,27 @@ static int hdd_hostapd_ioctl(struct net_device *dev,
  exit:
    return ret;
 }
+
+/**
+ * hdd_hostapd_ioctl() - SSR wrapper for __hdd_hostapd_ioctl
+ * @dev: pointer to net_device
+ * @ifr: pointer to ifreq structure
+ * @cmd: command
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int hdd_hostapd_ioctl(struct net_device *dev,
+				struct ifreq *ifr, int cmd)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_ioctl(dev, ifr, cmd);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 #ifdef QCA_HT_2040_COEX
 VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
@@ -558,19 +653,17 @@ void hdd_restart_softap(hdd_context_t *pHddCtx,
 }
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_hostapd_set_mac_address() -
-   This function sets the user specified mac address using
-   the command ifconfig wlanX hw ether <mac address>.
-
-  \param  - dev - Pointer to the net device.
-              - addr - Pointer to the sockaddr.
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-
-static int hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
+/**
+ * __hdd_hostapd_set_mac_address() - set mac address
+ * @dev: pointer to net_device
+ * @addr: mac address
+ *
+ * This function sets the user specified mac address using
+ * the command ifconfig wlanX hw ether <mac address>.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
 {
    struct sockaddr *psta_mac_addr = addr;
    ENTER();
@@ -578,6 +671,25 @@ static int hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
    EXIT();
    return 0;
 }
+
+/**
+ * hdd_hostapd_set_mac_address() - set mac address
+ * @dev: pointer to net_device
+ * @addr: mac address
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_hostapd_set_mac_address(dev, addr);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
 {
     struct net_device *dev = (struct net_device *)usrDataForCallback;
@@ -4364,11 +4476,19 @@ static int iw_set_ap_encodeext(struct net_device *dev,
 	return ret;
 }
 
-
-static int iw_set_ap_mlme(struct net_device *dev,
-                       struct iw_request_info *info,
-                       union iwreq_data *wrqu,
-                       char *extra)
+/**
+ * __iw_set_ap_mlme() - set ap mlme
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu; pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int __iw_set_ap_mlme(struct net_device *dev,
+			    struct iw_request_info *info,
+			    union iwreq_data *wrqu,
+			    char *extra)
 {
 #if 0
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
@@ -4412,6 +4532,30 @@ static int iw_set_ap_mlme(struct net_device *dev,
     return 0;
 //    return status;
 }
+
+/**
+ * iw_set_ap_mlme() - SSR wrapper for __iw_set_ap_mlme
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu; pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int iw_set_ap_mlme(struct net_device *dev,
+			  struct iw_request_info *info,
+			  union iwreq_data *wrqu,
+			  char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_ap_mlme(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 /**
  * __iw_get_ap_rts_threshold() - get ap rts threshold

@@ -43,6 +43,7 @@
 #include <linux/wireless.h>
 #include <wlan_hdd_includes.h>
 #include <net/arp.h>
+#include <vos_sched.h>
 #include "qwlan_version.h"
 #include "vos_utils.h"
 #include "wma.h"
@@ -92,27 +93,19 @@ static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
     return status;
 }
 
-/**--------------------------------------------------------------------------------------------
-
-  \brief iw_get_oem_data_rsp() -
-
-  This function gets the oem data response. This invokes
-  the respective sme functionality. Function for handling the oem data rsp
-  IOCTL
-
-  \param - dev  - Pointer to the net device
-         - info - Pointer to the iw_oem_data_req
-         - wrqu - Pointer to the iwreq data
-         - extra - Pointer to the data
-
-  \return - 0 for success, non zero for failure
-
------------------------------------------------------------------------------------------------*/
-int iw_get_oem_data_rsp(
-        struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+/**
+ * __iw_get_oem_data_rsp() - get oem data response
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int __iw_get_oem_data_rsp(struct net_device *dev,
+				 struct iw_request_info *info,
+				 union iwreq_data *wrqu,
+				 char *extra)
 {
     int                                   rc = 0;
     eHalStatus                            status;
@@ -157,27 +150,42 @@ int iw_get_oem_data_rsp(
     return rc;
 }
 
-/**---------------------------------------------------------------------------
+/**
+ * iw_get_oem_data_rsp() - SSR wrapper for __iw_get_oem_data_rsp
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return: 0 on success, error number otherwise
+ */
+int iw_get_oem_data_rsp(struct net_device *dev,
+			struct iw_request_info *info,
+			union iwreq_data *wrqu,
+			char *extra)
+{
+	int ret;
 
-  \brief iw_set_oem_data_req()
+	vos_ssr_protect(__func__);
+	ret = __iw_get_oem_data_rsp(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
 
-  This function sets the oem data req configuration. This invokes
-  the respective sme oem data req functionality. Function for
-  handling the set IOCTL for the oem data req configuration
+	return ret;
+}
 
-  \param - dev  - Pointer to the net device
-     - info - Pointer to the iw_oem_data_req
-     - wrqu - Pointer to the iwreq data
-     - extra - Pointer to the data
-
-  \return - 0 for success, non zero for failure
-
------------------------------------------------------------------------------------------------*/
-int iw_set_oem_data_req(
-        struct net_device *dev,
-        struct iw_request_info *info,
-        union iwreq_data *wrqu,
-        char *extra)
+/**
+ * __iw_set_oem_data_req() - set oem data req configuration.
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return; 0 on success, error number otherwise
+ */
+static int __iw_set_oem_data_req(struct net_device *dev,
+				 struct iw_request_info *info,
+				 union iwreq_data *wrqu,
+				 char *extra)
 {
     int rc = 0;
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -240,6 +248,29 @@ int iw_set_oem_data_req(
     } while (0);
 
     return rc;
+}
+
+/**
+ * iw_set_oem_data_req() - SSR wrapper for __iw_set_oem_data_req
+ * @dev: pointer to net_device
+ * @info: pointer to iw_request_info
+ * @wrqu: pointer to iwreq_data
+ * @extra: extra
+ *
+ * Return; 0 on success, error number otherwise
+ */
+int iw_set_oem_data_req(struct net_device *dev,
+			 struct iw_request_info *info,
+			 union iwreq_data *wrqu,
+			 char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_set_oem_data_req(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 
