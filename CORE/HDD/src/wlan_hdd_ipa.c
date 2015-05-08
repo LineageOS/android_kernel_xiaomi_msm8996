@@ -2102,8 +2102,12 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 				"RM CONS resource delete failed %d", ret);
 }
 
+#define IPA_WLAN_RX_SOFTIRQ_THRESH 16
+
 static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 {
+	int result;
+
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 
 	if (!adapter || adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
@@ -2123,7 +2127,15 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	skb->protocol = eth_type_trans(skb, skb->dev);
 	skb->ip_summed = CHECKSUM_NONE;
 	++adapter->hdd_stats.hddTxRxStats.rxPackets;
-	if (netif_rx_ni(skb) == NET_RX_SUCCESS)
+#ifdef QCA_CONFIG_SMP
+	result = netif_rx_ni(skb);
+#else
+	if (adapter->stats.rx_packets % IPA_WLAN_RX_SOFTIRQ_THRESH == 0)
+		result = netif_rx_ni(skb);
+	else
+		result = netif_rx(skb);
+#endif
+	if (result == NET_RX_SUCCESS)
 		++adapter->hdd_stats.hddTxRxStats.rxDelivered;
 	else
 		++adapter->hdd_stats.hddTxRxStats.rxRefused;
