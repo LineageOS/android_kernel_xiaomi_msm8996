@@ -558,7 +558,10 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
     if (vos_status != VOS_STATUS_SUCCESS)
     {
          hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Not able to initialize remain_on_chan timer",__func__);
+             FL("Not able to initialize remain_on_chan timer"));
+         cfgState->remain_on_chan_ctx = NULL;
+         vos_mem_free(pRemainChanCtx);
+         return -EINVAL;
     }
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
