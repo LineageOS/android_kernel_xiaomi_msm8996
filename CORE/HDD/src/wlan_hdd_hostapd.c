@@ -290,12 +290,14 @@ int hdd_hostapd_stop (struct net_device *dev)
 {
    ENTER();
 
-   //Stop all tx queues
-   hddLog(LOG1, FL("Disabling queues"));
-   netif_tx_disable(dev);
+   if (NULL != dev) {
+       //Stop all tx queues
+       hddLog(LOG1, FL("Disabling queues"));
+       netif_tx_disable(dev);
 
-   //Turn OFF carrier state
-   netif_carrier_off(dev);
+       //Turn OFF carrier state
+       netif_carrier_off(dev);
+   }
 
    EXIT();
    return 0;
