@@ -830,6 +830,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -ENOMEM;
     }
 
+    vos_mem_zero(pRemainChanCtx, sizeof(*pRemainChanCtx));
     vos_mem_copy(&pRemainChanCtx->chan, chan,
                    sizeof(struct ieee80211_channel));
 
