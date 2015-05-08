@@ -2012,6 +2012,10 @@ WLANTL_PauseUnPauseQs(void *vos_context, v_BOOL_t flag)
 	ol_txrx_pdev_handle pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 					vos_context);
 
+	if (!pdev) {
+		TLSHIM_LOGE("%s, PDEV NULL",__func__);
+		return;
+	}
 	if (true == flag)
 		wdi_in_pdev_pause(pdev,
 				   OL_TXQ_PAUSE_REASON_VDEV_SUSPEND);
