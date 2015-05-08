@@ -16393,3 +16393,21 @@ eHalStatus sme_wifi_start_logger(tHalHandle hal,
 	}
 	return status;
 }
+
+/**
+ * smeNeighborRoamIsHandoffInProgress() - Function to know if
+ * handoff is in progress
+ * @hal:                Handle returned by macOpen
+ * @sessionId: sessionId of the STA session
+ *
+ * This function is a wrapper to call
+ * csrNeighborRoamIsHandoffInProgress to know if handoff is in
+ * progress
+ *
+ * Return: True or False
+ *
+ */
+bool smeNeighborRoamIsHandoffInProgress(tHalHandle hHal, tANI_U8 sessionId)
+{
+	return csrNeighborRoamIsHandoffInProgress(PMAC_STRUCT(hHal), sessionId);
+}
