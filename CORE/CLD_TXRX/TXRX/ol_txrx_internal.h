@@ -245,28 +245,51 @@ ol_rx_mpdu_list_next(
         break; \
     }
 
-#define TXRX_STATS_UPDATE_TX_STATS(_pdev, _status, _p_cntrs, _b_cntrs)          \
-do {                                                                            \
-    switch (status) {                                                           \
-    case htt_tx_status_ok:                                                      \
-       TXRX_STATS_ADD(_pdev, pub.tx.delivered.pkts, _p_cntrs);                  \
-       TXRX_STATS_ADD(_pdev, pub.tx.delivered.bytes, _b_cntrs);                 \
-        break;                                                                  \
-    case htt_tx_status_discard:                                                 \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.target_discard.pkts, _p_cntrs);     \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.target_discard.bytes, _b_cntrs);    \
-        break;                                                                  \
-    case htt_tx_status_no_ack:                                                  \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.no_ack.pkts, _p_cntrs);             \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.no_ack.bytes, _b_cntrs);            \
-        break;                                                                  \
-    case htt_tx_status_download_fail:                                           \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.download_fail.pkts, _p_cntrs);      \
-       TXRX_STATS_ADD(_pdev, pub.tx.dropped.download_fail.bytes, _b_cntrs);     \
-        break;                                                                  \
-    default:                                                                    \
-        break;                                                                  \
-    }                                                                           \
+#define TXRX_STATS_UPDATE_TX_COMP_HISTOGRAM(_pdev, _p_cntrs)                   \
+do {                                                                           \
+    if (_p_cntrs > 60)                                                         \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_61_plus,1);            \
+    else if (_p_cntrs > 50)                                                    \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_51_60,1);              \
+    else if (_p_cntrs > 40)                                                    \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_41_50,1);              \
+    else if (_p_cntrs > 30)                                                    \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_31_40,1);              \
+    else if (_p_cntrs > 20)                                                    \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_21_30,1);              \
+    else if (_p_cntrs > 10)                                                    \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_11_20,1);              \
+    else if (_p_cntrs > 2)                                                     \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_2_10,1);               \
+    else                                                                       \
+        TXRX_STATS_ADD(_pdev,pub.tx.comp_histogram.pkts_1,1);                  \
+                                                                               \
+} while (0)
+
+
+#define TXRX_STATS_UPDATE_TX_STATS(_pdev, _status, _p_cntrs, _b_cntrs)         \
+do {                                                                           \
+    switch (status) {                                                          \
+    case htt_tx_status_ok:                                                     \
+       TXRX_STATS_ADD(_pdev, pub.tx.delivered.pkts, _p_cntrs);                 \
+       TXRX_STATS_ADD(_pdev, pub.tx.delivered.bytes, _b_cntrs);                \
+        break;                                                                 \
+    case htt_tx_status_discard:                                                \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.target_discard.pkts, _p_cntrs);    \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.target_discard.bytes, _b_cntrs);   \
+        break;                                                                 \
+    case htt_tx_status_no_ack:                                                 \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.no_ack.pkts, _p_cntrs);            \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.no_ack.bytes, _b_cntrs);           \
+        break;                                                                 \
+    case htt_tx_status_download_fail:                                          \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.download_fail.pkts, _p_cntrs);     \
+       TXRX_STATS_ADD(_pdev, pub.tx.dropped.download_fail.bytes, _b_cntrs);    \
+        break;                                                                 \
+    default:                                                                   \
+        break;                                                                 \
+    }                                                                          \
+    TXRX_STATS_UPDATE_TX_COMP_HISTOGRAM(_pdev, _p_cntrs);                      \
 } while (0)
 
 #elif /*---*/ TXRX_STATS_LEVEL == TXRX_STATS_LEVEL_BASIC

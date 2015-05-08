@@ -130,7 +130,6 @@ ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
      */
     adf_nbuf_map_single(pdev->osdev, msdu, ADF_OS_DMA_TO_DEVICE);
     adf_nbuf_set_next(msdu, NULL); /* add NULL terminator */
-    TXRX_STATS_MSDU_INCR(vdev->pdev, rx.forwarded, msdu);
 
     /* for HL, point to payload before send to tx again.*/
     if (pdev->cfg.is_high_latency) {
@@ -217,13 +216,17 @@ ol_rx_fwd_check(
                 htt_rx_msdu_desc_free(pdev->htt_pdev, msdu);
                 ol_rx_fwd_to_tx(tx_vdev, msdu);
                 msdu = NULL; /* already handled this MSDU */
+                TXRX_STATS_ADD(pdev, pub.rx.intra_bss_fwd.packets_fwd, 1);
             } else {
-				adf_nbuf_t copy;
-				copy = adf_nbuf_copy(msdu);
+                adf_nbuf_t copy;
+                copy = adf_nbuf_copy(msdu);
                 if (copy) {
-					ol_rx_fwd_to_tx(tx_vdev, copy);
+                    ol_rx_fwd_to_tx(tx_vdev, copy);
                 }
+                TXRX_STATS_ADD(pdev, pub.rx.intra_bss_fwd.packets_stack_n_fwd, 1);
             }
+        } else {
+            TXRX_STATS_ADD(pdev, pub.rx.intra_bss_fwd.packets_stack, 1);
         }
         if (msdu) {
             /* send this frame to the OS */

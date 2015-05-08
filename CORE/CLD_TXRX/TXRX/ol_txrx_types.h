@@ -48,6 +48,7 @@
 #include "ol_htt_rx_api.h"
 #include "wlan_qct_tl.h"
 #include <ol_txrx_ctrl_api.h>
+
 /*
  * The target may allocate multiple IDs for a peer.
  * In particular, the target may allocate one ID to represent the
@@ -79,6 +80,10 @@
 
 #define OL_TX_MUTEX_TYPE adf_os_spinlock_t
 #define OL_RX_MUTEX_TYPE adf_os_spinlock_t
+
+/* TXRX Histogram defines */
+#define TXRX_DATA_HISTROGRAM_GRANULARITY      1000
+#define TXRX_DATA_HISTROGRAM_NUM_INTERVALS    100
 
 struct ol_txrx_pdev_t;
 struct ol_txrx_vdev_t;
@@ -762,6 +767,12 @@ struct ol_txrx_pdev_t {
 	u_int8_t ocb_peer_valid;
 	struct ol_txrx_peer_t *ocb_peer;
 	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
+
+	adf_os_spinlock_t txrx_histogram_lock;
+	adf_os_timer_t txrx_histogram_timer;
+	u_int16_t txrx_histogram_count;
+	u_int16_t rx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
+	u_int16_t tx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
 };
 
 struct ol_txrx_vdev_t {
