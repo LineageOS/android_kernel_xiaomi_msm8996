@@ -59,7 +59,6 @@
 #include "aniGlobal.h"
 #include "wmi_unified.h"
 #include "wniCfgAp.h"
-#include "wlan_hal_cfg.h"
 #include "cfgApi.h"
 #include "ol_txrx_ctrl_api.h"
 #if defined(CONFIG_HL_SUPPORT)
