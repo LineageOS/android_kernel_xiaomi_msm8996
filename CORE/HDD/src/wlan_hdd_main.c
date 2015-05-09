@@ -3625,18 +3625,23 @@ static void hdd_wma_send_fastreassoc_cmd(int sessionId, tSirMacAddr bssid,
  */
 int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
 {
-    tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
+    tHalHandle hHal;
     tANI_U8 filterType = 0;
     hdd_context_t *pHddCtx = NULL;
     tANI_U8 *value;
     int ret;
     eHalStatus ret_status;
 
-    value = command + 9;
-
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    if (!pHddCtx)
-        return -EFAULT;
+    if (0 != wlan_hdd_validate_context(pHddCtx)) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  FL("pHddCtx is not valid, Unable to set miracast mode"));
+        return -EINVAL;
+    }
+
+    hHal = pHddCtx->hHal;
+
+    value = command + 9;
 
     /* Convert the value from ascii to integer */
     ret = kstrtou8(value, 10, &filterType);
