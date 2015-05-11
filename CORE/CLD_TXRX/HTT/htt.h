@@ -115,9 +115,11 @@
  * 3.17 Add a version of the WDI_IPA_CFG message; add RX_RING2 to WDI_IPA_CFG
  * 3.18 Add a PEER_DEL tx completion indication status, for HL cleanup of
  *      tx frames in the target after the peer has already been deleted.
+ * 3.19 Add HTT_DBG_STATS_RX_RATE_INFO_V2 and HTT_DBG_STATS_TX_RATE_INFO_V2
+ * 3.20 Expand rx_reorder_stats.
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 17
+#define HTT_CURRENT_VERSION_MINOR 20
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -212,7 +214,9 @@ enum htt_dbg_stats_type {
     HTT_DBG_STATS_TX_MU_INFO                 = 10, /* bit 10 ->  0x400 */
     HTT_DBG_STATS_SIFS_RESP_INFO             = 11, /* bit 11 ->  0x800 */
     HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO = 12, /* bit 12 -> 0x1000*/
-    /* bits 13-23 currently reserved */
+    HTT_DBG_STATS_RX_RATE_INFO_V2            = 13, /* bit 13 -> 0x2000 */
+    HTT_DBG_STATS_TX_RATE_INFO_V2            = 14, /* bit 14 -> 0x4000 */
+    /* bits 15-23 currently reserved */
 
     /* keep this last */
     HTT_DBG_NUM_STATS
@@ -5422,7 +5426,7 @@ struct rx_reorder_stats {
     A_UINT32 fcs_error;
     /* MPDUs dropped due to monitor mode non-data packet */
     A_UINT32 mgmt_ctrl;
-    /* MPDUs dropped due to invalid peer */
+    /* Unicast-data MPDUs dropped due to invalid peer */
     A_UINT32 invalid_peer;
     /* MPDUs dropped due to duplication (non aggregation) */
     A_UINT32 dup_non_aggr;
@@ -5468,6 +5472,56 @@ struct rx_reorder_stats {
     A_UINT32 msdu_queued;
     /* Number of MSDUs released from Data Rx MSDU list to MAC ring */
     A_UINT32 msdu_recycled;
+    /* Number of MPDUs with invalid peer but A2 found in AST */
+    A_UINT32 invalid_peer_a2_in_ast;
+    /* Number of MPDUs with invalid peer but A3 found in AST */
+    A_UINT32 invalid_peer_a3_in_ast;
+    /* Number of MPDUs with invalid peer, Broadcast or Multicast frame */
+    A_UINT32 invalid_peer_bmc_mpdus;
+    /* Number of MSDUs with err attention word */
+    A_UINT32 rxdesc_err_att;
+    /* Number of MSDUs with flag of peer_idx_invalid */
+    A_UINT32 rxdesc_err_peer_idx_inv;
+    /* Number of MSDUs with flag of peer_idx_timeout */
+    A_UINT32 rxdesc_err_peer_idx_to;
+    /* Number of MSDUs with flag of overflow */
+    A_UINT32 rxdesc_err_ov;
+    /* Number of MSDUs with flag of msdu_length_err */
+    A_UINT32 rxdesc_err_msdu_len;
+    /* Number of MSDUs with flag of mpdu_length_err */
+    A_UINT32 rxdesc_err_mpdu_len;
+    /* Number of MSDUs with flag of tkip_mic_err */
+    A_UINT32 rxdesc_err_tkip_mic;
+    /* Number of MSDUs with flag of decrypt_err */
+    A_UINT32 rxdesc_err_decrypt;
+    /* Number of MSDUs with flag of fcs_err */
+    A_UINT32 rxdesc_err_fcs;
+    /* Number of Unicast (bc_mc bit is not set in attention word)
+     * frames with invalid peer handler
+     */
+    A_UINT32 rxdesc_uc_msdus_inv_peer;
+    /* Number of unicast frame directly (direct bit is set in attention word)
+     * to DUT with invalid peer handler
+     */
+    A_UINT32 rxdesc_direct_msdus_inv_peer;
+    /* Number of Broadcast/Multicast (bc_mc bit set in attention word)
+     * frames with invalid peer handler
+     */
+    A_UINT32 rxdesc_bmc_msdus_inv_peer;
+    /* Number of MSDUs dropped due to no first MSDU flag */
+    A_UINT32 rxdesc_no_1st_msdu;
+    /* Number of MSDUs droped due to ring overflow */
+    A_UINT32 msdu_drop_ring_ov;
+    /* Number of MSDUs dropped due to FC mismatch */
+    A_UINT32 msdu_drop_fc_mismatch;
+    /* Number of MSDUs dropped due to mgt frame in Remote ring */
+    A_UINT32 msdu_drop_mgmt_remote_ring;
+    /* Number of MSDUs dropped due to errors not reported in attention word */
+    A_UINT32 msdu_drop_misc;
+    /* Number of MSDUs go to offload before reorder */
+    A_UINT32 offload_msdu_wal;
+    /* Number of data frame dropped by offload after reorder */
+    A_UINT32 offload_msdu_reorder;
 };
 
 
