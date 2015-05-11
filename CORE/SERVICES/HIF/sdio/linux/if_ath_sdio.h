@@ -46,8 +46,13 @@
 
 #define ATH_DBG_DEFAULT   0
 
+#ifdef TARGET_DUMP_FOR_9X15_PLATFORM
+#define RAMDUMP_ADDR     0x46E00000
+#define RAMDUMP_SIZE     0x100000
+#else
 #define RAMDUMP_ADDR     0x8F000000
 #define RAMDUMP_SIZE     0x700000
+#endif
 
 struct ath_hif_sdio_softc {
     struct device *dev;

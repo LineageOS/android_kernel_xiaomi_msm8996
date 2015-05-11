@@ -12332,7 +12332,7 @@ allow_suspend:
  *
  * Return: true if connection in progress; false otherwise.
  */
-bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, bool is_roc)
+bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx)
 {
 	hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
 	hdd_station_ctx_t *pHddStaCtx = NULL;
@@ -12355,9 +12355,8 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, bool is_roc)
 			hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
 				hdd_device_mode_to_string(pAdapter->device_mode),
 				pAdapter->device_mode);
-			if ((((!is_roc) &&
-				(WLAN_HDD_INFRA_STATION ==
-					pAdapter->device_mode)) ||
+			if (((WLAN_HDD_INFRA_STATION ==
+					pAdapter->device_mode) ||
 				(WLAN_HDD_P2P_CLIENT ==
 					pAdapter->device_mode) ||
 				(WLAN_HDD_P2P_DEVICE ==
@@ -12371,10 +12370,17 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, bool is_roc)
 					pAdapter->sessionId);
 				return true;
 			}
-
-			if (((!is_roc) &&
-				(WLAN_HDD_INFRA_STATION ==
-					pAdapter->device_mode)) ||
+			if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+				smeNeighborRoamIsHandoffInProgress(
+				WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId))
+			{
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: %p(%d) Reassociation is in progress", __func__,
+				WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
+				return VOS_TRUE;
+			}
+			if ((WLAN_HDD_INFRA_STATION ==
+					pAdapter->device_mode) ||
 				(WLAN_HDD_P2P_CLIENT ==
 					pAdapter->device_mode) ||
 				(WLAN_HDD_P2P_DEVICE ==
@@ -12592,7 +12598,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     /* Check if scan is allowed at this point of time.
      */
-    if (hdd_isConnectionInProgress(pHddCtx, false)) {
+    if (hdd_isConnectionInProgress(pHddCtx)) {
         hddLog(LOGE, FL("Scan not allowed"));
         return -EBUSY;
     }

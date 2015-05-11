@@ -4301,4 +4301,6 @@ sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
 }
 #endif
 
+bool smeNeighborRoamIsHandoffInProgress(tHalHandle hHal, tANI_U8 sessionId);
+
 #endif //#if !defined( __SME_API_H )

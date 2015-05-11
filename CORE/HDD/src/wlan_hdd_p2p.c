@@ -296,6 +296,8 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     }
     vos_mem_free( pRemainChanCtx );
     complete(&pAdapter->cancel_rem_on_chan_var);
+    if (eHAL_STATUS_SUCCESS != status)
+        complete(&pAdapter->rem_on_chan_ready_event);
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pAdapter->is_roc_inprogress = FALSE;
     mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
@@ -556,7 +558,10 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
     if (vos_status != VOS_STATUS_SUCCESS)
     {
          hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Not able to initialize remain_on_chan timer",__func__);
+             FL("Not able to initialize remain_on_chan timer"));
+         cfgState->remain_on_chan_ctx = NULL;
+         vos_mem_free(pRemainChanCtx);
+         return -EINVAL;
     }
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
@@ -741,7 +746,7 @@ void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 
 	/* If driver is busy then we can't run RoC */
 	if (hdd_ctx->isLoadInProgress || hdd_ctx->isUnloadInProgress ||
-	    hdd_isConnectionInProgress(hdd_ctx, true)) {
+	    hdd_isConnectionInProgress(hdd_ctx)) {
 		hddLog(LOGE,
 			FL("Wlan Load/Unload or Connection is in progress"));
 		return;
@@ -812,7 +817,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return ret;
     }
 
-    if (hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx, true)) {
+    if (hdd_isConnectionInProgress((hdd_context_t *)pAdapter->pHddCtx)) {
         hddLog(LOGE, FL("Connection is in progress"));
         isBusy = VOS_TRUE;
     }
@@ -825,6 +830,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -ENOMEM;
     }
 
+    vos_mem_zero(pRemainChanCtx, sizeof(*pRemainChanCtx));
     vos_mem_copy(&pRemainChanCtx->chan, chan,
                    sizeof(struct ieee80211_channel));
 

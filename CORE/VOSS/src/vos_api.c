@@ -2053,11 +2053,15 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+  /* CAC timer will be initiated and started only when SAP starts on
+  * DFS channel and it will be stopped and destroyed immediately once the
+  * radar detected or timedout. So as per design CAC timer should be
+  * destroyed after stop.*/
   if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
      vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
      pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+     vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
   }
-  vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
 
   vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
