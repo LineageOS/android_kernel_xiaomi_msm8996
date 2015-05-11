@@ -22052,6 +22052,142 @@ VOS_STATUS wma_ProcessTxPowerLimits(WMA_HANDLE handle,
 	return VOS_STATUS_SUCCESS;
 }
 
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+
+/**
+ * wma_set_peer_rate_report_condition -
+ *                    this function set peer rate report
+ *                    condition info to firmware.
+ * @handle:	Handle of WMA
+ * @config:	Bad peer configuration from SIR module
+ *
+ * It is a wrapper function to sent WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID
+ * to the firmare\target.If the command sent to firmware failed, free the
+ * buffer that allocated.
+ *
+ * Return: VOS_STATUS based on values sent to firmware
+ */
+
+VOS_STATUS wma_set_peer_rate_report_condition(WMA_HANDLE handle,
+			struct t_bad_peer_txtcl_config *config)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	wmi_peer_set_rate_report_condition_fixed_param *cmd = NULL;
+	wmi_buf_t buf = NULL;
+	int status = 0;
+	u_int32_t len = 0;
+	u_int32_t i, j;
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to alloc buf to peer_set_condition cmd\n");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	cmd = (wmi_peer_set_rate_report_condition_fixed_param *)
+		wmi_buf_data (buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param,
+	WMITLV_GET_STRUCT_TLVLEN(wmi_peer_set_rate_report_condition_fixed_param));
+
+	cmd->enable_rate_report  = config->enable;
+	cmd->report_backoff_time = config->tgt_backoff;
+	cmd->report_timer_period = config->tgt_report_prd;
+	for (i = 0; i < PEER_RATE_REPORT_COND_MAX_NUM; i++) {
+		cmd->cond_per_phy[i].val_cond_flags        =
+			config->threshold[i].cond;
+		cmd->cond_per_phy[i].rate_delta.min_delta  =
+			config->threshold[i].delta;
+		cmd->cond_per_phy[i].rate_delta.percentage =
+			config->threshold[i].percentage;
+		for (j = 0; j < MAX_NUM_OF_RATE_THRESH; j++) {
+			cmd->cond_per_phy[i].rate_threshold[j] =
+			config->threshold[i].thresh[j];
+		}
+	}
+	WMA_LOGE("%s enable %d backoff_time %d period %d\n", __func__,
+			cmd->enable_rate_report,
+			cmd->report_backoff_time, cmd->report_timer_period);
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID);
+	if (status) {
+		adf_nbuf_free(buf);
+		WMA_LOGE("%s:Failed to send peer_set_report_cond command",
+				__func__);
+		return eHAL_STATUS_FAILURE;
+	}
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * wma_process_init_bad_peer_tx_ctl_info -
+ *                this function to initialize peer rate report config info.
+ * @handle:	Handle of WMA
+ * @config:	Bad peer configuration from SIR module
+ *
+ * This function initializes the bad peer tx control data structure in WMA,
+ * sends down the initial configuration to the firmware and configures
+ * the peer status update seeting in the tx_rx module.
+ *
+ * Return: VOS_STATUS based on procedure status
+ */
+
+static VOS_STATUS wma_process_init_bad_peer_tx_ctl_info(tp_wma_handle wma,
+					struct t_bad_peer_txtcl_config *config)
+{
+	/* Parameter sanity check */
+	ol_txrx_pdev_handle curr_pdev;
+
+	if (NULL == wma || NULL == config) {
+		WMA_LOGE("%s Invalid input\n", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (NULL == curr_pdev) {
+		WMA_LOGE("%s: Failed to get pdev\n", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGE("%s enable %d period %d txq limit %d\n", __func__,
+			config->enable,
+			config->period,
+			config->txq_limit);
+
+	/* Only need to initialize the setting
+	   when the feature is enabled */
+	if (config->enable) {
+		int i = 0;
+
+		ol_txrx_bad_peer_txctl_set_setting(curr_pdev,
+			config->enable,
+			config->period,
+			config->txq_limit);
+
+		for (i = 0; i < WLAN_WMA_IEEE80211_MAX_LEVEL; i++) {
+			u_int32_t threshold, limit;
+			threshold =
+				config->threshold[i].thresh[0];
+			limit =	config->threshold[i].txlimit;
+			ol_txrx_bad_peer_txctl_update_threshold(curr_pdev, i,
+				threshold, limit);
+		}
+	}
+
+	return wma_set_peer_rate_report_condition(wma, config);
+}
+#else
+static inline
+VOS_STATUS wma_process_init_bad_peer_tx_ctl_info(tp_wma_handle wma,
+			struct t_bad_peer_txtcl_config *config)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
+
 /*
  * FUNCTION: wma_ProcessAddPeriodicTxPtrnInd
  * WMI command sent to firmware to add patterns
@@ -25239,6 +25375,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 		case WDA_SET_THERMAL_LEVEL:
 			wma_process_set_thermal_level(wma_handle, (u_int8_t *) msg->bodyptr);
+			break;
+
+		case WDA_INIT_BAD_PEER_TX_CTL_INFO_CMD:
+			wma_process_init_bad_peer_tx_ctl_info(wma_handle,
+				(struct t_bad_peer_txtcl_config *) msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 
 		case WDA_SET_P2P_GO_NOA_REQ:

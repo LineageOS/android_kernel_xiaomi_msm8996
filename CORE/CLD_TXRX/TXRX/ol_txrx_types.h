@@ -128,6 +128,40 @@ enum ol_tx_frm_type {
     ol_tx_frm_no_free, /* frame requires special tx completion callback */
 };
 
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+#define MAX_NO_PEERS_IN_LIMIT (2*10 + 2)
+
+typedef enum _ol_tx_peer_bal_state {
+    ol_tx_peer_bal_enable = 0,
+    ol_tx_peer_bal_disable,
+} ol_tx_peer_bal_state;
+
+typedef enum _ol_tx_peer_bal_timer_state {
+    ol_tx_peer_bal_timer_disable = 0,
+    ol_tx_peer_bal_timer_active,
+    ol_tx_peer_bal_timer_inactive,
+} ol_tx_peer_bal_timer_state;
+
+typedef struct _ol_tx_limit_peer_t {
+    u_int16_t limit_flag;
+    u_int16_t peer_id;
+    u_int16_t limit;
+} ol_tx_limit_peer_t;
+
+typedef enum {
+    TXRX_IEEE11_B = 0,
+    TXRX_IEEE11_A_G,
+    TXRX_IEEE11_N,
+    TXRX_IEEE11_AC,
+    TXRX_IEEE11_MAX,
+} tx_peer_level;
+
+typedef struct _tx_peer_threshold{
+	u_int32_t tput_thresh;
+	u_int32_t tx_limit;
+} tx_peer_threshold;
+#endif
+
 struct ol_tx_desc_t {
 	adf_nbuf_t netbuf;
 	void *htt_tx_desc;
@@ -286,6 +320,9 @@ struct ol_tx_frms_queue_t {
 	ol_tx_desc_list head;
 	enum ol_tx_queue_status flag;
 	struct ol_tx_queue_group_t *group_ptrs[OL_TX_MAX_GROUPS_PER_QUEUE];
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+	struct ol_txrx_peer_t *peer;
+#endif
 };
 
 enum {
@@ -759,6 +796,28 @@ struct ol_txrx_pdev_t {
     ipa_uc_op_cb_type ipa_uc_op_cb;
     void *osif_dev;
 #endif /* IPA_UC_OFFLOAD */
+
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+	struct {
+		ol_tx_peer_bal_state enabled;
+		adf_os_spinlock_t mutex;
+		/* timer used to trigger more frames for bad peers */
+		adf_os_timer_t peer_bal_timer;
+		/*This is the time in ms of the peer balance timer period */
+		u_int32_t peer_bal_period_ms;
+		/*This is the txq limit */
+		u_int32_t peer_bal_txq_limit;
+		/*This is the state of the peer balance timer */
+		ol_tx_peer_bal_timer_state peer_bal_timer_state;
+		/*This is the counter about active peers which are under tx flow control */
+		u_int32_t peer_num;
+		/*This is peer list which are under tx flow control */
+		ol_tx_limit_peer_t limit_list[MAX_NO_PEERS_IN_LIMIT];
+		/*This is threshold configurationl */
+		tx_peer_threshold ctl_thresh[TXRX_IEEE11_MAX];
+	} tx_peer_bal;
+#endif /* CONFIG_Hl_SUPPORT && QCA_BAD_PEER_TX_FLOW_CL */
+
 	struct ol_tx_queue_group_t txq_grps[OL_TX_MAX_TXQ_GROUPS];
 #ifdef DEBUG_HL_LOGGING
 	adf_os_spinlock_t grp_stat_spinlock;
@@ -1017,6 +1076,11 @@ struct ol_txrx_peer_t {
 	uint32_t last_pkt_tsf;
 	uint8_t last_pkt_tid;
 	uint16_t last_pkt_center_freq;
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+	u_int16_t tx_limit;
+	u_int16_t tx_limit_flag;
+	u_int16_t tx_pause_flag;
+#endif
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */

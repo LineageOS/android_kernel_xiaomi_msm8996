@@ -454,7 +454,42 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             }
         }
     }
+    case HTT_T2H_MSG_TYPE_RATE_REPORT:
+        {
+            u_int16_t peer_cnt = HTT_PEER_RATE_REPORT_MSG_PEER_COUNT_GET(*msg_word);
+            u_int16_t i;
+            struct rate_report_t *report, *each;
 
+            /* Param sanity check */
+            if (peer_cnt == 0) {
+                adf_os_print("RATE REPORT messsage peer_cnt is 0! \n");
+                break;
+            }
+
+            /* At least one peer and no limit apply to peer_cnt here */
+            report = adf_os_mem_alloc(NULL,
+                sizeof(struct rate_report_t) * peer_cnt);
+            if (!report) {
+                adf_os_print("RATE REPORT messsage buffer alloc fail. peer_cnt %d\n",
+                                peer_cnt);
+                break;
+            }
+
+            each = report;
+            msg_word++; /* point to the payload */
+            for (i = 0; i < peer_cnt; i++) {
+                each->id  =
+                    HTT_PEER_RATE_REPORT_MSG_PEER_ID_GET(*(msg_word + i*2));
+                each->phy =
+                    HTT_PEER_RATE_REPORT_MSG_PHY_GET(*(msg_word + i*2));
+                each->rate = *(msg_word + i*2 + 1);
+                each++;
+            }
+            ol_txrx_peer_link_status_handler(pdev->txrx_pdev, peer_cnt, report);
+
+            adf_os_mem_free(report);
+            break;
+        }
     default:
         break;
     };

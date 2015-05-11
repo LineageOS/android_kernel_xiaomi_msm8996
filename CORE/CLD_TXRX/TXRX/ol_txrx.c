@@ -714,6 +714,9 @@ ol_txrx_pdev_attach(
 
     pdev->cfg.ll_pause_txq_limit = ol_tx_cfg_max_tx_queue_depth_ll(ctrl_pdev);
 
+    /* TX flow control for peer who is in very bad link status */
+    ol_tx_badpeer_flow_cl_init(pdev);
+
 #ifdef QCA_COMPUTE_TX_DELAY
     adf_os_mem_zero(&pdev->tx_delay, sizeof(pdev->tx_delay));
     adf_os_spinlock_init(&pdev->tx_delay.mutex);
@@ -931,6 +934,10 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     /* Thermal Mitigation */
     adf_os_spinlock_destroy(&pdev->tx_throttle.mutex);
 #endif
+
+    /* TX flow control for peer who is in very bad link status */
+    ol_tx_badpeer_flow_cl_deinit(pdev);
+
     OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev);
 
     OL_RX_REORDER_TRACE_DETACH(pdev);
@@ -1023,6 +1030,7 @@ ol_txrx_vdev_attach(
             /* aggregation is not applicable for vdev tx queues */
             vdev->txqs[i].aggr_state = ol_tx_aggr_disabled;
             OL_TX_TXQ_SET_GROUP_PTR(&vdev->txqs[i], NULL);
+            ol_txrx_set_txq_peer(&vdev->txqs[i], NULL);
         }
     }
     #endif /* defined(CONFIG_HL_SUPPORT) */
@@ -1280,6 +1288,7 @@ ol_txrx_peer_attach(
             peer->txqs[i].flag = ol_tx_queue_empty;
             peer->txqs[i].aggr_state = ol_tx_aggr_untried;
             OL_TX_SET_PEER_GROUP_PTR(pdev, peer, vdev->vdev_id, i);
+            ol_txrx_set_txq_peer(&peer->txqs[i], peer);
         }
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
 

@@ -197,6 +197,34 @@ typedef struct {
     u_int16_t smeMaxTempThreshold;
 } tSmeThermalLevelInfo;
 
+
+enum sme_max_bad_peer_thresh_levels {
+	IEEE80211_B_LEVEL = 0,
+	IEEE80211_AG_LEVEL,
+	IEEE80211_N_LEVEL,
+	IEEE80211_AC_LEVEL,
+	IEEE80211_MAX_LEVEL,
+};
+
+struct sme_bad_peer_thresh{
+	uint32_t cond;
+	uint32_t delta;
+	uint32_t percentage;
+	uint32_t thresh;
+	uint32_t limit;
+};
+
+struct sme_bad_peer_txctl_param{
+	/* Array of thermal levels */
+	struct sme_bad_peer_thresh thresh[IEEE80211_MAX_LEVEL];
+	uint32_t enabled;
+	uint32_t period;
+	uint32_t txq_limit;
+	uint32_t tgt_backoff;
+	uint32_t tgt_report_prd;
+};
+
+
 #define SME_MAX_THERMAL_LEVELS (4)
 
 typedef struct {
@@ -3758,6 +3786,19 @@ eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
                                     tANI_BOOLEAN disablefwd);
 tANI_U32 sme_GetChannelBondingMode5G(tHalHandle hHal);
 tANI_U32 sme_GetChannelBondingMode24G(tHalHandle hHal);
+
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+
+eHalStatus sme_init_bad_peer_txctl_info(tHalHandle hHal,
+			struct sme_bad_peer_txctl_param param );
+#else
+static inline eHalStatus sme_init_bad_peer_txctl_info(tHalHandle hHal,
+			struct sme_bad_peer_txctl_param param )
+{
+	/* no-op */
+	return eHAL_STATUS_SUCCESS;
+}
+#endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
 

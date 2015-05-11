@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -81,8 +81,8 @@ ol_tx_dequeue(
 	struct ol_tx_frms_queue_t *txq,
 	ol_tx_desc_list *head,
 	u_int16_t num_frames,
-    u_int32_t *credit,
-    int *bytes);
+	u_int32_t *credit,
+	int *bytes);
 
 /**
  * @brief - free all of frames from the tx queue while deletion
@@ -128,6 +128,119 @@ ol_tx_queue_discard(
 #define ol_tx_queue_discard(pdev, flush, tx_descs) /* no-op */
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
+
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+
+void
+ol_txrx_peer_bal_add_limit_peer(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t peer_id,
+    u_int16_t peer_limit);
+
+void
+ol_txrx_peer_bal_remove_limit_peer(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t peer_id);
+
+void
+ol_txrx_peer_pause_but_no_mgmt_q(ol_txrx_peer_handle peer);
+
+void
+ol_txrx_peer_unpause_but_no_mgmt_q(ol_txrx_peer_handle peer);
+
+u_int16_t
+ol_tx_bad_peer_dequeue_check(struct ol_tx_frms_queue_t *txq,
+	u_int16_t max_frames,
+	u_int16_t *tx_limit_flag);
+
+void
+ol_tx_bad_peer_update_tx_limit(struct ol_txrx_pdev_t *pdev,
+	struct ol_tx_frms_queue_t *txq,
+	u_int16_t frames,
+	u_int16_t tx_limit_flag);
+
+void
+ol_txrx_set_txq_peer(
+	struct ol_tx_frms_queue_t *txq,
+	struct ol_txrx_peer_t *peer);
+
+/**
+ * @brief - initialize the peer balance context
+ * @param pdev - the physical device object, which stores the txqs
+ */
+void ol_tx_badpeer_flow_cl_init(struct ol_txrx_pdev_t *pdev);
+
+/**
+ * @brief - deinitialize the peer balance context
+ * @param pdev - the physical device object, which stores the txqs
+ */
+void ol_tx_badpeer_flow_cl_deinit(struct ol_txrx_pdev_t *pdev);
+
+#else
+
+static inline void ol_txrx_peer_bal_add_limit_peer(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t peer_id,
+    u_int16_t peer_limit)
+{
+    /* no-op */
+}
+
+static inline void ol_txrx_peer_bal_remove_limit_peer(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t peer_id)
+{
+    /* no-op */
+}
+
+static inline void ol_txrx_peer_pause_but_no_mgmt_q(ol_txrx_peer_handle peer)
+{
+    /* no-op */
+}
+
+static inline void ol_txrx_peer_unpause_but_no_mgmt_q(ol_txrx_peer_handle peer)
+{
+    /* no-op */
+}
+
+static inline u_int16_t
+ol_tx_bad_peer_dequeue_check(struct ol_tx_frms_queue_t *txq,
+	u_int16_t max_frames,
+	u_int16_t *tx_limit_flag)
+{
+    /* just return max_frames */
+    return max_frames;
+}
+
+static inline void
+ol_tx_bad_peer_update_tx_limit(struct ol_txrx_pdev_t *pdev,
+	struct ol_tx_frms_queue_t *txq,
+	u_int16_t frames,
+	u_int16_t tx_limit_flag)
+{
+    /* no-op */
+}
+
+static inline void
+ol_txrx_set_txq_peer(
+	struct ol_tx_frms_queue_t *txq,
+	struct ol_txrx_peer_t *peer)
+{
+    /* no-op */
+}
+
+static inline void ol_tx_badpeer_flow_cl_init(struct ol_txrx_pdev_t *pdev)
+{
+    /* no-op */
+}
+
+static inline void ol_tx_badpeer_flow_cl_deinit(struct ol_txrx_pdev_t *pdev)
+{
+    /* no-op */
+}
+
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
+
 
 #if defined(CONFIG_HL_SUPPORT) && defined(DEBUG_HL_LOGGING)
 

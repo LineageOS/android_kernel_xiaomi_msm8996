@@ -381,6 +381,17 @@ ol_txrx_peer_tid_pause_base(
 }
 
 static inline void
+ol_txrx_peer_pause_but_no_mgmt_q_base(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer)
+{
+    int i;
+    for (i = 0; i < OL_TX_MGMT_TID; i++) {
+        ol_txrx_peer_tid_pause_base(pdev, peer, i);
+    }
+}
+
+static inline void
 ol_txrx_peer_pause_base(
     struct ol_txrx_pdev_t *pdev,
     struct ol_txrx_peer_t *peer)
@@ -434,6 +445,16 @@ ol_txrx_peer_tid_unpause_base(
     }
 }
 
+static inline void
+ol_txrx_peer_unpause_but_no_mgmt_q_base(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer)
+{
+    int i;
+    for (i = 0; i < OL_TX_MGMT_TID; i++) {
+        ol_txrx_peer_tid_unpause_base(pdev, peer, i);
+    }
+}
 
 void
 ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
@@ -540,6 +561,401 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev, u_int32_t reason)
 		ol_txrx_vdev_unpause(vdev, reason);
 	}
 }
+
+#ifdef QCA_BAD_PEER_TX_FLOW_CL
+
+/**
+ * ol_txrx_peer_bal_add_limit_peer() - add one peer into limit list
+ * @pdev:		Pointer to PDEV structure.
+ * @peer_id:	Peer Identifier.
+ * @peer_limit	Peer limit threshold
+ *
+ * Add one peer into the limit list of pdev
+ * Note that the peer limit info will be also updated
+ * If it is the first time, start the timer
+ *
+ * Return: None
+ */
+void
+ol_txrx_peer_bal_add_limit_peer(struct ol_txrx_pdev_t *pdev,
+			u_int16_t peer_id, u_int16_t peer_limit)
+{
+	u_int16_t i, existed = 0;
+	struct ol_txrx_peer_t *peer = NULL;
+
+	for (i = 0; i < pdev->tx_peer_bal.peer_num; i++){
+		if (pdev->tx_peer_bal.limit_list[i].peer_id == peer_id) {
+			existed = 1;
+			break;
+		}
+	}
+
+	if (!existed) {
+		u_int32_t peer_num = pdev->tx_peer_bal.peer_num;
+		/* Check if peer_num has reached the capabilit */
+		if (peer_num >= MAX_NO_PEERS_IN_LIMIT) {
+			TX_SCHED_DEBUG_PRINT_ALWAYS(
+				"reach the maxinum peer num %d\n",
+				peer_num);
+				return;
+		}
+
+		pdev->tx_peer_bal.limit_list[peer_num].peer_id = peer_id;
+		pdev->tx_peer_bal.limit_list[peer_num].limit_flag = TRUE;
+		pdev->tx_peer_bal.limit_list[peer_num].limit = peer_limit;
+		pdev->tx_peer_bal.peer_num++;
+
+		peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+		if (peer) {
+			peer->tx_limit_flag = TRUE;
+			peer->tx_limit = peer_limit;
+		}
+
+		TX_SCHED_DEBUG_PRINT_ALWAYS(
+			"Add one peer into limit queue, peer_id %d, cur peer num %d\n",
+			peer_id,
+			pdev->tx_peer_bal.peer_num);
+	}
+
+	/* Only start the timer once */
+	if (pdev->tx_peer_bal.peer_bal_timer_state ==
+					ol_tx_peer_bal_timer_inactive) {
+		adf_os_timer_start(&pdev->tx_peer_bal.peer_bal_timer,
+				pdev->tx_peer_bal.peer_bal_period_ms);
+		pdev->tx_peer_bal.peer_bal_timer_state =
+				ol_tx_peer_bal_timer_active;
+	}
+}
+
+/**
+ * ol_txrx_peer_bal_remove_limit_peer() - remove one peer from limit list
+ * @pdev:		Pointer to PDEV structure.
+ * @peer_id:	Peer Identifier.
+ *
+ * Remove one peer from the limit list of pdev
+ * Note that Only stop the timer if no peer in limit state
+ *
+ * Return: NULL
+ */
+void
+ol_txrx_peer_bal_remove_limit_peer(struct ol_txrx_pdev_t *pdev,
+			u_int16_t peer_id)
+{
+	u_int16_t i;
+	struct ol_txrx_peer_t *peer = NULL;
+
+	for (i = 0; i < pdev->tx_peer_bal.peer_num; i++) {
+		if ( pdev->tx_peer_bal.limit_list[i].peer_id == peer_id) {
+			pdev->tx_peer_bal.limit_list[i] =
+				pdev->tx_peer_bal.limit_list[pdev->tx_peer_bal.peer_num - 1];
+			pdev->tx_peer_bal.peer_num--;
+
+			peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+			if (peer) {
+				peer->tx_limit_flag = FALSE;
+			}
+
+			TX_SCHED_DEBUG_PRINT(
+				"Remove one peer from limitq, peer_id %d, cur peer num %d\n",
+				peer_id,
+				pdev->tx_peer_bal.peer_num);
+			break;
+		}
+	}
+
+	/* Only stop the timer if no peer in limit state */
+	if (pdev->tx_peer_bal.peer_num == 0) {
+		adf_os_timer_cancel(&pdev->tx_peer_bal.peer_bal_timer);
+		pdev->tx_peer_bal.peer_bal_timer_state =
+				ol_tx_peer_bal_timer_inactive;
+	}
+}
+
+void
+ol_txrx_peer_pause_but_no_mgmt_q(ol_txrx_peer_handle peer)
+{
+	struct ol_txrx_pdev_t *pdev = peer->vdev->pdev;
+
+	/* TO DO: log the queue pause */
+
+	/* acquire the mutex lock, since we'll be modifying the queues */
+	TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
+	adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+
+	ol_txrx_peer_pause_but_no_mgmt_q_base(pdev, peer);
+
+	adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+	TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
+}
+
+void
+ol_txrx_peer_unpause_but_no_mgmt_q(ol_txrx_peer_handle peer)
+{
+	struct ol_txrx_pdev_t *pdev = peer->vdev->pdev;
+
+	/* TO DO: log the queue pause */
+
+	/* acquire the mutex lock, since we'll be modifying the queues */
+	TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
+	adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+
+	ol_txrx_peer_unpause_but_no_mgmt_q_base(pdev, peer);
+
+	adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+	TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
+}
+
+u_int16_t
+ol_tx_bad_peer_dequeue_check(struct ol_tx_frms_queue_t *txq,
+	u_int16_t max_frames,
+	u_int16_t *tx_limit_flag)
+{
+	if (txq && (txq->peer) && (txq->peer->tx_limit_flag)
+			&& (txq->peer->tx_limit < max_frames)) {
+		TX_SCHED_DEBUG_PRINT("Peer ID %d goes to limit, threshold is %d\n",
+			txq->peer->peer_ids[0], txq->peer->tx_limit);
+		*tx_limit_flag = 1;
+		return txq->peer->tx_limit;
+	} else {
+		return max_frames;
+	}
+}
+
+void
+ol_tx_bad_peer_update_tx_limit(struct ol_txrx_pdev_t *pdev,
+	struct ol_tx_frms_queue_t *txq,
+	u_int16_t frames,
+	u_int16_t tx_limit_flag)
+{
+    adf_os_spin_lock_bh(&pdev->tx_peer_bal.mutex);
+    if (txq && tx_limit_flag && (txq->peer) && (txq->peer->tx_limit_flag)) {
+        if (txq->peer->tx_limit < frames) {
+            txq->peer->tx_limit = 0;
+        } else {
+            txq->peer->tx_limit -= frames;
+        }
+        TX_SCHED_DEBUG_PRINT_ALWAYS("Peer ID %d in limit, deque %d frms\n",
+			txq->peer->peer_ids[0], frames);
+    } else if (txq->peer) {
+        TX_SCHED_DEBUG_PRINT("Download peer_id %d, num_frames %d\n",
+			txq->peer->peer_ids[0], frames);
+    }
+    adf_os_spin_unlock_bh(&pdev->tx_peer_bal.mutex);
+}
+
+void
+ol_txrx_bad_peer_txctl_set_setting(struct ol_txrx_pdev_t *pdev,
+			int enable, int period, int txq_limit)
+{
+	if (enable) {
+		pdev->tx_peer_bal.enabled = ol_tx_peer_bal_enable;
+	} else {
+		pdev->tx_peer_bal.enabled = ol_tx_peer_bal_disable;
+	}
+	/* Set the current settingl */
+	pdev->tx_peer_bal.peer_bal_period_ms = period;
+	pdev->tx_peer_bal.peer_bal_txq_limit = txq_limit;
+}
+
+void
+ol_txrx_bad_peer_txctl_update_threshold(struct ol_txrx_pdev_t *pdev,
+			int level, int tput_thresh, int tx_limit)
+{
+	/* Set the current settingl */
+	pdev->tx_peer_bal.ctl_thresh[level].tput_thresh =
+			tput_thresh;
+	pdev->tx_peer_bal.ctl_thresh[level].tx_limit =
+			tx_limit;
+}
+
+void
+ol_tx_pdev_peer_bal_timer(void *context)
+{
+	int i;
+	struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
+
+	adf_os_spin_lock_bh(&pdev->tx_peer_bal.mutex);
+
+	for (i = 0; i < pdev->tx_peer_bal.peer_num; i++) {
+		if (pdev->tx_peer_bal.limit_list[i].limit_flag) {
+			u_int16_t peer_id =
+				pdev->tx_peer_bal.limit_list[i].peer_id;
+			u_int16_t tx_limit =
+				pdev->tx_peer_bal.limit_list[i].limit;
+
+			struct ol_txrx_peer_t *peer = NULL;
+			peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+			TX_SCHED_DEBUG_PRINT("%s peer_id %d  peer = 0x%x tx limit %d\n",
+					__FUNCTION__, peer_id,
+					(int)peer, tx_limit);
+
+			/* It is possible the peer limit is still not 0,
+			   but it is the scenario should not be cared */
+			if (peer) {
+				peer->tx_limit = tx_limit;
+			} else {
+				ol_txrx_peer_bal_remove_limit_peer(pdev,
+								peer_id);
+				TX_SCHED_DEBUG_PRINT_ALWAYS("No such a peer, peer id = %d\n",
+					peer_id);
+			}
+		}
+	}
+
+	adf_os_spin_unlock_bh(&pdev->tx_peer_bal.mutex);
+
+	if (pdev->tx_peer_bal.peer_num) {
+		ol_tx_sched(pdev);
+		adf_os_timer_start(&pdev->tx_peer_bal.peer_bal_timer,
+				pdev->tx_peer_bal.peer_bal_period_ms);
+	}
+}
+
+void
+ol_txrx_set_txq_peer(
+	struct ol_tx_frms_queue_t *txq,
+	struct ol_txrx_peer_t *peer)
+{
+	if (txq) {
+		txq->peer = peer;
+	}
+}
+
+void ol_tx_badpeer_flow_cl_init(struct ol_txrx_pdev_t *pdev)
+{
+	u_int32_t timer_period;
+
+	adf_os_spinlock_init(&pdev->tx_peer_bal.mutex);
+	pdev->tx_peer_bal.peer_num = 0;
+	pdev->tx_peer_bal.peer_bal_timer_state
+		= ol_tx_peer_bal_timer_inactive;
+
+	timer_period = 2000;
+	pdev->tx_peer_bal.peer_bal_period_ms = timer_period;
+
+	adf_os_timer_init(
+			pdev->osdev,
+			&pdev->tx_peer_bal.peer_bal_timer,
+			ol_tx_pdev_peer_bal_timer,
+			pdev);
+}
+
+void ol_tx_badpeer_flow_cl_deinit(struct ol_txrx_pdev_t *pdev)
+{
+	adf_os_timer_cancel(&pdev->tx_peer_bal.peer_bal_timer);
+	pdev->tx_peer_bal.peer_bal_timer_state =
+					ol_tx_peer_bal_timer_inactive;
+	adf_os_timer_free(&pdev->tx_peer_bal.peer_bal_timer);
+	adf_os_spinlock_destroy(&pdev->tx_peer_bal.mutex);
+}
+
+void
+ol_txrx_peer_link_status_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t peer_num,
+    struct rate_report_t* peer_link_status)
+{
+	u_int16_t i = 0;
+	struct ol_txrx_peer_t *peer = NULL;
+
+	if (NULL == pdev) {
+		TX_SCHED_DEBUG_PRINT_ALWAYS("Error: NULL pdev handler \n");
+		return;
+	}
+
+	if (NULL == peer_link_status) {
+		TX_SCHED_DEBUG_PRINT_ALWAYS(
+			"Error:NULL link report message. peer num %d\n",
+			peer_num);
+		return;
+	}
+
+	/* Check if bad peer tx flow CL is enabled */
+	if (pdev->tx_peer_bal.enabled != ol_tx_peer_bal_enable){
+		TX_SCHED_DEBUG_PRINT_ALWAYS(
+			"Bad peer tx flow CL is not enabled, ignore it\n");
+		return;
+	}
+
+	/* Check peer_num is reasonable */
+	if (peer_num > MAX_NO_PEERS_IN_LIMIT){
+		TX_SCHED_DEBUG_PRINT_ALWAYS(
+			"%s: Bad peer_num %d \n", __func__, peer_num);
+		return;
+	}
+
+	TX_SCHED_DEBUG_PRINT_ALWAYS("%s: peer_num %d\n", __func__, peer_num);
+
+	for (i = 0; i < peer_num; i++) {
+		u_int16_t peer_limit, peer_id;
+		u_int16_t pause_flag, unpause_flag;
+		u_int32_t peer_phy, peer_tput;
+
+		peer_id = peer_link_status->id;
+		peer_phy = peer_link_status->phy;
+		peer_tput = peer_link_status->rate;
+
+		TX_SCHED_DEBUG_PRINT("%s: peer id %d tput %d phy %d\n",
+				__func__, peer_id, peer_tput, peer_phy);
+
+		/* Sanity check for the PHY mode value */
+		if (peer_phy > TXRX_IEEE11_AC) {
+			TX_SCHED_DEBUG_PRINT_ALWAYS(
+				"%s: PHY value is illegal: %d, and the peer_id %d \n",
+				__func__, peer_link_status->phy, peer_id);
+			continue;
+		}
+		pause_flag   = FALSE;
+		unpause_flag = FALSE;
+		peer_limit   = 0;
+
+		/* From now on, PHY, PER info should be all fine */
+		adf_os_spin_lock_bh(&pdev->tx_peer_bal.mutex);
+
+		/* Update link status analysis for each peer */
+		peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+		if (peer) {
+			u_int32_t thresh, limit, phy;
+			phy = peer_link_status->phy;
+			thresh = pdev->tx_peer_bal.ctl_thresh[phy].tput_thresh;
+			limit = pdev->tx_peer_bal.ctl_thresh[phy].tx_limit;
+
+			if (((peer->tx_pause_flag) || (peer->tx_limit_flag))
+				&& (peer_tput) && (peer_tput < thresh)) {
+				peer_limit = limit;
+			}
+
+			if (peer_limit) {
+				ol_txrx_peer_bal_add_limit_peer(pdev, peer_id,
+					peer_limit);
+			} else if (pdev->tx_peer_bal.peer_num) {
+				TX_SCHED_DEBUG_PRINT("%s: Check if peer_id %d exit limit\n",
+						__func__, peer_id);
+				ol_txrx_peer_bal_remove_limit_peer(pdev, peer_id);
+			}
+			if ((peer_tput == 0) && (peer->tx_pause_flag == FALSE)) {
+				peer->tx_pause_flag = TRUE;
+				pause_flag = TRUE;
+			} else if (peer->tx_pause_flag){
+				unpause_flag = TRUE;
+				peer->tx_pause_flag = FALSE;
+			}
+		} else {
+			TX_SCHED_DEBUG_PRINT("%s: Remove peer_id %d from limit list\n",
+						__func__, peer_id);
+			ol_txrx_peer_bal_remove_limit_peer(pdev, peer_id);
+		}
+
+		peer_link_status++;
+		adf_os_spin_unlock_bh(&pdev->tx_peer_bal.mutex);
+		if (pause_flag) {
+			ol_txrx_peer_pause_but_no_mgmt_q(peer);
+		} else if (unpause_flag) {
+			ol_txrx_peer_unpause_but_no_mgmt_q(peer);
+		}
+	}
+}
+#endif /* QCA_BAD_PEER_TX_FLOW_CL */
 
 void
 ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)

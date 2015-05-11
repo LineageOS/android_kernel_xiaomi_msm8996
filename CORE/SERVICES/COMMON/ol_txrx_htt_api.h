@@ -170,6 +170,49 @@ ol_tx_completion_handler(
 void
 ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits);
 
+
+
+struct rate_report_t{
+    u_int16_t id;
+    u_int16_t phy : 4;
+    u_int32_t rate;
+};
+
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+/**
+ * @brief Process a link status report for all peers.
+ * @details
+ *  The ol_txrx_peer_link_status_handler function performs basic peer link
+ *  status analysis
+ *
+ *  According to the design, there are 3 kinds of peers which will be
+ *  treated differently:
+ *  1) normal: not do any flow control for the peer
+ *  2) limited: will apply flow control for the peer, but frames are allowed to send
+ *  3) paused: will apply flow control for the peer, no frame is allowed to send
+ *
+ * @param pdev - the data physical device that sent the tx frames
+ * @param status - the number of peers need to be handled
+ * @param peer_link_report - the link status dedail message
+ */
+void
+ol_txrx_peer_link_status_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t peer_num,
+    struct rate_report_t* peer_link_status);
+
+
+#else
+static inline void ol_txrx_peer_link_status_handler(
+    ol_txrx_pdev_handle pdev,
+    u_int16_t peer_num,
+    struct rate_report_t* peer_link_status)
+{
+    /* no-op */
+}
+#endif
+
+
 #ifdef FEATURE_HL_GROUP_CREDIT_FLOW_CONTROL
 void
 ol_txrx_update_tx_queue_groups(

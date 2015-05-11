@@ -11206,6 +11206,93 @@ out:
     return ret;
 }
 #endif
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+/**
+ * wlan_hdd_bad_peer_txctl() - HDD API to initialize the bad peer
+ *                             tx flow control parameters
+ * @pHddCtx:	HDD context which contains INI setting.
+ *
+ * Read configuation from INI setting, and then update the setting
+ * of SME module.
+ *
+ * Return: NULL
+ */
+static void wlan_hdd_bad_peer_txctl(hdd_context_t *p_hdd_ctx)
+{
+	struct sme_bad_peer_txctl_param bad_peer_txctl;
+	enum sme_max_bad_peer_thresh_levels level = IEEE80211_B_LEVEL;
+
+	bad_peer_txctl.enabled        =
+				p_hdd_ctx->cfg_ini->bad_peer_txctl_enable;
+	bad_peer_txctl.period         =
+				p_hdd_ctx->cfg_ini->bad_peer_txctl_prd;
+	bad_peer_txctl.txq_limit      =
+				p_hdd_ctx->cfg_ini->bad_peer_txctl_txq_lmt;
+	bad_peer_txctl.tgt_backoff    =
+				p_hdd_ctx->cfg_ini->bad_peer_tgt_backoff;
+	bad_peer_txctl.tgt_report_prd =
+				p_hdd_ctx->cfg_ini->bad_peer_tgt_report_prd;
+
+	bad_peer_txctl.thresh[level].cond       =
+				p_hdd_ctx->cfg_ini->bad_peer_cond_ieee80211b;
+	bad_peer_txctl.thresh[level].delta      =
+				p_hdd_ctx->cfg_ini->bad_peer_delta_ieee80211b;
+	bad_peer_txctl.thresh[level].percentage =
+				p_hdd_ctx->cfg_ini->bad_peer_pct_ieee80211b;
+	bad_peer_txctl.thresh[level].thresh     =
+				p_hdd_ctx->cfg_ini->bad_peer_tput_ieee80211b;
+	bad_peer_txctl.thresh[level].limit      =
+				p_hdd_ctx->cfg_ini->bad_peer_limit_ieee80211b;
+
+	level++;
+	bad_peer_txctl.thresh[level].cond       =
+				p_hdd_ctx->cfg_ini->bad_peer_cond_ieee80211ag;
+	bad_peer_txctl.thresh[level].delta      =
+				p_hdd_ctx->cfg_ini->bad_peer_delta_ieee80211ag;
+	bad_peer_txctl.thresh[level].percentage =
+				p_hdd_ctx->cfg_ini->bad_peer_pct_ieee80211ag;
+	bad_peer_txctl.thresh[level].thresh     =
+				p_hdd_ctx->cfg_ini->bad_peer_tput_ieee80211ag;
+	bad_peer_txctl.thresh[level].limit      =
+				p_hdd_ctx->cfg_ini->bad_peer_limit_ieee80211ag;
+
+	level++;
+	bad_peer_txctl.thresh[level].cond       =
+				p_hdd_ctx->cfg_ini->bad_peer_cond_ieee80211n;
+	bad_peer_txctl.thresh[level].delta      =
+				p_hdd_ctx->cfg_ini->bad_peer_delta_ieee80211n;
+	bad_peer_txctl.thresh[level].percentage =
+				p_hdd_ctx->cfg_ini->bad_peer_pct_ieee80211n;
+	bad_peer_txctl.thresh[level].thresh     =
+				p_hdd_ctx->cfg_ini->bad_peer_tput_ieee80211n;
+	bad_peer_txctl.thresh[level].limit      =
+				p_hdd_ctx->cfg_ini->bad_peer_limit_ieee80211n;
+
+	level++;
+	bad_peer_txctl.thresh[level].cond       =
+				p_hdd_ctx->cfg_ini->bad_peer_cond_ieee80211ag;
+	bad_peer_txctl.thresh[level].delta      =
+				p_hdd_ctx->cfg_ini->bad_peer_delta_ieee80211ac;
+	bad_peer_txctl.thresh[level].percentage =
+				p_hdd_ctx->cfg_ini->bad_peer_pct_ieee80211ac;
+	bad_peer_txctl.thresh[level].thresh     =
+				p_hdd_ctx->cfg_ini->bad_peer_tput_ieee80211ac;
+	bad_peer_txctl.thresh[level].limit      =
+				p_hdd_ctx->cfg_ini->bad_peer_limit_ieee80211ac;
+
+	if (eHAL_STATUS_SUCCESS !=
+		sme_init_bad_peer_txctl_info(p_hdd_ctx->hHal, bad_peer_txctl)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: Error while initializing bad peer Txctl infor",
+			__func__);
+	}
+}
+#else
+static inline void wlan_hdd_bad_peer_txctl(hdd_context_t *p_hdd_ctx)
+{
+	/* no-op */
+}
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
 
 #ifdef WLAN_FEATURE_OFFLOAD_PACKETS
 /**
@@ -12022,6 +12109,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Plug in set thermal level callback */
    sme_add_set_thermal_level_callback(pHddCtx->hHal,
                      (tSmeSetThermalLevelCallback)hdd_set_thermal_level_cb);
+
+   /* Bad peer tx flow control */
+   wlan_hdd_bad_peer_txctl(pHddCtx);
 
    /* SAR power limit */
    hddtxlimit = vos_mem_malloc(sizeof(tSirTxPowerLimit));

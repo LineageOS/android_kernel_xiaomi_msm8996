@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -195,7 +195,7 @@ ol_tx_sched_select_batch_rr(
     struct ol_tx_sched_rr_t *scheduler = pdev->tx_sched.scheduler;
     struct ol_tx_active_queues_in_tid_t *txq_queue;
     struct ol_tx_frms_queue_t *next_tq;
-    u_int16_t frames, used_credits;
+    u_int16_t frames, used_credits, tx_limit, tx_limit_flag = 0;
     int bytes;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
@@ -212,8 +212,10 @@ ol_tx_sched_select_batch_rr(
 
     credit = OL_A_MIN(credit, TX_SCH_MAX_CREDIT_FOR_THIS_TID(next_tq));
     frames = next_tq->frms; /* download as many frames as credit allows */
+    tx_limit = ol_tx_bad_peer_dequeue_check(txq, category->specs.send_limit, &tx_limit_flag);
     frames = ol_tx_dequeue(
-            pdev, txq, &sctx->head, category->specs.send_limit, &credit, &bytes);
+            pdev, txq, &sctx->head, tx_limit, &credit, &bytes);
+    ol_tx_bad_peer_update_tx_limit(pdev, txq, frames, tx_limit_flag);
 
     used_credits = credit;
     txq_queue->frms -= frames;
@@ -692,7 +694,8 @@ ol_tx_sched_select_batch_wrr_adv(
     struct ol_tx_frms_queue_t *txq;
     int index;
     struct ol_tx_sched_wrr_adv_category_info_t *category = NULL;
-    int frames, bytes, used_credits = 0;
+    int frames, bytes, used_credits = 0, tx_limit;
+    u_int16_t tx_limit_flag;
     /*
      * Just for good measure, do a sanity check that the initial credit
      * is enough to cover every category's credit threshold.
@@ -768,9 +771,11 @@ ol_tx_sched_select_batch_wrr_adv(
              */
             pdev->tx_sched.last_used_txq = txq;
 
+            tx_limit = ol_tx_bad_peer_dequeue_check(txq, category->specs.send_limit, &tx_limit_flag);
             frames = ol_tx_dequeue(
-                        pdev, txq, &sctx->head, category->specs.send_limit,
-                        &credit, &bytes);
+                pdev, txq, &sctx->head, tx_limit, &credit, &bytes);
+            ol_tx_bad_peer_update_tx_limit(pdev, txq, frames, tx_limit_flag);
+
             OL_TX_SCHED_WRR_ADV_CAT_STAT_INC_DISPATCHED(category, frames);
             used_credits = credit;
             category->state.frms -= frames;

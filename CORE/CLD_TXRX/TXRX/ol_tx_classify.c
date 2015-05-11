@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -93,9 +93,31 @@ ol_tx_classify_htt2_frm(
 #else
 #define OL_TX_CLASSIFY_HTT2_EXTENSION(vdev, netbuf, msdu_info)      /* no-op */
 #endif /* QCA_TX_HTT2_SUPPORT */
-
-/* DHCP go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
+/* DHCP go with voice priority; WMM_AC_VO_TID1();*/
 #define TX_DHCP_TID  6
+
+#if defined(QCA_BAD_PEER_TX_FLOW_CL)
+static inline A_BOOL
+ol_if_tx_bad_peer_txq_overflow(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer,
+    struct ol_tx_frms_queue_t *txq)
+{
+     if (peer && pdev && txq && (peer->tx_limit_flag) && (txq->frms >= pdev->tx_peer_bal.peer_bal_txq_limit)) {
+          return TRUE;
+     } else {
+          return FALSE;
+     }
+}
+#else
+static inline A_BOOL ol_if_tx_bad_peer_txq_overflow(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer,
+    struct ol_tx_frms_queue_t *txq)
+{
+    return FALSE;
+}
+#endif
 
 /* EAPOL go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
 #define TX_EAPOL_TID  6
@@ -512,6 +534,9 @@ ol_tx_classify(
         }
     }
     tx_msdu_info->peer = peer;
+    if (ol_if_tx_bad_peer_txq_overflow(pdev, peer, txq)) {
+        return NULL;
+    }
     /*
      * If relevant, do a deeper inspection to determine additional
      * characteristics of the tx frame.

@@ -14200,6 +14200,71 @@ eHalStatus sme_StatsExtEvent(tHalHandle hHal, void* pMsg)
 
 #endif
 
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+/**
+ * sme_init_bad_peer_txctl_info() - SME API to initialize the bad peer
+ *                                  tx flow control parameters
+ * @hHal:		handle of Hal.
+ * @param:		Configuration of SME module.
+ *
+ * Read configuation from SME module setting, and then update the setting
+ * to WMA module.
+ *
+ * Return: Status of the WMA message sending
+ */
+eHalStatus sme_init_bad_peer_txctl_info( tHalHandle hHal,
+			struct sme_bad_peer_txctl_param param )
+{
+	struct t_bad_peer_txtcl_config *p_config;
+	vos_msg_t msg;
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	int i = 0;
+
+	p_config = vos_mem_malloc(sizeof(struct t_bad_peer_txtcl_config));
+	if (NULL == p_config) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: could not allocate tBadPeerInfo",
+				__func__);
+		return eHAL_STATUS_E_MALLOC_FAILED;
+	}
+
+	vos_mem_zero((void*)p_config, sizeof(struct t_bad_peer_txtcl_config));
+	p_config->enable      =	param.enabled;
+	p_config->period      = param.period;
+	p_config->txq_limit   = param.txq_limit;
+	p_config->tgt_backoff =	param.tgt_backoff;
+	p_config->tgt_report_prd = param.tgt_report_prd;
+
+	for (i = 0; i <= WLAN_WMA_IEEE80211_AC_LEVEL; i++) {
+		p_config->threshold[i].cond       = param.thresh[i].cond;
+		p_config->threshold[i].delta      = param.thresh[i].delta;
+		p_config->threshold[i].percentage = param.thresh[i].percentage;
+		p_config->threshold[i].thresh[0]  = param.thresh[i].thresh;
+		p_config->threshold[i].txlimit    = param.thresh[i].limit;
+	}
+
+	if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme)) {
+		msg.type     = WDA_INIT_BAD_PEER_TX_CTL_INFO_CMD;
+		msg.bodyptr  = p_config;
+
+		if (!VOS_IS_STATUS_SUCCESS (
+		vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))) {
+			VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Not able to post WDA_INIT_BAD_PEER_TX_CTL_INFO_CMD to WDA!",
+				 __func__);
+
+			vos_mem_free(p_config);
+			sme_ReleaseGlobalLock(&pMac->sme);
+			return eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+		return eHAL_STATUS_SUCCESS;
+	}
+	vos_mem_free(p_config);
+	return eHAL_STATUS_FAILURE;
+}
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
+
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode
     \brief  Update DFS roam scan mode

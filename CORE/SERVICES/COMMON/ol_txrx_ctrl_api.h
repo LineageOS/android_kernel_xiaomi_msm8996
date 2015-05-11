@@ -1127,11 +1127,61 @@ ol_txrx_ll_set_tx_pause_q_depth(
 );
 #endif /* QCA_LL_TX_FLOW_CT */
 
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+/**
+ * @brief Configure the bad peer tx limit setting.
+ * @details
+ *
+ * @param pdev - the physics device
+ */
+void
+ol_txrx_bad_peer_txctl_set_setting(
+	struct ol_txrx_pdev_t *pdev,
+	int enable,
+	int period,
+	int txq_limit);
+#else
+static inline void
+ol_txrx_bad_peer_txctl_set_setting(
+	struct ol_txrx_pdev_t *pdev,
+	int enable,
+	int period,
+	int txq_limit)
+{
+    /* no-op */
+}
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
+
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
+/**
+ * @brief Configure the bad peer tx threshold limit
+ * @details
+ *
+ * @param pdev - the physics device
+ */
+void
+ol_txrx_bad_peer_txctl_update_threshold(
+	struct ol_txrx_pdev_t *pdev,
+	int level,
+	int tput_thresh,
+	int tx_limit);
+#else
+static inline void
+ol_txrx_bad_peer_txctl_update_threshold(
+	struct ol_txrx_pdev_t *pdev,
+	int level,
+	int tput_thresh,
+	int tx_limit)
+{
+    /* no-op */
+}
+#endif /* defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL) */
+
 #ifdef IPA_UC_OFFLOAD
 /**
  * @brief Client request resource information
  * @details
- *  OL client will reuqest IPA UC related resource information
+d *  OL client will reuqest IPA UC related resource information
  *  Resource information will be distributted to IPA module
  *  All of the required resources should be pre-allocated
  *
