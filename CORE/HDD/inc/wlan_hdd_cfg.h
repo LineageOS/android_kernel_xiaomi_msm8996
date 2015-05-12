@@ -3540,4 +3540,5 @@ v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter);
 #endif
 
 void print_hdd_cfg(hdd_context_t *pHddCtx);
+VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss);
 #endif

@@ -5046,10 +5046,15 @@ static int __iw_setint_getnone(struct net_device *dev,
 
         case WE_SET_NSS:
         {
-           hddLog(LOG1, "WMI_VDEV_PARAM_NSS val %d", set_value);
-           ret = process_wma_set_command((int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PARAM_NSS,
-                                         set_value, VDEV_CMD);
+           hddLog(LOG1, "Set NSS = %d", set_value);
+           if ((set_value > 2) || (set_value <= 0)) {
+               hddLog(LOGE, "NSS greater than 2 not supported");
+               ret = -EINVAL;
+           } else {
+               if (VOS_STATUS_SUCCESS !=
+                     hdd_update_nss(WLAN_HDD_GET_CTX(pAdapter), set_value))
+                   ret = -EINVAL;
+           }
            break;
         }
 
@@ -6252,11 +6257,9 @@ static int __iw_setnone_getint(struct net_device *dev,
 
         case WE_GET_NSS:
         {
-           hddLog(LOG1, "GET WMI_VDEV_PARAM_NSS");
-           *value = wma_cli_get_command(wmapvosContext,
-                                        (int)pAdapter->sessionId,
-                                        (int)WMI_VDEV_PARAM_NSS,
-                                        VDEV_CMD);
+           sme_GetConfigParam(hHal, &smeConfig);
+           *value = (smeConfig.csrConfig.enable2x2 == 0) ? 1 : 2;
+           hddLog(LOG1, "GET_NSS: Current NSS:%d", *value);
            break;
         }
 

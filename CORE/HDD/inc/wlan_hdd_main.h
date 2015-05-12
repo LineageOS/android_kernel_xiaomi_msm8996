@@ -303,7 +303,8 @@ extern spinlock_t hdd_context_lock;
 
 #define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
 #define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
-
+#define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_2_2       780
+#define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_2_2       780
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -1519,6 +1520,12 @@ struct hdd_context_s
     struct mutex memdump_lock;
     bool memdump_in_progress;
 #endif /* WLAN_FEATURE_MEMDUMP */
+
+    /* number of rf chains supported by target */
+    uint32_t  num_rf_chains;
+
+    /* Is htTxSTBC supported by target */
+    uint8_t   ht_tx_stbc_supported;
 };
 
 /*---------------------------------------------------------------------------

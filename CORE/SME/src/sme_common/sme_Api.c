@@ -16411,3 +16411,68 @@ bool smeNeighborRoamIsHandoffInProgress(tHalHandle hHal, tANI_U8 sessionId)
 {
 	return csrNeighborRoamIsHandoffInProgress(PMAC_STRUCT(hHal), sessionId);
 }
+
+/**
+ * sme_update_nss() - SME API to change the number for spatial streams (1 or 2)
+ * @hal:            - Handle returned by macOpen
+ * @nss:            - Number of spatial streams
+ *
+ * This function is used to update the number of spatial streams supported.
+ *
+ * Return: Success upon successfully changing nss else failure
+ *
+ */
+eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss)
+{
+	eHalStatus status;
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(h_hal);
+	uint32_t  i, value = 0;
+	union {
+		uint16_t                        cfg_value16;
+		tSirMacHTCapabilityInfo         ht_cap_info;
+	} uHTCapabilityInfo;
+	tCsrRoamSession *csr_session;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac_ctx->roam.configParam.enable2x2 = (nss == 1) ? 0 : 1;
+
+		/* get the HT capability info*/
+		ccmCfgGetInt(mac_ctx, WNI_CFG_HT_CAP_INFO, &value);
+		uHTCapabilityInfo.cfg_value16 = (0xFFFF & value);
+
+		for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
+			if (CSR_IS_SESSION_VALID(mac_ctx, i)) {
+				csr_session = CSR_GET_SESSION(mac_ctx, i);
+				if (!csr_session) {
+					smsLog(mac_ctx, LOGE,
+					       FL("Session does not exist for interface %d"),
+					       i);
+					continue;
+				}
+				csr_session->htConfig.ht_tx_stbc =
+					uHTCapabilityInfo.ht_cap_info.txSTBC;
+			}
+		}
+
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+
+	return status;
+}
+
+uint8_t sme_is_any_session_in_connected_state(tHalHandle h_hal)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(h_hal);
+	eHalStatus     status;
+	uint8_t        ret     = FALSE;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		ret = csrIsAnySessionInConnectState(mac_ctx);
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+	return ret;
+}
+
