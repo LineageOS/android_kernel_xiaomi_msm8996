@@ -950,20 +950,35 @@ DONE:
         } else {
             /* If this is for OCB, then prepend the RX stats header. */
             if (vdev->opmode == wlan_op_mode_ocb) {
-                struct ether_header eth_header = {{0}};
-                struct ocb_rx_stats_hdr_t rx_header = {0};
-                /* Construct the RX stats header and push that to the front
-                   of the packet. */
-                rx_header.version = 1;
-                rx_header.length = sizeof(rx_header);
-                rx_header.channel_freq = (vdev->ocb_channel_event.is_valid) ?
-                    vdev->ocb_channel_event.mhz
-                    : 0;
-                rx_header.rssi_cmb = peer->last_pkt_rssi_cmb;
-                adf_os_mem_copy(rx_header.rssi, peer->last_pkt_rssi,
-                                sizeof(rx_header.rssi));
-                if (peer->last_pkt_legacy_rate_sel == 0) {
-                    switch (peer->last_pkt_legacy_rate) {
+                int i;
+                struct ol_txrx_ocb_chan_info *chan_info = 0;
+                int packet_freq = (vdev->ocb_channel_event.is_valid) ?
+                    vdev->ocb_channel_event.mhz : 0;
+                for (i = 0; i < vdev->ocb_channel_count; i++) {
+                    if (vdev->ocb_channel_info[i].chan_freq == packet_freq) {
+                        chan_info = &vdev->ocb_channel_info[i];
+                        break;
+                    }
+                }
+                if (!chan_info || !chan_info->disable_rx_stats_hdr) {
+                    struct ether_header eth_header = { {0} };
+                    struct ocb_rx_stats_hdr_t rx_header = {0};
+
+                    /*
+                     * Construct the RX stats header and push that to the front
+                     * of the packet.
+                     */
+                    rx_header.version = 1;
+                    rx_header.length = sizeof(rx_header);
+                    rx_header.channel_freq =
+                        (vdev->ocb_channel_event.is_valid) ?
+                        vdev->ocb_channel_event.mhz
+                        : 0;
+                    rx_header.rssi_cmb = peer->last_pkt_rssi_cmb;
+                    adf_os_mem_copy(rx_header.rssi, peer->last_pkt_rssi,
+                                    sizeof(rx_header.rssi));
+                    if (peer->last_pkt_legacy_rate_sel == 0) {
+                        switch (peer->last_pkt_legacy_rate) {
                         case 0x8:
                             rx_header.datarate = 6;
                             break;
@@ -991,29 +1006,30 @@ DONE:
                         default:
                             rx_header.datarate = 0xFF;
                             break;
+                        }
+                    } else {
+                        rx_header.datarate = 0xFF;
                     }
-                } else {
-                    rx_header.datarate = 0xFF;
+
+                    rx_header.timestamp_microsec =
+                        peer->last_pkt_timestamp_microsec;
+                    rx_header.timestamp_submicrosec =
+                        peer->last_pkt_timestamp_submicrosec;
+                    rx_header.tsf32 = peer->last_pkt_tsf;
+                    rx_header.ext_tid = peer->last_pkt_tid;
+
+                    adf_nbuf_push_head(msdu, sizeof(rx_header));
+                    adf_os_mem_copy(adf_nbuf_data(msdu), &rx_header,
+                                    sizeof(rx_header));
+
+                    /* Construct the ethernet header with type 0x8152 and push
+                       that to the front of the packet to indicate the RX stats
+                       header. */
+                    eth_header.ether_type = adf_os_htons(ETHERTYPE_OCB_RX);
+                    adf_nbuf_push_head(msdu, sizeof(eth_header));
+                    adf_os_mem_copy(adf_nbuf_data(msdu), &eth_header,
+                                    sizeof(eth_header));
                 }
-
-                rx_header.timestamp_microsec =
-                    peer->last_pkt_timestamp_microsec;
-                rx_header.timestamp_submicrosec =
-                    peer->last_pkt_timestamp_submicrosec;
-                rx_header.tsf32 = peer->last_pkt_tsf;
-                rx_header.ext_tid = peer->last_pkt_tid;
-
-                adf_nbuf_push_head(msdu, sizeof(rx_header));
-                adf_os_mem_copy(adf_nbuf_data(msdu), &rx_header,
-                                sizeof(rx_header));
-
-                /* Construct the ethernet header with type 0x8152 and push
-                   that to the front of the packet to indicate the RX stats
-                   header. */
-                eth_header.ether_type = adf_os_htons(ETHERTYPE_OCB_RX);
-                adf_nbuf_push_head(msdu, sizeof(eth_header));
-                adf_os_mem_copy(adf_nbuf_data(msdu), &eth_header,
-                                sizeof(eth_header));
             }
             OL_RX_PEER_STATS_UPDATE(peer, msdu);
             OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);

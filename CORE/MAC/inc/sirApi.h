@@ -5906,7 +5906,14 @@ struct sir_ocb_config_channel {
 	uint32_t min_pwr;
 	uint8_t reg_pwr;
 	uint8_t antenna_max;
+	uint16_t flags;
 };
+
+/**
+ * OCB_CHANNEL_FLAG_NO_RX_HDR - Don't add the RX stats header to packets
+ *      received on this channel.
+ */
+#define OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR	(1 << 0)
 
 /**
  * struct sir_ocb_config_sched

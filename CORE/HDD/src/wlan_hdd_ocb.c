@@ -346,6 +346,7 @@ static int hdd_ocb_register_sta(hdd_adapter_t *adapter)
 	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
 	WLAN_STADescType sta_desc = {0};
 	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
 	u_int8_t peer_id;
 	v_MACADDR_t wildcardBSSID = {
 		{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
@@ -359,12 +360,7 @@ static int hdd_ocb_register_sta(hdd_adapter_t *adapter)
 		return -EINVAL;
 	}
 
-	/*
-	 * Register adapter for STA ID 0
-	 * TODO-OCB: This is for standalone 802.11p only. We need to change this
-	 * for concurrent mode
-	 */
-	hdd_ctx->sta_to_adapter[0] = adapter;
+	hdd_ctx->sta_to_adapter[peer_id] = adapter;
 
 	sta_desc.ucSTAId = peer_id;
 	/* Fill in MAC addresses */
@@ -388,6 +384,15 @@ static int hdd_ocb_register_sta(hdd_adapter_t *adapter)
 		       vos_status);
 		return -EINVAL;
 	}
+
+	if (pHddStaCtx->conn_info.staId[0] != 0 &&
+	    pHddStaCtx->conn_info.staId[0] != peer_id) {
+		hddLog(LOGE, FL("The ID for the OCB station has changed."));
+	}
+
+	pHddStaCtx->conn_info.staId[0] = peer_id;
+	vos_copy_macaddr(&pHddStaCtx->conn_info.peerMacAddress[0],
+			 &adapter->macAddressCurrent);
 
 	return 0;
 }
@@ -823,7 +828,8 @@ static const struct nla_policy qca_wlan_vendor_dcc_update_ndl[
 struct wlan_hdd_ocb_config_channel {
 	uint32_t chan_freq;
 	uint32_t bandwidth;
-	tSirMacAddr mac_address;
+	uint16_t flags;
+	uint8_t reserved[4];
 	sir_qos_params_t qos_params[MAX_NUM_AC];
 	uint32_t max_pwr;
 	uint32_t min_pwr;
@@ -841,8 +847,6 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 	for (i = 0; i < channel_count; i++) {
 		dest[i].chan_freq = src[i].chan_freq;
 		dest[i].bandwidth = src[i].bandwidth;
-		vos_mem_copy(dest[i].mac_address, src[i].mac_address,
-			     sizeof(dest[i].mac_address));
 		vos_mem_copy(dest[i].qos_params, src[i].qos_params,
 			     sizeof(dest[i].qos_params));
 		/*
@@ -854,6 +858,7 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 		 */
 		dest[i].max_pwr = src[i].max_pwr / 2;
 		dest[i].min_pwr = (src[i].min_pwr + 1) / 2;
+		dest[i].flags = src[i].flags;
 	}
 }
 
@@ -957,6 +962,9 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	}
 	wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 	    config->channels, nla_data(channel_array), channel_count);
+
+	/* Identify the vdev interface */
+	config->session_id = adapter->sessionId;
 
 	/* Release all the mac addresses used for OCB */
 	for (i = 0; i < adapter->ocb_mac_addr_count; i++) {

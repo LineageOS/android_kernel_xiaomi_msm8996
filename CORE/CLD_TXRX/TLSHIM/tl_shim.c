@@ -768,6 +768,11 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 							   vos_ctx);
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 
+	if (vos_is_logp_in_progress(VOS_MODULE_ID_TL, NULL)) {
+			TLSHIM_LOGE("%s: LOPG in progress\n", __func__);
+			return (-1);
+	}
+
 	adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
 	ret = tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0);
 	adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
