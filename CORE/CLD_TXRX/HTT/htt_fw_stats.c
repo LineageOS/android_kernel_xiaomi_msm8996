@@ -389,6 +389,50 @@ htt_t2h_stats_rx_reorder_stats_print(
                  stats_ptr->msdu_queued);
     adf_os_print("  %u MSDUs released from Rx MSDU list to MAC ring\n",
                  stats_ptr->msdu_recycled);
+    adf_os_print("  %u MPDUs with invalid peer but A2 found in AST\n",
+                 stats_ptr->invalid_peer_a2_in_ast);
+    adf_os_print("  %u MPDUs with invalid peer but A3 found in AST\n",
+                 stats_ptr->invalid_peer_a3_in_ast);
+    adf_os_print("  %u MPDUs with invalid peer, Broadcast or Mulitcast frame\n",
+                 stats_ptr->invalid_peer_bmc_mpdus);
+    adf_os_print("  %u MSDUs with err attention word\n",
+                 stats_ptr->rxdesc_err_att);
+    adf_os_print("  %u MSDUs with flag of peer_idx_invalid\n",
+                 stats_ptr->rxdesc_err_peer_idx_inv);
+    adf_os_print("  %u MSDUs with  flag of peer_idx_timeout\n",
+                 stats_ptr->rxdesc_err_peer_idx_to);
+    adf_os_print("  %u MSDUs with  flag of overflow\n",
+                 stats_ptr->rxdesc_err_ov);
+    adf_os_print("  %u MSDUs with  flag of msdu_length_err\n",
+                 stats_ptr->rxdesc_err_msdu_len);
+    adf_os_print("  %u MSDUs with  flag of mpdu_length_err\n",
+                 stats_ptr->rxdesc_err_mpdu_len);
+    adf_os_print("  %u MSDUs with  flag of tkip_mic_err\n",
+                 stats_ptr->rxdesc_err_tkip_mic);
+    adf_os_print("  %u MSDUs with  flag of decrypt_err\n",
+                 stats_ptr->rxdesc_err_decrypt);
+    adf_os_print("  %u MSDUs with  flag of fcs_err\n",
+                 stats_ptr->rxdesc_err_fcs);
+    adf_os_print("  %u Unicast frames with invalid peer handler\n",
+                 stats_ptr->rxdesc_uc_msdus_inv_peer);
+    adf_os_print("  %u unicast frame directly to DUT with invalid peer handler\n",
+                 stats_ptr->rxdesc_direct_msdus_inv_peer);
+    adf_os_print("  %u Broadcast/Multicast frames with invalid peer handler\n",
+                 stats_ptr->rxdesc_bmc_msdus_inv_peer);
+    adf_os_print("  %u MSDUs dropped due to no first MSDU flag\n",
+                 stats_ptr->rxdesc_no_1st_msdu);
+    adf_os_print("  %u MSDUs dropped due to ring overflow\n",
+                 stats_ptr->msdu_drop_ring_ov);
+    adf_os_print("  %u MSDUs dropped due to FC mismatch\n",
+                 stats_ptr->msdu_drop_fc_mismatch);
+    adf_os_print("  %u MSDUs dropped due to mgt frame in Remote ring\n",
+                 stats_ptr->msdu_drop_mgmt_remote_ring);
+    adf_os_print("  %u MSDUs dropped due to misc non error\n",
+                 stats_ptr->msdu_drop_misc);
+    adf_os_print("  %u MSDUs go to offload before reorder\n",
+                 stats_ptr->offload_msdu_wal);
+    adf_os_print("  %u data frame dropped by offload after reorder\n",
+                 stats_ptr->offload_msdu_reorder);
 }
 
 static void
