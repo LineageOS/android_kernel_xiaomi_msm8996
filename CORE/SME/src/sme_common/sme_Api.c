@@ -1680,6 +1680,7 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 
    pMac->f_prefer_non_dfs_on_radar =
                        pSmeConfigParams->f_prefer_non_dfs_on_radar;
+   pMac->fine_time_meas_cap = pSmeConfigParams->fine_time_meas_cap;
 
    return status;
 }
@@ -4659,6 +4660,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->enable_bus_auto_suspend = pMac->sme.enable_bus_auto_suspend;
 #endif
       pParam->f_prefer_non_dfs_on_radar = pMac->f_prefer_non_dfs_on_radar;
+      pParam->fine_time_meas_cap = pMac->fine_time_meas_cap;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

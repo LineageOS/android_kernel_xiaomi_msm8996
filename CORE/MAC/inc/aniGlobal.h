@@ -1170,6 +1170,7 @@ typedef struct sAniSirGlobal
     bool enable_dot11p;
     uint32_t f_sta_miracast_mcc_rest_time_val;
     uint8_t f_prefer_non_dfs_on_radar;
+    uint32_t fine_time_meas_cap;
 } tAniSirGlobal;
 
 typedef enum

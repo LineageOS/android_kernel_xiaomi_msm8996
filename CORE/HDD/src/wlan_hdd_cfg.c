@@ -3645,6 +3645,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SET_TSF_GPIO_PIN_MIN,
                 CFG_SET_TSF_GPIO_PIN_MAX),
 #endif
+   REG_VARIABLE(CFG_FINE_TIME_MEAS_CAPABILITY, WLAN_PARAM_HexInteger,
+                hdd_config_t, fine_time_meas_cap,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_FINE_TIME_MEAS_CAPABILITY_DEFAULT,
+                CFG_FINE_TIME_MEAS_CAPABILITY_MIN,
+                CFG_FINE_TIME_MEAS_CAPABILITY_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4306,6 +4312,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
 
   hddLog(LOG2, "Name = [gP2PListenDeferInterval] Value = [%u]",
                    pHddCtx->cfg_ini->p2p_listen_defer_interval);
+
+  hddLog(LOG2, "Name = [gfine_time_meas_cap] Value = [%u]",
+                   pHddCtx->cfg_ini->fine_time_meas_cap);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -5018,6 +5027,33 @@ VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
       hddLog(LOG1, "hdd_set_idle_ps_config: IMPS not enabled in ini");
    }
    return status;
+}
+
+/**
+ * hdd_set_fine_time_meas_cap() - set fine timing measurement capability
+ * @hdd_ctx: HDD context
+ * @sme_config: pointer to SME config
+ *
+ * This function is used to pass fine timing measurement capability coming
+ * from INI to SME. This function make sure that configure INI is supported
+ * by the device. Use bit mask to mask out the unsupported capabilities.
+ *
+ * Return: None
+ */
+static void hdd_set_fine_time_meas_cap(hdd_context_t *hdd_ctx,
+				       tSmeConfigParams *sme_config)
+{
+	hdd_config_t *config = hdd_ctx->cfg_ini;
+	uint32_t capability = config->fine_time_meas_cap;
+
+	/* Make sure only supported capabilities are enabled in INI */
+	capability &= CFG_FINE_TIME_MEAS_CAPABILITY_MAX;
+	sme_config->fine_time_meas_cap = capability;
+
+	hddLog(LOG1, FL("fine time meas capability - INI: %04x Enabled: %04x"),
+		config->fine_time_meas_cap, sme_config->fine_time_meas_cap);
+
+	return;
 }
 
 VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
@@ -6113,6 +6149,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                        pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
 
    vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
+   hdd_set_fine_time_meas_cap(pHddCtx, smeConfig);
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

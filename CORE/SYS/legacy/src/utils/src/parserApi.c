@@ -1163,7 +1163,17 @@ PopulateDot11fExtCap(tpAniSirGlobal   pMac,
 
     if (val)   // If set to true then set RTTv3
     {
-       p_ext_cap->fine_time_meas_initiator = 1;
+        if (LIM_IS_STA_ROLE(psessionEntry)) {
+            p_ext_cap->fine_time_meas_initiator =
+              (pMac->fine_time_meas_cap & FINE_TIME_MEAS_STA_INITIATOR) ? 1 : 0;
+            p_ext_cap->fine_time_meas_responder =
+              (pMac->fine_time_meas_cap & FINE_TIME_MEAS_STA_RESPONDER) ? 1 : 0;
+        } else if (LIM_IS_AP_ROLE(psessionEntry)) {
+            p_ext_cap->fine_time_meas_initiator =
+              (pMac->fine_time_meas_cap & FINE_TIME_MEAS_SAP_INITIATOR) ? 1 : 0;
+            p_ext_cap->fine_time_meas_responder =
+              (pMac->fine_time_meas_cap & FINE_TIME_MEAS_SAP_RESPONDER) ? 1 : 0;
+        }
     }
 
 #ifdef QCA_HT_2040_COEX
@@ -2574,8 +2584,9 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
 
         p_ext_cap = (struct s_ext_cap *)&pAssocReq->ExtCap.bytes;
         limLog(pMac, LOG1,
-               FL("ExtCap is present, timingMeas: %d, ftm_initiator: %d"),
-               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator);
+               FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
+               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator,
+               p_ext_cap->fine_time_meas_responder);
     }
     vos_mem_free(ar);
     return eSIR_SUCCESS;
@@ -2766,8 +2777,9 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
                      ar.ExtCap.num_bytes);
         p_ext_cap = (struct s_ext_cap *)&pAssocRsp->ExtCap.bytes;
         limLog(pMac, LOG1,
-               FL("ExtCap is present, timingMeas: %d, ftm_initiator: %d"),
-               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator);
+               FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
+               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator,
+               p_ext_cap->fine_time_meas_responder);
     }
 
     if ( ar.QosMapSet.present )
@@ -2965,8 +2977,9 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
         vos_mem_copy(&pAssocReq->ExtCap.bytes, &ar.ExtCap.bytes,
                      ar.ExtCap.num_bytes);
         limLog(pMac, LOG1,
-               FL("ExtCap is present, timingMeas: %d, ftm_initiator: %d"),
-               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator);
+               FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
+               p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator,
+               p_ext_cap->fine_time_meas_responder);
     }
 
     return eSIR_SUCCESS;
