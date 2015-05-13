@@ -2040,6 +2040,11 @@ static int hifDeviceSuspend(struct device *dev)
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("wow mode failure\n"));
                     return -1;
                 }
+            } else {
+                if (wma_suspend_target(temp_module, 0)) {
+                   AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("PDEV Suspend Failed\n"));
+                   return -1;
+                }
             }
 
             if (pm_flag & MMC_PM_WAKE_SDIO_IRQ){
