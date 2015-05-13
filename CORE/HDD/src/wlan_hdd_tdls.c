@@ -486,7 +486,7 @@ static v_VOID_t wlan_hdd_tdls_discovery_timeout_peer_cb(v_PVOID_t userData)
                 mutex_unlock(&pHddCtx->tdls_lock);
                 wlan_hdd_tdls_set_peer_link_status(tmp,
                                                    eTDLS_LINK_IDLE,
-                                                   eTDLS_LINK_UNSPECIFIED);
+                                                   eTDLS_LINK_NOT_SUPPORTED);
                 mutex_lock(&pHddCtx->tdls_lock);
             }
         }
@@ -2941,10 +2941,10 @@ void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
     switch(curr_peer->link_status)
     {
         case eTDLS_LINK_IDLE:
-        case eTDLS_LINK_DISCOVERING:
         case eTDLS_LINK_DISCOVERED:
             *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
+        case eTDLS_LINK_DISCOVERING:
         case eTDLS_LINK_CONNECTING:
             *state = QCA_WIFI_HAL_TDLS_ENABLED;
             break;
