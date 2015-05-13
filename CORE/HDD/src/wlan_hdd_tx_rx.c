@@ -775,6 +775,15 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
+   if(vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+       VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_WARN,
+            "LOPG in progress, dropping the packet\n");
+       ++pAdapter->stats.tx_dropped;
+       ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+       kfree_skb(skb);
+       return NETDEV_TX_OK;
+   }
+
    if (WLAN_HDD_IBSS == pAdapter->device_mode)
    {
       v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
