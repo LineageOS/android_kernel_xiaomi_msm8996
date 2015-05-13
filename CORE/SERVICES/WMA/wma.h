@@ -770,6 +770,7 @@ typedef struct wma_handle {
 	struct sir_ocb_config *ocb_config_req;
 
 	uint32_t miracast_value;
+	vos_timer_t log_completion_timer;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1599,5 +1600,7 @@ static inline void wma_set_wifi_start_logger(void *wma_handle,
 	return;
 }
 #endif
+
+void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle);
 
 #endif

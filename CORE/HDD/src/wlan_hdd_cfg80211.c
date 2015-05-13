@@ -111,6 +111,8 @@
 
 #include "wlan_hdd_memdump.h"
 
+#include "wlan_logging_sock_svc.h"
+
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
@@ -7121,7 +7123,7 @@ qca_wlan_vendor_wifi_logger_start_policy
 };
 
 /**
- * wlan_hdd_cfg80211_wifi_logger_start() - This function is used to enable
+ * __wlan_hdd_cfg80211_wifi_logger_start() - This function is used to enable
  * or disable the collection of packet statistics from the firmware
  * @wiphy:    WIPHY structure pointer
  * @wdev:     Wireless device structure pointer
@@ -7133,7 +7135,7 @@ qca_wlan_vendor_wifi_logger_start_policy
  *
  * Return: 0 on success and errno on failure
  */
-static int wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 					       struct wireless_dev *wdev,
 					       const void *data,
 					       int data_len)
@@ -7358,6 +7360,133 @@ static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 	}
 
 	return cfg80211_vendor_cmd_reply(reply_skb);
+}
+
+/**
+ * wlan_hdd_cfg80211_wifi_logger_start() - Wrapper function used to enable
+ * or disable the collection of packet statistics from the firmware
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function is used to enable or disable the collection of packet
+ * statistics from the firmware
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
+					       struct wireless_dev *wdev,
+					       const void *data,
+					       int data_len)
+{
+	int ret = 0;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_wifi_logger_start(wiphy,
+			wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+static const struct
+nla_policy
+qca_wlan_vendor_wifi_logger_get_ring_data_policy
+[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_ID]
+		= {.type = NLA_U32 },
+};
+
+/**
+ * __wlan_hdd_cfg80211_wifi_logger_get_ring_data() - Flush per packet stats
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function is used to flush or retrieve the per packet statistics from
+ * the driver
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int __wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	eHalStatus status;
+	VOS_STATUS ret;
+	uint32_t ring_id;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb
+		    [QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_MAX + 1];
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_MAX,
+			data, data_len,
+			qca_wlan_vendor_wifi_logger_get_ring_data_policy)) {
+		hddLog(LOGE, FL("Invalid attribute"));
+		return -EINVAL;
+	}
+
+	/* Parse and fetch ring id */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_ID]) {
+		hddLog(LOGE, FL("attr ATTR failed"));
+		return -EINVAL;
+	}
+
+	ring_id = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_ID]);
+
+	if (ring_id == RING_ID_PER_PACKET_STATS) {
+		wlan_logging_set_per_pkt_stats();
+		hddLog(LOG1, FL("Flushing/Retrieving packet stats"));
+	}
+
+	hddLog(LOG1, FL("Bug report triggered by framework"));
+
+	ret = vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
+			     WLAN_LOG_INDICATOR_FRAMEWORK,
+			     WLAN_LOG_REASON_CODE_UNUSED);
+	if (VOS_STATUS_SUCCESS != ret) {
+		hddLog(LOGE, FL("Failed to trigger bug report"));
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_wifi_logger_get_ring_data() - Wrapper to flush packet stats
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function is used to flush or retrieve the per packet statistics from
+ * the driver
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	int ret = 0;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_wifi_logger_get_ring_data(wiphy,
+			wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
@@ -7757,6 +7886,13 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 			 WIPHY_VENDOR_CMD_NEED_NETDEV |
 			 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_get_link_properties
+	},
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_RING_DATA,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV,
+		.doit = (void *)wlan_hdd_cfg80211_wifi_logger_get_ring_data
 	},
 };
 
