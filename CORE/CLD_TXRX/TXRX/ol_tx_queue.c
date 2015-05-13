@@ -427,11 +427,9 @@ ol_txrx_peer_tid_unpause_base(
              * the scheduler function takes the lock, temporarily
              * release the lock.
              */
-            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
             adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
             ol_tx_sched(pdev);
             adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
-            adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         }
     }
 }

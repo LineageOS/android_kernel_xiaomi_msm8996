@@ -6585,6 +6585,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     hdd_config_t *pconfig = hdd_ctx->cfg_ini;
     tSirMacHTCapabilityInfo *phtCapInfo;
     tANI_U8 mcs_set[SIZE_OF_SUPPORTED_MCS_SET];
+    uint8_t enable_tx_stbc;
 
     /* check and update RX STBC */
     if (pconfig->enableRxSTBC && !cfg->ht_rx_stbc)
@@ -6637,6 +6638,11 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     if (pconfig->ShortGI40MhzEnable && !cfg->ht_sgi_40)
         pconfig->ShortGI40MhzEnable = cfg->ht_sgi_40;
 
+    hdd_ctx->num_rf_chains     = cfg->num_rf_chains;
+    hdd_ctx->ht_tx_stbc_supported = cfg->ht_tx_stbc;
+
+    enable_tx_stbc = pconfig->enableTxSTBC;
+
     if (pconfig->enable2x2 && (cfg->num_rf_chains == 2))
     {
         pconfig->enable2x2 = 1;
@@ -6644,7 +6650,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     else
     {
         pconfig->enable2x2 = 0;
-        pconfig->enableTxSTBC = 0;
+        enable_tx_stbc = 0;
 
         /* 1x1 */
         /* Update Rx Highest Long GI data Rate */
@@ -6668,10 +6674,9 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     }
     if (!(cfg->ht_tx_stbc && pconfig->enable2x2))
     {
-        pconfig->enableTxSTBC = 0;
+        enable_tx_stbc = 0;
     }
-    phtCapInfo->txSTBC = pconfig->enableTxSTBC;
-
+    phtCapInfo->txSTBC = enable_tx_stbc;
     val32 = val16;
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
                           val32, NULL, eANI_BOOLEAN_FALSE);

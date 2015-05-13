@@ -1771,6 +1771,10 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             } else
                 pMlmAssocInd->chan_info.info = MODE_11A;
         }
+        pMlmAssocInd->chan_info.nss = pStaDs->nss;
+        pMlmAssocInd->chan_info.rate_flags =
+                      lim_get_max_rate_flags(pMac, pStaDs);
+
         limPostSmeMessage(pMac, LIM_MLM_ASSOC_IND, (tANI_U32 *) pMlmAssocInd);
         vos_mem_free(pMlmAssocInd);
     }

@@ -238,6 +238,9 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_DCC_CLEAR_STATS = 98,
 	QCA_NL80211_VENDOR_SUBCMD_DCC_UPDATE_NDL = 99,
 	QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT = 100,
+
+	/* subcommand to get link properties */
+	QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES = 101,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -382,6 +385,10 @@ enum qca_wlan_vendor_attr {
     /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
     QCA_WLAN_VENDOR_ATTR_STATS_EXT = 3,
     QCA_WLAN_VENDOR_ATTR_IFINDEX = 4,
+
+    /* used by QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES */
+    QCA_WLAN_VENDOR_ATTR_MAC_ADDR = 6,
+
     /* used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES */
     QCA_WLAN_VENDOR_ATTR_FEATURE_FLAGS = 7,
     /* keep last */
@@ -1287,6 +1294,24 @@ enum qca_wlan_vendor_attr_get_logger_features {
 	QCA_WLAN_VENDOR_ATTR_LOGGER_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LOGGER_MAX =
 		QCA_WLAN_VENDOR_ATTR_LOGGER_AFTER_LAST - 1,
+};
+
+/* NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES.
+ */
+enum qca_wlan_vendor_attr_link_properties {
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_INVALID    = 0,
+	/* Unsigned 8bit value for specifying nof spatial streams */
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_NSS        = 1,
+	/* Unsigned 8bit value for the rate flags */
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_RATE_FLAGS = 2,
+	/* Unsigned 32bit value for operating frequency */
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_FREQ       = 3,
+
+	/* KEEP LAST */
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_MAX =
+		QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_AFTER_LAST - 1,
 };
 
 /**

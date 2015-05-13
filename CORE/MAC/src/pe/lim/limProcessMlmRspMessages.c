@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2016,12 +2016,15 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
         // with proper state info
         //
         pStaDs = dphGetHashEntry( pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
-        if( NULL != pStaDs)
+        if (NULL != pStaDs) {
             pStaDs->mlmStaContext.mlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
+            pStaDs->nss = pAddStaParams->nss;
+        }
         else
             limLog( pMac, LOGW,
             FL( "Unable to get the DPH Hash Entry for AID - %d" ),
             DPH_STA_HASH_INDEX_PEER);
+
         psessionEntry->limMlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
         /*
@@ -2468,6 +2471,7 @@ void limProcessBtAmpApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     }
     pStaDs->bssId = pAddStaParams->bssIdx;
     pStaDs->staIndex = pAddStaParams->staIdx;
+    pStaDs->nss = pAddStaParams->nss;
     //if the AssocRsp frame is not acknowledged, then keep alive timer will take care of the state
     pStaDs->valid = 1;
     pStaDs->mlmStaContext.mlmState = eLIM_MLM_WT_ASSOC_CNF_STATE;

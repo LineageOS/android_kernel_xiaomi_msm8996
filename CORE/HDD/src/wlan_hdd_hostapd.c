@@ -1407,6 +1407,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     hddLog(LOGW, FL("Failed to register STA %d "MAC_ADDRESS_STR""),
                            vos_status, MAC_ADDR_ARRAY(wrqu.addr.sa_data));
             }
+
+            staId = pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staId;
+            if (VOS_IS_STATUS_SUCCESS(vos_status)) {
+                pHostapdAdapter->aStaInfo[staId].nss =
+                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.chan_info.nss;
+                pHostapdAdapter->aStaInfo[staId].rate_flags =
+                    pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.chan_info.rate_flags;
+            }
+
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
             {

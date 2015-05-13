@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -112,7 +112,11 @@ typedef struct connection_info_s
 
    v_U8_t proxyARPService;
 
+   /** NSS and RateFlags used for this connection */
+   uint8_t   nss;
+   uint32_t  rate_flags;
 }connection_info_t;
+
 /*Forward declaration of Adapter*/
 typedef struct hdd_adapter_s hdd_adapter_t;
 typedef struct hdd_context_s hdd_context_t;

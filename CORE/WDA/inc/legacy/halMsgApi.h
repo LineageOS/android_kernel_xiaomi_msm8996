@@ -310,6 +310,7 @@ typedef struct
     tANI_U8  atimIePresent;
     tANI_U32 peerAtimWindowLength;
     tANI_U8  nonRoamReassoc;
+    uint32_t nss; /* Number of spatial streams supported */
 } tAddStaParams, *tpAddStaParams;
 
 

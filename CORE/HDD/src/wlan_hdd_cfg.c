@@ -5567,7 +5567,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      val16 = (tANI_U16)val;
      phtCapInfo = (tSirMacHTCapabilityInfo *)&val16;
      phtCapInfo->rxSTBC = pConfig->enableRxSTBC;
-     phtCapInfo->txSTBC = pConfig->enableTxSTBC;
      phtCapInfo->advCodingCap = pConfig->enableRxLDPC;
      val = val16;
      if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO,
@@ -6409,3 +6408,157 @@ tANI_BOOLEAN hdd_is_okc_mode_enabled(hdd_context_t *pHddCtx)
     return eANI_BOOLEAN_FALSE;
 #endif
 }
+
+/**
+ * hdd_update_nss() - configures the provided nss value to the driver
+ *
+ * @hdd_ctx: the pointer to hdd context
+ * @nss    : the number of spatial streams to be updated
+ *
+ * Return: VOS_STATUS_SUCCESS if nss is correctly updated,
+ *              otherwise VOS_STATUS_E_FAILURE would be returned
+ */
+VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss)
+{
+	hdd_config_t *hdd_config = hdd_ctx->cfg_ini;
+	uint32_t  temp = 0;
+	uint32_t  rx_supp_data_rate, tx_supp_data_rate;
+	uint8_t   status = TRUE;
+	tSirMacHTCapabilityInfo *ht_cap_info;
+	uint8_t   mcs_set[SIZE_OF_SUPPORTED_MCS_SET] = {0};
+	uint8_t   mcs_set_temp[SIZE_OF_SUPPORTED_MCS_SET];
+	uint32_t  val;
+	uint16_t  val16;
+	uint8_t   enable2x2;
+
+	if ((nss == 2) && (hdd_ctx->num_rf_chains != 2)) {
+		hddLog(LOGE, "No support for 2 spatial streams");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	enable2x2 = (nss == 1) ? 0 : 1;
+
+	if (hdd_config->enable2x2 == enable2x2) {
+		hddLog(LOGE, "NSS same as requested");
+		return VOS_STATUS_SUCCESS;
+	}
+
+	if (TRUE == sme_is_any_session_in_connected_state(hdd_ctx->hHal)) {
+		hddLog(LOGE, "Connected sessions present, Do not change NSS");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	hdd_config->enable2x2 = enable2x2;
+
+	if (!hdd_config->enable2x2) {
+		/* 1x1 */
+		rx_supp_data_rate = HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+		tx_supp_data_rate = HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+	} else {
+		/* 2x2 */
+		rx_supp_data_rate = HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_2_2;
+		tx_supp_data_rate = HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_2_2;
+	}
+
+	/* Update Rx Highest Long GI data Rate */
+	if (ccmCfgSetInt(hdd_ctx->hHal,
+			 WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE,
+			 rx_supp_data_rate, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE,
+			"Could not pass on WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE to CCM");
+	}
+
+	/* Update Tx Highest Long GI data Rate */
+	if (ccmCfgSetInt(hdd_ctx->hHal,
+			 WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE,
+			 tx_supp_data_rate, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE,
+		       "Could not pass on HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1 to CCM");
+	}
+
+	ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO, &temp);
+	val16 = (uint16_t)temp;
+	ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
+	if (!(hdd_ctx->ht_tx_stbc_supported && hdd_config->enable2x2))
+		ht_cap_info->txSTBC = 0;
+	else
+		ht_cap_info->txSTBC = hdd_config->enableTxSTBC;
+	temp = val16;
+	if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
+			 temp, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE, "Could not pass on WNI_CFG_HT_CAP_INFO to CCM");
+	}
+
+	ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, &temp);
+	temp = (temp & 0xFFFC) | hdd_config->vhtRxMCS;
+	if (hdd_config->enable2x2)
+		temp = (temp & 0xFFF3) | (hdd_config->vhtRxMCS2x2 << 2);
+	else
+		temp |= 0x000C;
+
+	if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_BASIC_MCS_SET,
+			 temp, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE,
+			"Could not pass on WNI_CFG_VHT_BASIC_MCS_SET to CCM");
+	}
+
+	ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_RX_MCS_MAP, &temp);
+	temp = (temp & 0xFFFC) | hdd_config->vhtRxMCS;
+	if (hdd_config->enable2x2)
+		temp = (temp & 0xFFF3) | (hdd_config->vhtRxMCS2x2 << 2);
+	else
+		temp |= 0x000C;
+
+	if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_RX_MCS_MAP,
+			 temp, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE, "Could not pass on WNI_CFG_VHT_RX_MCS_MAP to CCM");
+	}
+
+	ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_MCS_MAP, &temp);
+	temp = (temp & 0xFFFC) | hdd_config->vhtTxMCS;
+	if (hdd_config->enable2x2)
+		temp = (temp & 0xFFF3) | (hdd_config->vhtTxMCS2x2 << 2);
+	else
+		temp |= 0x000C;
+
+	if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_MCS_MAP,
+			 temp, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE, "Could not pass on WNI_CFG_VHT_TX_MCS_MAP to CCM");
+	}
+
+#define WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES 0xff
+	val = SIZE_OF_SUPPORTED_MCS_SET;
+	ccmCfgGetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
+		     mcs_set_temp, &val);
+
+	mcs_set[0] = mcs_set_temp[0];
+	if (hdd_config->enable2x2)
+		for (val = 0; val < nss; val++)
+			mcs_set[val] = WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES;
+
+	if (ccmCfgSetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
+			 mcs_set, SIZE_OF_SUPPORTED_MCS_SET, NULL,
+			 eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+		status = FALSE;
+		hddLog(LOGE, "Could not pass on MCS SET to CCM");
+	}
+#undef WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES
+
+	if (eHAL_STATUS_SUCCESS != sme_update_nss(hdd_ctx->hHal, nss))
+		status = FALSE;
+
+	return (status == FALSE) ? VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
+}
+

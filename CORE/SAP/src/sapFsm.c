@@ -2740,6 +2740,8 @@ sapSignalHDDevent
             pChanInfo->band_center_freq2 = pCsrRoamInfo->chan_info.band_center_freq2;
             pChanInfo->reg_info_1 = pCsrRoamInfo->chan_info.reg_info_1;
             pChanInfo->reg_info_2 = pCsrRoamInfo->chan_info.reg_info_2;
+            pChanInfo->nss = pCsrRoamInfo->chan_info.nss;
+            pChanInfo->rate_flags = pCsrRoamInfo->chan_info.rate_flags;
 
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;

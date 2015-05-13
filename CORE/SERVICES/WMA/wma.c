@@ -14222,9 +14222,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	u_int8_t peer_id;
 	VOS_STATUS status;
 	int32_t ret;
-#ifdef WLAN_FEATURE_11W
 	struct wma_txrx_node *iface = NULL;
-#endif /* WLAN_FEATURE_11W */
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -14253,6 +14251,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
+	iface = &wma->interfaces[vdev->vdev_id];
 	peer = ol_txrx_find_peer_by_addr_and_vdev(pdev,
                                                   vdev,
                                                   add_sta->staMac,
@@ -14335,7 +14334,6 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		 * per STA for SAP case
 		 * We will isolate the ifaces based on vdevid
 		 */
-		iface = &wma->interfaces[vdev->vdev_id];
 		iface->rmfEnabled = add_sta->rmfEnabled;
 		/*
 		 * when 802.11w PMF is enabled for hw encr/decr
@@ -14375,6 +14373,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	ol_txrx_peer_state_update(pdev, add_sta->staMac, state);
 
 	add_sta->staIdx = ol_txrx_local_peer_id(peer);
+	add_sta->nss    = iface->nss;
 	add_sta->status = VOS_STATUS_SUCCESS;
 send_rsp:
 	WMA_LOGD("%s: Sending add sta rsp to umac (mac:%pM, status:%d)",
@@ -14851,6 +14850,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
    iface->aid = params->assocId;
 out:
 	params->status = status;
+	params->nss = iface->nss;
 /* change logging before release */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         if(iface && iface->roam_synch_in_progress)
