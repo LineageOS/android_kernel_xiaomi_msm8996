@@ -520,7 +520,6 @@ static int wlan_logging_proc_sock_rx_msg(struct sk_buff *skb)
 		 * logger app is registered for the first time.
 		 */
 		gapp_pid = wnl->nlh.nlmsg_pid;
-		set_default_logtoapp_log_level();
 	}
 
 	ret = wlan_send_sock_msg_to_app(&wnl->wmsg, 0,
