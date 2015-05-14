@@ -363,6 +363,10 @@ ol_tx_classify(
              * This is currently true, and is expected to remain true.
              */
             tx_msdu_info->htt.info.peer_id = peer->peer_ids[0];
+        } else if (vdev->opmode == wlan_op_mode_ocb) {
+            tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
+            /* In OCB mode, don't worry about the peer. We don't need it. */
+            peer = NULL;
         } else {
             tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
             /*
@@ -515,7 +519,8 @@ ol_tx_classify(
      * indicate an error.
      */
     OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, tx_nbuf, tx_msdu_info, txq);
-    if (IEEE80211_IS_MULTICAST(dest_addr) && vdev->opmode != wlan_op_mode_sta) {
+    if (IEEE80211_IS_MULTICAST(dest_addr) && vdev->opmode != wlan_op_mode_sta &&
+        tx_msdu_info->peer != NULL) {
 
         TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
                       "%s: remove the peer reference %p\n", __func__, peer);
