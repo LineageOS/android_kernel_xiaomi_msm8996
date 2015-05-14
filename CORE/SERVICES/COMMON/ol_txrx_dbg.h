@@ -141,6 +141,8 @@ void ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent);
 #endif
 
 /*--- txrx stats display debug functions ---*/
+void ol_txrx_stats(ol_txrx_vdev_handle vdev, char *buffer,
+                   unsigned length);
 
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
 

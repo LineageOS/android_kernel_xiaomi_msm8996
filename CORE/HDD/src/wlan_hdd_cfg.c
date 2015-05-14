@@ -3673,6 +3673,13 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
                 CFG_P2P_LISTEN_DEFER_INTERVAL_MIN,
                 CFG_P2P_LISTEN_DEFER_INTERVAL_MAX),
 
+   REG_VARIABLE(CFG_MULTICAST_HOST_FW_MSGS, WLAN_PARAM_Integer,
+                hdd_config_t, multicast_host_fw_msgs,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MULTICAST_HOST_FW_MSGS_DEFAULT,
+                CFG_MULTICAST_HOST_FW_MSGS_MIN,
+                CFG_MULTICAST_HOST_FW_MSGS_MAX),
+
 };
 #endif
 
@@ -6104,6 +6111,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->f_prefer_non_dfs_on_radar =
                        pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
+
+   vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

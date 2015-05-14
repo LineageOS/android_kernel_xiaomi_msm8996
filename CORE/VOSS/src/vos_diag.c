@@ -143,8 +143,13 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
         return;
     }
 
-   /* Send the log data to the ptt app only if it is registered with the wlan driver*/
-    if(pHddCtx->ptt_pid)
+    if (nl_srv_is_initialized() != 0)
+        return;
+
+   /* Send the log data to the ptt app only if it is registered
+    * with the wlan driver
+    */
+    if (vos_is_multicast_logging())
     {
         data_len = pHdr->len;
 
@@ -154,7 +159,8 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
 
         if(!pBuf)
         {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "vos_mem_malloc failed");
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "vos_mem_malloc failed");
             return;
         }
 
@@ -173,17 +179,13 @@ void vos_log_submit(v_VOID_t *plog_hdr_ptr)
 
         vos_mem_copy(pBuf, pHdr, data_len);
 
-        if(pHddCtx->ptt_pid != INVALID_PID)
-        {
-            if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, -1) < 0) {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                          ("Ptt Socket error sending message to the app!!"));
+        if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, -1) < 0) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                ("Ptt Socket error sending message to the app!!"));
                 vos_mem_free((v_VOID_t *)wmsg);
-                pHddCtx->ptt_pid = INVALID_PID;
                 return;
-            }
-
         }
+
         vos_mem_free((v_VOID_t*)wmsg);
     }
     return;
@@ -237,7 +239,6 @@ void vos_log_wlock_diag(uint32_t reason, const char *wake_lock_name,
 void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPayload)
 {
 
-
     tAniHdr *wmsg = NULL;
     v_U8_t *pBuf;
     struct hdd_context_s *pHddCtx;
@@ -261,8 +262,13 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
         return;
     }
 
-    /* Send the log data to the ptt app only if it is registered with the wlan driver*/
-    if(pHddCtx->ptt_pid != INVALID_PID)
+    if (nl_srv_is_initialized() != 0)
+        return;
+
+    /* Send the log data to the ptt app only if it is registered
+     * with the wlan driver
+     */
+    if (vos_is_multicast_logging())
     {
         total_len = sizeof(tAniHdr)+sizeof(event_report_t)+length;
 
@@ -270,7 +276,8 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
 
         if(!pBuf)
         {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "vos_mem_malloc failed");
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "vos_mem_malloc failed");
             return;
         }
         wmsg = (tAniHdr*)pBuf;
@@ -292,7 +299,6 @@ void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPaylo
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        ("Ptt Socket error sending message to the app!!"));
             vos_mem_free((v_VOID_t*)wmsg);
-            pHddCtx->ptt_pid = INVALID_PID;
             return;
         }
 

@@ -2025,6 +2025,43 @@ WLANTL_PauseUnPauseQs(void *vos_context, v_BOOL_t flag)
 }
 
 #ifdef QCA_LL_TX_FLOW_CT
+/*
+ * WLANTL_Get_llStats - get the stats for TXRX module
+ * @sessionId: vdev sessionid.
+ * @buffer:  buffer to update the stats
+ * @length:  lenth of the buffer
+ *
+ * HDD will call this API to get the OL-TXRX module stats
+ *
+ */
+void WLANTL_Get_llStats
+(
+	uint8_t sessionId,
+	char *buffer,
+	uint16_t length
+)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	struct txrx_tl_shim_ctx *tl_shim;
+	struct ol_txrx_vdev_t *vdev;
+
+	if (!vos_context) {
+		return;
+	}
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_context);
+	if (!tl_shim) {
+		TLSHIM_LOGD("%s, tl_shim is NULL",
+                    __func__);
+		return;
+	}
+
+	vdev = tl_shim->session_flow_control[sessionId].vdev;
+	ol_txrx_stats(vdev, buffer, (unsigned)length);
+	return;
+
+}
+
 /*=============================================================================
   FUNCTION    WLANTL_GetTxResource
 
