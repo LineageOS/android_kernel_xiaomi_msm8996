@@ -59,7 +59,7 @@
 
 
 struct dfs_pulse dfs_fcc_radars[] = {
-    // FCC TYPE 1
+    // FCC NEW TYPE 0
     // {18,  1,  325, 1930, 0,  6,  7,  0,  1, 18,  0, 3,  0}, // 518 to 3066
     {18,  1,  700, 700, 0,  6,  5,  0,  1, 18,  0, 3,  1, 0},
     {18,  1,  350, 350, 0,  6,  5,  0,  1, 18,  0, 3,  0, 0},
@@ -76,6 +76,25 @@ struct dfs_pulse dfs_fcc_radars[] = {
 
     // FCC TYPE 4
     {16, 15, 2000, 5000, 0, 25,  5, 11, 23, 22,  0, 3, 0, 11},
+
+    /*
+     * FCC NEW TYPE 1
+     * 518us to 938us pulses (min 56 pulses)
+     */
+    {57, 1, 1066, 1930, 0, 6, 20,  0,  1, 22,  0, 3,  0, 21},
+
+    /*
+     * FCC NEW TYPE 1
+     * 938us to 2000 pulses (min 26 pulses)
+     */
+    {27, 1,  500, 1066, 0, 6, 13,  0,  1, 22,  0, 3,  0, 22},
+
+    /*
+     * FCC NEW TYPE 1
+     * 2000 to 3067us pulses (min 17 pulses)
+     */
+    {18, 1,  325,  500, 0, 6,  9,  0,  1, 22,  0, 3,  0, 23},
+
 };
 
 struct dfs_pulse dfs_mkk4_radars[] = {

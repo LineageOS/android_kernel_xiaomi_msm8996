@@ -1360,18 +1360,28 @@ typedef enum
 #define CFG_ENABLE_PACKET_LOG_MAX        (1)
 #define CFG_ENABLE_PACKET_LOG_DEFAULT    (1)
 
+/* gFwDebugLogType takes values from enum dbglog_process_t,
+ * make default value as DBGLOG_PROCESS_NET_RAW to give the
+ * logs to net link since cnss_diag service is started at boot
+ * time by default.
+ */
 #define CFG_ENABLE_FW_LOG_TYPE            "gFwDebugLogType"
 #define CFG_ENABLE_FW_LOG_TYPE_MIN        ( 0 )
 #define CFG_ENABLE_FW_LOG_TYPE_MAX        ( 255 )
-#define CFG_ENABLE_FW_LOG_TYPE_DEFAULT    ( 0 )
+#define CFG_ENABLE_FW_LOG_TYPE_DEFAULT    ( 3 )
 
-
+/* gFwDebugLogLevel takes values from enum DBGLOG_LOG_LVL,
+ * make default value as DBGLOG_ERR to enable error logs by
+ * default.
+ */
 #define CFG_ENABLE_FW_DEBUG_LOG_LEVEL          "gFwDebugLogLevel"
 #define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MIN      ( 0 )
 #define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_MAX      ( 255 )
-#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_DEFAULT  ( 0 )
+#define CFG_ENABLE_FW_DEBUG_LOG_LEVEL_DEFAULT  ( 5 )
 
-
+/* For valid values of log levels check enum DBGLOG_LOG_LVL and
+ * for valid values of module ids check enum WLAN_MODULE_ID.
+ */
 #define CFG_ENABLE_FW_MODULE_LOG_LEVEL    "gFwDebugModuleLoglevel"
 #define CFG_ENABLE_FW_MODULE_LOG_DEFAULT  ""
 

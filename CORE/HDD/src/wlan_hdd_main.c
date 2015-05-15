@@ -8911,13 +8911,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
   /* Enable FW logs based on INI configuration */
   if ((VOS_FTM_MODE != vos_get_conparam()) &&
-             (pHddCtx->cfg_ini->enableFwLogType))
+             (pHddCtx->cfg_ini->enablefwlog))
   {
      tANI_U8 count = 0;
      tANI_U32 value = 0;
      tANI_U8 numEntries = 0;
      tANI_U8 moduleLoglevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
 
+     pHddCtx->fw_log_settings.dl_type = pHddCtx->cfg_ini->enableFwLogType;
      ret = process_wma_set_command( (int)pAdapter->sessionId,
                                   (int)WMI_DBGLOG_TYPE,
                                   pHddCtx->cfg_ini->enableFwLogType, DBG_CMD );
@@ -8926,6 +8927,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
           hddLog(LOGE, FL("Failed to enable FW log type ret %d"), ret);
      }
 
+     pHddCtx->fw_log_settings.dl_loglevel = pHddCtx->cfg_ini->enableFwLogLevel;
      ret = process_wma_set_command((int)pAdapter->sessionId,
                                    (int)WMI_DBGLOG_LOG_LEVEL,
                                    pHddCtx->cfg_ini->enableFwLogLevel, DBG_CMD);
