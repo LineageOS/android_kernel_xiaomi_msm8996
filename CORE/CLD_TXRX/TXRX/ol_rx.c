@@ -214,6 +214,11 @@ ol_rx_indication_handler(
     struct ol_txrx_vdev_t *vdev = NULL;
     struct ol_txrx_peer_t *peer;
     htt_pdev_handle htt_pdev;
+    uint16_t center_freq;
+    uint16_t chan1;
+    uint16_t chan2;
+    uint8_t phymode;
+    a_bool_t ret;
 
     htt_pdev = pdev->htt_pdev;
     peer = ol_txrx_peer_find_by_id(pdev, peer_id);
@@ -333,6 +338,13 @@ ol_rx_indication_handler(
 #endif
                 rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
+                ret = htt_rx_msdu_center_freq(htt_pdev, peer, rx_mpdu_desc,
+                                              &center_freq, &chan1, &chan2, &phymode);
+                if (ret == A_TRUE) {
+                        peer->last_pkt_center_freq = center_freq;
+                } else {
+                        peer->last_pkt_center_freq = 0;
+                }
 
                 /* Pktlog */
     #ifdef WDI_EVENT_ENABLE
@@ -952,8 +964,7 @@ DONE:
             if (vdev->opmode == wlan_op_mode_ocb) {
                 int i;
                 struct ol_txrx_ocb_chan_info *chan_info = 0;
-                int packet_freq = (vdev->ocb_channel_event.is_valid) ?
-                    vdev->ocb_channel_event.mhz : 0;
+                int packet_freq = peer->last_pkt_center_freq;
                 for (i = 0; i < vdev->ocb_channel_count; i++) {
                     if (vdev->ocb_channel_info[i].chan_freq == packet_freq) {
                         chan_info = &vdev->ocb_channel_info[i];
@@ -970,10 +981,7 @@ DONE:
                      */
                     rx_header.version = 1;
                     rx_header.length = sizeof(rx_header);
-                    rx_header.channel_freq =
-                        (vdev->ocb_channel_event.is_valid) ?
-                        vdev->ocb_channel_event.mhz
-                        : 0;
+                    rx_header.channel_freq = peer->last_pkt_center_freq;
                     rx_header.rssi_cmb = peer->last_pkt_rssi_cmb;
                     adf_os_mem_copy(rx_header.rssi, peer->last_pkt_rssi,
                                     sizeof(rx_header.rssi));
@@ -1286,48 +1294,6 @@ ol_rx_offload_paddr_deliver_ind_handler(
         msdu_count--;
     }
     htt_rx_msdu_buff_replenish(htt_pdev);
-}
-
-/**
- * ol_rx_chan_change_handler() - Process a channel change event from the target.
- * @pdev:               the data physical device that received the frames
- *                      (registered with HTT as a context pointer during attach
- *                      time)
- * @mhz:                primary channel frequency in MHz
- * @band_center_freq1:  center frequency 1 in MHz
- * @band_center_freq2:  Center frequency 2 in MHz - valid only for
- *                          11acvht 80plus80 mode
- * @phy_mode:           baseband modem operating mode
- *
- * The target sends a channel change event. Indicating the data recieved
- * following this event is on the particular channel until the next channel
- * change event.
- */
-void
-ol_rx_chan_change_handler(
-    struct ol_txrx_pdev_t *pdev,
-    u_int16_t mhz,
-    u_int16_t band_center_freq1,
-    u_int16_t band_center_freq2,
-    WLAN_PHY_MODE phy_mode)
-{
-    struct ol_txrx_vdev_t *vdev = NULL;
-    /* todo: this is temporary until firmware
-       supports the vdev-id on this event. */
-    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
-        if (wlan_op_mode_ocb == vdev->opmode) {
-            break;
-        }
-    }
-    if (!vdev) {
-        return;
-    }
-
-    vdev->ocb_channel_event.is_valid          = true;
-    vdev->ocb_channel_event.mhz               = mhz;
-    vdev->ocb_channel_event.band_center_freq1 = band_center_freq1;
-    vdev->ocb_channel_event.band_center_freq2 = band_center_freq2;
-    vdev->ocb_channel_event.phy_mode          = phy_mode;
 }
 
 void

@@ -1016,6 +1016,7 @@ struct ol_txrx_peer_t {
 	uint8_t last_pkt_timestamp_submicrosec;
 	uint32_t last_pkt_tsf;
 	uint8_t last_pkt_tid;
+	uint16_t last_pkt_center_freq;
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */

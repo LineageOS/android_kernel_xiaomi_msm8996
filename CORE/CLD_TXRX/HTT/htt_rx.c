@@ -1989,6 +1989,19 @@ a_bool_t (*htt_rx_msdu_desc_key_id)(
     htt_pdev_handle pdev,
     void *mpdu_desc, u_int8_t *key_id);
 
+a_bool_t (*htt_rx_msdu_chan_info_present)(
+	htt_pdev_handle pdev,
+	void *mpdu_desc);
+
+a_bool_t (*htt_rx_msdu_center_freq)(
+	htt_pdev_handle pdev,
+	struct ol_txrx_peer_t *peer,
+	void *mpdu_desc,
+	uint16_t *primary_chan_center_freq_mhz,
+	uint16_t *contig_chan1_center_freq_mhz,
+	uint16_t *contig_chan2_center_freq_mhz,
+	uint8_t *phy_mode);
+
 void *
 htt_rx_mpdu_desc_list_next_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 {
@@ -2064,6 +2077,97 @@ a_bool_t htt_rx_mpdu_is_encrypted_hl(htt_pdev_handle pdev, void *mpdu_desc)
         adf_os_assert(0);
 		return -1;
     }
+}
+
+a_bool_t
+htt_rx_msdu_chan_info_present_ll(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	return A_FALSE;
+}
+
+a_bool_t
+htt_rx_msdu_chan_info_present_hl(htt_pdev_handle pdev, void *mpdu_desc)
+{
+	if (htt_rx_msdu_first_msdu_flag_hl(pdev, mpdu_desc) == A_TRUE &&
+		HTT_WORD_GET(*(u_int32_t*)mpdu_desc,
+			    HTT_HL_RX_DESC_CHAN_INFO_PRESENT)) {
+			return A_TRUE;
+	}
+
+	return A_FALSE;
+}
+
+a_bool_t
+htt_rx_msdu_center_freq_ll(htt_pdev_handle pdev,
+	struct ol_txrx_peer_t *peer,
+	void *mpdu_desc,
+	uint16_t *primary_chan_center_freq_mhz,
+	uint16_t *contig_chan1_center_freq_mhz,
+	uint16_t *contig_chan2_center_freq_mhz,
+	uint8_t *phy_mode)
+{
+	if (primary_chan_center_freq_mhz)
+		*primary_chan_center_freq_mhz = 0;
+	if (contig_chan1_center_freq_mhz)
+		*contig_chan1_center_freq_mhz = 0;
+	if (contig_chan2_center_freq_mhz)
+		*contig_chan2_center_freq_mhz = 0;
+	if (phy_mode)
+		*phy_mode = 0;
+	return A_FALSE;
+}
+
+a_bool_t
+htt_rx_msdu_center_freq_hl(htt_pdev_handle pdev,
+	struct ol_txrx_peer_t *peer,
+	void *mpdu_desc,
+	uint16_t *primary_chan_center_freq_mhz,
+	uint16_t *contig_chan1_center_freq_mhz,
+	uint16_t *contig_chan2_center_freq_mhz,
+	uint8_t *phy_mode)
+{
+	int pn_len, index;
+	uint32_t *chan_info;
+
+	index = htt_rx_msdu_is_wlan_mcast(pdev, mpdu_desc) ?
+                                   txrx_sec_mcast : txrx_sec_ucast;
+
+	pn_len = (peer ?
+		  pdev->txrx_pdev->rx_pn[peer->security[index].sec_type].len :
+		  0);
+	chan_info = (uint32_t*) ((uint8_t*)mpdu_desc +
+				 HTT_HL_RX_DESC_PN_OFFSET + pn_len);
+
+	if (htt_rx_msdu_chan_info_present_hl(pdev, mpdu_desc)) {
+		if (primary_chan_center_freq_mhz)
+			*primary_chan_center_freq_mhz =
+				HTT_WORD_GET(*chan_info,
+					HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ);
+		if (contig_chan1_center_freq_mhz)
+			*contig_chan1_center_freq_mhz =
+				HTT_WORD_GET(*chan_info,
+					HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ);
+		chan_info++;
+		if (contig_chan2_center_freq_mhz)
+			*contig_chan2_center_freq_mhz =
+				HTT_WORD_GET(*chan_info,
+					HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ);
+		if (phy_mode)
+			*phy_mode =
+				HTT_WORD_GET(*chan_info,
+					HTT_CHAN_INFO_PHY_MODE);
+		return A_TRUE;
+	}
+
+	if (primary_chan_center_freq_mhz)
+		*primary_chan_center_freq_mhz = 0;
+	if (contig_chan1_center_freq_mhz)
+		*contig_chan1_center_freq_mhz = 0;
+	if (contig_chan2_center_freq_mhz)
+		*contig_chan2_center_freq_mhz = 0;
+	if (phy_mode)
+		*phy_mode = 0;
+	return A_FALSE;
 }
 
 a_bool_t
@@ -2637,6 +2741,8 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_msdu_desc_retrieve = htt_rx_msdu_desc_retrieve_ll;
         htt_rx_mpdu_is_encrypted = htt_rx_mpdu_is_encrypted_ll;
         htt_rx_msdu_desc_key_id = htt_rx_msdu_desc_key_id_ll;
+        htt_rx_msdu_chan_info_present = htt_rx_msdu_chan_info_present_ll;
+        htt_rx_msdu_center_freq = htt_rx_msdu_center_freq_ll;
     } else {
         pdev->rx_ring.size = HTT_RX_RING_SIZE_MIN;
         HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
@@ -2660,6 +2766,8 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_msdu_desc_retrieve = htt_rx_msdu_desc_retrieve_hl;
         htt_rx_mpdu_is_encrypted = htt_rx_mpdu_is_encrypted_hl;
         htt_rx_msdu_desc_key_id = htt_rx_msdu_desc_key_id_hl;
+        htt_rx_msdu_chan_info_present = htt_rx_msdu_chan_info_present_hl;
+        htt_rx_msdu_center_freq = htt_rx_msdu_center_freq_hl;
 
         /*
          * HL case, the rx descriptor can be different sizes for

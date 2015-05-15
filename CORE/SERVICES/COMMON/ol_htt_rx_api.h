@@ -597,6 +597,21 @@ extern a_bool_t
     void *mpdu_desc,
     u_int8_t *key_id);
 
+extern a_bool_t
+(*htt_rx_msdu_chan_info_present)(
+	htt_pdev_handle pdev,
+	void *mpdu_desc);
+
+extern a_bool_t
+(*htt_rx_msdu_center_freq)(
+	htt_pdev_handle pdev,
+	struct ol_txrx_peer_t *peer,
+	void *mpdu_desc,
+	uint16_t *primary_chan_center_freq_mhz,
+	uint16_t *contig_chan1_center_freq_mhz,
+	uint16_t *contig_chan2_center_freq_mhz,
+	uint8_t *phy_mode);
+
 /*====================== rx MSDU + descriptor delivery ======================*/
 
 /**
