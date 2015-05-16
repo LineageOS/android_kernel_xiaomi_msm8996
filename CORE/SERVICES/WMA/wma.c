@@ -25008,6 +25008,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_pktlog_wmi_send_cmd(wma_handle,
 						(struct ath_pktlog_wmi_params *)
 						msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 #endif
 #if defined(QCA_WIFI_FTM)
