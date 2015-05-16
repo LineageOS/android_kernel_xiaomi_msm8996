@@ -1820,7 +1820,8 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                         break;
                     }
                 }
-                else if(operatingBand == eCSR_DOT11_MODE_11g)
+
+                if(operatingBand == eCSR_DOT11_MODE_11g)
                 {
                      sapInterferenceRssiCount(pSpectCh);
                 }
