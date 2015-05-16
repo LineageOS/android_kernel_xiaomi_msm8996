@@ -607,6 +607,7 @@ int wlan_logging_sock_deactivate_svc(void)
 	INIT_COMPLETION(gwlan_logging.shutdown_comp);
 	gwlan_logging.exit = true;
 	gwlan_logging.is_active = false;
+	vos_set_multicast_logging(0);
 	clear_bit(HOST_LOG_DRIVER_MSG, &gwlan_logging.eventFlag);
 	clear_bit(HOST_LOG_PER_PKT_STATS, &gwlan_logging.eventFlag);
 	wake_up_interruptible(&gwlan_logging.wait_queue);
@@ -614,6 +615,7 @@ int wlan_logging_sock_deactivate_svc(void)
 
 	spin_lock_irqsave(&gwlan_logging.spin_lock, irq_flag);
 	vfree(gplog_msg);
+	gplog_msg = NULL;
 	gwlan_logging.pcur_node = NULL;
 	spin_unlock_irqrestore(&gwlan_logging.spin_lock, irq_flag);
 

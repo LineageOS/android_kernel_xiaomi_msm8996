@@ -415,7 +415,6 @@ typedef struct _VosContextType
    uint32_t wakelock_log_level;
    uint32_t connectivity_log_level;
    uint32_t packet_stats_log_level;
-   uint8_t multicast_logging;
 
 } VosContextType, *pVosContextType;
 

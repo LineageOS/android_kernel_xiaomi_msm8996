@@ -111,6 +111,7 @@ static pVosContextType gpVosContext;
 /* Debug variable to detect MC thread stuck */
 static atomic_t vos_wrapper_empty_count;
 
+static uint8_t vos_multicast_logging;
 /*---------------------------------------------------------------------------
  * Forward declaration
  * ------------------------------------------------------------------------*/
@@ -2534,15 +2535,7 @@ enum wifi_driver_log_level vos_get_ring_log_level(uint32_t ring_id)
  */
 void vos_set_multicast_logging(uint8_t value)
 {
-	VosContextType *vos_context;
-
-	vos_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-	if (!vos_context) {
-		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-				"%s: vos context is Invald", __func__);
-		return;
-	}
-	vos_context->multicast_logging = value;
+	vos_multicast_logging = value;
 }
 
 /**
@@ -2556,14 +2549,5 @@ void vos_set_multicast_logging(uint8_t value)
  */
 uint8_t vos_is_multicast_logging(void)
 {
-	VosContextType *vos_context;
-
-	vos_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-	if (!vos_context) {
-		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-				"%s: vos context is Invald", __func__);
-		return 0;
-	}
-
-	return vos_context->multicast_logging;
+	return vos_multicast_logging;
 }
