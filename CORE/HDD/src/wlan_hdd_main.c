@@ -4276,7 +4276,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 	   }
        }
        /* GETROAMMODE */
-       else if (strncmp(priv_data.buf, "GETROAMMODE", SIZE_OF_GETROAMMODE) == 0)
+       else if (strncmp(command, "GETROAMMODE", SIZE_OF_GETROAMMODE) == 0)
        {
 	   tANI_BOOLEAN roamMode = sme_getIsLfrFeatureEnabled(pHddCtx->hHal);
 	   char extra[32];
@@ -4343,7 +4343,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            sme_UpdateRoamRssiDiff(pHddCtx->hHal,
                                   pAdapter->sessionId, roamRssiDiff);
        }
-       else if (strncmp(priv_data.buf, "GETROAMDELTA", 12) == 0)
+       else if (strncmp(command, "GETROAMDELTA", 12) == 0)
        {
            tANI_U8 roamRssiDiff = sme_getRoamRssiDiff(pHddCtx->hHal);
            char extra[32];
@@ -4796,7 +4796,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            sme_UpdateRoamScanNProbes(pHddCtx->hHal, pAdapter->sessionId,
                                      nProbes);
        }
-       else if (strncmp(priv_data.buf, "GETSCANNPROBES", 14) == 0)
+       else if (strncmp(command, "GETSCANNPROBES", 14) == 0)
        {
            tANI_U8 val = sme_getRoamScanNProbes(pHddCtx->hHal);
            char extra[32];
@@ -4855,7 +4855,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                                               homeAwayTime, eANI_BOOLEAN_TRUE);
            }
        }
-       else if (strncmp(priv_data.buf, "GETSCANHOMEAWAYTIME", 19) == 0)
+       else if (strncmp(command, "GETSCANHOMEAWAYTIME", 19) == 0)
        {
            tANI_U16 val = sme_getRoamScanHomeAwayTime(pHddCtx->hHal);
            char extra[32];
@@ -4912,7 +4912,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            pHddCtx->cfg_ini->isWESModeEnabled = wesMode;
            sme_UpdateWESMode(pHddCtx->hHal, wesMode, pAdapter->sessionId);
        }
-       else if (strncmp(priv_data.buf, "GETWESMODE", 10) == 0)
+       else if (strncmp(command, "GETWESMODE", 10) == 0)
        {
            tANI_BOOLEAN wesMode = sme_GetWESMode(pHddCtx->hHal);
            char extra[32];
@@ -5358,7 +5358,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                pHddCtx->btCoexModeSet = FALSE;
            }
        }
-       else if (strncmp(priv_data.buf, "GETROAMSCANCONTROL", 18) == 0)
+       else if (strncmp(command, "GETROAMSCANCONTROL", 18) == 0)
        {
            tANI_BOOLEAN roamScanControl = sme_GetRoamScanControl(pHddCtx->hHal);
            char extra[32];
