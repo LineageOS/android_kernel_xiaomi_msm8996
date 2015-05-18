@@ -2828,12 +2828,12 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
     /*
      * We are getting channel bonding mode from sapDfsInfor structure
      * because we've implemented channel width fallback mechanism for DFS
-     * which will result in channel width changing dynamically.
+     * which will result in width of channel changing dynamically.
      */
     cbMode = pMac->sap.SapDfsInfo.new_cbMode;
     vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
     sme_SelectCBMode(hHal, phyMode, tArgetChannel, &vhtChannelWidth,
-                                                   sapContext->ch_width_orig);
+                                         pMac->sap.SapDfsInfo.new_chanWidth);
     sapContext->csrRoamProfile.vht_channel_width = vhtChannelWidth;
     sapContext->vht_channel_width = vhtChannelWidth;
     halStatus = sme_RoamChannelChangeReq(hHal, sapContext->bssid,
