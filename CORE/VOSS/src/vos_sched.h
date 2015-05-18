@@ -346,7 +346,21 @@ typedef struct _VosMsgWrapper
 
 } VosMsgWrapper, *pVosMsgWrapper;
 
-
+/**
+ * struct vos_log_complete - Log completion internal structure
+ * @is_fatal: Type is fatal or not
+ * @indicator: Source of bug report
+ * @reason_code: Reason code for bug report
+ * @is_report_in_progress: If bug report is in progress
+ *
+ * This structure internally stores the log related params
+ */
+struct vos_log_complete {
+	uint32_t is_fatal;
+	uint32_t indicator;
+	uint32_t reason_code;
+	bool is_report_in_progress;
+};
 
 typedef struct _VosContextType
 {
@@ -415,8 +429,9 @@ typedef struct _VosContextType
    uint32_t wakelock_log_level;
    uint32_t connectivity_log_level;
    uint32_t packet_stats_log_level;
-   uint8_t multicast_logging;
 
+   struct vos_log_complete log_complete;
+   vos_spin_lock_t bug_report_lock;
 } VosContextType, *pVosContextType;
 
 

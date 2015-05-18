@@ -1378,19 +1378,8 @@ if (limPopulateMatchingRateSet(pMac,
 
     if (pAssocReq->ExtCap.present)
     {
-        struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)
-                                       pAssocReq->ExtCap.bytes;
-        pStaDs->timingMeasCap = 0;
-        pStaDs->timingMeasCap |= (p_ext_cap->timingMeas)?
-                                  RTT_TIMING_MEAS_CAPABILITY:
-                                  RTT_INVALID;
-        pStaDs->timingMeasCap |= (p_ext_cap->fine_time_meas_initiator)?
-                                  RTT_FINE_TIME_MEAS_INITIATOR_CAPABILITY:
-                                  RTT_INVALID;
-        PELOG1(limLog(pMac, LOG1,
-               FL("ExtCap present, timingMeas: %d ftm_initiator: %d"),
-               p_ext_cap->timingMeas,
-               p_ext_cap->fine_time_meas_initiator);)
+        lim_set_stads_rtt_cap(pStaDs,
+                (struct s_ext_cap *) pAssocReq->ExtCap.bytes);
     }
     else
     {

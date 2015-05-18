@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, 2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -47,7 +47,7 @@
 #include <vos_types.h>
 #include <vos_status.h>
 #include <vos_event.h>
-//#include <Wincrypt.h>
+#include "aniGlobal.h"
 
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -178,4 +178,6 @@ v_BOOL_t vos_attach_mmie(v_U8_t *igtk, v_U8_t *ipn, u_int16_t key_id,
 				v_U8_t* frm, v_U8_t* efrm, u_int16_t frmLen);
 v_U8_t vos_get_mmie_size(void);
 #endif /* WLAN_FEATURE_11W */
+
+eHalStatus vos_send_flush_logs_cmd_to_fw(tpAniSirGlobal pMac);
 #endif // #if !defined __VOSS_UTILS_H

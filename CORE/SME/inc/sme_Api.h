@@ -126,6 +126,7 @@ typedef struct _smeConfigParams
     bool          sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     uint8_t       f_prefer_non_dfs_on_radar;
+    uint32_t      fine_time_meas_cap;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum

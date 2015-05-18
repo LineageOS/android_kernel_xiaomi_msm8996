@@ -54,6 +54,7 @@
 
 #define HOST_LOG_DRIVER_MSG        0x001
 #define HOST_LOG_PER_PKT_STATS     0x002
+#define HOST_LOG_FW_FLUSH_COMPLETE 0x003
 
 struct log_msg {
 	struct list_head node;
@@ -96,6 +97,8 @@ struct wlan_logging {
 	unsigned long eventFlag;
 	/* Indicates logger thread is activated */
 	bool is_active;
+	/* Flush completion check */
+	bool is_flush_complete;
 };
 
 static struct wlan_logging gwlan_logging;
@@ -420,6 +423,53 @@ static int send_filled_buffers_to_user(void)
 	return ret;
 }
 
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * wlan_report_log_completion() - Report bug report completion to userspace
+ * @is_fatal: Type of event, fatal or not
+ * @indicator: Source of bug report, framework/host/firmware
+ * @reason_code: Reason for triggering bug report
+ *
+ * This function is used to report the bug report completion to userspace
+ *
+ * Return: None
+ */
+void wlan_report_log_completion(uint32_t is_fatal,
+				uint32_t indicator,
+				uint32_t reason_code)
+{
+	WLAN_VOS_DIAG_EVENT_DEF(wlan_diag_event,
+				struct vos_event_wlan_log_complete);
+
+	wlan_diag_event.is_fatal = is_fatal;
+	wlan_diag_event.indicator = indicator;
+	wlan_diag_event.reason_code = reason_code;
+	wlan_diag_event.reserved = 0;
+
+	WLAN_VOS_DIAG_EVENT_REPORT(&wlan_diag_event, EVENT_WLAN_LOG_COMPLETE);
+}
+#endif
+
+/**
+ * send_flush_completion_to_user() - Indicate flush completion to the user
+ *
+ * This function is used to send the flush completion message to user space
+ *
+ * Return: None
+ */
+void send_flush_completion_to_user(void)
+{
+	uint32_t is_fatal, indicator, reason_code;
+
+	vos_get_log_completion(&is_fatal, &indicator, &reason_code);
+
+	/* Error on purpose, so that it will get logged in the kmsg */
+	LOGGING_TRACE(VOS_TRACE_LEVEL_ERROR,
+			"%s: Sending flush done to userspace", __func__);
+
+	wlan_report_log_completion(is_fatal, indicator, reason_code);
+}
+
 /**
  * wlan_logging_thread() - The WLAN Logger thread
  * @Arg - pointer to the HDD context
@@ -443,6 +493,8 @@ static int wlan_logging_thread(void *Arg)
 		    (!list_empty(&gwlan_logging.filled_list)
 		  || test_bit(HOST_LOG_DRIVER_MSG, &gwlan_logging.eventFlag)
 		  || test_bit(HOST_LOG_PER_PKT_STATS,
+		     &gwlan_logging.eventFlag)
+		  || test_bit(HOST_LOG_FW_FLUSH_COMPLETE,
 		     &gwlan_logging.eventFlag)
 		  || gwlan_logging.exit));
 
@@ -470,6 +522,29 @@ static int wlan_logging_thread(void *Arg)
 			ret = pktlog_send_per_pkt_stats_to_user();
 			if (-ENOMEM == ret) {
 				msleep(200);
+			}
+		}
+
+		if (test_and_clear_bit(HOST_LOG_FW_FLUSH_COMPLETE,
+					&gwlan_logging.eventFlag)) {
+			/* Flush bit could have been set while we were mid
+			 * way in the logging thread. So, need to check other
+			 * buffers like log messages, per packet stats again
+			 * to flush any residual data in them
+			 */
+			if (gwlan_logging.is_flush_complete == true) {
+				gwlan_logging.is_flush_complete = false;
+				send_flush_completion_to_user();
+			} else {
+				gwlan_logging.is_flush_complete = true;
+				set_bit(HOST_LOG_DRIVER_MSG,
+						&gwlan_logging.eventFlag);
+				set_bit(HOST_LOG_PER_PKT_STATS,
+						&gwlan_logging.eventFlag);
+				set_bit(HOST_LOG_FW_FLUSH_COMPLETE,
+						&gwlan_logging.eventFlag);
+				wake_up_interruptible(
+					&gwlan_logging.wait_queue);
 			}
 		}
 	}
@@ -571,6 +646,7 @@ int wlan_logging_sock_activate_svc(int log_fe_to_console, int num_buf)
 	gwlan_logging.exit = false;
 	clear_bit(HOST_LOG_DRIVER_MSG, &gwlan_logging.eventFlag);
 	clear_bit(HOST_LOG_PER_PKT_STATS, &gwlan_logging.eventFlag);
+	clear_bit(HOST_LOG_FW_FLUSH_COMPLETE, &gwlan_logging.eventFlag);
 	init_completion(&gwlan_logging.shutdown_comp);
 	gwlan_logging.thread = kthread_create(wlan_logging_thread, NULL,
 					"wlan_logging_thread");
@@ -586,6 +662,7 @@ int wlan_logging_sock_activate_svc(int log_fe_to_console, int num_buf)
 	}
 	wake_up_process(gwlan_logging.thread);
 	gwlan_logging.is_active = true;
+	gwlan_logging.is_flush_complete = false;
 
 	nl_srv_register(ANI_NL_MSG_LOG, wlan_logging_proc_sock_rx_msg);
 
@@ -607,13 +684,17 @@ int wlan_logging_sock_deactivate_svc(void)
 	INIT_COMPLETION(gwlan_logging.shutdown_comp);
 	gwlan_logging.exit = true;
 	gwlan_logging.is_active = false;
+	vos_set_multicast_logging(0);
+	gwlan_logging.is_flush_complete = false;
 	clear_bit(HOST_LOG_DRIVER_MSG, &gwlan_logging.eventFlag);
 	clear_bit(HOST_LOG_PER_PKT_STATS, &gwlan_logging.eventFlag);
+	clear_bit(HOST_LOG_FW_FLUSH_COMPLETE, &gwlan_logging.eventFlag);
 	wake_up_interruptible(&gwlan_logging.wait_queue);
 	wait_for_completion(&gwlan_logging.shutdown_comp);
 
 	spin_lock_irqsave(&gwlan_logging.spin_lock, irq_flag);
 	vfree(gplog_msg);
+	gplog_msg = NULL;
 	gwlan_logging.pcur_node = NULL;
 	spin_unlock_irqrestore(&gwlan_logging.spin_lock, irq_flag);
 
@@ -667,5 +748,23 @@ void wlan_logging_set_per_pkt_stats(void)
 void wlan_logging_set_log_level(void)
 {
 	set_default_logtoapp_log_level();
+}
+
+/*
+ * wlan_logging_set_fw_flush_complete() - FW log flush completion
+ *
+ * This function is used to send signal to the logger thread to indicate
+ * that the flushing of FW logs is complete by the FW
+ *
+ * Return: None
+ *
+ */
+void wlan_logging_set_fw_flush_complete(void)
+{
+	if (gwlan_logging.is_active == false)
+		return;
+
+	set_bit(HOST_LOG_FW_FLUSH_COMPLETE, &gwlan_logging.eventFlag);
+	wake_up_interruptible(&gwlan_logging.wait_queue);
 }
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
