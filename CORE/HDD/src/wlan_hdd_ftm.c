@@ -526,19 +526,18 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
   }
 
 #if  defined(QCA_WIFI_FTM)
+  if (gpVosContext->htc_ctx)
+  {
+      HTCStop(gpVosContext->htc_ctx);
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+  }
   vosStatus = wma_wmi_service_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed to close wma_wmi_service", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
-  if (gpVosContext->htc_ctx)
-  {
-      HTCStop(gpVosContext->htc_ctx);
-      HTCDestroy(gpVosContext->htc_ctx);
-      gpVosContext->htc_ctx = NULL;
   }
 
   hif_disable_isr(gpVosContext->pHIFContext);

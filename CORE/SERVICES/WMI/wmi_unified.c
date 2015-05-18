@@ -846,11 +846,6 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 	u_int8_t *data;
 #endif
 
-	if (vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
-			pr_err("%s: LOPG in progress\n", __func__);
-			return;
-	}
-
 	evt_buf = (wmi_buf_t) htc_packet->pPktContext;
 #ifndef QCA_CONFIG_SMP
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
@@ -910,11 +905,6 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 	u_int32_t len;
 	void *wmi_cmd_struct_ptr = NULL;
 	int tlv_ok_status = 0;
-
-	if (vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
-		pr_err("%s: LOPG in progress\n", __func__);
-		return;
-	}
 
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
 
