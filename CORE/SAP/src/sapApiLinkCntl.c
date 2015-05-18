@@ -466,6 +466,7 @@ WLANSAP_PreStartBssAcsScanCallback
             /*
              * Valid Channel Found from scan results.
              */
+            psapContext->acs_cfg->pri_ch = operChannel;
             psapContext->channel = operChannel;
             sap_config_acs_result(halHandle, psapContext,
                                              psapContext->acs_cfg->ht_sec_ch);
