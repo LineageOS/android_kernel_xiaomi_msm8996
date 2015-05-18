@@ -5336,10 +5336,9 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
         }
 #endif /* FEATURE_WLAN_WAPI */
 
-        if(pProfile->pAddIEScan)
-        {
-            vos_mem_free(pProfile->pAddIEScan);
-            pProfile->pAddIEScan = NULL;
+        if (pProfile->nAddIEScanLength) {
+           memset(pProfile->addIEScan, 0 , SIR_MAC_MAX_IE_LENGTH+2);
+           pProfile->nAddIEScanLength = 0;
         }
 
         if(pProfile->pAddIEAssoc)

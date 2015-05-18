@@ -1138,7 +1138,6 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_HOTLIST_SSID_LOST
     },
 #endif /* FEATURE_WLAN_EXTSCAN */
-
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
     [QCA_NL80211_VENDOR_SUBCMD_LL_STATS_SET_INDEX] =  {
         .vendor_id = QCA_NL80211_VENDOR_ID,
@@ -8622,6 +8621,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
     },
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
@@ -11678,7 +11678,8 @@ static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,
     hdd_set_station_ops(pAdapter->dev);
     status = hdd_init_station_mode(pAdapter);
     wext = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    wext->roamProfile.pAddIEScan = pAdapter->scan_info.scanAddIE.addIEdata;
+    memcpy(wext->roamProfile.addIEScan, pAdapter->scan_info.scanAddIE.addIEdata,
+                                pAdapter->scan_info.scanAddIE.length);
     wext->roamProfile.nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
     EXIT();
     return status;
@@ -14290,17 +14291,26 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     if (request->ie_len)
     {
        /* save this for future association (join requires this) */
+       /*TODO: Array needs to be converted to dynamic allocation,
+        * as multiple ie.s can be sent in cfg80211_scan_request structure
+        * CR 597966
+        */
+
        memset( &pScanInfo->scanAddIE, 0, sizeof(pScanInfo->scanAddIE) );
        memcpy( pScanInfo->scanAddIE.addIEdata, request->ie, request->ie_len);
        pScanInfo->scanAddIE.length = request->ie_len;
 
-       if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+      if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
            (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
-           (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)
-           )
-       {
-          pwextBuf->roamProfile.pAddIEScan = pScanInfo->scanAddIE.addIEdata;
-          pwextBuf->roamProfile.nAddIEScanLength = pScanInfo->scanAddIE.length;
+           (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)) {
+              if (request->ie_len <= SIR_MAC_MAX_IE_LENGTH) {
+                    pwextBuf->roamProfile.nAddIEScanLength = request->ie_len;
+                    memcpy( pwextBuf->roamProfile.addIEScan,
+                                     request->ie, request->ie_len);
+              } else {
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "Scan Ie length is invalid:"
+                             "%d", (int)request->ie_len);
+              }
        }
 
        scanRequest.uIEFieldLen = pScanInfo->scanAddIE.length;
@@ -14841,9 +14851,10 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
          */
 
         if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) &&
-                (!pRoamProfile->pAddIEScan))
-        {
-            pRoamProfile->pAddIEScan = &pAdapter->scan_info.scanAddIE.addIEdata[0];
+                (!pRoamProfile->addIEScan)) {
+            memcpy( pRoamProfile->addIEScan,
+                       pAdapter->scan_info.scanAddIE.addIEdata,
+                       pAdapter->scan_info.scanAddIE.length);
             pRoamProfile->nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
         }
         /*
