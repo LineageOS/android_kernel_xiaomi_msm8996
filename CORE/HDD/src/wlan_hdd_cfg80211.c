@@ -14609,7 +14609,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                                                   0);
     }
 
-    if (0 > status) {
+    if (0 != status) {
         //ReEnable BMPS if disabled
         // If PS offload is enabled, fw will take care of
 // ps in cae of concurrency.
