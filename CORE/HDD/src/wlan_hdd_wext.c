@@ -11296,19 +11296,12 @@ int hdd_register_wext(struct net_device *dev)
 
 int hdd_UnregisterWext(struct net_device *dev)
 {
-	int islocked;
-
 	hddLog(LOG1, FL("dev(%p)"), dev);
 
 	if (dev != NULL) {
-		islocked = rtnl_is_locked();
-		if (!islocked)
-			rtnl_lock();
-
+		rtnl_lock();
 		dev->wireless_handlers = NULL;
-
-		if (!islocked)
-			rtnl_unlock();
+		rtnl_unlock();
 	}
 
 	return 0;
