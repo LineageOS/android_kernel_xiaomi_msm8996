@@ -670,7 +670,8 @@ void hdd_clear_all_sta(hdd_adapter_t *pHostapdAdapter, v_PVOID_t usrDataForCallb
     }
 }
 
-static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataForCallback)
+static int hdd_stop_bss_link(hdd_adapter_t *pHostapdAdapter,
+                             v_PVOID_t usrDataForCallback)
 {
     struct net_device *dev;
     hdd_context_t     *pHddCtx = NULL;
@@ -694,9 +695,8 @@ static int hdd_stop_p2p_link(hdd_adapter_t *pHostapdAdapter,v_PVOID_t usrDataFor
         status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext);
 #endif
         if (VOS_IS_STATUS_SUCCESS(status))
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, FL("Deleting P2P link!!!!!!"));
-        }
+            hddLog(LOGE, FL("Deleting SAP/P2P link!!!!!!"));
+
         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
         wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
     }
@@ -1071,8 +1071,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
                 //@@@ need wep logic here to set privacy bit
                 vos_status = hdd_softap_Register_BC_STA(pHostapdAdapter, pHddApCtx->uPrivacy);
-                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                     hddLog(LOGW, FL("Failed to register BC STA %d"), vos_status);
+                    hdd_stop_bss_link(pHostapdAdapter, usrDataForCallback);
+                }
             }
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
@@ -1710,11 +1712,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             return VOS_STATUS_SUCCESS;
 
         case eSAP_MAC_TRIG_STOP_BSS_EVENT :
-            vos_status = hdd_stop_p2p_link(pHostapdAdapter, usrDataForCallback);
+            vos_status = hdd_stop_bss_link(pHostapdAdapter, usrDataForCallback);
             if (!VOS_IS_STATUS_SUCCESS(vos_status))
-            {
-                hddLog(LOGW, FL("hdd_stop_p2p_link failed %d"), vos_status);
-            }
+                hddLog(LOGW, FL("hdd_stop_bss_link failed %d"), vos_status);
+
             return VOS_STATUS_SUCCESS;
 
         case eSAP_CHANNEL_CHANGE_EVENT:
