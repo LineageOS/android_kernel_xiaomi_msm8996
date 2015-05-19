@@ -7163,7 +7163,7 @@ static int __hdd_stop(struct net_device *dev)
    hdd_stop_adapter(pHddCtx, pAdapter, VOS_FALSE);
 
    /* DeInit the adapter. This ensures datapath cleanup as well */
-   hdd_deinit_adapter(pHddCtx, pAdapter);
+   hdd_deinit_adapter(pHddCtx, pAdapter, true);
 
    /* SoftAP ifaces should never go in power save mode
       making sure same here. */
@@ -7250,7 +7250,7 @@ static void __hdd_uninit(struct net_device *dev)
 	if (dev != pAdapter->dev)
 		hddLog(LOGP, FL("Invalid device reference"));
 
-	hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
+	hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter, true);
 
 	/* After uninit our adapter structure will no longer be valid */
 	pAdapter->dev = NULL;
@@ -7930,7 +7930,8 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    return;
 }
 
-void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
+void hdd_deinit_adapter(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
+                        bool rtnl_held)
 {
    ENTER();
    switch ( pAdapter->device_mode )
@@ -7975,7 +7976,7 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
 
-         hdd_unregister_hostapd(pAdapter);
+         hdd_unregister_hostapd(pAdapter, rtnl_held);
 
          // set con_mode to STA only when no SAP concurrency mode
          if (!(hdd_get_concurrency_mode() & (VOS_SAP | VOS_P2P_GO)))
@@ -8389,7 +8390,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          status = hdd_register_interface( pAdapter, rtnl_held );
          if( VOS_STATUS_SUCCESS != status )
          {
-            hdd_deinit_adapter(pHddCtx, pAdapter);
+            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
             goto err_free_netdev;
          }
          // Workqueue which gets scheduled in IPv4 notification callback
@@ -8472,7 +8473,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          status = hdd_register_hostapd( pAdapter, rtnl_held );
          if( VOS_STATUS_SUCCESS != status )
          {
-            hdd_deinit_adapter(pHddCtx, pAdapter);
+            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
             goto err_free_netdev;
          }
 

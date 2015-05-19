@@ -350,7 +350,7 @@ static void __hdd_hostapd_uninit(struct net_device *dev)
 
    if (pHostapdAdapter && pHostapdAdapter->pHddCtx)
    {
-      hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter);
+      hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter, true);
 
       /* after uninit our adapter structure will no longer be valid */
       pHostapdAdapter->dev = NULL;
@@ -6328,7 +6328,7 @@ VOS_STATUS hdd_register_hostapd( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_held
    return status;
 }
 
-VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter, bool rtnl_held)
 {
 #ifdef WLAN_FEATURE_MBSSID
    VOS_STATUS status;
@@ -6344,7 +6344,13 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter)
       detach the wireless device handlers */
    if (pAdapter->dev)
    {
-      pAdapter->dev->wireless_handlers = NULL;
+      if (rtnl_held)
+          pAdapter->dev->wireless_handlers = NULL;
+      else {
+          rtnl_lock();
+          pAdapter->dev->wireless_handlers = NULL;
+          rtnl_unlock();
+      }
    }
 
 #ifdef WLAN_FEATURE_MBSSID
