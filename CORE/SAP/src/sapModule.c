@@ -622,6 +622,12 @@ v_U16_t WLANSAP_CheckCCIntf(v_PVOID_t Ctx)
 v_U32_t wlan_sap_get_vht_ch_width(v_PVOID_t ctx) {
     ptSapContext sap_ctx = VOS_GET_SAP_CB(ctx);
 
+    if (!sap_ctx) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from ctx", __func__);
+        return 0;
+    }
+
     return sap_ctx->vht_channel_width;
 }
 
@@ -643,6 +649,12 @@ v_U32_t wlan_sap_get_vht_ch_width(v_PVOID_t ctx) {
 ============================================================================*/
 void wlan_sap_set_vht_ch_width(v_PVOID_t ctx, v_U32_t vht_channel_width) {
     ptSapContext sap_ctx = VOS_GET_SAP_CB(ctx);
+
+    if (!sap_ctx) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from ctx", __func__);
+        return;
+    }
 
     sap_ctx->vht_channel_width = vht_channel_width;
 }
