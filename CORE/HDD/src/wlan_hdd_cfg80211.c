@@ -1533,7 +1533,8 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	struct nlattr *curr_attr;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX + 1];
 	struct nlattr *tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX + 1];
-	int rem,i, buf_len;
+	int rem, i;
+	uint32_t buf_len = 0;
 	uint8_t *buf;
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 		data, data_len,
@@ -1587,15 +1588,20 @@ wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			}
 			buf = nla_data(tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]);
 			buf_len = nla_len(tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]);
-			nla_strlcpy(roam_params.ssid_allowed_list[i].ssId,
+			if (buf_len) {
+				nla_strlcpy(roam_params.ssid_allowed_list[i].ssId,
 					tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID],
 					buf_len);
-			roam_params.ssid_allowed_list[i].length =
-				buf_len - 1;
-			hddLog(VOS_TRACE_LEVEL_DEBUG,
+				roam_params.ssid_allowed_list[i].length =
+					buf_len - 1;
+				hddLog(VOS_TRACE_LEVEL_DEBUG,
 					FL("SSID[%d]: %s,length = %d"), i,
 					roam_params.ssid_allowed_list[i].ssId,
 					roam_params.ssid_allowed_list[i].length);
+			}
+			else {
+				hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid buffer length"));
+			}
 			i++;
 		}
 		sme_update_roam_params(pHddCtx->hHal, session_id,

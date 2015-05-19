@@ -669,25 +669,6 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             break;
      }
 
-    case HTT_T2H_MSG_TYPE_CHAN_CHANGE:
-    {
-        /** primary channel frequency in mhz */
-        A_UINT16 mhz;
-        /** Center frequency 1 in MHz*/
-        A_UINT16 band_center_freq1;
-        /** Center frequency 2 in MHz - valid only for 11acvht 80plus80 mode*/
-        A_UINT16 band_center_freq2;
-        /* phy mode */
-        WLAN_PHY_MODE phy_mode;
-
-        mhz = (A_UINT16)(*(msg_word + 1));
-        band_center_freq1 = (A_UINT16)(*(msg_word + 2));
-        band_center_freq2 = (A_UINT16)(*(msg_word + 3));
-        phy_mode = (WLAN_PHY_MODE)(*(msg_word + 4));
-        ol_rx_chan_change_handler(pdev->txrx_pdev, mhz, band_center_freq1,
-                                  band_center_freq2, phy_mode);
-    }
-
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);
         return ;

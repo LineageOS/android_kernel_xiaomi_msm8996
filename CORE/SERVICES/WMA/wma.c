@@ -27024,6 +27024,7 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 {
 	tp_wma_handle wma_handle;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	int i;
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -27077,6 +27078,14 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		if (wma_suspend_target(wma_handle, 1))
 			WMA_LOGE("Failed to suspend target");
 #endif
+	}
+
+	/* clean up ll-queue for all vdev */
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (wma_handle->interfaces[i].handle &&
+				wma_handle->interfaces[i].vdev_up) {
+			ol_txrx_vdev_flush(wma_handle->interfaces[i].handle);
+		}
 	}
 
 	vos_status = wma_tx_detach(wma_handle);

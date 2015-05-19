@@ -117,9 +117,10 @@
  *      tx frames in the target after the peer has already been deleted.
  * 3.19 Add HTT_DBG_STATS_RX_RATE_INFO_V2 and HTT_DBG_STATS_TX_RATE_INFO_V2
  * 3.20 Expand rx_reorder_stats.
+ * 3.21 Add optional rx channel spec to HL RX_IND.
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 20
+#define HTT_CURRENT_VERSION_MINOR 21
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -4153,7 +4154,8 @@ PREPACK struct hl_htt_rx_desc_base {
     A_UINT32
         seq_num:12,
         encrypted:1,
-        resv0:3,
+        chan_info_present:1,
+        resv0:2,
         mcast_bcast:1,
         fragment:1,
         key_id_oct:8,
@@ -4173,6 +4175,24 @@ PREPACK struct hl_htt_rx_desc_base {
         pn_127_96;
 } POSTPACK;
 
+
+/*
+ * Channel information can optionally be appended after hl_htt_rx_desc_base.
+ * If so, the len field in htt_rx_ind_hl_rx_desc_t will be updated accordingly,
+ * and the chan_info_present flag in hl_htt_rx_desc_base will be set.
+ * Please see htt_chan_change_t for description of the fields.
+ */
+PREPACK struct htt_chan_info_t
+{
+    A_UINT32    primary_chan_center_freq_mhz: 16,
+                contig_chan1_center_freq_mhz: 16;
+    A_UINT32    contig_chan2_center_freq_mhz: 16,
+                phy_mode: 8,
+                reserved: 8;
+} POSTPACK;
+
+#define HTT_CHAN_INFO_SIZE      sizeof(struct htt_chan_info_t)
+
 #define HL_RX_DESC_SIZE         (sizeof(struct hl_htt_rx_desc_base))
 #define HL_RX_DESC_SIZE_DWORD   (HL_RX_STD_DESC_SIZE >> 2)
 
@@ -4180,6 +4200,8 @@ PREPACK struct hl_htt_rx_desc_base {
 #define HTT_HL_RX_DESC_MPDU_SEQ_NUM_S       0
 #define HTT_HL_RX_DESC_MPDU_ENC_M           0x1000
 #define HTT_HL_RX_DESC_MPDU_ENC_S           12
+#define HTT_HL_RX_DESC_CHAN_INFO_PRESENT_M  0x2000
+#define HTT_HL_RX_DESC_CHAN_INFO_PRESENT_S  13
 #define HTT_HL_RX_DESC_MCAST_BCAST_M        0x10000
 #define HTT_HL_RX_DESC_MCAST_BCAST_S        16
 #define HTT_HL_RX_DESC_FRAGMENT_M           0x20000
@@ -4189,6 +4211,54 @@ PREPACK struct hl_htt_rx_desc_base {
 
 #define HTT_HL_RX_DESC_PN_OFFSET            offsetof(struct hl_htt_rx_desc_base, pn_31_0)
 #define HTT_HL_RX_DESC_PN_WORD_OFFSET       (HTT_HL_RX_DESC_PN_OFFSET >> 2)
+
+
+/* Channel information */
+#define HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_M   0x0000ffff
+#define HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_S   0
+#define HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_M   0xffff0000
+#define HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_S   16
+#define HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_M   0x0000ffff
+#define HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_S   0
+#define HTT_CHAN_INFO_PHY_MODE_M                   0x00ff0000
+#define HTT_CHAN_INFO_PHY_MODE_S                   16
+
+
+#define HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_SET(word, value)            \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ, value);  \
+        (word) |= (value)  << HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_S;    \
+    } while (0)
+#define HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_GET(word)                   \
+    (((word) & HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_M) >> HTT_CHAN_INFO_PRIMARY_CHAN_CENTER_FREQ_S)
+
+
+#define HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_SET(word, value)            \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ, value);  \
+        (word) |= (value)  << HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_S;    \
+    } while (0)
+#define HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_GET(word)                   \
+    (((word) & HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_M) >> HTT_CHAN_INFO_CONTIG_CHAN1_CENTER_FREQ_S)
+
+
+#define HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_SET(word, value)            \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ, value);  \
+        (word) |= (value)  << HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_S;    \
+    } while (0)
+#define HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_GET(word)                   \
+    (((word) & HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_M) >> HTT_CHAN_INFO_CONTIG_CHAN2_CENTER_FREQ_S)
+
+
+#define HTT_CHAN_INFO_PHY_MODE_SET(word, value)            \
+    do {                                                \
+        HTT_CHECK_SET_VAL(HTT_CHAN_INFO_PHY_MODE, value);  \
+        (word) |= (value)  << HTT_CHAN_INFO_PHY_MODE_S;    \
+    } while (0)
+#define HTT_CHAN_INFO_PHY_MODE_GET(word)                   \
+    (((word) & HTT_CHAN_INFO_PHY_MODE_M) >> HTT_CHAN_INFO_PHY_MODE_S)
+
 
 /*
  * @brief target -> host rx reorder flush message definition

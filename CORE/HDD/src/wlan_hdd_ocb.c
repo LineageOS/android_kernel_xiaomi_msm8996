@@ -437,6 +437,7 @@ static struct sir_ocb_config *hdd_ocb_config_new(int num_channels,
 	ret->channels = cursor;
 	cursor += num_channels * sizeof(*ret->channels);
 
+	ret->schedule_size = num_schedule;
 	ret->schedule = cursor;
 	cursor += num_schedule * sizeof(*ret->schedule);
 
@@ -622,20 +623,26 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
 	}
 	adapter->ocb_mac_addr_count = 0;
 
-	for (i = 0; i < config->channel_count; i++) {
-		config->channels[i].chan_freq = sched->channels[i].channel_freq;
+	config->channel_count = 0;
+	for (i = 0; i < sched->num_channels; i++) {
+		if (0 == sched->channels[i].channel_freq) {
+			continue;
+		}
+
+		config->channels[config->channel_count].chan_freq =
+			sched->channels[i].channel_freq;
 		/*
 		 * tx_power is divided by 2 because ocb_channel.tx_power is
 		 * in half dB increments and sir_ocb_config_channel.max_pwr
 		 * is in 1 dB increments.
 		 */
-		config->channels[i].max_pwr = sched->channels[i].tx_power / 2;
-		config->channels[i].min_pwr = 0;
-		config->channels[i].bandwidth =
+		config->channels[config->channel_count].max_pwr =
+			sched->channels[i].tx_power / 2;
+		config->channels[config->channel_count].bandwidth =
 			sched->channels[i].channel_bandwidth;
 		/* assume 10 as default if not provided */
-		if (config->channels[i].bandwidth == 0) {
-			config->channels[i].bandwidth = 10;
+		if (config->channels[config->channel_count].bandwidth == 0) {
+			config->channels[config->channel_count].bandwidth = 10;
 		}
 
 		/*
@@ -643,7 +650,7 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
 		 * First channel uses the adapter's address.
 		 */
 		if (i == 0) {
-			vos_mem_copy(config->channels[i].mac_address,
+			vos_mem_copy(config->channels[config->channel_count].mac_address,
 				     adapter->macAddressCurrent.bytes,
 				     sizeof(tSirMacAddr));
 		} else {
@@ -653,7 +660,8 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
 				rc = -EINVAL;
 				goto fail;
 			}
-			vos_mem_copy(config->channels[i].mac_address,
+			vos_mem_copy(config->channels[
+				     config->channel_count].mac_address,
 				     mac_addr, sizeof(tSirMacAddr));
 			/* Save the mac address to release later */
 			vos_mem_copy(adapter->ocb_mac_address[
@@ -665,20 +673,22 @@ static int __iw_set_dot11p_channel_sched(struct net_device *dev,
 		}
 
 		for (j = 0; j < MAX_NUM_AC; j++) {
-			config->channels[i].qos_params[j].aifsn =
+			config->channels[config->channel_count].qos_params[j].aifsn =
 				sched->channels[i].qos_params[j].aifsn;
-			config->channels[i].qos_params[j].cwmin =
+			config->channels[config->channel_count].qos_params[j].cwmin =
 				sched->channels[i].qos_params[j].cwmin;
-			config->channels[i].qos_params[j].cwmax =
+			config->channels[config->channel_count].qos_params[j].cwmax =
 				sched->channels[i].qos_params[j].cwmax;
 		}
+
+		config->channel_count++;
 	}
 
 	/*
 	 * Scheduled slots same as num channels for compatibility with
 	 * legacy use.
 	 */
-	for (i = 0; i < config->channel_count; i++) {
+	for (i = 0; i < sched->num_channels; i++) {
 		config->schedule[i].chan_freq = sched->channels[i].channel_freq;
 		config->schedule[i].guard_interval =
 			sched->channels[i].start_guard_interval;
