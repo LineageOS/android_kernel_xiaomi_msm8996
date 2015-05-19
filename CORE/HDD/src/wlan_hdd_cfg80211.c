@@ -14202,7 +14202,16 @@ int wlan_hdd_cfg80211_set_ie(hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
-                /* Appending Extended Capabilities with Interworking bit set in Assoc Req */
+                /* Appending Extended Capabilities with Interworking bit set
+                 * in Assoc Req.
+                 *
+                 * In assoc req this EXT Cap will only be taken into account if
+                 * interworkingService bit is set to 1. Currently
+                 * driver is only interested in interworkingService capability
+                 * from supplicant. If in future any other EXT Cap info is
+                 * required from supplicat, it needs to be handled while
+                 * sending Assoc Req in LIM.
+                 */
             case DOT11F_EID_EXTCAP:
                 {
                     v_U16_t curAddIELen = pWextState->assocAddIE.length;

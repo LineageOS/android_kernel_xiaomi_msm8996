@@ -2174,6 +2174,16 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                                       extractedExtCap.bytes;
         if (p_ext_cap->interworkingService)
             p_ext_cap->qosMap = 1;
+        else {
+            /* No need to merge the EXT Cap from Supplicant
+             * if interworkingService is not set, as currently
+             * driver is only interested in interworkingService
+             * capability from supplicant. if in
+             * future any other EXT Cap info is required from
+             * supplicant it needs to be handled here.
+             */
+             extractedExtCapFlag = eANI_BOOLEAN_FALSE;
+        }
     }
 
     caps = pMlmAssocReq->capabilityInfo;
