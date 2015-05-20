@@ -5695,10 +5695,33 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "%s: Received Command to change okc mode = %d", __func__, okcMode);
-
            pHddCtx->cfg_ini->isOkcIniFeatureEnabled = okcMode;
        }
 #endif  /* FEATURE_WLAN_OKC */
+       else if (strncmp(command, "BTCOEXMODE", 10) == 0 )
+       {
+           char *bcMode;
+           int ret;
+
+           bcMode = command + 11;
+           if ('1' == *bcMode)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *bcMode);
+               pHddCtx->btCoexModeSet = TRUE;
+               ret = wlan_hdd_scan_abort(pAdapter);
+               if (ret < 0) {
+                   hddLog(LOGE,
+                          FL("Failed to abort existing scan status:%d"), ret);
+               }
+           }
+           else if ('2' == *bcMode)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *bcMode);
+               pHddCtx->btCoexModeSet = FALSE;
+           }
+       }
        else if (strncmp(priv_data.buf, "GETROAMSCANCONTROL", 18) == 0)
        {
            tANI_BOOLEAN roamScanControl = sme_GetRoamScanControl(pHddCtx->hHal);

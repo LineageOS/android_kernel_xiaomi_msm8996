@@ -16590,7 +16590,7 @@ wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-static int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
+int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_scaninfo_t *pScanInfo = NULL;
