@@ -9483,11 +9483,17 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
     }
 
     if ((band == eCSR_BAND_24 && pHddCtx->cfg_ini->nBandCapability == 2) ||
-        (band == eCSR_BAND_5G && pHddCtx->cfg_ini->nBandCapability == 1) ||
-        (band == eCSR_BAND_ALL && pHddCtx->cfg_ini->nBandCapability != 0)) {
+        (band == eCSR_BAND_5G && pHddCtx->cfg_ini->nBandCapability == 1)) {
         hddLog(LOGP, FL("band value %u violate INI settings %u"),
                band, pHddCtx->cfg_ini->nBandCapability);
         return -EIO;
+    }
+
+    if (band == eCSR_BAND_ALL) {
+        hddLog(LOG1,
+               FL("Auto band received. Setting band same as ini value %d"),
+               pHddCtx->cfg_ini->nBandCapability);
+        band = pHddCtx->cfg_ini->nBandCapability;
     }
 
     if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &currBand))
