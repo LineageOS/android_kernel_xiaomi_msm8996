@@ -222,7 +222,7 @@ static int wlan_queue_logmsg_for_app(void)
 			(struct log_msg *)(gwlan_logging.filled_list.next);
 		++gwlan_logging.drop_count;
 		if (vos_is_multicast_logging() && !gwlan_logging.is_buffer_free) {
-			pr_err("%s: drop_count = %u index = %d filled_length = %d\n",
+			pr_info("%s: drop_count = %u index = %d filled_length = %d\n",
 				__func__, gwlan_logging.drop_count,
 				gwlan_logging.pcur_node->index,
 				gwlan_logging.pcur_node->filled_length);
