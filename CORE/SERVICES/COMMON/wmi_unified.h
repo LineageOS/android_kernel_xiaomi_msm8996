@@ -4682,6 +4682,8 @@ typedef struct {
     A_UINT32 dtim_pwrsave_method;
     /** DTIM PS value. Contents depends on the method */
     A_UINT32 value;
+    /** Modulated DTIM value */
+    A_UINT32 MaxLIModulatedDTIM;
 } wmi_sta_dtim_ps_method_cmd_fixed_param;
 
     /*

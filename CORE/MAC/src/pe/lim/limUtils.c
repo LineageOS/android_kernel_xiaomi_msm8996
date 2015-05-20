@@ -8034,8 +8034,8 @@ bool lim_validate_received_frame_a1_addr(tpAniSirGlobal mac_ctx,
 		tSirMacAddr a1, tpPESession session)
 {
 	if (mac_ctx == NULL || session == NULL) {
-		limLog(mac_ctx, LOGE,
-			FL("NULL pointer"));
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+				"mac or session context is null");
 		/* let main routine handle it */
 		return true;
 	}

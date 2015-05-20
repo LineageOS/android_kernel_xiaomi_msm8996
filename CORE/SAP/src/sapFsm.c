@@ -2065,9 +2065,7 @@ sapGotoChannelSel
     v_U8_t     numOfChannels = 0 ;
 #endif
     tHalHandle hHal;
-#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-    tANI_U8   channel;
-#endif
+    tANI_U8   con_ch;
 
     hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, sapContext->pvosGCtx);
     if (NULL == hHal)
@@ -2080,16 +2078,30 @@ sapGotoChannelSel
 
 #ifdef WLAN_FEATURE_MBSSID
     if (vos_concurrent_beaconing_sessions_running()) {
-        v_U16_t con_sap_ch = sme_GetConcurrentOperationChannel(hHal);
+        con_ch = sme_GetConcurrentOperationChannel(hHal);
 
-        if (con_sap_ch && sapContext->channel == AUTO_CHANNEL_SELECT) {
+        if (con_ch && sapContext->channel == AUTO_CHANNEL_SELECT) {
             sapContext->dfs_ch_disable = VOS_TRUE;
-        } else if (con_sap_ch && sapContext->channel != con_sap_ch &&
+        } else if (con_ch && sapContext->channel != con_ch &&
                  VOS_IS_DFS_CH(sapContext->channel)) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
                        "In %s, MCC DFS not supported in AP_AP Mode", __func__);
             return VOS_STATUS_E_ABORTED;
         }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+            con_ch = sme_CheckConcurrentChannelOverlap(hHal,
+                                        sapContext->channel,
+                                        sapContext->csrRoamProfile.phyMode,
+                                        sapContext->cc_switch_mode);
+            if (con_ch) {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                             "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
+                            __func__,sapContext->channel, con_ch);
+                sapContext->channel = con_ch;
+            }
+        }
+#endif
     }
 #endif
 
@@ -2104,16 +2116,29 @@ sapGotoChannelSel
             return VOS_STATUS_E_ABORTED;
         }
 #endif
-#ifndef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+             con_ch = sme_CheckConcurrentChannelOverlap(hHal,
+                                        sapContext->channel,
+                                        sapContext->csrRoamProfile.phyMode,
+                                        sapContext->cc_switch_mode);
+             if (con_ch && !VOS_IS_DFS_CH(con_ch)) {
+                         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                             "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
+                            __func__,sapContext->channel, con_ch);
+                         sapContext->channel = con_ch;
+             }
+        }
+#else
         /* If STA-AP concurrency is enabled take the concurrent connected
          * channel first. In other cases wpa_supplicant should take care */
-        channel = sme_GetConcurrentOperationChannel(hHal);
-        if (channel)
+        con_ch = sme_GetConcurrentOperationChannel(hHal);
+        if (con_ch)
         { /*if a valid channel is returned then use concurrent channel.
                   Else take whatever comes from configuartion*/
-            sapContext->channel = channel;
+            sapContext->channel = con_ch;
             sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
-                                channel, &sapContext->vht_channel_width,
+                                con_ch, &sapContext->vht_channel_width,
                                 sapContext->ch_width_orig);
         }
 #endif
@@ -3417,25 +3442,6 @@ sapFsm
                          "eSAP_CH_SELECT", msg);
                      return VOS_STATUS_E_FAULT;
                  }
-#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-                 if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE)
-                 {
-                     v_U16_t con_ch;
-
-                     con_ch = sme_CheckConcurrentChannelOverlap(hHal,
-                                        sapContext->channel,
-                                        sapContext->csrRoamProfile.phyMode,
-                                        sapContext->cc_switch_mode);
-                     if (con_ch)
-                     {
-                         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                             "%s: Override Chosen Ch:%d to %d due to CC Intf!!",
-                            __func__,sapContext->channel, con_ch);
-                         sapContext->channel = con_ch;
-                    }
-                 }
-#endif
-
                  cbMode = sme_SelectCBMode(hHal,
                                         sapContext->csrRoamProfile.phyMode,
                                         sapContext->channel,

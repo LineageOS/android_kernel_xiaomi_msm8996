@@ -286,7 +286,7 @@ void sap_config_acs_result(tHalHandle hal, ptSapContext sap_ctx, uint32_t sec_ch
 					channel, &sap_ctx->acs_cfg->ch_width,
 					sap_ctx->acs_cfg->ch_width);
 
-	if (sec_ch >= 5 && sec_ch <= 7) {
+	if (channel >= 5 && channel <= 7 && sec_ch != 0) {
 		if (sec_ch > sap_ctx->acs_cfg->pri_ch)
 			cb_mode = eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
 		else
