@@ -9482,6 +9482,14 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
         return -EINVAL;
     }
 
+    if ((band == eCSR_BAND_24 && pHddCtx->cfg_ini->nBandCapability == 2) ||
+        (band == eCSR_BAND_5G && pHddCtx->cfg_ini->nBandCapability == 1) ||
+        (band == eCSR_BAND_ALL && pHddCtx->cfg_ini->nBandCapability != 0)) {
+        hddLog(LOGP, FL("band value %u violate INI settings %u"),
+               band, pHddCtx->cfg_ini->nBandCapability);
+        return -EIO;
+    }
+
     if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &currBand))
     {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
