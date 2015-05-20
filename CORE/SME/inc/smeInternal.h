@@ -207,6 +207,7 @@ typedef struct tagSmeStruct
 #ifdef WLAN_FEATURE_MEMDUMP
     void (*fw_dump_callback)(void *context, struct fw_dump_rsp *rsp);
 #endif
+    void (*set_thermal_level_cb)(void *hdd_context, uint8_t level);
 } tSmeStruct, *tpSmeStruct;
 
 
