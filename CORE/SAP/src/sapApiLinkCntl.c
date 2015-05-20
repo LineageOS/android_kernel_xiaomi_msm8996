@@ -1026,6 +1026,23 @@ WLANSAP_RoamCallback
                      */
                     vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
                     vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+
+                    /*
+                     * User space is already indicated the CAC start and if
+                     * CAC end on this channel is not indicated, the user
+                     * space will be in some undefined state (e.g., UI frozen)
+                     */
+                    vosStatus = sapSignalHDDevent(sapContext, NULL,
+                                          eSAP_DFS_CAC_INTERRUPTED,
+                                          (v_PVOID_t) eSAP_STATUS_SUCCESS);
+                    if (VOS_STATUS_SUCCESS != vosStatus) {
+                            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                FL("Failed to send CAC end"));
+                            /* Want to still proceed and try to switch channel.
+                             * Lets try not to be on the DFS channel
+                             */
+                    }
+
                     pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
 
                     sapEvent.event = eSAP_DFS_CHANNEL_CAC_RADAR_FOUND;

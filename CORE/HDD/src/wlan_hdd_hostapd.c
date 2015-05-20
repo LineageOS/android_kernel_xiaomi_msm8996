@@ -1290,9 +1290,31 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                       hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_START,
                                            dfs_info, &pHostapdAdapter->wdev)) {
                       hddLog(LOGE, FL("Unable to indicate CAC start NL event"));
+            } else {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("Sent CAC start to user space"));
             }
-
             pHddCtx->dfs_radar_found = VOS_FALSE;
+            break;
+
+        case eSAP_DFS_CAC_INTERRUPTED:
+            /*
+             * The CAC timer did not run completely and a radar was detected
+             * during the CAC time. This new state will keep the tx path
+             * blocked since we do not want any transmission on the DFS
+             * channel. CAC end will only be reported here since the user
+             * space applications are waiting on CAC end for their state
+             * management.
+             */
+            if (VOS_STATUS_SUCCESS !=
+                      hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_END,
+                                           dfs_info, &pHostapdAdapter->wdev)) {
+                      hddLog(LOGE,
+                          FL("Unable to indicate CAC end (interrupted) event"));
+            } else {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                    FL("Sent CAC end (interrupted) to user space"));
+            }
             break;
 
         case eSAP_DFS_CAC_END:
@@ -1304,6 +1326,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                       hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_END,
                                            dfs_info, &pHostapdAdapter->wdev)) {
                       hddLog(LOGE, FL("Unable to indicate CAC end NL event"));
+            } else {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("Sent CAC end to user space"));
             }
             break;
 
@@ -1315,6 +1340,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                       hdd_send_radar_event(pHddCtx, eSAP_DFS_RADAR_DETECT,
                                            dfs_info, &pHostapdAdapter->wdev)) {
                       hddLog(LOGE, FL("Unable to indicate Radar detect NL event"));
+            } else {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("Sent radar detected to user space"));
             }
             break;
 

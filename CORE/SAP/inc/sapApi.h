@@ -187,6 +187,7 @@ typedef enum {
     eSAP_MAX_ASSOC_EXCEEDED, /* Event send when a new STA is rejected association since softAP max assoc limit has reached */
     eSAP_CHANNEL_CHANGE_EVENT,
     eSAP_DFS_CAC_START,
+    eSAP_DFS_CAC_INTERRUPTED,
     eSAP_DFS_CAC_END,
     eSAP_DFS_RADAR_DETECT,
     eSAP_DFS_NOL_GET,  /* Event sent when user need to get the DFS NOL from CNSS */

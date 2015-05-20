@@ -2671,6 +2671,7 @@ sapSignalHDDevent
             break;
 
         case eSAP_DFS_CAC_START:
+        case eSAP_DFS_CAC_INTERRUPTED:
         case eSAP_DFS_CAC_END:
         case eSAP_DFS_RADAR_DETECT:
         case eSAP_DFS_NO_AVAILABLE_CHANNEL:
