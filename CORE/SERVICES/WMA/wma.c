@@ -190,6 +190,27 @@
 
 #define WMA_LOG_COMPLETION_TIMER 10000 /* 10 seconds */
 
+#ifdef FEATURE_WLAN_EXTSCAN
+/**
+ * enum extscan_report_events_type - extscan report events type
+ * @EXTSCAN_REPORT_EVENTS_BUFFER_FULL: report only when scan history is % full
+ * @EXTSCAN_REPORT_EVENTS_EACH_SCAN: report a scan completion event after scan
+ * @EXTSCAN_REPORT_EVENTS_FULL_RESULTS: forward scan results
+ *		(beacons/probe responses + IEs)
+ *		in real time to HAL, in addition to completion events.
+ *		Note: To keep backward compatibility,
+ *		fire completion events regardless of REPORT_EVENTS_EACH_SCAN.
+ * @EXTSCAN_REPORT_EVENTS_NO_BATCH: controls batching,
+ *		0 => batching, 1 => no batching
+ */
+enum extscan_report_events_type {
+	EXTSCAN_REPORT_EVENTS_BUFFER_FULL   = 0x00,
+	EXTSCAN_REPORT_EVENTS_EACH_SCAN     = 0x01,
+	EXTSCAN_REPORT_EVENTS_FULL_RESULTS  = 0x02,
+	EXTSCAN_REPORT_EVENTS_NO_BATCH      = 0x04,
+};
+#endif
+
 /* Data rate 100KBPS based on IE Index */
 struct index_data_rate_type
 {
@@ -22769,20 +22790,34 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		dest_blist->channel_band = src_bucket->band;
 		dest_blist->num_channels = src_bucket->numChannels;
 		dest_blist->notify_extscan_events = 0;
-		if (src_bucket->reportEvents >= 2) {
+
+		if (src_bucket->reportEvents & EXTSCAN_REPORT_EVENTS_EACH_SCAN)
+			dest_blist->notify_extscan_events =
+					WMI_EXTSCAN_BUCKET_COMPLETED_EVENT;
+
+		if (src_bucket->reportEvents &
+				EXTSCAN_REPORT_EVENTS_FULL_RESULTS) {
 			dest_blist->forwarding_flags =
 				WMI_EXTSCAN_FORWARD_FRAME_TO_HOST;
+			dest_blist->notify_extscan_events |=
+				WMI_EXTSCAN_BUCKET_COMPLETED_EVENT |
+				WMI_EXTSCAN_CYCLE_STARTED_EVENT |
+				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT;
 		} else {
 			dest_blist->forwarding_flags =
 				WMI_EXTSCAN_NO_FORWARDING;
 		}
-		if (src_bucket->reportEvents >= 1)
-			dest_blist->notify_extscan_events =
-					WMI_EXTSCAN_BUCKET_COMPLETED_EVENT;
-		if (src_bucket->reportEvents >= 2)
-			dest_blist->notify_extscan_events |=
-				WMI_EXTSCAN_CYCLE_STARTED_EVENT |
-				WMI_EXTSCAN_CYCLE_COMPLETED_EVENT;
+
+		if (src_bucket->reportEvents & EXTSCAN_REPORT_EVENTS_NO_BATCH)
+			dest_blist->configuration_flags = 0;
+		else
+			dest_blist->configuration_flags =
+				WMI_EXTSCAN_BUCKET_CACHE_RESULTS;
+
+		WMA_LOGI("%s: ntfy_extscan_events:%u cfg_flags:%u fwd_flags:%u",
+			__func__, dest_blist->notify_extscan_events,
+			dest_blist->configuration_flags,
+			dest_blist->forwarding_flags);
 
 		dest_blist->min_dwell_time_active = src_bucket->min_dwell_time_active;
 		dest_blist->max_dwell_time_active = src_bucket->max_dwell_time_active;
