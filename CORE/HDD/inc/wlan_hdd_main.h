@@ -136,9 +136,6 @@
 /** Maximum time(ms) to wait for tdls initiator to start direct communication **/
 #define WAIT_TIME_TDLS_INITIATOR    600
 
-/* Maximum time to get linux regulatory entry settings */
-#define LINUX_REG_WAIT_TIME 300
-
 /* Scan Req Timeout */
 #define WLAN_WAIT_TIME_SCAN_REQ 100
 
@@ -1253,9 +1250,6 @@ struct hdd_context_s
 
    /* Completion  variable to indicate Mc Thread Suspended */
    struct completion mc_sus_event_var;
-
-   /* Completion variable for regulatory hint  */
-   struct completion linux_reg_req;
 
    v_BOOL_t isWlanSuspended;
 

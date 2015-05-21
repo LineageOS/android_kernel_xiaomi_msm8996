@@ -323,11 +323,6 @@ eHalStatus csr_init_chan_list(tpAniSirGlobal mac, v_U8_t *alpha2)
     smsLog(mac, LOGE, FL("init time country code %.2s"),
            mac->scan.countryCodeDefault);
 
-    if ('0' == mac->scan.countryCodeDefault[0] &&
-          '0' == mac->scan.countryCodeDefault[1]) {
-       source = COUNTRY_QUERY;
-    }
-
     status = csrGetRegulatoryDomainForCountry(mac,
                                               mac->scan.countryCodeDefault,
                                               &reg_id, source);
