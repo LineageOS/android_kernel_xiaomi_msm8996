@@ -4308,4 +4308,8 @@ eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
 
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
+typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
+void sme_add_set_thermal_level_callback(tHalHandle hHal,
+                   tSmeSetThermalLevelCallback callback);
+
 #endif //#if !defined( __SME_API_H )

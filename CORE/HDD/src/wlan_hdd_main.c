@@ -1352,6 +1352,22 @@ hdd_checkandupdate_dfssetting(hdd_adapter_t *pAdapter, char *country_code)
 
 }
 
+#ifdef IPA_UC_STA_OFFLOAD
+static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+{
+   /* Change IPA to SW path when throttle level greater than 0 */
+   if (level > THROTTLE_LEVEL_0)
+      hdd_ipa_send_mcc_scc_msg(pHddCtx, TRUE);
+   else
+      /* restore original concurrency mode */
+      hdd_ipa_send_mcc_scc_msg(pHddCtx, pHddCtx->mcc_mode);
+}
+#else
+static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
+{
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_setIbssPowerSaveParams - update IBSS Power Save params to WMA.
@@ -5695,10 +5711,33 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                       "%s: Received Command to change okc mode = %d", __func__, okcMode);
-
            pHddCtx->cfg_ini->isOkcIniFeatureEnabled = okcMode;
        }
 #endif  /* FEATURE_WLAN_OKC */
+       else if (strncmp(command, "BTCOEXMODE", 10) == 0 )
+       {
+           char *bcMode;
+           int ret;
+
+           bcMode = command + 11;
+           if ('1' == *bcMode)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *bcMode);
+               pHddCtx->btCoexModeSet = TRUE;
+               ret = wlan_hdd_scan_abort(pAdapter);
+               if (ret < 0) {
+                   hddLog(LOGE,
+                          FL("Failed to abort existing scan status:%d"), ret);
+               }
+           }
+           else if ('2' == *bcMode)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
+                         FL("BTCOEXMODE %d"), *bcMode);
+               pHddCtx->btCoexModeSet = FALSE;
+           }
+       }
        else if (strncmp(priv_data.buf, "GETROAMSCANCONTROL", 18) == 0)
        {
            tANI_BOOLEAN roamScanControl = sme_GetRoamScanControl(pHddCtx->hHal);
@@ -12045,6 +12084,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Error while initializing thermal information", __func__);
    }
+
+   /* Plug in set thermal level callback */
+   sme_add_set_thermal_level_callback(pHddCtx->hHal,
+                     (tSmeSetThermalLevelCallback)hdd_set_thermal_level_cb);
 
    /* SAR power limit */
    hddtxlimit = vos_mem_malloc(sizeof(tSirTxPowerLimit));

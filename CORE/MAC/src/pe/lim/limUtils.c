@@ -7446,7 +7446,7 @@ void lim_set_ht_caps(tpAniSirGlobal p_mac, tpPESession p_session_entry,
                      tANI_U8 *p_ie_start,tANI_U32 num_bytes)
 {
     v_U8_t              *p_ie=NULL;
-    tDot11fIEHTCaps     dot11_ht_cap;
+    tDot11fIEHTCaps     dot11_ht_cap = {0,};
 
     PopulateDot11fHTCaps(p_mac, p_session_entry, &dot11_ht_cap);
     p_ie = limGetIEPtr(p_mac, p_ie_start, num_bytes, DOT11F_EID_HTCAPS,

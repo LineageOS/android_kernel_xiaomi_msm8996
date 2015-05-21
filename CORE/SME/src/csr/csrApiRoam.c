@@ -4525,18 +4525,16 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
         //For WDS, the indication is eCSR_ROAM_WDS_IND
         if( CSR_IS_INFRASTRUCTURE( pProfile ) )
         {
-            if(pRoamInfo)
+            if(pSession->bRefAssocStartCnt)
             {
-                if(pSession->bRefAssocStartCnt)
-                {
-                    pSession->bRefAssocStartCnt--;
-                    pRoamInfo->pProfile = pProfile;
-                    /* Complete the last association attempt because a new one
-                       is about to be tried */
-                    csrRoamCallCallback(pMac, sessionId, pRoamInfo, pCommand->u.roamCmd.roamId,
-                                        eCSR_ROAM_ASSOCIATION_COMPLETION,
-                                        eCSR_ROAM_RESULT_NOT_ASSOCIATED);
-                }
+                pSession->bRefAssocStartCnt--;
+                pRoamInfo->pProfile = pProfile;
+                /* Complete the last association attempt because a new one
+                   is about to be tried */
+                csrRoamCallCallback(pMac, sessionId, pRoamInfo,
+                                    pCommand->u.roamCmd.roamId,
+                                    eCSR_ROAM_ASSOCIATION_COMPLETION,
+                                    eCSR_ROAM_RESULT_NOT_ASSOCIATED);
             }
             /* If the roaming has stopped, not to continue the roaming command*/
             if ( !CSR_IS_ROAMING(pSession) && CSR_IS_ROAMING_COMMAND(pCommand) )
@@ -10948,6 +10946,11 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pInfo->sessionId );
     eHalStatus status = eHAL_STATUS_FAILURE;
 
+    if(pSession == NULL) {
+        smsLog(pMac, LOGE, "%s: session not found", __func__);
+        return;
+    }
+
     smsLog(pMac, LOGW, FL("WaitForKey timer expired in state=%s sub-state=%s"),
            macTraceGetNeighbourRoamState(
            pMac->roam.neighborRoamInfo[pInfo->sessionId].neighborRoamState),
@@ -10980,32 +10983,24 @@ void csrRoamWaitForKeyTimeOutHandler(void *pv)
                                   pInfo->sessionId);
         }
 
-        if (pSession)
+        if( csrIsConnStateConnectedInfra(pMac, pInfo->sessionId) )
         {
-            if( csrIsConnStateConnectedInfra(pMac, pInfo->sessionId) )
+            csrRoamLinkUp(pMac, pSession->connectedProfile.bssid);
+            smeProcessPendingQueue(pMac);
+            status = sme_AcquireGlobalLock(&pMac->sme);
+            if (HAL_STATUS_SUCCESS(status ))
             {
-                csrRoamLinkUp(pMac, pSession->connectedProfile.bssid);
-                smeProcessPendingQueue(pMac);
-                status = sme_AcquireGlobalLock(&pMac->sme);
-                if (HAL_STATUS_SUCCESS(status ))
-                {
-                    csrRoamDisconnect(pMac, pInfo->sessionId,
+                csrRoamDisconnect(pMac, pInfo->sessionId,
                                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
-                    sme_ReleaseGlobalLock(&pMac->sme);
-                }
-            }
-            else
-            {
-                smsLog(pMac, LOGE, "%s: Session id %d is disconnected",
-                        __func__, pInfo->sessionId);
+                sme_ReleaseGlobalLock(&pMac->sme);
             }
         }
         else
         {
-            smsLog(pMac, LOGE, "%s: session not found", __func__);
+            smsLog(pMac, LOGE, "%s: Session id %d is disconnected",
+                   __func__, pInfo->sessionId);
         }
     }
-
 }
 
 eHalStatus csrRoamStartWaitForKeyTimer(tpAniSirGlobal pMac, tANI_U32 interval)
@@ -18031,6 +18026,7 @@ csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId,
     {
         smsLog(pMac, LOGE,
                FL("Memory allocation for FT Preauth request failed"));
+        vos_mem_free(pftPreAuthReq);
         return eHAL_STATUS_RESOURCES;
     }
 
@@ -18553,7 +18549,6 @@ csrRoamModifyAddIEs(tpAniSirGlobal pMac,
            FL("Failed to send eWNI_SME_UPDATE_ADDTIONAL_IES msg"
            "!!! status %d"), status);
        vos_mem_free(pLocalBuffer);
-       vos_mem_free(pModifyAddIEInd);
     }
     return status;
 }
@@ -18627,7 +18622,6 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
            FL("Failed to send eWNI_SME_UPDATE_ADDTIONAL_IES msg"
            "!!! status %d"), status);
        vos_mem_free(pLocalBuffer);
-       vos_mem_free(pUpdateAddIEs);
     }
     return status;
 }

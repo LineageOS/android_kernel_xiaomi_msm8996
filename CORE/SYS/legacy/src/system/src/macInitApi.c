@@ -209,8 +209,8 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     status = peOpen(p_mac, pMacOpenParms);
 
     if (eSIR_SUCCESS != status) {
-        vos_mem_free(p_mac);
         sysLog(p_mac, LOGE, FL("macOpen failure\n"));
+        vos_mem_free(p_mac);
         return status;
     }
 

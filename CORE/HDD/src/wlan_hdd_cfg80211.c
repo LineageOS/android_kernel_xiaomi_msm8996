@@ -14202,7 +14202,16 @@ int wlan_hdd_cfg80211_set_ie(hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
-                /* Appending Extended Capabilities with Interworking bit set in Assoc Req */
+                /* Appending Extended Capabilities with Interworking bit set
+                 * in Assoc Req.
+                 *
+                 * In assoc req this EXT Cap will only be taken into account if
+                 * interworkingService bit is set to 1. Currently
+                 * driver is only interested in interworkingService capability
+                 * from supplicant. If in future any other EXT Cap info is
+                 * required from supplicat, it needs to be handled while
+                 * sending Assoc Req in LIM.
+                 */
             case DOT11F_EID_EXTCAP:
                 {
                     v_U16_t curAddIELen = pWextState->assocAddIE.length;
@@ -14609,7 +14618,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                                                   0);
     }
 
-    if (0 > status) {
+    if (0 != status) {
         //ReEnable BMPS if disabled
         // If PS offload is enabled, fw will take care of
 // ps in cae of concurrency.
@@ -16275,7 +16284,7 @@ int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                  param->subtype, &delStaParams);
 
 #else
-    WLANSAP_PopulateDelStaParams(mac, eCsrForcedDeauthSta,
+    WLANSAP_PopulateDelStaParams(mac, eSIR_MAC_DEAUTH_LEAVING_BSS_REASON,
                                  (SIR_MAC_MGMT_DEAUTH >> 4), &delStaParams);
 #endif
     ret = __wlan_hdd_cfg80211_del_station(wiphy, dev, &delStaParams);
@@ -16581,7 +16590,7 @@ wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
-static int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
+int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_scaninfo_t *pScanInfo = NULL;

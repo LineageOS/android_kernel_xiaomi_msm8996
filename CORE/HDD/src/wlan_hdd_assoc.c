@@ -1015,18 +1015,23 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
         }
     }
 
-    if (eCSR_ROAM_IBSS_LEAVE == roamStatus)
-    {
-        sta_id = IBSS_BROADCAST_STAID;
-    }
-    else
-    {
-        sta_id = pHddStaCtx->conn_info.staId[0];
-    }
      hdd_wmm_adapter_clear(pAdapter);
 #if defined(WLAN_FEATURE_VOWIFI_11R)
     sme_FTReset(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId);
 #endif
+    if (eCSR_ROAM_IBSS_LEAVE == roamStatus) {
+        sta_id = IBSS_BROADCAST_STAID;
+        vstatus = hdd_roamDeregisterSTA(pAdapter, sta_id);
+        if (!VOS_IS_STATUS_SUCCESS(vstatus)) {
+            hddLog(LOGE,
+                   FL("hdd_roamDeregisterSTA() failed for staID %d Status=%d [0x%x]"),
+                   sta_id, status, status);
+            status = eHAL_STATUS_FAILURE;
+        }
+        pHddCtx->sta_to_adapter[sta_id] = NULL;
+    }
+    sta_id = pHddStaCtx->conn_info.staId[0];
+
     //We should clear all sta register with TL, for now, only one.
     vstatus = hdd_roamDeregisterSTA( pAdapter, sta_id );
     if ( !VOS_IS_STATUS_SUCCESS(vstatus ) )

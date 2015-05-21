@@ -22023,6 +22023,22 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 }
 
 
+static void wma_set_thermal_level_ind(u_int8_t level)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	vos_msg_t sme_msg = {0};
+
+	WMA_LOGI(FL("Thermal level: %d"), level);
+
+	sme_msg.type = eWNI_SME_SET_THERMAL_LEVEL_IND;
+	sme_msg.bodyptr = NULL;
+	sme_msg.bodyval = level;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		WMA_LOGE(FL("Fail to post set temperaturml level ind msg"));
+}
+
 /* function   : wma_process_set_thermal_level
  * Description : This function set the new thermal throttle level in the
                 txrx module and sends down the corresponding temperature
@@ -22075,6 +22091,9 @@ VOS_STATUS wma_process_set_thermal_level(tp_wma_handle wma,
 	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
 
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
+
+	/* Send SME SET_THERMAL_LEVEL_IND message */
+	wma_set_thermal_level_ind(thermal_level);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -26418,6 +26437,9 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 
 	/* Inform txrx */
 	ol_tx_throttle_set_level(curr_pdev, thermal_level);
+
+	/* Send SME SET_THERMAL_LEVEL_IND message */
+	wma_set_thermal_level_ind(thermal_level);
 
 	/* Get the temperature thresholds to set in firmware */
 	thermal_params.minTemp =
