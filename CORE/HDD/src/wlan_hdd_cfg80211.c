@@ -12785,10 +12785,6 @@ allow_suspend:
     wlan_hdd_tdls_scan_done_callback(pAdapter);
 #endif
 
-#ifdef CONFIG_CNSS
-    cnss_allow_auto_suspend(__func__);
-#endif
-
     EXIT();
     return 0;
 }
@@ -13282,9 +13278,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      * be stuck in full power because of resume BMPS
      */
     hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
-#ifdef CONFIG_CNSS
-    cnss_prevent_auto_suspend(__func__);
-#endif
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
            "requestType %d, scanType %d, minChnTime %d, maxChnTime %d,p2pSearch %d, skipDfsChnlIn P2pSearch %d",
            scanRequest.requestType, scanRequest.scanType,
@@ -13312,9 +13305,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         }
 
         hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
-#ifdef CONFIG_CNSS
-        cnss_allow_auto_suspend(__func__);
-#endif
         goto free_mem;
     }
 
@@ -14559,8 +14549,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                    "%s: HDD context is not valid", __func__);
         return status;
     }
-
-    hdd_stop_auto_suspend_attempt(pHddCtx);
 
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
@@ -18551,8 +18539,6 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
 
     hdd_resume_wlan();
 
-    hdd_start_auto_suspend_attempt(pHddCtx, 0);
-
     spin_lock(&pHddCtx->schedScan_lock);
     pHddCtx->isWiphySuspended = FALSE;
     if (TRUE != pHddCtx->isSchedScanUpdatePending) {
@@ -18737,8 +18723,6 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     /* Wait for the target to be ready for suspend */
     INIT_COMPLETION(pHddCtx->ready_to_suspend);
 
-    hdd_stop_auto_suspend_attempt(pHddCtx);
-
     hdd_suspend_wlan(&wlan_hdd_cfg80211_ready_to_suspend, pHddCtx);
 
     rc = wait_for_completion_timeout(&pHddCtx->ready_to_suspend,
@@ -18809,10 +18793,8 @@ resume_all:
 resume_tx:
 
     hdd_resume_wlan();
-    hdd_start_auto_suspend_attempt(pHddCtx, 0);
 
     return -ETIME;
-
 }
 
 int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,

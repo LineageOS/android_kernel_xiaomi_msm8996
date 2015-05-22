@@ -607,6 +607,8 @@ typedef struct wma_handle {
 	vos_event_t wma_resume_event;
 	vos_event_t target_suspend;
 	vos_event_t wow_tx_complete;
+	vos_event_t runtime_suspend;
+
 	t_cfg_nv_param cfg_nv;
 
 	v_U16_t max_station;
@@ -715,6 +717,10 @@ typedef struct wma_handle {
 	 */
 	u_int8_t ol_ini_info;
 	v_BOOL_t ssdp;
+#ifdef FEATURE_RUNTIME_PM
+	v_BOOL_t runtime_pm;
+	u_int32_t auto_time;
+#endif
         u_int8_t ibss_started;
         tSetBssKeyParams ibsskey_info;
 
@@ -754,13 +760,6 @@ typedef struct wma_handle {
 
 	u_int32_t hw_bd_id;
 	u_int32_t hw_bd_info[HW_BD_INFO_SIZE];
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-	/* Callback registered by auto suspend to indicate HDD that driver
-	 * resumed from auto suspend. This callback is only needed for
-	 * auto resume.
-	 */
-	void (*resumed_cb)(void *param);
-#endif
 
 #ifdef FEATURE_WLAN_D0WOW
 	atomic_t in_d0wow;

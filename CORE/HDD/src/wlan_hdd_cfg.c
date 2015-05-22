@@ -1687,6 +1687,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_HOST_SSDP_MIN,
                  CFG_ENABLE_HOST_SSDP_MAX ),
 
+#ifdef FEATURE_RUNTIME_PM
+   REG_VARIABLE( CFG_ENABLE_RUNTIME_PM, WLAN_PARAM_Integer,
+                 hdd_config_t, runtime_pm,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_RUNTIME_PM_DEFAULT,
+                 CFG_ENABLE_RUNTIME_PM_MIN,
+                 CFG_ENABLE_RUNTIME_PM_MAX ),
+
+   REG_VARIABLE( CFG_RUNTIME_PM_AUTO_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, runtime_pm_delay,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RUNTIME_PM_AUTO_DEFAULT,
+                 CFG_RUNTIME_PM_AUTO_MIN,
+                 CFG_RUNTIME_PM_AUTO_MAX ),
+#endif
+
    REG_VARIABLE( CFG_ENABLE_HOST_NSOFFLOAD_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fhostNSOffload,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3583,15 +3599,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DOT11P_MODE_MIN,
                 CFG_DOT11P_MODE_MAX),
 
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-   REG_VARIABLE( CFG_ENABLE_AUTO_SUSPEND, WLAN_PARAM_Integer,
-              hdd_config_t, enable_bus_auto_suspend,
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-              CFG_ENABLE_AUTO_SUSPEND_DEFAULT,
-              CFG_ENABLE_AUTO_SUSPEND_MIN,
-              CFG_ENABLE_AUTO_SUSPEND_MAX ),
-#endif
-
    REG_VARIABLE( CFG_ENABLE_RAMDUMP_COLLECTION, WLAN_PARAM_Integer,
                  hdd_config_t, is_ramdump_enabled,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4009,6 +4016,12 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fhostArpOffload] Value = [%u] ",pHddCtx->cfg_ini->fhostArpOffload);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ssdp] Value = [%u] ", pHddCtx->cfg_ini->ssdp);
+#ifdef FEATURE_RUNTIME_PM
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [runtime_pm] Value = [%u] ", pHddCtx->cfg_ini->runtime_pm);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [runtime_pm_delay] Value = [%u] ", pHddCtx->cfg_ini->runtime_pm_delay);
+#endif
+
+
 #ifdef FEATURE_WLAN_RA_FILTERING
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RArateLimitInterval] Value = [%u] ", pHddCtx->cfg_ini->RArateLimitInterval);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [IsRArateLimitEnabled] Value = [%u] ", pHddCtx->cfg_ini->IsRArateLimitEnabled);
@@ -4301,10 +4314,6 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gMDNSResponseTypeSRVTarget] Value = [%s]",
                    pHddCtx->cfg_ini->mdns_resp_type_srv_target);
-#endif
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-  hddLog(LOG2, "Name = [gEnableBusAutoSuspend] Value = [%u]",
-                   pHddCtx->cfg_ini->enable_bus_auto_suspend);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "Name = [gEnableDumpCollect] Value = [%u]",
@@ -6128,10 +6137,6 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                         pHddCtx->cfg_ini->conc_custom_rule2;
    smeConfig->csrConfig.is_sta_connection_in_5gz_enabled =
                         pHddCtx->cfg_ini->is_sta_connection_in_5gz_enabled;
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-   smeConfig->enable_bus_auto_suspend =
-       pHddCtx->cfg_ini->enable_bus_auto_suspend;
-#endif
 
    /* Update 802.11p config */
    smeConfig->csrConfig.enable_dot11p = (pHddCtx->cfg_ini->dot11p_mode !=

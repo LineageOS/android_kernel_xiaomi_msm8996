@@ -1142,6 +1142,18 @@ typedef enum
 #define CFG_ENABLE_HOST_SSDP_MAX               ( 1 )
 #define CFG_ENABLE_HOST_SSDP_DEFAULT           ( 1 )
 
+#ifdef FEATURE_RUNTIME_PM
+#define CFG_ENABLE_RUNTIME_PM                  "gRuntimePM"
+#define CFG_ENABLE_RUNTIME_PM_MIN              ( 0 )
+#define CFG_ENABLE_RUNTIME_PM_MAX              ( 1 )
+#define CFG_ENABLE_RUNTIME_PM_DEFAULT          ( 0 )
+
+#define CFG_RUNTIME_PM_AUTO_NAME               "gRuntimePMDelay"
+#define CFG_RUNTIME_PM_AUTO_MIN                ( 100 )
+#define CFG_RUNTIME_PM_AUTO_MAX                ( 10000 )
+#define CFG_RUNTIME_PM_AUTO_DEFAULT            ( 500 )
+#endif
+
 #define CFG_ENABLE_HOST_NSOFFLOAD_NAME         "hostNSOffload"
 #define CFG_ENABLE_HOST_NSOFFLOAD_MIN          ( 0 )
 #define CFG_ENABLE_HOST_NSOFFLOAD_MAX          ( 1 )
@@ -2726,13 +2738,6 @@ enum dot11p_mode {
 #define CFG_DOT11P_MODE_MIN              ( WLAN_HDD_11P_DISABLED )
 #define CFG_DOT11P_MODE_MAX              ( WLAN_HDD_11P_CONCURRENT )
 
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-#define CFG_ENABLE_AUTO_SUSPEND                   "gEnableBusAutoSuspend"
-#define CFG_ENABLE_AUTO_SUSPEND_MIN               ( 0 )
-#define CFG_ENABLE_AUTO_SUSPEND_MAX               ( 1 )
-#define CFG_ENABLE_AUTO_SUSPEND_DEFAULT           ( 0 )
-#endif
-
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_NAME        "gP2PListenDeferInterval"
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_MIN         (100)
 #define CFG_P2P_LISTEN_DEFER_INTERVAL_MAX         (200)
@@ -3055,6 +3060,12 @@ typedef struct
    v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                    fhostArpOffload;
    v_BOOL_t                    ssdp;
+
+#ifdef FEATURE_RUNTIME_PM
+   v_BOOL_t                    runtime_pm;
+   v_U32_t                     runtime_pm_delay;
+#endif
+
 #ifdef FEATURE_WLAN_RA_FILTERING
    v_BOOL_t                    IsRArateLimitEnabled;
    v_U16_t                     RArateLimitInterval;
@@ -3418,9 +3429,6 @@ typedef struct
    uint8_t                     sap_auth_offload_key[WLAN_PSK_STRING_LENGTH];
 #endif /* SAP_AUTH_OFFLOAD */
    uint8_t                     dot11p_mode;
-#ifdef FEATURE_BUS_AUTO_SUSPEND
-   bool                        enable_bus_auto_suspend;
-#endif
    bool                        is_ramdump_enabled;
    uint16_t                    p2p_listen_defer_interval;
    uint8_t                     sap_dot11mc;
