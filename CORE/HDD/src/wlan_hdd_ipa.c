@@ -2379,7 +2379,8 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		/* Disable to forward Intra-BSS Rx packets when
 		 * ap_isolate=1 in hostapd.conf
 		 */
-		if (!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
+		if ((NULL != iface_context->tl_context) &&
+			!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
 		{
 			/*
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
