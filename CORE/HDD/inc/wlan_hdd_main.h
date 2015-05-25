@@ -86,6 +86,12 @@
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)
 
+#ifdef QCA_CONFIG_SMP
+#define NUM_CPUS NR_CPUS
+#else
+#define NUM_CPUS 1
+#endif
+
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  (0)
 #define SME_SESSION_OPENED     (1)
@@ -135,9 +141,6 @@
 
 /** Maximum time(ms) to wait for tdls initiator to start direct communication **/
 #define WAIT_TIME_TDLS_INITIATOR    600
-
-/* Maximum time to get linux regulatory entry settings */
-#define LINUX_REG_WAIT_TIME 300
 
 /* Scan Req Timeout */
 #define WLAN_WAIT_TIME_SCAN_REQ 100
@@ -316,11 +319,10 @@ typedef struct hdd_tx_rx_stats_s
    // complete_cbk_stats
    __u32    txCompleted;
    // rx stats
-   __u32    rxChains;
-   __u32    rxPackets;
-   __u32    rxDropped;
-   __u32    rxDelivered;
-   __u32    rxRefused;
+   __u32    rxPackets[NUM_CPUS];
+   __u32    rxDropped[NUM_CPUS];
+   __u32    rxDelivered[NUM_CPUS];
+   __u32    rxRefused[NUM_CPUS];
 
    __u32    netq_disable_cnt;
    __u32    netq_enable_cnt;
@@ -1254,9 +1256,6 @@ struct hdd_context_s
    /* Completion  variable to indicate Mc Thread Suspended */
    struct completion mc_sus_event_var;
 
-   /* Completion variable for regulatory hint  */
-   struct completion linux_reg_req;
-
    v_BOOL_t isWlanSuspended;
 
    v_BOOL_t isTxThreadSuspended;
@@ -1756,4 +1755,12 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 
 bool hdd_is_memdump_supported(void);
 
+#ifdef QCA_CONFIG_SMP
+int wlan_hdd_get_cpu(void);
+#else
+static inline int wlan_hdd_get_cpu(void)
+{
+	return 0;
+}
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

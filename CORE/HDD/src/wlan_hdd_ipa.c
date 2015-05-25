@@ -2109,6 +2109,7 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	int result;
 
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	unsigned int cpu_index;
 
 	if (!adapter || adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_LOW, "Invalid adapter: 0x%p",
@@ -2126,7 +2127,10 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	skb->dev = adapter->dev;
 	skb->protocol = eth_type_trans(skb, skb->dev);
 	skb->ip_summed = CHECKSUM_NONE;
-	++adapter->hdd_stats.hddTxRxStats.rxPackets;
+
+	cpu_index = wlan_hdd_get_cpu();
+
+	++adapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
 #ifdef QCA_CONFIG_SMP
 	result = netif_rx_ni(skb);
 #else
@@ -2136,9 +2140,10 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 		result = netif_rx(skb);
 #endif
 	if (result == NET_RX_SUCCESS)
-		++adapter->hdd_stats.hddTxRxStats.rxDelivered;
+		++adapter->hdd_stats.hddTxRxStats.rxDelivered[cpu_index];
 	else
-		++adapter->hdd_stats.hddTxRxStats.rxRefused;
+		++adapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
+
 	adapter->dev->last_rx = jiffies;
 }
 
@@ -2379,7 +2384,8 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		/* Disable to forward Intra-BSS Rx packets when
 		 * ap_isolate=1 in hostapd.conf
 		 */
-		if (!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
+		if ((NULL != iface_context->tl_context) &&
+			!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
 		{
 			/*
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send

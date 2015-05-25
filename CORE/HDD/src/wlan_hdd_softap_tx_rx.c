@@ -48,7 +48,6 @@
 #include <aniGlobal.h>
 #include <halTypes.h>
 #include <net/ieee80211_radiotap.h>
-
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
@@ -1065,6 +1064,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    v_U8_t proto_type;
 #endif /* QCA_PKT_PROTO_TRACE */
    struct sk_buff *skb_next;
+   unsigned int cpu_index;
 
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
@@ -1093,22 +1093,23 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
        return VOS_STATUS_E_FAILURE;
    }
 
-   if (!pAdapter->dev) {
-       VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_FATAL,
-          "Invalid DEV(NULL) Drop packets");
-       return VOS_STATUS_E_FAILURE;
-   }
-
-   ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
-
    // walk the chain until all are processed
    skb = (struct sk_buff *) rxBuf;
 
    while (NULL != skb) {
       skb_next = skb->next;
       skb->dev = pAdapter->dev;
+      if (skb->dev == NULL) {
+         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
+                   "%s: ERROR!!Invalid netdevice", __func__);
+         kfree_skb(skb);
+         skb = skb_next;
+         continue;
+      }
 
-      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
+      cpu_index = wlan_hdd_get_cpu();
+
+      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
 
@@ -1150,9 +1151,9 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
       }
 
       if (NET_RX_SUCCESS == rxstat)
-         ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered[cpu_index];
       else
-         ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
+         ++pAdapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
 
       skb = skb_next;
    }
