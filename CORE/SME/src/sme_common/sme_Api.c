@@ -406,7 +406,8 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         /* reset when free list is available */
         smeCommandQueueFull = 0;
     }
-    else {
+    else
+    {
         int idx = 1;
 
         //Cannot change pRetCmd here since it needs to return later.
@@ -444,22 +445,30 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             }
             pEntry = csrLLNext( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
         }
-        /* Increament static variable so that it prints pending command only once*/
-        smeCommandQueueFull++;
         csrLLUnlock(&pMac->sme.smeCmdPendingList);
 
+        idx = 1;
         //There may be some more command in CSR's own pending queue
         csrLLLock(&pMac->roam.roamCmdPendingList);
         pEntry = csrLLPeekHead( &pMac->roam.roamCmdPendingList, LL_ACCESS_NOLOCK );
-        while(pEntry)
+        while(pEntry && !smeCommandQueueFull)
         {
             pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-            smsLog( pMac, LOGE, "Out of command buffer.... CSR pending command #%d (0x%X)",
-                    idx++, pTempCmd->command );
+            /* Print only 1st five commands from CSR pending queue */
+            if (idx <= 5)
+                smsLog( pMac, LOGE,
+                     "Out of command buffer.... CSR roamCmdPendingList command #%d (0x%X)",
+                     idx, pTempCmd->command );
+            idx++;
             dumpCsrCommandInfo(pMac, pTempCmd);
             pEntry = csrLLNext( &pMac->roam.roamCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
         }
+        /* Increament static variable so that it prints pending command only once*/
+        smeCommandQueueFull++;
         csrLLUnlock(&pMac->roam.roamCmdPendingList);
+
+        /* panic with out-of-command */
+        VOS_BUG(0);
     }
 
     /* memset to zero */
@@ -872,6 +881,8 @@ sme_process_cmd:
                     {
                         //Force this command to wake up the chip
                         csrLLInsertHead( &pMac->sme.smeCmdActiveList, &pPmcCmd->Link, LL_ACCESS_NOLOCK );
+                        MTRACE(vos_trace(VOS_MODULE_ID_SME,
+                           TRACE_CODE_SME_COMMAND, pPmcCmd->sessionId, pPmcCmd->command));
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
                         /* Handle PS Offload Case Separately */
                         if(pMac->psOffloadEnabled)
