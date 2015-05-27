@@ -118,6 +118,8 @@
  * 3.19 Add HTT_DBG_STATS_RX_RATE_INFO_V2 and HTT_DBG_STATS_TX_RATE_INFO_V2
  * 3.20 Expand rx_reorder_stats.
  * 3.21 Add optional rx channel spec to HL RX_IND.
+ * 3.22 Expand rx_reorder_stats
+ *      (distinguish duplicates within vs. outside block ack window)
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
 #define HTT_CURRENT_VERSION_MINOR 21
@@ -5592,6 +5594,12 @@ struct rx_reorder_stats {
     A_UINT32 offload_msdu_wal;
     /* Number of data frame dropped by offload after reorder */
     A_UINT32 offload_msdu_reorder;
+    /* Number of MPDUs with sequence number in the past and within
+       the BA window */
+    A_UINT32 dup_past_within_window;
+    /* Number of MPDUs with sequence number in the past and
+     * outside the BA window */
+    A_UINT32 dup_past_outside_window;
 };
 
 

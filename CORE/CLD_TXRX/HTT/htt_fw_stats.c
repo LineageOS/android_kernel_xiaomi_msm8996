@@ -433,6 +433,10 @@ htt_t2h_stats_rx_reorder_stats_print(
                  stats_ptr->offload_msdu_wal);
     adf_os_print("  %u data frame dropped by offload after reorder\n",
                  stats_ptr->offload_msdu_reorder);
+    adf_os_print("  %u  MPDUs with SN in the past & within BA window\n",
+                 stats_ptr->dup_past_within_window);
+    adf_os_print("  %u  MPDUs with SN in the past & outside BA window\n",
+                 stats_ptr->dup_past_outside_window);
 }
 
 static void
