@@ -5765,6 +5765,8 @@ eHalStatus sme_get_fw_state(tHalHandle hHal,
 		vos_message.type = WDA_GET_FW_STATUS_REQ;
 		vos_message.bodyptr = NULL;
 		vos_message.reserved = 0;
+		mac->sme.fw_state_context = context;
+		mac->sme.fw_state_callback = callback;
 
 		if (!VOS_IS_STATUS_SUCCESS(
 			vos_mq_post_message(VOS_MODULE_ID_WDA, &vos_message))) {
