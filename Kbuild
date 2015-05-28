@@ -97,6 +97,9 @@ ifeq ($(KERNEL_BUILD), 0)
         endif
 	#Flag to enable memdump feature
 	CONFIG_WLAN_FEATURE_MEMDUMP := y
+
+	#Flag to enable offload packets feature
+	CONFIG_WLAN_OFFLOAD_PACKETS := y
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -1390,6 +1393,10 @@ endif
 
 ifeq ($(CONFIG_WLAN_FEATURE_MEMDUMP),y)
 CDEFINES += -DWLAN_FEATURE_MEMDUMP
+endif
+
+ifeq ($(CONFIG_WLAN_OFFLOAD_PACKETS),y)
+CDEFINES += -DWLAN_FEATURE_OFFLOAD_PACKETS
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
