@@ -1499,6 +1499,207 @@ v_U8_t* wlan_hdd_get_vendor_oui_ie_ptr(v_U8_t *oui, v_U8_t oui_size, v_U8_t *ie,
     return NULL;
 }
 
+/**
+ * hdd_get_ldpc() - Get adapter LDPC
+ * @adapter: adapter being queried
+ * @value: where to store the value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_get_ldpc(hdd_adapter_t *adapter, int *value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	ENTER();
+	ret = sme_GetHTConfig(hal, adapter->sessionId,
+			      WNI_CFG_HT_CAP_INFO_ADVANCE_CODING);
+	if (ret < 0) {
+		hddLog(LOGE, FL("Failed to get LDPC value"));
+	} else {
+		*value = ret;
+		ret = 0;
+	}
+	return ret;
+}
+
+/**
+ * hdd_set_ldpc() - Set adapter LDPC
+ * @adapter: adapter being modified
+ * @value: new LDPC value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_set_ldpc(hdd_adapter_t *adapter, int value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	hddLog(LOG1, FL("%d"), value);
+	if (value) {
+		/* make sure HT capabilities allow this */
+		eHalStatus status;
+		uint32_t cfg_value;
+		union {
+			uint16_t cfg_value16;
+			tSirMacHTCapabilityInfo ht_cap_info;
+		} u;
+
+		status = ccmCfgGetInt(hal, WNI_CFG_HT_CAP_INFO, &cfg_value);
+		if (eHAL_STATUS_SUCCESS != status) {
+			hddLog(LOGE, FL("Failed to get HT capability info"));
+			return -EIO;
+		}
+		u.cfg_value16 = cfg_value & 0xFFFF;
+		if (!u.ht_cap_info.advCodingCap) {
+			hddLog(LOGE, FL("LDCP not supported"));
+			return -EINVAL;
+		}
+	}
+
+	ret = sme_UpdateHTConfig(hal, adapter->sessionId,
+				 WNI_CFG_HT_CAP_INFO_ADVANCE_CODING,
+				 value);
+	if (ret)
+		hddLog(LOGE, FL("Failed to set LDPC value"));
+
+	return ret;
+}
+
+/**
+ * hdd_get_tx_stbc() - Get adapter TX STBC
+ * @adapter: adapter being queried
+ * @value: where to store the value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_get_tx_stbc(hdd_adapter_t *adapter, int *value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	ENTER();
+	ret = sme_GetHTConfig(hal, adapter->sessionId,
+			      WNI_CFG_HT_CAP_INFO_TX_STBC);
+	if (ret < 0) {
+		hddLog(LOGE, FL("Failed to get TX STBC value"));
+	} else {
+		*value = ret;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+/**
+ * hdd_set_tx_stbc() - Set adapter TX STBC
+ * @adapter: adapter being modified
+ * @value: new TX STBC value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_set_tx_stbc(hdd_adapter_t *adapter, int value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	hddLog(LOG1, FL("%d"), value);
+	if (value) {
+		/* make sure HT capabilities allow this */
+		eHalStatus status;
+		uint32_t cfg_value;
+		union {
+			uint16_t cfg_value16;
+			tSirMacHTCapabilityInfo ht_cap_info;
+		} u;
+
+		status = ccmCfgGetInt(hal, WNI_CFG_HT_CAP_INFO, &cfg_value);
+		if (eHAL_STATUS_SUCCESS != status) {
+			hddLog(LOGE, FL("Failed to get HT capability info"));
+			return -EIO;
+		}
+		u.cfg_value16 = cfg_value & 0xFFFF;
+		if (!u.ht_cap_info.txSTBC) {
+			hddLog(LOGE, FL("TX STBC not supported"));
+			return -EINVAL;
+		}
+	}
+	ret = sme_UpdateHTConfig(hal, adapter->sessionId,
+				 WNI_CFG_HT_CAP_INFO_TX_STBC,
+				 value);
+	if (ret)
+		hddLog(LOGE, FL("Failed to set TX STBC value"));
+
+	return ret;
+}
+
+/**
+ * hdd_get_rx_stbc() - Get adapter RX STBC
+ * @adapter: adapter being queried
+ * @value: where to store the value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_get_rx_stbc(hdd_adapter_t *adapter, int *value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	ENTER();
+	ret = sme_GetHTConfig(hal, adapter->sessionId,
+			      WNI_CFG_HT_CAP_INFO_RX_STBC);
+	if (ret < 0) {
+		hddLog(LOGE, FL("Failed to get RX STBC value"));
+	} else {
+		*value = ret;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+/**
+ * hdd_set_rx_stbc() - Set adapter RX STBC
+ * @adapter: adapter being modified
+ * @value: new RX STBC value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_set_rx_stbc(hdd_adapter_t *adapter, int value)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int ret;
+
+	hddLog(LOG1, FL("%d"), value);
+	if (value) {
+		/* make sure HT capabilities allow this */
+		eHalStatus status;
+		uint32_t cfg_value;
+		union {
+			uint16_t cfg_value16;
+			tSirMacHTCapabilityInfo ht_cap_info;
+		} u;
+
+		status = ccmCfgGetInt(hal, WNI_CFG_HT_CAP_INFO, &cfg_value);
+		if (eHAL_STATUS_SUCCESS != status) {
+			hddLog(LOGE, FL("Failed to get HT capability info"));
+			return -EIO;
+		}
+		u.cfg_value16 = cfg_value & 0xFFFF;
+		if (!u.ht_cap_info.rxSTBC) {
+			hddLog(LOGE, FL("RX STBC not supported"));
+			return -EINVAL;
+		}
+	}
+	ret = sme_UpdateHTConfig(hal, adapter->sessionId,
+				 WNI_CFG_HT_CAP_INFO_RX_STBC,
+				 value);
+	if (ret)
+		hddLog(LOGE, FL("Failed to set RX STBC value"));
+
+	return ret;
+}
+
 static int iw_set_commit(struct net_device *dev, struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
 {
@@ -5150,103 +5351,16 @@ static int __iw_setint_getnone(struct net_device *dev,
         }
 
         case WE_SET_LDPC:
-        {
-           tANI_U32 value;
-           union {
-              tANI_U16                        nCfgValue16;
-              tSirMacHTCapabilityInfo         htCapInfo;
-           }uHTCapabilityInfo;
-
-           hddLog(LOG1, "LDPC val %d", set_value);
-           /* get the HT capability info*/
-           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
-           if (eHAL_STATUS_SUCCESS != ret) {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "%s: could not get HT capability info",
-                         __func__);
-               return -EIO;
-           }
-
-           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
-           if ((set_value && (uHTCapabilityInfo.htCapInfo.advCodingCap)) ||
-                (!set_value)) {
-               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
-                                  WNI_CFG_HT_CAP_INFO_ADVANCE_CODING,
-                                  set_value);
-           }
-
-           if (ret)
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "Failed to set LDPC value");
-
+           ret = hdd_set_ldpc(pAdapter, set_value);
            break;
-        }
 
         case WE_SET_TX_STBC:
-        {
-           tANI_U32 value;
-           union {
-              tANI_U16                        nCfgValue16;
-              tSirMacHTCapabilityInfo         htCapInfo;
-           }uHTCapabilityInfo;
-
-           hddLog(LOG1, "TX_STBC val %d", set_value);
-           /* get the HT capability info*/
-           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
-           if (eHAL_STATUS_SUCCESS != ret) {
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "%s: could not get HT capability info",
-                         __func__);
-               return -EIO;
-           }
-
-           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
-           if ((set_value && (uHTCapabilityInfo.htCapInfo.txSTBC)) ||
-               (!set_value)) {
-               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
-                                  WNI_CFG_HT_CAP_INFO_TX_STBC,
-                                  set_value);
-           }
-
-           if (ret)
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "Failed to set TX STBC value");
-
+           ret = hdd_set_tx_stbc(pAdapter, set_value);
            break;
-        }
 
         case WE_SET_RX_STBC:
-        {
-           tANI_U32 value;
-           union {
-              tANI_U16                        nCfgValue16;
-              tSirMacHTCapabilityInfo         htCapInfo;
-           }uHTCapabilityInfo;
-
-           hddLog(LOG1, "WMI_VDEV_PARAM_RX_STBC val %d", set_value);
-           /* get the HT capability info*/
-           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
-           if (eHAL_STATUS_SUCCESS != ret) {
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                         "%s: could not get HT capability info",
-                         __func__);
-               return -EIO;
-           }
-
-           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
-           if ((set_value && (uHTCapabilityInfo.htCapInfo.rxSTBC)) ||
-               (!set_value)) {
-               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
-                                 WNI_CFG_HT_CAP_INFO_RX_STBC,
-                                 (!set_value)? set_value :
-                                           uHTCapabilityInfo.htCapInfo.rxSTBC);
-           }
-
-           if (ret)
-               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "Failed to set RX STBC value");
+           ret = hdd_set_rx_stbc(pAdapter, set_value);
            break;
-        }
 
         case WE_SET_SHORT_GI:
         {
@@ -6362,28 +6476,16 @@ static int __iw_setnone_getint(struct net_device *dev,
         }
 
         case WE_GET_LDPC:
-        {
-           hddLog(LOG1, "GET WMI_VDEV_PARAM_LDPC");
-           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
-                                           WNI_CFG_HT_CAP_INFO_ADVANCE_CODING);
+           ret = hdd_get_ldpc(pAdapter, value);
            break;
-        }
 
         case WE_GET_TX_STBC:
-        {
-           hddLog(LOG1, "GET WMI_VDEV_PARAM_TX_STBC");
-           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
-                                           WNI_CFG_HT_CAP_INFO_TX_STBC);
+           ret = hdd_get_tx_stbc(pAdapter, value);
            break;
-        }
 
         case WE_GET_RX_STBC:
-        {
-           hddLog(LOG1, "GET WMI_VDEV_PARAM_RX_STBC");
-           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
-                                           WNI_CFG_HT_CAP_INFO_RX_STBC);
+           ret = hdd_get_rx_stbc(pAdapter, value);
            break;
-        }
 
         case WE_GET_SHORT_GI:
         {
