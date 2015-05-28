@@ -142,6 +142,11 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #endif
 
+#ifdef QCA_ARP_SPOOFING_WAR
+#include "ol_if_athvar.h"
+#define HDD_ARP_PACKET_TYPE_OFFSET 12
+#endif
+
 #ifdef MODULE
 #define WLAN_MODULE_NAME  module_name(THIS_MODULE)
 #else
@@ -3860,6 +3865,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
    hdd_priv_data_t priv_data;
    tANI_U8 *command = NULL;
    int ret = 0;
+
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+   }
 
    /*
     * Note that valid pointers are provided by caller
@@ -9516,10 +9526,10 @@ VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_peek_front ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t**) ppAdapterNode );
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -9528,12 +9538,12 @@ VOS_STATUS hdd_get_next_adapter( hdd_context_t *pHddCtx,
                                  hdd_adapter_list_node_t** pNextAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status = hdd_list_peek_next ( &pHddCtx->hddAdapters,
                                   (hdd_list_node_t*) pAdapterNode,
                                   (hdd_list_node_t**)pNextAdapterNode );
 
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -9541,10 +9551,10 @@ VOS_STATUS hdd_remove_adapter( hdd_context_t *pHddCtx,
                                hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_remove_node ( &pHddCtx->hddAdapters,
                                      &pAdapterNode->node );
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -9552,10 +9562,10 @@ VOS_STATUS hdd_remove_front_adapter( hdd_context_t *pHddCtx,
                                      hdd_adapter_list_node_t** ppAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_remove_front( &pHddCtx->hddAdapters,
                    (hdd_list_node_t**) ppAdapterNode );
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -9563,10 +9573,10 @@ VOS_STATUS hdd_add_adapter_back( hdd_context_t *pHddCtx,
                                  hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_insert_back ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t*) pAdapterNode );
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -9574,10 +9584,10 @@ VOS_STATUS hdd_add_adapter_front( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock(&pHddCtx->hddAdapters.lock);
+    spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_insert_front ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t*) pAdapterNode );
-    spin_unlock(&pHddCtx->hddAdapters.lock);
+    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -10938,6 +10948,58 @@ static eHalStatus hdd_11d_scan_done(tHalHandle halHandle, void *pContext,
     return eHAL_STATUS_SUCCESS;
 }
 
+#ifdef QCA_ARP_SPOOFING_WAR
+int wlan_check_xxx(struct net_device *dev, int if_idex, void *data)
+{
+    hddLog(VOS_TRACE_LEVEL_INFO, "Checking for arp spoof packtes\n");
+    return 0;
+}
+
+int hdd_filter_cb(tANI_U32 vdev_id, adf_nbuf_t skb, tANI_U32 type)
+{
+    hdd_adapter_t *pAdapter = NULL;
+    hdd_context_t *pHddCtx = NULL;
+    v_CONTEXT_t    pVosContext = NULL;
+    int ret = 0;
+
+    switch (type) {
+        case RX_INTRA_BSS_FWD:
+            pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+            if(!pVosContext) {
+               hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+               goto out;
+            }
+
+            pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+            if(!pHddCtx) {
+               hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+               goto out;
+            }
+
+            pAdapter = hdd_get_adapter_by_vdev(pHddCtx, vdev_id);
+            if (NULL == pAdapter) {
+                hddLog(VOS_TRACE_LEVEL_FATAL,
+                          "%s: vdev_id %d does not exist with host",
+                          __func__, vdev_id);
+                goto out;
+            }
+
+            if (*((unsigned short *)(skb->data + HDD_ARP_PACKET_TYPE_OFFSET))
+                    == htons(ETH_P_ARP)) {
+
+                ret = wlan_check_xxx(pAdapter->dev, pAdapter->dev->ifindex,
+                        skb->data);
+            }
+            break;
+        default:
+            hddLog(VOS_TRACE_LEVEL_WARN, "Invalid filter type");
+            goto out;
+    }
+out:
+    return ret;
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -10974,6 +11036,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tANI_U8 rtnl_lock_enable;
    tANI_U8 reg_netdev_notifier_done = FALSE;
    hdd_adapter_t *dot11_adapter = NULL;
+#ifdef QCA_ARP_SPOOFING_WAR
+   adf_os_device_t adf_ctx;
+#endif
 
    ENTER();
 
@@ -11014,6 +11079,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed vos_get_global_context",__func__);
       goto err_free_hdd_context;
    }
+#ifdef QCA_ARP_SPOOFING_WAR
+   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
+   if (adf_ctx == NULL) {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed vos_get_global_context",__func__);
+       goto err_free_hdd_context;
+   }
+   adf_ctx->filter_cb = (void *)hdd_filter_cb;
+#endif
 
    //Save the Global VOSS context in adapter context for future.
    pHddCtx->pvosContext = pVosContext;

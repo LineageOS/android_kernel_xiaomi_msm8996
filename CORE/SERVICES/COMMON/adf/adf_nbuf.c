@@ -97,6 +97,32 @@ __adf_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int
     return skb;
 }
 
+#ifdef QCA_ARP_SPOOFING_WAR
+/*
+ * __adf_rx_nbuf_alloc() Rx buffer allocation function *
+ * @hdl:
+ * @size:
+ * @reserve:
+ * @align:
+ *
+ * Use existing buffer allocation API and overwrite
+ * priv_data field of skb->cb for registering callback
+ * as it is not used for Rx case.
+ *
+ * Return: nbuf or NULL if no memory
+ */
+struct sk_buff *
+__adf_rx_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int prio)
+{
+    struct sk_buff *skb;
+
+    skb = __adf_nbuf_alloc(osdev, size, reserve,align, prio);
+    if (skb) {
+        NBUF_CB_PTR(skb) = osdev->filter_cb;
+    }
+    return skb;
+}
+#endif
 /*
  * @brief free the nbuf its interrupt safe
  * @param skb
@@ -472,6 +498,9 @@ __adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
 #endif /* QCA_PKT_PROTO_TRACE */
 
 EXPORT_SYMBOL(__adf_nbuf_alloc);
+#ifdef QCA_ARP_SPOOFING_WAR
+EXPORT_SYMBOL(__adf_rx_nbuf_alloc);
+#endif
 EXPORT_SYMBOL(__adf_nbuf_free);
 EXPORT_SYMBOL(__adf_nbuf_ref);
 EXPORT_SYMBOL(__adf_nbuf_shared);

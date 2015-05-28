@@ -230,7 +230,12 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
         adf_nbuf_t rx_netbuf;
         int headroom;
 
+#ifdef QCA_ARP_SPOOFING_WAR
+        rx_netbuf = adf_rx_nbuf_alloc(pdev->osdev, HTT_RX_BUF_SIZE, 0, 4,
+                FALSE);
+#else
         rx_netbuf = adf_nbuf_alloc(pdev->osdev, HTT_RX_BUF_SIZE, 0, 4, FALSE);
+#endif
         if (!rx_netbuf) {
             adf_os_timer_cancel(&pdev->rx_ring.refill_retry_timer);
             /*

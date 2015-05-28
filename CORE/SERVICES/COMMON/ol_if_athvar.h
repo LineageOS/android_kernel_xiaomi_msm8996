@@ -101,6 +101,15 @@ struct ol_fw_files {
 };
 #endif
 
+#ifdef QCA_ARP_SPOOFING_WAR
+enum {
+    RX_INTRA_BSS_FWD,
+    FILTER_NONE
+};
+
+typedef int (*hdd_filter_cb_t)(u_int32_t, adf_nbuf_t, u_int32_t);
+#endif
+
 #ifndef ATH_CAP_DCS_CWIM
 #define ATH_CAP_DCS_CWIM 0x1
 #define ATH_CAP_DCS_WLANIM 0x2

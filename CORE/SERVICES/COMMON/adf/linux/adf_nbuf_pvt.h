@@ -75,7 +75,10 @@ struct cvg_nbuf_cb {
      * decremented, and ultimately freed once all the segments have been
      * freed.
      */
-    struct sk_buff *parent;
+    union {
+        struct sk_buff *parent;
+        void *ptr;
+    } txrx_field;
 
     /*
      * Store the DMA mapping info for the network buffer fragments
@@ -120,6 +123,10 @@ struct cvg_nbuf_cb {
 };
 #define NBUF_OWNER_ID(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
+#ifdef QCA_ARP_SPOOFING_WAR
+#define NBUF_CB_PTR(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.ptr)
+#endif
 #ifdef IPA_OFFLOAD
 #define NBUF_OWNER_PRIV_DATA(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->priv_data)
@@ -245,6 +252,10 @@ typedef struct __adf_nbuf_qhead {
  * prototypes. Implemented in adf_nbuf_pvt.c
  */
 __adf_nbuf_t    __adf_nbuf_alloc(__adf_os_device_t osdev, size_t size, int reserve, int align, int prio);
+#ifdef QCA_ARP_SPOOFING_WAR
+__adf_nbuf_t    __adf_rx_nbuf_alloc(__adf_os_device_t osdev, size_t size,
+        int reserve, int align, int prio);
+#endif
 void            __adf_nbuf_free (struct sk_buff *skb);
 void            __adf_nbuf_ref (struct sk_buff *skb);
 int             __adf_nbuf_shared (struct sk_buff *skb);
