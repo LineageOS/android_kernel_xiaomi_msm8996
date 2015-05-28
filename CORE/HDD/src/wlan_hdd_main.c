@@ -3866,6 +3866,11 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
    tANI_U8 *command = NULL;
    int ret = 0;
 
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+   }
+
    /*
     * Note that valid pointers are provided by caller
     */
