@@ -279,6 +279,7 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
     pStaDs->added = 1;
     pStaDs->encPolicy = HAL_ENC_POLICY_NULL;
 
+    pStaDs->isDisassocDeauthInProgress = 0;
     pStaDs->valid = 1;
     return pStaDs;
 }
@@ -423,6 +424,7 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
       else
          prev->next = ptr->next;
       ptr->added = 0;
+      ptr->isDisassocDeauthInProgress = 0;
       ptr->next = 0;
     }
   else
