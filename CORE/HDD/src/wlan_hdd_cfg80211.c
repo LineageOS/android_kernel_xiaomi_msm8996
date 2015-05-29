@@ -13362,7 +13362,10 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel)
        case eHDD_DOT11_MODE_11ac:
        case eHDD_DOT11_MODE_11ac_ONLY:
 #ifdef WLAN_FEATURE_11AC
-          hddDot11Mode = eHDD_DOT11_MODE_11ac;
+          if (sme_IsFeatureSupportedByFW(DOT11AC))
+              hddDot11Mode = eHDD_DOT11_MODE_11ac;
+          else
+              hddDot11Mode = eHDD_DOT11_MODE_11n;
 #else
           hddDot11Mode = eHDD_DOT11_MODE_11n;
 #endif
@@ -17765,8 +17768,10 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                         return -EPERM;
                     }
                     wlan_hdd_tdls_set_peer_link_status(pTdlsPeer,
-                                                       eTDLS_LINK_IDLE,
-                                                       eTDLS_LINK_UNSPECIFIED);
+                                eTDLS_LINK_IDLE,
+                                (pTdlsPeer->link_status == eTDLS_LINK_TEARING)?
+                                eTDLS_LINK_UNSPECIFIED:
+                                eTDLS_LINK_DROPPED_BY_REMOTE);
                 }
                 else
                 {

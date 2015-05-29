@@ -609,25 +609,20 @@ ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
     uint8_t i, is_member;
     uint16_t vdev_id_mask;
     struct ol_tx_desc_t *tx_desc;
-    struct ol_tx_frms_queue_t *txq;
     union ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
 
     tx_desc = &td_array[tx_desc_id].tx_desc;
-    if (status != htt_tx_status_peer_del) {
-        txq = (struct ol_tx_frms_queue_t *)(tx_desc->txq);
-        ol_tx_txq_group_credit_update(pdev, txq, credit, absolute);
-    } else {
-       for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
-           vdev_id_mask =
+
+    for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
+        vdev_id_mask =
                OL_TXQ_GROUP_VDEV_ID_MASK_GET(pdev->txq_grps[i].membership);
-           is_member = OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(vdev_id_mask,
-                                                     tx_desc->vdev->vdev_id);
-           if (is_member) {
-               ol_txrx_update_group_credit(&pdev->txq_grps[i],
-                                                credit, absolute);
-               break;
-           }
-       }
+        is_member = OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(vdev_id_mask,
+                                                      tx_desc->vdev->vdev_id);
+        if (is_member) {
+            ol_txrx_update_group_credit(&pdev->txq_grps[i],
+                                        credit, absolute);
+            break;
+        }
     }
     OL_TX_UPDATE_GROUP_CREDIT_STATS(pdev);
 }
