@@ -3658,6 +3658,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_FINE_TIME_MEAS_CAPABILITY_DEFAULT,
                 CFG_FINE_TIME_MEAS_CAPABILITY_MIN,
                 CFG_FINE_TIME_MEAS_CAPABILITY_MAX),
+
+   REG_VARIABLE(CFG_P2P_LISTEN_DEFER_INTERVAL_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, p2p_listen_defer_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_P2P_LISTEN_DEFER_INTERVAL_DEFAULT,
+                CFG_P2P_LISTEN_DEFER_INTERVAL_MIN,
+                CFG_P2P_LISTEN_DEFER_INTERVAL_MAX),
+
+   REG_VARIABLE(CFG_MULTICAST_HOST_FW_MSGS, WLAN_PARAM_Integer,
+                hdd_config_t, multicast_host_fw_msgs,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MULTICAST_HOST_FW_MSGS_DEFAULT,
+                CFG_MULTICAST_HOST_FW_MSGS_MIN,
+                CFG_MULTICAST_HOST_FW_MSGS_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -3678,21 +3692,6 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
                  CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MIN,
                  CFG_ACS_BAND_SWITCH_THRESHOLD_MAX ),
-
-   REG_VARIABLE(CFG_P2P_LISTEN_DEFER_INTERVAL_NAME, WLAN_PARAM_Integer,
-                hdd_config_t, p2p_listen_defer_interval,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_P2P_LISTEN_DEFER_INTERVAL_DEFAULT,
-                CFG_P2P_LISTEN_DEFER_INTERVAL_MIN,
-                CFG_P2P_LISTEN_DEFER_INTERVAL_MAX),
-
-   REG_VARIABLE(CFG_MULTICAST_HOST_FW_MSGS, WLAN_PARAM_Integer,
-                hdd_config_t, multicast_host_fw_msgs,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_MULTICAST_HOST_FW_MSGS_DEFAULT,
-                CFG_MULTICAST_HOST_FW_MSGS_MIN,
-                CFG_MULTICAST_HOST_FW_MSGS_MAX),
-
 };
 #endif
 
