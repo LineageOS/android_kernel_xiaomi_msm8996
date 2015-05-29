@@ -2576,6 +2576,26 @@ typedef enum {
     WMI_PDEV_PARAM_CTS_CBW,
     /** Set GPIO pin info used by WNTS */
     WMI_PDEV_PARAM_WNTS_CONFIG,
+    /** Enable/Disable hardware adaptive early rx feature */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_ENABLE,
+    /** The minimum early rx duration, to ensure early rx duration is non-zero */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_MIN_SLEEP_SLOP,
+    /** Increasing/decreasing step used by hardware */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_INC_DEC_STEP,
+    /** The fixed early rx duration when adaptive early rx is disabled */
+    WMI_PDEV_PARAM_EARLY_RX_FIX_SLEEP_SLOP,
+    /** Enable/Disable bmiss based adaptive beacon timeout feature */
+    WMI_PDEV_PARAM_BMISS_BASED_ADAPTIVE_BTO_ENABLE,
+    /** The minimum beacon timeout duration, to ensure beacon timeout duration is non-zero */
+    WMI_PDEV_PARAM_BMISS_BTO_MIN_BCN_TIMEOUT,
+    /** Increasing/decreasing step used by hardware */
+    WMI_PDEV_PARAM_BMISS_BTO_INC_DEC_STEP,
+    /** The fixed beacon timeout duration when bmiss based adaptive beacon timeout is disabled */
+    WMI_PDEV_PARAM_BTO_FIX_BCN_TIMEOUT,
+    /** Enable/Disable Congestion Estimator based adaptive beacon timeout feature */
+    WMI_PDEV_PARAM_CE_BASED_ADAPTIVE_BTO_ENABLE,
+    /** combo value of ce_id, ce_threshold, ce_time, refer to WMI_CE_BTO_CE_ID_MASK */
+    WMI_PDEV_PARAM_CE_BTO_COMBO_CE_VALUE,
 } WMI_PDEV_PARAM;
 
 typedef enum {
