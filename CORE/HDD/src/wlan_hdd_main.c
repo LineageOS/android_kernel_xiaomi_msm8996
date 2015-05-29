@@ -282,6 +282,8 @@ static const struct wiphy_wowlan_support wowlan_support_reg_init = {
 #endif
 
 /* Internal function declarations */
+static int hdd_driver_init(void);
+static void hdd_driver_exit(void);
 
 void wlan_hdd_restart_timer_cb(v_PVOID_t usrDataForCallback);
 
@@ -6951,6 +6953,134 @@ int hdd_mon_open (struct net_device *dev)
    return 0;
 }
 
+#ifdef MODULE
+/**
+ * wlan_hdd_stop_enter_lowpower() - Enter low power mode
+ * @hdd_ctx:	HDD context
+ *
+ * For module, when all the interfaces are down, enter low power mode.
+ */
+static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
+{
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			"%s: All Interfaces are Down entering standby",
+			__func__);
+	if (VOS_STATUS_SUCCESS != wlan_hdd_enter_lowpower(hdd_ctx)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: Failed to put wlan in power save",
+				__func__);
+	}
+}
+
+/**
+ * wlan_hdd_stop_can_enter_lowpower() - Enter low power mode
+ * @adapter:	Adapter context
+ *
+ * Check if hardware can enter low power mode when all the interfaces are down.
+ */
+static inline int wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
+{
+	/* SoftAP ifaces should never go in power save mode making
+	 * sure same here.
+	 */
+	if ((WLAN_HDD_SOFTAP == adapter->device_mode) ||
+			(WLAN_HDD_MONITOR == adapter->device_mode) ||
+			(WLAN_HDD_P2P_GO == adapter->device_mode))
+		return 0;
+
+	return 1;
+}
+#else
+
+/**
+ * kickstart_driver_handler() - Work queue handler for kickstart_driver
+ *
+ * Use worker queue to exit if it is not possible to call kickstart_driver()
+ * directly in the caller context like in interface down context
+ */
+static void kickstart_driver_handler(struct work_struct *work)
+{
+	hdd_driver_exit();
+	wlan_hdd_inited = 0;
+}
+
+static DECLARE_WORK(kickstart_driver_work, kickstart_driver_handler);
+
+/**
+ * kickstart_driver() - Initialize and Clean-up driver
+ * @load:	True: initialize, False: Clean-up driver
+ *
+ * Delayed driver initialization when driver is statically linked and Clean-up
+ * when all the interfaces are down or any other condition which requires to
+ * save power by bringing down hardware.
+ * This routine is invoked when module parameter fwpath is modified from user
+ * space to signal the initialization of the WLAN driver or when all the
+ * interfaces are down and user space no longer need WLAN interfaces. Userspace
+ * needs to write to fwpath again to get the WLAN interfaces
+ *
+ * Return: 0 on success, non zero on failure
+ */
+static int kickstart_driver(bool load)
+{
+	int ret_status;
+
+	pr_info("%s: load: %d wlan_hdd_inited: %d, caller: %pf\n", __func__,
+			load, wlan_hdd_inited, (void *)_RET_IP_);
+
+	/* Make sure unload and load are synchronized */
+	flush_work(&kickstart_driver_work);
+
+	/* No-Op, If unload requested even though driver is not loaded */
+	if (!load && !wlan_hdd_inited)
+		return 0;
+
+	/* Unload is requested */
+	if (!load && wlan_hdd_inited) {
+		schedule_work(&kickstart_driver_work);
+		return 0;
+	}
+
+	if (!wlan_hdd_inited) {
+		ret_status = hdd_driver_init();
+		wlan_hdd_inited = ret_status ? 0 : 1;
+		return ret_status;
+	}
+
+	hdd_driver_exit();
+
+	msleep(200);
+
+	ret_status = hdd_driver_init();
+	wlan_hdd_inited = ret_status ? 0 : 1;
+	return ret_status;
+}
+
+/**
+ * wlan_hdd_stop_enter_lowpower() - Enter low power mode
+ * @hdd_ctx:	HDD context
+ *
+ * For static driver, when all the interfaces are down, enter low power mode by
+ * bringing down WLAN hardware.
+ */
+static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
+{
+	kickstart_driver(false);
+}
+
+/**
+ * wlan_hdd_stop_can_enter_lowpower() - Enter low power mode
+ * @adapter:	Adapter context
+ *
+ * Check if hardware can enter low power mode when all the interfaces are down.
+ * For static driver, hardware can enter low power mode for all types of
+ * interfaces.
+ */
+static inline int wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
+{
+	return 1;
+}
+#endif
+
 /**
  * __hdd_stop() - HDD stop function
  * @dev: pointer to net_device structure
@@ -7016,10 +7146,7 @@ static int __hdd_stop(struct net_device *dev)
 
    /* SoftAP ifaces should never go in power save mode
       making sure same here. */
-   if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
-        (WLAN_HDD_MONITOR == pAdapter->device_mode) ||
-        (WLAN_HDD_P2P_GO == pAdapter->device_mode )
-      )
+   if (!wlan_hdd_stop_can_enter_lowpower(pAdapter))
    {
       /* SoftAP mode, so return from here */
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -7049,16 +7176,7 @@ static int __hdd_stop(struct net_device *dev)
    }
 
    if (TRUE == enter_standby)
-   {
-       hddLog(VOS_TRACE_LEVEL_INFO, "%s: All Interfaces are Down "
-                 "entering standby", __func__);
-       if (VOS_STATUS_SUCCESS != wlan_hdd_enter_lowpower(pHddCtx))
-       {
-           /*log and return success*/
-           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to put "
-                   "wlan in power save", __func__);
-       }
-   }
+      wlan_hdd_stop_enter_lowpower(pHddCtx);
 
    EXIT();
    return 0;
@@ -12287,37 +12405,6 @@ static int con_mode_handler(const char *kmessage,
 }
 #endif
 #else /* #ifdef MODULE */
-/**---------------------------------------------------------------------------
-
-  \brief kickstart_driver
-
-   This is the driver entry point
-   - delayed driver initialization when driver is statically linked
-   - invoked when module parameter fwpath is modified from user space to signal
-     initializing the WLAN driver or when con_mode is modified from user space
-     to signal a switch in operating mode
-
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-static int kickstart_driver(void)
-{
-   int ret_status;
-
-   if (!wlan_hdd_inited) {
-      ret_status = hdd_driver_init();
-      wlan_hdd_inited = ret_status ? 0 : 1;
-      return ret_status;
-   }
-
-   hdd_driver_exit();
-
-   msleep(200);
-
-   ret_status = hdd_driver_init();
-   wlan_hdd_inited = ret_status ? 0 : 1;
-   return ret_status;
-}
 
 /**---------------------------------------------------------------------------
 
@@ -12335,7 +12422,7 @@ static int fwpath_changed_handler(const char *kmessage,
 
    ret = param_set_copystring(kmessage, kp);
    if (0 == ret)
-      ret = kickstart_driver();
+      ret = kickstart_driver(true);
    return ret;
 }
 
@@ -12359,7 +12446,7 @@ static int con_mode_handler(const char *kmessage, struct kernel_param *kp)
 
    ret = param_set_int(kmessage, kp);
    if (0 == ret)
-      ret = kickstart_driver();
+      ret = kickstart_driver(true);
    return ret;
 }
 #endif
