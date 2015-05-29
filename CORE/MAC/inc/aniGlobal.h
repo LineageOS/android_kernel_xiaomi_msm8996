@@ -534,6 +534,7 @@ typedef struct sAniSirLim
     /// Definition for storing IBSS peers BSS description
     tLimIbssPeerNode      *gLimIbssPeerList;
     tANI_U32               gLimNumIbssPeers;
+    tANI_U32               gLimIbssRetryCnt;
 
     // ibss info - params for which ibss to join while coalescing
     tAniSirLimIbss      ibssInfo;

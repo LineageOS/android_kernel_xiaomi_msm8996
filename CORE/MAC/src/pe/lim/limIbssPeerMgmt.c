@@ -1460,7 +1460,12 @@ limIbssCoalesce(
          */
         if ((pMac->lim.gLimNumIbssPeers+1) >= pMac->lim.gLimIbssStaLimit)
         {
-            PELOGE(limLog(pMac, LOGE, FL("**** MAX STA LIMIT HAS REACHED ****"));)
+            /*Print every 100th time */
+            if (pMac->lim.gLimIbssRetryCnt % 100 == 0)
+            {
+                PELOGE(limLog(pMac, LOG1, FL("**** MAX STA LIMIT HAS REACHED ****"));)
+            }
+            pMac->lim.gLimIbssRetryCnt++;
             return eSIR_LIM_MAX_STA_REACHED_ERROR;
         }
         PELOGW(limLog(pMac, LOGW, FL("IBSS Peer node does not exist, adding it***"));)
