@@ -561,7 +561,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_update_fw_mem_dump_fixed_param,
     WMITLV_TAG_STRUC_wmi_fw_mem_dump_params,
     WMITLV_TAG_STRUC_wmi_debug_mesg_flush_fixed_param,
-    WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param
+    WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param,
+    WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -776,7 +777,8 @@ typedef enum {
     OP(WMI_PASSPOINT_LIST_CONFIG_CMDID) \
     OP(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID) \
     OP(WMI_GET_FW_MEM_DUMP_CMDID) \
-    OP(WMI_DEBUG_MESG_FLUSH_CMDID)
+    OP(WMI_DEBUG_MESG_FLUSH_CMDID) \
+    OP(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -1229,6 +1231,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_IPSEC_NATKEEPALIVE_FILTER_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_ASSOC_CMDID);
 
+/* Peer Set Rate Report Condition Cmd */
+#define WMITLV_TABLE_WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param, wmi_peer_set_rate_report_condition_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID);
+
+
 /* Add Beacon filter Cmd */
 #define WMITLV_TABLE_WMI_ADD_BCN_FILTER_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_add_bcn_filter_cmd_fixed_param, wmi_add_bcn_filter_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1329,7 +1338,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_STATS_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_GET_FW_MEM_DUMP_CMDID);
 
-/* Request for memory dump stats Cmd */
+/* flush debug messages */
 #define WMITLV_TABLE_WMI_DEBUG_MESG_FLUSH_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_debug_mesg_flush_fixed_param, wmi_debug_mesg_flush_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 

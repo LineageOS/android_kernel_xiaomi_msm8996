@@ -357,6 +357,10 @@ typedef enum {
      *  WMI_PEER_ESTIMATED_LINKSPEED_EVENTID.
      */
     WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID,
+    /** Set the conditions to report peer justified rate to driver
+     * The justified rate means the the user-rate is justified by PER.
+     */
+    WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID,
 
     /* beacon/management specific commands */
 
@@ -2572,6 +2576,26 @@ typedef enum {
     WMI_PDEV_PARAM_CTS_CBW,
     /** Set GPIO pin info used by WNTS */
     WMI_PDEV_PARAM_WNTS_CONFIG,
+    /** Enable/Disable hardware adaptive early rx feature */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_ENABLE,
+    /** The minimum early rx duration, to ensure early rx duration is non-zero */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_MIN_SLEEP_SLOP,
+    /** Increasing/decreasing step used by hardware */
+    WMI_PDEV_PARAM_ADAPTIVE_EARLY_RX_INC_DEC_STEP,
+    /** The fixed early rx duration when adaptive early rx is disabled */
+    WMI_PDEV_PARAM_EARLY_RX_FIX_SLEEP_SLOP,
+    /** Enable/Disable bmiss based adaptive beacon timeout feature */
+    WMI_PDEV_PARAM_BMISS_BASED_ADAPTIVE_BTO_ENABLE,
+    /** The minimum beacon timeout duration, to ensure beacon timeout duration is non-zero */
+    WMI_PDEV_PARAM_BMISS_BTO_MIN_BCN_TIMEOUT,
+    /** Increasing/decreasing step used by hardware */
+    WMI_PDEV_PARAM_BMISS_BTO_INC_DEC_STEP,
+    /** The fixed beacon timeout duration when bmiss based adaptive beacon timeout is disabled */
+    WMI_PDEV_PARAM_BTO_FIX_BCN_TIMEOUT,
+    /** Enable/Disable Congestion Estimator based adaptive beacon timeout feature */
+    WMI_PDEV_PARAM_CE_BASED_ADAPTIVE_BTO_ENABLE,
+    /** combo value of ce_id, ce_threshold, ce_time, refer to WMI_CE_BTO_CE_ID_MASK */
+    WMI_PDEV_PARAM_CE_BTO_COMBO_CE_VALUE,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -4526,6 +4550,43 @@ typedef struct {
 
 
         /* Peer Specific commands and events */
+
+typedef struct {
+    A_UINT32 percentage; /* in unit of 12.5% */
+    A_UINT32 min_delta;  /* in unit of Mbps */
+} rate_delta_t;
+
+#define PEER_RATE_REPORT_COND_FLAG_DELTA        0x01
+#define PEER_RATE_REPORT_COND_FLAG_THRESHOLD    0x02
+#define MAX_NUM_OF_RATE_THRESH                  4
+
+typedef struct {
+    A_UINT32 val_cond_flags;     /* PEER_RATE_REPORT_COND_FLAG_DELTA, PEER_RATE_REPORT_COND_FLAG_THRESHOLD
+                                    Any of these two conditions or both of them can be set. */
+    rate_delta_t rate_delta;
+    A_UINT32 rate_threshold[MAX_NUM_OF_RATE_THRESH];  /* In unit of Mbps. There are at most 4 thresholds.
+                                                         If the threshold count is less than 4, set zero to
+                                                         the one following the last threshold */
+} report_cond_per_phy_t;
+
+
+enum peer_rate_report_cond_phy_type {
+    PEER_RATE_REPORT_COND_11B = 0,
+    PEER_RATE_REPORT_COND_11A_G,
+    PEER_RATE_REPORT_COND_11N,
+    PEER_RATE_REPORT_COND_11AC,
+    PEER_RATE_REPORT_COND_MAX_NUM
+};
+
+typedef struct {
+    A_UINT32 tlv_header;                     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_peer_rate_report_condtion_fixed_param */
+    A_UINT32 enable_rate_report;             /* 1= enable, 0=disable */
+    A_UINT32 report_backoff_time;            /* in unit of msecond */
+    A_UINT32 report_timer_period;            /* in unit of msecond */
+    /* In the following field, the array index means the phy type,
+     * please see enum peer_rate_report_cond_phy_type for detail */
+    report_cond_per_phy_t cond_per_phy[PEER_RATE_REPORT_COND_MAX_NUM];
+} wmi_peer_set_rate_report_condition_fixed_param;
 
         /* Peer Type:
          * NB: This can be left DEFAULT for the normal case, and f/w will determine BSS type based

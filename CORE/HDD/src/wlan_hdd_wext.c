@@ -9848,6 +9848,8 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
 #ifdef DEBUG
     case WE_SET_FW_CRASH_INJECT:
         hddLog(LOGE, "WE_SET_FW_CRASH_INJECT: %d %d", value[1], value[2]);
+        pr_err("SSR is triggered by iwpriv CRASH_INJECT: %d %d\n",
+                                                value[1], value[2]);
         ret = process_wma_set_command_twoargs((int) pAdapter->sessionId,
                                               (int) GEN_PARAM_CRASH_INJECT,
                                               value[1], value[2], GEN_CMD);
