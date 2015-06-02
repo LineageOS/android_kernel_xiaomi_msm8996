@@ -89,7 +89,6 @@
 extern tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32*);
 
 void csrScanGetResultTimerHandler(void *);
-void csrScanResultAgingTimerHandler(void *pv);
 static void csrScanResultCfgAgingTimerHandler(void *pv);
 void csrScanIdleScanTimerHandler(void *);
 static void csrSetDefaultScanTiming( tpAniSirGlobal pMac, tSirScanType scanType, tCsrScanRequest *pScanRequest);
@@ -201,12 +200,6 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
             smsLog(pMac, LOGE, FL("cannot allocate memory for idleScan timer"));
             break;
         }
-        status = vos_timer_init(&pMac->scan.hTimerResultAging, VOS_TIMER_TYPE_SW, csrScanResultAgingTimerHandler, pMac);
-        if (!HAL_STATUS_SUCCESS(status))
-        {
-            smsLog(pMac, LOGE, FL("cannot allocate memory for ResultAging timer"));
-            break;
-        }
         status = vos_timer_init(&pMac->scan.hTimerResultCfgAging, VOS_TIMER_TYPE_SW,
                                 csrScanResultCfgAgingTimerHandler, pMac);
         if (!HAL_STATUS_SUCCESS(status))
@@ -237,7 +230,6 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
     csrLLClose(&pMac->scan.channelPowerInfoList24);
     csrLLClose(&pMac->scan.channelPowerInfoList5G);
     csrScanDisable(pMac);
-    vos_timer_destroy(&pMac->scan.hTimerResultAging);
     vos_timer_destroy(&pMac->scan.hTimerResultCfgAging);
     vos_timer_destroy(&pMac->scan.hTimerGetResult);
 #ifdef WLAN_AP_STA_CONCURRENCY
@@ -6302,15 +6294,9 @@ eHalStatus csrScanBGScanEnable(tpAniSirGlobal pMac)
                 break;
             }
         }while(0);
-        //BG scan results are reported automatically by PE to SME once the scan is done.
-        //No need to fetch the results explicitly.
-        //csrScanStartGetResultTimer(pMac);
-        csrScanStartResultAgingTimer(pMac);
     }
     else
     {
-        //We don't have BG scan so stop the aging timer
-        csrScanStopResultAgingTimer(pMac);
         smsLog(pMac, LOGE, FL("cannot continue because the bgscan interval is 0"));
         status = eHAL_STATUS_INVALID_PARAMETER;
     }
@@ -6578,7 +6564,6 @@ void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus 
 
 void csrScanStopTimers(tpAniSirGlobal pMac)
 {
-    csrScanStopResultAgingTimer(pMac);
     csrScanStopIdleScanTimer(pMac);
     csrScanStopGetResultTimer(pMac);
     if(0 != pMac->scan.scanResultCfgAgingTime )
@@ -6762,17 +6747,6 @@ static void csrStaApConcTimerHandler(void *pv)
 }
 #endif
 
-eHalStatus csrScanStartResultAgingTimer(tpAniSirGlobal pMac)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-
-    if(pMac->scan.fScanEnable)
-    {
-        status = vos_timer_start(&pMac->scan.hTimerResultAging, CSR_SCAN_RESULT_AGING_INTERVAL/VOS_TIMER_TO_MS_UNIT);
-    }
-    return (status);
-}
-
 eHalStatus csrScanStartResultCfgAgingTimer(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -6784,114 +6758,11 @@ eHalStatus csrScanStartResultCfgAgingTimer(tpAniSirGlobal pMac)
     return (status);
 }
 
-eHalStatus csrScanStopResultAgingTimer(tpAniSirGlobal pMac)
-{
-    return (vos_timer_stop(&pMac->scan.hTimerResultAging));
-}
-
 eHalStatus csrScanStopResultCfgAgingTimer(tpAniSirGlobal pMac)
 {
     return (vos_timer_stop(&pMac->scan.hTimerResultCfgAging));
 }
 
-//This function returns the maximum time a BSS is allowed in the scan result.
-//The time varies base on connection and power saving factors.
-//Not connected, No PS
-//Not connected, with PS
-//Connected w/o traffic, No PS
-//Connected w/o traffic, with PS
-//Connected w/ traffic, no PS -- Not supported
-//Connected w/ traffic, with PS -- Not supported
-//the return unit is in seconds.
-tANI_U32 csrScanGetAgeOutTime(tpAniSirGlobal pMac)
-{
-    tANI_U32 nRet;
-
-    if(pMac->scan.nAgingCountDown)
-    {
-        //Calculate what should be the timeout value for this
-        nRet = pMac->scan.nLastAgeTimeOut * pMac->scan.nAgingCountDown;
-        pMac->scan.nAgingCountDown--;
-    }
-    else
-    {
-        if( csrIsAllSessionDisconnected( pMac ) )
-        {
-            if(pmcIsPowerSaveEnabled(pMac, ePMC_IDLE_MODE_POWER_SAVE))
-            {
-                nRet = pMac->roam.configParam.scanAgeTimeNCPS;
-            }
-            else
-            {
-                nRet = pMac->roam.configParam.scanAgeTimeNCNPS;
-            }
-        }
-        else
-        {
-            if(pmcIsPowerSaveEnabled(pMac, ePMC_BEACON_MODE_POWER_SAVE))
-            {
-                nRet = pMac->roam.configParam.scanAgeTimeCPS;
-            }
-            else
-            {
-                nRet = pMac->roam.configParam.scanAgeTimeCNPS;
-            }
-        }
-        //If state-change causing aging time out change, we want to delay it somewhat to avoid
-        //unnecessary removal of BSS. This is mostly due to transition from connect to disconnect.
-        if(pMac->scan.nLastAgeTimeOut > nRet)
-        {
-            if(nRet)
-            {
-                pMac->scan.nAgingCountDown = (pMac->scan.nLastAgeTimeOut / nRet);
-            }
-            pMac->scan.nLastAgeTimeOut = nRet;
-            nRet *= pMac->scan.nAgingCountDown;
-        }
-        else
-        {
-            pMac->scan.nLastAgeTimeOut = nRet;
-        }
-    }
-
-    return (nRet);
-}
-
-
-void csrScanResultAgingTimerHandler(void *pv)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( pv );
-    tANI_BOOLEAN fDisconnected = csrIsAllSessionDisconnected(pMac);
-
-    //no scan, no aging
-    if (pMac->scan.fScanEnable &&
-        (((eANI_BOOLEAN_FALSE == fDisconnected) && pMac->roam.configParam.bgScanInterval)
-        || (fDisconnected && (pMac->scan.fCancelIdleScan == eANI_BOOLEAN_FALSE))
-        || (pMac->fScanOffload))
-        )
-    {
-        tListElem *pEntry, *tmpEntry;
-        tCsrScanResult *pResult;
-        tANI_TIMESTAMP ageOutTime = (tANI_TIMESTAMP)(csrScanGetAgeOutTime(pMac) * PAL_TICKS_PER_SECOND); //turn it into 10ms units
-        tANI_TIMESTAMP curTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
-
-        csrLLLock(&pMac->scan.scanResultList);
-        pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_NOLOCK );
-        while( pEntry )
-        {
-            tmpEntry = csrLLNext(&pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK);
-            pResult = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
-            if((curTime - pResult->Result.BssDescriptor.nReceivedTime) > ageOutTime)
-            {
-                smsLog(pMac, LOGW, " age out due to time out");
-                csrScanAgeOutBss(pMac, pResult);
-            }
-            pEntry = tmpEntry;
-        }
-        csrLLUnlock(&pMac->scan.scanResultList);
-    }
-    vos_timer_start(&pMac->scan.hTimerResultAging, CSR_SCAN_RESULT_AGING_INTERVAL/VOS_TIMER_TO_MS_UNIT);
-}
 
 static void csrScanResultCfgAgingTimerHandler(void *pv)
 {
@@ -7139,8 +7010,6 @@ eHalStatus csrScanStartIdleScan(tpAniSirGlobal pMac)
         csrScanBGScanAbort(pMac);
         //Stop get result timer because idle scan gets scan result out of PE
         csrScanStopGetResultTimer(pMac);
-        //Enable aging timer since idle scan is going on
-        csrScanStartResultAgingTimer(pMac);
     }
     pMac->scan.fCancelIdleScan = eANI_BOOLEAN_FALSE;
     status = csrScanTriggerIdleScan(pMac, &nTime);
@@ -8114,13 +7983,6 @@ eHalStatus csrProcessSetBGScanParam(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     //Not set the background scan interval if not connected because bd scan should not be run if not connected
     if(!csrIsAllSessionDisconnected(pMac))
     {
-        /* If disabling BG scan here, we need to stop aging as well */
-        if(pScanReq->scanInterval == 0)
-        {
-            //Stop aging because no new result is coming in
-            csrScanStopResultAgingTimer(pMac);
-        }
-
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
         {
             vos_log_scan_pkt_type *pScanLog = NULL;

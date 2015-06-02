@@ -675,8 +675,6 @@ eHalStatus csrReady(tpAniSirGlobal pMac)
     //WNI_CFG_VALID_CHANNEL_LIST should be set by this time
     //use it to init the background scan list
     csrInitBGScanChannelList(pMac);
-    /* HDD issues the init scan */
-    csrScanStartResultAgingTimer(pMac);
     /* If the gScanAgingTime is set to '0' then scan results aging timeout
          based  on timer feature is not enabled*/
     if(0 != pMac->scan.scanResultCfgAgingTime )
