@@ -552,7 +552,21 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
         /* Include HT Capability IE */
         PopulateDot11fHTCaps( pMac, NULL, htCap );
 
-        /* Set channel width to 1 to indicate HT40 capability on TDLS link */
+        /*
+         * Advertize ht capability and max supported channel
+         * bandwidth when populating HT IE in TDLS Setup Request/
+         * Setup Response/Setup Confirmation frames.
+         * 11.21.6.2 Setting up a 40 MHz direct link: A 40 MHz off-channel
+         * direct link may be started if both TDLS peer STAs indicated
+         * 40 MHz support in the Supported Channel Width Set field of the
+         * HT Capabilities element (which is included in the TDLS Setup Request
+         * frame and the TDLS Setup Response frame). Switching to a 40 MHz
+         * off-channel direct link is achieved by including the following
+         * information in the TDLS Channel Switch Request
+         * 11.21.1 General: The channel width of the TDLS direct link on the
+         * base channel shall not exceed the channel width of the BSS to which
+         * the TDLS peer STAs are associated.
+         */
         htCap->supportedChannelWidthSet = 1;
     }
     else
@@ -2261,11 +2275,23 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     {
        pStaDs->mlmStaContext.vhtCapability = 1 ;
 
-       if ((psessionEntry->currentOperChannel <= SIR_11B_CHANNEL_END) &&
-            pMac->roam.configParam.enableVhtFor24GHz)
+       if (psessionEntry->currentOperChannel <= SIR_11B_CHANNEL_END)
         {
+            /*
+             * if the channel is 2G then update the min channel widthset in
+             * pStaDs. These values are used when sending a AddSta request to
+             * firmware
+             * 11.21.1 General: The channel width of the TDLS direct link on the
+             * base channel shall not exceed the channel width of the BSS to
+             * which the TDLS peer STAs are associated.
+             */
             pStaDs->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
             pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
+            limLog(pMac, LOG1,
+                   FL("vhtSupportedChannelWidthSet = %hu,"
+                      " htSupportedChannelWidthSet %hu"),
+                   pStaDs->htSupportedChannelWidthSet,
+                   pStaDs->htSupportedChannelWidthSet);
         }
         else
         {
