@@ -461,5 +461,49 @@ dphPrintMacAddr(tpAniSirGlobal pMac, tANI_U8 addr[], tANI_U32 level)
     limLog(pMac, (tANI_U16) level, FL("MAC ADDR = %d:%d:%d:%d:%d:%d"),
            addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
-
 // ---------------------------------------------------------------------
+
+
+#ifdef SAP_AUTH_OFFLOAD
+/**
+ * dph_entry_exist() - judge if entry exist
+ *
+ * @pmac: pointer to mac
+ * @staaddr: new sta mac address
+ * @associd : new sta assoc id
+ * @dphtable: pointer to hash table
+ *
+ * This function is used to judge whether entry exist (mac addr or assoc id).
+ *
+ * Return: if exist (mac addr or assoc id), return true.
+ */
+
+bool dph_entry_exist(tpAniSirGlobal pmac, tSirMacAddr staaddr,
+		tANI_U16 associd, dphHashTableClass* dphtable)
+{
+	tpDphHashNode ptr;
+	tANI_U16 index = hashFunction(pmac, staaddr, dphtable->size);
+	tANI_U16 exist_aid = 0;
+	limLog(pmac, LOG1, FL("assocId %d index %d"),
+			associd, index);
+
+	dphPrintMacAddr(pmac, staaddr, LOG1);
+
+	if (associd >= dphtable->size) {
+		limLog(pmac, LOG1, FL("invalid STA id %d"), associd);
+		return false;
+	}
+
+	if (dphtable->pDphNodeArray[associd].added) {
+		limLog(pmac, LOG1, FL("aid same"));
+		return true;
+	}
+
+	ptr = dphLookupHashEntry(pmac, staaddr, &exist_aid, dphtable);
+	if (ptr) {
+		limLog(pmac, LOG1, FL("Mac same"));
+		return true;
+	}
+	return false;
+}
+#endif

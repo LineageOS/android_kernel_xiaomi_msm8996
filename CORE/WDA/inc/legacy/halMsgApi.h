@@ -1595,6 +1595,7 @@ struct sap_offload_del_sta_req
 {
     tANI_U32 assoc_id;
     tANI_U32 reason_code;
+    tANI_U32 flags;
     tSirMacAddr sta_mac;
 };
 #endif /* SAP_AUTH_OFFLOAD */

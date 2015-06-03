@@ -1746,9 +1746,28 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_TRUE);
 #endif
 
-            cfg80211_del_sta(dev,
-                            (const u8 *)&pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes[0],
-                            GFP_KERNEL);
+            if (pSapEvent->sapevt.sapStationDisassocCompleteEvent.statusCode ==
+                             eSIR_SME_SAP_AUTH_OFFLOAD_PEER_UPDATE_STATUS) {
+                /** eSIR_SME_SAP_AUTH_OFFLOAD_PEER_UPDATE_STATUS indicates:
+                 * The existing sta connection needs to be updated instead
+                 * of clean up the sta. This condition could only happens
+                 * when Host SAP sleep with WOW and SAP Auth offload enabled.
+                 */
+
+                hddLog(LOG1,"SAP peer update sta:Id=%d, Mac="MAC_ADDRESS_STR,
+                    pSapEvent->sapevt.sapStationDisassocCompleteEvent.staId,
+                    MAC_ADDR_ARRAY(pSapEvent->sapevt.
+                    sapStationDisassocCompleteEvent.staMac.bytes));
+            } else {
+                hddLog(LOG1,"SAP del sta: staId=%d, staMac="MAC_ADDRESS_STR,
+                    pSapEvent->sapevt.sapStationDisassocCompleteEvent.staId,
+                    MAC_ADDR_ARRAY(pSapEvent->sapevt.
+                    sapStationDisassocCompleteEvent.staMac.bytes));
+
+                cfg80211_del_sta(dev,
+                    (const u8 *)&pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes[0],
+                    GFP_KERNEL);
+            }
 
             //Update the beacon Interval if it is P2P GO
             vos_status = hdd_change_mcc_go_beacon_interval(pHostapdAdapter);

@@ -7626,7 +7626,7 @@ void lim_set_vht_caps(tpAniSirGlobal p_mac, tpPESession p_session_entry,
 static tpDphHashNode
 _sap_offload_parse_assoc_req(tpAniSirGlobal pmac,
                     tpSirAssocReq assoc_req,
-                    struct sap_offload_add_sta_req *add_sta_req)
+                    struct sap_offload_add_sta_req *add_sta_req, bool *pinuse)
 {
     tpSirMacAssocReqFrame mac_assoc_req = NULL;
     tpSirAssocReq temp_assoc_req;
@@ -7637,6 +7637,14 @@ _sap_offload_parse_assoc_req(tpAniSirGlobal pmac,
 
     tpPESession session_entry = limIsApSessionActive(pmac);
     mac_hdr = (tpSirMacMgmtHdr)add_sta_req->conn_req;
+
+    if (dph_entry_exist(pmac,
+                        mac_hdr->sa,
+                        add_sta_req->assoc_id,
+                        &session_entry->dph.dphHashTable)) {
+        *pinuse = true;
+        return NULL;
+    }
 
     /* Update Attribute and Remove IE for
      * Software AP Authentication Offload
@@ -7935,6 +7943,137 @@ _sap_offload_parse_sta_qos(tpAniSirGlobal pmac,
     }
 }
 
+/**
+ * lim_pop_sap_deferred_msg() - pop deferred sap message
+ *
+ * @pmac: pointer to mac
+ * @psessionentry: session of this entry
+ *
+ * This function is used to pop msg that in the deferred queue.
+ *
+ */
+void
+lim_pop_sap_deferred_msg(tpAniSirGlobal pmac, tpPESession sessionentry)
+{
+	struct slim_deferred_sap_msg* pdefermsg, *tmp;
+	tpSirMacMgmtHdr mac_hdr;
+	struct sap_offload_add_sta_req  *add_sta_req;
+	tANI_U32 assoc_id;
+
+	if (pmac == NULL || sessionentry == NULL )
+		return;
+
+	TAILQ_FOREACH_SAFE(pdefermsg, &pmac->lim.glim_sap_deferred_msgq.tq_head,
+						list_elem, tmp) {
+
+		add_sta_req = pdefermsg->deferredmsg.bodyptr;
+		if (add_sta_req == NULL) {
+			TAILQ_REMOVE(&pmac->lim.glim_sap_deferred_msgq.tq_head,
+				pdefermsg, list_elem);
+			limDeferMsg(pmac, &pdefermsg->deferredmsg);
+			vos_mem_free(pdefermsg);
+			continue;
+		}
+		assoc_id = add_sta_req->assoc_id;
+		mac_hdr = (tpSirMacMgmtHdr)add_sta_req->conn_req;
+
+		if (mac_hdr == NULL) {
+			TAILQ_REMOVE(&pmac->lim.glim_sap_deferred_msgq.tq_head,
+				pdefermsg, list_elem);
+			limDeferMsg(pmac, &pdefermsg->deferredmsg);
+			vos_mem_free(pdefermsg);
+			continue;
+		}
+		if (!dph_entry_exist(pmac,
+				mac_hdr->sa, assoc_id,
+				&sessionentry->dph.dphHashTable)) {
+			TAILQ_REMOVE(&pmac->lim.glim_sap_deferred_msgq.tq_head,
+				pdefermsg, list_elem);
+
+			limLog(pmac, LOGE, FL("pop def msg(H %p T %p)."
+			"assid= %d,  %pM"),
+			TAILQ_FIRST(&pmac->lim.glim_sap_deferred_msgq.tq_head),
+			TAILQ_LAST(&pmac->lim.glim_sap_deferred_msgq.tq_head,
+			t_slim_deferred_sap_msg_head),
+			assoc_id, mac_hdr->sa);
+			limDeferMsg(pmac, &pdefermsg->deferredmsg);
+			vos_mem_free(pdefermsg);
+		}
+		limLog(pmac, LOGE, FL("msg not pop."
+			"assid= %d,  %pM"), assoc_id, mac_hdr->sa);
+	}
+}
+
+/**
+ * lim_push_sap_deferred_msg() - push sap message into queue
+ *
+ * @pmac: pointer to mac
+ * @lim_msgq: msg queue to store deferred msg
+ *
+ * This function is used to store msg into deferred queue.
+ *
+ */
+void
+lim_push_sap_deferred_msg(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
+{
+	struct slim_deferred_sap_msg *pdefermsg;
+
+	pdefermsg = vos_mem_malloc(sizeof(*pdefermsg));
+	if (pdefermsg == NULL) {
+		limLog(pmac, LOGE, FL("No mem for push msg %p!"), lim_msgq);
+		vos_mem_free(lim_msgq->bodyptr);
+		return;
+	}
+	vos_mem_copy((tANI_U8 *)&pdefermsg->deferredmsg,
+				(tANI_U8 *)lim_msgq,
+				sizeof(tSirMsgQ));
+	TAILQ_INSERT_TAIL(&pmac->lim.glim_sap_deferred_msgq.tq_head, pdefermsg,
+		list_elem);
+
+	limLog(pmac, LOGW, FL("push def msg(H %p T %p): P %p."),
+			TAILQ_FIRST(&pmac->lim.glim_sap_deferred_msgq.tq_head),
+			TAILQ_LAST(&pmac->lim.glim_sap_deferred_msgq.tq_head,
+			t_slim_deferred_sap_msg_head),
+			pdefermsg);
+}
+
+/**
+ * lim_init_sap_deferred_msg() - init sap deferred msg queue head
+ *
+ * @pmac: pointer to mac
+ *
+ * This function is used to int sap deferred msg queue head
+ *
+ */
+void
+lim_init_sap_deferred_msg_queue(tpAniSirGlobal pmac)
+{
+    TAILQ_INIT(&pmac->lim.glim_sap_deferred_msgq.tq_head);
+}
+
+/**
+ * lim_cleanup_sap_deferred_msg() - cleanup sap deferred msg queue elements
+ *
+ * @pmac: pointer to mac
+ *
+ * This function is used to cleanup sap deferred msg queue elements
+ *
+ */
+void
+lim_cleanup_sap_deferred_msg_queue(tpAniSirGlobal pmac)
+{
+	struct slim_deferred_sap_msg *pdefermsg;
+	tSirMsgQ *lim_msgq;
+
+	while (!TAILQ_EMPTY(&pmac->lim.glim_sap_deferred_msgq.tq_head)) {
+		pdefermsg = (struct slim_deferred_sap_msg*)TAILQ_FIRST(
+				&pmac->lim.glim_sap_deferred_msgq.tq_head);
+		lim_msgq = &pdefermsg->deferredmsg;
+		vos_mem_free(lim_msgq->bodyptr);
+		vos_mem_free(pdefermsg);
+	}
+}
+
 void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
 {
     tpSirAssocReq assoc_req = NULL;
@@ -7942,10 +8081,15 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
     tpSirMacMgmtHdr mac_hdr = NULL;
     struct sap_offload_add_sta_req  *add_sta_req = NULL;
     tpPESession session_entry = limIsApSessionActive(pmac);
+    bool sta_inuse = false;
+
     add_sta_req = (struct sap_offload_add_sta_req *)lim_msgq->bodyptr;
     mac_hdr = (tpSirMacMgmtHdr)add_sta_req->conn_req;
 
-     if (session_entry == NULL) {
+    limLog(pmac, LOGW, FL("sta %pM aid %d"),
+             mac_hdr->sa, add_sta_req->assoc_id);
+
+    if (session_entry == NULL) {
         PELOGE(limLog(pmac, LOGE, FL(" Session not found"));)
         return;
     }
@@ -7957,7 +8101,15 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
     vos_mem_set(assoc_req , sizeof(*assoc_req), 0);
 
     /* parse Assoc req frame for station information */
-    sta_ds = _sap_offload_parse_assoc_req(pmac, assoc_req, add_sta_req);
+    sta_ds = _sap_offload_parse_assoc_req(pmac, assoc_req,
+                                          add_sta_req, &sta_inuse);
+
+    if (sta_inuse == true) {
+        lim_push_sap_deferred_msg(pmac, lim_msgq);
+        vos_mem_free(assoc_req );
+        return;
+    }
+
     if (sta_ds == NULL) {
         limSendDisassocMgmtFrame(pmac,
                             eSIR_MAC_UNSPEC_FAILURE_REASON,
@@ -7981,6 +8133,7 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
                             session_entry, FALSE);
         PELOGE(limLog(pmac, LOGE, FL("mismatch ht/vht information"
             " disassoc sta %pM"),mac_hdr->sa);)
+        vos_mem_free(assoc_req);
         goto error;
     }
 
@@ -8029,6 +8182,10 @@ lim_sap_offload_del_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
                                 del_sta_req->sta_mac,
                                 &assoc_id,
                                 &psession_entry->dph.dphHashTable);
+    limLog(pmac, LOGW, FL("sta %pM aid %d reason %x flag %x"),
+                       del_sta_req->sta_mac, del_sta_req->assoc_id,
+                       del_sta_req->reason_code,del_sta_req->flags);
+
     if (sta_ds == NULL) {
         /*
          * Disassociating STA is not associated.
@@ -8053,8 +8210,14 @@ lim_sap_offload_del_sta(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
     }
 
     sta_ds->mlmStaContext.cleanupTrigger = eLIM_PEER_ENTITY_DISASSOC;
-    sta_ds->mlmStaContext.disassocReason =
-        (tSirMacReasonCodes) del_sta_req->reason_code;
+
+    if (SAP_OFL_DEL_STA_FLAG_RECONNECT == del_sta_req->flags) {
+        sta_ds->mlmStaContext.disassocReason =
+        (tSirMacReasonCodes)eSIR_SME_SAP_AUTH_OFFLOAD_PEER_UPDATE_STATUS;
+    } else {
+        sta_ds->mlmStaContext.disassocReason =
+        (tSirMacReasonCodes)del_sta_req->reason_code;
+    }
     sta_ds->mlmStaContext.updateContext = 1;
 
     limSendSmeDisassocInd(pmac, sta_ds, psession_entry);

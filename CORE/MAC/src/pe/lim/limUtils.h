@@ -613,6 +613,38 @@ void lim_sap_offload_add_sta(tpAniSirGlobal pmac,
                             tpSirMsgQ lim_msgq);
 void lim_sap_offload_del_sta(tpAniSirGlobal pmac,
                             tpSirMsgQ lim_msgq);
+void
+lim_pop_sap_deferred_msg(tpAniSirGlobal pmac, tpPESession sessionentry);
+
+void
+lim_push_sap_deferred_msg(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq);
+
+void
+lim_init_sap_deferred_msg_queue(tpAniSirGlobal pmac);
+
+void
+lim_cleanup_sap_deferred_msg_queue(tpAniSirGlobal pmac);
+#else
+static inline void
+lim_pop_sap_deferred_msg(tpAniSirGlobal pmac, tpPESession sessionentry)
+{
+	return;
+}
+static inline void
+lim_push_sap_deferred_msg(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
+{
+	return;
+}
+static inline void
+lim_init_sap_deferred_msg_queue(tpAniSirGlobal pmac)
+{
+    return;
+}
+static inline  void
+lim_cleanup_sap_deferred_msg_queue(tpAniSirGlobal pmac)
+{
+	return;
+}
 #endif /* SAP_AUTH_OFFLOAD */
 bool lim_validate_received_frame_a1_addr(tpAniSirGlobal mac_ctx,
 		tSirMacAddr a1, tpPESession session);

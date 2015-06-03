@@ -286,6 +286,11 @@ static void __limInitVars(tpAniSirGlobal pMac)
     pMac->lim.gScanInPowersave = 0;
     pMac->lim.probeCounter = 0;
     pMac->lim.maxProbe = 0;
+
+#ifdef SAP_AUTH_OFFLOAD
+    /* Init SAP deffered Q Head */
+    lim_init_sap_deferred_msg_queue(pMac);
+#endif
 }
 
 static void __limInitAssocVars(tpAniSirGlobal pMac)
@@ -792,6 +797,10 @@ limCleanup(tpAniSirGlobal pMac)
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     limFTCleanupAllFTSessions(pMac);
+#endif
+
+#ifdef SAP_AUTH_OFFLOAD
+    lim_cleanup_sap_deferred_msg_queue(pMac);
 #endif
 
 } /*** end limCleanup() ***/

@@ -26950,6 +26950,7 @@ static int wma_sap_ofl_del_sta_handler(void *handle, u_int8_t *data,
 
 	del_sta_req->assoc_id = sta_del_event->assoc_id;
 	del_sta_req->reason_code = sta_del_event->reason;
+	del_sta_req->flags = sta_del_event->flags;
 	wma_send_msg(wma, WDA_SAP_OFL_DEL_STA, del_sta_req, 0);
 	return 1;
 }

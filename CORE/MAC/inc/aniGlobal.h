@@ -696,6 +696,11 @@ typedef struct sAniSirLim
     /* Deferred Queue Parameters */
     tLimDeferredMsgQParams    gLimDeferredMsgQ;
 
+#ifdef SAP_AUTH_OFFLOAD
+    /* SAP deferred msg queue */
+    struct slim_deferred_sap_queue    glim_sap_deferred_msgq;
+#endif
+
     // addts request if any - only one can be outstanding at any time
     tSirAddtsReq       gLimAddtsReq;
     tANI_U8            gLimAddtsSent;
