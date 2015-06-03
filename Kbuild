@@ -1317,6 +1317,11 @@ ifeq ($(CONFIG_CNSS_SECURE_FW), y)
 CDEFINES += -DFEATURE_SECURE_FIRMWARE
 endif
 
+#Enable/disable FW hash check for secure firmware feature
+ifeq ($(CONFIG_CLD_DEBUG), y)
+CDEFINES += -DFEATURE_FW_HASH_CHECK
+endif
+
 ifeq ($(CONFIG_ATH_PCIE_ACCESS_DEBUG), 1)
 CDEFINES += -DCONFIG_ATH_PCIE_ACCESS_DEBUG
 endif

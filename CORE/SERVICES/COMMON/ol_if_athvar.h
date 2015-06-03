@@ -296,6 +296,9 @@ struct ol_softc {
     bool enable_runtime_pm;
     u_int32_t runtime_pm_delay;
 #endif
+#ifdef FEATURE_SECURE_FIRMWARE
+    bool enable_fw_hash_check;
+#endif
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR

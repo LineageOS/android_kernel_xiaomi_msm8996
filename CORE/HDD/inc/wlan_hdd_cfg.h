@@ -1154,6 +1154,13 @@ typedef enum
 #define CFG_RUNTIME_PM_AUTO_DEFAULT            ( 500 )
 #endif
 
+#ifdef FEATURE_SECURE_FIRMWARE
+#define CFG_ENABLE_FW_HASH_CHECK_NAME          "gEnableFWHashCheck"
+#define CFG_ENABLE_FW_HASH_CHECK_MIN           ( 0 )
+#define CFG_ENABLE_FW_HASH_CHECK_MAX           ( 1 )
+#define CFG_ENABLE_FW_HASH_CHECK_DEFAULT       ( 1 )
+#endif
+
 #define CFG_ENABLE_HOST_NSOFFLOAD_NAME         "hostNSOffload"
 #define CFG_ENABLE_HOST_NSOFFLOAD_MIN          ( 0 )
 #define CFG_ENABLE_HOST_NSOFFLOAD_MAX          ( 1 )
@@ -3441,6 +3448,9 @@ typedef struct
    uint32_t                    tsf_gpio_pin;
    uint8_t                     multicast_host_fw_msgs;
    uint32_t                    fine_time_meas_cap;
+#ifdef FEATURE_SECURE_FIRMWARE
+   bool                        enable_fw_hash_check;
+#endif
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
