@@ -587,11 +587,13 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                 /* pStaDS != NULL and isConnected = 1 means the STA is already
                  * connected, But SAP received the Auth from that station.
-                 * For non PMF connection send Auth response frame.
+                 * For non PMF connection send Deauth frame as STA will retry
+                 * to connect back.
                  *
-                 * For PMF connection the AP should modify the state of
-                 * the existing association until the SA-Query procedure
-                 * determines that the original SA is invalid.
+                 * For PMF connection the AP should not tear down or otherwise
+                 * modify the state of the existing association until the
+                 * SA-Query procedure determines that the original SA is
+                 * invalid.
                  */
                 if (isConnected
 #ifdef WLAN_FEATURE_11W
@@ -599,14 +601,15 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 #endif
                                           )
                 {
-                        authFrame.authAlgoNumber =
-                                pRxAuthFrameBody->authAlgoNumber;
-                        authFrame.authTransactionSeqNumber =
-                                pRxAuthFrameBody->authTransactionSeqNumber + 1;
-                        authFrame.authStatusCode = eSIR_MAC_SUCCESS_STATUS;
-                        limSendAuthMgmtFrame(pMac, &authFrame, pHdr->sa,
-                                LIM_NO_WEP_IN_FC, psessionEntry);
-                        return;
+                    limLog(pMac, LOGE,
+                            FL("STA is already connected but received auth frame"
+                                "Send the Deauth and lim Delete Station Context"
+                                "(staId: %d, assocId: %d) "),
+                            pStaDs->staIndex, assocId);
+                    limSendDeauthMgmtFrame(pMac, eSIR_MAC_UNSPEC_FAILURE_REASON,
+                            (tANI_U8 *) pHdr->sa, psessionEntry, FALSE);
+                    limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                    return;
                 }
             }
 
@@ -662,14 +665,13 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 #endif
                        )
                     {
-                            authFrame.authAlgoNumber =
-                                 pRxAuthFrameBody->authAlgoNumber;
-                            authFrame.authTransactionSeqNumber =
-                                 pRxAuthFrameBody->authTransactionSeqNumber + 1;
-                            authFrame.authStatusCode = eSIR_MAC_SUCCESS_STATUS;
-                            limSendAuthMgmtFrame(pMac, &authFrame, pHdr->sa,
-                                 LIM_NO_WEP_IN_FC, psessionEntry);
-                            return;
+                        PELOGE(limLog(pMac, LOGE,
+                               FL("lim Delete Station Context (staId: %d, assocId: %d) "),
+                               pStaDs->staIndex, assocId);)
+                        limSendDeauthMgmtFrame(pMac,
+                               eSIR_MAC_UNSPEC_FAILURE_REASON, (tANI_U8 *) pAuthNode->peerMacAddr, psessionEntry, FALSE);
+                        limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                        return;
                     }
                 }
                 else
