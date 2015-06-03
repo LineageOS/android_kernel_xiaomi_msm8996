@@ -1028,11 +1028,6 @@ endif
 ifeq ($(CONFIG_QCOM_TDLS),y)
 CDEFINES += -DFEATURE_WLAN_TDLS
 CDEFINES += -DCONFIG_TDLS_IMPLICIT
-#CDEFINES += -DFEATURE_WLAN_TDLS_NEGATIVE
-#Code under FEATURE_WLAN_TDLS_INTERNAL is ported from volans, This code
-#is not tested only verifed that it compiles. This is not required for
-#supplicant based implementation
-#CDEFINES += -DFEATURE_WLAN_TDLS_INTERNAL
 endif
 
 ifeq ($(CONFIG_QCACLD_WLAN_LFR3),y)
