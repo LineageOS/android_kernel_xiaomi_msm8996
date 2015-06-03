@@ -6070,7 +6070,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
                 //Only set context for non-WDS_STA. We don't even need it for WDS_AP. But since the encryption
                 //is WPA2-PSK so it won't matter.
-                if( CSR_IS_ENC_TYPE_STATIC( pProfile->negotiatedUCEncryptionType ) && !CSR_IS_INFRA_AP( pSession->pCurRoamProfile ))
+                if(CSR_IS_ENC_TYPE_STATIC(pProfile->negotiatedUCEncryptionType)
+                    && pSession->pCurRoamProfile
+                    && !CSR_IS_INFRA_AP(pSession->pCurRoamProfile))
                 {
                     // Issue the set Context request to LIM to establish the Broadcast STA context for the Ibss.
                     // In Rome IBSS case, dummy key installation will break
@@ -9161,8 +9163,9 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
             pCommand->u.setKeyCmd.keyLength = CSR_WAPI_KEY_LEN;
             vos_mem_copy(pCommand->u.setKeyCmd.Key, pSetKey->Key,
                          CSR_WAPI_KEY_LEN);
-            pSession->pCurRoamProfile->negotiatedUCEncryptionType =
-                                                eCSR_ENCRYPT_TYPE_WPI;
+            if (pSession->pCurRoamProfile)
+                pSession->pCurRoamProfile->negotiatedUCEncryptionType =
+                                                    eCSR_ENCRYPT_TYPE_WPI;
         }
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef FEATURE_WLAN_ESE
@@ -9992,7 +9995,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
                     if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile))
                     {
-                        if( CSR_IS_ENC_TYPE_STATIC( pSession->pCurRoamProfile->negotiatedUCEncryptionType ))
+                        if(pSession->pCurRoamProfile &&
+                            CSR_IS_ENC_TYPE_STATIC(pSession->pCurRoamProfile->negotiatedUCEncryptionType))
                         {
                             csrRoamIssueSetContextReq( pMac, sessionId, pSession->pCurRoamProfile->negotiatedUCEncryptionType,
                                     pSession->pConnectBssDesc,
