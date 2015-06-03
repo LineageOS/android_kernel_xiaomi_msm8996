@@ -5697,6 +5697,13 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
                                    linkLayerStatsResults->num_peers);
 
                 spin_lock(&hdd_context_lock);
+                /* Firmware doesn't send peerstats event if no peers are
+                 * connected. HDD should not wait for any peerstats in this case
+                 * and return the status to middlewre after receiving iface
+                 * stats
+                 */
+                if (!linkLayerStatsResults->num_peers)
+                     context->request_bitmap &= ~(WMI_LINK_STATS_ALL_PEER);
                 context->request_bitmap &= ~(WMI_LINK_STATS_IFACE);
                 spin_unlock(&hdd_context_lock);
 
