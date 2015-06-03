@@ -290,12 +290,14 @@ int hdd_hostapd_stop (struct net_device *dev)
 {
    ENTER();
 
-   //Stop all tx queues
-   hddLog(LOG1, FL("Disabling queues"));
-   netif_tx_disable(dev);
+   if (NULL != dev) {
+       //Stop all tx queues
+       hddLog(LOG1, FL("Disabling queues"));
+       netif_tx_disable(dev);
 
-   //Turn OFF carrier state
-   netif_carrier_off(dev);
+       //Turn OFF carrier state
+       netif_carrier_off(dev);
+   }
 
    EXIT();
    return 0;
@@ -3060,14 +3062,13 @@ static __iw_softap_setparam(struct net_device *dev,
                 ret = wlan_hdd_update_phymode(dev, hHal, set_value, phddctx);
                 break;
             }
-
-      case QCASAP_DUMP_STATS:
+        case QCASAP_DUMP_STATS:
             {
                 hddLog(LOG1, "QCASAP_DUMP_STATS val %d", set_value);
                 hdd_wlan_dump_stats(pHostapdAdapter, set_value);
                 break;
             }
-      case QCASAP_CLEAR_STATS:
+        case QCASAP_CLEAR_STATS:
             {
                 hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 
@@ -3085,6 +3086,19 @@ static __iw_softap_setparam(struct net_device *dev,
 
                 break;
             }
+
+        case QCASAP_PARAM_LDPC:
+            ret = hdd_set_ldpc(pHostapdAdapter, set_value);
+            break;
+
+        case QCASAP_PARAM_TX_STBC:
+            ret = hdd_set_tx_stbc(pHostapdAdapter, set_value);
+            break;
+
+        case QCASAP_PARAM_RX_STBC:
+            ret = hdd_set_rx_stbc(pHostapdAdapter, set_value);
+            break;
+
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -3369,6 +3383,18 @@ static __iw_softap_getparam(struct net_device *dev,
             ret = hdd_capture_tsf(pHostapdAdapter, (uint32_t *)value, 1);
             break;
         }
+    case QCASAP_PARAM_LDPC:
+        ret = hdd_get_ldpc(pHostapdAdapter, value);
+        break;
+
+    case QCASAP_PARAM_TX_STBC:
+        ret = hdd_get_tx_stbc(pHostapdAdapter, value);
+        break;
+
+    case QCASAP_PARAM_RX_STBC:
+        ret = hdd_get_rx_stbc(pHostapdAdapter, value);
+        break;
+
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -5617,6 +5643,18 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "clearStats" },
+    {   QCASAP_PARAM_LDPC,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set_ldpc" },
+    {   QCASAP_PARAM_TX_STBC,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set_tx_stbc" },
+    {   QCASAP_PARAM_RX_STBC,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set_rx_stbc" },
 
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
@@ -5650,6 +5688,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getdfsnol" },
   { QCSAP_GET_ACL, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_acl_list" },
+  { QCASAP_PARAM_LDPC, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_ldpc" },
+  { QCASAP_PARAM_TX_STBC, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_tx_stbc" },
+  { QCASAP_PARAM_RX_STBC, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_rx_stbc" },
 #ifdef WLAN_FEATURE_TSF
   { QCSAP_CAP_TSF, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "cap_tsf" },

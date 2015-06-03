@@ -8544,7 +8544,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
   {
        ret = process_wma_set_command((int)pAdapter->sessionId,
                          (int)WMI_PDEV_PARAM_HYST_EN,
-                         (int)pHddCtx->cfg_ini->enableHystereticMode,
+                         (int)pHddCtx->cfg_ini->enableMemDeepSleep,
                          PDEV_CMD);
 
        if (ret != 0)

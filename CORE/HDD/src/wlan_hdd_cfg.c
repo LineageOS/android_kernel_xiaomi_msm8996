@@ -3068,12 +3068,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ADVERTISE_CONCURRENT_OPERATION_MIN,
                  CFG_ADVERTISE_CONCURRENT_OPERATION_MAX ),
 
-   REG_VARIABLE( CFG_ENABLE_HYSTERETIC_MODE, WLAN_PARAM_Integer,
-                 hdd_config_t, enableHystereticMode,
+   REG_VARIABLE( CFG_ENABLE_MEMORY_DEEP_SLEEP, WLAN_PARAM_Integer,
+                 hdd_config_t, enableMemDeepSleep,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_HYSTERETIC_MODE_DEFAULT,
-                 CFG_ENABLE_HYSTERETIC_MODE_MIN,
-                 CFG_ENABLE_HYSTERETIC_MODE_MAX ),
+                 CFG_ENABLE_MEMORY_DEEP_SLEEP_DEFAULT,
+                 CFG_ENABLE_MEMORY_DEEP_SLEEP_MIN,
+                 CFG_ENABLE_MEMORY_DEEP_SLEEP_MAX ),
 
    REG_VARIABLE( CFG_DEFAULT_RATE_INDEX_24GH, WLAN_PARAM_Integer,
                  hdd_config_t, defaultRateIndex24Ghz,

@@ -450,6 +450,13 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value);
 
 VOS_STATUS wlan_hdd_get_snr(hdd_adapter_t *pAdapter, v_S7_t *snr);
 
+int hdd_get_ldpc(hdd_adapter_t *adapter, int *value);
+int hdd_set_ldpc(hdd_adapter_t *adapter, int value);
+int hdd_get_tx_stbc(hdd_adapter_t *adapter, int *value);
+int hdd_set_tx_stbc(hdd_adapter_t *adapter, int value);
+int hdd_get_rx_stbc(hdd_adapter_t *adapter, int *value);
+int hdd_set_rx_stbc(hdd_adapter_t *adapter, int value);
+
 void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter);
 
 #ifdef FEATURE_WLAN_TDLS

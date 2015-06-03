@@ -1351,10 +1351,10 @@ typedef enum
 #define CFG_PPS_ENABLE_5G_EBT_FEATURE_MAX     ( 1 )
 #define CFG_PPS_ENABLE_5G_EBT_FEATURE_DEFAULT ( 0 )
 
-#define CFG_ENABLE_HYSTERETIC_MODE            "gEnableHystereticMode"
-#define CFG_ENABLE_HYSTERETIC_MODE_MIN        ( 0 )
-#define CFG_ENABLE_HYSTERETIC_MODE_MAX        ( 1 )
-#define CFG_ENABLE_HYSTERETIC_MODE_DEFAULT    ( 0 )
+#define CFG_ENABLE_MEMORY_DEEP_SLEEP          "gEnableMemDeepSleep"
+#define CFG_ENABLE_MEMORY_DEEP_SLEEP_MIN      ( 0 )
+#define CFG_ENABLE_MEMORY_DEEP_SLEEP_MAX      ( 1 )
+#define CFG_ENABLE_MEMORY_DEEP_SLEEP_DEFAULT  ( 1 )
 
 /* In cfg.dat 1=1MBPS, 2=2MBPS, 3=5_5MBPS, 4=11MBPS, 5=6MBPS, 6=9MBPS,
  * 7=12MBPS, 8=18MBPS, 9=24MBPS. But 6=9MBPS and 8=18MBPS are not basic
@@ -3302,7 +3302,7 @@ typedef struct
    v_U8_t                      apMaxOffloadPeers;
    v_U8_t                      apMaxOffloadReorderBuffs;
    v_BOOL_t                    advertiseConcurrentOperation;
-   v_BOOL_t                    enableHystereticMode;
+   v_BOOL_t                    enableMemDeepSleep;
 
    v_U32_t                     defaultRateIndex24Ghz;
    char                        overrideCountryCode[4];
