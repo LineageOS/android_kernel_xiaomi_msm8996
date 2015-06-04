@@ -615,7 +615,10 @@ extern "C" {
 /* WLAN_MODULE_MGMT_TXRX Debugids*/
 #define MGMT_TXRX_DBGID_DEFINITION_START            0
 #define MGMT_TXRX_FORWARD_TO_HOST                   1
-#define MGMT_TXRX_DBGID_DEFINITION_END              2
+#define MGMT_TXRX_MGMT_FRAME_BUFFER_FULL            2
+#define MGMT_TXRX_VDEV_USED_TO_SEND_FRAME_IS_FREE   3
+#define MGMT_TXRX_LOCAL_FRAME_SEND_FAILED           4
+#define MGMT_TXRX_DBGID_DEFINITION_END              5
 
 #define WAL_DBGID_DEFINITION_START                  0
 #define WAL_DBGID_FAST_WAKE_REQUEST                 1
@@ -703,7 +706,13 @@ extern "C" {
 #define WAL_DBGID_WMMAC_ADD_DEL_TSPEC               82
 #define WAL_DBGID_WMMAC_TIMER_EXPIRY                83
 #define WAL_DBGID_WMMAC_PARAMS                      84
-#define WAL_DBGID_DEFINITION_END                    85
+#define WAL_DBGID_TX_MGMT_WAL_PEER_DOES_NOT_EXIST   85
+#define WAL_DBGID_TX_MGMT_WAL_PEER_DELETE_IN_PROGRESS 86
+#define WAL_DBGID_TX_MGMT_FRAME_DESC_ALLOC_FAILED   87
+#define WAL_DBGID_TX_MGMT_TID_STRUCT_NOT_FOUND      88
+#define WAL_DBGID_TX_MGMT_ENQUEUE_FAILED            89
+#define WAL_DBGID_DEFINITION_END                    90
+
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
 #define ANI_DBGID_OFDM_PARAMS                        2
@@ -743,7 +752,12 @@ extern "C" {
 #define RESOURCE_PEER_ALLOC_WAL_PEER                3
 #define RESOURCE_PEER_NBRHOOD_MGMT_ALLOC            4
 #define RESOURCE_PEER_NBRHOOD_MGMT_INFO             5
-#define RESOURCE_DBGID_DEFINITION_END               6
+#define RESOURCE_SMALL_MGMT_BUF_FULL                6
+#define RESOURCE_MGMT_AVAIL_BUF_CNT_NOT_ENOUGH      7
+#define RESOURCE_MGMT_BUF_FULL                      8
+#define RESOURCE_MGMT_BUF_INC                       9
+#define RESOURCE_MGMT_BUF_DEC                       10
+#define RESOURCE_DBGID_DEFINITION_END               11
 
 /* DCS debug IDs*/
 #define WLAN_DCS_DBGID_INIT                         0
@@ -957,7 +971,13 @@ extern "C" {
 #define DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO     1
 #define DATA_TXRX_DBGID_REPLAY_CHECK             2
 #define DATA_TXRX_DBGID_DUP_CHECK                3
-#define DATA_TXRX_DBGID_DEFINITION_END           4
+#define DATA_TXRX_INVALID_PEER_AST_STA           4
+#define DATA_TXRX_INVALID_PEER_AST_P2P           5
+#define DATA_TXRX_INVALID_ADDR1_STA              6
+#define DATA_TXRX_INVALID_ADDR1_P2P              7
+#define DATA_TXRX_MULTICAST_BROADCAST_FRAME      8
+#define DATA_TXRX_INVALID_FRAME_CTRL_OR_ADDR     9
+#define DATA_TXRX_DBGID_DEFINITION_END          10
 
 /* HTT module DBGIDs */
 #define HTT_DBGID_DEFINITION_START               0
@@ -1534,6 +1554,22 @@ extern "C" {
 #define  DCC_DBGID_GENERIC                              268
 #define  DCC_DBGID_RX_PATH                              269
 #define  DCC_DBGID_TX_PATH                              270
+
+/* RSSI Threshold Monitor DBGIDs*/
+#define RSSI_MONITOR_DBGID_DEFINITION_START               0
+#define RSSI_MONITOR_VDEV_INIT                            1
+#define RSSI_MONITOR_VDEV_FREE                            2
+#define RSSI_MONITOR_VDEV_EVENT                           3
+#define RSSI_MONITOR_HW_EVENT                             4
+#define RSSI_MONITOR_ENABLE_THRESHOLDS_CLIENT_REQ         5
+#define RSSI_MONITOR_ENABLE_THRESHOLDS_CLIENT_REQ_ERR     6
+#define RSSI_MONITOR_DISABLE_THRESHOLDS_CLIENT_REQ        7
+#define RSSI_MONITOR_DISABLE_THRESHOLDS_CLIENT_REQ_ERR    8
+#define RSSI_MONITOR_ARBITER                              9
+#define RSSI_MONITOR_ARBITER_CONFIG_HW                   10
+#define RSSI_MONITOR_CHECK_AND_DELIVER_EVENT             11
+#define RSSI_MONITOR_DELIVER_EVENT                       12
+#define RSSI_MONITOR_DBGID_DEFINITION_END                13
 
 #ifdef __cplusplus
 }
