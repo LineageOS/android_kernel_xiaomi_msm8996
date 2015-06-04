@@ -115,7 +115,7 @@
    This value should be larger than the timeout used by WDI to wait for
    a response from WCNSS */
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  15000
-#define WLAN_WAIT_TIME_ABORTSCAN  (SIR_HW_DEF_SCAN_MAX_DURATION + 1000)
+#define WLAN_WAIT_TIME_ABORTSCAN  2000
 #define WLAN_WAIT_TIME_EXTSCAN  1000
 #define WLAN_WAIT_TIME_LL_STATS 5000
 

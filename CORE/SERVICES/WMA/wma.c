@@ -7591,7 +7591,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	cmd->idle_time = WMA_SCAN_IDLE_TIME_DEFAULT;
 
 	/* Large timeout value for full scan cycle, 30 seconds */
-	cmd->max_scan_time = SIR_HW_DEF_SCAN_MAX_DURATION;
+	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
 	/* do not add OFDM rates in 11B mode */
 	if (scan_req->dot11mode != WNI_CFG_DOT11_MODE_11B)
@@ -8153,7 +8153,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
         if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
             /* Start the timer for scan completion */
             vos_status = vos_timer_start(&wma_handle->wma_scan_comp_timer,
-                                            SIR_HW_DEF_SCAN_MAX_DURATION);
+                                            WMA_HW_DEF_SCAN_MAX_DURATION);
             if (vos_status != VOS_STATUS_SUCCESS ) {
                 WMA_LOGE("Failed to start the scan completion timer");
                 vos_status = VOS_STATUS_E_FAILURE;
@@ -9346,7 +9346,7 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
               VOS_MAX(scan_params->dwell_time_active / roam_req->nProbes, 1) : 0;
         scan_params->probe_spacing_time = 0;
         scan_params->probe_delay = 0;
-        scan_params->max_scan_time = SIR_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION; /* 30 seconds for full scan cycle */
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->n_probes = roam_req->nProbes;
         if (roam_req->allowDFSChannelRoam == SIR_ROAMING_DFS_CHANNEL_DISABLED) {
@@ -9378,7 +9378,7 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
         scan_params->repeat_probe_time = 0;
         scan_params->probe_spacing_time = 0;
         scan_params->probe_delay = 0;
-        scan_params->max_scan_time = SIR_HW_DEF_SCAN_MAX_DURATION;
+        scan_params->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
         scan_params->idle_time = scan_params->min_rest_time;
         scan_params->burst_duration = 0;
         scan_params->n_probes = 0;
