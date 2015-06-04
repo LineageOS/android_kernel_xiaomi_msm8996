@@ -12328,76 +12328,106 @@ void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
 
 }
 
-/* ---------------------------------------------------------------------------
-    \fn sme_AddPeriodicTxPtrn
-    \brief  API to Periodic TX Pattern Offload feature
-    \param  hHal - The handle returned by macOpen
-    \param  addPeriodicTxPtrnParams - Pointer to the add pattern structure
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_AddPeriodicTxPtrn(tHalHandle hHal, tSirAddPeriodicTxPtrn
-                                 *addPeriodicTxPtrnParams)
+/**
+ * sme_AddPeriodicTxPtrn() - Add Periodic TX Pattern
+ * @hal: global hal handle
+ * @addPeriodicTxPtrnParams: request message
+ *
+ * Return: eHalStatus enumeration
+ */
+eHalStatus
+sme_AddPeriodicTxPtrn(tHalHandle hal,
+		      struct sSirAddPeriodicTxPtrn *addPeriodicTxPtrnParams)
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    eHalStatus status;
-    vos_msg_t msg;
+	eHalStatus status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac   = PMAC_STRUCT(hal);
+	struct sSirAddPeriodicTxPtrn *req_msg;
+	vos_msg_t msg;
 
-    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
-    {
-        msg.type     = WDA_ADD_PERIODIC_TX_PTRN_IND;
-        msg.bodyptr  = addPeriodicTxPtrnParams;
+	smsLog(mac, LOG1, FL("enter"));
 
-        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-        {
-            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,"%s: Not able "
-                       "to post WDA_ADD_PERIODIC_TX_PTRN_IND to WDA!",
-                       __func__);
+	req_msg = vos_mem_malloc(sizeof(*req_msg));
+	if (!req_msg) {
+		smsLog(mac, LOGE, FL("vos_mem_malloc failed"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
 
-            sme_ReleaseGlobalLock(&pMac->sme);
-            return eHAL_STATUS_FAILURE;
-        }
+	*req_msg = *addPeriodicTxPtrnParams;
 
-        sme_ReleaseGlobalLock(&pMac->sme);
-        return eHAL_STATUS_SUCCESS;
-    }
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (status != eHAL_STATUS_SUCCESS) {
+		smsLog(mac, LOGE,
+			FL("sme_AcquireGlobalLock failed!(status=%d)"),
+			status);
+		vos_mem_free(req_msg);
+		return status;
+	}
 
-    return status;
+	/* Serialize the req through MC thread */
+	msg.bodyptr = req_msg;
+	msg.type    = WDA_ADD_PERIODIC_TX_PTRN_IND;
+	vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		smsLog(mac, LOGE,
+			FL("vos_mq_post_message failed!(err=%d)"),
+			vos_status);
+		vos_mem_free(req_msg);
+		status = eHAL_STATUS_FAILURE;
+	}
+	sme_ReleaseGlobalLock(&mac->sme);
+	return status;
 }
 
-/* ---------------------------------------------------------------------------
-    \fn sme_DelPeriodicTxPtrn
-    \brief  API to Periodic TX Pattern Offload feature
-    \param  hHal - The handle returned by macOpen
-    \param  delPeriodicTxPtrnParams - Pointer to the delete pattern structure
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
-                                 *delPeriodicTxPtrnParams)
+/**
+ * sme_DelPeriodicTxPtrn() - Delete Periodic TX Pattern
+ * @hal: global hal handle
+ * @delPeriodicTxPtrnParams: request message
+ *
+ * Return: eHalStatus enumeration
+ */
+eHalStatus
+sme_DelPeriodicTxPtrn(tHalHandle hal,
+		      struct sSirDelPeriodicTxPtrn *delPeriodicTxPtrnParams)
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    eHalStatus status;
-    vos_msg_t msg;
+	eHalStatus status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac   = PMAC_STRUCT(hal);
+	struct sSirDelPeriodicTxPtrn *req_msg;
+	vos_msg_t msg;
 
-    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
-    {
-        msg.type     = WDA_DEL_PERIODIC_TX_PTRN_IND;
-        msg.bodyptr  = delPeriodicTxPtrnParams;
+	smsLog(mac, LOG1, FL("enter"));
 
-        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-        {
-            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,"%s: Not able "
-                       "to post WDA_DEL_PERIODIC_TX_PTRN_IND to WDA!",
-                       __func__);
+	req_msg = vos_mem_malloc(sizeof(*req_msg));
+	if (!req_msg) {
+		smsLog(mac, LOGE, FL("vos_mem_malloc failed"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
 
-            sme_ReleaseGlobalLock(&pMac->sme);
-            return eHAL_STATUS_FAILURE;
-        }
+	*req_msg = *delPeriodicTxPtrnParams;
 
-        sme_ReleaseGlobalLock(&pMac->sme);
-        return eHAL_STATUS_SUCCESS;
-    }
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (status != eHAL_STATUS_SUCCESS) {
+		smsLog(mac, LOGE,
+			FL("sme_AcquireGlobalLock failed!(status=%d)"),
+			status);
+		vos_mem_free(req_msg);
+		return status;
+	}
 
-    return status;
+	/* Serialize the req through MC thread */
+	msg.bodyptr = req_msg;
+	msg.type    = WDA_DEL_PERIODIC_TX_PTRN_IND;
+	vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		smsLog(mac, LOGE,
+			FL("vos_mq_post_message failed!(err=%d)"),
+			vos_status);
+		vos_mem_free(req_msg);
+		status = eHAL_STATUS_FAILURE;
+	}
+	sme_ReleaseGlobalLock(&mac->sme);
+	return status;
 }
 
 void smeGetCommandQStatus( tHalHandle hHal )
