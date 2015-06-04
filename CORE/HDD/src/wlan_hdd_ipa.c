@@ -2909,6 +2909,7 @@ static int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa,
 #ifdef IPA_UC_OFFLOAD
 		tx_prop[IPA_IP_v6].hdr_l2_type = IPA_HDR_L2_ETHERNET_II;
 		tx_prop[IPA_IP_v6].dst_pipe = IPA_CLIENT_WLAN1_CONS;
+		tx_prop[IPA_IP_v6].alt_dst_pipe = iface_context->cons_client;
 #else
 		tx_prop[IPA_IP_v6].dst_pipe = iface_context->cons_client;
 #endif
