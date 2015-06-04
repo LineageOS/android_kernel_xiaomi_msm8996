@@ -1875,19 +1875,25 @@ csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac,
 
     pScanFilter->BSSType = pCurProfile->BSSType;
 
-    /* We are interested only in the scan results on channels that we scanned */
-    pScanFilter->ChannelInfo.numOfChannels = pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.numOfChannels;
-    pScanFilter->ChannelInfo.ChannelList = vos_mem_malloc(pScanFilter->ChannelInfo.numOfChannels * sizeof(tANI_U8));
-    if (NULL == pScanFilter->ChannelInfo.ChannelList)
+    if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.numOfChannels)
     {
+      /* We are interested only in the scan results on channels we scanned */
+      pScanFilter->ChannelInfo.numOfChannels =
+        pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.numOfChannels;
+      pScanFilter->ChannelInfo.ChannelList =
+       vos_mem_malloc(pScanFilter->ChannelInfo.numOfChannels * sizeof(tANI_U8));
+      if (NULL == pScanFilter->ChannelInfo.ChannelList) {
         smsLog(pMac, LOGE, FL("Scan Filter Channel list mem alloc failed"));
         vos_mem_free(pScanFilter->SSIDs.SSIDList);
         pScanFilter->SSIDs.SSIDList = NULL;
         return eHAL_STATUS_FAILED_ALLOC;
-    }
-    for (i = 0; i < pScanFilter->ChannelInfo.numOfChannels; i++)
-    {
-        pScanFilter->ChannelInfo.ChannelList[i] = pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i];
+      }
+      for (i = 0; i < pScanFilter->ChannelInfo.numOfChannels; i++)
+       pScanFilter->ChannelInfo.ChannelList[i] =
+       pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i];
+    } else {
+       pScanFilter->ChannelInfo.numOfChannels = 0;
+       pScanFilter->ChannelInfo.ChannelList = NULL;
     }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
