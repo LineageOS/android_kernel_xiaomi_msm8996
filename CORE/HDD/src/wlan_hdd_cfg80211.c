@@ -14798,7 +14798,7 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
 #ifdef FEATURE_WLAN_TDLS
         /* First clean up the tdls peers if any */
-        for (staIdx = 0 ; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++) {
+        for (staIdx = 0 ; staIdx < pHddCtx->max_num_tdls_sta; staIdx++) {
             if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pAdapter->sessionId) &&
                 (pHddCtx->tdlsConnInfo[staIdx].staId)) {
                 uint8 *mac;

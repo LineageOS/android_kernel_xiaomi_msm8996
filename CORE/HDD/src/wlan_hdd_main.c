@@ -6230,14 +6230,6 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     {
         cfg_ini->fEnableTDLSSleepSta = FALSE;
     }
-    if (cfg_ini->fEnableTDLSSleepSta || cfg_ini->fEnableTDLSBufferSta)
-    {
-        /* Adjust max TDLS sta number if self is either sleep STA or buf STA */
-        hdd_ctx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA_P_UAPSD;
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-               "%s: P-UAPSD: sleep or buffer sta enabled, max_tdls_peer_# = %d",
-               __func__, hdd_ctx->max_num_tdls_sta);
-    }
 #endif
     pMac->beacon_offload = cfg->beacon_offload;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD

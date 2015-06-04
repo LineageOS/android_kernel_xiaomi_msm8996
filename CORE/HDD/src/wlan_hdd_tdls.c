@@ -727,9 +727,16 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     pHddCtx->tdls_scan_ctxt.reject = 0;
     pHddCtx->tdls_scan_ctxt.scan_request = NULL;
 
-    pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
+    if (pHddCtx->cfg_ini->fEnableTDLSSleepSta ||
+        pHddCtx->cfg_ini->fEnableTDLSBufferSta)
+        pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA_P_UAPSD;
+    else
+        pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
 
-    for (staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++)
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, FL("max_num_tdls_sta: %d"),
+           pHddCtx->max_num_tdls_sta);
+
+    for (staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++)
     {
          pHddCtx->tdlsConnInfo[staIdx].staId = 0;
          pHddCtx->tdlsConnInfo[staIdx].sessionId = 255;
