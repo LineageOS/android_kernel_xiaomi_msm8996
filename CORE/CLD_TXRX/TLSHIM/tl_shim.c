@@ -1132,7 +1132,6 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	adf_nbuf_t ret;
 	struct ol_txrx_peer_t *peer;
 
-	ENTER();
 	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
 		return skb;
