@@ -363,12 +363,14 @@ static struct sk_buff* hdd_mon_tx_fetch_pkt(hdd_adapter_t* pAdapter)
    return skb;
 }
 
-void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
+static void __hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
 {
    hdd_cfg80211_state_t *cfgState;
    struct sk_buff* skb;
    hdd_adapter_t* pMonAdapter = NULL;
    struct ieee80211_hdr *hdr;
+   hdd_context_t *hdd_ctx;
+   int ret = 0;
 
    if (pAdapter == NULL)
    {
@@ -376,6 +378,13 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
        FL("pAdapter is NULL"));
       VOS_ASSERT(0);
       return;
+   }
+
+   hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+   ret = wlan_hdd_validate_context(hdd_ctx);
+   if (0 != ret) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return;
    }
 
    pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
@@ -468,10 +477,37 @@ fail:
    return;
 }
 
-void hdd_mon_tx_work_queue(struct work_struct *work)
+/**
+ * hdd_mon_tx_mgmt_pkt() - monitor mode tx packet api
+ * @Adapter: Pointer to adapter
+ *
+ * Return: none
+ */
+void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
+{
+	vos_ssr_protect(__func__);
+	__hdd_mon_tx_mgmt_pkt(pAdapter);
+	vos_ssr_unprotect(__func__);
+}
+
+
+static void __hdd_mon_tx_work_queue(struct work_struct *work)
 {
    hdd_adapter_t* pAdapter = container_of(work, hdd_adapter_t, monTxWorkQueue);
-   hdd_mon_tx_mgmt_pkt(pAdapter);
+   __hdd_mon_tx_mgmt_pkt(pAdapter);
+}
+
+/**
+ * hdd_mon_tx_work_queue() - monitor mode tx work handler
+ * @work: Pointer to work
+ *
+ * Return: none
+ */
+void hdd_mon_tx_work_queue(struct work_struct *work)
+{
+	vos_ssr_protect(__func__);
+	__hdd_mon_tx_work_queue(work);
+	vos_ssr_unprotect(__func__);
 }
 
 int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
