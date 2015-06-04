@@ -20763,8 +20763,12 @@ static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
 		WMA_LOGD("Data Tx Ack Cb Status %d", work->status);
 
 	/* Call the Ack Cb registered by UMAC */
-	ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
+	if (ack_cb)
+		ack_cb((tpAniSirGlobal)(wma_handle->mac_context),
 				work->status ? 0 : 1);
+	else
+		WMA_LOGE("Data Tx Ack Cb is NULL");
+
 	wma_handle->umac_data_ota_ack_cb = NULL;
 	wma_handle->last_umac_data_nbuf = NULL;
 	adf_os_mem_free(work);
