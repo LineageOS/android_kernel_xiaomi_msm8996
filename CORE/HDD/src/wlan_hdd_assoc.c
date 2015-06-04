@@ -2905,7 +2905,7 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         }
         case eCSR_ROAM_RESULT_DELETE_TDLS_PEER:
         {
-            for ( staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++ )
+            for (staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++)
             {
                 if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pRoamInfo->sessionId) &&
                     pRoamInfo->staId == pHddCtx->tdlsConnInfo[staIdx].staId)
@@ -2949,7 +2949,7 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         case eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND:
         {
             /* 0 staIdx is assigned to AP we dont want to touch that */
-            for ( staIdx = 0; staIdx < HDD_MAX_NUM_TDLS_STA; staIdx++ )
+            for (staIdx = 0; staIdx < pHddCtx->max_num_tdls_sta; staIdx++)
             {
                 if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pRoamInfo->sessionId) &&
                     pHddCtx->tdlsConnInfo[staIdx].staId)
