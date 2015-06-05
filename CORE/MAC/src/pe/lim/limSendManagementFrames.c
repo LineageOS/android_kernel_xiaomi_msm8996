@@ -514,7 +514,12 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
        }
     }
 #endif
-    PopulateDot11fExtCap(pMac, isVHTEnabled, &pr.ExtCap, psessionEntry);
+
+    if (psessionEntry != NULL)
+        PopulateDot11fExtCap(pMac, isVHTEnabled, &pr.ExtCap, psessionEntry);
+    else
+       limLog(pMac, LOGE,
+              FL("session entry null, ext capabilities will not be populated"));
 
     // That's it-- now we pack it.  First, how much space are we going to
     // need?

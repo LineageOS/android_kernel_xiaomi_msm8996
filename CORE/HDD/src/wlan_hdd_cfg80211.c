@@ -9473,7 +9473,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             hddLog(LOGE, FL("not allowed to start SAP on DFS channel"));
             return -EOPNOTSUPP;
         }
-        WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
 
         /*
          * Set the JAPAN W53 disabled INI param
@@ -9509,6 +9508,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     {
         pConfig->ieee80211d = 0;
     }
+
+    WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
 
     capab_info = pMgmt_frame->u.beacon.capab_info;
 

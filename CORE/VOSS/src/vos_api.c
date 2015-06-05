@@ -233,6 +233,22 @@ static inline void vos_runtime_pm_config(struct ol_softc *scn,
 		hdd_context_t *pHddCtx) { }
 #endif
 
+#if defined (FEATURE_SECURE_FIRMWARE) && defined (FEATURE_FW_HASH_CHECK)
+static inline void vos_fw_hash_check_config(struct ol_softc *scn,
+					hdd_context_t *pHddCtx)
+{
+	scn->enable_fw_hash_check = pHddCtx->cfg_ini->enable_fw_hash_check;
+}
+#elif defined (FEATURE_SECURE_FIRMWARE)
+static inline void vos_fw_hash_check_config(struct ol_softc *scn,
+					hdd_context_t *pHddCtx)
+{
+	scn->enable_fw_hash_check = true;
+}
+#else
+static inline void vos_fw_hash_check_config(struct ol_softc *scn,
+					hdd_context_t *pHddCtx) { }
+#endif
 
 /*---------------------------------------------------------------------------
 
@@ -371,6 +387,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #endif
    scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
 
+   vos_fw_hash_check_config(scn, pHddCtx);
    vos_runtime_pm_config(scn, pHddCtx);
 
    /* Initialize BMI and Download firmware */

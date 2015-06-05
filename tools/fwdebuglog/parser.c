@@ -93,6 +93,8 @@ diag_print_legacy_logs(const char *buf)
         record++;
         if (log_out)
             fprintf(log_out, "%s\n", buf);
+        else
+            return;
         if (record == max_records) {
             record = 0;
             fseek(log_out, record, SEEK_SET);

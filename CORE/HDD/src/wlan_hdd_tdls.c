@@ -728,8 +728,9 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     pHddCtx->tdls_scan_ctxt.scan_request = NULL;
 
     if (pHddCtx->cfg_ini->fEnableTDLSSleepSta ||
-        pHddCtx->cfg_ini->fEnableTDLSBufferSta)
-        pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA_P_UAPSD;
+        pHddCtx->cfg_ini->fEnableTDLSBufferSta ||
+        pHddCtx->cfg_ini->fEnableTDLSOffChannel)
+        pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA_P_UAPSD_OFFCHAN;
     else
         pHddCtx->max_num_tdls_sta = HDD_MAX_NUM_TDLS_STA;
 
