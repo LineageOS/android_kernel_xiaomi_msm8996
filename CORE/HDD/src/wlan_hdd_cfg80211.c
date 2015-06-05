@@ -9172,7 +9172,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             }
             (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
             (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
                                                      eHT_CHANNEL_WIDTH_40MHZ;
 #endif
@@ -9189,7 +9189,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                     smeConfig.csrConfig.channelBondingMode5GHz =
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
                 (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
                                                      eHT_CHANNEL_WIDTH_20MHZ;
 #endif
@@ -9795,7 +9795,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         sme_config.csrConfig.WMMSupportMode = eCsrRoamWmmNoQos;
     sme_UpdateConfig(pHddCtx->hHal, &sme_config);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
     /* Linux kernel < 3.8 does not support ch width param. So for
      * 11AC get from ch width from ini file only if ht40 is enabled.
      * VHT80 depends on HT40 config.
@@ -10409,7 +10409,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         }
         pAdapter->sessionCtx.ap.beacon = new;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         if (params->chandef.width < NL80211_CHAN_WIDTH_80)
             channel_type = cfg80211_get_chandef_type(&(params->chandef));
         else
@@ -10437,7 +10437,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             pAdapter->sessionCtx.ap.sapConfig.authType = eSAP_AUTO_SWITCH;
         }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
                                              params->chandef.width;
 #endif
