@@ -23,6 +23,10 @@ SUBSYS(schedtune)
 SUBSYS(blkio)
 #endif
 
+#if IS_ENABLED(CONFIG_CGROUP_BFQIO)
+SUBSYS(bfqio)
+#endif
+
 #if IS_ENABLED(CONFIG_MEMCG)
 SUBSYS(memory)
 #endif
