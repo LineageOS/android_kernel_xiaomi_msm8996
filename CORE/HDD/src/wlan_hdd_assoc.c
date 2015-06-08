@@ -4076,14 +4076,6 @@ static tANI_S32 hdd_ProcessGENIE(hdd_adapter_t *pAdapter,
     memset( &dot11WPAIE, 0 , sizeof(tDot11fIEWPA) );
     memset( &dot11RSNIE, 0 , sizeof(tDot11fIERSN) );
 
-    // Validity checks
-    if ((gen_ie_len < VOS_MIN(DOT11F_IE_RSN_MIN_LEN, DOT11F_IE_WPA_MIN_LEN)) ||
-            (gen_ie_len > VOS_MAX(DOT11F_IE_RSN_MAX_LEN, DOT11F_IE_WPA_MAX_LEN)) )
-    {
-        hddLog(LOGE, "%s: Invalid DOT11F IE Length passed :%d",
-               __func__,  gen_ie_len);
-        return -EINVAL;
-    }
     // Type check
     if ( gen_ie[0] ==  DOT11F_EID_RSN)
     {
