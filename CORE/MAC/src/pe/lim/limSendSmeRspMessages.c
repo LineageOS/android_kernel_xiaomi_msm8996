@@ -3112,8 +3112,7 @@ limSendSmeCandidateFoundInd(tpAniSirGlobal pMac, tANI_U8 sessionId)
 
     pSirSmeCandidateFoundInd->messageType = eWNI_SME_CANDIDATE_FOUND_IND;
     pSirSmeCandidateFoundInd->length = sizeof(tSirSmeCandidateFoundInd);
-
-    pSirSmeCandidateFoundInd->sessionId     =  sessionId;
+    pSirSmeCandidateFoundInd->sessionId = sessionId;
 
 
     limLog( pMac, LOG1, FL("posting candidate ind to SME"));
