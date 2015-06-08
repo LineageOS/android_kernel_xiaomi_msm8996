@@ -1232,15 +1232,14 @@ int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr)
    return 0;
 }
 
-/**============================================================================
-  @brief hdd_wmm_do_implicit_qos() - Function which will attempt to setup
-  QoS for any AC requiring it
-
-  @param work     : [in]  pointer to work structure
-
-  @return         : void
-  ===========================================================================*/
-static void hdd_wmm_do_implicit_qos(struct work_struct *work)
+/**
+ * __hdd_wmm_do_implicit_qos() - Function which will attempt to setup
+ *				QoS for any AC requiring it.
+ * @work: [in] pointer to work structure.
+ *
+ * Return: none
+ */
+static void __hdd_wmm_do_implicit_qos(struct work_struct *work)
 {
    hdd_wmm_qos_context_t* pQosContext =
       container_of(work, hdd_wmm_qos_context_t, wmmAcSetupImplicitQos);
@@ -1467,6 +1466,19 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    }
 #endif
 
+}
+
+/**
+ * hdd_wmm_do_implicit_qos() - SSR wraper function for hdd_wmm_do_implicit_qos
+ * @work: pointer to work_struct
+ *
+ * Return: none
+ */
+static void hdd_wmm_do_implicit_qos(struct work_struct *work)
+{
+	vos_ssr_protect(__func__);
+	__hdd_wmm_do_implicit_qos(work);
+	vos_ssr_unprotect(__func__);
 }
 
 /**============================================================================
