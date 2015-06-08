@@ -1247,7 +1247,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 		printk("[%02d]   :  0x%08X\n", i, reg_dump_values[i]);
 	}
 
-	if (scn->enablefwlog) {
+	if (!scn->enablefwlog) {
 		printk("%s: FWLog is disabled in ini\n", __func__);
 		goto disable_fwlog;
 	}
