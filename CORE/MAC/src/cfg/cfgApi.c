@@ -112,19 +112,46 @@ wlan_cfgInit(tpAniSirGlobal pMac)
 
 } /*** end wlan_cfgInit() ***/
 
+void cfg_get_str_index(tpAniSirGlobal mac_ctx, uint16_t cfg_id)
+{
+    uint16_t i = 0;
+
+    for (i = 0; i < CFG_MAX_STATIC_STRING; i++) {
+        if (cfg_id == cfg_static_string[i].cfg_id)
+            break;
+    }
+
+    if (i == CFG_MAX_STATIC_STRING) {
+        PELOGE(cfgLog(mac_ctx, LOGE,
+               FL("Entry not found for cfg id :%d"), cfg_id);)
+        cfg_static[cfg_id].p_str_data = NULL;
+        return;
+    }
+
+    cfg_static[cfg_id].p_str_data = &cfg_static_string[i];
+}
+
 
 //---------------------------------------------------------------------
 tSirRetStatus cfgInit(tpAniSirGlobal pMac)
 {
-   pMac->cfg.gCfgIBufMin  = __gCfgIBufMin;
-   pMac->cfg.gCfgIBufMax  = __gCfgIBufMax;
-   pMac->cfg.gCfgIBuf     = __gCfgIBuf;
-   pMac->cfg.gCfgSBuf     = __gCfgSBuf;
-   pMac->cfg.gSBuffer     = __gSBuffer;
-   pMac->cfg.gCfgEntry    = __gCfgEntry;
-   pMac->cfg.gParamList   = __gParamList;
+    uint16_t i = 0;
+    pMac->cfg.gCfgIBufMin  = __gCfgIBufMin;
+    pMac->cfg.gCfgIBufMax  = __gCfgIBufMax;
+    pMac->cfg.gCfgIBuf     = __gCfgIBuf;
+    pMac->cfg.gCfgSBuf     = __gCfgSBuf;
+    pMac->cfg.gSBuffer     = __gSBuffer;
+    pMac->cfg.gCfgEntry    = __gCfgEntry;
+    pMac->cfg.gParamList   = __gParamList;
 
-   return (eSIR_SUCCESS);
+    for (i = 0; i < CFG_PARAM_MAX_NUM; i++) {
+        if (!(cfg_static[i].control & CFG_CTL_INT))
+            cfg_get_str_index(pMac, i);
+        else
+            cfg_static[i].p_str_data = NULL;
+    }
+
+    return (eSIR_SUCCESS);
 }
 
 //----------------------------------------------------------------------

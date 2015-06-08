@@ -7337,14 +7337,9 @@ end:
 
 static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 {
-	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
-	v_VOID_t *file_img = NULL;
-	v_SIZE_t file_img_sz = 0;
-	v_VOID_t *cfg_bin = NULL;
-	v_SIZE_t cfg_bin_sz = 0;
-	v_BOOL_t status = VOS_FALSE;
-	v_VOID_t *mac = vos_get_context(VOS_MODULE_ID_PE,
-			wma_handle->vos_context);
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	v_VOID_t   *mac = vos_get_context(VOS_MODULE_ID_PE,
+					  wma_handle->vos_context);
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -7354,60 +7349,7 @@ static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	/* get the number of bytes in the CFG Binary... */
-	vos_status = vos_get_binary_blob(VOS_BINARY_ID_CONFIG, NULL,
-			&file_img_sz);
-	if (VOS_STATUS_E_NOMEM != vos_status) {
-		WMA_LOGP("%s: Error in obtaining the binary size", __func__);
-		goto fail;
-	}
-
-	/* malloc a buffer to read in the Configuration binary file. */
-	file_img = vos_mem_malloc(file_img_sz);
-	if (NULL == file_img) {
-		WMA_LOGP("%s: Unable to allocate memory for the CFG binary "
-				"[size= %d bytes]", __func__, file_img_sz);
-		vos_status = VOS_STATUS_E_NOMEM;
-		goto fail;
-	}
-
-	/* Get the entire CFG file image. */
-	vos_status = vos_get_binary_blob(VOS_BINARY_ID_CONFIG, file_img,
-			&file_img_sz);
-	if (VOS_STATUS_SUCCESS != vos_status) {
-		WMA_LOGP("%s: Cannot retrieve CFG file image from vOSS "
-				"[size= %d bytes]", __func__, file_img_sz);
-		goto fail;
-	}
-
-	/*
-	 * Validate the binary image.  This function will return a pointer
-	 * and length where the CFG binary is located within the binary image file.
-	 */
-	status = sys_validateStaConfig( file_img, file_img_sz,
-			&cfg_bin, &cfg_bin_sz );
-	if ( VOS_FALSE == status )
-	{
-		WMA_LOGP("%s: Cannot find STA CFG in binary image file",
-				__func__);
-		vos_status = VOS_STATUS_E_FAILURE;
-		goto fail;
-	}
-	/*
-	 * TODO: call the config download function
-	 * for now calling the existing cfg download API
-	 */
-	processCfgDownloadReq(mac, cfg_bin_sz, cfg_bin);
-	if (file_img != NULL) {
-		vos_mem_free(file_img);
-	}
-
-	WMA_LOGD("%s: Exit", __func__);
-	return vos_status;
-
-fail:
-	if(cfg_bin != NULL)
-		vos_mem_free( file_img );
+	processCfgDownloadReq(mac);
 
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;

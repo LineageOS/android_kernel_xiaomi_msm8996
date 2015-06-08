@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -85,9 +85,8 @@ typedef struct sCfgBinHdr
 
 extern void cfgSendHostMsg(tpAniSirGlobal, tANI_U16, tANI_U32, tANI_U32, tANI_U32*, tANI_U32, tANI_U32*);
 
+extern struct cfgstatic_string cfg_static_string[CFG_MAX_STATIC_STRING];
 
-
-
-
+extern struct cgstatic cfg_static[CFG_PARAM_MAX_NUM];
 
 #endif /* __CFGPRIV_H */

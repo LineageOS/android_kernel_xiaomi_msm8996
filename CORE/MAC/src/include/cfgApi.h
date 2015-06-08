@@ -94,7 +94,7 @@ tSirRetStatus cfgSetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32);
 tSirRetStatus cfgSetStrNotify(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32, int);
 
 //Cfg Download function for Prima or Integrated solutions.
-void processCfgDownloadReq(tpAniSirGlobal, tANI_U16, tANI_U32*);
+void processCfgDownloadReq(tpAniSirGlobal);
 
 /// Get string parameter value
 tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32*);
