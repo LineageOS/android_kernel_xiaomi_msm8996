@@ -1298,6 +1298,17 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     break;
 
                 }
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+                if (WDA_GET_ROAMCANDIDATEIND(limMsgNew.bodyptr))
+                    limLog(pMac, LOG1, FL("roamCandidateInd %d"),
+                           WDA_GET_ROAMCANDIDATEIND(limMsgNew.bodyptr));
+
+                if (WDA_GET_OFFLOADSCANLEARN(limMsgNew.bodyptr))
+                    limLog(pMac, LOG1, FL("offloadScanLearn %d"),
+                           WDA_GET_OFFLOADSCANLEARN(limMsgNew.bodyptr));
+#endif
+
                 limHandle80211Frames(pMac, &limMsgNew, &deferMsg);
 
                 if ( deferMsg == true )
