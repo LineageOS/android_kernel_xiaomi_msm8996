@@ -92,7 +92,6 @@ struct wlan_logging {
 	unsigned int drop_count;
 	/* current logbuf to which the log will be filled to */
 	struct log_msg *pcur_node;
-	bool is_buffer_free;
 	/* Event flag used for wakeup and post indication*/
 	unsigned long eventFlag;
 	/* Indicates logger thread is activated */
@@ -207,8 +206,6 @@ static int wlan_queue_logmsg_for_app(void)
 		gwlan_logging.pcur_node =
 			(struct log_msg *)(gwlan_logging.free_list.next);
 		list_del_init(gwlan_logging.free_list.next);
-		 /* reset when free list is available. */
-		gwlan_logging.is_buffer_free = FALSE;
 	} else if (!list_empty(&gwlan_logging.filled_list)) {
 		/* Get buffer from filled list */
 		/* This condition will drop the packet from being
@@ -217,13 +214,13 @@ static int wlan_queue_logmsg_for_app(void)
 		gwlan_logging.pcur_node =
 			(struct log_msg *)(gwlan_logging.filled_list.next);
 		++gwlan_logging.drop_count;
-		if (vos_is_multicast_logging() && !gwlan_logging.is_buffer_free) {
+		/* print every 64th drop count */
+		if (vos_is_multicast_logging() &&
+				(!(gwlan_logging.drop_count % 0x40))) {
 			pr_info("%s: drop_count = %u index = %d filled_length = %d\n",
 				__func__, gwlan_logging.drop_count,
 				gwlan_logging.pcur_node->index,
 				gwlan_logging.pcur_node->filled_length);
-				/* print above logs only 1st time. */
-				gwlan_logging.is_buffer_free = TRUE;
 		}
 		list_del_init(gwlan_logging.filled_list.next);
 		ret = 1;
@@ -406,7 +403,8 @@ static int send_filled_buffers_to_user(void)
 		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 
 		ret = nl_srv_bcast(skb);
-		if (ret < 0) {
+		/* print every 64th drop count */
+		if (ret < 0 && (!(gwlan_logging.drop_count % 0x40))) {
 			pr_err("%s: Send Failed %d drop_count = %u\n",
 				__func__, ret, ++gwlan_logging.drop_count);
 			skb = NULL;
