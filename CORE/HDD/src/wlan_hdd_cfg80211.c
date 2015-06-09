@@ -17617,21 +17617,6 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                     {
                         tANI_U8 i;
 
-                        if (pTdlsPeer->is_responder == 0)
-                        {
-                            v_U8_t staId = (v_U8_t)pTdlsPeer->staId;
-
-                            wlan_hdd_tdls_timer_restart(pAdapter,
-                                                        &pTdlsPeer->initiatorWaitTimeoutTimer,
-                                                       WAIT_TIME_TDLS_INITIATOR);
-                            /*
-                             * Suspend initiator TX until it receives direct
-                             * packet from the responder or
-                             * WAIT_TIME_TDLS_INITIATOR timer expires
-                             */
-                            WLANTL_SuspendDataTx( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                                   &staId, NULL);
-                        }
                         vos_mem_zero(&smeTdlsPeerStateParams,
                                      sizeof(tSmeTdlsPeerStateParams));
 
