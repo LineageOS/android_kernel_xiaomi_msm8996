@@ -4394,6 +4394,17 @@ tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1L
 
     do {
         /*
+         * Check for the specification of the Broadcast SSID at the beginning
+         * of the list. If specified, then all SSIDs are matches
+         * (broadcast SSID means accept all SSIDs).
+         */
+        if ( ssid1Len == 0 )
+        {
+            fMatch = TRUE;
+            break;
+        }
+
+        /*
          * There are a few special cases. If the Bss description has a
          * Broadcast SSID, then our Profile must have a single SSID without
          * Wild cards so we can program the SSID.
@@ -4408,14 +4419,6 @@ tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1L
                 fMatch = TRUE;
                 break;
             }
-        }
-
-        // Check for the specification of the Broadcast SSID at the beginning of the list.
-        // If specified, then all SSIDs are matches (broadcast SSID means accept all SSIDs).
-        if ( ssid1Len == 0 )
-        {
-            fMatch = TRUE;
-            break;
         }
 
         if(ssid1Len != bssSsidLen) break;
