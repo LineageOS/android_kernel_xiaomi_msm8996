@@ -41,10 +41,8 @@
 #include <net/cnss.h>
 #endif
 
-#undef CONFIG_WCNSS_MEM_PRE_ALLOC
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
-#else
-#include <wcnss_api.h>
+#include <net/cnss_prealloc.h>
 #endif
 
 #include <i_vos_types.h>

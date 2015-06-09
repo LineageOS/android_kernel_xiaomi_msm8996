@@ -58,12 +58,9 @@
 #include <net/cnss.h>
 #endif
 
-#undef CONFIG_WCNSS_MEM_PRE_ALLOC
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
-#else
-#include <wcnss_api.h>
+#include <net/cnss_prealloc.h>
 #endif
-
 
 #ifdef MEMORY_DEBUG
 #include "wlan_hdd_dp_utils.h"

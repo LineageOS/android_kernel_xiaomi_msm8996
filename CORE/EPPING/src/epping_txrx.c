@@ -246,7 +246,7 @@ static void epping_stop_adapter(epping_adapter_t *pAdapter)
       netif_tx_disable(pAdapter->dev);
       netif_carrier_off(pAdapter->dev);
       pAdapter->started = false;
-#if defined(MSM_PLATFORM) && defined(HIF_PCI)
+#if defined(MSM_PLATFORM) && defined(HIF_PCI) && defined(CONFIG_CNSS)
       cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_LOW);
 #endif
    }
@@ -260,7 +260,7 @@ static int epping_start_adapter(epping_adapter_t *pAdapter)
       return -1;
    }
    if (!pAdapter->started) {
-#if defined(MSM_PLATFORM) && defined(HIF_PCI)
+#if defined(MSM_PLATFORM) && defined(HIF_PCI) && defined(CONFIG_CNSS)
       cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_HIGH);
 #endif
       netif_carrier_on(pAdapter->dev);
