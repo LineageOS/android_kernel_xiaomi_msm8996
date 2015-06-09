@@ -4319,7 +4319,7 @@ sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
 }
 #endif
 
-bool smeNeighborRoamIsHandoffInProgress(tHalHandle hHal, tANI_U8 sessionId);
+bool smeNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
 
 eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
 

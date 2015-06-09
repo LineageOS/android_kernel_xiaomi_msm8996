@@ -13940,7 +13940,7 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx)
 				return true;
 			}
 			if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-				smeNeighborRoamIsHandoffInProgress(
+				smeNeighborMiddleOfRoaming(
 				WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId))
 			{
 				hddLog(VOS_TRACE_LEVEL_ERROR,

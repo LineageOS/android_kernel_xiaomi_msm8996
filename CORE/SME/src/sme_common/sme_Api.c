@@ -16466,21 +16466,21 @@ eHalStatus sme_wifi_start_logger(tHalHandle hal,
 }
 
 /**
- * smeNeighborRoamIsHandoffInProgress() - Function to know if
- * handoff is in progress
+ * smeNeighborMiddleOfRoaming() - Function to know if
+ * STA is in the middle of roaming states
  * @hal:                Handle returned by macOpen
  * @sessionId: sessionId of the STA session
  *
  * This function is a wrapper to call
- * csrNeighborRoamIsHandoffInProgress to know if handoff is in
- * progress
+ * csrNeighborMiddleOfRoaming to know if
+ * STA is in the middle of roaming states
  *
  * Return: True or False
  *
  */
-bool smeNeighborRoamIsHandoffInProgress(tHalHandle hHal, tANI_U8 sessionId)
+bool smeNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId)
 {
-	return csrNeighborRoamIsHandoffInProgress(PMAC_STRUCT(hHal), sessionId);
+	return csrNeighborMiddleOfRoaming(PMAC_STRUCT(hHal), sessionId);
 }
 
 /**
