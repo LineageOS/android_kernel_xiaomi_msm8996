@@ -7859,6 +7859,11 @@ void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 "Scan offload is enabled, update default chan list");
+        /*
+         * disable fcc constraint since new country code
+         * is being set
+         */
+        pMac->scan.fcc_constraint = false;
         status = csrUpdateChannelList(pMac);
         if (eHAL_STATUS_SUCCESS != status)
         {

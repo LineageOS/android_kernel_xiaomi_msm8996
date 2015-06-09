@@ -812,11 +812,8 @@ typedef struct tagCsrScanStruct
     tANI_S8     inScanResultBestAPRssi;
     eCsrBand  scanBandPreference;  //This defines the band perference for scan
     csrScanCompleteCallback callback11dScanDone;
+    bool fcc_constraint;
 }tCsrScanStruct;
-
-
-
-
 
 //Save the connected information. This structure + connectedProfile
 //should contain all information about the connection

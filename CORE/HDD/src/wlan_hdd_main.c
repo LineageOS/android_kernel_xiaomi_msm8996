@@ -3860,6 +3860,40 @@ hdd_parse_get_cckm_ie(tANI_U8 *pValue, tANI_U8 **pCckmIe, tANI_U8 *pCckmIeLen)
 
 #endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
+/**
+ * drv_cmd_set_fcc_channel() - handle fcc constraint request
+ * @hdd_ctx: HDD context
+ * @cmd: command ptr
+ * @cmd_len: command len
+ *
+ * Return: status
+ */
+static int drv_cmd_set_fcc_channel(hdd_context_t *hdd_ctx, uint8_t *cmd,
+                                   uint8_t cmd_len)
+{
+	uint8_t *value;
+	uint8_t fcc_constraint;
+	eHalStatus status;
+	int ret = 0;
+
+	value =  cmd + cmd_len + 1;
+
+	ret = kstrtou8(value, 10, &fcc_constraint);
+	if ((ret < 0) || (fcc_constraint > 1)) {
+		/*
+		 *  If the input value is greater than max value of datatype,
+		 *  then also it is a failure
+		 */
+		hddLog(LOGE, FL("value out of range"));
+		return -EINVAL;
+	}
+
+	status = sme_disable_non_fcc_channel(hdd_ctx->hHal, !fcc_constraint);
+	if (status != eHAL_STATUS_SUCCESS)
+		ret = -EPERM;
+
+	return ret;
+}
 
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
@@ -5999,6 +6033,19 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                ret = -EFAULT;
                goto exit;
            }
+       } else if (strncasecmp(command, "SET_FCC_CHANNEL", 15) == 0) {
+           /*
+            * this command wld be called by user-space when it detects WLAN
+            * ON after airplane mode is set. When APM is set, WLAN turns off.
+            * But it can be turned back on. Otherwise; when APM is turned back
+            * off, WLAN wld turn back on. So at that point the command is
+            * expected to come down. 0 means disable, 1 means enable. The
+            * constraint is removed when parameter 1 is set or different
+            * country code is set
+            */
+
+           ret = drv_cmd_set_fcc_channel(pHddCtx, command, 15);
+
        } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,

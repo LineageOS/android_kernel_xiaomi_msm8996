@@ -4288,4 +4288,7 @@ typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
 void sme_add_set_thermal_level_callback(tHalHandle hHal,
                    tSmeSetThermalLevelCallback callback);
 
+eHalStatus sme_disable_non_fcc_channel(tHalHandle hHal,
+				       bool fcc_constraint);
+
 #endif //#if !defined( __SME_API_H )

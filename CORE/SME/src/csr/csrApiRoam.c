@@ -484,6 +484,12 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
 
     for (i = 0; i < pScan->base20MHzChannels.numChannels; i++)
     {
+        if (pScan->fcc_constraint) {
+            if (pScan->base20MHzChannels.channelList[i] == 12)
+                continue;
+            if (pScan->base20MHzChannels.channelList[i] == 13)
+                continue;
+        }
         channel_state =
             vos_nv_getChannelEnabledState(
                 pScan->base20MHzChannels.channelList[i]);
