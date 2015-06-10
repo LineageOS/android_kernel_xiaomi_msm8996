@@ -344,19 +344,29 @@ int hdd_hostapd_stop(struct net_device *dev)
  */
 static void __hdd_hostapd_uninit(struct net_device *dev)
 {
-   hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+	hdd_adapter_t *adapter = netdev_priv(dev);
+	hdd_context_t *hdd_ctx;
 
-   ENTER();
+	ENTER();
 
-   if (pHostapdAdapter && pHostapdAdapter->pHddCtx)
-   {
-      hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter, true);
+	if (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) {
+		hddLog(LOGE, FL("Invalid magic"));
+		return;
+	}
 
-      /* after uninit our adapter structure will no longer be valid */
-      pHostapdAdapter->dev = NULL;
-   }
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (NULL == hdd_ctx) {
+		hddLog(LOGE, FL("NULL hdd_ctx"));
+		return;
+	}
 
-   EXIT();
+	hdd_deinit_adapter(hdd_ctx, adapter, true);
+
+	/* after uninit our adapter structure will no longer be valid */
+	adapter->dev = NULL;
+	adapter->magic = 0;
+
+	EXIT();
 }
 
 /**
