@@ -635,4 +635,5 @@ tpPESession pe_find_session_by_sme_session_id(tpAniSirGlobal mac_ctx,
 					   uint8_t sme_session_id);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+int pe_get_active_session_count(tpAniSirGlobal mac_ctx);
 #endif //#if !defined( __LIM_SESSION_H )

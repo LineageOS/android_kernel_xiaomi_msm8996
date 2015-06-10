@@ -762,6 +762,10 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 #endif
 
     psessionEntry->valid = FALSE;
+
+    if (LIM_IS_AP_ROLE(psessionEntry))
+         lim_check_and_reset_protection_params(pMac);
+
     return;
 }
 
@@ -804,4 +808,25 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac,  tANI_U8*  sa,    tANI_U
    limLog(pMac, LOG1, FL("Session lookup fails for Peer StaId: \n "));
    limPrintMacAddr(pMac, sa, LOG1);
    return NULL;
+}
+
+/**
+ * pe_get_active_session_count() - function to return active pe session count
+ *
+ * @mac_ctx: pointer to global mac structure
+ *
+ * returns number of active pe session count
+ *
+ * Return: 0 if there are no active sessions else return number of active
+ *          sessions
+ */
+int pe_get_active_session_count(tpAniSirGlobal mac_ctx)
+{
+	int i, active_session_count = 0;
+
+	for (i = 0; i < mac_ctx->lim.maxBssId; i++)
+		if (mac_ctx->lim.gpSession[i].valid)
+			active_session_count++;
+
+	return active_session_count;
 }

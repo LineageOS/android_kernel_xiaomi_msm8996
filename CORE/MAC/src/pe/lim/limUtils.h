@@ -619,4 +619,5 @@ bool lim_validate_received_frame_a1_addr(tpAniSirGlobal mac_ctx,
 		tSirMacAddr a1, tpPESession session);
 
 void lim_set_stads_rtt_cap(tpDphHashNode sta_ds, struct s_ext_cap *ext_cap);
+void lim_check_and_reset_protection_params(tpAniSirGlobal mac_ctx);
 #endif /* __LIM_UTILS_H */
