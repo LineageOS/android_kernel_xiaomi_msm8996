@@ -1556,7 +1556,8 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
           gfSupported = eHAL_CLEAR;
         }
         //Station joining is HT 20Mhz
-        if(eHT_CHANNEL_WIDTH_20MHZ == pStaDs->htSupportedChannelWidthSet)
+        if((eHT_CHANNEL_WIDTH_20MHZ == pStaDs->htSupportedChannelWidthSet)&&
+           (eHT_CHANNEL_WIDTH_20MHZ != psessionEntry->htSupportedChannelWidthSet))
         {
             protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_HT20;
             limEnableHT20Protection(pMac, true, false, pBeaconParams, psessionEntry);
@@ -4078,9 +4079,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                psessionEntry->gLimHt20Params.protectionEnabled = true;
                 if(eSIR_HT_OP_MODE_PURE == psessionEntry->htOperMode)
                 {
-                    //Commenting because of CR 258588 WFA cert
-                    //psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
-                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
+                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
                     limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                     limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
                 }
