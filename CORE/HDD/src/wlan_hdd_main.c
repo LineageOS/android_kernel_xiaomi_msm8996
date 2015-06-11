@@ -12634,7 +12634,8 @@ VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter,
 
   --------------------------------------------------------------------------*/
 
-void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
+void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,
+                             struct tagCsrDelStaParams *pDelStaParams)
 {
 #ifndef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
@@ -12645,13 +12646,13 @@ void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
     hddLog( LOGE, "hdd_softap_sta_disassoc:(%p, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 
     //Ignore request to disassoc bcmc station
-    if( pDestMacAddress[0] & 0x1 )
+    if( pDelStaParams->peerMacAddr[0] & 0x1 )
        return;
 
 #ifdef WLAN_FEATURE_MBSSID
-    WLANSAP_DisassocSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), pDestMacAddress);
+    WLANSAP_DisassocSta(WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), pDelStaParams);
 #else
-    WLANSAP_DisassocSta(pVosContext,pDestMacAddress);
+    WLANSAP_DisassocSta(pVosContext, pDelStaParams);
 #endif
 }
 
