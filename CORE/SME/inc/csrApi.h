@@ -1210,7 +1210,7 @@ typedef struct tagCsrConfigParam
     /*Customer wants to optimize the scan time. Avoiding scans(passive) on DFS
     * channels while swipping through both bands can save some time
     * (apprx 1.3 sec) */
-    tANI_BOOLEAN fEnableDFSChnlScan;
+    tANI_U8 fEnableDFSChnlScan;
 
     //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
     tANI_BOOLEAN fScanTwice;
