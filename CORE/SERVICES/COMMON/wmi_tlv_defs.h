@@ -562,7 +562,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_fw_mem_dump_params,
     WMITLV_TAG_STRUC_wmi_debug_mesg_flush_fixed_param,
     WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param,
-    WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param
+    WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_subnet_change_config_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -778,7 +779,8 @@ typedef enum {
     OP(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID) \
     OP(WMI_GET_FW_MEM_DUMP_CMDID) \
     OP(WMI_DEBUG_MESG_FLUSH_CMDID) \
-    OP(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID)
+    OP(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID) \
+    OP(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -2192,6 +2194,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_FILTER_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_tsf_tstamp_action_cmd_fixed_param, wmi_vdev_tsf_tstamp_action_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
 
+/* LFR subnet change config Cmd */
+#define WMITLV_TABLE_WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_subnet_change_config_fixed_param, wmi_roam_subnet_change_config_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, skip_subnet_change_detection_bssid_list, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2363,7 +2372,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bcn_probe_rsp_frame, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, reassoc_rsp_frame, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_key_material, key, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_key_material, key, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, status, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SYNCH_EVENTID);
 
 /* WOW Wakeup Host Event */
