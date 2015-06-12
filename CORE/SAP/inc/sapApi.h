@@ -641,6 +641,7 @@ typedef struct tagSapStruct
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
     bool sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+    bool enable_dfs_phy_error_logs;
 } tSapStruct, *tpSapStruct;
 
 #define WPS_PROBRSP_VER_PRESENT                          0x00000001

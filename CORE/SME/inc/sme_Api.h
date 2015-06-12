@@ -4322,6 +4322,7 @@ sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
 bool smeNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
 
 eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
+void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log);
 
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 

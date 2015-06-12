@@ -255,6 +255,7 @@ enum {
     QCASAP_PARAM_LDPC,
     QCASAP_PARAM_TX_STBC,
     QCASAP_PARAM_RX_STBC,
+    QCASAP_SET_RADAR_DBG,
 };
 
 int iw_softap_get_channel_list(struct net_device *dev,
