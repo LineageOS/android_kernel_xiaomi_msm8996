@@ -13749,6 +13749,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     struct cfg80211_bss *bss_status = NULL;
     hdd_context_t *pHddCtx;
     int ret;
+    bool is_p2p_scan = false;
 
     ENTER();
 
@@ -13761,6 +13762,14 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     if (0 != ret) {
         hddLog(LOGE, FL("HDD context is not valid"));
         return ret;
+    }
+
+    if (pAdapter->request != NULL)
+    {
+        if ((pAdapter->request->n_ssids == 1)
+                && (pAdapter->request->ssids != NULL)
+                && vos_mem_compare(&pAdapter->request->ssids[0], "DIRECT-", 7))
+            is_p2p_scan = true;
     }
 
     /*
@@ -13787,6 +13796,15 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
          * ieee80211_mgmt(probe response) and passing to c
          * fg80211_inform_bss_frame.
          * */
+
+        if(is_p2p_scan && (pScanResult->ssId.ssId != NULL) &&
+                !vos_mem_compare( pScanResult->ssId.ssId, "DIRECT-", 7) )
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO, FL(" Non P2P BSS skipped: =%s:"),
+                    pScanResult->ssId.ssId);
+            pScanResult = sme_ScanResultGetNext(hHal, pResult);
+            continue; //Skip the non p2p bss entries
+        }
 
         bss_status = wlan_hdd_cfg80211_inform_bss_frame(pAdapter,
                                                    &pScanResult->BssDescriptor);
@@ -13820,6 +13838,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
         sme_ScanFlushResult(hHal, pAdapter->sessionId);
 
     EXIT();
+    is_p2p_scan = false;
     return 0;
 }
 
@@ -15852,7 +15871,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     VOS_STATUS exitbmpsStatus = VOS_STATUS_E_INVAL;
     hdd_context_t *pHddCtx;
-
     ENTER();
 
 
