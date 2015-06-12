@@ -1251,6 +1251,7 @@ static void __hdd_wmm_do_implicit_qos(struct work_struct *work)
    sme_QosStatusType smeStatus;
 #endif
    sme_QosWmmTspecInfo qosInfo;
+   hdd_context_t *hdd_ctx;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered, context %p",
@@ -1265,6 +1266,13 @@ static void __hdd_wmm_do_implicit_qos(struct work_struct *work)
    }
 
    pAdapter = pQosContext->pAdapter;
+
+   hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+   if (0 != wlan_hdd_validate_context(hdd_ctx)) {
+       hddLog(LOGE, FL("HDD context is not valid"));
+       return;
+   }
+
    acType = pQosContext->acType;
    pAc = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
 
