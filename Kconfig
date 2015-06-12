@@ -45,11 +45,11 @@ config QCOM_LTE_COEX
 	bool "Enable QCOM LTE Coex feature"
 	default n
 
-config CONFIG_WLAN_SYNC_TSF
+config WLAN_SYNC_TSF
 	bool "Enable QCOM sync multi devices tsf feature"
 	default n
 
-config CONFIG_FEATURE_MEMDUMP
+config WLAN_FEATURE_MEMDUMP
 	bool "Enable MEMDUMP feature"
 	default n
 
