@@ -2121,7 +2121,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            psessionEntry->pLimJoinReq->bssDescription.capabilityInfo;
 
         regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel );
-        localPowerConstraint = regMax;
 
         if(!pMac->psOffloadEnabled)
         {
@@ -2150,16 +2149,20 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
               );
         }
 
+        /* If power constraint is zero then update it with Region max.
+         * MaxTxpower will be the MIN of regmax and power constraint */
+        if (localPowerConstraint == 0)
+            localPowerConstraint = regMax;
+
 #ifdef FEATURE_WLAN_ESE
             psessionEntry->maxTxPower = limGetMaxTxPower(regMax, localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
 #else
             psessionEntry->maxTxPower = VOS_MIN( regMax, (localPowerConstraint) );
 #endif
-#if defined WLAN_VOWIFI_DEBUG
-        limLog( pMac, LOGE, "Regulatory max = %d, local power constraint = %d,"
+        VOS_TRACE( VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                        "Regulatory max = %d, local power constraint = %d,"
                         " max tx = %d", regMax, localPowerConstraint,
-                          psessionEntry->maxTxPower );
-#endif
+                        psessionEntry->maxTxPower );
 
         if(!pMac->psOffloadEnabled)
         {
