@@ -1081,6 +1081,8 @@ typedef enum {
 #define WMI_OEM_NAN_MEAS_REQ       0x06
 #define WMI_OEM_NAN_MEAS_RSP       0x07
 #define WMI_OEM_NAN_PEER_INFO      0x08
+#define WMI_OEM_CONFIGURE_LCR      0x09
+#define WMI_OEM_CONFIGURE_LCI      0x0A
 
 
 /* below message subtype is internal to CLD. Target should
@@ -1329,12 +1331,35 @@ typedef struct {
      */
     A_UINT32 max_supported_macs;
 
+    /*
+     * FW sub-feature capabilities to be used in concurrence with wmi_service_bitmap
+     */
+    A_UINT32 wmi_fw_sub_feat_caps; //values from enum WMI_FW_SUB_FEAT_CAPS
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
          *     wlan_host_mem_req mem_reqs[];
          */
 } wmi_service_ready_event_fixed_param;
+
+typedef enum {
+    WMI_FW_STA_RTT_INITR =     0x00000001,
+    WMI_FW_STA_RTT_RESPR =     0x00000002,
+    WMI_FW_P2P_CLI_RTT_INITR = 0x00000004,
+    WMI_FW_P2P_CLI_RTT_RESPR = 0x00000008,
+    WMI_FW_P2P_GO_RTT_INITR =  0x00000010,
+    WMI_FW_P2P_GO_RTT_RESPR =  0x00000020,
+    WMI_FW_AP_RTT_INITR =      0x00000040,
+    WMI_FW_AP_RTT_RESPR =      0x00000080,
+    WMI_FW_NAN_RTT_INITR =     0x00000100,
+    WMI_FW_NAN_RTT_RESPR =     0x00000200,
+    /*
+     * New fw sub feature capabilites before
+     * WMI_FW_MAX_SUB_FEAT_CAP
+     */
+    WMI_FW_MAX_SUB_FEAT_CAP =  0x80000000,
+} WMI_FW_SUB_FEAT_CAPS;
 
 typedef enum {
     WMI_HWBD_NONE       = 0,            /* No hw board information is given */
