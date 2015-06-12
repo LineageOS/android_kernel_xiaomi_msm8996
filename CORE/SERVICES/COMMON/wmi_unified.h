@@ -9846,6 +9846,11 @@ typedef struct {
      */
 } wmi_sap_ofl_add_sta_event_fixed_param;
 
+typedef enum {
+    SAP_OFL_DEL_STA_FLAG_NONE       = 0x00,
+    SAP_OFL_DEL_STA_FLAG_RECONNECT  = 0x01,
+} wmi_sap_ofl_del_sta_flags;
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param */
     /** VDEV id(interface) of the WMI_SAP_OFL_DEL_STA_EVENTID */
@@ -9856,6 +9861,8 @@ typedef struct {
     wmi_mac_addr peer_macaddr;
     /** disassociation reason */
     A_UINT32 reason;
+    /** flags - wmi_sap_ofl_del_sta_flags */
+    A_UINT32 flags;
 } wmi_sap_ofl_del_sta_event_fixed_param;
 
 typedef struct {
