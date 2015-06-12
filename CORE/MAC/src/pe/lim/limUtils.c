@@ -6828,7 +6828,7 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    tpAddStaSelfParams      pAddStaSelfParams;
    tSirMsgQ                mmhMsg;
    tpSirSmeAddStaSelfRsp   pRsp;
-
+   eHalStatus              status;
 
    pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;
 
@@ -6849,6 +6849,24 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    pRsp->status = pAddStaSelfParams->status;
 
    vos_mem_copy( pRsp->selfMacAddr, pAddStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
+
+   /*
+    * For FW generated probe requests, Host needs to send Extended Capbilities
+    * IE information. With this fix, Host will send the extended capabilites
+    * on getting eWNI_SME_ADD_STA_SELF_RSP message(after vdev create).
+    *
+    * This information is required for only STA/P2P as they are the one which
+    * sends probe request.
+    */
+   if (VOS_STATUS_SUCCESS == pRsp->status &&
+       (WMI_VDEV_TYPE_STA == pAddStaSelfParams->type ||
+       (WMI_VDEV_TYPE_AP == pAddStaSelfParams->type &&
+        WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE == pAddStaSelfParams->subType))) {
+        limLog(pMac, LOG1, FL("Add sta success - send ext cap IE"));
+        status = lim_send_ext_cap_ie(pMac, pAddStaSelfParams->sessionId);
+        if (eHAL_STATUS_SUCCESS != status)
+            limLog(pMac, LOGE, FL("Unable to send ExtCap to FW"));
+   }
 
    vos_mem_free(pAddStaSelfParams);
    limMsgQ->bodyptr = NULL;
@@ -8103,4 +8121,75 @@ void lim_check_and_reset_protection_params(tpAniSirGlobal mac_ctx)
 
 		mac_ctx->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
 	}
+}
+
+/**
+ * lim_send_ext_cap_ie() - send ext cap IE to FW
+ * @mac_ctx: global MAC context
+ * @session_entry: PE session
+ *
+ * This function is invoked after VDEV is created to update firmware
+ * about the extended capabilities that the corresponding VDEV is capable
+ * of. Since STA/SAP can have different Extended capabilities set, this function
+ * is called per vdev creation.
+ *
+ * Return: eHalStatus
+ */
+eHalStatus lim_send_ext_cap_ie(tpAniSirGlobal mac_ctx,
+			       uint32_t session_id)
+{
+	tDot11fIEExtCap ext_cap_data = {0};
+	uint32_t dot11mode;
+	bool vht_enabled = false;
+	struct vdev_ie_info *vdev_ie;
+	vos_msg_t msg = {0};
+	tSirRetStatus status;
+	uint8_t *temp, i;
+
+	wlan_cfgGetInt(mac_ctx, WNI_CFG_DOT11_MODE, &dot11mode);
+	if (IS_DOT11_MODE_VHT(dot11mode))
+		vht_enabled = true;
+
+	status = PopulateDot11fExtCap(mac_ctx, vht_enabled, &ext_cap_data,
+				      NULL);
+	if (eSIR_SUCCESS != status) {
+		limLog(mac_ctx, LOGE, FL("Failed to populate ext cap IE"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	/* Allocate memory for the WMI request, and copy the parameter */
+	vdev_ie = vos_mem_malloc(sizeof(*vdev_ie) +
+				    ext_cap_data.num_bytes);
+	if (!vdev_ie) {
+		limLog(mac_ctx, LOGE, FL("Failed to allocate memory"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	vdev_ie->vdev_id = session_id;
+	vdev_ie->ie_id = DOT11F_EID_EXTCAP;
+	vdev_ie->length = ext_cap_data.num_bytes;
+
+	limLog(mac_ctx, LOG1, FL("vdev %d ieid %d len %d"), session_id,
+			DOT11F_EID_EXTCAP, ext_cap_data.num_bytes);
+	temp = ext_cap_data.bytes;
+	for (i=0; i < ext_cap_data.num_bytes; i++, temp++)
+		limLog(mac_ctx, LOG1, FL("%d byte is %02x"), i+1, *temp);
+
+	vdev_ie->data = (uint8_t *)vdev_ie + sizeof(*vdev_ie);
+	vos_mem_copy(vdev_ie->data, ext_cap_data.bytes,
+		     ext_cap_data.num_bytes);
+
+	msg.type = WDA_SET_IE_INFO;
+	msg.bodyptr = vdev_ie;
+	msg.reserved = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+		vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+		limLog(mac_ctx, LOGE,
+		       FL("Not able to post WDA_SET_IE_INFO to WDA"));
+		vos_mem_free(vdev_ie);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
 }

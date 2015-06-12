@@ -714,6 +714,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_EXTSCAN_STATUS_IND          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 329)
 
 #define SIR_HAL_TSF_GPIO_PIN_REQ            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 330)
+#define SIR_HAL_SET_IE_INFO                 (SIR_HAL_ITC_MSG_TYPES_BEGIN + 331)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

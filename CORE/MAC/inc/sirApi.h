@@ -6180,4 +6180,21 @@ struct fw_dump_rsp
 	uint32_t dump_complete;
 };
 
+/**
+ * struct vdev_ie_info - IE info
+ * @vdev_i - vdev for which the IE is being sent
+ * @ie_id - ID of the IE
+ * @length - length of the IE data
+ * @data - IE data
+ *
+ * This structure is used to store the IE information.
+ */
+struct vdev_ie_info
+{
+	uint32_t vdev_id;
+	uint32_t ie_id;
+	uint32_t length;
+	uint8_t *data;
+};
+
 #endif /* __SIR_API_H */

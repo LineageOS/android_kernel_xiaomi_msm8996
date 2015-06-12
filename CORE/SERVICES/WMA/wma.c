@@ -24683,6 +24683,79 @@ static VOS_STATUS wma_process_fw_mem_dump_req(tp_wma_handle wma,
 }
 #endif /* WLAN_FEATURE_MEMDUMP */
 
+/*
+ * wma_process_set_ie_info() - Function to send IE info to firmware
+ * @wma:                Pointer to WMA handle
+ * @ie_data:       Pointer for ie data
+ *
+ * This function sends IE information to firmware
+ *
+ * Return: VOS_STATUS_SUCCESS for success otherwise failure
+ *
+ */
+static VOS_STATUS wma_process_set_ie_info(tp_wma_handle wma,
+					  struct vdev_ie_info* ie_info)
+{
+	wmi_vdev_set_ie_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint8_t *buf_ptr;
+	uint32_t len, ie_len_aligned;
+	int ret;
+
+	if (!ie_info || !wma) {
+		WMA_LOGE(FL("input pointer is NULL"));
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Validate the input */
+	if (ie_info->length  <= 0) {
+		WMA_LOGE(FL("Invalid IE length"));
+		return -EINVAL;
+	}
+
+	ie_len_aligned = roundup(ie_info->length, sizeof(uint32_t));
+	/* Allocate memory for the WMI command */
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + ie_len_aligned;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = wmi_buf_data(buf);
+	vos_mem_zero(buf_ptr, len);
+
+	/* Populate the WMI command */
+	cmd = (wmi_vdev_set_ie_cmd_fixed_param *)buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_set_ie_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_set_ie_cmd_fixed_param));
+	cmd->vdev_id = ie_info->vdev_id;
+	cmd->ie_id = ie_info->ie_id;
+	cmd->ie_len = ie_info->length;
+
+	WMA_LOGE(FL("IE:%d of size:%d sent for vdev:%d"), ie_info->ie_id,
+		 ie_info->length, ie_info->vdev_id);
+
+	buf_ptr += sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, ie_len_aligned);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	vos_mem_copy(buf_ptr, ie_info->data, cmd->ie_len);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_VDEV_SET_IE_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE(FL("Failed to send set IE command ret = %d"), ret);
+		wmi_buf_free(buf);
+	}
+
+	return ret;
+}
+
 #if !defined(REMOVE_PKT_LOG)
 /**
  * wma_set_wifi_start_logger() - Send the WMA commands to start/stop logging
@@ -25516,6 +25589,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case SIR_HAL_FLUSH_LOG_TO_FW:
 			wma_send_flush_logs_to_fw(wma_handle);
 			/* Body ptr is NULL here */
+			break;
+		case WDA_SET_IE_INFO:
+			wma_process_set_ie_info(wma_handle,
+					(struct vdev_ie_info *) msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
