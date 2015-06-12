@@ -1518,7 +1518,9 @@ limProcessMlmDeauthInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMlmDeauthInd = (tLimMlmDeauthInd *) pMsgBuf;
     if((psessionEntry = peFindSessionByBssid(pMac,pMlmDeauthInd->peerMacAddr,&sessionId))== NULL)
     {
-         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given BSSId"));)
+         PELOGE(limLog(pMac, LOGE,
+                       FL("session does not exist for Addr:" MAC_ADDRESS_STR),
+                          MAC_ADDR_ARRAY(pMlmDeauthInd->peerMacAddr));)
          return;
     }
 

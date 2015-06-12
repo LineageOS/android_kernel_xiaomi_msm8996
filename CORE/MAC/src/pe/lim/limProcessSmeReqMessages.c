@@ -5324,8 +5324,9 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    msg.bodyptr =  pDelStaSelfParams;
    msg.bodyval = 0;
 
-   PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL"));)
-      MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
+   PELOGW(limLog(pMac, LOG1,
+          FL("sending SIR_HAL_DEL_STA_SELF_REQ msg to HAL"));)
+   MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {
