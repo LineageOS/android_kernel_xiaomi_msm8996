@@ -563,7 +563,10 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_debug_mesg_flush_fixed_param,
     WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param,
     WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param,
-    WMITLV_TAG_STRUC_wmi_roam_subnet_change_config_fixed_param
+    WMITLV_TAG_STRUC_wmi_roam_subnet_change_config_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_set_ie_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rssi_breach_monitor_config_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rssi_breach_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -780,7 +783,9 @@ typedef enum {
     OP(WMI_GET_FW_MEM_DUMP_CMDID) \
     OP(WMI_DEBUG_MESG_FLUSH_CMDID) \
     OP(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID) \
-    OP(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID)
+    OP(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID) \
+    OP(WMI_VDEV_SET_IE_CMDID) \
+    OP(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -885,7 +890,8 @@ typedef enum {
     OP(WMI_PASSPOINT_MATCH_EVENTID) \
     OP(WMI_VDEV_TSF_REPORT_EVENTID) \
     OP(WMI_UPDATE_FW_MEM_DUMP_EVENTID) \
-    OP(WMI_DEBUG_MESG_FLUSH_COMPLETE_EVENTID)
+    OP(WMI_DEBUG_MESG_FLUSH_COMPLETE_EVENTID) \
+    OP(WMI_RSSI_BREACH_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2067,10 +2073,15 @@ WMITLV_CREATE_PARAM_STRUC(WMI_D0_WOW_ENABLE_DISABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_get_temperature_cmd_fixed_param, wmi_pdev_get_temperature_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_GET_TEMPERATURE_CMDID);
 
-/* Set antenna diversiry Cmd */
+/* Set antenna diversity Cmd */
 #define WMITLV_TABLE_WMI_SET_ANTENNA_DIVERSITY_CMDID(id,op,buf,len) \
 WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_pdev_set_antenna_diversity_cmd_fixed_param, wmi_pdev_set_antenna_diversity_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SET_ANTENNA_DIVERSITY_CMDID);
+
+/* Set rssi monitoring config Cmd */
+#define WMITLV_TABLE_WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID(id,op,buf,len) \
+WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_rssi_breach_monitor_config_fixed_param, wmi_rssi_breach_monitor_config_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID);
 
 /* DHCP server offload param Cmd */
 #define WMITLV_TABLE_WMI_SET_DHCP_SERVER_OFFLOAD_CMDID(id,op,buf,len) \
@@ -2432,6 +2443,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DEBUG_MESG_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param, wmi_debug_mesg_flush_complete_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_DEBUG_MESG_FLUSH_COMPLETE_EVENTID);
 
+#define WMITLV_TABLE_WMI_RSSI_BREACH_EVENTID(id,op,buf,len)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rssi_breach_event_fixed_param, wmi_rssi_breach_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_RSSI_BREACH_EVENTID);
+
 /* Diagnostics Event */
 #define WMITLV_TABLE_WMI_DIAG_EVENTID(id,op,buf,len)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
@@ -2746,6 +2761,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_DCC_STATS_EVENTID);
 #define WMITLV_TABLE_WMI_VDEV_TSF_REPORT_EVENTID(id,op,buf,len) \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_tsf_report_event_fixed_param, wmi_vdev_tsf_report_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_REPORT_EVENTID);
+
+/* Vdev capabilities IE to be transmitted in mgmt frames */
+#define WMITLV_TABLE_WMI_VDEV_SET_IE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_set_ie_cmd_fixed_param, wmi_vdev_set_ie_cmd_fixed_param, vdev_ie, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_SET_IE_CMDID);
 
 #ifdef __cplusplus
 }

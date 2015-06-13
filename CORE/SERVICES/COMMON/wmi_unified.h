@@ -121,7 +121,7 @@ extern "C" {
     (((num_entries) / (32 / (bits_per_entry))) +            \
     (((num_entries) % (32 / (bits_per_entry))) ? 1 : 0))
 
-static inline A_UINT32 wmi_packed_arr_get_bits(A_UINT32 *arr,
+static INLINE A_UINT32 wmi_packed_arr_get_bits(A_UINT32 *arr,
     A_UINT32 entry_index, A_UINT32 bits_per_entry)
 {
     A_UINT32 entries_per_uint = (32 / bits_per_entry);
@@ -133,7 +133,7 @@ static inline A_UINT32 wmi_packed_arr_get_bits(A_UINT32 *arr,
             (( 1 << bits_per_entry) - 1));
 }
 
-static inline void wmi_packed_arr_set_bits(A_UINT32 *arr, A_UINT32 entry_index,
+static INLINE void wmi_packed_arr_set_bits(A_UINT32 *arr, A_UINT32 entry_index,
     A_UINT32 bits_per_entry, A_UINT32 val)
 {
     A_UINT32 entries_per_uint = (32 / bits_per_entry);
@@ -331,6 +331,9 @@ typedef enum {
     WMI_VDEV_PLMREQ_STOP_CMDID,
     /* TSF timestamp action for specified vdev */
     WMI_VDEV_TSF_TSTAMP_ACTION_CMDID,
+    /** set the capabilties IE, e.g. for extended caps in probe requests,
+      *  assoc req etc for frames FW locally generates */
+    WMI_VDEV_SET_IE_CMDID,
 
     /* peer specific commands */
 
@@ -650,7 +653,8 @@ typedef enum {
     WMI_SET_ANTENNA_DIVERSITY_CMDID,
     /** Set OCB Sched Request, deprecated */
     WMI_OCB_SET_SCHED_CMDID,
-
+    /** Set rssi monitoring config command */
+    WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID,
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
     WMI_GPIO_OUTPUT_CMDID,
@@ -1013,6 +1017,10 @@ typedef enum {
 
     /** event to indicate the flush of the buffered debug messages is complete*/
     WMI_DEBUG_MESG_FLUSH_COMPLETE_EVENTID,
+
+    /** event to report mix/max RSSI breach events */
+    WMI_RSSI_BREACH_EVENTID,
+
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
     /** upload H_CV info WMI event
@@ -2680,6 +2688,21 @@ typedef struct {
     A_UINT32 value;      /** bit0 is for enable/disable FAST diversity, and bit1 is for enable/disable SLOW diversity, 0->disable, 1->enable */
 } wmi_pdev_set_antenna_diversity_cmd_fixed_param;
 
+#define WMI_MAX_RSSI_THRESHOLD_SUPPORTED 3
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_rssi_breach_monitor_config_cmd_fixed_param */
+    A_UINT32 vdev_id; /* vdev_id, where RSSI monitoring will take place */
+    A_UINT32 request_id; /* host will configure request_id and firmware echo this id in RSSI_BREACH_EVENT */
+    A_UINT32 enabled_bitmap; /* bit [0-2] = low_rssi_breach_enabled[0-2] enabled, bit [3-5] = hi_rssi_breach_enabled[0-2] */
+    A_UINT32 low_rssi_breach_threshold[WMI_MAX_RSSI_THRESHOLD_SUPPORTED]; /* unit dBm. host driver to make sure [0] > [1] > [2] */
+    A_UINT32 hi_rssi_breach_threshold[WMI_MAX_RSSI_THRESHOLD_SUPPORTED]; /* unit dBm. host driver to make sure [0] < [1] < [2] */
+    A_UINT32 lo_rssi_reenable_hysteresis; /* unit dBm. once low rssi[] breached, same event bitmap will be generated only after signal gets better than this level. This value is adopted for all low_rssi_breach_threshold[3] */
+    A_UINT32 hi_rssi_reenable_histeresis;/* unit dBm. once hi rssi[] breached, same event bitmap will be generated only after signal gets worse than this level. This value is adopted for all hi_rssi_breach_threshold[3] */
+    A_UINT32 min_report_interval; /* After last event is generated, we wait until this interval to generate next event  */
+    A_UINT32 max_num_report; /* this is to suppress number of event to be generated */
+} wmi_rssi_breach_monitor_config_fixed_param;
+
 typedef struct {
     /** parameter   */
     A_UINT32 param;
@@ -3011,6 +3034,20 @@ typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_debug_mesg_flush_complete_fixed_param*/
     A_UINT32 reserved0; /** placeholder for future */
 } wmi_debug_mesg_flush_complete_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_rssi_breach_fixed_param */
+    /* vdev_id, where RSSI breach event occurred */
+    A_UINT32 vdev_id;
+    /* request id */
+    A_UINT32 request_id;
+    /* bitmap[0-2] is corresponding to low_rssi[0-2]. bitmap[3-5] is corresponding to hi_rssi[0-2]*/
+    A_UINT32 event_bitmap;
+    /* rssi at the time of RSSI breach. Unit dBm */
+    A_UINT32 rssi;
+    /* bssid of the monitored AP's */
+    wmi_mac_addr bssid;
+} wmi_rssi_breach_event_fixed_param;
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_fw_mem_dump */
@@ -6065,6 +6102,7 @@ typedef enum wake_reason_e {
     WOW_REASON_CLIENT_KICKOUT_EVENT,
     WOW_REASON_NAN_EVENT,
     WOW_REASON_EXTSCAN,
+    WOW_REASON_RSSI_BREACH_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -10727,6 +10765,18 @@ typedef struct {
     A_UINT32 tsf_high;
 } wmi_vdev_tsf_report_event_fixed_param;
 
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_vdev_set_ie_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** unique id identifying the VDEV, generated by the caller */
+    A_UINT32 vdev_id;
+    /** unique id to identify the ie_data as defined by ieee 802.11 spec */
+    A_UINT32 ie_id; /** ie_len corresponds to num of bytes in ie_data[] */
+    A_UINT32 ie_len;
+   /**
+    * Following this structure is the TLV byte stream of ie data of length ie_buf_len:
+    * A_UINT8 ie_data[]; */
+} wmi_vdev_set_ie_cmd_fixed_param;
 /* ADD NEW DEFS HERE */
 
 

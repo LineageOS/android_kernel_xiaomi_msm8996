@@ -29,6 +29,7 @@
 #define __WLANDEFS_H__
 
 #include <a_osapi.h> /* A_COMPILE_TIME_ASSERT */
+#include <osdep.h>
 
 /*
  * This file contains WLAN definitions that may be used across both
