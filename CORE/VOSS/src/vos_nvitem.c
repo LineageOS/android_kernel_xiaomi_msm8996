@@ -1614,10 +1614,10 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
  * regulatory setting table.
  */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
-void wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
+void __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
                 struct regulatory_request *request)
 #else
-int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
+int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
                 struct regulatory_request *request)
 #endif
 {
@@ -1794,6 +1794,27 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     return 0;
 #endif
 }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+void wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
+                struct regulatory_request *request)
+{
+    vos_ssr_protect(__func__);
+    __wlan_hdd_linux_reg_notifier(wiphy, request);
+    vos_ssr_unprotect(__func__);
+    return;
+}
+#else
+int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
+                struct regulatory_request *request)
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_linux_reg_notifier(wiphy, request);
+    vos_ssr_unprotect(__func__);
+    return ret;
+}
+#endif
 
 /* initialize wiphy from EEPROM */
 VOS_STATUS vos_init_wiphy_from_eeprom(void)
