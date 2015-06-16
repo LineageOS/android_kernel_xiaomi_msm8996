@@ -36,13 +36,17 @@
 
 #include <adf_os_types.h>
 #include <adf_os_mem_pvt.h>
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
+
+#undef CONFIG_WCNSS_MEM_PRE_ALLOC
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
 #else
 #include <wcnss_api.h>
 #endif
-#endif
+
 #include <i_vos_types.h>
 
 #ifdef MEMORY_DEBUG
