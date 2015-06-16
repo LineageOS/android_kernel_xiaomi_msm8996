@@ -299,6 +299,7 @@ struct ol_softc {
 #ifdef FEATURE_SECURE_FIRMWARE
     bool enable_fw_hash_check;
 #endif
+    uint16_t board_id;
 };
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR
