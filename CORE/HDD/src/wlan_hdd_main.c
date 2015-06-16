@@ -11416,6 +11416,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                         pHddCtx->cfg_ini->vosTraceEnableSAP);
    hdd_vos_trace_enable(VOS_MODULE_ID_HDD_SOFTAP,
                         pHddCtx->cfg_ini->vosTraceEnableHDDSAP);
+   hdd_vos_trace_enable(VOS_MODULE_ID_HDD_DATA,
+                        pHddCtx->cfg_ini->vosTraceEnableHDDDATA);
+   hdd_vos_trace_enable(VOS_MODULE_ID_HDD_SAP_DATA,
+                        pHddCtx->cfg_ini->vosTraceEnableHDDSAPDATA);
+   hdd_vos_trace_enable(VOS_MODULE_ID_HIF,
+                        pHddCtx->cfg_ini->vosTraceEnableHIF);
+   hdd_vos_trace_enable(VOS_MODULE_ID_TXRX,
+                        pHddCtx->cfg_ini->vosTraceEnableTXRX);
+   hdd_vos_trace_enable(VOS_MODULE_ID_HTC,
+                        pHddCtx->cfg_ini->vosTraceEnableHTC);
+   hdd_vos_trace_enable(VOS_MODULE_ID_ADF,
+                        pHddCtx->cfg_ini->vosTraceEnableADF);
+   hdd_vos_trace_enable(VOS_MODULE_ID_CFG,
+                        pHddCtx->cfg_ini->vosTraceEnableCFG);
 
    print_hdd_cfg(pHddCtx);
 

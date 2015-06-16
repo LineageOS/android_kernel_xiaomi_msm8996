@@ -1457,6 +1457,13 @@ typedef enum
 #define CFG_VOS_TRACE_ENABLE_VOSS_NAME    "vosTraceEnableVOSS"
 #define CFG_VOS_TRACE_ENABLE_SAP_NAME     "vosTraceEnableSAP"
 #define CFG_VOS_TRACE_ENABLE_HDD_SAP_NAME "vosTraceEnableHDDSAP"
+#define CFG_VOS_TRACE_ENABLE_CFG_NAME     "vosTraceEnableCFG"
+#define CFG_VOS_TRACE_ENABLE_ADF_NAME     "vosTraceEnableADF"
+#define CFG_VOS_TRACE_ENABLE_TXRX_NAME    "vosTraceEnableTXRX"
+#define CFG_VOS_TRACE_ENABLE_HTC_NAME     "vosTraceEnableHTC"
+#define CFG_VOS_TRACE_ENABLE_HIF_NAME     "vosTraceEnableHIF"
+#define CFG_VOS_TRACE_ENABLE_HDD_SAP_DATA_NAME     "vosTraceEnableHDDSAPDATA"
+#define CFG_VOS_TRACE_ENABLE_HDD_DATA_NAME         "vosTraceEnableHDDDATA"
 
 #define CFG_VOS_TRACE_ENABLE_MIN          (0)
 #define CFG_VOS_TRACE_ENABLE_MAX          (0xff)
@@ -3111,6 +3118,13 @@ typedef struct
    v_U16_t                     vosTraceEnableVOSS;
    v_U16_t                     vosTraceEnableSAP;
    v_U16_t                     vosTraceEnableHDDSAP;
+   v_U16_t                     vosTraceEnableCFG;
+   v_U16_t                     vosTraceEnableADF;
+   v_U16_t                     vosTraceEnableTXRX;
+   v_U16_t                     vosTraceEnableHTC;
+   v_U16_t                     vosTraceEnableHIF;
+   v_U16_t                     vosTraceEnableHDDSAPDATA;
+   v_U16_t                     vosTraceEnableHDDDATA;
 
    v_U16_t                     nTeleBcnTransListenInterval;
    v_U16_t                     nTeleBcnMaxListenInterval;
