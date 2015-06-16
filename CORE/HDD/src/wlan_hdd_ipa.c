@@ -3426,6 +3426,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 					msg_ex->name, ret);
 			} else {
 				vos_lock_release(&hdd_ipa->event_lock);
+				hdd_ipa_uc_offload_enable_disable(adapter,
+					SIR_STA_RX_DATA_OFFLOAD, 0);
 				goto end;
 			}
 		}
@@ -3434,6 +3436,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		if (ret) {
 #ifdef IPA_UC_OFFLOAD
 			vos_lock_release(&hdd_ipa->event_lock);
+			hdd_ipa_uc_offload_enable_disable(adapter,
+				SIR_STA_RX_DATA_OFFLOAD, 0);
 #endif /* IPA_UC_OFFLOAD */
 			goto end;
 		}
