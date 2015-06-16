@@ -6098,6 +6098,12 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 
+	vos_status = vos_event_init(&wma_handle->recovery_event);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("%s: recovery event initialization failed", __func__);
+		goto err_event_init;
+	}
+
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
 	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 	adf_os_spinlock_init(&wma_handle->vdev_detach_lock);
@@ -12323,6 +12329,24 @@ static int wmi_crash_inject(wmi_unified_t wmi_handle, u_int32_t type,
 	}
 
 	return ret;
+}
+
+/**
+ * wma_crash_inject() - sends command to FW to simulate crash
+ * @wma_handle:         pointer of WMA context
+ * @type:               subtype of the command
+ * @delay_time_ms:      time in milliseconds for FW to delay the crash
+ *
+ * This function will send a command to FW in order to simulate different
+ * kinds of FW crashes.
+ *
+ * Return: 0 for success or reasons for failure
+ */
+
+int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
+			uint32_t delay_time_ms)
+{
+	return wmi_crash_inject(wma_handle->wmi_handle, type, delay_time_ms);
 }
 
 static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
@@ -27508,6 +27532,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_event_destroy(&wma_handle->wma_resume_event);
 	vos_event_destroy(&wma_handle->wow_tx_complete);
 	vos_event_destroy(&wma_handle->runtime_suspend);
+	vos_event_destroy(&wma_handle->recovery_event);
 	wma_cleanup_vdev_resp(wma_handle);
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(

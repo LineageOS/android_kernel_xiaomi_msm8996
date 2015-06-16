@@ -83,6 +83,8 @@
 #define WMA_RESUME_TIMEOUT                 3000
 #define WMA_TGT_WOW_TX_COMPLETE_TIMEOUT    2000
 #define MAX_MEM_CHUNKS                     32
+#define WMA_CRASH_INJECT_TIMEOUT           5000
+
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)
    and SELF STA(staId 1) so total ASSOC stations which can connect to Prima
@@ -609,6 +611,7 @@ typedef struct wma_handle {
 	vos_event_t target_suspend;
 	vos_event_t wow_tx_complete;
 	vos_event_t runtime_suspend;
+	vos_event_t recovery_event;
 
 	t_cfg_nv_param cfg_nv;
 
@@ -1604,4 +1607,6 @@ static inline void wma_set_wifi_start_logger(void *wma_handle,
 
 void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle);
 
+int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
+			uint32_t delay_time_ms);
 #endif
