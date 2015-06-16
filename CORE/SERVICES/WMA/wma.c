@@ -6513,6 +6513,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
                 WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
                     vdev_id);
                 adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+		vos_mem_free(pdel_sta_self_req_param);
+		pdel_sta_self_req_param = NULL;
 		return status;
         }
 
