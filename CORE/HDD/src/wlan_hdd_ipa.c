@@ -3562,6 +3562,28 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%d %d",
 				adapter->dev->ifindex, sta_id);
 
+#ifdef IPA_UC_OFFLOAD
+		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
+				adapter->dev->name, meta.msg_type);
+			return 0;
+		}
+
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		if (hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
+				VOS_TRUE, sta_id)) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"%s: STA ID %d found, not valid",
+				adapter->dev->name, sta_id);
+			vos_lock_release(&hdd_ipa->event_lock);
+			return 0;
+		}
+		hdd_ipa->sap_num_connected_sta++;
+		hdd_ipa->pending_cons_req = VOS_FALSE;
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif
+
 		meta.msg_type = type;
 		meta.msg_len = (sizeof(struct ipa_wlan_msg_ex) +
 				sizeof(struct ipa_wlan_hdr_attrib_val));
@@ -3599,43 +3621,26 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		}
 		hdd_ipa->stats.num_send_msg++;
 #ifdef IPA_UC_OFFLOAD
-		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-				"%s: Evt: %d, IPA UC OFFLOAD NOT ENABLED",
-				msg_ex->name, meta.msg_type);
-		} else {
-			vos_lock_acquire(&hdd_ipa->event_lock);
-			if (hdd_ipa_uc_find_add_assoc_sta(hdd_ipa,
-					VOS_TRUE,
-					sta_id)) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"%s: STA ID %d found, not valid",
-					msg_ex->name, sta_id);
-				vos_lock_release(&hdd_ipa->event_lock);
-				return 0;
-			}
-			hdd_ipa->sap_num_connected_sta++;
-			hdd_ipa->pending_cons_req = VOS_FALSE;
-			/* Enable IPA UC Data PIPEs when first STA connected */
-			if ((1 == hdd_ipa->sap_num_connected_sta)
+		vos_lock_acquire(&hdd_ipa->event_lock);
+		/* Enable IPA UC Data PIPEs when first STA connected */
+		if ((1 == hdd_ipa->sap_num_connected_sta)
 #ifdef IPA_UC_STA_OFFLOAD
-				&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
-				|| !hdd_ipa->sta_connected)
+			&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
+			|| !hdd_ipa->sta_connected)
 #endif
-				&& (VOS_TRUE == hdd_ipa->uc_loaded)
-			) {
-				ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
-				if (!ret) {
-					HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-						"%s: handle 1st con ret %d",
-						msg_ex->name, ret);
-				} else {
-					vos_lock_release(&hdd_ipa->event_lock);
-					return ret;
-				}
+			&& (VOS_TRUE == hdd_ipa->uc_loaded)
+		) {
+			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
+			if (!ret) {
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"%s: handle 1st con ret %d",
+					msg_ex->name, ret);
+			} else {
+				vos_lock_release(&hdd_ipa->event_lock);
+				return ret;
 			}
-			vos_lock_release(&hdd_ipa->event_lock);
 		}
+		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
 		return ret;
 
