@@ -411,8 +411,19 @@ drop_pkt:
  */
 static void __hdd_softap_tx_timeout(struct net_device *dev)
 {
+   hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_context_t *hdd_ctx;
+
    VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
       "%s: Transmission timeout occurred", __func__);
+
+   hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+   if (hdd_ctx->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
+                 "%s: LOGP in Progress. Ignore!!!", __func__);
+       return;
+   }
+
    /*
     * Getting here implies we disabled the TX queues for too long. Queues are
     * disabled either because of disassociation or low resource scenarios. In
