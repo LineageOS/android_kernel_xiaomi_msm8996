@@ -280,9 +280,6 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    pDestMacAddress = (v_MACADDR_t*)skb->data;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
-              "%s: enter", __func__);
-
    if (vos_is_macaddr_broadcast( pDestMacAddress ) ||
        vos_is_macaddr_group(pDestMacAddress))
    {
@@ -390,8 +387,6 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
 
    dev->trans_start = jiffies;
-
-   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit", __func__);
 
    return NETDEV_TX_OK;
 
@@ -1137,9 +1132,6 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
             vos_pkt_trace_buf_update("HA:R:DHC");
       }
 #endif /* QCA_PKT_PROTO_TRACE */
-
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_LOW,
-                 "%s: send one packet to kernel", __func__);
 
       skb->protocol = eth_type_trans(skb, skb->dev);
 
