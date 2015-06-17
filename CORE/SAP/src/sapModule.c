@@ -180,8 +180,6 @@ WLANSAP_Open
 #endif
     }
 
-    vos_mem_zero(pSapCtx, sizeof(tSapContext));
-
     /*------------------------------------------------------------------------
         Clean up SAP control block, initialize all values
        ------------------------------------------------------------------------*/
@@ -839,9 +837,6 @@ WLANSAP_StartBss
 
         //Set the BSSID to your "self MAC Addr" read the mac address from Configuation ITEM received from HDD
         pSapCtx->csrRoamProfile.BSSIDs.numOfBSSIDs = 1;
-        vos_mem_copy(pSapCtx->csrRoamProfile.BSSIDs.bssid,
-                     pSapCtx->self_mac_addr,
-                     sizeof( tCsrBssid ) );
 
         //Save a copy to SAP context
         vos_mem_copy(pSapCtx->csrRoamProfile.BSSIDs.bssid,
