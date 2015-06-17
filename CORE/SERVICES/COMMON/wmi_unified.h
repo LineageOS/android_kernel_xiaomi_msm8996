@@ -917,6 +917,7 @@ typedef enum {
         will cary wake reason */
     WMI_WOW_WAKEUP_HOST_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_WOW),
     WMI_D0_WOW_DISABLE_ACK_EVENTID,
+    WMI_WOW_INITIAL_WAKEUP_EVENTID,
 
     /*RTT related event ID*/
     /** RTT measurement report */
@@ -6106,9 +6107,15 @@ typedef enum wake_reason_e {
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
+typedef enum {
+    WOW_IFACE_PAUSE_ENABLED,
+    WOW_IFACE_PAUSE_DISABLED
+} WOW_IFACE_STATUS;
+
 typedef struct {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_wow_enable_cmd_fixed_param  */
     A_UINT32    enable;
+    A_UINT32 pause_iface_config;
 } wmi_wow_enable_cmd_fixed_param;
 
 typedef struct {
@@ -6246,6 +6253,11 @@ typedef struct  wow_event_info_s {
     A_INT32     wake_reason;
     A_UINT32    data_len;
 }WOW_EVENT_INFO_fixed_param;
+
+typedef struct wow_initial_wakeup_event_s {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WOW_INITIAL_WAKEUP_EVENT_fixed_param  */
+    A_UINT32 vdev_id;
+} WOW_INITIAL_WAKEUP_EVENT_fixed_param;
 
 typedef enum {
     WOW_EVENT_INFO_TYPE_PACKET = 0x0001,
@@ -6959,6 +6971,7 @@ typedef enum {
     WMI_STA_KEEPALIVE_METHOD_NULL_FRAME = 1,                   /* 802.11 NULL frame */
     WMI_STA_KEEPALIVE_METHOD_UNSOLICITED_ARP_RESPONSE = 2,     /* ARP response */
     WMI_STA_KEEPALIVE_METHOD_ETHERNET_LOOPBACK = 3, /*ETHERNET LOOPBACK*/
+    WMI_STA_KEEPALIVE_METHOD_GRATUITOUS_ARP_REQUEST = 4, /* gratuitous ARP req*/
 } WMI_STA_KEEPALIVE_METHOD;
 
 typedef struct {
