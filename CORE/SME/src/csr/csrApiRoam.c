@@ -8358,6 +8358,7 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
     defined(FEATURE_WLAN_LFR)
         if ((eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE == pSmeJoinRsp->statusCode) ||
             (eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode) ||
+            (eSIR_SME_JOIN_DEAUTH_FROM_AP_DURING_ADD_STA == pSmeJoinRsp->statusCode) ||
             (eSIR_SME_INVALID_PARAMETERS == pSmeJoinRsp->statusCode)) {
                 /* Inform HDD to turn off FT flag in HDD */
                 if (pNeighborRoamInfo) {
