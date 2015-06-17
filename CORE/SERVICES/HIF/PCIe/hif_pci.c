@@ -60,6 +60,9 @@
 #endif
 #include <vos_getBin.h>
 #include "epping_main.h"
+#ifdef CONFIG_PCI_MSM
+#include <linux/msm_pcie.h>
+#endif
 
 /* use credit flow control over HTC */
 unsigned int htc_credit_flow = 1;
@@ -2716,6 +2719,15 @@ static DECLARE_WORK(recovery_work, recovery_work_handler);
 
 extern void HIFdebug(void);
 
+#ifdef CONFIG_PCI_MSM
+static inline void hif_msm_pcie_debug_info(struct hif_pci_softc *sc)
+{
+	msm_pcie_debug_info(sc->pdev, 13, 1, 0, 0, 0);
+	msm_pcie_debug_info(sc->pdev, 13, 2, 0, 0, 0);
+}
+#else
+static inline void hif_msm_pcie_debug_info(struct hif_pci_softc *sc) {};
+#endif
 /*
  * For now, we use simple on-demand sleep/wake.
  * Some possible improvements:
@@ -2838,6 +2850,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                                         + RTC_STATE_ADDRESS));
 
                     printk("%s:error, can't wakeup target\n", __func__);
+                    hif_msm_pcie_debug_info(sc);
                     sc->recovery = true;
                     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #ifdef CONFIG_CNSS
