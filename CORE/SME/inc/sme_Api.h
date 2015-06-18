@@ -3782,6 +3782,8 @@ eHalStatus sme_UpdateAddIE(tHalHandle hHal,
                            eUpdateIEsType updateType);
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
+const char * sme_requestTypetoString(const v_U8_t requestType);
+const char * sme_PmcStatetoString(const v_U8_t pmcState);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
                                     tANI_BOOLEAN disablefwd);
 tANI_U32 sme_GetChannelBondingMode5G(tHalHandle hHal);

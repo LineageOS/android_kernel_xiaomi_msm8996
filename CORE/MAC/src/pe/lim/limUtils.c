@@ -6929,6 +6929,59 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 
 }
 
+/**
+ * lim_ScanTypetoString(): converts scan type enum to string.
+ * @scanType: enum value of scanType.
+ */
+const char * lim_ScanTypetoString(const v_U8_t scanType)
+{
+    switch (scanType)
+    {
+        CASE_RETURN_STRING( eSIR_PASSIVE_SCAN );
+        CASE_RETURN_STRING( eSIR_ACTIVE_SCAN );
+        CASE_RETURN_STRING( eSIR_BEACON_TABLE );
+        default:
+            return "Unknown ScanType";
+    }
+}
+
+/**
+ * lim_BssTypetoString(): converts bss type enum to string.
+ * @bssType: enum value of bssType.
+ */
+
+const char * lim_BssTypetoString(const v_U8_t bssType)
+{
+    switch (bssType)
+    {
+        CASE_RETURN_STRING( eSIR_INFRASTRUCTURE_MODE );
+        CASE_RETURN_STRING( eSIR_INFRA_AP_MODE );
+        CASE_RETURN_STRING( eSIR_IBSS_MODE );
+        CASE_RETURN_STRING( eSIR_BTAMP_STA_MODE );
+        CASE_RETURN_STRING( eSIR_BTAMP_AP_MODE );
+        CASE_RETURN_STRING( eSIR_AUTO_MODE );
+        default:
+            return "Unknown BssType";
+    }
+}
+
+/**
+ * lim_BackgroundScanModetoString():converts BG scan type to string.
+ * @mode: enum value of BG scan type.
+ */
+
+const char *lim_BackgroundScanModetoString(const v_U8_t mode)
+{
+    switch (mode)
+    {
+        CASE_RETURN_STRING( eSIR_AGGRESSIVE_BACKGROUND_SCAN );
+        CASE_RETURN_STRING( eSIR_NORMAL_BACKGROUND_SCAN );
+        CASE_RETURN_STRING( eSIR_ROAMING_SCAN );
+        default:
+            return "Unknown BgScanMode";
+    }
+}
+
 void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 {
 

@@ -495,7 +495,9 @@ limIsSmeStartBssReqValid(tpAniSirGlobal pMac,
     tANI_U8 valid = true;
 
     PELOG1(limLog(pMac, LOG1,
-           FL("Parsed START_BSS_REQ fields are bssType=%d, channelId=%d, SSID len=%d, rsnIE len=%d, nwType=%d, rateset len=%d"),
+           FL("Parsed START_BSS_REQ fields are bssType=%s (%d), channelId=%d,"
+              " SSID len=%d, rsnIE len=%d, nwType=%d, rateset len=%d"),
+           lim_BssTypetoString(pStartBssReq->bssType),
            pStartBssReq->bssType,
            pStartBssReq->channelId,
            pStartBssReq->ssId.length,

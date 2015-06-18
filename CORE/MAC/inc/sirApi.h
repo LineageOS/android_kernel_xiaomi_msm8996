@@ -375,6 +375,10 @@ typedef enum eStaRateMode {
 #define IERATE_RATE_MASK          0x7f
 #define IERATE_IS_BASICRATE(x)   ((x) & IERATE_BASICRATE_MASK)
 
+const char * lim_BssTypetoString(const v_U8_t bssType);
+const char * lim_ScanTypetoString(const v_U8_t scanType);
+const char * lim_BackgroundScanModetoString(const v_U8_t mode);
+
 typedef struct sSirSupportedRates {
     /*
     * For Self STA Entry: this represents Self Mode.

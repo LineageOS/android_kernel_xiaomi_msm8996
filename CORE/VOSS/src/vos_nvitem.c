@@ -487,6 +487,29 @@ static const struct ieee80211_regdomain *vos_custom_world_regdomain(void)
     return &vos_world_regdom_60_61_62;
 }
 
+/**
+ * voss_DomainIdtoString(): converts Reg domain enum to string.
+ * @domainIdCurrent: Reg domain enum value.
+ */
+const char * voss_DomainIdtoString(v_U8_t domainIdCurrent)
+{
+    switch (domainIdCurrent)
+    {
+        CASE_RETURN_STRING( REGDOMAIN_FCC );
+        CASE_RETURN_STRING( REGDOMAIN_ETSI );
+        CASE_RETURN_STRING( REGDOMAIN_JAPAN );
+        CASE_RETURN_STRING( REGDOMAIN_WORLD );
+        CASE_RETURN_STRING( REGDOMAIN_N_AMER_EXC_FCC );
+        CASE_RETURN_STRING( REGDOMAIN_APAC );
+        CASE_RETURN_STRING( REGDOMAIN_KOREA );
+        CASE_RETURN_STRING( REGDOMAIN_HI_5GHZ );
+        CASE_RETURN_STRING( REGDOMAIN_NO_5GHZ );
+        CASE_RETURN_STRING( REGDOMAIN_COUNT );
+        default:
+            return "Regulation Domain Unknown";
+    }
+}
+
 static const
 struct ieee80211_regdomain *vos_world_regdomain(struct regulatory *reg)
 {

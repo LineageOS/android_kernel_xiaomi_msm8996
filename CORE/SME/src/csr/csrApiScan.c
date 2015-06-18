@@ -5870,9 +5870,17 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             }
 
         }while(0);
-        smsLog(pMac, LOG1, FL("domainIdCurrent %d scanType %d bssType %d requestType %d numChannels %d  "),
-               pMac->scan.domainIdCurrent, pMsg->scanType, pMsg->bssType,
-               pScanReq->requestType, pMsg->channelList.numChannels);
+        smsLog(pMac, LOG1, FL("domainIdCurrent %s (%d) scanType %s (%d)"
+                              "bssType %s (%d), requestType %s(%d)"
+                              "numChannels %d"),
+               voss_DomainIdtoString(pMac->scan.domainIdCurrent),
+               pMac->scan.domainIdCurrent,
+               lim_ScanTypetoString(pMsg->scanType), pMsg->scanType,
+               lim_BssTypetoString(pMsg->bssType), pMsg->bssType,
+               sme_requestTypetoString(pScanReq->requestType),
+               pScanReq->requestType,
+               pMsg->channelList.numChannels);
+
 
         for(i = 0; i < pMsg->channelList.numChannels; i++)
         {
@@ -5900,12 +5908,19 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             sessionId, pScanReqParam->bReturnAfter1stMatch,
             pScanReqParam->fUniqueResult, pScanReqParam->freshScan,
             pScanReqParam->hiddenSsid );
-      smsLog( pMac, LOG1, FL("scanType = %u BSSType = %u numOfSSIDs = %d"
-            " numOfChannels = %d requestType = %d p2pSearch = %d\n"),
-            pScanReq->scanType, pScanReq->BSSType,
-            pScanReq->SSIDs.numOfSSIDs,
-            pScanReq->ChannelInfo.numOfChannels, pScanReq->requestType,
-            pScanReq->p2pSearch );
+      smsLog( pMac, LOG1, FL("scanType = %s (%d) BSSType = %s (%d) "
+              "numOfSSIDs = %d numOfChannels = %d requestType = %s (%d)"
+              " p2pSearch = %d\n"),
+              lim_ScanTypetoString(pScanReq->scanType),
+              pScanReq->scanType,
+              lim_BssTypetoString(pScanReq->BSSType),
+              pScanReq->BSSType,
+              pScanReq->SSIDs.numOfSSIDs,
+              pScanReq->ChannelInfo.numOfChannels,
+              sme_requestTypetoString(pScanReq->requestType),
+              pScanReq->requestType,
+              pScanReq->p2pSearch );
+
      }
 
     return( status );
@@ -6429,8 +6444,9 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                 {
 #ifdef FEATURE_WLAN_LFR
                                     smsLog(pMac, LOG2,
-                                          FL(" reqType=%d, numOfChannels=%d,"
+                                          FL(" reqType= %s (%d), numOfChannels=%d,"
                                            " ignoring DFS channel %d"),
+                                          sme_requestTypetoString(pSrcReq->requestType),
                                           pSrcReq->requestType,
                                           pSrcReq->ChannelInfo.numOfChannels,
                                           pSrcReq->ChannelInfo.ChannelList[index]);

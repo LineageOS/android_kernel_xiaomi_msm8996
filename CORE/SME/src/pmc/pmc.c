@@ -259,7 +259,10 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case REQUEST_ENTER_WOWL:
     case REQUEST_EXIT_WOWL:
         pmcLog(pMac, LOGW, FL("Request for full power is being buffered. "
-            "Current state is %d"), pMac->pmc.pmcState);
+                              "Current state is %s (%d)"),
+                              sme_PmcStatetoString(pMac->pmc.pmcState),
+                                                   pMac->pmc.pmcState);
+
         //Ignore the new reason if request for full power is already pending
         if( !pMac->pmc.requestFullPowerPending )
         {
@@ -332,7 +335,10 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     /* Cannot go directly to Request Full Power State from these states. */
     default:
         pmcLog(pMac, LOGE,
-               FL("Trying to enter Request Full Power State from state %d"), pMac->pmc.pmcState);
+               FL("Trying to enter Request Full Power State from state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState),
+                                    pMac->pmc.pmcState);
+
         PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
@@ -363,7 +369,8 @@ eHalStatus pmcEnterRequestImpsState (tHalHandle hHal)
     /* Can enter Request IMPS State only from Full Power State. */
     if (pMac->pmc.pmcState != FULL_POWER)
     {
-        pmcLog(pMac, LOGE, FL("Trying to enter Request IMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter Request IMPS State from state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState), pMac->pmc.pmcState);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -411,7 +418,9 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     /* Can enter IMPS State only from Request IMPS State. */
     if (pMac->pmc.pmcState != REQUEST_IMPS)
     {
-        pmcLog(pMac, LOGE, FL("Trying to enter IMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter IMPS State from state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState), pMac->pmc.pmcState);
+
         return eHAL_STATUS_FAILURE;
     }
 
@@ -480,7 +489,9 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
     if (pMac->pmc.pmcState != FULL_POWER)
     {
         pmcLog(pMac, LOGE,
-               FL("Trying to enter Request BMPS State from state %d"), pMac->pmc.pmcState);
+               FL("Trying to enter Request BMPS State from state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState), pMac->pmc.pmcState);
+
         return eHAL_STATUS_FAILURE;
     }
 
@@ -929,7 +940,9 @@ void pmcImpsTimerExpired (tHalHandle hHal)
     /* If timer expires and we are in a state other than IMPS State then something is wrong. */
     if (pMac->pmc.pmcState != IMPS)
     {
-        pmcLog(pMac, LOGE, FL("Got IMPS timer expiration in state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Got IMPS timer expiration in state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState), pMac->pmc.pmcState);
+
         PMC_ABORT;
         return;
     }
@@ -964,7 +977,9 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
     /* If timer expires and we are in a state other than Full Power State then something is wrong. */
     if (pMac->pmc.pmcState != FULL_POWER)
     {
-        pmcLog(pMac, LOGE, FL("Got traffic timer expiration in state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Got traffic timer expiration in state %s (%d)"),
+               sme_PmcStatetoString(pMac->pmc.pmcState), pMac->pmc.pmcState);
+
         return;
     }
 
@@ -2572,6 +2587,34 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
         return eANI_BOOLEAN_FALSE;
     }
     return eANI_BOOLEAN_TRUE;
+}
+
+/**
+ * sme_PmcStatetoString(): converts PMC state enum to string.
+ * @pmcState: PMC state enum.
+ */
+const char * sme_PmcStatetoString(const v_U8_t pmcState)
+{   switch (pmcState)
+    {
+        CASE_RETURN_STRING( STOPPED );
+        CASE_RETURN_STRING( FULL_POWER );
+        CASE_RETURN_STRING( LOW_POWER);
+        CASE_RETURN_STRING( REQUEST_IMPS );
+        CASE_RETURN_STRING( IMPS );
+        CASE_RETURN_STRING( REQUEST_BMPS );
+        CASE_RETURN_STRING( BMPS );
+        CASE_RETURN_STRING( REQUEST_FULL_POWER );
+        CASE_RETURN_STRING( REQUEST_START_UAPSD );
+        CASE_RETURN_STRING( REQUEST_STOP_UAPSD );
+        CASE_RETURN_STRING( UAPSD );
+        CASE_RETURN_STRING( REQUEST_STANDBY );
+        CASE_RETURN_STRING( STANDBY );
+        CASE_RETURN_STRING( REQUEST_ENTER_WOWL );
+        CASE_RETURN_STRING( REQUEST_EXIT_WOWL );
+        CASE_RETURN_STRING( WOWL );
+        default:
+            return "Invalid pmcState";
+    }
 }
 
 void pmcOffloadClosePowerSaveCheckList(tpAniSirGlobal pMac, tANI_U32 sessionId)
