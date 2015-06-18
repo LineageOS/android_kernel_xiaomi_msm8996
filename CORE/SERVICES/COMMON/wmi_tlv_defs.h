@@ -568,6 +568,10 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_rssi_breach_monitor_config_fixed_param,
     WMITLV_TAG_STRUC_wmi_rssi_breach_event_fixed_param,
     WMITLV_TAG_STRUC_WOW_EVENT_INITIAL_WAKEUP_fixed_param,
+    WMITLV_TAG_STRUC_wmi_soc_set_pcl_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_response_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_soc_hw_mode_transition_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -786,7 +790,9 @@ typedef enum {
     OP(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID) \
     OP(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID) \
     OP(WMI_VDEV_SET_IE_CMDID) \
-    OP(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID)
+    OP(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID) \
+    OP(WMI_SOC_SET_PCL_CMDID) \
+    OP(WMI_SOC_SET_HW_MODE_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -893,7 +899,9 @@ typedef enum {
     OP(WMI_UPDATE_FW_MEM_DUMP_EVENTID) \
     OP(WMI_DEBUG_MESG_FLUSH_COMPLETE_EVENTID) \
     OP(WMI_RSSI_BREACH_EVENTID)\
-    OP(WMI_WOW_INITIAL_WAKEUP_EVENTID)
+    OP(WMI_WOW_INITIAL_WAKEUP_EVENTID) \
+    OP(WMI_SOC_SET_HW_MODE_RESP_EVENTID) \
+    OP(WMI_SOC_HW_MODE_TRANSITION_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2214,6 +2222,17 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_TSTAMP_ACTION_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID);
 
+/* Set the SOC Preferred Channel List (PCL) Cmd */
+#define WMITLV_TABLE_WMI_SOC_SET_PCL_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_set_pcl_cmd_fixed_param, wmi_soc_set_pcl_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_PCL_CMDID);
+
+/* Set the SOC Hardware Mode Cmd */
+#define WMITLV_TABLE_WMI_SOC_SET_HW_MODE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_cmd_fixed_param, wmi_soc_set_hw_mode_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_HW_MODE_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2221,7 +2240,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_service_ready_event_fixed_param, wmi_service_ready_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)     \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_HAL_REG_CAPABILITIES, HAL_REG_CAPABILITIES, hal_reg_capabilities, WMITLV_SIZE_FIX) \
     WMITLV_FXAR(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, wmi_service_bitmap, WMITLV_SIZE_FIX, WMI_SERVICE_BM_SIZE) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wlan_host_mem_req, mem_reqs, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wlan_host_mem_req, mem_reqs, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, wlan_dbs_hw_mode_list, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_READY_EVENTID);
 
 /* Ready event */
@@ -2774,6 +2794,17 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_TSF_REPORT_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_SET_IE_CMDID);
 
+/* SOC Set Hardware Mode Response event */
+#define WMITLV_TABLE_WMI_SOC_SET_HW_MODE_RESP_EVENTID(id,op,buf,len) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_response_event_fixed_param, wmi_soc_set_hw_mode_response_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_soc_set_hw_mode_response_vdev_mac_entry, wmi_soc_set_hw_mode_response_vdev_mac_mapping, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_HW_MODE_RESP_EVENTID);
+
+/* SOC Hardware Mode Transition event */
+#define WMITLV_TABLE_WMI_SOC_HW_MODE_TRANSITION_EVENTID(id,op,buf,len) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_hw_mode_transition_event_fixed_param, wmi_soc_hw_mode_transition_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_soc_set_hw_mode_response_vdev_mac_entry, wmi_soc_set_hw_mode_response_vdev_mac_mapping, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SOC_HW_MODE_TRANSITION_EVENTID);
 #ifdef __cplusplus
 }
 #endif

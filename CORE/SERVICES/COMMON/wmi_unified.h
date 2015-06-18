@@ -228,6 +228,7 @@ typedef enum {
     WMI_GRP_MDNS_OFL,
     WMI_GRP_SAP_OFL,
     WMI_GRP_OCB,
+    WMI_GRP_SOC,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -792,6 +793,9 @@ typedef enum {
     WMI_DCC_GET_STATS_CMDID,
     WMI_DCC_CLEAR_STATS_CMDID,
     WMI_DCC_UPDATE_NDL_CMDID,
+    /* System-On-Chip commands */
+    WMI_SOC_SET_PCL_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SOC),
+    WMI_SOC_SET_HW_MODE_CMDID,
 
 } WMI_CMD_ID;
 
@@ -1081,6 +1085,10 @@ typedef enum {
     WMI_DCC_GET_STATS_RESP_EVENTID,
     WMI_DCC_UPDATE_NDL_RESP_EVENTID,
     WMI_DCC_STATS_EVENTID,
+
+    /* System-On-Chip events */
+    WMI_SOC_SET_HW_MODE_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SOC),
+    WMI_SOC_HW_MODE_TRANSITION_EVENTID,
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -1273,6 +1281,62 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_SYS_CAP_ENABLE                       0x00000001
 #define WMI_SYS_CAP_TXPOWER                      0x00000002
 
+/*
+ * WMI Dual Band Simultaneous (DBS) hardware mode list bit-mask definitions.
+ * Bits 5:0 are reserved
+ */
+#define WMI_DBS_HW_MODE_MAC0_TX_STREAMS_BITPOS  (28)
+#define WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS  (24)
+#define WMI_DBS_HW_MODE_MAC1_TX_STREAMS_BITPOS  (20)
+#define WMI_DBS_HW_MODE_MAC1_RX_STREAMS_BITPOS  (16)
+#define WMI_DBS_HW_MODE_MAC0_BANDWIDTH_BITPOS   (12)
+#define WMI_DBS_HW_MODE_MAC1_BANDWIDTH_BITPOS   (8)
+#define WMI_DBS_HW_MODE_DBS_MODE_BITPOS         (7)
+#define WMI_DBS_HW_MODE_AGILE_DFS_MODE_BITPOS   (6)
+
+#define WMI_DBS_HW_MODE_MAC0_TX_STREAMS_MASK    (0xf << WMI_DBS_HW_MODE_MAC0_TX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC0_RX_STREAMS_MASK    (0xf << WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_TX_STREAMS_MASK    (0xf << WMI_DBS_HW_MODE_MAC1_TX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_RX_STREAMS_MASK    (0xf << WMI_DBS_HW_MODE_MAC1_RX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC0_BANDWIDTH_MASK     (0xf << WMI_DBS_HW_MODE_MAC0_BANDWIDTH_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_BANDWIDTH_MASK     (0xf << WMI_DBS_HW_MODE_MAC1_BANDWIDTH_BITPOS)
+#define WMI_DBS_HW_MODE_DBS_MODE_MASK           (0x1 << WMI_DBS_HW_MODE_DBS_MODE_BITPOS)
+#define WMI_DBS_HW_MODE_AGILE_DFS_MODE_MASK     (0x1 << WMI_DBS_HW_MODE_AGILE_DFS_MODE_BITPOS)
+
+#define WMI_DBS_HW_MODE_MAC0_TX_STREAMS_SET(hw_mode, value) \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC0_TX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC0_TX_STREAMS_MASK))
+#define WMI_DBS_HW_MODE_MAC0_RX_STREAMS_SET(hw_mode, value) \
+    (hw_mode != ((value << WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC0_RX_STREAMS_MASK))
+#define WMI_DBS_HW_MODE_MAC1_TX_STREAMS_SET(hw_mode, value) \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC1_TX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC1_TX_STREAMS_MASK))
+#define WMI_DBS_HW_MODE_MAC1_RX_STREAMS_SET(hw_mode, value) \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC1_RX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC1_RX_STREAMS_MASK))
+#define WMI_DBS_HW_MODE_MAC0_BANDWIDTH_SET(hw_mode, value)  \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC0_BANDWIDTH_BITPOS) & WMI_DBS_HW_MODE_MAC0_BANDWIDTH_MASK))
+#define WMI_DBS_HW_MODE_MAC1_BANDWIDTH_SET(hw_mode, value)  \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC1_BANDWIDTH_BITPOS) & WMI_DBS_HW_MODE_MAC1_BANDWIDTH_MASK))
+#define WMI_DBS_HW_MODE_DBS_MODE_SET(hw_mode, value)        \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_DBS_MODE_BITPOS) & WMI_DBS_HW_MODE_DBS_MODE_MASK))
+#define WMI_DBS_HW_MODE_AGILE_DFS_SET(hw_mode, value)       \
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_AGILE_DFS_MODE_BITPOS) & WMI_DBS_HW_MODE_AGILE_DFS_MODE_MASK))
+
+#define WMI_DBS_HW_MODE_MAC0_TX_STREAMS_GET(hw_mode)    \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC0_TX_STREAMS_MASK) >> WMI_DBS_HW_MODE_MAC0_TX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC0_RX_STREAMS_GET(hw_mode)    \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC0_RX_STREAMS_MASK) >> WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_TX_STREAMS_GET(hw_mode)    \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC1_TX_STREAMS_MASK) >> WMI_DBS_HW_MODE_MAC1_TX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_RX_STREAMS_GET(hw_mode)    \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC1_RX_STREAMS_MASK) >> WMI_DBS_HW_MODE_MAC1_RX_STREAMS_BITPOS)
+#define WMI_DBS_HW_MODE_MAC0_BANDWIDTH_GET(hw_mode)     \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC0_BANDWIDTH_MASK) >> WMI_DBS_HW_MODE_MAC0_BANDWIDTH_BITPOS)
+#define WMI_DBS_HW_MODE_MAC1_BANDWIDTH_GET(hw_mode)     \
+    ((hw_mode & WMI_DBS_HW_MODE_MAC1_BANDWIDTH_MASK) >> WMI_DBS_HW_MODE_MAC1_BANDWIDTH_BITPOS)
+#define WMI_DBS_HW_MODE_DBS_MODE_GET(hw_mode)           \
+    ((hw_mode & WMI_DBS_HW_MODE_DBS_MODE_MASK) >> WMI_DBS_HW_MODE_DBS_MODE_BITPOS)
+#define WMI_DBS_HW_MODE_AGILE_DFS_GET(hw_mode)          \
+    ((hw_mode & WMI_DBS_HW_MODE_AGILE_DFS_MODE_MASK) >> WMI_DBS_HW_MODE_AGILE_DFS_MODE_BITPOS)
+
 /** NOTE: This structure cannot be extended in the future without breaking WMI compatibility */
 typedef struct _wmi_abi_version {
     A_UINT32    abi_version_0;   /** WMI Major and Minor versions */
@@ -1347,10 +1411,16 @@ typedef struct {
      */
     A_UINT32 wmi_fw_sub_feat_caps; //values from enum WMI_FW_SUB_FEAT_CAPS
 
+    /*
+     * Number of Dual Band Simultaneous (DBS) hardware modes
+     */
+    A_UINT32 num_dbs_hw_modes;
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
          *     wlan_host_mem_req mem_reqs[];
+         *     wlan_dbs_hw_mode_list[];
          */
 } wmi_service_ready_event_fixed_param;
 
@@ -1739,12 +1809,11 @@ typedef struct {
 typedef struct {
     /** WMI_CHAN_LIST_TAG */
     A_UINT32     tag;
-    /** # if channels to scan */
+    /** # of channels to scan */
     A_UINT32 num_chan;
     /** channels in Mhz */
     A_UINT32 channel_list[1];
 } wmi_chan_list;
-
 
 /**
  * TLV for bssid list
@@ -4056,6 +4125,10 @@ typedef struct {
     A_UINT32 smps_mode;
     /** mac_id field contains the MAC identifier that the VDEV is bound to. The valid range is 0 to (num_macs-1). */
     A_UINT32 mac_id;
+    /** Configured Transmit Streams **/
+    A_UINT32 cfgd_tx_streams;
+    /** Configured Receive Streams **/
+    A_UINT32 cfgd_rx_streams;
 } wmi_vdev_start_response_event_fixed_param;
 
 typedef struct {
@@ -10790,8 +10863,85 @@ typedef struct {
     * Following this structure is the TLV byte stream of ie data of length ie_buf_len:
     * A_UINT8 ie_data[]; */
 } wmi_vdev_set_ie_cmd_fixed_param;
-/* ADD NEW DEFS HERE */
 
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_soc_set_pcl_cmd_fixed_param */
+    /** Set Preferred Channel List  **/
+
+    /** # of channels to scan */
+    A_UINT32 num_chan;
+/**
+ * TLV (tag length value ) parameters follow the wmi_soc_set_pcl_cmd
+ * structure. The TLV's are:
+ *     A_UINT32 channel_list[];
+ **/
+} wmi_soc_set_pcl_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_cmd_fixed_param */
+    /**  Set Hardware Mode  **/
+
+    /* Hardware Mode Index */
+    A_UINT32 hw_mode_index;
+} wmi_soc_set_hw_mode_cmd_fixed_param;
+
+/** Data structure for information specific to a VDEV to MAC mapping. */
+typedef struct {
+    /** TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_response_vdev_mac_entry */
+    A_UINT32 tlv_header;
+    A_UINT32 vdev_id; /* VDEV ID */
+    A_UINT32 mac_id; /* MAC ID */
+} wmi_soc_set_hw_mode_response_vdev_mac_entry;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_response_event_fixed_param */
+    /**  Set Hardware Mode Response Event  **/
+
+    /* Status of set_hw_mode command */
+    /*
+     * Values for Status:
+     *  0 - OK; command successful
+     *  1 - EINVAL; Requested invalid hw_mode
+     *  2 - ECANCELED; HW mode change canceled
+     *  3 - ENOTSUP; HW mode not supported
+     *  4 - EHARDWARE; HW mode change prevented by hardware
+     *  5 - EPENDING; HW mode change is pending
+     *  6 - ECOEX; HW mode change conflict with Coex
+     */
+    A_UINT32 status;
+    /* Configured Hardware Mode */
+    A_UINT32 cfgd_hw_mode_index;
+    /* Number of Vdev to Mac entries */
+    A_UINT32 num_vdev_mac_entries;
+
+/**
+ * TLV (tag length value ) parameters follow the soc_set_hw_mode_response_event
+ * structure. The TLV's are:
+ *      A_UINT32 wmi_soc_set_hw_mode_response_vdev_mac_entry[];
+ */
+} wmi_soc_set_hw_mode_response_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_soc_hw_mode_transition_event_fixed_param */
+    /**  Hardware Mode Transition Event **/
+
+    /* Original or old Hardware mode */
+    A_UINT32 old_hw_mode_index;
+    /* New Hardware Mode */
+    A_UINT32 new_hw_mode_index;
+    /* Number of Vdev to Mac entries */
+    A_UINT32 num_vdev_mac_entries;
+
+/**
+ * TLV (tag length value ) parameters follow the soc_set_hw_mode_response_event
+ * structure. The TLV's are:
+ *      A_UINT32 wmi_soc_set_hw_mode_response_vdev_mac_entry[];
+ */
+} wmi_soc_hw_mode_transition_event_fixed_param;
+
+
+/* ADD NEW DEFS HERE */
 
 /*****************************************************************************
  * The following structures are deprecated. DO NOT USE THEM!
