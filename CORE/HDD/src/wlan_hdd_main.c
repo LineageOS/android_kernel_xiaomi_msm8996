@@ -6007,7 +6007,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            int set_value;
            /* Move pointer to point the string */
            value += 8;
-           sscanf(value, "%d", &set_value);
+           ret = sscanf(value, "%d", &set_value);
+           if (ret != 1) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Wrong value is given for tdls_scan_type");
+               ret = -EINVAL;
+               goto exit;
+           }
            hddLog(LOG1, FL("Tdls scan type val: %d"),
                   set_value);
            ret = hdd_set_tdls_scan_type(pHddCtx, set_value);
