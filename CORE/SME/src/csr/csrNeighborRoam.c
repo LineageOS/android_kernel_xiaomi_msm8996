@@ -3382,9 +3382,21 @@ void csrNeighborRoamNeighborScanTimerCallback(void *pv)
 {
     tCsrTimerInfo *pInfo = (tCsrTimerInfo *)pv;
     tpAniSirGlobal pMac = pInfo->pMac;
-    tANI_U32         sessionId = pInfo->sessionId;
-    tpCsrNeighborRoamControlInfo    pNeighborRoamInfo =
-                                        &pMac->roam.neighborRoamInfo[sessionId];
+    tANI_U32    sessionId = pInfo->sessionId;
+    tpCsrNeighborRoamControlInfo  pNeighborRoamInfo;
+
+    if (!pMac)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
+        return;
+    }
+    if (CSR_SESSION_ID_INVALID == sessionId)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+        return;
+    }
+
+    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo[sessionId];
 
     // check if bg scan is on going, no need to send down the new params if true
     if(eANI_BOOLEAN_TRUE == pNeighborRoamInfo->scanRspPending)
@@ -3430,8 +3442,19 @@ void csrNeighborRoamEmptyScanRefreshTimerCallback(void *context)
     tpAniSirGlobal pMac = pInfo->pMac;
     VOS_STATUS     vosStatus = VOS_STATUS_SUCCESS;
     tANI_U32       sessionId = pInfo->sessionId;
-    tpCsrNeighborRoamControlInfo  pNeighborRoamInfo =
-                                      &pMac->roam.neighborRoamInfo[sessionId];
+    tpCsrNeighborRoamControlInfo  pNeighborRoamInfo;
+
+    if (!pMac)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
+        return;
+    }
+    if (CSR_SESSION_ID_INVALID == sessionId)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+        return;
+    }
+    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo[sessionId];
 
     /* Reset all the variables just as no scan had happened before */
     csrNeighborRoamResetConnectedStateControlInfo(pMac, sessionId);
@@ -3485,8 +3508,19 @@ void csrNeighborRoamResultsRefreshTimerCallback(void *context)
     tpAniSirGlobal pMac = pInfo->pMac;
     VOS_STATUS     vosStatus = VOS_STATUS_SUCCESS;
     tANI_U32 sessionId = pInfo->sessionId;
-    tpCsrNeighborRoamControlInfo    pNeighborRoamInfo =
-                              &pMac->roam.neighborRoamInfo[pInfo->sessionId];
+    tpCsrNeighborRoamControlInfo  pNeighborRoamInfo;
+
+    if (!pMac)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
+        return;
+    }
+    if (CSR_SESSION_ID_INVALID == sessionId)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+        return;
+    }
+    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo[sessionId];
 
     NEIGHBOR_ROAM_DEBUG(pMac, LOG2, FL("Deregistering DOWN event reassoc callback with TL. RSSI = %d"), pNeighborRoamInfo->cfgParams.neighborReassocThreshold * (-1));
 
