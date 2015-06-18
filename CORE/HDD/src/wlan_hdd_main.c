@@ -11375,6 +11375,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
 #ifdef CONFIG_CNSS
+   uint16_t unsafe_channel_count;
    int unsafeChannelIndex;
 #endif
 #endif
@@ -11740,17 +11741,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
 
-   hddLog(VOS_TRACE_LEVEL_INFO,"%s: num of unsafe channels is %d. ",
+   hddLog(LOG1,"%s: num of unsafe channels is %d. ",
           __func__,
           pHddCtx->unsafe_channel_count);
-   for (unsafeChannelIndex = 0;
-        unsafeChannelIndex < pHddCtx->unsafe_channel_count;
-        unsafeChannelIndex++)
-   {
-       hddLog(VOS_TRACE_LEVEL_INFO,"%s: channel %d is not safe. ",
-              __func__, pHddCtx->unsafe_channel_list[unsafeChannelIndex]);
 
+   unsafe_channel_count = VOS_MIN((uint16_t)pHddCtx->unsafe_channel_count,
+                              (uint16_t)NUM_20MHZ_RF_CHANNELS);
+
+   for (unsafeChannelIndex = 0;
+       unsafeChannelIndex < unsafe_channel_count;
+       unsafeChannelIndex++) {
+       hddLog(LOG1,"%s: channel %d is not safe. ",
+         __func__, pHddCtx->unsafe_channel_list[unsafeChannelIndex]);
    }
+
    /* Plug in avoid channel notification callback */
    sme_AddChAvoidCallback(pHddCtx->hHal,
                           hdd_ch_avoid_cb);
@@ -13152,8 +13156,14 @@ static uint8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt,
    uint16_t             i;
    uint16_t             channel_loop;
 
+   if (!hdd_ctxt || !ap_adapter) {
+      hddLog(LOGE, "%s : Invalid arguments: hdd_ctxt=%p, ap_adapter=%p",
+             __func__, hdd_ctxt, ap_adapter);
+      return 0;
+   }
+
    safe_channel_count = 0;
-   unsafe_channel_count = min((uint16_t)hdd_ctxt->unsafe_channel_count,
+   unsafe_channel_count = VOS_MIN((uint16_t)hdd_ctxt->unsafe_channel_count,
                               (uint16_t)NUM_20MHZ_RF_CHANNELS);
 
    for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
