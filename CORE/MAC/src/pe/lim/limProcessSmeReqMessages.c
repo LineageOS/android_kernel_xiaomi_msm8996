@@ -4228,16 +4228,6 @@ __limProcessSmeAddtsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    //Ignore the request if STA is in 11B mode.
-    if(psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11B)
-    {
-        PELOGE(limLog(pMac, LOGE, "AddTS received while Dot11Mode is 11B - ignoring");)
-        limSendSmeAddtsRsp(pMac, pSirAddts->rspReqd, eSIR_FAILURE, psessionEntry, pSirAddts->req.tspec,
-                smesessionId,smetransactionId);
-        return;
-    }
-
-
     pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
     if(pStaDs == NULL)
