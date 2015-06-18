@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1561,28 +1561,27 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
             pRates->vhtTxHighestDataRate = SIR_MIN(pRates->vhtTxHighestDataRate, pPeerVHTCaps->txSupDataRate);
             pRates->vhtRxHighestDataRate = SIR_MIN(pRates->vhtRxHighestDataRate, pPeerVHTCaps->rxHighSupDataRate);
 
-            if (pMac->roam.configParam.enable2x2)
-            {
-               if (psessionEntry)
-               {
-                    if ((pMac->lteCoexAntShare) &&
-                          (IS_24G_CH(psessionEntry->currentOperChannel)))
-                    {
-                        if(IS_2X2_CHAIN(psessionEntry->chainMask))
+            if (!pMac->per_band_chainmask_supp) {
+                if (pMac->roam.configParam.enable2x2) {
+                    if (psessionEntry) {
+                        if ((pMac->lteCoexAntShare) && (IS_24G_CH(
+                                        psessionEntry->currentOperChannel))) {
+                            if (IS_2X2_CHAIN(psessionEntry->chainMask))
+                                mcsMapMask2x2 = MCSMAPMASK2x2;
+                            else
+                                limLog(pMac, LOGE,FL(
+                                                "2x2 not enabled %d"),
+                                                psessionEntry->chainMask);
+                        } else {
                             mcsMapMask2x2 = MCSMAPMASK2x2;
-                        else
-                            PELOGE(limLog(pMac, LOGE, FL("2x2 not enabled %d"),
-                                       psessionEntry->chainMask);)
-                    }
-                    else
-                    {
+                        }
+                    } else {
                         mcsMapMask2x2 = MCSMAPMASK2x2;
                     }
-               }
-               else
-               {
+                }
+            } else {
+                if (psessionEntry->vdev_nss == 2)
                     mcsMapMask2x2 = MCSMAPMASK2x2;
-               }
             }
 
             if ((pPeerVHTCaps->txMCSMap & mcsMapMask) < (pRates->vhtRxMCSMap & mcsMapMask)) {
@@ -1790,6 +1789,8 @@ limPopulateOwnRateSet(tpAniSirGlobal pMac,
             goto error;
         }
 
+        if (psessionEntry->vdev_nss == 1)
+            pRates->supportedMCSSet[1] = 0;
 
         //if supported MCS Set of the peer is passed in, then do the intersection
         //else use the MCS set from local CFG.
@@ -1947,6 +1948,9 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve supportedMCSSet"));)
             goto error;
         }
+        if (psessionEntry->vdev_nss == 1)
+            pRates->supportedMCSSet[1] = 0;
+
         //if supported MCS Set of the peer is passed in, then do the intersection
         //else use the MCS set from local CFG.
         if(pSupportedMCSSet != NULL)
@@ -2189,6 +2193,8 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
             limLog(pMac, LOGP, FL("could not retrieve supportedMCSSet"));
             goto error;
         }
+        if (psessionEntry->vdev_nss == 1)
+            mcsSet[1] = 0;
 
         for(i=0; i<val; i++)
            pStaDs->supportedRates.supportedMCSSet[i] = mcsSet[i] & pSupportedMCSSet[i];

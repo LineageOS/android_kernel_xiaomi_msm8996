@@ -1366,6 +1366,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             }
           }
           break;
+        case eWNI_SME_PDEV_SET_HT_VHT_IE:
         case eWNI_SME_START_REQ:
         case eWNI_SME_SYS_READY_IND:
         case eWNI_SME_JOIN_REQ:

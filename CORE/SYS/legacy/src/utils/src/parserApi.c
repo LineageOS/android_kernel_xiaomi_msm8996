@@ -728,18 +728,19 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                  pDot11f->supportedMCSSet, nCfgLen,
                  SIZE_OF_SUPPORTED_MCS_SET );
 
-    if (psessionEntry)
-    {
-        if (pMac->lteCoexAntShare && (IS_24G_CH(psessionEntry->currentOperChannel)))
-        {
-            if(!(IS_2X2_CHAIN(psessionEntry->chainMask)))
-            {
+    if (!pMac->per_band_chainmask_supp) {
+        if (psessionEntry && (pMac->lteCoexAntShare &&
+                (IS_24G_CH(psessionEntry->currentOperChannel)))) {
+            if(!(IS_2X2_CHAIN(psessionEntry->chainMask))) {
                 pDot11f->supportedMCSSet[1] = 0;
                 if (LIM_IS_STA_ROLE(psessionEntry)) {
                     pDot11f->mimoPowerSave = psessionEntry->smpsMode;
                 }
             }
         }
+    } else {
+        if (psessionEntry && psessionEntry->vdev_nss == 1)
+            pDot11f->supportedMCSSet[1] = 0;
     }
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_EXT_HT_CAP_INFO, nCfgValue );
@@ -1029,16 +1030,21 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
     nCfgValue = 0;
     CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_TX_MCS_MAP, nCfgValue );
     pDot11f->txMCSMap = (nCfgValue & 0x0000FFFF);
-    if (psessionEntry)
-    {
-        if (pMac->lteCoexAntShare && (IS_24G_CH(psessionEntry->currentOperChannel)))
-        {
-            if(!(IS_2X2_CHAIN(psessionEntry->chainMask)))
-            {
-                pDot11f->txMCSMap |= DISABLE_NSS2_MCS;
-                pDot11f->rxMCSMap |= DISABLE_NSS2_MCS;
+    if (!pMac->per_band_chainmask_supp) {
+            if (psessionEntry) {
+                    if (pMac->lteCoexAntShare &&
+                            (IS_24G_CH(psessionEntry->currentOperChannel))) {
+                            if(!(IS_2X2_CHAIN(psessionEntry->chainMask))) {
+                                    pDot11f->txMCSMap |= DISABLE_NSS2_MCS;
+                                    pDot11f->rxMCSMap |= DISABLE_NSS2_MCS;
+                            }
+                    }
             }
-        }
+    } else {
+            if (psessionEntry && psessionEntry->vdev_nss == 1) {
+                    pDot11f->txMCSMap |= DISABLE_NSS2_MCS;
+                    pDot11f->rxMCSMap |= DISABLE_NSS2_MCS;
+            }
     }
 
     nCfgValue = 0;

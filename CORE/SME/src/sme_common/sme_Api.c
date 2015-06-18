@@ -12174,6 +12174,72 @@ void sme_SetCurrDeviceMode (tHalHandle hHal, tVOS_CON_MODE currDeviceMode)
     return;
 }
 
+/**
+ * sme_set_pdev_ht_vht_ies() - sends the set pdev IE req
+ *
+ * @hal: Pointer to HAL
+ * @enable2x2: 1x1 or 2x2 mode.
+ *
+ * Sends the set pdev IE req with Nss value.
+ *
+ * Return: None
+ */
+void sme_set_pdev_ht_vht_ies(tHalHandle hal, bool enable2x2)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	struct sir_set_ht_vht_cfg *ht_vht_cfg;
+	eHalStatus status = eHAL_STATUS_FAILURE;
+
+	if (!mac_ctx->per_band_chainmask_supp)
+		return;
+
+	if (!((mac_ctx->roam.configParam.uCfgDot11Mode ==
+					eCSR_CFG_DOT11_MODE_AUTO) ||
+				(mac_ctx->roam.configParam.uCfgDot11Mode ==
+				 eCSR_CFG_DOT11_MODE_11N) ||
+				(mac_ctx->roam.configParam.uCfgDot11Mode ==
+				 eCSR_CFG_DOT11_MODE_11N_ONLY) ||
+				(mac_ctx->roam.configParam.uCfgDot11Mode ==
+				 eCSR_CFG_DOT11_MODE_11AC) ||
+				(mac_ctx->roam.configParam.uCfgDot11Mode ==
+				 eCSR_CFG_DOT11_MODE_11AC_ONLY)))
+		return;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		ht_vht_cfg = vos_mem_malloc(sizeof(*ht_vht_cfg));
+		if (NULL == ht_vht_cfg) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+					"%s: mem alloc failed for ht_vht_cfg",
+					__func__);
+			sme_ReleaseGlobalLock(&mac_ctx->sme);
+			return;
+		}
+
+		ht_vht_cfg->pdev_id = 0;
+		if (enable2x2)
+			ht_vht_cfg->nss = 2;
+		else
+			ht_vht_cfg->nss = 1;
+		ht_vht_cfg->dot11mode =
+			(tANI_U8)csrTranslateToWNICfgDot11Mode(mac_ctx,
+				mac_ctx->roam.configParam.uCfgDot11Mode);
+
+		ht_vht_cfg->msg_type = eWNI_SME_PDEV_SET_HT_VHT_IE;
+		ht_vht_cfg->len = sizeof(*ht_vht_cfg);
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				"%s: send PDEV_SET_HT_VHT_IE with nss - %d, dot11mode - %d",
+				__func__, ht_vht_cfg->nss, ht_vht_cfg->dot11mode);
+		status = palSendMBMessage(mac_ctx->hHdd, ht_vht_cfg);
+		if (eHAL_STATUS_SUCCESS != status) {
+			smsLog(mac_ctx, LOGE, FL(
+				"SME_PDEV_SET_HT_VHT_IE msg to PE failed"));
+			vos_mem_free(ht_vht_cfg);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+	return;
+}
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /*--------------------------------------------------------------------------
   \brief sme_HandoffRequest() - a wrapper function to Request a handoff
@@ -16698,3 +16764,132 @@ void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log)
     tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
     mac_ctx->sap.enable_dfs_phy_error_logs = enable_log;
 }
+/**
+ * sme_set_vdev_nss() - sets the vdev nss based on INI
+ * @hal: Pointer to HAL
+ * @enable2x2: 1x1 or 2x2 mode.
+ *
+ * Sets the per band Nss for each vdev type based on INI.
+ *
+ * Return: None
+ */
+void sme_set_vdev_nss(tHalHandle hal, bool enable2x2)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	struct vdev_type_nss *vdev_nss;
+	uint8_t i;
+	uint8_t nss_val;
+	uint8_t coex;
+
+	if (enable2x2) {
+		if (mac_ctx->lteCoexAntShare)
+			coex = 1;
+		else
+			coex = 0;
+		nss_val = 2;
+	} else {
+		nss_val = 1;
+		coex = 0;
+	}
+
+	vdev_nss = &mac_ctx->vdev_type_nss_2g;
+
+	for (i = 0; i < NUM_OF_BANDS; i++) {
+		vdev_nss->sta = nss_val;
+		vdev_nss->sap = nss_val - coex;
+		vdev_nss->p2p_go = nss_val - coex;
+		vdev_nss->p2p_cli = nss_val - coex;
+		vdev_nss->p2p_dev = nss_val - coex;
+		vdev_nss->ibss = nss_val - coex;
+		vdev_nss->tdls = nss_val - coex;
+		vdev_nss->ocb = nss_val - coex;
+
+		vdev_nss = &mac_ctx->vdev_type_nss_5g;
+		coex = 0;
+	}
+}
+
+/**
+ * sme_update_vdev_type_nss() - sets the nss per vdev type
+ * @hal: Pointer to HAL
+ * @max_supp_nss: max_supported Nss
+ * @band: 5G or 2.4G band
+ *
+ * Sets the per band Nss for each vdev type based on INI and configured
+ * chain mask value.
+ *
+ * Return: None
+ */
+void sme_update_vdev_type_nss(tHalHandle hal, uint8_t max_supp_nss,
+		uint32_t vdev_type_nss, eCsrBand band)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	struct vdev_type_nss *vdev_nss;
+
+	if (eCSR_BAND_5G == band) {
+		vdev_nss = &mac_ctx->vdev_type_nss_5g;
+	} else {
+		vdev_nss = &mac_ctx->vdev_type_nss_2g;
+	}
+
+	vdev_nss->sta = VOS_MIN(max_supp_nss, CFG_STA_NSS(vdev_type_nss));
+	vdev_nss->sap = VOS_MIN(max_supp_nss, CFG_SAP_NSS(vdev_type_nss));
+	vdev_nss->p2p_go = VOS_MIN(max_supp_nss,
+				CFG_P2P_GO_NSS(vdev_type_nss));
+	vdev_nss->p2p_cli = VOS_MIN(max_supp_nss,
+				CFG_P2P_CLI_NSS(vdev_type_nss));
+	vdev_nss->p2p_dev = VOS_MIN(max_supp_nss,
+				CFG_P2P_DEV_NSS(vdev_type_nss));
+	vdev_nss->ibss = VOS_MIN(max_supp_nss, CFG_IBSS_NSS(vdev_type_nss));
+	vdev_nss->tdls = VOS_MIN(max_supp_nss, CFG_TDLS_NSS(vdev_type_nss));
+	vdev_nss->ocb = VOS_MIN(max_supp_nss, CFG_OCB_NSS(vdev_type_nss));
+
+	smsLog(mac_ctx, LOG1,
+           "band %d NSS: sta %d sap %d cli %d go %d dev %d ibss %d tdls %d ocb %d",
+           band, vdev_nss->sta, vdev_nss->sap, vdev_nss->p2p_cli,
+           vdev_nss->p2p_go, vdev_nss->p2p_dev, vdev_nss->ibss,
+           vdev_nss->tdls, vdev_nss->ocb);
+}
+
+/**
+ * sme_set_per_band_chainmask_supp() - sets the per band chainmask support
+ * @hal: Pointer to HAL
+ * @val: Value to be set.
+ *
+ * Sets the per band chain mask support to mac context.
+ * Return: None
+ */
+void sme_set_per_band_chainmask_supp(tHalHandle hal, bool val)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	mac_ctx->per_band_chainmask_supp = val;
+}
+
+/**
+ * sme_set_lte_coex_supp() - sets the lte coex antenna share support
+ * @hal: Pointer to HAL
+ * @val: Value to be set.
+ *
+ * Sets the lte coex antenna share support to mac context.
+ * Return: None
+ */
+void sme_set_lte_coex_supp(tHalHandle hal, bool val)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	mac_ctx->lteCoexAntShare = val;
+}
+
+/**
+ * sme_set_bcon_offload_supp() - sets the beacon offload support
+ * @hal: Pointer to HAL
+ * @val: Value to be set.
+ *
+ * Sets the beacon offload support to mac context.
+ * Return: None
+ */
+void sme_set_bcon_offload_supp(tHalHandle hal, bool val)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	mac_ctx->beacon_offload = val;
+}
+

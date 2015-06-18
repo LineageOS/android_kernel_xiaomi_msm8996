@@ -310,11 +310,6 @@ extern spinlock_t hdd_context_lock;
 #define WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH   14
 #endif /* QCA_LL_TX_FLOW_CT */
 
-#define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
-#define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1       390
-#define HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_2_2       780
-#define HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_2_2       780
-
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
@@ -1558,6 +1553,7 @@ struct hdd_context_s
 #ifdef WLAN_FEATURE_OFFLOAD_PACKETS
     struct hdd_offloaded_packets_ctx op_ctx;
 #endif
+    bool per_band_chainmask_supp;
 };
 
 /*---------------------------------------------------------------------------

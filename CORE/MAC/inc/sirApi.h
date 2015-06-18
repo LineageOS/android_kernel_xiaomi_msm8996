@@ -3417,6 +3417,8 @@ typedef struct sSirSmeAddStaSelfReq
     tANI_U32        subType;
     tANI_U8         sessionId;
     tANI_U16        pkt_err_disconn_th;
+    uint8_t         nss_2g;
+    uint8_t         nss_5g;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq
@@ -4340,6 +4342,9 @@ typedef struct sSirUpdateChanParam
 typedef struct sSirUpdateChan
 {
     tANI_U8 numChan;
+    uint8_t ht_en;
+    uint8_t vht_en;
+    uint8_t vht_24_en;
     tSirUpdateChanParam chanParam[1];
 } tSirUpdateChanList, *tpSirUpdateChanList;
 
@@ -5429,6 +5434,25 @@ struct sir_ipa_offload_enable_disable
     uint32_t offload_type;
     uint32_t vdev_id;
     uint32_t enable;
+};
+
+/**
+ * struct sir_set_ht_vht_cfg - ht, vht IE config
+ *
+ * @msg_type: message type
+ * @len: message length
+ * @pdev_id: pdev id
+ * @nss: Nss value
+ * @dot11mode: Dot11 mode.
+ *
+ * Message wrapper structure for set HT/VHT IE req.
+ */
+struct sir_set_ht_vht_cfg {
+    uint16_t msg_type;
+    uint16_t len;
+    uint32_t pdev_id;
+    uint32_t nss;
+    uint32_t dot11mode;
 };
 
 /*---------------------------------------------------------------------------

@@ -1689,6 +1689,8 @@ static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev
 	add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
 	add_sta_self_param.subType   = 0;
 	add_sta_self_param.status    = 0;
+	add_sta_self_param.nss_2g = wma->interfaces[vdev_id].nss_2g;
+	add_sta_self_param.nss_5g = wma->interfaces[vdev_id].nss_5g;
 
 	/* delete old ibss vdev */
 	del_sta_param.sessionId   = vdev_id;
@@ -6427,19 +6429,25 @@ enum wlan_op_mode wma_get_txrx_vdev_type(u_int32_t type)
  */
 int wma_unified_vdev_create_send(wmi_unified_t wmi_handle, u_int8_t if_id,
 				 u_int32_t type, u_int32_t subtype,
-				 u_int8_t macaddr[IEEE80211_ADDR_LEN])
+				 u_int8_t macaddr[IEEE80211_ADDR_LEN],
+				 u_int8_t nss_2g, u_int8_t nss_5g)
 {
 	wmi_vdev_create_cmd_fixed_param* cmd;
 	wmi_buf_t buf;
 	int len = sizeof(*cmd);
 	int ret;
+	int num_bands = 2;
+	u_int8_t *buf_ptr;
+	wmi_vdev_txrx_streams *txrx_streams;
+
+	len += (num_bands * sizeof(wmi_vdev_txrx_streams) + WMI_TLV_HDR_SIZE);
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
 		WMA_LOGP("%s:wmi_buf_alloc failed", __FUNCTION__);
 		return ENOMEM;
 	}
-	cmd = (wmi_vdev_create_cmd_fixed_param *) wmi_buf_data(buf);
+	cmd = (wmi_vdev_create_cmd_fixed_param *)wmi_buf_data(buf);
 	WMITLV_SET_HDR(&cmd->tlv_header,
 		       WMITLV_TAG_STRUC_wmi_vdev_create_cmd_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
@@ -6447,11 +6455,36 @@ int wma_unified_vdev_create_send(wmi_unified_t wmi_handle, u_int8_t if_id,
 	cmd->vdev_id = if_id;
 	cmd->vdev_type = type;
 	cmd->vdev_subtype = subtype;
+	cmd->num_cfg_txrx_streams = num_bands;
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(macaddr, &cmd->vdev_macaddr);
 	WMA_LOGE("%s: ID = %d VAP Addr = %02x:%02x:%02x:%02x:%02x:%02x",
 		 __func__, if_id,
 		 macaddr[0], macaddr[1], macaddr[2],
 		 macaddr[3], macaddr[4], macaddr[5]);
+
+	buf_ptr = (u_int8_t *)cmd + sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+			(num_bands * sizeof(wmi_vdev_txrx_streams)));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	WMA_LOGD("%s: type %d, subtype %d, nss_2g %d, nss_5g %d", __func__,
+			type, subtype, nss_2g, nss_5g);
+	txrx_streams = (wmi_vdev_txrx_streams *)buf_ptr;
+	txrx_streams->band = WMI_TPC_CHAINMASK_CONFIG_BAND_2G;
+	txrx_streams->supported_tx_streams = nss_2g;
+	txrx_streams->supported_rx_streams = nss_2g;
+	WMITLV_SET_HDR(&txrx_streams->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_txrx_streams,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_txrx_streams));
+
+	buf_ptr += sizeof(wmi_vdev_txrx_streams);
+	txrx_streams = (wmi_vdev_txrx_streams *)buf_ptr;
+	txrx_streams->band = WMI_TPC_CHAINMASK_CONFIG_BAND_5G;
+	txrx_streams->supported_tx_streams = nss_5g;
+	txrx_streams->supported_rx_streams = nss_5g;
+	WMITLV_SET_HDR(&txrx_streams->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_txrx_streams,
+		       WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_txrx_streams));
 	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_CREATE_CMDID);
 	if (ret != EOK) {
 		WMA_LOGE("Failed to send WMI_VDEV_CREATE_CMDID");
@@ -7169,7 +7202,9 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->sessionId,
 						self_sta_req->type,
 						self_sta_req->subType,
-						self_sta_req->selfMacAddr))
+						self_sta_req->selfMacAddr,
+						self_sta_req->nss_2g,
+						self_sta_req->nss_5g))
 	{
 		WMA_LOGP("%s: Unable to add an interface for ath_dev", __func__);
 		status = VOS_STATUS_E_RESOURCES;
@@ -7250,6 +7285,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		self_sta_req->type;
 	wma_handle->interfaces[self_sta_req->sessionId].sub_type =
 		self_sta_req->subType;
+	wma_handle->interfaces[self_sta_req->sessionId].nss_2g =
+		self_sta_req->nss_2g;
+	wma_handle->interfaces[self_sta_req->sessionId].nss_5g =
+		self_sta_req->nss_5g;
 	adf_os_atomic_init(&wma_handle->interfaces
 			   [self_sta_req->sessionId].bss_status);
 
@@ -8375,6 +8414,8 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 		       sizeof(wmi_channel) * chan_list->numChan);
 	chan_info = (wmi_channel *) (buf_ptr + sizeof(*cmd) + WMI_TLV_HDR_SIZE);
 
+	WMA_LOGD("ht %d, vht %d, vht_24 %d", chan_list->ht_en,
+			chan_list->vht_en, chan_list->vht_24_en);
 	for (i = 0; i < chan_list->numChan; ++i) {
 		WMITLV_SET_HDR(&chan_info->tlv_header,
 			       WMITLV_TAG_STRUC_wmi_channel,
@@ -8400,10 +8441,19 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 
 		if (chan_info->mhz < WMA_2_4_GHZ_MAX_FREQ) {
 			WMI_SET_CHANNEL_MODE(chan_info, MODE_11G);
+			if (chan_list->vht_en && chan_list->vht_24_en)
+				WMI_SET_CHANNEL_FLAG(chan_info,
+						WMI_CHAN_FLAG_ALLOW_VHT);
 		} else {
 			WMI_SET_CHANNEL_MODE(chan_info, MODE_11A);
+			if (chan_list->vht_en)
+			WMI_SET_CHANNEL_FLAG(chan_info,
+					WMI_CHAN_FLAG_ALLOW_VHT);
 		}
 
+		if (chan_list->ht_en)
+			WMI_SET_CHANNEL_FLAG(chan_info,
+					WMI_CHAN_FLAG_ALLOW_HT);
 
 		WMI_SET_CHANNEL_MAX_TX_POWER(chan_info,
 					  chan_list->chanParam[i].pwr);
@@ -11852,7 +11902,8 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	 * Limit nss to max number of rf chain supported by target
 	 * Otherwise Fw will crash
 	 */
-	wma_update_txrx_chainmask(wma->num_rf_chains, &cmd->peer_nss);
+	if (!wma->per_band_chainmask_supp)
+		wma_update_txrx_chainmask(wma->num_rf_chains, &cmd->peer_nss);
 
 	intr->nss = cmd->peer_nss;
 	cmd->peer_phymode = phymode;
@@ -13006,6 +13057,14 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
 			break;
+		case WMI_PDEV_PARAM_TX_CHAIN_MASK_2G:
+		case WMI_PDEV_PARAM_RX_CHAIN_MASK_2G:
+			wma->pdevconfig.chainmask_2g = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_TX_CHAIN_MASK_5G:
+		case WMI_PDEV_PARAM_RX_CHAIN_MASK_5G:
+			wma->pdevconfig.chainmask_5g = privcmd->param_value;
+			break;
 		case WMI_PDEV_PARAM_BURST_ENABLE:
 			wma->pdevconfig.burst_enable = privcmd->param_value;
 			if ((wma->pdevconfig.burst_enable == 1) &&
@@ -13297,6 +13356,139 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		}
 	}
 	return ret;
+}
+
+/**
+ * wma_process_set_pdev_ht_ie_req() - sends HT IE data to FW
+ *
+ * @wma: Pointer to wma handle
+ * @ie_params: Pointer to IE data.
+ * @nss: Nss values to prepare the HT IE.
+ *
+ * Sends the WMI req to set the HT IE to FW.
+ *
+ * Return: None
+ */
+void wma_process_set_pdev_ht_ie_req(tp_wma_handle wma,
+		struct set_ie_param *ie_params)
+{
+	int ret;
+	wmi_pdev_set_ht_ie_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int16_t len;
+	u_int16_t ie_len_pad;
+	u_int8_t *buf_ptr;
+
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE;
+	ie_len_pad = roundup(ie_params->ie_len, sizeof(u_int32_t));
+	len += ie_len_pad;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return;
+	}
+	cmd = (wmi_pdev_set_ht_ie_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_pdev_set_ht_ie_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			       wmi_pdev_set_ht_ie_cmd_fixed_param));
+	cmd->reserved0 = 0;
+	cmd->ie_len = ie_params->ie_len;
+	cmd->tx_streams = ie_params->nss;
+	cmd->rx_streams = ie_params->nss;
+	WMA_LOGD("Setting pdev HT ie with Nss = %u",
+			ie_params->nss);
+	buf_ptr = (u_int8_t *)cmd + sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, ie_len_pad);
+	if (ie_params->ie_len) {
+		vos_mem_copy(buf_ptr + WMI_TLV_HDR_SIZE,
+			     (u_int8_t *)ie_params->ie_ptr,
+			     ie_params->ie_len);
+	}
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+					WMI_PDEV_SET_HT_CAP_IE_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("Failed to send set param command ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+}
+
+/**
+ * wma_process_set_pdev_vht_ie_req() - sends VHT IE data to FW
+ *
+ * @wma: Pointer to wma handle
+ * @ie_params: Pointer to IE data.
+ * @nss: Nss values to prepare the VHT IE.
+ *
+ * Sends the WMI req to set the VHT IE to FW.
+ *
+ * Return: None
+ */
+void wma_process_set_pdev_vht_ie_req(tp_wma_handle wma,
+		struct set_ie_param *ie_params)
+{
+	int ret;
+	wmi_pdev_set_vht_ie_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int16_t len;
+	u_int16_t ie_len_pad;
+	u_int8_t *buf_ptr;
+
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE;
+	ie_len_pad = roundup(ie_params->ie_len, sizeof(u_int32_t));
+	len += ie_len_pad;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return;
+	}
+	cmd = (wmi_pdev_set_vht_ie_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_pdev_set_vht_ie_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_pdev_set_vht_ie_cmd_fixed_param));
+	cmd->reserved0 = 0;
+	cmd->ie_len = ie_params->ie_len;
+	cmd->tx_streams = ie_params->nss;
+	cmd->rx_streams = ie_params->nss;
+	WMA_LOGD("Setting pdev VHT ie with Nss = %u",
+			ie_params->nss);
+	buf_ptr = (u_int8_t *)cmd + sizeof(*cmd);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, ie_len_pad);
+	if (ie_params->ie_len) {
+		vos_mem_copy(buf_ptr + WMI_TLV_HDR_SIZE,
+				(u_int8_t *)ie_params->ie_ptr,
+				ie_params->ie_len);
+	}
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+			WMI_PDEV_SET_VHT_CAP_IE_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("Failed to send set param command ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+}
+
+/**
+ * wma_process_set_pdev_ie_req() - process the pdev set IE req
+ *
+ * @wma: Pointer to wma handle
+ * @ie_params: Pointer to IE data.
+ *
+ * Sends the WMI req to set the IE to FW.
+ *
+ * Return: None
+ */
+void wma_process_set_pdev_ie_req(tp_wma_handle wma,
+		struct set_ie_param *ie_params)
+{
+	if (ie_params->ie_type == DOT11_HT_IE)
+		wma_process_set_pdev_ht_ie_req(wma, ie_params);
+	if (ie_params->ie_type == DOT11_VHT_IE)
+		wma_process_set_pdev_vht_ie_req(wma, ie_params);
+
+	vos_mem_free(ie_params->ie_ptr);
 }
 
 static void
@@ -13687,6 +13879,7 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
         tDelStaSelfParams del_sta_param;
         tAddStaSelfParams add_sta_self_param;
 	tSetBssKeyParams key_info;
+	u_int8_t nss_2g, nss_5g;
 
         WMA_LOGD("%s: add_bss->sessionId = %d", __func__, add_bss->sessionId);
         vdev_id = add_bss->sessionId;
@@ -13696,6 +13889,9 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to get pdev", __func__);
 		goto send_fail_resp;
 	}
+
+	nss_2g = wma->interfaces[vdev_id].nss_2g;
+	nss_5g = wma->interfaces[vdev_id].nss_5g;
 	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
 
 	vdev = wma_find_vdev_by_id(wma, vdev_id);
@@ -13735,6 +13931,8 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		add_sta_self_param.type      = WMI_VDEV_TYPE_IBSS;
 		add_sta_self_param.subType   = 0;
 		add_sta_self_param.status    = 0;
+		add_sta_self_param.nss_2g    = add_bss->nss_2g;
+		add_sta_self_param.nss_5g    = add_bss->nss_5g;
 
 		vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
 		if (!vdev) {
@@ -20284,7 +20482,10 @@ static void wma_process_update_rx_nss(tp_wma_handle wma_handle,
 		&wma_handle->interfaces[update_rx_nss->smesessionId];
 	int rxNss = update_rx_nss->rxNss;
 
-	wma_update_txrx_chainmask(wma_handle->num_rf_chains, &rxNss);
+	if (wma_handle->per_band_chainmask_supp)
+		wma_update_txrx_chainmask(intr->nss, &rxNss);
+	else
+		wma_update_txrx_chainmask(wma_handle->num_rf_chains, &rxNss);
 	intr->nss = (tANI_U8) rxNss;
 	update_rx_nss->rxNss = (tANI_U32) rxNss;
 
@@ -25267,6 +25468,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(wda_cli_set_cmd_t *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_SET_PDEV_IE_REQ:
+			wma_process_set_pdev_ie_req(wma_handle,
+					(struct set_ie_param *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 #if !defined(REMOVE_PKT_LOG)
 		case WDA_PKTLOG_ENABLE_REQ:
 			wma_pktlog_wmi_send_cmd(wma_handle,
@@ -27687,6 +27893,10 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 #endif
 	cfg->lte_coex_ant_share = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					WMI_SERVICE_LTE_ANT_SHARE_SUPPORT);
+	cfg->per_band_chainmask_supp = WMI_SERVICE_IS_ENABLED(
+			wh->wmi_service_bitmap,
+			WMI_SERVICE_PER_BAND_CHAINMASK_SUPPORT);
+	wh->per_band_chainmask_supp = cfg->per_band_chainmask_supp;
 #ifdef FEATURE_WLAN_TDLS
 	/* Enable TDLS */
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_TDLS)) {
@@ -27725,7 +27935,8 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 			WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					WMI_SERVICE_SAP_AUTH_OFFLOAD);
 #endif
-
+	cfg->chain_mask_2g = wh->txrx_chainmask & 0xFF;
+	cfg->chain_mask_5g = (wh->txrx_chainmask >> 16 ) & 0xFF;
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,
@@ -28031,7 +28242,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	wma_handle->vht_cap_info = ev->vht_cap_info;
         wma_handle->vht_supp_mcs = ev->vht_supp_mcs;
 #endif
-	wma_handle->num_rf_chains = ev->num_rf_chains;
+	wma_handle->txrx_chainmask = ev->txrx_chainmask;
 
 	wma_handle->target_fw_version = ev->fw_build_vers;
 

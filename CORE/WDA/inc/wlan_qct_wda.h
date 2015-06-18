@@ -888,6 +888,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_CLI_SET_CMD             SIR_HAL_CLI_SET_CMD
 #define WDA_CLI_GET_CMD             SIR_HAL_CLI_GET_CMD
+#define WDA_SET_PDEV_IE_REQ         SIR_HAL_SET_PDEV_IE_REQ
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define WDA_SME_SCAN_CACHE_UPDATED  SIR_HAL_SME_SCAN_CACHE_UPDATED
 #endif

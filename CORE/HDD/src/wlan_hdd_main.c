@@ -6281,7 +6281,6 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
                                     struct hdd_tgt_services *cfg)
 {
     hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hdd_ctx->hHal);
 
     /* Set up UAPSD */
     cfg_ini->apUapsdEnabled &= cfg->uapsd;
@@ -6304,7 +6303,11 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     if (cfg->pno_offload)
         cfg_ini->PnoOffload = TRUE;
 #endif
-    pMac->lteCoexAntShare = cfg->lte_coex_ant_share;
+    sme_set_lte_coex_supp(hdd_ctx->hHal,
+                    cfg->lte_coex_ant_share);
+    hdd_ctx->per_band_chainmask_supp = cfg->per_band_chainmask_supp;
+    sme_set_per_band_chainmask_supp(hdd_ctx->hHal,
+                    cfg->per_band_chainmask_supp);
 #ifdef FEATURE_WLAN_TDLS
     cfg_ini->fEnableTDLSSupport &= cfg->en_tdls;
     cfg_ini->fEnableTDLSOffChannel &= cfg->en_tdls_offchan;
@@ -6318,7 +6321,7 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
         cfg_ini->fEnableTDLSSleepSta = FALSE;
     }
 #endif
-    pMac->beacon_offload = cfg->beacon_offload;
+    sme_set_bcon_offload_supp(hdd_ctx->hHal, cfg->beacon_offload);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     cfg_ini->isRoamOffloadEnabled &= cfg->en_roam_offload;
 #endif
@@ -6326,7 +6329,81 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 #ifdef SAP_AUTH_OFFLOAD
     cfg_ini->enable_sap_auth_offload &= cfg->sap_auth_offload_service;
 #endif
+}
 
+/**
+ * hdd_update_chain_mask_vdev_nss() - sets the chain mask and vdev nss
+ * @hdd_ctx: HDD context
+ * @cfg: Pointer to target services.
+ *
+ * Sets the chain masks for 2G and 5G bands based on target supported
+ * values and INI values. And sets the Nss per vdev type based on INI
+ * and configured chain mask value.
+ *
+ * Return: None
+ */
+static void hdd_update_chain_mask_vdev_nss(hdd_context_t *hdd_ctx,
+		struct hdd_tgt_services *cfg)
+{
+	hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
+	uint8_t chain_mask, ret;
+	uint8_t max_supp_nss = 1;
+
+	cfg_ini->enable2x2 = 0;
+	chain_mask = cfg->chain_mask_2g & cfg_ini->chain_mask_2g;
+	if (!chain_mask)
+		chain_mask = cfg->chain_mask_2g;
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			"%s: set 2G chain mask value %d",
+			__func__, chain_mask);
+	ret = process_wma_set_command(0, WMI_PDEV_PARAM_RX_CHAIN_MASK_2G,
+			chain_mask, PDEV_CMD);
+	if (0 != ret) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: set WMI_PDEV_PARAM_RX_CHAIN_MASK_2G failed %d",
+			__func__, ret);
+	}
+	ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_2G,
+			chain_mask, PDEV_CMD);
+	if (0 != ret) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: WMI_PDEV_PARAM_TX_CHAIN_MASK_2G set failed %d",
+			__func__, ret);
+	}
+	max_supp_nss += ((chain_mask & 0x3) == 0x3);
+
+	if (max_supp_nss == 2)
+		cfg_ini->enable2x2 = 1;
+	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
+			cfg_ini->vdev_type_nss_2g, eCSR_BAND_24);
+
+	max_supp_nss = 1;
+	chain_mask = cfg->chain_mask_5g & cfg_ini->chain_mask_5g;
+	if (!chain_mask)
+		chain_mask = cfg->chain_mask_5g;
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			"%s: set 5G chain mask value %d",
+			__func__, chain_mask);
+	ret = process_wma_set_command(0, WMI_PDEV_PARAM_RX_CHAIN_MASK_5G,
+			chain_mask, PDEV_CMD);
+	if (0 != ret) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: set WMI_PDEV_PARAM_RX_CHAIN_MASK_5G failed %d",
+			__func__, ret);
+	}
+	ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_5G,
+			chain_mask, PDEV_CMD);
+	if (0 != ret) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: WMI_PDEV_PARAM_TX_CHAIN_MASK_5G set failed %d",
+			__func__, ret);
+	}
+	max_supp_nss += ((chain_mask & 0x3) == 0x3);
+
+	if (max_supp_nss == 2)
+		cfg_ini->enable2x2 = 1;
+	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
+			cfg_ini->vdev_type_nss_5g, eCSR_BAND_5G);
 }
 
 static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
@@ -6396,7 +6473,8 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
 
     enable_tx_stbc = pconfig->enableTxSTBC;
 
-    if (pconfig->enable2x2 && (cfg->num_rf_chains == 2))
+    if (pconfig->enable2x2 && (hdd_ctx->per_band_chainmask_supp ||
+          (!hdd_ctx->per_band_chainmask_supp && (cfg->num_rf_chains == 2))))
     {
         pconfig->enable2x2 = 1;
     }
@@ -6409,7 +6487,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         /* Update Rx Highest Long GI data Rate */
         if (ccmCfgSetInt(hdd_ctx->hHal,
                     WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE,
-                    HDD_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
+                    VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
         {
             hddLog(LOGE, "Could not pass on "
@@ -6418,7 +6496,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
 
         /* Update Tx Highest Long GI data Rate */
         if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE,
-                    HDD_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
+                    VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1, NULL,
                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
         {
             hddLog(LOGE, "Could not pass on "
@@ -6446,7 +6524,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
 
         if (pconfig->enable2x2)
         {
-            for (value = 0; value < cfg->num_rf_chains; value++)
+            for (value = 0; value < 2; value++)
                 mcs_set[value] = WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES;
 
             status = ccmCfgSetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
@@ -6467,6 +6545,7 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
     eHalStatus status;
     tANI_U32 value = 0;
     hdd_config_t *pconfig = hdd_ctx->cfg_ini;
+    tANI_U32 temp = 0;
 
     /* Get the current MPDU length */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MAX_MPDU_LENGTH, &value);
@@ -6534,6 +6613,40 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         }
     }
 
+    ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, &temp);
+    temp = (temp & VHT_MCS_1x1) | pconfig->vhtRxMCS;
+
+    if (pconfig->enable2x2)
+            temp = (temp & VHT_MCS_2x2) | (pconfig->vhtRxMCS2x2 << 2);
+
+    if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, temp, NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, "Could not pass on WNI_CFG_VHT_BASIC_MCS_SET to CCM");
+    }
+
+    ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_RX_MCS_MAP, &temp);
+    temp = (temp & VHT_MCS_1x1) | pconfig->vhtRxMCS;
+    if (pconfig->enable2x2)
+        temp = (temp & VHT_MCS_2x2) | (pconfig->vhtRxMCS2x2 << 2);
+
+    if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_RX_MCS_MAP, temp, NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, "Could not pass on WNI_CFG_VHT_RX_MCS_MAP to CCM");
+    }
+
+    ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_MCS_MAP, &temp);
+    temp = (temp & VHT_MCS_1x1) | pconfig->vhtTxMCS;
+    if (pconfig->enable2x2)
+        temp = (temp & VHT_MCS_2x2) | (pconfig->vhtTxMCS2x2 << 2);
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "vhtRxMCS2x2 - %x temp - %u enable2x2 %d",
+                    pconfig->vhtRxMCS2x2, temp, pconfig->enable2x2);
+
+    if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TX_MCS_MAP, temp, NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+        hddLog(LOGE, "Could not pass on WNI_CFG_VHT_TX_MCS_MAP to CCM");
+    }
     /* Get the current RX LDPC setting */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_LDPC_CODING_CAP, &value);
 
@@ -6853,6 +6966,10 @@ void hdd_update_tgt_cfg(void *context, void *param)
 
     hdd_ctx->ap_arpns_support = cfg->ap_arpns_support;
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
+    if (hdd_ctx->per_band_chainmask_supp)
+        hdd_update_chain_mask_vdev_nss(hdd_ctx, &cfg->services);
+    else
+        sme_set_vdev_nss(hdd_ctx->hHal, hdd_ctx->cfg_ini->enable2x2);
 
     hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);
 
@@ -7860,6 +7977,7 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
 
    INIT_COMPLETION(pAdapter->session_open_comp_var);
    sme_SetCurrDeviceMode(pHddCtx->hHal, pAdapter->device_mode);
+   sme_set_pdev_ht_vht_ies(pHddCtx->hHal, pHddCtx->cfg_ini->enable2x2);
    status = vos_get_vdev_types(pAdapter->device_mode, &type, &subType);
    if (VOS_STATUS_SUCCESS != status)
    {

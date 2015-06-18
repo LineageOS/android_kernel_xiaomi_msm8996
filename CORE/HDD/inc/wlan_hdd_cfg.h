@@ -1244,6 +1244,42 @@ typedef enum
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX     ( 1 )
 #define CFG_VHT_ENABLE_2x2_CAP_FEATURE_DEFAULT ( 0 )
 
+/*
+ * Valid chain mask values.
+ * 01 - enables chain0
+ * 02 - enables chain1
+ * 03 - enables both chain 0 and chain 1
+ */
+#define CFG_CHAIN_MASK_2G         "gChainMask_2g"
+#define CFG_CHAIN_MASK_2G_MIN     ( 1 )
+#define CFG_CHAIN_MASK_2G_MAX     ( 3 )
+#define CFG_CHAIN_MASK_2G_DEFAULT ( 3 )
+
+#define CFG_CHAIN_MASK_5G         "gChainMask_5g"
+#define CFG_CHAIN_MASK_5G_MIN     ( 1 )
+#define CFG_CHAIN_MASK_5G_MAX     ( 3 )
+#define CFG_CHAIN_MASK_5G_DEFAULT ( 3 )
+/*
+ * NSS cfg bit definition.
+ * STA          BIT[0:1]
+ * SAP          BIT[2:3]
+ * P2P_GO       BIT[4:5]
+ * P2P_CLIENT   BIT[6:7]
+ * IBSS         BIT[8:9]
+ * TDLS         BIT[10:11]
+ * P2P_DEVICE   BIT[12:13]
+ * OCB          BIT[14:15]
+ */
+#define CFG_VDEV_TYPE_NSS_2G         "gVdevTypeNss_2g"
+#define CFG_VDEV_TYPE_NSS_2G_MIN     ( 0x5555 )
+#define CFG_VDEV_TYPE_NSS_2G_MAX     ( 0xAAAA )
+#define CFG_VDEV_TYPE_NSS_2G_DEFAULT ( 0xAAAA )
+
+#define CFG_VDEV_TYPE_NSS_5G         "gVdevTypeNss_5g"
+#define CFG_VDEV_TYPE_NSS_5G_MIN     ( 0x5555 )
+#define CFG_VDEV_TYPE_NSS_5G_MAX     ( 0xAAAA )
+#define CFG_VDEV_TYPE_NSS_5G_DEFAULT ( 0xAAAA )
+
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE         "gEnableMuBformee"
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN     ( 0 )
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX     ( 1 )
@@ -3325,7 +3361,6 @@ typedef struct
    uint32_t                    bad_peer_tput_ieee80211ac;
    uint32_t                    bad_peer_limit_ieee80211ac;
 #endif
-#ifdef WLAN_FEATURE_11AC
    v_U8_t                      vhtChannelWidth;
    v_U8_t                      vhtRxMCS;
    v_U8_t                      vhtTxMCS;
@@ -3334,13 +3369,16 @@ typedef struct
    v_U8_t                      vhtRxMCS2x2;
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
+   uint8_t                     chain_mask_2g;
+   uint8_t                     chain_mask_5g;
+   uint32_t                    vdev_type_nss_2g;
+   uint32_t                    vdev_type_nss_5g;
    v_BOOL_t                    txchainmask1x1;
    v_BOOL_t                    rxchainmask1x1;
    v_BOOL_t                    enableMuBformee;
    v_BOOL_t                    enableVhtpAid;
    v_BOOL_t                    enableVhtGid;
    v_BOOL_t                    enableTxBFin20MHz;
-#endif
    v_U8_t                      enableAmpduPs;
    v_U8_t                      enableHtSmps;
    v_U8_t                      htSmps;

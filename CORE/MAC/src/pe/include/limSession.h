@@ -493,6 +493,7 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
     /* flag to indicate country code in beacon */
     tANI_U8 countryInfoPresent;
+    uint8_t vdev_nss;
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

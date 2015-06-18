@@ -388,6 +388,8 @@ typedef struct {
 	u_int32_t pwrgating;
 	u_int32_t burst_enable;
 	u_int32_t burst_dur;
+	u_int32_t chainmask_2g;
+	u_int32_t chainmask_5g;
 } pdev_cli_config_t;
 
 typedef struct {
@@ -551,6 +553,8 @@ struct wma_txrx_node {
 	uint32_t alt_modulated_dtim;
 	bool alt_modulated_dtim_enabled;
 	uint8_t wps_state;
+	uint8_t nss_2g;
+	uint8_t nss_5g;
 };
 
 #if defined(QCA_WIFI_FTM)
@@ -775,6 +779,8 @@ typedef struct wma_handle {
 
 	uint32_t miracast_value;
 	vos_timer_t log_completion_timer;
+	uint32_t txrx_chainmask;
+	uint8_t per_band_chainmask_supp;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

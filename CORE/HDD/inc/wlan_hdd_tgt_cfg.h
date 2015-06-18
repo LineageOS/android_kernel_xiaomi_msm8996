@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,6 +43,9 @@ struct hdd_tgt_services {
 #endif
         v_BOOL_t beacon_offload;
         u_int32_t lte_coex_ant_share;
+        uint8_t chain_mask_2g;
+        uint8_t chain_mask_5g;
+        bool per_band_chainmask_supp;
 #ifdef FEATURE_WLAN_TDLS
         v_BOOL_t en_tdls;
         v_BOOL_t en_tdls_offchan;

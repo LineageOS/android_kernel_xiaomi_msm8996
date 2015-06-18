@@ -527,6 +527,22 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
         }
     }
 
+    if ((pMac->roam.configParam.uCfgDot11Mode == eCSR_CFG_DOT11_MODE_AUTO) ||
+                    (pMac->roam.configParam.uCfgDot11Mode ==
+                     eCSR_CFG_DOT11_MODE_11AC) ||
+                    (pMac->roam.configParam.uCfgDot11Mode ==
+                     eCSR_CFG_DOT11_MODE_11AC_ONLY)) {
+            pChanList->vht_en = true;
+            if (pMac->roam.configParam.enableVhtFor24GHz)
+                pChanList->vht_24_en = true;
+    }
+    if ((pMac->roam.configParam.uCfgDot11Mode == eCSR_CFG_DOT11_MODE_AUTO) ||
+                    (pMac->roam.configParam.uCfgDot11Mode ==
+                     eCSR_CFG_DOT11_MODE_11N) ||
+                    (pMac->roam.configParam.uCfgDot11Mode ==
+                     eCSR_CFG_DOT11_MODE_11N_ONLY)) {
+            pChanList->ht_en = true;
+    }
     msg.type = WDA_UPDATE_CHAN_LIST_REQ;
     msg.reserved = 0;
     msg.bodyptr = pChanList;
@@ -15018,6 +15034,58 @@ eHalStatus csrProcessAddStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
    } while(0);
    return status;
 }
+/**
+ * csr_get_vdev_type_nss() - gets the nss value based on vdev type
+ *
+ * @mac_ctx: Pointer to Global MAC structure
+ * @dev_mode: current device operating mode.
+ * @nss2g: Pointer to the 2G Nss parameter.
+ * @nss5g: Pointer to the 5G Nss parameter.
+ *
+ * Fills the 2G and 5G Nss values based on device mode.
+ *
+ * Return: None
+ */
+void csr_get_vdev_type_nss(tpAniSirGlobal mac_ctx, tVOS_CON_MODE dev_mode,
+		uint8_t *nss_2g, uint8_t *nss_5g)
+{
+	switch (dev_mode) {
+	case VOS_STA_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.sta;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.sta;
+		break;
+	case VOS_STA_SAP_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.sap;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.sap;
+		break;
+	case VOS_P2P_CLIENT_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.p2p_cli;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.p2p_cli;
+		break;
+	case VOS_P2P_GO_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.p2p_go;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.p2p_go;
+		break;
+	case VOS_P2P_DEVICE_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.p2p_dev;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.p2p_dev;
+		break;
+	case VOS_IBSS_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.ibss;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.ibss;
+		break;
+	case VOS_OCB_MODE:
+		*nss_2g = mac_ctx->vdev_type_nss_2g.ocb;
+		*nss_5g = mac_ctx->vdev_type_nss_5g.ocb;
+		break;
+	default:
+		*nss_2g = 2;
+		*nss_5g = 2;
+		break;
+	}
+	smsLog(mac_ctx, LOG1, FL("mode - %d: nss_2g - %d, 5g - %d"),
+			dev_mode, *nss_2g, *nss_5g);
+}
 eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
                                       tAddStaForSessionCmd *pAddStaReq,
                                       tANI_U8 sessionId)
@@ -15025,11 +15093,14 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
    tSirSmeAddStaSelfReq *pMsg;
    tANI_U16 msgLen;
    eHalStatus status = eHAL_STATUS_FAILURE;
+   uint8_t nss_2g;
+   uint8_t nss_5g;
    do {
       msgLen  = sizeof(tSirSmeAddStaSelfReq);
       pMsg = vos_mem_malloc(msgLen);
       if ( NULL == pMsg ) break;
       vos_mem_set(pMsg, msgLen, 0);
+      csr_get_vdev_type_nss(pMac, pAddStaReq->currDeviceMode, &nss_2g, &nss_5g);
       pMsg->mesgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_ADD_STA_SELF_REQ);
       pMsg->mesgLen = pal_cpu_to_be16(msgLen);
       // self station address
@@ -15041,6 +15112,8 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
       pMsg->subType = pAddStaReq->subType;
       pMsg->sessionId = sessionId;
       pMsg->pkt_err_disconn_th = pMac->roam.configParam.pkt_err_disconn_th;
+      pMsg->nss_2g = nss_2g;
+      pMsg->nss_5g = nss_5g;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);
