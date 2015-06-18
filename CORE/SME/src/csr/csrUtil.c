@@ -4988,8 +4988,8 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
             break;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-        if (pFilter->MDID.mdiePresent)
-        {
+        if (pFilter->MDID.mdiePresent &&
+                 csrRoamIs11rAssoc(pMac, pMac->roam.roamSession->sessionId)) {
             if (pBssDesc->mdiePresent)
             {
                 if (pFilter->MDID.mobilityDomain != (pBssDesc->mdie[1] << 8 | pBssDesc->mdie[0]))
