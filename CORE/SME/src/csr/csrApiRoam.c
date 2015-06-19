@@ -13204,10 +13204,17 @@ static void csrPrepareJoinReassocReqBuffer( tpAniSirGlobal pMac,
     size = sizeof(pMac->roam.validChannelList);
     if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, (tANI_U8 *)pMac->roam.validChannelList, &size)))
     {
-        *pBuf++ = (tANI_U8)size;        //tSirSupChnl->numChnl
+        tANI_U8 *actualSize = pBuf++;
+        *actualSize = 0;
+
         for ( i = 0; i < size; i++)
         {
-            *pBuf++ = pMac->roam.validChannelList[ i ];   //tSirSupChnl->channelList[ i ]
+            /* Only add 5ghz channels*/
+            if (CSR_IS_CHANNEL_5GHZ(pMac->roam.validChannelList[ i ]))
+            {
+                  *actualSize +=1;
+                  *pBuf++ = pMac->roam.validChannelList[ i ];
+            }
 
         }
     }
