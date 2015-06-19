@@ -1051,6 +1051,8 @@ static void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
    /* copy over the rssi */
    pAdapter->rssi = rssi;
 
+   if (pAdapter->rssi > 0)
+       pAdapter->rssi = 0;
    /* notify the caller */
    complete(&pStatsContext->completion);
 
