@@ -1126,11 +1126,27 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     tANI_U8 *vht_cap_ie;
     tANI_U16 vht_cap_len = 0;
 #endif /* WLAN_FEATURE_11AC */
-    tSirRetStatus rc = eSIR_SUCCESS;
+    tSirRetStatus status, rc = eSIR_SUCCESS;
+    tDot11fIEExtCap extracted_extcap = {0};
+    bool extcap_present = true;
 
     pMac->lim.fOffloadScanPending = 0;
     pMac->lim.fOffloadScanP2PSearch = 0;
     pMac->lim.offload_scan_filter_p2p_result = 0;
+
+    status = lim_strip_extcap_update_struct(pMac,
+                 (uint8_t *) pScanReq + pScanReq->uIEFieldOffset,
+                 &pScanReq->uIEFieldLen, &extracted_extcap);
+
+    if (eSIR_SUCCESS != status) {
+        extcap_present = false;
+        limLog(pMac, LOG1, FL("Unable to Stripoff ExtCap IE from Scan Req"));
+    }
+
+    if (extcap_present) {
+        limLog(pMac, LOG1, FL("Extcap was part of SCAN IE - Updating FW"));
+        lim_send_ext_cap_ie(pMac, pScanReq->sessionId, &extracted_extcap, true);
+    }
 
     /* The tSirScanOffloadReq will reserve the space for first channel,
        so allocate the memory for (numChannels - 1) and uIEFieldLen */
