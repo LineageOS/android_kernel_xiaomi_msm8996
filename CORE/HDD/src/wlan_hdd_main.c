@@ -6787,8 +6787,10 @@ void hdd_update_tgt_cfg(void *context, void *param)
                FL("ini BandCapability not supported by the target"));
     }
 
-    hdd_ctx->reg.reg_domain = cfg->reg_domain;
-    hdd_ctx->reg.eeprom_rd_ext = cfg->eeprom_rd_ext;
+    if (!hdd_ctx->isLogpInProgress) {
+        hdd_ctx->reg.reg_domain = cfg->reg_domain;
+        hdd_ctx->reg.eeprom_rd_ext = cfg->eeprom_rd_ext;
+    }
 
     /* This can be extended to other configurations like ht, vht cap... */
 

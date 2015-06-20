@@ -2110,20 +2110,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosclose;
    }
 
-   /* initialize the NV module. This is required so that
-      we can initialize the channel information in wiphy
-      from the NV.bin data. The channel information in
-      wiphy needs to be initialized before wiphy registration */
-
-   vosStatus = vos_init_wiphy_from_eeprom();
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      /* NV module cannot be initialized */
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: vos_init_wiphy_from_eeprom failed", __func__);
-      goto err_vosclose;
-   }
-
    vosStatus = hdd_set_sme_chan_list(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
