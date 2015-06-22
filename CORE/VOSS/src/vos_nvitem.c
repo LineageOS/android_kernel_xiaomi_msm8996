@@ -403,7 +403,7 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5825, 165, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_165,
 
     /* 5.9GHz 10 MHz bandwidth (802.11p) */
-    { 5850, 170, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_170,
+    { 5852, 170, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_170,
     { 5855, 171, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_171,
     { 5860, 172, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_172,
     { 5865, 173, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_173,
@@ -1337,6 +1337,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 static int is_dsrc_channel(v_U16_t center_freq)
 {
     switch (center_freq) {
+    case 5852:
     case 5860:
     case 5870:
     case 5880:

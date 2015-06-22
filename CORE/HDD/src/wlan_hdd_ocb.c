@@ -124,7 +124,7 @@ static int dot11p_validate_qos_params(struct sir_qos_params qos_params[])
 
 #define DOT11P_TX_PWR_MAX	30
 #define DOT11P_TX_ANTENNA_MAX	6
-#define NUM_DOT11P_CHANNELS	9
+#define NUM_DOT11P_CHANNELS	10
 /*
  * If FEATURE_STATICALLY_ADD_11P_CHANNELS
  * is defined, IEEE80211_CHAN_NO_10MHZ,
@@ -153,7 +153,8 @@ struct chan_info valid_dot11p_channels[NUM_DOT11P_CHANNELS] = {
 	{5910, 10},
 	{5920, 10},
 	{5875, 20},
-	{5905, 20}
+	{5905, 20},
+	{5852, 5}
 };
 
 /**

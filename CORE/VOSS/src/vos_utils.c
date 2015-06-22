@@ -1196,6 +1196,8 @@ v_U32_t vos_chan_to_freq(v_U8_t chan)
     else if (chan < VOS_24_GHZ_CHANNEL_27)  // ch 15 - ch 26
         return VOS_CHAN_15_FREQ +
                (chan - VOS_24_GHZ_CHANNEL_15) * VOS_CHAN_SPACING_20MHZ;
+    else if (chan == VOS_5_GHZ_CHANNEL_170)
+        return VOS_CHAN_170_FREQ;
      else
         return VOS_5_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING_5MHZ;
 }
