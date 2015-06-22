@@ -500,6 +500,18 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
     v_BOOL_t isGoPresent = VOS_FALSE;
     unsigned int duration;
 
+    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
+    if (pAdapter->is_roc_inprogress == TRUE) {
+        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("remain on channel request is in execution"));
+        return -EBUSY;
+    }
+    cfgState->remain_on_chan_ctx = pRemainChanCtx;
+    cfgState->current_freq = pRemainChanCtx->chan.center_freq;
+    pAdapter->is_roc_inprogress = TRUE;
+    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+
     /* Initialize Remain on chan timer */
     vos_status = vos_timer_init(&pRemainChanCtx->hdd_remain_on_chan_timer,
                                 VOS_TIMER_TYPE_SW,
@@ -509,16 +521,13 @@ static int wlan_hdd_execute_remain_on_channel(hdd_adapter_t *pAdapter,
     {
          hddLog(VOS_TRACE_LEVEL_ERROR,
              FL("Not able to initialize remain_on_chan timer"));
+         mutex_lock(&cfgState->remain_on_chan_ctx_lock);
          cfgState->remain_on_chan_ctx = NULL;
+         pAdapter->is_roc_inprogress = FALSE;
+         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
          vos_mem_free(pRemainChanCtx);
          return -EINVAL;
     }
-
-    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
-    cfgState->remain_on_chan_ctx = pRemainChanCtx;
-    cfgState->current_freq = pRemainChanCtx->chan.center_freq;
-    pAdapter->is_roc_inprogress = TRUE;
-    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
     status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
     while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -682,6 +691,7 @@ static int wlan_hdd_roc_request_enqueue(hdd_adapter_t *adapter,
 void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 {
 	VOS_STATUS status;
+	int ret = 0;
 	hdd_roc_req_t *hdd_roc_req;
 	hdd_context_t *hdd_ctx =
 			container_of(work, hdd_context_t, rocReqWork);
@@ -712,9 +722,14 @@ void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 		spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
 
 		if (status == VOS_STATUS_SUCCESS) {
-			wlan_hdd_execute_remain_on_channel(
+			ret = wlan_hdd_execute_remain_on_channel(
 						hdd_roc_req->pAdapter,
 						hdd_roc_req->pRemainChanCtx);
+			if (ret == -EBUSY){
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					FL("dropping RoC request"));
+				vos_mem_free(hdd_roc_req->pRemainChanCtx);
+			}
 			vos_mem_free(hdd_roc_req);
 		}
 	}
@@ -736,6 +751,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     v_SIZE_t size = 0;
     hdd_adapter_t *sta_adapter;
     int ret = 0;
+    int status = 0;
 
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
@@ -808,7 +824,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
                 wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx);
                 schedule_delayed_work(&pAdapter->roc_work,
-                 msecs_to_jiffies(pHddCtx->cfg_ini->p2p_listen_defer_interval));
+                msecs_to_jiffies(pHddCtx->cfg_ini->p2p_listen_defer_interval));
                 hddLog(LOG1, "Defer interval is %hu, pAdapter %p",
                        pHddCtx->cfg_ini->p2p_listen_defer_interval, pAdapter);
                 return 0;
@@ -821,12 +837,20 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     if ((isBusy == VOS_FALSE) && (!size)) {
         /* Media is free and no RoC request is in queue, execute directly */
-        wlan_hdd_execute_remain_on_channel(pAdapter, pRemainChanCtx);
-
+        status = wlan_hdd_execute_remain_on_channel(pAdapter,
+                                                    pRemainChanCtx);
+        if (status == -EBUSY) {
+            if (wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx)) {
+                vos_mem_free(pRemainChanCtx);
+                return -EAGAIN;
+            }
+        }
         return 0;
     } else {
-        if (wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx))
-		return -EAGAIN;
+        if (wlan_hdd_roc_request_enqueue(pAdapter, pRemainChanCtx)) {
+            vos_mem_free(pRemainChanCtx);
+            return -EAGAIN;
+        }
     }
 
     /*
