@@ -1303,6 +1303,7 @@ VOS_STATUS wma_send_snr_request(tp_wma_handle wma_handle, void *pGetRssiReq,
 #ifdef FEATURE_WLAN_RA_FILTERING
 #define WMA_RA_MATCH_RECV_WAKE_LOCK_DURATION    (5 * 1000) /* in msec */
 #endif
+#define WMA_BMISS_EVENT_WAKE_LOCK_DURATION      (10 * 1000) /* in msec */
 
 /* U-APSD maximum service period of peer station */
 enum uapsd_peer_param_max_sp {

@@ -18262,6 +18262,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		break;
 
 	case WOW_REASON_AP_ASSOC_LOST:
+		wake_lock_duration = WMA_BMISS_EVENT_WAKE_LOCK_DURATION;
 		WMA_LOGA("Beacon miss indication on vdev %x",
 			 wake_info->vdev_id);
 		wma_beacon_miss_handler(wma, wake_info->vdev_id);
