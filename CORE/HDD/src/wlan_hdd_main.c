@@ -8456,8 +8456,10 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          cnss_init_work(&pAdapter->ipv4NotifierWorkQueue,
                         hdd_ipv4_notifier_work_queue);
 #else
+#ifdef WLAN_OPEN_SOURCE
          INIT_WORK(&pAdapter->ipv4NotifierWorkQueue,
                    hdd_ipv4_notifier_work_queue);
+#endif
 #endif
 
 #ifdef WLAN_NS_OFFLOAD
@@ -8466,8 +8468,10 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          cnss_init_work(&pAdapter->ipv6NotifierWorkQueue,
                         hdd_ipv6_notifier_work_queue);
 #else
+#ifdef WLAN_OPEN_SOURCE
          INIT_WORK(&pAdapter->ipv6NotifierWorkQueue,
                    hdd_ipv6_notifier_work_queue);
+#endif
 #endif
 #endif
          //Stop the Interface TX queue.
@@ -8484,7 +8488,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
              cnss_init_delayed_work(&pAdapter->roc_work,
                                     hdd_p2p_roc_work_queue);
 #else
+#ifdef WLAN_OPEN_SOURCE
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
 #endif
          }
 
@@ -8547,7 +8553,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
              cnss_init_delayed_work(&pAdapter->roc_work,
                                     hdd_p2p_roc_work_queue);
 #else
+#ifdef WLAN_OPEN_SOURCE
              INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
+#endif
 #endif
          }
 
@@ -8588,8 +8596,10 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          cnss_init_work(&pAdapter->sessionCtx.monitor.pAdapterForTx->
                         monTxWorkQueue, hdd_mon_tx_work_queue);
 #else
+#ifdef WLAN_OPEN_SOURCE
          INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
                    hdd_mon_tx_work_queue);
+#endif
 #endif
       }
          break;

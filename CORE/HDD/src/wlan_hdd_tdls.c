@@ -732,7 +732,9 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 #ifdef CONFIG_CNSS
     cnss_init_work(&pHddTdlsCtx->implicit_setup, wlan_hdd_tdls_pre_setup);
 #else
+#ifdef WLAN_OPEN_SOURCE
     INIT_WORK(&pHddTdlsCtx->implicit_setup, wlan_hdd_tdls_pre_setup);
+#endif
 #endif
 #endif
 
@@ -740,8 +742,10 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     cnss_init_delayed_work(&pHddCtx->tdls_scan_ctxt.tdls_scan_work,
                    wlan_hdd_tdls_schedule_scan);
 #else
+#ifdef WLAN_OPEN_SOURCE
     INIT_DELAYED_WORK(&pHddCtx->tdls_scan_ctxt.tdls_scan_work,
                       wlan_hdd_tdls_schedule_scan);
+#endif
 #endif
 
     /*
