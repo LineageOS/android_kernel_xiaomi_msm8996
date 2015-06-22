@@ -2070,7 +2070,6 @@ eHalStatus pmcWowlAddBcastPattern (
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     vos_log_powersave_wow_add_ptrn_pkt_type *log_ptr = NULL;
-    WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_powersave_wow_add_ptrn_pkt_type, LOG_WLAN_POWERSAVE_WOW_ADD_PTRN_C);
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT
 
     pmcLog(pMac, LOG2, "PMC: entering pmcWowlAddBcastPattern");
@@ -2088,6 +2087,7 @@ eHalStatus pmcWowlAddBcastPattern (
     }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
+    WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_powersave_wow_add_ptrn_pkt_type, LOG_WLAN_POWERSAVE_WOW_ADD_PTRN_C);
     if( log_ptr )
     {
        log_ptr->pattern_id = pattern->ucPatternId;
@@ -2104,10 +2104,10 @@ eHalStatus pmcWowlAddBcastPattern (
        /* 1 bit in the pattern mask denotes 1 byte of pattern. */
        vos_mem_copy(log_ptr->pattern_mask, pattern->ucPatternMask,
                      log_ptr->pattern_mask_size);
+       //The same macro frees the memory.
+       WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
     }
 
-    //The same macro frees the memory.
-    WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif
 
 
