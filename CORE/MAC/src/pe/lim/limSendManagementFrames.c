@@ -3786,30 +3786,12 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
         if  (LIM_IS_STA_ROLE(psessionEntry) &&
-                (
-#ifdef FEATURE_WLAN_ESE
-                (psessionEntry->isESEconnection ) ||
-#endif
-#ifdef FEATURE_WLAN_LFR
-                (psessionEntry->isFastRoamIniFeatureEnabled ) ||
-#endif
-                (psessionEntry->is11Rconnection )) &&
                 (pMlmDisassocReq->reasonCode !=
                  eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
         {
             PELOGE(limLog(pMac, LOG1,
-                   FL("FT Preauth Session (%p,%d) Clean up"),
-                   psessionEntry, psessionEntry->peSessionId););
+                   FL("FT Preauth Session (%p,%d) Clean up"
 
-#if defined WLAN_FEATURE_VOWIFI_11R
-        /* Delete FT session if there exists one */
-        limFTCleanupPreAuthInfo(pMac, psessionEntry);
-#endif
-        }
-        else
-        {
-            PELOGE(limLog(pMac, LOGE,
-                   FL("No FT Preauth Session Clean up in role %d"
 #ifdef FEATURE_WLAN_ESE
                    " isESE %d"
 #endif
@@ -3817,7 +3799,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
                    " isLFR %d"
 #endif
                    " is11r %d reason %d"),
-                   GET_LIM_SYSTEM_ROLE(psessionEntry),
+                   psessionEntry, psessionEntry->peSessionId,
 #ifdef FEATURE_WLAN_ESE
                    psessionEntry->isESEconnection,
 #endif
@@ -3826,6 +3808,8 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
 #endif
                    psessionEntry->is11Rconnection,
                    pMlmDisassocReq->reasonCode););
+            /* Delete FT session if there exists one */
+            limFTCleanupPreAuthInfo(pMac, psessionEntry);
         }
 #endif
         /// Free up buffer allocated for mlmDisassocReq
