@@ -2709,7 +2709,8 @@ htt_rx_attach(struct htt_pdev_t *pdev)
 
         /* Initialize the Rx refill retry timer */
         adf_os_timer_init(pdev->osdev, &pdev->rx_ring.refill_retry_timer,
-                          htt_rx_ring_refill_retry, (void *)pdev);
+                          htt_rx_ring_refill_retry, (void *)pdev,
+                          ADF_DEFERRABLE_TIMER);
 
         pdev->rx_ring.fill_cnt = 0;
 #ifdef DEBUG_DMA_DONE

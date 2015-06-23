@@ -2452,7 +2452,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     hif_state->fake_sleep = FALSE;
     hif_state->sleep_ticks = 0;
     adf_os_timer_init(NULL, &hif_state->sleep_timer,
-                      HIF_sleep_entry, (void *)hif_state);
+                      HIF_sleep_entry, (void *)hif_state,
+                      ADF_NON_DEFERRABLE_TIMER);
 
     hif_state->fw_indicator_address = FW_INDICATOR_ADDRESS;
     hif_state->targid = A_TARGET_ID(sc->hif_device);

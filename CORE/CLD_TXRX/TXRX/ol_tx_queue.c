@@ -1226,14 +1226,14 @@ void ol_tx_throttle_init(struct ol_txrx_pdev_t *pdev)
             pdev->osdev,
             &pdev->tx_throttle.phase_timer,
             ol_tx_pdev_throttle_phase_timer,
-            pdev);
+            pdev, ADF_DEFERRABLE_TIMER);
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
     adf_os_timer_init(
             pdev->osdev,
             &pdev->tx_throttle.tx_timer,
             ol_tx_pdev_throttle_tx_timer,
-            pdev);
+            pdev, ADF_DEFERRABLE_TIMER);
 #endif
 
     pdev->tx_throttle.tx_threshold = THROTTLE_TX_THRESHOLD;

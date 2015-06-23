@@ -1585,7 +1585,8 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
     }
 #ifdef HIF_MBOX_SLEEP_WAR
     adf_os_timer_init(NULL, &device->sleep_timer,
-                         HIF_sleep_entry, (void *)device);
+                      HIF_sleep_entry, (void *)device,
+                      ADF_NON_DEFERRABLE_TIMER);
     adf_os_atomic_set(&device->mbox_state, HIF_MBOX_UNKNOWN_STATE);
 #endif
 
