@@ -129,10 +129,10 @@
 #define WMA_DEBUG_ALWAYS
 
 #ifdef WMA_DEBUG_ALWAYS
-#define WMA_LOGA(fmt, args...) \
-	printk(KERN_INFO "%s-%d: " fmt"\n", __func__, __LINE__, ## args)
+#define WMA_LOGA(args...) \
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL, ## args)
 #else
-#define WMA_LOGA(fmt, args...)
+#define WMA_LOGA(args...)
 #endif
 
 #define     ALIGNED_WORD_SIZE       4
