@@ -578,6 +578,7 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
 
        pMac->lim.gLimSystemInScanLearnMode = 0;
        pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+       SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     }
 
     /* delete the session */
