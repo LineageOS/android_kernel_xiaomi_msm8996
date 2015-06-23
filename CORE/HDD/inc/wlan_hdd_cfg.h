@@ -1938,7 +1938,7 @@ typedef enum
 #define CFG_TDLS_WMM_MODE_ENABLE                     "gEnableTDLSWmmMode"
 #define CFG_TDLS_WMM_MODE_ENABLE_MIN                 (0)
 #define CFG_TDLS_WMM_MODE_ENABLE_MAX                 (1)
-#define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (0)
+#define CFG_TDLS_WMM_MODE_ENABLE_DEFAULT             (1)
 
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM          "gTDLSPrefOffChanNum"
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_MIN      (1)
