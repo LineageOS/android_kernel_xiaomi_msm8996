@@ -1141,6 +1141,22 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
+   if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+	             "%s:Not associated!",__func__);
+       *rssi_value = 0;
+       return VOS_STATUS_SUCCESS;
+   }
+
+   if (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                 "%s: Roaming in progress, return cached RSSI", __func__);
+       *rssi_value = pAdapter->rssi;
+       return VOS_STATUS_SUCCESS;
+   }
+
    init_completion(&context.completion);
    context.pAdapter = pAdapter;
    context.magic = RSSI_CONTEXT_MAGIC;
