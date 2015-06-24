@@ -1837,6 +1837,19 @@ lim_enc_type_matched(tpAniSirGlobal mac_ctx,
                     || (session->encryptType == eSIR_ED_AES_128_CMAC)))
         return true;
 
+    /* For HS2.0, RSN ie is not present
+     * in beacon. Therefore no need to
+     * check for security type in case
+     * OSEN session.
+     */
+     /*TODO: AP capability mismatch
+     * is not checked here because
+     * no logic for beacon parsing
+     * is avilable for HS2.0
+     */
+    if (session->osen_association)
+        return eSIR_TRUE;
+
     return false;
 }
 
