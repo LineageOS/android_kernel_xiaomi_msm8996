@@ -5543,6 +5543,53 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	return 0;
 }
 #endif
+
+/**
+ * wma_rssi_breached_event_handler() - rssi breached event handler
+ * @handle: wma handle
+ * @cmd_param_info: event handler data
+ * @len: length of @cmd_param_info
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wma_rssi_breached_event_handler(void *handle,
+				u_int8_t  *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_RSSI_BREACH_EVENTID_param_tlvs *param_buf;
+	wmi_rssi_breach_event_fixed_param  *event;
+	struct rssi_breach_event  rssi;
+	tpAniSirGlobal mac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!mac) {
+		WMA_LOGE("%s: Invalid mac context", __func__);
+		return -EINVAL;
+	}
+	if (!mac->sme.rssi_threshold_breached_cb) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+	}
+	param_buf = (WMI_RSSI_BREACH_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid rssi breached event", __func__);
+		return -EINVAL;
+	}
+	event = param_buf->fixed_param;
+
+	rssi.request_id = event->request_id;
+	rssi.session_id = event->vdev_id;
+	rssi.curr_rssi = event->rssi + WMA_TGT_NOISE_FLOOR_DBM;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&event->bssid, rssi.curr_bssid.bytes);
+
+	WMA_LOGD("%s: req_id: %u vdev_id: %d curr_rssi: %d", __func__,
+		rssi.request_id, rssi.session_id, rssi.curr_rssi);
+	WMA_LOGI("%s: curr_bssid: %pM", __func__, rssi.curr_bssid.bytes);
+
+	mac->sme.rssi_threshold_breached_cb(mac->hHdd, &rssi);
+	WMA_LOGD("%s: Invoke HDD rssi breached callback", __func__);
+	return 0;
+}
+
 /*
  * Send WMI_DFS_PHYERR_FILTER_ENA_CMDID or
  * WMI_DFS_PHYERR_FILTER_DIS_CMDID command
@@ -6200,6 +6247,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	         WMI_ROAM_SYNCH_EVENTID,
 	        wma_roam_synch_event_handler);
 #endif /* WLAN_FEATURE_ROAM_OFFLOAD */
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+				WMI_RSSI_BREACH_EVENTID,
+				wma_rssi_breached_event_handler);
 	return VOS_STATUS_SUCCESS;
 
 err_dbglog_init:
@@ -17980,6 +18031,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 	case WOW_REASON_EXTSCAN:
 		return "WOW_REASON_EXTSCAN";
 #endif
+	case WOW_REASON_RSSI_BREACH_EVENT:
+		return "WOW_REASON_RSSI_BREACH_EVENT";
 	}
 	return "unknown";
 }
@@ -18393,6 +18446,31 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		}
 		break;
 #endif
+	case WOW_REASON_RSSI_BREACH_EVENT:
+		{
+			WMI_RSSI_BREACH_EVENTID_param_tlvs param;
+
+			WMA_LOGD("Host woken up because of rssi breach reason");
+			/* rssi breach event is embedded in wow_packet_buffer */
+			if (param_buf->wow_packet_buffer) {
+				vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
+					param_buf->wow_packet_buffer, 4);
+				if (wow_buf_pkt_len >= sizeof(param)) {
+					param.fixed_param =
+					(wmi_rssi_breach_event_fixed_param *)
+					(param_buf->wow_packet_buffer + 4);
+					wma_rssi_breached_event_handler(handle,
+							(u_int8_t *)&param,
+							sizeof(param));
+				} else {
+					WMA_LOGE("%s: Wrong length: %d bytes",
+						__func__, wow_buf_pkt_len);
+				}
+			} else
+			    WMA_LOGD("No wow_packet_buffer present");
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -24990,6 +25068,64 @@ void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle)
 		WMA_LOGE("Failed to start the log completion timer");
 }
 
+/**
+ * wma_set_rssi_monitoring() - set rssi monitoring
+ * @handle: WMA handle
+ * @req: rssi monitoring request structure
+ *
+ * This function reads the incoming @req and fill in the destination
+ * WMI structure and send down the rssi monitoring configs down to the firmware
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static VOS_STATUS wma_set_rssi_monitoring(tp_wma_handle wma,
+					struct rssi_monitor_req *req)
+{
+	wmi_rssi_breach_monitor_config_fixed_param *cmd;
+	wmi_buf_t buf;
+	int ret, len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_rssi_breach_monitor_config_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_rssi_breach_monitor_config_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_rssi_breach_monitor_config_fixed_param));
+
+	cmd->vdev_id = req->session_id;
+	cmd->request_id = req->request_id;
+	cmd->lo_rssi_reenable_hysteresis = 0;
+	cmd->hi_rssi_reenable_histeresis = 0;
+	cmd->min_report_interval = 0;
+	cmd->max_num_report = 1;
+	if (req->control) {
+		/* enable one threshold for each min/max */
+		cmd->enabled_bitmap = 0x09;
+		cmd->low_rssi_breach_threshold[0] = req->min_rssi;
+		cmd->hi_rssi_breach_threshold[0] = req->max_rssi;
+	} else {
+		cmd->enabled_bitmap = 0;
+		cmd->low_rssi_breach_threshold[0] = 0;
+		cmd->hi_rssi_breach_threshold[0] = 0;
+	}
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("Failed to send WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("Sent WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID to FW");
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -25738,6 +25874,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_IE_INFO:
 			wma_process_set_ie_info(wma_handle,
 					(struct vdev_ie_info *) msg->bodyptr);
+			break;
+		case WDA_SET_RSSI_MONITOR_REQ:
+			wma_set_rssi_monitoring(wma_handle,
+				(struct rssi_monitor_req *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

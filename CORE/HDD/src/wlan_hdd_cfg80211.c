@@ -1232,6 +1232,10 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP
     },
 #endif /* WLAN_FEATURE_MEMDUMP */
+    [QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI
+    },
 };
 
 static int is_driver_dfs_capable(struct wiphy *wiphy,
@@ -1365,6 +1369,7 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     /* AP+STA concurrency is supported currently by default */
     fset |= WIFI_FEATURE_AP_STA;
 #endif
+    fset |= WIFI_FEATURE_RSSI_MONITOR;
 
     if (hdd_link_layer_stats_supported())
         fset |= WIFI_FEATURE_LINK_LAYER_STATS;
@@ -8514,6 +8519,211 @@ static int wlan_hdd_cfg80211_offloaded_packets(struct wiphy *wiphy,
 }
 #endif
 
+/*
+ * define short names for the global vendor params
+ * used by __wlan_hdd_cfg80211_monitor_rssi()
+ */
+#define PARAM_MAX QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_MAX
+#define PARAM_REQUEST_ID QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_REQUEST_ID
+#define PARAM_CONTROL QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_CONTROL
+#define PARAM_MIN_RSSI QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_MIN_RSSI
+#define PARAM_MAX_RSSI QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_MAX_RSSI
+
+/**
+ * __wlan_hdd_cfg80211_monitor_rssi() - monitor rssi
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Data length
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int
+__wlan_hdd_cfg80211_monitor_rssi(struct wiphy *wiphy,
+				 struct wireless_dev *wdev,
+				 const void *data,
+				 int data_len)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb[PARAM_MAX + 1];
+	struct rssi_monitor_req req;
+	eHalStatus status;
+	int ret;
+	uint32_t control;
+	static const struct nla_policy policy[PARAM_MAX + 1] = {
+			[PARAM_REQUEST_ID] = { .type = NLA_U32 },
+			[PARAM_CONTROL] = { .type = NLA_U32 },
+			[PARAM_MIN_RSSI] = { .type = NLA_S8 },
+			[PARAM_MAX_RSSI] = { .type = NLA_S8 },
+	};
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret) {
+		hddLog(LOGE, FL("HDD context is not valid"));
+		return -EINVAL;
+	}
+
+	if (!hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(adapter))) {
+		hddLog(LOGE, FL("Not in Connected state!"));
+		return -ENOTSUPP;
+	}
+
+	if (nla_parse(tb, PARAM_MAX, data, data_len, policy)) {
+		hddLog(LOGE, FL("Invalid ATTR"));
+		return -EINVAL;
+	}
+
+	if (!tb[PARAM_REQUEST_ID]) {
+		hddLog(LOGE, FL("attr request id failed"));
+		return -EINVAL;
+	}
+
+	if (!tb[PARAM_CONTROL]) {
+		hddLog(LOGE, FL("attr control failed"));
+		return -EINVAL;
+	}
+
+	req.request_id = nla_get_u32(tb[PARAM_REQUEST_ID]);
+	req.session_id = adapter->sessionId;
+	control = nla_get_u32(tb[PARAM_CONTROL]);
+
+	if (control == QCA_WLAN_RSSI_MONITORING_START) {
+		req.control = true;
+		if (!tb[PARAM_MIN_RSSI]) {
+			hddLog(LOGE, FL("attr min rssi failed"));
+			return -EINVAL;
+		}
+
+		if (!tb[PARAM_MAX_RSSI]) {
+			hddLog(LOGE, FL("attr max rssi failed"));
+			return -EINVAL;
+		}
+
+		req.min_rssi = nla_get_s8(tb[PARAM_MIN_RSSI]);
+		req.max_rssi = nla_get_s8(tb[PARAM_MAX_RSSI]);
+
+		if (!(req.min_rssi < req.max_rssi)) {
+			hddLog(LOGW, FL("min_rssi: %d must be less than max_rssi: %d"),
+					req.min_rssi, req.max_rssi);
+			return -EINVAL;
+		}
+		hddLog(LOG1, FL("Min_rssi: %d Max_rssi: %d"),
+			req.min_rssi, req.max_rssi);
+
+	} else if (control == QCA_WLAN_RSSI_MONITORING_STOP)
+		req.control = false;
+	else {
+		hddLog(LOGE, FL("Invalid control cmd: %d"), control);
+		return -EINVAL;
+	}
+	hddLog(LOG1, FL("Request Id: %u Session_id: %d Control: %d"),
+			req.request_id, req.session_id, req.control);
+
+	status = sme_set_rssi_monitoring(hdd_ctx->hHal, &req);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		hddLog(LOGE,
+			FL("sme_set_rssi_monitoring failed(err=%d)"), status);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/*
+ * done with short names for the global vendor params
+ * used by __wlan_hdd_cfg80211_monitor_rssi()
+ */
+#undef PARAM_MAX
+#undef PARAM_CONTROL
+#undef PARAM_REQUEST_ID
+#undef PARAM_MAX_RSSI
+#undef PARAM_MIN_RSSI
+
+/**
+ * wlan_hdd_cfg80211_monitor_rssi() - SSR wrapper to rssi monitoring
+ * @wiphy:    wiphy structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of @data
+ *
+ * Return: 0 on success; errno on failure
+ */
+static int
+wlan_hdd_cfg80211_monitor_rssi(struct wiphy *wiphy, struct wireless_dev *wdev,
+			       const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_monitor_rssi(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * hdd_rssi_threshold_breached() - rssi breached NL event
+ * @hddctx: HDD context
+ * @data: rssi breached event data
+ *
+ * This function reads the rssi breached event %data and fill in the skb with
+ * NL attributes and send up the NL event.
+ *
+ * Return: none
+ */
+void hdd_rssi_threshold_breached(void *hddctx,
+				 struct rssi_breach_event *data)
+{
+	hdd_context_t *hdd_ctx  = hddctx;
+	struct sk_buff *skb;
+
+	ENTER();
+
+	if (wlan_hdd_validate_context(hdd_ctx) || !data) {
+		hddLog(LOGE, FL("HDD context is invalid or data(%p) is null"),
+			data);
+		return;
+	}
+
+	skb = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
+				  NULL,
+				  EXTSCAN_EVENT_BUF_SIZE + NLMSG_HDRLEN,
+				  QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI_INDEX,
+				  GFP_KERNEL);
+
+	if (!skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+		return;
+	}
+
+	hddLog(LOG1, "Req Id: %u Current rssi: %d",
+			data->request_id, data->curr_rssi);
+	hddLog(LOG1, "Current BSSID: "MAC_ADDRESS_STR,
+			MAC_ADDR_ARRAY(data->curr_bssid.bytes));
+
+	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_REQUEST_ID,
+		data->request_id) ||
+	    nla_put(skb, QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_CUR_BSSID,
+		sizeof(data->curr_bssid), data->curr_bssid.bytes) ||
+	    nla_put_s8(skb, QCA_WLAN_VENDOR_ATTR_RSSI_MONITORING_CUR_RSSI,
+		data->curr_rssi)) {
+		hddLog(LOGE, FL("nla put fail"));
+		goto fail;
+	}
+
+	cfg80211_vendor_event(skb, GFP_KERNEL);
+	return;
+
+fail:
+	kfree_skb(skb);
+	return;
+}
+
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -8930,6 +9140,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 		.doit = wlan_hdd_cfg80211_offloaded_packets
 	},
 #endif
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV |
+			WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_monitor_rssi
+	},
 };
 
 
