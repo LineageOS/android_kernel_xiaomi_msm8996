@@ -82,7 +82,6 @@
 #define DEFAULT_PASSIVE_MAX_CHANNEL_TIME    110     // in msecs
 
 #define CONV_MS_TO_US 1024 //conversion factor from ms to us
-
 // SME REQ processing function templates
 static void __limProcessSmeStartReq(tpAniSirGlobal, tANI_U32 *);
 static tANI_BOOLEAN __limProcessSmeSysReadyInd(tpAniSirGlobal, tANI_U32 *);
@@ -2098,8 +2097,12 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         if (wlan_cfgGetInt(pMac, WNI_CFG_JOIN_FAILURE_TIMEOUT, (tANI_U32 *) &pMlmJoinReq->joinFailureTimeout)
             != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("could not retrieve JoinFailureTimer value"));
-
+        {
+            limLog(pMac, LOGP, FL("could not retrieve JoinFailureTimer value"
+                    " setting to default value"));
+            pMlmJoinReq->joinFailureTimeout =
+                                WNI_CFG_JOIN_FAILURE_TIMEOUT_STADEF;
+        }
         /* copy operational rate from psessionEntry*/
         vos_mem_copy((void*)&psessionEntry->rateSet, (void*)&pSmeJoinReq->operationalRateSet,
                             sizeof(tSirMacRateSet));
@@ -2201,8 +2204,13 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if(SIR_BAND_5_GHZ == psessionEntry->limRFBand)
         {
             if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
+            {
                 limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
-            psessionEntry->lim11hEnable = val;
+                psessionEntry->lim11hEnable = WNI_CFG_11H_ENABLED_STADEF;
+            }
+            else {
+                psessionEntry->lim11hEnable = val;
+            }
         }
         else
             psessionEntry->lim11hEnable = 0;
