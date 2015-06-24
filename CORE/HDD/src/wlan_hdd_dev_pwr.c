@@ -115,10 +115,10 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
 
    staAdapater = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
 
-   if(NULL == staAdapater)
-   {
+   if ((NULL == staAdapater) ||
+       (WLAN_HDD_ADAPTER_MAGIC != staAdapater->magic)) {
       VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_ERROR,
-                "%s: NULL Adapter", __func__);
+                FL("invalid Adapter %p"), staAdapater);
       VOS_ASSERT(0);
       return;
    }

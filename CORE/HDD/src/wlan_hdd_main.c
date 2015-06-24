@@ -12996,11 +12996,15 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
 
    /* Iterate over all adapters/devices */
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+   if ((NULL == pAdapterNode) || (VOS_STATUS_SUCCESS != status)) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 FL("fail to get adapter: %p %d"), pAdapterNode, status);
+       goto end;
+   }
    do
    {
-      if ((status == VOS_STATUS_SUCCESS) &&
-                           pAdapterNode  &&
-                           pAdapterNode->pAdapter) {
+      if(pAdapterNode->pAdapter &&
+           WLAN_HDD_ADAPTER_MAGIC == pAdapterNode->pAdapter->magic) {
          hddLog(LOGP,
                "restarting the driver(intf:\'%s\' mode:%s(%d) :try %d)",
                pAdapterNode->pAdapter->dev->name,
@@ -13030,7 +13034,7 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
       pAdapterNode = pNext;
    } while((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status));
 
-
+   end:
    /* Free the allocated management frame */
    kfree(mgmt);
 
