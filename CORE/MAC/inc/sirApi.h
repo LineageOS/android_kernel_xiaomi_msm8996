@@ -1023,6 +1023,7 @@ typedef struct sSirSmeJoinReq
     tANI_U8             cc_switch_mode;
 #endif
     tVOS_CON_MODE       staPersona;             //Persona
+    tANI_BOOLEAN bOSENAssociation;    //HS2.0
     ePhyChanBondState   cbMode;                 // Pass CB mode value in Join.
 
     /*This contains the UAPSD Flag for all 4 AC
