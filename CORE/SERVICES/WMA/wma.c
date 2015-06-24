@@ -209,6 +209,7 @@ enum extscan_report_events_type {
 	EXTSCAN_REPORT_EVENTS_FULL_RESULTS  = 0x02,
 	EXTSCAN_REPORT_EVENTS_NO_BATCH      = 0x04,
 };
+
 #endif
 
 /* Data rate 100KBPS based on IE Index */
@@ -2905,8 +2906,9 @@ static int wma_extscan_operations_event_handler(void *handle,
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_SCAN_PROGRESS_EVENT_IND,
 				oprn_ind);
-exit_handler:
 	WMA_LOGD("%s: sending scan progress event to hdd", __func__);
+
+exit_handler:
 	vos_mem_free(oprn_ind);
 	return 0;
 }
@@ -22924,6 +22926,12 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->vdev_id = pstart->sessionId;
 	cmd->base_period = pstart->basePeriod;
 	cmd->num_buckets = nbuckets;
+	cmd->configuration_flags = 0;
+
+	if (pstart->configuration_flags & EXTSCAN_LP_EXTENDED_BATCHING)
+		cmd->configuration_flags |= WMI_EXTSCAN_EXTENDED_BATCHING_EN;
+	WMA_LOGI("%s: configuration_flags: 0x%x", __func__,
+			cmd->configuration_flags);
 
 	cmd->min_rest_time = WMA_EXTSCAN_REST_TIME;
 	cmd->max_rest_time = WMA_EXTSCAN_REST_TIME;

@@ -864,6 +864,7 @@ wlan_hdd_extscan_config_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SSID_THRESHOLD_PARAM_BAND] = { .type = NLA_U8 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SSID_THRESHOLD_PARAM_RSSI_LOW] = { .type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SSID_THRESHOLD_PARAM_RSSI_HIGH] = { .type = NLA_S32 },
+    [QCA_WLAN_VENDOR_ATTR_EXTSCAN_CONFIGURATION_FLAGS] = { .type = NLA_U32 },
 };
 
 static const struct nla_policy
@@ -3553,6 +3554,25 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 }
 
 /*
+ * hdd_extscan_map_usr_drv_config_flags() - map userspace to driver config flags
+ * @config_flags - [input] configuration flags.
+ *
+ * This function maps user space received configuration flags to
+ * driver representation.
+ *
+ * Return: configuration flags
+ */
+static uint32_t hdd_extscan_map_usr_drv_config_flags(uint32_t config_flags)
+{
+	uint32_t configuration_flags = 0;
+
+	if (config_flags & EXTSCAN_LP_EXTENDED_BATCHING)
+		configuration_flags |= EXTSCAN_LP_EXTENDED_BATCHING;
+
+	return configuration_flags;
+}
+
+/*
  * define short names for the global vendor params
  * used by wlan_hdd_cfg80211_extscan_start()
  */
@@ -3570,6 +3590,8 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 	QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_REPORT_THRESHOLD_NUM_SCANS
 #define PARAM_NUM_BUCKETS \
 	QCA_WLAN_VENDOR_ATTR_EXTSCAN_SCAN_CMD_PARAMS_NUM_BUCKETS
+#define PARAM_CONFIG_FLAGS \
+	QCA_WLAN_VENDOR_ATTR_EXTSCAN_CONFIGURATION_FLAGS
 
 /**
  * __wlan_hdd_cfg80211_extscan_start() - start extscan
@@ -3674,8 +3696,19 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 			"Setting numBuckets to %u"), WLAN_EXTSCAN_MAX_BUCKETS);
 		pReqMsg->numBuckets = WLAN_EXTSCAN_MAX_BUCKETS;
 	}
-	hddLog(LOG1, FL("Number of Buckets %d"),
-                                         pReqMsg->numBuckets);
+	hddLog(LOG1, FL("Number of Buckets %d"), pReqMsg->numBuckets);
+
+	/* This is optional attribute, if not present set it to 0 */
+	if (!tb[PARAM_CONFIG_FLAGS])
+		pReqMsg->configuration_flags = 0;
+	else
+		pReqMsg->configuration_flags =
+			hdd_extscan_map_usr_drv_config_flags(
+				nla_get_u32(tb[PARAM_CONFIG_FLAGS]));
+
+	hddLog(LOG1, FL("Configuration flags: %u"),
+				pReqMsg->configuration_flags);
+
 	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC]) {
 		hddLog(LOGE, FL("attr bucket spec failed"));
 		goto fail;
@@ -3730,6 +3763,7 @@ fail:
 #undef PARAMS_RPT_THRHLD_PERCENT
 #undef PARAMS_RPT_THRHLD_NUM_SCANS
 #undef PARAMS_NUM_BUCKETS
+#undef PARAM_CONFIG_FLAGS
 
 /**
  * wlan_hdd_cfg80211_extscan_start() - start extscan
@@ -8338,9 +8372,6 @@ wlan_hdd_add_tx_ptrn(hdd_adapter_t *adapter, hdd_context_t *hdd_ctx,
 			nla_data(tb[PARAM_IP_PACKET]),
 			add_req->ucPtrnSize);
 	add_req->ucPtrnSize += len;
-
-	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-				add_req->ucPattern, add_req->ucPtrnSize);
 
 	ret = hdd_map_req_id_to_pattern_id(hdd_ctx, request_id, &pattern_id);
 	if (ret) {
