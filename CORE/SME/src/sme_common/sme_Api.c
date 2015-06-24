@@ -5483,8 +5483,11 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       return eHAL_STATUS_FAILURE;
    }
    /*Once Setkey is done, we can go in BMPS*/
-   if(pSetKey->keyLength)
+   if(pSetKey->keyLength) {
      pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+     smsLog(pMac, LOG1, FL("Reset remainInPowerActiveTillDHCP"
+                           " to allow BMPS"));
+   }
 
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
