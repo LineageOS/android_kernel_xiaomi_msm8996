@@ -1978,9 +1978,27 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
 
     if (true == psessionEntry->fDeauthReceived)
     {
-      PELOGE(limLog(pMac, LOGE,
-           FL("Received Deauth frame in ADD_STA_RESP state"));)
-       pAddStaParams->status = eHAL_STATUS_FAILURE;
+        PELOGE(limLog(pMac, LOGE,
+               FL("Received Deauth frame in ADD_STA_RESP state"));)
+        if (eHAL_STATUS_SUCCESS == pAddStaParams->status)
+        {
+            PELOGE(limLog(pMac, LOGE,
+                FL("ADD_STA success, send update result code with"
+                    "eSIR_SME_JOIN_DEAUTH_FROM_AP_DURING_ADD_STA staIdx: %d"
+                    "limMlmState: %d"), pAddStaParams->staIdx,
+                     psessionEntry->limMlmState);)
+            if(psessionEntry->limSmeState == eLIM_SME_WT_REASSOC_STATE)
+                  mesgType = LIM_MLM_REASSOC_CNF;
+            /*
+             * We are sending result code eSIR_SME_JOIN_DEAUTH_FROM_AP_DURING_ADD_STA
+             * which will trigger proper cleanup (DEL_STA/DEL_BSS both required) in
+             * either assoc cnf or reassoc cnf handler.
+             */
+            mlmAssocCnf.resultCode =
+                (tSirResultCodes) eSIR_SME_JOIN_DEAUTH_FROM_AP_DURING_ADD_STA;
+            psessionEntry->staId = pAddStaParams->staIdx;
+            goto end;
+	}
     }
 
     if ( eHAL_STATUS_SUCCESS == pAddStaParams->status )
