@@ -384,11 +384,14 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
          found = 0;
 
          /*
+          * Use this fix only when device is not in test mode, as
+          * it drops some valid phyerrors.
           * In FCC or JAPAN domain,if the follwing signature matches
           * its likely that this is a false radar pulse pattern
           * so process the next pulse in the queue.
           */
-         if ((DFS_FCC_DOMAIN == dfs->dfsdomain ||
+         if ((dfs->disable_dfs_ch_switch == VOS_FALSE) &&
+             (DFS_FCC_DOMAIN == dfs->dfsdomain ||
               DFS_MKK4_DOMAIN == dfs->dfsdomain) &&
              (re.re_dur >= 11 && re.re_dur <= 20) &&
              (diff_ts > 500 || diff_ts <= 305) &&

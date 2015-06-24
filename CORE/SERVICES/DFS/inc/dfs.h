@@ -601,6 +601,11 @@ struct ath_dfs {
     int        dfs_pri_multiplier;      /* allow pulse if they are within multiple of PRI for the radar type */
     int        ath_dfs_nol_timeout;
     int        dfs_pri_multiplier_ini;  /* dfs pri configuration from ini */
+    /*
+     * Flag to indicate if DFS test mode is enabled and
+     * channel switch is disabled.
+     */
+    int8_t     disable_dfs_ch_switch;
 };
 
 /* This should match the table from if_ath.c */

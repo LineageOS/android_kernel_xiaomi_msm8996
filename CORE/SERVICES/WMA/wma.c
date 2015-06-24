@@ -10609,6 +10609,12 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	WLAN_PHY_MODE chanmode;
 	u_int8_t *buf_ptr;
 	struct wma_txrx_node *intr = wma->interfaces;
+	tpAniSirGlobal pmac = NULL;
+	struct ath_dfs *dfs;
+
+	pmac = (tpAniSirGlobal)
+		vos_get_context(VOS_MODULE_ID_PE, wma->vos_context);
+	dfs = (struct ath_dfs *)wma->dfs_ic->ic_dfs;
 
 	WMA_LOGD("%s: Enter isRestart=%d vdev=%d", __func__, isRestart,req->vdev_id);
 	len = sizeof(*cmd) + sizeof(wmi_channel) +
@@ -10735,6 +10741,8 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 				wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
 
 			wma_unified_dfs_phyerr_filter_offload_enable(wma);
+			dfs->disable_dfs_ch_switch =
+				pmac->sap.SapDfsInfo.disable_dfs_ch_switch;
 		}
 	}
 
