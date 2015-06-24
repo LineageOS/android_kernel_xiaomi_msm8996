@@ -2411,6 +2411,8 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 
 #ifndef FEATURE_WLAN_CH_AVOID /* FEATURE_WLAN_CH_AVOID NOT defined case*/
         // pick the first channel in configured range
+	pSapCtx->acs_cfg->pri_ch = startChannelNum;
+	pSapCtx->acs_cfg->ht_sec_ch = 0;
         return startChannelNum;
 #else /* FEATURE_WLAN_CH_AVOID defined */
 
