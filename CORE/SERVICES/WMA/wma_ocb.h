@@ -30,8 +30,6 @@
 #include "wma.h"
 #include "sirApi.h"
 
-#define OCB_FREQ_TO_CHAN(x) (((x) - 5000) / 5)
-
 int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status);
 
 int wma_ocb_set_config_req(tp_wma_handle handle,

@@ -33,6 +33,7 @@
 
 #include "wma_ocb.h"
 #include "wmi_unified_api.h"
+#include "vos_utils.h"
 
 /**
  * wma_ocb_resp() - send the OCB set config response via callback
@@ -176,8 +177,12 @@ int wma_ocb_set_config_req(tp_wma_handle wma_handle,
 			status = VOS_STATUS_E_NOMEM;
 			return status;
 		}
-		req.chan = OCB_FREQ_TO_CHAN(config_req->channels[0].chan_freq);
+		req.chan = vos_freq_to_chan(config_req->channels[0].chan_freq);
 		req.vdev_id = msg->vdev_id;
+		if (vos_chan_to_band(req.chan) == VOS_BAND_2GHZ)
+		    req.dot11_mode = WNI_CFG_DOT11_MODE_11G;
+		else
+		    req.dot11_mode = WNI_CFG_DOT11_MODE_11A;
 
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
@@ -206,6 +211,14 @@ int wma_ocb_start_resp_ind_cont(tp_wma_handle wma_handle)
 
 	vos_status = wma_ocb_set_config(wma_handle, wma_handle->ocb_config_req);
 	return vos_status;
+}
+
+static WLAN_PHY_MODE wma_ocb_freq_to_mode(uint32_t freq)
+{
+	if (vos_chan_to_band(vos_freq_to_chan(freq)) == VOS_BAND_2GHZ)
+		return MODE_11G;
+	else
+		return MODE_11A;
 }
 
 /**
@@ -298,11 +311,13 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 		WMITLV_SET_HDR(&chan->tlv_header,
 				WMITLV_TAG_STRUC_wmi_channel,
 				WMITLV_GET_STRUCT_TLVLEN(wmi_channel));
+
 		chan->mhz = config->channels[i].chan_freq;
 		chan->band_center_freq1 = config->channels[i].chan_freq;
 		chan->band_center_freq2 = 0;
 		chan->info = 0;
 
+		WMI_SET_CHANNEL_MODE(chan, wma_ocb_freq_to_mode(chan->mhz));
 		WMI_SET_CHANNEL_MAX_POWER(chan, config->channels[i].max_pwr);
 		WMI_SET_CHANNEL_MIN_POWER(chan, config->channels[i].min_pwr);
 		WMI_SET_CHANNEL_MAX_TX_POWER(chan, config->channels[i].max_pwr);
