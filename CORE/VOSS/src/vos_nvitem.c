@@ -1705,11 +1705,19 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
         }
 
-        if (NL80211_REGDOM_SET_BY_CORE == request->initiator)
+        if (NL80211_REGDOM_SET_BY_CORE == request->initiator) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
+            if (wiphy->regd == NULL)
+                return;
+
+            wiphy->regd = NULL;
+#endif
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_CORE;
-        else if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator)
+        } else if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator) {
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_DRIVER;
-        else pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
+        } else {
+            pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
+        }
 
         /* first lookup the country in the local database */
         country_code[0] = request->alpha2[0];
