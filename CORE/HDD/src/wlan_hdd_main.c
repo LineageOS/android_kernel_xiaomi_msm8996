@@ -5997,10 +5997,16 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            int set_value;
            /* Move pointer to point the string */
            value += 14;
-           sscanf(value, "%d", &set_value);
+           ret = sscanf(value, "%d", &set_value);
+           if (ret != 1) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Wrong value is given for hdd_set_tdls_offchannel");
+               ret = -EINVAL;
+               goto exit;
+           }
+
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                     FL("Tdls offchannel num: %d"),
-                     set_value);
+                FL("Tdls offchannel num: %d"), set_value);
            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
        } else if (strncmp(command, "TDLSSCAN", 8) == 0) {
            uint8_t *value = command;
