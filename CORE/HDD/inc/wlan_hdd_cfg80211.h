@@ -1157,6 +1157,11 @@ enum qca_wlan_vendor_attr_get_concurrency_matrix {
         QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_AFTER_LAST - 1,
 };
 
+enum qca_wlan_epno_type {
+	QCA_WLAN_EPNO,
+	QCA_WLAN_PNO
+};
+
 enum qca_wlan_vendor_attr_pno_config_params {
 	QCA_WLAN_VENDOR_ATTR_PNO_INVALID = 0,
 	/* NL attributes for data used by
@@ -1206,6 +1211,11 @@ enum qca_wlan_vendor_attr_pno_config_params {
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS = 11,
 	/* Unsigned 8-bit value; auth bit field for matching WPA IE */
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT = 12,
+
+	/* Unsigned 8-bit to indicate ePNO type;
+	 * It takes values from qca_wlan_epno_type
+	 */
+	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_TYPE = 13,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_PNO_AFTER_LAST,
