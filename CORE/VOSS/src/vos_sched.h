@@ -418,6 +418,7 @@ typedef struct _VosContextType
    v_VOID_t    *cfg_ctx;
 
    volatile v_U8_t    isLoadUnloadInProgress;
+   volatile v_U8_t    is_load_in_progress;
 
    /* SSR re-init in progress */
    volatile v_U8_t     isReInitInProgress;

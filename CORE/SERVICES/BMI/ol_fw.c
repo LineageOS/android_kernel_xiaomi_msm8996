@@ -1270,6 +1270,21 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
+#if defined(HIF_PCI) && defined(DEBUG)
+	if (vos_is_load_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+		pr_err("XXX TARGET ASSERTED during driver loading XXX\n");
+
+		if (hif_pci_check_soc_status(scn->hif_sc)
+		    || dump_CE_register(scn)) {
+			return;
+		}
+
+		dump_CE_debug_register(scn->hif_sc);
+		ol_copy_ramdump(scn);
+		VOS_BUG(0);
+	}
+#endif
+
 	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		printk("%s: Loading/Unloading is in progress, ignore!\n",
 			__func__);

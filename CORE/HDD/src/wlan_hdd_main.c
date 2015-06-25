@@ -11915,6 +11915,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_set_wakelock_logging(false);
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+   vos_set_load_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -12313,6 +12314,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
 
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
       pHddCtx->isLoadInProgress = FALSE;
 
       hddLog(LOGE, FL("FTM driver loaded"));
@@ -12749,6 +12751,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    ol_pktlog_init(hif_sc);
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+   vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    complete(&wlan_start_comp);
    goto success;
 

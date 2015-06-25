@@ -1399,6 +1399,45 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
 #endif
 }
 
+/**
+ * vos_is_load_in_progress - check if driver load is in progress
+ *
+ * @moduleId: the module ID who's context pointer is input in moduleContext
+ * @moduleContext: the input module context pointer
+ *
+ * Return: true - load in progress
+ *         false - load not in progress
+ */
+v_U8_t vos_is_load_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return 0;
+	}
+
+	return gpVosContext->is_load_in_progress;
+}
+
+/**
+ * vos_set_load_in_progress - set driver load in progress status
+ *
+ * @moduleId: the module ID of the caller
+ * @value: true - driver load starts
+ *         false - driver load completes
+ * Return: none
+ */
+void vos_set_load_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return;
+	}
+
+	gpVosContext->is_load_in_progress = value;
+}
+
 v_U8_t vos_is_reinit_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
 {
   if (gpVosContext == NULL)
