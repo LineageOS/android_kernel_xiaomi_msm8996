@@ -346,9 +346,15 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
 #if defined FEATURE_WLAN_ESE || defined WLAN_FEATURE_VOWIFI
      tPowerdBm regMax = 0,maxTxPower = 0;
 #endif
+    tANI_U8  cbMode;
 
     vos_mem_zero(&beaconParams, sizeof(tUpdateBeaconParams));
     beaconParams.paramChangeBitmap = 0;
+
+    if (RF_CHAN_14 >= psessionEntry->currentOperChannel)
+        cbMode = pMac->roam.configParam.channelBondingMode24GHz;
+    else
+        cbMode = pMac->roam.configParam.channelBondingMode5GHz;
 
     if (LIM_IS_IBSS_ROLE(psessionEntry)) {
         limHandleIBSScoalescing(pMac, pBeacon,  pRxPacketInfo, psessionEntry);
@@ -373,6 +379,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                           psessionEntry->currentOperChannel, pBeacon->channelNumber);)
            goto fail;
         }
+
         limDetectChangeInApCapabilities(pMac, pBeacon, psessionEntry);
         if(limGetStaHashBssidx(pMac, DPH_STA_HASH_INDEX_PEER, &bssIdx, psessionEntry) != eSIR_SUCCESS)
             goto fail;
@@ -475,7 +482,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
        // check for VHT capability
        pStaDs = dphLookupHashEntry(pMac, pMh->sa, &aid,
              &psessionEntry->dph.dphHashTable);
-       if (NULL != pStaDs)
+       if (NULL != pStaDs && WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != cbMode)
        {
           if (psessionEntry->vhtCapability && pBeacon->OperatingMode.present )
           {

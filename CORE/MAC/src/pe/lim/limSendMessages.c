@@ -751,8 +751,9 @@ tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
     msgQ.reserved = 0;
     msgQ.bodyptr = pVhtOpMode;
     msgQ.bodyval = 0;
-    PELOG3(limLog( pMac, LOG3,
-                FL( "Sending WDA_UPDATE_OP_MODE" ));)
+    limLog(pMac, LOG3, FL(
+                "Sending WDA_UPDATE_OP_MODE, opMode - %d, staId - %d"),
+                    pVhtOpMode->opMode, pVhtOpMode->staId);
     if(NULL == psessionEntry)
     {
         MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
