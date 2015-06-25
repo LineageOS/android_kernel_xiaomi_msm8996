@@ -7386,6 +7386,30 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 FL("set to substate eCSR_ROAM_SUBSTATE_DISASSOC_STA_HAS_LEFT"));
         }
+        if (eCsrSmeIssuedDisassocForHandoff != pCommand->u.roamCmd.roamReason) {
+            // If we are in neighbor preauth done state then on receiving
+            // disassoc or deauth we dont roam instead we just disassoc
+            // from current ap and then go to disconnected state
+            // This happens for ESE and 11r FT connections ONLY.
+#ifdef WLAN_FEATURE_VOWIFI_11R
+            if (csrRoamIs11rAssoc(pMac, sessionId) &&
+                                     (csrNeighborRoamStatePreauthDone(pMac, sessionId))) {
+                csrNeighborRoamTranistionPreauthDoneToDisconnected(pMac, sessionId);
+            }
+#endif
+#ifdef FEATURE_WLAN_ESE
+            if (csrRoamIsESEAssoc(pMac, sessionId) &&
+                                     (csrNeighborRoamStatePreauthDone(pMac, sessionId))) {
+                csrNeighborRoamTranistionPreauthDoneToDisconnected(pMac, sessionId);
+            }
+#endif
+#ifdef FEATURE_WLAN_LFR
+            if (csrRoamIsFastRoamEnabled(pMac, sessionId) &&
+                                     (csrNeighborRoamStatePreauthDone(pMac, sessionId))) {
+                csrNeighborRoamTranistionPreauthDoneToDisconnected(pMac, sessionId);
+            }
+#endif
+        }
         if( fDisassoc )
         {
             status = csrRoamIssueDisassociate( pMac, sessionId, NewSubstate, fMICFailure );
