@@ -237,10 +237,10 @@ ol_rx_indication_handler(
             htt_rx_ind_legacy_rate(pdev->htt_pdev, rx_ind_msg,
                                    &peer->last_pkt_legacy_rate,
                                    &peer->last_pkt_legacy_rate_sel);
-            peer->last_pkt_rssi_cmb = htt_rx_ind_rssi_dbm(pdev->htt_pdev,
+            peer->last_pkt_rssi_cmb = htt_rx_ind_rssi(pdev->htt_pdev,
                                                           rx_ind_msg);
             for (i = 0; i < 4; i++)
-                peer->last_pkt_rssi[i] = htt_rx_ind_rssi_dbm_chain(
+                peer->last_pkt_rssi[i] = htt_rx_ind_rssi_chain(
                     pdev->htt_pdev, rx_ind_msg, i);
             htt_rx_ind_timestamp(pdev->htt_pdev, rx_ind_msg,
                                  &peer->last_pkt_timestamp_microsec,

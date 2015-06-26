@@ -249,7 +249,10 @@ int16_t
 htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg);
 
 int16_t
-htt_rx_ind_rssi_dbm_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+htt_rx_ind_rssi(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg);
+
+int16_t
+htt_rx_ind_rssi_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
                           int8_t chain);
 
 void

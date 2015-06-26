@@ -849,7 +849,38 @@ htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
 }
 
 /**
- * htt_rx_ind_rssi_dbm_chain() - Return the RSSI for a chain provided in a rx indication message.
+ * htt_rx_ind_rssi() - Return the RSSI provided in a rx indication message.
+ *
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ *
+ * Return the RSSI from an rx indication message.
+ *
+ * Return: RSSI, or HTT_INVALID_RSSI
+ */
+int16_t
+htt_rx_ind_rssi(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
+{
+    int16_t rssi;
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+        return HTT_RSSI_INVALID;
+    }
+
+    rssi = HTT_RX_IND_RSSI_CMB_GET(*msg_word);
+    return (HTT_TGT_RSSI_INVALID == rssi) ?
+        HTT_RSSI_INVALID :
+        rssi;
+}
+
+/**
+ * htt_rx_ind_rssi_chain() - Return the RSSI for a chain provided in a rx
+ *              indication message.
  * @pdev:       the HTT instance the rx data was received on
  * @rx_ind_msg: the netbuf containing the rx indication message
  * @chain:      the index of the chain (0-4)
@@ -860,7 +891,7 @@ htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
  * Return: RSSI in dBm, or HTT_INVALID_RSSI
  */
 int16_t
-htt_rx_ind_rssi_dbm_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+htt_rx_ind_rssi_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
                           int8_t chain)
 {
     int16_t rssi;
@@ -883,7 +914,7 @@ htt_rx_ind_rssi_dbm_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
     rssi = HTT_RX_IND_RSSI_PRI20_GET(*msg_word);
     return (HTT_TGT_RSSI_INVALID == rssi) ?
         HTT_RSSI_INVALID :
-        rssi + HTT_TGT_NOISE_FLOOR_DBM;
+        rssi;
 }
 
 /**
