@@ -30760,4 +30760,46 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 	wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
 	return ret;
 }
+
 #endif
+
+/**
+ * wma_get_interface_by_vdev_id() - lookup interface entry using vdev ID
+ * @vdev_id: vdev id
+ *
+ * Return: entry from vdev table
+ */
+struct wma_txrx_node  *wma_get_interface_by_vdev_id(uint8_t vdev_id)
+{
+	tp_wma_handle wma;
+	void *vos_ctx;
+
+	vos_ctx = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	wma = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	if (!wma) {
+		WMA_LOGE("%s: Invalid WMA handle", __func__);
+		return NULL;
+	}
+
+	if (vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: Invalid vdev_id %u", __func__, vdev_id);
+		return NULL;
+	}
+
+	return &wma->interfaces[vdev_id];
+}
+
+/**
+ * wma_is_vdev_up() - return whether a vdev is up
+ * @vdev_id: vdev id
+ *
+ * Return: true if the vdev is up, false otherwise
+ */
+bool wma_is_vdev_up(uint8_t vdev_id)
+{
+	struct wma_txrx_node *vdev = wma_get_interface_by_vdev_id(vdev_id);
+	if (vdev)
+		return vdev->vdev_up;
+	else
+		return false;
+}

@@ -1606,6 +1606,8 @@ static inline void wma_set_wifi_start_logger(void *wma_handle,
 #endif
 
 void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle);
+struct wma_txrx_node *wma_get_interface_by_vdev_id(uint8_t vdev_id);
+bool wma_is_vdev_up(uint8_t vdev_id);
 
 int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 			uint32_t delay_time_ms);

@@ -38,6 +38,7 @@
 #include "wlan_hdd_trace.h"
 #include "wlan_tgt_def_config.h"
 #include "schApi.h"
+#include "wma.h"
 
 /* Structure definitions for WLAN_SET_DOT11P_CHANNEL_SCHED */
 #define AIFSN_MIN		(2)
@@ -1084,6 +1085,11 @@ int wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
+		return -EINVAL;
+	}
+
 	/* Parse the netlink message */
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_OCB_SET_UTC_TIME_MAX,
 		      data,
@@ -1166,6 +1172,11 @@ int wlan_hdd_cfg80211_ocb_start_timing_advert(struct wiphy *wiphy,
 
 	if (adapter->device_mode != WLAN_HDD_OCB) {
 		hddLog(LOGE, FL("Device not in OCB mode!"));
+		return -EINVAL;
+	}
+
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
 		return -EINVAL;
 	}
 
@@ -1255,6 +1266,11 @@ int wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
 
 	if (adapter->device_mode != WLAN_HDD_OCB) {
 		hddLog(LOGE, FL("Device not in OCB mode!"));
+		return -EINVAL;
+	}
+
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
 		return -EINVAL;
 	}
 
@@ -1352,6 +1368,11 @@ int wlan_hdd_cfg80211_ocb_get_tsf_timer(struct wiphy *wiphy,
 
 	if (adapter->device_mode != WLAN_HDD_OCB) {
 		hddLog(LOGE, FL("Device not in OCB mode!"));
+		return -EINVAL;
+	}
+
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
 		return -EINVAL;
 	}
 
@@ -1516,6 +1537,11 @@ int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
+		return -EINVAL;
+	}
+
 	/* Parse the netlink message */
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_DCC_GET_STATS_MAX,
 		      data,
@@ -1654,6 +1680,11 @@ int wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
+		return -EINVAL;
+	}
+
 	/* Parse the netlink message */
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_DCC_CLEAR_STATS_MAX,
 		      data,
@@ -1744,6 +1775,11 @@ int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
 	if (adapter->device_mode != WLAN_HDD_OCB) {
 		hddLog(LOGE, FL("Device not in OCB mode!"));
 		goto end;
+	}
+
+	if (!wma_is_vdev_up(adapter->sessionId)) {
+		hddLog(LOGE, FL("The device has not been started"));
+		return -EINVAL;
 	}
 
 	/* Parse the netlink message */
