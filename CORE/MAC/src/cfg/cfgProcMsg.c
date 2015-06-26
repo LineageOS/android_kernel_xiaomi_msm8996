@@ -2962,13 +2962,13 @@ processCfgDownloadReq(tpAniSirGlobal pMac)
                 continue;
 
             dst_ptr = &pMac->cfg.gCfgSBuf[index];
-            max_saved_len = *dst_ptr;
             str_cfg = (struct cfgstatic_string *)cfg_static[i].p_str_data;
             src_ptr = str_cfg->data;
 
             if ((dst_ptr == NULL) || (str_cfg == NULL) || (src_ptr == NULL))
                 continue;
 
+            max_saved_len = *dst_ptr;
             len = str_cfg->length;
             if (len > max_saved_len)
                 continue;
