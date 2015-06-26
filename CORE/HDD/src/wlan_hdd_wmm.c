@@ -63,6 +63,7 @@
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <vos_sched.h>
+#include "sme_Api.h"
 
 // change logging behavior based upon debug flag
 #ifdef HDD_WMM_DEBUG
@@ -2302,6 +2303,26 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
                (pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecInfo.ts_info.direction !=
                 SME_QOS_WMM_TS_DIR_DOWNLINK)) {
             pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed = VOS_TRUE;
+
+            /*
+             * Making TSPEC invalid here so downgrading can happen while
+             * roaming. It is expected this will be SET in hdd_wmm_sme_callback,
+             * once sme is done with the AddTspec.
+             * Here we avoid 11r and ccx based association because Tspec will
+             * be part of assoc/reassoc request.
+             */
+#if defined (WLAN_FEATURE_VOWIFI_11R)
+            if (pRoamInfo->u.pConnectedProfile->AuthType != eCSR_AUTH_TYPE_FT_RSN
+                && pRoamInfo->u.pConnectedProfile->AuthType != eCSR_AUTH_TYPE_FT_RSN_PSK
+#if defined (FEATURE_WLAN_ESE)
+                && pRoamInfo->u.pConnectedProfile->AuthType != eCSR_AUTH_TYPE_CCKM_WPA
+                && pRoamInfo->u.pConnectedProfile->AuthType != eCSR_AUTH_TYPE_CCKM_RSN
+#endif
+               )
+#endif
+            {
+                pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid = VOS_FALSE;
+            }
          }
       }
       else
