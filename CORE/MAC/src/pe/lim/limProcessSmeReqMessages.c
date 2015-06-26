@@ -3596,6 +3596,9 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pSapEventCallback   = (tpWLAN_SAPEventCB)getAssocSTAsReq.pSapEventCallback;
     pAssocStasTemp      = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
 
+    if (NULL == pAssocStasTemp)
+        goto limAssocStaEnd;
+
     for (assocId = 0; assocId < psessionEntry->dph.dphHashTable.size; assocId++)// Softap dphHashTable.size = 8
     {
         pStaDs = dphGetHashEntry(pMac, assocId, &psessionEntry->dph.dphHashTable);
@@ -3720,7 +3723,8 @@ void limProcessSmeGetWPSPBCSessions(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 limGetWPSPBCSessionsEnd:
     pSapEventCallback   = (tpWLAN_SAPEventCB)GetWPSPBCSessionsReq.pSapEventCallback;
-    pSapEventCallback(&sapEvent, GetWPSPBCSessionsReq.pUsrContext);
+    if (NULL != pSapEventCallback)
+       pSapEventCallback(&sapEvent, GetWPSPBCSessionsReq.pUsrContext);
 }
 
 
