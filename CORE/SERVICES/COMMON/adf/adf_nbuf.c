@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -34,7 +34,38 @@
 #include <adf_nbuf.h>
 #include <adf_os_io.h>
 
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#include <net/cnss_prealloc.h>
+#endif
+
 adf_nbuf_trace_update_t  trace_update_cb = NULL;
+
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) && defined(WITH_BACKPORTS)
+struct sk_buff *__adf_nbuf_pre_alloc(adf_os_device_t osdev, size_t size)
+{
+	struct sk_buff *skb = NULL;
+
+	if (size >= WCNSS_PRE_SKB_ALLOC_GET_THRESHOLD)
+		skb = wcnss_skb_prealloc_get(size);
+
+	return skb;
+}
+
+int __adf_nbuf_pre_alloc_free(struct sk_buff *skb)
+{
+	return wcnss_skb_prealloc_put(skb);
+}
+#else
+struct sk_buff *__adf_nbuf_pre_alloc(adf_os_device_t osdev, size_t size)
+{
+	return NULL;
+}
+
+int __adf_nbuf_pre_alloc_free(struct sk_buff *skb)
+{
+	return 0;
+}
+#endif
 
 /*
  * @brief This allocates an nbuf aligns if needed and reserves
@@ -58,12 +89,19 @@ __adf_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int
     if(align)
         size += (align - 1);
 
+    skb = __adf_nbuf_pre_alloc(osdev, size);
+
+    if (skb)
+       goto skb_cb;
+
     skb = dev_alloc_skb(size);
 
     if (!skb) {
         printk("ERROR:NBUF alloc failed\n");
         return NULL;
     }
+
+skb_cb:
     memset(skb->cb, 0x0, sizeof(skb->cb));
 
     /*
@@ -136,7 +174,11 @@ __adf_nbuf_free(struct sk_buff *skb)
         NBUF_CALLBACK_FN_EXEC(skb);
     else
 #endif
-    dev_kfree_skb_any(skb);
+    {
+       if (__adf_nbuf_pre_alloc_free(skb))
+           return;
+       dev_kfree_skb_any(skb);
+    }
 }
 
 
