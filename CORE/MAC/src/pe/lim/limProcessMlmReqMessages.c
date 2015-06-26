@@ -3068,7 +3068,6 @@ static void
 limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tLimMlmDisassocReq       *pMlmDisassocReq;
-    tpPESession              psessionEntry;
 
     if(pMsgBuf == NULL)
     {
@@ -3080,15 +3079,6 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     limLog(pMac, LOG1,FL("Process DisAssoc Req on sessionID %d "
     "from: "MAC_ADDRESS_STR), pMlmDisassocReq->sessionId,
     MAC_ADDR_ARRAY(pMlmDisassocReq->peerMacAddr));
-
-    if((psessionEntry = peFindSessionBySessionId(pMac,pMlmDisassocReq->sessionId))== NULL)
-    {
-        limLog(pMac, LOGE,
-                  FL("session does not exist for given sessionId %d"),
-                  pMlmDisassocReq->sessionId);
-        return;
-    }
-
     limProcessMlmDisassocReqNtf( pMac, eHAL_STATUS_SUCCESS, (tANI_U32*) pMsgBuf );
 
 } /*** limProcessMlmDisassocReq() ***/

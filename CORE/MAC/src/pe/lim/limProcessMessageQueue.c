@@ -778,8 +778,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #endif
             if (limProcessAuthFrameNoSession(pMac, pRxPacketInfo, limMsg->bodyptr) == eSIR_SUCCESS)
             {
-                limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-                return;
+                goto end;
             }
         }
 #endif
@@ -793,8 +792,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
             if((psessionEntry = peFindSessionByPeerSta(pMac,pHdr->sa,&sessionId))== NULL)
             {
                limLog(pMac, LOG1, FL("session does not exist for given bssId"));
-               limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-               return;
+               goto end;
             }
             else
                limLog(pMac,LOG1,"SessionId:%d Session Exist for given Bssid",
@@ -813,8 +811,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     if(limCheckMgmtRegisteredFrames(pMac, pRxPacketInfo, psessionEntry))
     {
         limLog( pMac, LOG1, FL("Received frame is passed to SME"));
-        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-        return;
+        goto end;
     }
 
 
@@ -823,11 +820,10 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     {   // Received Frame with non-zero Protocol Version
         limLog(pMac, LOGE, FL("Unexpected frame with protVersion %d received"),
            fc.protVer);
-        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, (void *) limMsg->bodyptr);
 #ifdef WLAN_DEBUG
         pMac->lim.numProtErr++;
 #endif
-        return;
+        goto end;
     }
 
     if (!pMac->fScanOffload)
@@ -946,9 +942,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
     } // switch (fc.type)
 
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 end:
-#endif
     limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, (void *) limMsg->bodyptr) ;
     return;
 } /*** end limHandle80211Frames() ***/

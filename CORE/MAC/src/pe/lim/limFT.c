@@ -396,6 +396,7 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status,
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, FL("FT Auth Rsp Timer Start Failed"));)
 #endif
+        goto preauth_fail;
     }
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId,
                     eLIM_FT_PREAUTH_RSP_TIMER));
