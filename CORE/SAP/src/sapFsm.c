@@ -62,6 +62,7 @@
 #include "sapInternal.h"
 // Pick up the SME API definitions
 #include "sme_Api.h"
+#include "smeInside.h"
 // Pick up the PMC API definitions
 #include "pmcApi.h"
 #include "wlan_nv.h"
@@ -1377,6 +1378,8 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
                                          sapContext->channel,
                                          &sapContext->vht_channel_width,
                                          sapContext->ch_width_orig);
+        pMac->sap.SapDfsInfo.orig_cbMode = csrConvertCBIniValueToPhyCBState(
+                                              pMac->sap.SapDfsInfo.orig_cbMode);
         cbModeCurrent = pMac->sap.SapDfsInfo.orig_cbMode;
     }
     else
