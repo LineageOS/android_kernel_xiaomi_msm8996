@@ -2533,6 +2533,7 @@ void PopulateDot11fTdlsOffchannelParams(tpAniSirGlobal pMac,
          * Log error.
          */
          limLog(pMac, LOGE, FL("could not retrieve valid channel list"));
+         return;
     }
 
     /* validating the channel list for DFS channels */
