@@ -1014,7 +1014,8 @@ void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
 	}
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv_ctxt;
-	msg = (struct op_msg_type *)vos_mem_malloc(sizeof(struct op_msg_type));
+	msg = (struct op_msg_type *)adf_os_mem_alloc(NULL,
+					sizeof(struct op_msg_type));
         if (!msg) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "op_msg allocation fails");
 		return;
