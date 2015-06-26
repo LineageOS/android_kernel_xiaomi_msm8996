@@ -114,15 +114,6 @@ eHalStatus pmcOpen (tHalHandle hHal)
         return eHAL_STATUS_FAILURE;
     }
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-    /* Allocate a timer used to report current PMC state through periodic DIAG event */
-    if (vos_timer_init(&pMac->pmc.hDiagEvtTimer, VOS_TIMER_TYPE_SW, pmcDiagEvtTimerExpired, hHal) != VOS_STATUS_SUCCESS)
-    {
-        pmcLog(pMac, LOGE, FL("Cannot allocate timer for diag event reporting"));
-        return eHAL_STATUS_FAILURE;
-    }
-#endif
-
     //Initialize the default value for Bmps related config.
     pMac->pmc.bmpsConfig.trafficMeasurePeriod = BMPS_TRAFFIC_TIMER_DEFAULT;
     pMac->pmc.bmpsConfig.bmpsPeriod = WNI_CFG_LISTEN_INTERVAL_STADEF;
@@ -250,13 +241,6 @@ eHalStatus pmcStart (tHalHandle hHal)
                        sizeof(tSirMacHTMIMOPowerSaveState)) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-    if (pmcStartDiagEvtTimer(hHal) != eHAL_STATUS_SUCCESS)
-    {
-       return eHAL_STATUS_FAILURE;
-    }
-#endif
-
 #if defined(ANI_LOGDUMP)
     pmcDumpInit(hHal);
 #endif
@@ -295,10 +279,6 @@ eHalStatus pmcStop (tHalHandle hHal)
     }
 
     pmcStopTrafficTimer(hHal);
-
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-    pmcStopDiagEvtTimer(hHal);
-#endif
 
     if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
@@ -359,12 +339,6 @@ eHalStatus pmcClose (tHalHandle hHal)
     {
         pmcLog(pMac, LOGE, FL("Cannot deallocate traffic timer"));
     }
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-    if (vos_timer_destroy(&pMac->pmc.hDiagEvtTimer) != VOS_STATUS_SUCCESS)
-    {
-        pmcLog(pMac, LOGE, FL("Cannot deallocate timer for diag event reporting"));
-    }
-#endif
     if (vos_timer_destroy(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
         pmcLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer"));

@@ -2574,55 +2574,6 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
     return eANI_BOOLEAN_TRUE;
 }
 
-
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-
-#define PMC_DIAG_EVT_TIMER_INTERVAL ( 5000 )
-
-void pmcDiagEvtTimerExpired (tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    WLAN_VOS_DIAG_EVENT_DEF(psRequest, vos_event_wlan_powersave_payload_type);
-
-    vos_mem_zero(&psRequest, sizeof(vos_event_wlan_powersave_payload_type));
-    psRequest.event_subtype = WLAN_PMC_CURRENT_STATE;
-    psRequest.pmc_current_state = pMac->pmc.pmcState;
-
-    WLAN_VOS_DIAG_EVENT_REPORT(&psRequest, EVENT_WLAN_POWERSAVE_GENERIC);
-
-    pmcLog(pMac, LOGW, FL("DIAG event timer expired"));
-
-    /* re-arm timer */
-    if (pmcStartDiagEvtTimer(hHal) != eHAL_STATUS_SUCCESS)
-    {
-        pmcLog(pMac, LOGP, FL("Cannot re-arm DIAG evt timer"));
-    }
-    vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL);
-}
-
-eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-    pmcLog(pMac, LOG2, FL("Entering pmcStartDiagEvtTimer"));
-
-    if ( vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL) != VOS_STATUS_SUCCESS)
-    {
-       pmcLog(pMac, LOGP, FL("Cannot start DIAG evt timer"));
-       return eHAL_STATUS_FAILURE;
-    }
-
-    return eHAL_STATUS_SUCCESS;
-}
-
-void pmcStopDiagEvtTimer (tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    pmcLog(pMac, LOG2, FL("Entering pmcStopDiagEvtTimer"));
-    (void)vos_timer_stop(&pMac->pmc.hDiagEvtTimer);
-}
-#endif
-
 void pmcOffloadClosePowerSaveCheckList(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     tListElem *pEntry;
