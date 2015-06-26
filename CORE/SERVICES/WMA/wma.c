@@ -18859,8 +18859,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 			wmi_get_pending_cmds(wma->wmi_handle));
 #ifdef CONFIG_CNSS
 		if (pMac->sme.enableSelfRecovery) {
-			vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
-			cnss_schedule_recovery_work();
+			vos_trigger_recovery();
 		} else {
 			VOS_BUG(0);
 		}
@@ -19896,9 +19895,7 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
-				vos_set_logp_in_progress(VOS_MODULE_ID_HIF,
-							TRUE);
-				cnss_schedule_recovery_work();
+				vos_trigger_recovery();
 			} else {
 				VOS_BUG(0);
 			}

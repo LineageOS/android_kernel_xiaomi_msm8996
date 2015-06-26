@@ -2708,16 +2708,6 @@ HIFGetTargetId(HIF_DEVICE *hif_device)
     return(TARGID(sc));
 }
 
-/* worker thread to recover when target does not respond over PCIe */
-static void recovery_work_handler(struct work_struct *recovery)
-{
-#ifdef CONFIG_CNSS
-    cnss_device_self_recovery();
-#endif
-}
-
-static DECLARE_WORK(recovery_work, recovery_work_handler);
-
 extern void HIFdebug(void);
 
 #ifdef CONFIG_PCI_MSM
