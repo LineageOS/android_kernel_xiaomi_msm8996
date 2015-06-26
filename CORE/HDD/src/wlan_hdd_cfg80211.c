@@ -9010,14 +9010,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
         .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
                  WIPHY_VENDOR_CMD_NEED_NETDEV |
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
-        .doit = (void *)wlan_hdd_cfg80211_wifi_configuration_set
+        .doit = wlan_hdd_cfg80211_wifi_configuration_set
     },
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,
         .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_ROAM,
         .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
                  WIPHY_VENDOR_CMD_NEED_NETDEV,
-        .doit = (void *)wlan_hdd_cfg80211_set_ext_roam_params
+        .doit = wlan_hdd_cfg80211_set_ext_roam_params
     },
 #ifdef FEATURE_WLAN_EXTSCAN
     {
@@ -9150,7 +9150,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_START,
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
-		.doit = (void *)wlan_hdd_cfg80211_wifi_logger_start
+		.doit = wlan_hdd_cfg80211_wifi_logger_start
 	},
 #ifdef FEATURE_WLAN_TDLS
 	{
@@ -9175,7 +9175,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_RING_DATA,
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
-		.doit = (void *)wlan_hdd_cfg80211_wifi_logger_get_ring_data
+		.doit = wlan_hdd_cfg80211_wifi_logger_get_ring_data
 	},
 #ifdef WLAN_FEATURE_OFFLOAD_PACKETS
 	{
