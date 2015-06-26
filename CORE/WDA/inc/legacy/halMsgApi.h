@@ -631,6 +631,8 @@ typedef enum  eSmpsModeValue{
 // Msg Type = SIR_LIM_DELETE_STA_CONTEXT_IND
 //
 typedef struct {
+    bool        is_tdls;
+    tANI_U8     vdev_id;
     tANI_U16    assocId;
     tANI_U16    staId;
     tSirMacAddr bssId; // TO SUPPORT BT-AMP

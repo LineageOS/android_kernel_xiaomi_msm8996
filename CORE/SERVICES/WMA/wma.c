@@ -1476,6 +1476,8 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 			return -EINVAL;
 		}
 
+		del_sta_ctx->is_tdls = true;
+		del_sta_ctx->vdev_id = vdev_id;
 		del_sta_ctx->staId = peer_id;
 		vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
 		vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].bssid,
@@ -1537,6 +1539,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		break;
 
 	    case WMI_PEER_STA_KICKOUT_REASON_INACTIVITY:
+		/* This could be for STA or SAP role */
 	    default:
 		break;
 	}
@@ -1550,6 +1553,8 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		return -EINVAL;
 	}
 
+	del_sta_ctx->is_tdls = false;
+	del_sta_ctx->vdev_id = vdev_id;
 	del_sta_ctx->staId = peer_id;
 	vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
 	vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
