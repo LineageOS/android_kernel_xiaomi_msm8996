@@ -344,10 +344,10 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
    unsigned long IrqFlags;
 
 
-   if (size > (1024*1024))
+   if (size > (1024*1024)|| size == 0)
    {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: called with arg > 1024K; passed in %d !!!", __func__,size);
+               "%s: called with invalid arg %u !!!", __func__, size);
        return NULL;
    }
 
@@ -449,9 +449,10 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
     v_VOID_t* pmem;
 #endif
-   if (size > (1024*1024))
+   if (size > (1024*1024) || size == 0)
    {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: called with arg > 1024K; passed in %d !!!", __func__,size);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: called with invalid arg %u !!", __func__, size);
        return NULL;
    }
    if (in_interrupt() || irqs_disabled() || in_atomic())
