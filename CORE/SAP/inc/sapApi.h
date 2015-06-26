@@ -466,6 +466,7 @@ typedef struct sap_Config {
     v_MACADDR_t     self_macaddr; //self macaddress or BSSID
 
     v_U8_t          channel;         /* Operation channel */
+    uint8_t         sec_ch;
     uint16_t         vht_channel_width;
     uint16_t         ch_width_orig;
     v_U8_t          max_num_sta;     /* maximum number of STAs in station table */

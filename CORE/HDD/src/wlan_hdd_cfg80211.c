@@ -7198,37 +7198,45 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	 */
 	if (vos_concurrent_beaconing_sessions_running()) {
 		hdd_adapter_t *con_sap_adapter;
+		tsap_Config_t *con_sap_config;
+		int con_ch;
 
 		con_sap_adapter = hdd_get_con_sap_adapter(adapter, true);
-		if (con_sap_adapter) {
-			tsap_Config_t *con_sap_config =
-				&con_sap_adapter->sessionCtx.ap.sapConfig;
-		        uint16_t con_ch =
-				con_sap_adapter->sessionCtx.ap.operatingChannel;
+		if (!con_sap_adapter)
+			goto start_acs;
+
+		con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
+		con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+
+		if (!VOS_IS_DFS_CH(con_ch))
+			goto start_acs;
+
+		hddLog(LOGE, FL("Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)"),
+						sap_config->channel, con_ch);
+		hddLog(LOG1, FL("Overriding guest AP's channel"));
+		if (con_sap_config->acs_cfg.acs_mode == true) {
 			if (con_ch != con_sap_config->acs_cfg.pri_ch &&
 				con_ch != con_sap_config->acs_cfg.ht_sec_ch) {
 				hddLog(LOGE, FL(
 					"ERROR: Primary AP channel info wrong"));
 				return -EINVAL;
 			}
-			if (VOS_IS_DFS_CH(con_ch)) {
-				hddLog(LOGE,
-					FL("Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)"),
-					sap_config->channel,
-					con_ch);
-				hddLog(LOG1,
-					FL("Overriding guest AP's channel"));
-				vos_mem_copy(&sap_config->acs_cfg,
+			vos_mem_copy(&sap_config->acs_cfg,
 						&con_sap_config->acs_cfg,
 						sizeof(struct sap_acs_cfg));
-				/* notify hostapd about channel */
-				wlan_hdd_cfg80211_acs_ch_select_evt(adapter);
-				clear_bit(ACS_IN_PROGRESS,
-						&hdd_ctx->g_event_flags);
-				return 0;
-			}
+		} else {
+			sap_config->acs_cfg.pri_ch = con_ch;
+			if (sap_config->acs_cfg.ch_width >
+						eHT_CHANNEL_WIDTH_20MHZ)
+				sap_config->acs_cfg.ht_sec_ch =
+					con_sap_config->sec_ch;
 		}
+		/* notify hostapd about channel */
+		wlan_hdd_cfg80211_acs_ch_select_evt(adapter);
+		clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
+		return 0;
 	}
+start_acs:
 #endif
 
 	status = wlan_hdd_config_acs(hdd_ctx, adapter);
@@ -10280,6 +10288,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
     int status;
     tSmeConfigParams smeConfig;
+    tsap_Config_t *sap_config;
 
     ENTER();
 
@@ -10372,6 +10381,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
         ||   (pAdapter->device_mode == WLAN_HDD_P2P_GO)
             )
     {
+        sap_config = &((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig);
         if (WLAN_HDD_P2P_GO == pAdapter->device_mode)
         {
             if(VOS_STATUS_SUCCESS !=
@@ -10381,7 +10391,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                       "%s: Invalid Channel [%d]", __func__, channel);
                return -EINVAL;
             }
-            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+            sap_config->channel = channel;
         }
         else if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
         {
@@ -10393,11 +10403,10 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                           "%s: Invalid Channel [%d]", __func__, channel);
                    return -EINVAL;
             }
-            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+            sap_config->channel = channel;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
-            (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
-                                                     eHT_CHANNEL_WIDTH_40MHZ;
+            sap_config.ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
 #endif
             vos_mem_zero(&smeConfig, sizeof(smeConfig));
             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
@@ -10414,9 +10423,9 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
-                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.ch_width_orig =
-                                                     eHT_CHANNEL_WIDTH_20MHZ;
+                sap_config.ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 #endif
+                sap_config->sec_ch = 0;
                 break;
 
             case NL80211_CHAN_HT40MINUS:
@@ -10428,6 +10437,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                     smeConfig.csrConfig.channelBondingMode5GHz =
                             eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
 
+                sap_config->sec_ch = sap_config->channel - 4;
                 break;
             case NL80211_CHAN_HT40PLUS:
                 smeConfig.csrConfig.obssEnabled = VOS_TRUE;
@@ -10438,6 +10448,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                     smeConfig.csrConfig.channelBondingMode5GHz =
                             eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
 
+                sap_config->sec_ch = sap_config->channel + 4;
                 break;
             default:
                 hddLog(VOS_TRACE_LEVEL_ERROR,
