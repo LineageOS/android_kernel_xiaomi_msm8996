@@ -906,6 +906,11 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return -EINVAL;
@@ -1075,6 +1080,11 @@ int wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return -EINVAL;
@@ -1164,6 +1174,11 @@ int wlan_hdd_cfg80211_ocb_start_timing_advert(struct wiphy *wiphy,
 	int rc = -EINVAL;
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -1258,6 +1273,11 @@ int wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
 	int rc = -EINVAL;
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -1360,6 +1380,11 @@ int wlan_hdd_cfg80211_ocb_get_tsf_timer(struct wiphy *wiphy,
 	struct hdd_ocb_ctxt context = {0};
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -1527,6 +1552,11 @@ int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return -EINVAL;
@@ -1670,6 +1700,11 @@ int wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));
 		return -EINVAL;
@@ -1766,6 +1801,11 @@ int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
 	struct hdd_ocb_ctxt context = {0};
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(LOGE, FL("HDD context is not valid"));

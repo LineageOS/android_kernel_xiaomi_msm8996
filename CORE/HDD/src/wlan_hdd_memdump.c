@@ -165,6 +165,11 @@ int wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
 	adf_os_dma_addr_t dma_ctx;
 	adf_os_device_t adf_ctx;
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
 		hddLog(LOGE, FL("HDD context is invalid"));

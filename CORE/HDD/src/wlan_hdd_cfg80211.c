@@ -951,6 +951,11 @@ static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
     VOS_STATUS status;
     int ret_val = -1;
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     nan_req.request_data_len = data_len;
     nan_req.request_data = data;
 
@@ -1042,6 +1047,11 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
     struct sme_ap_find_request_req  apfind_req;
     VOS_STATUS      status;
     int ret_val = -EIO;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     apfind_req.request_data_len = data_len;
     apfind_req.request_data = data;
@@ -1254,6 +1264,11 @@ static int is_driver_dfs_capable(struct wiphy *wiphy,
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
 #endif
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
                                                       NLMSG_HDRLEN);
 
@@ -1290,6 +1305,11 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     struct sk_buff *skb         = NULL;
     tANI_U32       fset         = 0;
     int ret;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret) {
@@ -1435,6 +1455,11 @@ wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
 
     ENTER();
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret) {
        hddLog(LOGE, FL("HDD context is not valid"));
@@ -1500,6 +1525,11 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     int ret;
 
     ENTER();
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     ret = wlan_hdd_validate_context(hdd_ctx);
     if (0 != ret) {
@@ -1605,6 +1635,11 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	uint32_t buf_len = 0;
 	uint8_t *buf;
 	int ret;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	ret = wlan_hdd_validate_context(pHddCtx);
 	if (0 != ret) {
@@ -1897,6 +1932,11 @@ static int wlan_hdd_cfg80211_stats_ext_request(struct wiphy *wiphy,
     int ret_val = -1;
     eHalStatus status;
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     stats_ext_req.request_data_len = data_len;
     stats_ext_req.request_data = (void *)data;
 
@@ -2160,6 +2200,11 @@ static int __wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
 
     ENTER();
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret) {
         hddLog(LOGE, FL("HDD context is not valid"));
@@ -2295,6 +2340,11 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	status = wlan_hdd_validate_context(pHddCtx);
 	if (0 != status) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -2428,6 +2478,11 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     unsigned long rc;
 
     ENTER();
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status) {
@@ -2635,6 +2690,11 @@ __wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	retval = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != retval) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -2838,6 +2898,11 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
 
     ENTER();
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     retval = wlan_hdd_validate_context(pHddCtx);
     if (0 != retval) {
        hddLog(LOGE, FL("HDD context is not valid"));
@@ -3027,6 +3092,11 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     int retval;
 
     ENTER();
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     retval = wlan_hdd_validate_context(pHddCtx);
     if (0 != retval) {
@@ -3620,6 +3690,11 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	retval = wlan_hdd_validate_context(pHddCtx);
 	if (0 != retval) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -3823,6 +3898,11 @@ static int __wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	retval = wlan_hdd_validate_context(pHddCtx);
 	if (0 != retval) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -3934,6 +4014,11 @@ static int __wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
     unsigned long rc;
 
     ENTER();
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     retval = wlan_hdd_validate_context(pHddCtx);
     if (0 != retval) {
@@ -4061,6 +4146,11 @@ __wlan_hdd_cfg80211_extscan_reset_ssid_hotlist(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	retval = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != retval) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -4181,6 +4271,11 @@ static int __wlan_hdd_cfg80211_extscan_reset_significant_change(
     unsigned long rc;
 
     ENTER();
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     retval = wlan_hdd_validate_context(pHddCtx);
     if (0 != retval) {
@@ -4390,6 +4485,11 @@ static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PNO_MAX,
 		data, data_len,
 		wlan_hdd_extscan_config_policy)) {
@@ -4562,6 +4662,11 @@ static int wlan_hdd_cfg80211_set_passpoint_list(struct wiphy *wiphy,
 
 	ENTER();
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PNO_MAX, data, data_len,
 		wlan_hdd_extscan_config_policy)) {
 		hddLog(LOGE, FL("Invalid ATTR"));
@@ -4640,6 +4745,11 @@ static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
 	eHalStatus status;
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PNO_MAX, data, data_len,
 		wlan_hdd_extscan_config_policy)) {
@@ -4724,6 +4834,11 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 	uint8_t feature_flags[(NUM_QCA_WLAN_VENDOR_FEATURES + 7) / 8] = {0};
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
 		hddLog(LOG1, FL("Key Mgmt Offload is supported"));
@@ -5821,6 +5936,11 @@ static int __wlan_hdd_cfg80211_ll_stats_set(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
     {
@@ -5943,6 +6063,11 @@ static int __wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
     struct net_device *dev = wdev->netdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int status;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -6073,6 +6198,11 @@ static int __wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
     u8 stopReq;
     int status;
     struct sk_buff *temp_skbuff;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -6217,6 +6347,11 @@ static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
 	hdd_context_t *hdd_ctx_ptr;
 	int status;
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	if ((data == NULL) || (data_len == 0) ||
 		(data_len > SIR_ROAM_SCAN_PSK_SIZE)) {
 		hddLog(LOGE, FL("Invalid data"));
@@ -6277,6 +6412,11 @@ wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 	uint8_t attr;
 	int status;
 	struct sk_buff *reply_skb = NULL;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
@@ -6343,6 +6483,11 @@ wlan_hdd_cfg80211_get_logger_supp_feature(struct wiphy *wiphy,
 	int status;
 	uint32_t features;
 	struct sk_buff *reply_skb = NULL;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
@@ -6540,6 +6685,11 @@ static int __wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
     tANI_S32 channel = 0;
     struct sk_buff *skb = NULL;
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret) {
         return -EINVAL;
@@ -6721,6 +6871,11 @@ static int __wlan_hdd_cfg80211_exttdls_enable(struct wiphy *wiphy,
     eHalStatus status;
     tdls_req_params_t   pReqMsg = {0};
 
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -6833,6 +6988,11 @@ static int __wlan_hdd_cfg80211_exttdls_disable(struct wiphy *wiphy,
     hdd_context_t *pHddCtx                     = wiphy_priv(wiphy);
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_TDLS_DISABLE_MAX + 1];
     eHalStatus status;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status) {
@@ -7019,6 +7179,11 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_SET_NO_DFS_FLAG_MAX + 1];
     int ret_val = -EPERM;
     u32 no_dfs_flag = 0;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
 
     if ((ret_val = wlan_hdd_validate_context(pHddCtx))) {
         hddLog(LOGE, FL("HDD context is not valid"));
@@ -7329,6 +7494,12 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ACS_MAX + 1];
 	bool ht_enabled, ht40_enabled, vht_enabled;
 	uint8_t ch_width;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	/* ***Note*** Donot set SME config related to ACS operation here because
 	 * ACS operation is not synchronouse and ACS for Second AP may come when
 	 * ACS operation for first AP is going on. So only do_acs is split to
@@ -7669,6 +7840,11 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	u32 guard_time;
 	eHalStatus status;
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	ret_val = wlan_hdd_validate_context(pHddCtx);
 	if (ret_val) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -7749,6 +7925,11 @@ static int wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
 	struct sk_buff *skb = NULL;
 	uint32_t set = 0;
 
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (eHAL_STATUS_SUCCESS != status) {
 		hddLog(LOGE, FL("HDD context is not valid"));
@@ -7828,6 +8009,11 @@ static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_START_MAX + 1];
 	struct sir_wifi_start_log start_log;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
@@ -7925,6 +8111,11 @@ static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 	uint8_t             nss;
 	uint8_t             final_rate_flags = 0;
 	uint32_t            freq;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	if (0 != wlan_hdd_validate_context(hdd_ctx)) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
@@ -8105,6 +8296,11 @@ static int __wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct nlattr *tb
 		    [QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_GET_RING_DATA_MAX + 1];
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
@@ -8495,6 +8691,11 @@ __wlan_hdd_cfg80211_offloaded_packets(struct wiphy *wiphy,
 	};
 
 	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
 
 	ret = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != ret) {
