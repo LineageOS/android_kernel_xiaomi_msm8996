@@ -4061,6 +4061,10 @@ typedef enum {
      * beacon spread or average number of frames leaked */
     WMI_VDEV_PARAM_STATS_AVG_FACTOR,
 
+    /** disconnect threshold, once the consecutive error for specific peer
+      * exceed this threhold, FW will send kickout event to host */
+    WMI_VDEV_PARAM_DISCONNECT_TH,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
