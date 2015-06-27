@@ -1024,6 +1024,11 @@ typedef enum
 #define CFG_ROAM_RESCAN_RSSI_DIFF_MAX                   (100)
 #define CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT               (5)
 
+#define CFG_DROPPED_PKT_DISCONNECT_TH_NAME      "gDroppedPktDisconnectTh"
+#define CFG_DROPPED_PKT_DISCONNECT_TH_MIN       (48)
+#define CFG_DROPPED_PKT_DISCONNECT_TH_MAX       (256)
+#define CFG_DROPPED_PKT_DISCONNECT_TH_DEFAULT   (96)
+
 /*
  * This parameter is the RSSI diff above neighbor lookup threshold, when
  * opportunistic scan should be triggered.
@@ -3633,6 +3638,7 @@ typedef struct
    bool                        enable_fw_hash_check;
 #endif
    v_BOOL_t                    sendDeauthBeforeCon;
+   uint16_t                    pkt_err_disconn_th;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

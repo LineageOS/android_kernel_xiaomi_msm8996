@@ -3411,6 +3411,7 @@ typedef struct sSirSmeAddStaSelfReq
     tANI_U32        type;
     tANI_U32        subType;
     tANI_U8         sessionId;
+    tANI_U16        pkt_err_disconn_th;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq

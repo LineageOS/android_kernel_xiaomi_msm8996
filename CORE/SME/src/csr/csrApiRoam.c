@@ -1620,6 +1620,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 
     if(pParam)
     {
+        pMac->roam.configParam.pkt_err_disconn_th = pParam->pkt_err_disconn_th;
         pMac->roam.configParam.WMMSupportMode = pParam->WMMSupportMode;
         cfgSetInt(pMac, WNI_CFG_WME_ENABLED,
                         (pParam->WMMSupportMode == eCsrRoamWmmNoQos)? 0:1);
@@ -15009,7 +15010,7 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
       pMsg->type = pAddStaReq->type;
       pMsg->subType = pAddStaReq->subType;
       pMsg->sessionId = sessionId;
-
+      pMsg->pkt_err_disconn_th = pMac->roam.configParam.pkt_err_disconn_th;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);

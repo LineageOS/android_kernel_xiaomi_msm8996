@@ -1418,12 +1418,13 @@ typedef struct sMaxTxPowerPerBandParams
 
 typedef struct sAddStaSelfParams
 {
-   tSirMacAddr selfMacAddr;
-   tVOS_CON_MODE currDeviceMode;
+   tSirMacAddr     selfMacAddr;
+   tVOS_CON_MODE   currDeviceMode;
    tANI_U32        type;
    tANI_U32        subType;
    tANI_U8         sessionId;
-   tANI_U32 status;
+   tANI_U32        status;
+   tANI_U16        pkt_err_disconn_th;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 #ifdef FEATURE_WLAN_TDLS

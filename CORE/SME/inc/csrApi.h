@@ -1277,6 +1277,7 @@ typedef struct tagCsrConfigParam
     /* 802.11p enable */
     bool       enable_dot11p;
     tANI_BOOLEAN sendDeauthBeforeCon;
+    v_U16_t    pkt_err_disconn_th;
 }tCsrConfigParam;
 
 //Tush

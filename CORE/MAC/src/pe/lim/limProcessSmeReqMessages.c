@@ -5179,6 +5179,7 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    pAddStaSelfParams->sessionId = pSmeReq->sessionId;
    pAddStaSelfParams->type = pSmeReq->type;
    pAddStaSelfParams->subType = pSmeReq->subType;
+   pAddStaSelfParams->pkt_err_disconn_th = pSmeReq->pkt_err_disconn_th;
 
    msg.type = SIR_HAL_ADD_STA_SELF_REQ;
    msg.reserved = 0;

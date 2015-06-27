@@ -7143,7 +7143,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						      wma_handle->vos_context);
 	tANI_U32 cfg_val;
-    tANI_U16 val16;
+        tANI_U16 val16;
 	int ret;
 	tSirMacHTCapabilityInfo *phtCapInfo;
 
@@ -7259,6 +7259,12 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 					self_sta_req->sessionId);
 		}
 	}
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+					      self_sta_req->sessionId,
+					      WMI_VDEV_PARAM_DISCONNECT_TH,
+					      self_sta_req->pkt_err_disconn_th);
+	if (ret)
+		WMA_LOGE("Failed to set WMI_VDEV_PARAM_DISCONNECT_TH");
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_RTS_THRESHOLD,
 			&cfg_val) == eSIR_SUCCESS) {

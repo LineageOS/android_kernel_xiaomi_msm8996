@@ -3913,6 +3913,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_MULTICAST_HOST_FW_MSGS_DEFAULT,
                 CFG_MULTICAST_HOST_FW_MSGS_MIN,
                 CFG_MULTICAST_HOST_FW_MSGS_MAX),
+
+   REG_VARIABLE(CFG_DROPPED_PKT_DISCONNECT_TH_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, pkt_err_disconn_th,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_DROPPED_PKT_DISCONNECT_TH_DEFAULT,
+                CFG_DROPPED_PKT_DISCONNECT_TH_MIN,
+                CFG_DROPPED_PKT_DISCONNECT_TH_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -6392,6 +6399,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                 pHddCtx->cfg_ini->sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+   smeConfig->csrConfig.pkt_err_disconn_th =
+                   pHddCtx->cfg_ini->pkt_err_disconn_th;
    smeConfig->f_prefer_non_dfs_on_radar =
                        pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
 

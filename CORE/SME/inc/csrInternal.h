@@ -692,6 +692,7 @@ typedef struct tagCsrConfig
     v_U8_t is_sta_connection_in_5gz_enabled;
     struct roam_ext_params roam_params;
     tANI_BOOLEAN sendDeauthBeforeCon;
+    v_U16_t pkt_err_disconn_th;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
