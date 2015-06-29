@@ -310,6 +310,19 @@ extern spinlock_t hdd_context_lock;
 #define WLAN_HDD_TX_FLOW_CONTROL_MAX_24BAND_CH   14
 #endif /* QCA_LL_TX_FLOW_CT */
 
+#define NUM_TX_RX_HISTOGRAM 1024
+#define NUM_TX_RX_HISTOGRAM_MASK (NUM_TX_RX_HISTOGRAM - 1)
+
+struct hdd_tx_rx_histogram
+{
+   uint64_t interval_rx;
+   uint64_t interval_tx;
+   uint64_t total_rx;
+   uint64_t total_tx;
+   uint32_t next_vote_level;
+   uint32_t next_rx_level;
+};
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
@@ -1552,6 +1565,8 @@ struct hdd_context_s
     struct hdd_offloaded_packets_ctx op_ctx;
 #endif
     bool per_band_chainmask_supp;
+    uint16_t hdd_txrx_hist_idx;
+    struct hdd_tx_rx_histogram hdd_txrx_hist[NUM_TX_RX_HISTOGRAM];
 };
 
 /*---------------------------------------------------------------------------
@@ -1824,4 +1839,6 @@ wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
 }
 #endif
 
+void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx);
+void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

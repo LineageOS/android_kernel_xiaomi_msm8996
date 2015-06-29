@@ -827,11 +827,6 @@ struct ol_txrx_pdev_t {
 	struct ol_txrx_peer_t *ocb_peer;
 	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
 
-	adf_os_spinlock_t txrx_histogram_lock;
-	adf_os_timer_t txrx_histogram_timer;
-	u_int16_t txrx_histogram_count;
-	u_int16_t rx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
-	u_int16_t tx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
 };
 
 struct ol_txrx_ocb_chan_info {

@@ -92,12 +92,6 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
         msdu_info.peer = NULL;
 
-        adf_os_spin_lock_bh(&vdev->pdev->txrx_histogram_lock);
-        if (vdev->pdev->txrx_histogram_count <
-                        TXRX_DATA_HISTROGRAM_NUM_INTERVALS)
-            vdev->pdev->tx_pkt_histrogram[vdev->pdev->txrx_histogram_count]++;
-        adf_os_spin_unlock_bh(&vdev->pdev->txrx_histogram_lock);
-
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
 
         /*
@@ -591,12 +585,6 @@ ol_tx_hl_base(
          * so store the next pointer immediately.
          */
         next = adf_nbuf_next(msdu);
-
-        adf_os_spin_lock_bh(&pdev->txrx_histogram_lock);
-        if (pdev->txrx_histogram_count <
-                        TXRX_DATA_HISTROGRAM_NUM_INTERVALS)
-            pdev->tx_pkt_histrogram[vdev->pdev->txrx_histogram_count]++;
-        adf_os_spin_unlock_bh(&pdev->txrx_histogram_lock);
 
 #if defined(CONFIG_TX_DESC_HI_PRIO_RESERVE)
         if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) >

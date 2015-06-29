@@ -782,7 +782,15 @@ void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value)
 {
     hdd_context_t* hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
 
-    WLANTL_display_datapath_stats(hdd_ctx->pvosContext, value);
+    switch(value)
+    {
+        case WLAN_TXRX_HIST_STATS:
+            wlan_hdd_display_tx_rx_histogram(hdd_ctx);
+            break;
+        default:
+            WLANTL_display_datapath_stats(hdd_ctx->pvosContext, value);
+            break;
+    }
 }
 
 /**---------------------------------------------------------------------------
@@ -6010,13 +6018,19 @@ static int __iw_setint_getnone(struct net_device *dev,
          hdd_context_t* hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
 
          hddLog(LOG1, "WE_CLEAR_STATS val %d", set_value);
-         if (set_value ==  WLAN_HDD_STATS) {
-             memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
-             memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
-         } else {
-             WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
+         switch (set_value)
+         {
+             case WLAN_HDD_STATS:
+                 memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
+                 memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
+                 break;
+             case WLAN_TXRX_HIST_STATS:
+                 wlan_hdd_clear_tx_rx_histogram(pHddCtx);
+                 break;
+             default:
+                 WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
+                 break;
          }
-         break;
     }
 
     case WE_PPS_PAID_MATCH:

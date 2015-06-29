@@ -315,20 +315,6 @@ credit_update:
 }
 #endif
 
-void ol_txrx_pdev_histogram_timer(void *context)
-{
-    struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
-
-    adf_os_spin_lock_bh(&pdev->txrx_histogram_lock);
-    pdev->txrx_histogram_count++;
-    adf_os_spin_unlock_bh(&pdev->txrx_histogram_lock);
-
-    if (pdev->txrx_histogram_count < TXRX_DATA_HISTROGRAM_NUM_INTERVALS) {
-        adf_os_timer_start(&pdev->txrx_histogram_timer,
-                 TXRX_DATA_HISTROGRAM_GRANULARITY);
-    }
-}
-
 ol_txrx_pdev_handle
 ol_txrx_pdev_attach(
     ol_pdev_handle ctrl_pdev,
@@ -781,18 +767,6 @@ ol_txrx_pdev_attach(
     pdev->tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT] =
         OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT;
 
-
-    adf_os_spinlock_init(&pdev->txrx_histogram_lock);
-    pdev->txrx_histogram_count = 0;
-    adf_os_timer_init(
-            pdev->osdev,
-            &pdev->txrx_histogram_timer,
-            ol_txrx_pdev_histogram_timer,
-            pdev, ADF_DEFERRABLE_TIMER);
-
-    adf_os_timer_start(&pdev->txrx_histogram_timer,
-                    TXRX_DATA_HISTROGRAM_GRANULARITY);
-
     return pdev; /* success */
 
 fail8:
@@ -868,10 +842,6 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     adf_os_timer_free(&pdev->tx_throttle.tx_timer);
 #endif
 #endif
-
-    adf_os_timer_cancel(&pdev->txrx_histogram_timer);
-    adf_os_timer_free(&pdev->txrx_histogram_timer);
-    adf_os_spinlock_destroy(&pdev->txrx_histogram_lock);
 
     if (force) {
         /*
@@ -2284,52 +2254,6 @@ ol_txrx_stats_publish(ol_txrx_pdev_handle pdev, struct ol_txrx_stats *buf)
 }
 #endif /* TXRX_STATS_LEVEL */
 
-void
-ol_txrx_histogram_display(ol_txrx_pdev_handle pdev)
-{
-    u_int16_t i;
-    u_int16_t rx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
-    u_int16_t tx_pkt_histrogram[TXRX_DATA_HISTROGRAM_NUM_INTERVALS];
-
-    adf_os_spin_lock_bh(&pdev->txrx_histogram_lock);
-    adf_os_mem_copy(&rx_pkt_histrogram, &pdev->rx_pkt_histrogram,
-                                           sizeof(rx_pkt_histrogram));
-    adf_os_mem_copy(&tx_pkt_histrogram, &pdev->tx_pkt_histrogram,
-                                           sizeof(tx_pkt_histrogram));
-    adf_os_spin_unlock_bh(&pdev->txrx_histogram_lock);
-
-    for (i=0; i < TXRX_DATA_HISTROGRAM_NUM_INTERVALS; i++) {
-        if (i % 10 == 0) {
-            adf_os_print("\n: rx_packet_histrogram[%d...%d]: ", i, i+10);
-        }
-        adf_os_print("%d,", rx_pkt_histrogram[i]);
-    }
-    adf_os_print("\n");
-    for (i=0; i < TXRX_DATA_HISTROGRAM_NUM_INTERVALS; i++) {
-        if (i % 10 == 0) {
-            adf_os_print("\n: tx_packet_histrogram[%d...%d]: ", i, i+10);
-        }
-        adf_os_print("%d,", tx_pkt_histrogram[i]);
-    }
-    adf_os_print("\n");
-}
-
-void
-ol_txrx_histogram_clear(ol_txrx_pdev_handle pdev)
-{
-
-    adf_os_timer_cancel(&pdev->txrx_histogram_timer);
-    adf_os_spin_lock_bh(&pdev->txrx_histogram_lock);
-    pdev->txrx_histogram_count = 0;
-    adf_os_mem_zero(&pdev->rx_pkt_histrogram, sizeof(pdev->rx_pkt_histrogram));
-    adf_os_mem_zero(&pdev->tx_pkt_histrogram, sizeof(pdev->tx_pkt_histrogram));
-    adf_os_spin_unlock_bh(&pdev->txrx_histogram_lock);
-
-    adf_os_timer_start(&pdev->txrx_histogram_timer,
-                 TXRX_DATA_HISTROGRAM_GRANULARITY);
-
-}
-
 #if defined(ENABLE_TXRX_PROT_ANALYZE)
 
 void
@@ -2544,9 +2468,6 @@ void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
         case WLAN_TXRX_STATS:
             ol_txrx_stats_display(pdev);
             break;
-        case WLAN_TXRX_HIST_STATS:
-            ol_txrx_histogram_display(pdev);
-            break;
 #ifdef CONFIG_HL_SUPPORT
         case WLAN_SCHEDULER_STATS:
             ol_tx_sched_cur_state_display(pdev);
@@ -2581,9 +2502,6 @@ void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
     {
         case WLAN_TXRX_STATS:
             ol_txrx_stats_clear(pdev);
-            break;
-        case WLAN_TXRX_HIST_STATS:
-            ol_txrx_histogram_clear(pdev);
             break;
 #ifdef CONFIG_HL_SUPPORT
         case WLAN_SCHEDULER_STATS:

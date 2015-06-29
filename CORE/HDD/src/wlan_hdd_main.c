@@ -11162,13 +11162,15 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
     uint64_t temp_rx = (rx_packets + pHddCtx->prev_rx)/2;
     enum cnss_bus_width_type next_rx_level = CNSS_BUS_WIDTH_NONE;
 
-
     if (total > pHddCtx->cfg_ini->busBandwidthHighThreshold)
         next_vote_level = CNSS_BUS_WIDTH_HIGH;
     else if (total > pHddCtx->cfg_ini->busBandwidthMediumThreshold)
         next_vote_level = CNSS_BUS_WIDTH_MEDIUM;
     else
         next_vote_level = CNSS_BUS_WIDTH_LOW;
+
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].next_vote_level
+                                                            = next_vote_level;
 
     if (pHddCtx->cur_vote_level != next_vote_level) {
         hddLog(VOS_TRACE_LEVEL_DEBUG,
@@ -11192,6 +11194,9 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
     else
         next_rx_level = CNSS_BUS_WIDTH_LOW;
 
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].next_rx_level
+                                                          = next_rx_level;
+
     if (pHddCtx->cur_rx_level != next_rx_level) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
                "%s: TCP DELACK trigger level %d, average_rx: %llu",
@@ -11201,15 +11206,21 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                                     &next_rx_level,
                                     sizeof(next_rx_level));
     }
+
+    pHddCtx->hdd_txrx_hist_idx++;
+    pHddCtx->hdd_txrx_hist_idx &= NUM_TX_RX_HISTOGRAM_MASK;
+
 #endif
 }
 
-#define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
+#define HDD_BW_GET_DIFF(x, y) ((x) >= (y) ? (x) - (y) : (ULONG_MAX - (y) + (x)))
+
 static void hdd_bus_bw_compute_cbk(void *priv)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
     hdd_adapter_t *pAdapter = NULL;
     uint64_t tx_packets= 0, rx_packets= 0;
+    uint64_t total_tx = 0, total_rx = 0;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
     v_BOOL_t connected = FALSE;
@@ -11253,6 +11264,10 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
                 pAdapter->prev_rx_packets);
 
+        total_rx += pAdapter->stats.rx_packets;
+        total_tx += pAdapter->stats.tx_packets;
+
+
         spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
@@ -11260,17 +11275,21 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         connected = TRUE;
     }
 
-    if (!connected) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "bus bandwidth timer running in disconnected state");
-        return;
-    }
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].total_rx = total_rx;
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].total_tx = total_tx;
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].interval_rx = rx_packets;
+    pHddCtx->hdd_txrx_hist[pHddCtx->hdd_txrx_hist_idx].interval_tx = tx_packets;
 
 #ifdef IPA_UC_OFFLOAD
     hdd_ipa_uc_stat_query(pHddCtx, &ipa_tx_packets, &ipa_rx_packets);
     tx_packets += (uint64_t)ipa_tx_packets;
     rx_packets += (uint64_t)ipa_rx_packets;
 #endif /* IPA_UC_OFFLOAD */
+    if (!connected) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "bus bandwidth timer running in disconnected state");
+        return;
+    }
 
     hdd_cnss_request_bus_bandwidth(pHddCtx, tx_packets, rx_packets);
 
@@ -11286,6 +11305,40 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 }
 #endif
 
+void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
+{
+    int i;
+    hddLog(VOS_TRACE_LEVEL_ERROR, "BW Interval: %d curr_index %d",
+                pHddCtx->cfg_ini->busBandwidthComputeInterval,
+                pHddCtx->hdd_txrx_hist_idx);
+    hddLog(VOS_TRACE_LEVEL_ERROR, "BW High TH: %d BW Med TH: %d BW Low TH: %d",
+                pHddCtx->cfg_ini->busBandwidthHighThreshold,
+                pHddCtx->cfg_ini->busBandwidthMediumThreshold,
+                pHddCtx->cfg_ini->busBandwidthLowThreshold);
+    hddLog(VOS_TRACE_LEVEL_ERROR, "TCP DEL High TH: %d TCP DEL Low TH: %d",
+                pHddCtx->cfg_ini->tcpDelackThresholdHigh,
+                pHddCtx->cfg_ini->tcpDelackThresholdLow);
+
+    hddLog(VOS_TRACE_LEVEL_ERROR,"index, total_rx, interval_rx,"
+		   "total_tx, interval_tx, next_vote_level, next_rx_level");
+    for (i=0; i < NUM_TX_RX_HISTOGRAM; i++){
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%d: %llu, %llu, %llu, %llu, %d, %d",
+               i, pHddCtx->hdd_txrx_hist[i].total_rx,
+               pHddCtx->hdd_txrx_hist[i].interval_rx,
+               pHddCtx->hdd_txrx_hist[i].total_tx,
+               pHddCtx->hdd_txrx_hist[i].interval_tx,
+               pHddCtx->hdd_txrx_hist[i].next_vote_level,
+               pHddCtx->hdd_txrx_hist[i].next_rx_level);
+    }
+    return;
+}
+
+void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx)
+{
+    pHddCtx->hdd_txrx_hist_idx = 0;
+    vos_mem_zero(pHddCtx->hdd_txrx_hist, sizeof(pHddCtx->hdd_txrx_hist));
+}
 
 /**---------------------------------------------------------------------------
   \brief hdd_11d_scan_done - callback to be executed when 11d scan is

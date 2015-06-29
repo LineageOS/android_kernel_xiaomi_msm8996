@@ -1043,12 +1043,6 @@ DONE:
             OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
             TXRX_STATS_MSDU_INCR(vdev->pdev, rx.delivered, msdu);
 
-            adf_os_spin_lock_bh(&pdev->txrx_histogram_lock);
-            if (pdev->txrx_histogram_count <
-                        TXRX_DATA_HISTROGRAM_NUM_INTERVALS)
-                pdev->rx_pkt_histrogram[vdev->pdev->txrx_histogram_count]++;
-            adf_os_spin_unlock_bh(&pdev->txrx_histogram_lock);
-
             OL_TXRX_LIST_APPEND(deliver_list_head, deliver_list_tail, msdu);
         }
         msdu = next;
@@ -1237,12 +1231,6 @@ ol_rx_in_order_deliver(
         OL_RX_PEER_STATS_UPDATE(peer, msdu);
         OL_RX_ERR_STATISTICS_1(vdev->pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
         TXRX_STATS_MSDU_INCR(vdev->pdev, rx.delivered, msdu);
-
-        adf_os_spin_lock_bh(&vdev->pdev->txrx_histogram_lock);
-        if (vdev->pdev->txrx_histogram_count <
-                        TXRX_DATA_HISTROGRAM_NUM_INTERVALS)
-            vdev->pdev->rx_pkt_histrogram[vdev->pdev->txrx_histogram_count]++;
-        adf_os_spin_unlock_bh(&vdev->pdev->txrx_histogram_lock);
 
         msdu = next;
     }
