@@ -937,14 +937,23 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     /* indicate disconnected event to nl80211 */
     if(roamStatus != eCSR_ROAM_IBSS_LEAVE)
     {
-        /*During the WLAN uninitialization,supplicant is stopped before the
-            driver so not sending the status of the connection to supplicant*/
+        /* Only send indication to kernel if not initiated by kernel */
+        if (sendDisconInd) {
+            /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
+            if (eCSR_ROAM_LOSTLINK == roamStatus)
+                cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0,
+                                      GFP_KERNEL);
+            else
+                cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0,
+                                      GFP_KERNEL);
+
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                               FL("sent disconnected event to nl80211"));
+        }
+
         if ((pHddCtx->isLoadInProgress != TRUE) &&
             (pHddCtx->isUnloadInProgress != TRUE))
         {
-            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                    "%s: sent disconnected event to nl80211",
-                    __func__);
 #ifdef WLAN_FEATURE_P2P_DEBUG
             if(pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
             {
@@ -963,19 +972,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             }
 #endif
 
-            /*Only send indication to kernel if not initiated by kernel*/
-            if ( sendDisconInd )
-            {
-                /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
-                if( eCSR_ROAM_LOSTLINK == roamStatus )
-                {
-                    cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0, GFP_KERNEL);
-                }
-                else
-                {
-                    cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL);
-                 }
-            }
             //If the Device Mode is Station
             // and the P2P Client is Connected
             //Enable BMPS
