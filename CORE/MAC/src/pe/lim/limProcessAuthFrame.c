@@ -697,7 +697,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 limLog(pMac, LOGP,
                        FL("could not retrieve MaxNumPreAuth"));
             }
-            if (pMac->lim.gLimNumPreAuthContexts == maxNumPreAuth)
+            if (pMac->lim.gLimNumPreAuthContexts == maxNumPreAuth &&
+                !limDeleteOpenAuthPreAuthNode(pMac))
             {
                 PELOGE(limLog(pMac, LOGE, FL("Max number of preauth context reached"));)
                 /**
@@ -755,6 +756,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         pAuthNode->fTimerStarted = 0;
                         pAuthNode->seqNum = ((pHdr->seqControl.seqNumHi << 4) |
                                                 (pHdr->seqControl.seqNumLo));
+                        pAuthNode->timestamp = vos_timer_get_system_ticks();
                         limAddPreAuthNode(pMac, pAuthNode);
 
                         /**
@@ -858,6 +860,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             pAuthNode->seqNum =
                                     ((pHdr->seqControl.seqNumHi << 4) |
                                      (pHdr->seqControl.seqNumLo));
+                            pAuthNode->timestamp = vos_timer_get_system_ticks();
                             limAddPreAuthNode(pMac, pAuthNode);
 
                             PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %x id %d peer "),
@@ -1126,6 +1129,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     pAuthNode->seqNum = ((pHdr->seqControl.seqNumHi << 4) |
                                     (pHdr->seqControl.seqNumLo));
                     pAuthNode->authType = pMac->lim.gpLimMlmAuthReq->authType;
+                    pAuthNode->timestamp = vos_timer_get_system_ticks();
                     limAddPreAuthNode(pMac, pAuthNode);
 
                     limRestoreFromAuthState(pMac, eSIR_SME_SUCCESS,
@@ -1651,6 +1655,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 pAuthNode->authType = pMac->lim.gpLimMlmAuthReq->authType;
                 pAuthNode->seqNum = ((pHdr->seqControl.seqNumHi << 4) |
                                 (pHdr->seqControl.seqNumLo));
+                pAuthNode->timestamp = vos_timer_get_system_ticks();
                 limAddPreAuthNode(pMac, pAuthNode);
 
                 limRestoreFromAuthState(pMac, eSIR_SME_SUCCESS,

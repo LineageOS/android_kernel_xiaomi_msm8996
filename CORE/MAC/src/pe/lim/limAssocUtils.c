@@ -985,6 +985,7 @@ limRejectAssociation(tpAniSirGlobal pMac, tSirMacAddr peerAddr, tANI_U8 subType,
             pAuthNode->fTimerStarted = 0;
             pAuthNode->mlmState = eLIM_MLM_AUTHENTICATED_STATE;
             pAuthNode->authType = (tAniAuthType) authType;
+            pAuthNode->timestamp = vos_timer_get_system_ticks();
             limAddPreAuthNode(pMac, pAuthNode);
         }
     }

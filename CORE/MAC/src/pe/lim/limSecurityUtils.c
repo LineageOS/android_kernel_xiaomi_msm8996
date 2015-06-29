@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,6 +54,10 @@
 
 
 #define LIM_SEED_LENGTH 16
+/*
+ * preauth node timeout value in interval of 10msec
+ */
+#define LIM_OPENAUTH_TIMEOUT 500
 
 /**
  * limIsAuthAlgoSupported()
@@ -253,7 +257,60 @@ limSearchPreAuthList(tpAniSirGlobal pMac, tSirMacAddr macAddr)
     return pTempNode;
 } /*** end limSearchPreAuthList() ***/
 
+/**
+ * limDeleteOpenAuthPreAuthNode() - delete any stale preauth nodes
+ * @pMac: Pointer to Global MAC structure
+ *
+ * This function is called to delete any stale preauth nodes on
+ * receiving authentication frame and existing preauth nodes
+ * reached the maximum allowed limit.
+ *
+ * Return: return true if any preauthnode deleted else false
+ */
+tANI_U8
+limDeleteOpenAuthPreAuthNode(tpAniSirGlobal pMac)
+{
+    struct tLimPreAuthNode    *pPrevNode, *pTempNode, *pFoundNode;
+    tANI_U8 authNodeFreed = false;
 
+    pTempNode = pPrevNode = pMac->lim.pLimPreAuthList;
+
+    if (pTempNode == NULL)
+        return authNodeFreed;
+
+    while (pTempNode != NULL)
+    {
+        if (pTempNode->mlmState == eLIM_MLM_AUTHENTICATED_STATE &&
+            pTempNode->authType == eSIR_OPEN_SYSTEM &&
+            (vos_timer_get_system_ticks() >
+                   (LIM_OPENAUTH_TIMEOUT + pTempNode->timestamp) ||
+             vos_timer_get_system_ticks() < pTempNode->timestamp))
+        {
+            // Found node to be deleted
+            authNodeFreed = true;
+            pFoundNode = pTempNode;
+            if (pMac->lim.pLimPreAuthList == pTempNode)
+            {
+                pPrevNode = pMac->lim.pLimPreAuthList = pTempNode =
+                                 pFoundNode->next;
+            }
+            else
+            {
+                pPrevNode->next = pTempNode->next;
+                pTempNode = pPrevNode->next;
+            }
+
+            limReleasePreAuthNode(pMac, pFoundNode);
+        }
+        else
+        {
+            pPrevNode = pTempNode;
+            pTempNode = pPrevNode->next;
+        }
+    }
+
+    return authNodeFreed;
+}
 
 /**
  * limAddPreAuthNode
