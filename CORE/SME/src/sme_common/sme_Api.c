@@ -16754,6 +16754,18 @@ void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log)
     tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
     mac_ctx->sap.enable_dfs_phy_error_logs = enable_log;
 }
+
+/**
+ * sme_SetDefDot11Mode() - Updates pMac with default dot11mode
+ * @hal: Global MAC pointer
+ *
+ * Return: NULL.
+ */
+void sme_SetDefDot11Mode(tHalHandle hal)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT( hal );
+	csrSetDefaultDot11Mode(mac_ctx);
+}
 /**
  * sme_set_vdev_nss() - sets the vdev nss based on INI
  * @hal: Pointer to HAL

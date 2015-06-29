@@ -12062,11 +12062,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 #endif
 #ifdef FEATURE_WLAN_SCAN_PNO
-   /*SME must send channel update configuration to RIVA*/
+   /*SME must send channel update configuration to FW*/
    sme_UpdateChannelConfig(pHddCtx->hHal);
 #endif
    sme_Register11dScanDoneCallback(pHddCtx->hHal, hdd_11d_scan_done);
 
+   /* Fwr capabilities received, Set the Dot11 mode */
+   sme_SetDefDot11Mode(pHddCtx->hHal);
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )

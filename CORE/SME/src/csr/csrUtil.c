@@ -1556,8 +1556,15 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
     {
     case eCSR_CFG_DOT11_MODE_AUTO:
         smsLog(pMac, LOGW, FL("  Warning: sees eCSR_CFG_DOT11_MODE_AUTO "));
+#ifdef WLAN_FEATURE_11AC
+        if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
+             ret = WNI_CFG_DOT11_MODE_11AC;
+        else
+             ret = WNI_CFG_DOT11_MODE_11N;
+#else
         //We cannot decide until now.
-        ret = WNI_CFG_DOT11_MODE_11AC;
+        ret = WNI_CFG_DOT11_MODE_11N;
+#endif
         break;
     case eCSR_CFG_DOT11_MODE_11A:
         ret = WNI_CFG_DOT11_MODE_11A;
@@ -1580,10 +1587,16 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
 
 #ifdef WLAN_FEATURE_11AC
      case eCSR_CFG_DOT11_MODE_11AC_ONLY:
-        ret = WNI_CFG_DOT11_MODE_11AC_ONLY;
+        if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
+             ret = WNI_CFG_DOT11_MODE_11AC_ONLY;
+        else
+             ret = WNI_CFG_DOT11_MODE_11N;
         break;
      case eCSR_CFG_DOT11_MODE_11AC:
-        ret = WNI_CFG_DOT11_MODE_11AC;
+        if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
+             ret = WNI_CFG_DOT11_MODE_11AC_ONLY;
+        else
+             ret = WNI_CFG_DOT11_MODE_11N;
        break;
 #endif
     default:

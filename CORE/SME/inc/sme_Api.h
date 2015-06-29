@@ -4348,4 +4348,5 @@ void sme_set_vdev_nss(tHalHandle hal, bool enable2x2);
 void sme_set_per_band_chainmask_supp(tHalHandle hal, bool val);
 void sme_set_lte_coex_supp(tHalHandle hal, bool val);
 void sme_set_bcon_offload_supp(tHalHandle hal, bool val);
+void sme_SetDefDot11Mode(tHalHandle hal);
 #endif //#if !defined( __SME_API_H )
