@@ -5949,7 +5949,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            /* Move pointer to ahead of ENABLEEXTWOW*/
            value += 12;
-           sscanf(value, "%d", &set_value);
+           if (!(sscanf(value, "%d", &set_value))) {
+                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                               FL("No input identified"));
+                     ret = -EINVAL;
+                     goto exit;
+           }
            ret = hdd_enable_ext_wow_parser(pAdapter,
                                pAdapter->sessionId, set_value);
 
