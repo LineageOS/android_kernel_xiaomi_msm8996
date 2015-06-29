@@ -726,10 +726,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
             tx_timer_delete(&pAuthNode[n]->timer);
         }
 
-        // Deactivate and delete Hash Miss throttle timer
-        tx_timer_deactivate(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
-        tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
-
         tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);

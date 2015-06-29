@@ -471,27 +471,6 @@ limCreateTimers(tpAniSirGlobal pMac)
         }
     }
 
-
-    cfgValue = SYS_MS_TO_TICKS(LIM_HASH_MISS_TIMER_MS);
-
-    if (tx_timer_create(
-                        &pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer,
-                        "Disassoc throttle TIMEOUT",
-                        limSendDisassocFrameThresholdHandler,
-                        SIR_LIM_HASH_MISS_THRES_TIMEOUT,
-                        cfgValue,
-                        cfgValue,
-                        TX_AUTO_ACTIVATE) != TX_SUCCESS)
-    {
-        /// Could not start Send Disassociate Frame Threshold timer.
-        // Log error
-        limLog(pMac, LOGP,
-               FL("create Disassociate throttle timer failed"));
-        goto err_timer;
-    }
-    PELOG1(limLog(pMac, LOG1,
-           FL("Created Disassociate throttle timer "));)
-
     /**
      * Create keep alive timer and  activate it right away for AP role
      */
@@ -755,7 +734,6 @@ limCreateTimers(tpAniSirGlobal pMac)
             tx_timer_delete(&pMac->lim.limTimers.gpLimCnfWaitTimer[i]);
         }
         tx_timer_delete(&pMac->lim.limTimers.gLimKeepaliveTimer);
-        tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimBackgroundScanTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimHeartBeatTimer);
@@ -2083,42 +2061,6 @@ void limActivateAuthRspTimer(tpAniSirGlobal pMac, tLimPreAuthNode *pAuthNode)
         limLog(pMac, LOGP,
                FL("could not activate auth rsp timer"));
     }
-}
-
-
-/**
- * limSendDisassocFrameThresholdHandler()
- *
- *FUNCTION:
- *        This function reloads the credit to the send disassociate frame bucket
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- * NA
- *
- * @param
- *
- * @return None
- */
-
-void
-limSendDisassocFrameThresholdHandler(void *pMacGlobal, tANI_U32 param)
-{
-    tSirMsgQ    msg;
-    tANI_U32         statusCode;
-    tpAniSirGlobal pMac = (tpAniSirGlobal)pMacGlobal;
-
-    msg.type = SIR_LIM_HASH_MISS_THRES_TIMEOUT;
-    msg.bodyval = 0;
-    msg.bodyptr = NULL;
-
-    if ((statusCode = limPostMsgApi(pMac, &msg)) != eSIR_SUCCESS)
-            limLog(pMac, LOGE,
-        FL("posting to LIM failed, reason=%d"), statusCode);
-
 }
 
 /**
