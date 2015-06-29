@@ -5995,7 +5995,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            int set_value;
            /* Move pointer to point the string */
            value += 18;
-           sscanf(value, "%d", &set_value);
+           if (!(sscanf(value, "%d", &set_value))) {
+                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                               FL("No input identified"));
+               ret = -EINVAL;
+               goto exit;
+           }
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                      FL("Tdls offchannel mode:%d"),
                      set_value);
