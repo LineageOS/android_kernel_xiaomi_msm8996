@@ -689,7 +689,7 @@ static int async_task(void *param)
     complete_and_exit(&device->async_completion, 0);
     return 0;
 }
-
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
 static A_INT32 IssueSDCommand(HIF_DEVICE *device, A_UINT32 opcode, A_UINT32 arg, A_UINT32 flags, A_UINT32 *resp)
 {
     struct mmc_command cmd;
@@ -712,6 +712,7 @@ static A_INT32 IssueSDCommand(HIF_DEVICE *device, A_UINT32 opcode, A_UINT32 arg,
 
     return err;
 }
+#endif
 A_STATUS ReinitSDIO(HIF_DEVICE *device)
 {
     A_INT32 err = 0;
@@ -729,6 +730,7 @@ A_STATUS ReinitSDIO(HIF_DEVICE *device)
     sdio_claim_host(func);
 
     do {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
         /* 2.6.32 kernel does part of the SDIO initalization upon resume */
         A_BOOL lt_2_6_32 = (LINUX_VERSION_CODE<KERNEL_VERSION(2,6,32));
         if (lt_2_6_32) {
@@ -820,14 +822,16 @@ A_STATUS ReinitSDIO(HIF_DEVICE *device)
                 break;
             }
         }
-
+#endif
         /* Enable high speed */
         if (card->host->caps & MMC_CAP_SD_HIGHSPEED) {
             AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("ReinitSDIO: Set high speed mode\n"));
             err = Func0_CMD52ReadByte(card, SDIO_CCCR_SPEED, &cmd52_resp);
             if (err) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD52 read to CCCR speed register failed  : %d \n",err));
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
                 card->state &= ~MMC_STATE_HIGHSPEED;
+#endif
                 /* no need to break */
             } else {
                 err = Func0_CMD52WriteByte(card, SDIO_CCCR_SPEED, (cmd52_resp | SDIO_SPEED_EHS));
@@ -835,14 +839,20 @@ A_STATUS ReinitSDIO(HIF_DEVICE *device)
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD52 write to CCCR speed register failed  : %d \n",err));
                     break;
                 }
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
                 mmc_card_set_highspeed(card);
+#endif
                 host->ios.timing = MMC_TIMING_SD_HS;
                 host->ops->set_ios(host, &host->ios);
             }
         }
 
         /* Set clock */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
         if (mmc_card_highspeed(card)) {
+#else
+        if (mmc_card_hs(card)) {
+#endif
             clock = 50000000;
         } else {
             clock = card->cis.max_dtr;
@@ -1424,7 +1434,11 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             if (mmcclock > 0){
                 clock_set = mmcclock;
             }
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
             if (mmc_card_highspeed(func->card)){
+#else
+            if (mmc_card_hs(func->card)) {
+#endif
                 clock = 50000000;
             } else {
                 clock = func->card->cis.max_dtr;
@@ -2279,7 +2293,9 @@ static HIF_DEVICE *
 addHifDevice(struct sdio_func *func)
 {
     HIF_DEVICE *hifdevice = NULL;
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0)) && !defined(WITH_BACKPORTS)
     int ret = 0;
+#endif
     ENTER();
     AR_DEBUG_ASSERT(func != NULL);
     hifdevice = (HIF_DEVICE *)A_MALLOC(sizeof(HIF_DEVICE));
@@ -2296,9 +2312,13 @@ addHifDevice(struct sdio_func *func)
     hifdevice->func = func;
     hifdevice->powerConfig = HIF_DEVICE_POWER_UP;
     hifdevice->DeviceState = HIF_DEVICE_STATE_ON;
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0)) && !defined(WITH_BACKPORTS)
     ret = sdio_set_drvdata(func, hifdevice);
-
     EXIT("status %d", ret);
+#else
+    sdio_set_drvdata(func, hifdevice);
+    EXIT();
+#endif
     return hifdevice;
 }
 
