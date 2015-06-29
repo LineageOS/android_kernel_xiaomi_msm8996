@@ -1232,7 +1232,9 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
                   psessionEntry->bssType)) == NULL) {
          limLog(pMac, LOGE,
                FL("Session Can not be created for pre-auth 11R AP"));
-         return;
+         status = eSIR_FAILURE;
+         psessionEntry->ftPEContext.ftPreAuthStatus = status;
+         goto send_rsp;
       }
 
       pftSessionEntry->peSessionId = sessionId;
@@ -1263,6 +1265,7 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
       limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG1);
    }
 
+send_rsp:
    if (psessionEntry->currentOperChannel !=
          psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum) {
       /* Need to move to the original AP channel */
