@@ -12131,7 +12131,7 @@ tANI_U8 csrRoamGetIbssStartChannelNumber50( tpAniSirGlobal pMac )
                 {
                     if (idxValidChannels < CSR_NUM_IBSS_START_CHANNELS_50)
                     {
-                        channel = csrStartIbssChannels50[ idxValidChannels ];
+                        channel = pMac->roam.validChannelList[idxValidChannels];
                     }
                     break;
                 }
