@@ -686,6 +686,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
         if(*pChans == 14 &&
                eCSR_DOT11_MODE_11b != pSapCtx->csrRoamProfile.phyMode)
         {
+            pSpectCh++;
             continue;
         }
 
@@ -695,8 +696,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
             pSpectCh->valid = eSAP_TRUE;
             pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;// Initialise for all channels
             pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH; // Initialise 20MHz for all the Channels
-            pSpectCh++;
         }
+        pSpectCh++;
     }
     return eSAP_TRUE;
 }
