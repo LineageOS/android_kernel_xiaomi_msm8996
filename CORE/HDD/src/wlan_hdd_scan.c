@@ -708,17 +708,8 @@ static int __iw_set_scan(struct net_device *dev, struct iw_request_info *info,
            pwextBuf->genIE.length );
        pAdapter->scan_info.scanAddIE.length = pwextBuf->genIE.length;
 
-      /* Maximum length of each IE is SIR_MAC_MAX_IE_LENGTH */
-      if (SIR_MAC_MAX_IE_LENGTH  >=  pwextBuf->genIE.length) {
-           memcpy( pwextBuf->roamProfile.addIEScan,
-                       pAdapter->scan_info.scanAddIE.addIEdata,
-                       pAdapter->scan_info.scanAddIE.length);
-           pwextBuf->roamProfile.nAddIEScanLength =
-                                pAdapter->scan_info.scanAddIE.length;
-      } else {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "Invalid ScanIE, Length is %d", pwextBuf->genIE.length);
-      }
+       pwextBuf->roamProfile.pAddIEScan = pAdapter->scan_info.scanAddIE.addIEdata;
+       pwextBuf->roamProfile.nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
 
        /* clear previous genIE after use it */
        memset( &pwextBuf->genIE, 0, sizeof(pwextBuf->genIE) );
@@ -1128,17 +1119,8 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                 pwextBuf->genIE.length );
             pAdapter->scan_info.scanAddIE.length = pwextBuf->genIE.length;
 
-            if (SIR_MAC_MAX_IE_LENGTH  >=  pwextBuf->genIE.length) {
-                memcpy( pwextBuf->roamProfile.addIEScan,
-                           pAdapter->scan_info.scanAddIE.addIEdata,
-                           pAdapter->scan_info.scanAddIE.length);
-                pwextBuf->roamProfile.nAddIEScanLength =
-                                  pAdapter->scan_info.scanAddIE.length;
-            } else {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "Invalid ScanIE, Length is %d",
-                          pwextBuf->genIE.length);
-            }
+            pwextBuf->roamProfile.pAddIEScan = pAdapter->scan_info.scanAddIE.addIEdata;
+            pwextBuf->roamProfile.nAddIEScanLength = pAdapter->scan_info.scanAddIE.length;
 
             /* clear previous genIE after use it */
             memset( &pwextBuf->genIE, 0, sizeof(pwextBuf->genIE) );
