@@ -850,7 +850,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
    else
    {
-      if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
+      if (WLAN_HDD_OCB != pAdapter->device_mode
+          && eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
          VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
                 FL("Tx frame in not associated state in %d context"),
                     pAdapter->device_mode);
