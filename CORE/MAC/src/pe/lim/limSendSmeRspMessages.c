@@ -1492,6 +1492,11 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
     tANI_U32 *pMsg;
     bool failure = false;
 
+    limLog(pMac, LOG1, FL("Disassoc Ntf with trigger : %d"
+            "reasonCode: %d"),
+            disassocTrigger,
+            reasonCode);
+
     switch (disassocTrigger)
     {
         case eLIM_PEER_ENTITY_DISASSOC:
@@ -1516,7 +1521,7 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
                 failure = true;
                 goto error;
             }
-            limLog(pMac, LOG1, FL("send eWNI_SME_DEAUTH_RSP with "
+            limLog(pMac, LOG1, FL("send eWNI_SME_DISASSOC_RSP with "
             "retCode: %d for "MAC_ADDRESS_STR),reasonCode,
             MAC_ADDR_ARRAY(peerMacAddr));
             pSirSmeDisassocRsp->messageType = eWNI_SME_DISASSOC_RSP;

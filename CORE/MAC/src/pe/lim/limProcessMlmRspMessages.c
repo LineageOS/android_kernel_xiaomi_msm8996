@@ -2331,9 +2331,10 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     tSirResultCodes statusCode = eSIR_SME_SUCCESS;
     if(limMsgQ->bodyptr == NULL)
     {
+      limLog( pMac, LOGE,
+           FL( "limMsgQ->bodyptry NULL"));
       return;
     }
-
     pStaDs = dphGetHashEntry(pMac, pDelStaParams->assocId, &psessionEntry->dph.dphHashTable);
     if(pStaDs == NULL)
     {
@@ -2345,6 +2346,9 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
 
         return;
     }
+    limLog( pMac, LOG1,
+            FL( "Received del Sta Rsp in StaD MlmState : %d"),
+                 pStaDs->mlmStaContext.mlmState);
     if( eHAL_STATUS_SUCCESS == pDelStaParams->status )
     {
         limLog( pMac, LOGW,
@@ -2524,7 +2528,7 @@ void limProcessBtAmpApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     pStaDs->valid = 1;
     pStaDs->mlmStaContext.mlmState = eLIM_MLM_WT_ASSOC_CNF_STATE;
     limLog( pMac, LOG1,
-            FL("STA AssocID %d staId %d MAC "),
+            FL("AddStaRsp Success.STA AssocID %d staId %d MAC "),
             pStaDs->assocId,
             pStaDs->staIndex);
     limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);

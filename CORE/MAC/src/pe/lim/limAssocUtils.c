@@ -629,7 +629,10 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
     tSirRetStatus       retCode = eSIR_SUCCESS;
 
 
-    limLog( pMac, LOG1, FL("**Initiate cleanup"));
+    limLog( pMac, LOG1, FL("Cleanup Rx Path for AID : %d"
+                  "psessionEntry->limSmeState : %d, mlmState : %d"),
+                  pStaDs->assocId, psessionEntry->limSmeState,
+                  pStaDs->mlmStaContext.mlmState);
 
     limAbortBackgroundScan( pMac );
     psessionEntry->isCiscoVendorAP = FALSE;
@@ -748,7 +751,7 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
     tLimMlmDeauthCnf   mlmDeauthCnf;
     tLimMlmPurgeStaInd mlmPurgeStaInd;
 
-    limLog(pMac, LOG1, FL("Sessionid: %d staDsAssocId: %d Trigger: %X "
+    limLog(pMac, LOG1, FL("Sessionid: %d staDsAssocId: %d Trigger: %d "
           "statusCode: %d staDsAddr: "MAC_ADDRESS_STR),psessionEntry->peSessionId,
            staDsAssocId, mlmStaContext.cleanupTrigger, statusCode,
            MAC_ADDR_ARRAY(staDsAddr));
@@ -784,7 +787,8 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
          * Host or LMM driven Disassociation.
          * Issue Disassoc Confirm to SME.
          */
-           limLog( pMac, LOGW, FL("Lim Posting DISASSOC_CNF to Sme. Trigger: %X"), mlmStaContext.cleanupTrigger);
+           limLog( pMac, LOGW, FL("Lim Posting DISASSOC_CNF to Sme. Trigger: %d"),
+                                   mlmStaContext.cleanupTrigger);
 
 
         vos_mem_copy((tANI_U8 *) &mlmDisassocCnf.peerMacAddr,
@@ -809,7 +813,8 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
          * Host or LMM driven Deauthentication.
          * Issue Deauth Confirm to SME.
          */
-        limLog( pMac, LOGW, FL("Lim Posting DEAUTH_CNF to Sme. Trigger: %X"), mlmStaContext.cleanupTrigger);
+        limLog( pMac, LOGW, FL("Lim Posting DEAUTH_CNF to Sme. Trigger: %d"),
+                                mlmStaContext.cleanupTrigger);
         vos_mem_copy((tANI_U8 *) &mlmDeauthCnf.peerMacAddr,
                      (tANI_U8 *) staDsAddr,
                       sizeof(tSirMacAddr));
@@ -832,7 +837,8 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
          * Received Disassociation/Deauthentication from peer.
          * Issue Purge Ind to SME.
          */
-        limLog( pMac, LOGW, FL("Lim Posting PURGE_STA_IND to Sme. Trigger: %X"), mlmStaContext.cleanupTrigger) ;
+        limLog( pMac, LOGW, FL("Lim Posting PURGE_STA_IND to Sme. Trigger: %d"),
+                                mlmStaContext.cleanupTrigger) ;
         vos_mem_copy((tANI_U8 *) &mlmPurgeStaInd.peerMacAddr,
                      (tANI_U8 *) staDsAddr,
                      sizeof(tSirMacAddr));
@@ -870,6 +876,12 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
             tempLimSmeState == eLIM_SME_WT_REASSOC_STATE)
           )
         {
+            limLog( pMac, LOG1, FL("Lim Posting eWNI_SME_REASSOC_RSP to SME"
+                                   "resultCode: %d, statusCode: %d,"
+                                   "sessionId: %d"),
+                                    mlmStaContext.resultCode,
+                                    mlmStaContext.protStatusCode,
+                                    psessionEntry->peSessionId);
             if(mlmStaContext.resultCode != eSIR_SME_SUCCESS )
             {
                 peDeleteSession(pMac, psessionEntry);
@@ -882,17 +894,27 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
         }
         else
         {
-        vos_mem_free(psessionEntry->pLimJoinReq);
-        psessionEntry->pLimJoinReq = NULL;
+            vos_mem_free(psessionEntry->pLimJoinReq);
+            psessionEntry->pLimJoinReq = NULL;
 
-        if(mlmStaContext.resultCode != eSIR_SME_SUCCESS)
-        {
-            peDeleteSession(pMac,psessionEntry);
-            psessionEntry = NULL;
-        }
+            limLog( pMac, LOG1, FL("Lim Posting eWNI_SME_JOIN_RSP to SME."
+                                    "resultCode: %d,statusCode: %d,"
+                                    "sessionId: %d"),
+                                    mlmStaContext.resultCode,
+                                    mlmStaContext.protStatusCode,
+                                    psessionEntry->peSessionId);
 
-        limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP, mlmStaContext.resultCode, mlmStaContext.protStatusCode,
-                                 psessionEntry, smesessionId, smetransactionId);
+            if(mlmStaContext.resultCode != eSIR_SME_SUCCESS)
+            {
+                peDeleteSession(pMac,psessionEntry);
+                psessionEntry = NULL;
+            }
+
+            limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP,
+                                     mlmStaContext.resultCode,
+                                     mlmStaContext.protStatusCode,
+                                     psessionEntry, smesessionId,
+                                     smetransactionId);
         }
 
     }
