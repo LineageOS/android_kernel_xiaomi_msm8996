@@ -5003,8 +5003,14 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
     int error = 0;
     tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
                                                               wma->vos_context);
-    bool enable_log = mac_ctx->sap.enable_dfs_phy_error_logs;
+    bool enable_log = false;
 
+    if (NULL == mac_ctx) {
+        WMA_LOGE("%s: mac_ctx is NULL", __func__);
+        return 0;
+    }
+
+    enable_log = mac_ctx->sap.enable_dfs_phy_error_logs;
     param_tlvs = (WMI_PHYERR_EVENTID_param_tlvs *)data;
 
     if (!param_tlvs)
