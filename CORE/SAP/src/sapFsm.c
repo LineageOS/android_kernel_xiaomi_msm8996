@@ -1891,6 +1891,7 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
 {
     int i, j;
     v_U64_t timeElapsedSinceLastRadar,timeWhenRadarFound,currentTime = 0;
+    v_U64_t max_jiffies;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     tpAniSirGlobal pMac;
     v_U8_t channels[MAX_BONDED_CHANNELS];
@@ -1962,7 +1963,19 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
                    .sapDfsChannelNolList[i]
                    .radar_found_timestamp;
                 currentTime = vos_get_monotonic_boottime();
-                timeElapsedSinceLastRadar = currentTime - timeWhenRadarFound;
+
+                if (currentTime < timeWhenRadarFound) {
+                    /* vos_get_monotonic_boottime() can overflow. Jiffies is
+                     * initialized such that 32 bit jiffies value wrap 5 minutes
+                     * after boot so jiffies wrap bugs show up earlier.
+                     */
+                     max_jiffies = (v_U64_t)UINT_MAX * 1000;
+                     timeElapsedSinceLastRadar = (max_jiffies -
+                                  timeWhenRadarFound) + (currentTime);
+                } else {
+                     timeElapsedSinceLastRadar = currentTime -
+                                                       timeWhenRadarFound;
+                }
                 if (timeElapsedSinceLastRadar >= SAP_DFS_NON_OCCUPANCY_PERIOD)
                 {
                    pMac->sap.SapDfsInfo.sapDfsChannelNolList[i]
