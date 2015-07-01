@@ -2296,16 +2296,7 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
 
          // admission is required
          pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessRequired = VOS_TRUE;
-         /*
-          * Mark wmmAcAccessAllowed as True if implicit Qos is disabled as there
-          * is no need to hold packets in queue during hdd_tx_fetch_packet_cbk
-          */
-         if (!(WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->bImplicitQosEnabled)
-              pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed =
-                                                                      VOS_TRUE;
-         else
-              pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed =
-                                                                     VOS_FALSE;
+         pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed = VOS_FALSE;
          pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted = VOS_FALSE;
          //after reassoc if we have valid tspec, allow access
          if (pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid &&
