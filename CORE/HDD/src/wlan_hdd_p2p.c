@@ -1325,6 +1325,12 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
         }
     }
 
+    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+       (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_PROBE_RSP)) {
+        /* Drop Probe response recieved from supplicant in sta mode */
+        goto err_rem_channel;
+    }
+
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
     // After tx completion send tx status back.
