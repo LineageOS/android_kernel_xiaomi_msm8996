@@ -189,12 +189,8 @@ struct _hddTdlsPeer_t;
 typedef struct {
     struct list_head peer_list[TDLS_PEER_LIST_SIZE];
     hdd_adapter_t   *pAdapter;
-#ifdef TDLS_USE_SEPARATE_DISCOVERY_TIMER
-    vos_timer_t     peerDiscoverTimer;
-#endif
     vos_timer_t     peerDiscoveryTimeoutTimer;
     tdls_config_params_t threshold_config;
-    tANI_S32        discovery_peer_cnt;
     tANI_U32        discovery_sent_cnt;
     tANI_S8         ap_rssi;
     struct _hddTdlsPeer_t  *curr_candidate;
