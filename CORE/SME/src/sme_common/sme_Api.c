@@ -12750,12 +12750,6 @@ eHalStatus sme_ocb_get_tsf_timer(tHalHandle hHal, void *context,
 	if (!HAL_STATUS_SUCCESS(status))
 		return status;
 
-	/* Check if there is a pending request */
-	if (pMac->sme.ocb_get_tsf_timer_callback) {
-		status = eHAL_STATUS_FW_PS_BUSY;
-		goto end;
-	}
-
 	/* Allocate memory for the WMI request, and copy the parameter */
 	msg_body = vos_mem_malloc(sizeof(*msg_body));
 	if (!msg_body) {
@@ -12815,11 +12809,6 @@ eHalStatus sme_dcc_get_stats(tHalHandle hHal, void *context,
 	status = sme_AcquireGlobalLock(&pMac->sme);
 	if (!HAL_STATUS_SUCCESS(status))
 		return status;
-	/* Check if there is a pending request */
-	if (pMac->sme.dcc_get_stats_callback) {
-		status = eHAL_STATUS_FW_PS_BUSY;
-		goto end;
-	}
 
 	/* Allocate memory for the WMI request, and copy the parameter */
 	msg_body = vos_mem_malloc(sizeof(*msg_body) +
@@ -12918,12 +12907,6 @@ eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void *context,
 	status = sme_AcquireGlobalLock(&pMac->sme);
 	if (!HAL_STATUS_SUCCESS(status))
 		return status;
-
-	/* Check if there is a pending request */
-	if (pMac->sme.dcc_update_ndl_callback) {
-		status = eHAL_STATUS_FW_PS_BUSY;
-		goto end;
-	}
 
 	/* Allocate memory for the WMI request, and copy the parameter */
 	msg_body = vos_mem_malloc(sizeof(*msg_body) +
