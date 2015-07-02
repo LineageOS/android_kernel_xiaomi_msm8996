@@ -2743,7 +2743,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 /* Max number of DHCP clients to be supported */
 #define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_NAME     "gDHCPMaxNumClients"
 #define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MIN      ( 1 )
-#define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX      ( 8 )
+#define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX      ( 10 )
 #define CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_DEFAULT  ( CFG_DHCP_SERVER_OFFLOAD_NUM_CLIENT_MAX )
 
 /* Starting address assigned to DHCP client */
