@@ -3190,18 +3190,6 @@ typedef enum {
     WMI_CHAN_WIDTH_10    = 6,
 } wmi_channel_width;
 
-/* wifi peer type */
-typedef enum {
-   WMI_PEER_STA,
-   WMI_PEER_AP,
-   WMI_PEER_P2P_GO,
-   WMI_PEER_P2P_CLIENT,
-   WMI_PEER_NAN,
-   WMI_PEER_TDLS,
-   WMI_PEER_OCB,
-   WMI_PEER_INVALID,
-} wmi_peer_type;
-
 /*Clear stats*/
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_clear_link_stats_cmd_fixed_param */
