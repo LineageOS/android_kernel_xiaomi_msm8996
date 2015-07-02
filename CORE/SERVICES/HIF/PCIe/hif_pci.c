@@ -2760,6 +2760,17 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
 
     if  (adf_os_atomic_read(&sc->pci_link_suspended)) {
         pr_err("invalid access, PCIe link is suspended");
+        pr_err("%s: INTR_ENABLE_REG = 0x%08x, INTR_CAUSE_REG = 0x%08x, "
+               "CPU_INTR_REG = 0x%08x, INTR_CLR_REG = 0x%08x\n", __func__,
+               A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                            PCIE_INTR_ENABLE_ADDRESS),
+               A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                            PCIE_INTR_CAUSE_ADDRESS),
+               A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                            CPU_INTR_ADDRESS),
+               A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                            PCIE_INTR_CLR_ADDRESS));
+        adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
         VOS_BUG(0);
     }
 
