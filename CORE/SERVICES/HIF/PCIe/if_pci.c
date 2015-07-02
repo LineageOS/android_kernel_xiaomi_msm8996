@@ -431,6 +431,38 @@ hif_pci_device_warm_reset(struct hif_pci_softc *sc)
 
 }
 
+/**
+ * hif_pci_set_ram_config_reg() - sets target RAM configuration register
+ * @sc:                           pointer of hif_pci_softc context
+ * @config:                       value to be wrote to the register
+ *
+ * This function will write the given value to target RAM configuration
+ * register which is bit[23-20] of target CPU inbound address in order to
+ * provide correct address mapping.
+ *
+ * Return: 0 for success or reasons for failure
+ */
+int hif_pci_set_ram_config_reg(struct hif_pci_softc *sc, uint32_t config)
+{
+	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+	A_target_id_t targid = hif_state->targid;
+	void __iomem *mem = sc->mem;
+	uint32_t val;
+
+	A_TARGET_ACCESS_BEGIN_RET(targid);
+	A_PCI_WRITE32(mem + SOC_CORE_BASE_ADDRESS +
+			FW_RAM_CONFIG_ADDRESS, config);
+	val = A_PCI_READ32(mem + SOC_CORE_BASE_ADDRESS +
+			FW_RAM_CONFIG_ADDRESS);
+	if (val != config) {
+		pr_err("%s: Failed to set RAM config reg from 0x%x to 0x%x\n",
+			__func__, val, config);
+		A_TARGET_ACCESS_END_RET(targid);
+		return -EACCES;
+	}
+	A_TARGET_ACCESS_END_RET(targid);
+	return 0;
+}
 
 int hif_pci_check_fw_reg(struct hif_pci_softc *sc)
 {

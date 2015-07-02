@@ -86,11 +86,18 @@
 #define DRAM_SIZE               0x000a8000
 #define DRAM_LOCAL_BASE_ADDRESS (0x100000)
 
+#ifdef HIF_PCI
+#define IRAM1_LOCATION          0x00980000
+#define IRAM1_SIZE              0x00080000
+#define IRAM2_LOCATION          0x00a00000
+#define IRAM2_SIZE              0x00040000
+#else
 #define IRAM_LOCATION           0x00980000
 #define IRAM_SIZE               0x00038000
+#endif
 
 #define AXI_LOCATION            0x000a0000
-#ifdef HIF_PCIE
+#ifdef HIF_PCI
 #define AXI_SIZE                0x00018000
 #else
 #define AXI_SIZE                0x00020000
