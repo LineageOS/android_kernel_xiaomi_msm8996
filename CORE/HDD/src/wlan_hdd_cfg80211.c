@@ -17682,6 +17682,14 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                            FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                            MAC_ADDR_ARRAY(pDelStaParams->peerMacAddr));
 
+                    /* Case: SAP in ACS selected DFS ch and station connected.
+                     * Now Radar detected. Then if random channel is another DFS
+                     * ch then new CAC is initiated and no TX allowed. Thus
+                     * do not send any mgmt frames as it will timeout during CAC
+                     */
+                    if (pHddCtx->dev_dfs_cac_status == DFS_CAC_IN_PROGRESS)
+                        goto fn_end;
+
                     /* Send disassoc and deauth both to avoid some IOT issues */
                     vos_event_reset(&pHostapdState->vosEvent);
                     hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
@@ -17728,6 +17736,9 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                    FL("Delete STA with MAC::"MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY(pDelStaParams->peerMacAddr));
 
+            if (pHddCtx->dev_dfs_cac_status == DFS_CAC_IN_PROGRESS)
+                goto fn_end;
+
             /* Send disassoc and deauth both to avoid some IOT issues */
             vos_event_reset(&pHostapdState->vosEvent);
             hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
@@ -17748,6 +17759,7 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
         }
     }
 
+fn_end:
     EXIT();
     return 0;
 }
