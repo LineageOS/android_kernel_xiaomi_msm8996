@@ -2838,6 +2838,15 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tpPESession psessionE
     pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
     pMac->lim.gpchangeChannelData = NULL;
 
+    /* Assign the callback to resume TX once channel is changed */
+    psessionEntry->currentReqChannel = newChannel;
+    psessionEntry->limRFBand = limGetRFBand(newChannel);
+
+    psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_OPERATION;
+
+    pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
+    pMac->lim.gpchangeChannelData = NULL;
+
 #if defined WLAN_FEATURE_VOWIFI
                 limSendSwitchChnlParams(pMac, newChannel, subband,
                                         psessionEntry->maxTxPower,
