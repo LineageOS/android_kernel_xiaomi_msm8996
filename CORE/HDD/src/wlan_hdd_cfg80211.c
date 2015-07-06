@@ -10437,7 +10437,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
             sap_config->channel = channel;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
-            sap_config.ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
+            sap_config->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
 #endif
             vos_mem_zero(&smeConfig, sizeof(smeConfig));
             sme_GetConfigParam(pHddCtx->hHal, &smeConfig);
@@ -10454,7 +10454,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
-                sap_config.ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
+                sap_config->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 #endif
                 sap_config->sec_ch = 0;
                 break;
