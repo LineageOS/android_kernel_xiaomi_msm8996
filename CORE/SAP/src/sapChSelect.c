@@ -2422,6 +2422,12 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
             if((safeChannels[i].channelNumber >= startChannelNum) &&
                (safeChannels[i].channelNumber <= endChannelNum))
             {
+                eNVChannelEnabledType enable_type =
+                   vos_nv_getChannelEnabledState(safeChannels[i].channelNumber);
+                if ((NV_CHANNEL_DISABLE == enable_type) ||
+                    (NV_CHANNEL_INVALID == enable_type))
+                    continue;
+
                 if (safeChannels[i].isSafe == VOS_TRUE)
                 {
                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
