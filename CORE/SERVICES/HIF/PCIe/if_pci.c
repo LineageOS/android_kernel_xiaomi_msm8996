@@ -859,6 +859,15 @@ static int __hif_pci_runtime_suspend(struct pci_dev *pdev)
 		goto out;
 	}
 
+#ifdef FEATURE_WLAN_D0WOW
+	if (wma_get_client_count(temp_module)) {
+		pr_err("%s: Runtime PM not supported when clients are connected\n",
+				__func__);
+		ret = -EINVAL;
+		goto out;
+	}
+#endif
+
 	ret = wma_runtime_suspend_req(temp_module);
 	if (ret) {
 		pr_err("%s: Runtime Offloads configuration failed: %d\n",
@@ -871,15 +880,6 @@ static int __hif_pci_runtime_suspend(struct pci_dev *pdev)
 		pr_err("%s: pci_suspend failed: %d\n", __func__, ret);
 		goto suspend_fail;
 	}
-
-#ifdef FEATURE_WLAN_D0WOW
-	if (wma_get_client_count(temp_module)) {
-		pr_err("%s: Runtime PM not supported when clients are connected\n",
-				__func__);
-		ret = -EINVAL;
-		goto suspend_fail;
-	}
-#endif
 
 	ret = cnss_auto_suspend();
 
