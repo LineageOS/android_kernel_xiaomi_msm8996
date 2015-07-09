@@ -9222,6 +9222,12 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 #endif
          break;
 
+      case WLAN_HDD_OCB:
+         hdd_disconnect_tx_rx(pAdapter);
+         WLANTL_ClearSTAClient(WLAN_HDD_GET_CTX(pAdapter)->pvosContext,
+            WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)->conn_info.staId[0]);
+         break;
+
       default:
          break;
    }
