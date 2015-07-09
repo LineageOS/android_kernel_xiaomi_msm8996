@@ -14015,50 +14015,39 @@ void sme_add_set_thermal_level_callback(tHalHandle hHal,
     pMac->sme.set_thermal_level_cb = callback;
 }
 
-/* ---------------------------------------------------------------------------
-    \fn sme_SetThermalLevel
-    \brief  SME API to set the thermal mitigation level
-    \param  hHal
-    \param  level : thermal mitigation level
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
+/**
+ * sme_SetThermalLevel() - SME API to set the thermal mitigation level
+ * hHal:	Handler to HAL
+ * level:	Thermal mitigation level
+ *
+ * Return: HAL status code
+ */
 eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
 {
-    vos_msg_t msg;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    u_int8_t *pLevel = vos_mem_malloc(sizeof(*pLevel));
+	vos_msg_t msg;
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
-    if (NULL == pLevel)
-    {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                 "%s: could not allocate pLevel", __func__);
-       return eHAL_STATUS_E_MALLOC_FAILED;
-    }
+	if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme)) {
+		vos_mem_set(&msg, sizeof(msg), 0);
+		msg.type = WDA_SET_THERMAL_LEVEL;
+		msg.bodyval = level;
 
-    *pLevel = level;
-
-    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
-    {
-        msg.type = WDA_SET_THERMAL_LEVEL;
-        msg.reserved = 0;
-        msg.bodyptr = pLevel;
-
-        if (!VOS_IS_STATUS_SUCCESS(
-           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-        {
-            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                       "%s: Not able to post WDA_SET_THERMAL_LEVEL to WDA!",
-                       __func__);
-            vos_mem_free(pLevel);
-            sme_ReleaseGlobalLock(&pMac->sme);
-            return eHAL_STATUS_FAILURE;
-        }
-        sme_ReleaseGlobalLock(&pMac->sme);
-        return eHAL_STATUS_SUCCESS;
-    }
-    vos_mem_free(pLevel);
-    return eHAL_STATUS_FAILURE;
+		vosStatus =  vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+		if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				   "%s: Not able to post WDA_SET_THERMAL_LEVEL to WDA!",
+				   __func__);
+			sme_ReleaseGlobalLock(&pMac->sme);
+			return eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+		return eHAL_STATUS_SUCCESS;
+	}
+	return eHAL_STATUS_FAILURE;
 }
+
+
 /* ---------------------------------------------------------------------------
    \fn sme_TxpowerLimit
    \brief SME API to set txpower limits
