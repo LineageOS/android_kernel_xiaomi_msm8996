@@ -107,11 +107,13 @@ struct cvg_nbuf_cb {
              */
             wordstream_flags : CVG_NBUF_MAX_EXTRA_FRAGS+1;
     } extra_frags;
+#ifdef QCA_MDM_DEVICE
     uint32_t owner_id;
     __adf_nbuf_callback_fn adf_nbuf_callback_fn;
 #ifdef IPA_OFFLOAD
     unsigned long priv_data;
 #endif
+#endif /* QCA_MDM_DEVICE */
 #ifdef QCA_PKT_PROTO_TRACE
     unsigned char proto_type;
     unsigned char vdev_id;
@@ -121,12 +123,14 @@ struct cvg_nbuf_cb {
     unsigned char tx_htt2_reserved: 7;
 #endif /* QCA_TX_HTT2_SUPPORT */
 };
-#define NBUF_OWNER_ID(skb) \
-    (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
 #ifdef QCA_ARP_SPOOFING_WAR
 #define NBUF_CB_PTR(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.ptr)
 #endif
+
+#ifdef QCA_MDM_DEVICE
+#define NBUF_OWNER_ID(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->owner_id)
 #ifdef IPA_OFFLOAD
 #define NBUF_OWNER_PRIV_DATA(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->priv_data)
@@ -135,6 +139,7 @@ struct cvg_nbuf_cb {
     (((struct cvg_nbuf_cb *)((skb)->cb))->adf_nbuf_callback_fn)
 #define NBUF_CALLBACK_FN_EXEC(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->adf_nbuf_callback_fn)(skb)
+#endif /* QCA_MDM_DEVICE */
 #define NBUF_MAPPED_PADDR_LO(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->mapped_paddr_lo[0])
 #define NBUF_NUM_EXTRA_FRAGS(skb) \

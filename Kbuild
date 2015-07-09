@@ -1277,6 +1277,9 @@ CDEFINES += -DQCA_HT_2040_COEX
 #Disable HT40 in 2.4GHZ STA mode
 CDEFINES += -DQCA_HT_20_24G_STA_ONLY
 
+#MDM Device only, to optimize MSM skb cb memory usage
+CDEFINES += -DQCA_MDM_DEVICE
+
 else #CONFIG_MOBILE_ROUTER
 
 #Open P2P device interface only for non-Mobile router use cases

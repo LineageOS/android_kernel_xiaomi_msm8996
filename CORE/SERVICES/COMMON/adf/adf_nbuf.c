@@ -168,12 +168,14 @@ __adf_rx_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, 
 void
 __adf_nbuf_free(struct sk_buff *skb)
 {
+#ifdef QCA_MDM_DEVICE
 #if defined(IPA_OFFLOAD) && (!defined(IPA_UC_OFFLOAD) ||\
    (defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)))
     if( (NBUF_OWNER_ID(skb) == IPA_NBUF_OWNER_ID) && NBUF_CALLBACK_FN(skb) )
         NBUF_CALLBACK_FN_EXEC(skb);
     else
 #endif
+#endif /* QCA_MDM_DEVICE */
     {
        if (__adf_nbuf_pre_alloc_free(skb))
            return;

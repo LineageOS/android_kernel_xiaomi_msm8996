@@ -2463,6 +2463,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 	}
 }
 
+#ifdef QCA_MDM_DEVICE
 static void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
@@ -2476,6 +2477,7 @@ static void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 
 	hdd_ipa_rm_try_release(hdd_ipa);
 }
+#endif /* QCA_MDM_DEVICE */
 
 static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 		struct ipa_rx_data *ipa_tx_desc)
@@ -2516,6 +2518,7 @@ static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 	skb = ipa_tx_desc->skb;
 
 	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+#ifdef QCA_MDM_DEVICE
 	NBUF_OWNER_ID(skb) = IPA_NBUF_OWNER_ID;
 	NBUF_CALLBACK_FN(skb) = hdd_ipa_nbuf_cb;
 #ifdef IPA_UC_STA_OFFLOAD
@@ -2528,6 +2531,7 @@ static void hdd_ipa_send_pkt_to_tl(struct hdd_ipa_iface_context *iface_context,
 #endif
 
 	NBUF_OWNER_PRIV_DATA(skb) = (unsigned long)ipa_tx_desc;
+#endif /* QCA_MDM_DEVICE */
 
 	adapter->stats.tx_bytes += ipa_tx_desc->skb->len;
 
