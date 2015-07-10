@@ -2374,6 +2374,9 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
             pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
     }
 
+    /* Set bus master bit in PCI_COMMAND to enable DMA */
+    pci_set_master(pdev);
+
     printk("\n%s: Rome PS: %d", __func__, val);
 
 #ifdef CONFIG_CNSS
