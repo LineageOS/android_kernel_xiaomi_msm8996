@@ -3549,9 +3549,19 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #ifdef IPA_UC_OFFLOAD
 		if ((!hdd_ipa->num_iface) &&
 			(HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe)) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"NO INTF left, but still pipe, clean up");
-			hdd_ipa_uc_handle_last_discon(hdd_ipa);
+			if (hdd_ipa->hdd_ctx->isUnloadInProgress) {
+				/* We disable WDI pipes directly here since
+				 * IPA_OPCODE_TX/RX_SUSPEND message will not be
+				 * processed when unloding WLAN driver is in
+				 * progress
+				 */
+				hdd_ipa_uc_disable_pipes(hdd_ipa);
+			} else {
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"NO INTF left, "
+					"but still pipe clean up");
+				hdd_ipa_uc_handle_last_discon(hdd_ipa);
+			}
 		}
 
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
