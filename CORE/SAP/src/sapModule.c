@@ -3909,16 +3909,25 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
         else if (VOS_STATUS_E_CANCELED == vosStatus) {
              /*
               * ERROR is returned when either the SME scan request
-              * failed or ACS is not enabled. So, default channel
-              * is selected and this default channel should be sent
-              * to the HDD.
+              * failed or ACS is overridden due to other constraints
+              * So send this channel to HDD.
               */
              VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                 FL("Scan Req Failed/ACS not enabled,default channel = %d"),
+                 FL("Scan Req Failed/ACS Overridden, Selected channel = %d"),
                  sapContext->channel);
+
              halStatus = sapSignalHDDevent(sapContext, NULL,
                                            eSAP_ACS_CHANNEL_SELECTED,
                                            (v_PVOID_t) eSAP_STATUS_SUCCESS);
+
+             if (sapContext->isScanSessionOpen == eSAP_TRUE) {
+                 /* acs scan not needed so close the session */
+                 tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                 if (eHAL_STATUS_SUCCESS == sme_CloseSession(hHal,
+                                      sapContext->sessionId, NULL, NULL))
+                         sapContext->isScanSessionOpen = eSAP_FALSE;
+                 sapContext->sessionId = 0xff;
+             }
 
              if (eHAL_STATUS_SUCCESS == halStatus) {
                  vosStatus = VOS_STATUS_SUCCESS;

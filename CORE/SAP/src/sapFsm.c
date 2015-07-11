@@ -2323,11 +2323,14 @@ sapGotoChannelSel
                   __func__, sapContext->channel);
         if (VOS_TRUE == sapDoAcsPreStartBss)
         {
-            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                      "In %s, ACS Disabled, Configured Ch= %d",
-                      __func__, sapContext->channel);
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                      "In %s, ACS end due to channel override, Selected Ch= %d",
+                       __func__, sapContext->channel);
 
-            return VOS_STATUS_E_FAILURE;
+            sapContext->acs_cfg->pri_ch = sapContext->channel;
+            sapContext->acs_cfg->ch_width = sapContext->ch_width_orig;
+            sap_config_acs_result(hHal, sapContext, 0);
+            return VOS_STATUS_E_CANCELED;
         }
         else
         {
