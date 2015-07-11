@@ -97,11 +97,6 @@ when           who                what, where, why
 #define       AUTO_CHANNEL_SELECT          0
 #define       MAX_ASSOC_IND_IE_LEN         255
 
-/* defines for WPS config states */
-#define       SAP_WPS_DISABLED             0
-#define       SAP_WPS_ENABLED_UNCONFIGURED 1
-#define       SAP_WPS_ENABLED_CONFIGURED   2
-
 #define       MAX_NAME_SIZE                64
 #define       MAX_TEXT_SIZE                32
 

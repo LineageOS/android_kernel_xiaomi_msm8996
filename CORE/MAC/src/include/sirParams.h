@@ -43,6 +43,11 @@
 
 # include "sirTypes.h"
 
+/* defines for WPS config states */
+#define       SAP_WPS_DISABLED             0
+#define       SAP_WPS_ENABLED_UNCONFIGURED 1
+#define       SAP_WPS_ENABLED_CONFIGURED   2
+
 // Firmware wide constants
 
 #define SIR_MAX_PACKET_SIZE     512

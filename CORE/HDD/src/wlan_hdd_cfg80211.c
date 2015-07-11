@@ -11038,6 +11038,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
     else
     {
+        hddLog(LOG1, "WPS disabled");
         pConfig->wps_state = SAP_WPS_DISABLED;
     }
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up

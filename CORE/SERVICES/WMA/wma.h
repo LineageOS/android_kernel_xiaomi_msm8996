@@ -550,6 +550,7 @@ struct wma_txrx_node {
 #endif
 	uint32_t alt_modulated_dtim;
 	bool alt_modulated_dtim_enabled;
+	uint8_t wps_state;
 };
 
 #if defined(QCA_WIFI_FTM)

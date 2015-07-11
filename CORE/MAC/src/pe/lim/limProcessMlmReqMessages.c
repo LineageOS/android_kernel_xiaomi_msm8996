@@ -1656,6 +1656,7 @@ limMlmAddBss (
 
     pAddBssParams->beaconInterval               = pMlmStartReq->beaconPeriod;
     pAddBssParams->dtimPeriod                   = pMlmStartReq->dtimPeriod;
+    pAddBssParams->wps_state                    = pMlmStartReq->wps_state;
     pAddBssParams->cfParamSet.cfpCount          = pMlmStartReq->cfParamSet.cfpCount;
     pAddBssParams->cfParamSet.cfpPeriod         = pMlmStartReq->cfParamSet.cfpPeriod;
     pAddBssParams->cfParamSet.cfpMaxDuration    = pMlmStartReq->cfParamSet.cfpMaxDuration;

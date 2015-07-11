@@ -536,6 +536,7 @@ typedef struct
     tANI_U16 smpsMode;
     tANI_U8 dot11_mode;
     tANI_U8 nonRoamReassoc;
+    uint8_t wps_state;
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct

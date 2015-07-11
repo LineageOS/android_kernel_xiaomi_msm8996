@@ -13504,6 +13504,8 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		WMA_LOGE("%s: Failed to get vdev handle", __func__);
 		goto send_fail_resp;
 	}
+
+	wma->interfaces[vdev_id].wps_state = add_bss->wps_state;
 	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
 	status = wma_create_peer(wma, pdev, vdev, add_bss->bssId,
 	                         WMI_PEER_TYPE_DEFAULT, vdev_id,
@@ -19300,6 +19302,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #ifdef QCA_IBSS_SUPPORT
 	v_BOOL_t ibss_vdev_available = FALSE;
 #endif
+	bool wps_enable = false;
 
 	/* Gather list of free ptrn id. This is needed while configuring
 	* default wow patterns.
@@ -19320,10 +19323,13 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 
 		if (wma_is_vdev_in_ap_mode(wma, vdev_id)
 #ifdef QCA_IBSS_SUPPORT
-		|| wma_is_vdev_in_ibss_mode(wma, vdev_id)
+			|| wma_is_vdev_in_ibss_mode(wma, vdev_id)
 #endif
-		)
+		) {
 			ap_vdev_available = TRUE;
+			if (SAP_WPS_DISABLED != iface->wps_state)
+				wps_enable = true;
+		}
 
 #ifdef QCA_IBSS_SUPPORT
 		if (wma_is_vdev_in_ibss_mode(wma, vdev_id))
@@ -19449,15 +19455,18 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		WMA_LOGD("GTK based wakeup is %s in fw",
 			 wma->wow.gtk_pdev_enable ? "enabled" : "disabled");
 #endif
-	/* Configure probe req based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
-					ap_vdev_available);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure probe req based wakeup");
-		goto end;
-	 } else
-		WMA_LOGD("Probe req based wakeup is %s in fw",
-			ap_vdev_available ? "enabled" : "disabled");
+	if (ap_vdev_available) {
+		/* Configure probe req based wakeup */
+		ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
+				wps_enable);
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to configure probe req based wakeup");
+			goto end;
+		} else {
+			WMA_LOGD("WPS Probe req based wakeup is %s in fw",
+				wps_enable ? "enabled" : "disabled");
+		}
+	}
 
 	/* Configure auth req based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_AUTH_REQ_EVENT,
