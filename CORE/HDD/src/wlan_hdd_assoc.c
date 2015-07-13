@@ -1392,9 +1392,11 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
        final_req_ie, (ssid_ie_len + reqRsnLength),
        rspRsnIe, rspRsnLength, GFP_KERNEL);
 
-    wlan_hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
-                                  reqRsnIe, reqRsnLength, rspRsnIe,
-                                  rspRsnLength, pCsrRoamInfo);
+    if (pHddCtx->cfg_ini->isRoamOffloadEnabled &&
+        pCsrRoamInfo->roamSynchInProgress)
+        wlan_hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
+                                      reqRsnIe, reqRsnLength, rspRsnIe,
+                                      rspRsnLength, pCsrRoamInfo);
 done:
    sme_RoamFreeConnectProfile(hal_handle, &roam_profile);
    if (final_req_ie)
