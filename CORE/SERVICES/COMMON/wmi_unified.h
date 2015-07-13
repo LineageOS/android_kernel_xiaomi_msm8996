@@ -1416,6 +1416,16 @@ typedef struct {
      */
     A_UINT32 num_dbs_hw_modes;
 
+   /*
+     * txrx_chainmask
+     *    [7:0]   - 2G band tx chain mask
+     *    [15:8]  - 2G band rx chain mask
+     *    [23:16] - 5G band tx chain mask
+     *    [31:24] - 5G band rx chain mask
+     *
+     */
+    A_UINT32 txrx_chainmask;
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
@@ -2468,6 +2478,8 @@ typedef struct {
     A_UINT32 tlv_header;   /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_ht_ie_cmd_fixed_param */
     A_UINT32 reserved0;    /** placeholder for pdev_id of future multiple MAC products. Init. to 0. */
     A_UINT32 ie_len;       /*length of the ht ie in the TLV ie_data[] */
+    A_UINT32 tx_streams; /* Tx streams supported for this HT IE */
+    A_UINT32 rx_streams; /* Rx streams supported for this HT IE */
     /** The TLV for the HT IE follows:
      *       A_UINT32 ie_data[];
      */
@@ -2478,6 +2490,8 @@ typedef struct {
     A_UINT32 tlv_header;   /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_vht_ie_cmd_fixed_param */
     A_UINT32 reserved0;    /** placeholder for pdev_id of future multiple MAC products. Init. to 0. */
     A_UINT32 ie_len;          /*length of the vht ie in the TLV ie_data[] */
+    A_UINT32 tx_streams; /* Tx streams supported for this HT IE */
+    A_UINT32 rx_streams; /* Rx streams supported for this HT IE */
     /** The TLV for the VHT IE follows:
      *       A_UINT32 ie_data[];
      */
@@ -2559,7 +2573,7 @@ typedef struct{
 typedef enum {
     /** TX chain mask */
     WMI_PDEV_PARAM_TX_CHAIN_MASK = 0x1,
-    /** RX chian mask */
+    /** RX chain mask */
     WMI_PDEV_PARAM_RX_CHAIN_MASK,
     /** TX power limit for 2G Radio */
     WMI_PDEV_PARAM_TXPOWER_LIMIT2G,
@@ -2701,6 +2715,14 @@ typedef enum {
     WMI_PDEV_PARAM_CE_BASED_ADAPTIVE_BTO_ENABLE,
     /** combo value of ce_id, ce_threshold, ce_time, refer to WMI_CE_BTO_CE_ID_MASK */
     WMI_PDEV_PARAM_CE_BTO_COMBO_CE_VALUE,
+    /** 2G TX chain mask */
+    WMI_PDEV_PARAM_TX_CHAIN_MASK_2G,
+    /** 2G RX chain mask */
+    WMI_PDEV_PARAM_RX_CHAIN_MASK_2G,
+    /** 5G TX chain mask */
+    WMI_PDEV_PARAM_TX_CHAIN_MASK_5G,
+    /** 5G RX chain mask */
+    WMI_PDEV_PARAM_RX_CHAIN_MASK_5G,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -3605,7 +3627,22 @@ typedef struct {
     A_UINT32 vdev_subtype;
     /** VDEV MAC address */
     wmi_mac_addr vdev_macaddr;
+    /* Number of configured txrx streams */
+    A_UINT32 num_cfg_txrx_streams;
+/* This TLV is followed by another TLV of array of structures
+ *   wmi_vdev_txrx_streams cfg_txrx_streams[];
+ */
 } wmi_vdev_create_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_vdev_txrx_streams */
+    /* band - Should take values from wmi_channel_band_mask */
+    A_UINT32 band;
+    /* max supported tx streams per given band for this vdev */
+    A_UINT32 supported_tx_streams;
+    /* max supported rx streams per given band for this vdev */
+    A_UINT32 supported_rx_streams;
+} wmi_vdev_txrx_streams;
 
 /* wmi_p2p_noa_descriptor structure can't be modified without breaking the compatibility for WMI_HOST_SWBA_EVENTID */
 typedef struct {
