@@ -14061,6 +14061,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     sme_SelectCBMode(hHal,
                      pHddApCtx->sapConfig.SapHw_mode,
                      pHddApCtx->sapConfig.channel,
+                     pHddApCtx->sapConfig.sec_ch,
                      &vht_channel_width, pHddApCtx->sapConfig.ch_width_orig);
 #ifdef WLAN_FEATURE_MBSSID
     wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);

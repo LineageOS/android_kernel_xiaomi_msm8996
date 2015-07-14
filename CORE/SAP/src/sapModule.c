@@ -834,6 +834,7 @@ WLANSAP_StartBss
         pSapCtx->pUsrContext = pUsrContext;
         pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
         pSapCtx->acs_cfg = &pConfig->acs_cfg;
+	pSapCtx->secondary_ch = pConfig->sec_ch;
 
         //Set the BSSID to your "self MAC Addr" read the mac address from Configuation ITEM received from HDD
         pSapCtx->csrRoamProfile.BSSIDs.numOfBSSIDs = 1;
@@ -2839,7 +2840,7 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, tANI_U8 tArgetChannel)
      */
     cbMode = pMac->sap.SapDfsInfo.new_cbMode;
     vhtChannelWidth = pMac->sap.SapDfsInfo.new_chanWidth;
-    sme_SelectCBMode(hHal, phyMode, tArgetChannel, &vhtChannelWidth,
+    sme_SelectCBMode(hHal, phyMode, tArgetChannel, 0, &vhtChannelWidth,
                                          pMac->sap.SapDfsInfo.new_chanWidth);
     sapContext->csrRoamProfile.vht_channel_width = vhtChannelWidth;
     sapContext->vht_channel_width = vhtChannelWidth;
@@ -2977,7 +2978,7 @@ WLANSAP_DfsSendCSAIeRequest(v_PVOID_t pSapCtx)
     vht_ch_width = pMac->sap.SapDfsInfo.new_chanWidth;
     cbmode = sme_SelectCBMode(hHal,
                      sapContext->csrRoamProfile.phyMode,
-                     pMac->sap.SapDfsInfo.target_channel,
+                     pMac->sap.SapDfsInfo.target_channel, 0,
                      &vht_ch_width, sapContext->ch_width_orig);
 
     if (pMac->sap.SapDfsInfo.target_channel <= 14 ||

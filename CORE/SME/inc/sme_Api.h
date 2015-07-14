@@ -3509,7 +3509,8 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
  * SME API to determine the channel bonding mode
  */
 eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
-                            uint8_t channel, uint16_t *vht_channel_width,
+                            uint8_t channel, uint8_t ht_sec_dh,
+                            uint16_t *vht_channel_width,
                             uint16_t ch_width_orig);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD

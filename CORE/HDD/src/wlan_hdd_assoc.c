@@ -2074,6 +2074,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         sme_SelectCBMode(WLAN_HDD_GET_HAL_CTX(sap_adapter),
                          hdd_ap_ctx->sapConfig.SapHw_mode,
                          hdd_ap_ctx->operatingChannel,
+                         hdd_ap_ctx->sapConfig.sec_ch,
                          &hdd_ap_ctx->sapConfig.vht_channel_width,
                          hdd_ap_ctx->sapConfig.ch_width_orig);
         /*

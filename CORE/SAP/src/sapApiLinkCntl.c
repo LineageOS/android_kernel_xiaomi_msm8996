@@ -236,7 +236,8 @@ WLANSAP_ScanCallback
 
     sme_SelectCBMode(halHandle,
                      psapContext->csrRoamProfile.phyMode,
-                     psapContext->channel, &psapContext->vht_channel_width,
+                     psapContext->channel, psapContext->secondary_ch,
+                     &psapContext->vht_channel_width,
                      psapContext->ch_width_orig);
 #ifdef SOFTAP_CHANNEL_RANGE
     if(psapContext->channelList != NULL)
@@ -283,15 +284,9 @@ void sap_config_acs_result(tHalHandle hal, ptSapContext sap_ctx, uint32_t sec_ch
 	sap_ctx->acs_cfg->ht_sec_ch = 0;
 
 	cb_mode = sme_SelectCBMode(hal, sap_ctx->csrRoamProfile.phyMode,
-					channel, &sap_ctx->acs_cfg->ch_width,
+					channel, sec_ch,
+                                        &sap_ctx->acs_cfg->ch_width,
 					sap_ctx->acs_cfg->ch_width);
-
-	if (channel >= 5 && channel <= 7 && sec_ch != 0) {
-		if (sec_ch > sap_ctx->acs_cfg->pri_ch)
-			cb_mode = eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-		else
-			cb_mode = eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-	}
 
 	if (cb_mode == eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY) {
 		sap_ctx->acs_cfg->ht_sec_ch = sap_ctx->acs_cfg->pri_ch + 4;
@@ -1135,7 +1130,7 @@ WLANSAP_RoamCallback
                 {
                      sme_SelectCBMode(hHal, phyMode,
                                       pMac->sap.SapDfsInfo.target_channel,
-                                      &sapContext->vht_channel_width,
+                                      0, &sapContext->vht_channel_width,
                                       sapContext->ch_width_orig);
                 }
 

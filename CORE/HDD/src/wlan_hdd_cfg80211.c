@@ -10669,6 +10669,7 @@ __wlan_hdd_cfg80211_set_channel(struct wiphy *wiphy,
                 else
                     smeConfig.csrConfig.channelBondingMode5GHz =
                                            eCSR_INI_SINGLE_CHANNEL_CENTERED;
+                sap_config->sec_ch = 0;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) && !defined(WITH_BACKPORTS)
                 sap_config->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
@@ -11336,6 +11337,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->vht_channel_width = pConfig->ch_width_orig;
 
     sme_SelectCBMode(hHal, pConfig->SapHw_mode, pConfig->channel,
+            pConfig->sec_ch,
             &pConfig->vht_channel_width, pConfig->ch_width_orig);
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab = iniConfig->apProtection;
@@ -15004,7 +15006,7 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel)
      /* This call decides required channel bonding mode */
     sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
                      hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
-                     operationChannel,
+                     operationChannel, 0,
                      &vht_channel_width,
                      vht_channel_width);
 }
