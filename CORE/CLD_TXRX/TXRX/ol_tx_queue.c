@@ -1818,17 +1818,21 @@ u_int32_t ol_tx_txq_group_credit_limit(
     u_int32_t credit)
 {
     u_int8_t i;
+    int updated_credit = credit;
     /*
      * If this tx queue belongs to a group, check whether the group's
      * credit limit is more stringent than the global credit limit.
      */
     for (i = 0; i < OL_TX_MAX_GROUPS_PER_QUEUE; i++) {
         if (txq->group_ptrs[i]) {
-            u_int32_t group_credit;
+            int group_credit;
             group_credit = adf_os_atomic_read(&txq->group_ptrs[i]->credit);
-            credit = MIN(credit, group_credit);
+            updated_credit = MIN(updated_credit, group_credit);
         }
     }
+
+    credit = (updated_credit < 0) ? 0 : updated_credit;
+
     return credit;
 }
 
