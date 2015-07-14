@@ -58,6 +58,7 @@
 #include <linux/spinlock.h>
 #include <linux/kthread.h>
 #include <linux/cpu.h>
+#include <linux/topology.h>
 #if defined(QCA_CONFIG_SMP) && defined(CONFIG_CNSS)
 #include <net/cnss.h>
 #endif
@@ -110,7 +111,12 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
 
 
 #ifdef QCA_CONFIG_SMP
-#define VOS_CORE_PER_CLUSTER 4
+
+/*Maximum 2 clusters supported*/
+#define VOS_MAX_CPU_CLUSTERS 2
+
+#define VOS_CPU_CLUSTER_TYPE_LITTLE 0
+#define VOS_CPU_CLUSTER_TYPE_PERF 1
 
 static int vos_set_cpus_allowed_ptr(struct task_struct *task,
                                     unsigned long cpu)
@@ -122,32 +128,6 @@ static int vos_set_cpus_allowed_ptr(struct task_struct *task,
 #else
    return 0;
 #endif
-}
-
-/**
- * vos_sched_all_litl_cpu_mask - get cpu mask for all little cores
- * @litl_mask:	little core cpu mask pointer
- *
- * When RX thread should attach to little core,
- *   PERF mode
- *   low throughput required
- * RX thread affinity should be any little cores. cpu mask also should
- * any little core cpus.
- * Will give all little core cpu mask for little core affinity
- *
- * Return: None
- */
-void vos_sched_all_litl_cpu_mask(struct cpumask *litl_mask)
-{
-	unsigned char litl_core_count = 0;
-	cpumask_clear(litl_mask);
-	for (litl_core_count = 0;
-		litl_core_count < VOS_CORE_PER_CLUSTER;
-		litl_core_count++) {
-		cpumask_set_cpu(litl_core_count, litl_mask);
-	}
-
-	return;
 }
 
 /**
@@ -168,20 +148,19 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 {
 	unsigned long *online_perf_cpu = NULL;
 	unsigned long *online_litl_cpu = NULL;
-	unsigned long cpus;
 	unsigned char perf_core_count = 0;
 	unsigned char litl_core_count = 0;
+	int vosMaxClusterId = 0;
 #ifdef WLAN_OPEN_SOURCE
 	struct cpumask litl_mask;
-#endif
+	unsigned long cpus;
+	int i;
+#endif /* WLAN_OPEN_SOURCE */
 
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
 		"%s: num possible cpu %d",
 		__func__, num_possible_cpus());
 
-	/* Single cluster system, not need to handle this */
-	if (num_possible_cpus() < VOS_CORE_PER_CLUSTER)
-		return 0;
 
 	online_perf_cpu = vos_mem_malloc(
 		num_possible_cpus() * sizeof(unsigned long));
@@ -205,22 +184,39 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 		num_possible_cpus() * sizeof(unsigned long));
 
 	/* Get Online perf CPU count */
+#ifdef WLAN_OPEN_SOURCE
 	for_each_online_cpu(cpus) {
-		if (cpus >= VOS_CORE_PER_CLUSTER) {
+		if ( topology_physical_package_id(cpus) > VOS_MAX_CPU_CLUSTERS) {
+			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				"%s: can handle max %d clusters, returning...",
+				__func__, VOS_MAX_CPU_CLUSTERS);
+				goto err;
+			}
+
+		if (topology_physical_package_id(cpus) == VOS_CPU_CLUSTER_TYPE_PERF) {
 			online_perf_cpu[perf_core_count] = cpus;
 			perf_core_count++;
 		} else {
 			online_litl_cpu[litl_core_count] = cpus;
 			litl_core_count++;
 		}
+		vosMaxClusterId =  topology_physical_package_id(cpus);
+	}
+#else
+	vosMaxClusterId = 0;
+#endif /* WLAN_OPEN_SOURCE */
+
+	/* Single cluster system, not need to handle this */
+	if (0 == vosMaxClusterId) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
+		"%s: single cluster system. returning", __func__);
+		goto success;
 	}
 
 	if ((!litl_core_count) && (!perf_core_count)) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 			"%s: Both Cluster off, do nothing", __func__);
-		vos_mem_free(online_perf_cpu);
-		vos_mem_free(online_litl_cpu);
-		return 0;
+		goto success;
 	}
 
 	if ((high_throughput && perf_core_count) || (!litl_core_count)) {
@@ -234,9 +230,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 					VOS_TRACE_LEVEL_ERROR,
 					"%s: rx thread perf core set fail",
 					__func__);
-				vos_mem_free(online_perf_cpu);
-				vos_mem_free(online_litl_cpu);
-				return 1;
+				goto err;
 			}
 			pSchedContext->rx_thread_cpu =
 				online_perf_cpu[perf_core_count - 1];
@@ -245,7 +239,14 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 #ifdef WLAN_OPEN_SOURCE
 		/* Attach to any little core
 		 * Final decision should made by scheduler */
-		vos_sched_all_litl_cpu_mask(&litl_mask);
+
+		cpumask_clear(&litl_mask);
+		for (i = 0;
+			i < litl_core_count;
+			i++) {
+			cpumask_set_cpu(online_litl_cpu[i], &litl_mask);
+		}
+
 		set_cpus_allowed_ptr(pSchedContext->TlshimRxThread, &litl_mask);
 		pSchedContext->rx_thread_cpu = 0;
 #else
@@ -259,9 +260,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 					VOS_TRACE_LEVEL_ERROR,
 					"%s: rx thread litl core set fail",
 					__func__);
-				vos_mem_free(online_perf_cpu);
-				vos_mem_free(online_litl_cpu);
-				return 1;
+					goto err;
 			}
 			pSchedContext->rx_thread_cpu =
 				online_litl_cpu[litl_core_count - 1];
@@ -269,15 +268,21 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 #endif /* WLAN_OPEN_SOURCE */
 	}
 
-	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 		"%s: NUM PERF CORE %d, HIGH TPUTR REQ %d, RX THRE CPU %lu",
 		__func__, perf_core_count,
 		(int)pSchedContext->high_throughput_required,
 		pSchedContext->rx_thread_cpu);
-
+success:
 	vos_mem_free(online_perf_cpu);
 	vos_mem_free(online_litl_cpu);
 	return 0;
+
+err:
+	vos_mem_free(online_perf_cpu);
+	vos_mem_free(online_litl_cpu);
+	return 1;
+
 }
 
 /**
@@ -373,6 +378,9 @@ static int __vos_cpu_hotplug_notify(struct notifier_block *block,
    int i;
    unsigned int multi_cluster;
    unsigned int num_cpus;
+#ifdef WLAN_OPEN_SOURCE
+   int cpus;
+#endif /* WLAN_OPEN_SOURCE */
 
    if ((NULL == pSchedContext) || (NULL == pSchedContext->TlshimRxThread))
        return NOTIFY_OK;
@@ -385,7 +393,13 @@ static int __vos_cpu_hotplug_notify(struct notifier_block *block,
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
              "%s: RX CORE %d, STATE %d, NUM CPUS %d",
               __func__, (int)affine_cpu, (int)state, num_cpus);
-   multi_cluster = (num_cpus > VOS_CORE_PER_CLUSTER)?1:0;
+   multi_cluster = 0;
+#ifdef WLAN_OPEN_SOURCE
+   for_each_online_cpu(cpus) {
+        multi_cluster =  topology_physical_package_id(cpus);
+    }
+#endif /* WLAN_OPEN_SOURCE */
+
    if ((multi_cluster) &&
        ((CPU_ONLINE == state) || (CPU_DEAD == state))) {
       vos_sched_handle_cpu_hot_plug();
