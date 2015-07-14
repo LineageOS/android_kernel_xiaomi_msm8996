@@ -11309,6 +11309,14 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 
+    /* Since P2P GO also follows start_bss and since p2p GO could not be
+     * configured to setup VHT channel width in wpa_supplicant, override
+     * wpa_supplicant configured vht channel width to driver configured
+     */
+    if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac &&
+                               pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
+        pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
+
 
     pConfig->vht_channel_width = pConfig->ch_width_orig;
 
