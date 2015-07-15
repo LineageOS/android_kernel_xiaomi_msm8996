@@ -753,6 +753,9 @@ static const struct nla_policy qca_wlan_vendor_ocb_set_config_policy[
 	[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_NDL_ACTIVE_STATE_ARRAY] = {
 		.type = NLA_BINARY
 	},
+	[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_FLAGS] = {
+		.type = NLA_U32
+	},
 };
 
 static const struct nla_policy qca_wlan_vendor_ocb_set_utc_time_policy[
@@ -898,6 +901,7 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	uint32_t ndl_chan_list_len;
 	struct nlattr *ndl_active_state_list;
 	uint32_t ndl_active_state_list_len;
+	uint32_t flags = 0;
 	int i;
 	int channel_count, schedule_size;
 	struct sir_ocb_config *config;
@@ -955,6 +959,11 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	ndl_active_state_list_len = (ndl_active_state_list ?
 				    nla_len(ndl_active_state_list) : 0);
 
+	/* Get the flags */
+	if (tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_FLAGS])
+		flags = nla_get_u32(tb[
+			QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_FLAGS]);
+
 	config = hdd_ocb_config_new(channel_count, schedule_size,
 				    ndl_chan_list_len,
 				    ndl_active_state_list_len);
@@ -965,6 +974,7 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 
 	config->channel_count = channel_count;
 	config->schedule_size = schedule_size;
+	config->flags = flags;
 
 	/* Read the channel array */
 	channel_array = tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_CHANNEL_ARRAY];
