@@ -6464,6 +6464,13 @@ static void lim_set_pdev_ht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 			p_ie = limGetIEPtr(mac_ctx, ie_params->ie_ptr,
 					ie_params->ie_len,
 					DOT11F_EID_HTCAPS, ONE_BYTE);
+			if (NULL == p_ie) {
+				vos_mem_free(ie_params->ie_ptr);
+				vos_mem_free(ie_params);
+				limLog(mac_ctx, LOGE, FL(
+						"failed to get IE ptr"));
+				return;
+			}
 			p_ht_cap = (tHtCaps *)&p_ie[2];
 			p_ht_cap->supportedMCSSet[1] = 0;
 			p_ht_cap->txSTBC = 0;
@@ -6534,6 +6541,13 @@ static void lim_set_pdev_vht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 			p_ie = limGetIEPtr(mac_ctx, ie_params->ie_ptr,
 					ie_params->ie_len,
 					DOT11F_EID_VHTCAPS, ONE_BYTE);
+			if (NULL == p_ie) {
+				vos_mem_free(ie_params->ie_ptr);
+				vos_mem_free(ie_params);
+				limLog(mac_ctx, LOGE, FL(
+						"failed to get IE ptr"));
+				return;
+			}
 			vht_cap = (tSirMacVHTCapabilityInfo *)&p_ie[2];
 			vht_cap->txSTBC = 0;
 			vht_mcs =
