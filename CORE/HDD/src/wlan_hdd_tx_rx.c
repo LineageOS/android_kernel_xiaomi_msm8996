@@ -183,6 +183,66 @@ static void transport_thread(hdd_adapter_t *pAdapter)
 }
 #endif
 
+/**
+ * wlan_hdd_is_eapol() - Function to check if frame is EAPOL or not
+ * @skb:    skb data
+ *
+ * This function checks if the frame is an EAPOL frame or not
+ *
+ * Return: true (1) if packet is EAPOL
+ *
+ */
+static bool wlan_hdd_is_eapol(struct sk_buff *skb)
+{
+	uint16_t ether_type;
+
+	if (!skb) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("skb is NULL"));
+		return false;
+	}
+
+	ether_type = (uint16_t)(*(uint16_t *)
+			(skb->data + HDD_ETHERTYPE_802_1_X_FRAME_OFFSET));
+
+	if (ether_type == VOS_SWAP_U16(HDD_ETHERTYPE_802_1_X)) {
+		return true;
+	} else {
+		/* No error msg handled since this will happen often */
+		return false;
+	}
+}
+
+/**
+ * wlan_hdd_is_wai() - Check if frame is EAPOL or WAPI
+ * @skb:    skb data
+ *
+ * This function checks if the frame is EAPOL or WAPI.
+ * single routine call will check for both types, thus avoiding
+ * data path performance penalty.
+ *
+ * Return: true (1) if packet is EAPOL or WAPI
+ *
+ */
+static bool wlan_hdd_is_eapol_or_wai(struct sk_buff *skb)
+{
+	uint16_t ether_type;
+
+	if (!skb) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("skb is NULL"));
+		return false;
+	}
+
+	ether_type = (uint16_t)(*(uint16_t *)
+			(skb->data + HDD_ETHERTYPE_802_1_X_FRAME_OFFSET));
+
+	if (ether_type == VOS_SWAP_U16(HDD_ETHERTYPE_802_1_X) ||
+	    ether_type == VOS_SWAP_U16(HDD_ETHERTYPE_WAI))
+		return true;
+
+	/* No error msg handled since this will happen often */
+	return false;
+}
+
 
 /**============================================================================
   @brief hdd_flush_tx_queues() - Utility function to flush the TX queues
@@ -905,9 +965,16 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        hdd_wmm_acquire_access_required(pAdapter, ac);
    }
 
-   //Make sure we have access to this access category
-   if (((pAdapter->psbChanged & (1 << ac)) && likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed)) ||
-           (pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE))
+   /*
+    * Make sure we already have access to this access category
+    * or it is EAPOL or WAPI frame during initial authentication which
+    * can have artifically boosted higher qos priority.
+    */
+
+   if (((pAdapter->psbChanged & (1 << ac)) &&
+         likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed)) ||
+        ((pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE) &&
+          wlan_hdd_is_eapol_or_wai(skb)))
    {
       granted = VOS_TRUE;
    }
@@ -1894,35 +1961,6 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
-
-/**
- * wlan_hdd_is_eapol() - Function to check if frame is EAPOL or not
- * @skb:    skb data
- *
- * This function checks if the frame is an EAPOL frame or not
- *
- * Return: true (1) if packet is EAPOL
- *
- */
-static bool wlan_hdd_is_eapol(struct sk_buff *skb)
-{
-	uint16_t ether_type=0;
-
-	if (!skb) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("skb is NULL"));
-		return false;
-	}
-
-	ether_type = (uint16_t)(*(uint16_t *)
-			(skb->data + HDD_EAPOL_ETHER_TYPE_OFFSET));
-
-	if (VOS_SWAP_U16(ether_type) == HDD_EAPOL_ETHER_TYPE) {
-		return true;
-	} else {
-		/* No error msg handled since this will happen often */
-		return false;
-	}
-}
 
 /**
  * wlan_hdd_get_eapol_params() - Function to extract EAPOL params
