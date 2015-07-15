@@ -3819,7 +3819,6 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
     ptSapContext sapContext = NULL;
     tHalHandle hHal = NULL;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-    eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = NULL;
 
     sapContext = VOS_GET_SAP_CB( pvosGCtx );
@@ -3916,26 +3915,27 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
                  FL("Scan Req Failed/ACS Overridden, Selected channel = %d"),
                  sapContext->channel);
 
-             halStatus = sapSignalHDDevent(sapContext, NULL,
-                                           eSAP_ACS_CHANNEL_SELECTED,
-                                           (v_PVOID_t) eSAP_STATUS_SUCCESS);
-
              if (sapContext->isScanSessionOpen == eSAP_TRUE) {
                  /* acs scan not needed so close the session */
                  tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                 if (hHal == NULL) {
+                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                         "%s: HAL Handle NULL. ACS Scan session close fail!",
+                         __func__);
+                     return VOS_STATUS_E_FAILURE;
+                 }
                  if (eHAL_STATUS_SUCCESS == sme_CloseSession(hHal,
-                                      sapContext->sessionId, NULL, NULL))
+                                      sapContext->sessionId, NULL, NULL)) {
                          sapContext->isScanSessionOpen = eSAP_FALSE;
+                 } else {
+                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                         "%s: ACS Scan session close fail!", __func__);
+                 }
                  sapContext->sessionId = 0xff;
              }
 
-             if (eHAL_STATUS_SUCCESS == halStatus) {
-                 vosStatus = VOS_STATUS_SUCCESS;
-                 return vosStatus;
-             }
-             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                        FL("Failed to post eSAP_ACS_CHANNEL_SELECTED to HDD"));
-             return VOS_STATUS_E_FAILURE;
+             return sapSignalHDDevent(sapContext, NULL,
+                     eSAP_ACS_CHANNEL_SELECTED, (v_PVOID_t) eSAP_STATUS_SUCCESS);
         }
         else if (VOS_STATUS_SUCCESS == vosStatus)
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
