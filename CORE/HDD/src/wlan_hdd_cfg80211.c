@@ -11386,6 +11386,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->dfs_cac_block_tx = VOS_TRUE;
 
+    vos_event_reset(&pHostapdState->vosEvent);
     status = WLANSAP_StartBss(
 #ifdef WLAN_FEATURE_MBSSID
                  WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
