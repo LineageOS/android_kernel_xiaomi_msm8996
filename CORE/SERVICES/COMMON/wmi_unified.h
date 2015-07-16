@@ -1306,7 +1306,7 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_DBS_HW_MODE_MAC0_TX_STREAMS_SET(hw_mode, value) \
     (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC0_TX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC0_TX_STREAMS_MASK))
 #define WMI_DBS_HW_MODE_MAC0_RX_STREAMS_SET(hw_mode, value) \
-    (hw_mode != ((value << WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC0_RX_STREAMS_MASK))
+    (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC0_RX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC0_RX_STREAMS_MASK))
 #define WMI_DBS_HW_MODE_MAC1_TX_STREAMS_SET(hw_mode, value) \
     (hw_mode |= ((value << WMI_DBS_HW_MODE_MAC1_TX_STREAMS_BITPOS) & WMI_DBS_HW_MODE_MAC1_TX_STREAMS_MASK))
 #define WMI_DBS_HW_MODE_MAC1_RX_STREAMS_SET(hw_mode, value) \
@@ -6762,6 +6762,7 @@ typedef enum _WMI_NLO_SSID_BcastNwType
 #define WMI_NLO_CONFIG_SSID_HIDE_EN     (0x1 << 6)
 /* This bit is used to indicate if EPNO or supplicant PNO is enabled. Only one of them can be enabled at a given time */
 #define WMI_NLO_CONFIG_ENLO             (0x1 << 7)
+#define WMI_NLO_CONFIG_SCAN_PASSIVE     (0x1 << 8)
 
 /* Whether directed scan needs to be performed (for hidden SSIDs) */
 #define WMI_ENLO_FLAG_DIRECTED_SCAN      1
