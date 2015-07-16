@@ -2716,46 +2716,23 @@ static __iw_softap_setparam(struct net_device *dev,
             }
         case QCSAP_PARAM_SET_MC_RATE:
             {
-                tSirRateUpdateInd *rateUpdate;
-                hdd_context_t*pHddCtx = (hdd_context_t*)(pHostapdAdapter->pHddCtx);
-                hdd_config_t *pConfig = NULL;
-
-                if (pHddCtx)
-                    pConfig = pHddCtx->cfg_ini;
-                else {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                           "%s: pHddCtx = NULL", __func__);
-                    ret = -1;
-                    break;
-                }
-
-                rateUpdate = (tSirRateUpdateInd *)
-                             vos_mem_malloc(sizeof(tSirRateUpdateInd));
-                if (NULL == rateUpdate)
-                {
-                   hddLog(VOS_TRACE_LEVEL_ERROR,
-                          "%s: SET_MC_RATE indication alloc fail", __func__);
-                   ret = -1;
-                   break;
-                }
-                vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd ));
+                tSirRateUpdateInd rateUpdate = {0};
+                hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
                 hddLog(VOS_TRACE_LEVEL_INFO, "MC Target rate %d", set_value);
-                memcpy(rateUpdate->bssid,
+                memcpy(rateUpdate.bssid,
                        pHostapdAdapter->macAddressCurrent.bytes,
                        sizeof(tSirMacAddr));
-                rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
-                rateUpdate->dev_mode = pHostapdAdapter->device_mode;
-                rateUpdate->mcastDataRate24GHz = set_value;
-                rateUpdate->mcastDataRate24GHzTxFlag = 1;
-                rateUpdate->mcastDataRate5GHz = set_value;
-                rateUpdate->bcastDataRate = -1;
-                status = sme_SendRateUpdateInd(hHal, rateUpdate);
-                if (eHAL_STATUS_SUCCESS != status)
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                            "%s: SET_MC_RATE failed", __func__);
-                    vos_mem_free(rateUpdate);
+                rateUpdate.nss = (pConfig->enable2x2 == 0) ? 0 : 1;
+                rateUpdate.dev_mode = pHostapdAdapter->device_mode;
+                rateUpdate.mcastDataRate24GHz = set_value;
+                rateUpdate.mcastDataRate24GHzTxFlag = 1;
+                rateUpdate.mcastDataRate5GHz = set_value;
+                rateUpdate.bcastDataRate = -1;
+                if (sme_SendRateUpdateInd(hHal, &rateUpdate) !=
+                                                     eHAL_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SET_MC_RATE failed",
+                                                                  __func__);
                     ret = -1;
                 }
                 break;

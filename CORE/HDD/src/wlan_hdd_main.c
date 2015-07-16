@@ -2769,7 +2769,7 @@ static int hdd_set_app_type2_parser(hdd_adapter_t *pAdapter,
 
 int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
 {
-   tSirRateUpdateInd *rateUpdate;
+   tSirRateUpdateInd rateUpdate = {0};
    eHalStatus status;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    hdd_config_t *pConfig = NULL;
@@ -2791,29 +2791,22 @@ int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate)
    }
 
    pConfig = pHddCtx->cfg_ini;
-   rateUpdate = vos_mem_malloc(sizeof(tSirRateUpdateInd));
-   if (NULL == rateUpdate) {
-      hddLog(LOGE, FL("SETMCRATE indication alloc fail"));
-      return -ENOMEM;
-   }
-   vos_mem_zero(rateUpdate, sizeof(tSirRateUpdateInd));
-   rateUpdate->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
-   rateUpdate->dev_mode = pAdapter->device_mode;
-   rateUpdate->mcastDataRate24GHz = targetRate;
-   rateUpdate->mcastDataRate24GHzTxFlag = 1;
-   rateUpdate->mcastDataRate5GHz = targetRate;
-   rateUpdate->bcastDataRate = -1;
-   memcpy(rateUpdate->bssid, pAdapter->macAddressCurrent.bytes,
-      sizeof(rateUpdate->bssid));
+   rateUpdate.nss = (pConfig->enable2x2 == 0) ? 0 : 1;
+   rateUpdate.dev_mode = pAdapter->device_mode;
+   rateUpdate.mcastDataRate24GHz = targetRate;
+   rateUpdate.mcastDataRate24GHzTxFlag = 1;
+   rateUpdate.mcastDataRate5GHz = targetRate;
+   rateUpdate.bcastDataRate = -1;
+   memcpy(rateUpdate.bssid, pAdapter->macAddressCurrent.bytes,
+      sizeof(rateUpdate.bssid));
    hddLog(LOG1, FL("MC Target rate %d, mac = %pM, dev_mode %s(%d)"),
-      rateUpdate->mcastDataRate24GHz, rateUpdate->bssid,
+      rateUpdate.mcastDataRate24GHz, rateUpdate.bssid,
       hdd_device_mode_to_string(pAdapter->device_mode),
       pAdapter->device_mode);
 
-   status = sme_SendRateUpdateInd(pHddCtx->hHal, rateUpdate);
+   status = sme_SendRateUpdateInd(pHddCtx->hHal, &rateUpdate);
    if (eHAL_STATUS_SUCCESS != status) {
       hddLog(LOGE, FL("SETMCRATE failed"));
-      vos_mem_free(rateUpdate);
       return -EFAULT;
    }
    return 0;
@@ -5524,7 +5517,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
           tANI_U8 *value = command;
           tANI_U32 uRate = 0;
           tTxrateinfoflags txFlags = 0;
-          tSirRateUpdateInd *rateUpdateParams;
+          tSirRateUpdateInd rateUpdateParams = {0};
           int  status;
           hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
@@ -5548,34 +5541,25 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
              goto exit;
           }
 
-          rateUpdateParams = vos_mem_malloc(sizeof(tSirRateUpdateInd));
-          if (NULL == rateUpdateParams)
-          {
-             ret = -EINVAL;
-             goto exit;
-          }
-
           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: uRate %d ", __func__, uRate);
 
-          vos_mem_zero(rateUpdateParams, sizeof(tSirRateUpdateInd ));
-
           /* -1 implies ignore this param */
-          rateUpdateParams->ucastDataRate = -1;
+          rateUpdateParams.ucastDataRate = -1;
 
           /*
            * Fill the user specified RMC rate param
            * and the derived tx flags.
            */
-          rateUpdateParams->nss = (pConfig->enable2x2 == 0) ? 0 : 1;
-          rateUpdateParams->reliableMcastDataRate = uRate;
-          rateUpdateParams->reliableMcastDataRateTxFlag = txFlags;
-          rateUpdateParams->dev_mode = pAdapter->device_mode;
-          rateUpdateParams->bcastDataRate = -1;
-          memcpy(rateUpdateParams->bssid, pAdapter->macAddressCurrent.bytes,
-             sizeof(rateUpdateParams->bssid));
+          rateUpdateParams.nss = (pConfig->enable2x2 == 0) ? 0 : 1;
+          rateUpdateParams.reliableMcastDataRate = uRate;
+          rateUpdateParams.reliableMcastDataRateTxFlag = txFlags;
+          rateUpdateParams.dev_mode = pAdapter->device_mode;
+          rateUpdateParams.bcastDataRate = -1;
+          memcpy(rateUpdateParams.bssid, pAdapter->macAddressCurrent.bytes,
+             sizeof(rateUpdateParams.bssid));
           status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal),
-                      rateUpdateParams);
+                      &rateUpdateParams);
        }
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
        else if (strncmp(command, "SETCCXROAMSCANCHANNELS", 22) == 0)

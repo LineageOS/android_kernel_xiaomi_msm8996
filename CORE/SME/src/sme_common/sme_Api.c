@@ -13473,21 +13473,27 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     eHalStatus status;
     vos_msg_t msg;
+    tSirRateUpdateInd *rateUpdate = vos_mem_malloc(sizeof(tSirRateUpdateInd));
+    if (rateUpdate == NULL) {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                            "%s: SET_MC_RATE indication alloc fail", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+    *rateUpdate = *rateUpdateParams;
 
-
-    if (rateUpdateParams->mcastDataRate24GHz ==
+    if (rateUpdate->mcastDataRate24GHz ==
             HT20_SHORT_GI_MCS7_RATE)
-        rateUpdateParams->mcastDataRate24GHzTxFlag =
+        rateUpdate->mcastDataRate24GHzTxFlag =
            eHAL_TX_RATE_HT20 | eHAL_TX_RATE_SGI;
-    else if (rateUpdateParams->reliableMcastDataRate ==
+    else if (rateUpdate->reliableMcastDataRate ==
              HT20_SHORT_GI_MCS7_RATE)
-        rateUpdateParams->reliableMcastDataRateTxFlag =
+        rateUpdate->reliableMcastDataRateTxFlag =
            eHAL_TX_RATE_HT20 | eHAL_TX_RATE_SGI;
 
     if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
     {
         msg.type     = WDA_RATE_UPDATE_IND;
-        msg.bodyptr  = rateUpdateParams;
+        msg.bodyptr  = rateUpdate;
 
         if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
         {
@@ -13495,6 +13501,7 @@ eHalStatus sme_SendRateUpdateInd(tHalHandle hHal,
                        "to post WDA_SET_RMC_RATE_IND to WDA!",
                        __func__);
 
+            vos_mem_free(rateUpdate);
             sme_ReleaseGlobalLock(&pMac->sme);
             return eHAL_STATUS_FAILURE;
         }
