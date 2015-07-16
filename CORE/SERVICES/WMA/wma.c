@@ -3709,7 +3709,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	link_stats  = param_tlvs->iface_link_stats;
 	ac_stats    = param_tlvs->ac;
 
-	if (!fixed_param || !link_stats || !ac_stats) {
+	if (!fixed_param || !link_stats || (link_stats->num_ac && !ac_stats)) {
 		WMA_LOGA("%s: Invalid param_tlvs for Iface Stats", __func__);
 		return -EINVAL;
 	}
@@ -3863,7 +3863,8 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	peer_stats  = param_tlvs->peer_stats;
 	rate_stats  = param_tlvs->peer_rate_stats;
 
-	if (!fixed_param || !peer_stats || !rate_stats) {
+	if (!fixed_param || !peer_stats ||
+	    (peer_stats->num_rates && !rate_stats)) {
 		WMA_LOGA("%s: Invalid param_tlvs for Peer Stats", __func__);
 		return -EINVAL;
 	}
@@ -4005,7 +4006,8 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	radio_stats    = param_tlvs->radio_stats;
 	channel_stats  = param_tlvs->channel_stats;
 
-	if (!fixed_param || !radio_stats || !channel_stats) {
+	if (!fixed_param || !radio_stats ||
+	    (radio_stats->num_channels && !channel_stats)) {
 		WMA_LOGA("%s: Invalid param_tlvs for Radio Stats", __func__);
 		return -EINVAL;
 	}
