@@ -6059,6 +6059,8 @@ typedef struct {
     wmi_mac_addr peer_macaddr;
     /** Reason code, defined as above */
     A_UINT32 reason;
+    /** RSSI of the last bcn (averaged) in dB. 0 means Noise Floor value */
+    A_UINT32 rssi;
 } wmi_peer_sta_kickout_event_fixed_param;
 
 #define WMI_WLAN_PROFILE_MAX_HIST     3
