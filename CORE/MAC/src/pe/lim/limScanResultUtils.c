@@ -737,6 +737,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
     int idx, len;
     tANI_U8 *pbIe;
     tANI_S8  rssi = 0;
+    tANI_S8  rssi_raw = 0;
 
     index = limScanHashFunction(pBssDescr->bssDescription.bssId);
     ptemp = pMac->lim.gLimCachedScanHashTable[index];
@@ -785,6 +786,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                 if(dontUpdateAll)
                 {
                    rssi = ptemp->bssDescription.rssi;
+                   rssi_raw = ptemp->bssDescription.rssi_raw;
                 }
 
                 if(pBssDescr->bssDescription.fProbeRsp != ptemp->bssDescription.fProbeRsp)
@@ -841,9 +843,10 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
     }
 
     //for now, only rssi, we can add more if needed
-    if ((action == LIM_HASH_UPDATE) && dontUpdateAll && rssi)
+    if ((action == LIM_HASH_UPDATE) && dontUpdateAll && rssi && rssi_raw)
     {
         pBssDescr->bssDescription.rssi = rssi;
+        pBssDescr->bssDescription.rssi_raw = rssi_raw;
     }
 
     // Add this BSS description at same index
@@ -972,6 +975,7 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
     int idx, len;
     tANI_U8 *pbIe;
     tANI_S8  rssi = 0;
+    tANI_S8  rssi_raw = 0;
 
     index = limScanHashFunction(pBssDescr->bssDescription.bssId);
     ptemp = pMac->lim.gLimCachedLfrScanHashTable[index];
@@ -1007,6 +1011,7 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
                 if(dontUpdateAll)
                 {
                    rssi = ptemp->bssDescription.rssi;
+                   rssi_raw = ptemp->bssDescription.rssi_raw;
                 }
 
                 if(pBssDescr->bssDescription.fProbeRsp != ptemp->bssDescription.fProbeRsp)
@@ -1063,9 +1068,10 @@ limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
     }
 
     //for now, only rssi, we can add more if needed
-    if ((action == LIM_HASH_UPDATE) && dontUpdateAll && rssi)
+    if ((action == LIM_HASH_UPDATE) && dontUpdateAll && rssi && rssi_raw)
     {
         pBssDescr->bssDescription.rssi = rssi;
+        pBssDescr->bssDescription.rssi_raw = rssi_raw;
     }
 
     // Add this BSS description at same index
