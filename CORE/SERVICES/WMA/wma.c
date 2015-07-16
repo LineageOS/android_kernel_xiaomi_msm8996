@@ -10684,6 +10684,12 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 
 	pmac = (tpAniSirGlobal)
 		vos_get_context(VOS_MODULE_ID_PE, wma->vos_context);
+
+	if (pmac == NULL) {
+		WMA_LOGE("%s: vdev start failed as pmac is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	dfs = (struct ath_dfs *)wma->dfs_ic->ic_dfs;
 
 	WMA_LOGD("%s: Enter isRestart=%d vdev=%d", __func__, isRestart,req->vdev_id);
