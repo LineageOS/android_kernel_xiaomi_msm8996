@@ -16650,13 +16650,7 @@ eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss)
 
 		for (i = 0; i < CSR_ROAM_SESSION_MAX; i++) {
 			if (CSR_IS_SESSION_VALID(mac_ctx, i)) {
-				csr_session = CSR_GET_SESSION(mac_ctx, i);
-				if (!csr_session) {
-					smsLog(mac_ctx, LOGE,
-					       FL("Session does not exist for interface %d"),
-					       i);
-					continue;
-				}
+				csr_session = &mac_ctx->roam.roamSession[i];
 				csr_session->htConfig.ht_tx_stbc =
 					uHTCapabilityInfo.ht_cap_info.txSTBC;
 			}

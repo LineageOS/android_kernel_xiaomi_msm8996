@@ -15133,10 +15133,10 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
                    (params->htCapable || params->vhtCapable))
                wma_set_ppsconfig(params->smesessionId,
                                  WMA_VHT_PPS_DELIM_CRC_FAIL, 1);
-   iface->aid = params->assocId;
+	iface->aid = params->assocId;
+	params->nss = iface->nss;
 out:
 	params->status = status;
-	params->nss = iface->nss;
 /* change logging before release */
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         if(iface && iface->roam_synch_in_progress)
