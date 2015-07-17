@@ -1692,7 +1692,7 @@ again:
     }
 #endif
 
-
+    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
     printk("%s: WLAN host driver reinitiation completed!\n", __func__);
     return 0;
 
