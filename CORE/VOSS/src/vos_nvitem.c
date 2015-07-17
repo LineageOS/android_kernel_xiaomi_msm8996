@@ -82,52 +82,53 @@ static v_BOOL_t init_by_reg_core = VOS_FALSE;
  * the flags on our reg_notifier() on a case by case basis.
  */
 
-/* Only these channels all allow active scan on all world regulatory domains */
-#define REG_RULE_2GHZ_CH01_11    REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
+#define REG_RULE_2412_2462    REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
 
-/* We enable active scan on these a case by case basis by regulatory domain */
-#define REG_RULE_2GHZ_CH12_13    REG_RULE(2467-10, 2472+10, 40, 0, 20,\
-      NL80211_RRF_PASSIVE_SCAN)
-#define REG_RULE_2GHZ_CH14        REG_RULE(2484-10, 2484+10, 40, 0, 20,\
-      NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_OFDM)
+#define REG_RULE_2467_2472    REG_RULE(2467-10, 2472+10, 40, 0, 20, \
+	NL80211_RRF_PASSIVE_SCAN)
 
-/* We allow IBSS on these on a case by case basis by regulatory domain */
-#define REG_RULE_5GHZ_5150_5350    REG_RULE(5150-10, 5350+10, 80, 0, 30,\
-      NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
-#define REG_RULE_5GHZ_5470_5925    REG_RULE(5470-10, 5925+10, 80, 0, 30,\
-      NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
-#define REG_RULE_5GHZ_5725_5925    REG_RULE(5725-10, 5925+10, 80, 0, 30,\
-      NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
+#define REG_RULE_2484         REG_RULE(2484-10, 2484+10, 40, 0, 20, \
+	NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_OFDM)
 
-#define REG_RULE_2GHZ_ALL        REG_RULE_2GHZ_CH01_11, \
-   REG_RULE_2GHZ_CH12_13, \
-REG_RULE_2GHZ_CH14
+#define REG_RULE_5180_5320    REG_RULE(5180-10, 5320+10, 80, 0, 20, \
+	NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
 
-#define REG_RULE_5GHZ_ALL        REG_RULE_5GHZ_5150_5350, \
-   REG_RULE_5GHZ_5470_5925
+#define REG_RULE_5500_5720    REG_RULE(5500-10, 5720+10, 80, 0, 20, \
+	NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
 
-/* This one skips what we call "mid band" */
-#define REG_RULE_5GHZ_NO_MIDBAND    REG_RULE_5GHZ_5150_5350, \
-   REG_RULE_5GHZ_5725_5925
+#define REG_RULE_5745_5925    REG_RULE(5745-10, 5925+10, 80, 0, 20, \
+	NL80211_RRF_PASSIVE_SCAN | NL80211_RRF_NO_IBSS)
+
+#define REG_RULE_2GHZ_CH01_11 REG_RULE_2412_2462
+
+#define REG_RULE_2GHZ_CH12_13 REG_RULE_2467_2472
+
+#define REG_RULE_2GHZ_ALL     REG_RULE_2412_2462,\
+        REG_RULE_2467_2472,\
+        REG_RULE_2484
+
+#define REG_RULE_5GHZ_ALL     REG_RULE_5180_5320,\
+        REG_RULE_5500_5720,\
+        REG_RULE_5745_5925
+
+#define REG_RULE_5GHZ_NO_MIDBAND   REG_RULE_5180_5320,\
+        REG_RULE_5745_5925
 
 #define WORLD_SKU_MASK          0x00F0
 #define WORLD_SKU_PREFIX        0x0060
 
-/* Can be used for:
- * 0x60, 0x61, 0x62 */
 static const struct ieee80211_regdomain vos_world_regdom_60_61_62 = {
-   .n_reg_rules = 5,
-   .alpha2 =  "99",
+   .n_reg_rules = 6,
+   .alpha2 =  "00",
    .reg_rules = {
       REG_RULE_2GHZ_ALL,
       REG_RULE_5GHZ_ALL,
    }
 };
 
-/* Can be used by 0x63 and 0x65 */
 static const struct ieee80211_regdomain vos_world_regdom_63_65 = {
    .n_reg_rules = 4,
-   .alpha2 =  "99",
+   .alpha2 =  "00",
    .reg_rules = {
       REG_RULE_2GHZ_CH01_11,
       REG_RULE_2GHZ_CH12_13,
@@ -135,30 +136,27 @@ static const struct ieee80211_regdomain vos_world_regdom_63_65 = {
    }
 };
 
-/* Can be used by 0x64 only */
 static const struct ieee80211_regdomain vos_world_regdom_64 = {
    .n_reg_rules = 3,
-   .alpha2 =  "99",
+   .alpha2 =  "00",
    .reg_rules = {
       REG_RULE_2GHZ_CH01_11,
       REG_RULE_5GHZ_NO_MIDBAND,
    }
 };
 
-/* Can be used by 0x66 and 0x69 */
 static const struct ieee80211_regdomain vos_world_regdom_66_69 = {
-   .n_reg_rules = 3,
-   .alpha2 =  "99",
+   .n_reg_rules = 4,
+   .alpha2 =  "00",
    .reg_rules = {
       REG_RULE_2GHZ_CH01_11,
       REG_RULE_5GHZ_ALL,
    }
 };
 
-/* Can be used by 0x67, 0x68, 0x6A and 0x6C */
 static const struct ieee80211_regdomain vos_world_regdom_67_68_6A_6C = {
-   .n_reg_rules = 4,
-   .alpha2 =  "99",
+   .n_reg_rules = 5,
+   .alpha2 =  "00",
    .reg_rules = {
       REG_RULE_2GHZ_CH01_11,
       REG_RULE_2GHZ_CH12_13,
