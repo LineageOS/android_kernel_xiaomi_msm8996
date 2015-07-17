@@ -2530,7 +2530,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 
 #define CFG_RA_RATE_LIMIT_INTERVAL_NAME            "gRArateLimitInterval"
 #define CFG_RA_RATE_LIMIT_INTERVAL_MIN             (60)
-#define CFG_RA_RATE_LIMIT_INTERVAL_MAX             (300)
+#define CFG_RA_RATE_LIMIT_INTERVAL_MAX             (3600)
 #define CFG_RA_RATE_LIMIT_INTERVAL_DEFAULT         (60)/*60 SEC*/
 #endif
 
