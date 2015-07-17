@@ -1654,6 +1654,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         {
             smsLog( pMac, LOGW, "Invalid CB value from ini in 5GHz band %d, CB DISABLED", pParam->channelBondingMode5GHz);
         }
+        pMac->roam.configParam.stacbmode = pParam->stacbmode;
         pMac->roam.configParam.channelBondingMode5GHz = csrConvertCBIniValueToPhyCBState(pParam->channelBondingMode5GHz);
         pMac->roam.configParam.RTSThreshold = pParam->RTSThreshold;
         pMac->roam.configParam.phyMode = pParam->phyMode;
@@ -1952,6 +1953,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->Is11hSupportEnabled = pMac->roam.configParam.Is11hSupportEnabled;
         pParam->channelBondingMode24GHz = csrConvertPhyCBStateToIniValue(pMac->roam.configParam.channelBondingMode24GHz);
         pParam->channelBondingMode5GHz = csrConvertPhyCBStateToIniValue(pMac->roam.configParam.channelBondingMode5GHz);
+        pParam->stacbmode = pMac->roam.configParam.stacbmode;
         pParam->RTSThreshold = pMac->roam.configParam.RTSThreshold;
         pParam->phyMode = pMac->roam.configParam.phyMode;
         pParam->shortSlotTime = pMac->roam.configParam.shortSlotTime;
@@ -11875,7 +11877,7 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
     }
     else
     {
-        ChannelBondingMode = pMac->roam.configParam.channelBondingMode5GHz;
+        ChannelBondingMode = pMac->roam.configParam.stacbmode;
     }
     //Figure what the other side's CB mode
     if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != ChannelBondingMode)

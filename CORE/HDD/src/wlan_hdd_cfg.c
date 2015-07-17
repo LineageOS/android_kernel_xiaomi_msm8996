@@ -6171,7 +6171,14 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
    smeConfig->csrConfig.Is11eSupportEnabled      = pConfig->b80211eIsEnabled;
    smeConfig->csrConfig.WMMSupportMode           = pConfig->WmmMode;
-
+   /*
+    * -channelBondingMode5GHz is getting updated by SAP
+    * so stacbmode will be used for STA connection.
+    * -Rome STA doesnt support HT40 in 2.4Ghz so interested in only
+    *  5GHz configuration.
+    */
+   smeConfig->csrConfig.stacbmode =
+                                 pConfig->nChannelBondingMode5GHz;
 #if defined WLAN_FEATURE_VOWIFI
    smeConfig->rrmConfig.rrmEnabled = pConfig->fRrmEnable;
    smeConfig->rrmConfig.maxRandnInterval = pConfig->nRrmRandnIntvl;

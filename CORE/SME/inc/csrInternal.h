@@ -530,6 +530,7 @@ typedef struct tagCsrConfig
     tANI_U32 FragmentationThreshold;
     tANI_U32 channelBondingMode24GHz;
     tANI_U32 channelBondingMode5GHz;
+    uint32_t stacbmode;
     tANI_U32 RTSThreshold;
     eCsrPhyMode phyMode;
     eCsrCfgDot11Mode uCfgDot11Mode;

@@ -1089,6 +1089,7 @@ typedef struct tagCsrConfigParam
     tANI_U32 FragmentationThreshold;
     tANI_U32 channelBondingMode24GHz;   // keep this tANI_U32. This gets converted to ePhyChannelBondState
     tANI_U32 channelBondingMode5GHz;    // in csrChangeDefaultConfigParam using convertCBIniValueToPhyCBState
+    uint32_t stacbmode;
     eCsrPhyMode phyMode;
     eCsrBand eBand;
     tANI_U32 RTSThreshold;
