@@ -3395,7 +3395,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			VOS_MAC_ADDR_SIZE);
 		vos_list_insert_back(&hdd_ipa->pending_event,
 				&pending_evet->node);
-		return -ENOMEM;
+		return 0;
 	}
 #endif /* IPA_UC_OFFLOAD */
 
