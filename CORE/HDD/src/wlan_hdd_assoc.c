@@ -942,8 +942,15 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
         if (sendDisconInd) {
             /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
             if (eCSR_ROAM_LOSTLINK == roamStatus)
-                cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0,
+            {
+               if (pRoamInfo->reasonCode ==
+                               eSIR_MAC_PEER_STA_REQ_LEAVING_BSS_REASON)
+                       pr_info(
+                       "wlan: disconnected due to poor signal, rssi is %d dB\n",
+                       pRoamInfo->rxRssi);
+               cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0,
                                       GFP_KERNEL);
+            }
             else
                 cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0,
                                       GFP_KERNEL);
@@ -3576,7 +3583,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     hdd_station_ctx_t *pHddStaCtx = NULL;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = NULL;
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
