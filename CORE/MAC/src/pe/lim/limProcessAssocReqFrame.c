@@ -285,15 +285,40 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
      */
     pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &assocId,
                             &psessionEntry->dph.dphHashTable);
-    if ((NULL != pStaDs) && (pHdr->fc.retry > 0))
-    {
-        limLog(pMac, LOGE,
-           FL("STA is initiating Assoc Req after ACK lost.So, do not Process"
-           "sessionid: %d sys subType=%d for role=%d from: "MAC_ADDRESS_STR),
-           psessionEntry->peSessionId,
-           subType, GET_LIM_SYSTEM_ROLE(psessionEntry), MAC_ADDR_ARRAY(pHdr->sa));
 
-        return;
+    if (NULL != pStaDs)
+    {
+        if (pHdr->fc.retry > 0)
+        {
+            /* Ignore the Retry */
+            limLog(pMac, LOGE,
+                   FL("STA is initiating Assoc Req after ACK lost. "
+                      "So, do not Process sessionid: %d sys subType=%d "
+                      "for role=%d from: "MAC_ADDRESS_STR),
+                   psessionEntry->peSessionId, subType,
+                   psessionEntry->limSystemRole,
+                    MAC_ADDR_ARRAY(pHdr->sa));
+            return;
+        }
+        else
+        {
+            /* STA might have missed the assoc response,
+             * so it is sending assoc request frame again.
+             */
+            limSendAssocRspMgmtFrame(pMac, eSIR_SUCCESS,
+                    pStaDs->assocId, pStaDs->staAddr,
+                    pStaDs->mlmStaContext.subType, pStaDs,
+                    psessionEntry);
+            limLog(pMac, LOGE,
+                   FL("DUT already received an assoc request frame "
+                      "and STA is sending another assoc req.So, do not "
+                      "Process sessionid: %d sys subType=%d for role=%d "
+                      "from: "MAC_ADDRESS_STR),
+                   psessionEntry->peSessionId, subType,
+                   psessionEntry->limSystemRole,
+                   MAC_ADDR_ARRAY(pHdr->sa));
+            return;
+        }
     }
 
     lim_check_sta_in_pe_entries(pMac, pHdr);
