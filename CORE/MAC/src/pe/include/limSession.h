@@ -382,7 +382,7 @@ typedef struct sPESession           // Added to Support BT-AMP
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM
     tANI_S8 rssi;
 #endif
-    tANI_U8 isAmsduSupportInAMPDU;
+    tANI_U8 max_amsdu_num;
     tANI_U8 isCoalesingInIBSSAllowed;
 
     tSirHTConfig htConfig;

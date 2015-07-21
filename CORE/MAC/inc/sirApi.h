@@ -1087,7 +1087,7 @@ typedef struct sSirSmeJoinReq
     tANI_U8             enableHtSmps;
     tANI_U8             htSmps;
 
-    tANI_U8             isAmsduSupportInAMPDU;
+    tANI_U8             max_amsdu_num;
     tAniBool            isWMEenabled;
     tAniBool            isQosEnabled;
     tAniBool            isOSENConnection;

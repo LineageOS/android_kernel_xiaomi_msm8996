@@ -8910,6 +8910,18 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  " failed %d", __func__, ret);
            goto err_free_netdev;
        }
+
+        hddLog(LOG1, FL("SET AMSDU num %d"), pHddCtx->cfg_ini->max_amsdu_num);
+
+        ret = process_wma_set_command((int)pAdapter->sessionId,
+                        (int)GEN_VDEV_PARAM_AMSDU,
+                        (int)pHddCtx->cfg_ini->max_amsdu_num,
+                        GEN_CMD);
+        if (ret != 0) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                        FL("GEN_VDEV_PARAM_AMSDU set failed %d"), ret);
+                goto err_free_netdev;
+        }
   }
 
 

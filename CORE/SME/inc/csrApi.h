@@ -1250,7 +1250,7 @@ typedef struct tagCsrConfigParam
 
     tANI_U8   enableTxLdpc;
 
-    tANI_U8 isAmsduSupportInAMPDU;
+    tANI_U8 max_amsdu_num;
     tANI_U8 nSelect5GHzMargin;
 
     tANI_U8 isCoalesingInIBSSAllowed;

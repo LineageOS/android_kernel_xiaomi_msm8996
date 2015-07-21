@@ -2183,10 +2183,10 @@ typedef enum
 #define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MAX          ( 0xffffffff )
 #endif
 
-#define CFG_AMSDU_SUPPORT_IN_AMPDU_NAME                "gAmsduSupportInAMPDU"
-#define CFG_AMSDU_SUPPORT_IN_AMPDU_MIN                 (0)
-#define CFG_AMSDU_SUPPORT_IN_AMPDU_MAX                 (1)
-#define CFG_AMSDU_SUPPORT_IN_AMPDU_DEFAULT             (0) //disabled
+#define CFG_MAX_AMSDU_NUM_NAME                "gMaxAmsduNum"
+#define CFG_MAX_AMSDU_NUM_MIN                 (0)
+#define CFG_MAX_AMSDU_NUM_MAX                 (3)
+#define CFG_MAX_AMSDU_NUM_DEFAULT             (1)
 
 /* Prefer connecting to 5G AP even if its RSSI is lower by
  gSelect5GHzMargin dBm than 2.4G AP.
@@ -3496,7 +3496,7 @@ typedef struct
    v_BOOL_t                    configPNOScanSupport;
    v_U32_t                     configPNOScanTimerRepeatValue;
 #endif
-   v_U8_t                      isAmsduSupportInAMPDU;
+   v_U8_t                      max_amsdu_num;
    v_U8_t                      nSelect5GHzMargin;
    v_U8_t                      isCoalesingInIBSSAllowed;
 

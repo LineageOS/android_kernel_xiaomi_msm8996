@@ -112,7 +112,7 @@ typedef struct _smeConfigParams
     tANI_BOOLEAN  isWESModeEnabled;
 #endif
     tANI_BOOLEAN  fScanOffload;
-    tANI_U8  isAmsduSupportInAMPDU;
+    tANI_U8       max_amsdu_num;
     tANI_BOOLEAN  fP2pListenOffload;
     tANI_BOOLEAN  pnoOffload;
     tANI_U8       fEnableDebugLog;

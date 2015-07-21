@@ -677,7 +677,7 @@ typedef struct tagCsrConfig
      * Enable/Disable heartbeat offload
      */
     tANI_BOOLEAN enableHeartBeatOffload;
-    tANI_U8 isAmsduSupportInAMPDU;
+    tANI_U8 max_amsdu_num;
     tANI_U8 nSelect5GHzMargin;
     tANI_U8 isCoalesingInIBSSAllowed;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH

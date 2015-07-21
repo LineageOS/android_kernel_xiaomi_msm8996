@@ -1900,7 +1900,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
               limLog(pMac,LOG1,FL("SessionId:%d New session created"),
                      sessionId);
         }
-        psessionEntry->isAmsduSupportInAMPDU = pSmeJoinReq->isAmsduSupportInAMPDU;
+        psessionEntry->max_amsdu_num = pSmeJoinReq->max_amsdu_num;
 
         /* Store Session related parameters */
         /* Store PE session Id in session Table */

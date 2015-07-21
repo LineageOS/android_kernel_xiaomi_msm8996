@@ -3131,6 +3131,10 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       retVal = (tANI_U8) macHTCapabilityInfo.maximalAMSDUsize;
       break;
 
+    case eHT_MAX_AMSDU_NUM:
+      retVal = (tANI_U8) psessionEntry->max_amsdu_num;
+      break;
+
     case eHT_DELAYED_BA:
       retVal = (tANI_U8) macHTCapabilityInfo.delayedBA;
       break;

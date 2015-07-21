@@ -1794,6 +1794,7 @@ typedef enum eHTCapability
   eHT_PSMP,
   eHT_DSSS_CCK_MODE_40MHZ,
   eHT_MAX_AMSDU_LENGTH,
+  eHT_MAX_AMSDU_NUM,
   eHT_DELAYED_BA,
   eHT_RX_STBC,
   eHT_TX_STBC,

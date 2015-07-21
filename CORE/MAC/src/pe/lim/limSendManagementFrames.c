@@ -4917,7 +4917,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       frmAddBARsp.AddBAParameterSet.policy = pMlmAddBARsp->baPolicy;
       frmAddBARsp.AddBAParameterSet.bufferSize = pMlmAddBARsp->baBufferSize;
 
-      if(psessionEntry->isAmsduSupportInAMPDU)
+      if (psessionEntry->max_amsdu_num > 0)
       {
          frmAddBARsp.AddBAParameterSet.amsduSupported =
                                           psessionEntry->amsduSupportedInBA;
