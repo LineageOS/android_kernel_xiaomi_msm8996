@@ -104,6 +104,7 @@
 
 #include "dfs.h"
 #include "radar_filters.h"
+#include "regdomain_common.h"
 
 #include "wma_ocb.h"
 
@@ -12630,6 +12631,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			wma_update_txrx_chainmask(wma->num_rf_chains,
 						&privcmd->param_value);
 		}
+
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 						privcmd->param_id,
 						privcmd->param_value);
@@ -12649,7 +12651,6 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			WMA_LOGE("%s:Invalid vdev handle", __func__);
 			return;
                 }
-
 		WMA_LOGD("gen pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
 
@@ -12701,9 +12702,10 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 #endif
 		case GEN_PARAM_MODULATED_DTIM:
-
 			wma_set_modulated_dtim(wma, privcmd);
-
+			break;
+		case GEN_PARAM_TX_CHAIN_MASK_CCK:
+			wma->tx_chain_mask_cck = privcmd->param_value;
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -29633,6 +29635,8 @@ void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 	int32_t len = sizeof(*cmd);
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	bool cck_mask_val = false;
+	int ret = 0;
 
 	if (NULL == wma) {
 		WMA_LOGE("%s: wma context is NULL", __func__);
@@ -29661,6 +29665,19 @@ void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 				__func__);
 		adf_nbuf_free(buf);
 	}
+
+	if ((ctl2G == MKK) && (ctl5G == MKK) &&
+	    (true == wma->tx_chain_mask_cck))
+		cck_mask_val = true;
+
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+					 WMI_PDEV_PARAM_TX_CHAIN_MASK_CCK,
+					 cck_mask_val);
+	if (ret) {
+		WMA_LOGE("failed to set PDEV tx_chain_mask_cck %d",
+			 ret);
+	}
+
 	return;
 }
 

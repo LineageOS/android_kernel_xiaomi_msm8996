@@ -781,6 +781,7 @@ typedef struct wma_handle {
 	vos_timer_t log_completion_timer;
 	uint32_t txrx_chainmask;
 	uint8_t per_band_chainmask_supp;
+	bool  tx_chain_mask_cck;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

@@ -2994,6 +2994,16 @@ enum dot11p_mode {
 #define CFG_MULTICAST_HOST_FW_MSGS_MAX      (1)
 #define CFG_MULTICAST_HOST_FW_MSGS_DEFAULT  (1)
 
+#define CFG_TX_CHAIN_MASK_CCK          "gCckChainMaskEnable"
+#define CFG_TX_CHAIN_MASK_CCK_MIN      (0)
+#define CFG_TX_CHAIN_MASK_CCK_MAX      (1)
+#define CFG_TX_CHAIN_MASK_CCK_DEFAULT  (0)
+
+#define CFG_TX_CHAIN_MASK_1SS       "gTxChainMask1ss"
+#define CFG_TX_CHAIN_MASK_1SS_MIN      (0)
+#define CFG_TX_CHAIN_MASK_1SS_MAX      (3)
+#define CFG_TX_CHAIN_MASK_1SS_DEFAULT  (0)
+
 /*
  * fine timing measurement capability information
  *
@@ -3667,6 +3677,9 @@ typedef struct
 #endif
    v_BOOL_t                    sendDeauthBeforeCon;
    uint16_t                    pkt_err_disconn_th;
+   bool                        tx_chain_mask_cck;
+   uint8_t                     tx_chain_mask_1ss;
+
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
