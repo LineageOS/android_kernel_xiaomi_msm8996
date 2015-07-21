@@ -3459,15 +3459,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_MAX_CONCURRENT_CONNECTIONS_MIN,
                 CFG_MAX_CONCURRENT_CONNECTIONS_MAX ),
 
-#ifdef QCA_HT_2040_COEX
-   REG_VARIABLE(CFG_ENABLE_HT_2040_COEX, WLAN_PARAM_Integer,
-                hdd_config_t, ht2040CoexEnabled,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_ENABLE_HT_2040_COEX_DEFAULT,
-                CFG_ENABLE_HT_2040_COEX_MIN,
-                CFG_ENABLE_HT_2040_COEX_MAX ),
-#endif
-
 #ifdef FEATURE_GREEN_AP
    REG_VARIABLE( CFG_ENABLE_GREEN_AP_FEATURE, WLAN_PARAM_Integer,
                  hdd_config_t, enableGreenAP,
@@ -4438,12 +4429,6 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gTcpDelAckThresholdLow] Value = [%u] ",
           pHddCtx->cfg_ini->tcpDelackThresholdLow);
-#endif
-
-#ifdef QCA_HT_2040_COEX
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [gHT2040CoexEnabled] Value = [%u]",
-          pHddCtx->cfg_ini->ht2040CoexEnabled);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gIgnoreCAC] Value = [%u] ",
@@ -6340,10 +6325,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->csrConfig.isCoalesingInIBSSAllowed =
                        pHddCtx->cfg_ini->isCoalesingInIBSSAllowed;
-#ifdef QCA_HT_2040_COEX
-   smeConfig->csrConfig.obssEnabled = pHddCtx->cfg_ini->ht2040CoexEnabled;
-#endif
-
+   /* SAP OBSS automatically supported based on ch width*/
+   smeConfig->csrConfig.obssEnabled = 1;
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
    /* Update the Directed scan offload setting */

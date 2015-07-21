@@ -1161,6 +1161,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
 
     pMac->roam.configParam.nInitialDwellTime = 0;
     pMac->roam.configParam.initial_scan_no_dfs_chnl = 0;
+    pMac->roam.configParam.obssEnabled = 1;
 }
 eCsrBand csrGetCurrentBand(tHalHandle hHal)
 {

@@ -2604,13 +2604,6 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MIN         ( 1 )
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MAX         ( 4 )
 
-#ifdef QCA_HT_2040_COEX
-#define CFG_ENABLE_HT_2040_COEX                    "gHT2040CoexEnabled"
-#define CFG_ENABLE_HT_2040_COEX_MIN                ( 0 )
-#define CFG_ENABLE_HT_2040_COEX_MAX                ( 1 )
-#define CFG_ENABLE_HT_2040_COEX_DEFAULT            ( 0 )
-#endif
-
 #define CFG_IGNORE_CAC_NAME                        "gIgnoreCAC"
 #define CFG_IGNORE_CAC_MIN                         ( 0 )
 #define CFG_IGNORE_CAC_MAX                         ( 1 )
@@ -3564,9 +3557,6 @@ typedef struct
 
    v_U8_t                      gMaxConcurrentActiveSessions;
 
-#ifdef QCA_HT_2040_COEX
-   v_BOOL_t                    ht2040CoexEnabled;
-#endif
    v_U8_t      ignoreCAC;
    v_BOOL_t                    IsSapDfsChSifsBurstEnabled;
 
