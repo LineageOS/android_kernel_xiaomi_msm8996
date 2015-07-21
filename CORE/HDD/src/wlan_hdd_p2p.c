@@ -1327,6 +1327,7 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
     if (offchan && !wait)
     {
         wait = ACTION_FRAME_DEFAULT_WAIT;
+        mutex_lock(&cfgState->remain_on_chan_ctx_lock);
         if (cfgState->remain_on_chan_ctx)
         {
             tANI_U32 current_time = vos_timer_get_system_time();
@@ -1336,6 +1337,7 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
             if ( remaining_roc_time > ACTION_FRAME_DEFAULT_WAIT)
                 wait = remaining_roc_time;
         }
+        mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     }
 
     if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
