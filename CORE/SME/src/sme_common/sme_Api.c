@@ -12165,7 +12165,7 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
    sme_UpdateConfig (pMac, &smeConfig);
    cb_mode = (channel <= 14) ? smeConfig.csrConfig.channelBondingMode24GHz :
                         smeConfig.csrConfig.channelBondingMode5GHz;
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
          "%s: CH: %d NEW_BW: %d %s-CB_Mode:%d", __func__, channel,
          *vht_channel_width, (channel <=14) ? "2G" : "5G", cb_mode);
 
