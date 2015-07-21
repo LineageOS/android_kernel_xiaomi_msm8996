@@ -138,8 +138,12 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef FEATURE_OEM_DATA_SUPPORT
         (limMsg->type != WDA_START_OEM_DATA_RSP) &&
 #endif
-        (limMsg->type != WDA_ADD_TS_RSP))
-    {
+        (limMsg->type != WDA_ADD_TS_RSP) &&
+        /* Allow processing of RX frames while awaiting reception of
+           ADD TS response over the air. This logic particularly handles the
+           case when host sends ADD BA request to FW after ADD TS request
+           is sent over the air and ADD TS response received over the air */
+        !(limMsg->type == SIR_BB_XPORT_MGMT_MSG && pMac->lim.gLimAddtsSent)) {
         PELOG1(limLog(pMac, LOG1, FL("Defer the current message type %d , gLimProcessDefdMsgs is false and system is not in scan/learn mode"),
                limMsg->type);)
 
@@ -2206,7 +2210,8 @@ limProcessDeferredMessageQueue(tpAniSirGlobal pMac)
             limProcessMessages(pMac, &limMsg);
 
             if((limIsSystemInScanState(pMac)) || (true != GET_LIM_PROCESS_DEFD_MESGS(pMac)) ||
-                 (pMac->lim.gLimSystemInScanLearnMode))
+                  (pMac->lim.gLimSystemInScanLearnMode) ||
+                   pMac->lim.gLimAddtsSent)
                 break;
         }
     }
