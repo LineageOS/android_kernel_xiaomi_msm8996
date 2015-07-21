@@ -2723,6 +2723,10 @@ typedef enum {
     WMI_PDEV_PARAM_TX_CHAIN_MASK_5G,
     /** 5G RX chain mask */
     WMI_PDEV_PARAM_RX_CHAIN_MASK_5G,
+    /* Set tx chain mask for CCK rates */
+    WMI_PDEV_PARAM_TX_CHAIN_MASK_CCK,
+    /* Set tx chain mask for 1SS stream */
+    WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS,
 } WMI_PDEV_PARAM;
 
 typedef enum {
