@@ -4094,6 +4094,10 @@ typedef enum {
       * exceed this threhold, FW will send kickout event to host */
     WMI_VDEV_PARAM_DISCONNECT_TH,
 
+    /** The rate_code of RTS_CTS changed by host. Now FW can support
+     * more non-HT rates rather than 1Mbps or 6Mbps */
+    WMI_VDEV_PARAM_RTSCTS_RATE,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
