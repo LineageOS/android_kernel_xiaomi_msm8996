@@ -226,20 +226,6 @@ hif_usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
 	atomic_set(&sc->hdd_removed_processing, 0);
 	sc->hdd_removed_wait_cnt = 0;
 
-#ifndef REMOVE_PKT_LOG
-	if (vos_get_conparam() != VOS_FTM_MODE &&
-        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-		/*
-		 * pktlog initialization
-		 */
-		ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
-
-		if (pktlogmod_init(ol_sc))
-			pr_err("%s: pktlogmod_init failed\n", __func__);
-	}
-#endif
-
-
 	sc->interface = interface;
 	sc->reboot_notifier.notifier_call = hif_usb_reboot;
 	register_reboot_notifier(&sc->reboot_notifier);

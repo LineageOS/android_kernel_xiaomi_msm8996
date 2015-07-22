@@ -92,11 +92,6 @@ static inline int athdiag_procfs_init(void *scn) { return 0; }
 static inline void athdiag_procfs_remove(void) { return; }
 #endif
 
-#ifndef REMOVE_PKT_LOG
-extern int pktlogmod_init(void *context);
-extern void pktlogmod_exit(void *context);
-#endif
-
 /*These functions are exposed to HDD*/
 int hif_register_driver(void);
 void hif_unregister_driver(void);

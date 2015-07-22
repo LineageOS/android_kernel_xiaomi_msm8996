@@ -99,6 +99,8 @@
 #elif defined(HIF_SDIO)
 #include "if_ath_sdio.h"
 #endif
+
+#include "ol_fw.h"
 /* Time in msec */
 #ifdef CONFIG_SLUB_DEBUG_ON
 #define HDD_SSR_BRING_UP_TIME 20000
@@ -2250,6 +2252,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
                              pHddCtx->target_hw_version,
                              pHddCtx->target_hw_name);
 #endif
+   ol_pktlog_init(hif_sc);
    goto success;
 
 err_unregister_pmops:

@@ -134,7 +134,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "if_ath_sdio.h"
 #endif
 #include "wma.h"
-
+#include "ol_fw.h"
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
 
@@ -12359,6 +12359,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    else
       hddLog(LOGE, FL("Registered IPv4 notifier"));
 
+   ol_pktlog_init(hif_sc);
    complete(&wlan_start_comp);
    goto success;
 

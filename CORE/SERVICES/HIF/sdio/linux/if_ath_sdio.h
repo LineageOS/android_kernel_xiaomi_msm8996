@@ -79,11 +79,6 @@ static inline int athdiag_procfs_init(void *scn) { return 0; }
 static inline void athdiag_procfs_remove(void) { return; }
 #endif
 
-#ifndef REMOVE_PKT_LOG
-extern int pktlogmod_init(void *context);
-extern void pktlogmod_exit(void *context);
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27)
 #define DMA_MAPPING_ERROR(dev, addr) dma_mapping_error((addr))
 #else

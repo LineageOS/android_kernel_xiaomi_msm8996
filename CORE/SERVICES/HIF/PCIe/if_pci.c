@@ -54,7 +54,6 @@
 #endif
 #include "epping_main.h"
 
-
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
 #include "pktlog_ac_api.h"
@@ -1335,19 +1334,6 @@ again:
     pci_write_config_dword(pdev, 0x80, lcr_val);
 
     hif_pci_pm_runtime_init(sc);
-#ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE &&
-        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-        /*
-         * pktlog initialization
-         */
-        ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
-
-        if (pktlogmod_init(ol_sc))
-            printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
-    }
-#endif
-
 
     return 0;
 
@@ -1679,18 +1665,6 @@ again:
     }
 
     hif_pci_pm_runtime_init(sc);
-#ifndef REMOVE_PKT_LOG
-    if (vos_get_conparam() != VOS_FTM_MODE &&
-        !WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-        /*
-         * pktlog initialization
-         */
-        ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
-
-        if (pktlogmod_init(ol_sc))
-            printk(KERN_ERR "%s: pktlogmod_init failed!\n", __func__);
-    }
-#endif
 
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
     printk("%s: WLAN host driver reinitiation completed!\n", __func__);

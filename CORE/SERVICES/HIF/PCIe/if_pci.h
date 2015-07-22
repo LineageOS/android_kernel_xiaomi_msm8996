@@ -147,11 +147,6 @@ void hif_disable_aspm(void);
 
 void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint);
 
-#ifndef REMOVE_PKT_LOG
-extern int pktlogmod_init(void *context);
-extern void pktlogmod_exit(void *context);
-#endif
-
 int hif_pci_set_ram_config_reg(struct hif_pci_softc *sc, uint32_t config);
 int hif_pci_check_fw_reg(struct hif_pci_softc *sc);
 int hif_pci_check_soc_status(struct hif_pci_softc *sc);
