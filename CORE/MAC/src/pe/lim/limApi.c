@@ -806,6 +806,80 @@ limCleanup(tpAniSirGlobal pMac)
 } /*** end limCleanup() ***/
 
 
+/**
+ * lim_is_deauth_diassoc_for_drop()- function to decides to drop deauth\diassoc
+ *  frames.
+ * @mac: pointer to global mac structure
+ * @rx_pkt_info: rx packet meta information
+ *
+ * This function is called before enqueuing the frame to PE queue to
+ * drop flooded deauth/diassoc frames getting into PE Queue.
+ *
+ * Return: true for dropping the frame otherwise false
+ */
+
+bool lim_is_deauth_diassoc_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
+{
+	uint8_t session_id;
+	uint16_t aid;
+	tpPESession session_entry;
+	tpSirMacMgmtHdr mac_hdr;
+	tpDphHashNode   sta_ds;
+
+	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
+	session_entry = peFindSessionByBssid(mac, mac_hdr->bssId, &session_id);
+	if (!session_entry) {
+		PELOG1(limLog(mac, LOG1,
+			FL("session does not exist for given STA [%pM]"),
+			mac_hdr->sa););
+		return true;
+	}
+
+	sta_ds = dphLookupHashEntry(mac, mac_hdr->sa, &aid,
+					&session_entry->dph.dphHashTable);
+	if (!sta_ds) {
+		PELOG1(limLog(mac, LOG1,FL("pStaDs is NULL")););
+		return true;
+	}
+
+#ifdef WLAN_FEATURE_11W
+	if (session_entry->limRmfEnabled) {
+		if ((WDA_GET_RX_DPU_FEEDBACK(rx_pkt_info) &
+			DPU_FEEDBACK_UNPROTECTED_ERROR)) {
+			/* It may be possible that deauth/diassoc frames from a
+			 * spoofy AP is received. So if all further
+			 * deauth/diassoc frmaes are dropped, then it may
+			 * result in lossing deauth/diassoc frames from genuine
+			 * AP. So process all deauth/diassoc frames with
+			 * a time difference of 1 sec.
+			 */
+			if ((vos_timer_get_system_time() -
+				 sta_ds->last_unprot_deauth_disassoc) < 1000)
+				return true;
+
+			sta_ds->last_unprot_deauth_disassoc =
+					vos_timer_get_system_time();
+		} else {
+			/* PMF enabed, Management frames are protected */
+			if (sta_ds->proct_deauh_disassoc_cnt)
+				return true;
+			else
+				sta_ds->proct_deauh_disassoc_cnt++;
+		}
+	}
+	else
+#endif
+	/* PMF disabled */
+	{
+		if (sta_ds->isDisassocDeauthInProgress)
+			return true;
+		else
+			sta_ds->isDisassocDeauthInProgress++;
+	}
+
+	return false;
+}
+
 /** -------------------------------------------------------------
 \fn peOpen
 \brief will be called in Open sequence from macOpen
