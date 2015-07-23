@@ -18396,43 +18396,30 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
             "%s: cfg80211 scan result database updated", __func__);
 }
 
-/*
- * FUNCTION: wlan_hdd_is_pno_allowed
- * Disallow pno if any session is active
+/**
+ * wlan_hdd_is_pno_allowed() -  Check if PNO is allowed
+ * @adapter: HDD Device Adapter
+ *
+ * The PNO Start request is coming from upper layers.
+ * It is to be allowed only for Infra STA device type
+ * and the link should be in a disconnected state.
+ *
+ * Return: Success if PNO is allowed, Failure otherwise.
  */
-static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *pAdapter)
+static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *adapter)
 {
-   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-   hdd_adapter_t *pTempAdapter = NULL;
-   hdd_station_ctx_t *pStaCtx;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   int status = 0;
+	hddLog(LOG1,
+		FL("dev_mode=%d, conn_state=%d, session ID=%d"),
+		adapter->device_mode,
+		adapter->sessionCtx.station.conn_info.connState,
+		adapter->sessionId);
+	if ((adapter->device_mode == WLAN_HDD_INFRA_STATION) &&
+		(eConnectionState_NotConnected ==
+			 adapter->sessionCtx.station.conn_info.connState))
+		return eHAL_STATUS_SUCCESS;
+	else
+		return eHAL_STATUS_FAILURE;
 
-   status = hdd_get_front_adapter(pHddCtx, &pAdapterNode);
-
- /* The current firmware design does not allow PNO during any
-  * active sessions. Hence, determine the active sessions
-  * and return a failure.
-  */
-
-   while ((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status))
-   {
-        pTempAdapter = pAdapterNode->pAdapter;
-        pStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pTempAdapter);
-
-        if (((WLAN_HDD_INFRA_STATION == pTempAdapter->device_mode)
-          && (eConnectionState_NotConnected != pStaCtx->conn_info.connState))
-          || (WLAN_HDD_P2P_CLIENT == pTempAdapter->device_mode)
-          || (WLAN_HDD_P2P_GO == pTempAdapter->device_mode)
-          || (WLAN_HDD_SOFTAP == pTempAdapter->device_mode)
-         )
-        {
-            return eHAL_STATUS_FAILURE;
-        }
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-        pAdapterNode = pNext;
-   }
-   return eHAL_STATUS_SUCCESS;
 }
 
 /*
