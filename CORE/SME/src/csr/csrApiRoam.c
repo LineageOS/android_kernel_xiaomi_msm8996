@@ -5661,7 +5661,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #ifdef FEATURE_WLAN_ESE
                        && !((pProfile->negotiatedAuthType ==
                                  eCSR_AUTH_TYPE_OPEN_SYSTEM) &&
-                                 (pIes->ESEVersion.present) &&
+                                 (pIes && pIes->ESEVersion.present) &&
                                  (pMac->roam.configParam.isEseIniFeatureEnabled))
 #endif
                        )
