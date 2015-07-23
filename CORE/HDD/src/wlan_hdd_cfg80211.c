@@ -9698,9 +9698,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
 
     wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
-
+#ifdef QCA_HT_2040_COEX
     wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
-
+#endif
     EXIT();
     return 0;
 }
