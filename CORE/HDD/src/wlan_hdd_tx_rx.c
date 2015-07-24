@@ -888,7 +888,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    {
       v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
 
-      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+      if ( VOS_STATUS_SUCCESS !=
+           hdd_Ibss_GetStaId(&pAdapter->sessionCtx.station,
+                              pDestMacAddress, &STAId))
+      {
+         STAId = HDD_WLAN_INVALID_STA_ID;
+      }
+
 
       if ((STAId == HDD_WLAN_INVALID_STA_ID) &&
           (vos_is_macaddr_broadcast( pDestMacAddress ) ||
