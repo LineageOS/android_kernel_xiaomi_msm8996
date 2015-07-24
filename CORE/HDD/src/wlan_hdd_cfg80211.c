@@ -198,9 +198,6 @@
  */
 
 #define EXTSCAN_EVENT_BUF_SIZE 4096
-#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT 30
-#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MIN 30
-#define EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MAX 110
 #endif
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -3273,22 +3270,22 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 	uint32_t chanList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
 
 	uint32_t min_dwell_time_active_bucket =
-		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+		pHddCtx->cfg_ini->extscan_active_max_chn_time;
 	uint32_t max_dwell_time_active_bucket =
-		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+		pHddCtx->cfg_ini->extscan_active_max_chn_time;
 	uint32_t min_dwell_time_passive_bucket =
-		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+		pHddCtx->cfg_ini->extscan_passive_max_chn_time;
 	uint32_t max_dwell_time_passive_bucket =
-		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+		pHddCtx->cfg_ini->extscan_passive_max_chn_time;
 
 	bktIndex = 0;
 	pReqMsg->min_dwell_time_active =
 		pReqMsg->max_dwell_time_active =
-		EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+			pHddCtx->cfg_ini->extscan_active_max_chn_time;
 
 	pReqMsg->min_dwell_time_passive =
 		pReqMsg->max_dwell_time_passive =
-		CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+			pHddCtx->cfg_ini->extscan_passive_max_chn_time;
 
 	nla_for_each_nested(buckets,
 			tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC], rem1) {
@@ -3374,11 +3371,11 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		/* start with known good values for bucket dwell times */
 		pReqMsg->buckets[bktIndex].min_dwell_time_active =
 		pReqMsg->buckets[bktIndex].max_dwell_time_active =
-			EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+			pHddCtx->cfg_ini->extscan_active_max_chn_time;
 
 		pReqMsg->buckets[bktIndex].min_dwell_time_passive =
 		pReqMsg->buckets[bktIndex].max_dwell_time_passive =
-			CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+			pHddCtx->cfg_ini->extscan_passive_max_chn_time;
 
 		/* Framework shall pass the channel list if the input WiFi band is
 		 * WIFI_BAND_UNSPECIFIED.
@@ -3415,7 +3412,8 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 								passive = 1;
 					pReqMsg->buckets[bktIndex].channels[j].
 					dwellTimeMs =
-					CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+						pHddCtx->cfg_ini->
+						extscan_passive_max_chn_time;
 					/* reconfigure per-bucket dwell time */
 					if (min_dwell_time_passive_bucket >
 							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
@@ -3432,7 +3430,7 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 						passive = 0;
 					pReqMsg->buckets[bktIndex].channels[j].
 						dwellTimeMs =
-						EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+						pHddCtx->cfg_ini->extscan_active_max_chn_time;
 					/* reconfigure per-bucket dwell times */
 					if (min_dwell_time_active_bucket >
 							pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs) {
@@ -3525,9 +3523,9 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 
 			/* Override dwell time if required */
 			if (pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs <
-				EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MIN ||
+				pHddCtx->cfg_ini->extscan_active_min_chn_time ||
 				pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs >
-				EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_MAX) {
+				pHddCtx->cfg_ini->extscan_active_max_chn_time) {
 				hddLog(LOG1,
 					FL("WiFi band is unspecified, dwellTime:%d"),
 					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs);
@@ -3536,10 +3534,10 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 					vos_freq_to_chan(
 						pReqMsg->buckets[bktIndex].channels[j].channel))) {
 					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
-						CFG_PASSIVE_MAX_CHANNEL_TIME_DEFAULT;
+						pHddCtx->cfg_ini->extscan_passive_max_chn_time;
 				} else {
 					pReqMsg->buckets[bktIndex].channels[j].dwellTimeMs =
-						EXTSCAN_ACTIVE_MAX_CHANNEL_TIME_DEFAULT;
+						pHddCtx->cfg_ini->extscan_active_max_chn_time;
 				}
 			}
 
