@@ -13474,11 +13474,24 @@ void hdd_ch_avoid_cb
    }
 
 #ifdef CONFIG_CNSS
-   cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
-                                hdd_ctxt->unsafe_channel_count);
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-             "%s : number of unsafe channels is %d ",
-             __func__,  hdd_ctxt->unsafe_channel_count);
+            "%s : number of unsafe channels is %d ",
+            __func__,  hdd_ctxt->unsafe_channel_count);
+
+   if (cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
+                                hdd_ctxt->unsafe_channel_count)) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to set unsafe channel",
+                __func__);
+
+       /* clear existing unsafe channel cache */
+       hdd_ctxt->unsafe_channel_count = 0;
+       vos_mem_zero(hdd_ctxt->unsafe_channel_list,
+           sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+
+       return;
+   }
+
    for (channel_loop = 0;
         channel_loop < hdd_ctxt->unsafe_channel_count;
         channel_loop++)
