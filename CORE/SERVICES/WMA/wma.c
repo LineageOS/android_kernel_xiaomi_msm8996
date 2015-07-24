@@ -18426,6 +18426,126 @@ static int wma_pdev_temperature_evt_handler(void *handle, u_int8_t *event,
 }
 
 /**
+ * wma_log_supported_evt_handler() - Enable/Disable FW diag/log events
+ * @handle: WMA handle
+ * @event:  Event received from FW
+ * @len:    Length of the event
+ *
+ * Enables the low frequency events and disables the high frequency
+ * events. Bit 17 indicates if the event if low/high frequency.
+ * 1 - high frequency, 0 - low frequency
+ *
+ * Return: 0 on successfully enabling/disabling the events
+ */
+static int wma_log_supported_evt_handler(void *handle,
+			u_int8_t *event,
+			u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	uint32_t num_of_diag_events_logs;
+	wmi_diag_event_log_config_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint8_t *buf_ptr;
+	uint32_t *cmd_args, *evt_args;
+	uint32_t buf_len, i;
+
+	WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID_param_tlvs *param_buf;
+	wmi_diag_event_log_supported_event_fixed_params *wmi_event;
+
+	WMA_LOGI("Received WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID");
+
+	param_buf = (WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid log supported event buffer");
+		return -EINVAL;
+	}
+	wmi_event = param_buf->fixed_param;
+	num_of_diag_events_logs = wmi_event->num_of_diag_events_logs;
+	evt_args = param_buf->diag_events_logs_list;
+	if (!evt_args) {
+		WMA_LOGE("%s: Event list is empty, num_of_diag_events_logs=%d",
+			__func__, num_of_diag_events_logs);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("%s: num_of_diag_events_logs=%d",
+			__func__, num_of_diag_events_logs);
+
+	/* Free any previous allocation */
+	if (wma->events_logs_list)
+		vos_mem_free(wma->events_logs_list);
+
+	/* Store the event list for run time enable/disable */
+	wma->events_logs_list = vos_mem_malloc(num_of_diag_events_logs *
+					sizeof(uint32_t));
+	if (!wma->events_logs_list) {
+		WMA_LOGE("%s: event log list memory allocation failed",
+			__func__);
+		return -ENOMEM;
+	}
+	wma->num_of_diag_events_logs = num_of_diag_events_logs;
+
+	/* Prepare the send buffer */
+	buf_len = sizeof(*cmd) + WMI_TLV_HDR_SIZE +
+		(num_of_diag_events_logs * sizeof(uint32_t));
+
+	buf = wmi_buf_alloc(wma->wmi_handle, buf_len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		vos_mem_free(wma->events_logs_list);
+		wma->events_logs_list = NULL;
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_diag_event_log_config_fixed_param *) wmi_buf_data(buf);
+	buf_ptr = (uint8_t *) cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_diag_event_log_config_fixed_param));
+
+	cmd->num_of_diag_events_logs = num_of_diag_events_logs;
+
+	buf_ptr += sizeof(wmi_diag_event_log_config_fixed_param);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+		(num_of_diag_events_logs * sizeof(uint32_t)));
+
+	cmd_args = (uint32_t *) (buf_ptr + WMI_TLV_HDR_SIZE);
+
+	/* Populate the events */
+	for (i = 0; i < num_of_diag_events_logs; i++) {
+		/* Low freq (0) - Enable (1) the event
+		 * High freq (1) - Disable (0) the event
+		 */
+		WMI_DIAG_ID_ENABLED_DISABLED_SET(cmd_args[i],
+				!(WMI_DIAG_FREQUENCY_GET(evt_args[i])));
+		/* Set the event ID */
+		WMI_DIAG_ID_SET(cmd_args[i],
+				WMI_DIAG_ID_GET(evt_args[i]));
+		/* Set the type */
+		WMI_DIAG_TYPE_SET(cmd_args[i],
+				WMI_DIAG_TYPE_GET(evt_args[i]));
+		/* Storing the event/log list in WMA */
+		wma->events_logs_list[i] = evt_args[i];
+	}
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, buf_len,
+				WMI_DIAG_EVENT_LOG_CONFIG_CMDID)) {
+		WMA_LOGE("%s: WMI_DIAG_EVENT_LOG_CONFIG_CMDID failed",
+				__func__);
+		wmi_buf_free(buf);
+		/* Not clearing events_logs_list, though wmi cmd failed.
+		 * Host can still have this list
+		 */
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
  * wma_flush_complete_evt_handler() - FW log flush complete event handler
  * @handle: WMI handle
  * @event:  Event recevied from FW
@@ -25353,18 +25473,128 @@ static VOS_STATUS wma_process_set_ie_info(tp_wma_handle wma,
 	return ret;
 }
 
+/**
+ * wma_enable_specific_fw_logs() - Start/Stop logging of diag event/log id
+ * @wma_handle: WMA handle
+ * @start_log: Start logging related parameters
+ *
+ * Send the command to the FW based on which specific logging of diag
+ * event/log id can be started/stopped
+ *
+ * Return: None
+ */
+void wma_enable_specific_fw_logs(tp_wma_handle wma_handle,
+		struct sir_wifi_start_log *start_log)
+{
+	wmi_diag_event_log_config_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint8_t *buf_ptr;
+	uint32_t len, count, log_level, i;
+	uint32_t *cmd_args;
+	uint32_t total_len;
+	count = 0;
+
+	if (!start_log) {
+		WMA_LOGE("%s: start_log pointer is NULL", __func__);
+		return;
+	}
+	if (!wma_handle) {
+		WMA_LOGE("%s: Invalid wma handle", __func__);
+		return;
+	}
+
+	if (!((start_log->ring_id == RING_ID_CONNECTIVITY) ||
+			(start_log->ring_id == RING_ID_FIRMWARE_DEBUG))) {
+		WMA_LOGD("%s: Not connectivity or fw debug ring: %d",
+			__func__, start_log->ring_id);
+		return;
+	}
+
+	if (!wma_handle->events_logs_list) {
+		WMA_LOGE("%s: Not received event/log list from FW, yet",
+			__func__);
+		return;
+	}
+
+	/* total_len stores the number of events where BITS 17 and 18 are set.
+	 * i.e., events of high frequency (17) and for extended debugging (18)
+	 */
+	total_len = 0;
+	for (i = 0; i < wma_handle->num_of_diag_events_logs; i++) {
+		if ((WMI_DIAG_FREQUENCY_GET(wma_handle->events_logs_list[i])) &&
+		    (WMI_DIAG_EXT_FEATURE_GET(wma_handle->events_logs_list[i])))
+			total_len++;
+	}
+
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE +
+		(total_len * sizeof(uint32_t));
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return;
+	}
+	cmd = (wmi_diag_event_log_config_fixed_param *) wmi_buf_data(buf);
+	buf_ptr = (uint8_t *) cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_diag_event_log_config_fixed_param));
+
+	cmd->num_of_diag_events_logs = total_len;
+
+	buf_ptr += sizeof(wmi_diag_event_log_config_fixed_param);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(total_len * sizeof(uint32_t)));
+
+	cmd_args = (uint32_t *) (buf_ptr + WMI_TLV_HDR_SIZE);
+
+	if (start_log->verbose_level >= LOG_LEVEL_ACTIVE)
+		log_level = 1;
+	else
+		log_level = 0;
+
+	WMA_LOGD("%s: Length:%d, Log_level:%d", __func__, total_len, log_level);
+	for (i = 0; i < wma_handle->num_of_diag_events_logs; i++) {
+		uint32_t val = wma_handle->events_logs_list[i];
+		if ((WMI_DIAG_FREQUENCY_GET(val)) &&
+				(WMI_DIAG_EXT_FEATURE_GET(val))) {
+
+			WMI_DIAG_ID_SET(cmd_args[count],
+				WMI_DIAG_ID_GET(val));
+			WMI_DIAG_TYPE_SET(cmd_args[count],
+				WMI_DIAG_TYPE_GET(val));
+			WMI_DIAG_ID_ENABLED_DISABLED_SET(cmd_args[count],
+				log_level);
+			WMA_LOGD("%s: Idx:%d, val:%x", __func__, i, val);
+			count++;
+		}
+	}
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				WMI_DIAG_EVENT_LOG_CONFIG_CMDID)) {
+		WMA_LOGE("%s: WMI_DIAG_EVENT_LOG_CONFIG_CMDID failed",
+				__func__);
+		wmi_buf_free(buf);
+	}
+	return;
+}
+
 #if !defined(REMOVE_PKT_LOG)
 /**
- * wma_set_wifi_start_logger() - Send the WMA commands to start/stop logging
+ * wma_set_wifi_start_packet_stats() - Start/stop packet stats
  * @wma_handle: WMA handle
  * @start_log: Struture containing the start wifi logger params
  *
  * This function is used to send the WMA commands to start/stop logging
+ * of per packet statistics
  *
  * Return: None
  *
  */
-void wma_set_wifi_start_logger(void *wma_handle,
+void wma_set_wifi_start_packet_stats(void *wma_handle,
 		struct sir_wifi_start_log *start_log)
 {
 	void *vos_context;
@@ -25377,6 +25607,13 @@ void wma_set_wifi_start_logger(void *wma_handle,
 	}
 	if (!wma_handle) {
 		WMA_LOGE("%s: Invalid wma handle", __func__);
+		return;
+	}
+
+	/* No need to register for ring IDs other than packet stats */
+	if (start_log->ring_id != RING_ID_PER_PACKET_STATS) {
+		WMA_LOGI("%s: Ring id is not for per packet stats: %d",
+			__func__, start_log->ring_id);
 		return;
 	}
 
@@ -26244,9 +26481,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(struct fw_dump_req*)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
                         break;
-		case SIR_HAL_START_STOP_PACKET_STATS:
-			wma_set_wifi_start_logger(wma_handle,
-					(struct sir_wifi_start_log *)msg->bodyptr);
+		case SIR_HAL_START_STOP_LOGGING:
+			wma_set_wifi_start_packet_stats(wma_handle,
+				(struct sir_wifi_start_log *)msg->bodyptr);
+			wma_enable_specific_fw_logs(wma_handle,
+				(struct sir_wifi_start_log *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_TSF_GPIO_PIN:
@@ -27870,6 +28109,12 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		return VOS_STATUS_E_INVAL;
 	}
 
+	if (wma_handle->events_logs_list) {
+		vos_mem_free(wma_handle->events_logs_list);
+		wma_handle->events_logs_list = NULL;
+		WMA_LOGD("%s: Event log list freed", __func__);
+	}
+
 	/* Free wow pattern cache */
 	for (ptrn_id = 0; ptrn_id < wma_handle->wlan_resource_config.num_wow_filters;
 		ptrn_id++)
@@ -28503,6 +28748,15 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 						    wma_tbttoffset_update_event_handler);
 	if (status) {
 		WMA_LOGE("Failed to register WMI_TBTTOFFSET_UPDATE_EVENTID callback");
+		return;
+	}
+
+	/* Initialize the log supported event handler */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID,
+			wma_log_supported_evt_handler);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to register log supported event cb");
 		return;
 	}
 
