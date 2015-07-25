@@ -78,6 +78,9 @@ struct cvg_nbuf_cb {
     union {
         struct sk_buff *parent;
         void *ptr;
+#ifdef DEBUG_RX_RING_BUFFER
+        uint32_t map_index;
+#endif
     } txrx_field;
 
     /*
@@ -126,6 +129,11 @@ struct cvg_nbuf_cb {
 #ifdef QCA_ARP_SPOOFING_WAR
 #define NBUF_CB_PTR(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.ptr)
+#endif
+
+#ifdef DEBUG_RX_RING_BUFFER
+#define NBUF_MAP_ID(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.map_index)
 #endif
 
 #ifdef QCA_MDM_DEVICE

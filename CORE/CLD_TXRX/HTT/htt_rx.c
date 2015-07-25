@@ -296,6 +296,16 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
                 adf_nbuf_free(rx_netbuf);
                 goto fail;
             }
+#ifdef DEBUG_RX_RING_BUFFER
+            if (pdev->rx_buff_list) {
+                pdev->rx_buff_list[pdev->rx_buff_index].paddr = paddr;
+                pdev->rx_buff_list[pdev->rx_buff_index].in_use = true;
+                pdev->rx_buff_list[pdev->rx_buff_index].vaddr = rx_netbuf;
+                NBUF_MAP_ID(rx_netbuf) = pdev->rx_buff_index;
+                if(++pdev->rx_buff_index == HTT_RX_RING_BUFF_DBG_LIST)
+                    pdev->rx_buff_index = 0;
+            }
+#endif
         } else {
             pdev->rx_ring.buf.netbufs_ring[idx] = rx_netbuf;
         }
@@ -2476,6 +2486,9 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
         HTT_RX_HASH_COOKIE_CHECK(hash_entry);
 
         if (hash_entry->paddr == paddr) {
+#ifdef DEBUG_RX_RING_BUFFER
+            uint32_t index;
+#endif
             /* Found the entry corresponding to paddr */
             netbuf = hash_entry->netbuf;
             htt_list_remove(&hash_entry->listnode);
@@ -2488,6 +2501,16 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
             else {
                 adf_os_mem_free(hash_entry);
             }
+#ifdef DEBUG_RX_RING_BUFFER
+            if (pdev->rx_buff_list) {
+                index = NBUF_MAP_ID(netbuf);
+                if (index < HTT_RX_RING_BUFF_DBG_LIST) {
+                    pdev->rx_buff_list[index].in_use = false;
+                    pdev->rx_buff_list[index].paddr = 0;
+                    pdev->rx_buff_list[index].vaddr = NULL;
+                }
+            }
+#endif
             break;
         }
     }
@@ -2721,6 +2744,14 @@ htt_rx_attach(struct htt_pdev_t *pdev)
 #ifdef HTT_RX_RESTORE
         pdev->rx_ring.rx_reset = 0;
         pdev->rx_ring.htt_rx_restore = 0;
+#endif
+#ifdef DEBUG_RX_RING_BUFFER
+        pdev->rx_buff_list = adf_os_mem_alloc(pdev->osdev,
+                                         HTT_RX_RING_BUFF_DBG_LIST *
+                                         sizeof(struct rx_buf_debug));
+        if (!pdev->rx_buff_list) {
+            adf_os_print("HTT: debug RX buffer allocation failed\n");
+        }
 #endif
         htt_rx_ring_fill_n(pdev, pdev->rx_ring.fill_level);
 
