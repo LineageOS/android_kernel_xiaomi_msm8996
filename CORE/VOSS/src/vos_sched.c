@@ -151,11 +151,11 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 	unsigned char perf_core_count = 0;
 	unsigned char litl_core_count = 0;
 	int vosMaxClusterId = 0;
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
 	struct cpumask litl_mask;
 	unsigned long cpus;
 	int i;
-#endif /* WLAN_OPEN_SOURCE */
+#endif
 
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_LOW,
 		"%s: num possible cpu %d",
@@ -184,7 +184,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 		num_possible_cpus() * sizeof(unsigned long));
 
 	/* Get Online perf CPU count */
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
 	for_each_online_cpu(cpus) {
 		if ( topology_physical_package_id(cpus) > VOS_MAX_CPU_CLUSTERS) {
 			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -204,7 +204,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 	}
 #else
 	vosMaxClusterId = 0;
-#endif /* WLAN_OPEN_SOURCE */
+#endif
 
 	/* Single cluster system, not need to handle this */
 	if (0 == vosMaxClusterId) {
@@ -236,7 +236,8 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 				online_perf_cpu[perf_core_count - 1];
 		}
 	} else {
-#ifdef WLAN_OPEN_SOURCE
+
+#if defined(WLAN_OPEN_SOURCE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
 		/* Attach to any little core
 		 * Final decision should made by scheduler */
 
@@ -265,7 +266,7 @@ static int vos_sched_find_attach_cpu(pVosSchedContext pSchedContext,
 			pSchedContext->rx_thread_cpu =
 				online_litl_cpu[litl_core_count - 1];
 		}
-#endif /* WLAN_OPEN_SOURCE */
+#endif
 	}
 
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -378,9 +379,9 @@ static int __vos_cpu_hotplug_notify(struct notifier_block *block,
    int i;
    unsigned int multi_cluster;
    unsigned int num_cpus;
-#ifdef WLAN_OPEN_SOURCE
+#if defined(WLAN_OPEN_SOURCE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
    int cpus;
-#endif /* WLAN_OPEN_SOURCE */
+#endif
 
    if ((NULL == pSchedContext) || (NULL == pSchedContext->TlshimRxThread))
        return NOTIFY_OK;
@@ -394,11 +395,13 @@ static int __vos_cpu_hotplug_notify(struct notifier_block *block,
              "%s: RX CORE %d, STATE %d, NUM CPUS %d",
               __func__, (int)affine_cpu, (int)state, num_cpus);
    multi_cluster = 0;
-#ifdef WLAN_OPEN_SOURCE
+
+#if defined(WLAN_OPEN_SOURCE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+
    for_each_online_cpu(cpus) {
         multi_cluster =  topology_physical_package_id(cpus);
     }
-#endif /* WLAN_OPEN_SOURCE */
+#endif
 
    if ((multi_cluster) &&
        ((CPU_ONLINE == state) || (CPU_DEAD == state))) {
