@@ -296,6 +296,12 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
                 adf_nbuf_free(rx_netbuf);
                 goto fail;
             }
+            pdev->debug_Rx_buff_list[pdev->debug_rx_buff_index].paddr = paddr;
+            pdev->debug_Rx_buff_list[pdev->debug_rx_buff_index].in_use = true;
+            pdev->debug_Rx_buff_list[pdev->debug_rx_buff_index].vaddr = rx_netbuf;
+            NBUF_MAP_ID(rx_netbuf) = pdev->debug_rx_buff_index;
+            if(++pdev->debug_rx_buff_index == HTT_RX_RING_BUFF_DBG_LIST)
+                pdev->debug_rx_buff_index = 0;
         } else {
             pdev->rx_ring.buf.netbufs_ring[idx] = rx_netbuf;
         }
@@ -2476,6 +2482,7 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
         HTT_RX_HASH_COOKIE_CHECK(hash_entry);
 
         if (hash_entry->paddr == paddr) {
+            uint32_t index;
             /* Found the entry corresponding to paddr */
             netbuf = hash_entry->netbuf;
             htt_list_remove(&hash_entry->listnode);
@@ -2487,6 +2494,12 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
             }
             else {
                 adf_os_mem_free(hash_entry);
+            }
+            index = NBUF_MAP_ID(netbuf);
+            if (index < HTT_RX_RING_BUFF_DBG_LIST) {
+                pdev->debug_Rx_buff_list[index].in_use = false;
+                pdev->debug_Rx_buff_list[index].paddr = 0;
+                pdev->debug_Rx_buff_list[index].vaddr = NULL;
             }
             break;
         }

@@ -78,6 +78,7 @@ struct cvg_nbuf_cb {
     union {
         struct sk_buff *parent;
         void *ptr;
+        uint32_t map_index;
     } txrx_field;
 
     /*
@@ -127,6 +128,9 @@ struct cvg_nbuf_cb {
 #define NBUF_CB_PTR(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.ptr)
 #endif
+
+#define NBUF_MAP_ID(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.map_index)
 
 #ifdef QCA_MDM_DEVICE
 #define NBUF_OWNER_ID(skb) \
