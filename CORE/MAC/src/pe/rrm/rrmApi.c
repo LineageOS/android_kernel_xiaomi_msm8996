@@ -1080,6 +1080,12 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                }
             }
             break;
+         case SIR_MAC_RRM_LCI_TYPE:
+         case SIR_MAC_RRM_LOCATION_CIVIC_TYPE:
+         case SIR_MAC_RRM_FINE_TIME_MEAS_TYPE:
+             limLog(pMac, LOG1, FL("RRM with type: %d sent to userspace"),
+		    pRRMReq->MeasurementRequest[i].measurement_type);
+             break;
          default:
             /* Send a report with incapable bit set. */
             if ( pReport == NULL ) //Allocate memory to send reports for any subsequent requests.

@@ -176,6 +176,8 @@
 #define SIR_MAC_RRM_STA_STATISTICS_TYPE        7
 #define SIR_MAC_RRM_LCI_TYPE                   8
 #define SIR_MAC_RRM_TSM_TYPE                   9
+#define SIR_MAC_RRM_LOCATION_CIVIC_TYPE        11
+#define SIR_MAC_RRM_FINE_TIME_MEAS_TYPE        16
 
 //RRM action codes
 #define SIR_MAC_RRM_RADIO_MEASURE_REQ          0
