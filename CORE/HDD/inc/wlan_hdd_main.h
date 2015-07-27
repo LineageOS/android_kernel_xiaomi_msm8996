@@ -1787,6 +1787,20 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 
 bool hdd_is_memdump_supported(void);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,28))
+static inline void
+hdd_set_needed_headroom(struct net_device *wlan_dev, uint16_t len)
+{
+	wlan_dev->needed_headroom = len;
+}
+#else
+static inline void
+hdd_set_needed_headroom(struct net_device *wlan_dev, uint16_t len)
+{
+	/* no-op */
+}
+#endif /* LINUX_VERSION_CODE */
+
 #ifdef QCA_CONFIG_SMP
 int wlan_hdd_get_cpu(void);
 #else
