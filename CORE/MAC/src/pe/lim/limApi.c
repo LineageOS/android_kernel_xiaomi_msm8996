@@ -806,6 +806,58 @@ limCleanup(tpAniSirGlobal pMac)
 } /*** end limCleanup() ***/
 
 
+#ifdef WLAN_FEATURE_11W
+/**
+ * lim_is_assoc_req_for_drop()- function to decides to drop assoc\reassoc
+ *  frames.
+ * @mac: pointer to global mac structure
+ * @rx_pkt_info: rx packet meta information
+ *
+ * This function is called before enqueuing the frame to PE queue to
+ * drop flooded assoc/reassoc frames getting into PE Queue.
+ *
+ * Return: true for dropping the frame otherwise false
+ */
+
+bool lim_is_assoc_req_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
+{
+	uint8_t session_id;
+	uint16_t aid;
+	tpPESession session_entry;
+	tpSirMacMgmtHdr mac_hdr;
+	tpDphHashNode sta_ds;
+
+	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
+	session_entry = peFindSessionByBssid(mac, mac_hdr->bssId, &session_id);
+	if (!session_entry) {
+		PELOG1(limLog(pMac, LOG1,
+			FL("session does not exist for given STA [%pM]"),
+			mac_hdr->sa););
+		return false;
+	}
+
+	sta_ds = dphLookupHashEntry(mac, mac_hdr->sa, &aid,
+				&session_entry->dph.dphHashTable);
+	if (!sta_ds) {
+		PELOG1(limLog(pMac, LOG1, FL("pStaDs is NULL")););
+		return false;
+	}
+
+	if (!sta_ds->rmfEnabled)
+		return false;
+
+	if (sta_ds->pmfSaQueryState == DPH_SA_QUERY_IN_PROGRESS)
+		return true;
+
+	if (sta_ds->last_assoc_received_time &&
+		((vos_timer_get_system_time() -
+			 sta_ds->last_assoc_received_time) < 1000))
+		return true;
+
+	sta_ds->last_assoc_received_time = vos_timer_get_system_time();
+	return false;
+}
+#endif
 /**
  * lim_is_deauth_diassoc_for_drop()- function to decides to drop deauth\diassoc
  *  frames.
@@ -2412,6 +2464,17 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     pBody    = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
+    if ((subType == SIR_MAC_MGMT_DEAUTH ||
+         subType == SIR_MAC_MGMT_DISASSOC) &&
+        lim_is_deauth_diassoc_for_drop(pMac, pRxPacketInfo))
+        return eMGMT_DROP_SPURIOUS_FRAME;
+
+#ifdef WLAN_FEATURE_11W
+    if ((subType == SIR_MAC_MGMT_ASSOC_REQ ||
+         subType == SIR_MAC_MGMT_REASSOC_REQ) &&
+        lim_is_assoc_req_for_drop(pMac, pRxPacketInfo))
+        return eMGMT_DROP_SPURIOUS_FRAME;
+#endif
     //Drop INFRA Beacons and Probe Responses in IBSS Mode
     if( (subType == SIR_MAC_MGMT_BEACON) ||
         (subType == SIR_MAC_MGMT_PROBE_RSP))

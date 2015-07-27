@@ -168,10 +168,14 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                 goto fail;
             }
 
-            if ((subType == SIR_MAC_MGMT_DEAUTH ||
-                 subType == SIR_MAC_MGMT_DISASSOC)&&
-                lim_is_deauth_diassoc_for_drop(pMac, pBd))
+            dropReason = limIsPktCandidateForDrop(pMac, pBd, subType);
+            if (dropReason != eMGMT_DROP_NO_DROP) {
+                PELOG1(limLog(pMac, LOG1,
+                            FL("Mgmt Frame %d being dropped, reason: %d\n"),
+                            subType, dropReason);)
+                MTRACE(macTrace(pMac,   TRACE_CODE_RX_MGMT_DROP, NO_SESSION, dropReason);)
                 goto fail;
+            }
 
             if (subType == SIR_MAC_MGMT_DEAUTH)
             {
@@ -202,12 +206,6 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                        pMac->sys.gSysFrameCount[type][subType] ););
             }
 
-            if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
-            {
-                PELOG1(sysLog(pMac, LOG1, FL("Mgmt Frame %d being dropped, reason: %d\n"), subType, dropReason);)
-                MTRACE(macTrace(pMac,   TRACE_CODE_RX_MGMT_DROP, NO_SESSION, dropReason);)
-                goto fail;
-            }
             //Post the message to PE Queue
             ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
             if (ret != eSIR_SUCCESS)
