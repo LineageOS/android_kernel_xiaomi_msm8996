@@ -8114,6 +8114,9 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s HDD Wait for Action Confirmation Failed!!",
                    __func__);
+         /* Inform tx status as FAILURE to upper layer and free
+          * cfgState->buf */
+         hdd_sendActionCnf( pAdapter, FALSE );
       }
    }
    return;
