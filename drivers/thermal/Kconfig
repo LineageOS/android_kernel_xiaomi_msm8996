@@ -368,6 +368,18 @@ config THERMAL_QPNP_ADC_TM
 	  the sensor. Also able to set threshold temperature for both hot and cold
 	  and update when a threshold is reached.
 
+config THERMAL_MONITOR_SIMPLE
+	bool "Simple solution to monitor CPU temp and limit CPU Frequency"
+	depends on THERMAL_TSENS8960 || THERMAL_TSENS8974
+	depends on CPU_FREQ_MSM
+	depends on !THERMAL_MONITOR
+	default n
+	help
+	  This enables thermal monitoring capability in the kernel in the
+	  absence of a system wide thermal monitoring entity. Monitors TSENS
+	  temperature and limits the max frequency of the cores. The code is
+	  simple, uses 3 throttling steps, and is completely configurable via sysfs.
+
 menu "Texas Instruments thermal drivers"
 source "drivers/thermal/ti-soc-thermal/Kconfig"
 endmenu
