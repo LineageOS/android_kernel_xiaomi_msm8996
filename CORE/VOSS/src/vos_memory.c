@@ -361,8 +361,10 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
    {
       v_VOID_t *pmem;
       pmem = wcnss_prealloc_get(size);
-      if (NULL != pmem)
+      if (NULL != pmem) {
+         memset(pmem, 0, size);
          return pmem;
+      }
    }
 #endif
 
@@ -463,8 +465,10 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
    if(size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
    {
        pmem = wcnss_prealloc_get(size);
-       if(NULL != pmem)
+       if(NULL != pmem) {
+           memset(pmem, 0, size);
            return pmem;
+       }
    }
 #endif
    return kmalloc(size, flags);
