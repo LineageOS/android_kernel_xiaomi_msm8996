@@ -7418,9 +7418,28 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 					"ERROR: Primary AP channel info wrong"));
 				return -EINVAL;
 			}
+			/* Sec AP ACS info is overwritten with Pri AP due to DFS
+			 * MCC restriction. So free ch list allocated in do_acs
+			 * func for Sec AP and realloc for Pri AP ch list size
+			 */
+			if (sap_config->acs_cfg.ch_list)
+			        vos_mem_free(sap_config->acs_cfg.ch_list);
+
 			vos_mem_copy(&sap_config->acs_cfg,
 						&con_sap_config->acs_cfg,
 						sizeof(struct sap_acs_cfg));
+			sap_config->acs_cfg.ch_list = vos_mem_malloc(
+							sizeof(uint8_t) *
+					con_sap_config->acs_cfg.ch_list_count);
+			if (!sap_config->acs_cfg.ch_list) {
+				hddLog(LOGE, FL("ACS config alloc fail"));
+				return -ENOMEM;
+			}
+
+			vos_mem_copy(sap_config->acs_cfg.ch_list,
+					con_sap_config->acs_cfg.ch_list,
+					con_sap_config->acs_cfg.ch_list_count);
+
 		} else {
 			sap_config->acs_cfg.pri_ch = con_ch;
 			if (sap_config->acs_cfg.ch_width >
@@ -7581,9 +7600,11 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 			sap_config->acs_cfg.ch_list = vos_mem_malloc(
 					sizeof(uint8_t) *
 					sap_config->acs_cfg.ch_list_count);
-			if (sap_config->acs_cfg.ch_list == NULL)
+			if (sap_config->acs_cfg.ch_list == NULL) {
+				hddLog(LOGE, FL("ACS config alloc fail"));
+				status = -ENOMEM;
 				goto out;
-
+			}
 			vos_mem_copy(sap_config->acs_cfg.ch_list, tmp,
 					sap_config->acs_cfg.ch_list_count);
 		}
