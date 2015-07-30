@@ -28,7 +28,7 @@
 #define TSENS_SENSOR 0
 #define DEFAULT_SAMPLING_MS 3000
 
-enum {
+enum thermal_state {
 	UNTHROTTLE,
 	LOW_THROTTLE,
 	MID_THROTTLE,
@@ -36,8 +36,8 @@ enum {
 };
 
 struct throttle_policy {
+	enum thermal_state cpu_throttle;
 	unsigned int throttle_freq;
-	unsigned int cpu_throttle;
 };
 
 static DEFINE_PER_CPU(struct throttle_policy, throttle_info);
@@ -68,9 +68,6 @@ static void msm_thermal_main(struct work_struct *work)
 	unsigned int cpu, old_throttle;
 	bool throttle_logged = false;
 	int ret;
-
-	if (!thermal_conf->enabled)
-		goto reschedule;
 
 	tsens_dev.sensor_num = TSENS_SENSOR;
 	ret = tsens_get_temp(&tsens_dev, &temp);
@@ -244,40 +241,60 @@ static ssize_t enabled_write(struct device *dev,
 
 	thermal_conf->enabled = data;
 
+	if (data) {
+		cancel_delayed_work_sync(&thermal_work);
+		queue_delayed_work_on(0, thermal_wq, &thermal_work, 0);
+	} else {
+		struct throttle_policy *t;
+		unsigned int cpu;
+
+		cancel_delayed_work_sync(&thermal_work);
+
+		/* unthrottle all CPUs */
+		get_online_cpus();
+		for_each_possible_cpu(cpu) {
+			t = &per_cpu(throttle_info, cpu);
+			t->cpu_throttle = UNTHROTTLE;
+			if (cpu_online(cpu))
+				cpufreq_update_policy(cpu);
+		}
+		put_online_cpus();
+	}
+
 	return size;
 }
 
 static ssize_t high_thresh_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u %u %u\n", thermal_conf->freq_high_KHz,
+	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", thermal_conf->freq_high_KHz,
 			thermal_conf->trip_high_degC, thermal_conf->reset_high_degC);
 }
 
 static ssize_t mid_thresh_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u %u %u\n", thermal_conf->freq_mid_KHz,
+	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", thermal_conf->freq_mid_KHz,
 			thermal_conf->trip_mid_degC, thermal_conf->reset_mid_degC);
 }
 
 static ssize_t low_thresh_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u %u %u\n", thermal_conf->freq_low_KHz,
+	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", thermal_conf->freq_low_KHz,
 			thermal_conf->trip_low_degC, thermal_conf->reset_low_degC);
 }
 
 static ssize_t sampling_ms_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", thermal_conf->sampling_ms);
+	return snprintf(buf, PAGE_SIZE, "%u\n", thermal_conf->sampling_ms);
 }
 
 static ssize_t enabled_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", thermal_conf->enabled);
+	return snprintf(buf, PAGE_SIZE, "%u\n", thermal_conf->enabled);
 }
 
 static DEVICE_ATTR(high_thresh, 0644, high_thresh_read, high_thresh_write);
@@ -313,6 +330,15 @@ static int __init msm_thermal_init(void)
 
 	cpufreq_register_notifier(&cpu_throttle_nb, CPUFREQ_POLICY_NOTIFIER);
 
+	thermal_conf = kzalloc(sizeof(struct thermal_config), GFP_KERNEL);
+	if (!thermal_conf) {
+		pr_err("Failed to allocate thermal_conf struct\n");
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	thermal_conf->sampling_ms = DEFAULT_SAMPLING_MS;
+
 	INIT_DELAYED_WORK(&thermal_work, msm_thermal_main);
 
 	msm_thermal_kobject = kobject_create_and_add("msm_thermal", kernel_kobj);
@@ -326,14 +352,7 @@ static int __init msm_thermal_init(void)
 	if (ret) {
 		pr_err("Failed to create sysfs interface\n");
 		kobject_put(msm_thermal_kobject);
-		goto err;
 	}
-
-	thermal_conf = kzalloc(sizeof(struct thermal_config), GFP_KERNEL);
-
-	/* kickoff */
-	thermal_conf->sampling_ms = DEFAULT_SAMPLING_MS;
-	queue_delayed_work_on(0, thermal_wq, &thermal_work, 0);
 err:
 	return ret;
 }
