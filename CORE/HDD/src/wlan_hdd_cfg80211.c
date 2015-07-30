@@ -10345,14 +10345,6 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     }
 #endif
 
-    if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
-                              &total_ielen, P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE))
-    {
-       hddLog(LOGE, FL("Adding P2P IE failed"));
-         ret = -EINVAL;
-         goto done;
-    }
-
 #ifdef FEATURE_WLAN_WAPI
     if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
     {
@@ -10361,7 +10353,8 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     }
 #endif
 
-    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)
+    if ((WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) ||
+        (WLAN_HDD_P2P_GO == pHostapdAdapter->device_mode))
     {
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
     }
@@ -10381,6 +10374,14 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     vos_mem_copy(updateIE.bssid, pHostapdAdapter->macAddressCurrent.bytes,
                    sizeof(tSirMacAddr));
     updateIE.smeSessionId =  pHostapdAdapter->sessionId;
+
+    if (wlan_hdd_add_ie(pHostapdAdapter, genie,
+                       &total_ielen, P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE) != 0) {
+         hddLog(LOGE, FL("Adding P2P IE failed"));
+         ret = -EINVAL;
+         goto done;
+    }
+
 
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
         updateIE.ieBufferlength = total_ielen;
@@ -15820,6 +15821,26 @@ int wlan_hdd_cfg80211_set_ie(hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.bOSENAssociation = VOS_TRUE;
                     pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
+                }
+                else
+                {
+                    uint16_t curAddIELen = pWextState->assocAddIE.length;
+                    if ((pWextState->assocAddIE.length + eLen) >
+                                SIR_MAC_MAX_IE_LENGTH) {
+                           hddLog(VOS_TRACE_LEVEL_FATAL,
+                                   "Cannot accommodate assocAddIE Need bigger buffer space");
+                           VOS_ASSERT(0);
+                           return -ENOMEM;
+                    }
+
+                    memcpy(pWextState->assocAddIE.addIEdata + curAddIELen,
+                                genie - 2, eLen + 2);
+                    pWextState->assocAddIE.length += eLen + 2;
+
+                    pWextState->roamProfile.pAddIEAssoc =
+                                               pWextState->assocAddIE.addIEdata;
+                    pWextState->roamProfile.nAddIEAssocLength =
+                                                  pWextState->assocAddIE.length;
                 }
                 break;
             case DOT11F_EID_RSN:
