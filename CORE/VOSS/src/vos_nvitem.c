@@ -1653,7 +1653,8 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         }
 
         /* send CTL info to firmware */
-        regdmn_set_regval(&pHddCtx->reg);
+        regdmn_set_regval(&pHddCtx->reg,
+			  pHddCtx->cfg_ini->tx_chain_mask_cck);
 
         /* set dfs_region info */
         vos_nv_set_dfs_region(request->dfs_region);
@@ -1735,7 +1736,8 @@ VOS_STATUS vos_init_wiphy_from_eeprom(void)
    init_completion(&pHddCtx->reg_init);
 
    /* send CTL info to firmware */
-   regdmn_set_regval(&pHddCtx->reg);
+   regdmn_set_regval(&pHddCtx->reg,
+		     pHddCtx->cfg_ini->tx_chain_mask_cck);
 
    return VOS_STATUS_SUCCESS;
 }

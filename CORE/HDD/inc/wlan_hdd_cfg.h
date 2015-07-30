@@ -3002,7 +3002,7 @@ enum dot11p_mode {
 #define CFG_TX_CHAIN_MASK_1SS       "gTxChainMask1ss"
 #define CFG_TX_CHAIN_MASK_1SS_MIN      (0)
 #define CFG_TX_CHAIN_MASK_1SS_MAX      (3)
-#define CFG_TX_CHAIN_MASK_1SS_DEFAULT  (0)
+#define CFG_TX_CHAIN_MASK_1SS_DEFAULT  (1)
 
 /*
  * fine timing measurement capability information
