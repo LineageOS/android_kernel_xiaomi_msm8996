@@ -1292,6 +1292,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         if ( pSta->mlmStaContext.htCapability  &&
              psessionEntry->htCapability )
         {
+            limLog(pMac, LOG1, FL("Populate HT IEs in Assoc Response"));
             PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
             PopulateDot11fHTInfo( pMac, &frm.HTInfo, psessionEntry );
         }
@@ -2176,6 +2177,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
      * when AP is also operating in 11n mode */
     if (psessionEntry->htCapability &&
             pMac->lim.htCapabilityPresentInBeacon) {
+        limLog(pMac, LOG1, FL("Populate HT IEs in Assoc Request"));
         PopulateDot11fHTCaps(pMac, psessionEntry, &pFrm->HTCaps);
     }
 #ifdef WLAN_FEATURE_11AC
