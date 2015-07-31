@@ -174,6 +174,8 @@ static bool is_data_path_module(VOS_MODULE_ID mod_id)
 	case VOS_MODULE_ID_HTC:
 	case VOS_MODULE_ID_TXRX:
 	case VOS_MODULE_ID_HIF:
+	case VOS_MODULE_ID_VOSS:
+	case VOS_MODULE_ID_TL:
 		return true;
 	default:
 		return false;
