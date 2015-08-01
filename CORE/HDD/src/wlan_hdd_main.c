@@ -6058,7 +6058,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
 
            len = scnprintf(extra, sizeof(extra), "%s %d", command, link_speed);
-           if (copy_to_user(priv_data.buf, &extra, len + 1)) {
+           len = VOS_MIN(priv_data.total_len, len + 1);
+           if (copy_to_user(priv_data.buf, &extra, len)) {
                hddLog(LOGE, FL("Failed to copy data to user buffer"));
                ret = -EFAULT;
                goto exit;
