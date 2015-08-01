@@ -2033,7 +2033,7 @@ static int hdd_ipa_rm_cons_request(void)
 			"%s: ipa resource loading/unloading in progress",
 			__func__);
 		ghdd_ipa->pending_cons_req = VOS_TRUE;
-		return -EINPROGRESS;
+		return -EPERM;
 	}
 #endif /* IPA_UC_OFFLOAD */
 	return 0;
