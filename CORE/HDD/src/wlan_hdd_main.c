@@ -6043,7 +6043,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            wlan_hdd_get_rssi(pAdapter, &s7Rssi);
 
            len = scnprintf(extra, sizeof(extra), "%s %d", command, s7Rssi);
-           if (copy_to_user(priv_data.buf, &extra, len + 1)) {
+           len = VOS_MIN(priv_data.total_len, len + 1);
+           if (copy_to_user(priv_data.buf, &extra, len)) {
                hddLog(LOGE, FL("Failed to copy data to user buffer"));
                ret = -EFAULT;
                goto exit;
