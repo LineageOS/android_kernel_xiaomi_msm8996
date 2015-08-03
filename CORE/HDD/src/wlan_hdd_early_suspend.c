@@ -1252,6 +1252,7 @@ void hdd_mcbc_filter_modification(hdd_context_t* pHddCtx,
          * disable Broadcast filtering, Anding with the negation
          * of Broadcast BIT
          */
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("ARP offload is enabled"));
         *pMcBcFilter &= ~(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST);
     }
 
@@ -1263,6 +1264,7 @@ void hdd_mcbc_filter_modification(hdd_context_t* pHddCtx,
          * disable Multicast filtering, Anding with the negation
          * of Multicast BIT
          */
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("NS offload is enabled"));
         *pMcBcFilter &= ~(HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST);
     }
 #endif
@@ -1275,7 +1277,7 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpSirWlanSetRxpFilters wlanRxpFilterParam =
                      vos_mem_malloc(sizeof(tSirWlanSetRxpFilters));
-    if(NULL == wlanRxpFilterParam)
+    if (NULL == wlanRxpFilterParam)
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,
            "%s: vos_mem_alloc failed ", __func__);

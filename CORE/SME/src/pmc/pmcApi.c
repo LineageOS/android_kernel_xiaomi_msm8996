@@ -1966,7 +1966,7 @@ eHalStatus pmcDeregisterDeviceStateUpdateInd (tHalHandle hHal,
     tListElem *pEntry;
     tpDeviceStateUpdateIndEntry pDeviceStateUpdateIndEntry;
 
-    pmcLog(pMac, LOG2, FL("Entering pmcDeregisterDeviceStateUpdateInd"));
+    pmcLog(pMac, LOG2, FL("Enter"));
 
     /* Find entry in the power save update routine list that matches
        the specified routine and remove it. */
