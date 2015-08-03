@@ -2180,6 +2180,16 @@ static int hifDeviceResume(struct device *dev)
 //        hifRestartAllVap((struct ol_ath_softc_net80211 *)device->claimedContext);
     }
     else if(device->DeviceState == HIF_DEVICE_STATE_WOW){
+        config = HIF_DEVICE_POWER_UP;
+        status = HIFConfigureDevice(device,
+                          HIF_DEVICE_POWER_STATE_CHANGE,
+                          &config,
+                          sizeof(HIF_DEVICE_POWER_CHANGE_TYPE));
+        if(status){
+          AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+              ("AR6000: HIFConfigureDevice failed status:%d\n", status));
+          return status;
+        }
         /*TODO:WOW support*/
         HIFUnMaskInterrupt(device);
     }
