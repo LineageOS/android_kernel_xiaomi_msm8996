@@ -1569,7 +1569,8 @@ extern "C" {
 #define RSSI_MONITOR_ARBITER_CONFIG_HW                   10
 #define RSSI_MONITOR_CHECK_AND_DELIVER_EVENT             11
 #define RSSI_MONITOR_DELIVER_EVENT                       12
-#define RSSI_MONITOR_DBGID_DEFINITION_END                13
+#define RSSI_MONITOR_UPDATE_BEACON_RSSI                  13
+#define RSSI_MONITOR_DBGID_DEFINITION_END                14
 
 #ifdef __cplusplus
 }
