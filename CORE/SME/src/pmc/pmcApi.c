@@ -1476,7 +1476,7 @@ void pmcMessageProcessor (tHalHandle hHal, tSirSmeRsp *pMsg)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    pmcLog(pMac, LOG2, FL("Entering pmcMessageProcessor, message type %d"), pMsg->messageType);
+    pmcLog(pMac, LOG2, FL("Message type %d"), pMsg->messageType);
 
     switch( pMsg->messageType )
     {

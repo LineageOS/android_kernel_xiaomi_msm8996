@@ -2704,6 +2704,9 @@ void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
     wlan_hdd_tdls_set_peer_link_status(curr_peer,
                                        eTDLS_LINK_TEARING,
                                        eTDLS_LINK_UNSPECIFIED);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              FL("Indicating NL80211_TDLS_TEARDOWN to supplicant, reason %d"),
+                    reason);
     cfg80211_tdls_oper_request(pAdapter->dev,
                                curr_peer->peerMac,
                                NL80211_TDLS_TEARDOWN,

@@ -140,6 +140,8 @@ eHalStatus csrTdlsSendMgmtReq(tHalHandle hHal, tANI_U8 sessionId, tCsrTdlsSendMg
             tdlsSendMgmtCmd->u.tdlsCmd.size = sizeof(tTdlsSendMgmtCmdInfo) ;
             smePushCommand(pMac, tdlsSendMgmtCmd, FALSE) ;
             status = eHAL_STATUS_SUCCESS ;
+            smsLog( pMac, LOG1,
+                        FL("Successfully posted tdlsSendMgmtCmd to SME"));
         }
     }
 
@@ -207,6 +209,8 @@ eHalStatus csrTdlsChangePeerSta(tHalHandle hHal,
             tdlsAddStaCmd->command = eSmeCommandTdlsAddPeer;
             tdlsAddStaCmd->u.tdlsCmd.size = sizeof(tTdlsAddStaCmdInfo) ;
             smePushCommand(pMac, tdlsAddStaCmd, FALSE) ;
+            smsLog( pMac, LOG1,
+                   FL("Successfully posted tdlsAddStaCmd to SME to modify peer "));
             status = eHAL_STATUS_SUCCESS ;
         }
     }
@@ -263,6 +267,8 @@ VOS_STATUS csrTdlsSendLinkEstablishParams(tHalHandle hHal,
             tdlsLinkEstablishCmd->u.tdlsCmd.size = sizeof(tTdlsLinkEstablishCmdInfo) ;
             smePushCommand(pMac, tdlsLinkEstablishCmd, FALSE) ;
             status = eHAL_STATUS_SUCCESS ;
+            smsLog( pMac, LOG1,
+                        FL("Successfully posted tdlsLinkEstablishCmd to SME"));
         }
     }
 
@@ -302,6 +308,8 @@ eHalStatus csrTdlsAddPeerSta(tHalHandle hHal,
             tdlsAddStaCmd->u.tdlsCmd.size = sizeof(tTdlsAddStaCmdInfo) ;
             smePushCommand(pMac, tdlsAddStaCmd, FALSE) ;
             status = eHAL_STATUS_SUCCESS ;
+            smsLog( pMac, LOG1,
+                        FL("Successfully posted tdlsAddStaCmd to SME"));
         }
     }
 
@@ -339,6 +347,8 @@ eHalStatus csrTdlsDelPeerSta(tHalHandle hHal, tANI_U8 sessionId,
             tdlsDelStaCmd->u.tdlsCmd.size = sizeof(tTdlsDelStaCmdInfo) ;
             smePushCommand(pMac, tdlsDelStaCmd, FALSE) ;
             status = eHAL_STATUS_SUCCESS ;
+            smsLog( pMac, LOG1,
+                        FL("Successfully posted tdlsDelStaCmd to SME"));
         }
     }
 
@@ -357,7 +367,7 @@ eHalStatus tdlsSendMessage(tpAniSirGlobal pMac, tANI_U16 msg_type,
     pMsg->msgLen = (tANI_U16) (msg_size) ;
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                              ("sending msg = %d"), pMsg->type) ;
+                              FL("sending msg = %d"), pMsg->type) ;
       /* Send message. */
     if (palSendMBMessage(pMac->hHdd, pMsg) != eHAL_STATUS_SUCCESS)
     {
@@ -421,7 +431,7 @@ eHalStatus csrTdlsProcessSendMgmt( tpAniSirGlobal pMac, tSmeCmd *cmd )
 
     }
     // Send the request to PE.
-    smsLog( pMac, LOG1, "sending TDLS Mgmt Frame req to PE " );
+    smsLog( pMac, LOG1, FL( "sending TDLS Mgmt Frame req to PE "));
     status = tdlsSendMessage(pMac, eWNI_SME_TDLS_SEND_MGMT_REQ,
             (void *)tdlsSendMgmtReq , sizeof(tSirTdlsSendMgmtReq)+tdlsSendMgmtCmdInfo->len) ;
     if(!HAL_STATUS_SUCCESS( status ) )

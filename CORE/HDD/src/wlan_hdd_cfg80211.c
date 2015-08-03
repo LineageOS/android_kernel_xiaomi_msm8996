@@ -20042,7 +20042,6 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                 VOS_STATUS status;
                 unsigned long rc;
                 tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams;
-
                 pTdlsPeer = wlan_hdd_tdls_find_peer(pAdapter, peer, TRUE);
 
                 if (NULL == pTdlsPeer)
@@ -20260,7 +20259,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                 if (0 != status)
                 {
                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                               "%s: Error in TDLS Teardown", __func__);
+                               FL("Error in TDLS Teardown"));
                     return status;
                  }
             }
@@ -20273,7 +20272,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                 if (0 != status)
                 {
                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                               "%s: Error in TDLS Setup", __func__);
+                               FL("Error in TDLS Setup"));
                     return status;
                 }
             }
@@ -20281,7 +20280,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
         case NL80211_TDLS_DISCOVERY_REQ:
             /* We don't support in-driver setup/teardown/discovery */
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                      "%s: We don't support in-driver setup/teardown/discovery",
+                      "%s: Driver doesn't support in-driver setup/teardown/discovery",
                       __func__);
             return -ENOTSUPP;
         default:
