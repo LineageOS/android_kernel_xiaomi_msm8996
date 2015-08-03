@@ -3546,14 +3546,8 @@ sapFsm
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                          "%s: notify hostapd about channel selection: %d",
                          __func__, sapContext->channel);
-                 if (sapContext->acs_cfg->acs_mode &&
-                     (sapContext->csrRoamProfile.phyMode ==
-                                                   eCSR_DOT11_MODE_11n ||
-                      sapContext->csrRoamProfile.phyMode ==
-                                                   eCSR_DOT11_MODE_11n_ONLY)) {
-                     sapSignalHDDevent(sapContext, NULL, eSAP_CHANNEL_CHANGE_EVENT,
+                 sapSignalHDDevent(sapContext, NULL, eSAP_CHANNEL_CHANGE_EVENT,
                                         (v_PVOID_t) eSAP_STATUS_SUCCESS);
-                 }
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
             }
             else if (msg == eSAP_CHANNEL_SELECTION_FAILED) {
