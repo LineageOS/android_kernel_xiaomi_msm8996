@@ -5981,6 +5981,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	olCfg.uc_rx_indication_ring_count = mac_params->ucRxIndRingCount;
 	olCfg.uc_tx_partition_base = mac_params->ucTxPartitionBase;
 #endif /* IPA_UC_OFFLOAD*/
+
+	wma_handle->tx_chain_mask_cck = mac_params->tx_chain_mask_cck;
+	wma_handle->self_gen_frm_pwr = mac_params->self_gen_frm_pwr;
+
 	/* Allocate cfg handle */
 
 	/* RX Full reorder should enable for PCIe, ROME3.X project only now
@@ -29760,15 +29764,14 @@ tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
 }
 
 void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
-			     u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G,
-			     bool cck_chain_mask)
+			     u_int16_t regdmn5G, int8_t ctl2G, int8_t ctl5G)
 {
 	wmi_buf_t buf;
 	wmi_pdev_set_regdomain_cmd_fixed_param *cmd;
 	int32_t len = sizeof(*cmd);
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
-	bool cck_mask_val = false;
+	int32_t cck_mask_val = 0;
 	int ret = 0;
 
 	if (NULL == wma) {
@@ -29802,9 +29805,10 @@ void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 
 	if ((((reg_dmn & ~COUNTRY_ERD_FLAG) == CTRY_JAPAN) ||
 	     ((reg_dmn & ~COUNTRY_ERD_FLAG) == CTRY_KOREA_ROC)) &&
-	    (true == cck_chain_mask))
-		cck_mask_val = true;
+	    (true == wma->tx_chain_mask_cck))
+		cck_mask_val = 1;
 
+	cck_mask_val |= (wma->self_gen_frm_pwr << 16);
 	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 					 WMI_PDEV_PARAM_TX_CHAIN_MASK_CCK,
 					 cck_mask_val);
