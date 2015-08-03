@@ -603,7 +603,7 @@ limIndicateProbeReqToHDD(tpAniSirGlobal pMac, tANI_U8 *pBd,
     tpSirMacMgmtHdr     pHdr;
     tANI_U32            frameLen;
 
-    limLog( pMac, LOG1, "Received a probe request frame");
+    limLog( pMac, LOG1, FL("Received a probe request frame"));
 
     pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
