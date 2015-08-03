@@ -6183,6 +6183,10 @@ when comparing wifi header.*/
 #define WOW_DEFAULT_IOAC_RANDOM_SIZE_DWORD 2
 #define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_SIZE   120
 #define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_SIZE_DWORD 30
+#define WOW_DEFAULT_IOAC_SOCKET_PATTERN_SIZE  32
+#define WOW_DEFAULT_IOAC_SOCKET_PATTERN_SIZE_DWORD 8
+#define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE       32
+#define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE_DWORD 8
 
 typedef enum pattern_type_e {
     WOW_PATTERN_MIN = 0,
@@ -6195,6 +6199,7 @@ typedef enum pattern_type_e {
     WOW_IPV6_RA_PATTERN,
     WOW_IOAC_PKT_PATTERN,
     WOW_IOAC_TMR_PATTERN,
+    WOW_IOAC_SOCK_PATTERN,
     WOW_PATTERN_MAX
 }WOW_PATTERN_TYPE;
 
@@ -6225,6 +6230,8 @@ typedef enum event_type_e {
     WOW_CLIENT_KICKOUT_EVENT,
     WOW_NAN_EVENT,
     WOW_EXTSCAN_EVENT,
+    WOW_IOAC_REV_KA_FAIL_EVENT,
+    WOW_IOAC_SOCK_EVENT,
 } WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -6260,6 +6267,8 @@ typedef enum wake_reason_e {
     WOW_REASON_NAN_EVENT,
     WOW_REASON_EXTSCAN,
     WOW_REASON_RSSI_BREACH_EVENT,
+    WOW_REASON_IOAC_REV_KA_FAIL_EVENT,
+    WOW_REASON_IOAC_SOCK_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -6318,6 +6327,17 @@ typedef enum wow_ioac_pattern_type {
     WOW_IOAC_EXTEND_PATTERN,
 } WOW_IOAC_PATTERN_TYPE;
 
+typedef struct ioac_sock_pattern_s {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_IOAC_SOCK_PATTERN_T */
+    A_UINT32 id;
+    A_UINT32 local_ipv4;
+    A_UINT32 remote_ipv4;
+    A_UINT32 local_port;
+    A_UINT32 remote_port;
+    A_UINT32 pattern_len; /* units = bytes */
+    A_UINT32 pattern[WOW_DEFAULT_IOAC_SOCKET_PATTERN_SIZE_DWORD];
+} WOW_IOAC_SOCK_PATTERN_T;
+
 typedef struct ioac_pkt_pattern_s {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_IOAC_PKT_PATTERN_T */
     A_UINT32 pattern_type;
@@ -6349,6 +6369,14 @@ typedef struct ioac_keepalive_s {
     A_UINT32 keepalive_pkt_len;
     A_UINT32 period_in_ms;
     A_UINT32 vdev_id;
+    A_UINT32 max_loss_cnt;
+    A_UINT32 local_ipv4;
+    A_UINT32 remote_ipv4;
+    A_UINT32 local_port;
+    A_UINT32 remote_port;
+    A_UINT32 recv_period_in_ms;
+    A_UINT32 rev_ka_size;
+    A_UINT32 rev_ka_data[WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE_DWORD];
 } WMI_WOW_IOAC_KEEPALIVE_T;
 
 typedef struct {
@@ -6368,6 +6396,7 @@ typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_IOAC_DEL_PATTERN_CMD_fixed_param */
     A_UINT32 vdev_id;
     A_UINT32 pattern_type;
+    A_UINT32 pattern_id;
 } WMI_WOW_IOAC_DEL_PATTERN_CMD_fixed_param;
 
 typedef struct {

@@ -576,6 +576,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_soc_set_hw_mode_response_vdev_mac_entry,
     WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_response_event_fixed_param,
+    WMITLV_TAG_STRUC_WOW_IOAC_SOCK_PATTERN_T,
 } WMITLV_TAG_ID;
 
 /*
@@ -1670,7 +1671,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_WOW_IOAC_DEL_KEEPALIVE_CMDID);
 #define WMITLV_TABLE_WMI_WOW_IOAC_ADD_WAKE_PATTERN_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_WOW_IOAC_ADD_PATTERN_CMD_fixed_param, WMI_WOW_IOAC_ADD_PATTERN_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IOAC_PKT_PATTERN_T, pattern_info_pkt, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IOAC_TMR_PATTERN_T, pattern_info_tmr, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IOAC_TMR_PATTERN_T, pattern_info_tmr, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WOW_IOAC_SOCK_PATTERN_T, pattern_info_sock, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_IOAC_ADD_WAKE_PATTERN_CMDID);
 
