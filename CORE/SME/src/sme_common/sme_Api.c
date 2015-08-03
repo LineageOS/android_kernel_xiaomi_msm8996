@@ -11029,6 +11029,12 @@ v_U32_t sme_getLimMlmState(tHalHandle hHal)
 v_BOOL_t sme_IsLimSessionValid(tHalHandle hHal, tANI_U8 sessionId)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    if (sessionId > pMac->lim.maxBssId) {
+        smsLog(pMac, LOG1, FL("invalid sessionId:%d"), sessionId);
+        return FALSE;
+    }
+
     return pMac->lim.gpSession[sessionId].valid;
 }
 
