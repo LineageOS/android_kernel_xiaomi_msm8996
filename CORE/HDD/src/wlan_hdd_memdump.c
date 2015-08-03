@@ -158,7 +158,7 @@ static int wlan_hdd_send_memdump_rsp(hdd_context_t *hdd_ctx)
 	}
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(hdd_ctx->wiphy,
-						  sizeof(uint32_t));
+			NLMSG_HDRLEN + NLA_HDRLEN + sizeof(uint32_t));
 
 	if (!skb) {
 		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
