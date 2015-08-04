@@ -287,7 +287,6 @@ static char *dev_info = "ath_hif_sdio";
 
 static int init_ath_hif_sdio(void)
 {
-    static int probed = 0;
     A_STATUS status;
     OSDRV_CALLBACKS osdrvCallbacks;
     ENTER();
@@ -300,11 +299,6 @@ static int init_ath_hif_sdio(void)
     osdrvCallbacks.deviceResumeHandler = ath_hif_sdio_resume;
     osdrvCallbacks.devicePowerChangeHandler = ath_hif_sdio_power_change;
 #endif
-
-    if (probed) {
-        return -ENODEV;
-    }
-    probed++;
 
     VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO,"%s %d",__func__,__LINE__);
     status = HIFInit(&osdrvCallbacks);
