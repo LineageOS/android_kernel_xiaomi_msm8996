@@ -137,7 +137,22 @@ reschedule:
 				msecs_to_jiffies(thermal_conf->sampling_ms));
 }
 
-static int cpu_throttle(struct notifier_block *nb, unsigned long val, void *data)
+static void cpu_unthrottle_all(void)
+{
+	struct throttle_policy *t;
+	unsigned int cpu;
+
+	get_online_cpus();
+	for_each_possible_cpu(cpu) {
+		t = &per_cpu(throttle_info, cpu);
+		t->cpu_throttle = UNTHROTTLE;
+		if (cpu_online(cpu))
+			cpufreq_update_policy(cpu);
+	}
+	put_online_cpus();
+}
+
+static int cpu_do_throttle(struct notifier_block *nb, unsigned long val, void *data)
 {
 	struct cpufreq_policy *policy = data;
 	struct throttle_policy *t = &per_cpu(throttle_info, policy->cpu);
@@ -162,7 +177,7 @@ static int cpu_throttle(struct notifier_block *nb, unsigned long val, void *data
 }
 
 static struct notifier_block cpu_throttle_nb = {
-	.notifier_call = cpu_throttle,
+	.notifier_call = cpu_do_throttle,
 };
 
 /*********************** SYSFS START ***********************/
@@ -241,25 +256,12 @@ static ssize_t enabled_write(struct device *dev,
 
 	thermal_conf->enabled = data;
 
-	if (data) {
-		cancel_delayed_work_sync(&thermal_work);
+	cancel_delayed_work_sync(&thermal_work);
+
+	if (data)
 		queue_delayed_work_on(0, thermal_wq, &thermal_work, 0);
-	} else {
-		struct throttle_policy *t;
-		unsigned int cpu;
-
-		cancel_delayed_work_sync(&thermal_work);
-
-		/* unthrottle all CPUs */
-		get_online_cpus();
-		for_each_possible_cpu(cpu) {
-			t = &per_cpu(throttle_info, cpu);
-			t->cpu_throttle = UNTHROTTLE;
-			if (cpu_online(cpu))
-				cpufreq_update_policy(cpu);
-		}
-		put_online_cpus();
-	}
+	else
+		cpu_unthrottle_all();
 
 	return size;
 }
