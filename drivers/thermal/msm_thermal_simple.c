@@ -167,8 +167,7 @@ static int cpu_do_throttle(struct notifier_block *nb, unsigned long val, void *d
 	case LOW_THROTTLE:
 	case MID_THROTTLE:
 	case HIGH_THROTTLE:
-		if (policy->min > t->throttle_freq)
-			policy->min = policy->cpuinfo.min_freq;
+		policy->min = policy->cpuinfo.min_freq;
 		policy->max = t->throttle_freq;
 		break;
 	}
