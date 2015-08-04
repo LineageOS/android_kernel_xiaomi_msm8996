@@ -152,6 +152,11 @@ int pwm_lut_config(struct pwm_device *pwm, int period_us,
 int pwm_config_us(struct pwm_device *pwm,
 		int duty_us, int period_us);
 
+/*
+ * synchronized enable of multiple pwm instances
+ */
+int pwm_enable_synchronized(struct pwm_device **pwms, size_t num);
+
 /* Standard APIs supported */
 /*
  * pwm_request - request a PWM device
