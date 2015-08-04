@@ -577,6 +577,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_response_event_fixed_param,
     WMITLV_TAG_STRUC_WOW_IOAC_SOCK_PATTERN_T,
+    WMITLV_TAG_STRUC_wmi_wow_enable_icmpv6_na_flt_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -798,7 +799,8 @@ typedef enum {
     OP(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID) \
     OP(WMI_SOC_SET_PCL_CMDID) \
     OP(WMI_SOC_SET_HW_MODE_CMDID) \
-    OP(WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID)
+    OP(WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID) \
+    OP(WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -1006,6 +1008,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ENABLE_CMDID);
 
+/* WOW ICMPv6 NA filtering command */
+#define WMITLV_TABLE_WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_wow_enable_icmpv6_na_flt_cmd_fixed_param, wmi_wow_enable_icmpv6_na_flt_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID);
+
 /* Remove Bcn Filter Cmd */
 #define WMITLV_TABLE_WMI_RMV_BCN_FILTER_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_rmv_bcn_filter_cmd_fixed_param, wmi_rmv_bcn_filter_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1027,7 +1035,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_MODE);
 /* Roam scan Rssi Threshold Cmd */
 #define WMITLV_TABLE_WMI_ROAM_SCAN_RSSI_THRESHOLD(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_scan_rssi_threshold_fixed_param, wmi_roam_scan_rssi_threshold_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_scan_extended_threshold_param, extended_param, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_scan_extended_threshold_param, extended_param, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_earlystop_rssi_thres_param, earlystop_param, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_RSSI_THRESHOLD);
 
@@ -1393,7 +1402,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_LINK_STATS_CMDID);
 #define WMITLV_TABLE_WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_nlo_config_cmd_fixed_param, wmi_nlo_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, nlo_configured_parameters, nlo_list, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, channel_list, WMITLV_SIZE_VAR)\
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, nlo_channel_prediction_cfg, channel_prediction_param, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
 
