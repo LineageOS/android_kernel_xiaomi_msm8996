@@ -2939,7 +2939,7 @@ sapSignalHDDevent
              */
             sapContext->acs_cfg->pri_ch = sapContext->channel;
             sapContext->acs_cfg->ch_width = sapContext->vht_channel_width;
-            sap_config_acs_result(hHal, sapContext, 0);
+            sap_config_acs_result(hHal, sapContext, sapContext->secondary_ch);
 
             sapApAppEvent.sapHddEventCode = eSAP_CHANNEL_CHANGE_EVENT;
             sapApAppEvent.sapevt.sapChSelected.pri_ch =
