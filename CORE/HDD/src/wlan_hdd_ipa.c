@@ -612,120 +612,6 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
 	return false;
 }
 
-static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
-{
-	int i, ret = 0;
-	struct ipa_sys_connect_params *ipa;
-	uint32_t desc_fifo_sz;
-
-	/* The maximum number of descriptors that can be provided to a BAM at
-	 * once is one less than the total number of descriptors that the buffer
-	 * can contain.
-	 * If max_num_of_descriptors = (BAM_PIPE_DESCRIPTOR_FIFO_SIZE / sizeof
-	 * (SPS_DESCRIPTOR)), then (max_num_of_descriptors - 1) descriptors can
-	 * be provided at once.
-	 * Because of above requirement, one extra descriptor will be added to
-	 * make sure hardware always has one descriptor.
-	 */
-	desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize
-		+ sizeof(struct sps_iovec);
-
-	/*setup TX pipes */
-	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
-		ipa = &hdd_ipa->sys_pipe[i].ipa_sys_params;
-
-		ipa->client = hdd_ipa_adapter_2_client[i].cons_client;
-		ipa->desc_fifo_sz = desc_fifo_sz;
-		ipa->priv = &hdd_ipa->iface_context[i];
-		ipa->notify = hdd_ipa_i2w_cb;
-
-#ifdef IPA_UC_STA_OFFLOAD
-		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_UC_WLAN_TX_HDR_LEN;
-		ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
-		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size_valid = 1;
-		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size = 0;
-		ipa->ipa_ep_cfg.hdr.hdr_additional_const_len =
-			HDD_IPA_UC_WLAN_8023_HDR_SIZE;
-		ipa->ipa_ep_cfg.hdr_ext.hdr_little_endian = true;
-#else
-		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
-#endif
-		ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
-
-		if (!hdd_ipa_is_rm_enabled(hdd_ipa))
-			ipa->keep_ipa_awake = 1;
-
-		ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
-		if (ret) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed for pipe %d"
-					" ret: %d", i, ret);
-			goto setup_sys_pipe_fail;
-		}
-		hdd_ipa->sys_pipe[i].conn_hdl_valid = 1;
-	}
-
-#ifndef IPA_UC_STA_OFFLOAD
-	/*
-	 * Hard code it here, this can be extended if in case PROD pipe is also
-	 * per interface. Right now there is no advantage of doing this.
-	 */
-	hdd_ipa->prod_client = IPA_CLIENT_WLAN1_PROD;
-
-	ipa = &hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].ipa_sys_params;
-
-	ipa->client = hdd_ipa->prod_client;
-
-	ipa->desc_fifo_sz = desc_fifo_sz;
-	ipa->priv = hdd_ipa;
-	ipa->notify = hdd_ipa_w2i_cb;
-
-	ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
-	ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_RX_HDR_LEN;
-	ipa->ipa_ep_cfg.hdr.hdr_ofst_metadata_valid = 1;
-	ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
-
-	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
-		ipa->keep_ipa_awake = 1;
-
-	ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
-	if (ret) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed for RX pipe: %d",
-				ret);
-		goto setup_sys_pipe_fail;
-	}
-	hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].conn_hdl_valid = 1;
-#endif /* IPA_UC_STA_OFFLOAD */
-
-	return ret;
-
-setup_sys_pipe_fail:
-
-	while (--i >= 0) {
-		ipa_teardown_sys_pipe(hdd_ipa->sys_pipe[i].conn_hdl);
-		adf_os_mem_zero(&hdd_ipa->sys_pipe[i],
-				sizeof(struct hdd_ipa_sys_pipe ));
-	}
-
-	return ret;
-}
-
-/* Disconnect all the Sys pipes */
-static void hdd_ipa_teardown_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
-{
-	int ret = 0, i;
-	for (i = 0; i < HDD_IPA_MAX_SYSBAM_PIPE; i++) {
-		if (hdd_ipa->sys_pipe[i].conn_hdl_valid) {
-			ret = ipa_teardown_sys_pipe(
-						hdd_ipa->sys_pipe[i].conn_hdl);
-			if (ret)
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed: %d",
-						ret);
-
-			hdd_ipa->sys_pipe[i].conn_hdl_valid = 0;
-		}
-	}
-}
-
 #ifdef IPA_UC_OFFLOAD
 void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
 	uint32_t *ipa_tx_diff, uint32_t *ipa_rx_diff)
@@ -891,48 +777,12 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 	WLANTL_SetUcActive(hdd_ipa->hdd_ctx->pvosContext,
 		VOS_TRUE, VOS_FALSE);
 
-#ifdef IPA_UC_STA_OFFLOAD
-	/* Setup IPA sys_pipe for MCC */
-	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
-		result = hdd_ipa_setup_sys_pipe(hdd_ipa);
-		if (result) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"%s: Setup SYS PIPE fail, code %d",
-				__func__, result);
-			return result;
-		}
-	}
-#endif
-
 	return 0;
 }
 
 static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 {
 	int result;
-
-#ifdef IPA_UC_STA_OFFLOAD
-	/* Teardown IPA sys_pipe for MCC */
-	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa))
-		hdd_ipa_teardown_sys_pipe(hdd_ipa);
-#endif
-
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-		"%s: Disable TX PIPE", __func__);
-	result = ipa_suspend_wdi_pipe(hdd_ipa->tx_pipe_handle);
-	if (result) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s: Suspend TX PIPE fail, code %d",
-			__func__, result);
-		return result;
-	}
-	result = ipa_disable_wdi_pipe(hdd_ipa->tx_pipe_handle);
-	if (result) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s: Disable TX PIPE fail, code %d",
-			__func__, result);
-		return result;
-	}
 
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable RX PIPE", __func__);
@@ -947,6 +797,23 @@ static int hdd_ipa_uc_disable_pipes(struct hdd_ipa_priv *hdd_ipa)
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 			"%s: Disable RX PIPE fail, code %d",
+			__func__, result);
+		return result;
+	}
+
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		"%s: Disable TX PIPE", __func__);
+	result = ipa_suspend_wdi_pipe(hdd_ipa->tx_pipe_handle);
+	if (result) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: Suspend TX PIPE fail, code %d",
+			__func__, result);
+		return result;
+	}
+	result = ipa_disable_wdi_pipe(hdd_ipa->tx_pipe_handle);
+	if (result) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: Disable TX PIPE fail, code %d",
 			__func__, result);
 		return result;
 	}
@@ -2842,6 +2709,120 @@ int hdd_ipa_resume(hdd_context_t *hdd_ctx)
 	return 0;
 }
 
+static int hdd_ipa_setup_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
+{
+	int i, ret = 0;
+	struct ipa_sys_connect_params *ipa;
+	uint32_t desc_fifo_sz;
+
+	/* The maximum number of descriptors that can be provided to a BAM at
+	 * once is one less than the total number of descriptors that the buffer
+	 * can contain.
+	 * If max_num_of_descriptors = (BAM_PIPE_DESCRIPTOR_FIFO_SIZE / sizeof
+	 * (SPS_DESCRIPTOR)), then (max_num_of_descriptors - 1) descriptors can
+	 * be provided at once.
+	 * Because of above requirement, one extra descriptor will be added to
+	 * make sure hardware always has one descriptor.
+	 */
+	desc_fifo_sz = hdd_ipa->hdd_ctx->cfg_ini->IpaDescSize
+		+ sizeof(struct sps_iovec);
+
+	/*setup TX pipes */
+	for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
+		ipa = &hdd_ipa->sys_pipe[i].ipa_sys_params;
+
+		ipa->client = hdd_ipa_adapter_2_client[i].cons_client;
+		ipa->desc_fifo_sz = desc_fifo_sz;
+		ipa->priv = &hdd_ipa->iface_context[i];
+		ipa->notify = hdd_ipa_i2w_cb;
+
+#ifdef IPA_UC_STA_OFFLOAD
+		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_UC_WLAN_TX_HDR_LEN;
+		ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
+		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size_valid = 1;
+		ipa->ipa_ep_cfg.hdr.hdr_ofst_pkt_size = 0;
+		ipa->ipa_ep_cfg.hdr.hdr_additional_const_len =
+			HDD_IPA_UC_WLAN_8023_HDR_SIZE;
+		ipa->ipa_ep_cfg.hdr_ext.hdr_little_endian = true;
+#else
+		ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_TX_HDR_LEN;
+#endif
+		ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
+
+		if (!hdd_ipa_is_rm_enabled(hdd_ipa))
+			ipa->keep_ipa_awake = 1;
+
+		ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
+		if (ret) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed for pipe %d"
+					" ret: %d", i, ret);
+			goto setup_sys_pipe_fail;
+		}
+		hdd_ipa->sys_pipe[i].conn_hdl_valid = 1;
+	}
+
+#ifndef IPA_UC_STA_OFFLOAD
+	/*
+	 * Hard code it here, this can be extended if in case PROD pipe is also
+	 * per interface. Right now there is no advantage of doing this.
+	 */
+	hdd_ipa->prod_client = IPA_CLIENT_WLAN1_PROD;
+
+	ipa = &hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].ipa_sys_params;
+
+	ipa->client = hdd_ipa->prod_client;
+
+	ipa->desc_fifo_sz = desc_fifo_sz;
+	ipa->priv = hdd_ipa;
+	ipa->notify = hdd_ipa_w2i_cb;
+
+	ipa->ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
+	ipa->ipa_ep_cfg.hdr.hdr_len = HDD_IPA_WLAN_RX_HDR_LEN;
+	ipa->ipa_ep_cfg.hdr.hdr_ofst_metadata_valid = 1;
+	ipa->ipa_ep_cfg.mode.mode = IPA_BASIC;
+
+	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
+		ipa->keep_ipa_awake = 1;
+
+	ret = ipa_setup_sys_pipe(ipa, &(hdd_ipa->sys_pipe[i].conn_hdl));
+	if (ret) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed for RX pipe: %d",
+				ret);
+		goto setup_sys_pipe_fail;
+	}
+	hdd_ipa->sys_pipe[HDD_IPA_RX_PIPE].conn_hdl_valid = 1;
+#endif /* IPA_UC_STA_OFFLOAD */
+
+	return ret;
+
+setup_sys_pipe_fail:
+
+	while (--i >= 0) {
+		ipa_teardown_sys_pipe(hdd_ipa->sys_pipe[i].conn_hdl);
+		adf_os_mem_zero(&hdd_ipa->sys_pipe[i],
+				sizeof(struct hdd_ipa_sys_pipe ));
+	}
+
+	return ret;
+}
+
+/* Disconnect all the Sys pipes */
+static void hdd_ipa_teardown_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
+{
+	int ret = 0, i;
+	for (i = 0; i < HDD_IPA_MAX_SYSBAM_PIPE; i++) {
+		if (hdd_ipa->sys_pipe[i].conn_hdl_valid) {
+			ret = ipa_teardown_sys_pipe(
+						hdd_ipa->sys_pipe[i].conn_hdl);
+			if (ret)
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Failed: %d",
+						ret);
+
+			hdd_ipa->sys_pipe[i].conn_hdl_valid = 0;
+		}
+	}
+}
+
 static int hdd_ipa_register_interface(struct hdd_ipa_priv *hdd_ipa,
 		struct hdd_ipa_iface_context *iface_context)
 {
@@ -4109,6 +4090,13 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		hdd_ipa->ipa_p_rx_packets = 0;
 #ifdef IPA_UC_STA_OFFLOAD
 		hdd_ipa->sta_connected = 0;
+
+		/* Setup IPA sys_pipe for MCC */
+		if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
+			ret = hdd_ipa_setup_sys_pipe(hdd_ipa);
+			if (ret)
+				goto fail_create_sys_pipe;
+		}
 #endif
 		hdd_ipa->wdi_enabled = VOS_FALSE;
 		hdd_ipa->uc_loaded = VOS_FALSE;
@@ -4196,6 +4184,12 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 		unregister_inetaddr_notifier(&hdd_ipa->ipv4_notifier);
 		hdd_ipa_teardown_sys_pipe(hdd_ipa);
 	}
+
+#ifdef IPA_UC_STA_OFFLOAD
+	/* Teardown IPA sys_pipe for MCC */
+	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa))
+		hdd_ipa_teardown_sys_pipe(hdd_ipa);
+#endif
 
 	hdd_ipa_destory_rm_resource(hdd_ipa);
 
