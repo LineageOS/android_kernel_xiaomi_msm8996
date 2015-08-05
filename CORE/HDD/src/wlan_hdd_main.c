@@ -12733,6 +12733,12 @@ static void hdd_driver_exit(void)
    }
    else
    {
+      /*
+       * Check IPA HW pipe shutdown properly or not
+       * If not, force shut down HW pipe
+       */
+      hdd_ipa_uc_force_pipe_shutdown(pHddCtx);
+
 #ifdef QCA_PKT_PROTO_TRACE
       vos_pkt_proto_trace_close();
 #endif /* QCA_PKT_PROTO_TRACE */

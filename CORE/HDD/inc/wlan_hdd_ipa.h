@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -63,13 +63,18 @@ int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx, bool mcc_mode);
 #endif
 
 #ifdef IPA_UC_OFFLOAD
+void hdd_ipa_uc_force_pipe_shutdown(hdd_context_t *hdd_ctx);
 int hdd_ipa_uc_ssr_reinit(void);
 int hdd_ipa_uc_ssr_deinit(void);
 void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
 	uint32_t *ipa_tx_diff, uint32_t *ipa_rx_diff);
 void hdd_ipa_uc_stat_request( hdd_adapter_t *adapter, uint8_t reason);
-#endif
-
-#endif
-
+#else
+static inline
+void hdd_ipa_uc_force_pipe_shutdown(hdd_context_t *hdd_ctx)
+{
+	return;
+}
+#endif /* IPA_UC_OFFLOAD */
+#endif /* IPA_OFFLOAD */
 #endif
