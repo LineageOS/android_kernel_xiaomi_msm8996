@@ -109,6 +109,8 @@ void pe_reset_protection_callback(void *ptr)
     tUpdateBeaconParams beacon_params;
     tANI_U16 current_protection_state = 0;
     tpDphHashNode station_hash_node = NULL;
+    tSirMacHTOperatingMode old_op_mode;
+    bool bcn_prms_changed = false;
 
     if (pe_session_entry->valid == false) {
         VOS_TRACE(VOS_MODULE_ID_PE,
@@ -121,7 +123,8 @@ void pe_reset_protection_callback(void *ptr)
                pe_session_entry->gLimOverlap11gParams.protectionEnabled        |
                pe_session_entry->gLimOverlap11aParams.protectionEnabled   << 1 |
                pe_session_entry->gLimOverlapHt20Params.protectionEnabled  << 2 |
-               pe_session_entry->gLimOverlapNonGfParams.protectionEnabled << 3 ;
+               pe_session_entry->gLimOverlapNonGfParams.protectionEnabled << 3 |
+               pe_session_entry->gLimOlbcParams.protectionEnabled         << 4 ;
 
     VOS_TRACE(VOS_MODULE_ID_PE,
               VOS_TRACE_LEVEL_INFO,
@@ -139,6 +142,9 @@ void pe_reset_protection_callback(void *ptr)
     vos_mem_zero(&pe_session_entry->gLimOverlapNonGfParams,
                  sizeof(pe_session_entry->gLimOverlapNonGfParams));
 
+    vos_mem_zero(&pe_session_entry->gLimOlbcParams,
+                 sizeof(pe_session_entry->gLimOlbcParams));
+
     vos_mem_zero(&pe_session_entry->beaconParams,
                  sizeof(pe_session_entry->beaconParams));
 
@@ -151,6 +157,10 @@ void pe_reset_protection_callback(void *ptr)
     vos_mem_zero(&mac_ctx->lim.gLimOverlapNonGfParams,
                  sizeof(mac_ctx->lim.gLimOverlapNonGfParams));
 
+    old_op_mode = pe_session_entry->htOperMode;
+    pe_session_entry->htOperMode = eSIR_HT_OP_MODE_PURE;
+
+    vos_mem_zero(&beacon_params, sizeof(tUpdateBeaconParams));
     /* index 0, is self node, peers start from 1 */
     for(i = 1 ; i <= mac_ctx->lim.gLimAssocStaLimit ; i++)
     {
@@ -161,6 +171,9 @@ void pe_reset_protection_callback(void *ptr)
         limDecideApProtection(mac_ctx, station_hash_node->staAddr,
                               &beacon_params, pe_session_entry);
     }
+
+    if (pe_session_entry->htOperMode != old_op_mode)
+        bcn_prms_changed = true;
 
     if ((current_protection_state != pe_session_entry->old_protection_state) &&
         (VOS_FALSE == mac_ctx->sap.SapDfsInfo.is_dfs_cac_timer_running)) {
@@ -190,9 +203,14 @@ void pe_reset_protection_callback(void *ptr)
                     pe_session_entry->beaconParams.fRIFSMode;
         beacon_params.smeSessionId =
                     pe_session_entry->smeSessionId;
+        bcn_prms_changed = true;
+    }
+
+    if (bcn_prms_changed) {
         schSetFixedBeaconFields(mac_ctx, pe_session_entry);
         limSendBeaconParams(mac_ctx, &beacon_params, pe_session_entry);
     }
+
     pe_session_entry->old_protection_state = current_protection_state;
     if (VOS_STATUS_SUCCESS != vos_timer_start(
                              &pe_session_entry->protection_fields_reset_timer,

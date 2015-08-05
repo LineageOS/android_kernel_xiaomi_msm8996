@@ -3311,7 +3311,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             else
             {
                 psessionEntry->gLim11aParams.protectionEnabled = true;
-                if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
+                if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
                 {
                     pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
