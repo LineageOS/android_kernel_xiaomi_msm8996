@@ -213,10 +213,6 @@ enum extscan_report_events_type {
 
 #endif
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-static bool nlo_match_in_wow;
-#endif
-
 /* Data rate 100KBPS based on IE Index */
 struct index_data_rate_type
 {
@@ -18661,7 +18657,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		if (node) {
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
-			nlo_match_in_wow = true;
 		}
 		break;
 #endif
@@ -18813,10 +18808,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 					      wake_lock_duration,
 					      WIFI_POWER_EVENT_WAKELOCK_WOW);
 		WMA_LOGA("Holding %d msec wake_lock", wake_lock_duration);
-		if (nlo_match_in_wow) {
-			vos_runtime_pm_prevent_suspend();
-			WMA_LOGA("Preventing runtime suspend");
-		}
 	}
 
 	return 0;
@@ -26753,12 +26744,6 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		WMA_LOGD("NLO match not recieved skipping PNO complete ind for vdev %d",
 		nlo_event->vdev_id);
 		goto skip_pno_cmp_ind;
-	}
-
-	if (nlo_match_in_wow) {
-		vos_runtime_pm_allow_suspend();
-		nlo_match_in_wow = false;
-		WMA_LOGA("Allowing runtime suspend");
 	}
 
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc(
