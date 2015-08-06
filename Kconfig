@@ -57,4 +57,8 @@ config WLAN_OFFLOAD_PACKETS
 	bool "Enable offload packets feature"
 	default n
 
+config QCA_WIFI_AUTOMOTIVE_CONC
+	bool "Enable 3 port concurrency feature"
+	default n
+
 endif # QCA_CLD_WLAN
