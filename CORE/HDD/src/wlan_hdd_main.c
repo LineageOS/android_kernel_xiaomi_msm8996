@@ -1204,7 +1204,7 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
      */
     v = kstrtos32(tempBuf, 10, &tempInt);
     if ((v < 0) ||
-        (tempInt <= 0) ||
+        (tempInt < 0) ||
         (tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX)) {
         return -EINVAL;
     }
