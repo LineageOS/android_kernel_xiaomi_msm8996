@@ -567,6 +567,9 @@ typedef enum {
     /** Request to flush of the buffered debug messages */
     WMI_DEBUG_MESG_FLUSH_CMDID,
 
+    /** Cmd to configure the verbose level */
+    WMI_DIAG_EVENT_LOG_CONFIG_CMDID,
+
     /** ARP OFFLOAD REQUEST*/
     WMI_SET_ARP_NS_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_ARP_NS_OFL),
 
@@ -945,7 +948,10 @@ typedef enum {
     /**  Firmware memory dump Complete event*/
     WMI_UPDATE_FW_MEM_DUMP_EVENTID,
 
-    /*NLO specific events*/
+    /** Event indicating the DIAG logs/events supported by FW */
+    WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID,
+
+    /* NLO specific events */
     /** NLO match event after the first match */
     WMI_NLO_MATCH_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_NLO_OFL),
 
@@ -3166,6 +3172,39 @@ typedef struct {
 
 /** Default value for stats if the stats collection has not started */
 #define WMI_STATS_VALUE_INVALID       0xffffffff
+
+#define WMI_DIAG_ID_GET(diag_events_logs)                         WMI_GET_BITS(diag_events_logs, 0, 16)
+#define WMI_DIAG_ID_SET(diag_events_logs, value)                  WMI_SET_BITS(diag_events_logs, 0, 16, value)
+#define WMI_DIAG_TYPE_GET(diag_events_logs)                       WMI_GET_BITS(diag_events_logs, 16, 1)
+#define WMI_DIAG_TYPE_SET(diag_events_logs, value)                WMI_SET_BITS(diag_events_logs, 16, 1, value)
+#define WMI_DIAG_ID_ENABLED_DISABLED_GET(diag_events_logs)        WMI_GET_BITS(diag_events_logs, 17, 1)
+#define WMI_DIAG_ID_ENABLED_DISABLED_SET(diag_events_logs, value) WMI_SET_BITS(diag_events_logs, 17, 1, value)
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param */
+    A_UINT32 num_of_diag_events_logs;
+/* The TLVs will follow.
+ *    A_UINT32 diag_events_logs_list[]; 0-15 Bits Diag EVENT/LOG ID,
+ *                                      Bit 16 - DIAG type EVENT/LOG, 0 - Event, 1 - LOG
+ *                                      Bit 17 Indicate if the DIAG type is Enabled/Disabled.
+ */
+} wmi_diag_event_log_config_fixed_param;
+
+#define WMI_DIAG_FREQUENCY_GET(diag_events_logs)          WMI_GET_BITS(diag_events_logs, 17, 1)
+#define WMI_DIAG_FREQUENCY_SET(diag_events_logs, value)   WMI_SET_BITS(diag_events_logs, 17, 1, value)
+#define WMI_DIAG_EXT_FEATURE_GET(diag_events_logs)        WMI_GET_BITS(diag_events_logs, 18, 1)
+#define WMI_DIAG_EXT_FEATURE_SET(diag_events_logs, value) WMI_SET_BITS(diag_events_logs, 18, 1, value)
+
+typedef struct {
+    A_UINT32 tlv_header;
+    A_UINT32 num_of_diag_events_logs;
+/* The TLVs will follow.
+ *    A_UINT32 diag_events_logs_list[]; 0-15 Bits Diag EVENT/LOG ID,
+ *                                      Bit 16 - DIAG type EVENT/LOG, 0 - Event, 1 - LOG
+ *                                      Bit 17 - Frequncy of the DIAG EVENT/LOG High Frequency -1, Low Frequency - 0
+ *                                      Bit 18 - Set if the EVENTS/LOGs are used for EXT DEBUG Framework
+ */
+} wmi_diag_event_log_supported_event_fixed_params;
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_debug_mesg_flush_fixed_param*/

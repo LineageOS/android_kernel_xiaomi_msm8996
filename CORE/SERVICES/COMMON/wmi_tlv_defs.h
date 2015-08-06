@@ -578,6 +578,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_response_event_fixed_param,
     WMITLV_TAG_STRUC_WOW_IOAC_SOCK_PATTERN_T,
     WMITLV_TAG_STRUC_wmi_wow_enable_icmpv6_na_flt_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param,
+    WMITLV_TAG_STRUC_wmi_diag_event_log_supported_event_fixed_params,
 } WMITLV_TAG_ID;
 
 /*
@@ -800,7 +802,8 @@ typedef enum {
     OP(WMI_SOC_SET_PCL_CMDID) \
     OP(WMI_SOC_SET_HW_MODE_CMDID) \
     OP(WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID) \
-    OP(WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID)
+    OP(WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID) \
+    OP(WMI_DIAG_EVENT_LOG_CONFIG_CMDID)
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -910,7 +913,8 @@ typedef enum {
     OP(WMI_WOW_INITIAL_WAKEUP_EVENTID) \
     OP(WMI_SOC_SET_HW_MODE_RESP_EVENTID) \
     OP(WMI_SOC_HW_MODE_TRANSITION_EVENTID) \
-    OP(WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID)
+    OP(WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID) \
+    OP(WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1378,7 +1382,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_GET_FW_MEM_DUMP_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_DEBUG_MESG_FLUSH_CMDID);
 
+/* Request to config the DIAG Events and LOGs*/
+#define WMITLV_TABLE_WMI_DIAG_EVENT_LOG_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param, wmi_diag_event_log_config_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, diag_events_logs_list, WMITLV_SIZE_VAR)
 
+WMITLV_CREATE_PARAM_STRUC(WMI_DIAG_EVENT_LOG_CONFIG_CMDID);
 
 /* Set config params */
 #define WMITLV_TABLE_WMI_START_LINK_STATS_CMDID(id,op,buf,len) \
@@ -2577,6 +2586,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_VDEV_RATE_STATS_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_update_fw_mem_dump_fixed_param, wmi_update_fw_mem_dump_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_UPDATE_FW_MEM_DUMP_EVENTID);
+
+/* Event indicating the DIAG LOGs/Events supported by FW */
+#define WMITLV_TABLE_WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_diag_event_log_supported_event_fixed_params, wmi_diag_event_log_supported_event_fixed_params, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, diag_events_logs_list, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID);
 
 /* Update iface link stats Event */
 #define WMITLV_TABLE_WMI_IFACE_LINK_STATS_EVENTID(id,op,buf,len)\
