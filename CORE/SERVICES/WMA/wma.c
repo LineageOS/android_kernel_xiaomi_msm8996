@@ -191,6 +191,14 @@
 
 #define WMA_LOG_COMPLETION_TIMER 10000 /* 10 seconds */
 
+static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
+					   WOW_WAKE_EVENT_TYPE event,
+					   v_BOOL_t enable);
+#ifdef FEATURE_WLAN_SCAN_PNO
+static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
+					u_int32_t len);
+#endif
+
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
  * enum extscan_report_events_type - extscan report events type
@@ -18248,6 +18256,9 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
 #endif
 	case WOW_REASON_RSSI_BREACH_EVENT:
 		return "WOW_REASON_RSSI_BREACH_EVENT";
+
+	case WOW_REASON_NLO_SCAN_COMPLETE:
+		return "WOW_REASON_NLO_SCAN_COMPLETE";
 	}
 	return "unknown";
 }
@@ -18655,8 +18666,35 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		wake_lock_duration = WMA_PNO_WAKE_LOCK_TIMEOUT;
 		node = &wma->interfaces[wake_info->vdev_id];
 		if (node) {
+			VOS_STATUS ret = VOS_STATUS_SUCCESS;
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
+
+			/* Configure pno scan complete wakeup */
+			ret = wma_add_wow_wakeup_event(wma,
+						WOW_NLO_SCAN_COMPLETE_EVENT,
+						true);
+			if (ret != VOS_STATUS_SUCCESS)
+				WMA_LOGE("Failed to configure pno scan complete wakeup");
+			else
+				WMA_LOGD("PNO scan complete wakeup is enabled in fw");
+		}
+		break;
+
+	case WOW_REASON_NLO_SCAN_COMPLETE:
+		{
+			WMI_NLO_SCAN_COMPLETE_EVENTID_param_tlvs param;
+
+			WMA_LOGD("Host woken up due to pno scan complete reason");
+			/* First 4-bytes of wow_packet_buffer is the length */
+			if (param_buf->wow_packet_buffer) {
+				param.fixed_param = (wmi_nlo_event *)
+					(param_buf->wow_packet_buffer + 4);
+				wma_nlo_scan_cmp_evt_handler(handle,
+						(u_int8_t *)&param,
+						sizeof(param));
+			} else
+				WMA_LOGD("No wow_packet_buffer present");
 		}
 		break;
 #endif
@@ -19817,6 +19855,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		WMA_LOGD("Assoc req based wakeup is %s in fw",
 			ap_vdev_available ? "enabled" : "disabled");
 
+#ifdef FEATURE_WLAN_SCAN_PNO
 	/* Configure pno based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_NLO_DETECTED_EVENT,
 					pno_in_progress);
@@ -19826,6 +19865,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	} else
 		WMA_LOGD("PNO based wakeup is %s in fw",
 			pno_in_progress ? "enabled" : "disabled");
+#endif
 
 	/* Configure roaming scan better AP based wakeup */
 	ret = wma_add_wow_wakeup_event(wma, WOW_BETTER_AP_EVENT,
@@ -26741,7 +26781,7 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 	/* Handle scan completion event only after NLO match event. */
 	if (!node || !node->nlo_match_evt_received) {
 
-		WMA_LOGD("NLO match not recieved skipping PNO complete ind for vdev %d",
+		WMA_LOGD("NLO match not received skipping PNO complete ind for vdev %d",
 		nlo_event->vdev_id);
 		goto skip_pno_cmp_ind;
 	}
