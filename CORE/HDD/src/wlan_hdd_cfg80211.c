@@ -10152,6 +10152,7 @@ static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht, u8* require_vht,
     return;
 }
 
+#ifdef QCA_HT_2040_COEX
 static bool wlan_hdd_get_sap_obss(hdd_adapter_t *pHostapdAdapter)
 {
     uint8_t ht_cap_ie[DOT11F_IE_HTCAPS_MAX_LEN];
@@ -10171,6 +10172,12 @@ static bool wlan_hdd_get_sap_obss(hdd_adapter_t *pHostapdAdapter)
 
     return false;
 }
+#else
+static bool wlan_hdd_get_sap_obss(hdd_adapter_t *pHostapdAdapter)
+{
+    return false;
+}
+#endif
 
 static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 {
