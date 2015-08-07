@@ -1537,7 +1537,8 @@ limIsReassocInProgress(tpAniSirGlobal pMac,tpPESession psessionEntry)
 tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                                   tpSirSupportedRates pRates,
                                   tDot11fIEVHTCaps *pPeerVHTCaps,
-                                  tpPESession psessionEntry)
+                                  tpPESession psessionEntry,
+                                  uint8_t nss)
 {
     tANI_U32 val;
     tANI_U32 selfStaDot11Mode=0;
@@ -1577,6 +1578,15 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
         }
         pRates->vhtTxHighestDataRate = (tANI_U16)val;
 
+        if (NSS_1x1_MODE == nss) {
+            pRates->vhtRxMCSMap |= VHT_MCS_1x1;
+            pRates->vhtTxMCSMap |= VHT_MCS_1x1;
+            pRates->vhtTxHighestDataRate =
+                    VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+            pRates->vhtRxHighestDataRate =
+                    VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+        }
+
         if( pPeerVHTCaps != NULL)
         {
             tANI_U16 mcsMapMask = MCSMAPMASK1x1;
@@ -1603,7 +1613,7 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                     }
                 }
             } else {
-                if (psessionEntry->vdev_nss == 2)
+                if (psessionEntry->vdev_nss == NSS_2x2_MODE)
                     mcsMapMask2x2 = MCSMAPMASK2x2;
             }
 
@@ -1641,8 +1651,10 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                 }
             }
 
-            limLog( pMac, LOG1, FL("enable2x2 - %d vhtRxMCSMap - %x vhtTxMCSMap - %x\n"), pMac->roam.configParam.enable2x2, pRates->vhtRxMCSMap, pRates->vhtTxMCSMap);
-
+            limLog(pMac, LOG1, FL(
+                        "enable2x2 %d nss %d vhtRxMCSMap %x vhtTxMCSMap %x\n"),
+                        pMac->roam.configParam.enable2x2, nss,
+                        pRates->vhtRxMCSMap, pRates->vhtTxMCSMap);
         }
     }
     return eSIR_SUCCESS;
@@ -1812,7 +1824,7 @@ limPopulateOwnRateSet(tpAniSirGlobal pMac,
             goto error;
         }
 
-        if (psessionEntry->vdev_nss == 1)
+        if (psessionEntry->vdev_nss == NSS_1x1_MODE)
             pRates->supportedMCSSet[1] = 0;
 
         //if supported MCS Set of the peer is passed in, then do the intersection
@@ -1831,7 +1843,8 @@ limPopulateOwnRateSet(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_11AC
-    limPopulateVhtMcsSet(pMac, pRates , pVHTCaps,psessionEntry);
+    limPopulateVhtMcsSet(pMac, pRates , pVHTCaps, psessionEntry,
+                        psessionEntry->vdev_nss);
 #endif
 
     return eSIR_SUCCESS;
@@ -1971,7 +1984,7 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve supportedMCSSet"));)
             goto error;
         }
-        if (psessionEntry->vdev_nss == 1)
+        if (psessionEntry->vdev_nss == NSS_1x1_MODE)
             pRates->supportedMCSSet[1] = 0;
 
         //if supported MCS Set of the peer is passed in, then do the intersection
@@ -1986,7 +1999,8 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
             PELOG2(limLog(pMac, LOG2,FL("%x ") , pRates->supportedMCSSet[i]);)
     }
 #ifdef WLAN_FEATURE_11AC
-    limPopulateVhtMcsSet(pMac, pRates , pVHTCaps,psessionEntry);
+    limPopulateVhtMcsSet(pMac, pRates , pVHTCaps, psessionEntry,
+                    psessionEntry->vdev_nss);
 #endif
     return eSIR_SUCCESS;
  error:
@@ -2216,7 +2230,7 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
             limLog(pMac, LOGP, FL("could not retrieve supportedMCSSet"));
             goto error;
         }
-        if (psessionEntry->vdev_nss == 1)
+        if (psessionEntry->vdev_nss == NSS_1x1_MODE)
             mcsSet[1] = 0;
 
         for(i=0; i<val; i++)
@@ -2230,7 +2244,8 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_11AC
-    limPopulateVhtMcsSet(pMac, &pStaDs->supportedRates, pVHTCaps, psessionEntry);
+    limPopulateVhtMcsSet(pMac, &pStaDs->supportedRates, pVHTCaps,
+                    psessionEntry, psessionEntry->vdev_nss);
 #endif
     /**
       * Set the erpEnabled bit iff the phy is in G mode and at least

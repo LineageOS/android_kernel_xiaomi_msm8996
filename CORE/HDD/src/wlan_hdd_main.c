@@ -8871,26 +8871,28 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          goto err_free_netdev;
       }
 
-      ret = process_wma_set_command((int)pAdapter->sessionId,
-                                    (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
-                                    (int)pHddCtx->cfg_ini->txchainmask1x1,
-                                    PDEV_CMD);
-      if (ret != 0)
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_TX_CHAIN_MASK set"
-                                      " failed %d", __func__, ret);
-         goto err_free_netdev;
-      }
-      ret = process_wma_set_command((int)pAdapter->sessionId,
-                                    (int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
-                                    (int)pHddCtx->cfg_ini->rxchainmask1x1,
-                                    PDEV_CMD);
-      if (ret != 0)
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_RX_CHAIN_MASK set"
-                                      " failed %d", __func__, ret);
-         goto err_free_netdev;
-      }
+        if (!pHddCtx->per_band_chainmask_supp) {
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                        (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
+                        (int)pHddCtx->cfg_ini->txchainmask1x1, PDEV_CMD);
+            if (ret != 0)
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                                "%s: PDEV_PARAM_TX_CHAIN_MASK set failed %d",
+                                __func__, ret);
+                goto err_free_netdev;
+            }
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                            (int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
+                            (int)pHddCtx->cfg_ini->rxchainmask1x1, PDEV_CMD);
+            if (ret != 0)
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                                "%s: WMI_PDEV_PARAM_RX_CHAIN_MASK set failed %d",
+                                __func__, ret);
+                goto err_free_netdev;
+            }
+        }
 #undef HDD_DTIM_1CHAIN_RX_ID
 #undef HDD_SMPS_PARAM_VALUE_S
    }

@@ -392,6 +392,9 @@
 #define VHT_MCS_1x1 0xFFFC
 #define VHT_MCS_2x2 0xFFF3
 
+#define NSS_1x1_MODE 1
+#define NSS_2x2_MODE 2
+
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 #define SIR_MAC_QCOM_VENDOR_EID      200
 #define SIR_MAC_QCOM_VENDOR_OUI      "\x00\xA0\xC6"

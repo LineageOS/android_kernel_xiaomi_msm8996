@@ -113,7 +113,8 @@ void limLogVHTCap(tpAniSirGlobal pMac,
 tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                                   tpSirSupportedRates pRates,
                                   tDot11fIEVHTCaps *pPeerVHTCaps,
-                                  tpPESession psessionEntry);
+                                  tpPESession psessionEntry,
+                                  uint8_t nss);
 ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode);
 
 /*
@@ -547,11 +548,23 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
                                         tDot11fIEHTCaps *htCap, tDot11fIEVHTCaps *vhtCap,
                                         tpPESession psessionEntry)
 {
+    uint8_t nss;
+    uint32_t val;
+
+    if (IS_5G_CH(psessionEntry->currentOperChannel))
+        nss = pMac->vdev_type_nss_5g.tdls;
+    else
+        nss = pMac->vdev_type_nss_2g.tdls;
+
     if (IS_DOT11_MODE_HT(selfDot11Mode))
     {
         /* Include HT Capability IE */
         PopulateDot11fHTCaps( pMac, NULL, htCap );
-
+        val = SIZE_OF_SUPPORTED_MCS_SET;
+        wlan_cfgGetStr(pMac, WNI_CFG_SUPPORTED_MCS_SET,
+                 &htCap->supportedMCSSet[0], &val);
+        if (NSS_1x1_MODE == nss)
+                htCap->supportedMCSSet[1] = 0;
         /*
          * Advertize ht capability and max supported channel
          * bandwidth when populating HT IE in TDLS Setup Request/
@@ -584,11 +597,30 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
             IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
         {
             /* Include VHT Capability IE */
-            PopulateDot11fVHTCaps( pMac, psessionEntry, vhtCap );
+            PopulateDot11fVHTCaps(pMac, psessionEntry, vhtCap);
             vhtCap->suBeamformeeCap = 0;
             vhtCap->suBeamFormerCap = 0;
             vhtCap->muBeamformeeCap = 0;
             vhtCap->muBeamformerCap = 0;
+
+            wlan_cfgGetInt(pMac, WNI_CFG_VHT_RX_MCS_MAP, &val);
+            vhtCap->rxMCSMap = val;
+            wlan_cfgGetInt(pMac, WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE,
+                            &val);
+            vhtCap->rxHighSupDataRate = val;
+            wlan_cfgGetInt(pMac, WNI_CFG_VHT_TX_MCS_MAP, &val);
+            vhtCap->txMCSMap = val;
+            wlan_cfgGetInt(pMac, WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE,
+                            &val);
+            vhtCap->txSupDataRate = val;
+            if (nss == NSS_1x1_MODE) {
+                    vhtCap->txMCSMap |= DISABLE_NSS2_MCS;
+                    vhtCap->rxMCSMap |= DISABLE_NSS2_MCS;
+                    vhtCap->txSupDataRate =
+                            VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+                    vhtCap->rxHighSupDataRate =
+                            VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_1_1;
+            }
         }
         else
         {
@@ -2044,6 +2076,7 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
     tSirMacRateSet    tempRateSet2;
     tANI_U32 phyMode;
     tANI_U8 mcsSet[SIZE_OF_SUPPORTED_MCS_SET];
+    uint8_t nss;
     isArate=0;
     tempRateSet2.numRates = 0;
 
@@ -2168,7 +2201,10 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
         }
     }
 
-
+    if (IS_5G_CH(psessionEntry->currentOperChannel))
+        nss = pMac->vdev_type_nss_5g.tdls;
+    else
+        nss = pMac->vdev_type_nss_2g.tdls;
     //compute the matching MCS rate set, if peer is 11n capable and self mode is 11n
 #ifdef FEATURE_WLAN_TDLS
     if (pStaDs->mlmStaContext.htCapability)
@@ -2186,7 +2222,8 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
             limLog(pMac, LOGP, FL("could not retrieve supportedMCSSet"));
             goto error;
         }
-
+        if (NSS_1x1_MODE == nss)
+            mcsSet[1] = 0;
         for (i=0; i<val; i++)
             pStaDs->supportedRates.supportedMCSSet[i] = mcsSet[i] & pSupportedMCSSet[i];
 
@@ -2200,7 +2237,8 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_11AC
-    limPopulateVhtMcsSet(pMac, &pStaDs->supportedRates, pVHTCaps, psessionEntry);
+    limPopulateVhtMcsSet(pMac, &pStaDs->supportedRates, pVHTCaps,
+                    psessionEntry, nss);
 #endif
     /**
          * Set the erpEnabled bit iff the phy is in G mode and at least
