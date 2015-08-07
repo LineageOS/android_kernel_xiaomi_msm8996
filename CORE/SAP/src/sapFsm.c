@@ -351,10 +351,10 @@ tSapChanMatrixInfo ht80_chan[] =
 tSapChanMatrixInfo ht40_chan[] =
 {
  {52,
-   {{36, 328},            {40, 328 },
+   {{36, SAP_TX_LEAKAGE_AUTO_MIN}, {40, SAP_TX_LEAKAGE_AUTO_MIN},
     {44, 230},            {48, 230 },
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
-    {60, 323},            {64, 323 },
+    {60, SAP_TX_LEAKAGE_AUTO_MIN}, {64, SAP_TX_LEAKAGE_AUTO_MIN},
     {100, 625},           {104, 323 },
     {108, 646},{112, 646 },
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
@@ -367,8 +367,8 @@ tSapChanMatrixInfo ht40_chan[] =
 }},
 
  {56,
-   {{36, 446},            {40, 446 },
-    {44, 300},            {48, 300 },
+   {{36, SAP_TX_LEAKAGE_AUTO_MIN}, {40, SAP_TX_LEAKAGE_AUTO_MIN},
+    {44, SAP_TX_LEAKAGE_AUTO_MIN}, {48, SAP_TX_LEAKAGE_AUTO_MIN},
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, 611},{104, 611 },
@@ -383,8 +383,8 @@ tSapChanMatrixInfo ht40_chan[] =
 }},
 
  {60,
-   {{36, 481},            {40, 481 },
-    {44, 407},            {48, 407 },
+   {{36, SAP_TX_LEAKAGE_AUTO_MIN}, {40,SAP_TX_LEAKAGE_AUTO_MIN},
+    {44, SAP_TX_LEAKAGE_AUTO_MIN}, {48, SAP_TX_LEAKAGE_AUTO_MIN},
     {52, 190}, {56, 190},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, 608},{104, 608 },
@@ -399,8 +399,8 @@ tSapChanMatrixInfo ht40_chan[] =
 }},
 
  {64,
-   {{36, 524},            {40, 524 },
-    {44, 527},            {48, 527 },
+   {{36, SAP_TX_LEAKAGE_AUTO_MIN}, {40, SAP_TX_LEAKAGE_AUTO_MIN},
+    {44, SAP_TX_LEAKAGE_AUTO_MIN}, {48, SAP_TX_LEAKAGE_AUTO_MIN},
     {52, 295},            {56, 295 },
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, 594},           {104, 594 },
@@ -421,8 +421,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {60, 584},            {64, 584 },
     {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN },
     {108, 299},           {112, 299 },
-    {116, 486},           {120, 486 },
-    {124, 498},           {128, 498 },
+    {116, SAP_TX_LEAKAGE_AUTO_MIN}, {120, SAP_TX_LEAKAGE_AUTO_MIN},
+    {124, SAP_TX_LEAKAGE_AUTO_MIN}, {128, SAP_TX_LEAKAGE_AUTO_MIN},
     {132, 538},           {136, 538 },
     {140, 598}
 #ifdef FEATURE_WLAN_CH144
@@ -437,8 +437,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {60, 584}, {64, 584 },
     {100, SAP_TX_LEAKAGE_MIN},{104, SAP_TX_LEAKAGE_MIN},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 396},{120, 396 },
-    {124, 483},           {128, 483 },
+    {116, SAP_TX_LEAKAGE_AUTO_MIN},{120, SAP_TX_LEAKAGE_AUTO_MIN},
+    {124, SAP_TX_LEAKAGE_AUTO_MIN},{128, SAP_TX_LEAKAGE_AUTO_MIN},
     {132, 553},           {136, 553 },
     {140, 568}
 #ifdef FEATURE_WLAN_CH144
@@ -453,9 +453,9 @@ tSapChanMatrixInfo ht40_chan[] =
     {60, 611}, {64, 611 },
     {100, 214},{104, 214},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
-    {116, 323},{120, 323},
-    {124, 494},{128, 494},
-    {132, 566},{136, 566 },
+    {116, SAP_TX_LEAKAGE_AUTO_MIN},{120, SAP_TX_LEAKAGE_AUTO_MIN},
+    {124, SAP_TX_LEAKAGE_AUTO_MIN},{128, SAP_TX_LEAKAGE_AUTO_MIN},
+    {132, SAP_TX_LEAKAGE_AUTO_MIN},{136, SAP_TX_LEAKAGE_AUTO_MIN},
     {140, 534}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
@@ -470,8 +470,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {100, 293},{104, 293},
     {108, SAP_TX_LEAKAGE_MIN},{112, SAP_TX_LEAKAGE_MIN},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 414},{128, 414},
-    {132, 533},{136, 533 },
+    {124, SAP_TX_LEAKAGE_AUTO_MIN},{128, SAP_TX_LEAKAGE_AUTO_MIN},
+    {132, SAP_TX_LEAKAGE_AUTO_MIN},{136, SAP_TX_LEAKAGE_AUTO_MIN},
     {140, 521}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
@@ -483,12 +483,12 @@ tSapChanMatrixInfo ht40_chan[] =
     {44, 624},            {48, 624 },
     {52, 634}, {56, 634 },
     {60, 611},            {64, 611 },
-    {100, 371},{104, 371},
+    {100, SAP_TX_LEAKAGE_AUTO_MIN},{104, SAP_TX_LEAKAGE_AUTO_MIN},
     {108, 217},{112, 217 },
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
-    {124, 309},{128, 309 },
-    {132, 412},{136, 412},
-    {140, 509}
+    {124, SAP_TX_LEAKAGE_AUTO_MIN},{128, SAP_TX_LEAKAGE_AUTO_MIN},
+    {132, SAP_TX_LEAKAGE_AUTO_MIN},{136, SAP_TX_LEAKAGE_AUTO_MIN},
+    {140, SAP_TX_LEAKAGE_AUTO_MIN}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
 #endif
@@ -499,12 +499,12 @@ tSapChanMatrixInfo ht40_chan[] =
     {44, 645},            {48, 645 },
     {52, 633}, {56, 633 },
     {60, 619}, {64, 619 },
-    {100, 467},           {104, 467},
+    {100, SAP_TX_LEAKAGE_AUTO_MIN}, {104, SAP_TX_LEAKAGE_AUTO_MIN},
     {108, 291},{112, 291},
     {116, SAP_TX_LEAKAGE_MIN},{120, SAP_TX_LEAKAGE_MIN},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 434},{136, 434},
-    {140, 514}
+    {132, SAP_TX_LEAKAGE_AUTO_MIN},{136, SAP_TX_LEAKAGE_AUTO_MIN},
+    {140, SAP_TX_LEAKAGE_AUTO_MIN}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
 #endif
@@ -515,12 +515,12 @@ tSapChanMatrixInfo ht40_chan[] =
     {44, 668},            {48, 668 },
     {52, 595}, {56, 595 },
     {60, 622}, {64, 622 },
-    {100, 494},           {104, 494},
-    {108, 393},{112, 393},
+    {100, SAP_TX_LEAKAGE_AUTO_MIN}, {104, SAP_TX_LEAKAGE_AUTO_MIN},
+    {108, SAP_TX_LEAKAGE_AUTO_MIN}, {112, SAP_TX_LEAKAGE_AUTO_MIN},
     {116, 225},{120, 225},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
-    {132, 327},{136, 327},
-    {140, 468}
+    {132, SAP_TX_LEAKAGE_AUTO_MIN},{136, SAP_TX_LEAKAGE_AUTO_MIN},
+    {140, SAP_TX_LEAKAGE_AUTO_MIN}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
 #endif
@@ -531,12 +531,12 @@ tSapChanMatrixInfo ht40_chan[] =
     {44, 664},            {48, 664 },
     {52, 651}, {56, 651 },
     {60, 643}, {64, 643 },
-    {100, 502},           {104, 502 },
-    {108, 503},{112, 503},
+    {100, SAP_TX_LEAKAGE_AUTO_MIN}, {104, SAP_TX_LEAKAGE_AUTO_MIN},
+    {108, SAP_TX_LEAKAGE_AUTO_MIN}, {112, SAP_TX_LEAKAGE_AUTO_MIN},
     {116, 293},{120, 293},
     {124, SAP_TX_LEAKAGE_MIN},{128, SAP_TX_LEAKAGE_MIN},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
-    {140, 415}
+    {140, SAP_TX_LEAKAGE_AUTO_MIN}
 #ifdef FEATURE_WLAN_CH144
     ,{144, SAP_TX_LEAKAGE_MIN}
 #endif
@@ -548,8 +548,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {52, 662}, {56, 662 },
     {60, 609}, {64, 609 },
     {100, 538},{104, 538 },
-    {108, 534},           {112, 534 },
-    {116, 428},{120, 428},
+    {108, SAP_TX_LEAKAGE_AUTO_MIN}, {112, SAP_TX_LEAKAGE_AUTO_MIN},
+    {116, SAP_TX_LEAKAGE_AUTO_MIN}, {120, SAP_TX_LEAKAGE_AUTO_MIN},
     {124, 247},{128, 247},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
     {140, SAP_TX_LEAKAGE_MIN }
@@ -564,8 +564,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {52, 671}, {56, 671 },
     {60, 658}, {64, 658 },
     {100, 504},{104, 504 },
-    {108, 513},{112, 513 },
-    {116, 428},           {120, 428},
+    {108, SAP_TX_LEAKAGE_AUTO_MIN},{112, SAP_TX_LEAKAGE_AUTO_MIN},
+    {116, SAP_TX_LEAKAGE_AUTO_MIN},{120, SAP_TX_LEAKAGE_AUTO_MIN},
     {124, 289},{128, 289},
     {132, SAP_TX_LEAKAGE_MIN},{136, SAP_TX_LEAKAGE_MIN},
     {140, SAP_TX_LEAKAGE_MIN }
@@ -581,8 +581,8 @@ tSapChanMatrixInfo ht40_chan[] =
     {60, 658},            {64, 658 },
     {100, 601},{104, 601 },
     {108, 545},{112, 545 },
-    {116, 529},           {120, 529},
-    {124, 432},{128, 432},
+    {116, SAP_TX_LEAKAGE_AUTO_MIN}, {120, SAP_TX_LEAKAGE_AUTO_MIN},
+    {124, SAP_TX_LEAKAGE_AUTO_MIN}, {128, SAP_TX_LEAKAGE_AUTO_MIN},
     {132, 262},{136, 262},
     {140, SAP_TX_LEAKAGE_MIN }
 #ifdef FEATURE_WLAN_CH144
@@ -596,10 +596,10 @@ tSapChanMatrixInfo ht40_chan[] =
 tSapChanMatrixInfo ht20_chan[] =
 {
  {52,
-   {{36, 398},            {40, 286},
+   {{36, SAP_TX_LEAKAGE_AUTO_MIN}, {40, 286},
     {44, 225},            {48, 121},
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
-    {60, 300},            {64, 335},
+    {60, 300},            {64, SAP_TX_LEAKAGE_AUTO_MIN},
     {100, 637},           {104, SAP_TX_LEAKAGE_MAX},
     {108, SAP_TX_LEAKAGE_MAX},{112, SAP_TX_LEAKAGE_MAX},
     {116, SAP_TX_LEAKAGE_MAX},{120, SAP_TX_LEAKAGE_MAX},
@@ -612,8 +612,8 @@ tSapChanMatrixInfo ht20_chan[] =
 }},
 
  {56,
-   {{36, 468},            {40, 413},
-    {44, 374},            {48, 206},
+   {{36, 468},            {40, SAP_TX_LEAKAGE_AUTO_MIN},
+    {44, SAP_TX_LEAKAGE_AUTO_MIN}, {48, 206},
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
@@ -629,7 +629,7 @@ tSapChanMatrixInfo ht20_chan[] =
 
  {60,
    {{36, 507},            {40, 440},
-    {44, 431},            {48, 313},
+    {44, SAP_TX_LEAKAGE_AUTO_MIN}, {48, 313},
     {52, SAP_TX_LEAKAGE_MIN}, {56, SAP_TX_LEAKAGE_MIN},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, SAP_TX_LEAKAGE_MAX},{104, SAP_TX_LEAKAGE_MAX},
@@ -645,7 +645,7 @@ tSapChanMatrixInfo ht20_chan[] =
 
  {64,
    {{36, 516},            {40, 520},
-    {44, 506},            {48, 424},
+    {44, 506},            {48, SAP_TX_LEAKAGE_AUTO_MIN},
     {52, 301},            {56, 258},
     {60, SAP_TX_LEAKAGE_MIN}, {64, SAP_TX_LEAKAGE_MIN},
     {100, 620},           {104, 617},
@@ -665,8 +665,8 @@ tSapChanMatrixInfo ht20_chan[] =
     {52, 612},            {56, 592},
     {60, 590},            {64, 582},
     {100, SAP_TX_LEAKAGE_MIN},{104, 131},
-    {108, 327},           {112, 380},
-    {116, 462},           {120, 522},
+    {108, SAP_TX_LEAKAGE_AUTO_MIN}, {112, SAP_TX_LEAKAGE_AUTO_MIN},
+    {116, SAP_TX_LEAKAGE_AUTO_MIN}, {120, 522},
     {124, 571},           {128, 589},
     {132, 593},           {136, 598},
     {140, 594}

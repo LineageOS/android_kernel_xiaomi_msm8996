@@ -183,6 +183,13 @@ typedef struct sSapChSelParams {
 #define SAP_TX_LEAKAGE_THRES 310
 #define SAP_TX_LEAKAGE_MAX  1000
 #define SAP_TX_LEAKAGE_MIN  200
+/*
+ * This define is used to block additional channels
+ * based on the new data gathered on auto platforms
+ * and to differentiate the leakage data among different
+ * platforms.
+ */
+#define SAP_TX_LEAKAGE_AUTO_MIN  210
 
 typedef struct sSapTxLeakInfo {
     v_U8_t  leak_chan;      /* leak channel */
