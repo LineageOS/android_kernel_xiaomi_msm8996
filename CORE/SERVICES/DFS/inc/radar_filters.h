@@ -128,7 +128,7 @@ struct dfs_pulse dfs_mkk4_radars[] = {
 };
 
 struct dfs_bin5pulse dfs_fcc_bin5pulses[] = {
-        {4, 28, 105, 12, 22, 5},
+        {4, 28, 105, 12, 17, 5},
 };
 
 struct dfs_bin5pulse dfs_jpn_bin5pulses[] = {
