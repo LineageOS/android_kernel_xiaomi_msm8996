@@ -3073,19 +3073,22 @@ static int wlan_hdd_cfg80211_extscan_set_significant_change(struct wiphy *wiphy,
 }
 
 static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
-                                        struct wireless_dev *wdev,
-                                        const void *data,
-                                        int data_len)
+                                                     struct wireless_dev *wdev,
+                                                     const void *data,
+                                                     int data_len)
 {
-    hdd_context_t *pHddCtx                               = wiphy_priv(wiphy);
-    tANI_U32 ChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
-    tANI_U8 numChannels                                  = 0;
+    hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    uint32_t chan_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
+    uint8_t num_channels  = 0;
+    uint8_t num_chan_new  = 0;
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     tANI_U32 requestId, maxChannels;
     tWifiBand wifiBand;
     eHalStatus status;
     struct sk_buff *reply_skb;
-    tANI_U8 i;
+    tANI_U8 i, j, k;
     int retval;
 
     ENTER();
@@ -3136,29 +3139,53 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     hddLog(LOG1, FL("Max channels %d"), maxChannels);
 
     status = sme_GetValidChannelsByBand((tHalHandle)(pHddCtx->hHal),
-                                        wifiBand, ChannelList,
-                                        &numChannels);
+                                        wifiBand, chan_list,
+                                        &num_channels);
     if (eHAL_STATUS_SUCCESS != status) {
         hddLog(LOGE,
            FL("sme_GetValidChannelsByBand failed (err=%d)"), status);
         return -EINVAL;
     }
 
-    numChannels = VOS_MIN(numChannels, maxChannels);
-    hddLog(LOG1, FL("Number of channels %d"), numChannels);
-    for (i = 0; i < numChannels; i++)
-        hddLog(LOG1, "Channel: %u ", ChannelList[i]);
+    num_channels = VOS_MIN(num_channels, maxChannels);
+
+    num_chan_new = num_channels;
+
+    /* remove the indoor only channels if iface is SAP */
+    if (WLAN_HDD_SOFTAP == pAdapter->device_mode) {
+        num_chan_new = 0;
+        for (i = 0; i < num_channels; i++)
+            for (j = 0; j < IEEE80211_NUM_BANDS; j++) {
+
+                if (wiphy->bands[j] == NULL)
+                    continue;
+
+                for (k = 0; k < wiphy->bands[j]->n_channels; k++) {
+                    if ((chan_list[i] ==
+                         wiphy->bands[j]->channels[k].center_freq) &&
+                        (!(wiphy->bands[j]->channels[k].flags &
+                           IEEE80211_CHAN_INDOOR_ONLY))) {
+                        chan_list[num_chan_new] = chan_list[i];
+                        num_chan_new++;
+                    }
+                }
+            }
+    }
+
+    hddLog(LOG1, FL("Number of channels %d"), num_chan_new);
+    for (i = 0; i < num_chan_new; i++)
+        hddLog(LOG1, "Channel: %u ", chan_list[i]);
 
     reply_skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
-                                                    sizeof(u32) * numChannels +
+                                                    sizeof(u32) * num_chan_new +
                                                     NLMSG_HDRLEN);
 
     if (reply_skb) {
         if (nla_put_u32(reply_skb,
                         QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_NUM_CHANNELS,
-                        numChannels) ||
+                        num_chan_new) ||
             nla_put(reply_skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_CHANNELS,
-                    sizeof(u32) * numChannels, ChannelList)) {
+                    sizeof(u32) * num_chan_new, chan_list)) {
             hddLog(LOGE, FL("nla put fail"));
             kfree_skb(reply_skb);
             return -EINVAL;
