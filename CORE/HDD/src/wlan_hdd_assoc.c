@@ -53,6 +53,7 @@
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
 #include "wlan_hdd_power.h"
+#include "wlan_hdd_trace.h"
 #include <linux/ieee80211.h>
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
@@ -3605,6 +3606,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
+    MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_RX_SME_MSG,
+                          pAdapter->sessionId, roamStatus));
     switch( roamStatus )
     {
         case eCSR_ROAM_SESSION_OPENED:

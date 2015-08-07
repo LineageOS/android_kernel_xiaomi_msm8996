@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -31,6 +31,7 @@
 #include "macTrace.h"
 
 #define NO_SESSION 0xFF
+#define TRACE_CODE_HDD_RX_SME_MSG 0xFF
 
 enum {
 	TRACE_CODE_HDD_OPEN_REQUEST,
