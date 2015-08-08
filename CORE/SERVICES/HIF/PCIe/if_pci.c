@@ -726,12 +726,17 @@ wlan_tasklet(unsigned long data)
         return;
     }
 irq_handled:
+    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
     if (LEGACY_INTERRUPTS(sc) && (sc->ol_sc->target_status !=
                                   OL_TRGET_STATUS_RESET) &&
            (!adf_os_atomic_read(&sc->pci_link_suspended))) {
 
-        if (sc->hif_init_done == TRUE)
-            A_TARGET_ACCESS_BEGIN(hif_state->targid);
+        if (sc->hif_init_done == TRUE) {
+            if(HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE) < 0) {
+                adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+                return;
+            }
+        }
 
         /* Enable Legacy PCI line interrupts */
         A_PCI_WRITE32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS),
@@ -739,9 +744,14 @@ irq_handled:
         /* IMPORTANT: this extra read transaction is required to flush the posted write buffer */
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
 
-        if (sc->hif_init_done == TRUE)
-           A_TARGET_ACCESS_END(hif_state->targid);
+        if (sc->hif_init_done == TRUE) {
+             if(HIFTargetSleepStateAdjust(hif_state->targid, TRUE, FALSE) < 0) {
+                   adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+                   return;
+               }
+        }
     }
+    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
     adf_os_atomic_set(&sc->ce_suspend, 1);
 }
 
