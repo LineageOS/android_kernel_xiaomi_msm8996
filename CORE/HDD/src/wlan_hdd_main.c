@@ -11469,7 +11469,7 @@ static void hdd_init_offloaded_packets_ctx(hdd_context_t *hdd_ctx)
 
 	mutex_init(&hdd_ctx->op_ctx.op_lock);
 	for (i = 0; i < MAXNUM_PERIODIC_TX_PTRNS; i++) {
-		hdd_ctx->op_ctx.op_table[i].request_id = 0;
+		hdd_ctx->op_ctx.op_table[i].request_id = MAX_REQUEST_ID;
 		hdd_ctx->op_ctx.op_table[i].pattern_id = i;
 	}
 }
