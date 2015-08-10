@@ -3686,6 +3686,9 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			!hdd_ipa->sta_connected)
 #endif
 			&& (VOS_TRUE == hdd_ipa->uc_loaded)
+			&& (VOS_FALSE == hdd_ipa->resource_unloading)
+			&& (HDD_IPA_UC_NUM_WDI_PIPE ==
+				hdd_ipa->activated_fw_pipe)
 		) {
 			hdd_ipa_uc_handle_last_discon(hdd_ipa);
 		}
