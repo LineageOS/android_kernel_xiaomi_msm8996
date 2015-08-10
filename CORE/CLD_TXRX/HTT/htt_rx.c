@@ -2506,8 +2506,6 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
                 index = NBUF_MAP_ID(netbuf);
                 if (index < HTT_RX_RING_BUFF_DBG_LIST) {
                     pdev->rx_buff_list[index].in_use = false;
-                    pdev->rx_buff_list[index].paddr = 0;
-                    pdev->rx_buff_list[index].vaddr = NULL;
                 }
             }
 #endif
@@ -2749,9 +2747,11 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         pdev->rx_buff_list = adf_os_mem_alloc(pdev->osdev,
                                          HTT_RX_RING_BUFF_DBG_LIST *
                                          sizeof(struct rx_buf_debug));
-        if (!pdev->rx_buff_list) {
+        if (!pdev->rx_buff_list)
             adf_os_print("HTT: debug RX buffer allocation failed\n");
-        }
+        else
+            adf_os_mem_set(pdev->rx_buff_list, 0, HTT_RX_RING_BUFF_DBG_LIST *
+                                                  sizeof(struct rx_buf_debug));
 #endif
         htt_rx_ring_fill_n(pdev, pdev->rx_ring.fill_level);
 
