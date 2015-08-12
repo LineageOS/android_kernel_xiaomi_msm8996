@@ -3899,6 +3899,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_MCC_CHANNEL_AVOIDANCE_MAX ),
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+   REG_VARIABLE(CFG_SAP_P2P_11AC_OVERRIDE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, sap_p2p_11ac_override,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_P2P_11AC_OVERRIDE_DEFAULT,
+                CFG_SAP_P2P_11AC_OVERRIDE_MIN,
+                CFG_SAP_P2P_11AC_OVERRIDE_MAX),
+
    REG_VARIABLE(CFG_ENABLE_NON_DFS_CHAN_ON_RADAR, WLAN_PARAM_Integer,
                 hdd_config_t, prefer_non_dfs_on_radar,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4259,6 +4266,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
              "Name = [sap_channel_avoidance] value = [%u]",
              pHddCtx->cfg_ini->sap_channel_avoidance);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Name = [%s] value = [%u]", CFG_SAP_P2P_11AC_OVERRIDE_NAME,
+             pHddCtx->cfg_ini->sap_p2p_11ac_override);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSBandSwitchThreshold] value = [%u]", pHddCtx->cfg_ini->acsBandSwitchThreshold);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);

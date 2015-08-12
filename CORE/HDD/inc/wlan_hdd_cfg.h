@@ -2948,6 +2948,11 @@ enum dot11p_mode {
 #define CFG_SAP_MCC_CHANNEL_AVOIDANCE_DEFAULT    ( 0 )
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+#define CFG_SAP_P2P_11AC_OVERRIDE_NAME             "gAP11ACOverride"
+#define CFG_SAP_P2P_11AC_OVERRIDE_MIN              (0)
+#define CFG_SAP_P2P_11AC_OVERRIDE_MAX              (1)
+#define CFG_SAP_P2P_11AC_OVERRIDE_DEFAULT          (1)
+
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR           "gPreferNonDfsChanOnRadar"
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN       (0)
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX       (1)
@@ -3699,6 +3704,7 @@ typedef struct
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
    bool                        sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+   uint8_t                     sap_p2p_11ac_override;
    uint8_t                     prefer_non_dfs_on_radar;
    uint8_t                     inform_bss_rssi_raw;
    uint32_t                    tsf_gpio_pin;

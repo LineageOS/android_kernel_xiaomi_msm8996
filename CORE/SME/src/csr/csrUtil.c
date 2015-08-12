@@ -1594,7 +1594,7 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
         break;
      case eCSR_CFG_DOT11_MODE_11AC:
         if (IS_FEATURE_SUPPORTED_BY_FW(DOT11AC))
-             ret = WNI_CFG_DOT11_MODE_11AC_ONLY;
+             ret = WNI_CFG_DOT11_MODE_11AC;
         else
              ret = WNI_CFG_DOT11_MODE_11N;
        break;

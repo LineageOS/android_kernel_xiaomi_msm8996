@@ -8068,6 +8068,19 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	}
 	wlan_hdd_set_acs_ch_range(sap_config, ht_enabled, vht_enabled);
 
+	/* ACS override for android */
+	if (hdd_ctx->cfg_ini->sap_p2p_11ac_override && ht_enabled) {
+		hddLog(LOG1, FL("ACS Config override for 11AC"));
+		vht_enabled = 1;
+		sap_config->acs_cfg.hw_mode = eCSR_DOT11_MODE_11ac;
+		sap_config->acs_cfg.ch_width =
+					 hdd_ctx->cfg_ini->vhtChannelWidth;
+		/* No VHT80 in 2.4G so perform ACS accordingly */
+		if (sap_config->acs_cfg.end_ch <= 14 &&
+			sap_config->acs_cfg.ch_width == eHT_CHANNEL_WIDTH_80MHZ)
+			sap_config->acs_cfg.ch_width = eHT_CHANNEL_WIDTH_40MHZ;
+	}
+
 	hddLog(LOG1, FL("ACS Config for wlan%d: HW_MODE: %d ACS_BW: %d HT: %d VHT: %d START_CH: %d END_CH: %d"),
 		adapter->dev->ifindex, sap_config->acs_cfg.hw_mode,
 		ch_width, ht_enabled, vht_enabled,
@@ -11918,14 +11931,26 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 
-    /* Since P2P GO also follows start_bss and since p2p GO could not be
-     * configured to setup VHT channel width in wpa_supplicant, override
-     * wpa_supplicant configured vht channel width to driver configured
+    /* 11AC override in qcacld is introduced for following reasons:
+     * 1. P2P GO also follows start_bss and since p2p GO could not be configured
+     *    to setup VHT channel width in wpa_supplicant
+     * 2. Android UI does not provide advanced configuration options for SoftAP
+     *
+     * Default override enabled (for android). MDM shall disable this in ini
      */
-    if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac &&
-                               pHostapdAdapter->device_mode == WLAN_HDD_P2P_GO)
-        pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
+    if (iniConfig->sap_p2p_11ac_override &&
+                         (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n ||
+                         pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac ||
+                         pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)) {
+        hddLog(LOG1, FL("Start BSS Config override for 11AC"));
+        /* 11n only shall not be overridden since it may be set on purpose*/
+        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n)
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
 
+        /* For 2.4G ch width shall not be overridden due to hostapd obss */
+        if (pConfig->channel >= 36)
+            pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
+    }
 
     pConfig->vht_channel_width = pConfig->ch_width_orig;
 
