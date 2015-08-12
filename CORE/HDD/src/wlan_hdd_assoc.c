@@ -962,7 +962,8 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                                       GFP_KERNEL);
 
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                               FL("sent disconnected event to nl80211"));
+                   FL("sent disconnected event to nl80211, rssi: %d"),
+                   pAdapter->rssi);
         }
 
         if ((pHddCtx->isLoadInProgress != TRUE) &&
