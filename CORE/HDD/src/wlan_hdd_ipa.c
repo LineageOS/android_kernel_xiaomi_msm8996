@@ -3539,6 +3539,9 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 				"%s: Evt: %d, STA already disconnected",
 				msg_ex->name, meta.msg_type);
+#ifdef IPA_UC_OFFLOAD
+			vos_lock_acquire(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 			return -EINVAL;
 		}
 		hdd_ipa->sta_connected = 0;
