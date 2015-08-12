@@ -8623,20 +8623,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          //netif_tx_disable(pWlanDev);
          netif_carrier_off(pAdapter->dev);
 
-         if (WLAN_HDD_P2P_CLIENT == session_type ||
-                 WLAN_HDD_P2P_DEVICE == session_type) {
-             /* Initialize the work queue to defer the
-              * back to back RoC request */
-#ifdef CONFIG_CNSS
-             cnss_init_delayed_work(&pAdapter->roc_work,
-                                    hdd_p2p_roc_work_queue);
-#else
-#ifdef WLAN_OPEN_SOURCE
-             INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
-#endif
-#endif
-         }
-
 #ifdef QCA_LL_TX_FLOW_CT
          /* SAT mode default TX Flow control instance
           * This instance will be used for
@@ -8689,18 +8675,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          netif_carrier_off(pAdapter->dev);
 
          hdd_set_conparam( 1 );
-         if (WLAN_HDD_P2P_GO == session_type) {
-             /* Initialize the work queue to
-              * defer the back to back RoC request */
-#ifdef CONFIG_CNSS
-             cnss_init_delayed_work(&pAdapter->roc_work,
-                                    hdd_p2p_roc_work_queue);
-#else
-#ifdef WLAN_OPEN_SOURCE
-             INIT_DELAYED_WORK(&pAdapter->roc_work, hdd_p2p_roc_work_queue);
-#endif
-#endif
-         }
 
          break;
       }
@@ -9204,9 +9178,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          }
          if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION) {
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
-#ifdef WLAN_OPEN_SOURCE
-             cancel_delayed_work_sync(&pAdapter->roc_work);
-#endif
          }
 
 #ifdef WLAN_OPEN_SOURCE
@@ -9270,9 +9241,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          //Any softap specific cleanup here...
          if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
-#ifdef WLAN_OPEN_SOURCE
-             cancel_delayed_work_sync(&pAdapter->roc_work);
-#endif
          }
 
          hdd_set_sap_auth_offload(pAdapter, FALSE);
@@ -12354,9 +12322,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
 #ifdef CONFIG_CNSS
-   cnss_init_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
+   cnss_init_delayed_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
 #else
-   INIT_WORK(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
+   INIT_DELAYED_WORK(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
 #endif
 
    wlan_hdd_dcc_register_for_dcc_stats_event(pHddCtx);
