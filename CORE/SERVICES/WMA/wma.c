@@ -16385,8 +16385,9 @@ static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
 		goto fail;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
-	wdi_in_set_wmm_param(pdev, ol_tx_wmm_param);
-
+	if (pdev) {
+	    wdi_in_set_wmm_param(pdev, ol_tx_wmm_param);
+        }
 	return VOS_STATUS_SUCCESS;
 
 fail:

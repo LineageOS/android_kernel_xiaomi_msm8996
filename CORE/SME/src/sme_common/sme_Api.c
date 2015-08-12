@@ -16208,6 +16208,8 @@ bool sme_validate_sap_channel_switch(tHalHandle hal,
 	tCsrRoamSession *session = CSR_GET_SESSION(mac, session_id);
 	uint16_t intf_channel = 0;
 
+	if (!session)
+		return false;
 	session->ch_switch_in_progress = true;
 	status = sme_AcquireGlobalLock(&mac->sme);
 	if (HAL_STATUS_SUCCESS(status))	{

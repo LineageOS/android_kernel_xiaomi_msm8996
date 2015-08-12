@@ -65,6 +65,8 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 				    req->channel_count;
 				vdev->ocb_channel_info =
 					vos_mem_malloc(buf_size);
+				if (!vdev->ocb_channel_info)
+					return -ENOMEM;
 				vos_mem_zero(vdev->ocb_channel_info, buf_size);
 				for (i = 0; i < req->channel_count; i++) {
 					vdev->ocb_channel_info[i].chan_freq =

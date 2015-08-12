@@ -181,6 +181,9 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 		return -ENOENT;
 	}
 
+	if (!fw_entry) {
+		return A_ERROR;
+	}
 	fw_entry_size = fw_entry->size;
 	fw_entry_data = (unsigned char *)fw_entry->data;
 	binary_len = fw_entry_size;
@@ -1360,8 +1363,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 
 	        OS_MEMCPY(dbglog_data, &dbglog_hdr.dropped, 4);
-		wma->is_fw_assert = 1;
-	        (void)dbglog_parse_debug_logs(wma, dbglog_data, dbglog_buf.length + 4);
+                if (wma) {
+		    wma->is_fw_assert = 1;
+	            (void)dbglog_parse_debug_logs(wma, dbglog_data, dbglog_buf.length + 4);
+                }
 	    }
 
 	    adf_os_mem_free(dbglog_data);
