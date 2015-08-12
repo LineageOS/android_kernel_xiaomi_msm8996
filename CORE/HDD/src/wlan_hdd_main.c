@@ -9156,11 +9156,6 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
    ENTER();
 
-   if (pHddCtx->isLogpInProgress) {
-       hddLog(LOG1, FL("LOGP in Progress. Ignore!!!"));
-       return VOS_STATUS_E_FAILURE;
-   }
-
    hddLog(LOG1, FL("Disabling queues"));
    netif_tx_disable(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
