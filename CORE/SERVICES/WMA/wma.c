@@ -29483,7 +29483,6 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 #ifdef CONFIG_HL_SUPPORT
 			 /* display scheduler stats */
 			 wdi_in_display_stats(txrx_pdev, WLAN_SCHEDULER_STATS);
-			 wdi_in_display_stats(txrx_pdev, WLAN_TX_QUEUE_STATS);
 #endif
 		}
 	} else {
