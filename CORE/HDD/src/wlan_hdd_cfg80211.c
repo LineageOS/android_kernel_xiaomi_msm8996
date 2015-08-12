@@ -1247,24 +1247,43 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
     },
 };
 
-static int is_driver_dfs_capable(struct wiphy *wiphy,
-                                 struct wireless_dev *wdev,
-                                 const void *data,
-                                 int data_len)
+/**
+ * __is_driver_dfs_capable() - get driver DFS capability
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This function is called by userspace to indicate whether or not
+ * the driver supports DFS offload.
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int __is_driver_dfs_capable(struct wiphy *wiphy,
+				   struct wireless_dev *wdev,
+				   const void *data,
+				   int data_len)
 {
     u32 dfs_capability = 0;
     struct sk_buff *temp_skbuff;
     int ret_val;
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+
+    ENTER();
+
+    ret_val = wlan_hdd_validate_context(hdd_ctx);
+    if (ret_val)
+        return ret_val;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EPERM;
+    }
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
     defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
 #endif
-
-    if (VOS_FTM_MODE == hdd_get_conparam()) {
-        hddLog(LOGE, FL("Command not allowed in FTM mode"));
-        return -EINVAL;
-    }
 
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
                                                       NLMSG_HDRLEN);
@@ -1288,9 +1307,36 @@ static int is_driver_dfs_capable(struct wiphy *wiphy,
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
               "%s: dfs capability: buffer alloc fail", __func__);
-    return -1;
-
+    return -ENOMEM;
 }
+
+/**
+ * is_driver_dfs_capable() - get driver DFS capability
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This function is called by userspace to indicate whether or not
+ * the driver supports DFS offload.  This is an SSR-protected
+ * wrapper function.
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int is_driver_dfs_capable(struct wiphy *wiphy,
+				 struct wireless_dev *wdev,
+				 const void *data,
+				 int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __is_driver_dfs_capable(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 
 static int
 __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
