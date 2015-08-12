@@ -229,7 +229,9 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
     athdiag_procfs_remove();
 
 #ifndef TARGET_DUMP_FOR_NON_QC_PLATFORM
-    iounmap(sc->ol_sc->ramdump_base);
+    if (sc && sc->ol_sc && sc->ol_sc->ramdump_base){
+        iounmap(sc->ol_sc->ramdump_base);
+    }
 #endif
 
 #ifndef REMOVE_PKT_LOG

@@ -444,7 +444,9 @@ static INLINE A_STATUS HIFDevProcessTrailer(HIF_SDIO_DEVICE *pDev,
                     pBundledLookAheadRpt++;
                 }
 
-                *pNumLookAheads = i;
+                if (pNumLookAheads != NULL) {
+                    *pNumLookAheads = i;
+                }
             }
             break;
         default:
@@ -643,7 +645,8 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
 
     for(i = 0; !HTC_QUEUE_EMPTY(pRecvPktQueue) && i < HTC_MAX_MSG_PER_BUNDLE_RX; i++){
         pPacket = HTC_PACKET_DEQUEUE(pRecvPktQueue);
-        A_ASSERT(pPacket != NULL);
+        if (pPacket == NULL)
+            break;
         if (pPacket->PktInfo.AsRx.HTCRxFlags & HTC_RX_PKT_LAST_BUNDLED_PKT_HAS_ADDTIONAL_BLOCK)
             paddedLength = DEV_CALC_RECV_PADDED_LEN(pDev, pPacket->ActualLength)
                                                     + HIF_MBOX_BLOCK_SIZE;
@@ -840,7 +843,8 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
             if (0 == pktsFetched) {
                 /* dequeue one packet */
                 pPacket = HTC_PACKET_DEQUEUE(&recvPktQueue);
-                A_ASSERT(pPacket != NULL);
+                if (pPacket == NULL)
+                    break;
                 pPacket->Completion = NULL;
 
                 if (HTC_PACKET_QUEUE_DEPTH(&recvPktQueue) > 0) {
@@ -880,7 +884,8 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
             adf_nbuf_t netbuf;
 
             pPacket = HTC_PACKET_DEQUEUE(&syncCompletedPktsQueue);
-            A_ASSERT(pPacket != NULL);
+            if (pPacket == NULL)
+                break;
 
             NumLookAheads = 0;
             status = HIFDevProcessRecvHeader(pDev, pPacket, lookAheads,
@@ -927,6 +932,9 @@ static A_STATUS HIFDevServiceCPUInterrupt(HIF_SDIO_DEVICE *pDev)
     A_UINT8 regBuffer[4];
 
     AR_DEBUG_PRINTF(ATH_DEBUG_IRQ, ("CPU Interrupt\n"));
+    if (pDev == NULL)
+       return A_ERROR;
+
     cpu_int_status = pDev->IrqProcRegisters.cpu_int_status
             & pDev->IrqEnableRegisters.cpu_int_status_enable;
     A_ASSERT(cpu_int_status);

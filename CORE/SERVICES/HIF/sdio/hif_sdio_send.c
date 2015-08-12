@@ -129,6 +129,8 @@ A_STATUS HIFDevSendBuffer(HIF_SDIO_DEVICE *pDev, unsigned int transferID, a_uint
     } else {
         pSendContext = (struct HIFSendContext*)adf_os_mem_alloc(NULL,
                 sizeof(struct HIFSendContext) + paddedLength);
+        if (pSendContext == NULL)
+            return A_ERROR;
         pSendContext->bNewAlloc = TRUE;
     }
 
