@@ -1525,11 +1525,22 @@ wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
 	return ret;
 }
 
+/**
+ * __wlan_hdd_cfg80211_set_scanning_mac_oui() - set scan MAC
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * Set the MAC address that is to be used for scanning.
+ *
+ * Return:   Return the Success or Failure code.
+ */
 static int
-wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
-                                       struct wireless_dev *wdev,
-                                       const void *data,
-                                       int data_len)
+__wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
+					 struct wireless_dev *wdev,
+					 const void *data,
+					 int data_len)
 {
     tpSirScanMacOui pReqMsg   = NULL;
     hdd_context_t *pHddCtx    = wiphy_priv(wiphy);
@@ -1593,6 +1604,34 @@ wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
 fail:
     vos_mem_free(pReqMsg);
     return -EINVAL;
+}
+
+/**
+ * wlan_hdd_cfg80211_set_scanning_mac_oui() - set scan MAC
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * Set the MAC address that is to be used for scanning.  This is an
+ * SSR-protecting wrapper function.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
+				       struct wireless_dev *wdev,
+				       const void *data,
+				       int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_set_scanning_mac_oui(wiphy, wdev,
+						       data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static int
