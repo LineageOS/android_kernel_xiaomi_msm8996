@@ -35,6 +35,7 @@
 #include <sme_Api.h>
 #include <wlan_hdd_includes.h>
 #include "wlan_hdd_memdump.h"
+#include "vos_sched.h"
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
@@ -181,7 +182,7 @@ nla_put_failure:
 }
 
 /**
- * wlan_hdd_cfg80211_get_fw_mem_dump() - Get FW memory dump
+ * __wlan_hdd_cfg80211_get_fw_mem_dump() - Get FW memory dump
  * @wiphy:   pointer to wireless wiphy structure.
  * @wdev:    pointer to wireless_dev structure.
  * @data:    Pointer to the NL data.
@@ -192,9 +193,10 @@ nla_put_failure:
  *
  * Return:   0 on success, error number otherwise.
  */
-int wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
-					     struct wireless_dev *wdev,
-					     const void *data, int data_len)
+static int
+__wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
+				    struct wireless_dev *wdev,
+				    const void *data, int data_len)
 {
 	int status;
 	VOS_STATUS sme_status;
@@ -330,6 +332,31 @@ int wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
 			FL("Failed to send FW memory dump rsp to user space"));
 
 	return status;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_fw_mem_dump() - Get FW memory dump
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the NL data.
+ * @data_len:Length of @data
+ *
+ * This is called when wlan driver needs to get the firmware memory dump
+ * via vendor specific command.
+ *
+ * Return:   0 on success, error number otherwise.
+ */
+int wlan_hdd_cfg80211_get_fw_mem_dump(struct wiphy *wiphy,
+					     struct wireless_dev *wdev,
+					     const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_fw_mem_dump(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #define PROCFS_MEMDUMP_DIR "debug"
