@@ -14892,18 +14892,22 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
     struct cfg80211_scan_request *req = NULL;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+    hdd_context_t *pHddCtx = NULL;
     bool aborted = false;
     unsigned long rc;
     int ret = 0;
 
     ENTER();
-    ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
-        return ret;
+
+    if (!pAdapter || pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
+        hddLog(LOGE, FL("pAdapter is not valid!"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    if (!pHddCtx) {
+        hddLog(LOGE, FL("HDD context is not valid!"));
+        return eHAL_STATUS_FAILURE;
     }
 
     hddLog(VOS_TRACE_LEVEL_INFO,
