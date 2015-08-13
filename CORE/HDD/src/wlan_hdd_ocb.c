@@ -1333,7 +1333,7 @@ int wlan_hdd_cfg80211_ocb_start_timing_advert(struct wiphy *wiphy,
 }
 
 /**
- * wlan_hdd_cfg80211_ocb_stop_timing_advert() - Interface for the stop TA cmd
+ * __wlan_hdd_cfg80211_ocb_stop_timing_advert() - Interface for the stop TA cmd
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1341,10 +1341,11 @@ int wlan_hdd_cfg80211_ocb_start_timing_advert(struct wiphy *wiphy,
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
-					     struct wireless_dev *wdev,
-					     const void *data,
-					     int data_len)
+static int
+__wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+					   const void *data,
+					   int data_len)
 {
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device *dev = wdev->netdev;
@@ -1409,6 +1410,30 @@ int wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
 fail:
 	vos_mem_free(timing_advert);
 	return rc;
+}
+
+/**
+ * wlan_hdd_cfg80211_ocb_stop_timing_advert() - Interface for the stop TA cmd
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_ocb_stop_timing_advert(struct wiphy *wiphy,
+					     struct wireless_dev *wdev,
+					     const void *data,
+					     int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_ocb_stop_timing_advert(wiphy, wdev,
+							 data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
