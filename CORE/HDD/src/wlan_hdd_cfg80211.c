@@ -1067,13 +1067,55 @@ void wlan_hdd_cfg80211_nan_init(hdd_context_t *pHddCtx)
 
 #ifdef WLAN_FEATURE_APFIND
 /**
+ * __wlan_hdd_cfg80211_apfind_cmd() - set configuration to firmware
+ * @wiphy: pointer to wireless wiphy structure.
+ * @wdev: pointer to wireless_dev structure.
+ * @data: pointer to apfind configuration data.
+ * @data_len: the length in byte of apfind data.
+ *
+ * This is called when wlan driver needs to send APFIND configurations to
+ * firmware.
+ *
+ * Return: An error code or 0 on success.
+ */
+static int __wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
+					  struct wireless_dev *wdev,
+					  const void *data, int data_len)
+{
+    struct sme_ap_find_request_req  apfind_req;
+    VOS_STATUS      status;
+    int ret_val;
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+
+    ENTER();
+
+    ret_val = wlan_hdd_validate_context(hdd_ctx);
+    if (ret_val)
+        return ret_val;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EPERM;
+    }
+
+    apfind_req.request_data_len = data_len;
+    apfind_req.request_data = data;
+
+    status = sme_apfind_set_cmd(&apfind_req);
+    if (VOS_STATUS_SUCCESS != status) {
+        ret_val = -EIO;
+    }
+    return ret_val;
+}
+
+/**
  * wlan_hdd_cfg80211_apfind_cmd() - set configuration to firmware
  * @wiphy: pointer to wireless wiphy structure.
  * @wdev: pointer to wireless_dev structure.
  * @data: pointer to apfind configuration data.
  * @data_len: the length in byte of apfind data.
  *
- * This is called when wlan driver needs to send APFIND configuations to
+ * This is called when wlan driver needs to send APFIND configurations to
  * firmware.
  *
  * Return: An error code or 0 on success.
@@ -1082,23 +1124,13 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
                                         struct wireless_dev *wdev,
                                          const void *data, int data_len)
 {
-    struct sme_ap_find_request_req  apfind_req;
-    VOS_STATUS      status;
-    int ret_val = -EIO;
+	int ret;
 
-    if (VOS_FTM_MODE == hdd_get_conparam()) {
-        hddLog(LOGE, FL("Command not allowed in FTM mode"));
-        return -EINVAL;
-    }
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_apfind_cmd(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
 
-    apfind_req.request_data_len = data_len;
-    apfind_req.request_data = data;
-
-    status = sme_apfind_set_cmd(&apfind_req);
-    if (VOS_STATUS_SUCCESS == status) {
-        ret_val = 0;
-    }
-    return ret_val;
+	return ret;
 }
 #endif /* WLAN_FEATURE_APFIND */
 
