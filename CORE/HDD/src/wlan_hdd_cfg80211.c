@@ -7772,7 +7772,7 @@ start_acs:
 }
 
 /**
- * wlan_hdd_cfg80211_do_acs : CFG80211 handler fucntion for DO_ACS Vendor CMD
+ * __wlan_hdd_cfg80211_do_acs : CFG80211 handler fucntion for DO_ACS Vendor CMD
  * @wiphy:  Linux wiphy struct pointer
  * @wdev:   Linux wireless device struct pointer
  * @data:   ACS information from hostapd
@@ -7784,7 +7784,7 @@ start_acs:
  * Return: ACS procedure start status
  */
 
-static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 					struct wireless_dev *wdev,
 					const void *data, int data_len)
 {
@@ -7826,7 +7826,7 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status) {
 		hddLog(LOGE, FL("HDD context is not valid"));
-		goto out;
+		return status;
 	}
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	vos_mem_zero(&sap_config->acs_cfg, sizeof(struct sap_acs_cfg));
@@ -7936,6 +7936,32 @@ out:
 	clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
 
 	return status;
+}
+
+/**
+ * wlan_hdd_cfg80211_do_acs : CFG80211 handler fucntion for DO_ACS Vendor CMD
+ * @wiphy:  Linux wiphy struct pointer
+ * @wdev:   Linux wireless device struct pointer
+ * @data:   ACS information from hostapd
+ * @data_len: ACS information len
+ *
+ * This function handle DO_ACS Vendor command from hostapd, parses ACS config
+ * and starts ACS procedure.
+ *
+ * Return: ACS procedure start status
+ */
+
+static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
+				    struct wireless_dev *wdev,
+				    const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_do_acs(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
