@@ -1089,7 +1089,7 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 }
 
 /**
- * wlan_hdd_cfg80211_ocb_set_utc_time() - Interface for the set UTC time command
+ * __wlan_hdd_cfg80211_ocb_set_utc_time() - Interface for set UTC time command
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1097,10 +1097,10 @@ int wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
-				       struct wireless_dev *wdev,
-				       const void *data,
-				       int data_len)
+static int __wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
 {
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device *dev = wdev->netdev;
@@ -1182,6 +1182,29 @@ int wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
 
 	vos_mem_free(utc);
 	return rc;
+}
+
+/**
+ * wlan_hdd_cfg80211_ocb_set_utc_time() - Interface for the set UTC time command
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_ocb_set_utc_time(struct wiphy *wiphy,
+				       struct wireless_dev *wdev,
+				       const void *data,
+				       int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_ocb_set_utc_time(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
