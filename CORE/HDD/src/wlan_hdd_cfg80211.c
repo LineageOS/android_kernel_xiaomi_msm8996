@@ -8637,7 +8637,7 @@ qca_wlan_vendor_attr_policy[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
 };
 
 /**
- * wlan_hdd_cfg80211_get_link_properties() - This function is used to
+ * __wlan_hdd_cfg80211_get_link_properties() - This function is used to
  * get link properties like nss, rate flags and operating frequency for
  * the connection with the given peer.
  * @wiphy:    WIPHY structure pointer
@@ -8649,10 +8649,10 @@ qca_wlan_vendor_attr_policy[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
  *
  * Return: 0 on success and errno on failure
  */
-static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
-						 struct wireless_dev *wdev,
-						 const void *data,
-						 int data_len)
+static int __wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
+						   struct wireless_dev *wdev,
+						   const void *data,
+						   int data_len)
 {
 	hdd_context_t       *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device   *dev = wdev->netdev;
@@ -8790,6 +8790,34 @@ static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 	}
 
 	return cfg80211_vendor_cmd_reply(reply_skb);
+}
+
+/**
+ * wlan_hdd_cfg80211_get_link_properties() - This function is used to
+ * get link properties like nss, rate flags and operating frequency for
+ * the connection with the given peer.
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function return the above link properties on success.
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
+						 struct wireless_dev *wdev,
+						 const void *data,
+						 int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_link_properties(wiphy, wdev,
+						      data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
