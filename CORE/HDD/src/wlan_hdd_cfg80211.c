@@ -933,34 +933,75 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
 #endif /* FEATURE_WLAN_CH_AVOID || FEATURE_WLAN_FORCE_SAP_SCC */
 
 #ifdef WLAN_FEATURE_NAN
-/*
- * FUNCTION: wlan_hdd_cfg80211_nan_request
- * This is called when wlan driver needs to send vendor specific
- * nan request event.
+/**
+ * __wlan_hdd_cfg80211_nan_request() - handle NAN request
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This function is called by userspace to send a NAN request to
+ * firmware.
+ *
+ * Return: 0 on success, negative errno on failure
  */
-static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
-                                         struct wireless_dev *wdev,
-                                         const void *data,
-                                         int data_len)
+static int __wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+					   const void *data,
+					   int data_len)
 
 {
     tNanRequestReq nan_req;
     VOS_STATUS status;
-    int ret_val = -1;
+    int ret_val = -EINVAL;
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+
+    ENTER();
+
+    ret_val = wlan_hdd_validate_context(hdd_ctx);
+    if (ret_val)
+        return ret_val;
 
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
-        return -EINVAL;
+        return -EPERM;
     }
 
     nan_req.request_data_len = data_len;
     nan_req.request_data = data;
 
     status = sme_NanRequest(&nan_req);
-    if (VOS_STATUS_SUCCESS == status) {
-        ret_val = 0;
+    if (VOS_STATUS_SUCCESS != status) {
+        ret_val = -EINVAL;
     }
     return ret_val;
+}
+
+/**
+ * wlan_hdd_cfg80211_nan_request() - handle NAN request
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This function is called by userspace to send a NAN request to
+ * firmware.  This is an SSR-protected wrapper function.
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
+					 struct wireless_dev *wdev,
+					 const void *data,
+					 int data_len)
+
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_nan_request(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /*
