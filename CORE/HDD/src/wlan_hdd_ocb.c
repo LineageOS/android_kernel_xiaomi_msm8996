@@ -1656,7 +1656,7 @@ static void hdd_dcc_get_stats_callback(void *context_ptr, void *response_ptr)
 }
 
 /**
- * wlan_hdd_cfg80211_dcc_get_stats() - Interface for get dcc stats
+ * __wlan_hdd_cfg80211_dcc_get_stats() - Interface for get dcc stats
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1664,10 +1664,10 @@ static void hdd_dcc_get_stats_callback(void *context_ptr, void *response_ptr)
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
-				    struct wireless_dev *wdev,
-				    const void *data,
-				    int data_len)
+static int __wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
+					     struct wireless_dev *wdev,
+					     const void *data,
+					     int data_len)
 {
 	uint32_t channel_count = 0;
 	uint32_t request_array_len = 0;
@@ -1808,6 +1808,30 @@ end:
 	if (nl_resp)
 		kfree_skb(nl_resp);
 	return rc;
+}
+
+/**
+ * wlan_hdd_cfg80211_dcc_get_stats() - Interface for get dcc stats
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
+				    struct wireless_dev *wdev,
+				    const void *data,
+				    int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_dcc_get_stats(wiphy, wdev,
+						data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
