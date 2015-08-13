@@ -695,34 +695,11 @@ void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 	hdd_context_t *hdd_ctx =
 			container_of(work, hdd_context_t, rocReqWork);
 
-        if (0 != (wlan_hdd_validate_context(hdd_ctx))) {
-                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                FL("hdd_ctx is NULL"));
+        if (0 != (wlan_hdd_validate_context(hdd_ctx)))
                 return;
-        }
 
 
 	hddLog(LOG1, FL("RoC request timeout"));
-
-	spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
-	if (list_empty(&hdd_ctx->hdd_roc_req_q.anchor)) {
-		spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
-		return;
-	}
-	spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
-
-	/* If driver is busy then we can't run RoC */
-	if (hdd_ctx->isLoadInProgress || hdd_ctx->isUnloadInProgress ||
-	    hdd_isConnectionInProgress(hdd_ctx)) {
-		hddLog(LOGE,
-			FL("Wlan Load/Unload or Connection is in progress"));
-		return;
-	}
-
-	if (hdd_ctx->isLogpInProgress) {
-		hddLog(LOGE, FL("LOGP in Progress. Ignore!!!"));
-		return;
-	}
 
 	spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
 	while (!list_empty(&hdd_ctx->hdd_roc_req_q.anchor)) {
