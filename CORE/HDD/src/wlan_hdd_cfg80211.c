@@ -4610,7 +4610,7 @@ static int hdd_extscan_epno_fill_network_list(
 }
 
 /**
- * wlan_hdd_cfg80211_set_epno_list() - epno set network list
+ * __wlan_hdd_cfg80211_set_epno_list() - epno set network list
  * @wiphy: wiphy
  * @wdev: pointer to wireless dev
  * @data: data pointer
@@ -4621,10 +4621,10 @@ static int hdd_extscan_epno_fill_network_list(
  *
  * Return: 0 on success, error number otherwise
  */
-static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
-					   struct wireless_dev *wdev,
-					   const void *data,
-					   int data_len)
+static int __wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
+					     struct wireless_dev *wdev,
+					     const void *data,
+					     int data_len)
 {
 	struct wifi_epno_params *req_msg = NULL;
 	struct net_device *dev           = wdev->netdev;
@@ -4634,8 +4634,13 @@ static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 		QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1];
 	eHalStatus status;
 	uint32_t num_networks, len;
+	int ret_val;
 
 	ENTER();
+
+	ret_val = wlan_hdd_validate_context(hdd_ctx);
+	if (ret_val)
+		return ret_val;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -4696,6 +4701,33 @@ static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 fail:
 	vos_mem_free(req_msg);
 	return -EINVAL;
+}
+
+/**
+ * wlan_hdd_cfg80211_set_epno_list() - epno set network list
+ * @wiphy: wiphy
+ * @wdev: pointer to wireless dev
+ * @data: data pointer
+ * @data_len: data length
+ *
+ * This function reads the NL vendor attributes from %tb and
+ * fill in the epno request message.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+					   const void *data,
+					   int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_set_epno_list(wiphy, wdev,
+						data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
