@@ -1835,7 +1835,7 @@ int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
 }
 
 /**
- * wlan_hdd_cfg80211_dcc_clear_stats() - Interface for clear dcc stats cmd
+ * __wlan_hdd_cfg80211_dcc_clear_stats() - Interface for clear dcc stats cmd
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1843,10 +1843,10 @@ int wlan_hdd_cfg80211_dcc_get_stats(struct wiphy *wiphy,
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
-				      struct wireless_dev *wdev,
-				      const void *data,
-				      int data_len)
+static int __wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
+					       struct wireless_dev *wdev,
+					       const void *data,
+					       int data_len)
 {
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device *dev = wdev->netdev;
@@ -1900,6 +1900,30 @@ int wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
 	}
 
 	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_dcc_clear_stats() - Interface for clear dcc stats cmd
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_dcc_clear_stats(struct wiphy *wiphy,
+				      struct wireless_dev *wdev,
+				      const void *data,
+				      int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_dcc_clear_stats(wiphy, wdev,
+						  data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
