@@ -6762,7 +6762,7 @@ qca_wlan_vendor_get_wifi_info_policy[
 };
 
 /**
- * wlan_hdd_cfg80211_get_wifi_info() - Get the wifi driver related info
+ * __wlan_hdd_cfg80211_get_wifi_info() - Get the wifi driver related info
  * @wiphy:   pointer to wireless wiphy structure.
  * @wdev:    pointer to wireless_dev structure.
  * @data:    Pointer to the data to be passed via vendor interface
@@ -6774,7 +6774,7 @@ qca_wlan_vendor_get_wifi_info_policy[
  * Return:   Return the Success or Failure code.
  */
 static int
-wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
+__wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 		struct wireless_dev *wdev,
 		const void *data, int data_len)
 {
@@ -6835,6 +6835,32 @@ wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 	}
 
 	return cfg80211_vendor_cmd_reply(reply_skb);
+}
+
+/**
+ * wlan_hdd_cfg80211_get_wifi_info() - Get the wifi driver related info
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This is called when wlan driver needs to send wifi driver related info
+ * (driver/fw version) to the user space application upon request.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_wifi_info(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
