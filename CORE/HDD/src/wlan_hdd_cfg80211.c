@@ -8201,7 +8201,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 
 
 /**
- * wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
+ * __wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
  * vendor command
  *
  * @wiphy: wiphy device pointer
@@ -8213,7 +8213,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
  *
  * Return: EOK or other error codes.
  */
-static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 						    struct wireless_dev *wdev,
 						    const void *data,
 						    int data_len)
@@ -8282,6 +8282,34 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	}
 
 	return ret_val;
+}
+
+/**
+ * wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
+ * vendor command
+ *
+ * @wiphy: wiphy device pointer
+ * @wdev: wireless device pointer
+ * @data: Vendor command data buffer
+ * @data_len: Buffer length
+ *
+ * Handles QCA_WLAN_VENDOR_ATTR_CONFIG_MAX.
+ *
+ * Return: EOK or other error codes.
+ */
+static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
+						    struct wireless_dev *wdev,
+						    const void *data,
+						    int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_wifi_configuration_set(wiphy, wdev,
+							 data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #ifdef FEATURE_WLAN_TDLS
