@@ -6613,7 +6613,7 @@ static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /**
- * wlan_hdd_cfg80211_keymgmt_set_key() - Store the Keys in the driver session
+ * __wlan_hdd_cfg80211_keymgmt_set_key() - Store the Keys in the driver session
  * @wiphy:   pointer to wireless wiphy structure.
  * @wdev:    pointer to wireless_dev structure.
  * @data:    Pointer to the Key data
@@ -6624,7 +6624,7 @@ static int wlan_hdd_cfg80211_ll_stats_clear(struct wiphy *wiphy,
  *
  * Return:   Return the Success or Failure code.
  */
-static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
+static int __wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
 					struct wireless_dev *wdev,
 					const void *data, int data_len)
 {
@@ -6664,6 +6664,31 @@ static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
 	sme_RoamSetPSK_PMK(WLAN_HDD_GET_HAL_CTX(hdd_adapter_ptr),
 			hdd_adapter_ptr->sessionId, local_pmk, data_len);
 	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_keymgmt_set_key() - Store the Keys in the driver session
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the Key data
+ * @data_len:Length of the data passed
+ *
+ * This is called when wlan driver needs to save the keys received via
+ * vendor specific command.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_keymgmt_set_key(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 static const struct
