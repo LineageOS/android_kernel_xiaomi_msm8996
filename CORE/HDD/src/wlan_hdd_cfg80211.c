@@ -21373,9 +21373,18 @@ int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 }
 
 #ifdef QCA_HT_2040_COEX
-int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
-                                     struct net_device *dev,
-                                     struct cfg80211_chan_def *chandef)
+/**
+ * __wlan_hdd_cfg80211_set_ap_channel_width() - set ap channel bandwidth
+ * @wiphy: Pointer to wiphy
+ * @dev: Pointer to network device
+ * @chandef: Pointer to channel definition parameter
+ *
+ * Return: 0 for success, non-zero for failure
+ */
+static int
+__wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
+					 struct net_device *dev,
+					 struct cfg80211_chan_def *chandef)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
@@ -21447,6 +21456,28 @@ int wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     }
 
     return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_set_ap_channel_width() - set ap channel bandwidth
+ * @wiphy: Pointer to wiphy
+ * @dev: Pointer to network device
+ * @chandef: Pointer to channel definition parameter
+ *
+ * Return: 0 for success, non-zero for failure
+ */
+static int
+wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
+				       struct net_device *dev,
+				       struct cfg80211_chan_def *chandef)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_set_ap_channel_width(wiphy, dev, chandef);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 #endif
 
