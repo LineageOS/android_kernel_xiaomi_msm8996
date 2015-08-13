@@ -242,13 +242,6 @@ ifeq ($(CONFIG_ROME_IF),pci)
 	CONFIG_EXT_WOW := 1
 endif
 
-# Enable bus auto suspend for PCIe
-ifeq ($(CONFIG_ROME_IF),pci)
-    ifeq ($(CONFIG_CNSS),y)
-        CONFIG_BUS_AUTO_SUSPEND := 1
-    endif
-endif
-
 #Set this to 1 to catch erroneous Target accesses during debug.
 CONFIG_ATH_PCIE_ACCESS_DEBUG := 0
 
@@ -1332,7 +1325,7 @@ CDEFINES += -DFEATURE_WLAN_D0WOW
 endif
 
 # Flag to enable bus auto suspend
-ifeq ($(CONFIG_BUS_AUTO_SUSPEND), 1)
+ifeq ($(CONFIG_BUS_AUTO_SUSPEND), y)
 CDEFINES += -DFEATURE_RUNTIME_PM
 endif
 
