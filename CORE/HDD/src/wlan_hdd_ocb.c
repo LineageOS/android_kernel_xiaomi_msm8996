@@ -1953,7 +1953,7 @@ static void hdd_dcc_update_ndl_callback(void *context_ptr, void *response_ptr)
 }
 
 /**
- * wlan_hdd_cfg80211_dcc_update_ndl() - Interface for update dcc cmd
+ * __wlan_hdd_cfg80211_dcc_update_ndl() - Interface for update dcc cmd
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1961,10 +1961,10 @@ static void hdd_dcc_update_ndl_callback(void *context_ptr, void *response_ptr)
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
-				     struct wireless_dev *wdev,
-				     const void *data,
-				     int data_len)
+static int __wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
+					      struct wireless_dev *wdev,
+					      const void *data,
+					      int data_len)
 {
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device *dev = wdev->netdev;
@@ -2081,6 +2081,30 @@ end:
 	context.magic = 0;
 	spin_unlock(&hdd_context_lock);
 	return rc;
+}
+
+/**
+ * wlan_hdd_cfg80211_dcc_update_ndl() - Interface for update dcc cmd
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
+				     struct wireless_dev *wdev,
+				     const void *data,
+				     int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_dcc_update_ndl(wiphy, wdev,
+						 data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
