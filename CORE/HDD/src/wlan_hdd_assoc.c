@@ -4011,6 +4011,17 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                                          eSME_FULL_PWR_NEEDED_BY_HDD);
                     }
                 }
+                if ((pHddCtx) &&
+                     FULL_POWER == pmcGetPmcState(pHddCtx->hHal) &&
+                     VOS_TRUE == pHddStaCtx->hdd_ReassocScenario) {
+                     hddLog(LOG1,
+                           FL("Device in full power, Stop and start traffic timer for roaming"));
+                     pmcStopTrafficTimer(pHddCtx->hHal);
+
+                     if (pmcStartTrafficTimer(pHddCtx->hHal,
+                         TRAFFIC_TIMER_ROAMING) != eHAL_STATUS_SUCCESS)
+                         hddLog(LOGP, FL("Cannot start traffic timer"));
+                }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
                 if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult) {
                     pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
