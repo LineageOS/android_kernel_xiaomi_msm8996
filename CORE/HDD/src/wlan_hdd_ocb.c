@@ -1464,7 +1464,7 @@ static void hdd_ocb_get_tsf_timer_callback(void *context_ptr,
 }
 
 /**
- * wlan_hdd_cfg80211_ocb_get_tsf_timer() - Interface for get TSF timer cmd
+ * __wlan_hdd_cfg80211_ocb_get_tsf_timer() - Interface for get TSF timer cmd
  * @wiphy: pointer to the wiphy
  * @wdev: pointer to the wdev
  * @data: The netlink data
@@ -1472,10 +1472,11 @@ static void hdd_ocb_get_tsf_timer_callback(void *context_ptr,
  *
  * Return: 0 on success.
  */
-int wlan_hdd_cfg80211_ocb_get_tsf_timer(struct wiphy *wiphy,
-					struct wireless_dev *wdev,
-					const void *data,
-					int data_len)
+static int
+__wlan_hdd_cfg80211_ocb_get_tsf_timer(struct wiphy *wiphy,
+				      struct wireless_dev *wdev,
+				      const void *data,
+				      int data_len)
 {
 	struct sk_buff *nl_resp = 0;
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
@@ -1579,6 +1580,30 @@ end:
 	if (nl_resp)
 		kfree_skb(nl_resp);
 	return rc;
+}
+
+/**
+ * wlan_hdd_cfg80211_ocb_get_tsf_timer() - Interface for get TSF timer cmd
+ * @wiphy: pointer to the wiphy
+ * @wdev: pointer to the wdev
+ * @data: The netlink data
+ * @data_len: The length of the netlink data in bytes
+ *
+ * Return: 0 on success.
+ */
+int wlan_hdd_cfg80211_ocb_get_tsf_timer(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					const void *data,
+					int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_ocb_get_tsf_timer(wiphy, wdev,
+						    data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 /**
