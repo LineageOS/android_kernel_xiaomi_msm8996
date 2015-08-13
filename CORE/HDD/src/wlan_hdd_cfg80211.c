@@ -8435,7 +8435,7 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_FEATURES_SUPPORTED
 
 /**
- * wlan_hdd_cfg80211_get_tdls_capabilities() - Provide TDLS Capabilites.
+ * __wlan_hdd_cfg80211_get_tdls_capabilities() - Provide TDLS Capabilites.
  * @wiphy:    WIPHY structure pointer
  * @wdev:     Wireless device structure pointer
  * @data:     Pointer to the data received
@@ -8445,14 +8445,15 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
  *
  * Return: 0 on success and errno on failure
  */
-static int wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
-						struct wireless_dev *wdev,
-						const void *data,
-						int data_len)
+static int
+__wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
+					  struct wireless_dev *wdev,
+					  const void *data,
+					  int data_len)
 {
-	eHalStatus status;
+	int status;
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
-	struct sk_buff *skb = NULL;
+	struct sk_buff *skb;
 	uint32_t set = 0;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
@@ -8461,10 +8462,8 @@ static int wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
 	}
 
 	status = wlan_hdd_validate_context(hdd_ctx);
-	if (eHAL_STATUS_SUCCESS != status) {
-		hddLog(LOGE, FL("HDD context is not valid"));
-		return -EINVAL;
-	}
+	if (status)
+		return status;
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, (2 * sizeof(u32)) +
 						   NLMSG_HDRLEN);
@@ -8503,6 +8502,32 @@ fail:
 	return -EINVAL;
 }
 
+/**
+ * wlan_hdd_cfg80211_get_tdls_capabilities() - Provide TDLS Capabilites.
+ * @wiphy:    WIPHY structure pointer
+ * @wdev:     Wireless device structure pointer
+ * @data:     Pointer to the data received
+ * @data_len: Length of the data received
+ *
+ * This function provides TDLS capabilities
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int
+wlan_hdd_cfg80211_get_tdls_capabilities(struct wiphy *wiphy,
+					struct wireless_dev *wdev,
+					const void *data,
+					int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_tdls_capabilities(wiphy, wdev,
+							data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
 #endif
 
 static const struct
