@@ -5069,7 +5069,7 @@ void wlan_hdd_cfg80211_set_feature(uint8_t *feature_flags, uint8_t feature)
 }
 
 /**
- * wlan_hdd_cfg80211_get_features() - Get the Driver Supported features
+ * __wlan_hdd_cfg80211_get_features() - Get the Driver Supported features
  * @wiphy:   pointer to wireless wiphy structure.
  * @wdev:    pointer to wireless_dev structure.
  * @data:    Pointer to the data to be passed via vendor interface
@@ -5081,20 +5081,25 @@ void wlan_hdd_cfg80211_set_feature(uint8_t *feature_flags, uint8_t feature)
  * Return:   Return the Success or Failure code.
  */
 static int
-wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
+__wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 		struct wireless_dev *wdev,
 		const void *data, int data_len)
 {
 	struct sk_buff *skb = NULL;
 	uint8_t feature_flags[(NUM_QCA_WLAN_VENDOR_FEATURES + 7) / 8] = {0};
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	int ret_val;
 	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+
+	ret_val = wlan_hdd_validate_context(pHddCtx);
+	if (ret_val)
+		return ret_val;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
 		return -EINVAL;
 	}
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 	if (pHddCtx->cfg_ini->isRoamOffloadEnabled) {
 		hddLog(LOG1, FL("Key Mgmt Offload is supported"));
 		wlan_hdd_cfg80211_set_feature (feature_flags,
@@ -5120,6 +5125,33 @@ wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
 nla_put_failure:
 	kfree_skb(skb);
 	return -EINVAL;
+}
+
+/**
+ * wlan_hdd_cfg80211_get_features() - Get the Driver Supported features
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * This is called when wlan driver needs to send supported feature set to
+ * supplicant upon a request/query from the supplicant.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_get_features(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_get_features(wiphy, wdev,
+					       data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
 }
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
