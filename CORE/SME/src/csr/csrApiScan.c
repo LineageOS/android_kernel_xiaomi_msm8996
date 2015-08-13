@@ -6318,7 +6318,8 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
     tANI_U32 index = 0;
     tANI_U32 new_index = 0;
     eNVChannelEnabledType NVchannel_state;
-    uint8_t skip_dfs_chnl = pMac->roam.configParam.initial_scan_no_dfs_chnl;
+    bool skip_dfs_chnl = pMac->roam.configParam.initial_scan_no_dfs_chnl ||
+            !pMac->scan.fEnableDFSChnlScan;
 
     do
     {
