@@ -5009,7 +5009,7 @@ static int wlan_hdd_cfg80211_set_passpoint_list(struct wiphy *wiphy,
 }
 
 /**
- * wlan_hdd_cfg80211_reset_passpoint_list() - reset passpoint network list
+ * __wlan_hdd_cfg80211_reset_passpoint_list() - reset passpoint network list
  * @wiphy: wiphy
  * @wdev: pointer to wireless dev
  * @data: data pointer
@@ -5019,10 +5019,10 @@ static int wlan_hdd_cfg80211_set_passpoint_list(struct wiphy *wiphy,
  *
  * Return: 0 on success, error number otherwise
  */
-static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
-						struct wireless_dev *wdev,
-						const void *data,
-						int data_len)
+static int __wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
+						    struct wireless_dev *wdev,
+						    const void *data,
+						    int data_len)
 {
 	struct wifi_passpoint_req *req_msg = NULL;
 	struct net_device *dev             = wdev->netdev;
@@ -5030,8 +5030,13 @@ static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
 	hdd_context_t *hdd_ctx             = wiphy_priv(wiphy);
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1];
 	eHalStatus status;
+	int ret;
 
 	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (ret)
+		return ret;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -5078,6 +5083,31 @@ fail:
 	return -EINVAL;
 }
 
+/**
+ * wlan_hdd_cfg80211_reset_passpoint_list() - reset passpoint network list
+ * @wiphy: wiphy
+ * @wdev: pointer to wireless dev
+ * @data: data pointer
+ * @data_len: data length
+ *
+ * This function resets passpoint networks list
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_reset_passpoint_list(wiphy, wdev,
+						       data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
 #endif /* FEATURE_WLAN_EXTSCAN */
 
 /**
