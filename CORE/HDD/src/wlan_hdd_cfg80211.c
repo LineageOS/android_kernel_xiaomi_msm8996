@@ -20696,11 +20696,15 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
                                         void *data, int len)
 {
     struct nlattr *tb[WLAN_HDD_TM_ATTR_MAX + 1];
-    int err = 0;
-#ifdef FEATURE_WLAN_LPHB
+    int err;
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+#ifdef FEATURE_WLAN_LPHB
     eHalStatus smeStatus;
 #endif /* FEATURE_WLAN_LPHB */
+
+    err = wlan_hdd_validate_context(pHddCtx);
+    if (err)
+       return err;
 
     err = nla_parse(tb, WLAN_HDD_TM_ATTR_MAX, data, len, wlan_hdd_tm_policy);
     if (err) {
