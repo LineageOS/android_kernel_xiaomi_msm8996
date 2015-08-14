@@ -1,0 +1,28 @@
+Simple MSM thermal driver (MSM_THERMAL_SIMPLE)
+
+MSM_THERMAL_SIMPLE is a kernel platform driver which regulates thermal conditions
+on the device in the absence of an equivalent userspace daemon. The goal of
+MSM_THERMAL_SIMPLE is to prevent the temperature of the system from exceeding
+a thermal limit at which it cannot operate. The MSM_THERMAL_SIMPLE driver polls
+an appropriate ADC channel, and reduces the maximum CPU frequency allowed in steps,
+to limit power/thermal output when a threshold temperature is crossed. It restores
+the maximum CPU frequency allowed in the same stepwise fashion when the threshold
+temperature is cleared.
+
+The devicetree representation of the MSM_THERMAL_SIMPLE block should be:
+
+Required properties
+
+- compatible: "qcom,msm-thermal-simple"
+- qcom,thermal-vadc: The phandle to the VADC device to use
+- qcom,adc-channel: The ADC channel to poll from on the VADC device; a full
+		list of valid channels is available in include/linux/qpnp/qpnp-adc.h,
+		inside the qpnp_vadc_channels enumeration.
+
+Example:
+
+	qcom,msm-thermal-simple {
+		compatible = "qcom,msm-thermal-simple";
+		qcom,thermal-vadc = <&pm8941_vadc>;
+		qcom,adc-channel = <178>;
+	};
