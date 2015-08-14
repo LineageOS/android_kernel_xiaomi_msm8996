@@ -64,11 +64,6 @@
                 ((request->request & HIF_WRITE)&& \
                 (request->address >= 0x1000 && request->address < 0x1FFFF))
 #endif
-unsigned int mmcbusmode = 0;
-module_param(mmcbusmode, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(mmcbusmode, "Set MMC driver Bus Mode: 1-SDR12, 2-SDR25, 3-SDR50, 4-DDR50, 5-SDR104");
-EXPORT_SYMBOL(mmcbusmode);
-
 unsigned int mmcbuswidth = 0;
 module_param(mmcbuswidth, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(mmcbuswidth, "Set MMC driver Bus Width: 1-1Bit, 4-4Bit, 8-8Bit");
@@ -730,99 +725,6 @@ A_STATUS ReinitSDIO(HIF_DEVICE *device)
     sdio_claim_host(func);
 
     do {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32))
-        /* 2.6.32 kernel does part of the SDIO initalization upon resume */
-        A_BOOL lt_2_6_32 = (LINUX_VERSION_CODE<KERNEL_VERSION(2,6,32));
-        if (lt_2_6_32) {
-            A_UINT32 resp;
-            A_UINT16 rca;
-            A_UINT32 i;
-            int bit = fls(host->ocr_avail) - 1;
-            /* emulate the mmc_power_up(...) */
-            host->ios.vdd = bit;
-            host->ios.chip_select = MMC_CS_DONTCARE;
-            host->ios.bus_mode = MMC_BUSMODE_OPENDRAIN;
-            host->ios.power_mode = MMC_POWER_UP;
-            host->ios.bus_width = MMC_BUS_WIDTH_1;
-            host->ios.timing = MMC_TIMING_LEGACY;
-            host->ops->set_ios(host, &host->ios);
-            /*
-             * This delay should be sufficient to allow the power supply
-             * to reach the minimum voltage.
-             */
-            msleep(2);
-
-            host->ios.clock = host->f_min;
-            host->ios.power_mode = MMC_POWER_ON;
-            host->ops->set_ios(host, &host->ios);
-
-            /*
-             * This delay must be at least 74 clock sizes, or 1 ms, or the
-             * time required to reach a stable voltage.
-             */
-            msleep(2);
-
-            /* Issue CMD0. Goto idle state */
-            host->ios.chip_select = MMC_CS_HIGH;
-            host->ops->set_ios(host, &host->ios);
-            msleep(1);
-            err = IssueSDCommand(device, MMC_GO_IDLE_STATE, 0, (MMC_RSP_NONE | MMC_CMD_BC), NULL);
-            host->ios.chip_select = MMC_CS_DONTCARE;
-            host->ops->set_ios(host, &host->ios);
-            msleep(1);
-            host->use_spi_crc = 0;
-
-            if (err) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD0 failed : %d \n",err));
-                break;
-            }
-
-            if (!host->ocr) {
-                /* Issue CMD5, arg = 0 */
-                err = IssueSDCommand(device, SD_IO_SEND_OP_COND, 0, (MMC_RSP_R4 | MMC_CMD_BCR), &resp);
-                if (err) {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD5 failed : %d \n",err));
-                    break;
-                }
-                host->ocr = resp;
-            }
-
-            /* Issue CMD5, arg = ocr. Wait till card is ready  */
-            for (i=0;i<100;i++) {
-                err = IssueSDCommand(device, SD_IO_SEND_OP_COND, host->ocr, (MMC_RSP_R4 | MMC_CMD_BCR), &resp);
-                if (err) {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD5 failed : %d \n",err));
-                    break;
-                }
-                if (resp & MMC_CARD_BUSY) {
-                    break;
-                }
-                msleep(10);
-            }
-
-            if ((i == 100) || (err)) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: card in not ready : %d %d \n",i,err));
-                break;
-            }
-
-            /* Issue CMD3, get RCA */
-            err = IssueSDCommand(device, SD_SEND_RELATIVE_ADDR, 0, MMC_RSP_R6 | MMC_CMD_BCR, &resp);
-            if (err) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD3 failed : %d \n",err));
-                break;
-            }
-            rca = resp >> 16;
-            host->ios.bus_mode = MMC_BUSMODE_PUSHPULL;
-            host->ops->set_ios(host, &host->ios);
-
-            /* Issue CMD7, select card  */
-            err = IssueSDCommand(device, MMC_SELECT_CARD, (rca << 16), MMC_RSP_R1 | MMC_CMD_AC, NULL);
-            if (err) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("ReinitSDIO: CMD7 failed : %d \n",err));
-                break;
-            }
-        }
-#endif
         /* Enable high speed */
         if (card->host->caps & MMC_CAP_SD_HIGHSPEED) {
             AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("ReinitSDIO: Set high speed mode\n"));
@@ -1318,10 +1220,7 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
 */
         {
             A_UINT32 clock, clock_set = 12500000;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)
-            unsigned int bus_speed = 0, timing = 0;
-            unsigned char speed = 0;
-#endif
+
             sdio_claim_host(func);
 
             /* force driver strength to type D */
@@ -1509,69 +1408,8 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             if (debugcccr) {
                HIFDumpCCCR(device);
             }
-            // Set MMC Bus Mode: 1-SDR12, 2-SDR25, 3-SDR50, 4-DDR50, 5-SDR104
-            if (mmcbusmode > 0) {
-                printk("host caps:0x%08X, card_sd3_bus_mode:0x%08X\n", (unsigned int)func->card->host->caps, (unsigned int)func->card->sw_caps.sd3_bus_mode);
-                if (mmcbusmode == 5 && (func->card->host->caps & MMC_CAP_UHS_SDR104) &&
-                        ((func->card->sw_caps.sd3_bus_mode & SD_MODE_UHS_SDR104) || forcecard)) {
-                    bus_speed = SDIO_SPEED_SDR104;
-                    timing = MMC_TIMING_UHS_SDR104;
-                    func->card->sw_caps.uhs_max_dtr = UHS_SDR104_MAX_DTR;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("%s: Set MMC bus mode to SDR104. \n", __func__));
-                } else if (mmcbusmode == 4 && (func->card->host->caps & MMC_CAP_UHS_DDR50) &&
-                        ((func->card->sw_caps.sd3_bus_mode & SD_MODE_UHS_DDR50) || forcecard)) {
-                    bus_speed = SDIO_SPEED_DDR50;
-                    timing = MMC_TIMING_UHS_DDR50;
-                    func->card->sw_caps.uhs_max_dtr = UHS_DDR50_MAX_DTR;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("%s: Set MMC bus mode to DDR50. \n", __func__));
-                } else if (mmcbusmode == 3 && (func->card->host->caps & (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50)) &&
-                        ((func->card->sw_caps.sd3_bus_mode & SD_MODE_UHS_SDR50) || forcecard)) {
-                    bus_speed = SDIO_SPEED_SDR50;
-                    timing = MMC_TIMING_UHS_SDR50;
-                    func->card->sw_caps.uhs_max_dtr = UHS_SDR50_MAX_DTR;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("%s: Set MMC bus mode to SDR50. \n", __func__));
-                } else if (mmcbusmode == 2 && (func->card->host->caps &
-                                (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR25)) &&
-                        ((func->card->sw_caps.sd3_bus_mode & SD_MODE_UHS_SDR25) || forcecard)) {
-                    bus_speed = SDIO_SPEED_SDR25;
-                    timing = MMC_TIMING_UHS_SDR25;
-                    func->card->sw_caps.uhs_max_dtr = UHS_SDR25_MAX_DTR;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("%s: Set MMC bus mode to SDR25. \n", __func__));
-                } else if (mmcbusmode == 1 && (func->card->host->caps & (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 |
-                                        MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12)) &&
-                        ((func->card->sw_caps.sd3_bus_mode & SD_MODE_UHS_SDR12) || forcecard)) {
-                    bus_speed = SDIO_SPEED_SDR12;
-                    timing = MMC_TIMING_UHS_SDR12;
-                    func->card->sw_caps.uhs_max_dtr = UHS_SDR12_MAX_DTR;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ANY,("%s: Set MMC bus mode to SDR12. \n", __func__));
-                } else {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: MMC bus mode %d not supported. \n", __func__, mmcbusmode));
-                    return ret = -1;
-                }
 
-                ret = Func0_CMD52ReadByte(func->card, SDIO_CCCR_SPEED, &speed);
-                if (ret){
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: CMD52 to get CCCR SPEED failed: %d, cap_uhs: %lu, sd3_bus_mode: %x \n", __func__, ret, (long unsigned int)(func->card->host->caps & (MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12)), func->card->sw_caps.sd3_bus_mode));
-                    return ret;
-                }
-
-                speed &= ~SDIO_SPEED_BSS_MASK;
-                speed |= bus_speed;
-                ret = Func0_CMD52WriteByte(func->card, SDIO_CCCR_SPEED, speed);
-                if (ret){
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR,("%s: CMD52 to set CCCR SPPED failed: %d \n", __func__, ret));
-                    return ret;
-                }
-
-                if (bus_speed) {
-                    device->host->ios.timing = timing;
-                    device->host->ops->set_ios(device->host, &device->host->ios);
-                //    mmc_set_clock(func->card->host, func->card->sw_caps.uhs_max_dtr);
-                }
-            }
-
-#endif  //#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0) */
             sdio_release_host(func);
         }
 
