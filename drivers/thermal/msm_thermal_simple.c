@@ -17,7 +17,7 @@
  *
  */
 
-#define pr_fmt(fmt) "MSM_THERMAL: " fmt
+#define pr_fmt(fmt) "msm-thermal: " fmt
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
@@ -43,7 +43,7 @@ struct throttle_policy {
 	unsigned int throttle_freq;
 };
 
-static DEFINE_PER_CPU(struct throttle_policy, throttle_info);
+static struct throttle_policy *t_pol;
 static struct delayed_work thermal_work;
 static struct workqueue_struct *thermal_wq;
 
@@ -66,12 +66,21 @@ struct thermal_config {
 
 static struct thermal_config *t_conf;
 
+static void update_online_cpu_policy(void)
+{
+	unsigned int cpu;
+
+	/* Trigger cpufreq notifier for online CPUs */
+	get_online_cpus();
+	for_each_online_cpu(cpu)
+		cpufreq_update_policy(cpu);
+	put_online_cpus();
+}
+
 static void msm_thermal_main(struct work_struct *work)
 {
 	struct qpnp_vadc_result result;
-	struct throttle_policy *t;
-	unsigned int cpu, old_throttle;
-	bool throttle_logged = false;
+	enum thermal_state old_throttle;
 	int64_t temp;
 	int ret;
 
@@ -82,102 +91,82 @@ static void msm_thermal_main(struct work_struct *work)
 	}
 
 	temp = result.physical;
+	old_throttle = t_pol->cpu_throttle;
 
-	get_online_cpus();
-	for_each_possible_cpu(cpu) {
-		t = &per_cpu(throttle_info, cpu);
-
-		old_throttle = t->cpu_throttle;
-
-		/* low trip point */
-		if ((temp >= t_conf->trip_low_degC) &&
+	/* Low trip point */
+	if ((temp >= t_conf->trip_low_degC) &&
 		(temp < t_conf->trip_mid_degC) &&
-			(t->cpu_throttle == UNTHROTTLE)) {
-			t->throttle_freq = t_conf->freq_low_KHz;
-			t->cpu_throttle = LOW_THROTTLE;
-		/* low clear point */
-		} else if ((temp <= t_conf->reset_low_degC) &&
-			(t->cpu_throttle > UNTHROTTLE)) {
-			t->cpu_throttle = UNTHROTTLE;
-		/* mid trip point */
-		} else if ((temp >= t_conf->trip_mid_degC) &&
-			(temp < t_conf->trip_high_degC) &&
-			(t->cpu_throttle < MID_THROTTLE)) {
-			t->throttle_freq = t_conf->freq_mid_KHz;
-			t->cpu_throttle = MID_THROTTLE;
-		/* mid clear point */
-		} else if ((temp < t_conf->reset_mid_degC) &&
-			(t->cpu_throttle > LOW_THROTTLE)) {
-			t->throttle_freq = t_conf->freq_low_KHz;
-			t->cpu_throttle = LOW_THROTTLE;
-		/* high trip point */
-		} else if ((temp >= t_conf->trip_high_degC) &&
-			(t->cpu_throttle < HIGH_THROTTLE)) {
-			t->throttle_freq = t_conf->freq_high_KHz;
-			t->cpu_throttle = HIGH_THROTTLE;
-		/* high clear point */
-		} else if ((temp < t_conf->reset_high_degC) &&
-			(t->cpu_throttle > MID_THROTTLE)) {
-			t->throttle_freq = t_conf->freq_mid_KHz;
-			t->cpu_throttle = MID_THROTTLE;
-		}
-
-		/* logging */
-		if ((t->cpu_throttle != old_throttle) && !throttle_logged) {
-			if (t->cpu_throttle)
-				pr_warn("Setting CPU to %uKHz! temp: %lluC\n",
-							t->throttle_freq, temp);
-			else
-				pr_warn("CPU unthrottled! temp: %lluC\n", temp);
-			throttle_logged = true;
-		}
-
-		/* trigger cpufreq notifier */
-		if (cpu_online(cpu))
-			cpufreq_update_policy(cpu);
+		(t_pol->cpu_throttle == UNTHROTTLE)) {
+		t_pol->throttle_freq = t_conf->freq_low_KHz;
+		t_pol->cpu_throttle = LOW_THROTTLE;
+	/* Low clear point */
+	} else if ((temp <= t_conf->reset_low_degC) &&
+		(t_pol->cpu_throttle > UNTHROTTLE)) {
+		t_pol->cpu_throttle = UNTHROTTLE;
+	/* Mid trip point */
+	} else if ((temp >= t_conf->trip_mid_degC) &&
+		(temp < t_conf->trip_high_degC) &&
+		(t_pol->cpu_throttle < MID_THROTTLE)) {
+		t_pol->throttle_freq = t_conf->freq_mid_KHz;
+		t_pol->cpu_throttle = MID_THROTTLE;
+	/* Mid clear point */
+	} else if ((temp < t_conf->reset_mid_degC) &&
+		(t_pol->cpu_throttle > LOW_THROTTLE)) {
+		t_pol->throttle_freq = t_conf->freq_low_KHz;
+		t_pol->cpu_throttle = LOW_THROTTLE;
+	/* High trip point */
+	} else if ((temp >= t_conf->trip_high_degC) &&
+		(t_pol->cpu_throttle < HIGH_THROTTLE)) {
+		t_pol->throttle_freq = t_conf->freq_high_KHz;
+		t_pol->cpu_throttle = HIGH_THROTTLE;
+	/* High clear point */
+	} else if ((temp < t_conf->reset_high_degC) &&
+		(t_pol->cpu_throttle > MID_THROTTLE)) {
+		t_pol->throttle_freq = t_conf->freq_mid_KHz;
+		t_pol->cpu_throttle = MID_THROTTLE;
 	}
-	put_online_cpus();
+
+	/* Thermal state changed */
+	if (t_pol->cpu_throttle != old_throttle) {
+		if (t_pol->cpu_throttle)
+			pr_warn("Setting CPU to %uKHz! temp: %lluC\n",
+						t_pol->throttle_freq, temp);
+		else
+			pr_warn("CPU unthrottled! temp: %lluC\n", temp);
+		/* Immediately enforce new thermal policy on online CPUs */
+		update_online_cpu_policy();
+	}
 
 reschedule:
-	queue_delayed_work_on(0, thermal_wq, &thermal_work,
+	queue_delayed_work(thermal_wq, &thermal_work,
 				msecs_to_jiffies(t_conf->sampling_ms));
 }
 
 static void unthrottle_all_cpus(void)
 {
-	struct throttle_policy *t;
-	unsigned int cpu;
-
-	get_online_cpus();
-	for_each_possible_cpu(cpu) {
-		t = &per_cpu(throttle_info, cpu);
-		t->cpu_throttle = UNTHROTTLE;
-		if (cpu_online(cpu))
-			cpufreq_update_policy(cpu);
-	}
-	put_online_cpus();
+	t_pol->cpu_throttle = UNTHROTTLE;
+	update_online_cpu_policy();
 }
 
 static int cpu_do_throttle(struct notifier_block *nb, unsigned long val, void *data)
 {
 	struct cpufreq_policy *policy = data;
-	struct throttle_policy *t = &per_cpu(throttle_info, policy->cpu);
 	unsigned int user_max = t_conf->user_maxfreq;
 
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
-	switch (t->cpu_throttle) {
+	switch (t_pol->cpu_throttle) {
 	case UNTHROTTLE:
 		policy->max = user_max ? user_max : policy->cpuinfo.max_freq;
 		break;
 	case LOW_THROTTLE:
 	case MID_THROTTLE:
 	case HIGH_THROTTLE:
-		if (user_max && (user_max < t->throttle_freq))
+		if (user_max && (user_max < t_pol->throttle_freq))
 			policy->max = user_max;
 		else
-			policy->max = t->throttle_freq;
+			policy->max = t_pol->throttle_freq;
 		break;
 	}
 
@@ -270,7 +259,7 @@ static ssize_t enabled_write(struct device *dev,
 	cancel_delayed_work_sync(&thermal_work);
 
 	if (data)
-		queue_delayed_work_on(0, thermal_wq, &thermal_work, 0);
+		queue_delayed_work(thermal_wq, &thermal_work, 0);
 	else
 		unthrottle_all_cpus();
 
@@ -357,6 +346,13 @@ static int msm_thermal_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	int ret;
 
+	t_pol = kzalloc(sizeof(struct throttle_policy), GFP_KERNEL);
+	if (!t_pol) {
+		pr_err("Failed to allocate thermal_policy struct\n");
+		ret = -ENOMEM;
+		goto err;
+	}
+
 	t_conf = kzalloc(sizeof(struct thermal_config), GFP_KERNEL);
 	if (!t_conf) {
 		pr_err("Failed to allocate thermal_config struct\n");
@@ -378,7 +374,8 @@ static int msm_thermal_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	thermal_wq = alloc_workqueue("msm_thermal_wq", WQ_HIGHPRI, 0);
+	thermal_wq = alloc_workqueue("msm_thermal_wq",
+					WQ_HIGHPRI | WQ_NON_REENTRANT, 0);
 	if (!thermal_wq) {
 		pr_err("Failed to allocate workqueue\n");
 		ret = -EFAULT;
