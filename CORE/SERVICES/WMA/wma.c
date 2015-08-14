@@ -19215,11 +19215,10 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 	host_credits = wmi_get_host_credits(wma->wmi_handle);
 	wmi_pending_cmds = wmi_get_pending_cmds(wma->wmi_handle);
 	if (host_credits < WMI_WOW_REQUIRED_CREDITS) {
-		WMA_LOGE("%s: Doesn't have enough credits to Post "
-			"WMI_D0_WOW_ENABLE_DISABLE_CMDID! "
-			"Credits: %d, pending_cmds: %d", __func__,
-			host_credits, wmi_pending_cmds);
-		goto error;
+		WMA_LOGE("%s: Not enough credits to post "
+				"WMI_D0_WOW_ENABLE_DISABLE_CMDID, try anyway! "
+				"Credits: %d, pending_cmds: %d", __func__,
+				host_credits, wmi_pending_cmds);
 	}
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
@@ -19323,10 +19322,9 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 
 #if !defined(HIF_SDIO)
 	if (!runtime_pm && host_credits < WMI_WOW_REQUIRED_CREDITS) {
-		WMA_LOGE("%s: Host Doesn't have enough credits to Post WMI_WOW_ENABLE_CMDID! "
-			"Credits:%d, pending_cmds:%d\n", __func__,
+		WMA_LOGE("%s: Not enough credits but trying to send WoW enable"
+			" anyway! Credits:%d, pending_cmds:%d\n", __func__,
 				host_credits, wmi_pending_cmds);
-		goto error;
 	}
 #endif
 
