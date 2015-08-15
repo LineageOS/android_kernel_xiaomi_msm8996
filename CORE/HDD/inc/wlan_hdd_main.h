@@ -1806,4 +1806,7 @@ static inline int wlan_hdd_get_cpu(void)
 	return 0;
 }
 #endif
+
+const char *hdd_get_fwpath(void);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

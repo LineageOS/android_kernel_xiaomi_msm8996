@@ -14578,6 +14578,19 @@ int wlan_hdd_get_cpu()
 }
 #endif
 
+/**
+ * hdd_get_fwpath() - get framework path
+ *
+ * This function is used to get the string written by
+ * userspace to start the wlan driver
+ *
+ * Return: string
+ */
+const char *hdd_get_fwpath(void)
+{
+	return fwpath.string;
+}
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
