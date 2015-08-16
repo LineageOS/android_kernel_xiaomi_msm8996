@@ -18840,11 +18840,14 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 #endif
 #ifdef FEATURE_WLAN_SCAN_PNO
 	case WOW_REASON_NLOD:
-		wake_lock_duration = WMA_PNO_WAKE_LOCK_TIMEOUT;
 		node = &wma->interfaces[wake_info->vdev_id];
 		if (node) {
 			WMA_LOGD("NLO match happened");
 			node->nlo_match_evt_received = TRUE;
+
+			vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
+					      WMA_PNO_MATCH_WAKE_LOCK_TIMEOUT,
+					      WIFI_POWER_EVENT_WAKELOCK_PNO);
 		}
 		break;
 
@@ -27070,7 +27073,7 @@ static int wma_nlo_match_evt_handler(void *handle, u_int8_t *event,
 		node->nlo_match_evt_received = TRUE;
 
 	vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
-				      WMA_PNO_WAKE_LOCK_TIMEOUT,
+				      WMA_PNO_MATCH_WAKE_LOCK_TIMEOUT,
 				      WIFI_POWER_EVENT_WAKELOCK_PNO);
 
 	return 0;
@@ -27105,6 +27108,8 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		nlo_event->vdev_id);
 		goto skip_pno_cmp_ind;
 	}
+	vos_wake_lock_release(&wma->pno_wake_lock,
+			      WIFI_POWER_EVENT_WAKELOCK_PNO);
 
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc(
 					      sizeof(tSirScanOffloadEvent));
@@ -27112,6 +27117,9 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 		/* Posting scan completion msg would take scan cache result
 		 * from LIM module and update in scan cache maintained in SME.*/
 		WMA_LOGD("Posting Scan completion to umac");
+		vos_wake_lock_timeout_acquire(&wma->pno_wake_lock,
+				      WMA_PNO_SCAN_COMPLETE_WAKE_LOCK_TIMEOUT,
+				      WIFI_POWER_EVENT_WAKELOCK_PNO);
 		vos_mem_zero(scan_event, sizeof(tSirScanOffloadEvent));
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
 		scan_event->event = SCAN_EVENT_COMPLETED;
