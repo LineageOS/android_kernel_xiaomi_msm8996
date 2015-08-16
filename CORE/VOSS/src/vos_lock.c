@@ -680,3 +680,38 @@ VOS_STATUS vos_runtime_pm_allow_suspend(void)
 
 	return VOS_STATUS_SUCCESS;
 }
+
+/**
+ * vos_runtime_pm_prevent_suspend_timeout() - Prevent runtime suspend timeout
+ * msec:	Timeout in milliseconds
+ *
+ * Prevent runtime suspend with a timeout after which runtime suspend would be
+ * allowed. This API uses a single timer to allow the suspend and timer is
+ * modified if the timeout is changed before timer fires.
+ * If the timeout is less than autosuspend_delay then use mark_last_busy instead
+ * of starting the timer.
+ *
+ * It is wise to try not to use this API and correct the design if possible.
+ *
+ * Return: VOS_STATUS
+ */
+VOS_STATUS vos_runtime_pm_prevent_suspend_timeout(unsigned int msec)
+{
+	void *ol_sc;
+	int ret = 0;
+
+	ol_sc = vos_get_context(VOS_MODULE_ID_HIF,
+			vos_get_global_context(VOS_MODULE_ID_SYS, NULL));
+
+	if (ol_sc == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				"%s: HIF context is null!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+        ret = hif_pm_runtime_prevent_suspend_timeout(ol_sc, msec);
+	if (ret)
+		return VOS_STATUS_E_FAILURE;
+
+	return VOS_STATUS_SUCCESS;
+}
