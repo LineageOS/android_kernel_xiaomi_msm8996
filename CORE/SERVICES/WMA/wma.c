@@ -19782,7 +19782,7 @@ static void wma_unpause_vdev(tp_wma_handle wma) {
 
 static VOS_STATUS wma_resume_req(tp_wma_handle wma, bool runtime_pm)
 {
-	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	VOS_STATUS ret = VOS_STATUS_E_AGAIN;
 	u_int8_t ptrn_id;
 
 	if (runtime_pm)
@@ -19801,16 +19801,18 @@ skip_vdev_suspend:
 			runtime_pm ? " for runtime PM" : "",
 			wma->wow.wow_enable, wma->wow.wow_enable_cmd_sent);
 
-	if (!wma->wow.wow_enable) {
-		WMA_LOGD("WoW pattern not configured in FW during suspend,"
-				" skip delete!");
-		goto end;
-	}
-
 	if (wma->wow.wow_enable_cmd_sent) {
 		WMA_LOGD("Firmware is still in WoW mode, don't delete WoW"
 				" patterns");
-		goto end;
+		VOS_ASSERT(0);
+		return ret;
+	}
+
+	if (!wma->wow.wow_enable) {
+		WMA_LOGD("WoW pattern not configured in FW during suspend,"
+				" skip delete!");
+		ret = VOS_STATUS_SUCCESS;
+		goto pdev_resume;
 	}
 
 	/* Clear existing wow patterns in FW. */
@@ -19821,14 +19823,17 @@ skip_vdev_suspend:
 			goto end;
 	}
 
-	wma->wow.wow_enable = FALSE;
 end:
+	wma->wow.wow_enable = FALSE;
 	/* Reset the DTIM Parameters */
 	wma_set_resume_dtim(wma);
+pdev_resume:
+	wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
 	/* need to reset if hif_pci_suspend_fails */
 	wma_set_wow_bus_suspend(wma, 0);
 	/* unpause the vdev if left paused and hif_pci_suspend fails */
 	wma_unpause_vdev(wma);
+
 	return ret;
 }
 
@@ -19852,9 +19857,10 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	bool wps_enable = false;
 
 	if (wma->wow.wow_enable) {
-		WMA_LOGD("WoW config%s already fed to FW! skip it",
-				runtime_pm ? " for runtime suspend" : " ");
-		return ret;
+		WMA_LOGD("Already%s Fatal Error!",
+			runtime_pm ? " runtime suspended" : " cfg suspended");
+		VOS_BUG(0);
+		return VOS_STATUS_E_AGAIN;
 	}
 
 	/* Gather list of free ptrn id. This is needed while configuring
@@ -31511,7 +31517,6 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 {
 	vos_msg_t       vosMessage;
 	VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-	tp_wma_handle wma = (tp_wma_handle) handle;
 	int ret = 0;
 
 	vosMessage.bodyptr = NULL;
@@ -31521,7 +31526,6 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 	if (!VOS_IS_STATUS_SUCCESS(vosStatus))
 		ret = -EAGAIN;
 
-	wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
 	return ret;
 }
 
