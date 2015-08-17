@@ -789,6 +789,7 @@ typedef enum {
 
     /* enable/disable AP Authentication offload */
     WMI_SAP_OFL_ENABLE_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SAP_OFL),
+    WMI_SAP_SET_BLACKLIST_PARAM_CMDID,
 
     /** Out-of-context-of-BSS (OCB) commands */
     WMI_OCB_SET_CONFIG_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_OCB),
@@ -10207,6 +10208,17 @@ typedef struct {
     /** flags - wmi_sap_ofl_del_sta_flags */
     A_UINT32 flags;
 } wmi_sap_ofl_del_sta_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    /* Number of client failure connection attempt */
+    A_UINT32 num_retry;
+    /* Time in milliseconds to record the client's failure connection attempts */
+    A_UINT32 retry_allow_time_ms;
+    /* Time in milliseconds to drop the connection request if client is blacklisted */
+    A_UINT32 blackout_time_ms;
+} wmi_sap_set_blacklist_param_cmd_fixed_param;
 
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_apfind_cmd_param */
