@@ -4259,6 +4259,18 @@ eHalStatus sme_setMDNSResponse(tHalHandle hHal,
  */
 eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
                       struct tSirSapOffloadInfo *sap_auth_offload_info);
+
+eHalStatus sme_set_client_block_info(tHalHandle hHal,
+			struct sblock_info *client_block_info);
+
+#else
+
+static inline eHalStatus sme_set_client_block_info(tHalHandle hHal,
+			struct sblock_info *client_block_info)
+{
+	return eHAL_STATUS_FAILURE;
+}
+
 #endif /* SAP_AUTH_OFFLOAD */
 
 eHalStatus sme_set_tsfcb(tHalHandle hHal,

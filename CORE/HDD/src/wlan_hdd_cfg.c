@@ -3858,6 +3858,27 @@ REG_TABLE_ENTRY g_registry_table[] =
               hdd_config_t, sap_auth_offload_key,
               VAR_FLAGS_OPTIONAL,
               (void *) CFG_SAP_AUTH_OFL_KEY_DEFAULT ),
+
+   REG_VARIABLE( CFG_CONNECT_FAIL_COUNT_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, connect_fail_count,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_CONNECT_FAIL_COUNT_DEFAULT,
+              CFG_CONNECT_FAIL_COUNT_MIN,
+              CFG_CONNECT_FAIL_COUNT_MAX ),
+
+   REG_VARIABLE( CFG_CONNECT_FAIL_DURATION_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, connect_fail_duration,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_CONNECT_FAIL_DURATION_DEFAULT,
+              CFG_CONNECT_FAIL_DURATION_MIN,
+              CFG_CONNECT_FAIL_DURATION_MAX ),
+
+   REG_VARIABLE( CFG_CONNECT_BLOCK_DURATION_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, connect_block_duration,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_CONNECT_BLOCK_DURATION_DEFAULT,
+              CFG_CONNECT_BLOCK_DURATION_MIN,
+              CFG_CONNECT_BLOCK_DURATION_MAX ),
 #endif /* SAP_AUTH_OFFLOAD */
 
    REG_VARIABLE(CFG_DOT11P_MODE_NAME, WLAN_PARAM_Integer,

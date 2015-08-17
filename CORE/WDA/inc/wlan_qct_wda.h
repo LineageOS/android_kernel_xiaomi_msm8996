@@ -1025,6 +1025,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SAP_OFL_ADD_STA                   SIR_HAL_SAP_OFL_ADD_STA
 #define WDA_SAP_OFL_DEL_STA                   SIR_HAL_SAP_OFL_DEL_STA
 #define WDA_SET_SAP_AUTH_OFL                  SIR_HAL_SET_SAP_AUTH_OFL
+#define WDA_SET_CLIENT_BLOCK_INFO             SIR_HAL_SET_CLIENT_BLOCK_INFO
 #endif /* SAP_AUTH_OFFLOAD */
 
 #ifdef WLAN_FEATURE_APFIND

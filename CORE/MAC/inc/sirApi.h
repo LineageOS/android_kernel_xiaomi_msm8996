@@ -5942,6 +5942,23 @@ struct tSirSapOffloadInfo
 #endif /* SAP_AUTH_OFFLOAD */
 
 /**
+ * struct sblock_info - the basic block info structure
+ *
+ * @vdev_id: vdev id
+ * @reconnect_cnt: allowed connection fail count in duration
+ * @con_fail_duration: duration in which connection failure will be recorded
+ * @block_duration: duration in whcih client will be rejected to connect
+ *
+ * driver use this structure to configure fw client connect block info
+ */
+struct sblock_info {
+	uint32_t vdev_id;
+	uint32_t reconnect_cnt;
+	uint32_t con_fail_duration;
+	uint32_t block_duration;
+};
+
+/**
  * struct stsf - the basic stsf structure
  *
  * @vdev_id: vdev id

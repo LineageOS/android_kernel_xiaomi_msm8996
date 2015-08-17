@@ -899,6 +899,46 @@ end:
     vos_mem_free(sap_offload_info);
     return;
 }
+
+
+/**
+ * hdd_set_client_block_info - get client block info from ini file
+ * @padapter: hdd adapter pointer
+ *
+ * This function reads client block related info from ini file, these
+ * configurations will be sent to fw through wmi.
+ *
+ * Return: 0 on success, otherwise error value
+ */
+int hdd_set_client_block_info(hdd_adapter_t *padapter)
+{
+	hdd_context_t *phddctx = WLAN_HDD_GET_CTX(padapter);
+	struct sblock_info client_block_info;
+	eHalStatus status;
+
+	/* prepare the request to send to SME */
+	client_block_info.vdev_id = padapter->sessionId;
+	client_block_info.reconnect_cnt =
+				phddctx->cfg_ini->connect_fail_count;
+
+	client_block_info.con_fail_duration =
+				phddctx->cfg_ini->connect_fail_duration;
+
+	client_block_info.block_duration =
+				phddctx->cfg_ini->connect_block_duration;
+
+	status = sme_set_client_block_info(phddctx->hHal, &client_block_info);
+	if (eHAL_STATUS_FAILURE == status) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: sme_set_client_block_info!", __func__);
+		return -EIO;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+		"%s: sme_set_client_block_info success!", __func__);
+
+	return 0;
+}
 #endif /* SAP_AUTH_OFFLOAD */
 
 /**
@@ -6166,6 +6206,13 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     ENTER();
 
     hdd_set_sap_auth_offload(pAdapter, TRUE);
+
+    ret = hdd_set_client_block_info(pAdapter);
+    if (0 != ret) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: set client block info failed %d",
+            __func__, ret);
+    }
 
 #ifdef WLAN_FEATURE_MBSSID
     sapContext = WLANSAP_Open(pVosContext);

@@ -25340,6 +25340,7 @@ static int wma_get_mdns_status(tp_wma_handle wma_handle, A_UINT32 *pVdev_id)
 }
 #endif /* MDNS_OFFLOAD */
 
+
 #ifdef SAP_AUTH_OFFLOAD
 static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 				struct tSirSapOffloadInfo *sap_auth_offload_info)
@@ -25410,6 +25411,60 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 			sap_auth_offload_info->sap_auth_offload_enable,
 			sap_auth_offload_info->vdev_id);
 	return 0;
+}
+
+/**
+ * wma_process_client_block_info send wmi cmd of block info to fw.
+ *
+ * @wma_handle: wma handler
+ * @client_block_info: client block info struct pointer
+ *
+ * Return: Return VOS_STATUS
+ */
+static VOS_STATUS wma_process_client_block_info(tp_wma_handle wma_handle,
+				struct sblock_info *client_block_info)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_sap_set_blacklist_param_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(*cmd);
+	int ret;
+
+	if (!client_block_info)
+		return VOS_STATUS_E_FAULT;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed to allocate buffer",__func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_sap_set_blacklist_param_cmd_fixed_param *)wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_sap_set_blacklist_param_cmd_fixed_param));
+
+	cmd->vdev_id = client_block_info->vdev_id;
+	cmd->num_retry = client_block_info->reconnect_cnt;
+	cmd->retry_allow_time_ms = client_block_info->con_fail_duration;
+	cmd->blackout_time_ms = client_block_info->block_duration;
+
+	WMA_LOGD("Set Sap client block info vdev id=%u, reconnect_cnt=%u"
+			"con_fail_duration=%u, block_duration=%u",
+			cmd->vdev_id, cmd->num_retry,
+			cmd->retry_allow_time_ms, cmd->blackout_time_ms);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_SAP_SET_BLACKLIST_PARAM_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE("fail to semd WMI_SAP_SET_BLACKLIST_PARAM_CMDID");
+		wmi_buf_free(buf);
+		vos_status = VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
 }
 #endif /* SAP_AUTH_OFFLOAD */
 
@@ -26646,6 +26701,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_SAP_AUTH_OFL:
 			wma_process_sap_auth_offload(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_CLIENT_BLOCK_INFO:
+			wma_process_client_block_info(wma_handle, msg->bodyptr);
+			if (msg->bodyptr)
+				vos_mem_free(msg->bodyptr);
 			break;
 #endif /* SAP_AUTH_OFFLOAD */
 #ifdef WLAN_FEATURE_APFIND

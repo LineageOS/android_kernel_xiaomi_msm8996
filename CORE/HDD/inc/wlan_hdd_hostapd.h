@@ -105,7 +105,14 @@ VOS_STATUS hdd_set_sap_ht2040_mode(hdd_adapter_t *pHostapdAdapter,
 #ifdef SAP_AUTH_OFFLOAD
 void hdd_set_sap_auth_offload(hdd_adapter_t *pHostapdAdapter,
                               bool enabled);
+
+int hdd_set_client_block_info(hdd_adapter_t *padapter);
 #else
+static inline int hdd_set_client_block_info(hdd_adapter_t *padapter)
+{
+	return 0;
+}
+
 static inline void
 hdd_set_sap_auth_offload(hdd_adapter_t *pHostapdAdapter, bool enabled)
 {

@@ -16095,6 +16095,66 @@ eHalStatus sme_set_sap_auth_offload(tHalHandle hHal,
     return (status);
 
 }
+
+/**
+ * sme_set_client_block_info set client block configuration.
+ *
+ * @hHal: hal layer handler
+ * @client_block_info: client block info struct pointer
+ *
+ * This function set client block info including reconnect_cnt,
+ * con_fail_duration, block_duration.
+ *
+ * Return: Return eHalStatus.
+ */
+eHalStatus sme_set_client_block_info(tHalHandle hHal,
+		struct sblock_info *pclient_block_info)
+{
+	vos_msg_t vosMessage;
+	eHalStatus status;
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+	VOS_STATUS vos_status;
+	struct sblock_info *client_block_info;
+
+	if (!pclient_block_info) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: invalid sblock_info pointer", __func__);
+		return eHAL_STATUS_INVALID_PARAMETER;
+	}
+
+	client_block_info = vos_mem_malloc(sizeof(*client_block_info));
+	if (NULL == client_block_info) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: fail to alloc sblock_info",
+			__func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	*client_block_info = *pclient_block_info;
+
+	status = sme_AcquireGlobalLock(&pMac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		vosMessage.type     = WDA_SET_CLIENT_BLOCK_INFO;
+		vosMessage.bodyptr  = client_block_info;
+
+		vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Not able to post msg to WDA!",
+				__func__);
+			vos_mem_free(client_block_info);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pMac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: sme_AcquireGlobalLock error!",
+				__func__);
+		vos_mem_free(client_block_info);
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
 #endif /* SAP_AUTH_OFFLOAD */
 
 #ifdef WLAN_FEATURE_APFIND
