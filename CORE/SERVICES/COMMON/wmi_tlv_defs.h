@@ -580,6 +580,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_wow_enable_icmpv6_na_flt_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_diag_event_log_config_fixed_param,
     WMITLV_TAG_STRUC_wmi_diag_event_log_supported_event_fixed_params,
+    WMITLV_TAG_STRUC_wmi_packet_filter_config_fixed_param,
+    WMITLV_TAG_STRUC_wmi_packet_filter_enable_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -803,8 +805,9 @@ typedef enum {
     OP(WMI_SOC_SET_HW_MODE_CMDID) \
     OP(WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID) \
     OP(WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID) \
-    OP(WMI_DIAG_EVENT_LOG_CONFIG_CMDID)
-
+    OP(WMI_DIAG_EVENT_LOG_CONFIG_CMDID) \
+    OP(WMI_PACKET_FILTER_CONFIG_CMDID) \
+    OP(WMI_PACKET_FILTER_ENABLE_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -2850,6 +2853,16 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SOC_HW_MODE_TRANSITION_EVENTID);
 #define WMITLV_TABLE_WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_response_event_fixed_param, wmi_soc_set_dual_mac_config_response_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID);
+
+/* Packet Filter configure command*/
+#define WMITLV_TABLE_WMI_PACKET_FILTER_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_packet_filter_config_fixed_param, WMI_PACKET_FILTER_CONFIG_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PACKET_FILTER_CONFIG_CMDID);
+
+/* Packet Filter enable command*/
+#define WMITLV_TABLE_WMI_PACKET_FILTER_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_packet_filter_enable_fixed_param, WMI_PACKET_FILTER_ENABLE_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PACKET_FILTER_ENABLE_CMDID);
 
 #ifdef __cplusplus
 }

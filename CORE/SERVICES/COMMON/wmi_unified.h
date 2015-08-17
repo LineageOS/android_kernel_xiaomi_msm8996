@@ -229,6 +229,7 @@ typedef enum {
     WMI_GRP_SAP_OFL,
     WMI_GRP_OCB,
     WMI_GRP_SOC,
+    WMI_GRP_PKT_FILTER,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -802,6 +803,11 @@ typedef enum {
     WMI_SOC_SET_PCL_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SOC),
     WMI_SOC_SET_HW_MODE_CMDID,
     WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID,
+
+    /* packet filter commands */
+    WMI_PACKET_FILTER_CONFIG_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_PKT_FILTER),
+    WMI_PACKET_FILTER_ENABLE_CMDID,
+
 } WMI_CMD_ID;
 
 typedef enum {
@@ -11179,6 +11185,84 @@ typedef struct {
     A_UINT32 status;
 
 } wmi_soc_set_dual_mac_config_response_event_fixed_param;
+
+#define WMI_PACKET_FILTER_COMPARE_DATA_LEN_DWORD     2
+#define WMI_PACKET_FILTER_MAX_CMP_PER_PACKET_FILTER  10
+
+typedef enum {
+    PACKET_FILTER_TYPE_INVALID = 0,
+    PACKET_FILTER_TYPE_FILTER_PKT,
+    PACKET_FILTER_TYPE_RESERVE_PKT, // not used
+    PACKET_FILTER_TYPE_MAX_ENUM_SIZE
+} WMI_PACKET_FILTER_FILTER_TYPE;
+
+typedef enum {
+    PACKET_FILTER_PROTO_TYPE_INVALID = 0,
+
+    /* L2 header */
+    PACKET_FILTER_PROTO_TYPE_MAC,
+    PACKET_FILTER_PROTO_TYPE_SNAP,
+
+    /* L3 header (EtherType) */
+    PACKET_FILTER_PROTO_TYPE_IPV4,
+    PACKET_FILTER_PROTO_TYPE_IPV6,
+
+    /* L4 header (IP protocol) */
+    PACKET_FILTER_PROTO_TYPE_UDP,
+    PACKET_FILTER_PROTO_TYPE_TCP,
+    PACKET_FILTER_PROTO_TYPE_ICMPV6,
+
+    PACKET_FILTER_PROTO_TYPE_MAX
+} WMI_PACKET_FILTER_PROTO_TYPE;
+
+typedef enum {
+    PACKET_FILTER_CMP_TYPE_INVALID = 0,
+    PACKET_FILTER_CMP_TYPE_EQUAL,
+    PACKET_FILTER_CMP_TYPE_MASK_EQUAL,
+    PACKET_FILTER_CMP_TYPE_NOT_EQUAL,
+    PACKET_FILTER_CMP_TYPE_MASK_NOT_EQUAL,
+    PACKET_FILTER_CMP_TYPE_ADDRTYPE,
+    PACKET_FILTER_CMP_TYPE_MAX
+} WMI_PACKET_FILTER_CMP_TYPE;
+
+typedef enum {
+    PACKET_FILTER_SET_INACTIVE = 0,
+    PACKET_FILTER_SET_ACTIVE
+} WMI_PACKET_FILTER_ACTION;
+
+typedef enum {
+    PACKET_FILTER_SET_DISABLE = 0,
+    PACKET_FILTER_SET_ENABLE
+} WMI_PACKET_FILTER_RUNTIME_ENABLE;
+
+typedef struct {
+    A_UINT32  proto_type;
+    A_UINT32  cmp_type;
+    A_UINT32  data_length; /* Length of the data to compare (units = bytes) */
+    A_UINT32  data_offset; /* from start of the respective frame header (
+units = bytes) */
+    A_UINT32  compareData[WMI_PACKET_FILTER_COMPARE_DATA_LEN_DWORD]; /* Data to compare, little-endian order */
+    A_UINT32  dataMask[WMI_PACKET_FILTER_COMPARE_DATA_LEN_DWORD]; /* Mask to be applied on rcvd packet data before compare, little-endian order */
+} WMI_PACKET_FILTER_PARAMS_TYPE;
+
+typedef struct {
+    A_UINT32  tlv_header;
+    A_UINT32  vdev_id;
+    A_UINT32  filter_id;
+    A_UINT32  filter_action; /* WMI_PACKET_FILTER_ACTION */
+    A_UINT32  filter_type;
+    A_UINT32  num_params; /* how many entries in paramsData are valid */
+    A_UINT32  coalesce_time; // not currently used - fill with 0x0
+    WMI_PACKET_FILTER_PARAMS_TYPE  paramsData[
+WMI_PACKET_FILTER_MAX_CMP_PER_PACKET_FILTER];
+} WMI_PACKET_FILTER_CONFIG_CMD_fixed_param;
+
+/* enable / disable all filters within the specified vdev */
+typedef struct {
+    A_UINT32  tlv_header;
+    A_UINT32  vdev_id;
+    A_UINT32  enable; /* WMI_PACKET_FILTER_RUNTIME_ENABLE */
+} WMI_PACKET_FILTER_ENABLE_CMD_fixed_param;
 
 /* ADD NEW DEFS HERE */
 
