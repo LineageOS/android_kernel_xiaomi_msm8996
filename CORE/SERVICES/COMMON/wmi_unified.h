@@ -8345,9 +8345,11 @@ typedef enum {
    WMI_LPI_STATUS_REQ_ABORTED = 4,
    /** Request Timed Out */
    WMI_LPI_STATUS_REQ_TIME_OUT = 5,
-   /** Medium Bussy, already there
+   /** Medium Busy, already there
     * is a scan is going on */
    WMI_LPI_STATUS_MEDIUM_BUSY = 6,
+   /** Extscan is the scan client whose scan complete event is triggered */
+   WMI_LPI_STATUS_EXTSCAN_CYCLE_AND_SCAN_REQ_COMPLETED = 7,
 }wmi_lpi_staus;
 
 typedef struct
