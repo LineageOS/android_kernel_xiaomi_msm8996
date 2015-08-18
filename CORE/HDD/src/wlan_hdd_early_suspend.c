@@ -559,15 +559,15 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
     hdd_context_t *pHddCtx;
     int status;
 
+    ENTER();
+
     if (pAdapter && pAdapter->dev == ndev &&
           (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
            pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
         pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
         status = wlan_hdd_validate_context(pHddCtx);
-        if (0 != status) {
-            hddLog(LOGE, FL("HDD context is invalid"));
+        if (0 != status)
             return NOTIFY_DONE;
-        }
 
         if (pHddCtx->cfg_ini->nEnableSuspend ==
                     WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER)
@@ -576,7 +576,7 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
              hddLog(LOG1, FL("Not scheduling ipv6 wq nEnableSuspend = %d"),
                               pHddCtx->cfg_ini->nEnableSuspend);
     }
-
+    EXIT();
     return NOTIFY_DONE;
 }
 
@@ -780,6 +780,7 @@ static void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable)
             }
         }
     }
+    EXIT();
     return;
 }
 
@@ -796,15 +797,12 @@ static void __hdd_ipv6_notifier_work_queue(struct work_struct *work)
     hdd_context_t *pHddCtx;
     int status;
 
-    hddLog(LOG1, FL("Reconfiguring NS Offload"));
+    ENTER();
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
-    {
-        hddLog(LOGE, FL("HDD context is invalid"));
         return;
-    }
 
     if ( VOS_FALSE == pHddCtx->sus_res_mcastbcast_filter_valid)
     {
@@ -825,6 +823,7 @@ static void __hdd_ipv6_notifier_work_queue(struct work_struct *work)
         if (pHddCtx->cfg_ini->fhostNSOffload)
             hdd_conf_ns_offload(pAdapter, 2);
     }
+    EXIT();
 }
 
 /**
@@ -853,6 +852,8 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
     hdd_context_t *pHddCtx = NULL;
     v_CONTEXT_t *pVosContext = NULL;
     VOS_STATUS vstatus = VOS_STATUS_E_FAILURE;
+
+    ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Configuring offloads with flag: %d"),
             fenable);
@@ -971,6 +972,7 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
             }
         }
     }
+    EXIT();
     return;
 }
 
@@ -1039,16 +1041,15 @@ static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
     hdd_context_t *pHddCtx;
     int status;
 
+    ENTER();
+
     if (pAdapter && pAdapter->dev == ndev &&
           (pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
            pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
        pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
        status = wlan_hdd_validate_context(pHddCtx);
        if (0 != status)
-       {
-           hddLog(LOGE, FL("HDD context is invalid"));
            return NOTIFY_DONE;
-       }
 
        if ((pHddCtx->cfg_ini->nEnableSuspend !=
              WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) ||
@@ -1076,7 +1077,7 @@ static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
            schedule_work(&pAdapter->ipv4NotifierWorkQueue);
        }
     }
-
+    EXIT();
     return NOTIFY_DONE;
 }
 

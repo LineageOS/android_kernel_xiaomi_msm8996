@@ -433,6 +433,7 @@ static void __hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
    int ret = 0;
    struct tagCsrDelStaParams delStaParams;
 
+   ENTER();
    if (pAdapter == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
@@ -443,10 +444,8 @@ static void __hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
 
    hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
    ret = wlan_hdd_validate_context(hdd_ctx);
-   if (0 != ret) {
-       hddLog(LOGE, FL("HDD context is not valid"));
+   if (0 != ret)
        return;
-   }
 
    pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
    if (pMonAdapter == NULL)
@@ -529,10 +528,12 @@ static void __hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
           "%s: WLANSAP_SendAction returned fail", __func__);
       hdd_sendActionCnf( pAdapter, FALSE );
    }
+   EXIT();
    return;
 
 mgmt_handled:
    hdd_sendActionCnf( pAdapter, TRUE );
+   EXIT();
    return;
 fail:
    kfree_skb(pAdapter->skb_to_tx);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -607,8 +607,6 @@ static int __iw_set_scan(struct net_device *dev, struct iw_request_info *info,
 
    ENTER();
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
-
     /* Block All Scan during DFS operation and send null scan result */
     con_sap_adapter = hdd_get_con_sap_adapter(pAdapter, true);
     if (con_sap_adapter) {
@@ -741,8 +739,6 @@ error:
        vos_mem_free(scanRequest.SSIDs.SSIDList);
 
    EXIT();
-
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
    return status;
 }
 
@@ -790,9 +786,9 @@ static int __iw_get_scan(struct net_device *dev,
    tScanResultHandle pResult;
    int i = 0;
 
+   ENTER();
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter buffer length %d!!!",
        __func__, (wrqu->data.length)?wrqu->data.length:IW_SCAN_MAX_DATA);
-   ENTER();
 
    if (TRUE == pAdapter->scan_info.mScanPending)
    {
@@ -842,8 +838,8 @@ static int __iw_get_scan(struct net_device *dev,
 
    sme_ScanResultPurge(hHal, pResult);
 
-   EXIT();
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit total %d BSS reported !!!",__func__, i);
+   EXIT();
    return status;
 }
 

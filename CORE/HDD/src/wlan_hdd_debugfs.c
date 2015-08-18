@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -53,6 +53,8 @@ static ssize_t __wcnss_wowenable_write(struct file *file,
     v_U8_t wow_enable = 0;
     v_U8_t wow_mp = 0;
     v_U8_t wow_pbm = 0;
+
+    ENTER();
 
     if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
     {
@@ -132,7 +134,7 @@ static ssize_t __wcnss_wowenable_write(struct file *file,
 
       return -EFAULT;
     }
-
+    EXIT();
     return count;
 }
 
@@ -250,7 +252,7 @@ static ssize_t __wcnss_wowpattern_write(struct file *file,
 
     hdd_add_wowl_ptrn_debugfs(pAdapter, pattern_idx, pattern_offset,
                               pattern_buf, pattern_mask);
-
+    EXIT();
     return count;
 }
 
@@ -300,6 +302,8 @@ static ssize_t __wcnss_patterngen_write(struct file *file,
     char *pattern_buf;
     v_U16_t pattern_len = 0;
     v_U16_t i = 0;
+
+    ENTER();
 
     if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
     {
@@ -480,6 +484,7 @@ static ssize_t __wcnss_patterngen_write(struct file *file,
     }
     vos_mem_free(cmd);
     vos_mem_free(addPeriodicTxPtrnParams);
+    EXIT();
     return count;
 
 failure:
@@ -518,9 +523,10 @@ static ssize_t wcnss_patterngen_write(struct file *file,
  */
 static int __wcnss_debugfs_open(struct inode *inode, struct file *file)
 {
+	ENTER();
 	if (inode->i_private)
 		file->private_data = inode->i_private;
-
+	EXIT();
 	return 0;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -111,8 +111,9 @@ static int __iw_get_oem_data_rsp(struct net_device *dev,
     eHalStatus                            status;
     struct iw_oem_data_rsp*               pHddOemDataRsp;
     tOemDataRsp*                          pSmeOemDataRsp;
-
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
+
+    ENTER();
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
@@ -146,7 +147,7 @@ static int __iw_get_oem_data_rsp(struct net_device *dev,
             }
         }
     } while(0);
-
+    EXIT();
     return rc;
 }
 
@@ -197,6 +198,8 @@ static int __iw_set_oem_data_req(struct net_device *dev,
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
     hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
+    ENTER();
+
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -246,7 +249,7 @@ static int __iw_set_oem_data_req(struct net_device *dev,
         pwextBuf->oemDataReqInProgress = TRUE;
 
     } while (0);
-
+    EXIT();
     return rc;
 }
 

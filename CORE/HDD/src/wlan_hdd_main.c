@@ -3945,6 +3945,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
    tANI_U8 *command = NULL;
    int ret = 0;
 
+   ENTER();
+
    if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
@@ -6134,6 +6136,7 @@ exit:
    {
        kfree(command);
    }
+   EXIT();
    return ret;
 }
 
@@ -6203,6 +6206,8 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    hdd_context_t *pHddCtx;
    long ret = 0;
 
+   ENTER();
+
    if (dev != pAdapter->dev) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                  "%s: HDD adapter/dev inconsistency", __func__);
@@ -6248,6 +6253,7 @@ static int __hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       break;
    }
  exit:
+   EXIT();
    return ret;
 }
 
@@ -7363,10 +7369,8 @@ static int __hdd_stop(struct net_device *dev)
                     pAdapter->sessionId, pAdapter->device_mode));
 
    ret = wlan_hdd_validate_context(pHddCtx);
-   if (0 != ret) {
-       hddLog(LOGE, FL("HDD context is not valid"));
+   if (0 != ret)
        return ret;
-   }
 
    /* Nothing to be done if the interface is not opened */
    if (VOS_FALSE == test_bit(DEVICE_IFACE_OPENED, &pAdapter->event_flags))
@@ -7718,6 +7722,8 @@ static void __hdd_set_multicast_list(struct net_device *dev)
    int i = 0;
    struct netdev_hw_addr *ha;
 
+   ENTER();
+
    if (dev->flags & IFF_ALLMULTI)
    {
       hddLog(VOS_TRACE_LEVEL_INFO,
@@ -7750,6 +7756,7 @@ static void __hdd_set_multicast_list(struct net_device *dev)
          i++;
       }
    }
+   EXIT();
    return;
 }
 

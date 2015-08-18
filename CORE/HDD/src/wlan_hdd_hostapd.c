@@ -427,6 +427,8 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
     * Note that valid pointers are provided by caller
     */
 
+   ENTER();
+
    if (priv_data->total_len <= 0 ||
        priv_data->total_len > HOSTAPD_IOCTL_COMMAND_STRLEN_MAX)
    {
@@ -478,6 +480,7 @@ exit:
    {
       kfree(command);
    }
+   EXIT();
    return ret;
 }
 
@@ -550,6 +553,8 @@ static int __hdd_hostapd_ioctl(struct net_device *dev,
    hdd_context_t *pHddCtx;
    int ret;
 
+   ENTER();
+
    if (dev != pAdapter->dev) {
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: HDD adapter/dev inconsistency", __func__);
@@ -586,6 +591,7 @@ static int __hdd_hostapd_ioctl(struct net_device *dev,
       break;
    }
  exit:
+   EXIT();
    return ret;
 }
 
@@ -816,15 +822,13 @@ static int hdd_stop_bss_link(hdd_adapter_t *pHostapdAdapter,
     hdd_context_t     *pHddCtx = NULL;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     dev = (struct net_device *)usrDataForCallback;
+
     ENTER();
 
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != status)
         return status;
-    }
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
@@ -2597,6 +2601,8 @@ static __iw_softap_setparam(struct net_device *dev,
     v_CONTEXT_t pVosContext;
     hdd_context_t *pHddCtx = NULL;
 
+    ENTER();
+
     if (NULL == pHostapdAdapter) {
        hddLog(LOGE, FL("hostapd Adapter is null"));
        return -EINVAL;
@@ -2604,10 +2610,8 @@ static __iw_softap_setparam(struct net_device *dev,
 
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret) {
-        hddLog(LOGE, FL("HDD context is not valid (%d)"), ret);
+    if (0 != ret)
         return -EINVAL;
-    }
 
     hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     if (!hHal) {
@@ -3266,7 +3270,7 @@ static __iw_softap_setparam(struct net_device *dev,
             ret = -EINVAL;
             break;
     }
-
+    EXIT();
     return ret;
 }
 
@@ -3352,13 +3356,12 @@ static __iw_softap_getparam(struct net_device *dev,
     eHalStatus status;
     int ret = 0; /* success */
     hdd_context_t *pHddCtx = NULL;
+
+    ENTER();
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != status)
         return status;
-    }
 
     switch (sub_cmd)
     {
@@ -3561,7 +3564,7 @@ static __iw_softap_getparam(struct net_device *dev,
         ret = -EINVAL;
         break;
     }
-
+    EXIT();
     return ret;
 }
 
@@ -3661,10 +3664,12 @@ static __iw_softap_getchannel(struct net_device *dev,
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     int *value = (int *)extra;
 
+    ENTER();
+
     *value = 0;
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
         *value = (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel;
-
+    EXIT();
     return 0;
 }
 
@@ -3694,6 +3699,8 @@ static __iw_softap_set_max_tx_power(struct net_device *dev,
     tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
+    ENTER();
+
     if (NULL == value)
         return -ENOMEM;
 
@@ -3710,7 +3717,7 @@ static __iw_softap_set_max_tx_power(struct net_device *dev,
                 __func__);
         return -EIO;
     }
-
+    EXIT();
     return 0;
 }
 
@@ -3740,9 +3747,12 @@ static __iw_display_data_path_snapshot(struct net_device *dev,
      *  DXE Snapshot (Called at the end of TL Snapshot)
      */
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    hddLog(LOGE, "%s: called for SAP",__func__);
+
+    ENTER();
+
     hdd_wmm_tx_snapshot(pHostapdAdapter);
     WLANTL_TLDebugMessage(VOS_TRUE);
+    EXIT();
     return 0;
 }
 
@@ -3771,6 +3781,8 @@ static __iw_softap_set_tx_power(struct net_device *dev,
     int set_value;
     tSirMacAddr bssid;
 
+    ENTER();
+
     if (NULL == value)
         return -ENOMEM;
 
@@ -3786,7 +3798,7 @@ static __iw_softap_set_tx_power(struct net_device *dev,
                 __func__);
         return -EIO;
     }
-
+    EXIT();
     return 0;
 }
 
@@ -3819,6 +3831,8 @@ static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
     int ret = 0;
     /* maclist_index must be u32 to match user space */
     u32 maclist_index;
+
+    ENTER();
 
     /*
      * NOTE WELL: this is a "get" ioctl but it uses an even ioctl
@@ -3872,6 +3886,7 @@ static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
         ret = -EFAULT;
     }
     kfree(buf);
+    EXIT();
     return ret;
 }
 
@@ -3955,6 +3970,8 @@ static __iw_softap_ap_stats(struct net_device *dev,
     char *pstatbuf;
     int len;
 
+    ENTER();
+
     memset(&statBuffer, 0, sizeof(statBuffer));
     WLANSAP_GetStatistics((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                            &statBuffer, (v_BOOL_t)wrqu->data.flags);
@@ -3985,6 +4002,7 @@ static __iw_softap_ap_stats(struct net_device *dev,
     }
     wrqu->data.length -= len;
     kfree(pstatbuf);
+    EXIT();
     return 0;
 }
 
@@ -4114,7 +4132,6 @@ int __iw_get_genie(struct net_device *dev,
     v_U32_t length = DOT11F_IE_RSN_MAX_LEN;
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
     ENTER();
-    hddLog(LOG1,FL("getGEN_IE ioctl"));
     // Actually retrieve the RSN IE from CSR.  (We previously sent it down in the CSR Roam Profile.)
     status = WLANSap_getstationIE_information(
 #ifdef WLAN_FEATURE_MBSSID
@@ -4167,7 +4184,6 @@ int __iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
     hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
     ENTER();
 
-    hddLog(LOG1,FL("get_WPSPBCProbeReqIEs ioctl"));
     memset((void*)&WPSPBCProbeReqIEs, 0, sizeof(WPSPBCProbeReqIEs));
 
     WPSPBCProbeReqIEs.probeReqIELen = pHddApCtx->WPSPBCProbeReq.probeReqIELen;
@@ -4478,7 +4494,8 @@ static int __iw_set_ap_encodeext(struct net_device *dev,
        retval = -EINVAL;
     }
 
-   return retval;
+    EXIT();
+    return retval;
 }
 
 /**
@@ -4729,7 +4746,8 @@ static int __iw_get_ap_freq(struct net_device *dev,
            fwrq->e = MHZ;
        }
     }
-   return 0;
+    EXIT();
+    return 0;
 }
 
 /**
@@ -5169,11 +5187,8 @@ static int __iw_softap_stopbss(struct net_device *dev,
 
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != status)
         return status;
-    }
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
     {
@@ -5258,6 +5273,8 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
     pBuf += len;
     buf_len -= len;
 
+    ENTER();
+
     if(pHddCtx)
         maxSta = pHddCtx->cfg_ini->maxNumberOfPeers;
 
@@ -5281,6 +5298,7 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
             break;
         }
     }
+    EXIT();
     return VOS_STATUS_SUCCESS;
 }
 
@@ -5478,14 +5496,12 @@ __iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    int rc, valid, i;
 
+   ENTER();
+
    pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
    valid = wlan_hdd_validate_context(pHddCtx);
-
    if (0 != valid)
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context not valid"));
        return valid;
-   }
 
    hddLog(VOS_TRACE_LEVEL_INFO, "%s wrqu->data.length= %d\n", __func__, wrqu->data.length);
 
@@ -5551,7 +5567,7 @@ __iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
        hddLog(VOS_TRACE_LEVEL_ERROR,FL("Unable to encode link speed"));
        return -EIO;
    }
-
+   EXIT();
    return 0;
 }
 

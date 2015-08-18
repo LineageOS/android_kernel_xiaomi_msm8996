@@ -3234,6 +3234,8 @@ static void iw_full_power_cbfn (void *pContext, eHalStatus status)
     hdd_context_t *pHddCtx = NULL;
     int ret;
 
+    ENTER();
+
     if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -3245,16 +3247,13 @@ static void iw_full_power_cbfn (void *pContext, eHalStatus status)
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: HDD context is not valid (%d)", __func__, ret);
         return;
-    }
 
     if (pHddCtx->cfg_ini->fIsBmpsEnabled)
     {
         sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), NULL, NULL);
     }
+    EXIT();
 }
 
 #ifdef WLAN_FEATURE_11W
@@ -4637,6 +4636,7 @@ static int __iw_get_essid(struct net_device *dev,
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_wext_state_t *wextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
    ENTER();
 
    if((pHddStaCtx->conn_info.connState == eConnectionState_Associated &&
