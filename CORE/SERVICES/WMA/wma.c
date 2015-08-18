@@ -20409,7 +20409,7 @@ enable_wow:
 
 	ret = wma_feed_wow_config_to_fw(wma, pno_in_progress,
 				extscan_in_progress, pno_matched,
-				info ? true: false);
+				info == NULL);
 	if (ret != VOS_STATUS_SUCCESS) {
 		wma_send_status_to_suspend_ind(wma, FALSE, info == NULL);
 		vos_mem_free(info);
