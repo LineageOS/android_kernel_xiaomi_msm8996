@@ -18827,7 +18827,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		break;
 #ifdef FEATURE_WLAN_RA_FILTERING
 	case WOW_REASON_RA_MATCH:
-		wake_lock_duration = WMA_RA_MATCH_RECV_WAKE_LOCK_DURATION;
 		break;
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
