@@ -155,7 +155,6 @@ typedef struct _smeTdlsPeerCapParams {
    tANI_U8 prefOffChanNum;
    tANI_U8 prefOffChanBandwidth;
    tANI_U8 opClassForPrefOffChan;
-   tANI_U8 opClassForPrefOffChanIsSet;
 } tSmeTdlsPeerCapParams;
 
 typedef enum
@@ -188,6 +187,7 @@ typedef struct _smeTdlsChanSwitchParams
    tANI_U8     tdls_off_channel;     /* Target Off Channel */
    tANI_U8     tdls_off_ch_mode;     /* TDLS Off Channel Mode */
    tANI_U8     is_responder;         /* is peer responder or initiator */
+   uint8_t     opclass;              /* tdls operating class */
 } tSmeTdlsChanSwitchParams;
 #endif /* FEATURE_WLAN_TDLS */
 
@@ -4350,4 +4350,16 @@ void sme_set_per_band_chainmask_supp(tHalHandle hal, bool val);
 void sme_set_lte_coex_supp(tHalHandle hal, bool val);
 void sme_set_bcon_offload_supp(tHalHandle hal, bool val);
 void sme_SetDefDot11Mode(tHalHandle hal);
+
+#ifdef FEATURE_WLAN_TDLS
+void sme_get_opclass(tHalHandle hal, uint8_t channel, uint8_t bw_offset,
+		uint8_t *opclass);
+#else
+static inline void
+sme_get_opclass(tHalHandle hal, uint8_t channel, uint8_t bw_offset,
+		uint8_t *opclass)
+{
+}
+#endif
+
 #endif //#if !defined( __SME_API_H )

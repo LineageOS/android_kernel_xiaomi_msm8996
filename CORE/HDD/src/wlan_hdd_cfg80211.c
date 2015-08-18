@@ -7119,11 +7119,11 @@ wlan_hdd_tdls_config_state_change_policy[
                     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAX +1] =
 {
     [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAC_ADDR] = {.type = NLA_UNSPEC },
-    [QCA_WLAN_VENDOR_ATTR_TDLS_NEW_STATE] = {.type = NLA_S32 },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_NEW_STATE] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_REASON] = {.type = NLA_S32 },
-    [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_CHANNEL] = {.type = NLA_S32 },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_CHANNEL] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_GLOBAL_OPERATING_CLASS] =
-                                                {.type = NLA_S32 },
+                                                {.type = NLA_U32 },
 
 };
 
@@ -7132,11 +7132,11 @@ wlan_hdd_tdls_config_get_status_policy[
                      QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAX +1] =
 {
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAC_ADDR] = {.type = NLA_UNSPEC },
-    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_STATE] = {.type = NLA_S32 },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_STATE] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_REASON] = {.type = NLA_S32 },
-    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_CHANNEL] = {.type = NLA_S32 },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_CHANNEL] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_GLOBAL_OPERATING_CLASS]
-                                                   = {.type = NLA_S32 },
+                                                   = {.type = NLA_U32 },
 
 };
 static int __wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
@@ -7150,10 +7150,10 @@ static int __wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
     hdd_context_t *pHddCtx  = wiphy_priv(wiphy);
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAX + 1];
     eHalStatus ret;
-    tANI_S32 state;
+    tANI_U32 state;
     tANI_S32 reason;
-    tANI_S32 global_operating_class = 0;
-    tANI_S32 channel = 0;
+    uint32_t global_operating_class = 0;
+    uint32_t channel = 0;
     struct sk_buff *skb = NULL;
 
     if (VOS_FTM_MODE == hdd_get_conparam()) {
@@ -7186,7 +7186,8 @@ static int __wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
            sizeof(peer));
     hddLog(VOS_TRACE_LEVEL_INFO, FL(MAC_ADDRESS_STR),MAC_ADDR_ARRAY(peer));
 
-    ret = wlan_hdd_tdls_get_status(pAdapter, peer, &state, &reason);
+    ret = wlan_hdd_tdls_get_status(pAdapter, peer, &global_operating_class,
+                                   &channel, &state, &reason);
 
     if (0 != ret) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -7203,24 +7204,21 @@ static int __wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-   hddLog(VOS_TRACE_LEVEL_INFO, FL("Reason (%d) Status (%d) class (%d) "
-                                   "channel (%d) peer" MAC_ADDRESS_STR),
-                                  reason,
-                                  state,
-                                  global_operating_class,
-                                  channel,
-                                  MAC_ADDR_ARRAY(peer));
+    hddLog(VOS_TRACE_LEVEL_INFO,
+           FL("Reason %d Status %d class %d channel %d peer " MAC_ADDRESS_STR),
+           reason, state, global_operating_class,
+           channel, MAC_ADDR_ARRAY(peer));
 
-    if (nla_put_s32(skb,
+    if (nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_STATE,
                     state) ||
         nla_put_s32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_REASON,
                     reason) ||
-        nla_put_s32(skb,
+        nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_GLOBAL_OPERATING_CLASS,
                     global_operating_class) ||
-        nla_put_s32(skb,
+        nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_CHANNEL,
                     channel)) {
 
@@ -7260,15 +7258,15 @@ static int wlan_hdd_cfg80211_exttdls_get_status(struct wiphy *wiphy,
 }
 
 static int wlan_hdd_cfg80211_exttdls_callback(const tANI_U8* mac,
-                                              tANI_S32 state,
+                                              uint32_t global_operating_class,
+                                              uint32_t channel,
+                                              tANI_U32 state,
                                               tANI_S32 reason,
                                               void *ctx)
 {
     hdd_adapter_t* pAdapter       = (hdd_adapter_t*)ctx;
     hdd_context_t *pHddCtx        = WLAN_HDD_GET_CTX(pAdapter);
     struct sk_buff *skb           = NULL;
-    tANI_S32 global_operating_class = 0;
-    tANI_S32 channel = 0;
 
     if (wlan_hdd_validate_context(pHddCtx)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid "));
@@ -7290,29 +7288,25 @@ static int wlan_hdd_cfg80211_exttdls_callback(const tANI_U8* mac,
                   FL("cfg80211_vendor_event_alloc failed"));
         return -EINVAL;
     }
-    hddLog(VOS_TRACE_LEVEL_INFO, FL("Entering "));
-    hddLog(VOS_TRACE_LEVEL_INFO, "Reason: (%d) Status: (%d) Class: (%d) "
-                                 "Channel: (%d)",
-           reason,
-           state,
-           global_operating_class,
-           channel);
-    hddLog(VOS_TRACE_LEVEL_WARN, "tdls peer " MAC_ADDRESS_STR,
-                                          MAC_ADDR_ARRAY(mac));
 
-   if (nla_put(skb,
+    hddLog(VOS_TRACE_LEVEL_INFO,
+           FL("Reason %d Status %d class %d channel %d peer " MAC_ADDRESS_STR),
+           reason, state, global_operating_class,
+           channel, MAC_ADDR_ARRAY(mac));
+
+    if (nla_put(skb,
                 QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAC_ADDR,
                 VOS_MAC_ADDR_SIZE, mac) ||
-        nla_put_s32(skb,
+        nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_NEW_STATE,
                     state) ||
         nla_put_s32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_REASON,
                     reason) ||
-        nla_put_s32(skb,
+        nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_CHANNEL,
                     channel) ||
-        nla_put_s32(skb,
+        nla_put_u32(skb,
                     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_GLOBAL_OPERATING_CLASS,
                     global_operating_class)
         ) {
@@ -20180,14 +20174,11 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                             pTdlsPeer->pref_off_chan_num;
                         smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth =
                             pHddCtx->cfg_ini->fTDLSPrefOffChanBandwidth;
-                        if (pTdlsPeer->op_class_for_pref_off_chan_is_set) {
-                           smeTdlsPeerStateParams.peerCap.opClassForPrefOffChanIsSet =
-                                  pTdlsPeer->op_class_for_pref_off_chan_is_set;
-                           smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan =
-                                  pTdlsPeer->op_class_for_pref_off_chan;
-                        }
+                        smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan =
+                            pTdlsPeer->op_class_for_pref_off_chan;
+
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                           "%s: Peer " MAC_ADDRESS_STR "vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d, op_class_for_pref_off_chan_is_set: %d, op_class_for_pref_off_chan: %d",
+                           "%s: Peer " MAC_ADDRESS_STR " vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d, op_class_for_pref_off_chan: %d",
                               __func__, MAC_ADDR_ARRAY(peer),
                            smeTdlsPeerStateParams.vdevId,
                            smeTdlsPeerStateParams.peerState,
@@ -20202,7 +20193,6 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                            smeTdlsPeerStateParams.peerCap.peerOperClassLen,
                            smeTdlsPeerStateParams.peerCap.prefOffChanNum,
                            smeTdlsPeerStateParams.peerCap.prefOffChanBandwidth,
-                           pTdlsPeer->op_class_for_pref_off_chan_is_set,
                            pTdlsPeer->op_class_for_pref_off_chan);
 
                         for (i = 0; i < pTdlsPeer->supported_channels_len; i++)

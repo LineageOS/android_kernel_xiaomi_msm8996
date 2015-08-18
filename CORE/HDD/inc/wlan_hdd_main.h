@@ -1381,6 +1381,7 @@ struct hdd_context_s
     struct mutex tdls_lock;
     tANI_U8      tdls_off_channel;
     tANI_U16     tdls_channel_offset;
+    int32_t      tdls_fw_off_chan_mode;
 #endif
 
 #ifdef IPA_OFFLOAD
@@ -1808,5 +1809,8 @@ static inline int wlan_hdd_get_cpu(void)
 #endif
 
 const char *hdd_get_fwpath(void);
+
+uint8_t wlan_hdd_find_opclass(tHalHandle hal, uint8_t channel,
+			uint8_t bw_offset);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

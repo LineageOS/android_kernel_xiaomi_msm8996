@@ -110,6 +110,7 @@
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
+#include "regdomain_common.h"
 
 extern int hdd_hostapd_stop (struct net_device *dev);
 void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
@@ -324,6 +325,25 @@ const char* hdd_device_mode_to_string(uint8_t device_mode)
 	default:
 		return "Unknown";
 	}
+}
+
+/**
+ * wlan_hdd_find_opclass() - Find operating class for a channel
+ * @hal: handler to HAL
+ * @channel: channel id
+ * @bw_offset: bandwidth offset
+ *
+ * Function invokes sme api to find the operating class
+ *
+ * Return: operating class
+ */
+uint8_t wlan_hdd_find_opclass(tHalHandle hal, uint8_t channel,
+	                      uint8_t bw_offset)
+{
+	uint8_t opclass = 0;
+
+	sme_get_opclass(hal, channel, bw_offset, &opclass);
+	return opclass;
 }
 
 #ifdef FEATURE_GREEN_AP

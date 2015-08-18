@@ -163,7 +163,9 @@ typedef enum {
 } tdls_state_t;
 
 typedef int (*cfg80211_exttdls_callback)(const tANI_U8* mac,
-                                         tANI_S32 state,
+                                         uint32_t opclass,
+                                         uint32_t channel,
+                                         tANI_U32 state,
                                          tANI_S32 reason,
                                          void *ctx);
 typedef struct {
@@ -383,10 +385,12 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *pHddCtx);
 /* EXT TDLS */
 int wlan_hdd_tdls_get_status(hdd_adapter_t *pAdapter,
                              const tANI_U8* mac,
-                             tANI_S32 *state,
+                             uint32_t *opclass,
+                             uint32_t *channel,
+                             tANI_U32 *state,
                              tANI_S32 *reason);
 void wlan_hdd_tdls_get_wifi_hal_state(hddTdlsPeer_t *curr_peer,
-                                      tANI_S32 *state,
+                                      tANI_U32 *state,
                                       tANI_S32 *reason);
 int wlan_hdd_set_callback(hddTdlsPeer_t *curr_peer,
                           cfg80211_exttdls_callback callback);
