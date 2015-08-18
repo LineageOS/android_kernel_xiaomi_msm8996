@@ -2453,6 +2453,7 @@ typedef struct {
     A_UINT32 tsf_l32;
     A_UINT32 tsf_u32;
     A_UINT32 buf_len;
+    A_UINT32 pmac_id;
     /* This TLV is followed by array of bytes:
          * // frame buffer - contains multiple payloads in the order:
          * // header - payload, header - payload...
@@ -8671,8 +8672,8 @@ typedef struct {
     /** extened RSSI info */
     A_UINT8  rssi_ext;
 
-    /** For 4-byte aligment padding */
-    A_UINT8 reserved;
+    /** pmac_id for the radar event */
+    A_UINT8 pmac_id;
 
     /** index of peak magnitude bin (signed) */
     A_INT32 peak_sidx;
