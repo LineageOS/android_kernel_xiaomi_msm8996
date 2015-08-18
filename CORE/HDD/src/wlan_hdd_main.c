@@ -325,6 +325,30 @@ const char* hdd_device_mode_to_string(uint8_t device_mode)
 	}
 }
 
+#ifdef QCA_LL_TX_FLOW_CT
+
+/**
+ * wlan_hdd_clean_tx_flow_control_timer - Function cleans tx flow control timer
+ * @hddctx: pointer to hddctx
+ * @hdd_adapter_t: pointer to hdd_adapter_t
+ *
+ * Function deregister's, destroy tx flow control timer
+ *
+ * Return: None
+ */
+void wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
+					hdd_adapter_t *adapter)
+{
+	WLANTL_DeRegisterTXFlowControl(hddctx->pvosContext,
+					adapter->sessionId);
+	if (adapter->tx_flow_timer_initialized == VOS_TRUE) {
+		vos_timer_destroy(&adapter->tx_flow_control_timer);
+		adapter->tx_flow_timer_initialized = VOS_FALSE;
+	}
+}
+
+#endif
+
 /**
  * wlan_hdd_find_opclass() - Find operating class for a channel
  * @hal: handler to HAL
@@ -9195,17 +9219,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          cancel_work_sync(&pAdapter->ipv4NotifierWorkQueue);
 #endif
 
-#ifdef QCA_LL_TX_FLOW_CT
-         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
-         if (pAdapter->tx_flow_timer_initialized == VOS_TRUE) {
-            if(VOS_TIMER_STATE_STOPPED !=
-               vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer)) {
-               vos_timer_stop(&pAdapter->tx_flow_control_timer);
-            }
-            vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-            pAdapter->tx_flow_timer_initialized = VOS_FALSE;
-         }
-#endif /* QCA_LL_TX_FLOW_CT */
+         wlan_hdd_clean_tx_flow_control_timer(pHddCtx, pAdapter);
 
 #ifdef WLAN_NS_OFFLOAD
 #ifdef WLAN_OPEN_SOURCE
@@ -9256,17 +9270,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
          hdd_set_sap_auth_offload(pAdapter, FALSE);
 
-#ifdef QCA_LL_TX_FLOW_CT
-         WLANTL_DeRegisterTXFlowControl(pHddCtx->pvosContext, pAdapter->sessionId);
-         if (pAdapter->tx_flow_timer_initialized == VOS_TRUE) {
-            if(VOS_TIMER_STATE_STOPPED !=
-               vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer)) {
-               vos_timer_stop(&pAdapter->tx_flow_control_timer);
-            }
-            vos_timer_destroy(&pAdapter->tx_flow_control_timer);
-            pAdapter->tx_flow_timer_initialized = VOS_FALSE;
-         }
-#endif /* QCA_LL_TX_FLOW_CT */
+         wlan_hdd_clean_tx_flow_control_timer(pHddCtx, pAdapter);
 
          mutex_lock(&pHddCtx->sap_lock);
          if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))

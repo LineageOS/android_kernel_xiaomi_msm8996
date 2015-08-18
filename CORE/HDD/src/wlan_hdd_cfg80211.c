@@ -12964,6 +12964,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
         case NL80211_IFTYPE_ADHOC:
            wlan_hdd_tdls_exit(pAdapter);
+           wlan_hdd_clean_tx_flow_control_timer(pHddCtx, pAdapter);
            hddLog(LOG1, FL("Setting interface Type to ADHOC"));
            wlan_hdd_change_iface_to_adhoc(ndev, pRoamProfile, type);
            break;

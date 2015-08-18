@@ -1813,4 +1813,15 @@ const char *hdd_get_fwpath(void);
 uint8_t wlan_hdd_find_opclass(tHalHandle hal, uint8_t channel,
 			uint8_t bw_offset);
 
+#ifdef QCA_LL_TX_FLOW_CT
+void wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
+					hdd_adapter_t *adapter);
+#else
+static inline void
+wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
+				hdd_adapter_t *adapter)
+{
+}
+#endif
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
