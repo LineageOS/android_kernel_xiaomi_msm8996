@@ -103,9 +103,7 @@
 #include "wlan_hdd_dev_pwr.h"
 #include "qwlan_version.h"
 #include "wlan_qct_wda.h"
-#ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
-#endif
 #ifdef FEATURE_WLAN_CH_AVOID
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
@@ -8174,14 +8172,7 @@ void hdd_deinit_adapter(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          }
 
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
-#ifdef FEATURE_WLAN_TDLS
-         if(test_bit(TDLS_INIT_DONE, &pAdapter->event_flags))
-         {
-            wlan_hdd_tdls_exit(pAdapter);
-            clear_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
-         }
-#endif
-
+         wlan_hdd_tdls_exit(pAdapter);
          break;
       }
 

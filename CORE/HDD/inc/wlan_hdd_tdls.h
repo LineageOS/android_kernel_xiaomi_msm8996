@@ -410,6 +410,9 @@ static inline void
 wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *pHddCtx)
 {
 }
+static inline void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
+{
+}
 #endif
 
 #endif // __HDD_TDSL_H
