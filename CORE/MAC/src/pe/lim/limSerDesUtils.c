@@ -928,13 +928,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
         limLog(pMac, LOGE, FL("remaining len %d is too short"), len);
         return eSIR_FAILURE;
     }
-    pJoinReq->bOSENAssociation = *pBuf++;
-    len--;
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-    {
-        limLog(pMac, LOGE, FL("remaining len %d is too short"), len);
-        return eSIR_FAILURE;
-    }
+
     // Extract cbMode
     pJoinReq->cbMode = (ePhyChanBondState)limGetU32(pBuf);
     pBuf += sizeof(ePhyChanBondState);
