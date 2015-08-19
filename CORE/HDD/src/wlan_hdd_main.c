@@ -11306,6 +11306,8 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
 {
     int i;
+
+#ifdef MSM_PLATFORM
     hddLog(VOS_TRACE_LEVEL_ERROR, "BW Interval: %d curr_index %d",
                 pHddCtx->cfg_ini->busBandwidthComputeInterval,
                 pHddCtx->hdd_txrx_hist_idx);
@@ -11316,6 +11318,7 @@ void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
     hddLog(VOS_TRACE_LEVEL_ERROR, "TCP DEL High TH: %d TCP DEL Low TH: %d",
                 pHddCtx->cfg_ini->tcpDelackThresholdHigh,
                 pHddCtx->cfg_ini->tcpDelackThresholdLow);
+#endif
 
     hddLog(VOS_TRACE_LEVEL_ERROR,"index, total_rx, interval_rx,"
 		   "total_tx, interval_tx, next_vote_level, next_rx_level");
