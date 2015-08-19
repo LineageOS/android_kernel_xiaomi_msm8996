@@ -73,7 +73,7 @@ Include Files
 #define HDD_IPA_UC_DEBUG_DUMMY_MEM_SIZE    32000
 #define HDD_IPA_UC_RT_DEBUG_PERIOD         300
 #define HDD_IPA_UC_RT_DEBUG_BUF_COUNT      30
-#define HDD_IPA_UC_RT_DEBUG_FILL_INTERVAL  5000
+#define HDD_IPA_UC_RT_DEBUG_FILL_INTERVAL  10000
 #endif /* IPA_UC_OFFLOAD */
 
 #ifdef IPA_UC_OFFLOAD
@@ -382,14 +382,14 @@ static uint8_t vdev_to_iface[CSR_ROAM_SESSION_MAX];
 
 struct uc_rt_debug_info {
 	v_TIME_t time;
-	uint64_t ipa_excep_count;
+	uint64_t ipa_excp_count;
 	uint64_t rx_drop_count;
 	uint64_t net_sent_count;
 	uint64_t rx_discard_count;
 	uint64_t rx_mcbc_count;
 	uint64_t tx_mcbc_count;
 	uint64_t tx_fwd_count;
-	uint64_t rx_destrctor_call;
+	uint64_t rx_destructor_call;
 };
 #endif /* IPA_UC_OFFLOAD */
 
@@ -458,7 +458,7 @@ struct hdd_ipa_priv {
 	uint32_t ipa_p_tx_packets;
 	uint32_t ipa_p_rx_packets;
 	uint64_t ipa_tx_forward;
-	uint64_t ipa_rx_disacrd;
+	uint64_t ipa_rx_discard;
 	uint64_t ipa_rx_net_send_count;
 	uint64_t ipa_rx_internel_drop_count;
 	uint64_t ipa_rx_destructor_count;
@@ -487,6 +487,16 @@ static struct hdd_ipa_priv *ghdd_ipa;
 
 #define HDD_IPA_IS_CONFIG_ENABLED(_hdd_ctx, _mask)\
 	(((_hdd_ctx)->cfg_ini->IpaConfig & (_mask)) == (_mask))
+
+#ifdef IPA_UC_OFFLOAD
+#define HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa) \
+	hdd_ipa->ipa_rx_internel_drop_count++
+#define HDD_IPA_INCREASE_NET_SEND_COUNT(hdd_ipa) \
+	hdd_ipa->ipa_rx_net_send_count++
+#else
+#define HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa) {}
+#define HDD_IPA_INCREASE_NET_SEND_COUNT(hdd_ipa) {}
+#endif /* IPA_UC_OFFLOAD */
 
 /* Local Function Prototypes */
 static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
@@ -648,7 +658,7 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
 
 #ifdef IPA_UC_OFFLOAD
 /**
- * hdd_ipa_uc_rt_debug_host_fill - fill rt debug buffer
+ * hdd_ipa_uc_rt_debug_host_fill() - fill rt debug buffer
  * @ctext: pointer to hdd context.
  *
  * If rt debug enabled, periodically called, and fill debug buffer
@@ -657,23 +667,21 @@ static bool hdd_ipa_can_send_to_ipa(hdd_adapter_t *adapter, struct hdd_ipa_priv 
  */
 static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
 {
-	hdd_context_t *pHddCtx = (hdd_context_t *)ctext;
+	hdd_context_t *hdd_ctx = ctext;
 	struct hdd_ipa_priv *hdd_ipa;
 	struct uc_rt_debug_info *dump_info = NULL;
 
-	if(wlan_hdd_validate_context(pHddCtx)) {
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	if (hdd_ctx->hdd_ipa &&
+		!hdd_ipa_uc_is_enabled((struct hdd_ipa_priv *)hdd_ctx->hdd_ipa)) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s: Not valid state", __func__);
+			"%s: IPA UC is not enabled", __func__);
 		return;
 	}
 
-	if (!hdd_ipa_is_rt_debugging_enabled(pHddCtx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-			"%s: IPA RT debug is not enabled", __func__);
-		return;
-	}
-
-	hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
 
 	vos_lock_acquire(&hdd_ipa->rt_debug_lock);
 	dump_info = &hdd_ipa->rt_bug_buffer[
@@ -686,13 +694,13 @@ static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
 	}
 
 	dump_info->time = vos_timer_get_system_time();
-	dump_info->ipa_excep_count = hdd_ipa->stats.num_rx_excep;
+	dump_info->ipa_excp_count = hdd_ipa->stats.num_rx_excep;
 	dump_info->rx_drop_count = hdd_ipa->ipa_rx_internel_drop_count;
 	dump_info->net_sent_count = hdd_ipa->ipa_rx_net_send_count;
-	dump_info->rx_discard_count = hdd_ipa->ipa_rx_disacrd;
+	dump_info->rx_discard_count = hdd_ipa->ipa_rx_discard;
 	dump_info->tx_mcbc_count = hdd_ipa->stats.num_tx_bcmc;
 	dump_info->tx_fwd_count = hdd_ipa->ipa_tx_forward;
-	dump_info->rx_destrctor_call = hdd_ipa->ipa_rx_destructor_count;
+	dump_info->rx_destructor_call = hdd_ipa->ipa_rx_destructor_count;
 	hdd_ipa->rt_buf_fill_index++;
 	vos_lock_release(&hdd_ipa->rt_debug_lock);
 
@@ -701,28 +709,29 @@ static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
 }
 
 /**
- * hdd_ipa_uc_rt_debug_host_dump - dump rt debug buffer
+ * hdd_ipa_uc_rt_debug_host_dump() - dump rt debug buffer
  * @pHddCtx: pointer to hdd context.
  *
  * If rt debug enabled, dump debug buffer contents based on requirement
  *
  * Return: none
  */
-void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *pHddCtx)
+void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx)
 {
-	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
 	unsigned int dump_count;
 	unsigned int dump_index;
 	struct uc_rt_debug_info *dump_info = NULL;
 
-	if (!hdd_ipa_is_rt_debugging_enabled(pHddCtx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+	if (hdd_ipa &&
+		!hdd_ipa_uc_is_enabled((struct hdd_ipa_priv *)hdd_ctx->hdd_ipa)) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 			"%s: IPA RT debug is not enabled", __func__);
 		return;
 	}
 
-	printk("========= WLAN-IPA DEBUG BUF DUMP ==========\n");
-	printk("     TM     :   EXEP   :   DROP   :   NETS   :   MCBC   :   TXFD   :   DSTR   :   DSCD\n");
+	pr_err("========= WLAN-IPA DEBUG BUF DUMP ==========\n");
+	pr_err("     TM     :   EXEP   :   DROP   :   NETS   :   MCBC   :   TXFD   :   DSTR   :   DSCD\n");
 
 	vos_lock_acquire(&hdd_ipa->rt_debug_lock);
 	for (dump_count = 0;
@@ -738,15 +747,15 @@ void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *pHddCtx)
 				"INVALID");
 			return;
 		}
-		printk("%12lu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu\n",
-			dump_info->time, dump_info->ipa_excep_count,
+		pr_err("%12lu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu\n",
+			dump_info->time, dump_info->ipa_excp_count,
 			dump_info->rx_drop_count, dump_info->net_sent_count,
 			dump_info->tx_mcbc_count, dump_info->tx_fwd_count,
-			dump_info->rx_destrctor_call,
+			dump_info->rx_destructor_call,
 			dump_info->rx_discard_count);
 	}
 	vos_lock_release(&hdd_ipa->rt_debug_lock);
-	printk("======= WLAN-IPA DEBUG BUF DUMP END ========\n");
+	pr_err("======= WLAN-IPA DEBUG BUF DUMP END ========\n");
 }
 
 /**
@@ -761,30 +770,32 @@ void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *pHddCtx)
  */
 static void hdd_ipa_uc_rt_debug_handler(void *ctext)
 {
-	hdd_context_t *pHddCtx = (hdd_context_t *)ctext;
-	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
-	void *dummy_ptr = NULL;
+	hdd_context_t *hdd_ctx= ctext;
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
+	void *dummy_ptr;
 
-	if(wlan_hdd_validate_context(pHddCtx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s: Not valid state", __func__);
+	if (wlan_hdd_validate_context(hdd_ctx))
 		return;
-	}
 
-	if (!hdd_ipa_is_rt_debugging_enabled(pHddCtx)) {
+	if (!hdd_ipa_is_rt_debugging_enabled(hdd_ctx)) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 			"%s: IPA RT debug is not enabled", __func__);
 		return;
 	}
 
+	/*
+	 * Allocate dummy buffer periodically and free immediately
+	 * This will proactively detect OOM condition
+	 * And if allocation fail, will dump WLAN IPA stats
+	 */
 	dummy_ptr = kmalloc(HDD_IPA_UC_DEBUG_DUMMY_MEM_SIZE,
 		GFP_KERNEL | GFP_ATOMIC);
 	if (!dummy_ptr) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
 			"%s: Dummy alloc fail", __func__);
-		hdd_ipa_uc_rt_debug_host_dump(pHddCtx);
+		hdd_ipa_uc_rt_debug_host_dump(hdd_ctx);
 		hdd_ipa_uc_stat_request(
-			hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP), 1);
+			hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP), 1);
 	} else {
 		kfree(dummy_ptr);
 	}
@@ -810,11 +821,6 @@ void hdd_ipa_uc_rt_debug_destructor(struct sk_buff *skb)
 		return;
 	}
 
-	if (!hdd_ipa_is_rt_debugging_enabled(ghdd_ipa->hdd_ctx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-			"%s: IPA RT debug is not enabled", __func__);
-		return;
-	}
 	ghdd_ipa->ipa_rx_destructor_count++;
 }
 
@@ -828,7 +834,14 @@ void hdd_ipa_uc_rt_debug_destructor(struct sk_buff *skb)
  */
 static void hdd_ipa_uc_rt_debug_deinit(hdd_context_t *pHddCtx)
 {
-	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa = pHddCtx->hdd_ipa;
+
+	if ( VOS_TIMER_STATE_STOPPED !=
+		vos_timer_getCurrentState(&hdd_ipa->rt_debug_fill_timer)) {
+		vos_timer_stop(&hdd_ipa->rt_debug_fill_timer);
+	}
+	vos_timer_destroy(&hdd_ipa->rt_debug_fill_timer);
+	vos_lock_destroy(&hdd_ipa->rt_debug_lock);
 
 	if (!hdd_ipa_is_rt_debugging_enabled(pHddCtx)) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
@@ -841,13 +854,6 @@ static void hdd_ipa_uc_rt_debug_deinit(hdd_context_t *pHddCtx)
 		vos_timer_stop(&hdd_ipa->rt_debug_timer);
 	}
 	vos_timer_destroy(&hdd_ipa->rt_debug_timer);
-
-	if ( VOS_TIMER_STATE_STOPPED !=
-		vos_timer_getCurrentState(&hdd_ipa->rt_debug_fill_timer)) {
-		vos_timer_stop(&hdd_ipa->rt_debug_fill_timer);
-	}
-	vos_timer_destroy(&hdd_ipa->rt_debug_fill_timer);
-	vos_lock_destroy(&hdd_ipa->rt_debug_lock);
 }
 
 /**
@@ -858,34 +864,38 @@ static void hdd_ipa_uc_rt_debug_deinit(hdd_context_t *pHddCtx)
  *
  * Return: none
  */
-static void hdd_ipa_uc_rt_debug_init(hdd_context_t *pHddCtx)
+static void hdd_ipa_uc_rt_debug_init(hdd_context_t *hdd_ctx)
 {
-	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)pHddCtx->hdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
 
-	if (!hdd_ipa_is_rt_debugging_enabled(pHddCtx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-			"%s: IPA RT debug is not enabled", __func__);
-		return;
-	}
-
+	/* Histogram intialize by default */
 	vos_lock_init(&hdd_ipa->rt_debug_lock);
-	vos_timer_init(&hdd_ipa->rt_debug_timer, VOS_TIMER_TYPE_SW,
-		hdd_ipa_uc_rt_debug_handler, (void *)pHddCtx);
 	vos_timer_init(&hdd_ipa->rt_debug_fill_timer, VOS_TIMER_TYPE_SW,
-		hdd_ipa_uc_rt_debug_host_fill, (void *)pHddCtx);
+		hdd_ipa_uc_rt_debug_host_fill, (void *)hdd_ctx);
+
 	hdd_ipa->rt_buf_fill_index = 0;
 	vos_mem_zero(hdd_ipa->rt_bug_buffer,
 		sizeof(struct uc_rt_debug_info) * HDD_IPA_UC_RT_DEBUG_BUF_COUNT);
 	hdd_ipa->ipa_tx_forward = 0;
-	hdd_ipa->ipa_rx_disacrd = 0;
+	hdd_ipa->ipa_rx_discard = 0;
 	hdd_ipa->ipa_rx_net_send_count = 0;
 	hdd_ipa->ipa_rx_internel_drop_count = 0;
 	hdd_ipa->ipa_rx_destructor_count = 0;
 
-	vos_timer_start(&hdd_ipa->rt_debug_timer,
-		HDD_IPA_UC_RT_DEBUG_PERIOD);
 	vos_timer_start(&hdd_ipa->rt_debug_fill_timer,
 		HDD_IPA_UC_RT_DEBUG_FILL_INTERVAL);
+
+	/* Realtime debug enable only when feature enabled */
+	if (!hdd_ipa_is_rt_debugging_enabled(hdd_ctx)) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: IPA RT debug is not enabled", __func__);
+		return;
+	}
+	vos_timer_init(&hdd_ipa->rt_debug_timer, VOS_TIMER_TYPE_SW,
+		hdd_ipa_uc_rt_debug_handler, (void *)hdd_ctx);
+
+	vos_timer_start(&hdd_ipa->rt_debug_timer,
+		HDD_IPA_UC_RT_DEBUG_PERIOD);
 }
 
 void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
@@ -1296,7 +1306,7 @@ void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
         if (!msg) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "op_msg allocation fails");
 		return;
-        }
+	}
 
 	msg->op_code = HDD_IPA_UC_OPCODE_UC_READY;
 
@@ -1904,6 +1914,20 @@ int hdd_ipa_uc_ssr_reinit()
 	 */
 	return 0;
 }
+#else
+/**
+ * hdd_ipa_uc_rt_debug_destructor - called by data packet free
+ * @skb: packet pinter
+ *
+ * when free data packet, will be invoked by wlan client and will increase
+ * free counter
+ *
+ * Return: none
+ */
+void hdd_ipa_uc_rt_debug_destructor(struct sk_buff *skb)
+{
+	return;
+}
 #endif /* IPA_UC_OFFLOAD */
 
 static int hdd_ipa_rm_request(struct hdd_ipa_priv *hdd_ipa)
@@ -2423,13 +2447,13 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	if (!adapter || adapter->magic != WLAN_HDD_ADAPTER_MAGIC) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_LOW, "Invalid adapter: 0x%p",
 				adapter);
-		hdd_ipa->ipa_rx_internel_drop_count++;
+		HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa);
 		adf_nbuf_free(skb);
 		return;
 	}
 
 	if (hdd_ipa->hdd_ctx->isUnloadInProgress) {
-		hdd_ipa->ipa_rx_internel_drop_count++;
+		HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa);
 		adf_nbuf_free(skb);
 		return;
 	}
@@ -2455,7 +2479,7 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	else
 		++adapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
 
-	hdd_ipa->ipa_rx_net_send_count++;
+	HDD_IPA_INCREASE_NET_SEND_COUNT(hdd_ipa);
 	adapter->dev->last_rx = jiffies;
 }
 
@@ -2671,7 +2695,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 					iface_id);
 			HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_INFO_HIGH,
 				"w2i -- skb", skb->data, 8);
-			hdd_ipa->ipa_rx_internel_drop_count++;
+			HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa);
 			adf_nbuf_free(skb);
 			return;
 		}
@@ -2714,7 +2738,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 
 			if (fw_desc & FW_RX_DESC_DISCARD_M) {
 				hdd_ipa->ipa_rx_internel_drop_count++;
-				hdd_ipa->ipa_rx_disacrd++;
+				hdd_ipa->ipa_rx_discard++;
 				adf_nbuf_free(skb);
 				break;
 			}
@@ -4365,12 +4389,12 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 	if (!hdd_ipa_is_enabled(hdd_ctx))
 		return VOS_STATUS_SUCCESS;
 
-	hdd_ipa = adf_os_mem_alloc(NULL, sizeof(struct hdd_ipa_priv));
+	hdd_ipa = adf_os_mem_alloc(NULL, sizeof(*hdd_ipa));
 	if (!hdd_ipa) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL, "hdd_ipa allocation failed");
 		goto fail_setup_rm;
 	}
-	adf_os_mem_zero((void *)hdd_ipa, sizeof(struct hdd_ipa_priv));
+	adf_os_mem_zero(hdd_ipa, sizeof(*hdd_ipa));
 
 	hdd_ctx->hdd_ipa = hdd_ipa;
 	ghdd_ipa = hdd_ipa;
@@ -4405,7 +4429,7 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 #ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 		hdd_ipa_uc_rt_debug_init(hdd_ctx);
-		vos_mem_zero(&hdd_ipa->stats, sizeof(struct hdd_ipa_stats));
+		vos_mem_zero(&hdd_ipa->stats, sizeof(hdd_ipa->stats));
 		hdd_ipa->sap_num_connected_sta = 0;
 		hdd_ipa->ipa_tx_packets_diff = 0;
 		hdd_ipa->ipa_rx_packets_diff = 0;

@@ -2785,7 +2785,7 @@ VOS_STATUS hdd_roamRegisterTDLSSTA(hdd_adapter_t *pAdapter,
     * All the traffic routed to WLAN host driver, do not need to
     * route IPA. It should be routed kernel network stack */
 #if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
-    if (hdd_ipa_is_enabled(pHddCtx))
+    if (hdd_ipa_is_enabled(WLAN_HDD_GET_CTX(pAdapter)))
        vosStatus = WLANTL_RegisterSTAClient( pVosContext,
                                           hdd_ipa_process_rxt,
                                           hdd_tx_complete_cbk,
