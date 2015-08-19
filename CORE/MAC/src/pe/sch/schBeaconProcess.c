@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -484,7 +484,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
        // check for VHT capability
        pStaDs = dphLookupHashEntry(pMac, pMh->sa, &aid,
              &psessionEntry->dph.dphHashTable);
-       if (NULL != pStaDs && WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != cbMode)
+       if (NULL != pStaDs && (HAL_STA_INVALID_IDX != pStaDs->staIndex ) &&
+            (WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != cbMode))
        {
           if (psessionEntry->vhtCapability && pBeacon->OperatingMode.present )
           {
