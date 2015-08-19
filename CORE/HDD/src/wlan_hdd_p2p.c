@@ -210,7 +210,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     {
         if( cfgState->buf )
         {
-           hddLog( LOGP,
+           hddLog( LOG1,
                    "%s: We need to receive yet an ack from one of tx packet",
                    __func__);
         }

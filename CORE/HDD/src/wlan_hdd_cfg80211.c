@@ -14765,8 +14765,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
         if(is_p2p_scan && (pScanResult->ssId.ssId != NULL) &&
                 !vos_mem_compare( pScanResult->ssId.ssId, "DIRECT-", 7) )
         {
-            hddLog(VOS_TRACE_LEVEL_INFO, FL(" Non P2P BSS skipped: =%s:"),
-                    pScanResult->ssId.ssId);
             pScanResult = sme_ScanResultGetNext(hHal, pResult);
             continue; //Skip the non p2p bss entries
         }
@@ -15386,9 +15384,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
-
-    hddLog(VOS_TRACE_LEVEL_INFO, "scan request for ssid = %d",
-           request->n_ssids);
 
     /* Even though supplicant doesn't provide any SSIDs, n_ssids is
      * set to 1.  Because of this, driver is assuming that this is not

@@ -698,7 +698,6 @@ void limSetDFSChannelList(tpAniSirGlobal pMac,tANI_U8 channelNum, tSirDFSChannel
        }
        else
        {
-          PELOG1(limLog(pMac, LOG1, FL("Channel %d is Active"), channelNum);)
           return;
        }
        if (!tx_timer_running(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer))
@@ -1209,10 +1208,6 @@ void
 limContinueChannelScan(tpAniSirGlobal pMac)
 {
     tANI_U8                channelNum;
-
-    PELOG1(limLog(pMac, LOG1, FL("Continue SCAN : chan %d tot %d"),
-           pMac->lim.gLimCurrentScanChannelId,
-           pMac->lim.gpLimMlmScanReq->channelList.numChannels);)
 
     if (pMac->lim.gLimCurrentScanChannelId >
         (tANI_U32) (pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1)
@@ -3889,7 +3884,6 @@ limProcessPeriodicProbeReqTimer(tpAniSirGlobal pMac)
         (pPeriodicProbeReqTimer->sessionId != 0xff) && (pMac->lim.probeCounter < pMac->lim.maxProbe))
     {
         tLimMlmScanReq *pLimMlmScanReq = pMac->lim.gpLimMlmScanReq;
-        PELOG1(limLog(pMac, LOG1, FL("Scanning : Periodic scanning"));)
         pMac->lim.probeCounter++;
         /**
          * Periodic channel timer timed out

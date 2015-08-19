@@ -863,10 +863,6 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
     tANI_U8 *pssidstr;
     tSirMacSSid *pssid;
 
-    limLog(pMac, LOG1,
-       FL("Sending message SME_SCAN_RSP with length=%d reasonCode %s"),
-       length, limResultCodeStr(resultCode));
-
     if (resultCode != eSIR_SME_SUCCESS)
     {
         limPostSmeScanRspMessage(pMac, length, resultCode,smesessionId,smetranscationId);
@@ -956,16 +952,14 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
             }
             curMsgLen = msgLen;
 
-            PELOG2(limLog(pMac, LOG2, FL("ScanRsp : msgLen %d, bssDescr Len=%d"),
-                          msgLen, ptemp->bssDescription.length);)
             pDesc->length
                     = ptemp->bssDescription.length;
             vos_mem_copy( (tANI_U8 *) &pDesc->bssId,
                           (tANI_U8 *) &ptemp->bssDescription.bssId,
                            ptemp->bssDescription.length);
-
-            PELOG2(limLog(pMac, LOG2, FL("BssId "));
-            limPrintMacAddr(pMac, ptemp->bssDescription.bssId, LOG2);)
+            limLog(pMac, LOG1, FL("ScanRsp : msgLen %d, bssDescr Len=%d BssID "MAC_ADDRESS_STR),
+                          msgLen, ptemp->bssDescription.length,
+                          MAC_ADDR_ARRAY(ptemp->bssDescription.bssId));
 
             pSirSmeScanRsp->sessionId   = smesessionId;
             pSirSmeScanRsp->transcationId = smetranscationId;
