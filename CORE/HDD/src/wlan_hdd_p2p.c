@@ -169,6 +169,12 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) pCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
+    hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+
+    if (0 != wlan_hdd_validate_context(hdd_ctx)) {
+        hddLog(LOGE, FL("Invalid HDD context"));
+        return eHAL_STATUS_FAILURE;
+    }
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pRemainChanCtx = cfgState->remain_on_chan_ctx;
@@ -254,6 +260,8 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pAdapter->is_roc_inprogress = FALSE;
     mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+    /* Schedule any pending RoC */
+    schedule_delayed_work(&hdd_ctx->rocReqWork, 0);
     hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
     return eHAL_STATUS_SUCCESS;
 }
