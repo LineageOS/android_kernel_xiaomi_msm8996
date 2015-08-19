@@ -2906,14 +2906,12 @@ static int wma_extscan_operations_ind_handler(tp_wma_handle wma, uint8_t *buf)
 		vos_wake_lock_timeout_acquire(&wma->extscan_wake_lock,
 				      WMA_EXTSCAN_CYCLE_WAKE_LOCK_DURATION,
 				      WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
-		vos_runtime_pm_prevent_suspend();
 		goto exit_handler;
 	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
 		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_COMPLETED_EVENT",
 			__func__);
 		vos_wake_lock_release(&wma->extscan_wake_lock,
 					WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
-		vos_runtime_pm_allow_suspend();
 		goto exit_handler;
 	default:
 		WMA_LOGE("%s: Unknown event %d from target",
@@ -15259,7 +15257,6 @@ static void wma_prevent_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt++;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers) {
-		vos_runtime_pm_prevent_suspend();
 		vos_wake_lock_acquire(&wma->wow_wake_lock,
 				WIFI_POWER_EVENT_WAKELOCK_ADD_STA);
 		WMA_LOGW("%s: %d clients connected, prevent suspend",
@@ -15272,7 +15269,6 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt--;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers - 1) {
-		vos_runtime_pm_allow_suspend();
 		vos_wake_lock_release(&wma->wow_wake_lock,
                                       WIFI_POWER_EVENT_WAKELOCK_DEL_STA);
 		WMA_LOGW("%s: %d clients connected, allow suspend",
