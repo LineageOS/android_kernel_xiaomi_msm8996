@@ -530,46 +530,65 @@ eHalStatus csrQueueScanRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
 }
 #endif
 
-/* ---------------------------------------------------------------------------
-    \fn csrScan2GOnyRequest
-    \brief This function will update the scan request with only
-           2.4GHz valid channel list.
-    \param pMac
-    \param pScanCmd
-    \param pScanRequest
-    \return None
-  -------------------------------------------------------------------------------*/
-static void csrScan2GOnyRequest(tpAniSirGlobal pMac,tSmeCmd *pScanCmd,
-                                tCsrScanRequest *pScanRequest)
+/**
+ * csrScan2GOnyRequest() - This function will update the scan request with
+ * only 2.4GHz valid channel list.
+ * @mac_ctx:      Pointer to Global MAC structure
+ * @scan_cmd      scan cmd
+ * @scan_req      scan req
+ *
+ * This function will update the scan request with  only 2.4GHz valid channel
+ * list.
+ *
+ * @Return: status of operation
+ */
+static eHalStatus csrScan2GOnyRequest(tpAniSirGlobal mac_ctx,
+                                      tSmeCmd *scan_cmd,
+                                      tCsrScanRequest *scan_req)
 {
-    tANI_U8 index, channelId, channelListSize = 0;
-    tANI_U8 channelList2G[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
-    static tANI_U8 validchannelList[CSR_MAX_2_4_GHZ_SUPPORTED_CHANNELS] = {0};
+    uint8_t idx, lst_sz = 0;
 
-    VOS_ASSERT(pScanCmd && pScanRequest);
-    if((pScanCmd == NULL) || (pScanRequest == NULL))
-    {
-        smsLog( pMac, LOGE, FL(" pScanCmd or pScanRequest is NULL "));
-        return;
+    VOS_ASSERT(scan_cmd && scan_req);
+    /* To silence the KW tool null check is added */
+    if ((scan_cmd == NULL) || (scan_req == NULL)) {
+        smsLog(mac_ctx, LOGE, FL(" Scan Cmd or Scan Request is NULL "));
+        return eHAL_STATUS_INVALID_PARAMETER;
     }
 
-    if ((pScanCmd->u.scanCmd.scanID != FIRST_SCAN_ID) ||
-       (eCSR_SCAN_REQUEST_FULL_SCAN != pScanRequest->requestType))
-           return;
+    if (eCSR_SCAN_REQUEST_FULL_SCAN != scan_req->requestType)
+        return eHAL_STATUS_SUCCESS;
 
-    smsLog( pMac, LOG1, FL("Scanning only 2G Channels during first scan"));
-    /* Construct valid Supported 2.4 GHz Channel List */
-    for( index = 0; index < ARRAY_SIZE(channelList2G); index++ )
-    {
-        channelId = channelList2G[index];
-        if ( csrIsSupportedChannel( pMac, channelId ) )
-        {
-            validchannelList[channelListSize++] = channelId;
+    smsLog(mac_ctx, LOG1,
+           FL("Scanning only 2G Channels during first scan"));
+
+    /* Contsruct valid Supported 2.4 GHz Channel List */
+    if (NULL == scan_req->ChannelInfo.ChannelList) {
+        scan_req->ChannelInfo.ChannelList =
+            vos_mem_malloc(NUM_2_4GHZ_CHANNELS);
+        if (NULL == scan_req->ChannelInfo.ChannelList) {
+            smsLog(mac_ctx, LOGE, FL("Memory allocation failed."));
+            return eHAL_STATUS_FAILED_ALLOC;
+        }
+        for (idx = 1; idx <= NUM_2_4GHZ_CHANNELS; idx++) {
+            if (csrIsSupportedChannel(mac_ctx, idx)) {
+                scan_req->ChannelInfo.ChannelList[lst_sz] = idx;
+                lst_sz++;
+            }
         }
     }
-
-    pScanRequest->ChannelInfo.numOfChannels = channelListSize;
-    pScanRequest->ChannelInfo.ChannelList = validchannelList;
+    else {
+        for (idx = 0; idx < scan_req->ChannelInfo.numOfChannels; idx++) {
+            if (scan_req->ChannelInfo.ChannelList[idx] <= VOS_24_GHZ_CHANNEL_14
+                && csrIsSupportedChannel(mac_ctx,
+                       scan_req->ChannelInfo.ChannelList[idx])) {
+                scan_req->ChannelInfo.ChannelList[lst_sz] =
+                        scan_req->ChannelInfo.ChannelList[idx];
+                lst_sz++;
+            }
+        }
+    }
+    scan_req->ChannelInfo.numOfChannels = lst_sz;
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
@@ -723,7 +742,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 // If it is the first scan request from HDD, CSR checks if it is for 11d.
                 // If it is not, CSR will save the scan request in the pending cmd queue
                 // & issue an 11d scan request to PE.
-                if (((FIRST_SCAN_ID == pScanCmd->u.scanCmd.scanID)
+                if (((false == pMac->first_scan_done)
                    && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType))
 #ifdef SOFTAP_CHANNEL_RANGE
                    && (eCSR_SCAN_SOFTAP_CHANNEL_RANGE != pScanRequest->requestType)
@@ -834,10 +853,16 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 //Scan only 2G Channels if set in ini file
                 //This is mainly to reduce the First Scan duration
                 //Once we turn on Wifi
-                if(pMac->scan.fFirstScanOnly2GChnl)
-                {
-                    csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                if(pMac->scan.fFirstScanOnly2GChnl
+                   && false == pMac->first_scan_done) {
+                    status = csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                    if (!HAL_STATUS_SUCCESS(status)) {
+                        smsLog(pMac, LOGE, FL("csrScan2GOnyRequest failed."));
+                        break;
+                    }
                 }
+
+                pMac->first_scan_done = true;
 
                 if (pMac->roam.configParam.nInitialDwellTime)
                 {
