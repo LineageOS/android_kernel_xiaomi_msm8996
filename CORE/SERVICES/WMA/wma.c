@@ -11630,9 +11630,8 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t sta_type,
 			WMA_LOGP("%s: Invalid nw type %d", __func__, nw_type);
 			break;
 	}
-	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d is_vht %d is_cw_vht %d\
-	         phymode %d", __func__, nw_type, is_ht, is_cw40,
-	         is_vht, is_cw_vht, phymode);
+	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d is_vht %d is_cw_vht %d phymode %d",
+		 __func__, nw_type, is_ht, is_cw40, is_vht, is_cw_vht, phymode);
 
 	return phymode;
 }
@@ -12578,9 +12577,8 @@ wmi_unified_vdev_set_gtx_cfg_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 	cmd->gtxTPCMin = gtx_info->gtxTPCMin;
 	cmd->gtxBWMask = gtx_info->gtxBWMask;
 
-	WMA_LOGD("Setting vdev%d GTX values:htmcs 0x%x, vhtmcs 0x%x, usermask 0x%x, \
-		gtxPERThreshold %d, gtxPERMargin %d, gtxTPCstep %d, gtxTPCMin %d, \
-                gtxBWMask 0x%x.", if_id, cmd->gtxRTMask[0], cmd->gtxRTMask[1],
+	WMA_LOGD("Setting vdev%d GTX values:htmcs 0x%x, vhtmcs 0x%x, usermask 0x%x, gtxPERThreshold %d, gtxPERMargin %d, gtxTPCstep %d, gtxTPCMin %d, gtxBWMask 0x%x.",
+		if_id, cmd->gtxRTMask[0], cmd->gtxRTMask[1],
 		cmd->userGtxMask, cmd->gtxPERThreshold, cmd->gtxPERMargin,
 		cmd->gtxTPCstep, cmd->gtxTPCMin, cmd->gtxBWMask);
 	return wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_GTX_PARAMS_CMDID);
@@ -23256,8 +23254,8 @@ static void wma_process_set_mimops_req(tp_wma_handle wma_handle,
 	else if ( mimops->htMIMOPSState == eSIR_HT_MIMO_PS_NO_LIMIT)
 		mimops->htMIMOPSState = WMI_PEER_MIMO_PS_NONE;
 
-	WMA_LOGD("%s: htMIMOPSState = %d, sessionId = %d \
-		peerMac <%02x:%02x:%02x:%02x:%02x:%02x>", __func__,
+	WMA_LOGD("%s: htMIMOPSState = %d, sessionId = %d peerMac <%02x:%02x:%02x:%02x:%02x:%02x>",
+		__func__,
 		mimops->htMIMOPSState, mimops->sessionId, mimops->peerMac[0],
 		mimops->peerMac[1], mimops->peerMac[2], mimops->peerMac[3],
 		mimops->peerMac[4], mimops->peerMac[5]);
@@ -28693,9 +28691,8 @@ static inline void wma_update_target_ht_cap(tp_wma_handle wh,
 	/* RF chains */
 	cfg->num_rf_chains = wh->num_rf_chains;
 
-        WMA_LOGD("%s: ht_cap_info - %x ht_rx_stbc - %d, ht_tx_stbc - %d\n\
-                mpdu_density - %d ht_rx_ldpc - %d ht_sgi_20 - %d\n\
-                ht_sgi_40 - %d num_rf_chains - %d ", __func__,
+        WMA_LOGD("%s: ht_cap_info - %x ht_rx_stbc - %d, ht_tx_stbc - %d, mpdu_density - %d ht_rx_ldpc - %d ht_sgi_20 - %d, ht_sgi_40 - %d num_rf_chains - %d ",
+		__func__,
                 wh->ht_cap_info, cfg->ht_rx_stbc, cfg->ht_tx_stbc,
                 cfg->mpdu_density, cfg->ht_rx_ldpc, cfg->ht_sgi_20,
                 cfg->ht_sgi_40, cfg->num_rf_chains);
@@ -28767,9 +28764,7 @@ static inline void wma_update_target_vht_cap(tp_wma_handle wh,
 	/* VHT TXOP PS cap */
 	cfg->vht_txop_ps = wh->vht_cap_info & IEEE80211_VHTCAP_TXOP_PS;
 
-        WMA_LOGD(" %s: max_mpdu %d supp_chan_width %x rx_ldpc %x\n \
-                short_gi_80 %x tx_stbc %x rx_stbc %x txop_ps %x\n \
-                su_bformee %x mu_bformee %x max_ampdu_len_exp %d",
+        WMA_LOGD("%s: max_mpdu %d supp_chan_width %x rx_ldpc %x short_gi_80 %x tx_stbc %x rx_stbc %x txop_ps %x su_bformee %x mu_bformee %x max_ampdu_len_exp %d",
                 __func__, cfg->vht_max_mpdu, cfg->supp_chan_width,
                 cfg->vht_rx_ldpc, cfg->vht_short_gi_80, cfg->vht_tx_stbc,
                 cfg->vht_rx_stbc, cfg->vht_txop_ps, cfg->vht_su_bformee,

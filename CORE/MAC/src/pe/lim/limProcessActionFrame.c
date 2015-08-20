@@ -677,8 +677,8 @@ __limProcessGidManagementActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
         if (*pMemLower && *pMemUpper)
         {
             limLog(pMac, LOGE,
-                FL(" received frame with multiple group ID set\
-                    , staIdx = %d"), pSta->staIndex);
+                   FL(" received frame with multiple group ID set, staIdx = %d"),
+                   pSta->staIndex);
             goto out;
         }
         if (*pMemLower)
@@ -693,8 +693,8 @@ __limProcessGidManagementActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
         else
         {
             limLog(pMac, LOGE,
-                FL(" received Gid Management Frame with no group ID set\
-                    , staIdx = %d"), pSta->staIndex);
+                   FL(" received Gid Management Frame with no group ID set, staIdx = %d"),
+                   pSta->staIndex);
             goto out;
         }
         while (!(*pMemCur & 1))
@@ -705,8 +705,8 @@ __limProcessGidManagementActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
         if (*pMemCur)
         {
                 limLog(pMac, LOGE,
-                    FL(" received frame with multiple group ID set\
-                    , staIdx = %d"), pSta->staIndex);
+                       FL(" received frame with multiple group ID set, staIdx = %d"),
+                       pSta->staIndex);
                 goto out;
         }
 

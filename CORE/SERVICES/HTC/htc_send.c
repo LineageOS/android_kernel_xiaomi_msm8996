@@ -136,7 +136,7 @@ static void DoSendCompletion(HTC_ENDPOINT       *pEndpoint,
             /* using legacy EpTxComplete */
             do {
                 pPacket = HTC_PACKET_DEQUEUE(pQueueToIndicate);
-                AR_DEBUG_PRINTF(ATH_DEBUG_SEND, (" HTC calling ep %d send complete callback on packet %p \n", \
+                AR_DEBUG_PRINTF(ATH_DEBUG_SEND, (" HTC calling ep %d send complete callback on packet %p \n",
                         pEndpoint->Id, pPacket));
                 pEndpoint->EpCallBacks.EpTxComplete(pEndpoint->EpCallBacks.pContext, pPacket);
             } while (!HTC_QUEUE_EMPTY(pQueueToIndicate));
@@ -1331,9 +1331,8 @@ A_STATUS HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket,
         if (pPacket->ActualLength > (pEndpoint->TxCreditSize - HTC_HDR_LENGTH)) {
             pPacket->ActualLength = pEndpoint->TxCreditSize - HTC_HDR_LENGTH;
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
-            (" Packet Length %d exceeds endpoint credit size  %d \n           \
-               Set the packet length to credit size \n", pPacket->ActualLength,
-               pEndpoint->TxCreditSize));
+                            ("Packet Length %d exceeds endpoint credit size %d, set the packet length to credit size\n",
+                             pPacket->ActualLength, pEndpoint->TxCreditSize));
         }
         HTC_WRITE32(pHtcHdr, SM(pPacket->ActualLength, HTC_FRAME_HDR_PAYLOADLEN) |
                  SM(pPacket->PktInfo.AsTx.SendFlags, HTC_FRAME_HDR_FLAGS) |

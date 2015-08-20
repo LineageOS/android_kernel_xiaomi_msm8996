@@ -2851,8 +2851,8 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                     pci_read_config_dword(sc->pdev, PCI_BASE_ADDRESS_0, &bar);
                     printk("%s: PCI BAR 0 = 0x%08x\n", __func__, bar);
 
-                    printk("%s: PCIE_SOC_WAKE_ADDRESS = 0x%08x,"    \
-                           " RTC_STATE_ADDRESS = 0x%08x\n", __func__,
+                    printk("%s: PCIE_SOC_WAKE_ADDRESS = 0x%08x, RTC_STATE_ADDRESS = 0x%08x\n",
+                           __func__,
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS
                                         + PCIE_SOC_WAKE_ADDRESS),
                            A_PCI_READ32(pci_addr + PCIE_LOCAL_BASE_ADDRESS

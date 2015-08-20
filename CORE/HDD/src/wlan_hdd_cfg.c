@@ -5894,8 +5894,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                            eANI_BOOLEAN_FALSE) ==eHAL_STATUS_FAILURE)
                    {
                         fStatus = FALSE;
-                        hddLog(LOGE, "Could not pass on\
-                               WNI_CFG_VHT_MU_BEAMFORMEE_CAP to CCM");
+                        hddLog(LOGE, "Could not pass on WNI_CFG_VHT_MU_BEAMFORMEE_CAP to CCM");
                    }
                }
           }

@@ -6475,8 +6475,9 @@ static int __iw_setint_getnone(struct net_device *dev,
                }
                set_value = (preamble << 6) | (nss << 4) | rix;
            }
-           hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
-                  nss %d", set_value, rix, preamble, nss);
+           hddLog(LOG1,
+                  "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x nss %d",
+                  set_value, rix, preamble, nss);
 
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_FIXED_RATE,
@@ -6495,8 +6496,9 @@ static int __iw_setint_getnone(struct net_device *dev,
 
                set_value = (preamble << 6) | (nss << 4) | rix;
            }
-           hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
-                  nss %d", set_value, rix, preamble, nss);
+           hddLog(LOG1,
+                  "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x nss %d",
+                  set_value, rix, preamble, nss);
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_FIXED_RATE,
                                          set_value, VDEV_CMD);

@@ -2751,8 +2751,8 @@ VOS_STATUS hdd_roamRegisterTDLSSTA(hdd_adapter_t *pAdapter,
     (hdd_wmm_is_active(pAdapter)) ? (staDesc.ucQosEnabled = 1)
                                           : (staDesc.ucQosEnabled = 0) ;
 
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "HDD register \
-                                TL QoS_enabled=%d", staDesc.ucQosEnabled );
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+               "HDD register TL QoS_enabled=%d", staDesc.ucQosEnabled );
 
     staDesc.ucProtectedFrame = (connectedCipherAlgo != eCSR_ENCRYPT_TYPE_NONE) ;
 

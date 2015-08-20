@@ -12357,9 +12357,8 @@ static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDesc
                 pParam->extendedRateSet.numRates = pIes->ExtSuppRates.num_rates;
                 if(pIes->ExtSuppRates.num_rates > SIR_MAC_RATESET_EID_MAX)
                 {
-                   smsLog(pMac, LOGE, FL("num_rates :%d is more than \
-                                         SIR_MAC_RATESET_EID_MAX, resetting to \
-                                         SIR_MAC_RATESET_EID_MAX"),
+                   smsLog(pMac, LOGE,
+                          FL("num_rates :%d is more than SIR_MAC_RATESET_EID_MAX, resetting to SIR_MAC_RATESET_EID_MAX"),
                                          pIes->ExtSuppRates.num_rates);
                    pIes->ExtSuppRates.num_rates = SIR_MAC_RATESET_EID_MAX;
                 }

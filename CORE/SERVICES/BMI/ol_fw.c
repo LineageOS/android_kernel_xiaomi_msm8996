@@ -332,7 +332,7 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 			}
 		}
 
-		if ((one_bin_header->action & ACTION_DOWNLOAD_EXEC)	\
+		if ((one_bin_header->action & ACTION_DOWNLOAD_EXEC)
 						== ACTION_DOWNLOAD_EXEC)
 		{
 			param = 0;

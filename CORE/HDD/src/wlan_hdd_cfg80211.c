@@ -19164,7 +19164,8 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: %p(%d) Connection in progress: sched_scan_start denied (EBUSY)", __func__, \
+                "%s: %p(%d) Connection in progress: sched_scan_start denied (EBUSY)",
+               __func__,
                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
         return -EBUSY;
     }
