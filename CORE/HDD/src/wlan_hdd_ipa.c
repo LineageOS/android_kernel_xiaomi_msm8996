@@ -674,7 +674,7 @@ static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
 	if (wlan_hdd_validate_context(hdd_ctx))
 		return;
 
-	if (hdd_ctx->hdd_ipa &&
+	if (!hdd_ctx->hdd_ipa ||
 		!hdd_ipa_uc_is_enabled((struct hdd_ipa_priv *)hdd_ctx->hdd_ipa)) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 			"%s: IPA UC is not enabled", __func__);
@@ -718,15 +718,19 @@ static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
  */
 void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx)
 {
-	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa;
 	unsigned int dump_count;
 	unsigned int dump_index;
 	struct uc_rt_debug_info *dump_info = NULL;
 
-	if (hdd_ipa &&
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	hdd_ipa = hdd_ctx->hdd_ipa;
+	if (!hdd_ipa ||
 		!hdd_ipa_uc_is_enabled((struct hdd_ipa_priv *)hdd_ctx->hdd_ipa)) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s: IPA RT debug is not enabled", __func__);
+			"%s: IPA UC is not enabled", __func__);
 		return;
 	}
 
