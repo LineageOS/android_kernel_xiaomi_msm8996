@@ -1829,6 +1829,11 @@ wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
 }
 #endif
 
+void hdd_connect_result(struct net_device *dev, const u8 *bssid,
+			const u8 *req_ie, size_t req_ie_len,
+			const u8 * resp_ie, size_t resp_ie_len,
+			u16 status, gfp_t gfp);
+
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

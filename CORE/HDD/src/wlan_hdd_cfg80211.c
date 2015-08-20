@@ -16206,7 +16206,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         }
 #endif
 
-        vos_runtime_pm_prevent_suspend_timeout(WLAN_HDD_CONNECTION_TIME);
+        vos_runtime_pm_prevent_suspend();
 
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);
@@ -17045,9 +17045,10 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         channel = req->channel->hw_value;
     else
         channel = 0;
+
     status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                             req->ssid_len, req->bssid,
-                                             bssid_hint, channel);
+                                       req->ssid_len, req->bssid,
+                                       bssid_hint, channel);
 
     if (0 != status) {
         //ReEnable BMPS if disabled
@@ -18506,6 +18507,7 @@ static int __wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
                   "%s: DHCP start indicated through power save", __func__);
+        vos_runtime_pm_prevent_suspend();
         sme_DHCPStartInd(pHddCtx->hHal, pAdapter->device_mode,
                          pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
     }
@@ -18513,6 +18515,7 @@ static int __wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
                   "%s: DHCP stop indicated through power save", __func__);
+        vos_runtime_pm_allow_suspend();
         sme_DHCPStopInd(pHddCtx->hHal, pAdapter->device_mode,
                         pAdapter->macAddressCurrent.bytes, pAdapter->sessionId);
     }

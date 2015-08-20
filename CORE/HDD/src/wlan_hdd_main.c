@@ -9596,6 +9596,39 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
    return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_connect_result() - API to send connection status to supplicant
+ * @dev: network device
+ * @bssid: bssid to which we want to associate
+ * @req_ie: Request Information Element
+ * @req_ie_len: len of the req IE
+ * @resp_ie: Response IE
+ * @resp_ie_len: len of ht response IE
+ * @status: status
+ * @gfp: Kernel Flag
+ *
+ * The API is a wrapper to send connection status to supplicant
+ * and allow runtime suspend
+ *
+ * Return: Void
+ */
+
+void hdd_connect_result(struct net_device *dev,
+			const u8 *bssid,
+			const u8 *req_ie,
+			size_t req_ie_len,
+			const u8 * resp_ie,
+			size_t resp_ie_len,
+			u16 status,
+			gfp_t gfp)
+{
+
+	cfg80211_connect_result(dev, bssid, req_ie, req_ie_len,
+				resp_ie, resp_ie_len, status, gfp);
+	vos_runtime_pm_allow_suspend();
+}
+
+
 VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
 {
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
@@ -9654,7 +9687,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                * Indicate connect failure to supplicant if we were in the
                * process of connecting
                */
-               cfg80211_connect_result(pAdapter->dev, NULL,
+               hdd_connect_result(pAdapter->dev, NULL,
                                        NULL, 0, NULL, 0,
                                        WLAN_STATUS_ASSOC_DENIED_UNSPEC,
                                        GFP_KERNEL);
