@@ -190,14 +190,14 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
             * overloaded with VHT maxAMPDULenExp
             */
             pStaDs->htMaxRxAMpduFactor = vht_caps->maxAMPDULenExp;
-            if (limPopulatePeerRateSet(pMac, &pStaDs->supportedRates,
-                    pAssocRsp->HTCaps.supportedMCSSet,
-                    false, psessionEntry,
-                    vht_caps) != eSIR_SUCCESS) {
-                    limLog(pMac, LOGP,
-                    FL("could not get rateset and extended rate set"));
-                    return;
-           }
+       }
+       if (limPopulatePeerRateSet(pMac, &pStaDs->supportedRates,
+                pAssocRsp->HTCaps.supportedMCSSet,
+                false, psessionEntry,
+                vht_caps) != eSIR_SUCCESS) {
+                limLog(pMac, LOGP,
+                FL("could not get rateset and extended rate set"));
+                return;
        }
 #else
        if (limPopulatePeerRateSet(pMac, &pStaDs->supportedRates, pAssocRsp->HTCaps.supportedMCSSet, false,psessionEntry) != eSIR_SUCCESS)
