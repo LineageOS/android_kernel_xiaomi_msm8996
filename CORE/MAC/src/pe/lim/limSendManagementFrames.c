@@ -3251,6 +3251,29 @@ end:
 } // limSendReassocReqMgmtFrame
 
 /**
+ * lim_auth_tx_complete_cnf()- Confirmation for
+ * Auth Sent over the air
+ * @mac_ctx:pointer to global mac
+ * @tx_complete : Sent status
+ * Return: eHAL_STATUS_SUCCESS in case of success
+ */
+
+eHalStatus lim_auth_tx_complete_cnf(tpAniSirGlobal mac_ctx,
+					tANI_U32 tx_complete)
+{
+	limLog(mac_ctx, LOG1,
+		 FL("tx_complete= %d"), tx_complete);
+	if (tx_complete) {
+		mac_ctx->auth_ack_status = LIM_AUTH_ACK_RCD_SUCCESS;
+		/* 'Change' timer for future activations */
+		limDeactivateAndChangeTimer(mac_ctx, eLIM_AUTH_RETRY_TIMER);
+	} else {
+		mac_ctx->auth_ack_status = LIM_AUTH_ACK_RCD_FAILURE;
+	}
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
  * \brief Send an Authentication frame
  *
  *
@@ -3277,8 +3300,8 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
                      tpSirMacAuthFrameBody pAuthFrameBody,
                      tSirMacAddr           peerMacAddr,
                      tANI_U8               wepBit,
-                     tpPESession           psessionEntry
-                                                       )
+                     tpPESession           psessionEntry,
+                     tAniBool              waitForAck)
 {
     tANI_U8            *pFrame, *pBody;
     tANI_U32            frameLen = 0, bodyLen = 0;
@@ -3566,24 +3589,43 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_MGMT,
-           psessionEntry->peSessionId, pMacHdr->fc.subType));
-    /// Queue Authentication frame in high priority WQ
-    halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) frameLen,
+       psessionEntry->peSessionId, pMacHdr->fc.subType));
+
+    if (eSIR_TRUE == waitForAck) {
+
+        pMac->auth_ack_status = LIM_AUTH_ACK_NOT_RCD;
+        halstatus = halTxFrameWithTxComplete(pMac, pPacket,
+                        (tANI_U16)frameLen,
+                        HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
+                        7, limTxComplete, pFrame,
+                        lim_auth_tx_complete_cnf,
+                        txFlag, smeSessionId, false);
+        MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
+            psessionEntry->peSessionId, halstatus));
+        if (!HAL_STATUS_SUCCESS(halstatus)) {
+           limLog(pMac, LOGE,
+               FL("*** Could not send Auth frame, retCode=%X ***"),
+               halstatus);
+           pMac->auth_ack_status = LIM_AUTH_ACK_RCD_FAILURE;
+        /* Pkt will be freed up by the callback*/
+       }
+    } else {
+        /* Queue Authentication frame in high priority WQ */
+        halstatus = halTxFrame(pMac, pPacket, ( tANI_U16 ) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
                             7,
-                            limTxComplete, pFrame, txFlag, smeSessionId );
-     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
+                            limTxComplete, pFrame, txFlag, smeSessionId);
+        MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
             psessionEntry->peSessionId, halstatus));
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
-    {
-        limLog(pMac, LOGE,
+        if (!HAL_STATUS_SUCCESS(halstatus)) {
+           limLog(pMac, LOGE,
                FL("*** Could not send Auth frame, retCode=%X ***"),
                halstatus);
 
-        //Pkt will be freed up by the callback
+        /* Pkt will be freed up by the callback*/
+        }
     }
-
     return;
 } /*** end limSendAuthMgmtFrame() ***/
 

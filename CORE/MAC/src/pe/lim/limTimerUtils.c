@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,6 +54,8 @@
 #define LIM_KEEPALIVE_TIMER_MS                   3000
 // Lim JoinProbeRequest Retry  timer default (200)ms
 #define LIM_JOIN_PROBE_REQ_TIMER_MS              200
+#define LIM_AUTH_RETRY_TIMER_MS              60
+
 
 //default beacon interval value used in HB timer interval calculation
 #define LIM_HB_TIMER_BEACON_INTERVAL             100
@@ -257,7 +259,19 @@ limCreateTimers(tpAniSirGlobal pMac)
             limLog(pMac, LOGP, FL("could not create Periodic Join Probe Request timer"));
             goto err_timer;
         }
-
+        //Send Auth frame every 60 ms
+        if ((tx_timer_create
+                        (&pMac->lim.limTimers.g_lim_periodic_auth_retry_timer,
+                        "Periodic AUTH Timer",
+                        limTimerHandler, SIR_LIM_AUTH_RETRY_TIMEOUT,
+                        SYS_MS_TO_TICKS(LIM_AUTH_RETRY_TIMER_MS), 0,
+                        TX_NO_ACTIVATE)) != TX_SUCCESS)
+        {
+            /// Could not create Periodic Join Probe Request timer.
+            // Log error
+            limLog(pMac, LOGP, FL("could not create Periodic AUTH Timer timer"));
+            goto err_timer;
+        }
         if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
                       &cfgValue) != eSIR_SUCCESS)
         {
@@ -738,6 +752,7 @@ limCreateTimers(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimAssocFailureTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimJoinFailureTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicJoinProbeReqTimer);
+        tx_timer_delete(&pMac->lim.limTimers.g_lim_periodic_auth_retry_timer);
         tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
@@ -1004,6 +1019,7 @@ void
 limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
 {
     tANI_U32    val=0, val1=0;
+    tpPESession  session_entry;
 
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, timerId));
 
@@ -1227,6 +1243,35 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                        FL("unable to change Auth failure timer"));
             }
 
+            break;
+
+        case eLIM_AUTH_RETRY_TIMER:
+
+            if (tx_timer_deactivate
+                  (&pMac->lim.limTimers.g_lim_periodic_auth_retry_timer)
+                                         != TX_SUCCESS) {
+                // Could not deactivate Auth Retry Timer.
+                limLog(pMac, LOGP,
+                       FL("Unable to deactivate Auth Retry timer"));
+            }
+            if ((session_entry = peFindSessionBySessionId(pMac,
+                pMac->lim.limTimers.g_lim_periodic_auth_retry_timer.sessionId))
+                                                                   == NULL) {
+                   limLog(pMac, LOGP,
+                    FL("session does not exist for given SessionId : %d"),
+                    pMac->lim.limTimers.g_lim_periodic_auth_retry_timer.sessionId);
+                   break;
+            }
+            /* 3/5 of the beacon interval*/
+            val = session_entry->beaconParams.beaconInterval * 3/5;
+            val = SYS_MS_TO_TICKS(val);
+            if (tx_timer_change
+                 (&pMac->lim.limTimers.g_lim_periodic_auth_retry_timer,
+                                val, 0) != TX_SUCCESS) {
+                // Could not change Auth Retry timer.
+                // Log error
+                limLog(pMac, LOGP, FL("Unable to change Auth Retry timer"));
+            }
             break;
 
         case eLIM_ASSOC_FAIL_TIMER:

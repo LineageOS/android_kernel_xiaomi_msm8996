@@ -512,8 +512,13 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
     sessionEntry->limMlmState = sessionEntry->limPrevMlmState;
 
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, sessionEntry->peSessionId, sessionEntry->limMlmState));
-
-
+    /* Set the authAckStatus status flag as sucess as
+     * host have received the auth rsp and no longer auth
+     * retry is needed also cancel the auth rety timer
+     */
+    pMac->auth_ack_status = LIM_AUTH_ACK_RCD_SUCCESS;
+    /* 'Change' timer for future activations */
+    limDeactivateAndChangeTimer(pMac, eLIM_AUTH_RETRY_TIMER);
     // 'Change' timer for future activations
     limDeactivateAndChangeTimer(pMac, eLIM_AUTH_FAIL_TIMER);
 

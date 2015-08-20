@@ -411,7 +411,7 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status,
 
     limSendAuthMgmtFrame(pMac, &authFrame,
         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthbssId,
-        LIM_NO_WEP_IN_FC, psessionEntry);
+        LIM_NO_WEP_IN_FC, psessionEntry, eSIR_FALSE);
     return;
 
 preauth_fail:
