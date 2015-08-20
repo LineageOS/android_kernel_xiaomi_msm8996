@@ -387,6 +387,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
    scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
+   scn->enable_self_recovery = pHddCtx->cfg_ini->enableSelfRecovery;
 
    vos_fw_hash_check_config(scn, pHddCtx);
    vos_runtime_pm_config(scn, pHddCtx);

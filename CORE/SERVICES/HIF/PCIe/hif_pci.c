@@ -2860,6 +2860,8 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
 
                     printk("%s:error, can't wakeup target\n", __func__);
                     hif_msm_pcie_debug_info(sc);
+                    if (!sc->ol_sc->enable_self_recovery)
+                            VOS_BUG(0);
                     sc->recovery = true;
                     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 #ifdef CONFIG_CNSS
