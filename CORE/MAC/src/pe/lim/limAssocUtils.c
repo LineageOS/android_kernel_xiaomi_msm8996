@@ -2473,8 +2473,14 @@ limAddSta(
         }
         else
         {
-            pAddStaParams->htLdpcCapable = pStaDs->htLdpcCapable;
-            pAddStaParams->vhtLdpcCapable = pStaDs->vhtLdpcCapable;
+            if (psessionEntry->txLdpcIniFeatureEnabled & 0x1)
+                pAddStaParams->htLdpcCapable = pStaDs->htLdpcCapable;
+            else
+                pAddStaParams->htLdpcCapable = 0;
+            if (psessionEntry->txLdpcIniFeatureEnabled & 0x2)
+                pAddStaParams->vhtLdpcCapable = pStaDs->vhtLdpcCapable;
+            else
+                pAddStaParams->vhtLdpcCapable = 0;
         }
     }
     else if( STA_ENTRY_SELF == pStaDs->staType)
@@ -2669,6 +2675,11 @@ limAddSta(
     "p2pCapableSta: %d"), pAddStaParams->htLdpcCapable,
     pAddStaParams->vhtLdpcCapable, pAddStaParams->p2pCapableSta);
 
+    if (!pAddStaParams->htLdpcCapable)
+            pAddStaParams->ht_caps &= ~(1 << SIR_MAC_HT_CAP_ADVCODING_S);
+
+    if (!pAddStaParams->vhtLdpcCapable)
+            pAddStaParams->vht_caps &= ~(1 << SIR_MAC_VHT_CAP_LDPC_CODING_CAP);
     //we need to defer the message until we get the response back from HAL.
     if (pAddStaParams->respReqd)
         SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -4011,8 +4022,16 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             }
             else
             {
-                pAddBssParams->staContext.htLdpcCapable = (tANI_U8)pAssocRsp->HTCaps.advCodingCap;
-                pAddBssParams->staContext.vhtLdpcCapable = (tANI_U8)pAssocRsp->VHTCaps.ldpcCodingCap;
+                if (psessionEntry->txLdpcIniFeatureEnabled & 0x1)
+                    pAddBssParams->staContext.htLdpcCapable =
+                            (tANI_U8)pAssocRsp->HTCaps.advCodingCap;
+                else
+                    pAddBssParams->staContext.htLdpcCapable = 0;
+                if (psessionEntry->txLdpcIniFeatureEnabled & 0x2)
+                    pAddBssParams->staContext.vhtLdpcCapable =
+                        (tANI_U8)pAssocRsp->VHTCaps.ldpcCodingCap;
+                else
+                    pAddBssParams->staContext.vhtLdpcCapable = 0;
             }
 
             if( pBeaconStruct->HTInfo.present )
@@ -4125,6 +4144,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     else
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_REASSOC_STATE;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
+
+    if (!pAddBssParams->staContext.htLdpcCapable)
+        pAddBssParams->staContext.ht_caps &=
+                ~(1 << SIR_MAC_HT_CAP_ADVCODING_S);
+    if (!pAddBssParams->staContext.vhtLdpcCapable)
+        pAddBssParams->staContext.vht_caps &=
+                ~(1 << SIR_MAC_VHT_CAP_LDPC_CODING_CAP);
 
     limLog(pMac, LOG2, FL("staContext wmmEnabled: %d encryptType: %d "
     "p2pCapableSta: %d"),pAddBssParams->staContext.wmmEnabled,
@@ -4474,8 +4500,16 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
             }
             else
             {
-                pAddBssParams->staContext.htLdpcCapable = (tANI_U8)pBeaconStruct->HTCaps.advCodingCap;
-                pAddBssParams->staContext.vhtLdpcCapable = (tANI_U8)pBeaconStruct->VHTCaps.ldpcCodingCap;
+                if (psessionEntry->txLdpcIniFeatureEnabled & 0x1)
+                    pAddBssParams->staContext.htLdpcCapable =
+                            (tANI_U8)pBeaconStruct->HTCaps.advCodingCap;
+                else
+                    pAddBssParams->staContext.htLdpcCapable = 0;
+                if (psessionEntry->txLdpcIniFeatureEnabled & 0x2)
+                    pAddBssParams->staContext.vhtLdpcCapable =
+                        (tANI_U8)pBeaconStruct->VHTCaps.ldpcCodingCap;
+                else
+                    pAddBssParams->staContext.vhtLdpcCapable = 0;
             }
 
             if( pBeaconStruct->HTInfo.present )
