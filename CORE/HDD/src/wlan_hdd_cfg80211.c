@@ -15850,6 +15850,12 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
 #endif
 
 /*
+ * Time in msec
+ * Time for complete association including DHCP
+ */
+#define WLAN_HDD_CONNECTION_TIME 30
+
+/*
  * FUNCTION: wlan_hdd_cfg80211_connect_start
  * This function is used to start the association process
  */
@@ -16088,6 +16094,9 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             }
         }
 #endif
+
+        vos_runtime_pm_prevent_suspend_timeout(WLAN_HDD_CONNECTION_TIME);
+
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                             pAdapter->sessionId, pRoamProfile, &roamId);
 
