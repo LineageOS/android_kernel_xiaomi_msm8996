@@ -15853,7 +15853,7 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
  * Time in msec
  * Time for complete association including DHCP
  */
-#define WLAN_HDD_CONNECTION_TIME 30
+#define WLAN_HDD_CONNECTION_TIME (30 * 1000)
 
 /*
  * FUNCTION: wlan_hdd_cfg80211_connect_start
