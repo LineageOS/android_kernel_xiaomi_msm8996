@@ -7722,6 +7722,9 @@ static void __hdd_set_multicast_list(struct net_device *dev)
 
    ENTER();
 
+   /* Delete already configured multicast address list */
+   wlan_hdd_set_mc_addr_list(pAdapter, false);
+
    if (dev->flags & IFF_ALLMULTI)
    {
       hddLog(VOS_TRACE_LEVEL_INFO,
@@ -7754,6 +7757,10 @@ static void __hdd_set_multicast_list(struct net_device *dev)
          i++;
       }
    }
+
+   /* Configure the updated multicast address list */
+   wlan_hdd_set_mc_addr_list(pAdapter, true);
+
    EXIT();
    return;
 }
