@@ -1093,6 +1093,8 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
 		hif_pm_runtime_put_auto(sc->dev);
 		sc->runtime_timer_expires = 0;
 	}
+
+	cnss_flush_work(&sc->pm_work);
 }
 #else
 static inline void hif_pci_pm_runtime_init(struct hif_pci_softc *sc) { }
