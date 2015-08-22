@@ -1485,6 +1485,11 @@ typedef struct {
      */
     A_UINT32 default_dbs_hw_mode_index;
 
+    /*
+     * Number of msdu descriptors target would use
+     */
+    A_UINT32 num_msdu_desc;
+
     /* The TLVs for hal_reg_capabilities, wmi_service_bitmap and mem_reqs[] will follow this TLV.
          *     HAL_REG_CAPABILITIES   hal_reg_capabilities;
          *     A_UINT32 wmi_service_bitmap[WMI_SERVICE_BM_SIZE];
