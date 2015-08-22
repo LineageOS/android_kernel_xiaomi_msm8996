@@ -129,6 +129,7 @@
  * Android CTS verifier needs atleast this much wait time (in msec)
  */
 #define MAX_REMAIN_ON_CHANNEL_DURATION    (5000)
+#define HDD_WAKE_LOCK_SCAN_DURATION       (5 * 1000) /* in msec */
 
 /* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
    check. The bit map is defined in:
@@ -15318,17 +15319,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         return -EBUSY;
     }
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-    /* This check will not allow any normal scan when we already issued
-     * an PNO scan.
-     */
-    if (TRUE == pScanInfo->mPnoScanPending)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: mPnoScanPending is TRUE", __func__);
-        return -EBUSY;
-    }
-#endif
-
     //Don't Allow Scan and return busy if Remain On
     //Channel and action frame is pending
     //Otherwise Cancel Remain On Channel and allow Scan
@@ -15592,7 +15582,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      * 2) Connected scenario: If we allow the suspend during the scan, RIVA will
      * be stuck in full power because of resume BMPS
      */
-    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_SCAN);
+    hdd_prevent_suspend_timeout(HDD_WAKE_LOCK_SCAN_DURATION,
+                                WIFI_POWER_EVENT_WAKELOCK_SCAN);
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
            "requestType %d, scanType %d, minChnTime %d, maxChnTime %d,p2pSearch %d, skipDfsChnlIn P2pSearch %d",
            scanRequest.requestType, scanRequest.scanType,
@@ -19372,8 +19363,6 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         goto error;
     }
 
-    pScanInfo->mPnoScanPending = TRUE;
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "PNO scanRequest offloaded");
 
@@ -19412,7 +19401,6 @@ static int __wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
     tHalHandle hHal;
     tpSirPNOScanReq pPnoRequest = NULL;
     int ret = 0;
-    hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
 
     ENTER();
 
@@ -19484,9 +19472,6 @@ static int __wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
                   "Failed to disabled PNO");
         ret = -EINVAL;
     }
-
-    /* Allow normal scan to continue */
-    pScanInfo->mPnoScanPending = FALSE;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                    "%s: PNO scan disabled", __func__);
