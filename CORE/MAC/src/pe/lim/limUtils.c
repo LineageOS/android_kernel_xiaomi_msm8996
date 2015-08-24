@@ -2828,15 +2828,6 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tpPESession psessionE
         return;
     }
 #endif
-    /* Assign the callback to resume TX once channel is changed.
-     */
-    psessionEntry->currentReqChannel = newChannel;
-    psessionEntry->limRFBand = limGetRFBand(newChannel);
-
-    psessionEntry->channelChangeReasonCode=LIM_SWITCH_CHANNEL_OPERATION;
-
-    pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
-    pMac->lim.gpchangeChannelData = NULL;
 
     /* Assign the callback to resume TX once channel is changed */
     psessionEntry->currentReqChannel = newChannel;
