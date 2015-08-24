@@ -1606,7 +1606,7 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 {
 	ol_txrx_vdev_handle vdev;
-	ol_txrx_peer_handle peer;
+	ol_txrx_peer_handle peer, temp;
 
 	if (!wma || vdev_id > wma->max_bssid)
 		return;
@@ -1615,17 +1615,25 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	if (!vdev)
 		return;
 
-	/* remove all IBSS remote peers first */
+	/* remove all remote peers of IBSS */
 	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
-	TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-		if (peer != TAILQ_FIRST(&vdev->peer_list)) {
+
+	temp = NULL;
+	TAILQ_FOREACH_REVERSE(peer, &vdev->peer_list, peer_list_t, peer_list_elem) {
+		if (temp) {
 			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
-			adf_os_atomic_init(&peer->ref_cnt);
-			adf_os_atomic_inc(&peer->ref_cnt);
-			wma_remove_peer(wma, wma->interfaces[vdev_id].bssid,
-				vdev_id, peer, VOS_FALSE);
+			if (adf_os_atomic_read(&temp->delete_in_progress) == 0){
+				wma_remove_peer(wma, temp->mac_addr.raw,
+					vdev_id, temp, VOS_FALSE);
+			}
 			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
 		}
+		/* self peer is deleted last */
+		if (peer == TAILQ_FIRST(&vdev->peer_list)) {
+			WMA_LOGE("%s: self peer removed by caller ", __func__);
+			break;
+		} else
+			temp = peer;
 	}
 	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
 
@@ -1633,6 +1641,7 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	peer = TAILQ_FIRST(&vdev->peer_list);
 	wma_remove_peer(wma, wma->interfaces[vdev_id].bssid, vdev_id, peer,
 			VOS_FALSE);
+
 }
 #endif //#ifdef QCA_IBSS_SUPPORT
 
