@@ -7690,6 +7690,96 @@ static int wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
 	return ret;
 }
 
+/**
+ * wlan_hdd_sap_cfg_dfs_override() - DFS MCC restriction check
+ *
+ * @adapter: SAP adapter pointer
+ *
+ * DFS in MCC is not supported for Multi bssid SAP mode due to single physical
+ * radio. So in case of DFS MCC scenario override current SAP given config
+ * to follow concurrent SAP DFS config
+ *
+ * Return: 0 - No DFS issue, 1 - Override done and negative error codes
+ */
+
+#ifdef WLAN_FEATURE_MBSSID
+static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
+{
+	hdd_adapter_t *con_sap_adapter;
+	tsap_Config_t *sap_config, *con_sap_config;
+	int con_ch;
+
+	/*
+	 * Check if AP+AP case, once primary AP chooses a DFS
+	 * channel secondary AP should always follow primary APs channel
+	 */
+	if (!vos_concurrent_beaconing_sessions_running())
+		return 0;
+
+	con_sap_adapter = hdd_get_con_sap_adapter(adapter, true);
+	if (!con_sap_adapter)
+		return 0;
+
+	sap_config = &adapter->sessionCtx.ap.sapConfig;
+	con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
+	con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+
+	if (!VOS_IS_DFS_CH(con_ch))
+		return 0;
+
+	hddLog(LOGE, FL("Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)"),
+						sap_config->channel, con_ch);
+	hddLog(LOG1, FL("Overriding guest AP's channel"));
+	sap_config->channel = con_ch;
+
+	if (con_sap_config->acs_cfg.acs_mode == true) {
+		if (con_ch != con_sap_config->acs_cfg.pri_ch &&
+				con_ch != con_sap_config->acs_cfg.ht_sec_ch) {
+			hddLog(LOGE, FL("Primary AP channel config error"));
+			hddLog(LOGE, FL("Operating ch: %d ACS ch: %d %d"),
+				con_ch, con_sap_config->acs_cfg.pri_ch,
+				con_sap_config->acs_cfg.ht_sec_ch);
+			return -EINVAL;
+		}
+		/* Sec AP ACS info is overwritten with Pri AP due to DFS
+		 * MCC restriction. So free ch list allocated in do_acs
+		 * func for Sec AP and realloc for Pri AP ch list size
+		 */
+		if (sap_config->acs_cfg.ch_list)
+		        vos_mem_free(sap_config->acs_cfg.ch_list);
+
+		vos_mem_copy(&sap_config->acs_cfg,
+					&con_sap_config->acs_cfg,
+					sizeof(struct sap_acs_cfg));
+		sap_config->acs_cfg.ch_list = vos_mem_malloc(
+					sizeof(uint8_t) *
+					con_sap_config->acs_cfg.ch_list_count);
+		if (!sap_config->acs_cfg.ch_list) {
+			hddLog(LOGE, FL("ACS config alloc fail"));
+			return -ENOMEM;
+		}
+
+		vos_mem_copy(sap_config->acs_cfg.ch_list,
+					con_sap_config->acs_cfg.ch_list,
+					con_sap_config->acs_cfg.ch_list_count);
+
+	} else {
+		sap_config->acs_cfg.pri_ch = con_ch;
+		if (sap_config->acs_cfg.ch_width > eHT_CHANNEL_WIDTH_20MHZ)
+			sap_config->acs_cfg.ht_sec_ch = con_sap_config->sec_ch;
+	}
+
+	return con_ch;
+}
+#else
+static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
+{
+	return 0;
+}
+#endif
+
+
+
 static int wlan_hdd_config_acs(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 {
     tsap_Config_t *sap_config;
@@ -7863,72 +7953,17 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->channel = AUTO_CHANNEL_SELECT;
-#ifdef WLAN_FEATURE_MBSSID
-	/*
-	 * Check if AP+AP case, once primary AP chooses a DFS
-	 * channel secondary AP should always follow primary APs channel
-	 */
-	if (vos_concurrent_beaconing_sessions_running()) {
-		hdd_adapter_t *con_sap_adapter;
-		tsap_Config_t *con_sap_config;
-		int con_ch;
-
-		con_sap_adapter = hdd_get_con_sap_adapter(adapter, true);
-		if (!con_sap_adapter)
-			goto start_acs;
-
-		con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
-		con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-
-		if (!VOS_IS_DFS_CH(con_ch))
-			goto start_acs;
-
-		hddLog(LOGE, FL("Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)"),
-						sap_config->channel, con_ch);
-		hddLog(LOG1, FL("Overriding guest AP's channel"));
-		if (con_sap_config->acs_cfg.acs_mode == true) {
-			if (con_ch != con_sap_config->acs_cfg.pri_ch &&
-				con_ch != con_sap_config->acs_cfg.ht_sec_ch) {
-				hddLog(LOGE, FL(
-					"ERROR: Primary AP channel info wrong"));
-				return -EINVAL;
-			}
-			/* Sec AP ACS info is overwritten with Pri AP due to DFS
-			 * MCC restriction. So free ch list allocated in do_acs
-			 * func for Sec AP and realloc for Pri AP ch list size
-			 */
-			if (sap_config->acs_cfg.ch_list)
-			        vos_mem_free(sap_config->acs_cfg.ch_list);
-
-			vos_mem_copy(&sap_config->acs_cfg,
-						&con_sap_config->acs_cfg,
-						sizeof(struct sap_acs_cfg));
-			sap_config->acs_cfg.ch_list = vos_mem_malloc(
-							sizeof(uint8_t) *
-					con_sap_config->acs_cfg.ch_list_count);
-			if (!sap_config->acs_cfg.ch_list) {
-				hddLog(LOGE, FL("ACS config alloc fail"));
-				return -ENOMEM;
-			}
-
-			vos_mem_copy(sap_config->acs_cfg.ch_list,
-					con_sap_config->acs_cfg.ch_list,
-					con_sap_config->acs_cfg.ch_list_count);
-
-		} else {
-			sap_config->acs_cfg.pri_ch = con_ch;
-			if (sap_config->acs_cfg.ch_width >
-						eHT_CHANNEL_WIDTH_20MHZ)
-				sap_config->acs_cfg.ht_sec_ch =
-					con_sap_config->sec_ch;
+	status = wlan_hdd_sap_cfg_dfs_override(adapter);
+	if (status < 0) {
+		return status;
+	} else {
+		if (status > 0) {
+			/* notify hostapd about channel override */
+			wlan_hdd_cfg80211_acs_ch_select_evt(adapter);
+			clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
+			return 0;
 		}
-		/* notify hostapd about channel */
-		wlan_hdd_cfg80211_acs_ch_select_evt(adapter);
-		clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
-		return 0;
 	}
-start_acs:
-#endif
 
 	status = wlan_hdd_config_acs(hdd_ctx, adapter);
 	if (status) {
@@ -11537,6 +11572,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     v_BOOL_t MFPCapable =  VOS_FALSE;
     v_BOOL_t MFPRequired =  VOS_FALSE;
     u_int16_t prev_rsn_length = 0;
+    int ret;
     ENTER();
 
     iniConfig = pHddCtx->cfg_ini;
@@ -11614,50 +11650,16 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->ieee80211d = 0;
         }
 
-#ifdef WLAN_FEATURE_MBSSID
-        if (!vos_concurrent_beaconing_sessions_running()) {
-            /* Single AP Mode */
-            if (VOS_IS_DFS_CH(pConfig->channel))
-                pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
+        ret = wlan_hdd_sap_cfg_dfs_override(pHostapdAdapter);
+        if (ret < 0) {
+            return ret;
         } else {
-            /* MBSSID Mode */
-            hdd_adapter_t *con_sap_adapter;
-            v_U16_t con_ch;
-
-            con_sap_adapter = hdd_get_con_sap_adapter(pHostapdAdapter, true);
-            if (con_sap_adapter) {
-                /* we have active SAP running */
-                con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-
-                if (VOS_IS_DFS_CH(con_ch)) {
-                    /* AP-AP DFS: secondary AP has to follow primary AP's
-                     * channel */
-                    /* NOTE:Even if orig user configured channel is DFS, use the
-                     * current operating channel since when RADAR detected orig
-                     * configured channel will be in NOL and already running AP
-                     * might have choosen another channel
-                     */
-                    con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                        "%s: Only SCC AP-AP DFS Permitted (ch=%d, con_ch=%d)",
-                         __func__,
-                         pConfig->channel,
-                         con_ch);
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                        "Overriding guest AP's channel !!");
-                    pConfig->channel = con_ch;
-                    vos_mem_copy(&pConfig->acs_cfg,
-                        &con_sap_adapter->sessionCtx.ap.sapConfig.acs_cfg,
-                        sizeof(struct sap_acs_cfg));
-                }
-            } else {
-                /* We have idle AP interface (no active SAP running on it
-                 * When one SAP is stopped then also this condition applies */
+            if (ret == 0) {
                 if (VOS_IS_DFS_CH(pConfig->channel))
                     pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
             }
         }
-#endif
+
         if(VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel(pHostapdAdapter,pConfig->channel))
         {
              hddLog(VOS_TRACE_LEVEL_ERROR,
