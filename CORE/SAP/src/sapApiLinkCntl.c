@@ -767,7 +767,10 @@ WLANSAP_RoamCallback
            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                      "In %s, Received set channel response", __func__);
            break;
-
+       case eCSR_ROAM_EXT_CHG_CHNL_IND:
+           VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "In %s, Received set channel Indication", __func__);
+           break;
        default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
                        __func__, get_eRoamCmdStatus_str(roamStatus), roamStatus);
@@ -1333,8 +1336,16 @@ WLANSAP_RoamCallback
 
             /* Inform cfg80211 and hostapd that BSS is not alive anymore */
         }
-        break;
-
+        case eCSR_ROAM_EXT_CHG_CHNL_UPDATE_IND:
+        {
+            vosStatus = sapSignalHDDevent(sapContext, pCsrRoamInfo,
+                               eSAP_ECSA_CHANGE_CHAN_IND, (v_PVOID_t)NULL);
+            if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+            {
+                halStatus = eHAL_STATUS_FAILURE;
+            }
+            break;
+        }
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamResult = %s (%d) not handled\n",
                        __func__,get_eCsrRoamResult_str(roamResult),roamResult);

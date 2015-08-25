@@ -606,6 +606,15 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
 
     }
 
+    /* EXT Channel Switch Announcement CHNL_EXTENDED_SWITCH_ANN_EID*/
+    if (beacon2->ext_chan_switch_ann.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,
+               SIR_MAC_CHNL_EXTENDED_SWITCH_ANN_EID);
+        vos_mem_copy((void *)&prb_rsp->ext_chan_switch_ann,
+            (void *)&beacon2->ext_chan_switch_ann,
+             sizeof(beacon2->ext_chan_switch_ann));
+    }
     /* Supported operating class */
     if(beacon2->SuppOperatingClasses.present)
     {

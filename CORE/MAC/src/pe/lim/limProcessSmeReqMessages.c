@@ -57,6 +57,8 @@
 #include "limApi.h"
 #include "wmmApsd.h"
 #include "sirMacProtDef.h"
+#include "regdomain_common.h"
+
 
 #include "sapApi.h"
 
@@ -114,6 +116,9 @@ static void limUpdateAddIEBuffer(tpAniSirGlobal pMac,
 static void limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 
 static void limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+
+static void lim_process_ext_change_channel(tpAniSirGlobal mac_ctx,
+						uint32_t *msg);
 
 void __limProcessSmeAssocCnfNew(tpAniSirGlobal, tANI_U32, tANI_U32 *);
 
@@ -5891,7 +5896,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_TKIP_CNTR_MEAS_REQ:
             limProcessTkipCounterMeasures(pMac, pMsgBuf);
             break;
-
+        case eWNI_SME_EXT_CHANGE_CHANNEL:
+            lim_process_ext_change_channel(pMac, pMsgBuf);
+            break;
        case eWNI_SME_HIDE_SSID_REQ:
             __limProcessSmeHideSSID(pMac, pMsgBuf);
             break;
@@ -6740,6 +6747,59 @@ limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 }
 
 /**
+ * send_extended_chan_switch_action_frame()- function to send ECSA
+ * action frame for each sta connected to SAP/GO and AP in case of
+ * STA .
+ * @mac_ctx: pointer to global mac structure
+ * @new_channel: new channel to switch to.
+ * @ch_bandwidth: BW of channel to calculate op_class
+ * @session_entry: pe session
+ *
+ * This function is called to send ECSA frame for STA/CLI and SAP/GO.
+ *
+ * Return: void
+ */
+
+static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
+				uint16_t new_channel, uint8_t ch_bandwidth,
+						tpPESession session_entry)
+{
+	uint16_t op_class;
+	uint8_t switch_mode = 0, i;
+	tpDphHashNode psta;
+
+
+	op_class = regdm_get_opclass_from_channel(
+				mac_ctx->scan.countryCodeCurrent,
+				new_channel,
+				ch_bandwidth);
+
+	if (LIM_IS_AP_ROLE(session_entry) &&
+		(mac_ctx->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE))
+		switch_mode = 1;
+
+	if (LIM_IS_AP_ROLE(session_entry)) {
+		for (i = 0; i < mac_ctx->lim.maxStation; i++) {
+			psta =
+			  session_entry->dph.dphHashTable.pDphNodeArray + i;
+			if (psta && psta->added) {
+				lim_send_extended_chan_switch_action_frame(
+					mac_ctx,
+					psta->staAddr,
+					switch_mode, op_class, new_channel,
+					LIM_MAX_CSA_IE_UPDATES, session_entry);
+			}
+		}
+	} else if (LIM_IS_STA_ROLE(session_entry)) {
+		lim_send_extended_chan_switch_action_frame(mac_ctx,
+					session_entry->bssId,
+					switch_mode, op_class, new_channel,
+					LIM_MAX_CSA_IE_UPDATES, session_entry);
+	}
+
+}
+
+/**
  * limProcessSmeDfsCsaIeRequest()
  *
  *FUNCTION:
@@ -6882,7 +6942,6 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq1 = 0;
         }
 #endif
-
         /* Send CSA IE request from here */
         if (schSetFixedBeaconFields(pMac, psessionEntry) != eSIR_SUCCESS)
         {
@@ -6895,10 +6954,56 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
          * the template update
          */
         limSendBeaconInd(pMac, psessionEntry);
-        PELOG1(limLog(pMac, LOG1,
+        limLog(pMac, LOG1,
                    FL(" Updated CSA IE, IE COUNT = %d"),
-                       psessionEntry->gLimChannelSwitch.switchCount );)
+                       psessionEntry->gLimChannelSwitch.switchCount );
+        /* Send ECSA Action frame after updating the beacon */
+        send_extended_chan_switch_action_frame(pMac,
+          psessionEntry->gLimChannelSwitch.primaryChannel,
+            psessionEntry->gLimChannelSwitch.secondarySubBand,
+                                                  psessionEntry);
         psessionEntry->gLimChannelSwitch.switchCount--;
     }
     return;
+}
+
+/**
+ * lim_process_ext_change_channel()- function to send ECSA
+ * action frame for STA/CLI .
+ * @mac_ctx: pointer to global mac structure
+ * @msg: params from sme for new channel.
+ *
+ * This function is called to send ECSA frame for STA/CLI.
+ *
+ * Return: void
+ */
+
+static void lim_process_ext_change_channel(tpAniSirGlobal mac_ctx,
+							uint32_t *msg)
+{
+	struct sir_sme_ext_cng_chan_req *ext_chng_channel =
+				(struct sir_sme_ext_cng_chan_req *) msg;
+	tpPESession session_entry = NULL;
+
+	if (mac_ctx == NULL) {
+		limLog(mac_ctx, LOGE, FL("Buffer is Pointing to NULL"));
+		return;
+	}
+	session_entry =
+		pe_find_session_by_sme_session_id(mac_ctx,
+						ext_chng_channel->session_id);
+	if (NULL == session_entry) {
+		limLog(mac_ctx, LOGE,
+			FL("Session not found for given session %d"),
+			ext_chng_channel->session_id);
+		return;
+	}
+	if (LIM_IS_AP_ROLE(session_entry)) {
+		limLog(mac_ctx, LOGE,
+			FL("not an STA/CLI session"));
+		return;
+	}
+	send_extended_chan_switch_action_frame(mac_ctx,
+			ext_chng_channel->new_channel,
+				0, session_entry);
 }

@@ -4211,6 +4211,8 @@ eHalStatus sme_SetLedFlashing (tHalHandle hHal, tANI_U8 type,
     \return eHalStatus
     -------------------------------------------------------------------------*/
 eHalStatus sme_handle_dfs_chan_scan(tHalHandle hHal, tANI_U8 dfs_flag);
+eHalStatus sme_ext_change_channel(tHalHandle hHal, uint32_t channel,
+						uint8_t session_id);
 
 #ifdef MDNS_OFFLOAD
 /* ---------------------------------------------------------------------------

@@ -4381,6 +4381,150 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
 
 } // End limSendChannelSwitchMgmtFrame.
 
+/**
+ * lim_send_extended_chan_switch_action_frame()- function to send ECSA
+ * action frame over the air .
+ * @mac_ctx: pointer to global mac structure
+ * @peer: Destination mac.
+ * @mode: channel switch mode
+ * @new_op_class: new op class
+ * @new_channel: new channel to switch
+ * @count: channel switch count
+ *
+ * This function is called to send ECSA frame.
+ *
+ * Return: success if frame is sent else return failure
+ */
+
+tSirRetStatus
+lim_send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
+		tSirMacAddr peer, uint8_t mode, uint8_t new_op_class,
+		uint8_t new_channel, uint8_t count, tpPESession session_entry)
+{
+	tDot11fext_channel_switch_action_frame frm;
+	uint8_t                  *frame;
+	tSirRetStatus            sir_status;
+	tpSirMacMgmtHdr          mac_hdr;
+	uint32_t                 num_bytes,n_payload, status;
+	void                     *packet;
+	eHalStatus               hal_status;
+	uint8_t                  txFlag = 0;
+	uint8_t                  sme_session_id = 0;
+
+	if (session_entry == NULL) {
+		limLog(mac_ctx, LOGE, FL("Session entry is NULL!!!"));
+		return eSIR_FAILURE;
+	}
+
+	sme_session_id = session_entry->smeSessionId;
+
+	vos_mem_set(&frm, sizeof(frm), 0);
+
+	frm.Category.category     = SIR_MAC_ACTION_PUBLIC_USAGE;
+	frm.Action.action         = SIR_MAC_ACTION_EXT_CHANNEL_SWITCH_ID;
+
+	frm.ext_chan_switch_ann_action.switch_mode = mode;
+	frm.ext_chan_switch_ann_action.op_class = new_op_class;
+	frm.ext_chan_switch_ann_action.new_channel = new_channel;
+	frm.ext_chan_switch_ann_action.switch_count = count;
+
+
+	status = dot11fGetPackedext_channel_switch_action_frameSize(mac_ctx,
+							    &frm, &n_payload);
+	if (DOT11F_FAILED(status)) {
+		limLog(mac_ctx, LOGP,
+		 FL("Failed to get packed size for Channel Switch 0x%08x."),
+				 status);
+		/* We'll fall back on the worst case scenario*/
+		n_payload = sizeof(tDot11fext_channel_switch_action_frame);
+	}
+	else if (DOT11F_WARNED(status)) {
+		limLog(mac_ctx, LOGW,
+		 FL("There were warnings while calculating the packed size for a Ext Channel Switch (0x%08x)."),
+		 status);
+	}
+
+	num_bytes = n_payload + sizeof(tSirMacMgmtHdr);
+
+	hal_status = palPktAlloc(mac_ctx->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+	  (uint16_t)num_bytes, (void**) &frame, (void**) &packet);
+
+	if (!HAL_STATUS_SUCCESS(hal_status)) {
+		limLog(mac_ctx, LOGP,
+		 FL("Failed to allocate %d bytes for a Ext Channel Switch."),
+								 num_bytes);
+		return eSIR_FAILURE;
+	}
+
+	/* Paranoia*/
+	vos_mem_set(frame, num_bytes, 0);
+
+	/* Next, we fill out the buffer descriptor */
+	sir_status = limPopulateMacHeader(mac_ctx, frame, SIR_MAC_MGMT_FRAME,
+		SIR_MAC_MGMT_ACTION, peer, session_entry->selfMacAddr);
+	mac_hdr = (tpSirMacMgmtHdr) frame;
+	vos_mem_copy((uint8_t *) mac_hdr->bssId,
+				   (uint8_t *) session_entry->bssId,
+				   sizeof(tSirMacAddr));
+	if (eSIR_SUCCESS != sir_status) {
+		limLog(mac_ctx, LOGE,
+		 FL("Failed to populate the buffer descriptor for a Ext Channel Switch %d."),
+		 sir_status);
+		palPktFree(mac_ctx->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+				(void*) frame, (void*) packet);
+		return eSIR_FAILURE;
+	}
+
+	status = dot11fPackext_channel_switch_action_frame( mac_ctx, &frm,
+		frame + sizeof(tSirMacMgmtHdr), n_payload, &n_payload);
+	if (DOT11F_FAILED(status)) {
+		limLog(mac_ctx, LOGE,
+			 FL("Failed to pack a Channel Switch 0x%08x."),
+								 status);
+		palPktFree(mac_ctx->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+				 (void*) frame, (void*) packet);
+		 return eSIR_FAILURE;
+	} else if (DOT11F_WARNED(status)) {
+		limLog(mac_ctx, LOGW,
+		 FL("There were warnings while packing a Channel Switch 0x%08x."),
+		 status);
+	}
+
+	if ((SIR_BAND_5_GHZ == limGetRFBand(session_entry->currentOperChannel))
+		|| (session_entry->pePersona == VOS_P2P_CLIENT_MODE) ||
+		(session_entry->pePersona == VOS_P2P_GO_MODE)) {
+
+		txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+	}
+
+	limLog(mac_ctx, LOG1,
+	 FL("Send Ext channel Switch to :"MAC_ADDRESS_STR" with swcount %d, swmode %d , newchannel %d newops %d"),
+		MAC_ADDR_ARRAY(mac_hdr->da),
+		frm.ext_chan_switch_ann_action.switch_count,
+		frm.ext_chan_switch_ann_action.switch_mode,
+		frm.ext_chan_switch_ann_action.new_channel,
+			 frm.ext_chan_switch_ann_action.op_class);
+
+	MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_MGMT,
+			session_entry->peSessionId, mac_hdr->fc.subType));
+	hal_status = halTxFrame(mac_ctx, packet, (uint16_t) num_bytes,
+						 HAL_TXRX_FRM_802_11_MGMT,
+						 ANI_TXDIR_TODS,
+						 7,
+						 limTxComplete, frame,
+						 txFlag, sme_session_id);
+	MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TX_COMPLETE,
+			session_entry->peSessionId, hal_status));
+	if (!HAL_STATUS_SUCCESS(hal_status)) {
+		 limLog(mac_ctx, LOGE,
+		  FL("Failed to send a Ext Channel Switch %X!"),
+							 sir_status);
+		/* Pkt will be freed up by the callback */
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+}/* End lim_send_extended_chan_switch_action_frame */
 
 
 #ifdef WLAN_FEATURE_11AC

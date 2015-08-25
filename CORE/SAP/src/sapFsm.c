@@ -2976,7 +2976,14 @@ sapSignalHDDevent
             sapApAppEvent.sapevt.sapDfsNolInfo.pDfsList =
                 (v_PVOID_t)(&pMac->sap.SapDfsInfo.sapDfsChannelNolList[0]);
             break;
-
+        case eSAP_ECSA_CHANGE_CHAN_IND:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, SAP event callback event = %s",
+                    __func__, "eSAP_ECSA_CHANGE_CHAN_IND");
+            sapApAppEvent.sapHddEventCode = eSAP_ECSA_CHANGE_CHAN_IND;
+            sapApAppEvent.sapevt.sap_chan_cng_ind.new_chan =
+                                           pCsrRoamInfo->target_channel;
+            break;
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __func__,sapHddevent);

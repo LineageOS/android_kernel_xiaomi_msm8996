@@ -18904,6 +18904,38 @@ csrRoamUpdateAddIEs(tpAniSirGlobal pMac,
     return status;
 }
 
+/**
+ * csr_send_ext_change_channel()- function to post send ECSA
+ * action frame to lim.
+ * @mac_ctx: pointer to global mac structure
+ * @channel: new channel to switch
+ * @session_id: senssion it should be sent on.
+ *
+ * This function is called to post ECSA frame to lim.
+ *
+ * Return: success if msg posted to LIM else return failure
+ */
+eHalStatus csr_send_ext_change_channel(tpAniSirGlobal mac_ctx, uint32_t channel,
+					uint8_t session_id)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	struct sir_sme_ext_cng_chan_req *msg;
+
+	msg = vos_mem_malloc(sizeof(*msg));
+	if (NULL == msg)
+		return eHAL_STATUS_FAILURE;
+
+	vos_mem_zero(msg, sizeof(*msg));
+	msg->message_type =
+		 pal_cpu_to_be16((uint16_t)eWNI_SME_EXT_CHANGE_CHANNEL);
+	msg->length =
+		 pal_cpu_to_be16((uint16_t)sizeof(*msg));
+	msg->new_channel = channel;
+	msg->session_id = session_id;
+	status = palSendMBMessage(mac_ctx->hHdd, msg);
+	return status;
+}
+
 
 /*----------------------------------------------------------------------------
  \fn csrRoamSendChanSwIERequest
