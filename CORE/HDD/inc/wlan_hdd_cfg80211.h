@@ -103,6 +103,12 @@
 #endif
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0)) \
+            || defined(BACKPORTED_CHANNEL_SWITCH_PRESENT)
+#define CHANNEL_SWITCH_SUPPORTED
+#endif
+
+
 #define MAX_CHANNEL (MAX_2_4GHZ_CHANNEL + NUM_5GHZ_CHANNELS)
 
 typedef struct {

@@ -124,7 +124,6 @@
 #define INVALID_MCS_IDX 255
 #define GET_IE_LEN_IN_BSS_DESC(lenInBss) ( lenInBss + sizeof(lenInBss) - \
         ((uintptr_t)OFFSET_OF( tSirBssDescription, ieFields)))
-
 /*
  * Android CTS verifier needs atleast this much wait time (in msec)
  */
@@ -10422,6 +10421,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #ifdef QCA_HT_2040_COEX
     wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
+
+#ifdef CHANNEL_SWITCH_SUPPORTED
+    wiphy->flags |= WIPHY_FLAG_HAS_CHANNEL_SWITCH;
+#endif
+
     EXIT();
     return 0;
 }
@@ -21011,6 +21015,72 @@ static int wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
      return ret;
 }
 
+#ifdef CHANNEL_SWITCH_SUPPORTED
+/**
+ * __wlan_hdd_cfg80211_channel_switch()- function to switch
+ * channel in SAP/GO
+ * @wiphy:  wiphy pointer
+ * @dev: dev pointer.
+ * @csa_params: Change channel params
+ *
+ * This function is called to switch channel in SAP/GO
+ *
+ * Return: 0 if success else return non zero
+ */
+static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
+				struct net_device *dev,
+				struct cfg80211_csa_settings *csa_params)
+{
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx;
+	v_U8_t channel;
+	v_U16_t freq;
+	int ret;
+
+	hddLog(LOG1, FL(" Set Freq %d"), csa_params->chandef.chan->center_freq);
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	ret = wlan_hdd_validate_context(hdd_ctx);
+
+	if (0 != ret) {
+		return ret;
+	}
+
+	if ((WLAN_HDD_P2P_GO != adapter->device_mode) &&
+		(WLAN_HDD_SOFTAP != adapter->device_mode))
+		return -ENOTSUPP;
+
+	freq = csa_params->chandef.chan->center_freq;
+	channel = vos_freq_to_chan(freq);
+
+	ret = hdd_softap_set_channel_change(dev, channel);
+	return ret;
+}
+
+/**
+ * wlan_hdd_cfg80211_channel_switch()- function to switch
+ * channel in SAP/GO
+ * @wiphy:  wiphy pointer
+ * @dev: dev pointer.
+ * @csa_params: Change channel params
+ *
+ * This function is called to switch channel in SAP/GO
+ *
+ * Return: 0 if success else return non zero
+ */
+static int wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
+				struct net_device *dev,
+				struct cfg80211_csa_settings *csa_params)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_channel_switch(wiphy, dev, csa_params);
+	vos_ssr_unprotect(__func__);
+	return ret;
+}
+#endif
+
 /*
  * FUNCTION: __wlan_hdd_cfg80211_resume_wlan
  * this is called when cfg80211 driver resume
@@ -22819,4 +22889,8 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_ap_chanwidth = wlan_hdd_cfg80211_set_ap_channel_width,
 #endif
      .dump_survey = wlan_hdd_cfg80211_dump_survey,
+#ifdef CHANNEL_SWITCH_SUPPORTED
+     .channel_switch = wlan_hdd_cfg80211_channel_switch,
+#endif
+
 };

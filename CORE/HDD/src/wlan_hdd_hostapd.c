@@ -2009,6 +2009,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             /* send vendor event to hostapd */
             wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
             return VOS_STATUS_SUCCESS;
+        case eSAP_ECSA_CHANGE_CHAN_IND:
+            hddLog(LOG1,
+              FL("Channel change indication from peer for channel %d"),
+                            pSapEvent->sapevt.sap_chan_cng_ind.new_chan);
+            if (hdd_softap_set_channel_change(dev,
+                 pSapEvent->sapevt.sap_chan_cng_ind.new_chan))
+                return VOS_STATUS_E_FAILURE;
+            else
+                return VOS_STATUS_SUCCESS;
         default:
             hddLog(LOG1,"SAP message is not handled");
             goto stopbss;
@@ -2191,7 +2200,6 @@ int hdd_softap_unpackIE(
 
   --------------------------------------------------------------------------*/
 
-static
 int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
 {
     VOS_STATUS status;
@@ -2210,7 +2218,6 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
     if (ret)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: invalid HDD context", __func__);
-        ret = -EBUSY;
         return ret;
     }
 
@@ -2665,19 +2672,17 @@ static __iw_softap_setparam(struct net_device *dev,
             break;
 
         case QCSAP_PARAM_SET_CHANNEL_CHANGE:
-            if ( WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode )
-            {
-                hddLog(LOG1, "SET SAP Channel Change to new channel= %d",
-                              set_value);
-                ret = hdd_softap_set_channel_change(dev, set_value);
-            }
-            else
-            {
-                hddLog(LOGE, FL("%s:Channel Change Failed, Device in test mode"),
-                                 __func__);
-                ret = -EINVAL;
-            }
-            break;
+		if ((WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)||
+		   (WLAN_HDD_P2P_GO == pHostapdAdapter->device_mode)) {
+			hddLog(LOG1, "SET Channel Change to new channel= %d",
+					set_value);
+			ret = hdd_softap_set_channel_change(dev, set_value);
+		} else {
+			hddLog(LOGE,
+			  FL("Channel Change Failed, Device in test mode"));
+			ret = -EINVAL;
+		}
+		break;
 
         case QCSAP_PARAM_MAX_ASSOC:
             if (WNI_CFG_ASSOC_STA_LIMIT_STAMIN > set_value)

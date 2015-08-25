@@ -111,6 +111,7 @@ hdd_set_sap_auth_offload(hdd_adapter_t *pHostapdAdapter, bool enabled)
 {
 }
 #endif /* SAP_AUTH_OFFLOAD */
+int hdd_softap_set_channel_change(struct net_device *dev, int target_channel);
 
 /**
  * hdd_is_sta_connection_pending() - This function will check if sta connection
