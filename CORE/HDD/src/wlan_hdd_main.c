@@ -8643,12 +8643,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          if( VOS_STATUS_SUCCESS != status )
             goto err_free_netdev;
 
-         status = hdd_register_interface( pAdapter, rtnl_held );
-         if( VOS_STATUS_SUCCESS != status )
-         {
-            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
-            goto err_free_netdev;
-         }
          // Workqueue which gets scheduled in IPv4 notification callback
 #ifdef CONFIG_CNSS
          cnss_init_work(&pAdapter->ipv4NotifierWorkQueue,
@@ -8672,6 +8666,12 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #endif
 #endif
 #endif
+         status = hdd_register_interface(pAdapter, rtnl_held);
+         if (VOS_STATUS_SUCCESS != status) {
+            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
+            goto err_free_netdev;
+         }
+
          //Stop the Interface TX queue.
          hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
