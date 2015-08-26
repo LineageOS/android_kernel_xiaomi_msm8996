@@ -43,7 +43,7 @@
 #include "vos_utils.h"
 #include "wdi_out.h"
 
-#define TLSHIM_PEER_AUTHORIZE_WAIT 10
+#define TLSHIM_PEER_AUTHORIZE_WAIT 50
 
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
 
@@ -1635,8 +1635,11 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 			 * set fix it cleanly later.
 			 */
 			/* wait for event from firmware to set the event */
-			vos_wait_single_event(&tl_shim->peer_authorized_events[peer->vdev->vdev_id],
+			err = vos_wait_single_event(&tl_shim->peer_authorized_events[peer->vdev->vdev_id],
 					      TLSHIM_PEER_AUTHORIZE_WAIT);
+			if (err != VOS_STATUS_SUCCESS)
+				TLSHIM_LOGE("%s:timeout for peer_authorized_event",
+							__func__);
 			wdi_in_vdev_unpause(peer->vdev,
 				    OL_TXQ_PAUSE_REASON_PEER_UNAUTHORIZED);
 #endif

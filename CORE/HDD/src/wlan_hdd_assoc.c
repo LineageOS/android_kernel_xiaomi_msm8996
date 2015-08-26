@@ -1420,6 +1420,66 @@ done:
    kfree(rspRsnIe);
 }
 
+/**
+ * hdd_is_roam_sync_in_progress()- Check if roam offloaded
+ *
+ * Return: roam sync status if roaming offloaded else false
+ */
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
+{
+	return roaminfo->roamSynchInProgress;
+}
+#else
+static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
+{
+	return false;
+}
+#endif
+
+
+/**
+ * hdd_change_sta_state_authenticated()-
+ * This function changes STA state to authenticated
+ * @adapter:  pointer to the adapter structure.
+ * @roaminfo: pointer to the RoamInfo structure.
+ *
+ * This is called from hdd_RoamSetKeyCompleteHandler
+ * in context to eCSR_ROAM_SET_KEY_COMPLETE event from fw.
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int hdd_change_sta_state_authenticated(hdd_adapter_t *adapter,
+						 tCsrRoamInfo *roaminfo)
+{
+	int ret;
+	hdd_context_t *hddctx = WLAN_HDD_GET_CTX(adapter);
+	hdd_station_ctx_t *hddstactx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+
+	hddLog(LOG1,
+		"Changing TL state to AUTHENTICATED for StaId= %d",
+		hddstactx->conn_info.staId[0]);
+
+	/* Connections that do not need Upper layer authentication,
+	 * transition TL to 'Authenticated' state after the keys are set
+	 */
+	ret = WLANTL_ChangeSTAState(hddctx->pvosContext,
+			hddstactx->conn_info.staId[0],
+			WLANTL_STA_AUTHENTICATED,
+			hdd_is_roam_sync_in_progress(roaminfo));
+	hdd_connSetAuthenticated(adapter, VOS_TRUE);
+	if (hddctx->cfg_ini->enablePowersaveOffload &&
+		((WLAN_HDD_INFRA_STATION == adapter->device_mode) ||
+		(WLAN_HDD_P2P_CLIENT == adapter->device_mode))) {
+		sme_PsOffloadEnableDeferredPowerSave(
+			WLAN_HDD_GET_HAL_CTX(adapter),
+			adapter->sessionId,
+			hddstactx->hdd_ReassocScenario);
+	}
+
+	return ret;
+}
+
 void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
@@ -2412,8 +2472,10 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
    // not require upper layer authentication) we can put TL directly into 'authenticated'
    // state.
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-       "Set Key completion roamStatus =%d roamResult=%d " MAC_ADDRESS_STR,
-       roamStatus, roamResult, MAC_ADDR_ARRAY(pRoamInfo->peerMac));
+       "Set Key completion roamStatus=%d roamResult=%d encryptionType=%d "
+       MAC_ADDRESS_STR, roamStatus, roamResult,
+       pHddStaCtx->conn_info.ucEncryptionType,
+       MAC_ADDR_ARRAY(pRoamInfo->peerMac));
 
    fConnected = hdd_connGetConnectedCipherAlgo( pHddStaCtx, &connectedCipherAlgo );
    if( fConnected )
@@ -2455,52 +2517,39 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
           * At this time we don't handle the state in detail.
           * Related CR: 174048 - TL not in authenticated state
           */
-         vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
-                                           pHddStaCtx->conn_info.staId[0],
-                                           WLANTL_STA_AUTHENTICATED,
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-                                           pRoamInfo->roamSynchInProgress
-#else
-                                           VOS_FALSE
-#endif
-                                          );
-         hdd_connSetAuthenticated(pAdapter, VOS_TRUE);
-         if ( ( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) &&
-             (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired )
-         {
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED, "Key set "
-                       "for StaId= %d.  Changing TL state to AUTHENTICATED",
-                       pHddStaCtx->conn_info.staId[ 0 ] );
+      if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult)
+          pHddStaCtx->conn_info.gtk_installed = true;
+      else
+          pHddStaCtx->conn_info.ptk_installed = true;
 
-            // Connections that do not need Upper layer authentication,
-            // transition TL to 'Authenticated' state after the keys are set.
-            vosStatus = WLANTL_ChangeSTAState(pHddCtx->pvosContext,
-                                              pHddStaCtx->conn_info.staId[0],
-                                              WLANTL_STA_AUTHENTICATED,
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-                                                  pRoamInfo->roamSynchInProgress
-#else
-                                                  VOS_FALSE
-#endif
-                                                 );
+         /* In WPA case move STA to authenticated when ptk is installed.
+          * Earlier in WEP case STA was moved to AUTHENTICATED prior to
+          * setting the unicast key and it was resulting in sending
+          * few un-encrypted packet. Now in WEP case STA state will
+          * be moved to AUTHENTICATED after we set the unicast
+          * and broadcast key.
+          */
+      if ((pHddStaCtx->conn_info.ucEncryptionType ==
+          eCSR_ENCRYPT_TYPE_WEP40) ||
+          (pHddStaCtx->conn_info.ucEncryptionType ==
+          eCSR_ENCRYPT_TYPE_WEP104) ||
+          (pHddStaCtx->conn_info.ucEncryptionType ==
+          eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) ||
+          (pHddStaCtx->conn_info.ucEncryptionType ==
+          eCSR_ENCRYPT_TYPE_WEP104_STATICKEY)) {
+          if (pHddStaCtx->conn_info.gtk_installed &&
+              pHddStaCtx->conn_info.ptk_installed)
+              vosStatus = hdd_change_sta_state_authenticated(pAdapter,
+                                    pRoamInfo);
+      } else if (pHddStaCtx->conn_info.ptk_installed)
+          vosStatus = hdd_change_sta_state_authenticated(pAdapter,
+                                pRoamInfo);
 
-            hdd_connSetAuthenticated(pAdapter, VOS_TRUE);
-
-            if (pHddCtx->cfg_ini->enablePowersaveOffload &&
-                ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-                 (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)))
-            {
-               sme_PsOffloadEnableDeferredPowerSave(
-                                  WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                  pAdapter->sessionId,
-                                  pHddStaCtx->hdd_ReassocScenario);
-            }
-         }
-         else
-         {
-            vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
-                                                pHddStaCtx->conn_info.staId[ 0 ]);
-         }
+      if (pHddStaCtx->conn_info.gtk_installed &&
+          pHddStaCtx->conn_info.ptk_installed) {
+          pHddStaCtx->conn_info.gtk_installed = false;
+          pHddStaCtx->conn_info.ptk_installed = false;
+      }
 
          pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
       }

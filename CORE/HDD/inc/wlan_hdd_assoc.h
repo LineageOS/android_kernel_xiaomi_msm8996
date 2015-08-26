@@ -115,6 +115,12 @@ typedef struct connection_info_s
    /** NSS and RateFlags used for this connection */
    uint8_t   nss;
    uint32_t  rate_flags;
+
+   /* ptk installed state */
+   bool ptk_installed;
+
+   /* gtk installed state */
+   bool gtk_installed;
 }connection_info_t;
 
 /*Forward declaration of Adapter*/
