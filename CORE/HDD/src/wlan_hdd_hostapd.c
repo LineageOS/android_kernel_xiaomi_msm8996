@@ -5994,6 +5994,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "setMccConfig" },
 
+    {
+        WE_UNIT_TEST_CMD,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0,
+        "setUnitTestCmd" },
+
 #ifdef MEMORY_DEBUG
     /* handlers for sub ioctl */
     {   WE_MEM_TRACE_DUMP,
