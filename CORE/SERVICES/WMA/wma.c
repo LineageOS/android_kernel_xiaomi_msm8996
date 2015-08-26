@@ -19408,7 +19408,6 @@ VOS_STATUS wma_enable_d0wow_in_fw(tp_wma_handle wma)
 			"cannot resume back!", __func__, host_credits,
 			wmi_pending_cmds);
 		HTC_dump_counter_info(wma->htc_handle);
-		VOS_BUG(0);
 	}
 
 	wma->wow.wow_enable_cmd_sent = TRUE;
