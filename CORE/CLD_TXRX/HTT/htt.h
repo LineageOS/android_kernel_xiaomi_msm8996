@@ -126,9 +126,18 @@
  *      step 1's result by a low pass filter.
  *      This change allows HL download scheduling to consider the WLAN
  *      rate that will be used for transmitting the downloaded frames.
+ * 3.24 Expand rx_reorder_stats
+ *      (add counter for decrypt / MIC errors)
+ * 3.25 Expand rx_reorder_stats
+ *      (add counter of frames received into both local + remote rings)
+ * 3.26 Add stats struct for counting rx of tx BF, MU, SU, and NDPA frames
+ *      (HTT_DBG_STATS_TXBF_MUSU_NDPA_PKT, rx_txbf_musu_ndpa_pkts_stats)
+ * 3.27 Add a new interface for flow-control. The following t2h messages have
+ *      been included: HTT_T2H_MSG_TYPE_FLOW_POOL_MAP and
+ *      HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 23
+#define HTT_CURRENT_VERSION_MINOR 27
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -225,7 +234,8 @@ enum htt_dbg_stats_type {
     HTT_DBG_STATS_RX_REMOTE_RING_BUFFER_INFO = 12, /* bit 12 -> 0x1000*/
     HTT_DBG_STATS_RX_RATE_INFO_V2            = 13, /* bit 13 -> 0x2000 */
     HTT_DBG_STATS_TX_RATE_INFO_V2            = 14, /* bit 14 -> 0x4000 */
-    /* bits 15-23 currently reserved */
+    HTT_DBG_STATS_TXBF_MUSU_NDPA_PKT         = 15, /* bit 15 -> 0x8000 */
+    /* bits 16-23 currently reserved */
 
     /* keep this last */
     HTT_DBG_NUM_STATS
@@ -2930,6 +2940,8 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_CHAN_CHANGE              = 0x15,
     HTT_T2H_MSG_TYPE_RX_OFLD_PKT_ERR          = 0x16,
     HTT_T2H_MSG_TYPE_RATE_REPORT              = 0x17,
+    HTT_T2H_MSG_TYPE_FLOW_POOL_MAP            = 0x18,
+    HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP          = 0x19,
 
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
@@ -5607,6 +5619,10 @@ struct rx_reorder_stats {
     /* Number of MPDUs with sequence number in the past and
      * outside the BA window */
     A_UINT32 dup_past_outside_window;
+    /* Number of MSDUs with decrypt/MIC error */
+    A_UINT32 rxdesc_err_decrypt_mic;
+    /* Number of data MSDUs received on both local and remote rings */
+    A_UINT32 data_msdus_on_both_rings;
 };
 
 
@@ -5642,6 +5658,26 @@ struct rx_remote_buffer_mgmt_stats {
     /* Number of times f/w finds no buffers to post */
     A_INT32 host_no_bufs;
 };
+
+/*
+ * TXBF MU/SU packets and NDPA statistics
+ * NB: all the fields must be defined in 4 octets size.
+ */
+struct rx_txbf_musu_ndpa_pkts_stats {
+    /* number of TXBF MU packets received */
+    A_UINT32 number_mu_pkts;
+    /* number of TXBF SU packets received */
+    A_UINT32 number_su_pkts;
+    /* number of TXBF directed NDPA */
+    A_UINT32 txbf_directed_ndpa_count;
+    /* number of TXBF retried NDPA */
+    A_UINT32 txbf_ndpa_retry_count;
+    /* total number of TXBF NDPA */
+    A_UINT32 txbf_total_ndpa_count;
+    /* must be set to 0x0 */
+    A_UINT32 reserved[3];
+};
+
 
 
 /*
@@ -6612,5 +6648,277 @@ enum htt_peer_rate_report_phy_type {
         HTT_CHECK_SET_VAL(HTT_PEER_RATE_REPORT_MSG_PHY, _val);  \
         ((_var) |= ((_val) << HTT_PEER_RATE_REPORT_MSG_PHY_S)); \
     } while (0)
+
+/**
+ * @brief HTT_T2H_MSG_TYPE_FLOW_POOL_MAP Message
+ *
+ * @details
+ *  HTT_T2H_MSG_TYPE_FLOW_POOL_MAP message is sent by the target when setting up
+ *  a flow of descriptors.
+ *
+ *  This message is in TLV format and indicates the parameters to be setup a
+ *  flow in the host. Each entry indicates that a particular flow ID is ready to
+ *  receive descriptors from a specified pool.
+ *
+ *  The message would appear as follows:
+ *
+ *         |31            24|23            16|15             8|7              0|
+ *         |----------------+----------------+----------------+----------------|
+ * header  |            reserved             |   num_flows    |     msg_type   |
+ *         |-------------------------------------------------------------------|
+ *         |                                                                   |
+ *         :                              payload                              :
+ *         |                                                                   |
+ *         |-------------------------------------------------------------------|
+ *
+ * The header field is one DWORD long and is interpreted as follows:
+ * b'0:7   - msg_type:  This will be set to HTT_T2H_MSG_TYPE_FLOW_POOL_MAP
+ * b'8-15  - num_flows: This will indicate the number of flows being setup in
+ *                      this message
+ * b'16-31 - reserved:  These bits are reserved for future use
+ *
+ * Payload:
+ * The payload would contain multiple objects of the following structure. Each
+ * object represents a flow.
+ *
+ *         |31            24|23            16|15             8|7              0|
+ *         |----------------+----------------+----------------+----------------|
+ * header  |            reserved             |   num_flows    |     msg_type   |
+ *         |-------------------------------------------------------------------|
+ * payload0|                             flow_type                             |
+ *         |-------------------------------------------------------------------|
+ *         |                              flow_id                              |
+ *         |-------------------------------------------------------------------|
+ *         |            reserved0            |          flow_pool_id           |
+ *         |-------------------------------------------------------------------|
+ *         |            reserved1            |         flow_pool_size          |
+ *         |-------------------------------------------------------------------|
+ *         |                             reserved2                             |
+ *         |-------------------------------------------------------------------|
+ * payload1|                             flow_type                             |
+ *         |-------------------------------------------------------------------|
+ *         |                              flow_id                              |
+ *         |-------------------------------------------------------------------|
+ *         |            reserved0            |          flow_pool_id           |
+ *         |-------------------------------------------------------------------|
+ *         |            reserved1            |         flow_pool_size          |
+ *         |-------------------------------------------------------------------|
+ *         |                             reserved2                             |
+ *         |-------------------------------------------------------------------|
+ *         |                                 .                                 |
+ *         |                                 .                                 |
+ *         |                                 .                                 |
+ *         |-------------------------------------------------------------------|
+ *
+ * Each payload is 5 DWORDS long and is interpreted as follows:
+ * dword0 - b'0:31  - flow_type: This indicates the type of the entity to which
+ *                               this flow is associated. It can be VDEV, peer,
+ *                               or tid (AC). Based on enum htt_flow_type.
+ *
+ * dword1 - b'0:31  - flow_id: Identifier for the flow corresponding to this
+ *                             object. For flow_type vdev it is set to the
+ *                             vdevid, for peer it is peerid and for tid, it is
+ *                             tid_num.
+ *
+ * dword2 - b'0:15  - flow_pool_id: Identifier of the descriptor-pool being used
+ *                                  in the host for this flow
+ *          b'16:31 - reserved0: This field in reserved for the future. In case
+ *                               we have a hierarchical implementation (HCM) of
+ *                               pools, it can be used to indicate the ID of the
+ *                               parent-pool.
+ *
+ * dword3 - b'0:15  - flow_pool_size: Size of the pool in number of descriptors.
+ *                                    Descriptors for this flow will be
+ *                                    allocated from this pool in the host.
+ *          b'16:31 - reserved1: This field in reserved for the future. In case
+ *                               we have a hierarchical implementation of pools,
+ *                               it can be used to indicate the max number of
+ *                               descriptors in the pool. The b'0:15 can be used
+ *                               to indicate min number of descriptors in the
+ *                               HCM scheme.
+ *
+ * dword4 - b'0:31  - reserved2: This field in reserved for the future. In case
+ *                               we have a hierarchical implementation of pools,
+ *                               b'0:15 can be used to indicate the
+ *                               priority-based borrowing (PBB) threshold of
+ *                               the flow's pool. The b'16:31 are still left
+ *                               reserved.
+ */
+
+enum htt_flow_type {
+	FLOW_TYPE_VDEV = 0,
+	/* Insert new flow types above this line */
+};
+
+PREPACK struct htt_flow_pool_map_payload_t {
+	A_UINT32 flow_type;
+	A_UINT32 flow_id;
+	A_UINT32 flow_pool_id:16,
+		 reserved0:16;
+	A_UINT32 flow_pool_size:16,
+		 reserved1:16;
+	A_UINT32 reserved2;
+} POSTPACK;
+
+#define HTT_FLOW_POOL_MAP_HEADER_SZ    (sizeof(A_UINT32))
+
+#define HTT_FLOW_POOL_MAP_PAYLOAD_SZ    \
+    (sizeof(struct htt_flow_pool_map_payload_t))
+
+#define HTT_FLOW_POOL_MAP_NUM_FLOWS_M                    0x0000ff00
+#define HTT_FLOW_POOL_MAP_NUM_FLOWS_S                    8
+
+#define HTT_FLOW_POOL_MAP_FLOW_TYPE_M                    0xffffffff
+#define HTT_FLOW_POOL_MAP_FLOW_TYPE_S                    0
+
+#define HTT_FLOW_POOL_MAP_FLOW_ID_M                      0xffffffff
+#define HTT_FLOW_POOL_MAP_FLOW_ID_S                      0
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_ID_M                 0x0000ffff
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_ID_S                 0
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_M               0x0000ffff
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_S               0
+
+#define HTT_FLOW_POOL_MAP_NUM_FLOWS_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_MAP_NUM_FLOWS_M) >> HTT_FLOW_POOL_MAP_NUM_FLOWS_S)
+
+#define HTT_FLOW_POOL_MAP_FLOW_TYPE_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_MAP_FLOW_TYPE_M) >> HTT_FLOW_POOL_MAP_FLOW_TYPE_S)
+
+#define HTT_FLOW_POOL_MAP_FLOW_ID_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_MAP_FLOW_ID_M) >> HTT_FLOW_POOL_MAP_FLOW_ID_S)
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_ID_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_MAP_FLOW_POOL_ID_M) >> \
+		HTT_FLOW_POOL_MAP_FLOW_POOL_ID_S)
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_M) >> \
+		HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_S)
+
+#define HTT_FLOW_POOL_MAP_NUM_FLOWS_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_MAP_NUM_FLOWS, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_MAP_NUM_FLOWS_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_MAP_FLOW_TYPE_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_MAP_FLOW_TYPE, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_MAP_FLOW_TYPE_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_MAP_FLOW_ID_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_MAP_FLOW_ID, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_MAP_FLOW_ID_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_ID_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_MAP_FLOW_POOL_ID, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_MAP_FLOW_POOL_ID_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_MAP_FLOW_POOL_SIZE_S)); \
+	} while (0)
+
+/**
+ * @brief HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP Message
+ *
+ * @details
+ *  HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP message is sent by the target when tearing
+ *  down a flow of descriptors.
+ *  This message indicates that for the flow (whose ID is provided) is wanting
+ *  to stop receiving descriptors. This flow ID corresponds to the ID of the
+ *  pool of descriptors from where descriptors are being allocated for this
+ *  flow. When a flow (and its pool) are unmapped, all the child-pools will also
+ *  be unmapped by the host.
+ *
+ *  The message would appear as follows:
+ *
+ *     |31            24|23            16|15             8|7              0|
+ *     |----------------+----------------+----------------+----------------|
+ *     |                     reserved0                    |     msg_type   |
+ *     |-------------------------------------------------------------------|
+ *     |                             flow_type                             |
+ *     |-------------------------------------------------------------------|
+ *     |                              flow_id                              |
+ *     |-------------------------------------------------------------------|
+ *     |             reserved1           |         flow_pool_id            |
+ *     |-------------------------------------------------------------------|
+ *
+ *  The message is interpreted as follows:
+ *  dword0 - b'0:7   - msg_type: This will be set to
+ *                               HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP
+ *           b'8:31  - reserved0: Reserved for future use
+ *
+ *  dword1 - b'0:31  - flow_type: This indicates the type of the entity to which
+ *                                this flow is associated. It can be VDEV, peer,
+ *                                or tid (AC). Based on enum htt_flow_type.
+ *
+ *  dword2 - b'0:31  - flow_id: Identifier for the flow corresponding to this
+ *                              object. For flow_type vdev it is set to the
+ *                              vdevid, for peer it is peerid and for tid, it is
+ *                              tid_num.
+ *
+ *  dword3 - b'0:15  - flow_pool_id: Identifier of the descriptor-pool being
+ *                                   used in the host for this flow
+ *           b'16:31 - reserved0: This field in reserved for the future.
+ *
+ */
+
+PREPACK struct htt_flow_pool_unmap_t {
+	A_UINT32 msg_type:8,
+		 reserved0:24;
+	A_UINT32 flow_type;
+	A_UINT32 flow_id;
+	A_UINT32 flow_pool_id:16,
+		 reserved1:16;
+} POSTPACK;
+
+#define HTT_FLOW_POOL_UNMAP_SZ  (sizeof(struct htt_flow_pool_unmap_t))
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_TYPE_M         0xffffffff
+#define HTT_FLOW_POOL_UNMAP_FLOW_TYPE_S         0
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_ID_M           0xffffffff
+#define HTT_FLOW_POOL_UNMAP_FLOW_ID_S           0
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_M      0x0000ffff
+#define HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_S      0
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_TYPE_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_UNMAP_FLOW_TYPE_M) >> \
+		HTT_FLOW_POOL_UNMAP_FLOW_TYPE_S)
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_ID_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_UNMAP_FLOW_ID_M) >> HTT_FLOW_POOL_UNMAP_FLOW_ID_S)
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_GET(_var) \
+	(((_var) & HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_M) >> \
+		HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_S)
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_TYPE_SET(_var, _val) \
+	do {						\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_UNMAP_FLOW_TYPE, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_UNMAP_FLOW_TYPE_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_ID_SET(_var, _val) \
+	do {					\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_UNMAP_FLOW_ID, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_UNMAP_FLOW_ID_S)); \
+	} while (0)
+
+#define HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_SET(_var, _val) \
+	do {							\
+		HTT_CHECK_SET_VAL(HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID, _val);  \
+		((_var) |= ((_val) << HTT_FLOW_POOL_UNMAP_FLOW_POOL_ID_S)); \
+	} while (0)
 
 #endif
