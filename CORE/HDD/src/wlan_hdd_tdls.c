@@ -2976,6 +2976,7 @@ int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode)
                       FL("TDLS off-channel parameters are not set yet!!!"));
             return -EINVAL;
         }
+        break;
     case DISABLE_CHANSWITCH:
         chanSwitchParams.tdls_off_channel = 0;
         chanSwitchParams.tdls_off_ch_bw_offset = 0;
