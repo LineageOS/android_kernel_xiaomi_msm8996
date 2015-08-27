@@ -7724,6 +7724,9 @@ static void __hdd_set_multicast_list(struct net_device *dev)
 
    ENTER();
 
+   if (VOS_FTM_MODE == hdd_get_conparam())
+      return;
+
    /* Delete already configured multicast address list */
    wlan_hdd_set_mc_addr_list(pAdapter, false);
 
