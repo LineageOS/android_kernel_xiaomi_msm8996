@@ -2024,6 +2024,21 @@ ol_txrx_fw_stats_handler(
                 }
                 break;
 
+            case HTT_DBG_STATS_TXBF_MUSU_NDPA_PKT:
+
+                bytes = sizeof(struct rx_txbf_musu_ndpa_pkts_stats);
+                if (req->base.copy.buf) {
+                    int limit;
+
+                    limit = sizeof(struct rx_txbf_musu_ndpa_pkts_stats);
+                    if (req->base.copy.byte_limit < limit) {
+                        limit = req->base.copy.byte_limit;
+                    }
+                    buf = req->base.copy.buf + req->offset;
+                    adf_os_mem_copy(buf, stats_data, limit);
+                }
+                break;
+
             default:
                 break;
             }

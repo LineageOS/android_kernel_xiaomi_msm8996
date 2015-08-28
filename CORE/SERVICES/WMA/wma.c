@@ -12211,6 +12211,8 @@ static int32_t wma_set_txrx_fw_stats_level(tp_wma_handle wma_handle,
     /* FIXME : Fix all the values in the appropriate way. */
     } else if (value == WMA_FW_RX_REM_RING_BUF) {
 		req.stats_type_upload_mask = 1 << WMA_FW_RX_REM_RING_BUF;
+    } else if (value == WMA_FW_RX_TXBF_MUSU_NDPA) {
+                req.stats_type_upload_mask = 1 << WMA_FW_RX_TXBF_MUSU_NDPA;
     }
 
 	ol_txrx_fw_stats_get(vdev, &req);
