@@ -2897,7 +2897,21 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
     if (sendDisassocFrame && (pMlmDisassocReq->reasonCode != eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
     {
         pMac->lim.limDisassocDeauthCnfReq.pMlmDisassocReq = pMlmDisassocReq;
+#ifdef MDM_PLATFORM
+        limSendDisassocMgmtFrame(pMac,
+                                 pMlmDisassocReq->reasonCode,
+                                 pMlmDisassocReq->peerMacAddr,
+                                 psessionEntry, FALSE);
 
+        /* Send Disassoc CNF and receive path cleanup */
+        limSendDisassocCnf(pMac);
+	/*
+	 * Abort Tx so that data frames won't be sent to the AP
+	 * after sending Disassoc.
+	 */
+	if (LIM_IS_STA_ROLE(psessionEntry))
+		WDA_TxAbort(psessionEntry->smeSessionId);
+#else
         /* If the reason for disassociation is inactivity of STA, then
            dont wait for acknowledgement */
         if ((pMlmDisassocReq->reasonCode == eSIR_MAC_DISASSOC_DUE_TO_INACTIVITY_REASON) &&
@@ -2925,6 +2939,7 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
              if (LIM_IS_STA_ROLE(psessionEntry))
                   WDA_TxAbort(psessionEntry->smeSessionId);
         }
+#endif
     }
     else
     {
