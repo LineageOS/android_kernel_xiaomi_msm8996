@@ -533,6 +533,13 @@ typedef enum {
     WMI_EXTWOW_SET_APP_TYPE2_PARAMS_CMDID,
     /* enable ICMPv6 Network advertisement filtering */
     WMI_WOW_ENABLE_ICMPV6_NA_FLT_CMDID,
+    /*
+     * Set a pattern to match UDP packet in WOW mode.
+     * If match, construct a tx frame in a local buffer
+     * to send through the peer AP to the entity in the
+     * IP network that sent the UDP packet to this STA.
+     */
+    WMI_WOW_UDP_SVC_OFLD_CMDID,
 
     /* RTT measurement related cmd */
     /** reques to make an RTT measurement */
@@ -6514,6 +6521,28 @@ typedef struct {
     A_UINT32    is_add;
     A_UINT32    event_bitmap;
 }WMI_WOW_ADD_DEL_EVT_CMD_fixed_param;
+
+/*
+ * This structure is used to set the pattern to check UDP packet in WOW mode.
+ * If match, construct a tx frame in a local buffer to send through the peer
+ * AP to the entity in the IP network that sent the UDP packet to this STA.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param  */
+    A_UINT32 vdev_id;
+    A_UINT32 enable; /* 1: enable, 0: disable*/
+    /* dest_port -
+     * bits 7:0  contain the LSB of the UDP dest port,
+     * bits 15:8 contain the MSB of the UDP dest port
+     */
+    A_UINT32 dest_port;
+    A_UINT32 pattern_len; /* length in byte of pattern[] */
+    A_UINT32 response_len; /* length in byte of response[] */
+/* Following this struct are the TLV's:
+ *  A_UINT8 pattern[];  // payload of UDP packet to be checked, network byte order
+ *  A_UINT8 response[]; // payload of UDP packet to be response, network byte order
+ */
+} WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param;
 
 typedef struct  wow_event_info_s {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_EVENT_INFO_fixed_param  */
