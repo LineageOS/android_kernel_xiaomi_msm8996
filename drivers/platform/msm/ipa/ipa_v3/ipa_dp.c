@@ -211,6 +211,7 @@ static void ipa3_tx_switch_to_intr_mode(struct ipa3_sys_context *sys)
 	}
 
 	if (ipa3_ctx->transport_prototype == IPA_TRANSPORT_TYPE_GSI) {
+		ipa3_dec_release_wakelock();
 		ret = gsi_config_channel_mode(sys->ep->gsi_chan_hdl,
 			GSI_CHAN_MODE_CALLBACK);
 		if (ret != GSI_STATUS_SUCCESS) {
@@ -239,6 +240,7 @@ static void ipa3_tx_switch_to_intr_mode(struct ipa3_sys_context *sys)
 	}
 	atomic_set(&sys->curr_polling_state, 0);
 	ipa3_handle_tx_core(sys, true, false);
+	ipa3_dec_release_wakelock();
 	return;
 
 fail:
@@ -773,6 +775,7 @@ static void ipa3_sps_irq_tx_notify(struct sps_event_notify *notify)
 				IPAERR("sps_set_config() failed %d\n", ret);
 				break;
 			}
+			ipa3_inc_acquire_wakelock();
 			atomic_set(&sys->curr_polling_state, 1);
 			queue_work(sys->wq, &sys->work);
 		}
@@ -849,6 +852,7 @@ static void ipa3_rx_switch_to_intr_mode(struct ipa3_sys_context *sys)
 	}
 
 	if (ipa3_ctx->transport_prototype == IPA_TRANSPORT_TYPE_GSI) {
+		ipa3_dec_release_wakelock();
 		ret = gsi_config_channel_mode(sys->ep->gsi_chan_hdl,
 			GSI_CHAN_MODE_CALLBACK);
 		if (ret != GSI_STATUS_SUCCESS) {
@@ -877,6 +881,7 @@ static void ipa3_rx_switch_to_intr_mode(struct ipa3_sys_context *sys)
 	}
 	atomic_set(&sys->curr_polling_state, 0);
 	ipa3_handle_rx_core(sys, true, false);
+	ipa3_dec_release_wakelock();
 	return;
 
 fail:
@@ -923,6 +928,7 @@ static void ipa3_sps_irq_rx_notify(struct sps_event_notify *notify)
 				IPAERR("sps_set_config() failed %d\n", ret);
 				break;
 			}
+			ipa3_inc_acquire_wakelock();
 			atomic_set(&sys->curr_polling_state, 1);
 			queue_work(sys->wq, &sys->work);
 		}
@@ -3292,6 +3298,7 @@ static void ipa_gsi_irq_rx_notify_cb(struct gsi_chan_xfer_notify *notify)
 			/* put the gsi channel into polling mode */
 			gsi_config_channel_mode(sys->ep->gsi_chan_hdl,
 				GSI_CHAN_MODE_POLL);
+			ipa3_inc_acquire_wakelock();
 			atomic_set(&sys->curr_polling_state, 1);
 			queue_work(sys->wq, &sys->work);
 		}
@@ -3337,6 +3344,7 @@ static void ipa_dma_gsi_irq_rx_notify_cb(struct gsi_chan_xfer_notify *notify)
 			/* put the gsi channel into polling mode */
 			gsi_config_channel_mode(sys->ep->gsi_chan_hdl,
 				GSI_CHAN_MODE_POLL);
+			ipa3_inc_acquire_wakelock();
 			atomic_set(&sys->curr_polling_state, 1);
 			queue_work(sys->wq, &sys->work);
 		}
