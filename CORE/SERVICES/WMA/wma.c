@@ -20469,14 +20469,18 @@ suspend_all_iface:
 			break;
 		}
 #endif
+	}
+
 #ifdef FEATURE_WLAN_EXTSCAN
+	for (i = 0; i < wma->max_bssid; i++) {
 		if (wma->interfaces[i].extscan_in_progress) {
 			WMA_LOGD("Extscan is in progress, enabling wow");
 			extscan_in_progress = true;
 			break;
 		}
-#endif
 	}
+#endif
+
 	for (i = 0; i < wma->max_bssid; i++) {
 		wma->wow.gtk_pdev_enable |= wma->wow.gtk_err_enable[i];
 		WMA_LOGD("VDEV_ID:%d, gtk_err_enable[%d]:%d, gtk_pdev_enable:%d",
