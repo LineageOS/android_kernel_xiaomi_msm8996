@@ -647,14 +647,9 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 }
 
 #ifdef FEATURE_RUNTIME_PM
-static inline int wmi_get_runtime_pm_inprogress(wmi_unified_t wmi_handle)
+inline bool wmi_get_runtime_pm_inprogress(wmi_unified_t wmi_handle)
 {
 	return adf_os_atomic_read(&wmi_handle->runtime_pm_inprogress);
-}
-#else
-static inline int wmi_get_runtime_pm_inprogress(wmi_unified_t wmi_handle)
-{
-	return 0;
 }
 #endif
 
