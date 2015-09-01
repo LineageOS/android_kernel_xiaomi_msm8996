@@ -727,6 +727,10 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_PDEV_IE_REQ            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 334)
 #define SIR_HAL_EXTSCAN_OPERATION_IND       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 335)
 
+
+#define SIR_HAL_SET_UDP_RESP_OFFLOAD        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 336)
+
+
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

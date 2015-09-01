@@ -61,4 +61,8 @@ config QCA_WIFI_AUTOMOTIVE_CONC
 	bool "Enable 3 port concurrency feature"
 	default n
 
+config WLAN_UDP_RESPONSE_OFFLOAD
+	bool "Enable UDP response offload feature"
+	default n
+
 endif # QCA_CLD_WLAN

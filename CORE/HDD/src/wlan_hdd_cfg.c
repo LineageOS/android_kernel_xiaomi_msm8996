@@ -4065,6 +4065,38 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_EXTSCAN_ACTIVE_MIN_CHANNEL_TIME_MIN,
                 CFG_EXTSCAN_ACTIVE_MIN_CHANNEL_TIME_MAX),
 #endif
+
+
+#ifdef WLAN_FEATURE_UDP_RESPONSE_OFFLOAD
+   REG_VARIABLE(CFG_UDP_RESP_OFFLOAD_SUPPORT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, udp_resp_offload_support,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_UDP_RESP_OFFLOAD_SUPPORT_DEFAULT,
+                CFG_UDP_RESP_OFFLOAD_SUPPORT_MIN,
+                CFG_UDP_RESP_OFFLOAD_SUPPORT_MAX),
+
+   REG_VARIABLE(CFG_UDP_RESP_OFFLOAD_DEST_PORT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, dest_port,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_UDP_RESP_OFFLOAD_DEST_PORT_DEFAULT,
+                CFG_UDP_RESP_OFFLOAD_DEST_PORT_MIN,
+                CFG_UDP_RESP_OFFLOAD_DEST_PORT_MAX),
+
+   REG_VARIABLE_STRING(CFG_UDP_RESP_OFFLOAD_PAYLOAD_FILTER_NAME,
+                WLAN_PARAM_String,
+                hdd_config_t, payload_filter,
+                VAR_FLAGS_OPTIONAL,
+                (void *)CFG_UDP_RESP_OFFLOAD_PAYLOAD_FILTER_DEFAULT),
+
+   REG_VARIABLE_STRING(CFG_UDP_RESP_OFFLOAD_RESPONSE_PAYLOAD_NAME,
+                WLAN_PARAM_String,
+                hdd_config_t, response_payload,
+                VAR_FLAGS_OPTIONAL,
+                (void *)CFG_UDP_RESP_OFFLOAD_RESPONSE_PAYLOAD_DEFAULT),
+
+#endif
+
+
 };
 
 #ifdef WLAN_FEATURE_MBSSID

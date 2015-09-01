@@ -26153,6 +26153,103 @@ static VOS_STATUS wma_set_rssi_monitoring(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+
+#ifdef WLAN_FEATURE_UDP_RESPONSE_OFFLOAD
+/**
+* wma_send_udp_resp_offload_cmd() - send wmi cmd of udp response offload
+* infomation to fw.
+* @wma_handle: wma handler
+* @udp_response: udp_resp_offload struct pointer
+*
+* Return: Return VOS_STATUS
+*/
+static VOS_STATUS wma_send_udp_resp_offload_cmd(tp_wma_handle wma_handle,
+					struct udp_resp_offload *udp_response)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param *cmd;
+	u_int16_t len;
+	u_int16_t pattern_len = 0;
+	u_int16_t response_len = 0;
+	u_int16_t udp_len = 0;
+	u_int16_t resp_len = 0;
+
+	WMA_LOGD("%s: Enter", __func__);
+	if (1 == udp_response->enable) {
+		pattern_len = strlen(udp_response->udp_payload_filter);
+		response_len = strlen(udp_response->udp_response_payload);
+	}
+
+	udp_len = (pattern_len % 4) ?
+			(4 * ((pattern_len / 4) + 1)) : (pattern_len);
+
+	resp_len = (response_len % 4) ?
+			(4 * ((response_len / 4) + 1)) : (response_len);
+
+
+	len = sizeof(*cmd) + udp_len + resp_len + 2 * WMI_TLV_HDR_SIZE;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		 WMA_LOGE("wmi_buf_alloc failed");
+		 return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, len);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param));
+
+	cmd->vdev_id = udp_response->vdev_id;
+	cmd->enable = udp_response->enable;
+	cmd->dest_port = udp_response->dest_port;
+	cmd->pattern_len = pattern_len;
+	cmd->response_len = response_len;
+
+
+	WMITLV_SET_HDR((A_UINT32 *)(cmd + 1),
+			WMITLV_TAG_ARRAY_BYTE,
+			udp_len);
+
+	vos_mem_copy((void *)(cmd + 1) + WMI_TLV_HDR_SIZE,
+			(void *)udp_response->udp_payload_filter,
+			cmd->pattern_len);
+	WMITLV_SET_HDR((A_UINT32 *)((void *)(cmd + 1) +
+			WMI_TLV_HDR_SIZE + udp_len),
+			WMITLV_TAG_ARRAY_BYTE,
+			resp_len);
+
+	vos_mem_copy((void *)(cmd + 1) + WMI_TLV_HDR_SIZE +
+			udp_len + WMI_TLV_HDR_SIZE,
+			(void *)udp_response->udp_response_payload,
+			cmd->response_len);
+
+
+
+	WMA_LOGD("wma_set_udp_resp_cmd: enable:%d vdev_id:%d dest_port:%u",
+		cmd->enable,cmd->vdev_id, cmd->dest_port);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				 WMI_WOW_UDP_SVC_OFLD_CMDID)) {
+		WMA_LOGE("Failed to send set udp resp offload");
+		wmi_buf_free(buf);
+		vos_status = VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("%s: Exit", __func__);
+	return vos_status;
+}
+#else
+static inline VOS_STATUS wma_send_udp_resp_offload_cmd(tp_wma_handle wma_handle,
+					struct udp_resp_offload *udp_response)
+{
+	return VOS_STATUS_E_FAILURE;
+}
+#endif
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -26923,6 +27020,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_RSSI_MONITOR_REQ:
 			wma_set_rssi_monitoring(wma_handle,
 				(struct rssi_monitor_req *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_UDP_RESP_OFFLOAD:
+			wma_send_udp_resp_offload_cmd(wma_handle,
+				(struct udp_resp_offload *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

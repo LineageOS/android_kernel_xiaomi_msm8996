@@ -11556,6 +11556,7 @@ end:
 }
 #endif /* DHCP_SERVER_OFFLOAD */
 
+
 /**
  * wlan_hdd_setup_driver_overrides : Overrides SAP / P2P GO Params
  * @adapter: pointer to adapter struct
@@ -11675,6 +11676,93 @@ setup_acs_overrides:
 
 	return 0;
 }
+
+
+#ifdef WLAN_FEATURE_UDP_RESPONSE_OFFLOAD
+/**
+ * wlan_hdd_set_udp_resp_offload() - get specific udp and response udp info from
+ * ini file
+ * @padapter: hdd adapter pointer
+ * @enable: enable or disable the specific udp and response behaviour
+ *
+ * This function reads specific udp and response udp related info from ini file,
+ * these configurations will be sent to fw through wmi.
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int wlan_hdd_set_udp_resp_offload(hdd_adapter_t *padapter, bool enable)
+{
+	hdd_context_t *phddctx = WLAN_HDD_GET_CTX(padapter);
+	hdd_config_t *pcfg_ini = phddctx->cfg_ini;
+	struct udp_resp_offload udp_resp_cmd_info;
+	VOS_STATUS status;
+	uint8 udp_payload_filter_len;
+	uint8 udp_response_payload_len;
+
+	hddLog(LOG1, FL("udp_resp_offload enable flag is %d"), enable);
+
+	/* prepare the request to send to SME */
+	if ((enable == TRUE) &&
+	    (pcfg_ini->udp_resp_offload_support)) {
+		if (pcfg_ini->response_payload[0] != '\0') {
+			udp_resp_cmd_info.vdev_id = padapter->sessionId;
+			udp_resp_cmd_info.enable = 1;
+			udp_resp_cmd_info.dest_port =
+					pcfg_ini->dest_port;
+
+			udp_payload_filter_len =
+				strlen(pcfg_ini->payload_filter);
+			hddLog(LOG2, "payload_filter[%s]",
+				pcfg_ini->payload_filter);
+			udp_response_payload_len =
+				strlen(pcfg_ini->response_payload);
+			hddLog(LOG2, "response_payload[%s]",
+				pcfg_ini->response_payload);
+
+			vos_mem_copy(udp_resp_cmd_info.udp_payload_filter,
+					pcfg_ini->payload_filter,
+					udp_payload_filter_len + 1);
+
+			vos_mem_copy(udp_resp_cmd_info.udp_response_payload,
+					pcfg_ini->response_payload,
+					udp_response_payload_len + 1);
+
+			status = sme_set_udp_resp_offload(&udp_resp_cmd_info);
+			if (VOS_STATUS_E_FAILURE == status) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+					"%s: sme_set_udp_resp_offload failure!",
+					__func__);
+				return -EIO;
+			}
+			hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+				"%s: sme_set_udp_resp_offload success!",
+				__func__);
+		}
+	} else {
+		udp_resp_cmd_info.vdev_id = padapter->sessionId;
+		udp_resp_cmd_info.enable = 0;
+		udp_resp_cmd_info.dest_port = 0;
+		udp_resp_cmd_info.udp_payload_filter[0] = '\0';
+		udp_resp_cmd_info.udp_response_payload[0] = '\0';
+		status = sme_set_udp_resp_offload(&udp_resp_cmd_info);
+		if (VOS_STATUS_E_FAILURE == status) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: sme_set_udp_resp_offload fialure!", __func__);
+			return -EIO;
+		}
+		hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+			"%s: sme_set_udp_resp_offload success!", __func__);
+	}
+	return 0;
+}
+#else
+static inline int wlan_hdd_set_udp_resp_offload(hdd_adapter_t *padapter,
+				bool enable)
+{
+	return 0;
+}
+#endif
+
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
@@ -12773,9 +12861,15 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
                                              params->chandef.width;
 #endif
-
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
+	if (status == 0) {
+		if (0 != wlan_hdd_set_udp_resp_offload(pAdapter, TRUE)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: set udp resp cmd failed %d",
+				__func__, status);
+		}
+	}
     }
 
     EXIT();
@@ -23004,6 +23098,7 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
 }
 
 #endif /* FEATURE_WLAN_EXTSCAN */
+
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =

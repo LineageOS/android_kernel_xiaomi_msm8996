@@ -17060,3 +17060,53 @@ void sme_get_opclass(tHalHandle hal, uint8_t channel, uint8_t bw_offset,
 }
 
 #endif
+
+
+
+#ifdef WLAN_FEATURE_UDP_RESPONSE_OFFLOAD
+/**
+ * sme_set_udp_resp_offload() - set udp response payload.
+ * @pudp_resp_cmd: specific udp and response udp payload struct pointer
+ *
+ * This function set specific udp and response udp payload info
+ * including enable dest_port,udp_payload, resp_payload.
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload *pudp_resp_cmd)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct udp_resp_offload *udp_resp_cmd;
+
+	if (!pudp_resp_cmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: invalid pudp_resp_cmd pointer", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	udp_resp_cmd = vos_mem_malloc(sizeof(*udp_resp_cmd));
+	if (NULL == udp_resp_cmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc sudp_cmd", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	*udp_resp_cmd = *pudp_resp_cmd;
+
+	vos_message.type = WDA_SET_UDP_RESP_OFFLOAD;
+	vos_message.bodyptr = udp_resp_cmd;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Not able to post msg to WDA!",
+				__func__);
+		vos_mem_free(udp_resp_cmd);
+		vos_status = VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+#endif
+

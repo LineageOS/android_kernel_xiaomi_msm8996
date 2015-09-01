@@ -4376,4 +4376,18 @@ sme_get_opclass(tHalHandle hal, uint8_t channel, uint8_t bw_offset,
 }
 #endif
 
+
+
+#ifdef WLAN_FEATURE_UDP_RESPONSE_OFFLOAD
+VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload *pudp_resp_cmd);
+#else
+static inline VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload
+							*pudp_resp_cmd)
+{
+	return VOS_STATUS_E_FAILURE;
+}
+#endif
+
+
+
 #endif //#if !defined( __SME_API_H )
