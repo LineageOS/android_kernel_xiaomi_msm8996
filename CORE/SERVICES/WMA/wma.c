@@ -5492,6 +5492,11 @@ static int wma_peer_state_change_event_handler(void *handle,
 	ol_txrx_vdev_handle vdev;
 	tp_wma_handle wma_handle = (tp_wma_handle)handle;
 
+        if (!event_buff) {
+            WMA_LOGE("%s: event param null", __func__);
+            return -EINVAL;
+        }
+
 	param_buf = (WMI_PEER_STATE_EVENTID_param_tlvs *)event_buff;
 	if (!param_buf) {
 		WMA_LOGE("%s: Received NULL buf ptr from FW", __func__);
