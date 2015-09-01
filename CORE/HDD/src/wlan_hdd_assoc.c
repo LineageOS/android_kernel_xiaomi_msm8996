@@ -4450,6 +4450,7 @@ static int __iw_set_essid(struct net_device *dev,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     eMib_dot11DesiredBssType connectedBssType;
     eCsrAuthType RSNAuthType;
+    uint16_t ch_width;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
@@ -4590,7 +4591,9 @@ static int __iw_set_essid(struct net_device *dev,
 
     if ( eCSR_BSS_TYPE_START_IBSS == pRoamProfile->BSSType )
     {
-        hdd_select_cbmode(pAdapter, pHddCtx->cfg_ini->AdHocChannel5G);
+        hdd_select_cbmode(pAdapter, pHddCtx->cfg_ini->AdHocChannel5G,
+                        &ch_width);
+        pRoamProfile->vht_channel_width = ch_width;
     }
     status = sme_RoamConnect( hHal,pAdapter->sessionId,
                          &(pWextState->roamProfile), &roamId);

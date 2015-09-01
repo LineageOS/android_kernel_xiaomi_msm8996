@@ -15669,15 +15669,16 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     return ret;
 }
 
-void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel)
+void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
+                uint16_t *vht_channel_width)
 {
     v_U8_t iniDot11Mode =
                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->dot11Mode;
-    uint16_t vht_channel_width =
-               (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
     eHddDot11Mode   hddDot11Mode = iniDot11Mode;
     hddLog(LOG1, FL("Channel Bonding Mode Selected is %u"),
            iniDot11Mode);
+    *vht_channel_width =
+               (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
     switch ( iniDot11Mode )
     {
        case eHDD_DOT11_MODE_AUTO:
@@ -15704,8 +15705,8 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel)
     sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
                      hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
                      operationChannel, 0,
-                     &vht_channel_width,
-                     vht_channel_width);
+                     vht_channel_width,
+                     *vht_channel_width);
 }
 
 /**
@@ -15877,6 +15878,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
     v_U32_t roamId;
     tCsrRoamProfile *pRoamProfile;
     eCsrAuthType RSNAuthType;
+    uint16_t ch_width;
 
     ENTER();
 
@@ -16042,7 +16044,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                        "%s: Set IBSS Power Save Params Failed", __func__);
                 return -EINVAL;
             }
-            hdd_select_cbmode(pAdapter,operatingChannel);
+            hdd_select_cbmode(pAdapter,operatingChannel, &ch_width);
+            pRoamProfile->vht_channel_width = ch_width;
         }
 
         /* change conn_state to connecting before sme_RoamConnect(), because sme_RoamConnect()
