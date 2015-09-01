@@ -10987,17 +10987,10 @@ static const iw_handler      we_handler[] =
    (iw_handler) NULL,             /* SIOCGIWPRIV */
    (iw_handler) NULL,             /* SIOCSIWSTATS */
    (iw_handler) NULL,             /* SIOCGIWSTATS */
-#ifdef CONFIG_WEXT_SPY
-   iw_handler_set_spy,             /* SIOCSIWSPY */
-   iw_handler_get_spy,             /* SIOCGIWSPY */
-   iw_handler_set_thrspy,         /* SIOCSIWTHRSPY */
-   iw_handler_get_thrspy,         /* SIOCGIWTHRSPY */
-#else
    (iw_handler) NULL,             /* SIOCSIWSPY */
    (iw_handler) NULL,             /* SIOCGIWSPY */
    (iw_handler) NULL,             /* SIOCSIWTHRSPY */
    (iw_handler) NULL,             /* SIOCGIWTHRSPY */
-#endif
    (iw_handler) iw_set_ap_address,   /* SIOCSIWAP */
    (iw_handler) iw_get_ap_address,   /* SIOCGIWAP */
    (iw_handler) iw_set_mlme,              /* SIOCSIWMLME */
