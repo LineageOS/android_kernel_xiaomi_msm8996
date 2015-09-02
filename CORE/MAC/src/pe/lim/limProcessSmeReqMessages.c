@@ -6985,7 +6985,7 @@ static void lim_process_ext_change_channel(tpAniSirGlobal mac_ctx,
 				(struct sir_sme_ext_cng_chan_req *) msg;
 	tpPESession session_entry = NULL;
 
-	if (mac_ctx == NULL) {
+	if (NULL == msg) {
 		limLog(mac_ctx, LOGE, FL("Buffer is Pointing to NULL"));
 		return;
 	}
