@@ -1709,7 +1709,6 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
 
     /* Fill feature combination matrix */
     feature_sets = 0;
-    if (feature_sets >= WLAN_HDD_MAX_FEATURE_SET) goto max_buffer_err;
     feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
                                          WIFI_FEATURE_P2P;
 
@@ -1743,11 +1742,6 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     }
     hddLog(LOGE, FL("Feature set matrix: buffer alloc fail"));
     return -ENOMEM;
-
-max_buffer_err:
-    hddLog(LOGE, FL("Feature set max buffer size reached. feature_sets(%d) max(%d)"),
-           feature_sets, WLAN_HDD_MAX_FEATURE_SET);
-    return -EINVAL;
 }
 
 /**
