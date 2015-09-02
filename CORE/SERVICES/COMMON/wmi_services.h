@@ -120,6 +120,9 @@ typedef  enum  {
     WMI_SERVICE_AP_ARPNS_OFFLOAD,     /* arp offload support for ap mode vdev */
     WMI_SERVICE_PER_BAND_CHAINMASK_SUPPORT, /* Per band chainmask support */
     WMI_SERVICE_PACKET_FILTER_OFFLOAD, /* Per vdev packet filters */
+    WMI_SERVICE_MGMT_TX_HTT,          /* Mgmt Tx via HTT interface */
+    WMI_SERVICE_MGMT_TX_WMI,          /* Mgmt Tx via WMI interface */
+
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
 

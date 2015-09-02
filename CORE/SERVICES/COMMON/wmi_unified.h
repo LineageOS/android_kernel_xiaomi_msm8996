@@ -387,6 +387,9 @@ typedef enum {
      *  probe responses */
     WMI_PRB_TMPL_CMDID,
 
+    /** Transmit Mgmt frame by reference */
+    WMI_MGMT_TX_SEND_CMDID,
+
     /** commands to directly control ba negotiation directly from host. only used in test mode */
 
     /** turn off FW Auto addba mode and let host control addba */
@@ -904,6 +907,8 @@ typedef enum {
     /** event after the first probe response is transmitted following
              a change in the template.*/
     WMI_OFFLOAD_PROB_RESP_TX_STATUS_EVENTID,
+    /** Event for Mgmt TX completion event */
+    WMI_MGMT_TX_COMPLETION_EVENTID,
 
     /*ADDBA Related WMI Events*/
     /** Indication the completion of the prior
@@ -2497,6 +2502,20 @@ typedef struct {
 } wmi_mgmt_tx_hdr;
 
 typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mgmt_tx_send_cmd_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 desc_id;  /* echoed in tx_compl_event */
+    A_UINT32 chanfreq; /* MHz units */
+    A_UINT32 paddr_lo;
+    A_UINT32 paddr_hi;
+    A_UINT32 frame_len;
+    A_UINT32 buf_len;  /** Buffer length in bytes */
+/* This TLV is followed by array of bytes: First 64 bytes of management frame
+ *   A_UINT8 bufp[];
+ */
+} wmi_mgmt_tx_send_cmd_fixed_param;
+
+typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_echo_event_fixed_param */
     A_UINT32 value;
 } wmi_echo_event_fixed_param;
@@ -2904,6 +2923,20 @@ typedef struct {
     A_UINT32 peer_id;
     A_UINT32 tid_map;
 } wmi_tx_pause_event_fixed_param;
+
+typedef enum {
+    WMI_MGMT_TX_COMP_TYPE_COMPLETE_OK = 0,
+    WMI_MGMT_TX_COMP_TYPE_DISCARD,
+    WMI_MGMT_TX_COMP_TYPE_INSPECT,
+    WMI_MGMT_TX_COMP_TYPE_COMPLETE_NO_ACK,
+    WMI_MGMT_TX_COMP_TYPE_MAX,
+} WMI_MGMT_TX_COMP_STATUS_TYPE;
+
+typedef struct {
+    A_UINT32    tlv_header;
+    A_UINT32    desc_id; /* from tx_send_cmd */
+    A_UINT32    status;  /* WMI_MGMT_TX_COMP_STATUS_TYPE */
+} wmi_mgmt_tx_compl_event_fixed_param;
 
 #define WMI_TPC_RATE_MAX            160
 /* WMI_TPC_TX_NUM_CHAIN macro can't be changed without breaking the WMI compatibility */

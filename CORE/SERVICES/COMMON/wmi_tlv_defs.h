@@ -583,6 +583,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_packet_filter_config_fixed_param,
     WMITLV_TAG_STRUC_wmi_packet_filter_enable_fixed_param,
     WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mgmt_tx_send_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mgmt_tx_compl_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -809,7 +811,8 @@ typedef enum {
     OP(WMI_DIAG_EVENT_LOG_CONFIG_CMDID) \
     OP(WMI_PACKET_FILTER_CONFIG_CMDID) \
     OP(WMI_PACKET_FILTER_ENABLE_CMDID) \
-    OP(WMI_SAP_SET_BLACKLIST_PARAM_CMDID)
+    OP(WMI_SAP_SET_BLACKLIST_PARAM_CMDID) \
+    OP(WMI_MGMT_TX_SEND_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -919,7 +922,8 @@ typedef enum {
     OP(WMI_SOC_SET_HW_MODE_RESP_EVENTID) \
     OP(WMI_SOC_HW_MODE_TRANSITION_EVENTID) \
     OP(WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID) \
-    OP(WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID)
+    OP(WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID) \
+    OP(WMI_MGMT_TX_COMPLETION_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -1537,6 +1541,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SEND_BCN_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mgmt_tx_hdr, wmi_mgmt_tx_hdr, hdr, WMITLV_SIZE_FIX)   \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_MGMT_TX_CMDID);
+
+/* Management tx send cmd */
+#define WMITLV_TABLE_WMI_MGMT_TX_SEND_CMDID(id,op,buf,len)  \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mgmt_tx_send_cmd_fixed_param, wmi_mgmt_tx_send_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_MGMT_TX_SEND_CMDID);
 
 /* ADD clear response Cmd */
 #define WMITLV_TABLE_WMI_ADDBA_CLEAR_RESP_CMDID(id,op,buf,len) \
@@ -2388,6 +2398,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PHYERR_EVENTID);
 #define WMITLV_TABLE_WMI_TX_PAUSE_EVENTID(id,op,buf,len)                                                                                                 \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tx_pause_event_fixed_param, wmi_tx_pause_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_TX_PAUSE_EVENTID);
+
+/* Mgmt TX completion event */
+#define WMITLV_TABLE_WMI_MGMT_TX_COMPLETION_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mgmt_tx_compl_event_fixed_param, wmi_mgmt_tx_compl_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MGMT_TX_COMPLETION_EVENTID);
 
 /* VDEV Start response Event */
 #define WMITLV_TABLE_WMI_VDEV_START_RESP_EVENTID(id,op,buf,len)                                                         \
