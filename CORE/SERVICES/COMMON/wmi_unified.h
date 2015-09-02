@@ -1261,6 +1261,8 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
    bitmask as specified by 802.11ac draft.
 */
 
+#define WMI_VHT_CAP_MAX_MPDU_LEN_7935            0x00000001
+#define WMI_VHT_CAP_MAX_MPDU_LEN_11454           0x00000002
 #define WMI_VHT_CAP_MAX_MPDU_LEN_MASK            0x00000003
 #define WMI_VHT_CAP_CH_WIDTH_160MHZ              0x00000004
 #define WMI_VHT_CAP_CH_WIDTH_80P80_160MHZ        0x00000008
@@ -1278,18 +1280,31 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_CAP_MAX_SND_DIM_MASK_SHIFT       16
 #define WMI_VHT_CAP_MU_BFORMER                   0x00080000
 #define WMI_VHT_CAP_MU_BFORMEE                   0x00100000
+#define WMI_VHT_CAP_TXOP_PS                      0x00200000
 #define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP            0x03800000
-#define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP_SHIT       23
+#define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP_SHIFT      23
 #define WMI_VHT_CAP_RX_FIXED_ANT                 0x10000000
 #define WMI_VHT_CAP_TX_FIXED_ANT                 0x20000000
 
-#define WMI_VHT_CAP_MAX_MPDU_LEN_11454           0x00000002
+/* TEMPORARY:
+ * Preserve the incorrect old name as an alias for the correct new name
+ * until all references to the old name have been removed from all hosts
+ * and targets.
+ */
+#define WMI_VHT_CAP_MAX_AMPDU_LEN_EXP_SHIT WMI_VHT_CAP_MAX_AMPDU_LEN_EXP_SHIFT
 
 /* These macros should be used when we wish to advertise STBC support for
  * only 1SS or 2SS or 3SS. */
-#define WMI_VHT_CAP_RX_STBC_1SS            0x00000100
-#define WMI_VHT_CAP_RX_STBC_2SS            0x00000200
-#define WMI_vHT_CAP_RX_STBC_3SS            0x00000300
+#define WMI_VHT_CAP_RX_STBC_1SS 0x00000100
+#define WMI_VHT_CAP_RX_STBC_2SS 0x00000200
+#define WMI_VHT_CAP_RX_STBC_3SS 0x00000300
+
+/* TEMPORARY:
+ * Preserve the incorrect old name as an alias for the correct new name
+ * until all references to the old name have been removed from all hosts
+ * and targets.
+ */
+#define WMI_vHT_CAP_RX_STBC_3SS WMI_VHT_CAP_RX_STBC_3SS
 
 #define WMI_VHT_CAP_DEFAULT_ALL (WMI_VHT_CAP_MAX_MPDU_LEN_11454  |      \
                                  WMI_VHT_CAP_SGI_80MHZ           |      \
