@@ -31717,6 +31717,7 @@ int wma_runtime_suspend_req(WMA_HANDLE handle)
 			VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get runtime suspend event");
 		ret = -EAGAIN;
+		wma_runtime_resume_req(wma);
 		goto out;
 	}
 
@@ -31742,8 +31743,10 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 	vosMessage.type    = WDA_RUNTIME_PM_RESUME_IND;
 	vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage );
 
-	if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+	if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+		WMA_LOGE("Failed to post Runtime PM Resume IND to VOS");
 		ret = -EAGAIN;
+	}
 
 	return ret;
 }
