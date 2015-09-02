@@ -1257,8 +1257,11 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 */
 
 #define WMI_VHT_CAP_MAX_MPDU_LEN_MASK            0x00000003
+#define WMI_VHT_CAP_CH_WIDTH_160MHZ              0x00000004
+#define WMI_VHT_CAP_CH_WIDTH_80P80_160MHZ        0x00000008
 #define WMI_VHT_CAP_RX_LDPC                      0x00000010
 #define WMI_VHT_CAP_SGI_80MHZ                    0x00000020
+#define WMI_VHT_CAP_SGI_160MHZ                   0x00000040
 #define WMI_VHT_CAP_TX_STBC                      0x00000080
 #define WMI_VHT_CAP_RX_STBC_MASK                 0x00000300
 #define WMI_VHT_CAP_RX_STBC_MASK_SHIFT           8
