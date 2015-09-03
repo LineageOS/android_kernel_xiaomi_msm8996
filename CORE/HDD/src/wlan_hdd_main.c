@@ -7721,10 +7721,15 @@ static void __hdd_set_multicast_list(struct net_device *dev)
    int mc_count;
    int i = 0;
    struct netdev_hw_addr *ha;
+   hdd_context_t *pHddCtx;
 
    ENTER();
 
    if (VOS_FTM_MODE == hdd_get_conparam())
+      return;
+
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   if (0 != wlan_hdd_validate_context(pHddCtx))
       return;
 
    /* Delete already configured multicast address list */
