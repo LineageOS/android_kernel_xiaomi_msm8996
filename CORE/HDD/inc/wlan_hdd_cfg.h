@@ -629,6 +629,11 @@ typedef enum
 #define CFG_FW_RSSI_MONITORING_MAX             ( 1 )
 #define CFG_FW_RSSI_MONITORING_DEFAULT         ( 1 )
 
+#define CFG_FW_MCC_RTS_CTS_PROT_NAME           "gFWMccRtsCtsProtection"
+#define CFG_FW_MCC_RTS_CTS_PROT_MIN            (0)
+#define CFG_FW_MCC_RTS_CTS_PROT_MAX            (1)
+#define CFG_FW_MCC_RTS_CTS_PROT_DEFAULT        (0)
+
 #define CFG_DATA_INACTIVITY_TIMEOUT_NAME       "gDataInactivityTimeout"
 #define CFG_DATA_INACTIVITY_TIMEOUT_MIN        ( 1 )
 #define CFG_DATA_INACTIVITY_TIMEOUT_MAX        ( 255 )
@@ -3235,6 +3240,7 @@ typedef struct
    v_U8_t         fEnableFwHeartBeatMonitoring;
    v_U8_t         fEnableFwBeaconFiltering;
    v_BOOL_t       fEnableFwRssiMonitoring;
+   bool           mcc_rts_cts_prot_enable;
    v_U8_t         nDataInactivityTimeout;
    v_U8_t         nthBeaconFilter;
 

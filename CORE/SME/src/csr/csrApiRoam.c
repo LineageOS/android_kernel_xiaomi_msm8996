@@ -1639,6 +1639,9 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.Is11hSupportEnabled = pParam->Is11hSupportEnabled;
 
         pMac->roam.configParam.fenableMCCMode = pParam->fEnableMCCMode;
+        pMac->roam.configParam.mcc_rts_cts_prot_enable =
+                                          pParam->mcc_rts_cts_prot_enable;
+
         pMac->roam.configParam.fAllowMCCGODiffBI = pParam->fAllowMCCGODiffBI;
 
         /* channelBondingMode5GHz plays a dual role right now

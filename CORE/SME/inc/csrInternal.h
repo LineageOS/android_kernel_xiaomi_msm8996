@@ -548,6 +548,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN shortSlotTime;
     tANI_BOOLEAN ProprietaryRatesEnabled;
     tANI_BOOLEAN  fenableMCCMode;
+    bool mcc_rts_cts_prot_enable;
     tANI_U16 TxRate;
     tANI_U8  fAllowMCCGODiffBI;
     tANI_U8 AdHocChannel24;

@@ -1007,6 +1007,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_FW_RSSI_MONITORING_MAX,
                 cbNotifySetFwRssiMonitoring, 0 ),
 
+   REG_VARIABLE(CFG_FW_MCC_RTS_CTS_PROT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, mcc_rts_cts_prot_enable,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_FW_MCC_RTS_CTS_PROT_DEFAULT,
+                CFG_FW_MCC_RTS_CTS_PROT_MIN,
+                CFG_FW_MCC_RTS_CTS_PROT_MAX),
+
    REG_VARIABLE( CFG_DATA_INACTIVITY_TIMEOUT_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, nDataInactivityTimeout,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -6403,6 +6410,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    //Enable/Disable MCC
    smeConfig->csrConfig.fEnableMCCMode = pConfig->enableMCC;
+   smeConfig->csrConfig.mcc_rts_cts_prot_enable =
+                                          pConfig->mcc_rts_cts_prot_enable;
    smeConfig->csrConfig.fAllowMCCGODiffBI = pConfig->allowMCCGODiffBI;
 
    //Scan Results Aging Time out value
