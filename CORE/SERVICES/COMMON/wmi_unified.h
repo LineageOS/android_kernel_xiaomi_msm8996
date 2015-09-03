@@ -814,6 +814,7 @@ typedef enum {
     WMI_SOC_SET_PCL_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_SOC),
     WMI_SOC_SET_HW_MODE_CMDID,
     WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID,
+    WMI_SOC_SET_ANTENNA_MODE_CMDID,
 
     /* packet filter commands */
     WMI_PACKET_FILTER_CONFIG_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_PKT_FILTER),
@@ -11232,6 +11233,48 @@ typedef struct {
     A_UINT32 fw_mode_config_bits;
 
 } wmi_soc_set_dual_mac_config_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 num_tx_chains;
+    A_UINT32 num_rx_chains;
+    A_UINT32 reserved[2];
+} soc_num_tx_rx_chains;
+
+typedef struct {
+    A_UINT32 num_tx_chains_2g;
+    A_UINT32 num_rx_chains_2g;
+    A_UINT32 num_tx_chains_5g;
+    A_UINT32 num_rx_chains_5g;
+} band_num_tx_rx_chains;
+
+typedef union {
+    soc_num_tx_rx_chains soc_txrx_chain_setting;
+    band_num_tx_rx_chains band_txrx_chain_setting;
+} antenna_num_tx_rx_chains;
+
+typedef enum {
+    ANTENNA_MODE_DISABLED = 0x0,
+    ANTENNA_MODE_LOW_POWER_LOCATION_SCAN = 0x01,
+    /* reserved */
+} antenna_mode_reason;
+
+typedef struct {
+    /*
+     * TLV tag and len;
+     *  tag equals WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+
+    /* the reason for setting antenna mode, refer antenna_mode_reason */
+    A_UINT32 reason;
+
+    /*
+     * The above reason parameter will select whether the following union
+     * is soc_num_tx_rx_chains or band_num_tx_rx_chains.
+     */
+    antenna_num_tx_rx_chains num_txrx_chains_setting;
+} wmi_soc_set_antenna_mode_cmd_fixed_param;
+
 
 /** Data structure for information specific to a VDEV to MAC mapping. */
 typedef struct {

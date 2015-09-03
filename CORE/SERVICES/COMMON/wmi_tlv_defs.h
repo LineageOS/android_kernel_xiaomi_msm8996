@@ -585,6 +585,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mgmt_tx_send_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mgmt_tx_compl_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param
 } WMITLV_TAG_ID;
 
 /*
@@ -812,7 +813,8 @@ typedef enum {
     OP(WMI_PACKET_FILTER_CONFIG_CMDID) \
     OP(WMI_PACKET_FILTER_ENABLE_CMDID) \
     OP(WMI_SAP_SET_BLACKLIST_PARAM_CMDID) \
-    OP(WMI_MGMT_TX_SEND_CMDID)
+    OP(WMI_MGMT_TX_SEND_CMDID) \
+    OP(WMI_SOC_SET_ANTENNA_MODE_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -2291,6 +2293,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_HW_MODE_CMDID);
 #define WMITLV_TABLE_WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_soc_set_dual_mac_config_cmd_fixed_param, wmi_soc_set_dual_mac_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_DUAL_MAC_CONFIG_CMDID);
+
+/* Set the SOC Antenna Mode Cmd */
+#define WMITLV_TABLE_WMI_SOC_SET_ANTENNA_MODE_CMDID(id, op, buf, len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param, wmi_soc_set_antenna_mode_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_ANTENNA_MODE_CMDID);
 
 /************************** TLV definitions of WMI events *******************************/
 
