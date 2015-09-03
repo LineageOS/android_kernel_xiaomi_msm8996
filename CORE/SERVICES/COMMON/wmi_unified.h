@@ -4275,6 +4275,10 @@ typedef enum {
      * more non-HT rates rather than 1Mbps or 6Mbps */
     WMI_VDEV_PARAM_RTSCTS_RATE,
 
+    /** This parameter indicates whether using a long duration RTS-CTS
+     * protection when a SAP goes off channel in MCC mode */
+    WMI_VDEV_PARAM_MCC_RTSCTS_PROTECTION_ENABLE,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
