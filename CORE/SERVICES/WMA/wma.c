@@ -19188,10 +19188,100 @@ static inline int wma_get_wow_bus_suspend(tp_wma_handle wma) {
 	return adf_os_atomic_read(&wma->is_wow_bus_suspended);
 }
 
+static const u8 *wma_wow_wakeup_event_str(WOW_WAKE_EVENT_TYPE event)
+{
+	switch (event) {
+	case WOW_BMISS_EVENT:
+		return "WOW_BMISS_EVENT";
+	case WOW_BETTER_AP_EVENT:
+		return "WOW_BETTER_AP_EVENT";
+	case WOW_DEAUTH_RECVD_EVENT:
+		return "WOW_DEAUTH_RECVD_EVENT";
+	case WOW_MAGIC_PKT_RECVD_EVENT:
+		return "WOW_MAGIC_PKT_RECVD_EVENT";
+	case WOW_GTK_ERR_EVENT:
+		return "WOW_GTK_ERR_EVENT";
+	case WOW_FOURWAY_HSHAKE_EVENT:
+		return "WOW_GTK_ERR_EVENT";
+	case WOW_EAPOL_RECVD_EVENT:
+		return "WOW_EAPOL_RECVD_EVENT";
+	case WOW_NLO_DETECTED_EVENT:
+		return "WOW_NLO_DETECTED_EVENT";
+	case WOW_DISASSOC_RECVD_EVENT:
+		return "WOW_DISASSOC_RECVD_EVENT";
+	case WOW_PATTERN_MATCH_EVENT:
+		return "WOW_PATTERN_MATCH_EVENT";
+	case WOW_CSA_IE_EVENT:
+		return "WOW_CSA_IE_EVENT";
+	case WOW_PROBE_REQ_WPS_IE_EVENT:
+		return "WOW_PROBE_REQ_WPS_IE_EVENT";
+	case WOW_AUTH_REQ_EVENT:
+		return "WOW_AUTH_REQ_EVENT";
+	case WOW_ASSOC_REQ_EVENT:
+		return "WOW_ASSOC_REQ_EVENT";
+	case WOW_HTT_EVENT:
+		return "WOW_HTT_EVENT";
+	case WOW_RA_MATCH_EVENT:
+		return "WOW_RA_MATCH_EVENT";
+	case WOW_HOST_AUTO_SHUTDOWN_EVENT:
+		return "WOW_HOST_AUTO_SHUTDOWN_EVENT";
+	case WOW_IOAC_MAGIC_EVENT:
+		return "WOW_IOAC_MAGIC_EVENT";
+	case WOW_IOAC_SHORT_EVENT:
+		return "WOW_IOAC_SHORT_EVENT";
+	case WOW_IOAC_EXTEND_EVENT:
+		return "WOW_IOAC_EXTEND_EVENT";
+	case WOW_IOAC_TIMER_EVENT:
+		return "WOW_IOAC_TIMER_EVENT";
+	case WOW_DFS_PHYERR_RADAR_EVENT:
+		return "WOW_DFS_PHYERR_RADAR_EVENT";
+	case WOW_BEACON_EVENT:
+		return "WOW_BEACON_EVENT";
+	case WOW_CLIENT_KICKOUT_EVENT:
+		return "WOW_CLIENT_KICKOUT_EVENT";
+	case WOW_NAN_EVENT:
+		return "WOW_NAN_EVENT";
+	case WOW_EXTSCAN_EVENT:
+		return "WOW_EXTSCAN_EVENT";
+	case WOW_IOAC_REV_KA_FAIL_EVENT:
+		return "WOW_IOAC_REV_KA_FAIL_EVENT";
+	case WOW_IOAC_SOCK_EVENT:
+		return "WOW_IOAC_SOCK_EVENT";
+	case WOW_NLO_SCAN_COMPLETE_EVENT:
+		return "WOW_NLO_SCAN_COMPLETE_EVENT";
+	default:
+		return "UNSPECIFIED_EVENT";
+	}
+}
+
 /* Configures wow wakeup events. */
-static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
+static void wma_add_wow_wakeup_event(tp_wma_handle wma,
 					   WOW_WAKE_EVENT_TYPE event,
 					   v_BOOL_t enable)
+{
+	if (enable)
+		wma->wow_wakeup_enable_mask |= 1 << event;
+	else
+		wma->wow_wakeup_disable_mask |= 1 << event;
+
+	WMA_LOGD("%s %s event %s\n", __func__,
+			enable ? "enable" : "disable",
+			wma_wow_wakeup_event_str(event));
+}
+
+/**
+ * wma_send_wakeup_mask() - Enable/Disable the wakeup patterns
+ * @wma:	WMA Handle
+ * @enable:	boolean to enable/disable the pattern in FW
+ *
+ * The API configures the bitmap mask for WoW wakeup patterns.
+ * The Patterns are used to filter out packets in FW during APPS
+ * Power collapse
+ *
+ * Return:	0 on success; else failure
+ */
+
+static VOS_STATUS wma_send_wakeup_mask(tp_wma_handle wma, bool enable)
 {
 	WMI_WOW_ADD_DEL_EVT_CMD_fixed_param *cmd;
 	u_int16_t len;
@@ -19201,9 +19291,11 @@ static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 	len = sizeof(WMI_WOW_ADD_DEL_EVT_CMD_fixed_param);
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
-		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		WMA_LOGE("%s: Failed to allocate buf for wow wakeup mask",
+								__func__);
 		return VOS_STATUS_E_NOMEM;
 	}
+
 	cmd = (WMI_WOW_ADD_DEL_EVT_CMD_fixed_param *) wmi_buf_data(buf);
 	WMITLV_SET_HDR(&cmd->tlv_header,
 		       WMITLV_TAG_STRUC_WMI_WOW_ADD_DEL_EVT_CMD_fixed_param,
@@ -19211,7 +19303,11 @@ static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 				WMI_WOW_ADD_DEL_EVT_CMD_fixed_param));
 	cmd->vdev_id = 0;
 	cmd->is_add = enable;
-	cmd->event_bitmap = (1 << event);
+
+	if (cmd->is_add)
+		cmd->event_bitmap = wma->wow_wakeup_enable_mask;
+	else
+		cmd->event_bitmap = wma->wow_wakeup_disable_mask;
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_ENABLE_DISABLE_WAKE_EVENT_CMDID);
@@ -19221,8 +19317,8 @@ static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	WMA_LOGD("Wakeup pattern 0x%x %s in fw", event,
-		 enable ? "enabled":"disabled");
+	WMA_LOGD("%s Wakeup pattern 0x%x %s in fw", __func__,
+			cmd->event_bitmap, enable ? "enabled":"disabled");
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -20090,209 +20186,101 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	/*
 	* Configure csa ie wakeup event.
 	*/
-	ret = wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
+	wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
 
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure WOW_CSA_IE_EVENT");
-		goto end;
-	}
-	else
-		WMA_LOGD("CSA IE match is enabled in fw");
-
-	ret = wma_add_wow_wakeup_event(wma, WOW_CLIENT_KICKOUT_EVENT, TRUE);
-
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure WOW_CLIENT_KICKOUT_EVENT");
-		goto end;
-	}
-	else
-		WMA_LOGD("CLIENT_KICKOUT_EVENT is enabled in fw");
+	wma_add_wow_wakeup_event(wma, WOW_CLIENT_KICKOUT_EVENT, TRUE);
 
 	/*
 	 * Configure pattern match wakeup event. FW does pattern match
 	 * only if pattern match event is enabled.
 	 */
-	ret = wma_add_wow_wakeup_event(wma, WOW_PATTERN_MATCH_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_PATTERN_MATCH_EVENT,
 				       enable_ptrn_match ? TRUE : FALSE);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to Configure WOW_PATTERN_MATCH_EVENT");
-		goto end;
-	} else
-		WMA_LOGD("WOW_PATTERN_MATCH_EVENT enabled in fw");
-
-	WMA_LOGD("Pattern byte match is %s in fw",
-		 enable_ptrn_match ? "enabled" : "disabled");
 
 	/* Configure magic pattern wakeup event */
-	ret = wma_add_wow_wakeup_event(wma, WOW_MAGIC_PKT_RECVD_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_MAGIC_PKT_RECVD_EVENT,
 				       wma->wow.magic_ptrn_enable);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure magic pattern matching");
-		goto end;
-	} else
-		WMA_LOGD("Magic pattern is %s in fw",
-			wma->wow.magic_ptrn_enable ? "enabled" : "disabled");
 
 	/* Configure deauth based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
 				       wma->wow.deauth_enable);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure deauth based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Deauth based wakeup is %s in fw",
-			 wma->wow.deauth_enable ? "enabled" : "disabled");
 
 	/* Configure disassoc based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_DISASSOC_RECVD_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_DISASSOC_RECVD_EVENT,
 				       wma->wow.disassoc_enable);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure disassoc based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Disassoc based wakeup is %s in fw",
-			 wma->wow.disassoc_enable ? "enabled" : "disabled");
 
 	/* Configure beacon miss based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_BMISS_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_BMISS_EVENT,
 				       wma->wow.bmiss_enable);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure beacon miss based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Beacon miss based wakeup is %s in fw",
-			 wma->wow.bmiss_enable ? "enabled" : "disabled");
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 	/* Configure GTK based wakeup. Passing vdev_id 0 because
 	  wma_add_wow_wakeup_event always uses vdev 0 for wow wake event id*/
-	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
-				       wma->wow.gtk_pdev_enable);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure GTK based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("GTK based wakeup is %s in fw",
-			 wma->wow.gtk_pdev_enable ? "enabled" : "disabled");
+	wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
+			       wma->wow.gtk_pdev_enable);
 #endif
-	if (ap_vdev_available) {
-		/* Configure probe req based wakeup */
-		ret = wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
+	/* Configure probe req based wakeup */
+	if (ap_vdev_available)
+		wma_add_wow_wakeup_event(wma, WOW_PROBE_REQ_WPS_IE_EVENT,
 				wps_enable);
-		if (ret != VOS_STATUS_SUCCESS) {
-			WMA_LOGE("Failed to configure probe req based wakeup");
-			goto end;
-		} else {
-			WMA_LOGD("WPS Probe req based wakeup is %s in fw",
-				wps_enable ? "enabled" : "disabled");
-		}
-	}
-
 	/* Configure auth req based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_AUTH_REQ_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_AUTH_REQ_EVENT,
 					ap_vdev_available);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure auth req based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Auth req based wakeup is %s in fw",
-			ap_vdev_available ? "enabled" : "disabled");
 
 	/* Configure assoc req based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_ASSOC_REQ_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_ASSOC_REQ_EVENT,
 					ap_vdev_available);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure assoc req based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Assoc req based wakeup is %s in fw",
-			ap_vdev_available ? "enabled" : "disabled");
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 	/* Configure pno based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_NLO_DETECTED_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_NLO_DETECTED_EVENT,
 					pno_in_progress);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure pno based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("PNO based wakeup is %s in fw",
-			pno_in_progress ? "enabled" : "disabled");
 
 	/* Configure pno scan complete wakeup */
-	ret = wma_add_wow_wakeup_event(wma,
-				WOW_NLO_SCAN_COMPLETE_EVENT, pno_matched);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure pno scan complete wakeup");
-		goto end;
-	} else
-		WMA_LOGD("PNO scan complete wakeup is %s in fw",
-			pno_matched ? "enabled" : "disabled");
+	wma_add_wow_wakeup_event(wma,
+			WOW_NLO_SCAN_COMPLETE_EVENT, pno_matched);
 #endif
 
 	/* Configure roaming scan better AP based wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_BETTER_AP_EVENT,
+	wma_add_wow_wakeup_event(wma, WOW_BETTER_AP_EVENT,
 				       TRUE);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure roaming scan better AP based wakeup");
-		goto end;
-	} else
-		WMA_LOGD("Roaming scan better AP based wakeup is enabled in fw");
 
 	/* Configure ADDBA/DELBA wakeup */
-	ret = wma_add_wow_wakeup_event(wma, WOW_HTT_EVENT, TRUE);
-
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to Configure WOW_HTT_EVENT to FW");
-		goto end;
-	} else
-		WMA_LOGD("Successfully Configured WOW_HTT_EVENT to FW");
+	wma_add_wow_wakeup_event(wma, WOW_HTT_EVENT, TRUE);
 
 #ifdef FEATURE_WLAN_RA_FILTERING
 	/* Configure RA filter wakeup */
-	if (wma->IsRArateLimitEnabled) {
-		ret = wma_add_wow_wakeup_event(wma, WOW_RA_MATCH_EVENT, TRUE);
-
-		if (ret != VOS_STATUS_SUCCESS) {
-			WMA_LOGE("Failed to Configure WOW_RA_MATCH_EVENT to FW");
-			goto end;
-		} else
-			WMA_LOGD("Successfully Configured WOW_RA_MATCH_EVENT to FW");
-	} else
+	if (wma->IsRArateLimitEnabled)
+		wma_add_wow_wakeup_event(wma, WOW_RA_MATCH_EVENT, TRUE);
+	else
 		WMA_LOGD("gRAFilterEnable is not set, RA filterning is disabled");
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
-	ret = wma_add_wow_wakeup_event(wma, WOW_HOST_AUTO_SHUTDOWN_EVENT, TRUE);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to Configure auto shutdown WOW event to FW");
-		goto end;
-	} else
-		WMA_LOGE("Configure auto shutdown WOW event to FW: success");
+	wma_add_wow_wakeup_event(wma, WOW_HOST_AUTO_SHUTDOWN_EVENT, TRUE);
 #endif
 
 #ifdef QCA_IBSS_SUPPORT
 	/* Configure beacon based wakeup */
-	ret = wma_add_wow_wakeup_event(wma,
-				WOW_BEACON_EVENT,ibss_vdev_available);
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to configure IBSS Beacon based wakeup");
-		goto end;
-	} else {
-		WMA_LOGD("IBSS Beacon based wakeup is %s in fw",
-			ibss_vdev_available ? "enabled" : "disabled");
-	}
+	wma_add_wow_wakeup_event(wma, WOW_BEACON_EVENT, ibss_vdev_available);
 #endif
 
 #ifdef FEATURE_WLAN_EXTSCAN
-	ret = wma_add_wow_wakeup_event(wma, WOW_EXTSCAN_EVENT,
-					extscan_in_progress);
-
-	if (ret != VOS_STATUS_SUCCESS) {
-		WMA_LOGE("Failed to Configure WOW_EXTSCAN_EVENT to FW");
-		goto end;
-	} else
-		WMA_LOGD("Successfully Configured WOW_EXTSCAN_EVENT to FW");
+	wma_add_wow_wakeup_event(wma, WOW_EXTSCAN_EVENT, extscan_in_progress);
 #endif
+
+	/* Enable wow wakeup events in FW */
+	ret = wma_send_wakeup_mask(wma, TRUE);
+	if (ret) {
+		WMA_LOGE("%s Failed to enable wow pattern mask\n", __func__);
+		goto end;
+	}
+
+	/* Disable wow wakeup events in FW */
+	ret = wma_send_wakeup_mask(wma, FALSE);
+	if (ret) {
+		WMA_LOGE("%s Failed to disable wow pattern mask\n", __func__);
+		goto end;
+	}
 
 	/* WOW is enabled in pcie suspend callback */
 	wma->wow.wow_enable = TRUE;
