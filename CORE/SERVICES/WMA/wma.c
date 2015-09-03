@@ -5399,6 +5399,9 @@ static int wma_unified_dfs_radar_rx_event_handler(void *handle,
 	event->re_full_ts = (((uint64_t)radar_event->upload_fullts_high) << 32)
 			| radar_event->upload_fullts_low;
 
+	/* Index of peak magnitude */
+	event->sidx = radar_event->peak_sidx;
+
 	/*
 	 * Handle chirp flags.
 	 */
@@ -31102,6 +31105,9 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
     dfs_ic->ic_curchan->ic_freq = chan->mhz;
     dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->band_center_freq1;
     dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg2 = chan->band_center_freq2;
+    dfs_ic->ic_curchan->ic_pri_freq_center_freq_mhz_separation =
+                             dfs_ic->ic_curchan->ic_freq -
+                             dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1;
 
     if ( (dfs_ic->ic_curchan->ic_ieee >= WMA_11A_CHANNEL_BEGIN) &&
          (dfs_ic->ic_curchan->ic_ieee <= WMA_11A_CHANNEL_END) )

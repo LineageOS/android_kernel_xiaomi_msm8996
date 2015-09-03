@@ -120,6 +120,12 @@ struct ieee80211_channel
 
     /* Channel Center frequency applicable*/
     u_int32_t       ic_vhtop_ch_freq_seg2;
+
+    /*
+     * spectral separation between pri channel
+     * and the center frequency in MHz
+     */
+    int             ic_pri_freq_center_freq_mhz_separation;
 };
 
 struct ieee80211_channel_list
