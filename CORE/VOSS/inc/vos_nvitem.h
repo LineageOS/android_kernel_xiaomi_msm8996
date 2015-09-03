@@ -253,4 +253,5 @@ VOS_STATUS vos_nv_set_dfs_region(uint8_t dfs_region);
 VOS_STATUS vos_init_wiphy_from_nv_bin(void);
 const char * voss_DomainIdtoString(const v_U8_t domainIdCurrent);
 VOS_STATUS vos_init_wiphy_from_eeprom(void);
+bool vos_is_dsrc_channel(uint16_t);
 #endif // __VOS_NVITEM_H

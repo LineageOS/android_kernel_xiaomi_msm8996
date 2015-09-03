@@ -3334,7 +3334,16 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
 
     num_channels = VOS_MIN(num_channels, maxChannels);
 
-    num_chan_new = num_channels;
+    /* remove the DSRC channels from the list */
+    num_chan_new = 0;
+    for (i = 0; i < num_channels; i++) {
+        if (!vos_is_dsrc_channel(chan_list[i])) {
+            chan_list[num_chan_new] = chan_list[i];
+            num_chan_new++;
+        }
+    }
+
+    num_channels = num_chan_new;
 
     /* remove the indoor only channels if iface is SAP */
     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||

@@ -1160,8 +1160,16 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 
 #ifdef FEATURE_STATICALLY_ADD_11P_CHANNELS
 #define DEFAULT_11P_POWER (30)
-// Returns whether a channel is valid for DSRC.
-static int is_dsrc_channel(v_U16_t center_freq)
+#endif
+
+/* vos_is_dsrc_channel() - is the channel DSRC
+ *
+ * @center_freq: center freq of the channel
+ *
+ * Return: true if dsrc channel
+ *         false otherwise
+ */
+bool vos_is_dsrc_channel(uint16_t center_freq)
 {
     switch (center_freq) {
     case 5852:
@@ -1178,7 +1186,7 @@ static int is_dsrc_channel(v_U16_t center_freq)
     }
     return 0;
 }
-#endif
+
 
 /* create_linux_regulatory_entry to populate internal structures from wiphy */
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
@@ -1319,7 +1327,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             }
 
 #ifdef FEATURE_STATICALLY_ADD_11P_CHANNELS
-            if (is_dsrc_channel(wiphy->bands[i]->channels[j].center_freq))
+            if (vos_is_dsrc_channel(wiphy->bands[i]->channels[j].center_freq))
             {
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
                     channels[k].enabled = NV_CHANNEL_ENABLE;
