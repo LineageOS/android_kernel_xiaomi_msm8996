@@ -509,6 +509,7 @@ static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type);
 extern int process_wma_set_command(int sessid, int paramid,
                                    int sval, int vpdev);
 #endif /* IPA_UC_OFFLOAD */
+static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context);
 
 bool hdd_ipa_is_enabled(hdd_context_t *hdd_ctx)
 {
@@ -1872,9 +1873,17 @@ int hdd_ipa_uc_ssr_deinit()
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	int idx;
+	struct hdd_ipa_iface_context *iface_context;
 
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
+
+	/*Clean up HDD IPA interfaces */
+	for (idx = 0; idx < HDD_IPA_MAX_IFACE; idx++) {
+		iface_context = &hdd_ipa->iface_context[idx];
+		if (iface_context)
+			hdd_ipa_cleanup_iface(iface_context);
+	}
 
 	/* After SSR, wlan driver reloads FW again. But we need to protect
 	 * IPA submodule during SSR transient state. So deinit basic IPA
