@@ -8301,6 +8301,7 @@ static VOS_STATUS wma_reset_tsf_gpio(tp_wma_handle wma_handle, uint32_t vdev_id)
 VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
                         tSirScanOffloadReq *scan_req, v_U16_t msg_type)
 {
+	uint32_t vdev_id, scan_id;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	wmi_buf_t buf = NULL;
 	wmi_start_scan_cmd_fixed_param *cmd;
@@ -8367,6 +8368,13 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 			cmd->scan_id, cmd->vdev_id, scan_req->p2pScanType,
 			msg_type);
 
+	/*
+	 * Cache vdev_id and scan_id because cmd is freed after calling
+	 * wmi_unified_cmd_send cmd. WMI internally frees cmd buffer after
+	 * getting TX complete from CE
+	 */
+	vdev_id = cmd->vdev_id;
+	scan_id = cmd->scan_id;
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 			len, WMI_START_SCAN_CMDID);
 	/* Call the wmi api to request the scan */
@@ -8380,8 +8388,8 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 
 	/* Update the scan parameters for handler */
-	wma_handle->wma_scan_timer_info.vdev_id = cmd->vdev_id;
-	wma_handle->wma_scan_timer_info.scan_id = cmd->scan_id;
+	wma_handle->wma_scan_timer_info.vdev_id = vdev_id;
+	wma_handle->wma_scan_timer_info.scan_id = scan_id;
 
 	return VOS_STATUS_SUCCESS;
 error:
