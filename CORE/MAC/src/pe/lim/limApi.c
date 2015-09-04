@@ -1623,7 +1623,8 @@ static tAniBool limIbssEncTypeMatched(tpSchBeaconStruct  pBeacon,
     /* WPA-None case */
     if (pBeacon->capabilityInfo.privacy == 1 && pBeacon->wpaPresent == 1
             && pBeacon->rsnPresent == 0
-            && pSession->encryptType == eSIR_ED_CCMP)
+            && ((pSession->encryptType == eSIR_ED_CCMP) ||
+                (pSession->encryptType == eSIR_ED_TKIP)))
         return eSIR_TRUE;
 
     return eSIR_FALSE;
