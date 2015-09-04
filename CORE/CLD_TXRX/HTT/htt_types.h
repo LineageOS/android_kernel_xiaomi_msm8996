@@ -64,6 +64,8 @@
 #ifdef DEBUG_RX_RING_BUFFER
 #define HTT_RX_RING_BUFF_DBG_LIST          1024
 #endif
+
+#define HTT_HTC_PKT_MISCLIST_SIZE           6
 /**
  * @brief General specification of the tx frame contents
  *
