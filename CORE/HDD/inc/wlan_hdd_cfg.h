@@ -2192,9 +2192,14 @@ typedef enum
 #define CFG_PNO_SCAN_SUPPORT_DEFAULT                 ( 1 )
 
 #define CFG_PNO_SCAN_TIMER_REPEAT_VALUE              "gPNOScanTimerRepeatValue"
-#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_DEFAULT      ( 6 )
+#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_DEFAULT      ( 30 )
 #define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MIN          ( 0 )
 #define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MAX          ( 0xffffffff )
+
+#define CFG_PNO_SLOW_SCAN_MULTIPLIER                 "gPNOSlowScanMultiplier"
+#define CFG_PNO_SLOW_SCAN_MULTIPLIER_DEFAULT         ( 6 )
+#define CFG_PNO_SLOW_SCAN_MULTIPLIER_MIN             ( 0 )
+#define CFG_PNO_SLOW_SCAN_MULTIPLIER_MAX             ( 30 )
 #endif
 
 #define CFG_MAX_AMSDU_NUM_NAME                "gMaxAmsduNum"
@@ -3539,6 +3544,7 @@ typedef struct
 #ifdef FEATURE_WLAN_SCAN_PNO
    v_BOOL_t                    configPNOScanSupport;
    v_U32_t                     configPNOScanTimerRepeatValue;
+   uint32_t                    pno_slow_scan_multiplier;
 #endif
    v_U8_t                      max_amsdu_num;
    v_U8_t                      nSelect5GHzMargin;
