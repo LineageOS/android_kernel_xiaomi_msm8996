@@ -1137,7 +1137,7 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, int fenable)
    tSirHostOffloadReq  offLoadRequest;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
-   hddLog(VOS_TRACE_LEVEL_ERROR, FL(" fenable = %d \n"), fenable);
+   hddLog(LOG1, FL(" fenable = %d \n"), fenable);
 
    /* In SAP/P2PGo mode, ARP/NS offload feature capability
     * is controlled by one bit.
