@@ -20223,6 +20223,14 @@ int wlan_hdd_tdls_extctrl_config_peer(hdd_adapter_t *pAdapter,
         return -EINVAL;
     }
 
+    /* validate if off channel is DFS channel */
+    if (VOS_IS_DFS_CH(chan)) {
+        hddLog(LOGE,
+               FL("Resetting TDLS off-channel from %d to %d"),
+               chan, CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT);
+        chan = CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT;
+    }
+
     if ( 0 != wlan_hdd_tdls_set_extctrl_param(pAdapter, peer,
                                               chan, max_latency,
                                               op_class, min_bandwidth) ) {
@@ -20435,6 +20443,16 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                             pHddCtx->cfg_ini->fTDLSPrefOffChanBandwidth;
                         smeTdlsPeerStateParams.peerCap.opClassForPrefOffChan =
                             pTdlsPeer->op_class_for_pref_off_chan;
+
+                        if (VOS_IS_DFS_CH(
+                              smeTdlsPeerStateParams.peerCap.prefOffChanNum)) {
+                            hddLog(LOGE,
+                                 FL("Resetting TDLS off-channel from %d to %d"),
+                                 smeTdlsPeerStateParams.peerCap.prefOffChanNum,
+                                 CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT);
+                            smeTdlsPeerStateParams.peerCap.prefOffChanNum =
+                                CFG_TDLS_PREFERRED_OFF_CHANNEL_NUM_DEFAULT;
+                        }
 
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                            "%s: Peer " MAC_ADDRESS_STR " vdevId: %d, peerState: %d, isPeerResponder: %d, uapsdQueues: 0x%x, maxSp: 0x%x, peerBuffStaSupport: %d, peerOffChanSupport: %d, peerCurrOperClass: %d, selfCurrOperClass: %d, peerChanLen: %d, peerOperClassLen: %d, prefOffChanNum: %d, prefOffChanBandwidth: %d, op_class_for_pref_off_chan: %d",

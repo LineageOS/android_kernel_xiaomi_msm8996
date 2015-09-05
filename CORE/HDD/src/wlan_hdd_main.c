@@ -6233,6 +6233,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                goto exit;
            }
 
+           if (VOS_IS_DFS_CH(set_value)) {
+               hddLog(LOGE,
+                     FL("DFS channel %d is passed for hdd_set_tdls_offchannel"),
+                     set_value);
+               ret = -EINVAL;
+               goto exit;
+           }
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 FL("Tdls offchannel num: %d"), set_value);
            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
