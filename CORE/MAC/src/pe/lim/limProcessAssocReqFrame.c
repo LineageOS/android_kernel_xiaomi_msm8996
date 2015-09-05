@@ -288,8 +288,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     if (NULL != pStaDs)
     {
-        if (pHdr->fc.retry > 0)
-        {
+        if (pHdr->fc.retry > 0) {
             /* Ignore the Retry */
             limLog(pMac, LOGE,
                    FL("STA is initiating Assoc Req after ACK lost. "
@@ -299,10 +298,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                    psessionEntry->limSystemRole,
                     MAC_ADDR_ARRAY(pHdr->sa));
             return;
-        }
-        else
-        {
-            /* STA might have missed the assoc response,
+        } else if (!pStaDs->rmfEnabled) {
+            /* Do this only for non PMF case.
+             *
+             * STA might have missed the assoc response,
              * so it is sending assoc request frame again.
              */
             limSendAssocRspMgmtFrame(pMac, eSIR_SUCCESS,
