@@ -25354,7 +25354,7 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 	wmi_sap_ofl_enable_cmd_fixed_param *cmd = NULL;
 	wmi_buf_t buf;
 	u_int8_t *buf_ptr;
-	u_int16_t len, psk_len;
+	u_int16_t len, psk_len, psk_len_padded;
 	int err;
 
 	if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
@@ -25364,7 +25364,9 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 	}
 
 	psk_len = sap_auth_offload_info->key_len;
-	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + psk_len;
+	psk_len_padded = roundup(psk_len, sizeof(uint32_t));
+
+	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE + psk_len_padded;
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
 	if (!buf) {
 		WMA_LOGE("Failed to allocate buffer to send "
@@ -25402,7 +25404,7 @@ static int wma_process_sap_auth_offload(tp_wma_handle wma_handle,
 	}
 
 	buf_ptr += sizeof(wmi_sap_ofl_enable_cmd_fixed_param);
-	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, psk_len);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE, psk_len_padded);
 	buf_ptr += WMI_TLV_HDR_SIZE;
 	vos_mem_copy(buf_ptr, sap_auth_offload_info->key, psk_len);
 
