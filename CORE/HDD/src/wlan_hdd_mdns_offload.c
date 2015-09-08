@@ -322,7 +322,7 @@ static void wlan_hdd_mdns_reset_response(struct hdd_mdns_resp_info *response)
  */
 static bool wlan_hdd_mdns_init_response(
 					struct hdd_mdns_resp_info *response,
-					uint8_t *resp_dname)
+					uint8_t *resp_dname, char separator)
 {
 	uint16_t size;
 
@@ -337,7 +337,8 @@ static bool wlan_hdd_mdns_init_response(
 		vos_mem_zero(response->data, size);
 		if (VOS_STATUS_SUCCESS !=
 			hdd_string_to_string_array((char *)resp_dname,
-						response->data, '.',
+						response->data,
+						separator,
 						&response->num_entries,
 						MAX_NUM_FIELD_DOMAINNAME,
 						MAX_LEN_DOMAINNAME_FIELD)) {
@@ -465,7 +466,7 @@ static bool wlan_hdd_mdns_pack_response_type_a(hdd_config_t *ini_config,
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_a,
-					ini_config->mdns_resp_type_a))
+					ini_config->mdns_resp_type_a, '.'))
 		return TRUE;
 
 	/* Process response domain name */
@@ -514,9 +515,14 @@ static bool wlan_hdd_mdns_pack_response_type_txt(hdd_config_t *ini_config,
 				struct hdd_mdns_resp_info *resptype_txt,
 				struct hdd_mdns_resp_info *resptype_a)
 {
-	uint16_t value;
-	uint8_t  num_matched;
+	uint8_t num_matched;
+	uint8_t num;
+	uint16_t idx;
+	uint16_t value = 0;
 	uint32_t len;
+	uint32_t total_len;
+	bool status;
+	struct hdd_mdns_resp_info resptype_content;
 
 	if ((ini_config == NULL) || (resp_info == NULL) ||
 		(resptype_txt == NULL)) {
@@ -530,7 +536,7 @@ static bool wlan_hdd_mdns_pack_response_type_txt(hdd_config_t *ini_config,
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_txt,
-				ini_config->mdns_resp_type_txt))
+				ini_config->mdns_resp_type_txt, '.'))
 		return TRUE;
 
 	/*
@@ -577,18 +583,43 @@ static bool wlan_hdd_mdns_pack_response_type_txt(hdd_config_t *ini_config,
 	* Process response RDLength, RData.
 	* TypeTxt RData include len.
 	*/
-	value = strlen((char *)ini_config->mdns_resp_type_txt_content);
-	len = value + 1 + sizeof(uint16_t);
-	len += resp_info->resp_len;
-	if (len >= MAX_MDNS_RESP_LEN) {
+	status = wlan_hdd_mdns_init_response(&resptype_content,
+				ini_config->mdns_resp_type_txt_content,
+				'/');
+	if (status == FALSE) {
+		hddLog(LOGE, FL("wlan_hdd_mdns_init_response FAIL"));
+		return FALSE;
+	}
+
+	for (num = 0; num < resptype_content.num_entries; num++) {
+		idx = num * MAX_LEN_DOMAINNAME_FIELD;
+		value += strlen((char *)&resptype_content.data[idx]);
+	}
+
+	/* content len is uint16_t */
+	total_len = sizeof(uint16_t);
+	total_len += resp_info->resp_len + value + resptype_content.num_entries;
+
+	if (total_len >= MAX_MDNS_RESP_LEN) {
 		hddLog(LOGE, FL("resp_len exceeds %d!"), MAX_MDNS_RESP_LEN);
 		return FALSE;
 	}
-	wlan_hdd_mdns_format_response_u16(value+1, resp_info);
-	resp_info->resp_data[resp_info->resp_len++] = value;
-	vos_mem_copy(&resp_info->resp_data[resp_info->resp_len],
-			&ini_config->mdns_resp_type_txt_content, value);
-	resp_info->resp_len += value;
+	wlan_hdd_mdns_format_response_u16(value + resptype_content.num_entries,
+						resp_info);
+
+	for (num = 0; num < resptype_content.num_entries; num++) {
+		idx = num * MAX_LEN_DOMAINNAME_FIELD;
+		len = strlen((char *)&resptype_content.data[idx]);
+		resp_info->resp_data[resp_info->resp_len] = len;
+		resp_info->resp_len++;
+
+		vos_mem_copy(&resp_info->resp_data[resp_info->resp_len],
+			&resptype_content.data[idx], len);
+
+		resp_info->resp_len += len;
+		hddLog(LOGE, FL("index = %d, len = %d, str = %s"),
+			num, len, &resptype_content.data[idx]);
+	}
 
 	return TRUE;
 }
@@ -633,7 +664,7 @@ static bool wlan_hdd_mdns_pack_response_type_ptr_dname(
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_ptr_dn,
-				ini_config->mdns_resp_type_ptr_dname))
+				ini_config->mdns_resp_type_ptr_dname, '.'))
 		return TRUE;
 
 	/*
@@ -749,7 +780,7 @@ static bool wlan_hdd_mdns_pack_response_type_ptr(hdd_config_t *ini_config,
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_ptr,
-					ini_config->mdns_resp_type_ptr))
+					ini_config->mdns_resp_type_ptr, '.'))
 		return TRUE;
 
 	/*
@@ -880,7 +911,7 @@ static bool wlan_hdd_mdns_pack_response_type_srv_target(
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_srv_tgt,
-				ini_config->mdns_resp_type_srv_target))
+				ini_config->mdns_resp_type_srv_target, '.'))
 		return TRUE;
 
 	/*
@@ -1027,7 +1058,7 @@ static bool wlan_hdd_mdns_pack_response_type_srv(hdd_config_t *ini_config,
 
 	/* Wrong response is assigned, just ignore this response */
 	if (!wlan_hdd_mdns_init_response(resptype_srv,
-					ini_config->mdns_resp_type_srv))
+					ini_config->mdns_resp_type_srv, '.'))
 		return TRUE;
 
 	/*
