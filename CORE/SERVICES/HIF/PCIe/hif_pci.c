@@ -2755,6 +2755,7 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)TARGID_TO_HIF(targid);
     A_target_id_t pci_addr = TARGID_TO_PCI_ADDR(targid);
     static int max_delay;
+    static int debug = 0;
     struct hif_pci_softc *sc = hif_state->sc;
 
 
@@ -2762,9 +2763,18 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
         return -EACCES;
 
     if (adf_os_atomic_read(&sc->pci_link_suspended)) {
-        pr_err("invalid access, PCIe link is suspended");
+        VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+                 "invalid access, PCIe link is suspended");
+        debug = 1;
         VOS_ASSERT(0);
         return -EACCES;
+    }
+
+    if(debug) {
+        wait_for_it = TRUE;
+        VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+                 "doing debug for invalid access, PCIe link is suspended");
+        VOS_ASSERT(0);
     }
 
     if (sleep_ok) {
@@ -2874,6 +2884,25 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
             }
         }
     }
+
+    if(debug && hif_state->verified_awake) {
+        debug = 0;
+        VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+                "%s: INTR_ENABLE_REG = 0x%08x, INTR_CAUSE_REG = 0x%08x, "
+                "CPU_INTR_REG = 0x%08x, INTR_CLR_REG = 0x%08x, "
+                "CE_INTERRUPT_SUMMARY_REG = 0x%08x", __func__,
+                A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                             PCIE_INTR_ENABLE_ADDRESS),
+                A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                             PCIE_INTR_CAUSE_ADDRESS),
+                A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                             CPU_INTR_ADDRESS),
+                A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+                             PCIE_INTR_CLR_ADDRESS),
+                A_PCI_READ32(sc->mem + CE_WRAPPER_BASE_ADDRESS +
+                             CE_WRAPPER_INTERRUPT_SUMMARY_ADDRESS));
+    }
+
     return EOK;
 }
 
