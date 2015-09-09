@@ -405,8 +405,8 @@ extern int iw_set_auth(struct net_device *dev,struct iw_request_info *info,
 extern int iw_get_auth(struct net_device *dev,struct iw_request_info *info,
                        union iwreq_data *wrqu,char *extra);
 
-VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
-                      union iwreq_data *wrqu, char *extra, int nOffset);
+int iw_set_pno(struct net_device *dev, struct iw_request_info *info,
+               union iwreq_data *wrqu, char *extra, int nOffset);
 
 VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *info,
                       union iwreq_data *wrqu, char *extra, int nOffset);
