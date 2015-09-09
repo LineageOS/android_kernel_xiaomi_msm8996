@@ -1878,10 +1878,11 @@ int hdd_ipa_uc_ssr_deinit()
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
 
-	/*Clean up HDD IPA interfaces */
-	for (idx = 0; idx < HDD_IPA_MAX_IFACE; idx++) {
+	/* Clean up HDD IPA interfaces */
+	for (idx = 0; (hdd_ipa->num_iface > 0) &&
+		(idx < HDD_IPA_MAX_IFACE); idx++) {
 		iface_context = &hdd_ipa->iface_context[idx];
-		if (iface_context)
+		if (iface_context && iface_context->adapter)
 			hdd_ipa_cleanup_iface(iface_context);
 	}
 
