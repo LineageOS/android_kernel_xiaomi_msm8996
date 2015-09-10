@@ -7770,6 +7770,9 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	/* Large timeout value for full scan cycle, 30 seconds */
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 
+	/* add DS param IE in probe req frame */
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ;
+
 	/* do not add OFDM rates in 11B mode */
 	if (scan_req->dot11mode != WNI_CFG_DOT11_MODE_11B)
 		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
@@ -9459,7 +9462,8 @@ v_VOID_t wma_roam_scan_fill_scan_params(tp_wma_handle wma_handle,
 
     vos_mem_zero(scan_params, sizeof(wmi_start_scan_cmd_fixed_param));
     scan_params->scan_ctrl_flags = WMI_SCAN_ADD_CCK_RATES |
-                WMI_SCAN_ADD_OFDM_RATES;
+                                   WMI_SCAN_ADD_OFDM_RATES |
+                                   WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ;
     if (roam_req != NULL) {
         /* Parameters updated after association is complete */
         WMA_LOGI("%s: Input parameters: NeighborScanChannelMinTime"
@@ -23713,7 +23717,8 @@ static VOS_STATUS wma_process_ll_stats_getReq
 	cmd->scan_ctrl_flags = WMI_SCAN_ADD_BCAST_PROBE_REQ |
 				WMI_SCAN_ADD_CCK_RATES |
 				WMI_SCAN_ADD_OFDM_RATES |
-				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ;
+				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ |
+				WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ;
 	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
 	cmd->num_ssids = 0;
 	cmd->num_bssid = 0;
