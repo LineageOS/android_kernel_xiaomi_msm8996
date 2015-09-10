@@ -151,7 +151,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_WOWL              2
 #define WE_SET_POWER         3
 #define WE_SET_MAX_ASSOC     4
-/* 5 is unused */
+#define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
 #define WE_SET_DATA_INACTIVITY_TO  6
 #define WE_SET_MAX_TX_POWER  7
 #define WE_SET_HIGHER_DTIM_TRANSITION   8
@@ -252,11 +252,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
 #define WE_IBSS_STATUS       2
-
+#define WE_SET_SAP_CHANNELS  3
 #define WE_GET_WLAN_DBG      4
 #define WE_GET_MAX_ASSOC     6
 /* 7 is unused */
-/* 8 is unused */
+#define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 #define WE_GET_CONCURRENCY_MODE 9
 #define WE_GET_NSS           11
 #define WE_GET_LDPC          12
@@ -325,7 +325,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
-/* 2,3 is unused */
+/* 2 is unused */
+#define WE_SET_SAP_CHANNELS  3
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 5)
@@ -6070,6 +6071,14 @@ static int __iw_setint_getnone(struct net_device *dev,
             break;
         }
 
+        case WE_SET_SAP_AUTO_CHANNEL_SELECTION:
+            if (set_value == 0 || set_value == 1)
+                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->force_sap_acs =
+                                                                    set_value;
+            else
+                ret = -EINVAL;
+            break;
+
         case  WE_SET_DATA_INACTIVITY_TO:
         {
            if  ((set_value < CFG_DATA_INACTIVITY_TIMEOUT_MIN) ||
@@ -7345,6 +7354,11 @@ static int __iw_setnone_getint(struct net_device *dev,
             }
             break;
         }
+        case WE_GET_SAP_AUTO_CHANNEL_SELECTION:
+            *value = (WLAN_HDD_GET_CTX(
+                                   pAdapter))->cfg_ini->force_sap_acs;
+            break;
+
         case WE_GET_CONCURRENCY_MODE:
         {
            *value = hdd_get_concurrency_mode ( );
@@ -7845,6 +7859,7 @@ static int __iw_set_three_ints_getnone(struct net_device *dev,
                                        char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int ret = 0;
@@ -7861,6 +7876,22 @@ static int __iw_set_three_ints_getnone(struct net_device *dev,
     case WE_SET_WLAN_DBG:
        vos_trace_setValue( value[1], value[2], value[3]);
        break;
+
+    case WE_SET_SAP_CHANNELS:
+        /* value[3] the acs band is not required as start and end channels are
+         * enough but this cmd is maintained under set three ints for historic
+         * reasons.
+         */
+        if (wlan_hdd_validate_operation_channel(pAdapter, value[1]) !=
+                                        VOS_STATUS_SUCCESS ||
+            wlan_hdd_validate_operation_channel(pAdapter, value[2]) !=
+                                        VOS_STATUS_SUCCESS) {
+            ret = -EINVAL;
+        } else {
+            hdd_ctx->cfg_ini->force_sap_acs_st_ch = value[1];
+            hdd_ctx->cfg_ini->force_sap_acs_end_ch = value[2];
+        }
+        break;
 
     default:
        hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
@@ -11043,6 +11074,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setMaxAssoc" },
 
+    {   WE_SET_SAP_AUTO_CHANNEL_SELECTION,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setAutoChannel" },
+
     {   WE_SET_DATA_INACTIVITY_TO,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
@@ -11468,6 +11504,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getMaxAssoc" },
 
+    {   WE_GET_SAP_AUTO_CHANNEL_SELECTION,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getAutoChannel" },
+
     {   WE_GET_CONCURRENCY_MODE,
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -11766,6 +11807,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
         "setwlandbg" },
+
+    {   WE_SET_SAP_CHANNELS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0,
+        "setsapchannels" },
 
      /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_THREE_INT,

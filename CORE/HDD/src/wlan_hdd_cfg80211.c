@@ -8029,6 +8029,11 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (hdd_ctx->cfg_ini->force_sap_acs) {
+		hddLog(LOGE, FL("Hostapd ACS rejected as driver INI force ACS is enabled"));
+		return -EPERM;
+	}
+
 	/* ***Note*** Donot set SME config related to ACS operation here because
 	 * ACS operation is not synchronouse and ACS for Second AP may come when
 	 * ACS operation for first AP is going on. So only do_acs is split to
@@ -11551,6 +11556,126 @@ end:
 }
 #endif /* DHCP_SERVER_OFFLOAD */
 
+/**
+ * wlan_hdd_setup_driver_overrides : Overrides SAP / P2P GO Params
+ * @adapter: pointer to adapter struct
+ *
+ * This function overrides SAP / P2P Go configuration based on driver INI
+ * parameters for 11AC override and ACS. This overrides are done to support
+ * android legacy configuration method.
+ *
+ * NOTE: Non android platform supports concurrency and these overrides shall
+ * not be used. Also future driver based overrides shall be consolidated in this
+ * function only. Avoid random overrides in other location based on ini.
+ *
+ * Return: 0 for Success or Negative error codes.
+ */
+int wlan_hdd_setup_driver_overrides(hdd_adapter_t *ap_adapter)
+{
+	tsap_Config_t *sap_cfg = &ap_adapter->sessionCtx.ap.sapConfig;
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(ap_adapter);
+	tHalHandle h_hal = WLAN_HDD_GET_HAL_CTX(ap_adapter);
+
+	if (ap_adapter->device_mode == WLAN_HDD_SOFTAP &&
+				hdd_ctx->cfg_ini->force_sap_acs)
+		goto setup_acs_overrides;
+
+	/* Fixed channel 11AC override:
+	 * 11AC override in qcacld is introduced for following reasons:
+	 * 1. P2P GO also follows start_bss and since p2p GO could not be
+	 *    configured to setup VHT channel width in wpa_supplicant
+	 * 2. Android UI does not provide advanced configuration options for SAP
+	 *
+	 * Default override enabled (for android). MDM shall disable this in ini
+	 */
+	if (hdd_ctx->cfg_ini->sap_p2p_11ac_override &&
+			(sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)) {
+		hddLog(LOG1, FL("** Driver force 11AC override for SAP/Go **"));
+
+		/* 11n only shall not be overridden since it may be on purpose*/
+		if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n)
+			sap_cfg->SapHw_mode = eCSR_DOT11_MODE_11ac;
+
+		/* For 2.4G ch width shall not be overridden due to obss */
+		if (sap_cfg->channel >= 36)
+			sap_cfg->ch_width_orig =
+					hdd_ctx->cfg_ini->vhtChannelWidth;
+	}
+
+	sap_cfg->vht_channel_width = sap_cfg->ch_width_orig;
+
+	sme_SelectCBMode(h_hal, sap_cfg->SapHw_mode, sap_cfg->channel,
+			sap_cfg->sec_ch, &sap_cfg->vht_channel_width,
+						sap_cfg->ch_width_orig);
+	return 0;
+
+setup_acs_overrides:
+	hddLog(LOGE, FL("** Driver force ACS override **"));
+
+	sap_cfg->channel = AUTO_CHANNEL_SELECT;
+	sap_cfg->acs_cfg.acs_mode = true;
+	sap_cfg->acs_cfg.start_ch = hdd_ctx->cfg_ini->force_sap_acs_st_ch;
+	sap_cfg->acs_cfg.end_ch = hdd_ctx->cfg_ini->force_sap_acs_end_ch;
+
+	if (sap_cfg->acs_cfg.start_ch > sap_cfg->acs_cfg.end_ch) {
+		hddLog(LOGE, FL("Driver force ACS start ch (%d) > end ch (%d)"),
+			sap_cfg->acs_cfg.start_ch,  sap_cfg->acs_cfg.end_ch);
+		return -EINVAL;
+	}
+
+	/* Derive ACS HW mode */
+	sap_cfg->SapHw_mode = hdd_cfg_xlate_to_csr_phy_mode(
+						hdd_ctx->cfg_ini->dot11Mode);
+	if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_AUTO)
+		sap_cfg->SapHw_mode = eCSR_DOT11_MODE_11ac;
+
+	if ((sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11b ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11g ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11g_ONLY) &&
+			sap_cfg->acs_cfg.start_ch > 14) {
+		hddLog(LOGE, FL("Invalid ACS Dot11Mode %d & CH range <%d - %d> Combination"),
+			sap_cfg->SapHw_mode, sap_cfg->acs_cfg.start_ch,
+			sap_cfg->acs_cfg.end_ch);
+		return -EINVAL;
+	}
+	sap_cfg->acs_cfg.hw_mode = sap_cfg->SapHw_mode;
+
+	/* Derive ACS BW */
+	sap_cfg->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
+	if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY) {
+
+		sap_cfg->ch_width_orig = hdd_ctx->cfg_ini->vhtChannelWidth;
+		/* No VHT80 in 2.4G so set to VHT40 */
+		if (sap_cfg->acs_cfg.end_ch <= 14 &&
+			sap_cfg->ch_width_orig >= eHT_CHANNEL_WIDTH_80MHZ)
+			sap_cfg->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
+	}
+
+	if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n ||
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n_ONLY) {
+		if (sap_cfg->acs_cfg.end_ch <= 14)
+			sap_cfg->ch_width_orig =
+				hdd_ctx->cfg_ini->nChannelBondingMode24GHz ?
+				eHT_CHANNEL_WIDTH_40MHZ :
+				eHT_CHANNEL_WIDTH_20MHZ;
+		else
+			sap_cfg->ch_width_orig =
+				hdd_ctx->cfg_ini->nChannelBondingMode5GHz ?
+				eHT_CHANNEL_WIDTH_40MHZ :
+				eHT_CHANNEL_WIDTH_20MHZ;
+	}
+	sap_cfg->acs_cfg.ch_width = sap_cfg->ch_width_orig;
+
+	hddLog(LOGE, FL("Force ACS Config: HW_MODE: %d ACS_BW: %d ST_CH: %d END_CH: %d"),
+		sap_cfg->acs_cfg.hw_mode, sap_cfg->acs_cfg.ch_width,
+		sap_cfg->acs_cfg.start_ch, sap_cfg->acs_cfg.end_ch);
+
+	return 0;
+}
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -12027,32 +12152,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 
-    /* 11AC override in qcacld is introduced for following reasons:
-     * 1. P2P GO also follows start_bss and since p2p GO could not be configured
-     *    to setup VHT channel width in wpa_supplicant
-     * 2. Android UI does not provide advanced configuration options for SoftAP
-     *
-     * Default override enabled (for android). MDM shall disable this in ini
-     */
-    if (iniConfig->sap_p2p_11ac_override &&
-                         (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n ||
-                         pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac ||
-                         pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)) {
-        hddLog(LOG1, FL("Start BSS Config override for 11AC"));
-        /* 11n only shall not be overridden since it may be set on purpose*/
-        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11n)
-            pConfig->SapHw_mode = eCSR_DOT11_MODE_11ac;
+    if (wlan_hdd_setup_driver_overrides(pHostapdAdapter))
+	return -EINVAL;
 
-        /* For 2.4G ch width shall not be overridden due to hostapd obss */
-        if (pConfig->channel >= 36)
-            pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
-    }
-
-    pConfig->vht_channel_width = pConfig->ch_width_orig;
-
-    sme_SelectCBMode(hHal, pConfig->SapHw_mode, pConfig->channel,
-            pConfig->sec_ch,
-            &pConfig->vht_channel_width, pConfig->ch_width_orig);
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab = iniConfig->apProtection;
 

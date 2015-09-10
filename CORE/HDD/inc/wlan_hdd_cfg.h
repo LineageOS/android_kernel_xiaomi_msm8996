@@ -1531,6 +1531,31 @@ typedef enum
 #define HDD_MULTICAST_FILTER_LIST                              0x04
 #define HDD_MULTICAST_FILTER_LIST_CLEAR                        0x05
 
+/*
+ * Driver Force ACS is reintroduced for android SAP legacy configuration method.
+ * If Driver force acs is enabled, channel/ hw config from hostapd is ignored.
+ * Driver uses INI params dot11Mode, channel bonding mode and vht chan width
+ * to derive ACS HW mode and operating BW.
+ *
+ * Non android platforms shall not use force ACS method and rely on hostapd
+ * driven ACS method for concurrent SAP ACS configuration, OBSS etc.
+ */
+
+#define CFG_FORCE_SAP_ACS                  "gApAutoChannelSelection"
+#define CFG_FORCE_SAP_ACS_MIN              (0)
+#define CFG_FORCE_SAP_ACS_MAX              (1)
+#define CFG_FORCE_SAP_ACS_DEFAULT          (0)
+
+#define CFG_FORCE_SAP_ACS_START_CH         "gAPChannelSelectStartChannel"
+#define CFG_FORCE_SAP_ACS_START_CH_MIN     (0)
+#define CFG_FORCE_SAP_ACS_START_CH_MAX     (0xFF)
+#define CFG_FORCE_SAP_ACS_START_CH_DEFAULT (36)
+
+#define CFG_FORCE_SAP_ACS_END_CH           "gAPChannelSelectEndChannel"
+#define CFG_FORCE_SAP_ACS_END_CH_MIN       (0)
+#define CFG_FORCE_SAP_ACS_END_CH_MAX       (0xFF)
+#define CFG_FORCE_SAP_ACS_END_CH_DEFAULT   (165)
+
 /* ACS Scan band preference
  * 0 -- No preference
  * 1 -- Scan 2.4G first
@@ -3619,6 +3644,9 @@ typedef struct
    v_U32_t                     TxHbwFlowHighWaterMarkOffset;
    v_U32_t                     TxHbwFlowMaxQueueDepth;
 #endif /* QCA_LL_TX_FLOW_CT */
+   uint8_t                     force_sap_acs;
+   uint8_t                     force_sap_acs_st_ch;
+   uint8_t                     force_sap_acs_end_ch;
    v_U16_t                     acsBandSwitchThreshold;
    v_U8_t                      apMaxOffloadPeers;
    v_U8_t                      apMaxOffloadReorderBuffs;

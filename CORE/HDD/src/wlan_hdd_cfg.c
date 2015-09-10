@@ -738,6 +738,31 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_FRAMES_PROCESSING_TH_MIN,
                  CFG_FRAMES_PROCESSING_TH_MAX ),
 
+   REG_VARIABLE(CFG_FORCE_SAP_ACS, WLAN_PARAM_Integer,
+                 hdd_config_t, force_sap_acs,
+                 VAR_FLAGS_DYNAMIC_CFG |
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_FORCE_SAP_ACS_DEFAULT,
+                 CFG_FORCE_SAP_ACS_MIN,
+                 CFG_FORCE_SAP_ACS_MAX),
+
+   REG_VARIABLE(CFG_FORCE_SAP_ACS_START_CH, WLAN_PARAM_Integer,
+                 hdd_config_t, force_sap_acs_st_ch,
+                 VAR_FLAGS_DYNAMIC_CFG |
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_FORCE_SAP_ACS_START_CH_DEFAULT,
+                 CFG_FORCE_SAP_ACS_START_CH_MIN,
+                 CFG_FORCE_SAP_ACS_START_CH_MAX),
+
+   REG_VARIABLE(CFG_FORCE_SAP_ACS_END_CH, WLAN_PARAM_Integer,
+                 hdd_config_t, force_sap_acs_end_ch,
+                 VAR_FLAGS_DYNAMIC_CFG |
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_FORCE_SAP_ACS_END_CH_DEFAULT,
+                 CFG_FORCE_SAP_ACS_END_CH_MIN,
+                 CFG_FORCE_SAP_ACS_END_CH_MAX),
+
+
    REG_VARIABLE( CFG_ENABLE_LTE_COEX , WLAN_PARAM_Integer,
                  hdd_config_t, enableLTECoex,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4304,6 +4329,19 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
              "Name = [%s] value = [%u]", CFG_SAP_P2P_11AC_OVERRIDE_NAME,
              pHddCtx->cfg_ini->sap_p2p_11ac_override);
+
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Name = [%s] value = [%u]", CFG_FORCE_SAP_ACS,
+             pHddCtx->cfg_ini->force_sap_acs);
+
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Name = [%s] value = [%u]", CFG_FORCE_SAP_ACS_START_CH,
+             pHddCtx->cfg_ini->force_sap_acs_st_ch);
+
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Name = [%s] value = [%u]", CFG_FORCE_SAP_ACS_END_CH,
+             pHddCtx->cfg_ini->force_sap_acs_end_ch);
+
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSBandSwitchThreshold] value = [%u]", pHddCtx->cfg_ini->acsBandSwitchThreshold);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);

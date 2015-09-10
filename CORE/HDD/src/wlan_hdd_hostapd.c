@@ -2711,6 +2711,15 @@ static __iw_softap_setparam(struct net_device *dev,
             }
             break;
 
+        case QCSAP_PARAM_AUTO_CHANNEL:
+            if (set_value == 0 || set_value == 1)
+                (WLAN_HDD_GET_CTX(
+                           pHostapdAdapter))->cfg_ini->force_sap_acs =
+                                                                     set_value;
+            else
+                ret = -EINVAL;
+            break;
+
         case QCSAP_PARAM_SET_CHANNEL_CHANGE:
 		if ((WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)||
 		   (WLAN_HDD_P2P_GO == pHostapdAdapter->device_mode)) {
@@ -3428,6 +3437,10 @@ static __iw_softap_getparam(struct net_device *dev,
             break;
         }
 
+    case QCSAP_PARAM_AUTO_CHANNEL:
+        *value = (WLAN_HDD_GET_CTX
+                      (pHostapdAdapter))->cfg_ini->force_sap_acs;
+
     case QCSAP_PARAM_RTSCTS:
         {
             *value = wma_cli_get_command(pHddCtx->pvosContext,
@@ -4110,6 +4123,38 @@ static int iw_get_char_setnone(struct net_device *dev,
 	ret = __iw_get_char_setnone(dev, info, wrqu, extra);
 	vos_ssr_unprotect(__func__);
 
+	return ret;
+}
+
+static int wlan_hdd_set_force_acs_ch_range(struct net_device *dev,
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+	hdd_adapter_t *adapter = (netdev_priv(dev));
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	int *value = (int *)extra;
+
+	if (wlan_hdd_validate_operation_channel(adapter, value[0]) !=
+					 VOS_STATUS_SUCCESS ||
+		wlan_hdd_validate_operation_channel(adapter, value[1]) !=
+					 VOS_STATUS_SUCCESS) {
+		return -EINVAL;
+	} else {
+		hdd_ctx->cfg_ini->force_sap_acs_st_ch = value[0];
+		hdd_ctx->cfg_ini->force_sap_acs_end_ch = value[1];
+	}
+
+	return 0;
+}
+
+static int iw_softap_set_force_acs_ch_range(struct net_device *dev,
+                                       struct iw_request_info *info,
+                                       union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+	vos_ssr_protect(__func__);
+	ret = wlan_hdd_set_force_acs_ch_range(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
 	return ret;
 }
 
@@ -5734,6 +5779,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccLatency" },
    { QCSAP_PARAM_SET_MCC_CHANNEL_QUOTA,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setMccQuota" },
+   { QCSAP_PARAM_AUTO_CHANNEL,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setAutoChannel" },
    { QCSAP_PARAM_SET_CHANNEL_CHANGE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "setChanChange" },
 
@@ -5948,6 +5995,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
   { QCSAP_PARAM_GET_WLAN_DBG, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getwlandbg" },
+  { QCSAP_PARAM_AUTO_CHANNEL, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getAutoChannel" },
   { QCSAP_GTX_BWMASK, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_gtxBWMask" },
   { QCSAP_GTX_MINTPC, 0,
@@ -6034,6 +6083,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
        0,
        "setwlandbg" },
+
+   {   WE_SET_SAP_CHANNELS,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+       0,
+       "setsapchannels" },
 
    /* handlers for main ioctl */
    {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
@@ -6170,6 +6224,8 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_PRIV_GET_CHAR_SET_NONE - SIOCIWFIRSTPRIV] = iw_get_char_setnone,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
+   [QCSAP_IOCTL_SET_CHANNEL_RANGE - SIOCIWFIRSTPRIV] =
+                                             iw_softap_set_force_acs_ch_range,
    [QCSAP_IOCTL_MODIFY_ACL - SIOCIWFIRSTPRIV]   = iw_softap_modify_acl,
    [QCSAP_IOCTL_GET_CHANNEL_LIST - SIOCIWFIRSTPRIV]   = iw_softap_get_channel_list,
    [QCSAP_IOCTL_GET_STA_INFO - SIOCIWFIRSTPRIV] = iw_softap_get_sta_info,
