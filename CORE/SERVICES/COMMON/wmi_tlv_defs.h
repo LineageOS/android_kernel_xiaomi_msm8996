@@ -585,7 +585,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mgmt_tx_send_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_mgmt_tx_compl_event_fixed_param,
-    WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param
+    WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param,
+    WMITLV_TAG_STRUC_WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -814,7 +815,8 @@ typedef enum {
     OP(WMI_PACKET_FILTER_ENABLE_CMDID) \
     OP(WMI_SAP_SET_BLACKLIST_PARAM_CMDID) \
     OP(WMI_MGMT_TX_SEND_CMDID) \
-    OP(WMI_SOC_SET_ANTENNA_MODE_CMDID)
+    OP(WMI_SOC_SET_ANTENNA_MODE_CMDID) \
+    OP(WMI_WOW_UDP_SVC_OFLD_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.

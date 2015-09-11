@@ -6730,7 +6730,8 @@ typedef enum {
     PKT_PWR_SAVE_GID_NSTS_ZERO =      0x0080,
     PKT_PWR_SAVE_RSSI_CHECK =         0x0100,
     PKT_PWR_SAVE_5G_EBT =             0x0200,
-    WMI_PKT_PWR_SAVE_MAX =            0x0400,
+    PKT_PWR_SAVE_2G_EBT =             0x0400,
+    WMI_PKT_PWR_SAVE_MAX =            0x0800,
 } WMI_PKT_PWR_SAVE_TYPE;
 
 typedef struct {
