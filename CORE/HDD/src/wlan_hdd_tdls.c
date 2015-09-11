@@ -2698,7 +2698,8 @@ void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
        return;
     }
 
-    if (eTDLS_LINK_CONNECTED != curr_peer->link_status)
+    if ((eTDLS_LINK_CONNECTED != curr_peer->link_status) &&
+        (eTDLS_LINK_CONNECTING != curr_peer->link_status))
         return;
 
     wlan_hdd_tdls_set_peer_link_status(curr_peer,
