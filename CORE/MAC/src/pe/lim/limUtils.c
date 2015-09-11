@@ -2117,6 +2117,20 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
     }
 
     channel = psessionEntry->gLimChannelSwitch.primaryChannel;
+
+    /*
+     * If Lim allows Switch channel on same channel on which preauth
+     * is going on then LIM will not post resume link(WDA_FINISH_SCAN)
+     * during preauth rsp handling hence firmware may crash on ENTER/
+     * EXIT BMPS request.
+     */
+    if(psessionEntry->ftPEContext.pFTPreAuthReq)
+    {
+        limLog(pMac, LOGE,
+           FL("Avoid Switch Channel req during pre auth"));
+        return;
+    }
+
     /*
      *  This potentially can create issues if the function tries to set
      * channel while device is in power-save, hence putting an extra check
