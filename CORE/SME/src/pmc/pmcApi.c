@@ -1313,7 +1313,10 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 pmcLog(pMac, LOGP,
                        FL("Response message to request to exit BMPS indicates failure, status %x"),
                        pMsg->statusCode);
+                /*Status is not succes, so set back the pmc state as BMPS*/
+                pMac->pmc.pmcState = BMPS;
             }
+            else
             pmcEnterFullPowerState(pMac);
         break;
 

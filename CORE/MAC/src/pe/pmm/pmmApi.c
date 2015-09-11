@@ -334,7 +334,8 @@ void pmmExitBmpsRequestHandler(tpAniSirGlobal pMac, tpExitBmpsInfo pExitBmpsInfo
 
     /* send wakeup request, only when in sleep state */
     PELOGW(pmmLog(pMac, LOGW, FL("pmmBmps: Sending eWNI_PMC_EXIT_BMPS_REQ to HAL"));)
-    if (pMac->pmm.gPmmState == ePMM_STATE_BMPS_SLEEP)
+    if ((pMac->pmm.gPmmState == ePMM_STATE_BMPS_SLEEP) ||
+         (pMac->pmm.gPmmState == ePMM_STATE_UAPSD_SLEEP))
     {
         /* Store the reason code for exiting BMPS. This value will be
          * checked when PMM receives SIR_HAL_EXIT_BMPS_RSP from HAL
