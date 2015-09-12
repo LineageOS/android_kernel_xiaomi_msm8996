@@ -4001,12 +4001,11 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			&& (VOS_TRUE == hdd_ipa->uc_loaded)
 		) {
 			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
-			if (!ret) {
+			if (ret) {
+				vos_lock_release(&hdd_ipa->event_lock);
 				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 					"%s: handle 1st con ret %d",
-					msg_ex->name, ret);
-			} else {
-				vos_lock_release(&hdd_ipa->event_lock);
+					adapter->dev->name, ret);
 				return ret;
 			}
 		}
