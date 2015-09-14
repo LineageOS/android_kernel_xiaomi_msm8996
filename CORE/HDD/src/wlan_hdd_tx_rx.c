@@ -1138,7 +1138,7 @@ static void __hdd_tx_timeout(struct net_device *dev)
               pAdapter->isTxSuspended[2],
               pAdapter->isTxSuspended[3]);
 
-   for (i = 0; i < 8; i++) {
+   for (i = 0; i < NUM_TX_QUEUES; i++) {
       txq = netdev_get_tx_queue(dev, i);
       hddLog(LOG1, FL("Queue%d status: %d txq->trans_start %lu"),
              i, netif_tx_queue_stopped(txq), txq->trans_start);
