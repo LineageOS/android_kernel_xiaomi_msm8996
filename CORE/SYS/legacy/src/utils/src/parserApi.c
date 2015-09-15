@@ -899,20 +899,30 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
 
         pDot11f->ldpcCodingCap = (nCfgValue & 0x0001);
 
-        nCfgValue = 0;
-        if (psessionEntry->htConfig.ht_sgi)
-            CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_80MHZ,
-                         nCfgValue );
+        if (psessionEntry->vhtTxChannelWidthSet <
+                        WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ) {
+            pDot11f->shortGI80MHz = 0;
+        } else {
+            nCfgValue = 0;
+            if (psessionEntry->htConfig.ht_sgi)
+                CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_80MHZ,
+                             nCfgValue );
 
-        pDot11f->shortGI80MHz= (nCfgValue & 0x0001);
+            pDot11f->shortGI80MHz= (nCfgValue & 0x0001);
+        }
 
-        nCfgValue = 0;
-        if (psessionEntry->htConfig.ht_sgi)
-            CFG_GET_INT( nStatus, pMac,
-                         WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
-                         nCfgValue );
+        if (psessionEntry->vhtTxChannelWidthSet <
+                        WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ) {
+            pDot11f->shortGI160and80plus80MHz = 0;
+        } else {
+            nCfgValue = 0;
+            if (psessionEntry->htConfig.ht_sgi)
+                CFG_GET_INT( nStatus, pMac,
+                             WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
+                             nCfgValue );
 
-        pDot11f->shortGI160and80plus80MHz = (nCfgValue & 0x0001);
+            pDot11f->shortGI160and80plus80MHz = (nCfgValue & 0x0001);
+        }
 
         nCfgValue = 0;
         if (psessionEntry->htConfig.ht_tx_stbc)

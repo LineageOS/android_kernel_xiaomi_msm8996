@@ -129,6 +129,8 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             psessionEntry->vhtCapabilityPresentInBeacon = 1;
             psessionEntry->apCenterChan = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
             psessionEntry->apChanWidth = pBeaconStruct->VHTOperation.chanWidth;
+            psessionEntry->vhtTxChannelWidthSet =
+                    pBeaconStruct->VHTOperation.chanWidth;
 
             if (pBeaconStruct->Vendor1IEPresent &&
                 pBeaconStruct->Vendor2IEPresent &&
