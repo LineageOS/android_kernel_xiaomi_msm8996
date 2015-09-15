@@ -711,9 +711,6 @@ limInitialize(tpAniSirGlobal pMac)
 void
 limCleanup(tpAniSirGlobal pMac)
 {
-    v_PVOID_t pvosGCTx;
-    VOS_STATUS retStatus;
-
 //Before destroying the list making sure all the nodes have been deleted.
 //Which should be the normal case, but a memory leak has been reported.
 
@@ -784,12 +781,6 @@ limCleanup(tpAniSirGlobal pMac)
 
     // Now, finally reset the deferred message queue pointers
     limResetDeferredMsgQ(pMac);
-
-    pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
-    retStatus = WLANTL_DeRegisterMgmtFrmClient(pvosGCTx);
-
-    if ( retStatus != VOS_STATUS_SUCCESS )
-        PELOGE(limLog(pMac, LOGE, FL("DeRegistering the PE Handle with TL has failed bailing out..."));)
 
 #if defined WLAN_FEATURE_VOWIFI
     rrmCleanup(pMac);

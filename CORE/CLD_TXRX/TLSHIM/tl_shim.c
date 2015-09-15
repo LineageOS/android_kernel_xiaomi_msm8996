@@ -773,6 +773,11 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 			return (-1);
 	}
 
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_TL, NULL)) {
+			TLSHIM_LOGE("%s: load/unload in progress\n", __func__);
+			return (-1);
+	}
+
 	if (!tl_shim) {
 		TLSHIM_LOGE("%s: tl shim ctx is NULL\n", __func__);
 		return (-1);
