@@ -879,8 +879,12 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
 static int bw20_ch_index_to_bw40_ch_index(int k)
 {
    int m = -1;
-   if (k >= RF_CHAN_1 && k <= RF_CHAN_14)
+   if (k >= RF_CHAN_1 && k <= RF_CHAN_13)
    {
+       /*
+        * Channel bonding not valid for channel 14,
+        * So dont consider it
+        */
       m = k - RF_CHAN_1 + RF_CHAN_BOND_3 ;
       if (m > RF_CHAN_BOND_11)
          m = RF_CHAN_BOND_11;
