@@ -6119,6 +6119,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
 
+#ifdef WLAN_FEATURE_LPSS
+	wma_handle->is_lpass_enabled = mac_params->is_lpass_enabled;
+#endif
 	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
 	wma_handle->wlan_resource_config.num_keep_alive_pattern = WMA_MAXNUM_PERIODIC_TX_PTRNS;
 
@@ -20850,16 +20853,46 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 	return ret;
 }
 
-/*
- * Returns true if wow parameters (patterns, wakeup events, etc)
- * are configured in fw and waiting for wow to be enabled in fw.
- * Other cases, returns false.
+#ifdef WLAN_FEATURE_LPSS
+
+/**
+ * wma_is_lpass_enabled() - check if lpass feature is enabled in INI
+ * @handle: Pointer to wma handle
+ *
+ * Return: true if lpass is enabled else false
+ */
+bool static wma_is_lpass_enabled(tp_wma_handle wma)
+{
+	if (wma->is_lpass_enabled)
+		return true;
+	else
+		return false;
+}
+#else
+bool static wma_is_lpass_enabled(tp_wma_handle wma)
+{
+	return false;
+}
+#endif
+/**
+ * wma_is_wow_mode_selected() - check if wow needs to be enabled in fw
+ * @handle: Pointer to wma handle
+ *
+ * If lpass is enabled then always do wow else check wow_enable config
+ *
+ * Return: true is wow mode is needed else false
  */
 int wma_is_wow_mode_selected(WMA_HANDLE handle)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
 
-	return wma->wow.wow_enable;
+	if (wma_is_lpass_enabled(wma)) {
+		WMA_LOGD("LPASS is enabled select WoW");
+		return true;
+	} else {
+		WMA_LOGD("WoW enable %d", wma->wow.wow_enable);
+		return wma->wow.wow_enable;
+	}
 }
 
 #ifdef WLAN_FEATURE_APFIND

@@ -481,6 +481,10 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
     macOpenParms.tx_chain_mask_cck = pHddCtx->cfg_ini->tx_chain_mask_cck;
     macOpenParms.self_gen_frm_pwr = pHddCtx->cfg_ini->self_gen_frm_pwr;
 
+#ifdef WLAN_FEATURE_LPSS
+    macOpenParms.is_lpass_enabled = pHddCtx->cfg_ini->enablelpasssupport;
+#endif
+
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
                        hdd_update_tgt_cfg,
                        hdd_dfs_indicate_radar,

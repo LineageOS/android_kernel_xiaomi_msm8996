@@ -772,6 +772,9 @@ typedef struct wma_handle {
 	v_BOOL_t IsRArateLimitEnabled;
 	u_int16_t RArateLimitInterval;
 #endif
+#ifdef WLAN_FEATURE_LPSS
+	bool is_lpass_enabled;
+#endif
 
 
 	/* Powersave Configuration Parameters */
