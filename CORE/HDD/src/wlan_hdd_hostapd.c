@@ -1021,7 +1021,12 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	phy_mode = sme_GetPhyMode(hal);
+#ifdef WLAN_FEATURE_MBSSID
+	phy_mode = wlansap_get_phymode(WLAN_HDD_GET_SAP_CTX_PTR(hostapd_adapter));
+#else
+	phy_mode = wlansap_get_phymode(
+			(WLAN_HDD_GET_CTX(hostapd_adapter))->pvosContext);
+#endif
 
 	if (oper_chan <= 14)
 		cb_mode = sme_GetCBPhyStateFromCBIniValue(
@@ -1048,6 +1053,10 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 		channel_type = NL80211_CHAN_NO_HT;
 		break;
 	}
+
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			"%s: phy_mode %d cb_mode %d chann_type %d oper_chan %d",
+			__func__, phy_mode, cb_mode, channel_type, oper_chan);
 
 	cfg80211_chandef_create(&chandef, chan, channel_type);
 

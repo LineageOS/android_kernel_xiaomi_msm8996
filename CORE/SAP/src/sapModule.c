@@ -3948,3 +3948,25 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
     }
     return vosStatus;
 }
+/**
+* wlansap_get_phymode() - get SAP phymode.
+* @pctx: Pointer to the global vos context; a handle to SAP's control block
+*        can be extracted from its context. When MBSSID feature is enabled,
+*        SAP context is directly passed to SAP APIs.
+*
+* This function provides current phymode of SAP interface.
+*
+* Return: phymode with eCsrPhyMode type.
+*/
+eCsrPhyMode
+wlansap_get_phymode(v_PVOID_t pctx)
+{
+	ptSapContext psapctx = VOS_GET_SAP_CB(pctx);
+
+	if ( NULL == psapctx) {
+		VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			"%s: Invalid SAP pointer from pCtx", __func__);
+		return eCSR_DOT11_MODE_AUTO;
+	}
+	return psapctx->csrRoamProfile.phyMode;
+}

@@ -2375,6 +2375,8 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
                      tsap_Config_t *pConfig,
                      v_PVOID_t  pUsrContext);
 
+eCsrPhyMode
+wlansap_get_phymode(v_PVOID_t pctx);
 #ifdef __cplusplus
  }
 #endif
