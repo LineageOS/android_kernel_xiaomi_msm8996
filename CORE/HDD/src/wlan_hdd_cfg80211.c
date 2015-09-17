@@ -11053,6 +11053,23 @@ static void wlan_hdd_add_extra_ie(hdd_adapter_t* pHostapdAdapter,
     return;
 }
 
+#ifdef QCA_HT_2040_COEX
+static void wlan_hdd_add_sap_obss_scan_ie(
+	hdd_adapter_t *pHostapdAdapter, v_U8_t *ie_buf, v_U8_t *ie_len)
+{
+	if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) {
+		if (wlan_hdd_get_sap_obss(pHostapdAdapter))
+			wlan_hdd_add_extra_ie(pHostapdAdapter, ie_buf, ie_len,
+					WLAN_EID_OVERLAP_BSS_SCAN_PARAM);
+	}
+}
+#else
+static void wlan_hdd_add_sap_obss_scan_ie(
+	hdd_adapter_t* pHostapdAdapter, v_U8_t *ie_buf, v_U8_t *ie_len)
+{
+}
+#endif
+
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 {
     v_U8_t *genie;
@@ -11104,17 +11121,7 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
         wlan_hdd_add_hostapd_conf_vsie(pHostapdAdapter, genie, &total_ielen);
     }
 
-#ifdef QCA_HT_2040_COEX
-    if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) {
-        tSmeConfigParams smeConfig;
-
-        vos_mem_zero(&smeConfig, sizeof(smeConfig));
-        sme_GetConfigParam(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter), &smeConfig);
-        if (smeConfig.csrConfig.obssEnabled)
-            wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
-                    WLAN_EID_OVERLAP_BSS_SCAN_PARAM);
-    }
-#endif
+    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, genie, &total_ielen);
 
     vos_mem_copy(updateIE.bssid, pHostapdAdapter->macAddressCurrent.bytes,
                    sizeof(tSirMacAddr));
@@ -11148,9 +11155,17 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     }
 
     /* Added for Probe Response IE */
+    total_ielen = 0;
+    if (pBeacon->proberesp_ies_len > 0 &&
+        pBeacon->proberesp_ies_len <= MAX_GENIE_LEN) {
+        vos_mem_copy(genie, pBeacon->proberesp_ies, pBeacon->proberesp_ies_len);
+        total_ielen = pBeacon->proberesp_ies_len;
+    }
+    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, genie, &total_ielen);
+
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
-        updateIE.ieBufferlength = pBeacon->proberesp_ies_len;
-        updateIE.pAdditionIEBuffer = (tANI_U8*)pBeacon->proberesp_ies;
+        updateIE.ieBufferlength = total_ielen;
+        updateIE.pAdditionIEBuffer = genie;
         updateIE.append = VOS_FALSE;
         updateIE.notify = VOS_FALSE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
@@ -11161,9 +11176,7 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
         }
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_PROBE_RESP);
     } else {
-        WLANSAP_UpdateSapConfigAddIE(pConfig,
-                             pBeacon->proberesp_ies,
-                             pBeacon->proberesp_ies_len,
+        WLANSAP_UpdateSapConfigAddIE(pConfig, genie, total_ielen,
                              eUPDATE_IE_PROBE_RESP);
     }
 
