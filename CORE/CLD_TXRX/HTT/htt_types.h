@@ -210,6 +210,12 @@ struct rx_buf_debug {
 };
 #endif
 
+struct htt_tx_desc_page_t
+{
+	char* page_v_addr_start;
+	char* page_v_addr_end;
+	adf_os_dma_addr_t page_p_addr;
+};
 
 struct htt_pdev_t {
     ol_pdev_handle ctrl_pdev;
@@ -373,6 +379,9 @@ struct htt_pdev_t {
     int rx_buff_index;
 #endif
 
+    int num_pages;
+    int num_desc_per_page;
+    struct htt_tx_desc_page_t *desc_pages;
 };
 
 #endif /* _HTT_TYPES__H_ */

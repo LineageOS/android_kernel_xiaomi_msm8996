@@ -233,5 +233,15 @@ adf_os_str_len(const char *str)
     return (a_int32_t)__adf_os_str_len(str);
 }
 
+/**
+ * @brief Returns the system default page size
+ *
+ * @retval    system default page size
+ */
+static inline a_int32_t
+adf_os_mem_get_page_size(void)
+{
+	return __adf_os_mem_get_page_size();
+}
 
 #endif

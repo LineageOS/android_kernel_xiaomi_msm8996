@@ -195,13 +195,15 @@ struct ol_tx_desc_t {
 	struct ol_txrx_vdev_t* vdev;
 #endif
 	void *txq;
+	void *p_link;
+	uint16_t id;
 };
 
 typedef TAILQ_HEAD(, ol_tx_desc_t) ol_tx_desc_list;
 
-union ol_tx_desc_list_elem_t {
-	union ol_tx_desc_list_elem_t *next;
-	struct ol_tx_desc_t tx_desc;
+struct ol_tx_desc_list_elem_t {
+	struct ol_tx_desc_list_elem_t *next;
+	struct ol_tx_desc_t *tx_desc;
 };
 
 union ol_txrx_align_mac_addr_t {
@@ -590,8 +592,8 @@ struct ol_txrx_pdev_t {
 	struct {
 		u_int16_t pool_size;
 		u_int16_t num_free;
-		union ol_tx_desc_list_elem_t *array;
-		union ol_tx_desc_list_elem_t *freelist;
+		struct ol_tx_desc_list_elem_t *array;
+		struct ol_tx_desc_list_elem_t *freelist;
 	} tx_desc;
 
 	struct {
@@ -827,6 +829,11 @@ struct ol_txrx_pdev_t {
 	struct ol_txrx_peer_t *ocb_peer;
 	int tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_NUM_QUEUES];
 
+	unsigned int page_size;
+	unsigned int desc_mem_size;
+	unsigned int num_desc_pages;
+	unsigned int num_descs_per_page;
+	void **desc_pages;
 };
 
 struct ol_txrx_ocb_chan_info {
