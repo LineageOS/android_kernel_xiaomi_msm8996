@@ -12426,7 +12426,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->sap_lock);
 
    pHddCtx->isLoadInProgress = FALSE;
-   pHddCtx->wifi_turn_on_time_since_boot = adf_get_boottime();
+   pHddCtx->wifi_turn_on_time_since_boot = vos_get_monotonic_boottime();
 
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    if (rtnl_lock_enable == TRUE) {
