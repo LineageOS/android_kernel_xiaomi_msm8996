@@ -15196,7 +15196,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
          aborted = true;
     }
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
-    if (!pHddCtx->isUnloadInProgress)
+    if (pAdapter->dev->flags & IFF_UP)
 #endif
         cfg80211_scan_done(req, aborted);
 
