@@ -1641,6 +1641,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.fenableMCCMode = pParam->fEnableMCCMode;
         pMac->roam.configParam.mcc_rts_cts_prot_enable =
                                           pParam->mcc_rts_cts_prot_enable;
+        pMac->roam.configParam.mcc_bcast_prob_resp_enable =
+                                          pParam->mcc_bcast_prob_resp_enable;
 
         pMac->roam.configParam.fAllowMCCGODiffBI = pParam->fAllowMCCGODiffBI;
 

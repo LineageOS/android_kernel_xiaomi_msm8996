@@ -1119,6 +1119,7 @@ typedef struct tagCsrConfigParam
     tANI_U8 bCatRssiOffset;     //to set the RSSI difference for each category
     tANI_U8 fEnableMCCMode; //to set MCC Enable/Disable mode
     bool mcc_rts_cts_prot_enable;
+    bool mcc_bcast_prob_resp_enable;
     tANI_U8 fAllowMCCGODiffBI; //to allow MCC GO different B.I than STA's. NOTE: make sure if RIVA firmware can handle this combination before enabling this
                                //at the moment, this flag is provided only to pass Wi-Fi Cert. 5.1.12
     tCsr11dinfo  Csr11dinfo;

@@ -638,10 +638,21 @@ enum
 #define CFG_FW_RSSI_MONITORING_MAX             ( 1 )
 #define CFG_FW_RSSI_MONITORING_DEFAULT         ( 1 )
 
+/* enable use of long duration RTS-CTS protection when SAP goes off channel
+ * in MCC mode
+ */
 #define CFG_FW_MCC_RTS_CTS_PROT_NAME           "gFWMccRtsCtsProtection"
 #define CFG_FW_MCC_RTS_CTS_PROT_MIN            (0)
 #define CFG_FW_MCC_RTS_CTS_PROT_MAX            (1)
 #define CFG_FW_MCC_RTS_CTS_PROT_DEFAULT        (0)
+
+/* Enable use of broadcast probe response to increase the detectability of
+ * SAP in MCC mode
+ */
+#define CFG_FW_MCC_BCAST_PROB_RESP_NAME        "gFWMccBCastProbeResponse"
+#define CFG_FW_MCC_BCAST_PROB_RESP_MIN         (0)
+#define CFG_FW_MCC_BCAST_PROB_RESP_MAX         (1)
+#define CFG_FW_MCC_BCAST_PROB_RESP_DEFAULT     (0)
 
 #define CFG_DATA_INACTIVITY_TIMEOUT_NAME       "gDataInactivityTimeout"
 #define CFG_DATA_INACTIVITY_TIMEOUT_MIN        ( 1 )
@@ -3333,6 +3344,7 @@ typedef struct
    v_U8_t         fEnableFwBeaconFiltering;
    v_BOOL_t       fEnableFwRssiMonitoring;
    bool           mcc_rts_cts_prot_enable;
+   bool           mcc_bcast_prob_resp_enable;
    v_U8_t         nDataInactivityTimeout;
    v_U8_t         nthBeaconFilter;
 
