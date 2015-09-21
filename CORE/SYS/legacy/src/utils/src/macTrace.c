@@ -522,6 +522,7 @@ tANI_U8* macTraceGetSmeMsgString( tANI_U16 smeMsg )
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
         CASE_RETURN_STRING(eWNI_SME_ROAM_OFFLOAD_SYNCH_IND);
 #endif
+        CASE_RETURN_STRING(eWNI_SME_LOST_LINK_INFO_IND);
         default:
             return( (tANI_U8*)"UNKNOWN" );
             break;

@@ -3122,6 +3122,13 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    pMac->sme.set_thermal_level_cb(pMac->hHdd, pMsg->bodyval);
                }
                break;
+          case eWNI_SME_LOST_LINK_INFO_IND:
+               if (pMac->sme.lost_link_info_cb) {
+                   pMac->sme.lost_link_info_cb(pMac->hHdd,
+                             (struct sir_lost_link_info *)pMsg->bodyptr);
+               }
+               vos_mem_free(pMsg->bodyptr);
+               break;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -17109,4 +17116,33 @@ VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload *pudp_resp_cmd)
 	return vos_status;
 }
 #endif
+
+/**
+ * sme_set_lost_link_info_cb() - plug in callback function for receiving
+ * lost link info
+ * @hal: HAL handle
+ * @cb: callback function
+ *
+ * Return: HAL status
+ */
+eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
+				     void (*cb)(void *,
+				     struct sir_lost_link_info *))
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.lost_link_info_cb = cb;
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			  "%s: set lost link info callback", __func__);
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: sme_AcquireGlobalLock error status %d",
+			  __func__, status);
+	}
+	return status;
+}
 

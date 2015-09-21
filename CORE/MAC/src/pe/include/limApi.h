@@ -184,6 +184,8 @@ void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 void limRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 #endif
+void lim_update_lost_link_info(tpAniSirGlobal mac, tpPESession session,
+			       int8_t rssi);
 /* ----------------------------------------------------------------------- */
 // These used to be in DPH
 extern void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac);

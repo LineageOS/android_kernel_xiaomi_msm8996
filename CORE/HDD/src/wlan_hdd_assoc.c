@@ -963,8 +963,9 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                                       GFP_KERNEL);
 
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
-                   FL("sent disconnected event to nl80211, rssi: %d"),
-                   pAdapter->rssi);
+                   FL("sent disconnected event to nl80211, reason code %d"),
+                      (eCSR_ROAM_LOSTLINK == roamStatus) ?
+                      pRoamInfo->reasonCode : WLAN_REASON_UNSPECIFIED);
         }
 
         if ((pHddCtx->isLoadInProgress != TRUE) &&

@@ -81,10 +81,11 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
 #ifdef WLAN_FEATURE_11W
     tANI_U32            frameLen;
 #endif
+    int8_t frame_rssi;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-
+    frame_rssi = (int8_t)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo);
 
     if (limIsGroupAddr(pHdr->sa))
     {
@@ -146,10 +147,12 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     // Get reasonCode from Disassociation frame body
     reasonCode = sirReadU16(pBody);
 
-    PELOG2(limLog(pMac, LOGE,
-        FL("Received Disassoc frame for Addr: "MAC_ADDRESS_STR"(mlm state=%s, sme state=%d),"
-        "with reason code %d [%s] from "MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->da),
+    PELOGE(limLog(pMac, LOGE,
+        FL("Received Disassoc frame for Addr: "MAC_ADDRESS_STR"(mlm state=%s "
+        "sme state=%d RSSI=%d),with reason code %d [%s] from "MAC_ADDRESS_STR),
+        MAC_ADDR_ARRAY(pHdr->da),
         limMlmStateStr(psessionEntry->limMlmState), psessionEntry->limSmeState,
+        frame_rssi,
         reasonCode, limDot11ReasonStr(reasonCode),
         MAC_ADDR_ARRAY(pHdr->sa));)
 
@@ -349,6 +352,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         return;
     }
 
+    lim_update_lost_link_info(pMac, psessionEntry, frame_rssi);
     limPostSmeMessage(pMac, LIM_MLM_DISASSOC_IND,
                       (tANI_U32 *) &mlmDisassocInd);
 

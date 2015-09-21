@@ -383,7 +383,8 @@ VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
 
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info);
 
-static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id);
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id,
+				    uint32_t rssi);
 static void wma_set_suspend_dtim(tp_wma_handle wma);
 static void wma_set_resume_dtim(tp_wma_handle wma);
 static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
@@ -737,6 +738,87 @@ static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
 	WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d",
 		 __func__, vdev_id, type, req_msg->msg_type);
 	return req_msg;
+}
+
+/**
+ * wma_peek_vdev_req() - peek what request message is queued for response.
+ *                       the function does not delete the node after found
+ * @wma: WMA handle
+ * @vdev_id: vdev ID
+ * @type: request message type
+ *
+ * Return: the request message found
+ */
+static struct wma_target_req *wma_peek_vdev_req(tp_wma_handle wma,
+						uint8_t vdev_id,
+						uint8_t type)
+{
+	struct wma_target_req *req_msg = NULL, *tmp;
+	bool found = false;
+
+	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
+	list_for_each_entry_safe(req_msg, tmp, &wma->vdev_resp_queue, node) {
+		if (req_msg->vdev_id != vdev_id)
+			continue;
+		if (req_msg->type != type)
+			continue;
+
+		found = true;
+		break;
+	}
+	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
+	if (!found) {
+		WMA_LOGP("%s: target request not found for vdev_id %d type %d",
+		         __func__, vdev_id, type);
+		return NULL;
+	}
+	WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d",
+	         __func__, vdev_id, type, req_msg->msg_type);
+	return req_msg;
+}
+
+/**
+ * wma_lost_link_info_handler() - collect lost link information and inform SME
+ *                                when disconnection in STA mode.
+ * @wma: WMA handle
+ * @vdev_id: vdev ID
+ * @rssi: rssi at disconnection time
+ *
+ * Return: none
+ */
+static void wma_lost_link_info_handler(tp_wma_handle wma, uint32_t vdev_id,
+				       int8_t rssi)
+{
+	struct sir_lost_link_info *lost_link_info;
+	VOS_STATUS vos_status;
+	vos_msg_t sme_msg = {0};
+
+	/* report lost link information only for STA mode */
+	if (wma->interfaces[vdev_id].vdev_up &&
+	    (WMI_VDEV_TYPE_STA == wma->interfaces[vdev_id].type) &&
+	    (0 == wma->interfaces[vdev_id].sub_type)) {
+		lost_link_info = vos_mem_malloc(sizeof(*lost_link_info));
+		if (NULL == lost_link_info) {
+			WMA_LOGE("%s: failed to allocate memory", __func__);
+			return;
+		}
+		lost_link_info->vdev_id = vdev_id;
+		lost_link_info->rssi = rssi;
+		sme_msg.type = eWNI_SME_LOST_LINK_INFO_IND;
+		sme_msg.bodyptr = lost_link_info;
+		sme_msg.bodyval = 0;
+		WMA_LOGI("%s: post msg to SME, bss_idx %d, rssi %d",
+			 __func__,
+			 lost_link_info->vdev_id,
+			 lost_link_info->rssi);
+
+		vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			WMA_LOGE("%s: fail to post msg to SME",
+				 __func__);
+			vos_mem_free(lost_link_info);
+		}
+	}
 }
 
 tSmpsModeValue host_map_smps_mode (A_UINT32 fw_smps_mode)
@@ -1516,7 +1598,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		     */
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_XRETRY event for STA",
 				__func__);
-		    wma_beacon_miss_handler(wma, vdev_id);
+		    wma_beacon_miss_handler(wma, vdev_id, kickout_event->rssi);
 		    goto exit_handler;
 		}
 		break;
@@ -1542,7 +1624,7 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 		     */
 		    WMA_LOGW("%s: WMI_PEER_STA_KICKOUT_REASON_UNSPECIFIED event for STA",
 				__func__);
-		    wma_beacon_miss_handler(wma, vdev_id);
+		    wma_beacon_miss_handler(wma, vdev_id, kickout_event->rssi);
 		    goto exit_handler;
 		}
 		break;
@@ -1571,6 +1653,8 @@ static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
 	del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
 	del_sta_ctx->rssi = kickout_event->rssi + WMA_TGT_NOISE_FLOOR_DBM;
 	wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx, 0);
+	wma_lost_link_info_handler(wma, vdev_id, kickout_event->rssi +
+						 WMA_TGT_NOISE_FLOOR_DBM);
 
 exit_handler:
 	WMA_LOGD("%s: Exit", __func__);
@@ -2230,6 +2314,59 @@ static void wma_update_pdev_stats(tp_wma_handle wma,
 	}
 }
 
+/**
+ * wma_vdev_stats_lost_link_helper() - helper function to extract
+ * lost link information from vdev statistics event while deleting BSS.
+ * @wma: WMA handle
+ * @vdev_stats: statistics information from firmware
+ *
+ * This is for informing HDD to collect lost link information while
+ * disconnection. Following conditions to check
+ * 1. vdev is up
+ * 2. bssid is zero. When handling DELETE_BSS request message, it sets bssid to
+ * zero, hence add the check here to indicate the event comes during deleting
+ * BSS
+ * 3. DELETE_BSS is the request message queued. Put this condition check on the
+ * last one as it consumes more resource searching entries in the  list
+ *
+ * Return: none
+ */
+static void wma_vdev_stats_lost_link_helper(tp_wma_handle wma,
+					    wmi_vdev_stats *vdev_stats)
+{
+	struct wma_txrx_node *node;
+	int8_t rssi;
+	struct wma_target_req *req_msg;
+	uint8_t zero_mac[ETH_ALEN] = {0};
+
+	node = &wma->interfaces[vdev_stats->vdev_id];
+	if (node->vdev_up &&
+	    vos_mem_compare(node->bssid, zero_mac, ETH_ALEN)) {
+		req_msg = wma_peek_vdev_req(wma, vdev_stats->vdev_id,
+					    WMA_TARGET_REQ_TYPE_VDEV_STOP);
+		if ((NULL == req_msg) ||
+		    (WDA_DELETE_BSS_REQ != req_msg->msg_type)) {
+			WMA_LOGD("%s: cannot find DELETE_BSS request message",
+				 __func__);
+			return;
+		}
+		WMA_LOGD("%s: get vdev id %d, beancon snr %d, data snr %d",
+			 __func__, vdev_stats->vdev_id,
+			 vdev_stats->vdev_snr.bcn_snr,
+			 vdev_stats->vdev_snr.dat_snr);
+		if (vdev_stats->vdev_snr.bcn_snr != WMA_TGT_INVALID_SNR)
+			rssi = vdev_stats->vdev_snr.bcn_snr;
+		else if (vdev_stats->vdev_snr.dat_snr != WMA_TGT_INVALID_SNR)
+			rssi = vdev_stats->vdev_snr.dat_snr;
+		else
+			rssi = WMA_TGT_INVALID_SNR;
+
+		/* Get the absolute rssi value from the current rssi value */
+		rssi = rssi + WMA_TGT_NOISE_FLOOR_DBM;
+		wma_lost_link_info_handler(wma, vdev_stats->vdev_id, rssi);
+	}
+}
+
 static void wma_update_vdev_stats(tp_wma_handle wma,
 					wmi_vdev_stats *vdev_stats)
 {
@@ -2338,6 +2475,8 @@ static void wma_update_vdev_stats(tp_wma_handle wma,
 
 		node->psnr_req = NULL;
 	}
+
+	wma_vdev_stats_lost_link_helper(wma, vdev_stats);
 }
 
 static void wma_post_stats(tp_wma_handle wma, struct wma_txrx_node *node)
@@ -10098,7 +10237,8 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
                   && wma_handle->suitable_ap_hb_failure) {
                 WMA_LOGE("%s: Sending heartbeat failure after preauth failures",
                            __func__);
-                wma_beacon_miss_handler(wma_handle, roam_req->sessionId);
+		wma_beacon_miss_handler(wma_handle, roam_req->sessionId,
+				       wma_handle->suitable_ap_hb_failure_rssi);
                 wma_handle->suitable_ap_hb_failure = FALSE;
             }
             break;
@@ -18435,7 +18575,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 	return "unknown";
 }
 
-static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id)
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id,
+				    uint32_t rssi)
 {
 	tSirSmeMissedBeaconInd *beacon_miss_ind;
 
@@ -18452,6 +18593,9 @@ static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id)
 
 	wma_send_msg(wma, WDA_MISSED_BEACON_IND,
 		         (void *)beacon_miss_ind, 0);
+
+	wma_lost_link_info_handler(wma, vdev_id, rssi +
+						 WMA_TGT_NOISE_FLOOR_DBM);
 }
 
 #ifdef FEATURE_WLAN_LPHB
@@ -19018,6 +19162,52 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 	return;
 }
 
+
+/**
+ * wma_wow_ap_lost_helper() - helper function to handle WOW_REASON_AP_ASSOC_LOST
+ * reason code and retrieve RSSI from the event.
+ * @wma: Pointer to wma handle
+ * @param: WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs buffer pointer
+ *
+ * Return: none
+ */
+static void wma_wow_ap_lost_helper(tp_wma_handle wma, void *param)
+{
+	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
+	WOW_EVENT_INFO_fixed_param *wake_info;
+	WMI_ROAM_EVENTID_param_tlvs event_param;
+	wmi_roam_event_fixed_param *roam_event;
+	u_int32_t wow_buf_pkt_len = 0;
+
+	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) param;
+	wake_info = param_buf->fixed_param;
+	WMA_LOGA("%s: Beacon miss indication on vdev %d",
+		 __func__, wake_info->vdev_id);
+
+	if (NULL == param_buf->wow_packet_buffer) {
+		WMA_LOGE("%s: invalid wow packet buffer", __func__);
+		goto exit_handler;
+	}
+
+	vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
+		     param_buf->wow_packet_buffer, 4);
+	WMA_LOGD("wow_packet_buffer dump");
+	vos_trace_hex_dump(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+			   param_buf->wow_packet_buffer, wow_buf_pkt_len);
+	if (wow_buf_pkt_len >= sizeof(event_param)) {
+		roam_event = (wmi_roam_event_fixed_param *)
+			     (param_buf->wow_packet_buffer + 4);
+		wma_beacon_miss_handler(wma, wake_info->vdev_id,
+					roam_event->rssi);
+		return;
+	}
+
+exit_handler:
+	/* in the case that no RSSI is available from the event */
+	WMA_LOGE("%s: rssi is not available from wow_packet_buffer", __func__);
+	wma_beacon_miss_handler(wma, wake_info->vdev_id, 0);
+}
+
 /*
  * Handler to catch wow wakeup host event. This event will have
  * reason why the firmware has woken the host.
@@ -19068,9 +19258,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	case WOW_REASON_AP_ASSOC_LOST:
 		wake_lock_duration = WMA_BMISS_EVENT_WAKE_LOCK_DURATION;
-		WMA_LOGA("Beacon miss indication on vdev %x",
-			 wake_info->vdev_id);
-		wma_beacon_miss_handler(wma, wake_info->vdev_id);
+		wma_wow_ap_lost_helper(wma, param_buf);
 		break;
 #ifdef FEATURE_WLAN_RA_FILTERING
 	case WOW_REASON_RA_MATCH:
@@ -27529,7 +27717,8 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	case WMI_ROAM_REASON_BMISS:
 		WMA_LOGD("Beacon Miss for vdevid %x",
 			wmi_event->vdev_id);
-		wma_beacon_miss_handler(wma_handle, wmi_event->vdev_id);
+		wma_beacon_miss_handler(wma_handle, wmi_event->vdev_id,
+					wmi_event->rssi);
 		break;
 	case WMI_ROAM_REASON_BETTER_AP:
 		WMA_LOGD("%s:Better AP found for vdevid %x, rssi %d", __func__,
@@ -27539,6 +27728,7 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 		break;
 	case WMI_ROAM_REASON_SUITABLE_AP:
 		wma_handle->suitable_ap_hb_failure = TRUE;
+		wma_handle->suitable_ap_hb_failure_rssi = wmi_event->rssi;
 		WMA_LOGD("%s:Bmiss scan AP found for vdevid %x, rssi %d", __func__,
 			wmi_event->vdev_id, wmi_event->rssi);
 		wma_roam_better_ap_handler(wma_handle, wmi_event->vdev_id);

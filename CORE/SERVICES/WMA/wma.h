@@ -765,6 +765,10 @@ typedef struct wma_handle {
 
 	u_int8_t dfs_phyerr_filter_offload;
 	v_BOOL_t suitable_ap_hb_failure;
+	/* record the RSSI when suitable_ap_hb_failure for later usage to
+	 * report RSSI at beacon miss scenario
+	 */
+	uint32_t suitable_ap_hb_failure_rssi;
 
 	/* IBSS Power Save config Parameters */
 	ibss_power_save_params wma_ibss_power_save_params;

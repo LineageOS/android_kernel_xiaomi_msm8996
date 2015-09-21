@@ -4389,5 +4389,8 @@ static inline VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload
 #endif
 
 
+eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
+                                     void (*cb)(void *,
+                                                struct sir_lost_link_info *));
 
 #endif //#if !defined( __SME_API_H )

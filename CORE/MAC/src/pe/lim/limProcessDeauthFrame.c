@@ -82,12 +82,12 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 #ifdef WLAN_FEATURE_11W
     tANI_U32          frameLen;
 #endif
-
+    int8_t frame_rssi;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-
+    frame_rssi = (int8_t)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo);
 
     if (LIM_IS_STA_ROLE(psessionEntry) &&
         ((eLIM_SME_WT_DISASSOC_STATE == psessionEntry->limSmeState) ||
@@ -155,13 +155,13 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     reasonCode = sirReadU16(pBody);
 
     PELOGE(limLog(pMac, LOGE,
-        FL("Received Deauth frame for Addr: "MAC_ADDRESS_STR" (mlm state = %s,"
-        " sme state = %d systemrole  = %d) with reason code %d [%s] from "
+        FL("Received Deauth frame for Addr: "MAC_ADDRESS_STR" (mlm state=%s "
+        "sme state=%d systemrole=%d RSSI=%d) with reason code %d [%s] from "
         MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->da),
         limMlmStateStr(psessionEntry->limMlmState),
         psessionEntry->limSmeState,
-        GET_LIM_SYSTEM_ROLE(psessionEntry), reasonCode,
-        limDot11ReasonStr(reasonCode),
+        GET_LIM_SYSTEM_ROLE(psessionEntry), frame_rssi,
+        reasonCode, limDot11ReasonStr(reasonCode),
         MAC_ADDR_ARRAY(pHdr->sa));)
 
     if (limCheckDisassocDeauthAckPending(pMac, (tANI_U8*)pHdr->sa))
@@ -542,6 +542,8 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     }
     if (LIM_IS_STA_ROLE(psessionEntry))
         WDA_TxAbort(psessionEntry->smeSessionId);
+
+    lim_update_lost_link_info(pMac, psessionEntry, frame_rssi);
 
     /// Deauthentication from peer MAC entity
     limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);

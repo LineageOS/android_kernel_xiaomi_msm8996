@@ -614,6 +614,42 @@ done:
 
 #endif /* FEATURE_GREEN_AP */
 
+/**
+ * hdd_lost_link_info_cb() - callback function to get lost link information
+ * @context: HDD context
+ * @lost_link_info: lost link information
+ *
+ * Return: none
+ */
+static void hdd_lost_link_info_cb(void *context,
+				  struct sir_lost_link_info *lost_link_info)
+{
+	hdd_context_t *hdd_ctx = (hdd_context_t *)context;
+	int status;
+	hdd_adapter_t *adapter;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status) {
+		hddLog(LOGE, "%s: HDD context is not valid", __func__);
+		return;
+	}
+
+	if (NULL == lost_link_info) {
+		hddLog(LOGE, "%s: lost_link_info is NULL", __func__);
+		return;
+	}
+
+	adapter = hdd_get_adapter_by_vdev(hdd_ctx, lost_link_info->vdev_id);
+	if (NULL == adapter) {
+		hddLog(LOGE, "%s: invalid adapter", __func__);
+		return;
+	}
+
+	adapter->rssi_on_disconnect = lost_link_info->rssi;
+	hddLog(LOG1, "%s: rssi on disconnect %d",
+		     __func__, adapter->rssi_on_disconnect);
+}
+
 #if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
 /**---------------------------------------------------------------------------
 
@@ -12613,6 +12649,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    if (WLAN_HDD_RX_HANDLE_RPS == pHddCtx->cfg_ini->rxhandle)
       hdd_dp_util_send_rps_ind(pHddCtx);
+
+   hal_status = sme_set_lost_link_info_cb(pHddCtx->hHal,
+                                          hdd_lost_link_info_cb);
+   /* print error and not block the startup process */
+   if (eHAL_STATUS_SUCCESS != hal_status)
+       hddLog(LOGE, "%s: set lost link info callback failed", __func__);
 
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);

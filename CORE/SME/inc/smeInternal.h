@@ -207,6 +207,8 @@ typedef struct tagSmeStruct
     void (*set_thermal_level_cb)(void *hdd_context, uint8_t level);
 
     void (*rssi_threshold_breached_cb)(void *, struct rssi_breach_event *);
+    void (*lost_link_info_cb)(void *context,
+			      struct sir_lost_link_info *lost_link_info);
 } tSmeStruct, *tpSmeStruct;
 
 

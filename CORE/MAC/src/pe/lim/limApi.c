@@ -2494,6 +2494,49 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     return eMGMT_DROP_NO_DROP;
 }
 
+/**
+ * lim_update_lost_link_info() - update lost link information to SME
+ * @mac: global MAC handle
+ * @session: PE session
+ * @rssi: rssi value from the received frame
+ *
+ * Return: none
+ */
+void lim_update_lost_link_info(tpAniSirGlobal mac, tpPESession session,
+                               int8_t rssi)
+{
+	struct sir_lost_link_info *lost_link_info;
+	tSirMsgQ mmh_msg;
+	if ((NULL == mac) || (NULL == session)) {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+			  "%s: parameter NULL", __func__);
+		return;
+	}
+	if (!LIM_IS_STA_ROLE(session)) {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+			  "%s: not STA mode, do nothing", __func__);
+		return;
+	}
+
+	lost_link_info = vos_mem_malloc(sizeof(*lost_link_info));
+	if (NULL == lost_link_info) {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+			  "%s: lost_link_info allocation failure", __func__);
+		return;
+	}
+
+	lost_link_info->vdev_id = session->smeSessionId;
+	lost_link_info->rssi = rssi;
+	mmh_msg.type = eWNI_SME_LOST_LINK_INFO_IND;
+	mmh_msg.bodyptr = lost_link_info;
+	mmh_msg.bodyval = 0;
+	VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+		  "%s: post eWNI_SME_LOST_LINK_INFO_IND, bss_idx %d, rssi %d",
+		  __func__, lost_link_info->vdev_id, lost_link_info->rssi);
+
+	limSysProcessMmhMsgApi(mac, &mmh_msg, ePROT);
+}
+
 eHalStatus pe_AcquireGlobalLock( tAniSirLim *psPe)
 {
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;

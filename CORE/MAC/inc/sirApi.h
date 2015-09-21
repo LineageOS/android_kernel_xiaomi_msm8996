@@ -5888,6 +5888,21 @@ typedef struct
 } tSirMDNSResponseInfo, *tpSirMDNSResponseInfo;
 #endif /* MDNS_OFFLOAD */
 
+/**
+ * struct sir_lost_link_info - lost link information structure.
+ *
+ * @vdev_id: vdev_id from WMA. some modules call sessionId.
+ * @rssi: rssi at disconnection time.
+ *
+ * driver uses this structure to communicate information collected at
+ * disconnection time.
+ */
+struct sir_lost_link_info
+{
+	uint32_t vdev_id;
+	int8_t rssi;
+};
+
 /* find the size of given member within a structure */
 #ifndef member_size
 #define member_size(type, member) (sizeof(((type *)0)->member))
