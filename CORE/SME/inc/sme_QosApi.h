@@ -364,8 +364,6 @@ v_BOOL_t sme_QosIsTSInfoAckPolicyValid(tpAniSirGlobal pMac,
     sme_QosWmmTspecInfo * pQoSInfo,
     v_U8_t sessionId);
 
-bool sme_QosTspecActive(tpAniSirGlobal pMac, WLANTL_ACEnumType ac,
-                        uint8_t sessionId, uint8_t *pActiveTspec);
 
 /*--------------------------------------------------------------------------
   \brief sme_QosUpdateHandOff() - Function which can be called to update
