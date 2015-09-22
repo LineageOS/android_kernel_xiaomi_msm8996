@@ -1726,6 +1726,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_HOST_SSDP_MIN,
                  CFG_ENABLE_HOST_SSDP_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_HOST_BROADCAST_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, bcastptrn,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_HOST_BROADCAST_DEFAULT,
+                 CFG_ENABLE_HOST_BROADCAST_MIN,
+                 CFG_ENABLE_HOST_BROADCAST_MAX ),
+
 #ifdef FEATURE_RUNTIME_PM
    REG_VARIABLE( CFG_ENABLE_RUNTIME_PM, WLAN_PARAM_Integer,
                  hdd_config_t, runtime_pm,
@@ -4473,6 +4480,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fhostArpOffload] Value = [%u] ",pHddCtx->cfg_ini->fhostArpOffload);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ssdp] Value = [%u] ", pHddCtx->cfg_ini->ssdp);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [%s] Value = [%u] ", CFG_ENABLE_HOST_BROADCAST_NAME, pHddCtx->cfg_ini->bcastptrn);
 #ifdef FEATURE_RUNTIME_PM
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [runtime_pm] Value = [%u] ", pHddCtx->cfg_ini->runtime_pm);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [runtime_pm_delay] Value = [%u] ", pHddCtx->cfg_ini->runtime_pm_delay);

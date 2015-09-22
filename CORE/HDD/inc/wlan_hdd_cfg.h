@@ -1146,6 +1146,19 @@ enum
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
 
+/*
+ * This flag will take effect only when Runtime PM is active.
+ * APPS will be awake during runtime PM, if any user space application
+ * needs the broadcast packets OEM's can enable gRuntimePmEnableBcastPattern.
+ * FW will filter the broadcast packets and wakeup host to deliver them during
+ * runtime suspend.
+ */
+
+#define CFG_ENABLE_HOST_BROADCAST_NAME              "gRuntimePmEnableBcastPattern"
+#define CFG_ENABLE_HOST_BROADCAST_MIN               (0)
+#define CFG_ENABLE_HOST_BROADCAST_MAX               (1)
+#define CFG_ENABLE_HOST_BROADCAST_DEFAULT           (0)
+
 
 #define CFG_VALIDATE_SCAN_LIST_NAME                 "gValidateScanList"
 #define CFG_VALIDATE_SCAN_LIST_MIN                  (0)
@@ -3434,6 +3447,7 @@ typedef struct
    v_BOOL_t                    bSingleTidRc;
    v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                    fhostArpOffload;
+   bool                        bcastptrn;
    v_BOOL_t                    ssdp;
 
 #ifdef FEATURE_RUNTIME_PM

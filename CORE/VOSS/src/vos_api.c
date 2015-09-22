@@ -472,8 +472,10 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    */
   macOpenParms.dfsPhyerrFilterOffload =
                         pHddCtx->cfg_ini->fDfsPhyerrFilterOffload;
-  if (pHddCtx->cfg_ini->ssdp)
-      macOpenParms.ssdp = pHddCtx->cfg_ini->ssdp;
+
+  macOpenParms.ssdp = pHddCtx->cfg_ini->ssdp;
+  macOpenParms.enable_bcst_ptrn = pHddCtx->cfg_ini->bcastptrn;
+
 #ifdef FEATURE_WLAN_RA_FILTERING
    macOpenParms.RArateLimitInterval = pHddCtx->cfg_ini->RArateLimitInterval;
    macOpenParms.IsRArateLimitEnabled = pHddCtx->cfg_ini->IsRArateLimitEnabled;

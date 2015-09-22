@@ -6302,6 +6302,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
 	wma_handle->ssdp = mac_params->ssdp;
+	wma_handle->enable_bcst_ptrn = mac_params->enable_bcst_ptrn;
 #ifdef FEATURE_WLAN_RA_FILTERING
 	wma_handle->IsRArateLimitEnabled = mac_params->IsRArateLimitEnabled;
 	wma_handle->RArateLimitInterval = mac_params->RArateLimitInterval;
@@ -19614,8 +19615,8 @@ static VOS_STATUS wma_send_wakeup_mask(tp_wma_handle wma, bool enable)
 /* Sends WOW patterns to FW. */
 static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 			u_int8_t vdev_id, u_int8_t ptrn_id,
-			u_int8_t *ptrn, u_int8_t ptrn_len,
-			u_int8_t ptrn_offset, u_int8_t *mask,
+			const u_int8_t *ptrn, const u_int8_t ptrn_len,
+			const u_int8_t ptrn_offset, const u_int8_t *mask,
 			u_int8_t mask_len)
 
 {
@@ -20074,9 +20075,9 @@ static VOS_STATUS wma_wow_usr(tp_wma_handle wma, u_int8_t vdev_id,
 static VOS_STATUS wma_wow_ap(tp_wma_handle wma, u_int8_t vdev_id,
 			     u_int8_t *enable_ptrn_match)
 {
-	u_int8_t arp_ptrn[] = { 0x08, 0x06 };
-	u_int8_t arp_mask[] = { 0xff, 0xff };
-	u_int8_t arp_offset = 20;
+	static const u_int8_t arp_ptrn[] = { 0x08, 0x06 };
+	static const u_int8_t arp_mask[] = { 0xff, 0xff };
+	static const u_int8_t arp_offset = 20;
 	VOS_STATUS ret;
 
 	/* Setup all ARP pkt pattern. This is dummy pattern hence the lenght
@@ -20184,15 +20185,20 @@ static VOS_STATUS wma_wow_sta_ra_filter(tp_wma_handle wma, u_int8_t vdev_id)
 static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 			      u_int8_t *enable_ptrn_match, bool runtime_pm)
 {
-	u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
-	u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
-	u_int8_t discvr_offset = 30;
+	static const u_int8_t discvr_ptrn[] = { 0xe0, 0x00, 0x00, 0xf8 };
+	static const u_int8_t discvr_mask[] = { 0xf0, 0x00, 0x00, 0xf8 };
+	static const u_int8_t discvr_offset = 30;
 	u_int8_t mac_mask[ETH_ALEN], free_slot;
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
-	u_int8_t arp_ptrn[] = { 0x08, 0x06 };
-	u_int8_t arp_mask[] = { 0xff, 0xff };
-	u_int8_t arp_offset = 12;
-	u_int8_t ns_ptrn[] = {0x86, 0xDD};
+	static const u_int8_t arp_ptrn[] = { 0x08, 0x06 };
+	static const u_int8_t arp_mask[] = { 0xff, 0xff };
+	static const u_int8_t arp_offset = 12;
+	static const u_int8_t ns_ptrn[] = {0x86, 0xDD};
+	static const u_int8_t bcst_ptrn[] =
+				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+	static const u_int8_t bcst_mask[] =
+				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+	static const u_int8_t bcst_offset = 0;
 
 	free_slot = wma->wow.total_free_ptrn_id - wma->wow.used_free_ptrn_id ;
 
@@ -20234,6 +20240,15 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	}
 	else
 		WMA_LOGD("mDNS, SSDP, LLMNR patterns are disabled from ini");
+
+	if (runtime_pm && wma->enable_bcst_ptrn) {
+		ret = wma_send_wow_patterns_to_fw(wma, vdev_id,
+			wma->wow.free_ptrn_id[wma->wow.used_free_ptrn_id++],
+			bcst_ptrn, sizeof(bcst_ptrn), bcst_offset,
+			bcst_mask, sizeof(bcst_mask));
+		if (ret != VOS_STATUS_SUCCESS)
+			WMA_LOGE("Failed to add BCAST wakeup pattern\n");
+	}
 
 	/* when arp offload or ns offloaded is disabled
 	 * from ini file, configure broad cast arp pattern

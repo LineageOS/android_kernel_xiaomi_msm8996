@@ -1070,6 +1070,7 @@ typedef struct sMacOpenParameters
  */
     tANI_U8 olIniInfo;
     v_BOOL_t ssdp;
+    bool enable_bcst_ptrn;
     /*
      * DFS Phyerror Filtering offload status from ini
      * 0 indicates offload disabled
