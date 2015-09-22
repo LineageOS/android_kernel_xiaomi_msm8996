@@ -6705,6 +6705,10 @@ static int __iw_setint_getnone(struct net_device *dev,
     case WE_TXRX_FWSTATS_RESET:
     {
            hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
+           if (set_value != WMA_FW_TXRX_FWSTATS_RESET) {
+               hddLog(LOGE, "Invalid arg %d in FWSTATS_RESET IOCTL",
+                      set_value);
+           }
            ret = process_wma_set_command((int)pAdapter->sessionId,
                (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
                set_value, VDEV_CMD);

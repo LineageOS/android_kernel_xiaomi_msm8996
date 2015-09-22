@@ -2958,6 +2958,11 @@ static __iw_softap_setparam(struct net_device *dev,
          case QCASAP_TXRX_FWSTATS_RESET:
              {
                   hddLog(LOG1, "WE_TXRX_FWSTATS_RESET val %d", set_value);
+                  if (set_value != WMA_FW_TXRX_FWSTATS_RESET) {
+                      hddLog(LOGE, "Invalid arg %d in FWSTATS_RESET IOCTL",
+                             set_value);
+                      return -EINVAL;
+                  }
                   ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
                                                 (int)WMA_VDEV_TXRX_FWSTATS_RESET_CMDID,
                                                 set_value, VDEV_CMD);
