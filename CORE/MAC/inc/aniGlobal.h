@@ -1117,6 +1117,7 @@ typedef struct sMacOpenParameters
 #ifdef WLAN_FEATURE_NAN
     bool is_nan_enabled;
 #endif
+    uint16_t  max_mgmt_tx_fail_count;
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

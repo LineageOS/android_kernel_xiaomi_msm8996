@@ -4124,6 +4124,12 @@ REG_TABLE_ENTRY g_registry_table[] =
 #endif
 
 
+   REG_VARIABLE(CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, max_mgmt_tx_fail_count,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_DEFAULT,
+                CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_MIN,
+                CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4793,6 +4799,8 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
 
   hddLog(LOG2, "Name = [gfine_time_meas_cap] Value = [%u]",
                    pHddCtx->cfg_ini->fine_time_meas_cap);
+  hddLog(LOG2, "Name = [gmax_mgmt_tx_failure_count] Value = [%u]",
+                   pHddCtx->cfg_ini->max_mgmt_tx_fail_count);
 }
 
 #define CFG_VALUE_MAX_LEN 256

@@ -6288,7 +6288,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	wma_handle->tx_chain_mask_cck = mac_params->tx_chain_mask_cck;
 	wma_handle->self_gen_frm_pwr = mac_params->self_gen_frm_pwr;
-
+	wma_handle->max_mgmt_tx_fail_count = mac_params->max_mgmt_tx_fail_count;
 	/* Allocate cfg handle */
 
 	/* RX Full reorder should enable for PCIe, ROME3.X project only now
@@ -30318,6 +30318,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	 * if required
 	 */
 	if (downld_comp_required) {
+		static uint8_t mgmt_downld_fail_count = 0;
 		/*
 		 * Wait for Download Complete
 		 * @ Integrated : Dxe Complete
@@ -30328,6 +30329,7 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 				WMA_TX_FRAME_COMPLETE_TIMEOUT);
 
 		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			mgmt_downld_fail_count++;
 			WMA_LOGP("Wait Event failed txfrm_comp_event");
 			/*
 			 * @Integrated: Something Wrong with Dxe
@@ -30341,6 +30343,19 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			 /* display scheduler stats */
 			 wdi_in_display_stats(txrx_pdev, WLAN_SCHEDULER_STATS);
 #endif
+			WMA_LOGE("%s: download complete failure count:%d",
+					 __func__, mgmt_downld_fail_count);
+			/*
+			 * Inject crash only if max_mgmt_tx_fail_count is non
+			 * zero value.
+			 */
+			if (wma_handle->max_mgmt_tx_fail_count &&
+				mgmt_downld_fail_count ==
+					 wma_handle->max_mgmt_tx_fail_count)
+				wmi_crash_inject(wma_handle->wmi_handle,
+					RECOVERY_SIM_ASSERT, 0);
+		} else {
+			mgmt_downld_fail_count = 0;
 		}
 	} else {
 		/*

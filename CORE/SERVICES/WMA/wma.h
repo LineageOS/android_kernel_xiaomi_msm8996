@@ -827,6 +827,7 @@ typedef struct wma_handle {
 	uint32_t wow_ipv6_mcast_na_stats;
 	uint32_t wow_wakeup_enable_mask;
 	uint32_t wow_wakeup_disable_mask;
+	uint16_t max_mgmt_tx_fail_count;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

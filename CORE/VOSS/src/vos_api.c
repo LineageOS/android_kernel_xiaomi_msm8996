@@ -502,6 +502,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
     macOpenParms.tx_chain_mask_cck = pHddCtx->cfg_ini->tx_chain_mask_cck;
     macOpenParms.self_gen_frm_pwr = pHddCtx->cfg_ini->self_gen_frm_pwr;
+    macOpenParms.max_mgmt_tx_fail_count =
+                     pHddCtx->cfg_ini->max_mgmt_tx_fail_count;
 
 #ifdef WLAN_FEATURE_LPSS
     macOpenParms.is_lpass_enabled = pHddCtx->cfg_ini->enablelpasssupport;
