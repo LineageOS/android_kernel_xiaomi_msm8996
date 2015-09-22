@@ -12034,7 +12034,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    for (i = 0; i < MAX_MOD_LOGLEVEL; i++) {
        pHddCtx->fw_log_settings.dl_mod_loglevel[i] = 0;
    }
-   // Update VOS trace levels based upon the cfg.ini
+
+   /*
+    * Update VOS trace levels based upon the code
+    */
+   if (pHddCtx->cfg_ini->multicast_host_fw_msgs)
+       wlan_logging_set_log_level();
+
+   /*
+    * Update VOS trace levels based upon the cfg.ini
+    */
    hdd_vos_trace_enable(VOS_MODULE_ID_TL,
                         pHddCtx->cfg_ini->vosTraceEnableTL);
    hdd_vos_trace_enable(VOS_MODULE_ID_WDI,
@@ -12533,9 +12542,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 #endif
-   if (vos_is_multicast_logging())
-       wlan_logging_set_log_level();
-
    hdd_register_mcast_bcast_filter(pHddCtx);
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
    {
