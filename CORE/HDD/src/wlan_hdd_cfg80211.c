@@ -11612,10 +11612,15 @@ int wlan_hdd_setup_driver_overrides(hdd_adapter_t *ap_adapter)
 		if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n)
 			sap_cfg->SapHw_mode = eCSR_DOT11_MODE_11ac;
 
-		/* For 2.4G ch width shall not be overridden due to obss */
 		if (sap_cfg->channel >= 36)
 			sap_cfg->ch_width_orig =
 					hdd_ctx->cfg_ini->vhtChannelWidth;
+		else
+			sap_cfg->ch_width_orig =
+				hdd_ctx->cfg_ini->nChannelBondingMode24GHz ?
+				eHT_CHANNEL_WIDTH_40MHZ :
+				eHT_CHANNEL_WIDTH_20MHZ;
+
 	}
 
 	sap_cfg->vht_channel_width = sap_cfg->ch_width_orig;
@@ -11662,10 +11667,12 @@ setup_acs_overrides:
 			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY) {
 
 		sap_cfg->ch_width_orig = hdd_ctx->cfg_ini->vhtChannelWidth;
-		/* No VHT80 in 2.4G so set to VHT40 */
-		if (sap_cfg->acs_cfg.end_ch <= 14 &&
-			sap_cfg->ch_width_orig >= eHT_CHANNEL_WIDTH_80MHZ)
-			sap_cfg->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
+		/* VHT in 2.4G depends on gChannelBondingMode24GHz INI param */
+		if (sap_cfg->acs_cfg.end_ch <= 14)
+			sap_cfg->ch_width_orig =
+				hdd_ctx->cfg_ini->nChannelBondingMode24GHz ?
+				eHT_CHANNEL_WIDTH_40MHZ :
+				eHT_CHANNEL_WIDTH_20MHZ;
 	}
 
 	if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n ||

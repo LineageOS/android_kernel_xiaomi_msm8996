@@ -1560,12 +1560,12 @@ typedef enum
 #define CFG_FORCE_SAP_ACS_START_CH         "gAPChannelSelectStartChannel"
 #define CFG_FORCE_SAP_ACS_START_CH_MIN     (0)
 #define CFG_FORCE_SAP_ACS_START_CH_MAX     (0xFF)
-#define CFG_FORCE_SAP_ACS_START_CH_DEFAULT (36)
+#define CFG_FORCE_SAP_ACS_START_CH_DEFAULT (1)
 
 #define CFG_FORCE_SAP_ACS_END_CH           "gAPChannelSelectEndChannel"
 #define CFG_FORCE_SAP_ACS_END_CH_MIN       (0)
 #define CFG_FORCE_SAP_ACS_END_CH_MAX       (0xFF)
-#define CFG_FORCE_SAP_ACS_END_CH_DEFAULT   (165)
+#define CFG_FORCE_SAP_ACS_END_CH_DEFAULT   (11)
 
 /* ACS Scan band preference
  * 0 -- No preference

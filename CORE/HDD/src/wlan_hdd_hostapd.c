@@ -1979,8 +1979,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHddApCtx->sapConfig.acs_cfg.ch_width =
                  pSapEvent->sapevt.sapChSelected.ch_width;
 
-            /* TODO Need to indicate operating channel change to hostapd */
-            return hdd_chan_change_notify(pHostapdAdapter, dev,
+            /* Indicate operating channel change to hostapd
+             * only for non driver override acs
+             */
+            if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP &&
+                                               pHddCtx->cfg_ini->force_sap_acs)
+                return VOS_STATUS_SUCCESS;
+            else
+                return hdd_chan_change_notify(pHostapdAdapter, dev,
                            pSapEvent->sapevt.sapChSelected.pri_ch);
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         case eSAP_ACS_SCAN_SUCCESS_EVENT:
@@ -2055,8 +2061,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  pSapEvent->sapevt.sapChSelected.vht_seg1_center_ch;
             pHddApCtx->sapConfig.acs_cfg.ch_width =
                  pSapEvent->sapevt.sapChSelected.ch_width;
-            /* send vendor event to hostapd */
-            wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
+            /* send vendor event to hostapd only for hostapd based acs */
+            if (!pHddCtx->cfg_ini->force_sap_acs)
+                wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
+
             return VOS_STATUS_SUCCESS;
         case eSAP_ECSA_CHANGE_CHAN_IND:
             hddLog(LOG1,
