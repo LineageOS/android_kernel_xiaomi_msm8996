@@ -7091,6 +7091,7 @@ typedef struct nlo_configured_parameters {
  * if stationary_threshold is met.
  */
 typedef struct nlo_channel_prediction_cfg {
+    A_UINT32 tlv_header;
     /* Enable or disable this feature. */
     A_UINT32 enable;
     /* Top K channels will be scanned before deciding whether to further scan

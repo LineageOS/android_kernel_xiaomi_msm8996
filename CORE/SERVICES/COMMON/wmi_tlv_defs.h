@@ -588,6 +588,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_soc_set_antenna_mode_cmd_fixed_param,
     WMITLV_TAG_STRUC_WMI_WOW_UDP_SVC_OFLD_CMD_fixed_param,
     WMITLV_TAG_STRUC_wmi_lro_info_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_earlystop_rssi_thres_param,
 } WMITLV_TAG_ID;
 
 /*
