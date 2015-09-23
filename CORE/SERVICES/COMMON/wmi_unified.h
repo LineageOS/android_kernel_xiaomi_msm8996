@@ -672,6 +672,8 @@ typedef enum {
     WMI_OCB_SET_SCHED_CMDID,
     /** Set rssi monitoring config command */
     WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID,
+    /** Enable/disable Large Receive Offload processing; provide cfg params */
+    WMI_LRO_CONFIG_CMDID,
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
     WMI_GPIO_OUTPUT_CMDID,
@@ -6408,6 +6410,10 @@ typedef enum wake_reason_e {
     WOW_REASON_IOAC_SOCK_EVENT,
     WOW_REASON_NLO_SCAN_COMPLETE,
     WOW_REASON_PACKET_FILTER_MATCH,
+    WOW_REASON_ASSOC_RES_RECV,
+    WOW_REASON_REASSOC_REQ_RECV,
+    WOW_REASON_REASSOC_RES_RECV,
+    WOW_REASON_ACTION_FRAME_RECV,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -11412,6 +11418,172 @@ typedef struct {
     A_UINT32  vdev_id;
     A_UINT32  enable; /* WMI_PACKET_FILTER_RUNTIME_ENABLE */
 } WMI_PACKET_FILTER_ENABLE_CMD_fixed_param;
+
+#define WMI_LRO_INFO_TCP_FLAG_VALS_BITPOS  0
+#define WMI_LRO_INFO_TCP_FLAG_VALS_NUMBITS 9
+
+#define WMI_LRO_INFO_TCP_FLAG_VALS_SET(tcp_flag_u32, tcp_flag_values) \
+    WMI_SET_BITS(tcp_flag_u32, \
+    WMI_LRO_INFO_TCP_FLAG_VALS_BITPOS, \
+    WMI_LRO_INFO_TCP_FLAG_VALS_NUMBITS, \
+    tcp_flag_values)
+#define WMI_LRO_INFO_TCP_FLAG_VALS_GET(tcp_flag_u32) \
+    WMI_SET_BITS(tcp_flag_u32, \
+    WMI_LRO_INFO_TCP_FLAG_VALS_BITPOS, \
+    WMI_LRO_INFO_TCP_FLAG_VALS_NUMBITS)
+
+#define WMI_LRO_INFO_TCP_FLAGS_MASK_BITPOS  9
+#define WMI_LRO_INFO_TCP_FLAGS_MASK_NUMBITS 9
+
+#define WMI_LRO_INFO_TCP_FLAGS_MASK_SET(tcp_flag_u32, tcp_flags_mask) \
+    WMI_SET_BITS(tcp_flag_u32, \
+    WMI_LRO_INFO_TCP_FLAGS_MASK_BITPOS, \
+    WMI_LRO_INFO_TCP_FLAGS_MASK_NUMBITS, \
+    tcp_flags_mask)
+#define WMI_LRO_INFO_TCP_FLAGS_MASK_GET(tcp_flag_u32) \
+    WMI_SET_BITS(tcp_flag_u32, \
+    WMI_LRO_INFO_TCP_FLAGS_MASK_BITPOS, \
+    WMI_LRO_INFO_TCP_FLAGS_MASK_NUMBITS)
+
+typedef struct {
+    A_UINT32 tlv_header;
+    /**
+     * @brief lro_enable - indicates whether lro is enabled
+     * [0] LRO Enable
+     */
+    A_UINT32 lro_enable;
+    /**
+     * @brief tcp_flag_u32 - mask of which TCP flags to check and
+     *      values to check for
+     * [8:0] TCP flag values - If the TCP flags from the packet do not match
+     *       the values in this field after masking with TCP flags mask below,
+     *       LRO eligible will not be set
+     * [17:9] TCP flags mask - Mask field for comparing the TCP values
+     *       provided above with the TCP flags field in the received packet
+     * Use WMI_LRO_INFO_TCP_FLAG_VALS and WMI_LRO_INFO_TCP_FLAGS_MASK
+     * macros to isolate the mask field and values field that are packed
+     * into this u32 "word".
+     */
+    A_UINT32 tcp_flag_u32;
+    /**
+     * @brief toeplitz_hash_ipv4 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv4 packets. Contains
+     * bytes 0 to 3
+     *
+     * In this and all the below toeplitz_hash fields, the bytes are
+     * specified in little-endian order.  For example:
+     *     toeplitz_hash_ipv4_0_3 bits 7:0   holds seed byte 0
+     *     toeplitz_hash_ipv4_0_3 bits 15:8  holds seed byte 1
+     *     toeplitz_hash_ipv4_0_3 bits 23:16 holds seed byte 2
+     *     toeplitz_hash_ipv4_0_3 bits 31:24 holds seed byte 3
+     */
+    A_UINT32 toeplitz_hash_ipv4_0_3;
+
+    /**
+     * @brief toeplitz_hash_ipv4 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv4 packets. Contains
+     * bytes 4 to 7
+     */
+    A_UINT32 toeplitz_hash_ipv4_4_7;
+
+    /**
+     * @brief toeplitz_hash_ipv4 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv4 packets. Contains
+     * bytes 8 to 11
+     */
+    A_UINT32 toeplitz_hash_ipv4_8_11;
+
+    /**
+     * @brief toeplitz_hash_ipv4 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv4 packets. Contains
+     * bytes 12 to 15
+     */
+    A_UINT32 toeplitz_hash_ipv4_12_15;
+
+    /**
+     * @brief toeplitz_hash_ipv4 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv4 packets. Contains
+     * byte 16
+     */
+    A_UINT32 toeplitz_hash_ipv4_16;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 0 to 3
+     */
+    A_UINT32 toeplitz_hash_ipv6_0_3;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 4 to 7
+     */
+    A_UINT32 toeplitz_hash_ipv6_4_7;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 8 to 11
+     */
+    A_UINT32 toeplitz_hash_ipv6_8_11;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 12 to 15
+     */
+    A_UINT32 toeplitz_hash_ipv6_12_15;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 16 to 19
+     */
+    A_UINT32 toeplitz_hash_ipv6_16_19;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 20 to 22
+     */
+    A_UINT32 toeplitz_hash_ipv6_20_23;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 24 to 27
+     */
+    A_UINT32 toeplitz_hash_ipv6_24_27;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 28 to 31
+     */
+    A_UINT32 toeplitz_hash_ipv6_28_31;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 32 to 35
+     */
+    A_UINT32 toeplitz_hash_ipv6_32_35;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * bytes 36 to 39
+     */
+    A_UINT32 toeplitz_hash_ipv6_36_39;
+
+    /**
+     * @brief toeplitz_hash_ipv6 - contains seed needed to compute
+     * the flow id 5-tuple toeplitz hash for IPv6 packets. Contains
+     * byte 40
+     */
+    A_UINT32 toeplitz_hash_ipv6_40;
+} wmi_lro_info_cmd_fixed_param;
 
 /* ADD NEW DEFS HERE */
 
