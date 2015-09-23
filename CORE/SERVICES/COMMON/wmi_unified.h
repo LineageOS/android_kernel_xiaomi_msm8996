@@ -4261,6 +4261,10 @@ typedef enum {
      * protection when a SAP goes off channel in MCC mode */
     WMI_VDEV_PARAM_MCC_RTSCTS_PROTECTION_ENABLE,
 
+    /** This parameter indicates whether using a broadcast probe response
+     * to increase the detectability of SAP in MCC mode */
+    WMI_VDEV_PARAM_MCC_BROADCAST_PROBE_ENABLE,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
