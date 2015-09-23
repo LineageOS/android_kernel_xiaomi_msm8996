@@ -4481,6 +4481,45 @@ typedef struct sSirLinkSpeedInfo
   tANI_U32 estLinkSpeed;     //Linkspeed from firmware
 } tSirLinkSpeedInfo, *tpSirLinkSpeedInfo;
 
+
+/*
+ * struct sir_rssi_req - rssi request struct
+ * @peer_macaddr: MAC address
+ * @sessionId: vdev id
+ *
+ * rssi request message's struct
+ */
+struct sir_rssi_req {
+	v_MACADDR_t peer_macaddr;
+	uint8_t sessionId;
+};
+
+
+/*
+ * struct sir_rssi_info - rssi information struct
+ * @peer_macaddr: MAC address
+ * @rssi: rssi
+ *
+ * a station's rssi information
+ */
+struct sir_rssi_info {
+	tSirMacAddr peer_macaddr;
+	int8_t rssi;
+};
+
+/*
+ * struct sir_rssi_info - all peers rssi information struct
+ * @count: peer's number
+ * @info: rssi information
+ *
+ * all station's rssi information
+ */
+struct sir_rssi_resp {
+	uint8_t count;
+	struct sir_rssi_info info[0];
+};
+
+
 typedef struct sSirAddPeriodicTxPtrn
 {
    /* MAC Address for the adapter */

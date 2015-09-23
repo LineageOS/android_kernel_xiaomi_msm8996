@@ -2872,6 +2872,102 @@ static int wma_link_speed_event_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+
+/**
+ * wma_handle_sta_rssi() - handle rssi information in
+ * peer stats
+ * @num_peer_stats: peer number
+ * @peer_stats: peer stats received from firmware
+ * @peer_macaddr: the specified mac address
+ * @sapaddr: sap mac address
+ *
+ * This function will send eWNI_SME_GET_RSSI_IND
+ * to sme with stations' rssi information
+ *
+ */
+static void wma_handle_sta_rssi(uint32_t num_peer_stats,
+					wmi_peer_stats *peer_stats,
+					v_MACADDR_t peer_macaddr,
+					uint8_t *sapaddr)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_mac_addr temp_addr;
+	struct sir_rssi_resp *sta_rssi;
+	vos_msg_t sme_msg = {0};
+	uint32_t  i = 0;
+	uint32_t  j = 0;
+
+	if (!vos_is_macaddr_broadcast(&peer_macaddr)) {
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_macaddr.bytes, &temp_addr);
+		for (i = 0; i < num_peer_stats; i++) {
+			if ((((temp_addr.mac_addr47to32) & 0x0000ffff) ==
+				((peer_stats->peer_macaddr.mac_addr47to32) &
+								0x0000ffff))
+				&&(temp_addr.mac_addr31to0 ==
+				peer_stats->peer_macaddr.mac_addr31to0)) {
+
+				break;
+			}
+			peer_stats = peer_stats + 1;
+		}
+		sta_rssi = vos_mem_malloc(sizeof(*sta_rssi) +
+				sizeof(sta_rssi->info[0]));
+		if (NULL == sta_rssi) {
+			WMA_LOGE("%s: Memory allocation failed.", __func__);
+			return;
+		}
+		if (i < num_peer_stats) {
+			sta_rssi->count = 1;
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&(peer_stats->peer_macaddr),
+				sta_rssi->info[0].peer_macaddr);
+			sta_rssi->info[0].rssi =
+						peer_stats->peer_rssi;
+		} else {
+			WMA_LOGE("%s: no match mac address", __func__);
+			sta_rssi->count = 0;
+		}
+	} else {
+		sta_rssi = vos_mem_malloc(sizeof(*sta_rssi) +
+				num_peer_stats * sizeof(sta_rssi->info[0]));
+		if (NULL == sta_rssi) {
+			WMA_LOGE("%s: Memory allocation failed.", __func__);
+			return;
+		}
+		sta_rssi->count = num_peer_stats;
+
+		for (i = 0; i < num_peer_stats; i++) {
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&(peer_stats->peer_macaddr),
+					sta_rssi->info[j].peer_macaddr);
+			sta_rssi->info[j].rssi = peer_stats->peer_rssi;
+			if (TRUE == vos_mem_compare(
+				sta_rssi->info[j].peer_macaddr,
+				sapaddr, VOS_MAC_ADDR_SIZE)) {
+
+				sta_rssi->count = sta_rssi->count - 1;
+			} else {
+				j++;
+			}
+			peer_stats = peer_stats + 1;
+		}
+		WMA_LOGD("WDA send peer num %d", sta_rssi->count);
+	}
+
+	sme_msg.type = eWNI_SME_GET_RSSI_IND;
+	sme_msg.bodyptr = sta_rssi;
+	sme_msg.bodyval = 0;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status) ) {
+		WMA_LOGE("%s: Fail to post get rssi msg", __func__);
+		vos_mem_free(sta_rssi);
+	}
+
+	return;
+}
+
+
+
+
 static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 {
 	wmi_stats_event_fixed_param *event = (wmi_stats_event_fixed_param *)buf;
@@ -2902,11 +2998,23 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 		}
 	}
 
+	WMA_LOGD("WDA receive peer num %d",
+		event->num_peer_stats);
+
 	if (event->num_peer_stats > 0) {
-		for (i = 0; i < event->num_peer_stats; i++) {
-			peer_stats = (wmi_peer_stats *)temp;
-			wma_update_peer_stats(wma, peer_stats);
-			temp += sizeof(wmi_peer_stats);
+		WMA_LOGD("update get rssi %d",
+                        wma->get_sta_rssi);
+		if (wma->get_sta_rssi == TRUE) {
+			wma_handle_sta_rssi(event->num_peer_stats,
+						(wmi_peer_stats *)temp,
+						wma->peer_macaddr,
+						wma->myaddr);
+		} else {
+			for (i = 0; i < event->num_peer_stats; i++) {
+				peer_stats = (wmi_peer_stats *)temp;
+				wma_update_peer_stats(wma, peer_stats);
+				temp += sizeof(wmi_peer_stats);
+			}
 		}
 	}
 
@@ -12404,6 +12512,63 @@ VOS_STATUS wma_get_link_speed(WMA_HANDLE handle,
 }
 
 
+/**
+ * wma_get_rssi() - get station's rssi
+ * @handle: wma interface
+ * @prssi_req: get rssi request information
+ *
+ * This function will send WMI_REQUEST_STATS_CMDID
+ * to wmi
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static VOS_STATUS wma_get_rssi(WMA_HANDLE handle,
+				struct sir_rssi_req *prssi_req)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	wmi_request_stats_cmd_fixed_param *cmd;
+	wmi_buf_t  wmi_buf;
+	uint32_t  len;
+	uint8_t *buf_ptr;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue get rssi",
+                        __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len  = sizeof(wmi_request_stats_cmd_fixed_param);
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (uint8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_request_stats_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
+
+	cmd->stats_id = WMI_REQUEST_PEER_STAT;
+	cmd->vdev_id = prssi_req->sessionId;
+	wma_handle->get_sta_rssi = TRUE;
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+				WMI_REQUEST_STATS_CMDID)) {
+		WMA_LOGE("Failed to send host stats request to fw");
+		wmi_buf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	vos_mem_copy(&(wma_handle->peer_macaddr),
+					&(prssi_req->peer_macaddr),
+					VOS_MAC_ADDR_SIZE);
+	return VOS_STATUS_SUCCESS;
+}
+
+
+
 static int
 wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
 				u_int32_t param_value)
@@ -21452,6 +21617,7 @@ static void wma_get_stats_req(WMA_HANDLE handle,
 
 	node->fw_stats_set = 0;
 	node->stats_rsp = pGetPEStatsRspParams;
+	wma_handle->get_sta_rssi = FALSE;
 	cmd = (wmi_request_stats_cmd_fixed_param *)wmi_buf_data(buf);
 	WMITLV_SET_HDR(&cmd->tlv_header,
 			WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
@@ -27124,6 +27290,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_GET_LINK_SPEED:
 			wma_get_link_speed(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_GET_RSSI:
+			wma_get_rssi(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_MODEM_POWER_STATE_IND:

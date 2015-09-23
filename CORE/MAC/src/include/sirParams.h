@@ -527,7 +527,9 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_FLUSH_LOG_TO_FW            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 218)
 
-/* 219 to 221 unused */
+#define SIR_HAL_GET_RSSI                   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 219)
+
+/* 220 to 221 unused */
 
 #define SIR_HAL_START_ROAM_CANDIDATE_LOOKUP_REQ (SIR_HAL_ITC_MSG_TYPES_BEGIN + 222)
 

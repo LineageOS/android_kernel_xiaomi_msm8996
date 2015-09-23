@@ -2962,6 +2962,12 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    vos_mem_free(pMsg->bodyptr);
                }
                break;
+          case eWNI_SME_GET_RSSI_IND:
+               if (pMac->sme.pget_rssi_ind_cb)
+                   pMac->sme.pget_rssi_ind_cb(pMsg->bodyptr,
+                                            pMac->sme.pget_rssi_cb_context);
+               vos_mem_free(pMsg->bodyptr);
+               break;
           case eWNI_SME_CSA_OFFLOAD_EVENT:
                if (pMsg->bodyptr)
                {
@@ -11866,6 +11872,64 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
     }
     return(status);
 }
+
+
+/**
+ * sme_get_rssi() - get station's rssi
+ * @hal: hal interface
+ * @req: get rssi request information
+ * @context: event handle context
+ * @pcallbackfn: callback function pointer
+ *
+ * This function will send WDA_GET_RSSI to WMA
+ *
+ * Return: 0 on success, otherwise error value
+ */
+eHalStatus sme_get_rssi(tHalHandle hal, struct sir_rssi_req req,
+			void *context,
+			void (*callbackfn)(struct sir_rssi_resp *param,
+						void *pcontext))
+{
+
+	eHalStatus          status    = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vosstatus = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac       = PMAC_STRUCT(hal);
+	vos_msg_t           vosmessage;
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		if (NULL == callbackfn) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Indication Call back is NULL",
+				__func__);
+			sme_ReleaseGlobalLock(&mac->sme);
+			return eHAL_STATUS_FAILURE;
+		}
+
+		mac->sme.pget_rssi_ind_cb = callbackfn;
+		mac->sme.pget_rssi_cb_context = context;
+
+		/* serialize the req through MC thread */
+		vosmessage.bodyptr = vos_mem_malloc(sizeof(req));
+		if (NULL == vosmessage.bodyptr) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Memory allocation failed.", __func__);
+			sme_ReleaseGlobalLock(&mac->sme);
+			return eHAL_STATUS_E_MALLOC_FAILED;
+		}
+		vos_mem_copy(vosmessage.bodyptr, &req, sizeof(req));
+		vosmessage.type    = WDA_GET_RSSI;
+		vosstatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosmessage);
+		if (!VOS_IS_STATUS_SUCCESS(vosstatus)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: Post get rssi msg fail", __func__);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+	return status;
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
     \API to Check if PMC state is BMPS.

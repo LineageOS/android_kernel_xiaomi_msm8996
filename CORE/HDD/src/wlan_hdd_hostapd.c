@@ -5935,6 +5935,251 @@ iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
 	return ret;
 }
 
+/**
+ * hdd_get_rssi_cb() - get station's rssi callback
+ * @sta_rssi: pointer of rssi information
+ * @context: get rssi callback context
+ *
+ * This function will fill rssi information to hostapd
+ * adapter
+ *
+ */
+void hdd_get_rssi_cb(struct sir_rssi_resp *sta_rssi, void *context)
+{
+	struct statsContext *get_rssi_context;
+	struct sir_rssi_info *rssi_info;
+	uint8_t peer_num;
+	int i;
+	int buf = 0;
+	int length = 0;
+	char *rssi_info_output;
+	union iwreq_data *wrqu;
+
+	if ((NULL == sta_rssi) || (NULL == context)) {
+
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: Bad param, sta_rssi [%p] context [%p]",
+			__func__, sta_rssi, context);
+		return;
+	}
+
+	spin_lock(&hdd_context_lock);
+	/*
+	 * there is a race condition that exists between this callback
+	 * function and the caller since the caller could time out either
+	 * before or while this code is executing.  we use a spinlock to
+	 * serialize these actions
+	 */
+	get_rssi_context = context;
+	if (RSSI_CONTEXT_MAGIC !=
+			get_rssi_context->magic) {
+
+		/*
+		 * the caller presumably timed out so there is nothing
+		 * we can do
+		 */
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_WARN,
+			"%s: Invalid context, magic [%08x]",
+			__func__,
+			get_rssi_context->magic);
+		return;
+	}
+
+	rssi_info_output = get_rssi_context->extra;
+	wrqu = get_rssi_context->wrqu;
+	peer_num = sta_rssi->count;
+	rssi_info = sta_rssi->info;
+	get_rssi_context->magic = 0;
+
+	hddLog(LOG1, "%s : %d peers", __func__, peer_num);
+
+
+	/*
+	 * The iwpriv tool default print is before mac addr and rssi.
+	 * Add '\n' before first rssi item to align the frist rssi item
+	 * with others
+	 *
+	 * wlan     getRSSI:
+	 * [macaddr1] [rssi1]
+	 * [macaddr2] [rssi2]
+	 * [macaddr3] [rssi3]
+	 */
+	length = scnprintf((rssi_info_output), WE_MAX_STR_LEN, "\n");
+	for (i = 0; i < peer_num; i++) {
+		buf = scnprintf
+			(
+			(rssi_info_output + length), WE_MAX_STR_LEN - length,
+			"[%pM] [%d]\n",
+			rssi_info[i].peer_macaddr,
+			rssi_info[i].rssi
+			);
+			length += buf;
+	}
+	wrqu->data.length = length + 1;
+
+	/* notify the caller */
+	complete(&get_rssi_context->completion);
+
+	/* serialization is complete */
+	spin_unlock(&hdd_context_lock);
+}
+
+/**
+ * wlan_hdd_get_peer_rssi() - get station's rssi
+ * @adapter: hostapd interface
+ * @macaddress: iwpriv request information
+ * @wrqu: iwpriv command parameter
+ * @extra
+ *
+ * This function will call sme_get_rssi to get rssi
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int  wlan_hdd_get_peer_rssi(hdd_adapter_t *adapter,
+					v_MACADDR_t macaddress,
+					char *extra,
+					union iwreq_data *wrqu)
+{
+	eHalStatus hstatus;
+	unsigned long rc;
+	struct statsContext context;
+	struct sir_rssi_req rssi_req;
+
+	if (NULL == adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
+			__func__);
+		return -EFAULT;
+	}
+
+	init_completion(&context.completion);
+	context.magic = RSSI_CONTEXT_MAGIC;
+	context.extra = extra;
+	context.wrqu = wrqu;
+
+	vos_mem_copy(&(rssi_req.peer_macaddr), &macaddress,
+				VOS_MAC_ADDR_SIZE);
+	rssi_req.sessionId = adapter->sessionId;
+	hstatus = sme_get_rssi(WLAN_HDD_GET_HAL_CTX(adapter),
+				rssi_req,
+				&context,
+				hdd_get_rssi_cb);
+	if (eHAL_STATUS_SUCCESS != hstatus) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: Unable to retrieve statistics for rssi",
+			__func__);
+		rc = -EFAULT;
+	} else {
+		rc = wait_for_completion_timeout(&context.completion,
+				msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+		if (!rc) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: SME timed out while retrieving rssi",
+				__func__);
+		}
+	}
+	/*
+	 * either we never sent a request, we sent a request and received a
+	 * response or we sent a request and timed out.  if we never sent a
+	 * request or if we sent a request and got a response, we want to
+	 * clear the magic out of paranoia.  if we timed out there is a
+	 * race condition such that the callback function could be
+	 * executing at the same time we are. of primary concern is if the
+	 * callback function had already verified the "magic" but had not
+	 * yet set the completion variable when a timeout occurred. we
+	 * serialize these activities by invalidating the magic while
+	 * holding a shared spinlock which will cause us to block if the
+	 * callback is currently executing
+	 */
+	spin_lock(&hdd_context_lock);
+	context.magic = 0;
+	spin_unlock(&hdd_context_lock);
+	return rc;
+}
+
+/**
+ * __iw_get_peer_rssi() - get station's rssi
+ * @dev: net device
+ * @info: iwpriv request information
+ * @wrqu: iwpriv command parameter
+ * @extra
+ *
+ * This function will call wlan_hdd_get_peer_rssi
+ * to get rssi
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int
+__iw_get_peer_rssi(struct net_device *dev, struct iw_request_info *info,
+			union iwreq_data *wrqu, char *extra)
+{
+	hdd_adapter_t *adapter = (netdev_priv(dev));
+	hdd_context_t *hddctx;
+	char macaddrarray[18];
+	v_MACADDR_t macaddress = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
+	VOS_STATUS status = VOS_STATUS_E_FAILURE;
+	int ret;
+
+	ENTER();
+
+	hddctx = WLAN_HDD_GET_CTX(adapter);
+	ret = wlan_hdd_validate_context(hddctx);
+	if (0 != ret)
+		return ret;
+
+	hddLog(VOS_TRACE_LEVEL_INFO, "%s wrqu->data.length= %d",
+			__func__, wrqu->data.length);
+
+	if (wrqu->data.length >= MAC_ADDRESS_STR_LEN - 1) {
+
+		if (copy_from_user(macaddrarray,
+			wrqu->data.pointer, MAC_ADDRESS_STR_LEN - 1)) {
+
+			hddLog(LOG1, "%s: failed to copy data to user buffer",
+					__func__);
+			return -EFAULT;
+		}
+
+		macaddrarray[MAC_ADDRESS_STR_LEN - 1] = '\0';
+		hddLog(LOG1, "%s, %s",
+				__func__, macaddrarray);
+
+		status = hdd_string_to_hex(macaddrarray,
+				MAC_ADDRESS_STR_LEN, macaddress.bytes );
+
+		if (!VOS_IS_STATUS_SUCCESS(status)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("String to Hex conversion Failed"));
+		}
+	}
+
+	return wlan_hdd_get_peer_rssi(adapter, macaddress, extra, wrqu);
+}
+
+/**
+ * iw_get_peer_rssi() - get station's rssi
+ * @dev: net device
+ * @info: iwpriv request information
+ * @wrqu: iwpriv command parameter
+ * @extra
+ *
+ * This function will call __iw_get_peer_rssi
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int
+iw_get_peer_rssi(struct net_device *dev, struct iw_request_info *info,
+			union iwreq_data *wrqu, char *extra)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __iw_get_peer_rssi(dev, info, wrqu, extra);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
@@ -6314,7 +6559,9 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 5, "getLinkSpeed" },
-
+  { QCSAP_IOCTL_PRIV_GET_RSSI,
+        IW_PRIV_TYPE_CHAR | 18,
+        IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN, "getRSSI" },
   { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3, 0, "" },
    /* handlers for sub-ioctl */
@@ -6469,6 +6716,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_GET_CHANNEL_LIST - SIOCIWFIRSTPRIV]   = iw_softap_get_channel_list,
    [QCSAP_IOCTL_GET_STA_INFO - SIOCIWFIRSTPRIV] = iw_softap_get_sta_info,
    [QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED - SIOCIWFIRSTPRIV]     = iw_get_softap_linkspeed,
+   [QCSAP_IOCTL_PRIV_GET_RSSI - SIOCIWFIRSTPRIV] = iw_get_peer_rssi,
    [QCSAP_IOCTL_SET_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_tx_power,
    [QCSAP_IOCTL_SET_MAX_TX_POWER - SIOCIWFIRSTPRIV]   = iw_softap_set_max_tx_power,
    [QCSAP_IOCTL_DATAPATH_SNAP_SHOT - SIOCIWFIRSTPRIV]  =   iw_display_data_path_snapshot,
