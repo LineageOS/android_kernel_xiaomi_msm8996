@@ -7827,9 +7827,16 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName,
 static int __hdd_set_mac_address(struct net_device *dev, void *addr)
 {
 	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx;
 	struct sockaddr *psta_mac_addr = addr;
+	int ret;
 
 	ENTER();
+
+	hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
 
 	memcpy(&pAdapter->macAddressCurrent, psta_mac_addr->sa_data, ETH_ALEN);
 	memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
@@ -7901,17 +7908,18 @@ static void __hdd_set_multicast_list(struct net_device *dev)
 {
    static const uint8_t ipv6_router_solicitation[] =
                          {0x33, 0x33, 0x00, 0x00, 0x00, 0x02};
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_adapter_t *pAdapter;
+   hdd_context_t *pHddCtx;
    int mc_count;
    int i = 0;
    struct netdev_hw_addr *ha;
-   hdd_context_t *pHddCtx;
 
    ENTER();
 
    if (VOS_FTM_MODE == hdd_get_conparam())
       return;
 
+   pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    if (0 != wlan_hdd_validate_context(pHddCtx))
       return;

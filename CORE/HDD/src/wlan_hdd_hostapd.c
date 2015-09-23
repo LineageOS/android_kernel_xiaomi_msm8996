@@ -681,7 +681,18 @@ void hdd_restart_softap(hdd_context_t *pHddCtx,
 static int __hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
 {
    struct sockaddr *psta_mac_addr = addr;
+   hdd_adapter_t *adapter;
+   hdd_context_t *hdd_ctx;
+   int ret = 0;
+
    ENTER();
+
+   adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+   ret = wlan_hdd_validate_context(hdd_ctx);
+   if (0 != ret)
+       return ret;
+
    memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
    EXIT();
    return 0;
