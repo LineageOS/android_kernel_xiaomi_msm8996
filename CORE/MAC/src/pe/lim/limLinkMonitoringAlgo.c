@@ -497,6 +497,7 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId, tSirMacReasonCodes
         limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
 
         limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
+        limReInitScanResults(pMac);
     }
 } /*** limTearDownLinkWithAp() ***/
 
