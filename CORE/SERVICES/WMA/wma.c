@@ -20067,6 +20067,13 @@ static void wma_update_free_wow_ptrn_id(tp_wma_handle wma)
 		}
 	}
 
+	/*
+	 * Clear the wakeup pattern mask to ensure, we configure the
+	 * wakeup patterns properly to FW.
+	 */
+
+	wma->wow_wakeup_enable_mask = 0;
+	wma->wow_wakeup_disable_mask = 0;
 	WMA_LOGD("Total free wow pattern id for default patterns: %d",
 		 wma->wow.total_free_ptrn_id );
 }
