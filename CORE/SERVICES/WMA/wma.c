@@ -1111,10 +1111,53 @@ void wma_find_mcc_ap(tp_wma_handle wma,
 }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+static const wmi_channel_width mode_to_width[MODE_MAX] =
+{
+	[MODE_11A]           = WMI_CHAN_WIDTH_20,
+	[MODE_11G]           = WMI_CHAN_WIDTH_20,
+	[MODE_11B]           = WMI_CHAN_WIDTH_20,
+	[MODE_11GONLY]       = WMI_CHAN_WIDTH_20,
+	[MODE_11NA_HT20]     = WMI_CHAN_WIDTH_20,
+	[MODE_11NG_HT20]     = WMI_CHAN_WIDTH_20,
+	[MODE_11AC_VHT20]    = WMI_CHAN_WIDTH_20,
+	[MODE_11AC_VHT20_2G] = WMI_CHAN_WIDTH_20,
+	[MODE_11NA_HT40]     = WMI_CHAN_WIDTH_40,
+	[MODE_11NG_HT40]     = WMI_CHAN_WIDTH_40,
+	[MODE_11AC_VHT40]    = WMI_CHAN_WIDTH_40,
+	[MODE_11AC_VHT40_2G] = WMI_CHAN_WIDTH_40,
+	[MODE_11AC_VHT80]    = WMI_CHAN_WIDTH_80,
+	[MODE_11AC_VHT80_2G] = WMI_CHAN_WIDTH_80,
+#if CONFIG_160MHZ_SUPPORT
+	[MODE_11AC_VHT80_80] = WMI_CHAN_WIDTH_80P80,
+	[MODE_11AC_VHT160]   = WMI_CHAN_WIDTH_160,
+#endif
+};
+
+/**
+ * chanmode_to_chanwidth() - get channel width through channel mode
+ * @chanmode:   channel phy mode
+ *
+ * Return: channel width
+ */
+static wmi_channel_width chanmode_to_chanwidth(WLAN_PHY_MODE chanmode)
+{
+	wmi_channel_width chan_width;
+
+	if (chanmode >= MODE_11A && chanmode < MODE_MAX)
+		chan_width = mode_to_width[chanmode];
+	else
+		chan_width = WMI_CHAN_WIDTH_20;
+
+	return chan_width;
+}
+
 static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 {
 	struct wma_target_req *req_msg;
 	struct wma_txrx_node *iface;
+	int err;
+	wmi_channel_width chanwidth;
+
 	wmi_vdev_start_response_event_fixed_param *resp_event;
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
@@ -1185,6 +1228,24 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		params->status = resp_event->status;
 		if (resp_event->resp_type == WMI_VDEV_RESTART_RESP_EVENT &&
 			(iface->type == WMI_VDEV_TYPE_STA)) {
+
+			err = wma_set_peer_param(wma, iface->bssid,
+					WMI_PEER_PHYMODE, iface->chanmode,
+					resp_event->vdev_id);
+
+			WMA_LOGD("%s:vdev_id %d chanmode %d status %d",
+				__func__, resp_event->vdev_id,
+				iface->chanmode, err);
+
+			chanwidth = chanmode_to_chanwidth(iface->chanmode);
+			err = wma_set_peer_param(wma, iface->bssid,
+					WMI_PEER_CHWIDTH, chanwidth,
+					resp_event->vdev_id);
+
+			WMA_LOGD("%s:vdev_id %d chanwidth %d status %d",
+				__func__, resp_event->vdev_id,
+				chanwidth, err);
+
 			if (wmi_unified_vdev_up_send(wma->wmi_handle,
 				resp_event->vdev_id, iface->aid,
 				iface->bssid)) {
