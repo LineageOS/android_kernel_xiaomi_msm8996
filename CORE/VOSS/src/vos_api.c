@@ -1158,12 +1158,6 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
     }
 #endif
 
-    case VOS_MODULE_ID_HDD_SOFTAP:
-    {
-      pModContext = gpVosContext->pHDDSoftAPContext;
-      break;
-    }
-
     case VOS_MODULE_ID_HDD:
     {
       pModContext = gpVosContext->pHDDContext;

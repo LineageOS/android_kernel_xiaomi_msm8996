@@ -6421,7 +6421,6 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 {
     struct net_device *pWlanHostapdDev = NULL;
     hdd_adapter_t *pHostapdAdapter = NULL;
-    v_CONTEXT_t pVosContext= NULL;
 
    hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: iface_name = %s", __func__, iface_name);
 
@@ -6452,11 +6451,6 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
                                       pWlanHostapdDev,
                                       pHostapdAdapter,
                                       (int)vos_get_concurrency_mode());
-
-        //Get the Global VOSS context.
-        pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-        //Save the adapter context in global context for future.
-        ((VosContextType*)(pVosContext))->pHDDSoftAPContext = (v_VOID_t*)pHostapdAdapter;
 
         //Init the net_device structure
         strlcpy(pWlanHostapdDev->name, (const char *)iface_name, IFNAMSIZ);

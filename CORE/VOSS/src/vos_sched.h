@@ -381,9 +381,6 @@ typedef struct _VosContextType
    /* HDD Module Context  */
    v_VOID_t           *pHDDContext;
 
-   /* HDD SoftAP Module Context  */
-   v_VOID_t           *pHDDSoftAPContext;
-
    /* TL Module Context  */
    v_VOID_t           *pTLContext;
 
