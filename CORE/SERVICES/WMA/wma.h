@@ -776,6 +776,9 @@ typedef struct wma_handle {
 	bool is_lpass_enabled;
 #endif
 
+#ifdef WLAN_FEATURE_NAN
+	bool is_nan_enabled;
+#endif
 
 	/* Powersave Configuration Parameters */
 	u_int8_t staMaxLIModDtim;

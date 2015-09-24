@@ -1112,6 +1112,9 @@ typedef struct sMacOpenParameters
 #ifdef WLAN_FEATURE_LPSS
     bool is_lpass_enabled;
 #endif
+#ifdef WLAN_FEATURE_NAN
+    bool is_nan_enabled;
+#endif
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

@@ -2766,6 +2766,18 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_LPASS_SUPPORT_MAX                      ( 1 )
 #endif
 
+/*
+ * NaN feature support configuration
+ * gEnableNanSupport = 0 means NaN is not supported
+ * gEnableNanSupport = 1 means NaN is supported
+ */
+#ifdef WLAN_FEATURE_NAN
+#define CFG_ENABLE_NAN_SUPPORT                          "gEnableNanSupport"
+#define CFG_ENABLE_NAN_SUPPORT_DEFAULT                  (0)
+#define CFG_ENABLE_NAN_SUPPORT_MIN                      (0)
+#define CFG_ENABLE_NAN_SUPPORT_MAX                      (1)
+#endif
+
 #define CFG_ENABLE_SELF_RECOVERY                   "gEnableSelfRecovery"
 #define CFG_ENABLE_SELF_RECOVERY_MIN               ( 0 )
 #define CFG_ENABLE_SELF_RECOVERY_MAX               ( 1 )
@@ -3768,6 +3780,9 @@ typedef struct
 
 #ifdef WLAN_FEATURE_LPSS
    v_BOOL_t                    enablelpasssupport;
+#endif
+#ifdef WLAN_FEATURE_NAN
+   bool                        enable_nan_support;
 #endif
    v_BOOL_t                    enableSelfRecovery;
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC

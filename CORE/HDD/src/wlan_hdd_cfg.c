@@ -3616,6 +3616,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_ENABLE_LPASS_SUPPORT_MAX),
 #endif
 
+#ifdef WLAN_FEATURE_NAN
+   REG_VARIABLE(CFG_ENABLE_NAN_SUPPORT, WLAN_PARAM_Integer,
+               hdd_config_t, enable_nan_support,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_ENABLE_NAN_SUPPORT_DEFAULT,
+               CFG_ENABLE_NAN_SUPPORT_MIN,
+               CFG_ENABLE_NAN_SUPPORT_MAX),
+#endif
+
    REG_VARIABLE( CFG_ENABLE_SELF_RECOVERY, WLAN_PARAM_Integer,
               hdd_config_t, enableSelfRecovery,
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,

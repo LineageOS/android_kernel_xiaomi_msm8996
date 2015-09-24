@@ -967,6 +967,11 @@ static int __wlan_hdd_cfg80211_nan_request(struct wiphy *wiphy,
         return -EPERM;
     }
 
+    if (!hdd_ctx->cfg_ini->enable_nan_support) {
+        hddLog(LOGE, FL("NaN is not suported"));
+        return -EPERM;
+    }
+
     nan_req.request_data_len = data_len;
     nan_req.request_data = data;
 

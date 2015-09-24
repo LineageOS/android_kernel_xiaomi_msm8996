@@ -5987,6 +5987,26 @@ void wma_wow_tx_complete(void *wma)
 	vos_event_set(&wma_handle->wow_tx_complete);
 }
 
+#ifdef WLAN_FEATURE_NAN
+/**
+ * wma_set_nan_enable() - set nan enable flag in WMA handle
+ * @wma_handle: Pointer to wma handle
+ * @mac_param: Pointer to mac_param
+ *
+ * Return: none
+ */
+static void wma_set_nan_enable(tp_wma_handle wma_handle,
+				tMacOpenParameters *mac_param)
+{
+	wma_handle->is_nan_enabled = mac_param->is_nan_enabled;
+}
+#else
+static void wma_set_nan_enable(tp_wma_handle wma_handle,
+				tMacOpenParameters *mac_param)
+{
+}
+#endif
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -6123,6 +6143,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #ifdef WLAN_FEATURE_LPSS
 	wma_handle->is_lpass_enabled = mac_params->is_lpass_enabled;
 #endif
+	wma_set_nan_enable(wma_handle, mac_params);
+
 	wma_handle->wlan_resource_config.num_wow_filters = mac_params->maxWoWFilters;
 	wma_handle->wlan_resource_config.num_keep_alive_pattern = WMA_MAXNUM_PERIODIC_TX_PTRNS;
 
@@ -20876,10 +20898,13 @@ int wma_disable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 }
 
 #ifdef WLAN_FEATURE_LPSS
-
 /**
- * wma_is_lpass_enabled() - check if lpass feature is enabled in INI
+ * wma_is_lpass_enabled() - check if lpass is enabled
  * @handle: Pointer to wma handle
+ *
+ * WoW is needed if LPASS or NaN feature is enabled in INI because
+ * target can't wake up itself if its put in PDEV suspend when LPASS
+ * or NaN features are supported
  *
  * Return: true if lpass is enabled else false
  */
@@ -20896,6 +20921,32 @@ bool static wma_is_lpass_enabled(tp_wma_handle wma)
 	return false;
 }
 #endif
+
+#ifdef WLAN_FEATURE_NAN
+/**
+ * wma_is_nan_enabled() - check if NaN is enabled
+ * @handle: Pointer to wma handle
+ *
+ * WoW is needed if LPASS or NaN feature is enabled in INI because
+ * target can't wake up itself if its put in PDEV suspend when LPASS
+ * or NaN features are supported
+ *
+ * Return: true if NaN is enabled else false
+ */
+bool static wma_is_nan_enabled(tp_wma_handle wma)
+{
+	if (wma->is_nan_enabled)
+		return true;
+	else
+		return false;
+}
+#else
+bool static wma_is_nan_enabled(tp_wma_handle wma)
+{
+	return false;
+}
+#endif
+
 /**
  * wma_is_wow_mode_selected() - check if wow needs to be enabled in fw
  * @handle: Pointer to wma handle
@@ -20910,6 +20961,9 @@ int wma_is_wow_mode_selected(WMA_HANDLE handle)
 
 	if (wma_is_lpass_enabled(wma)) {
 		WMA_LOGD("LPASS is enabled select WoW");
+		return true;
+	} else if (wma_is_nan_enabled(wma)) {
+		WMA_LOGD("NAN is enabled select WoW");
 		return true;
 	} else {
 		WMA_LOGD("WoW enable %d", wma->wow.wow_enable);
