@@ -408,10 +408,12 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
 
          /*
           * Modifying the pulse duration for FCC Type 4
-          * radar pulses when the following condition is
-          * reported in radar summary report.
+          * or JAPAN W56 Type 6 radar pulses when the
+          * following condition is reported in radar
+          * summary report.
           */
-         if ((DFS_FCC_DOMAIN == dfs->dfsdomain ) &&
+         if ((DFS_FCC_DOMAIN == dfs->dfsdomain ||
+              DFS_MKK4_DOMAIN == dfs->dfsdomain) &&
              ((chan->ic_flags & IEEE80211_CHAN_VHT80) ==
               IEEE80211_CHAN_VHT80) &&
              (chan->ic_pri_freq_center_freq_mhz_separation ==
