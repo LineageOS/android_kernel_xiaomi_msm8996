@@ -2873,6 +2873,14 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
 
 
    if (LIM_IS_STA_ROLE(psessionEntry)) {
+#ifdef FEATURE_WLAN_TDLS
+      /*
+       * on receiving channel switch announcement from AP, delete all
+       * TDLS peers before leaving BSS and proceed for channel
+       * switch
+       */
+      limDeleteTDLSPeers(pMac, psessionEntry);
+#endif
       psessionEntry->gLimChannelSwitch.switchMode = csa_params->switchmode;
       /* timer already started by firmware, switch immediately */
       psessionEntry->gLimChannelSwitch.switchCount = 0;

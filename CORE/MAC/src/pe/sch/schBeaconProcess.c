@@ -470,6 +470,14 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         LIM_IS_IBSS_ROLE(psessionEntry)) {
         /* Channel Switch information element updated */
         if (pBeacon->channelSwitchPresent) {
+#ifdef FEATURE_WLAN_TDLS
+            /*
+             * on receiving channel switch announcement from AP, delete all
+             * TDLS peers before leaving BSS and proceed for channel switch
+             */
+            if (LIM_IS_STA_ROLE(psessionEntry))
+                limDeleteTDLSPeers(pMac, psessionEntry);
+#endif
             limUpdateChannelSwitch(pMac, pBeacon, psessionEntry);
         } else if (psessionEntry->gLimSpecMgmt.dot11hChanSwState ==
                                        eLIM_11H_CHANSW_RUNNING) {

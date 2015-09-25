@@ -286,6 +286,14 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             if (LIM_IS_STA_ROLE(psessionEntry)) {
                 if (pProbeRsp->channelSwitchPresent)
                 {
+#ifdef FEATURE_WLAN_TDLS
+                    /*
+                     * on receiving channel switch announcement from AP, delete
+                     * all TDLS peers before leaving BSS and proceed
+                     * for channel switch
+                     */
+                    limDeleteTDLSPeers(pMac, psessionEntry);
+#endif
                     limUpdateChannelSwitch(pMac, pProbeRsp, psessionEntry);
                 }
                 else if (psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
