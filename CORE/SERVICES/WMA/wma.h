@@ -624,6 +624,7 @@ typedef struct wma_handle {
 	void *htc_handle;
 	void *vos_context;
 	void *mac_context;
+	void *runtime_pm_ctx;
 
 	vos_event_t wma_ready_event;
 	vos_event_t wma_resume_event;

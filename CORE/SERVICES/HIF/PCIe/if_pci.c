@@ -792,10 +792,12 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 #define HIF_PCI_AUTOPM_STATS(_s, _sc, _name) \
 	seq_printf(_s, "%30s: %u\n", #_name, _sc->pm_stats._name)
 	struct hif_pci_softc *sc = s->private;
-	char *autopm_state[] = {"NONE", "ON", "INPROGRESS", "SUSPENDED"};
+	static const char *autopm_state[] = {"NONE", "ON", "INPROGRESS",
+						"SUSPENDED"};
 	unsigned int msecs_age;
 	int pm_state = atomic_read(&sc->pm_state);
-	unsigned long timer_expires;
+	unsigned long timer_expires, flags;
+	struct hif_pm_runtime_context *ctx;
 
 	seq_printf(s, "%30s: %s\n", "Runtime PM state",
 			autopm_state[pm_state]);
@@ -811,8 +813,8 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 	seq_printf(s, "%30s: %d\n", "PM Usage count",
 			atomic_read(&sc->dev->power.usage_count));
 
-	seq_printf(s, "%30s: %d\n", "prevent_suspend_cnt",
-			atomic_read(&sc->prevent_suspend_cnt));
+	seq_printf(s, "%30s: %u\n", "prevent_suspend_cnt",
+				sc->prevent_suspend_cnt);
 
 	HIF_PCI_AUTOPM_STATS(s, sc, suspended);
 	HIF_PCI_AUTOPM_STATS(s, sc, suspend_err);
@@ -831,6 +833,23 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 		seq_printf(s, "%30s: %d.%03ds\n", "Prevent suspend timeout",
 				msecs_age / 1000, msecs_age % 1000);
 	}
+
+	spin_lock_irqsave(&sc->runtime_lock, flags);
+	if (list_empty(&sc->prevent_suspend_list)) {
+		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+		return 0;
+	}
+
+	seq_printf(s, "%30s: ", "Active Wakeup_Sources");
+	list_for_each_entry(ctx, &sc->prevent_suspend_list, list) {
+		seq_printf(s, "%s", ctx->name);
+		if (ctx->timeout)
+			seq_printf(s, "(%d ms)", ctx->timeout);
+		seq_puts(s, " ");
+	}
+	seq_puts(s, "\n");
+	spin_unlock_irqrestore(&sc->runtime_lock, flags);
+
 	return 0;
 #undef HIF_PCI_AUTOPM_STATS
 }
@@ -840,12 +859,193 @@ static int hif_pci_autopm_open(struct inode *inode, struct file *file)
 	return single_open(file, hif_pci_autopm_debugfs_show, inode->i_private);
 }
 
+#ifdef FEATURE_RUNTIME_PM_UNIT_TEST
+/*
+ * This is global runtime context just for unit test framework.
+ * This context should not be used for other purpose.
+ */
+
+#define MAX_RUNTIME_DEBUG_CONTEXT 4
+static struct hif_pm_runtime_context rpm_data[MAX_RUNTIME_DEBUG_CONTEXT];
+
+/**
+ * hif_pm_test() - Calls the API's per context
+ * @sc:	ol_softc context
+ * @context: Runtime PM context
+ * @fn:	function Tag
+ * @delay: delay to add before executing the runtime API
+ *
+ * This API's calls the runtime API's based on the passed
+ * function tag value and adds the dealy before calling them
+ *
+ * Return: void
+ */
+static void hif_pm_test(struct ol_softc *sc,
+			struct hif_pm_runtime_context *context,
+			const char *fn, uint32_t delay)
+{
+	char func = *fn;
+
+	pr_info("%s func:%c delay:%d ctx:%s\n", __func__,
+		func, delay, context ? context->name : "NULL");
+
+	switch (func) {
+	case 'A':
+		msleep(delay * 1000);
+		hif_pm_runtime_allow_suspend(sc, context);
+		break;
+	case 'P':
+		msleep(delay * 1000);
+		hif_pm_runtime_prevent_suspend(sc, context);
+		break;
+	case 'T':
+		hif_pm_runtime_prevent_suspend_timeout(sc, context,
+							delay * 1000);
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * hif_get_context() - Returns the context for unit test framework
+ * @c: value to choose the gloabl context for testing the runtime API's
+ *
+ * Return: void
+ */
+
+static void *hif_get_context(char *c)
+{
+	unsigned int val;
+
+	if (kstrtou32(c, 0, &val))
+		return NULL;
+
+	switch (val) {
+	case 1:
+		rpm_data[0].name = "context_1";
+		break;
+	case 2:
+		rpm_data[1].name = "context_2";
+		break;
+	case 3:
+		rpm_data[2].name = "context_3";
+		break;
+	case 4:
+		rpm_data[3].name = "context_4";
+		break;
+	default:
+		return NULL;
+	}
+	return &rpm_data[val-1];
+}
+
+/**
+ * hif_runtime_test_init() - Initialize the test framework
+ * @sc:	Global hif context
+ * Return: void
+ */
+void hif_runtime_test_init(struct hif_pci_softc *sc)
+{
+	int i;
+	struct hif_pm_runtime_context *ctx = NULL, *tmp;
+	unsigned long flags;
+
+	for (i = 0; i < MAX_RUNTIME_DEBUG_CONTEXT; i++) {
+		ctx = &rpm_data[i];
+		ctx->active = false;
+		ctx->name = NULL;
+		spin_lock_irqsave(&sc->runtime_lock, flags);
+		list_for_each_entry_safe(ctx, tmp,
+				&sc->prevent_suspend_list, list) {
+			list_del(&ctx->list);
+		}
+		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+	}
+}
+
+/**
+ * hif_pci_autopm_write() - Unit Test API to verify the Runtime PM API's
+ *
+ * Usage: "Context=API:Delay:....;Context=API:Delay;"
+ * Context Can be from 1 to 4.
+ * API can be one of the following
+ * T - Prevent Suspend Timeout Version
+ * P - Prevent_suspend
+ * A - Allow Suspend
+ * Delay in sec
+ * Delimiters:
+ * "=" - Seperates context from the API calls
+ * ":" - Seperates API's/Delay
+ * ";" - Seperates two context.
+ *
+ * eg: echo "1=T:5:A:2:P:1;2=T:5;1=A:1;2=A:0" > /d/cnss_runtime_pm
+ * In the above example:
+ * 1=T:4:A:2:P:1 --> This is sequence of calls with context 1
+ * 2=T:5 --> Context 2 is used here
+ * 1=A:1 --> Context 1 can be used to allow the prevented suspend in context 1
+ * 2=A:0 --> Relax the runtime suspend from context 2.
+ *
+ * Only to be used by developers to verify if any changes done in future.
+ */
+
+static ssize_t hif_pci_autopm_write(struct file *fp, const char __user *buf,
+				size_t count, loff_t *off)
+{
+	struct hif_pci_softc *hif_sc;
+	struct ol_softc *sc;
+	char *fmtp, *pattern, *func, *ctxp, *ctx, *data;
+	uint32_t val;
+	struct hif_pm_runtime_context *context = NULL;
+
+	hif_sc = ((struct seq_file *)fp->private_data)->private;
+	if (!hif_sc)
+		return -EINVAL;
+
+	sc = hif_sc->ol_sc;
+
+	pattern = adf_os_mem_alloc(NULL, count);
+	if (!pattern)
+		return -ENOMEM;
+
+	if (copy_from_user(pattern, buf, count)) {
+		adf_os_mem_free(pattern);
+		return -EFAULT;
+	}
+
+	hif_runtime_test_init(hif_sc);
+
+	ctxp = pattern;
+	while (ctxp) {
+		ctx = strsep(&ctxp, ";");
+		while (ctx) {
+			data = strsep(&ctx, "=");
+			context = hif_get_context(data);
+			fmtp = strsep(&ctx, "=");
+			while (fmtp) {
+				func = strsep(&fmtp, ":");
+				if (kstrtou32(strsep(&fmtp, ":"), 0, &val)) {
+					adf_os_mem_free(pattern);
+					return -EFAULT;
+				}
+				hif_pm_test(sc, context, func, val);
+			}
+		}
+	}
+	adf_os_mem_free(pattern);
+	return count;
+}
+#endif
+
 static const struct file_operations hif_pci_autopm_fops = {
 	.owner		= THIS_MODULE,
 	.open		= hif_pci_autopm_open,
 	.release	= single_release,
 	.read		= seq_read,
 	.llseek		= seq_lseek,
+#ifdef FEATURE_RUNTIME_PM_UNIT_TEST
+	.write		= hif_pci_autopm_write,
+#endif
 };
 
 static int __hif_pci_runtime_suspend(struct pci_dev *pdev)
@@ -1052,6 +1252,7 @@ static void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc)
 
 	adf_os_atomic_init(&sc->pm_state);
 	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_NONE);
+	INIT_LIST_HEAD(&sc->prevent_suspend_list);
 }
 
 static void hif_pci_pm_runtime_init(struct hif_pci_softc *sc)
@@ -1083,9 +1284,7 @@ static void hif_pci_pm_runtime_init(struct hif_pci_softc *sc)
 
 static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
 {
-	struct ol_softc *ol_sc;
-
-	ol_sc = sc->ol_sc;
+	struct ol_softc *ol_sc = sc->ol_sc;
 
 	if (!ol_sc->enable_runtime_pm)
 		return;
@@ -1095,26 +1294,22 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
 		return;
 
 	hif_pm_runtime_resume(sc->dev);
+
 	cnss_runtime_exit(sc->dev);
+	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_NONE);
+
 	hif_pci_pm_debugfs(sc, false);
-
 	del_timer_sync(&sc->runtime_timer);
-
-	if (sc->runtime_timer_expires > 0) {
-		hif_pm_runtime_put_auto(sc->dev);
-		sc->runtime_timer_expires = 0;
-	}
-
 	cnss_flush_work(&sc->pm_work);
 }
 
 /**
  * hif_pci_pm_runtime_post_exit() - API to check the sanity of Runtime PM
- * @sc: hif_pci_softc context
+ * @sc:	hif_pci_softc context
  *
  * API is used to check if any mismatch in runtime usage count and
  * to ensure we fix it before driver unload.
- * Ideally the conditions in this API shouldn't hit.
+ * Ideally the conditions in this API shouldn't hit
  * This prevention is needed to ensure Runtime PM wont be disabled
  * for ever with mismatch in usage count.
  *
@@ -1122,13 +1317,28 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
  */
 static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 {
+	unsigned long flags;
+	struct hif_pm_runtime_context *ctx, *tmp;
+
 	/*
 	 * The usage_count should be one at this state, as all the
 	 * HTT/WMI pkts should get tx complete and driver should
 	 * will increment the usage count to 1 to prevent any suspend
 	 */
-	if (atomic_read(&sc->dev->power.usage_count) != 1)
-		hif_pci_runtime_pm_warn(sc, "Driver UnLoaded");
+	if (atomic_read(&sc->dev->power.usage_count) != 1) {
+		spin_lock_irqsave(&sc->runtime_lock, flags);
+		hif_pci_runtime_pm_warn(sc, "Driver UnLoading");
+		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+	} else
+		return;
+
+	spin_lock_irqsave(&sc->runtime_lock, flags);
+	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
+		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+		hif_runtime_pm_prevent_suspend_deinit(ctx);
+		spin_lock_irqsave(&sc->runtime_lock, flags);
+	}
+	spin_unlock_irqrestore(&sc->runtime_lock, flags);
 	/*
 	 * This is totally a preventive measure to ensure Runtime PM
 	 * isn't disabled for life time.
@@ -1142,9 +1352,8 @@ static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 		atomic_set(&sc->dev->power.usage_count, 1);
 
 	while (atomic_read(&sc->dev->power.usage_count) != 1)
-		hif_pm_runtime_put_auto(sc->dev);
+		pm_runtime_put_noidle(sc->dev);
 }
-
 #else
 static inline void hif_pci_pm_runtime_init(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc) { }

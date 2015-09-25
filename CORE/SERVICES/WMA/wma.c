@@ -6272,6 +6272,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->htc_handle = htc_handle;
 	wma_handle->vos_context = vos_context;
 	wma_handle->adf_dev = adf_dev;
+	wma_handle->runtime_pm_ctx =
+			vos_runtime_pm_prevent_suspend_init("wma_runtime_pm");
 
 	/* initialize default target config */
 	wma_set_default_tgt_config(wma_handle);
@@ -6633,6 +6635,9 @@ err_wma_handle:
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
+
+	vos_runtime_pm_prevent_suspend_deinit(wma_handle->runtime_pm_ctx);
+	wma_handle->runtime_pm_ctx = NULL;
 	vos_free_context(vos_context, VOS_MODULE_ID_WDA, wma_handle);
 
 	WMA_LOGD("%s: Exit", __func__);
@@ -15537,7 +15542,7 @@ out:
 static void wma_add_pm_vote(tp_wma_handle wma)
 {
 	if (++wma->ap_client_cnt == 1) {
-		htc_pm_runtime_get(wma->htc_handle);
+		vos_runtime_pm_prevent_suspend(wma->runtime_pm_ctx);
 		vos_pm_control(DISABLE_PCIE_POWER_COLLAPSE);
 	}
 }
@@ -15545,7 +15550,7 @@ static void wma_add_pm_vote(tp_wma_handle wma)
 static void wma_del_pm_vote(tp_wma_handle wma)
 {
 	if (--wma->ap_client_cnt == 0) {
-		htc_pm_runtime_put(wma->htc_handle);
+		vos_runtime_pm_allow_suspend(wma->runtime_pm_ctx);
 		vos_pm_control(ENABLE_PCIE_POWER_COLLAPSE);
 	}
 }
@@ -29068,6 +29073,9 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
+
+	vos_runtime_pm_prevent_suspend_deinit(wma_handle->runtime_pm_ctx);
+	wma_handle->runtime_pm_ctx = NULL;
 
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);

@@ -122,11 +122,12 @@ struct hif_pci_softc {
     int htc_endpoint;
 #ifdef FEATURE_RUNTIME_PM
     atomic_t pm_state;
-    atomic_t prevent_suspend_cnt;
+    uint32_t prevent_suspend_cnt;
     struct hif_pci_pm_stats pm_stats;
     struct work_struct pm_work;
     struct spinlock runtime_lock;
     struct timer_list runtime_timer;
+    struct list_head prevent_suspend_list;
     unsigned long runtime_timer_expires;
 #ifdef WLAN_OPEN_SOURCE
     struct dentry *pm_dentry;

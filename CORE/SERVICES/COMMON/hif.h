@@ -837,13 +837,30 @@ void HIFSetMailboxSwap(HIF_DEVICE  *device);
  */
 int hif_pm_runtime_get(HIF_DEVICE *);
 int hif_pm_runtime_put(HIF_DEVICE *);
+void *hif_runtime_pm_prevent_suspend_init(const char *);
+void hif_runtime_pm_prevent_suspend_deinit(void *data);
+int hif_pm_runtime_prevent_suspend(void *ol_sc, void *data);
+int hif_pm_runtime_allow_suspend(void *ol_sc, void *data);
+int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, void *data,
+						unsigned int delay);
 #else
 static inline int hif_pm_runtime_get(HIF_DEVICE *device) { return 0; }
 static inline int hif_pm_runtime_put(HIF_DEVICE *device) { return 0; }
+static inline int
+hif_pm_runtime_prevent_suspend(void *ol_sc, void *context) { return 0; }
+static inline int
+hif_pm_runtime_allow_suspend(void *ol_sc, void *context) { return 0; }
+static inline int
+hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, void *context,
+						unsigned int msec)
+{
+	return 0;
+}
+static inline void *
+hif_runtime_pm_prevent_suspend_init(const char *name) { return NULL; }
+static inline void
+hif_runtime_pm_prevent_suspend_deinit(void *context) { }
 #endif
-int hif_pm_runtime_prevent_suspend(void *ol_sc);
-int hif_pm_runtime_allow_suspend(void *ol_sc);
-int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, unsigned int delay);
 #ifdef __cplusplus
 }
 #endif

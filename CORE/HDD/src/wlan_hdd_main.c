@@ -8137,6 +8137,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       /* set pWlanDev's parent to underlying device */
       SET_NETDEV_DEV(pWlanDev, pHddCtx->parent_dev);
       hdd_wmm_init( pAdapter );
+      pAdapter->runtime_ctx = vos_runtime_pm_prevent_suspend_init(name);
    }
 
    return pAdapter;
@@ -8477,6 +8478,8 @@ void hdd_cleanup_adapter(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       return;
    }
 
+   vos_runtime_pm_prevent_suspend_deinit(pAdapter->runtime_ctx);
+   pAdapter->runtime_ctx = NULL;
    /* The adapter is marked as closed. When hdd_wlan_exit() call returns,
     * the driver is almost closed and cannot handle either control
     * messages or data. However, unregister_netdevice() call above will
@@ -9225,6 +9228,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    return pAdapter;
 
 err_free_netdev:
+   vos_runtime_pm_prevent_suspend_deinit(pAdapter->runtime_ctx);
+   pAdapter->runtime_ctx = NULL;
    free_netdev(pAdapter->dev);
    wlan_hdd_release_intf_addr( pHddCtx,
                                pAdapter->macAddressCurrent.bytes );
@@ -9658,10 +9663,12 @@ void hdd_connect_result(struct net_device *dev,
 			u16 status,
 			gfp_t gfp)
 {
+	hdd_adapter_t *padapter = (hdd_adapter_t *) netdev_priv(dev);
 
 	cfg80211_connect_result(dev, bssid, req_ie, req_ie_len,
 				resp_ie, resp_ie_len, status, gfp);
-	vos_runtime_pm_allow_suspend();
+
+	vos_runtime_pm_allow_suspend(padapter->runtime_ctx);
 }
 
 

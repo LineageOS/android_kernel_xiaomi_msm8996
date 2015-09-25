@@ -71,14 +71,19 @@ typedef struct vos_lock_s
 
 typedef spinlock_t vos_spin_lock_t;
 
+typedef struct wlan_wake_lock {
 #if defined CONFIG_CNSS
-typedef struct wakeup_source vos_wake_lock_t;
+	struct wakeup_source lock;
 #elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
-typedef struct wake_lock vos_wake_lock_t;
+	struct wake_lock lock;
 #else
-typedef int vos_wake_lock_t;
+	int lock;
 #endif
+	/* Runtime PM Context */
+	void *runtime_pm_context;
+} vos_wake_lock_t;
 
+typedef void *runtime_pm_context_t;
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
