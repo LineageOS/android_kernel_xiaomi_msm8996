@@ -4877,7 +4877,7 @@ void csr_roam_reset_roam_params(tpAniSirGlobal mac_ctx)
 	/* clear all the whitelist parameters,
 	 * remaining needs to be retained across connections. */
 
-	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
 			FL("Roaming parameters are reset"));
 	roam_params = &mac_ctx->roam.configParam.roam_params;
 	roam_params->num_ssid_allowed_list = 0;

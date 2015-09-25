@@ -2892,7 +2892,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
            case eWNI_SME_CH_AVOID_IND:
                 if (pMac->sme.pChAvoidNotificationCb)
                 {
-                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                              "%s: CH avoid notification", __func__);
                    pMac->sme.pChAvoidNotificationCb(pMac->hHdd, pMsg->bodyptr);
                 }
@@ -8716,10 +8716,8 @@ eHalStatus sme_8023MulticastList (tHalHandle hHal, tANI_U8 sessionId, tpSirRcvFl
         pSession = CSR_GET_SESSION( pMac, sessionId );
     }
 
-    if(pSession == NULL )
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Unable to find "
-            "the session Id: %d", __func__, sessionId);
+    if (pSession == NULL) {
+        smsLog(pMac, LOGW, FL("Unable to find the session Id: %d"), sessionId);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -14569,10 +14567,9 @@ VOS_STATUS sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
             return eHAL_STATUS_FAILURE;
         }
 
-        if ( !pSession->QosMapSet.present )
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                     "%s: QOS Mapping IE not present", __func__);
+        if (!pSession->QosMapSet.present) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
+                     FL("QOS Mapping IE not present"));
             sme_ReleaseGlobalLock( &pMac->sme);
             return eHAL_STATUS_FAILURE;
         }

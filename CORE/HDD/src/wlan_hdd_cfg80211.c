@@ -6454,11 +6454,9 @@ static int __wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
     if (0 != status)
         return -EINVAL ;
 
-    if (!pAdapter->isLinkLayerStatsSet)
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL,
-               "%s: isLinkLayerStatsSet : %d",
-               __func__, pAdapter->isLinkLayerStatsSet);
+    if (!pAdapter->isLinkLayerStatsSet) {
+        hddLog(LOGW, FL("isLinkLayerStatsSet : %d"),
+               pAdapter->isLinkLayerStatsSet);
         return -EINVAL;
     }
 
@@ -8668,7 +8666,7 @@ static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 	}
 	start_log.ring_id = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_RING_ID]);
-	hddLog(LOGE, FL("Ring ID=%d"), start_log.ring_id);
+	hddLog(LOG1, FL("Ring ID=%d"), start_log.ring_id);
 
 	/* Parse and fetch verbose level */
 	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL]) {
@@ -8677,7 +8675,7 @@ static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 	}
 	start_log.verbose_level = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_VERBOSE_LEVEL]);
-	hddLog(LOGE, FL("verbose_level=%d"), start_log.verbose_level);
+	hddLog(LOG1, FL("verbose_level=%d"), start_log.verbose_level);
 
 	/* Parse and fetch flag */
 	if (!tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS]) {
@@ -8686,7 +8684,7 @@ static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 	}
 	start_log.flag = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_WIFI_LOGGER_FLAGS]);
-	hddLog(LOGE, FL("flag=%d"), start_log.flag);
+	hddLog(LOG1, FL("flag=%d"), start_log.flag);
 
 	vos_set_ring_log_level(start_log.ring_id, start_log.verbose_level);
 
@@ -10177,11 +10175,7 @@ int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
     {
 
         if (NULL == wiphy->bands[i])
-        {
-           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy->bands[i] is NULL, i = %d",
-                  __func__, i);
            continue;
-        }
 
         for (j = 0; j < wiphy->bands[i]->n_channels; j++)
         {
@@ -10385,11 +10379,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
    {
 
        if (NULL == wiphy->bands[i])
-       {
-          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy->bands[i] is NULL, i = %d",
-                 __func__, i);
           continue;
-       }
 
        for (j = 0; j < wiphy->bands[i]->n_channels; j++)
        {
@@ -16492,14 +16482,10 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 
     ENTER();
 
-    if (!cipher)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: received cipher %d - considering none",
-                __func__, cipher);
+    if (!cipher) {
+        hddLog(LOG1, FL("received cipher %d - considering none"), cipher);
         encryptionType = eCSR_ENCRYPT_TYPE_NONE;
-    }
-    else
-    {
+    } else {
 
         /*set encryption method*/
         switch (cipher)
@@ -17264,6 +17250,69 @@ disconnected:
     return result;
 }
 
+/**
+ * hdd_ieee80211_reason_code_to_str() - return string conversion of reason code
+ * @reason: ieee80211 reason code.
+ *
+ * This utility function helps log string conversion of reason code.
+ *
+ * Return: string conversion of reason code, if match found;
+ *         "Unknown" otherwise.
+ */
+static const char *hdd_ieee80211_reason_code_to_str(uint16_t reason)
+{
+	switch (reason) {
+	CASE_RETURN_STRING(WLAN_REASON_UNSPECIFIED);
+	CASE_RETURN_STRING(WLAN_REASON_PREV_AUTH_NOT_VALID);
+	CASE_RETURN_STRING(WLAN_REASON_DEAUTH_LEAVING);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_AP_BUSY);
+	CASE_RETURN_STRING(WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA);
+	CASE_RETURN_STRING(WLAN_REASON_CLASS3_FRAME_FROM_NONASSOC_STA);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_STA_HAS_LEFT);
+	CASE_RETURN_STRING(WLAN_REASON_STA_REQ_ASSOC_WITHOUT_AUTH);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_BAD_POWER);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_BAD_SUPP_CHAN);
+	CASE_RETURN_STRING(WLAN_REASON_INVALID_IE);
+	CASE_RETURN_STRING(WLAN_REASON_MIC_FAILURE);
+	CASE_RETURN_STRING(WLAN_REASON_4WAY_HANDSHAKE_TIMEOUT);
+	CASE_RETURN_STRING(WLAN_REASON_GROUP_KEY_HANDSHAKE_TIMEOUT);
+	CASE_RETURN_STRING(WLAN_REASON_IE_DIFFERENT);
+	CASE_RETURN_STRING(WLAN_REASON_INVALID_GROUP_CIPHER);
+	CASE_RETURN_STRING(WLAN_REASON_INVALID_PAIRWISE_CIPHER);
+	CASE_RETURN_STRING(WLAN_REASON_INVALID_AKMP);
+	CASE_RETURN_STRING(WLAN_REASON_UNSUPP_RSN_VERSION);
+	CASE_RETURN_STRING(WLAN_REASON_INVALID_RSN_IE_CAP);
+	CASE_RETURN_STRING(WLAN_REASON_IEEE8021X_FAILED);
+	CASE_RETURN_STRING(WLAN_REASON_CIPHER_SUITE_REJECTED);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_UNSPECIFIED_QOS);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_QAP_NO_BANDWIDTH);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_LOW_ACK);
+	CASE_RETURN_STRING(WLAN_REASON_DISASSOC_QAP_EXCEED_TXOP);
+	CASE_RETURN_STRING(WLAN_REASON_QSTA_LEAVE_QBSS);
+	CASE_RETURN_STRING(WLAN_REASON_QSTA_NOT_USE);
+	CASE_RETURN_STRING(WLAN_REASON_QSTA_REQUIRE_SETUP);
+	CASE_RETURN_STRING(WLAN_REASON_QSTA_TIMEOUT);
+	CASE_RETURN_STRING(WLAN_REASON_QSTA_CIPHER_NOT_SUPP);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_PEER_CANCELED);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_MAX_PEERS);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_CONFIG);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_CLOSE);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_MAX_RETRIES);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_CONFIRM_TIMEOUT);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_INVALID_GTK);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_INCONSISTENT_PARAM);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_INVALID_SECURITY);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_PATH_ERROR);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_PATH_NOFORWARD);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_PATH_DEST_UNREACHABLE);
+	CASE_RETURN_STRING(WLAN_REASON_MAC_EXISTS_IN_MBSS);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_CHAN_REGULATORY);
+	CASE_RETURN_STRING(WLAN_REASON_MESH_CHAN);
+	default:
+		return "Unknown";
+	}
+}
 
 /*
  * FUNCTION: __wlan_hdd_cfg80211_disconnect
@@ -17369,7 +17418,9 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
             }
         }
 #endif
-        hddLog(LOG1, FL("Disconnecting with reasoncode:%u"), reasonCode);
+        hddLog(LOGE,
+               FL("Disconnect request from user space with reason: %s"),
+               hdd_ieee80211_reason_code_to_str(reason));
         status = wlan_hdd_disconnect(pAdapter, reasonCode);
         if (0 != status) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("failure, returned %d"), status);
@@ -21195,11 +21246,7 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     for (i = 0; i < IEEE80211_NUM_BANDS; i++)
     {
         if (NULL == wiphy->bands[i])
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                     "%s: wiphy->bands[i] is NULL, i = %d", __func__, i);
            continue;
-        }
 
         for (j = 0; j < wiphy->bands[i]->n_channels; j++)
         {

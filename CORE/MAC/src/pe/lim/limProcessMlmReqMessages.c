@@ -4007,10 +4007,10 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
         /**
          * Issue MLM join confirm with timeout reason code
          */
-        PELOGE(limLog(pMac, LOGE,  FL(" In state eLIM_MLM_WT_JOIN_BEACON_STATE."));)
-        PELOGE(limLog(pMac, LOGE,  FL(" Join Failure Timeout occurred for session %d with BSS "),
-                                        psessionEntry->peSessionId);
-                                        limPrintMacAddr(pMac, psessionEntry->bssId, LOGE);)
+        PELOGE(limLog(pMac, LOGE,
+            FL("Join Failure Timeout, In eLIM_MLM_WT_JOIN_BEACON_STATE session: %d"),
+            psessionEntry->peSessionId);
+            limPrintMacAddr(pMac, psessionEntry->bssId, LOGE);)
 
         mlmJoinCnf.resultCode = eSIR_SME_JOIN_TIMEOUT_RESULT_CODE;
         mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;

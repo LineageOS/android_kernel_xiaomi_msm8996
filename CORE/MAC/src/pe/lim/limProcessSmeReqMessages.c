@@ -1943,14 +1943,10 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     SIR_MAC_CISCO_OUI_SIZE,
                    ((tANI_U8 *)&pSmeJoinReq->bssDescription.ieFields) , ieLen);
 
-        if ( NULL != vendorIE )
-        {
-            limLog(pMac, LOGE,
-                   FL("DUT is trying to connect to Cisco AP"));
+        if (NULL != vendorIE) {
+            limLog(pMac, LOG1, FL("Cisco vendor OUI present"));
             psessionEntry->isCiscoVendorAP = TRUE;
-        }
-        else
-        {
+        } else {
             psessionEntry->isCiscoVendorAP = FALSE;
         }
 

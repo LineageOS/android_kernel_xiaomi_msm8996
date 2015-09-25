@@ -3783,7 +3783,7 @@ eHalStatus limSendDisassocCnf(tpAniSirGlobal pMac)
                 (pMlmDisassocReq->reasonCode !=
                  eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
         {
-            PELOGE(limLog(pMac, LOGE,
+            PELOGE(limLog(pMac, LOG1,
                    FL("FT Preauth Session (%p,%d) Clean up"),
                    psessionEntry, psessionEntry->peSessionId););
 

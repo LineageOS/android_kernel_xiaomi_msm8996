@@ -13419,6 +13419,14 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             *pBuf = 0;
             pBuf++;
         }
+        smsLog(pMac, LOGE,
+               "Connecting to ssid:%.*s bssid: "
+               MAC_ADDRESS_STR" rssi: %d channel: %d country_code: %c%c",
+               pIes->SSID.num_ssid, pIes->SSID.ssid,
+               MAC_ADDR_ARRAY(pBssDescription->bssId),
+               pBssDescription->rssi, pBssDescription->channelId,
+               pMac->scan.countryCodeCurrent[0],
+               pMac->scan.countryCodeCurrent[1]);
         // selfMacAddr
         vos_mem_copy((tSirMacAddr *)pBuf, &pSession->selfMacAddr,
                      sizeof(tSirMacAddr));

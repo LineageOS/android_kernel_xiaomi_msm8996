@@ -1940,7 +1940,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 	tl_shim->delay_interval = tl_cfg->uDelayedTriggerFrmInt;
 	tl_shim->enable_rxthread = tl_cfg->enable_rxthread;
 	if (tl_shim->enable_rxthread)
-		TLSHIM_LOGE("TL Shim RX thread enabled");
+		TLSHIM_LOGD("TL Shim RX thread enabled");
 
 	return status;
 }
