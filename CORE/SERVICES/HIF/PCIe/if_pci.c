@@ -788,7 +788,7 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 #define HIF_PCI_AUTOPM_STATS(_s, _sc, _name) \
 	seq_printf(_s, "%30s: %u\n", #_name, _sc->pm_stats._name)
 	struct hif_pci_softc *sc = s->private;
-	char *autopm_state[] = {"ON", "INPROGRESS", "SUSPENDED"};
+	char *autopm_state[] = {"NONE", "ON", "INPROGRESS", "SUSPENDED"};
 	unsigned int msecs_age;
 	int pm_state = atomic_read(&sc->pm_state);
 	unsigned long timer_expires;
@@ -820,6 +820,7 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 	HIF_PCI_AUTOPM_STATS(s, sc, allow_suspend);
 	HIF_PCI_AUTOPM_STATS(s, sc, prevent_suspend_timeout);
 	HIF_PCI_AUTOPM_STATS(s, sc, allow_suspend_timeout);
+	HIF_PCI_AUTOPM_STATS(s, sc, runtime_get_err);
 	timer_expires = sc->runtime_timer_expires;
 	if (timer_expires > 0) {
 		msecs_age = jiffies_to_msecs(timer_expires - jiffies);
@@ -1046,7 +1047,7 @@ static void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc)
 			(unsigned long)sc);
 
 	adf_os_atomic_init(&sc->pm_state);
-	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_ON);
+	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_NONE);
 }
 
 static void hif_pci_pm_runtime_init(struct hif_pci_softc *sc)
@@ -1072,6 +1073,7 @@ static void hif_pci_pm_runtime_init(struct hif_pci_softc *sc)
 
 	cnss_init_work(&sc->pm_work, hif_pci_pm_work);
 	cnss_runtime_init(sc->dev, ol_sc->runtime_pm_delay);
+	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_ON);
 	hif_pci_pm_debugfs(sc, true);
 }
 
@@ -1101,10 +1103,49 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
 
 	cnss_flush_work(&sc->pm_work);
 }
+
+/**
+ * hif_pci_pm_runtime_post_exit() - API to check the sanity of Runtime PM
+ * @sc: hif_pci_softc context
+ *
+ * API is used to check if any mismatch in runtime usage count and
+ * to ensure we fix it before driver unload.
+ * Ideally the conditions in this API shouldn't hit.
+ * This prevention is needed to ensure Runtime PM wont be disabled
+ * for ever with mismatch in usage count.
+ *
+ * Return: void
+ */
+static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
+{
+	/*
+	 * The usage_count should be one at this state, as all the
+	 * HTT/WMI pkts should get tx complete and driver should
+	 * will increment the usage count to 1 to prevent any suspend
+	 */
+	if (atomic_read(&sc->dev->power.usage_count) != 1)
+		hif_pci_runtime_pm_warn(sc, "Driver UnLoaded");
+	/*
+	 * This is totally a preventive measure to ensure Runtime PM
+	 * isn't disabled for life time.
+	 * To debug such scenarios, we can set dev->power.disable_depth > 0
+	 * or set dev->power.runtime_error. So Runtime PM callbacks won't
+	 * get called.
+	 * When usage_count is negative, kernel Runtime PM framework continues
+	 * to call runtime suspend, and we may see weird issues.
+	 */
+	if (atomic_read(&sc->dev->power.usage_count) <= 0)
+		atomic_set(&sc->dev->power.usage_count, 1);
+
+	while (atomic_read(&sc->dev->power.usage_count) != 1)
+		hif_pm_runtime_put_auto(sc->dev);
+}
+
 #else
 static inline void hif_pci_pm_runtime_init(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc) { }
+static inline void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc) { }
 #endif
 
 int
@@ -2056,6 +2097,7 @@ hif_pci_remove(struct pci_dev *pdev)
 
     hif_dump_pipe_debug_count(sc->hif_device);
 
+    hif_pci_pm_runtime_post_exit(sc);
     hif_deinit_adf_ctx(scn);
     A_FREE(scn);
     A_FREE(sc->hif_device);
@@ -2117,6 +2159,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     pci_disable_msi(pdev);
 
+    hif_pci_pm_runtime_post_exit(sc);
     hif_deinit_adf_ctx(scn);
     A_FREE(scn);
     A_FREE(sc->hif_device);
@@ -2245,10 +2288,6 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         goto out;
     }
 
-    printk("%s: %swow mode %d event %d\n", __func__,
-            runtime_pm ? "for runtime pm " : "",
-       wma_is_wow_mode_selected(temp_module), state.event);
-
     if (wma_is_wow_mode_selected(temp_module)) {
           if(wma_enable_wow_in_fw(temp_module, runtime_pm))
             goto out;
@@ -2278,7 +2317,7 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
                goto out;
             }
         }
-        printk("%s: Waiting for CE to finish access: \n", __func__);
+        pr_debug("%s: Waiting for CE to finish access: \n", __func__);
         msleep(10);
     }
 
@@ -2337,8 +2376,10 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         pci_write_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, (val & 0xffffff00) | 0x03);
     }
 
-    printk("%s: Suspend completes%s\n", __func__,
-            runtime_pm ? " for runtime pm" : "");
+    pr_info("%s: Suspend completes%s in%s mode event:%d device_state:%d\n",
+                   __func__, runtime_pm ? " for runtime pm" : "",
+                   wma_is_wow_mode_selected(temp_module) ? " wow" : " pdev",
+                   state.event, val);
     ret = 0;
 
 out:
@@ -2418,8 +2459,6 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
 
-    printk("%s: Rome PS: %d\n", __func__, val);
-
 #ifdef CONFIG_CNSS
     /* Keep PCIe bus driver's shadow memory intact */
     cnss_pcie_shadow_control(pdev, TRUE);
@@ -2443,10 +2482,6 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
         goto out;
     }
 
-    printk("%s: %swow mode %d val %d\n", __func__,
-            runtime_pm ? "for runtime pm " : "",
-            wma_is_wow_mode_selected(temp_module), val);
-
     adf_os_atomic_set(&sc->wow_done, 0);
 
     if (!wma_is_wow_mode_selected(temp_module) &&
@@ -2465,12 +2500,14 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
     }
 #endif
 
+    pr_info("%s: Resume completes%s in%s mode\n", __func__,
+                runtime_pm ? " for runtime pm" : "",
+                wma_is_wow_mode_selected(temp_module) ? " wow" : " pdev");
 out:
-    printk("%s: Resume completes%s %d\n", __func__,
-            runtime_pm ? " for runtime pm" : "", err);
-
-    if (err)
+    if (err) {
+        pr_err("%s: resume failed err:%d\n", __func__, err);
         return (-1);
+    }
 
     return (0);
 }
