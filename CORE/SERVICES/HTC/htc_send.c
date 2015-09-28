@@ -415,7 +415,7 @@ static A_STATUS HTCSendBundledNetbuf(HTC_TARGET *target,
 #endif
 
 #if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
-    if((data_len / pEndpoint->TxCreditSize) <= HTC_MAX_MSG_PER_BUNDLE_TX) {
+    if ((data_len / pEndpoint->TxCreditSize) < HTC_MAX_MSG_PER_BUNDLE_TX) {
         target->tx_bundle_stats[data_len / pEndpoint->TxCreditSize]++;
     }
 #endif
