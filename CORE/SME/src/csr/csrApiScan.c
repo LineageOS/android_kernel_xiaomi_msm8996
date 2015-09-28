@@ -8545,6 +8545,12 @@ eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
       vos_mem_free(pParsedFrame);
       return eHAL_STATUS_RESOURCES;
    }
+
+   if ((macHeader->fc.type == SIR_MAC_MGMT_FRAME) &&
+        (macHeader->fc.subType == SIR_MAC_MGMT_PROBE_RSP))
+   {
+        pScanResult->Result.BssDescriptor.fProbeRsp = 1;
+   }
    //Add to scan cache
    csrScanAddResult(pMac, pScanResult, pIesLocal,
                    pPrefNetworkFoundInd->sessionId);
