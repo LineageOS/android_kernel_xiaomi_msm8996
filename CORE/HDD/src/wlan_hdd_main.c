@@ -9795,6 +9795,9 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
          hddLog(VOS_TRACE_LEVEL_INFO,
             "%s: Set HDD connState to eConnectionState_NotConnected",
                    __func__);
+         if (eConnectionState_Associated == pHddStaCtx->conn_info.connState) {
+             wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
+         }
          pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
          init_completion(&pAdapter->disconnect_comp_var);
          sme_RoamDisconnect(pHddCtx->hHal, pAdapter->sessionId,
