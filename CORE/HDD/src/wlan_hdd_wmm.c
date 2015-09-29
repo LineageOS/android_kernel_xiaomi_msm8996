@@ -2312,7 +2312,10 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
 #endif
             )
             {
-                pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid = VOS_FALSE;
+                pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid =
+                        VOS_FALSE;
+                pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed =
+                        VOS_FALSE;
             }
          }
       }
