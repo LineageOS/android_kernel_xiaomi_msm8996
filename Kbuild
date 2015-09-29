@@ -39,6 +39,10 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_MOBILE_ROUTER := y
 	endif
 
+	ifeq ($(CONFIG_ARCH_MDMCALIFORNIUM), y)
+	CONFIG_MOBILE_ROUTER := y
+	endif
+
 	#Flag to enable Legacy Fast Roaming3(LFR3)
 	CONFIG_QCACLD_WLAN_LFR3 := y
 
