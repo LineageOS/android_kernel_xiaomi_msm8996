@@ -67,6 +67,7 @@ typedef struct _HTC_TX_PACKET_INFO {
 #define HTC_TX_PACKET_TAG_USER_DEFINED (HTC_TX_PACKET_TAG_INTERNAL + 9) /* user-defined tags start here */
 #define HTC_TX_PACKET_TAG_BUNDLED      HTC_TX_PACKET_TAG_USER_DEFINED + 1 /* indicate this is bundled TX packet */
 #define HTC_TX_PACKET_TAG_AUTO_PM      HTC_TX_PACKET_TAG_USER_DEFINED + 2 /* indicate this is AUTO PM tagged */
+#define HTC_TX_PACKET_TAG_RUNTIME_PUT  HTC_TX_PACKET_TAG_USER_DEFINED + 3 /* To indicate HTC to do PUT for these packets as these packets doesn't get the tx complete */
 
 #define HTC_TX_PACKET_FLAG_FIXUP_NETBUF (1 << 0)
 
