@@ -122,6 +122,7 @@ typedef  enum  {
     WMI_SERVICE_PACKET_FILTER_OFFLOAD, /* Per vdev packet filters */
     WMI_SERVICE_MGMT_TX_HTT,          /* Mgmt Tx via HTT interface */
     WMI_SERVICE_MGMT_TX_WMI,          /* Mgmt Tx via WMI interface */
+    WMI_SERVICE_EXT_MSG,              /* WMI_SERVICE_READY_EXT msg follows */
 
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;

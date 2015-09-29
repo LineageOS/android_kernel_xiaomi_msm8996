@@ -857,6 +857,9 @@ typedef enum {
     /** Report current temprature of the chip in Celcius degree */
     WMI_PDEV_TEMPERATURE_EVENTID,
 
+    /** Extension of WMI_SERVICE_READY msg with extra target capability info */
+    WMI_SERVICE_READY_EXT_EVENTID,
+
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
     WMI_VDEV_START_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_VDEV),
@@ -1530,6 +1533,14 @@ typedef struct {
          *     wlan_dbs_hw_mode_list[];
          */
 } wmi_service_ready_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_SERVICE_EXT_READY_EVENT */
+    /* which WMI_DBS_CONC_SCAN_CFG setting the FW is initialized with */
+    A_UINT32 default_conc_scan_config_bits;
+    /* which WMI_DBS_FW_MODE_CFG setting the FW is initialized with */
+    A_UINT32 default_fw_config_bits;
+} wmi_service_ready_ext_event_fixed_param;
 
 typedef enum {
     WMI_FW_STA_RTT_INITR =     0x00000001,
