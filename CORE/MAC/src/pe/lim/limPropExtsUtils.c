@@ -105,7 +105,8 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG3, pIE, ieLen );)
     if (sirParseBeaconIE(pMac, pBeaconStruct, pIE, (tANI_U32)ieLen) == eSIR_SUCCESS)
     {
-        if (pBeaconStruct->wmeInfoPresent || pBeaconStruct->wmeEdcaPresent)
+        if (pBeaconStruct->wmeInfoPresent || pBeaconStruct->wmeEdcaPresent
+            || pBeaconStruct->HTCaps.present)
             LIM_BSS_CAPS_SET(WME, *qosCap);
         if (LIM_BSS_CAPS_GET(WME, *qosCap) && pBeaconStruct->wsmCapablePresent)
             LIM_BSS_CAPS_SET(WSM, *qosCap);
