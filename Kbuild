@@ -1064,6 +1064,10 @@ CDEFINES += -DHIF_USB_TASKLET
 endif
 endif
 
+ifneq ($(TARGET_BUILD_VARIANT),user)
+CDEFINES += -DDEBUG_RX_RING_BUFFER
+endif
+
 # enable the MAC Address auto-generation feature
 CDEFINES += -DWLAN_AUTOGEN_MACADDR_FEATURE
 
