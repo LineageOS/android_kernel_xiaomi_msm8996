@@ -21071,6 +21071,15 @@ VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
 	int wmi_pending_cmds;
 	int ret = 0;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+#ifdef CONFIG_CNSS
+	tpAniSirGlobal pmac;
+
+	pmac = vos_get_context(VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pmac) {
+		WMA_LOGE("%s: Unable to get PE context!", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+#endif
 
 	len = sizeof(wmi_d0_wow_enable_disable_cmd_fixed_param);
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
@@ -21095,12 +21104,17 @@ VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
 		HTC_dump_counter_info(wma->htc_handle);
 		if (vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
 			VOS_ASSERT(0);
-			return VOS_STATUS_E_FAILURE;
 		} else {
-			VOS_BUG(0);
-			return VOS_STATUS_E_BUSY;
+#ifdef CONFIG_CNSS
+			if (pmac->sme.enableSelfRecovery) {
+				vos_trigger_recovery();
+			} else {
+				VOS_BUG(0);
+			}
+#endif
 		}
 
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	vos_event_reset(&wma->wma_resume_event);
@@ -21122,11 +21136,17 @@ VOS_STATUS wma_disable_d0wow_in_fw(tp_wma_handle wma)
 			wmi_get_host_credits(wma->wmi_handle));
 		if (vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
 			VOS_ASSERT(0);
-			return VOS_STATUS_E_FAILURE;
 		} else {
-			VOS_BUG(0);
-			return VOS_STATUS_E_FAILURE;
+#ifdef CONFIG_CNSS
+			if (pmac->sme.enableSelfRecovery) {
+				vos_trigger_recovery();
+			} else {
+				VOS_BUG(0);
+			}
+#endif
 		}
+
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	wma->wow.wow_enable_cmd_sent = FALSE;
