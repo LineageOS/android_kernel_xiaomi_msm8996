@@ -417,10 +417,10 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
              ((chan->ic_flags & IEEE80211_CHAN_VHT80) ==
               IEEE80211_CHAN_VHT80) &&
              (chan->ic_pri_freq_center_freq_mhz_separation ==
-                                DFS_TYPE4_WAR_PLUS_30_MHZ_SEPARATION ||
+                                DFS_WAR_PLUS_30_MHZ_SEPARATION ||
               chan->ic_pri_freq_center_freq_mhz_separation ==
-                                DFS_TYPE4_WAR_MINUS_30_MHZ_SEPARATION) &&
-             (re.sidx == DFS_TYPE4_WAR_PEAK_INDEX_ZERO) &&
+                                DFS_WAR_MINUS_30_MHZ_SEPARATION) &&
+             (re.sidx == DFS_WAR_PEAK_INDEX_ZERO) &&
              (re.re_dur > DFS_TYPE4_WAR_PULSE_DURATION_LOWER_LIMIT &&
               re.re_dur < DFS_TYPE4_WAR_PULSE_DURATION_UPPER_LIMIT) &&
              (diff_ts > DFS_TYPE4_WAR_PRI_LOWER_LIMIT &&
@@ -439,6 +439,41 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                  __func__);
 
              re.re_dur = DFS_TYPE4_WAR_VALID_PULSE_DURATION;
+         }
+
+         /*
+          * Modifying the pulse duration for ETSI Type 2
+          * and ETSI type 3 radar pulses when the following
+          * condition is reported in radar summary report.
+          */
+         if ((DFS_ETSI_DOMAIN == dfs->dfsdomain) &&
+             ((chan->ic_flags & IEEE80211_CHAN_VHT80) ==
+              IEEE80211_CHAN_VHT80) &&
+             (chan->ic_pri_freq_center_freq_mhz_separation ==
+                                DFS_WAR_PLUS_30_MHZ_SEPARATION ||
+              chan->ic_pri_freq_center_freq_mhz_separation ==
+                                DFS_WAR_MINUS_30_MHZ_SEPARATION) &&
+             (re.sidx == DFS_WAR_PEAK_INDEX_ZERO) &&
+             (re.re_dur > DFS_ETSI_TYPE2_TYPE3_WAR_PULSE_DUR_LOWER_LIMIT &&
+              re.re_dur < DFS_ETSI_TYPE2_TYPE3_WAR_PULSE_DUR_UPPER_LIMIT) &&
+             ((diff_ts > DFS_ETSI_TYPE2_WAR_PRI_LOWER_LIMIT &&
+               diff_ts < DFS_ETSI_TYPE2_WAR_PRI_UPPER_LIMIT) ||
+              (diff_ts > DFS_ETSI_TYPE3_WAR_PRI_LOWER_LIMIT &&
+               diff_ts < DFS_ETSI_TYPE3_WAR_PRI_UPPER_LIMIT ))) {
+             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                       "\n%s:chan->ic_flags=0x%x, Pri Chan MHz Separation=%d\n",
+                       __func__, chan->ic_flags,
+                       chan->ic_pri_freq_center_freq_mhz_separation);
+
+             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "\n%s: Reported Peak Index = %d,re.re_dur = %d,diff_ts = %d\n",
+                 __func__, re.sidx, re.re_dur, diff_ts);
+
+             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                "\n%s: Modifying the ETSI pulse dur to fit the valid range \n",
+                 __func__);
+
+             re.re_dur  = DFS_ETSI_WAR_VALID_PULSE_DURATION;
          }
 
       /* BIN5 pulses are FCC and Japan specific */
