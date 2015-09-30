@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, 2014-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -195,6 +195,9 @@ typedef struct sRRMCaps
     tANI_U8     triggeredTCM: 1;
     tANI_U8     APChanReport: 1;
     tANI_U8    RRMMIBEnabled: 1;
+    tANI_U8 operatingChanMax: 3;
+    tANI_U8 nonOperatingChanMax: 3;
+    tANI_U8 MeasurementPilot: 3;
     tANI_U8 MeasurementPilotEnabled: 1;
     tANI_U8 NeighborTSFOffset: 1;
     tANI_U8  RCPIMeasurement: 1;
@@ -202,10 +205,9 @@ typedef struct sRRMCaps
     tANI_U8 BssAvgAccessDelay: 1;
     tANI_U8 BSSAvailAdmission: 1;
     tANI_U8 AntennaInformation: 1;
-
-    tANI_U8 operatingChanMax;
-    tANI_U8 nonOperatingChanMax;
-    tANI_U8 MeasurementPilot;
+    tANI_U8 fine_time_meas_rpt: 1;
+    tANI_U8 lci_capability: 1;
+    tANI_U8 reserved: 4;
 }tRRMCaps, *tpRRMCaps;
 
 typedef struct sRrmPEContext

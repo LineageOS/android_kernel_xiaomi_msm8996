@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1275,6 +1275,8 @@ rrmInitialize(tpAniSirGlobal pMac)
    pRRMCaps->BeaconActive = 1;
    pRRMCaps->BeaconTable = 1;
    pRRMCaps->APChanReport = 1;
+   pRRMCaps->fine_time_meas_rpt = 1;
+   pRRMCaps->lci_capability = 1;
 
    pRRMCaps->operatingChanMax = 3;
    pRRMCaps->nonOperatingChanMax = 3;

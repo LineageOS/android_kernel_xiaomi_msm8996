@@ -5405,6 +5405,8 @@ tSirRetStatus PopulateDot11fRRMIe( tpAniSirGlobal pMac, tDot11fIERRMEnabledCap *
    pDot11f->BssAvgAccessDelay       = pRrmCaps->BssAvgAccessDelay ;
    pDot11f->BSSAvailAdmission       = pRrmCaps->BSSAvailAdmission ;
    pDot11f->AntennaInformation      = pRrmCaps->AntennaInformation ;
+   pDot11f->fine_time_meas_rpt      = pRrmCaps->fine_time_meas_rpt;
+   pDot11f->lci_capability          = pRrmCaps->lci_capability;
 
    pDot11f->present = 1;
    return eSIR_SUCCESS;

@@ -2127,7 +2127,9 @@ IE RRMEnabledCap (EID_RRM_ENABLED_CAPS)
      {
           BSSAvailAdmission:       1;
           AntennaInformation:      1;
-          reserved:                6;
+          fine_time_meas_rpt:      1;
+          lci_capability:          1;
+          reserved:                4;
      }
 }
 
