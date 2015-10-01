@@ -6697,6 +6697,7 @@ typedef enum extend_wow_type_e {
     EXTWOW_TYPE_APP_TYPE1,   /* extend wow type: only enable wakeup for app type1 */
     EXTWOW_TYPE_APP_TYPE2,   /* extend wow type: only enable wakeup for app type2 */
     EXTWOW_TYPE_APP_TYPE1_2, /* extend wow type: enable wakeup for app type1&2 */
+    EXTWOW_DISABLED = 255,
 } EXTWOW_TYPE;
 
 typedef struct {
@@ -6742,6 +6743,41 @@ typedef struct {
     wmi_mac_addr gateway_mac;
     A_UINT32 tcp_tx_timeout_val;
     A_UINT32 tcp_rx_timeout_val;
+
+    /** add extra parameter for backward-compatible */
+    /*
+     * For all byte arrays, natural order is used.  E.g.
+     * rc4_write_sandbox[0] holds the 1st RC4 S-box byte,
+     * rc4_write_sandbox[1] holds the 2nd RC4 S-box byte, etc.
+     */
+
+    /* used to encrypt transmit packet such as keep-alive */
+    A_UINT8  rc4_write_sandbox[256];
+    A_UINT32 rc4_write_x;
+    A_UINT32 rc4_write_y;
+
+    /* used to decrypt received packet such as wow data */
+    A_UINT8  rc4_read_sandbox[256];
+    A_UINT32 rc4_read_x;
+    A_UINT32 rc4_read_y;
+
+    /* used to caculate HMAC hash for transmit packet such as keep-alive */
+    A_UINT8  ssl_write_seq[8];
+    A_UINT8  ssl_sha1_write_key[64];
+    A_UINT32 ssl_sha1_write_key_len;
+
+    /* used to calculate HAMC hash for receive packet such as wow data */
+    A_UINT8  ssl_read_seq[8];
+    A_UINT8  ssl_sha1_read_key[64];
+    A_UINT32 ssl_sha1_read_key_len;
+
+    /* optional element for specifying TCP options data to include in
+     * transmit packets such as keep-alive
+     */
+    A_UINT32 tcp_options_len;
+    A_UINT8  tcp_options[40];
+
+    A_UINT32 async_id; /* keep-alive request id */
 } wmi_extwow_set_app_type2_params_cmd_fixed_param;
 
 
