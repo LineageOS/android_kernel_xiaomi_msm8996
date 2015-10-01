@@ -674,28 +674,4 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 	((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
 
-int hif_pm_runtime_prevent_suspend(void *ol_sc)
-{
-	if (usb_sc && usb_sc->interface)
-		return usb_autopm_get_interface_async(usb_sc->interface);
-	else {
-		pr_err("%s: USB interface isn't ready for autopm\n", __func__);
-		return 0;
-	}
-}
-
-int hif_pm_runtime_allow_suspend(void *ol_sc)
-{
-	if (usb_sc && usb_sc->interface)
-		usb_autopm_put_interface_async(usb_sc->interface);
-	else
-		pr_err("%s: USB interface isn't ready for autopm\n", __func__);
-	return 0;
-}
-
-int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, unsigned int delay)
-{
-        return 0;
-}
-
 MODULE_LICENSE("Dual BSD/GPL");

@@ -425,18 +425,3 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
     ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
-
-int hif_pm_runtime_prevent_suspend(void *ol_sc)
-{
-    return 0;
-}
-
-int hif_pm_runtime_allow_suspend(void *ol_sc)
-{
-    return 0;
-}
-
-int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, unsigned int delay)
-{
-        return 0;
-}
