@@ -7816,7 +7816,7 @@ typedef struct {
     A_UINT32 vdev_id;
     /** Enable/Disable TDLS (wmi_tdls_state) */
     A_UINT32 state;
-    /** Duration (in ms) over which to calculate tx threshold and rate values */
+    /** Duration (in ms) over which to calculate tx/rx threshold to trigger TDLS Discovery */
     A_UINT32 notification_interval_ms;
     /** number of packets OVER which notify/suggest TDLS Discovery:
      *  if current tx pps counter / notification interval >= threshold
@@ -7843,6 +7843,8 @@ typedef struct {
     A_UINT32 tdls_puapsd_inactivity_time_ms;
     /* Max of rx frame during SP */
     A_UINT32 tdls_puapsd_rx_frame_threshold;
+    /**Duration (in ms) over which to check whether TDLS link needs to be torn down */
+    A_UINT32 teardown_notification_ms;
 } wmi_tdls_set_state_cmd_fixed_param;
 
 /* WMI_TDLS_PEER_UPDATE_CMDID */
