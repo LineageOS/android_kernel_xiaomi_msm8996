@@ -230,6 +230,7 @@ typedef enum {
     WMI_GRP_OCB,
     WMI_GRP_SOC,
     WMI_GRP_PKT_FILTER,
+    WMI_GRP_MAWC,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -448,6 +449,8 @@ typedef enum {
     WMI_ROAM_FILTER_CMDID,
     /** set gateway ip, mac and retries for subnet change detection */
     WMI_ROAM_SUBNET_CHANGE_CONFIG_CMDID,
+    /** configure thresholds for MAWC */
+    WMI_ROAM_CONFIGURE_MAWC_CMDID,
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -598,6 +601,8 @@ typedef enum {
 
     /** Passpoint list config  */
     WMI_PASSPOINT_LIST_CONFIG_CMDID,
+    /** configure supprssing parameters for MAWC */
+    WMI_NLO_CONFIGURE_MAWC_CMDID,
 
     /* GTK offload Specific WMI commands*/
     WMI_GTK_OFFLOAD_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GTK_OFL),
@@ -786,6 +791,7 @@ typedef enum {
     WMI_EXTSCAN_SET_CAPABILITIES_CMDID,
     WMI_EXTSCAN_GET_CAPABILITIES_CMDID,
     WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID,
+    WMI_EXTSCAN_CONFIGURE_MAWC_CMDID,
 
     /** DHCP server offload commands */
     WMI_SET_DHCP_SERVER_OFFLOAD_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_DHCP_OFL),
@@ -822,6 +828,8 @@ typedef enum {
     WMI_PACKET_FILTER_CONFIG_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_PKT_FILTER),
     WMI_PACKET_FILTER_ENABLE_CMDID,
 
+     /** Motion Aided WiFi Connectivity (MAWC) commands */
+    WMI_MAWC_SENSOR_REPORT_IND_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_MAWC),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -1123,6 +1131,8 @@ typedef enum {
     WMI_SOC_SET_HW_MODE_RESP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SOC),
     WMI_SOC_HW_MODE_TRANSITION_EVENTID,
     WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID,
+    /** Motion Aided WiFi Connectivity (MAWC) events */
+    WMI_MAWC_ENABLE_SENSOR_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MAWC),
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -11356,6 +11366,83 @@ typedef struct {
     A_UINT32 status;
 
 } wmi_soc_set_dual_mac_config_response_event_fixed_param;
+
+typedef enum {
+    MAWC_MOTION_STATE_UNKNOWN,
+    MAWC_MOTION_STATE_STATIONARY,
+    MAWC_MOTION_STATE_WALK,
+    MAWC_MOTION_STATE_TRANSIT,
+} MAWC_MOTION_STATE;
+
+typedef enum {
+    MAWC_SENSOR_STATUS_OK,
+    MAWC_SENSOR_STATUS_FAILED_TO_ENABLE,
+    MAWC_SENSOR_STATUS_SHUTDOWN,
+} MAWC_SENSOR_STATUS;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_mawc_sensor_report_ind_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** new motion state, MAWC_MOTION_STATE */
+    A_UINT32 motion_state;
+    /** status code of sensor, MAWC_SENSOR_STATUS */
+    A_UINT32 sensor_status;
+} wmi_mawc_sensor_report_ind_cmd_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_mawc_enable_sensor_event_fixed_param */
+    A_UINT32 tlv_header;
+    /* enable(1) or disable(0) */
+    A_UINT32 enable;
+} wmi_mawc_enable_sensor_event_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_extscan_configure_mawc_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /* Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /* enable(1) or disable(0) MAWC */
+    A_UINT32 enable;
+    /* ratio of skipping suppressing scan, skip one out of x */
+    A_UINT32 suppress_ratio;
+} wmi_extscan_configure_mawc_cmd_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_nlo_configure_mawc_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /* Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /* enable(1) or disable(0) MAWC */
+    A_UINT32 enable;
+    /* ratio of exponential backoff, next = current + current*ratio/100 */
+    A_UINT32 exp_backoff_ratio;
+    /* initial scan interval(msec) */
+    A_UINT32 init_scan_interval;
+    /* max scan interval(msec) */
+    A_UINT32 max_scan_interval;
+} wmi_nlo_configure_mawc_cmd_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_roam_configure_mawc_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /* Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /* enable(1) or disable(0) MAWC */
+    A_UINT32 enable;
+    /* data traffic load (kBps) to register CMC */
+    A_UINT32 traffic_load_threshold;
+    /* RSSI threshold (dBm) to scan for Best AP */
+    A_UINT32 best_ap_rssi_threshold;
+    /* high RSSI threshold adjustment in Stationary to suppress scan */
+    A_UINT32 rssi_stationary_high_adjust;
+    /* low RSSI threshold adjustment in Stationary to suppress scan */
+    A_UINT32 rssi_stationary_low_adjust;
+} wmi_roam_configure_mawc_cmd_fixed_param;
 
 #define WMI_PACKET_FILTER_COMPARE_DATA_LEN_DWORD     2
 #define WMI_PACKET_FILTER_MAX_CMP_PER_PACKET_FILTER  10

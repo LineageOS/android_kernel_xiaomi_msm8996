@@ -590,6 +590,11 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_lro_info_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_roam_earlystop_rssi_thres_param,
     WMITLV_TAG_STRUC_wmi_service_ready_ext_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mawc_sensor_report_ind_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_mawc_enable_sensor_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_configure_mawc_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_nlo_configure_mawc_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_extscan_configure_mawc_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -819,7 +824,12 @@ typedef enum {
     OP(WMI_SAP_SET_BLACKLIST_PARAM_CMDID) \
     OP(WMI_MGMT_TX_SEND_CMDID) \
     OP(WMI_SOC_SET_ANTENNA_MODE_CMDID) \
-    OP(WMI_WOW_UDP_SVC_OFLD_CMDID)
+    OP(WMI_WOW_UDP_SVC_OFLD_CMDID) \
+    OP(WMI_LRO_CONFIG_CMDID) \
+    OP(WMI_MAWC_SENSOR_REPORT_IND_CMDID) \
+    OP(WMI_ROAM_CONFIGURE_MAWC_CMDID) \
+    OP(WMI_NLO_CONFIGURE_MAWC_CMDID) \
+    OP(WMI_EXTSCAN_CONFIGURE_MAWC_CMDID)
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
  * Otherwise, these WMI TLV Functions will be process them.
@@ -931,7 +941,8 @@ typedef enum {
     OP(WMI_SOC_HW_MODE_TRANSITION_EVENTID) \
     OP(WMI_SOC_SET_DUAL_MAC_CONFIG_RESP_EVENTID) \
     OP(WMI_DIAG_EVENT_LOG_SUPPORTED_EVENTID) \
-    OP(WMI_MGMT_TX_COMPLETION_EVENTID)
+    OP(WMI_MGMT_TX_COMPLETION_EVENTID) \
+    OP(WMI_MAWC_ENABLE_SENSOR_EVENTID)
 
 /* TLV definitions of WMI commands */
 
@@ -2309,6 +2320,26 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SOC_SET_ANTENNA_MODE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lro_info_cmd_fixed_param, wmi_lro_info_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_LRO_CONFIG_CMDID);
 
+/* MAWC sensor report indication cmd */
+#define WMITLV_TABLE_WMI_MAWC_SENSOR_REPORT_IND_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mawc_sensor_report_ind_cmd_fixed_param, wmi_mawc_sensor_report_ind_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MAWC_SENSOR_REPORT_IND_CMDID);
+
+/* Roam configure MAWC cmd */
+#define WMITLV_TABLE_WMI_ROAM_CONFIGURE_MAWC_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_configure_mawc_cmd_fixed_param, wmi_roam_configure_mawc_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_CONFIGURE_MAWC_CMDID);
+
+/* NLO configure MAWC cmd */
+#define WMITLV_TABLE_WMI_NLO_CONFIGURE_MAWC_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_nlo_configure_mawc_cmd_fixed_param, wmi_nlo_configure_mawc_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_NLO_CONFIGURE_MAWC_CMDID);
+
+/* Extscan configure MAWC cmd */
+#define WMITLV_TABLE_WMI_EXTSCAN_CONFIGURE_MAWC_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_extscan_configure_mawc_cmd_fixed_param, wmi_extscan_configure_mawc_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_CONFIGURE_MAWC_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -2910,6 +2941,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PACKET_FILTER_CONFIG_CMDID);
 #define WMITLV_TABLE_WMI_PACKET_FILTER_ENABLE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_packet_filter_enable_fixed_param, WMI_PACKET_FILTER_ENABLE_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PACKET_FILTER_ENABLE_CMDID);
+
+/* MAWC enable/disable sensor event */
+#define WMITLV_TABLE_WMI_MAWC_ENABLE_SENSOR_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mawc_enable_sensor_event_fixed_param, wmi_mawc_enable_sensor_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_MAWC_ENABLE_SENSOR_EVENTID);
 
 #ifdef __cplusplus
 }
