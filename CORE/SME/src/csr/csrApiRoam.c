@@ -17093,6 +17093,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pMac->roam.roamSession[sessionId].connectedProfile.EncryptionType;
     pRequestBuf->ConnectedNetwork.mcencryption =
             pMac->roam.roamSession[sessionId].connectedProfile.mcEncryptionType;
+#ifdef WLAN_FEATURE_11W
+    pRequestBuf->ConnectedNetwork.MFPEnabled =
+           pMac->roam.roamSession[sessionId].connectedProfile.MFPEnabled;
+#endif
     pRequestBuf->delay_before_vdev_stop =
             pNeighborRoamInfo->cfgParams.delay_before_vdev_stop;
     pRequestBuf->OpportunisticScanThresholdDiff =

@@ -3706,6 +3706,9 @@ typedef struct
   tANI_U8     mcencryption;
   tANI_U8     ChannelCount;
   tANI_U8     ChannelCache[SIR_ROAM_MAX_CHANNELS];
+#ifdef WLAN_FEATURE_11W
+  tANI_BOOLEAN MFPEnabled;
+#endif
 
 } tSirRoamNetworkType;
 

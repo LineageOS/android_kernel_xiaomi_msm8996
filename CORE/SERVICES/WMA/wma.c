@@ -9695,6 +9695,10 @@ v_VOID_t wma_roam_scan_fill_ap_profile(tp_wma_handle wma_handle, tpAniSirGlobal 
                 eCsrEncryptionType_to_rsn_cipherset(roam_req->ConnectedNetwork.mcencryption);
         ap_profile_p->rsn_mcastmgmtcipherset = ap_profile_p->rsn_mcastcipherset;
         ap_profile_p->rssi_threshold = roam_req->RoamRssiDiff;
+#ifdef WLAN_FEATURE_11W
+        if (roam_req->ConnectedNetwork.MFPEnabled)
+            ap_profile_p->flags |= WMI_AP_PROFILE_FLAG_PMF;
+#endif
     }
 }
 
