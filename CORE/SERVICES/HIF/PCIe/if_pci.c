@@ -131,6 +131,49 @@ static struct pci_device_id hif_pci_id_table[] = {
 	{ 0 }
 };
 
+/* HIF IRQ History */
+typedef enum {
+	HIF_IRQ,
+	HIF_TASKLET,
+	HIF_CRASH,
+} hif_irq_type;
+
+#ifdef CONFIG_SLUB_DEBUG_ON
+typedef struct {
+	hif_irq_type type;
+	A_UINT64 time;
+	A_UINT32 irq_summary;
+	A_UINT32 fw_indicator;
+} hif_irq_history;
+
+#define HIF_IRQ_HISTORY_MAX 1024
+A_UINT32 g_hif_irq_history_idx = 0;
+hif_irq_history hif_irq_history_buffer[HIF_IRQ_HISTORY_MAX];
+
+void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc)
+{
+	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+	A_target_id_t targid = hif_state->targid;
+
+	if (HIF_IRQ_HISTORY_MAX <= g_hif_irq_history_idx)
+		g_hif_irq_history_idx = 0;
+
+	hif_irq_history_buffer[g_hif_irq_history_idx].type = type;
+	hif_irq_history_buffer[g_hif_irq_history_idx].time = adf_get_boottime();
+
+	HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE);
+	hif_irq_history_buffer[g_hif_irq_history_idx].irq_summary =
+			CE_INTERRUPT_SUMMARY(targid);
+	hif_irq_history_buffer[g_hif_irq_history_idx].fw_indicator =
+			A_TARGET_READ(targid, hif_state->fw_indicator_address);
+	HIFTargetSleepStateAdjust(hif_state->targid, TRUE, FALSE);
+
+	g_hif_irq_history_idx++;
+}
+#else
+void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc) {};
+#endif
+
 #ifndef REMOVE_PKT_LOG
 struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
 #endif
@@ -164,6 +207,8 @@ hif_pci_interrupt_handler(int irq, void *arg)
                 adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
                 return IRQ_HANDLED;
             }
+
+            hif_irq_record(HIF_IRQ, sc);
         }
 
         /* Clear Legacy PCI line interrupts */
@@ -712,6 +757,8 @@ wlan_tasklet(unsigned long data)
     if (adf_os_atomic_read(&sc->wow_done))
 #endif
          goto irq_handled;
+
+    hif_irq_record(HIF_TASKLET, sc);
 
     adf_os_atomic_set(&sc->ce_suspend, 0);
 
@@ -2429,6 +2476,8 @@ void hif_pci_crash_shutdown(struct pci_dev *pdev)
     }
 
     adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+
+    hif_irq_record(HIF_CRASH, sc);
 
 #ifdef DEBUG
     if (hif_pci_check_soc_status(scn->hif_sc)
