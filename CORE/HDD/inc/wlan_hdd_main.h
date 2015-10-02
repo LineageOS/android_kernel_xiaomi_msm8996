@@ -1509,8 +1509,8 @@ struct hdd_context_s
     struct completion ready_to_extwow;
 #endif
 
-    /* Time since boot up to WiFi turn ON (in micro seconds) */
-    v_U64_t wifi_turn_on_time_since_boot;
+    /* Time since boot up to extscan start (in micro seconds) */
+    v_U64_t ext_scan_start_since_boot;
 
     /* RoC request queue and work */
     struct delayed_work rocReqWork;
