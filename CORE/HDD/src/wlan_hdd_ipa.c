@@ -2483,7 +2483,7 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 #ifdef QCA_CONFIG_SMP
 	result = netif_rx_ni(skb);
 #else
-	if (adapter->stats.rx_packets % IPA_WLAN_RX_SOFTIRQ_THRESH == 0)
+	if (hdd_ipa->stats.num_rx_excep % IPA_WLAN_RX_SOFTIRQ_THRESH == 0)
 		result = netif_rx_ni(skb);
 	else
 		result = netif_rx(skb);
