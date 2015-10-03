@@ -959,6 +959,18 @@ enum
 #define CFG_RRM_MEAS_RANDOMIZATION_INTVL_MIN             (10)
 #define CFG_RRM_MEAS_RANDOMIZATION_INTVL_MAX             (100)
 #define CFG_RRM_MEAS_RANDOMIZATION_INTVL_DEFAULT         (100)
+
+/**
+ * This INI is used to configure RM enabled capabilities IE.
+ * Using this INI, we can set/unset any of the bits in 5 bytes
+ * (last 4bytes are reserved). Bit details are updated as per
+ * Draft version of 11mc spec. (Draft P802.11REVmc_D4.2)
+ *
+ * Bitwise details are defined as bit mask in rrmGlobal.h
+ * Comma is used as a separator for each byte.
+ */
+#define CFG_RM_CAPABILITY_NAME            "rm_capability"
+#define CFG_RM_CAPABILITY_DEFAULT         "73,00,6D,00,04"
 #endif
 
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_NAME                 "ImplicitQosIsEnabled"
@@ -3301,6 +3313,8 @@ typedef struct
    v_U8_t        nInChanMeasMaxDuration;
    v_U8_t        nOutChanMeasMaxDuration;
    v_U16_t       nRrmRandnIntvl;
+   /* length includes separator */
+   char          rm_capability[3 * DOT11F_IE_RRMENABLEDCAP_MAX_LEN];
 #endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -4036,7 +4050,9 @@ void hdd_update_tgt_cfg(void *context, void *param);
 bool hdd_dfs_indicate_radar(void *context, void *param);
 
 VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
-               tANI_U8 intArrayMaxLen );
+               tANI_U8 intArrayMaxLen);
+VOS_STATUS hdd_hex_string_to_u8_array(char *str, uint8_t *array, uint8_t *len,
+				      uint8_t array_max_len);
 
 #ifdef MDNS_OFFLOAD
 VOS_STATUS hdd_string_to_string_array(char *data, uint8_t *datalist,

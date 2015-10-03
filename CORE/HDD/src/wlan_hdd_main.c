@@ -9190,7 +9190,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
      hdd_string_to_u8_array( pHddCtx->cfg_ini->enableFwModuleLogLevel,
                              moduleLoglevel,
                              &numEntries,
-                             FW_MODULE_LOG_LEVEL_STRING_LENGTH );
+                             FW_MODULE_LOG_LEVEL_STRING_LENGTH);
      while (count < numEntries)
      {
          /* FW module log level input string looks like below:

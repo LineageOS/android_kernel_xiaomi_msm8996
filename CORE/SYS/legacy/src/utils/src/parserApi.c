@@ -5374,6 +5374,7 @@ tSirRetStatus PopulateDot11fBeaconReport( tpAniSirGlobal pMac, tDot11fIEMeasurem
 tSirRetStatus PopulateDot11fRRMIe( tpAniSirGlobal pMac, tDot11fIERRMEnabledCap *pDot11f, tpPESession    psessionEntry )
 {
    tpRRMCaps pRrmCaps;
+   uint8_t *bytes;
 
    pRrmCaps = rrmGetCapabilities( pMac, psessionEntry );
 
@@ -5409,6 +5410,10 @@ tSirRetStatus PopulateDot11fRRMIe( tpAniSirGlobal pMac, tDot11fIERRMEnabledCap *
    pDot11f->lci_capability          = pRrmCaps->lci_capability;
 
    pDot11f->present = 1;
+   bytes = (uint8_t *) pDot11f + 1; /* ignore present field */
+   limLog(pMac, LOG1, FL("RRM Enabled Cap IE: %02x %02x %02x %02x %02x"),
+                      bytes[0], bytes[1], bytes[2], bytes[3], bytes[4]);
+
    return eSIR_SUCCESS;
 }
 #endif

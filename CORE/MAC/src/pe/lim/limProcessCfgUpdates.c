@@ -722,8 +722,5 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
     }
     pMac->lim.gLimAssocStaLimit = (tANI_U16)val;
 
-#if defined WLAN_FEATURE_VOWIFI
-    rrmUpdateConfig( pMac, psessionEntry );
-#endif
     PELOG1(limLog(pMac, LOG1, FL("Updated Lim shadow state based on CFG"));)
 }

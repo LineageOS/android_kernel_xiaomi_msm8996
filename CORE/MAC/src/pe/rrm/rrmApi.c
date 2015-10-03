@@ -1195,54 +1195,6 @@ tpRRMCaps rrmGetCapabilities ( tpAniSirGlobal pMac,
 
 // --------------------------------------------------------------------
 /**
- * rrmUpdateConfig
- *
- * FUNCTION:
- * Update the configuration. This is called from limUpdateConfig.
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pSessionEntry
- * @return pointer to tRRMCaps
- */
-void rrmUpdateConfig ( tpAniSirGlobal pMac,
-                               tpPESession pSessionEntry )
-{
-   tANI_U32 val;
-   tpRRMCaps pRRMCaps = &pMac->rrm.rrmPEContext.rrmEnabledCaps;
-
-   if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
-   {
-       limLog(pMac, LOGP, FL("cfg get rrm enabled failed"));
-       return;
-   }
-   pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;
-
-   if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-   {
-       limLog(pMac, LOGP, FL("cfg get rrm operating channel max measurement duration failed"));
-       return;
-   }
-   pRRMCaps->operatingChanMax = (tANI_U8)val;
-
-   if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_NON_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-   {
-       limLog(pMac, LOGP, FL("cfg get rrm non-operating channel max measurement duration failed"));
-       return;
-   }
-   pRRMCaps->nonOperatingChanMax =(tANI_U8) val;
-
-   limLog( pMac, LOG1,
-          "RRM enabled = %d  OperatingChanMax = %d  NonOperatingMax = %d",
-          pMac->rrm.rrmPEContext.rrmEnable,
-          pRRMCaps->operatingChanMax, pRRMCaps->nonOperatingChanMax );
-}
-// --------------------------------------------------------------------
-/**
  * rrmInitialize
  *
  * FUNCTION:
@@ -1347,8 +1299,29 @@ void rrmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
       case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:
          rrmProcessBeaconReportXmit( pMac, pMsg->bodyptr );
          break;
+      default:
+         limLog(pMac, LOGE, FL("Invalid msg type:%d"), pMsg->type);
    }
 
 }
 
+/**
+ * lim_update_rrm_capability() - Update PE context's rrm capability
+ * @mac_ctx: Global pointer to MAC context
+ * @join_req: Pointer to SME join request.
+ *
+ * Update PE context's rrm capability based on SME join request.
+ *
+ * Return: None
+ */
+void lim_update_rrm_capability(tpAniSirGlobal mac_ctx,
+                                      tpSirSmeJoinReq join_req)
+{
+	mac_ctx->rrm.rrmPEContext.rrmEnable = join_req->rrm_config.rrm_enabled;
+	vos_mem_copy(&mac_ctx->rrm.rrmPEContext.rrmEnabledCaps,
+		     &join_req->rrm_config.rm_capability,
+		     RMENABLEDCAP_MAX_LEN);
+
+	return;
+}
 #endif

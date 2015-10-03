@@ -1283,6 +1283,13 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    /* Extract rrm config */
+    vos_mem_copy(&pJoinReq->rrm_config, pBuf, sizeof(struct rrm_config_param));
+    pBuf += sizeof(struct rrm_config_param);
+    len -= sizeof(struct rrm_config_param);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     // Extract Spectrum Mgt Indicator
     pJoinReq->spectrumMgtIndicator = (tAniBool) limGetU32(pBuf);
     pBuf += sizeof(tAniBool);

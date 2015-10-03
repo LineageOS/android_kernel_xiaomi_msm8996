@@ -942,7 +942,7 @@ eHalStatus sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 
    pSmeRrmContext->token = pBeaconReq->uDialogToken;
    pSmeRrmContext->regClass = pBeaconReq->channelInfo.regulatoryClass;
-   pSmeRrmContext->randnIntvl = VOS_MAX( pBeaconReq->randomizationInterval, pSmeRrmContext->rrmConfig.maxRandnInterval );
+   pSmeRrmContext->randnIntvl = VOS_MAX(pBeaconReq->randomizationInterval, pSmeRrmContext->rrmConfig.max_randn_interval);
    pSmeRrmContext->currentIndex = 0;
    pSmeRrmContext->msgSource = pBeaconReq->msgSource;
    vos_mem_copy((tANI_U8*)&pSmeRrmContext->measMode, (tANI_U8*)&pBeaconReq->fMeasurementtype, SIR_ESE_MAX_MEAS_IE_REQS);
@@ -1371,7 +1371,7 @@ VOS_STATUS rrmOpen (tpAniSirGlobal pMac)
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
    eHalStatus   halStatus = eHAL_STATUS_SUCCESS;
 
-   pSmeRrmContext->rrmConfig.maxRandnInterval = 50; //ms
+   pSmeRrmContext->rrmConfig.max_randn_interval = 50; //ms
 
    vosStatus = vos_timer_init( &pSmeRrmContext->IterMeasTimer,
 
@@ -1514,11 +1514,13 @@ VOS_STATUS rrmReady (tpAniSirGlobal pMac)
     \return VOS_STATUS
 
   ---------------------------------------------------------------------------*/
-VOS_STATUS rrmChangeDefaultConfigParam(tpAniSirGlobal pMac, tpRrmConfigParam pRrmConfig)
+VOS_STATUS rrmChangeDefaultConfigParam(tpAniSirGlobal pMac,
+				       struct rrm_config_param *pRrmConfig)
 {
-   vos_mem_copy( &pMac->rrm.rrmSmeContext.rrmConfig, pRrmConfig, sizeof( tRrmConfigParam ) );
+	vos_mem_copy(&pMac->rrm.rrmSmeContext.rrmConfig, pRrmConfig,
+		     sizeof(struct rrm_config_param));
 
-   return VOS_STATUS_SUCCESS;
+	return VOS_STATUS_SUCCESS;
 }
 
 /* ---------------------------------------------------------------------------

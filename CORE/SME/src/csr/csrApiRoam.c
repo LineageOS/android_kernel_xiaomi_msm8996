@@ -14003,6 +14003,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             vos_mem_copy(pBuf, &dwTmp, sizeof(tAniBool));
             pBuf += sizeof(tAniBool);
         }
+        /* Fill rrm config parameters */
+        vos_mem_copy(pBuf, &pMac->rrm.rrmSmeContext.rrmConfig,
+                     sizeof(struct rrm_config_param));
+        pBuf += sizeof(struct rrm_config_param);
+
         //BssDesc
         csrPrepareJoinReassocReqBuffer( pMac, pBssDescription, pBuf,
                 (tANI_U8)pProfile->uapsd_mask);
