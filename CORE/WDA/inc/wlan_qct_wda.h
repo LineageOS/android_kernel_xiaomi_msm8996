@@ -1066,6 +1066,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_UPDATE_WEP_DEFAULT_KEY            SIR_HAL_UPDATE_WEP_DEFAULT_KEY
 
+#define WDA_SET_CTS2SELF_FOR_STA              SIR_HAL_SET_CTS2SELF_FOR_STA
+
 
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);

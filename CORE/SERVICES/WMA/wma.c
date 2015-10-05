@@ -12330,6 +12330,9 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	cmd->peer_vht_caps = params->vht_caps;
 #endif
 
+	if (params->p2pCapableSta)
+		cmd->peer_flags |= WMI_PEER_IS_P2P_CAPABLE;
+
 	if (params->rmfEnabled)
 		cmd->peer_flags |= WMI_PEER_PMF;
 
@@ -27881,6 +27884,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			    (struct wep_update_default_key_idx *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_SET_CTS2SELF_FOR_STA:
+			wma_set_cts2self_for_p2p_go(wma_handle, true);
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -31444,6 +31450,36 @@ VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
 	}
 
 	WMA_LOGD("Successfully Set Idle Ps Config %d", idle_ps);
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_cts2self_for_p2p_go() - set CTS2SELF command for P2P GO.
+ * @wda_handle:                  pointer to wma handle.
+ * @cts2self_for_p2p_go:         value needs to set to firmware.
+ *
+ * At the time of driver startup, inform about ini parma to FW that
+ * if legacy client connects to P2P GO, stop using NOA for P2P GO.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS wma_set_cts2self_for_p2p_go(void *wda_handle,
+				    uint32_t cts2self_for_p2p_go)
+{
+	int32_t ret;
+	tp_wma_handle wma = (tp_wma_handle)wda_handle;
+
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+			WMI_PDEV_PARAM_CTS2SELF_FOR_P2P_GO_CONFIG,
+                        cts2self_for_p2p_go);
+	if (ret) {
+		WMA_LOGE("Fail to Set CTS2SELF for p2p GO %d",
+			cts2self_for_p2p_go);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Successfully Set CTS2SELF for p2p GO %d",
+		cts2self_for_p2p_go);
 	return VOS_STATUS_SUCCESS;
 }
 

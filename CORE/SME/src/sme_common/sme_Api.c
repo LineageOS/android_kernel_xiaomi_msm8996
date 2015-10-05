@@ -13564,6 +13564,27 @@ VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value)
     }
     return VOS_STATUS_SUCCESS;
 }
+/**
+ * sme_set_cts2self_for_p2p_go() - sme function to set ini parms to FW.
+ * @hal_handle:                    reference to the HAL
+ *
+ * Return: hal_status
+ */
+eHalStatus sme_set_cts2self_for_p2p_go(tHalHandle hal_handle)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	vos_msg_t vos_msg;
+
+	vos_msg.bodyptr = NULL;
+	vos_msg.type = WDA_SET_CTS2SELF_FOR_STA;
+        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to post WDA_SET_CTS2SELF_FOR_STA to WDA"));
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
 
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode)
 {

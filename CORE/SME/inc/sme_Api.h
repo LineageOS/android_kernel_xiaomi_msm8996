@@ -3624,6 +3624,7 @@ void smeGetCommandQStatus( tHalHandle hHal );
  */
 VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value);
 VOS_STATUS sme_notify_modem_power_state(tHalHandle hHal, tANI_U32 value);
+eHalStatus sme_set_cts2self_for_p2p_go(tHalHandle hHal);
 
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);

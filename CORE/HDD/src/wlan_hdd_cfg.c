@@ -4195,6 +4195,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_DEFAULT,
                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_MIN,
                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_GO_CTS2SELF_FOR_STA,
+                WLAN_PARAM_Integer,
+                hdd_config_t, enable_go_cts2self_for_sta,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_GO_CTS2SELF_FOR_STA_DEFAULT,
+                CFG_ENABLE_GO_CTS2SELF_FOR_STA_MIN,
+                CFG_ENABLE_GO_CTS2SELF_FOR_STA_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4873,6 +4881,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%d]",
                  CFG_FIRST_SCAN_BUCKET_THRESHOLD_NAME,
                  pHddCtx->cfg_ini->first_scan_bucket_threshold);
+
+  hddLog(LOG2, "Name = [gEnable_go_cts2self_for_sta] Value = [%u]",
+                   pHddCtx->cfg_ini->enable_go_cts2self_for_sta);
 }
 
 #define CFG_VALUE_MAX_LEN 256

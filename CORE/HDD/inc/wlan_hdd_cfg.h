@@ -3273,6 +3273,17 @@ enum dot11p_mode {
 #define CFG_EXTSCAN_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    (20)
 #endif
 
+/* When gEnable_go_cts2self_for_sta is
+ * enabled  then if a legacy client connects to P2P GO,
+ * Host will send a WMI VDEV command to FW to stop using NOA for P2P GO
+ * and start using CTS2SELF.
+ */
+#define CFG_ENABLE_GO_CTS2SELF_FOR_STA   "gEnable_go_cts2self_for_sta"
+#define CFG_ENABLE_GO_CTS2SELF_FOR_STA_DEFAULT  (0)
+#define CFG_ENABLE_GO_CTS2SELF_FOR_STA_MIN      (0)
+#define CFG_ENABLE_GO_CTS2SELF_FOR_STA_MAX      (1)
+
+
 /* client failure connection count*/
 #define CFG_CONNECT_FAIL_COUNT_NAME              "gconnect_fail_count"
 #define CFG_CONNECT_FAIL_COUNT_MIN               ( 0  )
@@ -4081,6 +4092,7 @@ typedef struct
    uint16_t                    wow_pulse_interval_high;
    uint16_t                    wow_pulse_interval_low;
 #endif
+   bool                        enable_go_cts2self_for_sta;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
