@@ -12504,8 +12504,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    mutex_init(&pHddCtx->sap_lock);
 
-   pHddCtx->isLoadInProgress = FALSE;
-
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    if (rtnl_lock_enable == TRUE) {
       rtnl_lock_enable = FALSE;
@@ -12531,8 +12529,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
            "qcom_sap_wakelock");
 
    hdd_hostapd_channel_wakelock_init(pHddCtx);
-
-   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
    // Initialize the restart logic
    wlan_hdd_restart_init(pHddCtx);
@@ -12693,6 +12689,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(LOG1, FL("Registered IPv4 notifier"));
 
    ol_pktlog_init(hif_sc);
+   pHddCtx->isLoadInProgress = FALSE;
+   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    complete(&wlan_start_comp);
    goto success;
 
