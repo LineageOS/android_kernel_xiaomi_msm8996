@@ -604,19 +604,24 @@ static int __iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
    hdd_adapter_t *con_sap_adapter;
    uint16_t con_dfs_ch;
+   int ret;
 
    ENTER();
 
-    /* Block All Scan during DFS operation and send null scan result */
-    con_sap_adapter = hdd_get_con_sap_adapter(pAdapter, true);
-    if (con_sap_adapter) {
-        con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+   ret = wlan_hdd_validate_context(pHddCtx);
+   if (0 != ret)
+       return ret;
 
-        if (VOS_IS_DFS_CH(con_dfs_ch)) {
-            hddLog(LOGW, "%s:##In DFS Master mode. Scan aborted", __func__);
-            return -EOPNOTSUPP;
-        }
-    }
+   /* Block All Scan during DFS operation and send null scan result */
+   con_sap_adapter = hdd_get_con_sap_adapter(pAdapter, true);
+   if (con_sap_adapter) {
+       con_dfs_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
+
+       if (VOS_IS_DFS_CH(con_dfs_ch)) {
+           hddLog(LOGW, "%s:##In DFS Master mode. Scan aborted", __func__);
+           return -EOPNOTSUPP;
+       }
+   }
 
 
    if(pAdapter->scan_info.mScanPending == TRUE)
@@ -625,10 +630,6 @@ static int __iw_set_scan(struct net_device *dev, struct iw_request_info *info,
        return eHAL_STATUS_SUCCESS;
    }
 
-   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-      return eHAL_STATUS_SUCCESS;
-   }
    vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
    if (NULL != wrqu->data.pointer)
@@ -785,8 +786,16 @@ static int __iw_get_scan(struct net_device *dev,
    hdd_scan_info_t scanInfo;
    tScanResultHandle pResult;
    int i = 0;
+   hdd_context_t *hdd_ctx;
+   int ret;
 
    ENTER();
+
+   hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+   ret = wlan_hdd_validate_context(hdd_ctx);
+   if (0 != ret)
+       return ret;
+
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter buffer length %d!!!",
        __func__, (wrqu->data.length)?wrqu->data.length:IW_SCAN_MAX_DATA);
 
@@ -794,11 +803,6 @@ static int __iw_get_scan(struct net_device *dev,
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:mScanPending is TRUE !!!",__func__);
        return -EAGAIN;
-   }
-
-   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-      return -EAGAIN;
    }
 
    scanInfo.dev = dev;

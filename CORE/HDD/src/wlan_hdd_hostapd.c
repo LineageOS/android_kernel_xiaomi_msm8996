@@ -3442,14 +3442,15 @@ static __iw_softap_getparam(struct net_device *dev,
     int *value = (int *)extra;
     int sub_cmd = value[0];
     eHalStatus status;
-    int ret = 0; /* success */
-    hdd_context_t *pHddCtx = NULL;
+    int ret;
+    hdd_context_t *pHddCtx;
 
     ENTER();
+
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
-    status = wlan_hdd_validate_context(pHddCtx);
-    if (0 != status)
-        return status;
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret)
+        return ret;
 
     switch (sub_cmd)
     {
@@ -3699,16 +3700,30 @@ int __iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 #ifndef WLAN_FEATURE_MBSSID
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext = hdd_ctx->pvosContext;
 #endif
     v_BYTE_t *value = (v_BYTE_t*)extra;
     v_U8_t pPeerStaMac[VOS_MAC_ADDR_SIZE];
     int listType, cmd, i;
-    int ret = 0; /* success */
+    int ret;
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
     ENTER();
+
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
+#ifndef WLAN_FEATURE_MBSSID
+    if (NULL == pVosContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Vos Context is NULL", __func__);
+        return -EINVAL;
+    }
+#endif
+
     for (i=0; i<VOS_MAC_ADDR_SIZE; i++)
     {
         pPeerStaMac[i] = *(value+i);
@@ -3754,9 +3769,16 @@ static __iw_softap_getchannel(struct net_device *dev,
                               union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *hdd_ctx;
+    int ret;
     int *value = (int *)extra;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     *value = 0;
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
@@ -3785,16 +3807,23 @@ static __iw_softap_set_max_tx_power(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *hdd_ctx;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     int *value = (int *)extra;
     int set_value;
     tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    int ret;
 
     ENTER();
 
     if (NULL == value)
         return -ENOMEM;
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     /* Assign correct slef MAC address */
     vos_mem_copy(bssid, pHostapdAdapter->macAddressCurrent.bytes,
@@ -3869,11 +3898,18 @@ static __iw_softap_set_tx_power(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    hdd_context_t *hdd_ctx;
     int *value = (int *)extra;
     int set_value;
     tSirMacAddr bssid;
+    int ret;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     if (NULL == value)
         return -ENOMEM;
@@ -3917,14 +3953,20 @@ static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     hdd_station_info_t *pStaInfo = pHostapdAdapter->aStaInfo;
+    hdd_context_t *hdd_ctx;
     char *buf;
     int cnt = 0;
     int left;
-    int ret = 0;
+    int ret;
     /* maclist_index must be u32 to match user space */
     u32 maclist_index;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     /*
      * NOTE WELL: this is a "get" ioctl but it uses an even ioctl
@@ -4015,10 +4057,18 @@ static __iw_softap_disassoc_sta(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *hdd_ctx;
     v_U8_t *peerMacAddr;
     struct tagCsrDelStaParams delStaParams;
+    int ret;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
     /* iwpriv tool or framework calls this ioctl with
      * data passed in extra (less than 16 octets);
      */
@@ -4203,6 +4253,15 @@ static int __iw_softap_get_channel_list(struct net_device *dev,
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
     tpChannelListInfo channel_list = (tpChannelListInfo) extra;
     eCsrBand curBand = eCSR_BAND_ALL;
+    hdd_context_t *hdd_ctx;
+    int ret;
+
+    ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &curBand))
     {
@@ -4270,13 +4329,31 @@ int __iw_get_genie(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_context_t *hdd_ctx;
+    int ret;
 #ifndef WLAN_FEATURE_MBSSID
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext;
 #endif
     eHalStatus status;
     v_U32_t length = DOT11F_IE_RSN_MAX_LEN;
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
+
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
+#ifndef WLAN_FEATURE_MBSSID
+    pVosContext = hdd_ctx->pvosContext;
+    if (NULL == pVosContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: vos context is not valid ", __func__);
+        return -EINVAL;
+    }
+#endif
+
     // Actually retrieve the RSN IE from CSR.  (We previously sent it down in the CSR Roam Profile.)
     status = WLANSap_getstationIE_information(
 #ifdef WLAN_FEATURE_MBSSID
@@ -4327,7 +4404,15 @@ int __iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     sQcSapreq_WPSPBCProbeReqIES_t WPSPBCProbeReqIEs;
     hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+    hdd_context_t *hdd_ctx;
+    int ret;
+
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
 
     memset((void*)&WPSPBCProbeReqIEs, 0, sizeof(WPSPBCProbeReqIEs));
 
@@ -4385,8 +4470,16 @@ __iw_set_auth_hostap(struct net_device *dev,
 {
 	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+	hdd_context_t *hdd_ctx;
+	int ret;
 
 	ENTER();
+
+	hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
 	switch (wrqu->param.flags & IW_AUTH_INDEX) {
 	case IW_AUTH_TKIP_COUNTERMEASURES:
 		if (wrqu->param.value) {
@@ -4458,10 +4551,11 @@ static int __iw_set_ap_encodeext(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 #ifndef WLAN_FEATURE_MBSSID
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext;
 #endif
     hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
-    int retval = 0;
+    hdd_context_t *hdd_ctx;
+    int ret;
     VOS_STATUS vstatus;
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
     v_U8_t groupmacaddr[VOS_MAC_ADDR_SIZE] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
@@ -4472,6 +4566,22 @@ static int __iw_set_ap_encodeext(struct net_device *dev,
     int i;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
+#ifndef WLAN_FEATURE_MBSSID
+    pVosContext = hdd_ctx->pvosContext;
+    if (NULL == pVosContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pVosContext is NULL", __func__);
+        return -EINVAL;
+    }
+#endif
+
+    key_index = encoding->flags & IW_ENCODE_INDEX;
 
     key_index = encoding->flags & IW_ENCODE_INDEX;
 
@@ -4531,7 +4641,7 @@ static int __iw_set_ap_encodeext(struct net_device *dev,
              retval = -EINVAL;
          }
 #endif
-         return retval;
+         return ret;
 
     }
 
@@ -4636,11 +4746,11 @@ static int __iw_set_ap_encodeext(struct net_device *dev,
     {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "[%4d] WLANSAP_SetKeySta returned ERROR status= %d", __LINE__, vstatus );
-       retval = -EINVAL;
+       ret = -EINVAL;
     }
 
     EXIT();
-    return retval;
+    return ret;
 }
 
 /**
@@ -4762,7 +4872,19 @@ static int __iw_get_ap_rts_threshold(struct net_device *dev,
 				     union iwreq_data *wrqu, char *extra)
 {
 	hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
-	return hdd_wlan_get_rts_threshold(pHostapdAdapter, wrqu);
+	int ret;
+	hdd_context_t *hdd_ctx;
+
+	ENTER();
+
+	hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
+	ret = hdd_wlan_get_rts_threshold(pHostapdAdapter, wrqu);
+
+	return ret;
 }
 
 /**
@@ -4802,7 +4924,19 @@ static int __iw_get_ap_frag_threshold(struct net_device *dev,
 				      union iwreq_data *wrqu, char *extra)
 {
 	hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
-	return hdd_wlan_get_frag_threshold(pHostapdAdapter, wrqu);
+	hdd_context_t *hdd_ctx;
+	int ret = 0;
+
+	ENTER();
+
+	hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
+	ret = hdd_wlan_get_frag_threshold(pHostapdAdapter, wrqu);
+
+	return ret;
 }
 
 /**
@@ -4842,18 +4976,19 @@ static int __iw_get_ap_freq(struct net_device *dev,
                             struct iw_freq *fwrq, char *extra)
 {
    v_U32_t status = FALSE, channel = 0, freq = 0;
-   hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+   hdd_context_t *hdd_ctx;
    tHalHandle hHal;
    hdd_hostapd_state_t *pHostapdState;
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+   int ret;
 
    ENTER();
 
-   if ((WLAN_HDD_GET_CTX(pHostapdAdapter))->isLogpInProgress) {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                                  "%s:LOGP in Progress. Ignore!!!",__func__);
-      return status;
-   }
+   hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+   ret = wlan_hdd_validate_context(hdd_ctx);
+   if (0 != ret)
+       return ret;
 
    pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
    hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
@@ -4928,13 +5063,23 @@ static int iw_get_ap_freq(struct net_device *dev,
  * Return: 0 for success, non zero for failure.
  */
 static int __iw_get_mode(struct net_device *dev,
-			 struct iw_request_info *info,
-			 union iwreq_data *wrqu,
-			 char *extra)
+                         struct iw_request_info *info,
+                         union iwreq_data *wrqu,
+                         char *extra)
 {
+    hdd_adapter_t *adapter;
+    hdd_context_t *hdd_ctx;
+    int ret;
+
+    adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
     wrqu->mode = IW_MODE_MASTER;
 
-    return 0;
+    return ret;
 }
 
 /**
@@ -4967,7 +5112,7 @@ static int __iw_softap_setwpsie(struct net_device *dev,
 {
    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 #ifndef WLAN_FEATURE_MBSSID
-   v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+   v_CONTEXT_t pVosContext;
 #endif
    hdd_hostapd_state_t *pHostapdState;
    eHalStatus halStatus= eHAL_STATUS_SUCCESS;
@@ -4978,8 +5123,24 @@ static int __iw_softap_setwpsie(struct net_device *dev,
    u_int8_t WPSIeType;
    u_int16_t length;
    struct iw_point s_priv_data;
+   hdd_context_t *hdd_ctx;
+   int ret;
 
    ENTER();
+
+   hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+   ret = wlan_hdd_validate_context(hdd_ctx);
+   if (0 != ret)
+       return ret;
+
+#ifndef WLAN_FEATURE_MBSSID
+   pVosContext = hdd_ctx->pvosContext;
+   if (NULL == pVosContext) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: VOS context is not valid ", __func__);
+       return -EINVAL;
+   }
+#endif
 
    /* helper function to get iwreq_data with compat handling. */
    if (hdd_priv_get_data(&s_priv_data, wrqu)) {
@@ -5326,7 +5487,7 @@ static int __iw_softap_stopbss(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     VOS_STATUS status = VOS_STATUS_SUCCESS;
-    hdd_context_t *pHddCtx         = NULL;
+    hdd_context_t *pHddCtx;
 
     ENTER();
 
@@ -5383,12 +5544,21 @@ static int __iw_softap_version(struct net_device *dev,
                              union iwreq_data *wrqu,
                              char *extra)
 {
-    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+    hdd_context_t *hdd_ctx;
+    int ret;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
     hdd_wlan_get_version(pHostapdAdapter, wrqu, extra);
     EXIT();
-    return 0;
+
+    return ret;
 }
 
 static int iw_softap_version(struct net_device *dev,
@@ -5412,16 +5582,27 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
     v_U8_t maxSta = 0;
     int len = 0;
     const char sta_info_header[] = "staId staAddress";
-    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
+    hdd_context_t *pHddCtx;
+    int ret;
+
+    ENTER();
+
+    if (NULL == pAdapter) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Adapter is NULL", __func__);
+        return -EINVAL;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret)
+        return ret;
 
     len = scnprintf(pBuf, buf_len, sta_info_header);
     pBuf += len;
     buf_len -= len;
 
-    ENTER();
-
-    if(pHddCtx)
-        maxSta = pHddCtx->cfg_ini->maxNumberOfPeers;
+    maxSta = pHddCtx->cfg_ini->maxNumberOfPeers;
 
     for (i = 0; i <= maxSta; i++)
     {
@@ -5454,7 +5635,16 @@ static int __iw_softap_get_sta_info(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     VOS_STATUS status;
+    hdd_context_t *hdd_ctx;
+    int ret;
+
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
     status = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
     if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!",__func__);
@@ -5497,12 +5687,28 @@ static int __iw_set_ap_genie(struct net_device *dev,
 
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
 #ifndef WLAN_FEATURE_MBSSID
-    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext;
 #endif
     eHalStatus halStatus= eHAL_STATUS_SUCCESS;
     u_int8_t *genie = (u_int8_t *)extra;
+    hdd_context_t *hdd_ctx;
+    int ret;
 
     ENTER();
+
+    hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
+#ifndef WLAN_FEATURE_MBSSID
+    pVosContext = hdd_ctx->pvosContext;
+    if (NULL == pVosContext) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: VOS Context is NULL", __func__);
+        return -EINVAL;
+    }
+#endif
 
     if(!wrqu->data.length)
     {

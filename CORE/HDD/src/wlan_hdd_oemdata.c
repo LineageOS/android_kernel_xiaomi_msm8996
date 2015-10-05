@@ -301,12 +301,13 @@ int iw_get_oem_data_cap(
     eHalStatus status;
     t_iw_oem_data_cap oemDataCap;
     t_iw_oem_data_cap *pHddOemDataCap;
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = netdev_priv(dev);
     hdd_context_t *pHddContext;
     hdd_config_t *pConfig;
     tANI_U32 numChannels;
     tANI_U8 chanList[OEM_CAP_MAX_NUM_CHANNELS];
     tANI_U32 i;
+    int ret;
 
     ENTER();
 
@@ -318,27 +319,11 @@ int iw_get_oem_data_cap(
     }
 
     pHddContext = WLAN_HDD_GET_CTX(pAdapter);
-    if (!pHddContext)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s:Invalid context, HDD context is null", __func__);
-       return -EINVAL;
-    }
-
-    if (pHddContext->isLogpInProgress)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s:LOGP in Progress. Ignore!!!", __func__);
-       return -EBUSY;
-    }
+    ret = wlan_hdd_validate_context(pHddContext);
+    if (0 != ret)
+      return ret;
 
     pConfig = pHddContext->cfg_ini;
-    if (!pConfig)
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s:HDD configuration is null", __func__);
-       return -ENOENT;
-    }
 
     do
     {
