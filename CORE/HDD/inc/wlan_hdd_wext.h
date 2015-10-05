@@ -262,6 +262,7 @@ typedef enum
  * TSF_CAPTURE_FAIL:             capture fail
  * TSF_GET_FAIL:                 get fail
  * TSF_RESET_GPIO_FAIL:          GPIO reset fail
+ * TSF_SAP_NOT_STARTED_NO_TSF    SAP not started
  */
 enum hdd_tsf_get_state {
 	TSF_RETURN = 0,
@@ -270,7 +271,8 @@ enum hdd_tsf_get_state {
 	TSF_CURRENT_IN_CAP_STATE,
 	TSF_CAPTURE_FAIL,
 	TSF_GET_FAIL,
-	TSF_RESET_GPIO_FAIL
+	TSF_RESET_GPIO_FAIL,
+	TSF_SAP_NOT_STARTED_NO_TSF
 };
 
 /**

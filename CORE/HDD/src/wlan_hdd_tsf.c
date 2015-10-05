@@ -56,7 +56,12 @@ int hdd_capture_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 	if (len != 1)
 		return -EINVAL;
 
-	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+	/* Reset TSF value for new capture */
+	adapter->tsf_high = 0;
+	adapter->tsf_low = 0;
+
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION ||
+		adapter->device_mode == WLAN_HDD_P2P_CLIENT) {
 		hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
 		if (hdd_sta_ctx->conn_info.connState !=
 			eConnectionState_Associated) {
@@ -66,6 +71,14 @@ int hdd_capture_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 			buf[0] = TSF_STA_NOT_CONNECTED_NO_TSF;
 			return ret;
 		}
+	}
+	if ((adapter->device_mode == WLAN_HDD_SOFTAP ||
+		adapter->device_mode == WLAN_HDD_P2P_GO) &&
+		!(test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags))) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("Soft AP / P2p GO not beaconing"));
+		buf[0] = TSF_SAP_NOT_STARTED_NO_TSF;
+		return ret;
 	}
 	if (adapter->tsf_state == TSF_CAP_STATE) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -116,7 +129,10 @@ int hdd_indicate_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 	if (len != 3)
 		return -EINVAL;
 
-	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+	buf[1] = 0;
+	buf[2] = 0;
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION ||
+		adapter->device_mode == WLAN_HDD_P2P_CLIENT) {
 		hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
 		if (hdd_sta_ctx->conn_info.connState !=
 			eConnectionState_Associated) {
@@ -124,17 +140,21 @@ int hdd_indicate_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 			hddLog(VOS_TRACE_LEVEL_INFO,
 				FL("fail to get tsf, sta in disconnected"));
 			buf[0] = TSF_STA_NOT_CONNECTED_NO_TSF;
-			buf[1] = 0;
-			buf[2] = 0;
 			return ret;
 		}
+	}
+	if ((adapter->device_mode == WLAN_HDD_SOFTAP ||
+		adapter->device_mode == WLAN_HDD_P2P_GO) &&
+		!(test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags))) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("Soft AP / P2p GO not beaconing"));
+		buf[0] = TSF_SAP_NOT_STARTED_NO_TSF;
+		return ret;
 	}
 	if (adapter->tsf_high == 0 && adapter->tsf_low == 0) {
 		hddLog(VOS_TRACE_LEVEL_INFO,
 			FL("not getting tsf value"));
 		buf[0] = TSF_NOT_RETURNED_BY_FW;
-		buf[1] = 0;
-		buf[2] = 0;
 	} else {
 		buf[0] = TSF_RETURN;
 		buf[1] = adapter->tsf_low;
