@@ -9632,6 +9632,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    switch(pAdapter->device_mode)
    {
       case WLAN_HDD_INFRA_STATION:
+      case WLAN_HDD_IBSS:
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
          if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) ||
@@ -9672,7 +9673,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
                                eCSR_SCAN_ABORT_DEFAULT);
          }
-         if (pAdapter->device_mode != WLAN_HDD_INFRA_STATION) {
+         if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
+              (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)) {
              wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
          }
 
