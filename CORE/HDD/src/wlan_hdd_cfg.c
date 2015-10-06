@@ -3245,7 +3245,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_RX_HANDLE_DEFAULT,
                  CFG_RX_HANDLE_MIN,
                  CFG_RX_HANDLE_MAX),
-
    REG_VARIABLE( CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fDfsPhyerrFilterOffload,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -3470,6 +3469,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_TCP_DELACK_THRESHOLD_LOW_DEFAULT,
                 CFG_TCP_DELACK_THRESHOLD_LOW_MIN,
                 CFG_TCP_DELACK_THRESHOLD_LOW_MAX ),
+
+    REG_VARIABLE( CFG_TCP_TX_HIGH_TPUT_THRESHOLD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, tcp_tx_high_tput_thres,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_TCP_TX_HIGH_TPUT_THRESHOLD_DEFAULT,
+                 CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MIN,
+                 CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MAX ),
+
 #endif
 
 
@@ -4642,6 +4649,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gTcpDelAckThresholdLow] Value = [%u] ",
           pHddCtx->cfg_ini->tcpDelackThresholdLow);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [%s] Value = [%u] ", CFG_TCP_TX_HIGH_TPUT_THRESHOLD_NAME,
+          pHddCtx->cfg_ini->tcp_tx_high_tput_thres);
+
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gIgnoreCAC] Value = [%u] ",
