@@ -2072,6 +2072,10 @@ void WLANTL_Get_llStats
 	}
 
 	vdev = tl_shim->session_flow_control[sessionId].vdev;
+	if (!vdev) {
+		TLSHIM_LOGE("%s, vdev is NULL", __func__);
+		return;
+	}
 	ol_txrx_stats(vdev, buffer, (unsigned)length);
 	return;
 
