@@ -11615,9 +11615,8 @@ void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
                 pHddCtx->cfg_ini->tcpDelackThresholdLow);
 #endif
 
-    hddLog(VOS_TRACE_LEVEL_ERROR,"index, total_rx, interval_rx,"
-           "total_tx, interval_tx, next_vote_level, next_rx_level, "
-           "next_tx_level");
+    hddLog(VOS_TRACE_LEVEL_ERROR,
+            "index, total_rx, interval_rx, total_tx, interval_tx, next_vote_level, next_rx_level, next_tx_level");
     for (i=0; i < NUM_TX_RX_HISTOGRAM; i++){
         hddLog(VOS_TRACE_LEVEL_ERROR,
                "%d: %llu, %llu, %llu, %llu, %d, %d, %d",
