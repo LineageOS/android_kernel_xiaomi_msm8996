@@ -1021,6 +1021,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	wmi_vdev_start_response_event_fixed_param *resp_event;
 	u_int8_t *buf;
 	vos_msg_t vos_msg = {0};
+	tp_wma_handle wma = (tp_wma_handle) handle;
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_START_RESP_EVENTID_param_tlvs *) cmd_param_info;
@@ -1035,6 +1036,13 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
 		return -EINVAL;
 	}
+
+	if (wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id)) {
+		adf_os_spin_lock_bh(&wma->dfs_ic->chan_lock);
+		wma->dfs_ic->disable_phy_err_processing = false;
+		adf_os_spin_unlock_bh(&wma->dfs_ic->chan_lock);
+	}
+
 	vos_mem_zero(buf, sizeof(wmi_vdev_start_response_event_fixed_param));
 	vos_mem_copy(buf, (u_int8_t *)resp_event,
 					sizeof(wmi_vdev_start_response_event_fixed_param));
@@ -5542,6 +5550,13 @@ static int wma_unified_dfs_radar_rx_event_handler(void *handle,
 
 	adf_os_spin_lock_bh(&ic->chan_lock);
 	chan = ic->ic_curchan;
+
+	if (ic->disable_phy_err_processing) {
+		WMA_LOGD("%s: radar indication done,drop phyerror event",
+				__func__);
+		adf_os_spin_unlock_bh(&ic->chan_lock);
+		return 0;
+	}
 
 	if (NV_CHANNEL_DFS != vos_nv_getChannelEnabledState(chan->ic_ieee)) {
 		WMA_LOGE("%s: Invalid DFS Phyerror event. Channel=%d is Non-DFS",
@@ -11180,6 +11195,8 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 
 
 			adf_os_spin_lock_bh(&wma->dfs_ic->chan_lock);
+			if (isRestart)
+				wma->dfs_ic->disable_phy_err_processing = true;
 			/* provide the current channel to DFS */
 			wma->dfs_ic->ic_curchan =
 				wma_dfs_configure_channel(wma->dfs_ic,chan,chanmode,req);
@@ -31986,6 +32003,8 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 	 */
 
 	adf_os_spin_lock_bh(&ic->chan_lock);
+	if (!pmac->sap.SapDfsInfo.disable_dfs_ch_switch)
+		wma->dfs_ic->disable_phy_err_processing = true;
 
 	if ((ichan->ic_ieee  != (wma->dfs_ic->last_radar_found_chan)) ||
 	    ( pmac->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_TRUE) )

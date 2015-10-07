@@ -230,6 +230,18 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
       ATH_DFSEVENTQ_UNLOCK(dfs);
 
       found = 0;
+
+      adf_os_spin_lock_bh(&dfs->ic->chan_lock);
+      if (dfs->ic->disable_phy_err_processing) {
+         ATH_DFSQ_LOCK(dfs);
+         empty = STAILQ_EMPTY(&(dfs->dfs_radarq));
+         ATH_DFSQ_UNLOCK(dfs);
+         adf_os_spin_unlock_bh(&dfs->ic->chan_lock);
+         continue;
+      }
+
+      adf_os_spin_unlock_bh(&dfs->ic->chan_lock);
+
       if (re.re_chanindex < DFS_NUM_RADAR_STATES)
          rs = &dfs->dfs_radar[re.re_chanindex];
       else {
