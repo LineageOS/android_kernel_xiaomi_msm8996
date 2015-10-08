@@ -43,6 +43,10 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_MOBILE_ROUTER := y
 	endif
 
+	ifeq ($(CONFIG_ARCH_MDMFERMIUM), y)
+	CONFIG_MOBILE_ROUTER := y
+	endif
+
 	#Flag to enable Legacy Fast Roaming3(LFR3)
 	CONFIG_QCACLD_WLAN_LFR3 := y
 
@@ -99,11 +103,14 @@ ifeq ($(KERNEL_BUILD), 0)
         ifeq ($(CONFIG_ROME_IF),usb)
                 CONFIG_LINUX_QCMBR :=y
         endif
-	#Flag to enable memdump feature
-	CONFIG_WLAN_FEATURE_MEMDUMP := y
 
-	#Flag to enable offload packets feature
-	CONFIG_WLAN_OFFLOAD_PACKETS := y
+	ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
+		#Flag to enable memdump feature
+		CONFIG_WLAN_FEATURE_MEMDUMP := y
+
+		#Flag to enable offload packets feature
+		CONFIG_WLAN_OFFLOAD_PACKETS := y
+	endif
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -205,7 +212,9 @@ endif
 
 #Enable MDNS Offload
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
 CONFIG_MDNS_OFFLOAD_SUPPORT := 1
+endif
 endif
 
 #Enable power management suspend/resume functionality to PCI
@@ -956,9 +965,11 @@ endif
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 CDEFINES += -DFEATURE_WLAN_FORCE_SAP_SCC
+ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
 CDEFINES += -DDHCP_SERVER_OFFLOAD
 CDEFINES += -DWLAN_FEATURE_GPIO_LED_FLASHING
 CDEFINES += -DWLAN_FEATURE_APFIND
+endif
 ifneq ($(CONFIG_NON_QC_PLATFORM), y)
 CDEFINES += -DDFS_MASTER_OFFLOAD_IND_SUPPORT
 endif
@@ -1264,8 +1275,16 @@ ifeq ($(CONFIG_MOBILE_ROUTER), y)
 #enable MCC TO SCC switch
 CDEFINES += -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
 
+ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
 #enable wlan auto shutdown feature
 CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
+
+#Enable 4address scheme
+CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
+
+#MDM Device only, to optimize MSM skb cb memory usage
+CDEFINES += -DQCA_MDM_DEVICE
+endif
 
 #enable for MBSSID
 CDEFINES += -DWLAN_FEATURE_MBSSID
@@ -1276,9 +1295,6 @@ CDEFINES += -DFEATURE_WLAN_AP_AP_ACS_OPTIMIZE
 #Green AP feature
 CDEFINES += -DFEATURE_GREEN_AP
 
-#Enable 4address scheme
-CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
-
 #Disable STA-AP Mode DFS support
 CDEFINES += -DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
 
@@ -1287,9 +1303,6 @@ CDEFINES += -DQCA_HT_2040_COEX
 
 #Disable HT40 in 2.4GHZ STA mode
 CDEFINES += -DQCA_HT_20_24G_STA_ONLY
-
-#MDM Device only, to optimize MSM skb cb memory usage
-CDEFINES += -DQCA_MDM_DEVICE
 
 else #CONFIG_MOBILE_ROUTER
 
