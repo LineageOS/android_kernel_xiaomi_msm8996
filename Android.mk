@@ -4,10 +4,10 @@
 WLAN_CHIPSET :=
 
 ifeq ($(BOARD_HAS_QCOM_WLAN), true)
-# Build/Package options for 8084/8092/8960/8992/8994/msm8996  targets
-ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8960 msm8992  msm8994 msm8996),true)
-	WLAN_CHIPSET     := qca_cld
-	WLAN_SELECT      := CONFIG_QCA_CLD_WLAN=m
+# Build/Package options for 8084/8092/8960/8992/8994/msm8996 targets
+ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8952 msm8960 msm8992 msm8994 msm8996),true)
+WLAN_CHIPSET := qca_cld
+WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
 endif
 
 # Build/Package only in case of supported target
