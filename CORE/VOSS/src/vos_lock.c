@@ -526,15 +526,14 @@ VOS_STATUS vos_wake_lock_init(vos_wake_lock_t *pLock, const char *name)
  */
 static const char* vos_wake_lock_name(vos_wake_lock_t *pLock)
 {
-#if  !defined(CONFIG_CNSS) && \
-	!(defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK))
-	return "UNNAMED_WAKELOCK";
-#else
+#if defined CONFIG_CNSS
 	if (pLock->lock.name)
 		return pLock->lock.name;
-	else
-		return "UNNAMED_WAKELOCK";
+#elif defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
+	if (pLock->lock.ws.name)
+		return pLock->lock.ws.name;
 #endif
+	return "UNNAMED_WAKELOCK";
 }
 
 /*--------------------------------------------------------------------------
