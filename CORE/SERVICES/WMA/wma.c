@@ -21003,12 +21003,13 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 /* Handles suspend indication request received from umac. */
 static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 {
-	v_BOOL_t connected = FALSE, pno_in_progress = FALSE;
+	v_BOOL_t pno_in_progress = FALSE;
 	VOS_STATUS ret;
 	u_int8_t i;
 	bool extscan_in_progress = false;
 	bool pno_matched = false;
 	struct wma_txrx_node *iface;
+	bool enable_wow = false;
 
 	if (info == NULL) {
 		WMA_LOGD("runtime PM: Request to suspend all interfaces");
@@ -21060,10 +21061,12 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	wma->wow.gtk_pdev_enable = 0;
 
 suspend_all_iface:
-	for (i = 0; i < wma->max_bssid && info == NULL; i++) {
-		wma->interfaces[i].conn_state =
-			!!(wma->interfaces[i].vdev_up &&
-				!wma_is_vdev_in_ap_mode(wma, i));
+	if (info == NULL) {
+		for (i = 0; i < wma->max_bssid; i++) {
+			wma->interfaces[i].conn_state =
+				!!(wma->interfaces[i].vdev_up &&
+					!wma_is_vdev_in_ap_mode(wma, i));
+		}
 	}
 
 	/*
@@ -21074,7 +21077,7 @@ suspend_all_iface:
 	 *  4) Is Extscan in progress in any one of vdev ?
 	 */
 	for (i = 0; i < wma->max_bssid; i++) {
-		if ( (wma_is_vdev_in_ap_mode(wma, i)
+		if ((wma_is_vdev_in_ap_mode(wma, i)
 #ifdef QCA_IBSS_SUPPORT
 		|| wma_is_vdev_in_ibss_mode(wma, i)
 #endif
@@ -21083,14 +21086,12 @@ suspend_all_iface:
                                    WMI_SERVICE_BEACON_OFFLOAD)) {
 			WMA_LOGD("vdev %d is in beaconning mode, enabling wow",
 				 i);
-			goto enable_wow;
+			enable_wow = true;
 		}
 	}
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (wma->interfaces[i].conn_state) {
-			connected = TRUE;
-			break;
-		}
+		if (wma->interfaces[i].conn_state)
+			enable_wow = true;
 #ifdef FEATURE_WLAN_SCAN_PNO
 		if (wma->interfaces[i].pno_in_progress) {
 			WMA_LOGD("PNO is in progress, enabling wow");
@@ -21106,6 +21107,7 @@ suspend_all_iface:
 	for (i = 0; i < wma->max_bssid; i++) {
 		if (wma->interfaces[i].extscan_in_progress) {
 			WMA_LOGD("Extscan is in progress, enabling wow");
+			enable_wow = true;
 			extscan_in_progress = true;
 			break;
 		}
@@ -21119,13 +21121,12 @@ suspend_all_iface:
 						wma->wow.gtk_pdev_enable);
 	}
 
-	if (!connected && !pno_in_progress && !extscan_in_progress) {
+	if (!enable_wow) {
 		WMA_LOGD("All vdev are in disconnected state and pno/extscan is not in progress, skipping wow");
 		vos_mem_free(info);
 		goto send_ready_to_suspend;
 	}
 
-enable_wow:
 	WMA_LOGD("%sWOW Suspend", info ? "" : "Runtime PM ");
 
 	/*
