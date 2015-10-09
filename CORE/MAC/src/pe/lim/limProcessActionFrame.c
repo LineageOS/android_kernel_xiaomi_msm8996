@@ -2532,6 +2532,23 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         break;
     }
 #endif
+    case SIR_MAC_ACTION_FST:
+    {
+        tpSirMacMgmtHdr     pHdr;
+        tANI_U32            frameLen;
+
+        pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+        frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+        limLog(pMac, LOG1, FL("Received FST MGMT action frame"));
+        /* Forward to the SME to HDD */
+        limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
+                               frameLen + sizeof(tSirMacMgmtHdr),
+                               psessionEntry->smeSessionId,
+                               WDA_GET_RX_CH(pRxPacketInfo),
+                               psessionEntry, 0);
+        break;
+    }
     default:
        PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled"), pActionHdr->category);)
        break;
