@@ -155,6 +155,12 @@ WLANSAP_ScanCallback
         pMac = PMAC_STRUCT( halHandle );
     }
 
+    if (psapContext->sapsMachine == eSAP_DISCONNECTED) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                  "In %s BSS already stopped", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, before switch on scanStatus = %d", __func__, scanStatus);
 
