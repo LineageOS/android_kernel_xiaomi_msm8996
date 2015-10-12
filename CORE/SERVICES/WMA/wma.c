@@ -18366,6 +18366,8 @@ static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
 	cmd->active_dwell_time = pno->active_max_time;
 	cmd->passive_dwell_time = pno->passive_max_time;
 
+	if (pno->do_passive_scan)
+		cmd->flags |= WMI_NLO_CONFIG_SCAN_PASSIVE;
 	/* Copy scan interval */
 	cmd->fast_scan_period = pno->fast_scan_period;
 	cmd->slow_scan_period = pno->slow_scan_period;

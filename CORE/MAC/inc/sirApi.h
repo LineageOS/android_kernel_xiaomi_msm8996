@@ -3632,6 +3632,7 @@ typedef struct
  * @enable: flag to enable or disable
  * @modePNO: PNO Mode
  * @ucNetworksCount: Number of networks
+ * @do_passive_scan: Flag to request passive scan to fw
  * @aNetworks: Preferred network list
  * @sessionId: Session identifier
  * @fast_scan_period: Fast Scan period
@@ -3649,6 +3650,7 @@ typedef struct
 typedef struct sSirPNOScanReq {
 	uint8_t         enable;
 	eSirPNOMode     modePNO;
+	bool            do_passive_scan;
 	uint8_t         ucNetworksCount;
 	tSirNetworkType aNetworks[SIR_PNO_MAX_SUPP_NETWORKS];
 	uint8_t         sessionId;
