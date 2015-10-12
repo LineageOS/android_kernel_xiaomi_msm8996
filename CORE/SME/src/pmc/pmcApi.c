@@ -2930,6 +2930,27 @@ eHalStatus pmcSetPreferredNetworkList
        pRequestBuf->sessionId = sessionId;
     }
 
+    if (csrIsAnySessionConnected(pMac)) {
+        /* if AP-STA concurrency is active */
+        pRequestBuf->active_max_time =
+            pMac->roam.configParam.nActiveMaxChnTimeConc;
+        pRequestBuf->active_min_time =
+            pMac->roam.configParam.nActiveMinChnTimeConc;
+        pRequestBuf->passive_max_time =
+            pMac->roam.configParam.nPassiveMaxChnTimeConc;
+        pRequestBuf->passive_min_time =
+            pMac->roam.configParam.nPassiveMinChnTimeConc;
+    } else {
+        pRequestBuf->active_max_time =
+            pMac->roam.configParam.nActiveMaxChnTime;
+        pRequestBuf->active_min_time =
+            pMac->roam.configParam.nActiveMinChnTime;
+        pRequestBuf->passive_max_time =
+            pMac->roam.configParam.nPassiveMaxChnTime;
+        pRequestBuf->passive_min_time =
+            pMac->roam.configParam.nPassiveMinChnTime;
+    }
+
     msg.type     = WDA_SET_PNO_REQ;
     msg.reserved = 0;
     msg.bodyptr  = pRequestBuf;

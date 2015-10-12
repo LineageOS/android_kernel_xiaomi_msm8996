@@ -3637,6 +3637,10 @@ typedef struct
  * @fast_scan_period: Fast Scan period
  * @slow_scan_period: Slow scan period
  * @fast_scan_max_cycles: Fast scan max cycles
+ * @active_min_time: Min value of dwell time for active scan
+ * @active_max_time: Max value of dwell time for active scan
+ * @passive_min_time: Min value of dwell time for passive scan
+ * @passive_max_time: Max value of dwell time for passive scan
  * @us24GProbeTemplateLen: 2.4G probe template length
  * @p24GProbeTemplate: 2.4G probe template
  * @us5GProbeTemplateLen: 5G probe template length
@@ -3651,6 +3655,11 @@ typedef struct sSirPNOScanReq {
 	uint32_t        fast_scan_period;
 	uint32_t        slow_scan_period;
 	uint8_t         fast_scan_max_cycles;
+
+	uint32_t        active_min_time;
+	uint32_t        active_max_time;
+	uint32_t        passive_min_time;
+	uint32_t        passive_max_time;
 
 	uint16_t        us24GProbeTemplateLen;
 	uint8_t         p24GProbeTemplate[SIR_PNO_MAX_PB_REQ_SIZE];
