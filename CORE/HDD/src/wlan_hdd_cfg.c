@@ -4137,6 +4137,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_DEFAULT,
                 CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_MIN,
                 CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_MAX),
+
+   REG_VARIABLE(CFG_FIRST_SCAN_BUCKET_THRESHOLD_NAME, WLAN_PARAM_SignedInteger,
+                hdd_config_t, first_scan_bucket_threshold,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_FIRST_SCAN_BUCKET_THRESHOLD_DEFAULT,
+                CFG_FIRST_SCAN_BUCKET_THRESHOLD_MIN,
+                CFG_FIRST_SCAN_BUCKET_THRESHOLD_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID
@@ -4812,6 +4819,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->fine_time_meas_cap);
   hddLog(LOG2, "Name = [gmax_mgmt_tx_failure_count] Value = [%u]",
                    pHddCtx->cfg_ini->max_mgmt_tx_fail_count);
+  hddLog(LOG2, "Name = [%s] Value = [%d]",
+                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_NAME,
+                 pHddCtx->cfg_ini->first_scan_bucket_threshold);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -6637,6 +6647,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                    pHddCtx->cfg_ini->pkt_err_disconn_th;
    smeConfig->f_prefer_non_dfs_on_radar =
                        pHddCtx->cfg_ini->prefer_non_dfs_on_radar;
+   smeConfig->csrConfig.first_scan_bucket_threshold =
+                       pHddCtx->cfg_ini->first_scan_bucket_threshold;
 
    vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
    hdd_set_fine_time_meas_cap(pHddCtx, smeConfig);

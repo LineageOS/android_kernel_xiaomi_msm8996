@@ -125,6 +125,7 @@ typedef struct _smeConfigParams
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     uint8_t       f_prefer_non_dfs_on_radar;
     uint32_t      fine_time_meas_cap;
+    int8_t       first_scan_bucket_threshold;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum

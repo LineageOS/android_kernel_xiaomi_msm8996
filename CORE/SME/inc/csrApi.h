@@ -1277,6 +1277,7 @@ typedef struct tagCsrConfigParam
     bool       enable_dot11p;
     tANI_BOOLEAN sendDeauthBeforeCon;
     v_U16_t    pkt_err_disconn_th;
+    int8_t    first_scan_bucket_threshold;
 }tCsrConfigParam;
 
 //Tush

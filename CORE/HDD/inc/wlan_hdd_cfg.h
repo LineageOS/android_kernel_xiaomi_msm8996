@@ -3260,6 +3260,19 @@ enum dot11p_mode {
 #define CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_MAX     (500)
 #define CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_DEFAULT (0)
 
+/*
+ * This parameter will configure the first scan bucket
+ * threshold to the mentioned value and all the AP's which
+ * have RSSI under this threshold will fall under this
+ * bucket.
+ * This is a configuration item used to tweak and test the input
+ * for internal algorithm. It should not be modified externally.
+ */
+#define CFG_FIRST_SCAN_BUCKET_THRESHOLD_NAME      "gfirst_scan_bucket_threshold"
+#define CFG_FIRST_SCAN_BUCKET_THRESHOLD_MIN       (-50)
+#define CFG_FIRST_SCAN_BUCKET_THRESHOLD_MAX       (-30)
+#define CFG_FIRST_SCAN_BUCKET_THRESHOLD_DEFAULT   (-30)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -3941,6 +3954,7 @@ typedef struct
    char                        response_payload[MAX_LEN_UDP_RESP_OFFLOAD];
 #endif
    uint16_t                    max_mgmt_tx_fail_count;
+   int8_t                      first_scan_bucket_threshold;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

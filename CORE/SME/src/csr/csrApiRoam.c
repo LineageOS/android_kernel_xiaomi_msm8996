@@ -1061,6 +1061,9 @@ eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamStat
 void csrAssignRssiForCategory(tpAniSirGlobal pMac, tANI_S8 bestApRssi, tANI_U8 catOffset)
 {
     int i;
+
+    smsLog(pMac, LOG2, FL("best AP RSSI:%d, cat offset:%d"), bestApRssi,
+           catOffset);
     if(catOffset)
     {
         pMac->roam.configParam.bCatRssiOffset = catOffset;
@@ -1799,7 +1802,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
             pMac->roam.configParam.scanAgeTimeCPS = pParam->scanAgeTimeCPS;
         }
 
-        csrAssignRssiForCategory(pMac, CSR_BEST_RSSI_VALUE, pParam->bCatRssiOffset);
+        pMac->first_scan_bucket_threshold =
+                                pParam->first_scan_bucket_threshold;
+        csrAssignRssiForCategory(pMac, pMac->first_scan_bucket_threshold,
+                                pParam->bCatRssiOffset);
         pMac->roam.configParam.nRoamingTime = pParam->nRoamingTime;
         pMac->roam.configParam.fEnforce11dChannels = pParam->fEnforce11dChannels;
         pMac->roam.configParam.fSupplicantCountryCodeHasPriority = pParam->fSupplicantCountryCodeHasPriority;
@@ -2109,6 +2115,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                      pMac->roam.configParam.is_sta_connection_in_5gz_enabled;
         pParam->sendDeauthBeforeCon =
                      pMac->roam.configParam.sendDeauthBeforeCon;
+        pParam->first_scan_bucket_threshold =
+                     pMac->first_scan_bucket_threshold;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
