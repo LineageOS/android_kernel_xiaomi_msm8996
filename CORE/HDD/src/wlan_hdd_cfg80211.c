@@ -17258,6 +17258,15 @@ disconnected:
              FL("Set HDD connState to eConnectionState_NotConnected"));
     hdd_connSetConnectionState(pAdapter,
                                 eConnectionState_NotConnected);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
+    /* Sending disconnect event to userspace for kernel version < 3.11
+     * is handled by __cfg80211_disconnect call to __cfg80211_disconnected
+     */
+    hddLog(LOG1, FL("Send disconnected event to userspace"));
+    cfg80211_disconnected(pAdapter->dev, WLAN_REASON_UNSPECIFIED,
+                NULL, 0, GFP_KERNEL);
+#endif
+
     EXIT();
     return result;
 }
