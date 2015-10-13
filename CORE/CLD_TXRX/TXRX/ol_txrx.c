@@ -434,10 +434,10 @@ ol_txrx_pdev_attach(
 
     pdev->desc_mem_size = desc_pool_size * sizeof(struct ol_tx_desc_t);
     page_size = adf_os_mem_get_page_size();
-    pdev->num_desc_pages = pdev->desc_mem_size / page_size;
-    if (pdev->desc_mem_size % page_size)
-        pdev->num_desc_pages++;
     pdev->num_descs_per_page = page_size / sizeof(struct ol_tx_desc_t);
+    pdev->num_desc_pages = desc_pool_size / pdev->num_descs_per_page;
+    if (desc_pool_size % pdev->num_descs_per_page)
+        pdev->num_desc_pages++;
 
     /* Allocate host descriptor resources */
     desc_pages = adf_os_mem_alloc(

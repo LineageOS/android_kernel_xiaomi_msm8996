@@ -611,7 +611,7 @@ ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
     struct ol_tx_desc_t *tx_desc;
     struct ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
 
-    tx_desc = &td_array[tx_desc_id].tx_desc;
+    tx_desc = td_array[tx_desc_id].tx_desc;
 
     for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
         vdev_id_mask =
