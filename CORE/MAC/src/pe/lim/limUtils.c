@@ -8644,3 +8644,34 @@ void lim_merge_extcap_struct(tDot11fIEExtCap *dst,
 		tempsrc++;
 	}
 }
+
+/**
+ * lim_get_80Mhz_center_channel - finds 80 Mhz center channel
+ *
+ * @primary_channel:   Primary channel for given 80 MHz band
+ *
+ * There are fixed 80MHz band and for each fixed band there is only one center
+ * valid channel. Also location of primary channel decides what 80 MHz band will
+ * it use, hence it decides what center channel will be used. This function
+ * does thus calculation and returns the center channel.
+ *
+ * Return: center channel
+ */
+uint8_t
+lim_get_80Mhz_center_channel(uint8_t primary_channel)
+{
+	if(primary_channel >= 36 && primary_channel <= 48)
+		return (36+48)/2;
+	if(primary_channel >= 52 && primary_channel <= 64)
+		return (52+64)/2;
+	if(primary_channel >= 100 && primary_channel <= 112)
+		return (100+112)/2;
+	if(primary_channel >= 116 && primary_channel <= 128)
+		return (116+128)/2;
+	if(primary_channel >= 132 && primary_channel <= 144)
+		return (132+144)/2;
+	if(primary_channel >= 149 && primary_channel <= 161)
+		return (149+161)/2;
+
+	return HAL_INVALID_CHANNEL_ID;
+}

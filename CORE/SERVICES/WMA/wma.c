@@ -32834,3 +32834,24 @@ bool wma_is_vdev_up(uint8_t vdev_id)
 	else
 		return false;
 }
+
+/**
+ * wma_get_vht_ch_width - return vht channel width
+ *
+ * Return: return vht channel width
+ */
+uint32_t wma_get_vht_ch_width(void)
+{
+	uint32_t fw_ch_wd = WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+	v_CONTEXT_t v_ctx =  vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	tp_wma_handle wm_hdl = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA,
+							      v_ctx);
+
+	if (wm_hdl->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_160)
+		fw_ch_wd = WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ;
+	else if (wm_hdl->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_80_160)
+		fw_ch_wd = WNI_CFG_VHT_CHANNEL_WIDTH_80_PLUS_80MHZ;
+
+	return fw_ch_wd;
+}
+

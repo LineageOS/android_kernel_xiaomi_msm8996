@@ -64,6 +64,7 @@
 #include "wlan_qct_wda.h"
 
 #include "pmmApi.h"
+#include "wma.h"
 
 #define BA_DEFAULT_TX_BUFFER_SIZE 64
 
@@ -510,6 +511,8 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     tANI_U16                aid;
     tANI_U8  operMode;
     tANI_U8  cbMode;
+    tANI_U8  ch_bw = 0;
+    tANI_U8  skip_opmode_update = false;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
@@ -560,8 +563,16 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
 
     operMode = pSta->vhtSupportedChannelWidthSet ? eHT_CHANNEL_WIDTH_80MHZ : pSta->htSupportedChannelWidthSet ? eHT_CHANNEL_WIDTH_40MHZ: eHT_CHANNEL_WIDTH_20MHZ;
-    if( operMode != pOperatingModeframe->OperatingMode.chanWidth)
+
+    if ((operMode == eHT_CHANNEL_WIDTH_80MHZ) &&
+        (pOperatingModeframe->OperatingMode.chanWidth >
+             eHT_CHANNEL_WIDTH_80MHZ))
+        skip_opmode_update = true;
+
+    if (!skip_opmode_update &&
+        (operMode != pOperatingModeframe->OperatingMode.chanWidth))
     {
+        uint32_t fw_vht_ch_wd = wma_get_vht_ch_width();
         limLog(pMac, LOGE,
             FL(" received Chanwidth %d, staIdx = %d"),
             (pOperatingModeframe->OperatingMode.chanWidth ),
@@ -576,23 +587,33 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
             pHdr->sa[4],
             pHdr->sa[5]);
 
-        if(pOperatingModeframe->OperatingMode.chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
-        {
+        if ((pOperatingModeframe->OperatingMode.chanWidth >
+                eHT_CHANNEL_WIDTH_80MHZ) &&
+             (fw_vht_ch_wd > eHT_CHANNEL_WIDTH_80MHZ)) {
+            pSta->vhtSupportedChannelWidthSet =
+                WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ;
+            pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
+            ch_bw = eHT_CHANNEL_WIDTH_160MHZ;
+        } else if(pOperatingModeframe->OperatingMode.chanWidth >=
+                eHT_CHANNEL_WIDTH_80MHZ) {
             pSta->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
             pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
-        }
-        else if(pOperatingModeframe->OperatingMode.chanWidth == eHT_CHANNEL_WIDTH_40MHZ)
-        {
-            pSta->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+            ch_bw = eHT_CHANNEL_WIDTH_80MHZ;
+        } else if(pOperatingModeframe->OperatingMode.chanWidth ==
+                eHT_CHANNEL_WIDTH_40MHZ) {
+            pSta->vhtSupportedChannelWidthSet =
+                WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
             pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
-        }
-        else if(pOperatingModeframe->OperatingMode.chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
-        {
-            pSta->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+            ch_bw = eHT_CHANNEL_WIDTH_40MHZ;
+        } else if(pOperatingModeframe->OperatingMode.chanWidth ==
+                eHT_CHANNEL_WIDTH_20MHZ) {
+            pSta->vhtSupportedChannelWidthSet =
+                WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
             pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
+            ch_bw = eHT_CHANNEL_WIDTH_20MHZ;
         }
-        limCheckVHTOpModeChange( pMac, psessionEntry,
-                                 (pOperatingModeframe->OperatingMode.chanWidth),
+        limCheckVHTOpModeChange(pMac, psessionEntry,
+                                 ch_bw,
                                  pSta->staIndex, pHdr->sa);
     }
 
