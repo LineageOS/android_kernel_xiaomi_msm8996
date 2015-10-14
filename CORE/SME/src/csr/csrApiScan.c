@@ -1704,6 +1704,12 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
         status = csrScanGetResult(pMac, pScanFilter, &hBSSList);
         if(!HAL_STATUS_SUCCESS(status))
             break;
+        if (pMac->roam.roamSession[sessionId].connectState ==
+            eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTING) {
+            smsLog(pMac, LOGE, FL("upper layer issued disconnetion"));
+            status = eHAL_STATUS_FAILURE;
+            break;
+        }
         status = csrRoamIssueConnect(pMac, sessionId, pProfile, hBSSList, eCsrHddIssued,
                                     pCommand->u.scanCmd.roamId, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
         if(!HAL_STATUS_SUCCESS(status))

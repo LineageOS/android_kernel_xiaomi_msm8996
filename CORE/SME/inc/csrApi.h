@@ -677,7 +677,8 @@ typedef enum
     eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED,
     // Participating in a Infra network and connected to a peer
     eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED,
-
+    // Disconnecting with AP or stop connecting process
+    eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTING,
 }eCsrConnectState;
 
 
