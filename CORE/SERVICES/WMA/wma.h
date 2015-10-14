@@ -619,12 +619,16 @@ typedef struct request_handler_entry {
 	wma_request_handler handler;
 } request_handler_entry_t;
 
+struct wma_runtime_pm_context {
+	void *ap;
+	void *resume;
+};
+
 typedef struct wma_handle {
 	void *wmi_handle;
 	void *htc_handle;
 	void *vos_context;
 	void *mac_context;
-	void *runtime_pm_ctx;
 
 	vos_event_t wma_ready_event;
 	vos_event_t wma_resume_event;
@@ -830,6 +834,8 @@ typedef struct wma_handle {
 	uint32_t wow_wakeup_enable_mask;
 	uint32_t wow_wakeup_disable_mask;
 	uint16_t max_mgmt_tx_fail_count;
+
+	struct wma_runtime_pm_context runtime_context;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

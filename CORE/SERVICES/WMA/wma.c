@@ -6331,6 +6331,54 @@ static void wma_set_nan_enable(tp_wma_handle wma_handle,
 }
 #endif
 
+#ifdef FEATURE_RUNTIME_PM
+/**
+ * wma_runtime_context_init() - API to init wma runtime contexts
+ * @handle: wma handle
+ *
+ * The API initializes the wma runtime contexts for beaconing interfaces
+ * and the context to synchronize runtime suspend/resume.
+ *
+ * Return: void
+ */
+static void wma_runtime_context_init(tp_wma_handle handle)
+{
+	tp_wma_handle wma_handle = handle;
+	struct wma_runtime_pm_context *runtime_context =
+			&wma_handle->runtime_context;
+
+	runtime_context->ap =
+		vos_runtime_pm_prevent_suspend_init("wma_runtime_ap");
+	runtime_context->resume =
+		vos_runtime_pm_prevent_suspend_init("wma_runtime_resume");
+}
+
+/**
+ * wma_runtime_context_deinit() - API to deinit wma runtime contexts
+ * @handle: wma handle
+ *
+ * The API deinitializes the wma runtime contexts for beaconing interfaces
+ * and the context to synchronize runtime suspend/resume.
+ *
+ * Return: void
+ */
+static void wma_runtime_context_deinit(tp_wma_handle handle)
+{
+	tp_wma_handle wma_handle = handle;
+	struct wma_runtime_pm_context *runtime_context =
+					&wma_handle->runtime_context;
+
+	vos_runtime_pm_prevent_suspend_deinit(runtime_context->ap);
+	runtime_context->ap = NULL;
+	vos_runtime_pm_prevent_suspend_deinit(
+					runtime_context->resume);
+	runtime_context->resume = NULL;
+}
+#else
+static void wma_runtime_context_init(tp_wma_handle handle) { }
+static void wma_runtime_context_deinit(tp_wma_handle handle) { }
+#endif
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -6396,8 +6444,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->htc_handle = htc_handle;
 	wma_handle->vos_context = vos_context;
 	wma_handle->adf_dev = adf_dev;
-	wma_handle->runtime_pm_ctx =
-			vos_runtime_pm_prevent_suspend_init("wma_runtime_pm");
+
+	wma_runtime_context_init(wma_handle);
 
 	/* initialize default target config */
 	wma_set_default_tgt_config(wma_handle);
@@ -6760,8 +6808,7 @@ err_wma_handle:
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
 
-	vos_runtime_pm_prevent_suspend_deinit(wma_handle->runtime_pm_ctx);
-	wma_handle->runtime_pm_ctx = NULL;
+	wma_runtime_context_deinit(wma_handle);
 	vos_free_context(vos_context, VOS_MODULE_ID_WDA, wma_handle);
 
 	WMA_LOGD("%s: Exit", __func__);
@@ -15724,7 +15771,7 @@ out:
 static void wma_add_pm_vote(tp_wma_handle wma)
 {
 	if (++wma->ap_client_cnt == 1) {
-		vos_runtime_pm_prevent_suspend(wma->runtime_pm_ctx);
+		vos_runtime_pm_prevent_suspend(wma->runtime_context.ap);
 		vos_pm_control(DISABLE_PCIE_POWER_COLLAPSE);
 	}
 }
@@ -15732,7 +15779,7 @@ static void wma_add_pm_vote(tp_wma_handle wma)
 static void wma_del_pm_vote(tp_wma_handle wma)
 {
 	if (--wma->ap_client_cnt == 0) {
-		vos_runtime_pm_allow_suspend(wma->runtime_pm_ctx);
+		vos_runtime_pm_allow_suspend(wma->runtime_context.ap);
 		vos_pm_control(ENABLE_PCIE_POWER_COLLAPSE);
 	}
 }
@@ -20721,6 +20768,9 @@ pdev_resume:
 	/* unpause the vdev if left paused and hif_pci_suspend fails */
 	wma_unpause_vdev(wma);
 
+	if (runtime_pm)
+		vos_runtime_pm_allow_suspend(wma->runtime_context.resume);
+
 	return ret;
 }
 
@@ -21056,6 +21106,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 
 	if (info == NULL) {
 		WMA_LOGD("runtime PM: Request to suspend all interfaces");
+		wmi_set_runtime_pm_inprogress(wma->wmi_handle, TRUE);
 		goto suspend_all_iface;
 	}
 
@@ -21213,7 +21264,6 @@ send_ready_to_suspend:
 	wma_set_wow_bus_suspend(wma, 1);
 
 	wma_send_status_to_suspend_ind(wma, TRUE, info == NULL);
-
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -29371,8 +29421,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
 
-	vos_runtime_pm_prevent_suspend_deinit(wma_handle->runtime_pm_ctx);
-	wma_handle->runtime_pm_ctx = NULL;
+	wma_runtime_context_deinit(wma_handle);
 
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
@@ -32688,7 +32737,6 @@ int wma_runtime_suspend_req(WMA_HANDLE handle)
 	int ret = 0;
 	tp_wma_handle wma = (tp_wma_handle) handle;
 
-	wmi_set_runtime_pm_inprogress(wma->wmi_handle, TRUE);
 	vos_event_reset(&wma->runtime_suspend);
 
 	vosMessage.bodyptr = NULL;
@@ -32697,7 +32745,7 @@ int wma_runtime_suspend_req(WMA_HANDLE handle)
 
 	if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
 		ret = -EAGAIN;
-		goto out;
+		return ret;
 	}
 
 	if (vos_wait_single_event(&wma->runtime_suspend,
@@ -32705,7 +32753,6 @@ int wma_runtime_suspend_req(WMA_HANDLE handle)
 			VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get runtime suspend event");
 		ret = -EAGAIN;
-		wma_runtime_resume_req(wma);
 		goto out;
 	}
 
@@ -32717,7 +32764,8 @@ int wma_runtime_suspend_req(WMA_HANDLE handle)
 	}
 out:
 	if (ret)
-		wmi_set_runtime_pm_inprogress(wma->wmi_handle, FALSE);
+		wma_runtime_resume_req(wma);
+
 	return ret;
 }
 
@@ -32726,6 +32774,10 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 	vos_msg_t       vosMessage;
 	VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 	int ret = 0;
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	struct wma_runtime_pm_context *runtime_context = &wma->runtime_context;
+
+	vos_runtime_pm_prevent_suspend(runtime_context->resume);
 
 	vosMessage.bodyptr = NULL;
 	vosMessage.type    = WDA_RUNTIME_PM_RESUME_IND;
@@ -32734,6 +32786,7 @@ int wma_runtime_resume_req(WMA_HANDLE handle)
 	if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
 		WMA_LOGE("Failed to post Runtime PM Resume IND to VOS");
 		ret = -EAGAIN;
+		vos_runtime_pm_allow_suspend(runtime_context->resume);
 	}
 
 	return ret;
