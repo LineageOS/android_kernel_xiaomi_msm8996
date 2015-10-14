@@ -1333,6 +1333,36 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
    pHddCtx->isLogpInProgress = value;
 }
 
+/**
+ * vos_is_unload_in_progress() - check if driver unload is in
+ * progress
+ *
+ * @moduleContext: the input module context pointer
+ * @moduleId: the module ID who's context pointer is input in
+ *        moduleContext
+ *
+ * Return: true  - unload in progress
+ *         false - unload not in progress/error
+ */
+
+
+v_BOOL_t vos_is_unload_in_progress(VOS_MODULE_ID moduleId,
+				 v_VOID_t *moduleContext)
+{
+	hdd_context_t *hdd_ctx = NULL;
+
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		"%s: global voss context is NULL", __func__);
+		VOS_ASSERT(0);
+		return 0;
+	}
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   gpVosContext);
+
+	return hdd_ctx->isUnloadInProgress;
+}
+
 v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
 {
   if (gpVosContext == NULL)
