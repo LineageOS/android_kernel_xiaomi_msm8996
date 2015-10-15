@@ -1588,6 +1588,37 @@ static int mdss_mdp_get_cmdline_config(struct platform_device *pdev)
 	return rc;
 }
 
+static void __update_sspp_info(struct mdss_mdp_pipe *pipe,
+	int pipe_cnt, char *type, char *buf, int *cnt)
+{
+	int i;
+	size_t len = PAGE_SIZE;
+
+#define SPRINT(fmt, ...) \
+		(*cnt += scnprintf(buf + *cnt, len - *cnt, fmt, ##__VA_ARGS__))
+
+	for (i = 0; i < pipe_cnt; i++) {
+		SPRINT("pipe_num:%d pipe_type:%s pipe_ndx:%d pipe_is_handoff:%d display_id:%d\n",
+			pipe->num, type, pipe->ndx, pipe->is_handed_off,
+			mdss_mdp_get_display_id(pipe));
+		pipe++;
+	}
+#undef SPRINT
+}
+
+static void mdss_mdp_update_sspp_info(struct mdss_data_type *mdata,
+	char *buf, int *cnt)
+{
+	__update_sspp_info(mdata->vig_pipes, mdata->nvig_pipes,
+		"vig", buf, cnt);
+	__update_sspp_info(mdata->rgb_pipes, mdata->nrgb_pipes,
+		"rgb", buf, cnt);
+	__update_sspp_info(mdata->dma_pipes, mdata->ndma_pipes,
+		"dma", buf, cnt);
+	__update_sspp_info(mdata->cursor_pipes, mdata->ncursor_pipes,
+		"cursor", buf, cnt);
+}
+
 static ssize_t mdss_mdp_show_capabilities(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -1604,6 +1635,9 @@ static ssize_t mdss_mdp_show_capabilities(struct device *dev,
 
 	SPRINT("mdp_version=5\n");
 	SPRINT("hw_rev=%d\n", mdata->mdp_rev);
+	SPRINT("pipe_count:%d\n", mdata->nvig_pipes + mdata->nrgb_pipes +
+		mdata->ndma_pipes + mdata->ncursor_pipes);
+	mdss_mdp_update_sspp_info(mdata, buf, &cnt);
 	SPRINT("rgb_pipes=%d\n", mdata->nrgb_pipes);
 	SPRINT("vig_pipes=%d\n", mdata->nvig_pipes);
 	SPRINT("dma_pipes=%d\n", mdata->ndma_pipes);
@@ -1662,6 +1696,7 @@ static ssize_t mdss_mdp_show_capabilities(struct device *dev,
 	if (mdata->has_rot_dwnscale)
 		SPRINT(" rotator_downscale");
 	SPRINT("\n");
+#undef SPRINT
 
 	return cnt;
 }
