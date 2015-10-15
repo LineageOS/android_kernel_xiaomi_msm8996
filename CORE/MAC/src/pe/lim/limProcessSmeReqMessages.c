@@ -2416,7 +2416,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 	// with new AP instead.
         limPrintMacAddr(pMac, pReassocReq->bssDescription.bssId, LOGE);
         limLog(pMac, LOGE, FL("Session does not exist for given bssId"));
-	return;
+	goto end;
     }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
