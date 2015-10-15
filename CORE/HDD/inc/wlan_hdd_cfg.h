@@ -2532,6 +2532,47 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_RX_HANDLE_DEFAULT                      (WLAN_HDD_RX_HANDLE_RX_THREAD)
 #endif /* MDM_PLATFORM */
 
+/* List of RPS CPU maps for different rx queues registered by WLAN driver
+ * Ref - Kernel/Documentation/networking/scaling.txt
+ * RPS CPU map for a particular RX queue, selects CPU(s) for bottom half
+ * processing of RX packets. For example, for a system with 4 CPUs,
+ * 0xe: Use CPU1 - CPU3 and donot use CPU0.
+ * 0x0: RPS is disabled, packets are processed on the interrupting CPU.
+.*
+ * WLAN driver registers NUM_TX_QUEUES queues for tx and rx each during
+ * alloc_netdev_mq. Hence, we need to have a cpu mask for each of the rx queues.
+ *
+ * For example, if the NUM_TX_QUEUES is 4, a sample WLAN ini entry may look like
+ * rpsRxQueueCpuMapList=a b c d
+ * For a 4 CPU system (CPU0 - CPU3), this implies:
+ * 0xa - (1010) use CPU1, CPU3 for rx queue 0
+ * 0xb - (1011) use CPU0, CPU1 and CPU3 for rx queue 1
+ * 0xc - (1100) use CPU2, CPU3 for rx queue 2
+ * 0xd - (1101) use CPU0, CPU2 and CPU3 for rx queue 3
+
+ * In practice, we may want to avoid the cores which are heavily loaded.
+ */
+
+/* Name of the ini file entry to specify RPS map for different RX queus */
+#define CFG_RPS_RX_QUEUE_CPU_MAP_LIST_NAME         "rpsRxQueueCpuMapList"
+
+/* Default value of rpsRxQueueCpuMapList. Different platforms may have
+ * different configurations for NUM_TX_QUEUES and # of cpus, and will need to
+ * configure an appropriate value via ini file. Setting default value to 'e' to
+ * avoid use of CPU0 (since its heavily used by other system processes) by rx
+ * queue 0, which is currently being used for rx packet processing.
+ */
+#define CFG_RPS_RX_QUEUE_CPU_MAP_LIST_DEFAULT      "e"
+
+/* Maximum length of string used to hold a list of cpu maps for various rx
+ * queues. Considering a 16 core system with 5 rx queues, a RPS CPU map
+ * list may look like -
+ * rpsRxQueueCpuMapList = ffff ffff ffff ffff ffff
+ * (all 5 rx queues can be processed on all 16 cores)
+ * max string len = 24 + 1(for '\0'). Considering 30 to be on safe side.
+ */
+#define CFG_RPS_RX_QUEUE_CPU_MAP_LIST_LEN 30
+
 /* SAR Thermal limit values for 2g and 5g */
 
 #define CFG_SET_TXPOWER_LIMIT2G_NAME               "TxPower2g"
@@ -3762,6 +3803,7 @@ typedef struct
    v_U32_t                     TxPower5g;
    v_U32_t                     gEnableDebugLog;
    v_U8_t                      rxhandle;
+   uint8_t                     cpu_map_list[CFG_RPS_RX_QUEUE_CPU_MAP_LIST_LEN];
    v_BOOL_t                    fDfsPhyerrFilterOffload;
    v_U8_t                      gSapPreferredChanLocation;
    v_U8_t                      gDisableDfsJapanW53;
@@ -4097,6 +4139,10 @@ VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,
                tANI_U8 intArrayMaxLen);
 VOS_STATUS hdd_hex_string_to_u8_array(char *str, uint8_t *array, uint8_t *len,
 				      uint8_t array_max_len);
+
+VOS_STATUS hdd_hex_string_to_u16_array(char *str,
+                  uint16_t *int_array, uint8_t *len, uint8_t int_array_max_len);
+
 
 #ifdef MDNS_OFFLOAD
 VOS_STATUS hdd_string_to_string_array(char *data, uint8_t *datalist,

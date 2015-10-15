@@ -3245,6 +3245,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_RX_HANDLE_DEFAULT,
                  CFG_RX_HANDLE_MIN,
                  CFG_RX_HANDLE_MAX),
+
+   REG_VARIABLE_STRING( CFG_RPS_RX_QUEUE_CPU_MAP_LIST_NAME, WLAN_PARAM_String,
+                        hdd_config_t, cpu_map_list,
+                        VAR_FLAGS_OPTIONAL,
+                        (void *)CFG_RPS_RX_QUEUE_CPU_MAP_LIST_DEFAULT ),
+
    REG_VARIABLE( CFG_ENABLE_DFS_PHYERR_FILTEROFFLOAD_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fDfsPhyerrFilterOffload,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5642,6 +5648,54 @@ VOS_STATUS hdd_string_to_u8_array(char *str, uint8_t *array,
 {
 	return hdd_convert_string_to_array(str, array, len,
 					   array_max_len, false);
+}
+
+/**
+ * hdd_hex_string_to_u16_array() - convert a hex string to a uint16 array
+ * @str: input string
+ * @int_array: pointer to input array of type uint16
+ * @len: pointer to number of elements which the function adds to the array
+ * @int_array_max_len: maximum number of elements in input uint16 array
+ *
+ * This function is used to convert a space separated hex string to an array of
+ * uint16_t. For example, an input string str = "a b c d" would be converted to
+ * a unint16 array, int_array = {0xa, 0xb, 0xc, 0xd}, *len = 4.
+ * This assumes that input value int_array_max_len >= 4.
+ *
+ * Return: VOS_STATUS_SUCCESS - if the conversion is successful
+ *         non zero value     - if the conversion is a failure
+ */
+VOS_STATUS hdd_hex_string_to_u16_array(char *str,
+		uint16_t *int_array, uint8_t *len, uint8_t int_array_max_len)
+{
+	char *s = str;
+	int val = 0;
+	if (str == NULL || int_array == NULL || len == NULL)
+		return VOS_STATUS_E_INVAL;
+
+	hddLog(VOS_TRACE_LEVEL_ERROR,
+		FL("str %p intArray %p intArrayMaxLen %d"),
+		s, int_array, int_array_max_len);
+
+	*len = 0;
+
+	while ((s != NULL) && (*len < int_array_max_len)) {
+		/*
+		 * Increment length only if sscanf successfully extracted one
+		 * element. Any other return value means error. Ignore it.
+		 */
+		if (sscanf(s, "%x", &val) == 1) {
+			int_array[*len] = (uint16_t) val;
+			hddLog(VOS_TRACE_LEVEL_DEBUG,
+				FL("s %p val %x intArray[%d]=0x%x"),
+				s, val, *len, int_array[*len]);
+			*len += 1;
+		}
+		s = strpbrk(s, " ");
+		if (s)
+			s++;
+	}
+	return VOS_STATUS_SUCCESS;
 }
 
 #ifdef MDNS_OFFLOAD
