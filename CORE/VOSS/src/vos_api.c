@@ -2517,7 +2517,9 @@ void vos_trigger_recovery(void)
 #endif
 	}
 
+#ifdef CONFIG_CNSS
 out:
+#endif
 	vos_runtime_pm_allow_suspend(runtime_context);
 	vos_runtime_pm_prevent_suspend_deinit(runtime_context);
 }
