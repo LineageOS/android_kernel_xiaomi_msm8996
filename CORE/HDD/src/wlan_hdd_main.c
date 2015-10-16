@@ -11857,6 +11857,63 @@ static void hdd_init_offloaded_packets_ctx(hdd_context_t *hdd_ctx)
 }
 #endif
 
+#ifdef WLAN_FEATURE_WOW_PULSE
+/**
+* wlan_hdd_set_wow_pulse() - call SME to send wmi cmd of wow pulse
+* @phddctx: hdd_context_t structure pointer
+* @enable: enable or disable this behaviour
+*
+* Return: int
+*/
+static int wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
+{
+	hdd_config_t *pcfg_ini = phddctx->cfg_ini;
+	struct wow_pulse_mode wow_pulse_set_info;
+	VOS_STATUS status;
+
+	hddLog(LOG1, FL("wow pulse enable flag is %d"), enable);
+
+	if (false == phddctx->cfg_ini->wow_pulse_support)
+		return 0;
+
+	/* prepare the request to send to SME */
+	if (enable == true) {
+		wow_pulse_set_info.wow_pulse_enable = true;
+		wow_pulse_set_info.wow_pulse_pin =
+				pcfg_ini->wow_pulse_pin;
+		wow_pulse_set_info.wow_pulse_interval_low =
+				pcfg_ini->wow_pulse_interval_low;
+		wow_pulse_set_info.wow_pulse_interval_high=
+				pcfg_ini->wow_pulse_interval_high;
+	} else {
+		wow_pulse_set_info.wow_pulse_enable = false;
+		wow_pulse_set_info.wow_pulse_pin = 0;
+		wow_pulse_set_info.wow_pulse_interval_low = 0;
+		wow_pulse_set_info.wow_pulse_interval_high= 0;
+	}
+	hddLog(LOG1,"%s: enable %d pin %d low %d high %d",
+		__func__, wow_pulse_set_info.wow_pulse_enable,
+		wow_pulse_set_info.wow_pulse_pin,
+		wow_pulse_set_info.wow_pulse_interval_low,
+		wow_pulse_set_info.wow_pulse_interval_high);
+
+	status = sme_set_wow_pulse(&wow_pulse_set_info);
+	if (VOS_STATUS_E_FAILURE == status) {
+		hddLog(LOGE,
+			"%s: sme_set_wow_pulse failure!", __func__);
+		return -EIO;
+	}
+	hddLog(LOG2,
+		"%s: sme_set_wow_pulse success!", __func__);
+	return 0;
+}
+#else
+static int inline wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
+{
+	return 0;
+}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -12169,6 +12226,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
              "%s: Failed to init channel list", __func__);
       goto err_vosclose;
    }
+
+   if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Failed to set wow pulse", __func__);
+   }
+
 
    /* Set 802.11p config
     * TODO-OCB: This has been temporarily added here to ensure this paramter

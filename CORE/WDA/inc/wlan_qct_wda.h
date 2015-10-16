@@ -1060,6 +1060,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_SET_UDP_RESP_OFFLOAD              SIR_HAL_SET_UDP_RESP_OFFLOAD
 
+#define WDA_SET_WOW_PULSE_CMD                 SIR_HAL_SET_WOW_PULSE_CMD
+
 
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);

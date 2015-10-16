@@ -4399,4 +4399,8 @@ eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
                                      void (*cb)(void *,
                                                 struct sir_lost_link_info *));
 
+#ifdef WLAN_FEATURE_WOW_PULSE
+VOS_STATUS sme_set_wow_pulse(struct wow_pulse_mode *wow_pulse_set_info);
+#endif
+
 #endif //#if !defined( __SME_API_H )
