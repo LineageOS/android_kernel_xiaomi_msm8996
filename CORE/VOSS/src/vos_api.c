@@ -2478,6 +2478,7 @@ void vos_trigger_recovery(void)
 	pVosContextType vos_context;
 	tp_wma_handle wma_handle;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	void *runtime_context = NULL;
 
 	vos_context = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
 	if (!vos_context) {
@@ -2494,6 +2495,9 @@ void vos_trigger_recovery(void)
 		return;
 	}
 
+	runtime_context = vos_runtime_pm_prevent_suspend_init("vos_recovery");
+	vos_runtime_pm_prevent_suspend(runtime_context);
+
 	wma_crash_inject(wma_handle, RECOVERY_SIM_SELF_RECOVERY, 0);
 
 	status = vos_wait_single_event(&wma_handle->recovery_event,
@@ -2506,14 +2510,16 @@ void vos_trigger_recovery(void)
 		if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 				"LOGP is in progress, ignore!");
-			return;
+			goto out;
 		}
 		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 		cnss_schedule_recovery_work();
 #endif
-
-		return;
 	}
+
+out:
+	vos_runtime_pm_allow_suspend(runtime_context);
+	vos_runtime_pm_prevent_suspend_deinit(runtime_context);
 }
 
 /**
