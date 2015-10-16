@@ -2131,11 +2131,8 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
             &pFrm->ExtSuppRates, psessionEntry );
 
 #if defined WLAN_FEATURE_VOWIFI
-    if( pMac->rrm.rrmPEContext.rrmEnable &&
-            SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
-    {
-        PopulateDot11fRRMIe( pMac, &pFrm->RRMEnabledCap, psessionEntry );
-    }
+    if (pMac->rrm.rrmPEContext.rrmEnable)
+        PopulateDot11fRRMIe(pMac, &pFrm->RRMEnabledCap, psessionEntry);
 #endif
     // The join request *should* contain zero or one of the WPA and RSN
     // IEs.  The payload send along with the request is a
@@ -2532,11 +2529,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
             &frm.ExtSuppRates, psessionEntry );
 
 #if defined WLAN_FEATURE_VOWIFI
-    if( pMac->rrm.rrmPEContext.rrmEnable &&
-            SIR_MAC_GET_RRM( psessionEntry->limReassocBssCaps ) )
-    {
-        PopulateDot11fRRMIe( pMac, &frm.RRMEnabledCap, psessionEntry );
-    }
+    if (pMac->rrm.rrmPEContext.rrmEnable)
+        PopulateDot11fRRMIe(pMac, &frm.RRMEnabledCap, psessionEntry);
 #endif
 
     // Ideally this should be enabled for 11r also. But 11r does
@@ -3035,11 +3029,8 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
                                 &frm.ExtSuppRates, psessionEntry );
 
 #if defined WLAN_FEATURE_VOWIFI
-    if( pMac->rrm.rrmPEContext.rrmEnable &&
-        SIR_MAC_GET_RRM( psessionEntry->limReassocBssCaps ) )
-    {
-        PopulateDot11fRRMIe( pMac, &frm.RRMEnabledCap, psessionEntry );
-    }
+    if (pMac->rrm.rrmPEContext.rrmEnable)
+        PopulateDot11fRRMIe(pMac, &frm.RRMEnabledCap, psessionEntry);
 #endif
     // The join request *should* contain zero or one of the WPA and RSN
     // IEs.  The payload send along with the request is a
