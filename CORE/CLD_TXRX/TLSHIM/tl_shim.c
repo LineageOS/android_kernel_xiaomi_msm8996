@@ -495,25 +495,30 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	}
 #endif
 
+	adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
 	param_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) data;
 	if (!param_tlvs) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Get NULL point message from FW");
 		return 0;
 	}
 
 	hdr = param_tlvs->hdr;
 	if (!hdr) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Rx event is NULL");
 		return 0;
 	}
 
 	if (hdr->buf_len < sizeof(struct ieee80211_frame)) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Invalid rx mgmt packet");
 		return 0;
 	}
 
 	rx_pkt = vos_mem_malloc(sizeof(*rx_pkt));
 	if (!rx_pkt) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Failed to allocate rx packet");
 		return 0;
 	}
@@ -562,6 +567,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			      roundup(hdr->buf_len, 4),
 			      0, 4, FALSE);
 	if (!wbuf) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("%s: Failed to allocate wbuf for mgmt rx len(%u)",
 			__func__, hdr->buf_len);
 		vos_mem_free(rx_pkt);
@@ -609,6 +615,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 			rx_pkt->pkt_meta.rssi_raw, hdr->tsf_delta);
 
 	if (!tl_shim->mgmt_rx) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Not registered for Mgmt rx, dropping the frame");
 		vos_pkt_return_packet(rx_pkt);
 		return 0;
@@ -664,6 +671,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 		}
 	    }
 	}
+	adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 
 #ifdef WLAN_FEATURE_11W
 	if (mgt_type == IEEE80211_FC0_TYPE_MGT &&
@@ -769,7 +777,7 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 
 	if (vos_is_logp_in_progress(VOS_MODULE_ID_TL, NULL)) {
-			TLSHIM_LOGE("%s: LOPG in progress\n", __func__);
+			TLSHIM_LOGE("%s: LOGP in progress\n", __func__);
 			return (-1);
 	}
 
@@ -783,9 +791,7 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 		return (-1);
 	}
 
-	adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
 	ret = tlshim_mgmt_rx_process(context, data, data_len, FALSE, 0);
-	adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 
 	return ret;
 }
@@ -805,11 +811,9 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id)
 		return ret;
 	}
 
-	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len)
-	{
-		adf_os_spin_lock_bh(&tl_shim->mgmt_lock);
-		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data, tl_shim->last_beacon_len, TRUE, vdev_id);
-		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
+	if (tl_shim->last_beacon_data && tl_shim->last_beacon_len) {
+		ret = tlshim_mgmt_rx_process(context, tl_shim->last_beacon_data,
+					tl_shim->last_beacon_len, TRUE, vdev_id);
 	}
 	return ret;
 }
