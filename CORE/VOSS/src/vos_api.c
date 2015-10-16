@@ -1359,6 +1359,12 @@ v_BOOL_t vos_is_unload_in_progress(VOS_MODULE_ID moduleId,
 	}
 	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
 						   gpVosContext);
+	if (NULL == hdd_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		"%s: hdd context is NULL", __func__);
+		VOS_ASSERT(0);
+		return 0;
+	}
 
 	return hdd_ctx->isUnloadInProgress;
 }
