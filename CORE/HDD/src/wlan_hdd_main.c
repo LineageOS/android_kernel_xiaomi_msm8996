@@ -11222,6 +11222,18 @@ void hdd_prevent_suspend_timeout(v_U32_t timeout, uint32_t reason)
                                       reason);
 }
 
+/**
+ * hdd_allow_runtime_suspend() - API to allow runtime suspend
+ *
+ * API to allow runtime suspend if the "wlan_wake_lock" is preventing it.
+ *
+ * Return: void
+ */
+void hdd_allow_runtime_suspend(void)
+{
+	vos_runtime_pm_allow_suspend((&wlan_wake_lock)->runtime_pm_context);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_exchange_version_and_caps() - HDD function to exchange version and capability
