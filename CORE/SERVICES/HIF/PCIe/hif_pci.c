@@ -3565,6 +3565,9 @@ void hif_runtime_pm_prevent_suspend_deinit(void *data)
 	if (!sc)
 		return;
 
+	if (!context)
+		return;
+
 	/*
 	 * Ensure to delete the context list entry and reduce the usage count
 	 * before freeing the context if context is active.
