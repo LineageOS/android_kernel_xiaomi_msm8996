@@ -1029,7 +1029,8 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 
 	/* ACTIVATE TX PIPE */
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-		"%s: Enable TX PIPE", __func__);
+		"%s: Enable TX PIPE(tx_pipe_handle=%d)",
+		__func__, hdd_ipa->tx_pipe_handle);
 	result = ipa_enable_wdi_pipe(hdd_ipa->tx_pipe_handle);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -1049,7 +1050,8 @@ static int hdd_ipa_uc_enable_pipes(struct hdd_ipa_priv *hdd_ipa)
 
 	/* ACTIVATE RX PIPE */
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-		"%s: Enable RX PIPE", __func__);
+		"%s: Enable RX PIPE(rx_pipe_handle=%d)"
+		, __func__, hdd_ipa->rx_pipe_handle);
 	result = ipa_enable_wdi_pipe(hdd_ipa->rx_pipe_handle);
 	if (result) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -1117,18 +1119,22 @@ static int hdd_ipa_uc_handle_first_con(struct hdd_ipa_priv *hdd_ipa)
 {
 	hdd_ipa->activated_fw_pipe = 0;
 	hdd_ipa->resource_loading = VOS_TRUE;
+
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "+%s", __func__);
+
 	/* If RM feature enabled
 	 * Request PROD Resource first
 	 * PROD resource may return sync or async manners */
-	if ((hdd_ipa_is_rm_enabled(hdd_ipa)) &&
-		(!ipa_rm_request_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
-		/* RM PROD request sync return
-		 * enable pipe immediately */
-		if (hdd_ipa_uc_enable_pipes(hdd_ipa)) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"%s: IPA WDI Pipes activate fail", __func__);
-			hdd_ipa->resource_loading = VOS_FALSE;
-			return -EBUSY;
+	if (hdd_ipa_is_rm_enabled(hdd_ipa)) {
+		if (!ipa_rm_request_resource(IPA_RM_RESOURCE_WLAN_PROD)) {
+			/* RM PROD request sync return
+			 * enable pipe immediately */
+			if (hdd_ipa_uc_enable_pipes(hdd_ipa)) {
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+						"%s: IPA WDI Pipes activate fail", __func__);
+				hdd_ipa->resource_loading = VOS_FALSE;
+				return -EBUSY;
+			}
 		}
 	} else {
 		/* RM Disabled
@@ -1145,6 +1151,8 @@ static int hdd_ipa_uc_handle_first_con(struct hdd_ipa_priv *hdd_ipa)
 
 static int hdd_ipa_uc_handle_last_discon(struct hdd_ipa_priv *hdd_ipa)
 {
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "+%s", __func__);
+
 	hdd_ipa->resource_unloading = VOS_TRUE;
 	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 		"%s: Disable FW RX PIPE", __func__);
@@ -1281,7 +1289,6 @@ static void hdd_ipa_uc_loaded_handler(struct hdd_ipa_priv *ipa_ctxt)
 		"%s : TX PIPE Handle %d, DBPA 0x%x",
 		__func__, ipa_ctxt->tx_pipe_handle, (v_U32_t)pipe_out.uc_door_bell_pa);
 
-
 	ipa_connect_wdi_pipe(&ipa_ctxt->prod_pipe_in, &pipe_out);
 	ipa_ctxt->rx_pipe_handle = pipe_out.clnt_hdl;
 	hdd_ctx->rx_ready_doorbell_paddr = pipe_out.uc_door_bell_pa;
@@ -1291,6 +1298,8 @@ static void hdd_ipa_uc_loaded_handler(struct hdd_ipa_priv *ipa_ctxt)
 
 	/* If already any STA connected, enable IPA/FW PIPEs */
 	if (ipa_ctxt->sap_num_connected_sta) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"Client already connected, enable IPA/FW PIPEs");
 		hdd_ipa_uc_handle_first_con(ipa_ctxt);
 	}
 }
@@ -2726,7 +2735,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		adapter = iface_context->adapter;
 
 		HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG,
-			"w2i -- skb", skb->data, 8);
+			"w2i -- skb", skb->data, 16);
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa->stats.num_rx_excep++;
@@ -2760,7 +2769,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 
 			if (fw_desc & FW_RX_DESC_FORWARD_M) {
 				HDD_IPA_LOG(
-					VOS_TRACE_LEVEL_DEBUG,
+					VOS_TRACE_LEVEL_INFO,
 					"Forward packet to Tx (fw_desc=%d)",
 					fw_desc);
 				copy = adf_nbuf_copy(skb);
@@ -2771,7 +2780,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 						adapter->dev);
 					if (ret) {
 						HDD_IPA_LOG(
-							VOS_TRACE_LEVEL_DEBUG,
+							VOS_TRACE_LEVEL_ERROR,
 							"Forward packet Tx fail"
 							);
 						hdd_ipa->stats.
@@ -3788,11 +3797,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				(!hdd_ipa->sta_connected)) {
 			/* Enable IPA UC TX PIPE when STA connected */
 			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
-			if (!ret) {
+			if (ret) {
+				vos_lock_release(&hdd_ipa->event_lock);
 				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 					"handle 1st con ret %d", ret);
-			} else {
-				vos_lock_release(&hdd_ipa->event_lock);
 				hdd_ipa_uc_offload_enable_disable(adapter,
 					SIR_STA_RX_DATA_OFFLOAD, 0);
 				goto end;
@@ -3957,8 +3965,6 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			vos_lock_release(&hdd_ipa->event_lock);
 			return 0;
 		}
-		hdd_ipa->sap_num_connected_sta++;
-		hdd_ipa->pending_cons_req = VOS_FALSE;
 		vos_lock_release(&hdd_ipa->event_lock);
 #endif
 
@@ -4001,7 +4007,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #ifdef IPA_UC_OFFLOAD
 		vos_lock_acquire(&hdd_ipa->event_lock);
 		/* Enable IPA UC Data PIPEs when first STA connected */
-		if ((1 == hdd_ipa->sap_num_connected_sta)
+		if ((0 == hdd_ipa->sap_num_connected_sta)
 #ifdef IPA_UC_STA_OFFLOAD
 			&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
 			|| !hdd_ipa->sta_connected)
@@ -4017,6 +4023,10 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 				return ret;
 			}
 		}
+
+		hdd_ipa->sap_num_connected_sta++;
+		hdd_ipa->pending_cons_req = VOS_FALSE;
+
 		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
 		return ret;
