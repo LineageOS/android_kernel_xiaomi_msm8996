@@ -1224,8 +1224,7 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             sdio_claim_host(func);
 
             /* force driver strength to type D */
-            if (((id->device & MANUFACTURER_ID_AR6K_BASE_MASK) ==
-                    MANUFACTURER_ID_QCA9377_BASE && forcedriverstrength == 1)) {
+            if (forcedriverstrength == 1) {
                 unsigned int  addr = SDIO_CCCR_DRIVE_STRENGTH;
                 unsigned char value = 0;
                 A_UINT32 err = Func0_CMD52ReadByte(func->card, addr, &value);
