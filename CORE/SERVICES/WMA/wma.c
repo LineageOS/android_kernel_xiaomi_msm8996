@@ -9091,13 +9091,9 @@ VOS_STATUS wma_roam_scan_fill_self_caps(tp_wma_handle wma_handle,
 	}
 	if (val)
 		selfCaps.apsd = 1;
-	if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-				"Failed to get WNI_CFG_RRM_ENABLED");
-		return VOS_STATUS_E_FAILURE;
-	}
-	if (val)
-		selfCaps.rrm = 1;
+
+	selfCaps.rrm = pMac->rrm.rrmSmeContext.rrmConfig.rrm_enabled;
+
 	if (wlan_cfgGetInt(pMac, WNI_CFG_BLOCK_ACK_ENABLED, &val) !=
 							       eSIR_SUCCESS) {
 		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,

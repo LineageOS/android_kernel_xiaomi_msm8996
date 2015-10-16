@@ -3864,44 +3864,6 @@ NONE
 0    1    1
 
 *
-* RRM Enabled
-*
-
-WNI_CFG_RRM_ENABLED    I    4    8
-V    RW    NP
-NONE
-0    1    0
-V    RW    NP
-NONE
-0    1    0
-
-*
-* RRM measurement max duration. Section 11.10.3 802.11k-2008.
-* Max Duration represented as maxDuration inTUs = 2^(*WNI_CFG_RRM_IN_CHAN_MAX - 4) * bcnIntvl
-* Operating channel max measurement duration.
-*
-
-WNI_CFG_RRM_OPERATING_CHAN_MAX    I    4    8
-V    RW    NP
-NONE
-0    8    0
-V    RW    NP
-NONE
-0    8    0
-
-*
-* Non-Operating channel max measurement duration.
-*
-
-WNI_CFG_RRM_NON_OPERATING_CHAN_MAX    I    4    8
-V    RW    NP
-NONE
-0    8    0
-V    RW    NP
-NONE
-0    8    0
-
-*
 * TX power control feature
 *
 

@@ -975,19 +975,12 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
         pCapInfo->apsd = 1;
 
 #if defined WLAN_FEATURE_VOWIFI
-    if (LIM_IS_STA_ROLE(sessionEntry)) {
-      if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
-      {
-        cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_RRM_ENABLED failed"));
-        return eSIR_FAILURE;
-      }
+    pCapInfo->rrm = pMac->rrm.rrmSmeContext.rrmConfig.rrm_enabled;
 #if defined WLAN_VOWIFI_DEBUG
-      PELOGE(cfgLog( pMac, LOGE, "RRM = %d",val );)
+    cfgLog( pMac, LOGE, "RRM = %d", pCapInfo->rrm);
 #endif
-      if (val)
-        pCapInfo->rrm = 1;
-    }
 #endif
+
     //DSSS-OFDM
     //FIXME : no config defined yet.
 
