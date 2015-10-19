@@ -44,6 +44,7 @@ ifeq ($(KERNEL_BUILD), 0)
 	endif
 
 	ifeq ($(CONFIG_ARCH_MDMFERMIUM), y)
+	CONFIG_TUFELLO_DUAL_FW_SUPPORT := y
 	CONFIG_MOBILE_ROUTER := y
 	endif
 

@@ -115,8 +115,14 @@ static int ol_get_fw_files_for_target(struct ol_fw_files *pfw_files,
             break;
     case AR6320_REV3_VERSION:
     case AR6320_REV3_2_VERSION:
-    case QCA9377_REV1_1_VERSION:
             memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0, sizeof(*pfw_files));
+            break;
+    case QCA9377_REV1_1_VERSION:
+#ifdef CONFIG_TUFELLO_DUAL_FW_SUPPORT
+            memcpy(pfw_files, &FW_FILES_DEFAULT, sizeof(*pfw_files));
+#else
+            memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0, sizeof(*pfw_files));
+#endif
             break;
     default:
             memcpy(pfw_files, &FW_FILES_DEFAULT, sizeof(*pfw_files));
