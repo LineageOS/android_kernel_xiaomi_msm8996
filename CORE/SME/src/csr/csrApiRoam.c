@@ -18656,10 +18656,9 @@ tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId)
     {
       return eANI_BOOLEAN_TRUE;
     } else {
-            smsLog(pMac, LOGE, FL(" %s: pCurRoamProfile is NULL\n"), __func__);
-            return eANI_BOOLEAN_FALSE;
-           }
+      return eANI_BOOLEAN_FALSE;
     }
+  }
 
   return eANI_BOOLEAN_FALSE;
 }
