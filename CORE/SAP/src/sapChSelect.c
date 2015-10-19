@@ -140,6 +140,9 @@ sapSafeChannelType safeChannels[NUM_20MHZ_RF_CHANNELS] =
     {132, VOS_TRUE},      //RF_CHAN_132,
     {136, VOS_TRUE},      //RF_CHAN_136,
     {140, VOS_TRUE},      //RF_CHAN_140,
+#ifdef FEATURE_WLAN_CH144
+    {144, VOS_TRUE},      //RF_CHAN_144,
+#endif
     {149, VOS_TRUE},      //RF_CHAN_149,
     {153, VOS_TRUE},      //RF_CHAN_153,
     {157, VOS_TRUE},      //RF_CHAN_157,
