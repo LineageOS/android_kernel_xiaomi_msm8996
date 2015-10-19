@@ -2240,16 +2240,24 @@ static int hdd_ipa_rm_cons_release(void)
 
 static int hdd_ipa_rm_cons_request(void)
 {
+	int ret = 0;
+
 #ifdef IPA_UC_OFFLOAD
-	if ((ghdd_ipa->resource_loading) || (ghdd_ipa->resource_unloading)) {
+	if (ghdd_ipa->resource_loading) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
-			"%s: ipa resource loading/unloading in progress",
+			"%s: ipa resource loading in progress",
 			__func__);
 		ghdd_ipa->pending_cons_req = VOS_TRUE;
-		return -EPERM;
+		ret= -EINPROGRESS;
+	} else if (ghdd_ipa->resource_unloading) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
+			"%s: ipa resource unloading in progress",
+			__func__);
+		ghdd_ipa->pending_cons_req = VOS_TRUE;
+		ret = -EPERM;
 	}
 #endif /* IPA_UC_OFFLOAD */
-	return 0;
+	return ret;
 }
 
 int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
