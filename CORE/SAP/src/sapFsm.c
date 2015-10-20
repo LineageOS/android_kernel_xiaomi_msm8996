@@ -2084,6 +2084,10 @@ sapGotoChannelSel
     tHalHandle hHal;
     tANI_U8   con_ch;
 
+#ifdef FEATURE_WLAN_CH_AVOID
+    v_U8_t i;
+#endif
+
     hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, sapContext->pvosGCtx);
     if (NULL == hHal)
     {
@@ -2264,10 +2268,31 @@ sapGotoChannelSel
 #ifdef SOFTAP_CHANNEL_RANGE
                     if(sapContext->channelList != NULL)
                     {
-                        sapContext->channel = sapContext->channelList[0];
-                        vos_mem_free(sapContext->channelList);
-                        sapContext->channelList = NULL;
+                        for ( i = 0 ; i < sapContext->numofChannel ; i++)
+                            if (NV_CHANNEL_ENABLE ==
+		                vos_nv_getChannelEnabledState(sapContext->channelList[i]))
+                            {
+                                sapContext->channel = sapContext->channelList[i];
+                            }
+
+                            vos_mem_free(sapContext->channelList);
+                            sapContext->channelList = NULL;
                     }
+#ifdef FEATURE_WLAN_CH_AVOID
+                    else
+                    {
+                        for( i = 0; i < NUM_20MHZ_RF_CHANNELS; i++ )
+                        {
+                            if((NV_CHANNEL_ENABLE ==
+                                vos_nv_getChannelEnabledState(safeChannels[i].channelNumber))
+                                    && (VOS_TRUE == safeChannels[i].isSafe))
+                            {
+                                sapContext->channel = safeChannels[i].channelNumber;
+                                break;
+                            }
+                        }
+                    }
+#endif
 #endif
                     if (VOS_TRUE == sapDoAcsPreStartBss)
                     {
