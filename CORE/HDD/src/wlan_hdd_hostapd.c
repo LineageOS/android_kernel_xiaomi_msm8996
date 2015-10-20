@@ -6044,7 +6044,7 @@ static int  wlan_hdd_get_peer_rssi(hdd_adapter_t *adapter,
 					union iwreq_data *wrqu)
 {
 	eHalStatus hstatus;
-	unsigned long rc;
+	int ret;
 	struct statsContext context;
 	struct sir_rssi_req rssi_req;
 
@@ -6070,15 +6070,16 @@ static int  wlan_hdd_get_peer_rssi(hdd_adapter_t *adapter,
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: Unable to retrieve statistics for rssi",
 			__func__);
-		rc = -EFAULT;
+		ret = -EFAULT;
 	} else {
-		rc = wait_for_completion_timeout(&context.completion,
-				msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
-		if (!rc) {
+		if (!wait_for_completion_timeout(&context.completion,
+				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 				"%s: SME timed out while retrieving rssi",
 				__func__);
-		}
+			ret = -EFAULT;
+		} else
+			ret = 0;
 	}
 	/*
 	 * either we never sent a request, we sent a request and received a
@@ -6096,7 +6097,7 @@ static int  wlan_hdd_get_peer_rssi(hdd_adapter_t *adapter,
 	spin_lock(&hdd_context_lock);
 	context.magic = 0;
 	spin_unlock(&hdd_context_lock);
-	return rc;
+	return ret;
 }
 
 /**
