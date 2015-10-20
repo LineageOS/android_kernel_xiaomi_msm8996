@@ -15536,6 +15536,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     v_U8_t* pP2pIe = NULL;
     hdd_adapter_t *con_sap_adapter;
     uint16_t con_dfs_ch;
+    bool is_p2p_scan = false;
 
     ENTER();
 
@@ -15767,7 +15768,13 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      * fails which is not desired
      */
 
-    if (request->n_channels != WLAN_HDD_P2P_SINGLE_CHANNEL_SCAN)
+    if ((request->n_ssids == 1)
+            && (request->ssids != NULL)
+            && vos_mem_compare(&request->ssids[0], "DIRECT-", 7))
+        is_p2p_scan = true;
+
+    if (is_p2p_scan ||
+            (request->n_channels != WLAN_HDD_P2P_SINGLE_CHANNEL_SCAN) )
     {
        hddLog(VOS_TRACE_LEVEL_DEBUG, "Flushing P2P Results");
        sme_ScanFlushP2PResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
