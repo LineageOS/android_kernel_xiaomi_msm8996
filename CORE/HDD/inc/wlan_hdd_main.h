@@ -76,6 +76,9 @@
  *  the Net Device queue again */
 #define HDD_TX_QUEUE_LOW_WATER_MARK (HDD_TX_QUEUE_MAX_LEN*3/4)
 
+/** Length of the TX queue for the netdev */
+#define HDD_NETDEV_TX_QUEUE_LEN (3000)
+
 /** Bytes to reserve in the headroom */
 #if (!defined(QCA_WIFI_2_0)) || (defined(HIF_USB))
 #define HDD_HW_NEEDED_HEADROOM 128
