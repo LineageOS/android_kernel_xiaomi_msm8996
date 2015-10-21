@@ -103,9 +103,9 @@
 #include "ol_fw.h"
 /* Time in msec */
 #ifdef CONFIG_SLUB_DEBUG_ON
-#define HDD_SSR_BRING_UP_TIME 20000
+#define HDD_SSR_BRING_UP_TIME 40000
 #else
-#define HDD_SSR_BRING_UP_TIME 15000
+#define HDD_SSR_BRING_UP_TIME 30000
 #endif
 
 static eHalStatus g_full_pwr_status;
