@@ -1354,7 +1354,9 @@ endif
 
 #Flag to enable/disable WLAN D0-WOW
 ifeq ($(CONFIG_PCI_MSM), y)
+ifeq ($(CONFIG_ROME_IF),pci)
 CDEFINES += -DFEATURE_WLAN_D0WOW
+endif
 endif
 
 # Flag to enable bus auto suspend
