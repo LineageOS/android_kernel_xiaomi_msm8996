@@ -55,7 +55,6 @@
 #define MIN_CHN_TIME_TO_FIND_GO 100
 #define MAX_CHN_TIME_TO_FIND_GO 100
 #define DIRECT_SSID_LEN 7
-#define MIN_11P_CHANNEL 170
 
 /*
  * Purpose of HIDDEN_TIMER

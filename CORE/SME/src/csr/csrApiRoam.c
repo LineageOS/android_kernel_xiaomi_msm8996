@@ -465,6 +465,9 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     {
         for (i = 0; i < MAX_SOCIAL_CHANNELS; i++)
         {
+            /* Scan is not performed on DSRC channels*/
+            if (pScan->baseChannels.channelList[i] >= MIN_11P_CHANNEL)
+                continue;
             if (vos_nv_getChannelEnabledState(social_channel[i])
                 == NV_CHANNEL_ENABLE)
                 numChan++;
