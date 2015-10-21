@@ -262,15 +262,15 @@ ath_hif_sdio_remove(void *context, void *hif_handle)
 static A_STATUS
 ath_hif_sdio_suspend(void *context)
 {
-    printk(KERN_INFO "ol_ath_sdio_suspend TODO\n");
-    return 0;
+	pr_debug("%s TODO\n", __func__);
+	return 0;
 }
 
 static A_STATUS
 ath_hif_sdio_resume(void *context)
 {
-    printk(KERN_INFO "ol_ath_sdio_resume ODO\n");
-    return 0;
+	pr_debug("%s TODO\n", __func__);
+	return 0;
 }
 
 static A_STATUS

@@ -94,6 +94,8 @@
 #include "wlan_qct_wda.h"
 #include "wlan_nv.h"
 #include "wlan_hdd_dev_pwr.h"
+#include "hif.h"
+#include "wma.h"
 #ifdef CONFIG_CNSS
 #include <net/cnss.h>
 #endif
@@ -21545,6 +21547,15 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         return -EINVAL;
     }
 
+    if (hif_is_80211_fw_wow_required()) {
+       result = wma_resume_fw();
+       if (result) {
+          hddLog(LOGE, FL("Failed to resume FW err:%d"), result);
+          VOS_BUG(0);
+          return -EBUSY;
+       }
+    }
+
 #ifdef CONFIG_CNSS
     cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
 #endif
@@ -21811,8 +21822,26 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_NONE);
 #endif
 
+    if (hif_is_80211_fw_wow_required()) {
+       rc = wma_suspend_fw();
+       if (rc) {
+          hddLog(LOGE, FL("Failed to suspend FW err:%d"), rc);
+          goto fail_suspend;
+       }
+    }
+
     EXIT();
     return 0;
+
+fail_suspend:
+#ifdef CONFIG_CNSS
+    cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
+#endif
+    pHddCtx->isWiphySuspended = FALSE;
+#ifdef QCA_CONFIG_SMP
+    complete(&vosSchedContext->ResumeTlshimRxEvent);
+    pHddCtx->isTlshimRxThreadSuspended = FALSE;
+#endif
 
 #ifdef QCA_CONFIG_SMP
 resume_all:

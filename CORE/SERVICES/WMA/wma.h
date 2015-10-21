@@ -1676,6 +1676,15 @@ static inline void wma_set_wifi_start_packet_stats(void *wma_handle,
 }
 #endif
 
+/* API's to enable HDD to suspsend FW.
+ * This are active only if Bus Layer aggreed to suspend.
+ * This will be called for only for SDIO driver, for others
+ * by default HIF return failure, as we suspend FW in bus
+ * suspend callbacks
+ */
+int wma_suspend_fw(void);
+int wma_resume_fw(void);
+
 void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle);
 struct wma_txrx_node *wma_get_interface_by_vdev_id(uint8_t vdev_id);
 bool wma_is_vdev_up(uint8_t vdev_id);

@@ -94,8 +94,6 @@ int ath_sdio_suspend(void *context);
 int ath_sdio_resume(void *context);
 
 /*These functions are exposed to HDD*/
-int hif_register_driver(void);
-void hif_unregister_driver(void);
 int hif_init_adf_ctx(void *ol_sc);
 void hif_deinit_adf_ctx(void *ol_sc);
 void hif_disable_isr(void *ol_sc);
