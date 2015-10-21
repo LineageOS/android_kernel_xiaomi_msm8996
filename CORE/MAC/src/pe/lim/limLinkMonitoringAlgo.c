@@ -155,7 +155,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                                    eSIR_MAC_DISASSOC_DUE_TO_INACTIVITY_REASON,
                                    pMsg->addr2, psessionEntry, FALSE);
                  limTearDownLinkWithAp(pMac, psessionEntry->peSessionId,
-                                 eSIR_MAC_PEER_STA_REQ_LEAVING_BSS_REASON);
+                                 eSIR_MAC_DISASSOC_DUE_TO_INACTIVITY_REASON);
                  /* only break for STA role (non TDLS) */
                  break;
              }
