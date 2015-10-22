@@ -1550,7 +1550,7 @@ struct hdd_context_s
      * radar found indication and application triggered channel
      * switch
      */
-    struct mutex dfs_lock;
+    spinlock_t dfs_lock;
 
 #ifdef FEATURE_WLAN_EXTSCAN
     struct hdd_ext_scan_context ext_scan_context;

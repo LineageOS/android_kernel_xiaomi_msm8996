@@ -7216,9 +7216,9 @@ void hdd_update_tgt_cfg(void *context, void *param)
 #endif  /* #ifdef WLAN_FEATURE_11AC */
 }
 
-/* This function is invoked when a radar in found on the
- * SAP current operating channel and Data Tx from netif
- * has to be stopped to honor the DFS regulations.
+/* This function is invoked in atomic context when a radar
+ * is found on the SAP current operating channel and Data
+ * Tx from netif has to be stopped to honor the DFS regulations.
  * Actions: Stop the netif Tx queues,Indicate Radar present
  * in HDD context for future usage.
  */
@@ -7237,18 +7237,18 @@ bool hdd_dfs_indicate_radar(void *context, void *param)
 
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {
-        mutex_lock(&pHddCtx->dfs_lock);
+        spin_lock_bh(&pHddCtx->dfs_lock);
         if (pHddCtx->dfs_radar_found)
         {
             /* Application already triggered channel switch
              * on current channel, so return here
              */
-            mutex_unlock(&pHddCtx->dfs_lock);
+            spin_unlock_bh(&pHddCtx->dfs_lock);
             return false;
         }
 
         pHddCtx->dfs_radar_found = VOS_TRUE;
-        mutex_unlock(&pHddCtx->dfs_lock);
+        spin_unlock_bh(&pHddCtx->dfs_lock);
 
         status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
         while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -11964,7 +11964,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->tdls_lock);
 #endif
 
-   mutex_init(&pHddCtx->dfs_lock);
+   spin_lock_init(&pHddCtx->dfs_lock);
    hdd_init_offloaded_packets_ctx(pHddCtx);
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);

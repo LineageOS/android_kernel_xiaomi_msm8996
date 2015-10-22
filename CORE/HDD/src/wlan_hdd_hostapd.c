@@ -1372,9 +1372,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
            }
 
-            mutex_lock(&pHddCtx->dfs_lock);
+            spin_lock_bh(&pHddCtx->dfs_lock);
             pHddCtx->dfs_radar_found = VOS_FALSE;
-            mutex_unlock(&pHddCtx->dfs_lock);
+            spin_unlock_bh(&pHddCtx->dfs_lock);
             WLANSAP_Get_Dfs_Ignore_CAC(pHddCtx->hHal, &ignoreCAC);
             if ((NV_CHANNEL_DFS !=
                 vos_nv_getChannelEnabledState(pHddApCtx->operatingChannel))
@@ -2306,10 +2306,10 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
         }
     }
 
-    mutex_lock(&pHddCtx->dfs_lock);
+    spin_lock_bh(&pHddCtx->dfs_lock);
     if (pHddCtx->dfs_radar_found == VOS_TRUE)
     {
-        mutex_unlock(&pHddCtx->dfs_lock);
+        spin_unlock_bh(&pHddCtx->dfs_lock);
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Channel switch in progress!!",
                __func__);
         ret = -EBUSY;
@@ -2326,7 +2326,7 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
      */
     pHddCtx->dfs_radar_found = VOS_TRUE;
 
-    mutex_unlock(&pHddCtx->dfs_lock);
+    spin_unlock_bh(&pHddCtx->dfs_lock);
     /*
      * Post the Channel Change request to SAP.
      */
@@ -2349,9 +2349,9 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
          * queues.
          */
 
-        mutex_lock(&pHddCtx->dfs_lock);
+        spin_lock_bh(&pHddCtx->dfs_lock);
         pHddCtx->dfs_radar_found = VOS_FALSE;
-        mutex_unlock(&pHddCtx->dfs_lock);
+        spin_unlock_bh(&pHddCtx->dfs_lock);
 
         ret = -EINVAL;
     }
