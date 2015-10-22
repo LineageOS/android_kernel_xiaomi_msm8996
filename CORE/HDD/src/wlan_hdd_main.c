@@ -13771,8 +13771,8 @@ void hdd_ch_avoid_cb
    hdd_context_t      *hdd_ctxt;
    tSirChAvoidIndType *ch_avoid_indi;
    v_U8_t              range_loop;
-   v_U16_t             channel_loop;
-   v_U16_t             dup_check;
+   eRfChannels         channel_loop, start_channel_idx = INVALID_RF_CHANNEL,
+                                     end_channel_idx = INVALID_RF_CHANNEL;
    v_U16_t             start_channel;
    v_U16_t             end_channel;
    v_CONTEXT_t         vos_context;
@@ -13814,66 +13814,65 @@ void hdd_ch_avoid_cb
 
    /* clear existing unsafe channel cache */
    hdd_ctxt->unsafe_channel_count = 0;
-   vos_mem_zero(hdd_ctxt->unsafe_channel_list, sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+   vos_mem_zero(hdd_ctxt->unsafe_channel_list,
+                                        sizeof(hdd_ctxt->unsafe_channel_list));
 
-   if (0 == ch_avoid_indi->avoid_range_count) {
-       hdd_ctxt->unsafe_channel_count = 0;
-   } else {
-       for (range_loop = 0; range_loop < ch_avoid_indi->avoid_range_count; range_loop++)
-       {
-          if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS)
-               break;
+   for (range_loop = 0; range_loop < ch_avoid_indi->avoid_range_count;
+                                                             range_loop++) {
+       if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS) {
+           hddLog(LOGW, FL("LTE Coex unsafe channel list full"));
+           break;
+       }
 
-          start_channel = ieee80211_frequency_to_channel(
-                          ch_avoid_indi->avoid_freq_range[range_loop].start_freq);
-          end_channel   = ieee80211_frequency_to_channel(
+       start_channel = ieee80211_frequency_to_channel(
+                        ch_avoid_indi->avoid_freq_range[range_loop].start_freq);
+       end_channel   = ieee80211_frequency_to_channel(
                           ch_avoid_indi->avoid_freq_range[range_loop].end_freq);
-          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s : start %d : %d, end %d : %d",
-                    __func__,
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                    "%s : start %d : %d, end %d : %d", __func__,
                     ch_avoid_indi->avoid_freq_range[range_loop].start_freq,
                     start_channel,
                     ch_avoid_indi->avoid_freq_range[range_loop].end_freq,
                     end_channel);
 
-          /* do not process frequency bands that are not mapped to predefined
-           * channels
-           */
-          if (start_channel == 0 || end_channel == 0)
-                    continue;
+       /* do not process frequency bands that are not mapped to predefined
+        * channels
+        */
+       if (start_channel == 0 || end_channel == 0)
+           continue;
 
-          for (channel_loop = start_channel;
-               channel_loop < (end_channel + 1);
-               channel_loop++)
-          {
-             /* Channel duplicate check routine */
-             for (dup_check = 0; dup_check < hdd_ctxt->unsafe_channel_count;
-                                                                  dup_check++)
-             {
-                if (hdd_ctxt->unsafe_channel_list[dup_check] == channel_loop)
-                {
-                   /* This channel is duplicated */
-                   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                          "%s : found duplicated channel %d",
-                          __func__, channel_loop);
-                   break;
-                }
-             }
-             if (dup_check == hdd_ctxt->unsafe_channel_count)
-             {
-                hdd_ctxt->unsafe_channel_list[hdd_ctxt->unsafe_channel_count++]
-                                                               = channel_loop;
-                if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS)
-                    break;
-             }
-             else
-             {
-                /* DUP, do nothing */
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                          "%s : duplicated channel %d",
-                          __func__, channel_loop);
-             }
-          }
+       for (channel_loop = MIN_20MHZ_RF_CHANNEL; channel_loop <=
+                                       MAX_20MHZ_RF_CHANNEL; channel_loop++) {
+           if (rfChannels[channel_loop].targetFreq >=
+                       ch_avoid_indi->avoid_freq_range[range_loop].start_freq) {
+               start_channel_idx = channel_loop;
+               break;
+            }
+       }
+       for (channel_loop = MIN_20MHZ_RF_CHANNEL; channel_loop <=
+                                       MAX_20MHZ_RF_CHANNEL; channel_loop++) {
+           if (rfChannels[channel_loop].targetFreq >=
+                       ch_avoid_indi->avoid_freq_range[range_loop].end_freq) {
+               end_channel_idx = channel_loop;
+               if (rfChannels[channel_loop].targetFreq >
+                        ch_avoid_indi->avoid_freq_range[range_loop].end_freq)
+                   end_channel_idx--;
+               break;
+            }
+       }
+
+       if (start_channel_idx == INVALID_RF_CHANNEL ||
+                                         end_channel_idx == INVALID_RF_CHANNEL)
+           continue;
+
+       for (channel_loop = start_channel_idx; channel_loop <=
+                                              end_channel_idx; channel_loop++) {
+           hdd_ctxt->unsafe_channel_list[hdd_ctxt->unsafe_channel_count++]
+                                      = rfChannels[channel_loop].channelNum;
+           if (hdd_ctxt->unsafe_channel_count >= NUM_20MHZ_RF_CHANNELS) {
+                hddLog(LOGW, FL("LTE Coex unsafe channel list full"));
+                break;
+           }
        }
    }
 
