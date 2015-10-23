@@ -4077,6 +4077,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SELF_GEN_FRM_PWR_MAX),
 
 #ifdef FEATURE_WLAN_EXTSCAN
+   REG_VARIABLE(CFG_EXTSCAN_ALLOWED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, extscan_enabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_EXTSCAN_ALLOWED_DEF,
+                 CFG_EXTSCAN_ALLOWED_MIN,
+                 CFG_EXTSCAN_ALLOWED_MAX ),
+
    REG_VARIABLE(CFG_EXTSCAN_PASSIVE_MAX_CHANNEL_TIME_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, extscan_passive_max_chn_time,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
