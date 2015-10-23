@@ -3302,21 +3302,23 @@ static __iw_softap_setparam(struct net_device *dev,
                 break;
             }
 #ifdef IPA_UC_OFFLOAD
-        case QCSAP_IPA_UC_STAT:
-            {
-                /* If input value is non-zero get stats */
-                if (1 == set_value) {
-                    hdd_ipa_uc_stat_request(pHostapdAdapter, set_value);
-                } else if (3 == set_value) {
-                    hdd_ipa_uc_rt_debug_host_dump(
-                      WLAN_HDD_GET_CTX(pHostapdAdapter));
-                } else {
-                    /* place holder for stats clean up
-                     * Stats clean not implemented yet on firmware and ipa */
-		}
+	case QCSAP_IPA_UC_STAT:
+	    {
+		    /* If input value is non-zero get stats */
+		    if (1 == set_value) {
+			    hdd_ipa_uc_stat_request(pHostapdAdapter, set_value);
+		    } else if (3 == set_value) {
+			    hdd_ipa_uc_rt_debug_host_dump(pHddCtx);
+		    } else if (4 == set_value) {
+			    hdd_ipa_dump_info(pHddCtx);
+		    } else {
+			    /* place holder for stats clean up
+			     * Stats clean not implemented yet on FW and IPA
+			     */
+		    }
 
-                return ret;
-            }
+		    return ret;
+	    }
 #endif /* IPA_UC_OFFLOAD */
         case QCASAP_SET_PHYMODE:
             {

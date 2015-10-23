@@ -91,7 +91,8 @@ typedef enum {
 typedef enum {
 	HDD_IPA_UC_STAT_REASON_NONE,
 	HDD_IPA_UC_STAT_REASON_DEBUG,
-	HDD_IPA_UC_STAT_REASON_BW_CAL
+	HDD_IPA_UC_STAT_REASON_BW_CAL,
+	HDD_IPA_UC_STAT_REASON_DUMP_INFO
 } hdd_ipa_uc_stat_reason;
 #endif /* IPA_UC_OFFLOAD */
 
@@ -217,6 +218,9 @@ struct hdd_ipa_uc_rx_hdr {
 		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, _lvl, _buf, _len); \
 	} while(0)
 
+#define DBG_DUMP_RX_LEN 32
+#define DBG_DUMP_TX_LEN 48
+
 enum hdd_ipa_rm_state {
 	HDD_IPA_RM_RELEASED,
 	HDD_IPA_RM_GRANT_PENDING,
@@ -308,8 +312,8 @@ struct hdd_ipa_stats {
 	uint64_t num_freeq_empty;
 	uint64_t num_pri_freeq_empty;
 	uint64_t num_rx_excep;
-	uint64_t num_tx_bcmc;
-	uint64_t num_tx_bcmc_err;
+	uint64_t num_tx_fwd_ok;
+	uint64_t num_tx_fwd_err;
 };
 
 #ifdef IPA_UC_OFFLOAD
@@ -386,8 +390,7 @@ struct uc_rt_debug_info {
 	uint64_t rx_drop_count;
 	uint64_t net_sent_count;
 	uint64_t rx_discard_count;
-	uint64_t rx_mcbc_count;
-	uint64_t tx_mcbc_count;
+	uint64_t tx_fwd_ok_count;
 	uint64_t tx_fwd_count;
 	uint64_t rx_destructor_call;
 };
@@ -699,9 +702,9 @@ static void hdd_ipa_uc_rt_debug_host_fill(void *ctext)
 	dump_info->ipa_excp_count = hdd_ipa->stats.num_rx_excep;
 	dump_info->rx_drop_count = hdd_ipa->ipa_rx_internel_drop_count;
 	dump_info->net_sent_count = hdd_ipa->ipa_rx_net_send_count;
-	dump_info->rx_discard_count = hdd_ipa->ipa_rx_discard;
-	dump_info->tx_mcbc_count = hdd_ipa->stats.num_tx_bcmc;
 	dump_info->tx_fwd_count = hdd_ipa->ipa_tx_forward;
+	dump_info->tx_fwd_ok_count = hdd_ipa->stats.num_tx_fwd_ok;
+	dump_info->rx_discard_count = hdd_ipa->ipa_rx_discard;
 	dump_info->rx_destructor_call = hdd_ipa->ipa_rx_destructor_count;
 	hdd_ipa->rt_buf_fill_index++;
 	vos_lock_release(&hdd_ipa->rt_debug_lock);
@@ -737,7 +740,7 @@ void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx)
 	}
 
 	pr_err("========= WLAN-IPA DEBUG BUF DUMP ==========\n");
-	pr_err("     TM     :   EXEP   :   DROP   :   NETS   :   MCBC   :   TXFD   :   DSTR   :   DSCD\n");
+	pr_err("     TM     :   EXEP   :   DROP   :   NETS   :   FWOK   :   TXFD   :   DSTR   :   DSCD\n");
 
 	vos_lock_acquire(&hdd_ipa->rt_debug_lock);
 	for (dump_count = 0;
@@ -756,7 +759,7 @@ void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx)
 		pr_err("%12lu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu:%10llu\n",
 			dump_info->time, dump_info->ipa_excp_count,
 			dump_info->rx_drop_count, dump_info->net_sent_count,
-			dump_info->tx_mcbc_count, dump_info->tx_fwd_count,
+			dump_info->tx_fwd_ok_count, dump_info->tx_fwd_count,
 			dump_info->rx_destructor_call,
 			dump_info->rx_discard_count);
 	}
@@ -765,7 +768,7 @@ void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx)
 }
 
 /**
- * hdd_ipa_uc_rt_debug_handler - periodic memory health monitor handler
+ * hdd_ipa_uc_rt_debug_handler() - periodic memory health monitor handler
  * @ctext: pointer to hdd context.
  *
  * periodically called by timer expire
@@ -811,7 +814,7 @@ static void hdd_ipa_uc_rt_debug_handler(void *ctext)
 }
 
 /**
- * hdd_ipa_uc_rt_debug_destructor - called by data packet free
+ * hdd_ipa_uc_rt_debug_destructor() - called by data packet free
  * @skb: packet pinter
  *
  * when free data packet, will be invoked by wlan client and will increase
@@ -831,7 +834,7 @@ void hdd_ipa_uc_rt_debug_destructor(struct sk_buff *skb)
 }
 
 /**
- * hdd_ipa_uc_rt_debug_deinit - remove resources to handle rt debugging
+ * hdd_ipa_uc_rt_debug_deinit() - remove resources to handle rt debugging
  * @pHddCtx: hdd main context
  *
  * free all rt debugging resources
@@ -863,7 +866,7 @@ static void hdd_ipa_uc_rt_debug_deinit(hdd_context_t *pHddCtx)
 }
 
 /**
- * hdd_ipa_uc_rt_debug_init - intialize resources to handle rt debugging
+ * hdd_ipa_uc_rt_debug_init() - intialize resources to handle rt debugging
  * @pHddCtx: hdd main context
  *
  * alloc and initialize all rt debugging resources
@@ -893,7 +896,7 @@ static void hdd_ipa_uc_rt_debug_init(hdd_context_t *hdd_ctx)
 
 	/* Realtime debug enable only when feature enabled */
 	if (!hdd_ipa_is_rt_debugging_enabled(hdd_ctx)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 			"%s: IPA RT debug is not enabled", __func__);
 		return;
 	}
@@ -902,6 +905,295 @@ static void hdd_ipa_uc_rt_debug_init(hdd_context_t *hdd_ctx)
 
 	vos_timer_start(&hdd_ipa->rt_debug_timer,
 		HDD_IPA_UC_RT_DEBUG_PERIOD);
+}
+
+/**
+ * hdd_ipa_dump_hdd_ipa() - dump entries in HDD IPA struct
+ * @hdd_ipa: HDD IPA struct
+ *
+ * Dump entries in struct hdd_ipa
+ *
+ * Return: none
+ */
+void hdd_ipa_dump_hdd_ipa(struct hdd_ipa_priv *hdd_ipa)
+{
+	int i;
+
+	/* HDD IPA */
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"==== HDD IPA ====\n"
+			"num_iface: %d\n"
+			"rm_state: %d\n"
+			"rm_lock: %p\n"
+			"rm_work: %p\n"
+			"uc_rm_work: %p\n"
+			"uc_op_work: %p\n"
+			"wake_lock: %p\n"
+			"wake_lock_work: %p\n"
+			"wake_lock_released: %d\n"
+			"prod_client: %d\n"
+			"tx_ref_cnt: %d\n"
+			"pm_queue_head----\n"
+			"\thead: %p\n"
+			"\ttail: %p\n"
+			"\tqlen: %d\n"
+			"pm_work: %p\n"
+			"pm_lock: %p\n"
+			"suspended: %d\n",
+			hdd_ipa->num_iface,
+			hdd_ipa->rm_state,
+			&hdd_ipa->rm_lock,
+			&hdd_ipa->rm_work,
+			&hdd_ipa->uc_rm_work,
+			&hdd_ipa->uc_op_work,
+			&hdd_ipa->wake_lock,
+			&hdd_ipa->wake_lock_work,
+			hdd_ipa->wake_lock_released,
+			hdd_ipa->prod_client,
+			hdd_ipa->tx_ref_cnt.counter,
+			hdd_ipa->pm_queue_head.head,
+			hdd_ipa->pm_queue_head.tail,
+			hdd_ipa->pm_queue_head.qlen,
+			&hdd_ipa->pm_work,
+			&hdd_ipa->pm_lock,
+			hdd_ipa->suspended);
+	pr_err(
+			"pending_hw_desc_cnt: %d\n"
+			"hw_desc_cnt: %d\n"
+			"q_lock: %p\n"
+			"freeq_cnt: %d\n"
+			"free_desc_head----\n"
+			"\tnext: %p\n"
+			"\tprev: %p\n"
+			"pend_q_cnt: %d\n"
+			"pend_desc_head----\n"
+			"\tnext: %p\n"
+			"\tprev: %p\n"
+			"hdd_ctx: %p\n"
+			"debugfs_dir: %p\n"
+			"stats: %p\n"
+			"ipv4_notifier: %p\n"
+			"curr_prod_bw: %d\n"
+			"curr_cons_bw: %d\n"
+			"activated_fw_pipe: %d\n"
+			"sap_num_connected_sta: %d\n"
+#ifdef IPA_UC_STA_OFFLOAD
+                        "sta_connected: %d\n"
+#endif
+                        , hdd_ipa->pending_hw_desc_cnt,
+			hdd_ipa->hw_desc_cnt,
+			&hdd_ipa->q_lock,
+			hdd_ipa->freeq_cnt,
+			hdd_ipa->free_desc_head.next,
+			hdd_ipa->free_desc_head.prev,
+			hdd_ipa->pend_q_cnt,
+			hdd_ipa->pend_desc_head.next,
+			hdd_ipa->pend_desc_head.prev,
+			hdd_ipa->hdd_ctx,
+			hdd_ipa->debugfs_dir,
+			&hdd_ipa->stats,
+			&hdd_ipa->ipv4_notifier,
+			hdd_ipa->curr_prod_bw,
+			hdd_ipa->curr_cons_bw,
+			hdd_ipa->activated_fw_pipe,
+                        hdd_ipa->sap_num_connected_sta
+#ifdef IPA_UC_STA_OFFLOAD
+                        , (unsigned int)hdd_ipa->sta_connected
+#endif
+                        );
+	pr_err(
+			"tx_pipe_handle: 0x%x\n"
+			"rx_pipe_handle: 0x%x\n"
+			"resource_loading: %d\n"
+			"resource_unloading: %d\n"
+			"pending_cons_req: %d\n"
+			"pending_event----\n"
+			"\tanchor.next: %p\n"
+			"\tanchor.prev: %p\n"
+			"\tcount: %d\n"
+			"\tlock: %p\n"
+			"\tcookie: 0x%x\n"
+			"event_lock: %p\n"
+			"ipa_tx_packets_diff: %d\n"
+			"ipa_rx_packets_diff: %d\n"
+			"ipa_p_tx_packets: %d\n"
+			"ipa_p_rx_packets: %d\n"
+			"stat_req_reason: %d\n",
+			hdd_ipa->tx_pipe_handle,
+			hdd_ipa->rx_pipe_handle,
+			hdd_ipa->resource_loading,
+			hdd_ipa->resource_unloading,
+			hdd_ipa->pending_cons_req,
+			hdd_ipa->pending_event.anchor.next,
+			hdd_ipa->pending_event.anchor.prev,
+			hdd_ipa->pending_event.count,
+			&hdd_ipa->pending_event.lock,
+			hdd_ipa->pending_event.cookie,
+			&hdd_ipa->event_lock,
+			hdd_ipa->ipa_tx_packets_diff,
+			hdd_ipa->ipa_rx_packets_diff,
+			hdd_ipa->ipa_p_tx_packets,
+			hdd_ipa->ipa_p_rx_packets,
+			hdd_ipa->stat_req_reason);
+	pr_err(
+			"cons_pipe_in----\n"
+			"\tsys: %p\n"
+			"\tdl.comp_ring_base_pa: 0x%x\n"
+			"\tdl.comp_ring_size: %d\n"
+			"\tdl.ce_ring_base_pa: 0x%x\n"
+			"\tdl.ce_door_bell_pa: 0x%x\n"
+			"\tdl.ce_ring_size: %d\n"
+			"\tdl.num_tx_buffers: %d\n"
+			"prod_pipe_in----\n"
+			"\tsys: %p\n"
+			"\tul.rdy_ring_base_pa: 0x%x\n"
+			"\tul.rdy_ring_size: %d\n"
+			"\tul.rdy_ring_rp_pa: 0x%x\n"
+			"uc_loaded: %d\n"
+			"wdi_enabled: %d\n",
+			&hdd_ipa->cons_pipe_in.sys,
+			(unsigned int)hdd_ipa->cons_pipe_in.u.dl.comp_ring_base_pa,
+			hdd_ipa->cons_pipe_in.u.dl.comp_ring_size,
+			(unsigned int)hdd_ipa->cons_pipe_in.u.dl.ce_ring_base_pa,
+			(unsigned int)hdd_ipa->cons_pipe_in.u.dl.ce_door_bell_pa,
+			hdd_ipa->cons_pipe_in.u.dl.ce_ring_size,
+			hdd_ipa->cons_pipe_in.u.dl.num_tx_buffers,
+			&hdd_ipa->prod_pipe_in.sys,
+			(unsigned int)hdd_ipa->prod_pipe_in.u.ul.rdy_ring_base_pa,
+			hdd_ipa->prod_pipe_in.u.ul.rdy_ring_size,
+			(unsigned int)hdd_ipa->prod_pipe_in.u.ul.rdy_ring_rp_pa,
+			hdd_ipa->uc_loaded,
+			hdd_ipa->wdi_enabled);
+
+	pr_err("assoc_stas_map([id]is_reserved/sta_id): ");
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		pr_err(
+			" [%d]%d/%d",
+			i,
+			hdd_ipa->assoc_stas_map[i].is_reserved,
+			hdd_ipa->assoc_stas_map[i].sta_id);
+	}
+}
+
+/**
+ * hdd_ipa_dump_sys_pipe() - dump HDD IPA SYS Pipe struct
+ * @hdd_ipa: HDD IPA struct
+ *
+ * Dump entire struct hdd_ipa_sys_pipe
+ *
+ * Return: none
+ */
+void hdd_ipa_dump_sys_pipe(struct hdd_ipa_priv *hdd_ipa)
+{
+	int i;
+
+	/* IPA SYS Pipes */
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"\n==== IPA SYS Pipes ====\n");
+
+        for (i = 0; i < HDD_IPA_MAX_SYSBAM_PIPE; i++) {
+		struct hdd_ipa_sys_pipe *sys_pipe;
+		struct ipa_sys_connect_params *ipa_sys_params;
+
+		sys_pipe = &hdd_ipa->sys_pipe[i];
+                ipa_sys_params = &sys_pipe->ipa_sys_params;
+
+		pr_err(
+			"sys_pipe[%d]----\n"
+			"\tconn_hdl: 0x%x\n"
+			"\tconn_hdl_valid: %d\n"
+			"\tnat_en: %d\n"
+			"\thdr_len %d\n"
+			"\thdr_additional_const_len: %d\n"
+			"\thdr_ofst_pkt_size_valid: %d\n"
+			"\thdr_ofst_pkt_size: %d\n"
+			"\thdr_little_endian: %d\n"
+			"\tmode: %d\n"
+			"\tclient: %d\n"
+			"\tdesc_fifo_sz: %d\n"
+			"\tpriv: %p\n"
+			"\tnotify: %p\n"
+			"\tskip_ep_cfg: %d\n"
+			"\tkeep_ipa_awake: %d\n",
+			i,
+			sys_pipe->conn_hdl,
+			sys_pipe->conn_hdl_valid,
+			ipa_sys_params->ipa_ep_cfg.nat.nat_en,
+			ipa_sys_params->ipa_ep_cfg.hdr.hdr_len,
+			ipa_sys_params->ipa_ep_cfg.hdr.hdr_additional_const_len,
+			ipa_sys_params->ipa_ep_cfg.hdr.hdr_ofst_pkt_size_valid,
+			ipa_sys_params->ipa_ep_cfg.hdr.hdr_ofst_pkt_size,
+			ipa_sys_params->ipa_ep_cfg.hdr_ext.hdr_little_endian,
+			ipa_sys_params->ipa_ep_cfg.mode.mode,
+			ipa_sys_params->client,
+			ipa_sys_params->desc_fifo_sz,
+			ipa_sys_params->priv,
+			ipa_sys_params->notify,
+			ipa_sys_params->skip_ep_cfg,
+			ipa_sys_params->keep_ipa_awake);
+	}
+}
+
+/**
+ * hdd_ipa_dump_iface_context() - dump HDD IPA Interface Context struct
+ * @hdd_ipa: HDD IPA struct
+ *
+ * Dump entire struct hdd_ipa_iface_context
+ *
+ * Return: none
+ */
+void hdd_ipa_dump_iface_context(struct hdd_ipa_priv *hdd_ipa)
+{
+	int i;
+
+	/* IPA Interface Contexts */
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"\n==== IPA Interface Contexts ====\n");
+
+        for (i = 0; i < HDD_IPA_MAX_IFACE; i++) {
+		struct hdd_ipa_iface_context *iface_context;
+
+		iface_context = &hdd_ipa->iface_context[i];
+
+		pr_err(
+			"iface_context[%d]----\n"
+			"\thdd_ipa: %p\n"
+			"\tadapter: %p\n"
+			"\ttl_context: %p\n"
+			"\tcons_client: %d\n"
+			"\tprod_client: %d\n"
+			"\tiface_id: %d\n"
+			"\tsta_id: %d\n"
+			"\tinterface_lock: %p\n"
+			"\tifa_address: 0x%x\n",
+			i,
+			iface_context->hdd_ipa,
+			iface_context->adapter,
+			iface_context->tl_context,
+			iface_context->cons_client,
+			iface_context->prod_client,
+			iface_context->iface_id,
+			iface_context->sta_id,
+			&iface_context->interface_lock,
+			iface_context->ifa_address);
+	}
+}
+
+/**
+ * hdd_ipa_dump_info() - dump HDD IPA struct
+ * @pHddCtx: hdd main context
+ *
+ * Dump entire struct hdd_ipa
+ *
+ * Return: none
+ */
+void hdd_ipa_dump_info(hdd_context_t *hdd_ctx)
+{
+	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
+
+	hdd_ipa_dump_hdd_ipa(hdd_ipa);
+	hdd_ipa_dump_sys_pipe(hdd_ipa);
+	hdd_ipa_dump_iface_context(hdd_ipa);
 }
 
 void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
@@ -923,7 +1215,7 @@ void hdd_ipa_uc_stat_query(hdd_context_t *pHddCtx,
 		(VOS_FALSE == hdd_ipa->resource_loading)) {
 		*ipa_tx_diff = hdd_ipa->ipa_tx_packets_diff;
 		*ipa_rx_diff = hdd_ipa->ipa_rx_packets_diff;
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 			"%s: STAT Query TX DIFF %d, RX DIFF %d",
 			__func__, *ipa_tx_diff, *ipa_rx_diff);
 	}
@@ -947,7 +1239,7 @@ void hdd_ipa_uc_stat_request( hdd_adapter_t *adapter, uint8_t reason)
 		return;
 	}
 
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"%s: STAT REQ Reason %d",
 		__func__, reason);
 	vos_lock_acquire(&hdd_ipa->ipa_lock);
@@ -1467,20 +1759,21 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 			"IND RING DBELL : 0x%x\n"
 			"PROC DONE IND ADDR : 0x%x\n"
 			"NUM EXCP PKT : %llu\n"
-			"NUM TX BCMC : %llu\n"
-			"NUM TX BCMC ERR : %llu",
+			"NUM TX FWD OK: %llu\n"
+			"NUM TX FWD ERR : %llu",
 			hdd_ctx->rx_rdy_ring_base_paddr,
 			hdd_ctx->rx_rdy_ring_size,
 			hdd_ctx->rx_ready_doorbell_paddr,
 			hdd_ctx->rx_proc_done_idx_paddr,
 			hdd_ipa->stats.num_rx_excep,
-			hdd_ipa->stats.num_tx_bcmc,
-			hdd_ipa->stats.num_tx_bcmc_err);
+			hdd_ipa->stats.num_tx_fwd_ok,
+			hdd_ipa->stats.num_tx_fwd_err);
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
 			"==== IPA_UC WLAN_HOST CONTROL ====\n"
 			"SAP NUM STAs: %d\n"
 #ifdef IPA_UC_STA_OFFLOAD
 			"STA CONNECTED: %d\n"
+			"CONCURRENT MODE: %s\n"
 #endif
 			"TX PIPE HDL: %d\n"
 			"RX PIPE HDL : %d\n"
@@ -1490,6 +1783,7 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 			hdd_ipa->sap_num_connected_sta,
 #ifdef IPA_UC_STA_OFFLOAD
 			hdd_ipa->sta_connected,
+			(hdd_ctx->mcc_mode ? "MCC" : "SCC"),
 #endif
 			hdd_ipa->tx_pipe_handle,
 			hdd_ipa->rx_pipe_handle,
@@ -2301,15 +2595,15 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 	else
 		next_prod_bw = hdd_ctx->cfg_ini->IpaLowBandwidthMbps;
 
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"CONS perf curr: %d, next: %d",
 		hdd_ipa->curr_cons_bw, next_cons_bw);
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"PROD perf curr: %d, next: %d",
 		hdd_ipa->curr_prod_bw, next_prod_bw);
 
 	if (hdd_ipa->curr_cons_bw != next_cons_bw) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 				"Requesting CONS perf curr: %d, next: %d",
 				hdd_ipa->curr_cons_bw, next_cons_bw);
 		profile.max_supported_bandwidth_mbps = next_cons_bw;
@@ -2327,7 +2621,7 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 	}
 
 	if (hdd_ipa->curr_prod_bw != next_prod_bw) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
 				"Requesting PROD perf curr: %d, next: %d",
 				hdd_ipa->curr_prod_bw, next_prod_bw);
 		profile.max_supported_bandwidth_mbps = next_prod_bw;
@@ -2546,7 +2840,7 @@ VOS_STATUS hdd_ipa_process_rxt(v_VOID_t *vosContext, adf_nbuf_t rx_buf_list,
 	buf = rx_buf_list;
 	while (buf) {
 		HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG, "RX data",
-				buf->data, 24);
+				buf->data, DBG_DUMP_RX_LEN);
 
 		next_buf = adf_nbuf_queue_next(buf);
 		adf_nbuf_set_next(buf, NULL);
@@ -2727,7 +3021,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 					"IPA_RECEIVE: Invalid iface_id: %u",
 					iface_id);
 			HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_INFO_HIGH,
-				"w2i -- skb", skb->data, 8);
+					"w2i -- skb", skb->data, DBG_DUMP_RX_LEN);
 			HDD_IPA_INCREASE_INTERNAL_DROP_COUNT(hdd_ipa);
 			adf_nbuf_free(skb);
 			return;
@@ -2737,7 +3031,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		adapter = iface_context->adapter;
 
 		HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG,
-			"w2i -- skb", skb->data, 16);
+				"w2i -- skb", skb->data, DBG_DUMP_RX_LEN);
 #ifdef IPA_UC_OFFLOAD
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa->stats.num_rx_excep++;
@@ -2786,9 +3080,9 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 							"Forward packet Tx fail"
 							);
 						hdd_ipa->stats.
-							num_tx_bcmc_err++;
+							num_tx_fwd_err++;
 					} else {
-						hdd_ipa->stats.num_tx_bcmc++;
+						hdd_ipa->stats.num_tx_fwd_ok++;
 					}
 				}
 			}
@@ -2992,7 +3286,8 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 
 	skb = ipa_tx_desc->skb;
 
-	HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG, "i2w", skb->data, 8);
+	HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_DEBUG,
+			"i2w", skb->data, DBG_DUMP_TX_LEN);
 
 	/*
 	 * If PROD resource is not requested here then there may be cases where
@@ -3345,6 +3640,45 @@ static void hdd_remove_ipa_header(char *name)
 }
 
 
+/**
+ * wlan_ipa_add_hdr() - Add IPA Tx header
+ * @ipa_hdr: pointer to IPA header addition parameters
+ *
+ * Call IPA API to add IPA Tx header descriptor
+ * and dump Tx header struct
+ *
+ * Return: 0 for success, non-zero for failure
+ */
+static int wlan_ipa_add_hdr(struct ipa_ioc_add_hdr *ipa_hdr)
+{
+	int ret;
+
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			"==== IPA Tx Header ====\n"
+			"name: %s\n"
+			"hdr_len: %d\n"
+			"type: %d\n"
+			"is_partial: %d\n"
+			"hdr_hdl: 0x%x\n"
+			"status: %d\n"
+			"is_eth2_ofst_valid: %d\n"
+			"eth2_ofst: %d\n",
+			ipa_hdr->hdr[0].name,
+			ipa_hdr->hdr[0].hdr_len,
+			ipa_hdr->hdr[0].type,
+			ipa_hdr->hdr[0].is_partial,
+			ipa_hdr->hdr[0].hdr_hdl,
+			ipa_hdr->hdr[0].status,
+			ipa_hdr->hdr[0].is_eth2_ofst_valid,
+			ipa_hdr->hdr[0].eth2_ofst);
+
+	HDD_IPA_DBG_DUMP(VOS_TRACE_LEVEL_ERROR, "hdr:",
+			ipa_hdr->hdr[0].hdr, HDD_IPA_UC_WLAN_TX_HDR_LEN);
+
+	ret = ipa_add_hdr(ipa_hdr);
+	return ret;
+}
+
 static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		struct hdd_ipa_iface_context *iface_context, uint8_t *mac_addr)
 {
@@ -3394,7 +3728,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		ipa_hdr->hdr[0].is_eth2_ofst_valid = 1;
 		ipa_hdr->hdr[0].eth2_ofst = HDD_IPA_UC_WLAN_HDR_DES_MAC_OFFSET;
 
-		ret = ipa_add_hdr(ipa_hdr);
+		ret = wlan_ipa_add_hdr(ipa_hdr);
 #endif /* IPA_UC_OFFLOAD */
 	} else {
 		tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
@@ -3414,7 +3748,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		/* Set the type to IPV4 in the header*/
 		tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IP);
 
-		ret = ipa_add_hdr(ipa_hdr);
+		ret = wlan_ipa_add_hdr(ipa_hdr);
 	}
 	if (ret) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "%s IPv4 add hdr failed: %d",
@@ -3442,7 +3776,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 			tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);
 		}
 
-		ret = ipa_add_hdr(ipa_hdr);
+		ret = wlan_ipa_add_hdr(ipa_hdr);
 
 		if (ret) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
@@ -3489,9 +3823,9 @@ static void hdd_ipa_clean_hdr(hdd_adapter_t *adapter)
 	/* unregister the interface with IPA */
 	ret = ipa_deregister_intf(adapter->dev->name);
 	if (ret)
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
-				"%s: ipa_deregister_intf fail: %d",
-				adapter->dev->name, ret);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: ipa_deregister_intf fail: %d",
+			adapter->dev->name, ret);
 }
 
 static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
@@ -3588,7 +3922,8 @@ end:
 
 static void hdd_ipa_msg_free_fn(void *buff, uint32_t len, uint32_t type)
 {
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "msg type:%d, len:%d", type, len);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			"msg type:%d, len:%d", type, len);
 	ghdd_ipa->stats.num_free_msg++;
 	adf_os_mem_free(buff);
 }
@@ -3849,7 +4184,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 #endif /* IPA_UC_OFFLOAD */
 		ret = hdd_ipa_setup_iface(hdd_ipa, adapter, sta_id);
 		if (ret) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: Evt: %d, Interface setup failed",
 				msg_ex->name, meta.msg_type);
 #ifdef IPA_UC_OFFLOAD
@@ -3874,7 +4209,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 #if defined(IPA_UC_OFFLOAD) && defined(IPA_UC_STA_OFFLOAD)
 		if (!hdd_ipa->sta_connected) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: Evt: %d, STA already disconnected",
 				msg_ex->name, meta.msg_type);
 			vos_lock_release(&hdd_ipa->event_lock);
@@ -3908,7 +4243,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 	case WLAN_AP_DISCONNECT:
 		if (!adapter->ipa_context) {
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
 				"%s: Evt: %d, SAP already disconnected",
 				msg_ex->name, meta.msg_type);
 			return -EINVAL;
@@ -4091,7 +4426,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	ret = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
 
 	if (ret) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d fail:%d",
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "%s: Evt: %d fail:%d",
 					msg->name, meta.msg_type,  ret);
 		adf_os_mem_free(msg);
 		return ret;
