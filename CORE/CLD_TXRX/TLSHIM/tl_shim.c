@@ -1129,11 +1129,54 @@ void WLANTL_UnRegisterVdev(void *vos_ctx, u_int8_t vdev_id)
 #endif /* QCA_LL_TX_FLOW_CT */
 }
 
-/*
- * TL API to transmit a frame given by HDD. Returns NULL
- * in case of success, skb pointer in case of failure.
+/**
+ * tlshim_peer_validity() - determines whether peer is valid or not
+ * @vos_ctx: vos context
+ * @sta_id: station id
+ *
+ * Return: on success return vdev, NULL when peer is invalid/NULL
  */
-adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
+void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
+{
+	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+							vos_ctx);
+	struct ol_txrx_peer_t *peer;
+
+	if (!tl_shim) {
+		TLSHIM_LOGE("tl_shim is NULL");
+		return NULL;
+	}
+
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id for data tx");
+		return NULL;
+	}
+
+	if (!tl_shim->sta_info[sta_id].registered) {
+		TLSHIM_LOGW("Staion is not yet registered for data service");
+		return NULL;
+	}
+
+	peer = ol_txrx_peer_find_by_local_id(
+			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
+			sta_id);
+	if (!peer) {
+		TLSHIM_LOGW("Invalid peer");
+		return NULL;
+	} else {
+		return (void *)peer->vdev;
+	}
+}
+
+/**
+ * WLANTL_SendSTA_DataFrame() - transmit frame from upper layers
+ * @vos_ctx: pointer to vos context
+ * @vdev: vdev
+ * @skb: pointer to OS packet list
+ *
+ * Return: return NULL in success, pointer to skb list in case of failure
+ */
+adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, void *vdev,
 				    adf_nbuf_t skb
 #ifdef QCA_PKT_PROTO_TRACE
 				  , v_U8_t proto_type
@@ -1143,8 +1186,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
 	void *adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, vos_ctx);
-	adf_nbuf_t ret;
-	struct ol_txrx_peer_t *peer;
+	adf_nbuf_t ret, skb_list_head;
 
 	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
@@ -1160,46 +1202,35 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 		TLSHIM_LOGW("%s: Driver load/unload in progress", __func__);
 		return skb;
 	}
-	/*
-	 * TODO: How sta_id is created and used for IBSS mode?.
-	 */
-	if (sta_id >= WLAN_MAX_STA_COUNT) {
-		TLSHIM_LOGE("Invalid sta id for data tx");
-		return skb;
-	}
 
-	if (!tl_shim->sta_info[sta_id].registered) {
-		TLSHIM_LOGW("Staion is not yet registered for data service");
-		return skb;
-	}
-
-	peer = ol_txrx_peer_find_by_local_id(
-			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
-			sta_id);
-	if (!peer) {
-		TLSHIM_LOGW("Invalid peer");
-		return skb;
-	}
-
-	/* Zero out skb's context buffer for the driver to use */
-	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
-	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
+	skb_list_head = skb;
+	while (skb) {
+		/* Zero out skb's context buffer for the driver to use */
+		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+		adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
 #ifdef QCA_PKT_PROTO_TRACE
-	adf_nbuf_trace_set_proto_type(skb, proto_type);
+		adf_nbuf_trace_set_proto_type(skb, proto_type);
 #endif /* QCA_PKT_PROTO_TRACE */
 
-	if ((tl_shim->ip_checksum_offload) && (skb->protocol == htons(ETH_P_IP))
-		 && (skb->ip_summed == CHECKSUM_PARTIAL))
-		skb->ip_summed = CHECKSUM_COMPLETE;
+		if ((tl_shim->ip_checksum_offload) &&
+			(skb->protocol == htons(ETH_P_IP))
+			 && (skb->ip_summed == CHECKSUM_PARTIAL))
+			skb->ip_summed = CHECKSUM_COMPLETE;
 
-	/* Terminate the (single-element) list of tx frames */
-	skb->next = NULL;
-	ret = tl_shim->tx(peer->vdev, skb);
+		skb = skb->next;
+	}
+
+	ret = tl_shim->tx(vdev, skb_list_head);
 	if (ret) {
+		skb_list_head = ret;
 		TLSHIM_LOGW("Failed to tx");
-		adf_nbuf_unmap_single(adf_ctx, ret, ADF_OS_DMA_TO_DEVICE);
-		return ret;
+		while (ret) {
+			adf_nbuf_unmap_single(adf_ctx, ret,
+						ADF_OS_DMA_TO_DEVICE);
+			ret = ret->next;
+		}
+		return skb_list_head;
 	}
 
 	return NULL;

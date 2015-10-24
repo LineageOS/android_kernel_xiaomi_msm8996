@@ -244,12 +244,15 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
   ===========================================================================*/
 int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-   WLANTL_ACEnumType ac  = WLANTL_AC_BE;
+   WLANTL_ACEnumType ac;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t *pDestMacAddress;
    v_U8_t STAId;
+   struct sk_buff *skb_next, *list_head = NULL, *list_tail = NULL;
+   void *vdev_handle = NULL, *vdev_temp;
+   bool is_update_ac_stats = FALSE;
 #ifdef QCA_PKT_PROTO_TRACE
    hdd_context_t *hddCtxt = (hdd_context_t *)pAdapter->pHddCtx;
    v_U8_t proto_type = 0;
@@ -260,9 +263,9 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       not be reinitialized at this time which will lead crash. */
    if (pHddCtx->isLogpInProgress)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_HIGH,
-                "%s: LOGP in Progress. Ignore!!!", __func__);
-      goto drop_pkt;
+       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "%s: LOGP in Progress. Ignore!!!", __func__);
+       goto drop_list;
    }
 
    /*
@@ -275,128 +278,162 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     */
    if (pHddApCtx->dfs_cac_block_tx)
    {
-        goto drop_pkt;
+       goto drop_list;
    }
 
-   pDestMacAddress = (v_MACADDR_t*)skb->data;
+   while (skb) {
+       skb_next = skb->next;
+       pDestMacAddress = (v_MACADDR_t*)skb->data;
 
-   if (vos_is_macaddr_broadcast( pDestMacAddress ) ||
-       vos_is_macaddr_group(pDestMacAddress))
-   {
-      // The BC/MC station ID is assigned during BSS starting phase.
-      // SAP will return the station ID used for BC/MC traffic.
-      STAId = pHddApCtx->uBCStaId;
-   }
-   else
-   {
-       if (VOS_STATUS_SUCCESS !=
-           hdd_softap_GetStaId(pAdapter, pDestMacAddress, &STAId)) {
-         VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Failed to find the station id", __func__);
-           goto drop_pkt;
+       if (vos_is_macaddr_broadcast( pDestMacAddress ) ||
+           vos_is_macaddr_group(pDestMacAddress))
+       {
+           // The BC/MC station ID is assigned during BSS starting phase.
+           // SAP will return the station ID used for BC/MC traffic.
+           STAId = pHddApCtx->uBCStaId;
+       }
+       else
+       {
+           if (VOS_STATUS_SUCCESS !=
+               hdd_softap_GetStaId(pAdapter, pDestMacAddress, &STAId)) {
+               VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                        "%s: Failed to find the station id", __func__);
+               goto drop_pkt;
+           }
+
+           if (STAId == HDD_WLAN_INVALID_STA_ID)
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                          "%s: Failed to find right station", __func__);
+               goto drop_pkt;
+           }
+           else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                    "%s: STA %d is unregistered", __func__, STAId);
+               goto drop_pkt;
+           }
+
+           if ((WLANTL_STA_CONNECTED !=
+                pAdapter->aStaInfo[STAId].tlSTAState) &&
+               (WLANTL_STA_AUTHENTICATED !=
+                pAdapter->aStaInfo[STAId].tlSTAState) )
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                          "%s: Station not connected yet", __func__);
+               goto drop_pkt;
+           }
+           else if(WLANTL_STA_CONNECTED ==
+                   pAdapter->aStaInfo[STAId].tlSTAState)
+           {
+               if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
+               {
+                   VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                   "%s: NON-EAPOL packet in non-Authenticated state", __func__);
+                   goto drop_pkt;
+               }
+           }
        }
 
-      if (STAId == HDD_WLAN_INVALID_STA_ID)
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Failed to find right station", __func__);
-         goto drop_pkt;
-      }
-      else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: STA %d is unregistered", __func__, STAId);
-         goto drop_pkt;
-      }
+       vdev_temp = tlshim_peer_validity(
+                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
+       if (!vdev_temp)
+           goto drop_pkt;
 
-      if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) &&
-           (WLANTL_STA_AUTHENTICATED != pAdapter->aStaInfo[STAId].tlSTAState) )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                    "%s: Station not connected yet", __func__);
-         goto drop_pkt;
-      }
-      else if(WLANTL_STA_CONNECTED == pAdapter->aStaInfo[STAId].tlSTAState)
-      {
-        if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
-        {
-            VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                       "%s: NON-EAPOL packet in non-Authenticated state", __func__);
-            goto drop_pkt;
-        }
-      }
-   }
+       vdev_handle = vdev_temp;
 
 #ifdef QCA_LL_TX_FLOW_CT
-   if (VOS_FALSE ==
+       if ((pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused != TRUE) &&
+            VOS_FALSE ==
               WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                     pAdapter->sessionId,
                                     pAdapter->tx_flow_low_watermark,
                                     pAdapter->tx_flow_high_watermark_offset)) {
-       if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
-             (VOS_TIMER_STATE_STOPPED ==
-             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
-          hddLog(LOG1, FL("Disabling queues"));
-          netif_tx_stop_all_queues(dev);
-          vos_timer_start(&pAdapter->tx_flow_control_timer,
-                          WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
-          pAdapter->hdd_stats.hddTxRxStats.txflow_timer_cnt++;
-          pAdapter->hdd_stats.hddTxRxStats.txflow_pause_cnt++;
-          pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = TRUE;
+           if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
+               (VOS_TIMER_STATE_STOPPED ==
+                vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
+               hddLog(LOG1, FL("Disabling queues"));
+               netif_tx_stop_all_queues(dev);
+               vos_timer_start(&pAdapter->tx_flow_control_timer,
+                               WLAN_SAP_HDD_TX_FLOW_CONTROL_OS_Q_BLOCK_TIME);
+               pAdapter->hdd_stats.hddTxRxStats.txflow_timer_cnt++;
+               pAdapter->hdd_stats.hddTxRxStats.txflow_pause_cnt++;
+               pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = TRUE;
+           }
        }
-   }
 #endif /* QCA_LL_TX_FLOW_CT */
 
-   //Get TL AC corresponding to Qdisc queue index/AC.
-   ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
+       //Get TL AC corresponding to Qdisc queue index/AC.
+       ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
+       ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
-   wlan_hdd_log_eapol(skb, WIFI_EVENT_DRIVER_EAPOL_FRAME_TRANSMIT_REQUESTED);
+       wlan_hdd_log_eapol(skb,
+                          WIFI_EVENT_DRIVER_EAPOL_FRAME_TRANSMIT_REQUESTED);
 
 #ifdef QCA_PKT_PROTO_TRACE
-   if ((hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
-       (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
-   {
-      /* Proto Trace enabled */
-      proto_type = vos_pkt_get_proto_type(skb,
-                      hddCtxt->cfg_ini->gEnableDebugLog, 0);
-      if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
-      {
-         vos_pkt_trace_buf_update("HA:T:EPL");
-      }
-      else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
-      {
-         vos_pkt_trace_buf_update("HA:T:DHC");
-      }
+       if ((hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_EAPOL) ||
+           (hddCtxt->cfg_ini->gEnableDebugLog & VOS_PKT_TRAC_TYPE_DHCP))
+       {
+           /* Proto Trace enabled */
+           proto_type = vos_pkt_get_proto_type(skb,
+                        hddCtxt->cfg_ini->gEnableDebugLog, 0);
+           if (VOS_PKT_TRAC_TYPE_EAPOL & proto_type)
+           {
+               vos_pkt_trace_buf_update("HA:T:EPL");
+           }
+           else if (VOS_PKT_TRAC_TYPE_DHCP & proto_type)
+           {
+               vos_pkt_trace_buf_update("HA:T:DHC");
+           }
+       }
+#endif /* QCA_PKT_PROTO_TRACE */
+
+       pAdapter->stats.tx_bytes += skb->len;
+       ++pAdapter->stats.tx_packets;
+
+       if (!list_head) {
+           list_head = skb;
+           list_tail = skb;
+       } else {
+           list_tail->next = skb;
+           list_tail = list_tail->next;
+       }
+       skb = skb_next;
+       continue;
+
+drop_pkt:
+       hdd_drop_skb(pAdapter, skb);
+       skb = skb_next;
+
+   } /* end of while */
+
+   if (!vdev_handle) {
+       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: All packets dropped in the list", __func__);
+       return NETDEV_TX_OK;
    }
-#endif /* QCA_PKT_PROTO_TRACE */
-   pAdapter->stats.tx_bytes += skb->len;
-   ++pAdapter->stats.tx_packets;
 
-   if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                 STAId, skb
+   skb = WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                   vdev_handle, list_head
 #ifdef QCA_PKT_PROTO_TRACE
-                               , proto_type
+                                 , proto_type
 #endif /* QCA_PKT_PROTO_TRACE */
-                                ) != NULL) {
-        VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
-                  "%s: Failed to send packet to txrx for staid:%d",
-                  __func__, STAId);
-        ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
-        goto drop_pkt;
+                                 );
+   if (skb != NULL) {
+       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
+                  "%s: Failed to send packet to txrx",
+                  __func__);
+       is_update_ac_stats = TRUE;
+       goto drop_list;
    }
 
    dev->trans_start = jiffies;
-
    return NETDEV_TX_OK;
 
-drop_pkt:
-
-   ++pAdapter->stats.tx_dropped;
-   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-   kfree_skb(skb);
-
+drop_list:
+   hdd_drop_skb_list(pAdapter, skb, is_update_ac_stats);
    return NETDEV_TX_OK;
+
 }
 
 /**

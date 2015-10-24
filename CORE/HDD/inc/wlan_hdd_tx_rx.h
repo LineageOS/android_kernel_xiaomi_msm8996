@@ -97,6 +97,11 @@
   ===========================================================================*/
 extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
+extern void hdd_drop_skb(hdd_adapter_t *adapter, struct sk_buff *skb);
+
+extern void hdd_drop_skb_list(hdd_adapter_t *adapter, struct sk_buff *skb,
+                                                      bool is_update_ac_stats);
+
 extern int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 /**============================================================================
   @brief hdd_tx_timeout() - Function called by OS if there is any
