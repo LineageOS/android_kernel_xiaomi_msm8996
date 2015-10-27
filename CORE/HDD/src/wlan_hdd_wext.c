@@ -10846,6 +10846,12 @@ static int __iw_set_power_params_priv(struct net_device *dev,
   char *ptr;
 
   ENTER();
+
+  if (!capable(CAP_NET_ADMIN)) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 FL("permission check failed"));
+      return -EPERM;
+  }
   /* ODD number is used for set, copy data using copy_from_user */
   ptr = mem_alloc_copy_from_user_helper(wrqu->data.pointer,
                                         wrqu->data.length);
