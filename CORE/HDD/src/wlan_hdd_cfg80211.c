@@ -21275,7 +21275,7 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
 
             pr_info("****FTM Tx cmd len = %d*****\n", buf_len);
 
-            status = wlan_hdd_ftm_testmode_cmd(buf, buf_len);
+            status = wlan_hdd_ftm_testmode_cmd(buf, buf_len, FALSE);
 
             if (status != VOS_STATUS_SUCCESS)
                 err = -EBUSY;
