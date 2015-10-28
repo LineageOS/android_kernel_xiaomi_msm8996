@@ -322,6 +322,7 @@ struct adreno_gpu_core {
  * @speed_bin: Indicate which power level set to use
  * @csdev: Pointer to a coresight device (if applicable)
  * @gpmu_throttle_counters - counteers for number of throttled clocks
+ * @irq_storm_work: Worker to handle possible interrupt storms
  */
 struct adreno_device {
 	struct kgsl_device dev;    /* Must be first field in this struct */
@@ -382,6 +383,7 @@ struct adreno_device {
 
 	struct coresight_device *csdev;
 	uint32_t gpmu_throttle_counters[ADRENO_GPMU_THROTTLE_COUNTERS];
+	struct work_struct irq_storm_work;
 };
 
 /**
@@ -403,6 +405,8 @@ struct adreno_device {
  * @ADRENO_DEVICE_GPMU_INITIALIZED - Set if GPMU firmware initialization succeed
  * @ADRENO_DEVICE_ISDB_ENABLED - Set if the Integrated Shader DeBugger is
  * attached and enabled
+ * @ADRENO_DEVICE_CACHE_FLUSH_TS_SUSPENDED - Set if a CACHE_FLUSH_TS irq storm
+ * is in progress
  */
 enum adreno_device_flags {
 	ADRENO_DEVICE_PWRON = 0,
@@ -418,6 +422,7 @@ enum adreno_device_flags {
 	ADRENO_DEVICE_SOFT_FAULT_DETECT = 10,
 	ADRENO_DEVICE_GPMU_INITIALIZED = 11,
 	ADRENO_DEVICE_ISDB_ENABLED = 12,
+	ADRENO_DEVICE_CACHE_FLUSH_TS_SUSPENDED = 13,
 };
 
 /**

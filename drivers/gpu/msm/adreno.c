@@ -572,11 +572,13 @@ static irqreturn_t adreno_irq_handler(struct kgsl_device *device)
 		i = fls(tmp) - 1;
 
 		if (irq_params->funcs[i].func != NULL) {
-			irq_params->funcs[i].func(adreno_dev, i);
-			ret = IRQ_HANDLED;
+			if (irq_params->mask & BIT(i))
+				irq_params->funcs[i].func(adreno_dev, i);
 		} else
 			KGSL_DRV_CRIT(device,
 					"Unhandled interrupt bit %x\n", i);
+
+		ret = IRQ_HANDLED;
 
 		tmp &= ~BIT(i);
 	}
