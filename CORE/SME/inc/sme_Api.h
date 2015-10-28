@@ -3852,6 +3852,10 @@ eHalStatus sme_ocb_start_timing_advert(struct sir_ocb_timing_advert
 eHalStatus sme_ocb_stop_timing_advert(struct sir_ocb_timing_advert
                                       *timing_advert);
 
+int sme_ocb_gen_timing_advert_frame(tHalHandle hHal, tSirMacAddr self_addr,
+                                    uint8_t **buf, uint32_t *timestamp_offset,
+                                    uint32_t *time_value_offset);
+
 eHalStatus sme_ocb_get_tsf_timer(tHalHandle hHal, void *context,
                                  ocb_callback callback,
                                  struct sir_ocb_get_tsf_timer *request);

@@ -73,6 +73,7 @@
 #include "nan_Api.h"
 #endif
 #include "regdomain_common.h"
+#include "schApi.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -13017,6 +13018,30 @@ eHalStatus sme_ocb_stop_timing_advert(
 	}
 
 	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_ocb_gen_timing_advert_frame() - generate TA frame and populate the buffer
+ * @hHal: reference to the HAL
+ * @self_addr: the self MAC address
+ * @buf: the buffer that will contain the frame
+ * @timestamp_offset: return for the offset of the timestamp field
+ * @time_value_offset: return for the time_value field in the TA IE
+ *
+ * Return: the length of the buffer.
+ */
+int sme_ocb_gen_timing_advert_frame(tHalHandle hal_handle,
+				    tSirMacAddr self_addr, uint8_t **buf,
+				    uint32_t *timestamp_offset,
+				    uint32_t *time_value_offset)
+{
+	int template_length;
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+
+	template_length = schGenTimingAdvertFrame(mac_ctx, self_addr, buf,
+						  timestamp_offset,
+						  time_value_offset);
+	return template_length;
 }
 
 /**
