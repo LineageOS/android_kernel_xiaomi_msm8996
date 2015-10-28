@@ -1258,7 +1258,8 @@ static int __hif_pci_runtime_resume(struct pci_dev *pdev)
 	return 0;
 out:
 	/* In Resume we should never fail */
-	ASSERT(0);
+	hif_pci_runtime_pm_warn(sc, "Runtime Resume Failed");
+	VOS_BUG(0);
 	return ret;
 }
 
