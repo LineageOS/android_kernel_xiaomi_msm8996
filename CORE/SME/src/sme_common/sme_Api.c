@@ -161,13 +161,33 @@ eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme)
     return (status);
 }
 
+/**
+ * free_sme_cmds() - This function frees memory allocated for SME commands
+ * @mac_ctx:      Pointer to Global MAC structure
+ *
+ * This function frees memory allocated for SME commands
+ *
+ * @Return: void
+ */
+static void free_sme_cmds(tpAniSirGlobal mac_ctx)
+{
+	uint32_t idx;
+	if (NULL == mac_ctx->sme.pSmeCmdBufAddr)
+		return;
 
+	for (idx = 0; idx < mac_ctx->sme.totalSmeCmd; idx++)
+		vos_mem_free(mac_ctx->sme.pSmeCmdBufAddr[idx]);
+
+	vos_mem_free(mac_ctx->sme.pSmeCmdBufAddr);
+	mac_ctx->sme.pSmeCmdBufAddr = NULL;
+}
 
 static eHalStatus initSmeCmdList(tpAniSirGlobal pMac)
 {
     eHalStatus status;
     tSmeCmd *pCmd;
     tANI_U32 cmd_idx;
+    uint32_t sme_cmd_ptr_ary_sz;
     VOS_STATUS vosStatus;
     vos_timer_t* cmdTimeoutTimer = NULL;
 
@@ -192,21 +212,34 @@ static eHalStatus initSmeCmdList(tpAniSirGlobal pMac)
                                              &pMac->sme.smeCmdFreeList)))
        goto end;
 
-    pCmd = vos_mem_malloc(sizeof(tSmeCmd) * pMac->sme.totalSmeCmd);
-    if ( NULL == pCmd )
-       status = eHAL_STATUS_FAILURE;
-    else
-    {
-       status = eHAL_STATUS_SUCCESS;
+    /* following pointer contains array of pointers for tSmeCmd* */
+    sme_cmd_ptr_ary_sz = sizeof(void*) * pMac->sme.totalSmeCmd;
+    pMac->sme.pSmeCmdBufAddr = vos_mem_malloc(sme_cmd_ptr_ary_sz);
+    if (NULL == pMac->sme.pSmeCmdBufAddr) {
+        status = eHAL_STATUS_FAILURE;
+        goto end;
+    }
 
-       vos_mem_set(pCmd, sizeof(tSmeCmd) * pMac->sme.totalSmeCmd, 0);
-       pMac->sme.pSmeCmdBufAddr = pCmd;
-
-       for (cmd_idx = 0; cmd_idx < pMac->sme.totalSmeCmd; cmd_idx++)
-       {
-           csrLLInsertTail(&pMac->sme.smeCmdFreeList,
-                        &pCmd[cmd_idx].Link, LL_ACCESS_LOCK);
-       }
+    status = eHAL_STATUS_SUCCESS;
+    vos_mem_set(pMac->sme.pSmeCmdBufAddr, sme_cmd_ptr_ary_sz, 0);
+    for (cmd_idx = 0; cmd_idx < pMac->sme.totalSmeCmd; cmd_idx++) {
+       /*
+        * Since total size of all commands together can be huge chunk of
+        * memory, allocate SME cmd individually. These SME CMDs are moved
+        * between pending and active queues. And these freeing of these
+        * queues just manipulates the list but does not actually frees SME
+        * CMD pointers. Hence store each SME CMD address in the array,
+        * sme.pSmeCmdBufAddr. This will later facilitate freeing up of all
+        * SME CMDs with just a for loop.
+        */
+        pMac->sme.pSmeCmdBufAddr[cmd_idx] = vos_mem_malloc(sizeof(tSmeCmd));
+        if (NULL == pMac->sme.pSmeCmdBufAddr[cmd_idx]) {
+           status = eHAL_STATUS_FAILURE;
+           free_sme_cmds(pMac);
+           goto end;
+        }
+        pCmd = (tSmeCmd*)pMac->sme.pSmeCmdBufAddr[cmd_idx];
+        csrLLInsertTail(&pMac->sme.smeCmdFreeList, &pCmd->Link, LL_ACCESS_LOCK);
     }
 
     /* This timer is only to debug the active list command timeout */
@@ -233,6 +266,7 @@ static eHalStatus initSmeCmdList(tpAniSirGlobal pMac)
                 CSR_ACTIVE_LIST_CMD_TIMEOUT_VALUE;
         }
     }
+
 end:
     if (!HAL_STATUS_SUCCESS(status))
        smsLog(pMac, LOGE, "failed to initialize sme command list:%d\n",
@@ -317,7 +351,6 @@ void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId,
 static eHalStatus freeSmeCmdList(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-
     purgeSmeCmdList(pMac);
     csrLLClose(&pMac->sme.smeCmdPendingList);
     csrLLClose(&pMac->sme.smeCmdActiveList);
@@ -338,11 +371,7 @@ static eHalStatus freeSmeCmdList(tpAniSirGlobal pMac)
         goto done;
     }
 
-    if(NULL != pMac->sme.pSmeCmdBufAddr)
-    {
-        vos_mem_free(pMac->sme.pSmeCmdBufAddr);
-        pMac->sme.pSmeCmdBufAddr = NULL;
-    }
+    free_sme_cmds(pMac);
 
     status = vos_lock_release(&pMac->sme.lkSmeGlobalLock);
     if(status != eHAL_STATUS_SUCCESS)

@@ -137,7 +137,8 @@ typedef struct tagSmeStruct
     eSmeState state;
     vos_lock_t lkSmeGlobalLock;
     tANI_U32 totalSmeCmd;
-    void *pSmeCmdBufAddr;
+    /* following pointer contains array of pointers for tSmeCmd* */
+    void **pSmeCmdBufAddr;
     tDblLinkList smeCmdActiveList;
     tDblLinkList smeCmdPendingList;
     tDblLinkList smeCmdFreeList;   //preallocated roam cmd list

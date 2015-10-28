@@ -66,7 +66,12 @@ ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
   Type declarations
   ------------------------------------------------------------------------*/
 
-#define SME_TOTAL_COMMAND  40
+/*
+ * In case MAX num of STA are connected to SAP, switching off SAP causes
+ * two SME cmd to be enqueued for each STA. Keeping SME total cmds as following
+ * to make sure we have space for these cmds + some additional cmds.
+ */
+#define SME_TOTAL_COMMAND              (HAL_NUM_STA * 3)
 
 
 typedef struct sGenericPmcCmd
