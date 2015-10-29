@@ -9644,8 +9644,7 @@ static int __iw_set_keepalive_params(struct net_device *dev,
                                      char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    tpKeepAliveRequest pRequest = (tpKeepAliveRequest) extra;
-    tSirKeepAliveReq keepaliveRequest;
+    tpSirKeepAliveReq pRequest = (tpSirKeepAliveReq) extra;
     hdd_context_t *hdd_ctx;
     int ret;
 
@@ -9656,12 +9655,16 @@ static int __iw_set_keepalive_params(struct net_device *dev,
     if (0 != ret)
         return ret;
 
+    if (wrqu->data.length != sizeof(*pRequest)) {
+        hddLog(LOGE, FL("Invalid length %d"), wrqu->data.length);
+        return -EINVAL;
+    }
+
     if (pRequest->timePeriod > WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD_STAMAX) {
         hddLog(LOGE, FL("Value of timePeriod exceed Max limit %d"),
                pRequest->timePeriod);
         return -EINVAL;
     }
-
 
     /* Debug display of request components. */
     hddLog(VOS_TRACE_LEVEL_INFO,
@@ -9693,16 +9696,10 @@ static int __iw_set_keepalive_params(struct net_device *dev,
             break;
       }
 
-    /* Execute keep alive request. The reason that we can copy the request information
-       from the ioctl structure to the SME structure is that they are laid out
-       exactly the same.  Otherwise, each piece of information would have to be
-       copied individually. */
-       memcpy(&keepaliveRequest, pRequest, wrqu->data.length);
-
-       hddLog(VOS_TRACE_LEVEL_ERROR, "set Keep: TP before SME %d", keepaliveRequest.timePeriod);
+       hddLog(LOG1, FL("Keep alive period  %d"), pRequest->timePeriod);
 
     if (eHAL_STATUS_SUCCESS != sme_SetKeepAlive(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                        pAdapter->sessionId, &keepaliveRequest))
+                                        pAdapter->sessionId, pRequest))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Keep Alive",
                __func__);
@@ -12226,7 +12223,7 @@ static const struct iw_priv_args we_private_args[] = {
 
     {
         WLAN_SET_KEEPALIVE_PARAMS,
-        IW_PRIV_TYPE_BYTE  | WE_MAX_STR_LEN,
+        sizeof(tSirKeepAliveReq) | IW_PRIV_SIZE_FIXED,
         0,
         "setKeepAlive" },
 #ifdef WLAN_FEATURE_PACKET_FILTERING
