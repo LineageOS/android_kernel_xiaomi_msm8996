@@ -1333,7 +1333,7 @@ typedef enum
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE         "gEnableMuBformee"
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MIN     ( 0 )
 #define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_MAX     ( 1 )
-#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT ( 0 )
+#define CFG_VHT_ENABLE_MU_BFORMEE_CAP_FEATURE_DEFAULT ( 1 )
 
 #define CFG_VHT_ENABLE_PAID_FEATURE             "gEnablePAID"
 #define CFG_VHT_ENABLE_PAID_FEATURE_MIN         ( 0 )
@@ -2384,7 +2384,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_VHT_AMPDU_LEN_EXPONENT_NAME                "gVhtAmpduLenExponent"
 #define CFG_VHT_AMPDU_LEN_EXPONENT_MIN                 ( 0 )
 #define CFG_VHT_AMPDU_LEN_EXPONENT_MAX                 ( 7 )
-#define CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT             ( 3 )
+#define CFG_VHT_AMPDU_LEN_EXPONENT_DEFAULT             ( 7 )
 
 #define CFG_VHT_MPDU_LEN_NAME                          "gVhtMpduLen"
 #define CFG_VHT_MPDU_LEN_MIN                           ( 0 )

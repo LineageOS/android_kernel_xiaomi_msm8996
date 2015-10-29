@@ -2585,10 +2585,10 @@ LIM
 WNI_CFG_VHT_SU_BEAMFORMEE_CAP  I    4    19
 V    RW    NP
 LIM
-0    1    0
+0    1    1
 V    RW    NP
 LIM
-0    1    0
+0    1    1
 
 *
 * Compressed Steering Number of Beamformer Antennas Supported
