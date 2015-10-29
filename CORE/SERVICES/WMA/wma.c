@@ -16112,6 +16112,11 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 	     key_info->encType == eSIR_ED_WEP104)) {
 		wma_read_cfg_wepkey(wma_handle, key_info->key,
 				    &def_key_idx, &key_info->numKeys);
+	} else if ((key_info->encType == eSIR_ED_WEP40) ||
+			(key_info->encType == eSIR_ED_WEP104)) {
+		struct wma_txrx_node *intf =
+			&wma_handle->interfaces[key_info->smesessionId];
+		key_params.def_key_idx = intf->wep_default_key_idx;
 	}
 
 	for (i = 0; i < key_info->numKeys; i++) {
@@ -27048,6 +27053,25 @@ static inline VOS_STATUS wma_send_wow_pulse_cmd(tp_wma_handle wma_handle,
 #endif
 
 /*
+ * wma_update_wep_default_key - function to update default key id
+ * @wma: pointer to wma handler
+ * @update_def_key: pointer to wep_update_default_key_idx
+ *
+ * function makes a copy of default key index to txrx node
+ *
+ * return: Success
+ */
+static VOS_STATUS wma_update_wep_default_key(tp_wma_handle wma,
+			struct wep_update_default_key_idx *update_def_key)
+{
+	struct wma_txrx_node *iface =
+		&wma->interfaces[update_def_key->session_id];
+	iface->wep_default_key_idx = update_def_key->default_idx;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
  * function   : wma_mc_process_msg
  * Description :
  * Args       :
@@ -27831,6 +27855,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_WOW_PULSE_CMD:
 			wma_send_wow_pulse_cmd(wma_handle,
 				(struct wow_pulse_mode *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_UPDATE_WEP_DEFAULT_KEY:
+			wma_update_wep_default_key(wma_handle,
+			    (struct wep_update_default_key_idx *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

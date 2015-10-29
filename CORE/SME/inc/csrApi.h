@@ -1614,6 +1614,20 @@ struct tagCsrDelStaParams
     u8 subtype;
 };
 
+/**
+ * struct wep_update_default_key_idx: wep default key index structure
+ *
+ * @session_id: session ID for the connection session
+ * @default_idx: default key index for wep
+ *
+ * structure includes sesssion id for connection and default key
+ * index used for wep
+ */
+struct wep_update_default_key_idx {
+	uint8_t session_id;
+	uint8_t default_idx;
+};
+
 ////////////////////////////////////////////Common SCAN starts
 
 //void *p2 -- the second context pass in for the caller

@@ -5654,6 +5654,48 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
    return (status);
 }
 
+/*
+ * sme_roam_set_default_key_index - function to set default wep key idx
+ * @hHal: pointer to hal handler
+ * @session_id: session id
+ * @default_idx: default wep key index
+ *
+ * function prepares a message and post to WMA to set wep default
+ * key index
+ *
+ * return: Success:eHAL_STATUS_SUCCESS Failure: Error value
+ */
+eHalStatus sme_roam_set_default_key_index(tHalHandle hHal, uint8_t session_id,
+				 uint8_t default_idx)
+{
+	vos_msg_t msg;
+	struct wep_update_default_key_idx *update_key;
+
+	update_key = vos_mem_malloc(sizeof(struct wep_update_default_key_idx));
+	if (!update_key) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "Failed to allocate memory for update key");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	update_key->session_id = session_id;
+	update_key->default_idx = default_idx;
+
+	msg.type = WDA_UPDATE_WEP_DEFAULT_KEY;
+	msg.reserved = 0;
+	msg.bodyptr = (void *)update_key;
+
+	if (VOS_STATUS_SUCCESS !=
+			vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Failed to post msg to WDA", __func__);
+		vos_mem_free(update_key);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 
 /* ---------------------------------------------------------------------------
 
