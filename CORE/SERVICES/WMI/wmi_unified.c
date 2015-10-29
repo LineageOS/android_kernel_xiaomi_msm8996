@@ -734,7 +734,8 @@ dont_tag:
 		//dump_CE_register(scn);
 		//dump_CE_debug_register(scn->hif_sc);
 		adf_os_atomic_dec(&wmi_handle->pending_cmds);
-		pr_err("%s: MAX 1024 WMI Pending cmds reached.\n", __func__);
+		pr_err("%s: MAX %d WMI Pending cmds reached.\n",
+			__func__, WMI_MAX_CMDS);
 		VOS_BUG(0);
 		return -EBUSY;
 	}
