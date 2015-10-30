@@ -66,10 +66,38 @@ __adf_os_atomic_add(int i, __adf_os_atomic_t *v)
     atomic_add(i, v);
 }
 
+/**
+ * __adf_os_atomic_sub() - Subtract a value from an atomic variable
+ * @v: a pointer to an opaque atomic variable
+ * @i: the amount by which to decrease the atomic counter
+ *
+ * Return: none
+ */
+static inline void
+__adf_os_atomic_sub(int i, __adf_os_atomic_t *v)
+{
+	atomic_sub(i, v);
+}
+
 static inline a_uint32_t
  __adf_os_atomic_dec_and_test(__adf_os_atomic_t *v)
 {
     return(atomic_dec_and_test(v));
+}
+
+/**
+ * __adf_os_atomic_inc_return() - Increment and return an atomic variable
+ * @v a pointer to an opaque atomic variable
+ *
+ * good for eliminating race conditions between multiple increments and reads
+ *
+ * @return
+ *      the new value stored int the atomic type.
+ */
+static inline a_uint32_t
+__adf_os_atomic_inc_return(__adf_os_atomic_t *v)
+{
+	return atomic_inc_return(v);
 }
 
 static inline void
