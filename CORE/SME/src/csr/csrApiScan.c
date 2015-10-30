@@ -2734,11 +2734,6 @@ eHalStatus csrScanFilterResults(tpAniSirGlobal pMac)
                 csrFreeScanResultEntry( pMac, pBssDesc );
             }
         }
-        else
-        {
-            smsLog( pMac, LOG1, FL("%d is a Valid channel"),
-                    pBssDesc->Result.BssDescriptor.channelId);
-        }
         pEntry = pTempEntry;
     }
 
