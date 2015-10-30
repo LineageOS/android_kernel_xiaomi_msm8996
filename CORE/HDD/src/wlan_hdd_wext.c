@@ -4630,12 +4630,48 @@ static int iw_get_nick(struct net_device *dev,
  * __get_wireless_stats() - get wireless stats
  * @dev: pointer to net_device
  *
- * Return: %NULL
+ * Return: pointer to iw_statistics on success, NULL otherwise
  */
 static struct iw_statistics *__get_wireless_stats(struct net_device *dev)
 {
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	hdd_wext_state_t  *wext_state =  WLAN_HDD_GET_WEXT_STATE_PTR(adapter);
+	hdd_station_ctx_t *hdd_sta_ctx;
+	v_S7_t snr = 0, rssi = 0;
+	int status;
+
 	ENTER();
-	return NULL;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status)
+		return NULL;
+
+	hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	if (eConnectionState_Associated != hdd_sta_ctx->conn_info.connState) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("not in associated state: %d"),
+				hdd_sta_ctx->conn_info.connState);
+		return NULL;
+	}
+
+	wlan_hdd_get_station_stats(adapter);
+	wlan_hdd_get_snr(adapter, &snr);
+	wlan_hdd_get_rssi(adapter, &rssi);
+
+	vos_mem_zero(&wext_state->iw_stats, sizeof(wext_state->iw_stats));
+	wext_state->iw_stats.status = 0;
+	wext_state->iw_stats.qual.qual = snr;
+	wext_state->iw_stats.qual.level = rssi;
+	wext_state->iw_stats.qual.noise = rssi - snr;
+	wext_state->iw_stats.discard.code = 0;
+	wext_state->iw_stats.discard.retries = 0;
+	wext_state->iw_stats.miss.beacon = 0;
+	wext_state->iw_stats.qual.updated =
+					IW_QUAL_ALL_UPDATED | IW_QUAL_DBM;
+
+	EXIT();
+	return &(wext_state->iw_stats);
 }
 
 /**
@@ -4655,7 +4691,6 @@ static struct iw_statistics *get_wireless_stats(struct net_device *dev)
 
 	return iw_stats;
 }
-
 
 /**
  * __iw_set_encode() - SIOCSIWENCODE ioctl handler
