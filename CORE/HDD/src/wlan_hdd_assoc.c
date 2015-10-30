@@ -4686,8 +4686,44 @@ static int __iw_set_essid(struct net_device *dev,
                         &ch_width);
         pRoamProfile->vht_channel_width = ch_width;
     }
+    /*
+     * Change conn_state to connecting before sme_RoamConnect(),
+     * because sme_RoamConnect() has a direct path to call
+     * hdd_smeRoamCallback(), which will change the conn_state
+     * If direct path, conn_state will be accordingly changed
+     * to NotConnected or Associated by either
+     * hdd_AssociationCompletionHandler() or hdd_DisConnectHandler()
+     * in sme_RoamCallback()
+     * if sme_RomConnect is to be queued,
+     * Connecting state will remain until it is completed.
+     *
+     * If connection state is not changed,
+     * connection state will remain in eConnectionState_NotConnected state.
+     * In hdd_AssociationCompletionHandler, "hddDisconInProgress" is set to true
+     * if conn state is eConnectionState_NotConnected.
+     * If "hddDisconInProgress" is set to true then cfg80211 layer is not
+     * informed of connect result indication which is an issue.
+     */
+    if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode ||
+            WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) {
+        hddLog(LOG1,
+                FL("Set HDD connState to eConnectionState_Connecting"));
+        hdd_connSetConnectionState(pAdapter,
+                eConnectionState_Connecting);
+    }
     status = sme_RoamConnect( hHal,pAdapter->sessionId,
-                         &(pWextState->roamProfile), &roamId);
+            &(pWextState->roamProfile), &roamId);
+
+    if ((eHAL_STATUS_SUCCESS != status) &&
+            (WLAN_HDD_INFRA_STATION == pAdapter->device_mode ||
+             WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) {
+        hddLog(LOGE,
+                FL("sme_RoamConnect (session %d) failed with status %d. -> NotConnected"),
+                pAdapter->sessionId, status);
+        /* change back to NotAssociated */
+        hdd_connSetConnectionState(pAdapter,
+                eConnectionState_NotConnected);
+    }
     pRoamProfile->ChannelInfo.ChannelList = NULL;
     pRoamProfile->ChannelInfo.numOfChannels = 0;
 
