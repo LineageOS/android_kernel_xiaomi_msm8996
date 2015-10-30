@@ -868,6 +868,30 @@ typedef struct multicast_addr_list
 
 #define WLAN_HDD_ADAPTER_MAGIC 0x574c414e //ASCII "WLAN"
 
+/**
+ * struct hdd_runtime_pm_context - context to prevent/allow runtime pm
+ * @scan: scan context to prevent/allow runtime pm
+ * @roc : remain on channel runtime pm context
+ * @dfs : Dynamic frequency selection runtime pm context
+ *
+ * Prevent Runtime PM for scan, roc and dfs.
+ */
+struct hdd_runtime_pm_context {
+	void *scan;
+	void *roc;
+	void *dfs;
+};
+
+/**
+ * struct hdd_adapter_pm_context - Context/Adapter to prevent/allow runtime pm
+ * @connect : Connect context per adapter
+ *
+ * Structure to hold runtime pm contexts for each adapter
+ */
+struct hdd_adapter_pm_context {
+	void *connect;
+};
+
 struct hdd_adapter_s
 {
    void *pHddCtx;
@@ -1088,7 +1112,7 @@ struct hdd_adapter_s
 	/* MAC addresses used for OCB interfaces */
 	tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
 	int ocb_mac_addr_count;
-	void *runtime_ctx;
+	struct hdd_adapter_pm_context runtime_context;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1587,6 +1611,7 @@ struct hdd_context_s
     bool per_band_chainmask_supp;
     uint16_t hdd_txrx_hist_idx;
     struct hdd_tx_rx_histogram hdd_txrx_hist[NUM_TX_RX_HISTOGRAM];
+    struct hdd_runtime_pm_context runtime_context;
 };
 
 /*---------------------------------------------------------------------------
@@ -1666,7 +1691,6 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 void hdd_prevent_suspend(uint32_t reason);
 void hdd_allow_suspend(uint32_t reason);
 void hdd_prevent_suspend_timeout(v_U32_t timeout, uint32_t reason);
-void hdd_allow_runtime_suspend(void);
 bool hdd_is_ssr_required(void);
 void hdd_set_ssr_required(e_hdd_ssr_required value);
 
@@ -1867,4 +1891,7 @@ void hdd_connect_result(struct net_device *dev, const u8 *bssid,
 
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
+
+void hdd_runtime_suspend_init(hdd_context_t *);
+void hdd_runtime_suspend_deinit(hdd_context_t *);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

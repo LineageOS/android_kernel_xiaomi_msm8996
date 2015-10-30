@@ -171,6 +171,7 @@ void hdd_hostapd_channel_allow_suspend(hdd_adapter_t *pAdapter,
             hddLog(LOGE, FL("DFS: allowing suspend (chan %d)"), channel);
             vos_wake_lock_release(&pHddCtx->sap_dfs_wakelock,
                                   WIFI_POWER_EVENT_WAKELOCK_DFS);
+            vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.dfs);
         }
     }
 }
@@ -208,6 +209,7 @@ void hdd_hostapd_channel_prevent_suspend(hdd_adapter_t *pAdapter,
     if (NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(channel)) {
         if (atomic_inc_return(&pHddCtx->sap_dfs_ref_cnt) == 1) {
             hddLog(LOGE, FL("DFS: preventing suspend (chan %d)"), channel);
+            vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.dfs);
             vos_wake_lock_acquire(&pHddCtx->sap_dfs_wakelock,
                                   WIFI_POWER_EVENT_WAKELOCK_DFS);
         }

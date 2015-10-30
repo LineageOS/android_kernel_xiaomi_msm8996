@@ -1845,6 +1845,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 #endif
 
+   hdd_runtime_suspend_init(pHddCtx);
    hdd_reset_all_adapters(pHddCtx);
 
 #ifdef IPA_UC_OFFLOAD
@@ -2158,7 +2159,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    /* Pass FW version to HIF layer */
    hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 
-
+   hdd_runtime_suspend_init(pHddCtx);
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
 
@@ -2237,8 +2238,8 @@ err_unregister_pmops:
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
+   hdd_runtime_suspend_deinit(pHddCtx);
    hdd_close_all_adapters(pHddCtx);
-
 
 err_vosstop:
    vos_stop(pVosContext);

@@ -79,8 +79,6 @@ typedef struct wlan_wake_lock {
 #else
 	int lock;
 #endif
-	/* Runtime PM Context */
-	void *runtime_pm_context;
 } vos_wake_lock_t;
 
 typedef void *runtime_pm_context_t;

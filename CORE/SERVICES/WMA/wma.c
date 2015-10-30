@@ -15791,6 +15791,7 @@ static void wma_prevent_suspend_check(tp_wma_handle wma)
 	wma->ap_client_cnt++;
 	if (wma->ap_client_cnt ==
 	    wma->wlan_resource_config.num_offload_peers) {
+		vos_runtime_pm_prevent_suspend(wma->runtime_context.ap);
 		vos_wake_lock_acquire(&wma->wow_wake_lock,
 				WIFI_POWER_EVENT_WAKELOCK_ADD_STA);
 		WMA_LOGW("%s: %d clients connected, prevent suspend",
@@ -15805,6 +15806,7 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 	    wma->wlan_resource_config.num_offload_peers - 1) {
 		vos_wake_lock_release(&wma->wow_wake_lock,
                                       WIFI_POWER_EVENT_WAKELOCK_DEL_STA);
+		vos_runtime_pm_allow_suspend(wma->runtime_context.ap);
 		WMA_LOGW("%s: %d clients connected, allow suspend",
 			 __func__, wma->ap_client_cnt);
 	}
