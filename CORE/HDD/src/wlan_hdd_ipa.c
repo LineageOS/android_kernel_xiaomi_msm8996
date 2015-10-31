@@ -4724,11 +4724,16 @@ static const struct file_operations fops_ipa_stats = {
 		.llseek = default_llseek,
 };
 
+#ifdef MULTI_IF_NAME
+#define SUFFIX MULTI_IF_NAME
+#else
+#define SUFFIX ""
+#endif
 
 static int hdd_ipa_debugfs_init(struct hdd_ipa_priv *hdd_ipa)
 {
 #ifdef WLAN_OPEN_SOURCE
-	hdd_ipa->debugfs_dir = debugfs_create_dir("cld",
+	hdd_ipa->debugfs_dir = debugfs_create_dir("cld" SUFFIX,
 					hdd_ipa->hdd_ctx->wiphy->debugfsdir);
 	if (!hdd_ipa->debugfs_dir)
 		return -ENOMEM;

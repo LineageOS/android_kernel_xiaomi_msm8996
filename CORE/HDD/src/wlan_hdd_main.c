@@ -894,7 +894,7 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
       (strncmp(dev->name, "p2p", 3)))
       return NOTIFY_DONE;
 
-   if ((pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) &&
+   if ((pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) ||
       (pAdapter->dev != dev)) {
       hddLog(LOGE, FL("device adapter is not matching!!!"));
       return NOTIFY_DONE;
