@@ -274,7 +274,7 @@ adf_os_dma_addr_t htt_tx_get_paddr(htt_pdev_handle pdev, char *target_vaddr)
 
 	for (i = 0; i < pdev->num_pages; i++) {
 		page_info = pdev->desc_pages + i;
-		if (!page_info->page_v_addr_start) {
+		if (!page_info || !page_info->page_v_addr_start) {
 			adf_os_assert(0);
 			return 0;
 		}
