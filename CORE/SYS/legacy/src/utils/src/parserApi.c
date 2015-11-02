@@ -853,6 +853,8 @@ void limLogOperatingMode( tpAniSirGlobal pMac,
 void limLogQosMapSet(tpAniSirGlobal pMac, tSirQosMapSet *pQosMapSet)
 {
     tANI_U8 i;
+    if (pQosMapSet->num_dscp_exceptions > 21)
+	pQosMapSet->num_dscp_exceptions = 21;
     limLog(pMac, LOG1, FL("num of dscp exceptions : %d"),
                                    pQosMapSet->num_dscp_exceptions);
     for (i = 0; i < pQosMapSet->num_dscp_exceptions; i++)
