@@ -4312,6 +4312,8 @@ void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
     {
         case eLIM_HAL_FINISH_SCAN_WAIT_STATE:
             pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+            if (pMac->lim.abortScan)
+                pMac->lim.abortScan = 0;
             limCompleteMlmScan(pMac, eSIR_SME_SUCCESS);
             if (limIsChanSwitchRunning(pMac))
             {
