@@ -15871,6 +15871,11 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
            scanRequest.requestType, scanRequest.scanType,
            scanRequest.minChnTime, scanRequest.maxChnTime,
            scanRequest.p2pSearch, scanRequest.skipDfsChnlInP2pSearch);
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,7,0))
+    if (request->flags & NL80211_SCAN_FLAG_FLUSH)
+        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                pAdapter->sessionId);
+#endif
 
     vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.scan);
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
