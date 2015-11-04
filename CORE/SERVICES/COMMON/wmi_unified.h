@@ -685,6 +685,8 @@ typedef enum {
     WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID,
     /** Enable/disable Large Receive Offload processing; provide cfg params */
     WMI_LRO_CONFIG_CMDID,
+    /** transfer data from host to firmware to write flash */
+    WMI_TRANSFER_DATA_TO_FLASH_CMDID,
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
     WMI_GPIO_OUTPUT_CMDID,
@@ -1084,6 +1086,9 @@ typedef enum {
 
     /** event to report mix/max RSSI breach events */
     WMI_RSSI_BREACH_EVENTID,
+
+    /** event to report completion of data storage into flash memory */
+    WMI_TRANSFER_DATA_TO_FLASH_COMPLETE_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
@@ -11910,6 +11915,23 @@ typedef struct {
      */
     A_UINT32 toeplitz_hash_ipv6_40;
 } wmi_lro_info_cmd_fixed_param;
+
+/*
+ * This structure is used to set the pattern for WOW host wakeup pin pulse
+ * pattern confirguration.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_transfer_data_to_flash_cmd_fixed_param  */
+    A_UINT32 offset; /* flash offset to write, starting from 0 */
+    A_UINT32 length; /* vaild data length in buffer, unit: byte */
+} wmi_transfer_data_to_flash_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_transfer_data_to_flash_complete_event_fixed_param */
+    /** Return status. 0 for success, non-zero otherwise */
+    A_UINT32 status;
+} wmi_transfer_data_to_flash_complete_event_fixed_param;
+
 
 /* ADD NEW DEFS HERE */
 
