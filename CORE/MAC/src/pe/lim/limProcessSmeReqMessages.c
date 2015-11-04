@@ -4829,10 +4829,11 @@ __limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     pUpdateParams = (tpSirUpdateParams)pMsgBuf;
 
-    if((psessionEntry = peFindSessionBySessionId(pMac, pUpdateParams->sessionId)) == NULL)
-    {
-        limLog(pMac, LOGW, "Session does not exist for given sessionId %d",
-                      pUpdateParams->sessionId);
+    psessionEntry = pe_find_session_by_sme_session_id(pMac,
+                                          pUpdateParams->sessionId);
+    if(NULL == psessionEntry) {
+        limLog(pMac, LOGE, "Session does not exist for given sme sessionId %d",
+               pUpdateParams->sessionId);
         return;
     }
 
