@@ -480,7 +480,7 @@ wait:
 void wlan_hdd_remain_on_chan_timeout(void *data)
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)data;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    hdd_context_t *pHddCtx;
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState;
 
@@ -488,6 +488,8 @@ void wlan_hdd_remain_on_chan_timeout(void *data)
         hddLog(LOGE, FL("pAdapter is invalid %p !!!"), pAdapter);
         return;
     }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
