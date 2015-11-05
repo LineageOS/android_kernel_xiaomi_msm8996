@@ -2556,14 +2556,6 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL))
         return ret;
 
-    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
-        goto out;
-
-    A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
-
-    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
-        goto out;
-
     if (!txrx_pdev) {
         printk("%s: txrx_pdev is NULL\n", __func__);
         goto out;
@@ -2594,7 +2586,7 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
     if (wma_is_wow_mode_selected(temp_module)) {
           if(wma_enable_wow_in_fw(temp_module, runtime_pm))
             goto out;
-    } else if (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND) {
+    } else {
           if (wma_suspend_target(temp_module, 0))
             goto out;
     }
@@ -2604,16 +2596,9 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
             printk("%s: CE still not done with access: \n", __func__);
             adf_os_atomic_set(&sc->wow_done, 0);
 
-            if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
-                goto out;
-            val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-            if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
-                goto out;
-
-            if (!wma_is_wow_mode_selected(temp_module) &&
-               (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
-                  wma_resume_target(temp_module, runtime_pm);
-                goto out;
+            if (!wma_is_wow_mode_selected(temp_module)) {
+               wma_resume_target(temp_module, runtime_pm);
+               goto out;
             }
             else {
                wma_disable_wow_in_fw(temp_module, runtime_pm);
@@ -2808,12 +2793,6 @@ skip:
     pci_write_config_dword(pdev, 0x188, (val & ~0x0000000f));
 #endif
 
-    if (HIFTargetSleepStateAdjust(targid, FALSE, TRUE) < 0)
-        goto out;
-    val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
-    if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
-        goto out;
-
     /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
     temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
     if (!temp_module) {
@@ -2821,8 +2800,7 @@ skip:
         goto out;
     }
 
-    if (!wma_is_wow_mode_selected(temp_module) &&
-        (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND))
+    if (!wma_is_wow_mode_selected(temp_module))
         err = wma_resume_target(temp_module, runtime_pm);
     else
         err = wma_disable_wow_in_fw(temp_module, runtime_pm);
