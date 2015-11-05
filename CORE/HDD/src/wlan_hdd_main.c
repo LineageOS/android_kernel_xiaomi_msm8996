@@ -13048,6 +13048,9 @@ static int hdd_driver_init( void)
    v_CONTEXT_t pVosContext = NULL;
    int ret_status = 0;
    unsigned long rc;
+   u_int64_t start;
+
+   start = adf_get_boottime();
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
    wlan_logging_sock_init_svc();
@@ -13152,8 +13155,9 @@ static int hdd_driver_init( void)
        ret_status = -ENODEV;
        break;
    } else {
-       pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
        memdump_init();
+       pr_info("%s: driver loaded in %lld\n", WLAN_MODULE_NAME,
+                                              adf_get_boottime() - start);
        return 0;
    }
 
@@ -13168,21 +13172,12 @@ static int hdd_driver_init( void)
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
-
       vos_wake_lock_destroy(&wlan_wake_lock);
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
       wlan_logging_sock_deinit_svc();
 #endif
-      memdump_deinit();
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
-   }
-   else
-   {
-      //Send WLAN UP indication to Nlink Service
-      send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
-
-      pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
    }
 
    EXIT();
