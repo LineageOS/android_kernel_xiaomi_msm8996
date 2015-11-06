@@ -45,6 +45,7 @@ ifeq ($(KERNEL_BUILD), 0)
 
 	ifeq ($(CONFIG_ARCH_MDMFERMIUM), y)
 	CONFIG_MOBILE_ROUTER := y
+	CONFIG_QCOM_LTE_COEX := y
 	endif
 
 	#Flag to enable Legacy Fast Roaming3(LFR3)
@@ -1281,12 +1282,13 @@ ifeq ($(CONFIG_MOBILE_ROUTER), y)
 #enable MCC TO SCC switch
 CDEFINES += -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
 
-ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
-#enable wlan auto shutdown feature
-CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
-
 #Enable 4address scheme
 CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
+
+ifneq ($(CONFIG_ARCH_MDMFERMIUM), y)
+
+#enable wlan auto shutdown feature
+CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
 
 #MDM Device only, to optimize MSM skb cb memory usage
 CDEFINES += -DQCA_MDM_DEVICE
@@ -1404,6 +1406,11 @@ endif
 
 ifeq ($(CONFIG_ARCH_MDM9640), y)
 CDEFINES += -DFEATURE_AP_MCC_CH_AVOIDANCE
+endif
+
+ifeq ($(CONFIG_ARCH_MDMFERMIUM), y)
+CDEFINES += -DFEATURE_AP_MCC_CH_AVOIDANCE
+CDEFINES += -DMDM_SAP_11AC_NO_OVERRIDE
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN

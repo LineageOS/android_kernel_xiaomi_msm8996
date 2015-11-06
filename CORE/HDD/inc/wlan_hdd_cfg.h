@@ -3136,8 +3136,11 @@ enum dot11p_mode {
 #define CFG_SAP_P2P_11AC_OVERRIDE_NAME             "gAP11ACOverride"
 #define CFG_SAP_P2P_11AC_OVERRIDE_MIN              (0)
 #define CFG_SAP_P2P_11AC_OVERRIDE_MAX              (1)
+#ifdef MDM_SAP_11AC_NO_OVERRIDE
+#define CFG_SAP_P2P_11AC_OVERRIDE_DEFAULT          (0)
+#else
 #define CFG_SAP_P2P_11AC_OVERRIDE_DEFAULT          (1)
-
+#endif
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR           "gPreferNonDfsChanOnRadar"
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN       (0)
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX       (1)
