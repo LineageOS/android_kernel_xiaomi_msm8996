@@ -63,6 +63,7 @@
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <vos_sched.h>
+#include <linux/ipv6.h>
 #include "sme_Api.h"
 
 // change logging behavior based upon debug flag
@@ -1669,6 +1670,7 @@ hdd_wmm_classify_pkt(hdd_adapter_t* pAdapter, struct sk_buff *skb,
    union generic_ethhdr *pHdr;
    struct iphdr *pIpHdr;
    unsigned char tos;
+   struct ipv6hdr *ipv6hdr;
    unsigned char dscp;
    sme_QosWmmUpType userPri;
    WLANTL_ACEnumType acType;
@@ -1702,7 +1704,14 @@ hdd_wmm_classify_pkt(hdd_adapter_t* pAdapter, struct sk_buff *skb,
                    "%s: Ethernet II IP Packet, tos is %d",
                    __func__, tos);
 #endif // HDD_WMM_DEBUG
-
+      } else if (pHdr->eth_II.h_proto  == htons(ETH_P_IPV6)) {
+         ipv6hdr = ipv6_hdr(skb);
+         tos = ntohs(*(const __be16 *)ipv6hdr) >> 4;
+#ifdef HDD_WMM_DEBUG
+         VOS_TRACE(CDF_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
+                   "%s: Ethernet II IPv6 Packet, tos is %d",
+                   __func__, tos);
+#endif /* HDD_WMM_DEBUG */
       }
       else if ((ntohs(pHdr->eth_II.h_proto) < WLAN_MIN_PROTO) &&
                (pHdr->eth_8023.h_snap.dsap == WLAN_SNAP_DSAP) &&
