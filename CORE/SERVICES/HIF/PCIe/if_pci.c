@@ -828,6 +828,7 @@ irq_handled:
         tmp = A_PCI_READ32(sc->mem+(SOC_CORE_BASE_ADDRESS | PCIE_INTR_ENABLE_ADDRESS));
 
         if (hif_init_done == TRUE) {
+             HIF_fw_interrupt_handler(sc->irq_event, sc);
              if(HIFTargetSleepStateAdjust(hif_state->targid, TRUE, FALSE) < 0) {
                    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
                    return;
