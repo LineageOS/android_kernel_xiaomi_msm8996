@@ -576,6 +576,7 @@ ol_tx_classify_mgmt(
     struct ol_txrx_peer_t *peer = NULL;
     struct ol_tx_frms_queue_t *txq = NULL;
     A_UINT8 *dest_addr;
+    union ol_txrx_align_mac_addr_t local_mac_addr_aligned, *mac_addr;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
@@ -609,6 +610,23 @@ ol_tx_classify_mgmt(
              * MAC address.
              */
             peer = ol_txrx_assoc_peer_find(vdev);
+            /*
+             * Some special case(preauth for example) needs to send
+             * unicast mgmt frame to unassociated AP. In such case,
+             * we need to check if dest addr match the associated
+             * peer addr. If not, we set peer as NULL to queue this
+             * frame to vdev queue.
+             */
+            if (peer) {
+                adf_os_mem_copy(
+                    &local_mac_addr_aligned.raw[0],
+                    dest_addr, OL_TXRX_MAC_ADDR_LEN);
+                mac_addr = &local_mac_addr_aligned;
+                if (ol_txrx_peer_find_mac_addr_cmp(mac_addr, &peer->mac_addr) != 0) {
+                    adf_os_atomic_dec(&peer->ref_cnt);
+                    peer = NULL;
+                }
+            }
         } else {
             /* find the peer and increment its reference count */
             peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0, 1);
