@@ -4407,6 +4407,20 @@ static inline VOS_STATUS sme_set_udp_resp_offload(struct udp_resp_offload
 eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
                                      void (*cb)(void *,
                                                 struct sir_lost_link_info *));
+#ifdef FEATURE_GREEN_AP
+VOS_STATUS sme_send_egap_conf_params(uint32_t enable,
+				     uint32_t inactivity_time,
+				     uint32_t wait_time,
+				     uint32_t flags);
+#else
+static inline VOS_STATUS sme_send_egap_conf_params(uint32_t enable,
+						   uint32_t inactivity_time,
+						   uint32_t wait_time,
+						   uint32_t flags)
+{
+	return VOS_STATUS_E_NOSUPPORT;
+}
+#endif
 
 #ifdef WLAN_FEATURE_WOW_PULSE
 VOS_STATUS sme_set_wow_pulse(struct wow_pulse_mode *wow_pulse_set_info);

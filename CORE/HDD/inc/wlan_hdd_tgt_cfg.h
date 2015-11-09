@@ -105,6 +105,9 @@ struct hdd_tgt_cfg {
         v_U8_t lpss_support;
 #endif
         uint8_t ap_arpns_support;
+#ifdef FEATURE_GREEN_AP
+        bool egap_support;
+#endif
 };
 
 struct hdd_dfs_radar_ind {

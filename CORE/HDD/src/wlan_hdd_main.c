@@ -612,6 +612,42 @@ done:
     return;
 }
 
+/**
+ * hdd_wlan_green_ap_init() - Initialize Green AP feature
+ * @hdd_ctx: HDD global context
+ *
+ * Return: none
+ */
+void hdd_wlan_green_ap_init(struct hdd_context_s *hdd_ctx)
+{
+	if (!VOS_IS_STATUS_SUCCESS(hdd_wlan_green_ap_attach(hdd_ctx)))
+		hddLog(LOGE, FL("Failed to allocate Green-AP resource"));
+}
+
+/**
+ * hdd_wlan_green_ap_deinit() - De-initialize Green AP feature
+ * @hdd_ctx: HDD global context
+ *
+ * Return: none
+ */
+void hdd_wlan_green_ap_deinit(struct hdd_context_s *hdd_ctx)
+{
+	if (!VOS_IS_STATUS_SUCCESS(hdd_wlan_green_ap_deattach(hdd_ctx)))
+		hddLog(LOGE, FL("Cannot deallocate Green-AP resource"));
+}
+
+/**
+ * wlan_hdd_set_egap_support() - helper function to set egap support flag
+ * @hdd_ctx:   pointer to hdd context
+ * @cfg:       pointer to hdd target configuration knob
+ *
+ * Return:     None
+ */
+void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg)
+{
+	if (hdd_ctx && cfg)
+		hdd_ctx->green_ap_ctx->egap_support = cfg->egap_support;
+}
 #endif /* FEATURE_GREEN_AP */
 
 /**
@@ -7202,6 +7238,8 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->lpss_support = cfg->lpss_support;
 #endif
 
+    wlan_hdd_set_egap_support(hdd_ctx, cfg);
+
     hdd_ctx->ap_arpns_support = cfg->ap_arpns_support;
     hdd_update_tgt_services(hdd_ctx, &cfg->services);
     if (hdd_ctx->per_band_chainmask_supp)
@@ -11028,13 +11066,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
    vos_close(pVosContext);
 
-#ifdef FEATURE_GREEN_AP
-   if (!VOS_IS_STATUS_SUCCESS(
-         hdd_wlan_green_ap_deattach(pHddCtx)))
-   {
-      hddLog(LOGE, FL("Cannot deallocate Green-AP resource"));
-   }
-#endif
+   hdd_wlan_green_ap_deinit(pHddCtx);
 
    //Close Watchdog
    if (pConfig && pConfig->fIsLogpEnabled)
@@ -12258,6 +12290,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wdclose;
    }
 
+   hdd_wlan_green_ap_init(pHddCtx);
+
    status = vos_open( &pVosContext, 0);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
@@ -12758,13 +12792,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
         hddLog(LOGE, FL("Failed to init ACS Skip timer\n"));
 #endif
 
-#ifdef FEATURE_GREEN_AP
-    if (!VOS_IS_STATUS_SUCCESS(
-             hdd_wlan_green_ap_attach(pHddCtx))) {
-       hddLog(LOGE, FL("Failed to allocate Green-AP resource"));
-    }
-#endif
-
 #ifdef WLAN_FEATURE_NAN
     wlan_hdd_cfg80211_nan_init(pHddCtx);
 #endif
@@ -12960,6 +12987,8 @@ err_vosclose:
 err_vos_nv_close:
 
    vos_nv_close();
+
+   hdd_wlan_green_ap_deinit(pHddCtx);
 
 err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)

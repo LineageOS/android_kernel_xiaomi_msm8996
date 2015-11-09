@@ -155,4 +155,21 @@ int process_wma_set_command(int sessid, int paramid,
 tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue);
 VOS_STATUS wma_set_cts2self_for_p2p_go(void *wda_handle,
 		u_int32_t cts2self_for_p2p_go);
+
+#ifdef FEATURE_GREEN_AP
+void wma_setup_egap_support(struct hdd_tgt_cfg *tgt_cfg, WMA_HANDLE handle);
+void wma_register_egap_event_handle(WMA_HANDLE handle);
+VOS_STATUS wma_send_egap_conf_params(WMA_HANDLE handle,
+				     struct egap_conf_params *egap_params);
+#else
+static inline void wma_setup_egap_support(struct hdd_tgt_cfg *tgt_cfg,
+					  WMA_HANDLE handle) {}
+static inline void wma_register_egap_event_handle(WMA_HANDLE handle) {}
+static inline VOS_STATUS wma_send_egap_conf_params(WMA_HANDLE handle,
+				     struct egap_conf_params *egap_params)
+{
+	return VOS_STATUS_E_NOSUPPORT;
+}
+#endif
+
 #endif

@@ -662,6 +662,9 @@ typedef struct wma_handle {
 	v_U8_t lpss_support; /* LPSS feature is supported in target or not */
 #endif
 	uint8_t ap_arpns_support;
+#ifdef FEATURE_GREEN_AP
+	bool egap_support;
+#endif
 	bool wmi_ready;
 	u_int32_t wlan_init_status;
 	adf_os_device_t adf_dev;

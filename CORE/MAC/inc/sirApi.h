@@ -6494,4 +6494,21 @@ struct wow_pulse_mode {
 	uint16_t                   wow_pulse_interval_low;
 };
 
+/*
+ * struct egap_params - the enhanced green ap params
+ * @vdev_id: vdev id
+ * @enable: enable or disable the enhance green ap in firmware
+ * @inactivity_time: inactivity timeout value
+ * @wait_time: wait timeout value
+ * @flags: feature flag in bitmask
+ *
+ */
+struct egap_conf_params {
+	uint32_t   vdev_id;
+	bool       enable;
+	uint32_t   inactivity_time;
+	uint32_t   wait_time;
+	uint32_t   flags;
+};
+
 #endif /* __SIR_API_H */

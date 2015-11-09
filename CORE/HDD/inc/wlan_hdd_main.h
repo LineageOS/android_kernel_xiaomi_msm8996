@@ -1213,6 +1213,8 @@ typedef struct
 
     hdd_green_ap_stats stats;
 
+    bool egap_support;
+
 }hdd_green_ap_ctx_t;
 #endif /* FEATURE_GREEN_AP */
 
@@ -1775,6 +1777,11 @@ int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter);
 #ifdef FEATURE_GREEN_AP
 void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
         hdd_green_ap_event_t event);
+void hdd_wlan_green_ap_init(struct hdd_context_s *hdd_ctx);
+void hdd_wlan_green_ap_deinit(struct hdd_context_s *hdd_ctx);
+#else
+static inline void hdd_wlan_green_ap_init(struct hdd_context_s *hdd_ctx) {}
+static inline void hdd_wlan_green_ap_deinit(struct hdd_context_s *hdd_ctx) {}
 #endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
@@ -1897,4 +1904,12 @@ void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
 
 void hdd_runtime_suspend_init(hdd_context_t *);
 void hdd_runtime_suspend_deinit(hdd_context_t *);
+
+#ifdef FEATURE_GREEN_AP
+void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg);
+#else
+static inline void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx,
+					     struct hdd_tgt_cfg *cfg) {}
+#endif
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
