@@ -28699,11 +28699,14 @@ skip_pno_cmp_ind:
 static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len)
 {
+	tp_wma_handle wma = (tp_wma_handle) handle;
 	wmi_apfind_event_hdr *apfind_event_hdr;
 	WMI_APFIND_EVENTID_param_tlvs *param_buf =
 				(WMI_APFIND_EVENTID_param_tlvs *) event;
 	u_int8_t *buf;
 	u_int8_t ssid_tmp[WMI_MAX_SSID_LEN + 1];
+	u_int8_t *mac;
+	u_int32_t vdev_id;
 
 	if (!param_buf) {
 		WMA_LOGE("Invalid APFIND event buffer");
@@ -28715,12 +28718,30 @@ static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
 		apfind_event_hdr->event_type, apfind_event_hdr->data_len);
 	buf = param_buf->data;
 	A_MEMZERO(ssid_tmp, sizeof(ssid_tmp));
-	A_MEMCPY(ssid_tmp, buf, sizeof(ssid_tmp));
-	WMA_LOGD("%s, APFIND match, dump ssid=%s\n", __func__, ssid_tmp);
+	A_MEMCPY(ssid_tmp, buf, WMI_MAX_SSID_LEN);
+		/* SSID param len is WMI_MAX_SSID_LEN, without '+1' */
+	WMA_LOGD("%s, APFIND match, dump ssid=%s", __func__, ssid_tmp);
 
 	buf = &param_buf->data[WMI_MAX_SSID_LEN];
-	WMA_LOGD("%s, APFIND dump mac=0x%08X-0x%08X\n",
+	mac = buf;
+	WMA_LOGD("%s, APFIND dump mac=0x%08X-0x%08X",
 		__func__, *(u_int32_t *)buf, *(u_int32_t *)(buf + sizeof(u_int32_t)));
+
+	if (apfind_event_hdr->data_len >=
+		(WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN + sizeof(vdev_id)
+		+ sizeof(apfind_event_hdr->tlv_header))) {
+		/* FW had the tlv_header len calculated into the data_len */
+		buf = &param_buf->data[WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN];
+		vdev_id = *(u_int32_t*) buf;
+
+		/* to trigger AP re-connection after QRF wakeup*/
+		WMA_LOGA("%s, trigger AP re-connection at QRF wakeup (APFIND_WAKEUP_EVENT), vdev_id=%d, SSID=%s",
+			 __func__, vdev_id, ssid_tmp);
+		wma_beacon_miss_handler(wma, vdev_id, 0);
+	} else {
+		WMA_LOGD("%s, old version FW (no vdev_id).", __func__);
+	}
+
 	return 0;
 }
 #endif /* WLAN_FEATURE_APFIND */
