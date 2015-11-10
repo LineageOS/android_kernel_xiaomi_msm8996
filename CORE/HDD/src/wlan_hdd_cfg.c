@@ -3538,12 +3538,40 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_MAX_CONCURRENT_CONNECTIONS_MAX ),
 
 #ifdef FEATURE_GREEN_AP
-   REG_VARIABLE( CFG_ENABLE_GREEN_AP_FEATURE, WLAN_PARAM_Integer,
-                 hdd_config_t, enableGreenAP,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT,
-                 CFG_ENABLE_GREEN_AP_FEATURE_MIN,
-                 CFG_ENABLE_GREEN_AP_FEATURE_MAX ),
+   REG_VARIABLE(CFG_ENABLE_GREEN_AP_FEATURE, WLAN_PARAM_Integer,
+                hdd_config_t, enableGreenAP,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT,
+                CFG_ENABLE_GREEN_AP_FEATURE_MIN,
+                CFG_ENABLE_GREEN_AP_FEATURE_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_EGAP_ENABLE_FEATURE, WLAN_PARAM_Integer,
+                hdd_config_t, enable_egap,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_EGAP_ENABLE_FEATURE_DEFAULT,
+                CFG_ENABLE_EGAP_ENABLE_FEATURE_MIN,
+                CFG_ENABLE_EGAP_ENABLE_FEATURE_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_EGAP_INACT_TIME_FEATURE, WLAN_PARAM_Integer,
+                hdd_config_t, egap_inact_time,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_EGAP_INACT_TIME_FEATURE_DEFAULT,
+                CFG_ENABLE_EGAP_INACT_TIME_FEATURE_MIN,
+                CFG_ENABLE_EGAP_INACT_TIME_FEATURE_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_EGAP_WAIT_TIME_FEATURE, WLAN_PARAM_Integer,
+                hdd_config_t, egap_wait_time,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_DEFAULT,
+                CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_MIN,
+                CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_EGAP_FLAGS_FEATURE, WLAN_PARAM_Integer,
+                hdd_config_t, egap_feature_flag,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_EGAP_FLAGS_FEATURE_DEFAULT,
+                CFG_ENABLE_EGAP_FLAGS_FEATURE_MIN,
+                CFG_ENABLE_EGAP_FLAGS_FEATURE_MAX),
 #endif
 
    REG_VARIABLE(CFG_IGNORE_CAC_NAME, WLAN_PARAM_Integer,
@@ -4733,6 +4761,18 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
           "Name = [gEnableGreenAp] Value = [%u] ",
           pHddCtx->cfg_ini->enableGreenAP);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gEenableEGAP] Value = [%u] ",
+          pHddCtx->cfg_ini->enable_egap);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gEGAPInactTime] Value = [%u] ",
+          pHddCtx->cfg_ini->egap_inact_time);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gEGAPWaitTime] Value = [%u] ",
+          pHddCtx->cfg_ini->egap_wait_time);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+          "Name = [gEGAPFeatures] Value = [%u] ",
+          pHddCtx->cfg_ini->egap_feature_flag);
 #endif
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,

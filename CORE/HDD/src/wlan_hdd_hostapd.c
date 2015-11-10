@@ -1319,20 +1319,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             pHostapdState->bssState = BSS_START;
 
-#ifdef FEATURE_GREEN_AP
-            if (!(VOS_STA & pHddCtx->concurrency_mode) &&
-                    cfg->enable2x2 &&
-                    cfg->enableGreenAP) {
-                hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_START_EVENT);
-            } else {
-                hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                    "Green-AP: is disabled, due to sta_concurrency: %d, enable2x2: %d, enableGreenAP: %d",
-                     VOS_STA & pHddCtx->concurrency_mode,
-                     cfg->enable2x2,
-                     cfg->enableGreenAP);
-            }
-#endif
+            hdd_wlan_green_ap_start_bss(pHddCtx);
+
             // Send current operating channel of SoftAP to BTC-ES
             send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
 
@@ -1446,9 +1434,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
 
-#ifdef FEATURE_GREEN_AP
-            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_PS_STOP_EVENT);
-#endif
+            hdd_wlan_green_ap_stop_bss(pHddCtx);
+
             //Free up Channel List incase if it is set
 #ifdef WLAN_FEATURE_MBSSID
             sapCleanupChannelList(WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter));
@@ -1743,9 +1730,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.chan_info);
             }
 
-#ifdef FEATURE_GREEN_AP
-            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_ADD_STA_EVENT);
-#endif
+            hdd_wlan_green_ap_add_sta(pHddCtx);
+
             break;
         case eSAP_STA_DISASSOC_EVENT:
             memcpy(wrqu.addr.sa_data, &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
@@ -1872,9 +1858,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 hdd_stop_bus_bw_compute_timer(pHostapdAdapter);
             }
 #endif
-#ifdef FEATURE_GREEN_AP
-            hdd_wlan_green_ap_mc(pHddCtx, GREEN_AP_DEL_STA_EVENT);
-#endif
+
+            hdd_wlan_green_ap_del_sta(pHddCtx);
+
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
         {

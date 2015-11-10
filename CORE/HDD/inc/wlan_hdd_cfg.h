@@ -1501,10 +1501,33 @@ typedef enum
 #define CFG_ENABLE_FW_MODULE_LOG_DEFAULT  ""
 
 #ifdef FEATURE_GREEN_AP
-#define CFG_ENABLE_GREEN_AP_FEATURE         "gEnableGreenAp"
-#define CFG_ENABLE_GREEN_AP_FEATURE_MIN     ( 0 )
-#define CFG_ENABLE_GREEN_AP_FEATURE_MAX     ( 1 )
-#define CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT ( 1 )
+#define CFG_ENABLE_GREEN_AP_FEATURE                "gEnableGreenAp"
+#define CFG_ENABLE_GREEN_AP_FEATURE_MIN            (0)
+#define CFG_ENABLE_GREEN_AP_FEATURE_MAX            (1)
+#define CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT        (1)
+
+/* Enhanced Green AP (EGAP) flags/params */
+#define CFG_ENABLE_EGAP_ENABLE_FEATURE             "gEnableEGAP"
+#define CFG_ENABLE_EGAP_ENABLE_FEATURE_MIN         (0)
+#define CFG_ENABLE_EGAP_ENABLE_FEATURE_MAX         (1)
+#define CFG_ENABLE_EGAP_ENABLE_FEATURE_DEFAULT     (0)
+
+#define CFG_ENABLE_EGAP_INACT_TIME_FEATURE         "gEGAPInactTime"
+#define CFG_ENABLE_EGAP_INACT_TIME_FEATURE_MIN     (0)
+#define CFG_ENABLE_EGAP_INACT_TIME_FEATURE_MAX     (5000)
+#define CFG_ENABLE_EGAP_INACT_TIME_FEATURE_DEFAULT (1000)
+
+#define CFG_ENABLE_EGAP_WAIT_TIME_FEATURE          "gEGAPWaitTime"
+#define CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_MIN      (0)
+#define CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_MAX      (5000)
+#define CFG_ENABLE_EGAP_WAIT_TIME_FEATURE_DEFAULT  (100)
+
+#define CFG_ENABLE_EGAP_FLAGS_FEATURE              "gEGAPFeatures"
+#define CFG_ENABLE_EGAP_FLAGS_FEATURE_MIN          (0)
+#define CFG_ENABLE_EGAP_FLAGS_FEATURE_MAX          (15)
+#define CFG_ENABLE_EGAP_FLAGS_FEATURE_DEFAULT      (7)
+/* end Enhanced Green AP flags/params */
+
 #endif
 
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
@@ -3953,6 +3976,10 @@ typedef struct
 
 #ifdef FEATURE_GREEN_AP
    v_BOOL_t                    enableGreenAP;
+   bool                        enable_egap;
+   uint32_t                    egap_feature_flag;
+   uint32_t                    egap_inact_time;
+   uint32_t                    egap_wait_time;
 #endif
 
    v_S31_t                     dfsRadarPriMultiplier;
