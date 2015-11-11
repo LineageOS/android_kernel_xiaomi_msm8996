@@ -74,6 +74,8 @@ Include Files
 #define HDD_IPA_UC_RT_DEBUG_PERIOD         300
 #define HDD_IPA_UC_RT_DEBUG_BUF_COUNT      30
 #define HDD_IPA_UC_RT_DEBUG_FILL_INTERVAL  10000
+
+#define MAX_PENDING_EVENT_COUNT            20
 #endif /* IPA_UC_OFFLOAD */
 
 #ifdef IPA_UC_OFFLOAD
@@ -4087,25 +4089,38 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 	if (hdd_ipa_uc_is_enabled(hdd_ipa) &&
 		((hdd_ipa->resource_loading) ||
 		(hdd_ipa->resource_unloading))) {
-		struct ipa_uc_pending_event *pending_evet = NULL;
+		v_SIZE_t pending_event_count;
+		struct ipa_uc_pending_event *pending_event = NULL;
 
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-			"%s, RL/RUL inprogress", __func__);
-		pending_evet = (struct ipa_uc_pending_event *)vos_mem_malloc(
-			sizeof(struct ipa_uc_pending_event));
-		if (!pending_evet) {
+			"%s: IPA resource %s inprogress", __func__,
+				hdd_ipa->resource_loading? "load":"unload");
+
+		vos_list_size(&hdd_ipa->pending_event, &pending_event_count);
+		if (pending_event_count >= MAX_PENDING_EVENT_COUNT) {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+				"%s: Reached max pending event count", __func__);
+			vos_list_remove_front(&hdd_ipa->pending_event,
+					(vos_list_node_t **)&pending_event);
+		} else {
+			pending_event =
+				(struct ipa_uc_pending_event *)vos_mem_malloc(
+					sizeof(struct ipa_uc_pending_event));
+		}
+
+		if (!pending_event) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-				"Pending event memory alloc fail");
+					"Pending event memory alloc fail");
 			return -ENOMEM;
 		}
-		pending_evet->adapter = adapter;
-		pending_evet->sta_id = sta_id;
-		pending_evet->type = type;
-		vos_mem_copy(pending_evet->mac_addr,
+		pending_event->adapter = adapter;
+		pending_event->sta_id = sta_id;
+		pending_event->type = type;
+		vos_mem_copy(pending_event->mac_addr,
 			mac_addr,
 			VOS_MAC_ADDR_SIZE);
 		vos_list_insert_back(&hdd_ipa->pending_event,
-				&pending_evet->node);
+				&pending_event->node);
 		return 0;
 	}
 #endif /* IPA_UC_OFFLOAD */
@@ -4890,6 +4905,26 @@ fail_setup_rm:
 	return VOS_STATUS_E_FAILURE;
 }
 
+#ifdef IPA_UC_OFFLOAD
+/**
+* hdd_ipa_cleanup_pending_event() - Cleanup IPA pending event list
+* @param
+* hdd_ipa  : [in] pointer to HDD IPA struct
+* @return  : none
+*/
+void hdd_ipa_cleanup_pending_event(struct hdd_ipa_priv *hdd_ipa)
+{
+	struct ipa_uc_pending_event *pending_event = NULL;
+
+	while(vos_list_remove_front(&hdd_ipa->pending_event,
+		(vos_list_node_t **)&pending_event) == VOS_STATUS_SUCCESS) {
+		vos_mem_free(pending_event);
+	}
+
+	vos_list_destroy(&hdd_ipa->pending_event);
+}
+#endif
+
 VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 {
 	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;
@@ -4973,7 +5008,7 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 		}
 		vos_lock_destroy(&hdd_ipa->event_lock);
 		vos_lock_destroy(&hdd_ipa->ipa_lock);
-		vos_list_destroy(&hdd_ipa->pending_event);
+		hdd_ipa_cleanup_pending_event(hdd_ipa);
 #ifdef WLAN_OPEN_SOURCE
 		for (i = 0; i < HDD_IPA_UC_OPCODE_MAX; i++) {
 			cancel_work_sync(&hdd_ipa->uc_op_work[i].work);
