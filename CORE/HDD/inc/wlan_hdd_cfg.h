@@ -1061,8 +1061,13 @@ enum
 #define CFG_ROAM_RESCAN_RSSI_DIFF_MAX                   (100)
 #define CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT               (5)
 
+/*
+ * This parameter is the continuous packets dropping threshold that will trigger
+ * kickout peer event from fw.
+ * MIN value will disable the kickout feature.
+ */
 #define CFG_DROPPED_PKT_DISCONNECT_TH_NAME      "gDroppedPktDisconnectTh"
-#define CFG_DROPPED_PKT_DISCONNECT_TH_MIN       (48)
+#define CFG_DROPPED_PKT_DISCONNECT_TH_MIN       (0)
 #define CFG_DROPPED_PKT_DISCONNECT_TH_MAX       (1024)
 #define CFG_DROPPED_PKT_DISCONNECT_TH_DEFAULT   (512)
 
