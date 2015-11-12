@@ -1336,6 +1336,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             // Send current operating channel of SoftAP to BTC-ES
             send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
 
+            /* Set default key index */
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                    "%s: default key index %hu", __func__,
+                    pHddApCtx->wep_def_key_idx);
+
+            sme_roam_set_default_key_index(
+                    WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
+                    pHostapdAdapter->sessionId,
+                    pHddApCtx->wep_def_key_idx);
+
             //Set group key / WEP key every time when BSS is restarted
             if( pHddApCtx->groupKey.keyLength )
             {

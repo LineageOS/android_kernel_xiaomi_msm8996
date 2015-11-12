@@ -14692,11 +14692,9 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
             /* Saving key direction for default key index to TX default */
             hdd_ap_ctx_t *pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
             pAPCtx->wepKey[key_index].keyDirection = eSIR_TX_DEFAULT;
-            hddLog(LOG1,
-                   FL("key index passed for sme_RoamSetDefaultKeyIndex %d"),
+            hddLog(LOG1, FL("WEP default key index set to SAP context %d"),
                    key_index);
-            sme_roam_set_default_key_index(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                           pAdapter->sessionId, key_index);
+            pAPCtx->wep_def_key_idx = key_index;
         }
     }
 
