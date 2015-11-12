@@ -153,9 +153,11 @@ CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 #Disable packet log
 CONFIG_REMOVE_PKT_LOG := 0
 
-#Enable 11AC TX
 ifeq ($(CONFIG_ROME_IF),pci)
+#Enable 11AC TX
 	CONFIG_ATH_11AC_TXCOMPACT := 1
+#Enable TSF Capture for Rome PCI
+	CONFIG_WLAN_SYNC_TSF := y
 endif
 ifeq ($(CONFIG_ROME_IF),usb)
 	CONFIG_ATH_11AC_TXCOMPACT := 0
