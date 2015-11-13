@@ -90,11 +90,6 @@ eHalStatus oemData_OemDataReqClose(tHalHandle hHal)
             break;
         }
 
-        if(pMac->oemData.pOemDataRsp != NULL)
-        {
-            vos_mem_free(pMac->oemData.pOemDataRsp);
-        }
-
         //initialize all the variables to null
         vos_mem_set(&(pMac->oemData), sizeof(tOemDataStruct), 0);
     } while(0);

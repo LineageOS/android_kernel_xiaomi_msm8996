@@ -54,7 +54,6 @@ typedef struct tagOemDataStruct
     oemData_OemDataReqCompleteCallback   callback; //callback function pointer for returning the response
     void*                            pContext; //context of the original caller
     tANI_U32                         oemDataReqID; //original request ID
-    tOemDataRsp*                     pOemDataRsp; //response
     tOemDataReqConfig                oemDataReqConfig; //current oem data request
     tANI_U8                          sessionId; //Session on which oem data req is active
 } tOemDataStruct;
