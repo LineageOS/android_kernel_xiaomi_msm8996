@@ -2034,12 +2034,12 @@ typedef enum
 #define CFG_TDLS_IDLE_TIMEOUT                       "gTDLSIdleTimeout"
 #define CFG_TDLS_IDLE_TIMEOUT_MIN                   (500)
 #define CFG_TDLS_IDLE_TIMEOUT_MAX                   ( 40000 )
-#define CFG_TDLS_IDLE_TIMEOUT_DEFAULT               (2000)
+#define CFG_TDLS_IDLE_TIMEOUT_DEFAULT               (5000)
 
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD              "gTDLSIdlePacketThreshold"
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN          ( 0 )
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX          ( 40000 )
-#define CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT      (1)
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT      (3)
 
 #define CFG_TDLS_RSSI_HYSTERESIS                    "gTDLSRssiHysteresis"
 #define CFG_TDLS_RSSI_HYSTERESIS_MIN                ( 0 )
