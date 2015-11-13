@@ -50,49 +50,6 @@
 static struct hdd_context_s *pHddCtx;
 
 
-/*---------------------------------------------------------------------------
-
-  \brief hdd_OemDataReqCallback() -
-
-  This function also reports the results to the user space
-
-  \return - eHalStatus enumeration
-
-----------------------------------------------------------------------------*/
-static eHalStatus hdd_OemDataReqCallback(tHalHandle hHal,
-        void *pContext,
-        tANI_U32 oemDataReqID,
-        eOemDataReqStatus oemDataReqStatus)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    struct net_device *dev = (struct net_device *) pContext;
-    union iwreq_data wrqu;
-    char buffer[IW_CUSTOM_MAX+1];
-
-    memset(&wrqu, '\0', sizeof(wrqu));
-    memset(buffer, '\0', sizeof(buffer));
-
-    //now if the status is success, then send an event up
-    //so that the application can request for the data
-    //else no need to send the event up
-    if (oemDataReqStatus == eOEM_DATA_REQ_FAILURE) {
-        snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-FAILED");
-        hddLog(LOGW, "%s: oem data req %d failed", __func__, oemDataReqID);
-    } else if(oemDataReqStatus == eOEM_DATA_REQ_INVALID_MODE) {
-        snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-INVALID-MODE");
-        hddLog(LOGW, "%s: oem data req %d failed because the driver is in invalid mode (IBSS|AP)", __func__, oemDataReqID);
-    } else {
-        snprintf(buffer, IW_CUSTOM_MAX, "QCOM: OEM-DATA-REQ-SUCCESS");
-    }
-
-    wrqu.data.pointer = buffer;
-    wrqu.data.length = strlen(buffer);
-
-    wireless_send_event(dev, IWEVCUSTOM, &wrqu, buffer);
-
-    return status;
-}
-
 /**---------------------------------------------------------------------------
 
   \brief iw_get_oem_data_cap()
@@ -459,9 +416,7 @@ static eHalStatus oem_process_data_req_msg(int oemDataLen, char *oemData)
    status = sme_OemDataReq(pHddCtx->hHal,
                            pAdapter->sessionId,
                            &oemDataReqConfig,
-                           &oemDataReqID,
-                           &hdd_OemDataReqCallback,
-                           pAdapter->dev);
+                           &oemDataReqID);
    return status;
 }
 

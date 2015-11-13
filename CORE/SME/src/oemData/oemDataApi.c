@@ -125,16 +125,12 @@ void oemData_ReleaseOemDataReqCommand(tpAniSirGlobal pMac, tSmeCmd *pOemDataCmd,
     \brief Request an OEM DATA RSP
     \param sessionId - Id of session to be used
     \param pOemDataReqID - pointer to an object to get back the request ID
-    \param callback - a callback function that is called upon finish
-    \param pContext - a pointer passed in for the callback
     \return eHalStatus
   -------------------------------------------------------------------------------*/
 eHalStatus oemData_OemDataReq(tHalHandle hHal,
                                 tANI_U8 sessionId,
                                 tOemDataReqConfig *oemDataReqConfig,
-                                tANI_U32 *pOemDataReqID,
-                                oemData_OemDataReqCompleteCallback callback,
-                                void *pContext)
+                                tANI_U32 *pOemDataReqID)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -149,8 +145,6 @@ eHalStatus oemData_OemDataReq(tHalHandle hHal,
         }
 
         pMac->oemData.oemDataReqConfig.sessionId = sessionId;
-        pMac->oemData.callback = callback;
-        pMac->oemData.pContext = pContext;
         pMac->oemData.oemDataReqID = *(pOemDataReqID);
 
         vos_mem_copy((v_VOID_t*)(pMac->oemData.oemDataReqConfig.oemDataReq),
@@ -165,8 +159,6 @@ eHalStatus oemData_OemDataReq(tHalHandle hHal,
         if(pOemDataCmd)
         {
             pOemDataCmd->command = eSmeCommandOemDataReq;
-            pOemDataCmd->u.oemDataCmd.callback = callback;
-            pOemDataCmd->u.oemDataCmd.pContext = pContext;
             pOemDataCmd->u.oemDataCmd.oemDataReqID = pMac->oemData.oemDataReqID;
 
             //set the oem data request
