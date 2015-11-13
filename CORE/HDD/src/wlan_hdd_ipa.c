@@ -3640,6 +3640,7 @@ static void hdd_remove_ipa_header(char *name)
 }
 
 
+#ifdef IPA_UC_OFFLOAD
 /**
  * wlan_ipa_add_hdr() - Add IPA Tx header
  * @ipa_hdr: pointer to IPA header addition parameters
@@ -3678,6 +3679,7 @@ static int wlan_ipa_add_hdr(struct ipa_ioc_add_hdr *ipa_hdr)
 	ret = ipa_add_hdr(ipa_hdr);
 	return ret;
 }
+#endif
 
 static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		struct hdd_ipa_iface_context *iface_context, uint8_t *mac_addr)
@@ -3748,7 +3750,7 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 		/* Set the type to IPV4 in the header*/
 		tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IP);
 
-		ret = wlan_ipa_add_hdr(ipa_hdr);
+		ret = ipa_add_hdr(ipa_hdr);
 	}
 	if (ret) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "%s IPv4 add hdr failed: %d",
@@ -3768,15 +3770,15 @@ static int hdd_ipa_add_header_info(struct hdd_ipa_priv *hdd_ipa,
 			/* Set the type to IPV6 in the header*/
 			uc_tx_hdr = (struct hdd_ipa_uc_tx_hdr *)ipa_hdr->hdr[0].hdr;
 			uc_tx_hdr->eth.h_proto = cpu_to_be16(ETH_P_IPV6);
+			ret = wlan_ipa_add_hdr(ipa_hdr);
 		} else
 #endif /* IPA_UC_OFFLOAD */
 		{
 			/* Set the type to IPV6 in the header*/
 			tx_hdr = (struct hdd_ipa_tx_hdr *)ipa_hdr->hdr[0].hdr;
 			tx_hdr->llc_snap.eth_type = cpu_to_be16(ETH_P_IPV6);
+			ret = ipa_add_hdr(ipa_hdr);
 		}
-
-		ret = wlan_ipa_add_hdr(ipa_hdr);
 
 		if (ret) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
