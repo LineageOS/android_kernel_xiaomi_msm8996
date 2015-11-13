@@ -1932,15 +1932,6 @@ eHalStatus sme_OemDataReq(tHalHandle hHal,
                                        oemData_OemDataReqCompleteCallback callback,
                                        void *pContext);
 
-/* ---------------------------------------------------------------------------
-    \fn sme_getOemDataRsp
-    \param pOemDataRsp - A pointer to the response object
-    \param pOemDataReqID - pointer to an object to get back the request ID
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_getOemDataRsp(tHalHandle hHal,
-                                         tOemDataRsp **pOemDataRsp);
-
 #endif /*FEATURE_OEM_DATA_SUPPORT*/
 
 

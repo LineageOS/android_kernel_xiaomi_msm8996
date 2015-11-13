@@ -6912,46 +6912,6 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
  *****************************************************************************/
 
 /* ---------------------------------------------------------------------------
-    \fn sme_getOemDataRsp
-    \brief a wrapper function to obtain the OEM DATA RSP
-    \param pOemDataRsp - A pointer to the response object
-    \param pContext - a pointer passed in for the callback
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_getOemDataRsp(tHalHandle hHal,
-        tOemDataRsp **pOemDataRsp)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-    do
-    {
-        //acquire the lock for the sme object
-        status = sme_AcquireGlobalLock(&pMac->sme);
-
-        if(!HAL_STATUS_SUCCESS(status))
-        {
-            break;
-        }
-
-        if(pMac->oemData.pOemDataRsp != NULL)
-        {
-            *pOemDataRsp = pMac->oemData.pOemDataRsp;
-        }
-        else
-        {
-            status = eHAL_STATUS_FAILURE;
-        }
-
-        //release the lock for the sme object
-        sme_ReleaseGlobalLock( &pMac->sme );
-
-    } while(0);
-
-    return status;
-}
-
-/* ---------------------------------------------------------------------------
     \fn sme_OemDataReq
     \brief a wrapper function for OEM DATA REQ
     \param sessionId - session id to be used.
