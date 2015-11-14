@@ -21346,6 +21346,7 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
+				wmi_tag_crash_inject(wma->wmi_handle, true);
 				vos_trigger_recovery();
 			} else {
 				VOS_BUG(0);

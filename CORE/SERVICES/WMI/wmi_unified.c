@@ -701,6 +701,11 @@ skip_suspend_check:
 	case WMI_D0_WOW_ENABLE_DISABLE_CMDID:
 #endif
 		htc_tag = HTC_TX_PACKET_TAG_AUTO_PM;
+	case WMI_FORCE_FW_HANG_CMDID:
+		if (wmi_handle->tag_crash_inject) {
+			htc_tag = HTC_TX_PACKET_TAG_AUTO_PM;
+			wmi_handle->tag_crash_inject = false;
+		}
 	default:
 		break;
 	}
@@ -1226,3 +1231,8 @@ A_BOOL wmi_get_d0wow_flag(wmi_unified_t wmi_handle)
 	return adf_os_atomic_read(&scn->hif_sc->in_d0wow);
 }
 #endif
+
+void wmi_tag_crash_inject(wmi_unified_t wmi_handle, A_BOOL flag)
+{
+	wmi_handle->tag_crash_inject = flag;
+}

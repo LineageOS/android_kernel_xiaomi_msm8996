@@ -94,6 +94,7 @@ struct wmi_unified {
 #ifdef FEATURE_RUNTIME_PM
 	adf_os_atomic_t runtime_pm_inprogress;
 #endif
+	A_BOOL tag_crash_inject;
 	void (*wma_wow_tx_complete_cbk)(ol_scn_t scn_handle);
 };
 #endif

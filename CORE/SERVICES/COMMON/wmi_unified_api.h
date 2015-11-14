@@ -178,4 +178,6 @@ wmi_get_d0wow_flag(wmi_unified_t wmi_handle);
 typedef void (*wma_wow_tx_complete_cbk)(void *scn_handle);
 
 uint16_t wmi_get_max_msg_len(wmi_unified_t wmi_handle);
+
+void wmi_tag_crash_inject(wmi_unified_t wmi_handle, A_BOOL flag);
 #endif /* _WMI_UNIFIED_API_H_ */
