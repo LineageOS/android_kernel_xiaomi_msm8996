@@ -2381,6 +2381,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U8_t i;
     v_U8_t firstSafeChannelInRange = SAP_CHANNEL_NOT_SELECTED;
+    v_U32_t dfs_master_cap_enabled;
 #endif
 #ifdef SOFTAP_CHANNEL_RANGE
     v_U32_t startChannelNum;
@@ -2389,7 +2390,6 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     v_U32_t tmpChNum;
     v_U8_t  count;
 #endif
-    v_U32_t dfs_master_cap_enabled;
 
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Running SAP Ch Select", __func__);
 
