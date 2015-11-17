@@ -11931,7 +11931,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
         ret = wlan_hdd_sap_cfg_dfs_override(pHostapdAdapter);
         if (ret < 0) {
-            return ret;
+            goto error;
         } else {
             if (ret == 0) {
                 if (VOS_IS_DFS_CH(pConfig->channel))
@@ -11943,7 +11943,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         {
              hddLog(VOS_TRACE_LEVEL_ERROR,
                      "%s: Invalid Channel [%d]", __func__, pConfig->channel);
-             return -EINVAL;
+             ret = -EINVAL;
+             goto error;
         }
 
         /* reject SAP if DFS channel scan is not allowed */
@@ -11951,7 +11952,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             (NV_CHANNEL_DFS ==
              vos_nv_getChannelEnabledState(pConfig->channel))) {
             hddLog(LOGE, FL("not allowed to start SAP on DFS channel"));
-            return -EOPNOTSUPP;
+            ret = -EOPNOTSUPP;
+            goto error;
         }
 
         /*
@@ -12006,7 +12008,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         if(pIe[1] < (2 + WPS_OUI_TYPE_SIZE))
         {
             hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too small***");
-            return -EINVAL;
+            ret = -EINVAL;
+            goto error;
         }
         else if(memcmp(&pIe[2], WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE) == 0)
         {
@@ -12132,7 +12135,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if (pConfig->RSNWPAReqIELength > sizeof(pConfig->RSNWPAReqIE)) {
         hddLog( VOS_TRACE_LEVEL_ERROR, "**RSNWPAReqIELength is too large***");
-        return -EINVAL;
+        ret = -EINVAL;
+        goto error;
     }
 
     pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
@@ -12296,8 +12300,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
 
-    if (wlan_hdd_setup_driver_overrides(pHostapdAdapter))
-	return -EINVAL;
+    if (wlan_hdd_setup_driver_overrides(pHostapdAdapter)) {
+        ret = -EINVAL;
+        goto error;
+    }
 
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab = iniConfig->apProtection;
@@ -12306,7 +12312,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     {
         hddLog(LOGE, FL("SAP Not able to set AP IEs"));
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto error;
     }
 
     //Uapsd Enabled Bit
@@ -12354,7 +12361,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
-        return -EINVAL;
+        ret = -EINVAL;
+        goto error;
     }
 
     pConfig->persona = pHostapdAdapter->device_mode;
@@ -12375,7 +12383,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     {
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         hddLog(LOGE,FL("SAP Start Bss fail"));
-        return -EINVAL;
+        ret = -EINVAL;
+        goto error;
     }
 
     hddLog(LOG1,
@@ -12397,7 +12406,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         WLANSAP_StopBss(pHddCtx->pvosContext);
 #endif
         VOS_ASSERT(0);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto error;
     }
 
     /* Successfully started Bss update the state bit. */
@@ -12436,6 +12446,14 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     EXIT();
 
    return 0;
+
+error:
+    if (pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list) {
+        vos_mem_free(pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+        pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list = NULL;
+    }
+
+    return ret;
 }
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0)) && !defined(WITH_BACKPORTS)
