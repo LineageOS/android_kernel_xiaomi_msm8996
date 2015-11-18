@@ -195,26 +195,26 @@ static inline int hif_pm_runtime_resume(struct device *dev)
 #else
 static inline int hif_pm_request_resume(struct device *dev)
 {
-	return cnss_pm_runtime_request(dev, CNSS_PM_REQUEST_RESUME);
+	return vos_pm_runtime_request(dev, CNSS_PM_REQUEST_RESUME);
 }
 
 static inline int __hif_pm_runtime_get(struct device *dev)
 {
-	return cnss_pm_runtime_request(dev, CNSS_PM_RUNTIME_GET);
+	return vos_pm_runtime_request(dev, CNSS_PM_RUNTIME_GET);
 }
 
 static inline int hif_pm_runtime_put_auto(struct device *dev)
 {
-	return cnss_pm_runtime_request(dev, CNSS_PM_RUNTIME_PUT_AUTO);
+	return vos_pm_runtime_request(dev, CNSS_PM_RUNTIME_PUT_AUTO);
 }
 
 static inline void hif_pm_runtime_mark_last_busy(struct device *dev)
 {
-	cnss_pm_runtime_request(dev, CNSS_PM_RUNTIME_MARK_LAST_BUSY);
+	vos_pm_runtime_request(dev, CNSS_PM_RUNTIME_MARK_LAST_BUSY);
 }
 static inline int hif_pm_runtime_resume(struct device *dev)
 {
-	return cnss_pm_runtime_request(dev, CNSS_PM_RUNTIME_RESUME);
+	return vos_pm_runtime_request(dev, CNSS_PM_RUNTIME_RESUME);
 }
 #endif /* WLAN_OPEN_SOURCE */
 #else /* FEATURE_RUNTIME_PM */

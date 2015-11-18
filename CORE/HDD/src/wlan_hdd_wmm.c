@@ -2066,15 +2066,8 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
    pQosContext->magic = HDD_WMM_CTX_MAGIC;
    pQosContext->is_inactivity_timer_running = false;
 
-#ifdef CONFIG_CNSS
-   cnss_init_work(&pQosContext->wmmAcSetupImplicitQos,
+   vos_init_work(&pQosContext->wmmAcSetupImplicitQos,
              hdd_wmm_do_implicit_qos);
-#else
-#ifdef WLAN_OPEN_SOURCE
-   INIT_WORK(&pQosContext->wmmAcSetupImplicitQos,
-             hdd_wmm_do_implicit_qos);
-#endif
-#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
              "%s: Scheduling work for AC %d, context %p",

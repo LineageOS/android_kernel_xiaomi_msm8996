@@ -2123,7 +2123,7 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 			hdd_ipa_uc_op_event_handler, (void *)hdd_ctx);
 
 	for (i = 0; i < HDD_IPA_UC_OPCODE_MAX; i++) {
-		cnss_init_work(&ipa_ctxt->uc_op_work[i].work,
+		vos_init_work(&ipa_ctxt->uc_op_work[i].work,
 			hdd_ipa_uc_fw_op_event_handler);
 		ipa_ctxt->uc_op_work[i].msg = NULL;
 	}
@@ -2645,13 +2645,9 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	if (!hdd_ipa_is_rm_enabled(hdd_ipa))
 		return 0;
 
-#ifdef CONFIG_CNSS
-	cnss_init_work(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
-#else
-	INIT_WORK(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
-#endif
+	vos_init_work(&hdd_ipa->rm_work, hdd_ipa_rm_send_pkt_to_ipa);
 #ifdef IPA_UC_OFFLOAD
-	cnss_init_work(&hdd_ipa->uc_rm_work.work, hdd_ipa_uc_rm_notify_defer);
+	vos_init_work(&hdd_ipa->uc_rm_work.work, hdd_ipa_uc_rm_notify_defer);
 #endif
 	memset(&create_params, 0, sizeof(create_params));
 	create_params.name = IPA_RM_RESOURCE_WLAN_PROD;
@@ -2701,13 +2697,8 @@ static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 	}
 
 	vos_wake_lock_init(&hdd_ipa->wake_lock, "wlan_ipa");
-#ifdef CONFIG_CNSS
-	cnss_init_delayed_work(&hdd_ipa->wake_lock_work,
+	vos_init_delayed_work(&hdd_ipa->wake_lock_work,
 			hdd_ipa_wake_lock_timer_func);
-#else
-	INIT_DELAYED_WORK(&hdd_ipa->wake_lock_work,
-			hdd_ipa_wake_lock_timer_func);
-#endif
 	adf_os_spinlock_init(&hdd_ipa->rm_lock);
 	hdd_ipa->rm_state = HDD_IPA_RM_RELEASED;
 	hdd_ipa->wake_lock_released = true;
@@ -4797,11 +4788,7 @@ VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx)
 		adf_os_spinlock_init(&iface_context->interface_lock);
 	}
 
-#ifdef CONFIG_CNSS
-	cnss_init_work(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
-#else
-	INIT_WORK(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
-#endif
+	vos_init_work(&hdd_ipa->pm_work, hdd_ipa_pm_send_pkt_to_tl);
 	adf_os_spinlock_init(&hdd_ipa->pm_lock);
 	adf_nbuf_queue_init(&hdd_ipa->pm_queue_head);
 

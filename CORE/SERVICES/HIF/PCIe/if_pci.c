@@ -49,9 +49,7 @@
 #include "adf_os_atomic.h"
 #include "wlan_hdd_power.h"
 #include "wlan_hdd_main.h"
-#ifdef CONFIG_CNSS
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 #include "epping_main.h"
 
 #ifndef REMOVE_PKT_LOG
@@ -1203,7 +1201,7 @@ static int __hif_pci_runtime_suspend(struct pci_dev *pdev)
 		goto suspend_fail;
 	}
 
-	ret = cnss_auto_suspend();
+	ret = vos_auto_suspend();
 
 	if (ret) {
 		ret = -EAGAIN;
@@ -1262,7 +1260,7 @@ static int __hif_pci_runtime_resume(struct pci_dev *pdev)
 		goto out;
 	}
 #endif
-	ret = cnss_auto_resume();
+	ret = vos_auto_resume();
 
 	if (ret) {
 		pr_err("%s: Failed to resume PCIe link: %d\n", __func__, ret);
@@ -1358,8 +1356,8 @@ static void hif_pci_pm_runtime_init(struct hif_pci_softc *sc)
 	pr_info("%s: Enabling RUNTIME PM, Delay: %d ms\n", __func__,
 			ol_sc->runtime_pm_delay);
 
-	cnss_init_work(&sc->pm_work, hif_pci_pm_work);
-	cnss_runtime_init(sc->dev, ol_sc->runtime_pm_delay);
+	vos_init_work(&sc->pm_work, hif_pci_pm_work);
+	vos_runtime_init(sc->dev, ol_sc->runtime_pm_delay);
 	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_ON);
 	hif_pci_pm_debugfs(sc, true);
 }
@@ -1377,12 +1375,12 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
 
 	hif_pm_runtime_resume(sc->dev);
 
-	cnss_runtime_exit(sc->dev);
+	vos_runtime_exit(sc->dev);
 	adf_os_atomic_set(&sc->pm_state, HIF_PM_RUNTIME_STATE_NONE);
 
 	hif_pci_pm_debugfs(sc, false);
 	del_timer_sync(&sc->runtime_timer);
-	cnss_flush_work(&sc->pm_work);
+	vos_flush_work(&sc->pm_work);
 }
 
 /**
@@ -1716,15 +1714,13 @@ again:
 #endif
     ol_sc->max_no_of_peers = 1;
 
-#ifdef CONFIG_CNSS
     /* Get RAM dump memory address and size */
-    ol_sc->ramdump_base = cnss_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&ol_sc->ramdump_size);
 
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
                 __func__);
     }
-#endif
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
@@ -1799,7 +1795,7 @@ err_region:
  * power up WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_probe().
  */
-#if  defined(CONFIG_CNSS)
+#ifdef HIF_PCI
 int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     void __iomem *mem;
@@ -2050,15 +2046,13 @@ again:
 #endif
     ol_sc->max_no_of_peers = 1;
 
-#ifdef CONFIG_CNSS
     /* Get RAM dump memory address and size */
-    ol_sc->ramdump_base = cnss_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&ol_sc->ramdump_size);
 
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
                 __func__);
     }
-#endif
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
     adf_os_atomic_init(&sc->wow_done);
@@ -2438,7 +2432,7 @@ hif_pci_remove(struct pci_dev *pdev)
  * shutdown WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_remove().
  */
-#if  defined(CONFIG_CNSS)
+#ifdef HIF_PCI
 void hif_pci_shutdown(struct pci_dev *pdev)
 {
     void __iomem *mem;
@@ -2684,9 +2678,9 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
 
     adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
 
-#ifdef CONFIG_CNSS
+#ifdef CONFIG_CNSS_PCI
     /* Keep PCIe bus driver's shadow memory intact */
-    cnss_pcie_shadow_control(pdev, FALSE);
+    vos_pcie_shadow_control(pdev, FALSE);
 #endif
 
     if (runtime_pm)
@@ -2811,9 +2805,9 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
     pci_set_master(pdev);
 
 skip:
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
     /* Keep PCIe bus driver's shadow memory intact */
-    cnss_pcie_shadow_control(pdev, TRUE);
+    vos_pcie_shadow_control(pdev, TRUE);
 #endif
 
 #ifdef DISABLE_L1SS_STATES

@@ -1064,11 +1064,7 @@ wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func)
 #endif
     adf_os_spinlock_init(&wmi_handle->eventq_lock);
     adf_nbuf_queue_init(&wmi_handle->event_queue);
-#ifdef CONFIG_CNSS
-    cnss_init_work(&wmi_handle->rx_event_work, wmi_rx_event_work);
-#else
-    INIT_WORK(&wmi_handle->rx_event_work, wmi_rx_event_work);
-#endif
+    vos_init_work(&wmi_handle->rx_event_work, wmi_rx_event_work);
 #ifdef WMI_INTERFACE_EVENT_LOGGING
     adf_os_spinlock_init(&wmi_handle->wmi_record_lock);
 #endif

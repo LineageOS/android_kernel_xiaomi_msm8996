@@ -69,9 +69,7 @@
 #include "wlan_hdd_main.h"
 #include <linux/vmalloc.h>
 #include "wlan_hdd_cfg80211.h"
-#ifdef CONFIG_CNSS
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 
 #include "sapApi.h"
 #include "vos_trace.h"
@@ -1357,12 +1355,7 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
     }
     gpVosContext->isLoadUnloadInProgress = value;
 
-#ifdef CONFIG_CNSS
-    if (value)
-        cnss_set_driver_status(CNSS_LOAD_UNLOAD);
-    else
-        cnss_set_driver_status(CNSS_INITIALIZED);
-#endif
+    vos_set_driver_status(value);
 }
 
 /**
@@ -2267,24 +2260,6 @@ VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
     return status;
 }
 
-v_VOID_t vos_flush_work(v_VOID_t *work)
-{
-#if defined (CONFIG_CNSS)
-   cnss_flush_work(work);
-#elif defined (WLAN_OPEN_SOURCE)
-   cancel_work_sync(work);
-#endif
-}
-
-v_VOID_t vos_flush_delayed_work(v_VOID_t *dwork)
-{
-#if defined (CONFIG_CNSS)
-   cnss_flush_delayed_work(dwork);
-#elif defined (WLAN_OPEN_SOURCE)
-   cancel_delayed_work_sync(dwork);
-#endif
-}
-
 v_BOOL_t vos_is_packet_log_enabled(void)
 {
    hdd_context_t *pHddCtx;
@@ -2334,20 +2309,16 @@ void vos_trigger_recovery(void)
 	if (VOS_STATUS_SUCCESS != status) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 			"CRASH_INJECT command is timed out!");
-#ifdef CONFIG_CNSS
 		if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 			VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 				"LOGP is in progress, ignore!");
 			goto out;
 		}
 		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-		cnss_schedule_recovery_work();
-#endif
+		vos_schedule_recovery_work();
 	}
 
-#ifdef CONFIG_CNSS
 out:
-#endif
 	vos_runtime_pm_allow_suspend(runtime_context);
 	vos_runtime_pm_prevent_suspend_deinit(runtime_context);
 }
@@ -2363,7 +2334,7 @@ v_U64_t vos_get_monotonic_boottime(void)
 #ifdef CONFIG_CNSS
    struct timespec ts;
 
-   cnss_get_monotonic_boottime(&ts);
+   vos_get_monotonic_boottime_ts(&ts);
    return (((v_U64_t)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000));
 #else
    return ((v_U64_t)adf_os_ticks_to_msecs(adf_os_ticks()) * 1000);
@@ -2373,9 +2344,7 @@ v_U64_t vos_get_monotonic_boottime(void)
 #ifdef FEATURE_WLAN_D0WOW
 v_VOID_t vos_pm_control(v_BOOL_t vote)
 {
-#ifdef CONFIG_CNSS
-    cnss_wlan_pm_control(vote);
-#endif
+    vos_wlan_pm_control(vote);
 }
 #endif
 

@@ -236,7 +236,7 @@
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
 #ifdef CONFIG_CNSS
-#define cfg80211_vendor_cmd_reply(skb) cnss_vendor_cmd_reply(skb)
+#define cfg80211_vendor_cmd_reply(skb) vos_vendor_cmd_reply(skb)
 #endif
 #endif
 
@@ -1517,9 +1517,8 @@ struct hdd_context_s
     // Indicates about pending sched_scan results
     v_BOOL_t isSchedScanUpdatePending;
 
-#ifdef MSM_PLATFORM
-   /* DDR bus bandwidth compute timer
-    */
+#ifdef FEATURE_BUS_BANDWIDTH
+    /* DDR bus bandwidth compute timer */
     vos_timer_t    bus_bw_timer;
     int            cur_vote_level;
     spinlock_t     bus_bw_lock;

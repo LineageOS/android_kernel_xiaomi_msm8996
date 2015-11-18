@@ -1901,20 +1901,11 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		INIT_LIST_HEAD(&tl_shim->sta_info[i].cached_bufq);
 	}
 
-#ifdef CONFIG_CNSS
-	cnss_init_work(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
-#else
-	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
-#endif
+	vos_init_work(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
 
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
-#ifdef CONFIG_CNSS
-	cnss_init_work(&(tl_shim->iapp_work.deferred_work),
+	vos_init_work(&(tl_shim->iapp_work.deferred_work),
 		tlshim_mgmt_over_data_rx_handler);
-#else
-	INIT_WORK(&(tl_shim->iapp_work.deferred_work),
-		tlshim_mgmt_over_data_rx_handler);
-#endif
 #endif
 	/*
 	 * TODO: Allocate memory for tx callback for maximum supported

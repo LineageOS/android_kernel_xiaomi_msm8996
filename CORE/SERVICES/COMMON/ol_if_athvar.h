@@ -44,11 +44,7 @@
 #include "ol_txrx_osif_api.h"
 #include "ol_params.h"
 #include <wdi_event_api.h>
-
-#ifdef CONFIG_CNSS
-#include <net/cnss.h>
-#endif
-
+#include "vos_cnss.h"
 
 #include "ol_ctrl_addba_api.h"
 typedef void * hif_handle_t;
@@ -277,7 +273,7 @@ struct ol_softc {
     u_int32_t               set_ht_vht_ies:1; /* true if vht ies are set on target */
     bool                    scn_cwmenable;    /*CWM enable/disable state*/
     u_int8_t                max_no_of_peers;
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
     struct cnss_fw_files fw_files;
 #elif defined(HIF_SDIO)
     struct ol_fw_files fw_files;

@@ -64,9 +64,7 @@
 #include <net/arp.h>
 #include <net/cfg80211.h>
 #include <vos_trace.h>
-#ifdef CONFIG_CNSS
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 #include <linux/wireless.h>
 #include <wlan_hdd_wowl.h>
 #include <aniGlobal.h>
@@ -96,9 +94,6 @@
 #include "wlan_hdd_dev_pwr.h"
 #include "hif.h"
 #include "wma.h"
-#ifdef CONFIG_CNSS
-#include <net/cnss.h>
-#endif
 #include "wlan_hdd_misc.h"
 #ifdef WLAN_FEATURE_NAN
 #include "nan_Api.h"
@@ -14670,7 +14665,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 #ifdef CONFIG_CNSS
     /* Android does not want the time stamp from the frame.
        Instead it wants a monotonic increasing value */
-    cnss_get_monotonic_boottime(&ts);
+    vos_get_monotonic_boottime_ts(&ts);
     mgmt->u.probe_resp.timestamp =
          ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 #else
@@ -15410,13 +15405,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
              */
             pAdapter->request = request;
 
-#ifdef CONFIG_CNSS
-            cnss_init_work(&pAdapter->scan_block_work,
+            vos_init_work(&pAdapter->scan_block_work,
                                             wlan_hdd_cfg80211_scan_block_cb);
-#else
-            INIT_WORK(&pAdapter->scan_block_work,
-                                            wlan_hdd_cfg80211_scan_block_cb);
-#endif
 
             schedule_work(&pAdapter->scan_block_work);
             return 0;
@@ -21392,9 +21382,7 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
        }
     }
 
-#ifdef CONFIG_CNSS
-    cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
-#endif
+    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
 
     /* Resume MC thread */
     if (pHddCtx->isMcThreadSuspended) {
@@ -21655,7 +21643,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     pHddCtx->isWiphySuspended = TRUE;
 
 #ifdef CONFIG_CNSS
-    cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_NONE);
+    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_NONE);
 #endif
 
     if (hif_is_80211_fw_wow_required()) {
@@ -21670,9 +21658,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     return 0;
 
 fail_suspend:
-#ifdef CONFIG_CNSS
-    cnss_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
-#endif
+    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
     pHddCtx->isWiphySuspended = FALSE;
 #ifdef QCA_CONFIG_SMP
     complete(&vosSchedContext->ResumeTlshimRxEvent);
@@ -22630,9 +22616,7 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 {
 	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
 	struct sk_buff *skb     = NULL;
-#ifdef CONFIG_CNSS
 	struct timespec ts;
-#endif
 	int flags = vos_get_gfp_flags();
 
 	ENTER();
@@ -22665,12 +22649,10 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 	}
 
 	pData->ap.channel = vos_chan_to_freq(pData->ap.channel);
-#ifdef CONFIG_CNSS
 	/* Android does not want the time stamp from the frame.
 	   Instead it wants a monotonic increasing value since boot */
-	cnss_get_monotonic_boottime(&ts);
+	vos_get_monotonic_boottime_ts(&ts);
 	pData->ap.ts = ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
-#endif
 	hddLog(LOG1, "Req Id %u More Data %u",
 		pData->requestId, pData->moreData);
 	hddLog(LOG1, "AP Info: Timestamp %llu Ssid: %s "

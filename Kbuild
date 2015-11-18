@@ -8,14 +8,10 @@ endif
 
 ifeq ($(CONFIG_CLD_HL_SDIO_CORE), y)
 	CONFIG_QCA_WIFI_SDIO := 1
-endif
-
-ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_ROME_IF = sdio
 endif
 
 ifndef CONFIG_ROME_IF
-	#use pci as default interface
 	CONFIG_ROME_IF = pci
 endif
 
@@ -995,6 +991,9 @@ endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
+ifeq ($(CONFIG_CNSS_PCI), y)
+CDEFINES += -DFEATURE_BUS_BANDWIDTH
+endif
 endif
 
 ifeq ($(CONFIG_MOBILE_ROUTER), y)

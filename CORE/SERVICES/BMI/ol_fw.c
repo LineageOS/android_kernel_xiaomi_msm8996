@@ -49,9 +49,7 @@
 #include "bin_sig.h"
 #include "ar6320v2_dbg_regtable.h"
 #include "epping_main.h"
-#if  defined(CONFIG_CNSS)
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -403,9 +401,7 @@ static int ol_check_fw_hash(const u8* data, u32 fw_size, ATH_BIN_FILE file)
 {
 	u8 *fw_mem = NULL;
 	u8 *hash = NULL;
-#ifdef CONFIG_CNSS
 	u8 digest[SHA256_DIGEST_SIZE];
-#endif
 	u8 temp[SHA256_DIGEST_SIZE] = {};
 	int ret = 0;
 
@@ -438,7 +434,7 @@ static int ol_check_fw_hash(const u8* data, u32 fw_size, ATH_BIN_FILE file)
 		goto end;
 	}
 
-	fw_mem = (u8 *)cnss_get_fw_ptr();
+	fw_mem = (u8 *)vos_get_fw_ptr();
 
 	if (!fw_mem || (fw_size > MAX_FIRMWARE_SIZE)) {
 		pr_err("No enough memory to copy FW data\n");
@@ -448,11 +444,10 @@ static int ol_check_fw_hash(const u8* data, u32 fw_size, ATH_BIN_FILE file)
 
 	OS_MEMCPY(fw_mem, data, fw_size);
 
-#ifdef CONFIG_CNSS
-	ret = cnss_get_sha_hash(fw_mem, fw_size, "sha256", digest);
+	ret = vos_get_sha_hash(fw_mem, fw_size, "sha256", digest);
 
 	if (ret) {
-		pr_err("Sha256 Hash computation fialed err:%d\n", ret);
+		pr_err("Sha256 Hash computation failed err:%d\n", ret);
 		goto end;
 	}
 
@@ -464,7 +459,6 @@ static int ol_check_fw_hash(const u8* data, u32 fw_size, ATH_BIN_FILE file)
 						hash, SHA256_DIGEST_SIZE);
 		ret = A_ERROR;
 	}
-#endif
 end:
 	return ret;
 }
@@ -881,16 +875,10 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 {
 	int ret;
 
-#ifdef CONFIG_CNSS
 	/* Wait until suspend and resume are completed before loading FW */
-	cnss_lock_pm_sem();
-#endif
-
+	vos_lock_pm_sem();
 	ret = __ol_transfer_bin_file(scn, file, address, compressed);
-
-#ifdef CONFIG_CNSS
-	cnss_release_pm_sem();
-#endif
+	vos_release_pm_sem();
 
 	return ret;
 }
@@ -1016,7 +1004,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 #if !defined(HIF_SDIO)
 		ol_copy_ramdump(ramdump_scn);
-		cnss_device_crashed();
+		vos_device_crashed();
 		return;
 #endif
 		goto out_fail;
@@ -1077,7 +1065,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	panic("CNSS Ram dump collected\n");
 #else
 	/* Notify SSR framework the target has crashed. */
-	cnss_device_crashed();
+	vos_device_crashed();
 #endif
 	return;
 
@@ -1085,14 +1073,14 @@ out_fail:
 	/* Silent SSR on dump failure */
 #if defined(CNSS_SELF_RECOVERY) || defined(TARGET_DUMP_FOR_NON_QC_PLATFORM)
 #if !defined(HIF_SDIO)
-	cnss_device_self_recovery();
+	vos_device_self_recovery();
 #endif
 #else
 
 #if defined(HIF_SDIO)
 	panic("CNSS Ram dump collection failed \n");
 #else
-	cnss_device_crashed();
+	vos_device_crashed();
 #endif
 #endif
 
@@ -1118,7 +1106,7 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 static void fw_indication_work_handler(struct work_struct *fw_indication)
 {
 #if !defined(HIF_SDIO)
-	cnss_device_self_recovery();
+	vos_device_self_recovery();
 #endif
 }
 
@@ -1275,7 +1263,8 @@ void ol_target_failure(void *instance, A_STATUS status)
 	struct dbglog_hdr_host dbglog_hdr;
 	struct dbglog_buf_host dbglog_buf;
 	A_UINT8 *dbglog_data;
-#else
+#endif
+#ifdef HIF_PCI
 	int ret;
 #endif
 
@@ -1324,7 +1313,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	}
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
 	ret = hif_pci_check_fw_reg(scn->hif_sc);
 	if (0 == ret) {
 		if (scn->enable_self_recovery) {
@@ -1439,7 +1428,7 @@ int
 ol_configure_target(struct ol_softc *scn)
 {
 	u_int32_t param;
-#ifdef CONFIG_CNSS
+#ifdef CONFIG_CNSS_PCI
 	struct cnss_platform_cap cap;
 #endif
 
@@ -1512,11 +1501,11 @@ ol_configure_target(struct ol_softc *scn)
 
 #endif /*HIF_PCI*/
 
-#ifdef CONFIG_CNSS
+#ifdef CONFIG_CNSS_PCI
 	{
 		int ret;
 
-		ret = cnss_get_platform_cap(&cap);
+		ret = vos_get_platform_cap(&cap);
 		if (ret)
 			pr_err("platform capability info from CNSS not available\n");
 
@@ -1967,7 +1956,7 @@ A_STATUS ol_patch_pll_switch(struct ol_softc * scn)
 }
 #endif
 
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
 /* AXI Start Address */
 #define TARGET_ADDR (0xa0000)
 
@@ -2006,7 +1995,7 @@ int ol_download_firmware(struct ol_softc *scn)
 	A_STATUS ret;
 #endif
 
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
 		if (0 != cnss_get_fw_files_for_target(&scn->fw_files,
 						scn->target_type,
 						scn->target_version)) {
@@ -2057,7 +2046,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		printk("%s: Using 0x%x for the remainder of init\n", __func__, address);
 
 		if ( scn->enablesinglebinary == FALSE ) {
-#ifdef CONFIG_CNSS
+#ifdef HIF_PCI
 			ol_transfer_codeswap_struct(scn);
 #endif
 

@@ -1837,7 +1837,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    vos_clear_concurrent_session_count();
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
    if (VOS_TIMER_STATE_RUNNING ==
            vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
    {

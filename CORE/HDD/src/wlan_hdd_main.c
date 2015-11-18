@@ -105,9 +105,10 @@
 #include "wlan_qct_wda.h"
 #include "wlan_hdd_tdls.h"
 #ifdef FEATURE_WLAN_CH_AVOID
-#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
+#ifdef CONFIG_CNSS_SDIO
 #include <net/cnss.h>
 #endif
+#include "vos_cnss.h"
 #include "regdomain_common.h"
 
 extern int hdd_hostapd_stop (struct net_device *dev);
@@ -9143,27 +9144,13 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             goto err_free_netdev;
 
          // Workqueue which gets scheduled in IPv4 notification callback
-#ifdef CONFIG_CNSS
-         cnss_init_work(&pAdapter->ipv4NotifierWorkQueue,
+         vos_init_work(&pAdapter->ipv4NotifierWorkQueue,
                         hdd_ipv4_notifier_work_queue);
-#else
-#ifdef WLAN_OPEN_SOURCE
-         INIT_WORK(&pAdapter->ipv4NotifierWorkQueue,
-                   hdd_ipv4_notifier_work_queue);
-#endif
-#endif
 
 #ifdef WLAN_NS_OFFLOAD
          // Workqueue which gets scheduled in IPv6 notification callback.
-#ifdef CONFIG_CNSS
-         cnss_init_work(&pAdapter->ipv6NotifierWorkQueue,
+         vos_init_work(&pAdapter->ipv6NotifierWorkQueue,
                         hdd_ipv6_notifier_work_queue);
-#else
-#ifdef WLAN_OPEN_SOURCE
-         INIT_WORK(&pAdapter->ipv6NotifierWorkQueue,
-                   hdd_ipv6_notifier_work_queue);
-#endif
-#endif
 #endif
          status = hdd_register_interface(pAdapter, rtnl_held);
          if (VOS_STATUS_SUCCESS != status) {
@@ -9263,15 +9250,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
              return NULL;
          }
 
-#ifdef CONFIG_CNSS
-         cnss_init_work(&pAdapter->sessionCtx.monitor.pAdapterForTx->
+         vos_init_work(&pAdapter->sessionCtx.monitor.pAdapterForTx->
                         monTxWorkQueue, hdd_mon_tx_work_queue);
-#else
-#ifdef WLAN_OPEN_SOURCE
-         INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
-                   hdd_mon_tx_work_queue);
-#endif
-#endif
       }
          break;
       case WLAN_HDD_FTM:
@@ -11084,7 +11064,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    hdd_abort_mac_scan_all_adapters(pHddCtx);
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
    if (VOS_TIMER_STATE_RUNNING ==
                         vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
    {
@@ -11710,11 +11690,10 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 }
 
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         const uint64_t tx_packets, const uint64_t rx_packets)
 {
-#ifdef CONFIG_CNSS
     uint64_t total = tx_packets + rx_packets;
     uint64_t temp_rx = 0;
     uint64_t temp_tx = 0;
@@ -11740,7 +11719,7 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                "%s: trigger level %d, tx_packets: %lld, rx_packets: %lld",
                __func__, next_vote_level, tx_packets, rx_packets);
         pHddCtx->cur_vote_level = next_vote_level;
-        cnss_request_bus_bandwidth(next_vote_level);
+        vos_request_bus_bandwidth(next_vote_level);
 
         if (next_vote_level == CNSS_BUS_WIDTH_LOW) {
             if (pHddCtx->hbw_requested) {
@@ -11803,8 +11782,6 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
 
     pHddCtx->hdd_txrx_hist_idx++;
     pHddCtx->hdd_txrx_hist_idx &= NUM_TX_RX_HISTOGRAM_MASK;
-
-#endif
 }
 
 #define HDD_BW_GET_DIFF(x, y) ((x) >= (y) ? (x) - (y) : (ULONG_MAX - (y) + (x)))
@@ -12673,13 +12650,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
 #ifdef FEATURE_WLAN_CH_AVOID
 #if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
-   cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
+#ifdef CONFIG_CNSS
+   vos_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+#endif
+#ifdef CONFIG_CNSS_SDIO
+	cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
+				&(pHddCtx->unsafe_channel_count),
+				sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+#endif
 
-   hddLog(LOG1,"%s: num of unsafe channels is %d. ",
-          __func__,
-          pHddCtx->unsafe_channel_count);
+	hddLog(LOG1,"%s: num of unsafe channels is %d. ",
+		__func__, pHddCtx->unsafe_channel_count);
 
    unsafe_channel_count = VOS_MIN((uint16_t)pHddCtx->unsafe_channel_count,
                               (uint16_t)NUM_20MHZ_RF_CHANNELS);
@@ -13097,7 +13080,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
            hddLog(VOS_TRACE_LEVEL_ERROR, FL("set tsf GPIO failed"));
    }
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
    spin_lock_init(&pHddCtx->bus_bw_lock);
    vos_timer_init(&pHddCtx->bus_bw_timer,
                      VOS_TIMER_TYPE_SW,
@@ -13137,11 +13120,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
-#ifdef CONFIG_CNSS
-   cnss_init_delayed_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
-#else
-   INIT_DELAYED_WORK(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
-#endif
+   vos_init_delayed_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
 
    wlan_hdd_dcc_register_for_dcc_stats_event(pHddCtx);
 
@@ -13323,14 +13302,17 @@ static int hdd_driver_init( void)
    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
    /*
-    * In BMI Phase we are only sending small chunk (256 bytes) of the FW image
+    * The Krait is going to Idle/Stand Alone Power Save
+    * more aggressively which is resulting in the longer driver load time.
+    * The Fix is to not allow Krait to enter Idle Power Save during driver load.
     * at a time, and wait for the completion interrupt to start the next
     * transfer. During this phase, the KRAIT is entering IDLE/StandAlone(SA)
-    * Power Save(PS). The delay incurred for resuming from IDLE/SA PS is huge
-    * during driver load. So prevent APPS IDLE/SA PS during driver load for
-    * reducing interrupt latency.
+    * Power Save(PS). The delay incurred for resuming from IDLE/SA PS is
+    * huge during driver load. So prevent APPS IDLE/SA PS during driver
+    * load for reducing interrupt latency.
     */
-   hdd_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+
+   vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
 
    vos_ssr_protect_init();
 
@@ -13344,7 +13326,7 @@ static int hdd_driver_init( void)
          ret_status =  epping_driver_init(con_mode, &wlan_wake_lock,
                           WLAN_MODULE_NAME);
          if (ret_status < 0) {
-            hdd_remove_pm_qos();
+            vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
             vos_wake_lock_destroy(&wlan_wake_lock);
          }
@@ -13355,7 +13337,7 @@ static int hdd_driver_init( void)
          ret_status = epping_driver_init(hdd_get_conparam(),
                          &wlan_wake_lock, WLAN_MODULE_NAME);
          if (ret_status < 0) {
-            hdd_remove_pm_qos();
+            vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
             vos_wake_lock_destroy(&wlan_wake_lock);
          }
@@ -13400,7 +13382,7 @@ static int hdd_driver_init( void)
            ret_status = 0;
    }
 
-   hdd_remove_pm_qos();
+   vos_remove_pm_qos();
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
    if (ret_status) {
@@ -14264,7 +14246,8 @@ void hdd_ch_avoid_cb
             "%s : number of unsafe channels is %d ",
             __func__,  hdd_ctxt->unsafe_channel_count);
 
-   if (cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
+#ifdef CONFIG_CNSS
+   if (vos_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
                                 hdd_ctxt->unsafe_channel_count)) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to set unsafe channel",
@@ -14277,6 +14260,21 @@ void hdd_ch_avoid_cb
 
        return;
    }
+#endif
+#ifdef CONFIG_CNSS_SDIO
+	if (cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
+		hdd_ctxt->unsafe_channel_count)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+		"%s: Failed to set unsafe channel",
+		__func__);
+
+	/* clear existing unsafe channel cache */
+	hdd_ctxt->unsafe_channel_count = 0;
+	vos_mem_zero(hdd_ctxt->unsafe_channel_list,
+		sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
+	return;
+}
+#endif
 
    for (channel_loop = 0;
         channel_loop < hdd_ctxt->unsafe_channel_count;
@@ -14769,7 +14767,7 @@ hdd_adapter_t * hdd_get_con_sap_adapter(hdd_adapter_t *this_sap_adapter,
     return con_sap_adapter;
 }
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
 void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);

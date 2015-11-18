@@ -59,9 +59,10 @@
 #include <linux/kthread.h>
 #include <linux/cpu.h>
 #include <linux/topology.h>
-#if defined(QCA_CONFIG_SMP) && defined(CONFIG_CNSS)
-#include <net/cnss.h>
+#if defined(QCA_CONFIG_SMP)
+#include "vos_cnss.h"
 #endif
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -114,18 +115,6 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
 
 #define VOS_CPU_CLUSTER_TYPE_LITTLE 0
 #define VOS_CPU_CLUSTER_TYPE_PERF 1
-
-static int vos_set_cpus_allowed_ptr(struct task_struct *task,
-                                    unsigned long cpu)
-{
-#ifdef WLAN_OPEN_SOURCE
-   return set_cpus_allowed_ptr(task, cpumask_of(cpu));
-#elif defined(CONFIG_CNSS)
-   return cnss_set_cpus_allowed_ptr(task, cpu);
-#else
-   return 0;
-#endif
-}
 
 /**
  * vos_sched_find_attach_cpu - find available cores and attach to required core

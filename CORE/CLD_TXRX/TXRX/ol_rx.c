@@ -60,9 +60,7 @@
 #include <wma.h>
 
 #ifdef HTT_RX_RESTORE
-#if  defined(CONFIG_CNSS)
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 #endif
 
 #ifdef OSIF_NEED_RX_PEER_ID
@@ -79,7 +77,7 @@ static void ol_rx_restore_handler(struct work_struct *htt_rx)
 {
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
         "Enter: %s", __func__);
-    cnss_device_self_recovery();
+    vos_device_self_recovery();
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
         "Exit: %s", __func__);
 }

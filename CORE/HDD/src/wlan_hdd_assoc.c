@@ -728,15 +728,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         }
 #endif
 
-#ifdef MSM_PLATFORM
-#ifdef CONFIG_CNSS
+#ifdef FEATURE_BUS_BANDWIDTH
         /* start timer in sta/p2p_cli */
         spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_start_bus_bw_compute_timer(pAdapter);
-#endif
 #endif
     }
     else if (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState) // IBss Associated
@@ -778,7 +776,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                 wlan_hdd_send_status_pkg(pAdapter, pHddStaCtx, 1, 0);
 #endif
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
         /* stop timer in sta/p2p_cli */
         spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = 0;
@@ -2166,13 +2164,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
          * creating workqueue then our main thread might go to sleep which
          * is not acceptable.
          */
-#ifdef CONFIG_CNSS
-         cnss_init_work(&pHddCtx->sap_start_work,
+         vos_init_work(&pHddCtx->sap_start_work,
                         hdd_sap_restart_handle);
-#else
-         INIT_WORK(&pHddCtx->sap_start_work,
-                   hdd_sap_restart_handle);
-#endif
          schedule_work(&pHddCtx->sap_start_work);
 
 
