@@ -662,18 +662,21 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     {
         vos_mem_free( psessionEntry->beacon);
         psessionEntry->beacon = NULL;
+        psessionEntry->bcnLen = 0;
     }
 
     if (psessionEntry->assocReq != NULL)
     {
         vos_mem_free( psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
+        psessionEntry->assocReqLen = 0;
     }
 
     if (psessionEntry->assocRsp != NULL)
     {
         vos_mem_free( psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
+        psessionEntry->assocRspLen = 0;
     }
 
 
