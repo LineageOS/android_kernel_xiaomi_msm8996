@@ -1118,6 +1118,7 @@ typedef struct sMacOpenParameters
     bool is_nan_enabled;
 #endif
     uint16_t  max_mgmt_tx_fail_count;
+    bool force_target_assert_enabled;
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters
