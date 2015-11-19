@@ -12512,8 +12512,24 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef IPA_OFFLOAD
+#ifdef SYNC_IPA_READY
+   /* Check if IPA is ready before calling any IPA API */
+   if ((ret = ipa_register_ipa_ready_cb((void *)hdd_ipa_ready_cb,
+                                      (void *)pHddCtx)) == -EEXIST) {
+      hddLog(VOS_TRACE_LEVEL_FATAL, FL("IPA is ready"));
+   } else if (ret >= 0) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             FL("IPA is not ready - wait until it is ready"));
+      init_completion(&pHddCtx->ipa_ready);
+      wait_for_completion(&pHddCtx->ipa_ready);
+   } else {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             FL("IPA is not ready - Fail to register IPA ready callback"));
+      goto err_wiphy_unregister;
+   }
+#endif
    if (hdd_ipa_init(pHddCtx) == VOS_STATUS_E_FAILURE)
-	goto err_wiphy_unregister;
+      goto err_wiphy_unregister;
 #endif
 
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */

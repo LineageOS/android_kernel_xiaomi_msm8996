@@ -1254,6 +1254,10 @@ endif
 endif
 endif
 
+ifeq ($(CONFIG_ARCH_MDMCALIFORNIUM), y)
+CDEFINES += -DSYNC_IPA_READY
+endif
+
 #Enable GTK Offload
 ifeq ($(CONFIG_GTK_OFFLOAD), 1)
 CDEFINES += -DWLAN_FEATURE_GTK_OFFLOAD

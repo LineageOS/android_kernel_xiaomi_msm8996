@@ -4926,6 +4926,19 @@ void hdd_ipa_cleanup_pending_event(struct hdd_ipa_priv *hdd_ipa)
 }
 #endif
 
+/**
+ * hdd_ipa_ready_cb() - Callback function for IPA driver ready
+ * @hdd_ctx: pointer to HDD context
+ *
+ * Return: none
+ */
+void hdd_ipa_ready_cb(hdd_context_t *hdd_ctx)
+{
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"IPA ready callback is called");
+	complete(&hdd_ctx->ipa_ready);
+}
+
 VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 {
 	struct hdd_ipa_priv *hdd_ipa = hdd_ctx->hdd_ipa;

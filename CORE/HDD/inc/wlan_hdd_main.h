@@ -1617,6 +1617,9 @@ struct hdd_context_s
     uint16_t hdd_txrx_hist_idx;
     struct hdd_tx_rx_histogram hdd_txrx_hist[NUM_TX_RX_HISTOGRAM];
     struct hdd_runtime_pm_context runtime_context;
+#ifdef IPA_OFFLOAD
+    struct completion ipa_ready;
+#endif
 };
 
 /*---------------------------------------------------------------------------
