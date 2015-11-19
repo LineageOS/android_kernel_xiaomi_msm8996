@@ -122,65 +122,6 @@ static void dump_sk_buff(struct sk_buff * skb)
      skb->data[8], skb->data[9], skb->data[10], skb->data[11], skb->data[12],
      skb->data[13], skb->data[14], skb->data[15]);
 }
-
-//Function for Unit Test only
-static void transport_thread(hdd_adapter_t *pAdapter)
-{
-   v_U8_t staId;
-   WLANTL_ACEnumType ac = WLANTL_AC_BE;
-   vos_pkt_t *pVosPacket = NULL ;
-   vos_pkt_t dummyPacket;
-   WLANTL_MetaInfoType pktMetaInfo;
-   WLANTL_RxMetaInfoType pktRxMetaInfo;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
-
-   if (NULL == pAdapter)
-   {
-       VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-              FL("pAdapter is NULL"));
-       VOS_ASSERT(0);
-       return;
-   }
-   status = hdd_tx_fetch_packet_cbk( pAdapter->pvosContext,
-                                     &staId,
-                                     &ac,
-                                     &pVosPacket,
-                                     &pktMetaInfo );
-  if (status != VOS_STATUS_SUCCESS && status != VOS_STATUS_E_EMPTY)
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test FAIL hdd_tx_fetch_packet_cbk", __func__);
-  else
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test PASS hdd_tx_fetch_packet_cbk", __func__);
-
-  status = hdd_tx_complete_cbk(pAdapter->pvosContext, &dummyPacket, VOS_STATUS_SUCCESS);
-  if (status != VOS_STATUS_SUCCESS)
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test FAIL hdd_tx_complete_cbk", __func__);
-  else
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test PASS hdd_tx_complete_cbk", __func__);
-
-  status = hdd_tx_low_resource_cbk(pVosPacket, pAdapter);
-  if (status != VOS_STATUS_SUCCESS)
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test FAIL hdd_tx_low_resource_cbk", __func__);
-  else
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test PASS hdd_tx_low_resource_cbk", __func__);
-
-  status = hdd_rx_packet_cbk( pAdapter->pvosContext,
-                              &dummyPacket,
-                              staId,
-                              &pktRxMetaInfo);
-  if (status != VOS_STATUS_SUCCESS)
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test FAIL hdd_rx_packet_cbk", __func__);
-  else
-     VOS_TRACE( VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Test PASS hdd_rx_packet_cbk", __func__);
-
-}
 #endif
 
 /**

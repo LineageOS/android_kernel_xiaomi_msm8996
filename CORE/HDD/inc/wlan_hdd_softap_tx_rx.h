@@ -150,26 +150,6 @@ extern VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
                                        VOS_STATUS vosStatusIn );
 
 /**============================================================================
-  @brief hdd_softap_tx_fetch_packet_cbk() - Callback function invoked by TL to
-  fetch a packet for transmission.
-
-  @param vosContext   : [in] pointer to VOS context
-  @param staId        : [in] Station for which TL is requesting a pkt
-  @param ucAC         : [in] pointer to access category requested by TL
-  @param pVosPacket   : [out] pointer to VOS packet packet pointer
-  @param pPktMetaInfo : [out] pointer to meta info for the pkt
-
-  @return             : VOS_STATUS_E_EMPTY if no packets to transmit
-                      : VOS_STATUS_E_FAILURE if any errors encountered
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
-                                           v_U8_t *pStaId,
-                                           WLANTL_ACEnumType    ucAC,
-                                           vos_pkt_t **ppVosPacket,
-                                           WLANTL_MetaInfoType *pPktMetaInfo );
-
-/**============================================================================
   @brief hdd_softap_tx_low_resource_cbk() - Callback function invoked in the
   case where VOS packets are not available at the time of the call to get
   packets. This callback function is invoked by VOS when packets are

@@ -494,50 +494,6 @@ typedef VOS_STATUS (*WLANTL_TxCompCBType)( v_PVOID_t      pvosGCtx,
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------
-
-  DESCRIPTION
-    Type of the fetch packet callback registered with TL.
-
-    It is called by the TL when the scheduling algorithms allows for
-    transmission of another packet to the module.
-    It will be called in the context of the BAL fetch transmit packet
-    function, initiated by the bus lower layer.
-
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle
-                    to TL's or HDD's control block can be extracted
-                    from its context
-
-    IN/OUT
-    pucSTAId:       the Id of the station for which TL is requesting a
-                    packet, in case HDD does not maintain per station
-                    queues it can give the next packet in its queue
-                    and put in the right value for the
-    pucAC:          access category requested by TL, if HDD does not have
-                    packets on this AC it can choose to service another AC
-                    queue in the order of priority
-
-    OUT
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
-    tlMetaInfo:    meta info related to the data frame
-
-
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_STAFetchPktCBType)(
-                                            v_PVOID_t             pvosGCtx,
-                                            v_U8_t*               pucSTAId,
-                                            WLANTL_ACEnumType     ucAC,
-                                            vos_pkt_t**           vosDataBuff,
-                                            WLANTL_MetaInfoType*  tlMetaInfo);
-
 
 /*----------------------------------------------------------------------------
 
@@ -912,7 +868,6 @@ WLANTL_ConfigureSwFrameTXXlationForAll
    pfnStARx:        function pointer to the receive packet handler from HDD
    pfnSTATxComp:    function pointer to the transmit complete confirmation
                     handler from HDD
-   pfnSTAFetchPkt:  function pointer to the packet retrieval routine in HDD
    wSTADescType:    STA Descriptor, contains information related to the
                     new added STA
 
@@ -935,7 +890,6 @@ WLANTL_RegisterSTAClient
   v_PVOID_t                 pvosGCtx,
   WLANTL_STARxCBType        pfnSTARx,
   WLANTL_TxCompCBType       pfnSTATxComp,
-  WLANTL_STAFetchPktCBType  pfnSTAFetchPkt,
   WLAN_STADescType*         wSTADescType ,
   v_S7_t                    rssi
 );

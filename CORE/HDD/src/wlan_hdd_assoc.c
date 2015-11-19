@@ -1253,18 +1253,18 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
     * route IPA. It should be routed kernel network stack */
 #if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
    if (hdd_ipa_is_enabled(pHddCtx))
-      vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
+      vosStatus = WLANTL_RegisterSTAClient(pHddCtx->pvosContext,
                                          hdd_ipa_process_rxt,
                                          hdd_tx_complete_cbk,
-                                         hdd_tx_fetch_packet_cbk, &staDesc,
-                                         pBssDesc->rssi );
+                                         &staDesc,
+                                         pBssDesc->rssi);
    else
 #endif
-   vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext,
+   vosStatus = WLANTL_RegisterSTAClient(pHddCtx->pvosContext,
                                          hdd_rx_packet_cbk,
                                          hdd_tx_complete_cbk,
-                                         hdd_tx_fetch_packet_cbk, &staDesc,
-                                         pBssDesc->rssi );
+                                         &staDesc,
+                                         pBssDesc->rssi);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
@@ -2842,16 +2842,16 @@ VOS_STATUS hdd_roamRegisterTDLSSTA(hdd_adapter_t *pAdapter,
     * route IPA. It should be routed kernel network stack */
 #if defined(IPA_OFFLOAD) && !defined(IPA_UC_OFFLOAD)
     if (hdd_ipa_is_enabled(WLAN_HDD_GET_CTX(pAdapter)))
-       vosStatus = WLANTL_RegisterSTAClient( pVosContext,
+       vosStatus = WLANTL_RegisterSTAClient(pVosContext,
                                           hdd_ipa_process_rxt,
                                           hdd_tx_complete_cbk,
-                                          hdd_tx_fetch_packet_cbk, &staDesc, 0 );
+                                          &staDesc, 0);
     else
 #endif
-    vosStatus = WLANTL_RegisterSTAClient( pVosContext,
+    vosStatus = WLANTL_RegisterSTAClient(pVosContext,
                                           hdd_rx_packet_cbk,
                                           hdd_tx_complete_cbk,
-                                          hdd_tx_fetch_packet_cbk, &staDesc, 0 );
+                                          &staDesc, 0);
 
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
