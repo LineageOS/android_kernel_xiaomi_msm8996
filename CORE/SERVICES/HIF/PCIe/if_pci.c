@@ -167,10 +167,12 @@ void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc)
 	if (HIF_IRQ_HISTORY_MAX <= g_hif_irq_history_idx)
 		g_hif_irq_history_idx = 0;
 
-	hif_irq_history_buffer[g_hif_irq_history_idx].type = type;
-	hif_irq_history_buffer[g_hif_irq_history_idx].time = adf_get_boottime();
+	if (HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE) < 0) {
+		adf_os_mem_zero(&hif_irq_history_buffer[g_hif_irq_history_idx],
+				sizeof(hif_irq_history));
+		goto out;
+	}
 
-	HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE);
 	hif_irq_history_buffer[g_hif_irq_history_idx].irq_summary =
 			CE_INTERRUPT_SUMMARY(targid);
 	hif_irq_history_buffer[g_hif_irq_history_idx].fw_indicator =
@@ -186,6 +188,10 @@ void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc)
 				PCIE_INTR_CLR_ADDRESS);
 
 	HIFTargetSleepStateAdjust(hif_state->targid, TRUE, FALSE);
+
+out:
+	hif_irq_history_buffer[g_hif_irq_history_idx].type = type;
+	hif_irq_history_buffer[g_hif_irq_history_idx].time = adf_get_boottime();
 
 	g_hif_irq_history_idx++;
 }
