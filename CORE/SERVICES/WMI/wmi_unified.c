@@ -1219,6 +1219,10 @@ void wmi_set_d0wow_flag(wmi_unified_t wmi_handle, A_BOOL flag)
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
 
+	if (NULL == scn) {
+		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		return;
+	}
 	adf_os_atomic_set(&scn->hif_sc->in_d0wow, flag);
 }
 
@@ -1227,6 +1231,11 @@ A_BOOL wmi_get_d0wow_flag(wmi_unified_t wmi_handle)
 	tp_wma_handle wma = wmi_handle->scn_handle;
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
+
+	if (NULL == scn) {
+		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		return -EINVAL;
+	}
 
 	return adf_os_atomic_read(&scn->hif_sc->in_d0wow);
 }

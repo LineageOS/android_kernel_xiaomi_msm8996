@@ -33162,7 +33162,10 @@ uint32_t wma_get_vht_ch_width(void)
 	v_CONTEXT_t v_ctx =  vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
 	tp_wma_handle wm_hdl = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA,
 							      v_ctx);
-
+	if (NULL == wm_hdl) {
+		WMA_LOGE("%s: Failed to get wm_hdl", __func__);
+		return -EINVAL;
+	}
 	if (wm_hdl->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_160)
 		fw_ch_wd = WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ;
 	else if (wm_hdl->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_80_160)
