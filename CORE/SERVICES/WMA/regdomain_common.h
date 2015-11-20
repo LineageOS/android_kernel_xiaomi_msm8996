@@ -1859,6 +1859,8 @@ typedef struct _regdm_supp_op_classes {
 
 u_int16_t regdm_get_opclass_from_channel(u_int8_t *country, u_int8_t channel,
 	u_int8_t offset);
+u_int16_t regdm_get_chanwidth_from_opclass(u_int8_t *country, u_int8_t channel,
+	u_int8_t opclass);
 u_int16_t regdm_set_curr_opclasses(u_int8_t num_classes, u_int8_t *class);
 u_int16_t regdm_get_curr_opclasses(u_int8_t *num_classes, u_int8_t *class);
 

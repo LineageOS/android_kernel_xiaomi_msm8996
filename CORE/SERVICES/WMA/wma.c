@@ -4961,6 +4961,7 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 		xcsa_ie = (struct ieee80211_extendedchannelswitch_ie*)(&csa_event->xcsa_ie[0]);
 		csa_offload_event->channel = xcsa_ie->newchannel;
 		csa_offload_event->switchmode = xcsa_ie->switchmode;
+		csa_offload_event->new_op_class = xcsa_ie->newClass;
 	} else {
 		WMA_LOGE("CSA Event error: No CSA IE present");
 		vos_mem_free(csa_offload_event);

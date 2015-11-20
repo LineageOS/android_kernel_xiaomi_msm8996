@@ -1042,6 +1042,7 @@ typedef struct CSAOffloadParams {
    tANI_U8 switchmode;
    tANI_U8 sec_chan_offset;
    tANI_U8 new_ch_width;       /* New channel width */
+   tANI_U8 new_op_class;       /* New operating class */
    tANI_U8 new_ch_freq_seg1;   /* Channel Center frequency 1 */
    tANI_U8 new_ch_freq_seg2;   /* Channel Center frequency 2 */
    tANI_U32 ies_present_flag;   /* WMI_CSA_EVENT_IES_PRESENT_FLAG */

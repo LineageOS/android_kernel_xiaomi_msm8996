@@ -54,6 +54,7 @@
 #include "limSendSmeRspMessages.h"
 #include "limIbssPeerMgmt.h"
 #include "limSessionUtils.h"
+#include "regdomain_common.h"
 
 #include "sirApi.h"
 
@@ -2874,6 +2875,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
    tpDphHashNode pStaDs = NULL ;
    tANI_U8 sessionId;
    tANI_U16 aid = 0 ;
+   int chan_space;
 
    if (!csa_params) {
       limLog(pMac, LOGE, FL("limMsgQ body ptr is NULL"));
@@ -2931,6 +2933,35 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
                                                      psessionEntry,
                                                      csa_params->channel,
                                                      csa_params->new_ch_width);
+          }
+          else if ( csa_params->ies_present_flag & lim_xcsa_ie_present )
+          {
+              chan_space = regdm_get_chanwidth_from_opclass(
+                                           pMac->scan.countryCodeCurrent,
+                                           csa_params->channel,
+                                           csa_params->new_op_class);
+              if (chan_space == 80) {
+                  psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                          WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+              }
+              else {
+                  psessionEntry->gLimWiderBWChannelSwitch.newChanWidth =
+                                          WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+              }
+
+              psessionEntry->gLimChannelSwitch.state =
+                                     eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+
+              psessionEntry->gLimChannelSwitch.secondarySubBand =
+                      limSelectCBMode(pStaDs,
+                          psessionEntry,
+                          csa_params->channel,
+                          psessionEntry->gLimWiderBWChannelSwitch.newChanWidth);
+              limLog(pMac, LOG1, FL("xcsa frame opclass %d , chanbw %d secondary subband %d "),
+                          csa_params->new_op_class,
+                          psessionEntry->gLimWiderBWChannelSwitch.newChanWidth,
+                          psessionEntry->gLimChannelSwitch.secondarySubBand);
+
           }
 
       } else
