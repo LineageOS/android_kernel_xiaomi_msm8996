@@ -282,6 +282,11 @@ adf_os_dma_addr_t htt_tx_get_paddr(htt_pdev_handle pdev, char *target_vaddr)
 			(target_vaddr <= page_info->page_v_addr_end))
 			break;
 	}
+	if (!page_info || !page_info->page_v_addr_start ||
+		 !page_info->page_p_addr) {
+		adf_os_assert(0);
+		return 0;
+	}
 
 	return page_info->page_p_addr +
 		(adf_os_dma_addr_t)(target_vaddr - page_info->page_v_addr_start);
