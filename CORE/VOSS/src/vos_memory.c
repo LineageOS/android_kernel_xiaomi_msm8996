@@ -70,12 +70,18 @@ hdd_list_t vosMemList;
 static v_U8_t WLAN_MEM_HEADER[] =  {0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68 };
 static v_U8_t WLAN_MEM_TAIL[]   =  {0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87};
 
+#define VOS_MEM_MAX_STACK_TRACE 16
+
 struct s_vos_mem_struct
 {
    hdd_list_node_t pNode;
    const char *fileName;
    unsigned int lineNum;
    unsigned int size;
+#ifdef WLAN_OPEN_SOURCE
+   unsigned long stack_trace[VOS_MEM_MAX_STACK_TRACE];
+   struct stack_trace trace;
+#endif
    v_U8_t header[8];
 };
 
@@ -258,6 +264,50 @@ void vos_mem_init()
    return;
 }
 
+#ifdef WLAN_OPEN_SOURCE
+/**
+ * vos_mem_save_stack_trace() - Save stack trace of the caller
+ * @mem_struct: Pointer to the memory structure where to save the stack trace
+ *
+ * Return: None
+ */
+static inline void vos_mem_save_stack_trace(struct s_vos_mem_struct* mem_struct)
+{
+	struct stack_trace *trace = &mem_struct->trace;
+
+	trace->nr_entries = 0;
+	trace->max_entries = VOS_MEM_MAX_STACK_TRACE;
+	trace->entries = mem_struct->stack_trace;
+	trace->skip = 2;
+
+	save_stack_trace(trace);
+}
+
+/**
+ * vos_mem_print_stack_trace() - Print saved stack trace
+ * @mem_struct: Pointer to the memory structure which has the saved stack trace
+ *              to be printed
+ *
+ * Return: None
+ */
+static inline void vos_mem_print_stack_trace(struct s_vos_mem_struct* mem_struct)
+{
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+		  "Call stack for the source of leaked memory:");
+
+	print_stack_trace(&mem_struct->trace, 1);
+}
+#else
+static inline void vos_mem_save_stack_trace(struct s_vos_mem_struct* mem_struct)
+{
+
+}
+static inline void vos_mem_print_stack_trace(struct s_vos_mem_struct* mem_struct)
+{
+
+}
+#endif
+
 void vos_mem_clean()
 {
     v_SIZE_t listSize;
@@ -305,6 +355,8 @@ void vos_mem_clean()
                 mleak_cnt = 0;
              }
              mleak_cnt++;
+
+             vos_mem_print_stack_trace(memStruct);
 
              kfree((v_VOID_t*)memStruct);
           }
@@ -379,6 +431,8 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
       memStruct->fileName = fileName;
       memStruct->lineNum  = lineNum;
       memStruct->size     = size;
+
+      vos_mem_save_stack_trace(memStruct);
 
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
