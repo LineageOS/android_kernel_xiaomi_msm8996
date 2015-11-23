@@ -20054,10 +20054,13 @@ static void wma_add_wow_wakeup_event(tp_wma_handle wma,
 					   WOW_WAKE_EVENT_TYPE event,
 					   v_BOOL_t enable)
 {
-	if (enable)
+	if (enable) {
 		wma->wow_wakeup_enable_mask |= 1 << event;
-	else
+		wma->wow_wakeup_disable_mask &= ~(1 << event);
+	} else {
 		wma->wow_wakeup_disable_mask |= 1 << event;
+		wma->wow_wakeup_enable_mask &= ~(1 << event);
+	}
 
 	WMA_LOGD("%s %s event %s\n", __func__,
 			enable ? "enable" : "disable",
