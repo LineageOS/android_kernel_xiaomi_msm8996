@@ -1291,10 +1291,10 @@ CDEFINES += -DFEATURE_WLAN_MCC_TO_SCC_SWITCH
 #Enable 4address scheme
 CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
 
-ifneq ($(CONFIG_ARCH_MDM9607), y)
-
 #enable wlan auto shutdown feature
 CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
+
+ifneq ($(CONFIG_ARCH_MDM9607), y)
 
 #MDM Device only, to optimize MSM skb cb memory usage
 CDEFINES += -DQCA_MDM_DEVICE
