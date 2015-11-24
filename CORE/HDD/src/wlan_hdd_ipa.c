@@ -1711,6 +1711,11 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 			}
 
 			hdd_ipa_uc_proc_pending_event(hdd_ipa);
+
+			if (hdd_ipa->pending_cons_req)
+				ipa_rm_notify_completion(
+						IPA_RM_RESOURCE_GRANTED,
+						IPA_RM_RESOURCE_WLAN_CONS);
 		}
 		vos_lock_release(&hdd_ipa->ipa_lock);
 	} else if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
