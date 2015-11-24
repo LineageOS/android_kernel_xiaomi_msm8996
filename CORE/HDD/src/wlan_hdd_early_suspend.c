@@ -1845,7 +1845,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 #endif
 
-   hdd_runtime_suspend_init(pHddCtx);
+   hdd_runtime_suspend_deinit(pHddCtx);
    hdd_reset_all_adapters(pHddCtx);
 
 #ifdef IPA_UC_OFFLOAD
