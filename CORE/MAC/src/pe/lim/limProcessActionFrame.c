@@ -2621,7 +2621,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                   // type is ACTION
                   limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
                       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
-                      WDA_GET_RX_CH( pBd ), NULL, 0);
+                      WDA_GET_RX_CH( pBd ), NULL, WDA_GET_RX_RSSI_RAW(pBd));
                 }
                 else
                 {
@@ -2639,6 +2639,19 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                break;
          }
          break;
+      /* Handle vendor specific action */
+      case SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY:
+      {
+          tpSirMacMgmtHdr     header;
+          uint32_t            frame_len;
+
+          header = WDA_GET_RX_MAC_HEADER(pBd);
+          frame_len = WDA_GET_RX_PAYLOAD_LEN(pBd);
+          limSendSmeMgmtFrameInd(pMac, header->fc.subType,
+              (uint8_t*)header, frame_len + sizeof(tSirMacMgmtHdr), 0,
+              WDA_GET_RX_CH(pBd), NULL, WDA_GET_RX_RSSI_RAW(pBd));
+          break;
+      }
       default:
          limLog(pMac, LOG1,
              FL("Unhandled action frame without session -- %x "),

@@ -2559,6 +2559,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     VOS_STATUS status;
     hdd_remain_on_chan_ctx_t* pRemainChanCtx = NULL;
     hdd_context_t *pHddCtx;
+    uint8_t broadcast = 0;
 
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Frame Type = %d Frame Length = %d"),
             frameType, nFrameLength);
@@ -2589,20 +2590,28 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     if ((type == SIR_MAC_MGMT_FRAME) &&
             (subType != SIR_MAC_MGMT_PROBE_REQ))
     {
-         pAdapter = hdd_get_adapter_by_macaddr( WLAN_HDD_GET_CTX(pAdapter),
+         pAdapter = hdd_get_adapter_by_macaddr(pHddCtx,
                             &pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]);
          if (NULL == pAdapter)
          {
-             /* Under assumption that we don't receive any action frame
-              * with BCST as destination we dropping action frame
-              */
-             hddLog(VOS_TRACE_LEVEL_FATAL,"pAdapter for action frame is NULL Macaddr = "
-                               MAC_ADDRESS_STR ,
-                               MAC_ADDR_ARRAY(&pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]));
-             hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Frame Type = %d Frame Length = %d"
-                              " subType = %d", __func__, frameType,
-                              nFrameLength, subType);
-             return;
+             /* We will receive broadcast management frames in OCB mode */
+             pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_OCB);
+             if (NULL == pAdapter || !vos_is_macaddr_broadcast(
+                     (v_MACADDR_t *)&pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]))
+             {
+                 /* Under assumption that we don't receive any action frame
+                  * with BCST as destination we dropping action frame
+                  */
+                 hddLog(VOS_TRACE_LEVEL_FATAL,"pAdapter for action frame is NULL Macaddr = "
+                                   MAC_ADDRESS_STR ,
+                                   MAC_ADDR_ARRAY(&pbFrames[WLAN_HDD_80211_FRM_DA_OFFSET]));
+                 hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Frame Type = %d Frame Length = %d"
+                                  " subType = %d", __func__, frameType,
+                                  nFrameLength, subType);
+                 return;
+             }
+
+             broadcast = 1;
          }
     }
 
@@ -2650,7 +2659,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
     if ((type == SIR_MAC_MGMT_FRAME) &&
-        (subType == SIR_MAC_MGMT_ACTION))
+        (subType == SIR_MAC_MGMT_ACTION) && !broadcast)
     {
         if(pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME)
         {
@@ -2805,17 +2814,17 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     //Indicate Frame Over Normal Interface
     hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(WITH_BACKPORTS)
-    cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, 0, pbFrames,
+    cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, rxRssi * 100, pbFrames,
                      nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
-    cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, 0, pbFrames,
+    cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, rxRssi * 100, pbFrames,
                      nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED, GFP_ATOMIC);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-    cfg80211_rx_mgmt( pAdapter->dev->ieee80211_ptr, freq, 0,
+    cfg80211_rx_mgmt( pAdapter->dev->ieee80211_ptr, freq, rxRssi * 100,
                       pbFrames, nFrameLength,
                       GFP_ATOMIC );
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-    cfg80211_rx_mgmt( pAdapter->dev, freq, 0,
+    cfg80211_rx_mgmt( pAdapter->dev, freq, rxRssi * 100,
                       pbFrames, nFrameLength,
                       GFP_ATOMIC );
 #else

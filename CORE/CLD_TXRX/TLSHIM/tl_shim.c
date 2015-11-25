@@ -2019,7 +2019,7 @@ void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr)
 	peer = ol_txrx_find_peer_by_addr(pdev, mac_addr, &peer_id);
 
 	if (!peer) {
-		TLSHIM_LOGE("PEER [%pM] not found", mac_addr);
+		TLSHIM_LOGW("PEER [%pM] not found", mac_addr);
 		return NULL;
 	}
 
