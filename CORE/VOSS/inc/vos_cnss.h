@@ -237,17 +237,10 @@ static inline void vos_set_driver_status(int status)
 static inline void vos_set_driver_status(int status) {}
 #endif
 
-#ifdef CONFIG_CNSS_PCI
 static inline int vos_wlan_set_dfs_nol(const void *info, u16 info_len)
 {
 	return cnss_wlan_set_dfs_nol(info, info_len);
 }
-#else
-static inline int vos_wlan_set_dfs_nol(const void *info, u16 info_len)
-{
-	return -EINVAL;
-}
-#endif
 
 static inline void
 vos_init_delayed_work(struct delayed_work *work, work_func_t func)
@@ -267,17 +260,10 @@ static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
 }
 #endif
 
-#ifdef CONFIG_CNSS_PCI
 static inline int vos_wlan_get_dfs_nol(void *info, u16 info_len)
 {
 	return cnss_wlan_get_dfs_nol(info, info_len);
 }
-#else
-static inline int vos_wlan_get_dfs_nol(void *info, u16 info_len)
-{
-	return -EINVAL;
-}
-#endif
 
 static inline void vos_get_boottime_ts(struct timespec *ts)
 {
@@ -307,33 +293,17 @@ static inline int vos_vendor_cmd_reply(struct sk_buff *skb)
         return cnss_vendor_cmd_reply(skb);
 }
 
-#ifdef CONFIG_CNSS_PCI
 static inline int
 vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 ch_count)
 {
 	return cnss_set_wlan_unsafe_channel(unsafe_ch_list, ch_count);
 }
-#else
-static inline int
-vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 ch_count)
-{
-	return -EINVAL;
-}
-#endif
 
-#ifdef CONFIG_CNSS_PCI
 static inline int
 vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
 {
 	return cnss_get_wlan_unsafe_channel(unsafe_ch_list, ch_count, buf_len);
 }
-#else
-static inline int
-vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
-{
-	return -EINVAL;
-}
-#endif
 
 #ifdef CONFIG_CNSS_PCI
 static inline void vos_schedule_recovery_work(void)
