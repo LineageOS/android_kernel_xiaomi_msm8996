@@ -1436,11 +1436,34 @@ static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 	while (atomic_read(&sc->dev->power.usage_count) != 1)
 		pm_runtime_put_noidle(sc->dev);
 }
+
+/**
+ * hif_pci_pm_runtime_ssr_post_exit() - Empty the prevent suspend list on SSR
+ * @sc: hif_pci context
+ *
+ * API is used to empty the runtime pm prevent suspend list.
+ *
+ * Return: void
+ */
+static void hif_pci_pm_runtime_ssr_post_exit(struct hif_pci_softc *sc)
+{
+	unsigned long flags;
+	struct hif_pm_runtime_context *ctx, *tmp;
+
+	spin_lock_irqsave(&sc->runtime_lock, flags);
+	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
+		hif_pm_ssr_runtime_allow_suspend(sc, ctx);
+	}
+	spin_unlock_irqrestore(&sc->runtime_lock, flags);
+}
+
 #else
 static inline void hif_pci_pm_runtime_init(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc) { }
 static inline void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc) { }
+static inline void
+hif_pci_pm_runtime_ssr_post_exit(struct hif_pci_softc *sc) { }
 #endif
 
 int
@@ -2461,7 +2484,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     pci_disable_msi(pdev);
 
-    hif_pci_pm_runtime_post_exit(sc);
+    hif_pci_pm_runtime_ssr_post_exit(sc);
     hif_deinit_adf_ctx(scn);
     A_FREE(scn);
     A_FREE(sc->hif_device);

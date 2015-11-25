@@ -3578,6 +3578,22 @@ void hif_runtime_pm_prevent_suspend_deinit(void *data)
 
 	adf_os_mem_free(context);
 }
+
+/**
+ * hif_pm_ssr_runtime_allow_suspend() - Release Runtime Context during SSR
+ * @sc: hif_pci context
+ * @context: runtime context
+ *
+ * API is used to release runtime pm context from prevent suspend list and
+ * reduce the usage count taken by the context and set the context state to
+ * false.
+ *
+ * Return: void
+ */
+void hif_pm_ssr_runtime_allow_suspend(struct hif_pci_softc *sc, void *context)
+{
+	__hif_pm_runtime_allow_suspend(sc, context);
+}
 #endif
 
 /**
