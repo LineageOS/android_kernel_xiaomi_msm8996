@@ -4325,8 +4325,30 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			vos_lock_release(&hdd_ipa->event_lock);
 			return 0;
 		}
-		vos_lock_release(&hdd_ipa->event_lock);
+
+		/* Enable IPA UC Data PIPEs when first STA connected */
+		if ((0 == hdd_ipa->sap_num_connected_sta)
+#ifdef IPA_UC_STA_OFFLOAD
+			&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
+			|| !hdd_ipa->sta_connected)
 #endif
+			&& (VOS_TRUE == hdd_ipa->uc_loaded)
+		) {
+			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
+			if (ret) {
+				vos_lock_release(&hdd_ipa->event_lock);
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+					"%s: handle 1st con ret %d",
+					adapter->dev->name, ret);
+				return ret;
+			}
+		}
+
+		hdd_ipa->sap_num_connected_sta++;
+		hdd_ipa->pending_cons_req = VOS_FALSE;
+
+		vos_lock_release(&hdd_ipa->event_lock);
+#endif /* IPA_UC_OFFLOAD */
 
 		meta.msg_type = type;
 		meta.msg_len = (sizeof(struct ipa_wlan_msg_ex) +
@@ -4364,31 +4386,7 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			return ret;
 		}
 		hdd_ipa->stats.num_send_msg++;
-#ifdef IPA_UC_OFFLOAD
-		vos_lock_acquire(&hdd_ipa->event_lock);
-		/* Enable IPA UC Data PIPEs when first STA connected */
-		if ((0 == hdd_ipa->sap_num_connected_sta)
-#ifdef IPA_UC_STA_OFFLOAD
-			&& (!hdd_ipa_uc_sta_is_enabled(hdd_ipa)
-			|| !hdd_ipa->sta_connected)
-#endif
-			&& (VOS_TRUE == hdd_ipa->uc_loaded)
-		) {
-			ret = hdd_ipa_uc_handle_first_con(hdd_ipa);
-			if (ret) {
-				vos_lock_release(&hdd_ipa->event_lock);
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"%s: handle 1st con ret %d",
-					adapter->dev->name, ret);
-				return ret;
-			}
-		}
 
-		hdd_ipa->sap_num_connected_sta++;
-		hdd_ipa->pending_cons_req = VOS_FALSE;
-
-		vos_lock_release(&hdd_ipa->event_lock);
-#endif /* IPA_UC_OFFLOAD */
 		return ret;
 
 	case WLAN_CLIENT_DISCONNECT:
