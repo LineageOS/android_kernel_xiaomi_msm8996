@@ -1255,14 +1255,12 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    if (hdd_ipa_is_enabled(pHddCtx))
       vosStatus = WLANTL_RegisterSTAClient(pHddCtx->pvosContext,
                                          hdd_ipa_process_rxt,
-                                         hdd_tx_complete_cbk,
                                          &staDesc,
                                          pBssDesc->rssi);
    else
 #endif
    vosStatus = WLANTL_RegisterSTAClient(pHddCtx->pvosContext,
                                          hdd_rx_packet_cbk,
-                                         hdd_tx_complete_cbk,
                                          &staDesc,
                                          pBssDesc->rssi);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -2844,13 +2842,11 @@ VOS_STATUS hdd_roamRegisterTDLSSTA(hdd_adapter_t *pAdapter,
     if (hdd_ipa_is_enabled(WLAN_HDD_GET_CTX(pAdapter)))
        vosStatus = WLANTL_RegisterSTAClient(pVosContext,
                                           hdd_ipa_process_rxt,
-                                          hdd_tx_complete_cbk,
                                           &staDesc, 0);
     else
 #endif
     vosStatus = WLANTL_RegisterSTAClient(pVosContext,
                                           hdd_rx_packet_cbk,
-                                          hdd_tx_complete_cbk,
                                           &staDesc, 0);
 
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )

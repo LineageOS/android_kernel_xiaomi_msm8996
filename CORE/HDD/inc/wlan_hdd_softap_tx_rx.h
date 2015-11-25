@@ -134,37 +134,6 @@ extern VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STA
 extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId );
 
 /**============================================================================
-  @brief hdd_tx_complete_cbk() - Callback function invoked by TL
-  to indicate that a packet has been transmitted across the SDIO bus
-  successfully. OS packet resources can be released after this cbk.
-
-  @param vosContext   : [in] pointer to VOS context
-  @param pVosPacket   : [in] pointer to VOS packet (containing skb)
-  @param vosStatusIn  : [in] status of the transmission
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
-                                       vos_pkt_t *pVosPacket,
-                                       VOS_STATUS vosStatusIn );
-
-/**============================================================================
-  @brief hdd_softap_tx_low_resource_cbk() - Callback function invoked in the
-  case where VOS packets are not available at the time of the call to get
-  packets. This callback function is invoked by VOS when packets are
-  available.
-
-  @param pVosPacket : [in]  pointer to VOS packet
-  @param userData   : [in]  opaque user data that was passed initially
-
-  @return           : VOS_STATUS_E_FAILURE if any errors encountered,
-                    : VOS_STATUS_SUCCESS otherwise
-  =============================================================================*/
-extern VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
-                                           v_VOID_t *userData );
-
-/**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when a packet was received
   for a registered STA.

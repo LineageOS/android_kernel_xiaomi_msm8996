@@ -63,25 +63,6 @@
 /*---------------------------------------------------------------------------
   Function definitions and documentation
   -------------------------------------------------------------------------*/
-#if 0
-static void hdd_softap_dump_sk_buff(struct sk_buff * skb)
-{
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: head = %p ", __func__, skb->head);
-  //VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: data = %p ", __func__, skb->data);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: tail = %p ", __func__, skb->tail);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: end = %p ", __func__, skb->end);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: len = %d ", __func__, skb->len);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: data_len = %d ", __func__, skb->data_len);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"%s: mac_len = %d", __func__, skb->mac_len);
-
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x ",
-     skb->data[0], skb->data[1], skb->data[2], skb->data[3], skb->data[4],
-     skb->data[5], skb->data[6], skb->data[7]);
-  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,"0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",
-     skb->data[8], skb->data[9], skb->data[10], skb->data[11], skb->data[12],
-     skb->data[13], skb->data[14], skb->data[15]);
-}
-#endif
 
 /**============================================================================
   @brief hdd_softap_flush_tx_queues() - Utility function to flush the TX queues
@@ -736,133 +717,6 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
 }
 
 /**============================================================================
-  @brief hdd_softap_tx_complete_cbk() - Callback function invoked by TL
-  to indicate that a packet has been transmitted across the bus
-  successfully. OS packet resources can be released after this cbk.
-
-  @param vosContext   : [in] pointer to VOS context
-  @param pVosPacket   : [in] pointer to VOS packet (containing skb)
-  @param vosStatusIn  : [in] status of the transmission
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
-                                vos_pkt_t *pVosPacket,
-                                VOS_STATUS vosStatusIn )
-{
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   hdd_adapter_t *pAdapter = NULL;
-   void* pOsPkt = NULL;
-
-   if( ( NULL == vosContext ) || ( NULL == pVosPacket )  )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Null params being passed", __func__);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   //Return the skb to the OS
-   status = vos_pkt_get_os_packet( pVosPacket, &pOsPkt, VOS_TRUE );
-   if ((!VOS_IS_STATUS_SUCCESS(status)) || (!pOsPkt))
-   {
-      //This is bad but still try to free the VOSS resources if we can
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Failure extracting skb from vos pkt", __func__);
-      vos_pkt_return_packet( pVosPacket );
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   //Get the Adapter context.
-   pAdapter = (hdd_adapter_t *)netdev_priv(((struct sk_buff *)pOsPkt)->dev);
-   if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: HDD adapter context is invalid", __func__);
-   }
-   else
-   {
-      ++pAdapter->hdd_stats.hddTxRxStats.txCompleted;
-   }
-
-   kfree_skb((struct sk_buff *)pOsPkt);
-
-   //Return the VOS packet resources.
-   status = vos_pkt_return_packet( pVosPacket );
-   if(!VOS_IS_STATUS_SUCCESS( status ))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Could not return VOS packet to the pool", __func__);
-   }
-
-   return status;
-}
-
-/**============================================================================
-  @brief hdd_softap_tx_low_resource_cbk() - Callback function invoked in the
-  case where VOS packets are not available at the time of the call to get
-  packets. This callback function is invoked by VOS when packets are
-  available.
-
-  @param pVosPacket : [in]  pointer to VOS packet
-  @param userData   : [in]  opaque user data that was passed initially
-
-  @return           : VOS_STATUS_E_FAILURE if any errors encountered,
-                    : VOS_STATUS_SUCCESS otherwise
-  =============================================================================*/
-VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
-                                    v_VOID_t *userData )
-{
-   VOS_STATUS status;
-   v_SINT_t i = 0;
-   v_SIZE_t size = 0;
-   hdd_adapter_t* pAdapter = (hdd_adapter_t *)userData;
-   v_U8_t STAId = WLAN_MAX_STA_COUNT;
-
-   if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-      hddLog(LOGE, FL("Invalid adapter %p"), pAdapter);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   //Return the packet to VOS. We just needed to know that VOS is out of low resource
-   //situation. Here we will only signal TL that there is a pending data for a STA.
-   //VOS packet will be requested (if needed) when TL comes back to fetch data.
-   vos_pkt_return_packet( pVosPacket );
-
-   pAdapter->isVosOutOfResource = VOS_FALSE;
-
-   // Indicate to TL that there is pending data if a queue is non empty.
-   // This Code wasnt included in earlier version which resulted in
-   // Traffic stalling
-   for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
-   {
-      if ((pAdapter->aStaInfo[STAId].tlSTAState == WLANTL_STA_AUTHENTICATED) ||
-           (pAdapter->aStaInfo[STAId].tlSTAState == WLANTL_STA_CONNECTED))
-      {
-         for( i=NUM_TX_QUEUES-1; i>=0; --i )
-         {
-            size = 0;
-            hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[i], &size);
-            if ( size > 0 )
-            {
-               status = WLANTL_STAPktPending( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                        STAId,
-                                        (WLANTL_ACEnumType)i );
-               if( !VOS_IS_STATUS_SUCCESS( status ) )
-               {
-                  VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-                             "%s: Failure in indicating pkt to TL for ac=%d", __func__,i);
-               }
-            }
-         }
-      }
-   }
-   return VOS_STATUS_SUCCESS;
-}
-
-
-
-/**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were
   received for a registered STA.
@@ -1115,14 +969,12 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
       vosStatus = WLANTL_RegisterSTAClient(
                               (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                               hdd_ipa_process_rxt,
-                              hdd_softap_tx_complete_cbk,
                               &staDesc, 0);
    else
 #endif
    vosStatus = WLANTL_RegisterSTAClient(
                               (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                               hdd_softap_rx_packet_cbk,
-                              hdd_softap_tx_complete_cbk,
                               &staDesc, 0);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {

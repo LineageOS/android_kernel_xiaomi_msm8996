@@ -1734,7 +1734,6 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
  */
 VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 				    WLANTL_STARxCBType rxcb,
-				    WLANTL_TxCompCBType tx_comp,
 				    WLAN_STADescType *sta_desc, v_S7_t rssi)
 {
 	struct txrx_tl_shim_ctx *tl_shim;

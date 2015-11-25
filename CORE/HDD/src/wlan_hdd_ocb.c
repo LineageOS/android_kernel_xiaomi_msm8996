@@ -377,7 +377,6 @@ static int hdd_ocb_register_sta(hdd_adapter_t *adapter)
 
 	vos_status = WLANTL_RegisterSTAClient(hdd_ctx->pvosContext,
 					      hdd_rx_packet_cbk,
-					      hdd_tx_complete_cbk,
 					      &sta_desc,
 					      0);
 	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {

@@ -461,37 +461,6 @@ typedef tSap_SoftapStats WLANTL_TRANSFER_STA_TYPE;
 #define WLANTL_SINGLE_CLNT_THRESHOLD 4
 
 /*----------------------------------------------------------------------------
- *   TL callback types
- *--------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------
-
-  DESCRIPTION
-    Type of the tx complete callback registered with TL.
-
-    TL will call this to notify the client when a transmission for a
-    packet  has ended.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL/HAL/PE/HDD control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
-    wTxSTAtus:      status of the transmission
-
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_TxCompCBType)( v_PVOID_t      pvosGCtx,
-                                           vos_pkt_t*     pFrameDataBuff,
-                                           VOS_STATUS     wTxSTAtus );
-
-
-/*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
 
@@ -866,8 +835,6 @@ WLANTL_ConfigureSwFrameTXXlationForAll
    pvosGCtx:        pointer to the global vos context; a handle to TL's
                     control block can be extracted from its context
    pfnStARx:        function pointer to the receive packet handler from HDD
-   pfnSTATxComp:    function pointer to the transmit complete confirmation
-                    handler from HDD
    wSTADescType:    STA Descriptor, contains information related to the
                     new added STA
 
@@ -889,7 +856,6 @@ WLANTL_RegisterSTAClient
 (
   v_PVOID_t                 pvosGCtx,
   WLANTL_STARxCBType        pfnSTARx,
-  WLANTL_TxCompCBType       pfnSTATxComp,
   WLAN_STADescType*         wSTADescType ,
   v_S7_t                    rssi
 );
@@ -1512,7 +1478,6 @@ WLANTL_TxMgmtFrm
   v_U16_t              usFrmLen,
   v_U8_t               ucFrmType,
   v_U8_t               tid,
-  WLANTL_TxCompCBType  pfnCompTxFunc,
   v_PVOID_t            voosBDHeader,
   v_U8_t               ucAckResponse
 );
