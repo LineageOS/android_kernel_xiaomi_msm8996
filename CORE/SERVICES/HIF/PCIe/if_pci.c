@@ -2439,9 +2439,10 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     if (!vos_is_ssr_ready(__func__))
         pr_info("Host driver is not ready for SSR, attempting anyway\n");
 
-    hif_pci_device_reset(sc);
-
     scn = sc->ol_sc;
+
+    hif_disable_isr(scn);
+    hif_pci_device_reset(sc);
 
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE &&
@@ -2453,10 +2454,8 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     hif_dump_pipe_debug_count(sc->hif_device);
 
-    if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-        hif_disable_isr(scn);
+    if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
         hdd_wlan_shutdown();
-    }
 
     mem = (void __iomem *)sc->mem;
 
