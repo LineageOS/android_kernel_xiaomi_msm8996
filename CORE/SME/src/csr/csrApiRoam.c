@@ -7575,7 +7575,7 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSmeCmd *pCommand;
-        tANI_BOOLEAN fHighPriority = eANI_BOOLEAN_FALSE;
+
     do
     {
         pCommand = csrGetCommandBuffer( pMac );
@@ -7604,7 +7604,6 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
             pCommand->u.roamCmd.roamReason = eCsrForcedDeauth;
             break;
         case eCSR_DISCONNECT_REASON_HANDOFF:
-            fHighPriority = eANI_BOOLEAN_TRUE;
             pCommand->u.roamCmd.roamReason = eCsrSmeIssuedDisassocForHandoff;
             break;
         case eCSR_DISCONNECT_REASON_UNSPECIFIED:
@@ -7626,7 +7625,7 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
         default:
             break;
         }
-        status = csrQueueSmeCommand(pMac, pCommand, fHighPriority);
+        status = csrQueueSmeCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
         if( !HAL_STATUS_SUCCESS( status ) )
         {
             smsLog( pMac, LOGE, FL(" fail to send message status = %d"), status );
