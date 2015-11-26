@@ -2084,7 +2084,7 @@ sapGotoChannelSel
     tHalHandle hHal;
     tANI_U8   con_ch;
 
-#ifdef FEATURE_WLAN_CH_AVOID
+#if defined(FEATURE_WLAN_CH_AVOID) || defined(SOFTAP_CHANNEL_RANGE)
     v_U8_t i;
 #endif
 
