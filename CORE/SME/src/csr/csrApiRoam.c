@@ -7858,7 +7858,7 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
 }
 
 
-static boolean is_disconnect_pending(tpAniSirGlobal pmac,
+boolean is_disconnect_pending(tpAniSirGlobal pmac,
 				uint8_t sessionid)
 {
 	tListElem *entry = NULL;
