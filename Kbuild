@@ -963,8 +963,13 @@ CDEFINES +=     -DCONFIG_HL_SUPPORT \
                 -DHIF_SDIO \
                 -DCONFIG_ATH_PROCFS_DIAG_SUPPORT \
                 -DFEATURE_HL_GROUP_CREDIT_FLOW_CONTROL \
-                -DHIF_MBOX_SLEEP_WAR \
-		-DDEBUG_HL_LOGGING
+                -DHIF_MBOX_SLEEP_WAR
+endif
+
+ifeq ($(CONFIG_ARCH_MDM9607), y)
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+CDEFINES += -DDEBUG_HL_LOGGING
+endif
 endif
 
 ifeq ($(CONFIG_ARCH_MDM9607), y)
