@@ -300,15 +300,10 @@ ol_tx_tid(
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_ethernet;
 
         ol_tx_set_ether_type(datap, tx_msdu_info);
-        if (A_STATUS_OK == adf_nbuf_is_dhcp_pkt(tx_nbuf)) {
-            /* DHCP frame to go with voice priority */
-            tid = TX_DHCP_TID;
-        } else {
-            tid =
-                tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
-                ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
-                tx_msdu_info->htt.info.ext_tid;
-        }
+        tid =
+            tx_msdu_info->htt.info.ext_tid == ADF_NBUF_TX_EXT_TID_INVALID ?
+            ol_tx_tid_by_ether_type(datap, tx_msdu_info) :
+            tx_msdu_info->htt.info.ext_tid;
     } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
         struct llc_snap_hdr_t *llc;
 
@@ -374,8 +369,9 @@ ol_tx_classify(
                     vdev->mac_addr.raw[2], vdev->mac_addr.raw[3],
                     vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
                 return NULL; /* error */
-            } else if (A_STATUS_OK ==
-                            adf_nbuf_is_dhcp_pkt(tx_nbuf)) {
+            } else if ((peer->security[OL_TXRX_PEER_SECURITY_MULTICAST].sec_type
+                              != htt_sec_type_wapi) &&
+                              (A_STATUS_OK == adf_nbuf_is_dhcp_pkt(tx_nbuf))) {
                 /* DHCP frame to go with voice priority */
                 txq = &peer->txqs[TX_DHCP_TID];
                 tx_msdu_info->htt.info.ext_tid = TX_DHCP_TID;
@@ -499,7 +495,13 @@ ol_tx_classify(
         TX_SCHED_DEBUG_PRINT("Peer found\n");
         if (!peer->qos_capable) {
             tid = OL_TX_NON_QOS_TID;
+        } else if ((peer->security[OL_TXRX_PEER_SECURITY_UNICAST].sec_type
+                          != htt_sec_type_wapi) &&
+                          (A_STATUS_OK == adf_nbuf_is_dhcp_pkt(tx_nbuf))) {
+            /* DHCP frame to go with voice priority */
+            tid = TX_DHCP_TID;
         }
+
         /* Only allow encryption when in authenticated state */
         if (ol_txrx_peer_state_auth != peer->state) {
             tx_msdu_info->htt.action.do_encrypt = 0;
