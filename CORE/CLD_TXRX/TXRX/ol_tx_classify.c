@@ -547,7 +547,7 @@ ol_tx_classify(
     if (IEEE80211_IS_MULTICAST(dest_addr) && vdev->opmode != wlan_op_mode_sta &&
         tx_msdu_info->peer != NULL) {
 
-        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
                       "%s: remove the peer reference %p\n", __func__, peer);
         /* remove the peer reference added above */
         ol_txrx_peer_unref_delete(tx_msdu_info->peer);
