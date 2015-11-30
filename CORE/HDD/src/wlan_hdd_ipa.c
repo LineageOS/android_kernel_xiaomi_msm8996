@@ -1489,21 +1489,11 @@ static void hdd_ipa_uc_rm_notify_handler(void *context, enum ipa_rm_event event)
 			hdd_ipa_uc_enable_pipes(hdd_ipa);
 		}
 		vos_lock_release(&hdd_ipa->ipa_lock);
-		if (hdd_ipa->pending_cons_req) {
-			ipa_rm_notify_completion(IPA_RM_RESOURCE_GRANTED,
-				IPA_RM_RESOURCE_WLAN_CONS);
-		}
-		hdd_ipa->pending_cons_req = VOS_FALSE;
 		break;
 
 	case IPA_RM_RESOURCE_RELEASED:
 		/* Differed RM Released */
 		hdd_ipa->resource_unloading = VOS_FALSE;
-		if (hdd_ipa->pending_cons_req) {
-			ipa_rm_notify_completion(IPA_RM_RESOURCE_RELEASED,
-				IPA_RM_RESOURCE_WLAN_CONS);
-		}
-		hdd_ipa->pending_cons_req = VOS_FALSE;
 		break;
 
 	default:
@@ -1716,6 +1706,7 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 				ipa_rm_notify_completion(
 						IPA_RM_RESOURCE_GRANTED,
 						IPA_RM_RESOURCE_WLAN_CONS);
+			hdd_ipa->pending_cons_req = VOS_FALSE;
 		}
 		vos_lock_release(&hdd_ipa->ipa_lock);
 	} else if ((HDD_IPA_UC_OPCODE_TX_SUSPEND == msg->op_code) ||
@@ -1724,16 +1715,14 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 		hdd_ipa->activated_fw_pipe--;
 		if (!hdd_ipa->activated_fw_pipe) {
 			hdd_ipa_uc_disable_pipes(hdd_ipa);
-			if ((hdd_ipa_is_rm_enabled(hdd_ipa)) &&
-			(!ipa_rm_release_resource(IPA_RM_RESOURCE_WLAN_PROD))) {
-				/* Sync return success from IPA
-				 * Enable/resume all the PIPEs */
-				hdd_ipa->resource_unloading = VOS_FALSE;
-				hdd_ipa_uc_proc_pending_event(hdd_ipa);
-			} else {
-				hdd_ipa->resource_unloading = VOS_FALSE;
-				hdd_ipa_uc_proc_pending_event(hdd_ipa);
-			}
+			if (hdd_ipa_is_rm_enabled(hdd_ipa))
+				ipa_rm_release_resource(
+					IPA_RM_RESOURCE_WLAN_PROD);
+			/* Sync return success from IPA
+			 * Enable/resume all the PIPEs */
+			hdd_ipa->resource_unloading = VOS_FALSE;
+			hdd_ipa_uc_proc_pending_event(hdd_ipa);
+			hdd_ipa->pending_cons_req = VOS_FALSE;
 		}
 		vos_lock_release(&hdd_ipa->ipa_lock);
 	}
