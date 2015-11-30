@@ -305,13 +305,29 @@ vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
 	return cnss_get_wlan_unsafe_channel(unsafe_ch_list, ch_count, buf_len);
 }
 
-#ifdef CONFIG_CNSS_PCI
+#if defined(CONFIG_CNSS_PCI) || defined(CONFIG_CNSS_SDIO)
 static inline void vos_schedule_recovery_work(void)
 {
 	cnss_schedule_recovery_work();
 }
+
+static inline void vos_device_crashed(void)
+{
+	cnss_device_crashed();
+}
+
+static inline void vos_device_self_recovery(void)
+{
+	cnss_device_self_recovery();
+}
+
 #else
-static inline void vos_schedule_recovery_work(void) {}
+static inline void vos_schedule_recovery_work(void) {};
+
+static inline void vos_device_crashed(void) {};
+
+static inline void vos_device_self_recovery(void) {};
+
 #endif
 
 #ifdef CONFIG_CNSS_PCI
@@ -380,16 +396,6 @@ static inline int
 vos_get_ramdump_mem(unsigned long *address, unsigned long *size)
 {
 	return cnss_get_ramdump_mem(address, size);
-}
-
-static inline void vos_device_crashed(void)
-{
-	cnss_device_crashed();
-}
-
-static inline void vos_device_self_recovery(void)
-{
-	cnss_device_self_recovery();
 }
 
 static inline int vos_get_platform_cap(void *cap)

@@ -206,6 +206,9 @@ MODULE_DEVICE_TABLE(sdio, ar6k_id_table);
 #ifdef CONFIG_CNSS_SDIO
 static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id);
 static void hif_sdio_device_removed(struct sdio_func *func);
+static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id);
+static void hif_sdio_device_shutdown(struct sdio_func *func);
+static void hif_sdio_crash_shutdown(struct sdio_func *func);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
 static int hif_sdio_device_suspend(struct device *dev);
 static int hif_sdio_device_resume(struct device *dev);
@@ -216,6 +219,9 @@ static struct cnss_sdio_wlan_driver ar6k_driver = {
 	.id_table = ar6k_id_table,
 	.probe = hif_sdio_device_inserted,
 	.remove = hif_sdio_device_removed,
+	.reinit = hif_sdio_device_reinit,
+	.shutdown = hif_sdio_device_shutdown,
+	.crash_shutdown = hif_sdio_crash_shutdown,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
 	.suspend = hif_sdio_device_suspend,
 	.resume = hif_sdio_device_resume,
@@ -244,7 +250,6 @@ static struct pm_ops ar6k_device_pm_ops = {
 };
 #endif /* CONFIG_PM */
 #endif
-
 
 /* make sure we only unregister when registered. */
 static int registered = 0;
@@ -2401,6 +2406,22 @@ static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_de
 static void hif_sdio_device_removed(struct sdio_func *func)
 {
 	hifDeviceRemoved(func);
+}
+
+static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
+{
+	vos_set_crash_indication_pending(true);
+	return hifDeviceInserted(func, id);
+}
+
+static void hif_sdio_device_shutdown(struct sdio_func *func)
+{
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+	hifDeviceRemoved(func);
+}
+
+static void hif_sdio_crash_shutdown(struct sdio_func *func)
+{
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)

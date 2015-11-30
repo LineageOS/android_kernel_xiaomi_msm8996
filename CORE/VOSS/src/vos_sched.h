@@ -388,6 +388,8 @@ typedef struct _VosContextType
 
    struct vos_log_complete log_complete;
    vos_spin_lock_t bug_report_lock;
+
+   bool crash_indication_pending;
 } VosContextType, *pVosContextType;
 
 

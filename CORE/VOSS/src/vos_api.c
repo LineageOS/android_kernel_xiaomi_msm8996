@@ -2713,3 +2713,43 @@ void vos_logging_set_fw_flush_complete(void)
 {
 	wlan_logging_set_fw_flush_complete();
 }
+
+/**
+ * vos_is_crash_indication_pending() - get crash indication status
+ *
+ * After wlan start up, we check the pending flag to know whether
+ * it was caused by SSR. If it 's true,we need to indicate a netlink
+ * message to wlan service to restart application process (hostapd).
+ *
+ * Return: true if carsh indication is pending.
+ */
+bool vos_is_crash_indication_pending(void)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		"%s: global voss context is NULL", __func__);
+	  return false;
+	}
+
+	return gpVosContext->crash_indication_pending;
+}
+
+/**
+ * vos_set_crash_indication_pending() - set crash indication status
+ * @value: pending statue to set
+ *
+ * Upon crash happends, we set the pending flag to true. To indicate
+ * the crash indication event to wlan service is needed after recovery.
+ *
+ * Return: None
+ */
+void vos_set_crash_indication_pending(bool value)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		"%s: global voss context is NULL", __func__);
+		return ;
+	}
+
+	gpVosContext->crash_indication_pending = value;
+}
