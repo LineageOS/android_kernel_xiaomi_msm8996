@@ -11293,7 +11293,8 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 }
 
 static int wlan_hdd_add_ie(hdd_adapter_t* pHostapdAdapter, v_U8_t *genie,
-                              v_U8_t *total_ielen, v_U8_t *oui, v_U8_t oui_size)
+                              v_U16_t *total_ielen, v_U8_t *oui,
+                              v_U8_t oui_size)
 {
     v_U16_t ielen = 0;
     v_U8_t *pIe = NULL;
@@ -11320,7 +11321,7 @@ static int wlan_hdd_add_ie(hdd_adapter_t* pHostapdAdapter, v_U8_t *genie,
 }
 
 static void wlan_hdd_add_hostapd_conf_vsie(hdd_adapter_t* pHostapdAdapter,
-                                           v_U8_t *genie, v_U8_t *total_ielen)
+                                           v_U8_t *genie, v_U16_t *total_ielen)
 {
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
     int left = pBeacon->tail_len;
@@ -11381,7 +11382,7 @@ static void wlan_hdd_add_hostapd_conf_vsie(hdd_adapter_t* pHostapdAdapter,
 }
 
 static void wlan_hdd_add_extra_ie(hdd_adapter_t* pHostapdAdapter,
-                                           v_U8_t *genie, v_U8_t *total_ielen,
+                                           v_U8_t *genie, v_U16_t *total_ielen,
                                            v_U8_t temp_ie_id)
 {
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
@@ -11431,7 +11432,7 @@ static void wlan_hdd_add_extra_ie(hdd_adapter_t* pHostapdAdapter,
 
 #ifdef QCA_HT_2040_COEX
 static void wlan_hdd_add_sap_obss_scan_ie(
-	hdd_adapter_t *pHostapdAdapter, v_U8_t *ie_buf, v_U8_t *ie_len)
+	hdd_adapter_t *pHostapdAdapter, v_U8_t *ie_buf, v_U16_t *ie_len)
 {
 	if (WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode) {
 		if (wlan_hdd_get_sap_obss(pHostapdAdapter))
@@ -11441,7 +11442,7 @@ static void wlan_hdd_add_sap_obss_scan_ie(
 }
 #else
 static void wlan_hdd_add_sap_obss_scan_ie(
-	hdd_adapter_t* pHostapdAdapter, v_U8_t *ie_buf, v_U8_t *ie_len)
+	hdd_adapter_t* pHostapdAdapter, v_U8_t *ie_buf, v_U16_t *ie_len)
 {
 }
 #endif
@@ -11449,7 +11450,7 @@ static void wlan_hdd_add_sap_obss_scan_ie(
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 {
     v_U8_t *genie;
-    v_U8_t total_ielen = 0;
+    v_U16_t total_ielen = 0;
     int ret = 0;
     tsap_Config_t *pConfig;
     tSirUpdateIE   updateIE;
