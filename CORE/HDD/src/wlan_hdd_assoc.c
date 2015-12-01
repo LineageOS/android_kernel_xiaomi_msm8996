@@ -3899,9 +3899,12 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
 #if defined(FEATURE_WLAN_LFR) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) \
 	    || defined(WITH_BACKPORTS)
         case eCSR_ROAM_PMK_NOTIFY:
-           if (eCSR_AUTH_TYPE_RSN == pHddStaCtx->conn_info.authType ||
-               eCSR_AUTH_TYPE_RSN_8021X_SHA256 ==
+           if (eCSR_AUTH_TYPE_RSN == pHddStaCtx->conn_info.authType
+#ifdef WLAN_FEATURE_11W
+               || (eCSR_AUTH_TYPE_RSN_8021X_SHA256 ==
                                  pHddStaCtx->conn_info.authType)
+#endif
+                                                              )
            {
                /* Notify the supplicant of a new candidate */
                halStatus = wlan_hdd_cfg80211_pmksa_candidate_notify(pAdapter, pRoamInfo, 1, false);
