@@ -705,12 +705,14 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
     // increment a debug count
     pMac->lim.gLimNumRxCleanup++;
 #endif
-
-    if (psessionEntry->limSmeState == eLIM_SME_JOIN_FAILURE_STATE) {
-        retCode = limDelBss( pMac, pStaDs, psessionEntry->bssIdx, psessionEntry);
+    /* Do DEL BSS or DEL STA only if ADD BSS was success */
+    if (!psessionEntry->add_bss_failed) {
+        if (psessionEntry->limSmeState == eLIM_SME_JOIN_FAILURE_STATE) {
+            retCode = limDelBss( pMac, pStaDs,
+                              psessionEntry->bssIdx, psessionEntry);
+        } else
+            retCode = limDelSta( pMac, pStaDs, true, psessionEntry);
     }
-    else
-        retCode = limDelSta( pMac, pStaDs, true, psessionEntry);
 
     return retCode;
 

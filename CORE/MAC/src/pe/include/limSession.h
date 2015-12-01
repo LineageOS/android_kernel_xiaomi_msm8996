@@ -495,6 +495,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8 countryInfoPresent;
     uint8_t vdev_nss;
     bool roaming_in_progress;
+    bool add_bss_failed;
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------
