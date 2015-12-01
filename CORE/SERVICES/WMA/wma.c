@@ -400,6 +400,8 @@ static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
 static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
 				uint32_t len);
 
+tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -1968,6 +1970,9 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	u_int8_t *buf_ptr;
 	struct wma_txrx_node *intr = wma_handle->interfaces;
 	int32_t ret=0;
+	WLAN_PHY_MODE chanmode;
+	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma_handle->vos_context);
 
 	len = sizeof(*cmd) + sizeof(wmi_channel) +
 			WMI_TLV_HDR_SIZE;
@@ -2009,6 +2014,31 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	chan->info = intr[sessionId].vdev_restart_params.chan.info;
 	chan->reg_info_1 = intr[sessionId].vdev_restart_params.chan.reg_info_1;
 	chan->reg_info_2 = intr[sessionId].vdev_restart_params.chan.reg_info_2;
+	if (chan->band_center_freq1 == 0) {
+		chan->band_center_freq1  = chan->mhz;
+		chanmode = intr[sessionId].chanmode;
+		if (chanmode == MODE_11AC_VHT80)
+			chan->band_center_freq1 = vos_chan_to_freq(
+			wma_getCenterChannel(
+				chan->mhz,
+				mac_ctx->roam.configParam.channelBondingMode5GHz));
+
+		if ((chanmode == MODE_11NG_HT40) ||
+				(chanmode == MODE_11AC_VHT40)) {
+			if (mac_ctx->roam.configParam.channelBondingMode5GHz ==
+			    PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+				chan->band_center_freq1 += 10;
+			else
+				chan->band_center_freq1 -= 10;
+		}
+		if (chanmode == MODE_11NA_HT40) {
+			if (mac_ctx->roam.configParam.channelBondingMode24GHz ==
+			    PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+				chan->band_center_freq1 += 10;
+			else
+				chan->band_center_freq1 -= 10;
+		}
+	}
 
 	cmd->num_noa_descriptors = 0;
 	buf_ptr = (u_int8_t *)(((u_int8_t *) cmd) + sizeof(*cmd) +
@@ -32576,7 +32606,31 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
 
     dfs_ic->ic_curchan->ic_ieee = req->chan;
     dfs_ic->ic_curchan->ic_freq = chan->mhz;
-    dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->band_center_freq1;
+
+    if (chan->band_center_freq1 != 0)
+        dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->band_center_freq1;
+    else {
+        dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->mhz;
+        if (chanmode == MODE_11AC_VHT80)
+            chan->band_center_freq1 = vos_chan_to_freq(
+                wma_getCenterChannel(
+                        chan->mhz,
+                        req->chan_offset));
+        if ((chanmode == MODE_11NG_HT40) ||
+                (chanmode == MODE_11AC_VHT40)) {
+                if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+                    chan->band_center_freq1 += 10;
+                else
+                    chan->band_center_freq1 -= 10;
+        }
+        if (chanmode == MODE_11NA_HT40) {
+                if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+                    chan->band_center_freq1 += 10;
+                else
+                    chan->band_center_freq1 -= 10;
+        }
+        dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg1 = chan->band_center_freq1;
+    }
     dfs_ic->ic_curchan->ic_vhtop_ch_freq_seg2 = chan->band_center_freq2;
     dfs_ic->ic_curchan->ic_pri_freq_center_freq_mhz_separation =
                              dfs_ic->ic_curchan->ic_freq -
