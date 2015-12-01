@@ -2039,6 +2039,7 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
             mlmAssocCnf.resultCode =
                 (tSirResultCodes) eSIR_SME_JOIN_DEAUTH_FROM_AP_DURING_ADD_STA;
             psessionEntry->staId = pAddStaParams->staIdx;
+            mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
             goto end;
 	}
     }
@@ -2127,6 +2128,7 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
           mlmAssocCnf.resultCode = (tSirResultCodes)eSIR_SME_FT_REASSOC_FAILURE;
         else
           mlmAssocCnf.resultCode = (tSirResultCodes)eSIR_SME_REFUSED;
+        mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
     }
 end:
     if( 0 != limMsgQ->bodyptr )
@@ -3280,6 +3282,7 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
     } else {
         limLog(pMac, LOGP, FL("SessionId:%d ADD_BSS failed!"),
                psessionEntry->peSessionId);
+        mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
         /* Return Assoc confirm to SME with failure */
         // Return Assoc confirm to SME with failure
         if(eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE == psessionEntry->limMlmState)
