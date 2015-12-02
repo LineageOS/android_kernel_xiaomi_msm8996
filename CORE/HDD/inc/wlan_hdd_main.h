@@ -897,12 +897,19 @@ struct hdd_adapter_pm_context {
 
 struct hdd_adapter_s
 {
-   void *pHddCtx;
+   /* Magic cookie for adapter sanity verification.  Note that this
+    * needs to be at the beginning of the private data structure so
+    * that it will exists at the beginning of dev->priv and hence
+    * will always be in mapped memory
+    */
+   v_U32_t magic;
 
-   device_mode_t device_mode;
+   void *pHddCtx;
 
    /** Handle to the network device */
    struct net_device *dev;
+
+   device_mode_t device_mode;
 
    /** IPv4 notifier callback for handling ARP offload on change in IP */
    struct work_struct  ipv4NotifierWorkQueue;
@@ -1050,8 +1057,6 @@ struct hdd_adapter_s
 #endif
    uint8_t addr_filter_pattern;
 
-   //Magic cookie for adapter sanity verification
-   v_U32_t magic;
    v_BOOL_t higherDtimTransition;
    v_BOOL_t survey_idx;
 
