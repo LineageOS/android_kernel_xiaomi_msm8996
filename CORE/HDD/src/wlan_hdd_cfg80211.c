@@ -10486,6 +10486,12 @@ void wlan_hdd_update_wiphy(struct wiphy *wiphy,
                            hdd_config_t *pCfg)
 {
     wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+    if (!sme_IsFeatureSupportedByFW(DOT11AC)) {
+       wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
+       wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.cap = 0;
+       wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.vht_supported = 0;
+       wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.cap = 0;
+    }
 }
 
 /* In this function we are registering wiphy. */

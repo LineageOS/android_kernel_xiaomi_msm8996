@@ -12402,8 +12402,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vos_nv_close;
    }
 
-   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
-
 #if      !defined(REMOVE_PKT_LOG)
    hif_init_pdev_txrx_handle(hif_sc,
                              vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
@@ -12422,6 +12420,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
       goto err_vosclose;
+   }
+
+   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
+
+   if (sme_IsFeatureSupportedByFW(DOT11AC)) {
+      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
+   } else {
+      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: not support 11ac", __func__);
+      if ((pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)||
+          (pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac)) {
+
+          pHddCtx->cfg_ini->dot11Mode = eHDD_DOT11_MODE_11n;
+          pHddCtx->cfg_ini->sap_p2p_11ac_override = 0;
+      }
    }
 
    status = wlan_hdd_reg_init(pHddCtx);
