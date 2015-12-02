@@ -80,7 +80,7 @@
 #include "wniCfgAp.h"
 #include "wlan_hdd_misc.h"
 #include <vos_utils.h>
-#if defined CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
 #include <net/cnss.h>
 #endif
 
@@ -1181,7 +1181,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     v_U8_t cc_len = WLAN_SVC_COUNTRY_CODE_LEN;
     hdd_adapter_t *con_sap_adapter;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
-#if defined CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
     int ret = 0;
 #endif
 
@@ -2013,7 +2013,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         case eSAP_DFS_NOL_GET:
             hddLog(VOS_TRACE_LEVEL_INFO,
                     FL("Received eSAP_DFS_NOL_GET event"));
-#if defined CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
             /* get the dfs nol from cnss */
             ret = cnss_wlan_get_dfs_nol(
                       pSapEvent->sapevt.sapDfsNolInfo.pDfsList,
@@ -2035,7 +2035,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
         case eSAP_DFS_NOL_SET:
             hddLog(VOS_TRACE_LEVEL_INFO, FL("Received eSAP_DFS_NOL_SET event"));
-#if defined CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
             /* set the dfs nol to cnss */
             ret = cnss_wlan_set_dfs_nol(
                     pSapEvent->sapevt.sapDfsNolInfo.pDfsList,

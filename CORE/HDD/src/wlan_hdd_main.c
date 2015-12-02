@@ -105,7 +105,7 @@
 #include "wlan_qct_wda.h"
 #include "wlan_hdd_tdls.h"
 #ifdef FEATURE_WLAN_CH_AVOID
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
 #include <net/cnss.h>
 #endif
 #include "regdomain_common.h"
@@ -12145,7 +12145,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
    uint16_t unsafe_channel_count;
    int unsafeChannelIndex;
 #endif
@@ -12550,7 +12550,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
    cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
@@ -14176,7 +14176,7 @@ void hdd_ch_avoid_cb
        }
    }
 
-#ifdef CONFIG_CNSS
+#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s : number of unsafe channels is %d ",
             __func__,  hdd_ctxt->unsafe_channel_count);
