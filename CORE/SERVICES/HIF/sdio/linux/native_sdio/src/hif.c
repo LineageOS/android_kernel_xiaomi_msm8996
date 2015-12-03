@@ -33,6 +33,9 @@
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/sd.h>
 #include <linux/kthread.h>
+#ifdef CONFIG_CNSS_SDIO
+#include <net/cnss.h>
+#endif
 #include "if_ath_sdio.h"
 #include "regtable.h"
 #include "vos_api.h"
@@ -200,6 +203,25 @@ static const struct sdio_device_id ar6k_id_table[] = {
 };
 MODULE_DEVICE_TABLE(sdio, ar6k_id_table);
 
+#ifdef CONFIG_CNSS_SDIO
+static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id);
+static void hif_sdio_device_removed(struct sdio_func *func);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
+static int hif_sdio_device_suspend(struct device *dev);
+static int hif_sdio_device_resume(struct device *dev);
+#endif
+
+static struct cnss_sdio_wlan_driver ar6k_driver = {
+	.name = "ar6k_wlan",
+	.id_table = ar6k_id_table,
+	.probe = hif_sdio_device_inserted,
+	.remove = hif_sdio_device_removed,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
+	.suspend = hif_sdio_device_suspend,
+	.resume = hif_sdio_device_resume,
+#endif
+};
+#else
 static struct sdio_driver ar6k_driver = {
     .name = "ar6k_wlan",
     .id_table = ar6k_id_table,
@@ -221,6 +243,8 @@ static struct pm_ops ar6k_device_pm_ops = {
     .resume = hifDeviceResume,
 };
 #endif /* CONFIG_PM */
+#endif
+
 
 /* make sure we only unregister when registered. */
 static int registered = 0;
@@ -247,6 +271,47 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(hif,
 
 #endif
 
+#ifdef CONFIG_CNSS_SDIO
+static int hif_sdio_register_driver(OSDRV_CALLBACKS *callbacks)
+{
+	int status;
+	/* store the callback handlers */
+	osdrvCallbacks = *callbacks;
+
+	/* Register with bus driver core */
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: HIFInit registering\n"));
+	registered = 1;
+	status = cnss_sdio_wlan_register_driver(&ar6k_driver);
+	return status;
+}
+static void hif_sdio_unregister_driver(void)
+{
+	cnss_sdio_wlan_unregister_driver(&ar6k_driver);
+}
+#else
+static int hif_sdio_register_driver(OSDRV_CALLBACKS *callbacks)
+{
+	int status;
+	/* store the callback handlers */
+	osdrvCallbacks = *callbacks;
+
+	/* Register with bus driver core */
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: HIFInit registering\n"));
+	registered = 1;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
+	if (callbacks->deviceSuspendHandler && callbacks->deviceResumeHandler) {
+		ar6k_driver.drv.pm = &ar6k_device_pm_ops;
+	}
+#endif /* CONFIG_PM */
+
+	status = sdio_register_driver(&ar6k_driver);
+	return status;
+}
+static void hif_sdio_unregister_driver(void)
+{
+	sdio_unregister_driver(&ar6k_driver);
+}
+#endif
 
 /* ------ Functions ------ */
 A_STATUS HIFInit(OSDRV_CALLBACKS *callbacks)
@@ -259,18 +324,8 @@ A_STATUS HIFInit(OSDRV_CALLBACKS *callbacks)
     A_REGISTER_MODULE_DEBUG_INFO(hif);
 
     ENTER();
-    /* store the callback handlers */
-    osdrvCallbacks = *callbacks;
 
-    /* Register with bus driver core */
-    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: HIFInit registering\n"));
-    registered = 1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
-    if (callbacks->deviceSuspendHandler && callbacks->deviceResumeHandler) {
-        ar6k_driver.drv.pm = &ar6k_device_pm_ops;
-    }
-#endif /* CONFIG_PM */
-    status = sdio_register_driver(&ar6k_driver);
+    status = hif_sdio_register_driver(callbacks);
     AR_DEBUG_ASSERT(status==0);
 
     if (status != 0) {
@@ -1040,7 +1095,7 @@ HIFShutDownDevice(HIF_DEVICE *device)
             registered = 0;
             AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
                             ("AR6000: Unregistering with the bus driver\n"));
-            sdio_unregister_driver(&ar6k_driver);
+            hif_sdio_unregister_driver();
             AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
                             ("AR6000: Unregistered!"));
         }
@@ -2336,3 +2391,27 @@ bool hif_is_80211_fw_wow_required(void)
 {
 	return true;
 }
+
+#ifdef CONFIG_CNSS_SDIO
+static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id)
+{
+	return hifDeviceInserted(func, id);
+}
+
+static void hif_sdio_device_removed(struct sdio_func *func)
+{
+	hifDeviceRemoved(func);
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
+static int hif_sdio_device_suspend(struct device *dev)
+{
+	return hifDeviceSuspend(dev);
+}
+
+static int hif_sdio_device_resume(struct device *dev)
+{
+	return hifDeviceResume(dev);
+}
+#endif
+#endif
