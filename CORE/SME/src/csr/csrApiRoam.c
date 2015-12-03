@@ -17225,8 +17225,8 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                         pRequestBuf->ConnectedNetwork.ChannelCache[
                                              num_channels++] = *ChannelList;
                     }
-                    ChannelList++;
                 }
+                ChannelList++;
             }
             pRequestBuf->ConnectedNetwork.ChannelCount = num_channels;
             pRequestBuf->ChannelCacheType = CHANNEL_LIST_STATIC;
