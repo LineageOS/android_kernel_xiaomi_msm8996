@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010,2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,7 +43,7 @@ __adf_os_atomic_init(__adf_os_atomic_t *v)
     return A_STATUS_OK;
 }
 
-static inline a_uint32_t
+static inline int32_t
 __adf_os_atomic_read(__adf_os_atomic_t *v)
 {
     return (atomic_read(v));
@@ -79,7 +79,7 @@ __adf_os_atomic_sub(int i, __adf_os_atomic_t *v)
 	atomic_sub(i, v);
 }
 
-static inline a_uint32_t
+static inline int32_t
  __adf_os_atomic_dec_and_test(__adf_os_atomic_t *v)
 {
     return(atomic_dec_and_test(v));
@@ -94,7 +94,7 @@ static inline a_uint32_t
  * @return
  *      the new value stored int the atomic type.
  */
-static inline a_uint32_t
+static inline int32_t
 __adf_os_atomic_inc_return(__adf_os_atomic_t *v)
 {
 	return atomic_inc_return(v);
