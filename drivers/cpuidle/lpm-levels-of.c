@@ -639,6 +639,9 @@ static int parse_cpu_mode(struct device_node *n, struct lpm_cpu_level *l)
 					n->name);
 			return ret;
 		}
+		key = "qcom,hyp-psci";
+
+		l->hyp_psci = of_property_read_bool(n, key);
 	} else {
 		l->mode = parse_cpu_spm_mode(l->name);
 

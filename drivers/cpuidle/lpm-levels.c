@@ -759,6 +759,7 @@ unlock_and_return:
 }
 
 #if !defined(CONFIG_CPU_V7)
+asmlinkage int __invoke_psci_fn_smc(u64, u64, u64, u64);
 bool psci_enter_sleep(struct lpm_cluster *cluster, int idx, bool from_idle)
 {
 	/*
@@ -775,6 +776,13 @@ bool psci_enter_sleep(struct lpm_cluster *cluster, int idx, bool from_idle)
 		int power_state =
 			PSCI_POWER_STATE(cluster->cpu->levels[idx].is_reset);
 		bool success = false;
+
+		if (cluster->cpu->levels[idx].hyp_psci) {
+			stop_critical_timings();
+			__invoke_psci_fn_smc(0xC4000021, 0, 0, 0);
+			start_critical_timings();
+			return 1;
+		}
 
 		affinity_level = PSCI_AFFINITY_LEVEL(affinity_level);
 		state_id |= (power_state | affinity_level
