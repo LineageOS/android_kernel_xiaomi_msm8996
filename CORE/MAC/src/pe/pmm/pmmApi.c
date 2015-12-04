@@ -3087,6 +3087,7 @@ tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Enter Bmps Request");
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_BMPS_RSP, eSIR_FAILURE, 0, 0);
         return eSIR_FAILURE;
     }
 
@@ -3245,6 +3246,7 @@ tSirRetStatus pmmOffloadExitBmpsReqHandler(tpAniSirGlobal pMac,
     {
         pmmLog(pMac, LOGE,
                " No PE Session for given BSSID : Invalid Enter Bmps Request");
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_BMPS_RSP, eSIR_FAILURE, 0, 0);
         return eSIR_FAILURE;
     }
 
