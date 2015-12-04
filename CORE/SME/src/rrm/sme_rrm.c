@@ -180,7 +180,7 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
 {
    tpSirBssDescription pBssDesc = NULL;
    tpSirBeaconReportXmitInd pBeaconRep;
-   tANI_U16 length, ie_len;
+   tANI_U16 length, ie_len, tot_len;
    tANI_U8 bssCounter=0, msgCounter=0;
    tCsrScanResultInfo *pCurResult=NULL;
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -227,10 +227,13 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
            if(pBssDesc != NULL)
            {
                ie_len = GET_IE_LEN_IN_BSS( pBssDesc->length );
-               pBeaconRep->pBssDescription[msgCounter] = vos_mem_malloc (
-                                            ie_len+sizeof(tSirBssDescription));
+               tot_len = ie_len+sizeof(tSirBssDescription);
+               pBeaconRep->pBssDescription[msgCounter] =
+                                      vos_mem_malloc(tot_len);
                if (NULL == pBeaconRep->pBssDescription[msgCounter])
                    break;
+               vos_mem_zero(pBeaconRep->pBssDescription[msgCounter],
+                                                             tot_len);
                vos_mem_copy( pBeaconRep->pBssDescription[msgCounter],
                              pBssDesc,
                              sizeof(tSirBssDescription) );
