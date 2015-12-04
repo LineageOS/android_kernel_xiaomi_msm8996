@@ -5589,16 +5589,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            if (VOS_TRUE == vos_mem_compare(targetApBssid,
                                            pHddStaCtx->conn_info.bssId, sizeof(tSirMacAddr)))
            {
-               /* Reassoc to same AP, only supported for Open Security*/
-               if ((pHddStaCtx->conn_info.ucEncryptionType ||
-                   pHddStaCtx->conn_info.mcEncryptionType)) {
-                   hddLog(LOGE,
-                    FL("Reassoc to same AP, only supported for Open Security"));
-                   ret = -ENOTSUPP;
-                   goto exit;
-               }
-               hddLog(LOG1,
-                  FL("Reassoc BSSID is same as currently associated AP bssid"));
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:Reassoc BSSID is same as currently associated AP bssid",__func__);
                sme_GetModifyProfileFields(hHal, pAdapter->sessionId,
                                        &modProfileFields);
                sme_RoamReassoc(hHal, pAdapter->sessionId,
