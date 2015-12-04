@@ -16947,7 +16947,7 @@ static void check_allowed_ssid_list(tSirRoamOffloadScanReq *req_buffer,
  *|| -------------------------------------------------------------------------||
  *|| RSO_START      | NO    | YES  |  NO     | NO        | NO                 ||
  *|| RSO_STOP       | YES   | YES  |  YES    | YES       | YES                ||
- *|| RSO_RESTART    | YES   | NO   |  NO     | YES       | YES                ||
+ *|| RSO_RESTART    | YES   | YES  |  NO     | YES       | YES                ||
  *|| RSO_UPDATE_CFG | YES   | NO   |  YES    | YES       | YES                ||
  *|| RSO_ABORT_SCAN | YES   | NO   |  YES    | YES       | YES                ||
  *||==========================================================================||
@@ -16961,7 +16961,7 @@ static void check_allowed_ssid_list(tSirRoamOffloadScanReq *req_buffer,
 #define RSO_STOP_ALLOW_MASK    (RSO_UPDATE_CFG_BIT | RSO_RESTART_BIT | \
 		RSO_STOP_BIT | RSO_START_BIT | RSO_ABORT_SCAN_BIT)
 #define RSO_RESTART_ALLOW_MASK (RSO_UPDATE_CFG_BIT | RSO_START_BIT | \
-		RSO_ABORT_SCAN_BIT)
+		RSO_ABORT_SCAN_BIT | RSO_RESTART_BIT)
 #define RSO_UPDATE_CFG_ALLOW_MASK  (RSO_UPDATE_CFG_BIT | RSO_STOP_BIT | \
 		RSO_START_BIT | RSO_ABORT_SCAN_BIT)
 #define RSO_ABORT_SCAN_ALLOW_MASK (RSO_START_BIT | RSO_RESTART_BIT | \
@@ -17000,6 +17000,28 @@ bool csr_is_RSO_cmd_allowed(tpAniSirGlobal mac_ctx, uint8_t command,
 	return ret_val;
 }
 
+void csr_roam_send_restart_cmd(tpAniSirGlobal pMac, tANI_U8 session_id,
+		tANI_U8 command, tANI_U8 reason)
+{
+	struct sir_sme_roam_restart_req *msg;
+	eHalStatus status;
+
+	msg = vos_mem_malloc(sizeof(struct sir_sme_roam_restart_req));
+	if (msg == NULL) {
+	}
+	vos_mem_set(msg, sizeof(struct sir_sme_roam_restart_req), 0);
+	msg->message_type = eWNI_SME_ROAM_RESTART_REQ;
+	msg->length = sizeof(struct sir_sme_roam_restart_req);
+	msg->sme_session_id = session_id;
+	msg->command = command;
+	msg->reason = reason;
+	status = palSendMBMessage(pMac->hHdd, msg);
+	if (eHAL_STATUS_FAILURE == status) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Sending msg eWNI_SME_ROAM_RESTART_REQ failed"));
+		vos_mem_free(msg);
+	}
+}
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                               tANI_U8 command, tANI_U8 reason)
 {
@@ -17051,6 +17073,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         FL("RSO out-of-sync command %d lastSentCmd %d"),
         command, pNeighborRoamInfo->lastSentCmd);
       return eHAL_STATUS_FAILURE;
+   }
+   if (ROAM_SCAN_OFFLOAD_RESTART == command) {
+       csr_roam_send_restart_cmd(pMac, sessionId, command, reason);
+       goto cmd_sent;
    }
    if ((VOS_TRUE == bRoamScanOffloadStarted) && (ROAM_SCAN_OFFLOAD_START == command))
    {
@@ -17447,6 +17473,7 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         else if (ROAM_SCAN_OFFLOAD_STOP == command)
             bRoamScanOffloadStarted = VOS_FALSE;
    }
+cmd_sent:
    /* update the last sent cmd */
    pNeighborRoamInfo->lastSentCmd = command;
 
