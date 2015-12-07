@@ -1871,14 +1871,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeMcEvent);
       pHddCtx->isMcThreadSuspended= FALSE;
    }
-   if(TRUE == pHddCtx->isTxThreadSuspended){
-      complete(&vosSchedContext->ResumeTxEvent);
-      pHddCtx->isTxThreadSuspended= FALSE;
-   }
-   if(TRUE == pHddCtx->isRxThreadSuspended){
-      complete(&vosSchedContext->ResumeRxEvent);
-      pHddCtx->isRxThreadSuspended= FALSE;
-   }
 #ifdef QCA_CONFIG_SMP
    if (TRUE == pHddCtx->isTlshimRxThreadSuspended) {
       complete(&vosSchedContext->ResumeTlshimRxEvent);
@@ -1899,20 +1891,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
    wait_for_completion(&vosSchedContext->McShutdown);
-
-   /* Wait for TX to exit */
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
-   set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
-   set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
-   wake_up_interruptible(&vosSchedContext->txWaitQueue);
-   wait_for_completion(&vosSchedContext->TxShutdown);
-
-   /* Wait for RX to exit */
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down RX thread",__func__);
-   set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->rxEventFlag);
-   set_bit(RX_POST_EVENT_MASK, &vosSchedContext->rxEventFlag);
-   wake_up_interruptible(&vosSchedContext->rxWaitQueue);
-   wait_for_completion(&vosSchedContext->RxShutdown);
 
 #ifdef QCA_CONFIG_SMP
    /* Wait for TLshim RX to exit */
@@ -1982,8 +1960,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
    /* Clean up message queues of TX, RX and MC thread */
    vos_sched_flush_mc_mqs(vosSchedContext);
-   vos_sched_flush_tx_mqs(vosSchedContext);
-   vos_sched_flush_rx_mqs(vosSchedContext);
 
    /* Deinit all the TX, RX and MC queues */
    vos_sched_deinit_mqs(vosSchedContext);
