@@ -673,11 +673,15 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
         return;
     }
 
+    mutex_lock(&pHddCtx->tdls_lock);
+
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
     if (NULL == pHddTdlsCtx) {
        /* TDLS context can be null and might have been freed up during
         * cleanup for STA adapter
         */
+       mutex_unlock(&pHddCtx->tdls_lock);
+
        hddLog(LOG2, FL("pHddTdlsCtx is NULL, adapter device mode %s(%d)"),
               hdd_device_mode_to_string(pAdapter->device_mode),
               pAdapter->device_mode);
@@ -686,7 +690,6 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
 
     vos_flush_delayed_work(&pHddCtx->tdls_scan_ctxt.tdls_scan_work);
 
-    mutex_lock(&pHddCtx->tdls_lock);
 
     /* must stop timer here before freeing peer list, because peerIdleTimer is
     part of peer list structure. */
@@ -706,6 +709,9 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
         {
             tInfo->vdev_id = pAdapter->sessionId;
             tInfo->tdls_state = eTDLS_SUPPORT_DISABLED;
+
+            mutex_lock(&pHddCtx->tdls_lock);
+
             tInfo->notification_interval_ms =
               pHddTdlsCtx->threshold_config.tx_period_t;
             tInfo->tx_discovery_threshold =
@@ -715,6 +721,9 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
             tInfo->rssi_teardown_threshold =
               pHddTdlsCtx->threshold_config.rssi_teardown_threshold;
             tInfo->rssi_delta = pHddTdlsCtx->threshold_config.rssi_delta;
+
+            mutex_unlock(&pHddCtx->tdls_lock);
+
             tInfo->tdls_options = 0;
             if (pHddCtx->cfg_ini->fEnableTDLSOffChannel)
                 tInfo->tdls_options |= ENA_TDLS_OFFCHAN;
@@ -785,12 +794,16 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
       }
    }
 
+    mutex_lock(&pHddCtx->tdls_lock);
+
     pHddTdlsCtx->magic = 0;
     pHddTdlsCtx->pAdapter = NULL;
 
     vos_mem_free(pHddTdlsCtx);
     pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
     pHddTdlsCtx = NULL;
+
+    mutex_unlock(&pHddCtx->tdls_lock);
 
 done:
     clear_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
