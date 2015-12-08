@@ -41,6 +41,7 @@
 #include "wlan_hdd_main.h"
 #include "epping_main.h"
 #include "vos_sched.h"
+
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
 #include "pktlog_ac_api.h"
@@ -504,25 +505,6 @@ done:
 	return ret;
 }
 
-/**
- * hif_usb_preload_feature_enabled() - Usb Preload Feature Check Function
- *
- * Check whether usb preload feature enabled or not.
- *
- * Return: true if CONFIG_USB_PRELOAD is defined, otherwise false.
- */
-#ifdef CONFIG_USB_PRELOAD
-static inline bool hif_usb_preload_feature_enabled(void)
-{
-    return true;
-}
-#else
-static inline bool hif_usb_preload_feature_enabled(void)
-{
-    return false;
-}
-#endif
-
 static struct notifier_block hif_usb_dev_nb = {
 	.notifier_call = hif_usb_dev_notify,
 };
@@ -542,9 +524,6 @@ int hif_register_driver(void)
 		A_MSLEEP(200);
 		probe_wait_cnt++;
 	}
-
-	if (hif_usb_preload_feature_enabled())
-		return status;
 
 	if (usb_sc && status == 0)
 		return 0;

@@ -73,8 +73,4 @@ config WLAN_WOW_PULSE
 	bool "Enable WOW Pulse feature"
 	default n
 
-config USB_PRELOAD
-	bool "Enable USB Preload feature"
-	default n
-
 endif # QCA_CLD_WLAN

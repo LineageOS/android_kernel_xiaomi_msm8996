@@ -13181,25 +13181,6 @@ static inline void hdd_remove_pm_qos(void)
 }
 #endif
 
-/**
- * hdd_usb_preload_feature_enabled() - Usb Preload Feature Check Function
- *
- * Check whether usb preload feature enabled or not.
- *
- * Return: true if CONFIG_USB_PRELOAD is defined, otherwise false.
- */
-#ifdef CONFIG_USB_PRELOAD
-static inline bool hdd_usb_preload_feature_enabled(void)
-{
-    return true;
-}
-#else
-static inline bool hdd_usb_preload_feature_enabled(void)
-{
-    return false;
-}
-#endif
-
 /**---------------------------------------------------------------------------
 
   \brief hdd_driver_init() - Core Driver Init Function
@@ -13302,10 +13283,6 @@ static int hdd_driver_init( void)
    init_completion(&wlan_start_comp);
 
    ret_status = hif_register_driver();
-
-   if ((ret_status == 0) && hdd_usb_preload_feature_enabled())
-       return 0;
-
    if (!ret_status) {
        rc = wait_for_completion_timeout(
                            &wlan_start_comp,
