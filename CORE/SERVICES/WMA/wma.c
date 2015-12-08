@@ -7844,12 +7844,20 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	if (ret)
 		WMA_LOGE("Failed to set WMI_VDEV_PARAM_DISCONNECT_TH");
 
+	WMA_LOGD("%s %d vdev_id %d mcc_rts_cts_prot_enable %d\n",
+		 __func__, __LINE__, self_sta_req->sessionId,
+		 mac->roam.configParam.mcc_rts_cts_prot_enable);
+
 	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
 				self_sta_req->sessionId,
 				WMI_VDEV_PARAM_MCC_RTSCTS_PROTECTION_ENABLE,
 				mac->roam.configParam.mcc_rts_cts_prot_enable);
 	if (ret)
 		WMA_LOGE("Failed to set WMI_VDEV_PARAM_MCC_RTSCTS_PROTECTION_ENABLE");
+
+	WMA_LOGD("%s %d vdev_id %d mcc_bcast_prob_resp_enable %d\n",
+		 __func__, __LINE__, self_sta_req->sessionId,
+		 mac->roam.configParam.mcc_bcast_prob_resp_enable);
 
 	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
 			self_sta_req->sessionId,

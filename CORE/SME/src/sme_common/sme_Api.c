@@ -4797,6 +4797,9 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->fine_time_meas_cap = pMac->fine_time_meas_cap;
       pParam->csrConfig.mcc_rts_cts_prot_enable =
               pMac->roam.configParam.mcc_rts_cts_prot_enable;
+      pParam->csrConfig.mcc_bcast_prob_resp_enable =
+              pMac->roam.configParam.mcc_bcast_prob_resp_enable;
+
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
