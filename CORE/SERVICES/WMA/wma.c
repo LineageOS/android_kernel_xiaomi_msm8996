@@ -5338,19 +5338,18 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 
 	switch(peer_event->peer_status) {
 	case WMI_TDLS_SHOULD_DISCOVER:
-		tdls_event->messageType = WDA_TDLS_SHOULD_DISCOVER;
-		break;
+	 tdls_event->messageType = WDA_TDLS_SHOULD_DISCOVER;
+	 break;
 	case WMI_TDLS_SHOULD_TEARDOWN:
-		tdls_event->messageType = WDA_TDLS_SHOULD_TEARDOWN;
-		break;
+	 tdls_event->messageType = WDA_TDLS_SHOULD_TEARDOWN;
+	 break;
 	case WMI_TDLS_PEER_DISCONNECTED:
-		tdls_event->messageType = WDA_TDLS_PEER_DISCONNECTED;
-		break;
+	 tdls_event->messageType = WDA_TDLS_PEER_DISCONNECTED;
+	 break;
 	default:
-		vos_mem_free(tdls_event);
-		WMA_LOGE("%s: Discarding unknown tdls event(%d) from target",
-			__func__, peer_event->peer_status);
-		return -1;
+	 WMA_LOGE("%s: Discarding unknown tdls event(%d) from target",
+	          __func__, peer_event->peer_status);
+	 return -1;
 	}
 
 	switch (peer_event->peer_reason) {
@@ -5376,9 +5375,8 @@ static int wma_tdls_event_handler(void *handle, u_int8_t *event, u_int32_t len)
 		tdls_event->peer_reason = eWNI_TDLS_TEARDOWN_REASON_NO_RESPONSE;
 		break;
 	default:
-		vos_mem_free(tdls_event);
 		WMA_LOGE("%s: unknown reason(%d) in tdls event(%d) from target",
-			__func__, peer_event->peer_reason, peer_event->peer_status);
+		         __func__, peer_event->peer_reason, peer_event->peer_status);
 		return -1;
 	}
 
