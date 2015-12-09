@@ -12663,7 +12663,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_wiphy_unregister;
+      goto err_ipa_cleanup;
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
@@ -13207,6 +13207,9 @@ err_close_adapter:
 
 err_vosstop:
    vos_stop(pVosContext);
+
+err_ipa_cleanup:
+   hdd_ipa_cleanup(pHddCtx);
 
 err_wiphy_unregister:
    wiphy_unregister(wiphy);
