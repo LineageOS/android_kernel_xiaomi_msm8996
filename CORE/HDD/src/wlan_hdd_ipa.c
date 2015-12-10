@@ -4334,7 +4334,6 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		}
 
 		hdd_ipa->sap_num_connected_sta++;
-		hdd_ipa->pending_cons_req = VOS_FALSE;
 
 		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
