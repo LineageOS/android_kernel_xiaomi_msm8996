@@ -1044,7 +1044,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	ramdump_scn->ramdump_size = DRAM_SIZE + IRAM_SIZE + AXI_SIZE;
 	ramdump_scn->ramdump_base =
-		kmalloc(ramdump_scn->ramdump_size, GFP_KERNEL);
+		vmalloc(ramdump_scn->ramdump_size);
 
 	if (!ramdump_scn->ramdump_base) {
 		pr_err("%s: fail to alloc mem for FW RAM dump\n",
@@ -1095,6 +1095,15 @@ out_fail:
 	cnss_device_crashed();
 #endif
 #endif
+
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+	if (ramdump_scn->ramdump_base) {
+		vfree(ramdump_scn->ramdump_base);
+		ramdump_scn->ramdump_base = NULL;
+		ramdump_scn->ramdump_size = 0;
+	}
+#endif
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 	return;
 }
 
