@@ -21868,10 +21868,11 @@ fail_suspend:
 
 #ifdef QCA_CONFIG_SMP
 resume_all:
-
-    complete(&vosSchedContext->ResumeMcEvent);
-    pHddCtx->isMcThreadSuspended = FALSE;
 #endif
+    if (pHddCtx->isMcThreadSuspended) {
+        complete(&vosSchedContext->ResumeMcEvent);
+        pHddCtx->isMcThreadSuspended = FALSE;
+    }
 
 resume_tx:
 
