@@ -158,6 +158,9 @@
 
 #define WMI_DEFAULT_NOISE_FLOOR_DBM (-96)
 
+/* Threshold to print tx time taken in ms*/
+#define WDA_TX_TIME_THRESHOLD 1000
+
 #define WMI_MCC_MIN_CHANNEL_QUOTA             20
 #define WMI_MCC_MAX_CHANNEL_QUOTA             80
 #define WMI_MCC_MIN_NON_ZERO_CHANNEL_LATENCY  30
@@ -30941,6 +30944,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	 */
 	if (downld_comp_required) {
 		static uint8_t mgmt_downld_fail_count = 0;
+		unsigned long time_snapshot;
+
+		time_snapshot = vos_timer_get_system_time();
 		/*
 		 * Wait for Download Complete
 		 * @ Integrated : Dxe Complete
@@ -30978,6 +30984,10 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 					RECOVERY_SIM_ASSERT, 0);
 		} else {
 			mgmt_downld_fail_count = 0;
+			if ((vos_timer_get_system_time() - time_snapshot) >=
+							WDA_TX_TIME_THRESHOLD)
+				WMA_LOGE("%s Tx Complete took %lu ms",__func__,
+				   vos_timer_get_system_time() - time_snapshot);
 		}
 	} else {
 		/*
