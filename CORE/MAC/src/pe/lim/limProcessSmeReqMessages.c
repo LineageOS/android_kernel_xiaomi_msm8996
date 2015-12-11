@@ -5717,6 +5717,34 @@ __limProcessSmeResetApCapsChange(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 
 /**
+ * lim_register_mgmt_frame_ind_cb() - Save the Management frame
+ * indication callback in PE.
+ * @mac_ctx: Mac pointer
+ * @msg_buf: Msg pointer containing the callback
+ *
+ * This function is used save the Management frame
+ * indication callback in PE.
+ *
+ * Return: None
+ */
+static void lim_register_mgmt_frame_ind_cb(tpAniSirGlobal mac_ctx,
+							uint32_t *msg_buf)
+{
+	struct sir_sme_mgmt_frame_cb_req *sme_req =
+		(struct sir_sme_mgmt_frame_cb_req *)msg_buf;
+
+	if (NULL == msg_buf) {
+		limLog(mac_ctx, LOGE, FL("msg_buf is null"));
+		return;
+	}
+	if (sme_req->callback)
+		mac_ctx->mgmt_frame_ind_cb =
+				sme_req->callback;
+	else
+		limLog(mac_ctx, LOGE, FL("sme_req->callback is null"));
+}
+
+/**
  * limProcessSmeReqMessages()
  *
  *FUNCTION:
@@ -6054,6 +6082,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         case eWNI_SME_PDEV_SET_HT_VHT_IE:
             lim_process_set_pdev_IEs(pMac, pMsgBuf);
+            break;
+        case eWNI_SME_REGISTER_MGMT_FRAME_CB:
+            lim_register_mgmt_frame_ind_cb(pMac, pMsgBuf);
             break;
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);

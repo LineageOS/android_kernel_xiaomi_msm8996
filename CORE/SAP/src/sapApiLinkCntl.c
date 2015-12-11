@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -684,15 +684,6 @@ WLANSAP_RoamCallback
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                         FL("CSR roamStatus = %s (%d)"),
                         "eCSR_ROAM_WPS_PBC_PROBE_REQ_IND", roamStatus);
-            break;
-
-        case eCSR_ROAM_INDICATE_MGMT_FRAME:
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                        FL("CSR roamStatus = %s (%d)"),
-                        "eCSR_ROAM_INDICATE_MGMT_FRAME", roamStatus);
-            sapSignalHDDevent(sapContext, pCsrRoamInfo,
-                              eSAP_INDICATE_MGMT_FRAME,
-                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
             break;
         case eCSR_ROAM_REMAIN_CHAN_READY:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,

@@ -4340,6 +4340,8 @@ sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
 #endif
 
 bool smeNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
+eHalStatus sme_register_mgmt_frame_ind_callback(tHalHandle hal,
+      sir_mgmt_frame_ind_callback callback);
 
 eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
 void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log);

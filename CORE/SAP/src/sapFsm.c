@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2956,22 +2956,6 @@ sapSignalHDDevent
             vos_mem_copy( &sapApAppEvent.sapevt.sapPBCProbeReqEvent.WPSPBCProbeReq,
                           pCsrRoamInfo->u.pWPSPBCProbeReq,
                           sizeof(tSirWPSPBCProbeReq));
-            break;
-
-       case eSAP_INDICATE_MGMT_FRAME:
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                       FL("SAP event callback event = %s"),
-                          "eSAP_INDICATE_MGMT_FRAME");
-            sapApAppEvent.sapHddEventCode = eSAP_INDICATE_MGMT_FRAME;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nFrameLength
-                                           = pCsrRoamInfo->nFrameLength;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.pbFrames
-                                           = pCsrRoamInfo->pbFrames;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.frameType
-                                           = pCsrRoamInfo->frameType;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.rxChan
-                                           = pCsrRoamInfo->rxChan;
-
             break;
        case eSAP_REMAIN_CHAN_READY:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,

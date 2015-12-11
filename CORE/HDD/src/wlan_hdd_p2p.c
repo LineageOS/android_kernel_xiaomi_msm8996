@@ -2547,12 +2547,12 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      return ;
 }
 
-void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
+void __hdd_indicate_mgmt_frame(hdd_adapter_t *pAdapter,
                             tANI_U32 nFrameLength,
                             tANI_U8* pbFrames,
                             tANI_U8 frameType,
                             tANI_U32 rxChan,
-                            tANI_S8 rxRssi )
+                            tANI_S8 rxRssi)
 {
     tANI_U16 freq;
     tANI_U16 extend_time;

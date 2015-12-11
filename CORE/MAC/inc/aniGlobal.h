@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1254,6 +1254,7 @@ typedef struct sAniSirGlobal
     t_auth_ack_status auth_ack_status;
     bool first_scan_done;
     int8_t first_scan_bucket_threshold;
+    sir_mgmt_frame_ind_callback mgmt_frame_ind_cb;
 } tAniSirGlobal;
 
 typedef enum
