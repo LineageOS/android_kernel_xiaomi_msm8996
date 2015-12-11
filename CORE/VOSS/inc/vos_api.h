@@ -170,10 +170,11 @@ v_CONTEXT_t vos_get_global_context( VOS_MODULE_ID moduleId,
 v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
 void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);
 
-v_BOOL_t vos_is_unload_in_progress(VOS_MODULE_ID moduleId,
-				 v_VOID_t *moduleContext);
 v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
 void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);
+
+v_U8_t vos_is_unload_in_progress(void);
+void vos_set_unload_in_progress(v_U8_t value);
 
 v_U8_t vos_is_load_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
 void vos_set_load_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);

@@ -254,6 +254,7 @@ void epping_driver_exit(v_CONTEXT_t pVosContext)
       vos_pkt_proto_trace_close();
 #endif /* QCA_PKT_PROTO_TRACE */
       //pHddCtx->isUnloadInProgress = TRUE;
+      vos_set_unload_in_progress(TRUE);
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    }
    hif_unregister_driver();
