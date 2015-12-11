@@ -129,6 +129,8 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac,
 /* Channel Change Response Indication Handler */
 eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
                            v_U16_t msg_type,void *pMsgBuf);
+eHalStatus sme_process_set_max_tx_power(tpAniSirGlobal pMac,
+						tSmeCmd *command);
 
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
@@ -1022,6 +1024,17 @@ sme_process_cmd:
                         case eSmeCommandDelStaSession:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             csrProcessDelStaSessionCommand( pMac, pCommand );
+                            break;
+                        case eSmeCommandSetMaxTxPower:
+                            csrLLUnlock(&pMac->sme.smeCmdActiveList);
+                            sme_process_set_max_tx_power(pMac, pCommand);
+                            /* We need to re-run the command */
+                            fContinue = eANI_BOOLEAN_TRUE;
+                            /* No Rsp expected, free cmd from active list */
+                            if(csrLLRemoveEntry(&pMac->sme.smeCmdActiveList,
+                                        &pCommand->Link, LL_ACCESS_LOCK)) {
+                               csrReleaseCommand(pMac, pCommand);
+                            }
                             break;
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -5082,6 +5095,54 @@ eHalStatus sme_StopAutoBmpsTimer ( tHalHandle hHal)
 
    return (status);
 }
+/**
+ * sme_process_set_max_tx_power() - Set the Maximum Transmit Power
+ *
+ * @pMac: mac pointer.
+ * @command: cmd param containing bssid, self mac
+ *           and power in db
+ *
+ * Set the maximum transmit power dynamically.
+ *
+ * Return: eHalStatus
+ *
+ */
+eHalStatus sme_process_set_max_tx_power(tpAniSirGlobal pMac,
+						tSmeCmd *command)
+{
+	vos_msg_t msg;
+	tMaxTxPowerParams *max_tx_params = NULL;
+
+	max_tx_params = vos_mem_malloc(sizeof(*max_tx_params));
+	if (NULL == max_tx_params)
+	{
+		smsLog(pMac, LOGE, FL("fail to allocate memory for max_tx_params"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	vos_mem_copy(max_tx_params->bssId,
+		command->u.set_tx_max_pwr.bssid, SIR_MAC_ADDR_LENGTH);
+	vos_mem_copy(max_tx_params->selfStaMacAddr,
+		command->u.set_tx_max_pwr.self_sta_mac_addr,
+				SIR_MAC_ADDR_LENGTH);
+	max_tx_params->power =
+			command->u.set_tx_max_pwr.power;
+
+	msg.type = WDA_SET_MAX_TX_POWER_REQ;
+	msg.reserved = 0;
+	msg.bodyptr = max_tx_params;
+
+	if(VOS_STATUS_SUCCESS !=
+		vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+	{
+		smsLog(pMac, LOGE,
+			FL("Not able to post WDA_SET_MAX_TX_POWER_REQ message to WDA"));
+		vos_mem_free(max_tx_params);
+		return eHAL_STATUS_FAILURE;
+	}
+	return eHAL_STATUS_SUCCESS;
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_QueryPowerState
     \brief  Returns the current power state of the device.
@@ -9266,52 +9327,60 @@ eHalStatus sme_SetMaxTxPowerPerBand(eCsrBand band, v_S7_t dB)
     return eHAL_STATUS_SUCCESS;
 }
 
-/* ---------------------------------------------------------------------------
-
-    \fn sme_SetMaxTxPower
-
-    \brief Set the Maximum Transmit Power dynamically. Note: this setting will
-    not persist over reboots.
-
-    \param  hHal
-    \param pBssid  BSSID to set the power cap for
-    \param pBssid  pSelfMacAddress self MAC Address
-    \param pBssid  power to set in dB
-    \- return eHalStatus
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
-                             tSirMacAddr pSelfMacAddress, v_S7_t dB)
+/**
+ * sme_SetMaxTxPower() - Set the Maximum Transmit Power
+ *
+ * @hHal: hal pointer.
+ * @bssid: bssid to set the power cap for
+ * @self_mac_addr:self mac address
+ * @db: power to set in dB
+ *
+ * Set the maximum transmit power dynamically.
+ *
+ * Return: eHalStatus
+ *
+ */
+eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr bssid,
+				tSirMacAddr self_mac_addr, v_S7_t db)
 {
-    vos_msg_t msg;
-    tpMaxTxPowerParams pMaxTxParams = NULL;
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hHal);
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tSmeCmd *set_max_tx_pwr;
 
-    MTRACE(vos_trace(VOS_MODULE_ID_SME,
-                     TRACE_CODE_SME_RX_HDD_SET_MAXTXPOW, NO_SESSION, 0));
-    pMaxTxParams = vos_mem_malloc(sizeof(tMaxTxPowerParams));
-    if (NULL == pMaxTxParams)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for pMaxTxParams", __func__);
-        return eHAL_STATUS_FAILURE;
-    }
+	MTRACE(vos_trace(VOS_MODULE_ID_SME,
+		TRACE_CODE_SME_RX_HDD_SET_MAXTXPOW, NO_SESSION, 0));
+	smsLog(mac_ptr, LOG1,
+	  FL("bssid :" MAC_ADDRESS_STR " self addr: "MAC_ADDRESS_STR" power %d Db"),
+	  MAC_ADDR_ARRAY(bssid), MAC_ADDR_ARRAY(self_mac_addr), db);
 
-    vos_mem_copy(pMaxTxParams->bssId, pBssid, SIR_MAC_ADDR_LENGTH);
-    vos_mem_copy(pMaxTxParams->selfStaMacAddr, pSelfMacAddress,
-                 SIR_MAC_ADDR_LENGTH);
-    pMaxTxParams->power = dB;
-
-    msg.type = WDA_SET_MAX_TX_POWER_REQ;
-    msg.reserved = 0;
-    msg.bodyptr = pMaxTxParams;
-
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_MAX_TX_POWER_REQ message to WDA", __func__);
-        vos_mem_free(pMaxTxParams);
-        return eHAL_STATUS_FAILURE;
-    }
-
-    return eHAL_STATUS_SUCCESS;
+	status = sme_AcquireGlobalLock(&mac_ptr->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		set_max_tx_pwr = csrGetCommandBuffer(mac_ptr);
+		if (set_max_tx_pwr) {
+			set_max_tx_pwr->command = eSmeCommandSetMaxTxPower;
+			vos_mem_copy(set_max_tx_pwr->u.set_tx_max_pwr.bssid,
+				bssid, SIR_MAC_ADDR_LENGTH);
+			vos_mem_copy(set_max_tx_pwr->u.set_tx_max_pwr.self_sta_mac_addr,
+				self_mac_addr, SIR_MAC_ADDR_LENGTH);
+			set_max_tx_pwr->u.set_tx_max_pwr.power = db;
+			status = csrQueueSmeCommand(mac_ptr, set_max_tx_pwr,
+							eANI_BOOLEAN_TRUE);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				smsLog(mac_ptr, LOGE,
+					FL("fail to send msg status = %d"),
+									status);
+				csrReleaseCommandScan(mac_ptr, set_max_tx_pwr);
+			}
+		}
+		else
+		{
+			smsLog(mac_ptr, LOGE,
+				FL("can not obtain a common buffer"));
+			status = eHAL_STATUS_RESOURCES;
+		}
+		sme_ReleaseGlobalLock(&mac_ptr->sme);
+	}
+	return status;
 }
 
 /* ---------------------------------------------------------------------------
