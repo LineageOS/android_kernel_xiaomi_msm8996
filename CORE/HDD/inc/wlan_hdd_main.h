@@ -1641,7 +1641,7 @@ struct hdd_context_s
 #endif
     bool per_band_chainmask_supp;
     uint16_t hdd_txrx_hist_idx;
-    struct hdd_tx_rx_histogram hdd_txrx_hist[NUM_TX_RX_HISTOGRAM];
+    struct hdd_tx_rx_histogram *hdd_txrx_hist;
     struct hdd_runtime_pm_context runtime_context;
     bool hbw_requested;
 #ifdef IPA_OFFLOAD
@@ -1937,6 +1937,8 @@ void hdd_connect_result(struct net_device *dev, const u8 *bssid,
 			const u8 * resp_ie, size_t resp_ie_len,
 			u16 status, gfp_t gfp);
 
+int wlan_hdd_init_tx_rx_histogram(hdd_context_t *pHddCtx);
+void wlan_hdd_deinit_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
 

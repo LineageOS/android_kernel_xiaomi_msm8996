@@ -11277,6 +11277,7 @@ free_hdd_ctx:
        pHddCtx->cfg_ini= NULL;
    }
 
+   wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
    wiphy_unregister(wiphy) ;
 
    wiphy_free(wiphy) ;
@@ -11897,6 +11898,38 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 }
 #endif
 
+/**
+ * wlan_hdd_init_tx_rx_histogram() - init tx/rx histogram stats
+ * @pHddCtx: hdd context
+ *
+ * Return: 0 for success
+ */
+int wlan_hdd_init_tx_rx_histogram(hdd_context_t *pHddCtx)
+{
+	pHddCtx->hdd_txrx_hist = vos_mem_malloc(
+		 (sizeof(struct hdd_tx_rx_histogram) * NUM_TX_RX_HISTOGRAM));
+	if (pHddCtx->hdd_txrx_hist == NULL) {
+		hddLog(VOS_TRACE_LEVEL_FATAL,
+			"%s: Failed malloc for hdd_txrx_hist",__func__);
+		return -ENOMEM;
+	}
+	return 0;
+}
+
+/**
+ * wlan_hdd_deinit_tx_rx_histogram() - deinit tx/rx histogram stats
+ * @pHddCtx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_deinit_tx_rx_histogram(hdd_context_t *pHddCtx)
+{
+	if (pHddCtx->hdd_txrx_hist) {
+		vos_mem_free(pHddCtx->hdd_txrx_hist);
+		pHddCtx->hdd_txrx_hist = NULL;
+	}
+}
+
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
 {
     int i;
@@ -11933,7 +11966,8 @@ void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
 void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx)
 {
     pHddCtx->hdd_txrx_hist_idx = 0;
-    vos_mem_zero(pHddCtx->hdd_txrx_hist, sizeof(pHddCtx->hdd_txrx_hist));
+    vos_mem_zero(pHddCtx->hdd_txrx_hist,
+        (sizeof(struct hdd_tx_rx_histogram) * NUM_TX_RX_HISTOGRAM));
 }
 
 /**---------------------------------------------------------------------------
@@ -12301,6 +12335,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    mutex_init(&pHddCtx->tdls_lock);
 #endif
 
+   status = wlan_hdd_init_tx_rx_histogram(pHddCtx);
+   if (status != 0) {
+       goto err_free_hdd_context;
+   }
+
    spin_lock_init(&pHddCtx->dfs_lock);
    hdd_init_offloaded_packets_ctx(pHddCtx);
    // Load all config first as TL config is needed during vos_open
@@ -12308,7 +12347,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if(pHddCtx->cfg_ini == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
-      goto err_free_hdd_context;
+      goto err_histogram;
    }
 
    vos_mem_zero(pHddCtx->cfg_ini, sizeof( hdd_config_t ));
@@ -13202,6 +13241,9 @@ err_free_ftm_open:
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
+
+err_histogram:
+   wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
 
 err_free_hdd_context:
    /* wiphy_free() will free the HDD context so remove global reference */

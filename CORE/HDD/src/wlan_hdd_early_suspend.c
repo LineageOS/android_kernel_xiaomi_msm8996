@@ -2259,7 +2259,7 @@ err_vosclose:
        /* Free up dynamically allocated members inside HDD Adapter */
        kfree(pHddCtx->cfg_ini);
        pHddCtx->cfg_ini= NULL;
-
+       wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
        wiphy_unregister(pHddCtx->wiphy);
        wiphy_free(pHddCtx->wiphy);
    }
