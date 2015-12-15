@@ -4535,6 +4535,11 @@ static int switch_to_1x1_connected_sta_state(hdd_context_t *hdd_ctx,
 	eHalStatus hal_status;
 	bool send_smps;
 
+	/*  Check TDLS status and update antenna mode */
+	ret = wlan_hdd_tdls_antenna_switch(hdd_ctx, adapter);
+	if (0 != ret)
+		return ret;
+
 	/* If intersection of sta and AP NSS is 1x1 then
 	 * skip SMPS indication to AP. Only update the chain mask
 	 * and other configuration.
@@ -4613,6 +4618,11 @@ static int switch_to_2x2_connected_sta_state(hdd_context_t *hdd_ctx,
 	int ret;
 	eHalStatus hal_status;
 	bool send_smps;
+
+	/*  Check TDLS status and update antenna mode */
+	ret = wlan_hdd_tdls_antenna_switch(hdd_ctx, adapter);
+	if (0 != ret)
+		return ret;
 
 	hddLog(LOG1, FL("Update chain mask to 2x2"));
 	ret = wlan_hdd_update_txrx_chain_mask(hdd_ctx, 3);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -406,6 +406,9 @@ int hdd_set_tdls_offchannelmode(hdd_adapter_t *pAdapter, int offchanmode);
 void wlan_hdd_update_tdls_info(hdd_adapter_t *adapter, bool tdls_prohibited,
                                bool tdls_chan_swit_prohibited);
 int hdd_set_tdls_scan_type(hdd_context_t *hdd_ctx, int val);
+int wlan_hdd_tdls_antenna_switch(hdd_context_t *hdd_ctx,
+					hdd_adapter_t *adapter);
+
 
 #else
 static inline void hdd_tdls_notify_mode_change(hdd_adapter_t *pAdapter,
@@ -422,6 +425,11 @@ static inline void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
 static inline void
 wlan_hdd_tdls_implicit_send_discovery_request(void *pHddTdlsCtx)
 {
+}
+static inline int wlan_hdd_tdls_antenna_switch(hdd_context_t *hdd_ctx,
+						      hdd_adapter_t *adapter)
+{
+	return 0;
 }
 #endif
 

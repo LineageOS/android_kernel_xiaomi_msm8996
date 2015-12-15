@@ -1503,6 +1503,8 @@ struct hdd_context_s
     tANI_U8      tdls_off_channel;
     tANI_U16     tdls_channel_offset;
     int32_t      tdls_fw_off_chan_mode;
+    bool         tdls_nss_switch_in_progress;
+    int32_t      tdls_teardown_peers_cnt;
 #endif
 
 #ifdef IPA_OFFLOAD

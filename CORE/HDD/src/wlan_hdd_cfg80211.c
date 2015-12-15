@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -19969,6 +19969,16 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 
         wlan_hdd_tdls_check_bmps(pAdapter);
         return -EINVAL;
+    }
+
+    if (SIR_MAC_TDLS_TEARDOWN == action_code &&
+        pHddCtx->tdls_nss_switch_in_progress) {
+        mutex_lock(&pHddCtx->tdls_lock);
+        if (pHddCtx->tdls_teardown_peers_cnt != 0)
+            pHddCtx->tdls_teardown_peers_cnt--;
+        if (pHddCtx->tdls_teardown_peers_cnt == 0)
+            pHddCtx->tdls_nss_switch_in_progress = false;
+        mutex_unlock(&pHddCtx->tdls_lock);
     }
 
     if ((SIR_MAC_TDLS_DIS_REQ == action_code) ||
