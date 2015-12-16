@@ -65,6 +65,7 @@
 
 #ifdef MEMORY_DEBUG
 #include "wlan_hdd_dp_utils.h"
+#include <linux/stacktrace.h>
 
 hdd_list_t vosMemList;
 
