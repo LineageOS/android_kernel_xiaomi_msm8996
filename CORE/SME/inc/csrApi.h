@@ -299,7 +299,13 @@ typedef struct tagCsrScanRequest
     tANI_U32 maxChnTime;    //in units of milliseconds
     tANI_U32 minChnTimeBtc;    //in units of milliseconds
     tANI_U32 maxChnTimeBtc;    //in units of milliseconds
-    tANI_U32 restTime;      //in units of milliseconds  //ignored when not connected
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t restTime;
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t min_rest_time;
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t idle_time;
+
     tANI_U32 uIEFieldLen;
     tANI_U8 *pIEField;
     eCsrRequestType requestType;    //11d scan or full scan
@@ -317,7 +323,12 @@ typedef struct tagCsrBGScanRequest
     tANI_U32 maxChnTime;    //in units of milliseconds
     tANI_U32 minChnTimeBtc;    //in units of milliseconds
     tANI_U32 maxChnTimeBtc;    //in units of milliseconds
-    tANI_U32 restTime;      //in units of milliseconds  //ignored when not connected
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t restTime;
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t min_rest_time;
+    /* In units of milliseconds, ignored when not connected */
+    uint32_t idle_time;
     tANI_U32 throughputImpact;      //specify whether BG scan cares about impacting throughput  //ignored when not connected
     tCsrBssid bssid;    //how to use it?? Apple
 }tCsrBGScanRequest, *tpCsrBGScanRequest;
@@ -1166,6 +1177,10 @@ typedef struct tagCsrConfigParam
     tANI_U8   nNumP2PChanCombinedConc;   //number of channels combined for
                                          //P2P in each split scan operation
 #endif
+    /*In units of milliseconds*/
+    uint32_t       min_rest_time_conc;
+    /*In units of milliseconds*/
+    uint32_t       idle_time_conc;
 
     tANI_BOOLEAN IsIdleScanEnabled;
     //in dBm, the maximum TX power

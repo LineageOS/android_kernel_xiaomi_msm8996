@@ -587,6 +587,24 @@ enum
 #define CFG_REST_TIME_CONC_MAX                      ( 10000 )
 #define CFG_REST_TIME_CONC_DEFAULT                  ( 100 )
 
+/* Mininum time spent on home channel before moving to a new channel to scan */
+#define CFG_MIN_REST_TIME_NAME                      "gMinRestTimeConc"
+#define CFG_MIN_REST_TIME_MIN                       ( 0 )
+#define CFG_MIN_REST_TIME_MAX                       ( 50 )
+#define CFG_MIN_REST_TIME_DEFAULT                   ( 50 )
+
+/* Data inactivity time in msec on bss channel that will be used
+ * by scan engine in firmware.
+ * for example if this value is 25ms then firmware will check for
+ * data inactivity every 25ms till gRestTimeConc is reached.
+ * If inactive then scan engine will move from home channel to
+ * scan the next frequency.
+ */
+#define CFG_IDLE_TIME_NAME                          "gIdleTimeConc"
+#define CFG_IDLE_TIME_MIN                           ( 0 )
+#define CFG_IDLE_TIME_MAX                           ( 25 )
+#define CFG_IDLE_TIME_DEFAULT                       ( 25 )
+
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_NAME             "gNumStaChanCombinedConc"
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_MIN              ( 1 )
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_MAX              ( 255 )
@@ -3596,6 +3614,11 @@ typedef struct
    v_U32_t        nActiveMinChnTimeConc;     //in units of milliseconds
    v_U32_t        nActiveMaxChnTimeConc;     //in units of milliseconds
    v_U32_t        nRestTimeConc;             //in units of milliseconds
+   /* In units of milliseconds */
+   uint32_t       min_rest_time_conc;
+   /* In units of milliseconds */
+   uint32_t       idle_time_conc;
+
    v_U8_t         nNumStaChanCombinedConc;   //number of channels combined for
                                              //STA in each split scan operation
    v_U8_t         nNumP2PChanCombinedConc;   //number of channels combined for
