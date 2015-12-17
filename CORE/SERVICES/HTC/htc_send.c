@@ -550,6 +550,7 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
     HTC_PACKET          *pPacket = NULL;
     u_int16_t           payloadLen;
     HTC_FRAME_HDR       *pHtcHdr;
+    bool                is_tx_runtime_put = false;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("+HTCIssuePackets: Queue: %p, Pkts %d \n",
                     pPktQueue, HTC_PACKET_QUEUE_DEPTH(pPktQueue)));
@@ -622,6 +623,9 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
         pEndpoint->ul_outstanding_cnt++;
         UNLOCK_HTC_TX(target);
 
+        if (pPacket->PktInfo.AsTx.Tag == HTC_TX_PACKET_TAG_RUNTIME_PUT)
+            is_tx_runtime_put = true;
+
         status = HIFSend_head(target->hif_dev,
                               pEndpoint->UL_PipeID, pEndpoint->Id,
                               HTC_HDR_LENGTH + pPacket->ActualLength,
@@ -664,8 +668,10 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
          * with HTC_TX_PACKET_TAG_RUNTIME_PUT releases the count after the
          * packet sent is successful
          */
-        if (pPacket->PktInfo.AsTx.Tag == HTC_TX_PACKET_TAG_RUNTIME_PUT)
-                hif_pm_runtime_put(target->hif_dev);
+        if (is_tx_runtime_put) {
+            is_tx_runtime_put = false;
+            hif_pm_runtime_put(target->hif_dev);
+        }
     }
 
     if (adf_os_unlikely(A_FAILED(status))) {
