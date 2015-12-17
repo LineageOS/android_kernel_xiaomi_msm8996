@@ -21374,7 +21374,7 @@ suspend_all_iface:
 						wma->wow.gtk_pdev_enable);
 	}
 
-	if (!enable_wow) {
+	if (!enable_wow && !pno_in_progress && !extscan_in_progress) {
 		WMA_LOGD("All vdev are in disconnected state and pno/extscan is not in progress, skipping wow");
 		vos_mem_free(info);
 		goto send_ready_to_suspend;
