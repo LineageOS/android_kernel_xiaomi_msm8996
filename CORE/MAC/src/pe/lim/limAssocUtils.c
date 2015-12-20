@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1659,6 +1659,12 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
                         "enable2x2 %d nss %d vhtRxMCSMap %x vhtTxMCSMap %x\n"),
                         pMac->roam.configParam.enable2x2, nss,
                         pRates->vhtRxMCSMap, pRates->vhtTxMCSMap);
+
+            psessionEntry->supported_nss_1x1 =
+                ((pRates->vhtTxMCSMap & VHT_MCS_1x1) ==
+                 VHT_MCS_1x1) ? true : false;
+            limLog(pMac, LOG1, FL("VHT supported nss 1x1 : %d "),
+                   psessionEntry->supported_nss_1x1);
         }
     }
     return eSIR_SUCCESS;
@@ -1998,9 +2004,16 @@ limPopulatePeerRateSet(tpAniSirGlobal pMac,
             for(i=0; i<SIR_MAC_MAX_SUPPORTED_MCS_SET; i++)
                     pRates->supportedMCSSet[i] &= pSupportedMCSSet[i];
         }
+
         PELOG2(limLog(pMac, LOG2, FL("MCS Rate Set Bitmap: "));)
         for(i=0; i<SIR_MAC_MAX_SUPPORTED_MCS_SET; i++)
-            PELOG2(limLog(pMac, LOG2,FL("%x ") , pRates->supportedMCSSet[i]);)
+            PELOG2(limLog(pMac, LOG2, FL("%x "), pRates->supportedMCSSet[i]);)
+
+        psessionEntry->supported_nss_1x1 =
+            ((pRates->supportedMCSSet[1] != 0) ? false : true);
+        PELOG1(limLog(pMac, LOG1, FL("HT supported nss 1x1 : %d "),
+                      psessionEntry->supported_nss_1x1);)
+
     }
 #ifdef WLAN_FEATURE_11AC
     limPopulateVhtMcsSet(pMac, pRates , pVHTCaps, psessionEntry,
@@ -3108,7 +3121,8 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     pAddStaParams->enableVhtpAid = psessionEntry->enableVhtpAid;
 #endif
     pAddStaParams->enableAmpduPs = psessionEntry->enableAmpduPs;
-    pAddStaParams->enableHtSmps = psessionEntry->enableHtSmps;
+    pAddStaParams->enableHtSmps = (psessionEntry->enableHtSmps &&
+                                   (!psessionEntry->supported_nss_1x1));
     pAddStaParams->htSmpsconfig = psessionEntry->htSmpsvalue;
 
     /* For Self STA get the LDPC capability from session i.e config.ini*/

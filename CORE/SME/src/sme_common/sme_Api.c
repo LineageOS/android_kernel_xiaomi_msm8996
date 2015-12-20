@@ -17443,3 +17443,63 @@ VOS_STATUS sme_send_egap_conf_params(uint32_t enable, uint32_t inactivity_time,
 	return vos_status;
 }
 #endif
+
+/**
+ * sme_update_mimo_power_save() - Update MIMO power save
+ * configuration
+ * @hal: The handle returned by macOpen
+ * @is_ht_smps_enabled: enable/disable ht smps
+ * @ht_smps_mode: smps mode disabled/static/dynamic
+ *
+ * Return: eHAL_STATUS_SUCCESS if SME update mimo power save
+ * configuration sucsess else failue status
+ */
+eHalStatus sme_update_mimo_power_save(tHalHandle hal,
+				      uint8_t is_ht_smps_enabled,
+				      uint8_t ht_smps_mode)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	eHalStatus status;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		smsLog(mac_ctx, LOG1,
+		       "update mimo power save config enable smps: %d smps mode: %d",
+		       is_ht_smps_enabled, ht_smps_mode);
+		mac_ctx->roam.configParam.enableHtSmps =
+			is_ht_smps_enabled;
+		mac_ctx->roam.configParam.htSmps = ht_smps_mode;
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+	return status;
+}
+
+/**
+ * sme_is_sta_smps_allowed() - check if the supported nss for
+ * the session is greater than 1x1 to enable sta SMPS
+ * @hal: The handle returned by macOpen
+ * @session_id: session id
+ *
+ * Return: bool returns true if supported nss is greater than
+ * 1x1 else false
+ */
+bool sme_is_sta_smps_allowed(tHalHandle hal, uint8_t session_id)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	tCsrRoamSession *csr_session;
+
+	if (!CSR_IS_SESSION_VALID(mac_ctx, session_id)) {
+		smsLog(mac_ctx, LOGE, "CSR session not valid: %d", session_id);
+		return false;
+	}
+
+	csr_session = CSR_GET_SESSION(mac_ctx, session_id);
+	if (NULL == csr_session) {
+		smsLog(mac_ctx, LOGE, "SME session not valid: %d", session_id);
+		return false;
+	}
+
+	return (csr_session->supported_nss_1x1 == true) ? false : true;
+}
+
+

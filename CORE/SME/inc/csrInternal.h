@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1039,6 +1039,7 @@ typedef struct tagCsrRoamSession
                                */
     tCsrRoamStoredProfile stored_roam_profile;
     bool ch_switch_in_progress;
+    bool supported_nss_1x1;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct

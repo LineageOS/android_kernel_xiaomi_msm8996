@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -732,6 +732,16 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
         }
     } else if (psessionEntry && psessionEntry->vdev_nss == NSS_1x1_MODE) {
             pDot11f->supportedMCSSet[1] = 0;
+    }
+
+    /* If STA and mimo power save is enabled include ht smps */
+    if (psessionEntry && (!pMac->lteCoexAntShare) &&
+        LIM_IS_STA_ROLE(psessionEntry) &&
+        (psessionEntry->enableHtSmps) &&
+        (!psessionEntry->supported_nss_1x1)) {
+        limLog(pMac, LOG1, FL("Add SM power save IE :%d"),
+               psessionEntry->htSmpsvalue);
+        pDot11f->mimoPowerSave = psessionEntry->htSmpsvalue;
     }
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_EXT_HT_CAP_INFO, nCfgValue );

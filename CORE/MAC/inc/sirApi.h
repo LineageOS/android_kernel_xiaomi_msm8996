@@ -1165,6 +1165,7 @@ typedef struct sSirSmeJoinRsp
 #endif
 
     tANI_U8         frames[ 1 ];
+    bool supported_nss_1x1;
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
 /// Definition for Authentication indication from peer

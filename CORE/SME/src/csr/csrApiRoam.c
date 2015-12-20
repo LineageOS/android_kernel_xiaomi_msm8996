@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7937,6 +7937,11 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
                sme_QosCsrEventInd(pMac, pSmeJoinRsp->sessionId, SME_QOS_CSR_HANDOFF_COMPLETE, NULL);
 #endif
             }
+
+            pSession->supported_nss_1x1 = pSmeJoinRsp->supported_nss_1x1;
+            smsLog(pMac, LOG1, FL("SME session supported nss: %d"),
+                   pSession->supported_nss_1x1);
+
             /* The join bssid count can be reset as soon as
              * we are done with the join requests and returning
              * the response to upper layers

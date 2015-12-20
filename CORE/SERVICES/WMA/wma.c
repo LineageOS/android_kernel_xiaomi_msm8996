@@ -839,6 +839,34 @@ tSmpsModeValue host_map_smps_mode (A_UINT32 fw_smps_mode)
 	return smps_mode;
 }
 
+/**
+ * wma_smps_mode_to_force_mode_param() - Map smps mode to force
+ * mode commmand param
+ * @smps_mode: SMPS mode according to the protocol
+ *
+ * Return: int > 0 for success else failure
+ */
+static int wma_smps_mode_to_force_mode_param(uint8_t smps_mode)
+{
+	int param = -EINVAL;
+
+	switch (smps_mode) {
+	case STATIC_SMPS_MODE:
+		param = WMI_SMPS_FORCED_MODE_STATIC;
+		break;
+	case DYNAMIC_SMPS_MODE:
+		param = WMI_SMPS_FORCED_MODE_DYNAMIC;
+		break;
+	case SMPS_MODE_DISABLED:
+		param = WMI_SMPS_FORCED_MODE_DISABLED;
+		break;
+	default:
+		WMA_LOGE(FL("smps mode cannot be mapped :%d "),
+			 smps_mode);
+	}
+	return param;
+}
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 /* function   : wma_post_auto_shutdown_msg
  * Description : function to post auto shutdown event to sme
@@ -12789,7 +12817,7 @@ static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
 						privcmd->param_value);
 		break;
         case WMI_STA_SMPS_FORCE_MODE_CMDID:
-                  wma_set_mimops(wma_handle, privcmd->param_vdev_id,
+                  ret = wma_set_mimops(wma_handle, privcmd->param_vdev_id,
                                  privcmd->param_value);
                 break;
         case WMI_STA_SMPS_PARAM_CMDID:
@@ -15738,6 +15766,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	struct wma_txrx_node *iface = NULL;
 	tPowerdBm maxTxPower;
         int ret = 0;
+	int smps_param;
 
 #ifdef FEATURE_WLAN_TDLS
 	if (STA_ENTRY_TDLS_PEER == params->staType)
@@ -15887,9 +15916,21 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		 __func__, iface->type, iface->sub_type);
         /* Sta is now associated, configure various params */
 
-	if (params->enableHtSmps)
-		wma_set_mimops(wma, params->smesessionId,
-				params->htSmpsconfig);
+	/* Send SMPS force command to FW to send the required
+	 * action frame. The SM power save is also included
+	 * in the assoc request if ht smps is enabled either
+	 * from INI or as a result of dynamic antenna switch
+	 */
+	if (params->enableHtSmps) {
+		smps_param = wma_smps_mode_to_force_mode_param(
+			params->htSmpsconfig);
+		if (smps_param >= 0) {
+			WMA_LOGD("%s: Set MIMO power save smps mode %d",
+				__func__, params->htSmpsconfig);
+			wma_set_mimops(wma, params->smesessionId,
+				smps_param);
+		}
+	}
 
 #ifdef WLAN_FEATURE_11AC
         /* Partial AID match power save, enable when SU bformee*/
@@ -31856,6 +31897,10 @@ static eHalStatus wma_set_mimops(tp_wma_handle wma, tANI_U8 vdev_id, int value)
 
         cmd->vdev_id = vdev_id;
 
+        /* WMI_SMPS_FORCED_MODE values do not directly map
+         * to SM power save values defined in the specification.
+         * Make sure to send the right mapping.
+         */
         switch(value)
         {
             case 0:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -621,6 +621,12 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
             }
 #endif
         }
+        /* Send supported NSS 1x1 to SME */
+        pSirSmeJoinRsp->supported_nss_1x1 =
+                psessionEntry->supported_nss_1x1;
+        PELOG1(limLog(pMac, LOG1,
+                      FL("SME Join Rsp is supported NSS 1X1: %d"),
+                      pSirSmeJoinRsp->supported_nss_1x1);)
     }
 
 
