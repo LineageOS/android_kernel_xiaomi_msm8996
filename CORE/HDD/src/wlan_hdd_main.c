@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -837,6 +837,63 @@ static void hdd_lost_link_info_cb(void *context,
 	adapter->rssi_on_disconnect = lost_link_info->rssi;
 	hddLog(LOG1, "%s: rssi on disconnect %d",
 		     __func__, adapter->rssi_on_disconnect);
+}
+
+/**
+ * __hdd_smps_force_mode_cb() - callback for smps force mode
+ * event
+ * @context: HDD context
+ * @smps_mode_event: smps force mode event info
+ *
+ * Return: none
+ */
+static void __hdd_smps_force_mode_cb(void *context,
+		struct sir_smps_force_mode_event *smps_mode_event)
+{
+	hdd_context_t *hdd_ctx = (hdd_context_t *)context;
+	int status;
+	hdd_adapter_t *adapter;
+
+	ENTER();
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status)
+		return;
+
+	if (NULL == smps_mode_event) {
+		hddLog(LOGE, FL("smps_mode_event is NULL"));
+		return;
+	}
+
+	adapter = hdd_get_adapter_by_vdev(hdd_ctx, smps_mode_event->vdev_id);
+	if (NULL == adapter) {
+		hddLog(LOGE, FL("Invalid adapter"));
+		return;
+	}
+
+	adapter->smps_force_mode_status = smps_mode_event->status;
+
+	complete(&adapter->smps_force_mode_comp_var);
+
+	hddLog(LOG1, FL("status %d vdev_id: %d"),
+	       smps_mode_event->status, smps_mode_event->vdev_id);
+}
+
+/**
+ * hdd_smps_force_mode_cb() - Wrapper to protect
+ * __hdd_smps_force_mode_cb callback for smps force mode event
+ * @context: HDD context
+ * @smps_mode_event: smps force mode event info
+ *
+ * Return: none
+ */
+static void hdd_smps_force_mode_cb(void *context,
+		struct sir_smps_force_mode_event *smps_mode_event)
+{
+	vos_ssr_protect(__func__);
+	__hdd_smps_force_mode_cb(context, smps_mode_event);
+	vos_ssr_unprotect(__func__);
+
 }
 
 #if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
@@ -4301,6 +4358,418 @@ static int hdd_driver_rxfilter_comand_handler(uint8_t *command,
 	return ret;
 }
 
+/**
+ * hdd_parse_setantennamode_command() - HDD Parse SETANTENNAMODE
+ * command
+ * @value: Pointer to SETANTENNAMODE command
+ * @mode: Pointer to antenna mode
+ *
+ * This function parses the SETANTENNAMODE command passed in the format
+ * SETANTENNAMODE<space>mode
+ *
+ * Return: 0 for success non-zero for failure
+ */
+static int hdd_parse_setantennamode_command(const uint8_t *value,
+					int *mode)
+{
+	const uint8_t *in_ptr = value;
+	int tmp, v;
+	char arg1[32];
+	*mode = 0;
+
+	in_ptr = strnchr(value, strlen(value), SPACE_ASCII_VALUE);
+
+	/* no argument after the command */
+	if (NULL == in_ptr) {
+		hddLog(LOGE, FL("No argument after the command"));
+		return -EINVAL;
+	}
+
+	/* no space after the command */
+	if (SPACE_ASCII_VALUE != *in_ptr) {
+		hddLog(LOGE, FL("No space after the command"));
+		return -EINVAL;
+	}
+
+	/* remove empty spaces */
+	while ((SPACE_ASCII_VALUE == *in_ptr) && ('\0' != *in_ptr))
+		in_ptr++;
+
+	/* no argument followed by spaces */
+	if ('\0' == *in_ptr) {
+		hddLog(LOGE, FL("No argument followed by spaces"));
+		return -EINVAL;
+	}
+
+	/* get the argument i.e. antenna mode */
+	v = sscanf(in_ptr, "%31s ", arg1);
+	if (1 != v) {
+		hddLog(LOGE, FL("argument retrieval from cmd string failed"));
+		return -EINVAL;
+	}
+
+	v = kstrtos32(arg1, 10, &tmp);
+	if (v < 0) {
+		hddLog(LOGE, FL("argument string to integer conversion failed"));
+		return -EINVAL;
+	}
+	*mode = tmp;
+
+	return 0;
+}
+
+/**
+ * hdd_is_supported_chain_mask_2x2() - Verify if supported chain
+ * mask is 2x2 mode
+ * @hdd_ctx: Pointer to hdd contex
+ *
+ * Return: true if supported chain mask 2x2 else false
+ */
+static bool hdd_is_supported_chain_mask_2x2(hdd_context_t *hdd_ctx)
+{
+	hdd_config_t *config = hdd_ctx->cfg_ini;
+
+	if (hdd_ctx->per_band_chainmask_supp == 0x01) {
+		return (((hdd_ctx->supp_2g_chain_mask & 0x03)
+			 == 0x03) ||
+			((hdd_ctx->supp_5g_chain_mask & 0x03)
+			 == 0x03)) ? true : false;
+	}
+
+	return (config->enable2x2 == 0x01) ? true : false;
+}
+
+/**
+ * hdd_is_supported_chain_mask_1x1() - Verify if the supported
+ * chain mask is 1x1
+ * @hdd_ctx: Pointer to hdd contex
+ *
+ * Return: true if supported chain mask 1x1 else false
+ */
+static bool hdd_is_supported_chain_mask_1x1(hdd_context_t *hdd_ctx)
+{
+	hdd_config_t *config = hdd_ctx->cfg_ini;
+
+	if (hdd_ctx->per_band_chainmask_supp == 0x01) {
+		return ((hdd_ctx->supp_2g_chain_mask <= 0x02) &&
+			(hdd_ctx->supp_5g_chain_mask <= 0x02)) ?
+			true : false;
+	}
+
+	return (!config->enable2x2) ? true : false;
+}
+
+/**
+ * switch_antenna_mode_non_conn_state() - Dynamic switch to 1x1
+ * antenna mode when there are no connections
+ * @hdd_ctx: Pointer to hdd contex
+ * @adapter: Pointer to hdd adapter
+ * @chains: Number of TX/RX chains to set
+ *
+ * Return: 0 if success else non zero
+ */
+static int switch_antenna_mode_non_conn_state(hdd_context_t *hdd_ctx,
+					      hdd_adapter_t *adapter,
+					      uint8_t chains)
+{
+	int ret;
+	eHalStatus hal_status;
+	bool enable_smps;
+	int smps_mode;
+
+	ret = wlan_hdd_update_txrx_chain_mask(hdd_ctx,
+					(chains == 2) ? 0x3 : 0x1);
+
+	if (0 != ret) {
+		hddLog(LOGE,
+		       FL("Failed to update chain mask: %d"),
+		       chains);
+		return ret;
+	}
+
+	/* Update HT SMPS as static/disabled in the SME configuration
+	 * If there is STA connection followed by dynamic switch
+	 * to 1x1 protocol stack would include SM power save IE as
+	 * static in the assoc mgmt frame and after association
+	 * SMPS force mode command will be sent to FW to initiate
+	 * SMPS action frames to AP. In this case, SMPS force mode
+	 * command event can be expected from firmware with the
+	 * TX status of SMPS action frames. Inclusion of SM power
+	 * save IE and sending of SMPS action frames will not happen
+	 * for switch to 2x2 mode. But SME config should still be
+	 * updated to disabled.
+	 */
+	adapter->smps_force_mode_status = 0;
+
+	enable_smps = (chains == 1) ? true : false;
+	smps_mode = (chains == 1) ? HDD_SMPS_MODE_STATIC :
+			HDD_SMPS_MODE_DISABLED;
+
+	hal_status = sme_update_mimo_power_save(hdd_ctx->hHal,
+			enable_smps, smps_mode);
+	if (eHAL_STATUS_SUCCESS != hal_status) {
+		hddLog(LOG1,
+		       FL("Update MIMO power SME config failed: %d"),
+		       hal_status);
+		return -EFAULT;
+	}
+
+	hddLog(LOG1, FL("Updated SME config enable smps: %d mode: %d"),
+	       enable_smps, smps_mode);
+
+	return 0;
+}
+
+/**
+ * switch_to_1x1_connected_sta_state() - Dynamic switch to 1x1
+ * antenna mode in standalone station
+ * @hdd_ctx: Pointer to hdd contex
+ * @adapter: Pointer to hdd adapter
+ *
+ * Return: 0 if success else non zero
+ */
+static int switch_to_1x1_connected_sta_state(hdd_context_t *hdd_ctx,
+					     hdd_adapter_t *adapter)
+{
+	int ret;
+	eHalStatus hal_status;
+	bool send_smps;
+
+	/* If intersection of sta and AP NSS is 1x1 then
+	 * skip SMPS indication to AP. Only update the chain mask
+	 * and other configuration.
+	 */
+	send_smps = sme_is_sta_smps_allowed(hdd_ctx->hHal,
+					adapter->sessionId);
+	if (!send_smps) {
+		hddLog(LOGE, FL("Need not indicate SMPS to AP"));
+		goto chain_mask;
+	}
+
+	INIT_COMPLETION(adapter->smps_force_mode_comp_var);
+
+	hddLog(LOG1, FL("Send SMPS force mode command"));
+	ret = process_wma_set_command((int)adapter->sessionId,
+				WMI_STA_SMPS_FORCE_MODE_CMDID,
+				WMI_SMPS_FORCED_MODE_STATIC,
+				VDEV_CMD);
+	if (0 != ret) {
+		hddLog(LOGE,
+		       FL("Failed to send SMPS force mode to static"));
+		return ret;
+	}
+
+	/* Block on SMPS force mode event only for mode static */
+	ret = wait_for_completion_timeout(
+		&adapter->smps_force_mode_comp_var,
+		msecs_to_jiffies(WLAN_WAIT_SMPS_FORCE_MODE));
+	if (!ret) {
+		hddLog(LOGE,
+			FL("SMPS force mode event timeout: %d"),
+			ret);
+		return -EFAULT;
+	}
+	ret = adapter->smps_force_mode_status;
+	adapter->smps_force_mode_status = 0;
+	if (0 != ret) {
+		hddLog(LOGE, FL("SMPS force mode status: %d "),
+		       ret);
+		return ret;
+	}
+
+chain_mask:
+	hddLog(LOG1, FL("Update chain mask to 1x1"));
+	ret = wlan_hdd_update_txrx_chain_mask(hdd_ctx, 1);
+	if (0 != ret) {
+		hddLog(LOGE, FL("Failed to switch to 1x1 mode"));
+		return ret;
+	}
+
+	/* Update SME SM power save config */
+	hal_status = sme_update_mimo_power_save(hdd_ctx->hHal,
+					true, HDD_SMPS_MODE_STATIC);
+	if (eHAL_STATUS_SUCCESS != hal_status) {
+		hddLog(LOG1,
+		       FL("Failed to update SMPS config to static: %d"),
+		       hal_status);
+		return -EFAULT;
+	}
+
+	hddLog(LOG1, FL("Successfully switched to 1x1 mode"));
+	return 0;
+}
+
+/**
+ * switch_to_2x2_connected_sta_state() - Dynamic switch to 2x2
+ * antenna mode in standalone station
+ * @hdd_ctx: Pointer to hdd contex
+ * @adapter: Pointer to hdd adapter
+ *
+ * Return: 0 if success else non zero
+ */
+static int switch_to_2x2_connected_sta_state(hdd_context_t *hdd_ctx,
+					     hdd_adapter_t *adapter)
+{
+	int ret;
+	eHalStatus hal_status;
+	bool send_smps;
+
+	hddLog(LOG1, FL("Update chain mask to 2x2"));
+	ret = wlan_hdd_update_txrx_chain_mask(hdd_ctx, 3);
+	if (0 != ret) {
+		hddLog(LOGE, FL("Failed to switch to 2x2 mode"));
+		return ret;
+	}
+
+	/* If intersection of sta and AP NSS is 1x1 then
+	 * skip SMPS indication to AP.
+	 */
+	send_smps = sme_is_sta_smps_allowed(hdd_ctx->hHal,
+					adapter->sessionId);
+	if (!send_smps) {
+		hddLog(LOGE, FL("Need not indicate SMPS to AP"));
+		goto exit;
+	}
+
+	hddLog(LOG1, FL("Send SMPS force mode command "));
+
+	/* No need to block on SMPS force mode event when
+	 * the mode switch is 2x2 since the chain mask
+	 * has already been updated to 2x2
+	 */
+	ret = process_wma_set_command((int)adapter->sessionId,
+				WMI_STA_SMPS_FORCE_MODE_CMDID,
+				WMI_SMPS_FORCED_MODE_DISABLED,
+				VDEV_CMD);
+	if (0 != ret) {
+		hddLog(LOGE,
+		       FL("Failed to send SMPS force mode to disabled"));
+		return ret;
+	}
+
+exit:
+	/* Update SME SM power save config */
+	hal_status = sme_update_mimo_power_save(hdd_ctx->hHal,
+				false, HDD_SMPS_MODE_DISABLED);
+	if (eHAL_STATUS_SUCCESS != hal_status) {
+		hddLog(LOG1,
+		       FL("Failed to update SMPS config to disable: %d"),
+		       hal_status);
+		return -EFAULT;
+	}
+
+	hddLog(LOG1, FL("Successfully switched to 2x2 mode"));
+	return 0;
+}
+
+/**
+ * drv_cmd_set_antenna_mode() - SET ANTENNA MODE driver command
+ * handler
+ * @hdd_ctx: Pointer to hdd context
+ * @cmd: Pointer to input command
+ * @command_len: Command length
+ *
+ * Return: 0 for success non-zero for failure
+ */
+static int drv_cmd_set_antenna_mode(hdd_adapter_t *adapter,
+				    uint8_t *command,
+				    uint8_t cmd_len)
+{
+	int ret;
+	int mode;
+	uint8_t *value = command;
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+
+	if ((hdd_ctx->concurrency_mode > 1) ||
+	    (hdd_ctx->no_of_active_sessions[WLAN_HDD_INFRA_STATION] > 1)) {
+		hddLog(LOGE, FL("Operation invalid in non sta or concurrent mode"));
+		ret = -EPERM;
+		goto exit;
+	}
+
+	ret = hdd_parse_setantennamode_command(value, &mode);
+	if (0 != ret) {
+		hddLog(LOGE, FL("Invalid SETANTENNA command"));
+		goto exit;
+	}
+
+	hddLog(LOG1, FL("Request to switch antenna mode to: %d"), mode);
+
+	if (hdd_ctx->current_antenna_mode == mode) {
+		hddLog(LOGE, FL("System already in the requested mode"));
+		ret = 0;
+		goto exit;
+	}
+
+	if ((HDD_ANTENNA_MODE_2X2 == mode) &&
+	    (!hdd_is_supported_chain_mask_2x2(hdd_ctx))) {
+		hddLog(LOGE, FL("System does not support 2x2 mode"));
+		ret = -EPERM;
+		goto exit;
+	}
+
+	if ((HDD_ANTENNA_MODE_1X1 == mode) &&
+	    hdd_is_supported_chain_mask_1x1(hdd_ctx)) {
+		hddLog(LOGE, FL("System already in 1x1 mode"));
+		ret = 0;
+		goto exit;
+	}
+
+	/* Non connected state */
+	if (0 == wlan_hdd_get_active_session_count(hdd_ctx)) {
+		hddLog(LOG1,
+		       FL("Switch to %d x %d in non connected state"),
+		       mode, mode);
+
+		ret = switch_antenna_mode_non_conn_state(
+				hdd_ctx, adapter, mode);
+		if (0 != ret) {
+			hddLog(LOGE,
+			       FL("Failed to switch to %d x %d mode"),
+			       mode, mode);
+			goto exit;
+		}
+
+		hdd_ctx->current_antenna_mode = (mode == 1) ?
+			HDD_ANTENNA_MODE_1X1 : HDD_ANTENNA_MODE_2X2;
+
+	} else if ((hdd_ctx->concurrency_mode <= 1) &&
+		   (hdd_ctx->no_of_active_sessions[
+		    WLAN_HDD_INFRA_STATION] <= 1)) {
+		hddLog(LOG1,
+		       FL("Switch to %d x %d in connected sta state"),
+		       mode, mode);
+
+		if (HDD_ANTENNA_MODE_1X1 == mode) {
+			ret = switch_to_1x1_connected_sta_state(
+				hdd_ctx, adapter);
+			if (0 != ret) {
+				hddLog(LOGE,
+				       FL("Failed to switch to 1x1 mode"));
+				goto exit;
+			}
+			hdd_ctx->current_antenna_mode =
+				HDD_ANTENNA_MODE_1X1;
+
+		} else if (HDD_ANTENNA_MODE_2X2 == mode) {
+			ret = switch_to_2x2_connected_sta_state(
+				hdd_ctx, adapter);
+			if (0 != ret) {
+				hddLog(LOGE,
+				       FL("Failed to switch to 2x2 mode"));
+				goto exit;
+			}
+			hdd_ctx->current_antenna_mode =
+				HDD_ANTENNA_MODE_2X2;
+		}
+	}
+
+exit:
+	hddLog(LOG1, FL("Set antenna status: %d current mode: %d"),
+	       ret, hdd_ctx->current_antenna_mode);
+	return ret;
+}
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -6500,6 +6969,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            ret = hdd_driver_rxfilter_comand_handler(command, pAdapter, true);
 
+       } else if (strncasecmp(command, "SETANTENNAMODE", 14) == 0) {
+           ret = drv_cmd_set_antenna_mode(pAdapter, command, 14);
+           hddLog(LOG1, FL("set antenna mode ret: %d"), ret);
        } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -6794,6 +7266,7 @@ static void hdd_update_chain_mask_vdev_nss(hdd_context_t *hdd_ctx,
 		cfg_ini->enable2x2 = 1;
 	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
 			cfg_ini->vdev_type_nss_2g, eCSR_BAND_24);
+	hdd_ctx->supp_2g_chain_mask = chain_mask;
 
 	max_supp_nss = 1;
 	chain_mask = cfg->chain_mask_5g & cfg_ini->chain_mask_5g;
@@ -6822,6 +7295,10 @@ static void hdd_update_chain_mask_vdev_nss(hdd_context_t *hdd_ctx,
 		cfg_ini->enable2x2 = 1;
 	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
 			cfg_ini->vdev_type_nss_5g, eCSR_BAND_5G);
+	hdd_ctx->supp_5g_chain_mask = chain_mask;
+	hddLog(LOG1, FL("Supported chain mask 2G: %d 5G: %d"),
+	       hdd_ctx->supp_2g_chain_mask,
+	       hdd_ctx->supp_5g_chain_mask);
 }
 
 static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
@@ -7396,6 +7873,12 @@ void hdd_update_tgt_cfg(void *context, void *param)
 #ifdef WLAN_FEATURE_11AC
     hdd_update_tgt_vht_cap(hdd_ctx, &cfg->vht_cap);
 #endif  /* #ifdef WLAN_FEATURE_11AC */
+
+    hdd_ctx->current_antenna_mode =
+            hdd_is_supported_chain_mask_2x2(hdd_ctx) ?
+            HDD_ANTENNA_MODE_2X2 : HDD_ANTENNA_MODE_1X1;
+    hddLog(LOG1, FL("Current antenna mode: %d"),
+           hdd_ctx->current_antenna_mode);
 }
 
 /* This function is invoked in atomic context when a radar
@@ -8363,6 +8846,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
       init_completion(&pAdapter->session_open_comp_var);
+      init_completion(&pAdapter->smps_force_mode_comp_var);
       init_completion(&pAdapter->session_close_comp_var);
       init_completion(&pAdapter->disconnect_comp_var);
       init_completion(&pAdapter->linkup_event_var);
@@ -13113,6 +13597,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (eHAL_STATUS_SUCCESS != hal_status)
        hddLog(LOGE, "%s: set lost link info callback failed", __func__);
 
+   hal_status = sme_set_smps_force_mode_cb(pHddCtx->hHal,
+                                           hdd_smps_force_mode_cb);
+   if (eHAL_STATUS_SUCCESS != hal_status)
+       hddLog(LOGE, FL("set smps force mode callback failed"));
+
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
    vos_init_delayed_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
@@ -13885,6 +14374,95 @@ void wlan_hdd_decr_active_session(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
                                 pHddCtx->no_of_active_sessions[mode]);
 }
 
+/**
+ * wlan_hdd_get_active_session_count() - get active session
+ * connection count
+ * @hdd_ctx: Pointer to hdd context
+ *
+ * Return: count of active connections
+ */
+uint8_t wlan_hdd_get_active_session_count(hdd_context_t *hdd_ctx)
+{
+	uint8_t i = 0;
+	uint8_t count = 0;
+
+	for (i = 0; i < VOS_MAX_NO_OF_MODE; i++) {
+		count += hdd_ctx->no_of_active_sessions[i];
+	}
+	return count;
+}
+
+/**
+ * wlan_hdd_update_txrx_chain_mask() - updates the TX/RX chain
+ * mask to FW
+ * @hdd_ctx: Pointer to hdd context
+ * @chain_mask : Vlaue of the chain_mask to be updated
+ *
+ * Return: 0 for success non-zero for failure
+ */
+int wlan_hdd_update_txrx_chain_mask(hdd_context_t *hdd_ctx,
+				    uint8_t chain_mask)
+{
+	int ret;
+
+	if (hdd_ctx->per_band_chainmask_supp == 1) {
+		ret = process_wma_set_command(0,
+				WMI_PDEV_PARAM_RX_CHAIN_MASK_2G,
+				chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set 2G RX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+		ret = process_wma_set_command(0,
+				WMI_PDEV_PARAM_TX_CHAIN_MASK_2G,
+				chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set 2G TX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+
+		ret = process_wma_set_command(0,
+				WMI_PDEV_PARAM_RX_CHAIN_MASK_5G,
+				chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set 5G RX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+		ret = process_wma_set_command(0,
+				WMI_PDEV_PARAM_TX_CHAIN_MASK_5G,
+				chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set 5G TX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+	} else {
+		ret = process_wma_set_command(0,
+					WMI_PDEV_PARAM_RX_CHAIN_MASK,
+					chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set RX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+
+		ret = process_wma_set_command(0,
+					WMI_PDEV_PARAM_TX_CHAIN_MASK,
+					chain_mask, PDEV_CMD);
+		if (0 != ret) {
+			hddLog(LOGE, FL("Failed to set TX chain mask: %d"),
+			       chain_mask);
+			return -EFAULT;
+		}
+	}
+
+	hddLog(LOG1, FL("Sucessfully updated the TX/RX chain mask to: %d"),
+	       chain_mask);
+	return 0;
+}
 
 /**---------------------------------------------------------------------------
  *
