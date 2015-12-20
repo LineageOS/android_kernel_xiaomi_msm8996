@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -653,6 +653,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ENTER_BMPS_RSP             SIR_HAL_ENTER_BMPS_RSP
 #define WDA_BMPS_STATUS_IND            SIR_HAL_BMPS_STATUS_IND
 #define WDA_MISSED_BEACON_IND          SIR_HAL_MISSED_BEACON_IND
+
+#define WDA_SMPS_FORCE_MODE_IND        SIR_HAL_SMPS_FORCE_MODE_IND
 
 #define WDA_CFG_RXP_FILTER_REQ         SIR_HAL_CFG_RXP_FILTER_REQ
 #define WDA_CFG_RXP_FILTER_RSP         SIR_HAL_CFG_RXP_FILTER_RSP

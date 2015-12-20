@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4416,4 +4416,6 @@ VOS_STATUS sme_set_wow_pulse(struct wow_pulse_mode *wow_pulse_set_info);
 eHalStatus sme_roam_set_default_key_index(tHalHandle hal, uint8_t session_id,
 					uint8_t default_idx);
 
+eHalStatus sme_set_smps_force_mode_cb(tHalHandle hal,
+		void (*cb)(void *, struct sir_smps_force_mode_event *));
 #endif //#if !defined( __SME_API_H )

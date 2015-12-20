@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3181,6 +3181,13 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    pMac->sme.lost_link_info_cb(pMac->hHdd,
                              (struct sir_lost_link_info *)pMsg->bodyptr);
                }
+               vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_SMPS_FORCE_MODE_IND:
+               if (pMac->sme.smps_force_mode_cb)
+                   pMac->sme.smps_force_mode_cb(pMac->hHdd,
+                       (struct sir_smps_force_mode_event *)
+                       pMsg->bodyptr);
                vos_mem_free(pMsg->bodyptr);
                break;
           default:
@@ -17310,6 +17317,36 @@ eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
 			  "%s: set lost link info callback", __func__);
 		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: sme_AcquireGlobalLock error status %d",
+			  __func__, status);
+	}
+	return status;
+}
+
+/**
+ * sme_set_smps_force_mode_cb() - callback set by HDD for smps
+ * force mode event
+ * @hal: The handle returned by macOpen
+ * @cb: callback function
+ *
+ * Return: eHAL_STATUS_SUCCESS if callback was set successfully
+ * else failure status
+ */
+eHalStatus sme_set_smps_force_mode_cb(tHalHandle hal,
+				void (*cb)(void *,
+				struct sir_smps_force_mode_event *))
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.smps_force_mode_cb = cb;
+		sme_ReleaseGlobalLock(&mac->sme);
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			"%s: set smps force mode callback", __func__);
 	} else {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			  "%s: sme_AcquireGlobalLock error status %d",

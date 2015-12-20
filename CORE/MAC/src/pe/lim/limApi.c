@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2026,6 +2026,49 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             pMac->pmm.gPmmState);
     }
     return;
+}
+
+/**
+ * lim_smps_force_mode_ind() - Process smps force mode event
+ * @mac_ctx: Global MAC pointer
+ * @data: message containing the parameters of the event
+ *
+ * Process the smps force mode event and post message to SME to
+ * invoke the HDD callback
+ *
+ * Return: None
+ */
+void lim_smps_force_mode_ind(tpAniSirGlobal mac_ctx, tpSirMsgQ data)
+{
+	tSirMsgQ msg;
+	tpPESession psession_entry;
+	struct sir_smps_force_mode_event *smps_ind, *param;
+
+	smps_ind = data->bodyptr;
+	psession_entry = pe_find_session_by_sme_session_id(mac_ctx,
+						smps_ind->vdev_id);
+	if (psession_entry == NULL) {
+		limLog(mac_ctx, LOGE,
+		       FL("session does not exist for given BSSIdx: %d"),
+		       smps_ind->vdev_id);
+		return;
+	}
+
+	param = vos_mem_malloc(sizeof(*param));
+	if (NULL == param) {
+		limLog(mac_ctx, LOGE, FL("Failed to allocate memory"));
+		return;
+	}
+	*param = *smps_ind;
+
+	msg.type = eWNI_SME_SMPS_FORCE_MODE_IND;
+	msg.bodyptr = param;
+	msg.bodyval = 0;
+	limLog(mac_ctx, LOGE,
+	       FL("send eWNI_SME_SMPS_FORCE_MODE_IND to SME"));
+
+	limSysProcessMmhMsgApi(mac_ctx, &msg, ePROT);
+	return;
 }
 
 void

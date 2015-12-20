@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -397,6 +397,8 @@ static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 		tAbortScanParams *abort_scan_req);
 
 static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
+static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
+				uint32_t len);
 
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
@@ -15885,14 +15887,9 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 		 __func__, iface->type, iface->sub_type);
         /* Sta is now associated, configure various params */
 
-        /* SM power save, configure the h/w as configured
-         * in the ini file. SMPS is not published in assoc
-         * request. Once configured, fw sends the required
-         * action frame to AP.
-         */
-        if (params->enableHtSmps)
-            wma_set_mimops(wma, params->smesessionId,
-                           params->htSmpsconfig);
+	if (params->enableHtSmps)
+		wma_set_mimops(wma, params->smesessionId,
+				params->htSmpsconfig);
 
 #ifdef WLAN_FEATURE_11AC
         /* Partial AID match power save, enable when SU bformee*/
@@ -28491,6 +28488,53 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	return 0;
 }
 
+/**
+ * wma_smps_force_mode_callback() - SMPS force command event
+ * handler
+ * @handle: WMA handle
+ * @event_buf: event buffer
+ * @len: length of event data
+ *
+ * Return: 0 for success non-zero for failure
+ */
+static int wma_smps_force_mode_callback(WMA_HANDLE handle,
+				uint8_t *event_buf,
+				uint32_t len)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	WMI_STA_SMPS_FORCE_MODE_COMPLETE_EVENTID_param_tlvs *param_buf;
+	wmi_sta_smps_force_mode_complete_event_fixed_param *wmi_event;
+	struct sir_smps_force_mode_event *smps_ind;
+
+	param_buf =
+		(WMI_STA_SMPS_FORCE_MODE_COMPLETE_EVENTID_param_tlvs *)
+		event_buf;
+	if (!param_buf) {
+		WMA_LOGE("Invalid smps force mode event buffer");
+		return -EINVAL;
+	}
+
+	wmi_event = param_buf->fixed_param;
+	WMA_LOGD("%s: vdev id %x status %x",
+		__func__, wmi_event->vdev_id, wmi_event->status);
+
+	smps_ind = vos_mem_malloc(sizeof(*smps_ind));
+
+	if (NULL == smps_ind) {
+		WMA_LOGE("%s: memory alloc failed for SMPS force mode event",
+			 __func__);
+		return -ENOMEM;
+	}
+	smps_ind->message_type = WDA_SMPS_FORCE_MODE_IND;
+	smps_ind->length = sizeof(struct sir_smps_force_mode_event);
+	smps_ind->vdev_id = wmi_event->vdev_id;
+	smps_ind->status = wmi_event->status;
+
+	wma_send_msg(wma_handle, WDA_SMPS_FORCE_MODE_IND, smps_ind, 0);
+
+	return 0;
+}
+
 #ifdef FEATURE_WLAN_SCAN_PNO
 
 /* Record NLO match event comes from FW. It's a indication that
@@ -29439,6 +29483,17 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 			wma_flush_complete_evt_handler);
 	if (status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to register log flush complete event cb");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	/* Initialize the SMPS force mode command event handler */
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_STA_SMPS_FORCE_MODE_COMPLETE_EVENTID,
+			wma_smps_force_mode_callback);
+	if (VOS_STATUS_SUCCESS != status) {
+		WMA_LOGP("%s: SMPS force mode event registration failed",
+			__func__);
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}

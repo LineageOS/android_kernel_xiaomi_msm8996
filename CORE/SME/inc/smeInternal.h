@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -213,6 +213,8 @@ typedef struct tagSmeStruct
     void (*rssi_threshold_breached_cb)(void *, struct rssi_breach_event *);
     void (*lost_link_info_cb)(void *context,
 			      struct sir_lost_link_info *lost_link_info);
+    void (*smps_force_mode_cb)(void *context,
+			struct sir_smps_force_mode_event *smps_force_mode_info);
 } tSmeStruct, *tpSmeStruct;
 
 
