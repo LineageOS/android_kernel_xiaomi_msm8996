@@ -125,7 +125,11 @@ struct cvg_nbuf_cb {
     unsigned char tx_htt2_frm: 1;
     unsigned char tx_htt2_reserved: 7;
 #endif /* QCA_TX_HTT2_SUPPORT */
+#ifdef CONFIG_HL_SUPPORT
+    uint16_t tx_desc_id;
+#endif
 };
+
 #ifdef QCA_ARP_SPOOFING_WAR
 #define NBUF_CB_PTR(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->txrx_field.ptr)
@@ -180,6 +184,11 @@ struct cvg_nbuf_cb {
 #define NBUF_SET_TX_HTT2_FRM(skb, candi)
 #define NBUF_GET_TX_HTT2_FRM(skb) 0
 #endif /* QCA_TX_HTT2_SUPPORT */
+
+#ifdef CONFIG_HL_SUPPORT
+#define NBUF_CB_ID(skb) \
+    (&((struct cvg_nbuf_cb *)((skb)->cb))->tx_desc_id)
+#endif
 
 #define __adf_nbuf_get_num_frags(skb)              \
     /* assume the OS provides a single fragment */ \
