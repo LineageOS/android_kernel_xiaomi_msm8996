@@ -73,9 +73,11 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 # standard module location.
 # TO-DO: This step needs to be moved to a post-build make target instead
 # TO-DO: as this may run multiple times
+ifneq ($(call is-board-platform-in-list, msm8952),true)
 $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
     ln -sf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
            $(TARGET_OUT)/lib/modules/wlan.ko)
+endif
 $(shell ln -sf /persist/wlan_mac.bin $(TARGET_OUT_ETC)/firmware/wlan/qca_cld/wlan_mac.bin)
 
 ifeq ($(call is-board-platform-in-list, msm8960),true)
