@@ -3263,7 +3263,7 @@ int mdss_fb_atomic_commit(struct fb_info *info,
 			}
 			ret = mfd->mdp.atomic_validate(mfd, file, commit_v1);
 			if (!ret)
-				mfd->validate_pending = true;
+				mfd->atomic_commit_pending = true;
 		}
 		goto end;
 	} else {
