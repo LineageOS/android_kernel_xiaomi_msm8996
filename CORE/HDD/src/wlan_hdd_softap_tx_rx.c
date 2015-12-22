@@ -223,7 +223,7 @@ void hdd_softap_tx_resume_cb(void *adapter_context,
 
   @return         : NETDEV_TX_OK
   ===========================================================================*/
-int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    WLANTL_ACEnumType ac;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
@@ -415,6 +415,16 @@ drop_list:
    hdd_drop_skb_list(pAdapter, skb, is_update_ac_stats);
    return NETDEV_TX_OK;
 
+}
+
+int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_softap_hard_start_xmit(skb, dev);
+	vos_ssr_unprotect(__func__);
+	return ret;
 }
 
 /**
