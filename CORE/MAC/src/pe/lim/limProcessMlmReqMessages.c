@@ -4238,6 +4238,8 @@ limProcessAuthFailureTimeout(tpAniSirGlobal pMac)
     "limMlmstate %X limSmeState %X"), psessionEntry->peSessionId,
     psessionEntry->limMlmState, psessionEntry->limSmeState);
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT_LIM
+    limDiagEventReport(pMac, WLAN_PE_DIAG_AUTH_TIMEOUT, psessionEntry,
+                                               0, AUTH_FAILURE_TIMEOUT);
     WLAN_VOS_DIAG_LOG_ALLOC(pRssiLog,
                             vos_log_rssi_pkt_type, LOG_WLAN_RSSI_UPDATE_C);
     if (pRssiLog)
@@ -4318,6 +4320,11 @@ limProcessAuthRspTimeout(tpAniSirGlobal pMac, tANI_U32 authIndex)
         return;
     }
 
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM
+    limDiagEventReport(pMac, WLAN_PE_DIAG_AUTH_TIMEOUT, psessionEntry,
+                                               0, AUTH_RESPONSE_TIMEOUT);
+#endif
+
     if (LIM_IS_AP_ROLE(psessionEntry) || LIM_IS_IBSS_ROLE(psessionEntry)) {
         if (pAuthNode->mlmState != eLIM_MLM_WT_AUTH_FRAME3_STATE)
         {
@@ -4396,6 +4403,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
         return;
     }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT_LIM
+    limDiagEventReport(pMac, WLAN_PE_DIAG_ASSOC_TIMEOUT, psessionEntry, 0, 0);
     WLAN_VOS_DIAG_LOG_ALLOC(pRssiLog,
                             vos_log_rssi_pkt_type, LOG_WLAN_RSSI_UPDATE_C);
     if (pRssiLog)
