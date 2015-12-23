@@ -4275,6 +4275,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_INDOOR_CHANNEL_SUPPORT_DEFAULT,
                 CFG_INDOOR_CHANNEL_SUPPORT_MIN,
                 CFG_INDOOR_CHANNEL_SUPPORT_MAX),
+
+   REG_VARIABLE(CFG_SAP_TX_LEAKAGE_THRESHOLD_NAME,
+                WLAN_PARAM_Integer,
+                hdd_config_t, sap_tx_leakage_threshold,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_TX_LEAKAGE_THRESHOLD_DEFAULT,
+                CFG_SAP_TX_LEAKAGE_THRESHOLD_MIN,
+                CFG_SAP_TX_LEAKAGE_THRESHOLD_MAX),
 };
 
 #ifdef WLAN_FEATURE_MBSSID

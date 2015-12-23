@@ -12847,6 +12847,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    /* Fwr capabilities received, Set the Dot11 mode */
    sme_SetDefDot11Mode(pHddCtx->hHal);
+
+   wlansap_set_tx_leakage_threshold(pHddCtx->hHal,
+        pHddCtx->cfg_ini->sap_tx_leakage_threshold);
+
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )

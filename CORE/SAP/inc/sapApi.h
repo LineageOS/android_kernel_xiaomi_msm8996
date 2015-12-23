@@ -631,6 +631,7 @@ typedef struct sSapDfsInfo
      * channel switch is disabled.
      */
     v_U8_t              disable_dfs_ch_switch;
+    uint16_t tx_leakage_threshold;
 } tSapDfsInfo;
 
 typedef struct tagSapCtxList
@@ -2377,6 +2378,11 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
 
 eCsrPhyMode
 wlansap_get_phymode(v_PVOID_t pctx);
+
+VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
+			uint16 tx_leakage_threshold);
+
+
 #ifdef __cplusplus
  }
 #endif

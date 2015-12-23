@@ -1097,7 +1097,16 @@ sapMarkChannelsLeakingIntoNOL(ptSapContext sapContext,
     v_U32_t         j = 0;
     v_U32_t         k = 0;
     v_U8_t          dfs_nol_channel;
+    tHalHandle      hal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    tpAniSirGlobal  mac;
 
+    if (NULL == hal) {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: Invalid hal pointer", __func__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    mac = PMAC_STRUCT(hal);
 
     /* traverse target_chan_matrix and */
     for (i = 0; i < NUM_5GHZ_CHANNELS ; i++) {
@@ -1138,7 +1147,8 @@ sapMarkChannelsLeakingIntoNOL(ptSapContext sapContext,
                     k++;
                 } else {
                     /* check leakage from candidate channel to NOL channel */
-                    if (target_chan_matrix[k].leak_lvl <= SAP_TX_LEAKAGE_THRES)
+                    if (target_chan_matrix[k].leak_lvl <=
+                         mac->sap.SapDfsInfo.tx_leakage_threshold)
                     {
                         /*
                          * this means that candidate channel will have bad
