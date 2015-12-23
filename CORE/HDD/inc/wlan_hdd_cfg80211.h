@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1217,6 +1217,7 @@ enum qca_wlan_vendor_attr_pno_config_params {
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_SSID = 9,
 	/* Signed 8-bit value; threshold for considering this SSID as found,
 	 * required granularity for this threshold is 4dBm to 8dBm
+	 * This attribute is obsolete.
 	 */
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_RSSI_THRESHOLD = 10,
 	/* Unsigned 8-bit value; WIFI_PNO_FLAG_XXX */
@@ -1228,6 +1229,43 @@ enum qca_wlan_vendor_attr_pno_config_params {
 	 * It takes values from qca_wlan_epno_type
 	 */
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_TYPE = 13,
+
+	/* Nested attribute to send the channel list */
+	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_CHANNEL_LIST = 14,
+
+	/* Unsigned 32-bit value; indicates the Interval between PNO scan
+	 * cycles in msec
+	 */
+	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_SCAN_INTERVAL = 15,
+	/* Signed 32-bit value; minimum 5GHz RSSI for a BSSID to be
+	 * considered
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_MIN5GHZ_RSSI = 16,
+	/* Signed 32-bit value; minimum 2.4GHz RSSI for a BSSID to
+	 * be considered
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_MIN24GHZ_RSSI = 17,
+	/* Signed 32-bit value; the maximum score that a network
+	 * can have before bonuses
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_INITIAL_SCORE_MAX = 18,
+	/* Signed 32-bit value; only report when there is a network's
+	 * score this much higher han the current connection
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_CURRENT_CONNECTION_BONUS = 19,
+	/* Signed 32-bit value; score bonus for all networks with
+	 * the same network flag
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_SAME_NETWORK_BONUS = 20,
+	/* Signed 32-bit value; score bonus for networks that are
+	 * not open
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_SECURE_BONUS = 21,
+	/* Signed 32-bit value; 5GHz RSSI score bonus
+	 * applied to all 5GHz networks
+	 */
+	QCA_WLAN_VENDOR_ATTR_EPNO_BAND5GHZ_BONUS = 22,
+
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_PNO_AFTER_LAST,

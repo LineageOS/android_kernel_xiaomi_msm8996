@@ -15345,7 +15345,8 @@ eHalStatus sme_set_epno_list(tHalHandle hal,
 
 	smsLog(mac, LOG1, FL("enter"));
 	len = sizeof(*req_msg) +
-		(input->num_networks * sizeof(struct wifi_epno_network));
+		    (input->num_networks * sizeof(struct wifi_epno_network));
+
 	req_msg = vos_mem_malloc(len);
 	if (!req_msg) {
 		smsLog(mac, LOGE, FL("vos_mem_malloc failed"));
@@ -15356,17 +15357,28 @@ eHalStatus sme_set_epno_list(tHalHandle hal,
 	req_msg->num_networks = input->num_networks;
 	req_msg->request_id = input->request_id;
 	req_msg->session_id = input->session_id;
-	for (i = 0; i < req_msg->num_networks; i++) {
-		req_msg->networks[i].rssi_threshold =
-				input->networks[i].rssi_threshold;
-		req_msg->networks[i].flags = input->networks[i].flags;
-		req_msg->networks[i].auth_bit_field =
-				input->networks[i].auth_bit_field;
-		req_msg->networks[i].ssid.length =
-				input->networks[i].ssid.length;
-		vos_mem_copy(req_msg->networks[i].ssid.ssId,
-				input->networks[i].ssid.ssId,
-				req_msg->networks[i].ssid.length);
+
+	/* Fill only when num_networks are non zero */
+	if (req_msg->num_networks) {
+		req_msg->min_5ghz_rssi = input->min_5ghz_rssi;
+		req_msg->min_24ghz_rssi = input->min_24ghz_rssi;
+		req_msg->initial_score_max = input->initial_score_max;
+		req_msg->same_network_bonus = input->same_network_bonus;
+		req_msg->secure_bonus = input->secure_bonus;
+		req_msg->band_5ghz_bonus = input->band_5ghz_bonus;
+		req_msg->current_connection_bonus =
+			input->current_connection_bonus;
+
+		for (i = 0; i < req_msg->num_networks; i++) {
+			req_msg->networks[i].flags = input->networks[i].flags;
+			req_msg->networks[i].auth_bit_field =
+					input->networks[i].auth_bit_field;
+			req_msg->networks[i].ssid.length =
+					input->networks[i].ssid.length;
+			vos_mem_copy(req_msg->networks[i].ssid.ssId,
+					input->networks[i].ssid.ssId,
+					req_msg->networks[i].ssid.length);
+		}
 	}
 
 	status = sme_AcquireGlobalLock(&mac->sme);

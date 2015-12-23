@@ -848,7 +848,6 @@ wlan_hdd_extscan_config_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_
     [QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS] = { .type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_SSID] = { .type = NLA_BINARY,
 							.len = IEEE80211_MAX_SSID_LEN },
-    [QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_RSSI_THRESHOLD] = { .type = NLA_S8 },
     [QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS] = { .type = NLA_U8 },
     [QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT] = { .type = NLA_U8 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_SSID_THRESHOLD_PARAM_SSID] = { .type = NLA_BINARY,
@@ -4717,16 +4716,6 @@ static int hdd_extscan_epno_fill_network_list(
 			req_msg->networks[index].ssid.length,
 			req_msg->networks[index].ssid.ssId);
 
-		/* Parse and fetch rssi threshold */
-		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_RSSI_THRESHOLD]) {
-			hddLog(LOGE, FL("attr rssi threshold failed"));
-			return -EINVAL;
-		}
-		req_msg->networks[index].rssi_threshold = nla_get_s8(
-			network[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_RSSI_THRESHOLD]);
-		hddLog(LOG1, FL("rssi threshold %d"),
-			req_msg->networks[index].rssi_threshold);
-
 		/* Parse and fetch epno flags */
 		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS]) {
 			hddLog(LOGE, FL("attr epno flags failed"));
@@ -4801,12 +4790,24 @@ static int __wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 		hddLog(LOGE, FL("attr num networks failed"));
 		return -EINVAL;
 	}
+	/*
+	 * num_networks is also used as EPNO SET/RESET request.
+	 * if num_networks is zero then it is treated as RESET.
+	 */
 	num_networks = nla_get_u32(
-              tb[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS]);
-	hddLog(LOG1, FL("num networks %u"), num_networks);
+		tb[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS]);
 
+	if (num_networks > MAX_EPNO_NETWORKS) {
+		hddLog(LOG1,
+		       FL("input num_networks: %d exceeded max: %d, hence reset to: %d"),
+		       num_networks, MAX_EPNO_NETWORKS, MAX_EPNO_NETWORKS);
+		num_networks = MAX_EPNO_NETWORKS;
+	}
+
+	hddLog(LOG1, FL("num networks %u"), num_networks);
 	len = sizeof(*req_msg) +
-		(num_networks * sizeof(struct wifi_epno_network));
+			(num_networks * sizeof(struct wifi_epno_network));
+
 	req_msg = vos_mem_malloc(len);
 	if (!req_msg) {
 		hddLog(LOGE, FL("vos_mem_malloc failed"));
@@ -4827,8 +4828,81 @@ static int __wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 	hddLog(LOG1, FL("Req Id %u Session Id %d"),
 		req_msg->request_id, req_msg->session_id);
 
-	if (hdd_extscan_epno_fill_network_list(hdd_ctx, req_msg, tb))
-		goto fail;
+	if (num_networks) {
+
+		/* Parse and fetch min_5ghz_rssi */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_MIN5GHZ_RSSI]) {
+			hddLog(LOGE, FL("min_5ghz_rssi id failed"));
+			goto fail;
+		}
+		req_msg->min_5ghz_rssi = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_MIN5GHZ_RSSI]);
+
+		/* Parse and fetch min_24ghz_rssi */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_MIN24GHZ_RSSI]) {
+			hddLog(LOGE, FL("min_24ghz_rssi id failed"));
+			goto fail;
+		}
+		req_msg->min_24ghz_rssi = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_MIN24GHZ_RSSI]);
+
+		/* Parse and fetch initial_score_max */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_INITIAL_SCORE_MAX]) {
+			hddLog(LOGE, FL("initial_score_max id failed"));
+			goto fail;
+		}
+		req_msg->initial_score_max = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_INITIAL_SCORE_MAX]);
+
+		/* Parse and fetch current_connection_bonus */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_CURRENT_CONNECTION_BONUS]) {
+			hddLog(LOGE, FL("current_connection_bonus id failed"));
+			goto fail;
+		}
+		req_msg->current_connection_bonus = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_CURRENT_CONNECTION_BONUS]
+			);
+
+		/* Parse and fetch same_network_bonus */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_SAME_NETWORK_BONUS]) {
+			hddLog(LOGE, FL("same_network_bonus id failed"));
+			goto fail;
+		}
+		req_msg->same_network_bonus = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_SAME_NETWORK_BONUS]);
+
+		/* Parse and fetch secure_bonus */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_SECURE_BONUS]) {
+			hddLog(LOGE, FL("secure_bonus id failed"));
+			goto fail;
+		}
+		req_msg->secure_bonus = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_SECURE_BONUS]);
+
+		/* Parse and fetch band_5ghz_bonus */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_EPNO_BAND5GHZ_BONUS]) {
+			hddLog(LOGE, FL("band_5ghz_bonus id failed"));
+			goto fail;
+		}
+		req_msg->band_5ghz_bonus = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_EPNO_BAND5GHZ_BONUS]);
+
+		hddLog(LOG1,
+		       FL("min_5ghz_rssi: %d min_24ghz_rssi: %d initial_score_max: %d current_connection_bonus: %d"),
+		       req_msg->min_5ghz_rssi,
+		       req_msg->min_24ghz_rssi,
+		       req_msg->initial_score_max,
+		       req_msg->current_connection_bonus);
+		hddLog(LOG1,
+		       FL("same_network_bonus: %d secure_bonus: %d band_5ghz_bonus: %d"),
+		       req_msg->same_network_bonus,
+		       req_msg->secure_bonus,
+		       req_msg->band_5ghz_bonus);
+
+		if (hdd_extscan_epno_fill_network_list(hdd_ctx, req_msg, tb))
+			goto fail;
+
+	}
 
 	status = sme_set_epno_list(hdd_ctx->hHal, req_msg);
 	if (!HAL_STATUS_SUCCESS(status)) {
