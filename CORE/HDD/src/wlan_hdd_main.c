@@ -4770,6 +4770,39 @@ exit:
 	return ret;
 }
 
+/**
+ * drv_cmd_get_antenna_mode() - GET ANTENNA MODE driver command
+ * handler
+ * @adapter: Pointer to hdd adapter
+ * @hdd_ctx: Pointer to hdd context
+ * @command: Pointer to input command
+ * @command_len: length of the command
+ * @priv_data: private data coming with the driver command
+ *
+ * Return: 0 for success non-zero for failure
+ */
+static inline int drv_cmd_get_antenna_mode(hdd_adapter_t *adapter,
+					   hdd_context_t *hdd_ctx,
+					   uint8_t *command,
+					   uint8_t command_len,
+					   hdd_priv_data_t *priv_data)
+{
+	uint32_t antenna_mode = 0;
+	char extra[32];
+	uint8_t len = 0;
+
+	antenna_mode = hdd_ctx->current_antenna_mode;
+	len = scnprintf(extra, sizeof(extra), "%s %d", command,
+			antenna_mode);
+	len = VOS_MIN(priv_data->total_len, len + 1);
+	if (copy_to_user(priv_data->buf, &extra, len)) {
+		hddLog(LOGE, FL("Failed to copy data to user buffer"));
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
 static int hdd_driver_command(hdd_adapter_t *pAdapter,
                               hdd_priv_data_t *ppriv_data)
 {
@@ -6972,6 +7005,12 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        } else if (strncasecmp(command, "SETANTENNAMODE", 14) == 0) {
            ret = drv_cmd_set_antenna_mode(pAdapter, command, 14);
            hddLog(LOG1, FL("set antenna mode ret: %d"), ret);
+       } else if (strncasecmp(command, "GETANTENNAMODE", 14) == 0) {
+
+           ret = drv_cmd_get_antenna_mode(pAdapter, pHddCtx, command,
+                                          14, &priv_data);
+           hddLog(LOG1, FL("Get antenna mode ret: %d mode: %s"),
+                  ret, priv_data.buf);
        } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
