@@ -12978,6 +12978,7 @@ void __hdd_wlan_exit(void)
 
    //Do all the cleanup before deregistering the driver
    memdump_deinit();
+   hdd_driver_memdump_deinit();
    hdd_wlan_exit(pHddCtx);
    EXIT();
 }
@@ -13880,6 +13881,84 @@ static void hdd_tsf_init(hdd_context_t *hdd_ctx)
 }
 #endif
 
+/**
+ * hdd_state_info_dump() - prints state information of hdd layer
+ * @buf: buffer pointer
+ * @size: size of buffer to be filled
+ *
+ * This function is used to dump state information of hdd layer
+ *
+ * Return: None
+ */
+static void hdd_state_info_dump(char **buf_ptr, uint16_t *size)
+{
+	v_CONTEXT_t vos_ctx_ptr;
+	hdd_context_t *hdd_ctx_ptr;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	VOS_STATUS status;
+	hdd_station_ctx_t *hdd_sta_ctx;
+	hdd_adapter_t *adapter;
+	uint16_t len = 0;
+	char *buf = *buf_ptr;
+
+	/* get the global voss context */
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+
+	if (NULL == vos_ctx_ptr) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+
+	hddLog(LOG1, FL("size of buffer: %d"), *size);
+
+	len += scnprintf(buf + len, *size - len,
+		"\n isWlanSuspended %d", hdd_ctx_ptr->isWlanSuspended);
+	len += scnprintf(buf + len, *size - len,
+		"\n isMcThreadSuspended %d",
+		hdd_ctx_ptr->isMcThreadSuspended);
+
+	status = hdd_get_front_adapter(hdd_ctx_ptr, &adapter_node);
+
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (adapter->dev)
+			len += scnprintf(buf + len, *size - len,
+				"\n device name: %s", adapter->dev->name);
+			len += scnprintf(buf + len, *size - len,
+				"\n device_mode: %d", adapter->device_mode);
+		switch (adapter->device_mode) {
+		case WLAN_HDD_INFRA_STATION:
+		case WLAN_HDD_P2P_CLIENT:
+			hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+			len += scnprintf(buf + len, *size - len,
+				"\n connState: %d",
+				hdd_sta_ctx->conn_info.connState);
+			break;
+
+		default:
+			break;
+		}
+		status = hdd_get_next_adapter(hdd_ctx_ptr, adapter_node, &next);
+		adapter_node = next;
+	}
+
+	*size -= len;
+	*buf_ptr += len;
+}
+
+/**
+ * hdd_register_debug_callback() - registration function for hdd layer
+ * to print hdd state information
+ *
+ * Return: None
+ */
+static void hdd_register_debug_callback(void)
+{
+	vos_register_debug_callback(VOS_MODULE_ID_HDD, &hdd_state_info_dump);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -14410,6 +14489,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       pHddCtx->isLoadInProgress = FALSE;
 
       memdump_init();
+      hdd_driver_memdump_init();
       hddLog(LOGE, FL("FTM driver loaded"));
       complete(&wlan_start_comp);
       return VOS_STATUS_SUCCESS;
@@ -14849,6 +14929,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    memdump_init();
+   hdd_driver_memdump_init();
    complete(&wlan_start_comp);
    goto success;
 
@@ -15066,6 +15147,7 @@ static int hdd_driver_init( void)
 #ifdef HDD_TRACE_RECORD
    MTRACE(hddTraceInit());
 #endif
+   hdd_register_debug_callback();
 
 #ifndef MODULE
       /* For statically linked driver, call hdd_set_conparam to update curr_con_mode

@@ -1289,7 +1289,98 @@ tANI_BOOLEAN smeCommandPending(tpAniSirGlobal pMac)
         !csrLLIsListEmpty(&pMac->sme.smeCmdPendingList, LL_ACCESS_NOLOCK) );
 }
 
+/**
+ * sme_get_sessionid_from_activelist() - gets session id
+ * @mac: mac context
+ *
+ * This function is used to get session id from sme command
+ * active list
+ *
+ * Return: returns session id
+ */
+uint32_t sme_get_sessionid_from_activelist(tpAniSirGlobal mac)
+{
+	tListElem *entry;
+	tSmeCmd *command;
+	uint32_t session_id = 0;
 
+	entry = csrLLPeekHead(&mac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+	if (entry) {
+		command = GET_BASE_ADDR(entry, tSmeCmd, Link);
+		session_id = command->sessionId;
+	}
+
+	return session_id;
+}
+
+/**
+ * sme_state_info_dump() - prints state information of sme layer
+ * @buf: buffer pointer
+ * @size: size of buffer to be filled
+ *
+ * This function is used to dump state information of sme layer
+ *
+ * Return: None
+ */
+static void sme_state_info_dump(char **buf_ptr, uint16_t *size)
+{
+	uint32_t session_id;
+	tHalHandle hal;
+	tpAniSirGlobal mac;
+	v_CONTEXT_t vos_ctx_ptr;
+	uint16_t len = 0;
+	char *buf = *buf_ptr;
+
+	/* get the global voss context */
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+
+	if (NULL == vos_ctx_ptr) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	hal = vos_get_context(VOS_MODULE_ID_SME, vos_ctx_ptr);
+	if (NULL == hal) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	mac = PMAC_STRUCT(hal);
+	smsLog(mac, LOG1, FL("size of buffer: %d"), *size);
+
+	session_id = sme_get_sessionid_from_activelist(mac);
+
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n active command sessionid %d", session_id);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n NeighborRoamState: %d",
+		mac->roam.neighborRoamInfo[session_id].neighborRoamState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n RoamState: %d", mac->roam.curState[session_id]);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n RoamSubState: %d", mac->roam.curSubState[session_id]);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n ConnectState: %d",
+		mac->roam.roamSession[session_id].connectState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n pmcState: %d", mac->pmc.pmcState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n PmmState: %d", mac->pmm.gPmmState);
+
+	*size -= len;
+	*buf_ptr += len;
+}
+
+/**
+ * sme_register_debug_callback() - registration function sme layer
+ * to print sme state information
+ *
+ * Return: None
+ */
+static void sme_register_debug_callback(void)
+{
+	vos_register_debug_callback(VOS_MODULE_ID_SME, &sme_state_info_dump);
+}
 
 //Global APIs
 
@@ -1421,6 +1512,7 @@ eHalStatus sme_Open(tHalHandle hHal)
 
       sme_p2pOpen(pMac);
       smeTraceInit(pMac);
+      sme_register_debug_callback();
 
    }while (0);
 

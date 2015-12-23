@@ -173,6 +173,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
    #if defined(TRACE_RECORD)
        vosTraceInit();
    #endif
+   vos_register_debugcb_init();
 
    return VOS_STATUS_SUCCESS;
 

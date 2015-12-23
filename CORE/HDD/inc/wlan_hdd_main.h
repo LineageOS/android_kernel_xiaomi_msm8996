@@ -1679,6 +1679,8 @@ struct hdd_context_s
     struct mutex memdump_lock;
     bool memdump_in_progress;
 #endif /* WLAN_FEATURE_MEMDUMP */
+    uint16_t driver_dump_size;
+    uint8_t *driver_dump_mem;
 
     /* number of rf chains supported by target */
     uint32_t  num_rf_chains;

@@ -6609,6 +6609,84 @@ static void wma_runtime_context_init(tp_wma_handle handle) { }
 static void wma_runtime_context_deinit(tp_wma_handle handle) { }
 #endif
 
+/**
+ * wma_state_info_dump() - prints state information of wma layer
+ * @buf: buffer pointer
+ * @size: size of buffer to be filled
+ *
+ * This function is used to dump state information of wma layer
+ *
+ * Return: None
+ */
+static void wma_state_info_dump(char **buf_ptr, uint16_t *size)
+{
+	tp_wma_handle wma_handle;
+	pVosContextType vos_context;
+	uint16_t len = 0;
+	char *buf = *buf_ptr;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (!vos_context) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	wma_handle = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA,
+						vos_context);
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return;
+	}
+
+	WMA_LOGI("%s: size of buffer: %d", __func__, *size);
+
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_pno_match_wake_up_count %d",
+		wma_handle->wow_pno_match_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_pno_complete_wake_up_count %d",
+		wma_handle->wow_pno_complete_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_gscan_wake_up_count %d",
+		wma_handle->wow_gscan_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_low_rssi_wake_up_count %d",
+		wma_handle->wow_low_rssi_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_rssi_breach_wake_up_count %d",
+		wma_handle->wow_rssi_breach_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_ucast_wake_up_count %d",
+		wma_handle->wow_ucast_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_bcast_wake_up_count %d",
+		wma_handle->wow_bcast_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_ipv4_mcast_wake_up_count %d",
+		wma_handle->wow_ipv4_mcast_wake_up_count);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_ipv6_mcast_ra_stats %d",
+		wma_handle->wow_ipv6_mcast_ra_stats);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_ipv6_mcast_ns_stats %d",
+		wma_handle->wow_ipv6_mcast_ns_stats);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_ipv6_mcast_na_stats %d",
+		wma_handle->wow_ipv6_mcast_na_stats);
+
+	*size -= len;
+	*buf_ptr += len;
+}
+
+/**
+ * wma_register_debug_callback() - registration function for wma layer
+ * to print wma state information
+ */
+static void wma_register_debug_callback(void)
+{
+	vos_register_debug_callback(VOS_MODULE_ID_WDA, &wma_state_info_dump);
+}
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -7013,6 +7091,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 				WMI_RSSI_BREACH_EVENTID,
 				wma_rssi_breached_event_handler);
+
+	wma_register_debug_callback();
+
 	return VOS_STATUS_SUCCESS;
 
 err_dbglog_init:

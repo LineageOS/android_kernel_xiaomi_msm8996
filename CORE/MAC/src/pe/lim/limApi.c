@@ -936,6 +936,72 @@ bool lim_is_deauth_diassoc_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
 	return false;
 }
 
+/**
+ * lim_state_info_dump() - print state information of lim layer
+ * @buf: buffer pointer
+ * @size: size of buffer to be filled
+ *
+ * This function is used to print state information of lim layer
+ *
+ * Return: None
+ */
+static void lim_state_info_dump(char **buf_ptr, uint16_t *size)
+{
+	tHalHandle hal;
+	tpAniSirGlobal mac;
+	v_CONTEXT_t vos_ctx_ptr;
+	uint16_t len = 0;
+	char *buf = *buf_ptr;
+
+	/* get the global voss context */
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+
+	if (NULL == vos_ctx_ptr) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	hal = vos_get_context(VOS_MODULE_ID_PE, vos_ctx_ptr);
+	if (NULL == hal) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	mac = PMAC_STRUCT(hal);
+
+	limLog(mac, LOG1, FL("size of buffer: %d"), *size);
+
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n SmeState: %d", mac->lim.gLimSmeState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n PrevSmeState: %d", mac->lim.gLimPrevSmeState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n MlmState: %d", mac->lim.gLimMlmState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n PrevMlmState: %d", mac->lim.gLimPrevMlmState);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n SystemInScanLearnMode: %d",
+		mac->lim.gLimSystemInScanLearnMode);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n ProcessDefdMsgs: %d", mac->lim.gLimProcessDefdMsgs);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n gLimHalScanState: %d", mac->lim.gLimHalScanState);
+
+	*size -= len;
+	*buf_ptr += len;
+}
+
+/**
+ * lim_register_debug_callback() - registration function for lim layer
+ * to print lim state information
+ *
+ * Return: None
+ */
+static void lim_register_debug_callback(void)
+{
+	vos_register_debug_callback(VOS_MODULE_ID_PE, &lim_state_info_dump);
+}
+
 /** -------------------------------------------------------------
 \fn peOpen
 \brief will be called in Open sequence from macOpen
@@ -1008,6 +1074,8 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
 #ifdef LIM_TRACE_RECORD
     MTRACE(limTraceInit(pMac));
 #endif
+    lim_register_debug_callback();
+
     return status; /* status here will be eSIR_SUCCESS */
 
 pe_open_lock_fail:
