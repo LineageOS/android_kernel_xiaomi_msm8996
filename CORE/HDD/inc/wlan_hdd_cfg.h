@@ -3479,6 +3479,15 @@ enum dot11p_mode {
 #define CFG_WOW_PULSE_INTERVAL_HIGH_DEFAULT (20)
 #endif
 
+/*
+ * Support to start sap in indoor channel
+ * Customer can config this item to enable/disable sap in indoor channel
+ * Default: Disable
+ */
+#define CFG_INDOOR_CHANNEL_SUPPORT_NAME     "gindoor_channel_support"
+#define CFG_INDOOR_CHANNEL_SUPPORT_MIN      (0)
+#define CFG_INDOOR_CHANNEL_SUPPORT_MAX      (1)
+#define CFG_INDOOR_CHANNEL_SUPPORT_DEFAULT  (0)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -4186,6 +4195,7 @@ typedef struct
 #endif
    bool                        enable_go_cts2self_for_sta;
    uint8_t                     ht_mpdu_density;
+   bool                        indoor_channel_support;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

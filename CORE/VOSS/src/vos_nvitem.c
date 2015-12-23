@@ -1347,13 +1347,17 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             }
 
             /* nv cannot distinguish between DFS and passive channels */
-            else if (wiphy->bands[i]->channels[j].flags &
-                     (IEEE80211_CHAN_RADAR | IEEE80211_CHAN_PASSIVE_SCAN |
-                      IEEE80211_CHAN_INDOOR_ONLY))
+            else if ((wiphy->bands[i]->channels[j].flags &
+                     (IEEE80211_CHAN_RADAR | IEEE80211_CHAN_PASSIVE_SCAN)) ||
+                      ((pHddCtx->cfg_ini->indoor_channel_support == FALSE) &&
+                      (wiphy->bands[i]->channels[j].flags &
+                       IEEE80211_CHAN_INDOOR_ONLY)))
             {
 
-                if (wiphy->bands[i]->channels[j].flags &
-                    IEEE80211_CHAN_INDOOR_ONLY)
+                if ((wiphy->bands[i]->channels[j].flags &
+                    IEEE80211_CHAN_INDOOR_ONLY) &&
+                    (FALSE ==
+                    pHddCtx->cfg_ini->indoor_channel_support))
                     wiphy->bands[i]->channels[j].flags |=
                         IEEE80211_CHAN_PASSIVE_SCAN;
 
