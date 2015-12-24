@@ -7124,19 +7124,18 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		WMA_LOGA("BSS is not yet stopped. Defering vdev(vdev id %x) deletion",
 				vdev_id);
 		iface->del_staself_req = pdel_sta_self_req_param;
-		status = VOS_STATUS_E_FAILURE;
-		goto out;
+		return status;
 	}
 
-	adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
-	if(!iface->handle) {
-		WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
-			vdev_id);
-		adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
+        adf_os_spin_lock_bh(&wma_handle->vdev_detach_lock);
+        if(!iface->handle) {
+                WMA_LOGE("handle of vdev_id %d is NULL vdev is already freed",
+                    vdev_id);
+                adf_os_spin_unlock_bh(&wma_handle->vdev_detach_lock);
 		vos_mem_free(pdel_sta_self_req_param);
 		pdel_sta_self_req_param = NULL;
-		goto out;
-	}
+		return status;
+        }
 
         /* Unregister vdev from TL shim before vdev delete
          * Will protect from invalid vdev access */
