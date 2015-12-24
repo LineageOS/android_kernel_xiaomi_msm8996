@@ -29685,6 +29685,17 @@ VOS_STATUS wma_wmi_service_close(v_VOID_t *vos_ctx)
 			adf_os_mem_free(wma_handle->interfaces[i].handle);
 			wma_handle->interfaces[i].handle = NULL;
 		}
+
+		if (wma_handle->interfaces[i].addBssStaContext) {
+			adf_os_mem_free(wma_handle->
+					interfaces[i].addBssStaContext);
+			wma_handle->interfaces[i].addBssStaContext = NULL;
+		}
+
+		if (wma_handle->interfaces[i].del_staself_req) {
+			vos_mem_free(wma_handle->interfaces[i].del_staself_req);
+			wma_handle->interfaces[i].del_staself_req = NULL;
+		}
 	}
 
 	vos_mem_free(wma_handle->interfaces);
