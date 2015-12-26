@@ -4510,4 +4510,14 @@ bool sme_is_sta_smps_allowed(tHalHandle hHal, uint8_t session_id);
 eHalStatus sme_get_bpf_offload_capabilities(tHalHandle hal);
 eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 			struct sir_bpf_set_offload *);
+
+/**
+ * sme_create_mon_session() - post message to create PE session for monitormode
+ * operation
+ * @hal_handle: Handle to the HAL
+ * @bssid: pointer to bssid
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, non-zero error code on failure.
+ */
+eHalStatus sme_create_mon_session(tHalHandle hal_handle, uint8_t *bssid);
 #endif //#if !defined( __SME_API_H )

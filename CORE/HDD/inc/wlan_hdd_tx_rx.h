@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -270,4 +270,18 @@ static inline void wlan_hdd_log_eapol(struct sk_buff *skb,
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
+/**
+ * hdd_mon_rx_packet_cbk() - Receive callback registered with TL.
+ * @vosContext: [in] pointer to VOS context
+ * @staId:      [in] Station Id
+ * @rxBuf:      [in] pointer to rx adf_nbuf
+ *
+ * TL will call this to notify the HDD when one or more packets were
+ * received for a registered STA.
+ *
+ * Return: VOS_STATUS_E_FAILURE if any errors encountered, VOS_STATUS_SUCCESS
+ * otherwise
+ */
+VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
+				 uint8_t sta_id);
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

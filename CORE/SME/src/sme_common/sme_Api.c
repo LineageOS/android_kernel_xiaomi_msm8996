@@ -7210,6 +7210,35 @@ eHalStatus sme_OemDataReq(tHalHandle hHal,
 
 #endif /*FEATURE_OEM_DATA_SUPPORT*/
 
+/**
+ * sme_create_mon_session() - post message to create PE session for monitormode
+ * operation
+ * @hal_handle: Handle to the HAL
+ * @bssid: pointer to bssid
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, non-zero error code on failure.
+ */
+eHalStatus sme_create_mon_session(tHalHandle hal_handle, tSirMacAddr bss_id)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	struct sir_create_session *msg;
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_handle);
+	uint16_t msg_len;
+
+	msg_len = (tANI_U16)(sizeof(struct sir_create_session));
+	msg = vos_mem_malloc(msg_len);
+	if ( NULL != msg )
+	{
+		vos_mem_set(msg, msg_len, 0);
+		msg->type =
+			pal_cpu_to_be16((tANI_U16)eWNI_SME_MON_INIT_SESSION);
+		msg->msg_len = pal_cpu_to_be16(msg_len);
+		vos_mem_copy(msg->bss_id, bss_id, sizeof(tSirMacAddr));
+		status = palSendMBMessage(mac_ptr->hHdd, msg);
+	}
+	return status;
+}
+
 /*--------------------------------------------------------------------------
 
   \brief sme_OpenSession() - Open a session for scan/roam operation.

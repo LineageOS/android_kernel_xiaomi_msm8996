@@ -4419,6 +4419,53 @@ void dump_cfg_ini (tCfgIniEntry* iniTable, unsigned long entries)
 }
 #endif
 
+#ifdef FEATURE_RUNTIME_PM
+static void disable_runtime_pm(hdd_config_t *cfg_ini)
+{
+	cfg_ini->runtime_pm = 0;
+}
+#else
+static void disable_runtime_pm(hdd_config_t *cfg_ini)
+{
+}
+#endif
+
+#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
+static void disable_auto_shutdown(hdd_config_t *cfg_ini)
+{
+	cfg_ini->WlanAutoShutdown = 0;
+}
+#else
+static void disable_auto_shutdown(hdd_config_t *cfg_ini)
+{
+}
+#endif
+
+/**
+ * hdd_override_all_ps() - overrides to disables all the powersave features.
+ * @hdd_ctx: Pointer to HDD context.
+ *
+ * Overrides below powersave ini configurations.
+ * gEnableImps=0
+ * gEnableBmps=0
+ * gRuntimePM=0
+ * gWlanAutoShutdown = 0
+ * gEnableSuspend=0
+ * gEnablePowerSaveOffload=0
+ * gEnableWoW=0
+ */
+static void hdd_override_all_ps(hdd_context_t *hdd_ctx)
+{
+	hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
+
+	cfg_ini->fIsImpsEnabled = 0;
+	cfg_ini->fIsBmpsEnabled = 0;
+	disable_runtime_pm(cfg_ini);
+	disable_auto_shutdown(cfg_ini);
+	cfg_ini->enablePowersaveOffload = 0;
+	cfg_ini->wowEnable = 0;
+}
+
 /*
  * This function reads the qcom_cfg.ini file and
  * parses each 'Name=Value' pair in the ini file
@@ -4512,6 +4559,9 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
 
    //Loop through the registry table and apply all these configs
    vos_status = hdd_apply_cfg_ini(pHddCtx, cfgIniTable, i);
+
+   if (VOS_MONITOR_MODE == hdd_get_conparam())
+      hdd_override_all_ps(pHddCtx);
 
 config_exit:
    release_firmware(fw);

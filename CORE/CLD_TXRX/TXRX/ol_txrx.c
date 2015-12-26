@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1394,6 +1394,14 @@ ol_txrx_peer_attach(
     #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
     peer->rssi_dbm = HTT_RSSI_INVALID;
     #endif
+    if ((VOS_MONITOR_MODE == vos_get_conparam()) && !pdev->self_peer) {
+        pdev->self_peer = peer;
+        /*
+         * No Tx in monitor mode, otherwise results in target assert.
+         * Setting disable_intrabss_fwd to true
+         */
+        ol_vdev_rx_set_intrabss_fwd(vdev, true);
+    }
 
     OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
 

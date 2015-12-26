@@ -184,6 +184,15 @@ void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 void limRoamOffloadSynchInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 #endif
+/**
+ * lim_mon_init_session() - create PE session for monitor mode operation
+ * @mac_ptr: mac pointer
+ * @msg: Pointer to struct sir_create_session type.
+ *
+ * Return: NONE
+ */
+void lim_mon_init_session(tpAniSirGlobal mac_ptr,
+			  struct sir_create_session *msg);
 void lim_update_lost_link_info(tpAniSirGlobal mac, tpPESession session,
 			       int8_t rssi);
 /* ----------------------------------------------------------------------- */

@@ -1375,6 +1375,88 @@ bool drop_ip6_mcast(struct sk_buff *skb)
 #define drop_ip6_mcast(_a) 0
 #endif
 
+/**
+ * hdd_mon_rx_packet_cbk() - Receive callback registered with TLSHIM.
+ * @vosContext: [in] pointer to VOS context
+ * @staId:      [in] Station Id
+ * @rxBuf:      [in] pointer to rx adf_nbuf
+ *
+ * TL will call this to notify the HDD when one or more packets were
+ * received for a registered STA.
+ * Return: VOS_STATUS_E_FAILURE if any errors encountered, VOS_STATUS_SUCCESS
+ * otherwise
+ */
+VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
+				 uint8_t sta_id)
+{
+	hdd_adapter_t *adapter = NULL;
+	hdd_context_t *hdd_ctx = NULL;
+	int rxstat;
+	struct sk_buff *skb = NULL;
+	struct sk_buff *skb_next;
+	unsigned int cpu_index;
+	hdd_adapter_list_node_t *adapter_node = NULL;
+
+	/* Sanity check on inputs */
+	if ((NULL == vos_ctx) || (NULL == rx_buf)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Null params being passed", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+	if (NULL == hdd_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "%s: HDD adapter context is Null", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	adapter = adapter_node->pAdapter;
+	if ((NULL == adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "invalid adapter %p for sta Id %d", adapter, sta_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	cpu_index = wlan_hdd_get_cpu();
+
+	/* walk the chain until all are processed */
+	skb = (struct sk_buff *) rx_buf;
+	while (NULL != skb) {
+		skb_next = skb->next;
+		skb->dev = adapter->dev;
+
+		++adapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
+		++adapter->stats.rx_packets;
+		adapter->stats.rx_bytes += skb->len;
+		/*
+		 * If this is not a last packet on the chain
+		 * Just put packet into backlog queue, not scheduling RX sirq
+		 */
+		if (skb->next) {
+			rxstat = netif_rx(skb);
+		} else {
+			/*
+			 * This is the last packet on the chain
+			 * Scheduling rx sirq
+			 */
+			rxstat = netif_rx_ni(skb);
+		}
+
+		if (NET_RX_SUCCESS == rxstat)
+			++adapter->
+				hdd_stats.hddTxRxStats.rxDelivered[cpu_index];
+		else
+			++adapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
+
+		skb = skb_next;
+	}
+
+	adapter->dev->last_rx = jiffies;
+
+	return VOS_STATUS_SUCCESS;
+}
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were

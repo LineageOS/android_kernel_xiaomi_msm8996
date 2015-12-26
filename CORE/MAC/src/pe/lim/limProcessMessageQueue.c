@@ -1619,6 +1619,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limMsg->bodyptr = NULL;
             break;
 
+        case eWNI_SME_MON_INIT_SESSION:
+            lim_mon_init_session(pMac, limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
+            break;
+
         //Power Save Related Messages From HAL
         case WDA_ENTER_BMPS_RSP:
         case WDA_EXIT_BMPS_RSP:

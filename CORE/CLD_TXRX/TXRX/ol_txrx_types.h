@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -834,6 +834,7 @@ struct ol_txrx_pdev_t {
 	unsigned int num_desc_pages;
 	unsigned int num_descs_per_page;
 	void **desc_pages;
+	struct ol_txrx_peer_t *self_peer;
 };
 
 struct ol_txrx_ocb_chan_info {

@@ -8965,8 +8965,42 @@ static int hdd_open(struct net_device *dev)
  */
 static int __hdd_mon_open(struct net_device *dev)
 {
-	netif_start_queue(dev);
-	return 0;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx =  WLAN_HDD_GET_CTX(adapter);
+	int ret;
+	VOS_STATUS vos_status;
+	eHalStatus hal_status;
+	WLAN_STADescType sta_desc = {0};
+
+	MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_OPEN_REQUEST,
+			 adapter->sessionId, adapter->device_mode));
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
+	/* peer is created wma_vdev_attach->wma_create_peer */
+	vos_status = WLANTL_RegisterSTAClient(hdd_ctx->pvosContext,
+					      hdd_mon_rx_packet_cbk,
+					      &sta_desc, 0);
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		hddLog(LOGE,
+		       FL("WLANTL_RegisterSTAClient() failed to register. Status= %d [0x%08X]"),
+		       vos_status, vos_status);
+		goto exit;
+	}
+
+	hal_status = sme_create_mon_session(hdd_ctx->hHal,
+				     adapter->macAddressCurrent.bytes);
+	if (eHAL_STATUS_SUCCESS != hal_status) {
+		hddLog(LOGE,
+		       FL("sme_create_mon_session() failed to register. Status= %d [0x%08X]"),
+		       hal_status, hal_status);
+		goto exit;
+	}
+	return ret;
+exit:
+	return -EIO;
 }
 
 /**
@@ -9814,18 +9848,30 @@ static struct net_device_ops wlan_drv_ops = {
  static struct net_device_ops wlan_mon_drv_ops = {
       .ndo_open = hdd_mon_open,
       .ndo_stop = hdd_stop,
-      .ndo_uninit = hdd_uninit,
-      .ndo_start_xmit = hdd_mon_hard_start_xmit,
-      .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
-      .ndo_do_ioctl = hdd_ioctl,
-      .ndo_set_mac_address = hdd_set_mac_address,
 };
 
 
 void hdd_set_station_ops( struct net_device *pWlanDev )
 {
-      pWlanDev->netdev_ops = &wlan_drv_ops;
+	if (VOS_MONITOR_MODE == hdd_get_conparam())
+		pWlanDev->netdev_ops = &wlan_mon_drv_ops;
+	else
+		pWlanDev->netdev_ops = &wlan_drv_ops;
+}
+
+static void mon_mode_ether_setup(struct net_device *dev)
+{
+	dev->header_ops         = NULL;
+	dev->type               = ARPHRD_IEEE80211_RADIOTAP;
+	dev->hard_header_len    = ETH_HLEN;
+	dev->mtu                = ETH_DATA_LEN;
+	dev->addr_len           = ETH_ALEN;
+	dev->tx_queue_len       = 1000; /* Ethernet wants good queues */
+	dev->flags              = IFF_BROADCAST|IFF_MULTICAST;
+	dev->priv_flags        |= IFF_TX_SKB_SHARING;
+
+	memset(dev->broadcast, 0xFF, ETH_ALEN);
 }
 
 #ifdef FEATURE_RUNTIME_PM
@@ -9921,7 +9967,8 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
                               NET_NAME_UNKNOWN,
 #endif
-                              ether_setup,
+                              (VOS_MONITOR_MODE == vos_get_conparam()?
+                              mon_mode_ether_setup : ether_setup),
                               NUM_TX_QUEUES);
 
    if(pWlanDev != NULL)
@@ -10798,6 +10845,11 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          pAdapter->wdev.iftype = NL80211_IFTYPE_MONITOR;
          pAdapter->device_mode = session_type;
+
+         status = hdd_init_station_mode( pAdapter );
+         if (VOS_STATUS_SUCCESS != status)
+            goto err_free_netdev;
+
          status = hdd_register_interface( pAdapter, rtnl_held );
          pAdapter->dev->netdev_ops = &wlan_mon_drv_ops;
          hdd_init_tx_rx( pAdapter );

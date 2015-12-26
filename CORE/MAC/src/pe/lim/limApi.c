@@ -2378,6 +2378,30 @@ eHalStatus limRoamFillBssDescr(tpAniSirGlobal pMac,
    return eHAL_STATUS_SUCCESS;
 }
 
+/**
+ * lim_mon_init_session() - create PE session for monitor mode operation
+ * @mac_ptr: mac pointer
+ * @msg: Pointer to struct sir_create_session type.
+ *
+ * Return: NONE
+ */
+void lim_mon_init_session(tpAniSirGlobal mac_ptr,
+			  struct sir_create_session *msg)
+{
+	tpPESession psession_entry;
+	uint8_t session_id;
+
+	if((psession_entry = peCreateSession(mac_ptr, msg->bss_id,
+	                                  &session_id, mac_ptr->lim.maxStation,
+	                                  eSIR_MONITOR_MODE)) == NULL) {
+		limLog(mac_ptr, LOGE,
+		       FL("Monitor mode: Session Can not be created"));
+		limPrintMacAddr(mac_ptr, msg->bss_id, LOGE);
+		return;
+	}
+	psession_entry->vhtCapability = 1;
+}
+
 /** -----------------------------------------------------------------
   * brief limRoamOffloadSynchInd() - Handles Roam Synch Indication
   * param pMac - global mac structure
