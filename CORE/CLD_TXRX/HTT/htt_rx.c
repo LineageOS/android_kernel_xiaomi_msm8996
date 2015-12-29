@@ -1388,6 +1388,28 @@ htt_rx_offload_msdu_pop_hl(
     adf_nbuf_t *head_buf,
     adf_nbuf_t *tail_buf)
 {
+    adf_nbuf_t buf;
+    u_int32_t *msdu_hdr, msdu_len;
+
+    *head_buf = *tail_buf = buf = offload_deliver_msg;
+    msdu_hdr = (u_int32_t *)adf_nbuf_data(buf);
+
+    /* First dword */
+
+    /* Second dword */
+    msdu_hdr++;
+    msdu_len = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_LEN_GET(*msdu_hdr);
+    *peer_id = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_PEER_ID_GET(*msdu_hdr);
+
+    /* Third dword */
+    msdu_hdr++;
+    *vdev_id = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_VDEV_ID_GET(*msdu_hdr);
+    *tid = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_TID_GET(*msdu_hdr);
+    *fw_desc = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_DESC_GET(*msdu_hdr);
+
+    adf_nbuf_pull_head(buf, HTT_RX_OFFLOAD_DELIVER_IND_MSDU_HDR_BYTES \
+        + HTT_RX_OFFLOAD_DELIVER_IND_HDR_BYTES);
+    adf_nbuf_set_pktlen(buf, msdu_len);
     return 0;
 }
 
