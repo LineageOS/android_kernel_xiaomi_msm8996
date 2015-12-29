@@ -364,10 +364,17 @@ static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
 }
 
 #ifdef CONFIG_CNSS_PCI
+#ifdef CONFIG_PCI_MSM
 static inline int vos_wlan_pm_control(bool vote)
 {
 	return cnss_wlan_pm_control(vote);
 }
+#else
+static inline int vos_wlan_pm_control(bool vote)
+{
+	return 0;
+}
+#endif
 
 static inline int
 vos_get_ramdump_mem(unsigned long *address, unsigned long *size)
