@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2651,7 +2651,7 @@ static int pp_ad_calc_bl(struct msm_fb_data_type *mfd, int bl_in, int *bl_out,
 
 	*bl_out = temp;
 	if (pp_ad_bl_threshold_check(ad->init.al_thresh, ad->init.alpha_base,
-					mfd->ad_bl_level, ad_bl_out)) {
+					ad->last_bl, ad_bl_out)) {
 		mfd->ad_bl_level = ad_bl_out;
 		pr_debug("backlight send to AD block: %d\n", mfd->ad_bl_level);
 		*bl_out_notify = true;
