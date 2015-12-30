@@ -1034,10 +1034,12 @@ drop_pkt:
    } /* end of while */
 
    if (!vdev_handle) {
-       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
+       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO,
                  "%s: All packets dropped in the list", __func__);
        return NETDEV_TX_OK;
    }
+
+   list_tail->next = NULL;
 
    /*
     * TODO: Should we stop net queues when txrx returns non-NULL?.
