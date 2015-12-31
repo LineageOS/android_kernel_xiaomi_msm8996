@@ -40,9 +40,7 @@
 #include <linux/mmc/sdio_ids.h>
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/sd.h>
-#ifdef CONFIG_CNSS_SDIO
-#include <net/cnss.h>
-#endif
+#include "vos_cnss.h"
 #include "wlan_hdd_main.h"
 #include "wlan_nlink_common.h"
 #include "bmi_msg.h" /* TARGET_TYPE_ */

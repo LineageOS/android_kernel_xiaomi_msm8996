@@ -1249,21 +1249,110 @@ void ol_ramdump_handler(struct ol_softc *scn)
 #define REGISTER_DUMP_LEN_MAX   60
 #define REG_DUMP_COUNT		60
 
+#ifdef CONFIG_CNSS_PCI
+static int __ol_target_failure(struct ol_softc *scn, void *wma_hdl)
+{
+	return 0;
+}
+#else
+static int __ol_target_failure(struct ol_softc *scn, void *wma_hdl)
+{
+	unsigned int reg_dump_area = 0;
+	unsigned int  reg_dump_cnt = 0;
+	unsigned int reg_dump_values[REGISTER_DUMP_LEN_MAX];
+	unsigned int i, dbglog_hdr_address;
+	struct dbglog_hdr_host dbglog_hdr;
+	struct dbglog_buf_host dbglog_buf;
+	unsigned char *dbglog_data;
+	tp_wma_handle wma = (tp_wma_handle) wma_hdl;
+	unsigned int addr = host_interest_item_address(scn->target_type,
+					offsetof(struct host_interest_s,
+							hi_failure_state));
+
+	if (HIFDiagReadMem(scn->hif_hdl, addr, (A_UCHAR *)&reg_dump_area,
+						sizeof(A_UINT32)) != A_OK) {
+		pr_err("%s FW Dump Area Pointer failed\n", __func__);
+		return -ENOENT;
+	}
+
+	pr_info("%s Target Register Dump Location 0x%08X\n", __func__,
+							reg_dump_area);
+
+	reg_dump_cnt = REG_DUMP_COUNT;
+
+	if (HIFDiagReadMem(scn->hif_hdl, reg_dump_area,
+				(unsigned char *)&reg_dump_values[0],
+				reg_dump_cnt * sizeof(A_UINT32)) != A_OK) {
+		pr_err("%s FW Dump Area failed\n", __func__);
+		return -ENOENT;
+	}
+
+	pr_info("%s Target Register Dump\n", __func__);
+	for (i = 0; i < reg_dump_cnt; i++)
+		pr_info("[%02d]   :  0x%08X\n", i, reg_dump_values[i]);
+
+	if (!scn->enablefwlog) {
+		pr_info("%s: FWLog is disabled in ini\n", __func__);
+		return 0;
+	}
+
+	addr = host_interest_item_address(scn->target_type,
+					  offsetof(struct host_interest_s,
+							hi_dbglog_hdr));
+	if (HIFDiagReadMem(scn->hif_hdl, addr,
+				(unsigned char *)&dbglog_hdr_address,
+				sizeof(dbglog_hdr_address)) != A_OK) {
+		pr_err("%s FW dbglog_hdr_address failed\n", __func__);
+		return -ENOENT;
+	}
+
+	if (HIFDiagReadMem(scn->hif_hdl, dbglog_hdr_address,
+				(unsigned char *)&dbglog_hdr,
+				sizeof(dbglog_hdr)) != A_OK) {
+		pr_err("%s FW dbglog_hdr failed\n", __func__);
+		return -ENOENT;
+	}
+
+	if (HIFDiagReadMem(scn->hif_hdl, (unsigned int)dbglog_hdr.dbuf,
+						(unsigned char *)&dbglog_buf,
+						sizeof(dbglog_buf)) != A_OK) {
+		pr_err("%s FW dbglog_buf failed\n", __func__);
+		return -ENOENT;
+	}
+
+	dbglog_data = adf_os_mem_alloc(scn->adf_dev,  dbglog_buf.length + 4);
+
+	if (dbglog_data) {
+		if (HIFDiagReadMem(scn->hif_hdl,
+					(unsigned int)dbglog_buf.buffer,
+					dbglog_data + 4,
+					dbglog_buf.length) != A_OK)
+			pr_err("%s FW dbglog_data failed\n", __func__);
+		else {
+			pr_info("%s dbglog_hdr.dbuf=%u, dbglog_data=%p,"
+				"dbglog_buf.buffer=%u, dbglog_buf.length=%u\n",
+				__func__, dbglog_hdr.dbuf, dbglog_data,
+				dbglog_buf.buffer, dbglog_buf.length);
+
+			OS_MEMCPY(dbglog_data, &dbglog_hdr.dropped, 4);
+
+			if (wma) {
+				wma->is_fw_assert = 1;
+				(void)dbglog_parse_debug_logs(wma, dbglog_data,
+							dbglog_buf.length + 4);
+			}
+		}
+		adf_os_mem_free(dbglog_data);
+	}
+	return 0;
+}
+#endif
+
 void ol_target_failure(void *instance, A_STATUS status)
 {
 	struct ol_softc *scn = (struct ol_softc *)instance;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
-#ifndef CONFIG_CNSS
-	A_UINT32 reg_dump_area = 0;
-	A_UINT32 reg_dump_values[REGISTER_DUMP_LEN_MAX];
-	A_UINT32 reg_dump_cnt = 0;
-	A_UINT32 i;
-	A_UINT32 dbglog_hdr_address;
-	struct dbglog_hdr_host dbglog_hdr;
-	struct dbglog_buf_host dbglog_buf;
-	A_UINT8 *dbglog_data;
-#endif
 #ifdef HIF_PCI
 	int ret;
 #endif
@@ -1327,91 +1416,8 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	printk("XXX TARGET ASSERTED XXX\n");
 
-#ifndef CONFIG_CNSS
-	if (HIFDiagReadMem(scn->hif_hdl,
-				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_failure_state)),
-				(A_UCHAR *)&reg_dump_area,
-				sizeof(A_UINT32))!= A_OK)
-	{
-		printk("HifDiagReadiMem FW Dump Area Pointer failed\n");
+	if (__ol_target_failure(scn, wma))
 		return;
-	}
-
-	printk("Target Register Dump Location 0x%08X\n", reg_dump_area);
-
-	reg_dump_cnt = REG_DUMP_COUNT;
-
-	if (HIFDiagReadMem(scn->hif_hdl,
-				reg_dump_area,
-				(A_UCHAR*)&reg_dump_values[0],
-				reg_dump_cnt * sizeof(A_UINT32))!= A_OK)
-	{
-		printk("HifDiagReadiMem for FW Dump Area failed\n");
-		return;
-	}
-
-	printk("Target Register Dump\n");
-	for (i = 0; i < reg_dump_cnt; i++) {
-		printk("[%02d]   :  0x%08X\n", i, reg_dump_values[i]);
-	}
-
-	if (!scn->enablefwlog) {
-		printk("%s: FWLog is disabled in ini\n", __func__);
-		goto disable_fwlog;
-	}
-
-	if (HIFDiagReadMem(scn->hif_hdl,
-	            host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbglog_hdr)),
-	            (A_UCHAR *)&dbglog_hdr_address,
-	            sizeof(dbglog_hdr_address))!= A_OK)
-	{
-	    printk("HifDiagReadiMem FW dbglog_hdr_address failed\n");
-	    return;
-	}
-
-	if (HIFDiagReadMem(scn->hif_hdl,
-	            dbglog_hdr_address,
-	            (A_UCHAR *)&dbglog_hdr,
-	            sizeof(dbglog_hdr))!= A_OK)
-	{
-	    printk("HifDiagReadiMem FW dbglog_hdr failed\n");
-	    return;
-	}
-
-	if (HIFDiagReadMem(scn->hif_hdl,
-	            (A_UINT32)dbglog_hdr.dbuf,
-	            (A_UCHAR *)&dbglog_buf,
-	            sizeof(dbglog_buf))!= A_OK)
-	{
-	    printk("HifDiagReadiMem FW dbglog_buf failed\n");
-	    return;
-	}
-
-	dbglog_data = adf_os_mem_alloc(scn->adf_dev,  dbglog_buf.length + 4);
-	if (dbglog_data) {
-	    if (HIFDiagReadMem(scn->hif_hdl,
-	                (A_UINT32)dbglog_buf.buffer,
-	                dbglog_data + 4,
-	                dbglog_buf.length)!= A_OK)
-	    {
-	        printk("HifDiagReadiMem FW dbglog_data failed\n");
-	    } else {
-	        printk("dbglog_hdr.dbuf=%u dbglog_data=%p dbglog_buf.buffer=%u dbglog_buf.length=%u\n",
-	                dbglog_hdr.dbuf, dbglog_data, dbglog_buf.buffer, dbglog_buf.length);
-
-
-	        OS_MEMCPY(dbglog_data, &dbglog_hdr.dropped, 4);
-                if (wma) {
-		    wma->is_fw_assert = 1;
-	            (void)dbglog_parse_debug_logs(wma, dbglog_data, dbglog_buf.length + 4);
-                }
-	    }
-
-	    adf_os_mem_free(dbglog_data);
-	}
-
-disable_fwlog:
-#endif
 
 #if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
 	/* Collect the RAM dump through a workqueue */
