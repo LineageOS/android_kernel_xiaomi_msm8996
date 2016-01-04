@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1505,13 +1505,17 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
          hdd_getActionString(buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET]));
      }
 
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) &&
+        (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))) {
         home_ch = pAdapter->sessionCtx.ap.operatingChannel;
-    } else if (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) {
+    } else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) &&
+               (pAdapter->sessionCtx.station.conn_info.connState ==
+                        eConnectionState_Associated)) {
         home_ch = pAdapter->sessionCtx.station.conn_info.operationChannel;
     } else {
         goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
-        if (goAdapter)
+        if (goAdapter &&
+            (test_bit(SOFTAP_BSS_STARTED, &goAdapter->event_flags)))
             home_ch = goAdapter->sessionCtx.ap.operatingChannel;
     }
 
