@@ -4765,7 +4765,7 @@ void limInitPreAuthTimerTable(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTim
 {
     tANI_U32 cfgValue;
     tANI_U32 authNodeIdx;
-    tpLimPreAuthNode pAuthNode = pPreAuthTimerTable->pTable;
+    tLimPreAuthNode **pAuthNode = pPreAuthTimerTable->pTable;
 
     // Get AUTH_RSP Timers value
 
@@ -4782,9 +4782,9 @@ void limInitPreAuthTimerTable(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTim
     }
 
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
-    for(authNodeIdx=0; authNodeIdx<pPreAuthTimerTable->numEntry; authNodeIdx++, pAuthNode++)
+    for(authNodeIdx=0; authNodeIdx<pPreAuthTimerTable->numEntry; authNodeIdx++)
     {
-        if (tx_timer_create(&pAuthNode->timer,
+        if (tx_timer_create(&(pAuthNode[authNodeIdx]->timer),
                         "AUTH RESPONSE TIMEOUT",
                         limAuthResponseTimerHandler,
                         authNodeIdx,
@@ -4796,10 +4796,9 @@ void limInitPreAuthTimerTable(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTim
             limLog(pMac, LOGP, FL("Cannot create Auth Rsp timer of Index :%d."), authNodeIdx);
             return;
         }
-        pAuthNode->authNodeIdx = (tANI_U8)authNodeIdx;
-        pAuthNode->fFree = 1;
+        pAuthNode[authNodeIdx]->authNodeIdx = (tANI_U8)authNodeIdx;
+        pAuthNode[authNodeIdx]->fFree = 1;
     }
-
 }
 
 /** -------------------------------------------------------------
@@ -4812,13 +4811,11 @@ void limInitPreAuthTimerTable(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTim
 tLimPreAuthNode * limAcquireFreePreAuthNode(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTimerTable)
 {
     tANI_U32 i;
-    tLimPreAuthNode *pTempNode = pPreAuthTimerTable->pTable;
-    for (i=0; i<pPreAuthTimerTable->numEntry; i++,pTempNode++)
-    {
-        if (pTempNode->fFree == 1)
-        {
-            pTempNode->fFree = 0;
-            return pTempNode;
+    tLimPreAuthNode **pTempNode = pPreAuthTimerTable->pTable;
+    for (i=0; i < pPreAuthTimerTable->numEntry; i++) {
+        if (pTempNode[i]->fFree == 1) {
+            pTempNode[i]->fFree = 0;
+            return pTempNode[i];
         }
     }
 
@@ -4843,7 +4840,7 @@ tLimPreAuthNode * limGetPreAuthNodeFromIndex(tpAniSirGlobal pMac,
         return NULL;
     }
 
-    return pAuthTable->pTable + authNodeIdx;
+    return pAuthTable->pTable[authNodeIdx];
 }
 
 /* Util API to check if the channels supported by STA is within range */

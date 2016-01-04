@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -582,12 +582,24 @@ limCreateTimers(tpAniSirGlobal pMac)
                FL("could not retrieve mac preauth value"));
     }
     pMac->lim.gLimPreAuthTimerTable.numEntry = cfgValue;
-    pMac->lim.gLimPreAuthTimerTable.pTable = vos_mem_malloc(cfgValue*sizeof(tLimPreAuthNode));
-    if(pMac->lim.gLimPreAuthTimerTable.pTable == NULL)
-    {
+    pMac->lim.gLimPreAuthTimerTable.pTable =
+        vos_mem_malloc(cfgValue*sizeof(tLimPreAuthNode*));
+    if(pMac->lim.gLimPreAuthTimerTable.pTable == NULL) {
         pMac->lim.gLimPreAuthTimerTable.numEntry = 0;
         limLog(pMac, LOGP, FL("AllocateMemory failed!"));
         goto err_timer;
+    }
+    vos_mem_zero(pMac->lim.gLimPreAuthTimerTable.pTable,
+                 cfgValue * sizeof(tLimPreAuthNode*));
+
+    for (i = 0; i < cfgValue; i++) {
+        pMac->lim.gLimPreAuthTimerTable.pTable[i] =
+            vos_mem_malloc(sizeof(tLimPreAuthNode));
+        if (pMac->lim.gLimPreAuthTimerTable.pTable[i] == NULL) {
+            pMac->lim.gLimPreAuthTimerTable.numEntry = 0;
+            limLog(pMac, LOGP, FL("AllocateMemory failed!"));
+            goto err_timer;
+        }
     }
 
     limInitPreAuthTimerTable(pMac, &pMac->lim.gLimPreAuthTimerTable);
@@ -765,6 +777,8 @@ limCreateTimers(tpAniSirGlobal pMac)
 
         if(NULL != pMac->lim.gLimPreAuthTimerTable.pTable)
         {
+            for (i = 0; i < cfgValue; i++)
+                vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable[i]);
             vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable);
             pMac->lim.gLimPreAuthTimerTable.pTable = NULL;
         }

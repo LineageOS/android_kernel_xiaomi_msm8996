@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -624,7 +624,7 @@ void limSetCfgProtection(tpAniSirGlobal pMac, tpPESession pesessionEntry);
 
 
 // Function to Initialize MLM state machine on STA
-void limInitMlm(tpAniSirGlobal);
+tSirRetStatus limInitMlm(tpAniSirGlobal);
 
 /* Function to clean up MLM state machine */
 void limCleanupMlm(tpAniSirGlobal);
