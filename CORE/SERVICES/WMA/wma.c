@@ -5187,6 +5187,7 @@ static int wma_oem_capability_event_callback(void *handle,
 	}
 
 	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp->target_rsp = true;
 	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
 	*msg_subtype = WMI_OEM_CAPABILITY_RSP;
 	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
@@ -5239,6 +5240,7 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 	}
 
 	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp->target_rsp = true;
 	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
 	*msg_subtype = WMI_OEM_MEASUREMENT_RSP;
 	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
@@ -5291,6 +5293,7 @@ static int wma_oem_error_report_event_callback(void *handle,
 	}
 
 	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
+	pStartOemDataRsp->target_rsp = true;
 	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
 	*msg_subtype = WMI_OEM_ERROR_REPORT_RSP;
 	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
@@ -5301,6 +5304,61 @@ static int wma_oem_error_report_event_callback(void *handle,
 	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
 }
+
+
+/**
+ * wma_oem_data_response_handler() - OEM data response event handler
+ * @handle: wma handle
+ * @datap: data ptr
+ * @len: data length
+ *
+ * Return: 0 for success or error code
+ */
+static int wma_oem_data_response_handler(void *handle,
+				  uint8_t *datap, uint32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	WMI_OEM_RESPONSE_EVENTID_param_tlvs *param_buf;
+	uint8_t *data;
+	uint32_t datalen;
+	tStartOemDataRsp *oem_data_rsp;
+
+	param_buf = (WMI_OEM_RESPONSE_EVENTID_param_tlvs *) datap;
+	if (!param_buf) {
+		WMA_LOGE(FL("Received NULL buf ptr from FW"));
+		return -ENOMEM;
+	}
+
+	data = param_buf->data;
+	datalen = param_buf->num_data;
+
+	if (!data) {
+		WMA_LOGE(FL("Received NULL data from FW"));
+		return -EINVAL;
+	}
+
+	if (datalen > OEM_DATA_RSP_SIZE) {
+		WMA_LOGE(FL("Received data len %d exceeds max value %d"),
+			 datalen, OEM_DATA_RSP_SIZE);
+		return -EINVAL;
+	}
+
+	oem_data_rsp = vos_mem_malloc(sizeof(*oem_data_rsp));
+	if (!oem_data_rsp) {
+		WMA_LOGE(FL("Failed to alloc oem_data_rsp"));
+		return -ENOMEM;
+	}
+
+	vos_mem_zero(oem_data_rsp, sizeof(tStartOemDataRsp));
+	oem_data_rsp->target_rsp = true;
+	vos_mem_copy(&oem_data_rsp->oemDataRsp[0], data, datalen);
+
+	WMA_LOGI(FL("Sending WMA_START_OEM_DATA_RSP, data len %d"), datalen);
+
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)oem_data_rsp, 0);
+	return 0;
+}
+
 #endif /* FEATURE_OEM_DATA_SUPPORT */
 
 static int wma_p2p_noa_event_handler(void *handle, u_int8_t *event, u_int32_t len)
@@ -6736,6 +6794,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 				    WMI_OEM_ERROR_REPORT_EVENTID,
 				    wma_oem_error_report_event_callback);
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_OEM_RESPONSE_EVENTID,
+					   wma_oem_data_response_handler);
 #endif
 	/*
 	 * Register appropriate DFS phyerr event handler for
@@ -22052,7 +22113,6 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	wmi_buf_t buf;
 	u_int8_t *cmd;
 	int ret = 0;
-	u_int32_t *msg_subtype;
 	tStartOemDataRsp *pStartOemDataRsp;
 
 	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
@@ -22113,8 +22173,7 @@ out:
 	 return;
 	}
 	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
-	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
-	*msg_subtype = WMI_OEM_INTERNAL_RSP;
+	pStartOemDataRsp->target_rsp = false;
 
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP to clear up PE/SME pending cmd",
 	         __func__);

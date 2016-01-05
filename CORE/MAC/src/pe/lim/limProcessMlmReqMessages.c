@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1408,6 +1408,8 @@ error:
         return;
     }
 
+    pMlmOemDataRsp->target_rsp = false;
+
     if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
         vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
@@ -2033,6 +2035,7 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmOemDataRsp = vos_mem_malloc(sizeof(tLimMlmOemDataRsp));
         if ( pMlmOemDataRsp != NULL)
         {
+            pMlmOemDataRsp->target_rsp = false;
             limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)pMlmOemDataRsp);
             vos_mem_free(pMlmOemDataRsp);
         }

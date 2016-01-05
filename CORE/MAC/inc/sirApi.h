@@ -977,6 +977,7 @@ typedef struct sSirOemDataRsp
 {
     tANI_U16             messageType;
     tANI_U16             length;
+    bool                 target_rsp;
     tANI_U8              oemDataRsp[OEM_DATA_RSP_SIZE];
 } tSirOemDataRsp, *tpSirOemDataRsp;
 

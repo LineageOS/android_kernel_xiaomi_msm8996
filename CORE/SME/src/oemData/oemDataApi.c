@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -282,7 +282,6 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
     tListElem                          *pEntry = NULL;
     tSmeCmd                            *pCommand = NULL;
     tSirOemDataRsp*                    pOemDataRsp = NULL;
-    tANI_U32                           *msgSubType;
 
     pMac = PMAC_STRUCT(hHal);
 
@@ -321,20 +320,15 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
 
         pOemDataRsp = (tSirOemDataRsp *)pMsg;
 
-        /* check if message is to be forwarded to oem application or not */
-        msgSubType = (tANI_U32 *) (&pOemDataRsp->oemDataRsp[0]);
-        if (*msgSubType != OEM_MESSAGE_SUBTYPE_INTERNAL)
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      "%s: calling send_oem_data_rsp_msg, msgSubType(0x%x)",
-                      __func__, *msgSubType);
-            send_oem_data_rsp_msg(sizeof(tOemDataRsp),
-                                  &pOemDataRsp->oemDataRsp[0]);
+        /* Send to upper layer only if rsp is from target */
+        if (pOemDataRsp->target_rsp) {
+            smsLog(pMac, LOG1, FL("received target oem data resp"));
+            if (pMac->oemData.oem_data_rsp_callback != NULL)
+                pMac->oemData.oem_data_rsp_callback(sizeof(tOemDataRsp),
+                                                &pOemDataRsp->oemDataRsp[0]);
+        } else {
+            smsLog(pMac, LOG1, FL("received internal oem data resp"));
         }
-        else
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      "%s: received internal oem data resp, msgSubType (0x%x)",
-                      __func__, *msgSubType);
     } while(0);
 
     return status;

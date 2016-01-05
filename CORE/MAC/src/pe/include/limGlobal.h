@@ -328,6 +328,7 @@ typedef struct sLimMlmOemDataReq
 
 typedef struct sLimMlmOemDataRsp
 {
+   bool                   target_rsp;
    tANI_U8                oemDataRsp[OEM_DATA_RSP_SIZE];
 } tLimMlmOemDataRsp, *tpLimMlmOemDataRsp;
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -136,6 +136,8 @@ eHalStatus oemData_IsOemDataReqAllowed(tHalHandle hHal);
     \return None
   --------------------------------------------------------------------------*/
 void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp);
+
+typedef void (*sme_send_oem_data_rsp_msg)(int length, uint8_t *oem_data_rsp);
 
 #endif //_OEM_DATA_API_H__
 
