@@ -1723,20 +1723,26 @@ static void __limProcessSmeOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pOemDataReq = (tpSirOemDataReq) pMsgBuf;
 
     //post the lim mlm message now
-    pMlmOemDataReq = vos_mem_malloc(sizeof(tLimMlmOemDataReq));
+    pMlmOemDataReq = vos_mem_malloc(sizeof(*pMlmOemDataReq));
     if ( NULL == pMlmOemDataReq )
     {
         limLog(pMac, LOGP, FL("AllocateMemory failed for mlmOemDataReq"));
         return;
     }
 
-    //Initialize this buffer
-    vos_mem_set( pMlmOemDataReq, (sizeof(tLimMlmOemDataReq)), 0);
+    pMlmOemDataReq->data = vos_mem_malloc(pOemDataReq->data_len);
+    if (!pMlmOemDataReq->data) {
+        limLog(pMac, LOGP, FL("memory allocation failed"));
+        vos_mem_free(pMlmOemDataReq);
+        return;
+    }
 
     vos_mem_copy( pMlmOemDataReq->selfMacAddr, pOemDataReq->selfMacAddr,
                   sizeof(tSirMacAddr));
-    vos_mem_copy( pMlmOemDataReq->oemDataReq, pOemDataReq->oemDataReq,
-                  OEM_DATA_REQ_SIZE);
+
+    pMlmOemDataReq->data_len = pOemDataReq->data_len;
+    vos_mem_copy(pMlmOemDataReq->data, pOemDataReq->data,
+                 pOemDataReq->data_len);
 
     //Issue LIM_MLM_OEM_DATA_REQ to MLM
     limPostMlmMessage(pMac, LIM_MLM_OEM_DATA_REQ, (tANI_U32*)pMlmOemDataReq);

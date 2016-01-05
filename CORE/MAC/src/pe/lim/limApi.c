@@ -291,6 +291,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     /* Init SAP deffered Q Head */
     lim_init_sap_deferred_msg_queue(pMac);
 #endif
+    pMac->lim.gpLimMlmOemDataReq = NULL;
 }
 
 static void __limInitAssocVars(tpAniSirGlobal pMac)
@@ -1044,6 +1045,10 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
 
     if (pMac->lim.gpLimMlmOemDataReq) {
+        if (pMac->lim.gpLimMlmOemDataReq->data) {
+            vos_mem_free(pMac->lim.gpLimMlmOemDataReq->data);
+            pMac->lim.gpLimMlmOemDataReq->data = NULL;
+        }
         vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
         pMac->lim.gpLimMlmOemDataReq = NULL;
     }

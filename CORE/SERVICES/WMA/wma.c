@@ -22117,7 +22117,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 
 	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
 
-	if (!startOemDataReq) {
+	if (!startOemDataReq && !startOemDataReq->data) {
 		WMA_LOGE("%s: startOemDataReq is null", __func__);
 		goto out;
 	}
@@ -22128,7 +22128,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	}
 
 	buf = wmi_buf_alloc(wma_handle->wmi_handle,
-		                   (OEM_DATA_REQ_SIZE + WMI_TLV_HDR_SIZE));
+		                   (startOemDataReq->data_len + WMI_TLV_HDR_SIZE));
 	if (!buf) {
 		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
 		goto out;
@@ -22137,15 +22137,16 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 	cmd = (u_int8_t *)wmi_buf_data(buf);
 
 	WMITLV_SET_HDR(cmd, WMITLV_TAG_ARRAY_BYTE,
-			       OEM_DATA_REQ_SIZE);
+			       startOemDataReq->data_len);
 	cmd += WMI_TLV_HDR_SIZE;
-	vos_mem_copy(cmd, &startOemDataReq->oemDataReq[0], OEM_DATA_REQ_SIZE);
+	vos_mem_copy(cmd, &startOemDataReq->data[0],
+                     startOemDataReq->data_len);
 
 	WMA_LOGI("%s: Sending OEM Data Request to target, data len (%d)",
-	         __func__, OEM_DATA_REQ_SIZE);
+	         __func__, startOemDataReq->data_len);
 
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
-			(OEM_DATA_REQ_SIZE +
+			(startOemDataReq->data_len +
 			 WMI_TLV_HDR_SIZE),
 			 WMI_OEM_REQ_CMDID);
 
@@ -22156,8 +22157,11 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 
 out:
 	/* free oem data req buffer received from UMAC */
-	if (startOemDataReq)
+	if (startOemDataReq) {
+		if (startOemDataReq->data)
+			vos_mem_free(startOemDataReq->data);
 		vos_mem_free(startOemDataReq);
+	}
 
 	/* Now send data resp back to PE/SME with message sub-type of
 	 * WMI_OEM_INTERNAL_RSP. This is required so that PE/SME clears
