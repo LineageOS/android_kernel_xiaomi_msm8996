@@ -5032,6 +5032,9 @@ VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx)
 
 #ifdef IPA_UC_OFFLOAD
 	if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
+		if (ipa_uc_dereg_rdyCB())
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				"UC Ready CB deregister fail");
 		hdd_ipa_uc_rt_debug_deinit(hdd_ctx);
 		if (VOS_TRUE == hdd_ipa->uc_loaded) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
