@@ -3600,14 +3600,14 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		hddLog(LOG1, FL("max period %u"),
 			pReqMsg->buckets[bktIndex].max_period);
 
-		/* Parse and fetch exponent */
-		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_EXPONENT]) {
-			hddLog(LOGE, FL("attr exponent failed"));
+		/* Parse and fetch base */
+		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BASE]) {
+			hddLog(LOGE, FL("attr base failed"));
 			return -EINVAL;
 		}
 		pReqMsg->buckets[bktIndex].exponent = nla_get_u32(
-			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_EXPONENT]);
-		hddLog(LOG1, FL("exponent %u"),
+			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BASE]);
+		hddLog(LOG1, FL("base %u"),
 			pReqMsg->buckets[bktIndex].exponent);
 
 		/* Parse and fetch step count */
@@ -4077,6 +4077,7 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 	spin_lock(&hdd_context_lock);
 	INIT_COMPLETION(context->response_event);
 	context->request_id = request_id = pReqMsg->requestId;
+	context->buckets_scanned = 0;
 	spin_unlock(&hdd_context_lock);
 
 	status = sme_ExtScanStart(pHddCtx->hHal, pReqMsg);
@@ -22081,6 +22082,7 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 #define EXTSCAN_CACHED_NL_FIXED_TLV \
 		(sizeof(data->request_id) + NLA_HDRLEN) + \
 		(sizeof(data->num_scan_ids) + NLA_HDRLEN) + \
+		(sizeof(data->buckets_scanned) + NLA_HDRLEN)+ \
 		(sizeof(data->more_data) + NLA_HDRLEN)
 #define EXTSCAN_CACHED_NL_SCAN_ID_TLV \
 		(sizeof(result->scan_id) + NLA_HDRLEN) + \
@@ -22132,8 +22134,10 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
 		goto fail;
 	}
-	hddLog(LOG1, "Req Id %u Num_scan_ids %u More Data %u",
-		data->request_id, data->num_scan_ids, data->more_data);
+	hddLog(LOG1,
+		FL("ReqId: %u Num_scan_ids: %u buckets_scanned: %u MoreData: %u"),
+		data->request_id, data->num_scan_ids,
+		data->buckets_scanned, data->more_data);
 
 	result = &data->result[0];
 	for (i = 0; i < data->num_scan_ids; i++) {
@@ -22216,6 +22220,9 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 			    nla_put_u32(skb,
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_CACHED_RESULTS_FLAGS,
 				result->flags) ||
+			    nla_put_u32(skb,
+				QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_BUCKETS_SCANNED,
+				data->buckets_scanned) ||
 			    nla_put_u32(skb,
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE,
 				result->num_results)) {
@@ -22727,6 +22734,7 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 	struct sk_buff *skb     = NULL;
 	struct timespec ts;
 	int flags = vos_get_gfp_flags();
+	struct hdd_ext_scan_context *context;
 
 	ENTER();
 
@@ -22827,6 +22835,19 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 			pData->ap.ieLength, pData->ap.ieData))
 		goto nla_put_failure;
 	}
+
+	spin_lock(&hdd_context_lock);
+	context = &pHddCtx->ext_scan_context;
+	if (nla_put_u32(skb,
+		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_BUCKETS_SCANNED,
+		context->buckets_scanned)) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(LOGE, FL("Failed to include buckets_scanned"));
+		goto nla_put_failure;
+	}
+	hddLog(LOG1, FL("Full scan buckets_scanned: %u"),
+		context->buckets_scanned);
+	spin_unlock(&hdd_context_lock);
 
 	cfg80211_vendor_event(skb, flags);
 	EXIT();
@@ -23029,6 +23050,7 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
     hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
     struct sk_buff *skb     = NULL;
     int flags = vos_get_gfp_flags();
+    struct hdd_ext_scan_context *context;
 
     ENTER();
 
@@ -23037,6 +23059,26 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
     if (!pData) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("pData is null"));
         return;
+    }
+
+    hddLog(LOG1, "Request Id: %u ScanEventType: %u ScanEventStatus: %u buckets_scanned: %u",
+               pData->requestId, pData->scanEventType, pData->status,
+               pData->buckets_scanned);
+
+    spin_lock(&hdd_context_lock);
+    context = &pHddCtx->ext_scan_context;
+    if (pData->scanEventType == WIFI_EXTSCAN_CYCLE_COMPLETED_EVENT) {
+            context->buckets_scanned = 0;
+            /* No need to report to user space */
+            spin_unlock(&hdd_context_lock);
+            return;
+    } else if (pData->scanEventType == WIFI_EXTSCAN_CYCLE_STARTED_EVENT) {
+            context->buckets_scanned = pData->buckets_scanned;
+            /* No need to report to user space */
+            spin_unlock(&hdd_context_lock);
+            return;
+    } else {
+            spin_unlock(&hdd_context_lock);
     }
 
     skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
@@ -23049,16 +23091,11 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
         hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
         return;
     }
-    hddLog(LOG1, "Request Id %u Scan event type %u Scan event status %u",
-           pData->requestId, pData->scanEventType, pData->status);
 
     if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
                     pData->requestId) ||
         nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_EVENT_TYPE,
-                   pData->scanEventType) ||
-        nla_put_u32(skb,
-                    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_EVENT_STATUS,
-                    pData->status)) {
+                    pData->scanEventType)) {
         hddLog(LOGE, FL("nla put fail"));
         goto nla_put_failure;
     }

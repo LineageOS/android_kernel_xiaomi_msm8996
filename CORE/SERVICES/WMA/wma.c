@@ -217,6 +217,7 @@ enum extscan_report_events_type {
 	EXTSCAN_REPORT_EVENTS_EACH_SCAN     = 0x01,
 	EXTSCAN_REPORT_EVENTS_FULL_RESULTS  = 0x02,
 	EXTSCAN_REPORT_EVENTS_NO_BATCH      = 0x04,
+	EXTSCAN_REPORT_EVENTS_CONTEXT_HUB   = 0x08,
 };
 
 #define WMA_EXTSCAN_CYCLE_WAKE_LOCK_DURATION    (5 * 1000) /* in msec */
@@ -3263,8 +3264,7 @@ static int wma_extscan_start_stop_event_handler(void *handle,
  */
 static int wma_extscan_operations_ind_handler(tp_wma_handle wma, uint8_t *buf)
 {
-	wmi_extscan_operation_event_fixed_param *event;
-	tSirExtScanOnScanEventIndParams   *oprn_ind;
+	tSirExtScanOnScanEventIndParams   *oprn_ind, *evt_buf;
 	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!mac_ctx) {
@@ -3274,42 +3274,70 @@ static int wma_extscan_operations_ind_handler(tp_wma_handle wma, uint8_t *buf)
 	if (!mac_ctx->sme.pExtScanIndCb) {
 		WMA_LOGE("%s: Callback not registered", __func__);
 		return -EINVAL;
-        }
+	}
 	if (!buf) {
 		WMA_LOGE("%s: Invalid event buffer", __func__);
 		return -EINVAL;
 	}
-	event = (wmi_extscan_operation_event_fixed_param *)buf;
+
+	evt_buf = (tSirExtScanOnScanEventIndParams *)buf;
 	oprn_ind = vos_mem_malloc(sizeof(*oprn_ind));
 	if (!oprn_ind) {
-		WMA_LOGE("%s: extscan memory allocation failed", __func__);
-		vos_mem_free(oprn_ind);
+		WMA_LOGE(FL("extscan memory allocation failed"));
 		return -EINVAL;
 	}
 
-	oprn_ind->requestId = event->request_id;
+	vos_mem_zero(oprn_ind, sizeof(*oprn_ind));
+	oprn_ind->requestId = evt_buf->requestId;
 
-	switch (event->event) {
+	switch (evt_buf->scanEventType) {
 	case WMI_EXTSCAN_BUCKET_COMPLETED_EVENT:
-		oprn_ind->scanEventType =  WIFI_SCAN_COMPLETE;
+		WMA_LOGD("%s: received WMI_EXTSCAN_BUCKET_COMPLETED_EVENT",
+			__func__);
+		oprn_ind->scanEventType =  WIFI_EXTSCAN_RESULTS_AVAILABLE;
 		oprn_ind->status = 0;
 		break;
 	case WMI_EXTSCAN_CYCLE_STARTED_EVENT:
 		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_STARTED_EVENT",
 			 __func__);
 		vos_wake_lock_timeout_acquire(&wma->extscan_wake_lock,
-				      WMA_EXTSCAN_CYCLE_WAKE_LOCK_DURATION,
-				      WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
-		goto exit_handler;
+					WMA_EXTSCAN_CYCLE_WAKE_LOCK_DURATION,
+					WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
+		oprn_ind->scanEventType = WIFI_EXTSCAN_CYCLE_STARTED_EVENT;
+		oprn_ind->status = 0;
+		oprn_ind->buckets_scanned = evt_buf->buckets_scanned;
+		break;
 	case WMI_EXTSCAN_CYCLE_COMPLETED_EVENT:
 		WMA_LOGD("%s: received WMI_EXTSCAN_CYCLE_COMPLETED_EVENT",
 			__func__);
 		vos_wake_lock_release(&wma->extscan_wake_lock,
 					WIFI_POWER_EVENT_WAKELOCK_EXT_SCAN);
+		oprn_ind->scanEventType = WIFI_EXTSCAN_CYCLE_COMPLETED_EVENT;
+		oprn_ind->status = 0;
+		/* Set bucket scanned mask to zero on cycle complete */
+		oprn_ind->buckets_scanned = 0;
+		break;
+	case WMI_EXTSCAN_BUCKET_STARTED_EVENT:
+		WMA_LOGD("%s: received WIFI_EXTSCAN_BUCKET_STARTED_EVENT",
+			__func__);
+		oprn_ind->scanEventType = WIFI_EXTSCAN_BUCKET_STARTED_EVENT;
+		oprn_ind->status = 0;
 		goto exit_handler;
+	case WMI_EXTSCAN_THRESHOLD_NUM_SCANS:
+		WMA_LOGD("%s: received WIFI_EXTSCAN_THRESHOLD_NUM_SCANS",
+			__func__);
+		oprn_ind->scanEventType = WIFI_EXTSCAN_THRESHOLD_NUM_SCANS;
+		oprn_ind->status = 0;
+		break;
+	case WMI_EXTSCAN_THRESHOLD_PERCENT:
+		WMA_LOGD("%s: received WIFI_EXTSCAN_THRESHOLD_PERCENT",
+			__func__);
+		oprn_ind->scanEventType = WIFI_EXTSCAN_THRESHOLD_PERCENT;
+		oprn_ind->status = 0;
+		break;
 	default:
 		WMA_LOGE("%s: Unknown event %d from target",
-			__func__, event->event);
+			__func__, evt_buf->scanEventType);
 		vos_mem_free(oprn_ind);
 		return -EINVAL;
 	}
@@ -3335,8 +3363,10 @@ static int wma_extscan_operations_event_handler(void *handle,
 					uint8_t *cmd_param_info, uint32_t len)
 {
 	WMI_EXTSCAN_OPERATION_EVENTID_param_tlvs *param_buf;
-	wmi_extscan_operation_event_fixed_param *event, *buf;
-	int buf_len = sizeof(*event);
+	wmi_extscan_operation_event_fixed_param *event;
+	tSirExtScanOnScanEventIndParams *buf;
+	A_UINT32 cnt = 0;
+	int buf_len;
 	vos_msg_t vos_msg = {0};
 
 	WMA_LOGI("%s: Enter", __func__);
@@ -3346,15 +3376,28 @@ static int wma_extscan_operations_event_handler(void *handle,
 		WMA_LOGE("%s: Invalid extscan event", __func__);
 		return -EINVAL;
 	}
-
 	event = param_buf->fixed_param;
+	buf_len = sizeof(*buf);
 	buf = vos_mem_malloc(buf_len);
+
 	if (!buf) {
 		WMA_LOGE("%s: extscan memory allocation failed", __func__);
 		return -ENOMEM;
 	}
+	vos_mem_zero(buf, buf_len);
 
-	*buf = *event;
+	buf->requestId  =  event->request_id;
+	buf->scanEventType = event->event;
+
+	if (event->event == WMI_EXTSCAN_CYCLE_STARTED_EVENT) {
+		for (cnt = 0; cnt < event->num_buckets; cnt++)
+			buf->buckets_scanned |=
+				(1 << param_buf->bucket_id[cnt]);
+	}
+
+	WMA_LOGI(FL("num_buckets: %u request_id: %u scanEventType: %u buckets_scanned: %u"),
+		event->num_buckets, buf->requestId,
+		buf->scanEventType, buf->buckets_scanned);
 
 	vos_msg.type = WDA_EXTSCAN_OPERATION_IND;
 	vos_msg.bodyptr = buf;
@@ -3822,6 +3865,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	vos_mem_zero(dest_cachelist, sizeof(*dest_cachelist));
 	dest_cachelist->request_id = event->request_id;
 	dest_cachelist->more_data = moredata;
+	dest_cachelist->buckets_scanned = event->buckets_scanned;
 
 	scan_ids_cnt = wma_extscan_find_unique_scan_ids(cmd_param_info);
 	WMA_LOGI("scan_ids_cnt %d", scan_ids_cnt);
@@ -24938,6 +24982,11 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		else
 			dest_blist->configuration_flags =
 				WMI_EXTSCAN_BUCKET_CACHE_RESULTS;
+
+		if (src_bucket->reportEvents &
+			EXTSCAN_REPORT_EVENTS_CONTEXT_HUB)
+				dest_blist->configuration_flags |=
+				WMI_EXTSCAN_REPORT_EVENT_CONTEXT_HUB;
 
 		WMA_LOGI("%s: ntfy_extscan_events:%u cfg_flags:%u fwd_flags:%u",
 			__func__, dest_blist->notify_extscan_events,

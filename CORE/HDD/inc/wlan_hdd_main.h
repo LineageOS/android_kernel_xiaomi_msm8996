@@ -1303,6 +1303,7 @@ enum smps_mode {
  * @response_status: Status returned by FW in response to a request
  * @ignore_cached_results: Flag to ignore cached results or not
  * @capability_response: Ext scan capability response data from target
+ * @buckets_scanned: bitmask of buckets scanned in extscan cycle
  */
 struct hdd_ext_scan_context {
 	uint32_t request_id;
@@ -1310,6 +1311,7 @@ struct hdd_ext_scan_context {
 	bool ignore_cached_results;
 	struct completion response_event;
 	struct ext_scan_capabilities_response capability_response;
+	uint32_t buckets_scanned;
 };
 #endif /* End of FEATURE_WLAN_EXTSCAN */
 

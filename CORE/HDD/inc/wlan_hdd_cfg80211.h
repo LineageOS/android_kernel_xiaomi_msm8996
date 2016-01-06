@@ -533,9 +533,9 @@ enum qca_wlan_vendor_attr_extscan_config_params
      */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_MAX_PERIOD,
     /* Unsigned 32-bit value. */
-    QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_EXPONENT,
+    QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BASE,
     /* Unsigned 32-bit value. For exponential back off bucket, number of scans
-     * performed at a given period and until the exponent is applied.
+     * to performed for a given period.
      */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_STEP_COUNT,
     /* Unsigned 8-bit value; in number of scans, wake up AP after these
@@ -773,6 +773,13 @@ enum qca_wlan_vendor_attr_extscan_results
     /* Use attr QCA_WLAN_VENDOR_ATTR_EXTSCAN_NUM_RESULTS_AVAILABLE
      * to indicate number of results.
      */
+    /* Unsigned 32bit value, Bit mask of all buckets scanned in the
+     * current EXTSCAN CYCLE. For e.g. If fw scan is going to scan
+     * following buckets 0, 1, 2 in current cycle then it will be
+     * (0x111).
+     */
+    QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_BUCKETS_SCANNED,
+
 
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_AFTER_LAST,
