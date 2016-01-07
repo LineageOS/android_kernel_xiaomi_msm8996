@@ -28432,9 +28432,6 @@ static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 			txrx_pdev);
 		}
 	}
-	/* Destroy Tx Frame Complete event */
-	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
-
 	/* Tx queue empty check event (dummy event) */
 	vos_event_destroy(&wma_handle->tx_queue_empty_event);
 
@@ -29853,6 +29850,10 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	vos_event_destroy(&wma_handle->wow_tx_complete);
 	vos_event_destroy(&wma_handle->runtime_suspend);
 	vos_event_destroy(&wma_handle->recovery_event);
+
+	/* Destroy Tx Frame Complete event */
+	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
+
 	wma_cleanup_vdev_resp(wma_handle);
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(
