@@ -1079,6 +1079,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_SET_EGAP_CONF_PARAMS              SIR_HAL_SET_EGAP_CONF_PARAMS
 
+#define WDA_BPF_GET_CAPABILITIES_REQ          SIR_HAL_BPF_GET_CAPABILITIES_REQ
+#define WDA_BPF_SET_INSTRUCTIONS_REQ          SIR_HAL_BPF_SET_INSTRUCTIONS_REQ
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

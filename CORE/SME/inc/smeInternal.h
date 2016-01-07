@@ -229,6 +229,7 @@ typedef struct tagSmeStruct
 			      struct sir_lost_link_info *lost_link_info);
     void (*smps_force_mode_cb)(void *context,
 			struct sir_smps_force_mode_event *smps_force_mode_info);
+    void (*pbpf_get_offload_cb)(void *context, struct sir_bpf_get_offload *);
 } tSmeStruct, *tpSmeStruct;
 
 

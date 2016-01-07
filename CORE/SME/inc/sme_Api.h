@@ -4092,6 +4092,10 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
+			void (*pbpf_get_offload_cb)(void *,
+			struct sir_bpf_get_offload *));
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /* ---------------------------------------------------------------------------
     \fn sme_abortRoamScan
@@ -4502,4 +4506,7 @@ eHalStatus sme_update_mimo_power_save(tHalHandle hHal,
 
 bool sme_is_sta_smps_allowed(tHalHandle hHal, uint8_t session_id);
 
+eHalStatus sme_get_bpf_offload_capabilities(tHalHandle hal);
+eHalStatus sme_set_bpf_instructions(tHalHandle hal,
+			struct sir_bpf_set_offload *);
 #endif //#if !defined( __SME_API_H )

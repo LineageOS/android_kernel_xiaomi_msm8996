@@ -8771,6 +8771,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->cfg_ini->fine_time_meas_cap &= cfg->fine_time_measurement_cap;
     hddLog(LOG1, FL("fine_time_measurement_cap: 0x%x"),
              hdd_ctx->cfg_ini->fine_time_meas_cap);
+    hdd_ctx->bpf_enabled = cfg->bpf_enabled;
 }
 
 /* This function is invoked in atomic context when a radar
@@ -13933,6 +13934,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
+   hdd_init_bpf_completion();
 #ifdef FEATURE_WLAN_EXTSCAN
    init_completion(&pHddCtx->ext_scan_context.response_event);
 #endif /* FEATURE_WLAN_EXTSCAN */
@@ -14766,6 +14768,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                            hdd_smps_force_mode_cb);
    if (eHAL_STATUS_SUCCESS != hal_status)
        hddLog(LOGE, FL("set smps force mode callback failed"));
+
+   hal_status = sme_bpf_offload_register_callback(pHddCtx->hHal,
+                                    hdd_get_bpf_offload_cb);
+   if (eHAL_STATUS_SUCCESS != hal_status)
+       hddLog(LOGE, FL("set bpf offload callback failed"));
 
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
