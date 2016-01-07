@@ -1144,7 +1144,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
 
-        pmcLog(pMac, LOG2, FL("process message = %d"), pMsg->messageType);
+        pmcLog(pMac, LOG2, FL("process message = 0x%x"), pMsg->messageType);
 
     /* Process each different type of message. */
     switch (pMsg->messageType)

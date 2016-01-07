@@ -15448,8 +15448,6 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
     struct ieee80211_channel *chan;
     struct cfg80211_bss *bss = NULL;
 
-    ENTER();
-
     if (NULL == pBssDesc) {
         hddLog(LOGE, FL("pBssDesc is NULL"));
         return bss;
@@ -15640,7 +15638,8 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     rssi = (VOS_MIN(rssi, 0)) * 100;
 
     hddLog(LOG1, FL("BSSID: "MAC_ADDRESS_STR" Channel:%d RSSI:%d"),
-           MAC_ADDR_ARRAY(mgmt->bssid), chan->center_freq, (int)(rssi/100));
+           MAC_ADDR_ARRAY(mgmt->bssid),
+           vos_freq_to_chan(chan->center_freq),(int)(rssi/100));
 
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt, frame_len, rssi,
                                            GFP_KERNEL);
