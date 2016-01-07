@@ -12808,6 +12808,37 @@ static int inline wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
 }
 #endif
 
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+/**
+ * wlan_hdd_logging_sock_activate_svc() - Activate logging
+ * @hdd_ctx: HDD context
+ *
+ * Activates the logging service
+ *
+ * Return: Zero in case of success, negative value otherwise
+ */
+static int wlan_hdd_logging_sock_activate_svc(hdd_context_t *hdd_ctx)
+{
+	if (hdd_ctx->cfg_ini->wlanLoggingEnable) {
+		if (wlan_logging_sock_activate_svc(
+				hdd_ctx->cfg_ini->wlanLoggingFEToConsole,
+				hdd_ctx->cfg_ini->wlanLoggingNumBuf)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: wlan_logging_sock_activate_svc failed",
+				__func__);
+			return -EINVAL;
+		}
+	}
+	return 0;
+}
+#else
+static inline int wlan_hdd_logging_sock_activate_svc(hdd_context_t *hdd_ctx)
+{
+	return 0;
+}
+#endif
+
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -13014,10 +13045,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        pHddCtx->fw_log_settings.dl_mod_loglevel[i] = 0;
    }
 
+   vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
+
+   if (wlan_hdd_logging_sock_activate_svc(pHddCtx) < 0)
+       goto err_config;
+
    /*
     * Update VOS trace levels based upon the code
     */
-   if (pHddCtx->cfg_ini->multicast_host_fw_msgs)
+   if (vos_is_multicast_logging())
        wlan_logging_set_log_level();
 
    /*
@@ -13561,17 +13597,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_nl_srv;
    }
 
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-   if (pHddCtx->cfg_ini->wlanLoggingEnable) {
-      if (wlan_logging_sock_activate_svc(
-              pHddCtx->cfg_ini->wlanLoggingFEToConsole,
-              pHddCtx->cfg_ini->wlanLoggingNumBuf)) {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: wlan_logging_sock_activate_svc failed", __func__);
-         goto err_nl_srv;
-      }
-   }
-#endif
    hdd_register_mcast_bcast_filter(pHddCtx);
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
    {
