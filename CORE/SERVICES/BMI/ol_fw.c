@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1032,7 +1032,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	ramdump_scn->ramdump_size = DRAM_SIZE + IRAM_SIZE + AXI_SIZE;
 	ramdump_scn->ramdump_base =
-		vmalloc(ramdump_scn->ramdump_size);
+		vos_mem_malloc(ramdump_scn->ramdump_size);
 
 	if (!ramdump_scn->ramdump_base) {
 		pr_err("%s: fail to alloc mem for FW RAM dump\n",
