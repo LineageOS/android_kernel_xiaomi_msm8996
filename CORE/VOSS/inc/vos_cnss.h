@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2016 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -26,10 +26,14 @@
 #define _VOS_CNSS_H
 
 #include "vos_status.h"
+#ifdef CONFIG_CNSS
 #include <net/cnss.h>
+#endif
 
 #if defined(WLAN_OPEN_SOURCE) && !defined(CONFIG_CNSS)
+#ifdef CONFIG_HAS_WAKELOCK
 #include <linux/wakelock.h>
+#endif
 #include <linux/jiffies.h>
 #include <linux/workqueue.h>
 #include <linux/sched.h>
@@ -126,10 +130,18 @@ static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
 }
 
 static inline void vos_device_crashed(void) { return; }
+
+#ifdef QCA_CONFIG_SMP
 static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
 {
 	return set_cpus_allowed_ptr(task, cpumask_of(cpu));
 }
+#else
+static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
+{
+	return 0;
+}
+#endif
 
 static inline void vos_device_self_recovery(void) { return; }
 static inline void vos_request_pm_qos(u32 qos_val) { return; }
@@ -305,7 +317,7 @@ vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
 	return cnss_get_wlan_unsafe_channel(unsafe_ch_list, ch_count, buf_len);
 }
 
-#if defined(CONFIG_CNSS_PCI) || defined(CONFIG_CNSS_SDIO)
+#ifdef CONFIG_CNSS
 static inline void vos_schedule_recovery_work(void)
 {
 	cnss_schedule_recovery_work();

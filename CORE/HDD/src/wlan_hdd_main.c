@@ -105,9 +105,6 @@
 #include "wlan_qct_wda.h"
 #include "wlan_hdd_tdls.h"
 #ifdef FEATURE_WLAN_CH_AVOID
-#ifdef CONFIG_CNSS_SDIO
-#include <net/cnss.h>
-#endif
 #include "vos_cnss.h"
 #include "regdomain_common.h"
 
@@ -12868,7 +12865,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    tSmeThermalParams thermalParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
-#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
+#ifdef CONFIG_CNSS
    uint16_t unsafe_channel_count;
    int unsafeChannelIndex;
 #endif
@@ -13299,20 +13296,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_CH_AVOID
-#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
 #ifdef CONFIG_CNSS
    vos_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
                                 &(pHddCtx->unsafe_channel_count),
                                 sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
-#endif
-#ifdef CONFIG_CNSS_SDIO
-	cnss_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
-				&(pHddCtx->unsafe_channel_count),
-				sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
-#endif
-
-	hddLog(LOG1,"%s: num of unsafe channels is %d. ",
-		__func__, pHddCtx->unsafe_channel_count);
+   hddLog(LOG1,"%s: num of unsafe channels is %d. ",
+                __func__, pHddCtx->unsafe_channel_count);
 
    unsafe_channel_count = VOS_MIN((uint16_t)pHddCtx->unsafe_channel_count,
                               (uint16_t)NUM_20MHZ_RF_CHANNELS);
@@ -14978,12 +14967,11 @@ void hdd_ch_avoid_cb
        }
    }
 
-#if defined(CONFIG_CNSS) || defined(CONFIG_CNSS_SDIO)
+#ifdef CONFIG_CNSS
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s : number of unsafe channels is %d ",
             __func__,  hdd_ctxt->unsafe_channel_count);
 
-#ifdef CONFIG_CNSS
    if (vos_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
                                 hdd_ctxt->unsafe_channel_count)) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -14997,21 +14985,6 @@ void hdd_ch_avoid_cb
 
        return;
    }
-#endif
-#ifdef CONFIG_CNSS_SDIO
-	if (cnss_set_wlan_unsafe_channel(hdd_ctxt->unsafe_channel_list,
-		hdd_ctxt->unsafe_channel_count)) {
-		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-		"%s: Failed to set unsafe channel",
-		__func__);
-
-	/* clear existing unsafe channel cache */
-	hdd_ctxt->unsafe_channel_count = 0;
-	vos_mem_zero(hdd_ctxt->unsafe_channel_list,
-		sizeof(v_U16_t) * NUM_20MHZ_RF_CHANNELS);
-	return;
-}
-#endif
 
    for (channel_loop = 0;
         channel_loop < hdd_ctxt->unsafe_channel_count;
