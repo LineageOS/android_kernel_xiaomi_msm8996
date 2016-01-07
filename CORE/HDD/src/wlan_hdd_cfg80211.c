@@ -16917,6 +16917,7 @@ static int wlan_hdd_try_disconnect( hdd_adapter_t *pAdapter )
 
     if((eMib_dot11DesiredBssType_independent == connectedBssType) ||
       (eConnectionState_Associated == pHddStaCtx->conn_info.connState) ||
+      (eConnectionState_Connecting == pHddStaCtx->conn_info.connState) ||
       (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState))
     {
         hdd_connSetConnectionState(pAdapter, eConnectionState_Disconnecting);
