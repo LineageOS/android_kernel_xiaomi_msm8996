@@ -230,6 +230,7 @@ locks_get_lock_context(struct inode *inode, int type)
 		ctx = smp_load_acquire(&inode->i_flctx);
 	}
 out:
+	trace_locks_get_lock_context(inode, type, ctx);
 	return ctx;
 }
 
@@ -1143,6 +1144,8 @@ static int posix_lock_inode(struct inode *inode, struct file_lock *request,
 	if (new_fl2)
 		locks_free_lock(new_fl2);
 	locks_dispose_list(&dispose);
+	trace_posix_lock_inode(inode, request, error);
+
 	return error;
 }
 
@@ -2166,14 +2169,14 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 	if (file_lock == NULL)
 		return -ENOLCK;
 
+	inode = file_inode(filp);
+
 	/*
 	 * This might block, so we do it before checking the inode.
 	 */
 	error = -EFAULT;
 	if (copy_from_user(&flock, l, sizeof(flock)))
 		goto out;
-
-	inode = file_inode(filp);
 
 	/* Don't allow mandatory locks on files that may be memory mapped
 	 * and shared.
@@ -2243,6 +2246,7 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 		}
 	}
 out:
+	trace_fcntl_setlk(inode, file_lock, error);
 	locks_free_lock(file_lock);
 	return error;
 }
@@ -2399,6 +2403,7 @@ out:
  */
 void locks_remove_posix(struct file *filp, fl_owner_t owner)
 {
+	int error;
 	struct file_lock lock;
 	struct file_lock_context *ctx;
 
@@ -2421,10 +2426,11 @@ void locks_remove_posix(struct file *filp, fl_owner_t owner)
 	lock.fl_ops = NULL;
 	lock.fl_lmops = NULL;
 
-	vfs_lock_file(filp, F_SETLK, &lock, NULL);
+	error = vfs_lock_file(filp, F_SETLK, &lock, NULL);
 
 	if (lock.fl_ops && lock.fl_ops->fl_release_private)
 		lock.fl_ops->fl_release_private(&lock);
+	trace_locks_remove_posix(file_inode(filp), &lock, error);
 }
 
 EXPORT_SYMBOL(locks_remove_posix);
