@@ -6699,4 +6699,24 @@ struct sir_bpf_get_offload {
 	uint32_t max_bytes_for_bpf_inst;
 	uint32_t remaining_bytes_for_bpf_inst;
 };
+
+/**
+ * struct sir_wake_lock_stats - wake lock stats structure
+ * @wow_ucast_wake_up_count: Unicast wakeup count
+ * @wow_bcast_wake_up_count: Broadcast wakeup count
+ * @wow_ipv4_mcast_wake_up_count: ipv4 multicast wakeup count
+ * @wow_ipv6_mcast_wake_up_count: ipv6 multicast wakeup count
+ * @wow_ipv6_mcast_ra_stats: ipv6 multicast ra stats
+ * @wow_ipv6_mcast_ns_stats: ipv6 multicast ns stats
+ * @wow_ipv6_mcast_na_stats: ipv6 multicast na stats
+ */
+struct sir_wake_lock_stats {
+	uint32_t wow_ucast_wake_up_count;
+	uint32_t wow_bcast_wake_up_count;
+	uint32_t wow_ipv4_mcast_wake_up_count;
+	uint32_t wow_ipv6_mcast_wake_up_count;
+	uint32_t wow_ipv6_mcast_ra_stats;
+	uint32_t wow_ipv6_mcast_ns_stats;
+	uint32_t wow_ipv6_mcast_na_stats;
+};
 #endif /* __SIR_API_H */

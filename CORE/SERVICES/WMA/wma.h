@@ -1705,4 +1705,6 @@ int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 
 uint32_t wma_get_vht_ch_width(void);
 
+VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
+
 #endif

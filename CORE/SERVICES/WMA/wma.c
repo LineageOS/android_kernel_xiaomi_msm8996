@@ -28128,6 +28128,44 @@ static VOS_STATUS wma_set_bpf_instructions(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_get_wakelock_stats() - Collects wake lock stats
+ * @wake_lock_stats: wakelock structure to be filled
+ *
+ * This function collects wake lock stats
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
+{
+	tp_wma_handle wma_handle;
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!wake_lock_stats) {
+		WMA_LOGE("%s: invalid pointer", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wake_lock_stats->wow_ucast_wake_up_count =
+			wma_handle->wow_ucast_wake_up_count;
+	wake_lock_stats->wow_bcast_wake_up_count =
+			wma_handle->wow_bcast_wake_up_count;
+	wake_lock_stats->wow_ipv4_mcast_wake_up_count =
+			wma_handle->wow_ipv4_mcast_wake_up_count;
+	wake_lock_stats->wow_ipv6_mcast_wake_up_count =
+			wma_handle->wow_ipv6_mcast_wake_up_count;
+	wake_lock_stats->wow_ipv6_mcast_ra_stats =
+			wma_handle->wow_ipv6_mcast_ra_stats;
+	wake_lock_stats->wow_ipv6_mcast_ns_stats =
+			wma_handle->wow_ipv6_mcast_ns_stats;
+	wake_lock_stats->wow_ipv6_mcast_na_stats =
+			wma_handle->wow_ipv6_mcast_na_stats;
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
