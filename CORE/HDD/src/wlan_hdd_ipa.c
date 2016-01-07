@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -56,6 +56,7 @@ Include Files
 #ifdef IPA_UC_OFFLOAD
 #include "wma.h"
 #include "wma_api.h"
+#include "wal_rx_desc.h"
 #endif /* IPA_UC_OFFLOAD */
 
 #define HDD_IPA_DESC_BUFFER_RATIO 4
@@ -2962,9 +2963,65 @@ static int hdd_ipa_ipv4_changed(struct notifier_block *nb,
 	return 0;
 }
 
+#if defined(IPA_UC_OFFLOAD) && defined(INTRA_BSS_FWD_OFFLOAD)
+/**
+ * hdd_ipa_intrabss_forward() - Forward intra bss packets.
+ * @hdd_ipa: pointer to HDD IPA struct
+ * @adapter: hdd adapter pointer
+ * @desc: Firmware descriptor
+ * @skb: Data buffer
+ *
+ * Return
+ *	HDD_IPA_FORWARD_PKT_NONE
+ *	HDD_IPA_FORWARD_PKT_DISCARD
+ *	HDD_IPA_FORWARD_PKT_LOCAL_STACK
+ *
+ */
 
-#define FW_RX_DESC_DISCARD_M 0x1
-#define FW_RX_DESC_FORWARD_M 0x2
+static enum hdd_ipa_forward_type hdd_ipa_intrabss_forward(
+		struct hdd_ipa_priv *hdd_ipa,
+		hdd_adapter_t *adapter,
+		uint8_t desc,
+		adf_nbuf_t skb)
+{
+	int xmit_status = -1;
+	int ret = HDD_IPA_FORWARD_PKT_NONE;
+
+	if ((desc & FW_RX_DESC_FORWARD_M)) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
+				"Forward packet to Tx (fw_desc=%d)", desc);
+		hdd_ipa->ipa_tx_forward++;
+
+		if ((desc & FW_RX_DESC_DISCARD_M)) {
+			xmit_status = hdd_softap_hard_start_xmit(
+							skb, adapter->dev);
+			hdd_ipa->ipa_rx_internel_drop_count++;
+			hdd_ipa->ipa_rx_discard++;
+			ret = HDD_IPA_FORWARD_PKT_DISCARD;
+		} else {
+			struct sk_buff *cloned_skb = skb_clone(skb, GFP_ATOMIC);
+			if (cloned_skb)
+				xmit_status = hdd_softap_hard_start_xmit(
+						cloned_skb, adapter->dev);
+			else
+				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+				            "%s: tx skb alloc failed",
+				            __func__);
+			ret = HDD_IPA_FORWARD_PKT_LOCAL_STACK;
+		}
+
+		if (NETDEV_TX_OK == xmit_status) {
+			hdd_ipa->stats.num_tx_fwd_ok++;
+		} else {
+			HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
+				    "Forward packet Tx fail");
+			hdd_ipa->stats.num_tx_fwd_err++;
+		}
+	}
+
+	return ret;
+}
+#endif
 
 static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		unsigned long data)
@@ -2978,11 +3035,10 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 #ifdef IPA_UC_OFFLOAD
 	uint8_t session_id;
 #ifdef INTRA_BSS_FWD_OFFLOAD
-	adf_nbuf_t copy;
 	uint8_t fw_desc;
-	int ret;
 #endif
 #endif
+
 	adf_nbuf_t buf;
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv;
@@ -3037,7 +3093,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		 * ap_isolate=1 in hostapd.conf
 		 */
 		if ((NULL != iface_context->tl_context) &&
-			!WLANTL_disable_intrabss_fwd(iface_context->tl_context))
+		    !WLANTL_disable_intrabss_fwd(iface_context->tl_context))
 		{
 			/*
 			 * When INTRA_BSS_FWD_OFFLOAD is enabled, FW will send
@@ -3051,40 +3107,11 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			 */
 			fw_desc = (uint8_t)skb->cb[1];
 
-			if (fw_desc & FW_RX_DESC_FORWARD_M) {
-				HDD_IPA_LOG(
-					VOS_TRACE_LEVEL_INFO,
-					"Forward packet to Tx (fw_desc=%d)",
-					fw_desc);
-				copy = adf_nbuf_copy(skb);
-				if (copy) {
-					hdd_ipa->ipa_tx_forward++;
-					ret = hdd_softap_hard_start_xmit(
-						(struct sk_buff *)copy,
-						adapter->dev);
-					if (ret) {
-						HDD_IPA_LOG(
-							VOS_TRACE_LEVEL_ERROR,
-							"Forward packet Tx fail"
-							);
-						hdd_ipa->stats.
-							num_tx_fwd_err++;
-					} else {
-						hdd_ipa->stats.num_tx_fwd_ok++;
-					}
-				}
-			}
-
-			if (fw_desc & FW_RX_DESC_DISCARD_M) {
-				hdd_ipa->ipa_rx_internel_drop_count++;
-				hdd_ipa->ipa_rx_discard++;
-				adf_nbuf_free(skb);
+			if (HDD_IPA_FORWARD_PKT_DISCARD ==
+			    hdd_ipa_intrabss_forward(hdd_ipa, adapter,
+						     fw_desc, skb))
 				break;
-			}
-
-		}
-		else
-		{
+		} else {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
 				"Intra-BSS FWD is disabled-skip forward to Tx");
 		}
@@ -3250,14 +3277,15 @@ static void hdd_ipa_i2w_cb(void *priv, enum ipa_dp_evt_type evt,
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
 	iface_context = (struct hdd_ipa_iface_context *) priv;
+	ipa_tx_desc = (struct ipa_rx_data *)data;
+	hdd_ipa = iface_context->hdd_ipa;
+
 	if (evt != IPA_RECEIVE) {
-		skb = (adf_nbuf_t) data;
-		dev_kfree_skb_any(skb);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR, "Event is not IPA_RECEIVE");
+		ipa_free_skb(ipa_tx_desc);
 		iface_context->stats.num_tx_drop++;
 		return;
 	}
-	ipa_tx_desc = (struct ipa_rx_data *)data;
-	hdd_ipa = iface_context->hdd_ipa;
 
 	/*
 	 * When SSR is going on or driver is unloading, just drop the packets.

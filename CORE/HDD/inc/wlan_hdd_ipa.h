@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,6 +44,11 @@
 #ifdef IPA_OFFLOAD
 #include <linux/ipa.h>
 
+enum hdd_ipa_forward_type {
+	HDD_IPA_FORWARD_PKT_NONE = 0,
+	HDD_IPA_FORWARD_PKT_LOCAL_STACK = 1,
+	HDD_IPA_FORWARD_PKT_DISCARD = 2
+};
 VOS_STATUS hdd_ipa_init(hdd_context_t *hdd_ctx);
 VOS_STATUS hdd_ipa_cleanup(hdd_context_t *hdd_ctx);
 int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
