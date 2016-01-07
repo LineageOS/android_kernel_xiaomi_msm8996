@@ -68,9 +68,6 @@
 #include <vos_event.h>
 #include "i_vos_types.h"
 #include <linux/wait.h>
-#if defined(WLAN_OPEN_SOURCE) && defined(CONFIG_HAS_WAKELOCK)
-#include <linux/wakelock.h>
-#endif
 #include <vos_mq.h>
 #include <adf_os_types.h>
 #include <vos_lock.h>

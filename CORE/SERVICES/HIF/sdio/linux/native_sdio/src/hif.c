@@ -33,6 +33,7 @@
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/sd.h>
 #include <linux/kthread.h>
+#include "vos_cnss.h"
 #include "if_ath_sdio.h"
 #include "regtable.h"
 #include "vos_api.h"

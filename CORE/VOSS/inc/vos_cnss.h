@@ -31,9 +31,8 @@
 #endif
 
 #if defined(WLAN_OPEN_SOURCE) && !defined(CONFIG_CNSS)
-#ifdef CONFIG_HAS_WAKELOCK
-#include <linux/wakelock.h>
-#endif
+#include <linux/device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/jiffies.h>
 #include <linux/workqueue.h>
 #include <linux/sched.h>
@@ -45,8 +44,7 @@ enum cnss_bus_width_type {
 	CNSS_BUS_WIDTH_HIGH
 };
 
-static inline void
-vos_init_work(struct work_struct *work, work_func_t func)
+static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
 	INIT_WORK(work, func);
 }
@@ -55,8 +53,8 @@ static inline void vos_flush_work(void *work)
 	cancel_work_sync(work);
 }
 
-static inline void
-vos_init_delayed_work(struct delayed_work *work, work_func_t func)
+static inline void vos_init_delayed_work(struct delayed_work *work,
+					work_func_t func)
 {
 	INIT_DELAYED_WORK(work, func);
 }
@@ -66,40 +64,32 @@ static inline void vos_flush_delayed_work(void *dwork)
 	cancel_delayed_work_sync(dwork);
 }
 
-#ifdef CONFIG_HAS_WAKELOCK
-static inline void
-vos_pm_wake_lock_init(struct wake_lock *wl, const char *name)
+static inline void vos_pm_wake_lock_init(struct wakeup_source *ws,
+					const char *name)
 {
-	wake_lock_init(wl, WAKE_LOCK_SUSPEND, name);
+	wakeup_source_init(ws, name);
 }
 
-static inline void vos_pm_wake_lock(struct wake_lock *wl)
+static inline void vos_pm_wake_lock(struct wakeup_source *ws)
 {
-	wake_lock(wl);
+	__pm_stay_awake(ws);
 }
 
-static inline void
-vos_pm_wake_lock_timeout(struct wake_lock *wl, ulong msec)
+static inline void vos_pm_wake_lock_timeout(struct wakeup_source *ws,
+					ulong msec)
 {
-	wake_lock_timeout(wl, msecs_to_jiffies(msec));
+	 __pm_wakeup_event(ws, msec);
 }
 
-static inline void vos_pm_wake_lock_release(struct wake_lock *wl)
+static inline void vos_pm_wake_lock_release(struct wakeup_source *ws)
 {
-	wake_unlock(wl);
+	__pm_relax(ws);
 }
 
-static inline void vos_pm_wake_lock_destroy(struct wake_lock *wl)
+static inline void vos_pm_wake_lock_destroy(struct wakeup_source *ws)
 {
-	wake_lock_destroy(wl);
+	wakeup_source_trash(ws);
 }
-#else
-static inline void vos_pm_wake_lock_init(int *wl, const char *name) { }
-static inline void vos_pm_wake_lock(int *wl) { }
-static inline void vos_pm_wake_lock_timeout(int *wl, ulong msec) { }
-static inline void vos_pm_wake_lock_release(int *wl) { }
-static inline void vos_pm_wake_lock_destroy(int *wl) { }
-#endif
 
 static inline int vos_wlan_pm_control(bool vote)
 {
@@ -118,8 +108,8 @@ static inline void vos_get_boottime_ts(struct timespec *ts)
 	ktime_get_ts(ts);
 }
 
-static inline int
-vos_get_ramdump_mem(unsigned long *address, unsigned long *size)
+static inline int vos_get_ramdump_mem(unsigned long *address,
+				unsigned long *size)
 {
 	return 0;
 }
@@ -150,8 +140,8 @@ static inline int vos_request_bus_bandwidth(int bandwidth) { return 0; }
 static inline int vos_get_platform_cap(void *cap) { return 1; }
 static inline void vos_set_driver_status(int status) { return; }
 static inline int vos_get_bmi_setup(void) { return 0; }
-static inline int
-vos_get_sha_hash(const u8 *data, u32 data_len, u8 *hash_idx, u8 *out)
+static inline int vos_get_sha_hash(const u8 *data, u32 data_len,
+				u8 *hash_idx, u8 *out)
 {
 	return 1;
 }
@@ -163,14 +153,14 @@ static inline void vos_runtime_init(struct device *dev, int auto_delay)
 	return;
 }
 static inline void vos_runtime_exit(struct device *dev) { return; }
-static inline int
-vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 ch_count)
+static inline int vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list,
+					u16 ch_count)
 {
 	return -EINVAL;
 }
 
-static inline int
-vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
+static inline int vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list,
+					u16 *ch_count, u16 buf_len)
 {
 	return -EINVAL;
 }
@@ -192,8 +182,7 @@ static inline void vos_get_monotonic_boottime_ts(struct timespec *ts)
 
 static inline void vos_schedule_recovery_work(void) { return; }
 #else
-static inline void
-vos_init_work(struct work_struct *work, work_func_t func)
+static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
 	cnss_init_work(work, func);
 }
@@ -208,8 +197,8 @@ static inline void vos_flush_delayed_work(void *dwork)
 	cnss_flush_delayed_work(dwork);
 }
 
-static inline void
-vos_pm_wake_lock_init(struct wakeup_source *ws, const char *name)
+static inline void vos_pm_wake_lock_init(struct wakeup_source *ws,
+					const char *name)
 {
 	cnss_pm_wake_lock_init(ws, name);
 }
@@ -219,8 +208,8 @@ static inline void vos_pm_wake_lock(struct wakeup_source *ws)
 	cnss_pm_wake_lock(ws);
 }
 
-static inline void
-vos_pm_wake_lock_timeout(struct wakeup_source *ws, ulong msec)
+static inline void vos_pm_wake_lock_timeout(struct wakeup_source *ws,
+					ulong msec)
 {
 	cnss_pm_wake_lock_timeout(ws, msec);
 }
@@ -254,8 +243,8 @@ static inline int vos_wlan_set_dfs_nol(const void *info, u16 info_len)
 	return cnss_wlan_set_dfs_nol(info, info_len);
 }
 
-static inline void
-vos_init_delayed_work(struct delayed_work *work, work_func_t func)
+static inline void vos_init_delayed_work(struct delayed_work *work,
+					work_func_t func)
 {
        cnss_init_delayed_work(work, func);
 }
@@ -305,14 +294,14 @@ static inline int vos_vendor_cmd_reply(struct sk_buff *skb)
         return cnss_vendor_cmd_reply(skb);
 }
 
-static inline int
-vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 ch_count)
+static inline int vos_set_wlan_unsafe_channel(u16 *unsafe_ch_list,
+					u16 ch_count)
 {
 	return cnss_set_wlan_unsafe_channel(unsafe_ch_list, ch_count);
 }
 
-static inline int
-vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list, u16 *ch_count, u16 buf_len)
+static inline int vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list,
+					u16 *ch_count, u16 buf_len)
 {
 	return cnss_get_wlan_unsafe_channel(unsafe_ch_list, ch_count, buf_len);
 }
@@ -373,14 +362,14 @@ static inline int vos_request_bus_bandwidth(int bandwidth)
 #endif
 
 #ifdef CONFIG_CNSS_PCI
-static inline int
-vos_get_sha_hash(const u8 *data, u32 data_len, u8 *hash_idx, u8 *out)
+static inline int vos_get_sha_hash(const u8 *data, u32 data_len,
+				u8 *hash_idx, u8 *out)
 {
 	return cnss_get_sha_hash(data, data_len, hash_idx, out);
 }
 #else
-static inline int
-vos_get_sha_hash(const u8 *data, u32 data_len, u8 *hash_idx, u8 *out)
+static inline int vos_get_sha_hash(const u8 *data, u32 data_len,
+				u8 *hash_idx, u8 *out)
 {
 	return -EINVAL;
 }
@@ -404,8 +393,8 @@ static inline int vos_wlan_pm_control(bool vote)
 }
 #endif
 
-static inline int
-vos_get_ramdump_mem(unsigned long *address, unsigned long *size)
+static inline int vos_get_ramdump_mem(unsigned long *address,
+				unsigned long *size)
 {
 	return cnss_get_ramdump_mem(address, size);
 }
@@ -435,8 +424,8 @@ static inline int vos_auto_resume(void)
 	return cnss_auto_resume();
 }
 
-static inline int
-vos_pm_runtime_request(struct device *dev, enum cnss_runtime_request request)
+static inline int vos_pm_runtime_request(struct device *dev,
+				enum cnss_runtime_request request)
 {
 	return cnss_pm_runtime_request(dev, request);
 }
