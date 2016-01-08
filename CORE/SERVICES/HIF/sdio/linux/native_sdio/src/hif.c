@@ -2397,24 +2397,38 @@ bool hif_is_80211_fw_wow_required(void)
 #ifdef CONFIG_CNSS_SDIO
 static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id)
 {
-	return hifDeviceInserted(func, id);
+	if ((func != NULL) && (id != NULL))
+		return hifDeviceInserted(func, id);
+	else
+		printk("%s: Invalid sdio func and device id. Card removed?\n", __func__);
+
+	return -ENODEV;
 }
 
 static void hif_sdio_device_removed(struct sdio_func *func)
 {
-	hifDeviceRemoved(func);
+	if (func != NULL)
+		hifDeviceRemoved(func);
 }
 
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
 {
 	vos_set_crash_indication_pending(true);
-	return hifDeviceInserted(func, id);
+
+	if ((func != NULL) && (id != NULL))
+		return hifDeviceInserted(func, id);
+	else
+		printk("%s: Invalid sdio func and device id. Card removed?\n", __func__);
+
+	return -ENODEV;
 }
 
 static void hif_sdio_device_shutdown(struct sdio_func *func)
 {
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-	hifDeviceRemoved(func);
+
+	if (func != NULL)
+		hifDeviceRemoved(func);
 }
 
 static void hif_sdio_crash_shutdown(struct sdio_func *func)
