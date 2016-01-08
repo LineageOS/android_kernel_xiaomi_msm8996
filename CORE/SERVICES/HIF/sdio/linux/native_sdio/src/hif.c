@@ -473,14 +473,22 @@ __HIFReadWrite(HIF_DEVICE *device,
 #else
             tbuffer = buffer;
 #endif
-            if (opcode == CMD53_FIXED_ADDRESS && tbuffer != NULL) {
-                ret = sdio_writesb(device->func, address, tbuffer, length);
-                AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: writesb ret=%d address: 0x%X, len: %d, 0x%X\n",
-                          ret, address, length, *(int *)tbuffer));
+            if (tbuffer != NULL) {
+                if (opcode == CMD53_FIXED_ADDRESS) {
+                    ret = sdio_writesb(device->func, address, tbuffer, length);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+                              ("AR6000: writesb ret=%d address: 0x%X, len: %d, 0x%X\n",
+                              ret, address, length, *(int *)tbuffer));
+                } else {
+                    ret = sdio_memcpy_toio(device->func, address, tbuffer, length);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+                              ("AR6000: writeio ret=%d address: 0x%X, len: %d, 0x%X\n",
+                              ret, address, length, *(int *)tbuffer));
+                }
             } else {
-                ret = sdio_memcpy_toio(device->func, address, tbuffer, length);
-                AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: writeio ret=%d address: 0x%X, len: %d, 0x%X\n",
-                          ret, address, length, *(int *)tbuffer));
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("AR6000: tbuffer is NULL"));
+                status = A_ERROR;
+                break;
             }
         } else if (request & HIF_READ) {
 #if HIF_USE_DMA_BOUNCE_BUFFER
@@ -500,14 +508,22 @@ __HIFReadWrite(HIF_DEVICE *device,
 #else
             tbuffer = buffer;
 #endif
-            if (opcode == CMD53_FIXED_ADDRESS && tbuffer != NULL) {
-                ret = sdio_readsb(device->func, tbuffer, address, length);
-                AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: readsb ret=%d address: 0x%X, len: %d, 0x%X\n",
-                          ret, address, length, *(int *)tbuffer));
+            if (tbuffer != NULL) {
+                if (opcode == CMD53_FIXED_ADDRESS) {
+                    ret = sdio_readsb(device->func, tbuffer, address, length);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+                              ("AR6000: readsb ret=%d address: 0x%X, len: %d, 0x%X\n",
+                              ret, address, length, *(int *)tbuffer));
+                } else {
+                    ret = sdio_memcpy_fromio(device->func, tbuffer, address, length);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+                              ("AR6000: readio ret=%d address: 0x%X, len: %d, 0x%X\n",
+                              ret, address, length, *(int *)tbuffer));
+                }
             } else {
-                ret = sdio_memcpy_fromio(device->func, tbuffer, address, length);
-                AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: readio ret=%d address: 0x%X, len: %d, 0x%X\n",
-                          ret, address, length, *(int *)tbuffer));
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("AR6000: tbuffer is NULL"));
+                status = A_ERROR;
+                break;
             }
 #if HIF_USE_DMA_BOUNCE_BUFFER
             if (bounced) {
