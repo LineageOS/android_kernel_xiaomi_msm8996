@@ -12332,7 +12332,7 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         pHddCtx->cur_vote_level = next_vote_level;
         vos_request_bus_bandwidth(next_vote_level);
 
-        if (next_vote_level == CNSS_BUS_WIDTH_LOW) {
+        if (next_vote_level <= CNSS_BUS_WIDTH_LOW) {
             if (pHddCtx->hbw_requested) {
                 hdd_remove_pm_qos();
                 pHddCtx->hbw_requested = false;
