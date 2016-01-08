@@ -69,6 +69,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include <vos_sched.h>
+#include <wlan_logging_sock_svc.h>
 
 struct ether_addr
 {
@@ -943,7 +944,9 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     }
     hdd_clearRoamProfileIe( pAdapter );
     hdd_wmm_init( pAdapter );
-
+    hddLog(VOS_TRACE_LEVEL_INFO,
+           FL("Invoking packetdump deregistration API"));
+    wlan_deregister_txrx_packetdump();
     // indicate 'disconnect' status to wpa_supplicant...
     hdd_SendAssociationEvent(dev,pRoamInfo);
     /* indicate disconnected event to nl80211 */
@@ -2049,6 +2052,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                        "%s: connect failed: for bssid " MAC_ADDRESS_STR " result:%d and Status:%d " ,
                        __func__, MAC_ADDR_ARRAY(pWextState->req_bssId),
                        roamResult, roamStatus);
+
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                       FL("Invoking packetdump deregistration API"));
+                wlan_deregister_txrx_packetdump();
 
             /* inform association failure event to nl80211 */
             if ( eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL == roamResult )

@@ -1098,6 +1098,7 @@ typedef struct tagCsrRoamStruct
     tANI_U8 *pReassocResp;  /* reassociation response from new AP */
     tANI_U16 reassocRespLen;  /* length of reassociation response */
 #endif
+    vos_timer_t packetdump_timer;
 }tCsrRoamStruct;
 
 

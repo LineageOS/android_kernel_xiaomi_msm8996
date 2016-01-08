@@ -76,7 +76,9 @@
 #include "vos_utils.h"
 #include "wlan_qct_tl.h"
 #include "sysStartup.h"
+#include "pktlog_ac_fmt.h"
 
+static tp_pe_packetdump_cb gpe_packetdump_cb;
 
 static void __limInitScanVars(tpAniSirGlobal pMac)
 {
@@ -1436,6 +1438,10 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
            limLog(pMac, LOG1, FL("offloadScanLearn %d"),
                   WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo));
 #endif
+
+    if ((mHdr->fc.subType != SIR_MAC_MGMT_BEACON) && gpe_packetdump_cb)
+        gpe_packetdump_cb(pVosPkt->pkt_buf, VOS_STATUS_SUCCESS,
+                                   pVosPkt->pkt_meta.sessionId, RX_MGMT_PKT);
     }
 
 
@@ -2767,4 +2773,33 @@ eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe)
         }
     }
     return (status);
+}
+
+/**
+ * pe_register_packetdump_callback() - stores rx packet dump
+ * callback handler
+ * @pe_packetdump_cb: packetdump cb
+ *
+ * This function is used to store rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void pe_register_packetdump_callback(tp_pe_packetdump_cb pe_packetdump_cb)
+{
+	gpe_packetdump_cb = pe_packetdump_cb;
+}
+
+/**
+ * pe_deregister_packetdump_callback() - removes tx packet dump
+ * callback handler
+ *
+ * This function is used to remove rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void pe_deregister_packetdump_callback(void)
+{
+	gpe_packetdump_cb = NULL;
 }

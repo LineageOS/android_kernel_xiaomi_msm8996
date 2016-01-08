@@ -270,5 +270,11 @@ void limProcessAbortScanInd(tpAniSirGlobal pMac, tANI_U8 sessionId);
 
 void lim_smps_force_mode_ind(tpAniSirGlobal mac_ctx, tpSirMsgQ msg);
 
+typedef void (*tp_pe_packetdump_cb)(adf_nbuf_t netbuf,
+			uint8_t status, uint8_t vdev_id, uint8_t type);
+
+void pe_register_packetdump_callback(tp_pe_packetdump_cb pe_packetdump_cb);
+void pe_deregister_packetdump_callback(void);
+
 /************************************************************/
 #endif /* __LIM_API_H */

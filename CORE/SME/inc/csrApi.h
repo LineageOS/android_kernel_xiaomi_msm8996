@@ -1867,4 +1867,5 @@ typedef void (*csr_mib_stats_callback)
  * Return: void
  */
 typedef void (*tcsr_fw_state_callback)(void *context);
+void csr_packetdump_timer_stop(void);
 #endif

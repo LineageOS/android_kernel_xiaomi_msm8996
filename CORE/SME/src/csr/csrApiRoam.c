@@ -70,6 +70,7 @@
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD */
 #include "regdomain_common.h"
 #include "vos_utils.h"
+#include <wlan_logging_sock_svc.h>
 
 #define MAX_PWR_FCC_CHAN_12 8
 #define MAX_PWR_FCC_CHAN_13 2
@@ -99,6 +100,9 @@
 #define MAX_CB_VALUE_IN_INI (2)
 
 #define MAX_SOCIAL_CHANNELS  3
+
+/* packet dump timer duration of 60 secs */
+#define PKT_DUMP_TIMER_DURATION 60
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 static tANI_BOOLEAN bRoamScanOffloadStarted = VOS_FALSE;
@@ -746,6 +750,58 @@ void csrSetGlobalCfgs( tpAniSirGlobal pMac )
     csrSetDefaultDot11Mode( pMac );
 }
 
+/**
+ * csr_packetdump_timer_handler() - packet dump timer
+ * handler
+ * @pv: user data
+ *
+ * This function is used to handle packet dump timer
+ *
+ * Return: None
+ *
+ */
+static void csr_packetdump_timer_handler(void *pv)
+{
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			"%s Invoking packetdump deregistration API", __func__);
+	wlan_deregister_txrx_packetdump();
+}
+
+/**
+ * csr_packetdump_timer_stop() - stops packet dump timer
+ *
+ * This function is used to stop packet dump timer
+ *
+ * Return: None
+ *
+ */
+void csr_packetdump_timer_stop(void)
+{
+	eHalStatus status;
+	tHalHandle hal;
+	tpAniSirGlobal mac;
+	v_CONTEXT_t vos_ctx_ptr;
+
+	/* get the global voss context */
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (NULL == vos_ctx_ptr) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	hal = vos_get_context(VOS_MODULE_ID_SME, vos_ctx_ptr);
+	if (NULL == hal) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	mac = PMAC_STRUCT(hal);
+	status = vos_timer_stop(&mac->roam.packetdump_timer);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		smsLog(mac, LOGE, FL("cannot stop packetdump timer"));
+	}
+}
+
 eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -767,6 +823,12 @@ eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
       if (!HAL_STATUS_SUCCESS(status))
       {
         smsLog(pMac, LOGE, FL("cannot allocate memory for WaitForKey time out timer"));
+        break;
+      }
+      status = vos_timer_init(&pMac->roam.packetdump_timer, VOS_TIMER_TYPE_SW,
+                              csr_packetdump_timer_handler, pMac);
+      if (!HAL_STATUS_SUCCESS(status)) {
+        smsLog(pMac, LOGE, FL("cannot allocate memory for packetdump timer"));
         break;
       }
       status = vos_timer_init(&pMac->roam.tlStatsReqInfo.hTlStatsTimer,
@@ -791,6 +853,8 @@ eHalStatus csrRoamClose(tpAniSirGlobal pMac)
     vos_timer_destroy(&pMac->roam.hTimerWaitForKey);
     vos_timer_stop(&pMac->roam.tlStatsReqInfo.hTlStatsTimer);
     vos_timer_destroy(&pMac->roam.tlStatsReqInfo.hTlStatsTimer);
+    vos_timer_stop(&pMac->roam.packetdump_timer);
+    vos_timer_destroy(&pMac->roam.packetdump_timer);
     return (eHAL_STATUS_SUCCESS);
 }
 
@@ -13465,6 +13529,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U32 ucDot11Mode = 0;
     tANI_U8 txBFCsnValue = 0;
     tpCsrNeighborRoamControlInfo neigh_roam_info;
+    eHalStatus packetdump_timer_status;
 
     if(!pSession)
     {
@@ -14183,6 +14248,19 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         }
         else
         {
+            if (pProfile->csrPersona == VOS_STA_MODE) {
+                smsLog(pMac, LOG1, FL(" Invoking packetdump register API"));
+                wlan_register_txrx_packetdump();
+                packetdump_timer_status =
+                         vos_timer_start(&pMac->roam.packetdump_timer,
+                         (PKT_DUMP_TIMER_DURATION*VOS_TIMER_TO_SEC_UNIT)/
+                          VOS_TIMER_TO_MS_UNIT);
+                if (!HAL_STATUS_SUCCESS(packetdump_timer_status)) {
+                     smsLog(pMac, LOGE, FL("cannot start packetdump timer"));
+                     smsLog(pMac, LOGE, FL("packetdump_timer_status: %d"),
+                                                    packetdump_timer_status);
+                }
+            }
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
             if (eWNI_SME_JOIN_REQ == messageType)
             {
