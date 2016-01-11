@@ -1012,6 +1012,14 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 		pr_debug("%s: WMI event ID is 0x%x\n", __func__, id);
 #endif
 
+	/* This event will be earlier than WMI ready. */
+	if (id ==  WMI_PDEV_UTF_SCPC_EVENTID) {
+		WMA_LOGD("%s:  get WMI_PDEV_UTF_SCPC_EVENTID\n", __func__);
+		wma_scpc_event_handler(wmi_handle->scn_handle,
+				wmi_cmd_struct_ptr, len);
+		goto end;
+	}
+
 	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
 		u_int32_t idx = 0;
 

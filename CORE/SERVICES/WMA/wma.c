@@ -86,6 +86,8 @@
 #include "wdi_out.h"
 #include "wdi_in.h"
 
+#include "vos_cnss.h"
+
 #include "vos_utils.h"
 #include "tl_shim.h"
 #if defined(QCA_WIFI_FTM)
@@ -30207,6 +30209,88 @@ static int wma_echo_event_handler(void *handle, u_int8_t *event_buf,
 
 	return 0;
 }
+
+#if defined(QCA_WIFI_FTM) && defined(WLAN_SCPC_FEATURE)
+/**
+ * wma_scpc_event_handler() - handler for scpc event from firmware
+ * @handle:      wma context
+ * @event_buf:   pointer to the event buffer
+ * @len:         length of the event buffer
+ *
+ * Once SCPC feature is enabled in FTM mode, firmware will do calibration
+ * and indicates calibrated data in an SCPC message.
+ *
+ * This function is used to parse SCPC message. Calibrated data in an SCPC
+ * message is formated like this:
+ * patch1 offset(byte3~0), patch1 length(byte7~4), patch1 data
+ * ......
+ * patchn offset(byte3~0), patchn length(byte7~4), patchn data
+ * All data patches are 4bytes aligned. But the length indicated here is
+ * not multiple of 4.
+ *
+ * Return: 0 on success.
+ */
+int wma_scpc_event_handler(void *handle, u_int8_t *event_buf, u_int32_t len)
+{
+	u_int8_t  *buf;
+	u_int32_t length;
+	u_int32_t i;
+	u_int32_t n;
+	WMI_PDEV_UTF_SCPC_EVENTID_param_tlvs *param_buf;
+	wmi_scpc_event_fixed_param *scpc_event;
+	struct _bd {
+		u_int32_t  offset;
+		u_int32_t  length;
+		u_int8_t   data[0];
+	} *bd_data;
+
+	WMA_LOGD("WMA event <----  SCPC\n");
+	if ((event_buf == NULL) || (len < sizeof(wmi_scpc_event_fixed_param))) {
+		WMA_LOGE("%s: invalid pointer", __func__);
+		return -EINVAL;
+	}
+
+	param_buf = (WMI_PDEV_UTF_SCPC_EVENTID_param_tlvs *)event_buf;
+	scpc_event = param_buf->fixed_param;
+	length = len - sizeof(wmi_scpc_event_fixed_param);
+
+
+	buf = (u_int8_t *)scpc_event + sizeof(wmi_scpc_event_fixed_param);
+
+	WMA_LOGD("%s: section count is %d, data length is %d, tag is 0x%x.\n",
+		__func__, scpc_event->num_patch, length, *(u_int32_t *)buf);
+
+	/* skip the tag */
+	buf += sizeof(u_int32_t);
+
+	i = n = 0;
+	bd_data = (struct _bd *)&buf[n];
+	n += roundup((sizeof(struct _bd) + bd_data->length), 4);
+
+	while ((n < length) && (i < scpc_event->num_patch)) {
+		bd_data = (struct _bd *)&buf[n];
+
+		WMA_LOGD("%s: board data patch%i, offset= %d, length= %d.\n",
+			__func__, i, bd_data->offset, bd_data->length);
+		/* cache the data section */
+		vos_cache_boarddata(bd_data->offset,
+				bd_data->length, bd_data->data);
+
+		n += roundup((sizeof(struct _bd) + bd_data->length), 4);
+		i++;
+	}
+
+	WMA_LOGD("%s: %d patches in message, %d cached.\n",
+		__func__, scpc_event->num_patch, i);
+
+	return 0;
+}
+#else
+int wma_scpc_event_handler(void *handle, u_int8_t *event_buf, u_int32_t len)
+{
+	return 0;
+}
+#endif
 
 /* function   : wma_start
  * Description :
