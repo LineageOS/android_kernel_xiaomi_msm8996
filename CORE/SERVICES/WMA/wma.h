@@ -851,6 +851,7 @@ typedef struct wma_handle {
 	uint16_t max_mgmt_tx_fail_count;
 
 	struct wma_runtime_pm_context runtime_context;
+	uint32_t fine_time_measurement_cap;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

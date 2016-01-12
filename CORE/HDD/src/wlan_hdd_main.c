@@ -8768,6 +8768,9 @@ void hdd_update_tgt_cfg(void *context, void *param)
             HDD_ANTENNA_MODE_2X2 : HDD_ANTENNA_MODE_1X1;
     hddLog(LOG1, FL("Current antenna mode: %d"),
            hdd_ctx->current_antenna_mode);
+    hdd_ctx->cfg_ini->fine_time_meas_cap &= cfg->fine_time_measurement_cap;
+    hddLog(LOG1, FL("fine_time_measurement_cap: 0x%x"),
+             hdd_ctx->cfg_ini->fine_time_meas_cap);
 }
 
 /* This function is invoked in atomic context when a radar
