@@ -2089,6 +2089,10 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 
 	mdss_hw_init(mdata);
 
+	rc = mdss_mdp_pp_init(&pdev->dev);
+	if (rc)
+		pr_err("unable to initialize mdss pp resources\n");
+
 	/* Restoring Secure configuration during boot-up */
 	if (mdss_mdp_req_init_restore_cfg(mdata))
 		__mdss_restore_sec_cfg(mdata);
