@@ -194,6 +194,8 @@
 
 #define WMA_LOG_COMPLETION_TIMER 10000 /* 10 seconds */
 
+#define WMA_SUSPEND_TIMEOUT_IN_SSR 1
+#define WMA_DEL_BSS_TIMEOUT_IN_SSR 10
 #ifdef FEATURE_WLAN_SCAN_PNO
 static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 					u_int32_t len);
@@ -16953,6 +16955,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	u_int8_t max_wait_iterations = 0;
 	ol_txrx_vdev_handle txrx_vdev = NULL;
 	v_BOOL_t roam_synch_in_progress = VOS_FALSE;
+	u_int32_t timeout = WMA_VDEV_STOP_REQUEST_TIMEOUT;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -17009,9 +17012,18 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	  goto detach_peer;
 	}
 #endif
+	/* overwrite the timeout value to shorten the SSR latency in HL
+	 * solution
+	 */
+	if (vos_is_crash_indication_pending()) {
+		WMA_LOGP("%s: %d HL ssr in progress",
+			 __func__, __LINE__);
+		timeout = WMA_DEL_BSS_TIMEOUT_IN_SSR;
+	}
+
 	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
 				WMA_TARGET_REQ_TYPE_VDEV_STOP, params,
-				WMA_VDEV_STOP_REQUEST_TIMEOUT);
+				timeout);
 	if (!msg) {
 		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 			 __func__, params->smesessionId);
@@ -31432,6 +31444,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pmac;
 #endif
+	v_U32_t timeout = WMA_TGT_SUSPEND_COMPLETE_TIMEOUT;
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
 		WMA_LOGE("WMA is closed. can not issue suspend cmd");
@@ -31477,14 +31490,24 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 
 	wmi_set_target_suspend(wma_handle->wmi_handle, TRUE);
 
+	/* overwrite the timeout value to shorten the SSR latency in HL
+	 * solution.
+	 */
+	if (vos_is_crash_indication_pending()) {
+		WMA_LOGP("%s: %d HL ssr in progress",
+			 __func__, __LINE__);
+		timeout = WMA_SUSPEND_TIMEOUT_IN_SSR;
+	}
+
 	if (vos_wait_single_event(&wma_handle->target_suspend,
-				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
+				  timeout)
 				  != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get ACK from firmware for pdev suspend");
 		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 #ifdef CONFIG_CNSS
 		if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL) ||
-		    vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+		    vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)||
+		    vos_is_crash_indication_pending()) {
 			WMA_LOGE("%s: Unloading/Loading/LOGP is in progress, Ignore!",
 				 __func__);
 		} else {
