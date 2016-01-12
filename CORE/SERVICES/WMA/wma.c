@@ -9601,6 +9601,7 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     u_int8_t *buf_ptr;
     wmi_roam_scan_rssi_threshold_fixed_param *rssi_threshold_fp;
     wmi_roam_scan_extended_threshold_param *ext_thresholds = NULL;
+    wmi_roam_dense_thres_param *dense_thresholds = NULL;
     struct roam_ext_params *roam_params;
     uint32_t hirssi_scan_max_count;
     uint32_t hirssi_scan_delta;
@@ -9618,6 +9619,9 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     len = sizeof(wmi_roam_scan_rssi_threshold_fixed_param);
     len += WMI_TLV_HDR_SIZE; /* TLV for ext_thresholds*/
     len += sizeof(wmi_roam_scan_extended_threshold_param);
+    len += WMI_TLV_HDR_SIZE; /* TLV for early stop */
+    len += WMI_TLV_HDR_SIZE; /* TLV for dense thresholds*/
+    len += sizeof(wmi_roam_dense_thres_param);
     buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
     if (!buf) {
         WMA_LOGE("%s : wmi_buf_alloc failed", __func__);
@@ -9682,6 +9686,29 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
       WMITLV_GET_STRUCT_TLVLEN
       (wmi_roam_scan_extended_threshold_param));
 
+    buf_ptr += sizeof(wmi_roam_scan_extended_threshold_param);
+
+    /* header reserved for early stop roam parameters*/
+    WMITLV_SET_HDR(buf_ptr,
+               WMITLV_TAG_ARRAY_STRUC, 0);
+
+    buf_ptr += WMI_TLV_HDR_SIZE;
+    WMITLV_SET_HDR(buf_ptr,
+               WMITLV_TAG_ARRAY_STRUC,
+               sizeof(wmi_roam_dense_thres_param));
+
+    buf_ptr += WMI_TLV_HDR_SIZE;
+    dense_thresholds = (wmi_roam_dense_thres_param *) buf_ptr;
+    dense_thresholds->roam_dense_rssi_thres_offset =
+               roam_params->dense_rssi_thresh_offset;
+    dense_thresholds->roam_dense_min_aps = roam_params->dense_min_aps_cnt;
+    dense_thresholds->roam_dense_status = roam_params->initial_dense_status;
+    dense_thresholds->roam_dense_traffic_thres = roam_params->traffic_threshold;
+    WMITLV_SET_HDR(&dense_thresholds->tlv_header,
+      WMITLV_TAG_STRUC_wmi_roam_dense_thres_param,
+      WMITLV_GET_STRUCT_TLVLEN
+      (wmi_roam_dense_thres_param));
+
     status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
             len, WMI_ROAM_SCAN_RSSI_THRESHOLD);
     if (status != EOK) {
@@ -9700,6 +9727,11 @@ VOS_STATUS wma_roam_scan_offload_rssi_thresh(tp_wma_handle wma_handle,
     WMA_LOGI(
             "%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD hirssi_upper_bound=%d",
             __func__, hirssi_upper_bound);
+    WMA_LOGI("%s: WMA --> WMI_ROAM_SCAN_RSSI_THRESHOLD  dense_rssi_thresh_offset=%d, dense_min_aps_cnt=%d, initial_dense_status=%d, traffic_threshold=%d",
+            __func__, roam_params->dense_rssi_thresh_offset,
+            roam_params->dense_min_aps_cnt,
+            roam_params->initial_dense_status,
+            roam_params->traffic_threshold);
     return VOS_STATUS_SUCCESS;
 error:
     wmi_buf_free(buf);

@@ -13651,6 +13651,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef WLAN_FEATURE_NAN
     wlan_hdd_cfg80211_nan_init(pHddCtx);
 #endif
+   if (!sme_set_dense_roam_params(pHddCtx->hHal,
+                  pHddCtx->cfg_ini->roam_dense_rssi_thresh_offset,
+                  pHddCtx->cfg_ini->roam_dense_min_aps, 0,
+                  pHddCtx->cfg_ini->roam_dense_traffic_thresh)) {
+        hddLog(LOGE, FL("Failed to set dense roam params"));
+   }
 
    /* Thermal Mitigation */
    thermalParam.smeThermalMgmtEnabled =
