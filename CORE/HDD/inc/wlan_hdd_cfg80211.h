@@ -239,6 +239,9 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_OFFLOADED_PACKETS = 79,
     QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI = 80,
 
+    /* NS Offload enable/disable cmd */
+    QCA_NL80211_VENDOR_SUBCMD_ND_OFFLOAD = 82,
+
 	QCA_NL80211_VENDOR_SUBCMD_PACKET_FILTER = 83,
 	QCA_NL80211_VENDOR_SUBCMD_GET_BUS_SIZE = 84,
 	/* OCB commands */
@@ -1391,6 +1394,27 @@ enum qca_wlan_vendor_attr_link_properties {
 	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_MAX =
 		QCA_WLAN_VENDOR_ATTR_LINK_PROPERTIES_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_nd_offload - vendor NS offload support
+ *
+ * @QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_INVALID - Invalid
+ * @QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_FLAG - Flag to set NS offload
+ * @QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_AFTER_LAST - To keep track of the last enum
+ * @QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_MAX - max value possible for this type
+ *
+ * enum values are used for NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_ND_OFFLOAD sub command.
+ */
+enum qca_wlan_vendor_attr_nd_offload {
+	QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_FLAG,
+
+	/* Keep last */
+	QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_MAX =
+		QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_AFTER_LAST - 1,
 };
 
 /**

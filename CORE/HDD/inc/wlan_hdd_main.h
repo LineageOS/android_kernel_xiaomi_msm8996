@@ -1686,6 +1686,7 @@ struct hdd_context_s
     /* Is htTxSTBC supported by target */
     uint8_t   ht_tx_stbc_supported;
 
+    bool ns_offload_enable;
 #ifdef WLAN_NS_OFFLOAD
     /* IPv6 notifier callback for handling NS offload on change in IP */
     struct notifier_block ipv6_notifier;

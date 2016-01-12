@@ -14052,6 +14052,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
+   if (pHddCtx->cfg_ini->fhostNSOffload)
+       pHddCtx->ns_offload_enable = true;
+
    /*
     * If SNR Monitoring is enabled, FW has to parse all beacons
     * for calculating and storing the average SNR, so set Nth beacon

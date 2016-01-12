@@ -572,7 +572,8 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
 	if (adapter->device_mode == WLAN_HDD_INFRA_STATION ||
 		(adapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
 		if (hdd_ctx->cfg_ini->nEnableSuspend ==
-			WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER)
+			WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER &&
+			hdd_ctx->ns_offload_enable)
 			schedule_work(&adapter->ipv6NotifierWorkQueue);
 		else
 			hddLog(LOG1, FL("Not scheduling ipv6 wq nEnableSuspend: %d"),
@@ -899,7 +900,8 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
 #endif
 
 #ifdef WLAN_NS_OFFLOAD
-                if (pHddCtx->cfg_ini->fhostNSOffload)
+                if (pHddCtx->cfg_ini->fhostNSOffload &&
+                    pHddCtx->ns_offload_enable)
                 {
                     /*
                      * Configure the NS Offload.
@@ -949,7 +951,8 @@ void hdd_conf_hostoffload(hdd_adapter_t *pAdapter, v_BOOL_t fenable)
 
 #ifdef WLAN_NS_OFFLOAD
                 //Disable NSOFFLOAD
-                if (pHddCtx->cfg_ini->fhostNSOffload)
+                if (pHddCtx->cfg_ini->fhostNSOffload &&
+                    pHddCtx->ns_offload_enable)
                 {
                     hdd_conf_ns_offload(pAdapter, fenable);
                 }
