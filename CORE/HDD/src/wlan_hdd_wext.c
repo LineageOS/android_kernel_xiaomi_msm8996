@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -570,7 +570,7 @@ static const struct qwlan_hw qwlan_hw_list[] = {
     {
         .id = QCA9377_REV1_1_VERSION,
         .subid = 0x1,
-        .name = "QCA9377_REV1_1",
+        .name = "QCA93x7_REV1_1",
     }
 };
 
