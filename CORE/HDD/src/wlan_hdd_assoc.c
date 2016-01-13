@@ -2522,10 +2522,21 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
           * At this time we don't handle the state in detail.
           * Related CR: 174048 - TL not in authenticated state
           */
-      if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult)
+      if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult) {
           pHddStaCtx->conn_info.gtk_installed = true;
-      else
+          /*
+           * PTK exchange happens in preauthentication itself if key_mgmt is
+           * FT-PSK, ptk_installed was false as there is no set PTK after
+           * roaming. STA TL state moves to athenticated only if ptk_installed
+           * is true. So, make ptk_installed to true in case of 11R roaming.
+           */
+#ifdef WLAN_FEATURE_VOWIFI_11R
+          if (pRoamInfo->is11rAssoc)
+              pHddStaCtx->conn_info.ptk_installed = true;
+#endif
+      } else {
           pHddStaCtx->conn_info.ptk_installed = true;
+      }
 
          /* In WPA case move STA to authenticated when ptk is installed.
           * Earlier in WEP case STA was moved to AUTHENTICATED prior to
