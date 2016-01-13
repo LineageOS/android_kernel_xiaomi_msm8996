@@ -181,6 +181,11 @@ static inline void vos_get_monotonic_boottime_ts(struct timespec *ts)
 }
 
 static inline void vos_schedule_recovery_work(void) { return; }
+
+static inline bool vos_is_ssr_fw_dump_required(void)
+{
+	return true;
+}
 #else
 static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
@@ -329,6 +334,18 @@ static inline void vos_device_crashed(void) {};
 
 static inline void vos_device_self_recovery(void) {};
 
+#endif
+
+#ifdef CONFIG_CNSS_SDIO
+static inline bool vos_is_ssr_fw_dump_required(void)
+{
+	return (cnss_get_restart_level() != CNSS_RESET_SUBSYS_COUPLED);
+}
+#else
+static inline bool vos_is_ssr_fw_dump_required(void)
+{
+	return true;
+}
 #endif
 
 #ifdef CONFIG_CNSS_PCI

@@ -993,6 +993,9 @@ int ol_copy_ramdump(struct ol_softc *scn)
 {
 	int ret;
 
+	if (!vos_is_ssr_fw_dump_required())
+		return 0;
+
 	if (!scn->ramdump_base || !scn->ramdump_size) {
 		pr_info("%s: No RAM dump will be collected since ramdump_base "
 			"is NULL or ramdump_size is 0!\n", __func__);
