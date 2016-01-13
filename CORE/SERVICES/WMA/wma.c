@@ -23239,6 +23239,8 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 				&pHostOffloadParams->nsOffloadInfo.targetIPv6Addr[i], sizeof(WMI_IPV6_ADDR));
 			A_MEMCPY(&ns_tuple->solicitation_ipaddr,
 				&pHostOffloadParams->nsOffloadInfo.selfIPv6Addr[i], sizeof(WMI_IPV6_ADDR));
+			if(pHostOffloadParams->nsOffloadInfo.target_ipv6_addr_type[i])
+				ns_tuple->flags |= WMI_NSOFF_FLAGS_IS_IPV6_ANYCAST;
 			WMA_LOGD("Index %d NS solicitedIp: %pI6, targetIp: %pI6", i,
 				&pHostOffloadParams->nsOffloadInfo.selfIPv6Addr[i],
 				&pHostOffloadParams->nsOffloadInfo.targetIPv6Addr[i]);
@@ -23302,6 +23304,8 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma, tpSirHostOffloadR
 				A_MEMCPY(&ns_tuple->solicitation_ipaddr,
 					&pHostOffloadParams->nsOffloadInfo.selfIPv6Addr[i],
 					sizeof(WMI_IPV6_ADDR));
+				if(pHostOffloadParams->nsOffloadInfo.target_ipv6_addr_type[i])
+					ns_tuple->flags |= WMI_NSOFF_FLAGS_IS_IPV6_ANYCAST;
 				WMA_LOGD("Index %d NS solicitedIp: %pI6, targetIp: %pI6", i,
 					&pHostOffloadParams->nsOffloadInfo.selfIPv6Addr[i],
 					&pHostOffloadParams->nsOffloadInfo.targetIPv6Addr[i]);
