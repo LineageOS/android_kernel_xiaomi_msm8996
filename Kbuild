@@ -965,6 +965,7 @@ endif
 ifeq ($(CONFIG_ARCH_MDM9607), y)
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 CDEFINES += -DDEBUG_HL_LOGGING
+CDEFINES += -DHIF_SYNC_READ
 endif
 endif
 
