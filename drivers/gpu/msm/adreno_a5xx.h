@@ -135,6 +135,7 @@ void a5xx_hwcg_set(struct adreno_device *adreno_dev, bool on);
 /* A5XX_GPMU_GPMU_LLM_GLM_SLEEP_CTRL */
 #define STATE_OF_CHILD			GENMASK(5, 4)
 #define STATE_OF_CHILD_01		BIT(4)
+#define STATE_OF_CHILD_11		(BIT(4) | BIT(5))
 #define IDLE_FULL_LM_SLEEP		BIT(0)
 
 /* A5XX_GPMU_GPMU_LLM_GLM_SLEEP_STATUS */
