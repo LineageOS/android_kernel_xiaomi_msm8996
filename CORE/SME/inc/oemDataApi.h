@@ -138,8 +138,6 @@ eHalStatus oemData_IsOemDataReqAllowed(tHalHandle hHal);
   --------------------------------------------------------------------------*/
 void send_oem_data_rsp_msg(int length, tANI_U8 *oemDataRsp);
 
-typedef void (*sme_send_oem_data_rsp_msg)(int length, uint8_t *oem_data_rsp);
-
 #endif //_OEM_DATA_API_H__
 
 #endif //FEATURE_OEM_DATA_SUPPORT

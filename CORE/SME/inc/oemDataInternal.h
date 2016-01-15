@@ -54,8 +54,6 @@ typedef struct tagOemDataStruct
     tANI_U32                         oemDataReqID; //original request ID
     tOemDataReqConfig                oemDataReqConfig; //current oem data request
     tANI_U8                          sessionId; //Session on which oem data req is active
-    /* callback for sending data response to oem application */
-    sme_send_oem_data_rsp_msg        oem_data_rsp_callback;
 } tOemDataStruct;
 
 typedef struct tagOemDataCmd
