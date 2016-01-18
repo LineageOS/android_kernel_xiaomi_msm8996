@@ -1149,6 +1149,30 @@ hifIRQHandler(struct sdio_func *func)
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: -hifIRQHandler\n"));
 }
 
+/**
+ * hif_oob_irq_handler() - irq handler for OOB
+ * @dev_para: SDIO function devices.
+ *
+ * This is the SDIO OOB interrupt handler.
+ * A GPIO pin is used as an out-of-band interrupt source to gain
+ * better performance,
+ *
+ * Return: None.
+ */
+static void hif_oob_irq_handler(void *dev_para)
+{
+	A_STATUS status;
+	HIF_DEVICE *device;
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: +hif_oob_irq_handler\n"));
+	device = getHifDevice(dev_para);
+	atomic_set(&device->irqHandling, 1);
+	status = device->htcCallbacks.dsrHandler(device->htcCallbacks.context);
+	atomic_set(&device->irqHandling, 0);
+	AR_DEBUG_ASSERT(status == A_OK || status == A_ECANCELED);
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: -hif_oob_irq_handler\n"));
+}
+
 #ifdef HIF_MBOX_SLEEP_WAR
 static void
 HIF_sleep_entry(void *arg)
@@ -1548,7 +1572,11 @@ HIFUnMaskInterrupt(HIF_DEVICE *device)
     }
     /* Register the IRQ Handler */
     sdio_claim_host(device->func);
-    ret = sdio_claim_irq(device->func, hifIRQHandler);
+    if (false == vos_oob_enabled())
+        ret = sdio_claim_irq(device->func, hifIRQHandler);
+    else
+        ret = vos_register_oob_irq_handler(hif_oob_irq_handler,
+                                device->func);
     sdio_release_host(device->func);
     AR_DEBUG_ASSERT(ret == 0);
     EXIT();
@@ -1569,7 +1597,12 @@ void HIFMaskInterrupt(HIF_DEVICE *device)
         schedule_timeout_interruptible(HZ/10);
         sdio_claim_host(device->func);
     }
-    ret = sdio_release_irq(device->func);
+
+    if (false == vos_oob_enabled())
+        ret = sdio_release_irq(device->func);
+    else
+        ret = vos_unregister_oob_irq_handler(device->func);
+
     sdio_release_host(device->func);
     if (ret) {
         if (ret == -ETIMEDOUT) {
