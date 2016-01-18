@@ -13951,6 +13951,14 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
 
     INIT_COMPLETION(pAdapter->tdls_add_station_comp);
 
+    /* Update the number of stream for each peer */
+    if ((NULL != StaParams) && (StaParams->htcap_present)) {
+        hddTdlsPeer_t *tdls_peer;
+        tdls_peer = wlan_hdd_tdls_find_peer(pAdapter, mac, TRUE);
+        if (NULL != tdls_peer)
+            tdls_peer->spatial_streams = StaParams->HTCap.suppMcsSet[1];
+    }
+
     if (!update)
     {
         status = sme_AddTdlsPeerSta(WLAN_HDD_GET_HAL_CTX(pAdapter),
