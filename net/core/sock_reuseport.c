@@ -103,9 +103,16 @@ static void reuseport_free_rcu(struct rcu_head *head)
  *  @sk2: Socket belonging to the existing reuseport group.
  *  May return ENOMEM and not add socket to group under memory pressure.
  */
-int reuseport_add_sock(struct sock *sk, const struct sock *sk2)
+int reuseport_add_sock(struct sock *sk, struct sock *sk2)
 {
 	struct sock_reuseport *old_reuse, *reuse;
+
+	if (!rcu_access_pointer(sk2->sk_reuseport_cb)) {
+		int err = reuseport_alloc(sk2);
+
+		if (err)
+			return err;
+	}
 
 	spin_lock_bh(&reuseport_lock);
 	reuse = rcu_dereference_protected(sk2->sk_reuseport_cb,
