@@ -962,6 +962,9 @@ struct ol_txrx_vdev_t {
 	/* Information about the schedules in the schedule */
 	struct ol_txrx_ocb_chan_info *ocb_channel_info;
 	uint32_t ocb_channel_count;
+
+	/* Default OCB TX parameter */
+	struct ocb_tx_ctrl_hdr_t *ocb_def_tx_param;
 };
 
 struct ol_rx_reorder_array_elem_t {
