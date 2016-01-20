@@ -715,24 +715,24 @@ ol_rx_offload_deliver_ind_handler(
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
 
     while (msdu_cnt) {
-        htt_rx_offload_msdu_pop(
+        if (!htt_rx_offload_msdu_pop(
             htt_pdev, msg, &vdev_id, &peer_id,
-            &tid, &fw_desc, &head_buf, &tail_buf);
-
-        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
-        if (peer && peer->vdev) {
-            vdev = peer->vdev;
-	    OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
-        } else {
-            buf = head_buf;
-            while (1) {
-                adf_nbuf_t next;
-                next = adf_nbuf_next(buf);
-                htt_rx_desc_frame_free(htt_pdev, buf);
-                if (buf == tail_buf) {
-                    break;
+            &tid, &fw_desc, &head_buf, &tail_buf)) {
+            peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+            if (peer && peer->vdev) {
+                vdev = peer->vdev;
+                OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
+            } else {
+                buf = head_buf;
+                while (1) {
+                    adf_nbuf_t next;
+                    next = adf_nbuf_next(buf);
+                    htt_rx_desc_frame_free(htt_pdev, buf);
+                    if (buf == tail_buf) {
+                        break;
+                    }
+                    buf = next;
                 }
-                buf = next;
             }
         }
         msdu_cnt--;

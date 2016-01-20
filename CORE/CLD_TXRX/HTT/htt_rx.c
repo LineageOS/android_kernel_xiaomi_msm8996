@@ -1390,6 +1390,7 @@ htt_rx_offload_msdu_pop_hl(
 {
     adf_nbuf_t buf;
     u_int32_t *msdu_hdr, msdu_len;
+    int ret = 0;
 
     *head_buf = *tail_buf = buf = offload_deliver_msg;
     msdu_hdr = (u_int32_t *)adf_nbuf_data(buf);
@@ -1409,8 +1410,17 @@ htt_rx_offload_msdu_pop_hl(
 
     adf_nbuf_pull_head(buf, HTT_RX_OFFLOAD_DELIVER_IND_MSDU_HDR_BYTES \
         + HTT_RX_OFFLOAD_DELIVER_IND_HDR_BYTES);
-    adf_nbuf_set_pktlen(buf, msdu_len);
-    return 0;
+
+    if (msdu_len <= adf_nbuf_len(buf)) {
+        adf_nbuf_set_pktlen(buf, msdu_len);
+    } else {
+        adf_os_print("%s: drop frame with invalid msdu len %d %d\n",
+            __FUNCTION__, msdu_len, (int)adf_nbuf_len(buf));
+        adf_nbuf_free(offload_deliver_msg);
+        ret = -1;
+    }
+
+    return ret;
 }
 
 #ifdef RX_HASH_DEBUG
