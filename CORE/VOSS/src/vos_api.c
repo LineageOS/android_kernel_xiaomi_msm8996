@@ -2813,3 +2813,23 @@ void vos_probe_threads(void)
 			  FL("Unable to post SYS_MSG_ID_MC_THR_PROBE message to MC thread"));
 	}
 }
+
+/**
+ * vos_pkt_stats_to_logger_thread() - send pktstats to user
+ * @pl_hdr: Pointer to pl_hdr
+ * @pkt_dump: Pointer to pkt_dump data structure.
+ * @data: Pointer to data
+ *
+ * This function is used to send the pkt stats to SVC module.
+ *
+ * Return: None
+ */
+inline void vos_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump,
+						void *data)
+{
+	if (vos_get_ring_log_level(RING_ID_PER_PACKET_STATS) !=
+						WLAN_LOG_LEVEL_ACTIVE)
+		return;
+
+	wlan_pkt_stats_to_logger_thread(pl_hdr, pkt_dump, data);
+}
