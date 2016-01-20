@@ -149,6 +149,11 @@ static int mmc_queue_thread(void *d)
 	struct request_queue *q = mq->queue;
 	struct mmc_card *card = mq->card;
 
+        struct sched_param scheduler_params = {0};
+        scheduler_params.sched_priority = 1;
+
+        sched_setscheduler(current, SCHED_FIFO, &scheduler_params);
+
 	current->flags |= PF_MEMALLOC;
 	if (card->host->wakeup_on_idle)
 		set_wake_up_idle(true);
