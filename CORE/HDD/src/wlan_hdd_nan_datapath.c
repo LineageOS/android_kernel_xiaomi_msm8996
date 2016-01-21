@@ -329,7 +329,9 @@ static int hdd_ndi_create_req_handler(hdd_context_t *hdd_ctx,
 	}
 
 	adapter = hdd_open_adapter(hdd_ctx, WLAN_HDD_NDI, iface_name,
-			wlan_hdd_get_intf_addr(hdd_ctx), VOS_TRUE);
+				   wlan_hdd_get_intf_addr(hdd_ctx),
+				   NET_NAME_UNKNOWN,
+				   VOS_TRUE);
 	if (!adapter) {
 		hddLog(LOGE, FL("hdd_open_adapter failed"));
 		return -ENOMEM;

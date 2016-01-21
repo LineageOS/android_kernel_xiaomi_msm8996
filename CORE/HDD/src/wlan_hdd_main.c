@@ -9962,7 +9962,10 @@ static inline void
 hdd_adapter_runtime_suspend_denit(hdd_adapter_t *adapter) { }
 #endif
 
-static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr macAddr, const char* name )
+static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
+                                                tSirMacAddr macAddr,
+                                                unsigned char name_assign_type,
+                                                const char* name)
 {
    struct net_device *pWlanDev = NULL;
    hdd_adapter_t *pAdapter = NULL;
@@ -9972,7 +9975,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
    pWlanDev = alloc_netdev_mq(sizeof( hdd_adapter_t ),
                               name,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
-                              NET_NAME_UNKNOWN,
+                              name_assign_type,
 #endif
                               (VOS_MONITOR_MODE == vos_get_conparam()?
                               mon_mode_ether_setup : ether_setup),
@@ -10692,6 +10695,7 @@ VOS_STATUS hdd_check_for_existing_macaddr( hdd_context_t *pHddCtx,
 
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  const char *iface_name, tSirMacAddr macAddr,
+                                 unsigned char name_assign_type,
                                  tANI_U8 rtnl_held )
 {
    hdd_adapter_t *pAdapter = NULL;
@@ -10760,7 +10764,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       case WLAN_HDD_OCB:
       case WLAN_HDD_NDI:
       {
-         pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
+         pAdapter = hdd_alloc_station_adapter(pHddCtx, macAddr,
+                                              name_assign_type,
+                                              iface_name);
 
          if( NULL == pAdapter )
          {
@@ -10831,7 +10837,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       case WLAN_HDD_P2P_GO:
       case WLAN_HDD_SOFTAP:
       {
-         pAdapter = hdd_wlan_create_ap_dev( pHddCtx, macAddr, (tANI_U8 *)iface_name );
+         pAdapter = hdd_wlan_create_ap_dev(pHddCtx, macAddr,
+                                           name_assign_type,
+                                           (tANI_U8 *)iface_name );
          if( NULL == pAdapter )
          {
             hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -10865,7 +10873,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       }
       case WLAN_HDD_FTM:
       {
-         pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
+         pAdapter = hdd_alloc_station_adapter(pHddCtx, macAddr,
+                                              name_assign_type,
+                                              iface_name );
 
          if( NULL == pAdapter )
          {
@@ -14646,11 +14656,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    if (pHddCtx->cfg_ini->dot11p_mode == WLAN_HDD_11P_STANDALONE) {
        /* Create only 802.11p interface */
-      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB,
-          "wlanocb%d", wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable);
+      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB,"wlanocb%d",
+                                  wlan_hdd_get_intf_addr(pHddCtx),
+                                  NET_NAME_UNKNOWN,
+                                  rtnl_lock_enable);
    } else {
-      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
-          wlan_hdd_get_intf_addr(pHddCtx), rtnl_lock_enable );
+      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+                                  wlan_hdd_get_intf_addr(pHddCtx),
+                                  NET_NAME_UNKNOWN,
+                                  rtnl_lock_enable);
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
       /* Open P2P device interface */
@@ -14678,8 +14692,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
 
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
-                           &pHddCtx->p2pDeviceAddress.bytes[0],
-                           rtnl_lock_enable);
+                                        &pHddCtx->p2pDeviceAddress.bytes[0],
+                                        NET_NAME_UNKNOWN,
+                                        rtnl_lock_enable);
 
          if (NULL == pP2pAdapter) {
             hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -14692,9 +14707,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       /* Open 802.11p Interface */
       if (pAdapter != NULL) {
          if (pHddCtx->cfg_ini->dot11p_mode == WLAN_HDD_11P_CONCURRENT) {
-            dot11_adapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB,
-                       "wlanocb%d", wlan_hdd_get_intf_addr(pHddCtx),
-                       rtnl_lock_enable);
+            dot11_adapter = hdd_open_adapter(pHddCtx, WLAN_HDD_OCB, "wlanocb%d",
+                                             wlan_hdd_get_intf_addr(pHddCtx),
+                                             NET_NAME_UNKNOWN,
+                                             rtnl_lock_enable);
 
             if (dot11_adapter == NULL) {
                hddLog(VOS_TRACE_LEVEL_FATAL,
