@@ -1457,6 +1457,46 @@ void vos_set_reinit_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
 }
 
 
+/**
+ * vos_set_shutdown_in_progress - set SSR shutdown progress status
+ *
+ * @moduleId: the module ID of the caller
+ * @value: true - CNSS SSR shutdown start
+ *         false - CNSS SSR shutdown completes
+ * Return: none
+ */
+
+void vos_set_shutdown_in_progress(VOS_MODULE_ID moduleId, bool value)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return;
+	}
+	gpVosContext->is_shutdown_in_progress = value;
+}
+
+/**
+ * vos_is_shutdown_in_progress - check if SSR shutdown is in progress
+ *
+ * @moduleId: the module ID of the caller
+ * @moduleContext: the input module context pointer
+ *
+ * Return: true - shutdown in progress
+ *         false - shutdown is  not in progress
+ */
+
+bool vos_is_shutdown_in_progress(VOS_MODULE_ID moduleId,
+	 v_VOID_t *moduleContext)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return 0;
+	}
+	return gpVosContext->is_shutdown_in_progress;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief vos_alloc_context() - allocate a context within the VOSS global Context

@@ -179,6 +179,11 @@ void vos_set_unload_in_progress(v_U8_t value);
 v_U8_t vos_is_load_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
 void vos_set_load_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);
 
+bool vos_is_shutdown_in_progress(VOS_MODULE_ID moduleId,
+                                 v_VOID_t *moduleContext);
+void vos_set_shutdown_in_progress(VOS_MODULE_ID moduleId,
+                                  bool value);
+
 v_U8_t vos_is_reinit_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
 void vos_set_reinit_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);
 

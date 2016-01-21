@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -702,13 +702,19 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	struct ol_softc *scn;
 	A_UINT16 htc_tag = 0;
 
+	if (vos_is_shutdown_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		adf_os_print("\nERROR: %s: shutdown is in progress so could not send WMI command: %d\n",
+			__func__, cmd_id);
+		return -EBUSY;
+	}
+
 	if (wmi_get_runtime_pm_inprogress(wmi_handle))
 		goto skip_suspend_check;
 
 	if (adf_os_atomic_read(&wmi_handle->is_target_suspended) &&
 			( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) &&
 			  (WMI_PDEV_RESUME_CMDID != cmd_id)) ) {
-		pr_err("%s: Target is suspended  could not send WMI command: %d\n",
+		adf_os_print("\nERROR: %s: Target is suspended  could not send WMI command: %d\n",
 				__func__, cmd_id);
 		VOS_ASSERT(0);
 		return -EBUSY;
