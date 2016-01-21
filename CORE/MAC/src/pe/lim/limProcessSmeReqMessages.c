@@ -1151,7 +1151,6 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
 
     pMac->lim.fOffloadScanPending = 0;
     pMac->lim.fOffloadScanP2PSearch = 0;
-    pMac->lim.offload_scan_filter_p2p_result = 0;
 
     if (pScanReq->uIEFieldLen) {
         status = lim_strip_extcap_update_struct(pMac,
