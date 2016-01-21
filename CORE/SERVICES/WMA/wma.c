@@ -196,6 +196,8 @@
 
 #define WMA_LOG_COMPLETION_TIMER 10000 /* 10 seconds */
 
+#define WMI_TLV_HEADROOM 128
+
 #define WMA_SUSPEND_TIMEOUT_IN_SSR 1
 #define WMA_DEL_BSS_TIMEOUT_IN_SSR 10
 #ifdef FEATURE_WLAN_SCAN_PNO
@@ -31147,6 +31149,8 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	hdd_tgt_cfg.ap_arpns_support = wma_handle->ap_arpns_support;
 	hdd_tgt_cfg.fine_time_measurement_cap =
 		wma_handle->fine_time_measurement_cap;
+	hdd_tgt_cfg.wmi_max_len = wmi_get_max_msg_len(wma_handle->wmi_handle)
+					- WMI_TLV_HEADROOM;
 	wma_setup_egap_support(&hdd_tgt_cfg, wma_handle);
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }

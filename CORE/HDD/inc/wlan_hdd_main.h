@@ -1709,6 +1709,7 @@ struct hdd_context_s
     /* Current number of TX X RX chains being used */
     enum antenna_mode current_antenna_mode;
     bool bpf_enabled;
+    uint16_t wmi_max_len;
 };
 
 /*---------------------------------------------------------------------------
