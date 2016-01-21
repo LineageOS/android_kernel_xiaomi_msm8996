@@ -1420,6 +1420,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
+    /* Clear P2P scan entries before starting any scan */
+    if (pMac->fScanOffload)
+        limFlushp2pScanResults(pMac);
 
     /**
      * If scan request is received in idle, joinFailed
@@ -1432,8 +1435,6 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
   if (__limFreshScanReqd(pMac, pScanReq->returnFreshResults))
   {
       limLog(pMac, LOG1, FL("Fresh scan is required"));
-      if (pMac->fScanOffload)
-         limFlushp2pScanResults(pMac);
 
       if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
       {
@@ -1688,9 +1689,6 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             }
 #endif
             limLog(pMac, LOG1, FL("Cached scan results are returned "));
-
-            if (pMac->fScanOffload)
-                 limFlushp2pScanResults(pMac);
 
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
             {
