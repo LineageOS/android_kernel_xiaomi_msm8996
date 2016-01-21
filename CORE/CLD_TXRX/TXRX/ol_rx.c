@@ -43,6 +43,7 @@
 #include <ol_rx_reorder.h>     /* ol_rx_reorder_store, etc. */
 #include <ol_rx_reorder_timeout.h> /* OL_RX_REORDER_TIMEOUT_UPDATE */
 #include <ol_rx_defrag.h>      /* ol_rx_defrag_waitlist_flush */
+#include <ol_rx_fwd.h>             /* ol_rx_fwd_check, etc. */
 #include <ol_txrx_internal.h>
 #include <wdi_event.h>
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
@@ -721,7 +722,10 @@ ol_rx_offload_deliver_ind_handler(
             peer = ol_txrx_peer_find_by_id(pdev, peer_id);
             if (peer && peer->vdev) {
                 vdev = peer->vdev;
-                OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
+                if (pdev->cfg.is_high_latency)
+                    ol_rx_fwd_check(vdev, peer, tid, head_buf);
+                else
+                    OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
             } else {
                 buf = head_buf;
                 while (1) {
