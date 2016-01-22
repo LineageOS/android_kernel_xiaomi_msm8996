@@ -59,6 +59,7 @@
 #include <csrApi.h>
 #include <pmcApi.h>
 #include <wlan_hdd_misc.h>
+#include "wlan_hdd_nan_datapath.h"
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 static void
@@ -4334,7 +4335,21 @@ REG_TABLE_ENTRY g_registry_table[] =
                   CFG_IGNORE_PEER_HT_MODE_DEFAULT,
                   CFG_IGNORE_PEER_HT_MODE_MIN,
                   CFG_IGNORE_PEER_HT_MODE_MAX),
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+   REG_VARIABLE(CFG_ENABLE_NAN_DATAPATH_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, enable_nan_datapath,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NAN_DATAPATH_DEFAULT,
+                CFG_ENABLE_NAN_DATAPATH_MIN,
+                CFG_ENABLE_NAN_DATAPATH_MAX),
 
+   REG_VARIABLE(CFG_ENABLE_NAN_NDI_CHANNEL_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nan_datapath_ndi_channel,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NAN_NDI_CHANNEL_DEFAULT,
+                CFG_ENABLE_NAN_NDI_CHANNEL_MIN,
+                CFG_ENABLE_NAN_NDI_CHANNEL_MAX),
+#endif
 };
 
 
@@ -5093,6 +5108,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [gIdleTimeConc] Value = [%u]",
                    pHddCtx->cfg_ini->idle_time_conc);
 
+  hdd_ndp_print_ini_config(pHddCtx);
 }
 
 #define CFG_VALUE_MAX_LEN 256
