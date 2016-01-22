@@ -323,6 +323,8 @@ typedef enum {
     WMI_PDEV_GET_NFCAL_POWER_CMDID,
     /** TxPPDU TPC */
     WMI_PDEV_GET_TPC_CMDID,
+    /* Set to enable MIB stats collection */
+    WMI_MIB_STATS_ENABLE_CMDID,
 
     /* VDEV(virtual device) specific commands */
     /** vdev create */
@@ -2461,6 +2463,8 @@ enum wmi_scan_event_type {
     WMI_SCAN_EVENT_START_FAILED=0x40,   /* scan start failed */
     WMI_SCAN_EVENT_RESTARTED=0x80,      /* Scan restarted */
     WMI_SCAN_EVENT_FOREIGN_CHANNEL_EXIT = 0x100,
+    WMI_SCAN_EVENT_SUSPENDED = 0x200, /* scan request is suspended */
+    WMI_SCAN_EVENT_RESUMED = 0x400,   /* scan request is resumed */
     WMI_SCAN_EVENT_MAX=0x8000
 };
 
@@ -2472,6 +2476,7 @@ enum wmi_scan_completion_reason {
     WMI_SCAN_REASON_PREEMPTED           = 2,
     WMI_SCAN_REASON_TIMEDOUT            = 3,
     WMI_SCAN_REASON_INTERNAL_FAILURE    = 4, /* This reason indication failures when performaing scan */
+    WMI_SCAN_REASON_SUSPENDED = 5,
     WMI_SCAN_REASON_MAX,
 };
 
@@ -3529,6 +3534,13 @@ typedef struct {
     A_UINT32 reserved0;
 } wmi_pdev_pktlog_disable_cmd_fixed_param;
 
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_mib_stats_enable_cmd_fixed_param */
+    A_UINT32 reserved0; /** placeholder for pdev_id of multiple MAC products.  Init. to 0. */
+    A_UINT32 enable_Mib; /** enable for mib stats collection. Stats are delivered to host in wmi_mib_stats structure.
+                          * If enable_Mib=1, stats collection is enabled. If enable_Mib=0, stats collection does not happen */
+} wmi_mib_stats_enable_cmd_fixed_param;
+
 /** Customize the DSCP (bit) to TID (0-7) mapping for QOS.
  *  NOTE: This constant cannot be changed without breaking
  *  WMI Compatibility. */
@@ -3668,13 +3680,14 @@ typedef struct {
 } wmi_pdev_set_wmm_params_cmd_fixed_param;
 
 typedef enum {
-    WMI_REQUEST_PEER_STAT = 0x01,
-    WMI_REQUEST_AP_STAT = 0x02,
-    WMI_REQUEST_PDEV_STAT = 0x04,
-    WMI_REQUEST_VDEV_STAT = 0x08,
-    WMI_REQUEST_BCNFLT_STAT = 0x10,
+    WMI_REQUEST_PEER_STAT      = 0x01,
+    WMI_REQUEST_AP_STAT        = 0x02,
+    WMI_REQUEST_PDEV_STAT      = 0x04,
+    WMI_REQUEST_VDEV_STAT      = 0x08,
+    WMI_REQUEST_BCNFLT_STAT    = 0x10,
     WMI_REQUEST_VDEV_RATE_STAT = 0x20,
-    WMI_REQUEST_INST_STAT  = 0x40,
+    WMI_REQUEST_INST_STAT      = 0x40,
+    WMI_REQUEST_MIB_STAT       = 0x80,
 } wmi_stats_id;
 
 typedef struct {
@@ -4144,6 +4157,8 @@ typedef struct {
     A_UINT32 num_bcnflt_stats;
     /** number of chan stats event structures  (wmi_chan_stats) 0 to MAX MCC CHANS */
     A_UINT32 num_chan_stats;
+    /** number of MIB stats event structures (wmi_mib_stats) */
+    A_UINT32 num_mib_stats;
     /* This TLV is followed by another TLV of array of bytes
          *   A_UINT8 data[];
          *  This data array contains
@@ -4151,7 +4166,8 @@ typedef struct {
          *   num_vdev_stats * size of(struct wmi_vdev_stats)
          *   num_peer_stats * size of(struct wmi_peer_stats)
          *   num_bcnflt_stats * size_of()
- *   num_chan_stats * size of(struct wmi_chan_stats)
+         *   num_chan_stats * size of(struct wmi_chan_stats)
+         *   num_mib_stats * size of(struct wmi_mib_stats)
          *
          */
 } wmi_stats_event_fixed_param;
@@ -4206,7 +4222,7 @@ typedef struct {
     A_UINT32         rx_err_cnt;/*The receive error count. HAL will provide the RxP FCS error global */
     A_UINT32         rx_discard_cnt;/* The sum of the receive error count and dropped-receive-buffer error count. (FCS error)*/
     A_UINT32         ack_fail_cnt;/*Total number packets failed transmit because of no ACK from the remote entity*/
-   A_UINT32          tx_rate_history[MAX_TX_RATE_VALUES];/*History of last ten transmit rate, in units of 500 kbit/sec*/
+    A_UINT32         tx_rate_history[MAX_TX_RATE_VALUES];/*History of last ten transmit rate, in units of 500 kbit/sec*/
     A_UINT32         bcn_rssi_history[MAX_RSSI_VALUES];/*History of last ten Beacon rssi of the connected Bss*/
 } wmi_vdev_stats;
 
@@ -4240,6 +4256,58 @@ typedef struct {
     /** Accumalation of the RX PPDU duration over a sampling period */
     A_UINT32 rx_duration_us;
 } wmi_chan_stats;
+
+typedef struct {
+    A_UINT32 tx_mpdu_grp_frag_cnt;       /*dot11TransmittedFragmentCount */
+    A_UINT32 tx_msdu_grp_frm_cnt;        /*dot11GroupTransmittedFrameCount */
+    A_UINT32 tx_msdu_fail_cnt;           /*dot11FailedCount*/
+    A_UINT32 rx_mpdu_frag_cnt;           /*dot11ReceivedFragmentCount*/
+    A_UINT32 rx_msdu_grp_frm_cnt;        /*dot11GroupReceivedFrameCount*/
+    A_UINT32 rx_mpdu_fcs_err;            /*dot11FCSErrorCount*/
+    A_UINT32 tx_msdu_frm_cnt;            /*dot11TransmittedFrameCount*/
+    A_UINT32 tx_msdu_retry_cnt;          /*dot11RetryCount*/
+    A_UINT32 rx_frm_dup_cnt;             /*dot11FrameDuplicateCount */
+    A_UINT32 tx_rts_success_cnt;         /*dot11RTSSuccessCount*/
+    A_UINT32 tx_rts_fail_cnt;            /*dot11RTSFailureCount*/
+    A_UINT32 tx_Qos_mpdu_grp_frag_cnt;   /*dot11QosTransmittedFragmentCount */
+    A_UINT32 tx_Qos_msdu_fail_UP;        /*dot11QosFailedCount */
+    A_UINT32 tx_Qos_msdu_retry_UP;       /*dot11QosRetryCount */
+    A_UINT32 rx_Qos_frm_dup_cnt_UP;      /*dot11QosFrameDuplicateCount*/
+    A_UINT32 tx_Qos_rts_success_cnt_UP;  /*dot11QosRTSSuccessCount*/
+    A_UINT32 tx_Qos_rts_fail_cnt_UP;     /*dot11QosRTSFailureCount*/
+    A_UINT32 rx_Qos_mpdu_frag_cnt_UP;    /*dot11QosReceivedFragmentCount*/
+    A_UINT32 tx_Qos_msdu_frm_cnt_UP;     /*dot11QosTransmittedFrameCount*/
+    A_UINT32 rx_Qos_msdu_discard_cnt_UP; /*dot11QosDiscardedFrameCount*/
+    A_UINT32 rx_Qos_mpdu_cnt;            /*dot11QosMPDUsReceivedCount*/
+    A_UINT32 rx_Qos_mpdu_retryBit_cnt;   /*dot11QosRetriesReceivedCount*/
+    A_UINT32 rsna_Mgmt_discard_CCMP_replay_err_cnt; /*dot11RSNAStatsRobustMgmtCCMPReplays*/
+    A_UINT32 rsna_TKIP_icv_err_cnt;      /*dot11RSNAStatsTKIPICVErrors*/
+    A_UINT32 rsna_TKIP_replay_err_cnt;   /*dot11RSNAStatsTKIPReplays*/
+    A_UINT32 rsna_CCMP_decrypt_err_cnt;  /*dot11RSNAStatsCCMPDecryptErrors*/
+    A_UINT32 rsna_CCMP_replay_err_cnt;   /*dot11RSNAStatsCCMPReplays*/
+    A_UINT32 tx_ampdu_cnt;               /*dot11TransmittedAMPDUCount*/
+    A_UINT32 tx_mpdu_cnt_in_ampdu;       /*dot11TransmittedMPDUsInAMPDUCount*/
+    union {
+        A_UINT64 counter; /* for use by target only */
+        struct {
+            A_UINT32 low;
+            A_UINT32 high;
+        } upload; /* for use by host */
+    } tx_octets_in_ampdu;                /*dot11TransmittedOctetsInAMPDUCount*/
+    A_UINT32 rx_ampdu_cnt;               /*dot11AMPDUReceivedCount*/
+    A_UINT32 rx_mpdu_cnt_in_ampdu;       /*dot11MPDUInReceivedAMPDUCount*/
+    union {
+        A_UINT64 counter; /* for use by target only */
+        struct {
+            A_UINT32 rx_octets_in_ampdu_low;
+            A_UINT32 rx_octets_in_ampdu_high;
+        } upload; /* for use by host */
+    } rx_octets_in_ampdu;                /*dot11ReceivedOctetsInAMPDUCount*/
+    A_UINT32 reserved_1;
+    A_UINT32 reserved_2;
+    A_UINT32 reserved_3;
+    A_UINT32 reserved_4;
+} wmi_mib_stats;
 
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_vdev_create_cmd_fixed_param */
