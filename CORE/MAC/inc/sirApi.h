@@ -529,17 +529,27 @@ typedef struct sSirLoad
     tANI_U16             channelUtilization;
 } tSirLoad, *tpSirLoad;
 
-/// BSS type enum used in while scanning/joining etc
-typedef enum eSirBssType
-{
+/**
+ * enum tSirBssType - BSS type enum used in while scanning/joining etc
+ *
+ * @eSIR_INFRASTRUCTURE_MODE: Infrastructure station
+ * @eSIR_INFRA_AP_MODE: softAP mode
+ * @eSIR_IBSS_MODE: IBSS mode
+ * @eSIR_BTAMP_STA_MODE: BT-AMP STA mode
+ * @eSIR_BTAMP_AP_MODE: BT-AMP AP mode
+ * @eSIR_MONITOR_MODE: Monitor mode
+ * @eSIR_NDI_MODE: NAN data path mide
+ * @eSIR_AUTO_MODE: Auto role
+ */
+typedef enum eSirBssType {
     eSIR_INFRASTRUCTURE_MODE,
-    eSIR_INFRA_AP_MODE,                    //Added for softAP support
+    eSIR_INFRA_AP_MODE,
     eSIR_IBSS_MODE,
-    eSIR_BTAMP_STA_MODE,                     //Added for BT-AMP support
-    eSIR_BTAMP_AP_MODE,                     //Added for BT-AMP support
-    eSIR_AUTO_MODE,
+    eSIR_BTAMP_STA_MODE,
+    eSIR_BTAMP_AP_MODE,
     eSIR_MONITOR_MODE,
-    eSIR_DONOT_USE_BSS_TYPE = SIR_MAX_ENUM_SIZE
+    eSIR_NDI_MODE,
+    eSIR_AUTO_MODE,
 } tSirBssType;
 
 /// Power Capability info used in 11H
@@ -5733,6 +5743,7 @@ typedef enum
     WIFI_INTERFACE_P2P_GO     = 4,
     WIFI_INTERFACE_NAN        = 5,
     WIFI_INTERFACE_MESH       = 6,
+    WIFI_INTERFACE_NDI        = 7,
  } tSirWifiInterfaceMode;
 
 /* set for QOS association */

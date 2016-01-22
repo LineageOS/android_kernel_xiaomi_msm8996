@@ -148,17 +148,17 @@ typedef enum {
 
 typedef tANI_U8 tCsrBssid[VOS_MAC_ADDR_SIZE];
 
-typedef enum
-{
+typedef enum {
     eCSR_BSS_TYPE_NONE,
     eCSR_BSS_TYPE_INFRASTRUCTURE,
-    eCSR_BSS_TYPE_INFRA_AP,       // SoftAP AP
-    eCSR_BSS_TYPE_IBSS,           // an IBSS network we will NOT start
-    eCSR_BSS_TYPE_START_IBSS,     // an IBSS network we will start if no partners detected.
-    eCSR_BSS_TYPE_WDS_AP,         // BT-AMP AP
-    eCSR_BSS_TYPE_WDS_STA,        // BT-AMP station
-    eCSR_BSS_TYPE_ANY,            // any BSS type (IBSS or Infrastructure).
-}eCsrRoamBssType;
+    eCSR_BSS_TYPE_INFRA_AP,       /* Soft AP */
+    eCSR_BSS_TYPE_IBSS,           /* IBSS network, will NOT start */
+    eCSR_BSS_TYPE_START_IBSS,     /* IBSS network, will start if no partner */
+    eCSR_BSS_TYPE_WDS_AP,         /* BT-AMP AP */
+    eCSR_BSS_TYPE_WDS_STA,        /* BT-AMP station */
+    eCSR_BSS_TYPE_NDI,            /* NAN data path interface */
+    eCSR_BSS_TYPE_ANY,            /* any BSS type (IBSS or Infrastructure) */
+} eCsrRoamBssType;
 
 
 
@@ -540,6 +540,8 @@ typedef enum
     // Channel sw update notification
     eCSR_ROAM_DFS_CHAN_SW_NOTIFY,
     eCSR_ROAM_EXT_CHG_CHNL_IND,
+
+    eCSR_ROAM_NDP_STATUS_UPDATE,
 }eRoamCmdStatus;
 
 
@@ -641,6 +643,16 @@ typedef enum
     eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_SUCCESS,
     eCSR_ROAM_RESULT_DFS_CHANSW_UPDATE_FAILURE,
     eCSR_ROAM_EXT_CHG_CHNL_UPDATE_IND,
+
+    eCSR_ROAM_RESULT_NDP_INITIATOR_RSP,
+    eCSR_ROAM_RESULT_NDP_NEW_PEER_IND,
+    eCSR_ROAM_RESULT_NDP_CONFIRM_IND,
+    eCSR_ROAM_RESULT_NDP_INDICATION,
+    eCSR_ROAM_RESULT_NDP_RESPONDER_REQ,
+    eCSR_ROAM_RESULT_NDP_RESPONDER_RSP,
+    eCSR_ROAM_RESULT_NDP_END_RSP,
+    eCSR_ROAM_RESULT_NDP_PEER_DEPARTED_IND,
+    eCSR_ROAM_RESULT_NDP_END_IND,
 }eCsrRoamResult;
 
 
@@ -1700,6 +1712,7 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 #define CSR_IS_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
 #define CSR_IS_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
 #define CSR_IS_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
+#define CSR_IS_NDI(pProfile)  (eCSR_BSS_TYPE_NDI == (pProfile)->BSSType)
 
 //pProfile - pointer to tCsrRoamConnectedProfile
 #define CSR_IS_CONN_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )

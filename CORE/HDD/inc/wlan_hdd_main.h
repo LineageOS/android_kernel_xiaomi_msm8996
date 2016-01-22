@@ -572,8 +572,9 @@ typedef enum device_mode
    WLAN_HDD_FTM,
    WLAN_HDD_IBSS,
    WLAN_HDD_P2P_DEVICE,
-   WLAN_HDD_OCB
-}device_mode_t;
+   WLAN_HDD_OCB,
+   WLAN_HDD_NDI
+} device_mode_t;
 
 typedef enum rem_on_channel_request_type
 {
