@@ -109,6 +109,7 @@
 #include "regdomain_common.h"
 
 #include "wma_ocb.h"
+#include "wma_nan_datapath.h"
 
 /* ################### defines ################### */
 /*
@@ -32019,6 +32020,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	hdd_tgt_cfg.wmi_max_len = wmi_get_max_msg_len(wma_handle->wmi_handle)
 					- WMI_TLV_HEADROOM;
 	hdd_tgt_cfg.bpf_enabled = wma_handle->bpf_enabled;
+	wma_update_hdd_cfg_ndp(wma_handle, &hdd_tgt_cfg);
 	wma_setup_egap_support(&hdd_tgt_cfg, wma_handle);
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
@@ -32283,6 +32285,9 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		return;
 	}
 
+	wma_handle->nan_datapath_enabled =
+		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+			WMI_SERVICE_NAN_DATA);
 	vos_mem_copy(target_cap.wmi_service_bitmap,
 		     param_buf->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
