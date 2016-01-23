@@ -134,6 +134,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
 #include "tl_shim.h"
+#include "wlan_hdd_nan_datapath.h"
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
@@ -8747,6 +8748,9 @@ void hdd_update_tgt_cfg(void *context, void *param)
     if (hdd_ctx->bpf_enabled)
              hdd_ctx->cfg_ini->maxWoWFilters = WMA_STA_WOW_DEFAULT_PTRN_MAX;
     hdd_ctx->wmi_max_len = cfg->wmi_max_len;
+
+    /* Configure NAN datapath features */
+    hdd_nan_datapath_target_config(hdd_ctx, cfg);
 }
 
 /* This function is invoked in atomic context when a radar

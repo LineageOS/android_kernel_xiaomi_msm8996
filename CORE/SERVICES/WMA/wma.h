@@ -857,7 +857,10 @@ typedef struct wma_handle {
 	struct wma_runtime_pm_context runtime_context;
 	uint32_t fine_time_measurement_cap;
 	bool bpf_enabled;
-	bool     pause_other_vdev_on_mcc_start;
+	bool pause_other_vdev_on_mcc_start;
+
+	/* NAN datapath support enabled in firmware */
+	bool nan_datapath_enabled;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
