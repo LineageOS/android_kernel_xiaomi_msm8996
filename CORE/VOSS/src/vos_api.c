@@ -2336,6 +2336,9 @@ VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
         case VOS_OCB_MODE:
             *type = WMI_VDEV_TYPE_OCB;
             break;
+        case VOS_NDI_MODE:
+            *type = WMI_VDEV_TYPE_NDI;
+            break;
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid device mode %d", mode);
             status = VOS_STATUS_E_INVAL;

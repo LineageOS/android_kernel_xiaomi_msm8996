@@ -27,11 +27,11 @@
 #ifndef __MAC_NAN_DATAPATH_H
 #define __MAC_NAN_DATAPATH_H
 
-#ifdef WLAN_FEATURE_NAN_DATAPATH
-
 #include "sirCommon.h"
 #include "aniGlobal.h"
 #include "sirParams.h"
+
+#ifdef WLAN_FEATURE_NAN_DATAPATH
 
 /**
  * struct ndp_peer_node - structure for holding per-peer context
@@ -106,6 +106,10 @@ VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
 /* Function to process NDP events */
 VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx,
 					tpSirMsgQ msg);
+
+void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx,
+				     tpSirMsgQ lim_msg_q,
+				     tpPESession session_entry);
 #else
 /* Function to process NDP requests */
 static inline VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
@@ -119,6 +123,14 @@ static inline VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx,
 {
 	return VOS_STATUS_SUCCESS;
 }
+
+/* Function to process NDP events */
+static inline void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx,
+						   tpSirMsgQ lim_msg_q,
+						   tpPESession session_entry)
+{
+}
+
 #endif /* WLAN_FEATURE_NAN_DATAPATH */
 
 #endif /* __MAC_NAN_DATAPATH_H */

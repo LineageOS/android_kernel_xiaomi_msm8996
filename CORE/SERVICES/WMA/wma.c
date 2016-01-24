@@ -321,8 +321,8 @@ static struct index_vht_data_rate_type vht_mcs_nss2[] =
 };
 #endif
 
-static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
-			 void *body_ptr, u_int32_t body_val);
+void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
+				void *body_ptr, u_int32_t body_val);
 
 #ifdef QCA_IBSS_SUPPORT
 static void wma_data_tx_ack_comp_hdlr(void *wma_context,
@@ -370,8 +370,8 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 /*DFS Attach*/
 struct ieee80211com* wma_dfs_attach(struct ieee80211com *ic);
 static void wma_dfs_detach(struct ieee80211com *ic);
-static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
-							tpAddBssParams add_bss);
+void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
+			    tpAddBssParams add_bss);
 /*Configure DFS with radar tables and regulatory domain*/
 void wma_dfs_configure(struct ieee80211com *ic);
 
@@ -419,22 +419,6 @@ static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
 
 tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset);
 
-static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
-				   u_int8_t *vdev_id)
-{
-	u_int8_t i;
-
-	for (i = 0; i < wma->max_bssid; i++) {
-		if (vos_is_macaddr_equal(
-			(v_MACADDR_t *) wma->interfaces[i].addr,
-			(v_MACADDR_t *) addr) == VOS_TRUE) {
-			*vdev_id = i;
-			return wma->interfaces[i].handle;
-		}
-	}
-	return NULL;
-}
-
 /*
  * 802.11n D2.0 defined values for "Minimum MPDU Start Spacing":
  *   0 for no restriction
@@ -454,20 +438,6 @@ static inline uint8_t wma_parse_mpdudensity(u_int8_t mpdudensity)
 		return wma_mpdu_spacing[mpdudensity];
 	else
 		return 0;
-}
-
-/* Function   : wma_find_vdev_by_id
- * Description : Returns vdev handle for given vdev id.
- * Args       : @wma - wma handle, @vdev_id - vdev ID
- * Returns    : Returns vdev handle if given vdev id is valid.
- *              Otherwise returns NULL.
- */
-static inline void *wma_find_vdev_by_id(tp_wma_handle wma, u_int8_t vdev_id)
-{
-	if (vdev_id > wma->max_bssid)
-		return NULL;
-
-	return wma->interfaces[vdev_id].handle;
 }
 
 /* Function    : wma_get_vdev_count
@@ -1447,8 +1417,7 @@ static int wma_unified_debug_print_event_handler(void *handle, u_int8_t *datap,
 #endif
 }
 
-static int
-wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+int wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 				u_int32_t param_id, u_int32_t param_value)
 {
 	int ret;
@@ -7380,8 +7349,8 @@ end:
  * Args       :
  * Returns    :
  */
-static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
-		void *body_ptr, u_int32_t body_val)
+void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
+				void *body_ptr, u_int32_t body_val)
 {
 	tSirMsgQ msg = {0} ;
 	tANI_U32 status = VOS_STATUS_SUCCESS ;
@@ -7421,6 +7390,9 @@ enum wlan_op_mode wma_get_txrx_vdev_type(u_int32_t type)
 #endif
 		case WMI_VDEV_TYPE_OCB:
 			vdev_type = wlan_op_mode_ocb;
+			break;
+		case WMI_VDEV_TYPE_NDI:
+			vdev_type = wlan_op_mode_ndi;
 			break;
 		case WMI_VDEV_TYPE_MONITOR:
 			vdev_type = wlan_op_mode_monitor;
@@ -8334,10 +8306,11 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 
 	if (((self_sta_req->type == WMI_VDEV_TYPE_AP) &&
 			(self_sta_req->subType ==
-			WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE))
-		|| (self_sta_req->type == WMI_VDEV_TYPE_OCB) ||
-		(self_sta_req->type == WMI_VDEV_TYPE_MONITOR)) {
-		WMA_LOGA("P2P Device: creating self peer %pM, vdev_id %hu",
+				WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) ||
+		(self_sta_req->type == WMI_VDEV_TYPE_OCB) ||
+		(self_sta_req->type == WMI_VDEV_TYPE_MONITOR) ||
+		(self_sta_req->type == WMI_VDEV_TYPE_NDI)) {
+		WMA_LOGA("Creating self peer %pM, vdev_id %hu",
 				self_sta_req->selfMacAddr,
 				self_sta_req->sessionId);
 		status = wma_create_peer(wma_handle, txrx_pdev,
@@ -15514,7 +15487,7 @@ send_fail_resp:
 }
 #endif
 
-static void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
+void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
 							tpAddBssParams add_bss)
 {
 	iface->rate_flags = 0;
@@ -15818,6 +15791,10 @@ static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 		wma_add_bss_ibss_mode(wma, params);
                 break;
 #endif
+
+	case VOS_NDI_MODE:
+		wma_add_bss_ndi_mode(wma, params);
+		break;
 
         default:
 		wma_add_bss_sta_mode(wma, params);

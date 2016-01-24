@@ -6980,6 +6980,7 @@ const char * lim_BssTypetoString(const v_U8_t bssType)
         CASE_RETURN_STRING( eSIR_BTAMP_STA_MODE );
         CASE_RETURN_STRING( eSIR_BTAMP_AP_MODE );
         CASE_RETURN_STRING( eSIR_AUTO_MODE );
+        CASE_RETURN_STRING(eSIR_NDI_MODE);
         default:
             return "Unknown BssType";
     }
