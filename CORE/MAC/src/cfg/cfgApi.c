@@ -869,7 +869,8 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
              LIM_IS_BT_AMP_STA_ROLE(sessionEntry) ||
              LIM_IS_STA_ROLE(sessionEntry))
         pCapInfo->ess = 1; // ESS bit
-    else if (LIM_IS_P2P_DEVICE_ROLE(sessionEntry)) {
+    else if (LIM_IS_P2P_DEVICE_ROLE(sessionEntry) ||
+             LIM_IS_NDI_ROLE(sessionEntry)) {
         pCapInfo->ess = 0;
         pCapInfo->ibss = 0;
     }

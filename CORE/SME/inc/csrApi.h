@@ -708,6 +708,10 @@ typedef enum
     eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED,
     // Disconnecting with AP or stop connecting process
     eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTING,
+    /* NAN Data interface not started */
+    eCSR_CONNECT_STATE_TYPE_NDI_NOT_STARTED,
+    /* NAN Data inteface started */
+    eCSR_CONNECT_STATE_TYPE_NDI_STARTED,
 }eCsrConnectState;
 
 
@@ -1729,13 +1733,23 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 #define CSR_IS_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
 #define CSR_IS_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
 #define CSR_IS_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
+#ifdef WLAN_FEATURE_NAN_DATAPATH
 #define CSR_IS_NDI(pProfile)  (eCSR_BSS_TYPE_NDI == (pProfile)->BSSType)
+#else
+#define CSR_IS_NDI(pProfile)  (FALSE)
+#endif
 
 //pProfile - pointer to tCsrRoamConnectedProfile
 #define CSR_IS_CONN_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
 #define CSR_IS_CONN_WDS_AP( pProfile )  ( eCSR_BSS_TYPE_WDS_AP == (pProfile)->BSSType )
 #define CSR_IS_CONN_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
 #define CSR_IS_CONN_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
+
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+#define CSR_IS_CONN_NDI(pProfile)  (eCSR_BSS_TYPE_NDI == (pProfile)->BSSType)
+#else
+#define CSR_IS_CONN_NDI(pProfile)  (FALSE)
+#endif
 
 
 
