@@ -7028,7 +7028,6 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
                     __func__, ret);
     }
 
-    wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
     pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
     vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
     vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,

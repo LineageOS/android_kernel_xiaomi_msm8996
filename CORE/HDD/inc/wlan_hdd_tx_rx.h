@@ -102,7 +102,6 @@ extern void hdd_drop_skb(hdd_adapter_t *adapter, struct sk_buff *skb);
 extern void hdd_drop_skb_list(hdd_adapter_t *adapter, struct sk_buff *skb,
                                                       bool is_update_ac_stats);
 
-extern int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 /**============================================================================
   @brief hdd_tx_timeout() - Function called by OS if there is any
   timeout during transmission. Since HDD simply enqueues packet
@@ -176,22 +175,6 @@ extern VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext, adf_nbuf_t rxBufChain,
                   : VOS_FALSE otherwise
   ===========================================================================*/
 extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
-
-/**============================================================================
-  @brief hdd_mon_tx_mgmt_pkt() - Transmit MGMT packet received on monitor
-                                 interface.
-
-  @param pAdapter: [in] SAP/P2P GO adapter.
-  ===========================================================================*/
-void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
-
-/**============================================================================
-  @brief hdd_mon_tx_work_queue() - work queue handler for transmitting
-                                   mgmt packets.
-
-  @param work: [in] work queue structure.
-  ===========================================================================*/
-void hdd_mon_tx_work_queue(struct work_struct *work);
 
 /**============================================================================
   @brief hdd_Ibss_GetStaId() - Get the StationID using the Peer Mac address
