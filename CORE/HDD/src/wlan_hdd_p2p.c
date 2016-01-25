@@ -192,6 +192,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     vos_timer_destroy(&pRemainChanCtx->hdd_remain_on_chan_timer);
 
     cfgState->remain_on_chan_ctx = NULL;
+
     /*
      * Resetting the roc in progress early ensures that the subsequent
      * roc requests are immediately processed without being queued
@@ -205,7 +206,6 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
      * Basically, the system must not go into suspend while roc is in progress.
      */
     hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_ROC);
-    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request)
     {
@@ -229,6 +229,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
                               GFP_KERNEL);
         pAdapter->lastRocTs = vos_timer_get_system_time();
     }
+    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
     /* Schedule any pending RoC: Any new roc request during this time
      * would have got queued in 'wlan_hdd_request_remain_on_channel'
@@ -245,13 +246,17 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId;
+        mutex_lock(&cfgState->remain_on_chan_ctx_lock);
         if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request)
         {
+            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
             sme_DeregisterMgmtFrame(
                        hHal, sessionId,
                       (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                        NULL, 0 );
         }
+        else
+           mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     }
     else if ( ( WLAN_HDD_SOFTAP== pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
@@ -268,6 +273,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
 
     }
 
+    mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     if(pRemainChanCtx->action_pkt_buff.frame_ptr != NULL
        && pRemainChanCtx->action_pkt_buff.frame_length != 0 )
     {
@@ -276,6 +282,7 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
         pRemainChanCtx->action_pkt_buff.frame_length = 0;
     }
     vos_mem_free( pRemainChanCtx );
+    mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     complete(&pAdapter->cancel_rem_on_chan_var);
     if (eHAL_STATUS_SUCCESS != status)
         complete(&pAdapter->rem_on_chan_ready_event);
@@ -300,6 +307,12 @@ void wlan_hdd_cancel_existing_remain_on_channel(hdd_adapter_t *pAdapter)
                                               hdd_remain_on_chan_timer);
 
         pRemainChanCtx = cfgState->remain_on_chan_ctx;
+        if (NULL == pRemainChanCtx)
+        {
+            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+            hddLog(LOGE, FL("pRemainChanCtx is NULL"));
+            return;
+        }
         if (pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress == TRUE)
         {
             mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
@@ -418,6 +431,12 @@ void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter)
 
            mutex_lock(&cfgState->remain_on_chan_ctx_lock);
            roc_ctx = cfgState->remain_on_chan_ctx;
+           if (roc_ctx == NULL)
+           {
+               mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
+               hddLog(LOG1, FL("roc_ctx is NULL!"));
+               return;
+           }
            if (roc_ctx->hdd_remain_on_chan_cancel_in_progress == true) {
                 mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
                 hddLog(LOG1, FL("roc cancel already in progress"));
@@ -1557,7 +1576,9 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
                    goto send_frame;
                } else {
 
-                  if(pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress == TRUE)
+                  if( (pRemainChanCtx != NULL) &&
+                      (pRemainChanCtx->hdd_remain_on_chan_cancel_in_progress ==
+                           TRUE))
                   {
                       mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
                       hddLog(VOS_TRACE_LEVEL_INFO,
