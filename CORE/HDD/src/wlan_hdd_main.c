@@ -13454,7 +13454,8 @@ static void hdd_bus_bw_compute_cbk(void *priv)
             continue;
 
 #ifdef IPA_UC_OFFLOAD
-        pValidAdapter = pAdapter;
+        if (NULL == pValidAdapter)
+                pValidAdapter = pAdapter;
 #endif /* IPA_UC_OFFLOAD */
 
         if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION ||
@@ -13497,6 +13498,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     hdd_ipa_uc_stat_query(pHddCtx, &ipa_tx_packets, &ipa_rx_packets);
     tx_packets += (uint64_t)ipa_tx_packets;
     rx_packets += (uint64_t)ipa_rx_packets;
+
+    pValidAdapter->stats.tx_packets += ipa_tx_packets;
+    pValidAdapter->stats.rx_packets += ipa_rx_packets;
 #endif /* IPA_UC_OFFLOAD */
     if (!connected) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
