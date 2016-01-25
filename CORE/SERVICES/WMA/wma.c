@@ -32262,8 +32262,17 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 			 * WMA_TX_FRAME_COMPLETE_TIMEOUT (1 sec)
 			 */
 #ifdef CONFIG_HL_SUPPORT
-			 /* display scheduler stats */
-			 wdi_in_display_stats(txrx_pdev, WLAN_SCHEDULER_STATS);
+			/* display scheduler stats
+			 * when count is max or modulus of
+			 * OL_TXSTATS_DUMP_MOD_FREQ
+			 */
+			if ((mgmt_downld_fail_count ==
+				wma_handle->max_mgmt_tx_fail_count) ||
+				(mgmt_downld_fail_count %
+				OL_TXSTATS_DUMP_MOD_FREQ == 0)) {
+					wdi_in_display_stats(txrx_pdev,
+							WLAN_SCHEDULER_STATS);
+			}
 #endif
 			WMA_LOGE("%s: download complete failure count:%d",
 					 __func__, mgmt_downld_fail_count);
