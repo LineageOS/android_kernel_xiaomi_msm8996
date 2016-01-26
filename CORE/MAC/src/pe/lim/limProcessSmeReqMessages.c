@@ -2658,6 +2658,12 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
     psessionEntry->limSmeState    = eLIM_SME_WT_REASSOC_STATE;
 
+    psessionEntry->enableHtSmps = pReassocReq->enableHtSmps;
+    psessionEntry->htSmpsvalue = pReassocReq->htSmps;
+    limLog(pMac, LOG1, FL("enableHtSmps: %d htSmps: %d"),
+           psessionEntry->enableHtSmps,
+           psessionEntry->htSmpsvalue);
+
     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
 
     limPostMlmMessage(pMac,
