@@ -27,6 +27,28 @@
 #ifndef __SME_NAN_DATAPATH_H
 #define __SME_NAN_DATAPATH_H
 
+#include "vos_types.h"
+#include "halTypes.h"
+#include "sirApi.h"
+#include "aniGlobal.h"
+
+/* NaN initiator request handler */
+VOS_STATUS sme_ndp_initiator_req_handler(uint32_t session_id,
+					struct ndp_initiator_req *req_params);
+
+/* NaN responder request handler */
+VOS_STATUS sme_ndp_responder_req_handler(uint32_t session_id,
+					struct ndp_responder_req *req_params);
+
+/* NaN indication response handler */
+VOS_STATUS sme_ndp_end_req_handler(uint32_t session_id,
+					struct ndp_end_req *req_params);
+
+/* NaN schedule update request handler */
+VOS_STATUS sme_ndp_sched_req_handler(uint32_t session_id,
+				struct ndp_schedule_update_req *req_params);
+
+/* Function to handle NDP messages from lower layers */
+void sme_ndp_message_processor(tpAniSirGlobal mac_ctx, uint16_t msg_type,
+				void *msg);
 #endif /* __SME_NAN_DATAPATH_H */
-
-
