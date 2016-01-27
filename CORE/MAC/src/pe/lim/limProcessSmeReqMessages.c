@@ -5792,7 +5792,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
      * want to insert NOA before processing those msgs. These msgs will be processed later when
      * start event happens
      */
-    MTRACE(macTraceMsgRx(pMac, NO_SESSION, pMsg->type));
     switch (pMsg->type)
     {
         case eWNI_SME_SCAN_REQ:

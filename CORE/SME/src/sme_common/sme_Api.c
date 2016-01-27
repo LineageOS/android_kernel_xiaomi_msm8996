@@ -3901,8 +3901,6 @@ tCsrScanResultInfo *sme_ScanResultGetNext(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tCsrScanResultInfo *pRet = NULL;
 
-    MTRACE(vos_trace(VOS_MODULE_ID_SME ,
-        TRACE_CODE_SME_RX_HDD_MSG_SCAN_RESULT_GETNEXT, NO_SESSION,0 ));
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
