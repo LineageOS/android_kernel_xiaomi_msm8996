@@ -8897,16 +8897,16 @@ static int __hdd_open(struct net_device *dev)
    hdd_context_t *pHddCtx =  WLAN_HDD_GET_CTX(pAdapter);
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
-   int ret;
    v_BOOL_t in_standby = TRUE;
 
    MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_OPEN_REQUEST,
                     pAdapter->sessionId, pAdapter->device_mode));
 
-   ret = wlan_hdd_validate_context(pHddCtx);
-   if (0 != ret) {
-       hddLog(LOGE, FL("HDD context is not valid"));
-       return ret;
+   /* Don't validate for load/unload and logp as if we return
+      failure we may endup in scan/connection related issues */
+   if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini) {
+       hddLog(LOG1, FL("HDD context is Null"));
+       return -ENODEV;
    }
 
    status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
@@ -8935,7 +8935,7 @@ static int __hdd_open(struct net_device *dev)
        netif_tx_start_all_queues(dev);
    }
 
-   return ret;
+   return 0;
 }
 
 /**
