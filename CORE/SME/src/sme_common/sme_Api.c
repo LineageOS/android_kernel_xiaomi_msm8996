@@ -17407,13 +17407,13 @@ eHalStatus vos_send_flush_logs_cmd_to_fw(tpAniSirGlobal mac)
 }
 
 /**
- * sme_disable_non_fcc_channel() - non-fcc channel disable request
+ * sme_handle_set_fcc_channel() - set specific txPower for non-fcc channel
  * @hal: HAL pointer
  * @fcc_constraint: true: disable, false; enable
  *
  * Return: eHalStatus.
  */
-eHalStatus sme_disable_non_fcc_channel(tHalHandle hal, bool fcc_constraint)
+eHalStatus sme_handle_set_fcc_channel(tHalHandle hal, bool fcc_constraint)
 {
 	eHalStatus status = eHAL_STATUS_SUCCESS;
 	tpAniSirGlobal mac_ptr  = PMAC_STRUCT(hal);
