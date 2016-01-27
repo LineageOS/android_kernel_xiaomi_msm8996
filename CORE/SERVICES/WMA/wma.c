@@ -19334,6 +19334,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 
 	case WOW_REASON_NLO_SCAN_COMPLETE:
 		return "WOW_REASON_NLO_SCAN_COMPLETE";
+	case WOW_REASON_BPF_ALLOW:
+		return "WOW_REASON_BPF_ALLOW";
 	}
 	return "unknown";
 }
@@ -30916,6 +30918,11 @@ static v_VOID_t wma_update_fw_config(tp_wma_handle wma_handle,
 	tgt_cap->wlan_resource_config.max_frag_entries =
 		MIN(QCA_OL_11AC_TX_MAX_FRAGS, wma_handle->max_frag_entry);
 	wma_handle->max_frag_entry = tgt_cap->wlan_resource_config.max_frag_entries;
+	/* Update no. of maxWoWFilters depending on BPF service */
+	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+					WMI_SERVICE_BPF_OFFLOAD))
+		tgt_cap->wlan_resource_config.num_wow_filters =
+						MAX_WOW_FILTERS;
 }
 
 /**
