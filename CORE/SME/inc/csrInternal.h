@@ -708,6 +708,7 @@ typedef struct tagCsrConfig
     struct roam_ext_params roam_params;
     tANI_BOOLEAN sendDeauthBeforeCon;
     tANI_BOOLEAN ignorePeerErpInfo;
+    bool ignore_peer_ht_opmode;
     v_U16_t pkt_err_disconn_th;
 }tCsrConfig;
 

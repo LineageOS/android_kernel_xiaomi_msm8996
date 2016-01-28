@@ -4297,6 +4297,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ROAM_DENSE_TRAFFIC_THRESHOLD_MIN,
                 CFG_ROAM_DENSE_TRAFFIC_THRESHOLD_MAX),
 
+   REG_VARIABLE(CFG_IGNORE_PEER_HT_MODE_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, ignore_peer_ht_opmode,
+                  VAR_FLAGS_OPTIONAL |
+                  VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_IGNORE_PEER_HT_MODE_DEFAULT,
+                  CFG_IGNORE_PEER_HT_MODE_MIN,
+                  CFG_IGNORE_PEER_HT_MODE_MAX),
+
    REG_VARIABLE(CFG_ROAM_DENSE_RSSI_THRE_OFFSET, WLAN_PARAM_Integer,
                 hdd_config_t, roam_dense_rssi_thresh_offset,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4311,6 +4319,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ROAM_DENSE_MIN_APS_MIN,
                 CFG_ROAM_DENSE_MIN_APS_MAX),
 };
+
 
 #ifdef WLAN_FEATURE_MBSSID
 REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
@@ -4925,7 +4934,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "Name = [gEnableSapSuspend] Value = [%u]",
             pHddCtx->cfg_ini->enableSapSuspend);
-
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Name = [gIgnorePeerHTopMode] Value = [%u]",
+                   pHddCtx->cfg_ini->ignore_peer_ht_opmode);
 #ifdef WLAN_FEATURE_EXTWOW_SUPPORT
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gExtWoWgotoSuspend] Value = [%u]",
@@ -6946,7 +6957,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->sap_channel_avoidance =
                 pHddCtx->cfg_ini->sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
-
+   smeConfig->csrConfig.ignore_peer_ht_opmode =
+                           pConfig->ignore_peer_ht_opmode;
    smeConfig->csrConfig.pkt_err_disconn_th =
                    pHddCtx->cfg_ini->pkt_err_disconn_th;
    smeConfig->f_prefer_non_dfs_on_radar =

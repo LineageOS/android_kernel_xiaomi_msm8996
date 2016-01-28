@@ -1292,7 +1292,7 @@ typedef struct tagCsrConfigParam
     v_U8_t conc_custom_rule1;
     v_U8_t conc_custom_rule2;
     v_U8_t is_sta_connection_in_5gz_enabled;
-
+    bool       ignore_peer_ht_opmode;
     /* 802.11p enable */
     bool       enable_dot11p;
     tANI_BOOLEAN sendDeauthBeforeCon;

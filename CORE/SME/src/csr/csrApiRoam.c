@@ -1965,6 +1965,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.isRoamOffloadEnabled =
                                pParam->isRoamOffloadEnabled;
 #endif
+        pMac->roam.configParam.ignore_peer_ht_opmode =
+                                    pParam->ignore_peer_ht_opmode;
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
         pMac->roam.configParam.conc_custom_rule1 =
                                pParam->conc_custom_rule1;
@@ -2130,7 +2132,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->isRoamOffloadEnabled =
                                 pMac->roam.configParam.isRoamOffloadEnabled;
 #endif
-
+        pParam->ignore_peer_ht_opmode =
+                     pMac->roam.configParam.ignore_peer_ht_opmode;
         pParam->enable_dot11p = pMac->enable_dot11p;
 
         csrSetChannels(pMac, pParam);

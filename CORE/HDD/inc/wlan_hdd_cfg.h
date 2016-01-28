@@ -236,6 +236,16 @@
 #define CFG_REG_CHANGE_DEF_COUNTRY_MIN           ( 0 )
 #define CFG_REG_CHANGE_DEF_COUNTRY_MAX           ( 1 )
 
+/*
+ * Enabling gIgnorePeerHTopMode will enable 11g
+ * protection only when there is a 11g AP in vicinity
+ */
+#define CFG_IGNORE_PEER_HT_MODE_NAME       "gIgnorePeerHTopMode"
+#define CFG_IGNORE_PEER_HT_MODE_MIN        (0)
+#define CFG_IGNORE_PEER_HT_MODE_MAX        (1)
+#define CFG_IGNORE_PEER_HT_MODE_DEFAULT    (0)
+
+
 #define CFG_ADVERTISE_CONCURRENT_OPERATION_NAME    "gAdvertiseConcurrentOperation"
 #define CFG_ADVERTISE_CONCURRENT_OPERATION_DEFAULT ( 1 )
 #define CFG_ADVERTISE_CONCURRENT_OPERATION_MIN     ( 0 )
@@ -4257,6 +4267,7 @@ typedef struct
    uint16_t                    sap_tx_leakage_threshold;
    uint32_t                    roam_dense_traffic_thresh;
    uint32_t                    roam_dense_rssi_thresh_offset;
+   bool                        ignore_peer_ht_opmode;
    uint32_t                    roam_dense_min_aps;
    bool                        mib_stats_enabled;
 } hdd_config_t;
