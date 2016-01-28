@@ -1563,7 +1563,7 @@ send_suspend_ind:
    }
 
    pHddCtx->hdd_wlan_suspended = TRUE;
-
+   hdd_wlan_suspend_resume_event(HDD_WLAN_EARLY_SUSPEND);
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
   if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
   {
@@ -1735,7 +1735,7 @@ void hdd_resume_wlan(void)
    }
 
    pHddCtx->hdd_wlan_suspended = FALSE;
-
+   hdd_wlan_suspend_resume_event(HDD_WLAN_EARLY_RESUME);
    /*loop through all adapters. Concurrency */
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 

@@ -354,6 +354,16 @@ struct vos_event_tdls_enable_link {
 	uint8_t   is_off_chan_established;
 };
 
+/**
+ * struct vos_event_suspend - suspend/resume state
+ * @state: suspend/resume state
+ *
+ * This structure contains suspend resume diag event info
+ */
+struct vos_event_suspend {
+	uint8_t state;
+};
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
