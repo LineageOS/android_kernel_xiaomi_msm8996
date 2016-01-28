@@ -20426,6 +20426,11 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                         __func__, MAC_ADDR_ARRAY(peer), action_code);
 
              return -ENOTSUPP;
+        } else if (pHddCtx->tdls_nss_switch_in_progress) {
+             hddLog(LOGE,
+                    FL("TDLS antenna switch in progress, action %d declined for "
+                    MAC_ADDRESS_STR), action_code, MAC_ADDR_ARRAY(peer));
+             return -EAGAIN;
         }
     }
     if (WLAN_IS_TDLS_SETUP_ACTION(action_code))
