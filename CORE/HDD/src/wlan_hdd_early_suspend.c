@@ -117,6 +117,30 @@ extern tVOS_CON_MODE hdd_get_conparam ( void );
 static struct timer_list ssr_timer;
 static bool ssr_timer_started;
 
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * hdd_wlan_offload_event()- send offloads event
+ * @type: offload type
+ * @state: enabled or disabled
+ *
+ * This Function send offloads enable/disable diag event
+ *
+ * Return: void.
+ */
+
+void hdd_wlan_offload_event(uint8_t type, uint8_t state)
+{
+	WLAN_VOS_DIAG_EVENT_DEF(host_offload, struct vos_event_offload_req);
+	vos_mem_zero(&host_offload, sizeof(host_offload));
+
+	host_offload.offload_type = type;
+	host_offload.state = state;
+
+	WLAN_VOS_DIAG_EVENT_REPORT(&host_offload, EVENT_WLAN_OFFLOAD_REQ);
+}
+
+#endif
+
 //Callback invoked by PMC to report status of standby request
 void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
 {
@@ -792,7 +816,8 @@ static void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable)
                                                     SIR_IPV6_ADDR_VALID;
                 offLoadRequest.nsOffloadInfo.target_ipv6_addr_type[i] =
                                                        ipv6_addr_type[i];
-
+                hdd_wlan_offload_event(SIR_IPV6_NS_OFFLOAD,
+                                               SIR_OFFLOAD_ENABLE);
                 vos_mem_copy(&offLoadRequest.params.hostIpv6Addr,
                    &offLoadRequest.nsOffloadInfo.targetIPv6Addr[i],
                    sizeof(tANI_U8)*SIR_MAC_IPV6_ADDR_LEN);
@@ -832,6 +857,8 @@ static void hdd_conf_ns_offload(hdd_adapter_t *pAdapter, int fenable)
         vos_mem_zero((void *)&offLoadRequest, sizeof(tSirHostOffloadReq));
         offLoadRequest.enableOrDisable = SIR_OFFLOAD_DISABLE;
         offLoadRequest.offloadType =  SIR_IPV6_NS_OFFLOAD;
+        hdd_wlan_offload_event(SIR_IPV6_NS_OFFLOAD,
+                                           SIR_OFFLOAD_DISABLE);
 
         if (eHAL_STATUS_SUCCESS !=
              sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -1222,6 +1249,8 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, int fenable)
        {
            offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
            offLoadRequest.enableOrDisable = SIR_OFFLOAD_ENABLE;
+           hdd_wlan_offload_event(SIR_IPV4_ARP_REPLY_OFFLOAD,
+                                           SIR_OFFLOAD_ENABLE);
 
            hddLog(VOS_TRACE_LEVEL_INFO, "%s: Enabled", __func__);
 
@@ -1236,7 +1265,8 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, int fenable)
                hddLog(VOS_TRACE_LEVEL_INFO,
                       "offload: inside arp offload conditional check");
            }
-
+           hdd_wlan_offload_event(SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE,
+                                           SIR_OFFLOAD_ENABLE);
            hddLog(VOS_TRACE_LEVEL_INFO, "offload: arp filter programmed = %d",
                   offLoadRequest.enableOrDisable);
 
@@ -1273,6 +1303,8 @@ VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t *pAdapter, int fenable)
        vos_mem_zero((void *)&offLoadRequest, sizeof(tSirHostOffloadReq));
        offLoadRequest.enableOrDisable = SIR_OFFLOAD_DISABLE;
        offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
+       hdd_wlan_offload_event(SIR_IPV4_ARP_REPLY_OFFLOAD,
+                                           SIR_OFFLOAD_DISABLE);
 
        if (eHAL_STATUS_SUCCESS !=
                  sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter),
