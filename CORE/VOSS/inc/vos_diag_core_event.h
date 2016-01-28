@@ -72,12 +72,12 @@ typedef struct
 } vos_event_wlan_security_payload_type;
 
 /*-------------------------------------------------------------------------
-  Event ID: EVENT_WLAN_STATUS
+  Event ID: EVENT_WLAN_STATUS_V2
   ------------------------------------------------------------------------*/
 typedef struct
 {
    v_U8_t eventId;
-   v_U8_t ssid[6];
+   v_U8_t ssid[32];
    v_U8_t bssType;
    v_U8_t rssi;
    v_U8_t channel;
