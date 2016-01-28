@@ -376,6 +376,18 @@ struct vos_event_offload_req {
 	uint8_t state;
 };
 
+/**
+ * struct vos_event_tdls_scan_rejected - scan
+ * rejected due to tdls
+ * @status: rejected status
+ *
+ * This structure contains scan rejected due to
+ * tdls event info
+ */
+struct vos_event_tdls_scan_rejected {
+	uint8_t status;
+};
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/

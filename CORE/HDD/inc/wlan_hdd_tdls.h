@@ -404,6 +404,7 @@ void hdd_wlan_tdls_enable_link_event(const uint8_t *peer_mac,
 					uint8_t is_off_chan_supported,
 					uint8_t is_off_chan_configured,
 					uint8_t is_off_chan_established);
+void hdd_wlan_block_scan_by_tdls_event(void);
 #else
 static inline
 void hdd_send_wlan_tdls_teardown_event(uint32_t reason,
@@ -419,7 +420,11 @@ void hdd_wlan_tdls_enable_link_event(const uint8_t *peer_mac,
 {
 	return;
 }
-
+static inline
+void hdd_wlan_block_scan_by_tdls_event(void)
+{
+	return;
+}
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
 int wlan_hdd_tdls_set_force_peer(hdd_adapter_t *pAdapter, const u8 *mac,
