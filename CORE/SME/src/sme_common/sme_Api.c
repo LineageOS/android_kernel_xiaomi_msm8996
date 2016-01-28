@@ -17463,6 +17463,20 @@ void sme_SetDefDot11Mode(tHalHandle hal)
 	tpAniSirGlobal mac_ctx = PMAC_STRUCT( hal );
 	csrSetDefaultDot11Mode(mac_ctx);
 }
+
+/**
+ * sme_update_user_configured_nss() - sets the nss based on user request
+ * @hal: Pointer to HAL
+ * @nss: number of streams
+ *
+ * Return: None
+ */
+void sme_update_user_configured_nss(tHalHandle hal, uint8_t nss)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	mac_ctx->user_configured_nss = nss;
+}
+
 /**
  * sme_set_vdev_nss() - sets the vdev nss based on INI
  * @hal: Pointer to HAL
@@ -17490,6 +17504,7 @@ void sme_set_vdev_nss(tHalHandle hal, bool enable2x2)
 		nss_val = 1;
 		coex = 0;
 	}
+	mac_ctx->user_configured_nss = nss_val;
 
 	vdev_nss = &mac_ctx->vdev_type_nss_2g;
 
@@ -17542,6 +17557,7 @@ void sme_update_vdev_type_nss(tHalHandle hal, uint8_t max_supp_nss,
 	vdev_nss->ibss = VOS_MIN(max_supp_nss, CFG_IBSS_NSS(vdev_type_nss));
 	vdev_nss->tdls = VOS_MIN(max_supp_nss, CFG_TDLS_NSS(vdev_type_nss));
 	vdev_nss->ocb = VOS_MIN(max_supp_nss, CFG_OCB_NSS(vdev_type_nss));
+	mac_ctx->user_configured_nss = max_supp_nss;
 
 	smsLog(mac_ctx, LOG1,
            "band %d NSS: sta %d sap %d cli %d go %d dev %d ibss %d tdls %d ocb %d",

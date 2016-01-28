@@ -1256,6 +1256,7 @@ typedef struct sAniSirGlobal
     bool per_band_chainmask_supp;
     struct vdev_type_nss vdev_type_nss_2g;
     struct vdev_type_nss vdev_type_nss_5g;
+    uint8_t user_configured_nss;
     t_auth_ack_status auth_ack_status;
     bool first_scan_done;
     int8_t first_scan_bucket_threshold;

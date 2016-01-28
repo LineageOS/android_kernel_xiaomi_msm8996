@@ -571,6 +571,7 @@ static void PopulateDot11fTdlsHtVhtCap(tpAniSirGlobal pMac, uint32 selfDot11Mode
     else
         nss = pMac->vdev_type_nss_2g.tdls;
 
+    nss = VOS_MIN(nss, pMac->user_configured_nss);
     if (IS_DOT11_MODE_HT(selfDot11Mode))
     {
         /* Include HT Capability IE */
@@ -2235,6 +2236,7 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
         nss = pMac->vdev_type_nss_5g.tdls;
     else
         nss = pMac->vdev_type_nss_2g.tdls;
+    nss = VOS_MIN(nss, pMac->user_configured_nss);
     //compute the matching MCS rate set, if peer is 11n capable and self mode is 11n
 #ifdef FEATURE_WLAN_TDLS
     if (pStaDs->mlmStaContext.htCapability)

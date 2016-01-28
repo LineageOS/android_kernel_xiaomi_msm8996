@@ -5137,6 +5137,13 @@ static int drv_cmd_set_antenna_mode(hdd_adapter_t *adapter,
 			hdd_ctx->current_antenna_mode =
 				HDD_ANTENNA_MODE_2X2;
 		}
+		/* Update the user requested nss in the mac context.
+		 * This will be used in tdls protocol engine to form tdls
+		 * Management frames.
+		 */
+		sme_update_user_configured_nss(
+				hdd_ctx->hHal,
+				hdd_ctx->current_antenna_mode);
 	}
 
 exit:

@@ -4438,6 +4438,7 @@ void sme_set_pdev_ht_vht_ies(tHalHandle hHal, bool enable2x2);
 
 void sme_update_vdev_type_nss(tHalHandle hal, uint8_t max_supp_nss,
 		uint32_t vdev_type_nss, eCsrBand band);
+void sme_update_user_configured_nss(tHalHandle hal, uint8_t nss);
 void sme_set_vdev_nss(tHalHandle hal, bool enable2x2);
 void sme_set_per_band_chainmask_supp(tHalHandle hal, bool val);
 void sme_set_lte_coex_supp(tHalHandle hal, bool val);
