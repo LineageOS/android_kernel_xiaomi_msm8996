@@ -338,6 +338,22 @@ struct vos_event_tdls_teardown {
 	uint8_t peer_mac[6];
 };
 
+/**
+ * struct vos_event_tdls_enable_link - tdls enable link event
+ * @peer_mac: peer mac
+ * @is_off_chan_supported: if off channel supported
+ * @is_off_chan_configured: if off channel configured
+ * @is_off_chan_established: if off channel established
+ *
+ * This structure contain tdls enable link diag event info
+ */
+struct vos_event_tdls_enable_link {
+	uint8_t   peer_mac[6];
+	uint8_t   is_off_chan_supported;
+	uint8_t   is_off_chan_configured;
+	uint8_t   is_off_chan_established;
+};
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/

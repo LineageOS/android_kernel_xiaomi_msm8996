@@ -21413,7 +21413,9 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                         }
                     }
                 }
-
+                hdd_wlan_tdls_enable_link_event(peer,
+                           pTdlsPeer->isOffChannelSupported,
+                           0, 0);
             }
             break;
         case NL80211_TDLS_DISABLE_LINK:

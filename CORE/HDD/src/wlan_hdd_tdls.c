@@ -114,6 +114,43 @@ void hdd_send_wlan_tdls_teardown_event(uint32_t reason,
 	WLAN_VOS_DIAG_EVENT_REPORT(&tdls_tear_down,
 		EVENT_WLAN_TDLS_TEARDOWN);
 }
+
+/**
+ * hdd_wlan_tdls_enable_link_event()- send TDLS enable link event
+ * @peer_mac: peer mac
+ * @is_off_chan_supported: Does peer supports off chan
+ * @is_off_chan_configured: If off channel is configured
+ * @is_off_chan_established: If off chan is established
+ *
+ * This Function send TDLS enable link diag event
+ *
+ * Return: void.
+ */
+
+void hdd_wlan_tdls_enable_link_event(const uint8_t *peer_mac,
+				uint8_t is_off_chan_supported,
+				uint8_t is_off_chan_configured,
+				uint8_t is_off_chan_established)
+{
+	WLAN_VOS_DIAG_EVENT_DEF(tdls_event,
+		struct vos_event_tdls_enable_link);
+	vos_mem_zero(&tdls_event,
+			sizeof(tdls_event));
+
+	vos_mem_copy(tdls_event.peer_mac,
+			peer_mac, HDD_MAC_ADDR_LEN);
+
+	tdls_event.is_off_chan_supported =
+			is_off_chan_supported;
+	tdls_event.is_off_chan_configured =
+			is_off_chan_configured;
+	tdls_event.is_off_chan_established =
+			is_off_chan_established;
+
+	WLAN_VOS_DIAG_EVENT_REPORT(&tdls_event,
+		EVENT_WLAN_TDLS_ENABLE_LINK);
+}
+
 #endif
 /**
  * wlan_hdd_tdls_disable_offchan_and_teardown_links - Disable offchannel
