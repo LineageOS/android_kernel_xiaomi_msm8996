@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1230,3 +1230,35 @@ v_U8_t vos_chan_to_band(v_U32_t chan)
 
     return VOS_BAND_5GHZ;
 }
+
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * vos_tdls_tx_rx_mgmt_event()- send tdls mgmt rx tx event
+ * @event_id: event id
+ * @tx_rx: tx or rx
+ * @type: type of frame
+ * @action_sub_type: action frame type
+ * @peer_mac: peer mac
+ *
+ * This Function sends tdls mgmt rx tx diag event
+ *
+ * Return: void.
+ */
+void vos_tdls_tx_rx_mgmt_event(uint8_t event_id, uint8_t tx_rx,
+		uint8_t type, uint8_t action_sub_type, uint8_t *peer_mac)
+{
+	WLAN_VOS_DIAG_EVENT_DEF(tdls_tx_rx_mgmt,
+		struct vos_event_tdls_tx_rx_mgmt);
+	vos_mem_zero(&tdls_tx_rx_mgmt, sizeof(tdls_tx_rx_mgmt));
+
+	tdls_tx_rx_mgmt.event_id = event_id;
+	tdls_tx_rx_mgmt.tx_rx = tx_rx;
+	tdls_tx_rx_mgmt.type = type;
+	tdls_tx_rx_mgmt.action_sub_type = action_sub_type;
+	vos_mem_copy(tdls_tx_rx_mgmt.peer_mac,
+			peer_mac, VOS_MAC_ADDR_SIZE);
+	WLAN_VOS_DIAG_EVENT_REPORT(&tdls_tx_rx_mgmt,
+				EVENT_WLAN_TDLS_TX_RX_MGMT);
+}
+#endif
+
