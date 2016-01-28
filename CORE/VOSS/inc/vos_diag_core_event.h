@@ -325,6 +325,19 @@ struct vos_event_wlan_log_complete {
 	uint32_t reserved;
 };
 
+/**
+ * struct vos_event_tdls_teardown - tdls teardown diag event
+ * @reason: reason for tear down
+ * @peer_mac: peer mac
+ *
+ * This structure contain tdls teardown diag event info
+ */
+
+struct vos_event_tdls_teardown {
+	uint32_t reason;
+	uint8_t peer_mac[6];
+};
+
 /*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
