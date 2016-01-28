@@ -13729,6 +13729,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf++;
         *pBuf = (tANI_U8)pProfile->bOSENAssociation;
         pBuf++;
+        *pBuf = (tANI_U8)pProfile->bWPSAssociation;
+        pBuf++;
         //CBMode
         *pBuf = (tANI_U8)pSession->bssParams.cbMode;
         pBuf += sizeof(ePhyChanBondState);

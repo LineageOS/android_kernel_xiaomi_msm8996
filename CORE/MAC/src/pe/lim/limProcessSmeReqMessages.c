@@ -1954,6 +1954,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->limWmeEnabled = pSmeJoinReq->isWMEenabled;
         psessionEntry->limQosEnabled = pSmeJoinReq->isQosEnabled;
         psessionEntry->osen_association = pSmeJoinReq->osen_association;
+        psessionEntry->wps_registartion = pSmeJoinReq->wps_registartion;
+
 
         /* Store vendor specfic IE for CISCO AP */
         ieLen = (pSmeJoinReq->bssDescription.length +
