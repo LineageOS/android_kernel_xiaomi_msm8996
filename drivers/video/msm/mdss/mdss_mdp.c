@@ -1351,7 +1351,6 @@ static void mdss_mdp_hw_rev_caps_init(struct mdss_data_type *mdata)
 		set_bit(MDSS_QOS_OTLIM, mdata->mdss_qos_map);
 		break;
 	case MDSS_MDP_HW_REV_114:
-	case MDSS_MDP_HW_REV_115:
 	case MDSS_MDP_HW_REV_116:
 		mdata->max_target_zorder = 4; /* excluding base layer */
 		mdata->max_cursor_size = 128;
@@ -1403,6 +1402,8 @@ static void mdss_mdp_hw_rev_caps_init(struct mdss_data_type *mdata)
 	if (mdata->mdp_rev < MDSS_MDP_HW_REV_102 ||
 			mdata->mdp_rev == MDSS_MDP_HW_REV_200)
 		mdss_set_quirk(mdata, MDSS_QUIRK_FMT_PACK_PATTERN);
+
+	mdss_mdp_set_supported_formats(mdata);
 }
 
 static void mdss_hw_rev_init(struct mdss_data_type *mdata)
@@ -1675,15 +1676,21 @@ static void __update_sspp_info(struct mdss_mdp_pipe *pipe,
 	int pipe_cnt, char *type, char *buf, int *cnt)
 {
 	int i;
+	int j;
 	size_t len = PAGE_SIZE;
+	int num_bytes = BITS_TO_BYTES(MDP_IMGTYPE_LIMIT);
 
 #define SPRINT(fmt, ...) \
 		(*cnt += scnprintf(buf + *cnt, len - *cnt, fmt, ##__VA_ARGS__))
 
 	for (i = 0; i < pipe_cnt; i++) {
-		SPRINT("pipe_num:%d pipe_type:%s pipe_ndx:%d pipe_is_handoff:%d display_id:%d\n",
+		SPRINT("pipe_num:%d pipe_type:%s pipe_ndx:%d pipe_is_handoff:%d display_id:%d ",
 			pipe->num, type, pipe->ndx, pipe->is_handed_off,
 			mdss_mdp_get_display_id(pipe));
+		SPRINT("fmts_supported:");
+		for (j = 0; j < num_bytes && pipe; j++)
+			SPRINT("%d,", pipe->supported_formats[j]);
+		SPRINT("\n");
 		pipe++;
 	}
 #undef SPRINT
@@ -1702,7 +1709,29 @@ static void mdss_mdp_update_sspp_info(struct mdss_data_type *mdata,
 		"cursor", buf, cnt);
 }
 
-static ssize_t mdss_mdp_show_capabilities(struct device *dev,
+static void mdss_mdp_update_wb_info(struct mdss_data_type *mdata,
+	char *buf, int *cnt)
+{
+#define SPRINT(fmt, ...) \
+		(*cnt += scnprintf(buf + *cnt, len - *cnt, fmt, ##__VA_ARGS__))
+	size_t len = PAGE_SIZE;
+	int i;
+	int num_bytes = BITS_TO_BYTES(MDP_IMGTYPE_LIMIT);
+
+	SPRINT("rot_input_fmts=");
+	for (i = 0; i < num_bytes && mdata->wb; i++)
+		SPRINT("%d ", mdata->wb->supported_input_formats[i]);
+	SPRINT("\nrot_output_fmts=");
+	for (i = 0; i < num_bytes && mdata->wb; i++)
+		SPRINT("%d ", mdata->wb->supported_input_formats[i]);
+	SPRINT("\nwb_output_fmts=");
+	for (i = 0; i < num_bytes && mdata->wb; i++)
+		SPRINT("%d ", mdata->wb->supported_output_formats[i]);
+	SPRINT("\n");
+#undef SPRINT
+}
+
+ssize_t mdss_mdp_show_capabilities(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct mdss_data_type *mdata = dev_get_drvdata(dev);
@@ -1717,6 +1746,8 @@ static ssize_t mdss_mdp_show_capabilities(struct device *dev,
 	SPRINT("pipe_count:%d\n", mdata->nvig_pipes + mdata->nrgb_pipes +
 		mdata->ndma_pipes + mdata->ncursor_pipes);
 	mdss_mdp_update_sspp_info(mdata, buf, &cnt);
+	mdss_mdp_update_wb_info(mdata, buf, &cnt);
+	/* TODO : need to remove num pipes info */
 	SPRINT("rgb_pipes=%d\n", mdata->nrgb_pipes);
 	SPRINT("vig_pipes=%d\n", mdata->nvig_pipes);
 	SPRINT("dma_pipes=%d\n", mdata->ndma_pipes);
