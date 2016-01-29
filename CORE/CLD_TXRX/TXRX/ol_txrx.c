@@ -1072,6 +1072,10 @@ ol_txrx_vdev_attach(
 
     adf_os_spinlock_init(&vdev->ll_pause.mutex);
     vdev->ll_pause.paused_reason = 0;
+#if defined(CONFIG_HL_SUPPORT)
+    vdev->hl_paused_reason = 0;
+#endif
+
     vdev->ll_pause.txq.head = vdev->ll_pause.txq.tail = NULL;
     vdev->ll_pause.txq.depth = 0;
     adf_os_timer_init(

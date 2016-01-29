@@ -903,6 +903,7 @@ struct ol_txrx_vdev_t {
 
 #if defined(CONFIG_HL_SUPPORT)
 	struct ol_tx_frms_queue_t txqs[OL_TX_VDEV_NUM_QUEUES];
+	u_int32_t hl_paused_reason;
 #endif
 
 	struct {

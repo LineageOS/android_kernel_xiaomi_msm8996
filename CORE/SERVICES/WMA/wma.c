@@ -1112,11 +1112,19 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 	u_int8_t *buf;
 	vos_msg_t vos_msg = {0};
 	tp_wma_handle wma = (tp_wma_handle) handle;
+	ol_txrx_pdev_handle pdev = NULL;
 
 	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_VDEV_START_RESP_EVENTID_param_tlvs *) cmd_param_info;
 	if (!param_buf) {
 		WMA_LOGE("Invalid start response event buffer");
+		return -EINVAL;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (pdev == NULL) {
+		WMA_LOGE("vdev start resp fail as pdev is NULL");
 		return -EINVAL;
 	}
 
@@ -1131,6 +1139,14 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		adf_os_spin_lock_bh(&wma->dfs_ic->chan_lock);
 		wma->dfs_ic->disable_phy_err_processing = false;
 		adf_os_spin_unlock_bh(&wma->dfs_ic->chan_lock);
+	}
+
+	if (wma->pause_other_vdev_on_mcc_start) {
+		WMA_LOGD("%s: unpause other vdevs since paused when MCC start", __func__);
+		wma->pause_other_vdev_on_mcc_start = false;
+		wdi_in_pdev_unpause_other_vdev(pdev,
+						OL_TXQ_PAUSE_REASON_MCC_VDEV_START,
+						resp_event->vdev_id);
 	}
 
 	vos_mem_zero(buf, sizeof(wmi_vdev_start_response_event_fixed_param));
@@ -8542,6 +8558,38 @@ static bool wma_is_mcc_24G(WMA_HANDLE handle)
 	return false;
 }
 
+/**
+ * wma_is_mcc_starting() - Function to check MCC will start or already started
+ * @handle:             WMA handle
+ *
+ * This function is used to check MCC will start or already started
+ *
+ * Return: True if WMA is in MCC will or already started
+ *
+ */
+static bool wma_is_mcc_starting(WMA_HANDLE handle, A_UINT32 starting_mhz)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	int32_t prev_chan = starting_mhz;
+	int32_t i;
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: wma_handle is NULL", __func__);
+		return false;
+	}
+	for (i = 0; i < wma_handle->max_bssid; i++) {
+		if (wma_handle->interfaces[i].handle &&
+				wma_handle->interfaces[i].vdev_up) {
+			if ((prev_chan != 0 &&
+				prev_chan != wma_handle->interfaces[i].mhz))
+				return true;
+			else
+				prev_chan = wma_handle->interfaces[i].mhz;
+		}
+	}
+	return false;
+}
+
 /* function   : wma_get_buf_start_scan_cmd
  * Description :
  * Args       :
@@ -11825,12 +11873,20 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	struct wma_txrx_node *intr = wma->interfaces;
 	tpAniSirGlobal pmac = NULL;
 	struct ath_dfs *dfs;
+	ol_txrx_pdev_handle pdev = NULL;
 
 	pmac = (tpAniSirGlobal)
 		vos_get_context(VOS_MODULE_ID_PE, wma->vos_context);
 
 	if (pmac == NULL) {
 		WMA_LOGE("%s: vdev start failed as pmac is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	if (pdev == NULL) {
+		WMA_LOGE("%s: vdev start failed as pdev is NULL", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -12037,6 +12093,20 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 					WMI_VDEV_RESTART_REQUEST_CMDID);
 
 	} else {
+
+		/*
+		*Need to put other vdevs to pause to avoid current connection
+		*credit starvation.
+		*/
+		if (wma_is_mcc_starting(wma, chan->mhz)) {
+			WMA_LOGD("%s, vdev_id: %d, pasue other VDEVs when MCC on",
+				 __func__, cmd->vdev_id);
+			wdi_in_pdev_pause_other_vdev(pdev,
+						OL_TXQ_PAUSE_REASON_MCC_VDEV_START,
+						req->vdev_id);
+			wma->pause_other_vdev_on_mcc_start = true;
+		}
+
 		WMA_LOGD("%s, vdev_id: %d, unpausing tx_ll_queue at VDEV_START",
 			 __func__, cmd->vdev_id);
 		wdi_in_vdev_unpause(wma->interfaces[cmd->vdev_id].handle,
@@ -12253,6 +12323,15 @@ void wma_vdev_resp_timer(void *data)
 				  OL_TXQ_PAUSE_REASON_VDEV_STOP);
 		wma->interfaces[tgt_req->vdev_id].pause_bitmap |=
 						(1 << PAUSE_TYPE_HOST);
+
+		if (wma->pause_other_vdev_on_mcc_start) {
+			WMA_LOGD("%s: unpause other vdevs since paused when MCC start", __func__);
+			wma->pause_other_vdev_on_mcc_start = false;
+			wdi_in_pdev_unpause_other_vdev(pdev,
+				OL_TXQ_PAUSE_REASON_MCC_VDEV_START,
+				tgt_req->vdev_id);
+		}
+
 		if (wmi_unified_vdev_stop_send(wma->wmi_handle, tgt_req->vdev_id)) {
 				WMA_LOGP("%s: %d Failed to send vdev stop",	__func__, __LINE__);
 				wma_remove_vdev_req(wma, tgt_req->vdev_id,

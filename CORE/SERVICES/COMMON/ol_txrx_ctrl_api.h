@@ -63,6 +63,8 @@ enum wlan_op_mode {
 #define OL_TXQ_PAUSE_REASON_TX_ABORT          (1 << 2)
 #define OL_TXQ_PAUSE_REASON_VDEV_STOP         (1 << 3)
 #define OL_TXQ_PAUSE_REASON_VDEV_SUSPEND      (1 << 4)
+#define OL_TXQ_PAUSE_REASON_MCC_VDEV_START    (1 << 5)
+#define OL_TXQ_PAUSE_REASON_THROTTLE          (1 << 6)
 
 /* command options for dumpStats*/
 #define WLAN_HDD_STATS               0
@@ -448,6 +450,50 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle data_pdev, u_int32_t reason);
 #else
 #define ol_txrx_pdev_unpause(data_pdev,reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
+
+/**
+ * ol_txrx_pdev_pause_other_vdev() - Suspend all tx data for the specified physical device except
+ * current vdev.
+ * @data_pdev: the physical device being paused.
+ * @reason:  pause reason.
+ *		One can provide multiple line descriptions
+ *		for arguments.
+ * @current_id: do not pause this vdev id queues
+ *
+ * This function applies to HL systems -
+ * in LL systems, applies when txrx_vdev_pause_all is enabled.
+ * In some cases it is necessary to be able to temporarily
+ * suspend other vdevs traffic, e.g. to avoid current EAPOL frames credit starvation
+ *
+ * Return: None
+ */
+#if defined(CONFIG_HL_SUPPORT)
+void
+ol_txrx_pdev_pause_other_vdev(ol_txrx_pdev_handle data_pdev, u_int32_t reason, u_int32_t current_id);
+#else
+#define ol_txrx_pdev_pause_other_vdev(data_pdev,reason,current_id) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+/**
+ * ol_txrx_pdev_unpause_other_vdev() - Resume tx for the paused vdevs..
+ * @data_pdev: the physical device being paused.
+ * @reason:  pause reason.
+ * @current_id: do not unpause this vdev
+ *
+ *  This function applies to HL systems -
+ *  in LL systems, applies when txrx_vdev_pause_all is enabled.
+ *
+ *
+ * Return: None
+ */
+#if defined(CONFIG_HL_SUPPORT)
+void
+ol_txrx_pdev_unpause_other_vdev(ol_txrx_pdev_handle data_pdev, u_int32_t reason, u_int32_t current_id);
+#else
+#define ol_txrx_pdev_unpause_other_vdev(data_pdev,reason,current_id) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
+
+
 
 /**
  * @brief Synchronize the data-path tx with a control-path target download

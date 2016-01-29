@@ -494,7 +494,7 @@ ol_txrx_throttle_pause(ol_txrx_pdev_handle pdev)
     pdev->tx_throttle.is_paused = TRUE;
     adf_os_spin_unlock_bh(&pdev->tx_throttle.mutex);
 #endif
-    ol_txrx_pdev_pause(pdev, 0);
+    ol_txrx_pdev_pause(pdev, OL_TXQ_PAUSE_REASON_THROTTLE);
 }
 
 void
@@ -511,7 +511,7 @@ ol_txrx_throttle_unpause(ol_txrx_pdev_handle pdev)
     pdev->tx_throttle.is_paused = FALSE;
     adf_os_spin_unlock_bh(&pdev->tx_throttle.mutex);
 #endif
-    ol_txrx_pdev_unpause(pdev, 0);
+    ol_txrx_pdev_unpause(pdev, OL_TXQ_PAUSE_REASON_THROTTLE);
 }
 #endif /* defined(CONFIG_HL_SUPPORT) */
 
@@ -561,6 +561,60 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle pdev, u_int32_t reason)
 		ol_txrx_vdev_unpause(vdev, reason);
 	}
 }
+
+#if defined(CONFIG_HL_SUPPORT)
+/**
+ * ol_txrx_pdev_pause_other_vdev() - Suspend all tx data for the specified physical device except
+ * current vdev.
+ * @data_pdev: the physical device being paused.
+ * @reason:  pause reason.
+ *		One can provide multiple line descriptions
+ *		for arguments.
+ * @current_id: do not pause this vdev id queues
+ *
+ * This function applies to HL systems -
+ * in LL systems, applies when txrx_vdev_pause_all is enabled.
+ * In some cases it is necessary to be able to temporarily
+ * suspend other vdevs traffic, e.g. to avoid current EAPOL frames credit starvation
+ *
+ * Return: None
+ */
+void
+ol_txrx_pdev_pause_other_vdev(ol_txrx_pdev_handle pdev, u_int32_t reason, u_int32_t current_id)
+{
+	struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+	TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+		if (vdev->vdev_id != current_id) {
+			ol_txrx_vdev_pause(vdev, reason);
+		}
+	}
+}
+
+/**
+ * ol_txrx_pdev_unpause_other_vdev() - Resume tx for the paused vdevs..
+ * @data_pdev: the physical device being paused.
+ * @reason:  pause reason.
+ * @current_id: do not unpause this vdev
+ *
+ *  This function applies to HL systems -
+ *  in LL systems, applies when txrx_vdev_pause_all is enabled.
+ *
+ *
+ * Return: None
+ */
+void
+ol_txrx_pdev_unpause_other_vdev(ol_txrx_pdev_handle pdev, u_int32_t reason, u_int32_t current_id)
+{
+	struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+	TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+		if (vdev->vdev_id != current_id) {
+			ol_txrx_vdev_unpause(vdev, reason);
+		}
+	}
+}
+#endif
 
 #ifdef QCA_BAD_PEER_TX_FLOW_CL
 
@@ -972,6 +1026,7 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
         /* use peer_ref_mutex before accessing peer_list */
         adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+        vdev->hl_paused_reason |= reason;
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
             ol_txrx_peer_pause_base(pdev, peer);
         }
@@ -1004,11 +1059,14 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
         /* take peer_ref_mutex before accessing peer_list */
         adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+        if (vdev->hl_paused_reason & reason) {
+            vdev->hl_paused_reason &= ~reason;
 
-        TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-            int i;
-            for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
-                ol_txrx_peer_tid_unpause_base(pdev, peer, i);
+            TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+                int i;
+                for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
+                    ol_txrx_peer_tid_unpause_base(pdev, peer, i);
+                }
             }
         }
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
