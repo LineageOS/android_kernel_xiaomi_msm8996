@@ -217,7 +217,15 @@ static inline int vos_unregister_oob_irq_handler(void *pm_oob)
 {
 	return -ENOSYS;
 }
+
+static inline void vos_dump_stack (struct task_struct *task)
+{
+}
 #else
+static inline void vos_dump_stack (struct task_struct *task)
+{
+	cnss_dump_stack(task);
+}
 static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
 	cnss_init_work(work, func);

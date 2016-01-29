@@ -59,9 +59,7 @@
 #include <linux/kthread.h>
 #include <linux/cpu.h>
 #include <linux/topology.h>
-#if defined(QCA_CONFIG_SMP)
 #include "vos_cnss.h"
-#endif
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -996,6 +994,7 @@ static void vos_wd_detect_thread_stuck(void)
 				__func__,
 				gpVosWatchdogContext->mc_thread_stuck_count);
 
+		vos_dump_stack(gpVosSchedContext->McThread);
 		vos_wlanRestart();
 		return;
 	}
