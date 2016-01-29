@@ -115,6 +115,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 
 #ifdef WLAN_FEATURE_NAN
 #include "wlan_hdd_nan.h"
+#include "wlan_hdd_nan_datapath.h"
 #endif /* WLAN_FEATURE_NAN */
 
 #include "wlan_hdd_debugfs.h"
@@ -340,6 +341,7 @@ const char* hdd_device_mode_to_string(uint8_t device_mode)
 	CASE_RETURN_STRING(WLAN_HDD_IBSS);
 	CASE_RETURN_STRING(WLAN_HDD_P2P_DEVICE);
 	CASE_RETURN_STRING(WLAN_HDD_OCB);
+	CASE_RETURN_STRING(WLAN_HDD_NDI);
 	default:
 		return "Unknown";
 	}
@@ -10056,7 +10058,15 @@ VOS_STATUS hdd_register_interface( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_he
    return VOS_STATUS_SUCCESS;
 }
 
-static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
+/**
+ * hdd_smeCloseSessionCallback() - HDD callback function
+ * @pContext: adapter context
+ *
+ * This is a callback function HDD registers with SME.
+ *
+ * Returns: eHalstatus
+ */
+eHalStatus hdd_smeCloseSessionCallback(void *pContext)
 {
    hdd_adapter_t *pAdapter = pContext;
 
@@ -10682,6 +10692,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
       case WLAN_HDD_OCB:
+      case WLAN_HDD_NDI:
       {
          pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
 
@@ -10703,7 +10714,11 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          pAdapter->device_mode = session_type;
 
-         status = hdd_init_station_mode( pAdapter );
+         if (WLAN_HDD_NDI == session_type)
+                status = hdd_init_nan_data_mode(pAdapter);
+         else
+                status = hdd_init_station_mode( pAdapter );
+
          if( VOS_STATUS_SUCCESS != status )
             goto err_free_netdev;
 
@@ -10725,7 +10740,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          //Stop the Interface TX queue.
          hddLog(LOG1, FL("Disabling queues"));
          netif_tx_disable(pAdapter->dev);
-         //netif_tx_disable(pWlanDev);
          netif_carrier_off(pAdapter->dev);
 
 #ifdef QCA_LL_TX_FLOW_CT
