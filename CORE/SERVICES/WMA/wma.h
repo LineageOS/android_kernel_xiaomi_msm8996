@@ -1776,4 +1776,7 @@ struct wma_version_info {
 	u_int32_t revision;
 };
 
+void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
+			u_int8_t vdev_id, ol_txrx_peer_handle peer,
+			v_BOOL_t roam_synch_in_progress);
 #endif

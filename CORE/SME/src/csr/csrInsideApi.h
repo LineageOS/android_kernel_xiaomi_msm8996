@@ -157,7 +157,8 @@ typedef enum
     eCsrSilentlyStopRoamingSaveState,
     eCsrJoinWdsFailure,
     eCsrJoinFailureDueToConcurrency,
-
+    eCsrStopBssSuccess,
+    eCsrStopBssFailure,
 }eCsrRoamCompleteResult;
 
 typedef struct tagScanReqParam

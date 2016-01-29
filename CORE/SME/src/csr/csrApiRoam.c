@@ -6286,7 +6286,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 }
                 if (CSR_IS_NDI(pProfile)) {
                     csr_roam_update_ndp_return_params(pMac, Result,
-                                        &roamStatus, &roamResult);
+                                        &roamStatus, &roamResult, &roamInfo);
                     csr_roam_fill_roaminfo_ndp(pMac, &roamInfo, roamResult,
                                         pSmeStartBssRsp->statusCode,
                                         0, 0);
@@ -6379,7 +6379,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             }
             if (CSR_IS_NDI(pProfile)) {
                 csr_roam_update_ndp_return_params(pMac, Result,
-                                        &roamStatus, &roamResult);
+                                        &roamStatus, &roamResult, &roamInfo);
                 csr_roam_fill_roaminfo_ndp(pMac, &roamInfo, roamResult,
                     (pSmeStartBssRsp) ? pSmeStartBssRsp->statusCode :
                      eHAL_STATUS_FAILURE, 0, 0);
@@ -6462,6 +6462,24 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                                     eCSR_ROAM_WDS_IND,
                                     eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED);
             //Need to issue stop_bss
+            break;
+        case eCsrStopBssSuccess:
+            if (CSR_IS_NDI(pProfile)) {
+                csr_roam_update_ndp_return_params(pMac, Result, &roamStatus,
+                        &roamResult, &roamInfo);
+                csrRoamCallCallback(pMac, sessionId, &roamInfo,
+                        pCommand->u.roamCmd.roamId,
+                        roamStatus, roamResult);
+            }
+            break;
+        case eCsrStopBssFailure:
+            if (CSR_IS_NDI(pProfile)) {
+                csr_roam_update_ndp_return_params(pMac, Result, &roamStatus,
+                        &roamResult, &roamInfo);
+                csrRoamCallCallback(pMac, sessionId, &roamInfo,
+                        pCommand->u.roamCmd.roamId,
+                        roamStatus, roamResult);
+            }
             break;
         case eCsrJoinFailure:
         case eCsrNothingToJoin:
@@ -7784,6 +7802,9 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 FL("SME convert to internal reason code eCsrStaHasLeft"));
             break;
+        case eCSR_DISCONNECT_REASON_NDI_DELETE:
+           pCommand->u.roamCmd.roamReason = eCsrStopBss;
+           pCommand->u.roamCmd.roamProfile.BSSType = eCSR_BSS_TYPE_NDI;
         default:
             break;
         }
@@ -7841,9 +7862,11 @@ eHalStatus csrRoamDisconnectInternal(tpAniSirGlobal pMac, tANI_U32 sessionId, eC
 
     //Not to call cancel roaming here
     //Only issue disconnect when necessary
-    if(csrIsConnStateConnected(pMac, sessionId) || csrIsBssTypeIBSS(pSession->connectedProfile.BSSType)
-                || csrIsBssTypeWDS(pSession->connectedProfile.BSSType)
-                || csrIsRoamCommandWaitingForSession(pMac, sessionId) )
+    if (csrIsConnStateConnected(pMac, sessionId)
+         || csrIsBssTypeIBSS(pSession->connectedProfile.BSSType)
+         || csrIsBssTypeWDS(pSession->connectedProfile.BSSType)
+         || csrIsRoamCommandWaitingForSession(pMac, sessionId)
+         || CSR_IS_CONN_NDI(&pSession->connectedProfile))
 
     {
         smsLog(pMac, LOG2, FL("called"));
@@ -8732,6 +8755,8 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
 
 static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSmeRsp)
 {
+    eCsrRoamCompleteResult result_code = eCsrNothingToJoin ;
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     {
         vos_log_ibss_pkt_type *pIbssLog;
@@ -8750,7 +8775,12 @@ static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeR
     pMac->roam.roamSession[pSmeRsp->sessionId].connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
     if(CSR_IS_ROAM_SUBSTATE_STOP_BSS_REQ( pMac, pSmeRsp->sessionId))
     {
-        csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+        if (CSR_IS_CONN_NDI(pMac->roam.roamSession[pSmeRsp->sessionId].pCurRoamProfile)) {
+                result_code = eCsrStopBssSuccess;
+                if (pSmeRsp->statusCode != eSIR_SME_SUCCESS)
+                    result_code = eCsrStopBssFailure;
+        }
+        csrRoamComplete(pMac, result_code, NULL);
     }
     else if(CSR_IS_ROAM_SUBSTATE_DISCONNECT_CONTINUE( pMac, pSmeRsp->sessionId))
     {
@@ -8829,7 +8859,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
        if(HAL_STATUS_SUCCESS(status))
        {
            vos_mem_set(pScanFilter, sizeof(tCsrScanResultFilter), 0);
-	   pScanFilter->scan_filter_for_roam = 1;
+           pScanFilter->scan_filter_for_roam = 1;
            status = csrRoamPrepareFilterFromProfile(pMac,
                                      &pNeighborRoamInfo->csrNeighborRoamProfile,
                                      pScanFilter);

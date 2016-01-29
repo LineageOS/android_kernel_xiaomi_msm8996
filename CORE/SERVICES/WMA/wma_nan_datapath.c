@@ -253,3 +253,50 @@ send_fail_resp:
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
 }
 
+/**
+ * wma_delete_all_nan_remote_peers() - Delete all nan peer
+ * @wma:  wma handle
+ * @vdev_id: vdev id
+ *
+ * Return: void
+ */
+void wma_delete_all_nan_remote_peers(tp_wma_handle wma, uint32_t vdev_id)
+{
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer, temp;
+
+	if (!wma || vdev_id > wma->max_bssid)
+		return;
+
+	vdev = wma->interfaces[vdev_id].handle;
+	if (!vdev)
+		return;
+
+	/* remove all remote peers of ndi*/
+	adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+
+	temp = NULL;
+	TAILQ_FOREACH_REVERSE(peer, &vdev->peer_list,
+		peer_list_t, peer_list_elem) {
+		if (temp) {
+			adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
+			if (adf_os_atomic_read(
+				&temp->delete_in_progress) == 0)
+				wma_remove_peer(wma, temp->mac_addr.raw,
+					vdev_id, temp, VOS_FALSE);
+			adf_os_spin_lock_bh(&vdev->pdev->peer_ref_mutex);
+		}
+		/* self peer is deleted last */
+		if (peer == TAILQ_FIRST(&vdev->peer_list)) {
+			WMA_LOGE("%s: self peer removed", __func__);
+			break;
+		} else
+			temp = peer;
+	}
+	adf_os_spin_unlock_bh(&vdev->pdev->peer_ref_mutex);
+
+	/* remove ndi self peer last */
+	peer = TAILQ_FIRST(&vdev->peer_list);
+	wma_remove_peer(wma, peer->mac_addr.raw, vdev_id, peer,
+			false);
+}

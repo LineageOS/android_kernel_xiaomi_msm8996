@@ -3964,33 +3964,40 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     psessionEntry->smeSessionId = smesessionId;
     psessionEntry->transactionId = smetransactionId;
 
-    /* BTAMP_STA and STA_IN_IBSS should NOT send Disassoc frame */
+    /* BTAMP_STA, STA_IN_IBSS and NDI should NOT send Disassoc frame */
     if (!LIM_IS_IBSS_ROLE(psessionEntry) &&
-        !LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) {
+        !LIM_IS_BT_AMP_STA_ROLE(psessionEntry) &&
+        !LIM_IS_NDI_ROLE(psessionEntry)) {
         tSirMacAddr   bcAddr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
         if ((stopBssReq.reasonCode == eSIR_SME_MIC_COUNTER_MEASURES))
             // Send disassoc all stations associated thru TKIP
             __limCounterMeasures(pMac,psessionEntry);
         else
-            limSendDisassocMgmtFrame(pMac, eSIR_MAC_DEAUTH_LEAVING_BSS_REASON, bcAddr, psessionEntry, FALSE);
+            limSendDisassocMgmtFrame(pMac,
+                eSIR_MAC_DEAUTH_LEAVING_BSS_REASON,
+                bcAddr, psessionEntry, FALSE);
     }
 
-    /* Free the buffer allocated in START_BSS_REQ */
-    vos_mem_free(psessionEntry->addIeParams.probeRespData_buff);
-    psessionEntry->addIeParams.probeRespDataLen = 0;
-    psessionEntry->addIeParams.probeRespData_buff = NULL;
+    if (!LIM_IS_NDI_ROLE(psessionEntry)) {
+        /* Free the buffer allocated in START_BSS_REQ */
+        vos_mem_free(psessionEntry->addIeParams.probeRespData_buff);
+        psessionEntry->addIeParams.probeRespDataLen = 0;
+        psessionEntry->addIeParams.probeRespData_buff = NULL;
 
-    vos_mem_free(psessionEntry->addIeParams.assocRespData_buff);
-    psessionEntry->addIeParams.assocRespDataLen = 0;
-    psessionEntry->addIeParams.assocRespData_buff = NULL;
+        vos_mem_free(psessionEntry->addIeParams.assocRespData_buff);
+        psessionEntry->addIeParams.assocRespDataLen = 0;
+        psessionEntry->addIeParams.assocRespData_buff = NULL;
 
-    vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
-    psessionEntry->addIeParams.probeRespBCNDataLen = 0;
-    psessionEntry->addIeParams.probeRespBCNData_buff = NULL;
+        vos_mem_free(psessionEntry->addIeParams.probeRespBCNData_buff);
+        psessionEntry->addIeParams.probeRespBCNDataLen = 0;
+        psessionEntry->addIeParams.probeRespBCNData_buff = NULL;
 
-    //limDelBss is also called as part of coalescing, when we send DEL BSS followed by Add Bss msg.
-    pMac->lim.gLimIbssCoalescingHappened = false;
-
+        /*
+         * limDelBss is also called as part of coalescing,
+         * when we send DEL BSS followed by Add Bss msg.
+         */
+        pMac->lim.gLimIbssCoalescingHappened = false;
+    }
     for(i = 1 ; i < pMac->lim.gLimAssocStaLimit ; i++)
     {
         pStaDs = dphGetHashEntry(pMac, i, &psessionEntry->dph.dphHashTable);
