@@ -60,9 +60,7 @@
 #ifdef WLAN_FEATURE_MBSSID
 #include "sapApi.h"
 #endif
-#ifdef WLAN_FEATURE_NAN_DATAPATH
 #include "wlan_hdd_nan_datapath.h"
-#endif
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants

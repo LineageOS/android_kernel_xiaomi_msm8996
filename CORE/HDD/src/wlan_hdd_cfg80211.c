@@ -109,7 +109,6 @@
 #include "wlan_hdd_memdump.h"
 
 #include "wlan_logging_sock_svc.h"
-#include "wlan_hdd_nan_datapath.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -1306,11 +1305,11 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_HOTLIST_AP_LOST
     },
 #endif /* FEATURE_WLAN_EXTSCAN */
-	/* OCB events */
-	[QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT_INDEX] =  {
-		.vendor_id = QCA_NL80211_VENDOR_ID,
-		.subcmd = QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT
-	},
+    /* OCB events */
+    [QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT_INDEX] =  {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT
+    },
 #ifdef WLAN_FEATURE_MEMDUMP
     [QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP_INDEX] = {
         .vendor_id = QCA_NL80211_VENDOR_ID,

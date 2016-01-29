@@ -27,6 +27,8 @@
 #include "limUtils.h"
 #include "limApi.h"
 #include "nan_datapath.h"
+#include "limTypes.h"
+#include "limSendMessages.h"
 
 /**
  * handle_ndp_request_message() - Function to handle NDP requests from SME
@@ -61,7 +63,7 @@ VOS_STATUS handle_ndp_event_message(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
  * Return: None
  */
 void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx, tpSirMsgQ lim_msgq,
-		tpPESession session_entry)
+					tpPESession session_entry)
 {
 	tLimMlmStartCnf mlm_start_cnf;
 	tpAddBssParams add_bss_params = (tpAddBssParams) lim_msgq->bodyptr;
@@ -96,4 +98,64 @@ void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx, tpSirMsgQ lim_msgq,
 end:
 	vos_mem_free(lim_msgq->bodyptr);
 	lim_msgq->bodyptr = NULL;
+}
+
+/**
+ * lim_ndi_del_bss_rsp() - Handler DEL BSS resp for NDI interface
+ * @mac_ctx: handle to mac structure
+ * @msg: pointer to message
+ * @session_entry: session entry
+ *
+ * Return: void
+ */
+void lim_ndi_del_bss_rsp(tpAniSirGlobal  mac_ctx,
+			void *msg, tpPESession session_entry)
+{
+	tSirResultCodes rc = eSIR_SME_SUCCESS;
+	tpDeleteBssParams del_bss = (tpDeleteBssParams) msg;
+
+	SET_LIM_PROCESS_DEFD_MESGS(mac_ctx, true);
+	if (del_bss == NULL) {
+		limLog(mac_ctx, LOGE,
+			FL("NDI: DEL_BSS_RSP with no body!"));
+		rc = eSIR_SME_STOP_BSS_FAILURE;
+		goto end;
+	}
+	session_entry =
+		peFindSessionBySessionId(mac_ctx, del_bss->sessionId);
+	if (!session_entry) {
+		limLog(mac_ctx, LOGE,
+			FL("Session Does not exist for given sessionID"));
+		goto end;
+	}
+
+	if (del_bss->status != eHAL_STATUS_SUCCESS) {
+		limLog(mac_ctx, LOGE, FL("NDI: DEL_BSS_RSP error (%x) Bss %d "),
+			del_bss->status, del_bss->bssIdx);
+		rc = eSIR_SME_STOP_BSS_FAILURE;
+		goto end;
+	}
+
+	if (limSetLinkState(mac_ctx, eSIR_LINK_IDLE_STATE,
+			session_entry->selfMacAddr,
+			session_entry->selfMacAddr, NULL, NULL)
+			!= eSIR_SUCCESS) {
+		limLog(mac_ctx, LOGE,
+			FL("NDI: DEL_BSS_RSP setLinkState failed"));
+		goto end;
+	}
+
+	session_entry->limMlmState = eLIM_MLM_IDLE_STATE;
+
+end:
+	if (del_bss)
+		vos_mem_free(del_bss);
+	/* Delete PE session once BSS is deleted */
+	if (NULL != session_entry) {
+		limSendSmeRsp(mac_ctx, eWNI_SME_STOP_BSS_RSP,
+			rc, session_entry->smeSessionId,
+			session_entry->transactionId);
+		peDeleteSession(mac_ctx, session_entry);
+		session_entry = NULL;
+	}
 }

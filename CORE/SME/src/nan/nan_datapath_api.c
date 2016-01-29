@@ -212,19 +212,33 @@ void csr_roam_save_ndi_connected_info(tpAniSirGlobal mac_ctx,
  * @result: result of the roaming command
  * @roam_status: roam status returned to the roam command initiator
  * @roam_result: roam result returned to the roam command initiator
+ * @rinfo: Roam info context
  *
  * Results: None
  */
 void csr_roam_update_ndp_return_params(tpAniSirGlobal mac_ctx,
 					uint32_t result,
 					uint32_t *roam_status,
-					uint32_t *roam_result)
+					uint32_t *roam_result,
+					void *rinfo)
 {
+	tCsrRoamInfo *roam_info = (tCsrRoamInfo *)rinfo;
+
 	switch (result) {
 	case eCsrStartBssSuccess:
 	case eCsrStartBssFailure:
 		*roam_status = eCSR_ROAM_NDP_STATUS_UPDATE;
 		*roam_result = eCSR_ROAM_RESULT_NDP_CREATE_RSP;
+		break;
+	case eCsrStopBssSuccess:
+		*roam_status = eCSR_ROAM_NDP_STATUS_UPDATE;
+		*roam_result = eCSR_ROAM_RESULT_NDP_DELETE_RSP;
+		roam_info->ndp.ndi_delete_params.status = VOS_STATUS_SUCCESS;
+		break;
+	case eCsrStopBssFailure:
+		*roam_status = eCSR_ROAM_NDP_STATUS_UPDATE;
+		*roam_result = eCSR_ROAM_RESULT_NDP_DELETE_RSP;
+		roam_info->ndp.ndi_delete_params.status = VOS_STATUS_E_FAILURE;
 		break;
 	default:
 		smsLog(mac_ctx, LOGE,

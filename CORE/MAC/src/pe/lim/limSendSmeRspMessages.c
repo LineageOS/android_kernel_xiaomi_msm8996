@@ -55,6 +55,7 @@
 #include "limIbssPeerMgmt.h"
 #include "limSessionUtils.h"
 #include "regdomain_common.h"
+#include "nan_datapath.h"
 
 #include "sirApi.h"
 
@@ -3018,11 +3019,13 @@ void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
           pDelBss->sessionId);
         return;
     }
-    if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+    if (LIM_IS_IBSS_ROLE(psessionEntry))
         limIbssDelBssRsp(pMac, MsgQ->bodyptr, psessionEntry);
-    } else if(LIM_IS_UNKNOWN_ROLE(psessionEntry)) {
+    else if(LIM_IS_UNKNOWN_ROLE(psessionEntry))
          limProcessSmeDelBssRsp(pMac, MsgQ->bodyval,psessionEntry);
-    } else
+    else if (LIM_IS_NDI_ROLE(psessionEntry))
+         lim_ndi_del_bss_rsp(pMac, MsgQ->bodyptr, psessionEntry);
+    else
          limProcessMlmDelBssRsp(pMac,MsgQ,psessionEntry);
 
 }

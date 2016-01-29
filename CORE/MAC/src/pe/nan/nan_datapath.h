@@ -110,6 +110,10 @@ VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx,
 void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx,
 				     tpSirMsgQ lim_msg_q,
 				     tpPESession session_entry);
+
+/* Handler DEL BSS resp for NDI interface */
+void lim_ndi_del_bss_rsp(tpAniSirGlobal  mac_ctx,
+			void *msg, tpPESession session_entry);
 #else
 /* Function to process NDP requests */
 static inline VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
@@ -119,18 +123,20 @@ static inline VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
 }
 /* Function to process NDP events */
 static inline VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx,
-					tpSirMsgQ msg)
+							tpSirMsgQ msg)
 {
 	return VOS_STATUS_SUCCESS;
 }
-
 /* Function to process NDP events */
 static inline void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx,
 						   tpSirMsgQ lim_msg_q,
 						   tpPESession session_entry)
 {
 }
-
+static inline void lim_ndi_del_bss_rsp(tpAniSirGlobal mac_ctx,
+					void *msg, tpPESession session_entry)
+{
+}
 #endif /* WLAN_FEATURE_NAN_DATAPATH */
 
 #endif /* __MAC_NAN_DATAPATH_H */

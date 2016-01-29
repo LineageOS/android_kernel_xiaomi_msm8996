@@ -115,7 +115,6 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 
 #ifdef WLAN_FEATURE_NAN
 #include "wlan_hdd_nan.h"
-#include "wlan_hdd_nan_datapath.h"
 #endif /* WLAN_FEATURE_NAN */
 
 #include "wlan_hdd_debugfs.h"
@@ -135,7 +134,6 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
 #include "tl_shim.h"
-#include "wlan_hdd_nan_datapath.h"
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
@@ -10082,6 +10080,12 @@ eHalStatus hdd_smeCloseSessionCallback(void *pContext)
       return eHAL_STATUS_NOT_INITIALIZED;
    }
 
+   /*
+    * For NAN Data interface, the close session results in the final
+    * indication to the userspace
+    */
+   hdd_ndp_session_end_handler(pAdapter);
+
    clear_bit(SME_SESSION_OPENED, &pAdapter->event_flags);
 
 #if !defined (CONFIG_CNSS) && \
@@ -11223,10 +11227,20 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       case WLAN_HDD_IBSS:
       case WLAN_HDD_P2P_CLIENT:
       case WLAN_HDD_P2P_DEVICE:
-         if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) ||
-            hdd_is_connecting(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
-         {
-            if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
+      case WLAN_HDD_NDI:
+         if ((WLAN_HDD_NDI == pAdapter->device_mode) ||
+            hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) ||
+            hdd_is_connecting(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
+            /*
+             * For NDI do not use pWextState from sta_ctx, if needed
+             * extract from ndi_ctx.
+             */
+            if (WLAN_HDD_NDI == pAdapter->device_mode)
+                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+                                           pAdapter->sessionId,
+                                           eCSR_DISCONNECT_REASON_NDI_DELETE);
+            else if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
                 halStatus = sme_RoamDisconnect(pHddCtx->hHal,
                                              pAdapter->sessionId,
                                              eCSR_DISCONNECT_REASON_IBSS_LEAVE);

@@ -70,7 +70,6 @@
 #endif
 #include <vos_sched.h>
 #include <wlan_logging_sock_svc.h>
-#include "wlan_hdd_nan_datapath.h"
 
 struct ether_addr
 {
