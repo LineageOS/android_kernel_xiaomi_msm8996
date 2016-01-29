@@ -2937,9 +2937,15 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_WLAN_LOGGING_NUM_BUF_DEFAULT            ( 256 )
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
+/*
+ * Sifs burst feature configuration
+ * gEnableSifsBurst = 0 means sifs burst toally disable
+ * gEnableSifsBurst = 1 means sifs burst enabled but disabled for legacy mode
+ * gEnableSifsBurst = 3 means sifs burst enabled and also for legacy mode
+ */
 #define CFG_ENABLE_SIFS_BURST                      "gEnableSifsBurst"
 #define CFG_ENABLE_SIFS_BURST_MIN                  ( 0 )
-#define CFG_ENABLE_SIFS_BURST_MAX                  ( 1 )
+#define CFG_ENABLE_SIFS_BURST_MAX                  (3)
 #define CFG_ENABLE_SIFS_BURST_DEFAULT              ( 0 )
 
 #ifdef WLAN_FEATURE_LPSS
@@ -4119,7 +4125,7 @@ typedef struct
    v_U32_t                     wlanLoggingNumBuf;
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
-   v_BOOL_t                    enableSifsBurst;
+   v_U8_t                      enableSifsBurst;
 
 #ifdef WLAN_FEATURE_LPSS
    v_BOOL_t                    enablelpasssupport;
