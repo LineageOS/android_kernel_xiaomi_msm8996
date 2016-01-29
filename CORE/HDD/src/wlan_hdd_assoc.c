@@ -70,6 +70,7 @@
 #endif
 #include <vos_sched.h>
 #include <wlan_logging_sock_svc.h>
+#include "wlan_hdd_nan_datapath.h"
 
 struct ether_addr
 {
@@ -4105,6 +4106,10 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             break;
          }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+        case eCSR_ROAM_NDP_STATUS_UPDATE:
+            hdd_ndp_event_handler(pAdapter, pRoamInfo, roamId, roamStatus,
+                roamResult );
+            break;
         default:
             break;
     }

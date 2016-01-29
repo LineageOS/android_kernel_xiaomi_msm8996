@@ -60,6 +60,9 @@
 #ifdef WLAN_FEATURE_MBSSID
 #include "sapApi.h"
 #endif
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+#include "wlan_hdd_nan_datapath.h"
+#endif
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -1087,6 +1090,9 @@ struct hdd_adapter_s
    union {
       hdd_station_ctx_t station;
       hdd_ap_ctx_t  ap;
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+      struct nan_datapath_ctx ndp_ctx;
+#endif
    }sessionCtx;
 
 #ifdef WLAN_FEATURE_TSF
@@ -1159,17 +1165,17 @@ struct hdd_adapter_s
     /* Time stamp for start RoC request */
     v_TIME_t startRocTs;
 
-	/* State for synchronous OCB requests to WMI */
-	struct sir_ocb_set_config_response ocb_set_config_resp;
-	struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
-	struct sir_dcc_get_stats_response *dcc_get_stats_resp;
-	struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
+    /* State for synchronous OCB requests to WMI */
+    struct sir_ocb_set_config_response ocb_set_config_resp;
+    struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
+    struct sir_dcc_get_stats_response *dcc_get_stats_resp;
+    struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
 
-	/* MAC addresses used for OCB interfaces */
-	tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
-	int ocb_mac_addr_count;
-	struct hdd_adapter_pm_context runtime_context;
-	struct mib_stats_metrics mib_stats;
+    /* MAC addresses used for OCB interfaces */
+    tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
+    int ocb_mac_addr_count;
+    struct hdd_adapter_pm_context runtime_context;
+    struct mib_stats_metrics mib_stats;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1189,6 +1195,14 @@ struct hdd_adapter_s
 #define WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter) \
         ((WLAN_HDD_IS_TDLS_SUPPORTED_ADAPTER(pAdapter)) ? \
         (tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx : NULL)
+#endif
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+#define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (&(adapter)->sessionCtx.ndp_ctx)
+#define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) \
+                       (&(adapter)->sessionCtx.ndp_ctx.wext_state)
+#else
+#define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (NULL)
+#define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) (NULL)
 #endif
 
 /* Set mac address locally administered bit */
@@ -2048,5 +2062,7 @@ int wlan_hdd_update_txrx_chain_mask(hdd_context_t *hdd_ctx,
 void
 hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
                                     tSirPeerInfoRspParams *pPeerInfo);
+
+eHalStatus hdd_smeCloseSessionCallback(void *pContext);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
