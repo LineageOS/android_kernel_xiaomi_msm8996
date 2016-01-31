@@ -50,11 +50,16 @@ static inline void wma_update_hdd_cfg_ndp(tp_wma_handle wma_handle,
 }
 void wma_delete_all_nan_remote_peers(tp_wma_handle wma,
 					uint32_t vdev_id);
+void wma_ndp_register_all_event_handlers(tp_wma_handle wma_handle);
+void wma_ndp_unregister_all_event_handlers(tp_wma_handle wma_handle);
 #else
-
 #define wma_add_bss_ndi_mode(x, y)    ((void)0)
 static inline void wma_update_hdd_cfg_ndp(tp_wma_handle wma_handle,
 					  struct hdd_tgt_cfg *tgt_cfg) {}
+static inline void wma_ndp_register_all_event_handlers(
+					tp_wma_handle wma_handle) {}
+static inline void wma_ndp_unregister_all_event_handlers(
+					tp_wma_handle wma_handle) {}
 #define WMA_IS_VDEV_IN_NDI_MODE(intf, vdev_id) (false)
 #define wma_delete_all_nan_remote_peers(x, y)   ((void)0)
 

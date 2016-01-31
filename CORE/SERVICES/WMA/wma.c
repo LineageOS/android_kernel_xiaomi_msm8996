@@ -7268,6 +7268,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 				wma_rssi_breached_event_handler);
 
 	wma_register_debug_callback();
+	wma_ndp_register_all_event_handlers(wma_handle);
 
 	return VOS_STATUS_SUCCESS;
 
@@ -31741,6 +31742,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		adf_os_mem_free(wma_handle->pGetRssiReq);
 		wma_handle->pGetRssiReq = NULL;
 	}
+
+	wma_ndp_unregister_all_event_handlers(wma_handle);
 
 	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
