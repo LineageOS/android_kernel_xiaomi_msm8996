@@ -6441,8 +6441,11 @@ static tANI_BOOLEAN
 limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
                         tANI_U16 *pDstDataLen, tSirModifyIE *pModifyIE)
 {
-    int32_t  oui_length;
-    uint8_t  *ibss_ie = NULL;
+    int32_t oui_length;
+    uint8_t *ibss_ie = NULL;
+    uint8_t *vendor_ie;
+    #define MAC_VENDOR_OUI  "\x00\x16\x32"
+    #define MAC_VENDOR_SIZE 3
 
     ibss_ie = pModifyIE->pIEBuffer;
     oui_length = pModifyIE->oui_length;
@@ -6453,13 +6456,34 @@ limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
                   oui_length, ibss_ie);
         return FALSE;
     }
+    /*
+     * Why replace only beacon OUI data here:
+     * 1. other ie (such as wpa) shall not be overwritten here.
+     * 2. per spec, beacon oui ie might be set twice and original one
+     * shall be updated.
+     */
+    vendor_ie = cfg_get_vendor_ie_ptr_from_oui(pMac, MAC_VENDOR_OUI,
+                 MAC_VENDOR_SIZE, *pDstData_buff, *pDstDataLen);
 
-    limUpdateAddIEBuffer(pMac,
-                pDstData_buff,
-                pDstDataLen,
-                pModifyIE->pIEBuffer,
-                pModifyIE->ieBufferlength);
+    if (vendor_ie) {
+        VOS_ASSERT((vendor_ie[1] + 2) == pModifyIE->ieBufferlength);
+        vos_mem_copy(vendor_ie, pModifyIE->pIEBuffer,
+                     pModifyIE->ieBufferlength);
+    } else {
+        uint16_t new_length = pModifyIE->ieBufferlength + *pDstDataLen;
+        uint8_t *new_ptr = vos_mem_malloc(new_length);
 
+        if (NULL == new_ptr) {
+            limLog(pMac, LOGE, FL("Memory allocation failed."));
+            return FALSE;
+        }
+        vos_mem_copy(new_ptr, *pDstData_buff, *pDstDataLen);
+        vos_mem_copy(&new_ptr[*pDstDataLen], pModifyIE->pIEBuffer,
+                     pModifyIE->ieBufferlength);
+        vos_mem_free(*pDstData_buff);
+        *pDstDataLen = new_length;
+        *pDstData_buff = new_ptr;
+    }
     return TRUE;
 }
 
