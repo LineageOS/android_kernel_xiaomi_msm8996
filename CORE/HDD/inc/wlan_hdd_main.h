@@ -1723,6 +1723,11 @@ struct hdd_context_s
     enum antenna_mode current_antenna_mode;
     bool bpf_enabled;
     uint16_t wmi_max_len;
+    /*
+     * place to store FTM capab of target. This allows changing of FTM capab
+     * at runtime and intersecting it with target capab before updating.
+     */
+    uint32_t fine_time_meas_cap_target;
 };
 
 /*---------------------------------------------------------------------------

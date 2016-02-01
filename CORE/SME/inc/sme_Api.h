@@ -4525,4 +4525,6 @@ eHalStatus sme_get_mib_stats(tHalHandle hal,
 				csr_mib_stats_callback callback,
 				void *context, void *vos_context,
 				uint8_t session_id);
+void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val);
+
 #endif //#if !defined( __SME_API_H )

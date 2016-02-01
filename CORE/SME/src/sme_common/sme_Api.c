@@ -18274,3 +18274,26 @@ eHalStatus sme_get_mib_stats(tHalHandle hal,
 	}
 	return status;
 }
+
+/**
+ * sme_update_fine_time_measurement_capab() - Update the FTM capab from incoming
+ * val
+ * @hal:    Handle for Hal layer
+ * @val:    New FTM capability value
+ *
+ * Return: None
+ */
+void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	mac_ctx->fine_time_meas_cap = val;
+	if (val == 0) {
+		mac_ctx->rrm.rrmPEContext.rrmEnabledCaps.fine_time_meas_rpt = 0;
+		((tpRRMCaps)mac_ctx->rrm.rrmSmeContext.
+			rrmConfig.rm_capability)->fine_time_meas_rpt = 0;
+	} else {
+		mac_ctx->rrm.rrmPEContext.rrmEnabledCaps.fine_time_meas_rpt = 1;
+		((tpRRMCaps)mac_ctx->rrm.rrmSmeContext.
+			rrmConfig.rm_capability)->fine_time_meas_rpt = 1;
+	}
+}
