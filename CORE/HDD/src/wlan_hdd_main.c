@@ -385,64 +385,6 @@ uint8_t wlan_hdd_find_opclass(tHalHandle hal, uint8_t channel,
 	return opclass;
 }
 
-#ifdef CONFIG_CNSS
-/**
- * hdd_request_pm_qos() - vote performance management qos
- * @val: Memory latency usec requirement to ensure
- *
- * To endure CPU hardware wake up, vote to performance management module.
- * Current voting will prevent hardware power collapse then can reduce CPU
- * wake up latency.
- * Performance QoS voting will ensure WLAN performance.
- * Start up time and throughput
- *
- * Return: none
- */
-static inline void hdd_request_pm_qos(int val)
-{
-	cnss_request_pm_qos(val);
-}
-
-/**
- * hdd_remove_pm_qos() - Cancel performance voting
- *
- * Not need to stay wake up CPU any more. Remove voting to release CPU
- *
- * Return: none
- */
-static inline void hdd_remove_pm_qos(void)
-{
-	cnss_remove_pm_qos();
-}
-#else
-/**
- * hdd_request_pm_qos() - vote performance management qos
- * @val: Memory latency usec requirement to ensure
- *
- * To endure CPU hardware wake up, vote to performance management module.
- * Current voting will prevent hardware power collapse then can reduce CPU
- * wake up latency.
- * Performance QoS votign will ensure WLAN performance.
- * Start up time and throughput
- *
- * Return: none
- */
-static inline void hdd_request_pm_qos(int val)
-{
-}
-
-/**
- * hdd_remove_pm_qos() - Cancel performance voting
- *
- * Not need to stay wake up CPU any more. Remove voting to release CPU
- *
- * Return: none
- */
-static inline void hdd_remove_pm_qos(void)
-{
-}
-#endif
-
 #ifdef FEATURE_GREEN_AP
 
 static void hdd_wlan_green_ap_timer_fn(void *phddctx)
@@ -13324,14 +13266,14 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
 
         if (next_vote_level <= CNSS_BUS_WIDTH_LOW) {
             if (pHddCtx->hbw_requested) {
-                hdd_remove_pm_qos();
+                vos_remove_pm_qos();
                 pHddCtx->hbw_requested = false;
             }
             if (vos_sched_handle_throughput_req(false))
                 hddLog(LOGE, FL("low bandwidth set rx affinity fail"));
         } else {
             if (!pHddCtx->hbw_requested) {
-                hdd_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+                vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
                 pHddCtx->hbw_requested = true;
             }
             if (vos_sched_handle_throughput_req(true))
