@@ -2415,22 +2415,17 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
    if((psessionEntry = peFindSessionByBssid(pMac,pReassocReq->bssDescription.bssId,&sessionId))==NULL)
     {
-	// Because of wrong bssid in ReAssoc request, we are not able to find
-	// pe session in our list of sessions, this is then sent to upper layer
-	// with sme_session id same as in request. Upper layers then cause a
-	// DISASSOC for sme session (wrong, this should not happen)
-	// Hence:
-	// Ideally we should not return error here to upper layer,
-	// since the request was for some other BSSID, session for which is not
-	// present in our sessions array
-
-	// for IR-063901, an old roam command that is somehow coming after
-	// connection is established with a newer AP. Since older AP is already
-	// removed from our list, hence no session is found, causing disconnect
-	// with new AP instead.
-        limPrintMacAddr(pMac, pReassocReq->bssDescription.bssId, LOGE);
         limLog(pMac, LOGE, FL("Session does not exist for given bssId"));
-	goto end;
+        limPrintMacAddr(pMac, pReassocReq->bssDescription.bssId, LOGE);
+        retCode = eSIR_SME_INVALID_PARAMETERS;
+
+       limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf, &smeSessionId, &transactionId);
+       psessionEntry = pe_find_session_by_sme_session_id(pMac, smeSessionId);
+
+       if (psessionEntry != NULL)
+                   limHandleSmeJoinResult(pMac, eSIR_SME_INVALID_PARAMETERS,
+                                 eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
+       goto end;
     }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
