@@ -802,6 +802,7 @@ typedef struct wma_handle {
 #ifdef WLAN_FEATURE_NAN
 	bool is_nan_enabled;
 #endif
+	bool is_mib_enabled;
 
 	/* Powersave Configuration Parameters */
 	u_int8_t staMaxLIModDtim;
@@ -849,6 +850,7 @@ typedef struct wma_handle {
 	uint32_t wow_wakeup_enable_mask;
 	uint32_t wow_wakeup_disable_mask;
 	uint16_t max_mgmt_tx_fail_count;
+	uint32_t ccmp_replays_attack_cnt;
 
 	struct wma_runtime_pm_context runtime_context;
 	uint32_t fine_time_measurement_cap;

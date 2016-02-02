@@ -2917,6 +2917,116 @@ static int wma_link_status_event_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+/**
+ * wma_update_mib_stats() - send mib stats to hdd
+ * @wma_handle: pointer to wma handle.
+ * @event: mib stats
+ *
+ * This API handles the requested Mib stats and calls the callback to
+ * update hdd
+ *
+ * Return: Success or error code
+ */
+static int wma_update_mib_stats(tp_wma_handle wma_handle ,
+				wmi_mib_stats *event)
+{
+	struct mib_stats_metrics mib_stats;
+	tpAniSirGlobal mac = (tpAniSirGlobal)vos_get_context(
+				VOS_MODULE_ID_PE, wma_handle->vos_context);
+
+	if (!mac) {
+		WMA_LOGE("%s: Invalid mac context", __func__);
+		return -EINVAL;
+	}
+	if (!mac->sme.csr_mib_stats_callback) {
+		WMA_LOGE("%s: Callback not registered", __func__);
+		return -EINVAL;
+	}
+
+	mib_stats.mib_counters.tx_frags =
+				event->tx_mpdu_grp_frag_cnt;
+	mib_stats.mib_counters.group_tx_frames =
+				event->tx_msdu_grp_frm_cnt;
+	mib_stats.mib_counters.failed_cnt = event->tx_msdu_fail_cnt;
+	mib_stats.mib_counters.rx_frags = event->rx_mpdu_frag_cnt;
+	mib_stats.mib_counters.group_rx_frames =
+				event->rx_msdu_grp_frm_cnt;
+	mib_stats.mib_counters.fcs_error_cnt =
+				event->rx_mpdu_fcs_err;
+	mib_stats.mib_counters.tx_frames =
+				event->tx_msdu_frm_cnt;
+	mib_stats.mib_mac_statistics.retry_cnt =
+				event->tx_msdu_retry_cnt;
+	mib_stats.mib_mac_statistics.frame_dup_cnt =
+				event->rx_frm_dup_cnt;
+	mib_stats.mib_mac_statistics.rts_success_cnt =
+				event->tx_rts_success_cnt;
+	mib_stats.mib_mac_statistics.rts_fail_cnt =
+				event->tx_rts_fail_cnt;
+
+	mib_stats.mib_qos_counters.qos_tx_frag_cnt =
+				event->tx_Qos_mpdu_grp_frag_cnt;
+	mib_stats.mib_qos_counters.qos_retry_cnt =
+				event->tx_Qos_msdu_retry_UP;
+	mib_stats.mib_qos_counters.qos_failed_cnt = event->tx_Qos_msdu_fail_UP;
+	mib_stats.mib_qos_counters.qos_frame_dup_cnt =
+				event->rx_Qos_frm_dup_cnt_UP;
+	mib_stats.mib_qos_counters.qos_rts_success_cnt =
+				event->tx_Qos_rts_success_cnt_UP;
+	mib_stats.mib_qos_counters.qos_rts_fail_cnt =
+				event->tx_Qos_rts_fail_cnt_UP;
+	mib_stats.mib_qos_counters.qos_rx_frag_cnt =
+				event->rx_Qos_mpdu_frag_cnt_UP;
+	mib_stats.mib_qos_counters.qos_tx_frame_cnt =
+				event->tx_Qos_msdu_frm_cnt_UP;
+	mib_stats.mib_qos_counters.qos_discarded_frame_cnt =
+				event->rx_Qos_msdu_discard_cnt_UP;
+	mib_stats.mib_qos_counters.qos_mpdu_rx_cnt =
+				event->rx_Qos_mpdu_cnt;
+	mib_stats.mib_qos_counters.qos_retries_rx_cnt =
+				event->rx_Qos_mpdu_retryBit_cnt;
+
+	mib_stats.mib_rsna_stats.cmac_icv_err =
+				event->rsna_Mgmt_discard_CCMP_replay_err_cnt;
+	mib_stats.mib_rsna_stats.tkip_icv_err = event->rsna_TKIP_icv_err_cnt;
+	mib_stats.mib_rsna_stats.tkip_replays = event->rsna_TKIP_replay_err_cnt;
+	mib_stats.mib_rsna_stats.ccmp_decrypt_err =
+				event->rsna_CCMP_decrypt_err_cnt;
+
+	mib_stats.mib_counters_group3.tx_ampdu_cnt =
+				event->tx_ampdu_cnt;
+	mib_stats.mib_counters_group3.tx_mpdus_in_ampdu_cnt =
+				event->tx_mpdu_cnt_in_ampdu;
+	mib_stats.mib_counters_group3.tx_octets_in_ampdu_cnt =
+				event->tx_octets_in_ampdu.upload.high;
+	mib_stats.mib_counters_group3.tx_octets_in_ampdu_cnt =
+		mib_stats.mib_counters_group3.tx_octets_in_ampdu_cnt << 32;
+	mib_stats.mib_counters_group3.tx_octets_in_ampdu_cnt +=
+		event->tx_octets_in_ampdu.upload.low;
+
+	mib_stats.mib_counters_group3.ampdu_rx_cnt =
+				event->rx_ampdu_cnt;
+	mib_stats.mib_counters_group3.mpdu_in_rx_ampdu_cnt =
+				event->rx_mpdu_cnt_in_ampdu;
+	mib_stats.mib_counters_group3.rx_octets_in_ampdu_cnt =
+		event->rx_octets_in_ampdu.upload.rx_octets_in_ampdu_high;
+	mib_stats.mib_counters_group3.rx_octets_in_ampdu_cnt =
+		mib_stats.mib_counters_group3.rx_octets_in_ampdu_cnt << 32;
+	mib_stats.mib_counters_group3.rx_octets_in_ampdu_cnt +=
+		event->rx_octets_in_ampdu.upload.rx_octets_in_ampdu_low;
+
+	/* ccmp replays attack count will be updated
+	 * by host
+	 */
+	mib_stats.mib_rsna_stats.ccmp_replays =
+				wma_handle->ccmp_replays_attack_cnt;
+
+	/* Update stats using callback to hdd */
+	mac->sme.csr_mib_stats_callback(&mib_stats, mac->sme.mib_stats_context);
+	WMA_LOGD("%s: Invoke sme.csr_mib_stats_callback callback", __func__);
+	return 0;
+}
+
 static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 				   u_int32_t len)
 {
@@ -2935,7 +3045,8 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	buf_size = sizeof(*event) +
 		   (event->num_pdev_stats * sizeof(wmi_pdev_stats)) +
 		   (event->num_vdev_stats * sizeof(wmi_vdev_stats)) +
-		   (event->num_peer_stats * sizeof(wmi_peer_stats));
+		   (event->num_peer_stats * sizeof(wmi_peer_stats)) +
+		   (event->num_mib_stats * sizeof(wmi_mib_stats));
 	buf = vos_mem_malloc(buf_size);
 	if (!buf) {
 		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
@@ -3107,14 +3218,16 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 	wmi_pdev_stats *pdev_stats;
 	wmi_vdev_stats *vdev_stats;
 	wmi_peer_stats *peer_stats;
+	wmi_mib_stats *mib_stats;
 	u_int8_t i, *temp;
 
 	WMA_LOGI("%s: Enter", __func__);
 
 	temp = buf + sizeof(*event);
-	WMA_LOGD("%s: num_stats: pdev: %u vdev: %u peer %u",
+
+	WMA_LOGD("%s: num_stats: pdev: %u vdev: %u peer %u mib %u",
 		 __func__, event->num_pdev_stats, event->num_vdev_stats,
-		 event->num_peer_stats);
+		 event->num_peer_stats, event->num_mib_stats);
 	if (event->num_pdev_stats > 0) {
 		for (i = 0; i < event->num_pdev_stats; i++) {
 			pdev_stats = (wmi_pdev_stats*)temp;
@@ -3131,9 +3244,6 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 		}
 	}
 
-	WMA_LOGD("WDA receive peer num %d",
-		event->num_peer_stats);
-
 	if (event->num_peer_stats > 0) {
 		WMA_LOGD("update get rssi %d",
                         wma->get_sta_rssi);
@@ -3148,6 +3258,14 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 				wma_update_peer_stats(wma, peer_stats);
 				temp += sizeof(wmi_peer_stats);
 			}
+		}
+	}
+
+	if (event->num_mib_stats > 0) {
+		for (i = 0; i < event->num_mib_stats; i++) {
+			mib_stats = (wmi_mib_stats *)temp;
+			wma_update_mib_stats(wma, mib_stats);
+			temp += sizeof(wmi_mib_stats);
 		}
 	}
 
@@ -22413,6 +22531,47 @@ end:
 	return;
 }
 
+/**
+ * wma_process_mib_stats_req() - Mib stats request
+ * @wda_handle: pointer to wma handle.
+ * @get_mib_stats_param: mib stats request parameters
+ *
+ * This API calls the FW to get the latest Mib stats.
+ *
+ * Return:
+ */
+static void wma_process_mib_stats_req(WMA_HANDLE handle,
+		struct get_mib_stats_req *get_mib_stats_param)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_buf_t buf;
+	wmi_request_stats_cmd_fixed_param *cmd;
+	u_int8_t len = sizeof(wmi_request_stats_cmd_fixed_param);
+
+	WMA_LOGD("%s: Enter", __func__);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed to allocate wmi buffer", __func__);
+		return;
+	}
+	cmd = (wmi_request_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
+	cmd->stats_id = WMI_REQUEST_MIB_STAT;
+	cmd->vdev_id = get_mib_stats_param->session_id;
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				WMI_REQUEST_STATS_CMDID)) {
+
+		WMA_LOGE("Failed to send WMI Mib Stats request to fw");
+		wmi_buf_free(buf);
+		return;
+	}
+
+	return;
+}
+
 static void wma_init_scan_req(tp_wma_handle wma_handle,
 				tInitScanParams *init_scan_param)
 {
@@ -28495,6 +28654,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tAniGetPEStatsReq *) msg->bodyptr);
 			break;
 
+		case WDA_MIB_STATS_REQ:
+			wma_process_mib_stats_req(wma_handle,
+					(struct get_mib_stats_req *)
+						msg->bodyptr);
+			break;
+
 		case WDA_CONFIG_PARAM_UPDATE_REQ:
 			wma_update_cfg_params(wma_handle,
 					(tSirMsgQ *)msg);
@@ -29123,6 +29288,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_BPF_SET_INSTRUCTIONS_REQ:
 			wma_set_bpf_instructions(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MIB_STATS_ENABLE:
+			wma_set_mib_stats_enable(wma_handle, true);
+			break;
+		case WDA_SET_MIB_STATS_DISABLE:
+			wma_set_mib_stats_enable(wma_handle, false);
 			break;
 
 		default:
@@ -33079,6 +33250,60 @@ VOS_STATUS wma_set_cts2self_for_p2p_go(void *wda_handle,
 	WMA_LOGD("Successfully Set CTS2SELF for p2p GO %d",
 		cts2self_for_p2p_go);
 	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_mib_stats_enable() - enable mib stats in FW.
+ * @wda_handle: pointer to wma handle.
+ * @enable: value needs to set to firmware.
+ *
+ * At the time of driver startup, inform about ini parma to FW that
+ * if mibs stats needs to be collected
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS wma_set_mib_stats_enable(void *handle,
+				    uint32_t enable)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	wmi_mib_stats_enable_cmd_fixed_param *cmd;
+	int status = 0;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int32_t len = sizeof(wmi_mib_stats_enable_cmd_fixed_param);
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+
+	/* reset previous data for ccmp replays */
+	wma_handle->ccmp_replays_attack_cnt = 0;
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_mib_stats_enable_cmd_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_mib_stats_enable_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+			wmi_mib_stats_enable_cmd_fixed_param));
+	cmd->enable_Mib = enable;
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_MIB_STATS_ENABLE_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("%s: wmi_unified_cmd_send WMI_MIB_STATS_ENABLE_CMDID"
+			" returned Error %d",
+			__func__, status);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+
 }
 
 eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)

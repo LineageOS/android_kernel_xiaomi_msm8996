@@ -1857,6 +1857,8 @@ eHalStatus csrRoamIssueFTRoamOffloadSynch(tHalHandle hHal, tANI_U32 sessionId,
 
 ---------------------------------------------------------------------------*/
 typedef void (*tCsrLinkStatusCallback)(v_U8_t status, void *pContext);
+typedef void (*csr_mib_stats_callback)
+			(struct mib_stats_metrics *mib_stats, void *context);
 /**
  * tcsr_fw_state_callback() -HDD callback registered with SME for getting
  *  firmware state

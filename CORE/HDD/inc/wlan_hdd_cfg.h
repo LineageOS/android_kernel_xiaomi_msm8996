@@ -3443,6 +3443,14 @@ enum dot11p_mode {
 #define CFG_FIRST_SCAN_BUCKET_THRESHOLD_MAX       (-30)
 #define CFG_FIRST_SCAN_BUCKET_THRESHOLD_DEFAULT   (-30)
 
+/*
+ * MIB Stats enable/disable
+ * This variable will turn off/on collection of mib stats in FW
+ */
+#define CFG_MIB_STATS_ENABLED_NAME     "gdot11_mib_stats_enabled"
+#define CFG_MIB_STATS_ENABLED_MIN      (0)
+#define CFG_MIB_STATS_ENABLED_MAX      (1)
+#define CFG_MIB_STATS_ENABLED_DEFAULT  (0)
 
 #ifdef WLAN_FEATURE_WOW_PULSE
 /*
@@ -4250,6 +4258,7 @@ typedef struct
    uint32_t                    roam_dense_traffic_thresh;
    uint32_t                    roam_dense_rssi_thresh_offset;
    uint32_t                    roam_dense_min_aps;
+   bool                        mib_stats_enabled;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

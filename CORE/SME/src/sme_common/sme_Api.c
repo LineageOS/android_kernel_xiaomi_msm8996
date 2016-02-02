@@ -18186,3 +18186,91 @@ eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
 	}
 	return status;
 }
+
+/**
+ * sme_set_mib_stats_enable() - sme function to set ini parms to FW.
+ * @hal_handle: reference to the HAL
+ * @value: enable/disable
+ *
+ * This function sends mib stats enable/disable command to vos
+ *
+ * Return: hal_status
+ */
+eHalStatus sme_set_mib_stats_enable(tHalHandle hal_handle, uint8_t value)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	vos_msg_t vos_msg;
+
+	vos_msg.bodyptr = NULL;
+
+	if (value)
+		vos_msg.type = WDA_SET_MIB_STATS_ENABLE;
+	else
+		vos_msg.type = WDA_SET_MIB_STATS_DISABLE;
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to post msg to WDA"));
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
+
+/**
+ * sme_get_mib_stats() - sme function to get mib stats
+ * @hal_handle: reference to the HAL
+ * @callback: callback handler
+ * @context: mib stats context
+ * @vos_context: vos context
+ * @session_id: session id
+ *
+ * Return: hal_status
+ */
+eHalStatus sme_get_mib_stats(tHalHandle hal,
+		csr_mib_stats_callback callback,
+		void *context, void *vos_context,
+		uint8_t session_id)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	struct get_mib_stats_req *msg = NULL;
+	vos_msg_t vos_message;
+
+	msg = vos_mem_malloc(sizeof(struct get_mib_stats_req));
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		if (!msg) {
+			smsLog(mac, LOGE, "%s: failed to allocate mem for req",
+				__func__);
+			return status;
+		}
+
+		msg->msg_type = WDA_MIB_STATS_REQ;
+		msg->msg_len = (tANI_U16)sizeof(struct get_mib_stats_req);
+		msg->session_id = session_id;
+		mac->sme.mib_stats_context = context;
+		mac->sme.csr_mib_stats_callback = callback;
+
+		vos_message.type = WDA_MIB_STATS_REQ;
+		vos_message.bodyptr = msg;
+		vos_message.reserved = 0;
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(
+					VOS_MODULE_ID_WDA, &vos_message))) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+					"%s: Get Mib Stats Request fail",
+					__func__);
+			vos_mem_free(msg);
+			mac->sme.mib_stats_context = NULL;
+			mac->sme.csr_mib_stats_callback = NULL;
+			status = eHAL_STATUS_FAILURE;
+		}
+
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(msg);
+	}
+	return status;
+}

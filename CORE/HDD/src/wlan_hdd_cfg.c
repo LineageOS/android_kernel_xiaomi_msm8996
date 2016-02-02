@@ -4245,6 +4245,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WOW_PULSE_INTERVAL_HIGH_MAX),
 #endif
 
+   REG_VARIABLE(CFG_MIB_STATS_ENABLED_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, mib_stats_enabled,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MIB_STATS_ENABLED_DEFAULT,
+                CFG_MIB_STATS_ENABLED_MIN,
+                CFG_MIB_STATS_ENABLED_MAX),
 
    REG_VARIABLE(CFG_DBG_MAX_MGMT_TX_FAILURE_COUNT_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, max_mgmt_tx_fail_count,
@@ -5045,6 +5051,8 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                  CFG_FIRST_SCAN_BUCKET_THRESHOLD_NAME,
                  pHddCtx->cfg_ini->first_scan_bucket_threshold);
 
+  hddLog(LOG2, "Name = [gdot11_mib_stats_enabled] Value = [%u]",
+                   pHddCtx->cfg_ini->mib_stats_enabled);
   hddLog(LOG2, "Name = [gEnable_go_cts2self_for_sta] Value = [%u]",
                    pHddCtx->cfg_ini->enable_go_cts2self_for_sta);
   hddLog(LOG2, "Name = [ght_mpdu_density] Value = [%u]",

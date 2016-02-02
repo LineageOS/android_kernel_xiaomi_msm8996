@@ -6734,4 +6734,135 @@ struct sir_wake_lock_stats {
 	uint32_t wow_ipv6_mcast_ns_stats;
 	uint32_t wow_ipv6_mcast_na_stats;
 };
+
+/**
+ * struct dot11_counters - Mib Group containing attributes that are MAC counters
+ * @tx_frags: successfully transmitted fragments
+ * @group_tx_frames: transmitted group addressed frames
+ * @failed_cnt: MSDUs not transmitted successfully
+ * @rx_frags: fragments successfully received
+ * @group_rx_frames: group addressed frames received
+ * @fcs_error_cnt: FCS errors detected
+ * @tx_frames: frames successfully transmitted
+ *
+ */
+struct dot11_counters {
+	uint32_t tx_frags;
+	uint32_t group_tx_frames;
+	uint32_t failed_cnt;
+	uint32_t rx_frags;
+	uint32_t group_rx_frames;
+	uint32_t fcs_error_cnt;
+	uint32_t tx_frames;
+};
+
+/**
+ * struct dot11_mac_statistics - MIB stats information on the operation of MAC
+ * @retry_cnt: retries done by mac for successful transmition
+ * @frame_dup_cnt: duplicate no of frames
+ * @rts_success_cnt: Number of CTS received (in response to RTS)
+ * @rts_fail_cnt: Number of CTS is not received (in response to RTS)
+ *
+ */
+struct dot11_mac_statistics {
+	uint32_t retry_cnt;
+	uint32_t frame_dup_cnt;
+	uint32_t rts_success_cnt;
+	uint32_t rts_fail_cnt;
+};
+
+/**
+ * dot11_qos_counters - qos mac counters
+ * @qos_tx_frag_cnt: transmitted QoS fragments
+ * @qos_failed_cnt: failed Qos fragments
+ * @qos_retry_cnt: frames transmitted after one or more retransmissions
+ * @qos_frame_dup_cnt: duplicate frames
+ * @qos_rts_success_cnt: Number of CTS received (in response to RTS)
+ * @qos_rts_fail_cnt: Number of CTS is not received (in response to RTS)
+ * @qos_rx_frag_cnt: Number of received MPDU of type Data
+ * @qos_tx_frame_cnt: Number of transmitted MPDU of type Data
+ * @qos_discarded_frame_cnt: Total Discarded MSDUs
+ * @qos_mpdu_rx_cnt: Total received MPDU
+ * @qos_retries_rx_cnt: received MPDU with retry bit equal to 1
+ *
+ */
+struct dot11_qos_counters {
+	uint32_t qos_tx_frag_cnt;
+	uint32_t qos_failed_cnt;
+	uint32_t qos_retry_cnt;
+	uint32_t qos_frame_dup_cnt;
+	uint32_t qos_rts_success_cnt;
+	uint32_t qos_rts_fail_cnt;
+	uint32_t qos_rx_frag_cnt;
+	uint32_t qos_tx_frame_cnt;
+	uint32_t qos_discarded_frame_cnt;
+	uint32_t qos_mpdu_rx_cnt;
+	uint32_t qos_retries_rx_cnt;
+};
+
+/**
+ * dot11_rsna_stats - Mib RSN stats
+ * @cmac_icv_err: MPDUs discarded by the CMAC integrity check algorithm
+ * @tkip_icv_err: TKIP ICV errors encountered
+ * @tkip_replays: TKIP replay errors detected
+ * @ccmp_decrypt_err: MPDUs discarded by the CCMP decryption algorithm
+ * @ccmp_replays: received CCMP MPDUs discarded by the replay mechanism
+ *
+ */
+struct dot11_rsna_stats {
+	uint32_t cmac_icv_err;
+	uint32_t tkip_icv_err;
+	uint32_t tkip_replays;
+	uint32_t ccmp_decrypt_err;
+	uint32_t ccmp_replays;
+};
+
+/**
+ * dot11_counters_group3 - dot11 group3 stats
+ * @tx_ampdu_cnt: transmitted AMPDUs
+ * @tx_mpdus_in_ampdu_cnt: number of MPDUs in the A-MPDU in transmitted AMPDUs
+ * @tx_octets_in_ampdu_cnt: octets in the transmitted A-MPDUs
+ * @ampdu_rx_cnt: received A-MPDU
+ * @mpdu_in_rx_ampdu_cnt: MPDUs received in the A-MPDU
+ * @rx_octets_in_ampdu_cnt: octets in the received A-MPDU
+ *
+ */
+struct dot11_counters_group3 {
+	uint32_t tx_ampdu_cnt;
+	uint32_t tx_mpdus_in_ampdu_cnt;
+	uint64_t tx_octets_in_ampdu_cnt;
+	uint32_t ampdu_rx_cnt;
+	uint32_t mpdu_in_rx_ampdu_cnt;
+	uint64_t rx_octets_in_ampdu_cnt;
+};
+
+/**
+ * mib_stats_metrics - mib stats counters
+ * @mib_counters: dot11Counters group
+ * @mib_mac_statistics: dot11MACStatistics group
+ * @mib_qos_counters: dot11QoSCounters group
+ * @mib_rsna_stats: dot11RSNAStats group
+ * @mib_counters_group3: dot11CountersGroup3 group
+ *
+ */
+struct mib_stats_metrics {
+	struct dot11_counters mib_counters;
+	struct dot11_mac_statistics mib_mac_statistics;
+	struct dot11_qos_counters mib_qos_counters;
+	struct dot11_rsna_stats mib_rsna_stats;
+	struct dot11_counters_group3 mib_counters_group3;
+};
+
+/**
+ * get_mib_stats_req - req for getting mib stats
+ * @msg_type: message id
+ * @msg_len: msg length
+ * @session_id: session id
+ *
+ */
+struct get_mib_stats_req {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	uint8_t  session_id;
+};
 #endif /* __SIR_API_H */

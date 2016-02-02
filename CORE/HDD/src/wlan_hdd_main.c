@@ -14714,6 +14714,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (pHddCtx->cfg_ini->enable_go_cts2self_for_sta)
        sme_set_cts2self_for_p2p_go(pHddCtx->hHal);
 
+   /* Reset previous stats before turning on/off */
+   vos_mem_set(&pAdapter->mib_stats,
+                sizeof(pAdapter->mib_stats), 0);
+
+   hal_status = sme_set_mib_stats_enable(pHddCtx->hHal,
+                     pHddCtx->cfg_ini->mib_stats_enabled);
+
+   if (eHAL_STATUS_SUCCESS != hal_status)
+           hddLog(VOS_TRACE_LEVEL_ERROR, FL("set mib stats failed"));
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    if (pHddCtx->cfg_ini->WlanAutoShutdown != 0)
        if (sme_set_auto_shutdown_cb(pHddCtx->hHal, wlan_hdd_auto_shutdown_cb)

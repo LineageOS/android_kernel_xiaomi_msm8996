@@ -1163,6 +1163,7 @@ struct hdd_adapter_s
 	tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
 	int ocb_mac_addr_count;
 	struct hdd_adapter_pm_context runtime_context;
+	struct mib_stats_metrics mib_stats;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

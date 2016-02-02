@@ -1082,6 +1082,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_BPF_GET_CAPABILITIES_REQ          SIR_HAL_BPF_GET_CAPABILITIES_REQ
 #define WDA_BPF_SET_INSTRUCTIONS_REQ          SIR_HAL_BPF_SET_INSTRUCTIONS_REQ
 
+#define WDA_MIB_STATS_REQ                     SIR_HAL_MIB_STATS_REQ
+#define WDA_SET_MIB_STATS_ENABLE              SIR_HAL_SET_MIB_STATS_ENABLE
+#define WDA_SET_MIB_STATS_DISABLE             SIR_HAL_SET_MIB_STATS_DISABLE
+
 #define MAX_WOW_FILTERS 2
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
