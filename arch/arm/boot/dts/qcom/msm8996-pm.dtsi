@@ -156,7 +156,7 @@
 						qcom,psci-cpu-mode = <4>;
 						qcom,latency-us = <80>;
 						qcom,ss-power = <196>;
-						qcom,energy-overhead = <45300>;
+						qcom,energy-overhead = <62248>;
 						qcom,time-overhead = <210>;
 					};
 				};
@@ -239,7 +239,7 @@
 						qcom,psci-cpu-mode = <4>;
 						qcom,latency-us = <80>;
 						qcom,ss-power = <196>;
-						qcom,energy-overhead = <45300>;
+						qcom,energy-overhead = <62248>;
 						qcom,time-overhead = <210>;
 					};
 				};
