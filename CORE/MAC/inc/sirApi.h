@@ -1166,8 +1166,9 @@ typedef struct sSirSmeJoinRsp
     tSirSmeHTProfile    HTProfile;
 #endif
 
-    tANI_U8         frames[ 1 ];
     bool supported_nss_1x1;
+    /* Add new members before 'frames' to avoid memory corruption of 'frames' */
+    tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
 /// Definition for Authentication indication from peer
