@@ -13511,7 +13511,7 @@ void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx)
 {
     int i;
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
     hddLog(VOS_TRACE_LEVEL_ERROR, "BW Interval: %d curr_index %d",
                 pHddCtx->cfg_ini->busBandwidthComputeInterval,
                 pHddCtx->hdd_txrx_hist_idx);

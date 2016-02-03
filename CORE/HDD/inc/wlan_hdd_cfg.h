@@ -2815,7 +2815,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ROAMING_DFS_CHANNEL_MAX                (CFG_ROAMING_DFS_CHANNEL_ENABLED_ACTIVE)
 #define CFG_ROAMING_DFS_CHANNEL_DEFAULT            (CFG_ROAMING_DFS_CHANNEL_DISABLED)
 
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
 #define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD           "gBusBandwidthHighThreshold"
 #define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_DEFAULT   ( 2000 )
 #define CFG_BUS_BANDWIDTH_HIGH_THRESHOLD_MIN       ( 0 )
@@ -2857,7 +2857,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MIN          ( 0 )
 #define CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MAX          ( 16000 )
 
-#endif /* MSM_PLATFORM */
+#endif /* FEATURE_BUS_BANDWIDTH */
 
 #ifdef WLAN_FEATURE_11W
 #define CFG_PMF_SA_QUERY_MAX_RETRIES_NAME          "pmfSaQueryMaxRetries"
@@ -4085,7 +4085,7 @@ typedef struct
    v_BOOL_t                    debugP2pRemainOnChannel;
 
    v_BOOL_t                    enablePacketLog;
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
    v_U32_t                     busBandwidthHighThreshold;
    v_U32_t                     busBandwidthMediumThreshold;
    v_U32_t                     busBandwidthLowThreshold;
@@ -4093,7 +4093,7 @@ typedef struct
    v_U32_t                     tcpDelackThresholdHigh;
    v_U32_t                     tcpDelackThresholdLow;
    uint32_t                    tcp_tx_high_tput_thres;
-#endif /* MSM_PLATFORM */
+#endif /* FEATURE_BUS_BANDWIDTH */
 
    /* FW debug log parameters */
    v_U32_t     enableFwLogType;

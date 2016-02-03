@@ -1121,7 +1121,7 @@ struct hdd_adapter_s
     /* Using delayed work for ACS for Primary AP Startup to complete
      * since CSR Config is same for both AP */
     struct delayed_work acs_pending_work;
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
     int connection;
@@ -1837,7 +1837,7 @@ void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 
 int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
 int wlan_hdd_set_mc_rate(hdd_adapter_t *pAdapter, int targetRate);
-#ifdef MSM_PLATFORM
+#ifdef FEATURE_BUS_BANDWIDTH
 void hdd_start_bus_bw_compute_timer(hdd_adapter_t *pAdapter);
 void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter);
 #else
