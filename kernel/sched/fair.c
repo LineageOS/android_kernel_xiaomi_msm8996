@@ -2478,6 +2478,14 @@ unsigned int __read_mostly sysctl_sched_powerband_limit_pct;
 
 unsigned int __read_mostly sysctl_sched_lowspill_freq;
 unsigned int __read_mostly sysctl_sched_pack_freq = UINT_MAX;
+
+/*
+ * Place sync wakee tasks those have less than configured demand to the waker's
+ * cluster.
+ */
+unsigned int __read_mostly sched_small_wakee_task_load;
+unsigned int __read_mostly sysctl_sched_small_wakee_task_load_pct = 10;
+
 /*
  * CPUs with load greater than the sched_spill_load_threshold are not
  * eligible for task placement. When all CPUs in a cluster achieve a
@@ -2607,6 +2615,10 @@ void set_hmp_defaults(void)
 
 	sched_short_sleep_task_threshold = sysctl_sched_select_prev_cpu_us *
 					   NSEC_PER_USEC;
+
+	sched_small_wakee_task_load =
+		div64_u64((u64)sysctl_sched_small_wakee_task_load_pct *
+			  (u64)sched_ravg_window, 100);
 }
 
 u32 sched_get_init_task_load(struct task_struct *p)
@@ -2983,26 +2995,32 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 	bool fast_path = false;
 	cpumask_t search_cpus;
 	struct rq *trq;
+	bool need_waker_cluster = false;
 
 	cpumask_and(&search_cpus, tsk_cpus_allowed(p), cpu_online_mask);
 
-	if (!boost && !reason && !need_idle &&
-	    short_sleep_task_waking(p, prev_cpu, &search_cpus)) {
-		cpu_load = cpu_load_sync(prev_cpu, sync);
-		tload = scale_load_to_cpu(task_load(p), prev_cpu);
-		if (eligible_cpu(tload, cpu_load, prev_cpu, sync) &&
-		    task_load_will_fit(p, tload, prev_cpu)) {
-			fast_path = true;
-			best_cpu = prev_cpu;
-			goto done;
-		}
+	if (!boost && !reason && !need_idle) {
+		if (sync && task_load(p) < sched_small_wakee_task_load &&
+		    cpumask_intersects(&search_cpus,
+			    &cpu_rq(smp_processor_id())->freq_domain_cpumask)) {
+			need_waker_cluster = true;
+		} else if (short_sleep_task_waking(p, prev_cpu, &search_cpus)) {
+			cpu_load = cpu_load_sync(prev_cpu, sync);
+			tload = scale_load_to_cpu(task_load(p), prev_cpu);
+			if (eligible_cpu(tload, cpu_load, prev_cpu, sync) &&
+			    task_load_will_fit(p, tload, prev_cpu)) {
+				fast_path = true;
+				best_cpu = prev_cpu;
+				goto done;
+			}
 
-		spare_capacity = sched_ravg_window - cpu_load;
-		if (spare_capacity > 0) {
-			highest_spare_capacity = spare_capacity;
-			best_capacity_cpu = prev_cpu;
+			spare_capacity = sched_ravg_window - cpu_load;
+			if (spare_capacity > 0) {
+				highest_spare_capacity = spare_capacity;
+				best_capacity_cpu = prev_cpu;
+			}
+			cpumask_clear_cpu(prev_cpu, &search_cpus);
 		}
-		cpumask_clear_cpu(prev_cpu, &search_cpus);
 	}
 
 	trq = task_rq(p);
@@ -3014,7 +3032,9 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 		 power_cost(i, task_load(p) + cpu_cravg_sync(i, sync)),
 		 cpu_temp(i));
 
-		if (skip_freq_domain(trq, rq, reason)) {
+		if ((need_waker_cluster &&
+		     !cpus_share_cache(i, smp_processor_id())) ||
+		    skip_freq_domain(trq, rq, reason)) {
 			cpumask_andnot(&search_cpus, &search_cpus,
 						&rq->freq_domain_cpumask);
 			continue;
@@ -3030,13 +3050,26 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 		if (spare_capacity > 0 &&
 		    (spare_capacity > highest_spare_capacity ||
 		     (spare_capacity == highest_spare_capacity &&
-				cpu_rq(i)->capacity >
-				cpu_rq(best_capacity_cpu)->capacity))) {
+		      ((!need_waker_cluster &&
+			cpu_rq(i)->capacity >
+			cpu_rq(best_capacity_cpu)->capacity) ||
+		       (need_waker_cluster &&
+			cpu_rq(i)->nr_running <
+			cpu_rq(best_capacity_cpu)->nr_running))))) {
+			/*
+			 * If waker is the only runnable of CPU, cr_avg of the
+			 * CPU is 0 so we have high chance to place the wakee
+			 * on the waker's CPU which likely causes preemtion of
+			 * the waker.  This can lead migration of preempted
+			 * waker.  Place the wakee on the real idle CPU when
+			 * it's possible by checking nr_running to avoid such
+			 * preemption.
+			 */
 			highest_spare_capacity = spare_capacity;
 			best_capacity_cpu = i;
 		}
 
-		if (boost)
+		if (boost || need_waker_cluster)
 			continue;
 
 		tload = scale_load_to_cpu(task_load(p), i);
