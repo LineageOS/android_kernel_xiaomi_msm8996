@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -105,6 +105,7 @@ enum pmic_subtype {
 	PMI8994		= 10,
 	PMI8950		= 17,
 	PMI8996		= 19,
+	PMI8937		= 55,
 };
 
 enum wa_flags {
@@ -670,33 +671,43 @@ static int fg_masked_write(struct fg_chip *chip, u16 addr,
 }
 
 #define RIF_MEM_ACCESS_REQ	BIT(7)
-static inline bool fg_check_sram_access(struct fg_chip *chip)
+static int fg_check_rif_mem_access(struct fg_chip *chip, bool *status)
 {
 	int rc;
 	u8 mem_if_sts;
 
+	rc = fg_read(chip, &mem_if_sts, MEM_INTF_CFG(chip), 1);
+	if (rc) {
+		pr_err("failed to read rif_mem status rc=%d\n", rc);
+		return rc;
+	}
+
+	*status = mem_if_sts & RIF_MEM_ACCESS_REQ;
+	return 0;
+}
+
+static bool fg_check_sram_access(struct fg_chip *chip)
+{
+	int rc;
+	u8 mem_if_sts;
+	bool rif_mem_sts = false;
+
 	rc = fg_read(chip, &mem_if_sts, INT_RT_STS(chip->mem_base), 1);
 	if (rc) {
 		pr_err("failed to read mem status rc=%d\n", rc);
-		return 0;
+		return false;
 	}
 
 	if ((mem_if_sts & BIT(FG_MEM_AVAIL)) == 0)
 		return false;
 
-	rc = fg_read(chip, &mem_if_sts, MEM_INTF_CFG(chip), 1);
-	if (rc) {
-		pr_err("failed to read mem status rc=%d\n", rc);
-		return 0;
-	}
-
-	if ((mem_if_sts & RIF_MEM_ACCESS_REQ) == 0)
+	rc = fg_check_rif_mem_access(chip, &rif_mem_sts);
+	if (rc)
 		return false;
 
-	return true;
+	return rif_mem_sts;
 }
 
-#define RIF_MEM_ACCESS_REQ	BIT(7)
 static inline int fg_assert_sram_access(struct fg_chip *chip)
 {
 	int rc;
@@ -1127,7 +1138,7 @@ static int fg_check_iacs_ready(struct fg_chip *chip)
 	return 0;
 }
 
-#define IACL_SCLT			BIT(5)
+#define IACS_SLCT			BIT(5)
 static int __fg_interleaved_mem_write(struct fg_chip *chip, u8 *val,
 				u16 address, int offset, int len)
 {
@@ -1257,11 +1268,39 @@ static int __fg_interleaved_mem_read(struct fg_chip *chip, u8 *val, u16 address,
 	return rc;
 }
 
-#define IMA_REQ_ACCESS		(IACL_SCLT | RIF_MEM_ACCESS_REQ)
+#define IMA_REQ_ACCESS		(IACS_SLCT | RIF_MEM_ACCESS_REQ)
 static int fg_interleaved_mem_config(struct fg_chip *chip, u8 *val,
 		u16 address, int len, int offset, int op)
 {
 	int rc = 0;
+	bool rif_mem_sts = true;
+	int time_count = 0;
+
+	while (1) {
+		rc = fg_check_rif_mem_access(chip, &rif_mem_sts);
+		if (rc)
+			return rc;
+
+		if (!rif_mem_sts)
+			break;
+
+		if (fg_debug_mask & (FG_MEM_DEBUG_READS | FG_MEM_DEBUG_WRITES))
+			pr_info("RIF_MEM_ACCESS_REQ is not clear yet for IMA_%s\n",
+				op ? "write" : "read");
+
+		/*
+		 * Try this no more than 4 times. If RIF_MEM_ACCESS_REQ is not
+		 * clear, then return an error instead of waiting for it again.
+		 */
+		if  (time_count > 4) {
+			pr_err("Waited for 1.5 seconds polling RIF_MEM_ACCESS_REQ\n");
+			return -ETIMEDOUT;
+		}
+
+		/* Wait for 4ms before reading RIF_MEM_ACCESS_REQ again */
+		usleep_range(4000, 4100);
+		time_count++;
+	}
 
 	/* configure for IMA access */
 	rc = fg_masked_write(chip, MEM_INTF_CFG(chip),
@@ -1306,6 +1345,7 @@ static int fg_interleaved_mem_read(struct fg_chip *chip, u8 *val, u16 address,
 {
 	int rc = 0, orig_address = address;
 	u8 start_beat_count, end_beat_count, count = 0;
+	bool retry = false;
 
 	if (offset > 3) {
 		pr_err("offset too large %d\n", offset);
@@ -1374,7 +1414,7 @@ retry:
 	if (start_beat_count != end_beat_count) {
 		if (fg_debug_mask & FG_MEM_DEBUG_READS)
 			pr_info("Beat count do not match - retry transaction\n");
-		goto retry;
+		retry = true;
 	}
 out:
 	/* Release IMA access */
@@ -1382,6 +1422,10 @@ out:
 	if (rc)
 		pr_err("failed to reset IMA access bit rc = %d\n", rc);
 
+	if (retry) {
+		retry = false;
+		goto retry;
+	}
 	mutex_unlock(&chip->rw_lock);
 
 exit:
@@ -4653,8 +4697,9 @@ wait:
 			goto done;
 		}
 	} else {
-		pr_info("Battery profile not same, clearing cycle counters\n");
+		pr_info("Battery profile not same, clearing data\n");
 		clear_cycle_counter(chip);
+		chip->learning_data.learned_cc_uah = 0;
 	}
 	if (fg_est_dump)
 		dump_sram(&chip->dump_sram);
@@ -5870,6 +5915,10 @@ static int fg_common_hw_init(struct fg_chip *chip)
 		}
 	}
 
+	/* Read the cycle counter back from FG SRAM */
+	if (chip->cyc_ctr.en)
+		restore_cycle_counter(chip);
+
 	return 0;
 }
 
@@ -5917,9 +5966,6 @@ static int fg_8994_hw_init(struct fg_chip *chip)
 	data[0] = KI_COEFF_PRED_FULL_4_0_LSB;
 	data[1] = KI_COEFF_PRED_FULL_4_0_MSB;
 	fg_mem_write(chip, data, KI_COEFF_PRED_FULL_ADDR, 2, 2, 0);
-	/* Read the cycle counter back from FG SRAM */
-	if (chip->cyc_ctr.en)
-		restore_cycle_counter(chip);
 
 	esr_value = ESR_DEFAULT_VALUE;
 	rc = fg_mem_write(chip, (u8 *)&esr_value, MAXRSCHANGE_REG, 8,
@@ -6002,6 +6048,7 @@ static int fg_hw_init(struct fg_chip *chip)
 
 		break;
 	case PMI8950:
+	case PMI8937:
 		rc = fg_8950_hw_init(chip);
 		/* Setup workaround flag based on PMIC type */
 		if (fg_sense_type == INTERNAL_CURRENT_SENSE)
@@ -6052,12 +6099,12 @@ static int fg_setup_memif_offset(struct fg_chip *chip)
 	if (chip->ima_supported) {
 		/*
 		 * Change the FG_MEM_INT interrupt to track IACS_READY
-		 * condition instead of end-of-transation. This makes sure
+		 * condition instead of end-of-transaction. This makes sure
 		 * that the next transaction starts only after the hw is ready.
 		 */
 		rc = fg_masked_write(chip,
-			chip->mem_base + chip->offset[MEM_INTF_CFG],
-				IACS_INTR_SRC_SLCT, IACS_INTR_SRC_SLCT, 1);
+			chip->mem_base + MEM_INTF_IMA_CFG, IACS_INTR_SRC_SLCT,
+			IACS_INTR_SRC_SLCT, 1);
 		if (rc) {
 			pr_err("failed to configure interrupt source %d\n", rc);
 			return rc;
@@ -6094,6 +6141,7 @@ static int fg_detect_pmic_type(struct fg_chip *chip)
 	switch (pmic_rev_id->pmic_subtype) {
 	case PMI8994:
 	case PMI8950:
+	case PMI8937:
 	case PMI8996:
 		chip->pmic_subtype = pmic_rev_id->pmic_subtype;
 		chip->pmic_revision[REVID_RESERVED]	= pmic_rev_id->rev1;
