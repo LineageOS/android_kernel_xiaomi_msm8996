@@ -5079,16 +5079,30 @@ static int drv_cmd_set_antenna_mode(hdd_adapter_t *adapter,
 			hdd_ctx->current_antenna_mode =
 				HDD_ANTENNA_MODE_2X2;
 		}
-		/* Update the user requested nss in the mac context.
-		 * This will be used in tdls protocol engine to form tdls
-		 * Management frames.
-		 */
-		sme_update_user_configured_nss(
-				hdd_ctx->hHal,
-				hdd_ctx->current_antenna_mode);
 	}
 
+	/* Update the user requested nss in the mac context.
+	 * This will be used in tdls protocol engine to form tdls
+	 * Management frames.
+	 */
+	sme_update_user_configured_nss(
+		hdd_ctx->hHal,
+		hdd_ctx->current_antenna_mode);
+
 exit:
+#ifdef FEATURE_WLAN_TDLS
+	/* Reset tdls NSS flags */
+	if (hdd_ctx->tdls_nss_switch_in_progress &&
+	    hdd_ctx->tdls_nss_teardown_complete) {
+		hdd_ctx->tdls_nss_switch_in_progress = false;
+		hdd_ctx->tdls_nss_teardown_complete = false;
+	}
+
+	hddLog(LOG1,
+	       FL("tdls_nss_switch_in_progress: %d tdls_nss_teardown_complete: %d"),
+	       hdd_ctx->tdls_nss_switch_in_progress,
+	       hdd_ctx->tdls_nss_teardown_complete);
+#endif
 	hddLog(LOG1, FL("Set antenna status: %d current mode: %d"),
 	       ret, hdd_ctx->current_antenna_mode);
 	return ret;

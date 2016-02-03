@@ -20923,8 +20923,23 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
         mutex_lock(&pHddCtx->tdls_lock);
         if (pHddCtx->tdls_teardown_peers_cnt != 0)
             pHddCtx->tdls_teardown_peers_cnt--;
-        if (pHddCtx->tdls_teardown_peers_cnt == 0)
-            pHddCtx->tdls_nss_switch_in_progress = false;
+        if (pHddCtx->tdls_teardown_peers_cnt == 0) {
+            if (pHddCtx->tdls_nss_transition_mode ==
+                TDLS_NSS_TRANSITION_1x1_to_2x2) {
+                /* TDLS NSS switch is fully completed, so reset the flags */
+                hddLog(LOG1, FL("TDLS NSS switch is fully completed"));
+                pHddCtx->tdls_nss_switch_in_progress = false;
+                pHddCtx->tdls_nss_teardown_complete = false;
+            } else {
+               /* TDLS NSS switch is not yet completed, but tdls teardown
+                * is completed for all the peers.
+                */
+                hddLog(LOG1,
+                       FL("TDLS NSS switch is not completed, but teardown completed for all peers"
+                       ));
+                pHddCtx->tdls_nss_teardown_complete = true;
+            }
+        }
         mutex_unlock(&pHddCtx->tdls_lock);
     }
 

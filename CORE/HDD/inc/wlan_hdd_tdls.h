@@ -123,6 +123,18 @@ enum tdls_spatial_streams {
     TDLS_NSS_2x2_MODE = 0xff,
 };
 
+/**
+ * enum tdls_nss_transition_type - TDLS NSS transition states
+ * @TDLS_NSS_TRANSITION_UNKNOWN: default state
+ * @TDLS_NSS_TRANSITION_2x2_to_1x1: transition from 2x2 to 1x1 stream
+ * @TDLS_NSS_TRANSITION_1x1_to_2x2: transition from 1x1 to 2x2 stream
+ */
+enum tdls_nss_transition_type {
+    TDLS_NSS_TRANSITION_UNKNOWN = 0,
+    TDLS_NSS_TRANSITION_2x2_to_1x1,
+    TDLS_NSS_TRANSITION_1x1_to_2x2,
+};
+
 typedef enum eTDLSCapType{
     eTDLS_CAP_NOT_SUPPORTED = -1,
     eTDLS_CAP_UNKNOWN = 0,

@@ -557,6 +557,8 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
     pHddCtx->connected_peer_count = 0;
     pHddCtx->tdls_nss_switch_in_progress = false;
     pHddCtx->tdls_teardown_peers_cnt = 0;
+    pHddCtx->tdls_nss_teardown_complete = false;
+    pHddCtx->tdls_nss_transition_mode = TDLS_NSS_TRANSITION_UNKNOWN;
 
     sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                    pAdapter->sessionId, 0);
@@ -3192,11 +3194,16 @@ static int wlan_hdd_tdls_teardown_links(hdd_context_t *hddctx, uint32_t mode)
 		hddLog(LOG1, FL("TDLS peers to be torn down = %d"),
 			hddctx->tdls_teardown_peers_cnt);
 		/*  Antenna switch 2x2 to 1x1 */
-		if (mode == HDD_ANTENNA_MODE_1X1)
+		if (mode == HDD_ANTENNA_MODE_1X1) {
+			hddctx->tdls_nss_transition_mode =
+				TDLS_NSS_TRANSITION_2x2_to_1x1;
 			ret = -EAGAIN;
-		else
+		} else {
 		/*  Antenna switch 1x1 to 2x2 */
+			hddctx->tdls_nss_transition_mode =
+				TDLS_NSS_TRANSITION_1x1_to_2x2;
 			ret = 0;
+		}
 		hddLog(LOG1,
 		       FL("TDLS teardown for antenna switch operation starts"));
 	}
@@ -3223,8 +3230,12 @@ int wlan_hdd_tdls_antenna_switch(hdd_context_t *hdd_ctx,
 
 	/* Check whether TDLS antenna switch is in progress */
 	if (hdd_ctx->tdls_nss_switch_in_progress) {
-		hddLog(LOGE, FL("TDLS antenna switch is in progress"));
-		return -EAGAIN;
+		if (hdd_ctx->tdls_nss_teardown_complete == false) {
+			hddLog(LOGE, FL("TDLS nss switch is in progress"));
+			return -EAGAIN;
+		} else {
+			goto tdls_ant_sw_done;
+		}
 	}
 
 	/* Check whether TDLS is connected or not */

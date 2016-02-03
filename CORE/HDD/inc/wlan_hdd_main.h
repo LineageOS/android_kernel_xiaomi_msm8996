@@ -1535,6 +1535,8 @@ struct hdd_context_s
     tANI_U16     tdls_channel_offset;
     int32_t      tdls_fw_off_chan_mode;
     bool         tdls_nss_switch_in_progress;
+    bool         tdls_nss_teardown_complete;
+    int32_t      tdls_nss_transition_mode;
     int32_t      tdls_teardown_peers_cnt;
 #endif
 
