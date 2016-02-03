@@ -18047,6 +18047,11 @@ bool sme_is_sta_smps_allowed(tHalHandle hal, uint8_t session_id)
 	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
 	tCsrRoamSession *csr_session;
 
+	if (!mac_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to get mac_ctx"));
+		return false;
+	}
 	if (!CSR_IS_SESSION_VALID(mac_ctx, session_id)) {
 		smsLog(mac_ctx, LOGE, "CSR session not valid: %d", session_id);
 		return false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -231,7 +231,7 @@ eHalStatus oemData_SendMBOemDataReq(tpAniSirGlobal pMac, tOemDataReq *pOemDataRe
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirOemDataReq* pMsg;
     tANI_U16 msgLen;
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pOemDataReq->sessionId );
+    tCsrRoamSession *pSession;
 
     smsLog(pMac, LOGW, "OEM_DATA: entering Function %s", __func__);
 
@@ -240,6 +240,7 @@ eHalStatus oemData_SendMBOemDataReq(tpAniSirGlobal pMac, tOemDataReq *pOemDataRe
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
+    pSession = CSR_GET_SESSION(pMac, pOemDataReq->sessionId);
     pMsg = vos_mem_malloc(sizeof(*pMsg));
     if (NULL == pMsg) {
         smsLog(pMac, LOGE, "Memory Allocation failed. %s", __func__);

@@ -2054,6 +2054,10 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma_handle->vos_context);
 
+	if (!mac_ctx) {
+		WMA_LOGE("%s: Failed to get mac_ctx", __func__);
+		return;
+	}
 	len = sizeof(*cmd) + sizeof(wmi_channel) +
 			WMI_TLV_HDR_SIZE;
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
@@ -22715,7 +22719,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 
 	WMA_LOGD("%s: Send OEM Data Request to target", __func__);
 
-	if (!startOemDataReq && !startOemDataReq->data) {
+	if (!startOemDataReq || !startOemDataReq->data) {
 		WMA_LOGE("%s: startOemDataReq is null", __func__);
 		goto out;
 	}
