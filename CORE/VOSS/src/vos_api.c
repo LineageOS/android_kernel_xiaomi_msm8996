@@ -272,6 +272,29 @@ static void vos_set_nan_enable(tMacOpenParameters *param,
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+/**
+ * vos_set_bundle_params() - set bundle params in mac open param
+ * @wma_handle: Pointer to mac open param
+ * @hdd_ctx: Pointer to hdd context
+ *
+ * Return: none
+ */
+static void vos_set_bundle_params(tMacOpenParameters *param,
+					hdd_context_t *hdd_ctx)
+{
+	param->pkt_bundle_timer_value =
+		hdd_ctx->cfg_ini->pkt_bundle_timer_value;
+	param->pkt_bundle_size = hdd_ctx->cfg_ini->pkt_bundle_size;
+}
+#else
+static void vos_set_bundle_params(tMacOpenParameters *param,
+					hdd_context_t *hdd_ctx)
+{
+}
+#endif
+
+
 /*---------------------------------------------------------------------------
 
   \brief vos_open() - Open the vOSS Module
@@ -547,6 +570,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #endif
 
    vos_set_nan_enable(&macOpenParms, pHddCtx);
+   vos_set_bundle_params(&macOpenParms, pHddCtx);
 
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
                        hdd_update_tgt_cfg,

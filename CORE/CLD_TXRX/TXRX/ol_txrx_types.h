@@ -835,6 +835,7 @@ struct ol_txrx_pdev_t {
 	unsigned int num_descs_per_page;
 	void **desc_pages;
 	struct ol_txrx_peer_t *self_peer;
+	uint32_t total_bundle_queue_length;
 };
 
 struct ol_txrx_ocb_chan_info {
@@ -927,6 +928,17 @@ struct ol_txrx_vdev_t {
 	u_int16_t tx_fl_lwm;
 	u_int16_t tx_fl_hwm;
 	ol_txrx_tx_flow_control_fp osif_flow_control_cb;
+
+	bool bundling_reqired;
+	struct {
+		struct {
+			adf_nbuf_t head;
+			adf_nbuf_t tail;
+			int depth;
+		} txq;
+		adf_os_spinlock_t mutex;
+		adf_os_timer_t timer;
+	} bundle_queue;
 
 #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
         union ol_txrx_align_mac_addr_t hl_tdls_ap_mac_addr;

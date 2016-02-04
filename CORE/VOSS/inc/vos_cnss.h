@@ -399,11 +399,6 @@ static inline int vos_request_bus_bandwidth(int bandwidth)
 {
 	return cnss_request_bus_bandwidth(bandwidth);
 }
-#else
-static inline int vos_request_bus_bandwidth(int bandwidth)
-{
-	return 0;
-}
 #endif
 
 #ifdef CONFIG_CNSS_PCI

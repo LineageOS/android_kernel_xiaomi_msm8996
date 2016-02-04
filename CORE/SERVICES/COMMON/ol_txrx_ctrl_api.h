@@ -927,6 +927,8 @@ struct txrx_pdev_cfg_param_t {
     u_int32_t uc_rx_indication_ring_count;
     /* IPA Micro controller data path offload TX partition base */
     u_int32_t uc_tx_partition_base;
+    uint16_t pkt_bundle_timer_value;
+    uint16_t pkt_bundle_size;
 };
 
 /**

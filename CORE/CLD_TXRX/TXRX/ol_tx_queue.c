@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -104,6 +104,9 @@ ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     struct ol_tx_frms_queue_t *txq;
     struct ol_txrx_peer_t *peer, *peers[PEER_ARRAY_COUNT];
     int i, j, peer_count;
+
+    /* flush bundling queue */
+    ol_tx_hl_queue_flush_all(vdev);
 
     /* flush VDEV TX queues */
     for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {

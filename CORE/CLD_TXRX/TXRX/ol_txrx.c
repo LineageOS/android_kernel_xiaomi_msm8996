@@ -1092,6 +1092,17 @@ ol_txrx_vdev_attach(
     /* Default MAX Q depth for every VDEV */
     vdev->ll_pause.max_q_depth =
         ol_tx_cfg_max_tx_queue_depth_ll(vdev->pdev->ctrl_pdev);
+
+    vdev->bundling_reqired = false;
+    adf_os_spinlock_init(&vdev->bundle_queue.mutex);
+    vdev->bundle_queue.txq.head = vdev->ll_pause.txq.tail = NULL;
+    vdev->bundle_queue.txq.depth = 0;
+    adf_os_timer_init(
+            pdev->osdev,
+            &vdev->bundle_queue.timer,
+            ol_tx_hl_vdev_bundle_timer,
+            vdev, ADF_DEFERRABLE_TIMER);
+
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);
 
@@ -1118,7 +1129,7 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
     vdev->osif_rx = txrx_ops->rx.std;
 
     if (ol_cfg_is_high_latency(vdev->pdev->ctrl_pdev)) {
-        txrx_ops->tx.std = vdev->tx = ol_tx_hl;
+        txrx_ops->tx.std = vdev->tx = OL_TX_HL;
         txrx_ops->tx.non_std = ol_tx_non_std_hl;
     } else {
         txrx_ops->tx.std = vdev->tx = OL_TX_LL;

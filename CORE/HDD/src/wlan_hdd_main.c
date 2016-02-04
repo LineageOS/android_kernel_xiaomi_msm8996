@@ -132,6 +132,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "ol_fw.h"
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
+#include "tl_shim.h"
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
@@ -13246,6 +13247,23 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
    return status;
 }
 
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t tx_bytes)
+{
+	tlshim_set_bundle_require(session_id, tx_bytes,
+		hdd_ctx->cfg_ini->busBandwidthComputeInterval,
+		hdd_ctx->cfg_ini->pkt_bundle_threshold_high,
+		hdd_ctx->cfg_ini->pkt_bundle_threshold_low);
+
+}
+#else
+static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t tx_bytes)
+{
+	return;
+}
+#endif
 
 #ifdef FEATURE_BUS_BANDWIDTH
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
@@ -13342,12 +13360,11 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
 }
 
 #define HDD_BW_GET_DIFF(x, y) ((x) >= (y) ? (x) - (y) : (ULONG_MAX - (y) + (x)))
-
 static void hdd_bus_bw_compute_cbk(void *priv)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
     hdd_adapter_t *pAdapter = NULL;
-    uint64_t tx_packets= 0, rx_packets= 0;
+    uint64_t tx_packets= 0, rx_packets= 0, tx_bytes = 0;
     uint64_t total_tx = 0, total_rx = 0;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
@@ -13390,8 +13407,12 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         tx_packets += HDD_BW_GET_DIFF(pAdapter->stats.tx_packets,
                 pAdapter->prev_tx_packets);
+        tx_bytes += HDD_BW_GET_DIFF(pAdapter->stats.tx_bytes,
+                pAdapter->prev_tx_bytes);
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
                 pAdapter->prev_rx_packets);
+
+        hdd_set_bundle_require(pAdapter->sessionId, pHddCtx, tx_bytes);
 
         total_rx += pAdapter->stats.rx_packets;
         total_tx += pAdapter->stats.tx_packets;
@@ -13399,6 +13420,7 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+        pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
@@ -16587,8 +16609,10 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
         }
     }
 
-    if(can_stop == VOS_TRUE)
+    if (can_stop == VOS_TRUE) {
         vos_timer_stop(&pHddCtx->bus_bw_timer);
+        tlshim_reset_bundle_require();
+    }
 }
 #endif
 
