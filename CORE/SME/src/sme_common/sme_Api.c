@@ -18677,7 +18677,6 @@ VOS_STATUS sme_set_btc_bt_wlan_interval_page_sap(uint32_t bt_interval,
 	return vos_status;
 }
 
-
 /**
  * sme_send_disassoc_req_frame - send disassoc req
  * @hal: handler to hal
@@ -18799,4 +18798,57 @@ eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hal,
 	}
 
 	return eHAL_STATUS_FAILURE;
+}
+/**
+ * sme_oem_update_capability() - update UMAC's oem related capability.
+ * @hal: Handle returned by mac_open
+ * @oem_cap: pointer to oem_capability
+ *
+ * This function updates OEM capability to UMAC. Currently RTT
+ * related capabilities are updated. More capabilities can be
+ * added in future.
+ *
+ * Return: VOS_STATUS
+ */
+VOS_STATUS sme_oem_update_capability(tHalHandle hal,
+				     struct sme_oem_capability *cap)
+{
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal pmac = PMAC_STRUCT(hal);
+	uint8_t *bytes;
+
+	bytes = pmac->rrm.rrmSmeContext.rrmConfig.rm_capability;
+
+	if (cap->ftm_rr)
+		bytes[4] |= RM_CAP_FTM_RANGE_REPORT;
+	if (cap->lci_capability)
+		bytes[4] |= RM_CAP_CIVIC_LOC_MEASUREMENT;
+
+	return status;
+}
+
+/**
+ * sme_oem_get_capability() - get oem capability
+ * @hal: Handle returned by mac_open
+ * @oem_cap: pointer to oem_capability
+ *
+ * This function is used to get the OEM capability from UMAC.
+ * Currently RTT related capabilities are received. More
+ * capabilities can be added in future.
+ *
+ * Return: VOS_STATUS
+ */
+VOS_STATUS sme_oem_get_capability(tHalHandle hal,
+				  struct sme_oem_capability *cap)
+{
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal pmac = PMAC_STRUCT(hal);
+	uint8_t *bytes;
+
+	bytes = pmac->rrm.rrmSmeContext.rrmConfig.rm_capability;
+
+	cap->ftm_rr = bytes[4] & RM_CAP_FTM_RANGE_REPORT;
+	cap->lci_capability = bytes[4] & RM_CAP_CIVIC_LOC_MEASUREMENT;
+
+	return status;
 }
