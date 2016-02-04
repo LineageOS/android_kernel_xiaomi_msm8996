@@ -78,7 +78,7 @@
 #define MAX_REG_READ_RETRIES 10
 
 unsigned int msienable = 0;
-module_param(msienable, int, 0644);
+module_param(msienable, int, S_IRUSR | S_IRGRP | S_IROTH);
 
 int hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl);
 void hif_nointrs(struct hif_pci_softc *sc);
