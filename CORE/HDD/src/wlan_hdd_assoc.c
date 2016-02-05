@@ -110,6 +110,23 @@ v_U8_t ccpRSNOui08[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x05 };
 
 #define BEACON_FRAME_IES_OFFSET 12
 
+#define NUM_BITS_IN_INT 32
+static const int beacon_filter_table[] = {
+	SIR_MAC_DS_PARAM_SET_EID,
+	SIR_MAC_ERP_INFO_EID,
+	SIR_MAC_EDCA_PARAM_SET_EID,
+	SIR_MAC_QOS_CAPABILITY_EID,
+	SIR_MAC_CHNL_SWITCH_ANN_EID,
+	SIR_MAC_HT_INFO_EID,
+#if defined WLAN_FEATURE_VOWIFI
+	SIR_MAC_PWR_CONSTRAINT_EID,
+#endif
+#ifdef WLAN_FEATURE_11AC
+	SIR_MAC_VHT_OPMODE_EID,
+	SIR_MAC_VHT_OPERATION_EID,
+#endif
+};
+
 static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter,
                                                 tCsrRoamInfo *pRoamInfo,
                                                 tANI_U32 roamId,
@@ -255,6 +272,48 @@ static inline void hdd_connSaveConnectedBssType( hdd_station_ctx_t *pHddStaCtx, 
          break;
    }
 
+}
+
+/**
+ * hdd_unset_beacon_filter() - remove beacon filter
+ * @adapter: Pointer to the hdd adapter
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int hdd_unset_beacon_filter(hdd_adapter_t *adapter)
+{
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+
+	vos_status = sme_unset_beacon_filter(adapter->sessionId);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		return -EFAULT;
+
+	return 0;
+}
+
+/**
+ * hdd_set_beacon_filter() - set beacon filter
+ * @adapter: Pointer to the hdd adapter
+ *
+ * Return: 0 on success and errno on failure
+ */
+static int hdd_set_beacon_filter(hdd_adapter_t *adapter)
+{
+	int i;
+	uint32_t ie_map[8] = {0};
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+
+	for (i = 0; i < ARRAY_SIZE(beacon_filter_table); i++) {
+		__set_bit((beacon_filter_table[i] - 1),
+			  (unsigned long int *)ie_map);
+	}
+	vos_status = sme_set_beacon_filter(adapter->sessionId, ie_map);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		hddLog(LOGE, "%s: failed to set beacon filter",
+			 __func__);
+		return -EFAULT;
+	}
+	return 0;
 }
 
 static void
@@ -1041,6 +1100,10 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 #if defined(WLAN_FEATURE_VOWIFI_11R)
     sme_FTReset(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId);
 #endif
+    if (hdd_unset_beacon_filter(pAdapter) != 0)
+        hddLog(LOGE,
+               FL("hdd_unset_beacon_filter() failed"));
+
     if (eCSR_ROAM_IBSS_LEAVE == roamStatus) {
         v_U8_t i;
 
@@ -1609,6 +1672,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         // Save the connection info from CSR...
         hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
+
+        if (hdd_set_beacon_filter(pAdapter) != 0)
+            hddLog(LOGE,
+                   FL("hdd_set_beacon_filter() failed"));
+
 #ifdef FEATURE_WLAN_WAPI
         if ( pRoamInfo->u.pConnectedProfile->AuthType == eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE ||
                 pRoamInfo->u.pConnectedProfile->AuthType == eCSR_AUTH_TYPE_WAPI_WAI_PSK )

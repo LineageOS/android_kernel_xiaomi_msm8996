@@ -18431,3 +18431,77 @@ eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id)
 
 	return status;
 }
+
+/**
+ * sme_set_beacon_filter() - set the beacon filter configuration
+ * @vdev_id: vdev index id
+ * @ie_map: bitwise array of IEs
+ *
+ * Return: Return VOS_STATUS, otherwise appropriate failure code
+ */
+VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct beacon_filter_param *filter_param;
+
+	filter_param = vos_mem_malloc(sizeof(*filter_param));
+	if (NULL == filter_param) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc filter_param", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	filter_param->vdev_id = vdev_id;
+
+	vos_mem_copy(filter_param->ie_map, ie_map,
+			BCN_FLT_MAX_ELEMS_IE_LIST*sizeof(uint32_t));
+
+	vos_message.type = WDA_ADD_BCN_FILTER_CMDID;
+	vos_message.bodyptr = filter_param;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Not able to post msg to WDA!",
+			__func__);
+
+		vos_mem_free(filter_param);
+	}
+	return vos_status;
+}
+
+/**
+ * sme_unset_beacon_filter() - set the beacon filter configuration
+ * @vdev_id: vdev index id
+ *
+ * Return: Return VOS_STATUS, otherwise appropriate failure code
+ */
+VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct beacon_filter_param *filter_param;
+
+	filter_param = vos_mem_malloc(sizeof(*filter_param));
+	if (NULL == filter_param) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc filter_param", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	filter_param->vdev_id = vdev_id;
+
+	vos_message.type = WDA_REMOVE_BCN_FILTER_CMDID;
+	vos_message.bodyptr = filter_param;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Not able to post msg to WDA!",
+			__func__);
+
+		vos_mem_free(filter_param);
+	}
+	return vos_status;
+}

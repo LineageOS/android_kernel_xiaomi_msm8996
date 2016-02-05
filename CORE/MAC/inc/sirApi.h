@@ -6661,6 +6661,17 @@ struct egap_conf_params {
 };
 
 /**
+ * struct beacon_filter_param - parameters for beacon filtering
+ * @vdev_id: vdev id
+ * @ie_map: bitwise map of IEs that needs to be filtered
+ *
+ */
+struct beacon_filter_param {
+	uint32_t   vdev_id;
+	uint32_t   ie_map[8];
+};
+
+/**
  * struct smps_force_mode_event - smps force mode event param
  * @message_type: Type of message
  * @length: length

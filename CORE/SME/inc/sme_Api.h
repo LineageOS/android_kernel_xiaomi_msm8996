@@ -4096,6 +4096,8 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
 			void (*pbpf_get_offload_cb)(void *,
 			struct sir_bpf_get_offload *));
+VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map);
+VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /* ---------------------------------------------------------------------------

@@ -1087,6 +1087,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_MIB_STATS_REQ                     SIR_HAL_MIB_STATS_REQ
 #define WDA_SET_MIB_STATS_ENABLE              SIR_HAL_SET_MIB_STATS_ENABLE
 #define WDA_SET_MIB_STATS_DISABLE             SIR_HAL_SET_MIB_STATS_DISABLE
+#define WDA_ADD_BCN_FILTER_CMDID              SIR_HAL_ADD_BCN_FILTER_CMDID
+#define WDA_REMOVE_BCN_FILTER_CMDID           SIR_HAL_REMOVE_BCN_FILTER_CMDID
 
 #define WDA_UPDATE_TX_RATE                    SIR_HAL_UPDATE_TX_RATE
 
