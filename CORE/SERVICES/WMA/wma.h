@@ -436,7 +436,7 @@ typedef struct {
 #define WMA_NUM_BITS_IN_BYTE           8
 
 #define WMA_AP_WOW_DEFAULT_PTRN_MAX    4
-#define WMA_STA_WOW_DEFAULT_PTRN_MAX   4
+#define WMA_STA_WOW_DEFAULT_PTRN_MAX   5
 
 struct wma_wow_ptrn_cache {
 	u_int8_t vdev_id;

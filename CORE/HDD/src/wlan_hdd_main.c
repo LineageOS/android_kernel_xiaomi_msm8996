@@ -8782,8 +8782,14 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hddLog(LOG1, FL("fine_time_measurement_cap: 0x%x"),
              hdd_ctx->cfg_ini->fine_time_meas_cap);
     hdd_ctx->bpf_enabled = cfg->bpf_enabled;
+
+    /*
+     * If BPF is enabled, maxWowFilters set to WMA_STA_WOW_DEFAULT_PTRN_MAX
+     * because we need atleast WMA_STA_WOW_DEFAULT_PTRN_MAX free slots to
+     * configure the STA mode wow pattern.
+     */
     if (hdd_ctx->bpf_enabled)
-             hdd_ctx->cfg_ini->maxWoWFilters = MAX_WOW_FILTERS;
+             hdd_ctx->cfg_ini->maxWoWFilters = WMA_STA_WOW_DEFAULT_PTRN_MAX;
     hdd_ctx->wmi_max_len = cfg->wmi_max_len;
 }
 
