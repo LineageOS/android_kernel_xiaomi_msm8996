@@ -4510,13 +4510,14 @@ hdd_parse_get_cckm_ie(tANI_U8 *pValue, tANI_U8 **pCckmIe, tANI_U8 *pCckmIeLen)
  *
  * Return: status
  */
-static int drv_cmd_set_fcc_channel(hdd_context_t *hdd_ctx, uint8_t *cmd,
+static int drv_cmd_set_fcc_channel(hdd_adapter_t *adapter, uint8_t *cmd,
                                    uint8_t cmd_len)
 {
 	uint8_t *value;
 	uint8_t fcc_constraint;
 	eHalStatus status;
 	int ret = 0;
+        hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 
 	value =  cmd + cmd_len + 1;
 
@@ -4530,7 +4531,8 @@ static int drv_cmd_set_fcc_channel(hdd_context_t *hdd_ctx, uint8_t *cmd,
 		return -EINVAL;
 	}
 
-	status = sme_handle_set_fcc_channel(hdd_ctx->hHal, !fcc_constraint);
+	status = sme_handle_set_fcc_channel(hdd_ctx->hHal, !fcc_constraint,
+			adapter->scan_info.mScanPending);
 	if (status != eHAL_STATUS_SUCCESS)
 		ret = -EPERM;
 
@@ -7900,7 +7902,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
             * country code is set
             */
 
-           ret = drv_cmd_set_fcc_channel(pHddCtx, command, 15);
+           ret = drv_cmd_set_fcc_channel(pAdapter, command, 15);
 
        } else if (strncmp(command, "RXFILTER-REMOVE", 15) == 0) {
 
