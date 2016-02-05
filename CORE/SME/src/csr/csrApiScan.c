@@ -5155,6 +5155,7 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
     tANI_U32 cbParsed;
     tSirBssDescription *pSirBssDescription;
     tANI_U32 cbBssDesc;
+    eHalStatus status;
     tANI_U32 cbScanResult = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription )
                             + sizeof(tSirBssDescription);    //We need at least one CB
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
@@ -5300,6 +5301,21 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
     if(pfRemoveCommand)
     {
         *pfRemoveCommand = fRemoveCommand;
+    }
+    /*
+     * Currently SET_FCC_CHANNEL issues updated channel list to fw.
+     * At the time of driver load, if scan is issued followed with
+     * SET_FCC_CHANNEL, driver will send update channel list to fw.
+     * Fw will stop ongoing scan because of that GUI will have very less
+     * scan list.
+     * Update channel list should be sent to fw once scan is done
+     */
+    if (pMac->scan.defer_update_channel_list) {
+        status = csrUpdateChannelList(pMac);
+        if (eHAL_STATUS_SUCCESS != status)
+           smsLog(pMac, LOGE,
+                   FL( "failed to update the supported channel list"));
+        pMac->scan.defer_update_channel_list = false;
     }
 
 #ifdef WLAN_AP_STA_CONCURRENCY
