@@ -1340,6 +1340,9 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		params->chainMask = resp_event->chain_mask;
 		params->smpsMode = host_map_smps_mode(resp_event->smps_mode);
 		params->status = resp_event->status;
+		if (wma->interfaces[resp_event->vdev_id].is_channel_switch)
+			wma->interfaces[resp_event->vdev_id].is_channel_switch =
+				VOS_FALSE;
 		if (((resp_event->resp_type == WMI_VDEV_RESTART_RESP_EVENT) &&
 		    (iface->type == WMI_VDEV_TYPE_STA)) ||
 		    ((resp_event->resp_type == WMI_VDEV_START_RESP_EVENT) &&
@@ -12160,6 +12163,9 @@ void wma_vdev_resp_timer(void *data)
 		adf_os_spin_lock_bh(&wma->roam_preauth_lock);
 		wma->roam_preauth_scan_id = -1;
 		adf_os_spin_unlock_bh(&wma->roam_preauth_lock);
+		if (wma->interfaces[tgt_req->vdev_id].is_channel_switch)
+			wma->interfaces[tgt_req->vdev_id].is_channel_switch =
+				VOS_FALSE;
 	} else if (tgt_req->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)tgt_req->user_data;
@@ -12674,10 +12680,6 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 				 status);
 			goto send_resp;
 		}
-
-		if (wma->interfaces[req.vdev_id].is_channel_switch)
-			wma->interfaces[req.vdev_id].is_channel_switch =
-				VOS_FALSE;
 		return;
 	}
 send_resp:
@@ -18312,14 +18314,18 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 		WMA_LOGE("%s : wma_store_bcn_tmpl Failed", __func__);
 		return;
 	}
-	if (!wma->interfaces[vdev_id].vdev_up) {
-	      if (wmi_unified_vdev_up_send(wma->wmi_handle, vdev_id, 0,
-				      bcn_info->bssId) < 0) {
-		WMA_LOGE("%s : failed to send vdev up", __func__);
-		return;
-	     }
-	     wma->interfaces[vdev_id].vdev_up = TRUE;
-		wma_set_sap_keepalive(wma, vdev_id);
+	if (!((adf_os_atomic_read(
+		&wma->interfaces[vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) ||
+		(wma->interfaces[vdev_id].is_channel_switch))) {
+		if (!wma->interfaces[vdev_id].vdev_up) {
+			if (wmi_unified_vdev_up_send(wma->wmi_handle, vdev_id, 0,
+						bcn_info->bssId) < 0) {
+				WMA_LOGE("%s : failed to send vdev up", __func__);
+				return;
+			}
+			wma->interfaces[vdev_id].vdev_up = TRUE;
+			wma_set_sap_keepalive(wma, vdev_id);
+		}
 	}
 }
 
