@@ -1744,6 +1744,8 @@ static void __limProcessSmeOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMlmOemDataReq->data_len = pOemDataReq->data_len;
     vos_mem_copy(pMlmOemDataReq->data, pOemDataReq->data,
                  pOemDataReq->data_len);
+    /* buffer from SME copied, free it now */
+    vos_mem_free(pOemDataReq->data);
 
     //Issue LIM_MLM_OEM_DATA_REQ to MLM
     limPostMlmMessage(pMac, LIM_MLM_OEM_DATA_REQ, (tANI_U32*)pMlmOemDataReq);
