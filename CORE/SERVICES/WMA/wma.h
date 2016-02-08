@@ -574,6 +574,8 @@ struct wma_txrx_node {
 	uint8_t nss_5g;
 
 	uint8_t wep_default_key_idx;
+	bool is_vdev_valid;
+
 };
 
 #if defined(QCA_WIFI_FTM)
