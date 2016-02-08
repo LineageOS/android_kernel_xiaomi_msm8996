@@ -1078,6 +1078,9 @@ void a5xx_hwcg_set(struct adreno_device *adreno_dev, bool on)
 	const struct kgsl_hwcg_reg *regs;
 	int i, j;
 
+	if (!test_bit(ADRENO_HWCG_CTRL, &adreno_dev->pwrctrl_flag))
+		return;
+
 	for (i = 0; i < ARRAY_SIZE(a5xx_hwcg_registers); i++) {
 		if (a5xx_hwcg_registers[i].devfunc(adreno_dev))
 			break;
