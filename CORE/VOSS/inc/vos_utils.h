@@ -198,4 +198,6 @@ void vos_tdls_tx_rx_mgmt_event(uint8_t event_id, uint8_t tx_rx,
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
+unsigned long vos_rounddown_pow_of_two(unsigned long n);
+
 #endif // #if !defined __VOSS_UTILS_H

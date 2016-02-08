@@ -90,6 +90,8 @@
 #include "wlan_logging_sock_svc.h"
 #include "wma.h"
 
+#include "vos_utils.h"
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -495,8 +497,42 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifdef IPA_UC_OFFLOAD
     /* IPA micro controller data path offload resource config item */
     macOpenParms.ucOffloadEnabled = pHddCtx->cfg_ini->IpaUcOffloadEnabled;
+
+    if (!is_power_of_2(pHddCtx->cfg_ini->IpaUcTxBufCount)) {
+        /* IpaUcTxBufCount should be power of 2 */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Round down IpaUcTxBufCount %d to nearest power of two",
+                    __func__, pHddCtx->cfg_ini->IpaUcTxBufCount);
+        pHddCtx->cfg_ini->IpaUcTxBufCount =
+                    vos_rounddown_pow_of_two(pHddCtx->cfg_ini->IpaUcTxBufCount);
+        if (!pHddCtx->cfg_ini->IpaUcTxBufCount) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                        "%s: Failed to round down IpaUcTxBufCount", __func__);
+            goto err_htc_close;
+        }
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: IpaUcTxBufCount rounded down to %d", __func__,
+                    pHddCtx->cfg_ini->IpaUcTxBufCount);
+    }
     macOpenParms.ucTxBufCount = pHddCtx->cfg_ini->IpaUcTxBufCount;
     macOpenParms.ucTxBufSize = pHddCtx->cfg_ini->IpaUcTxBufSize;
+
+    if (!is_power_of_2(pHddCtx->cfg_ini->IpaUcRxIndRingCount)) {
+        /* IpaUcRxIndRingCount should be power of 2 */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Round down IpaUcRxIndRingCount %d to nearest power of two",
+                __func__, pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+        pHddCtx->cfg_ini->IpaUcRxIndRingCount =
+                vos_rounddown_pow_of_two(pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+        if (!pHddCtx->cfg_ini->IpaUcRxIndRingCount) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: Failed to round down IpaUcRxIndRingCount", __func__);
+            goto err_htc_close;
+        }
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: IpaUcRxIndRingCount rounded down to %d", __func__,
+                    pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+    }
     macOpenParms.ucRxIndRingCount = pHddCtx->cfg_ini->IpaUcRxIndRingCount;
     macOpenParms.ucTxPartitionBase = pHddCtx->cfg_ini->IpaUcTxPartitionBase;
 #endif /* IPA_UC_OFFLOAD */

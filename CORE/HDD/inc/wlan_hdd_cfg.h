@@ -2907,6 +2907,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IPA_UC_OFFLOAD_ENABLED_MAX             ( 1 )
 #define CFG_IPA_UC_OFFLOAD_ENABLED_DEFAULT         ( 0 )
 
+/* IpaUcTxBufCount should be power of 2 */
 #define CFG_IPA_UC_TX_BUF_COUNT_NAME               "IpaUcTxBufCount"
 #define CFG_IPA_UC_TX_BUF_COUNT_MIN                ( 0 )
 #define CFG_IPA_UC_TX_BUF_COUNT_MAX                ( 2048 )
@@ -2917,6 +2918,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IPA_UC_TX_BUF_SIZE_MAX                ( 4096 )
 #define CFG_IPA_UC_TX_BUF_SIZE_DEFAULT            ( 2048 )
 
+/* IpaUcRxIndRingCount should be power of 2 */
 #define CFG_IPA_UC_RX_IND_RING_COUNT_NAME          "IpaUcRxIndRingCount"
 #define CFG_IPA_UC_RX_IND_RING_COUNT_MIN           ( 0 )
 #define CFG_IPA_UC_RX_IND_RING_COUNT_MAX           ( 2048 )
