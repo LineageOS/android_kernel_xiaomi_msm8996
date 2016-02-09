@@ -1203,16 +1203,23 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
     pMac->lim.numTot++;
 #endif
 
-   /* Omitting below message types as these are too frequent and when crash
-    * happens we loose critical trace logs if these are also logged
+   /*
+    * MTRACE logs not captured for events received from SME
+    * SME enums (eWNI_SME_START_REQ) starts with 0x16xx.
+    * Compare received SME events with SIR_SME_MODULE_ID
     */
-   if (limMsg->type != SIR_LIM_MAX_CHANNEL_TIMEOUT &&
-       limMsg->type != SIR_LIM_MIN_CHANNEL_TIMEOUT &&
-       limMsg->type != SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT &&
-       limMsg->type != SIR_CFG_PARAM_UPDATE_IND &&
-       limMsg->type != SIR_BB_XPORT_MGMT_MSG)
-          MTRACE(macTraceMsgRx(pMac, NO_SESSION,
+    if (SIR_SME_MODULE_ID == (tANI_U8)MAC_TRACE_GET_MODULE_ID(limMsg->type)) {
+       MTRACE(macTrace(pMac, TRACE_CODE_RX_SME_MSG, NO_SESSION, limMsg->type));
+    } else {
+       /*
+        * Omitting below message types as these are too frequent and when crash
+        * happens we loose critical trace logs if these are also logged
+        */
+       if (limMsg->type != SIR_CFG_PARAM_UPDATE_IND &&
+          limMsg->type != SIR_BB_XPORT_MGMT_MSG)
+           MTRACE(macTraceMsgRx(pMac, NO_SESSION,
                  LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
+    }
 
     switch (limMsg->type)
     {

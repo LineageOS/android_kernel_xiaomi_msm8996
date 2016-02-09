@@ -78,6 +78,7 @@
 #define ANI_DUMMY_PKT_MSG_LEN            16
 #define ANI_DUMMY_DATA_PAYLOAD_OFFSET    10
 
+#define SIR_SME_MODULE_ID 0x16
 
 /// Start of Sirius/Host message types
 #define WNI_HOST_MSG_START             0x1500

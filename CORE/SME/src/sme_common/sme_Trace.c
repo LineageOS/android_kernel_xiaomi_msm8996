@@ -180,6 +180,12 @@ static tANI_U8* smeTraceGetCommandString( tANI_U32 command )
         CASE_RETURN_STRING(eSmeCommandRemoveKey);
         CASE_RETURN_STRING(eSmeCommandAddStaSession);
         CASE_RETURN_STRING(eSmeCommandDelStaSession);
+#ifdef FEATURE_WLAN_TDLS
+       CASE_RETURN_STRING(eSmeCommandTdlsSendMgmt);
+       CASE_RETURN_STRING(eSmeCommandTdlsAddPeer);
+       CASE_RETURN_STRING(eSmeCommandTdlsDelPeer);
+       CASE_RETURN_STRING(eSmeCommandTdlsLinkEstablish);
+#endif
         CASE_RETURN_STRING(eSmePmcCommandMask);
         CASE_RETURN_STRING(eSmeCommandEnterImps);
         CASE_RETURN_STRING(eSmeCommandExitImps);
