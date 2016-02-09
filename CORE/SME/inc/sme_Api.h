@@ -4488,10 +4488,6 @@ static inline VOS_STATUS sme_send_egap_conf_params(uint32_t enable,
 }
 #endif
 
-eHalStatus sme_set_dense_roam_params(tHalHandle hal,
-					uint32_t rssi_thresh_offset,
-					uint32_t min_aps, uint32_t status,
-					uint32_t traffic_thresh);
 #ifdef WLAN_FEATURE_WOW_PULSE
 VOS_STATUS sme_set_wow_pulse(struct wow_pulse_mode *wow_pulse_set_info);
 #endif

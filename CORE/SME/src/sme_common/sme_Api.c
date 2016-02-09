@@ -18046,32 +18046,6 @@ VOS_STATUS sme_send_egap_conf_params(uint32_t enable, uint32_t inactivity_time,
 #endif
 
 /**
- * sme_set_dense_roam_params() - set dense roam params
- * @rssi_thresh_offset: offset from normal RSSI thresh to dense RSSI threshold
- * @min_aps: min number of AP required for roam dense environment
- * @status: status information about roam dense environment
- * @traffic_thresh: traffic threshold
- *
- * Return: Return 0, otherwise appropriate failure code
- */
-eHalStatus sme_set_dense_roam_params(tHalHandle hal,
-		uint32_t rssi_thresh_offset, uint32_t min_aps,
-		uint32_t status, uint32_t traffic_thresh)
-{
-	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
-	struct roam_ext_params *roam_params_dst;
-
-	roam_params_dst = &mac_ctx->roam.configParam.roam_params;
-
-	roam_params_dst->dense_rssi_thresh_offset = rssi_thresh_offset;
-	roam_params_dst->dense_min_aps_cnt = min_aps;
-	roam_params_dst->initial_dense_status = status;
-	roam_params_dst->traffic_threshold = traffic_thresh;
-
-	return eHAL_STATUS_SUCCESS;
-}
-
-/**
  * sme_update_mimo_power_save() - Update MIMO power save
  * configuration
  * @hal: The handle returned by macOpen

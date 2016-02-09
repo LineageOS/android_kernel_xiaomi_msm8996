@@ -4290,13 +4290,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_TX_LEAKAGE_THRESHOLD_MIN,
                 CFG_SAP_TX_LEAKAGE_THRESHOLD_MAX),
 
-   REG_VARIABLE(CFG_ROAM_DENSE_TRAFFIC_THRESHOLD, WLAN_PARAM_Integer,
-                hdd_config_t, roam_dense_traffic_thresh,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_ROAM_DENSE_TRAFFIC_THRESHOLD_DEFAULT,
-                CFG_ROAM_DENSE_TRAFFIC_THRESHOLD_MIN,
-                CFG_ROAM_DENSE_TRAFFIC_THRESHOLD_MAX),
-
    REG_VARIABLE(CFG_IGNORE_PEER_HT_MODE_NAME, WLAN_PARAM_Integer,
                   hdd_config_t, ignore_peer_ht_opmode,
                   VAR_FLAGS_OPTIONAL |
@@ -4305,19 +4298,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                   CFG_IGNORE_PEER_HT_MODE_MIN,
                   CFG_IGNORE_PEER_HT_MODE_MAX),
 
-   REG_VARIABLE(CFG_ROAM_DENSE_RSSI_THRE_OFFSET, WLAN_PARAM_Integer,
-                hdd_config_t, roam_dense_rssi_thresh_offset,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_ROAM_DENSE_RSSI_THRE_OFFSET_DEFAULT,
-                CFG_ROAM_DENSE_RSSI_THRE_OFFSET_MIN,
-                CFG_ROAM_DENSE_RSSI_THRE_OFFSET_MAX),
-
-   REG_VARIABLE(CFG_ROAM_DENSE_MIN_APS, WLAN_PARAM_Integer,
-                hdd_config_t, roam_dense_min_aps,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_ROAM_DENSE_MIN_APS_DEFAULT,
-                CFG_ROAM_DENSE_MIN_APS_MIN,
-                CFG_ROAM_DENSE_MIN_APS_MAX),
 };
 
 
@@ -5072,12 +5052,6 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->min_rest_time_conc);
   hddLog(LOG2, "Name = [gIdleTimeConc] Value = [%u]",
                    pHddCtx->cfg_ini->idle_time_conc);
-  hddLog(LOG2, "Name = [groam_dense_rssi_thresh] Value = [%u]",
-                   pHddCtx->cfg_ini->roam_dense_traffic_thresh);
-  hddLog(LOG2, "Name = [groam_dense_rssi_thresh_offset] Value = [%u]",
-                   pHddCtx->cfg_ini->roam_dense_rssi_thresh_offset);
-  hddLog(LOG2, "Name = [groam_dense_min_aps] Value = [%u]",
-                   pHddCtx->cfg_ini->roam_dense_min_aps);
 
 }
 

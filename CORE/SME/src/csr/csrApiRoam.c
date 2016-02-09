@@ -17539,13 +17539,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
      roam_params_dst->drop_factor_5g, roam_params_dst->max_raise_rssi_5g,
      roam_params_dst->max_drop_rssi_5g, roam_params_dst->alert_rssi_threshold);
 
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-     "dense_rssi_thresh_offset: %d, dense_min_aps_cnt:%d, initial_dense_status:%d, traffic_threshold:%d",
-     roam_params_dst->dense_rssi_thresh_offset,
-     roam_params_dst->dense_min_aps_cnt,
-     roam_params_dst->initial_dense_status,
-     roam_params_dst->traffic_threshold);
-
     for (i = 0; i < roam_params_dst->num_bssid_avoid_list; i++) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
           "Blacklist Bssid("MAC_ADDRESS_STR")",
