@@ -8306,7 +8306,63 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_RATE] = {.type = NLA_U16 },
 };
+
+/**
+ * wlan_hdd_update_tx_rate() - update tx rate to firmware
+ * @hdd_ctx: HDD context
+ * @tx_rate: User-specified tx-rate to be operated for the specific
+ * HW mode.
+ * Return: 0 on success; Errno on failure
+ */
+int wlan_hdd_update_tx_rate(hdd_context_t *hddctx, uint16_t tx_rate)
+{
+
+	hdd_adapter_t *adapter = NULL;
+	hdd_station_ctx_t *hddstactx = NULL;
+	eHalStatus hstatus;
+	struct sir_txrate_update *buf_txrate_update;
+
+	ENTER();
+	adapter = hdd_get_adapter(hddctx, WLAN_HDD_INFRA_STATION);
+	hddstactx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+
+	if (WLAN_HDD_INFRA_STATION != adapter->device_mode) {
+		hddLog(LOGE, FL("Only Sta Mode supported!"));
+		return -ENOTSUPP;
+	}
+
+	if (!hdd_connIsConnected(
+			WLAN_HDD_GET_STATION_CTX_PTR(adapter))) {
+		hddLog(LOGE, FL("Not in Connected state!"));
+		return -ENOTSUPP;
+	}
+
+	buf_txrate_update = vos_mem_malloc(sizeof(*buf_txrate_update));
+	if (!buf_txrate_update) {
+		hddLog(LOGE, FL("Failed to allocate memory for buf_txrate_update"));
+		return -ENOMEM;
+	}
+
+
+	buf_txrate_update->session_id = adapter->sessionId;
+
+	buf_txrate_update->txrate = tx_rate;
+	vos_mem_copy(buf_txrate_update->bssid, hddstactx->conn_info.bssId,
+				VOS_MAC_ADDR_SIZE);
+
+	hstatus = sme_update_txrate(hddctx->hHal, buf_txrate_update);
+	if (!HAL_STATUS_SUCCESS(hstatus)) {
+		hddLog(LOGE,
+			FL("sme_update_txrate failed(err=%d)"), hstatus);
+		vos_mem_free(buf_txrate_update);
+		return -EINVAL;
+	}
+	EXIT();
+	vos_mem_free(buf_txrate_update);
+	return 0;
+}
 
 
 /**
@@ -8333,7 +8389,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
 	int ret_val = 0;
 	u32 modulated_dtim;
-	u16 stats_avg_factor;
+	uint16_t stats_avg_factor, tx_rate;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -8404,6 +8460,15 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			ret_val = -EPERM;
 	}
 
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_RATE]) {
+		tx_rate = nla_get_u16(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_RATE]);
+		hddLog(LOG1, "Config Txrate: tx_rate received :%d", tx_rate);
+		status = wlan_hdd_update_tx_rate(pHddCtx, tx_rate);
+
+		if (eHAL_STATUS_SUCCESS != status)
+			ret_val = -EPERM;
+	}
 	return ret_val;
 }
 

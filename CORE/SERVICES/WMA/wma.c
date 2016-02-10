@@ -28354,6 +28354,101 @@ static VOS_STATUS wma_update_wep_default_key(tp_wma_handle wma,
 }
 
 /**
+ * wma_update_tx_rate: Update max tx_rate to firmware
+ * @wma_handle: wma handle
+ * @req: Set max tx_rate parameters to firmware
+ * For the specific hardware mode validate the max tx_rate value specified
+ * by the user.
+ * WMA_RESET_MAX_RATE: Is specified to switch back to max rate index for the
+ * specified hardware mode.
+ * Return: VOS_STATUS enumeration.
+ */
+static VOS_STATUS wma_update_tx_rate(tp_wma_handle wma,
+				struct sir_txrate_update *req)
+{
+	struct wma_txrx_node *intr = wma->interfaces;
+	wmi_peer_max_min_tx_rate peer_max_min_tx_rate;
+	uint16_t tx_rate = (req->txrate);
+
+	WMA_LOGI("%s: Enter", __func__);
+	peer_max_min_tx_rate.tx_rate = tx_rate;
+	switch (intr[req->session_id].chanmode) {
+	case MODE_11A:
+	case MODE_11G:
+	case MODE_11GONLY:
+
+		if ((tx_rate >= 0 && tx_rate <= WMI_MAX_OFDM_TX_RATE)) {
+			/* Do Nothing*/
+		} else if (tx_rate == WMA_RESET_MAX_RATE)
+			peer_max_min_tx_rate.tx_rate = WMI_MAX_OFDM_TX_RATE;
+		else {
+			WMA_LOGE("invalid rate for MODE_11A/MODE11_G");
+			return -EINVAL;
+		}
+		peer_max_min_tx_rate.mode = WMI_RATE_PREAMBLE_OFDM;
+		break;
+	case MODE_11B:
+
+		if ((tx_rate >= 0 && tx_rate <= WMI_MAX_CCK_TX_RATE)) {
+			/* Do nothing*/
+		} else if (tx_rate == WMA_RESET_MAX_RATE)
+			peer_max_min_tx_rate.tx_rate = WMI_MAX_CCK_TX_RATE;
+		else {
+			WMA_LOGE("invalid rate for Mode MODE_11B");
+			return -EINVAL;
+		}
+		peer_max_min_tx_rate.mode = WMI_RATE_PREAMBLE_CCK;
+		break;
+	case MODE_11NA_HT20:
+	case MODE_11NG_HT20:
+	case MODE_11NA_HT40:
+	case MODE_11NG_HT40:
+		if ((tx_rate >= 0 && tx_rate <= WMI_MAX_HT_TX_MCS)) {
+			/* Do nothing*/
+		} else if (tx_rate == WMA_RESET_MAX_RATE)
+			peer_max_min_tx_rate.tx_rate = WMI_MAX_HT_TX_MCS;
+		else {
+			WMA_LOGE("invalid rate for Mode MODE_11N");
+			return -EINVAL;
+		}
+		peer_max_min_tx_rate.mode = WMI_RATE_PREAMBLE_HT;
+		break;
+	case MODE_11AC_VHT20:
+	case MODE_11AC_VHT40:
+	case MODE_11AC_VHT80:
+	case MODE_11AC_VHT20_2G:
+	case MODE_11AC_VHT40_2G:
+	case MODE_11AC_VHT80_2G:
+#if CONFIG_160MHZ_SUPPORT
+	case MODE_11AC_VHT80_80:
+	case MODE_11AC_VHT160:
+#endif
+		if ((tx_rate >= 0 && tx_rate <= WMI_MAX_VHT_TX_MCS)) {
+			/* Do nothing*/
+		} else if (tx_rate == WMA_RESET_MAX_RATE)
+			peer_max_min_tx_rate.tx_rate = WMI_MAX_VHT_TX_MCS;
+		else {
+			WMA_LOGE("invalid rate for Mode MODE_11N");
+			return -EINVAL;
+		}
+		peer_max_min_tx_rate.mode = WMI_RATE_PREAMBLE_VHT;
+		break;
+	default:
+		WMA_LOGE("%s: Error not supported mode", __func__);
+		return -EINVAL;
+	}
+	WMA_LOGD(FL("tx_rate: %d hwmode: %d"), peer_max_min_tx_rate.tx_rate,
+					peer_max_min_tx_rate.mode);
+	wma_set_peer_param(wma, req->bssid,
+			WMI_PEER_SET_MAX_TX_RATE ,
+			(peer_max_min_tx_rate.mode |
+			(peer_max_min_tx_rate.tx_rate << 16)),
+				req->session_id);
+	WMA_LOGI("%s: Exit", __func__);
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
  * wma_get_bpf_capabilities - Send get bpf capability to firmware
  * @wma_handle: wma handle
  *
@@ -29352,7 +29447,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_MIB_STATS_DISABLE:
 			wma_set_mib_stats_enable(wma_handle, false);
 			break;
-
+		case WDA_UPDATE_TX_RATE:
+			wma_update_tx_rate(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

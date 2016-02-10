@@ -18344,3 +18344,49 @@ void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val)
 			rrmConfig.rm_capability)->fine_time_meas_rpt = 1;
 	}
 }
+
+eHalStatus sme_update_txrate(tHalHandle hal,
+			struct sir_txrate_update *req)
+{
+	eHalStatus          status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac_ctx    = PMAC_STRUCT(hal);
+	vos_msg_t           vos_msg;
+	struct sir_txrate_update *txrate_update;
+
+	smsLog(mac_ctx, LOG1, FL("enter"));
+
+	txrate_update = vos_mem_malloc(sizeof(*txrate_update));
+	if (NULL == txrate_update) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to alloc txrate_update"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	txrate_update->session_id = req->session_id;
+	txrate_update->txrate = req->txrate;
+	vos_mem_copy(txrate_update->bssid, req->bssid, VOS_MAC_ADDR_SIZE);
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = txrate_update;
+		vos_msg.type = WDA_UPDATE_TX_RATE;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("Post Update tx_rate msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(txrate_update);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(txrate_update);
+	}
+	smsLog(mac_ctx, LOG1, FL("exit"));
+	return status;
+}

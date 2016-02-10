@@ -6861,4 +6861,16 @@ struct get_mib_stats_req {
 	uint16_t msg_len;
 	uint8_t  session_id;
 };
+
+/**
+ * sir_txrate_update - update txrate to firmware
+ * @session_id: session identifier
+ * @txrate: tx rate to configure for hardware mode
+ * @bssid: Bssid
+ */
+struct sir_txrate_update {
+	uint8_t session_id;
+	uint16_t txrate;
+	tSirMacAddr bssid;
+};
 #endif /* __SIR_API_H */
