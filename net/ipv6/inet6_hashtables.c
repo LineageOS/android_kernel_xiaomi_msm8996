@@ -17,11 +17,13 @@
 #include <linux/module.h>
 #include <linux/random.h>
 
+#include <net/addrconf.h>
 #include <net/inet_connection_sock.h>
 #include <net/inet_hashtables.h>
 #include <net/inet6_hashtables.h>
 #include <net/secure_seq.h>
 #include <net/ip.h>
+#include <net/sock_reuseport.h>
 
 u32 inet6_ehashfn(const struct net *net,
 		  const struct in6_addr *laddr, const u16 lport,
@@ -129,6 +131,7 @@ struct sock *inet6_lookup_listener(struct net *net,
 	const struct hlist_nulls_node *node;
 	struct sock *result;
 	int score, hiscore, matches = 0, reuseport = 0;
+	bool select_ok = true;
 	u32 phash = 0;
 	unsigned int hash = inet_lhashfn(net, hnum);
 	struct inet_listen_hashbucket *ilb = &hashinfo->listening_hash[hash];
@@ -146,6 +149,15 @@ begin:
 			if (reuseport) {
 				phash = inet6_ehashfn(net, daddr, hnum,
 						      saddr, sport);
+				if (select_ok) {
+					struct sock *sk2;
+					sk2 = reuseport_select_sock(sk, phash,
+								    skb, doff);
+					if (sk2) {
+						result = sk2;
+						goto found;
+					}
+				}
 				matches = 1;
 			}
 		} else if (score == hiscore && reuseport) {
@@ -163,11 +175,13 @@ begin:
 	if (get_nulls_value(node) != hash + LISTENING_NULLS_BASE)
 		goto begin;
 	if (result) {
+found:
 		if (unlikely(!atomic_inc_not_zero(&result->sk_refcnt)))
 			result = NULL;
 		else if (unlikely(compute_score(result, net, hnum, daddr,
 				  dif) < hiscore)) {
 			sock_put(result);
+			select_ok = false;
 			goto begin;
 		}
 	}
@@ -279,7 +293,7 @@ int inet6_hash(struct sock *sk)
 {
 	if (sk->sk_state != TCP_CLOSE) {
 		local_bh_disable();
-		__inet_hash(sk, NULL);
+		__inet_hash(sk, NULL, ipv6_rcv_saddr_equal);
 		local_bh_enable();
 	}
 
