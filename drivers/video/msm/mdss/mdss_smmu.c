@@ -139,7 +139,7 @@ static int mdss_smmu_enable_power(struct mdss_smmu_client *mdss_smmu,
 			goto end;
 		}
 		mdss_update_reg_bus_vote(mdss_smmu->reg_bus_clt,
-			VOTE_INDEX_19_MHZ);
+			VOTE_INDEX_LOW);
 		rc = msm_dss_enable_clk(mp->clk_config, mp->num_clk, true);
 		if (rc) {
 			pr_err("clock enable failed - rc:%d\n", rc);

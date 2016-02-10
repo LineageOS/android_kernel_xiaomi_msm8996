@@ -658,7 +658,7 @@ int mdss_mdp_resource_control(struct mdss_mdp_ctl *ctl, u32 sw_event)
 				MDP_RSRC_CTL_STATE_OFF) {
 			/* Add an extra vote for the ahb bus */
 			mdss_update_reg_bus_vote(mdata->reg_bus_clt,
-				VOTE_INDEX_19_MHZ);
+				VOTE_INDEX_LOW);
 
 			/* Enable MDP resources */
 			mdss_mdp_cmd_clk_on(ctx);
