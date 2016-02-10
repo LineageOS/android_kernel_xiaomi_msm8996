@@ -1795,9 +1795,8 @@ void mdss_rect_split(struct mdss_rect *in_roi, struct mdss_rect *l_roi,
 
 
 int mdss_mdp_get_ctl_mixers(u32 fb_num, u32 *mixer_id);
-u32 mdss_mdp_get_mixer_mask(u32 pipe_num, u32 stage);
-u32 mdss_mdp_get_mixer_extn_mask(u32 pipe_num, u32 stage);
-u32 mdss_mdp_get_mixercfg(struct mdss_mdp_mixer *mixer, bool extn);
+bool mdss_mdp_mixer_reg_has_pipe(struct mdss_mdp_mixer *mixer,
+		struct mdss_mdp_pipe *pipe);
 u32 mdss_mdp_fb_stride(u32 fb_index, u32 xres, int bpp);
 void mdss_check_dsi_ctrl_status(struct work_struct *work, uint32_t interval);
 
