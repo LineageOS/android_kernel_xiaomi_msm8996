@@ -225,13 +225,14 @@ discard:
 	return 0;
 }
 
-static void l2tp_ip6_hash(struct sock *sk)
+static int l2tp_ip6_hash(struct sock *sk)
 {
 	if (sk_unhashed(sk)) {
 		write_lock_bh(&l2tp_ip6_lock);
 		sk_add_node(sk, &l2tp_ip6_table);
 		write_unlock_bh(&l2tp_ip6_lock);
 	}
+	return 0;
 }
 
 static void l2tp_ip6_unhash(struct sock *sk)
