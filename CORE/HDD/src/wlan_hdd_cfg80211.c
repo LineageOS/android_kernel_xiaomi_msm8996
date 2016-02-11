@@ -13403,10 +13403,6 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
                      TRACE_CODE_HDD_CFG80211_STOP_AP,
                      pAdapter->sessionId, pAdapter->device_mode));
 
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret)
-        return ret;
 
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -13421,6 +13417,20 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    ret = wlan_hdd_validate_context(pHddCtx);
+    if (0 != ret) {
+        if (pHddCtx->isUnloadInProgress) {
+            /*
+             * Unloading the driver so free the memory for ch_list,
+             * otherwise it will result in memory leak
+             */
+            if (pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list)
+                vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+        }
+        return ret;
+    }
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
