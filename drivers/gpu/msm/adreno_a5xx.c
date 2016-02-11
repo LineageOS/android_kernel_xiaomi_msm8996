@@ -2282,19 +2282,23 @@ static void spin_idle_debug(struct kgsl_device *device)
 	dev_err(device->dev, " hwfault=%8.8X\n", hwfault);
 }
 
-static void a5xx_post_start(struct adreno_device *adreno_dev)
+static int a5xx_post_start(struct adreno_device *adreno_dev)
 {
+	int ret;
 	unsigned int *cmds, *start;
 	struct adreno_ringbuffer *rb = adreno_dev->cur_rb;
 
 	if (!adreno_is_a530(adreno_dev) &&
 		!adreno_is_preemption_enabled(adreno_dev))
-		return;
+		return 0;
 
 	cmds = adreno_ringbuffer_allocspace(rb, 42);
-	if (IS_ERR_OR_NULL(cmds))
-		return;
+	if (IS_ERR(cmds)) {
+		struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 
+		KGSL_DRV_ERR(device, "error allocating preemtion init cmds");
+		return PTR_ERR(cmds);
+	}
 	start = cmds;
 
 	/*
@@ -2312,14 +2316,17 @@ static void a5xx_post_start(struct adreno_device *adreno_dev)
 	rb->wptr = rb->wptr - (42 - (cmds - start));
 
 	if (cmds == start)
-		return;
+		return 0;
 
-	if (adreno_ringbuffer_submit_spin(rb, NULL, 2000)) {
+	ret = adreno_ringbuffer_submit_spin(rb, NULL, 2000);
+	if (ret) {
 		struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 
 		KGSL_DRV_ERR(device, "hw initialization failed to idle\n");
 		kgsl_device_snapshot(device, NULL);
+		return ret;
 	}
+	return 0;
 }
 
 static int a5xx_gpmu_init(struct adreno_device *adreno_dev)
@@ -2355,14 +2362,12 @@ static int a5xx_gpmu_init(struct adreno_device *adreno_dev)
  */
 static int a5xx_hw_init(struct adreno_device *adreno_dev)
 {
-	int ret;
+	int ret = a5xx_gpmu_init(adreno_dev);
 
-	if (a5xx_gpmu_init(adreno_dev))
-		return ret;
+	if (!ret)
+		ret = a5xx_post_start(adreno_dev);
 
-	a5xx_post_start(adreno_dev);
-
-	return 0;
+	return ret;
 }
 
 static int a5xx_switch_to_unsecure_mode(struct adreno_device *adreno_dev,
