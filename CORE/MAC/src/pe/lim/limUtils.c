@@ -766,30 +766,25 @@ limCleanupMlm(tpAniSirGlobal pMac)
      * each STA associated per BSSId and deactivate/delete
      * the pmfSaQueryTimer for it
      */
-    if (vos_is_logp_in_progress(VOS_MODULE_ID_PE, NULL))
+    for (bss_entry = 0; bss_entry < pMac->lim.maxBssId; bss_entry++)
     {
-        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-                  FL("SSR is detected, proceed to clean up pmfSaQueryTimer"));
-        for (bss_entry = 0; bss_entry < pMac->lim.maxBssId; bss_entry++)
-        {
-             if (pMac->lim.gpSession[bss_entry].valid)
+         if (pMac->lim.gpSession[bss_entry].valid)
+         {
+             for (sta_entry = 1; sta_entry < pMac->lim.gLimAssocStaLimit;
+                  sta_entry++)
              {
-                 for (sta_entry = 1; sta_entry < pMac->lim.gLimAssocStaLimit;
-                      sta_entry++)
-                 {
-                      psessionEntry = &pMac->lim.gpSession[bss_entry];
-                      pStaDs = dphGetHashEntry(pMac, sta_entry,
-                                              &psessionEntry->dph.dphHashTable);
-                      if (NULL == pStaDs)
-                      {
-                          continue;
-                      }
-                      VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-                                FL("Deleting pmfSaQueryTimer for staid[%d]"),
-                                pStaDs->staIndex) ;
-                      tx_timer_deactivate(&pStaDs->pmfSaQueryTimer);
-                      tx_timer_delete(&pStaDs->pmfSaQueryTimer);
-                }
+                  psessionEntry = &pMac->lim.gpSession[bss_entry];
+                  pStaDs = dphGetHashEntry(pMac, sta_entry,
+                                          &psessionEntry->dph.dphHashTable);
+                  if (NULL == pStaDs)
+                  {
+                      continue;
+                  }
+                  VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+                            FL("Deleting pmfSaQueryTimer for staid[%d]"),
+                            pStaDs->staIndex) ;
+                  tx_timer_deactivate(&pStaDs->pmfSaQueryTimer);
+                  tx_timer_delete(&pStaDs->pmfSaQueryTimer);
             }
         }
     }
