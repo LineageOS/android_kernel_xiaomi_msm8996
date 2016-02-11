@@ -2473,8 +2473,7 @@ static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_devi
 
 static void hif_sdio_device_shutdown(struct sdio_func *func)
 {
-	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-	vos_set_crash_indication_pending(true);
+	vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
 	if (func != NULL)
 		hifDeviceRemoved(func);

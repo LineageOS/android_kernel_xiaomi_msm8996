@@ -17462,7 +17462,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	/* overwrite the timeout value to shorten the SSR latency in HL
 	 * solution
 	 */
-	if (vos_is_crash_indication_pending()) {
+	if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		WMA_LOGP("%s: %d HL ssr in progress",
 			 __func__, __LINE__);
 		timeout = WMA_DEL_BSS_TIMEOUT_IN_SSR;
@@ -32884,7 +32884,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 	/* overwrite the timeout value to shorten the SSR latency in HL
 	 * solution.
 	 */
-	if (vos_is_crash_indication_pending()) {
+	if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		WMA_LOGP("%s: %d HL ssr in progress",
 			 __func__, __LINE__);
 		timeout = WMA_SUSPEND_TIMEOUT_IN_SSR;
@@ -32897,8 +32897,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 #ifdef CONFIG_CNSS
 		if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL) ||
-		    vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)||
-		    vos_is_crash_indication_pending()) {
+		    vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 			WMA_LOGE("%s: Unloading/Loading/LOGP is in progress, Ignore!",
 				 __func__);
 		} else {
