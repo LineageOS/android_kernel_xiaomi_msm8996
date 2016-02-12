@@ -128,18 +128,16 @@ static VOS_STATUS lim_add_ndi_peer(tpAniSirGlobal mac_ctx,
 static VOS_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 					struct ndp_indication_event *ndp_ind)
 {
-	VOS_STATUS status;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
 	limLog(mac_ctx, LOG1,
 		FL("role: %d, vdev: %d, peer_mac_addr "MAC_ADDRESS_STR),
 		ndp_ind->role, ndp_ind->vdev_id,
 		MAC_ADDR_ARRAY(ndp_ind->peer_mac_addr.bytes));
 
-	if (ndp_ind->role == NDP_ROLE_INITIATOR) {
-		/* Free config only for INITIATOR role */
-		vos_mem_free(ndp_ind->ndp_config.ndp_cfg);
-		vos_mem_free(ndp_ind->ndp_info.ndp_app_info);
-
+	if ((ndp_ind->role == NDP_ROLE_INITIATOR) ||
+	   ((NDP_ROLE_RESPONDER == ndp_ind->role) &&
+	   (NDP_ACCEPT_POLICY_ALL == ndp_ind->policy))) {
 		status = lim_add_ndi_peer(mac_ctx, ndp_ind->vdev_id,
 				ndp_ind->peer_mac_addr);
 		if (VOS_STATUS_SUCCESS != status) {
@@ -148,17 +146,11 @@ static VOS_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 				ndp_ind->role);
 			goto ndp_indication_failed;
 		}
-	} else if (NDP_ROLE_RESPONDER == ndp_ind->role) {
-		/*
-		 * For RESPONDER role ndp_cfg and app_info sent till HDD
-		 * will be freed in sme.
-		 */
-		if (NDP_ACCEPT_POLICY_ALL != ndp_ind->policy) {
-			lim_send_ndp_event_to_sme(mac_ctx,
-				eWNI_SME_NDP_INDICATION,
-				ndp_ind, sizeof(*ndp_ind), 0);
-		}
 	}
+
+	if (NDP_ROLE_RESPONDER == ndp_ind->role)
+		lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_INDICATION,
+			ndp_ind, sizeof(*ndp_ind), 0);
 
 	/*
 	 * With NDP indication if peer does not exists already add_sta is
@@ -168,9 +160,19 @@ static VOS_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 	 * used to indicate success of final operation and abscence of it can be
 	 * used by service layer to identify failure.
 	 */
-	return VOS_STATUS_SUCCESS;
+
 ndp_indication_failed:
-	return VOS_STATUS_E_FAILURE;
+	/*
+	 * Free config if failure or for NDP_ROLE_INITIATOR role
+	 * As for success responder case this info is sent till HDD
+	 * and will be freed in sme.
+	 */
+	if ((status != VOS_STATUS_SUCCESS) ||
+			(NDP_ROLE_INITIATOR == ndp_ind->role)) {
+		vos_mem_free(ndp_ind->ndp_config.ndp_cfg);
+		vos_mem_free(ndp_ind->ndp_info.ndp_app_info);
+	}
+	return status;
 }
 
 /**
