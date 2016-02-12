@@ -3329,6 +3329,8 @@ static void lim_check_aid_and_delete_peer(tpAniSirGlobal p_mac,
 			    eSIR_MAC_DEAUTH_LEAVING_BSS_REASON,
 			    sta_ds->staAddr, session_entry,
 			    FALSE);
+			limTdlsDelSta(p_mac, sta_ds->staAddr,
+				session_entry);
 			dphDeleteHashEntry(p_mac,
 			    sta_ds->staAddr,
 			    sta_ds->assocId,

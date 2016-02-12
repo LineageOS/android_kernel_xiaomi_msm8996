@@ -186,6 +186,7 @@ void hdd_wlan_block_scan_by_tdls_event(void)
 void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 {
 	u16 connected_tdls_peers = 0;
+	hddTdlsPeer_t *curr_peer;
 	u8 staidx;
 	hdd_adapter_t *adapter = NULL;
 
@@ -230,25 +231,39 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 
 	for (staidx = 0; staidx < hddctx->max_num_tdls_sta;
 							staidx++) {
-		if (hddctx->tdlsConnInfo[staidx].staId) {
-			wlan_hdd_tdls_reset_peer(adapter,
-				hddctx->tdlsConnInfo[staidx].peerMac.bytes);
-			hdd_roamDeregisterTDLSSTA(adapter,
-				hddctx->tdlsConnInfo[staidx].staId );
-			wlan_hdd_tdls_decrement_peer_count(adapter);
-			wlan_hdd_tdls_reset_peer(adapter,
-				hddctx->tdlsConnInfo[staidx].peerMac.bytes);
+		if (!hddctx->tdlsConnInfo[staidx].staId)
+			continue;
 
-			hdd_send_wlan_tdls_teardown_event(
-				eTDLS_TEARDOWN_CONCURRENCY,
+		curr_peer = wlan_hdd_tdls_find_all_peer(hddctx,
 				hddctx->tdlsConnInfo[staidx].peerMac.bytes);
+		if (!curr_peer)
+			continue;
 
-			vos_mem_zero(&hddctx->tdlsConnInfo[staidx].peerMac,
-					sizeof(v_MACADDR_t));
+		hddLog(LOG1, FL("indicate TDLS teardown (staId %d)"),
+			curr_peer->staId);
 
-			hddctx->tdlsConnInfo[staidx].staId = 0;
-			hddctx->tdlsConnInfo[staidx].sessionId = 255;
-		}
+		/* Indicate teardown to supplicant */
+		wlan_hdd_tdls_indicate_teardown(
+				curr_peer->pHddTdlsCtx->pAdapter,
+				curr_peer,
+				eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+
+		/*
+		 * Del Sta happened already as part of sme_delete_all_tdls_peers
+		 * Hence clear hdd data structure.
+		 */
+		hdd_roamDeregisterTDLSSTA(adapter,
+				hddctx->tdlsConnInfo[staidx].staId);
+		wlan_hdd_tdls_decrement_peer_count(adapter);
+		wlan_hdd_tdls_reset_peer(adapter, curr_peer->peerMac);
+		hdd_send_wlan_tdls_teardown_event(eTDLS_TEARDOWN_CONCURRENCY,
+				curr_peer->peerMac);
+
+		hddctx->tdlsConnInfo[staidx].staId = 0;
+		hddctx->tdlsConnInfo[staidx].sessionId = 255;
+
+		vos_mem_zero(&hddctx->tdlsConnInfo[staidx].peerMac,
+			sizeof(v_MACADDR_t));
 	}
 	wlan_hdd_tdls_check_bmps(adapter);
 }
