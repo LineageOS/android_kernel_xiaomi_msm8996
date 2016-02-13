@@ -1715,7 +1715,7 @@ static int mdss_rotator_config_hw(struct mdss_rot_hw_resource *hw,
 	pipe->img_height = item->input.height;
 	mdss_rotator_translate_rect(&pipe->src, &item->src_rect);
 	mdss_rotator_translate_rect(&pipe->dst, &item->src_rect);
-	pipe->scale.enable_pxl_ext = 0;
+	pipe->scaler.enable = 0;
 	pipe->frame_rate = perf->config.frame_rate;
 
 	pipe->params_changed++;

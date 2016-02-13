@@ -899,7 +899,7 @@ struct mdss_mdp_pipe {
 
 	struct mdp_overlay_pp_params pp_cfg;
 	struct mdss_pipe_pp_res pp_res;
-	struct mdp_scale_data scale;
+	struct mdp_scale_data_v2 scaler;
 	u8 chroma_sample_h;
 	u8 chroma_sample_v;
 
@@ -1819,6 +1819,7 @@ void mdss_mdp_mixer_update_pipe_map(struct mdss_mdp_ctl *master_ctl,
 		int mixer_mux);
 
 void mdss_mdp_pipe_calc_pixel_extn(struct mdss_mdp_pipe *pipe);
+void mdss_mdp_pipe_calc_qseed3_cfg(struct mdss_mdp_pipe *pipe);
 void mdss_mdp_ctl_restore(bool locked);
 int  mdss_mdp_ctl_reset(struct mdss_mdp_ctl *ctl, bool is_recovery);
 int mdss_mdp_wait_for_xin_halt(u32 xin_id, bool is_vbif_nrt);

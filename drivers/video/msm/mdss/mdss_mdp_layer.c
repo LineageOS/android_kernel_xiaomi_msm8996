@@ -35,6 +35,9 @@
 #define CHECK_LAYER_BOUNDS(offset, size, max_size) \
 	(((size) > (max_size)) || ((offset) > ((max_size) - (size))))
 
+#define SCALER_ENABLED \
+	(MDP_LAYER_ENABLE_PIXEL_EXT | MDP_LAYER_ENABLE_QSEED3_SCALE)
+
 enum {
 	MDSS_MDP_RELEASE_FENCE = 0,
 	MDSS_MDP_RETIRE_FENCE,
@@ -296,7 +299,7 @@ static int __layer_param_check(struct msm_fb_data_type *mfd,
 	}
 
 	if ((layer->flags & MDP_LAYER_DEINTERLACE) &&
-		!(layer->flags & MDP_LAYER_ENABLE_PIXEL_EXT)) {
+		!(layer->flags & SCALER_ENABLED)) {
 		if (layer->flags & MDP_SOURCE_ROTATED_90) {
 			if ((layer->src_rect.w % 4) != 0) {
 				pr_err("interlaced rect not h/4\n");
@@ -525,11 +528,11 @@ static int __configure_pipe_params(struct msm_fb_data_type *mfd,
 		pipe->src.x, pipe->src.y, pipe->src.w, pipe->src.h,
 		pipe->dst.x, pipe->dst.y, pipe->dst.w, pipe->dst.h);
 
-	if (layer->flags & MDP_LAYER_ENABLE_PIXEL_EXT)
-		memcpy(&pipe->scale, layer->scale,
-			sizeof(struct mdp_scale_data));
+	if (layer->flags & SCALER_ENABLED)
+		memcpy(&pipe->scaler, layer->scale,
+			sizeof(struct mdp_scale_data_v2));
 
-	pipe->scale.enable_pxl_ext = (layer->flags & MDP_LAYER_ENABLE_PIXEL_EXT);
+	pipe->scaler.enable = (layer->flags & SCALER_ENABLED);
 
 	flags = pipe->flags;
 	if (is_single_layer)
@@ -623,7 +626,7 @@ static int __configure_pipe_params(struct msm_fb_data_type *mfd,
 			BLEND_OP_PREMULTIPLIED : BLEND_OP_OPAQUE;
 
 	if (pipe->src_fmt->is_yuv && !(pipe->flags & MDP_SOURCE_ROTATED_90) &&
-			!pipe->scale.enable_pxl_ext) {
+			!pipe->scaler.enable) {
 		pipe->overfetch_disable = OVERFETCH_DISABLE_BOTTOM;
 
 	if (pipe->dst.x >= left_lm_w)
@@ -637,7 +640,7 @@ static int __configure_pipe_params(struct msm_fb_data_type *mfd,
 	 * When scaling is enabled src crop and image
 	 * width and height is modified by user
 	 */
-	if ((pipe->flags & MDP_DEINTERLACE) && !pipe->scale.enable_pxl_ext) {
+	if ((pipe->flags & MDP_DEINTERLACE) && !pipe->scaler.enable) {
 		if (pipe->flags & MDP_SOURCE_ROTATED_90) {
 			pipe->src.x = DIV_ROUND_UP(pipe->src.x, 2);
 			pipe->src.x &= ~1;
@@ -879,7 +882,6 @@ static struct mdss_mdp_data *__map_layer_buffer(struct msm_fb_data_type *mfd,
 	flags = (pipe->flags & (MDP_SECURE_OVERLAY_SESSION |
 				MDP_SECURE_DISPLAY_OVERLAY_SESSION));
 
-	/* current implementation only supports one plane mapping */
 	if (buffer->planes[0].fd < 0) {
 		pr_err("invalid file descriptor for layer buffer\n");
 		src_data = ERR_PTR(-EINVAL);
@@ -935,9 +937,9 @@ static inline bool __compare_layer_config(struct mdp_input_layer *validate,
 		validate->buffer.height == layer->buffer.height &&
 		validate->buffer.format == layer->buffer.format;
 
-	if (status && (validate->flags & MDP_LAYER_ENABLE_PIXEL_EXT))
-		status = !memcmp(validate->scale, &pipe->scale,
-			sizeof(pipe->scale));
+	if (status && (validate->flags & SCALER_ENABLED))
+		status = !memcmp(validate->scale, &pipe->scaler,
+			sizeof(pipe->scaler));
 
 	return status;
 }
