@@ -117,7 +117,7 @@ struct packet_dump {
 	unsigned char type;
 	uint32_t driver_ts;
 	uint16_t fw_ts;
-};
+}__attribute__((__packed__));
 
 /**
  * struct pkt_stats_msg - This data structure contains the
