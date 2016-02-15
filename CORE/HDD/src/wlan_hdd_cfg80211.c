@@ -12691,23 +12691,28 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             }
         }
 
-        if(VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel(pHostapdAdapter,pConfig->channel))
-        {
-             hddLog(VOS_TRACE_LEVEL_ERROR,
-                     "%s: Invalid Channel [%d]", __func__, pConfig->channel);
-             ret = -EINVAL;
+        /*
+         * If auto channel is configured i.e. channel is 0,
+         * so skip channel validation.
+         */
+        if (AUTO_CHANNEL_SELECT != pConfig->channel) {
+           if (VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel
+                          (pHostapdAdapter,pConfig->channel)) {
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s: Invalid Channel [%d]", __func__, pConfig->channel);
+              ret = -EINVAL;
+              goto error;
+           }
+
+           /* reject SAP if DFS channel scan is not allowed */
+           if ((pHddCtx->cfg_ini->enableDFSChnlScan == false) &&
+             (NV_CHANNEL_DFS ==
+              vos_nv_getChannelEnabledState(pConfig->channel))) {
+             hddLog(LOGE, FL("not allowed to start SAP on DFS channel"));
+             ret = -EOPNOTSUPP;
              goto error;
-        }
-
-        /* reject SAP if DFS channel scan is not allowed */
-        if ((pHddCtx->cfg_ini->enableDFSChnlScan == false) &&
-            (NV_CHANNEL_DFS ==
-             vos_nv_getChannelEnabledState(pConfig->channel))) {
-            hddLog(LOGE, FL("not allowed to start SAP on DFS channel"));
-            ret = -EOPNOTSUPP;
-            goto error;
-        }
-
+          }
+       }
         /*
          * Set the JAPAN W53 disabled INI param
          * in to SAP DFS for restricting these
