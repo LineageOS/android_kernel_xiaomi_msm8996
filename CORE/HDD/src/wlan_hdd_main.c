@@ -92,6 +92,7 @@
 #include <linux/semaphore.h>
 #include <linux/ctype.h>
 #include <linux/compat.h>
+#include <linux/pm_qos.h>
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
 #include <soc/qcom/subsystem_restart.h>
@@ -13305,7 +13306,8 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                 hddLog(LOGE, FL("low bandwidth set rx affinity fail"));
         } else {
             if (!pHddCtx->hbw_requested) {
-                vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+                vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY,
+                                      DISABLE_KRAIT_IDLE_PS_VAL);
                 pHddCtx->hbw_requested = true;
             }
             if (vos_sched_handle_throughput_req(true))
@@ -15031,7 +15033,7 @@ static int hdd_driver_init( void)
     * load for reducing interrupt latency.
     */
 
-   vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+   vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY, DISABLE_KRAIT_IDLE_PS_VAL);
 
    vos_ssr_protect_init();
 

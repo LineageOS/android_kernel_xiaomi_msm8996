@@ -134,7 +134,10 @@ static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
 #endif
 
 static inline void vos_device_self_recovery(void) { return; }
-static inline void vos_request_pm_qos(u32 qos_val) { return; }
+static inline void vos_request_pm_qos_type(int latency_type, u32 qos_val)
+{
+	return;
+}
 static inline void vos_remove_pm_qos(void) { return; }
 static inline int vos_request_bus_bandwidth(int bandwidth) { return 0; }
 static inline int vos_get_platform_cap(void *cap) { return 1; }
@@ -304,23 +307,15 @@ static inline void vos_get_boottime_ts(struct timespec *ts)
         cnss_get_boottime(ts);
 }
 
-#ifdef CONFIG_CNSS_PCI
-static inline void vos_request_pm_qos(u32 qos_val)
+static inline void vos_request_pm_qos_type(int latency_type, u32 qos_val)
 {
-	cnss_request_pm_qos(qos_val);
+	cnss_request_pm_qos_type(latency_type, qos_val);
 }
-#else
-static inline void vos_request_pm_qos(u32 qos_val) {}
-#endif
 
-#ifdef CONFIG_CNSS_PCI
 static inline void vos_remove_pm_qos(void)
 {
 	cnss_remove_pm_qos();
 }
-#else
-static inline void vos_remove_pm_qos(void) {}
-#endif
 
 static inline int vos_vendor_cmd_reply(struct sk_buff *skb)
 {
