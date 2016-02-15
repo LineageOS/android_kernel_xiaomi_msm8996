@@ -2887,7 +2887,7 @@ VOS_STATUS hdd_roamRegisterTDLSSTA(hdd_adapter_t *pAdapter,
     return( vosStatus );
 }
 
-static VOS_STATUS hdd_roamDeregisterTDLSSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
+VOS_STATUS hdd_roamDeregisterTDLSSTA(hdd_adapter_t *pAdapter, tANI_U8 staId)
 {
     VOS_STATUS vosStatus;
     vosStatus = WLANTL_ClearSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staId );

@@ -4523,5 +4523,7 @@ eHalStatus sme_get_mib_stats(tHalHandle hal,
 				uint8_t session_id);
 void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val);
 
+eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id);
+
 eHalStatus sme_update_txrate(tHalHandle hal, struct sir_txrate_update *req);
 #endif //#if !defined( __SME_API_H )

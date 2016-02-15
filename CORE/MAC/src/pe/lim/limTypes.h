@@ -1086,4 +1086,7 @@ void limProcessRxScanEvent(tpAniSirGlobal mac, void *buf);
 
 int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
+tSirRetStatus lim_process_sme_del_all_tdls_peers(tpAniSirGlobal p_mac,
+			uint32_t *msg_buf);
+
 #endif /* __LIM_TYPES_H */
