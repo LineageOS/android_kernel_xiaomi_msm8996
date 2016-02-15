@@ -665,7 +665,7 @@ static int hdd_fill_ipv6_uc_addr(struct inet6_dev *idev,
 				sizeof(ifa->addr.s6_addr));
 			ipv6addr_type[*count] = SIR_IPV6_ADDR_UC_TYPE;
 			hddLog (LOG1,
-				FL("Index %d scope = %s Address: %pI6"),
+				FL("Index %d scope = %s UC-Address: %pI6"),
 				*count, (scope == IPV6_ADDR_SCOPE_LINKLOCAL) ?
 				"LINK LOCAL": "GLOBAL", ipv6_uc_addr[*count]);
 			*count += 1;
@@ -707,7 +707,7 @@ static int hdd_fill_ipv6_ac_addr(struct inet6_dev *idev,
 				sizeof(ifaca->aca_addr));
 			ipv6addr_type[*count] = SIR_IPV6_ADDR_AC_TYPE;
 			hddLog (LOG1,
-				FL("Index %d scope = %s Address: %pI6"),
+				FL("Index %d scope = %s AC-Address: %pI6"),
 				*count, (scope == IPV6_ADDR_SCOPE_LINKLOCAL) ?
 				"LINK LOCAL": "GLOBAL", ipv6_ac_addr[*count]);
 			*count += 1;
