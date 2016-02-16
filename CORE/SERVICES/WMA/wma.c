@@ -1247,7 +1247,6 @@ static const wmi_channel_width mode_to_width[MODE_MAX] =
 	[MODE_11AC_VHT40]    = WMI_CHAN_WIDTH_40,
 	[MODE_11AC_VHT40_2G] = WMI_CHAN_WIDTH_40,
 	[MODE_11AC_VHT80]    = WMI_CHAN_WIDTH_80,
-	[MODE_11AC_VHT80_2G] = WMI_CHAN_WIDTH_80,
 #if CONFIG_160MHZ_SUPPORT
 	[MODE_11AC_VHT80_80] = WMI_CHAN_WIDTH_80P80,
 	[MODE_11AC_VHT160]   = WMI_CHAN_WIDTH_160,
@@ -2114,10 +2113,10 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 		if (chanmode == MODE_11AC_VHT80)
 			chan->band_center_freq1 = vos_chan_to_freq(
 			wma_getCenterChannel(
-				chan->mhz,
-				mac_ctx->roam.configParam.channelBondingMode5GHz));
+			  chan->mhz,
+			  mac_ctx->roam.configParam.channelBondingMode5GHz));
 
-		if ((chanmode == MODE_11NG_HT40) ||
+		if ((chanmode == MODE_11NA_HT40) ||
 				(chanmode == MODE_11AC_VHT40)) {
 			if (mac_ctx->roam.configParam.channelBondingMode5GHz ==
 			    PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
@@ -2125,7 +2124,9 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 			else
 				chan->band_center_freq1 -= 10;
 		}
-		if (chanmode == MODE_11NA_HT40) {
+
+		if ((chanmode == MODE_11NG_HT40) ||
+			(chanmode == MODE_11AC_VHT40_2G)) {
 			if (mac_ctx->roam.configParam.channelBondingMode24GHz ==
 			    PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
 				chan->band_center_freq1 += 10;
@@ -11674,15 +11675,6 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
 			phymode = vht_capable ? MODE_11AC_VHT40_2G :MODE_11NG_HT40;
 			break;
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
-                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
-                        phymode = MODE_11AC_VHT80_2G;
-                        break;
 
 		default:
 			break;
@@ -11820,7 +11812,7 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 			(req->chan, req->chan_offset));
 
 	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40) ||
-			(chanmode == MODE_11AC_VHT40)) {
+	    (chanmode == MODE_11AC_VHT40) || (chanmode == MODE_11AC_VHT40_2G)) {
 		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
 			cmd->band_center_freq1 += 10;
 		else
@@ -11933,7 +11925,7 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 			(req->chan, req->chan_offset));
 
 	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40) ||
-			(chanmode == MODE_11AC_VHT40)) {
+	    (chanmode == MODE_11AC_VHT40) || (chanmode == MODE_11AC_VHT40_2G)) {
 		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
 			chan->band_center_freq1 += 10;
 		else
@@ -28460,7 +28452,6 @@ static VOS_STATUS wma_update_tx_rate(tp_wma_handle wma,
 	case MODE_11AC_VHT80:
 	case MODE_11AC_VHT20_2G:
 	case MODE_11AC_VHT40_2G:
-	case MODE_11AC_VHT80_2G:
 #if CONFIG_160MHZ_SUPPORT
 	case MODE_11AC_VHT80_80:
 	case MODE_11AC_VHT160:
@@ -34333,7 +34324,8 @@ wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
                         chan->mhz,
                         req->chan_offset));
         if ((chanmode == MODE_11NG_HT40) ||
-                (chanmode == MODE_11AC_VHT40)) {
+                (chanmode == MODE_11AC_VHT40) ||
+		(chanmode == MODE_11AC_VHT40_2G)) {
                 if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
                     chan->band_center_freq1 += 10;
                 else
