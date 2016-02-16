@@ -2792,6 +2792,12 @@ static __iw_softap_setparam(struct net_device *dev,
        return -EINVAL;
     }
 
+    if (VOS_STATUS_SUCCESS != sme_is_session_valid(hHal,
+                               pHostapdAdapter->sessionId)) {
+       hddLog(LOGE, FL("session id is not valid %d"),
+                   pHostapdAdapter->sessionId);
+       return -EINVAL;
+    }
     pVosContext = pHddCtx->pvosContext;
     if (!pVosContext) {
        hddLog(LOGE, FL("Vos ctx is null"));
@@ -3554,6 +3560,12 @@ static __iw_softap_getparam(struct net_device *dev,
     if (0 != ret)
         return ret;
 
+    if (VOS_STATUS_SUCCESS != sme_is_session_valid(hHal,
+                               pHostapdAdapter->sessionId)) {
+       hddLog(LOGE, FL("session id is not valid %d"),
+                   pHostapdAdapter->sessionId);
+       return -EINVAL;
+    }
     switch (sub_cmd)
     {
     case QCSAP_PARAM_MAX_ASSOC:
