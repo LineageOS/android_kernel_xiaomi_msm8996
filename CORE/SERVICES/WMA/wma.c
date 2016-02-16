@@ -120,6 +120,13 @@
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 #define WOW_CSA_EVENT_OFFSET 12
 
+/*
+ * In the WMI_WOW_WAKEUP_HOST_EVENTID after the fixed param
+ * the wmi nan event is at an offset of 12
+ * This is to extract and decode the NAN WMI event.
+ */
+#define WOW_NAN_EVENT_OFFSET 12
+
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 #define WMI_SCAN_FINISH_EVENTS (WMI_SCAN_EVENT_START_FAILED |\
                                 WMI_SCAN_EVENT_COMPLETED |\
@@ -19727,6 +19734,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 		return "WOW_REASON_NLO_SCAN_COMPLETE";
 	case WOW_REASON_BPF_ALLOW:
 		return "WOW_REASON_BPF_ALLOW";
+	case WOW_REASON_NAN_EVENT:
+		return "WOW_REASON_NAN_EVENT";
 	}
 	return "unknown";
 }
@@ -20650,7 +20659,22 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			    WMA_LOGD("No wow_packet_buffer present");
 		}
 		break;
-
+#ifdef WLAN_FEATURE_NAN
+	case WOW_REASON_NAN_EVENT:
+		{
+			WMI_NAN_EVENTID_param_tlvs param;
+			WMA_LOGA("Host woken up due to NAN event reason");
+			/* First 4-bytes of wow_packet_buffer is the length */
+				param.fixed_param = (wmi_nan_event_hdr *)
+					(((u_int8_t *) wake_info)
+					+ sizeof(WOW_EVENT_INFO_fixed_param)
+					+ WOW_NAN_EVENT_OFFSET);
+				wma_nan_rsp_event_handler(handle,
+					(u_int8_t *)&param,
+					sizeof(param));
+		}
+		break;
+#endif
 	default:
 		break;
 	}
