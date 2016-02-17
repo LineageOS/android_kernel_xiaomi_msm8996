@@ -11970,10 +11970,25 @@ eHalStatus csrRoamIssueStopBss( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoa
 //pNumChan is a caller allocated space with the sizeof pChannels
 eHalStatus csrGetCfgValidChannels(tpAniSirGlobal pMac, tANI_U8 *pChannels, tANI_U32 *pNumChan)
 {
+    uint8_t num_chan_temp = 0;
+    int i;
+    eHalStatus status;
 
-    return (ccmCfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
+    status = ccmCfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
                   (tANI_U8 *)pChannels,
-                  pNumChan));
+                  pNumChan);
+    if (status != eHAL_STATUS_SUCCESS)
+       return status;
+
+    for (i = 0; i < *pNumChan; i++) {
+         if (!vos_is_dsrc_channel(vos_chan_to_freq(pChannels[i]))) {
+             pChannels[num_chan_temp] = pChannels[i];
+             num_chan_temp++;
+         }
+    }
+
+    *pNumChan = num_chan_temp;
+    return status;
 }
 
 tPowerdBm csrGetCfgMaxTxPower (tpAniSirGlobal pMac, tANI_U8 channel)
