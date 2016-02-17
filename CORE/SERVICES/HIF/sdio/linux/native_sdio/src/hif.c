@@ -2425,6 +2425,10 @@ static void hifDeviceRemoved(struct sdio_func *func)
     ENTER();
 
     device = getHifDevice(func);
+    if (!device) {
+        pr_err("%s: Failed to get the sdio driver private data\n", __func__);
+        return;
+    }
 
     if (device->powerConfig == HIF_DEVICE_POWER_CUT) {
         device->func = NULL; /* func will be free by mmc stack */
