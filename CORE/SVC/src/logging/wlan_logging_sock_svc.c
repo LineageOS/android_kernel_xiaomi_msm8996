@@ -348,7 +348,8 @@ int wlan_log_to_user(VOS_TRACE_LEVEL log_level, char *to_be_sent, int length)
 	struct rtc_time tm;
 	unsigned long local_time;
 
-	if (!vos_is_multicast_logging()) {
+	if ((!vos_is_multicast_logging()) ||
+              (!gwlan_logging.is_active)) {
 		/*
 		 * This is to make sure that we print the logs to kmsg console
 		 * when no logger app is running. This is also needed to
