@@ -29671,6 +29671,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_GET_FW_STATUS_REQ:
 			wma_send_echo_request(wma_handle);
 			break;
+		case WDA_BTC_BT_WLAN_INTERVAL_CMD:
+			wma_btc_set_bt_wlan_interval(wma_handle,
+				(WMI_COEX_CONFIG_CMD_fixed_param *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		case SIR_HAL_CONFIG_STATS_FACTOR:
 			wma_config_stats_factor(wma_handle,
 				(struct sir_stats_avg_factor *)msg->bodyptr);
@@ -35434,3 +35439,56 @@ int wma_resume_fw(void)
 
 	return ret;
 }
+
+
+/**
+ * wma_btc_set_bt_wlan_interval() - send btc bt/wlan interval page to FW
+ * common function to send btc bt/wlan interval page (p2p/sta/sap)
+ * to the firmware
+ * @wma_handle: pointer to the WMA handle
+ * @interval: pointer to the WMI_COEX_CONFIG_CMD_fixed_param struct
+ *
+ * Return: 0 - success
+ */
+int wma_btc_set_bt_wlan_interval(tp_wma_handle wma_handle,
+		WMI_COEX_CONFIG_CMD_fixed_param *interval)
+{
+	int32_t ret;
+	WMI_COEX_CONFIG_CMD_fixed_param *cmd;
+	uint8_t *buf_ptr;
+	uint32_t len;
+	wmi_buf_t buf;
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+
+	buf_ptr = (uint8_t *)wmi_buf_data(buf);
+	cmd = (WMI_COEX_CONFIG_CMD_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_WMI_COEX_CONFIG_CMD_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(WMI_COEX_CONFIG_CMD_fixed_param));
+
+	cmd->vdev_id = interval->vdev_id;
+
+	cmd->config_type= interval->config_type;
+	cmd->config_arg1 = interval->config_arg1;
+	cmd->config_arg2 = interval->config_arg2;
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_COEX_CONFIG_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE(FL("Failed to set btc bt/wlan interval"));
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGI("[BTC]: config_type = %d, config_arg1 = %d, config_arg2 = %d",
+				interval->config_type,
+				interval->config_arg1,
+				interval->config_arg2);
+	return 0;
+}
+
