@@ -4140,6 +4140,48 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT,
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN,
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX),
+/* For P2P */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_P2P, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_p2p_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_P2P, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_p2p_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MAX),
+/* For STA */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_STA, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sta_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_STA, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sta_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_MAX),
+/* For SAP */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_SAP, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sap_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_SAP, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sap_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX),
 
    REG_VARIABLE(CFG_INFORM_BSS_RSSI_RAW_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, inform_bss_rssi_raw,
@@ -7490,3 +7532,50 @@ VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss)
 	return (status == FALSE) ? VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_set_btc_bt_wlan_interval() - set btc bt/wlan interval page to FW
+ * @hdd_ctx: the pointer to hdd context
+ *
+ * This function set btc bt/wlan interval page (p2p/sta/sap) to FW.
+ *
+ * Return: None
+ */
+void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
+{
+	hdd_config_t *config = hdd_ctx->cfg_ini;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	/** Sanity check.
+	 * If not set in ini file, these parameters will be zero.
+	 * Otherwise hdd_apply_cfg_ini()
+	 * will ensure the valuse to be in the range 20~200 (ms as unit).
+	 * If no parameters sent to firmware,
+	 * firmware will set relevant parameters to default value itself.
+	*/
+	if ((config->coex_page_p2p_bt_interval !=0) &&
+		(config->coex_page_p2p_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_p2p(
+					config->coex_page_p2p_bt_interval,
+					config->coex_page_p2p_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page p2p bt interval parameters");
+	}
+
+	if ((config->coex_page_sta_bt_interval !=0) &&
+		(config->coex_page_sta_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_sta(
+					config->coex_page_sta_bt_interval,
+					config->coex_page_sta_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page sta bt interval parameters");
+	}
+
+	if ((config->coex_page_sap_bt_interval !=0) &&
+		(config->coex_page_sap_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_sap(
+					config->coex_page_sap_bt_interval,
+					config->coex_page_sap_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page sap bt interval parameters");
+	}
+}

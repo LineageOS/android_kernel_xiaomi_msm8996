@@ -15003,6 +15003,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(LOG1, FL("Registered IPv4 notifier"));
 
    ol_pktlog_init(hif_sc);
+
+   /*
+    * Send btc page and wlan (p2p/sta/sap) interval to firmware if
+    * relevant parameters set in ini file.
+    */
+   hdd_set_btc_bt_wlan_interval(pHddCtx);
+
    hdd_runtime_suspend_init(pHddCtx);
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
