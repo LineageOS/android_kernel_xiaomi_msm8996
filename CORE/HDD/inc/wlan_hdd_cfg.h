@@ -3571,8 +3571,7 @@ enum dot11p_mode {
   Type declarations
   -------------------------------------------------------------------------*/
 
-typedef struct
-{
+struct hdd_config {
    //Bitmap to track what is explicitly configured
    DECLARE_BITMAP(bExplicitCfg, MAX_CFG_INI_ITEMS);
 
@@ -4285,7 +4284,9 @@ typedef struct
    bool                        ignore_peer_ht_opmode;
    bool                        mib_stats_enabled;
    bool                        enable_fatal_event;
-} hdd_config_t;
+};
+
+typedef struct hdd_config hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
 typedef struct mbssid_sap_dyn_ini_config {
