@@ -2959,7 +2959,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
                                                  psessionEntry,
                                                  csa_params->channel,
                                                  csa_params->new_ch_width);
-          if (psessionEntry->gLimChannelSwitch.secondarySubBand) {
+          if (psessionEntry->gLimChannelSwitch.secondarySubBand > 0) {
               psessionEntry->gLimChannelSwitch.state =
                                      eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
           }
