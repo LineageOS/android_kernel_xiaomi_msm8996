@@ -14557,6 +14557,7 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
     tCsrStaParams StaParams = {0};
     tANI_U8 isBufSta = 0;
     tANI_U8 isOffChannelSupported = 0;
+    bool is_qos_wmm_sta = false;
 #endif
     int ret;
 
@@ -14730,9 +14731,18 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                 }
             }
 
+            if (pHddCtx->cfg_ini->fEnableTDLSWmmMode &&
+                (params->sta_flags_set & BIT(NL80211_STA_FLAG_WME)))
+                is_qos_wmm_sta = true;
+
+            hddLog(VOS_TRACE_LEVEL_INFO,
+                   FL("%s: TDLS Peer is QOS capable is_qos_wmm_sta= %d HTcapPresent = %d"),
+                   __func__, is_qos_wmm_sta, StaParams.htcap_present);
+
             status = wlan_hdd_tdls_set_peer_caps(pAdapter, mac,
                                                   &StaParams, isBufSta,
-                                                  isOffChannelSupported);
+                                                  isOffChannelSupported,
+                                                  is_qos_wmm_sta);
             if (VOS_STATUS_SUCCESS != status) {
                 hddLog(VOS_TRACE_LEVEL_ERROR,
                        FL("wlan_hdd_tdls_set_peer_caps failed!"));
@@ -21390,6 +21400,9 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                     return -EINVAL;
                 }
 
+                vos_mem_set(&tdlsLinkEstablishParams,
+                            sizeof(tCsrTdlsLinkEstablishParams), 0);
+
                 if (eTDLS_LINK_CONNECTED != pTdlsPeer->link_status)
                 {
                     if (IS_ADVANCE_TDLS_ENABLE) {
@@ -21420,6 +21433,20 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                     wlan_hdd_tdls_set_peer_link_status(pTdlsPeer,
                                                        eTDLS_LINK_CONNECTED,
                                                        eTDLS_LINK_SUCCESS);
+
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                              "%s : tdlsLinkEstablishParams of peer " MAC_ADDRESS_STR "uapsdQueues: %d"
+                              " qos: %d maxSp: %d isBufSta: %d isOffChannelSupported: %d"
+                              " isResponder: %d peerstaId: %d",
+                              __func__, MAC_ADDR_ARRAY(tdlsLinkEstablishParams.peerMac),
+                              tdlsLinkEstablishParams.uapsdQueues,
+                              tdlsLinkEstablishParams.qos,
+                              tdlsLinkEstablishParams.maxSp,
+                              tdlsLinkEstablishParams.isBufSta,
+                              tdlsLinkEstablishParams.isOffChannelSupported,
+                              tdlsLinkEstablishParams.isResponder,
+                              pTdlsPeer->staId);
+
                     /* start TDLS client registration with TL */
                     status = hdd_roamRegisterTDLSSTA(pAdapter, peer,
                                                      pTdlsPeer->staId,

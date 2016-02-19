@@ -1216,7 +1216,8 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
                                 const u8 *mac,
                                 tCsrStaParams *StaParams,
                                 tANI_BOOLEAN isBufSta,
-                                tANI_BOOLEAN isOffChannelSupported)
+                                tANI_BOOLEAN isOffChannelSupported,
+                                bool is_qos_wmm_sta)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1247,7 +1248,7 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
     curr_peer->supported_oper_classes_len =
                StaParams->supported_oper_classes_len;
 
-    curr_peer->qos = StaParams->capability & CAPABILITIES_QOS_OFFSET;
+    curr_peer->qos = is_qos_wmm_sta;
 
     return 0;
 }
