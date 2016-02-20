@@ -8677,12 +8677,20 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
                            &pMac->roam.neighborRoamInfo[pSmeJoinRsp->sessionId];
     tCsrRoamInfo roamInfo;
     tANI_U32 roamId = 0;
+    tCsrRoamSession *csr_session;
 
     if ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode )
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
         FL("CSR SmeReassocReq Successful"));
         result = eCsrReassocSuccess;
+        csr_session = CSR_GET_SESSION(pMac, pSmeJoinRsp->sessionId);
+        if(NULL != csr_session) {
+            csr_session->supported_nss_1x1 = pSmeJoinRsp->supported_nss_1x1;
+            smsLog(pMac, LOG1, FL("SME session supported nss: %d"),
+                   csr_session->supported_nss_1x1);
+        }
+
         /* Defeaturize this part later if needed */
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
         /*
