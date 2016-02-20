@@ -1985,10 +1985,19 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->enableAmpduPs = pSmeJoinReq->enableAmpduPs;
         psessionEntry->enableHtSmps = pSmeJoinReq->enableHtSmps;
         psessionEntry->htSmpsvalue = pSmeJoinReq->htSmps;
+        /*
+         * By default supported NSS 1x1 is set to true
+         * and later on updated while determining session
+         * supported rates which is the intersection of
+         * self and peer rates
+         */
+        psessionEntry->supported_nss_1x1 = true;
 
-        limLog(pMac, LOG1, FL("enableHtSmps: %d htSmps: %d"),
+        limLog(pMac, LOG1,
+               FL("enableHtSmps: %d htSmps: %d supported NSS 1x1: %d"),
                psessionEntry->enableHtSmps,
-               psessionEntry->htSmpsvalue);
+               psessionEntry->htSmpsvalue,
+               psessionEntry->supported_nss_1x1);
 
         /*Store Persona */
         psessionEntry->pePersona = pSmeJoinReq->staPersona;
@@ -2463,9 +2472,10 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     psessionEntry->enableHtSmps = pReassocReq->enableHtSmps;
     psessionEntry->htSmpsvalue = pReassocReq->htSmps;
-    limLog(pMac, LOG1, FL("enableHtSmps: %d htSmps: %d"),
+    limLog(pMac, LOG1, FL("enableHtSmps: %d htSmps: %d supported nss 1x1: %d"),
            psessionEntry->enableHtSmps,
-           psessionEntry->htSmpsvalue);
+           psessionEntry->htSmpsvalue,
+           psessionEntry->supported_nss_1x1);
 
     /**
      * Reassociate request is expected
