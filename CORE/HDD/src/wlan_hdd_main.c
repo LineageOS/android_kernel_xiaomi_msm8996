@@ -14048,6 +14048,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hddLog(VOS_TRACE_LEVEL_INFO, "Setting configuredMcastBcastFilter: %d",
                    pHddCtx->cfg_ini->mcastBcastFilterSetting);
 
+   vos_set_fatal_event(pHddCtx->cfg_ini->enable_fatal_event);
    if (false == hdd_is_5g_supported(pHddCtx))
    {
       //5Ghz is not supported.

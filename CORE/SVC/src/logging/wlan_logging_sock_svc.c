@@ -703,15 +703,18 @@ void wlan_report_log_completion(uint32_t is_fatal,
  */
 void send_flush_completion_to_user(void)
 {
-	uint32_t is_fatal, indicator, reason_code;
+	uint32_t is_fatal, indicator, reason_code, is_ssr_needed;
 
-	vos_get_log_completion(&is_fatal, &indicator, &reason_code);
+	vos_get_log_and_reset_completion(&is_fatal, &indicator, &reason_code,
+					 &is_ssr_needed);
 
 	/* Error on purpose, so that it will get logged in the kmsg */
 	LOGGING_TRACE(VOS_TRACE_LEVEL_ERROR,
 			"%s: Sending flush done to userspace", __func__);
 
 	wlan_report_log_completion(is_fatal, indicator, reason_code);
+	if (is_ssr_needed)
+		vos_wlanRestart();
 }
 
 /**
@@ -724,6 +727,7 @@ static int wlan_logging_thread(void *Arg)
 {
 	int ret_wait_status = 0;
 	int ret = 0;
+	unsigned long flags;
 
 	set_user_nice(current, -2);
 
@@ -759,6 +763,10 @@ static int wlan_logging_thread(void *Arg)
 			if (-ENOMEM == ret) {
 				msleep(200);
 			}
+			if (WLAN_LOG_INDICATOR_HOST_ONLY ==
+						 vos_get_log_indicator()) {
+				send_flush_completion_to_user();
+			}
 		}
 
 		if (test_and_clear_bit(HOST_LOG_PER_PKT_STATS,
@@ -781,6 +789,12 @@ static int wlan_logging_thread(void *Arg)
 				send_flush_completion_to_user();
 			} else {
 				gwlan_logging.is_flush_complete = true;
+				/* Flush all current host logs*/
+				spin_lock_irqsave(&gwlan_logging.spin_lock,
+						  flags);
+				wlan_queue_logmsg_for_app();
+				spin_unlock_irqrestore(&gwlan_logging.spin_lock,
+						       flags);
 				set_bit(HOST_LOG_DRIVER_MSG,
 						&gwlan_logging.eventFlag);
 				set_bit(HOST_LOG_PER_PKT_STATS,
@@ -1073,7 +1087,8 @@ void wlan_logging_set_log_level(void)
  */
 void wlan_logging_set_fw_flush_complete(void)
 {
-	if (gwlan_logging.is_active == false)
+	if (gwlan_logging.is_active == false ||
+		!vos_is_fatal_event_enabled())
 		return;
 
 	set_bit(HOST_LOG_FW_FLUSH_COMPLETE, &gwlan_logging.eventFlag);
@@ -1439,4 +1454,28 @@ void wlan_register_txrx_packetdump(void)
 	gtx_count = 0;
 	grx_count = 0;
 }
+
+/**
+ * wlan_flush_host_logs_for_fatal() - Flush host logs
+ *
+ * This function is used to send signal to the logger thread to
+ * Flush the host logs
+ *
+ * Return: None
+ */
+void wlan_flush_host_logs_for_fatal(void)
+{
+	unsigned long flags;
+
+	if (vos_is_log_report_in_progress()) {
+		pr_info("%s:flush all host logs Setting HOST_LOG_POST_MASK\n",
+			 __func__);
+		spin_lock_irqsave(&gwlan_logging.spin_lock, flags);
+		wlan_queue_logmsg_for_app();
+		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
+		set_bit(HOST_LOG_DRIVER_MSG, &gwlan_logging.eventFlag);
+		wake_up_interruptible(&gwlan_logging.wait_queue);
+	}
+}
+
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
