@@ -1760,6 +1760,11 @@ typedef struct {
     A_UINT32 default_fw_config_bits;
     wmi_ppe_threshold ppet;
     A_UINT32 he_cap_info; /* see section 8.4.2.213 from draft r8 of 802.11ax */
+    /*
+     * An HT STA shall not allow transmission of more than one MPDU start
+     * within the time limit described in the MPDU maximum density field.
+     */
+    A_UINT32 mpdu_density; /* units are microseconds */
 } wmi_service_ready_ext_event_fixed_param;
 
 typedef enum {
