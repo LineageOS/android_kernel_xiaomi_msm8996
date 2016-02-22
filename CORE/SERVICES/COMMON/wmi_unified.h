@@ -1491,6 +1491,61 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_VHT_MAX_SUPP_RATE_MASK           0x1fff0000
 #define WMI_VHT_MAX_SUPP_RATE_MASK_SHIFT     16
 
+/** 11ax capabilities */
+#define WMI_HE_CAP_PPE_PRESENT            0x00000001
+#define WMI_HE_CAP_TWT_RESPONDER_SUPPORT  0x00000002
+#define WMI_HE_CAP_TWT_REQUESTER_SUPPORT  0x00000004
+#define WMI_HE_FRAG_SUPPORT_MASK          0x00000018
+#define WMI_HE_FRAG_SUPPORT_SHIFT         3
+/** NOTE: This defs cannot be changed in the future without breaking WMI compatibility */
+#define WMI_MAX_NUM_SS                    8
+#define WMI_MAX_NUM_RU                    4
+
+/*
+ * Figure 8 554ae: -PPE Threshold Info field format
+ * we pack PPET16 and PPT8 for four RU's in one element of array.
+ *
+ * ppet16_ppet8_ru3_ru0 array element 0 holds:
+ *     | PPET16 | PPET8  | PPET16 | PPET8  | PPET16 | PPET8  | PPET16 | PPET8  |
+ *rsvd |NSS1,RU4|NSS1,RU4|NSS1,RU3|NSS1,RU3|NSS1,RU2|NSS1,RU2|NSS1,RU1|NSS1,RU1|
+ *31:23|  22:20 |  19:17 |  17:15 |  14:12 |  11:9  |   8:6  |   5:3  |   2:0  |
+ *
+ * ppet16_ppet8_ru3_ru0 array element 1 holds:
+ *     | PPET16 | PPET8  | PPET16 | PPET8  | PPET16 | PPET8  | PPET16 | PPET8  |
+ *rsvd |NSS2,RU4|NSS2,RU4|NSS2,RU3|NSS2,RU3|NSS2,RU2|NSS2,RU2|NSS2,RU1|NSS2,RU1|
+ *31:23|  22:20 |  19:17 |  17:15 |  14:12 |  11:9  |   8:6  |   5:3  |   2:0  |
+ *
+ * etc.
+ */
+
+/*
+ * Note that in these macros, "ru" is one-based, not zero-based, while
+ * nssm1 is zero-based.
+ */
+#define WMI_SET_PPET8(ppet16_ppet8_ru3_ru0, ppet, ru, nssm1) \
+    do { \
+        ppet16_ppet8_ru3_ru0[nssm1] &= ~(7 << (((ru-1)%4)*6));       \
+        ppet16_ppet8_ru3_ru0[nssm1] |= ((ppet&7) << (((ru-1)%4)*6)); \
+    } while (0)
+
+#define WMI_GET_PPET8(ppet16_ppet8_ru3_ru0, ru, nssm1) \
+    ((ppet16_ppet8_ru3_ru0[nssm1] >> (((ru-1)%4)*6))&7)
+
+#define WMI_SET_PPET16(ppet16_ppet8_ru3_ru0, ppet, ru, nssm1) \
+    do { \
+        ppet16_ppet8_ru3_ru0[nssm1] &= ~(7 << (((ru-1)%4)*6+3));       \
+        ppet16_ppet8_ru3_ru0[nssm1] |= ((ppet&7) << (((ru-1)%4)*6+3)); \
+    } while (0)
+
+#define WMI_GET_PPET16(ppet16_ppet8_ru3_ru0, ru, nssm1) \
+    ((ppet16_ppet8_ru3_ru0[nssm1] >> (((ru-1)%4)*6+3))&7)
+
+typedef struct _wmi_ppe_threshold {
+    A_UINT32 numss_m1; /** NSS - 1*/
+    A_UINT32 ru_count; /** Max RU count */
+    A_UINT32 ppet16_ppet8_ru3_ru0[WMI_MAX_NUM_SS]; /** ppet8 and ppet16 for max num ss */
+} wmi_ppe_threshold;
+
 /* WMI_SYS_CAPS_* refer to the capabilities that system support
 */
 #define WMI_SYS_CAP_ENABLE                       0x00000001
@@ -1703,6 +1758,8 @@ typedef struct {
     A_UINT32 default_conc_scan_config_bits;
     /* which WMI_DBS_FW_MODE_CFG setting the FW is initialized with */
     A_UINT32 default_fw_config_bits;
+    wmi_ppe_threshold ppet;
+    A_UINT32 he_cap_info; /* see section 8.4.2.213 from draft r8 of 802.11ax */
 } wmi_service_ready_ext_event_fixed_param;
 
 typedef enum {
@@ -6101,6 +6158,12 @@ typedef struct {
      *             to 0 by host
      */
     A_UINT32 peer_bw_rxnss_override;
+
+    /* 802.11ax capabilities */
+    wmi_ppe_threshold peer_ppet;
+    A_UINT32 peer_he_cap_info; /* protocol-defined HE / 11ax capability flags */
+    A_UINT32 peer_he_ops; /* HE operation contains BSS color */
+
     /* Following this struc are the TLV's:
          *     A_UINT8 peer_legacy_rates[];
          *     A_UINT8 peer_ht_rates[];

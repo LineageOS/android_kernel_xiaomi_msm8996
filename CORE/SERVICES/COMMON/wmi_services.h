@@ -143,6 +143,7 @@ typedef  enum  {
     WMI_SERVICE_RATECTRL_LIMIT_MAX_MIN_RATES, /* allow per-peer tx MCS min/max limits by host */
     WMI_SERVICE_NAN_DATA,             /* FW supports NAN data */
     WMI_SERVICE_NAN_RTT,              /* FW supports NAN RTT */
+    WMI_SERVICE_11AX,                 /* FW supports 802.11ax */
 
     WMI_MAX_SERVICE=128               /* max service */
 } WMI_SERVICE;
