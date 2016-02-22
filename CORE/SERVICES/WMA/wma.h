@@ -1712,4 +1712,16 @@ uint32_t wma_get_vht_ch_width(void);
 
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
 
+/**
+ * struct wma_version_info - Store wmi version info
+ * @major: wmi major version
+ * @minor: wmi minor version
+ * @revision: wmi revision number
+ */
+struct wma_version_info {
+	u_int32_t major;
+	u_int32_t minor;
+	u_int32_t revision;
+};
+
 #endif

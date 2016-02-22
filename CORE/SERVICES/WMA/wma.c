@@ -6864,6 +6864,8 @@ static void wma_register_debug_callback(void)
 	vos_register_debug_callback(VOS_MODULE_ID_WDA, &wma_state_info_dump);
 }
 
+struct wma_version_info g_wmi_version_info;
+
 /*
  * Allocate and init wmi adaptation layer.
  */
@@ -6881,6 +6883,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	struct txrx_pdev_cfg_param_t olCfg = {0};
 
 	WMA_LOGD("%s: Enter", __func__);
+
+	g_wmi_version_info.major = __WMI_VER_MAJOR_;
+	g_wmi_version_info.minor = __WMI_VER_MINOR_;
+	g_wmi_version_info.revision = __WMI_REVISION_;
 
 	adf_dev = vos_get_context(VOS_MODULE_ID_ADF, vos_context);
 	htc_handle = vos_get_context(VOS_MODULE_ID_HTC, vos_context);
