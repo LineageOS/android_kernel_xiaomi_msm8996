@@ -6726,8 +6726,8 @@ static
 void ol_cfg_update_bundle_params(struct txrx_pdev_cfg_param_t *olCfg,
 		tMacOpenParameters *mac_params)
 {
-	olCfg.pkt_bundle_timer_value = mac_params->pkt_bundle_timer_value;
-	olCfg.pkt_bundle_size = mac_params->pkt_bundle_size;
+	olCfg->pkt_bundle_timer_value = mac_params->pkt_bundle_timer_value;
+	olCfg->pkt_bundle_size = mac_params->pkt_bundle_size;
 }
 #else
 static
