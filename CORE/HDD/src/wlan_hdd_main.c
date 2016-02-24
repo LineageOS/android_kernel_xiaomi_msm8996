@@ -13247,6 +13247,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
    return status;
 }
 
+#ifdef FEATURE_BUS_BANDWIDTH
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
 				   uint64_t tx_bytes)
@@ -13265,7 +13266,6 @@ static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
 }
 #endif
 
-#ifdef FEATURE_BUS_BANDWIDTH
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         const uint64_t tx_packets, const uint64_t rx_packets)
 {

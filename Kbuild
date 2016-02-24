@@ -175,9 +175,6 @@ endif
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_TX_DESC_HI_PRIO_RESERVE  := 1
 endif
-ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
-	CONFIG_SUPPORT_TXRX_HL_BUNDLE  := 1
-endif
 
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
