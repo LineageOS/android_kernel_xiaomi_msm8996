@@ -8671,3 +8671,24 @@ lim_get_80Mhz_center_channel(uint8_t primary_channel)
 
 	return HAL_INVALID_CHANNEL_ID;
 }
+
+/**
+ * lim_is_ext_cap_ie_present - checks if ext ie is present
+ * @ext_cap: extended IEs structure
+ *
+ * Return: true if ext IEs are present else false
+ */
+bool lim_is_ext_cap_ie_present (struct s_ext_cap *ext_cap)
+{
+	int i, size;
+	uint8_t *tmp_buf;
+
+	tmp_buf = (uint8_t *) ext_cap;
+	size = sizeof(*ext_cap);
+
+	for (i = 0; i < size; i++)
+		if (tmp_buf[i])
+			return true;
+
+	return false;
+}
