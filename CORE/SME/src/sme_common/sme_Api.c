@@ -12119,15 +12119,16 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
                                          csrGetCfgMaxTxPower(pMac, chanId);
 
                if (vos_nv_getChannelEnabledState(chanId) == NV_CHANNEL_DFS)
-               {
-                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
-                                                                  VOS_TRUE;
-               }
+                   continue;
                else
                {
                    pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
                                                                   VOS_FALSE;
                }
+
+               if (vos_nv_skip_dsrc_dfs_2g(chanId, NV_CHANNEL_SKIP_DSRC))
+                   continue;
+
                num++;
            }
        }
