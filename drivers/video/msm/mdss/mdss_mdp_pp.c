@@ -533,6 +533,26 @@ inline int linear_map(int in, int *out, int in_max, int out_max)
 
 }
 
+/**
+ * __get_hist_pipe() - get a pipe only if histogram is supported on it
+ * @pnum: pipe number desired
+ *
+ * returns the pipe with id only if the pipe supports sspp histogram
+ */
+static inline struct mdss_mdp_pipe *__get_hist_pipe(int pnum)
+{
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
+	enum mdss_mdp_pipe_type ptype;
+
+	ptype = get_pipe_type_from_num(pnum);
+
+	/* only VIG pipes support histogram */
+	if (ptype != MDSS_MDP_PIPE_TYPE_VIG)
+		return NULL;
+
+	return mdss_mdp_pipe_get(mdata, BIT(pnum));
+}
+
 int mdss_mdp_csc_setup_data(u32 block, u32 blk_idx, struct mdp_csc_cfg *data)
 {
 	int i, ret = 0;
@@ -1706,10 +1726,10 @@ static int pp_hist_setup(u32 *op, u32 block, struct mdss_mdp_mixer *mix)
 	} else if (PP_LOCAT(block) == MDSS_PP_SSPP_CFG &&
 		(pp_driver_ops.is_sspp_hist_supp) &&
 		(pp_driver_ops.is_sspp_hist_supp())) {
-		pipe = mdss_mdp_pipe_get(mdata, BIT(PP_BLOCK(block)));
+		pipe = __get_hist_pipe(PP_BLOCK(block));
 		if (IS_ERR_OR_NULL(pipe)) {
 			pr_debug("pipe DNE (%d)\n",
-					(u32) BIT(PP_BLOCK(block)));
+					(u32) PP_BLOCK(block));
 			ret = -ENODEV;
 			goto error;
 		}
@@ -4326,16 +4346,9 @@ int mdss_mdp_hist_start(struct mdp_histogram_start_req *req)
 		for (i = 0; i < MDSS_PP_ARG_NUM; i++) {
 			if (!PP_ARG(i, req->block))
 				continue;
-			pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+			pipe = __get_hist_pipe(i);
 			if (IS_ERR_OR_NULL(pipe))
 				continue;
-			if ((pipe->num > MDSS_MDP_SSPP_VIG2) &&
-				(pipe->num != MDSS_MDP_SSPP_VIG3)) {
-				ret = -EINVAL;
-				pr_warn("Invalid Hist pipe (%d)\n", i);
-				mdss_mdp_pipe_unmap(pipe);
-				goto hist_stop_clk;
-			}
 			hist_info = &pipe->pp_res.hist;
 			ret = pp_hist_enable(hist_info, req, NULL);
 			intr_mask = 1 << hist_info->intr_shift;
@@ -4460,15 +4473,9 @@ int mdss_mdp_hist_stop(u32 block)
 		for (i = 0; i < MDSS_PP_ARG_NUM; i++) {
 			if (!PP_ARG(i, block))
 				continue;
-			pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+			pipe = __get_hist_pipe(i);
 			if (IS_ERR_OR_NULL(pipe)) {
 				pr_warn("Invalid Hist pipe (%d)\n", i);
-				continue;
-			} else if ((pipe->num > MDSS_MDP_SSPP_VIG2) &&
-				(pipe->num != MDSS_MDP_SSPP_VIG3)) {
-				mdss_mdp_pipe_unmap(pipe);
-				pr_warn("Invalid Hist pipe (%d) pipe->num (%d)\n",
-					i, pipe->num);
 				continue;
 			}
 			hist_info = &pipe->pp_res.hist;
@@ -4822,7 +4829,7 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			}
 		}
 
-		pipe = mdss_mdp_pipe_get(mdata, BIT(pipe_num));
+		pipe = __get_hist_pipe(pipe_num);
 		if (IS_ERR_OR_NULL(pipe)) {
 			pr_warn("Invalid starting hist pipe, %d\n", pipe_num);
 			ret = -ENODEV;
@@ -4834,13 +4841,8 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			if (!PP_ARG(i, hist->block))
 				continue;
 			pipe_cnt++;
-			pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+			pipe = __get_hist_pipe(i);
 			if (IS_ERR_OR_NULL(pipe)) {
-				pr_warn("Invalid Hist pipe (%d)\n", i);
-				continue;
-			} else if ((pipe->num > MDSS_MDP_SSPP_VIG2) &&
-				(pipe->num != MDSS_MDP_SSPP_VIG3)) {
-				mdss_mdp_pipe_unmap(pipe);
 				pr_warn("Invalid Hist pipe (%d)\n", i);
 				continue;
 			}
@@ -4851,13 +4853,8 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			if (!PP_ARG(i, hist->block))
 				continue;
 			pipe_cnt++;
-			pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+			pipe = __get_hist_pipe(i);
 			if (IS_ERR_OR_NULL(pipe)) {
-				pr_warn("Invalid Hist pipe (%d)\n", i);
-				continue;
-			} else if ((pipe->num > MDSS_MDP_SSPP_VIG2) &&
-				(pipe->num != MDSS_MDP_SSPP_VIG3)) {
-				mdss_mdp_pipe_unmap(pipe);
 				pr_warn("Invalid Hist pipe (%d)\n", i);
 				continue;
 			}
@@ -4877,13 +4874,8 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			if (!PP_ARG(i, hist->block))
 				continue;
 			pipe_cnt++;
-			pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+			pipe = __get_hist_pipe(i);
 			if (IS_ERR_OR_NULL(pipe)) {
-				pr_warn("Invalid Hist pipe (%d)\n", i);
-				continue;
-			} else if ((pipe->num > MDSS_MDP_SSPP_VIG2) &&
-				(pipe->num != MDSS_MDP_SSPP_VIG3)) {
-				mdss_mdp_pipe_unmap(pipe);
 				pr_warn("Invalid Hist pipe (%d)\n", i);
 				continue;
 			}
@@ -4913,7 +4905,7 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			for (i = pipe_num; i < MDSS_PP_ARG_NUM; i++) {
 				if (!PP_ARG(i, hist->block))
 					continue;
-				pipe = mdss_mdp_pipe_get(mdata, BIT(i));
+				pipe = __get_hist_pipe(i);
 				if (IS_ERR_OR_NULL(pipe)) {
 					pr_warn("Invalid Hist pipe (%d)\n", i);
 					continue;

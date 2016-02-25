@@ -35,14 +35,6 @@
 #define CHECK_LAYER_BOUNDS(offset, size, max_size) \
 	(((size) > (max_size)) || ((offset) > ((max_size) - (size))))
 
-#define IS_PIPE_TYPE_CURSOR(pipe_ndx) \
-	((pipe_ndx >= (1 << MDSS_MDP_SSPP_CURSOR0)) &&\
-	(pipe_ndx <= (1 << MDSS_MDP_SSPP_CURSOR1)))
-
-#define IS_PIPE_TYPE_DMA(pipe_ndx) \
-	((pipe_ndx >= (1 << MDSS_MDP_SSPP_DMA0)) &&\
-	(pipe_ndx <= (1 << MDSS_MDP_SSPP_DMA1)))
-
 enum {
 	MDSS_MDP_RELEASE_FENCE = 0,
 	MDSS_MDP_RETIRE_FENCE,
@@ -61,18 +53,6 @@ static inline bool is_layer_right_blend(struct mdp_rect *left_blend,
 	       ((left_blend->x + left_blend->w) != left_lm_w)		&&
 	       (left_blend->y == right_blend->y)			&&
 	       (left_blend->h == right_blend->h);
-}
-
-static bool is_pipe_type_vig(struct mdss_data_type *mdata, u32 ndx)
-{
-	u32 i;
-
-	for (i = 0; i < mdata->nvig_pipes; i++) {
-		if (mdata->vig_pipes[i].ndx == ndx)
-			break;
-	}
-
-	return i < mdata->nvig_pipes;
 }
 
 static int __async_update_position_check(struct msm_fb_data_type *mfd,
@@ -358,11 +338,16 @@ static int __validate_single_layer(struct msm_fb_data_type *mfd,
 	u32 bwc_enabled;
 	int ret;
 	bool is_vig_needed = false;
-
 	struct mdss_mdp_format_params *fmt;
 	struct mdss_mdp_mixer *mixer = NULL;
 	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
 	struct mdss_data_type *mdata = mfd_to_mdata(mfd);
+	int ptype = get_pipe_type_from_ndx(layer->pipe_ndx);
+
+	if (ptype == MDSS_MDP_PIPE_TYPE_INVALID) {
+		pr_err("Invalid pipe ndx=%d\n", layer->pipe_ndx);
+		return -EINVAL;
+	}
 
 	if ((layer->dst_rect.w > mdata->max_mixer_width) ||
 		(layer->dst_rect.h > MAX_DST_H)) {
@@ -404,7 +389,7 @@ static int __validate_single_layer(struct msm_fb_data_type *mfd,
 		}
 	}
 
-	if (IS_PIPE_TYPE_CURSOR(layer->pipe_ndx)) {
+	if (ptype == MDSS_MDP_PIPE_TYPE_CURSOR) {
 		ret = __cursor_layer_check(mfd, layer);
 		if (ret)
 			goto exit_fail;
@@ -432,14 +417,14 @@ static int __validate_single_layer(struct msm_fb_data_type *mfd,
 			(layer->src_rect.h != layer->dst_rect.h))))
 		is_vig_needed = true;
 
-	if (is_vig_needed && !is_pipe_type_vig(mdata, layer->pipe_ndx)) {
+	if (is_vig_needed && ptype != MDSS_MDP_PIPE_TYPE_VIG) {
 		pr_err("pipe is non-scalar ndx=%x\n", layer->pipe_ndx);
 		ret = -EINVAL;
 		goto exit_fail;
 	}
 
-	if ((IS_PIPE_TYPE_DMA(layer->pipe_ndx) ||
-		IS_PIPE_TYPE_CURSOR(layer->pipe_ndx)) &&
+	if (((ptype == MDSS_MDP_PIPE_TYPE_DMA) ||
+		(ptype == MDSS_MDP_PIPE_TYPE_CURSOR)) &&
 		(layer->dst_rect.h != layer->src_rect.h ||
 		 layer->dst_rect.w != layer->src_rect.w)) {
 		pr_err("no scaling supported on dma/cursor pipe, pipe num:%d\n",
