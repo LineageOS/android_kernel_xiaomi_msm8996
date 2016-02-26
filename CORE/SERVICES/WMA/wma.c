@@ -21217,6 +21217,7 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 		WMA_LOGE("Credits:%d; Pending_Cmds: %d",
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
+		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
@@ -21231,7 +21232,6 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 			WMA_LOGE("%s: LOGP is in progress, ignore!", __func__);
 		}
 
-		wmi_set_target_suspend(wma->wmi_handle, FALSE);
 		return VOS_STATUS_E_FAILURE;
 	}
 
