@@ -1275,7 +1275,7 @@ static void send_packetdump(adf_nbuf_t netbuf, uint8_t status,
 		return;
 
 	pktlog_hdr.log_type = PKTLOG_TYPE_PKT_DUMP;
-	pktlog_hdr.size = sizeof(pd_hdr) + adf_nbuf_len(netbuf);
+	pktlog_hdr.size = sizeof(pd_hdr) + netbuf->len;
 
 	pd_hdr.status = status;
 	pd_hdr.type = type;
