@@ -131,6 +131,9 @@ static void lim_set_pdev_ht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 		tANI_U8 nss);
 static void lim_set_pdev_vht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 		tANI_U8 nss);
+static void __lim_process_send_disassoc_frame(tpAniSirGlobal mac_ctx,
+				uint32_t *msg_buf);
+
 #ifdef BACKGROUND_SCAN_ENABLED
 
 // start the background scan timers if it hasn't already started
@@ -5756,6 +5759,68 @@ static void lim_register_mgmt_frame_ind_cb(tpAniSirGlobal mac_ctx,
 }
 
 /**
+ *__lim_process_send_disassoc_frame: function processes disassoc frame
+ * @mac_ctx: pointer to mac context
+ * @msg_buf: message buffer
+ *
+ * function processes disassoc request received from SME
+ *
+ * return: none
+ */
+static void __lim_process_send_disassoc_frame(tpAniSirGlobal mac_ctx,
+					uint32_t *msg_buf)
+{
+	struct sme_send_disassoc_frm_req sme_send_disassoc_frame_req;
+	tSirRetStatus status;
+	tpPESession session_entry = NULL;
+	uint8_t sme_session_id;
+	uint16_t sme_trans_id;
+
+	if(msg_buf == NULL) {
+		limLog(mac_ctx, LOGE, FL("Buffer is Pointing to NULL"));
+		return;
+	}
+
+	limGetSessionInfo(mac_ctx, (uint8_t *)msg_buf, &sme_session_id,
+			&sme_trans_id);
+
+	status = lim_send_disassoc_frm_req_ser_des(mac_ctx,
+				&sme_send_disassoc_frame_req,
+				(uint8_t *)msg_buf);
+
+	if((eSIR_FAILURE == status) ||
+		(limIsGroupAddr(sme_send_disassoc_frame_req.peer_mac) &&
+		!limIsAddrBC(sme_send_disassoc_frame_req.peer_mac))) {
+		PELOGE(limLog(mac_ctx, LOGE,
+			FL("received invalid SME_DISASSOC_REQ message"));)
+		return;
+	}
+
+	if((session_entry = pe_find_session_by_sme_session_id(
+				mac_ctx, sme_session_id)) == NULL) {
+		limLog(mac_ctx, LOGE,
+			FL("session does not exist for given bssId "MAC_ADDRESS_STR),
+			MAC_ADDR_ARRAY(sme_send_disassoc_frame_req.peer_mac));
+		return;
+	}
+
+	limLog(mac_ctx, LOG1,
+		FL("msg_type->%d len->%d sess_id->%d trans_id->%d mac->"MAC_ADDRESS_STR" reason->%d wait_for_ack->%d"),
+		sme_send_disassoc_frame_req.msg_type,
+		sme_send_disassoc_frame_req.length,
+		sme_send_disassoc_frame_req.session_id,
+		sme_send_disassoc_frame_req.trans_id,
+		MAC_ADDR_ARRAY(sme_send_disassoc_frame_req.peer_mac),
+		sme_send_disassoc_frame_req.reason,
+		sme_send_disassoc_frame_req.wait_for_ack);
+
+	limSendDisassocMgmtFrame(mac_ctx,
+		sme_send_disassoc_frame_req.reason,
+		sme_send_disassoc_frame_req.peer_mac,
+		session_entry, sme_send_disassoc_frame_req.wait_for_ack);
+}
+
+/**
  * limProcessSmeReqMessages()
  *
  *FUNCTION:
@@ -5904,6 +5969,10 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         case eWNI_SME_DEAUTH_REQ:
             __limProcessSmeDeauthReq(pMac, pMsgBuf);
+            break;
+
+        case eWNI_SME_SEND_DISASSOC_FRAME:
+            __lim_process_send_disassoc_frame(pMac, pMsgBuf);
             break;
 
         case eWNI_SME_SETCONTEXT_REQ:

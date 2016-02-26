@@ -19878,7 +19878,11 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
             /* Send disassoc and deauth both to avoid some IOT issues */
             vos_event_reset(&pHostapdState->vosEvent);
-            hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
+            sme_send_disassoc_req_frame(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                             pAdapter->sessionId,
+                             (uint8_t *)pDelStaParams->peerMacAddr,
+                             pDelStaParams->reason_code, 0);
+
             vos_status = hdd_softap_sta_deauth(pAdapter, pDelStaParams);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
                 pAdapter->aStaInfo[staId].isDeauthInProgress = FALSE;

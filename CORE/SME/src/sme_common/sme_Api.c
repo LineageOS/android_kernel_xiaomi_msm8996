@@ -18514,3 +18514,71 @@ VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id)
 	}
 	return vos_status;
 }
+
+
+/**
+ * sme_send_disassoc_req_frame - send disassoc req
+ * @hal: handler to hal
+ * @session_id: session id
+ * @peer_mac: peer mac address
+ * @reason: reason for disassociation
+ * wait_for_ack: wait for acknowledgment
+ *
+ * function to send disassoc request to lim
+ *
+ * return: none
+ */
+void sme_send_disassoc_req_frame(tHalHandle hal, uint8_t session_id,
+	uint8_t *peer_mac, uint16_t reason, uint8_t wait_for_ack)
+{
+	struct sme_send_disassoc_frm_req *msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal p_mac = PMAC_STRUCT(hal);
+	tANI_U8 *buf;
+	tANI_U16 tmp;
+
+	msg = vos_mem_malloc(sizeof(struct sme_send_disassoc_frm_req));
+
+	if (NULL == msg)
+		status = eHAL_STATUS_FAILURE;
+	else
+		status = eHAL_STATUS_SUCCESS;
+	if (!HAL_STATUS_SUCCESS(status))
+		return;
+
+	vos_mem_set(msg, sizeof(struct sme_send_disassoc_frm_req), 0);
+	msg->msg_type = pal_cpu_to_be16((tANI_U16)eWNI_SME_SEND_DISASSOC_FRAME);
+
+	msg->length =
+	    pal_cpu_to_be16((tANI_U16)sizeof(struct sme_send_disassoc_frm_req));
+
+	buf = &msg->session_id;
+
+	/* session id */
+	*buf = (tANI_U8) session_id;
+	buf += sizeof(tANI_U8);
+
+	/* transaction id */
+	*buf = 0;
+	*(buf + 1) = 0;
+	buf += sizeof(tANI_U16);
+
+	/* Set the peer MAC address before sending the message to LIM */
+	vos_mem_copy(buf, peer_mac, VOS_MAC_ADDR_SIZE);
+
+	buf += VOS_MAC_ADDR_SIZE;
+
+	/* reasoncode */
+	tmp = pal_cpu_to_be16(reason);
+	vos_mem_copy(buf, &tmp, sizeof(tANI_U16));
+	buf += sizeof(tANI_U16);
+
+	*buf =  wait_for_ack;
+	buf += sizeof(tANI_U8);
+
+	status = palSendMBMessage(p_mac->hHdd, msg );
+
+	if(status != eHAL_STATUS_SUCCESS)
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("palSendMBMessage Failed"));
+}
