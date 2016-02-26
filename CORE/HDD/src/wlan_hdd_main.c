@@ -13182,21 +13182,25 @@ VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
                               hdd_ctx->reg.cc_src);
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_is_5g_supported() - HDD function to know if hardware supports  5GHz
-
-  \param  - pHddCtx - Pointer to the hdd context
-
-  \return -  true if hardware supports 5GHz
-
-  --------------------------------------------------------------------------*/
+/**
+ * hdd_is_5g_supported() - to know if ini configuration supports 5GHz
+ * @pHddCtx: Pointer to the hdd context
+ *
+ * Return: true if ini configuration supports 5GHz
+ */
 boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
 {
-   /* If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
-    * then hardware support 5Ghz.
-   */
-   return true;
+	/**
+	 * If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
+	 * then hardware support 5Ghz.
+	 */
+	if(!pHddCtx || !pHddCtx->cfg_ini)
+		return true;
+
+	if (pHddCtx->cfg_ini->nBandCapability != eCSR_BAND_24)
+		return true;
+	else
+		return false;
 }
 
 static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
