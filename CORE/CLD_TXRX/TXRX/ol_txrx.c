@@ -418,6 +418,9 @@ ol_txrx_pdev_attach(
         goto fail2;
     }
 
+    adf_os_mem_zero(pdev->pn_replays,
+                    OL_RX_NUM_PN_REPLAY_TYPES * sizeof(uint32_t));
+
 #ifdef IPA_UC_OFFLOAD
     /* Attach micro controller data path offload resource */
     if (ol_cfg_ipa_uc_offload_enabled(ctrl_pdev)) {

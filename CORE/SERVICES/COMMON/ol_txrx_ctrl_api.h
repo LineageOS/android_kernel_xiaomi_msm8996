@@ -1394,4 +1394,8 @@ bool ol_txrx_set_ocb_def_tx_param(ol_txrx_vdev_handle vdev,
 void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
 void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
 
+void ol_rx_reset_pn_replay_counter(struct ol_txrx_pdev_t *pdev);
+uint32_t ol_rx_get_tkip_replay_counter(struct ol_txrx_pdev_t *pdev);
+uint32_t ol_rx_get_ccmp_replay_counter(struct ol_txrx_pdev_t *pdev);
+
 #endif /* _OL_TXRX_CTRL_API__H_ */

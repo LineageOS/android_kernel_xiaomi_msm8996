@@ -605,6 +605,8 @@ struct ol_txrx_pdev_t {
 		int len;
 	} rx_pn[htt_num_sec_types];
 
+	uint32_t pn_replays[OL_RX_NUM_PN_REPLAY_TYPES];
+
 	/* tx mutex */
 	OL_TX_MUTEX_TYPE tx_mutex;
 

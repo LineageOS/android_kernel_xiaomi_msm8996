@@ -67,6 +67,15 @@ enum ol_addba_status {
     ol_addba_busy,
 };
 
+enum pn_replay_type {
+    OL_RX_TKIP_REPLAYS,
+    OL_RX_CCMP_REPLAYS,
+    OL_RX_OTHER_REPLAYS,
+
+    /* total replays */
+    OL_RX_NUM_PN_REPLAY_TYPES
+};
+
 enum ol_sec_type {
     ol_sec_type_none,
     ol_sec_type_wep128,
