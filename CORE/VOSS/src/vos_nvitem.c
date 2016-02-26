@@ -977,6 +977,37 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
    return regChannels[channelEnum].enabled;
 }
 
+/**
+ * vos_nv_get_channel_flags: Get channel flags
+ * @rf_channel: Channel number.
+ * This function is called to know associated flags with channel
+ *
+ * Return: updated Wiphy struct
+ */
+uint32_t vos_nv_get_channel_flags
+(
+   uint32_t  rf_channel
+)
+{
+	uint32_t       channel_loop;
+	eRfChannels   channel_enum = INVALID_RF_CHANNEL;
+
+	for(channel_loop = 0; channel_loop <= RF_CHAN_184; channel_loop++) {
+		if(rfChannels[channel_loop].channelNum == rf_channel) {
+			channel_enum = (eRfChannels)channel_loop;
+			break;
+		}
+	}
+
+	if (INVALID_RF_CHANNEL == channel_enum) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"vos_nv_get_channel_flags, invalid channel %d",
+			rf_channel);
+		return NV_CHANNEL_INVALID;
+	}
+	return regChannels[channel_enum].flags;
+}
+
 /******************************************************************
  Add CRDA regulatory support
 *******************************************************************/
@@ -1246,7 +1277,93 @@ bool vos_is_dsrc_channel(uint16_t center_freq)
     }
     return 0;
 }
+/**
+ * vos_update_band: Update the band
+ * @eBand: Band value
+ *
+ * This function is called from the supplicant through a
+ * private ioctl to change the band value.
+ *
+ * Return: updated Wiphy struct
+ */
+int vos_update_band(v_U8_t  band_capability)
+{
+	v_CONTEXT_t vos_ctx = NULL;
+	hdd_context_t *hdd_ctx = NULL;
+	struct wiphy *wiphy = NULL;
+	int i, j;
+	eNVChannelEnabledType channel_enabled_state;
+	uint32_t flags;
+	ENTER();
+	vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
+	if (NULL != vos_ctx)
+		hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+	else
+		return VOS_STATUS_E_EXISTS;
+
+	if (NULL == hdd_ctx) {
+		VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				("Invalid hdd_ctx pointer") );
+		return VOS_STATUS_E_FAULT;
+	}
+
+	if (hdd_ctx->isLogpInProgress) {
+		VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				(" SSR in progress, return") );
+		return VOS_STATUS_SUCCESS;
+	}
+
+	wiphy = hdd_ctx->wiphy;
+
+	if (false == wiphy->registered) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			("wiphy is not yet registered with the kernel"));
+		return VOS_STATUS_E_FAULT;
+	}
+
+	for (i = 0; i < IEEE80211_NUM_BANDS; i++) {
+		if (NULL == wiphy->bands[i])
+			continue;
+
+		for (j = 0; j < wiphy->bands[i]->n_channels; j++) {
+			struct ieee80211_supported_band *band = wiphy->bands[i];
+
+			flags = vos_nv_get_channel_flags(
+					band->channels[j].hw_value);
+			channel_enabled_state =
+				vos_nv_getChannelEnabledState(
+						band->channels[j].hw_value);
+			/* 5G only */
+			if (IEEE80211_BAND_2GHZ == i &&
+					eCSR_BAND_5G == band_capability) {
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
+				/* Enable Social channels for P2P */
+				if (WLAN_HDD_IS_SOCIAL_CHANNEL(
+					band->channels[j].center_freq) &&
+					NV_CHANNEL_ENABLE ==
+					channel_enabled_state)
+					band->channels[j].flags &=
+						~IEEE80211_CHAN_DISABLED;
+				else
+#endif
+					band->channels[j].flags |=
+						IEEE80211_CHAN_DISABLED;
+				continue;
+			} else if (IEEE80211_BAND_5GHZ == i &&
+					eCSR_BAND_24 == band_capability) {
+				/* 2.4G only */
+				band->channels[j].flags |=
+					IEEE80211_CHAN_DISABLED;
+				continue;
+			}
+			if (NV_CHANNEL_DISABLE != channel_enabled_state)
+				band->channels[j].flags = flags;
+
+		}
+	}
+	return 0;
+}
 
 /* create_linux_regulatory_entry to populate internal structures from wiphy */
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
@@ -1291,14 +1408,6 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
 
     for (i = 0, m = 0; i<IEEE80211_NUM_BANDS; i++)
     {
-        /* 5G only */
-        if (i == IEEE80211_BAND_2GHZ && nBandCapability == eCSR_BAND_5G)
-            continue;
-
-        /* 2G only */
-        else if (i == IEEE80211_BAND_5GHZ && nBandCapability == eCSR_BAND_24)
-            continue;
-
         if (wiphy->bands[i] == NULL)
             continue;
 
@@ -1554,9 +1663,12 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                 }
 
             }
-
-            /* ignore CRDA max_antenna_gain typical is 3dBi, nv.bin antennaGain
-               is real gain which should be provided by the real design */
+            /* Copy wiphy flags in nv table */
+            if (n != -1)
+                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                    channels[n].flags = wiphy->bands[i]->channels[j].flags;
+            pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                channels[k].flags = wiphy->bands[i]->channels[j].flags;
         }
     }
 
@@ -1572,6 +1684,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
     if (k == 0)
        return -1;
 
+    vos_update_band(nBandCapability);
     return 0;
 }
 
@@ -1754,7 +1867,8 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
             temp_reg_domain = REGDOMAIN_WORLD;
 
         isVHT80Allowed = pHddCtx->isVHT80Allowed;
-
+        regChannels =
+            pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels;
         if (create_linux_regulatory_entry(wiphy,
                                           nBandCapability,
                                           reset) == 0)

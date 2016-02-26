@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -406,8 +406,9 @@ typedef uint8 eNVChannelEnabledType;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    eNVChannelEnabledType   enabled;
-    tPowerdBm pwrLimit;
+    uint32_t   enabled:4;
+    uint32_t   flags:28;
+    tPowerdBm  pwrLimit;
 }sRegulatoryChannel;
 
 typedef PACKED_PRE struct PACKED_POST

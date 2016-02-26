@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -266,4 +266,6 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void);
 const char * voss_DomainIdtoString(const v_U8_t domainIdCurrent);
 VOS_STATUS vos_init_wiphy_from_eeprom(void);
 bool vos_is_dsrc_channel(uint16_t);
+uint32_t vos_nv_get_channel_flags(uint32_t rf_channel);
+int vos_update_band(uint8_t  band);
 #endif // __VOS_NVITEM_H

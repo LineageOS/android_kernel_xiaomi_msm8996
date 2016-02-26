@@ -10938,68 +10938,6 @@ struct wiphy *wlan_hdd_cfg80211_wiphy_alloc(int priv_size)
 }
 
 /*
- * FUNCTION: wlan_hdd_cfg80211_update_band
- * This function is called from the supplicant through a
- * private ioctl to change the band value
- */
-int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
-{
-    int i, j;
-    eNVChannelEnabledType channelEnabledState;
-
-    ENTER();
-
-    for (i = 0; i < IEEE80211_NUM_BANDS; i++)
-    {
-
-        if (NULL == wiphy->bands[i])
-           continue;
-
-        for (j = 0; j < wiphy->bands[i]->n_channels; j++)
-        {
-            struct ieee80211_supported_band *band = wiphy->bands[i];
-
-            channelEnabledState = vos_nv_getChannelEnabledState(
-                                  band->channels[j].hw_value);
-
-            if (IEEE80211_BAND_2GHZ == i && eCSR_BAND_5G == eBand) // 5G only
-            {
-#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
-                // Enable Social channels for P2P
-                if (WLAN_HDD_IS_SOCIAL_CHANNEL(band->channels[j].center_freq) &&
-                    NV_CHANNEL_ENABLE == channelEnabledState)
-                    band->channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
-                else
-#endif
-                    band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
-                continue;
-            }
-            else if (IEEE80211_BAND_5GHZ == i && eCSR_BAND_24 == eBand) // 2G only
-            {
-                band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
-                continue;
-            }
-
-            if (NV_CHANNEL_DISABLE == channelEnabledState ||
-                NV_CHANNEL_INVALID == channelEnabledState)
-            {
-                band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
-            }
-            else if (NV_CHANNEL_DFS == channelEnabledState)
-            {
-                band->channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
-                band->channels[j].flags |= IEEE80211_CHAN_RADAR;
-            }
-            else
-            {
-                band->channels[j].flags &= ~(IEEE80211_CHAN_DISABLED
-                                             |IEEE80211_CHAN_RADAR);
-            }
-        }
-    }
-    return 0;
-}
-/*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
  * during initialization.
