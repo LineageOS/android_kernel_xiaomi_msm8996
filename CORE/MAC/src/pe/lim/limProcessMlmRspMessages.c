@@ -886,9 +886,10 @@ limProcessMlmAssocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     if (((tLimMlmAssocCnf *) pMsgBuf)->resultCode != eSIR_SME_SUCCESS)
     {
         // Association failure
-        PELOG1(limLog(pMac, LOG1, FL("SessionId:%d Association failure"
+        PELOG1(limLog(pMac, LOG1, FL("SessionId:%u Association failure"
                       "resultCode: resultCode: %d limSmeState:%d"),
                       psessionEntry->peSessionId,
+                      ((tLimMlmAssocCnf *) pMsgBuf)->resultCode,
                       psessionEntry->limSmeState);)
 
         /* If driver gets deauth when its waiting for ADD_STA_RSP then we need

@@ -1289,8 +1289,8 @@ limSendSmeLfrScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
                  &pMac->roam.roamSession[smesessionId].connectedProfile.SSID);
     PELOG2(limLog(pMac,
                   LOG2,
-                  FL("Scan Entries Left after cleanup: %d",
-                     scanEntriesLeft)));
+                  FL("Scan Entries Left after cleanup: %d"),
+                     scanEntriesLeft);)
 
     return;
 
@@ -3136,7 +3136,10 @@ void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
     mmhMsg.type = pSmeMaxAssocInd->mesgType;
     mmhMsg.bodyptr = pSmeMaxAssocInd;
     PELOG1(limLog(pMac, LOG1, FL("msgType %s peerMacAddr "MAC_ADDRESS_STR
-                  " sme session id %d"), "eWNI_SME_MAX_ASSOC_EXCEEDED", MAC_ADDR_ARRAY(peerMacAddr));)
+                  " sme session id %d"),
+                  "eWNI_SME_MAX_ASSOC_EXCEEDED",
+                  MAC_ADDR_ARRAY(peerMacAddr),
+                  smesessionId);)
     MTRACE(macTrace(pMac, TRACE_CODE_TX_SME_MSG, smesessionId, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 

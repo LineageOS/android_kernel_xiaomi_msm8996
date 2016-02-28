@@ -8370,11 +8370,6 @@ void lim_set_stads_rtt_cap(tpDphHashNode sta_ds, struct s_ext_cap *ext_cap)
 	sta_ds->timingMeasCap |= (ext_cap->fine_time_meas_responder)?
 				  RTT_FINE_TIME_MEAS_RESPONDER_CAPABILITY :
 				  RTT_INVALID;
-
-	PELOG1(limLog(pMac, LOG1,
-	       FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
-	       ext_cap->timingMeas, ext_cap->fine_time_meas_initiator,
-	       ext_cap->fine_time_meas_responder);)
 }
 
 /**

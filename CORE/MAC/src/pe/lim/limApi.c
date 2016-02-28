@@ -836,7 +836,7 @@ bool lim_is_assoc_req_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
 	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
 	session_entry = peFindSessionByBssid(mac, mac_hdr->bssId, &session_id);
 	if (!session_entry) {
-		PELOG1(limLog(pMac, LOG1,
+		PELOG1(limLog(mac, LOG1,
 			FL("session does not exist for given STA [%pM]"),
 			mac_hdr->sa););
 		return false;
@@ -845,7 +845,7 @@ bool lim_is_assoc_req_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
 	sta_ds = dphLookupHashEntry(mac, mac_hdr->sa, &aid,
 				&session_entry->dph.dphHashTable);
 	if (!sta_ds) {
-		PELOG1(limLog(pMac, LOG1, FL("pStaDs is NULL")););
+		PELOG1(limLog(mac, LOG1, FL("pStaDs is NULL")););
 		return false;
 	}
 
