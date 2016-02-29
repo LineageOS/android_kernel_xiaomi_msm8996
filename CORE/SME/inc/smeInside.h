@@ -216,6 +216,7 @@ typedef struct tagSmeCmd
         struct s_ani_set_tx_max_pwr set_tx_max_pwr;
 #ifdef WLAN_FEATURE_NAN_DATAPATH
         struct ndp_initiator_req initiator_req;
+        struct ndp_responder_req responder_req;
 #endif
     }u;
 }tSmeCmd;

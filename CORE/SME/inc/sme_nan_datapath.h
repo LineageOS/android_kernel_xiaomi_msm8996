@@ -30,6 +30,7 @@
 #include "vos_types.h"
 #include "halTypes.h"
 #include "sirApi.h"
+#include "csrInsideApi.h"
 #include "aniGlobal.h"
 #include "smeInside.h"
 
@@ -48,12 +49,26 @@ struct sir_sme_ndp_initiator_req {
 	struct ndp_initiator_req req;
 };
 
+/**
+ * struct sir_sme_ndp_responder_req - Wraper of responder's response
+ * to ndp create request
+ * @msg_type: SME msg type
+ * @msg_len: Length of msg
+ * @req: responder's response to ndp create request
+ *
+ */
+struct sir_sme_ndp_responder_req {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	struct ndp_responder_req req;
+};
+
 /* NaN initiator request handler */
 eHalStatus sme_ndp_initiator_req_handler(tHalHandle hal,
 				struct ndp_initiator_req *req_params);
 
 /* NaN responder request handler */
-VOS_STATUS sme_ndp_responder_req_handler(uint32_t session_id,
+eHalStatus sme_ndp_responder_req_handler(tHalHandle hal,
 					struct ndp_responder_req *req_params);
 
 /* NaN indication response handler */
@@ -94,6 +109,8 @@ eHalStatus csr_process_ndp_initiator_request(tpAniSirGlobal mac_ctx,
 
 void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg);
 
+eHalStatus csr_process_ndp_responder_request(tpAniSirGlobal mac_ctx,
+							tSmeCmd *cmd);
 #else
 
 /* Start NDI BSS */
@@ -139,6 +156,11 @@ static inline void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 {
 }
 
+static inline eHalStatus csr_process_ndp_responder_request(
+			tpAniSirGlobal mac_ctx, tSmeCmd *cmd)
+{
+	return eHAL_STATUS_SUCCESS;
+}
 #endif /* WLAN_FEATURE_NAN_DATAPATH */
 
 #endif /* __SME_NAN_DATAPATH_H */
