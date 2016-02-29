@@ -73,8 +73,8 @@ VOS_STATUS wma_handle_ndp_initiator_req(tp_wma_handle wma_handle, void *req)
 	 * WMI command expects 4 byte alligned len:
 	 * round up ndp_cfg_len and ndp_app_info_len to 4 bytes
 	 */
-	ndp_cfg_len = roundup(ndp_req->ndp_config.ndp_cfg_len, 4);
-	ndp_app_info_len = roundup(ndp_req->ndp_info.ndp_app_info_len, 4);
+	ndp_cfg_len = vos_roundup(ndp_req->ndp_config.ndp_cfg_len, 4);
+	ndp_app_info_len = vos_roundup(ndp_req->ndp_info.ndp_app_info_len, 4);
 	/* allocated memory for fixed params as well as variable size data */
 	len = sizeof(*cmd) + ndp_cfg_len + ndp_app_info_len +
 		(2 * WMI_TLV_HDR_SIZE) + sizeof(*ch_tlv);
@@ -178,6 +178,45 @@ send_ndi_initiator_fail:
 }
 
 /**
+ * wma_send_ndp_responder_rsp() - NDP responder request handler
+ * @rsp_ind: rsp parameters
+ *
+ * Return: VOS_STATUS_SUCCESS on success; error number otherwise
+ */
+static VOS_STATUS wma_send_ndp_responder_rsp
+	(struct ndp_responder_rsp_event *rsp_ind)
+{
+	VOS_STATUS status;
+	vos_msg_t pe_msg = {0};
+	uint8_t len = sizeof(*rsp_ind);
+
+	if (NULL == rsp_ind) {
+		WMA_LOGE(FL("Invalid rsp_ind"));
+		/* msg to unblock SME, but not send rsp to HDD */
+		pe_msg.bodyptr = NULL;
+		pe_msg.bodyval = true;
+		goto send_rsp;
+	}
+	pe_msg.bodyptr = vos_mem_malloc(len);
+	if (NULL == pe_msg.bodyptr) {
+		WMA_LOGE(FL("Memory allocation failure"));
+		/* msg to unblock SME, but not send rsp to HDD */
+		pe_msg.bodyval = true;
+	} else {
+		vos_mem_copy(pe_msg.bodyptr, rsp_ind, len);
+		pe_msg.bodyval = 0;
+	}
+send_rsp:
+	pe_msg.type = SIR_HAL_NDP_RESPONDER_RSP;
+	status = vos_mq_post_message(VOS_MODULE_ID_PE, &pe_msg);
+	if (!VOS_IS_STATUS_SUCCESS(status)) {
+		WMA_LOGE(FL("fail to post msg to PE"));
+		vos_mem_free(pe_msg.bodyptr);
+	}
+	return status;
+}
+
+/**
  * wma_handle_ndp_responder_req() - NDP responder request handler
  * @wma_handle: wma handle
  * @req_params: request parameters
@@ -187,7 +226,105 @@ send_ndi_initiator_fail:
 VOS_STATUS wma_handle_ndp_responder_req(tp_wma_handle wma_handle,
 					struct ndp_responder_req *req_params)
 {
+	wmi_buf_t buf;
+	ol_txrx_vdev_handle vdev;
+	uint32_t vdev_id = 0, ndp_cfg_len, ndp_app_info_len;
+	uint8_t *cfg_info, *app_info;
+	int ret;
+	wmi_ndp_responder_req_fixed_param *cmd;
+	uint16_t len;
+	struct ndp_responder_rsp_event rsp;
+
+	if (NULL == req_params) {
+		WMA_LOGE(FL("Invalid req_params."));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	vdev_id = req_params->vdev_id;
+	WMA_LOGD(FL("vdev_id: %d, transaction_id: %d, ndp_rsp %d, ndp_instance_id: %d, ndp_app_info_len: %d"),
+			req_params->vdev_id, req_params->transaction_id,
+			req_params->ndp_rsp,
+			req_params->ndp_instance_id,
+			req_params->ndp_info.ndp_app_info_len);
+	vdev = wma_find_vdev_by_id(wma_handle, vdev_id);
+	if (!vdev) {
+		WMA_LOGE(FL("vdev not found for vdev id %d."), vdev_id);
+		goto send_ndi_responder_fail;
+	}
+
+	if (!WMA_IS_VDEV_IN_NDI_MODE(wma_handle->interfaces, vdev_id)) {
+		WMA_LOGE(FL("vdev :$%d, not in NDI mode"), vdev_id);
+		goto send_ndi_responder_fail;
+	}
+
+	/*
+	 * WMI command expects 4 byte alligned len:
+	 * round up ndp_cfg_len and ndp_app_info_len to 4 bytes
+	 */
+	ndp_cfg_len = vos_roundup(req_params->ndp_config.ndp_cfg_len, 4);
+	ndp_app_info_len = vos_roundup(req_params->ndp_info.ndp_app_info_len, 4);
+	/* allocated memory for fixed params as well as variable size data */
+	len = sizeof(*cmd) + ndp_cfg_len + ndp_app_info_len +
+		(2 * WMI_TLV_HDR_SIZE);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		goto send_ndi_responder_fail;
+	}
+	cmd = (wmi_ndp_responder_req_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_ndp_responder_req_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+				wmi_ndp_responder_req_fixed_param));
+	cmd->vdev_id = req_params->vdev_id;
+	cmd->transaction_id = req_params->transaction_id;
+	cmd->ndp_instance_id = req_params->ndp_instance_id;
+	cmd->rsp_code = req_params->ndp_rsp;
+
+	cmd->ndp_cfg_len = req_params->ndp_config.ndp_cfg_len;
+	cmd->ndp_app_info_len = req_params->ndp_info.ndp_app_info_len;
+
+	cfg_info = (uint8_t *)&cmd[1];
+	/* WMI command expects 4 byte alligned len */
+	WMITLV_SET_HDR(cfg_info, WMITLV_TAG_ARRAY_BYTE, ndp_cfg_len);
+	vos_mem_copy(&cfg_info[WMI_TLV_HDR_SIZE],
+		     req_params->ndp_config.ndp_cfg, cmd->ndp_cfg_len);
+
+	app_info = &cfg_info[WMI_TLV_HDR_SIZE + ndp_cfg_len];
+	/* WMI command expects 4 byte alligned len */
+	WMITLV_SET_HDR(app_info, WMITLV_TAG_ARRAY_BYTE, ndp_app_info_len);
+	vos_mem_copy(&app_info[WMI_TLV_HDR_SIZE],
+		     req_params->ndp_info.ndp_app_info,
+		     req_params->ndp_info.ndp_app_info_len);
+
+	WMA_LOGD(FL("ndp_config len: %d"),
+		req_params->ndp_config.ndp_cfg_len);
+	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+			req_params->ndp_config.ndp_cfg,
+			req_params->ndp_config.ndp_cfg_len);
+
+	WMA_LOGD(FL("ndp_app_info len: %d"),
+		req_params->ndp_info.ndp_app_info_len);
+	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+			req_params->ndp_info.ndp_app_info,
+			req_params->ndp_info.ndp_app_info_len);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_NDP_RESPONDER_REQ_CMDID);
+	if (ret < 0) {
+		WMA_LOGE(FL("WMI_NDP_RESPONDER_REQ_CMDID failed, ret: %d"),
+			ret);
+		wmi_buf_free(buf);
+		goto send_ndi_responder_fail;
+	}
 	return VOS_STATUS_SUCCESS;
+send_ndi_responder_fail:
+	vos_mem_zero(&rsp, sizeof(rsp));
+	rsp.vdev_id = req_params->vdev_id;
+	rsp.transaction_id = req_params->transaction_id;
+	rsp.status = VOS_STATUS_E_FAILURE;
+	wma_send_ndp_responder_rsp(&rsp);
+	return VOS_STATUS_E_FAILURE;
 }
 
 /**
@@ -323,9 +460,22 @@ static int wma_ndp_indication_event_handler(void *handle, uint8_t  *event_info,
  * Return: 0 on success, negative errno on failure
  */
 static int wma_ndp_responder_rsp_event_handler(void *handle,
-	uint8_t  *event_info, uint32_t len)
+	uint8_t *event_info, uint32_t len)
 {
-	return 0;
+	WMI_NDP_RESPONDER_RSP_EVENTID_param_tlvs *event;
+	wmi_ndp_responder_rsp_event_fixed_param  *fixed_params;
+	struct ndp_responder_rsp_event rsp;
+
+	event = (WMI_NDP_RESPONDER_RSP_EVENTID_param_tlvs *)event_info;
+	fixed_params = event->fixed_param;
+
+	rsp.vdev_id = fixed_params->vdev_id;
+	rsp.transaction_id = fixed_params->transaction_id;
+	rsp.reason = fixed_params->reason_code;
+	rsp.status = fixed_params->rsp_status;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&fixed_params->peer_ndi_mac_addr,
+				rsp.peer_mac_addr.bytes);
+	return wma_send_ndp_responder_rsp(&rsp);
 }
 
 /**

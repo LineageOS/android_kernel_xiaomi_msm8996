@@ -1040,6 +1040,18 @@ sme_process_cmd:
                                 }
                             }
                             break;
+                        case eSmeCommandNdpResponderRequest:
+                            csrLLUnlock(&pMac->sme.smeCmdActiveList);
+                            status =
+                                 csr_process_ndp_responder_request(pMac,
+                                                                   pCommand);
+                            if (!HAL_STATUS_SUCCESS(status)) {
+                                if (csrLLRemoveEntry(
+                                          &pMac->sme.smeCmdActiveList,
+                                             &pCommand->Link, LL_ACCESS_LOCK))
+                                    csrReleaseCommand(pMac, pCommand);
+                            }
+                            break;
                         case eSmeCommandDelStaSession:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             csrProcessDelStaSessionCommand( pMac, pCommand );
@@ -3366,6 +3378,8 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_NDP_CONFIRM_IND:
           case eWNI_SME_NDP_NEW_PEER_IND:
           case eWNI_SME_NDP_INITIATOR_RSP:
+          case eWNI_SME_NDP_INDICATION:
+          case eWNI_SME_NDP_RESPONDER_RSP:
                sme_ndp_msg_processor(pMac, pMsg);
                break;
           default:

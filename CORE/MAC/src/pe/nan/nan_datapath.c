@@ -33,15 +33,15 @@
 #include "wma_nan_datapath.h"
 
 /**
- * lim_send_ndp_event_to_sme() - generic function to pepare and send NDP message
- * to SME directly.
- * @mac_ctx: handle to mac structure
+ * lim_send_ndp_event_to_sme() - generic function to prepare and send NDP
+ * message to SME.
+ * @mac_ctx: handle to mac context structure
  * @msg_type: sme message type to send
  * @body_ptr: buffer
  * @len: buffer length
  * @body_val: value
  *
- * Return: Nothing
+ * Return: None
  */
 static void lim_send_ndp_event_to_sme(tpAniSirGlobal mac_ctx, uint32_t msg_type,
 				void *body_ptr, uint32_t len, uint32_t body_val)
@@ -63,6 +63,61 @@ static void lim_send_ndp_event_to_sme(tpAniSirGlobal mac_ctx, uint32_t msg_type,
 }
 
 /**
+ * lim_add_ndi_peer() - Function to add ndi peer
+ * @mac_ctx: handle to mac structure
+ * @vdev_id: vdev id on which peer is added
+ * @peer_mac_addr: peer to be added
+ *
+ * Return: VOS_STATUS_SUCCESS on success; error number otherwise
+ */
+static VOS_STATUS lim_add_ndi_peer(tpAniSirGlobal mac_ctx,
+	uint32_t vdev_id, v_MACADDR_t peer_mac_addr)
+{
+	tpPESession session;
+	tpDphHashNode sta_ds;
+	uint16_t assoc_id, peer_idx;
+	tSirRetStatus status;
+
+	session = pe_find_session_by_sme_session_id(mac_ctx,
+						vdev_id);
+	if (session == NULL) {
+		/* couldn't find session */
+		return VOS_STATUS_E_FAILURE;
+	}
+	sta_ds = dphLookupHashEntry(mac_ctx,
+				peer_mac_addr.bytes,
+				&assoc_id, &session->dph.dphHashTable);
+	/* peer exists, don't do anything */
+	if (sta_ds != NULL) {
+		limLog(mac_ctx, LOGE, FL("NDI Peer already exists!!"));
+		return VOS_STATUS_SUCCESS;
+	}
+	limLog(mac_ctx, LOG1,
+		FL("Need to create NDI Peer :" MAC_ADDRESS_STR),
+		MAC_ADDR_ARRAY(peer_mac_addr.bytes));
+	peer_idx = limAssignPeerIdx(mac_ctx, session);
+	sta_ds = dphAddHashEntry(mac_ctx, peer_mac_addr.bytes, peer_idx,
+			&session->dph.dphHashTable);
+	if (sta_ds == NULL) {
+		limLog(mac_ctx, LOGE,
+			FL("Couldn't add dph entry"));
+		/* couldn't add dph entry */
+		return VOS_STATUS_E_FAILURE;
+	}
+	/* wma decides NDI mode from wma->inferface struct */
+	sta_ds->staType = STA_ENTRY_NDI_PEER;
+	status = limAddSta(mac_ctx, sta_ds, false, session);
+	if (eSIR_SUCCESS != status) {
+		/* couldn't add peer */
+		limLog(mac_ctx, LOGE,
+			FL("limAddSta failed status: %d"),
+			status);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
  * lim_handle_ndp_indication_event() - Function to handle SIR_HAL_NDP_INDICATION
  * event from WMA
  * @mac_ctx: handle to mac structure
@@ -73,10 +128,7 @@ static void lim_send_ndp_event_to_sme(tpAniSirGlobal mac_ctx, uint32_t msg_type,
 static VOS_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 					struct ndp_indication_event *ndp_ind)
 {
-	tpPESession session;
-	tpDphHashNode sta_ds;
-	uint16_t assoc_id, peer_idx;
-	tSirRetStatus status;
+	VOS_STATUS status;
 
 	limLog(mac_ctx, LOG1,
 		FL("role: %d, vdev: %d, peer_mac_addr "MAC_ADDRESS_STR),
@@ -84,47 +136,30 @@ static VOS_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 		MAC_ADDR_ARRAY(ndp_ind->peer_mac_addr.bytes));
 
 	if (ndp_ind->role == NDP_ROLE_INITIATOR) {
+		/* Free config only for INITIATOR role */
+		vos_mem_free(ndp_ind->ndp_config.ndp_cfg);
+		vos_mem_free(ndp_ind->ndp_info.ndp_app_info);
 
-		session = pe_find_session_by_sme_session_id(mac_ctx,
-							    ndp_ind->vdev_id);
-		if (session == NULL) {
+		status = lim_add_ndi_peer(mac_ctx, ndp_ind->vdev_id,
+				ndp_ind->peer_mac_addr);
+		if (VOS_STATUS_SUCCESS != status) {
 			limLog(mac_ctx, LOGE,
-				FL("Couldn't find session, vdev_id: %d, ndp_role: %d"),
-				ndp_ind->vdev_id, ndp_ind->role);
+				FL("Couldn't add ndi peer, ndp_role: %d"),
+				ndp_ind->role);
 			goto ndp_indication_failed;
 		}
-		sta_ds = dphLookupHashEntry(mac_ctx,
-					ndp_ind->peer_mac_addr.bytes,
-					&assoc_id, &session->dph.dphHashTable);
-		/* peer exists, don't do anything */
-		if (sta_ds != NULL) {
-			limLog(mac_ctx, LOGE, FL("NDI Peer already exists!!"));
-			return VOS_STATUS_SUCCESS;
+	} else if (NDP_ROLE_RESPONDER == ndp_ind->role) {
+		/*
+		 * For RESPONDER role ndp_cfg and app_info sent till HDD
+		 * will be freed in sme.
+		 */
+		if (NDP_ACCEPT_POLICY_ALL != ndp_ind->policy) {
+			lim_send_ndp_event_to_sme(mac_ctx,
+				eWNI_SME_NDP_INDICATION,
+				ndp_ind, sizeof(*ndp_ind), 0);
 		}
-
-		/* else create one */
-		limLog(mac_ctx, LOG1, FL("Need to create NDI Peer!!"));
-		peer_idx = limAssignPeerIdx(mac_ctx, session);
-		sta_ds = dphAddHashEntry(mac_ctx, ndp_ind->peer_mac_addr.bytes,
-					 peer_idx, &session->dph.dphHashTable);
-		if (sta_ds == NULL) {
-			limLog(mac_ctx, LOGE,
-			       FL("Couldn't add dph entry, ndp_role: %d"),
-			       ndp_ind->role);
-			goto ndp_indication_failed;
-		}
-		/* wma decides NDI mode from wma->inferface struct */
-		sta_ds->staType = STA_ENTRY_NDI_PEER;
-		status = limAddSta(mac_ctx, sta_ds, false, session);
-		if (eSIR_SUCCESS != status) {
-			limLog(mac_ctx, LOGE,
-			       FL("limAddSta failed status: %d, ndp_role: %d"),
-				status, ndp_ind->role);
-			goto ndp_indication_failed;
-		}
-	} else {
-		/* Processing for NDP Data Reponder role */
 	}
+
 	/*
 	 * With NDP indication if peer does not exists already add_sta is
 	 * executed resulting in new peer else no action is taken. Note that
@@ -139,7 +174,47 @@ ndp_indication_failed:
 }
 
 /**
- * lim_handle_ndp_event_message() - Handler for NDP events from WMA
+ * lim_ndp_responder_rsp_handler() - Handler for NDP responder rsp
+ * @mac_ctx: handle to mac structure
+ * @ndp_rsp: pointer to rsp message
+ * @bodyval: value
+ *
+ * Return: VOS_STATUS_SUCCESS on success; error number otherwise
+ */
+static VOS_STATUS lim_ndp_responder_rsp_handler(tpAniSirGlobal mac_ctx,
+	struct ndp_responder_rsp_event *rsp_ind, uint32_t bodyval)
+{
+	VOS_STATUS ret_val = VOS_STATUS_SUCCESS;
+
+	if ((NULL == rsp_ind) || bodyval) {
+		limLog(mac_ctx, LOGE,
+			FL("rsp_ind is NULL or bodyval %d"), bodyval);
+		/* msg to unblock SME, but not send rsp to HDD */
+		bodyval = true;
+		ret_val = VOS_STATUS_E_INVAL;
+		goto responder_rsp;
+	}
+
+	if (VOS_STATUS_SUCCESS == rsp_ind->status) {
+		ret_val = lim_add_ndi_peer(mac_ctx, rsp_ind->vdev_id,
+				rsp_ind->peer_mac_addr);
+		if (VOS_STATUS_SUCCESS != ret_val) {
+			limLog(mac_ctx, LOGE,
+				FL("Couldn't add ndi peer"));
+			rsp_ind->status = VOS_STATUS_E_FAILURE;
+		}
+	}
+
+responder_rsp:
+	/* send eWNI_SME_NDP_RESPONDER_RSP */
+	lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_RESPONDER_RSP,
+				bodyval ? NULL : rsp_ind,
+				bodyval ? 0 : sizeof(*rsp_ind), bodyval);
+	return ret_val;
+}
+
+/**
+ * lim_handle_ndp_event_message() - Handler for NDP events/RSP from WMA
  * @mac_ctx: handle to mac structure
  * @msg: pointer to message
  *
@@ -163,10 +238,12 @@ VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 	case SIR_HAL_NDP_INDICATION: {
 		struct ndp_indication_event *ndp_ind = msg->bodyptr;
 		status = lim_handle_ndp_indication_event(mac_ctx, ndp_ind);
-		vos_mem_free(ndp_ind->ndp_config.ndp_cfg);
-		vos_mem_free(ndp_ind->ndp_info.ndp_app_info);
 		break;
 	}
+	case SIR_HAL_NDP_RESPONDER_RSP:
+		status = lim_ndp_responder_rsp_handler(mac_ctx, msg->bodyptr,
+					msg->bodyval);
+		break;
 	default:
 		limLog(mac_ctx, LOGE, FL("Unhandled NDP event: %d"), msg->type);
 		status = VOS_STATUS_E_NOSUPPORT;
@@ -227,12 +304,61 @@ send_initiator_rsp:
 }
 
 /**
-* lim_handle_ndp_request_message() - Handler for NDP req from SME
-* @mac_ctx: handle to mac structure
-* @msg: pointer to message
-*
-* Return: VOS_STATUS_SUCCESS on success; error number otherwise
-*/
+ * lim_process_sme_ndp_responder_req() - Handler for NDP responder req
+ * @mac_ctx: handle to mac structure
+ * @ndp_msg: pointer to message
+ *
+ * Return: VOS_STATUS_SUCCESS on success or failure code in case of failure
+ */
+static VOS_STATUS lim_process_sme_ndp_responder_req(tpAniSirGlobal mac_ctx,
+	struct sir_sme_ndp_responder_req *lim_msg)
+{
+	tSirMsgQ msg;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	struct ndp_responder_req *responder_req;
+
+	if (NULL == lim_msg) {
+		limLog(mac_ctx, LOGE, FL("ndp_msg is NULL"));
+		status = VOS_STATUS_E_INVAL;
+		goto send_failure_rsp;
+	}
+	responder_req = vos_mem_malloc(sizeof(*responder_req));
+	if (NULL == responder_req) {
+		limLog(mac_ctx, LOGE,
+			FL("Unable to allocate memory for responder_req"));
+		status = VOS_STATUS_E_NOMEM;
+		goto send_failure_rsp;
+	}
+	vos_mem_copy(responder_req, &lim_msg->req, sizeof(*responder_req));
+	msg.type = SIR_HAL_NDP_RESPONDER_REQ;
+	msg.reserved = 0;
+	msg.bodyptr = responder_req;
+	msg.bodyval = 0;
+
+	limLog(mac_ctx, LOG1, FL("sending SIR_HAL_NDP_RESPONDER_REQ to WMA"));
+	MTRACE(macTraceMsgTx(mac_ctx, NO_SESSION, msg.type));
+
+	if (eSIR_SUCCESS != wdaPostCtrlMsg(mac_ctx, &msg)) {
+		limLog(mac_ctx, LOGE, FL("wdaPostCtrlMsg failed"));
+		status = VOS_STATUS_E_FAILURE;
+		vos_mem_free(responder_req);
+		goto send_failure_rsp;
+	}
+	return status;
+send_failure_rsp:
+	/* msg to unblock SME, but not send rsp to HDD */
+	lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_RESPONDER_RSP,
+				NULL, 0, true);
+	return status;
+}
+
+/**
+ * lim_handle_ndp_request_message() - Handler for NDP req from SME
+ * @mac_ctx: handle to mac structure
+ * @msg: pointer to message
+ *
+ * Return: VOS_STATUS_SUCCESS on success; error number otherwise
+ */
 VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
 					  tpSirMsgQ msg)
 {
@@ -242,6 +368,10 @@ VOS_STATUS lim_handle_ndp_request_message(tpAniSirGlobal mac_ctx,
 	case eWNI_SME_NDP_INITIATOR_REQ:
 		status = lim_process_sme_ndp_initiator_req(mac_ctx,
 							   msg->bodyptr);
+		break;
+	case eWNI_SME_NDP_RESPONDER_REQ:
+		status = lim_process_sme_ndp_responder_req(mac_ctx,
+							 msg->bodyptr);
 		break;
 	default:
 		limLog(mac_ctx, LOGE, FL("Unhandled NDP request: %d"),

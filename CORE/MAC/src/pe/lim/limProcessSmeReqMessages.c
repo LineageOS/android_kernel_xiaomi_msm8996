@@ -6187,6 +6187,7 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             lim_register_mgmt_frame_ind_cb(pMac, pMsgBuf);
             break;
         case eWNI_SME_NDP_INITIATOR_REQ:
+        case eWNI_SME_NDP_RESPONDER_REQ:
             lim_handle_ndp_request_message(pMac, pMsg);
             break;
         default:
