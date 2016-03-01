@@ -108,12 +108,6 @@ static inline void vos_get_boottime_ts(struct timespec *ts)
 	ktime_get_ts(ts);
 }
 
-static inline int vos_get_ramdump_mem(unsigned long *address,
-				unsigned long *size)
-{
-	return 0;
-}
-
 static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
 {
 	return NULL;
@@ -435,12 +429,6 @@ static inline int vos_wlan_pm_control(bool vote)
 	return 0;
 }
 #endif
-
-static inline int vos_get_ramdump_mem(unsigned long *address,
-				unsigned long *size)
-{
-	return cnss_get_ramdump_mem(address, size);
-}
 
 static inline int vos_get_platform_cap(void *cap)
 {
