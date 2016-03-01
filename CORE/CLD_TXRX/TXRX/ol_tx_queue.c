@@ -1037,9 +1037,11 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
         /* use peer_ref_mutex before accessing peer_list */
         adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
         adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
-        vdev->hl_paused_reason |= reason;
-        TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
-            ol_txrx_peer_pause_base(pdev, peer);
+        if((vdev->hl_paused_reason & reason) == 0) {
+            vdev->hl_paused_reason |= reason;
+            TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+                ol_txrx_peer_pause_base(pdev, peer);
+            }
         }
         adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
         adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
