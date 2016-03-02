@@ -1192,7 +1192,8 @@ void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data)
 					pktlog_hdr->size),
 					data, pktlog_hdr->size);
 
-	if (pkt_stats_dump->type == STOP_MONITOR) {
+	if (pkt_stats_dump &&
+		pkt_stats_dump->type == STOP_MONITOR) {
 		wake_up_thread = true;
 		wlan_get_pkt_stats_free_node();
 	}
