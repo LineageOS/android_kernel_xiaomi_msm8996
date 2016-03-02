@@ -1033,13 +1033,7 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     {
         if(!(pMac->lim.deferredMsgCnt & 0xF))
         {
-            limLog(pMac, LOGE,
-               FL("Deferred Message Queue is full. Msg:%d Messages Failed:%d"),
-               limMsg->type, ++pMac->lim.deferredMsgCnt);
-            vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
-                           WLAN_LOG_INDICATOR_HOST_DRIVER,
-                           WLAN_LOG_REASON_QUEUE_FULL,
-                           true);
+            PELOGE(limLog(pMac, LOGE, FL("Deferred Message Queue is full. Msg:%d Messages Failed:%d"), limMsg->type, ++pMac->lim.deferredMsgCnt);)
         }
         else
         {

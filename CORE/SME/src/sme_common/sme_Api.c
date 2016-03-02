@@ -500,15 +500,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         csrLLUnlock(&pMac->roam.roamCmdPendingList);
 
         /* panic with out-of-command */
-        if (pMac->roam.configParam.enable_fatal_event) {
-            vos_flush_logs(WLAN_LOG_TYPE_FATAL,
-                           WLAN_LOG_INDICATOR_HOST_DRIVER,
-                           WLAN_LOG_REASON_SME_OUT_OF_CMD_BUF,
-                           false);
-        } else {
-            /* Trigger SSR */
-            vos_wlanRestart();
-        }
+        VOS_BUG(0);
     }
 
     /* memset to zero */
@@ -13901,42 +13893,18 @@ void sme_SaveActiveCmdStats(tHalHandle hHal) {
 
 void activeListCmdTimeoutHandle(void *userData)
 {
-    tHalHandle hal = (tHalHandle) userData;
-    tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
-
-    if (NULL == mac_ctx) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-            "%s: pMac is null", __func__);
+    if (NULL == userData)
         return;
-    }
-    /* Return if no cmd pending in active list as
-     * in this case we should not be here.
-     */
-    if (0 == csrLLCount(&mac_ctx->sme.smeCmdActiveList))
-        return;
-
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
         "%s: Active List command timeout Cmd List Count %d", __func__,
-        csrLLCount(&mac_ctx->sme.smeCmdActiveList) );
-    smeGetCommandQStatus(hal);
+        csrLLCount(&((tpAniSirGlobal) userData)->sme.smeCmdActiveList) );
+    smeGetCommandQStatus((tHalHandle) userData);
 
-    if (mac_ctx->roam.configParam.enable_fatal_event) {
-        vos_flush_logs(WLAN_LOG_TYPE_FATAL,
-                       WLAN_LOG_INDICATOR_HOST_DRIVER,
-                       WLAN_LOG_REASON_SME_COMMAND_STUCK,
-                       false);
-    } else {
-        vosTraceDumpAll(mac_ctx, 0, 0, 500, 0);
-    }
-
-    if (mac_ctx->sme.enableSelfRecovery) {
-        sme_SaveActiveCmdStats(hal);
+    if (((tpAniSirGlobal)userData)->sme.enableSelfRecovery) {
+        sme_SaveActiveCmdStats((tHalHandle)userData);
         vos_trigger_recovery();
     } else {
-        if (!mac_ctx->roam.configParam.enable_fatal_event &&
-            !(vos_is_load_unload_in_progress(VOS_MODULE_ID_SME, NULL) ||
-            vos_is_logp_in_progress(VOS_MODULE_ID_SME, NULL)))
-            vos_wlanRestart();
+        VOS_BUG(0);
     }
 }
 

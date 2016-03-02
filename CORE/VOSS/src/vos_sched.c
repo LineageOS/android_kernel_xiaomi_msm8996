@@ -77,6 +77,7 @@
 
 /* Timer value for detecting thread stuck issues */
 #define THREAD_STUCK_TIMER_VAL 5000 /* 5 seconds */
+#define THREAD_STUCK_COUNT 3
 
 static atomic_t ssr_protect_entry_count;
 
@@ -987,19 +988,16 @@ static void vos_wd_detect_thread_stuck(void)
 
 	spin_lock_irqsave(&gpVosWatchdogContext->thread_stuck_lock, flags);
 
-	if (gpVosWatchdogContext->mc_thread_stuck_count) {
+	if ((gpVosWatchdogContext->mc_thread_stuck_count
+				== THREAD_STUCK_COUNT)) {
 		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
 				flags);
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-				"%s: Thread Stuck!!! MC Count %d", __func__,
+		hddLog(LOGE, FL("%s: Thread Stuck!!! MC Count %d "),
+				__func__,
 				gpVosWatchdogContext->mc_thread_stuck_count);
 
-		vos_flush_logs(WLAN_LOG_TYPE_FATAL,
-			       WLAN_LOG_INDICATOR_HOST_ONLY,
-			       WLAN_LOG_REASON_THREAD_STUCK,
-			       true);
-		spin_lock_irqsave(&gpVosWatchdogContext->thread_stuck_lock,
-			flags);
+		vos_wlanRestart();
+		return;
 	}
 
 	/* Increment the thread stuck count for all threads */
@@ -1091,17 +1089,14 @@ VosWDThread
   /* Initialize the timer to detect thread stuck issues */
   if (vos_timer_init(&gpVosWatchdogContext->thread_stuck_timer,
         VOS_TIMER_TYPE_SW, vos_wd_detect_thread_stuck_cb, NULL)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "Unable to initialize thread stuck timer");
+      hddLog(LOGE, FL("Unable to initialize thread stuck timer"));
   } else {
       if (VOS_STATUS_SUCCESS !=
               vos_timer_start(&gpVosWatchdogContext->thread_stuck_timer,
                            THREAD_STUCK_TIMER_VAL))
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                        "Unable to start thread stuck timer");
+          hddLog(LOGE, FL("Unable to start thread stuck timer"));
       else
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                        "Successfully started thread stuck timer");
+          hddLog(LOGE, FL("Successfully started thread stuck timer"));
   }
 
   /*

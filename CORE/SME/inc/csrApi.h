@@ -1298,7 +1298,6 @@ typedef struct tagCsrConfigParam
     tANI_BOOLEAN sendDeauthBeforeCon;
     v_U16_t    pkt_err_disconn_th;
     int8_t    first_scan_bucket_threshold;
-    bool    enable_fatal_event;
 }tCsrConfigParam;
 
 //Tush
