@@ -1828,18 +1828,9 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         {
             pMac->roam.configParam.nPassiveMinChnTimeConc = pParam->nPassiveMinChnTimeConc;
         }
-        if (pParam->nRestTimeConc)
-        {
-            pMac->roam.configParam.nRestTimeConc = pParam->nRestTimeConc;
-        }
-        if (pParam->min_rest_time_conc)
-        {
-            pMac->roam.configParam.min_rest_time_conc = pParam->min_rest_time_conc;
-        }
-        if (pParam->idle_time_conc)
-        {
-            pMac->roam.configParam.idle_time_conc = pParam->idle_time_conc;
-        }
+        pMac->roam.configParam.nRestTimeConc = pParam->nRestTimeConc;
+        pMac->roam.configParam.min_rest_time_conc = pParam->min_rest_time_conc;
+        pMac->roam.configParam.idle_time_conc = pParam->idle_time_conc;
         if (pParam->nNumStaChanCombinedConc)
         {
             pMac->roam.configParam.nNumStaChanCombinedConc = pParam->nNumStaChanCombinedConc;
