@@ -2113,6 +2113,12 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         limMissedBeaconInActiveMode(pMac, psessionEntry);
     }
 #endif
+    if (pMac->pmm.inMissedBeaconScenario == TRUE) {
+        limLog(pMac, LOGW,
+               FL("beacon miss handling is already going on for BSSIdx:%d"),
+               pSirMissedBeaconInd->bssIdx);
+        return;
+    }
     else
     {
         limLog(pMac, LOGE,
