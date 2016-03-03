@@ -213,9 +213,15 @@ static irqreturn_t mdss_irq_handler(int irq, void *ptr)
 static int mdss_mdp_bus_scale_register(struct mdss_data_type *mdata)
 {
 	struct msm_bus_scale_pdata *reg_bus_pdata;
-	int i;
+	int i, rc;
 
 	if (!mdata->bus_hdl) {
+		rc = mdss_mdp_parse_dt_bus_scale(mdata->pdev);
+		if (rc) {
+			pr_err("Error in device tree : bus scale\n");
+			return rc;
+		}
+
 		mdata->bus_hdl =
 			msm_bus_scale_register_client(mdata->bus_scale_table);
 		if (!mdata->bus_hdl) {
@@ -1402,8 +1408,6 @@ static void mdss_mdp_hw_rev_caps_init(struct mdss_data_type *mdata)
 	if (mdata->mdp_rev < MDSS_MDP_HW_REV_102 ||
 			mdata->mdp_rev == MDSS_MDP_HW_REV_200)
 		mdss_set_quirk(mdata, MDSS_QUIRK_FMT_PACK_PATTERN);
-
-	mdss_mdp_set_supported_formats(mdata);
 }
 
 static void mdss_hw_rev_init(struct mdss_data_type *mdata)
@@ -1517,6 +1521,7 @@ void mdss_mdp_footswitch_ctrl_splash(int on)
 	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	if (mdata != NULL) {
 		if (on) {
+			mdata->handoff_pending = true;
 			pr_debug("Enable MDP FS for splash.\n");
 			if (mdata->venus) {
 				ret = regulator_enable(mdata->venus);
@@ -1934,7 +1939,7 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 	struct resource *res;
 	int rc;
 	struct mdss_data_type *mdata;
-	bool display_on;
+	bool display_on = false;
 
 	if (!pdev->dev.of_node) {
 		pr_err("MDP driver only supports device tree probe\n");
@@ -2015,6 +2020,34 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 	mdss_mdp_hw.irq_info->irq = res->start;
 	mdss_mdp_hw.ptr = mdata;
 
+	rc = mdss_mdp_res_init(mdata);
+	if (rc) {
+		pr_err("unable to initialize mdss mdp resources\n");
+		goto probe_done;
+	}
+
+	pm_runtime_set_autosuspend_delay(&pdev->dev, AUTOSUSPEND_TIMEOUT_MS);
+	if (mdata->idle_pc_enabled)
+		pm_runtime_use_autosuspend(&pdev->dev);
+	pm_runtime_set_suspended(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	if (!pm_runtime_enabled(&pdev->dev))
+		mdss_mdp_footswitch_ctrl(mdata, true);
+
+	rc = mdss_mdp_bus_scale_register(mdata);
+	if (rc) {
+		pr_err("unable to register bus scaling\n");
+		goto probe_done;
+	}
+
+	/*
+	 * enable clocks and read mdp_rev as soon as possible once
+	 * kernel is up.
+	 */
+	mdss_mdp_footswitch_ctrl_splash(true);
+	mdss_hw_rev_init(mdata);
+	display_on = true;
+
 	/*populate hw iomem base info from device tree*/
 	rc = mdss_mdp_parse_dt(pdev);
 	if (rc) {
@@ -2028,35 +2061,11 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 		goto probe_done;
 	}
 
-	rc = mdss_mdp_res_init(mdata);
-	if (rc) {
-		pr_err("unable to initialize mdss mdp resources\n");
-		goto probe_done;
-	}
-	rc = mdss_mdp_pp_init(&pdev->dev);
-	if (rc) {
-		pr_err("unable to initialize mdss pp resources\n");
-		goto probe_done;
-	}
-	rc = mdss_mdp_bus_scale_register(mdata);
-	if (rc) {
-		pr_err("unable to register bus scaling\n");
-		goto probe_done;
-	}
-
 	rc = mdss_mdp_debug_init(pdev, mdata);
 	if (rc) {
 		pr_err("unable to initialize mdp debugging\n");
 		goto probe_done;
 	}
-
-	pm_runtime_set_autosuspend_delay(&pdev->dev, AUTOSUSPEND_TIMEOUT_MS);
-	if (mdata->idle_pc_enabled)
-		pm_runtime_use_autosuspend(&pdev->dev);
-	pm_runtime_set_suspended(&pdev->dev);
-	pm_runtime_enable(&pdev->dev);
-	if (!pm_runtime_enabled(&pdev->dev))
-		mdss_mdp_footswitch_ctrl(mdata, true);
 
 	rc = mdss_mdp_register_sysfs(mdata);
 	if (rc)
@@ -2076,14 +2085,6 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 
 	mdss_res->mdss_util->mdp_probe_done = true;
 
-	/*
-	 * enable clocks and read mdp_rev as soon as possible once
-	 * kernel is up. Read the DISP_INTF_SEL register to check if
-	 * display was enabled in bootloader or not. If yes, let handoff
-	 * handle removing the extra clk/regulator votes else turn off
-	 * clk/regulators because purpose here is to get mdp_rev.
-	 */
-	mdss_mdp_footswitch_ctrl_splash(true);
 	mdss_hw_init(mdata);
 
 	/* Restoring Secure configuration during boot-up */
@@ -2099,18 +2100,25 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 			MMSS_MDP_ROBUST_LUT);
 	}
 
+	/*
+	 * Read the DISP_INTF_SEL register to check if display was enabled in
+	 * bootloader or not. If yes, let handoff handle removing the extra
+	 * clk/regulator votes else turn off clk/regulators because purpose
+	 * here is to get mdp_rev.
+	 */
 	display_on = (bool)readl_relaxed(mdata->mdp_base +
 		MDSS_MDP_REG_DISP_INTF_SEL);
 	if (!display_on)
 		mdss_mdp_footswitch_ctrl_splash(false);
-	else
-		mdata->handoff_pending = true;
 
 	pr_info("mdss version = 0x%x, bootloader display is %s\n",
 		mdata->mdp_rev, display_on ? "on" : "off");
 
 probe_done:
 	if (IS_ERR_VALUE(rc)) {
+		if (display_on)
+			mdss_mdp_footswitch_ctrl_splash(false);
+
 		if (mdata->regulator_notif_register)
 			regulator_unregister_notifier(mdata->fs,
 						&(mdata->gdsc_cb));
@@ -2257,12 +2265,6 @@ static int mdss_mdp_parse_dt(struct platform_device *pdev)
 	rc = mdss_mdp_parse_dt_ad_cfg(pdev);
 	if (rc) {
 		pr_err("Error in device tree : ad\n");
-		return rc;
-	}
-
-	rc = mdss_mdp_parse_dt_bus_scale(pdev);
-	if (rc) {
-		pr_err("Error in device tree : bus scale\n");
 		return rc;
 	}
 
@@ -2708,6 +2710,9 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 		pr_info("dedicated vp cursors detected, num=%d\n",
 			mdata->ncursor_pipes);
 	}
+
+	mdss_mdp_set_supported_formats(mdata);
+
 	goto parse_done;
 
 parse_fail:
