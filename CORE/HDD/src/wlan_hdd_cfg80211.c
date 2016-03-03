@@ -15534,7 +15534,12 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
     bss = cfg80211_get_bss(wiphy, chan, pBssDesc->bssId,
                            &pRoamInfo->pProfile->SSIDs.SSIDList->SSID.ssId[0],
                            pRoamInfo->pProfile->SSIDs.SSIDList->SSID.length,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && !defined(WITH_BACKPORTS) \
+     && !defined(IEEE80211_PRIVACY)
                            WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+#else
+                           IEEE80211_BSS_TYPE_ESS, IEEE80211_PRIVACY_ANY);
+#endif
     if (bss == NULL) {
         hddLog(LOGE, FL("BSS not present"));
     } else {
