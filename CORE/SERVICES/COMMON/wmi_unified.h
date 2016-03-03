@@ -3540,6 +3540,7 @@ typedef enum {
     PAUSE_TYPE_STA_ADD_BA =     0x6, /** only peer_id and tid_map are valid, actually only one tid is set at one time */
     PAUSE_TYPE_AP_PS =          0x7, /** for pausing AP vdev when all the connected clients are in PS. only vdev_map is valid */
     PAUSE_TYPE_IBSS_PS =        0x8, /** for pausing IBSS vdev when all the peers are in PS. only vdev_map is valid */
+    PAUSE_TYPE_CHOP_TDLS_OFFCHAN =  0x9, /** for TDLS offchannel MCC (switch channel), only vdev_map is valid, TDLS connection tracker needs to be notified */
     PAUSE_TYPE_HOST =           0x15,/** host is requesting vdev pause */
 } wmi_tx_pause_type;
 
@@ -9005,6 +9006,8 @@ enum wmi_tdls_state {
     WMI_TDLS_ENABLE_ACTIVE,
     /** TDLS enabled - firmware waits for peer mac for connection tracking */
     WMI_TDLS_ENABLE_ACTIVE_EXTERNAL_CONTROL,
+    /** TDLS enabled - TDLS connection tracking is done in host */
+    WMI_TDLS_ENABLE_CONNECTION_TRACKER_IN_HOST,
 };
 
 /* TDLS Options */
@@ -9252,6 +9255,8 @@ enum wmi_tdls_peer_notification {
     WMI_TDLS_SHOULD_TEARDOWN,
     /** tx peer TDLS link tear down complete */
     WMI_TDLS_PEER_DISCONNECTED,
+    /** TDLS/BT role change notification for connection tracker */
+    WMI_TDLS_CONNECTION_TRACKER_NOTIFICATION,
 };
 
 enum wmi_tdls_peer_reason {
@@ -9269,6 +9274,14 @@ enum wmi_tdls_peer_reason {
     WMI_TDLS_TEARDOWN_REASON_BAD_PTR,
     /** tdls peer not responding */
     WMI_TDLS_TEARDOWN_REASON_NO_RESPONSE,
+    /** tdls entered buffer STA role, TDLS connection tracker needs to handle this */
+    WMI_TDLS_ENTER_BUF_STA,
+    /** tdls exited buffer STA role, TDLS connection tracker needs to handle this */
+    WMI_TDLS_EXIT_BUF_STA,
+    /** BT entered busy mode, TDLS connection tracker needs to handle this */
+    WMI_TDLS_ENTER_BT_BUSY_MODE,
+    /** BT exited busy mode, TDLS connection tracker needs to handle this */
+    WMI_TDLS_EXIT_BT_BUSY_MODE,
 };
 
 /* WMI_TDLS_PEER_EVENTID */
