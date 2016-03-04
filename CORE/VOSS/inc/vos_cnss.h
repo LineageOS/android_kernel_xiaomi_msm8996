@@ -44,6 +44,12 @@ enum cnss_bus_width_type {
 	CNSS_BUS_WIDTH_HIGH
 };
 
+static inline u8 *vos_get_cnss_wlan_mac_buff(struct device *dev, uint32_t *num)
+{
+	*num = 0;
+	return NULL;
+}
+
 static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
 	INIT_WORK(work, func);
@@ -215,11 +221,17 @@ static inline int vos_unregister_oob_irq_handler(void *pm_oob)
 static inline void vos_dump_stack (struct task_struct *task)
 {
 }
-#else
+#else /* END WLAN_OPEN_SOURCE and !CONFIG_CNSS */
 static inline void vos_dump_stack (struct task_struct *task)
 {
 	cnss_dump_stack(task);
 }
+
+static inline u8 *vos_get_cnss_wlan_mac_buff(struct device *dev, uint32_t *num)
+{
+	return cnss_get_wlan_mac_address(dev, num);
+}
+
 static inline void vos_init_work(struct work_struct *work, work_func_t func)
 {
 	cnss_init_work(work, func);
@@ -551,7 +563,7 @@ static inline int vos_unregister_oob_irq_handler(void *pm_oob)
 {
 	return -ENOSYS;
 }
-#endif
-#endif
+#endif /*END CONFIG_CNSS_SDIO */
+#endif /* CONFIG_CNSS */
 
 #endif/* _VOS_CNSS_H */
