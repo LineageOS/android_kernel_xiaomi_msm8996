@@ -12806,14 +12806,14 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t sta_type,
 static int32_t wmi_unified_send_txbf(tp_wma_handle wma,
 					   tpAddStaParams params)
 {
-    wmi_vdev_txbf_en txbf_en;
+	wmi_vdev_txbf_en txbf_en = {0};
 
-    /* This is set when Other partner is Bformer
-	and we are capable bformee(enabled both in ini and fw) */
+	/*
+	 * This is set when Other partner is Bformer
+	 * and we are capable bformee(enabled both in ini and fw)
+	 */
 	txbf_en.sutxbfee = params->vhtTxBFCapable;
 	txbf_en.mutxbfee = params->vhtTxMUBformeeCapable;
-	txbf_en.sutxbfer = 0;
-	txbf_en.mutxbfer = 0;
 
 	/* When MU TxBfee is set, SU TxBfee must be set by default */
 	if (txbf_en.mutxbfee)
