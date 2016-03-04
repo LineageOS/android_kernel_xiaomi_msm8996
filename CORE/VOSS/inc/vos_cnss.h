@@ -114,12 +114,13 @@ static inline void vos_get_boottime_ts(struct timespec *ts)
 	ktime_get_ts(ts);
 }
 
-static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
+static inline void *vos_get_virt_ramdump_mem(struct device *dev,
+						unsigned long *size)
 {
 	return NULL;
 }
 
-static inline void vos_device_crashed(void) { return; }
+static inline void vos_device_crashed(struct device *dev) { return; }
 
 #ifdef QCA_CONFIG_SMP
 static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
@@ -133,13 +134,16 @@ static inline int vos_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu)
 }
 #endif
 
-static inline void vos_device_self_recovery(void) { return; }
+static inline void vos_device_self_recovery(struct device *dev) { return; }
 static inline void vos_request_pm_qos_type(int latency_type, u32 qos_val)
 {
 	return;
 }
 static inline void vos_remove_pm_qos(void) { return; }
-static inline int vos_request_bus_bandwidth(int bandwidth) { return 0; }
+static inline int vos_request_bus_bandwidth(struct device *dev, int bandwidth)
+{
+	return 0;
+}
 static inline int vos_get_platform_cap(void *cap) { return 1; }
 static inline void vos_set_driver_status(int status) { return; }
 static inline int vos_get_bmi_setup(void) { return 0; }
@@ -183,7 +187,7 @@ static inline void vos_get_monotonic_boottime_ts(struct timespec *ts)
 	get_monotonic_boottime(ts);
 }
 
-static inline void vos_schedule_recovery_work(void) { return; }
+static inline void vos_schedule_recovery_work(struct device *dev) { return; }
 
 static inline bool vos_is_ssr_fw_dump_required(void)
 {
@@ -299,17 +303,11 @@ static inline void vos_init_delayed_work(struct delayed_work *work,
        cnss_init_delayed_work(work, func);
 }
 
-#ifdef CONFIG_CNSS_PCI
-static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
+static inline void *vos_get_virt_ramdump_mem(struct device *dev,
+						unsigned long *size)
 {
 	return cnss_get_virt_ramdump_mem(size);
 }
-#else
-static inline void *vos_get_virt_ramdump_mem(unsigned long *size)
-{
-	return NULL;
-}
-#endif
 
 static inline int vos_wlan_get_dfs_nol(void *info, u16 info_len)
 {
@@ -349,27 +347,27 @@ static inline int vos_get_wlan_unsafe_channel(u16 *unsafe_ch_list,
 }
 
 #ifdef CONFIG_CNSS
-static inline void vos_schedule_recovery_work(void)
+static inline void vos_schedule_recovery_work(struct device *dev)
 {
 	cnss_schedule_recovery_work();
 }
 
-static inline void vos_device_crashed(void)
+static inline void vos_device_crashed(struct device *dev)
 {
 	cnss_device_crashed();
 }
 
-static inline void vos_device_self_recovery(void)
+static inline void vos_device_self_recovery(struct device *dev)
 {
 	cnss_device_self_recovery();
 }
 
 #else
-static inline void vos_schedule_recovery_work(void) {};
+static inline void vos_schedule_recovery_work(struct device *dev) {};
 
-static inline void vos_device_crashed(void) {};
+static inline void vos_device_crashed(struct device *dev) {};
 
-static inline void vos_device_self_recovery(void) {};
+static inline void vos_device_self_recovery(struct device *dev) {};
 
 #endif
 
@@ -404,7 +402,7 @@ static inline void vos_release_pm_sem(void) {}
 #endif
 
 #ifdef FEATURE_BUS_BANDWIDTH
-static inline int vos_request_bus_bandwidth(int bandwidth)
+static inline int vos_request_bus_bandwidth(struct device *dev, int bandwidth)
 {
 	return cnss_request_bus_bandwidth(bandwidth);
 }

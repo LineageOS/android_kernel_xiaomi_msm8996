@@ -13278,7 +13278,7 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
     enum cnss_bus_width_type next_vote_level = CNSS_BUS_WIDTH_NONE;
     enum wlan_tp_level next_rx_level = WLAN_SVC_TP_NONE;
     enum wlan_tp_level next_tx_level = WLAN_SVC_TP_NONE;
-
+    struct device *dev = pHddCtx->parent_dev;
 
     if (total > pHddCtx->cfg_ini->busBandwidthHighThreshold)
         next_vote_level = CNSS_BUS_WIDTH_HIGH;
@@ -13297,7 +13297,7 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                "%s: trigger level %d, tx_packets: %lld, rx_packets: %lld",
                __func__, next_vote_level, tx_packets, rx_packets);
         pHddCtx->cur_vote_level = next_vote_level;
-        vos_request_bus_bandwidth(next_vote_level);
+        vos_request_bus_bandwidth(dev, next_vote_level);
 
         if (next_vote_level <= CNSS_BUS_WIDTH_LOW) {
             if (pHddCtx->hbw_requested) {

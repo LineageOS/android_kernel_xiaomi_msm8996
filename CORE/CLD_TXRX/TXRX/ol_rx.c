@@ -77,9 +77,17 @@
 
 static void ol_rx_restore_handler(struct work_struct *htt_rx)
 {
+    adf_os_device_t adf_ctx;
+    VosContextType *pvoscontext = NULL;
+
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
         "Enter: %s", __func__);
-    vos_device_self_recovery();
+
+    pvoscontext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pvoscontext);
+    if (adf_ctx)
+       vos_device_self_recovery(adf_ctx->dev);
+
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
         "Exit: %s", __func__);
 }
