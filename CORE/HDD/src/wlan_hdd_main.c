@@ -13893,6 +13893,116 @@ static void hdd_register_debug_callback(void)
 	vos_register_debug_callback(VOS_MODULE_ID_HDD, &hdd_state_info_dump);
 }
 
+/**
+ * hdd_populate_random_mac_addr() - API to populate random mac addresses
+ * @hdd_ctx: HDD Context
+ * @num: Number of random mac addresses needed
+ *
+ * Generate random addresses using bit manipulation on the base mac address
+ *
+ * Return: None
+ */
+static void hdd_populate_random_mac_addr(hdd_context_t *hdd_ctx, uint32_t num)
+{
+	uint32_t start_idx = VOS_MAX_CONCURRENCY_PERSONA - num;
+	uint32_t iter;
+	hdd_config_t *ini = hdd_ctx->cfg_ini;
+	u8 *buf = NULL;
+	u8 macaddr_b3, tmp_br3;
+	u8 *src = ini->intfMacAddr[0].bytes;
+
+	for (iter = start_idx; iter < VOS_MAX_CONCURRENCY_PERSONA; ++iter) {
+		buf = ini->intfMacAddr[iter].bytes;
+		vos_mem_copy(buf, src, VOS_MAC_ADDR_SIZE);
+		macaddr_b3 = buf[3];
+		tmp_br3 = ((macaddr_b3 >> 4 & INTF_MACADDR_MASK) + iter) &
+			INTF_MACADDR_MASK;
+		macaddr_b3 += tmp_br3;
+		macaddr_b3 ^= (1 << INTF_MACADDR_MASK);
+		buf[0] |= 0x02;
+		buf[3] = macaddr_b3;
+		hddLog(LOG1, FL(MAC_ADDRESS_STR), MAC_ADDR_ARRAY(buf));
+	}
+}
+
+/**
+ * hdd_cnss_wlan_mac() - API to get mac addresses from cnss platform driver
+ * @hdd_ctx: HDD Context
+ *
+ * API to get mac addresses from platform driver and update the driver
+ * structures and configure FW with the base mac address.
+ *
+ * Return: int
+ */
+static int hdd_cnss_wlan_mac(hdd_context_t *hdd_ctx)
+{
+	uint32_t no_of_mac_addr, iter;
+	uint32_t max_mac_addr = VOS_MAX_CONCURRENCY_PERSONA;
+	uint32_t mac_addr_size = VOS_MAC_ADDR_SIZE;
+	u8 *addr, *buf;
+	struct device *dev = hdd_ctx->parent_dev;
+	hdd_config_t *ini = hdd_ctx->cfg_ini;
+	tSirMacAddr customMacAddr;
+	VOS_STATUS status;
+
+	addr = vos_get_cnss_wlan_mac_buff(dev, &no_of_mac_addr);
+
+	if (no_of_mac_addr == 0 || !addr) {
+		hddLog(LOG1,
+		       FL("Platform Driver Doesn't have wlan mac addresses"));
+		return -EINVAL;
+	}
+
+	if (no_of_mac_addr > max_mac_addr)
+		no_of_mac_addr = max_mac_addr;
+
+	vos_mem_copy(&customMacAddr, addr, mac_addr_size);
+
+	for (iter = 0; iter < no_of_mac_addr; ++iter, addr += mac_addr_size) {
+		buf = ini->intfMacAddr[iter].bytes;
+		vos_mem_copy(buf, addr, VOS_MAC_ADDR_SIZE);
+		hddLog(LOG1, FL(MAC_ADDRESS_STR), MAC_ADDR_ARRAY(buf));
+	}
+
+	status = sme_SetCustomMacAddr(customMacAddr);
+
+	if (status != VOS_STATUS_SUCCESS)
+		return -EAGAIN;
+
+	if (no_of_mac_addr < max_mac_addr)
+		hdd_populate_random_mac_addr(hdd_ctx, max_mac_addr -
+					     no_of_mac_addr);
+	return 0;
+}
+
+/**
+ * hdd_initialize_mac_address() - API to get wlan mac addresses
+ * @hdd_ctx: HDD Context
+ *
+ * Get MAC addresses from platform driver or wlan_mac.bin. If platform driver is
+ * provisioned with mac addresses, driver uses it, else it will use wlan_mac.bin
+ * to update HW MAC addresses.
+ *
+ * Return: None
+ */
+static void hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS status;
+	int ret;
+
+	ret = hdd_cnss_wlan_mac(hdd_ctx);
+
+	if (ret == 0)
+		return;
+
+	hddLog(LOGW, FL("Can't update mac config via platform driver ret:%d"),
+	       ret);
+
+	status = hdd_update_mac_config(hdd_ctx);
+	if (status != VOS_STATUS_SUCCESS)
+		hddLog(LOGW,
+		       FL("can't update mac config, using MAC from ini file"));
+}
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -14303,12 +14413,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
    }
 
-   if ( VOS_STATUS_SUCCESS != hdd_update_mac_config( pHddCtx ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_WARN,
-             "%s: can't update mac config, using MAC from ini file",
-             __func__);
-   }
+   hdd_initialize_mac_address(pHddCtx);
 
    {
       eHalStatus halStatus;
