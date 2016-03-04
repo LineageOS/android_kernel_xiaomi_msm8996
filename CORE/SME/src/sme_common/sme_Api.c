@@ -18177,13 +18177,14 @@ eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 			FL("Failed to alloc set_offload"));
 		return eHAL_STATUS_FAILED_ALLOC;
 	}
+	vos_mem_zero(set_offload, sizeof(*set_offload));
 
 	set_offload->session_id = req->session_id;
 	set_offload->filter_id = req->filter_id;
 	set_offload->current_offset = req->current_offset;
 	set_offload->total_length = req->total_length;
+	set_offload->current_length = req->current_length;
 	if (set_offload->total_length) {
-		set_offload->current_length = req->current_length;
 		set_offload->program = vos_mem_malloc(sizeof(uint8_t) *
 						req->current_length);
 		vos_mem_copy(set_offload->program, req->program,
