@@ -678,7 +678,7 @@ __limProcessGidManagementActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     }
     pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
 
-    {
+    if (pSta != NULL) {
         limLog(pMac, LOGE,
             FL(" received Gid Management Action Frame , staIdx = %d"),
                pSta->staIndex);
