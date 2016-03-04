@@ -22348,6 +22348,7 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
     hdd_adapter_list_node_t *pAdapterNode, *pNext;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     int result;
+    struct device *dev;
     pVosSchedContext vosSchedContext = get_vos_sched_ctxt();
 
     ENTER();
@@ -22374,7 +22375,8 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
        }
     }
 
-    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
+    dev = pHddCtx->parent_dev;
+    vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_MEDIUM);
 
     /* Resume MC thread */
     if (pHddCtx->isMcThreadSuspended) {
@@ -22472,6 +22474,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter;
     hdd_scaninfo_t *pScanInfo;
     VOS_STATUS status;
+    struct device *dev;
     int rc;
 
     ENTER();
@@ -22480,6 +22483,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     if (0 != rc)
        return rc;
 
+    dev = pHddCtx->parent_dev;
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
@@ -22634,9 +22638,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                            NO_SESSION, pHddCtx->isWiphySuspended));
     pHddCtx->isWiphySuspended = TRUE;
 
-#ifdef CONFIG_CNSS
-    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_NONE);
-#endif
+    vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_NONE);
 
     if (hif_is_80211_fw_wow_required()) {
        rc = wma_suspend_fw();
@@ -22650,7 +22652,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     return 0;
 
 fail_suspend:
-    vos_request_bus_bandwidth(CNSS_BUS_WIDTH_MEDIUM);
+    vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_MEDIUM);
     pHddCtx->isWiphySuspended = FALSE;
 #ifdef QCA_CONFIG_SMP
     complete(&vosSchedContext->ResumeTlshimRxEvent);
