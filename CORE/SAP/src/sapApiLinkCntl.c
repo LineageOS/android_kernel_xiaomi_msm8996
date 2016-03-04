@@ -140,9 +140,7 @@ WLANSAP_ScanCallback
     v_U8_t operChannel = 0;
     VOS_STATUS sapstatus;
     tpAniSirGlobal pMac = NULL;
-#ifdef SOFTAP_CHANNEL_RANGE
     v_U32_t event;
-#endif
 
     if (NULL == halHandle)
     {
