@@ -2486,6 +2486,9 @@ unsigned int __read_mostly sysctl_sched_pack_freq = UINT_MAX;
 unsigned int __read_mostly sched_small_wakee_task_load;
 unsigned int __read_mostly sysctl_sched_small_wakee_task_load_pct = 10;
 
+unsigned int __read_mostly sched_big_waker_task_load;
+unsigned int __read_mostly sysctl_sched_big_waker_task_load_pct = 25;
+
 /*
  * CPUs with load greater than the sched_spill_load_threshold are not
  * eligible for task placement. When all CPUs in a cluster achieve a
@@ -2618,6 +2621,10 @@ void set_hmp_defaults(void)
 
 	sched_small_wakee_task_load =
 		div64_u64((u64)sysctl_sched_small_wakee_task_load_pct *
+			  (u64)sched_ravg_window, 100);
+
+	sched_big_waker_task_load =
+		div64_u64((u64)sysctl_sched_big_waker_task_load_pct *
 			  (u64)sched_ravg_window, 100);
 }
 
@@ -3001,6 +3008,7 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 
 	if (!boost && !reason && !need_idle) {
 		if (sync && task_load(p) < sched_small_wakee_task_load &&
+		    task_load(current) > sched_big_waker_task_load &&
 		    cpumask_intersects(&search_cpus,
 			    &cpu_rq(smp_processor_id())->freq_domain_cpumask)) {
 			need_waker_cluster = true;
