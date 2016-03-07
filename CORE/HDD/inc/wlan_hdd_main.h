@@ -1199,9 +1199,11 @@ struct hdd_adapter_s
 #define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (&(adapter)->sessionCtx.ndp_ctx)
 #define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) \
                        (&(adapter)->sessionCtx.ndp_ctx.wext_state)
+#define WLAN_HDD_IS_NDP_ENABLED(hdd_ctx) ((hdd_ctx)->nan_datapath_enabled)
 #else
 #define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (NULL)
 #define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) (NULL)
+#define WLAN_HDD_IS_NDP_ENABLED(hdd_ctx) (false)
 #endif
 
 /* Set mac address locally administered bit */
@@ -1750,6 +1752,9 @@ struct hdd_context_s
      * at runtime and intersecting it with target capab before updating.
      */
     uint32_t fine_time_meas_cap_target;
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+    bool nan_datapath_enabled;
+#endif
 };
 
 /*---------------------------------------------------------------------------

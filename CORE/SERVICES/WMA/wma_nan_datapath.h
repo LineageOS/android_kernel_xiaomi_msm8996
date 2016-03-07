@@ -53,7 +53,8 @@ void wma_delete_all_nan_remote_peers(tp_wma_handle wma,
 #else
 
 #define wma_add_bss_ndi_mode(x, y)    ((void)0)
-#define wma_update_hdd_cfg_ndp(x, y)  ((void)0)
+static inline void wma_update_hdd_cfg_ndp(tp_wma_handle wma_handle,
+					  struct hdd_tgt_cfg *tgt_cfg) {}
 #define WMA_IS_VDEV_IN_NDI_MODE(intf, vdev_id) (false)
 #define wma_delete_all_nan_remote_peers(x, y)   ((void)0)
 
