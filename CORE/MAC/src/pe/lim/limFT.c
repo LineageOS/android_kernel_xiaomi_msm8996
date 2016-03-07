@@ -1265,6 +1265,10 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
       vos_mem_copy(&(pftSessionEntry->htConfig), &(psessionEntry->htConfig),
             sizeof(psessionEntry->htConfig));
       pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
+      pftSessionEntry->enableHtSmps = psessionEntry->enableHtSmps;
+      pftSessionEntry->smpsMode = psessionEntry->smpsMode;
+      pftSessionEntry->supported_nss_1x1 = psessionEntry->supported_nss_1x1;
+      pftSessionEntry->htSmpsvalue = psessionEntry->htSmpsvalue;
 
       PELOGE(limLog(pMac, LOG1, "%s:created session (%p) with id = %d",
                __func__, pftSessionEntry, pftSessionEntry->peSessionId);)
