@@ -3657,7 +3657,6 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
 #ifdef FEATURE_WLAN_SCAN_PNO
         if (updateRiva)
         {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, FL("  Sending 11d PNO info to Riva"));
             // Send HAL UpdateScanParams message
             pmcUpdateScanParams(pMac, &(pMac->roam.configParam), &ChannelList, TRUE);
         }
@@ -4887,7 +4886,7 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
     {
         vos_mem_set(pCsrBssDescription, cbAllocated, 0);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
-        smsLog(pMac, LOGW,
+        smsLog(pMac, LOG2,
            FL(" Set Aging Count = %d for BSS "MAC_ADDRESS_STR" "),
            pCsrBssDescription->AgingCount,
            MAC_ADDR_ARRAY(pBSSDescription->bssId));
@@ -5700,7 +5699,7 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
                 else
                 {
                     pResult->AgingCount--;
-                    smsLog(pMac, LOGW,
+                    smsLog(pMac, LOG2,
                      FL("Decremented AgingCount=%d for BSS "MAC_ADDRESS_STR""),
                      pResult->AgingCount,
                      MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
@@ -5911,7 +5910,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
 
         for(i = 0; i < pMsg->channelList.numChannels; i++)
         {
-            smsLog(pMac, LOG1, FL("channelNumber[%d]= %d"), i, pMsg->channelList.channelNumber[i]);
+            smsLog(pMac, LOG2, FL("channelNumber[%d]= %d"), i, pMsg->channelList.channelNumber[i]);
         }
 
         if(HAL_STATUS_SUCCESS(status))

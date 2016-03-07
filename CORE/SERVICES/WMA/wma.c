@@ -588,10 +588,6 @@ static inline uint16_t mcs_rate_match(uint16_t match_rate, bool *is_sgi,
 		uint8_t nss, uint16_t nss1_rate, uint16_t nss1_srate,
 				      uint16_t nss2_rate, uint16_t nss2_srate)
 {
-	WMA_LOGD("%s match_rate: %d, %d %d %d %d",
-		__func__, match_rate, nss1_rate, nss1_srate, nss2_rate,
-		nss2_srate);
-
 	if (match_rate == nss1_rate)
 		return nss1_rate;
 	else if (match_rate == nss1_srate) {
@@ -3073,7 +3069,6 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 		vos_mem_free(buf);
 		return -1;
 	}
-	WMA_LOGD("WDA_FW_STATS_IND posted");
 	return 0;
 }
 
@@ -3228,8 +3223,6 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 	wmi_mib_stats *mib_stats;
 	u_int8_t i, *temp;
 
-	WMA_LOGI("%s: Enter", __func__);
-
 	temp = buf + sizeof(*event);
 
 	WMA_LOGD("%s: num_stats: pdev: %u vdev: %u peer %u mib %u",
@@ -3275,8 +3268,6 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 			temp += sizeof(wmi_mib_stats);
 		}
 	}
-
-	WMA_LOGI("%s: Exit", __func__);
 }
 
 #ifdef FEATURE_WLAN_EXTSCAN
@@ -7697,7 +7688,6 @@ static int wmi_unified_peer_create_send(wmi_unified_t wmi,
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
 	return 0;
 }
 
@@ -9510,13 +9500,8 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 			vos_chan_to_freq(chan_list->chanParam[i].chanId);
 		chan_info->band_center_freq1 = chan_info->mhz;
 		chan_info->band_center_freq2 = 0;
-
-		WMA_LOGD("chan[%d] = %u", i, chan_info->mhz);
 		if (chan_list->chanParam[i].dfsSet) {
 			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_PASSIVE);
-			WMA_LOGI("chan[%d] DFS[%d]\n",
-					chan_list->chanParam[i].chanId,
-					chan_list->chanParam[i].dfsSet);
 		}
 
 		if (chan_list->chanParam[i].half_rate) {
@@ -9546,7 +9531,8 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 
 		WMI_SET_CHANNEL_REG_POWER(chan_info,
 					  chan_list->chanParam[i].pwr);
-		WMA_LOGD("Channel TX power[%d] = %u: %d", i, chan_info->mhz,
+		WMA_LOGD(FL("Channel %u[%d] DFS[%d] TX power = %d "),
+				chan_info->mhz, i, chan_list->chanParam[i].dfsSet,
 				chan_list->chanParam[i].pwr);
 		/*TODO: Set WMI_SET_CHANNEL_MIN_POWER */
 		/*TODO: Set WMI_SET_CHANNEL_ANTENNA_MAX */
@@ -14023,8 +14009,6 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
 	struct qpower_params *qparams = &intr[vid].config.qpower_params;
-
-	WMA_LOGD("wmihandle %p", wma->wmi_handle);
 
 	if (NULL == pMac) {
 		WMA_LOGE("%s: Failed to get pMac", __func__);
@@ -28845,7 +28829,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 	extern tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg );
 
-	WMA_LOGI("%s: Enter", __func__);
 	if(NULL == msg)	{
 		WMA_LOGE("msg is NULL");
 		VOS_ASSERT(0);
@@ -28853,7 +28836,8 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		goto end;
 	}
 
-	WMA_LOGD("msg->type = %x %s", msg->type, macTraceGetWdaMsgString(msg->type));
+	WMA_LOGD(FL(" msg->type = %x %s"),
+		msg->type, macTraceGetWdaMsgString(msg->type));
 
 	wma_handle = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA,
 			vos_context);
@@ -29697,7 +29681,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			}
 	}
 end:
-	WMA_LOGI("%s: Exit", __func__);
 	return vos_status ;
 }
 
@@ -34293,13 +34276,8 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 		chan_info->band_center_freq1 = chan_info->mhz;
 		chan_info->band_center_freq2 = 0;
 
-		WMA_LOGD("%s: chan[%d] = %u", __func__, i, chan_info->mhz);
-
 		if (peerStateParams->peerCap.peerChan[i].dfsSet) {
 			WMI_SET_CHANNEL_FLAG(chan_info, WMI_CHAN_FLAG_PASSIVE);
-			WMA_LOGI("chan[%d] DFS[%d]\n",
-					peerStateParams->peerCap.peerChan[i].chanId,
-					peerStateParams->peerCap.peerChan[i].dfsSet);
 		}
 
 		if (chan_info->mhz < WMA_2_4_GHZ_MAX_FREQ) {
@@ -34313,7 +34291,9 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 
 		WMI_SET_CHANNEL_REG_POWER(chan_info,
 			peerStateParams->peerCap.peerChan[i].pwr);
-		WMA_LOGD("Channel TX power[%d] = %u: %d", i, chan_info->mhz,
+		WMA_LOGD(FL("Channel %u[%d] DFS[%d] TX power = %d"),
+			chan_info->mhz, i,
+			peerStateParams->peerCap.peerChan[i].dfsSet,
 			peerStateParams->peerCap.peerChan[i].pwr);
 
 		chan_info++;

@@ -753,7 +753,7 @@ tANI_BOOLEAN smeProcessScanQueue(tpAniSirGlobal pMac)
                     /* if there is an active SME command, do not process
                      * the pending scan cmd
                      */
-                    smsLog(pMac, LOGE, "SME scan cmd is pending on session %d",
+                    smsLog(pMac, LOG1, "SME scan cmd is pending on session %d",
                            pSmeCommand->sessionId);
                     status = eANI_BOOLEAN_FALSE;
                     goto end;
@@ -1268,14 +1268,10 @@ sme_process_cmd:
                     csrScanStartIdleScanTimer(pMac, nTime);
                 }
             }
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                "No Pending command waiting");
         }
     }
     else {
         csrLLUnlock( &pMac->sme.smeCmdActiveList );
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                "Active list command waiting");
     }
 
 sme_process_scan_queue:

@@ -1434,15 +1434,11 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 
     mHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     if(mHdr->fc.type == SIR_MAC_MGMT_FRAME) {
-        PELOG1(limLog( pMac, LOG1,
-               FL("RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d"),
-               pRxPacketInfo, mHdr, mHdr->fc.type, mHdr->fc.subType,
-               sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr));)
-
-        limLog(pMac, LOG1, FL("mpdu_len:%d hdr_len:%d data_len:%d"),
-               WDA_GET_RX_MPDU_LEN(pRxPacketInfo),
-               WDA_GET_RX_MPDU_HEADER_LEN(pRxPacketInfo),
-               WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo));
+        limLog(pMac, LOG2,
+              FL("Type: %d Subtype: %d from: " MAC_ADDRESS_STR " with Seq no %d"),
+              mHdr->fc.type, mHdr->fc.subType, MAC_ADDR_ARRAY(mHdr->sa),
+              ((mHdr->seqControl.seqNumHi << 4) |
+              (mHdr->seqControl.seqNumLo)));
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
        if (WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo))
@@ -1472,8 +1468,6 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     {
         vos_pkt_return_packet(pVosPkt);
         pVosPkt = NULL;
-        limLog( pMac, LOGW,
-                FL ( "sysBbtProcessMessageCore failed to process SIR_BB_XPORT_MGMT_MSG" ));
         return VOS_STATUS_E_FAILURE;
     }
 
