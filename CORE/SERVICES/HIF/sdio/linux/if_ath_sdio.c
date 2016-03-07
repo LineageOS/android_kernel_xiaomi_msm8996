@@ -76,7 +76,7 @@ extern void __hdd_wlan_exit(void);
 
 struct ath_hif_sdio_softc *sc = NULL;
 
-#ifdef CONFIG_CNSS_SDIO
+#if defined(CONFIG_CNSS) && defined(HIF_SDIO)
 static inline void *hif_get_virt_ramdump_mem(unsigned long *size)
 {
 	if (!sc)

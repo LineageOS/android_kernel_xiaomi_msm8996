@@ -217,7 +217,7 @@ static const struct sdio_device_id ar6k_id_table[] = {
 };
 MODULE_DEVICE_TABLE(sdio, ar6k_id_table);
 
-#ifdef CONFIG_CNSS_SDIO
+#if defined(CONFIG_CNSS) && defined(HIF_SDIO)
 static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id);
 static void hif_sdio_device_removed(struct sdio_func *func);
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id);
@@ -290,7 +290,7 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(hif,
 
 #endif
 
-#ifdef CONFIG_CNSS_SDIO
+#if defined(CONFIG_CNSS) && defined(HIF_SDIO)
 static int hif_sdio_register_driver(OSDRV_CALLBACKS *callbacks)
 {
 	int status;
@@ -2733,7 +2733,7 @@ bool hif_is_80211_fw_wow_required(void)
 	return true;
 }
 
-#ifdef CONFIG_CNSS_SDIO
+#if defined(CONFIG_CNSS) && defined(HIF_SDIO)
 static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_device_id * id)
 {
 	if ((func != NULL) && (id != NULL))
