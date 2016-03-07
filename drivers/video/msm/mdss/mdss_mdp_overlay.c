@@ -6361,10 +6361,13 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 
 	mdss_irq = mdss_intr_line();
 
-	mdp5_data->cpu_pm_hdl = add_event_timer(mdss_irq->irq,
-			mdss_mdp_ctl_event_timer, (void *)mdp5_data);
-	if (!mdp5_data->cpu_pm_hdl)
-		pr_warn("%s: unable to add event timer\n", __func__);
+	/* Adding event timer only for primary panel */
+	if ((mfd->index == 0) && (mfd->panel_info->type != WRITEBACK_PANEL)) {
+		mdp5_data->cpu_pm_hdl = add_event_timer(mdss_irq->irq,
+				mdss_mdp_ctl_event_timer, (void *)mdp5_data);
+		if (!mdp5_data->cpu_pm_hdl)
+			pr_warn("%s: unable to add event timer\n", __func__);
+	}
 
 	if (mfd->panel_info->cont_splash_enabled) {
 		rc = mdss_mdp_overlay_handoff(mfd);
