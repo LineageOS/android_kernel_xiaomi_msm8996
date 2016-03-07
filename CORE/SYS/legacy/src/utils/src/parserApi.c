@@ -747,7 +747,7 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     }
 
     /* If STA and mimo power save is enabled include ht smps */
-    if (psessionEntry && (!pMac->lteCoexAntShare) &&
+    if (psessionEntry &&
         LIM_IS_STA_ROLE(psessionEntry) &&
         (psessionEntry->enableHtSmps) &&
         (!psessionEntry->supported_nss_1x1)) {
