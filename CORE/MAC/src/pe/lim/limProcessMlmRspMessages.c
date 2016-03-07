@@ -5051,9 +5051,6 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
 {
     tSirScanOffloadEvent *pScanEvent = (tSirScanOffloadEvent *) buf;
 
-    VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-            "scan_id = %u", pScanEvent->scanId);
-
     switch (pScanEvent->event)
     {
         case LIM_SCAN_EVENT_STARTED:

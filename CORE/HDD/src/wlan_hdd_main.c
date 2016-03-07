@@ -396,11 +396,8 @@ static void hdd_wlan_green_ap_timer_fn(void *phddctx)
     hdd_green_ap_ctx_t *green_ap;
 
     if (0 != wlan_hdd_validate_context(pHddCtx))
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
         return;
-    }
+
     green_ap = pHddCtx->green_ap_ctx;
 
     if (green_ap)
@@ -781,10 +778,8 @@ static void hdd_lost_link_info_cb(void *context,
 	hdd_adapter_t *adapter;
 
 	status = wlan_hdd_validate_context(hdd_ctx);
-	if (0 != status) {
-		hddLog(LOGE, "%s: HDD context is not valid", __func__);
+	if (0 != status)
 		return;
-	}
 
 	if (NULL == lost_link_info) {
 		hddLog(LOGE, "%s: lost_link_info is NULL", __func__);
@@ -1142,18 +1137,20 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
 {
 
     if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini) {
-        hddLog(LOG1, FL("HDD context is Null"));
+        hddLog(LOG1, FL("%pS HDD context is Null"),(void *)_RET_IP_);
         return -ENODEV;
     }
 
     if (pHddCtx->isLogpInProgress) {
-        hddLog(LOG1, FL("LOGP in Progress. Ignore!!!"));
+        hddLog(LOG1, FL("%pS LOGP in Progress. Ignore!!!"),(void *)_RET_IP_);
         return -EAGAIN;
     }
 
     if ((pHddCtx->isLoadInProgress) ||
         (pHddCtx->isUnloadInProgress)) {
-        hddLog(LOG1, FL("Unloading/Loading in Progress. Ignore!!!"));
+        hddLog(LOG1,
+             FL("%pS Unloading/Loading in Progress. Ignore!!!"),
+             (void *)_RET_IP_);
         return -EAGAIN;
     }
     return 0;
@@ -3036,10 +3033,9 @@ static void wlan_hdd_ready_to_extwow(void *callbackContext,
     int rc;
 
     rc = wlan_hdd_validate_context(pHddCtx);
-    if (0 != rc) {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != rc)
        return;
-    }
+
     pHddCtx->ext_wow_should_suspend = is_success;
     complete(&pHddCtx->ready_to_extwow);
 }
@@ -3098,10 +3094,8 @@ static int hdd_enable_ext_wow_parser(hdd_adapter_t *pAdapter, int vdev_id,
    int rc;
 
    rc = wlan_hdd_validate_context(pHddCtx);
-   if (0 != rc) {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+   if (0 != rc)
        return -EINVAL;
-   }
 
    if (value < EXT_WOW_TYPE_APP_TYPE1 || value > EXT_WOW_TYPE_APP_TYPE1_2 ) {
        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid type"));
@@ -3159,10 +3153,8 @@ static int hdd_set_app_type1_parser(hdd_adapter_t *pAdapter,
     int rc, i;
 
     rc = wlan_hdd_validate_context(pHddCtx);
-    if (0 != rc) {
-       hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != rc)
        return -EINVAL;
-    }
 
     if (2 != sscanf(arg, "%8s %16s", id, password)) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -3219,10 +3211,8 @@ static int hdd_set_app_type2_parser(hdd_adapter_t *pAdapter,
     int ret;
 
     ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is not valid"));
+    if (0 != ret)
         return -EINVAL;
-    }
 
     memset(&params, 0, sizeof(tSirAppType2Params));
 
@@ -3721,10 +3711,8 @@ bool wlan_hdd_get_fw_state(hdd_adapter_t *adapter)
 	unsigned long rc;
 	bool fw_active = true;
 
-	if (wlan_hdd_validate_context(hdd_ctx) != 0) {
-		hddLog(LOGE, FL("HDD context is not valid!!!"));
+	if (wlan_hdd_validate_context(hdd_ctx) != 0)
 		return false;
-	}
 
 	init_completion(&context.completion);
 	context.pAdapter = adapter;
@@ -3863,11 +3851,8 @@ int hdd_set_miracast_mode(hdd_adapter_t *pAdapter, tANI_U8 *command)
     eHalStatus ret_status;
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    if (0 != wlan_hdd_validate_context(pHddCtx)) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("pHddCtx is not valid, Unable to set miracast mode"));
+    if (0 != wlan_hdd_validate_context(pHddCtx))
         return -EINVAL;
-    }
 
     hHal = pHddCtx->hHal;
 
@@ -4131,11 +4116,8 @@ int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed)
     int ret;
 
     ret = wlan_hdd_validate_context(hddctx);
-
-    if (0 != ret) {
-        hddLog(LOGE, FL("HDD context is not valid"));
+    if (0 != ret)
         return ret;
-    }
 
     if (eConnectionState_Associated != hdd_stactx->conn_info.connState) {
        /* we are not connected so we don't have a classAstats */
@@ -10173,10 +10155,7 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    }
 
    //Set the Connection State to Not Connected
-   hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: Set HDD connState to eConnectionState_NotConnected",
-                   __func__);
-   pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+   hdd_connSetConnectionState(pAdapter, eConnectionState_NotConnected);
 
    //Set the default operation channel
    pHddStaCtx->conn_info.operationChannel = pHddCtx->cfg_ini->OperatingChannel;
@@ -10468,10 +10447,8 @@ VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-   if (0 != wlan_hdd_validate_context(pHddCtx)) {
-       hddLog(LOGE, FL("HDD context is not valid"));
+   if (0 != wlan_hdd_validate_context(pHddCtx))
        return VOS_STATUS_E_PERM;
-   }
 
    if(pHddCtx->cfg_ini->fIsBmpsEnabled)
    {
@@ -11632,13 +11609,10 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
          hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
          hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
-         hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: Set HDD connState to eConnectionState_NotConnected",
-                   __func__);
          if (eConnectionState_Associated == pHddStaCtx->conn_info.connState) {
              wlan_hdd_decr_active_session(pHddCtx, pAdapter->device_mode);
          }
-         pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+         hdd_connSetConnectionState(pAdapter, eConnectionState_NotConnected);
          init_completion(&pAdapter->disconnect_comp_var);
          sme_RoamDisconnect(pHddCtx->hHal, pAdapter->sessionId,
                              eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -12953,11 +12927,8 @@ int hdd_wlan_set_ht2040_mode(hdd_adapter_t *pAdapter, v_U16_t staId,
 
    status = wlan_hdd_validate_context(pHddCtx);
    if (0 != status)
-   {
-       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: HDD context is not valid", __func__);
        return -1;
-   }
+
    if (!pHddCtx->hHal)
       return -1;
 
@@ -12993,11 +12964,8 @@ int hdd_wlan_notify_modem_power_state(int state)
 
    status = wlan_hdd_validate_context(pHddCtx);
    if (0 != status)
-   {
-       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: HDD context is not valid", __func__);
        return -1;
-   }
+
    if (!pHddCtx->hHal)
       return -1;
 
@@ -16804,11 +16772,8 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
     hdd_ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
     hdd_ctx = WLAN_HDD_GET_CTX(ap_adapter);
     if (0 != wlan_hdd_validate_context(hdd_ctx))
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
         return;
-    }
+
     mutex_lock(&hdd_ctx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
 #ifdef CFG80211_DEL_STA_V2
@@ -16875,11 +16840,8 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
     pConfig = &ap_adapter->sessionCtx.ap.sapConfig;
 
     if (0 != wlan_hdd_validate_context(hdd_ctx))
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
         return;
-    }
+
     mutex_lock(&hdd_ctx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags))
         goto end;

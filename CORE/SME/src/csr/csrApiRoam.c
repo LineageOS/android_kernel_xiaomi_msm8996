@@ -8509,7 +8509,6 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
     {
         if ( CCM_IS_RESULT_SUCCESS(result) )
         {
-            smsLog(pMac, LOG1, "Cfg sequence complete");
             // Successfully set the configuration parameters for the new Bss.  Attempt to
             // join the roaming Bss.
             if(pCommand->u.roamCmd.pRoamBssEntry)
@@ -9801,7 +9800,7 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
                 pScanFilter->SSIDs.numOfSSIDs = 1;
             }
           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("No of Allowed List:%d"), roam_params->num_ssid_allowed_list);
+             FL("No of Allowed List:%d"), roam_params->num_ssid_allowed_list);
           if (pScanFilter->scan_filter_for_roam
                 && roam_params->num_ssid_allowed_list) {
              pScanFilter->SSIDs.numOfSSIDs =
@@ -13694,8 +13693,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             pBuf++;
         }
         smsLog(pMac, LOGE,
-               "Connecting to ssid:%.*s bssid: "
-               MAC_ADDRESS_STR" rssi: %d channel: %d country_code: %c%c",
+               FL("Connecting to ssid:%.*s bssid: "
+               MAC_ADDRESS_STR" rssi: %d channel: %d country_code: %c%c"),
                pIes->SSID.num_ssid, pIes->SSID.ssid,
                MAC_ADDR_ARRAY(pBssDescription->bssId),
                pBssDescription->rssi, pBssDescription->channelId,
@@ -15032,7 +15031,7 @@ eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId,
             vos_mem_copy(p, pKey, keyLength);
             smsLog(pMac, LOG1, FL("SME set keyIndx (%d) encType (%d) key"),
                                                 keyId, edType);
-            sirDumpBuf(pMac, SIR_SMS_MODULE_ID, LOG1, pKey, keyLength);
+            sirDumpBuf(pMac, SIR_SMS_MODULE_ID, LOG2, pKey, keyLength);
         }
         status = palSendMBMessage(pMac->hHdd, pMsg);
     } while( 0 );

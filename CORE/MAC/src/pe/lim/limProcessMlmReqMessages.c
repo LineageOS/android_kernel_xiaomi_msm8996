@@ -2262,7 +2262,7 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         else
         {
           //No need to suspend link.
-          limLog(pMac,LOG1,"SessionId:%d Join request on current channel",
+          limLog(pMac,LOG2,"SessionId:%d Join request on current channel",
                  sessionId);
           limProcessMlmPostJoinSuspendLink( pMac, eHAL_STATUS_SUCCESS,
                                                     (tANI_U32*) psessionEntry );

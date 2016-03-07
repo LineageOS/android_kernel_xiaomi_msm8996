@@ -2376,10 +2376,7 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
     pHddCtx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (ret)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: invalid HDD context", __func__);
         return ret;
-    }
 
     sta_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
     /*
@@ -2471,11 +2468,7 @@ static __iw_softap_set_ini_cfg(struct net_device *dev,
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (ret != 0)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
         return ret;
-    }
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
               "%s: Received data %s", __func__, extra);
@@ -2523,11 +2516,7 @@ static __iw_softap_get_ini_cfg(struct net_device *dev,
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (ret != 0)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
         return ret;
-    }
 
 #ifdef WLAN_FEATURE_MBSSID
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -2569,11 +2558,8 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
-    if (ret != 0) {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid!", __func__);
+    if (ret != 0)
         goto out;
-    }
 
     switch(sub_cmd) {
 #ifdef DEBUG
