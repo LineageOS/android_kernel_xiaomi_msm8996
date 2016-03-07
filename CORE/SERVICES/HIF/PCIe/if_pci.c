@@ -2688,10 +2688,8 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
 
     adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
 
-#ifdef CONFIG_CNSS_PCI
     /* Keep PCIe bus driver's shadow memory intact */
     vos_pcie_shadow_control(pdev, FALSE);
-#endif
 
     if (runtime_pm)
 	    goto skip;

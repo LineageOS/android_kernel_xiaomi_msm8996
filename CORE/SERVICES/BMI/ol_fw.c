@@ -1309,7 +1309,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 #define REGISTER_DUMP_LEN_MAX   60
 #define REG_DUMP_COUNT		60
 
-#ifdef CONFIG_CNSS_PCI
+#if defined(CONFIG_CNSS) && defined(HIF_PCI)
 static int __ol_target_failure(struct ol_softc *scn, void *wma_hdl)
 {
 	return 0;
@@ -1494,7 +1494,7 @@ int
 ol_configure_target(struct ol_softc *scn)
 {
 	u_int32_t param;
-#ifdef CONFIG_CNSS_PCI
+#if defined(CONFIG_CNSS) && defined(HIF_PCI)
 	struct cnss_platform_cap cap;
 #endif
 
@@ -1567,7 +1567,7 @@ ol_configure_target(struct ol_softc *scn)
 
 #endif /*HIF_PCI*/
 
-#ifdef CONFIG_CNSS_PCI
+#if defined(CONFIG_CNSS) && defined(HIF_PCI)
 	{
 		int ret;
 
