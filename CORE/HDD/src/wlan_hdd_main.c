@@ -6727,15 +6727,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
        else if (strncmp(command, "SCAN-ACTIVE", 11) == 0)
        {
           hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                           FL("making default scan to ACTIVE"));
+          hddLog(LOG1, FL("making default scan to ACTIVE"));
           pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
        }
        else if (strncmp(command, "SCAN-PASSIVE", 12) == 0)
        {
           hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                           FL("making default scan to PASSIVE"));
+          hddLog(LOG1, FL("making default scan to PASSIVE"));
           pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
        }
        else if (strncmp(command, "GETDWELLTIME", 12) == 0)

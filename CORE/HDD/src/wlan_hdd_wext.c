@@ -4368,16 +4368,14 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
     else if (strcasecmp(cmd, "scan-active") == 0)
     {
         hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("making default scan to active"));
+        hddLog(LOG1, FL("making default scan to active"));
         pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if (strcasecmp(cmd, "scan-passive") == 0)
     {
         hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                   FL("making default scan to active"));
+        hddLog(LOG1, FL("making default scan to active"));
         pHddCtx->ioctl_scan_mode = eSIR_PASSIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }

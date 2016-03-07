@@ -1125,6 +1125,16 @@ VosWDThread
     clear_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag);
     while(1)
     {
+      /* Post Msg to detect thread stuck */
+      if (test_and_clear_bit(WD_WLAN_DETECT_THREAD_STUCK_MASK,
+                                   &pWdContext->wdEventFlag)) {
+        vos_wd_detect_thread_stuck();
+        /*
+         * Process here and return without processing any SSR
+         * related logic.
+         */
+        break;
+      }
       /* Check for any Active Entry Points
        * If active, delay SSR until no entry point is active or
        * delay until count is decremented to ZERO
@@ -1207,11 +1217,6 @@ VosWDThread
           goto err_reset;
         }
         pWdContext->resetInProgress = false;
-      }
-      /* Post Msg to detect thread stuck */
-      else if (test_and_clear_bit(WD_WLAN_DETECT_THREAD_STUCK_MASK,
-                                          &pWdContext->wdEventFlag)) {
-        vos_wd_detect_thread_stuck();
       }
       else
       {
