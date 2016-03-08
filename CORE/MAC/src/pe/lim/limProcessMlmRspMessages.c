@@ -886,9 +886,10 @@ limProcessMlmAssocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     if (((tLimMlmAssocCnf *) pMsgBuf)->resultCode != eSIR_SME_SUCCESS)
     {
         // Association failure
-        PELOG1(limLog(pMac, LOG1, FL("SessionId:%d Association failure"
+        PELOG1(limLog(pMac, LOG1, FL("SessionId:%u Association failure"
                       "resultCode: resultCode: %d limSmeState:%d"),
                       psessionEntry->peSessionId,
+                      ((tLimMlmAssocCnf *) pMsgBuf)->resultCode,
                       psessionEntry->limSmeState);)
 
         /* If driver gets deauth when its waiting for ADD_STA_RSP then we need
@@ -5054,10 +5055,10 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
 
     switch (pScanEvent->event)
     {
-        case SCAN_EVENT_STARTED:
+        case LIM_SCAN_EVENT_STARTED:
             break;
-        case SCAN_EVENT_START_FAILED:
-        case SCAN_EVENT_COMPLETED:
+        case LIM_SCAN_EVENT_START_FAILED:
+        case LIM_SCAN_EVENT_COMPLETED:
             pMac->lim.fOffloadScanPending = 0;
             pMac->lim.fOffloadScanP2PSearch = 0;
             pMac->lim.fOffloadScanP2PListen = 0;
@@ -5085,7 +5086,7 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
                 limSendScanOffloadComplete(pMac, pScanEvent);
             }
             break;
-        case SCAN_EVENT_FOREIGN_CHANNEL:
+        case LIM_SCAN_EVENT_FOREIGN_CHANNEL:
             if (P2P_SCAN_TYPE_LISTEN == pScanEvent->p2pScanType)
             {
                 /*Send Ready on channel indication to SME */
@@ -5106,9 +5107,9 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
                 limAddScanChannelInfo(pMac, vos_freq_to_chan(pScanEvent->chanFreq));
             }
             break;
-        case SCAN_EVENT_BSS_CHANNEL:
-        case SCAN_EVENT_DEQUEUED:
-        case SCAN_EVENT_PREEMPTED:
+        case LIM_SCAN_EVENT_BSS_CHANNEL:
+        case LIM_SCAN_EVENT_DEQUEUED:
+        case LIM_SCAN_EVENT_PREEMPTED:
         default:
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
                     "Received unhandled scan event %u", pScanEvent->event);

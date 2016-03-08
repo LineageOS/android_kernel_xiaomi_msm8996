@@ -4398,20 +4398,32 @@ typedef struct sSirScanOffloadReq {
       -----------------------------*/
 } tSirScanOffloadReq, *tpSirScanOffloadReq;
 
-typedef enum sSirScanEventType {
-    SCAN_EVENT_STARTED=0x1,          /* Scan command accepted by FW */
-    SCAN_EVENT_COMPLETED=0x2,        /* Scan has been completed by FW */
-    SCAN_EVENT_BSS_CHANNEL=0x4,      /* FW is going to move to HOME channel */
-    SCAN_EVENT_FOREIGN_CHANNEL = 0x8,/* FW is going to move to FORIEGN channel */
-    SCAN_EVENT_DEQUEUED=0x10,       /* scan request got dequeued */
-    SCAN_EVENT_PREEMPTED=0x20,      /* preempted by other high priority scan */
-    SCAN_EVENT_START_FAILED=0x40,   /* scan start failed */
-    SCAN_EVENT_RESTARTED=0x80,      /*scan restarted*/
-    SCAN_EVENT_MAX=0x8000
-} tSirScanEventType;
+/**
+ * lim_scan_event_type - scan event types used in LIM
+ * @LIM_SCAN_EVENT_STARTED - scan command accepted by FW
+ * @LIM_SCAN_EVENT_COMPLETED - scan has been completed by FW
+ * @LIM_SCAN_EVENT_BSS_CHANNEL - FW is going to move to HOME channel
+ * @LIM_SCAN_EVENT_FOREIGN_CHANNEL - FW is going to move to FORIEGN channel
+ * @LIM_SCAN_EVENT_DEQUEUED - scan request got dequeued
+ * @LIM_SCAN_EVENT_PREEMPTED - preempted by other high priority scan
+ * @LIM_SCAN_EVENT_START_FAILED - scan start failed
+ * @LIM_SCAN_EVENT_RESTARTED - scan restarted
+ * @LIM_SCAN_EVENT_MAX - max value for event type
+*/
+enum lim_scan_event_type {
+    LIM_SCAN_EVENT_STARTED=0x1,
+    LIM_SCAN_EVENT_COMPLETED=0x2,
+    LIM_SCAN_EVENT_BSS_CHANNEL=0x4,
+    LIM_SCAN_EVENT_FOREIGN_CHANNEL = 0x8,
+    LIM_SCAN_EVENT_DEQUEUED=0x10,
+    LIM_SCAN_EVENT_PREEMPTED=0x20,
+    LIM_SCAN_EVENT_START_FAILED=0x40,
+    LIM_SCAN_EVENT_RESTARTED=0x80,
+    LIM_SCAN_EVENT_MAX=0x8000
+};
 
 typedef struct sSirScanOffloadEvent{
-    tSirScanEventType event;
+    enum lim_scan_event_type event;
     tSirResultCodes reasonCode;
     tANI_U32 chanFreq;
     tANI_U32 requestor;
@@ -5008,39 +5020,39 @@ typedef enum
     WIFI_BAND_MAX
 } tWifiBand;
 
-/* wifi scan related events */
-typedef enum
+/**
+ * enum wifi_extscan_event_type - extscan event type
+ * @WIFI_EXTSCAN_RESULTS_AVAILABLE: reported when REPORT_EVENTS_EACH_SCAN is set
+ *		and a scan cycle completes. WIFI_SCAN_THRESHOLD_NUM_SCANS or
+ *		WIFI_SCAN_THRESHOLD_PERCENT can be reported instead if the
+ *		reason for the event is available; however, at most one of
+ *		these events should be reported per scan.
+ * @WIFI_EXTSCAN_THRESHOLD_NUM_SCANS: can be reported when
+ *		REPORT_EVENTS_EACH_SCAN is not set and
+ *		report_threshold_num_scans is reached.
+ * @WIFI_EXTSCAN_THRESHOLD_PERCENT: can be reported when REPORT_EVENTS_EACH_SCAN
+ *		is not set and report_threshold_percent is reached.
+ * @WIFI_SCAN_DISABLED: reported when currently executing gscans are disabled
+ *		start_gscan will need to be called again in order to continue
+ *		scanning.
+ * @WIFI_EXTSCAN_BUCKET_STARTED_EVENT: Bucket started event
+ *		This event is consumed in driver only.
+ * @WIFI_EXTSCAN_CYCLE_STARTED_EVENT: Cycle started event.
+ *		This event is consumed in driver only.
+ * @WIFI_EXTSCAN_CYCLE_COMPLETED_EVENT: Cycle complete event. This event
+ *		triggers @WIFI_EXTSCAN_RESULTS_AVAILABLE to the user space.
+ */
+enum wifi_extscan_event_type
 {
-	/*
-	 * reported when REPORT_EVENTS_EACH_SCAN is set and a scan
-	 * completes. WIFI_SCAN_THRESHOLD_NUM_SCANS or
-	 * WIFI_SCAN_THRESHOLD_PERCENT can be reported instead if the
-	 * reason for the event is available; however, at most one of
-	 * these events should be reported per scan.
-	 */
 	WIFI_EXTSCAN_RESULTS_AVAILABLE,
-	/*
-	 * can be reported when REPORT_EVENTS_EACH_SCAN is not set and
-	 * report_threshold_num_scans is reached.
-	 */
 	WIFI_EXTSCAN_THRESHOLD_NUM_SCANS,
-	/*
-	 * can be reported when REPORT_EVENTS_EACH_SCAN is not set and
-	 * report_threshold_percent is reached
-	 */
 	WIFI_EXTSCAN_THRESHOLD_PERCENT,
-	/*
-	 * reported when currently executing gscans are disabled
-	 * start_gscan will need to be called again in order to continue
-	 * scanning
-	 */
 	WIFI_SCAN_DISABLED,
 
-	/* Below events are consumed in driver only */
 	WIFI_EXTSCAN_BUCKET_STARTED_EVENT = 0x10,
 	WIFI_EXTSCAN_CYCLE_STARTED_EVENT,
 	WIFI_EXTSCAN_CYCLE_COMPLETED_EVENT,
-} tWifiScanEventType;
+};
 
 /**
  * enum extscan_configuration_flags - extscan config flags
@@ -6284,8 +6296,8 @@ struct sir_ocb_config_sched {
  * @dcc_ndl_chan_list: array of dcc channel info
  * @dcc_ndl_active_state_list_len: size of the active state array
  * @dcc_ndl_active_state_list: array of active states
- * @adapter: the OCB adapter
- * @dcc_stats_callback: callback for the response event
+ * @def_tx_param: default TX parameters
+ * @def_tx_param_size: size of the default TX parameters
  */
 struct sir_ocb_config {
 	uint8_t session_id;
@@ -6298,6 +6310,8 @@ struct sir_ocb_config {
 	void *dcc_ndl_chan_list;
 	uint32_t dcc_ndl_active_state_list_len;
 	void *dcc_ndl_active_state_list;
+	void *def_tx_param;
+	uint32_t def_tx_param_size;
 };
 
 /* The size of the utc time in bytes. */
@@ -6661,6 +6675,17 @@ struct egap_conf_params {
 };
 
 /**
+ * struct beacon_filter_param - parameters for beacon filtering
+ * @vdev_id: vdev id
+ * @ie_map: bitwise map of IEs that needs to be filtered
+ *
+ */
+struct beacon_filter_param {
+	uint32_t   vdev_id;
+	uint32_t   ie_map[8];
+};
+
+/**
  * struct smps_force_mode_event - smps force mode event param
  * @message_type: Type of message
  * @length: length
@@ -6861,4 +6886,50 @@ struct get_mib_stats_req {
 	uint16_t msg_len;
 	uint8_t  session_id;
 };
+
+/**
+ * sir_txrate_update - update txrate to firmware
+ * @session_id: session identifier
+ * @txrate: tx rate to configure for hardware mode
+ * @bssid: Bssid
+ */
+struct sir_txrate_update {
+	uint8_t session_id;
+	uint16_t txrate;
+	tSirMacAddr bssid;
+};
+
+/**
+ * struct sir_del_all_tdls_peers - delete all tdls peers
+ * @msg_type: type of message
+ * @msg_len: length of message
+ * bssid: bssid of peer device
+ */
+struct sir_del_all_tdls_peers {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	tSirMacAddr bssid;
+};
+
+/**
+ * struct sme_send_disassoc_frm_req - send disassoc request frame
+ * @msg_type: message type
+ * @length: length of message
+ * @session_id: session id
+ * @trans_id: transaction id
+ * @peer_mac: peer mac address
+ * @reason: reason for disassoc
+ * @wait_for_ack: wait for acknowledgment
+ */
+struct sme_send_disassoc_frm_req
+{
+	uint16_t msg_type;
+	uint16_t length;
+	uint8_t session_id;
+	uint16_t trans_id;
+	uint8_t peer_mac[6];
+	uint16_t reason;
+	uint8_t wait_for_ack;
+};
+
 #endif /* __SIR_API_H */

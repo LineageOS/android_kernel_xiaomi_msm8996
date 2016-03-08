@@ -44,6 +44,8 @@
 #include <net/ieee80211_radiotap.h>
 #include "wlan_hdd_tdls.h"
 #include "wlan_hdd_cfg80211.h"
+#include "wlan_hdd_assoc.h"
+#include "sme_Api.h"
 #include "vos_sched.h"
 
 /**
@@ -184,8 +186,8 @@ void hdd_wlan_block_scan_by_tdls_event(void)
 void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 {
 	u16 connected_tdls_peers = 0;
+	hddTdlsPeer_t *curr_peer;
 	u8 staidx;
-	hddTdlsPeer_t *curr_peer = NULL;
 	hdd_adapter_t *adapter = NULL;
 
 	if (eTDLS_SUPPORT_NOT_ENABLED == hddctx->tdls_mode) {
@@ -202,8 +204,10 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 
 	connected_tdls_peers = wlan_hdd_tdlsConnectedPeers(adapter);
 
-	if (!connected_tdls_peers)
+	if (!connected_tdls_peers) {
+		hddLog(LOG1, FL("No TDLS connected peers to delete"));
 		return ;
+	}
 
 	/* TDLS is not supported in case of concurrency.
 	 * Disable TDLS Offchannel in FW to avoid more
@@ -222,6 +226,9 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 			TDLS_SEC_OFFCHAN_OFFSET_40PLUS);
 	hdd_set_tdls_offchannelmode(adapter, DISABLE_CHANSWITCH);
 
+	/* Send Msg to PE for deleting all the TDLS peers */
+	sme_delete_all_tdls_peers(hddctx->hHal, adapter->sessionId);
+
 	for (staidx = 0; staidx < hddctx->max_num_tdls_sta;
 							staidx++) {
 		if (!hddctx->tdlsConnInfo[staidx].staId)
@@ -229,20 +236,36 @@ void wlan_hdd_tdls_disable_offchan_and_teardown_links(hdd_context_t *hddctx)
 
 		curr_peer = wlan_hdd_tdls_find_all_peer(hddctx,
 				hddctx->tdlsConnInfo[staidx].peerMac.bytes);
-
 		if (!curr_peer)
 			continue;
 
 		hddLog(LOG1, FL("indicate TDLS teardown (staId %d)"),
-				curr_peer->staId);
+			curr_peer->staId);
 
+		/* Indicate teardown to supplicant */
 		wlan_hdd_tdls_indicate_teardown(
-					curr_peer->pHddTdlsCtx->pAdapter,
-					curr_peer,
-					eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+				curr_peer->pHddTdlsCtx->pAdapter,
+				curr_peer,
+				eSIR_MAC_TDLS_TEARDOWN_UNSPEC_REASON);
+
+		/*
+		 * Del Sta happened already as part of sme_delete_all_tdls_peers
+		 * Hence clear hdd data structure.
+		 */
+		hdd_roamDeregisterTDLSSTA(adapter,
+				hddctx->tdlsConnInfo[staidx].staId);
+		wlan_hdd_tdls_decrement_peer_count(adapter);
+		wlan_hdd_tdls_reset_peer(adapter, curr_peer->peerMac);
 		hdd_send_wlan_tdls_teardown_event(eTDLS_TEARDOWN_CONCURRENCY,
-							curr_peer->peerMac);
+				curr_peer->peerMac);
+
+		hddctx->tdlsConnInfo[staidx].staId = 0;
+		hddctx->tdlsConnInfo[staidx].sessionId = 255;
+
+		vos_mem_zero(&hddctx->tdlsConnInfo[staidx].peerMac,
+			sizeof(v_MACADDR_t));
 	}
+	wlan_hdd_tdls_check_bmps(adapter);
 }
 
 /**
@@ -1193,7 +1216,8 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
                                 const u8 *mac,
                                 tCsrStaParams *StaParams,
                                 tANI_BOOLEAN isBufSta,
-                                tANI_BOOLEAN isOffChannelSupported)
+                                tANI_BOOLEAN isOffChannelSupported,
+                                bool is_qos_wmm_sta)
 {
     hddTdlsPeer_t *curr_peer;
 
@@ -1223,6 +1247,9 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
 
     curr_peer->supported_oper_classes_len =
                StaParams->supported_oper_classes_len;
+
+    curr_peer->qos = is_qos_wmm_sta;
+
     return 0;
 }
 
@@ -1260,6 +1287,9 @@ int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter,
 
     tdlsLinkEstablishParams->supportedOperClassesLen =
                  curr_peer->supported_oper_classes_len;
+
+    tdlsLinkEstablishParams->qos = curr_peer->qos;
+
     return 0;
 }
 

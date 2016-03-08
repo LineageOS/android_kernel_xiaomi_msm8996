@@ -70,6 +70,7 @@
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD */
 #include "regdomain_common.h"
 #include "vos_utils.h"
+#include <wlan_logging_sock_svc.h>
 
 #define MAX_PWR_FCC_CHAN_12 8
 #define MAX_PWR_FCC_CHAN_13 2
@@ -99,6 +100,9 @@
 #define MAX_CB_VALUE_IN_INI (2)
 
 #define MAX_SOCIAL_CHANNELS  3
+
+/* packet dump timer duration of 60 secs */
+#define PKT_DUMP_TIMER_DURATION 60
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 static tANI_BOOLEAN bRoamScanOffloadStarted = VOS_FALSE;
@@ -746,6 +750,58 @@ void csrSetGlobalCfgs( tpAniSirGlobal pMac )
     csrSetDefaultDot11Mode( pMac );
 }
 
+/**
+ * csr_packetdump_timer_handler() - packet dump timer
+ * handler
+ * @pv: user data
+ *
+ * This function is used to handle packet dump timer
+ *
+ * Return: None
+ *
+ */
+static void csr_packetdump_timer_handler(void *pv)
+{
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			"%s Invoking packetdump deregistration API", __func__);
+	wlan_deregister_txrx_packetdump();
+}
+
+/**
+ * csr_packetdump_timer_stop() - stops packet dump timer
+ *
+ * This function is used to stop packet dump timer
+ *
+ * Return: None
+ *
+ */
+void csr_packetdump_timer_stop(void)
+{
+	eHalStatus status;
+	tHalHandle hal;
+	tpAniSirGlobal mac;
+	v_CONTEXT_t vos_ctx_ptr;
+
+	/* get the global voss context */
+	vos_ctx_ptr = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (NULL == vos_ctx_ptr) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	hal = vos_get_context(VOS_MODULE_ID_SME, vos_ctx_ptr);
+	if (NULL == hal) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	mac = PMAC_STRUCT(hal);
+	status = vos_timer_stop(&mac->roam.packetdump_timer);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		smsLog(mac, LOGE, FL("cannot stop packetdump timer"));
+	}
+}
+
 eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -767,6 +823,12 @@ eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
       if (!HAL_STATUS_SUCCESS(status))
       {
         smsLog(pMac, LOGE, FL("cannot allocate memory for WaitForKey time out timer"));
+        break;
+      }
+      status = vos_timer_init(&pMac->roam.packetdump_timer, VOS_TIMER_TYPE_SW,
+                              csr_packetdump_timer_handler, pMac);
+      if (!HAL_STATUS_SUCCESS(status)) {
+        smsLog(pMac, LOGE, FL("cannot allocate memory for packetdump timer"));
         break;
       }
       status = vos_timer_init(&pMac->roam.tlStatsReqInfo.hTlStatsTimer,
@@ -791,6 +853,8 @@ eHalStatus csrRoamClose(tpAniSirGlobal pMac)
     vos_timer_destroy(&pMac->roam.hTimerWaitForKey);
     vos_timer_stop(&pMac->roam.tlStatsReqInfo.hTlStatsTimer);
     vos_timer_destroy(&pMac->roam.tlStatsReqInfo.hTlStatsTimer);
+    vos_timer_stop(&pMac->roam.packetdump_timer);
+    vos_timer_destroy(&pMac->roam.packetdump_timer);
     return (eHAL_STATUS_SUCCESS);
 }
 
@@ -1764,18 +1828,9 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         {
             pMac->roam.configParam.nPassiveMinChnTimeConc = pParam->nPassiveMinChnTimeConc;
         }
-        if (pParam->nRestTimeConc)
-        {
-            pMac->roam.configParam.nRestTimeConc = pParam->nRestTimeConc;
-        }
-        if (pParam->min_rest_time_conc)
-        {
-            pMac->roam.configParam.min_rest_time_conc = pParam->min_rest_time_conc;
-        }
-        if (pParam->idle_time_conc)
-        {
-            pMac->roam.configParam.idle_time_conc = pParam->idle_time_conc;
-        }
+        pMac->roam.configParam.nRestTimeConc = pParam->nRestTimeConc;
+        pMac->roam.configParam.min_rest_time_conc = pParam->min_rest_time_conc;
+        pMac->roam.configParam.idle_time_conc = pParam->idle_time_conc;
         if (pParam->nNumStaChanCombinedConc)
         {
             pMac->roam.configParam.nNumStaChanCombinedConc = pParam->nNumStaChanCombinedConc;
@@ -2152,6 +2207,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                      pMac->roam.configParam.sendDeauthBeforeCon;
         pParam->first_scan_bucket_threshold =
                      pMac->first_scan_bucket_threshold;
+        pParam->enableHtSmps = pMac->roam.configParam.enableHtSmps;
+        pParam->htSmps = pMac->roam.configParam.htSmps;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -11906,10 +11963,25 @@ eHalStatus csrRoamIssueStopBss( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoa
 //pNumChan is a caller allocated space with the sizeof pChannels
 eHalStatus csrGetCfgValidChannels(tpAniSirGlobal pMac, tANI_U8 *pChannels, tANI_U32 *pNumChan)
 {
+    uint8_t num_chan_temp = 0;
+    int i;
+    eHalStatus status;
 
-    return (ccmCfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
+    status = ccmCfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
                   (tANI_U8 *)pChannels,
-                  pNumChan));
+                  pNumChan);
+    if (status != eHAL_STATUS_SUCCESS)
+       return status;
+
+    for (i = 0; i < *pNumChan; i++) {
+         if (!vos_is_dsrc_channel(vos_chan_to_freq(pChannels[i]))) {
+             pChannels[num_chan_temp] = pChannels[i];
+             num_chan_temp++;
+         }
+    }
+
+    *pNumChan = num_chan_temp;
+    return status;
 }
 
 tPowerdBm csrGetCfgMaxTxPower (tpAniSirGlobal pMac, tANI_U8 channel)
@@ -13464,6 +13536,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
     tANI_U32 ucDot11Mode = 0;
     tANI_U8 txBFCsnValue = 0;
+    tpCsrNeighborRoamControlInfo neigh_roam_info;
+    eHalStatus packetdump_timer_status;
 
     if(!pSession)
     {
@@ -13475,6 +13549,21 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     {
         smsLog(pMac, LOGE, FL(" pBssDescription is NULL"));
         return eHAL_STATUS_FAILURE;
+    }
+    neigh_roam_info = &pMac->roam.neighborRoamInfo[sessionId];
+
+    if ((eWNI_SME_REASSOC_REQ == messageType) ||
+            CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId) ||
+            (abs(pBssDescription->rssi) <
+            (neigh_roam_info->cfgParams.neighborLookupThreshold +
+             neigh_roam_info->cfgParams.hi_rssi_scan_rssi_delta))) {
+            pSession->disable_hi_rssi = true;
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                      "Disabling HI_RSSI feature, AP channel=%d, rssi=%d",
+                      pBssDescription->channelId, pBssDescription->rssi);
+    }
+    else {
+            pSession->disable_hi_rssi = false;
     }
 
     do {
@@ -14167,6 +14256,19 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         }
         else
         {
+            if (pProfile->csrPersona == VOS_STA_MODE) {
+                smsLog(pMac, LOG1, FL(" Invoking packetdump register API"));
+                wlan_register_txrx_packetdump();
+                packetdump_timer_status =
+                         vos_timer_start(&pMac->roam.packetdump_timer,
+                         (PKT_DUMP_TIMER_DURATION*VOS_TIMER_TO_SEC_UNIT)/
+                          VOS_TIMER_TO_MS_UNIT);
+                if (!HAL_STATUS_SUCCESS(packetdump_timer_status)) {
+                     smsLog(pMac, LOGE, FL("cannot start packetdump timer"));
+                     smsLog(pMac, LOGE, FL("packetdump_timer_status: %d"),
+                                                    packetdump_timer_status);
+                }
+            }
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
             if (eWNI_SME_JOIN_REQ == messageType)
             {
@@ -17509,15 +17611,11 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     * there is no need to enable the HI_RSSI feature. This feature
     * is useful only if we are connected to a 2.4 GHz AP and we wish
     * to connect to a better 5GHz AP is available.*/
-   if(CSR_IS_CHANNEL_5GHZ(op_channel)) {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-        "Disabling HI_RSSI feature since the connected AP is 5GHz");
+   if(pSession->disable_hi_rssi)
       pRequestBuf->hi_rssi_scan_rssi_delta = 0;
-   }
-   else {
+   else
       pRequestBuf->hi_rssi_scan_rssi_delta =
            pNeighborRoamInfo->cfgParams.hi_rssi_scan_rssi_delta;
-   }
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
       "hi_rssi_delta=%d, hi_rssi_max_count=%d,"
       "hi_rssi_delay=%d, hi_rssi_ub=%d",

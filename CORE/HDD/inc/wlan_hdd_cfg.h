@@ -2846,6 +2846,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_TCP_DELACK_THRESHOLD_LOW_MIN           ( 0 )
 #define CFG_TCP_DELACK_THRESHOLD_LOW_MAX           ( 10000 )
 
+
 /* TCP_TX_HIGH_TPUT_THRESHOLD specifies the threshold of packets transmitted
  * over a period of 100 ms beyond which TCP can be considered to have a high
  * TX throughput requirement. The driver uses this condition to tweak TCP TX
@@ -2858,6 +2859,38 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MAX          ( 16000 )
 
 #endif /* FEATURE_BUS_BANDWIDTH */
+
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+
+/*
+ * PKT_BUNDLE_THRESHOLD_HIGH specifies threshold of packets transmitted
+ * over a period of 100ms beyond which bundling will be enabled and
+ * TXRX layer bundle packets before giving to scheduler. If numbers
+ * of packets falls below PKT_BUNDLE_THRESHOLD_LOW than bundling will
+ * stop.
+ */
+
+#define CFG_PKT_BUNDLE_THRESHOLD_HIGH              "gPacketBundleHighThreshold"
+#define CFG_PKT_BUNDLE_THRESHOLD_HIGH_DEFAULT      ( 4330 )
+#define CFG_PKT_BUNDLE_THRESHOLD_HIGH_MIN          ( 0 )
+#define CFG_PKT_BUNDLE_THRESHOLD_HIGH_MAX          ( 70000 )
+
+#define CFG_PKT_BUNDLE_THRESHOLD_LOW               "gPacketBundleLowThreshold"
+#define CFG_PKT_BUNDLE_THRESHOLD_LOW_DEFAULT       ( 4000 )
+#define CFG_PKT_BUNDLE_THRESHOLD_LOW_MIN           ( 0 )
+#define CFG_PKT_BUNDLE_THRESHOLD_LOW_MAX           ( 70000 )
+
+#define CFG_PKT_BUNDLE_TIMER_IN_MS                 "gPacketBundleTimerValue"
+#define CFG_PKT_BUNDLE_TIMER_IN_MS_DEFAULT         ( 100 )
+#define CFG_PKT_BUNDLE_TIMER_IN_MS_MIN             ( 10 )
+#define CFG_PKT_BUNDLE_TIMER_IN_MS_MAX             ( 10000 )
+
+#define CFG_PKT_BUNDLE_SIZE                       "gPacketBundleSize"
+#define CFG_PKT_BUNDLE_SIZE_DEFAULT                ( 10 )
+#define CFG_PKT_BUNDLE_SIZE_MIN                    ( 0 )
+#define CFG_PKT_BUNDLE_SIZE_MAX                    ( 32 )
+
+#endif /* QCA_SUPPORT_TXRX_HL_BUNDLE */
 
 #ifdef WLAN_FEATURE_11W
 #define CFG_PMF_SA_QUERY_MAX_RETRIES_NAME          "pmfSaQueryMaxRetries"
@@ -4064,7 +4097,12 @@ typedef struct
    v_U32_t                     tcpDelackThresholdLow;
    uint32_t                    tcp_tx_high_tput_thres;
 #endif /* FEATURE_BUS_BANDWIDTH */
-
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+   uint32_t                    pkt_bundle_threshold_high;
+   uint32_t                    pkt_bundle_threshold_low;
+   uint16_t                    pkt_bundle_timer_value;
+   uint16_t                    pkt_bundle_size;
+#endif
    /* FW debug log parameters */
    v_U32_t     enableFwLogType;
    v_U32_t     enableFwLogLevel;

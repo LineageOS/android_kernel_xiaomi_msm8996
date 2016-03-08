@@ -3512,6 +3512,36 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_TCP_TX_HIGH_TPUT_THRESHOLD_DEFAULT,
                  CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MIN,
                  CFG_TCP_TX_HIGH_TPUT_THRESHOLD_MAX ),
+#endif
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+
+    REG_VARIABLE( CFG_PKT_BUNDLE_THRESHOLD_HIGH, WLAN_PARAM_Integer,
+                 hdd_config_t, pkt_bundle_threshold_high,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PKT_BUNDLE_THRESHOLD_HIGH_DEFAULT,
+                 CFG_PKT_BUNDLE_THRESHOLD_HIGH_MIN,
+                 CFG_PKT_BUNDLE_THRESHOLD_HIGH_MAX ),
+
+    REG_VARIABLE( CFG_PKT_BUNDLE_THRESHOLD_LOW, WLAN_PARAM_Integer,
+                 hdd_config_t, pkt_bundle_threshold_low,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PKT_BUNDLE_THRESHOLD_LOW_DEFAULT,
+                 CFG_PKT_BUNDLE_THRESHOLD_LOW_MIN,
+                 CFG_PKT_BUNDLE_THRESHOLD_LOW_MAX ),
+
+    REG_VARIABLE( CFG_PKT_BUNDLE_TIMER_IN_MS, WLAN_PARAM_Integer,
+                 hdd_config_t, pkt_bundle_timer_value,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PKT_BUNDLE_TIMER_IN_MS_DEFAULT,
+                 CFG_PKT_BUNDLE_TIMER_IN_MS_MIN,
+                 CFG_PKT_BUNDLE_TIMER_IN_MS_MAX ),
+
+    REG_VARIABLE( CFG_PKT_BUNDLE_SIZE, WLAN_PARAM_Integer,
+                 hdd_config_t, pkt_bundle_size,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PKT_BUNDLE_SIZE_DEFAULT,
+                 CFG_PKT_BUNDLE_SIZE_MIN,
+                 CFG_PKT_BUNDLE_SIZE_MAX ),
 
 #endif
 

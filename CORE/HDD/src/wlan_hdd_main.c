@@ -92,6 +92,7 @@
 #include <linux/semaphore.h>
 #include <linux/ctype.h>
 #include <linux/compat.h>
+#include <linux/pm_qos.h>
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
 #include <soc/qcom/subsystem_restart.h>
@@ -132,6 +133,7 @@ void hdd_ch_avoid_cb(void *hdd_context,void *indi_param);
 #include "ol_fw.h"
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
+#include "tl_shim.h"
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
@@ -13180,21 +13182,25 @@ VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
                               hdd_ctx->reg.cc_src);
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_is_5g_supported() - HDD function to know if hardware supports  5GHz
-
-  \param  - pHddCtx - Pointer to the hdd context
-
-  \return -  true if hardware supports 5GHz
-
-  --------------------------------------------------------------------------*/
+/**
+ * hdd_is_5g_supported() - to know if ini configuration supports 5GHz
+ * @pHddCtx: Pointer to the hdd context
+ *
+ * Return: true if ini configuration supports 5GHz
+ */
 boolean hdd_is_5g_supported(hdd_context_t * pHddCtx)
 {
-   /* If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
-    * then hardware support 5Ghz.
-   */
-   return true;
+	/**
+	 * If wcnss_wlan_iris_xo_mode() returns WCNSS_XO_48MHZ(1);
+	 * then hardware support 5Ghz.
+	 */
+	if(!pHddCtx || !pHddCtx->cfg_ini)
+		return true;
+
+	if (pHddCtx->cfg_ini->nBandCapability != eCSR_BAND_24)
+		return true;
+	else
+		return false;
 }
 
 static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
@@ -13246,8 +13252,25 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
    return status;
 }
 
-
 #ifdef FEATURE_BUS_BANDWIDTH
+#ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
+static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t tx_bytes)
+{
+	tlshim_set_bundle_require(session_id, tx_bytes,
+		hdd_ctx->cfg_ini->busBandwidthComputeInterval,
+		hdd_ctx->cfg_ini->pkt_bundle_threshold_high,
+		hdd_ctx->cfg_ini->pkt_bundle_threshold_low);
+
+}
+#else
+static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t tx_bytes)
+{
+	return;
+}
+#endif
+
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         const uint64_t tx_packets, const uint64_t rx_packets)
 {
@@ -13287,7 +13310,8 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                 hddLog(LOGE, FL("low bandwidth set rx affinity fail"));
         } else {
             if (!pHddCtx->hbw_requested) {
-                vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+                vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY,
+                                      DISABLE_KRAIT_IDLE_PS_VAL);
                 pHddCtx->hbw_requested = true;
             }
             if (vos_sched_handle_throughput_req(true))
@@ -13342,12 +13366,11 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
 }
 
 #define HDD_BW_GET_DIFF(x, y) ((x) >= (y) ? (x) - (y) : (ULONG_MAX - (y) + (x)))
-
 static void hdd_bus_bw_compute_cbk(void *priv)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
     hdd_adapter_t *pAdapter = NULL;
-    uint64_t tx_packets= 0, rx_packets= 0;
+    uint64_t tx_packets= 0, rx_packets= 0, tx_bytes = 0;
     uint64_t total_tx = 0, total_rx = 0;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
@@ -13390,8 +13413,12 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         tx_packets += HDD_BW_GET_DIFF(pAdapter->stats.tx_packets,
                 pAdapter->prev_tx_packets);
+        tx_bytes += HDD_BW_GET_DIFF(pAdapter->stats.tx_bytes,
+                pAdapter->prev_tx_bytes);
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
                 pAdapter->prev_rx_packets);
+
+        hdd_set_bundle_require(pAdapter->sessionId, pHddCtx, tx_bytes);
 
         total_rx += pAdapter->stats.rx_packets;
         total_tx += pAdapter->stats.tx_packets;
@@ -13399,6 +13426,7 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
+        pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
@@ -15009,7 +15037,7 @@ static int hdd_driver_init( void)
     * load for reducing interrupt latency.
     */
 
-   vos_request_pm_qos(DISABLE_KRAIT_IDLE_PS_VAL);
+   vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY, DISABLE_KRAIT_IDLE_PS_VAL);
 
    vos_ssr_protect_init();
 
@@ -16587,8 +16615,10 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
         }
     }
 
-    if(can_stop == VOS_TRUE)
+    if (can_stop == VOS_TRUE) {
         vos_timer_stop(&pHddCtx->bus_bw_timer);
+        tlshim_reset_bundle_require();
+    }
 }
 #endif
 

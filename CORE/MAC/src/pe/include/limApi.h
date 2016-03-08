@@ -125,6 +125,9 @@ void limDumpInit(tpAniSirGlobal pMac);
 extern void limCleanup(tpAniSirGlobal);
 /// Function to post messages to LIM thread
 extern tANI_U32  limPostMsgApi(tpAniSirGlobal, tSirMsgQ *);
+uint32_t
+lim_post_msg_high_pri(tpAniSirGlobal mac, tSirMsgQ *msg);
+
 /**
  * Function to process messages posted to LIM thread
  * and dispatch to various sub modules within LIM module.
@@ -269,6 +272,12 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
 void limProcessAbortScanInd(tpAniSirGlobal pMac, tANI_U8 sessionId);
 
 void lim_smps_force_mode_ind(tpAniSirGlobal mac_ctx, tpSirMsgQ msg);
+
+typedef void (*tp_pe_packetdump_cb)(adf_nbuf_t netbuf,
+			uint8_t status, uint8_t vdev_id, uint8_t type);
+
+void pe_register_packetdump_callback(tp_pe_packetdump_cb pe_packetdump_cb);
+void pe_deregister_packetdump_callback(void);
 
 /************************************************************/
 #endif /* __LIM_API_H */

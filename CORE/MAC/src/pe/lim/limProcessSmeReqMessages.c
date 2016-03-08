@@ -131,6 +131,9 @@ static void lim_set_pdev_ht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 		tANI_U8 nss);
 static void lim_set_pdev_vht_ie(tpAniSirGlobal mac_ctx, tANI_U8 pdev_id,
 		tANI_U8 nss);
+static void __lim_process_send_disassoc_frame(tpAniSirGlobal mac_ctx,
+				uint32_t *msg_buf);
+
 #ifdef BACKGROUND_SCAN_ENABLED
 
 // start the background scan timers if it hasn't already started
@@ -803,7 +806,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             else
 #endif
                 psessionEntry->htSupportedChannelWidthSet =
-                                 (pSmeStartBssReq->cbMode)?1:0;
+                                 (pSmeStartBssReq->cbMode > 0)?1:0;
             psessionEntry->htSecondaryChannelOffset = pSmeStartBssReq->cbMode;
             psessionEntry->htRecommendedTxWidthSet =
                                  (psessionEntry->htSecondaryChannelOffset)? 1:0;
@@ -1744,6 +1747,8 @@ static void __limProcessSmeOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMlmOemDataReq->data_len = pOemDataReq->data_len;
     vos_mem_copy(pMlmOemDataReq->data, pOemDataReq->data,
                  pOemDataReq->data_len);
+    /* buffer from SME copied, free it now */
+    vos_mem_free(pOemDataReq->data);
 
     //Issue LIM_MLM_OEM_DATA_REQ to MLM
     limPostMlmMessage(pMac, LIM_MLM_OEM_DATA_REQ, (tANI_U32*)pMlmOemDataReq);
@@ -2040,7 +2045,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /*Phy mode*/
         psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
-        psessionEntry->htSupportedChannelWidthSet = (pSmeJoinReq->cbMode)?1:0; // This is already merged value of peer and self - done by csr in csrGetCBModeFromIes
+        psessionEntry->htSupportedChannelWidthSet = (pSmeJoinReq->cbMode > 0)?1:0; // This is already merged value of peer and self - done by csr in csrGetCBModeFromIes
         psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
         psessionEntry->htSecondaryChannelOffset = pSmeJoinReq->cbMode;
 
@@ -2289,7 +2294,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            pSmeJoinReq->isOSENConnection;
 
            PELOG1(limLog(pMac,LOG1,FL("SessionId:%d MLM_JOIN_REQ is posted to MLM SM"),
-                         pMlmJoinReq->sessionId));
+                         pMlmJoinReq->sessionId););
         /* Issue LIM_MLM_JOIN_REQ to MLM */
         limPostMlmMessage(pMac, LIM_MLM_JOIN_REQ, (tANI_U32 *) pMlmJoinReq);
         return;
@@ -3648,6 +3653,8 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tANI_U8                 sessionId = CSR_SESSION_ID_INVALID;
     tANI_U8                 assocId = 0;
     tANI_U8                 staCount = 0;
+
+    vos_mem_zero(&getAssocSTAsReq, sizeof(getAssocSTAsReq));
 
     if (!limIsSmeGetAssocSTAsReqValid(pMac, &getAssocSTAsReq, (tANI_U8 *) pMsgBuf))
     {
@@ -5754,6 +5761,68 @@ static void lim_register_mgmt_frame_ind_cb(tpAniSirGlobal mac_ctx,
 }
 
 /**
+ *__lim_process_send_disassoc_frame: function processes disassoc frame
+ * @mac_ctx: pointer to mac context
+ * @msg_buf: message buffer
+ *
+ * function processes disassoc request received from SME
+ *
+ * return: none
+ */
+static void __lim_process_send_disassoc_frame(tpAniSirGlobal mac_ctx,
+					uint32_t *msg_buf)
+{
+	struct sme_send_disassoc_frm_req sme_send_disassoc_frame_req;
+	tSirRetStatus status;
+	tpPESession session_entry = NULL;
+	uint8_t sme_session_id;
+	uint16_t sme_trans_id;
+
+	if(msg_buf == NULL) {
+		limLog(mac_ctx, LOGE, FL("Buffer is Pointing to NULL"));
+		return;
+	}
+
+	limGetSessionInfo(mac_ctx, (uint8_t *)msg_buf, &sme_session_id,
+			&sme_trans_id);
+
+	status = lim_send_disassoc_frm_req_ser_des(mac_ctx,
+				&sme_send_disassoc_frame_req,
+				(uint8_t *)msg_buf);
+
+	if((eSIR_FAILURE == status) ||
+		(limIsGroupAddr(sme_send_disassoc_frame_req.peer_mac) &&
+		!limIsAddrBC(sme_send_disassoc_frame_req.peer_mac))) {
+		PELOGE(limLog(mac_ctx, LOGE,
+			FL("received invalid SME_DISASSOC_REQ message"));)
+		return;
+	}
+
+	if((session_entry = pe_find_session_by_sme_session_id(
+				mac_ctx, sme_session_id)) == NULL) {
+		limLog(mac_ctx, LOGE,
+			FL("session does not exist for given bssId "MAC_ADDRESS_STR),
+			MAC_ADDR_ARRAY(sme_send_disassoc_frame_req.peer_mac));
+		return;
+	}
+
+	limLog(mac_ctx, LOG1,
+		FL("msg_type->%d len->%d sess_id->%d trans_id->%d mac->"MAC_ADDRESS_STR" reason->%d wait_for_ack->%d"),
+		sme_send_disassoc_frame_req.msg_type,
+		sme_send_disassoc_frame_req.length,
+		sme_send_disassoc_frame_req.session_id,
+		sme_send_disassoc_frame_req.trans_id,
+		MAC_ADDR_ARRAY(sme_send_disassoc_frame_req.peer_mac),
+		sme_send_disassoc_frame_req.reason,
+		sme_send_disassoc_frame_req.wait_for_ack);
+
+	limSendDisassocMgmtFrame(mac_ctx,
+		sme_send_disassoc_frame_req.reason,
+		sme_send_disassoc_frame_req.peer_mac,
+		session_entry, sme_send_disassoc_frame_req.wait_for_ack);
+}
+
+/**
  * limProcessSmeReqMessages()
  *
  *FUNCTION:
@@ -5902,6 +5971,10 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         case eWNI_SME_DEAUTH_REQ:
             __limProcessSmeDeauthReq(pMac, pMsgBuf);
+            break;
+
+        case eWNI_SME_SEND_DISASSOC_FRAME:
+            __lim_process_send_disassoc_frame(pMac, pMsgBuf);
             break;
 
         case eWNI_SME_SETCONTEXT_REQ:
@@ -6439,8 +6512,11 @@ static tANI_BOOLEAN
 limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
                         tANI_U16 *pDstDataLen, tSirModifyIE *pModifyIE)
 {
-    int32_t  oui_length;
-    uint8_t  *ibss_ie = NULL;
+    int32_t oui_length;
+    uint8_t *ibss_ie = NULL;
+    uint8_t *vendor_ie;
+    #define MAC_VENDOR_OUI  "\x00\x16\x32"
+    #define MAC_VENDOR_SIZE 3
 
     ibss_ie = pModifyIE->pIEBuffer;
     oui_length = pModifyIE->oui_length;
@@ -6451,13 +6527,34 @@ limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
                   oui_length, ibss_ie);
         return FALSE;
     }
+    /*
+     * Why replace only beacon OUI data here:
+     * 1. other ie (such as wpa) shall not be overwritten here.
+     * 2. per spec, beacon oui ie might be set twice and original one
+     * shall be updated.
+     */
+    vendor_ie = cfg_get_vendor_ie_ptr_from_oui(pMac, MAC_VENDOR_OUI,
+                 MAC_VENDOR_SIZE, *pDstData_buff, *pDstDataLen);
 
-    limUpdateAddIEBuffer(pMac,
-                pDstData_buff,
-                pDstDataLen,
-                pModifyIE->pIEBuffer,
-                pModifyIE->ieBufferlength);
+    if (vendor_ie) {
+        VOS_ASSERT((vendor_ie[1] + 2) == pModifyIE->ieBufferlength);
+        vos_mem_copy(vendor_ie, pModifyIE->pIEBuffer,
+                     pModifyIE->ieBufferlength);
+    } else {
+        uint16_t new_length = pModifyIE->ieBufferlength + *pDstDataLen;
+        uint8_t *new_ptr = vos_mem_malloc(new_length);
 
+        if (NULL == new_ptr) {
+            limLog(pMac, LOGE, FL("Memory allocation failed."));
+            return FALSE;
+        }
+        vos_mem_copy(new_ptr, *pDstData_buff, *pDstDataLen);
+        vos_mem_copy(&new_ptr[*pDstDataLen], pModifyIE->pIEBuffer,
+                     pModifyIE->ieBufferlength);
+        vos_mem_free(*pDstData_buff);
+        *pDstDataLen = new_length;
+        *pDstData_buff = new_ptr;
+    }
     return TRUE;
 }
 

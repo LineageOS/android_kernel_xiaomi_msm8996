@@ -73,6 +73,7 @@
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
+#include <wlan_logging_sock_svc.h>
 
 /**-----------------------------------------------------------------------------
 *   Preprocessor definitions and constants
@@ -664,7 +665,7 @@ static int hdd_fill_ipv6_uc_addr(struct inet6_dev *idev,
 				sizeof(ifa->addr.s6_addr));
 			ipv6addr_type[*count] = SIR_IPV6_ADDR_UC_TYPE;
 			hddLog (LOG1,
-				FL("Index %d scope = %s Address: %pI6"),
+				FL("Index %d scope = %s UC-Address: %pI6"),
 				*count, (scope == IPV6_ADDR_SCOPE_LINKLOCAL) ?
 				"LINK LOCAL": "GLOBAL", ipv6_uc_addr[*count]);
 			*count += 1;
@@ -706,7 +707,7 @@ static int hdd_fill_ipv6_ac_addr(struct inet6_dev *idev,
 				sizeof(ifaca->aca_addr));
 			ipv6addr_type[*count] = SIR_IPV6_ADDR_AC_TYPE;
 			hddLog (LOG1,
-				FL("Index %d scope = %s Address: %pI6"),
+				FL("Index %d scope = %s AC-Address: %pI6"),
 				*count, (scope == IPV6_ADDR_SCOPE_LINKLOCAL) ?
 				"LINK LOCAL": "GLOBAL", ipv6_ac_addr[*count]);
 			*count += 1;
@@ -1942,6 +1943,9 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    vos_clear_concurrent_session_count();
 
+   hddLog(VOS_TRACE_LEVEL_INFO,
+           FL("Invoking packetdump deregistration API"));
+   wlan_deregister_txrx_packetdump();
 #ifdef FEATURE_BUS_BANDWIDTH
    if (VOS_TIMER_STATE_RUNNING ==
            vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))

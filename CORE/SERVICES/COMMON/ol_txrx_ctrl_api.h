@@ -927,6 +927,8 @@ struct txrx_pdev_cfg_param_t {
     u_int32_t uc_rx_indication_ring_count;
     /* IPA Micro controller data path offload TX partition base */
     u_int32_t uc_tx_partition_base;
+    uint16_t pkt_bundle_timer_value;
+    uint16_t pkt_bundle_size;
 };
 
 /**
@@ -1376,7 +1378,24 @@ void ol_txrx_set_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *pe
  */
 a_bool_t ol_txrx_get_ocb_peer(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t **peer);
 
+/**
+ * ol_txrx_set_ocb_def_tx_param() - Set the default OCB TX parameters
+ * @vdev: The OCB vdev that will use these defaults.
+ * @_def_tx_param: The default TX parameters.
+ * @def_tx_param_size: The size of the _def_tx_param buffer.
+ *
+ * Return: true if the default parameters were set correctly, false if there
+ * is an error, for example an invalid parameter. In the case that false is
+ * returned, see the kernel log for the error description.
+ */
+bool ol_txrx_set_ocb_def_tx_param(ol_txrx_vdev_handle vdev,
+	void *def_tx_param, uint32_t def_tx_param_size);
+
 void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
 void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
+
+void ol_rx_reset_pn_replay_counter(struct ol_txrx_pdev_t *pdev);
+uint32_t ol_rx_get_tkip_replay_counter(struct ol_txrx_pdev_t *pdev);
+uint32_t ol_rx_get_ccmp_replay_counter(struct ol_txrx_pdev_t *pdev);
 
 #endif /* _OL_TXRX_CTRL_API__H_ */

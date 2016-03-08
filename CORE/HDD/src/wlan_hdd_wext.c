@@ -109,12 +109,12 @@
 
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
+#include "vos_nvitem.h"
 
 #define HDD_FINISH_ULA_TIME_OUT         800
 #define HDD_SET_MCBC_FILTERS_TO_FW      1
 #define HDD_DELETE_MCBC_FILTERS_FROM_FW 0
 
-extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 static int ioctl_debug;
 module_param(ioctl_debug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -5606,12 +5606,34 @@ static int iw_set_mlme(struct net_device *dev, struct iw_request_info *info,
 }
 
 int process_wma_set_command(int sessid, int paramid,
-                                   int sval, int vpdev)
+                            int sval, int vpdev)
 {
     int ret = 0;
     vos_msg_t msg = {0};
 
-    wda_cli_set_cmd_t *iwcmd = (wda_cli_set_cmd_t *)vos_mem_malloc(
+    v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+    hdd_context_t *hdd_ctx;
+    wda_cli_set_cmd_t *iwcmd;
+
+    /* Skip session validation in FTM mode and for PDEV commands */
+    if (vpdev == PDEV_CMD || VOS_FTM_MODE == hdd_get_conparam())
+       goto skip_ftm;
+
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+    if (!hdd_ctx) {
+       hddLog(LOGE,FL("hdd context is not valid!"));
+       return -EINVAL;
+    }
+
+    if (vpdev != PDEV_CMD &&
+        VOS_STATUS_SUCCESS != sme_is_session_valid(hdd_ctx->hHal,
+                                                     sessid)) {
+       hddLog(LOGE, FL("SME session id is not valid %d"), sessid);
+       return -EINVAL;
+    }
+
+skip_ftm:
+    iwcmd = (wda_cli_set_cmd_t *)vos_mem_malloc(
                                 sizeof(wda_cli_set_cmd_t));
     if (NULL == iwcmd) {
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_mem_alloc failed", __func__);
@@ -5627,7 +5649,7 @@ int process_wma_set_command(int sessid, int paramid,
     msg.bodyptr = (void *)iwcmd;
     if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
                                                   &msg)) {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: "
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: "
                  "Not able to post wda_cli_set_cmd message to WDA",
                  __func__);
        vos_mem_free(iwcmd);
@@ -5641,7 +5663,29 @@ int process_wma_set_command_twoargs(int sessid, int paramid,
 {
     int ret = 0;
     vos_msg_t msg = {0};
-    wda_cli_set_cmd_t *iwcmd = vos_mem_malloc(sizeof(*iwcmd));
+    wda_cli_set_cmd_t *iwcmd;
+
+    v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+    hdd_context_t *hdd_ctx;
+    /* Skip session validation in FTM mode and for PDEV commands */
+    if (vpdev == PDEV_CMD || VOS_FTM_MODE == hdd_get_conparam())
+       goto skip_ftm;
+
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+
+    if (!hdd_ctx) {
+       hddLog(LOGE,FL("hdd context is not valid!"));
+       return -EINVAL;
+    }
+
+    if (VOS_STATUS_SUCCESS  != sme_is_session_valid(hdd_ctx->hHal,
+                                                     sessid)) {
+       hddLog(LOGE, FL("SME session id is not valid %d"), sessid);
+       return -EINVAL;
+    }
+
+skip_ftm:
+    iwcmd = vos_mem_malloc(sizeof(*iwcmd));
 
     if (NULL == iwcmd) {
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_mem_alloc failed!", __func__);
@@ -7560,6 +7604,12 @@ static int __iw_setnone_getint(struct net_device *dev,
     ret = wlan_hdd_validate_context(hdd_ctx);
     if (0 != ret)
         return ret;
+
+    if (VOS_STATUS_SUCCESS != sme_is_session_valid(hHal,
+                               pAdapter->sessionId)) {
+       hddLog(LOGE, FL("session id is not valid %d"), pAdapter->sessionId);
+       return -EINVAL;
+    }
 
     switch (value[0])
     {
@@ -10965,7 +11015,7 @@ int hdd_setBand(struct net_device *dev, u8 ui_band)
                      FL("Failed to set the band value to %u"), band);
              return -EINVAL;
         }
-        wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);
+        vos_update_band((eCsrBand)band);
     }
     EXIT();
     return 0;
