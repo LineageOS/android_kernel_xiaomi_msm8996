@@ -4276,15 +4276,14 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			}
 		}
 
+		vos_lock_release(&hdd_ipa->event_lock);
+
                 if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_STA_RX_DATA_OFFLOAD, 0);
 			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
 #endif
-#ifdef IPA_UC_OFFLOAD
-		vos_lock_release(&hdd_ipa->event_lock);
-#endif /* IPA_UC_OFFLOAD */
 		break;
 
 	case WLAN_AP_DISCONNECT:
@@ -4318,12 +4317,13 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			}
 		}
 
+		vos_lock_release(&hdd_ipa->event_lock);
+
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			hdd_ipa_uc_offload_enable_disable(adapter,
 				SIR_AP_RX_DATA_OFFLOAD, 0);
 			vdev_to_iface[adapter->sessionId] = HDD_IPA_MAX_IFACE;
 		}
-		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
 		break;
 
