@@ -28765,6 +28765,11 @@ VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
 		return VOS_STATUS_E_INVAL;
 	}
 
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invalid!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
 	wake_lock_stats->wow_ucast_wake_up_count =
 			wma_handle->wow_ucast_wake_up_count;
 	wake_lock_stats->wow_bcast_wake_up_count =
