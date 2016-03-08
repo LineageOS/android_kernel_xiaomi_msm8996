@@ -76,7 +76,9 @@
 #include "vos_utils.h"
 #include "wlan_qct_tl.h"
 #include "sysStartup.h"
+#include "pktlog_ac_fmt.h"
 
+static tp_pe_packetdump_cb gpe_packetdump_cb;
 
 static void __limInitScanVars(tpAniSirGlobal pMac)
 {
@@ -834,7 +836,7 @@ bool lim_is_assoc_req_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
 	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
 	session_entry = peFindSessionByBssid(mac, mac_hdr->bssId, &session_id);
 	if (!session_entry) {
-		PELOG1(limLog(pMac, LOG1,
+		PELOG1(limLog(mac, LOG1,
 			FL("session does not exist for given STA [%pM]"),
 			mac_hdr->sa););
 		return false;
@@ -843,7 +845,7 @@ bool lim_is_assoc_req_for_drop(tpAniSirGlobal mac, uint8_t *rx_pkt_info)
 	sta_ds = dphLookupHashEntry(mac, mac_hdr->sa, &aid,
 				&session_entry->dph.dphHashTable);
 	if (!sta_ds) {
-		PELOG1(limLog(pMac, LOG1, FL("pStaDs is NULL")););
+		PELOG1(limLog(mac, LOG1, FL("pStaDs is NULL")););
 		return false;
 	}
 
@@ -1306,6 +1308,21 @@ limPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
 } /*** end limPostMsgApi() ***/
 
+/**
+ * lim_post_msg_high_pri() - posts high priority pe message
+ * @mac: mac context
+ * @msg: message to be posted
+ *
+ * This function is used to post high priority pe message
+ *
+ * Return: returns value returned by vos_mq_post_message_by_priority
+ */
+uint32_t
+lim_post_msg_high_pri(tpAniSirGlobal mac, tSirMsgQ *msg)
+{
+	return vos_mq_post_message_by_priority(VOS_MQ_ID_PE, (vos_msg_t *)msg,
+					       HIGH_PRIORITY);
+}
 
 /*--------------------------------------------------------------------------
 
@@ -1436,6 +1453,10 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
            limLog(pMac, LOG1, FL("offloadScanLearn %d"),
                   WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo));
 #endif
+
+    if ((mHdr->fc.subType != SIR_MAC_MGMT_BEACON) && gpe_packetdump_cb)
+        gpe_packetdump_cb(pVosPkt->pkt_buf, VOS_STATUS_SUCCESS,
+                                   pVosPkt->pkt_meta.sessionId, RX_MGMT_PKT);
     }
 
 
@@ -2092,6 +2113,12 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         limMissedBeaconInActiveMode(pMac, psessionEntry);
     }
 #endif
+    if (pMac->pmm.inMissedBeaconScenario == TRUE) {
+        limLog(pMac, LOGW,
+               FL("beacon miss handling is already going on for BSSIdx:%d"),
+               pSirMissedBeaconInd->bssIdx);
+        return;
+    }
     else
     {
         limLog(pMac, LOGE,
@@ -2767,4 +2794,33 @@ eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe)
         }
     }
     return (status);
+}
+
+/**
+ * pe_register_packetdump_callback() - stores rx packet dump
+ * callback handler
+ * @pe_packetdump_cb: packetdump cb
+ *
+ * This function is used to store rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void pe_register_packetdump_callback(tp_pe_packetdump_cb pe_packetdump_cb)
+{
+	gpe_packetdump_cb = pe_packetdump_cb;
+}
+
+/**
+ * pe_deregister_packetdump_callback() - removes tx packet dump
+ * callback handler
+ *
+ * This function is used to remove rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void pe_deregister_packetdump_callback(void)
+{
+	gpe_packetdump_cb = NULL;
 }

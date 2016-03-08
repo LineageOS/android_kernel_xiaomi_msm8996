@@ -747,7 +747,7 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     }
 
     /* If STA and mimo power save is enabled include ht smps */
-    if (psessionEntry && (!pMac->lteCoexAntShare) &&
+    if (psessionEntry &&
         LIM_IS_STA_ROLE(psessionEntry) &&
         (psessionEntry->enableHtSmps) &&
         (!psessionEntry->supported_nss_1x1)) {
@@ -3681,6 +3681,11 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     pBeaconStruct->Vendor1IEPresent = pBies->Vendor1IE.present;
     pBeaconStruct->Vendor2IEPresent = pBies->Vendor2IE.present;
     pBeaconStruct->Vendor3IEPresent = pBies->Vendor3IE.present;
+    if (pBies->ExtCap.present) {
+        pBeaconStruct->ExtCap.present = 1;
+        vos_mem_copy( &pBeaconStruct->ExtCap, &pBies->ExtCap,
+                sizeof(tDot11fIEExtCap));
+    }
 
     vos_mem_free(pBies);
     return eSIR_SUCCESS;
@@ -4513,10 +4518,10 @@ sirConvertQosMapConfigureFrame2Struct(tpAniSirGlobal    pMac,
     tDot11fQosMapConfigure mapConfigure;
     tANI_U32 status;
     status = dot11fUnpackQosMapConfigure(pMac, pFrame, nFrame, &mapConfigure);
-    if ( DOT11F_FAILED( status ) )
+    if ( DOT11F_FAILED( status ) || !mapConfigure.QosMapSet.present )
     {
         dot11fLog(pMac, LOGE,
-                  FL("Failed to parse Qos Map Config frame(0x%08x, %d bytes):"),
+                  FL("Failed to parse or QosMapSet not present(0x%08x, %d bytes):"),
                   status, nFrame);
         PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pFrame, nFrame);)
         return eSIR_FAILURE;

@@ -84,7 +84,7 @@
 #define WMA_TGT_WOW_TX_COMPLETE_TIMEOUT    2000
 #define MAX_MEM_CHUNKS                     32
 #define WMA_CRASH_INJECT_TIMEOUT           5000
-
+#define WMA_RESET_MAX_RATE                 10
 /*
    In prima 12 HW stations are supported including BCAST STA(staId 0)
    and SELF STA(staId 1) so total ASSOC stations which can connect to Prima
@@ -574,6 +574,8 @@ struct wma_txrx_node {
 	uint8_t nss_5g;
 
 	uint8_t wep_default_key_idx;
+	bool is_vdev_valid;
+
 };
 
 #if defined(QCA_WIFI_FTM)
@@ -1709,5 +1711,17 @@ int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 uint32_t wma_get_vht_ch_width(void);
 
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
+
+/**
+ * struct wma_version_info - Store wmi version info
+ * @major: wmi major version
+ * @minor: wmi minor version
+ * @revision: wmi revision number
+ */
+struct wma_version_info {
+	u_int32_t major;
+	u_int32_t minor;
+	u_int32_t revision;
+};
 
 #endif

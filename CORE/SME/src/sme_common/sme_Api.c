@@ -12119,15 +12119,16 @@ eHalStatus sme_UpdateTdlsPeerState(tHalHandle hHal,
                                          csrGetCfgMaxTxPower(pMac, chanId);
 
                if (vos_nv_getChannelEnabledState(chanId) == NV_CHANNEL_DFS)
-               {
-                   pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
-                                                                  VOS_TRUE;
-               }
+                   continue;
                else
                {
                    pTdlsPeerStateParams->peerCap.peerChan[num].dfsSet =
                                                                   VOS_FALSE;
                }
+
+               if (vos_nv_skip_dsrc_dfs_2g(chanId, NV_CHANNEL_SKIP_DSRC))
+                   continue;
+
                num++;
            }
        }
@@ -13344,7 +13345,8 @@ static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src
 		src->channel_count * sizeof(*src->channels) +
 		src->schedule_size * sizeof(*src->schedule) +
 		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len;
+		src->dcc_ndl_active_state_list_len +
+		src->def_tx_param_size;
 
 	dst = vos_mem_malloc(length);
 	if (!dst)
@@ -13371,6 +13373,13 @@ static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src
 	vos_mem_copy(dst->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list_len);
+	cursor += src->dcc_ndl_active_state_list_len;
+	if (src->def_tx_param && src->def_tx_param_size) {
+		dst->def_tx_param = cursor;
+		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
+			     src->def_tx_param_size);
+	}
+
 	return dst;
 }
 
@@ -18168,13 +18177,14 @@ eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 			FL("Failed to alloc set_offload"));
 		return eHAL_STATUS_FAILED_ALLOC;
 	}
+	vos_mem_zero(set_offload, sizeof(*set_offload));
 
 	set_offload->session_id = req->session_id;
 	set_offload->filter_id = req->filter_id;
 	set_offload->current_offset = req->current_offset;
 	set_offload->total_length = req->total_length;
+	set_offload->current_length = req->current_length;
 	if (set_offload->total_length) {
-		set_offload->current_length = req->current_length;
 		set_offload->program = vos_mem_malloc(sizeof(uint8_t) *
 						req->current_length);
 		vos_mem_copy(set_offload->program, req->program,
@@ -18343,4 +18353,255 @@ void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val)
 		((tpRRMCaps)mac_ctx->rrm.rrmSmeContext.
 			rrmConfig.rm_capability)->fine_time_meas_rpt = 1;
 	}
+}
+
+eHalStatus sme_update_txrate(tHalHandle hal,
+			struct sir_txrate_update *req)
+{
+	eHalStatus          status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac_ctx    = PMAC_STRUCT(hal);
+	vos_msg_t           vos_msg;
+	struct sir_txrate_update *txrate_update;
+
+	smsLog(mac_ctx, LOG1, FL("enter"));
+
+	txrate_update = vos_mem_malloc(sizeof(*txrate_update));
+	if (NULL == txrate_update) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to alloc txrate_update"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	txrate_update->session_id = req->session_id;
+	txrate_update->txrate = req->txrate;
+	vos_mem_copy(txrate_update->bssid, req->bssid, VOS_MAC_ADDR_SIZE);
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = txrate_update;
+		vos_msg.type = WDA_UPDATE_TX_RATE;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("Post Update tx_rate msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(txrate_update);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(txrate_update);
+	}
+	smsLog(mac_ctx, LOG1, FL("exit"));
+	return status;
+}
+
+/**
+ * sme_delete_all_tdls_peers: send request to delete tdls peers
+ * @hal: handler for HAL
+ * @sessionId: session id
+ *
+ * Functtion send's request to lim to delete tdls peers
+ *
+ * Return: Success: eHAL_STATUS_SUCCESS Failure: Error value
+ */
+eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id)
+{
+	struct sir_del_all_tdls_peers *msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal p_mac = PMAC_STRUCT(hal);
+	tCsrRoamSession *session = CSR_GET_SESSION(p_mac, session_id);
+
+	msg = vos_mem_malloc(sizeof(*msg));
+	if (NULL == msg) {
+		smsLog(p_mac, LOGE, FL("memory alloc failed"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	vos_mem_set(msg, sizeof(*msg), 0);
+
+	msg->msg_type = pal_cpu_to_be16((uint16_t)eWNI_SME_DEL_ALL_TDLS_PEERS);
+	msg->msg_len =  pal_cpu_to_be16((uint16_t)sizeof(*msg));
+
+	vos_mem_copy(msg->bssid, session->connectedProfile.bssid,
+			sizeof(tSirMacAddr));
+
+	status = palSendMBMessage(p_mac->hHdd, msg);
+
+	if(status != eHAL_STATUS_SUCCESS) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("palSendMBMessage Failed"));
+		status = eHAL_STATUS_FAILURE;
+	}
+
+	return status;
+}
+
+/**
+ * sme_set_beacon_filter() - set the beacon filter configuration
+ * @vdev_id: vdev index id
+ * @ie_map: bitwise array of IEs
+ *
+ * Return: Return VOS_STATUS, otherwise appropriate failure code
+ */
+VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct beacon_filter_param *filter_param;
+
+	filter_param = vos_mem_malloc(sizeof(*filter_param));
+	if (NULL == filter_param) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc filter_param", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	filter_param->vdev_id = vdev_id;
+
+	vos_mem_copy(filter_param->ie_map, ie_map,
+			BCN_FLT_MAX_ELEMS_IE_LIST*sizeof(uint32_t));
+
+	vos_message.type = WDA_ADD_BCN_FILTER_CMDID;
+	vos_message.bodyptr = filter_param;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Not able to post msg to WDA!",
+			__func__);
+
+		vos_mem_free(filter_param);
+	}
+	return vos_status;
+}
+
+/**
+ * sme_unset_beacon_filter() - set the beacon filter configuration
+ * @vdev_id: vdev index id
+ *
+ * Return: Return VOS_STATUS, otherwise appropriate failure code
+ */
+VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct beacon_filter_param *filter_param;
+
+	filter_param = vos_mem_malloc(sizeof(*filter_param));
+	if (NULL == filter_param) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc filter_param", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	filter_param->vdev_id = vdev_id;
+
+	vos_message.type = WDA_REMOVE_BCN_FILTER_CMDID;
+	vos_message.bodyptr = filter_param;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Not able to post msg to WDA!",
+			__func__);
+
+		vos_mem_free(filter_param);
+	}
+	return vos_status;
+}
+
+
+/**
+ * sme_send_disassoc_req_frame - send disassoc req
+ * @hal: handler to hal
+ * @session_id: session id
+ * @peer_mac: peer mac address
+ * @reason: reason for disassociation
+ * wait_for_ack: wait for acknowledgment
+ *
+ * function to send disassoc request to lim
+ *
+ * return: none
+ */
+void sme_send_disassoc_req_frame(tHalHandle hal, uint8_t session_id,
+	uint8_t *peer_mac, uint16_t reason, uint8_t wait_for_ack)
+{
+	struct sme_send_disassoc_frm_req *msg;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal p_mac = PMAC_STRUCT(hal);
+	tANI_U8 *buf;
+	tANI_U16 tmp;
+
+	msg = vos_mem_malloc(sizeof(struct sme_send_disassoc_frm_req));
+
+	if (NULL == msg)
+		status = eHAL_STATUS_FAILURE;
+	else
+		status = eHAL_STATUS_SUCCESS;
+	if (!HAL_STATUS_SUCCESS(status))
+		return;
+
+	vos_mem_set(msg, sizeof(struct sme_send_disassoc_frm_req), 0);
+	msg->msg_type = pal_cpu_to_be16((tANI_U16)eWNI_SME_SEND_DISASSOC_FRAME);
+
+	msg->length =
+	    pal_cpu_to_be16((tANI_U16)sizeof(struct sme_send_disassoc_frm_req));
+
+	buf = &msg->session_id;
+
+	/* session id */
+	*buf = (tANI_U8) session_id;
+	buf += sizeof(tANI_U8);
+
+	/* transaction id */
+	*buf = 0;
+	*(buf + 1) = 0;
+	buf += sizeof(tANI_U16);
+
+	/* Set the peer MAC address before sending the message to LIM */
+	vos_mem_copy(buf, peer_mac, VOS_MAC_ADDR_SIZE);
+
+	buf += VOS_MAC_ADDR_SIZE;
+
+	/* reasoncode */
+	tmp = pal_cpu_to_be16(reason);
+	vos_mem_copy(buf, &tmp, sizeof(tANI_U16));
+	buf += sizeof(tANI_U16);
+
+	*buf =  wait_for_ack;
+	buf += sizeof(tANI_U8);
+
+	status = palSendMBMessage(p_mac->hHdd, msg );
+
+	if(status != eHAL_STATUS_SUCCESS)
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("palSendMBMessage Failed"));
+}
+
+/*
+ *  sme_is_session_valid(): verify a sme session
+ *  @param hal_handle: hal handle for getting global mac struct.
+ *  @param session_id: sme_session_id
+ *  Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+
+	if (NULL == mac_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("mac_ctx is null!!"));
+	        VOS_ASSERT(0);
+	        return VOS_STATUS_E_FAILURE;
+	}
+	if (CSR_IS_SESSION_VALID(mac_ctx, session_id))
+	        return VOS_STATUS_SUCCESS;
+
+	return VOS_STATUS_E_FAILURE;
 }

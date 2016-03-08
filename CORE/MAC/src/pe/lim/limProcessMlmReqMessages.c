@@ -891,7 +891,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc == eSIR_SUCCESS) {
-        PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%x nextState=%d"),
+        PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%p nextState=%d"),
                     pMac, pMac->lim.gLimHalScanState);)
             return;
     }
@@ -1334,7 +1334,7 @@ limRestorePreScanState(tpAniSirGlobal pMac)
     }
 
     pMac->lim.gLimSystemInScanLearnMode = 0;
-    PELOG1(limLog(pMac, LOG1, FL("Scan ended, took %d tu"), (tx_time_get() - pMac->lim.scanStartTime));)
+    PELOG1(limLog(pMac, LOG1, FL("Scan ended, took %lu tu"), (tx_time_get() - pMac->lim.scanStartTime));)
 } /*** limRestorePreScanState() ***/
 
 #ifdef FEATURE_OEM_DATA_SUPPORT

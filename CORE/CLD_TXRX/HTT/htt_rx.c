@@ -48,6 +48,7 @@
 #include <ol_cfg.h>
 #include <ol_rx.h>
 #include <ol_htt_rx_api.h>
+#include <ol_txrx_peer_find.h>
 #include <htt_internal.h> /* HTT_ASSERT, htt_pdev_t, HTT_RX_BUF_SIZE */
 #include "regtable.h"
 
@@ -62,6 +63,9 @@
 #include <asm/system.h>
 #endif
 #endif
+#include <pktlog_ac_fmt.h>
+
+static tp_htt_packetdump_cb ghtt_packetdump_cb;
 
 #ifdef DEBUG_DMA_DONE
 extern int process_wma_set_command(int sessid, int paramid,
@@ -1905,6 +1909,18 @@ htt_rx_amsdu_rx_in_order_pop_ll(
 
         msdu_count--;
 
+        if (ghtt_packetdump_cb) {
+            uint8_t status = RX_PKT_FATE_SUCCESS;
+            uint16_t peer_id =
+              HTT_RX_IN_ORD_PADDR_IND_PEER_ID_GET(*(u_int32_t *)rx_ind_data);
+            struct ol_txrx_peer_t *peer =
+              ol_txrx_peer_find_by_id(pdev->txrx_pdev, peer_id);
+            if (adf_os_unlikely((*((u_int8_t *) &rx_desc->fw_desc.u.val)) &
+                             FW_RX_DESC_MIC_ERR_M))
+                 status = RX_PKT_FATE_FW_DROP_INVALID;
+            ghtt_packetdump_cb(msdu, status, peer->vdev->vdev_id, RX_DATA_PKT);
+        }
+
         if (adf_os_unlikely((*((u_int8_t *) &rx_desc->fw_desc.u.val)) &
                              FW_RX_DESC_MIC_ERR_M)) {
             u_int8_t tid =
@@ -3361,3 +3377,31 @@ int htt_rx_ipa_uc_detach(struct htt_pdev_t *pdev)
 }
 #endif /* IPA_UC_OFFLOAD */
 
+/**
+ * htt_register_packetdump_callback() - stores rx packet dump
+ * callback handler
+ * @htt_packetdump_cb: packetdump cb
+ *
+ * This function is used to store rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void htt_register_packetdump_callback(tp_htt_packetdump_cb htt_packetdump_cb)
+{
+	ghtt_packetdump_cb = htt_packetdump_cb;
+}
+
+/**
+ * htt_deregister_packetdump_callback() - removes rx packet dump
+ * callback handler
+ *
+ * This function is used to remove rx packet dump callback
+ *
+ * Return: None
+ *
+ */
+void htt_deregister_packetdump_callback(void)
+{
+	ghtt_packetdump_cb = NULL;
+}

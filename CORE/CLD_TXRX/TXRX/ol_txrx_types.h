@@ -191,9 +191,9 @@ struct ol_tx_desc_t {
 	/* used by tx encap, to restore the os buf start offset after tx complete*/
 	u_int8_t orig_l2_hdr_bytes;
 #endif
-#if defined(CONFIG_HL_SUPPORT)
+
 	struct ol_txrx_vdev_t* vdev;
-#endif
+
 	void *txq;
 	void *p_link;
 	uint16_t id;
@@ -605,6 +605,8 @@ struct ol_txrx_pdev_t {
 		int len;
 	} rx_pn[htt_num_sec_types];
 
+	uint32_t pn_replays[OL_RX_NUM_PN_REPLAY_TYPES];
+
 	/* tx mutex */
 	OL_TX_MUTEX_TYPE tx_mutex;
 
@@ -835,6 +837,7 @@ struct ol_txrx_pdev_t {
 	unsigned int num_descs_per_page;
 	void **desc_pages;
 	struct ol_txrx_peer_t *self_peer;
+	uint32_t total_bundle_queue_length;
 };
 
 struct ol_txrx_ocb_chan_info {
@@ -928,6 +931,17 @@ struct ol_txrx_vdev_t {
 	u_int16_t tx_fl_hwm;
 	ol_txrx_tx_flow_control_fp osif_flow_control_cb;
 
+	bool bundling_reqired;
+	struct {
+		struct {
+			adf_nbuf_t head;
+			adf_nbuf_t tail;
+			int depth;
+		} txq;
+		adf_os_spinlock_t mutex;
+		adf_os_timer_t timer;
+	} bundle_queue;
+
 #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
         union ol_txrx_align_mac_addr_t hl_tdls_ap_mac_addr;
         bool hlTdlsFlag;
@@ -950,6 +964,9 @@ struct ol_txrx_vdev_t {
 	/* Information about the schedules in the schedule */
 	struct ol_txrx_ocb_chan_info *ocb_channel_info;
 	uint32_t ocb_channel_count;
+
+	/* Default OCB TX parameter */
+	struct ocb_tx_ctrl_hdr_t *ocb_def_tx_param;
 };
 
 struct ol_rx_reorder_array_elem_t {

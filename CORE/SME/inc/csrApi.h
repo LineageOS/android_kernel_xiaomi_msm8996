@@ -1567,6 +1567,7 @@ typedef struct tagCsrLinkEstablishParams
     tSirMacAddr peerMac;
     tANI_U8 uapsdQueues;
     tANI_U8 maxSp;
+    uint8_t qos;
     tANI_U8 isBufSta;
     tANI_U8 isOffChannelSupported;
     tANI_U8 isResponder;
@@ -1867,4 +1868,5 @@ typedef void (*csr_mib_stats_callback)
  * Return: void
  */
 typedef void (*tcsr_fw_state_callback)(void *context);
+void csr_packetdump_timer_stop(void);
 #endif

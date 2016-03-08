@@ -1379,7 +1379,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, true);  //need to response to hdd
             break;
-
+        case eWNI_SME_SEND_DISASSOC_FRAME:
+            /* Need to response to hdd */
+            limProcessNormalHddMsg(pMac, limMsg, true);
+            break;
         case eWNI_SME_SCAN_ABORT_IND:
           {
             tSirMbMsg *pMsg = limMsg->bodyptr;
@@ -2192,6 +2195,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         lim_sap_offload_del_sta(pMac, limMsg);
         break;
 #endif /* SAP_AUTH_OFFLOAD */
+
+    case eWNI_SME_DEL_ALL_TDLS_PEERS:
+        lim_process_sme_del_all_tdls_peers(pMac, limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

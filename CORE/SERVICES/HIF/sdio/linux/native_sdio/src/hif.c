@@ -671,6 +671,269 @@ HIFReadWrite(HIF_DEVICE *device,
 
     return status;
 }
+
+/**
+ * _hif_free_bus_request() - Free the bus access request
+ * @device:    device handle.
+ * @request:   bus access request.
+ *
+ * This is the legacy method to handle an asynchronous bus request.
+ *
+ * Return: None.
+ */
+static inline void _hif_free_bus_request(HIF_DEVICE *device,
+				BUS_REQUEST *request)
+{
+	A_STATUS status = request->status;
+	void *context = request->context;
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+		("AR6000: async_task freeing req: 0x%lX\n",
+		(unsigned long)request));
+	hifFreeBusRequest(device, request);
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+		("AR6000: async_task completion routine req: 0x%lX\n",
+		(unsigned long)request));
+	device->htcCallbacks.rwCompletionHandler(context, status);
+}
+
+#ifdef TX_COMPLETION_THREAD
+/**
+ * add_to_tx_completion_list() - Queue a TX completion handler
+ * @device:    context to the hif device.
+ * @tx_comple: SDIO bus access request.
+ *
+ * This function adds an sdio bus access request to the
+ * TX completion list.
+ *
+ * Return: No return.
+ */
+static void add_to_tx_completion_list(HIF_DEVICE *device,
+		BUS_REQUEST *tx_comple)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&device->tx_completion_lock, flags);
+	tx_comple->inusenext = NULL;
+	*device->last_tx_completion = tx_comple;
+	device->last_tx_completion = &tx_comple->inusenext;
+	spin_unlock_irqrestore(&device->tx_completion_lock, flags);
+}
+
+/**
+ * tx_clean_completion_list() - Clean the TX completion request list
+ * @device:  HIF device handle.
+ *
+ * Function to clean the TX completion list.
+ *
+ * Return: No
+ */
+static void tx_clean_completion_list(HIF_DEVICE *device)
+{
+	unsigned long flags;
+	BUS_REQUEST *comple;
+	BUS_REQUEST *request;
+
+	spin_lock_irqsave(&device->tx_completion_lock, flags);
+	request = device->tx_completion_req;
+	device->tx_completion_req = NULL;
+	device->last_tx_completion = &device->tx_completion_req;
+	spin_unlock_irqrestore(&device->tx_completion_lock, flags);
+
+	while (request != NULL) {
+		comple = request->inusenext;
+		_hif_free_bus_request(device, request);
+		request = comple;
+	}
+
+}
+
+/**
+ * tx_completion_task() - Thread to process TX completion
+ * @param:   context to the hif device.
+ *
+ * This is the TX completion thread.
+ *
+ * Once TX completion message is received, completed TX
+ * request will be queued in a tx_comple list and processed
+ * in this thread.
+ *
+ * Return: 0 thread exits
+ */
+static int tx_completion_task(void *param)
+{
+	HIF_DEVICE *device;
+
+	device = (HIF_DEVICE *)param;
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: tx completion task\n"));
+	set_current_state(TASK_INTERRUPTIBLE);
+
+	while (!device->tx_completion_shutdown) {
+		if (down_interruptible(&device->sem_tx_completion) != 0) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+				("%s: tx completion task interrupted\n",
+				 __func__));
+			break;
+		}
+
+		if (device->tx_completion_shutdown) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+				("%s: tx completion task stopping\n",
+				 __func__));
+			break;
+		}
+
+		while (device->tx_completion_req != NULL)
+			tx_clean_completion_list(device);
+	}
+
+	while (device->tx_completion_req != NULL)
+		tx_clean_completion_list(device);
+
+	complete_and_exit(&device->tx_completion_exit, 0);
+	return 0;
+}
+
+/**
+ * tx_completion_sem_init() - initialize tx completion semaphore
+ * @device:  device handle.
+ *
+ * Initialize semaphore for TX completion thread's synchronization.
+ *
+ * Return: None.
+ */
+static inline void tx_completion_sem_init(HIF_DEVICE *device)
+{
+	sema_init(&device->sem_tx_completion, 0);
+}
+
+/**
+ * hif_free_bus_request() - Function to free bus requests
+ * @device:    device handle.
+ * @request:   SIDO bus access request.
+ *
+ * If there is an completion thread, all the completed bus access requests
+ * will be queued in a completion list. Otherwise, the legacy handler will
+ * be called.
+ *
+ * Return: None.
+ */
+static inline void hif_free_bus_request(HIF_DEVICE *device,
+			BUS_REQUEST *request)
+{
+	if (!device->tx_completion_shutdown) {
+		add_to_tx_completion_list(device, request);
+		up(&device->sem_tx_completion);
+	} else {
+		_hif_free_bus_request(device, request);
+	}
+}
+
+/**
+ * hif_start_tx_completion_thread() - Create and start the TX compl thread
+ * @device:   device handle.
+ *
+ * This function will create the tx completion thread.
+ *
+ * Return: A_OK     thread created.
+ *         A_ERROR  thread not created.
+ */
+static inline int hif_start_tx_completion_thread(HIF_DEVICE *device)
+{
+	if (!device->tx_completion_task) {
+		device->tx_completion_req = NULL;
+		device->last_tx_completion = &device->tx_completion_req;
+		device->tx_completion_shutdown = 0;
+		device->tx_completion_task = kthread_create(tx_completion_task,
+			(void *)device,	"AR6K TxCompletion");
+		if (IS_ERR(device->tx_completion_task)) {
+			device->tx_completion_shutdown = 1;
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+			("AR6000: fail to create tx_comple task\n"));
+			device->tx_completion_task = NULL;
+			return A_ERROR;
+		}
+		AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+			("AR6000: start tx_comple task\n"));
+		wake_up_process(device->tx_completion_task);
+	}
+	return A_OK;
+}
+
+/*
+ * hif_stop_tx_completion_thread() - Destroy the tx compl thread
+ * @device: device handle.
+ *
+ * This function will destroy the TX completion thread.
+ *
+ * Return: None.
+ */
+static inline void hif_stop_tx_completion_thread(HIF_DEVICE *device)
+{
+	if (device->tx_completion_task) {
+		init_completion(&device->tx_completion_exit);
+		device->tx_completion_shutdown = 1;
+		up(&device->sem_tx_completion);
+		wait_for_completion(&device->tx_completion_exit);
+		device->tx_completion_task = NULL;
+		sema_init(&device->sem_tx_completion, 0);
+	}
+}
+
+#else
+
+/**
+ * tx_completion_sem_init() - Dummy func to initialize semaphore
+ * @device: device handle.
+ *
+ * This is a dummy function when TX compl thread is not created.
+ *
+ * Return: None.
+ */
+static inline void tx_completion_sem_init(HIF_DEVICE *device)
+{
+}
+
+/**
+ * hif_free_bus_request() - Free the bus access request
+ * @device:    device handle.
+ * @request:   bus access request.
+ *
+ * Just call the legacy handler when there is no additional completion thread.
+ *
+ * Return: None.
+ */
+static inline void hif_free_bus_request(HIF_DEVICE *device,
+			BUS_REQUEST *request)
+{
+	_hif_free_bus_request(device, request);
+}
+
+/**
+ * hif_start_tx_completion_thread() - Dummy function to start tx_compl thread.
+ * @device:   device handle.
+ *
+ * Dummy function when tx completion thread is not created.
+ *
+ * Return: None.
+ */
+static inline void hif_start_tx_completion_thread(HIF_DEVICE *device)
+{
+}
+
+/**
+ * hif_stop_tx_completion_thread() - Dummy function to stop tx_compl thread.
+ * @device:   device handle.
+ *
+ * Dummy function when tx conpletion thread is not created.
+ *
+ * Return: None.
+ */
+static inline void hif_stop_tx_completion_thread(HIF_DEVICE *device)
+{
+}
+#endif
+
 /* thread to serialize all requests, both sync and async */
 static int async_task(void *param)
  {
@@ -738,11 +1001,8 @@ static int async_task(void *param)
                 status = __HIFReadWrite(device, request->address, request->buffer,
                                       request->length, request->request & ~HIF_SYNCHRONOUS, NULL);
                 if (request->request & HIF_ASYNCHRONOUS) {
-                    void *context = request->context;
-                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async_task freeing req: 0x%lX\n", (unsigned long)request));
-                    hifFreeBusRequest(device, request);
-                    AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async_task completion routine req: 0x%lX\n", (unsigned long)request));
-                    device->htcCallbacks.rwCompletionHandler(context, status);
+                    request->status = status;
+                    hif_free_bus_request(device, request);
                 } else {
                     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async_task upping req: 0x%lX\n", (unsigned long)request));
                     request->status = status;
@@ -1531,6 +1791,7 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             hifFreeBusRequest(device, &device->busRequest[count]);
         }
         sema_init(&device->sem_async, 0);
+        tx_completion_sem_init(device);
     }
 #ifdef HIF_MBOX_SLEEP_WAR
     adf_os_timer_init(NULL, &device->sleep_timer,
@@ -1664,6 +1925,9 @@ static A_STATUS hifDisableFunc(HIF_DEVICE *device, struct sdio_func *func)
 
     ENTER();
     device = getHifDevice(func);
+
+    hif_stop_tx_completion_thread(device);
+
     if (device->async_task) {
         init_completion(&device->async_completion);
         device->async_shutdown = 1;
@@ -1814,6 +2078,8 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
             return A_ERROR;
         }
         device->is_disabled = FALSE;
+        hif_start_tx_completion_thread(device);
+
         /* create async I/O thread */
         if (!device->async_task) {
             device->async_shutdown = 0;
@@ -2159,6 +2425,10 @@ static void hifDeviceRemoved(struct sdio_func *func)
     ENTER();
 
     device = getHifDevice(func);
+    if (!device) {
+        pr_err("%s: Failed to get the sdio driver private data\n", __func__);
+        return;
+    }
 
     if (device->powerConfig == HIF_DEVICE_POWER_CUT) {
         device->func = NULL; /* func will be free by mmc stack */
@@ -2473,8 +2743,7 @@ static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_devi
 
 static void hif_sdio_device_shutdown(struct sdio_func *func)
 {
-	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-	vos_set_crash_indication_pending(true);
+	vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
 	if (func != NULL)
 		hifDeviceRemoved(func);

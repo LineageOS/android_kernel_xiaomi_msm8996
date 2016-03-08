@@ -4096,6 +4096,8 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
 			void (*pbpf_get_offload_cb)(void *,
 			struct sir_bpf_get_offload *));
+VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map);
+VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id);
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /* ---------------------------------------------------------------------------
@@ -4522,5 +4524,14 @@ eHalStatus sme_get_mib_stats(tHalHandle hal,
 				void *context, void *vos_context,
 				uint8_t session_id);
 void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val);
+
+eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id);
+
+eHalStatus sme_update_txrate(tHalHandle hal, struct sir_txrate_update *req);
+
+void sme_send_disassoc_req_frame(tHalHandle hal, uint8_t session_id,
+		uint8_t *peer_mac, tANI_U16 reason, uint8_t wait_for_ack);
+
+VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id);
 
 #endif //#if !defined( __SME_API_H )
