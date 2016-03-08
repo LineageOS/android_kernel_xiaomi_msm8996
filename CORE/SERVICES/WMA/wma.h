@@ -1779,4 +1779,8 @@ struct wma_version_info {
 void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 			u_int8_t vdev_id, ol_txrx_peer_handle peer,
 			v_BOOL_t roam_synch_in_progress);
+
+void wma_add_wow_wakeup_event(tp_wma_handle wma, WOW_WAKE_EVENT_TYPE event,
+			bool enable);
+
 #endif
