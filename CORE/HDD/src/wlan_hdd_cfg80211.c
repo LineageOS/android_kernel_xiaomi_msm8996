@@ -1708,17 +1708,19 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     }
     max_feature_sets = nla_get_u32(
      tb[QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_CONFIG_PARAM_SET_SIZE_MAX]);
-    hddLog(LOG1, FL("Max feature set size (%d)"), max_feature_sets);
+    hddLog(LOG1, FL("Max feature set size: %d"), max_feature_sets);
 
     /* Fill feature combination matrix */
     feature_sets = 0;
     feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
                                          WIFI_FEATURE_P2P;
+    feature_set_matrix[feature_sets++] = WIFI_FEATURE_INFRA |
+                                         WIFI_FEATURE_NAN;
 
     /* Add more feature combinations here */
 
     feature_sets = VOS_MIN(feature_sets, max_feature_sets);
-    hddLog(LOG1, FL("Number of feature sets (%d)"), feature_sets);
+    hddLog(LOG1, FL("Number of feature sets: %d"), feature_sets);
     hddLog(LOG1, "Feature set matrix");
     for (i = 0; i < feature_sets; i++)
         hddLog(LOG1, "[%d] 0x%02X", i, feature_set_matrix[i]);
