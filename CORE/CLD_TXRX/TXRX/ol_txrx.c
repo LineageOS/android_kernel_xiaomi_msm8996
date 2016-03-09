@@ -418,6 +418,9 @@ ol_txrx_pdev_attach(
         goto fail2;
     }
 
+    htt_register_rx_pkt_dump_callback(pdev->htt_pdev,
+                          ol_rx_pkt_dump_call);
+
     adf_os_mem_zero(pdev->pn_replays,
                     OL_RX_NUM_PN_REPLAY_TYPES * sizeof(uint32_t));
 
@@ -920,6 +923,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
         TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "Force delete for pdev %p\n", pdev);
         ol_txrx_peer_find_hash_erase(pdev);
     }
+
+    htt_deregister_rx_pkt_dump_callback(pdev->htt_pdev);
 
     /* Stop the communication between HTT and target at first */
     htt_detach_target(pdev->htt_pdev);

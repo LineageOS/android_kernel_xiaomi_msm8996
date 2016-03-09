@@ -588,6 +588,10 @@ struct ol_txrx_pdev_t {
 		} callbacks[OL_TXRX_MGMT_NUM_TYPES];
 	} tx_mgmt;
 
+	/* packetdump callback functions */
+	tp_ol_packetdump_cb ol_tx_packetdump_cb;
+	tp_ol_packetdump_cb ol_rx_packetdump_cb;
+
 	/* tx descriptor pool */
 	struct {
 		u_int16_t pool_size;
