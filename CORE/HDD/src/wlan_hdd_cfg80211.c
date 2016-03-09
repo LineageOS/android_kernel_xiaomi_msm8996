@@ -12718,6 +12718,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     WLANSAP_Set_Dfs_Ignore_CAC(hHal, iniConfig->ignoreCAC);
 
+    wlansap_set_tx_leakage_threshold(hHal,
+                                     iniConfig->sap_tx_leakage_threshold);
+
     capab_info = pMgmt_frame->u.beacon.capab_info;
 
     pConfig->privacy = (pMgmt_frame->u.beacon.capab_info &
