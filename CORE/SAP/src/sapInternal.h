@@ -299,7 +299,7 @@ typedef struct sSapContext {
     uint16_t beacon_tx_rate;
     tSirMacRateSet supp_rate_set;
     tSirMacRateSet extended_rate_set;
-
+    vos_event_t sap_session_opened_evt;
 } *ptSapContext;
 
 
@@ -1086,6 +1086,13 @@ void sap_config_acs_result(tHalHandle hal, ptSapContext sap_ctx,
  */
 bool sap_check_in_avoid_ch_list(ptSapContext sap_ctx, uint8_t channel);
 #endif
+
+eHalStatus sap_OpenSession(tHalHandle hHal, ptSapContext sapContext,
+                            uint32_t *session_id);
+eHalStatus sap_CloseSession(tHalHandle hHal,
+                            ptSapContext sapContext,
+                            csrRoamSessionCloseCallback callback,
+                            v_BOOL_t valid);
 #ifdef __cplusplus
 }
 #endif
