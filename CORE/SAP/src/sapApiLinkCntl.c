@@ -533,20 +533,6 @@ WLANSAP_PreStartBssAcsScanCallback
                                       eSAP_ACS_CHANNEL_SELECTED,
                                       (v_PVOID_t) eSAP_STATUS_SUCCESS);
     }
-
-    if (psapContext->isScanSessionOpen)
-    {
-        if(eHAL_STATUS_SUCCESS != sme_CloseSession(halHandle,
-                                      psapContext->sessionId, NULL, NULL))
-        {
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                "In %s CloseSession error", __func__);
-        } else {
-            psapContext->isScanSessionOpen = eSAP_FALSE;
-        }
-    }
-    psapContext->sessionId = 0xff;
-
     return halStatus;
 }
 
@@ -615,12 +601,10 @@ WLANSAP_RoamCallback
         case eCSR_ROAM_SESSION_OPENED:
         {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                      FL("Before switch on roamStatus = %d"),
-                                 roamStatus);
+                      FL("Session %d opened successfully"),
+                                 sapContext->sessionId);
             sapContext->isSapSessionOpen = eSAP_TRUE;
-            halStatus = sme_RoamConnect(hHal, sapContext->sessionId,
-                                        &sapContext->csrRoamProfile,
-                                        &sapContext->csrRoamId);
+            vos_event_set(&sapContext->sap_session_opened_evt);
             break;
         }
 

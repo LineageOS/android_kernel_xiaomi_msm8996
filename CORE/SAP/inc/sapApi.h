@@ -992,7 +992,10 @@ v_PVOID_t WLANSAP_Open(v_PVOID_t  pvosGCtx);
 VOS_STATUS
 WLANSAP_Start
 (
-    v_PVOID_t  pvosGCtx
+    v_PVOID_t  pvosGCtx,
+    tVOS_CON_MODE mode,
+    uint8_t *addr,
+    uint32_t *session_id
 );
 
 /*==========================================================================

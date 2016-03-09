@@ -11412,6 +11412,43 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
     }
 }
 
+/**
+ * hdd_wait_for_sme_close_sesion() - Close and wait for SME session close
+ * @hdd_ctx: HDD context which is already NULL validated
+ * @adapter: HDD adapter which is already NULL validated
+ *
+ * Close the SME session and wait for its completion, if needed.
+ *
+ * Return: None
+ */
+static void hdd_wait_for_sme_close_sesion(hdd_context_t *hdd_ctx,
+        hdd_adapter_t *adapter)
+{
+    unsigned long rc;
+
+    if (!test_bit(SME_SESSION_OPENED, &adapter->event_flags)) {
+        hddLog(LOGE, FL("session is not opened:%d"), adapter->sessionId);
+        return;
+    }
+
+    INIT_COMPLETION(adapter->session_close_comp_var);
+    if (eHAL_STATUS_SUCCESS ==
+            sme_CloseSession(hdd_ctx->hHal, adapter->sessionId,
+                hdd_smeCloseSessionCallback,
+                adapter)) {
+        /*
+         * Block on a completion variable. Can't wait
+         * forever though.
+         */
+        rc = wait_for_completion_timeout(
+                &adapter->session_close_comp_var,
+                msecs_to_jiffies
+                (WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+        if (!rc)
+            hddLog(LOGE, FL("failure waiting for session_close_comp_var"));
+    }
+}
+
 VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
                              const v_BOOL_t bCloseSession)
 {
@@ -11469,11 +11506,11 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
            {
                hddLog(LOGE, "%s: failed to post disconnect event to SME",
                       __func__);
-            }
-            memset(&wrqu, '\0', sizeof(wrqu));
-            wrqu.ap_addr.sa_family = ARPHRD_ETHER;
-            memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
-            wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+           }
+           memset(&wrqu, '\0', sizeof(wrqu));
+           wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+           memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+           wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
          else
          {
@@ -11499,24 +11536,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          /* It is possible that the caller of this function does not
           * wish to close the session
           */
-         if (VOS_TRUE == bCloseSession &&
-             test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
-         {
-            INIT_COMPLETION(pAdapter->session_close_comp_var);
-            if (eHAL_STATUS_SUCCESS ==
-                  sme_CloseSession(pHddCtx->hHal, pAdapter->sessionId,
-                     hdd_smeCloseSessionCallback, pAdapter))
-            {
-               //Block on a completion variable. Can't wait forever though.
-               rc = wait_for_completion_timeout(
-                     &pAdapter->session_close_comp_var,
-                     msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-               if (!rc) {
-                  hddLog(LOGE, "%s: failure waiting for session_close_comp_var",
-                        __func__);
-               }
-            }
-         }
+         if (bCloseSession)
+             hdd_wait_for_sme_close_sesion(pHddCtx, pAdapter);
          break;
 
       case WLAN_HDD_SOFTAP:
@@ -11602,6 +11623,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             pAdapter->sessionCtx.ap.beacon = NULL;
          }
          mutex_unlock(&pHddCtx->sap_lock);
+         if (bCloseSession)
+             hdd_wait_for_sme_close_sesion(pHddCtx, pAdapter);
          break;
 
       case WLAN_HDD_OCB:
