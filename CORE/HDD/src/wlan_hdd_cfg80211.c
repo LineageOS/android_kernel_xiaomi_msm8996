@@ -22418,7 +22418,11 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
        result = wma_resume_fw();
        if (result) {
           hddLog(LOGE, FL("Failed to resume FW err:%d"), result);
-          VOS_BUG(0);
+          /* Do not panic (VOS_BUG(0)) if FW dump is in progress.
+           * Otherwise, the FW dump will be incomplete.
+           */
+          if (!vos_is_logp_in_progress(VOS_MODULE_ID_HDD, NULL))
+              VOS_BUG(0);
           return -EBUSY;
        }
     }
