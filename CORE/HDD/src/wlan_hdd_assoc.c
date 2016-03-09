@@ -2120,9 +2120,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                        __func__, MAC_ADDR_ARRAY(pWextState->req_bssId),
                        roamResult, roamStatus);
 
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                       FL("Invoking packetdump deregistration API"));
-                wlan_deregister_txrx_packetdump();
+            hddLog(LOGE, FL("Invoking packetdump deregistration API"));
+            wlan_deregister_txrx_packetdump();
 
             /* inform association failure event to nl80211 */
             if ( eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL == roamResult )
