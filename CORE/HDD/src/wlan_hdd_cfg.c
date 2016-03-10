@@ -4349,6 +4349,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_NAN_NDI_CHANNEL_MIN,
                 CFG_ENABLE_NAN_NDI_CHANNEL_MAX),
 #endif
+   REG_VARIABLE( CFG_OPTIMIZE_CA_EVENT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, goptimize_chan_avoid_event,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_OPTIMIZE_CA_EVENT_DEFAULT,
+                 CFG_OPTIMIZE_CA_EVENT_DISABLE,
+                 CFG_OPTIMIZE_CA_EVENT_ENABLE ),
 };
 
 
