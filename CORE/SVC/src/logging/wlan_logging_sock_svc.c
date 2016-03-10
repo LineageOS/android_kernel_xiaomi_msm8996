@@ -492,7 +492,7 @@ static int pkt_stats_fill_headers(struct sk_buff *skb)
 	msg_header.nlh.nlmsg_seq = nlmsg_seq++;
 	msg_header.radio = 0;
 	msg_header.wmsg.type = PTT_MSG_DIAG_CMDS_TYPE;
-	msg_header.wmsg.length = skb->len;
+	msg_header.wmsg.length = cpu_to_be16(skb->len);
 
 	if (unlikely(skb_headroom(skb) < sizeof(msg_header))) {
 		pr_err("VPKT [%d]: Insufficient headroom, head[%p], data[%p], req[%zu]",
