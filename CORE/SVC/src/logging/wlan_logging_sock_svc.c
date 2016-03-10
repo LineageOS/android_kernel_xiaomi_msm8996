@@ -198,8 +198,7 @@ static int wlan_send_sock_msg_to_app(tAniHdr *wmsg, int radio,
 		return -EINVAL;
 	}
 
-	payload_len = wmsg_length + sizeof(wnl->radio) +
-			sizeof(struct nlmsghdr);
+	payload_len = wmsg_length + sizeof(wnl->radio);
 	tot_msg_len = NLMSG_SPACE(payload_len);
 	skb = dev_alloc_skb(tot_msg_len);
 	if (skb == NULL) {
@@ -618,8 +617,7 @@ static int send_filled_buffers_to_user(void)
 		spin_unlock_irqrestore(&gwlan_logging.spin_lock, flags);
 		/* 4 extra bytes for the radio idx */
 		payload_len = plog_msg->filled_length +
-			sizeof(wnl->radio) + sizeof(tAniHdr) +
-			sizeof(struct nlmsghdr);
+			sizeof(wnl->radio) + sizeof(tAniHdr);
 
 		tot_msg_len = NLMSG_SPACE(payload_len);
 		nlh = nlmsg_put(skb, 0, nlmsg_seq++,
