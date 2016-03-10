@@ -3587,6 +3587,14 @@ enum dot11p_mode {
 #define CFG_ENABLE_NAN_NDI_CHANNEL_DEFAULT (6)
 #endif
 
+/*
+ * Optimize channel avoidance indication comming from firmware
+ */
+#define CFG_OPTIMIZE_CA_EVENT_NAME       "goptimize_chan_avoid_event"
+#define CFG_OPTIMIZE_CA_EVENT_DISABLE    (0)
+#define CFG_OPTIMIZE_CA_EVENT_ENABLE     (1)
+#define CFG_OPTIMIZE_CA_EVENT_DEFAULT    (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4308,6 +4316,7 @@ struct hdd_config {
    bool                        enable_nan_datapath;
    uint8_t                     nan_datapath_ndi_channel;
 #endif
+   bool                        goptimize_chan_avoid_event;
 };
 
 typedef struct hdd_config hdd_config_t;

@@ -18637,3 +18637,37 @@ VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id)
 
 	return VOS_STATUS_E_FAILURE;
 }
+
+/**
+ * sme_enable_disable_chanavoidind_event - configure ca event ind
+ * @hal: handler to hal
+ * set_val: enable/disable
+ *
+ * function to enable/disable chan avoidance indication
+ *
+ * return: eHalStatus
+ */
+eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hal,
+                                              tANI_U8 set_value)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	vos_msg_t msg;
+
+	smsLog(mac, LOG1, FL("set_value: %d"), set_value);
+	if (eHAL_STATUS_SUCCESS ==  sme_AcquireGlobalLock(&mac->sme)) {
+		vos_mem_zero(&msg, sizeof(vos_msg_t));
+		msg.type = WDA_SEND_FREQ_RANGE_CONTROL_IND;
+		msg.reserved = 0;
+		msg.bodyval = set_value;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+		return status;
+	}
+
+	return eHAL_STATUS_FAILURE;
+}

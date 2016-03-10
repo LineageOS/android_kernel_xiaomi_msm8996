@@ -14897,6 +14897,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    memdump_init();
    hdd_driver_memdump_init();
+   if (pHddCtx->cfg_ini->goptimize_chan_avoid_event) {
+       hal_status = sme_enable_disable_chanavoidind_event(pHddCtx->hHal, 0);
+       if (eHAL_STATUS_SUCCESS != hal_status)
+           hddLog(LOGE, FL("Failed to disable Chan Avoidance Indcation"));
+   }
    complete(&wlan_start_comp);
    goto success;
 
@@ -17219,6 +17224,46 @@ int wlan_hdd_get_cpu()
 const char *hdd_get_fwpath(void)
 {
 	return fwpath.string;
+}
+
+/**
+ * hdd_enable_disable_ca_event() - enable/disable channel avoidance event
+ * @hddctx: pointer to hdd context
+ * @set_value: enable/disable
+ *
+ * When Host sends vendor command enable, FW will send *ONE* CA ind to
+ * Host(even though it is duplicate). When Host send vendor command
+ * disable,FW doesn't perform any action. Whenever any change in
+ * CA *and* WLAN is in SAP/P2P-GO mode, FW sends CA ind to host.
+ *
+ * return - 0 on success, appropriate error values on failure.
+ */
+int hdd_enable_disable_ca_event(hdd_context_t *hddctx, tANI_U8 set_value)
+{
+	eHalStatus status;
+	int ret_val = 0;
+
+	if (0 != wlan_hdd_validate_context(hddctx)) {
+		ret_val = -EAGAIN;
+		goto exit;
+	}
+
+	if (!hddctx->cfg_ini->goptimize_chan_avoid_event) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("goptimize_chan_avoid_event ini param disabled"));
+		ret_val = -EAGAIN;
+		goto exit;
+	}
+
+	status = sme_enable_disable_chanavoidind_event(hddctx->hHal, set_value);
+	if (status != eHAL_STATUS_SUCCESS) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to send chan avoid command to SME"));
+		ret_val = -EINVAL;
+	}
+
+exit:
+	return ret_val;
 }
 
 //Register the module init/exit functions

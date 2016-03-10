@@ -2063,4 +2063,6 @@ hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
 
 eHalStatus hdd_smeCloseSessionCallback(void *pContext);
 
+int hdd_enable_disable_ca_event(hdd_context_t *hddctx,
+				tANI_U8 set_value);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

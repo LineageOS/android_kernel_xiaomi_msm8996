@@ -28783,6 +28783,50 @@ VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_enable_disable_caevent_ind() - Issue WMI command to enable or
+ * disable ca event indication
+ * @wma: wma handler
+ * @filter_params: boolean value true or false
+ *
+ * Return: Return VOS_STATUS
+ */
+VOS_STATUS wma_enable_disable_caevent_ind(tp_wma_handle wma,
+                                                 uint8_t val)
+{
+	WMI_CHAN_AVOID_RPT_ALLOW_CMD_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	u_int8_t *buf_ptr;
+	uint32_t   len;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue set/clear CA"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	wmi_buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
+	cmd = (WMI_CHAN_AVOID_RPT_ALLOW_CMD_fixed_param *) buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_WMI_CHAN_AVOID_RPT_ALLOW_CMD_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		WMI_CHAN_AVOID_RPT_ALLOW_CMD_fixed_param));
+	cmd->rpt_allow = val;
+	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
+		WMI_CHAN_AVOID_RPT_ALLOW_CMDID)) {
+		WMA_LOGE(FL("Failed to send enable/disable CA event command"));
+		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -29636,7 +29680,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_remove_beacon_filter(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-
+		case WDA_SEND_FREQ_RANGE_CONTROL_IND:
+			wma_enable_disable_caevent_ind(wma_handle,
+                                                       msg->bodyval);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
