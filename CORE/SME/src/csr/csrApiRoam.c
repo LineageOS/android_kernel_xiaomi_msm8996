@@ -11975,6 +11975,13 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRo
      cfgDot11Mode = eCSR_CFG_DOT11_MODE_11B;
    }
 
+    if (IS_24G_CH(operationChn) &&
+       (false == pMac->roam.configParam.enableVhtFor24GHz) &&
+       (eCSR_CFG_DOT11_MODE_11AC == cfgDot11Mode ||
+           eCSR_CFG_DOT11_MODE_11AC_ONLY == cfgDot11Mode)) {
+        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
+    }
+
     /* Incase of WEP Security encryption type is coming as part of add key.
        So while Start BSS dont have information */
     if ((!CSR_IS_11n_ALLOWED(pProfile->EncryptionType.encryptionType[0]) ||
@@ -19093,6 +19100,12 @@ csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->dot11mode =
        csrTranslateToWNICfgDot11Mode(pMac,pMac->roam.configParam.uCfgDot11Mode);
 
+    if (IS_24G_CH(pMsg->targetChannel) &&
+       (false == pMac->roam.configParam.enableVhtFor24GHz) &&
+       (WNI_CFG_DOT11_MODE_11AC == pMsg->dot11mode ||
+           WNI_CFG_DOT11_MODE_11AC_ONLY == pMsg->dot11mode)) {
+        pMsg->dot11mode = WNI_CFG_DOT11_MODE_11N;
+    }
     vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
     vos_mem_copy((void*)&pMsg->operational_rateset,
                  (void*)&param.operationalRateSet, sizeof(tSirMacRateSet));
