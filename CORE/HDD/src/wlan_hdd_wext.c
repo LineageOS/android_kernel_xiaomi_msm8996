@@ -8450,7 +8450,7 @@ static int __iw_get_char_setnone(struct net_device *dev,
             tChannelListInfo channel_list;
 
             memset(&channel_list, 0, sizeof(channel_list));
-            status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
+            status = iw_get_channel_list(dev, info, wrqu, (char *)&channel_list);
             if (!VOS_IS_STATUS_SUCCESS(status)) {
                 hddLog(LOGE, FL("GetChannelList Failed!!!"));
                 return -EINVAL;
