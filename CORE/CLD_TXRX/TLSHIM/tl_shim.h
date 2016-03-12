@@ -127,6 +127,9 @@ int tlshim_mgmt_roam_event_ind(void *context, u_int32_t vdev_id);
 void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr);
 void *tl_shim_get_vdev_by_sta_id(void *vos_context, uint8_t sta_id);
 uint64_t tlshim_get_fwd_to_tx_packet_count(uint8_t session_id);
+int tlshim_get_ll_queue_pause_bitmap(uint8_t session_id,
+	uint8_t *pause_bitmap, __adf_time_t *pause_timestamp);
+
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_PAUSE_LL
 void tl_shim_set_peer_authorized_event(void *vos_ctx, v_U8_t session_id);

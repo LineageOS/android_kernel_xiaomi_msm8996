@@ -7133,6 +7133,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
 
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
         spin_lock_init(&pHostapdAdapter->pause_map_lock);
+        pHostapdAdapter->last_tx_jiffies = jiffies;
+        pHostapdAdapter->bug_report_count = 0;
     }
     return pHostapdAdapter;
 }

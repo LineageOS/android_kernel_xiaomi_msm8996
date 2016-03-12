@@ -1052,6 +1052,8 @@ ol_txrx_vdev_pause(ol_txrx_vdev_handle vdev, u_int32_t reason)
     } else {
         adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
         vdev->ll_pause.paused_reason |= reason;
+        vdev->ll_pause.pause_timestamp =
+                        adf_os_gettimestamp();
         vdev->ll_pause.q_pause_cnt++;
         vdev->ll_pause.is_q_paused = TRUE;
         adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);

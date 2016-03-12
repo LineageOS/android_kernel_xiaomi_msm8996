@@ -43,6 +43,7 @@
 #include "vos_utils.h"
 #include "wdi_out.h"
 #include "ol_rx_fwd.h"
+#include "ol_txrx.h"
 
 #define TLSHIM_PEER_AUTHORIZE_WAIT 50
 
@@ -2665,3 +2666,21 @@ uint64_t tlshim_get_fwd_to_tx_packet_count(uint8_t session_id)
 {
 	return ol_rx_get_fwd_to_tx_packet_count(session_id);
 }
+
+/*
+ * tlshim_get_ll_queue_pause_bitmap() - to obtain ll queue pause bitmap and
+ *                                      last pause timestamp
+ * @session_id: vdev id
+ * @pause_bitmap: pointer to return ll queue pause bitmap
+ * @pause_timestamp: pointer to return pause timestamp to calling func.
+ *
+ * Return: status -> A_OK - for success, A_ERROR for failure
+ *
+ */
+A_STATUS tlshim_get_ll_queue_pause_bitmap(uint8_t session_id,
+	uint8_t *pause_bitmap, adf_os_time_t *pause_timestamp)
+{
+	return ol_txrx_get_ll_queue_pause_bitmap(session_id,
+		pause_bitmap, pause_timestamp);
+}
+
