@@ -1141,6 +1141,11 @@ struct hdd_adapter_s
 #endif
    uint8_t addr_filter_pattern;
 
+   /* to store the time of last bug report generated in HDD */
+   uint64_t last_tx_jiffies;
+   /* stores how many times timeout happens since last bug report generation */
+   uint8_t bug_report_count;
+
    v_BOOL_t higherDtimTransition;
    v_BOOL_t survey_idx;
 

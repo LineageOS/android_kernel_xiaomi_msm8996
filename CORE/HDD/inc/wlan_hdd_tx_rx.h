@@ -78,6 +78,8 @@
 
 #define HDD_ETH_HEADER_LEN      14
 
+#define HDD_BUG_REPORT_MIN_COUNT  3
+#define HDD_BUG_REPORT_MIN_TIME   300000     /* 5 minutes */
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -269,6 +271,8 @@ static inline void wlan_hdd_log_eapol(struct sk_buff *skb,
  */
 VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 				 uint8_t sta_id);
+
+void wlan_display_tx_timeout_stats(hdd_adapter_t *adapter);
 
 const char *hdd_reason_type_to_string(enum netif_reason_type reason);
 const char *hdd_action_type_to_string(enum netif_action_type action);

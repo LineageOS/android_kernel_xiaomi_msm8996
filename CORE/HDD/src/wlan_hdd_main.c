@@ -10138,6 +10138,8 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       hdd_wmm_init( pAdapter );
       hdd_adapter_runtime_suspend_init(pAdapter);
       spin_lock_init(&pAdapter->pause_map_lock);
+      pAdapter->last_tx_jiffies = jiffies;
+      pAdapter->bug_report_count = 0;
    }
 
    return pAdapter;
