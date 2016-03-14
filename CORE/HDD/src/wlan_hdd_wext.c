@@ -5584,8 +5584,9 @@ static int __iw_set_mlme(struct net_device *dev, struct iw_request_info *info,
                 (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->authKeyMgmt = 0;
 
                 hddLog(LOG1, FL("Disabling queues"));
-                netif_tx_disable(dev);
-                netif_carrier_off(dev);
+                wlan_hdd_netif_queue_control(pAdapter,
+                    WLAN_NETIF_TX_DISABLE_N_CARRIER,
+                    WLAN_CONTROL_PATH);
                 pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
                 pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 

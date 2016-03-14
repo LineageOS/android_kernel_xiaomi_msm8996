@@ -269,11 +269,11 @@ static int __hdd_hostapd_open(struct net_device *dev)
        goto done;
    }
 
-   //Turn ON carrier state
-   netif_carrier_on(dev);
    //Enable all Tx queues
    hddLog(LOG1, FL("Enabling queues"));
-   netif_tx_start_all_queues(dev);
+   wlan_hdd_netif_queue_control(pAdapter,
+        WLAN_START_ALL_NETIF_QUEUE_N_CARRIER,
+        WLAN_CONTROL_PATH);
 done:
    EXIT();
    return 0;
@@ -309,12 +309,11 @@ static int __hdd_hostapd_stop(struct net_device *dev)
    ENTER();
 
    if (NULL != dev) {
+       hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
        //Stop all tx queues
        hddLog(LOG1, FL("Disabling queues"));
-       netif_tx_disable(dev);
-
-       //Turn OFF carrier state
-       netif_carrier_off(dev);
+       wlan_hdd_netif_queue_control(adapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
+            WLAN_CONTROL_PATH);
    }
 
    EXIT();
@@ -4940,45 +4939,6 @@ static int __iw_set_ap_mlme(struct net_device *dev,
 			    union iwreq_data *wrqu,
 			    char *extra)
 {
-#if 0
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
-    struct iw_mlme *mlme = (struct iw_mlme *)extra;
-
-    ENTER();
-
-    //reason_code is unused. By default it is set to eCSR_DISCONNECT_REASON_UNSPECIFIED
-    switch (mlme->cmd) {
-        case IW_MLME_DISASSOC:
-        case IW_MLME_DEAUTH:
-            hddLog(LOG1, "Station disassociate");
-            if( pAdapter->conn_info.connState == eConnectionState_Associated )
-            {
-                eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_UNSPECIFIED;
-
-                if( mlme->reason_code == HDD_REASON_MICHAEL_MIC_FAILURE )
-                    reason = eCSR_DISCONNECT_REASON_MIC_ERROR;
-
-                status = sme_RoamDisconnect( pAdapter->hHal,pAdapter->sessionId, reason);
-
-                //clear all the reason codes
-                if (status != 0)
-                {
-                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d", __func__, (int)mlme->cmd, (int)status );
-                }
-
-               netif_stop_queue(dev);
-               netif_carrier_off(dev);
-            }
-            else
-            {
-                hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate called but station is not in associated state", __func__, (int)mlme->cmd );
-            }
-        default:
-            hddLog(LOGE,"%s %d Command should be Disassociate/Deauthenticate", __func__, (int)mlme->cmd );
-            return -EINVAL;
-    }//end of switch
-    EXIT();
-#endif
     return 0;
 //    return status;
 }
@@ -7168,6 +7128,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
                            pWlanHostapdDev->hard_header_len);
 
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
+        spin_lock_init(&pHostapdAdapter->pause_map_lock);
     }
     return pHostapdAdapter;
 }

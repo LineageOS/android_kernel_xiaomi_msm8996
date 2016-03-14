@@ -43,6 +43,7 @@
 #include <vos_api.h>
 #include <linux/skbuff.h>
 #include <wlan_qct_tl.h>
+#include "tl_shim.h"
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -268,4 +269,8 @@ static inline void wlan_hdd_log_eapol(struct sk_buff *skb,
  */
 VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 				 uint8_t sta_id);
+
+void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
+		enum netif_action_type action, enum netif_reason_type reason);
+
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )
