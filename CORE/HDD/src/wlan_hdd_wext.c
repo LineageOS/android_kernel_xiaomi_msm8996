@@ -750,16 +750,10 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
             pStats->rxDelivered[i], pStats->rxRefused[i]);
     }
     len += snprintf(buffer+len, buf_len-len,
-        "\n"
-        "\nNetQueue State : %s"
-        "\n  disable %u, enable %u"
         "\n\nTX_FLOW"
         "\nCurrent status %s"
         "\ntx-flow timer start count %u"
         "\npause count %u, unpause count %u\n",
-        (pStats->netq_state_off == TRUE ? "OFF" : "ON"),
-        pStats->netq_disable_cnt,
-        pStats->netq_enable_cnt,
         (pStats->is_txflow_paused == TRUE ? "PAUSED" : "UNPAUSED"),
         pStats->txflow_timer_cnt,
         pStats->txflow_pause_cnt,
@@ -792,6 +786,9 @@ void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value)
     {
         case WLAN_TXRX_HIST_STATS:
             wlan_hdd_display_tx_rx_histogram(hdd_ctx);
+            break;
+        case WLAN_HDD_NETIF_OPER_HISTORY:
+            wlan_hdd_display_netif_queue_history(hdd_ctx);
             break;
         default:
             WLANTL_display_datapath_stats(hdd_ctx->pvosContext, value);
@@ -5587,8 +5584,6 @@ static int __iw_set_mlme(struct net_device *dev, struct iw_request_info *info,
                 wlan_hdd_netif_queue_control(pAdapter,
                     WLAN_NETIF_TX_DISABLE_N_CARRIER,
                     WLAN_CONTROL_PATH);
-                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 
             }
             else
@@ -7033,6 +7028,9 @@ static int __iw_setint_getnone(struct net_device *dev,
                  break;
              case WLAN_TXRX_HIST_STATS:
                  wlan_hdd_clear_tx_rx_histogram(pHddCtx);
+                 break;
+             case WLAN_HDD_NETIF_OPER_HISTORY:
+                 wlan_hdd_clear_netif_queue_history(hdd_ctx);
                  break;
              default:
                  WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);

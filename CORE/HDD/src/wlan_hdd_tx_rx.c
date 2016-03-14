@@ -1387,6 +1387,77 @@ void wlan_hdd_log_eapol(struct sk_buff *skb,
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
 /**
+ * hdd_reason_type_to_string() - return string conversion of reason type
+ * @reason: reason type
+ *
+ * This utility function helps log string conversion of reason type.
+ *
+ * Return: string conversion of device mode, if match found;
+ *        "Unknown" otherwise.
+ */
+const char *hdd_reason_type_to_string(enum netif_reason_type reason)
+{
+	switch (reason) {
+	CASE_RETURN_STRING(WLAN_CONTROL_PATH);
+	CASE_RETURN_STRING(WLAN_DATA_FLOW_CONTROL);
+	default:
+		return "Unknown";
+	}
+}
+
+/**
+ * hdd_action_type_to_string() - return string conversion of action type
+ * @action: action type
+ *
+ * This utility function helps log string conversion of action_type.
+ *
+ * Return: string conversion of device mode, if match found;
+ *        "Unknown" otherwise.
+ */
+const char *hdd_action_type_to_string(enum netif_action_type action)
+{
+	switch (action) {
+	CASE_RETURN_STRING(WLAN_STOP_ALL_NETIF_QUEUE);
+	CASE_RETURN_STRING(WLAN_START_ALL_NETIF_QUEUE);
+	CASE_RETURN_STRING(WLAN_WAKE_ALL_NETIF_QUEUE);
+	CASE_RETURN_STRING(WLAN_STOP_ALL_NETIF_QUEUE_N_CARRIER);
+	CASE_RETURN_STRING(WLAN_START_ALL_NETIF_QUEUE_N_CARRIER);
+	CASE_RETURN_STRING(WLAN_NETIF_TX_DISABLE);
+	CASE_RETURN_STRING(WLAN_NETIF_TX_DISABLE_N_CARRIER);
+	CASE_RETURN_STRING(WLAN_NETIF_CARRIER_ON);
+	CASE_RETURN_STRING(WLAN_NETIF_CARRIER_OFF);
+	default:
+		return "Unknown";
+	}
+}
+
+/**
+ * wlan_hdd_update_queue_oper_stats - update queue operation statistics
+ * @adapter: adapter handle
+ * @action: action type
+ * @reason: reason type
+ */
+static void wlan_hdd_update_queue_oper_stats(hdd_adapter_t *adapter,
+	enum netif_action_type action, enum netif_reason_type reason)
+{
+	switch (action) {
+	case WLAN_STOP_ALL_NETIF_QUEUE:
+	case WLAN_STOP_ALL_NETIF_QUEUE_N_CARRIER:
+	case WLAN_NETIF_TX_DISABLE:
+	case WLAN_NETIF_TX_DISABLE_N_CARRIER:
+		adapter->queue_oper_stats[reason].pause_count++;
+		break;
+	case WLAN_START_ALL_NETIF_QUEUE:
+	case WLAN_WAKE_ALL_NETIF_QUEUE:
+	case WLAN_START_ALL_NETIF_QUEUE_N_CARRIER:
+		adapter->queue_oper_stats[reason].unpause_count++;
+		break;
+	default:
+		break;
+	}
+}
+
+/**
  * wlan_hdd_netif_queue_control() - Use for netif_queue related actions
  * @adapter: adapter handle
  * @action: action type
@@ -1476,6 +1547,21 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		break;
 
 	default:
-		hddLog(LOGE, FL("unsupported action %d"), action);
+		hddLog(LOGE, FL("unsupported netif queue action %d"), action);
 	}
+
+	wlan_hdd_update_queue_oper_stats(adapter, action, reason);
+
+	adapter->queue_oper_history[adapter->history_index].time =
+						vos_system_ticks();
+	adapter->queue_oper_history[adapter->history_index].netif_action =
+						action;
+	adapter->queue_oper_history[adapter->history_index].netif_reason =
+						reason;
+	adapter->queue_oper_history[adapter->history_index].pause_map =
+						adapter->pause_map;
+	if (++adapter->history_index == WLAN_HDD_MAX_HISTORY_ENTRY)
+		adapter->history_index = 0;
+
 }
+

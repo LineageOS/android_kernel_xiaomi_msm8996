@@ -13716,6 +13716,101 @@ void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx)
         (sizeof(struct hdd_tx_rx_histogram) * NUM_TX_RX_HISTOGRAM));
 }
 
+/**
+ * wlan_hdd_display_adapter_netif_queue_history() - display adapter's netif
+ *                                                  queue operation history
+ * @adapter: hdd adapter
+ *
+ * Return: none
+ */
+static inline void
+wlan_hdd_display_adapter_netif_queue_history(hdd_adapter_t *adapter)
+{
+	int i;
+
+	if (!adapter)
+		return;
+
+	hddLog(LOGE, FL("Session_id %d device mode %d current index %d"),
+	       adapter->sessionId, adapter->device_mode,
+	       adapter->history_index);
+
+	hddLog(LOGE, "Netif queue operation statistics:");
+	hddLog(LOGE, "Current pause_map value %x", adapter->pause_map);
+	hddLog(LOGE, "  reason_type: pause_cnt: unpause_cnt");
+
+	for (i = 0; i < WLAN_REASON_TYPE_MAX; i++) {
+		hddLog(LOGE, "%s: %d: %d",
+		       hdd_reason_type_to_string(i),
+		       adapter->queue_oper_stats[i].pause_count,
+		       adapter->queue_oper_stats[i].unpause_count);
+	}
+
+	hddLog(LOGE, "Netif queue operation history:");
+	hddLog(LOGE, "index: time: action_type: reason_type: pause_map");
+
+	for (i = 0; i < WLAN_HDD_MAX_HISTORY_ENTRY; i++) {
+		hddLog(LOGE, "%d: %u: %s: %s: %x",
+		       i, vos_system_ticks_to_msecs(
+				adapter->queue_oper_history[i].time),
+		       hdd_action_type_to_string(
+				adapter->queue_oper_history[i].netif_action),
+		       hdd_reason_type_to_string(
+				adapter->queue_oper_history[i].netif_reason),
+		       adapter->queue_oper_history[i].pause_map);
+	}
+}
+
+/**
+ * wlan_hdd_display_netif_queue_history() - display netif queue
+ *                                          operation history
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_display_netif_queue_history(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_t *adapter;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	VOS_STATUS status;
+
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+
+		wlan_hdd_display_adapter_netif_queue_history(adapter);
+
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
+		adapter_node = next;
+	}
+}
+
+/**
+ * wlan_hdd_clear_netif_queue_history() - clear netif queue operation history
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_clear_netif_queue_history(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_t *adapter = NULL;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	VOS_STATUS status;
+
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+
+		vos_mem_zero(adapter->queue_oper_stats,
+			     sizeof(adapter->queue_oper_stats));
+		vos_mem_zero(adapter->queue_oper_history,
+			     sizeof(adapter->queue_oper_history));
+
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
+		adapter_node = next;
+	}
+}
+
 /**---------------------------------------------------------------------------
   \brief hdd_11d_scan_done - callback to be executed when 11d scan is
                              completed to flush out the scan results

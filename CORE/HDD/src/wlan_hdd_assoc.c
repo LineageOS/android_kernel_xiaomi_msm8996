@@ -958,8 +958,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     hddLog(LOG1, FL("Disabling queues"));
     wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
                       WLAN_CONTROL_PATH);
-    pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-    pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 
 #ifdef IPA_OFFLOAD
     if (hdd_ipa_is_enabled(pHddCtx))
@@ -1973,8 +1971,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 wlan_hdd_netif_queue_control(pAdapter,
                     WLAN_WAKE_ALL_NETIF_QUEUE,
                     WLAN_CONTROL_PATH);
-                pAdapter->hdd_stats.hddTxRxStats.netq_enable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = FALSE;
 
                 // Register the Station with TL after associated...
                 vosStatus = hdd_roamRegisterSTA( pAdapter,
@@ -2041,8 +2037,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             wlan_hdd_netif_queue_control(pAdapter,
                 WLAN_WAKE_ALL_NETIF_QUEUE,
                 WLAN_CONTROL_PATH);
-            pAdapter->hdd_stats.hddTxRxStats.netq_enable_cnt++;
-            pAdapter->hdd_stats.hddTxRxStats.netq_state_off = FALSE;
         }
 
         if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -2184,8 +2178,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         wlan_hdd_netif_queue_control(pAdapter,
             WLAN_NETIF_TX_DISABLE_N_CARRIER,
             WLAN_CONTROL_PATH);
-        pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-        pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 
     }
 
@@ -2833,8 +2825,6 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          wlan_hdd_netif_queue_control(pAdapter,
             WLAN_NETIF_TX_DISABLE_N_CARRIER,
             WLAN_CONTROL_PATH);
-         pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-         pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 
          hdd_connSetConnectionState(pAdapter,
                                      eConnectionState_NotConnected);
@@ -3808,8 +3798,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 hddLog(LOG1, FL("Disabling queues"));
                 wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE,
                             WLAN_CONTROL_PATH);
-                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
                 /*
                  * Deregister for this STA with TL with the objective to flush
                  * all the packets for this STA from wmm_tx_queue. If not done here,
@@ -3848,8 +3836,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 wlan_hdd_netif_queue_control(pAdapter,
                     WLAN_NETIF_TX_DISABLE,
                     WLAN_CONTROL_PATH);
-                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
                 if (pHddStaCtx->ft_carrier_on == FALSE)
                 {
@@ -3882,8 +3868,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 wlan_hdd_netif_queue_control(pAdapter,
                     WLAN_NETIF_TX_DISABLE_N_CARRIER,
                     WLAN_CONTROL_PATH);
-                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
                 break;
             }
         case eCSR_ROAM_DISASSOCIATED:

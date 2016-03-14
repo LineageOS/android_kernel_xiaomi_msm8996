@@ -36,7 +36,7 @@
 
 #ifdef FEATURE_WLAN_ESE
 typedef struct deferred_iapp_work {
-    pVosContextType	pVosGCtx;
+    pVosContextType pVosGCtx;
     adf_nbuf_t nbuf;
     struct ol_txrx_vdev_t *vdev;
     bool inUse;
