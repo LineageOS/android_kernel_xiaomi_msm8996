@@ -1184,6 +1184,10 @@ struct hdd_adapter_s
     int ocb_mac_addr_count;
     struct hdd_adapter_pm_context runtime_context;
     struct mib_stats_metrics mib_stats;
+
+    /* BITMAP indicating pause reason */
+    uint32_t pause_map;
+    spinlock_t pause_map_lock;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)

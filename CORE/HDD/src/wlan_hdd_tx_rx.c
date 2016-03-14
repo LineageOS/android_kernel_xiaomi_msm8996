@@ -310,7 +310,8 @@ void hdd_tx_resume_timer_expired_handler(void *adapter_context)
    }
 
    hddLog(LOG1, FL("Enabling queues"));
-   netif_tx_wake_all_queues(pAdapter->dev);
+   wlan_hdd_netif_queue_control(pAdapter, WLAN_WAKE_ALL_NETIF_QUEUE,
+            WLAN_CONTROL_PATH);
    pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
    pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
 
@@ -354,7 +355,9 @@ void hdd_tx_resume_cb(void *adapter_context,
            return;
        }
        hddLog(LOG1, FL("Enabling queues"));
-       netif_tx_wake_all_queues(pAdapter->dev);
+       wlan_hdd_netif_queue_control(pAdapter,
+            WLAN_WAKE_ALL_NETIF_QUEUE,
+            WLAN_DATA_FLOW_CONTROL);
        pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
        pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
 
@@ -363,7 +366,9 @@ void hdd_tx_resume_cb(void *adapter_context,
     else if (VOS_FALSE == tx_resume)  /* Pause TX  */
     {
         hddLog(LOG1, FL("Disabling queues"));
-        netif_tx_stop_all_queues(pAdapter->dev);
+        wlan_hdd_netif_queue_control(pAdapter,
+            WLAN_STOP_ALL_NETIF_QUEUE,
+            WLAN_DATA_FLOW_CONTROL);
         if (VOS_TIMER_STATE_STOPPED ==
             vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))
         {
@@ -557,7 +562,8 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                                     pAdapter->tx_flow_low_watermark,
                                     pAdapter->tx_flow_high_watermark_offset)) {
            hddLog(LOG1, FL("Disabling queues"));
-           netif_tx_stop_all_queues(dev);
+           wlan_hdd_netif_queue_control(pAdapter, WLAN_STOP_ALL_NETIF_QUEUE,
+                    WLAN_DATA_FLOW_CONTROL);
            if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
                (VOS_TIMER_STATE_STOPPED ==
                 vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
@@ -1379,3 +1385,97 @@ void wlan_hdd_log_eapol(struct sk_buff *skb,
 	}
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
+
+/**
+ * wlan_hdd_netif_queue_control() - Use for netif_queue related actions
+ * @adapter: adapter handle
+ * @action: action type
+ * @reason: reason type
+ *
+ * This is single function which is used for netif_queue related
+ * actions like start/stop of network queues and on/off carrier
+ * option.
+ *
+ * Return: None
+ */
+void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
+		enum netif_action_type action, enum netif_reason_type reason)
+{
+	if ((!adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) ||
+	    (!adapter->dev)) {
+		hddLog(LOGE, FL("adapter is invalid"));
+		return;
+	}
+
+	switch (action) {
+	case WLAN_NETIF_CARRIER_ON:
+		netif_carrier_on(adapter->dev);
+		break;
+
+	case WLAN_NETIF_CARRIER_OFF:
+		netif_carrier_off(adapter->dev);
+		break;
+
+	case WLAN_STOP_ALL_NETIF_QUEUE:
+		spin_lock_bh(&adapter->pause_map_lock);
+		if (!adapter->pause_map)
+			netif_tx_stop_all_queues(adapter->dev);
+		adapter->pause_map |= (1 << reason);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_START_ALL_NETIF_QUEUE:
+		spin_lock_bh(&adapter->pause_map_lock);
+		adapter->pause_map &= ~(1 << reason);
+		if (!adapter->pause_map)
+			netif_tx_start_all_queues(adapter->dev);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_WAKE_ALL_NETIF_QUEUE:
+		spin_lock_bh(&adapter->pause_map_lock);
+		adapter->pause_map &= ~(1 << reason);
+		if (!adapter->pause_map)
+			netif_tx_wake_all_queues(adapter->dev);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_STOP_ALL_NETIF_QUEUE_N_CARRIER:
+		spin_lock_bh(&adapter->pause_map_lock);
+		if (!adapter->pause_map)
+			netif_tx_stop_all_queues(adapter->dev);
+		adapter->pause_map |= (1 << reason);
+		netif_carrier_off(adapter->dev);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_START_ALL_NETIF_QUEUE_N_CARRIER:
+		spin_lock_bh(&adapter->pause_map_lock);
+		netif_carrier_on(adapter->dev);
+		adapter->pause_map &= ~(1 << reason);
+		if (!adapter->pause_map)
+			netif_tx_start_all_queues(adapter->dev);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_NETIF_TX_DISABLE:
+		spin_lock_bh(&adapter->pause_map_lock);
+		if (!adapter->pause_map)
+			netif_tx_disable(adapter->dev);
+		adapter->pause_map |= (1 << reason);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	case WLAN_NETIF_TX_DISABLE_N_CARRIER:
+		spin_lock_bh(&adapter->pause_map_lock);
+		if (!adapter->pause_map)
+			netif_tx_disable(adapter->dev);
+		adapter->pause_map |= (1 << reason);
+		netif_carrier_off(adapter->dev);
+		spin_unlock_bh(&adapter->pause_map_lock);
+		break;
+
+	default:
+		hddLog(LOGE, FL("unsupported action %d"), action);
+	}
+}
