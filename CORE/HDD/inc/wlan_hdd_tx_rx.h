@@ -270,6 +270,8 @@ static inline void wlan_hdd_log_eapol(struct sk_buff *skb,
 VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 				 uint8_t sta_id);
 
+const char *hdd_reason_type_to_string(enum netif_reason_type reason);
+const char *hdd_action_type_to_string(enum netif_action_type action);
 void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		enum netif_action_type action, enum netif_reason_type reason);
 

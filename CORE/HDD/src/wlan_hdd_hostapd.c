@@ -3444,18 +3444,22 @@ static __iw_softap_setparam(struct net_device *dev,
             {
                 hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 
-                hddLog(LOG1, "QCASAP_CLEAR_STATS val %d", set_value);
+                hddLog(LOG1, FL("QCASAP_CLEAR_STATS val %d"), set_value);
 
-                if (set_value == WLAN_HDD_STATS) {
+                switch (set_value) {
+                case WLAN_HDD_STATS:
                     memset(&pHostapdAdapter->stats, 0,
                                  sizeof(pHostapdAdapter->stats));
                     memset(&pHostapdAdapter->hdd_stats, 0,
                                  sizeof(pHostapdAdapter->hdd_stats));
-                } else {
+                    break;
+                case WLAN_HDD_NETIF_OPER_HISTORY:
+                    wlan_hdd_clear_netif_queue_history(hdd_ctx);
+                    break;
+                default:
                     WLANTL_clear_datapath_stats(hdd_ctx->pvosContext,
                                                              set_value);
                 }
-
                 break;
             }
 

@@ -96,10 +96,12 @@ enum netif_action_type {
  * enum netif_reason_type - reason for netif queue action
  * @WLAN_CONTROL_PATH: action from control path
  * @WLAN_DATA_FLOW_CONTROL: because of flow control
+ * @WLAN_REASON_TYPE_MAX: max netif reason
  */
 enum netif_reason_type {
 	WLAN_CONTROL_PATH,
 	WLAN_DATA_FLOW_CONTROL,
+	WLAN_REASON_TYPE_MAX,
 };
 
 /* command options for dumpStats*/
@@ -107,6 +109,7 @@ enum netif_reason_type {
 #define WLAN_TXRX_STATS              1
 #define WLAN_TXRX_HIST_STATS         2
 #define WLAN_TXRX_DESC_STATS         3
+#define WLAN_HDD_NETIF_OPER_HISTORY  4
 #ifdef CONFIG_HL_SUPPORT
 #define WLAN_SCHEDULER_STATS        21
 #define WLAN_TX_QUEUE_STATS         22
