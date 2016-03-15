@@ -14872,6 +14872,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        pHddCtx->cfg_ini->thermalMitigationEnable;
    thermalParam.smeThrottlePeriod = pHddCtx->cfg_ini->throttlePeriod;
 
+   thermalParam.sme_throttle_duty_cycle_tbl[0]=
+       pHddCtx->cfg_ini->throttle_dutycycle_level0;
+   thermalParam.sme_throttle_duty_cycle_tbl[1]=
+       pHddCtx->cfg_ini->throttle_dutycycle_level1;
+   thermalParam.sme_throttle_duty_cycle_tbl[2]=
+       pHddCtx->cfg_ini->throttle_dutycycle_level2;
+   thermalParam.sme_throttle_duty_cycle_tbl[3]=
+       pHddCtx->cfg_ini->throttle_dutycycle_level3;
+
    thermalParam.smeThermalLevels[0].smeMinTempThreshold =
        pHddCtx->cfg_ini->thermalTempMinLevel0;
    thermalParam.smeThermalLevels[0].smeMaxTempThreshold =

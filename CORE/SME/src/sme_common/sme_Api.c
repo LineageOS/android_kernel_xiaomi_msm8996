@@ -14807,6 +14807,14 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal,
 
     pWdaParam->thermalMgmtEnabled = thermalParam.smeThermalMgmtEnabled;
     pWdaParam->throttlePeriod = thermalParam.smeThrottlePeriod;
+    pWdaParam->throttle_duty_cycle_tbl[0]=
+        thermalParam.sme_throttle_duty_cycle_tbl[0];
+    pWdaParam->throttle_duty_cycle_tbl[1]=
+        thermalParam.sme_throttle_duty_cycle_tbl[1];
+    pWdaParam->throttle_duty_cycle_tbl[2]=
+        thermalParam.sme_throttle_duty_cycle_tbl[2];
+    pWdaParam->throttle_duty_cycle_tbl[3]=
+        thermalParam.sme_throttle_duty_cycle_tbl[3];
     pWdaParam->thermalLevels[0].minTempThreshold =
         thermalParam.smeThermalLevels[0].smeMinTempThreshold;
     pWdaParam->thermalLevels[0].maxTempThreshold =
