@@ -4900,12 +4900,15 @@ typedef enum
     WLAN_WMA_MAX_THERMAL_LEVELS
 } t_thermal_level;
 
+#define WLAN_THROTTLE_DUTY_CYCLE_LEVEL_MAX (4)
+
 typedef struct{
     /* Array of thermal levels */
     t_thermal_level_info thermalLevels[WLAN_WMA_MAX_THERMAL_LEVELS];
     u_int8_t thermalCurrLevel;
     u_int8_t thermalMgmtEnabled;
     u_int32_t throttlePeriod;
+    u_int8_t throttle_duty_cycle_tbl[WLAN_THROTTLE_DUTY_CYCLE_LEVEL_MAX];
 } t_thermal_mgmt, *tp_thermal_mgmt;
 
 typedef struct sSirTxPowerLimit
