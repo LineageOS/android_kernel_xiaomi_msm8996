@@ -7005,7 +7005,7 @@ enum ndp_response_code {
 struct ndp_cfg {
 	uint32_t tag;
 	uint32_t ndp_cfg_len;
-	uint8_t ndp_cfg[];
+	uint8_t *ndp_cfg;
 };
 
 /**
@@ -7031,7 +7031,7 @@ struct ndp_qos_cfg {
 struct ndp_app_info {
 	uint32_t tag;
 	uint32_t ndp_app_info_len;
-	uint8_t ndp_app_info[];
+	uint8_t *ndp_app_info;
 };
 
 /**
@@ -7106,7 +7106,7 @@ struct ndp_initiator_req {
 };
 
 /**
- * struct ndp_initiator_rsp_event - response event from FW
+ * struct ndp_initiator_rsp - response event from FW
  * @transaction_id: unique identifier
  * @vdev_id: session id of the interface over which ndp is being created
  * @ndp_instance_id: locally created NDP instance ID
@@ -7114,12 +7114,11 @@ struct ndp_initiator_req {
  * @reason: reason for failure if any
  *
  */
-struct ndp_initiator_rsp_event {
+struct ndp_initiator_rsp {
 	uint32_t transaction_id;
 	uint32_t vdev_id;
 	uint32_t ndp_instance_id;
 	uint32_t status;
-	uint32_t reason;
 };
 
 /**
@@ -7127,6 +7126,7 @@ struct ndp_initiator_rsp_event {
  * @vdev_id: session id of the interface over which ndp is being created
  * @service_instance_id: Service identifier
  * @peer_discovery_mac_addr: Peer's discovery mac address
+ * @peer_mac_addr: Peer's NDI mac address
  * @ndp_initiator_mac_addr: NDI mac address of the peer initiating NDP
  * @ndp_instance_id: locally created NDP instance ID
  * @role: self role for NDP
@@ -7139,7 +7139,7 @@ struct ndp_indication_event {
 	uint32_t vdev_id;
 	uint32_t service_instance_id;
 	v_MACADDR_t peer_discovery_mac_addr;
-	v_MACADDR_t ndp_initiator_mac_addr;
+	v_MACADDR_t peer_mac_addr;
 	uint32_t ndp_instance_id;
 	enum ndp_self_role role;
 	enum ndp_accept_policy policy;

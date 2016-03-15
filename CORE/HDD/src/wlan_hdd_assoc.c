@@ -1190,11 +1190,20 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     complete(&pAdapter->disconnect_comp_var);
     return( status );
 }
-static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
-                                       tCsrRoamInfo *pRoamInfo,
-                                       v_U8_t staId,
-                                       v_MACADDR_t *pPeerMacAddress,
-                                       tSirBssDescription *pBssDesc )
+
+/**
+ * hdd_roamRegisterSTA() - Registers new STA to TL module
+ * @pAdapter: pointer to adapter context
+ * @pRoamInfo: roam info struct pointer
+ * @staId: station ID
+ * @pPeerMacAddress: mac address of new STA
+ * @pBssDesc: bss descriptor
+ *
+ * Return: status of operation
+ */
+VOS_STATUS hdd_roamRegisterSTA(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,
+                               uint8_t staId, v_MACADDR_t *pPeerMacAddress,
+                               tSirBssDescription *pBssDesc)
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    WLAN_STADescType staDesc = {0};
@@ -2359,35 +2368,34 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
    return;
 }
 
-/**============================================================================
+/**
+ * hdd_save_peer() - Save peer MAC address in adapter peer table.
+ * @sta_ctx: pointer to hdd station context
+ * @sta_id: station ID
+ * @peer_mac_addr: mac address of new peer
  *
-  @brief roamSaveIbssStation() - Save the IBSS peer MAC address in the adapter.
-  This information is passed to iwconfig later. The peer that joined
-  last is passed as information to iwconfig.
-  If we add HDD_MAX_NUM_IBSS_STA or less STA we return success else we
-  return FALSE.
+ * This information is passed to iwconfig later. The peer that joined
+ * last is passed as information to iwconfig.
 
-  ===========================================================================*/
-static int roamSaveIbssStation( hdd_station_ctx_t *pHddStaCtx, v_U8_t staId, v_MACADDR_t *peerMacAddress )
+ * Return: true if success, false otherwise
+ */
+bool hdd_save_peer(hdd_station_ctx_t *sta_ctx, uint8_t sta_id,
+		   v_MACADDR_t *peer_mac_addr)
 {
-   int fSuccess = FALSE;
-   int idx = 0;
+	int idx;
 
-   for ( idx = 0; idx < HDD_MAX_NUM_IBSS_STA; idx++ )
-   {
-      if ( 0 == pHddStaCtx->conn_info.staId[ idx ] )
-      {
-         pHddStaCtx->conn_info.staId[ idx ] = staId;
-
-         vos_copy_macaddr( &pHddStaCtx->conn_info.peerMacAddress[ idx ], peerMacAddress );
-
-         fSuccess = TRUE;
-         break;
-      }
-   }
-
-   return( fSuccess );
+	for (idx = 0; idx < HDD_MAX_NUM_IBSS_STA; idx++) {
+		if (0 == sta_ctx->conn_info.staId[idx]) {
+			sta_ctx->conn_info.staId[idx] = sta_id;
+			vos_copy_macaddr(
+				&sta_ctx->conn_info.peerMacAddress[idx],
+				peer_mac_addr);
+			return true;
+		}
+	}
+	return false;
 }
+
 /**============================================================================
  *
   @brief roamRemoveIbssStation() - Remove the IBSS peer MAC address in the adapter.
@@ -2692,8 +2700,9 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
                     MAC_ADDR_ARRAY(pHddStaCtx->conn_info.bssId),
                     pRoamInfo->staId );
 
-         if ( !roamSaveIbssStation( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pRoamInfo->staId, (v_MACADDR_t *)pRoamInfo->peerMac ) )
-         {
+         if (!hdd_save_peer(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
+                            pRoamInfo->staId,
+                            (v_MACADDR_t *)pRoamInfo->peerMac)) {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                        "New IBSS peer but we already have the max we can handle.  Can't register this one" );
             break;
