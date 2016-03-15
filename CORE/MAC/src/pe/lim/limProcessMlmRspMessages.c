@@ -721,7 +721,7 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
     /// Process AUTH confirm from MLM
-    if (((tLimMlmAuthCnf *) pMsgBuf)->resultCode != eSIR_SME_SUCCESS)
+    if (pMlmAuthCnf->resultCode != eSIR_SME_SUCCESS)
     {
         if (psessionEntry->limSmeState == eLIM_SME_WT_AUTH_STATE)
                 {
@@ -740,8 +740,10 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             cfgAuthType = pMac->lim.gLimPreAuthType;
 
         if ((cfgAuthType == eSIR_AUTO_SWITCH) &&
-                (((tLimMlmAuthCnf *) pMsgBuf)->authType == eSIR_SHARED_KEY)
-                && (eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS == ((tLimMlmAuthCnf *) pMsgBuf)->protStatusCode))
+             (pMlmAuthCnf->authType == eSIR_SHARED_KEY)
+             && ((eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS ==
+             pMlmAuthCnf->protStatusCode) ||
+             (pMlmAuthCnf->resultCode == eSIR_SME_AUTH_TIMEOUT_RESULT_CODE)))
         {
             /**
              * When Shared authentication fails with reason code "13" and
@@ -800,8 +802,8 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  * Need to send Join response with
                  * auth failure to Host.
                  */
-                limHandleSmeJoinResult(pMac,
-                              ((tLimMlmAuthCnf *) pMsgBuf)->resultCode, ((tLimMlmAuthCnf *) pMsgBuf)->protStatusCode,psessionEntry);
+                limHandleSmeJoinResult(pMac, pMlmAuthCnf->resultCode,
+                              pMlmAuthCnf->protStatusCode, psessionEntry);
             }
             else
             {
