@@ -4910,8 +4910,14 @@ __limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /* Update the session entry */
-    psessionEntry->ssidHidden = pUpdateParams->ssidHidden;
+    if (psessionEntry->ssidHidden != pUpdateParams->ssidHidden) {
+            /* Update the session entry */
+            psessionEntry->ssidHidden = pUpdateParams->ssidHidden;
+    } else {
+            PELOG1(limLog(pMac, LOG1,
+                   FL("Same config already present!")));
+            return;
+    }
 
     /* Send vdev restart */
     limSendVdevRestart(pMac, psessionEntry, pUpdateParams->sessionId);
