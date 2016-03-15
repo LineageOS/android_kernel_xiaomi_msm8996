@@ -13400,7 +13400,7 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
     hdd_adapter_t *pAdapter = NULL;
-    uint64_t tx_packets= 0, rx_packets= 0, tx_bytes = 0;
+    uint64_t tx_packets = 0, rx_packets = 0, fwd_packets = 0, tx_bytes = 0;
     uint64_t total_tx = 0, total_rx = 0;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     VOS_STATUS status = 0;
@@ -13447,6 +13447,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
                 pAdapter->prev_tx_bytes);
         rx_packets += HDD_BW_GET_DIFF(pAdapter->stats.rx_packets,
                 pAdapter->prev_rx_packets);
+        fwd_packets = tlshim_get_fwd_to_tx_packet_count(pAdapter->sessionId);
+        tx_packets += HDD_BW_GET_DIFF(fwd_packets,
+                pAdapter->prev_fwd_packets);
 
         hdd_set_bundle_require(pAdapter->sessionId, pHddCtx, tx_bytes);
 
@@ -13458,6 +13461,7 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
+        pAdapter->prev_fwd_packets = fwd_packets;
         spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
     }
