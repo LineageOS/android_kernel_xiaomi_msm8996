@@ -59,7 +59,7 @@
 #include "sirMacProtDef.h"
 #include "regdomain_common.h"
 #include "rrmApi.h"
-
+#include "nan_datapath.h"
 
 #include "sapApi.h"
 
@@ -6183,6 +6183,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
         case eWNI_SME_REGISTER_MGMT_FRAME_CB:
             lim_register_mgmt_frame_ind_cb(pMac, pMsgBuf);
+            break;
+        case eWNI_SME_NDP_INITIATOR_REQ:
+            lim_handle_ndp_request_message(pMac, pMsg);
             break;
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);

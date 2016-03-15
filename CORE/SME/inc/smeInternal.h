@@ -98,6 +98,7 @@ typedef enum eSmeCommandType
 #endif
     eSmeCommandRemainOnChannel,
     eSmeCommandNoAUpdate,
+    eSmeCommandNdpInitiatorRequest,
 } eSmeCommandType;
 
 

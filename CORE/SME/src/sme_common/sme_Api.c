@@ -74,6 +74,7 @@
 #endif
 #include "regdomain_common.h"
 #include "schApi.h"
+#include "sme_nan_datapath.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -1027,6 +1028,17 @@ sme_process_cmd:
                         case eSmeCommandAddStaSession:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             csrProcessAddStaSessionCommand( pMac, pCommand );
+                            break;
+                        case eSmeCommandNdpInitiatorRequest:
+                            csrLLUnlock(&pMac->sme.smeCmdActiveList);
+                            if (csr_process_ndp_initiator_request(pMac,
+                                        pCommand) != eHAL_STATUS_SUCCESS) {
+                                if (csrLLRemoveEntry(
+                                        &pMac->sme.smeCmdActiveList,
+                                        &pCommand->Link, LL_ACCESS_LOCK)) {
+                                    csrReleaseCommand(pMac, pCommand);
+                                }
+                            }
                             break;
                         case eSmeCommandDelStaSession:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
@@ -3350,6 +3362,11 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                        (struct sir_smps_force_mode_event *)
                        pMsg->bodyptr);
                vos_mem_free(pMsg->bodyptr);
+               break;
+          case eWNI_SME_NDP_CONFIRM_IND:
+          case eWNI_SME_NDP_NEW_PEER_IND:
+          case eWNI_SME_NDP_INITIATOR_RSP:
+               sme_ndp_msg_processor(pMac, pMsg);
                break;
           default:
 

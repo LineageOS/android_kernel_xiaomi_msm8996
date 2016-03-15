@@ -31,12 +31,26 @@
 #include "halTypes.h"
 #include "sirApi.h"
 #include "aniGlobal.h"
+#include "smeInside.h"
 
 #ifdef WLAN_FEATURE_NAN_DATAPATH
 
+/**
+ * struct sir_sme_ndp_initiator_req - sme request struct for ndp initiator req
+ * @mesgType: SME msg type(eWNI_SME_NDP_INITIATOR_REQ)
+ * @mesgLen: lenght of message
+ * @req: actual ndp initiator request
+ *
+ */
+struct sir_sme_ndp_initiator_req {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	struct ndp_initiator_req req;
+};
+
 /* NaN initiator request handler */
-VOS_STATUS sme_ndp_initiator_req_handler(uint32_t session_id,
-					struct ndp_initiator_req *req_params);
+eHalStatus sme_ndp_initiator_req_handler(tHalHandle hal,
+				struct ndp_initiator_req *req_params);
 
 /* NaN responder request handler */
 VOS_STATUS sme_ndp_responder_req_handler(uint32_t session_id,
@@ -75,6 +89,11 @@ void csr_roam_update_ndp_return_params(tpAniSirGlobal mac_ctx,
 					uint32_t *roam_status,
 					uint32_t *roam_result,
 					void *roam_info);
+eHalStatus csr_process_ndp_initiator_request(tpAniSirGlobal mac_ctx,
+					     tSmeCmd *cmd);
+
+void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg);
+
 #else
 
 /* Start NDI BSS */
@@ -107,6 +126,16 @@ static inline void csr_roam_update_ndp_return_params(tpAniSirGlobal mac_ctx,
 						uint32_t *roam_status,
 						uint32_t *roam_result,
 						void *roam_info)
+{
+}
+
+static inline eHalStatus csr_process_ndp_initiator_request(
+				tpAniSirGlobal mac_ctx, tSmeCmd *cmd)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 {
 }
 

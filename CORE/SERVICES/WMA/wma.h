@@ -1791,5 +1791,8 @@ void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 
 void wma_add_wow_wakeup_event(tp_wma_handle wma, WOW_WAKE_EVENT_TYPE event,
 			bool enable);
-
+VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
+			   ol_txrx_vdev_handle vdev, u8 peer_addr[6],
+			   u_int32_t peer_type, u_int8_t vdev_id,
+			   v_BOOL_t roam_synch_in_progress);
 #endif

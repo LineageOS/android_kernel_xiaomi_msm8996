@@ -174,4 +174,10 @@ void hdd_indicateEseBcnReportNoResults(const hdd_adapter_t *pAdapter,
                                        const tANI_U8 numBss);
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
+VOS_STATUS hdd_roamRegisterSTA(hdd_adapter_t *adapter, tCsrRoamInfo *roam_info,
+			       uint8_t sta_id, v_MACADDR_t *peer_mac_addr,
+			       tSirBssDescription *bss_desc);
+
+bool hdd_save_peer(hdd_station_ctx_t *sta_ctx, uint8_t sta_id,
+		   v_MACADDR_t *peer_mac_addr);
 #endif
