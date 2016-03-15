@@ -1036,6 +1036,7 @@ ol_txrx_vdev_attach(
     vdev->safemode = 0;
     vdev->drop_unenc = 1;
     vdev->num_filters = 0;
+    vdev->fwd_to_tx_packets = 0;
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
     adf_os_atomic_init(&vdev->tx_desc_count);
 #endif
