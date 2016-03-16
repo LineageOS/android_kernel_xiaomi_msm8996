@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,6 +54,7 @@ BRIEF DESCRIPTION:
 #define AR6320_REV3_VERSION             0x5020000
 #define QCA9377_REV1_1_VERSION          0x5020001
 #define AR6320_REV3_2_VERSION           0x5030000
+#define QCA9379_REV1_VERSION            0x5040000
 
 struct qwlan_hw {
     u32 id;

@@ -193,6 +193,22 @@ static const struct sdio_device_id ar6k_id_table[] = {
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xD))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xE))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9377_BASE | 0xF))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x0))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x1))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x2))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x3))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x4))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x5))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x6))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x7))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x8))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0x9))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xA))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xB))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xC))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xD))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xE))  },
+    {  SDIO_DEVICE(MANUFACTURER_CODE, (MANUFACTURER_ID_QCA9379_BASE | 0xF))  },
     /* TODO: just for compatible with old image which ManufacturerID is 0, should delete later */
     {  SDIO_DEVICE(MANUFACTURER_CODE, (0 | 0x0))  },
     {  SDIO_DEVICE(MANUFACTURER_CODE, (0 | 0x1))  },
@@ -1188,7 +1204,9 @@ static int SdioEnable4bits(HIF_DEVICE *device,  int enable)
             setAsyncIRQ = 1;
             ret = Func0_CMD52WriteByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6003,
                     enable ? SDIO_IRQ_MODE_ASYNC_4BIT_IRQ_AR6003 : 0);
-        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE || manufacturer_id == MANUFACTURER_ID_QCA9377_BASE) {
+        } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE ||
+                   manufacturer_id == MANUFACTURER_ID_QCA9377_BASE ||
+                   manufacturer_id == MANUFACTURER_ID_QCA9379_BASE ) {
             unsigned char data = 0;
             setAsyncIRQ = 1;
             ret = Func0_CMD52ReadByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6320, &data);
@@ -1997,7 +2015,8 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
             ret = Func0_CMD52WriteByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6003,
                     SDIO_IRQ_MODE_ASYNC_4BIT_IRQ_AR6003);
         } else if (manufacturer_id == MANUFACTURER_ID_AR6320_BASE ||
-                   manufacturer_id == MANUFACTURER_ID_QCA9377_BASE) {
+                   manufacturer_id == MANUFACTURER_ID_QCA9377_BASE ||
+                   manufacturer_id == MANUFACTURER_ID_QCA9379_BASE) {
             unsigned char data = 0;
             setAsyncIRQ = 1;
             ret = Func0_CMD52ReadByte(func->card, CCCR_SDIO_IRQ_MODE_REG_AR6320, &data);
