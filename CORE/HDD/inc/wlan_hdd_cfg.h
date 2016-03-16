@@ -3439,6 +3439,24 @@ enum dot11p_mode {
 #define CFG_SELF_GEN_FRM_PWR_DEFAULT  (0)
 
 /*
+ * gTxAggregationSize gives an option to configure Tx aggregation size
+ * in no of MPDUs. This can be useful in debugging throughput issues
+ */
+#define CFG_TX_AGGREGATION_SIZE      "gTxAggregationSize"
+#define CFG_TX_AGGREGATION_SIZE_MIN      (0)
+#define CFG_TX_AGGREGATION_SIZE_MAX      (64)
+#define CFG_TX_AGGREGATION_SIZE_DEFAULT  (64)
+
+/*
+ * gRxAggregationSize gives an option to configure Rx aggregation size
+ * in no of MPDUs. This can be useful in debugging throughput issues
+ */
+#define CFG_RX_AGGREGATION_SIZE      "gRxAggregationSize"
+#define CFG_RX_AGGREGATION_SIZE_MIN      (1)
+#define CFG_RX_AGGREGATION_SIZE_MAX      (64)
+#define CFG_RX_AGGREGATION_SIZE_DEFAULT  (64)
+
+/*
  * fine timing measurement capability information
  *
  * <----- fine_time_meas_cap (in bits) ----->
@@ -4436,6 +4454,8 @@ struct hdd_config {
 #endif
    bool                        goptimize_chan_avoid_event;
    bool                        g_use_otpmac;
+   uint32_t                    tx_aggregation_size;
+   uint32_t                    rx_aggregation_size;
 };
 
 typedef struct hdd_config hdd_config_t;

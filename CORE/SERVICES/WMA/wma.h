@@ -1720,6 +1720,9 @@ int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 uint32_t wma_get_vht_ch_width(void);
 
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
+VOS_STATUS wma_set_tx_rx_aggregation_size
+	(struct sir_set_tx_rx_aggregation_size *tx_rx_aggregation_size);
+
 /**
  * wma_find_vdev_by_id() - Find vdev handle for given vdev id.
  * @wma: WMA handle
