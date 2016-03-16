@@ -2036,6 +2036,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->sendDeauthBeforeCon;
         pMac->roam.configParam.enable_fatal_event =
                                         pParam->enable_fatal_event;
+        pMac->roam.configParam.tx_aggregation_size =
+                               pParam->tx_aggregation_size;
+        pMac->roam.configParam.rx_aggregation_size =
+                               pParam->rx_aggregation_size;
     }
 
     return status;
@@ -15470,6 +15474,8 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
       pMsg->pkt_err_disconn_th = pMac->roam.configParam.pkt_err_disconn_th;
       pMsg->nss_2g = nss_2g;
       pMsg->nss_5g = nss_5g;
+      pMsg->tx_aggregation_size = pMac->roam.configParam.tx_aggregation_size;
+      pMsg->rx_aggregation_size = pMac->roam.configParam.rx_aggregation_size;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);

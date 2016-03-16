@@ -1318,6 +1318,8 @@ typedef struct tagCsrConfigParam
     v_U16_t    pkt_err_disconn_th;
     int8_t    first_scan_bucket_threshold;
     bool    enable_fatal_event;
+    uint32_t tx_aggregation_size;
+    uint32_t rx_aggregation_size;
 }tCsrConfigParam;
 
 //Tush

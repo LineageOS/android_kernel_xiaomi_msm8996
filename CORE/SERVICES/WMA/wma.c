@@ -8218,6 +8218,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	int ret;
 	tSirMacHTCapabilityInfo *phtCapInfo;
 	u_int8_t vdev_id;
+	struct sir_set_tx_rx_aggregation_size tx_rx_aggregation_size;
 
 	if (NULL == mac) {
 		WMA_LOGE("%s: Failed to get mac",__func__);
@@ -8295,6 +8296,17 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	vos_mem_copy(wma_handle->interfaces[self_sta_req->sessionId].addr,
 		     self_sta_req->selfMacAddr,
 		     sizeof(wma_handle->interfaces[self_sta_req->sessionId].addr));
+
+	tx_rx_aggregation_size.tx_aggregation_size =
+				self_sta_req->tx_aggregation_size;
+	tx_rx_aggregation_size.rx_aggregation_size =
+				self_sta_req->rx_aggregation_size;
+	tx_rx_aggregation_size.vdev_id = self_sta_req->sessionId;
+
+	status = wma_set_tx_rx_aggregation_size(&tx_rx_aggregation_size);
+	if (status != VOS_STATUS_SUCCESS)
+		WMA_LOGE("failed to set aggregation sizes(err=%d)", status);
+
 	switch (self_sta_req->type) {
 	case WMI_VDEV_TYPE_STA:
 		if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD,
@@ -28908,6 +28920,71 @@ VOS_STATUS wma_enable_disable_caevent_ind(tp_wma_handle wma,
 		WMI_CHAN_AVOID_RPT_ALLOW_CMDID)) {
 		WMA_LOGE(FL("Failed to send enable/disable CA event command"));
 		adf_nbuf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_tx_rx_aggregation_size() - sets tx rx aggregation sizes
+ * @tx_rx_aggregation_size: aggregation size parameters
+ *
+ * This function sets tx rx aggregation sizes
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+VOS_STATUS wma_set_tx_rx_aggregation_size
+	(struct sir_set_tx_rx_aggregation_size *tx_rx_aggregation_size)
+{
+	tp_wma_handle wma_handle;
+	wmi_vdev_set_custom_aggr_size_cmd_fixed_param *cmd;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int ret;
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!tx_rx_aggregation_size) {
+		WMA_LOGE("%s: invalid pointer", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_vdev_set_custom_aggr_size_cmd_fixed_param *) buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_set_custom_aggr_size_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_vdev_set_custom_aggr_size_cmd_fixed_param));
+
+	cmd->vdev_id = tx_rx_aggregation_size->vdev_id;
+	cmd->tx_aggr_size = tx_rx_aggregation_size->tx_aggregation_size;
+	cmd->rx_aggr_size = tx_rx_aggregation_size->rx_aggregation_size;
+
+	WMA_LOGI("tx aggr: %d rx aggr: %d vdev: %d",
+		cmd->tx_aggr_size, cmd->rx_aggr_size, cmd->vdev_id);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				WMI_VDEV_SET_CUSTOM_AGGR_SIZE_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send aggregation size command",
+				__func__);
+		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 

@@ -711,6 +711,8 @@ typedef struct tagCsrConfig
     bool ignore_peer_ht_opmode;
     v_U16_t pkt_err_disconn_th;
     bool enable_fatal_event;
+    uint32_t tx_aggregation_size;
+    uint32_t rx_aggregation_size;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

@@ -4430,6 +4430,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_USE_OTP_MAC_DEFAULT,
                 CFG_USE_OTP_MAC_MIN,
                 CFG_USE_OTP_MAC_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGREGATION_SIZE, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggregation_size,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGREGATION_SIZE_DEFAULT,
+                CFG_TX_AGGREGATION_SIZE_MIN,
+                CFG_TX_AGGREGATION_SIZE_MAX),
+
+   REG_VARIABLE(CFG_RX_AGGREGATION_SIZE, WLAN_PARAM_Integer,
+                hdd_config_t, rx_aggregation_size,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_RX_AGGREGATION_SIZE_DEFAULT,
+                CFG_RX_AGGREGATION_SIZE_MIN,
+                CFG_RX_AGGREGATION_SIZE_MAX),
 };
 
 
@@ -7084,6 +7098,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                           pConfig->enable_fatal_event;
    smeConfig->csrConfig.sendDeauthBeforeCon = pConfig->sendDeauthBeforeCon;
    smeConfig->csrConfig.ignorePeerErpInfo = pConfig->ignorePeerErpInfo;
+   smeConfig->csrConfig.tx_aggregation_size =
+                   pHddCtx->cfg_ini->tx_aggregation_size;
+   smeConfig->csrConfig.rx_aggregation_size =
+                   pHddCtx->cfg_ini->rx_aggregation_size;
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {

@@ -8291,6 +8291,8 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_RATE] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_AVOIDANCE_IND] = {.type = NLA_U8 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION] = {.type = NLA_U8 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION] = {.type = NLA_U8 },
 };
 
 /**
@@ -8378,6 +8380,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
+	struct sir_set_tx_rx_aggregation_size request;
+	VOS_STATUS vos_status;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8458,6 +8462,31 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_AVOIDANCE_IND]);
 		hddLog(LOG1, "set_value: %d", set_value);
 		ret_val = hdd_enable_disable_ca_event(pHddCtx, set_value);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION] ||
+	    tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION]) {
+		/* if one is specified, both must be specified */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION] ||
+		    !tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION]) {
+			hddLog(LOGE,
+				FL("Both TX and RX MPDU Aggregation required"));
+			return -EINVAL;
+		}
+
+		request.tx_aggregation_size = nla_get_u8(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION]);
+		request.rx_aggregation_size = nla_get_u8(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION]);
+		request.vdev_id = pAdapter->sessionId;
+
+		vos_status = wma_set_tx_rx_aggregation_size(&request);
+		if (vos_status != VOS_STATUS_SUCCESS) {
+			hddLog(LOGE,
+				FL("failed to set aggregation sizes(err=%d)"),
+				vos_status);
+			ret_val = -EPERM;
+		}
 	}
 	return ret_val;
 }
