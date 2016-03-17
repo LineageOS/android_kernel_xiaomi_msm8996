@@ -1709,6 +1709,7 @@ struct hdd_context_s
     vos_timer_t memdump_cleanup_timer;
     struct mutex memdump_lock;
     bool memdump_in_progress;
+    bool memdump_init_done;
 #endif /* WLAN_FEATURE_MEMDUMP */
     uint16_t driver_dump_size;
     uint8_t *driver_dump_mem;
