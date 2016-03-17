@@ -17940,11 +17940,6 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    if (vos_max_concurrent_connections_reached()) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
-        return -ECONNREFUSED;
-    }
-
 #if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
     wlan_hdd_disable_roaming(pAdapter);
 #endif
@@ -17965,6 +17960,12 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to disconnect the existing"
                 " connection"));
         return -EALREADY;
+    }
+
+    /* Check for max concurrent connections after doing disconnect if any */
+    if (vos_max_concurrent_connections_reached()) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
+        return -ECONNREFUSED;
     }
 
     /*initialise security parameters*/
