@@ -1057,6 +1057,7 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
                                         pMac->lim.maxStation, 0);
 
     pMac->lim.mgmtFrameSessionId = 0xff;
+    pMac->lim.tdls_frm_session_id = 0xff;
     pMac->lim.deferredMsgCnt = 0;
 
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_init(&pMac->lim.lkPeGlobalLock))) {
