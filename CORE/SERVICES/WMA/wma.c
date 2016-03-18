@@ -8265,6 +8265,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->sessionId);
 		goto end;
 	}
+
+	wma_handle->interfaces[self_sta_req->sessionId].vdev_active = TRUE;
 	wma_handle->interfaces[self_sta_req->sessionId].handle = txrx_vdev_handle;
 
 	wma_handle->interfaces[self_sta_req->sessionId].ptrn_match_enable =
@@ -25733,6 +25735,11 @@ static VOS_STATUS wma_process_ll_stats_getReq
 
 	if (!getReq || !wma) {
 		WMA_LOGE("%s: input pointer is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!wma->interfaces[getReq->staId].vdev_active) {
+		WMA_LOGE("%s: vdev not created yet", __func__);
 		return VOS_STATUS_E_FAILURE;
 	}
 
