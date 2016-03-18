@@ -534,6 +534,7 @@ struct wma_txrx_node {
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
 	A_UINT32                mhz; /* channel frequency  in KHZ */
+	bool vdev_active;
 	v_BOOL_t vdev_up;
 	u_int64_t tsfadjust;
 	void     *addBssStaContext;
