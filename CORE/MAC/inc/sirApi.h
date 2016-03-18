@@ -1053,7 +1053,7 @@ typedef struct sSirSmeJoinReq
 #endif
     tVOS_CON_MODE       staPersona;             //Persona
     bool                osen_association;
-    bool                wps_registartion;
+    bool                wps_registration;
     ePhyChanBondState   cbMode;                 // Pass CB mode value in Join.
 
     /*This contains the UAPSD Flag for all 4 AC
