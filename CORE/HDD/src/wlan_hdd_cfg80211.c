@@ -218,6 +218,9 @@
  */
 #define EXTTDLS_EVENT_BUF_SIZE 4096
 
+/* (30 Mins) */
+#define MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT (30 * 60 * 1000)
+
 static const u32 hdd_cipher_suites[] =
 {
     WLAN_CIPHER_SUITE_WEP40,
@@ -16015,6 +16018,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     hdd_context_t *pHddCtx = NULL;
     bool aborted = false;
     unsigned long rc;
+    unsigned int current_timestamp, time_elapsed;
     int ret = 0;
 
     ENTER();
@@ -16066,8 +16070,26 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy,
                                         pAdapter);
 
-    if (0 > ret)
+    if (0 > ret) {
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);
+
+        if (pHddCtx->cfg_ini->bug_report_for_scan_results) {
+            current_timestamp = jiffies_to_msecs(jiffies);
+            time_elapsed = current_timestamp -
+                pHddCtx->last_scan_bug_report_timestamp;
+
+            /* check if we have generated bug report in
+             * MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT time.
+             * */
+            if (time_elapsed > MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT) {
+                vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
+                               WLAN_LOG_INDICATOR_HOST_DRIVER,
+                               WLAN_LOG_REASON_NO_SCAN_RESULTS,
+                               true);
+                pHddCtx->last_scan_bug_report_timestamp = current_timestamp;
+            }
+        }
+    }
 
 
     /* If any client wait scan result through WEXT

@@ -4444,6 +4444,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_RX_AGGREGATION_SIZE_DEFAULT,
                 CFG_RX_AGGREGATION_SIZE_MIN,
                 CFG_RX_AGGREGATION_SIZE_MAX),
+   REG_VARIABLE(CFG_CREATE_BUG_REPORT_FOR_SCAN, WLAN_PARAM_Integer,
+                hdd_config_t, bug_report_for_scan_results,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_DEFAULT,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_DISABLE,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_ENABLE),
 };
 
 
