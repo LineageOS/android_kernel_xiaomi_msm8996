@@ -713,6 +713,7 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
 
     /* Channel selection is auto or configured */
     pSapCtx->channel = pConfig->channel;
+    pSapCtx->dfs_mode = pConfig->acs_dfs_mode;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
 #endif
@@ -830,6 +831,7 @@ WLANSAP_StartBss
 
         /* Channel selection is auto or configured */
         pSapCtx->channel = pConfig->channel;
+        pSapCtx->dfs_mode = pConfig->acs_dfs_mode;
         pSapCtx->vht_channel_width = pConfig->vht_channel_width;
         pSapCtx->ch_width_orig = pConfig->ch_width_orig;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH

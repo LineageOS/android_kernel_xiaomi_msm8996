@@ -263,6 +263,7 @@ enum qca_nl80211_vendor_subcmds {
 	/* subcommand to get link properties */
 	QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES = 101,
 	QCA_NL80211_VENDOR_SUBCMD_SETBAND = 105,
+	QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -1809,6 +1810,40 @@ enum qca_wlan_vendor_attr_wake_stats {
 	QCA_WLAN_VENDOR_GET_WAKE_STATS_MAX =
 		QCA_WLAN_VENDOR_GET_WAKE_STATS_AFTER_LAST - 1,
 };
+
+/**
+ * enum dfs_mode - state of DFS mode
+ * @DFS_MODE_NONE: DFS mode attribute is none
+ * @DFS_MODE_ENABLE:  DFS mode is enabled
+ * @DFS_MODE_DISABLE: DFS mode is disabled
+ * @DFS_MODE_DEPRIORITIZE: Deprioritize DFS channels in scanning
+ */
+enum dfs_mode {
+	DFS_MODE_NONE,
+	DFS_MODE_ENABLE,
+	DFS_MODE_DISABLE,
+	DFS_MODE_DEPRIORITIZE
+};
+
+/**
+ * qca_wlan_vendor_attr_acs_config - Config params for ACS
+ * @QCA_WLAN_VENDOR_ATTR_ACS_MODE_INVALID: Invalid
+ * @QCA_WLAN_VENDOR_ATTR_ACS_DFS_MODE: Dfs mode for ACS
+ * QCA_WLAN_VENDOR_ATTR_ACS_CHANNEL_HINT: channel_hint for ACS
+ * QCA_WLAN_VENDOR_ATTR_ACS_DFS_AFTER_LAST: after_last
+ * QCA_WLAN_VENDOR_ATTR_ACS_DFS_MAX: max attribute
+ */
+enum qca_wlan_vendor_attr_acs_config {
+	QCA_WLAN_VENDOR_ATTR_ACS_MODE_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_ACS_DFS_MODE,
+	QCA_WLAN_VENDOR_ATTR_ACS_CHANNEL_HINT,
+
+	QCA_WLAN_VENDOR_ATTR_ACS_DFS_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_ACS_DFS_MAX =
+		QCA_WLAN_VENDOR_ATTR_ACS_DFS_AFTER_LAST - 1,
+
+};
+
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo

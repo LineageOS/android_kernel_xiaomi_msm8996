@@ -6952,6 +6952,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
 #ifdef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
     v_CONTEXT_t sapContext=NULL;
+    enum dfs_mode mode;
 #endif
     int ret;
 
@@ -6975,6 +6976,11 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     pAdapter->sessionCtx.ap.sapContext = sapContext;
+    pAdapter->sessionCtx.ap.sapConfig.channel = pHddCtx->acs_policy.acs_channel;
+    mode = pHddCtx->acs_policy.acs_dfs_mode;
+    pAdapter->sessionCtx.ap.sapConfig.acs_dfs_mode =
+          wlan_hdd_get_dfs_mode(mode);
+
 
     status = WLANSAP_Start(sapContext);
     if ( ! VOS_IS_STATUS_SUCCESS( status ) )

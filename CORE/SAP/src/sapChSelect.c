@@ -635,7 +635,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
 #endif
         ccmCfgGetInt(halHandle, WNI_CFG_DFS_MASTER_ENABLED,
                                                      &dfs_master_cap_enabled);
-        if (dfs_master_cap_enabled == 0)
+        if (dfs_master_cap_enabled == 0 ||
+                ACS_DFS_MODE_DISABLE == pSapCtx->dfs_mode)
             include_dfs_ch = VOS_FALSE;
 
     // Fill the channel number in the spectrum in the operating freq band
@@ -2472,6 +2473,9 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                    vos_nv_getChannelEnabledState(safeChannels[i].channelNumber);
                 if ((NV_CHANNEL_DISABLE == enable_type) ||
                     (NV_CHANNEL_INVALID == enable_type))
+                    continue;
+                if ((pSapCtx->dfs_mode == ACS_DFS_MODE_DISABLE) &&
+                      (NV_CHANNEL_DFS == enable_type))
                     continue;
 
                 if ((!dfs_master_cap_enabled) &&

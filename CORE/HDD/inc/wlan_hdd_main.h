@@ -1451,6 +1451,16 @@ struct hdd_bpf_context {
 	struct sir_bpf_get_offload capability_response;
 };
 
+/**
+ * struct acs_dfs_policy - Define ACS policies
+ * @acs_dfs_mode: Dfs mode enabled/disabled.
+ * @acs_channel: pre defined channel to avoid ACS.
+ */
+struct acs_dfs_policy {
+	enum dfs_mode acs_dfs_mode;
+	uint8_t acs_channel;
+};
+
 /** Adapter stucture definition */
 
 struct hdd_context_s
@@ -1812,6 +1822,7 @@ struct hdd_context_s
     unsigned int last_scan_bug_report_timestamp;
     bool driver_being_stopped; /* Track if DRIVER STOP cmd is sent */
     uint8_t max_mc_addr_list;
+    struct acs_dfs_policy acs_policy;
 };
 
 /*---------------------------------------------------------------------------
@@ -2190,5 +2201,6 @@ static inline void hdd_deinit_packet_filtering(hdd_adapter_t *adapter)
 {
 }
 #endif
+enum  sap_acs_dfs_mode wlan_hdd_get_dfs_mode(enum dfs_mode mode);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
