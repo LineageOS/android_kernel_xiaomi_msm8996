@@ -40,6 +40,10 @@ struct wireless_dev;
 #define NDP_APP_INFO_LEN 255
 #define NDP_QOS_INFO_LEN 255
 
+
+#define HDD_MAX_NUM_NDP_STA           (HDD_MAX_NUM_IBSS_STA)
+#define NDP_BROADCAST_STAID           (IBSS_BROADCAST_STAID)
+
 #ifdef WLAN_FEATURE_NAN_DATAPATH
 #define WLAN_HDD_IS_NDI(adapter) ((adapter)->device_mode == WLAN_HDD_NDI)
 
