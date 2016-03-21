@@ -3717,6 +3717,14 @@ enum dot11p_mode {
 #define CFG_USE_OTP_MAC_MAX        (1)
 #define CFG_USE_OTP_MAC_DEFAULT    (1)
 
+/*
+ * Create bug report in case of nil scan results
+ */
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN       "gbug_report_for_scan_results"
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_DISABLE    (0)
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_ENABLE     (1)
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_DEFAULT    (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4456,6 +4464,7 @@ struct hdd_config {
    bool                        g_use_otpmac;
    uint32_t                    tx_aggregation_size;
    uint32_t                    rx_aggregation_size;
+   bool                        bug_report_for_scan_results;
 };
 
 typedef struct hdd_config hdd_config_t;
