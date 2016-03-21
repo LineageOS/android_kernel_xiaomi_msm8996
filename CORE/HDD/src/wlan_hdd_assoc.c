@@ -2553,7 +2553,7 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
          }
          else
          {
-            vosStatus = hdd_Ibss_GetStaId(pHddStaCtx,
+            vosStatus = hdd_get_peer_sta_id(pHddStaCtx,
                               (v_MACADDR_t*)pRoamInfo->peerMac,
                               &staId);
             if ( VOS_STATUS_SUCCESS == vosStatus )

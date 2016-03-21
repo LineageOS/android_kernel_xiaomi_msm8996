@@ -453,7 +453,7 @@ static int hdd_ndp_initiator_req_handler(hdd_context_t *hdd_ctx,
 {
 	hdd_adapter_t *adapter;
 	char *iface_name;
-	struct ndp_initiator_req req;
+	struct ndp_initiator_req req = {0};
 	VOS_STATUS status;
 	uint32_t ndp_qos_cfg;
 	tHalHandle hal = hdd_ctx->hHal;
@@ -704,6 +704,8 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 		hddLog(LOGE, FL("NDI interface successfully created"));
 		ndp_ctx->ndp_create_transaction_id = 0;
 		ndp_ctx->state = NAN_DATA_NDI_CREATED_STATE;
+		netif_carrier_on(adapter->dev);
+		netif_tx_start_all_queues(adapter->dev);
 	} else {
 		hddLog(LOGE,
 			FL("NDI interface creation failed with reason %d"),
@@ -752,6 +754,8 @@ static void hdd_ndp_iface_delete_rsp_handler(hdd_adapter_t *adapter,
 			FL("NDI BSS stop failed with reason %d"),
 			ndi_rsp->reason);
 
+	netif_carrier_off(adapter->dev);
+	netif_tx_stop_all_queues(adapter->dev);
 	complete(&adapter->disconnect_comp_var);
 	return;
 }
@@ -946,6 +950,7 @@ static void hdd_ndp_new_peer_ind_handler(hdd_adapter_t *adapter,
 	tCsrRoamInfo roam_info = {0};
 	struct nan_datapath_ctx *ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(adapter);
 	hdd_station_ctx_t *sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	v_MACADDR_t bc_mac_addr = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
 
 	ENTER();
 
@@ -963,16 +968,20 @@ static void hdd_ndp_new_peer_ind_handler(hdd_adapter_t *adapter,
 
 	/* this function is called for each new peer */
 	ndp_ctx->active_ndp_peers++;
+
 	hdd_roamRegisterSTA(adapter, &roam_info, new_peer_ind->sta_id,
 			    &new_peer_ind->peer_mac_addr, &tmp_bss_descp);
 	hdd_ctx->sta_to_adapter[new_peer_ind->sta_id] = adapter;
 	/* perform following steps for first new peer ind */
 	if (ndp_ctx->active_ndp_peers == 1) {
+		hdd_ctx->sta_to_adapter[NDP_BROADCAST_STAID] = adapter;
+		hdd_save_peer(sta_ctx, new_peer_ind->sta_id, &bc_mac_addr);
+		hdd_roamRegisterSTA(adapter, &roam_info, NDP_BROADCAST_STAID,
+				    &bc_mac_addr, &tmp_bss_descp);
 		hddLog(LOG1, FL("Set ctx connection state to connected"));
 		sta_ctx->conn_info.connState = eConnectionState_NdiConnected;
 		hdd_wmm_connect(adapter, &roam_info, eCSR_BSS_TYPE_NDI);
-		netif_carrier_on(adapter->dev);
-		netif_tx_start_all_queues(adapter->dev);
+		netif_tx_wake_all_queues(adapter->dev);
 	}
 	EXIT();
 }

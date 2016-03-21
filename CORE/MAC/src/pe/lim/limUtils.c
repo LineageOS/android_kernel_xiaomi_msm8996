@@ -6674,7 +6674,7 @@ tANI_U8 limGetCurrentOperatingChannel(tpAniSirGlobal pMac)
  * @mac_ctx: Pointer to Global MAC structure
  * @msg: msg from WMA
  *
- * @Return: void
+ * @Return: None
  */
 void limProcessAddStaRsp(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 {
