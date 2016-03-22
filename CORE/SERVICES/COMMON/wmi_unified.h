@@ -1522,6 +1522,15 @@ WMI_CHANNEL_CHANGE_CAUSE_CSA,
 #define WMI_HE_CAP_TWT_REQUESTER_SUPPORT  0x00000004
 #define WMI_HE_FRAG_SUPPORT_MASK          0x00000018
 #define WMI_HE_FRAG_SUPPORT_SHIFT         3
+
+/* fragmentation support field value */
+enum {
+    WMI_HE_FRAG_SUPPORT_LEVEL0, /* No Fragmentation support */
+    WMI_HE_FRAG_SUPPORT_LEVEL1, /* support for fragments within a VHT single MPDU, no support for fragments within AMPDU */
+    WMI_HE_FRAG_SUPPORT_LEVEL2, /* support for up to 1 fragment per MSDU within a single A-MPDU */
+    WMI_HE_FRAG_SUPPORT_LEVEL3, /* support for multiple fragments per MSDU within an A-MPDU */
+};
+
 /** NOTE: This defs cannot be changed in the future without breaking WMI compatibility */
 #define WMI_MAX_NUM_SS                    8
 #define WMI_MAX_NUM_RU                    4
@@ -1793,7 +1802,11 @@ typedef struct {
     /* which WMI_DBS_FW_MODE_CFG setting the FW is initialized with */
     A_UINT32 default_fw_config_bits;
     wmi_ppe_threshold ppet;
-    A_UINT32 he_cap_info; /* see section 8.4.2.213 from draft r8 of 802.11ax */
+    /*
+     * see section 8.4.2.213 from draft r8 of 802.11ax;
+     * see WMI_HE_FRAG_SUPPORT enum
+     */
+    A_UINT32 he_cap_info;
     /*
      * An HT STA shall not allow transmission of more than one MPDU start
      * within the time limit described in the MPDU maximum density field.
@@ -3709,13 +3722,19 @@ typedef enum {
     WMI_PKTLOG_EVENT_SMART_ANTENNA = 0x20, /* To support Smart Antenna */
 } WMI_PKTLOG_EVENT;
 
+typedef enum {
+    WMI_PKTLOG_ENABLE_AUTO  = 0, /* (default) FW will decide under what conditions to enable pktlog */
+    WMI_PKTLOG_ENABLE_FORCE = 1, /* pktlog unconditionally enabled */
+} WMI_PKTLOG_ENABLE;
+
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_pktlog_enable_cmd_fixed_param */
     /** pdev_id for identifying the MAC
       * See macros starting with WMI_PDEV_ID_ for values.
       */
     A_UINT32 pdev_id;
-    WMI_PKTLOG_EVENT evlist;
+    A_UINT32 evlist; /* WMI_PKTLOG_EVENT */
+    A_UINT32 enable; /* WMI_PKTLOG_ENABLE */
 } wmi_pdev_pktlog_enable_cmd_fixed_param;
 
 typedef struct {
