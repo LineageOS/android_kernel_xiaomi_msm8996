@@ -57,7 +57,6 @@ static struct {
 
 static void __mdss_mdp_mixer_write_cfg(struct mdss_mdp_mixer *mixer,
 		struct mdss_mdp_mixer_cfg *cfg);
-static void __mdss_mdp_reset_mixercfg(struct mdss_mdp_ctl *ctl);
 
 static inline u64 fudge_factor(u64 val, u32 numer, u32 denom)
 {
@@ -4251,7 +4250,7 @@ static void __mdss_mdp_mixer_write_cfg(struct mdss_mdp_mixer *mixer,
 	MDSS_XLOG(mixer->num, vals[0], vals[1]);
 }
 
-static void __mdss_mdp_reset_mixercfg(struct mdss_mdp_ctl *ctl)
+void mdss_mdp_reset_mixercfg(struct mdss_mdp_ctl *ctl)
 {
 	u32 vals[NUM_MIXERCFG_REGS] = {0};
 	int i, nmixers;
