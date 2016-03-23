@@ -3681,6 +3681,24 @@ enum dot11p_mode {
 #define CFG_OPTIMIZE_CA_EVENT_ENABLE     (1)
 #define CFG_OPTIMIZE_CA_EVENT_DEFAULT    (0)
 
+/**
+ * Reading the MAC address has priorities:
+ * 1. Read the provisioned MAC from cnss platform driver (configured by OEM)
+ * 2. Read from provisioned MAC from /persist/wlan_mac.bin (configured by OEM)
+ * 3. Read the default MAC address (otp.bin)
+ *
+ * Setting g_use_otpmac = 1 means if any of the higher priority
+ * provisioned MAC reading fails, use the default otp MAC address.
+ *
+ * Setting g_use_otpmac = 0 means Do not use the otp MAC address even if
+ * higher priority provisioned MAC reading fails, instead
+ * trigger driver load failure.
+ */
+#define CFG_USE_OTP_MAC            "g_use_otpmac"
+#define CFG_USE_OTP_MAC_MIN        (0)
+#define CFG_USE_OTP_MAC_MAX        (1)
+#define CFG_USE_OTP_MAC_DEFAULT    (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4417,6 +4435,7 @@ struct hdd_config {
    uint8_t                     nan_datapath_ndi_channel;
 #endif
    bool                        goptimize_chan_avoid_event;
+   bool                        g_use_otpmac;
 };
 
 typedef struct hdd_config hdd_config_t;

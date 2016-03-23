@@ -14013,9 +14013,9 @@ static int hdd_cnss_wlan_mac(hdd_context_t *hdd_ctx)
  * provisioned with mac addresses, driver uses it, else it will use wlan_mac.bin
  * to update HW MAC addresses.
  *
- * Return: None
+ * Return: 0 if success, errno otherwise
  */
-static void hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
+static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 {
 	VOS_STATUS status;
 	int ret;
@@ -14023,15 +14023,18 @@ static void hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 	ret = hdd_cnss_wlan_mac(hdd_ctx);
 
 	if (ret == 0)
-		return;
+		return ret;
 
-	hddLog(LOGW, FL("Can't update mac config via platform driver ret:%d"),
-	       ret);
+	hddLog(LOGW, FL("Can't update MAC via platform driver ret: %d"), ret);
 
 	status = hdd_update_mac_config(hdd_ctx);
-	if (status != VOS_STATUS_SUCCESS)
+	if (status != VOS_STATUS_SUCCESS) {
 		hddLog(LOGW,
-		       FL("can't update mac config, using MAC from ini file"));
+		      FL("Failed to update MAC from %s status: %d"),
+		      WLAN_MAC_FILE, status);
+		return -EIO;
+	}
+	return 0;
 }
 /**---------------------------------------------------------------------------
 
@@ -14443,7 +14446,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
    }
 
-   hdd_initialize_mac_address(pHddCtx);
+   ret = hdd_initialize_mac_address(pHddCtx);
+   if (!pHddCtx->cfg_ini->g_use_otpmac && ret) {
+       hddLog(LOGE,
+        FL("Failed to read MAC from platform driver or %s (driver load failed)"),
+        WLAN_MAC_FILE);
+       goto err_wiphy_unregister;
+   }
 
    {
       eHalStatus halStatus;
