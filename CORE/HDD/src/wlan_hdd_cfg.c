@@ -4423,6 +4423,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_OPTIMIZE_CA_EVENT_DEFAULT,
                  CFG_OPTIMIZE_CA_EVENT_DISABLE,
                  CFG_OPTIMIZE_CA_EVENT_ENABLE ),
+
+   REG_VARIABLE(CFG_USE_OTP_MAC, WLAN_PARAM_Integer,
+                hdd_config_t, g_use_otpmac,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_USE_OTP_MAC_DEFAULT,
+                CFG_USE_OTP_MAC_MIN,
+                CFG_USE_OTP_MAC_MAX),
 };
 
 
@@ -5180,6 +5187,8 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->min_rest_time_conc);
   hddLog(LOG2, "Name = [gIdleTimeConc] Value = [%u]",
                    pHddCtx->cfg_ini->idle_time_conc);
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+         CFG_USE_OTP_MAC, pHddCtx->cfg_ini->g_use_otpmac);
 
   hdd_ndp_print_ini_config(pHddCtx);
 }
