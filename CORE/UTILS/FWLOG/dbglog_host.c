@@ -1645,11 +1645,17 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
     struct sk_buff *skb_out;
     struct nlmsghdr *nlh;
     int res = 0;
+    tAniNlHdr *wnl;
+    int radio;
 
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
 
     if (nl_srv_is_initialized() != 0)
+        return -EIO;
+
+    radio = vos_get_radio_index();
+    if (radio == -EINVAL)
         return -EIO;
 
     if (vos_is_multicast_logging())
@@ -1661,7 +1667,11 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
             return -1;
         }
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, len, 0);
-        memcpy(nlmsg_data(nlh), buffer, len);
+        wnl = (tAniNlHdr *)nlh;
+        wnl->radio = radio;
+
+        /* data buffer should offset after the nlmsg_hdr + sizeof(int) radio */
+        memcpy(nlmsg_data(nlh) + sizeof(radio), buffer, len);
 
         res = nl_srv_bcast(skb_out);
         if (res < 0)
@@ -1675,20 +1685,25 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
 }
 
 static int
-send_diag_netlink_data(const u_int8_t *buffer,
-                           A_UINT32 len, A_UINT32 cmd)
+send_diag_netlink_data(const u_int8_t *buffer, A_UINT32 len, A_UINT32 cmd)
 {
     struct sk_buff *skb_out;
     struct nlmsghdr *nlh;
     int res = 0;
     struct dbglog_slot *slot;
     size_t slot_len;
+    tAniNlHdr *wnl;
+    int radio;
 
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
 
     if (nl_srv_is_initialized() != 0)
-	return -EIO;
+        return -EIO;
+
+    radio = vos_get_radio_index();
+    if (radio == -EINVAL)
+        return -EIO;
 
     if (vos_is_multicast_logging()) {
         slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
@@ -1701,7 +1716,12 @@ send_diag_netlink_data(const u_int8_t *buffer,
         }
 
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, slot_len, 0);
-        slot = (struct dbglog_slot *) nlmsg_data(nlh);
+        wnl = (tAniNlHdr *)nlh;
+
+        wnl->radio = radio;
+
+        /* data buffer should offset after the nlmsg_hdr + sizeof(int) radio */
+        slot = (struct dbglog_slot *) (nlmsg_data(nlh) + sizeof(radio));
         slot->diag_type = cmd;
         slot->timestamp = cpu_to_le32(jiffies);
         slot->length = cpu_to_le32(len);
@@ -1722,19 +1742,25 @@ send_diag_netlink_data(const u_int8_t *buffer,
 
 int
 dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
-                           A_UINT32 len, A_UINT32 dropped)
+                            A_UINT32 len, A_UINT32 dropped)
 {
     struct sk_buff *skb_out;
     struct nlmsghdr *nlh;
     int res = 0;
     struct dbglog_slot *slot;
     size_t slot_len;
+    tAniNlHdr *wnl;
+    int radio;
 
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
 
     if (nl_srv_is_initialized() != 0)
-	    return -EIO;
+        return -EIO;
+
+    radio = vos_get_radio_index();
+    if (radio == -EINVAL)
+        return -EIO;
 
     if (vos_is_multicast_logging())
     {
@@ -1748,7 +1774,12 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
         }
 
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, slot_len, 0);
-        slot = (struct dbglog_slot *) nlmsg_data(nlh);
+        wnl = (tAniNlHdr *)nlh;
+
+        wnl->radio = radio;
+
+        /* data buffer should offset after the nlmsg_hdr + sizeof(int) radio */
+        slot = (struct dbglog_slot *) (nlmsg_data(nlh) + sizeof(radio));
         slot->diag_type = (A_UINT32)DIAG_TYPE_FW_DEBUG_MSG;
         slot->timestamp = cpu_to_le32(jiffies);
         slot->length = cpu_to_le32(len);

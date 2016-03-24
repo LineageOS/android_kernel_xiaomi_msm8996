@@ -14903,10 +14903,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    reg_netdev_notifier_done = TRUE;
 #endif
 
-   //Initialize the nlink service
-   if(nl_srv_init() != 0)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: nl_srv_init failed", __func__);
+   /* Initialize the nlink service */
+   if (wlan_hdd_nl_init(pHddCtx) != 0) {
+      hddLog(LOGP, FL("nl_srv_init failed"));
       goto err_reg_netdev;
    }
 
