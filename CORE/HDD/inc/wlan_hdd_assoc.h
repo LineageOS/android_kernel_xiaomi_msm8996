@@ -49,28 +49,31 @@
 /* Timeout in ms for peer info request completion */
 #define IBSS_PEER_INFO_REQ_TIMOEUT 1000
 
-typedef enum
-{
-   /** Not associated in Infra or participating in an IBSS / Ad-hoc network.*/
+/**
+ * enum eConnectionState - connection state values at HDD
+ * @eConnectionState_NotConnected: Not associated in Infra or participating in
+ *   an IBSS / Ad-hoc network
+ * @eConnectionState_Connecting: While connection in progress
+ * @eConnectionState_Associated: Associated in an Infrastructure network
+ * @eConnectionState_IbssDisconnected: Participating in an IBSS network though
+ *   disconnected (no partner STA in IBSS)
+ * @eConnectionState_IbssConnected: Participating in an IBSS network with
+ *   partner stations also present
+ * @eConnectionState_Disconnecting: Disconnecting in an Infrastructure network.
+ * @eConnectionState_NdiDisconnected: NDI in disconnected state - no peers
+ * @eConnectionState_NdiConnected: NDI in connected state - at least one peer
+ */
+typedef enum {
    eConnectionState_NotConnected,
-
-   /** While connection in progress */
    eConnectionState_Connecting,
-
-   /** Associated in an Infrastructure network.*/
    eConnectionState_Associated,
-
-   /** Participating in an IBSS network though disconnected (no partner stations
-       in the IBSS).*/
    eConnectionState_IbssDisconnected,
-
-   /** Participating in an IBSS network with partner stations also present*/
    eConnectionState_IbssConnected,
-
-   /** Disconnecting in an Infrastructure network.*/
-   eConnectionState_Disconnecting
-
+   eConnectionState_Disconnecting,
+   eConnectionState_NdiDisconnected,
+   eConnectionState_NdiConnected,
 }eConnectionState;
+
 /**This structure stores the connection information */
 typedef struct connection_info_s
 {
