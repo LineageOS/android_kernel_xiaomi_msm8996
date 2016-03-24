@@ -2051,6 +2051,14 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                            "SKIP-currently associated AP");
                 continue;
             }
+            if (vos_concurrent_open_sessions_running() &&
+               !pMac->roam.configParam.fenableMCCMode &&
+               (pScanResult->BssDescriptor.channelId !=
+               csrGetConcurrentOperationChannel(pMac))) {
+                smsLog(pMac, LOG1, FL("MCC not supported so Ignore AP on channel %d"),
+                    pScanResult->BssDescriptor.channelId);
+                continue;
+            }
 
 #ifdef FEATURE_WLAN_LFR
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
