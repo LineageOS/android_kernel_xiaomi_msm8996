@@ -2964,3 +2964,30 @@ inline void vos_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump,
 
 	wlan_pkt_stats_to_logger_thread(pl_hdr, pkt_dump, data);
 }
+
+/**
+ *
+ * vos_get_radio_index() - get radio index
+ *
+ * Return: radio index otherwise, -EINVAL
+ */
+int vos_get_radio_index(void)
+{
+	hdd_context_t *hdd_ctx = NULL;
+
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  FL("global voss context is NULL"));
+		return -EINVAL;
+	}
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   gpVosContext);
+
+	if (!hdd_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  FL("HDD context is Null"));
+		return -EINVAL;
+	}
+	return hdd_ctx->radio_index;
+}
+
