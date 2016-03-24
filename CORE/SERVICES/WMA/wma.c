@@ -20847,6 +20847,8 @@ static const u8 *wma_wow_wakeup_event_str(WOW_WAKE_EVENT_TYPE event)
 		return "WOW_NLO_SCAN_COMPLETE_EVENT";
 	case WOW_NAN_DATA_EVENT:
 		return "WOW_NAN_DATA_EVENT";
+	case WOW_TDLS_CONN_TRACKER_EVENT:
+		return "WOW_TDLS_CONN_TRACKER_EVENT";
 	default:
 		return "UNSPECIFIED_EVENT";
 	}
@@ -21915,6 +21917,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #endif
 
 	wma_ndp_add_wow_wakeup_event(wma, true);
+
+#ifdef FEATURE_WLAN_TDLS
+	/* configure TDLS based wakeup */
+	wma_add_wow_wakeup_event(wma, WOW_TDLS_CONN_TRACKER_EVENT, TRUE);
+#endif
 
 	/* Enable wow wakeup events in FW */
 	ret = wma_send_wakeup_mask(wma, TRUE);
