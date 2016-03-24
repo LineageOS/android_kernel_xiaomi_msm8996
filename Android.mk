@@ -13,6 +13,19 @@ endif
 # Build/Package only in case of supported target
 ifneq ($(WLAN_CHIPSET),)
 
+# Check for kernel version
+ifeq ($(TARGET_KERNEL_VERSION),)
+$(info "WLAN: TARGET_KERNEL_VERSION not defined, assuming default")
+TARGET_KERNEL_VERSION := 3.18
+TARGET_KERNEL_SOURCE := kernel
+KERNEL_TO_BUILD_ROOT_OFFSET := ../
+endif
+
+# Check for supported kernel
+ifeq ($(TARGET_KERNEL_VERSION),3.18)
+$(info "WLAN: supported kernel detected, building qcacld-2.0")
+
+
 LOCAL_PATH := $(call my-dir)
 
 # This makefile is only for DLKM
@@ -50,7 +63,7 @@ endif
 
 ###########################################################
 # This is set once per LOCAL_PATH, not per (kernel) module
-KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/qcacld-2.0
+KBUILD_OPTIONS := WLAN_ROOT=$(KERNEL_TO_BUILD_ROOT_OFFSET)$(WLAN_BLD_DIR)/qcacld-2.0
 # We are actually building wlan.ko here, as per the
 # requirement we are specifying <chipset>_wlan.ko as LOCAL_MODULE.
 # This means we need to rename the module to <chipset>_wlan.ko
@@ -111,6 +124,6 @@ endif
 endif
 
 endif # DLKM check
-
+endif # Supported kernel check
 endif # supported target check
 endif # WLAN enabled check
