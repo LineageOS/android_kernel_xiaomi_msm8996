@@ -1359,13 +1359,20 @@ enum qca_wlan_vendor_attr_roam_subcmd
 		QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_AFTER_LAST - 1,
 };
 
-/* NL attributes for data used by
- * QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_INFO sub command.
+/**
+ * enum qca_wlan_vendor_attr_get_wifi_info - value for get_wifi sub commands
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_INVALID - invalid
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_INFO_DRIVER_VERSION - get driver version
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION - get firmware version
+ * @QCA_WLAN_VENDOR_ATTR_WIFI_INFO_RADIO_INDEX - get radio index
+ *
+ * enum values are used for QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_INFO sub command.
  */
 enum qca_wlan_vendor_attr_get_wifi_info {
 	QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_INVALID = 0,
 	QCA_WLAN_VENDOR_ATTR_WIFI_INFO_DRIVER_VERSION     = 1,
 	QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION   = 2,
+	QCA_WLAN_VENDOR_ATTR_WIFI_INFO_RADIO_INDEX        = 3,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_AFTER_LAST,
