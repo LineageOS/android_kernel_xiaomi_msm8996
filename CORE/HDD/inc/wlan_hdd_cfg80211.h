@@ -1874,6 +1874,9 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(const v_U8_t *pIes,
                                      int length,
                                      v_U8_t eid);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+#define CFG80211_DEL_STA_V2
+#endif
 
 #ifdef CFG80211_DEL_STA_V2
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
@@ -1936,6 +1939,10 @@ int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
                                    u32 no_dfs_flag);
 
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+#define SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC
+#endif
 
 #if !(defined (SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC))
 static inline struct sk_buff *
