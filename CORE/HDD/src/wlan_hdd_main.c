@@ -9339,10 +9339,9 @@ static void hdd_tx_fail_ind_callback(v_U8_t *MacAddr, v_U8_t seqNo)
 
    payload_len = ETH_ALEN;
 
-   if (0 == cesium_pid)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: cesium process not registered",
-             __func__);
+   if (0 == cesium_pid || cesium_nl_srv_sock == NULL) {
+      hddLog(LOGE, FL("cesium process not registered, pid: %d, nl_sock: %p"),
+             cesium_pid, cesium_nl_srv_sock);
       return;
    }
 
@@ -14831,10 +14830,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 
    if (hdd_open_cesium_nl_sock() < 0)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_open_cesium_nl_sock failed", __func__);
-      goto err_nl_srv;
-   }
+      hddLog(VOS_TRACE_LEVEL_WARN, FL("hdd_open_cesium_nl_sock failed"));
 
    //Initialize the CNSS-DIAG service
    if (cnss_diag_activate_service() < 0)
