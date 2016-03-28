@@ -251,7 +251,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8             smeSessionId = 0;
     bool                isVHTEnabled = false;
     uint16_t addn_ielen = nAdditionalIELen;
-    bool                extracted_ext_cap_flag = true;
+    bool                extracted_ext_cap_flag = false;
     tDot11fIEExtCap     extracted_ext_cap;
 
 
@@ -405,7 +405,6 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
                                       &addn_ielen,
                                       &extracted_ext_cap);
         if (eSIR_SUCCESS != nSirStatus) {
-            extracted_ext_cap_flag = eANI_BOOLEAN_FALSE;
             limLog(pMac, LOG1,
                  FL("Unable to Stripoff ExtCap IE from Probe Req"));
         } else {
