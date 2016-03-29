@@ -727,6 +727,7 @@ typedef struct tagCsrConfig
     uint32_t edca_bk_aifs;
     uint32_t edca_be_aifs;
     bool vendor_vht_for_24ghz_sap;
+    struct csr_sta_roam_policy_params sta_roam_policy;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

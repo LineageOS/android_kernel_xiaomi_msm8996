@@ -6410,6 +6410,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
     eNVChannelEnabledType NVchannel_state;
     bool skip_dfs_chnl = pMac->roam.configParam.initial_scan_no_dfs_chnl ||
             !pMac->scan.fEnableDFSChnlScan;
+    bool is_unsafe_chan;
 
     do
     {
@@ -6482,8 +6483,16 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                     }
                     else if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
                     {
+                        uint16_t unsafe_chan[NUM_20MHZ_RF_CHANNELS];
+                        uint16_t unsafe_chan_cnt;
+                        uint16_t cnt = 0;
                         new_index = 0;
                         pMac->roam.numValidChannels = len;
+                        vos_get_wlan_unsafe_channel(unsafe_chan,
+                                &unsafe_chan_cnt,
+                                sizeof(unsafe_chan));
+
+
                         for ( index = 0; index < pSrcReq->ChannelInfo.numOfChannels ; index++ )
                         {
                             /* Allow scan on valid channels only.
@@ -6526,6 +6535,40 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                           pSrcReq->ChannelInfo.ChannelList[index]);
 #endif
                                     continue;
+                                }
+                                if ((pMac->roam.configParam.sta_roam_policy.
+                                            dfs_mode ==
+                                           CSR_STA_ROAM_POLICY_DFS_DISABLED) &&
+                                        (CSR_IS_CHANNEL_DFS(
+                                             pSrcReq->ChannelInfo.
+                                             ChannelList[index]))
+                                   ) {
+                                    smsLog(pMac, LOG2,
+                                       FL("ignoring DFS channel %d"),
+                                       pSrcReq->ChannelInfo.ChannelList[index]);
+
+                                    continue;
+                                }
+
+                                if (pMac->roam.configParam.sta_roam_policy.
+                                        skip_unsafe_channels &&
+                                        unsafe_chan_cnt) {
+                                    is_unsafe_chan = false;
+                                    for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                                        if (unsafe_chan[cnt] ==
+                                             pSrcReq->ChannelInfo.
+                                             ChannelList[index]) {
+                                            is_unsafe_chan = true;
+                                            break;
+                                        }
+                                    }
+                                    if (is_unsafe_chan) {
+                                        smsLog(pMac, LOG2,
+                                            FL("ignoring unsafe channel %d"),
+                                            pSrcReq->ChannelInfo.
+                                            ChannelList[index]);
+                                        continue;
+                                    }
                                 }
 
                                 pDstReq->ChannelInfo.ChannelList[new_index] =
