@@ -468,6 +468,15 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     vos_msg_t msg;
     tANI_U8 i, j, social_channel[MAX_SOCIAL_CHANNELS] = {1,6,11};
     tANI_U8 channel_state;
+    uint16_t unsafe_chan[NUM_20MHZ_RF_CHANNELS];
+    uint16_t unsafe_chan_cnt;
+    uint16_t cnt = 0;
+    uint8_t  channel;
+    bool is_unsafe_chan;
+
+    vos_get_wlan_unsafe_channel(unsafe_chan,
+            &unsafe_chan_cnt,
+            sizeof(unsafe_chan));
 
     if (CSR_IS_5G_BAND_ONLY(pMac))
     {
@@ -497,12 +506,36 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
 
     for (i = 0; i < pScan->base20MHzChannels.numChannels; i++)
     {
+        channel = pScan->base20MHzChannels.channelList[i];
         channel_state =
-            vos_nv_getChannelEnabledState(
-                pScan->base20MHzChannels.channelList[i]);
+            vos_nv_getChannelEnabledState(channel);
+
         if ((NV_CHANNEL_ENABLE == channel_state) ||
             pMac->scan.fEnableDFSChnlScan)
         {
+            if ((pMac->roam.configParam.sta_roam_policy.dfs_mode ==
+                        CSR_STA_ROAM_POLICY_DFS_DISABLED) &&
+                    (channel_state == NV_CHANNEL_DFS)) {
+                smsLog(pMac, LOG1, FL("skip dfs channel %d"), channel);
+                continue;
+            }
+            if (pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels &&
+                    unsafe_chan_cnt) {
+                is_unsafe_chan = false;
+                for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                    if (unsafe_chan[cnt] == channel) {
+                        is_unsafe_chan = true;
+                        break;
+                    }
+                }
+                if (is_unsafe_chan) {
+                    smsLog(pMac, LOG1,
+                            FL("ignoring unsafe channel %d"), channel);
+                    continue;
+                }
+            }
+
+
             pChanList->chanParam[num_channel].chanId =
                 pScan->base20MHzChannels.channelList[i];
             pChanList->chanParam[num_channel].pwr =
@@ -2059,6 +2092,10 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.edca_vi_aifs = pParam->edca_vi_aifs;
         pMac->roam.configParam.edca_bk_aifs = pParam->edca_bk_aifs;
         pMac->roam.configParam.edca_be_aifs = pParam->edca_be_aifs;
+        pMac->roam.configParam.sta_roam_policy.dfs_mode =
+            pParam->sta_roam_policy_params.dfs_mode;
+        pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels =
+            pParam->sta_roam_policy_params.skip_unsafe_channels;
     }
 
     return status;
@@ -17391,6 +17428,11 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    struct roam_ext_params *roam_params_dst;
    struct roam_ext_params *roam_params_src;
    uint8_t op_channel;
+   uint16_t  unsafe_chan[NUM_20MHZ_RF_CHANNELS];
+   uint16_t  unsafe_chan_cnt;
+   uint16_t  cnt = 0;
+   bool      is_unsafe_chan;
+
    currChannelListInfo = &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo;
 
    pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -17461,7 +17503,10 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        return eHAL_STATUS_FAILED_ALLOC;
    }
 
-    vos_mem_zero(pRequestBuf, sizeof(tSirRoamOffloadScanReq));
+    vos_get_wlan_unsafe_channel(unsafe_chan,
+           &unsafe_chan_cnt,
+           sizeof(unsafe_chan));
+   vos_mem_zero(pRequestBuf, sizeof(tSirRoamOffloadScanReq));
     pRequestBuf->Command = command;
     /* If command is STOP, then pass down ScanOffloadEnabled as Zero.This will handle the case of
      * host driver reloads, but Riva still up and running*/
@@ -17563,15 +17608,38 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                     (eCSR_BAND_ALL == eBand)) {
                     /* Allow DFS channels only if the DFS channel
                      * roam flag is enabled */
-                    if (((pMac->roam.configParam.allowDFSChannelRoam
-                                != CSR_ROAMING_DFS_CHANNEL_DISABLED) ||
-                        (!CSR_IS_CHANNEL_DFS(*ChannelList))) &&
-                        csrRoamIsChannelValid(pMac, *ChannelList) &&
-                                              *ChannelList &&
-                                       (num_channels < SIR_ROAM_MAX_CHANNELS)) {
-                        pRequestBuf->ConnectedNetwork.ChannelCache[
-                                             num_channels++] = *ChannelList;
+                    if ((!pMac->roam.configParam.allowDFSChannelRoam ||
+                           (pMac->roam.configParam.sta_roam_policy.dfs_mode ==
+                                 CSR_STA_ROAM_POLICY_DFS_DISABLED)) &&
+                            (CSR_IS_CHANNEL_DFS(*ChannelList))
+                       ) {
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                FL("ignoring dfs channel %d"), *ChannelList);
+                        ChannelList++;
+                        continue;
                     }
+
+                    if (pMac->roam.configParam.sta_roam_policy.
+                            skip_unsafe_channels && unsafe_chan_cnt) {
+                        is_unsafe_chan = false;
+                        for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                            if (unsafe_chan[cnt] == *ChannelList) {
+                                is_unsafe_chan = true;
+                                break;
+                            }
+                        }
+                        if (is_unsafe_chan) {
+                            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                    FL("ignoring unsafe channel %d"),
+                                    *ChannelList);
+                            ChannelList++;
+                            continue;
+                        }
+
+                    }
+                    pRequestBuf->ConnectedNetwork.ChannelCache[
+                        num_channels++] = *ChannelList;
+
                 }
                 ChannelList++;
             }
@@ -17585,14 +17653,39 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         for (i = 0;
              i < pMac->scan.occupiedChannels[sessionId].numChannels;
              i++) {
-            if(((pMac->roam.configParam.allowDFSChannelRoam
-                                != CSR_ROAMING_DFS_CHANNEL_DISABLED) ||
-               (!CSR_IS_CHANNEL_DFS(*ChannelList))) && *ChannelList &&
-               (num_channels < SIR_ROAM_MAX_CHANNELS)) {
-                pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] =
-                                                                   *ChannelList;
-              }
-              if (*ChannelList)
+            if ((!pMac->roam.configParam.allowDFSChannelRoam ||
+                        (pMac->roam.configParam.sta_roam_policy.dfs_mode ==
+                         CSR_STA_ROAM_POLICY_DFS_DISABLED)) &&
+                    (CSR_IS_CHANNEL_DFS(*ChannelList))
+               ) {
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                        FL("ignoring dfs channel %d"), *ChannelList);
+                ChannelList++;
+                continue;
+            }
+
+            if (pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels &&
+                    unsafe_chan_cnt) {
+                is_unsafe_chan = false;
+                for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                    if (unsafe_chan[cnt] == *ChannelList) {
+                        is_unsafe_chan = true;
+                        break;
+                    }
+                }
+                if (is_unsafe_chan) {
+                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                            FL("ignoring unsafe channel %d"),
+                            *ChannelList);
+                    ChannelList++;
+                    continue;
+                }
+            }
+
+            pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] =
+                *ChannelList;
+
+            if (*ChannelList)
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                        "DFSRoam=%d, ChnlState=%d, Chnl=%d, num_ch=%d",
                        pMac->roam.configParam.allowDFSChannelRoam,
@@ -17627,13 +17720,37 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
           ChannelList = currChannelListInfo->ChannelList;
           for (i=0;i<currChannelListInfo->numOfChannels;i++)
           {
-           if(((pMac->roam.configParam.allowDFSChannelRoam
-                                != CSR_ROAMING_DFS_CHANNEL_DISABLED) ||
-                (!CSR_IS_CHANNEL_DFS(*ChannelList))) && *ChannelList)
-           {
-            pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] = *ChannelList;
-           }
-           ChannelList++;
+              if ((!pMac->roam.configParam.allowDFSChannelRoam ||
+                          (pMac->roam.configParam.sta_roam_policy.dfs_mode ==
+                           CSR_STA_ROAM_POLICY_DFS_DISABLED)) &&
+                      (CSR_IS_CHANNEL_DFS(*ChannelList))
+                 ) {
+                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                          FL("ignoring dfs channel %d"), *ChannelList);
+                  ChannelList++;
+                  continue;
+              }
+
+              if (pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels &&
+                      unsafe_chan_cnt) {
+                  is_unsafe_chan = false;
+                  for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                      if (unsafe_chan[cnt] == *ChannelList) {
+                          is_unsafe_chan = true;
+                          break;
+                      }
+                  }
+                  if (is_unsafe_chan) {
+                      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                              FL("ignoring unsafe channel %d"),
+                              *ChannelList);
+                      ChannelList++;
+                      continue;
+                  }
+              }
+              pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] =
+                                      *ChannelList;
+              ChannelList++;
           }
           pRequestBuf->ConnectedNetwork.ChannelCount = num_channels;
           pRequestBuf->ChannelCacheType = CHANNEL_LIST_DYNAMIC_UPDATE;
@@ -17676,12 +17793,36 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
     }
     for(i=0; i<pMac->roam.numValidChannels; i++)
     {
-        if(((pMac->roam.configParam.allowDFSChannelRoam
-                                != CSR_ROAMING_DFS_CHANNEL_DISABLED) ||
-            (!CSR_IS_CHANNEL_DFS(*ChannelList))) && *ChannelList)
-        {
-            pRequestBuf->ValidChannelList[num_channels++] = *ChannelList;
+        if ((!pMac->roam.configParam.allowDFSChannelRoam ||
+                    (pMac->roam.configParam.sta_roam_policy.dfs_mode ==
+                     CSR_STA_ROAM_POLICY_DFS_DISABLED)) &&
+                (CSR_IS_CHANNEL_DFS(*ChannelList))
+           ) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                    FL("ignoring dfs channel %d"),
+                    *ChannelList);
+            ChannelList++;
+            continue;
         }
+
+        if (pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels &&
+                unsafe_chan_cnt) {
+            is_unsafe_chan = false;
+            for (cnt = 0; cnt < unsafe_chan_cnt; cnt++) {
+                if (unsafe_chan[cnt] == *ChannelList) {
+                    is_unsafe_chan = true;
+                    break;
+                }
+            }
+            if (is_unsafe_chan) {
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                      FL("ignoring unsafe channel %d"),
+                        *ChannelList);
+                ChannelList++;
+                continue;
+            }
+        }
+        pRequestBuf->ValidChannelList[num_channels++] = *ChannelList;
         ChannelList++;
     }
     pRequestBuf->ValidChannelCount = num_channels;
