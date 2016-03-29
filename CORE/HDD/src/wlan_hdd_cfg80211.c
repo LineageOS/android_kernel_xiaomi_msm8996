@@ -22624,6 +22624,10 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
               return -ETIME;
            }
         }
+
+        if (pAdapter->is_roc_inprogress)
+            wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
+
         status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
         pAdapterNode = pNext;
     }
