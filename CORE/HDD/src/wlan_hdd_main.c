@@ -13473,8 +13473,10 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     tx_packets += (uint64_t)ipa_tx_packets;
     rx_packets += (uint64_t)ipa_rx_packets;
 
-    pValidAdapter->stats.tx_packets += ipa_tx_packets;
-    pValidAdapter->stats.rx_packets += ipa_rx_packets;
+    if (pValidAdapter) {
+        pValidAdapter->stats.tx_packets += ipa_tx_packets;
+        pValidAdapter->stats.rx_packets += ipa_rx_packets;
+    }
 #endif /* IPA_UC_OFFLOAD */
     if (!connected) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

@@ -8308,22 +8308,29 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 int wlan_hdd_update_tx_rate(hdd_context_t *hddctx, uint16_t tx_rate)
 {
 
-	hdd_adapter_t *adapter = NULL;
-	hdd_station_ctx_t *hddstactx = NULL;
+	hdd_adapter_t *adapter;
+	hdd_station_ctx_t *hddstactx;
 	eHalStatus hstatus;
 	struct sir_txrate_update *buf_txrate_update;
 
 	ENTER();
 	adapter = hdd_get_adapter(hddctx, WLAN_HDD_INFRA_STATION);
-	hddstactx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	if (!adapter) {
+		hddLog(LOGE, FL("hdd adapter is null"));
+		return -EINVAL;
+	}
+	if (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) {
+		hddLog(LOGE, FL("hdd adapter cookie is invalid"));
+		return -EINVAL;
+	}
 
 	if (WLAN_HDD_INFRA_STATION != adapter->device_mode) {
 		hddLog(LOGE, FL("Only Sta Mode supported!"));
 		return -ENOTSUPP;
 	}
 
-	if (!hdd_connIsConnected(
-			WLAN_HDD_GET_STATION_CTX_PTR(adapter))) {
+	hddstactx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	if (!hdd_connIsConnected(hddstactx)) {
 		hddLog(LOGE, FL("Not in Connected state!"));
 		return -ENOTSUPP;
 	}
