@@ -596,7 +596,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8              smeSessionId = 0;
     tANI_BOOLEAN         isVHTEnabled = eANI_BOOLEAN_FALSE;
     tDot11fIEExtCap      extractedExtCap;
-    tANI_BOOLEAN         extractedExtCapFlag = eANI_BOOLEAN_TRUE;
+    tANI_BOOLEAN         extractedExtCapFlag = eANI_BOOLEAN_FALSE;
 
     if (ANI_DRIVER_TYPE(pMac) == eDRIVER_TYPE_MFG) {
         /* We don't answer requests in this case */
@@ -804,9 +804,10 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                   &extractedExtCap );
         if(eSIR_SUCCESS != nSirStatus )
         {
-            extractedExtCapFlag = eANI_BOOLEAN_FALSE;
             limLog(pMac, LOG1,
                 FL("Unable to Stripoff ExtCap IE from Probe Rsp"));
+        } else {
+            extractedExtCapFlag = eANI_BOOLEAN_TRUE;
         }
 
         nBytes = nBytes + totalAddnIeLen;

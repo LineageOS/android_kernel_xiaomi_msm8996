@@ -56,6 +56,7 @@ enum wlan_op_mode {
 	wlan_op_mode_sta,
 	wlan_op_mode_monitor,
 	wlan_op_mode_ocb,
+	wlan_op_mode_ndi,
 };
 
 #define OL_TXQ_PAUSE_REASON_FW                (1 << 0)
@@ -1128,10 +1129,13 @@ static inline void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev,
  *
  * @param pdev - the physics device being throttled
  */
-void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev, int period);
+void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev, int period,
+    u_int8_t *dutycycle_level);
+
 #else
 static inline void ol_tx_throttle_init_period(struct ol_txrx_pdev_t *pdev,
-    int period)
+    int period, u_int8_t *dutycycle_level)
+
 {
     /* no-op */
 }

@@ -71,7 +71,7 @@
 
 #define CSR_MAX_2_4_GHZ_SUPPORTED_CHANNELS 14
 
-#define CSR_MAX_BSS_SUPPORT            250
+#define CSR_MAX_BSS_SUPPORT            512
 #define SYSTEM_TIME_MSEC_TO_USEC      1000
 
 /* This number minus 1 means the number of times a channel is scanned
@@ -157,7 +157,8 @@ typedef enum
     eCsrSilentlyStopRoamingSaveState,
     eCsrJoinWdsFailure,
     eCsrJoinFailureDueToConcurrency,
-
+    eCsrStopBssSuccess,
+    eCsrStopBssFailure,
 }eCsrRoamCompleteResult;
 
 typedef struct tagScanReqParam
@@ -1084,3 +1085,16 @@ csr_get_bssdescr_from_scan_handle(tScanResultHandle result_handle,
                                   tSirBssDescription *bss_descr);
 eHalStatus csr_prepare_disconnect_command(tpAniSirGlobal mac,
                                     tANI_U32 session_id, tSmeCmd **sme_cmd);
+
+eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal mac_ctx,
+                tCsrRoamProfile *profile, tBssConfigParam *bss_cfg,
+                tSirBssDescription *bss_desc);
+void csrRoamPrepareBssParams(tpAniSirGlobal mac_ctx, uint32_t session_id,
+                tCsrRoamProfile *profile, tSirBssDescription *bss_desc,
+                tBssConfigParam *bss_cfg, tDot11fBeaconIEs *ies);
+
+eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal mac_ctx, uint32_t session_id,
+                tCsrRoamProfile *profile, tSirBssDescription *bss_desc,
+                tBssConfigParam *bss_cfg, tDot11fBeaconIEs *ies,
+                tANI_BOOLEAN reset_country);
+

@@ -500,7 +500,15 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         csrLLUnlock(&pMac->roam.roamCmdPendingList);
 
         /* panic with out-of-command */
-        VOS_BUG(0);
+        if (pMac->roam.configParam.enable_fatal_event) {
+            vos_flush_logs(WLAN_LOG_TYPE_FATAL,
+                           WLAN_LOG_INDICATOR_HOST_DRIVER,
+                           WLAN_LOG_REASON_SME_OUT_OF_CMD_BUF,
+                           false);
+        } else {
+            /* Trigger SSR */
+            vos_wlanRestart();
+        }
     }
 
     /* memset to zero */
@@ -745,7 +753,7 @@ tANI_BOOLEAN smeProcessScanQueue(tpAniSirGlobal pMac)
                     /* if there is an active SME command, do not process
                      * the pending scan cmd
                      */
-                    smsLog(pMac, LOGE, "SME scan cmd is pending on session %d",
+                    smsLog(pMac, LOG1, "SME scan cmd is pending on session %d",
                            pSmeCommand->sessionId);
                     status = eANI_BOOLEAN_FALSE;
                     goto end;
@@ -1260,14 +1268,10 @@ sme_process_cmd:
                     csrScanStartIdleScanTimer(pMac, nTime);
                 }
             }
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                "No Pending command waiting");
         }
     }
     else {
         csrLLUnlock( &pMac->sme.smeCmdActiveList );
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                "Active list command waiting");
     }
 
 sme_process_scan_queue:
@@ -13893,18 +13897,42 @@ void sme_SaveActiveCmdStats(tHalHandle hHal) {
 
 void activeListCmdTimeoutHandle(void *userData)
 {
-    if (NULL == userData)
+    tHalHandle hal = (tHalHandle) userData;
+    tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+
+    if (NULL == mac_ctx) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+            "%s: pMac is null", __func__);
         return;
+    }
+    /* Return if no cmd pending in active list as
+     * in this case we should not be here.
+     */
+    if (0 == csrLLCount(&mac_ctx->sme.smeCmdActiveList))
+        return;
+
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
         "%s: Active List command timeout Cmd List Count %d", __func__,
-        csrLLCount(&((tpAniSirGlobal) userData)->sme.smeCmdActiveList) );
-    smeGetCommandQStatus((tHalHandle) userData);
+        csrLLCount(&mac_ctx->sme.smeCmdActiveList) );
+    smeGetCommandQStatus(hal);
 
-    if (((tpAniSirGlobal)userData)->sme.enableSelfRecovery) {
-        sme_SaveActiveCmdStats((tHalHandle)userData);
+    if (mac_ctx->roam.configParam.enable_fatal_event) {
+        vos_flush_logs(WLAN_LOG_TYPE_FATAL,
+                       WLAN_LOG_INDICATOR_HOST_DRIVER,
+                       WLAN_LOG_REASON_SME_COMMAND_STUCK,
+                       false);
+    } else {
+        vosTraceDumpAll(mac_ctx, 0, 0, 500, 0);
+    }
+
+    if (mac_ctx->sme.enableSelfRecovery) {
+        sme_SaveActiveCmdStats(hal);
         vos_trigger_recovery();
     } else {
-        VOS_BUG(0);
+        if (!mac_ctx->roam.configParam.enable_fatal_event &&
+            !(vos_is_load_unload_in_progress(VOS_MODULE_ID_SME, NULL) ||
+            vos_is_logp_in_progress(VOS_MODULE_ID_SME, NULL)))
+            vos_wlanRestart();
     }
 }
 
@@ -14779,6 +14807,14 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal,
 
     pWdaParam->thermalMgmtEnabled = thermalParam.smeThermalMgmtEnabled;
     pWdaParam->throttlePeriod = thermalParam.smeThrottlePeriod;
+    pWdaParam->throttle_duty_cycle_tbl[0]=
+        thermalParam.sme_throttle_duty_cycle_tbl[0];
+    pWdaParam->throttle_duty_cycle_tbl[1]=
+        thermalParam.sme_throttle_duty_cycle_tbl[1];
+    pWdaParam->throttle_duty_cycle_tbl[2]=
+        thermalParam.sme_throttle_duty_cycle_tbl[2];
+    pWdaParam->throttle_duty_cycle_tbl[3]=
+        thermalParam.sme_throttle_duty_cycle_tbl[3];
     pWdaParam->thermalLevels[0].minTempThreshold =
         thermalParam.smeThermalLevels[0].smeMinTempThreshold;
     pWdaParam->thermalLevels[0].maxTempThreshold =
@@ -18442,6 +18478,7 @@ eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id)
 	return status;
 }
 
+
 /**
  * sme_set_beacon_filter() - set the beacon filter configuration
  * @vdev_id: vdev index id
@@ -18475,13 +18512,55 @@ VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map)
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			"%s: Not able to post msg to WDA!",
 			__func__);
-
 		vos_mem_free(filter_param);
+		return VOS_STATUS_E_FAILURE;
 	}
+
 	return vos_status;
 }
 
 /**
+ * sme_set_btc_bt_wlan_interval_page_p2p() - Set the btc bt/p2p interval
+ * @bt_interval: BT Page Interval
+ * @bt_interval: P2P Interval
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_p2p(uint32_t bt_interval,
+			uint32_t p2p_interval)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_interval;
+
+	sme_interval = vos_mem_malloc(sizeof(*sme_interval));
+	if (!sme_interval) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_interval->config_type = WMI_COEX_CONFIG_PAGE_P2P_TDM;
+	sme_interval->config_arg1 = bt_interval;
+	sme_interval->config_arg2 = p2p_interval;
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_interval;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_interval);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+
+/**
+
  * sme_unset_beacon_filter() - set the beacon filter configuration
  * @vdev_id: vdev index id
  *
@@ -18510,9 +18589,90 @@ VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id)
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			"%s: Not able to post msg to WDA!",
 			__func__);
-
 		vos_mem_free(filter_param);
+		return VOS_STATUS_E_FAILURE;
 	}
+
+	return vos_status;
+}
+
+/**
+ * sme_set_btc_bt_wlan_interval_page_sta() - Set the btc bt/sta interval
+ * @bt_interval: BT Page Interval
+ * @sta_interval: STA Interval
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_sta(uint32_t bt_interval,
+			uint32_t sta_interval)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_interval;
+
+	sme_interval = vos_mem_malloc(sizeof(*sme_interval));
+	if (!sme_interval) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_interval->config_type = WMI_COEX_CONFIG_PAGE_STA_TDM;
+	sme_interval->config_arg1 = bt_interval;
+	sme_interval->config_arg2 = sta_interval;
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_interval;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_interval);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+
+/**
+ * sme_set_btc_bt_wlan_interval_page_sap() - Set the btc bt/sap interval
+ * @bt_interval: BT Page Interval
+ * @bt_interval: SAP Interval
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_sap(uint32_t bt_interval,
+			uint32_t sap_interval)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_interval;
+
+	sme_interval = vos_mem_malloc(sizeof(*sme_interval));
+	if (!sme_interval) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_interval->config_type = WMI_COEX_CONFIG_PAGE_SAP_TDM;
+	sme_interval->config_arg1 = bt_interval;
+	sme_interval->config_arg2 = sap_interval;
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_interval;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_interval);
+		return VOS_STATUS_E_FAILURE;
+	}
+
 	return vos_status;
 }
 
@@ -18604,4 +18764,38 @@ VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id)
 	        return VOS_STATUS_SUCCESS;
 
 	return VOS_STATUS_E_FAILURE;
+}
+
+/**
+ * sme_enable_disable_chanavoidind_event - configure ca event ind
+ * @hal: handler to hal
+ * set_val: enable/disable
+ *
+ * function to enable/disable chan avoidance indication
+ *
+ * return: eHalStatus
+ */
+eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hal,
+                                              tANI_U8 set_value)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	vos_msg_t msg;
+
+	smsLog(mac, LOG1, FL("set_value: %d"), set_value);
+	if (eHAL_STATUS_SUCCESS ==  sme_AcquireGlobalLock(&mac->sme)) {
+		vos_mem_zero(&msg, sizeof(vos_msg_t));
+		msg.type = WDA_SEND_FREQ_RANGE_CONTROL_IND;
+		msg.reserved = 0;
+		msg.bodyval = set_value;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+		return status;
+	}
+
+	return eHAL_STATUS_FAILURE;
 }

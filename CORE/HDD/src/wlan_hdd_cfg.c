@@ -355,10 +355,8 @@ cb_notify_set_roam_scan_hi_rssi_scan_params(hdd_context_t *hdd_ctx,
 {
 	int32_t val;
 
-	if (wlan_hdd_validate_context(hdd_ctx)) {
-		hddLog(LOGE, FL("HDD context is invalid"));
+	if (wlan_hdd_validate_context(hdd_ctx))
 		return;
-	}
 
 	switch (notify_id) {
 	case eCSR_HI_RSSI_SCAN_MAXCOUNT_ID:
@@ -2188,6 +2186,34 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_THROTTLE_PERIOD_DEFAULT,
                  CFG_THROTTLE_PERIOD_MIN,
                  CFG_THROTTLE_PERIOD_MAX ),
+
+   REG_VARIABLE( CFG_THROTTLE_DUTY_CYCLE_LEVEL0_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, throttle_dutycycle_level0,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL0_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL0_MIN,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL0_MAX ),
+
+   REG_VARIABLE( CFG_THROTTLE_DUTY_CYCLE_LEVEL1_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, throttle_dutycycle_level1,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL1_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL1_MIN,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL1_MAX ),
+
+   REG_VARIABLE( CFG_THROTTLE_DUTY_CYCLE_LEVEL2_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, throttle_dutycycle_level2,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL2_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL2_MIN,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL2_MAX ),
+
+   REG_VARIABLE( CFG_THROTTLE_DUTY_CYCLE_LEVEL3_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, throttle_dutycycle_level3,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL3_DEFAULT,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL3_MIN,
+                 CFG_THROTTLE_DUTY_CYCLE_LEVEL3_MAX ),
 
    REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableModulatedDTIM,
@@ -4114,6 +4140,48 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT,
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MIN,
                 CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX),
+/* For P2P */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_P2P, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_p2p_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_P2P_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_P2P, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_p2p_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MAX),
+/* For STA */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_STA, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sta_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_STA_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_STA, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sta_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_STA_MAX),
+/* For SAP */
+   REG_VARIABLE(CFG_BTC_BT_INTERVAL_PAGE_SAP, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sap_bt_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_DEFAULT,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_MIN,
+                CFG_BTC_BT_INTERVAL_PAGE_SAP_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_INTERVAL_PAGE_SAP, WLAN_PARAM_Integer,
+                hdd_config_t, coex_page_sap_wlan_interval,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_DEFAULT,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MIN,
+                CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX),
 
    REG_VARIABLE(CFG_INFORM_BSS_RSSI_RAW_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, inform_bss_rssi_raw,
@@ -4296,6 +4364,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_MIN,
                 CFG_FIRST_SCAN_BUCKET_THRESHOLD_MAX),
 
+   REG_VARIABLE(CFG_ENABLE_FATAL_EVENT_TRIGGER, WLAN_PARAM_Integer,
+                hdd_config_t, enable_fatal_event,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_DEFAULT,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_MIN,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_MAX),
+
    REG_VARIABLE(CFG_ENABLE_GO_CTS2SELF_FOR_STA,
                 WLAN_PARAM_Integer,
                 hdd_config_t, enable_go_cts2self_for_sta,
@@ -4327,7 +4402,54 @@ REG_TABLE_ENTRY g_registry_table[] =
                   CFG_IGNORE_PEER_HT_MODE_DEFAULT,
                   CFG_IGNORE_PEER_HT_MODE_MIN,
                   CFG_IGNORE_PEER_HT_MODE_MAX),
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+   REG_VARIABLE(CFG_ENABLE_NAN_DATAPATH_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, enable_nan_datapath,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NAN_DATAPATH_DEFAULT,
+                CFG_ENABLE_NAN_DATAPATH_MIN,
+                CFG_ENABLE_NAN_DATAPATH_MAX),
 
+   REG_VARIABLE(CFG_ENABLE_NAN_NDI_CHANNEL_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nan_datapath_ndi_channel,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_NAN_NDI_CHANNEL_DEFAULT,
+                CFG_ENABLE_NAN_NDI_CHANNEL_MIN,
+                CFG_ENABLE_NAN_NDI_CHANNEL_MAX),
+#endif
+   REG_VARIABLE( CFG_OPTIMIZE_CA_EVENT_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, goptimize_chan_avoid_event,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_OPTIMIZE_CA_EVENT_DEFAULT,
+                 CFG_OPTIMIZE_CA_EVENT_DISABLE,
+                 CFG_OPTIMIZE_CA_EVENT_ENABLE ),
+
+   REG_VARIABLE(CFG_USE_OTP_MAC, WLAN_PARAM_Integer,
+                hdd_config_t, g_use_otpmac,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_USE_OTP_MAC_DEFAULT,
+                CFG_USE_OTP_MAC_MIN,
+                CFG_USE_OTP_MAC_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGREGATION_SIZE, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggregation_size,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGREGATION_SIZE_DEFAULT,
+                CFG_TX_AGGREGATION_SIZE_MIN,
+                CFG_TX_AGGREGATION_SIZE_MAX),
+
+   REG_VARIABLE(CFG_RX_AGGREGATION_SIZE, WLAN_PARAM_Integer,
+                hdd_config_t, rx_aggregation_size,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_RX_AGGREGATION_SIZE_DEFAULT,
+                CFG_RX_AGGREGATION_SIZE_MIN,
+                CFG_RX_AGGREGATION_SIZE_MAX),
+   REG_VARIABLE(CFG_CREATE_BUG_REPORT_FOR_SCAN, WLAN_PARAM_Integer,
+                hdd_config_t, bug_report_for_scan_results,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_DEFAULT,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_DISABLE,
+                CFG_CREATE_BUG_REPORT_FOR_SCAN_ENABLE),
 };
 
 
@@ -5058,6 +5180,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->mdns_resp_type_srv_target);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "Name = [gEnableFatalEvent] Value = [%u] ",
+                          pHddCtx->cfg_ini->enable_fatal_event);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "Name = [gEnableDumpCollect] Value = [%u]",
                      pHddCtx->cfg_ini->is_ramdump_enabled);
 
@@ -5082,7 +5207,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->min_rest_time_conc);
   hddLog(LOG2, "Name = [gIdleTimeConc] Value = [%u]",
                    pHddCtx->cfg_ini->idle_time_conc);
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+         CFG_USE_OTP_MAC, pHddCtx->cfg_ini->g_use_otpmac);
 
+  hdd_ndp_print_ini_config(pHddCtx);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -6972,9 +7100,14 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
    hdd_set_fine_time_meas_cap(pHddCtx, smeConfig);
-
+   smeConfig->csrConfig.enable_fatal_event =
+                          pConfig->enable_fatal_event;
    smeConfig->csrConfig.sendDeauthBeforeCon = pConfig->sendDeauthBeforeCon;
    smeConfig->csrConfig.ignorePeerErpInfo = pConfig->ignorePeerErpInfo;
+   smeConfig->csrConfig.tx_aggregation_size =
+                   pHddCtx->cfg_ini->tx_aggregation_size;
+   smeConfig->csrConfig.rx_aggregation_size =
+                   pHddCtx->cfg_ini->rx_aggregation_size;
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
@@ -7432,3 +7565,50 @@ VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss)
 	return (status == FALSE) ? VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_set_btc_bt_wlan_interval() - set btc bt/wlan interval page to FW
+ * @hdd_ctx: the pointer to hdd context
+ *
+ * This function set btc bt/wlan interval page (p2p/sta/sap) to FW.
+ *
+ * Return: None
+ */
+void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
+{
+	hdd_config_t *config = hdd_ctx->cfg_ini;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	/** Sanity check.
+	 * If not set in ini file, these parameters will be zero.
+	 * Otherwise hdd_apply_cfg_ini()
+	 * will ensure the valuse to be in the range 20~200 (ms as unit).
+	 * If no parameters sent to firmware,
+	 * firmware will set relevant parameters to default value itself.
+	*/
+	if ((config->coex_page_p2p_bt_interval !=0) &&
+		(config->coex_page_p2p_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_p2p(
+					config->coex_page_p2p_bt_interval,
+					config->coex_page_p2p_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page p2p bt interval parameters");
+	}
+
+	if ((config->coex_page_sta_bt_interval !=0) &&
+		(config->coex_page_sta_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_sta(
+					config->coex_page_sta_bt_interval,
+					config->coex_page_sta_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page sta bt interval parameters");
+	}
+
+	if ((config->coex_page_sap_bt_interval !=0) &&
+		(config->coex_page_sap_wlan_interval !=0)) {
+		status = sme_set_btc_bt_wlan_interval_page_sap(
+					config->coex_page_sap_bt_interval,
+					config->coex_page_sap_wlan_interval);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex page sap bt interval parameters");
+	}
+}

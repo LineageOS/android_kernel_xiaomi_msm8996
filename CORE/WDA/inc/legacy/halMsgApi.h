@@ -38,6 +38,7 @@
 #define BSS_OPERATIONAL_MODE_AP     0
 #define BSS_OPERATIONAL_MODE_STA    1
 #define BSS_OPERATIONAL_MODE_IBSS   2
+#define BSS_OPERATIONAL_MODE_NDI    3
 
 /* STA entry type in add sta message */
 #define STA_ENTRY_SELF              0
@@ -1435,6 +1436,8 @@ typedef struct sAddStaSelfParams
    tANI_U16        pkt_err_disconn_th;
    uint8_t         nss_2g;
    uint8_t         nss_5g;
+   uint32_t        tx_aggregation_size;
+   uint32_t        rx_aggregation_size;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 /**

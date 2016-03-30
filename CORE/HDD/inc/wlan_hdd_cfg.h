@@ -1048,6 +1048,15 @@ enum
 #define CFG_FT_RESOURCE_REQ_DEFAULT                     (0)
 #endif
 
+/*
+ * Enable/Disable to initiate BUG report in case of fatal event
+ * Default: Enable
+ */
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER                 "gEnableFatalEvent"
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_MIN             (0)
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_MAX             (1)
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_DEFAULT         (1)
+
 #define CFG_TELE_BCN_TRANS_LI_NAME                   "telescopicBeaconTransListenInterval"
 #define CFG_TELE_BCN_TRANS_LI_MIN                    ( 0 )
 #define CFG_TELE_BCN_TRANS_LI_MAX                    ( 7 )
@@ -1938,12 +1947,36 @@ typedef enum
 #define CFG_THERMAL_MIGRATION_ENABLE_MAX       ( 1 )
 #define CFG_THERMAL_MIGRATION_ENABLE_DEFAULT   ( 1 )
 
-
-
 #define CFG_THROTTLE_PERIOD_NAME               "gThrottlePeriod"
 #define CFG_THROTTLE_PERIOD_MIN                ( 10 )
 #define CFG_THROTTLE_PERIOD_MAX                ( 10000 )
 #define CFG_THROTTLE_PERIOD_DEFAULT            ( 4000 )
+
+/*
+ * Configure Throttle Period Different Level Duty Cycle in percentage
+ * When temperature measured is greater than threshold at particular level,
+ * then throtling level will get increased by one level and
+ * will reduce TX duty by the given percentage
+ */
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL0_NAME    "gThrottleDutyCycleLevel0"
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL0_MIN     ( 0 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL0_MAX     ( 0 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL0_DEFAULT ( 0 )
+
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL1_NAME    "gThrottleDutyCycleLevel1"
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL1_MIN     ( 0 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL1_MAX     ( 100 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL1_DEFAULT ( 50 )
+
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL2_NAME    "gThrottleDutyCycleLevel2"
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL2_MIN     ( 0 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL2_MAX     ( 100 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL2_DEFAULT ( 75 )
+
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL3_NAME    "gThrottleDutyCycleLevel3"
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL3_MIN     ( 0 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL3_MAX     ( 100 )
+#define CFG_THROTTLE_DUTY_CYCLE_LEVEL3_DEFAULT ( 94 )
 
 #define CFG_THERMAL_TEMP_MIN_LEVEL0_NAME      "gThermalTempMinLevel0"
 #define CFG_THERMAL_TEMP_MIN_LEVEL0_MIN       ( 0 )
@@ -3281,6 +3314,68 @@ enum dot11p_mode {
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_MAX       (1)
 #define CFG_ENABLE_NON_DFS_CHAN_ON_RADAR_DEFAULT   (0)
 
+/**
+* For P2P
+* gBTIntervalPageP2P/gWLIntervalPageP2P intervals length (in ms) during
+* WLAN P2P (single vdev) + BT Paging, min 20ms, max 200ms.
+* Customer could change these parameters' value in qcom_cfg.ini file to improve
+* P2P throughput when BT doing Page. Example as:
+* gBTIntervalPageP2P=30
+* gWLIntervalPageP2P=120
+*/
+
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P           "gBTIntervalPageP2P"
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_DEFAULT   (30)
+
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P           "gWLIntervalPageP2P"
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_DEFAULT   (30)
+
+/**
+* For STA
+* gBTIntervalPageSTA/gWLIntervalPageSTA intervals length (in ms) during
+* WLAN STA (single vdev) + BT Paging, min 20ms, max 200ms.
+* Customer could change these parameters' value in qcom_cfg.ini file to improve
+* STA throughput when BT doing Page. Example as:
+* gBTIntervalPageSTA=30
+* gWLIntervalPageSTA=120
+*/
+
+#define CFG_BTC_BT_INTERVAL_PAGE_STA           "gBTIntervalPageSTA"
+#define CFG_BTC_BT_INTERVAL_PAGE_STA_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_PAGE_STA_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_PAGE_STA_DEFAULT   (30)
+
+#define CFG_BTC_WLAN_INTERVAL_PAGE_STA           "gWLIntervalPageSTA"
+#define CFG_BTC_WLAN_INTERVAL_PAGE_STA_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_STA_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_STA_DEFAULT   (30)
+
+
+/**
+* For SAP
+* gBTIntervalPageSAP/gWLIntervalPageSAP intervals length (in ms) during
+* WLAN SAP (single vdev) + BT Paging, min 20ms, max 200ms.
+* Customer could change these parameters' value in qcom_cfg.ini file to improve
+* SAP throughput when BT doing Page. Example as:
+* gBTIntervalPageSAP=30
+* gWLIntervalPageSAP=120
+*/
+
+#define CFG_BTC_BT_INTERVAL_PAGE_SAP           "gBTIntervalPageSAP"
+#define CFG_BTC_BT_INTERVAL_PAGE_SAP_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_PAGE_SAP_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_PAGE_SAP_DEFAULT   (30)
+
+#define CFG_BTC_WLAN_INTERVAL_PAGE_SAP           "gWLIntervalPageSAP"
+#define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_DEFAULT   (30)
+
+
 /* Parameters for roaming scans performed at high RSSI */
 
 /* Maximum number of scans after RSSI change */
@@ -3342,6 +3437,24 @@ enum dot11p_mode {
 #define CFG_SELF_GEN_FRM_PWR_MIN      (0)
 #define CFG_SELF_GEN_FRM_PWR_MAX      (0xffff)
 #define CFG_SELF_GEN_FRM_PWR_DEFAULT  (0)
+
+/*
+ * gTxAggregationSize gives an option to configure Tx aggregation size
+ * in no of MPDUs. This can be useful in debugging throughput issues
+ */
+#define CFG_TX_AGGREGATION_SIZE      "gTxAggregationSize"
+#define CFG_TX_AGGREGATION_SIZE_MIN      (0)
+#define CFG_TX_AGGREGATION_SIZE_MAX      (64)
+#define CFG_TX_AGGREGATION_SIZE_DEFAULT  (64)
+
+/*
+ * gRxAggregationSize gives an option to configure Rx aggregation size
+ * in no of MPDUs. This can be useful in debugging throughput issues
+ */
+#define CFG_RX_AGGREGATION_SIZE      "gRxAggregationSize"
+#define CFG_RX_AGGREGATION_SIZE_MIN      (1)
+#define CFG_RX_AGGREGATION_SIZE_MAX      (64)
+#define CFG_RX_AGGREGATION_SIZE_DEFAULT  (64)
 
 /*
  * fine timing measurement capability information
@@ -3558,12 +3671,65 @@ enum dot11p_mode {
 #define CFG_SAP_TX_LEAKAGE_THRESHOLD_MAX     (1000)
 #define CFG_SAP_TX_LEAKAGE_THRESHOLD_DEFAULT (310)
 
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+/*
+ * Enable NaN data path feature. NaN data path enables
+ * NaN supported devices to exchange data over traditional
+ * TCP/UDP network stack.
+ */
+#define CFG_ENABLE_NAN_DATAPATH_NAME    "genable_nan_datapath"
+#define CFG_ENABLE_NAN_DATAPATH_MIN     (0)
+#define CFG_ENABLE_NAN_DATAPATH_MAX     (1)
+#define CFG_ENABLE_NAN_DATAPATH_DEFAULT (0)
+
+/*
+ * NAN channel on which NAN data interface to start
+ */
+#define CFG_ENABLE_NAN_NDI_CHANNEL_NAME    "gnan_datapath_ndi_channel"
+#define CFG_ENABLE_NAN_NDI_CHANNEL_MIN     (6)
+#define CFG_ENABLE_NAN_NDI_CHANNEL_MAX     (149)
+#define CFG_ENABLE_NAN_NDI_CHANNEL_DEFAULT (6)
+#endif
+
+/*
+ * Optimize channel avoidance indication comming from firmware
+ */
+#define CFG_OPTIMIZE_CA_EVENT_NAME       "goptimize_chan_avoid_event"
+#define CFG_OPTIMIZE_CA_EVENT_DISABLE    (0)
+#define CFG_OPTIMIZE_CA_EVENT_ENABLE     (1)
+#define CFG_OPTIMIZE_CA_EVENT_DEFAULT    (0)
+
+/**
+ * Reading the MAC address has priorities:
+ * 1. Read the provisioned MAC from cnss platform driver (configured by OEM)
+ * 2. Read from provisioned MAC from /persist/wlan_mac.bin (configured by OEM)
+ * 3. Read the default MAC address (otp.bin)
+ *
+ * Setting g_use_otpmac = 1 means if any of the higher priority
+ * provisioned MAC reading fails, use the default otp MAC address.
+ *
+ * Setting g_use_otpmac = 0 means Do not use the otp MAC address even if
+ * higher priority provisioned MAC reading fails, instead
+ * trigger driver load failure.
+ */
+#define CFG_USE_OTP_MAC            "g_use_otpmac"
+#define CFG_USE_OTP_MAC_MIN        (0)
+#define CFG_USE_OTP_MAC_MAX        (1)
+#define CFG_USE_OTP_MAC_DEFAULT    (1)
+
+/*
+ * Create bug report in case of nil scan results
+ */
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN       "gbug_report_for_scan_results"
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_DISABLE    (0)
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_ENABLE     (1)
+#define CFG_CREATE_BUG_REPORT_FOR_SCAN_DEFAULT    (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
 
-typedef struct
-{
+struct hdd_config {
    //Bitmap to track what is explicitly configured
    DECLARE_BITMAP(bExplicitCfg, MAX_CFG_INI_ITEMS);
 
@@ -3873,6 +4039,10 @@ typedef struct
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
    v_U8_t                      thermalMitigationEnable;
    v_U32_t                     throttlePeriod;
+   uint32_t                    throttle_dutycycle_level0;
+   uint32_t                    throttle_dutycycle_level1;
+   uint32_t                    throttle_dutycycle_level2;
+   uint32_t                    throttle_dutycycle_level3;
 #if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)
    bool                        bad_peer_txctl_enable;
    uint32_t                    bad_peer_txctl_prd;
@@ -4231,6 +4401,16 @@ typedef struct
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
    uint8_t                     sap_p2p_11ac_override;
    uint8_t                     prefer_non_dfs_on_radar;
+
+   uint32_t                    coex_page_p2p_bt_interval;
+   uint32_t                    coex_page_p2p_wlan_interval;
+
+   uint32_t                    coex_page_sta_bt_interval;
+   uint32_t                    coex_page_sta_wlan_interval;
+
+   uint32_t                    coex_page_sap_bt_interval;
+   uint32_t                    coex_page_sap_wlan_interval;
+
    uint8_t                     inform_bss_rssi_raw;
 #ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
@@ -4275,7 +4455,19 @@ typedef struct
    uint16_t                    sap_tx_leakage_threshold;
    bool                        ignore_peer_ht_opmode;
    bool                        mib_stats_enabled;
-} hdd_config_t;
+   bool                        enable_fatal_event;
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+   bool                        enable_nan_datapath;
+   uint8_t                     nan_datapath_ndi_channel;
+#endif
+   bool                        goptimize_chan_avoid_event;
+   bool                        g_use_otpmac;
+   uint32_t                    tx_aggregation_size;
+   uint32_t                    rx_aggregation_size;
+   bool                        bug_report_for_scan_results;
+};
+
+typedef struct hdd_config hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
 typedef struct mbssid_sap_dyn_ini_config {
@@ -4433,5 +4625,8 @@ v_VOID_t hdd_mbssid_apply_def_cfg_ini(hdd_adapter_t *pAdapter);
 #endif
 
 void print_hdd_cfg(hdd_context_t *pHddCtx);
+
+void hdd_set_btc_bt_wlan_interval(hdd_context_t *pHddCtx);
+
 VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss);
 #endif

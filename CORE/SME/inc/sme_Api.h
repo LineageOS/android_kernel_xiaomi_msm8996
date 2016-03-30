@@ -232,12 +232,15 @@ struct sme_bad_peer_txctl_param{
 
 
 #define SME_MAX_THERMAL_LEVELS (4)
+#define SME_MAX_THROTTLE_LEVELS (4)
+
 
 typedef struct {
     /* Array of thermal levels */
     tSmeThermalLevelInfo smeThermalLevels[SME_MAX_THERMAL_LEVELS];
     u_int8_t smeThermalMgmtEnabled;
     u_int32_t smeThrottlePeriod;
+    u_int8_t sme_throttle_duty_cycle_tbl[SME_MAX_THROTTLE_LEVELS];
 } tSmeThermalParams;
 
 #ifdef WLAN_FEATURE_APFIND
@@ -4424,6 +4427,13 @@ eHalStatus sme_register_mgmt_frame_ind_callback(tHalHandle hal,
 eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
 void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log);
 
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_p2p(uint32_t bt_interval,
+					uint32_t p2p_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_sta(uint32_t bt_interval,
+					uint32_t sta_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_sap(uint32_t bt_interval,
+					uint32_t sap_interval);
+
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
@@ -4533,5 +4543,8 @@ void sme_send_disassoc_req_frame(tHalHandle hal, uint8_t session_id,
 		uint8_t *peer_mac, tANI_U16 reason, uint8_t wait_for_ack);
 
 VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id);
+
+eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hHal,
+							tANI_U8 set_value);
 
 #endif //#if !defined( __SME_API_H )

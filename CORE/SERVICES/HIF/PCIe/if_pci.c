@@ -1715,7 +1715,8 @@ again:
     ol_sc->max_no_of_peers = 1;
 
     /* Get RAM dump memory address and size */
-    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&pdev->dev,
+                                             &ol_sc->ramdump_size);
 
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
@@ -2047,7 +2048,8 @@ again:
     ol_sc->max_no_of_peers = 1;
 
     /* Get RAM dump memory address and size */
-    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+    ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&pdev->dev,
+                                             &ol_sc->ramdump_size);
 
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
@@ -2686,10 +2688,8 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
 
     adf_os_spin_unlock_irqrestore( &hif_state->suspend_lock);
 
-#ifdef CONFIG_CNSS_PCI
     /* Keep PCIe bus driver's shadow memory intact */
     vos_pcie_shadow_control(pdev, FALSE);
-#endif
 
     if (runtime_pm)
 	    goto skip;

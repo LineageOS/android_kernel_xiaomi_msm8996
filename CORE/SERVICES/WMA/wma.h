@@ -70,6 +70,7 @@
 #include "ol_txrx_types.h"
 #include "wlan_qct_wda.h"
 #include <linux/workqueue.h>
+#include "ol_defines.h"
 
 /* Platform specific configuration for max. no. of fragments */
 #define QCA_OL_11AC_TX_MAX_FRAGS            2
@@ -184,7 +185,7 @@ typedef struct probeTime_dwellTime {
 
 static const t_probeTime_dwellTime
 	probeTime_dwellTime_map[WMA_DWELL_TIME_PROBE_TIME_MAP_SIZE] = {
-	{28, 0}, /* 0 SSID */
+	{28, 11}, /* 0 SSID */
 	{28, 20}, /* 1 SSID */
 	{28, 20}, /* 2 SSID */
 	{28, 20}, /* 3 SSID */
@@ -533,6 +534,7 @@ struct wma_txrx_node {
 	tANI_U8                 vht_capable;
 	tANI_U8                 ht_capable;
 	A_UINT32                mhz; /* channel frequency  in KHZ */
+	bool vdev_active;
 	v_BOOL_t vdev_up;
 	u_int64_t tsfadjust;
 	void     *addBssStaContext;
@@ -857,7 +859,10 @@ typedef struct wma_handle {
 	struct wma_runtime_pm_context runtime_context;
 	uint32_t fine_time_measurement_cap;
 	bool bpf_enabled;
-	bool     pause_other_vdev_on_mcc_start;
+	bool pause_other_vdev_on_mcc_start;
+
+	/* NAN datapath support enabled in firmware */
+	bool nan_datapath_enabled;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1705,12 +1710,67 @@ void wma_send_flush_logs_to_fw(tp_wma_handle wma_handle);
 struct wma_txrx_node *wma_get_interface_by_vdev_id(uint8_t vdev_id);
 bool wma_is_vdev_up(uint8_t vdev_id);
 
+int wma_btc_set_bt_wlan_interval(tp_wma_handle wma_handle,
+			WMI_COEX_CONFIG_CMD_fixed_param *interval);
+
+
 int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 			uint32_t delay_time_ms);
 
 uint32_t wma_get_vht_ch_width(void);
 
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
+VOS_STATUS wma_set_tx_rx_aggregation_size
+	(struct sir_set_tx_rx_aggregation_size *tx_rx_aggregation_size);
+
+/**
+ * wma_find_vdev_by_id() - Find vdev handle for given vdev id.
+ * @wma: WMA handle
+ * @vdev_id: vdev ID
+ * Return: Returns vdev handle if given vdev id is valid.
+ *         Otherwise returns NULL.
+ */
+static inline void *wma_find_vdev_by_id(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	if (vdev_id > wma->max_bssid)
+		return NULL;
+
+	return wma->interfaces[vdev_id].handle;
+}
+
+/**
+ * wma_find_vdev_by_addr() - Find vdev handle for given vdev mac addr.
+ * @wma: WMA handle
+ * @addr: mac address of the vdev
+ * @vdev_id: out parameter to update with vdev ID
+ *
+ * Return: vdev handle if found NULL otherwise
+ */
+static inline void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
+				   u_int8_t *vdev_id)
+{
+	u_int8_t i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (vos_is_macaddr_equal(
+			(v_MACADDR_t *) wma->interfaces[i].addr,
+			(v_MACADDR_t *) addr) == VOS_TRUE) {
+			*vdev_id = i;
+			return wma->interfaces[i].handle;
+		}
+	}
+	return NULL;
+}
+
+
+int wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+				u_int32_t param_id, u_int32_t param_value);
+
+void wma_set_bss_rate_flags(struct wma_txrx_node *iface,
+				tpAddBssParams add_bss);
+
+void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
+				void *body_ptr, u_int32_t body_val);
 
 /**
  * struct wma_version_info - Store wmi version info
@@ -1723,5 +1783,12 @@ struct wma_version_info {
 	u_int32_t minor;
 	u_int32_t revision;
 };
+
+void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
+			u_int8_t vdev_id, ol_txrx_peer_handle peer,
+			v_BOOL_t roam_synch_in_progress);
+
+void wma_add_wow_wakeup_event(tp_wma_handle wma, WOW_WAKE_EVENT_TYPE event,
+			bool enable);
 
 #endif
