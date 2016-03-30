@@ -15260,7 +15260,9 @@ static int hdd_driver_init( void)
       hdd_set_conparam((v_UINT_t)con_mode);
 #endif
 
-#define HDD_WLAN_START_WAIT_TIME VOS_WDA_TIMEOUT + 5000
+/* accommodate the request firmware bin time out 2 min */
+#define REQUEST_FWR_TIMEOUT 120000
+#define HDD_WLAN_START_WAIT_TIME (VOS_WDA_TIMEOUT + 5000 + REQUEST_FWR_TIMEOUT)
 
    init_completion(&wlan_start_comp);
 
