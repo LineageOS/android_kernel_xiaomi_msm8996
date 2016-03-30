@@ -1809,8 +1809,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 spin_lock_bh(&pHddCtx->bus_bw_lock);
                 pHostapdAdapter->prev_tx_packets = pHostapdAdapter->stats.tx_packets;
                 pHostapdAdapter->prev_rx_packets = pHostapdAdapter->stats.rx_packets;
-                pHostapdAdapter->prev_fwd_packets =
-                  tlshim_get_fwd_to_tx_packet_count(pHostapdAdapter->sessionId);
+                tlshim_get_intra_bss_fwd_pkts_count(
+                       pHostapdAdapter->sessionId,
+                       &pHostapdAdapter->prev_fwd_tx_packets,
+                       &pHostapdAdapter->prev_fwd_rx_packets);
                 pHostapdAdapter->prev_tx_bytes =
                         pHostapdAdapter->stats.tx_bytes;
                 spin_unlock_bh(&pHddCtx->bus_bw_lock);
@@ -2004,7 +2006,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 spin_lock_bh(&pHddCtx->bus_bw_lock);
                 pHostapdAdapter->prev_tx_packets = 0;
                 pHostapdAdapter->prev_rx_packets = 0;
-                pHostapdAdapter->prev_fwd_packets = 0;
+                pHostapdAdapter->prev_fwd_tx_packets = 0;
+                pHostapdAdapter->prev_fwd_rx_packets = 0;
                 pHostapdAdapter->prev_tx_bytes = 0;
                 spin_unlock_bh(&pHddCtx->bus_bw_lock);
                 hdd_stop_bus_bw_compute_timer(pHostapdAdapter);

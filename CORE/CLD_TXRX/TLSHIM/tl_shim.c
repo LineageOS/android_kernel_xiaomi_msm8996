@@ -2651,17 +2651,21 @@ void WLANTL_clear_datapath_stats(void *vos_ctx, uint16_t bitmap)
 	return;
 }
 
-/* tlshim_get_fwd_to_tx_packet_count() - to get the total rx packets that have
- *   been directly forwarded to tx without coming to upper layers
- *
+/**
+ * tlshim_get_intra_bss_fwd_pkts_count() - to get the total tx and rx packets
+ *    that have been forwarded from txrx layer without coming to upper layers.
  * @session_id: session id/vdev id
+ * @fwd_tx_packets: pointer to forwarded tx packets count parameter
+ * @fwd_rx_packets: pointer to forwarded rx packets count parameter
  *
- * Returns: forwarded packet count
+ * Returns: status -> A_OK - success, A_ERROR - failure
  *
  */
-uint64_t tlshim_get_fwd_to_tx_packet_count(uint8_t session_id)
+A_STATUS tlshim_get_intra_bss_fwd_pkts_count(uint8_t session_id,
+		unsigned long *fwd_tx_packets, unsigned long *fwd_rx_packets)
 {
-	return ol_rx_get_fwd_to_tx_packet_count(session_id);
+	return ol_get_intra_bss_fwd_pkts_count(session_id, fwd_tx_packets,
+							fwd_rx_packets);
 }
 
 /*
