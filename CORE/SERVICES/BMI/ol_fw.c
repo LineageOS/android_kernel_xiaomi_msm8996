@@ -78,7 +78,7 @@ static u_int32_t refclk_speed_to_hz[] = {
 #ifdef HIF_SDIO
 
 #ifdef MULTI_IF_NAME
-#define PREFIX MULTI_IF_NAME
+#define PREFIX MULTI_IF_NAME "/"
 #else
 #define PREFIX ""
 #endif
