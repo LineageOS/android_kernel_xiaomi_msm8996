@@ -1035,7 +1035,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-	if (ramdump_scn->adf_dev)
+	if (ramdump_scn->adf_dev && ramdump_scn->adf_dev->dev)
 		dev = ramdump_scn->adf_dev->dev;
 
 #if !defined(HIF_SDIO)
@@ -1163,7 +1163,8 @@ static void fw_indication_work_handler(struct work_struct *fw_indication)
 #if !defined(HIF_SDIO)
 	struct device *dev = NULL;
 
-	if (ramdump_scn && ramdump_scn->adf_dev)
+	if (ramdump_scn && ramdump_scn->adf_dev
+			&& ramdump_scn->adf_dev->dev)
 		dev = ramdump_scn->adf_dev->dev;
 
 	vos_device_self_recovery(dev);

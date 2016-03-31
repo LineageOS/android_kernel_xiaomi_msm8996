@@ -13873,6 +13873,10 @@ static void hdd_state_info_dump(char **buf_ptr, uint16_t *size)
 	}
 
 	hdd_ctx_ptr = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx_ptr);
+	if (!hdd_ctx_ptr) {
+		hddLog(LOGE, FL("Failed to get hdd context "));
+		return;
+	}
 
 	hddLog(LOG1, FL("size of buffer: %d"), *size);
 
