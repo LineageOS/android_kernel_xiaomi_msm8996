@@ -35476,6 +35476,11 @@ int wma_suspend_fw(void)
 	if (!wma)
 		return -EINVAL;
 
+	if (wma_check_scan_in_progress(wma)) {
+		WMA_LOGE("%s: Scan in progress, Aborting suspend", __func__);
+		return -EBUSY;
+	}
+
 	is_wow_enabled = wma_is_wow_mode_selected(wma);
 	if (is_wow_enabled)
 		ret = wma_enable_wow_in_fw(wma, 0);
