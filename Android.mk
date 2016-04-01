@@ -25,6 +25,11 @@ endif
 ifeq ($(TARGET_KERNEL_VERSION),3.18)
 $(info "WLAN: supported kernel detected, building qcacld-2.0")
 
+# If kernel path offset is not defined, assume old kernel structure
+ifeq ($(KERNEL_TO_BUILD_ROOT_OFFSET),)
+$(info "WLAN: KERNEL_TO_BUILD_ROOT_OFFSET not defined, assuming default")
+KERNEL_TO_BUILD_ROOT_OFFSET := ../
+endif
 
 LOCAL_PATH := $(call my-dir)
 
