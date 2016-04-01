@@ -1756,6 +1756,7 @@ struct hdd_context_s
     bool nan_datapath_enabled;
 #endif
     unsigned int last_scan_bug_report_timestamp;
+    bool driver_being_stopped; /* Track if DRIVER STOP cmd is sent */
 };
 
 /*---------------------------------------------------------------------------
