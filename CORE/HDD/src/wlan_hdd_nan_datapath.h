@@ -40,17 +40,6 @@ struct wireless_dev;
 #define NDP_APP_INFO_LEN 255
 #define NDP_QOS_INFO_LEN 255
 
-#ifdef WLAN_FEATURE_NAN_DATAPATH
-#define WLAN_HDD_NDP_GET_SSID(adapter) ( \
-	&(adapter)->sessionCtx.ndp_ctx.conn_info.SSID)
-
-#define WLAN_HDD_NDP_GET_BSSID(adapter) ( \
-	&(adapter)->sessionCtx.ndp_ctx.conn_info.bssId)
-#else
-#define WLAN_HDD_NDP_GET_SSID(adapter)  (NULL)
-#define WLAN_HDD_NDP_GET_BSSID(adapter) (NULL)
-#endif /* WLAN_FEATURE_NAN_DATAPATH */
-
 /**
  * enum qca_wlan_vendor_attr_ndp_params - vendor attribute parameters
  * @QCA_WLAN_VENDOR_ATTR_NDP_SUBCMD: NDP Sub command
@@ -195,11 +184,6 @@ struct nan_datapath_ctx {
 	uint32_t active_ndp_sessions;
 	uint16_t ndp_create_transaction_id;
 	uint16_t ndp_delete_transaction_id;
-	hdd_wext_state_t wext_state;
-	connection_info_t conn_info;
-#ifdef WLAN_FEATURE_GTK_OFFLOAD
-	tSirGtkOffloadParams gtk_offload_req_params;
-#endif
 	bool ndp_key_installed;
 	tCsrRoamSetKey ndp_enc_key;
 	uint32_t ndp_debug_state;

@@ -110,7 +110,6 @@
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
 #include "vos_nvitem.h"
-#include "wlan_hdd_nan_datapath.h"
 
 #define HDD_FINISH_ULA_TIME_OUT         800
 #define HDD_SET_MCBC_FILTERS_TO_FW      1
@@ -1504,15 +1503,18 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
 
 }
 
+/* hdd_clearRoamProfileIe() - Clear roam profile IEs
+ * @pAdapter: Adapter handle
+ *
+ * Clears roam profile information elements
+ * Returns: none
+ */
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
 {
    int i = 0;
-   hdd_wext_state_t *pWextState;
+   hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
-   if (WLAN_HDD_NDI == pAdapter->device_mode)
-       pWextState = WLAN_HDD_GET_NDP_WEXT_STATE_PTR(pAdapter);
-   else
-       pWextState= WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+   ENTER();
 
    if (!pWextState) {
         hddLog(LOGE, FL("ERROR: pWextState not found"));
@@ -1568,7 +1570,7 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
 #endif
 
    vos_mem_zero((void *)(pWextState->req_bssId), VOS_MAC_ADDR_SIZE);
-
+   EXIT();
 }
 
 void wlan_hdd_ula_done_cb(v_VOID_t *callbackContext)
@@ -12730,36 +12732,34 @@ int hdd_validate_mcc_config(hdd_adapter_t *pAdapter, v_UINT_t staId, v_UINT_t ar
     return 0;
 }
 
+/* hdd_set_wext() - configures bss parameters
+ * @pAdapter: handle to adapter context
+ *
+ * Returns: none
+ */
 int hdd_set_wext(hdd_adapter_t *pAdapter)
 {
-    hdd_wext_state_t *pwextBuf;
-    hdd_station_ctx_t *pHddStaCtx;
-    //struct nan_datapath_ctx *nan_ctx;
-    tCsrSSIDInfo *ssid_list;
-    tCsrBssid *bssid;
+    hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if (WLAN_HDD_NDI == pAdapter->device_mode) {
-       pwextBuf = WLAN_HDD_GET_NDP_WEXT_STATE_PTR(pAdapter);
-       //nan_ctx = WLAN_HDD_GET_NDP_CTX_PTR(pAdapter);
-       ssid_list = WLAN_HDD_NDP_GET_SSID(pAdapter);
-       bssid = WLAN_HDD_NDP_GET_BSSID(pAdapter);
-    } else {
-       pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-       pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-       ssid_list = &pHddStaCtx->conn_info.SSID;
-       bssid = &pHddStaCtx->conn_info.bssId;
-    }
+    ENTER();
 
     if (!pwextBuf) {
-        hddLog(LOGE, FL("ERROR: pwextBuf not found"));
+        hddLog(LOGE, FL("ERROR: pwextBuf is NULL"));
         return VOS_STATUS_E_FAILURE;
     }
+
+    if (!pHddStaCtx) {
+        hddLog(LOGE, FL("ERROR: pHddStaCtx is NULL"));
+        return VOS_STATUS_E_FAILURE;
+    }
+
     /* Now configure the roaming profile links. To SSID and bssid */
     pwextBuf->roamProfile.SSIDs.numOfSSIDs = 0;
-    pwextBuf->roamProfile.SSIDs.SSIDList = ssid_list;
+    pwextBuf->roamProfile.SSIDs.SSIDList = &pHddStaCtx->conn_info.SSID;
 
     pwextBuf->roamProfile.BSSIDs.numOfBSSIDs = 0;
-    pwextBuf->roamProfile.BSSIDs.bssid = bssid;
+    pwextBuf->roamProfile.BSSIDs.bssid = &pHddStaCtx->conn_info.bssId;
 
     /*Set the numOfChannels to zero to scan all the channels*/
     pwextBuf->roamProfile.ChannelInfo.numOfChannels = 0;
@@ -12786,9 +12786,9 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
 
     hdd_clearRoamProfileIe(pAdapter);
 
+    EXIT();
     return VOS_STATUS_SUCCESS;
-
-    }
+}
 
 /**
  * hdd_register_wext() - register wext context
@@ -12801,20 +12801,16 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
 int hdd_register_wext(struct net_device *dev)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_wext_state_t *pwextBuf;
+    hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     VOS_STATUS status;
 
     ENTER();
 
-    if (WLAN_HDD_NDI == pAdapter->device_mode)
-        pwextBuf = WLAN_HDD_GET_NDP_WEXT_STATE_PTR(pAdapter);
-    else
-        pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-
     if (!pwextBuf) {
-        hddLog(LOGE, FL("ERROR: pwextBuf not found"));
+        hddLog(LOGE, FL("ERROR: pwextBuf is NULL"));
         return eHAL_STATUS_FAILURE;
     }
+
     /* Zero the memory. This zeros the profile structure */
     memset(pwextBuf, 0, sizeof(hdd_wext_state_t));
 
