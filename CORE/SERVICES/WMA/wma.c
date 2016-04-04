@@ -22243,6 +22243,23 @@ send_ready_to_suspend:
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_did_ssr_happen() - Check if SSR happened by comparing current
+ * wma handle and new wma handle
+ * @wma: Pointer to wma handle
+ *
+ * This API will compare saved wma handle and new wma handle using global
+ * vos context. If both doesn't match implies that WMA handle got changed
+ * while waiting for command which will happen in SSR.
+ *
+ * Return: True if SSR happened else false
+ */
+static bool wma_did_ssr_happen(tp_wma_handle wma)
+{
+	return vos_get_context(VOS_MODULE_ID_WDA,
+		vos_get_global_context(VOS_MODULE_ID_VOSS, NULL)) != wma;
+}
+
 /*
  * Sends host wakeup indication to FW. On receiving this indication,
  * FW will come out of WOW.
@@ -22293,10 +22310,16 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	vos_status = vos_wait_single_event(&(wma->wma_resume_event),
 			WMA_RESUME_TIMEOUT);
 	if (VOS_STATUS_SUCCESS != vos_status) {
-		WMA_LOGP("%s: Timeout waiting for resume event from FW", __func__);
-		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
+		WMA_LOGE("%s: Timeout waiting for resume event from FW",
+			__func__);
+		WMA_LOGE("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
+		if (wma_did_ssr_happen(wma)) {
+			WMA_LOGE("%s: SSR happened while waiting for response",
+				__func__);
+			return VOS_STATUS_E_ALREADY;
+		}
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
@@ -31843,7 +31866,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
-
+	vos_mem_zero(&wma_handle->wow, sizeof(struct wma_wow));
 	wma_runtime_context_deinit(wma_handle);
 
 	/* unregister Firmware debug log */

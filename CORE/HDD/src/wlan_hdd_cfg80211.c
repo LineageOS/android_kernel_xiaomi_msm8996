@@ -22429,9 +22429,19 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy)
         return -EINVAL;
     }
 
+    /* Driver has been reset by another API(SSR), return success */
+    if (!pHddCtx->isWiphySuspended) {
+        hddLog(LOGE, FL("Driver not suspended"));
+        return 0;
+    }
+
     if (hif_is_80211_fw_wow_required()) {
        result = wma_resume_fw();
        if (result) {
+          /* SSR happened while we were waiting for this */
+          if (result == VOS_STATUS_E_ALREADY)
+              return 0;
+
           hddLog(LOGE, FL("Failed to resume FW err:%d"), result);
           /* Do not panic (VOS_BUG(0)) if FW dump is in progress.
            * Otherwise, the FW dump will be incomplete.
