@@ -71,6 +71,7 @@
 #include "wlan_qct_wda.h"
 #include <linux/workqueue.h>
 #include "ol_defines.h"
+#include "limTypes.h"
 
 /* Platform specific configuration for max. no. of fragments */
 #define QCA_OL_11AC_TX_MAX_FRAGS            2
