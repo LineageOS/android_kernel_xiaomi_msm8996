@@ -181,7 +181,7 @@ void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc)
 	hif_irq_history_buffer[g_hif_irq_history_idx].irq_cause =
 			A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
 				PCIE_INTR_CAUSE_ADDRESS);
-	hif_irq_history_buffer[g_hif_irq_history_idx].irq_cause =
+	hif_irq_history_buffer[g_hif_irq_history_idx].irq_clear =
 			A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
 				PCIE_INTR_CLR_ADDRESS);
 
