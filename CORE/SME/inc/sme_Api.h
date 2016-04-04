@@ -3858,6 +3858,8 @@ eHalStatus sme_UpdateAddIE(tHalHandle hHal,
 
 eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 const char * sme_requestTypetoString(const v_U8_t requestType);
+const char * sme_scan_type_to_string(const uint8_t scan_type);
+const char * sme_bss_type_to_string(const uint8_t bss_type);
 const char * sme_PmcStatetoString(const v_U8_t pmcState);
 eHalStatus sme_ApDisableIntraBssFwd(tHalHandle hHal, tANI_U8 sessionId,
                                     tANI_BOOLEAN disablefwd);

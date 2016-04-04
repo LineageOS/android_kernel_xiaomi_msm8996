@@ -149,7 +149,6 @@ typedef enum {
 typedef tANI_U8 tCsrBssid[VOS_MAC_ADDR_SIZE];
 
 typedef enum {
-    eCSR_BSS_TYPE_NONE,
     eCSR_BSS_TYPE_INFRASTRUCTURE,
     eCSR_BSS_TYPE_INFRA_AP,       /* Soft AP */
     eCSR_BSS_TYPE_IBSS,           /* IBSS network, will NOT start */
