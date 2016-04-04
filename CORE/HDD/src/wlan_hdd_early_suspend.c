@@ -1928,6 +1928,9 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 
    pHddCtx->isLogpInProgress = TRUE;
+   pHddCtx->isWiphySuspended = FALSE;
+   pHddCtx->isSchedScanUpdatePending = FALSE;
+
    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
    vos_clear_concurrent_session_count();
