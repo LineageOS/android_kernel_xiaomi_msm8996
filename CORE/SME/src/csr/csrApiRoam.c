@@ -2040,6 +2040,23 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->tx_aggregation_size;
         pMac->roam.configParam.rx_aggregation_size =
                                pParam->rx_aggregation_size;
+
+        pMac->roam.configParam.enable_edca_params =
+                               pParam->enable_edca_params;
+        pMac->roam.configParam.edca_vo_cwmin = pParam->edca_vo_cwmin;
+        pMac->roam.configParam.edca_vi_cwmin = pParam->edca_vi_cwmin;
+        pMac->roam.configParam.edca_bk_cwmin = pParam->edca_bk_cwmin;
+        pMac->roam.configParam.edca_be_cwmin = pParam->edca_be_cwmin;
+
+        pMac->roam.configParam.edca_vo_cwmax = pParam->edca_vo_cwmax;
+        pMac->roam.configParam.edca_vi_cwmax = pParam->edca_vi_cwmax;
+        pMac->roam.configParam.edca_bk_cwmax = pParam->edca_bk_cwmax;
+        pMac->roam.configParam.edca_be_cwmax = pParam->edca_be_cwmax;
+
+        pMac->roam.configParam.edca_vo_aifs = pParam->edca_vo_aifs;
+        pMac->roam.configParam.edca_vi_aifs = pParam->edca_vi_aifs;
+        pMac->roam.configParam.edca_bk_aifs = pParam->edca_bk_aifs;
+        pMac->roam.configParam.edca_be_aifs = pParam->edca_be_aifs;
     }
 
     return status;
@@ -2216,6 +2233,23 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->htSmps = pMac->roam.configParam.htSmps;
         pParam->enable_fatal_event =
                pMac->roam.configParam.enable_fatal_event;
+
+        pParam->enable_edca_params =
+               pMac->roam.configParam.enable_edca_params;
+        pParam->edca_vo_cwmin = pMac->roam.configParam.edca_vo_cwmin;
+        pParam->edca_vi_cwmin = pMac->roam.configParam.edca_vi_cwmin;
+        pParam->edca_bk_cwmin = pMac->roam.configParam.edca_bk_cwmin;
+        pParam->edca_be_cwmin = pMac->roam.configParam.edca_be_cwmin;
+
+        pParam->edca_vo_cwmax = pMac->roam.configParam.edca_vo_cwmax;
+        pParam->edca_vi_cwmax = pMac->roam.configParam.edca_vi_cwmax;
+        pParam->edca_bk_cwmax = pMac->roam.configParam.edca_bk_cwmax;
+        pParam->edca_be_cwmax = pMac->roam.configParam.edca_be_cwmax;
+
+        pParam->edca_vo_aifs = pMac->roam.configParam.edca_vo_aifs;
+        pParam->edca_vi_aifs = pMac->roam.configParam.edca_vi_aifs;
+        pParam->edca_bk_aifs = pMac->roam.configParam.edca_bk_aifs;
+        pParam->edca_be_aifs = pMac->roam.configParam.edca_be_aifs;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
