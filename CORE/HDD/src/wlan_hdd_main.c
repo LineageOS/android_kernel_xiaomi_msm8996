@@ -4996,6 +4996,84 @@ exit:
 }
 
 /**
+ * hdd_decide_dynamic_chain_mask() - Dynamically decide and set chain mask
+ * for STA
+ * @hdd_ctx: Pointer to hdd context
+ * @forced_mode: set to valid mode to force the mode
+ *
+ * This function decides the chain mask to set considering number of
+ * active sessions, type of active sessions and concurrency.
+ * If forced_mode is valid, chan mask is set to the forced_mode.
+ *
+ * Return: void
+ */
+void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
+	enum antenna_mode forced_mode)
+{
+	int ret;
+	hdd_adapter_t *sta_adapter;
+	hdd_station_ctx_t *hdd_sta_ctx;
+	enum antenna_mode mode;
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	if (!hdd_ctx->cfg_ini->enable_dynamic_sta_chainmask ||
+	    !hdd_is_supported_chain_mask_2x2(hdd_ctx)) {
+		hddLog(LOG1,
+			FL("dynamic antenna mode in INI is %d or 2x2 not supported"),
+			hdd_ctx->cfg_ini->enable_dynamic_sta_chainmask);
+		return;
+	}
+	sta_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
+	if (!sta_adapter) {
+		hddLog(LOGE, FL("Sta adapter null!!"));
+		return;
+	}
+	hddLog(LOG1, FL("Current antenna mode: %d"),
+		hdd_ctx->current_antenna_mode);
+	hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+
+	if (HDD_ANTENNA_MODE_INVALID != forced_mode) {
+		mode = forced_mode;
+	} else if (!wlan_hdd_get_active_session_count(hdd_ctx)) {
+		/* If no active connection set 1x1 */
+		mode = HDD_ANTENNA_MODE_1X1;
+	} else if (1 == wlan_hdd_get_active_session_count(hdd_ctx) &&
+		   hdd_ctx->no_of_active_sessions[WLAN_HDD_INFRA_STATION]) {
+		if (!hdd_connIsConnected(hdd_sta_ctx)) {
+			hddLog(LOGE, FL("Sta not connected"));
+			return;
+		}
+		/*
+		 * In case only sta is connected set value depending
+		 * on AP capability.
+		 */
+		mode = hdd_sta_ctx->conn_info.nss;
+	} else {
+		/* If non sta is active or concurrency set 2x2 */
+		mode = HDD_ANTENNA_MODE_2X2;
+	}
+
+	if (mode != hdd_ctx->current_antenna_mode) {
+
+		ret = wlan_hdd_update_txrx_chain_mask(hdd_ctx,
+			(HDD_ANTENNA_MODE_2X2 == mode) ? 0x3 : 0x1);
+
+		if (0 != ret) {
+			hddLog(LOGE,
+				FL("Failed to update chain mask: %d"),
+				mode);
+			return;
+		}
+		hdd_ctx->current_antenna_mode = mode;
+
+		hddLog(LOG1, FL("Antenna mode updated to: %d"),
+			hdd_ctx->current_antenna_mode);
+	}
+}
+
+/**
  * drv_cmd_set_antenna_mode() - SET ANTENNA MODE driver command
  * handler
  * @hdd_ctx: Pointer to hdd context
@@ -15096,6 +15174,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+
+   if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+      hdd_decide_dynamic_chain_mask(pHddCtx,
+                            HDD_ANTENNA_MODE_1X1);
    memdump_init();
    hdd_driver_memdump_init();
    if (pHddCtx->cfg_ini->goptimize_chan_avoid_event) {

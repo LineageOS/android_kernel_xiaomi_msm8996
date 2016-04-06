@@ -2087,5 +2087,6 @@ int hdd_enable_disable_ca_event(hdd_context_t *hddctx,
 				tANI_U8 set_value);
 
 void wlan_hdd_undo_acs(hdd_adapter_t *adapter);
-
+void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
+				enum antenna_mode forced);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

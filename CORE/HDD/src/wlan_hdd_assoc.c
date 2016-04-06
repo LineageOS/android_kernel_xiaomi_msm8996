@@ -1188,6 +1188,10 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 
     wlan_hdd_clear_link_layer_stats(pAdapter);
 
+    /* Decide ANTENNA_MODE on STA/CLI disconnect */
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+       hdd_decide_dynamic_chain_mask(pHddCtx,
+                          HDD_ANTENNA_MODE_INVALID);
     //Unblock anyone waiting for disconnect to complete
     complete(&pAdapter->disconnect_comp_var);
     return( status );
@@ -2228,6 +2232,18 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
 
     }
+
+    /*
+     * Call hdd_decide_dynamic_chain_mask only when CSR has
+     * completed connect with failure or success i.e. with
+     * ASSOCIATION_FAILURE status or with eCSR_ROAM_RESULT_ASSOCIATED
+     * result.
+     */
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask &&
+       ((eCSR_ROAM_ASSOCIATION_FAILURE == roamStatus) ||
+       (eCSR_ROAM_RESULT_ASSOCIATED == roamResult)))
+         hdd_decide_dynamic_chain_mask(pHddCtx,
+                         HDD_ANTENNA_MODE_INVALID);
 
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
     if (eCSR_ROAM_RESULT_ASSOCIATED == roamResult &&
