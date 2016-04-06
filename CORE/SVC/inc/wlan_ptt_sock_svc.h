@@ -100,16 +100,6 @@
 int ptt_sock_activate_svc(void *pAdapter);
 int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
 
-/*
- * Format of message exchanged between the PTT Socket App in userspace and the
- * WLAN Driver, in either direction. Each msg will begin with this header and
- * will followed by the Quarky message
- */
-typedef struct sAniNlMsg {
-    struct  nlmsghdr nlh;             // Netlink Header
-    int radio;                        // unit number of the radio
-    tAniHdr wmsg;                     // Airgo Message Header
-} tAniNlHdr;
 typedef struct sAniAppRegReq {
     tAniNlModTypes type;              // module id
     int pid;                          // process id

@@ -272,9 +272,10 @@ void hdd_dp_util_send_rps_ind(hdd_context_t  *hdd_ctxt)
 		adapter = adapter_node->pAdapter;
 		if (NULL != adapter) {
 			strlcpy(rps_data.ifname, adapter->dev->name,
-				sizeof(rps_data.ifname));
-			wlan_hdd_send_svc_nlink_msg(WLAN_SVC_RPS_ENABLE_IND,
-				&rps_data, sizeof(rps_data));
+					sizeof(rps_data.ifname));
+			wlan_hdd_send_svc_nlink_msg(hdd_ctxt->radio_index,
+					WLAN_SVC_RPS_ENABLE_IND,
+					&rps_data, sizeof(rps_data));
 		}
 		status = hdd_get_next_adapter (hdd_ctxt, adapter_node, &next);
 		adapter_node = next;

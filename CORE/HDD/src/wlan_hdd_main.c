@@ -13515,7 +13515,8 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                "%s: TCP DELACK trigger level %d, average_rx: %llu",
                __func__, next_rx_level, temp_rx);
         pHddCtx->cur_rx_level = next_rx_level;
-        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_TP_IND,
+        wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                    WLAN_SVC_WLAN_TP_IND,
                                     &next_rx_level,
                                     sizeof(next_rx_level));
     }
@@ -13533,7 +13534,8 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                "%s: change TCP TX trigger level %d, average_tx: %llu ",
                __func__, next_tx_level, temp_tx);
         pHddCtx->cur_tx_level = next_tx_level;
-        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_TP_TX_IND,
+        wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                    WLAN_SVC_WLAN_TP_TX_IND,
                                     &next_tx_level,
                                     sizeof(next_tx_level));
     }
@@ -16588,7 +16590,9 @@ void hdd_ch_avoid_cb
                       && !restart_sap_in_progress) {
 
                     hddLog(LOG1, FL("Restarting SAP"));
-                    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_LTE_COEX_IND, NULL, 0);
+                    wlan_hdd_send_svc_nlink_msg(hdd_ctxt->radio_index,
+                                                WLAN_SVC_LTE_COEX_IND, NULL,
+                                                0);
                     restart_sap_in_progress = 1;
                     /* current operating channel is un-safe channel,
                      * restart driver
@@ -16793,13 +16797,12 @@ void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter)
 #endif
 
 
-void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
+void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
 {
     struct sk_buff *skb;
-    struct nlmsghdr *nlh;
-    tAniMsgHdr *ani_hdr;
     void *nl_data = NULL;
     int flags = GFP_KERNEL;
+    tAniNlHdr *wnl;
 
     if (in_interrupt() || irqs_disabled() || in_atomic())
         flags = GFP_ATOMIC;
@@ -16811,15 +16814,13 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
                 "%s: alloc_skb failed", __func__);
         return;
     }
-
-    nlh = (struct nlmsghdr *)skb->data;
-    nlh->nlmsg_pid = 0;  /* from kernel */
-    nlh->nlmsg_flags = 0;
-    nlh->nlmsg_seq = 0;
-    nlh->nlmsg_type = WLAN_NL_MSG_SVC;
-
-    ani_hdr = NLMSG_DATA(nlh);
-    ani_hdr->type = type;
+    wnl = (tAniNlHdr *)skb->data;
+    wnl->nlh.nlmsg_pid = 0;
+    wnl->nlh.nlmsg_flags = 0;
+    wnl->nlh.nlmsg_seq = 0;
+    wnl->nlh.nlmsg_type = WLAN_NL_MSG_SVC;
+    wnl->radio = radio;
+    wnl->wmsg.type = type;
 
     switch(type) {
     case WLAN_SVC_FW_CRASHED_IND:
@@ -16827,9 +16828,10 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
 #endif
-        ani_hdr->length = 0;
-        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
-        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
+        wnl->wmsg.length = 0;
+        wnl->nlh.nlmsg_len = NLMSG_LENGTH(
+                (sizeof(tAniMsgHdr) + sizeof(wnl->radio)));
+        skb_put(skb, NLMSG_SPACE(wnl->nlh.nlmsg_len));
         break;
     case WLAN_SVC_WLAN_STATUS_IND:
     case WLAN_SVC_WLAN_VERSION_IND:
@@ -16840,11 +16842,13 @@ void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len)
     case WLAN_SVC_WLAN_TP_IND:
     case WLAN_SVC_WLAN_TP_TX_IND:
     case WLAN_SVC_RPS_ENABLE_IND:
-        ani_hdr->length = len;
-        nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
-        nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);
+        wnl->wmsg.length = len;
+        wnl->nlh.nlmsg_len = NLMSG_LENGTH(
+                (sizeof(wnl->radio) + sizeof(tAniMsgHdr) + len));
+        nl_data = (char *)wnl + sizeof(tAniNlHdr);
         memcpy(nl_data, data, len);
-        skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr) + len));
+        skb_put(skb, NLMSG_SPACE(
+                    sizeof(wnl->radio) + sizeof(tAniMsgHdr) + len));
         break;
 
     default:
@@ -16867,6 +16871,8 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
 {
     int ret = 0;
     struct wlan_status_data data;
+    hdd_context_t *hdd_ctx;
+    v_PVOID_t vos_ctx;
 
     if (VOS_FTM_MODE == hdd_get_conparam())
         return;
@@ -16875,9 +16881,21 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
     if (is_on)
         ret = wlan_hdd_gen_wlan_status_pack(&data, pAdapter, pHddStaCtx,
                                             is_on, is_connected);
-    if (!ret)
-        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_STATUS_IND,
-                                    &data, sizeof(struct wlan_status_data));
+    if (!ret) {
+        if (pAdapter) {
+            hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+        } else {
+            vos_ctx = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+            hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+        }
+
+        if (!hdd_ctx)
+            return;
+
+        wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+                WLAN_SVC_WLAN_STATUS_IND,
+                &data, sizeof(struct wlan_status_data));
+    }
 }
 
 void wlan_hdd_send_version_pkg(v_U32_t fw_version,
@@ -16886,14 +16904,21 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
 {
     int ret = 0;
     struct wlan_version_data data;
+    v_PVOID_t vos_ctx = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    hdd_context_t *hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
 
     if (VOS_FTM_MODE == hdd_get_conparam())
         return;
 
+    if (!hdd_ctx)
+        return;
+
     memset(&data, 0, sizeof(struct wlan_version_data));
-    ret = wlan_hdd_gen_wlan_version_pack(&data, fw_version, chip_id, chip_name);
+    ret = wlan_hdd_gen_wlan_version_pack(&data, fw_version, chip_id,
+                                         chip_name);
     if (!ret)
-        wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_VERSION_IND,
+        wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+                                    WLAN_SVC_WLAN_VERSION_IND,
                                     &data, sizeof(struct wlan_version_data));
 }
 
@@ -16934,8 +16959,15 @@ void wlan_hdd_send_all_scan_intf_info(hdd_context_t *pHddCtx)
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 v_VOID_t wlan_hdd_auto_shutdown_cb(v_VOID_t)
 {
+    v_PVOID_t vos_ctx = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    hdd_context_t *hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+
+    if (!hdd_ctx)
+        return;
+
     hddLog(LOGE, FL("%s: Wlan Idle. Sending Shutdown event.."),__func__);
-    wlan_hdd_send_svc_nlink_msg(WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND, NULL, 0);
+    wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+                                WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND, NULL, 0);
 }
 
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)

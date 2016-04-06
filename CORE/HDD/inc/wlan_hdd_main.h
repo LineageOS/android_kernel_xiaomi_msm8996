@@ -1958,7 +1958,7 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
                                const char *chip_name);
 void wlan_hdd_send_all_scan_intf_info(hdd_context_t *pHddCtx);
 #endif
-void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len);
+void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len);
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
