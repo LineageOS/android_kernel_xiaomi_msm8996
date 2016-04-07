@@ -1180,6 +1180,7 @@ limProcessMlmAuthInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // Log error
         limLog(pMac, LOGP,
            FL("call to AllocateMemory failed for eWNI_SME_AUTH_IND"));
+        return;
     }
     limCopyU16((tANI_U8 *) &pSirSmeAuthInd->messageType, eWNI_SME_AUTH_IND);
     limAuthIndSerDes(pMac, (tpLimMlmAuthInd) pMsgBuf,

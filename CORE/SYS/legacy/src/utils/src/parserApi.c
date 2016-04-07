@@ -3327,15 +3327,19 @@ sirFillBeaconMandatoryIEforEseBcnReport(tpAniSirGlobal   pMac,
         retStatus = eSIR_FAILURE;
         goto err_bcnrep;
       }
-      *pos = SIR_MAC_RATESET_EID;
-      pos++;
-      *pos = eseBcnReportMandatoryIe.supportedRates.numRates;
-      pos++;
-      vos_mem_copy(pos,
+      if (eseBcnReportMandatoryIe.supportedRates.numRates <=
+            SIR_MAC_RATESET_EID_MAX) {
+          *pos = SIR_MAC_RATESET_EID;
+          pos++;
+          *pos = eseBcnReportMandatoryIe.supportedRates.numRates;
+          pos++;
+          vos_mem_copy(pos,
                    (tANI_U8*)eseBcnReportMandatoryIe.supportedRates.rate,
                    eseBcnReportMandatoryIe.supportedRates.numRates);
-      pos += eseBcnReportMandatoryIe.supportedRates.numRates;
-      freeBytes -= (1 + 1 + eseBcnReportMandatoryIe.supportedRates.numRates);
+          pos += eseBcnReportMandatoryIe.supportedRates.numRates;
+          freeBytes -= (1 + 1 +
+                   eseBcnReportMandatoryIe.supportedRates.numRates);
+      }
     }
 
     /* Fill FH Parameter set IE */
