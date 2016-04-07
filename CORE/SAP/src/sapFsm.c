@@ -1792,6 +1792,8 @@ void sapMarkDfsChannels(ptSapContext sapContext, v_U8_t* channels,
     v_U8_t nRegDomainDfsChannels;
     tHalHandle hHal;
     tpAniSirGlobal pMac;
+    v_U64_t time_elapsed_since_last_radar;
+    v_U64_t time_when_radar_found;
 
     hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 
@@ -1825,12 +1827,18 @@ void sapMarkDfsChannels(ptSapContext sapContext, v_U8_t* channels,
             if (psapDfsChannelNolList[j].dfs_channel_number ==
                     channels[i])
             {
+                time_when_radar_found =
+                        psapDfsChannelNolList[j].radar_found_timestamp;
+                time_elapsed_since_last_radar = time -
+                                         time_when_radar_found;
                 /* If channel is already in NOL, don't update it again.
                  * This is useful when marking bonding channels which are
                  * already unavailable.
                  */
-                if( psapDfsChannelNolList[j].radar_status_flag ==
-                        eSAP_DFS_CHANNEL_UNAVAILABLE)
+                if ((psapDfsChannelNolList[j].radar_status_flag ==
+                        eSAP_DFS_CHANNEL_UNAVAILABLE)&&
+                    (time_elapsed_since_last_radar <
+                                             SAP_DFS_NON_OCCUPANCY_PERIOD))
                 {
                     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                             FL("Channel=%d already in NOL"),
