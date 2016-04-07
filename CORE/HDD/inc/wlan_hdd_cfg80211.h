@@ -265,6 +265,7 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_SETBAND = 105,
 	QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
 	QCA_NL80211_VENDOR_SUBCMD_STA_CONNECT_ROAM_POLICY = 117,
+	QCA_NL80211_VENDOR_SUBCMD_SET_SAP_CONFIG  = 118,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -1863,6 +1864,22 @@ enum qca_wlan_vendor_attr_sta_connect_roam_policy_config {
 	QCA_WLAN_VENDOR_ATTR_STA_CONNECT_ROAM_POLICY_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_STA_CONNECT_ROAM_POLICY_MAX =
 		QCA_WLAN_VENDOR_ATTR_STA_CONNECT_ROAM_POLICY_AFTER_LAST - 1,
+};
+
+ /**
+  * enum qca_wlan_vendor_attr_sap_config - config params for sap configuration
+  * @QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_INVALID: invalid
+  * @QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_CHANNEL: Channel on which SAP should start
+  * @QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_AFTER_LAST: after last
+  * @QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_MAX: max attribute
+  */
+enum qca_wlan_vendor_attr_sap_config {
+	QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_CHANNEL,
+
+	QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_MAX =
+		QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_AFTER_LAST - 1,
 };
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
