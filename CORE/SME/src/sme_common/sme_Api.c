@@ -13508,7 +13508,7 @@ eHalStatus sme_ocb_set_utc_time(struct sir_ocb_utc *utc)
 						       &msg))) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			  FL("Not able to post message to WDA"));
-		vos_mem_free(utc);
+		vos_mem_free(sme_utc);
 		return eHAL_STATUS_FAILURE;
 	}
 
