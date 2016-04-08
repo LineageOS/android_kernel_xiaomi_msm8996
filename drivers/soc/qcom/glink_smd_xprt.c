@@ -54,9 +54,9 @@ enum command_types {
  */
 #define LEGACY_RCID_CHANNEL_OFFSET	128
 
-#define SMDXPRT_ERR(x...) GLINK_ERR("<SMDXPRT> " x)
-#define SMDXPRT_INFO(x...) GLINK_INFO("<SMDXPRT> " x)
-#define SMDXPRT_DBG(x...) GLINK_DBG("<SMDXPRT> " x)
+#define SMDXPRT_ERR(einfo, x...) GLINK_XPRT_IF_ERR(einfo->xprt_if, x)
+#define SMDXPRT_INFO(einfo, x...) GLINK_XPRT_IF_INFO(einfo->xprt_if, x)
+#define SMDXPRT_DBG(einfo, x...) GLINK_XPRT_IF_DBG(einfo->xprt_if, x)
 
 /**
  * struct edge_info() - local information for managing an edge
@@ -155,6 +155,7 @@ struct channel {
 	bool is_closing;
 	bool local_legacy;
 	bool remote_legacy;
+	size_t intent_req_size;
 	spinlock_t rx_data_lock;
 	bool streaming_ch;
 	bool tx_resume_needed;
@@ -300,7 +301,8 @@ static void process_ctl_event(struct work_struct *work)
 		smd_read(einfo->smd_ch, &cmd, sizeof(cmd));
 		if (cmd.cmd == CMD_OPEN) {
 			smd_read(einfo->smd_ch, name, GLINK_NAME_SIZE);
-			SMDXPRT_INFO("%s RX OPEN '%s'\n", __func__, name);
+			SMDXPRT_INFO(einfo, "%s RX OPEN '%s'\n",
+					__func__, name);
 
 			spin_lock_irqsave(&einfo->channels_lock, flags);
 			list_for_each_entry(ch, &einfo->channels, node) {
@@ -314,8 +316,9 @@ static void process_ctl_event(struct work_struct *work)
 			if (!found) {
 				ch = kzalloc(sizeof(*ch), GFP_KERNEL);
 				if (!ch) {
-					SMDXPRT_ERR("%s: ch alloc failed\n",
-								__func__);
+					SMDXPRT_ERR(einfo,
+						"%s: ch alloc failed\n",
+						__func__);
 					continue;
 				}
 				strlcpy(ch->name, name, GLINK_NAME_SIZE);
@@ -329,8 +332,9 @@ static void process_ctl_event(struct work_struct *work)
 				ch->wq = create_singlethread_workqueue(
 								ch->name);
 				if (!ch->wq) {
-					SMDXPRT_ERR("%s: ch wq create failed\n",
-								__func__);
+					SMDXPRT_ERR(einfo,
+						"%s: ch wq create failed\n",
+						__func__);
 					kfree(ch);
 					continue;
 				}
@@ -364,7 +368,7 @@ static void process_ctl_event(struct work_struct *work)
 			}
 
 			if (ch->remote_legacy) {
-				SMDXPRT_DBG("%s SMD Remote Open '%s'\n",
+				SMDXPRT_DBG(einfo, "%s SMD Remote Open '%s'\n",
 						__func__, name);
 				cmd.cmd = CMD_OPEN_ACK;
 				cmd.priority = SMD_TRANS_XPRT_ID;
@@ -376,7 +380,8 @@ static void process_ctl_event(struct work_struct *work)
 				mutex_unlock(&einfo->smd_lock);
 				continue;
 			} else {
-				SMDXPRT_DBG("%s G-Link Remote Open '%s'\n",
+				SMDXPRT_DBG(einfo,
+						"%s G-Link Remote Open '%s'\n",
 						__func__, name);
 			}
 
@@ -389,7 +394,8 @@ static void process_ctl_event(struct work_struct *work)
 								cmd.priority);
 			mutex_unlock(&einfo->rx_cmd_lock);
 		} else if (cmd.cmd == CMD_OPEN_ACK) {
-			SMDXPRT_INFO("%s RX OPEN ACK lcid %u; xprt_req %u\n",
+			SMDXPRT_INFO(einfo,
+				"%s RX OPEN ACK lcid %u; xprt_req %u\n",
 				__func__, cmd.id, cmd.priority);
 
 			spin_lock_irqsave(&einfo->channels_lock, flags);
@@ -400,7 +406,7 @@ static void process_ctl_event(struct work_struct *work)
 				}
 			spin_unlock_irqrestore(&einfo->channels_lock, flags);
 			if (!found) {
-				GLINK_ERR("%s <SMDXPRT> No channel match %u\n",
+				SMDXPRT_ERR(einfo, "%s No channel match %u\n",
 						__func__, cmd.id);
 				continue;
 			}
@@ -413,8 +419,8 @@ static void process_ctl_event(struct work_struct *work)
 								cmd.priority);
 			mutex_unlock(&einfo->rx_cmd_lock);
 		} else if (cmd.cmd == CMD_CLOSE) {
-			SMDXPRT_INFO("%s RX REMOTE CLOSE rcid %u\n", __func__,
-					cmd.id);
+			SMDXPRT_INFO(einfo, "%s RX REMOTE CLOSE rcid %u\n",
+					__func__, cmd.id);
 			spin_lock_irqsave(&einfo->channels_lock, flags);
 			list_for_each_entry(ch, &einfo->channels, node)
 				if (cmd.id == ch->rcid) {
@@ -424,7 +430,7 @@ static void process_ctl_event(struct work_struct *work)
 			spin_unlock_irqrestore(&einfo->channels_lock, flags);
 
 			if (!found)
-				GLINK_ERR("%s <SMDXPRT> no matching rcid %u\n",
+				SMDXPRT_ERR(einfo, "%s no matching rcid %u\n",
 						__func__, cmd.id);
 
 			if (found && !ch->remote_legacy) {
@@ -436,7 +442,8 @@ static void process_ctl_event(struct work_struct *work)
 				mutex_unlock(&einfo->rx_cmd_lock);
 			} else {
 				/* not found or a legacy channel */
-				SMDXPRT_INFO("%s Sim RX CLOSE ACK lcid %u\n",
+				SMDXPRT_INFO(einfo,
+						"%s Sim RX CLOSE ACK lcid %u\n",
 						__func__, cmd.id);
 				cmd.cmd = CMD_CLOSE_ACK;
 				mutex_lock(&einfo->smd_lock);
@@ -449,8 +456,8 @@ static void process_ctl_event(struct work_struct *work)
 		} else if (cmd.cmd == CMD_CLOSE_ACK) {
 			int rcu_id;
 
-			SMDXPRT_INFO("%s RX CLOSE ACK lcid %u\n", __func__,
-					cmd.id);
+			SMDXPRT_INFO(einfo, "%s RX CLOSE ACK lcid %u\n",
+					__func__, cmd.id);
 
 			spin_lock_irqsave(&einfo->channels_lock, flags);
 			list_for_each_entry(ch, &einfo->channels, node) {
@@ -461,7 +468,7 @@ static void process_ctl_event(struct work_struct *work)
 			}
 			spin_unlock_irqrestore(&einfo->channels_lock, flags);
 			if (!found) {
-				GLINK_ERR("%s <SMDXPRT> LCID not found %u\n",
+				SMDXPRT_ERR(einfo, "%s LCID not found %u\n",
 						__func__, cmd.id);
 				continue;
 			}
@@ -514,8 +521,9 @@ static int ctl_ch_probe(struct platform_device *pdev)
 	ret = smd_named_open_on_edge("GLINK_CTRL", einfo->smd_edge,
 			&einfo->smd_ch, einfo, ctl_ch_notify);
 	if (ret != 0)
-		SMDXPRT_ERR("%s Opening failed %d for %d:'GLINK_CTRL'\n",
-				__func__, ret, einfo->smd_edge);
+		SMDXPRT_ERR(einfo,
+			"%s Opening failed %d for %d:'GLINK_CTRL'\n",
+			__func__, ret, einfo->smd_edge);
 	return ret;
 }
 
@@ -555,12 +563,10 @@ static void process_tx_done(struct work_struct *work)
 	riid = ch_work->iid;
 	einfo = ch->edge;
 	kfree(ch_work);
-	mutex_lock(&einfo->rx_cmd_lock);
 	einfo->xprt_if.glink_core_if_ptr->rx_cmd_tx_done(&einfo->xprt_if,
 								ch->rcid,
 								riid,
 								false);
-	mutex_unlock(&einfo->rx_cmd_lock);
 }
 
 /**
@@ -653,11 +659,9 @@ static void process_status_event(struct work_struct *work)
 	if (set & TIOCM_RI)
 		sigs |= SMD_RI_SIG;
 
-	mutex_lock(&einfo->rx_cmd_lock);
 	einfo->xprt_if.glink_core_if_ptr->rx_cmd_remote_sigs(&einfo->xprt_if,
 								ch->rcid,
 								sigs);
-	mutex_unlock(&einfo->rx_cmd_lock);
 }
 
 /**
@@ -721,15 +725,18 @@ static void process_data_event(struct work_struct *work)
 			pkt_remaining = smd_cur_packet_size(ch->smd_ch);
 		else
 			pkt_remaining = smd_read_avail(ch->smd_ch);
-		GLINK_DBG("%s <SMDXPRT> Reading packet chunk %u '%s' %u:%u\n",
+		SMDXPRT_DBG(einfo, "%s Reading packet chunk %u '%s' %u:%u\n",
 				__func__, pkt_remaining, ch->name, ch->lcid,
 				ch->rcid);
 		if (!ch->cur_intent && !einfo->intentless) {
 			spin_lock_irqsave(&ch->intents_lock, intents_flags);
+			ch->intent_req = true;
+			ch->intent_req_size = pkt_remaining;
 			list_for_each_entry(i, &ch->intents, node) {
 				if (i->size >= pkt_remaining) {
 					list_del(&i->node);
 					ch->cur_intent = i;
+					ch->intent_req = false;
 					break;
 				}
 			}
@@ -738,17 +745,15 @@ static void process_data_event(struct work_struct *work)
 			if (!ch->cur_intent) {
 				spin_unlock_irqrestore(&ch->rx_data_lock,
 								rx_data_flags);
-				GLINK_DBG("%s %s Reqesting intent '%s' %u:%u\n",
-						__func__, "<SMDXPRT>", ch->name,
-						ch->lcid, ch->rcid);
-				ch->intent_req = true;
-				mutex_lock(&einfo->rx_cmd_lock);
+				SMDXPRT_DBG(einfo,
+					"%s Reqesting intent '%s' %u:%u\n",
+					__func__, ch->name,
+					ch->lcid, ch->rcid);
 				einfo->xprt_if.glink_core_if_ptr->
 						rx_cmd_remote_rx_intent_req(
 								&einfo->xprt_if,
 								ch->rcid,
 								pkt_remaining);
-				mutex_unlock(&einfo->rx_cmd_lock);
 				return;
 			}
 		}
@@ -764,8 +769,9 @@ static void process_data_event(struct work_struct *work)
 		if (!intent->data && einfo->intentless) {
 			intent->data = kmalloc(pkt_remaining, GFP_ATOMIC);
 			if (!intent->data) {
-				GLINK_DBG("%s %s kmalloc failed '%s' %u:%u\n",
-					__func__, "<SMDXPRT>", ch->name,
+				SMDXPRT_DBG(einfo,
+					"%s kmalloc failed '%s' %u:%u\n",
+					__func__, ch->name,
 					ch->lcid, ch->rcid);
 				continue;
 			}
@@ -809,7 +815,8 @@ static void smd_data_ch_notify(void *priv, unsigned event)
 	case SMD_EVENT_OPEN:
 		work = kmalloc(sizeof(*work), GFP_ATOMIC);
 		if (!work) {
-			SMDXPRT_ERR("%s: unable to process event %d\n",
+			SMDXPRT_ERR(ch->edge,
+					"%s: unable to process event %d\n",
 					__func__, SMD_EVENT_OPEN);
 			return;
 		}
@@ -820,7 +827,8 @@ static void smd_data_ch_notify(void *priv, unsigned event)
 	case SMD_EVENT_CLOSE:
 		work = kmalloc(sizeof(*work), GFP_ATOMIC);
 		if (!work) {
-			SMDXPRT_ERR("%s: unable to process event %d\n",
+			SMDXPRT_ERR(ch->edge,
+					"%s: unable to process event %d\n",
 					__func__, SMD_EVENT_CLOSE);
 			return;
 		}
@@ -829,12 +837,14 @@ static void smd_data_ch_notify(void *priv, unsigned event)
 		queue_work(ch->wq, &work->work);
 		break;
 	case SMD_EVENT_STATUS:
-		SMDXPRT_DBG("%s Processing STATUS for '%s' %u:%u\n", __func__,
-				ch->name, ch->lcid, ch->rcid);
+		SMDXPRT_DBG(ch->edge,
+				"%s Processing STATUS for '%s' %u:%u\n",
+				__func__, ch->name, ch->lcid, ch->rcid);
 
 		work = kmalloc(sizeof(*work), GFP_ATOMIC);
 		if (!work) {
-			SMDXPRT_ERR("%s: unable to process event %d\n",
+			SMDXPRT_ERR(ch->edge,
+					"%s: unable to process event %d\n",
 					__func__, SMD_EVENT_STATUS);
 			return;
 		}
@@ -845,7 +855,8 @@ static void smd_data_ch_notify(void *priv, unsigned event)
 	case SMD_EVENT_REOPEN_READY:
 		work = kmalloc(sizeof(*work), GFP_ATOMIC);
 		if (!work) {
-			SMDXPRT_ERR("%s: unable to process event %d\n",
+			SMDXPRT_ERR(ch->edge,
+					"%s: unable to process event %d\n",
 					__func__, SMD_EVENT_REOPEN_READY);
 			return;
 		}
@@ -867,7 +878,8 @@ static void smd_data_ch_close(struct channel *ch)
 	struct intent_info *intent;
 	unsigned long flags;
 
-	SMDXPRT_INFO("%s Closing SMD channel lcid %u\n", __func__, ch->lcid);
+	SMDXPRT_INFO(ch->edge, "%s Closing SMD channel lcid %u\n",
+			__func__, ch->lcid);
 
 	ch->is_closing = true;
 	ch->tx_resume_needed = false;
@@ -912,13 +924,13 @@ static void data_ch_probe_body(struct channel *ch)
 	int ret;
 
 	einfo = ch->edge;
-	SMDXPRT_DBG("%s Opening SMD channel %d:'%s'\n", __func__,
+	SMDXPRT_DBG(einfo, "%s Opening SMD channel %d:'%s'\n", __func__,
 			einfo->smd_edge, ch->name);
 
 	ret = smd_named_open_on_edge(ch->name, einfo->smd_edge, &ch->smd_ch, ch,
 			smd_data_ch_notify);
 	if (ret != 0) {
-		SMDXPRT_ERR("%s Opening failed %d for %d:'%s'\n",
+		SMDXPRT_ERR(einfo, "%s Opening failed %d for %d:'%s'\n",
 				__func__, ret, einfo->smd_edge, ch->name);
 		return;
 	}
@@ -1075,14 +1087,12 @@ static void tx_cmd_version(struct glink_transport_if *if_ptr, uint32_t version,
 	struct edge_info *einfo;
 
 	einfo = container_of(if_ptr, struct edge_info, xprt_if);
-	mutex_lock(&einfo->rx_cmd_lock);
 	einfo->xprt_if.glink_core_if_ptr->rx_cmd_version_ack(&einfo->xprt_if,
 								version,
 								features);
 	einfo->xprt_if.glink_core_if_ptr->rx_cmd_version(&einfo->xprt_if,
 								version,
 								features);
-	mutex_unlock(&einfo->rx_cmd_lock);
 }
 
 /**
@@ -1167,8 +1177,9 @@ static int tx_cmd_ch_open(struct glink_transport_if *if_ptr, uint32_t lcid,
 	if (!found) {
 		ch = kzalloc(sizeof(*ch), GFP_KERNEL);
 		if (!ch) {
-			SMDXPRT_ERR("%s: channel struct allocation failed\n",
-								__func__);
+			SMDXPRT_ERR(einfo,
+				"%s: channel struct allocation failed\n",
+				__func__);
 			srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 			return -ENOMEM;
 		}
@@ -1182,8 +1193,9 @@ static int tx_cmd_ch_open(struct glink_transport_if *if_ptr, uint32_t lcid,
 		INIT_WORK(&ch->work, process_data_event);
 		ch->wq = create_singlethread_workqueue(ch->name);
 		if (!ch->wq) {
-			SMDXPRT_ERR("%s: channel workqueue create failed\n",
-								__func__);
+			SMDXPRT_ERR(einfo,
+					"%s: channel workqueue create failed\n",
+					__func__);
 			kfree(ch);
 			srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 			return -ENOMEM;
@@ -1217,8 +1229,8 @@ static int tx_cmd_ch_open(struct glink_transport_if *if_ptr, uint32_t lcid,
 	ch->lcid = lcid;
 
 	if (einfo->smd_ctl_ch_open) {
-		SMDXPRT_INFO("%s TX OPEN '%s' lcid %u reqxprt %u\n", __func__,
-				name, lcid, req_xprt);
+		SMDXPRT_INFO(einfo, "%s TX OPEN '%s' lcid %u reqxprt %u\n",
+				__func__, name, lcid, req_xprt);
 		cmd.cmd = CMD_OPEN;
 		cmd.id = lcid;
 		cmd.priority = req_xprt;
@@ -1233,7 +1245,7 @@ static int tx_cmd_ch_open(struct glink_transport_if *if_ptr, uint32_t lcid,
 		smd_write_end(einfo->smd_ch);
 		mutex_unlock(&einfo->smd_lock);
 	} else {
-		SMDXPRT_INFO("%s Legacy Open '%s' lcid %u reqxprt %u\n",
+		SMDXPRT_INFO(einfo, "%s Legacy Open '%s' lcid %u reqxprt %u\n",
 				__func__, name, lcid, req_xprt);
 		ch->rcid = lcid + LEGACY_RCID_CHANNEL_OFFSET;
 		ch->local_legacy = true;
@@ -1290,13 +1302,14 @@ static int tx_cmd_ch_close(struct glink_transport_if *if_ptr, uint32_t lcid)
 	spin_unlock_irqrestore(&einfo->channels_lock, flags);
 
 	if (!found) {
-		GLINK_ERR("%s <SMDXPRT> LCID not found %u\n", __func__, lcid);
+		SMDXPRT_ERR(einfo, "%s LCID not found %u\n",
+				__func__, lcid);
 		srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 		return -ENODEV;
 	}
 
 	if (!ch->local_legacy) {
-		SMDXPRT_INFO("%s TX CLOSE lcid %u\n", __func__, lcid);
+		SMDXPRT_INFO(einfo, "%s TX CLOSE lcid %u\n", __func__, lcid);
 		cmd.cmd = CMD_CLOSE;
 		cmd.id = lcid;
 		cmd.reserved = 0;
@@ -1347,19 +1360,19 @@ static void tx_cmd_ch_remote_open_ack(struct glink_transport_if *if_ptr,
 	spin_unlock_irqrestore(&einfo->channels_lock, flags);
 
 	if (!found) {
-		GLINK_ERR("%s <SMDXPRT> No matching SMD channel for rcid %u\n",
+		SMDXPRT_ERR(einfo, "%s No matching SMD channel for rcid %u\n",
 				__func__, rcid);
 		return;
 	}
 
 	if (ch->remote_legacy) {
-		SMDXPRT_INFO("%s Legacy ch rcid %u xprt_resp %u\n", __func__,
-				rcid, xprt_resp);
+		SMDXPRT_INFO(einfo, "%s Legacy ch rcid %u xprt_resp %u\n",
+				__func__, rcid, xprt_resp);
 		return;
 	}
 
-	SMDXPRT_INFO("%s TX OPEN ACK rcid %u xprt_resp %u\n", __func__, rcid,
-			xprt_resp);
+	SMDXPRT_INFO(einfo, "%s TX OPEN ACK rcid %u xprt_resp %u\n",
+			__func__, rcid, xprt_resp);
 
 	cmd.cmd = CMD_OPEN_ACK;
 	cmd.id = ch->rcid;
@@ -1404,13 +1417,15 @@ static void tx_cmd_ch_remote_close_ack(struct glink_transport_if *if_ptr,
 	spin_unlock_irqrestore(&einfo->channels_lock, flags);
 
 	if (!found) {
-		GLINK_ERR("%s <SMDXPRT> No matching SMD channel for rcid %u\n",
-				__func__, rcid);
+		SMDXPRT_ERR(einfo,
+			"%s No matching SMD channel for rcid %u\n",
+			__func__, rcid);
 		return;
 	}
 
 	if (!ch->remote_legacy) {
-		SMDXPRT_INFO("%s TX CLOSE ACK rcid %u\n", __func__, rcid);
+		SMDXPRT_INFO(einfo, "%s TX CLOSE ACK rcid %u\n",
+				__func__, rcid);
 		cmd.cmd = CMD_CLOSE_ACK;
 		cmd.id = rcid;
 		cmd.reserved = 0;
@@ -1540,6 +1555,24 @@ static int deallocate_rx_intent(struct glink_transport_if *if_ptr,
 }
 
 /**
+ * check_and_resume_rx() - Check the RX state and resume it
+ * @ch:		Channel which needs to be checked.
+ * @intent_size:	Intent size being queued.
+ *
+ * This function checks if a receive intent is requested in the
+ * channel and resumes the RX if the queued receive intent satisifes
+ * the requested receive intent. This function must be called with
+ * ch->intents_lock locked.
+ */
+static void check_and_resume_rx(struct channel *ch, size_t intent_size)
+{
+	if (ch->intent_req && ch->intent_req_size <= intent_size) {
+		ch->intent_req = false;
+		queue_work(ch->wq, &ch->work);
+	}
+}
+
+/**
  * tx_cmd_local_rx_intent() - convert an rx intent cmd to wire format and
  *			      transmit
  * @if_ptr:	The transport to transmit on.
@@ -1575,7 +1608,7 @@ static int tx_cmd_local_rx_intent(struct glink_transport_if *if_ptr,
 
 	intent = kmalloc(sizeof(*intent), GFP_KERNEL);
 	if (!intent) {
-		SMDXPRT_ERR("%s: no memory for intent\n", __func__);
+		SMDXPRT_ERR(einfo, "%s: no memory for intent\n", __func__);
 		srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 		return -ENOMEM;
 	}
@@ -1584,12 +1617,8 @@ static int tx_cmd_local_rx_intent(struct glink_transport_if *if_ptr,
 	intent->size = size;
 	spin_lock_irqsave(&ch->intents_lock, flags);
 	list_add_tail(&intent->node, &ch->intents);
+	check_and_resume_rx(ch, size);
 	spin_unlock_irqrestore(&ch->intents_lock, flags);
-
-	if (ch->intent_req) {
-		ch->intent_req = false;
-		queue_work(ch->wq, &ch->work);
-	}
 
 	srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 	return 0;
@@ -1621,10 +1650,12 @@ static void tx_cmd_local_rx_done(struct glink_transport_if *if_ptr,
 	list_for_each_entry(i, &ch->used_intents, node) {
 		if (i->liid == liid) {
 			list_del(&i->node);
-			if (reuse)
+			if (reuse) {
 				list_add_tail(&i->node, &ch->intents);
-			else
+				check_and_resume_rx(ch, i->size);
+			} else {
 				kfree(i);
+			}
 			break;
 		}
 	}
@@ -1696,8 +1727,8 @@ static int tx(struct glink_transport_if *if_ptr, uint32_t lcid,
 			rc = tx_size;
 		rc = smd_write_segment(ch->smd_ch, data_start, rc);
 		if (rc < 0) {
-			SMDXPRT_ERR("%s: write segment failed %d\n", __func__,
-									rc);
+			SMDXPRT_ERR(einfo, "%s: write segment failed %d\n",
+					__func__, rc);
 			srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 			return rc;
 		}
@@ -1711,7 +1742,8 @@ static int tx(struct glink_transport_if *if_ptr, uint32_t lcid,
 			rc = tx_size;
 		rc = smd_write(ch->smd_ch, data_start, rc);
 		if (rc < 0) {
-			SMDXPRT_ERR("%s: write failed %d\n", __func__, rc);
+			SMDXPRT_ERR(einfo, "%s: write failed %d\n",
+					__func__, rc);
 			srcu_read_unlock(&einfo->ssr_sync, rcu_id);
 			return rc;
 		}
@@ -1722,6 +1754,12 @@ static int tx(struct glink_transport_if *if_ptr, uint32_t lcid,
 		if (!ch->streaming_ch)
 			smd_write_end(ch->smd_ch);
 		tx_done = kmalloc(sizeof(*tx_done), GFP_ATOMIC);
+		if (!tx_done) {
+			SMDXPRT_ERR(einfo, "%s: failed allocation of tx_done\n",
+					__func__);
+			srcu_read_unlock(&einfo->ssr_sync, rcu_id);
+			return -ENOMEM;
+		}
 		tx_done->ch = ch;
 		tx_done->iid = pctx->riid;
 		INIT_WORK(&tx_done->work, process_tx_done);
@@ -1755,7 +1793,6 @@ static int tx_cmd_rx_intent_req(struct glink_transport_if *if_ptr,
 			break;
 	}
 	spin_unlock_irqrestore(&einfo->channels_lock, flags);
-	mutex_lock(&einfo->rx_cmd_lock);
 	einfo->xprt_if.glink_core_if_ptr->rx_cmd_rx_intent_req_ack(
 								&einfo->xprt_if,
 								ch->rcid,
@@ -1765,7 +1802,6 @@ static int tx_cmd_rx_intent_req(struct glink_transport_if *if_ptr,
 							ch->rcid,
 							ch->next_intent_id++,
 							size);
-	mutex_unlock(&einfo->rx_cmd_lock);
 	return 0;
 }
 
@@ -1979,10 +2015,9 @@ static int __init glink_smd_xprt_init(void)
 		rc = glink_core_register_transport(&einfo->xprt_if,
 							&einfo->xprt_cfg);
 		if (rc)
-			SMDXPRT_ERR("%s: %s glink register xprt failed %d\n",
-							__func__,
-							einfo->xprt_cfg.edge,
-							rc);
+			SMDXPRT_ERR(einfo,
+				"%s: %s glink register xprt failed %d\n",
+				__func__, einfo->xprt_cfg.edge, rc);
 		else
 			einfo->xprt_if.glink_core_if_ptr->link_up(
 							&einfo->xprt_if);

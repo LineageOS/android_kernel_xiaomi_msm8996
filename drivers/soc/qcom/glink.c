@@ -30,7 +30,7 @@
 #include "glink_xprt_if.h"
 
 /* Number of internal IPC Logging log pages */
-#define NUM_LOG_PAGES	15
+#define NUM_LOG_PAGES	10
 #define GLINK_PM_QOS_HOLDOFF_MS		10
 #define GLINK_QOS_DEF_NUM_TOKENS	10
 #define GLINK_QOS_DEF_NUM_PRIORITY	1
@@ -94,6 +94,7 @@ struct glink_qos_priority_bin {
  * @tx_path_activity:		transmit activity has occurred
  * @pm_qos_work:		removes PM QoS vote due to inactivity
  * @xprt_dbgfs_lock_lhb3:	debugfs channel structure lock
+ * @log_ctx:			IPC logging context for this transport.
  */
 struct glink_core_xprt_ctx {
 	struct rwref_lock xprt_state_lhb0;
@@ -136,6 +137,7 @@ struct glink_core_xprt_ctx {
 	struct delayed_work pm_qos_work;
 
 	struct mutex xprt_dbgfs_lock_lhb3;
+	void *log_ctx;
 };
 
 /**
@@ -518,6 +520,8 @@ static bool glink_core_remote_close_common(struct channel_ctx *ctx)
 			"Did not send GLINK_REMOTE_DISCONNECTED",
 			"local state is already CLOSED");
 
+	ctx->int_req_ack = false;
+	complete_all(&ctx->int_req_ack_complete);
 	complete_all(&ctx->int_req_complete);
 	ch_purge_intent_lists(ctx);
 
@@ -2549,6 +2553,8 @@ int glink_close(void *handle)
 	ctx->local_open_state = GLINK_CHANNEL_CLOSING;
 
 	ctx->pending_delete = true;
+	ctx->int_req_ack = false;
+	complete_all(&ctx->int_req_ack_complete);
 	complete_all(&ctx->int_req_complete);
 
 	spin_lock_irqsave(&ctx->transport_ptr->tx_ready_lock_lhb2, flags);
@@ -2709,6 +2715,15 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 				return -EAGAIN;
 			}
 
+			if (ctx->transport_ptr->local_state == GLINK_XPRT_DOWN
+			    || !ch_is_fully_opened(ctx)) {
+				GLINK_ERR_CH(ctx,
+					"%s: Channel closed while waiting for intent\n",
+					__func__);
+				rwref_put(&ctx->ch_state_lhc0);
+				return -EBUSY;
+			}
+
 			/* wait for the remote intent req ack */
 			wait_for_completion(&ctx->int_req_ack_complete);
 			if (!ctx->int_req_ack) {
@@ -2723,13 +2738,6 @@ static int glink_tx_common(void *handle, void *pkt_priv,
 			/* wait for the rx_intent from remote side */
 			wait_for_completion(&ctx->int_req_complete);
 			reinit_completion(&ctx->int_req_complete);
-			if (!ch_is_fully_opened(ctx)) {
-				GLINK_ERR_CH(ctx,
-					"%s: Channel closed while waiting for intent\n",
-					__func__);
-				rwref_put(&ctx->ch_state_lhc0);
-				return -EBUSY;
-			}
 		}
 	}
 
@@ -3587,6 +3595,7 @@ int glink_core_register_transport(struct glink_transport_if *if_ptr,
 	size_t len;
 	uint16_t id;
 	int ret;
+	char log_name[GLINK_NAME_SIZE*2+2] = {0};
 
 	if (!if_ptr || !cfg || !cfg->name || !cfg->edge)
 		return -EINVAL;
@@ -3674,6 +3683,12 @@ int glink_core_register_transport(struct glink_transport_if *if_ptr,
 	list_add_tail(&xprt_ptr->list_node, &transport_list);
 	mutex_unlock(&transport_list_lock_lha0);
 	glink_debugfs_add_xprt(xprt_ptr);
+	snprintf(log_name, sizeof(log_name), "%s_%s",
+			xprt_ptr->edge, xprt_ptr->name);
+	xprt_ptr->log_ctx = ipc_log_context_create(NUM_LOG_PAGES, log_name, 0);
+	if (!xprt_ptr->log_ctx)
+		GLINK_ERR("%s: unable to create log context for [%s:%s]\n",
+				__func__, xprt_ptr->edge, xprt_ptr->name);
 
 	return 0;
 }
@@ -3701,6 +3716,8 @@ void glink_core_unregister_transport(struct glink_transport_if *if_ptr)
 	mutex_unlock(&transport_list_lock_lha0);
 	flush_delayed_work(&xprt_ptr->pm_qos_work);
 	pm_qos_remove_request(&xprt_ptr->pm_qos_req);
+	ipc_log_context_destroy(xprt_ptr->log_ctx);
+	xprt_ptr->log_ctx = NULL;
 	rwref_put(&xprt_ptr->xprt_state_lhb0);
 }
 EXPORT_SYMBOL(glink_core_unregister_transport);
@@ -3798,6 +3815,7 @@ static struct glink_core_xprt_ctx *glink_create_dummy_xprt_ctx(
 	if_ptr->tx_cmd_ch_remote_close_ack = dummy_tx_cmd_ch_remote_close_ack;
 
 	xprt_ptr->ops = if_ptr;
+	xprt_ptr->log_ctx = log_ctx;
 	spin_lock_init(&xprt_ptr->xprt_ctx_lock_lhb1);
 	INIT_LIST_HEAD(&xprt_ptr->free_lcid_list);
 	xprt_ptr->local_state = GLINK_XPRT_DOWN;
@@ -5708,6 +5726,20 @@ void *glink_get_log_ctx(void)
 	return log_ctx;
 }
 EXPORT_SYMBOL(glink_get_log_ctx);
+
+/**
+ * glink_get_xprt_log_ctx() - Return log context for GLINK xprts.
+ *
+ * Return: Log context or NULL if none.
+ */
+void *glink_get_xprt_log_ctx(struct glink_core_xprt_ctx *xprt)
+{
+	if (xprt)
+		return xprt->log_ctx;
+	else
+		return NULL;
+}
+EXPORT_SYMBOL(glink_get_xprt_log_ctx);
 
 static int glink_init(void)
 {
