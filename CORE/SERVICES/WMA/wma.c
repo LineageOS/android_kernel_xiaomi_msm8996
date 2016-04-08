@@ -11307,6 +11307,7 @@ VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
 	if (status != EOK) {
 		WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_ENABLE returned Error %d",
 			status);
+		wmi_buf_free(buf);
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto error;
 	}
@@ -11407,6 +11408,7 @@ VOS_STATUS wma_lphb_conf_tcp_params(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_TCP_PARAMS returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11478,6 +11480,7 @@ VOS_STATUS wma_lphb_conf_tcp_pkt_filter(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_TCP_PKT_FILTER returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11553,6 +11556,7 @@ VOS_STATUS wma_lphb_conf_udp_params(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_UDP_PARAMS returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11624,6 +11628,7 @@ VOS_STATUS wma_lphb_conf_udp_pkt_filter(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_UDP_PKT_FILTER returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
