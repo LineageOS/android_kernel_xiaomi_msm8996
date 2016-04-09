@@ -72,6 +72,7 @@ static const unsigned char effect[] = {
 	0x2f, 0x02, 0x4f, 0x04
 };
 
+static int vibe_strength = DEF_VIBE_STRENGTH;
 
 static struct drv2604_data *pDRV2604data;
 
@@ -131,6 +132,74 @@ static struct device_attribute waveform_attrs[] = {
 	__ATTR(waveform, (S_IRUGO | S_IWUSR | S_IWGRP),
 			waveform_show,
 			waveform_store),
+};
+
+static ssize_t drv2604_vib_min_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", MIN_VIBE_STRENGTH);
+}
+
+static ssize_t drv2604_vib_max_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", MAX_VIBE_STRENGTH);
+}
+
+static ssize_t drv2604_vib_level_default_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", DEF_VIBE_STRENGTH);
+}
+
+static ssize_t drv2604_vib_level_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", vibe_strength);
+}
+
+static ssize_t drv2604_vib_level_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc) {
+		pr_err("%s: error getting level\n", __func__);
+		return -EINVAL;
+	}
+
+	if (val < MIN_VIBE_STRENGTH) {
+		pr_err("%s: level %d not in range (%d - %d), using min.\n",
+				__func__, val, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
+		val = MIN_VIBE_STRENGTH;
+	} else if (val > MAX_VIBE_STRENGTH) {
+		pr_err("%s: level %d not in range (%d - %d), using max.\n",
+				__func__, val, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
+		val = MAX_VIBE_STRENGTH;
+	}
+
+	vibe_strength = val;
+
+	return strnlen(buf, count);
+}
+
+static DEVICE_ATTR(vtg_min, S_IRUGO, drv2604_vib_min_show, NULL);
+static DEVICE_ATTR(vtg_max, S_IRUGO, drv2604_vib_max_show, NULL);
+static DEVICE_ATTR(vtg_level_default, S_IRUGO, drv2604_vib_level_default_show, NULL);
+static DEVICE_ATTR(vtg_level, S_IRUGO | S_IWUSR, drv2604_vib_level_show, drv2604_vib_level_store);
+
+static struct attribute *timed_dev_attrs[] = {
+	&dev_attr_vtg_min.attr,
+	&dev_attr_vtg_max.attr,
+	&dev_attr_vtg_level_default.attr,
+	&dev_attr_vtg_level.attr,
+	NULL,
+};
+
+static struct attribute_group timed_dev_attr_group = {
+	.attrs = timed_dev_attrs,
 };
 
 static int drv2604_reg_write(struct drv2604_data *pDrv2604data, unsigned char reg, char val)
@@ -310,7 +379,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 			dev_init_platform_data(pDrv2604data);
 		}
 
-		drv2604_set_rtp_val(pDrv2604data, 0x7f);
+		drv2604_set_rtp_val(pDrv2604data, vibe_strength);
 		drv2604_change_mode(pDrv2604data, WORK_VIBRATOR, DEV_READY);
 		pDrv2604data->vibrator_is_playing = YES;
 		switch_set_state(&pDrv2604data->sw_dev, SW_STATE_RTP_PLAYBACK);
@@ -654,12 +723,16 @@ static int Haptics_init(struct drv2604_data *pDrv2604data)
 		printk(KERN_ALERT"drv2604: fail to create timed output dev\n");
 		goto fail3;
 	}
-	 if (sysfs_create_file(&pDrv2604data->to_dev.dev->kobj,
+	if (sysfs_create_file(&pDrv2604data->to_dev.dev->kobj,
 					&waveform_attrs[0].attr) < 0) {
-		 printk(KERN_ALERT"drv2604: fail to create sysfs\n");
-		 goto fail3;
-	 }
-
+		printk(KERN_ALERT"drv2604: fail to create sysfs\n");
+		goto fail3;
+	}
+	if (sysfs_create_group(&pDrv2604data->to_dev.dev->kobj,
+					&timed_dev_attr_group)) {
+		printk(KERN_ALERT"drv2604: fail to create strength tunables\n");
+		goto fail3;
+	}
 
 	hrtimer_init(&pDrv2604data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	pDrv2604data->timer.function = vibrator_timer_func;
