@@ -10140,6 +10140,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       spin_lock_init(&pAdapter->pause_map_lock);
       pAdapter->last_tx_jiffies = jiffies;
       pAdapter->bug_report_count = 0;
+      pAdapter->start_time = pAdapter->last_time = vos_system_ticks();
    }
 
    return pAdapter;
@@ -13729,16 +13730,30 @@ static inline void
 wlan_hdd_display_adapter_netif_queue_history(hdd_adapter_t *adapter)
 {
 	int i;
+	adf_os_time_t total, pause, unpause, curr_time;
 
 	if (!adapter)
 		return;
-
-	hddLog(LOGE, FL("Session_id %d device mode %d current index %d"),
-	       adapter->sessionId, adapter->device_mode,
-	       adapter->history_index);
+	hddLog(LOGE, FL("Session_id %d device mode %d"),
+		adapter->sessionId, adapter->device_mode);
 
 	hddLog(LOGE, "Netif queue operation statistics:");
 	hddLog(LOGE, "Current pause_map value %x", adapter->pause_map);
+	curr_time = vos_system_ticks();
+	total = curr_time - adapter->start_time;
+	if (adapter->pause_map) {
+		pause = adapter->total_pause_time +
+			curr_time - adapter->last_time;
+		unpause = adapter->total_unpause_time;
+	} else {
+		unpause = adapter->total_unpause_time +
+			curr_time - adapter->last_time;
+		pause = adapter->total_pause_time;
+	}
+	hddLog(LOGE, "Total: %ums Pause: %ums Unpause: %ums",
+		vos_system_ticks_to_msecs(total),
+		vos_system_ticks_to_msecs(pause),
+		vos_system_ticks_to_msecs(unpause));
 	hddLog(LOGE, "  reason_type: pause_cnt: unpause_cnt");
 
 	for (i = 0; i < WLAN_REASON_TYPE_MAX; i++) {
@@ -13748,7 +13763,8 @@ wlan_hdd_display_adapter_netif_queue_history(hdd_adapter_t *adapter)
 		       adapter->queue_oper_stats[i].unpause_count);
 	}
 
-	hddLog(LOGE, "Netif queue operation history:");
+	hddLog(LOGE, "Netif queue operation history: current index %d",
+		adapter->history_index);
 	hddLog(LOGE, "index: time: action_type: reason_type: pause_map");
 
 	for (i = 0; i < WLAN_HDD_MAX_HISTORY_ENTRY; i++) {
@@ -13808,6 +13824,10 @@ void wlan_hdd_clear_netif_queue_history(hdd_context_t *hdd_ctx)
 		vos_mem_zero(adapter->queue_oper_history,
 			     sizeof(adapter->queue_oper_history));
 
+		adapter->history_index = 0;
+		adapter->start_time = adapter->last_time = vos_system_ticks();
+		adapter->total_pause_time = 0;
+		adapter->total_unpause_time = 0;
 		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
 		adapter_node = next;
 	}

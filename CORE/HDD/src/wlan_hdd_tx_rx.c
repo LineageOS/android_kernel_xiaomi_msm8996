@@ -1457,7 +1457,7 @@ const char *hdd_reason_type_to_string(enum netif_reason_type reason)
 	CASE_RETURN_STRING(WLAN_CONTROL_PATH);
 	CASE_RETURN_STRING(WLAN_DATA_FLOW_CONTROL);
 	default:
-		return "Unknown";
+		return "Invalid";
 	}
 }
 
@@ -1483,7 +1483,7 @@ const char *hdd_action_type_to_string(enum netif_action_type action)
 	CASE_RETURN_STRING(WLAN_NETIF_CARRIER_ON);
 	CASE_RETURN_STRING(WLAN_NETIF_CARRIER_OFF);
 	default:
-		return "Unknown";
+		return "Invalid";
 	}
 }
 
@@ -1535,6 +1535,34 @@ static void wlan_hdd_update_txq_timestamp(struct net_device *dev)
 }
 
 /**
+ * wlan_hdd_update_unpause_time() - update unpause time
+ * @adapter: hdd adapter handle
+ *
+ * Return: none
+ */
+static void wlan_hdd_update_unpause_time(hdd_adapter_t *adapter)
+{
+	adf_os_time_t curr_time = vos_system_ticks();
+
+	adapter->total_unpause_time += curr_time - adapter->last_time;
+	adapter->last_time = curr_time;
+}
+
+/**
+ * wlan_hdd_update_pause_time() - update pause time
+ * @adapter: hdd adapter handle
+ *
+ * Return: none
+ */
+static void wlan_hdd_update_pause_time(hdd_adapter_t *adapter)
+{
+	adf_os_time_t curr_time = vos_system_ticks();
+
+	adapter->total_pause_time += curr_time - adapter->last_time;
+	adapter->last_time = curr_time;
+}
+
+/**
  * wlan_hdd_netif_queue_control() - Use for netif_queue related actions
  * @adapter: adapter handle
  * @action: action type
@@ -1569,6 +1597,7 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		if (!adapter->pause_map) {
 			netif_tx_stop_all_queues(adapter->dev);
 			wlan_hdd_update_txq_timestamp(adapter->dev);
+			wlan_hdd_update_unpause_time(adapter);
 		}
 		adapter->pause_map |= (1 << reason);
 		spin_unlock_bh(&adapter->pause_map_lock);
@@ -1577,16 +1606,20 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 	case WLAN_START_ALL_NETIF_QUEUE:
 		spin_lock_bh(&adapter->pause_map_lock);
 		adapter->pause_map &= ~(1 << reason);
-		if (!adapter->pause_map)
+		if (!adapter->pause_map) {
 			netif_tx_start_all_queues(adapter->dev);
+			wlan_hdd_update_pause_time(adapter);
+		}
 		spin_unlock_bh(&adapter->pause_map_lock);
 		break;
 
 	case WLAN_WAKE_ALL_NETIF_QUEUE:
 		spin_lock_bh(&adapter->pause_map_lock);
 		adapter->pause_map &= ~(1 << reason);
-		if (!adapter->pause_map)
+		if (!adapter->pause_map) {
 			netif_tx_wake_all_queues(adapter->dev);
+			wlan_hdd_update_pause_time(adapter);
+		}
 		spin_unlock_bh(&adapter->pause_map_lock);
 		break;
 
@@ -1595,6 +1628,7 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		if (!adapter->pause_map) {
 			netif_tx_stop_all_queues(adapter->dev);
 			wlan_hdd_update_txq_timestamp(adapter->dev);
+			wlan_hdd_update_unpause_time(adapter);
 		}
 		adapter->pause_map |= (1 << reason);
 		netif_carrier_off(adapter->dev);
@@ -1605,8 +1639,10 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		spin_lock_bh(&adapter->pause_map_lock);
 		netif_carrier_on(adapter->dev);
 		adapter->pause_map &= ~(1 << reason);
-		if (!adapter->pause_map)
+		if (!adapter->pause_map) {
 			netif_tx_start_all_queues(adapter->dev);
+			wlan_hdd_update_pause_time(adapter);
+		}
 		spin_unlock_bh(&adapter->pause_map_lock);
 		break;
 
@@ -1615,6 +1651,7 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		if (!adapter->pause_map) {
 			netif_tx_disable(adapter->dev);
 			wlan_hdd_update_txq_timestamp(adapter->dev);
+			wlan_hdd_update_unpause_time(adapter);
 		}
 		adapter->pause_map |= (1 << reason);
 		spin_unlock_bh(&adapter->pause_map_lock);
@@ -1625,6 +1662,7 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		if (!adapter->pause_map) {
 			netif_tx_disable(adapter->dev);
 			wlan_hdd_update_txq_timestamp(adapter->dev);
+			wlan_hdd_update_unpause_time(adapter);
 		}
 		adapter->pause_map |= (1 << reason);
 		netif_carrier_off(adapter->dev);

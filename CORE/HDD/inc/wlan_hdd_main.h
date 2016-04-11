@@ -1218,6 +1218,11 @@ struct hdd_adapter_s
     uint32_t pause_map;
     spinlock_t pause_map_lock;
 
+    adf_os_time_t start_time;
+    adf_os_time_t last_time;
+    adf_os_time_t total_pause_time;
+    adf_os_time_t total_unpause_time;
+
     uint8_t history_index;
     struct hdd_netif_queue_history
             queue_oper_history[WLAN_HDD_MAX_HISTORY_ENTRY];

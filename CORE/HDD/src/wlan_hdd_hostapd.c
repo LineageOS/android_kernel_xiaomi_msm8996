@@ -7135,6 +7135,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
         spin_lock_init(&pHostapdAdapter->pause_map_lock);
         pHostapdAdapter->last_tx_jiffies = jiffies;
         pHostapdAdapter->bug_report_count = 0;
+        pHostapdAdapter->start_time =
+            pHostapdAdapter->last_time = vos_system_ticks();
     }
     return pHostapdAdapter;
 }
