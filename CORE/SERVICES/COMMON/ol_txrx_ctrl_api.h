@@ -80,7 +80,7 @@ enum wlan_op_mode {
  * @WLAN_NETIF_CARRIER_OFF: off carrier
  */
 enum netif_action_type {
-	WLAN_STOP_ALL_NETIF_QUEUE,
+	WLAN_STOP_ALL_NETIF_QUEUE = 1,
 	WLAN_START_ALL_NETIF_QUEUE,
 	WLAN_WAKE_ALL_NETIF_QUEUE,
 	WLAN_STOP_ALL_NETIF_QUEUE_N_CARRIER,
@@ -99,7 +99,7 @@ enum netif_action_type {
  * @WLAN_REASON_TYPE_MAX: max netif reason
  */
 enum netif_reason_type {
-	WLAN_CONTROL_PATH,
+	WLAN_CONTROL_PATH = 1,
 	WLAN_DATA_FLOW_CONTROL,
 	WLAN_REASON_TYPE_MAX,
 };
