@@ -1031,8 +1031,10 @@ endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
-ifeq ($(CONFIG_CNSS_PCI), y)
+ifeq ($(CONFIG_CNSS), y)
+ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DFEATURE_BUS_BANDWIDTH
+endif
 endif
 endif
 
