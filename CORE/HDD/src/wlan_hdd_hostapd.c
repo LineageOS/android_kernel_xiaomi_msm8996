@@ -973,7 +973,7 @@ static void hdd_issue_stored_joinreq(hdd_adapter_t *sta_adapter,
                               hdd_context_t *hdd_ctx)
 {
     tHalHandle hal_handle;
-    uint32_t roam_id;
+    uint32_t roam_id = 0;
 
     if (NULL == sta_adapter) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
