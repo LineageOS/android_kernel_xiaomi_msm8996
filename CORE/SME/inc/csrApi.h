@@ -193,7 +193,7 @@ typedef enum
  */
 typedef enum
 {
-    eCSR_SCAN_ABORT_DEFAULT,
+    eCSR_SCAN_ABORT_DEFAULT = 1,
     eCSR_SCAN_ABORT_DUE_TO_BAND_CHANGE, //Scan aborted due to band change
 }eCsrAbortReason;
 
