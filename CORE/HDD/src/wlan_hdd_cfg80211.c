@@ -8106,7 +8106,7 @@ out:
 		if (temp_skbuff != NULL)
 			return cfg80211_vendor_cmd_reply(temp_skbuff);
 	}
-
+	wlan_hdd_undo_acs(adapter);
 	clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
 
 	return status;
@@ -8136,6 +8136,26 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	vos_ssr_unprotect(__func__);
 
 	return ret;
+}
+
+/**
+ * wlan_hdd_undo_acs : Do cleanup of DO_ACS
+ * @adapter:  Pointer to adapter struct
+ *
+ * This function handle cleanup of what was done in DO_ACS, including free
+ * memory.
+ *
+ * Return: void
+ */
+
+void wlan_hdd_undo_acs(hdd_adapter_t *adapter)
+{
+	if (adapter == NULL)
+		return;
+	if (adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list) {
+		vos_mem_free(adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+		adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list = NULL;
+	}
 }
 
 /**
@@ -13454,7 +13474,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     VOS_STATUS      status     = VOS_STATUS_E_FAILURE;
     tSirUpdateIE    updateIE;
     beacon_data_t  *old;
-    int             ret;
+    int             ret = 0;
     unsigned long   rc;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     hdd_adapter_list_node_t *pNext        = NULL;
@@ -13481,18 +13501,6 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
            pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret) {
-        if (pHddCtx->isUnloadInProgress) {
-            /*
-             * Unloading the driver so free the memory for ch_list,
-             * otherwise it will result in memory leak
-             */
-            if (pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list)
-                vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
-        }
-        return ret;
-    }
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
@@ -13537,8 +13545,8 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     }
 
     pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
-    if (pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list)
-        vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+    wlan_hdd_undo_acs(pAdapter);
+
     vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,
                                                     sizeof(struct sap_acs_cfg));
 
