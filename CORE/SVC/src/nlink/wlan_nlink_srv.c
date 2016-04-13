@@ -101,11 +101,7 @@ int nl_srv_init(void)
  * Deinit the netlink service.
  * Netlink service is unusable after this.
  */
-#ifdef WLAN_KD_READY_NOTIFIER
-void nl_srv_exit(int dst_pid)
-#else
 void nl_srv_exit(void)
-#endif /* WLAN_KD_READY_NOTIFIER */
 {
    netlink_kernel_release(nl_srv_sock);
    nl_srv_sock = NULL;
