@@ -261,13 +261,6 @@ const static struct ieee80211_channel hdd_channels_2_4_GHZ[] =
     HDD2GHZCHAN(2484, 14, 0) ,
 };
 
-static struct ieee80211_channel hdd_social_channels_2_4_GHZ[] =
-{
-    HDD2GHZCHAN(2412, 1, 0) ,
-    HDD2GHZCHAN(2437, 6, 0) ,
-    HDD2GHZCHAN(2462, 11, 0) ,
-};
-
 const static struct ieee80211_channel hdd_channels_5_GHZ[] =
 {
     HDD5GHZCHAN(5180, 36, 0) ,
@@ -372,25 +365,6 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
                               | IEEE80211_VHT_CAP_RXSTBC_2))
 #endif
                             | IEEE80211_VHT_CAP_RXLDPC,
-};
-
-static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
-{
-    .channels = hdd_social_channels_2_4_GHZ,
-    .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
-    .band       = IEEE80211_BAND_2GHZ,
-    .bitrates = g_mode_rates,
-    .n_bitrates = g_mode_rates_size,
-    .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
-                            | IEEE80211_HT_CAP_GRN_FLD
-                            | IEEE80211_HT_CAP_DSSSCCK40
-                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
-    .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
-    .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
-    .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-    .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
-    .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
 };
 
 static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
@@ -11145,7 +11119,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     {
         wlan_hdd_band_2_4_GHZ.ht_cap.cap     &= ~IEEE80211_HT_CAP_SGI_20;
         wlan_hdd_band_5_GHZ.ht_cap.cap       &= ~IEEE80211_HT_CAP_SGI_20;
-        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap &= ~IEEE80211_HT_CAP_SGI_20;
     }
 
     if( !pCfg->ShortGI40MhzEnable )
