@@ -7782,7 +7782,7 @@ void sme_QosPmcDeviceStateUpdateInd(void *callbackContext, tPmcState pmcState)
       break;
    default:
       status = eHAL_STATUS_SUCCESS;
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                 "%s: %d: nothing to process in PMC state %s (%d)",
                 __func__, __LINE__,
                 sme_PmcStatetoString(pmcState), pmcState);
