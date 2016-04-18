@@ -4176,11 +4176,16 @@ VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode)
         */
        sme_PsOffloadDisablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                      pAdapter->sessionId);
+       if (pHddCtx->cfg_ini->fIsBmpsEnabled)
+          sme_ConfigDisablePowerSave(pHddCtx->hHal,
+                             ePMC_BEACON_MODE_POWER_SAVE);
    }
    else if (DRIVER_POWER_MODE_AUTO == mode)
    {
        if (pHddCtx->cfg_ini->fIsBmpsEnabled)
        {
+           sme_ConfigEnablePowerSave(pHddCtx->hHal,
+                               ePMC_BEACON_MODE_POWER_SAVE);
            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s:Wlan driver Entering Bmps ",
                   __func__);
 
