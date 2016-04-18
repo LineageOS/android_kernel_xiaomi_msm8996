@@ -405,7 +405,7 @@ typedef enum _throttle_phase {
 	THROTTLE_PHASE_MAX,
 } throttle_phase ;
 
-#define THROTTLE_TX_THRESHOLD (100)
+#define THROTTLE_TX_THRESHOLD (400)
 
 #ifdef IPA_UC_OFFLOAD
 typedef void (*ipa_uc_op_cb_type)(u_int8_t *op_msg, void *osif_ctxt);
