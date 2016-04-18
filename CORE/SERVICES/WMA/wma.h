@@ -867,6 +867,8 @@ typedef struct wma_handle {
 	/* NAN datapath support enabled in firmware */
 	bool nan_datapath_enabled;
 	tSirLLStatsResults *link_stats_results;
+
+	struct sir_allowed_action_frames allowed_action_frames;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
