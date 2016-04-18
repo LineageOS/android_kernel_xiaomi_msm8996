@@ -11262,6 +11262,7 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 			wiphy->bands[i]->channels = NULL;
 		}
 	}
+	vos_reset_global_reg_params();
 }
 
 /*

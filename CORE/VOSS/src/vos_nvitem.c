@@ -593,6 +593,19 @@ struct ieee80211_regdomain *vos_world_regdomain(struct regulatory *reg)
    }
 }
 
+/**
+ * vos_reset_global_reg_params - Reset global static reg params
+ *
+ * This function is helpful in static driver to reset
+ * the global params.
+ *
+ * Return: void
+ */
+void vos_reset_global_reg_params()
+{
+	init_by_driver = false;
+	init_by_reg_core = false;
+}
 
 static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
 			   struct wiphy *wiphy)
