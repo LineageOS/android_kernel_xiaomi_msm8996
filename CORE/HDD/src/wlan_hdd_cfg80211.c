@@ -20334,7 +20334,6 @@ wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
 }
 #endif
 
-#ifdef FEATURE_WLAN_SCAN_PNO
 int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -20361,6 +20360,8 @@ int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
     }
     return 0;
 }
+
+#ifdef FEATURE_WLAN_SCAN_PNO
 void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
                               tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
 {
@@ -24434,6 +24435,54 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+/**
+ * __wlan_hdd_cfg80211_abort_scan() - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * This function is used to abort an ongoing scan
+ *
+ * Return: None
+ */
+static void __wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+					struct wireless_dev *wdev)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	int ret;
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return;
+	}
+
+	wlan_hdd_scan_abort(adapter);
+}
+
+/**
+ * wlan_hdd_cfg80211_abort_scan - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * Wrapper to __wlan_hdd_cfg80211_abort_scan() -
+ * function is used to abort an ongoing scan
+ *
+ * Return: None
+ */
+static void wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+				struct wireless_dev *wdev)
+{
+	vos_ssr_protect(__func__);
+	__wlan_hdd_cfg80211_abort_scan(wiphy, wdev);
+	vos_ssr_unprotect(__func__);
+}
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
@@ -24509,5 +24558,5 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #ifdef CHANNEL_SWITCH_SUPPORTED
      .channel_switch = wlan_hdd_cfg80211_channel_switch,
 #endif
-
+     .abort_scan = wlan_hdd_cfg80211_abort_scan,
 };
