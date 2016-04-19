@@ -1119,29 +1119,6 @@ void limMessageProcessor(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
-
-void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* mlmOemDataRsp)
-{
-    if(status != eHAL_STATUS_SUCCESS)
-    {
-        limLog(pMac, LOGE, FL("OEM Data Rsp failed to get the response for resume link"));
-    }
-
-    if(NULL != pMac->lim.gpLimMlmOemDataReq)
-    {
-        vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
-        pMac->lim.gpLimMlmOemDataReq = NULL;
-    }
-
-    //"Failure" status doesn't mean that Oem Data Rsp did not happen
-    //and hence we need to respond to upper layers. Only Resume link is failed, but
-    //we got the oem data response already.
-    //Post the meessage to MLM
-    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)(mlmOemDataRsp));
-
-    return;
-}
-
 void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
     tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
