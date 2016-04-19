@@ -133,6 +133,7 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #include "wlan_hdd_ocb.h"
 #include "wlan_hdd_tsf.h"
 #include "tl_shim.h"
+#include "wlan_hdd_oemdata.h"
 
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
