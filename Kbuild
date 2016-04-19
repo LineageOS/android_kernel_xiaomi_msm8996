@@ -180,7 +180,9 @@ endif
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_TX_DESC_HI_PRIO_RESERVE  := 1
 endif
-
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+	CONFIG_SUPPORT_TXRX_HL_BUNDLE  := 1
+endif
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
 
@@ -1029,8 +1031,10 @@ endif
 
 ifeq ($(CONFIG_ARCH_MSM), y)
 CDEFINES += -DMSM_PLATFORM
-ifeq ($(CONFIG_CNSS_PCI), y)
+ifeq ($(CONFIG_CNSS), y)
+ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DFEATURE_BUS_BANDWIDTH
+endif
 endif
 endif
 
@@ -1061,8 +1065,7 @@ CDEFINES += 	-DTRACE_RECORD \
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES +=	-DWLAN_DEBUG \
 		-DPE_DEBUG_LOGW \
-		-DPE_DEBUG_LOGE \
-		-DDEBUG
+		-DPE_DEBUG_LOGE
 endif
 
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
@@ -1513,13 +1516,14 @@ EXTRA_CFLAGS += -Wmaybe-uninitialized
 endif
 
 # If the module name is not "wlan", then the define MULTI_IF_NAME to be the
-# same a the module name. The host driver will then append MULTI_IF_NAME to
+# same a the QCA CHIP name. The host driver will then append MULTI_IF_NAME to
 # any string that must be unique for all instances of the driver on the system.
 # This allows multiple instances of the driver with different module names.
 # If the module name is wlan, leave MULTI_IF_NAME undefined and the code will
 # treat the driver as the primary driver.
 ifneq ($(MODNAME), wlan)
-CDEFINES += -DMULTI_IF_NAME=\"$(MODNAME)\"
+CHIP_NAME ?= $(MODNAME)
+CDEFINES += -DMULTI_IF_NAME=\"$(CHIP_NAME)\"
 endif
 
 # WLAN_HDD_ADAPTER_MAGIC must be unique for all instances of the driver on the

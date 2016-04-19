@@ -358,7 +358,7 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 			struct ar6k_testmode_cmd_data *msg_buffer);
 #endif
 
-static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
+VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		ol_txrx_vdev_handle vdev, u8 peer_addr[6],
 		u_int32_t peer_type, u_int8_t vdev_id,
 		v_BOOL_t roam_synch_in_progress);
@@ -455,6 +455,24 @@ static inline u_int8_t wma_get_vdev_count(tp_wma_handle wma)
 	}
 	return vdev_count;
 }
+
+/**
+ * wma_did_ssr_happen() - Check if SSR happened by comparing current
+ * wma handle and new wma handle
+ * @wma: Pointer to wma handle
+ *
+ * This API will compare saved wma handle and new wma handle using global
+ * vos context. If both doesn't match implies that WMA handle got changed
+ * while waiting for command which will happen in SSR.
+ *
+ * Return: True if SSR happened else false
+ */
+static bool wma_did_ssr_happen(tp_wma_handle wma)
+{
+	return vos_get_context(VOS_MODULE_ID_WDA,
+		vos_get_global_context(VOS_MODULE_ID_VOSS, NULL)) != wma;
+}
+
 
 /* Function   : wma_is_vdev_in_ap_mode
  * Description : Helper function to know whether given vdev id
@@ -3906,6 +3924,7 @@ static int wma_fill_num_results_per_scan_id(const u_int8_t *cmd_param_info,
 
 	t_scan_id_grp->scan_id = src_rssi->scan_cycle_id;
 	t_scan_id_grp->flags = src_rssi->flags;
+	t_scan_id_grp->buckets_scanned = src_rssi->buckets_scanned;
 	t_scan_id_grp->num_results = 1;
 	for (i = 1; i < event->num_entries_in_page; i++) {
 		src_rssi++;
@@ -3916,6 +3935,8 @@ static int wma_fill_num_results_per_scan_id(const u_int8_t *cmd_param_info,
 			prev_scan_id = t_scan_id_grp->scan_id =
 				src_rssi->scan_cycle_id;
 			t_scan_id_grp->flags = src_rssi->flags;
+			t_scan_id_grp->buckets_scanned =
+				src_rssi->buckets_scanned;
 			t_scan_id_grp->num_results = 1;
 		}
 	}
@@ -3986,7 +4007,6 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 			ap->beaconPeriod = src_hotlist->beacon_interval;
 			ap->capability = src_hotlist->capabilities;
 			ap->ieLength = src_hotlist->ie_length;
-
 			/* Firmware already applied noise floor adjustment and
 			 * due to WMI interface "UINT32 rssi", host driver
 			 * receives a positive value, hence convert to
@@ -4065,7 +4085,6 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	vos_mem_zero(dest_cachelist, sizeof(*dest_cachelist));
 	dest_cachelist->request_id = event->request_id;
 	dest_cachelist->more_data = moredata;
-	dest_cachelist->buckets_scanned = event->buckets_scanned;
 
 	scan_ids_cnt = wma_extscan_find_unique_scan_ids(cmd_param_info);
 	WMA_LOGI("scan_ids_cnt %d", scan_ids_cnt);
@@ -4436,8 +4455,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 		return -ENOMEM;
 	}
 
-	WMA_LOGD("Interface stats from FW event buf");
-	WMA_LOGD("Fixed Param:");
+	WMA_LOGD("Interface stats Fixed Param:");
 	WMA_LOGD("request_id %u vdev_id %u",
 		fixed_param->request_id,fixed_param->vdev_id);
 
@@ -4671,6 +4689,110 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	return 0;
 }
 
+/**
+ * wma_unified_radio_tx_power_level_stats_event_handler() - tx power level stats
+ * @handle: WMI handle
+ * @cmd_param_info: command param info
+ * @len: Length of @cmd_param_info
+ *
+ * This is the WMI event handler function to receive radio stats tx
+ * power level stats.
+ *
+ * Return: 0 on success, error number otherwise.
+*/
+static int wma_unified_radio_tx_power_level_stats_event_handler(void *handle,
+			u_int8_t *cmd_param_info, u_int32_t len)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID_param_tlvs *param_tlvs;
+	wmi_tx_power_level_stats_evt_fixed_param *fixed_param;
+	uint8_t *tx_power_level_values;
+	tSirLLStatsResults *link_stats_results;
+	tSirWifiRadioStat *rs_results;
+
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
+				wma_handle->vos_context);
+
+	if (!pMac) {
+		WMA_LOGD("%s: NULL pMac ptr. Exiting", __func__);
+		return -EINVAL;
+	}
+
+	if (!pMac->sme.pLinkLayerStatsIndCallback) {
+		WMA_LOGD("%s: HDD callback is null", __func__);
+		return -EINVAL;
+	}
+
+	param_tlvs = (WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_tlvs) {
+		WMA_LOGA("%s: Invalid tx power level stats event", __func__);
+		return -EINVAL;
+	}
+
+	fixed_param = param_tlvs->fixed_param;
+	if (!fixed_param) {
+		WMA_LOGA("%s: Invalid param_tlvs for Radio tx_power level Stats", __func__);
+		return -EINVAL;
+	}
+
+	link_stats_results = wma_handle->link_stats_results;
+	rs_results = (tSirWifiRadioStat *) &link_stats_results->results[0];
+	tx_power_level_values = (uint8 *) param_tlvs->tx_time_per_power_level;
+
+	WMA_LOGD("%s: total_num_tx_power_levels: %u num_tx_power_levels: %u power_level_offset: %u",
+			__func__, fixed_param->total_num_tx_power_levels,
+			 fixed_param->num_tx_power_levels,
+			 fixed_param->power_level_offset);
+
+	rs_results->total_num_tx_power_levels =
+				fixed_param->total_num_tx_power_levels;
+	if (!rs_results->total_num_tx_power_levels)
+		goto post_stats;
+
+	if (!rs_results->tx_time_per_power_level) {
+		rs_results->tx_time_per_power_level = vos_mem_malloc(
+				sizeof(uint32_t) *
+				rs_results->total_num_tx_power_levels);
+		if (!rs_results->tx_time_per_power_level) {
+			WMA_LOGA("%s: Mem alloc failed for tx power level stats", __func__);
+			/* In error case, atleast send the radio stats without
+			 * tx_power_level stats */
+			rs_results->total_num_tx_power_levels = 0;
+			goto post_stats;
+		}
+	}
+	vos_mem_copy(&rs_results->tx_time_per_power_level[fixed_param->power_level_offset],
+		tx_power_level_values,
+		sizeof(uint32_t) * fixed_param->num_tx_power_levels);
+	if (rs_results->total_num_tx_power_levels ==
+	   (fixed_param->num_tx_power_levels + fixed_param->power_level_offset))
+		link_stats_results->moreResultToFollow = 0;
+
+	WMA_LOGD("%s: moreResultToFollow: %u",
+			__func__, link_stats_results->moreResultToFollow);
+
+	/* If still data to receive, return from here */
+	if (link_stats_results->moreResultToFollow)
+		return 0;
+
+post_stats:
+	/* call hdd callback with Link Layer Statistics
+	 * vdev_id/ifacId in link_stats_results will be
+	 * used to retrieve the correct HDD context
+	 */
+	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
+	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
+	        link_stats_results);
+	WMA_LOGD("%s: Radio Stats event posted to HDD", __func__);
+	vos_mem_free(rs_results->tx_time_per_power_level);
+	vos_mem_free(wma_handle->link_stats_results);
+	rs_results->tx_time_per_power_level = NULL;
+	wma_handle->link_stats_results = NULL;
+
+	return 0;
+}
+
+
 static int wma_unified_link_radio_stats_event_handler(void *handle,
 			u_int8_t *cmd_param_info, u_int32_t len)
 {
@@ -4680,8 +4802,10 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	wmi_radio_link_stats *radio_stats;
 	wmi_channel_stats *channel_stats;
 	tSirLLStatsResults *link_stats_results;
-	u_int8_t *results, *t_radio_stats, *t_channel_stats;
-	u_int32_t next_res_offset, next_chan_offset, count;
+	tSirWifiRadioStat *rs_results;
+	tSirWifiChannelStats *chn_results;
+	uint8_t *results, *t_radio_stats, *t_channel_stats;
+	uint32_t next_chan_offset, count;
 	size_t radio_stats_size, chan_stats_size;
 	size_t link_stats_results_size;
 
@@ -4698,7 +4822,6 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		return -EINVAL;
 	}
 
-	WMA_LOGD("%s: Posting Radio Stats event to HDD", __func__);
 	param_tlvs = (WMI_RADIO_LINK_STATS_EVENTID_param_tlvs *)cmd_param_info;
 	if (!param_tlvs) {
 		WMA_LOGA("%s: Invalid stats event", __func__);
@@ -4727,15 +4850,14 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 			radio_stats_size +
 			(radio_stats->num_channels * chan_stats_size);
 
-	link_stats_results = vos_mem_malloc(link_stats_results_size);
-	if (NULL == link_stats_results ) {
+	wma_handle->link_stats_results = vos_mem_malloc(link_stats_results_size);
+	if (NULL == wma_handle->link_stats_results) {
 		WMA_LOGD("%s: could not allocate mem for stats results-len %zu",
 		__func__, link_stats_results_size);
 		return -ENOMEM;
 	}
 
-	WMA_LOGD("Radio stats from FW event buf");
-	WMA_LOGD("Fixed Param:");
+	WMA_LOGD("Radio Stats Fixed Param:");
 	WMA_LOGD("request_id %u num_radio %u more_radio_events %u",
 			fixed_param->request_id, fixed_param->num_radio,
 			fixed_param->more_radio_events);
@@ -4753,6 +4875,7 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 			radio_stats->on_time_hs20,
 			radio_stats->num_channels);
 
+	link_stats_results = wma_handle->link_stats_results;
 	vos_mem_zero(link_stats_results, link_stats_results_size);
 
 	link_stats_results->paramId            = WMI_LINK_STATS_RADIO;
@@ -4760,16 +4883,37 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	link_stats_results->ifaceId            = 0;
 	link_stats_results->num_radio          = fixed_param->num_radio;
 	link_stats_results->peer_event_number  = 0;
+
+	/*
+	 * Backward compatibility:
+	 * There are firmware(s) which will send Radio stats only with
+	 * more_radio_events set to 0 and firmware which sends Radio stats
+	 * followed by tx_power level stats with more_radio_events set to 1.
+	 * if more_radio_events is set to 1, buffer the radio stats and
+	 * wait for tx_power_level stats.
+	 */
 	link_stats_results->moreResultToFollow = fixed_param->more_radio_events;
 
 	results          = (u_int8_t *)link_stats_results->results;
 	t_radio_stats    = (u_int8_t *)radio_stats;
 	t_channel_stats  = (u_int8_t *)channel_stats;
 
-	vos_mem_copy(results, t_radio_stats + WMI_TLV_HDR_SIZE,
-			radio_stats_size);
+	rs_results = (tSirWifiRadioStat *) &results[0];
+	rs_results->radio = radio_stats->radio_id;
+	rs_results->onTime = radio_stats->on_time;
+	rs_results->txTime = radio_stats->tx_time;
+	rs_results->rxTime = radio_stats->rx_time;
+	rs_results->onTimeScan = radio_stats->on_time_scan;
+	rs_results->onTimeNbd = radio_stats->on_time_nbd;
+	rs_results->onTimeGscan = radio_stats->on_time_gscan;
+	rs_results->onTimeRoamScan = radio_stats->on_time_roam_scan;
+	rs_results->onTimePnoScan = radio_stats->on_time_pno_scan;
+	rs_results->onTimeHs20 = radio_stats->on_time_hs20;
+	rs_results->total_num_tx_power_levels = 0;
+	rs_results->tx_time_per_power_level = NULL;
+	rs_results->numChannels = radio_stats->num_channels;
 
-	next_res_offset  = radio_stats_size;
+	chn_results = (tSirWifiChannelStats *) &rs_results->channels[0];
 	next_chan_offset = WMI_TLV_HDR_SIZE;
 	WMA_LOGD("Channel Stats Info");
 	for (count = 0; count < radio_stats->num_channels; count++) {
@@ -4781,22 +4925,23 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 			channel_stats->cca_busy_time);
 		channel_stats++;
 
-		vos_mem_copy(results + next_res_offset,
+		vos_mem_copy(chn_results,
 				t_channel_stats + next_chan_offset,
 				chan_stats_size);
-		next_res_offset  += chan_stats_size;
+		chn_results++;
 		next_chan_offset += sizeof(*channel_stats);
 	}
 
-	/* call hdd callback with Link Layer Statistics
-	 * vdev_id/ifacId in link_stats_results will be
-	 * used to retrieve the correct HDD context
-	 */
+	if (link_stats_results->moreResultToFollow) {
+		/* More results coming, don't post yet */
+		return 0;
+	}
+
 	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
 	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
 	        link_stats_results);
-	WMA_LOGD("%s: Radio Stats event posted to HDD", __func__);
-	vos_mem_free(link_stats_results);
+	vos_mem_free(wma_handle->link_stats_results);
+	wma_handle->link_stats_results = NULL;
 
 	return 0;
 }
@@ -5414,13 +5559,15 @@ static int wma_oem_capability_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	/* wma puts 4 bytes prefix for msg subtype, so length
+	/*
+	 * wma puts 4 bytes prefix for msg subtype, so length
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - 4)) {
+	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
 		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen, (OEM_DATA_RSP_SIZE - 4));
+		         __func__, datalen,
+			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
 		return -EINVAL;
 	}
 
@@ -5430,14 +5577,31 @@ static int wma_oem_capability_event_callback(void *handle,
 		return -ENOMEM;
 	}
 
-	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
-	pStartOemDataRsp->target_rsp = true;
-	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
-	*msg_subtype = WMI_OEM_CAPABILITY_RSP;
-	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
+	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
+	if (pStartOemDataRsp->rsp_len) {
+		pStartOemDataRsp->oem_data_rsp =
+			vos_mem_malloc(pStartOemDataRsp->rsp_len);
+		if (!pStartOemDataRsp->oem_data_rsp) {
+			WMA_LOGE(FL("malloc failed for data"));
+			vos_mem_free(pStartOemDataRsp);
+			return -ENOMEM;
+		}
+	} else {
+		WMA_LOGE(FL("Invalid rsp length: %d"),
+			 pStartOemDataRsp->rsp_len);
+		vos_mem_free(pStartOemDataRsp);
+		return -EINVAL;
+	}
 
-	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
-	         __func__, datalen);
+	pStartOemDataRsp->target_rsp = true;
+	msg_subtype = (uint32_t *) pStartOemDataRsp->oem_data_rsp;
+	*msg_subtype = WMI_OEM_CAPABILITY_RSP;
+	/* copy data after msg sub type */
+	vos_mem_copy(pStartOemDataRsp->oem_data_rsp + OEM_MESSAGE_SUBTYPE_LEN,
+		     data, datalen);
+
+	WMA_LOGI(FL("Sending WDA_START_OEM_DATA_RSP, data len (%d)"),
+		 pStartOemDataRsp->rsp_len);
 
 	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
@@ -5467,13 +5631,15 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	/* wma puts 4 bytes prefix for msg subtype, so length
+	/*
+	 * wma puts 4 bytes prefix for msg subtype, so length
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - 4)) {
+	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
 		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen, (OEM_DATA_RSP_SIZE - 4));
+		         __func__, datalen,
+			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
 		return -EINVAL;
 	}
 
@@ -5483,14 +5649,31 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 		return -ENOMEM;
 	}
 
-	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
-	pStartOemDataRsp->target_rsp = true;
-	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
-	*msg_subtype = WMI_OEM_MEASUREMENT_RSP;
-	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
+	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
+	if (pStartOemDataRsp->rsp_len) {
+		pStartOemDataRsp->oem_data_rsp =
+			vos_mem_malloc(pStartOemDataRsp->rsp_len);
+		if (!pStartOemDataRsp->oem_data_rsp) {
+			WMA_LOGE(FL("malloc failed for data"));
+			vos_mem_free(pStartOemDataRsp);
+			return -ENOMEM;
+		}
+	} else {
+		WMA_LOGE(FL("Invalid rsp length: %d"),
+			 pStartOemDataRsp->rsp_len);
+		vos_mem_free(pStartOemDataRsp);
+		return -EINVAL;
+	}
 
-	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
-	         __func__, datalen);
+	pStartOemDataRsp->target_rsp = true;
+	msg_subtype = (uint32_t *) pStartOemDataRsp->oem_data_rsp;
+	*msg_subtype = WMI_OEM_MEASUREMENT_RSP;
+	/* copy data after msg sub type */
+	vos_mem_copy(pStartOemDataRsp->oem_data_rsp + OEM_MESSAGE_SUBTYPE_LEN,
+		     data, datalen);
+
+	WMA_LOGI(FL("Sending WDA_START_OEM_DATA_RSP, data len (%d)"),
+		 pStartOemDataRsp->rsp_len);
 
 	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
@@ -5520,13 +5703,15 @@ static int wma_oem_error_report_event_callback(void *handle,
 		return -EINVAL;
 	}
 
-	/* wma puts 4 bytes prefix for msg subtype, so length
+	/*
+	 * wma puts 4 bytes prefix for msg subtype, so length
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - 4)) {
+	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
 		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen, (OEM_DATA_RSP_SIZE - 4));
+		         __func__, datalen,
+			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
 		return -EINVAL;
 	}
 
@@ -5536,14 +5721,31 @@ static int wma_oem_error_report_event_callback(void *handle,
 		return -ENOMEM;
 	}
 
-	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
-	pStartOemDataRsp->target_rsp = true;
-	msg_subtype = (u_int32_t *)(&pStartOemDataRsp->oemDataRsp[0]);
-	*msg_subtype = WMI_OEM_ERROR_REPORT_RSP;
-	vos_mem_copy(&pStartOemDataRsp->oemDataRsp[4], data, datalen);
+	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
+	if (pStartOemDataRsp->rsp_len) {
+		pStartOemDataRsp->oem_data_rsp =
+			vos_mem_malloc(pStartOemDataRsp->rsp_len);
+		if (!pStartOemDataRsp->oem_data_rsp) {
+			WMA_LOGE(FL("malloc failed for data"));
+			vos_mem_free(pStartOemDataRsp);
+			return -ENOMEM;
+		}
+	} else {
+		WMA_LOGE(FL("Invalid rsp length: %d"),
+			 pStartOemDataRsp->rsp_len);
+		vos_mem_free(pStartOemDataRsp);
+		return -EINVAL;
+	}
 
-	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP, data len (%d)",
-	         __func__, datalen);
+	pStartOemDataRsp->target_rsp = true;
+	msg_subtype = (uint32_t *) pStartOemDataRsp->oem_data_rsp;
+	*msg_subtype = WMI_OEM_ERROR_REPORT_RSP;
+	/* copy data after msg sub type */
+	vos_mem_copy(pStartOemDataRsp->oem_data_rsp + OEM_MESSAGE_SUBTYPE_LEN,
+		     data, datalen);
+
+	WMA_LOGI(FL("Sending WDA_START_OEM_DATA_RSP, data len (%d)"),
+		 pStartOemDataRsp->rsp_len);
 
 	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)pStartOemDataRsp, 0);
 	return 0;
@@ -5565,7 +5767,7 @@ static int wma_oem_data_response_handler(void *handle,
 	WMI_OEM_RESPONSE_EVENTID_param_tlvs *param_buf;
 	uint8_t *data;
 	uint32_t datalen;
-	tStartOemDataRsp *oem_data_rsp;
+	tStartOemDataRsp *oem_rsp;
 
 	param_buf = (WMI_OEM_RESPONSE_EVENTID_param_tlvs *) datap;
 	if (!param_buf) {
@@ -5587,19 +5789,32 @@ static int wma_oem_data_response_handler(void *handle,
 		return -EINVAL;
 	}
 
-	oem_data_rsp = vos_mem_malloc(sizeof(*oem_data_rsp));
-	if (!oem_data_rsp) {
-		WMA_LOGE(FL("Failed to alloc oem_data_rsp"));
+	oem_rsp = vos_mem_malloc(sizeof(*oem_rsp));
+	if (!oem_rsp) {
+		WMA_LOGE(FL("Failed to alloc oem_rsp"));
 		return -ENOMEM;
 	}
 
-	vos_mem_zero(oem_data_rsp, sizeof(tStartOemDataRsp));
-	oem_data_rsp->target_rsp = true;
-	vos_mem_copy(&oem_data_rsp->oemDataRsp[0], data, datalen);
+	oem_rsp->rsp_len = datalen;
+	if (oem_rsp->rsp_len) {
+		oem_rsp->oem_data_rsp = vos_mem_malloc(oem_rsp->rsp_len);
+		if (!oem_rsp->rsp_len) {
+			WMA_LOGE(FL("malloc failed for data"));
+			vos_mem_free(oem_rsp);
+			return -ENOMEM;
+		}
+	} else {
+		WMA_LOGE(FL("Invalid rsp length: %d"), oem_rsp->rsp_len);
+		vos_mem_free(oem_rsp);
+		return -EINVAL;
+	}
+
+	oem_rsp->target_rsp = true;
+	vos_mem_copy(oem_rsp->oem_data_rsp, data, datalen);
 
 	WMA_LOGI(FL("Sending WMA_START_OEM_DATA_RSP, data len %d"), datalen);
 
-	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)oem_data_rsp, 0);
+	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)oem_rsp, 0);
 	return 0;
 }
 
@@ -6251,6 +6466,9 @@ wma_register_ll_stats_event_handler(tp_wma_handle wma_handle)
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 			WMI_RADIO_LINK_STATS_EVENTID,
 			wma_unified_link_radio_stats_event_handler);
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID,
+			wma_unified_radio_tx_power_level_stats_event_handler);
 
 	return;
 }
@@ -7716,7 +7934,7 @@ static int wmi_unified_peer_create_send(wmi_unified_t wmi,
 	return 0;
 }
 
-static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
+VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 		ol_txrx_vdev_handle vdev, u8 peer_addr[6],
 		u_int32_t peer_type, u_int8_t vdev_id,
 		v_BOOL_t roam_synch_in_progress)
@@ -11237,6 +11455,7 @@ VOS_STATUS wma_lphb_conf_hbenable(tp_wma_handle wma_handle,
 	if (status != EOK) {
 		WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_ENABLE returned Error %d",
 			status);
+		wmi_buf_free(buf);
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto error;
 	}
@@ -11337,6 +11556,7 @@ VOS_STATUS wma_lphb_conf_tcp_params(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_TCP_PARAMS returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11408,6 +11628,7 @@ VOS_STATUS wma_lphb_conf_tcp_pkt_filter(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_TCP_PKT_FILTER returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11483,6 +11704,7 @@ VOS_STATUS wma_lphb_conf_udp_params(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_UDP_PARAMS returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -11554,6 +11776,7 @@ VOS_STATUS wma_lphb_conf_udp_pkt_filter(tp_wma_handle wma_handle,
         if (status != EOK) {
                 WMA_LOGE("wmi_unified_cmd_send WMI_HB_SET_UDP_PKT_FILTER returned Error %d",
                         status);
+                wmi_buf_free(buf);
                 vos_status = VOS_STATUS_E_FAILURE;
                 goto error;
         }
@@ -16721,7 +16944,8 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 #endif
 	}
 #endif
-
+	if (WMA_IS_VDEV_IN_NDI_MODE(wma->interfaces, add_sta->smesessionId))
+		oper_mode = BSS_OPERATIONAL_MODE_NDI;
 	switch (oper_mode) {
 	case BSS_OPERATIONAL_MODE_STA:
 		wma_add_sta_req_sta_mode(wma, add_sta);
@@ -16732,6 +16956,9 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 #endif
 	case BSS_OPERATIONAL_MODE_AP:
 		wma_add_sta_req_ap_mode(wma, add_sta);
+		break;
+	case BSS_OPERATIONAL_MODE_NDI:
+		wma_add_sta_ndi_mode(wma, add_sta);
 		break;
 	}
 
@@ -20508,10 +20735,13 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
-		 wma_wow_wake_reason_str(wake_info->wake_reason, wma),
-		 wake_info->wake_reason,
-		 wake_info->vdev_id);
+	if ((wake_info->wake_reason != WOW_REASON_UNSPECIFIED) ||
+	    (wake_info->wake_reason == WOW_REASON_UNSPECIFIED &&
+	     !wmi_get_runtime_pm_inprogress(wma->wmi_handle)))
+		WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
+			wma_wow_wake_reason_str(wake_info->wake_reason, wma),
+			wake_info->wake_reason,
+			wake_info->vdev_id);
 
 	vos_event_set(&wma->wma_resume_event);
 
@@ -21274,6 +21504,11 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 				  WMA_TGT_SUSPEND_COMPLETE_TIMEOUT)
 				  != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to receive WoW Enable Ack from FW");
+		if (wma_did_ssr_happen(wma)) {
+			WMA_LOGE("%s: SSR happened while waiting for response",
+				__func__);
+			return VOS_STATUS_E_FAILURE;
+		}
 		WMA_LOGE("Credits:%d; Pending_Cmds: %d",
 			wmi_get_host_credits(wma->wmi_handle),
 			wmi_get_pending_cmds(wma->wmi_handle));
@@ -22289,12 +22524,17 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	}
 
 	WMA_LOGD("Host wakeup indication sent to fw");
-
 	vos_status = vos_wait_single_event(&(wma->wma_resume_event),
 			WMA_RESUME_TIMEOUT);
 	if (VOS_STATUS_SUCCESS != vos_status) {
-		WMA_LOGP("%s: Timeout waiting for resume event from FW", __func__);
-		WMA_LOGP("%s: Pending commands %d credits %d", __func__,
+		WMA_LOGE("%s: Timeout waiting for resume event from FW",
+			__func__);
+		if (wma_did_ssr_happen(wma)) {
+			WMA_LOGE("%s: SSR happened while waiting for response",
+				__func__);
+			return VOS_STATUS_E_ALREADY;
+		}
+		WMA_LOGE("%s: Pending commands %d credits %d", __func__,
 				wmi_get_pending_cmds(wma->wmi_handle),
 				wmi_get_host_credits(wma->wmi_handle));
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
@@ -22890,6 +23130,7 @@ out:
 	}
 	vos_mem_zero(pStartOemDataRsp, sizeof(tStartOemDataRsp));
 	pStartOemDataRsp->target_rsp = false;
+	pStartOemDataRsp->oem_data_rsp = NULL;
 
 	WMA_LOGI("%s: Sending WDA_START_OEM_DATA_RSP to clear up PE/SME pending cmd",
 	         __func__);
@@ -29860,6 +30101,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_enable_disable_caevent_ind(wma_handle,
                                                        msg->bodyval);
 			break;
+		case SIR_HAL_NDP_INITIATOR_REQ:
+			wma_handle_ndp_initiator_req(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_NDP_RESPONDER_REQ:
+			wma_handle_ndp_responder_req(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -31829,6 +32078,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		WMA_LOGD("%s: Event log list freed", __func__);
 	}
 
+	if (wma_handle->link_stats_results) {
+		vos_mem_free(wma_handle->link_stats_results);
+		wma_handle->link_stats_results = NULL;
+	}
+
 	/* Free wow pattern cache */
 	for (ptrn_id = 0; ptrn_id < wma_handle->wlan_resource_config.num_wow_filters;
 		ptrn_id++)
@@ -31843,7 +32097,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #endif
 		vos_wake_lock_destroy(&wma_handle->wow_wake_lock);
 	}
-
+	vos_mem_zero(&wma_handle->wow, sizeof(struct wma_wow));
 	wma_runtime_context_deinit(wma_handle);
 
 	/* unregister Firmware debug log */
@@ -33311,6 +33565,11 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 				  timeout)
 				  != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get ACK from firmware for pdev suspend");
+		if (wma_did_ssr_happen(wma_handle)) {
+			WMA_LOGE("%s: SSR happened while waiting for response",
+				__func__);
+			return VOS_STATUS_E_FAILURE;
+		}
 		wmi_set_target_suspend(wma_handle->wmi_handle, FALSE);
 #ifdef CONFIG_CNSS
 		if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDA, NULL) ||
@@ -35475,6 +35734,11 @@ int wma_suspend_fw(void)
 
 	if (!wma)
 		return -EINVAL;
+
+	if (wma_check_scan_in_progress(wma)) {
+		WMA_LOGE("%s: Scan in progress, Aborting suspend", __func__);
+		return -EBUSY;
+	}
 
 	is_wow_enabled = wma_is_wow_mode_selected(wma);
 	if (is_wow_enabled)

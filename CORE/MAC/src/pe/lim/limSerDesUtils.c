@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -692,6 +692,10 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
 
     /* extract sap_dot11mc */
     pStartBssReq->sap_dot11mc = *pBuf++;
+    len--;
+
+    /* extract vendor_vht_for_24ghz_sap */
+    pStartBssReq->vendor_vht_for_24ghz_sap = *pBuf++;
     len--;
 
     if (len)

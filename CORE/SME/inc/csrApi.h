@@ -149,7 +149,6 @@ typedef enum {
 typedef tANI_U8 tCsrBssid[VOS_MAC_ADDR_SIZE];
 
 typedef enum {
-    eCSR_BSS_TYPE_NONE,
     eCSR_BSS_TYPE_INFRASTRUCTURE,
     eCSR_BSS_TYPE_INFRA_AP,       /* Soft AP */
     eCSR_BSS_TYPE_IBSS,           /* IBSS network, will NOT start */
@@ -1263,6 +1262,7 @@ typedef struct tagCsrConfigParam
     tANI_U8         txBFCsnValue;
     tANI_U8         enable2x2;
     tANI_BOOLEAN    enableVhtFor24GHz;
+    bool            vendor_vht_for_24ghz_sap;
     tANI_U8         enableMuBformee;
     tANI_U8         enableVhtpAid;
     tANI_U8         enableVhtGid;
@@ -1320,6 +1320,19 @@ typedef struct tagCsrConfigParam
     bool    enable_fatal_event;
     uint32_t tx_aggregation_size;
     uint32_t rx_aggregation_size;
+    bool enable_edca_params;
+    uint32_t edca_vo_cwmin;
+    uint32_t edca_vi_cwmin;
+    uint32_t edca_bk_cwmin;
+    uint32_t edca_be_cwmin;
+    uint32_t edca_vo_cwmax;
+    uint32_t edca_vi_cwmax;
+    uint32_t edca_bk_cwmax;
+    uint32_t edca_be_cwmax;
+    uint32_t edca_vo_aifs;
+    uint32_t edca_vi_aifs;
+    uint32_t edca_bk_aifs;
+    uint32_t edca_be_aifs;
 }tCsrConfigParam;
 
 //Tush
@@ -1442,7 +1455,7 @@ typedef struct tagCsrRoamInfo
         struct ndp_confirm_event ndp_confirm_params;
         struct ndp_responder_rsp_event ndp_responder_rsp_params;
         struct ndp_indication_event ndp_indication_params;
-        struct ndp_initiator_rsp_event ndp_init_rsp_params;
+        struct ndp_initiator_rsp ndp_init_rsp_params;
         struct ndi_create_rsp ndi_create_params;
         struct ndi_delete_rsp ndi_delete_params;
     } ndp;

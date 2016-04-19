@@ -78,7 +78,7 @@ static u_int32_t refclk_speed_to_hz[] = {
 #ifdef HIF_SDIO
 
 #ifdef MULTI_IF_NAME
-#define PREFIX MULTI_IF_NAME
+#define PREFIX MULTI_IF_NAME "/"
 #else
 #define PREFIX ""
 #endif
@@ -1022,7 +1022,9 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	struct device *dev = NULL;
 
 #if !defined(HIF_SDIO)
+#ifdef WLAN_DEBUG
 	int ret;
+#endif
 #endif
 	u_int32_t host_interest_address;
 	u_int32_t dram_dump_values[4];
@@ -1035,11 +1037,11 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-	if (ramdump_scn->adf_dev)
+	if (ramdump_scn->adf_dev && ramdump_scn->adf_dev->dev)
 		dev = ramdump_scn->adf_dev->dev;
 
 #if !defined(HIF_SDIO)
-#ifdef DEBUG
+#ifdef WLAN_DEBUG
 	ret = hif_pci_check_soc_status(ramdump_scn->hif_sc);
 	if (ret)
 		goto out_fail;
@@ -1116,7 +1118,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 
 	printk("%s: RAM dump collecting completed!\n", __func__);
 
-#if defined(HIF_SDIO) && !defined(CONFIG_CNSS_SDIO)
+#if defined(HIF_SDIO) && !defined(CONFIG_CNSS)
 	panic("CNSS Ram dump collected\n");
 #else
 	/* Notify SSR framework the target has crashed. */
@@ -1132,7 +1134,7 @@ out_fail:
 #endif
 #else
 
-#if defined(HIF_SDIO) && !defined(CONFIG_CNSS_SDIO)
+#if defined(HIF_SDIO) && !defined(CONFIG_CNSS)
 	panic("CNSS Ram dump collection failed \n");
 #else
 	vos_device_crashed(dev);
@@ -1160,10 +1162,11 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 
 static void fw_indication_work_handler(struct work_struct *fw_indication)
 {
-#if !defined(HIF_SDIO)
+#ifndef HIF_USB
 	struct device *dev = NULL;
 
-	if (ramdump_scn && ramdump_scn->adf_dev)
+	if (ramdump_scn && ramdump_scn->adf_dev
+			&& ramdump_scn->adf_dev->dev)
 		dev = ramdump_scn->adf_dev->dev;
 
 	vos_device_self_recovery(dev);
@@ -1413,7 +1416,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	struct ol_softc *scn = (struct ol_softc *)instance;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
 	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
-#ifdef HIF_PCI
+#ifndef HIF_USB
 	int ret;
 #endif
 
@@ -1440,7 +1443,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 	}
 
-#if defined(HIF_PCI) && defined(DEBUG)
+#if defined(HIF_PCI) && defined(WLAN_DEBUG)
 	if (vos_is_load_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		pr_err("XXX TARGET ASSERTED during driver loading XXX\n");
 
@@ -1471,6 +1474,16 @@ void ol_target_failure(void *instance, A_STATUS status)
 		}
 	} else if (-1 == ret) {
 		return;
+	}
+#endif
+
+#ifdef HIF_SDIO
+	ret = hif_sdio_check_fw_reg(scn);
+	if (0 == ret) {
+		if (scn->enable_self_recovery) {
+			ol_schedule_fw_indication_work(scn);
+			return;
+		}
 	}
 #endif
 

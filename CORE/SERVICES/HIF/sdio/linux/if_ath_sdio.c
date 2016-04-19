@@ -49,6 +49,7 @@
 #include "vos_sched.h"
 #include "regtable.h"
 #include "wlan_hdd_power.h"
+#include "targaddrs.h"
 
 #ifndef REMOVE_PKT_LOG
 #include "ol_txrx_types.h"
@@ -63,6 +64,12 @@
 #define ATH_BUS_PM
 #endif /* CONFIG_PM */
 #endif /* ATH_BUS_PM */
+
+#ifndef offsetof
+#define offsetof(type, field) ((adf_os_size_t)(&((type *)0)->field))
+#endif
+
+#define FW_IND_HELPER		0x8000
 
 #ifndef REMOVE_PKT_LOG
 struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
@@ -481,4 +488,38 @@ void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
     ((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
+}
+
+/**
+ * hif_sdio_check_fw_reg() - Check wether a self recovery is needed
+ * @ol_sc: os layser software context
+ *
+ * For scenario such as AXI error, cold reset is needed to recover FW.
+ * FW will set FW_IND_HELPER in such a scenario.
+ *
+ */
+int hif_sdio_check_fw_reg(void * ol_sc)
+{
+	int ret = 1;
+	unsigned int addr = 0;
+	unsigned int fw_indication = 0;
+	struct ol_softc *scn = (struct ol_softc *) ol_sc;
+
+	addr = host_interest_item_address(scn->target_type,
+					offsetof(struct host_interest_s,
+					hi_option_flag2));
+
+	if (HIFDiagReadMem(scn->hif_hdl, addr,
+				(unsigned char *)&fw_indication,
+				4) != A_OK) {
+		printk("%s Get fw indication failed\n", __func__);
+		return -ENOENT;
+	}
+
+	printk("%s: fw indication is 0x%x.\n", __func__, fw_indication);
+
+	if (fw_indication & FW_IND_HELPER)
+		ret = 0;
+
+	return ret;
 }

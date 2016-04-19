@@ -47,7 +47,6 @@
 #include "aniGlobal.h" //for tpAniSirGlobal
 #include "wlan_qct_wda.h"
 #include "halMsgApi.h" //for HAL_STA_INVALID_IDX.
-#include "limUtils.h"
 #include "palApi.h"
 #include "csrInsideApi.h"
 #include "smsDebug.h"
@@ -72,6 +71,7 @@
 #include "vos_utils.h"
 #include <wlan_logging_sock_svc.h>
 #include "sme_nan_datapath.h"
+#include "cfgApi.h"
 
 #define MAX_PWR_FCC_CHAN_12 8
 #define MAX_PWR_FCC_CHAN_13 2
@@ -2024,6 +2024,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.ignore_peer_ht_opmode =
                                     pParam->ignore_peer_ht_opmode;
         pMac->roam.configParam.obssEnabled = pParam->obssEnabled;
+        pMac->roam.configParam.vendor_vht_for_24ghz_sap =
+                               pParam->vendor_vht_for_24ghz_sap;
         pMac->roam.configParam.conc_custom_rule1 =
                                pParam->conc_custom_rule1;
         pMac->roam.configParam.conc_custom_rule2 =
@@ -2040,6 +2042,23 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->tx_aggregation_size;
         pMac->roam.configParam.rx_aggregation_size =
                                pParam->rx_aggregation_size;
+
+        pMac->roam.configParam.enable_edca_params =
+                               pParam->enable_edca_params;
+        pMac->roam.configParam.edca_vo_cwmin = pParam->edca_vo_cwmin;
+        pMac->roam.configParam.edca_vi_cwmin = pParam->edca_vi_cwmin;
+        pMac->roam.configParam.edca_bk_cwmin = pParam->edca_bk_cwmin;
+        pMac->roam.configParam.edca_be_cwmin = pParam->edca_be_cwmin;
+
+        pMac->roam.configParam.edca_vo_cwmax = pParam->edca_vo_cwmax;
+        pMac->roam.configParam.edca_vi_cwmax = pParam->edca_vi_cwmax;
+        pMac->roam.configParam.edca_bk_cwmax = pParam->edca_bk_cwmax;
+        pMac->roam.configParam.edca_be_cwmax = pParam->edca_be_cwmax;
+
+        pMac->roam.configParam.edca_vo_aifs = pParam->edca_vo_aifs;
+        pMac->roam.configParam.edca_vi_aifs = pParam->edca_vi_aifs;
+        pMac->roam.configParam.edca_bk_aifs = pParam->edca_bk_aifs;
+        pMac->roam.configParam.edca_be_aifs = pParam->edca_be_aifs;
     }
 
     return status;
@@ -2202,6 +2221,9 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
         pParam->obssEnabled = pMac->roam.configParam.obssEnabled;
 
+        pParam->vendor_vht_for_24ghz_sap =
+           pMac->roam.configParam.vendor_vht_for_24ghz_sap;
+
         pParam->conc_custom_rule1 =
                      pMac->roam.configParam.conc_custom_rule1;
         pParam->conc_custom_rule2 =
@@ -2216,6 +2238,23 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->htSmps = pMac->roam.configParam.htSmps;
         pParam->enable_fatal_event =
                pMac->roam.configParam.enable_fatal_event;
+
+        pParam->enable_edca_params =
+               pMac->roam.configParam.enable_edca_params;
+        pParam->edca_vo_cwmin = pMac->roam.configParam.edca_vo_cwmin;
+        pParam->edca_vi_cwmin = pMac->roam.configParam.edca_vi_cwmin;
+        pParam->edca_bk_cwmin = pMac->roam.configParam.edca_bk_cwmin;
+        pParam->edca_be_cwmin = pMac->roam.configParam.edca_be_cwmin;
+
+        pParam->edca_vo_cwmax = pMac->roam.configParam.edca_vo_cwmax;
+        pParam->edca_vi_cwmax = pMac->roam.configParam.edca_vi_cwmax;
+        pParam->edca_bk_cwmax = pMac->roam.configParam.edca_bk_cwmax;
+        pParam->edca_be_cwmax = pMac->roam.configParam.edca_be_cwmax;
+
+        pParam->edca_vo_aifs = pMac->roam.configParam.edca_vo_aifs;
+        pParam->edca_vi_aifs = pMac->roam.configParam.edca_vi_aifs;
+        pParam->edca_bk_aifs = pMac->roam.configParam.edca_bk_aifs;
+        pParam->edca_be_aifs = pMac->roam.configParam.edca_be_aifs;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -7241,7 +7280,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     pSession->join_bssid_count = 0;
     smsLog(pMac, LOG1, FL("called  BSSType = %s (%d) authtype = %d "
                                                     "encryType = %d"),
-                lim_BssTypetoString(pProfile->BSSType),
+                sme_bss_type_to_string(pProfile->BSSType),
                 pProfile->BSSType,
                 pProfile->AuthType.authType[0],
                 pProfile->EncryptionType.encryptionType[0]);
@@ -7431,7 +7470,7 @@ eHalStatus csrRoamReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
    }
    smsLog(pMac, LOG1, FL("called  BSSType = %s (%d) authtype = %d "
                                                   "encryType = %d"),
-            lim_BssTypetoString(pProfile->BSSType),
+            sme_bss_type_to_string(pProfile->BSSType),
             pProfile->BSSType,
             pProfile->AuthType.authType[0],
             pProfile->EncryptionType.encryptionType[0]);
@@ -9157,6 +9196,16 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
         case eWNI_SME_DEAUTH_RSP:    // or the Deauthentication response message...
             if ( CSR_IS_ROAM_SUBSTATE_DEAUTH_REQ( pMac, pSmeRsp->sessionId ) )
             {
+                /*
+                 * Lets remove  eSmeCommandWmStatusChange command from pending
+                 * list as SME got DEAUTH_RSP  msg from PE which means that PE
+                 * already  has deleted the session and there is no need to
+                 * send Diassoc/Deauth CNF  mesg to PE
+                 */
+                csrRemoveCmdWithSessionIdFromPendingList(pMac,
+                                        pSmeRsp->sessionId,
+                                        &pMac->sme.smeScanCmdPendingList,
+                                        eSmeCommandWmStatusChange);
                 csrRoamRoamingStateDeauthRspProcessor( pMac, (tSirSmeDeauthRsp *)pSmeRsp );
             }
             break;
@@ -14208,6 +14257,14 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
 			txBFCsnValue = MIN(txBFCsnValue,
 					pIes->VHTCaps.numSoundingDim);
         }
+        else if (IS_BSS_VHT_CAPABLE(pIes->vendor2_ie.VHTCaps) &&
+                       pMac->roam.configParam.txBFEnable) {
+               txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
+               if (pIes->vendor2_ie.VHTCaps.numSoundingDim)
+                       txBFCsnValue = MIN(txBFCsnValue,
+                                       pIes->vendor2_ie.VHTCaps.numSoundingDim);
+        }
+
         *pBuf = txBFCsnValue;
         pBuf++;
 
@@ -15253,6 +15310,7 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
 
         *pBuf++ = (tANI_U8)pMac->roam.configParam.obssEnabled;
         *pBuf++ = (tANI_U8)pParam->sap_dot11mc;
+        *pBuf++ = (tANI_U8)pMac->roam.configParam.vendor_vht_for_24ghz_sap;
 
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);

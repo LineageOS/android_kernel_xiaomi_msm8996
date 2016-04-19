@@ -166,7 +166,14 @@ int wlan_hdd_mgmt_tx( struct wiphy *wiphy, struct net_device *dev,
 #endif
 
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
+                                               const char *name,
+                                               unsigned char name_assign_type,
+                                               enum nl80211_iftype type,
+                                               u32 *flags,
+                                               struct vif_params *params);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)) || defined(WITH_BACKPORTS)
 struct wireless_dev* wlan_hdd_add_virtual_intf(
                   struct wiphy *wiphy, const char *name,
                   enum nl80211_iftype type,

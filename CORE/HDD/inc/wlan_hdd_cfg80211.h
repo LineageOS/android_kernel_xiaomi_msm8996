@@ -1471,6 +1471,9 @@ enum qca_wlan_vendor_features {
 #define WIFI_FEATURE_LOGGER             0x20000  /* WiFi Logger */
 #define WIFI_FEATURE_HAL_EPNO           0x40000  /* WiFi PNO enhanced */
 #define WIFI_FEATURE_RSSI_MONITOR       0x80000  /* RSSI Monitor */
+#define WIFI_FEATURE_MKEEP_ALIVE        0x100000  /* WiFi mkeep_alive */
+#define WIFI_FEATURE_CONFIG_NDO         0x200000  /* ND offload configure */
+#define WIFI_FEATURE_TX_TRANSMIT_POWER  0x400000  /* Tx transmit power levels */
 
 /* Add more features here */
 #define WIFI_TDLS_SUPPORT			BIT(0)
@@ -1838,6 +1841,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                                struct wiphy *wiphy,
                                hdd_config_t *pCfg
                                          );
+void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy);
 
 void wlan_hdd_update_wiphy(struct wiphy *wiphy,
                            hdd_config_t *pCfg);
@@ -1871,6 +1875,9 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(const v_U8_t *pIes,
                                      int length,
                                      v_U8_t eid);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+#define CFG80211_DEL_STA_V2
+#endif
 
 #ifdef CFG80211_DEL_STA_V2
 int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
@@ -1934,6 +1941,10 @@ int wlan_hdd_disable_dfs_chan_scan(hdd_context_t *pHddCtx,
 
 int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+#define SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC
+#endif
+
 #if !(defined (SUPPORT_WDEV_CFG80211_VENDOR_EVENT_ALLOC))
 static inline struct sk_buff *
 backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
@@ -1948,4 +1959,11 @@ backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
 
 void hdd_get_bpf_offload_cb(void *hdd_context, struct sir_bpf_get_offload *);
 void hdd_init_bpf_completion(void);
+
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+void wlan_hdd_clear_link_layer_stats(hdd_adapter_t *adapter);
+#else
+static inline void wlan_hdd_clear_link_layer_stats(hdd_adapter_t *adapter) {}
+#endif
+
 #endif

@@ -107,4 +107,5 @@ void target_register_tbl_attach(u32 target_type);
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version);
 
+int hif_sdio_check_fw_reg(void * ol_sc);
 #endif /* __IF_ATH_SDIO_H__*/

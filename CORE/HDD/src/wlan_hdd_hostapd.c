@@ -84,7 +84,7 @@
 #include "tl_shim.h"
 
 #include "wma.h"
-#ifdef DEBUG
+#ifdef WLAN_DEBUG
 #include "wma_api.h"
 #endif
 extern int process_wma_set_command(int sessid, int paramid,
@@ -1831,8 +1831,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                   staInfo.assoc_req_ies =
                      (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
                   staInfo.assoc_req_ies_len = iesLen;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
+                  /*
+                   * After Kernel 4.0, it's no longer need to set
+                   * STATION_INFO_ASSOC_REQ_IES flag, as it
+                   * changed to use assoc_req_ies_len length to
+                   * check the existance of request IE.
+                   */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,31)) || defined(WITH_BACKPORTS)
                   staInfo.filled |= STATION_INFO_ASSOC_REQ_IES;
+#endif
 #endif
                   cfg80211_new_sta(dev,
                         (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
@@ -2565,7 +2573,7 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
         goto out;
 
     switch(sub_cmd) {
-#ifdef DEBUG
+#ifdef WLAN_DEBUG
     case QCSAP_IOCTL_SET_FW_CRASH_INJECT:
         hddLog(LOGE, "WE_SET_FW_CRASH_INJECT: %d %d", value[1], value[2]);
         if (!pHddCtx->cfg_ini->crash_inject_enabled) {
@@ -6837,7 +6845,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "" },
     /* handlers for sub-ioctl */
-#ifdef DEBUG
+#ifdef WLAN_DEBUG
     {   QCSAP_IOCTL_SET_FW_CRASH_INJECT,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0,
@@ -7066,7 +7074,10 @@ error_wmm_init:
     return status;
 }
 
-hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAddr, tANI_U8 *iface_name )
+hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
+                                      tSirMacAddr macAddr,
+                                      unsigned char name_assign_type,
+                                      tANI_U8 *iface_name )
 {
     struct net_device *pWlanHostapdDev = NULL;
     hdd_adapter_t *pHostapdAdapter = NULL;
@@ -7076,7 +7087,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
    pWlanHostapdDev = alloc_netdev_mq(sizeof(hdd_adapter_t),
                                      iface_name,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
-                                     NET_NAME_UNKNOWN,
+                                     name_assign_type,
 #endif
                                      ether_setup,
                                      NUM_TX_QUEUES);

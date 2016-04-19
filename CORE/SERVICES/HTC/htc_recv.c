@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -33,9 +33,9 @@
 #include "epping_main.h"
 
 /* HTC Control message receive timeout msec */
-#define HTC_CONTROL_RX_TIMEOUT     3000
+#define HTC_CONTROL_RX_TIMEOUT     5000
 
-#ifdef DEBUG
+#ifdef WLAN_DEBUG
 void DebugDumpBytes(A_UCHAR *buffer, A_UINT16 length, char *pDescription)
 {
     A_CHAR stream[60];
@@ -582,7 +582,6 @@ A_STATUS HTCWaitRecvCtrlMessage(HTC_TARGET *target)
     /* Wait for BMI request/response transaction to complete */
     if(!adf_os_wait_for_completion_timeout(&target->CtrlResponseValid,
         adf_os_msecs_to_ticks(HTC_CONTROL_RX_TIMEOUT))) {
-        ADF_BUG(0);
         return A_ERROR;
     }
 

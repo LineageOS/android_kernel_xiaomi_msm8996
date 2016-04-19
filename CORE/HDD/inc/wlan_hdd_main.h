@@ -248,6 +248,15 @@
 #endif
 #endif
 
+/*
+ * NET_NAME_UNKNOWN is only introduced after Kernel 3.17, to have a macro
+ * here if the Kernel version is less than 3.17 to avoid the interleave
+ * conditional compilation.
+ */
+#if !(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
+#define NET_NAME_UNKNOWN	0
+#endif
+
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 /*
@@ -737,6 +746,9 @@ struct hdd_station_ctx
    int staDebugState;
 
    struct hdd_mon_set_ch_info ch_info;
+#ifdef WLAN_FEATURE_NAN_DATAPATH
+   struct nan_datapath_ctx ndp_ctx;
+#endif
 };
 
 #define BSS_STOP    0
@@ -1088,9 +1100,6 @@ struct hdd_adapter_s
    union {
       hdd_station_ctx_t station;
       hdd_ap_ctx_t  ap;
-#ifdef WLAN_FEATURE_NAN_DATAPATH
-      struct nan_datapath_ctx ndp_ctx;
-#endif
    }sessionCtx;
 
 #ifdef WLAN_FEATURE_TSF
@@ -1196,13 +1205,14 @@ struct hdd_adapter_s
         (tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx : NULL)
 #endif
 #ifdef WLAN_FEATURE_NAN_DATAPATH
-#define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (&(adapter)->sessionCtx.ndp_ctx)
-#define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) \
-                       (&(adapter)->sessionCtx.ndp_ctx.wext_state)
+#define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (&(adapter)->sessionCtx.station.ndp_ctx)
 #define WLAN_HDD_IS_NDP_ENABLED(hdd_ctx) ((hdd_ctx)->nan_datapath_enabled)
 #else
-#define WLAN_HDD_GET_NDP_CTX_PTR(adapter) (NULL)
-#define WLAN_HDD_GET_NDP_WEXT_STATE_PTR(adapter) (NULL)
+/* WLAN_HDD_GET_NDP_CTX_PTR and WLAN_HDD_GET_NDP_WEXT_STATE_PTR are not defined
+ * intentionally so that all references to these must be within NDP code.
+ * non-NDP code can call WLAN_HDD_IS_NDP_ENABLED(), and when it is enabled,
+ * invoke NDP code to do all work.
+ */
 #define WLAN_HDD_IS_NDP_ENABLED(hdd_ctx) (false)
 #endif
 
@@ -1756,6 +1766,7 @@ struct hdd_context_s
     bool nan_datapath_enabled;
 #endif
     unsigned int last_scan_bug_report_timestamp;
+    bool driver_being_stopped; /* Track if DRIVER STOP cmd is sent */
 };
 
 /*---------------------------------------------------------------------------
@@ -1788,6 +1799,7 @@ VOS_STATUS hdd_add_adapter_front( hdd_context_t *pHddCtx,
 
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  const char* name, tSirMacAddr macAddr,
+                                 unsigned char name_assign_type,
                                  tANI_U8 rtnl_held );
 VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held );
 VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx );

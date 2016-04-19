@@ -73,6 +73,7 @@
 #include "vos_types.h"
 #include "vos_packet.h"
 #include "vos_memory.h"
+#include "nan_datapath.h"
 
 void limLogSessionStates(tpAniSirGlobal pMac);
 
@@ -724,16 +725,18 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR, pHdr,
                        WDA_GET_RX_MPDU_HEADER_LEN(pRxPacketInfo));
 #endif
-    if (pMac->fEnableDebugLog & 0x1) {
-        if ((fc.type == SIR_MAC_MGMT_FRAME) &&
-                (fc.subType != SIR_MAC_MGMT_PROBE_REQ) &&
-                (fc.subType != SIR_MAC_MGMT_PROBE_RSP) &&
-                (fc.subType != SIR_MAC_MGMT_BEACON))
-        {
-            limLog(pMac, LOGE, FL("RX MGMT - Type %hu, SubType %hu"),
-                    fc.type, fc.subType);
-        }
-    }
+    if ((fc.type == SIR_MAC_MGMT_FRAME) &&
+            (fc.subType != SIR_MAC_MGMT_BEACON))
+    {
+         limLog(pMac, LOG1, FL("RX MGMT - Type %hu, SubType %hu, "
+                "BSSID: "MAC_ADDRESS_STR " RSSI %d Seq.no %d"),
+                fc.type, fc.subType, MAC_ADDR_ARRAY(pHdr->bssId),
+                (uint8_t)abs(
+                (tANI_S8)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo)),
+                ((pHdr->seqControl.seqNumHi << 4) |
+                               (pHdr->seqControl.seqNumLo)));
+     }
+
 #ifdef FEATURE_WLAN_EXTSCAN
     if (WMA_IS_EXTSCAN_SCAN_SRC(pRxPacketInfo) ||
         WMA_IS_EPNO_SCAN_SRC(pRxPacketInfo)) {
@@ -1454,6 +1457,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_EXT_CHANGE_CHANNEL:
         case eWNI_SME_ROAM_RESTART_REQ:
         case eWNI_SME_REGISTER_MGMT_FRAME_CB:
+        case eWNI_SME_NDP_INITIATOR_REQ:
+        case eWNI_SME_NDP_RESPONDER_REQ:
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -2195,13 +2200,17 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         lim_sap_offload_del_sta(pMac, limMsg);
         break;
 #endif /* SAP_AUTH_OFFLOAD */
-
     case eWNI_SME_DEL_ALL_TDLS_PEERS:
         lim_process_sme_del_all_tdls_peers(pMac, limMsg->bodyptr);
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;
         break;
-
+    case SIR_HAL_NDP_INITIATOR_RSP:
+    case SIR_HAL_NDP_INDICATION:
+    case SIR_HAL_NDP_CONFIRM:
+    case SIR_HAL_NDP_RESPONDER_RSP:
+        lim_handle_ndp_event_message(pMac, limMsg);
+        break;
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

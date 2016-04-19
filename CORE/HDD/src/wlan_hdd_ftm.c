@@ -741,8 +741,10 @@ err_vos_status_failure:
 static int hdd_ftm_service_registration(hdd_context_t *pHddCtx)
 {
     hdd_adapter_t *pAdapter;
-    pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_FTM, "wlan%d",
-                wlan_hdd_get_intf_addr(pHddCtx), FALSE);
+    pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_FTM, "wlan%d",
+                                wlan_hdd_get_intf_addr(pHddCtx),
+                                NET_NAME_UNKNOWN,
+                                FALSE);
     if( NULL == pAdapter )
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: hdd_open_adapter failed", __func__);
