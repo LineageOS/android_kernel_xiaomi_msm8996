@@ -5662,10 +5662,9 @@ static int wma_oem_capability_event_callback(void *handle,
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
-		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen,
-			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
+	if (datalen <= 0 ||
+	    datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
+		WMA_LOGE(FL("Invalid data length: %d"), datalen);
 		return -EINVAL;
 	}
 
@@ -5676,19 +5675,12 @@ static int wma_oem_capability_event_callback(void *handle,
 	}
 
 	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
-	if (pStartOemDataRsp->rsp_len) {
-		pStartOemDataRsp->oem_data_rsp =
-			vos_mem_malloc(pStartOemDataRsp->rsp_len);
-		if (!pStartOemDataRsp->oem_data_rsp) {
-			WMA_LOGE(FL("malloc failed for data"));
-			vos_mem_free(pStartOemDataRsp);
-			return -ENOMEM;
-		}
-	} else {
-		WMA_LOGE(FL("Invalid rsp length: %d"),
-			 pStartOemDataRsp->rsp_len);
+	pStartOemDataRsp->oem_data_rsp =
+				vos_mem_malloc(pStartOemDataRsp->rsp_len);
+	if (!pStartOemDataRsp->oem_data_rsp) {
+		WMA_LOGE(FL("malloc failed for data"));
 		vos_mem_free(pStartOemDataRsp);
-		return -EINVAL;
+		return -ENOMEM;
 	}
 
 	pStartOemDataRsp->target_rsp = true;
@@ -5734,10 +5726,9 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
-		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen,
-			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
+	if (datalen <= 0 ||
+	    datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
+		WMA_LOGE(FL("Invalid data length: %d"), datalen);
 		return -EINVAL;
 	}
 
@@ -5748,19 +5739,12 @@ static int wma_oem_measurement_report_event_callback(void *handle,
 	}
 
 	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
-	if (pStartOemDataRsp->rsp_len) {
-		pStartOemDataRsp->oem_data_rsp =
+	pStartOemDataRsp->oem_data_rsp =
 			vos_mem_malloc(pStartOemDataRsp->rsp_len);
-		if (!pStartOemDataRsp->oem_data_rsp) {
-			WMA_LOGE(FL("malloc failed for data"));
-			vos_mem_free(pStartOemDataRsp);
-			return -ENOMEM;
-		}
-	} else {
-		WMA_LOGE(FL("Invalid rsp length: %d"),
-			 pStartOemDataRsp->rsp_len);
+	if (!pStartOemDataRsp->oem_data_rsp) {
+		WMA_LOGE(FL("malloc failed for data"));
 		vos_mem_free(pStartOemDataRsp);
-		return -EINVAL;
+		return -ENOMEM;
 	}
 
 	pStartOemDataRsp->target_rsp = true;
@@ -5806,10 +5790,9 @@ static int wma_oem_error_report_event_callback(void *handle,
 	 * of data received from target should be 4 bytes less
 	 * then max allowed
 	 */
-	if (datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
-		WMA_LOGE("%s: Received data len (%d) exceeds max value (%d)",
-		         __func__, datalen,
-			(OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN));
+	if (datalen <= 0 ||
+	    datalen > (OEM_DATA_RSP_SIZE - OEM_MESSAGE_SUBTYPE_LEN)) {
+		WMA_LOGE(FL("Invalid data length: %d"), datalen);
 		return -EINVAL;
 	}
 
@@ -5820,19 +5803,12 @@ static int wma_oem_error_report_event_callback(void *handle,
 	}
 
 	pStartOemDataRsp->rsp_len = datalen + OEM_MESSAGE_SUBTYPE_LEN;
-	if (pStartOemDataRsp->rsp_len) {
-		pStartOemDataRsp->oem_data_rsp =
-			vos_mem_malloc(pStartOemDataRsp->rsp_len);
-		if (!pStartOemDataRsp->oem_data_rsp) {
-			WMA_LOGE(FL("malloc failed for data"));
-			vos_mem_free(pStartOemDataRsp);
-			return -ENOMEM;
-		}
-	} else {
-		WMA_LOGE(FL("Invalid rsp length: %d"),
-			 pStartOemDataRsp->rsp_len);
+	pStartOemDataRsp->oem_data_rsp =
+		vos_mem_malloc(pStartOemDataRsp->rsp_len);
+	if (!pStartOemDataRsp->oem_data_rsp) {
+		WMA_LOGE(FL("malloc failed for data"));
 		vos_mem_free(pStartOemDataRsp);
-		return -EINVAL;
+		return -ENOMEM;
 	}
 
 	pStartOemDataRsp->target_rsp = true;
@@ -5881,9 +5857,8 @@ static int wma_oem_data_response_handler(void *handle,
 		return -EINVAL;
 	}
 
-	if (datalen > OEM_DATA_RSP_SIZE) {
-		WMA_LOGE(FL("Received data len %d exceeds max value %d"),
-			 datalen, OEM_DATA_RSP_SIZE);
+	if (datalen <= 0 || datalen > OEM_DATA_RSP_SIZE) {
+		WMA_LOGE(FL("Invalid data length: %d"), datalen);
 		return -EINVAL;
 	}
 
@@ -5894,17 +5869,11 @@ static int wma_oem_data_response_handler(void *handle,
 	}
 
 	oem_rsp->rsp_len = datalen;
-	if (oem_rsp->rsp_len) {
-		oem_rsp->oem_data_rsp = vos_mem_malloc(oem_rsp->rsp_len);
-		if (!oem_rsp->rsp_len) {
-			WMA_LOGE(FL("malloc failed for data"));
-			vos_mem_free(oem_rsp);
-			return -ENOMEM;
-		}
-	} else {
-		WMA_LOGE(FL("Invalid rsp length: %d"), oem_rsp->rsp_len);
+	oem_rsp->oem_data_rsp = vos_mem_malloc(oem_rsp->rsp_len);
+	if (!oem_rsp->rsp_len) {
+		WMA_LOGE(FL("malloc failed for data"));
 		vos_mem_free(oem_rsp);
-		return -EINVAL;
+		return -ENOMEM;
 	}
 
 	oem_rsp->target_rsp = true;

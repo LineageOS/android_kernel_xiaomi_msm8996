@@ -1962,8 +1962,10 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         limPrintMlmState(pMac, LOGW, pMac->lim.gLimMlmState);
 
-        /// Free up buffer allocated
-        vos_mem_free(pMsgBuf);
+        /* Free up incoming buffer */
+        if (data_req->data)
+            vos_mem_free(data_req->data);
+        vos_mem_free(data_req);
 
         /// Return Meas confirm with INVALID_PARAMETERS
         pMlmOemDataRsp = vos_mem_malloc(sizeof(tLimMlmOemDataRsp));
