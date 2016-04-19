@@ -324,10 +324,10 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
                 if (csrLLRemoveEntry(&pMac->sme.smeCmdActiveList,
                                      &pCommand->Link, LL_ACCESS_LOCK))
                 {
-                    vos_mem_set(&(pCommand->u.oemDataCmd),
-                                sizeof(tOemDataCmd), 0);
                     req = &(pCommand->u.oemDataCmd.oemDataReq);
                     vos_mem_free(req->data);
+                    vos_mem_set(&(pCommand->u.oemDataCmd),
+                                sizeof(tOemDataCmd), 0);
                     smeReleaseCommand(pMac, pCommand);
                 }
             }
@@ -342,6 +342,7 @@ eHalStatus sme_HandleOemDataRsp(tHalHandle hHal, tANI_U8* pMsg)
                                   pOemDataRsp->oem_data_rsp);
             /* free this memory only if rsp is from target */
             vos_mem_free(pOemDataRsp->oem_data_rsp);
+            pOemDataRsp->oem_data_rsp = NULL;
         } else {
             smsLog(pMac, LOG1, FL("received internal oem data resp"));
         }
