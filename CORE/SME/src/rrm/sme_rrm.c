@@ -718,6 +718,7 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
    tANI_U32 sessionId;
    tSirScanType scanType;
+   v_TIME_t current_time;
 
    status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
    if( status != eHAL_STATUS_SUCCESS )
@@ -776,6 +777,25 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
 
        smsLog( pMac, LOG1, "Scan Type(%d) Max Dwell Time(%d)", scanRequest.scanType,
                   scanRequest.maxChnTime );
+      /**
+       * For RRM scans timing is very important especially when the request
+       * is for limited channels. There is no need for firmware to rest for
+       * about 100-200 ms on the home channel. Instead, it can start the
+       * scan right away which will make the host to respond with the beacon
+       * report as quickly as possible. Ensure that the scan requests are
+       * not back to back and hence there is a check to see if the requests
+       * are atleast 1 second apart.
+       */
+       current_time = vos_timer_get_system_time();
+       smsLog(pMac, LOG1, "prev scan triggered before %ld ms, totalchannels %d",
+              current_time - RRM_scan_timer,
+              pSmeRrmContext->channelList.numOfChannels);
+       if ((abs(current_time - RRM_scan_timer) > 1000) &&
+               (pSmeRrmContext->channelList.numOfChannels == 1)) {
+            scanRequest.restTime = 1;
+            scanRequest.min_rest_time = 1;
+            scanRequest.idle_time = 1;
+       }
 
        RRM_scan_timer = vos_timer_get_system_time();
 
