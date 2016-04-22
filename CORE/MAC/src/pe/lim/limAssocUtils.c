@@ -3501,7 +3501,7 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
         limPostSmeMessage(pMac, LIM_MLM_JOIN_CNF, (tANI_U32 *) &mlmJoinCnf);
     } // if ((pMac->lim.gLimSystemRole == IBSS....
 
-    if (pBPR->vendor2_ie.VHTCaps.present) {
+    if (psessionEntry->vhtCapability && pBPR->vendor2_ie.VHTCaps.present) {
         psessionEntry->is_vendor_specific_vhtcaps = true;
         psessionEntry->vendor_specific_vht_ie_type =
             pBPR->vendor2_ie.type;

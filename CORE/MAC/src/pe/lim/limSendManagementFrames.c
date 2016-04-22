@@ -2244,8 +2244,8 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         PopulateDot11fVHTCaps( pMac, psessionEntry, &pFrm->VHTCaps );
         isVHTEnabled = eANI_BOOLEAN_TRUE;
     }
-    if (!isVHTEnabled &&
-                    psessionEntry->is_vendor_specific_vhtcaps) {
+    if (psessionEntry->vhtCapability && !isVHTEnabled &&
+       psessionEntry->is_vendor_specific_vhtcaps) {
         limLog(pMac, LOG1,
                     FL("Populate Vendor VHT IEs in Assoc Request"));
         pFrm->vendor2_ie.present = 1;
@@ -2737,7 +2737,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     if (psessionEntry->is_ext_caps_present)
         PopulateDot11fExtCap(pMac, isVHTEnabled, &frm.ExtCap, psessionEntry);
 
-    if (!isVHTEnabled && psessionEntry->is_vendor_specific_vhtcaps) {
+    if (psessionEntry->vhtCapability && !isVHTEnabled &&
+       psessionEntry->is_vendor_specific_vhtcaps) {
         limLog(pMac, LOG1,
                         FL("Populate Vendor VHT IEs in Re-Assoc Request"));
         frm.vendor2_ie.present = 1;
