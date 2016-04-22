@@ -1606,7 +1606,7 @@ static int32_t wmi_unified_peer_delete_send(wmi_unified_t wmi,
 
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_DELETE_CMDID)) {
 		WMA_LOGP("%s: Failed to send peer delete command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
@@ -1639,7 +1639,7 @@ static int32_t wmi_unified_peer_flush_tids_send(wmi_unified_t wmi,
 
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_FLUSH_TIDS_CMDID)) {
 		WMA_LOGP("%s: Failed to send flush tid command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	WMA_LOGD("%s: peer_addr %pM vdev_id %d", __func__, peer_addr, vdev_id);
@@ -1863,7 +1863,7 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 	cmd->vdev_id = vdev_id;
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_DOWN_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev down", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	WMA_LOGD("%s: vdev_id %d", __func__, vdev_id);
@@ -1977,6 +1977,10 @@ static void wma_recreate_ibss_vdev_and_bss_peer(tp_wma_handle wma, u_int8_t vdev
 	add_sta_self_param.status    = 0;
 	add_sta_self_param.nss_2g = wma->interfaces[vdev_id].nss_2g;
 	add_sta_self_param.nss_5g = wma->interfaces[vdev_id].nss_5g;
+	add_sta_self_param.tx_aggregation_size =
+				wma->interfaces[vdev_id].tx_aggregation_size;
+	add_sta_self_param.rx_aggregation_size =
+				wma->interfaces[vdev_id].rx_aggregation_size;
 
 	/* delete old ibss vdev */
 	del_sta_param.sessionId   = vdev_id;
@@ -2142,7 +2146,7 @@ void wma_hidden_ssid_vdev_restart_on_vdev_stop(tp_wma_handle wma_handle, u_int8_
 	if (ret < 0) {
 		WMA_LOGE("%s: Failed to send vdev restart command", __func__);
 		adf_os_atomic_set(&intr[sessionId].vdev_restart_params.hidden_ssid_restart_in_progress,0);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 }
 
@@ -4736,6 +4740,11 @@ static int wma_unified_radio_tx_power_level_stats_event_handler(void *handle,
 	}
 
 	link_stats_results = wma_handle->link_stats_results;
+	if (!link_stats_results) {
+		WMA_LOGA("%s: link_stats_results is NULL", __func__);
+		return -EINVAL;
+	}
+
 	rs_results = (tSirWifiRadioStat *) &link_stats_results->results[0];
 	tx_power_level_values = (uint8 *) param_tlvs->tx_time_per_power_level;
 
@@ -4785,8 +4794,8 @@ post_stats:
 	        link_stats_results);
 	WMA_LOGD("%s: Radio Stats event posted to HDD", __func__);
 	vos_mem_free(rs_results->tx_time_per_power_level);
-	vos_mem_free(wma_handle->link_stats_results);
 	rs_results->tx_time_per_power_level = NULL;
+	vos_mem_free(wma_handle->link_stats_results);
 	wma_handle->link_stats_results = NULL;
 
 	return 0;
@@ -5298,7 +5307,7 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	ret = adf_nbuf_map_single(pdev->osdev, bcn->buf,
 				  ADF_OS_DMA_TO_DEVICE);
 	if (ret != A_STATUS_OK) {
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		WMA_LOGE("%s: failed map beacon buf to DMA region",
 				__func__);
 		adf_os_spin_unlock_bh(&bcn->lock);
@@ -7928,7 +7937,7 @@ static int wmi_unified_peer_create_send(wmi_unified_t wmi,
 
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_CREATE_CMDID)) {
 		WMA_LOGP("%s: failed to send WMI_PEER_CREATE_CMDID", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -8041,7 +8050,7 @@ static void wma_set_sta_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
 			WMA_LOGE("%s: received null pointer, hostv4addr:%p "
 			   "destv4addr:%p destmac:%p ", __func__,
 			   hostv4addr, destv4addr, destmac);
-			adf_nbuf_free(buf);
+			wmi_buf_free(buf);
 			return;
 		}
 
@@ -8058,7 +8067,7 @@ static void wma_set_sta_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				 WMI_STA_KEEPALIVE_CMDID)) {
 		WMA_LOGE("Failed to set KeepAlive");
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 
 	WMA_LOGD("%s: Exit", __func__);
@@ -8171,7 +8180,7 @@ static VOS_STATUS wma_set_enable_disable_mcc_adaptive_scheduler(tANI_U32 mcc_ada
 	if (ret) {
 		WMA_LOGP("%s: Failed to send enable/disable MCC"
 			" adaptive scheduler command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 	return VOS_STATUS_SUCCESS;
 }
@@ -8277,7 +8286,7 @@ static VOS_STATUS wma_set_mcc_channel_time_latency
 	if (ret) {
 		WMA_LOGE("%s: Failed to send MCC Channel Time Latency command",
 			__func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -8407,7 +8416,7 @@ static VOS_STATUS wma_set_mcc_channel_time_quota
 				WMI_RESMGR_SET_CHAN_TIME_QUOTA_CMDID);
 	if (ret) {
 		WMA_LOGE("Failed to send MCC Channel Time Quota command");
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -9471,7 +9480,7 @@ static VOS_STATUS wma_capture_tsf(tp_wma_handle wma_handle, uint32_t vdev_id)
 
 error:
 	if (buf)
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	return vos_status;
 }
 
@@ -9524,7 +9533,7 @@ static VOS_STATUS wma_reset_tsf_gpio(tp_wma_handle wma_handle, uint32_t vdev_id)
 
 error:
 	if (buf)
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	return vos_status;
 }
 #else
@@ -9641,7 +9650,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 error:
 	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 error0:
 	/* Stop the timer for scan completion */
 	if (vos_timer_stop(&wma_handle->wma_scan_comp_timer)
@@ -9709,7 +9718,7 @@ static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 	return VOS_STATUS_SUCCESS;
 error:
 	if (buf)
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 error1:
 	return vos_status;
 }
@@ -12112,7 +12121,7 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 
 	if (ret < 0) {
 		WMA_LOGP("%s: Failed to send vdev start command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -12259,7 +12268,7 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 							" Failed to send VDEV START command",
 							__func__, __LINE__);
 
-				adf_nbuf_free(buf);
+				wmi_buf_free(buf);
 				return VOS_STATUS_E_FAILURE;
 			}
 
@@ -12375,7 +12384,7 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 
 	if (ret < 0) {
 		WMA_LOGP("%s: Failed to send vdev start command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -13344,7 +13353,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 						FALSE);
 		if (ret) {
 			WMA_LOGE("Set WMI_VDEV_PARAM_DROP_UNENCRY Param status:%d\n", ret);
-			adf_nbuf_free(buf);
+			wmi_buf_free(buf);
 			return ret;
 		}
 	}
@@ -13433,7 +13442,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	if (ret != EOK) {
 		WMA_LOGP("%s: Failed to send peer assoc command ret = %d",
 				__func__, ret);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 	return ret;
 }
@@ -13513,7 +13522,7 @@ VOS_STATUS wma_get_link_speed(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		WMI_PEER_GET_ESTIMATED_LINKSPEED_CMDID)) {
 		WMA_LOGE("%s: failed to send link speed command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -13993,7 +14002,7 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 			WMI_STA_POWERSAVE_PARAM_CMDID)) {
 		WMA_LOGE("Set Sta Ps param Failed vdevId %d Param %d val %d",
 			vdev_id, param, value);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	/* Store the PS Status */
@@ -14029,7 +14038,7 @@ static int32_t wmi_unified_pdev_green_ap_ps_enable_cmd(wmi_unified_t wmi_handle,
 				WMI_PDEV_GREEN_AP_PS_ENABLE_CMDID)) {
 		WMA_LOGE("Set Green AP PS param Failed val %d", value);
 
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -14105,7 +14114,7 @@ VOS_STATUS wma_send_egap_conf_params(WMA_HANDLE handle,
 				   sizeof(*cmd), WMI_AP_PS_EGAP_PARAM_CMDID);
 	if (err) {
 		WMA_LOGE("Failed to send ap_ps_egap cmd");
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -14218,7 +14227,7 @@ static void wma_send_echo_request(tp_wma_handle wma)
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				WMI_ECHO_CMDID)) {
 		WMA_LOGE("Failed to send Echo cmd to firmware");
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 }
 
@@ -15589,6 +15598,11 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	nss_5g = wma->interfaces[vdev_id].nss_5g;
 	wma_set_bss_rate_flags(&wma->interfaces[vdev_id], add_bss);
 
+	wma->interfaces[vdev_id].tx_aggregation_size =
+					add_bss->tx_aggregation_size;
+	wma->interfaces[vdev_id].rx_aggregation_size =
+					add_bss->rx_aggregation_size;
+
 	vdev = wma_find_vdev_by_id(wma, vdev_id);
 	if (!vdev) {
 	        WMA_LOGE("%s: vdev not found for vdev id %d.",
@@ -15628,6 +15642,10 @@ static void wma_add_bss_ibss_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 		add_sta_self_param.status    = 0;
 		add_sta_self_param.nss_2g    = add_bss->nss_2g;
 		add_sta_self_param.nss_5g    = add_bss->nss_5g;
+		add_sta_self_param.tx_aggregation_size =
+					add_bss->tx_aggregation_size;
+		add_sta_self_param.rx_aggregation_size =
+					add_bss->rx_aggregation_size;
 
 		vdev = wma_vdev_attach(wma, &add_sta_self_param, 0);
 		if (!vdev) {
@@ -16088,7 +16106,7 @@ static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid, &cmd->vdev_bssid);
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_UP_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev up command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -16120,7 +16138,7 @@ static int32_t wmi_unified_set_ap_ps_param(void *wma_ctx, u_int32_t vdev_id,
 				   sizeof(*cmd), WMI_AP_PS_PEER_PARAM_CMDID);
 	if (err) {
 		WMA_LOGE("Failed to send set_ap_ps_param cmd");
-		adf_os_mem_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -17117,7 +17135,7 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 	default:
 		/* TODO: MFP ? */
 		WMA_LOGE("%s:Invalid encryption type:%d", __func__, key_params->key_type);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return NULL;
 	}
 
@@ -17274,7 +17292,7 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 		status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					      WMI_VDEV_INSTALL_KEY_CMDID);
 		if (status) {
-			adf_nbuf_free(buf);
+			wmi_buf_free(buf);
 			WMA_LOGE("%s:Failed to send install key command", __func__);
 			key_info->status = eHAL_STATUS_FAILURE;
 			goto out;
@@ -17354,7 +17372,7 @@ static void wma_set_ibsskey_helper(tp_wma_handle wma_handle, tpSetBssKeyParams k
                 status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
                                               WMI_VDEV_INSTALL_KEY_CMDID);
                 if (status) {
-                        adf_nbuf_free(buf);
+                        wmi_buf_free(buf);
                         WMA_LOGE("%s:Failed to send install key command", __func__);
                 }
         }
@@ -17460,7 +17478,7 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 		status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					      WMI_VDEV_INSTALL_KEY_CMDID);
 		if (status) {
-			adf_nbuf_free(buf);
+			wmi_buf_free(buf);
 			WMA_LOGE("%s:Failed to send install key command", __func__);
 			key_info->status = eHAL_STATUS_FAILURE;
 			goto out;
@@ -17681,7 +17699,7 @@ static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id)
 	cmd->vdev_id = vdev_id;
 	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_STOP_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev stop command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	return 0;
@@ -18738,7 +18756,7 @@ static int32_t wmi_unified_set_sta_ps(wmi_unified_t wmi_handle,
         {
                 WMA_LOGE("Set Sta Mode Ps Failed vdevId %d val %d",
                          vdev_id, val);
-                adf_nbuf_free(buf);
+                wmi_buf_free(buf);
                 return -EIO;
         }
         return 0;
@@ -23104,7 +23122,7 @@ static void wma_start_oem_data_req(tp_wma_handle wma_handle,
 
 	if (ret != EOK) {
 		WMA_LOGE("%s:wmi cmd send failed", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 
 out:
@@ -23310,7 +23328,7 @@ static void wma_set_ric_req(tp_wma_handle wma, void *msg, tANI_U8 is_add_ts)
 		WMA_LOGP("%s: Failed to send vdev Set RIC Req command", __func__);
 		if(is_add_ts)
 			((tAddTsParams *)msg)->status = eHAL_STATUS_FAILURE;
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 }
 #endif
@@ -23338,7 +23356,7 @@ static void wma_del_ts_req(tp_wma_handle wma, tDelTsParams *msg)
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				WMI_VDEV_WMM_DELTS_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev DELTS command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -23397,7 +23415,7 @@ static void wma_aggr_qos_req(tp_wma_handle wma, tAggrAddTsParams *pAggrQosRspMsg
                                 WMI_VDEV_WMM_ADDTS_CMDID)) {
                 WMA_LOGP("%s: Failed to send vdev ADDTS command", __func__);
                 pAggrQosRspMsg->status[i] = eHAL_STATUS_FAILURE;
-                adf_nbuf_free(buf);
+                wmi_buf_free(buf);
         }
       }
     }
@@ -23453,7 +23471,7 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 				WMI_VDEV_WMM_ADDTS_CMDID)) {
 		WMA_LOGP("%s: Failed to send vdev ADDTS command", __func__);
 		msg->status = eHAL_STATUS_FAILURE;
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -23604,7 +23622,7 @@ static int wma_set_base_macaddr_indicate(tp_wma_handle wma_handle,
 			sizeof(*cmd), WMI_PDEV_SET_BASE_MACADDR_CMDID);
 	if (err) {
 		WMA_LOGE("Failed to send set_base_macaddr cmd");
-		adf_os_mem_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	WMA_LOGD("Base MAC Addr: "MAC_ADDRESS_STR,
@@ -23740,7 +23758,7 @@ static int wma_add_clear_mcbc_filter(tp_wma_handle wma_handle, uint8_t vdev_id,
 					sizeof(*cmd), WMI_SET_MCASTBCAST_FILTER_CMDID);
 	if (err) {
 		WMA_LOGE("Failed to send set_param cmd");
-		adf_os_mem_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 	WMA_LOGD("Action:%d; vdev_id:%d; clearList:%d\n",
@@ -25383,7 +25401,7 @@ VOS_STATUS wma_set_peer_rate_report_condition(WMA_HANDLE handle,
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 			WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID);
 	if (status) {
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		WMA_LOGE("%s:Failed to send peer_set_report_cond command",
 				__func__);
 		return eHAL_STATUS_FAILURE;
@@ -25493,7 +25511,7 @@ VOS_STATUS wma_ProcessAddPeriodicTxPtrnInd(WMA_HANDLE handle,
 		pAddPeriodicTxPtrnParams->macAddress, &vdev_id)) {
 		WMA_LOGE("%s: Failed to find vdev id for %pM",__func__,
 		pAddPeriodicTxPtrnParams->macAddress);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_INVAL;
 	}
 	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_buf);
@@ -25524,7 +25542,7 @@ VOS_STATUS wma_ProcessAddPeriodicTxPtrnInd(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		WMI_ADD_PROACTIVE_ARP_RSP_PATTERN_CMDID)) {
 		WMA_LOGE("%s: failed to add pattern set state command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -25558,7 +25576,7 @@ VOS_STATUS wma_ProcessDelPeriodicTxPtrnInd(WMA_HANDLE handle,
 		pDelPeriodicTxPtrnParams->macAddress, &vdev_id)) {
 		WMA_LOGE("%s: Failed to find vdev id for %pM",__func__,
 		pDelPeriodicTxPtrnParams->macAddress);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_INVAL;
 	}
 	cmd = (WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMD_fixed_param *)wmi_buf_data(wmi_buf);
@@ -25575,7 +25593,7 @@ VOS_STATUS wma_ProcessDelPeriodicTxPtrnInd(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		WMI_DEL_PROACTIVE_ARP_RSP_PATTERN_CMDID)) {
 		WMA_LOGE("%s: failed to send del pattern command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26332,7 +26350,7 @@ VOS_STATUS wma_start_extscan(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf,
 				len, WMI_EXTSCAN_START_CMDID)) {
 		WMA_LOGE("%s: failed to send command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -26380,7 +26398,7 @@ VOS_STATUS wma_stop_extscan(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_EXTSCAN_STOP_CMDID)) {
 		WMA_LOGE("%s: failed to  command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -26526,7 +26544,7 @@ VOS_STATUS wma_get_buf_extscan_hotlist_cmd(tp_wma_handle wma_handle,
 		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 					len, WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID)) {
 			WMA_LOGE("%s: failed to send command", __func__);
-			adf_nbuf_free(buf);
+			wmi_buf_free(buf);
 			return VOS_STATUS_E_FAILURE;
 		}
 		index = index + min_entries;
@@ -26619,7 +26637,7 @@ VOS_STATUS wma_extscan_stop_hotlist_monitor(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 			WMI_EXTSCAN_CONFIGURE_HOTLIST_MONITOR_CMDID)) {
 		WMA_LOGE("%s: failed to  command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26724,7 +26742,7 @@ wma_set_ssid_hotlist(tp_wma_handle wma,
 		(wma->wmi_handle, wmi_buf, len,
 		 WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID)) {
 		WMA_LOGE("%s: failed to send command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26831,7 +26849,7 @@ VOS_STATUS wma_extscan_start_change_monitor(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf,
 		len, WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID)) {
 		WMA_LOGE("%s: failed to send command", __func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26891,7 +26909,7 @@ VOS_STATUS wma_extscan_stop_change_monitor(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 			WMI_EXTSCAN_CONFIGURE_WLAN_CHANGE_MONITOR_CMDID)) {
 		WMA_LOGE("%s: failed to  command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26937,7 +26955,7 @@ VOS_STATUS  wma_extscan_get_cached_results(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 			WMI_EXTSCAN_GET_CACHED_RESULTS_CMDID)) {
 		WMA_LOGE("%s: failed to  command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -26981,7 +26999,7 @@ VOS_STATUS  wma_extscan_get_capabilities(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_EXTSCAN_GET_CAPABILITIES_CMDID)) {
 		WMA_LOGE("%s: failed to  command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -27485,7 +27503,7 @@ static void wma_process_unit_test_cmd(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 				WMI_UNIT_TEST_CMDID)) {
 		WMA_LOGP("%s: failed to send unit test command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return;
 	}
 	return;
@@ -27528,7 +27546,7 @@ VOS_STATUS  wma_scan_probe_setoui(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_SCAN_PROB_REQ_OUI_CMDID)) {
 		WMA_LOGE("%s: failed to send command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -27673,7 +27691,7 @@ static void wma_process_roam_invoke(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 				WMI_ROAM_INVOKE_CMDID)) {
 		WMA_LOGP("%s: failed to send roam invoke command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return;
 	}
 	return;
@@ -28895,7 +28913,7 @@ static VOS_STATUS wma_get_bpf_capabilities(tp_wma_handle wma)
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_BPF_GET_CAPABILITY_CMDID)) {
 		WMA_LOGE(FL("Failed to send BPF capability command"));
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return vos_status;
@@ -29081,7 +29099,7 @@ static VOS_STATUS wma_set_bpf_instructions(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_BPF_SET_VDEV_INSTRUCTIONS_CMDID)) {
 		WMA_LOGE(FL("Failed to send config bpf instructions command"));
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 	return VOS_STATUS_SUCCESS;
@@ -29167,7 +29185,7 @@ VOS_STATUS wma_enable_disable_caevent_ind(tp_wma_handle wma,
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
 		WMI_CHAN_AVOID_RPT_ALLOW_CMDID)) {
 		WMA_LOGE(FL("Failed to send enable/disable CA event command"));
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -30878,7 +30896,7 @@ static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				  WMI_THERMAL_MGMT_CMDID);
 	if (status) {
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		WMA_LOGE("%s:Failed to send thermal mgmt command", __func__);
 		return eHAL_STATUS_FAILURE;
 	}
@@ -32534,7 +32552,7 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	/* allocate memory requested by FW */
 	if (ev->num_mem_reqs > WMI_MAX_MEM_REQS) {
 		VOS_ASSERT(0);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 		return NULL;
 	}
 
@@ -32882,7 +32900,7 @@ int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 				   WMI_PEER_SET_PARAM_CMDID);
 	if (err) {
 		WMA_LOGE("Failed to send set_param cmd");
-		adf_os_mem_free(buf);
+		wmi_buf_free(buf);
 		return -EIO;
 	}
 
@@ -33545,7 +33563,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 	vos_event_reset(&wma_handle->target_suspend);
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, len,
 				    WMI_PDEV_SUSPEND_CMDID)) {
-		adf_nbuf_free(wmibuf);
+		wmi_buf_free(wmibuf);
 		return -1;
 	}
 
@@ -34224,7 +34242,7 @@ void wma_send_regdomain_info(u_int32_t reg_dmn, u_int16_t regdmn2G,
 				WMI_PDEV_SET_REGDOMAIN_CMDID)) {
 		WMA_LOGP("%s: Failed to send pdev set regdomain command",
 				__func__);
-		adf_nbuf_free(buf);
+		wmi_buf_free(buf);
 	}
 
 	if ((((reg_dmn & ~COUNTRY_ERD_FLAG) == CTRY_JAPAN) ||
@@ -34454,7 +34472,7 @@ static int wma_set_tdls_offchan_mode(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		WMI_TDLS_SET_OFFCHAN_MODE_CMDID)) {
 		WMA_LOGP("%s: failed to send tdls off chan command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		ret = -EIO;
 	}
 
@@ -34560,7 +34578,7 @@ static int wma_update_fw_tdls_state(WMA_HANDLE handle, void *pwmaTdlsparams)
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 		   WMI_TDLS_SET_STATE_CMDID)) {
 		WMA_LOGP("%s: failed to send tdls set state command", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		ret = -EIO;
 		goto end_fw_tdls_state;
 	}
@@ -34751,7 +34769,7 @@ static int wma_update_tdls_peer_state(WMA_HANDLE handle,
 	    WMI_TDLS_PEER_UPDATE_CMDID)) {
 		WMA_LOGE("%s: failed to send tdls peer update state command",
 		         __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		ret = -EIO;
 		goto end_tdls_peer_state;
 	}
@@ -35561,7 +35579,7 @@ void wma_process_roam_synch_complete(WMA_HANDLE handle,
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
 				WMI_ROAM_SYNCH_COMPLETE)) {
 		WMA_LOGP("%s: failed to send roam synch confirmation", __func__);
-		adf_nbuf_free(wmi_buf);
+		wmi_buf_free(wmi_buf);
 		return;
 	}
 	return;

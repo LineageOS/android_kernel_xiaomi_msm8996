@@ -261,22 +261,8 @@ const static struct ieee80211_channel hdd_channels_2_4_GHZ[] =
     HDD2GHZCHAN(2484, 14, 0) ,
 };
 
-static struct ieee80211_channel hdd_social_channels_2_4_GHZ[] =
-{
-    HDD2GHZCHAN(2412, 1, 0) ,
-    HDD2GHZCHAN(2437, 6, 0) ,
-    HDD2GHZCHAN(2462, 11, 0) ,
-};
-
 const static struct ieee80211_channel hdd_channels_5_GHZ[] =
 {
-    HDD5GHZCHAN(4920, 184, 0) ,
-    HDD5GHZCHAN(4940, 188, 0) ,
-    HDD5GHZCHAN(4960, 192, 0) ,
-    HDD5GHZCHAN(4980, 196, 0) ,
-    HDD5GHZCHAN(5040, 8, 0) ,
-    HDD5GHZCHAN(5060, 12, 0) ,
-    HDD5GHZCHAN(5080, 16, 0) ,
     HDD5GHZCHAN(5180, 36, 0) ,
     HDD5GHZCHAN(5200, 40, 0) ,
     HDD5GHZCHAN(5220, 44, 0) ,
@@ -379,25 +365,6 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
                               | IEEE80211_VHT_CAP_RXSTBC_2))
 #endif
                             | IEEE80211_VHT_CAP_RXLDPC,
-};
-
-static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
-{
-    .channels = hdd_social_channels_2_4_GHZ,
-    .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
-    .band       = IEEE80211_BAND_2GHZ,
-    .bitrates = g_mode_rates,
-    .n_bitrates = g_mode_rates_size,
-    .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
-                            | IEEE80211_HT_CAP_GRN_FLD
-                            | IEEE80211_HT_CAP_DSSSCCK40
-                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
-    .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
-    .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
-    .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-    .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
-    .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
 };
 
 static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
@@ -8106,7 +8073,7 @@ out:
 		if (temp_skbuff != NULL)
 			return cfg80211_vendor_cmd_reply(temp_skbuff);
 	}
-
+	wlan_hdd_undo_acs(adapter);
 	clear_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
 
 	return status;
@@ -8136,6 +8103,26 @@ static int wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	vos_ssr_unprotect(__func__);
 
 	return ret;
+}
+
+/**
+ * wlan_hdd_undo_acs : Do cleanup of DO_ACS
+ * @adapter:  Pointer to adapter struct
+ *
+ * This function handle cleanup of what was done in DO_ACS, including free
+ * memory.
+ *
+ * Return: void
+ */
+
+void wlan_hdd_undo_acs(hdd_adapter_t *adapter)
+{
+	if (adapter == NULL)
+		return;
+	if (adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list) {
+		vos_mem_free(adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+		adapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list = NULL;
+	}
 }
 
 /**
@@ -11132,7 +11119,6 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     {
         wlan_hdd_band_2_4_GHZ.ht_cap.cap     &= ~IEEE80211_HT_CAP_SGI_20;
         wlan_hdd_band_5_GHZ.ht_cap.cap       &= ~IEEE80211_HT_CAP_SGI_20;
-        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap &= ~IEEE80211_HT_CAP_SGI_20;
     }
 
     if( !pCfg->ShortGI40MhzEnable )
@@ -11262,6 +11248,7 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 			wiphy->bands[i]->channels = NULL;
 		}
 	}
+	vos_reset_global_reg_params();
 }
 
 /*
@@ -13184,6 +13171,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->dfs_cac_block_tx = VOS_TRUE;
 
+    /* Set ANTENNA_MODE_2X2 before starting SAP/GO */
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+       hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_2X2);
+
     vos_event_reset(&pHostapdState->vosEvent);
     status = WLANSAP_StartBss(
 #ifdef WLAN_FEATURE_MBSSID
@@ -13265,6 +13256,9 @@ error:
         vos_mem_free(pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
         pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list = NULL;
     }
+    /* Decide antenna_mode on SAP start failure */
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+       hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_INVALID);
 
     return ret;
 }
@@ -13453,7 +13447,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     VOS_STATUS      status     = VOS_STATUS_E_FAILURE;
     tSirUpdateIE    updateIE;
     beacon_data_t  *old;
-    int             ret;
+    int             ret = 0;
     unsigned long   rc;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     hdd_adapter_list_node_t *pNext        = NULL;
@@ -13480,18 +13474,6 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
            pAdapter->device_mode);
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    ret = wlan_hdd_validate_context(pHddCtx);
-    if (0 != ret) {
-        if (pHddCtx->isUnloadInProgress) {
-            /*
-             * Unloading the driver so free the memory for ch_list,
-             * otherwise it will result in memory leak
-             */
-            if (pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list)
-                vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
-        }
-        return ret;
-    }
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
@@ -13536,8 +13518,8 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     }
 
     pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
-    if (pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list)
-        vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+    wlan_hdd_undo_acs(pAdapter);
+
     vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,
                                                     sizeof(struct sap_acs_cfg));
 
@@ -13581,6 +13563,9 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         kfree(old);
     }
     mutex_unlock(&pHddCtx->sap_lock);
+
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+       hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_INVALID);
 
     if (status != VOS_STATUS_SUCCESS) {
         hddLog(VOS_TRACE_LEVEL_FATAL, FL("Stopping the BSS"));
@@ -16412,6 +16397,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     hdd_adapter_t *con_sap_adapter;
     uint16_t con_dfs_ch;
     bool is_p2p_scan = false;
+    uint8_t num_chan = 0;
 
     ENTER();
 
@@ -16613,14 +16599,25 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
        }
        for (i = 0, len = 0; i < request->n_channels ; i++ )
        {
-          channelList[i] = request->channels[i]->hw_value;
-          len += snprintf(chList+len, 5, "%d ", channelList[i]);
+          if (!vos_is_dsrc_channel(vos_chan_to_freq(
+                   request->channels[i]->hw_value))) {
+              channelList[num_chan] = request->channels[i]->hw_value;
+              len += snprintf(chList+len, 5, "%d ", channelList[i]);
+              num_chan++;
+          }
        }
 
        hddLog(VOS_TRACE_LEVEL_INFO, "Channel-List: %s", chList);
 
     }
-    scanRequest.ChannelInfo.numOfChannels = request->n_channels;
+
+    if (!num_chan) {
+       hddLog(LOGE, FL("Received zero non-dsrc channels"));
+       status = -EINVAL;
+       goto free_mem;
+    }
+
+    scanRequest.ChannelInfo.numOfChannels = num_chan;
     scanRequest.ChannelInfo.ChannelList = channelList;
 
     /* set requestType to full scan */
@@ -18124,7 +18121,8 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         channel = req->channel->hw_value;
     else
         channel = 0;
-
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+       hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_2X2);
     status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                        req->ssid_len, req->bssid,
                                        bssid_hint, channel);
@@ -18143,6 +18141,9 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         }
 
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("connect failed"));
+       /* Decide the antenna mode if connect fails */
+       if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+          hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_INVALID);
         return status;
     }
     pHddCtx->isAmpAllowed = VOS_FALSE;
@@ -20325,7 +20326,6 @@ wlan_hdd_cfg80211_update_ft_ies(struct wiphy *wiphy,
 }
 #endif
 
-#ifdef FEATURE_WLAN_SCAN_PNO
 int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -20352,6 +20352,8 @@ int wlan_hdd_scan_abort(hdd_adapter_t *pAdapter)
     }
     return 0;
 }
+
+#ifdef FEATURE_WLAN_SCAN_PNO
 void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
                               tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
 {
@@ -24425,6 +24427,54 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+/**
+ * __wlan_hdd_cfg80211_abort_scan() - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * This function is used to abort an ongoing scan
+ *
+ * Return: None
+ */
+static void __wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+					struct wireless_dev *wdev)
+{
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	int ret;
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return;
+	}
+
+	wlan_hdd_scan_abort(adapter);
+}
+
+/**
+ * wlan_hdd_cfg80211_abort_scan - cfg80211 abort scan api
+ * @wiphy: Pointer to wiphy
+ * @wdev: Pointer to wireless device structure
+ *
+ * Wrapper to __wlan_hdd_cfg80211_abort_scan() -
+ * function is used to abort an ongoing scan
+ *
+ * Return: None
+ */
+static void wlan_hdd_cfg80211_abort_scan(struct wiphy *wiphy,
+				struct wireless_dev *wdev)
+{
+	vos_ssr_protect(__func__);
+	__wlan_hdd_cfg80211_abort_scan(wiphy, wdev);
+	vos_ssr_unprotect(__func__);
+}
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
@@ -24500,5 +24550,5 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #ifdef CHANNEL_SWITCH_SUPPORTED
      .channel_switch = wlan_hdd_cfg80211_channel_switch,
 #endif
-
+     .abort_scan = wlan_hdd_cfg80211_abort_scan,
 };

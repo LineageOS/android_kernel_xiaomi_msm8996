@@ -4710,6 +4710,11 @@ tANI_BOOLEAN csrScanComplete( tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp )
             }
             csrSaveScanResults(pMac, pCommand->u.scanCmd.reason, sessionId);
 
+            /* filter scan result based on valid channel list number */
+            if (pMac->scan.fcc_constraint) {
+                smsLog(pMac, LOG1, FL("Clear BSS from invalid channels"));
+                csrScanFilterResults(pMac);
+            }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
             {
                 vos_log_scan_pkt_type *pScanLog = NULL;
