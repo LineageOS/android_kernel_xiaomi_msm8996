@@ -12971,7 +12971,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
 #endif
 
-   nl_srv_exit();
    hdd_close_cesium_nl_sock();
 
    hdd_runtime_suspend_deinit(pHddCtx);
@@ -12993,6 +12992,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_list_destroy(&pHddCtx->hdd_roc_req_q);
 
 free_hdd_ctx:
+   nl_srv_exit();
 
    /* Free up dynamically allocated members inside HDD Adapter */
    if (pHddCtx->cfg_ini) {
@@ -14576,6 +14576,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    print_hdd_cfg(pHddCtx);
 
+   /* Initialize the nlink service */
+   if (wlan_hdd_nl_init(pHddCtx) != 0) {
+      hddLog(LOGP, FL("nl_srv_init failed"));
+      goto err_config;
+   }
+
    if (VOS_FTM_MODE == hdd_get_conparam())
        goto ftm_processing;
 
@@ -15029,12 +15035,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    reg_netdev_notifier_done = TRUE;
 #endif
 
-   /* Initialize the nlink service */
-   if (wlan_hdd_nl_init(pHddCtx) != 0) {
-      hddLog(LOGP, FL("nl_srv_init failed"));
-      goto err_reg_netdev;
-   }
-
 #ifdef WLAN_KD_READY_NOTIFIER
    pHddCtx->kd_nl_init = 1;
 #endif /* WLAN_KD_READY_NOTIFIER */
@@ -15318,7 +15318,6 @@ err_nl_srv:
    nl_srv_exit();
    hdd_close_cesium_nl_sock();
 
-err_reg_netdev:
    if (rtnl_lock_enable == TRUE) {
       rtnl_lock_enable = FALSE;
       rtnl_unlock();
