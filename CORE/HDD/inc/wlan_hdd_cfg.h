@@ -2209,7 +2209,7 @@ typedef enum
  *  and select one, based on the capability of peer.
  */
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW          "gTDLSPrefOffChanBandwidth"
-#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (0)
+#define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MIN      (1)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_MAX      (0x0F)
 #define CFG_TDLS_PREFERRED_OFF_CHANNEL_BW_DEFAULT  (0x07)
 
