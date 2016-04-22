@@ -16529,7 +16529,6 @@ void hdd_ch_avoid_cb
    }
    hdd_avoid_freq_list.avoidFreqRangeCount = ch_avoid_indi->avoid_range_count;
 
-   wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
 
    /* clear existing unsafe channel cache */
    hdd_ctxt->unsafe_channel_count = 0;
@@ -16624,10 +16623,16 @@ void hdd_ch_avoid_cb
    }
 #endif
 
-    if (0 == hdd_ctxt->unsafe_channel_count)
+   /*
+    * first update the unsafe channel list to the platform driver and
+    * send the avoid freq event to the application
+    */
+   wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
+
+   if (0 == hdd_ctxt->unsafe_channel_count)
        return;
-    hdd_unsafe_channel_restart_sap(hdd_ctxt);
-    return;
+   hdd_unsafe_channel_restart_sap(hdd_ctxt);
+   return;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
