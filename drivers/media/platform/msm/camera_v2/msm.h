@@ -37,6 +37,8 @@
 #define MSM_POST_EVT_NOTIMEOUT 0xFFFFFFFF
 #define MSM_CAMERA_STREAM_CNT_BITS  32
 
+extern bool is_daemon_status;
+
 struct msm_video_device {
 	struct video_device *vdev;
 	atomic_t opened;
@@ -106,6 +108,11 @@ struct msm_session {
 	struct mutex lock_q;
 	struct mutex close_lock;
 };
+
+static inline bool msm_is_daemon_present(void)
+{
+	return is_daemon_status;
+}
 
 int msm_post_event(struct v4l2_event *event, int timeout);
 int  msm_create_session(unsigned int session, struct video_device *vdev);
