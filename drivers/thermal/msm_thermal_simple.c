@@ -31,39 +31,36 @@
 
 #define DEFAULT_SAMPLING_MS 3000
 
-enum throttle_state {
-	UNTHROTTLE,
-	LOW_THROTTLE,
-	MID_THROTTLE,
-	HIGH_THROTTLE,
-};
+/* Sysfs attr group must be manually updated in order to change this */
+#define NR_THERMAL_ZONES 8
+
+#define UNTHROTTLE_ZONE (-1)
 
 struct throttle_policy {
-	enum throttle_state state;
+	int curr_zone;
 	unsigned int freq;
 };
 
 struct thermal_config {
 	struct qpnp_vadc_chip *vadc_dev;
 	enum qpnp_vadc_channels adc_chan;
-	unsigned int freq_high_KHz;
-	unsigned int freq_mid_KHz;
-	unsigned int freq_low_KHz;
-	unsigned int trip_high_degC;
-	unsigned int trip_mid_degC;
-	unsigned int trip_low_degC;
-	unsigned int reset_high_degC;
-	unsigned int reset_mid_degC;
-	unsigned int reset_low_degC;
-	unsigned int sampling_ms;
 	unsigned int enabled;
+	unsigned int sampling_ms;
 	unsigned int user_maxfreq;
 };
 
+struct thermal_zone {
+	unsigned int freq;
+	int64_t trip_degC;
+	int64_t reset_degC;
+};
+
 struct thermal_policy {
+	spinlock_t lock;
+	struct delayed_work dwork;
 	struct thermal_config conf;
 	struct throttle_policy throttle;
-	struct delayed_work dwork;
+	struct thermal_zone zone[NR_THERMAL_ZONES];
 	struct workqueue_struct *wq;
 };
 
@@ -75,9 +72,9 @@ static void msm_thermal_main(struct work_struct *work)
 {
 	struct thermal_policy *t = container_of(work, typeof(*t), dwork.work);
 	struct qpnp_vadc_result result;
-	enum throttle_state old_throttle;
+	int curr_zone, old_zone;
+	int i, ret;
 	int64_t temp;
-	int ret;
 
 	ret = qpnp_vadc_read(t->conf.vadc_dev, t->conf.adc_chan, &result);
 	if (ret) {
@@ -86,51 +83,76 @@ static void msm_thermal_main(struct work_struct *work)
 	}
 
 	temp = result.physical;
-	old_throttle = t->throttle.state;
+	old_zone = t->throttle.curr_zone;
 
-	/* Low trip point */
-	if ((temp >= t->conf.trip_low_degC) &&
-		(temp < t->conf.trip_mid_degC) &&
-		(t->throttle.state == UNTHROTTLE)) {
-		t->throttle.freq = t->conf.freq_low_KHz;
-		t->throttle.state = LOW_THROTTLE;
-	/* Low clear point */
-	} else if ((temp <= t->conf.reset_low_degC) &&
-		(t->throttle.state > UNTHROTTLE)) {
-		t->throttle.state = UNTHROTTLE;
-	/* Mid trip point */
-	} else if ((temp >= t->conf.trip_mid_degC) &&
-		(temp < t->conf.trip_high_degC) &&
-		(t->throttle.state < MID_THROTTLE)) {
-		t->throttle.freq = t->conf.freq_mid_KHz;
-		t->throttle.state = MID_THROTTLE;
-	/* Mid clear point */
-	} else if ((temp < t->conf.reset_mid_degC) &&
-		(t->throttle.state > LOW_THROTTLE)) {
-		t->throttle.freq = t->conf.freq_low_KHz;
-		t->throttle.state = LOW_THROTTLE;
-	/* High trip point */
-	} else if ((temp >= t->conf.trip_high_degC) &&
-		(t->throttle.state < HIGH_THROTTLE)) {
-		t->throttle.freq = t->conf.freq_high_KHz;
-		t->throttle.state = HIGH_THROTTLE;
-	/* High clear point */
-	} else if ((temp < t->conf.reset_high_degC) &&
-		(t->throttle.state > MID_THROTTLE)) {
-		t->throttle.freq = t->conf.freq_mid_KHz;
-		t->throttle.state = MID_THROTTLE;
+	spin_lock(&t->lock);
+
+	for (i = 0; i < NR_THERMAL_ZONES; i++) {
+		if (!t->zone[i].freq) {
+			/*
+			 * The current thermal zone is not configured, so use
+			 * the previous one and exit.
+			 */
+			t->throttle.curr_zone = i - 1;
+			break;
+		}
+
+		if (i == (NR_THERMAL_ZONES - 1)) {
+			/* Highest zone has been reached, so use it and exit */
+			t->throttle.curr_zone = i;
+			break;
+		}
+
+		if (temp > t->zone[i].reset_degC) {
+			/*
+			 * If temp is less than the trip temp for the next
+			 * thermal zone and is greater than or equal to the
+			 * trip temp for the current zone, then exit here and
+			 * use the current index as the thermal zone.
+			 * Otherwise, keep iterating until this is true (or
+			 * until we hit the highest thermal zone).
+			 */
+			if (temp < t->zone[i + 1].trip_degC &&
+				(temp >= t->zone[i].trip_degC ||
+				old_zone != UNTHROTTLE_ZONE)) {
+				t->throttle.curr_zone = i;
+				break;
+			} else if (!i && old_zone == UNTHROTTLE_ZONE) {
+				/*
+				 * Don't keep looping if the CPU is currently
+				 * unthrottled and the temp is below the first
+				 * zone's trip point.
+				 */
+				break;
+			} else {
+				continue;
+			}
+		} else if (!i) {
+			/*
+			 * Unthrottle CPU if temp is at or below the first
+			 * zone's reset temp.
+			 */
+			t->throttle.curr_zone = UNTHROTTLE_ZONE;
+			break;
+		}
 	}
 
-	/* Thermal state changed */
-	if (t->throttle.state != old_throttle) {
-		if (t->throttle.state)
-			pr_warn("Setting CPU to %uKHz! temp: %lluC\n",
-						t->throttle.freq, temp);
-		else
-			pr_warn("CPU unthrottled! temp: %lluC\n", temp);
-		/* Immediately enforce new thermal policy on online CPUs */
+	curr_zone = t->throttle.curr_zone;
+
+	/*
+	 * Update throttle freq. Setting throttle.freq to 0
+	 * tells the CPU notifier to unthrottle.
+	 */
+	if (curr_zone == UNTHROTTLE_ZONE)
+		t->throttle.freq = 0;
+	else
+		t->throttle.freq = t->zone[curr_zone].freq;
+
+	spin_unlock(&t->lock);
+
+	/* Only update CPU policy when the throttle zone changes */
+	if (curr_zone != old_zone)
 		update_online_cpu_policy();
-	}
 
 reschedule:
 	queue_delayed_work(t->wq, &t->dwork,
@@ -142,23 +164,23 @@ static int do_cpu_throttle(struct notifier_block *nb,
 {
 	struct cpufreq_policy *policy = data;
 	struct thermal_policy *t = t_policy_g;
-	unsigned int user_max = t->conf.user_maxfreq;
+	unsigned int throttle_freq, user_max;
 
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
-	switch (t->throttle.state) {
-	case UNTHROTTLE:
-		policy->max = user_max ? user_max : policy->cpuinfo.max_freq;
-		break;
-	case LOW_THROTTLE:
-	case MID_THROTTLE:
-	case HIGH_THROTTLE:
-		if (user_max && (user_max < t->throttle.freq))
+	spin_lock(&t->lock);
+	throttle_freq = t->throttle.freq;
+	user_max = t->conf.user_maxfreq;
+	spin_unlock(&t->lock);
+
+	if (throttle_freq) {
+		if (user_max && (user_max < throttle_freq))
 			policy->max = user_max;
 		else
-			policy->max = t->throttle.freq;
-		break;
+			policy->max = throttle_freq;
+	} else {
+		policy->max = user_max ? user_max : policy->cpuinfo.max_freq;
 	}
 
 	if (policy->min > policy->max)
@@ -182,74 +204,14 @@ static void update_online_cpu_policy(void)
 	put_online_cpus();
 }
 
-static ssize_t high_thresh_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
+static unsigned int get_thermal_zone_number(const char *filename)
 {
-	struct thermal_policy *t = t_policy_g;
-	unsigned int data[3];
-	int ret;
+	unsigned int num;
 
-	ret = sscanf(buf, "%u %u %u", &data[0], &data[1], &data[2]);
-	if (ret != 3)
-		return -EINVAL;
+	/* Thermal zone sysfs nodes are named as "zone#" */
+	sscanf(filename, "zone%u", &num);
 
-	t->conf.freq_high_KHz = data[0];
-	t->conf.trip_high_degC = data[1];
-	t->conf.reset_high_degC = data[2];
-
-	return size;
-}
-
-static ssize_t mid_thresh_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct thermal_policy *t = t_policy_g;
-	unsigned int data[3];
-	int ret;
-
-	ret = sscanf(buf, "%u %u %u", &data[0], &data[1], &data[2]);
-	if (ret != 3)
-		return -EINVAL;
-
-	t->conf.freq_mid_KHz = data[0];
-	t->conf.trip_mid_degC = data[1];
-	t->conf.reset_mid_degC = data[2];
-
-	return size;
-}
-
-static ssize_t low_thresh_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct thermal_policy *t = t_policy_g;
-	unsigned int data[3];
-	int ret;
-
-	ret = sscanf(buf, "%u %u %u", &data[0], &data[1], &data[2]);
-	if (ret != 3)
-		return -EINVAL;
-
-	t->conf.freq_low_KHz = data[0];
-	t->conf.trip_low_degC = data[1];
-	t->conf.reset_low_degC = data[2];
-
-	return size;
-}
-
-static ssize_t sampling_ms_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct thermal_policy *t = t_policy_g;
-	unsigned int data;
-	int ret;
-
-	ret = sscanf(buf, "%u", &data);
-	if (ret != 1)
-		return -EINVAL;
-
-	t->conf.sampling_ms = data;
-
-	return size;
+	return num;
 }
 
 static ssize_t enabled_write(struct device *dev,
@@ -270,10 +232,54 @@ static ssize_t enabled_write(struct device *dev,
 	if (data) {
 		queue_delayed_work(t->wq, &t->dwork, 0);
 	} else {
-		/* Unthrottle all CPUS */
-		t->throttle.state = UNTHROTTLE;
+		/*
+		 * Unthrottle all CPUS. No need to acquire lock here as we
+		 * will immediately update CPU policy anyway.
+		 */
+		t->throttle.freq = 0;
 		update_online_cpu_policy();
 	}
+
+	return size;
+}
+
+static ssize_t sampling_ms_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct thermal_policy *t = t_policy_g;
+	unsigned int data;
+	int ret;
+
+	ret = sscanf(buf, "%u", &data);
+	if (ret != 1)
+		return -EINVAL;
+
+	spin_lock(&t->lock);
+	t->conf.sampling_ms = data;
+	spin_unlock(&t->lock);
+
+	return size;
+}
+
+static ssize_t thermal_zone_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct thermal_policy *t = t_policy_g;
+	unsigned int freq, idx;
+	int64_t trip_degC, reset_degC;
+	int ret;
+
+	ret = sscanf(buf, "%u %lld %lld", &freq, &trip_degC, &reset_degC);
+	if (ret != 3)
+		return -EINVAL;
+
+	idx = get_thermal_zone_number(attr->attr.name);
+
+	spin_lock(&t->lock);
+	t->zone[idx].freq = freq;
+	t->zone[idx].trip_degC = trip_degC;
+	t->zone[idx].reset_degC = reset_degC;
+	spin_unlock(&t->lock);
 
 	return size;
 }
@@ -289,44 +295,11 @@ static ssize_t user_maxfreq_write(struct device *dev,
 	if (ret != 1)
 		return -EINVAL;
 
+	spin_lock(&t->lock);
 	t->conf.user_maxfreq = data;
+	spin_unlock(&t->lock);
 
 	return size;
-}
-
-static ssize_t high_thresh_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct thermal_policy *t = t_policy_g;
-
-	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", t->conf.freq_high_KHz,
-			t->conf.trip_high_degC, t->conf.reset_high_degC);
-}
-
-static ssize_t mid_thresh_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct thermal_policy *t = t_policy_g;
-
-	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", t->conf.freq_mid_KHz,
-			t->conf.trip_mid_degC, t->conf.reset_mid_degC);
-}
-
-static ssize_t low_thresh_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct thermal_policy *t = t_policy_g;
-
-	return snprintf(buf, PAGE_SIZE, "%u %u %u\n", t->conf.freq_low_KHz,
-			t->conf.trip_low_degC, t->conf.reset_low_degC);
-}
-
-static ssize_t sampling_ms_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct thermal_policy *t = t_policy_g;
-
-	return snprintf(buf, PAGE_SIZE, "%u\n", t->conf.sampling_ms);
 }
 
 static ssize_t enabled_read(struct device *dev,
@@ -337,6 +310,26 @@ static ssize_t enabled_read(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", t->conf.enabled);
 }
 
+static ssize_t sampling_ms_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct thermal_policy *t = t_policy_g;
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", t->conf.sampling_ms);
+}
+
+static ssize_t thermal_zone_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct thermal_policy *t = t_policy_g;
+	unsigned int idx;
+
+	idx = get_thermal_zone_number(attr->attr.name);
+
+	return snprintf(buf, PAGE_SIZE, "%u %lld %lld\n", t->zone[idx].freq,
+			t->zone[idx].trip_degC, t->zone[idx].reset_degC);
+}
+
 static ssize_t user_maxfreq_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -345,25 +338,35 @@ static ssize_t user_maxfreq_read(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", t->conf.user_maxfreq);
 }
 
-static DEVICE_ATTR(high_thresh, 0644, high_thresh_read, high_thresh_write);
-static DEVICE_ATTR(mid_thresh, 0644, mid_thresh_read, mid_thresh_write);
-static DEVICE_ATTR(low_thresh, 0644, low_thresh_read, low_thresh_write);
-static DEVICE_ATTR(sampling_ms, 0644, sampling_ms_read, sampling_ms_write);
 static DEVICE_ATTR(enabled, 0644, enabled_read, enabled_write);
+static DEVICE_ATTR(sampling_ms, 0644, sampling_ms_read, sampling_ms_write);
 static DEVICE_ATTR(user_maxfreq, 0644, user_maxfreq_read, user_maxfreq_write);
+static DEVICE_ATTR(zone0, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone1, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone2, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone3, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone4, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone5, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone6, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone7, 0644, thermal_zone_read, thermal_zone_write);
 
 static struct attribute *msm_thermal_attr[] = {
-	&dev_attr_high_thresh.attr,
-	&dev_attr_mid_thresh.attr,
-	&dev_attr_low_thresh.attr,
-	&dev_attr_sampling_ms.attr,
 	&dev_attr_enabled.attr,
+	&dev_attr_sampling_ms.attr,
 	&dev_attr_user_maxfreq.attr,
+	&dev_attr_zone0.attr,
+	&dev_attr_zone1.attr,
+	&dev_attr_zone2.attr,
+	&dev_attr_zone3.attr,
+	&dev_attr_zone4.attr,
+	&dev_attr_zone5.attr,
+	&dev_attr_zone6.attr,
+	&dev_attr_zone7.attr,
 	NULL
 };
 
 static struct attribute_group msm_thermal_attr_group = {
-	.attrs  = msm_thermal_attr,
+	.attrs = msm_thermal_attr,
 };
 
 static int sysfs_thermal_init(void)
@@ -386,7 +389,7 @@ static int sysfs_thermal_init(void)
 	return ret;
 }
 
-static int thermal_parse_dt(struct platform_device *pdev,
+static int msm_thermal_parse_dt(struct platform_device *pdev,
 			struct thermal_policy *t)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -440,14 +443,19 @@ static int msm_thermal_probe(struct platform_device *pdev)
 	if (!t)
 		return -ENOMEM;
 
-	ret = thermal_parse_dt(pdev, t);
+	ret = msm_thermal_parse_dt(pdev, t);
 	if (ret)
 		goto free_mem;
 
 	t->conf.sampling_ms = DEFAULT_SAMPLING_MS;
 
+	/* Boot up unthrottled */
+	t->throttle.curr_zone = UNTHROTTLE_ZONE;
+
 	/* Allow global thermal policy access */
 	t_policy_g = t;
+
+	spin_lock_init(&t->lock);
 
 	INIT_DELAYED_WORK(&t->dwork, msm_thermal_main);
 
