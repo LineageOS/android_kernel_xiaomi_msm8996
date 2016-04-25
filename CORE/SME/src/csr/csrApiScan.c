@@ -6484,7 +6484,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                     else if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
                     {
                         uint16_t unsafe_chan[NUM_20MHZ_RF_CHANNELS];
-                        uint16_t unsafe_chan_cnt;
+                        uint16_t unsafe_chan_cnt = 0;
                         uint16_t cnt = 0;
                         new_index = 0;
                         pMac->roam.numValidChannels = len;
