@@ -1469,24 +1469,30 @@ hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
    }
 
    pStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
    if (NULL != pPeerInfo && eHAL_STATUS_SUCCESS == pPeerInfo->status) {
       /* validate number of peers */
-      if (pPeerInfo->numPeers < HDD_MAX_NUM_IBSS_STA) {
-         pStaCtx->ibss_peer_info.status = pPeerInfo->status;
-         pStaCtx->ibss_peer_info.numPeers = pPeerInfo->numPeers;
-
-         for (i = 0; i < pPeerInfo->numPeers; i++) {
-             pStaCtx->ibss_peer_info.peerInfoParams[i] =
-                                         pPeerInfo->peerInfoParams[i];
-         }
-         hddLog(LOG1, FL("Peer Info copied in HDD"));
-      } else {
-         hddLog(LOG1,
-                FL("Number of peers %d returned is more than limit %d"),
+      if (pPeerInfo->numPeers > HDD_MAX_NUM_IBSS_STA) {
+         hddLog(LOGW,
+                FL("Limiting num_peers %u to %u"),
                 pPeerInfo->numPeers, HDD_MAX_NUM_IBSS_STA);
+         pPeerInfo->numPeers = HDD_MAX_NUM_IBSS_STA;
+      }
+
+      pStaCtx->ibss_peer_info.status = pPeerInfo->status;
+      pStaCtx->ibss_peer_info.numPeers = pPeerInfo->numPeers;
+
+      for (i = 0; i < pPeerInfo->numPeers; i++) {
+          pStaCtx->ibss_peer_info.peerInfoParams[i] =
+                                         pPeerInfo->peerInfoParams[i];
       }
    } else {
-      hddLog(LOG1, FL("peerInfo returned is NULL"));
+      hddLog(LOGE, FL("peerInfo %s: status %u, numPeers %u"),
+                       pPeerInfo ? "valid" : "null",
+                       pPeerInfo ? pPeerInfo->status : eHAL_STATUS_FAILURE,
+                       pPeerInfo ? pPeerInfo->numPeers : 0);
+      pStaCtx->ibss_peer_info.numPeers = 0;
+      pStaCtx->ibss_peer_info.status = eHAL_STATUS_FAILURE;
    }
 
    complete(&pAdapter->ibss_peer_info_comp);
