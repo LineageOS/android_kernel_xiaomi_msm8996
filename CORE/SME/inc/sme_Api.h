@@ -4569,4 +4569,8 @@ VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id);
 eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hHal,
 							tANI_U8 set_value);
 
+eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
+		enum sta_roam_policy_dfs_mode dfs_mode,
+		bool skip_unsafe_channels,
+		uint8_t session_id);
 #endif //#if !defined( __SME_API_H )

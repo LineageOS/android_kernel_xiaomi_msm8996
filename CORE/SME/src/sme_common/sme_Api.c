@@ -75,6 +75,7 @@
 #include "regdomain_common.h"
 #include "schApi.h"
 #include "sme_nan_datapath.h"
+#include "csrApi.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -4999,6 +5000,11 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
               pMac->roam.configParam.mcc_rts_cts_prot_enable;
       pParam->csrConfig.mcc_bcast_prob_resp_enable =
               pMac->roam.configParam.mcc_bcast_prob_resp_enable;
+      pParam->csrConfig.sta_roam_policy_params.dfs_mode =
+              pMac->roam.configParam.sta_roam_policy.dfs_mode;
+      pParam->csrConfig.sta_roam_policy_params.skip_unsafe_channels =
+              pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels;
+
 
       sme_ReleaseGlobalLock( &pMac->sme );
    }
@@ -13508,7 +13514,7 @@ eHalStatus sme_ocb_set_utc_time(struct sir_ocb_utc *utc)
 						       &msg))) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			  FL("Not able to post message to WDA"));
-		vos_mem_free(utc);
+		vos_mem_free(sme_utc);
 		return eHAL_STATUS_FAILURE;
 	}
 
@@ -15377,7 +15383,7 @@ VOS_STATUS sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
         }
 
         if (!pSession->QosMapSet.present) {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                      FL("QOS Mapping IE not present"));
             sme_ReleaseGlobalLock( &pMac->sme);
             return eHAL_STATUS_FAILURE;
@@ -18238,14 +18244,15 @@ eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 	vos_msg_t           vos_msg;
 	struct sir_bpf_set_offload *set_offload;
 
-	set_offload = vos_mem_malloc(sizeof(*set_offload));
+	set_offload = vos_mem_malloc(sizeof(*set_offload) +
+					req->current_length);
 
 	if (NULL == set_offload) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			FL("Failed to alloc set_offload"));
 		return eHAL_STATUS_FAILED_ALLOC;
 	}
-	vos_mem_zero(set_offload, sizeof(*set_offload));
+	vos_mem_zero(set_offload, sizeof(*set_offload) + req->current_length);
 
 	set_offload->session_id = req->session_id;
 	set_offload->filter_id = req->filter_id;
@@ -18253,8 +18260,8 @@ eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 	set_offload->total_length = req->total_length;
 	set_offload->current_length = req->current_length;
 	if (set_offload->total_length) {
-		set_offload->program = vos_mem_malloc(sizeof(uint8_t) *
-						req->current_length);
+		set_offload->program = ((uint8_t *)set_offload) +
+					sizeof(*set_offload);
 		vos_mem_copy(set_offload->program, req->program,
 				set_offload->current_length);
 	}
@@ -18269,16 +18276,12 @@ eHalStatus sme_set_bpf_instructions(tHalHandle hal,
 			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 				FL("Post BPF set offload msg fail"));
 			status = eHAL_STATUS_FAILURE;
-			if (set_offload->total_length)
-				vos_mem_free(set_offload->program);
 			vos_mem_free(set_offload);
 		}
 		sme_ReleaseGlobalLock(&mac_ctx->sme);
 	} else {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 				FL("sme_AcquireGlobalLock failed"));
-		if (set_offload->total_length)
-			vos_mem_free(set_offload->program);
 		vos_mem_free(set_offload);
 	}
 	return status;
@@ -18881,5 +18884,83 @@ VOS_STATUS sme_oem_get_capability(tHalHandle hal,
 	cap->ftm_rr = bytes[4] & RM_CAP_FTM_RANGE_REPORT;
 	cap->lci_capability = bytes[4] & RM_CAP_CIVIC_LOC_MEASUREMENT;
 
+	return status;
+}
+
+/**
+ * sme_sta_roam_offload_scan() - update sta roam policy for
+ * unsafe and DFS channels for roaming.
+ * @hal_handle: hal handle for getting global mac struct
+ * @param session_id: sme_session_id
+ * @reason: reason to roam
+ *
+ * Return: none
+ */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+static void sme_sta_roam_offload_scan(tHalHandle hal_handle,
+		uint8_t session_id, uint8_t reason)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	if (csrRoamIsRoamOffloadScanEnabled(mac_ctx)) {
+		csrRoamOffloadScan(mac_ctx, session_id,
+				ROAM_SCAN_OFFLOAD_UPDATE_CFG,
+				reason);
+	}
+}
+#else
+static inline void sme_sta_roam_offload_scan(tHalHandle hal_handle,
+		uint8_t session_id, uint8_t reason)
+{
+}
+#endif
+
+/**
+ * sme_update_sta_roam_policy() - update sta roam policy for
+ * unsafe and DFS channels.
+ * @hal_handle: hal handle for getting global mac struct
+ * @dfs_mode: dfs mode which tell if dfs channel needs to be
+ * skipped or not
+ * @skip_unsafe_channels: Param to tell if driver needs to
+ * skip unsafe channels or not.
+ * @param session_id: sme_session_id
+ *
+ * sme_update_sta_roam_policy update sta rome policies to csr
+ * this function will call csrUpdateChannelList as well
+ * to include/exclude DFS channels and unsafe channels.
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
+		enum sta_roam_policy_dfs_mode dfs_mode,
+		bool skip_unsafe_channels,
+		uint8_t session_id)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tSmeConfigParams sme_config;
+	uint8_t reason = 0;
+
+	if (!mac_ctx) {
+		smsLog(mac_ctx, LOGE, FL("mac_ctx is null!"));
+		VOS_ASSERT(0);
+		return eHAL_STATUS_FAILURE;
+	}
+	vos_mem_zero(&sme_config, sizeof(sme_config));
+	sme_GetConfigParam(hal_handle, &sme_config);
+
+	sme_config.csrConfig.sta_roam_policy_params.dfs_mode =
+		dfs_mode;
+	sme_config.csrConfig.sta_roam_policy_params.skip_unsafe_channels =
+		skip_unsafe_channels;
+
+	sme_UpdateConfig(hal_handle, &sme_config);
+
+	status = csrUpdateChannelList(mac_ctx);
+	if (eHAL_STATUS_SUCCESS != status) {
+		smsLog(mac_ctx, LOGE,
+			FL("failed to update the supported channel list"));
+	}
+	reason = REASON_ROAM_SCAN_STA_ROAM_POLICY_CHANGED;
+	sme_sta_roam_offload_scan(mac_ctx, session_id, reason);
 	return status;
 }

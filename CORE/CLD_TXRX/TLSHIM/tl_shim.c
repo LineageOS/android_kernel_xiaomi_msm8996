@@ -43,6 +43,7 @@
 #include "vos_utils.h"
 #include "wdi_out.h"
 #include "ol_rx_fwd.h"
+#include "ol_txrx.h"
 
 #define TLSHIM_PEER_AUTHORIZE_WAIT 50
 
@@ -1205,8 +1206,6 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, void *vdev,
 
 	skb_list_head = skb;
 	while (skb) {
-		/* Zero out skb's context buffer for the driver to use */
-		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
 		adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
 
 #ifdef QCA_PKT_PROTO_TRACE
@@ -2084,8 +2083,9 @@ WLANTL_PauseUnPauseQs(void *vos_context, v_BOOL_t flag)
  *
  * HDD will call this API to get the OL-TXRX module stats
  *
+ * Return: VOS_STATUS
  */
-void WLANTL_Get_llStats
+VOS_STATUS WLANTL_Get_llStats
 (
 	uint8_t sessionId,
 	char *buffer,
@@ -2097,24 +2097,22 @@ void WLANTL_Get_llStats
 	struct ol_txrx_vdev_t *vdev;
 
 	if (!vos_context) {
-		return;
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_context);
 	if (!tl_shim) {
 		TLSHIM_LOGD("%s, tl_shim is NULL",
                     __func__);
-		return;
+		return VOS_STATUS_E_FAILURE;
 	}
 
 	vdev = tl_shim->session_flow_control[sessionId].vdev;
 	if (!vdev) {
 		TLSHIM_LOGE("%s, vdev is NULL", __func__);
-		return;
+		return VOS_STATUS_E_FAILURE;
 	}
-	ol_txrx_stats(vdev, buffer, (unsigned)length);
-	return;
-
+	return ol_txrx_stats(vdev, buffer, (unsigned)length);
 }
 
 /*=============================================================================
@@ -2667,3 +2665,21 @@ uint64_t tlshim_get_fwd_to_tx_packet_count(uint8_t session_id)
 {
 	return ol_rx_get_fwd_to_tx_packet_count(session_id);
 }
+
+/*
+ * tlshim_get_ll_queue_pause_bitmap() - to obtain ll queue pause bitmap and
+ *                                      last pause timestamp
+ * @session_id: vdev id
+ * @pause_bitmap: pointer to return ll queue pause bitmap
+ * @pause_timestamp: pointer to return pause timestamp to calling func.
+ *
+ * Return: status -> A_OK - for success, A_ERROR for failure
+ *
+ */
+A_STATUS tlshim_get_ll_queue_pause_bitmap(uint8_t session_id,
+	uint8_t *pause_bitmap, adf_os_time_t *pause_timestamp)
+{
+	return ol_txrx_get_ll_queue_pause_bitmap(session_id,
+		pause_bitmap, pause_timestamp);
+}
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -301,6 +301,7 @@ typedef struct sSapContext {
      */
     struct sap_avoid_channels_info sap_detected_avoid_ch_ie;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+    enum sap_acs_dfs_mode  dfs_mode;
 } *ptSapContext;
 
 

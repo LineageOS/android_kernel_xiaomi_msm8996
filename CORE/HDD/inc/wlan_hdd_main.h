@@ -61,6 +61,7 @@
 #include "sapApi.h"
 #endif
 #include "wlan_hdd_nan_datapath.h"
+#include "tl_shim.h"
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -375,10 +376,6 @@ typedef struct hdd_tx_rx_stats_s
    __u32    rxDropped[NUM_CPUS];
    __u32    rxDelivered[NUM_CPUS];
    __u32    rxRefused[NUM_CPUS];
-
-   __u32    netq_disable_cnt;
-   __u32    netq_enable_cnt;
-   bool     netq_state_off;
 
    bool     is_txflow_paused;
    __u32    txflow_pause_cnt;
@@ -892,14 +889,12 @@ typedef struct hdd_scaninfo_s
 
 }hdd_scaninfo_t;
 
-#define WLAN_HDD_MAX_MC_ADDR_LIST 10
-
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 typedef struct multicast_addr_list
 {
    v_U8_t isFilterApplied;
    v_U8_t mc_cnt;
-   v_U8_t addr[WLAN_HDD_MAX_MC_ADDR_LIST][ETH_ALEN];
+   v_U8_t *addr;
 } t_multicast_add_list;
 #endif
 
@@ -949,6 +944,33 @@ struct hdd_runtime_pm_context {
 struct hdd_adapter_pm_context {
 	void *connect;
 };
+
+#define WLAN_HDD_MAX_HISTORY_ENTRY     10
+
+/**
+ * struct hdd_netif_queue_stats - netif queue operation statistics
+ * @pause_count - pause counter
+ * @unpause_count - unpause counter
+ */
+struct hdd_netif_queue_stats {
+	uint16_t pause_count;
+	uint16_t unpause_count;
+};
+
+/**
+ * struct hdd_netif_queue_history - netif queue operation history
+ * @time: timestamp
+ * @netif_action: action type
+ * @netif_reason: reason type
+ * @pause_map: pause map
+ */
+struct hdd_netif_queue_history {
+	vos_time_t time;
+	uint16_t netif_action;
+	uint16_t netif_reason;
+	uint32_t pause_map;
+};
+
 
 struct hdd_adapter_s
 {
@@ -1117,6 +1139,11 @@ struct hdd_adapter_s
 #endif
    uint8_t addr_filter_pattern;
 
+   /* to store the time of last bug report generated in HDD */
+   uint64_t last_tx_jiffies;
+   /* stores how many times timeout happens since last bug report generation */
+   uint8_t bug_report_count;
+
    v_BOOL_t higherDtimTransition;
    v_BOOL_t survey_idx;
 
@@ -1184,6 +1211,20 @@ struct hdd_adapter_s
     int ocb_mac_addr_count;
     struct hdd_adapter_pm_context runtime_context;
     struct mib_stats_metrics mib_stats;
+
+    /* BITMAP indicating pause reason */
+    uint32_t pause_map;
+    spinlock_t pause_map_lock;
+
+    adf_os_time_t start_time;
+    adf_os_time_t last_time;
+    adf_os_time_t total_pause_time;
+    adf_os_time_t total_unpause_time;
+
+    uint8_t history_index;
+    struct hdd_netif_queue_history
+            queue_oper_history[WLAN_HDD_MAX_HISTORY_ENTRY];
+    struct hdd_netif_queue_stats queue_oper_stats[WLAN_REASON_TYPE_MAX];
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1408,6 +1449,16 @@ struct hdd_bpf_context {
 	unsigned int magic;
 	struct completion completion;
 	struct sir_bpf_get_offload capability_response;
+};
+
+/**
+ * struct acs_dfs_policy - Define ACS policies
+ * @acs_dfs_mode: Dfs mode enabled/disabled.
+ * @acs_channel: pre defined channel to avoid ACS.
+ */
+struct acs_dfs_policy {
+	enum dfs_mode acs_dfs_mode;
+	uint8_t acs_channel;
 };
 
 /** Adapter stucture definition */
@@ -1762,11 +1813,16 @@ struct hdd_context_s
      * at runtime and intersecting it with target capab before updating.
      */
     uint32_t fine_time_meas_cap_target;
+
+    int radio_index;
+
 #ifdef WLAN_FEATURE_NAN_DATAPATH
     bool nan_datapath_enabled;
 #endif
     unsigned int last_scan_bug_report_timestamp;
     bool driver_being_stopped; /* Track if DRIVER STOP cmd is sent */
+    uint8_t max_mc_addr_list;
+    struct acs_dfs_policy acs_policy;
 };
 
 /*---------------------------------------------------------------------------
@@ -1913,7 +1969,7 @@ void wlan_hdd_send_version_pkg(v_U32_t fw_version,
                                const char *chip_name);
 void wlan_hdd_send_all_scan_intf_info(hdd_context_t *pHddCtx);
 #endif
-void wlan_hdd_send_svc_nlink_msg(int type, void *data, int len);
+void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len);
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_U8_t enable);
 #endif
@@ -2062,6 +2118,8 @@ int wlan_hdd_init_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_deinit_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_display_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
+void wlan_hdd_display_netif_queue_history(hdd_context_t *hdd_ctx);
+void wlan_hdd_clear_netif_queue_history(hdd_context_t *hdd_ctx);
 
 void hdd_runtime_suspend_init(hdd_context_t *);
 void hdd_runtime_suspend_deinit(hdd_context_t *);
@@ -2089,4 +2147,72 @@ int hdd_enable_disable_ca_event(hdd_context_t *hddctx,
 void wlan_hdd_undo_acs(hdd_adapter_t *adapter);
 void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
 				enum antenna_mode forced);
+#ifdef CONFIG_CNSS_LOGGER
+/**
+ * wlan_hdd_nl_init() - wrapper function to CNSS_LOGGER case
+ * @hdd_ctx:	the hdd context pointer
+ *
+ * The nl_srv_init() will call to cnss_logger_device_register() and
+ * expect to get a radio_index from cnss_logger module and assign to
+ * hdd_ctx->radio_index, then to maintain the consistency to original
+ * design, adding the radio_index check here, then return the error
+ * code if radio_index is not assigned correctly, which means the nl_init
+ * from cnss_logger is failed.
+ *
+ * Return: 0 if successfully, otherwise error code
+ */
+static inline int wlan_hdd_nl_init(hdd_context_t *hdd_ctx)
+{
+	hdd_ctx->radio_index = nl_srv_init(hdd_ctx->wiphy);
+
+	/* radio_index is assigned from 0, so only >=0 will be valid index  */
+	if (hdd_ctx->radio_index >= 0)
+		return 0;
+	else
+		return -EINVAL;
+}
+#else
+/**
+ * wlan_hdd_nl_init() - wrapper function to non CNSS_LOGGER case
+ * @hdd_ctx:	the hdd context pointer
+ *
+ * In case of non CNSS_LOGGER case, the nl_srv_init() will initialize
+ * the netlink socket and return the success or not.
+ *
+ * Return: the return value from  nl_srv_init()
+ */
+static inline int wlan_hdd_nl_init(hdd_context_t *hdd_ctx)
+{
+	return nl_srv_init(hdd_ctx->wiphy);
+}
+#endif
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+int hdd_init_packet_filtering(hdd_context_t *hdd_ctx,
+					hdd_adapter_t *adapter);
+void hdd_deinit_packet_filtering(hdd_adapter_t *adapter);
+#else
+static inline int hdd_init_packet_filtering(hdd_context_t *hdd_ctx,
+						hdd_adapter_t *adapter)
+{
+	return 0;
+}
+static inline void hdd_deinit_packet_filtering(hdd_adapter_t *adapter)
+{
+}
+#endif
+enum  sap_acs_dfs_mode wlan_hdd_get_dfs_mode(enum dfs_mode mode);
+void hdd_ch_avoid_cb(void *hdd_context, void *indi_param);
+uint8_t hdd_find_prefd_safe_chnl(hdd_context_t *hdd_ctxt,
+		hdd_adapter_t *ap_adapter);
+void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx);
+
+#if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || \
+	defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
+void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter);
+#else
+static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
+{
+}
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

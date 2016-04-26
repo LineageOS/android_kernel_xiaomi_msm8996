@@ -29093,7 +29093,6 @@ static VOS_STATUS wma_set_bpf_instructions(tp_wma_handle wma,
 		buf_ptr += WMI_TLV_HDR_SIZE;
 		vos_mem_copy(buf_ptr, bpf_set_offload->program,
 					bpf_set_offload->current_length);
-		vos_mem_free(bpf_set_offload->program);
 	}
 
 	if (wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
@@ -32506,6 +32505,8 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	hdd_tgt_cfg.bpf_enabled = wma_handle->bpf_enabled;
 	wma_update_hdd_cfg_ndp(wma_handle, &hdd_tgt_cfg);
 	wma_setup_egap_support(&hdd_tgt_cfg, wma_handle);
+        hdd_tgt_cfg.max_mc_addr_list =
+                wma_handle->wlan_resource_config.num_multicast_filter_entries;
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
 static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
@@ -35165,6 +35166,7 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 		{
 			WMA_LOGE("%s:Application triggered channel switch in progress!.. drop radar event indiaction to SAP",
 				__func__);
+			vos_mem_free(radar_event);
 			adf_os_spin_unlock_bh(&ic->chan_lock);
 			return 0;
 		}

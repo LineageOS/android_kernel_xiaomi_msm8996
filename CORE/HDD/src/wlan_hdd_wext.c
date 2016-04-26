@@ -98,6 +98,7 @@
 #include "wlan_qct_wda.h"
 #include "vos_trace.h"
 #include "wlan_hdd_assoc.h"
+#include "adf_trace.h"
 
 #ifdef QCA_PKT_PROTO_TRACE
 #include "vos_packet.h"
@@ -320,7 +321,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
-/* 2 is unused */
+#define WE_SET_DP_TRACE      2
 #define WE_SET_SAP_CHANNELS  3
 
 /* Private ioctls and their sub-ioctls */
@@ -455,6 +456,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_FW_CRASH_INJECT    2
 #endif
 #define WE_SET_MON_MODE_CHAN 3
+#define WE_DUMP_DP_TRACE_LEVEL    4
+#define DUMP_DP_TRACE       0
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -695,17 +698,18 @@ int hdd_priv_get_data(struct iw_point *p_priv_data,
             extra - Pointer to char
 
 
-  \return - none
+  \return - zero on success, non zero value on failure
 
   --------------------------------------------------------------------------*/
-void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
+int hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
                         char *buffer, v_U16_t buf_len)
 {
     hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
     v_U32_t len;
     __u32 total_rxPkt = 0, total_rxDropped = 0;
     __u32 total_rxDelv = 0, total_rxRefused = 0;
-    int i = 0;
+    int i = 0, ret;
+    VOS_STATUS status;
 
     for (; i < NUM_CPUS; i++) {
         total_rxPkt += pStats->rxPackets[i];
@@ -739,34 +743,51 @@ void hdd_wlan_get_stats(hdd_adapter_t *pAdapter, v_U16_t *length,
         pStats->txCompleted,
         total_rxPkt, total_rxDropped, total_rxDelv, total_rxRefused);
 
+    if (len >= buf_len) {
+        hddLog(LOGE,FL("Insufficient buffer:%d, %d"), buf_len, len);
+        return -E2BIG;
+    }
+
     for (i = 0; i < NUM_CPUS; i++) {
-        len += snprintf(buffer+len, buf_len-len,
+        ret = snprintf(buffer+len, buf_len-len,
             "\nReceive CPU: %d"
             "\n  packets %u, dropped %u, delivered %u, refused %u",
             i, pStats->rxPackets[i], pStats->rxDropped[i],
             pStats->rxDelivered[i], pStats->rxRefused[i]);
+        if (ret >= (buf_len-len)) {
+            hddLog(LOGE,FL("Insufficient buffer:%d, %d"), (buf_len-len), ret);
+            return -E2BIG;
+        }
+        len += ret;
     }
-    len += snprintf(buffer+len, buf_len-len,
-        "\n"
-        "\nNetQueue State : %s"
-        "\n  disable %u, enable %u"
+    ret = snprintf(buffer+len, buf_len-len,
         "\n\nTX_FLOW"
         "\nCurrent status %s"
         "\ntx-flow timer start count %u"
         "\npause count %u, unpause count %u\n",
-        (pStats->netq_state_off == TRUE ? "OFF" : "ON"),
-        pStats->netq_disable_cnt,
-        pStats->netq_enable_cnt,
         (pStats->is_txflow_paused == TRUE ? "PAUSED" : "UNPAUSED"),
         pStats->txflow_timer_cnt,
         pStats->txflow_pause_cnt,
         pStats->txflow_unpause_cnt
         );
 
-    WLANTL_Get_llStats(pAdapter->sessionId,
+    if (ret >= (buf_len-len)) {
+        hddLog(LOGE,FL("Insufficient buffer:%d, %d"), (buf_len-len), ret);
+        return -E2BIG;
+    }
+    len += ret;
+
+    status = WLANTL_Get_llStats(pAdapter->sessionId,
             &buffer[len], (buf_len - len));
+    if (!VOS_IS_STATUS_SUCCESS(status)) {
+        hddLog(LOGE,FL("Error in getting stats:%d"), ret);
+        ret = (status == VOS_STATUS_E_NOMEM) ? -E2BIG: -EINVAL;
+        return ret;
+    }
 
     *length = strlen(buffer) + 1;
+
+    return 0;
 }
 
 /**---------------------------------------------------------------------------
@@ -789,6 +810,9 @@ void hdd_wlan_dump_stats(hdd_adapter_t *pAdapter, int value)
     {
         case WLAN_TXRX_HIST_STATS:
             wlan_hdd_display_tx_rx_histogram(hdd_ctx);
+            break;
+        case WLAN_HDD_NETIF_OPER_HISTORY:
+            wlan_hdd_display_netif_queue_history(hdd_ctx);
             break;
         default:
             WLANTL_display_datapath_stats(hdd_ctx->pvosContext, value);
@@ -1019,7 +1043,7 @@ int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 }
 int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 {
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    tHalHandle hHal;
     v_U32_t threshold = 0, ret;
     hdd_context_t *hdd_ctx;
 
@@ -1031,6 +1055,7 @@ int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
         return -EINVAL;
     }
 
+    hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(hdd_ctx);
     if (0 != ret)
@@ -5581,10 +5606,9 @@ static int __iw_set_mlme(struct net_device *dev, struct iw_request_info *info,
                 (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->authKeyMgmt = 0;
 
                 hddLog(LOG1, FL("Disabling queues"));
-                netif_tx_disable(dev);
-                netif_carrier_off(dev);
-                pAdapter->hdd_stats.hddTxRxStats.netq_disable_cnt++;
-                pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
+                wlan_hdd_netif_queue_control(pAdapter,
+                    WLAN_NETIF_TX_DISABLE_N_CARRIER,
+                    WLAN_CONTROL_PATH);
 
             }
             else
@@ -7030,6 +7054,9 @@ static int __iw_setint_getnone(struct net_device *dev,
              case WLAN_TXRX_HIST_STATS:
                  wlan_hdd_clear_tx_rx_histogram(pHddCtx);
                  break;
+             case WLAN_HDD_NETIF_OPER_HISTORY:
+                 wlan_hdd_clear_netif_queue_history(hdd_ctx);
+                 break;
              default:
                  WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
                  break;
@@ -8180,7 +8207,9 @@ static int __iw_set_three_ints_getnone(struct net_device *dev,
     case WE_SET_WLAN_DBG:
        vos_trace_setValue( value[1], value[2], value[3]);
        break;
-
+    case WE_SET_DP_TRACE:
+       adf_dp_trace_set_value(value[1], value[2], value[3]);
+       break;
     case WE_SET_SAP_CHANNELS:
         /* value[3] the acs band is not required as start and end channels are
          * enough but this cmd is maintained under set three ints for historic
@@ -8252,9 +8281,8 @@ static int __iw_get_char_setnone(struct net_device *dev,
 
         case WE_GET_STATS:
         {
-            hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
+            return hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
                                extra, WE_MAX_STR_LEN);
-            break;
         }
 
 /* The case prints the current state of the HDD, SME, CSR, PE, TL
@@ -10287,8 +10315,8 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                 for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++)
                 {
                     memcpy(pMulticastAddrs->multicastAddr[i],
-                           pAdapter->mc_addr_list.addr[i],
-                           sizeof(pAdapter->mc_addr_list.addr[i]));
+                           &pAdapter->mc_addr_list.addr[i * ETH_ALEN],
+                           ETH_ALEN);
                     hddLog(VOS_TRACE_LEVEL_INFO,
                             "%s: %s multicast filter: addr ="
                             MAC_ADDRESS_STR,
@@ -10308,10 +10336,13 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
             {
                 pMulticastAddrs->ulMulticastAddrCnt =
                                  pAdapter->mc_addr_list.mc_cnt;
-                for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++) {
+                i = 0;
+                while (0 < pAdapter->mc_addr_list.mc_cnt) {
                     memcpy(pMulticastAddrs->multicastAddr[i],
-                           pAdapter->mc_addr_list.addr[i],
-                           sizeof(pAdapter->mc_addr_list.addr[i]));
+                           &pAdapter->mc_addr_list.addr[i * ETH_ALEN],
+                           ETH_ALEN);
+                    pAdapter->mc_addr_list.mc_cnt--;
+                    i++;
                     hddLog(VOS_TRACE_LEVEL_INFO,
                             "%s: clearing multicast filter: addr ="
                             MAC_ADDRESS_STR,
@@ -11353,7 +11384,14 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             ret = -EINVAL;
         }
         break;
-
+    case WE_DUMP_DP_TRACE_LEVEL:
+        hddLog(LOG1, "WE_DUMP_DP_TRACE_LEVEL: %d %d",
+                       value[1], value[2]);
+        if (value[1] == DUMP_DP_TRACE)
+            adf_dp_trace_dump_all(value[2]);
+        else
+            hddLog(LOGE, "unexpected value for dump_dp_trace");
+        break;
     default:
         hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd);
         break;
@@ -12229,6 +12267,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setwlandbg" },
 
+    /* handlers for sub-ioctl */
+    {   WE_SET_DP_TRACE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0,
+        "set_dp_trace"},
+
     {   WE_SET_SAP_CHANNELS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
@@ -12547,6 +12591,9 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_MON_MODE_CHAN,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "setMonChan" },
+    {   WE_DUMP_DP_TRACE_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0, "dump_dp_trace"},
 };
 
 

@@ -92,6 +92,7 @@ extern int process_wma_set_command(int sessid, int paramid,
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
+#include "adf_trace.h"
 #include "wlan_hdd_cfg.h"
 #include <wlan_hdd_wowl.h>
 #include "wlan_hdd_tsf.h"
@@ -117,6 +118,8 @@ extern int process_wma_set_command(int sessid, int paramid,
 
 /* EID byte + length byte + four byte WiFi OUI */
 #define DOT11F_EID_HEADER_LEN (6)
+
+#define DUMP_DP_TRACE       0
 
 /*---------------------------------------------------------------------------
  *   Function definitions
@@ -266,11 +269,11 @@ static int __hdd_hostapd_open(struct net_device *dev)
        goto done;
    }
 
-   //Turn ON carrier state
-   netif_carrier_on(dev);
    //Enable all Tx queues
    hddLog(LOG1, FL("Enabling queues"));
-   netif_tx_start_all_queues(dev);
+   wlan_hdd_netif_queue_control(pAdapter,
+        WLAN_START_ALL_NETIF_QUEUE_N_CARRIER,
+        WLAN_CONTROL_PATH);
 done:
    EXIT();
    return 0;
@@ -306,12 +309,11 @@ static int __hdd_hostapd_stop(struct net_device *dev)
    ENTER();
 
    if (NULL != dev) {
+       hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
        //Stop all tx queues
        hddLog(LOG1, FL("Disabling queues"));
-       netif_tx_disable(dev);
-
-       //Turn OFF carrier state
-       netif_carrier_off(dev);
+       wlan_hdd_netif_queue_control(adapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
+            WLAN_CONTROL_PATH);
    }
 
    EXIT();
@@ -971,7 +973,7 @@ static void hdd_issue_stored_joinreq(hdd_adapter_t *sta_adapter,
                               hdd_context_t *hdd_ctx)
 {
     tHalHandle hal_handle;
-    uint32_t roam_id;
+    uint32_t roam_id = 0;
 
     if (NULL == sta_adapter) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -1606,8 +1608,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             goto stopbss;
 
         case eSAP_DFS_CAC_START:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_START_IND,
-                                      &dfs_info, sizeof(struct wlan_dfs_info));
+            wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                        WLAN_SVC_DFS_CAC_START_IND,
+                                        &dfs_info,
+                                        sizeof(dfs_info));
             pHddCtx->dev_dfs_cac_status = DFS_CAC_IN_PROGRESS;
             if (VOS_STATUS_SUCCESS !=
                       hdd_send_radar_event(pHddCtx, eSAP_DFS_CAC_START,
@@ -1641,8 +1645,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             break;
 
         case eSAP_DFS_CAC_END:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_CAC_END_IND,
-                                      &dfs_info, sizeof(struct wlan_dfs_info));
+            wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                        WLAN_SVC_DFS_CAC_END_IND,
+                                        &dfs_info,
+                                        sizeof(dfs_info));
             pHddApCtx->dfs_cac_block_tx = VOS_FALSE;
             pHddCtx->dev_dfs_cac_status = DFS_CAC_ALREADY_DONE;
             if (VOS_STATUS_SUCCESS !=
@@ -1656,8 +1662,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             break;
 
         case eSAP_DFS_RADAR_DETECT:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_RADAR_DETECT_IND,
-                                      &dfs_info, sizeof(struct wlan_dfs_info));
+            wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                        WLAN_SVC_DFS_RADAR_DETECT_IND,
+                                        &dfs_info,
+                                        sizeof(dfs_info));
             pHddCtx->dev_dfs_cac_status = DFS_CAC_NEVER_DONE;
             if (VOS_STATUS_SUCCESS !=
                       hdd_send_radar_event(pHddCtx, eSAP_DFS_RADAR_DETECT,
@@ -1670,8 +1678,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             break;
 
         case eSAP_DFS_NO_AVAILABLE_CHANNEL:
-            wlan_hdd_send_svc_nlink_msg(WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND,
-                                      &dfs_info, sizeof(struct wlan_dfs_info));
+            wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                                        WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND,
+                                        &dfs_info,
+                                        sizeof(dfs_info));
             break;
 
         case eSAP_STA_SET_KEY_EVENT:
@@ -2585,6 +2595,14 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
                                            value[1], value[2], GEN_CMD);
         break;
 #endif
+    case QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL:
+        hddLog(LOG1, "WE_DUMP_DP_TRACE: %d %d",
+            value[1], value[2]);
+        if (value[1] == DUMP_DP_TRACE)
+            adf_dp_trace_dump_all(value[2]);
+        else
+            hddLog(LOGE, "unexpected value for dump_dp_trace");
+        break;
     default:
         hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd);
         break;
@@ -3434,18 +3452,22 @@ static __iw_softap_setparam(struct net_device *dev,
             {
                 hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
 
-                hddLog(LOG1, "QCASAP_CLEAR_STATS val %d", set_value);
+                hddLog(LOG1, FL("QCASAP_CLEAR_STATS val %d"), set_value);
 
-                if (set_value == WLAN_HDD_STATS) {
+                switch (set_value) {
+                case WLAN_HDD_STATS:
                     memset(&pHostapdAdapter->stats, 0,
                                  sizeof(pHostapdAdapter->stats));
                     memset(&pHostapdAdapter->hdd_stats, 0,
                                  sizeof(pHostapdAdapter->hdd_stats));
-                } else {
+                    break;
+                case WLAN_HDD_NETIF_OPER_HISTORY:
+                    wlan_hdd_clear_netif_queue_history(hdd_ctx);
+                    break;
+                default:
                     WLANTL_clear_datapath_stats(hdd_ctx->pvosContext,
                                                              set_value);
                 }
-
                 break;
             }
 
@@ -4244,7 +4266,7 @@ static __iw_softap_ap_stats(struct net_device *dev,
         hddLog(LOG1, "unable to allocate memory");
         return -ENOMEM;
     }
-    len = scnprintf(pstatbuf, wrqu->data.length,
+    len = snprintf(pstatbuf, wrqu->data.length,
                     "RUF=%d RMF=%d RBF=%d "
                     "RUB=%d RMB=%d RBB=%d "
                     "TUF=%d TMF=%d TBF=%d "
@@ -4256,14 +4278,18 @@ static __iw_softap_ap_stats(struct net_device *dev,
                     (int)statBuffer.txBCFcnt, (int)statBuffer.txUCBcnt,
                     (int)statBuffer.txMCBcnt, (int)statBuffer.txBCBcnt);
 
-    if (len > wrqu->data.length ||
-        copy_to_user((void *)wrqu->data.pointer, (void *)pstatbuf, len))
-    {
+    if (len >= wrqu->data.length) {
+        hddLog(LOG1, "%s: Insufficient buffer:%d, %d",
+            __func__, wrqu->data.length, len);
+        kfree(pstatbuf);
+        return -E2BIG;
+    }
+    if (copy_to_user((void *)wrqu->data.pointer, (void *)pstatbuf, len)) {
         hddLog(LOG1, "%s: failed to copy data to user buffer", __func__);
         kfree(pstatbuf);
         return -EFAULT;
     }
-    wrqu->data.length -= len;
+    wrqu->data.length = len;
     kfree(pstatbuf);
     EXIT();
     return 0;
@@ -4309,9 +4335,8 @@ static __iw_get_char_setnone(struct net_device *dev,
     {
         case QCSAP_GET_STATS:
         {
-            hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
+            return hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
                                extra, WE_MAX_STR_LEN);
-            break;
         }
     }
     return 0;
@@ -4929,45 +4954,6 @@ static int __iw_set_ap_mlme(struct net_device *dev,
 			    union iwreq_data *wrqu,
 			    char *extra)
 {
-#if 0
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
-    struct iw_mlme *mlme = (struct iw_mlme *)extra;
-
-    ENTER();
-
-    //reason_code is unused. By default it is set to eCSR_DISCONNECT_REASON_UNSPECIFIED
-    switch (mlme->cmd) {
-        case IW_MLME_DISASSOC:
-        case IW_MLME_DEAUTH:
-            hddLog(LOG1, "Station disassociate");
-            if( pAdapter->conn_info.connState == eConnectionState_Associated )
-            {
-                eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_UNSPECIFIED;
-
-                if( mlme->reason_code == HDD_REASON_MICHAEL_MIC_FAILURE )
-                    reason = eCSR_DISCONNECT_REASON_MIC_ERROR;
-
-                status = sme_RoamDisconnect( pAdapter->hHal,pAdapter->sessionId, reason);
-
-                //clear all the reason codes
-                if (status != 0)
-                {
-                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d", __func__, (int)mlme->cmd, (int)status );
-                }
-
-               netif_stop_queue(dev);
-               netif_carrier_off(dev);
-            }
-            else
-            {
-                hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate called but station is not in associated state", __func__, (int)mlme->cmd );
-            }
-        default:
-            hddLog(LOGE,"%s %d Command should be Disassociate/Deauthenticate", __func__, (int)mlme->cmd );
-            return -EINVAL;
-    }//end of switch
-    EXIT();
-#endif
     return 0;
 //    return status;
 }
@@ -5754,7 +5740,7 @@ static int iw_softap_version(struct net_device *dev,
 	return ret;
 }
 
-static VOS_STATUS
+static int
 hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
 {
     v_U8_t i;
@@ -5777,7 +5763,11 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
     if (0 != ret)
         return ret;
 
-    len = scnprintf(pBuf, buf_len, sta_info_header);
+    len = snprintf(pBuf, buf_len, sta_info_header);
+    if (len >= buf_len) {
+        hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
+        return -E2BIG;
+    }
     pBuf += len;
     buf_len -= len;
 
@@ -5795,6 +5785,10 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
                                        pAdapter->aStaInfo[i].macAddrSTA.bytes[3],
                                        pAdapter->aStaInfo[i].macAddrSTA.bytes[4],
                                        pAdapter->aStaInfo[i].macAddrSTA.bytes[5]);
+            if (len >= buf_len) {
+                hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
+                return -E2BIG;
+            }
             pBuf += len;
             buf_len -= len;
         }
@@ -5804,7 +5798,7 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
         }
     }
     EXIT();
-    return VOS_STATUS_SUCCESS;
+    return 0;
 }
 
 static int __iw_softap_get_sta_info(struct net_device *dev,
@@ -5813,7 +5807,6 @@ static int __iw_softap_get_sta_info(struct net_device *dev,
                                     char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    VOS_STATUS status;
     hdd_context_t *hdd_ctx;
     int ret;
 
@@ -5824,10 +5817,10 @@ static int __iw_softap_get_sta_info(struct net_device *dev,
     if (0 != ret)
         return ret;
 
-    status = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
-    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+    ret = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
+    if (ret) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!",__func__);
-       return -EINVAL;
+       return ret;
     }
     wrqu->data.length = strlen(extra);
     EXIT();
@@ -6755,6 +6748,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
        0,
        "setsapchannels" },
 
+   /* handlers for sub-ioctl */
+   {  WE_SET_DP_TRACE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+      0,
+      "set_dp_trace" },
+
    /* handlers for main ioctl */
    {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
@@ -6872,6 +6871,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   QCASAP_SET_RADAR_DBG,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,  "setRadarDbg" },
+
+    /* dump dp trace - descriptor or dp trace records */
+    {   QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0, "dump_dp_trace" },
 };
 
 static const iw_handler hostapd_private[] = {
@@ -6948,6 +6952,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
 #ifdef WLAN_FEATURE_MBSSID
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
     v_CONTEXT_t sapContext=NULL;
+    enum dfs_mode mode;
 #endif
     int ret;
 
@@ -6971,6 +6976,11 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     }
 
     pAdapter->sessionCtx.ap.sapContext = sapContext;
+    pAdapter->sessionCtx.ap.sapConfig.channel = pHddCtx->acs_policy.acs_channel;
+    mode = pHddCtx->acs_policy.acs_dfs_mode;
+    pAdapter->sessionCtx.ap.sapConfig.acs_dfs_mode =
+          wlan_hdd_get_dfs_mode(mode);
+
 
     status = WLANSAP_Start(sapContext);
     if ( ! VOS_IS_STATUS_SUCCESS( status ) )
@@ -7146,6 +7156,11 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
                            pWlanHostapdDev->hard_header_len);
 
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
+        spin_lock_init(&pHostapdAdapter->pause_map_lock);
+        pHostapdAdapter->last_tx_jiffies = jiffies;
+        pHostapdAdapter->bug_report_count = 0;
+        pHostapdAdapter->start_time =
+            pHostapdAdapter->last_time = vos_system_ticks();
     }
     return pHostapdAdapter;
 }
