@@ -4007,3 +4007,22 @@ VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wlansap_get_chan_width() - get sap channel width.
+ * @pvosctx: pointer of global vos context
+ * @pchanwidth: pointer of channel width
+ *
+ * This function get channel width of sap.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS
+wlansap_get_chan_width(void *pvosctx, uint32_t *pchanwidth)
+{
+	ptSapContext sapcontext;
+	sapcontext = VOS_GET_SAP_CB(pvosctx);
+	*pchanwidth = wlan_sap_get_vht_ch_width(sapcontext);
+
+	return VOS_STATUS_SUCCESS;
+}
+

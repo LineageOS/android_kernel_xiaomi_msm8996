@@ -2394,6 +2394,8 @@ wlansap_get_phymode(v_PVOID_t pctx);
 VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
 			uint16 tx_leakage_threshold);
 
+VOS_STATUS wlansap_get_chan_width(void *pvosctx,
+			uint32_t *pchanwidth);
 
 #ifdef __cplusplus
  }
