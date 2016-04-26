@@ -2472,6 +2472,42 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
     return ret;
 }
 
+/**
+ * hdd_sap_get_chan_width() - get channel width of sap
+ * @adapter: adapter being queried
+ * @value: where to store the value
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int hdd_sap_get_chan_width(hdd_adapter_t *adapter, int *value)
+{
+	void *pvosctx;
+	uint32_t vht_channel_width = 0;
+	hdd_context_t *hdd_ctx;
+	hdd_hostapd_state_t *phostapdstate;
+
+	ENTER();
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	phostapdstate = WLAN_HDD_GET_HOSTAP_STATE_PTR(adapter);
+
+	if (phostapdstate->bssState != BSS_START) {
+		*value = -EINVAL;
+		return -EINVAL;
+	}
+
+#ifdef WLAN_FEATURE_MBSSID
+	pvosctx = WLAN_HDD_GET_SAP_CTX_PTR(adapter);
+#else
+	pvosctx = hdd_ctx->pvosContext;
+#endif
+
+	wlansap_get_chan_width(pvosctx, &vht_channel_width);
+	*value = vht_channel_width;
+	hddLog(LOGW, FL("chan_width = %d"), vht_channel_width);
+
+	return 0;
+}
+
 int
 static __iw_softap_set_ini_cfg(struct net_device *dev,
                           struct iw_request_info *info,
@@ -3792,6 +3828,9 @@ static __iw_softap_getparam(struct net_device *dev,
         ret = hdd_get_rx_stbc(pHostapdAdapter, value);
         break;
 
+    case QCSAP_PARAM_CHAN_WIDTH:
+        ret = hdd_sap_get_chan_width(pHostapdAdapter, value);
+        break;
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -6687,6 +6726,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_tx_stbc" },
   { QCASAP_PARAM_RX_STBC, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_rx_stbc" },
+  { QCSAP_PARAM_CHAN_WIDTH, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_chwidth" },
 #ifdef WLAN_FEATURE_TSF
   { QCSAP_CAP_TSF, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "cap_tsf" },
