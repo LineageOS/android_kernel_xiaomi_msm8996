@@ -12971,7 +12971,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
 #endif
 
-   nl_srv_exit();
    hdd_close_cesium_nl_sock();
 
    hdd_runtime_suspend_deinit(pHddCtx);
@@ -12993,6 +12992,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_list_destroy(&pHddCtx->hdd_roc_req_q);
 
 free_hdd_ctx:
+   nl_srv_exit();
 
    /* Free up dynamically allocated members inside HDD Adapter */
    if (pHddCtx->cfg_ini) {
@@ -14576,6 +14576,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    print_hdd_cfg(pHddCtx);
 
+   /* Initialize the nlink service */
+   if (wlan_hdd_nl_init(pHddCtx) != 0) {
+      hddLog(LOGP, FL("nl_srv_init failed"));
+      goto err_config;
+   }
+
    if (VOS_FTM_MODE == hdd_get_conparam())
        goto ftm_processing;
 
@@ -15029,12 +15035,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    reg_netdev_notifier_done = TRUE;
 #endif
 
-   /* Initialize the nlink service */
-   if (wlan_hdd_nl_init(pHddCtx) != 0) {
-      hddLog(LOGP, FL("nl_srv_init failed"));
-      goto err_reg_netdev;
-   }
-
 #ifdef WLAN_KD_READY_NOTIFIER
    pHddCtx->kd_nl_init = 1;
 #endif /* WLAN_KD_READY_NOTIFIER */
@@ -15318,7 +15318,6 @@ err_nl_srv:
    nl_srv_exit();
    hdd_close_cesium_nl_sock();
 
-err_reg_netdev:
    if (rtnl_lock_enable == TRUE) {
       rtnl_lock_enable = FALSE;
       rtnl_unlock();
@@ -16529,7 +16528,6 @@ void hdd_ch_avoid_cb
    }
    hdd_avoid_freq_list.avoidFreqRangeCount = ch_avoid_indi->avoid_range_count;
 
-   wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
 
    /* clear existing unsafe channel cache */
    hdd_ctxt->unsafe_channel_count = 0;
@@ -16624,10 +16622,16 @@ void hdd_ch_avoid_cb
    }
 #endif
 
-    if (0 == hdd_ctxt->unsafe_channel_count)
+   /*
+    * first update the unsafe channel list to the platform driver and
+    * send the avoid freq event to the application
+    */
+   wlan_hdd_send_avoid_freq_event(hdd_ctxt, &hdd_avoid_freq_list);
+
+   if (0 == hdd_ctxt->unsafe_channel_count)
        return;
-    hdd_unsafe_channel_restart_sap(hdd_ctxt);
-    return;
+   hdd_unsafe_channel_restart_sap(hdd_ctxt);
+   return;
 }
 #endif /* FEATURE_WLAN_CH_AVOID */
 
@@ -16847,9 +16851,8 @@ void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
     switch(type) {
     case WLAN_SVC_FW_CRASHED_IND:
     case WLAN_SVC_LTE_COEX_IND:
-#ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
-#endif
+    case WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND:
         wnl->wmsg.length = 0;
         wnl->nlh.nlmsg_len = NLMSG_LENGTH(
                 (sizeof(tAniMsgHdr) + sizeof(wnl->radio)));
@@ -17011,6 +17014,8 @@ void wlan_hdd_auto_shutdown_enable(hdd_context_t *hdd_ctx, v_BOOL_t enable)
         if (sme_set_auto_shutdown_timer(hHal, 0) != eHAL_STATUS_SUCCESS) {
                hddLog(LOGE, FL("Failed to stop wlan auto shutdown timer"));
         }
+        wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+                        WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND, NULL, 0);
         return;
     }
 

@@ -1539,6 +1539,10 @@ ifeq ($(CONFIG_DPTRACE_ENABLE), y)
 CDEFINES += -DFEATURE_DPTRACE_ENABLE
 endif
 
+ifeq ($(CONFIG_HIF_PCI), 1)
+CDEFINES += -DFORCE_LEGACY_PCI_INTERRUPTS
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile
