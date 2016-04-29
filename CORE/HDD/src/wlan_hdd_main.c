@@ -14600,6 +14600,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(LOGP, FL("nl_srv_init failed"));
       goto err_config;
    }
+   vos_set_radio_index(pHddCtx->radio_index);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
        goto ftm_processing;
