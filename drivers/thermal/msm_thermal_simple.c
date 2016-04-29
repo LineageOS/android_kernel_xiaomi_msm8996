@@ -124,8 +124,6 @@ static void msm_thermal_main(struct work_struct *work)
 				 * zone's trip point.
 				 */
 				break;
-			} else {
-				continue;
 			}
 		} else if (!i) {
 			/*
