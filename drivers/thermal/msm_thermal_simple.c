@@ -37,20 +37,20 @@
 #define UNTHROTTLE_ZONE (-1)
 
 struct throttle_policy {
-	int curr_zone;
-	unsigned int freq;
+	int32_t curr_zone;
+	uint32_t freq;
 };
 
 struct thermal_config {
 	struct qpnp_vadc_chip *vadc_dev;
 	enum qpnp_vadc_channels adc_chan;
-	unsigned int enabled;
-	unsigned int sampling_ms;
-	unsigned int user_maxfreq;
+	uint8_t enabled;
+	uint32_t sampling_ms;
+	uint32_t user_maxfreq;
 };
 
 struct thermal_zone {
-	unsigned int freq;
+	uint32_t freq;
 	int64_t trip_degC;
 	int64_t reset_degC;
 };
@@ -72,8 +72,8 @@ static void msm_thermal_main(struct work_struct *work)
 {
 	struct thermal_policy *t = container_of(work, typeof(*t), dwork.work);
 	struct qpnp_vadc_result result;
-	int curr_zone, old_zone;
-	int i, ret;
+	int32_t curr_zone, old_zone;
+	int32_t i, ret;
 	int64_t temp;
 
 	ret = qpnp_vadc_read(t->conf.vadc_dev, t->conf.adc_chan, &result);
@@ -164,7 +164,7 @@ static int do_cpu_throttle(struct notifier_block *nb,
 {
 	struct cpufreq_policy *policy = data;
 	struct thermal_policy *t = t_policy_g;
-	unsigned int throttle_freq, user_max;
+	uint32_t throttle_freq, user_max;
 
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
@@ -195,7 +195,7 @@ static struct notifier_block cpu_throttle_nb = {
 
 static void update_online_cpu_policy(void)
 {
-	unsigned int cpu;
+	uint32_t cpu;
 
 	/* Trigger cpufreq notifier for online CPUs */
 	get_online_cpus();
@@ -204,9 +204,9 @@ static void update_online_cpu_policy(void)
 	put_online_cpus();
 }
 
-static unsigned int get_thermal_zone_number(const char *filename)
+static uint32_t get_thermal_zone_number(const char *filename)
 {
-	unsigned int num;
+	uint32_t num;
 
 	/* Thermal zone sysfs nodes are named as "zone#" */
 	sscanf(filename, "zone%u", &num);
@@ -218,7 +218,7 @@ static ssize_t enabled_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct thermal_policy *t = t_policy_g;
-	unsigned int data;
+	uint32_t data;
 	int ret;
 
 	ret = sscanf(buf, "%u", &data);
@@ -247,7 +247,7 @@ static ssize_t sampling_ms_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct thermal_policy *t = t_policy_g;
-	unsigned int data;
+	uint32_t data;
 	int ret;
 
 	ret = sscanf(buf, "%u", &data);
@@ -265,7 +265,7 @@ static ssize_t thermal_zone_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct thermal_policy *t = t_policy_g;
-	unsigned int freq, idx;
+	uint32_t freq, idx;
 	int64_t trip_degC, reset_degC;
 	int ret;
 
@@ -288,7 +288,7 @@ static ssize_t user_maxfreq_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct thermal_policy *t = t_policy_g;
-	unsigned int data;
+	uint32_t data;
 	int ret;
 
 	ret = sscanf(buf, "%u", &data);
@@ -322,7 +322,7 @@ static ssize_t thermal_zone_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct thermal_policy *t = t_policy_g;
-	unsigned int idx;
+	uint32_t idx;
 
 	idx = get_thermal_zone_number(attr->attr.name);
 
