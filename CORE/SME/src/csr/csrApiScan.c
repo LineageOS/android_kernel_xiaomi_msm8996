@@ -5437,7 +5437,7 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
     tListElem *pEntry;
     tSmeCmd *pCommand;
     eCsrScanStatus scanStatus;
-    tSirSmeScanRsp *pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+    tSirSmeScanRsp *pScanRsp;
     tSmeGetScanChnRsp *pScanChnInfo;
     tANI_BOOLEAN fRemoveCommand = eANI_BOOLEAN_TRUE;
     eCsrScanReason reason = eCsrScanOther;
@@ -5453,7 +5453,6 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if ( eSmeCommandScan == pCommand->command )
         {
-            scanStatus = (eSIR_SME_SUCCESS == pScanRsp->statusCode) ? eCSR_SCAN_SUCCESS : eCSR_SCAN_FAILURE;
             reason = pCommand->u.scanCmd.reason;
             switch(pCommand->u.scanCmd.reason)
             {
@@ -5461,6 +5460,9 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             case eCsrScanAbortNormalScan:
             case eCsrScanBGScanAbort:
             case eCsrScanBGScanEnable:
+                pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+                scanStatus = (eSIR_SME_SUCCESS == pScanRsp->statusCode) ?
+                              eCSR_SCAN_SUCCESS : eCSR_SCAN_FAILURE;
                 break;
             case eCsrScanGetScanChnInfo:
                 pScanChnInfo = (tSmeGetScanChnRsp *)pMsgBuf;
@@ -5472,14 +5474,22 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                 csrScanAgeResults(pMac, pScanChnInfo);
                 break;
             case eCsrScanForCapsChange:
+                pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+                scanStatus = (eSIR_SME_SUCCESS == pScanRsp->statusCode) ?
+                              eCSR_SCAN_SUCCESS : eCSR_SCAN_FAILURE;
                 csrScanProcessScanResults( pMac, pCommand, pScanRsp, &fRemoveCommand );
                 break;
             case eCsrScanP2PFindPeer:
-              scanStatus = ((eSIR_SME_SUCCESS == pScanRsp->statusCode) && (pScanRsp->length > 50)) ? eCSR_SCAN_FOUND_PEER : eCSR_SCAN_FAILURE;
-              csrScanProcessScanResults( pMac, pCommand, pScanRsp, NULL );
-              break;
+                pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+                scanStatus = ((eSIR_SME_SUCCESS == pScanRsp->statusCode) &&
+                             (pScanRsp->length > 50)) ? eCSR_SCAN_FOUND_PEER : eCSR_SCAN_FAILURE;
+                csrScanProcessScanResults( pMac, pCommand, pScanRsp, NULL );
+                break;
             case eCsrScanSetBGScanParam:
             default:
+                pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+                scanStatus = (eSIR_SME_SUCCESS == pScanRsp->statusCode) ?
+                              eCSR_SCAN_SUCCESS : eCSR_SCAN_FAILURE;
                 if(csrScanProcessScanResults( pMac, pCommand, pScanRsp, &fRemoveCommand ))
                 {
                     /*
@@ -5504,16 +5514,17 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
 
                 csrReleaseScanCommand(pMac, pCommand, scanStatus);
 
-                }
+            }
             smeProcessPendingQueue( pMac );
         }
 #ifdef FEATURE_WLAN_SCAN_PNO
-        else if (pMac->pnoOffload &&
-                 !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp,
-                                                    pScanRsp->sessionId)))
-        {
-            smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
-            status = eHAL_STATUS_FAILURE;
+        else if (pMac->pnoOffload) {
+            pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+            if (!HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp,
+                                                   pScanRsp->sessionId))) {
+                smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
+                status = eHAL_STATUS_FAILURE;
+            }
         }
 #endif
         else
@@ -5523,12 +5534,13 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
         }
     }
 #ifdef FEATURE_WLAN_SCAN_PNO
-    else if (pMac->pnoOffload &&
-             !HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp,
-                                                pScanRsp->sessionId)))
-    {
-        smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
-        status = eHAL_STATUS_FAILURE;
+    else if (pMac->pnoOffload) {
+        pScanRsp = (tSirSmeScanRsp *)pMsgBuf;
+        if (!HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp,
+                                                pScanRsp->sessionId))) {
+            smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
+            status = eHAL_STATUS_FAILURE;
+        }
     }
 #endif
     else if (pMac->pnoOffload == FALSE)
