@@ -45,6 +45,8 @@
 #include "wlan_qct_tl.h"
 #include "vos_utils.h"
 
+#include "csrApi.h"
+
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 #include "csrNeighborRoam.h"
 #endif
@@ -403,7 +405,7 @@ typedef struct tagScanCmd
         tCsrBGScanRequest bgScanRequest;
     }u;
     //This flag will be set while aborting the scan due to band change
-    tANI_BOOLEAN            abortScanDueToBandChange;
+     eCsrAbortReason        abort_scan_indication;
 }tScanCmd;
 
 typedef struct tagRoamCmd

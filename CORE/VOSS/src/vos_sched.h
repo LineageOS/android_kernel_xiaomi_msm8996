@@ -399,6 +399,9 @@ typedef struct _VosContextType
 
    bool crash_indication_pending;
    bool enable_fatal_event;
+
+   /* radio index per driver */
+   int radio_index;
 } VosContextType, *pVosContextType;
 
 

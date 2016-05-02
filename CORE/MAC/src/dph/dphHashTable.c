@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -464,7 +464,8 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
 void
 dphPrintMacAddr(tpAniSirGlobal pMac, tANI_U8 addr[], tANI_U32 level)
 {
-    limLog(pMac, (tANI_U16) level, FL("MAC ADDR = %d:%d:%d:%d:%d:%d"),
+    limLog(pMac, (tANI_U16) level,
+            FL("MAC ADDR = %02x:%02x:%02x:%02x:%02x:%02x"),
            addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
 // ---------------------------------------------------------------------

@@ -1169,7 +1169,8 @@ struct hdd_adapter_s
 #ifdef FEATURE_BUS_BANDWIDTH
     unsigned long prev_rx_packets;
     unsigned long prev_tx_packets;
-    unsigned long prev_fwd_packets;
+    unsigned long prev_fwd_tx_packets;
+    unsigned long prev_fwd_rx_packets;
     unsigned long prev_tx_bytes;
     int connection;
 #endif

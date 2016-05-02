@@ -193,7 +193,7 @@ typedef enum
  */
 typedef enum
 {
-    eCSR_SCAN_ABORT_DEFAULT,
+    eCSR_SCAN_ABORT_DEFAULT = 1,
     eCSR_SCAN_ABORT_DUE_TO_BAND_CHANGE, //Scan aborted due to band change
 }eCsrAbortReason;
 
@@ -1475,8 +1475,8 @@ typedef struct tagCsrRoamInfo
     union {
         struct sme_ndp_peer_ind ndp_peer_ind_params;
         struct ndp_schedule_update_rsp ndp_sched_upd_rsp_params;
-        struct ndp_end_indication_event ndp_end_ind_params;
-        struct ndp_end_rsp_event ndp_end_rsp_params;
+        struct ndp_end_indication_event *ndp_end_ind_params;
+        struct ndp_end_rsp_event *ndp_end_rsp_params;
         struct ndp_confirm_event ndp_confirm_params;
         struct ndp_responder_rsp_event ndp_responder_rsp_params;
         struct ndp_indication_event ndp_indication_params;

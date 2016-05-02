@@ -1459,6 +1459,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_REGISTER_MGMT_FRAME_CB:
         case eWNI_SME_NDP_INITIATOR_REQ:
         case eWNI_SME_NDP_RESPONDER_REQ:
+        case eWNI_SME_NDP_END_REQ:
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -2209,6 +2210,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
     case SIR_HAL_NDP_INDICATION:
     case SIR_HAL_NDP_CONFIRM:
     case SIR_HAL_NDP_RESPONDER_RSP:
+    case SIR_HAL_NDP_END_RSP:
+    case SIR_HAL_NDP_END_IND:
         lim_handle_ndp_event_message(pMac, limMsg);
         break;
     default:

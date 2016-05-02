@@ -6999,6 +6999,32 @@ enum ndp_response_code {
 };
 
 /**
+ * enum ndp_end_type - NDP end type
+ * @NDP_END_TYPE_UNSPECIFIED: type is unspecified
+ * @NDP_END_TYPE_PEER_UNAVAILABLE: type is peer unavailable
+ * @NDP_END_TYPE_OTA_FRAME: type OTA frame
+ *
+ */
+enum ndp_end_type {
+	NDP_END_TYPE_UNSPECIFIED = 0x00,
+	NDP_END_TYPE_PEER_UNAVAILABLE = 0x01,
+	NDP_END_TYPE_OTA_FRAME = 0x02,
+};
+
+/**
+ * enum ndp_end_reason_code - NDP end reason code
+ * @NDP_END_TYPE_UNSPECIFIED: reason is unspecified
+ * @NDP_END_TYPE_PEER_UNAVAILABLE: reason is peer inactivity
+ * @NDP_END_TYPE_OTA_FRAME: reason data end
+ *
+ */
+enum ndp_end_reason_code {
+	NDP_END_REASON_UNSPECIFIED = 0x00,
+	NDP_END_REASON_INACTIVITY = 0x01,
+	NDP_END_REASON_PEER_DATA_END = 0x02,
+};
+
+/**
  * struct ndp_cfg - ndp configuration
  * @tag: unique identifier
  * @ndp_cfg_len: ndp configuration length
@@ -7192,7 +7218,6 @@ struct ndp_responder_rsp_event {
  * @ndp_instance_id: ndp instance id for which confirm is being generated
  * @peer_ndi_mac_addr: peer NDI mac address
  * @rsp_code: ndp response code
- * @ndp_config: ndp configuration
  * @ndp_info: ndp application info
  *
  */
@@ -7201,23 +7226,20 @@ struct ndp_confirm_event {
 	uint32_t ndp_instance_id;
 	v_MACADDR_t peer_ndi_mac_addr;
 	enum ndp_response_code rsp_code;
-	struct ndp_cfg ndp_config;
 	struct ndp_app_info ndp_info;
 };
 
 /**
  * struct ndp_end_req - ndp end request
  * @transaction_id: unique transaction identifier
- * @vdev_id: session id of the interface over which ndp is being created
  * @num_ndp_instances: number of ndp instances to be terminated
- * @ndp_instances: list of ndp instances to be terminated
+ * @ndp_ids: pointer to array of ndp_instance_id to be terminated
  *
  */
 struct ndp_end_req {
 	uint32_t transaction_id;
-	uint32_t vdev_id;
 	uint32_t num_ndp_instances;
-	uint32_t ndp_instances[];
+	uint32_t *ndp_ids;
 };
 
 /**
@@ -7225,39 +7247,47 @@ struct ndp_end_req {
  * @vdev_id: session id of the interface over which ndp is being created
  * @peer_ndi_mac_addr: peer NDI mac address
  * @num_active_ndp_sessions: number of active NDP sessions on the peer
+ * @type: NDP end indication type
+ * @reason_code: NDP end indication reason code
+ * @ndp_instance_id: NDP instance ID
  *
  */
 struct peer_ndp_map {
 	uint32_t vdev_id;
 	v_MACADDR_t peer_ndi_mac_addr;
 	uint32_t num_active_ndp_sessions;
+	enum ndp_end_type type;
+	enum ndp_end_reason_code reason_code;
+	uint32_t ndp_instance_id;
 };
 
 /**
  * struct ndp_end_rsp_event  - firmware response to ndp end request
  * @transaction_id: unique identifier for the request
- * @vdev_id: session id of the interface over which ndp is being created
+ * @status: status of operation
+ * @reason: reason(opaque to host driver)
+ * @num_ndp_terminated: if successful, number of ndp instances terminated
+ * @num_peers: number of peers in ndp_map
  * @ndp_map: mapping of NDP instances to peer to VDEV
  *
  */
 struct ndp_end_rsp_event {
 	uint32_t transaction_id;
-	uint32_t vdev_id;
+	uint32_t status;
+	uint32_t reason;
+	uint32_t num_ndp_terminated;
+	uint32_t num_peers;
 	struct peer_ndp_map ndp_map[];
 };
 
 /**
  * struct ndp_end_indication_event - ndp termination notification from FW
- * @vdev_id: session id of the interface over which ndp is being created
- * @reason: reason code for failure if any
- * @status: status of the request
- * @ndp_map: mapping of NDP instances to peer to VDEV
+ * @num_ndp_ids: number of NDP ids
+ * @ndp_map: mapping of NDP instances to peer and vdev
  *
  */
 struct ndp_end_indication_event {
-	uint32_t vdev_id;
-	uint32_t status;
-	uint32_t reason;
+	uint32_t num_ndp_ids;
 	struct peer_ndp_map ndp_map[];
 };
 

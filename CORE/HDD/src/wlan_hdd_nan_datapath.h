@@ -39,6 +39,7 @@ struct wireless_dev;
 
 #define NDP_APP_INFO_LEN 255
 #define NDP_QOS_INFO_LEN 255
+#define NDP_NUM_INSTANCE_ID 255
 
 
 #define HDD_MAX_NUM_NDP_STA           (HDD_MAX_NUM_IBSS_STA)
@@ -66,13 +67,10 @@ struct wireless_dev;
  * @QCA_WLAN_VENDOR_ATTR_NDP_IFACE_STR: Iface name
  * @QCA_WLAN_VENDOR_ATTR_NDP_CONFIG_SECURITY: Security configuration
  * @QCA_WLAN_VENDOR_ATTR_NDP_CONFIG_QOS: Qos configuration
- * @QCA_WLAN_VENDOR_ATTR_NDP_APP_INFO_LEN: Application info length
  * @QCA_WLAN_VENDOR_ATTR_NDP_APP_INFO: Application info
  * @QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID: NDP instance id
- * @QCA_WLAN_VENDOR_ATTR_NDP_NUM_INSTANCE_ID: Number of NDP instance ids
  * @QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID_ARRAY: NDP instance id array
  * @QCA_WLAN_VENDOR_ATTR_NDP_RESPONSE_CODE: Schedule response
- * @QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_STATUS_CODE: schedule status
  * @QCA_WLAN_VENDOR_ATTR_NDP_NDI_MAC_ADDR: NDI mac address
  * @QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_TYPE: Driver return status
  * @QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_VALUE: Driver return value
@@ -87,13 +85,10 @@ enum qca_wlan_vendor_attr_ndp_params {
 	QCA_WLAN_VENDOR_ATTR_NDP_IFACE_STR,
 	QCA_WLAN_VENDOR_ATTR_NDP_CONFIG_SECURITY,
 	QCA_WLAN_VENDOR_ATTR_NDP_CONFIG_QOS,
-	QCA_WLAN_VENDOR_ATTR_NDP_APP_INFO_LEN,
 	QCA_WLAN_VENDOR_ATTR_NDP_APP_INFO,
 	QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID,
-	QCA_WLAN_VENDOR_ATTR_NDP_NUM_INSTANCE_ID,
 	QCA_WLAN_VENDOR_ATTR_NDP_INSTANCE_ID_ARRAY,
 	QCA_WLAN_VENDOR_ATTR_NDP_RESPONSE_CODE,
-	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_STATUS_CODE,
 	QCA_WLAN_VENDOR_ATTR_NDP_NDI_MAC_ADDR,
 	QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_TYPE,
 	QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_VALUE,
@@ -187,17 +182,14 @@ enum nan_datapath_state {
  * @active_ndp_peers: number of active ndp peers
  * @ndp_create_transaction_id: transaction id for create req
  * @ndp_delete_transaction_id: transaction id for delete req
- * @wext_state: Wext state variable
- * @conn_info: NDP connection info
- * @roam_info: NDP roam info
- * @gtk_offload_req_params: GTK offload request params
  * @ndp_key_installed: NDP security key installed
  * @ndp_enc_key: NDP encryption key info
  * @ndp_debug_state: debug state info
  */
 struct nan_datapath_ctx {
 	enum nan_datapath_state state;
-	uint32_t active_ndp_sessions;
+	/* idx in following array should follow conn_info.peerMacAddress */
+	uint32_t active_ndp_sessions[HDD_MAX_NUM_NDP_STA];
 	uint32_t active_ndp_peers;
 	uint16_t ndp_create_transaction_id;
 	uint16_t ndp_delete_transaction_id;
