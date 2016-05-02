@@ -3833,6 +3833,8 @@ struct roam_ext_params {
 
 typedef struct sSirRoamOffloadScanReq
 {
+  uint16_t    message_type;
+  uint16_t    length;
   eAniBoolean RoamScanOffloadEnabled;
   eAniBoolean MAWCEnabled;
   tANI_S8     LookupThreshold;
@@ -3904,14 +3906,6 @@ typedef struct sSirRoamOffloadScanRsp
   tANI_U32 reason;
 } tSirRoamOffloadScanRsp, *tpSirRoamOffloadScanRsp;
 
-struct sir_sme_roam_restart_req
-{
-	tANI_U16 message_type;
-	tANI_U16 length;
-	tANI_U8  sme_session_id;
-	tANI_U8  command;
-	tANI_U8  reason;
-};
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
 #define SIR_NOCHANGE_POWER_VALUE  0xFFFFFFFF
