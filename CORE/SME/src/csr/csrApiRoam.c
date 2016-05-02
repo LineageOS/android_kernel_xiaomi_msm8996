@@ -17396,36 +17396,24 @@ bool csr_is_RSO_cmd_allowed(tpAniSirGlobal mac_ctx, uint8_t command,
 	return ret_val;
 }
 
-void csr_roam_send_restart_cmd(tpAniSirGlobal pMac, tANI_U8 session_id,
-		tANI_U8 command, tANI_U8 reason)
+VOS_STATUS csr_roam_send_rso_cmd(tpAniSirGlobal pMac, tANI_U8 session_id,
+	tSirRoamOffloadScanReq *pRequestBuf)
 {
-	struct sir_sme_roam_restart_req *msg;
 	eHalStatus status;
-
-	msg = vos_mem_malloc(sizeof(struct sir_sme_roam_restart_req));
-	if (msg == NULL) {
-		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-			FL("Memory allocation failed"));
-		VOS_ASSERT(msg);
-		return;
-	}
-	vos_mem_set(msg, sizeof(struct sir_sme_roam_restart_req), 0);
-	msg->message_type = eWNI_SME_ROAM_RESTART_REQ;
-	msg->length = sizeof(struct sir_sme_roam_restart_req);
-	msg->sme_session_id = session_id;
-	msg->command = command;
-	msg->reason = reason;
-	status = palSendMBMessage(pMac->hHdd, msg);
+	pRequestBuf->message_type = eWNI_SME_ROAM_SCAN_OFFLOAD_REQ;
+	pRequestBuf->length = sizeof(*pRequestBuf);
+	status = palSendMBMessage(pMac->hHdd, pRequestBuf);
 	if (eHAL_STATUS_FAILURE == status) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-			FL("Sending msg eWNI_SME_ROAM_RESTART_REQ failed"));
-		vos_mem_free(msg);
+			FL("Send RSO from CSR failed"));
+		return VOS_STATUS_E_FAILURE;
 	}
+	return VOS_STATUS_SUCCESS;
 }
+
 eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                               tANI_U8 command, tANI_U8 reason)
 {
-   vos_msg_t msg;
    tSirRoamOffloadScanReq *pRequestBuf;
    tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
                                      &pMac->roam.neighborRoamInfo[sessionId];
@@ -17478,10 +17466,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         FL("RSO out-of-sync command %d lastSentCmd %d"),
         command, pNeighborRoamInfo->lastSentCmd);
       return eHAL_STATUS_FAILURE;
-   }
-   if (ROAM_SCAN_OFFLOAD_RESTART == command) {
-       csr_roam_send_restart_cmd(pMac, sessionId, command, reason);
-       goto cmd_sent;
    }
    if ((VOS_TRUE == bRoamScanOffloadStarted) && (ROAM_SCAN_OFFLOAD_START == command))
    {
@@ -17957,15 +17941,11 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
            MAC_ADDR_ARRAY(roam_params_dst->bssid_favored[i]),
            roam_params_dst->bssid_favored_factor[i]);
     }
-   msg.type     = WDA_ROAM_SCAN_OFFLOAD_REQ;
-   msg.reserved = 0;
-   msg.bodyptr  = pRequestBuf;
-   MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG, sessionId,
-                                                           msg.type));
-   if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+
+   if (!VOS_IS_STATUS_SUCCESS(csr_roam_send_rso_cmd(pMac,
+                                                    sessionId, pRequestBuf)))
    {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_ROAM_SCAN_OFFLOAD_REQ message to WDA", __func__);
-       vos_mem_free(pRequestBuf);
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_ROAM_SCAN_OFFLOAD_REQ message to PE", __func__);
        return eHAL_STATUS_FAILURE;
    }
    else
@@ -17975,7 +17955,6 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
         else if (ROAM_SCAN_OFFLOAD_STOP == command)
             bRoamScanOffloadStarted = VOS_FALSE;
    }
-cmd_sent:
    /* update the last sent cmd */
    pNeighborRoamInfo->lastSentCmd = command;
 
