@@ -4561,6 +4561,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_EDCA_BE_AIFS_VALUE_DEFAULT,
                 CFG_EDCA_BE_AIFS_VALUE_MIN,
                 CFG_EDCA_BE_AIFS_VALUE_MAX),
+
+   REG_VARIABLE(CFG_TGT_GTX_USR_CFG_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tgt_gtx_usr_cfg,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TGT_GTX_USR_CFG_DEFAULT,
+                CFG_TGT_GTX_USR_CFG_MIN,
+                CFG_TGT_GTX_USR_CFG_MAX),
 };
 
 
@@ -5369,6 +5376,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%u]",
           CFG_ENABLE_VHT_DYNAMIC_STA_CHAINMASK,
           pHddCtx->cfg_ini->enable_dynamic_sta_chainmask);
+
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+                 CFG_TGT_GTX_USR_CFG_NAME,
+                 pHddCtx->cfg_ini->tgt_gtx_usr_cfg);
 
   hdd_ndp_print_ini_config(pHddCtx);
 }
@@ -6925,6 +6936,15 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_IBSS_ATIM_WIN_SIZE to CCM");
    }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TGT_GTX_USR_CFG,
+                    pConfig->tgt_gtx_usr_cfg, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TGT_GTX_USR_CFG to CCM");
+   }
+
    return fStatus;
 }
 
