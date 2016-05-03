@@ -14050,6 +14050,8 @@ void activeListCmdTimeoutHandle(void *userData)
 {
     tHalHandle hal = (tHalHandle) userData;
     tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+    tListElem *entry;
+    tSmeCmd *temp_cmd = NULL;
 
     if (NULL == mac_ctx) {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
@@ -14075,6 +14077,14 @@ void activeListCmdTimeoutHandle(void *userData)
     } else {
         vosTraceDumpAll(mac_ctx, 0, 0, 500, 0);
     }
+
+    entry = csrLLPeekHead(&mac_ctx->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if (entry)
+        temp_cmd = GET_BASE_ADDR(entry, tSmeCmd, Link);
+
+    /* Ignore if ROC took more than 120 sec */
+    if (temp_cmd && (eSmeCommandRemainOnChannel == temp_cmd->command))
+        return;
 
     if (mac_ctx->sme.enableSelfRecovery) {
         sme_SaveActiveCmdStats(hal);
