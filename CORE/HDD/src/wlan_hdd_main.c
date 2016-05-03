@@ -1850,18 +1850,17 @@ static int hdd_parse_reassoc_command_v1_data(const tANI_U8 *pValue,
     return VOS_STATUS_SUCCESS;
 }
 
-/*
-  \brief hdd_reassoc() - perform a user space-directed reassoc
-
-  \param - pAdapter - Adapter upon which the command was received
-  \param - bssid - BSSID with which to reassociate
-  \param - channel - channel upon which to reassociate
-
-  \return - 0 for success non-zero for failure
-
-  --------------------------------------------------------------------------*/
-static int
-hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid, const tANI_U8 channel)
+/**
+ * hdd_reassoc() - perform a user space directed reassoc
+ * @pAdapter: Adapter upon which the command was received
+ * @bssid:    BSSID with which to reassociate
+ * @channel:  channel upon which to reassociate
+ * @src:      The source for the trigger of this action
+ *
+ * Return:    0 for success non-zero for failure
+ */
+int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
+                const tANI_U8 channel, const handoff_src src)
 {
    hdd_station_ctx_t *pHddStaCtx;
    int ret = 0;
@@ -1901,7 +1900,7 @@ hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid, const tANI_U8 channel
       hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
       handoffInfo.channel = channel;
-      handoffInfo.src = REASSOC;
+      handoffInfo.src = src;
       memcpy(handoffInfo.bssid, bssid, sizeof(tSirMacAddr));
       sme_HandoffRequest(pHddCtx->hHal, pAdapter->sessionId, &handoffInfo);
    }
@@ -1942,7 +1941,7 @@ hdd_parse_reassoc_v1(hdd_adapter_t *pAdapter, const char *command)
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: Failed to parse reassoc command data", __func__);
    } else {
-      ret = hdd_reassoc(pAdapter, bssid, channel);
+      ret = hdd_reassoc(pAdapter, bssid, channel, REASSOC);
    }
    return ret;
 }
@@ -1976,7 +1975,7 @@ hdd_parse_reassoc_v2(hdd_adapter_t *pAdapter,
       hddLog(LOGE, "%s: MAC address parsing failed", __func__);
       ret = -EINVAL;
    } else {
-      ret = hdd_reassoc(pAdapter, bssid, params.channel);
+      ret = hdd_reassoc(pAdapter, bssid, params.channel, REASSOC);
    }
    return ret;
 }

@@ -2216,4 +2216,7 @@ static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
 {
 }
 #endif
+
+int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
+		const tANI_U8 channel, const handoff_src src);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
