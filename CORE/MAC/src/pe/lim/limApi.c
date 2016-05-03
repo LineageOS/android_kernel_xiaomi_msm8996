@@ -2561,7 +2561,7 @@ void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          return;
     }
 
-    pSirSmeMicFailureInd = vos_mem_malloc(sizeof(tSirSmeMicFailureInd));
+    pSirSmeMicFailureInd = vos_mem_malloc(sizeof(*pSirSmeMicFailureInd));
     if (NULL == pSirSmeMicFailureInd)
     {
         // Log error
@@ -2570,41 +2570,8 @@ void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
        return;
     }
 
-    pSirSmeMicFailureInd->messageType = eWNI_SME_MIC_FAILURE_IND;
-    pSirSmeMicFailureInd->length = sizeof(pSirSmeMicFailureInd);
+    *pSirSmeMicFailureInd = *pSirMicFailureInd;
     pSirSmeMicFailureInd->sessionId = psessionEntry->smeSessionId;
-
-    vos_mem_copy(pSirSmeMicFailureInd->bssId,
-                 pSirMicFailureInd->bssId,
-                 sizeof(tSirMacAddr));
-
-    vos_mem_copy(pSirSmeMicFailureInd->info.srcMacAddr,
-                 pSirMicFailureInd->info.srcMacAddr,
-                 sizeof(tSirMacAddr));
-
-    vos_mem_copy(pSirSmeMicFailureInd->info.taMacAddr,
-                 pSirMicFailureInd->info.taMacAddr,
-                 sizeof(tSirMacAddr));
-
-    vos_mem_copy(pSirSmeMicFailureInd->info.dstMacAddr,
-                 pSirMicFailureInd->info.dstMacAddr,
-                 sizeof(tSirMacAddr));
-
-    vos_mem_copy(pSirSmeMicFailureInd->info.rxMacAddr,
-                 pSirMicFailureInd->info.rxMacAddr,
-                 sizeof(tSirMacAddr));
-
-    pSirSmeMicFailureInd->info.multicast =
-                                   pSirMicFailureInd->info.multicast;
-
-    pSirSmeMicFailureInd->info.keyId=
-                                  pSirMicFailureInd->info.keyId;
-
-    pSirSmeMicFailureInd->info.IV1=
-                                  pSirMicFailureInd->info.IV1;
-
-    vos_mem_copy(pSirSmeMicFailureInd->info.TSC,
-                 pSirMicFailureInd->info.TSC,SIR_CIPHER_SEQ_CTR_SIZE);
 
     mmhMsg.type = eWNI_SME_MIC_FAILURE_IND;
     mmhMsg.bodyptr = pSirSmeMicFailureInd;
