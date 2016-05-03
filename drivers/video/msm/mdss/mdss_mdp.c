@@ -2083,6 +2083,8 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 	if (rc)
 		pr_err("mdss smmu init failed\n");
 
+	mdss_mdp_set_supported_formats(mdata);
+
 	mdss_res->mdss_util->mdp_probe_done = true;
 
 	mdss_hw_init(mdata);
@@ -2710,8 +2712,6 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 		pr_info("dedicated vp cursors detected, num=%d\n",
 			mdata->ncursor_pipes);
 	}
-
-	mdss_mdp_set_supported_formats(mdata);
 
 	goto parse_done;
 
