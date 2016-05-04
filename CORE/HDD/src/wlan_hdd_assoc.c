@@ -3779,6 +3779,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     hdd_station_ctx_t *pHddStaCtx = NULL;
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = NULL;
+    struct cfg80211_bss *bss_status;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
@@ -4130,6 +4131,21 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             break;
          }
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+      case eCSR_ROAM_UPDATE_SCAN_RESULT:
+         if ((NULL != pRoamInfo) && (NULL != pRoamInfo->pBssDesc)) {
+              bss_status = wlan_hdd_cfg80211_inform_bss_frame(pAdapter,
+                                pRoamInfo->pBssDesc);
+              if (NULL == bss_status)
+                  hddLog(VOS_TRACE_LEVEL_INFO,
+                            FL("UPDATE_SCAN_RESULT returned NULL"));
+              else
+                  cfg80211_put_bss(
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
+                                   (WLAN_HDD_GET_CTX(pAdapter))->wiphy,
+#endif
+                                   bss_status);
+         }
+         break;
         case eCSR_ROAM_NDP_STATUS_UPDATE:
             hdd_ndp_event_handler(pAdapter, pRoamInfo, roamId, roamStatus,
                 roamResult );
