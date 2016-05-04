@@ -541,6 +541,7 @@ typedef enum
     eCSR_ROAM_EXT_CHG_CHNL_IND,
 
     eCSR_ROAM_NDP_STATUS_UPDATE,
+    eCSR_ROAM_UPDATE_SCAN_RESULT,
 }eRoamCmdStatus;
 
 
