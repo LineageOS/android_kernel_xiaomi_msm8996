@@ -1654,7 +1654,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     hdd_adapter_t *sap_adapter;
     hdd_ap_ctx_t *hdd_ap_ctx;
     uint8_t default_sap_channel = 6;
-    u16 reason_code;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
     if (pRoamInfo && pRoamInfo->roamSynchInProgress) {
        /* change logging before release */
@@ -2160,12 +2159,18 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             }
             else
             {
-                reason_code = WLAN_STATUS_UNSPECIFIED_FAILURE;
-                if (pRoamInfo && pRoamInfo->reasonCode)
-                    reason_code = (u16)pRoamInfo->reasonCode;
-
-                 cfg80211_connect_result(dev, pWextState->req_bssId,
-                    NULL, 0, NULL, 0, reason_code, GFP_KERNEL);
+               if (pRoamInfo)
+                   hdd_connect_result(dev, pRoamInfo->bssid, NULL,
+                        NULL, 0, NULL, 0,
+                        pRoamInfo->reasonCode ?
+                        pRoamInfo->reasonCode :
+                        WLAN_STATUS_UNSPECIFIED_FAILURE,
+                        GFP_KERNEL);
+               else
+                   hdd_connect_result(dev, pWextState->req_bssId, NULL,
+                        NULL, 0, NULL, 0,
+                        WLAN_STATUS_UNSPECIFIED_FAILURE,
+                        GFP_KERNEL);
             }
             /* Clear the roam profile */
             hdd_clearRoamProfileIe(pAdapter);
