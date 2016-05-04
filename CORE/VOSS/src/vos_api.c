@@ -2979,8 +2979,8 @@ inline void vos_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump,
 int vos_get_radio_index(void)
 {
 	if (gpVosContext == NULL) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-			  FL("global voss context is NULL"));
+		/* this should never change to use VOS_TRACE interface */
+		pr_err("global voss context is NULL\n");
 		return -EINVAL;
 	}
 	return gpVosContext->radio_index;
@@ -2995,11 +2995,11 @@ int vos_get_radio_index(void)
 int vos_set_radio_index(int radio_index)
 {
 	if (gpVosContext == NULL) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-			  FL("global voss context is NULL"));
+		/* this should never change to use VOS_TRACE interface */
+		pr_err("global voss context is NULL\n");
 		return -EINVAL;
 	}
-	gpVosContext->radio_index = radio_index;
 
+	gpVosContext->radio_index = radio_index;
 	return 0;
 }
