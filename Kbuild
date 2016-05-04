@@ -138,6 +138,9 @@ ifeq ($(KERNEL_BUILD), 0)
 		#Flag to enable offload packets feature
 		CONFIG_WLAN_OFFLOAD_PACKETS := y
 	endif
+
+        #Flag to enable 3 port concurrency feature
+        CONFIG_QCA_WIFI_AUTOMOTIVE_CONC := y
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -1010,6 +1013,12 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 
 ifeq ($(CONFIG_SCPC_FEATURE), y)
 CDEFINES += -DWLAN_SCPC_FEATURE
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_AUTOMOTIVE_CONC), y)
+CDEFINES +=     -DWLAN_FEATURE_MBSSID \
+		-DFEATURE_WLAN_MCC_TO_SCC_SWITCH \
+		-DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
