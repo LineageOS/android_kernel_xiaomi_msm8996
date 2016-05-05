@@ -632,6 +632,9 @@ struct mdss_mdp_ctl {
 
 	/* vsync handler for FRC */
 	struct mdss_mdp_vsync_handler frc_vsync_handler;
+
+	/* dynamic resolution switch during cont-splash handoff */
+	bool switch_with_handoff;
 };
 
 struct mdss_mdp_mixer {
