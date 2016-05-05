@@ -2754,8 +2754,8 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 {
 	int result;
-
 #ifndef QCA_CONFIG_SMP
+	struct iphdr* ip_h;
 	static atomic_t softirq_mitigation_cntr =
 		ATOMIC_INIT(IPA_WLAN_RX_SOFTIRQ_THRESH);
 #endif
@@ -2787,15 +2787,21 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 #ifdef QCA_CONFIG_SMP
 	result = netif_rx_ni(skb);
 #else
-	/* Call netif_rx_ni for every IPA_WLAN_RX_SOFTIRQ_THRESH packets to
-	 * avoid excessive softirq's.
-	 */
-	if (atomic_dec_and_test(&softirq_mitigation_cntr)) {
+	ip_h = (struct iphdr*)((uint8_t*)skb->data);
+	if ((skb->protocol == htons(ETH_P_IP)) &&
+		(ip_h->protocol == IPPROTO_ICMP)) {
 		result = netif_rx_ni(skb);
-		atomic_set(&softirq_mitigation_cntr,
-			   IPA_WLAN_RX_SOFTIRQ_THRESH);
 	} else {
-		result = netif_rx(skb);
+		/* Call netif_rx_ni for every IPA_WLAN_RX_SOFTIRQ_THRESH packets
+		 * to avoid excessive softirq's.
+		 */
+		if (atomic_dec_and_test(&softirq_mitigation_cntr)){
+			result = netif_rx_ni(skb);
+			atomic_set(&softirq_mitigation_cntr,
+					IPA_WLAN_RX_SOFTIRQ_THRESH);
+		} else {
+			result = netif_rx(skb);
+		}
 	}
 #endif
 	if (result == NET_RX_SUCCESS)
