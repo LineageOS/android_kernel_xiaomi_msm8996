@@ -171,12 +171,6 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #define WLAN_TFC_IPAUC_TX_DESC_RESERVE   100
 #endif /* IPA_UC_OFFLOAD */
 
-/*
- * Mutex lock to synchronize hdd_stop and fwpath_change_handler
- * called from two separate user space threads.
- */
-static DEFINE_MUTEX(fwp_lock);
-
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath_buffer[BUF_LEN];
@@ -9351,9 +9345,7 @@ static int hdd_stop (struct net_device *dev)
 	int ret;
 
 	vos_ssr_protect(__func__);
-	mutex_lock(&fwp_lock);
 	ret = __hdd_stop(dev);
-	mutex_unlock(&fwp_lock);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
@@ -15855,18 +15847,12 @@ static int con_mode_handler(const char *kmessage,
 static int fwpath_changed_handler(const char *kmessage,
                                   struct kernel_param *kp)
 {
-	int ret;
+   int ret;
 
-	ENTER();
-
-	mutex_lock(&fwp_lock);
-	ret = param_set_copystring(kmessage, kp);
-	if (0 == ret)
-		ret = kickstart_driver(true);
-
-	mutex_unlock(&fwp_lock);
-	EXIT();
-	return ret;
+   ret = param_set_copystring(kmessage, kp);
+   if (0 == ret)
+      ret = kickstart_driver(true);
+   return ret;
 }
 
 #if ! defined(QCA_WIFI_FTM)
