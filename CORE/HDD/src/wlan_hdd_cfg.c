@@ -2783,13 +2783,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_VENDOR_VHT_FOR_24GHZ_MAX),
 #endif
 
-   REG_VARIABLE( CFG_SCAN_OFFLOAD_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, fScanOffload,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SCAN_OFFLOAD_DEFAULT,
-                 CFG_SCAN_OFFLOAD_DISABLE,
-                 CFG_SCAN_OFFLOAD_ENABLE ),
-
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
    REG_DYNAMIC_VARIABLE( CFG_ENABLE_FAST_ROAM_IN_CONCURRENCY, WLAN_PARAM_Integer,
                          hdd_config_t, bFastRoamInConIniFeatureEnabled,
@@ -7217,7 +7210,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    /* update SSR config */
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
    /* Update the Directed scan offload setting */
-   smeConfig->fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
+   smeConfig->fScanOffload =  true;
 
    /* Update the p2p listen offload setting */
    smeConfig->fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;

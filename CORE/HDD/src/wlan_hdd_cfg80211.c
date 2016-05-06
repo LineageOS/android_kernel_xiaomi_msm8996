@@ -16277,7 +16277,9 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
      * So drop the bss and continue to next bss.
      */
     if (chan == NULL) {
-       hddLog(LOGE, FL("chan pointer is NULL"));
+       hddLog(LOGE,
+                FL("chan pointer is NULL, chan_no: %d freq: %d"),
+                chan_no, freq);
        kfree(mgmt);
        return NULL;
     }
@@ -17095,6 +17097,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
     scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
 
+#ifdef CFG80211_SCAN_BSSID
+    vos_mem_copy(scanRequest.bssid, request->bssid, VOS_MAC_ADDR_SIZE);
+#endif
     /* set BSSType to default type */
     scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
 
@@ -17348,6 +17353,14 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
     if (VOS_MONITOR_MODE != hdd_get_conparam())
         *vht_channel_width =
                   (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
+
+    /*
+     * In IBSS mode while operating in 2.4 GHz,
+     * the device will be configured to CBW 20
+     */
+    if ((WLAN_HDD_IBSS == pAdapter->device_mode) &&
+            (SIR_11B_CHANNEL_END >= operationChannel))
+        *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
 
     switch ( iniDot11Mode )
     {
@@ -18555,6 +18568,41 @@ disconnected:
     return result;
 }
 
+/**
+ * wlan_hdd_reassoc_bssid_hint() - Start reassociation if bssid is present
+ * @adapter: Pointer to the HDD adapter
+ * @req: Pointer to the structure cfg_connect_params receieved from user space
+ *
+ * This function will start reassociation if bssid hint, channel hint and
+ * previous bssid parameters are present in the connect request
+ *
+ * Return: success if reassociation is happening
+ *         Error code if reassociation is not permitted or not happening
+ */
+#ifdef CFG80211_CONNECT_PREV_BSSID
+static int wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
+				struct cfg80211_connect_params *req)
+{
+	int status = -EPERM;
+	if (req->bssid_hint && req->channel_hint && req->prev_bssid) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("REASSOC Attempt on channel %d to "MAC_ADDRESS_STR),
+			req->channel_hint->hw_value,
+			MAC_ADDR_ARRAY(req->bssid_hint));
+		status  = hdd_reassoc(adapter, req->bssid_hint,
+					req->channel_hint->hw_value,
+					CONNECT_CMD_USERSPACE);
+	}
+	return status;
+}
+#else
+static int wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
+				struct cfg80211_connect_params *req)
+{
+	return -EPERM;
+}
+#endif
+
 /*
  * FUNCTION: __wlan_hdd_cfg80211_connect
  * This function is used to start the association process
@@ -18601,6 +18649,10 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
+        return status;
+
+    status = wlan_hdd_reassoc_bssid_hint(pAdapter, req);
+    if (0 == status)
         return status;
 
 #if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)

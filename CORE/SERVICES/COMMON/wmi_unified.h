@@ -620,6 +620,9 @@ typedef enum {
     /* configure WOW host wakeup PIN pattern */
     WMI_WOW_HOSTWAKEUP_GPIO_PIN_PATTERN_CONFIG_CMDID,
 
+    /* Set which action category should wake the host from suspend */
+    WMI_WOW_SET_ACTION_WAKE_UP_CMDID,
+
     /* RTT measurement related cmd */
     /** request to make an RTT measurement */
     WMI_RTT_MEASREQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_RTT),
@@ -7967,6 +7970,23 @@ typedef struct {
     A_UINT32 repeat_cnt;// repeat times for pulse (0xffffffff means forever)
 } WMI_WOW_HOSTWAKEUP_GPIO_PIN_PATTERN_CONFIG_CMD_fixed_param;
 
+#define MAX_SUPPORTED_ACTION_CATEGORY           256
+#define MAX_SUPPORTED_ACTION_CATEGORY_ELE_LIST  (MAX_SUPPORTED_ACTION_CATEGORY/32)
+
+typedef enum {
+    WOW_ACTION_WAKEUP_OPERATION_RESET = 0,
+    WOW_ACTION_WAKEUP_OPERATION_SET,
+    WOW_ACTION_WAKEUP_OPERATION_ADD_SET,
+    WOW_ACTION_WAKEUP_OPERATION_DELETE_SET,
+} WOW_ACTION_WAKEUP_OPERATION;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param */
+    A_UINT32 vdev_id;
+    A_UINT32 operation; /* 0 reset to fw default, 1 set the bits, 2 add the setting bits, 3 delete the setting bits */
+    A_UINT32 action_category_map[MAX_SUPPORTED_ACTION_CATEGORY_ELE_LIST];
+} WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param;
+
 typedef struct  wow_event_info_s {
     A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WOW_EVENT_INFO_fixed_param  */
     A_UINT32    vdev_id;
@@ -10713,8 +10733,6 @@ typedef enum {
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_ndp_end_req */
     A_UINT32 tlv_header;
-    /** reason_code  defined in  wmi_ndp_end_reason_code */
-    A_UINT32 reason_code;
     /** NDP instance id */
     A_UINT32 ndp_instance_id;
 } wmi_ndp_end_req_PROTOTYPE;
@@ -10976,6 +10994,10 @@ typedef struct {
     A_UINT32 ndp_cfg_len;
     /** Number of bytes in TLV wmi_ndp_app_info */
     A_UINT32 ndp_app_info_len;
+    /** Reason Code */
+    A_UINT32 reason_code;
+    /** Number of active ndps on this peer */
+    A_UINT32 num_active_ndps_on_peer;
     /**
      * TLV (tag length value ) parameters follow the ndp_confirm
      * structure. The TLV's are:
