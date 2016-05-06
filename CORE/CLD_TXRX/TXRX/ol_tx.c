@@ -827,7 +827,7 @@ ol_tx_pdev_reset_bundle_require(void* pdev_handle)
 
 	TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
 		vdev->bundling_reqired = false;
-		TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
 			"vdev_id %d bundle_require %d\n",
 			vdev->vdev_id, vdev->bundling_reqired);
     }
@@ -860,7 +860,7 @@ ol_tx_vdev_set_bundle_require(uint8_t vdev_id, unsigned long tx_bytes,
 		vdev->bundling_reqired = false;
 
 	if (old_bundle_required != vdev->bundling_reqired)
-		TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+		TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
 			"vdev_id %d bundle_require %d tx_bytes %ld time_in_ms %d high_th %d low_th %d\n",
 			vdev->vdev_id, vdev->bundling_reqired, tx_bytes,
 			time_in_ms, high_th, low_th);
