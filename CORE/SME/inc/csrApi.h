@@ -499,7 +499,6 @@ typedef enum
 #endif
     eCSR_ROAM_FT_START,
     eCSR_ROAM_REMAIN_CHAN_READY,
-    eCSR_ROAM_SEND_ACTION_CNF,
     //this mean error happens before association_start or roaming_start is called.
     eCSR_ROAM_SESSION_OPENED,
     eCSR_ROAM_FT_REASSOC_FAILED,
