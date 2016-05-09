@@ -175,4 +175,7 @@ static inline VOS_STATUS wma_send_egap_conf_params(WMA_HANDLE handle,
 
 extern int wma_scpc_event_handler(void *handle, u_int8_t *event, u_int32_t len);
 
+VOS_STATUS wma_set_tx_power_scale(uint8_t vdev_id, int value);
+VOS_STATUS wma_set_tx_power_scale_decr_db(uint8_t vdev_id, int value);
+
 #endif
