@@ -1124,10 +1124,14 @@ static HTC_SEND_QUEUE_RESULT HTCTrySend(HTC_TARGET       *target,
             /*
              * Header and payload belongs to the different fragments and
              * consume 2 resource for one HTC package but USB conbime into
-             * one transfer.
+             * one transfer. And one WMI message only consumes one single
+             * resource.
              */
             if (HTC_ENABLE_BUNDLE(target) && tx_resources) {
-                tx_resources = (HTC_MAX_MSG_PER_BUNDLE_TX * 2);
+                if (pEndpoint->ServiceID == WMI_CONTROL_SVC)
+                    tx_resources = HTC_MAX_MSG_PER_BUNDLE_TX;
+                else
+                    tx_resources = (HTC_MAX_MSG_PER_BUNDLE_TX * 2);
             }
 #endif
 #endif
