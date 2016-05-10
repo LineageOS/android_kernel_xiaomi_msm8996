@@ -392,6 +392,13 @@ config CLD_HL_SDIO_CORE
 	depends on ARCH_MSM
 	depends on MMC
 
+config WLAN_FEATURE_RX_WAKELOCK
+	bool "Enable RX wake lock feature"
+	default n
+	help
+	Enable WLAN_FEATURE_HOLD_RX_WAKELOCK which is required to take rx
+	wakelock when driver receives packets from fw.
+
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
