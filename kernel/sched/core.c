@@ -4810,11 +4810,8 @@ ttwu_do_activate(struct rq *rq, struct task_struct *p, int wake_flags)
 	if (p->sched_contributes_to_load)
 		rq->nr_uninterruptible--;
 
-	/*
-	 * If we migrated; we must have called sched_class::task_waking().
-	 */
 	if (wake_flags & WF_MIGRATED)
-		en_flags |= ENQUEUE_WAKING;
+		en_flags |= ENQUEUE_MIGRATED;
 #endif
 
 	ttwu_activate(rq, p, en_flags);
@@ -5070,10 +5067,6 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 	src_cpu = task_cpu(p);
 	if (src_cpu != cpu) {
 		wake_flags |= WF_MIGRATED;
-
-		if (p->sched_class->task_waking)
-			p->sched_class->task_waking(p);
-
 		set_task_cpu(p, cpu);
 	}
 
