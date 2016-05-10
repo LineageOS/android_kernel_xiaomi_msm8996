@@ -983,7 +983,7 @@ typedef struct sSirOemDataReq
     tANI_U16              messageType; /* eWNI_SME_OEM_DATA_REQ */
     tANI_U16              messageLen;
     tSirMacAddr           selfMacAddr;
-    uint8_t               data_len;
+    uint32_t              data_len;
     uint8_t               *data;
 } tSirOemDataReq, *tpSirOemDataReq;
 
