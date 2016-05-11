@@ -1647,6 +1647,7 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
     int res = 0;
     tAniNlHdr *wnl;
     int radio;
+    int msg_len;
 
     if (WARN_ON(len > ATH6KL_FWLOG_PAYLOAD_SIZE))
         return -ENODEV;
@@ -1660,13 +1661,14 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
 
     if (vos_is_multicast_logging())
     {
-        skb_out = nlmsg_new(len, 0);
+        msg_len = len + sizeof(radio);
+        skb_out = nlmsg_new(msg_len, GFP_KERNEL);
         if (!skb_out)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
             return -1;
         }
-        nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, len, 0);
+        nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, msg_len, 0);
         wnl = (tAniNlHdr *)nlh;
         wnl->radio = radio;
 
@@ -1706,9 +1708,9 @@ send_diag_netlink_data(const u_int8_t *buffer, A_UINT32 len, A_UINT32 cmd)
         return -EIO;
 
     if (vos_is_multicast_logging()) {
-        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE + sizeof(radio);
 
-        skb_out = nlmsg_new(slot_len, 0);
+        skb_out = nlmsg_new(slot_len, GFP_KERNEL);
         if (!skb_out) {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
                             ("Failed to allocate new skb\n"));
@@ -1764,9 +1766,9 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
 
     if (vos_is_multicast_logging())
     {
-        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+        slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE + sizeof(radio);
 
-        skb_out = nlmsg_new(slot_len, 0);
+        skb_out = nlmsg_new(slot_len, GFP_KERNEL);
         if (!skb_out)
         {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Failed to allocate new skb\n"));
