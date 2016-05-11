@@ -16384,7 +16384,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     /* no scan results */
     if (NULL == pResult) {
         hddLog(LOG1, FL("No scan result Status %d"), status);
-        return status;
+        return -EAGAIN;
     }
 
     pScanResult = sme_ScanResultGetFirst(hHal, pResult);
