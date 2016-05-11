@@ -12086,8 +12086,15 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 						CFG_TGT_DEFAULT_GTX_HT_MASK;
 	intr[req->vdev_id].config.gtx_info.gtxRTMask[1] =
 						CFG_TGT_DEFAULT_GTX_VHT_MASK;
-	intr[req->vdev_id].config.gtx_info.gtxUsrcfg =
-						CFG_TGT_DEFAULT_GTX_USR_CFG;
+
+	if (wlan_cfgGetInt(pmac, WNI_CFG_TGT_GTX_USR_CFG,
+			   &intr[req->vdev_id].config.gtx_info.gtxUsrcfg)
+			   != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to read target gtx user config");
+		intr[req->vdev_id].config.gtx_info.gtxUsrcfg =
+					WNI_CFG_TGT_GTX_USR_CFG_STADEF;
+	}
+
 	intr[req->vdev_id].config.gtx_info.gtxPERThreshold =
 					CFG_TGT_DEFAULT_GTX_PER_THRESHOLD;
 	intr[req->vdev_id].config.gtx_info.gtxPERMargin =
@@ -12205,7 +12212,15 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	intr[cmd->vdev_id].vht_capable = req->vht_capable;
 	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[0] = CFG_TGT_DEFAULT_GTX_HT_MASK;
 	intr[cmd->vdev_id].config.gtx_info.gtxRTMask[1] = CFG_TGT_DEFAULT_GTX_VHT_MASK;
-	intr[cmd->vdev_id].config.gtx_info.gtxUsrcfg = CFG_TGT_DEFAULT_GTX_USR_CFG;
+
+	if (wlan_cfgGetInt(pmac, WNI_CFG_TGT_GTX_USR_CFG,
+			   &intr[cmd->vdev_id].config.gtx_info.gtxUsrcfg)
+			   != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to read target gtx user config");
+		intr[cmd->vdev_id].config.gtx_info.gtxUsrcfg =
+					WNI_CFG_TGT_GTX_USR_CFG_STADEF;
+	}
+
 	intr[cmd->vdev_id].config.gtx_info.gtxPERThreshold = CFG_TGT_DEFAULT_GTX_PER_THRESHOLD;
 	intr[cmd->vdev_id].config.gtx_info.gtxPERMargin = CFG_TGT_DEFAULT_GTX_PER_MARGIN;
 	intr[cmd->vdev_id].config.gtx_info.gtxTPCstep = CFG_TGT_DEFAULT_GTX_TPC_STEP;
@@ -20763,6 +20778,9 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
 	WOW_EVENT_INFO_fixed_param *wake_info;
+#ifdef FEATURE_WLAN_TDLS
+	WMI_TDLS_PEER_EVENTID_param_tlvs tdls_param;
+#endif
 #ifdef FEATURE_WLAN_SCAN_PNO
 	struct wma_txrx_node *node;
 #endif
@@ -21033,6 +21051,20 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			WMA_LOGE(FL("wow_packet_buffer is empty"));
 		}
 		break;
+#ifdef FEATURE_WLAN_TDLS
+	case WOW_REASON_TDLS_CONN_TRACKER_EVENT:
+		if (param_buf->wow_packet_buffer) {
+			WMA_LOGD("Host woken up because of TDLS event");
+			tdls_param.fixed_param =
+					(wmi_tdls_peer_event_fixed_param *)
+				            (param_buf->wow_packet_buffer + 4);
+			wma_tdls_event_handler(handle,
+				(u_int8_t *)&tdls_param, sizeof(tdls_param));
+		} else {
+			WMA_LOGD("No wow_packet_buffer present");
+		}
+		break;
+#endif
 	default:
 		break;
 	}

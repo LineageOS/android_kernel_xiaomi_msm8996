@@ -5755,6 +5755,32 @@ __limProcessSmeResetApCapsChange(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 
 /**
+ * lim_register_p2p_ack_ind_cb() - Save the p2p ack indication callback.
+ * @mac_ctx: Mac pointer
+ * @msg_buf: Msg pointer containing the callback
+ *
+ * This function is used to save the p2p ack indication callback in PE.
+ *
+ * Return: None
+ */
+static void lim_register_p2p_ack_ind_cb(tpAniSirGlobal mac_ctx,
+				uint32_t *msg_buf)
+{
+	struct sir_sme_p2p_ack_ind_cb_req *sme_req =
+		(struct sir_sme_p2p_ack_ind_cb_req *)msg_buf;
+
+	if (NULL == msg_buf) {
+		limLog(mac_ctx, LOGE, FL("msg_buf is null"));
+		return;
+	}
+	if (sme_req->callback)
+		mac_ctx->p2p_ack_ind_cb =
+				sme_req->callback;
+	else
+		limLog(mac_ctx, LOGE, FL("sme_req->callback is null"));
+}
+
+/**
  * lim_register_mgmt_frame_ind_cb() - Save the Management frame
  * indication callback in PE.
  * @mac_ctx: Mac pointer
@@ -6193,6 +6219,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_NDP_RESPONDER_REQ:
         case eWNI_SME_NDP_END_REQ:
             lim_handle_ndp_request_message(pMac, pMsg);
+            break;
+        case eWNI_SME_REGISTER_P2P_ACK_CB:
+            lim_register_p2p_ack_ind_cb(pMac, pMsgBuf);
             break;
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);

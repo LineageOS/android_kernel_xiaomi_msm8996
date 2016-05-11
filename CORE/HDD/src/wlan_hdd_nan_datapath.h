@@ -125,11 +125,8 @@ enum qca_wlan_vendor_attr_ndp_qos {
  * @QCA_WLAN_VENDOR_ATTR_NDP_RESPONDER_RESPONSE: NDP responder response
  * @QCA_WLAN_VENDOR_ATTR_NDP_END_REQUEST: NDP end request
  * @QCA_WLAN_VENDOR_ATTR_NDP_END_RESPONSE: NDP end response
- * @QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_REQUEST: NDP update request
- * @QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_RESPONSE: NDP update response
  * @QCA_WLAN_VENDOR_ATTR_NDP_REQUEST_IND: NDP request indication
  * @QCA_WLAN_VENDOR_ATTR_NDP_CONFIRM_IND: NDP confirm indication
- * @QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_IND: NDP sched update indication
  * @QCA_WLAN_VENDOR_ATTR_NDP_END_IND: NDP End indication
  */
 enum qca_wlan_vendor_attr_ndp_sub_cmd_value {
@@ -142,12 +139,9 @@ enum qca_wlan_vendor_attr_ndp_sub_cmd_value {
 	QCA_WLAN_VENDOR_ATTR_NDP_RESPONDER_RESPONSE = 6,
 	QCA_WLAN_VENDOR_ATTR_NDP_END_REQUEST = 7,
 	QCA_WLAN_VENDOR_ATTR_NDP_END_RESPONSE = 8,
-	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_REQUEST = 9,
-	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_RESPONSE = 10,
-	QCA_WLAN_VENDOR_ATTR_NDP_REQUEST_IND = 11,
-	QCA_WLAN_VENDOR_ATTR_NDP_CONFIRM_IND = 12,
-	QCA_WLAN_VENDOR_ATTR_NDP_SCHEDULE_UPDATE_IND = 13,
-	QCA_WLAN_VENDOR_ATTR_NDP_END_IND = 14
+	QCA_WLAN_VENDOR_ATTR_NDP_REQUEST_IND = 9,
+	QCA_WLAN_VENDOR_ATTR_NDP_CONFIRM_IND = 10,
+	QCA_WLAN_VENDOR_ATTR_NDP_END_IND = 11
 };
 
 /** enum nan_datapath_state - NAN datapath states
@@ -185,6 +179,8 @@ enum nan_datapath_state {
  * @ndp_key_installed: NDP security key installed
  * @ndp_enc_key: NDP encryption key info
  * @ndp_debug_state: debug state info
+ * @ndi_delete_rsp_reason: reason code for ndi_delete rsp
+ * @ndi_delete_rsp_status: status for ndi_delete rsp
  */
 struct nan_datapath_ctx {
 	enum nan_datapath_state state;
@@ -196,6 +192,8 @@ struct nan_datapath_ctx {
 	bool ndp_key_installed;
 	tCsrRoamSetKey ndp_enc_key;
 	uint32_t ndp_debug_state;
+	uint32_t ndi_delete_rsp_reason;
+	uint32_t ndi_delete_rsp_status;
 };
 
 #ifdef WLAN_FEATURE_NAN_DATAPATH

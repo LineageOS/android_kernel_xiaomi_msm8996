@@ -2726,12 +2726,12 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SET_TXPOWER_LIMIT2G_NAME               "TxPower2g"
 #define CFG_SET_TXPOWER_LIMIT2G_MIN                ( 0 )
 #define CFG_SET_TXPOWER_LIMIT2G_MAX                ( 30 )
-#define CFG_SET_TXPOWER_LIMIT2G_DEFAULT            ( 15 )
+#define CFG_SET_TXPOWER_LIMIT2G_DEFAULT            ( 30 )
 
 #define CFG_SET_TXPOWER_LIMIT5G_NAME               "TxPower5g"
 #define CFG_SET_TXPOWER_LIMIT5G_MIN                ( 0 )
 #define CFG_SET_TXPOWER_LIMIT5G_MAX                ( 30 )
-#define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
+#define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 30 )
 
 #ifdef QCA_LL_TX_FLOW_CT
 /* Default, single interface case flow control parameters */
@@ -3816,6 +3816,11 @@ enum dot11p_mode {
 #define CFG_EDCA_BE_AIFS_VALUE_MAX        (15)
 #define CFG_EDCA_BE_AIFS_VALUE_DEFAULT    (3)
 
+#define CFG_TGT_GTX_USR_CFG_NAME      "tgt_gtx_usr_cfg"
+#define CFG_TGT_GTX_USR_CFG_MIN       (0)
+#define CFG_TGT_GTX_USR_CFG_MAX       (32)
+#define CFG_TGT_GTX_USR_CFG_DEFAULT   (32)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4570,6 +4575,9 @@ struct hdd_config {
    uint32_t                    edca_bk_aifs;
    uint32_t                    edca_be_aifs;
    bool                        enable_dynamic_sta_chainmask;
+
+   /* parameter to control GTX */
+   uint32_t                    tgt_gtx_usr_cfg;
 };
 
 typedef struct hdd_config hdd_config_t;

@@ -74,6 +74,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include <wlan_logging_sock_svc.h>
+#include <wlan_hdd_p2p.h>
 
 /**-----------------------------------------------------------------------------
 *   Preprocessor definitions and constants
@@ -2320,6 +2321,9 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
    sme_register_mgmt_frame_ind_callback(pHddCtx->hHal, hdd_indicate_mgmt_frame);
+
+   /* Register for p2p ack indication */
+   sme_register_p2p_ack_ind_callback(pHddCtx->hHal, hdd_send_action_cnf_cb);
 
 #ifdef FEATURE_WLAN_EXTSCAN
    sme_ExtScanRegisterCallback(pHddCtx->hHal,

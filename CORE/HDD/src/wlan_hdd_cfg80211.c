@@ -10813,7 +10813,7 @@ __wlan_hdd_cfg80211_avoid_freq(struct wiphy *wiphy,
 	ret = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != ret)
 		return -EINVAL;
-	cnss_get_wlan_unsafe_channel(hdd_ctx->unsafe_channel_list,
+	vos_get_wlan_unsafe_channel(hdd_ctx->unsafe_channel_list,
 			&(hdd_ctx->unsafe_channel_count),
 			sizeof(hdd_ctx->unsafe_channel_list));
 
@@ -11840,6 +11840,9 @@ void wlan_hdd_cfg80211_register_frames(hdd_adapter_t* pAdapter)
     ENTER();
     /* Register frame indication call back */
     sme_register_mgmt_frame_ind_callback(hHal, hdd_indicate_mgmt_frame);
+
+    /* Register for p2p ack indication */
+    sme_register_p2p_ack_ind_callback(hHal, hdd_send_action_cnf_cb);
 
    /* Right now we are registering these frame when driver is getting
       initialized. Once we will move to 2.6.37 kernel, in which we have
@@ -14578,7 +14581,8 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 
     if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
         (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
-        (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)) {
+        (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE) ||
+        (pAdapter->device_mode == WLAN_HDD_IBSS)) {
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
         pRoamProfile = &pWextState->roamProfile;
@@ -22139,7 +22143,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                     status = hdd_roamRegisterTDLSSTA(pAdapter, peer,
                                                      pTdlsPeer->staId,
                                                      pTdlsPeer->signature,
-                                                     tdlsLinkEstablishParams.qos);
+                                                     pTdlsPeer->qos);
                     if (VOS_STATUS_SUCCESS == status)
                     {
                         tANI_U8 i;

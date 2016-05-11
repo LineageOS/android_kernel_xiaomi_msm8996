@@ -171,12 +171,6 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #define WLAN_TFC_IPAUC_TX_DESC_RESERVE   100
 #endif /* IPA_UC_OFFLOAD */
 
-/*
- * Mutex lock to synchronize hdd_stop and fwpath_change_handler
- * called from two separate user space threads.
- */
-static DEFINE_MUTEX(fwp_lock);
-
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath_buffer[BUF_LEN];
@@ -191,6 +185,7 @@ static int   enable_dfs_chan_scan = -1;
 
 #ifndef MODULE
 static int wlan_hdd_inited;
+static char fwpath_mode_local[BUF_LEN];
 #endif
 
 /*
@@ -1475,24 +1470,30 @@ hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
    }
 
    pStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
    if (NULL != pPeerInfo && eHAL_STATUS_SUCCESS == pPeerInfo->status) {
       /* validate number of peers */
-      if (pPeerInfo->numPeers < HDD_MAX_NUM_IBSS_STA) {
-         pStaCtx->ibss_peer_info.status = pPeerInfo->status;
-         pStaCtx->ibss_peer_info.numPeers = pPeerInfo->numPeers;
-
-         for (i = 0; i < pPeerInfo->numPeers; i++) {
-             pStaCtx->ibss_peer_info.peerInfoParams[i] =
-                                         pPeerInfo->peerInfoParams[i];
-         }
-         hddLog(LOG1, FL("Peer Info copied in HDD"));
-      } else {
-         hddLog(LOG1,
-                FL("Number of peers %d returned is more than limit %d"),
+      if (pPeerInfo->numPeers > HDD_MAX_NUM_IBSS_STA) {
+         hddLog(LOGW,
+                FL("Limiting num_peers %u to %u"),
                 pPeerInfo->numPeers, HDD_MAX_NUM_IBSS_STA);
+         pPeerInfo->numPeers = HDD_MAX_NUM_IBSS_STA;
+      }
+
+      pStaCtx->ibss_peer_info.status = pPeerInfo->status;
+      pStaCtx->ibss_peer_info.numPeers = pPeerInfo->numPeers;
+
+      for (i = 0; i < pPeerInfo->numPeers; i++) {
+          pStaCtx->ibss_peer_info.peerInfoParams[i] =
+                                         pPeerInfo->peerInfoParams[i];
       }
    } else {
-      hddLog(LOG1, FL("peerInfo returned is NULL"));
+      hddLog(LOGE, FL("peerInfo %s: status %u, numPeers %u"),
+                       pPeerInfo ? "valid" : "null",
+                       pPeerInfo ? pPeerInfo->status : eHAL_STATUS_FAILURE,
+                       pPeerInfo ? pPeerInfo->numPeers : 0);
+      pStaCtx->ibss_peer_info.numPeers = 0;
+      pStaCtx->ibss_peer_info.status = eHAL_STATUS_FAILURE;
    }
 
    complete(&pAdapter->ibss_peer_info_comp);
@@ -9139,8 +9140,18 @@ static inline int wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
  */
 static void kickstart_driver_handler(struct work_struct *work)
 {
+	bool ready;
+
+	ready = vos_is_load_unload_ready(__func__);
+	if (!ready) {
+		VOS_ASSERT(0);
+		return;
+	}
+
+	vos_load_unload_protect(__func__);
 	hdd_driver_exit();
 	wlan_hdd_inited = 0;
+	vos_load_unload_unprotect(__func__);
 }
 
 static DECLARE_WORK(kickstart_driver_work, kickstart_driver_handler);
@@ -9148,6 +9159,7 @@ static DECLARE_WORK(kickstart_driver_work, kickstart_driver_handler);
 /**
  * kickstart_driver() - Initialize and Clean-up driver
  * @load:	True: initialize, False: Clean-up driver
+ * @mode_change: tell if last mode and current mode is same or not
  *
  * Delayed driver initialization when driver is statically linked and Clean-up
  * when all the interfaces are down or any other condition which requires to
@@ -9159,12 +9171,13 @@ static DECLARE_WORK(kickstart_driver_work, kickstart_driver_handler);
  *
  * Return: 0 on success, non zero on failure
  */
-static int kickstart_driver(bool load)
+static int kickstart_driver(bool load, bool mode_change)
 {
 	int ret_status;
 
-	pr_info("%s: load: %d wlan_hdd_inited: %d, caller: %pf\n", __func__,
-			load, wlan_hdd_inited, (void *)_RET_IP_);
+	pr_info("%s: load: %d wlan_hdd_inited: %d, mode_change: %d caller: %pf\n",
+			 __func__, load, wlan_hdd_inited,
+			mode_change, (void *)_RET_IP_);
 
 	/* Make sure unload and load are synchronized */
 	flush_work(&kickstart_driver_work);
@@ -9185,12 +9198,20 @@ static int kickstart_driver(bool load)
 		return ret_status;
 	}
 
-	hdd_driver_exit();
+	if (load && wlan_hdd_inited && !mode_change) {
+		/* Error condition */
+		hdd_driver_exit();
+		wlan_hdd_inited = 0;
+		ret_status = -EINVAL;
+	} else {
+		hdd_driver_exit();
 
-	msleep(200);
+		msleep(200);
 
-	ret_status = hdd_driver_init();
-	wlan_hdd_inited = ret_status ? 0 : 1;
+		ret_status = hdd_driver_init();
+		wlan_hdd_inited = ret_status ? 0 : 1;
+	}
+
 	return ret_status;
 }
 
@@ -9203,11 +9224,22 @@ static int kickstart_driver(bool load)
  */
 static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
 {
+	bool ready;
+
 	/* Do not clean up n/w ifaces if we are in DRIVER STOP phase or else
 	 * DRIVER START will fail and Wi-Fi will not resume successfully
 	 */
-	if (hdd_ctx && !hdd_ctx->driver_being_stopped)
-		kickstart_driver(false);
+	if (hdd_ctx && !hdd_ctx->driver_being_stopped) {
+		ready = vos_is_load_unload_ready(__func__);
+		if (!ready) {
+			VOS_ASSERT(0);
+			return;
+		}
+
+		vos_load_unload_protect(__func__);
+		kickstart_driver(false, false);
+		vos_load_unload_unprotect(__func__);
+	}
 }
 
 /**
@@ -9351,9 +9383,7 @@ static int hdd_stop (struct net_device *dev)
 	int ret;
 
 	vos_ssr_protect(__func__);
-	mutex_lock(&fwp_lock);
 	ret = __hdd_stop(dev);
-	mutex_unlock(&fwp_lock);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
@@ -14508,6 +14538,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
    spin_lock_init(&pHddCtx->dfs_lock);
+   spin_lock_init(&pHddCtx->sap_update_info_lock);
+   spin_lock_init(&pHddCtx->sta_update_info_lock);
    hdd_init_offloaded_packets_ctx(pHddCtx);
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -15854,16 +15886,35 @@ static int fwpath_changed_handler(const char *kmessage,
                                   struct kernel_param *kp)
 {
 	int ret;
+	bool mode_change;
 
-	ENTER();
-
-	mutex_lock(&fwp_lock);
 	ret = param_set_copystring(kmessage, kp);
-	if (0 == ret)
-		ret = kickstart_driver(true);
 
-	mutex_unlock(&fwp_lock);
-	EXIT();
+	if (!ret) {
+		bool ready;
+
+		ret = strncmp(fwpath_mode_local, kmessage , 3);
+		mode_change = ret ? true : false;
+
+
+		pr_info("%s : new_mode : %s, present_mode : %s\n", __func__,
+			kmessage, fwpath_mode_local);
+
+		strlcpy(fwpath_mode_local, kmessage,
+			sizeof(fwpath_mode_local));
+
+		ready = vos_is_load_unload_ready(__func__);
+
+		if (!ready) {
+			VOS_ASSERT(0);
+			return -EINVAL;
+		}
+
+		vos_load_unload_protect(__func__);
+		ret = kickstart_driver(true, mode_change);
+		vos_load_unload_unprotect(__func__);
+	}
+
 	return ret;
 }
 
@@ -15887,7 +15938,7 @@ static int con_mode_handler(const char *kmessage, struct kernel_param *kp)
 
    ret = param_set_int(kmessage, kp);
    if (0 == ret)
-      ret = kickstart_driver(true);
+      ret = kickstart_driver(true, false);
    return ret;
 }
 #endif
