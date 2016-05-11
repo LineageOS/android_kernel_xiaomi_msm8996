@@ -5030,14 +5030,8 @@ void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
 			hdd_ctx->cfg_ini->enable_dynamic_sta_chainmask);
 		return;
 	}
-	sta_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
-	if (!sta_adapter) {
-		hddLog(LOGE, FL("Sta adapter null!!"));
-		return;
-	}
 	hddLog(LOG1, FL("Current antenna mode: %d"),
 		hdd_ctx->current_antenna_mode);
-	hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
 
 	if (HDD_ANTENNA_MODE_INVALID != forced_mode) {
 		mode = forced_mode;
@@ -5046,6 +5040,13 @@ void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
 		mode = HDD_ANTENNA_MODE_1X1;
 	} else if (1 == wlan_hdd_get_active_session_count(hdd_ctx) &&
 		   hdd_ctx->no_of_active_sessions[WLAN_HDD_INFRA_STATION]) {
+		sta_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
+		if (!sta_adapter) {
+			hddLog(LOGE, FL("Sta adapter null!!"));
+			return;
+		}
+		hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+
 		if (!hdd_connIsConnected(hdd_sta_ctx)) {
 			hddLog(LOGE, FL("Sta not connected"));
 			return;
