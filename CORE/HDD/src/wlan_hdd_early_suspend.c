@@ -2304,7 +2304,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    pHddCtx->btCoexModeSet = false;
    hdd_register_mcast_bcast_filter(pHddCtx);
-   hdd_ssr_timer_del();
 
    wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
                                WLAN_SVC_FW_CRASHED_IND, NULL, 0);
@@ -2384,5 +2383,6 @@ success:
    /* Trigger replay of BTC events */
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    pHddCtx->isLogpInProgress = FALSE;
+   hdd_ssr_timer_del();
    return VOS_STATUS_SUCCESS;
 }
