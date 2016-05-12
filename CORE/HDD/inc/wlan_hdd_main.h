@@ -1720,6 +1720,8 @@ struct hdd_context_s
 
     struct work_struct  sap_start_work;
     bool is_sap_restart_required;
+    bool is_ch_avoid_in_progress;
+
     bool is_sta_connection_pending;
     spinlock_t sap_update_info_lock;
     spinlock_t sta_update_info_lock;
@@ -2221,4 +2223,7 @@ static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
 
 int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 		const tANI_U8 channel, const handoff_src src);
+
+void hdd_sap_restart_handle(struct work_struct *work);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
