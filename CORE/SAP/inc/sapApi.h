@@ -471,6 +471,20 @@ enum  sap_acs_dfs_mode {
 	ACS_DFS_MODE_DEPRIORITIZE
 };
 
+/*
+ * enum vendor_ie_access_policy- access policy
+ * @ACCESS_POLICY_NONE: access policy attribute is not valid
+ * @ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT: respond to probe req/assoc req
+ *  only if ie is present
+ * @ACCESS_POLICY_DONOT_RESPOND_IF_IE_IS_PRESENT: do not respond to probe req/
+ *  assoc req if ie is present
+ */
+enum vendor_ie_access_policy {
+	ACCESS_POLICY_NONE,
+	ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT,
+	ACCESS_POLICY_DONOT_RESPOND_IF_IE_IS_PRESENT,
+};
+
 typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
     eCsrPhyMode     SapHw_mode; /* Wireless Mode */
@@ -533,6 +547,17 @@ typedef struct sap_Config {
     v_PVOID_t  pProbeRespBcnIEsBuffer; /* buffer for addn ies comes from hostapd*/
     uint8_t   sap_dot11mc;      /* Specify if 11MC is enabled or disabled*/
     enum sap_acs_dfs_mode acs_dfs_mode;
+
+    uint8_t beacon_tx_rate;
+    uint8_t *vendor_ie;
+    enum vendor_ie_access_policy vendor_ie_access_policy;
+    uint16_t sta_inactivity_timeout;
+    uint16_t tx_pkt_fail_cnt_threshold;
+    uint8_t short_retry_limit;
+    uint8_t long_retry_limit;
+    uint8_t ampdu_size;
+    tSirMacRateSet supp_rate_set;
+    tSirMacRateSet extended_rate_set;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

@@ -1339,6 +1339,7 @@ struct wma_vdev_start_req {
 	u_int8_t dot11_mode;
 	bool is_half_rate;
 	bool is_quarter_rate;
+	u_int8_t beacon_tx_rate;
 };
 
 struct wma_set_key_params {
