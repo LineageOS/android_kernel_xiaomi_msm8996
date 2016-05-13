@@ -707,6 +707,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_peer_bwf_request_fixed_param,
     WMITLV_TAG_STRUC_wmi_bwf_peer_info,
     WMITLV_TAG_STRUC_wmi_dbglog_time_stamp_sync_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rmc_set_leader_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rmc_manual_leader_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -994,6 +996,7 @@ typedef enum {
     OP(WMI_WOW_SET_ACTION_WAKE_UP_CMDID) \
     OP(WMI_PEER_BWF_REQUEST_CMDID) \
     OP(WMI_DBGLOG_TIME_STAMP_SYNC_CMDID) \
+    OP(WMI_RMC_SET_MANUAL_LEADER_CMDID) \
     /* add new CMD_LIST elements above this line */
 
 /*
@@ -1144,6 +1147,7 @@ typedef enum {
     OP(WMI_PDEV_HW_MODE_TRANSITION_EVENTID) \
     OP(WMI_PDEV_SET_MAC_CONFIG_RESP_EVENTID) \
     OP(WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID) \
+    OP(WMI_RMC_NEW_LEADER_EVENTID) \
     /* add new EVT_LIST elements above this line */
 
 
@@ -2855,6 +2859,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_WAL_POWER_DEBUG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_bwf_peer_info, peer_info, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_BWF_REQUEST_CMDID);
 
+#define WMITLV_TABLE_WMI_RMC_SET_MANUAL_LEADER_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_rmc_set_leader_cmd_fixed_param, wmi_rmc_set_leader_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_RMC_SET_MANUAL_LEADER_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -3674,6 +3682,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_INST_RSSI_STATS_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_tx_power_level_stats_evt_fixed_param, wmi_tx_power_level_stats_evt_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, tx_time_per_power_level, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID)
+
+#define WMITLV_TABLE_WMI_RMC_NEW_LEADER_EVENTID(id, op, buf, len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_rmc_manual_leader_event_fixed_param, wmi_rmc_manual_leader_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_RMC_NEW_LEADER_EVENTID);
 
 
 #ifdef __cplusplus
