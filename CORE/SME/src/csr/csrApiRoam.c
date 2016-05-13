@@ -6968,6 +6968,9 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         vos_mem_copy(&pDstProfile->addIeParams,
                      &pSrcProfile->addIeParams,
                      sizeof(tSirAddIeParams));
+
+        pDstProfile->beacon_tx_rate = pSrcProfile->beacon_tx_rate;
+
     }while(0);
 
     if(!HAL_STATUS_SUCCESS(status))
@@ -12896,6 +12899,9 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
             pProfile->addIeParams.probeRespBCNData_buff;
     }
     pParam->sap_dot11mc = pProfile->sap_dot11mc;
+
+    pParam->beacon_tx_rate = pProfile->beacon_tx_rate;
+
     // When starting an IBSS, start on the channel from the Profile.
     status = csrSendMBStartBssReqMsg( pMac, sessionId, pProfile->BSSType, pParam, pBssDesc );
     return (status);
@@ -15375,7 +15381,12 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
 
         *pBuf++ = (tANI_U8)pMac->roam.configParam.obssEnabled;
         *pBuf++ = (tANI_U8)pParam->sap_dot11mc;
-        *pBuf++ = (tANI_U8)pMac->roam.configParam.vendor_vht_for_24ghz_sap;
+
+        vos_mem_copy(pBuf, &pMac->roam.configParam.vendor_vht_for_24ghz_sap,
+                sizeof(pMac->roam.configParam.vendor_vht_for_24ghz_sap));
+        pBuf += sizeof(pMac->roam.configParam.vendor_vht_for_24ghz_sap);
+
+        *pBuf++ = (tANI_U8)pParam->beacon_tx_rate;
 
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
