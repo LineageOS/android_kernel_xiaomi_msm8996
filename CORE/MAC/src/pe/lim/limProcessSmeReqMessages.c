@@ -750,6 +750,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                                             &psessionEntry->shortSlotTimeSupported);
                  psessionEntry->isCoalesingInIBSSAllowed =
                                 pSmeStartBssReq->isCoalesingInIBSSAllowed;
+                 psessionEntry->beacon_tx_rate =
+                                pSmeStartBssReq->beacon_tx_rate;
                  break;
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
@@ -1056,6 +1058,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 limLog(pMac, LOGE, FL
                       ("Fail to set value for WNI_CFG_LOCAL_POWER_CONSTRAINT"));
         }
+
+        pMlmStartReq->beacon_tx_rate = psessionEntry->beacon_tx_rate;
 
         psessionEntry ->limPrevSmeState = psessionEntry->limSmeState;
         psessionEntry ->limSmeState     =  eLIM_SME_WT_START_BSS_STATE;

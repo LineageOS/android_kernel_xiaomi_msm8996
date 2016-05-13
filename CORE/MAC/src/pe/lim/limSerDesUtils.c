@@ -695,7 +695,11 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     len--;
 
     /* extract vendor_vht_for_24ghz_sap */
-    pStartBssReq->vendor_vht_for_24ghz_sap = *pBuf++;
+    pStartBssReq->vendor_vht_for_24ghz_sap = *pBuf;
+    len -= sizeof(pStartBssReq->vendor_vht_for_24ghz_sap);
+    pBuf += sizeof(pStartBssReq->vendor_vht_for_24ghz_sap);
+
+    pStartBssReq->beacon_tx_rate = *pBuf++;
     len--;
 
     if (len)

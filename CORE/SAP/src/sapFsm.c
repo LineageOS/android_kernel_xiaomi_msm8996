@@ -3613,6 +3613,10 @@ sapFsm
                  sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
                  sapContext->csrRoamProfile.vht_channel_width =
                                                sapContext->vht_channel_width;
+
+                 sapContext->csrRoamProfile.beacon_tx_rate =
+                                                    sapContext->beacon_tx_rate;
+
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                          "%s: notify hostapd about channel selection: %d",
                          __func__, sapContext->channel);
