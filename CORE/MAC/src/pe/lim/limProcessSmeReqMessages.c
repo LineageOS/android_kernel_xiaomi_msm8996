@@ -2197,6 +2197,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel );
 
+        localPowerConstraint = regMax;
+
         if(!pMac->psOffloadEnabled)
         {
            limExtractApCapability( pMac,
@@ -2224,16 +2226,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
               );
         }
 
-        /* If power constraint is zero then update it with Region max.
-         * MaxTxpower will be the MIN of regmax and power constraint */
-        if (localPowerConstraint == 0)
-            localPowerConstraint = regMax;
+        psessionEntry->maxTxPower = limGetMaxTxPower(regMax,
+                   localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
 
-#ifdef FEATURE_WLAN_ESE
-            psessionEntry->maxTxPower = limGetMaxTxPower(regMax, localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
-#else
-            psessionEntry->maxTxPower = VOS_MIN( regMax, (localPowerConstraint) );
-#endif
         if(!pMac->psOffloadEnabled)
         {
             if (pMac->lim.gLimCurrentBssUapsd)
@@ -2257,7 +2252,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
              }
         }
         limLog(pMac, LOG1,
-              FL("regMax = %d, localPowerConstraint = %d, max tx = %d, UAPSD flag for all AC - 0x%2x"),
+               FL("regMax = %d, localPowerConstraint = %d,"
+                  "max tx pwr = %d, UAPSD flag for all AC - 0x%2x"),
                         regMax, localPowerConstraint,
                         psessionEntry->maxTxPower,
                         psessionEntry->gUapsdPerAcBitmask);
