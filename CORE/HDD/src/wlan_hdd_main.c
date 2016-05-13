@@ -925,6 +925,8 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         wlan_hdd_decr_active_session(pHddCtx, ap_adapter->device_mode);
         hddLog(LOGE, FL("SAP Stop Success"));
 
+        if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
         if (0 != wlan_hdd_cfg80211_update_apies(ap_adapter)) {
             hddLog(LOGE, FL("SAP Not able to set AP IEs"));
             WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
@@ -953,6 +955,8 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
         wlan_hdd_incr_active_session(pHddCtx, ap_adapter->device_mode);
         pHostapdState->bCommit = TRUE;
+        if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.obss);
     }
 end:
     mutex_unlock(&pHddCtx->sap_lock);
@@ -10007,6 +10011,7 @@ void hdd_runtime_suspend_init(hdd_context_t *hdd_ctx)
 	context->scan = vos_runtime_pm_prevent_suspend_init("scan");
 	context->roc = vos_runtime_pm_prevent_suspend_init("roc");
 	context->dfs = vos_runtime_pm_prevent_suspend_init("dfs");
+	context->obss = vos_runtime_pm_prevent_suspend_init("obss");
 }
 
 /**
@@ -10027,6 +10032,8 @@ void hdd_runtime_suspend_deinit(hdd_context_t *hdd_ctx)
 	context->roc = NULL;
 	vos_runtime_pm_prevent_suspend_deinit(context->dfs);
 	context->dfs = NULL;
+	vos_runtime_pm_prevent_suspend_deinit(context->obss);
+	context->obss = NULL;
 }
 
 /**
@@ -11573,6 +11580,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             updateIE.pAdditionIEBuffer = NULL;
             updateIE.append = VOS_FALSE;
             updateIE.notify = VOS_FALSE;
+            if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+                vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
             /* Probe bcn reset */
             if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
                               &updateIE, eUPDATE_IE_PROBE_BCN)
@@ -17457,6 +17466,8 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
         wlan_hdd_decr_active_session(hdd_ctx, ap_adapter->device_mode);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                   FL("SAP Stop Success"));
+        if (hdd_ctx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_allow_suspend(hdd_ctx->runtime_context.obss);
     } else {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   FL("Can't stop ap because its not started"));
@@ -17524,6 +17535,8 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
     set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
     wlan_hdd_incr_active_session(hdd_ctx, ap_adapter->device_mode);
     hostapd_state->bCommit = TRUE;
+    if (hdd_ctx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_prevent_suspend(hdd_ctx->runtime_context.obss);
 
 end:
     mutex_unlock(&hdd_ctx->sap_lock);

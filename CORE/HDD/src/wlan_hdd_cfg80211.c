@@ -14045,6 +14045,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     /* Successfully started Bss update the state bit. */
     set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+    /* Disable runtime PM if obss protection is enabled */
+    if (pConfig->obssProtEnabled)
+        vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.obss);
+
     /* Initialize WMM configuation */
     hdd_wmm_init(pHostapdAdapter);
     wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
@@ -14395,6 +14399,8 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
        hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_INVALID);
+    if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
 
     if (status != VOS_STATUS_SUCCESS) {
         hddLog(VOS_TRACE_LEVEL_FATAL, FL("Stopping the BSS"));
