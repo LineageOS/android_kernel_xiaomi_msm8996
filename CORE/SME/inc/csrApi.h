@@ -1232,6 +1232,7 @@ typedef struct tagCsrConfigParam
     //The actual TX power is the lesser of this value and 11d.
     //If 11d is disable, the lesser of this and default setting.
     tANI_U8 nTxPowerCap;
+    tANI_BOOLEAN allow_tpc_from_ap;
     tANI_U32  statsReqPeriodicity;  //stats request frequency from PE while in full power
     tANI_U32  statsReqPeriodicityInPS;//stats request frequency from PE while in power save
 #ifdef WLAN_FEATURE_VOWIFI_11R
