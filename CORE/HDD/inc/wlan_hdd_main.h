@@ -926,6 +926,7 @@ typedef struct multicast_addr_list
  * @scan: scan context to prevent/allow runtime pm
  * @roc : remain on channel runtime pm context
  * @dfs : Dynamic frequency selection runtime pm context
+ * @obss: Obss protection runtime pm context
  *
  * Prevent Runtime PM for scan, roc and dfs.
  */
@@ -933,6 +934,7 @@ struct hdd_runtime_pm_context {
 	void *scan;
 	void *roc;
 	void *dfs;
+	void *obss;
 };
 
 /**

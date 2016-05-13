@@ -861,6 +861,8 @@ static int hdd_stop_bss_link(hdd_adapter_t *pHostapdAdapter,
         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
         wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
     }
+    if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
     EXIT();
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
@@ -5725,6 +5727,8 @@ static int __iw_softap_stopbss(struct net_device *dev,
         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
         wlan_hdd_decr_active_session(pHddCtx, pHostapdAdapter->device_mode);
     }
+    if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
     EXIT();
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
