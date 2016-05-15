@@ -117,7 +117,8 @@ static void msm_thermal_main(struct work_struct *work)
 				old_zone != UNTHROTTLE_ZONE)) {
 				t->throttle.curr_zone = i;
 				break;
-			} else if (!i && old_zone == UNTHROTTLE_ZONE) {
+			} else if (!i && old_zone == UNTHROTTLE_ZONE &&
+				temp < t->zone[0].trip_degC) {
 				/*
 				 * Don't keep looping if the CPU is currently
 				 * unthrottled and the temp is below the first
