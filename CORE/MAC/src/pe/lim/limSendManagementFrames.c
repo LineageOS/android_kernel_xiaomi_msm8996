@@ -3909,11 +3909,13 @@ end:
 
 eHalStatus limDisassocTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 {
+    limLog(pMac, LOG1, FL("txCompleteSuccess: %d"), txCompleteSuccess);
     return limSendDisassocCnf(pMac);
 }
 
 eHalStatus limDeauthTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 {
+    limLog(pMac, LOG1, FL("txCompleteSuccess: %d"), txCompleteSuccess);
     return limSendDeauthCnf(pMac);
 }
 
