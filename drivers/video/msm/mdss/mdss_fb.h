@@ -303,6 +303,7 @@ struct msm_fb_data_type {
 	u32 bl_updated;
 	u32 bl_level_scaled;
 	struct mutex bl_lock;
+	bool ipc_resume;
 
 	struct platform_device *pdev;
 
