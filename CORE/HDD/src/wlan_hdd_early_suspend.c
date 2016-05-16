@@ -2118,6 +2118,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    v_CONTEXT_t      pVosContext = NULL;
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
+   bool             bug_on_reinit_failure = 0;
 
    hdd_adapter_t *pAdapter;
    int i;
@@ -2141,6 +2142,7 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is Null", __func__);
       goto err_re_init;
    }
+   bug_on_reinit_failure = pHddCtx->cfg_ini->bug_on_reinit_failure;
 
    if (!hif_sc) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hif_sc is NULL", __func__);
@@ -2376,7 +2378,8 @@ err_re_init:
    /* Allow the phone to go to sleep */
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-   VOS_BUG(0);
+   if (bug_on_reinit_failure)
+       VOS_BUG(0);
    return -EPERM;
 
 success:
