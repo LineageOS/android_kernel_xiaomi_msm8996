@@ -9200,10 +9200,7 @@ static int kickstart_driver(bool load, bool mode_change)
 	}
 
 	if (load && wlan_hdd_inited && !mode_change) {
-		/* Error condition */
-		hdd_driver_exit();
-		wlan_hdd_inited = 0;
-		ret_status = -EINVAL;
+		ret_status = 0;
 	} else {
 		hdd_driver_exit();
 
