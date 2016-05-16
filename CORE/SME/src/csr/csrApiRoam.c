@@ -13734,7 +13734,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     if ((eWNI_SME_REASSOC_REQ == messageType) ||
             CSR_IS_CHANNEL_5GHZ(pBssDescription->channelId) ||
             (abs(pBssDescription->rssi) <
-            (neigh_roam_info->cfgParams.neighborLookupThreshold +
+            (neigh_roam_info->cfgParams.neighborLookupThreshold -
              neigh_roam_info->cfgParams.hi_rssi_scan_rssi_delta))) {
             pSession->disable_hi_rssi = true;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,

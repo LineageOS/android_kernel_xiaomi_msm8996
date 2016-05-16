@@ -74,8 +74,7 @@ int nl_srv_init(void *wiphy)
 	wiphy_ptr = wiphy;
 	radio_idx = cnss_logger_device_register(wiphy, THIS_MODULE->name);
 	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-		  "%s: radio_index: %d, wiphy_ptr: %p",
-		  __func__, radio_idx, wiphy_ptr);
+		  "%s: radio_index: %d", __func__, radio_idx);
 
 	if (radio_idx >= 0)
 		logger_initialized = true;
