@@ -3830,6 +3830,18 @@ enum dot11p_mode {
 #define CFG_CH_AVOID_SAP_RESTART_MAX     (1)
 #define CFG_CH_AVOID_SAP_RESTART_DEFAULT (0)
 
+/*
+ * This parameter will help to debug ssr reinit failure issues
+ * by raising vos bug so dumps can be collected. If OEM
+ * wants to avoid this crash, just disable this parameter.
+ * wlan driver will only recover after driver unload and load.
+ * Default: Enable
+ */
+#define CFG_BUG_ON_REINIT_FAILURE_NAME     "g_bug_on_reinit_failure"
+#define CFG_BUG_ON_REINIT_FAILURE_MIN      (0)
+#define CFG_BUG_ON_REINIT_FAILURE_MAX      (1)
+#define CFG_BUG_ON_REINIT_FAILURE_DEFAULT  (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4589,6 +4601,7 @@ struct hdd_config {
    /* parameter to control GTX */
    uint32_t                    tgt_gtx_usr_cfg;
    bool                        sap_restrt_ch_avoid;
+   bool                        bug_on_reinit_failure;
 };
 
 typedef struct hdd_config hdd_config_t;
