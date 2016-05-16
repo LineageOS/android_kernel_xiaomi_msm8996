@@ -8550,12 +8550,27 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION]);
 		request.vdev_id = pAdapter->sessionId;
 
-		vos_status = wma_set_tx_rx_aggregation_size(&request);
-		if (vos_status != VOS_STATUS_SUCCESS) {
+		if (request.tx_aggregation_size >=
+					CFG_TX_AGGREGATION_SIZE_MIN &&
+			request.tx_aggregation_size <=
+					CFG_TX_AGGREGATION_SIZE_MAX &&
+			request.rx_aggregation_size >=
+					CFG_RX_AGGREGATION_SIZE_MIN &&
+			request.rx_aggregation_size <=
+					CFG_RX_AGGREGATION_SIZE_MAX) {
+			vos_status = wma_set_tx_rx_aggregation_size(&request);
+			if (vos_status != VOS_STATUS_SUCCESS) {
+				hddLog(LOGE,
+					FL("failed to set aggr sizes err %d"),
+					vos_status);
+				ret_val = -EPERM;
+			}
+		} else {
 			hddLog(LOGE,
-				FL("failed to set aggregation sizes(err=%d)"),
-				vos_status);
-			ret_val = -EPERM;
+				FL("TX %d RX %d MPDU aggr size not in range"),
+				request.tx_aggregation_size,
+				request.rx_aggregation_size);
+			ret_val = -EINVAL;
 		}
 	}
 	return ret_val;
