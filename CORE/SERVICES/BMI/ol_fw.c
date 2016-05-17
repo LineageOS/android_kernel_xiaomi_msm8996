@@ -2232,11 +2232,17 @@ int ol_download_firmware(struct ol_softc *scn)
 			case AR6320_REV3_VERSION:
 			case AR6320_REV3_2_VERSION:
 			case QCA9377_REV1_1_VERSION:
-			case QCA9379_REV1_VERSION:
 			case AR6320_REV4_VERSION:
 			case AR6320_DEV_VERSION:
 			/* for SDIO, debug uart output gpio is 29, otherwise it is 6. */
 #ifdef HIF_SDIO
+				param = 19;
+#else
+				param = 6;
+#endif
+				break;
+			case QCA9379_REV1_VERSION:
+#if defined(HIF_SDIO) || defined(HIF_USB)
 				param = 19;
 #else
 				param = 6;
