@@ -3782,7 +3782,7 @@ typedef struct sSirSetRSSIFilterReq
  * SIR_MAC_ACTION_VHT             21      1
  * ----------------------------+------+-------+
  */
-#define ALLOWED_ACTION_FRAMES_BITMAP0 \
+#define ALLOWED_ACTION_FRAMES_BITMAP0_STA \
 		((1 << SIR_MAC_ACTION_SPECTRUM_MGMT) | \
 		 (1 << SIR_MAC_ACTION_QOS_MGMT) | \
 		 (1 << SIR_MAC_ACTION_PUBLIC_USAGE) | \
@@ -3791,6 +3791,10 @@ typedef struct sSirSetRSSIFilterReq
 		 (1 << SIR_MAC_ACTION_WNM) | \
 		 (1 << SIR_MAC_ACTION_WME) | \
 		 (1 << SIR_MAC_ACTION_VHT))
+
+#define ALLOWED_ACTION_FRAMES_BITMAP0_SAP \
+		((ALLOWED_ACTION_FRAMES_BITMAP0_STA) | \
+		 (1 << SIR_MAC_ACTION_HT))
 
 #define ALLOWED_ACTION_FRAMES_BITMAP1	0x0
 #define ALLOWED_ACTION_FRAMES_BITMAP2	0x0

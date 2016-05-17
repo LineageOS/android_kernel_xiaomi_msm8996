@@ -2255,7 +2255,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
  *
  * Return: None
  */
-static void sme_set_allowed_action_frames(tHalHandle hal)
+void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0)
 {
 	eHalStatus status;
 	tpAniSirGlobal mac = PMAC_STRUCT(hal);
@@ -2275,8 +2275,7 @@ static void sme_set_allowed_action_frames(tHalHandle hal)
 			sizeof(*sir_allowed_action_frames));
 	sir_allowed_action_frames->operation = WOW_ACTION_WAKEUP_OPERATION_SET;
 
-	sir_allowed_action_frames->action_category_map[0] =
-				(ALLOWED_ACTION_FRAMES_BITMAP0);
+	sir_allowed_action_frames->action_category_map[0] = bitmap0;
 	sir_allowed_action_frames->action_category_map[1] =
 				(ALLOWED_ACTION_FRAMES_BITMAP1);
 	sir_allowed_action_frames->action_category_map[2] =
@@ -2377,7 +2376,7 @@ eHalStatus sme_Start(tHalHandle hHal)
       pMac->sme.state = SME_STATE_START;
    }while (0);
 
-   sme_set_allowed_action_frames(hHal);
+   sme_set_allowed_action_frames(hHal, ALLOWED_ACTION_FRAMES_BITMAP0_STA);
 
    return status;
 }
