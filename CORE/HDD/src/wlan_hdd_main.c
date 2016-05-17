@@ -13306,6 +13306,60 @@ void hdd_prevent_suspend_timeout(v_U32_t timeout, uint32_t reason)
                                       reason);
 }
 
+/**
+ * hdd_wlan_wakelock_create() -Create wakelock named as wlan
+ *
+ * Return: none
+ */
+void hdd_wlan_wakelock_create(void)
+{
+	vos_wake_lock_init(&wlan_wake_lock, "wlan");
+}
+
+/**
+ * hdd_wlan_wakelock_destroy() -Destroy wakelock named as wlan
+ *
+ * Return: none
+ */
+void hdd_wlan_wakelock_destroy(void)
+{
+	vos_wake_lock_destroy(&wlan_wake_lock);
+}
+
+/**
+ * wlan_hdd_wakelocks_destroy() -Destroy all the wakelocks
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_wakelocks_destroy(hdd_context_t *hdd_ctx)
+{
+	if (hdd_ctx) {
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+		vos_wake_lock_destroy(&hdd_ctx->rx_wake_lock);
+#endif
+		vos_wake_lock_destroy(&hdd_ctx->sap_wake_lock);
+		hdd_hostapd_channel_wakelock_deinit(hdd_ctx);
+	}
+}
+
+/**
+ * wlan_hdd_netdev_notifiers_cleanup() -unregister notifiers with kernel
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_netdev_notifiers_cleanup(hdd_context_t * hdd_ctx)
+{
+	if (hdd_ctx) {
+		hddLog(LOGE, FL("Unregister IPv6 notifier"));
+		hdd_wlan_unregister_ip6_notifier(hdd_ctx);
+		hddLog(LOGE, FL("Unregister IPv4 notifier"));
+		unregister_inetaddr_notifier(&hdd_ctx->ipv4_notifier);
+	}
+	unregister_netdevice_notifier(&hdd_netdev_notifier);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_exchange_version_and_caps() - HDD function to exchange version and capability
@@ -15621,7 +15675,7 @@ static int hdd_driver_init( void)
       vos_mem_init();
 #endif
 
-   vos_wake_lock_init(&wlan_wake_lock, "wlan");
+   hdd_wlan_wakelock_create();
    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
    /*
@@ -15651,7 +15705,7 @@ static int hdd_driver_init( void)
          if (ret_status < 0) {
             vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
-            vos_wake_lock_destroy(&wlan_wake_lock);
+            hdd_wlan_wakelock_destroy();
          }
          return ret_status;
       }
@@ -15662,7 +15716,7 @@ static int hdd_driver_init( void)
          if (ret_status < 0) {
             vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
-            vos_wake_lock_destroy(&wlan_wake_lock);
+            hdd_wlan_wakelock_destroy();
          }
          return ret_status;
       }
@@ -15717,7 +15771,7 @@ static int hdd_driver_init( void)
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
-      vos_wake_lock_destroy(&wlan_wake_lock);
+     hdd_wlan_wakelock_destroy();
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
       wlan_logging_sock_deinit_svc();
@@ -15846,7 +15900,7 @@ static void hdd_driver_exit(void)
 #endif
 
 done:
-   vos_wake_lock_destroy(&wlan_wake_lock);
+   hdd_wlan_wakelock_destroy();
    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 

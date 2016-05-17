@@ -2345,7 +2345,6 @@ err_unregister_pmops:
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
-   hdd_close_all_adapters(pHddCtx);
 
 err_vosstop:
    vos_stop(pVosContext);
@@ -2353,35 +2352,44 @@ err_vosstop:
 err_vosclose:
    vos_close(pVosContext);
    vos_sched_close(pVosContext);
-   if (pHddCtx)
-   {
-       /* Unregister the Net Device Notifier */
-       unregister_netdevice_notifier(&hdd_netdev_notifier);
-       /* Clean up HDD Nlink Service */
-       send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
-       nl_srv_exit();
-       /* Free up dynamically allocated members inside HDD Adapter */
-       kfree(pHddCtx->cfg_ini);
-       pHddCtx->cfg_ini= NULL;
-       wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
-       wiphy_unregister(pHddCtx->wiphy);
-       wlan_hdd_cfg80211_deinit(pHddCtx->wiphy);
-       wiphy_free(pHddCtx->wiphy);
-   }
-   vos_preClose(&pVosContext);
 
 #ifdef MEMORY_DEBUG
    vos_mem_exit();
 #endif
 
 err_re_init:
+   if (bug_on_reinit_failure)
+      VOS_BUG(0);
+   else {
+      pr_err("SSR fails during reinit hence doing cleanup");
+      /* Stop SSR timer */
+      hdd_ssr_timer_del();
+      if (pHddCtx) {
+         /* Unregister all Net Device Notifiers */
+         wlan_hdd_netdev_notifiers_cleanup(pHddCtx);
+         /* Clean up HDD Nlink Service */
+         send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+         nl_srv_exit();
+         hdd_runtime_suspend_deinit(pHddCtx);
+         hdd_close_all_adapters(pHddCtx);
+         /* Free up dynamically allocated members
+          * inside HDD Adapter
+          */
+         kfree(pHddCtx->cfg_ini);
+         pHddCtx->cfg_ini= NULL;
+         /* Destroy all wakelocks */
+         wlan_hdd_wakelocks_destroy(pHddCtx);
+         wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
+         wiphy_unregister(pHddCtx->wiphy);
+         wiphy_free(pHddCtx->wiphy);
+      }
+   }
+   vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+   vos_preClose(&pVosContext);
    /* Allow the phone to go to sleep */
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
-   vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-   if (bug_on_reinit_failure)
-       VOS_BUG(0);
+   hdd_wlan_wakelock_destroy();
    return -EPERM;
-
 success:
    /* Trigger replay of BTC events */
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
