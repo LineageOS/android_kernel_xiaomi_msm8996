@@ -1087,10 +1087,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		goto out_fail;
 	}
 
-	ramdump_scn->ramdump_size = DRAM_SIZE + IRAM_SIZE + AXI_SIZE;
-	ramdump_scn->ramdump_base =
-		vos_mem_malloc(ramdump_scn->ramdump_size);
-
+	/* Buffer for ramdump should be pre-allocated when probing SDIO */
 	if (!ramdump_scn->ramdump_base) {
 		pr_err("%s: fail to alloc mem for FW RAM dump\n",
 				__func__);
@@ -1141,13 +1138,6 @@ out_fail:
 #endif
 #endif
 
-#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
-	if (ramdump_scn->ramdump_base) {
-		vfree(ramdump_scn->ramdump_base);
-		ramdump_scn->ramdump_base = NULL;
-		ramdump_scn->ramdump_size = 0;
-	}
-#endif
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 	return;
 }
