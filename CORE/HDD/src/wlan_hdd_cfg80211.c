@@ -21204,10 +21204,13 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                         break;
                     }
 
-                   valid_ch[num_ch++] = request->channels[i]->hw_value;
-                   len += snprintf(chList+len, 5, "%d ",
-                                  request->channels[i]->hw_value);
-                   break ;
+                    if (!vos_is_dsrc_channel(vos_chan_to_freq(
+                        request->channels[i]->hw_value))) {
+                       valid_ch[num_ch++] = request->channels[i]->hw_value;
+                       len += snprintf(chList+len, 5, "%d ",
+                                       request->channels[i]->hw_value);
+                    }
+                    break ;
                 }
              }
          }
