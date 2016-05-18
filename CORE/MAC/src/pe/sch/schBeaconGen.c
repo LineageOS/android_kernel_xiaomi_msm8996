@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -384,7 +384,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 #endif
 
-    PopulateDot11fExtCap(pMac, isVHTEnabled, &pBcn2->ExtCap, psessionEntry);
+    if (psessionEntry->limSystemRole != eLIM_STA_IN_IBSS_ROLE)
+        PopulateDot11fExtCap(pMac, isVHTEnabled, &pBcn2->ExtCap, psessionEntry);
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                                 &pBcn2->ExtSuppRates, psessionEntry );
@@ -489,7 +490,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
             schLog(pMac, LOG1, FL("extcap not extracted"));
         }
         /* merge extcap IE */
-        if (extcap_present)
+        if (extcap_present &&
+            psessionEntry->limSystemRole != eLIM_STA_IN_IBSS_ROLE)
             lim_merge_extcap_struct(&pBcn2->ExtCap, &extracted_extcap);
 
     }
