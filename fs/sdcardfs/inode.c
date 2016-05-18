@@ -515,7 +515,7 @@ static int sdcardfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	 * we pass along new_dentry for the name.*/
 	get_derived_permission_new(new_dentry->d_parent, old_dentry, new_dentry);
 	fix_derived_permission(old_dentry->d_inode);
-	get_derive_permissions_recursive(old_dentry);
+	fixup_top_recursive(old_dentry);
 out:
 	unlock_rename(lower_old_dir_dentry, lower_new_dir_dentry);
 	dput(lower_old_dir_dentry);
@@ -589,6 +589,13 @@ out:
 static int sdcardfs_permission(struct inode *inode, int mask)
 {
 	int err;
+	struct inode *top = SDCARDFS_I(inode)->top;
+
+	/* Ensure owner is up to date */
+	if (!uid_eq(inode->i_uid, top->i_uid)) {
+		SDCARDFS_I(inode)->d_uid = SDCARDFS_I(top)->d_uid;
+		fix_derived_permission(inode);
+	}
 
 	/*
 	 * Permission check on sdcardfs inode.
@@ -727,6 +734,24 @@ out_err:
 	return err;
 }
 
+static void sdcardfs_fillattr(struct inode *inode, struct kstat *stat)
+{
+	struct sdcardfs_inode_info *info = SDCARDFS_I(inode);
+	stat->dev = inode->i_sb->s_dev;
+	stat->ino = inode->i_ino;
+	stat->mode = (inode->i_mode  & S_IFMT) | get_mode(SDCARDFS_I(info->top));
+	stat->nlink = inode->i_nlink;
+	stat->uid = make_kuid(&init_user_ns, SDCARDFS_I(info->top)->d_uid);
+	stat->gid = make_kgid(&init_user_ns, get_gid(SDCARDFS_I(info->top)));
+	stat->rdev = inode->i_rdev;
+	stat->size = i_size_read(inode);
+	stat->atime = inode->i_atime;
+	stat->mtime = inode->i_mtime;
+	stat->ctime = inode->i_ctime;
+	stat->blksize = (1 << inode->i_blkbits);
+	stat->blocks = inode->i_blocks;
+}
+
 static int sdcardfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 		 struct kstat *stat)
 {
@@ -756,8 +781,7 @@ static int sdcardfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 	sdcardfs_copy_and_fix_attrs(inode, lower_inode);
 	fsstack_copy_inode_size(inode, lower_inode);
 
-
-	generic_fillattr(inode, stat);
+	sdcardfs_fillattr(inode, stat);
 	sdcardfs_put_lower_path(dentry, &lower_path);
 	return 0;
 }
@@ -777,9 +801,7 @@ const struct inode_operations sdcardfs_symlink_iops = {
 const struct inode_operations sdcardfs_dir_iops = {
 	.create		= sdcardfs_create,
 	.lookup		= sdcardfs_lookup,
-#if 0
 	.permission	= sdcardfs_permission,
-#endif
 	.unlink		= sdcardfs_unlink,
 	.mkdir		= sdcardfs_mkdir,
 	.rmdir		= sdcardfs_rmdir,
