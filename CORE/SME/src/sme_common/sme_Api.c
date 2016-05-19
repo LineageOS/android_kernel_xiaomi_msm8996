@@ -10597,6 +10597,42 @@ eHalStatus sme_UpdateIsFastRoamIniFeatureEnabled
   return eHAL_STATUS_SUCCESS;
 }
 
+/**
+ * sme_config_fast_roaming() - enable/disable LFR support at runtime
+ * @hhal - The handle returned by macOpen.
+ * @session_id - Session Identifier
+ * @is_fast_roam_enabled - flag to enable/disable roaming
+ *
+ * When Supplicant issues enabled/disable fast roaming on the basis
+ * of the Bssid modification in network block (e.g. AutoJoin mode N/W block)
+ *
+ * Return: eHalStatus
+ */
+
+eHalStatus sme_config_fast_roaming(tHalHandle hhal, tANI_U8 session_id,
+				    const bool is_fast_roam_enabled)
+{
+	tpAniSirGlobal pmac = PMAC_STRUCT(hhal);
+	eHalStatus status;
+
+	if (!pmac->roam.configParam.isFastRoamIniFeatureEnabled) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			  FL("FastRoam is disabled through ini"));
+		if (!is_fast_roam_enabled)
+			return eHAL_STATUS_SUCCESS;
+		return  eHAL_STATUS_FAILURE;
+	}
+	status = csrNeighborRoamUpdateFastRoamingEnabled(pmac,
+					 session_id, is_fast_roam_enabled);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("csrNeighborRoamUpdateFastRoamingEnabled failed"));
+		return  eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_UpdateIsMAWCIniFeatureEnabled() -
   Enable/disable LFR MAWC support at runtime
