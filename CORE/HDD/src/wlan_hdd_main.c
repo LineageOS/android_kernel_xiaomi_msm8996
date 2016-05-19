@@ -17029,9 +17029,13 @@ void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter)
 void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
 {
     struct sk_buff *skb;
+    struct nlmsghdr *nlh;
+    tAniMsgHdr *ani_hdr;
     void *nl_data = NULL;
     int flags = GFP_KERNEL;
-    tAniNlHdr *wnl;
+    struct radio_index_tlv *radio_info;
+    int tlv_len;
+
 
     if (in_interrupt() || irqs_disabled() || in_atomic())
         flags = GFP_ATOMIC;
@@ -17043,48 +17047,66 @@ void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
                 "%s: alloc_skb failed", __func__);
         return;
     }
-    wnl = (tAniNlHdr *)skb->data;
-    wnl->nlh.nlmsg_pid = 0;
-    wnl->nlh.nlmsg_flags = 0;
-    wnl->nlh.nlmsg_seq = 0;
-    wnl->nlh.nlmsg_type = WLAN_NL_MSG_SVC;
-    wnl->radio = radio;
-    wnl->wmsg.type = type;
+
+    nlh = (struct nlmsghdr *)skb->data;
+    nlh->nlmsg_pid = 0;  /* from kernel */
+    nlh->nlmsg_flags = 0;
+    nlh->nlmsg_seq = 0;
+    nlh->nlmsg_type = WLAN_NL_MSG_SVC;
+
+    ani_hdr = NLMSG_DATA(nlh);
+    ani_hdr->type = type;
 
     switch(type) {
-    case WLAN_SVC_FW_CRASHED_IND:
-    case WLAN_SVC_LTE_COEX_IND:
-    case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
-    case WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND:
-        wnl->wmsg.length = 0;
-        wnl->nlh.nlmsg_len = NLMSG_LENGTH(
-                (sizeof(tAniMsgHdr) + sizeof(wnl->radio)));
-        skb_put(skb, NLMSG_SPACE(wnl->nlh.nlmsg_len));
-        break;
-    case WLAN_SVC_WLAN_STATUS_IND:
-    case WLAN_SVC_WLAN_VERSION_IND:
-    case WLAN_SVC_DFS_CAC_START_IND:
-    case WLAN_SVC_DFS_CAC_END_IND:
-    case WLAN_SVC_DFS_RADAR_DETECT_IND:
-    case WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND:
-    case WLAN_SVC_WLAN_TP_IND:
-    case WLAN_SVC_WLAN_TP_TX_IND:
-    case WLAN_SVC_RPS_ENABLE_IND:
-        wnl->wmsg.length = len;
-        wnl->nlh.nlmsg_len = NLMSG_LENGTH(
-                (sizeof(wnl->radio) + sizeof(tAniMsgHdr) + len));
-        nl_data = (char *)wnl + sizeof(tAniNlHdr);
-        memcpy(nl_data, data, len);
-        skb_put(skb, NLMSG_SPACE(
-                    sizeof(wnl->radio) + sizeof(tAniMsgHdr) + len));
-        break;
-
-    default:
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "WLAN SVC: Attempt to send unknown nlink message %d", type);
-        kfree_skb(skb);
-        return;
+        case WLAN_SVC_FW_CRASHED_IND:
+        case WLAN_SVC_LTE_COEX_IND:
+        case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
+        case WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND:
+            ani_hdr->length = 0;
+            nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
+            break;
+        case WLAN_SVC_WLAN_STATUS_IND:
+        case WLAN_SVC_WLAN_VERSION_IND:
+        case WLAN_SVC_DFS_CAC_START_IND:
+        case WLAN_SVC_DFS_CAC_END_IND:
+        case WLAN_SVC_DFS_RADAR_DETECT_IND:
+        case WLAN_SVC_DFS_ALL_CHANNEL_UNAVAIL_IND:
+        case WLAN_SVC_WLAN_TP_IND:
+        case WLAN_SVC_WLAN_TP_TX_IND:
+        case WLAN_SVC_RPS_ENABLE_IND:
+            ani_hdr->length = len;
+            nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + len));
+            nl_data = (char *)ani_hdr + sizeof(tAniMsgHdr);
+            memcpy(nl_data, data, len);
+            break;
+        default:
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "WLAN SVC: Attempt to send unknown nlink message %d", type);
+            kfree_skb(skb);
+            return;
     }
+
+    /*
+     * Add radio index at the end of the svc event in TLV format to maintain
+     * the backward compatibilty with userspace applications.
+     */
+
+    tlv_len = 0;
+
+    if ((sizeof(*ani_hdr) + len + sizeof(struct radio_index_tlv))
+            < WLAN_NL_MAX_PAYLOAD) {
+        radio_info  = (struct radio_index_tlv *)((char *) ani_hdr +
+                sizeof (*ani_hdr) + len);
+        radio_info->type = (unsigned short) WLAN_SVC_WLAN_RADIO_INDEX;
+        radio_info->length = (unsigned short) sizeof(radio_info->radio);
+        radio_info->radio = radio;
+        tlv_len = sizeof(*radio_info);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "Added radio index tlv - radio index %d", radio_info->radio);
+    }
+
+    nlh->nlmsg_len += tlv_len;
+    skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr) + len + tlv_len));
 
     nl_srv_bcast(skb);
 
