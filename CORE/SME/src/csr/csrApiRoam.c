@@ -16993,6 +16993,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                   pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
                   if (NULL != pTlStats)
                   {
+                     vos_mem_set(pTlStats, sizeof(*pTlStats), 0);
+
                      //req TL for class D stats
                      if(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId))
                      {
@@ -17054,6 +17056,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
             pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
             if (NULL != pTlStats)
             {
+               vos_mem_set(pTlStats, sizeof(*pTlStats), 0);
+
                //req TL for class D stats
                if(!VOS_IS_STATUS_SUCCESS(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId)))
                {
@@ -19277,10 +19281,11 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
                           tANI_U8 sessionId)
 {
     eHalStatus              status     = eHAL_STATUS_SUCCESS;
-    tCsrNeighborRoamBSSInfo handoffNode;
+    tCsrNeighborRoamBSSInfo handoffNode = {{0}};
     tANI_U32                timer_diff = 0;
     tANI_U32                timeStamp[2];
     tpSirBssDescription     pBssDescription = NULL;
+
     csrNeighborRoamGetHandoffAPInfo(pMac, &handoffNode, sessionId);
     pBssDescription = handoffNode.pBssDescription;
     // Get the time diff in milli seconds
