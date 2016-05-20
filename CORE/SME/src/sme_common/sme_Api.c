@@ -19119,7 +19119,8 @@ eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 	uint8_t reason = 0;
 
 	if (!mac_ctx) {
-		smsLog(mac_ctx, LOGE, FL("mac_ctx is null!"));
+	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+	                                "%s: mac_ctx is null", __func__);
 		VOS_ASSERT(0);
 		return eHAL_STATUS_FAILURE;
 	}
