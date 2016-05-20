@@ -14595,6 +14595,19 @@ eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,
     return status;
 }
 
+/* sme_get_wni_dot11_mode() - return configured wni dot11mode
+ * @hHal: hal pointer
+ *
+ * Return: wni dot11 mode.
+ */
+uint32_t sme_get_wni_dot11_mode(tHalHandle hal)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+
+	return csrTranslateToWNICfgDot11Mode(mac_ctx,
+			mac_ctx->roam.configParam.uCfgDot11Mode);
+}
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 /* ---------------------------------------------------------------------------
     \fn sme_auto_shutdown_cb
