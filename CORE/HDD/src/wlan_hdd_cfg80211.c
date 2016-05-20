@@ -11979,7 +11979,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     vos_mem_copy(wiphy->bands[IEEE80211_BAND_2GHZ]->channels,
             &hdd_channels_2_4_GHZ[0],
             sizeof(hdd_channels_2_4_GHZ));
-   if (hdd_is_5g_supported(pHddCtx))
+   if (hdd_is_5g_supported(pHddCtx) &&
+       ((eHDD_DOT11_MODE_11b != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11g != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11b_ONLY != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11g_ONLY != pCfg->dot11Mode)))
    {
         wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
         wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
