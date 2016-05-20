@@ -514,13 +514,16 @@ WLANSAP_PreStartBssAcsScanCallback
                                       (v_PVOID_t) eSAP_STATUS_SUCCESS);
     }
 
-    if(eHAL_STATUS_SUCCESS != sme_CloseSession(halHandle,
-                                      psapContext->sessionId, NULL, NULL))
+    if (psapContext->isScanSessionOpen)
     {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-            "In %s CloseSession error", __func__);
-    } else {
-        psapContext->isScanSessionOpen = eSAP_FALSE;
+        if(eHAL_STATUS_SUCCESS != sme_CloseSession(halHandle,
+                                      psapContext->sessionId, NULL, NULL))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "In %s CloseSession error", __func__);
+        } else {
+            psapContext->isScanSessionOpen = eSAP_FALSE;
+        }
     }
     psapContext->sessionId = 0xff;
 
