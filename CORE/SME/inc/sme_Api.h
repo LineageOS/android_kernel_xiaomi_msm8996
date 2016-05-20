@@ -3739,6 +3739,7 @@ eHalStatus sme_SetHT2040Mode(tHalHandle hHal, tANI_U8 sessionId,
 
 eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,
                           tANI_U32 *regInfo1, tANI_U32 *regInfo2);
+uint32_t sme_get_wni_dot11_mode(tHalHandle hal);
 
 #ifdef FEATURE_WLAN_TDLS
 eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void *psmeTdlsParams,
