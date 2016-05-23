@@ -16333,6 +16333,14 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
             pStats += sizeof(tCsrPerStaStatsInfo);
             length -= sizeof(tCsrPerStaStatsInfo);
             break;
+         case csr_per_chain_rssi_stats:
+            smsLog(pMac, LOG2,
+                   FL("csrRoamStatsRspProcessor:Per Chain RSSI stats"));
+            vos_mem_copy((tANI_U8 *)&pMac->roam.per_chain_rssi_stats,
+                        pStats, sizeof(struct csr_per_chain_rssi_stats_info));
+            pStats += sizeof(struct csr_per_chain_rssi_stats_info);
+            length -= sizeof(struct csr_per_chain_rssi_stats_info);
+            break;
          default:
             smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:unknown stats type"));
             break;
@@ -18265,6 +18273,12 @@ void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask,
             vos_mem_copy( pStats, (tANI_U8 *)&pMac->roam.perStaStatsInfo[staId],
                          sizeof(tCsrPerStaStatsInfo));
             pStats += sizeof(tCsrPerStaStatsInfo);
+            break;
+         case csr_per_chain_rssi_stats:
+            smsLog(pMac, LOG2, FL("Per Chain RSSI stats"));
+            vos_mem_copy(pStats, (tANI_U8 *)&pMac->roam.per_chain_rssi_stats,
+                         sizeof(struct csr_per_chain_rssi_stats_info));
+            pStats += sizeof(struct csr_per_chain_rssi_stats_info);
             break;
          default:
             smsLog( pMac, LOGE, FL("Unknown stats type and counter %d"), counter);

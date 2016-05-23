@@ -3812,6 +3812,7 @@ static void hdd_get_station_statisticsCB(void *pStats, void *pContext)
    struct statsContext *pStatsContext;
    tCsrSummaryStatsInfo      *pSummaryStats;
    tCsrGlobalClassAStatsInfo *pClassAStats;
+   struct csr_per_chain_rssi_stats_info *per_chain_rssi_stats;
    hdd_adapter_t *pAdapter;
 
    if (ioctl_debug)
@@ -3836,6 +3837,8 @@ static void hdd_get_station_statisticsCB(void *pStats, void *pContext)
 
    pSummaryStats = (tCsrSummaryStatsInfo *)pStats;
    pClassAStats  = (tCsrGlobalClassAStatsInfo *)( pSummaryStats + 1 );
+   per_chain_rssi_stats = (struct csr_per_chain_rssi_stats_info *)
+                                  (pClassAStats + 1);
    pStatsContext = pContext;
    pAdapter      = pStatsContext->pAdapter;
    if ((NULL == pAdapter) || (STATS_CONTEXT_MAGIC != pStatsContext->magic))
@@ -3861,6 +3864,7 @@ static void hdd_get_station_statisticsCB(void *pStats, void *pContext)
    /* copy over the stats. do so as a struct copy */
    pAdapter->hdd_stats.summary_stat = *pSummaryStats;
    pAdapter->hdd_stats.ClassA_stat = *pClassAStats;
+   pAdapter->hdd_stats.per_chain_rssi_stats = *per_chain_rssi_stats;
 
    /* notify the caller */
    complete(&pStatsContext->completion);
@@ -3892,7 +3896,8 @@ VOS_STATUS  wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
    hstatus = sme_GetStatistics(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                eCSR_HDD,
                                SME_SUMMARY_STATS |
-                               SME_GLOBAL_CLASSA_STATS,
+                               SME_GLOBAL_CLASSA_STATS |
+                               SME_PER_CHAIN_RSSI_STATS,
                                hdd_get_station_statisticsCB,
                                0, // not periodic
                                FALSE, //non-cached results

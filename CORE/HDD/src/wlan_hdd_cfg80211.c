@@ -129,6 +129,8 @@
 #define MAX_REMAIN_ON_CHANNEL_DURATION    (5000)
 #define HDD_WAKE_LOCK_SCAN_DURATION       (5 * 1000) /* in msec */
 
+#define WLAN_HDD_TGT_NOISE_FLOOR_DBM      (-96)
+
 /* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
    check. The bit map is defined in:
 
@@ -20076,6 +20078,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     int status, mode = 0, maxHtIdx;
     struct index_vht_data_rate_type *supported_vht_mcs_rate;
     struct index_data_rate_type *supported_mcs_rate;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+    bool rssi_stats_valid = FALSE;
+#endif
 
 #ifdef WLAN_FEATURE_11AC
     tANI_U32 vht_mcs_map;
@@ -20597,11 +20602,62 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                sinfo->txrate.mcs, sinfo->txrate.flags, sinfo->tx_packets,
                sinfo->rx_packets);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+    sinfo->signal_avg = WLAN_HDD_TGT_NOISE_FLOOR_DBM;
+    for (i = 0; i < NUM_CHAINS_MAX; i++) {
+        sinfo->chain_signal_avg[i] =
+               pAdapter->hdd_stats.per_chain_rssi_stats.rssi[i];
+        sinfo->chains |= 1 << i;
+        if (sinfo->chain_signal_avg[i] > sinfo->signal_avg &&
+                   sinfo->chain_signal_avg[i] != 0)
+            sinfo->signal_avg = sinfo->chain_signal_avg[i];
+
+        hddLog(LOG1, FL("RSSI for chain %d, vdev_id %d is %d"),
+            i, pAdapter->sessionId, sinfo->chain_signal_avg[i]);
+
+        if (sinfo->chain_signal_avg[i] && !rssi_stats_valid)
+            rssi_stats_valid = TRUE;
+    }
+
+    if (rssi_stats_valid) {
+        sinfo->filled |= STATION_INFO_CHAIN_SIGNAL_AVG;
+        sinfo->filled |= STATION_INFO_SIGNAL_AVG;
+    }
+#endif
+
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_GET_STA,
                      pAdapter->sessionId, maxRate));
        EXIT();
        return 0;
+}
+
+static int __wlan_hdd_cfg80211_dump_station(struct wiphy *wiphy,
+					struct net_device *dev,
+					int idx, u8 *mac,
+					struct station_info *sinfo)
+{
+	hdd_context_t *hdd_ctx = (hdd_context_t *) wiphy_priv(wiphy);
+
+	hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: idx %d", __func__, idx);
+	if (idx != 0)
+		return -ENOENT;
+	vos_mem_copy(mac, hdd_ctx->cfg_ini->intfMacAddr[0].bytes,
+				VOS_MAC_ADDR_SIZE);
+	return __wlan_hdd_cfg80211_get_station(wiphy, dev, mac, sinfo);
+}
+
+static int wlan_hdd_cfg80211_dump_station(struct wiphy *wiphy,
+					struct net_device *dev,
+					int idx, u8 *mac,
+					struct station_info *sinfo)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_dump_station(wiphy, dev, idx, mac, sinfo);
+	vos_ssr_unprotect(__func__);
+	return ret;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)) || defined(WITH_BACKPORTS)
@@ -25487,6 +25543,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
      .set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
      .set_txq_params = wlan_hdd_set_txq_params,
+     .dump_station = wlan_hdd_cfg80211_dump_station,
      .get_station = wlan_hdd_cfg80211_get_station,
      .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
      .del_station = wlan_hdd_cfg80211_del_station,
