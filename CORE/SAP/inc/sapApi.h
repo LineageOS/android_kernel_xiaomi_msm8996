@@ -543,7 +543,6 @@ typedef struct sap_Config {
     v_PVOID_t  pProbeRespBcnIEsBuffer; /* buffer for addn ies comes from hostapd*/
     uint8_t   sap_dot11mc;      /* Specify if 11MC is enabled or disabled*/
     enum sap_acs_dfs_mode acs_dfs_mode;
-
     uint16_t beacon_tx_rate;
     uint8_t *vendor_ie;
     enum vendor_ie_access_policy vendor_ie_access_policy;
@@ -552,8 +551,8 @@ typedef struct sap_Config {
     uint8_t short_retry_limit;
     uint8_t long_retry_limit;
     uint8_t ampdu_size;
-    tSirMacRateSet supp_rate_set;
-    tSirMacRateSet extended_rate_set;
+    tSirMacRateSet  supported_rates;
+    tSirMacRateSet  extended_rates;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

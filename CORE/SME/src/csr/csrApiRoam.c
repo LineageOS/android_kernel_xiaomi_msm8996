@@ -6970,6 +6970,20 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
                      sizeof(tSirAddIeParams));
 
         pDstProfile->beacon_tx_rate = pSrcProfile->beacon_tx_rate;
+        if (pSrcProfile->supported_rates.numRates) {
+            vos_mem_copy(pDstProfile->supported_rates.rate,
+                    pSrcProfile->supported_rates.rate,
+                    pSrcProfile->supported_rates.numRates);
+            pDstProfile->supported_rates.numRates =
+                pSrcProfile->supported_rates.numRates;
+        }
+        if (pSrcProfile->extended_rates.numRates) {
+            vos_mem_copy(pDstProfile->extended_rates.rate,
+                    pSrcProfile->extended_rates.rate,
+                    pSrcProfile->extended_rates.numRates);
+            pDstProfile->extended_rates.numRates =
+                pSrcProfile->extended_rates.numRates;
+        }
 
     }while(0);
 
@@ -12621,22 +12635,29 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
 
     pParam->extendedRateSet.numRates = 0;
 
+    if (pProfile->supported_rates.numRates) {
+        pParam->operationalRateSet.numRates =
+            pProfile->supported_rates.numRates;
+        vos_mem_copy(pParam->operationalRateSet.rate,
+                pProfile->supported_rates.rate,
+                pProfile->supported_rates.numRates);
+    }
+
+    if (pProfile->extended_rates.numRates) {
+        pParam->extendedRateSet.numRates =
+            pProfile->extended_rates.numRates;
+        vos_mem_copy(pParam->extendedRateSet.rate,
+                pProfile->extended_rates.rate,
+                pProfile->extended_rates.numRates);
+    }
+
+
+
     switch ( nwType )
     {
         default:
             smsLog(pMac, LOGE, FL("sees an unknown pSirNwType (%d)"), nwType);
         case eSIR_11A_NW_TYPE:
-
-            pParam->operationalRateSet.numRates = 8;
-
-            pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_6 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_9;
-            pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_12 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_18;
-            pParam->operationalRateSet.rate[4] = SIR_MAC_RATE_24 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[5] = SIR_MAC_RATE_36;
-            pParam->operationalRateSet.rate[6] = SIR_MAC_RATE_48;
-            pParam->operationalRateSet.rate[7] = SIR_MAC_RATE_54;
 
             if ( eCSR_OPERATING_CHANNEL_ANY == operationChannel )
             {
@@ -12650,11 +12671,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
                     //We only do this here because csrRoamGetPhyModeBandForBss always picks 11a for AUTO
                     nwType = eSIR_11B_NW_TYPE;
                     channel = csrRoamGetIbssStartChannelNumber24( pMac );
-                   pParam->operationalRateSet.numRates = 4;
-                   pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_1 | CSR_DOT11_BASIC_RATE_MASK;
-                   pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
-                   pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
-                   pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
                 }
             }
             else
@@ -12664,11 +12680,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             break;
 
         case eSIR_11B_NW_TYPE:
-            pParam->operationalRateSet.numRates = 4;
-            pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_1 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
             if ( eCSR_OPERATING_CHANNEL_ANY == operationChannel )
             {
                 channel = csrRoamGetIbssStartChannelNumber24( pMac );
@@ -12680,42 +12691,6 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
 
             break;
         case eSIR_11G_NW_TYPE:
-            /* For P2P Client and P2P GO, disable 11b rates */
-            if( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
-                (pProfile->csrPersona == VOS_P2P_GO_MODE) ||
-                (eCSR_CFG_DOT11_MODE_11G_ONLY == pParam->uCfgDot11Mode)
-              )
-            {
-                pParam->operationalRateSet.numRates = 8;
-
-                pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_6 | CSR_DOT11_BASIC_RATE_MASK;
-                pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_9;
-                pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_12 | CSR_DOT11_BASIC_RATE_MASK;
-                pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_18;
-                pParam->operationalRateSet.rate[4] = SIR_MAC_RATE_24 | CSR_DOT11_BASIC_RATE_MASK;
-                pParam->operationalRateSet.rate[5] = SIR_MAC_RATE_36;
-                pParam->operationalRateSet.rate[6] = SIR_MAC_RATE_48;
-                pParam->operationalRateSet.rate[7] = SIR_MAC_RATE_54;
-            }
-            else
-            {
-            pParam->operationalRateSet.numRates = 4;
-            pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_1 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
-
-            pParam->extendedRateSet.numRates = 8;
-                        pParam->extendedRateSet.rate[0] = SIR_MAC_RATE_6;
-            pParam->extendedRateSet.rate[1] = SIR_MAC_RATE_9;
-            pParam->extendedRateSet.rate[2] = SIR_MAC_RATE_12;
-            pParam->extendedRateSet.rate[3] = SIR_MAC_RATE_18;
-            pParam->extendedRateSet.rate[4] = SIR_MAC_RATE_24;
-            pParam->extendedRateSet.rate[5] = SIR_MAC_RATE_36;
-            pParam->extendedRateSet.rate[6] = SIR_MAC_RATE_48;
-            pParam->extendedRateSet.rate[7] = SIR_MAC_RATE_54;
-            }
-
             if ( eCSR_OPERATING_CHANNEL_ANY == operationChannel )
             {
                 channel = csrRoamGetIbssStartChannelNumber24( pMac );
