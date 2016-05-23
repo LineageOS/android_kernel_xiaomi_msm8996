@@ -4137,6 +4137,22 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     }
     profile->sap_dot11mc = pconfig_params->sap_dot11mc;
 
+    if (pconfig_params->supported_rates.numRates) {
+        vos_mem_copy(profile->supported_rates.rate,
+                pconfig_params->supported_rates.rate,
+                pconfig_params->supported_rates.numRates);
+        profile->supported_rates.numRates =
+            pconfig_params->supported_rates.numRates;
+    }
+
+    if (pconfig_params->extended_rates.numRates) {
+        vos_mem_copy(profile->extended_rates.rate,
+                pconfig_params->extended_rates.rate,
+                pconfig_params->extended_rates.numRates);
+        profile->extended_rates.numRates =
+            pconfig_params->extended_rates.numRates;
+    }
+
     return eSAP_STATUS_SUCCESS; /* Success. */
 }
 
