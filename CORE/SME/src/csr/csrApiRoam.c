@@ -506,6 +506,9 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
 
     for (i = 0; i < pScan->base20MHzChannels.numChannels; i++)
     {
+        if (vos_is_dsrc_channel(vos_chan_to_freq(
+           pScan->base20MHzChannels.channelList[i])))
+            continue;
         channel = pScan->base20MHzChannels.channelList[i];
         channel_state =
             vos_nv_getChannelEnabledState(channel);
