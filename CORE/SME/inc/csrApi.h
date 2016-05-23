@@ -1014,6 +1014,7 @@ typedef struct tagCsrRoamProfile
     /* addIe params */
     tSirAddIeParams        addIeParams;
     uint8_t sap_dot11mc;
+    bool do_not_roam;
 }tCsrRoamProfile;
 
 
