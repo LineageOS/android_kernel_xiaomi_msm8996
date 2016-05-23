@@ -10613,6 +10613,7 @@ eHalStatus sme_config_fast_roaming(tHalHandle hhal, tANI_U8 session_id,
 				    const bool is_fast_roam_enabled)
 {
 	tpAniSirGlobal pmac = PMAC_STRUCT(hhal);
+	tCsrRoamSession *psession = CSR_GET_SESSION(pmac, session_id);
 	eHalStatus status;
 
 	if (!pmac->roam.configParam.isFastRoamIniFeatureEnabled) {
@@ -10622,6 +10623,9 @@ eHalStatus sme_config_fast_roaming(tHalHandle hhal, tANI_U8 session_id,
 			return eHAL_STATUS_SUCCESS;
 		return  eHAL_STATUS_FAILURE;
 	}
+
+	if (is_fast_roam_enabled && psession && psession->pCurRoamProfile)
+		psession->pCurRoamProfile->do_not_roam = false;
 	status = csrNeighborRoamUpdateFastRoamingEnabled(pmac,
 					 session_id, is_fast_roam_enabled);
 	if (!HAL_STATUS_SUCCESS(status)) {

@@ -6948,6 +6948,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->wps_state         = pSrcProfile->wps_state;
         pDstProfile->ieee80211d        = pSrcProfile->ieee80211d;
         pDstProfile->sap_dot11mc        = pSrcProfile->sap_dot11mc;
+        pDstProfile->do_not_roam       = pSrcProfile->do_not_roam;
         vos_mem_copy(&pDstProfile->Keys, &pSrcProfile->Keys,
                      sizeof(pDstProfile->Keys));
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -17442,6 +17443,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                  "%s:pSession is null", __func__);
        return eHAL_STATUS_FAILURE;
+   }
+
+   if ((ROAM_SCAN_OFFLOAD_START == command) && pSession->pCurRoamProfile &&
+       pSession->pCurRoamProfile->do_not_roam) {
+      smsLog(pMac, LOGE, FL("Supplicant disabled driver roaming"));
+      return eHAL_STATUS_FAILURE;
    }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
    if (pSession->roamOffloadSynchParams.bRoamSynchInProgress
