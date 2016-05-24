@@ -506,7 +506,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     uint8_t vendor_specific_vht_ie_sub_type;
     bool vendor_vht_for_24ghz_sap;
     uint16_t beacon_tx_rate;
-    uint8_t *vendor_ie;
+    uint8_t *access_policy_vendor_ie;
     uint8_t access_policy;
 
 } tPESession, *tpPESession;
