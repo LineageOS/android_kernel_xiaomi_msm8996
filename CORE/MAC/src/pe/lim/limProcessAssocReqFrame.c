@@ -368,6 +368,24 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         return;
     }
 
+    /* check for the presence of vendor IE */
+    if ((psessionEntry->access_policy_vendor_ie) &&
+            (psessionEntry->access_policy ==
+             LIM_ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT)) {
+        if (!cfg_get_vendor_ie_ptr_from_oui(pMac,
+                    &psessionEntry->access_policy_vendor_ie[2],
+                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET, framelen)) {
+            limLog(pMac, LOGE,
+                    FL("Vendor ie not present and access policy is %x, Rejected association"),
+                    psessionEntry->access_policy);
+            limSendAssocRspMgmtFrame(pMac,
+                    eSIR_MAC_UNSPEC_FAILURE_STATUS,
+                    1,
+                    pHdr->sa,
+                    subType, 0,psessionEntry);
+            return;
+        }
+    }
     // Allocate memory for the Assoc Request frame
     pAssocReq = vos_mem_malloc(sizeof(*pAssocReq));
     if (NULL == pAssocReq)

@@ -1386,6 +1386,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_TDLS_LINK_ESTABLISH_REQ:
 #endif
         case eWNI_SME_RESET_AP_CAPS_CHANGED:
+        case eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE:
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, true);  //need to response to hdd
             break;

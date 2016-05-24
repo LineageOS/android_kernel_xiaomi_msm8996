@@ -19190,3 +19190,49 @@ eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 	sme_sta_roam_offload_scan(mac_ctx, session_id, reason);
 	return status;
 }
+
+/**
+ * sme_update_access_policy_vendor_ie() - update vendor ie and access policy.
+ * @hal: Pointer to the mac context
+ * @session_id: sme session id
+ * @vendor_ie: vendor ie
+ * @access_policy: vendor ie access policy
+ *
+ * This function updates the vendor ie and access policy to lim.
+ *
+ * Return: success or failure.
+ */
+eHalStatus sme_update_access_policy_vendor_ie(tHalHandle hal,
+		uint8_t session_id, uint8_t *vendor_ie, int access_policy)
+{
+	struct sme_update_access_policy_vendor_ie *msg;
+	uint16_t msg_len;
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	msg_len  = sizeof(*msg);
+
+	msg = vos_mem_malloc(msg_len);
+	if (!msg) {
+		smsLog(mac, LOGE,
+			"failed to allocate memory for sme_update_access_policy_vendor_ie");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	vos_mem_set(msg, msg_len, 0);
+	msg->msg_type = pal_cpu_to_be16(
+			(tANI_U16)eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE);
+	msg->length = pal_cpu_to_be16(msg_len);
+
+	vos_mem_copy(&msg->ie[0], vendor_ie, sizeof(msg->ie));
+
+	msg->sme_session_id = session_id;
+	msg->access_policy = access_policy;
+
+	smsLog(mac, LOG1, "sme_session_id %hu, access_policy %d", session_id,
+			access_policy);
+
+	status = palSendMBMessage(mac->hHdd, msg);
+
+	return status;
+}

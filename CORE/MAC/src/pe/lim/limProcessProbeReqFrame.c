@@ -391,6 +391,20 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             // Get pointer to Probe Request frame body
            pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
+            /* check for vendor IE presence */
+            if ((psessionEntry->access_policy_vendor_ie) &&
+                    (psessionEntry->access_policy ==
+                     LIM_ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT)) {
+                if (!cfg_get_vendor_ie_ptr_from_oui(pMac,
+                            &psessionEntry->access_policy_vendor_ie[2],
+                            3, pBody, frameLen)) {
+                    limLog(pMac, LOG1, FL(
+                                "Vendor IE is not present and access policy is %x, dropping probe request"),
+                            psessionEntry->access_policy);
+                    break;
+                }
+            }
+
             // Parse Probe Request frame
             if (sirConvertProbeReqFrame2Struct(pMac, pBody, frameLen, &probeReq)==eSIR_FAILURE)
             {
@@ -552,6 +566,7 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                       /*We are returning from here as probe request contains the broadcast SSID.
                         So no need to send the probe resp*/
                            return;
+
                     limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId, DPH_USE_MGMT_STAID,
                                              DPH_NON_KEEPALIVE_FRAME, psessionEntry,
                                              probeReq.p2pIePresent);
