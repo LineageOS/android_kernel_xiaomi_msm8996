@@ -1147,18 +1147,18 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
 {
 
     if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini) {
-        hddLog(LOG1, FL("%pS HDD context is Null"),(void *)_RET_IP_);
+        hddLog(LOGE, FL("%pS HDD context is Null"), (void *)_RET_IP_);
         return -ENODEV;
     }
 
     if (pHddCtx->isLogpInProgress) {
-        hddLog(LOG1, FL("%pS LOGP in Progress. Ignore!!!"),(void *)_RET_IP_);
+        hddLog(LOGE, FL("%pS LOGP in Progress. Ignore!!!"), (void *)_RET_IP_);
         return -EAGAIN;
     }
 
     if ((pHddCtx->isLoadInProgress) ||
         (pHddCtx->isUnloadInProgress)) {
-        hddLog(LOG1,
+        hddLog(LOGE,
              FL("%pS Unloading/Loading in Progress. Ignore!!!"),
              (void *)_RET_IP_);
         return -EAGAIN;
@@ -5030,14 +5030,8 @@ void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
 			hdd_ctx->cfg_ini->enable_dynamic_sta_chainmask);
 		return;
 	}
-	sta_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
-	if (!sta_adapter) {
-		hddLog(LOGE, FL("Sta adapter null!!"));
-		return;
-	}
 	hddLog(LOG1, FL("Current antenna mode: %d"),
 		hdd_ctx->current_antenna_mode);
-	hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
 
 	if (HDD_ANTENNA_MODE_INVALID != forced_mode) {
 		mode = forced_mode;
@@ -5046,6 +5040,13 @@ void hdd_decide_dynamic_chain_mask(hdd_context_t *hdd_ctx,
 		mode = HDD_ANTENNA_MODE_1X1;
 	} else if (1 == wlan_hdd_get_active_session_count(hdd_ctx) &&
 		   hdd_ctx->no_of_active_sessions[WLAN_HDD_INFRA_STATION]) {
+		sta_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_INFRA_STATION);
+		if (!sta_adapter) {
+			hddLog(LOGE, FL("Sta adapter null!!"));
+			return;
+		}
+		hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+
 		if (!hdd_connIsConnected(hdd_sta_ctx)) {
 			hddLog(LOGE, FL("Sta not connected"));
 			return;
@@ -9199,10 +9200,7 @@ static int kickstart_driver(bool load, bool mode_change)
 	}
 
 	if (load && wlan_hdd_inited && !mode_change) {
-		/* Error condition */
-		hdd_driver_exit();
-		wlan_hdd_inited = 0;
-		ret_status = -EINVAL;
+		ret_status = 0;
 	} else {
 		hdd_driver_exit();
 

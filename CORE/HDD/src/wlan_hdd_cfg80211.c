@@ -8550,12 +8550,27 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION]);
 		request.vdev_id = pAdapter->sessionId;
 
-		vos_status = wma_set_tx_rx_aggregation_size(&request);
-		if (vos_status != VOS_STATUS_SUCCESS) {
+		if (request.tx_aggregation_size >=
+					CFG_TX_AGGREGATION_SIZE_MIN &&
+			request.tx_aggregation_size <=
+					CFG_TX_AGGREGATION_SIZE_MAX &&
+			request.rx_aggregation_size >=
+					CFG_RX_AGGREGATION_SIZE_MIN &&
+			request.rx_aggregation_size <=
+					CFG_RX_AGGREGATION_SIZE_MAX) {
+			vos_status = wma_set_tx_rx_aggregation_size(&request);
+			if (vos_status != VOS_STATUS_SUCCESS) {
+				hddLog(LOGE,
+					FL("failed to set aggr sizes err %d"),
+					vos_status);
+				ret_val = -EPERM;
+			}
+		} else {
 			hddLog(LOGE,
-				FL("failed to set aggregation sizes(err=%d)"),
-				vos_status);
-			ret_val = -EPERM;
+				FL("TX %d RX %d MPDU aggr size not in range"),
+				request.tx_aggregation_size,
+				request.rx_aggregation_size);
+			ret_val = -EINVAL;
 		}
 	}
 	return ret_val;
@@ -10043,6 +10058,7 @@ static int hdd_set_reset_bpf_offload(hdd_context_t *hdd_ctx,
 	struct sir_bpf_set_offload *bpf_set_offload;
 	eHalStatus hstatus;
 	int prog_len;
+	int ret_val = -EINVAL;
 
 	ENTER();
 
@@ -10082,9 +10098,18 @@ static int hdd_set_reset_bpf_offload(hdd_context_t *hdd_ctx,
 
 	prog_len = nla_len(tb[BPF_PROGRAM]);
 	bpf_set_offload->program = vos_mem_malloc(sizeof(uint8_t) * prog_len);
+	if (!bpf_set_offload->program) {
+		hddLog(LOGE, FL("failed to allocate memory for bpf filter"));
+		ret_val = -ENOMEM;
+		goto fail;
+	}
 	bpf_set_offload->current_length = prog_len;
 	nla_memcpy(bpf_set_offload->program, tb[BPF_PROGRAM], prog_len);
 	bpf_set_offload->session_id = adapter->sessionId;
+
+	hddLog(LOG1, FL("BPF set instructions"));
+	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			   bpf_set_offload->program, prog_len);
 
 	/* Parse and fetch filter Id */
 	if (!tb[BPF_FILTER_ID]) {
@@ -10125,7 +10150,7 @@ fail:
 	if (bpf_set_offload->current_length)
 		vos_mem_free(bpf_set_offload->program);
 	vos_mem_free(bpf_set_offload);
-	return -EINVAL;
+	return ret_val;
 }
 
 /**
@@ -16384,7 +16409,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     /* no scan results */
     if (NULL == pResult) {
         hddLog(LOG1, FL("No scan result Status %d"), status);
-        return status;
+        return -EAGAIN;
     }
 
     pScanResult = sme_ScanResultGetFirst(hHal, pResult);
@@ -17742,6 +17767,21 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             }
             hdd_select_cbmode(pAdapter,operatingChannel, &ch_width);
             pRoamProfile->vht_channel_width = ch_width;
+        }
+        /*
+         * if MFPEnabled is set but the peer AP is non-PMF i.e ieee80211w=2
+         * or pmf=2 is an explicit configuration in the supplicant
+         * configuration, drop the connection request.
+         */
+         if (pWextState->roamProfile.MFPEnabled &&
+            !(pWextState->roamProfile.MFPRequired ||
+            pWextState->roamProfile.MFPCapable)) {
+             hddLog(LOGE,
+                FL("Drop connect req as supplicant has indicated PMF required for the non-PMF peer. MFPEnabled %d MFPRequired %d MFPCapable %d"),
+                pWextState->roamProfile.MFPEnabled,
+                pWextState->roamProfile.MFPRequired,
+                pWextState->roamProfile.MFPCapable);
+             return -EINVAL;
         }
         /*
          * Change conn_state to connecting before sme_RoamConnect(),
@@ -19350,6 +19390,15 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
                FL("sme_RoamDisconnect failed hal_status(%d)"), hal_status);
         return -EAGAIN;
     }
+    status = wait_for_completion_timeout(
+                     &pAdapter->disconnect_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+    if (!status) {
+        hddLog(LOGE,
+              FL("wait on disconnect_comp_var failed"));
+        return -ETIMEDOUT;;
+    }
+
     EXIT();
     return 0;
 }
@@ -21168,10 +21217,13 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                         break;
                     }
 
-                   valid_ch[num_ch++] = request->channels[i]->hw_value;
-                   len += snprintf(chList+len, 5, "%d ",
-                                  request->channels[i]->hw_value);
-                   break ;
+                    if (!vos_is_dsrc_channel(vos_chan_to_freq(
+                        request->channels[i]->hw_value))) {
+                       valid_ch[num_ch++] = request->channels[i]->hw_value;
+                       len += snprintf(chList+len, 5, "%d ",
+                                       request->channels[i]->hw_value);
+                    }
+                    break ;
                 }
              }
          }
