@@ -1382,80 +1382,119 @@ static int wlan_hdd_tdls_check_config(tdls_config_params_t *config)
 {
     if (config->tdls > 2)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 1st argument %d. <0...2>", __func__, config->tdls);
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 1st argument %d. <0...2>",
+            __func__, config->tdls);
         return -1;
     }
     if (config->tx_period_t < CFG_TDLS_TX_STATS_PERIOD_MIN ||
         config->tx_period_t > CFG_TDLS_TX_STATS_PERIOD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 2nd argument %d. <%d...%ld>", __func__, config->tx_period_t,
-            CFG_TDLS_TX_STATS_PERIOD_MIN, CFG_TDLS_TX_STATS_PERIOD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 2nd argument %d. <%d...%ld> \
+            resetting to default value %d",
+            __func__,
+            config->tx_period_t,
+            CFG_TDLS_TX_STATS_PERIOD_MIN,
+            CFG_TDLS_TX_STATS_PERIOD_MAX,
+            CFG_TDLS_TX_STATS_PERIOD_DEFAULT);
+        config->tx_period_t = CFG_TDLS_TX_STATS_PERIOD_DEFAULT;
     }
     if (config->tx_packet_n < CFG_TDLS_TX_PACKET_THRESHOLD_MIN ||
         config->tx_packet_n > CFG_TDLS_TX_PACKET_THRESHOLD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 3rd argument %d. <%d...%ld>",               __func__,
-               config->tx_packet_n,
-               CFG_TDLS_TX_PACKET_THRESHOLD_MIN,
-               CFG_TDLS_TX_PACKET_THRESHOLD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 3rd argument %d. <%d...%ld> \
+            resetting to default value %d",
+            __func__,
+            config->tx_packet_n,
+            CFG_TDLS_TX_PACKET_THRESHOLD_MIN,
+            CFG_TDLS_TX_PACKET_THRESHOLD_MAX,
+            CFG_TDLS_TX_PACKET_THRESHOLD_DEFAULT);
+        config->tx_packet_n = CFG_TDLS_TX_PACKET_THRESHOLD_DEFAULT;
     }
     if (config->discovery_period_t < CFG_TDLS_DISCOVERY_PERIOD_MIN ||
         config->discovery_period_t > CFG_TDLS_DISCOVERY_PERIOD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 4th argument %d. <%d...%ld>",               __func__,
-               config->discovery_period_t,
-               CFG_TDLS_DISCOVERY_PERIOD_MIN,
-               CFG_TDLS_DISCOVERY_PERIOD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 4th argument %d. <%d...%ld> \
+            resetting to default value %d",
+            __func__,
+            config->discovery_period_t,
+            CFG_TDLS_DISCOVERY_PERIOD_MIN,
+            CFG_TDLS_DISCOVERY_PERIOD_MAX,
+            CFG_TDLS_DISCOVERY_PERIOD_DEFAULT);
+        config->discovery_period_t = CFG_TDLS_DISCOVERY_PERIOD_DEFAULT;
     }
     if (config->discovery_tries_n < CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MIN ||
         config->discovery_tries_n > CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 5th argument %d. <%d...%d>",
-               __func__,
-               config->discovery_tries_n,
-               CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MIN,
-               CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 5th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->discovery_tries_n,
+            CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MIN,
+            CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MAX,
+            CFG_TDLS_MAX_DISCOVERY_ATTEMPT_DEFAULT);
+        config->discovery_tries_n = CFG_TDLS_MAX_DISCOVERY_ATTEMPT_DEFAULT;
     }
     if (config->idle_timeout_t < CFG_TDLS_IDLE_TIMEOUT_MIN ||
         config->idle_timeout_t > CFG_TDLS_IDLE_TIMEOUT_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 6th argument %d. <%d...%d>",                __func__,
-               config->idle_timeout_t,
-               CFG_TDLS_IDLE_TIMEOUT_MIN,
-               CFG_TDLS_IDLE_TIMEOUT_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 6th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->idle_timeout_t,
+            CFG_TDLS_IDLE_TIMEOUT_MIN,
+            CFG_TDLS_IDLE_TIMEOUT_MAX,
+            CFG_TDLS_IDLE_TIMEOUT_DEFAULT);
+        config->idle_timeout_t = CFG_TDLS_IDLE_TIMEOUT_DEFAULT;
     }
     if (config->idle_packet_n < CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN ||
         config->idle_packet_n > CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 7th argument %d. <%d...%d>", __func__, config->idle_packet_n,
-            CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN, CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 7th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->idle_packet_n,
+            CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN,
+            CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX,
+            CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT);
+        config->idle_packet_n = CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT;
     }
     if (config->rssi_hysteresis < CFG_TDLS_RSSI_HYSTERESIS_MIN ||
         config->rssi_hysteresis > CFG_TDLS_RSSI_HYSTERESIS_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 8th argument %d. <%d...%d>", __func__, config->rssi_hysteresis,
-            CFG_TDLS_RSSI_HYSTERESIS_MIN, CFG_TDLS_RSSI_HYSTERESIS_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 8th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->rssi_hysteresis,
+            CFG_TDLS_RSSI_HYSTERESIS_MIN,
+            CFG_TDLS_RSSI_HYSTERESIS_MAX,
+            CFG_TDLS_RSSI_HYSTERESIS_DEFAULT);
+        config->rssi_hysteresis = CFG_TDLS_RSSI_HYSTERESIS_DEFAULT;
     }
     if (config->rssi_trigger_threshold < CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MIN ||
         config->rssi_trigger_threshold > CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 9th argument %d. <%d...%d>", __func__, config->rssi_trigger_threshold,
-            CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MIN, CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 9th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->rssi_trigger_threshold,
+            CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MIN,
+            CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MAX,
+            CFG_TDLS_RSSI_TRIGGER_THRESHOLD_DEFAULT);
+        config->rssi_trigger_threshold =
+            CFG_TDLS_RSSI_TRIGGER_THRESHOLD_DEFAULT;
     }
     if (config->rssi_teardown_threshold < CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN ||
         config->rssi_teardown_threshold > CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 10th argument %d. <%d...%d>", __func__, config->rssi_teardown_threshold,
-            CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN, CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX);
-        return -1;
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s invalid 10th argument %d. <%d...%d> \
+            resetting to default value %d",
+            __func__,
+            config->rssi_teardown_threshold,
+            CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN,
+            CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX,
+            CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_DEFAULT);
+        config->rssi_teardown_threshold =
+            CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_DEFAULT;
     }
     return 0;
 }
@@ -1611,7 +1650,7 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
     }
 
     tdlsParams->vdev_id = pAdapter->sessionId;
-    tdlsParams->tdls_state = config->tdls;
+    tdlsParams->tdls_state = req_tdls_mode;
     tdlsParams->notification_interval_ms = config->tx_period_t;
     tdlsParams->tx_discovery_threshold = config->tx_packet_n;
     tdlsParams->tx_teardown_threshold = config->idle_packet_n;
@@ -1638,7 +1677,6 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
         pHddCtx->cfg_ini->fTDLSIdleTimeout;
     tdlsParams->tdls_peer_kickout_threshold =
         pHddCtx->cfg_ini->tdls_peer_kickout_threshold;
-
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
               "%s: Setting tdls state and param in fw: "
