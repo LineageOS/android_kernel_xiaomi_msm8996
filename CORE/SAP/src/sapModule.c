@@ -3864,8 +3864,14 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
     if (sapContext->isScanSessionOpen == eSAP_FALSE) {
         tANI_U32 type, subType;
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+        if((sapContext->acs_cfg->skip_scan_status != eSAP_SKIP_ACS_SCAN) &&
+              (VOS_STATUS_SUCCESS ==
+                   vos_get_vdev_types(VOS_STA_MODE, &type, &subType))) {
+#else
         if(VOS_STATUS_SUCCESS ==
-                      vos_get_vdev_types(VOS_STA_MODE, &type, &subType)) {
+                   vos_get_vdev_types(VOS_STA_MODE, &type, &subType)) {
+#endif
             /*
              * Open SME Session for scan
              */

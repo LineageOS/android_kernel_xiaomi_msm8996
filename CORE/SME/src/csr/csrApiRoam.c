@@ -506,6 +506,9 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
 
     for (i = 0; i < pScan->base20MHzChannels.numChannels; i++)
     {
+        if (vos_is_dsrc_channel(vos_chan_to_freq(
+           pScan->base20MHzChannels.channelList[i])))
+            continue;
         channel = pScan->base20MHzChannels.channelList[i];
         channel_state =
             vos_nv_getChannelEnabledState(channel);
@@ -6945,6 +6948,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->wps_state         = pSrcProfile->wps_state;
         pDstProfile->ieee80211d        = pSrcProfile->ieee80211d;
         pDstProfile->sap_dot11mc        = pSrcProfile->sap_dot11mc;
+        pDstProfile->do_not_roam       = pSrcProfile->do_not_roam;
         vos_mem_copy(&pDstProfile->Keys, &pSrcProfile->Keys,
                      sizeof(pDstProfile->Keys));
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -16329,6 +16333,14 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
             pStats += sizeof(tCsrPerStaStatsInfo);
             length -= sizeof(tCsrPerStaStatsInfo);
             break;
+         case csr_per_chain_rssi_stats:
+            smsLog(pMac, LOG2,
+                   FL("csrRoamStatsRspProcessor:Per Chain RSSI stats"));
+            vos_mem_copy((tANI_U8 *)&pMac->roam.per_chain_rssi_stats,
+                        pStats, sizeof(struct csr_per_chain_rssi_stats_info));
+            pStats += sizeof(struct csr_per_chain_rssi_stats_info);
+            length -= sizeof(struct csr_per_chain_rssi_stats_info);
+            break;
          default:
             smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:unknown stats type"));
             break;
@@ -17440,6 +17452,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                  "%s:pSession is null", __func__);
        return eHAL_STATUS_FAILURE;
    }
+
+   if ((ROAM_SCAN_OFFLOAD_START == command) && pSession->pCurRoamProfile &&
+       pSession->pCurRoamProfile->do_not_roam) {
+      smsLog(pMac, LOGE, FL("Supplicant disabled driver roaming"));
+      return eHAL_STATUS_FAILURE;
+   }
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
    if (pSession->roamOffloadSynchParams.bRoamSynchInProgress
        && (ROAM_SCAN_OFFLOAD_STOP == command))
@@ -18255,6 +18273,12 @@ void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask,
             vos_mem_copy( pStats, (tANI_U8 *)&pMac->roam.perStaStatsInfo[staId],
                          sizeof(tCsrPerStaStatsInfo));
             pStats += sizeof(tCsrPerStaStatsInfo);
+            break;
+         case csr_per_chain_rssi_stats:
+            smsLog(pMac, LOG2, FL("Per Chain RSSI stats"));
+            vos_mem_copy(pStats, (tANI_U8 *)&pMac->roam.per_chain_rssi_stats,
+                         sizeof(struct csr_per_chain_rssi_stats_info));
+            pStats += sizeof(struct csr_per_chain_rssi_stats_info);
             break;
          default:
             smsLog( pMac, LOGE, FL("Unknown stats type and counter %d"), counter);

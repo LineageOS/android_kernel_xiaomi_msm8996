@@ -865,7 +865,7 @@ static void hdd_smps_force_mode_cb(void *context,
 
 }
 
-#if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
+#if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || defined (FEATURE_WLAN_CH_AVOID)
 /**
  * wlan_hdd_restart_sap() - This function is used to restart SAP in driver internally
  * @ap_adapter: - Pointer to SAP hdd_adapter_t structure
@@ -925,6 +925,8 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         wlan_hdd_decr_active_session(pHddCtx, ap_adapter->device_mode);
         hddLog(LOGE, FL("SAP Stop Success"));
 
+        if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
         if (0 != wlan_hdd_cfg80211_update_apies(ap_adapter)) {
             hddLog(LOGE, FL("SAP Not able to set AP IEs"));
             WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
@@ -953,6 +955,8 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
         wlan_hdd_incr_active_session(pHddCtx, ap_adapter->device_mode);
         pHostapdState->bCommit = TRUE;
+        if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.obss);
     }
 end:
     mutex_unlock(&pHddCtx->sap_lock);
@@ -10007,6 +10011,7 @@ void hdd_runtime_suspend_init(hdd_context_t *hdd_ctx)
 	context->scan = vos_runtime_pm_prevent_suspend_init("scan");
 	context->roc = vos_runtime_pm_prevent_suspend_init("roc");
 	context->dfs = vos_runtime_pm_prevent_suspend_init("dfs");
+	context->obss = vos_runtime_pm_prevent_suspend_init("obss");
 }
 
 /**
@@ -10027,6 +10032,8 @@ void hdd_runtime_suspend_deinit(hdd_context_t *hdd_ctx)
 	context->roc = NULL;
 	vos_runtime_pm_prevent_suspend_deinit(context->dfs);
 	context->dfs = NULL;
+	vos_runtime_pm_prevent_suspend_deinit(context->obss);
+	context->obss = NULL;
 }
 
 /**
@@ -11522,6 +11529,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              vos_flush_work(&pHddCtx->sap_start_work);
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                         FL("Canceled the pending SAP restart work"));
+             hdd_change_ch_avoidance_status(pHddCtx, false);
              hdd_change_sap_restart_required_status(pHddCtx, false);
          }
          //Any softap specific cleanup here...
@@ -11573,6 +11581,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             updateIE.pAdditionIEBuffer = NULL;
             updateIE.append = VOS_FALSE;
             updateIE.notify = VOS_FALSE;
+            if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+                vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
             /* Probe bcn reset */
             if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
                               &updateIE, eUPDATE_IE_PROBE_BCN)
@@ -11798,8 +11808,8 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                pAdapter->sessionCtx.station.hdd_ReassocScenario = VOS_FALSE;
 
                /* indicate disconnected event to nl80211 */
-               cfg80211_disconnected(pAdapter->dev, WLAN_REASON_UNSPECIFIED,
-                                     NULL, 0, GFP_KERNEL);
+               wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, true,
+                                                     WLAN_REASON_UNSPECIFIED);
             }
             else if (eConnectionState_Connecting == connState)
             {
@@ -14968,6 +14978,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Initialize the RoC Request queue and work. */
    hdd_list_init((&pHddCtx->hdd_roc_req_q), MAX_ROC_REQ_QUEUE_ENTRY);
    vos_init_delayed_work(&pHddCtx->rocReqWork, wlan_hdd_roc_request_dequeue);
+   vos_init_work(&pHddCtx->sap_start_work, hdd_sap_restart_handle);
 
    if (pHddCtx->cfg_ini->dot11p_mode == WLAN_HDD_11P_STANDALONE) {
        /* Create only 802.11p interface */
@@ -16540,8 +16551,6 @@ void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx)
 	hdd_adapter_t *adapter;
 	VOS_STATUS status;
 
-	static bool restart_sap_in_progress = false;
-
 	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
 	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
 		adapter = adapter_node->pAdapter;
@@ -16574,22 +16583,33 @@ void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx)
 			channel_loop++) {
 			if (((hdd_ctx->unsafe_channel_list[channel_loop] ==
 				adapter->sessionCtx.ap.operatingChannel)) &&
+				(false == hdd_ctx->is_ch_avoid_in_progress) &&
 				(adapter->sessionCtx.ap.sapConfig.acs_cfg.
-				 acs_mode == true) &&
-				!restart_sap_in_progress) {
+				 acs_mode == true)) {
+				hdd_change_ch_avoidance_status(hdd_ctx, true);
+
+				vos_flush_work(
+					&hdd_ctx->sap_start_work);
+
+				/*
+				 * current operating channel
+				 * is un-safe channel, restart driver
+				 */
 				hddLog(LOGE,
-				FL("Restarting SAP due to unsafe channel"));
+					FL("Restarting SAP due to unsafe channel"));
+
 				wlan_hdd_send_svc_nlink_msg(
 						hdd_ctx->radio_index,
 						WLAN_SVC_LTE_COEX_IND,
 						NULL,
 						0);
-				restart_sap_in_progress = true;
-				/*
-				 * current operating channel
-				 * is un-safe channel, restart driver
-				 */
+
 				hdd_hostapd_stop(adapter->dev);
+
+				if (hdd_ctx->cfg_ini->sap_restrt_ch_avoid)
+					schedule_work(
+					&hdd_ctx->sap_start_work);
+
 				return;
 			}
 		}
@@ -17457,6 +17477,8 @@ void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter)
         wlan_hdd_decr_active_session(hdd_ctx, ap_adapter->device_mode);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                   FL("SAP Stop Success"));
+        if (hdd_ctx->cfg_ini->apOBSSProtEnabled)
+            vos_runtime_pm_allow_suspend(hdd_ctx->runtime_context.obss);
     } else {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   FL("Can't stop ap because its not started"));
@@ -17524,6 +17546,8 @@ void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter)
     set_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
     wlan_hdd_incr_active_session(hdd_ctx, ap_adapter->device_mode);
     hostapd_state->bCommit = TRUE;
+    if (hdd_ctx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_prevent_suspend(hdd_ctx->runtime_context.obss);
 
 end:
     mutex_unlock(&hdd_ctx->sap_lock);

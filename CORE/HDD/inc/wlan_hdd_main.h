@@ -399,6 +399,7 @@ typedef struct hdd_stats_s
    tCsrGlobalClassCStatsInfo  ClassC_stat;
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
+   struct csr_per_chain_rssi_stats_info  per_chain_rssi_stats;
    hdd_tx_rx_stats_t          hddTxRxStats;
 #ifdef WLAN_FEATURE_11W
    hdd_pmf_stats_t            hddPmfStats;
@@ -926,6 +927,7 @@ typedef struct multicast_addr_list
  * @scan: scan context to prevent/allow runtime pm
  * @roc : remain on channel runtime pm context
  * @dfs : Dynamic frequency selection runtime pm context
+ * @obss: Obss protection runtime pm context
  *
  * Prevent Runtime PM for scan, roc and dfs.
  */
@@ -933,6 +935,7 @@ struct hdd_runtime_pm_context {
 	void *scan;
 	void *roc;
 	void *dfs;
+	void *obss;
 };
 
 /**
@@ -1718,6 +1721,8 @@ struct hdd_context_s
 
     struct work_struct  sap_start_work;
     bool is_sap_restart_required;
+    bool is_ch_avoid_in_progress;
+
     bool is_sta_connection_pending;
     spinlock_t sap_update_info_lock;
     spinlock_t sta_update_info_lock;
@@ -2219,4 +2224,7 @@ static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
 
 int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 		const tANI_U8 channel, const handoff_src src);
+
+void hdd_sap_restart_handle(struct work_struct *work);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

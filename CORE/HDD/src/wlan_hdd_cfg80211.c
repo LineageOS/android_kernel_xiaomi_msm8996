@@ -129,6 +129,8 @@
 #define MAX_REMAIN_ON_CHANNEL_DURATION    (5000)
 #define HDD_WAKE_LOCK_SCAN_DURATION       (5 * 1000) /* in msec */
 
+#define WLAN_HDD_TGT_NOISE_FLOOR_DBM      (-96)
+
 /* For IBSS, enable obss, fromllb, overlapOBSS & overlapFromllb protection
    check. The bit map is defined in:
 
@@ -184,6 +186,8 @@
 #define WLAN_AKM_SUITE_FT_8021X         0x000FAC03
 #define WLAN_AKM_SUITE_FT_PSK           0x000FAC04
 #endif
+
+#define MAX_TXPOWER_SCALE 4
 
 #define HDD_CHANNEL_14 14
 #define WLAN_HDD_MAX_FEATURE_SET   8
@@ -10390,6 +10394,7 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 	uint32_t nl_buf_len;
 	uint32_t total_rx_data_wake, rx_multicast_cnt;
 	uint32_t ipv6_rx_multicast_addr_cnt;
+	uint32_t icmpv6_cnt;
 
 	ENTER();
 
@@ -10419,9 +10424,17 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 			data->wow_ipv6_mcast_ns_stats);
 	hddLog(LOG1, "wow_ipv6_mcast_na_stats %d",
 			data->wow_ipv6_mcast_na_stats);
+	hddLog(LOG1, "wow_icmpv4_count %d", data->wow_icmpv4_count);
+	hddLog(LOG1, "wow_icmpv6_uc_bc_count %d", data->wow_icmpv6_uc_bc_count);
 
 	ipv6_rx_multicast_addr_cnt =
 		data->wow_ipv6_mcast_wake_up_count +
+		data->wow_ipv6_mcast_ra_stats +
+		data->wow_ipv6_mcast_ns_stats +
+		data->wow_ipv6_mcast_na_stats;
+
+	icmpv6_cnt =
+		data->wow_icmpv6_uc_bc_count +
 		data->wow_ipv6_mcast_ra_stats +
 		data->wow_ipv6_mcast_ns_stats +
 		data->wow_ipv6_mcast_na_stats;
@@ -10434,7 +10447,6 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 		data->wow_ucast_wake_up_count +
 		data->wow_bcast_wake_up_count +
 		rx_multicast_cnt;
-
 
 	if (nla_put_u32(skb, PARAM_TOTAL_CMD_EVENT_WAKE, 0) ||
 	    nla_put_u32(skb, PARAM_CMD_EVENT_WAKE_CNT_PTR, 0) ||
@@ -10451,9 +10463,9 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 	    nla_put_u32(skb, PARAM_RX_BROADCAST_CNT,
 				data->wow_bcast_wake_up_count) ||
 	    nla_put_u32(skb, PARAM_ICMP_PKT,
-				data->wow_ipv4_mcast_wake_up_count) ||
+				data->wow_icmpv4_count) ||
 	    nla_put_u32(skb, PARAM_ICMP6_PKT,
-				ipv6_rx_multicast_addr_cnt) ||
+				icmpv6_cnt) ||
 	    nla_put_u32(skb, PARAM_ICMP6_RA,
 				data->wow_ipv6_mcast_ra_stats) ||
 	    nla_put_u32(skb, PARAM_ICMP6_NA,
@@ -10991,6 +11003,257 @@ static int wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
 	return ret;
 }
 
+static const struct
+nla_policy qca_wlan_vendor_attr[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_MAC_ADDR]       = {.type = NLA_BINARY,
+					.len = VOS_MAC_ADDR_SIZE},
+};
+
+/**
+ * __wlan_hdd_cfg80211_fast_roaming() - enable/disable roaming
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Length of @data
+ *
+ * This function is used to enable/disable roaming using vendor commands
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int __wlan_hdd_cfg80211_fast_roaming(struct wiphy *wiphy,
+					    struct wireless_dev *wdev,
+					    const void *data, int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_MAX + 1];
+	uint32_t is_fast_roam_enabled;
+	int ret;
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	ret = nla_parse(tb, QCA_WLAN_VENDOR_ATTR_MAX, data, data_len,
+			qca_wlan_vendor_attr);
+	if (ret) {
+		hddLog(LOGE, FL("Invalid ATTR"));
+		return -EINVAL;
+	}
+
+	/* Parse and fetch Enable flag */
+	if (!tb[QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY]) {
+		hddLog(LOGE, FL("attr enable failed"));
+		return -EINVAL;
+	}
+
+	is_fast_roam_enabled = nla_get_u32(
+				tb[QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY]);
+	hddLog(LOG1, FL("isFastRoamEnabled %d"), is_fast_roam_enabled);
+
+	/* Update roaming */
+	ret = sme_config_fast_roaming(hdd_ctx->hHal, adapter->sessionId,
+					 is_fast_roam_enabled);
+	if (ret)
+		hddLog(LOGE, FL("sme_config_fast_roaming failed"));
+	EXIT();
+	return ret;
+}
+
+/**
+ * wlan_hdd_cfg80211_fast_roaming() - enable/disable roaming
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Length of @data
+ *
+ * Wrapper function of __wlan_hdd_cfg80211_fast_roaming()
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int wlan_hdd_cfg80211_fast_roaming(struct wiphy *wiphy,
+					  struct wireless_dev *wdev,
+					  const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_fast_roaming(wiphy, wdev,
+					       data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __wlan_hdd_cfg80211_txpower_scale () - txpower scaling
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Data length
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int __wlan_hdd_cfg80211_txpower_scale(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter;
+	int ret;
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX + 1];
+	uint8_t scale_value;
+	VOS_STATUS status;
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (ret)
+		return ret;
+
+	adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX,
+		      data, data_len, NULL)) {
+		hddLog(LOGE, "Invalid ATTR");
+		return -EINVAL;
+	}
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE]) {
+		hddLog(LOGE, "attr tx power scale failed");
+		return -EINVAL;
+	}
+
+	scale_value = nla_get_u8(tb
+		    [QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE]);
+
+	if (scale_value > MAX_TXPOWER_SCALE) {
+		hddLog(LOGE, "Invalid tx power scale level");
+		return -EINVAL;
+	}
+
+	status = wma_set_tx_power_scale(adapter->sessionId, scale_value);
+
+	if (VOS_STATUS_SUCCESS != status) {
+		hddLog(LOGE, "Set tx power scale failed");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_txpower_scale () - txpower scaling
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Data length
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int wlan_hdd_cfg80211_txpower_scale(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_txpower_scale(wiphy, wdev,
+						data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __wlan_hdd_cfg80211_txpower_scale_decr_db () - txpower scaling
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Data length
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int __wlan_hdd_cfg80211_txpower_scale_decr_db(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter;
+	int ret;
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_MAX + 1];
+	uint8_t scale_value;
+	VOS_STATUS status;
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (ret)
+		return ret;
+
+	adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_MAX,
+		      data, data_len, NULL)) {
+		hddLog(LOGE, "Invalid ATTR");
+		return -EINVAL;
+	}
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB]) {
+		hddLog(LOGE, "attr tx power decrease db value failed");
+		return -EINVAL;
+	}
+
+	scale_value = nla_get_u8(tb
+		    [QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB]);
+
+	status = wma_set_tx_power_scale_decr_db(adapter->sessionId,
+							scale_value);
+
+	if (VOS_STATUS_SUCCESS != status) {
+		hddLog(LOGE,"Set tx power decrease db failed");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_txpower_scale_decr_db () - txpower scaling
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Data length
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int wlan_hdd_cfg80211_txpower_scale_decr_db(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data,
+						int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_txpower_scale_decr_db(wiphy, wdev,
+						data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -11497,6 +11760,32 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 			WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_sap_configuration_set
 	},
+
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_ROAMING,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			 WIPHY_VENDOR_CMD_NEED_NETDEV |
+			 WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_fast_roaming
+	},
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+				 WIPHY_VENDOR_CMD_NEED_NETDEV |
+				 WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_txpower_scale
+	},
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd =
+			QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE_DECR_DB,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+				 WIPHY_VENDOR_CMD_NEED_NETDEV |
+				 WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_txpower_scale_decr_db
+	},
 };
 
 
@@ -11692,7 +11981,11 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     vos_mem_copy(wiphy->bands[IEEE80211_BAND_2GHZ]->channels,
             &hdd_channels_2_4_GHZ[0],
             sizeof(hdd_channels_2_4_GHZ));
-   if (hdd_is_5g_supported(pHddCtx))
+   if (hdd_is_5g_supported(pHddCtx) &&
+       ((eHDD_DOT11_MODE_11b != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11g != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11b_ONLY != pCfg->dot11Mode) ||
+       (eHDD_DOT11_MODE_11g_ONLY != pCfg->dot11Mode)))
    {
         wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
         wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
@@ -13766,6 +14059,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     /* Successfully started Bss update the state bit. */
     set_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+    /* Disable runtime PM if obss protection is enabled */
+    if (pConfig->obssProtEnabled)
+        vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.obss);
+
     /* Initialize WMM configuation */
     hdd_wmm_init(pHostapdAdapter);
     wlan_hdd_incr_active_session(pHddCtx, pHostapdAdapter->device_mode);
@@ -14064,6 +14361,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         vos_flush_work(&pHddCtx->sap_start_work);
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                   FL("Canceled the pending restart work"));
+        hdd_change_ch_avoidance_status(pHddCtx, false);
         hdd_change_sap_restart_required_status(pHddCtx, false);
     }
 
@@ -14116,6 +14414,8 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
        hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_INVALID);
+    if (pHddCtx->cfg_ini->apOBSSProtEnabled)
+        vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
 
     if (status != VOS_STATUS_SUCCESS) {
         hddLog(VOS_TRACE_LEVEL_FATAL, FL("Stopping the BSS"));
@@ -14940,6 +15240,15 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
                     MAC_ADDRESS_STR " Request declined.",
                     __func__, MAC_ADDR_ARRAY(mac));
         return -ENOTSUPP;
+    }
+
+    if (!test_bit(TDLS_INIT_DONE, &pAdapter->event_flags)) {
+        hddLog(LOG1, FL("TDLS init was not done!"));
+        if (0 != wlan_hdd_tdls_init(pAdapter)) {
+            hddLog(LOGE, FL("wlan_hdd_tdls_init failed, exit"));
+            return -EINVAL;
+        }
+        set_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
     }
 
     pTdlsPeer = wlan_hdd_tdls_get_peer(pAdapter, mac);
@@ -17648,9 +17957,11 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId),
                 ssid, ssid_len);
 
+        pRoamProfile->do_not_roam = false;
         if (bssid)
         {
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
+            pRoamProfile->do_not_roam = true;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
                     VOS_MAC_ADDR_SIZE);
             /* Save BSSID in separate variable as well, as RoamProfile
@@ -18842,6 +19153,16 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 disconnected:
     hdd_connSetConnectionState(pAdapter,
                                 eConnectionState_NotConnected);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
+    /* Sending disconnect event to userspace for kernel version < 3.11
+     * is handled by __cfg80211_disconnect call to __cfg80211_disconnected
+     */
+    hddLog(LOG1, FL("Send disconnected event to userspace"));
+
+    wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, false,
+                                          WLAN_REASON_UNSPECIFIED);
+#endif
+
     EXIT();
     return result;
 }
@@ -19757,6 +20078,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     int status, mode = 0, maxHtIdx;
     struct index_vht_data_rate_type *supported_vht_mcs_rate;
     struct index_data_rate_type *supported_mcs_rate;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+    bool rssi_stats_valid = FALSE;
+#endif
 
 #ifdef WLAN_FEATURE_11AC
     tANI_U32 vht_mcs_map;
@@ -20278,11 +20602,62 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                sinfo->txrate.mcs, sinfo->txrate.flags, sinfo->tx_packets,
                sinfo->rx_packets);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+    sinfo->signal_avg = WLAN_HDD_TGT_NOISE_FLOOR_DBM;
+    for (i = 0; i < NUM_CHAINS_MAX; i++) {
+        sinfo->chain_signal_avg[i] =
+               pAdapter->hdd_stats.per_chain_rssi_stats.rssi[i];
+        sinfo->chains |= 1 << i;
+        if (sinfo->chain_signal_avg[i] > sinfo->signal_avg &&
+                   sinfo->chain_signal_avg[i] != 0)
+            sinfo->signal_avg = sinfo->chain_signal_avg[i];
+
+        hddLog(LOG1, FL("RSSI for chain %d, vdev_id %d is %d"),
+            i, pAdapter->sessionId, sinfo->chain_signal_avg[i]);
+
+        if (sinfo->chain_signal_avg[i] && !rssi_stats_valid)
+            rssi_stats_valid = TRUE;
+    }
+
+    if (rssi_stats_valid) {
+        sinfo->filled |= STATION_INFO_CHAIN_SIGNAL_AVG;
+        sinfo->filled |= STATION_INFO_SIGNAL_AVG;
+    }
+#endif
+
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_GET_STA,
                      pAdapter->sessionId, maxRate));
        EXIT();
        return 0;
+}
+
+static int __wlan_hdd_cfg80211_dump_station(struct wiphy *wiphy,
+					struct net_device *dev,
+					int idx, u8 *mac,
+					struct station_info *sinfo)
+{
+	hdd_context_t *hdd_ctx = (hdd_context_t *) wiphy_priv(wiphy);
+
+	hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: idx %d", __func__, idx);
+	if (idx != 0)
+		return -ENOENT;
+	vos_mem_copy(mac, hdd_ctx->cfg_ini->intfMacAddr[0].bytes,
+				VOS_MAC_ADDR_SIZE);
+	return __wlan_hdd_cfg80211_get_station(wiphy, dev, mac, sinfo);
+}
+
+static int wlan_hdd_cfg80211_dump_station(struct wiphy *wiphy,
+					struct net_device *dev,
+					int idx, u8 *mac,
+					struct station_info *sinfo)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_dump_station(wiphy, dev, idx, mac, sinfo);
+	vos_ssr_unprotect(__func__);
+	return ret;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)) || defined(WITH_BACKPORTS)
@@ -21227,16 +21602,16 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                 }
              }
          }
-         hddLog(VOS_TRACE_LEVEL_INFO,"Channel-List: %s ", chList);
 
-         /*If all channels are DFS and dropped, then ignore the PNO request*/
-         if (num_ignore_dfs_ch == request->n_channels)
-         {
+         if (!num_ch) {
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s : All requested channels are DFS channels", __func__);
+                 "%s : Channel list empty due to filtering of DSRC,DFS channels",
+                 __func__);
              ret = -EINVAL;
              goto error;
          }
+
+         hddLog(VOS_TRACE_LEVEL_INFO,"Channel-List: %s ", chList);
     }
 
     /* Filling per profile  params */
@@ -25168,6 +25543,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
      .set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
      .set_txq_params = wlan_hdd_set_txq_params,
+     .dump_station = wlan_hdd_cfg80211_dump_station,
      .get_station = wlan_hdd_cfg80211_get_station,
      .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
      .del_station = wlan_hdd_cfg80211_del_station,

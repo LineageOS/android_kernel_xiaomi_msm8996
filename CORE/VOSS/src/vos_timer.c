@@ -189,7 +189,7 @@ static void vos_linux_timer_callback (unsigned long data)
    if (vos_is_wd_thread(threadId)) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "TIMER callback: running on wd thread");
-      callback(NULL);
+      callback(userData);
       return;
    }
 

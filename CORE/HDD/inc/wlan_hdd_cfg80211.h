@@ -137,7 +137,8 @@ typedef struct {
 enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_UNSPEC = 0,
     QCA_NL80211_VENDOR_SUBCMD_TEST = 1,
-    /* subcmds 2..9 not yet allocated */
+    /* subcmds 2..8 not yet allocated */
+    QCA_NL80211_VENDOR_SUBCMD_ROAMING = 9,
     QCA_NL80211_VENDOR_SUBCMD_AVOID_FREQUENCY = 10,
     QCA_NL80211_VENDOR_SUBCMD_DFS_CAPABILITY =  11,
     QCA_NL80211_VENDOR_SUBCMD_NAN =  12,
@@ -263,6 +264,8 @@ enum qca_nl80211_vendor_subcmds {
 	/* subcommand to get link properties */
 	QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES = 101,
 	QCA_NL80211_VENDOR_SUBCMD_SETBAND = 105,
+	QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE = 109,
+	QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE_DECR_DB = 115,
 	QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
 	QCA_NL80211_VENDOR_SUBCMD_STA_CONNECT_ROAM_POLICY = 117,
 	QCA_NL80211_VENDOR_SUBCMD_SET_SAP_CONFIG  = 118,
@@ -406,7 +409,7 @@ enum qca_wlan_vendor_attr_get_tdls_capabilities {
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_MAX =
-	QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_AFTER_LAST - 1,
+		QCA_WLAN_VENDOR_ATTR_TDLS_GET_CAPS_AFTER_LAST - 1,
 };
 
 enum qca_wlan_vendor_attr {
@@ -417,9 +420,11 @@ enum qca_wlan_vendor_attr {
     QCA_WLAN_VENDOR_ATTR_NAN = 2,
     /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
     QCA_WLAN_VENDOR_ATTR_STATS_EXT = 3,
+    /* used by QCA_NL80211_VENDOR_SUBCMD_STATS_EXT */
     QCA_WLAN_VENDOR_ATTR_IFINDEX = 4,
 
-    /* used by QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES */
+    /* used by QCA_NL80211_VENDOR_SUBCMD_ROAMING */
+    QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY = 5,
     QCA_WLAN_VENDOR_ATTR_MAC_ADDR = 6,
 
     /* used by QCA_NL80211_VENDOR_SUBCMD_GET_FEATURES */
@@ -431,7 +436,7 @@ enum qca_wlan_vendor_attr {
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_MAX =
-    QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1
+        QCA_WLAN_VENDOR_ATTR_AFTER_LAST - 1
 };
 
 #ifdef FEATURE_WLAN_EXTSCAN
@@ -832,7 +837,7 @@ enum qca_wlan_vendor_attr_ll_stats_get
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_MAX =
-    QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_AFTER_LAST - 1
+        QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_AFTER_LAST - 1
 };
 
 enum qca_wlan_vendor_attr_ll_stats_clr
@@ -844,7 +849,7 @@ enum qca_wlan_vendor_attr_ll_stats_clr
     QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_CONFIG_STOP_RSP,
     QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_MAX =
-    QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST - 1
+        QCA_WLAN_VENDOR_ATTR_LL_STATS_CLR_AFTER_LAST - 1
 };
 
 /**
@@ -866,7 +871,7 @@ enum qca_wlan_vendor_attr_ll_stats_results_type {
 
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_MAX =
-	QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_AFTER_LAST - 1
+		QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE_AFTER_LAST - 1
 };
 
 enum qca_wlan_vendor_attr_ll_stats_results
@@ -1540,7 +1545,7 @@ enum qca_wlan_vendor_attr_acs_offload {
        /* keep last */
        QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST,
        QCA_WLAN_VENDOR_ATTR_ACS_MAX =
-       QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST - 1
+              QCA_WLAN_VENDOR_ATTR_ACS_AFTER_LAST - 1
 };
 
 enum qca_wlan_vendor_acs_hw_mode {
@@ -1882,6 +1887,39 @@ enum qca_wlan_vendor_attr_sap_config {
 		QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_AFTER_LAST - 1,
 };
 
+/** enum qca_vendor_attr_txpower_scale - vendor sub commands index
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_INVALID: invalid value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE: scaling value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_AFTER_LAST: last value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX: max value
+ */
+enum qca_vendor_attr_txpower_scale {
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_INVALID,
+	/* 8-bit unsigned value to indicate the scaling of tx power */
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE,
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX =
+		QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_vendor_attr_txpower_scale_decr_db - vendor sub commands index
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_INVALID: invalid value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB: scaling value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_AFTER_LAST: last value
+ * @QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_MAX: max value
+ */
+enum qca_vendor_attr_txpower_scale_decr_db {
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_INVALID,
+	/* 8-bit unsigned value to indicate the scaling of tx power */
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB,
+	/* keep last */
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_MAX =
+		QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_AFTER_LAST - 1
+};
+
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
                                       );
@@ -2047,4 +2085,23 @@ static inline void wlan_hdd_clear_link_layer_stats(hdd_adapter_t *adapter) {}
 
 struct cfg80211_bss *wlan_hdd_cfg80211_inform_bss_frame(hdd_adapter_t *pAdapter,
 		tSirBssDescription *bss_desc);
+
+#if defined(CFG80211_DISCONNECTED_V2) || \
+(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
+static inline void wlan_hdd_cfg80211_indicate_disconnect(struct net_device *dev,
+							bool from_ap,
+							int reason)
+{
+	cfg80211_disconnected(dev, reason, NULL, 0,
+				from_ap, GFP_KERNEL);
+}
+#else
+static inline void wlan_hdd_cfg80211_indicate_disconnect(struct net_device *dev,
+							bool from_ap,
+							int reason)
+{
+	cfg80211_disconnected(dev, reason, NULL, 0,
+				GFP_KERNEL);
+}
+#endif
 #endif

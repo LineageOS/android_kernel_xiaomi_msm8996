@@ -74,6 +74,7 @@
 #define SME_GLOBAL_CLASSC_STATS   8
 #define SME_GLOBAL_CLASSD_STATS  16
 #define SME_PER_STA_STATS        32
+#define SME_PER_CHAIN_RSSI_STATS 64
 
 #define SME_INVALID_COUNTRY_CODE "XX"
 
@@ -2816,6 +2817,9 @@ eHalStatus sme_UpdateIsFastRoamIniFeatureEnabled(tHalHandle hHal,
                                                  tANI_U8 sessionId,
         const v_BOOL_t isFastRoamIniFeatureEnabled);
 
+eHalStatus sme_config_fast_roaming(tHalHandle hhal, tANI_U8 session_id,
+				   const bool is_fast_roam_enabled);
+
 /*--------------------------------------------------------------------------
   \brief sme_UpdateIsMAWCIniFeatureEnabled() -
   Enable/disable LFR MAWC support at runtime
@@ -4575,4 +4579,5 @@ eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 		uint8_t session_id);
 eHalStatus sme_register_p2p_ack_ind_callback(tHalHandle hal,
 					sir_p2p_ack_ind_callback callback);
+void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0);
 #endif //#if !defined( __SME_API_H )

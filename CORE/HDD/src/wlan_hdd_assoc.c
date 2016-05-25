@@ -988,9 +988,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 #endif /* QCA_PKT_PROTO_TRACE */
 
     /* HDD has initiated disconnect, do not send disconnect indication
-     * to kernel.
+     * to kernel. Sending disconnected event to kernel for userspace
+     * initiated disconnect will be handled by diconnect handler call
+     * to cfg80211_disconnected
      */
-    if (eConnectionState_Disconnecting == pHddStaCtx->conn_info.connState)
+    if ((eConnectionState_Disconnecting == pHddStaCtx->conn_info.connState) ||
+        (eConnectionState_NotConnected == pHddStaCtx->conn_info.connState))
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                    FL(" HDD has initiated a disconnect, no need to send"
@@ -1031,12 +1034,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                        pr_info(
                        "wlan: disconnected due to poor signal, rssi is %d dB\n",
                        pRoamInfo->rxRssi);
-               cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0,
-                                      GFP_KERNEL);
+               wlan_hdd_cfg80211_indicate_disconnect(dev, true,
+                                                     WLAN_REASON_UNSPECIFIED);
             }
             else
-                cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0,
-                                      GFP_KERNEL);
+               wlan_hdd_cfg80211_indicate_disconnect(dev, true,
+                                                     WLAN_REASON_UNSPECIFIED);
 
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
                    FL("sent disconnected event to nl80211, reason code %d"),
@@ -1609,7 +1612,7 @@ void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
  *
  * Return: void.
  */
-static void hdd_sap_restart_handle(struct work_struct *work)
+void hdd_sap_restart_handle(struct work_struct *work)
 {
     hdd_adapter_t *sap_adapter;
     hdd_context_t *hdd_ctx = container_of(work,
@@ -1628,9 +1631,15 @@ static void hdd_sap_restart_handle(struct work_struct *work)
         vos_ssr_unprotect(__func__);
         return;
     }
-    wlan_hdd_start_sap(sap_adapter);
 
-    hdd_change_sap_restart_required_status(hdd_ctx, false);
+    if (hdd_ctx->is_ch_avoid_in_progress) {
+        sap_adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
+        wlan_hdd_restart_sap(sap_adapter);
+        hdd_change_ch_avoidance_status(hdd_ctx, false);
+    } else {
+        wlan_hdd_start_sap(sap_adapter);
+        hdd_change_sap_restart_required_status(hdd_ctx, false);
+    }
     vos_ssr_unprotect(__func__);
 }
 
@@ -1788,10 +1797,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                                 "Checking for Concurrent Change interference");
         }
-#endif
-
-#ifdef FEATURE_WLAN_TDLS
-        wlan_hdd_tdls_connection_callback(pAdapter);
 #endif
 
 #ifdef QCA_PKT_PROTO_TRACE
@@ -1989,6 +1994,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                         NULL,
                         pRoamInfo->pBssDesc );
             }
+
+#ifdef FEATURE_WLAN_TDLS
+        wlan_hdd_tdls_connection_callback(pAdapter);
+#endif
         }
         else
         {
@@ -2242,9 +2251,13 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
          * creating workqueue then our main thread might go to sleep which
          * is not acceptable.
          */
-         vos_init_work(&pHddCtx->sap_start_work,
-                        hdd_sap_restart_handle);
-         schedule_work(&pHddCtx->sap_start_work);
+
+         /*
+          * If channel avoidance is intiated, don't schedule the work.
+          * Channel avoidance takes care restarting SAP.
+          */
+         if (true == hdd_is_sap_restart_required(pHddCtx))
+             schedule_work(&pHddCtx->sap_start_work);
 
 
     }
@@ -4011,8 +4024,20 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                                          eSME_FULL_PWR_NEEDED_BY_HDD);
                     }
                 }
+                if ((pHddCtx) &&
+                    (FULL_POWER == pmcGetPmcState(pHddCtx->hHal)) &&
+                    (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario) &&
+                    (eCSR_ROAM_RESULT_NONE == roamResult)) {
+                     hddLog(LOG1,
+                           FL("Device in full power, Stop and start traffic timer for roaming"));
+                     pmcStopTrafficTimer(pHddCtx->hHal);
+
+                     if (pmcStartTrafficTimer(pHddCtx->hHal,
+                         TRAFFIC_TIMER_ROAMING) != eHAL_STATUS_SUCCESS)
+                         hddLog(LOGP, FL("Cannot start traffic timer"));
+                }
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
-                if (eCSR_ROAM_RESULT_AUTHENTICATED == roamResult) {
+                if (eCSR_ROAM_RESULT_NONE == roamResult) {
                     pHddStaCtx->hdd_ReassocScenario = VOS_FALSE;
                     hddLog(LOG1,
                            FL("hdd_ReassocScenario set to: %d, set key complete, session: %d"),

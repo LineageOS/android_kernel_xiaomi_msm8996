@@ -138,11 +138,13 @@
 #define FW_PDEV_STATS_SET 0x1
 #define FW_VDEV_STATS_SET 0x2
 #define FW_PEER_STATS_SET 0x4
-#define FW_STATS_SET 0x7
+#define FW_RSSI_PER_CHAIN_STATS_SET 0x8
+#define FW_STATS_SET 0xf
 /*AR9888/AR6320  noise floor approx value
  * similar to the mentioned the TLSHIM
  */
 #define WMA_TGT_NOISE_FLOOR_DBM (-96)
+#define WMA_TGT_RSSI_INVALID      96
 
 /*
  * Make sure that link monitor and keep alive
@@ -2796,11 +2798,6 @@ static void wma_update_peer_stats(tp_wma_handle wma, wmi_peer_stats *peer_stats)
 					node->rate_flags, node->nss,
 					classa_stats->max_pwr);
 		}
-
-		if (node->fw_stats_set & FW_STATS_SET) {
-			WMA_LOGD("<--STATS RSP VDEV_ID:%d", vdev_id);
-			wma_post_stats(wma, node);
-		}
 	}
 }
 
@@ -2819,6 +2816,109 @@ static void wma_post_link_status(tAniGetLinkStatus *pGetLinkStatus,
 	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
 	    WMA_LOGE("%s: Fail to post link status ind msg", __func__);
 	    vos_mem_free(pGetLinkStatus);
+	}
+}
+
+/**
+ * wma_update_per_chain_rssi_stats() - to store per chain rssi stats for
+ *   all vdevs for which the stats were requested into csr stats structure.
+ * @wma: wma handle
+ * @rssi_stats: rssi stats
+ * @rssi_per_chain_stats: buffer where rssi stats to be stored
+ *
+ * This function stores per chain rssi stats received from fw for all vdevs for
+ * which the stats were requested into a csr stats structure.
+ *
+ * Return: void
+ */
+static void wma_update_per_chain_rssi_stats(tp_wma_handle wma,
+		wmi_rssi_stats *rssi_stats,
+		struct csr_per_chain_rssi_stats_info *rssi_per_chain_stats)
+{
+	int i;
+	int8_t bcn_snr, dat_snr;
+
+	for (i = 0; i < NUM_CHAINS_MAX; i++) {
+		bcn_snr = rssi_stats->rssi_avg_beacon[i];
+		dat_snr = rssi_stats->rssi_avg_data[i];
+		WMA_LOGD("chain %d beacon snr %d data snr %d",
+			i, bcn_snr, dat_snr);
+		if ((dat_snr != WMA_TGT_INVALID_SNR_OLD &&
+			 dat_snr != WMA_TGT_INVALID_SNR_NEW))
+			rssi_per_chain_stats->rssi[i] = dat_snr;
+		else if ((bcn_snr != WMA_TGT_INVALID_SNR_OLD &&
+			      bcn_snr != WMA_TGT_INVALID_SNR_NEW))
+			rssi_per_chain_stats->rssi[i] = bcn_snr;
+		else
+			/*
+			 * Firmware sends invalid snr till it sees
+			 * Beacon/Data after connection since after
+			 * vdev up fw resets the snr to invalid.
+			 * In this duartion Host will return an invalid rssi
+			 * value.
+			 */
+			rssi_per_chain_stats->rssi[i] = WMA_TGT_RSSI_INVALID;
+
+		/*
+		 * Get the absolute rssi value from the current rssi value the
+		 * sinr value is hardcoded into 0 in the CORE stack
+		 */
+		rssi_per_chain_stats->rssi[i] += WMA_TGT_NOISE_FLOOR_DBM;
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&(rssi_stats->peer_macaddr),
+			rssi_per_chain_stats->peer_mac_addr);
+	}
+}
+
+/**
+ * wma_update_rssi_stats() - to update rssi stats for all vdevs
+ *         for which the stats were requested.
+ * @wma: wma handle
+ * @rssi_stats: rssi stats
+ *
+ * This function updates the rssi stats for all vdevs for which
+ * the stats were requested.
+ *
+ * Return: void
+ */
+static void wma_update_rssi_stats(tp_wma_handle wma,
+			wmi_rssi_stats *rssi_stats)
+{
+	tAniGetPEStatsRsp *stats_rsp_params;
+	struct csr_per_chain_rssi_stats_info *rssi_per_chain_stats = NULL;
+	struct wma_txrx_node *node;
+	uint8_t *stats_buf;
+	uint32_t temp_mask;
+	uint8_t vdev_id;
+
+	vdev_id = rssi_stats->vdev_id;
+	node = &wma->interfaces[vdev_id];
+	if (node->stats_rsp) {
+		node->fw_stats_set |=  FW_RSSI_PER_CHAIN_STATS_SET;
+		WMA_LOGD("<-- FW RSSI PER CHAIN STATS received for vdevId:%d",
+				vdev_id);
+		stats_rsp_params = (tAniGetPEStatsRsp *) node->stats_rsp;
+		stats_buf = (tANI_U8 *) (stats_rsp_params + 1);
+		temp_mask = stats_rsp_params->statsMask;
+
+		if (temp_mask & (1 << eCsrSummaryStats))
+			stats_buf += sizeof(tCsrSummaryStatsInfo);
+		if (temp_mask & (1 << eCsrGlobalClassAStats))
+			stats_buf += sizeof(tCsrGlobalClassAStatsInfo);
+		if (temp_mask & (1 << eCsrGlobalClassBStats))
+			stats_buf += sizeof(tCsrGlobalClassBStatsInfo);
+		if (temp_mask & (1 << eCsrGlobalClassCStats))
+			stats_buf += sizeof(tCsrGlobalClassCStatsInfo);
+		if (temp_mask & (1 << eCsrGlobalClassDStats))
+			stats_buf += sizeof(tCsrGlobalClassDStatsInfo);
+		if (temp_mask & (1 << eCsrPerStaStats))
+			stats_buf += sizeof(tCsrPerStaStatsInfo);
+
+		if (temp_mask & (1 << csr_per_chain_rssi_stats)) {
+			rssi_per_chain_stats =
+			     (struct csr_per_chain_rssi_stats_info *)stats_buf;
+			wma_update_per_chain_rssi_stats(wma, rssi_stats,
+					rssi_per_chain_stats);
+		}
 	}
 }
 
@@ -3079,9 +3179,11 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 {
 	WMI_UPDATE_STATS_EVENTID_param_tlvs *param_buf;
 	wmi_stats_event_fixed_param *event;
+	wmi_per_chain_rssi_stats *rssi_event;
 	vos_msg_t vos_msg = {0};
-	u_int32_t buf_size;
-	u_int8_t *buf;
+	u_int32_t buf_size, buf_data_size;
+	u_int8_t *buf, *temp;
+	bool rssi_stats_present = FALSE;
 
 	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
 	if (!param_buf) {
@@ -3094,6 +3196,19 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 		   (event->num_vdev_stats * sizeof(wmi_vdev_stats)) +
 		   (event->num_peer_stats * sizeof(wmi_peer_stats)) +
 		   (event->num_mib_stats * sizeof(wmi_mib_stats));
+	buf_data_size = buf_size - sizeof(*event);
+	if (param_buf->data) {
+		rssi_event = (wmi_per_chain_rssi_stats *)
+			((uint8_t *)param_buf->data + buf_data_size);
+		if (((rssi_event->tlv_header & 0xFFFF0000) >> 16) ==
+				WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) {
+			buf_size += sizeof(*rssi_event) +
+				(rssi_event->num_per_chain_rssi_stats *
+				sizeof(wmi_rssi_stats));
+			rssi_stats_present = TRUE;
+		}
+	}
+
 	buf = vos_mem_malloc(buf_size);
 	if (!buf) {
 		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
@@ -3101,8 +3216,18 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	}
 	vos_mem_zero(buf, buf_size);
 	vos_mem_copy(buf, event, sizeof(*event));
-	vos_mem_copy(buf + sizeof(*event), (u_int8_t *)param_buf->data,
-		     (buf_size - sizeof(*event)));
+	temp = buf + sizeof(*event);
+	vos_mem_copy(temp, (u_int8_t *)param_buf->data,
+		     buf_data_size);
+	temp += buf_data_size;
+	if (rssi_stats_present) {
+		vos_mem_copy(temp, (u_int8_t *)param_buf->chain_stats,
+				sizeof(*param_buf->chain_stats));
+		temp += sizeof(*param_buf->chain_stats);
+		vos_mem_copy(temp, (u_int8_t *)param_buf->rssi_stats,
+			(rssi_event->num_per_chain_rssi_stats *
+				sizeof(wmi_rssi_stats)));
+	}
 	vos_msg.type = WDA_FW_STATS_IND;
 	vos_msg.bodyptr = buf;
 	vos_msg.bodyval = 0;
@@ -3265,6 +3390,9 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 	wmi_vdev_stats *vdev_stats;
 	wmi_peer_stats *peer_stats;
 	wmi_mib_stats *mib_stats;
+	wmi_rssi_stats *rssi_stats;
+	wmi_per_chain_rssi_stats *rssi_event;
+	struct wma_txrx_node *node;
 	u_int8_t i, *temp;
 
 	temp = buf + sizeof(*event);
@@ -3310,6 +3438,30 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 			mib_stats = (wmi_mib_stats *)temp;
 			wma_update_mib_stats(wma, mib_stats);
 			temp += sizeof(wmi_mib_stats);
+		}
+	}
+
+	rssi_event = (wmi_per_chain_rssi_stats *)temp;
+	if ((rssi_event->tlv_header & 0xFFFF0000) >> 16 ==
+			WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) {
+		WMA_LOGD("%s: num_rssi_stats %u", __func__,
+			rssi_event->num_per_chain_rssi_stats);
+		if (rssi_event->num_per_chain_rssi_stats > 0) {
+			temp += sizeof(*rssi_event);
+			for (i = 0; i < rssi_event->num_per_chain_rssi_stats;
+									i++) {
+				rssi_stats = (wmi_rssi_stats *)temp;
+				wma_update_rssi_stats(wma, rssi_stats);
+				temp += sizeof(wmi_rssi_stats);
+			}
+		}
+	}
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		node = &wma->interfaces[i];
+		if (node->fw_stats_set & FW_PEER_STATS_SET) {
+			WMA_LOGD("<--STATS RSP VDEV_ID:%d", i);
+			wma_post_stats(wma, node);
 		}
 	}
 }
@@ -4559,7 +4711,7 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	wmi_rate_stats *rate_stats;
 	tSirLLStatsResults *link_stats_results;
 	u_int8_t *results, *t_peer_stats, *t_rate_stats;
-	u_int32_t count, num_rates=0;
+	u_int32_t count, num_rates=0, rate_cnt;
 	u_int32_t next_res_offset, next_peer_offset, next_rate_offset;
 	size_t peer_info_size, peer_stats_size, rate_stats_size;
 	size_t link_stats_results_size;
@@ -4647,7 +4799,7 @@ static int wma_unified_link_peer_stats_event_handler(void *handle,
 	next_res_offset  = peer_stats_size;
 	next_peer_offset = WMI_TLV_HDR_SIZE;
 	next_rate_offset = WMI_TLV_HDR_SIZE;
-	for (count = 0; count < fixed_param->num_peers; count++) {
+	for (rate_cnt = 0; rate_cnt < fixed_param->num_peers; rate_cnt++) {
 		WMA_LOGD("Peer Info:");
 		WMA_LOGD("peer_type %u capabilities %u num_rates %u",
 				peer_stats->peer_type, peer_stats->capabilities,
@@ -20599,7 +20751,7 @@ static void wma_extscan_wow_event_callback(void *handle, void *event,
  */
 static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 {
-	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d",
+	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6 %d",
 		wma->wow_ucast_wake_up_count,
 		wma->wow_bcast_wake_up_count,
 		wma->wow_ipv4_mcast_wake_up_count,
@@ -20611,7 +20763,9 @@ static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 		wma->wow_pno_complete_wake_up_count,
 		wma->wow_gscan_wake_up_count,
 		wma->wow_low_rssi_wake_up_count,
-		wma->wow_rssi_breach_wake_up_count);
+		wma->wow_rssi_breach_wake_up_count,
+		wma->wow_icmpv4_count,
+		wma->wow_icmpv6_uc_bc_count);
 
 	return;
 }
@@ -20675,12 +20829,18 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 	switch(event) {
 
 	case WOW_REASON_PATTERN_MATCH_FOUND:
-		if (WMA_ICMP_V6_RA_TYPE == *data) {
-			wma->wow_ipv6_mcast_ra_stats++;
-		} else if (WMA_BCAST_MAC_ADDR == *data) {
+		if (WMA_BCAST_MAC_ADDR == *data) {
 			wma->wow_bcast_wake_up_count++;
+			if (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL))
+				wma->wow_icmpv4_count++;
+			if ((len > WMA_ICMP_V6_TYPE_OFFSET) &&
+			    (WMA_ICMP_V6_HEADER_TYPE ==
+			     *(data + WMA_ICMP_V6_HEADER_OFFSET)))
+				wma->wow_icmpv6_uc_bc_count++;
 		} else if (WMA_MCAST_IPV4_MAC_ADDR == *data) {
 			wma->wow_ipv4_mcast_wake_up_count++;
+			if (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL))
+				wma->wow_icmpv4_count++;
 		} else if (WMA_MCAST_IPV6_MAC_ADDR == *data) {
 			wma->wow_ipv6_mcast_wake_up_count++;
 			if (len > WMA_ICMP_V6_TYPE_OFFSET)
@@ -20689,6 +20849,12 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 				WMA_LOGA("ICMP_V6 data len %d", len);
 		} else {
 			wma->wow_ucast_wake_up_count++;
+			if (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL))
+				wma->wow_icmpv4_count++;
+			if ((len > WMA_ICMP_V6_TYPE_OFFSET) &&
+			    (WMA_ICMP_V6_HEADER_TYPE ==
+			     *(data + WMA_ICMP_V6_HEADER_OFFSET)))
+				wma->wow_icmpv6_uc_bc_count++;
 		}
 		break;
 
@@ -23088,6 +23254,10 @@ tAniGetPEStatsRsp * wma_get_stats_rsp_buf(tAniGetPEStatsReq *get_stats_param)
 			case eCsrPerStaStats:
 				len += sizeof(tCsrPerStaStatsInfo);
 				break;
+			case csr_per_chain_rssi_stats:
+				len +=
+				   sizeof(struct csr_per_chain_rssi_stats_info);
+				break;
 			}
 		}
 
@@ -23163,7 +23333,7 @@ static void wma_get_stats_req(WMA_HANDLE handle,
 			WMITLV_TAG_STRUC_wmi_request_stats_cmd_fixed_param,
 		WMITLV_GET_STRUCT_TLVLEN(wmi_request_stats_cmd_fixed_param));
 	cmd->stats_id = WMI_REQUEST_PEER_STAT|WMI_REQUEST_PDEV_STAT|
-			WMI_REQUEST_VDEV_STAT;
+			WMI_REQUEST_VDEV_STAT|WMI_REQUEST_RSSI_PER_CHAIN_STAT;
 	cmd->vdev_id = get_stats_param->sessionId;
 	WMI_CHAR_ARRAY_TO_MAC_ADDR(node->bssid, &cmd->peer_macaddr);
 	WMA_LOGD("STATS REQ VDEV_ID:%d-->", cmd->vdev_id);
@@ -29356,6 +29526,9 @@ VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
 			wma_handle->wow_ipv6_mcast_ns_stats;
 	wake_lock_stats->wow_ipv6_mcast_na_stats =
 			wma_handle->wow_ipv6_mcast_na_stats;
+	wake_lock_stats->wow_icmpv4_count = wma_handle->wow_icmpv4_count;
+	wake_lock_stats->wow_icmpv6_uc_bc_count =
+			wma_handle->wow_icmpv6_uc_bc_count;
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -36122,3 +36295,66 @@ int wma_btc_set_bt_wlan_interval(tp_wma_handle wma_handle,
 	return 0;
 }
 
+/**
+ * wma_set_tx_power_scale() - set tx power scale
+ * @vdev_id: vdev id
+ * @value: value
+ *
+ * Return: VOS_STATUS_SUCCESS for success or error code.
+ */
+VOS_STATUS wma_set_tx_power_scale(uint8_t vdev_id, int value)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	VOS_STATUS ret;
+	tp_wma_handle wma_handle = (tp_wma_handle) vos_get_context(
+					VOS_MODULE_ID_WDA, vos_context);
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: wma_handle is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!(wma_handle->interfaces[vdev_id].vdev_up)) {
+		WMA_LOGE("%s: vdev id %d is not up", __func__, vdev_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_TXPOWER_SCALE, value);
+	if (ret != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Set tx power value failed");
+
+	return ret;
+}
+
+/**
+ * wma_set_tx_power_scale_decr_db() - decrease power by DB value
+ * @vdev_id: vdev id
+ * @value: value
+ *
+ * Return: CDF_STATUS_SUCCESS for success or error code.
+ */
+VOS_STATUS wma_set_tx_power_scale_decr_db(uint8_t vdev_id, int value)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	VOS_STATUS ret;
+	tp_wma_handle wma_handle = (tp_wma_handle) vos_get_context(
+					VOS_MODULE_ID_WDA, vos_context);
+
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: wma_handle is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!(wma_handle->interfaces[vdev_id].vdev_up)) {
+		WMA_LOGE("%s: vdev id %d is not up", __func__, vdev_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_TXPOWER_SCALE_DECR_DB, value);
+	if (ret != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Decrease tx power value failed");
+
+	return ret;
+}
