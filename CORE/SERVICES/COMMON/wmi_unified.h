@@ -829,8 +829,7 @@ typedef enum {
     /** For debug/future enhancement purposes only,
      *  configures/finetunes RMC algorithms */
     WMI_RMC_CONFIG_CMDID,
-    /** select manual leader */
-    WMI_RMC_SET_MANUAL_LEADER_CMDID,
+    _place_holder_cmd_1,
 
     /** WLAN MHF offload commands */
     /** enable/disable MHF offload */
@@ -1318,9 +1317,7 @@ typedef enum {
     WMI_BPF_CAPABILIY_INFO_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_BPF_OFFLOAD),
     WMI_BPF_VDEV_STATS_INFO_EVENTID,
 
-    /* RMC specific event */
-    /* RMC manual leader selected event */
-    WMI_RMC_NEW_LEADER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_RMC),
+    _place_holder_evt_1 = WMI_EVT_GRP_START_ID(WMI_GRP_RMC),
 
     /** Events in Prototyping phase */
     WMI_NDI_CAP_RSP_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_PROTOTYPE),
@@ -14680,35 +14677,6 @@ typedef struct {
  *   A_UINT32 args[];
  **/
 } wmi_pdev_wal_power_debug_cmd_fixed_param;
-
-typedef struct {
-    /** TLV tag and len; tag equals
-     * WMITLV_TAG_STRUC_wmi_rmc_set_leader_cmd_fixed_param
-     */
-    A_UINT32 tlv_header;
-    /* VDEV identifier */
-    A_UINT32 vdev_id;
-    /* Leader's mac address */
-    wmi_mac_addr leader_mac_addr;
-} wmi_rmc_set_leader_cmd_fixed_param;
-
-typedef struct {
-    /** TLV tag and len; tag equals
-     * WMITLV_TAG_STRUC_wmi_rmc_manual_leader_event_fixed_param
-     */
-    A_UINT32 tlv_header;
-    /* VDEV identifier */
-    A_UINT32 vdev_id;
-    /*  0: success
-     *  1: selected leader not found in network, able to find using auto selection
-     * -1: error
-     * non zero value should be return to userspace in case of failure
-     */
-    A_INT32 status;
-    /* bssid of new leader */
-    wmi_mac_addr leader_mac_addr;
-} wmi_rmc_manual_leader_event_fixed_param;
-
 
 typedef enum {
     WLAN_2G_CAPABILITY = 0x1,
