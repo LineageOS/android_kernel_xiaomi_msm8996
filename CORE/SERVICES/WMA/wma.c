@@ -7117,6 +7117,39 @@ void ol_cfg_update_bundle_params(struct txrx_pdev_cfg_param_t *olCfg,
 }
 #endif
 
+
+/**
+ * ol_cfg_update_ac_specs_params() - update ac_specs params
+ * @olcfg: cfg handle
+ * @mac_params: mac params
+ *
+ * Return: none
+ */
+void ol_cfg_update_ac_specs_params(struct txrx_pdev_cfg_param_t *olcfg,
+		tMacOpenParameters *mac_params)
+{
+	int i;
+
+	if (NULL == olcfg)
+		return;
+
+	if (NULL == mac_params)
+		return;
+
+	for (i = 0; i < OL_TX_NUM_WMM_AC; i++) {
+		olcfg->ac_specs[i].wrr_skip_weight =
+			mac_params->ac_specs[i].wrr_skip_weight;
+		olcfg->ac_specs[i].credit_threshold =
+			mac_params->ac_specs[i].credit_threshold;
+		olcfg->ac_specs[i].send_limit =
+			mac_params->ac_specs[i].send_limit;
+		olcfg->ac_specs[i].credit_reserve =
+			mac_params->ac_specs[i].credit_reserve;
+		olcfg->ac_specs[i].discard_weight =
+			mac_params->ac_specs[i].discard_weight;
+	}
+}
+
 #ifdef FEATURE_RUNTIME_PM
 /**
  * wma_runtime_context_init() - API to init wma runtime contexts
@@ -7343,6 +7376,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #endif
 
 	ol_cfg_update_bundle_params(&olCfg, mac_params);
+	ol_cfg_update_ac_specs_params(&olCfg, mac_params);
 
 	((pVosContextType) vos_context)->cfg_ctx =
 		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx, olCfg);
