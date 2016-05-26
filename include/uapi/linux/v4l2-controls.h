@@ -1145,6 +1145,12 @@ enum v4l2_mpeg_vidc_video_lowlatency_mode {
 };
 
 
+#define V4L2_CID_MPEG_VIDC_VIDEO_BLUR_WIDTH \
+	(V4L2_CID_MPEG_MSM_VIDC_BASE + 91)
+
+#define V4L2_CID_MPEG_VIDC_VIDEO_BLUR_HEIGHT \
+	(V4L2_CID_MPEG_MSM_VIDC_BASE + 92)
+
 /*  Camera class control IDs */
 
 #define V4L2_CID_CAMERA_CLASS_BASE 	(V4L2_CTRL_CLASS_CAMERA | 0x900)
