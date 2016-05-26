@@ -39,6 +39,8 @@
 #include "wlan_tgt_def_config.h"
 #endif
 
+#include "ol_txrx_ctrl_api.h"
+
 /**
  * @brief format of data frames delivered to/from the WLAN driver by/to the OS
  */
@@ -92,6 +94,8 @@ struct txrx_pdev_cfg_t {
 #endif /* IPA_UC_OFFLOAD */
 	uint16_t pkt_bundle_timer_value;
 	uint16_t pkt_bundle_size;
+
+	struct ol_tx_sched_wrr_ac_specs_t ac_specs[OL_TX_NUM_WMM_AC];
 };
 
 /**
@@ -536,5 +540,16 @@ int ol_cfg_get_bundle_size(ol_pdev_handle pdev)
 	return 0;
 }
 #endif
+
+
+int ol_cfg_get_wrr_skip_weight(ol_pdev_handle pdev, int ac);
+
+uint32_t ol_cfg_get_credit_threshold(ol_pdev_handle pdev, int ac);
+
+uint16_t ol_cfg_get_send_limit(ol_pdev_handle pdev, int ac);
+
+int ol_cfg_get_credit_reserve(ol_pdev_handle pdev, int ac);
+
+int ol_cfg_get_discard_weight(ol_pdev_handle pdev, int ac);
 
 #endif /* _OL_CFG__H_ */

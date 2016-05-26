@@ -4569,6 +4569,26 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_EDCA_BE_AIFS_VALUE_MIN,
                 CFG_EDCA_BE_AIFS_VALUE_MAX),
 
+   REG_VARIABLE_STRING(CFG_ENABLE_TX_SCHED_WRR_VO, WLAN_PARAM_String,
+                hdd_config_t, tx_sched_wrr_vo,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_TX_SCHED_WRR_VO_DEFAULT),
+
+   REG_VARIABLE_STRING(CFG_ENABLE_TX_SCHED_WRR_VI, WLAN_PARAM_String,
+                hdd_config_t, tx_sched_wrr_vi,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_TX_SCHED_WRR_VI_DEFAULT),
+
+   REG_VARIABLE_STRING(CFG_ENABLE_TX_SCHED_WRR_BE, WLAN_PARAM_String,
+                hdd_config_t, tx_sched_wrr_be,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_TX_SCHED_WRR_BE_DEFAULT),
+
+   REG_VARIABLE_STRING(CFG_ENABLE_TX_SCHED_WRR_BK, WLAN_PARAM_String,
+                hdd_config_t, tx_sched_wrr_bk,
+                VAR_FLAGS_OPTIONAL,
+                (void *) CFG_ENABLE_TX_SCHED_WRR_BK_DEFAULT),
+
    REG_VARIABLE(CFG_TGT_GTX_USR_CFG_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, tgt_gtx_usr_cfg,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5409,6 +5429,19 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%u]",
           CFG_BUG_ON_REINIT_FAILURE_NAME,
           pHddCtx->cfg_ini->bug_on_reinit_failure);
+
+  hddLog(LOG2, "Name = [%s] Value = [%s]",
+          CFG_ENABLE_TX_SCHED_WRR_VO,
+          pHddCtx->cfg_ini->tx_sched_wrr_vo);
+  hddLog(LOG2, "Name = [%s] Value = [%s]",
+          CFG_ENABLE_TX_SCHED_WRR_VI,
+          pHddCtx->cfg_ini->tx_sched_wrr_vi);
+  hddLog(LOG2, "Name = [%s] Value = [%s]",
+          CFG_ENABLE_TX_SCHED_WRR_BK,
+          pHddCtx->cfg_ini->tx_sched_wrr_bk);
+  hddLog(LOG2, "Name = [%s] Value = [%s]",
+          CFG_ENABLE_TX_SCHED_WRR_BE,
+          pHddCtx->cfg_ini->tx_sched_wrr_be);
 
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                  CFG_TGT_GTX_USR_CFG_NAME,

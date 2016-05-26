@@ -48,6 +48,8 @@
 #include <wlan_hdd_tgt_cfg.h>
 
 #define FW_MODULE_LOG_LEVEL_STRING_LENGTH  (255)
+#define TX_SCHED_WRR_PARAM_STRING_LENGTH   (50)
+#define TX_SCHED_WRR_PARAMS_NUM            (5)
 
 #ifdef DHCP_SERVER_OFFLOAD
 #define IPADDR_NUM_ENTRIES     (4)
@@ -3829,6 +3831,43 @@ enum dot11p_mode {
 #define CFG_EDCA_BE_AIFS_VALUE_MAX        (15)
 #define CFG_EDCA_BE_AIFS_VALUE_DEFAULT    (3)
 
+
+/*
+ * This key is mapping to VO defined in data path module through
+ * OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC. The user can tune the
+ * WRR TX sched parameters such as skip, credit, limit, credit, disc for VO.
+ * e.g., gEnableTxSchedWrrVO = 10, 9, 8, 1, 8
+ */
+#define CFG_ENABLE_TX_SCHED_WRR_VO          "gEnableTxSchedWrrVO"
+#define CFG_ENABLE_TX_SCHED_WRR_VO_DEFAULT  ""
+
+/*
+ * This key is mapping to VI defined in data path module through
+ * OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC. The user can tune the
+ * WRR TX sched parameters such as skip, credit, limit, credit, disc for VI.
+ * e.g., gEnableTxSchedWrrVI = 10, 9, 8, 1, 8
+ */
+#define CFG_ENABLE_TX_SCHED_WRR_VI          "gEnableTxSchedWrrVI"
+#define CFG_ENABLE_TX_SCHED_WRR_VI_DEFAULT  ""
+
+/*
+ * This key is mapping to BE defined in data path module through
+ * OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC. The user can tune the
+ * WRR TX sched parameters such as skip, credit, limit, credit, disc for BE.
+ * e.g., gEnableTxSchedWrrBE = 10, 9, 8, 1, 8
+ */
+#define CFG_ENABLE_TX_SCHED_WRR_BE          "gEnableTxSchedWrrBE"
+#define CFG_ENABLE_TX_SCHED_WRR_BE_DEFAULT  ""
+
+/*
+ * This key is mapping to BK defined in data path module through
+ * OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC. The user can tune the
+ * WRR TX sched parameters such as skip, credit, limit, credit, disc for BK.
+ * e.g., gEnableTxSchedWrrBK = 10, 9, 8, 1, 8
+ */
+#define CFG_ENABLE_TX_SCHED_WRR_BK          "gEnableTxSchedWrrBK"
+#define CFG_ENABLE_TX_SCHED_WRR_BK_DEFAULT  ""
+
 #define CFG_TGT_GTX_USR_CFG_NAME      "tgt_gtx_usr_cfg"
 #define CFG_TGT_GTX_USR_CFG_MIN       (0)
 #define CFG_TGT_GTX_USR_CFG_MAX       (32)
@@ -4606,6 +4645,15 @@ struct hdd_config {
    uint32_t                    edca_bk_aifs;
    uint32_t                    edca_be_aifs;
    bool                        enable_dynamic_sta_chainmask;
+
+   /* Tuning TX sched parameters for VO (skip credit limit credit disc) */
+   uint8_t  tx_sched_wrr_vo[TX_SCHED_WRR_PARAM_STRING_LENGTH];
+   /* Tuning TX sched parameters for VI (skip credit limit credit disc) */
+   uint8_t  tx_sched_wrr_vi[TX_SCHED_WRR_PARAM_STRING_LENGTH];
+   /* Tuning TX sched parameters for BE (skip credit limit credit disc) */
+   uint8_t  tx_sched_wrr_be[TX_SCHED_WRR_PARAM_STRING_LENGTH];
+   /* Tuning TX sched parameters for BK (skip credit limit credit disc) */
+   uint8_t  tx_sched_wrr_bk[TX_SCHED_WRR_PARAM_STRING_LENGTH];
 
    /* parameter to control GTX */
    uint32_t                    tgt_gtx_usr_cfg;
