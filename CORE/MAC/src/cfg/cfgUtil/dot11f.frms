@@ -2069,6 +2069,28 @@ IE Vendor3IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x16, 0x32)
 const EID_VENDOR_QCOM_MCC_CHAN              =    1;
 const EID_VENDOR_QCOM_SUB20_BW              =    2;
 
+IE hs20vendor_ie (EID_VENDOR_SPECIFIC) OUI (0x50, 0x6F, 0x9A, 0x10)
+{
+    /* hotspot_configurations */
+    {
+        dgaf_dis:               1;
+        hs_id_present:          2;
+        reserved:               1;
+        release_num:            4;
+    }
+    OPTIONAL UNION hs_id (DISCRIMINATOR hs_id_present)
+    {
+        pps_mo (hs_id_present IS 1)
+        {
+            pps_mo_id,          2;
+        }
+        anqp_domain (hs_id_present IS 2)
+        {
+            anqp_domain_id,     2;
+        }
+    };
+}
+
 IE QComVendorIE (EID_VENDOR_SPECIFIC) OUI (0x00, 0xA0, 0xC6)
 {
     OPTIE IE MccChanInfo (EID_VENDOR_QCOM_MCC_CHAN)
@@ -3175,6 +3197,7 @@ FRAME Beacon                              // C.f. Sec. 7.2.3.1
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
+    OPTIE  hs20vendor_ie;
     OPTIE  ChannelSwitchWrapper;
     OPTIE  QComVendorIE;
     OPTIE  ESEVersion;
@@ -3264,6 +3287,7 @@ FRAME Beacon2
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
+    OPTIE  hs20vendor_ie;
     OPTIE  ChannelSwitchWrapper;
     OPTIE  QComVendorIE;
     OPTIE  ESEVersion;
@@ -3330,6 +3354,7 @@ FRAME BeaconIEs
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
+    OPTIE  hs20vendor_ie;
     OPTIE  ChannelSwitchWrapper;
     OPTIE  QComVendorIE;
 
@@ -3376,6 +3401,7 @@ FRAME AssocRequest                        // 7.2.3.4
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
     OPTIE  QComVendorIE;
+    OPTIE  hs20vendor_ie;
 } // End frame AssocRequest.
 
 FRAME AssocResponse                       // 7.2.3.5
@@ -3455,6 +3481,7 @@ FRAME ReAssocRequest                      // 7.2.3.6
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
     OPTIE  QComVendorIE;
+    OPTIE  hs20vendor_ie;
 } // End frame ReAssocRequest.
 
 FRAME ReAssocResponse                     // 7.2.3.7
@@ -3561,6 +3588,7 @@ FRAME ProbeResponse                       // 7.2.3.9
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
+    OPTIE  hs20vendor_ie;
     OPTIE  ChannelSwitchWrapper;
     OPTIE  QComVendorIE;
     OPTIE  ESEVersion;

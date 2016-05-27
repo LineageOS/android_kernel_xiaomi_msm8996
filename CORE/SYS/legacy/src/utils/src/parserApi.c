@@ -2314,6 +2314,30 @@ tSirRetStatus sirvalidateandrectifyies(tpAniSirGlobal pMac,
     return eHAL_STATUS_SUCCESS;
 }
 
+/**
+ * sir_copy_hs20_ie() - Update HS 2.0 Information Element.
+ * @dest: dest HS IE buffer to be updated
+ * @src: src HS IE buffer
+ *
+ * Update HS2.0 IE info from src to dest
+ *
+ * Return: void
+ */
+void sir_copy_hs20_ie(tDot11fIEhs20vendor_ie *dest, tDot11fIEhs20vendor_ie *src)
+{
+	if (src->present) {
+		adf_os_mem_copy(dest,
+				src,
+				sizeof(tDot11fIEhs20vendor_ie) -
+					sizeof(src->hs_id));
+
+		if (src->hs_id_present)
+			adf_os_mem_copy(&dest->hs_id,
+					&src->hs_id,
+					sizeof(src->hs_id));
+	}
+}
+
 #ifdef WLAN_FEATURE_FILS_SK
 /**
  * update_fils_data: update fils params from beacon/probe response
@@ -2671,6 +2695,9 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_convert_fils_data_to_probersp_struct(pProbeResp, pr);
 #endif
+
+    sir_copy_hs20_ie(&pProbeResp->hs20vendor_ie, &pr->hs20vendor_ie);
+
     vos_mem_free(pr);
     return eSIR_SUCCESS;
 
@@ -3968,6 +3995,9 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_parse_fils_beacon_ie(pBeaconStruct, pBies);
 #endif
+
+    sir_copy_hs20_ie(&pBeaconStruct->hs20vendor_ie, &pBies->hs20vendor_ie);
+
     vos_mem_free(pBies);
     return eSIR_SUCCESS;
 } // End sirParseBeaconIE.
@@ -4360,6 +4390,9 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_convert_fils_data_to_beacon_struct(pBeaconStruct, pBeacon);
 #endif
+
+    sir_copy_hs20_ie(&pBeaconStruct->hs20vendor_ie, &pBeacon->hs20vendor_ie);
+
     vos_mem_free(pBeacon);
     return eSIR_SUCCESS;
 

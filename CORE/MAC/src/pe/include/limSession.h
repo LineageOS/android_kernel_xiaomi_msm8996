@@ -495,6 +495,8 @@ typedef struct sPESession           // Added to Support BT-AMP
 #ifdef FEATURE_WLAN_ESE
     uint8_t is_ese_version_ie_present;
 #endif
+    /* HS 2.0 Indication */
+    tDot11fIEhs20vendor_ie hs20vendor_ie;
     /* flag to indicate country code in beacon */
     tANI_U8 countryInfoPresent;
     uint8_t vdev_nss;
