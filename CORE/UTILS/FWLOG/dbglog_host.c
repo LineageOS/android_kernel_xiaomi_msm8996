@@ -1378,7 +1378,8 @@ wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 
         }
     }
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("wmi_dbg_cfg_send: param 0x%x val 0x%x \n",
+    AR_DEBUG_PRINTF(ATH_DEBUG_RSVD1,
+                    ("wmi_dbg_cfg_send: param 0x%x val 0x%x \n",
                                      param, val));
 
     status = wmi_unified_cmd_send(wmi_handle, buf,
@@ -1670,6 +1671,12 @@ send_fw_diag_nl_data(const u_int8_t *buffer,
             return -1;
         }
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, msg_len, 0);
+        if (nlh == NULL) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("%s: nlmsg_put failed\n", __func__));
+            nlmsg_free(skb_out);
+            return -ENOMEM;
+        }
         wnl = (tAniNlHdr *)nlh;
         wnl->radio = radio;
 
@@ -1719,6 +1726,12 @@ send_diag_netlink_data(const u_int8_t *buffer, A_UINT32 len, A_UINT32 cmd)
         }
 
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, slot_len, 0);
+        if (nlh == NULL) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("%s: nlmsg_put failed\n", __func__));
+            nlmsg_free(skb_out);
+            return -ENOMEM;
+        }
         wnl = (tAniNlHdr *)nlh;
 
         wnl->radio = radio;
@@ -1777,6 +1790,12 @@ dbglog_process_netlink_data(wmi_unified_t wmi_handle, const u_int8_t *buffer,
         }
 
         nlh = nlmsg_put(skb_out, 0, 0, WLAN_NL_MSG_CNSS_DIAG, slot_len, 0);
+        if (nlh == NULL) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                            ("%s: nlmsg_put failed\n", __func__));
+            nlmsg_free(skb_out);
+            return -ENOMEM;
+        }
         wnl = (tAniNlHdr *)nlh;
 
         wnl->radio = radio;

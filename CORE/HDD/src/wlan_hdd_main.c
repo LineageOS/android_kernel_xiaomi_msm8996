@@ -8160,8 +8160,10 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
                     cfg->per_band_chainmask_supp);
 #ifdef FEATURE_WLAN_TDLS
     cfg_ini->fEnableTDLSSupport &= cfg->en_tdls;
-    cfg_ini->fEnableTDLSOffChannel &= cfg->en_tdls_offchan;
-    cfg_ini->fEnableTDLSBufferSta &= cfg->en_tdls_uapsd_buf_sta;
+    cfg_ini->fEnableTDLSOffChannel = cfg_ini->fEnableTDLSOffChannel &&
+                                     cfg->en_tdls_offchan;
+    cfg_ini->fEnableTDLSBufferSta = cfg_ini->fEnableTDLSOffChannel &&
+                                    cfg->en_tdls_uapsd_buf_sta;
     if (cfg_ini->fTDLSUapsdMask && cfg->en_tdls_uapsd_sleep_sta)
     {
         cfg_ini->fEnableTDLSSleepSta = TRUE;
@@ -10186,9 +10188,6 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
 VOS_STATUS hdd_register_interface( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_held )
 {
    struct net_device *pWlanDev = pAdapter->dev;
-   //hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
-   //hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-   //eHalStatus halStatus = eHAL_STATUS_SUCCESS;
 
    if( rtnl_lock_held )
    {
@@ -13306,6 +13305,60 @@ void hdd_prevent_suspend_timeout(v_U32_t timeout, uint32_t reason)
                                       reason);
 }
 
+/**
+ * hdd_wlan_wakelock_create() -Create wakelock named as wlan
+ *
+ * Return: none
+ */
+void hdd_wlan_wakelock_create(void)
+{
+	vos_wake_lock_init(&wlan_wake_lock, "wlan");
+}
+
+/**
+ * hdd_wlan_wakelock_destroy() -Destroy wakelock named as wlan
+ *
+ * Return: none
+ */
+void hdd_wlan_wakelock_destroy(void)
+{
+	vos_wake_lock_destroy(&wlan_wake_lock);
+}
+
+/**
+ * wlan_hdd_wakelocks_destroy() -Destroy all the wakelocks
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_wakelocks_destroy(hdd_context_t *hdd_ctx)
+{
+	if (hdd_ctx) {
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+		vos_wake_lock_destroy(&hdd_ctx->rx_wake_lock);
+#endif
+		vos_wake_lock_destroy(&hdd_ctx->sap_wake_lock);
+		hdd_hostapd_channel_wakelock_deinit(hdd_ctx);
+	}
+}
+
+/**
+ * wlan_hdd_netdev_notifiers_cleanup() -unregister notifiers with kernel
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void wlan_hdd_netdev_notifiers_cleanup(hdd_context_t * hdd_ctx)
+{
+	if (hdd_ctx) {
+		hddLog(LOGE, FL("Unregister IPv6 notifier"));
+		hdd_wlan_unregister_ip6_notifier(hdd_ctx);
+		hddLog(LOGE, FL("Unregister IPv4 notifier"));
+		unregister_inetaddr_notifier(&hdd_ctx->ipv4_notifier);
+	}
+	unregister_netdevice_notifier(&hdd_netdev_notifier);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_exchange_version_and_caps() - HDD function to exchange version and capability
@@ -15366,7 +15419,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 
    if (WLAN_HDD_RX_HANDLE_RPS == pHddCtx->cfg_ini->rxhandle)
-      hdd_dp_util_send_rps_ind(pHddCtx);
+       hdd_set_rps_cpu_mask(pHddCtx);
 
    hal_status = sme_set_lost_link_info_cb(pHddCtx->hHal,
                                           hdd_lost_link_info_cb);
@@ -15621,7 +15674,7 @@ static int hdd_driver_init( void)
       vos_mem_init();
 #endif
 
-   vos_wake_lock_init(&wlan_wake_lock, "wlan");
+   hdd_wlan_wakelock_create();
    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
    /*
@@ -15651,7 +15704,7 @@ static int hdd_driver_init( void)
          if (ret_status < 0) {
             vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
-            vos_wake_lock_destroy(&wlan_wake_lock);
+            hdd_wlan_wakelock_destroy();
          }
          return ret_status;
       }
@@ -15662,7 +15715,7 @@ static int hdd_driver_init( void)
          if (ret_status < 0) {
             vos_remove_pm_qos();
             hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
-            vos_wake_lock_destroy(&wlan_wake_lock);
+            hdd_wlan_wakelock_destroy();
          }
          return ret_status;
       }
@@ -15717,7 +15770,7 @@ static int hdd_driver_init( void)
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
-      vos_wake_lock_destroy(&wlan_wake_lock);
+     hdd_wlan_wakelock_destroy();
 
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
       wlan_logging_sock_deinit_svc();
@@ -15846,7 +15899,7 @@ static void hdd_driver_exit(void)
 #endif
 
 done:
-   vos_wake_lock_destroy(&wlan_wake_lock);
+   hdd_wlan_wakelock_destroy();
    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 
@@ -17966,6 +18019,29 @@ enum  sap_acs_dfs_mode wlan_hdd_get_dfs_mode(enum dfs_mode mode)
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			FL("ACS dfs mode is NONE"));
 		return  ACS_DFS_MODE_NONE;
+	}
+}
+
+
+/**
+ * hdd_set_rps_cpu_mask - set RPS CPU mask for interfaces
+ * @hdd_ctx: pointer to hdd_context_t
+ *
+ * Return: none
+ */
+void hdd_set_rps_cpu_mask(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_t *adapter;
+	hdd_adapter_list_node_t *adapter_node, *next;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	status = hdd_get_front_adapter (hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (NULL != adapter)
+			hdd_dp_util_send_rps_ind(adapter);
+		status = hdd_get_next_adapter (hdd_ctx, adapter_node, &next);
+		adapter_node = next;
 	}
 }
 

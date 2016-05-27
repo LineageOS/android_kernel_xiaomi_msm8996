@@ -50,6 +50,7 @@
   ==========================================================================*/
 
 /* ################ Header files ################ */
+#include "ieee80211_common.h"   /* ieee80211_frame */
 #include "wma.h"
 #include "wma_api.h"
 #include "vos_api.h"
@@ -207,6 +208,9 @@
 #define WMA_MCC_MIRACAST_REST_TIME 400
 
 #define WMA_LOG_COMPLETION_TIMER 10000 /* 10 seconds */
+
+#define WMA_FW_TIME_SYNC_TIMER 60000 /* 1 min */
+#define WMA_FW_TIME_STAMP_LOW_MASK 0xffffffff
 
 #define WMI_TLV_HEADROOM 128
 
@@ -20241,6 +20245,14 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 		return "WOW_REASON_BPF_ALLOW";
 	case WOW_REASON_NAN_EVENT:
 		return "WOW_REASON_NAN_EVENT";
+	case WOW_REASON_ASSOC_RES_RECV:
+		return "ASSOC_RES_RECV";
+	case WOW_REASON_REASSOC_REQ_RECV:
+		return "REASSOC_REQ_RECV";
+	case WOW_REASON_REASSOC_RES_RECV:
+		return "REASSOC_RES_RECV";
+	case WOW_REASON_ACTION_FRAME_RECV:
+		return "ACTION_FRAME_RECV";
 	}
 	return "unknown";
 }
@@ -20937,6 +20949,391 @@ exit_handler:
 	wma_beacon_miss_handler(wma, wake_info->vdev_id, 0);
 }
 
+/**
+ * wma_pkt_proto_subtype_to_string() - to convert proto subtype
+ *         of data packet to string.
+ * @proto_subtype: proto subtype for data packet
+ *
+ * This function returns the string for the proto subtype of
+ * data packet.
+ *
+ * Return: string for proto subtype for data packet
+ */
+const char *
+wma_pkt_proto_subtype_to_string(enum adf_proto_subtype proto_subtype)
+{
+	switch (proto_subtype) {
+	case ADF_PROTO_EAPOL_M1:
+		return "EAPOL M1";
+	case ADF_PROTO_EAPOL_M2:
+		return "EAPOL M2";
+	case ADF_PROTO_EAPOL_M3:
+		return "EAPOL M3";
+	case ADF_PROTO_EAPOL_M4:
+		return "EAPOL M4";
+	case ADF_PROTO_DHCP_DISCOVER:
+		return "DHCP DISCOVER";
+	case ADF_PROTO_DHCP_REQUEST:
+		return "DHCP REQUEST";
+	case ADF_PROTO_DHCP_OFFER:
+		return "DHCP OFFER";
+	case ADF_PROTO_DHCP_ACK:
+		return "DHCP ACK";
+	case ADF_PROTO_DHCP_NACK:
+		return "DHCP NACK";
+	case ADF_PROTO_DHCP_RELEASE:
+		return "DHCP RELEASE";
+	case ADF_PROTO_DHCP_INFORM:
+		return "DHCP INFORM";
+	case ADF_PROTO_DHCP_DECLINE:
+		return "DHCP DECLINE";
+	case ADF_PROTO_ARP_REQ:
+		return "ARP REQUEST";
+	case ADF_PROTO_ARP_RES:
+		return "ARP RESPONSE";
+	case ADF_PROTO_ICMP_REQ:
+		return "ICMP REQUEST";
+	case ADF_PROTO_ICMP_RES:
+		return "ICMP RESPONSE";
+	case ADF_PROTO_ICMPV6_REQ:
+		return "ICMPV6 REQUEST";
+	case ADF_PROTO_ICMPV6_RES:
+		return "ICMPV6 RESPONSE";
+	case ADF_PROTO_IPV4_UDP:
+		return "IPV4 UDP Packet";
+	case ADF_PROTO_IPV4_TCP:
+		return "IPV4 TCP Packet";
+	case ADF_PROTO_IPV6_UDP:
+		return "IPV6 UDP Packet";
+	case ADF_PROTO_IPV6_TCP:
+		return "IPV6 TCP Packet";
+	default:
+		return "Invalid Packet";
+	}
+}
+
+/**
+ * wma_wow_get_pkt_proto_subtype() - get the proto subtype
+ *            of the packet.
+ * @data: Pointer to data buffer
+ * @len: length of the data buffer
+ *
+ * This function gives the proto subtype of the packet.
+ *
+ * Return: proto subtype of the packet.
+ */
+static enum adf_proto_subtype
+wma_wow_get_pkt_proto_subtype(uint8_t *data,
+			uint32_t len)
+{
+	if (len >= WMA_IS_DHCP_GET_MIN_LEN) {
+		if (adf_nbuf_data_is_dhcp_pkt(data) == A_STATUS_OK) {
+			if (len >= WMA_DHCP_SUBTYPE_GET_MIN_LEN)
+				return adf_nbuf_data_get_dhcp_subtype(data);
+			VOS_TRACE(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_ERROR, "DHCP Packet");
+			return ADF_PROTO_INVALID;
+		}
+	}
+	if (len >= WMA_IS_EAPOL_GET_MIN_LEN) {
+		if (adf_nbuf_data_is_eapol_pkt(data) == A_STATUS_OK) {
+			if (len >= WMA_EAPOL_SUBTYPE_GET_MIN_LEN)
+				return adf_nbuf_data_get_eapol_subtype(data);
+			VOS_TRACE(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_ERROR, "EAPOL Packet");
+			return ADF_PROTO_INVALID;
+		}
+	}
+	if (len >= WMA_IS_ARP_GET_MIN_LEN) {
+		if (adf_nbuf_data_is_ipv4_arp_pkt(data)) {
+			if (len >= WMA_ARP_SUBTYPE_GET_MIN_LEN)
+				return adf_nbuf_data_get_arp_subtype(data);
+			VOS_TRACE(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_ERROR, "ARP Packet");
+			return ADF_PROTO_INVALID;
+		}
+	}
+	if (len >= WMA_IPV4_PROTO_GET_MIN_LEN) {
+		if (adf_nbuf_data_is_icmp_pkt(data)) {
+			if (len >= WMA_ICMP_SUBTYPE_GET_MIN_LEN)
+				return adf_nbuf_data_get_icmp_subtype(data);
+			VOS_TRACE(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_ERROR, "ICMP Packet");
+			return ADF_PROTO_INVALID;
+		} else if (adf_nbuf_data_is_ipv4_udp_pkt(data)) {
+			return ADF_PROTO_IPV4_UDP;
+		} else if (adf_nbuf_data_is_ipv4_tcp_pkt(data)) {
+			return ADF_PROTO_IPV4_TCP;
+		}
+	}
+	if (len >= WMA_IPV6_PROTO_GET_MIN_LEN) {
+		if (adf_nbuf_data_is_icmpv6_pkt(data)) {
+			if (len >= WMA_ICMPV6_SUBTYPE_GET_MIN_LEN)
+				return adf_nbuf_data_get_icmpv6_subtype(data);
+			VOS_TRACE(VOS_MODULE_ID_WDA,
+				VOS_TRACE_LEVEL_ERROR, "ICMPV6 Packet");
+			return ADF_PROTO_INVALID;
+		} else if (adf_nbuf_data_is_ipv6_udp_pkt(data)) {
+			return ADF_PROTO_IPV6_UDP;
+		} else if (adf_nbuf_data_is_ipv6_tcp_pkt(data)) {
+			return ADF_PROTO_IPV6_TCP;
+		}
+	}
+
+	return ADF_PROTO_INVALID;
+}
+
+/**
+ * wma_wow_parse_data_pkt_buffer() - API to parse data buffer for data
+ *    packet that resulted in WOW wakeup.
+ * @data: Pointer to data buffer
+ * @buf_len: data buffer length
+ *
+ * This function parses the data buffer received (first few bytes of
+ * skb->data) to get informaton like src mac addr, dst mac addr, packet
+ * len, seq_num, etc.
+ *
+ * Return: void
+ */
+static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
+			uint32_t buf_len)
+{
+	enum adf_proto_subtype proto_subtype;
+	uint16_t pkt_len, key_len, seq_num;
+	uint32_t transaction_id, tcp_seq_num;
+
+	WMA_LOGD("wow_buf_pkt_len: %d", buf_len);
+	if (buf_len >= ADF_NBUF_TRAC_ETH_TYPE_OFFSET)
+		WMA_LOGE("Src_mac: " MAC_ADDRESS_STR " Dst_mac: " MAC_ADDRESS_STR,
+			MAC_ADDR_ARRAY(data),
+			MAC_ADDR_ARRAY(data + ADF_NBUF_SRC_MAC_OFFSET));
+	else
+		goto end;
+
+	proto_subtype = wma_wow_get_pkt_proto_subtype(data, buf_len);
+	switch (proto_subtype) {
+	case ADF_PROTO_EAPOL_M1:
+	case ADF_PROTO_EAPOL_M2:
+	case ADF_PROTO_EAPOL_M3:
+	case ADF_PROTO_EAPOL_M4:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_EAPOL_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				EAPOL_PKT_LEN_OFFSET));
+			key_len = (uint16_t)(*(uint16_t *)(data +
+				EAPOL_KEY_LEN_OFFSET));
+			WMA_LOGE("Pkt_len: %d, Key_len: %d",
+				adf_os_cpu_to_be16(pkt_len),
+				adf_os_cpu_to_be16(key_len));
+		}
+		break;
+
+	case ADF_PROTO_DHCP_DISCOVER:
+	case ADF_PROTO_DHCP_REQUEST:
+	case ADF_PROTO_DHCP_OFFER:
+	case ADF_PROTO_DHCP_ACK:
+	case ADF_PROTO_DHCP_NACK:
+	case ADF_PROTO_DHCP_RELEASE:
+	case ADF_PROTO_DHCP_INFORM:
+	case ADF_PROTO_DHCP_DECLINE:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_DHCP_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				DHCP_PKT_LEN_OFFSET));
+			transaction_id = (uint32_t)(*(uint32_t *)(data +
+				DHCP_TRANSACTION_ID_OFFSET));
+			WMA_LOGE("Pkt_len: %d, Transaction_id: %d",
+				adf_os_cpu_to_be16(pkt_len),
+				adf_os_cpu_to_be32(transaction_id));
+		}
+		break;
+
+	case ADF_PROTO_ARP_REQ:
+	case ADF_PROTO_ARP_RES:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		break;
+
+	case ADF_PROTO_ICMP_REQ:
+	case ADF_PROTO_ICMP_RES:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_IPV4_PKT_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				IPV4_PKT_LEN_OFFSET));
+			seq_num = (uint16_t)(*(uint16_t *)(data +
+				ICMP_SEQ_NUM_OFFSET));
+			WMA_LOGE("Pkt_len: %d, Seq_num: %d",
+				adf_os_cpu_to_be16(pkt_len),
+				adf_os_cpu_to_be16(seq_num));
+		}
+		break;
+
+	case ADF_PROTO_ICMPV6_REQ:
+	case ADF_PROTO_ICMPV6_RES:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_IPV6_PKT_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				IPV6_PKT_LEN_OFFSET));
+			seq_num = (uint16_t)(*(uint16_t *)(data +
+				ICMPV6_SEQ_NUM_OFFSET));
+			WMA_LOGE("Pkt_len: %d, Seq_num: %d",
+				adf_os_cpu_to_be16(pkt_len),
+				adf_os_cpu_to_be16(seq_num));
+		}
+		break;
+
+	case ADF_PROTO_IPV4_UDP:
+	case ADF_PROTO_IPV4_TCP:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_IPV4_PKT_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				IPV4_PKT_LEN_OFFSET));
+			WMA_LOGE("Pkt_len: %d",
+				adf_os_cpu_to_be16(pkt_len));
+			if (proto_subtype == ADF_PROTO_IPV4_TCP) {
+				tcp_seq_num = (uint32_t)(*(uint32_t *)(data +
+					IPV4_TCP_SEQ_NUM_OFFSET));
+				WMA_LOGE("TCP_seq_num: %d",
+					adf_os_cpu_to_be32(tcp_seq_num));
+			}
+		}
+		break;
+
+	case ADF_PROTO_IPV6_UDP:
+	case ADF_PROTO_IPV6_TCP:
+		WMA_LOGE("WOW Wakeup: %s rcvd",
+			wma_pkt_proto_subtype_to_string(proto_subtype));
+		if (buf_len >= WMA_IPV6_PKT_INFO_GET_MIN_LEN) {
+			pkt_len = (uint16_t)(*(uint16_t *)(data +
+				IPV6_PKT_LEN_OFFSET));
+			WMA_LOGE("Pkt_len: %d",
+				adf_os_cpu_to_be16(pkt_len));
+			if (proto_subtype == ADF_PROTO_IPV6_TCP) {
+				tcp_seq_num = (uint32_t)(*(uint32_t *)(data +
+					IPV6_TCP_SEQ_NUM_OFFSET));
+				WMA_LOGE("TCP_seq_num: %d",
+					adf_os_cpu_to_be32(tcp_seq_num));
+			}
+		}
+		break;
+
+	default:
+end:
+		WMA_LOGE("wow_buf_pkt_len: %d", buf_len);
+		WMA_LOGE("Invalid Packet Type or Smaller WOW packet buffer than expected");
+		break;
+	}
+}
+
+/**
+ * wma_wow_dump_mgmt_buffer() - API to parse data buffer for mgmt.
+ *    packet that resulted in WOW wakeup.
+ * @wow_packet_buffer: Pointer to data buffer
+ * @buf_len: length of data buffer
+ *
+ * This function parses the data buffer received (802.11 header)
+ * to get informaton like src mac addr, dst mac addr, seq_num,
+ * frag_num, etc.
+ *
+ * Return: void
+ */
+static void wma_wow_dump_mgmt_buffer(uint8_t *wow_packet_buffer,
+			uint32_t buf_len)
+{
+	struct ieee80211_frame_addr4 *wh;
+
+	WMA_LOGD("wow_buf_pkt_len: %d", buf_len);
+	wh = (struct ieee80211_frame_addr4 *)
+		(wow_packet_buffer + 4);
+	if (buf_len >= sizeof(struct ieee80211_frame)) {
+		uint8_t to_from_ds, frag_num;
+		uint32_t seq_num;
+
+		WMA_LOGE("RA: " MAC_ADDRESS_STR " TA: " MAC_ADDRESS_STR,
+			MAC_ADDR_ARRAY(wh->i_addr1),
+			MAC_ADDR_ARRAY(wh->i_addr2));
+
+		WMA_LOGE("TO_DS: %d, FROM_DS: %d",
+			wh->i_fc[1] & IEEE80211_FC1_DIR_TODS,
+			wh->i_fc[1] & IEEE80211_FC1_DIR_FROMDS);
+
+		to_from_ds = wh->i_fc[1] & IEEE80211_FC1_DIR_DSTODS;
+
+		switch (to_from_ds) {
+		case IEEE80211_NO_DS:
+			WMA_LOGE("BSSID: " MAC_ADDRESS_STR,
+				MAC_ADDR_ARRAY(wh->i_addr3));
+			break;
+		case IEEE80211_TO_DS:
+			WMA_LOGE("DA: " MAC_ADDRESS_STR,
+				MAC_ADDR_ARRAY(wh->i_addr3));
+			break;
+		case IEEE80211_FROM_DS:
+			WMA_LOGE("SA: " MAC_ADDRESS_STR,
+				MAC_ADDR_ARRAY(wh->i_addr3));
+			break;
+		case IEEE80211_DS_TO_DS:
+			if (buf_len >= sizeof(struct ieee80211_frame_addr4))
+				WMA_LOGE("DA: " MAC_ADDRESS_STR " SA: "
+					MAC_ADDRESS_STR,
+					MAC_ADDR_ARRAY(wh->i_addr3),
+					MAC_ADDR_ARRAY(wh->i_addr4));
+			break;
+		}
+
+		seq_num = (((*(uint16_t *)wh->i_seq) &
+				IEEE80211_SEQ_SEQ_MASK) >>
+				IEEE80211_SEQ_SEQ_SHIFT);
+		frag_num = (((*(uint16_t *)wh->i_seq) &
+				IEEE80211_SEQ_FRAG_MASK) >>
+				IEEE80211_SEQ_FRAG_SHIFT);
+
+		WMA_LOGE("SEQ_NUM: %d, FRAG_NUM: %d",
+				seq_num, frag_num);
+	} else {
+		WMA_LOGE("Insufficient buffer length for mgmt. packet");
+	}
+}
+
+/**
+ * wma_wow_get_wakelock_duration() - return the wakelock duration
+ *        for some mgmt packets received.
+ * @wake_reason: wow wakeup reason
+ *
+ * This function returns the wakelock duration for some mgmt packets
+ * received while in wow suspend.
+ *
+ * Return: wakelock duration
+ */
+static uint32_t wma_wow_get_wakelock_duration(int wake_reason)
+{
+	uint32_t wake_lock_duration = 0;
+
+	switch (wake_reason) {
+	case WOW_REASON_AUTH_REQ_RECV:
+		wake_lock_duration = WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT;
+		break;
+	case WOW_REASON_ASSOC_REQ_RECV:
+		wake_lock_duration = WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION;
+		break;
+	case WOW_REASON_DEAUTH_RECVD:
+		wake_lock_duration = WMA_DEAUTH_RECV_WAKE_LOCK_DURATION;
+		break;
+	case WOW_REASON_DISASSOC_RECVD:
+		wake_lock_duration = WMA_DISASSOC_RECV_WAKE_LOCK_DURATION;
+		break;
+	default:
+		break;
+	}
+
+	return wake_lock_duration;
+}
+
 /*
  * Handler to catch wow wakeup host event. This event will have
  * reason why the firmware has woken the host.
@@ -20976,19 +21373,29 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	switch (wake_info->wake_reason) {
 	case WOW_REASON_AUTH_REQ_RECV:
-		wake_lock_duration = WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT;
-		break;
-
 	case WOW_REASON_ASSOC_REQ_RECV:
-		wake_lock_duration = WMA_ASSOC_REQ_RECV_WAKE_LOCK_DURATION;
-		break;
-
 	case WOW_REASON_DEAUTH_RECVD:
-		wake_lock_duration = WMA_DEAUTH_RECV_WAKE_LOCK_DURATION;
-		break;
-
 	case WOW_REASON_DISASSOC_RECVD:
-		wake_lock_duration = WMA_DISASSOC_RECV_WAKE_LOCK_DURATION;
+	case WOW_REASON_ASSOC_RES_RECV:
+	case WOW_REASON_REASSOC_REQ_RECV:
+	case WOW_REASON_REASSOC_RES_RECV:
+	case WOW_REASON_BEACON_RECV:
+	case WOW_REASON_ACTION_FRAME_RECV:
+		wake_lock_duration =
+			wma_wow_get_wakelock_duration(wake_info->wake_reason);
+		if (param_buf->wow_packet_buffer) {
+			/* First 4-bytes of wow_packet_buffer is the length */
+			vos_mem_copy((uint8_t *) &wow_buf_pkt_len,
+				param_buf->wow_packet_buffer, 4);
+			if (wow_buf_pkt_len)
+				wma_wow_dump_mgmt_buffer(
+					param_buf->wow_packet_buffer,
+					wow_buf_pkt_len);
+			else
+				WMA_LOGE("wow packet buffer is empty");
+		} else {
+			WMA_LOGE("No wow packet buffer present");
+		}
 		break;
 
 	case WOW_REASON_AP_ASSOC_LOST:
@@ -21070,12 +21477,25 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		    /* First 4-bytes of wow_packet_buffer is the length */
 		    vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
 			param_buf->wow_packet_buffer, 4);
-		    wma_wow_wake_up_stats(wma,
-			param_buf->wow_packet_buffer + 4, wow_buf_pkt_len,
-			WOW_REASON_PATTERN_MATCH_FOUND);
-		    vos_trace_hex_dump(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
-			param_buf->wow_packet_buffer + 4,
-			wow_buf_pkt_len);
+			if (wow_buf_pkt_len) {
+				uint8_t *data;
+
+				wma_wow_wake_up_stats(wma,
+					param_buf->wow_packet_buffer + 4,
+					wow_buf_pkt_len,
+					WOW_REASON_PATTERN_MATCH_FOUND);
+				vos_trace_hex_dump(VOS_MODULE_ID_WDA,
+					VOS_TRACE_LEVEL_DEBUG,
+					param_buf->wow_packet_buffer + 4,
+					wow_buf_pkt_len);
+
+				data = (uint8_t *)
+					(param_buf->wow_packet_buffer + 4);
+				wma_wow_parse_data_pkt_buffer(data,
+					wow_buf_pkt_len);
+			} else {
+				WMA_LOGE("wow packet buffer is empty");
+			}
 		} else {
 			WMA_LOGE("No wow packet buffer present");
 		}
@@ -32323,6 +32743,11 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		WMA_LOGE("Failed to destroy the log completion timer");
 	}
 
+	/* Destroy firmware time stamp sync timer */
+	vos_status = vos_timer_destroy(&wma_handle->wma_fw_time_sync_timer);
+	if (vos_status != VOS_STATUS_SUCCESS)
+		WMA_LOGE(FL("Failed to destroy the fw time sync timer"));
+
 	/* There's no need suspend target which is already down during SSR. */
 	if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
 #ifdef HIF_USB
@@ -33051,6 +33476,65 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	return buf;
 }
 
+/**
+ * wma_send_time_stamp_sync_cmd() - timer callback send timestamp to
+ * firmware to sync with host.
+ * @wma_handle: wma handle
+ *
+ * Return: void
+ */
+static void wma_send_time_stamp_sync_cmd(void *data)
+{
+	tp_wma_handle wma_handle;
+	wmi_buf_t buf;
+	WMI_DBGLOG_TIME_STAMP_SYNC_CMD_fixed_param *time_stamp;
+	A_STATUS status = A_OK;
+	int len;
+	VOS_STATUS vos_status;
+	unsigned long time_ms;
+
+	wma_handle = (tp_wma_handle) data;
+	len = sizeof(*time_stamp);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP(FL("wmi_buf_alloc failed"));
+		return;
+	}
+
+	time_stamp =
+		(WMI_DBGLOG_TIME_STAMP_SYNC_CMD_fixed_param *)
+			(wmi_buf_data(buf));
+	WMITLV_SET_HDR(&time_stamp->tlv_header,
+		WMITLV_TAG_STRUC_wmi_dbglog_time_stamp_sync_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+		WMI_DBGLOG_TIME_STAMP_SYNC_CMD_fixed_param));
+
+	time_ms = vos_get_time_of_the_day_ms();
+	time_stamp->mode = WMI_TIME_STAMP_SYNC_MODE_MS;
+	time_stamp->time_stamp_low = time_ms &
+		WMA_FW_TIME_STAMP_LOW_MASK;
+	/*
+	 * Send time_stamp_high 0 as the time converted from HR:MIN:SEC:MS to ms
+	 * wont exceed 27 bit
+	 */
+	time_stamp->time_stamp_high = 0;
+	WMA_LOGD(FL("WMA --> DBGLOG_TIME_STAMP_SYNC_CMDID mode %d time_stamp low %d high %d"),
+		time_stamp->mode, time_stamp->time_stamp_low,
+		time_stamp->time_stamp_high);
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+		len, WMI_DBGLOG_TIME_STAMP_SYNC_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("Failed to send WMI_DBGLOG_TIME_STAMP_SYNC_CMDID command");
+		wmi_buf_free(buf);
+	}
+
+	/* Start/Restart the timer */
+	vos_status = vos_timer_start(&wma_handle->wma_fw_time_sync_timer,
+		WMA_FW_TIME_SYNC_TIMER);
+	if (vos_status != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Failed to start the firmware time sync timer");
+}
+
 /* Process service ready event and send wmi_init command */
 v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 {
@@ -33060,6 +33544,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	struct wma_target_cap target_cap;
 	WMI_SERVICE_READY_EVENTID_param_tlvs *param_buf;
 	wmi_service_ready_event_fixed_param *ev;
+	VOS_STATUS vos_status;
 	int status;
 
 	WMA_LOGD("%s: Enter", __func__);
@@ -33221,6 +33706,17 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		wmi_buf_free(buf);
 		return;
 	}
+
+	/* Initialize firmware time stamp sync timer */
+	vos_status = vos_timer_init(&wma_handle->wma_fw_time_sync_timer,
+		VOS_TIMER_TYPE_SW,
+		wma_send_time_stamp_sync_cmd,
+		wma_handle);
+	if (vos_status != VOS_STATUS_SUCCESS)
+		WMA_LOGE(FL("Failed to initialize firmware time stamp sync timer"));
+
+	/* Start firmware time stamp sync timer */
+	wma_send_time_stamp_sync_cmd(wma_handle);
 }
 
 /* function   : wma_rx_ready_event

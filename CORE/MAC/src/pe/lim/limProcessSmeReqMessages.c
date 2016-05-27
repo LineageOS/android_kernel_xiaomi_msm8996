@@ -5222,6 +5222,7 @@ void __limProcessReportMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          tpSirBeaconReportXmitInd pBcnReport=NULL;
          tpPESession psessionEntry=NULL;
          tANI_U8 sessionId;
+         tpEsePEContext pEseContext = NULL;
 
          if(pMsg->bodyptr == NULL)
          {
@@ -5234,7 +5235,10 @@ void __limProcessReportMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limLog(pMac, LOGE, "Session Does not exist for given bssId");
             return;
          }
-         if (psessionEntry->isESEconnection)
+
+         pEseContext = &psessionEntry->eseContext;
+
+         if (psessionEntry->isESEconnection && pEseContext->curMeasReq.isValid)
              eseProcessBeaconReportXmit( pMac, pMsg->bodyptr);
          else
 #endif

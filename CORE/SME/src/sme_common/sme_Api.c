@@ -12189,12 +12189,13 @@ eHalStatus sme_UpdateFwTdlsState(tHalHandle hHal, void  *psmeTdlsParams,
     tpAniSirGlobal pMac = NULL;
     vos_msg_t vosMessage;
 
+    pMac = PMAC_STRUCT(hHal);
+    if (NULL == pMac) {
+        return eHAL_STATUS_FAILURE;
+    }
+
     /* only acquire sme global lock before state update if asked to */
     if (useSmeLock) {
-        pMac = PMAC_STRUCT(hHal);
-        if (NULL == pMac)
-            return eHAL_STATUS_FAILURE;
-
         status = sme_AcquireGlobalLock(&pMac->sme);
         if (eHAL_STATUS_SUCCESS != status)
             return status;
@@ -14592,6 +14593,19 @@ eHalStatus sme_getRegInfo(tHalHandle hHal, tANI_U8 chanId,
         sme_ReleaseGlobalLock(&pMac->sme);
     }
     return status;
+}
+
+/* sme_get_wni_dot11_mode() - return configured wni dot11mode
+ * @hHal: hal pointer
+ *
+ * Return: wni dot11 mode.
+ */
+uint32_t sme_get_wni_dot11_mode(tHalHandle hal)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+
+	return csrTranslateToWNICfgDot11Mode(mac_ctx,
+			mac_ctx->roam.configParam.uCfgDot11Mode);
 }
 
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
@@ -19118,7 +19132,8 @@ eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 	uint8_t reason = 0;
 
 	if (!mac_ctx) {
-		smsLog(mac_ctx, LOGE, FL("mac_ctx is null!"));
+	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+	                                "%s: mac_ctx is null", __func__);
 		VOS_ASSERT(0);
 		return eHAL_STATUS_FAILURE;
 	}

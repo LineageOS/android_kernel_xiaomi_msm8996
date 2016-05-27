@@ -1908,6 +1908,11 @@ void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 void hdd_prevent_suspend(uint32_t reason);
 void hdd_allow_suspend(uint32_t reason);
 void hdd_prevent_suspend_timeout(v_U32_t timeout, uint32_t reason);
+void hdd_wlan_wakelock_create (void);
+void hdd_wlan_wakelock_destroy(void);
+void wlan_hdd_wakelocks_destroy(hdd_context_t *hdd_ctx);
+void wlan_hdd_netdev_notifiers_cleanup(hdd_context_t * hdd_ctx);
+
 bool hdd_is_ssr_required(void);
 void hdd_set_ssr_required(e_hdd_ssr_required value);
 
@@ -2227,4 +2232,5 @@ int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 
 void hdd_sap_restart_handle(struct work_struct *work);
 
+void hdd_set_rps_cpu_mask(hdd_context_t *hdd_ctx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

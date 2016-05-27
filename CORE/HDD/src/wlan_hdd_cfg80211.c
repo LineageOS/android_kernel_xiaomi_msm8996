@@ -6605,7 +6605,8 @@ void wlan_hdd_clear_link_layer_stats(hdd_adapter_t *adapter)
 	tSirLLStatsClearReq link_layer_stats_clear_req;
 	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
 
-	link_layer_stats_clear_req.statsClearReqMask = WIFI_STATS_IFACE_AC;
+	link_layer_stats_clear_req.statsClearReqMask = WIFI_STATS_IFACE_AC |
+		WIFI_STATS_IFACE_ALL_PEER;
 	link_layer_stats_clear_req.stopReq = 0;
 	link_layer_stats_clear_req.reqId = 1;
 	link_layer_stats_clear_req.staId = adapter->sessionId;
@@ -23755,18 +23756,6 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         if (sme_staInMiddleOfRoaming(pHddCtx->hHal, pAdapter->sessionId)) {
             hddLog(LOG1, FL("Roaming in progress, do not allow suspend"));
             return -EAGAIN;
-        }
-
-        if (pHddCtx->cfg_ini->enablePowersaveOffload &&
-            pHddCtx->cfg_ini->fIsBmpsEnabled &&
-            ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-            (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode))) {
-            if (!sme_PsOffloadIsStaInPowerSave(pHddCtx->hHal,
-                                               pAdapter->sessionId)) {
-                hddLog(VOS_TRACE_LEVEL_DEBUG,
-                  FL("STA is not in power save, Do not allow suspend"));
-                return -EAGAIN;
-            }
         }
 
         if (pScanInfo->mScanPending && pAdapter->request)

@@ -14142,6 +14142,10 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         {
             dwTmp = pal_cpu_to_be32(eSIR_ED_NONE);
         }
+        if (pProfile->MFPEnabled &&
+           !(pProfile->MFPRequired) && ((pIes->RSN.present) &&
+           (!(pIes->RSN.RSN_Cap[0] >> 7) & 0x1)))
+            dwTmp = pal_cpu_to_be32(eSIR_ED_NONE);
         vos_mem_copy(pBuf, &dwTmp, sizeof(tANI_U32));
         pBuf += sizeof(tANI_U32);
 #endif
@@ -16317,6 +16321,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
             smsLog( pMac, LOG2, FL("csrRoamStatsRspProcessor:PerSta stats"));
             if( CSR_MAX_STA > pSmeStatsRsp->staId )
             {
+               status = eHAL_STATUS_SUCCESS;
                vos_mem_copy((tANI_U8 *)&pMac->roam.perStaStatsInfo[pSmeStatsRsp->staId],
                             pStats, sizeof(tCsrPerStaStatsInfo));
             }
@@ -16906,12 +16911,13 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
             pMac->roam.tlStatsReqInfo.periodicity = 0;
             pMac->roam.tlStatsReqInfo.timerRunning = FALSE;
          }
-         vos_timer_stop( &pStaEntry->timer );
-         // Destroy the vos timer...
-         vosStatus = vos_timer_destroy( &pStaEntry->timer );
-         if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
-         {
-            smsLog(pMac, LOGE, FL("csrGetStatistics:failed to destroy Client req timer"));
+
+         if (periodicity) {
+             vos_timer_stop(&pStaEntry->timer);
+             /* Destroy the vos timer */
+             vosStatus = vos_timer_destroy(&pStaEntry->timer);
+             if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+                 smsLog(pMac, LOGE, FL("csrGetStatistics:failed to destroy Client req timer"));
          }
          csrRoamRemoveStatListEntry(pMac, pEntry);
          pStaEntry = NULL;
@@ -16991,6 +16997,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                   pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
                   if (NULL != pTlStats)
                   {
+                     vos_mem_set(pTlStats, sizeof(*pTlStats), 0);
+
                      //req TL for class D stats
                      if(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId))
                      {
@@ -17052,6 +17060,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
             pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
             if (NULL != pTlStats)
             {
+               vos_mem_set(pTlStats, sizeof(*pTlStats), 0);
+
                //req TL for class D stats
                if(!VOS_IS_STATUS_SUCCESS(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId)))
                {
@@ -19005,11 +19015,14 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
             eCSR_ROAM_FT_RESPONSE, eCSR_ROAM_RESULT_NONE);
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-   if (csrRoamIsESEAssoc(pMac, pFTPreAuthRsp->smeSessionId))
-   {
+   if (csrRoamIsESEAssoc(pMac, pFTPreAuthRsp->smeSessionId)) {
       /* read TSF */
-      csrRoamReadTSF(pMac, (tANI_U8 *)roamInfo.timestamp,
-                     pFTPreAuthRsp->smeSessionId);
+      status = csrRoamReadTSF(pMac, (tANI_U8 *)roamInfo.timestamp,
+                       pFTPreAuthRsp->smeSessionId);
+      if (eHAL_STATUS_SUCCESS != status) {
+         smsLog(pMac, LOGE, FL("TSF read failed.Timestamp may be invalid"));
+         return;
+      }
       // Save the bssid from the received response
       vos_mem_copy((void *)&roamInfo.bssid,
             (void *)pFTPreAuthRsp->preAuthbssId, sizeof(tCsrBssid));
@@ -19271,15 +19284,18 @@ VOS_STATUS csrSetCCKMIe(tpAniSirGlobal pMac, const tANI_U8 sessionId,
     \param  pTimestamp - output TSF time stamp
     \- return Success or failure
     -------------------------------------------------------------------------*/
-VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
+eHalStatus csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
                           tANI_U8 sessionId)
 {
-    eHalStatus              status     = eHAL_STATUS_SUCCESS;
-    tCsrNeighborRoamBSSInfo handoffNode;
+    tCsrNeighborRoamBSSInfo handoffNode = {{0}};
     tANI_U32                timer_diff = 0;
     tANI_U32                timeStamp[2];
     tpSirBssDescription     pBssDescription = NULL;
-    csrNeighborRoamGetHandoffAPInfo(pMac, &handoffNode, sessionId);
+
+    if (!csrNeighborRoamGetHandoffAPInfo(pMac, &handoffNode, sessionId)) {
+        smsLog(pMac, LOGE, FL("invalid handoff node"));
+        return eHAL_STATUS_FAILURE;
+    }
     pBssDescription = handoffNode.pBssDescription;
     // Get the time diff in milli seconds
     timer_diff = vos_timer_get_system_time() - pBssDescription->scanSysTimeMsec;
@@ -19290,7 +19306,8 @@ VOS_STATUS csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
     UpdateCCKMTSF(&(timeStamp[0]), &(timeStamp[1]), &timer_diff);
     vos_mem_copy(pTimestamp, (void *) &timeStamp[0],
                  sizeof (tANI_U32) * 2);
-    return status;
+
+    return eHAL_STATUS_SUCCESS;
 }
 #endif /*FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
 
