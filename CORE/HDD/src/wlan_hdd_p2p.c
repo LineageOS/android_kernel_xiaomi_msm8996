@@ -2263,6 +2263,8 @@ struct wireless_dev* __wlan_hdd_add_virtual_intf(
                                          name, p2pDeviceAddress.bytes,
                                          name_assign_type,
                                          VOS_TRUE );
+            if (WLAN_HDD_RX_HANDLE_RPS == pHddCtx->cfg_ini->rxhandle)
+                hdd_dp_util_send_rps_ind(pAdapter);
     }
     else
     {
@@ -2270,6 +2272,8 @@ struct wireless_dev* __wlan_hdd_add_virtual_intf(
                           name, wlan_hdd_get_intf_addr(pHddCtx),
                           name_assign_type,
                           VOS_TRUE);
+       if (WLAN_HDD_RX_HANDLE_RPS == pHddCtx->cfg_ini->rxhandle)
+           hdd_dp_util_send_rps_ind(pAdapter);
     }
 
     if( NULL == pAdapter)
