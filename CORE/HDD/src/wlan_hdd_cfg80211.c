@@ -8047,6 +8047,11 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	else
 		vht_enabled = 0;
 
+	if (hdd_ctx->cfg_ini->sap_force_11n_for_11ac) {
+		vht_enabled = 0;
+		hddLog(LOG1, FL("VHT is Disabled in ACS"));
+	}
+
 	if (tb[QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH]) {
 		ch_width = nla_get_u16(tb[QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH]);
 	} else {
@@ -8055,6 +8060,15 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		else
 			ch_width = 20;
 	}
+
+	/* this may be possible, when sap_force_11n_for_11ac is set */
+	if ((ch_width == 80 || ch_width == 160) && !vht_enabled) {
+		if (ht_enabled && ht40_enabled)
+			ch_width = 40;
+		else
+			ch_width = 20;
+	}
+
 	if (ch_width == 80)
 		sap_config->acs_cfg.ch_width = eHT_CHANNEL_WIDTH_80MHZ;
 	else if (ch_width == 40)
@@ -8082,7 +8096,8 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	wlan_hdd_set_acs_ch_range(sap_config, ht_enabled, vht_enabled);
 
 	/* ACS override for android */
-	if (hdd_ctx->cfg_ini->sap_p2p_11ac_override && ht_enabled) {
+	if (hdd_ctx->cfg_ini->sap_p2p_11ac_override && ht_enabled &&
+	    !hdd_ctx->cfg_ini->sap_force_11n_for_11ac) {
 		hddLog(LOG1, FL("ACS Config override for 11AC"));
 		vht_enabled = 1;
 		sap_config->acs_cfg.hw_mode = eCSR_DOT11_MODE_11ac;
@@ -13272,7 +13287,8 @@ int wlan_hdd_setup_driver_overrides(hdd_adapter_t *ap_adapter)
 	if (hdd_ctx->cfg_ini->sap_p2p_11ac_override &&
 			(sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11n ||
 			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac ||
-			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)) {
+			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY) &&
+			!hdd_ctx->cfg_ini->sap_force_11n_for_11ac) {
 		hddLog(LOG1, FL("** Driver force 11AC override for SAP/Go **"));
 
 		/* 11n only shall not be overridden since it may be on purpose*/
@@ -13316,6 +13332,12 @@ setup_acs_overrides:
 						hdd_ctx->cfg_ini->dot11Mode);
 	if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_AUTO)
 		sap_cfg->SapHw_mode = eCSR_DOT11_MODE_11ac;
+
+	if (hdd_ctx->cfg_ini->sap_force_11n_for_11ac) {
+		if (sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac ||
+		    sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)
+			sap_cfg->SapHw_mode = eCSR_DOT11_MODE_11n;
+	}
 
 	if ((sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11b ||
 			sap_cfg->SapHw_mode == eCSR_DOT11_MODE_11g ||
@@ -13909,6 +13931,13 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
 
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
+
+    if (pHddCtx->cfg_ini->sap_force_11n_for_11ac) {
+        if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac ||
+            pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac_ONLY)
+            pConfig->SapHw_mode = eCSR_DOT11_MODE_11n;
+        }
+
     /* Override hostapd.conf wmm_enabled only for 11n and 11AC configs (IOT)
      * As per spec 11n/11AC STA are QOS STA and may not connect to nonQOS 11n AP
      * Default enable QOS for SAP
@@ -13934,7 +13963,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
 #endif
 
-    if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80) {
+    if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80 &&
+        !pHddCtx->cfg_ini->sap_force_11n_for_11ac) {
         if (pHddCtx->isVHT80Allowed == false)
             pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
         else
