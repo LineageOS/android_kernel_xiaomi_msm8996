@@ -3187,7 +3187,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	vos_msg_t vos_msg = {0};
 	u_int32_t buf_size, buf_data_size;
 	u_int8_t *buf, *temp;
-	bool rssi_stats_present = FALSE;
+	bool rssi_stats_support = FALSE;
 
 	param_buf = (WMI_UPDATE_STATS_EVENTID_param_tlvs *)cmd_param_info;
 	if (!param_buf) {
@@ -3200,16 +3200,20 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 		   (event->num_vdev_stats * sizeof(wmi_vdev_stats)) +
 		   (event->num_peer_stats * sizeof(wmi_peer_stats)) +
 		   (event->num_mib_stats * sizeof(wmi_mib_stats));
+
 	buf_data_size = buf_size - sizeof(*event);
-	if (param_buf->data) {
-		rssi_event = (wmi_per_chain_rssi_stats *)
-			((uint8_t *)param_buf->data + buf_data_size);
-		if (((rssi_event->tlv_header & 0xFFFF0000) >> 16) ==
-				WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) {
+
+	rssi_event = param_buf->chain_stats;
+	if (rssi_event) {
+		if ((((rssi_event->tlv_header & 0xFFFF0000) >> 16) ==
+				WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) &&
+			 ((rssi_event->tlv_header & 0x0000FFFF) ==
+				WMITLV_GET_STRUCT_TLVLEN(
+					wmi_per_chain_rssi_stats))) {
 			buf_size += sizeof(*rssi_event) +
 				(rssi_event->num_per_chain_rssi_stats *
 				sizeof(wmi_rssi_stats));
-			rssi_stats_present = TRUE;
+			rssi_stats_support = TRUE;
 		}
 	}
 
@@ -3221,14 +3225,13 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	vos_mem_zero(buf, buf_size);
 	vos_mem_copy(buf, event, sizeof(*event));
 	temp = buf + sizeof(*event);
-	vos_mem_copy(temp, (u_int8_t *)param_buf->data,
+	vos_mem_copy(temp, (uint8_t *)param_buf->data,
 		     buf_data_size);
 	temp += buf_data_size;
-	if (rssi_stats_present) {
-		vos_mem_copy(temp, (u_int8_t *)param_buf->chain_stats,
-				sizeof(*param_buf->chain_stats));
-		temp += sizeof(*param_buf->chain_stats);
-		vos_mem_copy(temp, (u_int8_t *)param_buf->rssi_stats,
+	if (rssi_stats_support) {
+		vos_mem_copy(temp, rssi_event, sizeof(*rssi_event));
+		temp += sizeof(*rssi_event);
+		vos_mem_copy(temp, (uint8_t *)param_buf->rssi_stats,
 			(rssi_event->num_per_chain_rssi_stats *
 				sizeof(wmi_rssi_stats)));
 	}
@@ -3446,8 +3449,10 @@ static void wma_fw_stats_ind(tp_wma_handle wma, u_int8_t *buf)
 	}
 
 	rssi_event = (wmi_per_chain_rssi_stats *)temp;
-	if ((rssi_event->tlv_header & 0xFFFF0000) >> 16 ==
-			WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) {
+	if ((((rssi_event->tlv_header & 0xFFFF0000) >> 16) ==
+			WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats) &&
+		 ((rssi_event->tlv_header & 0x0000FFFF) ==
+			WMITLV_GET_STRUCT_TLVLEN(wmi_per_chain_rssi_stats))) {
 		WMA_LOGD("%s: num_rssi_stats %u", __func__,
 			rssi_event->num_per_chain_rssi_stats);
 		if (rssi_event->num_per_chain_rssi_stats > 0) {
