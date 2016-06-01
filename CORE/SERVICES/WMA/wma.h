@@ -904,6 +904,7 @@ typedef struct wma_handle {
 	tSirLLStatsResults *link_stats_results;
 	vos_timer_t wma_fw_time_sync_timer;
 	struct sir_allowed_action_frames allowed_action_frames;
+	tSirAddonPsReq psSetting;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
