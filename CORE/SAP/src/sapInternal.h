@@ -95,13 +95,7 @@ when           who        what, where, why
 #define SAP_DEBUG
 // Used to enable or disable security on the BT-AMP link
 #define WLANSAP_SECURITY_ENABLED_STATE VOS_TRUE
-#ifdef WLAN_FEATURE_MBSSID
-// When MBSSID feature is enabled, SAP context is directly passed to SAP APIs
 #define VOS_GET_SAP_CB(ctx) (ptSapContext)(ctx)
-#else
-// How do I get SAP context from voss context?
-#define VOS_GET_SAP_CB(ctx) vos_get_context( VOS_MODULE_ID_SAP, ctx)
-#endif
 
 #define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_PE, ctx)
 //MAC Address length
@@ -279,8 +273,7 @@ typedef struct sSapContext {
     v_U8_t             cc_switch_mode;
 #endif
 
-#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) ||\
-    defined(WLAN_FEATURE_MBSSID)
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
     v_BOOL_t           dfs_ch_disable;
 #endif
     tANI_BOOLEAN       isCacEndNotified;
@@ -313,8 +306,6 @@ typedef struct sSapContext {
 /*----------------------------------------------------------------------------
  *  External declarations for global context
  * -------------------------------------------------------------------------*/
-//  The main per-Physical Link (per WLAN association) context.
-extern ptSapContext  gpSapCtx;
 
 /*----------------------------------------------------------------------------
  *  SAP state machine event definition

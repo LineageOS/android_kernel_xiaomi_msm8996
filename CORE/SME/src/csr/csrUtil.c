@@ -2165,16 +2165,6 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                      return eHAL_STATUS_SUCCESS;
 
              case VOS_STA_SAP_MODE:
-#ifndef WLAN_FEATURE_MBSSID
-                     if ((bss_persona == VOS_STA_SAP_MODE) &&
-                         (connect_state !=
-                          eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
-                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                                   FL("**SoftAP mode already exists **"));
-                         return eHAL_STATUS_FAILURE;
-                     }
-                     else
-#endif
                      if (((bss_persona == VOS_P2P_GO_MODE) && (connect_state !=
                                 eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&
                                 (0 == automotive_support_enable)) ||

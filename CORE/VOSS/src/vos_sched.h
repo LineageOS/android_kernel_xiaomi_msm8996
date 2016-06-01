@@ -347,11 +347,6 @@ typedef struct _VosContextType
    /* MAC Module Context  */
    v_VOID_t           *pMACContext;
 
-#ifndef WLAN_FEATURE_MBSSID
-   /* SAP Context */
-   v_VOID_t           *pSAPContext;
-#endif
-
    vos_event_t         ProbeEvent;
 
    volatile v_U8_t     isLogpInProgress;
