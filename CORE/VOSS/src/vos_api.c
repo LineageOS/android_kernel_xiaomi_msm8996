@@ -1308,15 +1308,6 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
       break;
     }
 
-
-#ifndef WLAN_FEATURE_MBSSID
-    case VOS_MODULE_ID_SAP:
-    {
-      pModContext = gpVosContext->pSAPContext;
-      break;
-    }
-#endif
-
     case VOS_MODULE_ID_HDD:
     {
       pModContext = gpVosContext->pHDDContext;
@@ -1693,15 +1684,6 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
       break;
     }
 
-
-#ifndef WLAN_FEATURE_MBSSID
-    case VOS_MODULE_ID_SAP:
-    {
-      pGpModContext = &(gpVosContext->pSAPContext);
-      break;
-    }
-#endif
-
     case VOS_MODULE_ID_WDA:
     {
       pGpModContext = &(gpVosContext->pWDAContext);
@@ -1812,15 +1794,6 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
       pGpModContext = &(gpVosContext->pTLContext);
       break;
     }
-
-
-#ifndef WLAN_FEATURE_MBSSID
-    case VOS_MODULE_ID_SAP:
-    {
-      pGpModContext = &(gpVosContext->pSAPContext);
-      break;
-    }
-#endif
 
     case VOS_MODULE_ID_WDA:
     {
