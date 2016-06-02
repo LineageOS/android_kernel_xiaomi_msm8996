@@ -5398,7 +5398,7 @@ hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
     pBuf += len;
     buf_len -= len;
 
-    maxSta = pHddCtx->cfg_ini->maxNumberOfPeers;
+    maxSta = pHddCtx->max_peers;
 
     for (i = 0; i <= maxSta; i++)
     {

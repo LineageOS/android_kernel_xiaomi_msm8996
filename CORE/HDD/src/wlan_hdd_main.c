@@ -14630,6 +14630,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+   if (0 == pHddCtx->cfg_ini->max_go_peers)
+      pHddCtx->cfg_ini->max_go_peers = pHddCtx->cfg_ini->max_sap_peers;
+
+   pHddCtx->max_peers = MAX(pHddCtx->cfg_ini->max_sap_peers,
+                            pHddCtx->cfg_ini->max_go_peers);
+
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* store target type and target version info in hdd ctx */
@@ -14816,7 +14822,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
-   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
+   wlan_hdd_update_wiphy(wiphy, pHddCtx);
 
    if (sme_IsFeatureSupportedByFW(DOT11AC)) {
       hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
