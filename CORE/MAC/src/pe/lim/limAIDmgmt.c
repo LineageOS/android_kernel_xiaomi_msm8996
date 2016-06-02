@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -134,10 +134,18 @@ tANI_U16
 limAssignPeerIdx(tpAniSirGlobal pMac, tpPESession pSessionEntry)
 {
     tANI_U16 peerId;
+    uint8 max_peer = 0;
+
+    if (pSessionEntry->pePersona == VOS_STA_SAP_MODE)
+        max_peer = pMac->lim.glim_assoc_sta_limit_ap;
+
+    if (pSessionEntry->pePersona == VOS_P2P_GO_MODE)
+        max_peer = pMac->lim.glim_assoc_sta_limit_go;
 
     // make sure we haven't exceeded the configurable limit on associations
     // This count is global to ensure that it doesnt exceed the hardware limits.
-    if (peGetCurrentSTAsCount(pMac) >= pMac->lim.gLimAssocStaLimit)
+    if (peGetCurrentSTAsCount(pMac) >= pMac->lim.gLimAssocStaLimit ||
+        pSessionEntry->gLimNumOfCurrentSTAs >= max_peer)
     {
         // too many associations already active
         return 0;

@@ -496,7 +496,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
    scn->enableFwSelfRecovery = pHddCtx->cfg_ini->enableFwSelfRecovery;
-   scn->max_no_of_peers = pHddCtx->cfg_ini->maxNumberOfPeers;
+   scn->max_no_of_peers = pHddCtx->max_peers;
 #ifdef WLAN_FEATURE_LPSS
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
@@ -661,9 +661,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* Number of peers limit differs in each chip version. If peer max
     * limit configured in ini exceeds more than supported, WMA adjusts
     * and keeps correct limit in macOpenParms.maxStation. So, make sure
-    * ini entry pHddCtx->cfg_ini->maxNumberOfPeers has adjusted value
+    * pHddCtx->max_peers has adjusted value
    */
-   pHddCtx->cfg_ini->maxNumberOfPeers = macOpenParms.maxStation;
+   pHddCtx->max_peers = macOpenParms.maxStation;
    HTCHandle = vos_get_context(VOS_MODULE_ID_HTC, gpVosContext);
    if (!HTCHandle) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,

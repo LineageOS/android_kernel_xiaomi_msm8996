@@ -12055,7 +12055,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     }
 #endif
 
-    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+    wiphy->max_ap_assoc_sta = pHddCtx->max_peers;
 #ifdef QCA_HT_2040_COEX
     wiphy->features |= NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE;
 #endif
@@ -12098,9 +12098,9 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
  * of all required members can be done here.
  */
 void wlan_hdd_update_wiphy(struct wiphy *wiphy,
-                           hdd_config_t *pCfg)
+                           hdd_context_t *ctx)
 {
-    wiphy->max_ap_assoc_sta = pCfg->maxNumberOfPeers;
+    wiphy->max_ap_assoc_sta = ctx->max_peers;
     if (!sme_IsFeatureSupportedByFW(DOT11AC)) {
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.cap = 0;
