@@ -9871,9 +9871,14 @@ static void __hdd_set_multicast_list(struct net_device *dev)
    {
       mc_count = netdev_mc_count(dev);
       hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: mc_count = %u", __func__, mc_count);
+            "%s: mc_count : %u, max_mc_addr_list : %d",
+             __func__, mc_count, pHddCtx->max_mc_addr_list);
 
       netdev_for_each_mc_addr(ha, dev) {
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                FL("ha_addr[%d] "MAC_ADDRESS_STR),
+                i, MAC_ADDR_ARRAY(ha->addr));
+
          if (i == mc_count || i == pHddCtx->max_mc_addr_list)
             break;
          /*
