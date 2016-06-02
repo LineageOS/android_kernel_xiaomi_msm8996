@@ -10335,6 +10335,11 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                 sme_8023MulticastList(hHal, pAdapter->sessionId,
                                       pMulticastAddrs);
             }
+            else {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       FL("MC address list not sent to FW, cnt: %d"),
+                        pAdapter->mc_addr_list.mc_cnt);
+            }
         }
         else
         {
