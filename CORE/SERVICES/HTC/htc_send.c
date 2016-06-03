@@ -1844,21 +1844,7 @@ void HTCProcessCreditRpt(HTC_TARGET *target, HTC_CREDIT_REPORT *pRpt, int NumEnt
             if (pEndpoint->ServiceID == HTT_DATA_MSG_SVC){
                 HTCSendDataPkt(target, NULL, 0);
             } else {
-#ifdef HIF_SDIO
-                if (WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-                    if (((pEndpoint->ServiceID == WMI_DATA_BE_SVC) &&
-                        (pEndpoint->TxCreditFlowEnabled)          &&
-                        (pEndpoint->TxCredits >= HTC_MAX_MSG_PER_BUNDLE_TX + 1)) ||
-                        (target->is_nodrop_pkt)) {
-                        /* Bundle TX for mboxping test */
-                        HTCTrySend(target, pEndpoint, NULL);
-                    }
-                } else {
-#endif
-                    HTCTrySend(target,pEndpoint,NULL);
-#ifdef HIF_SDIO
-                }
-#endif
+                HTCTrySend(target,pEndpoint,NULL);
             }
 #endif
             LOCK_HTC_TX(target);
