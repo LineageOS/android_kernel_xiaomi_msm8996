@@ -251,6 +251,15 @@
 #define CFG_ADVERTISE_CONCURRENT_OPERATION_MIN     ( 0 )
 #define CFG_ADVERTISE_CONCURRENT_OPERATION_MAX     ( 1 )
 
+/*
+ * Force softap to 11n, when gSapForce11NFor11AC is set to 1 from ini
+ * despite of hostapd.conf request for 11ac
+ */
+#define CFG_SAP_FORCE_11N_FOR_11AC_NAME    "gSapForce11NFor11AC"
+#define CFG_SAP_FORCE_11N_FOR_11AC_MIN     (0)
+#define CFG_SAP_FORCE_11N_FOR_11AC_MAX     (1)
+#define CFG_SAP_FORCE_11N_FOR_11AC_DEFAULT (0)
+
 typedef enum
 {
     eHDD_DOT11_MODE_AUTO = 0, //covers all things we support
@@ -4602,6 +4611,8 @@ struct hdd_config {
    uint32_t                    tgt_gtx_usr_cfg;
    bool                        sap_restrt_ch_avoid;
    bool                        bug_on_reinit_failure;
+   /* parameter to force sap into 11n */
+   bool                        sap_force_11n_for_11ac;
 };
 
 typedef struct hdd_config hdd_config_t;
