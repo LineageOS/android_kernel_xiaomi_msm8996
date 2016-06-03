@@ -30198,6 +30198,45 @@ void wma_process_set_allowed_action_frames_ind(tp_wma_handle wma_handle,
 	return;
 }
 
+/**
+ * wma_update_tx_fail_cnt_th() - Set threshold for TX pkt fail
+ * @wma_handle: WMA handle
+ * @tx_fail_cnt_th: sme_tx_fail_cnt_threshold parameter
+ *
+ * This function is used to set Tx pkt fail count threshold,
+ * FW will do disconnect with station once this threshold is reached.
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+static VOS_STATUS wma_update_tx_fail_cnt_th(tp_wma_handle wma,
+		struct sme_tx_fail_cnt_threshold *tx_fail_cnt_th)
+{
+	u_int8_t vdev_id;
+	u_int16_t tx_fail_disconn_th;
+	int ret = -EIO;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue Tx pkt fail count threshold"));
+		return VOS_STATUS_E_INVAL;
+	}
+	vdev_id = tx_fail_cnt_th->session_id;
+	tx_fail_disconn_th = tx_fail_cnt_th->tx_fail_cnt_threshold;
+	WMA_LOGD("Set TX pkt fail count threshold  vdevId %d count %d",
+			vdev_id, tx_fail_disconn_th);
+
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_DISCONNECT_TH,
+			tx_fail_disconn_th);
+
+	if (ret) {
+		WMA_LOGE(FL("Failed to send TX pkt fail count threshold command"));
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 
 /*
  * function   : wma_mc_process_msg
@@ -31076,6 +31115,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case SIR_HAL_SET_ALLOWED_ACTION_FRAMES:
 			wma_process_set_allowed_action_frames_ind(wma_handle,
 								  msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_UPDATE_TX_FAIL_CNT_TH:
+			wma_update_tx_fail_cnt_th(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

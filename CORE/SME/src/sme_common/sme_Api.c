@@ -19261,3 +19261,50 @@ eHalStatus sme_update_access_policy_vendor_ie(tHalHandle hal,
 
 	return status;
 }
+
+/**
+ * sme_update_tx_fail_cnt_threshold() - update tx fail count Threshold
+ * @hal: Handle returned by mac_open
+ * @session_id: Session ID on which tx fail count needs to be updated to FW
+ * @tx_fail_count: Count for tx fail threshold after which FW will disconnect
+ *
+ * This function is used to set tx fail count threshold to firmware.
+ * firmware will issue disocnnect with peer device once this threshold is
+ * reached.
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint8_t tx_fail_count)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	struct sme_tx_fail_cnt_threshold *tx_fail_cnt;
+	vos_msg_t msg;
+
+	tx_fail_cnt = vos_mem_malloc(sizeof(*tx_fail_cnt));
+	if (NULL == tx_fail_cnt) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc filter_param", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+	smsLog(mac_ctx, LOG1, FL("session_id %d tx_fail_count: %d"),
+			session_id, tx_fail_count);
+	tx_fail_cnt->session_id = session_id;
+	tx_fail_cnt->tx_fail_cnt_threshold = tx_fail_count;
+
+	vos_mem_zero(&msg, sizeof(vos_msg_t));
+	msg.type = WDA_UPDATE_TX_FAIL_CNT_TH;
+	msg.reserved = 0;
+	msg.bodyptr = tx_fail_cnt;
+	status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+
+	if(status != eHAL_STATUS_SUCCESS) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		  FL("Not able to post Tx fail count message to WDA"));
+		vos_mem_free(tx_fail_cnt);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return status;
+}

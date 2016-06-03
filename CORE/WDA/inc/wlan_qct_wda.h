@@ -1094,6 +1094,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_REMOVE_BCN_FILTER_CMDID           SIR_HAL_REMOVE_BCN_FILTER_CMDID
 
 #define WDA_UPDATE_TX_RATE                    SIR_HAL_UPDATE_TX_RATE
+#define WDA_UPDATE_TX_FAIL_CNT_TH             SIR_HAL_UPDATE_TX_FAIL_CNT_TH
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
