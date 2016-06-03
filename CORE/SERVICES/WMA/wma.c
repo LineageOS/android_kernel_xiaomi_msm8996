@@ -3491,7 +3491,6 @@ static int wma_extscan_rsp_handler(tp_wma_handle wma, uint8_t *buf)
 	uint8_t vdev_id;
 	tpAniSirGlobal mac_ctx = (tpAniSirGlobal)vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
-	WMA_LOGI("%s: Enter", __func__);
 	if (!mac_ctx) {
 		WMA_LOGE("%s: Invalid mac_ctx", __func__);
 		return -EINVAL;
@@ -3752,7 +3751,6 @@ static int wma_extscan_operations_event_handler(void *handle,
 	int buf_len;
 	vos_msg_t vos_msg = {0};
 
-	WMA_LOGI("%s: Enter", __func__);
 	param_buf = (WMI_EXTSCAN_OPERATION_EVENTID_param_tlvs *)
 					cmd_param_info;
 	if (!param_buf) {
@@ -3793,7 +3791,6 @@ static int wma_extscan_operations_event_handler(void *handle,
 		vos_mem_free(buf);
 		return -EINVAL;
 	}
-	WMA_LOGI("WDA_EXTSCAN_OPERATION_IND posted");
 
 	return 0;
 }
@@ -4228,9 +4225,8 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	src_hotlist = param_buf->bssid_list;
 	src_rssi = param_buf->rssi_list;
 	numap = event->num_entries_in_page;
-	WMA_LOGI("Total_entries %u first_entry_index %u", event->total_entries,
-			event->first_entry_index);
-	WMA_LOGI("num_entries_in_page %d", numap);
+	WMA_LOGI("Total_entries: %u first_entry_index: %u num_entries_in_page: %u",
+		 event->total_entries, event->first_entry_index, numap);
 	if (!src_hotlist || !src_rssi || !numap) {
 		WMA_LOGW("%s: Cached results empty, send 0 results", __func__);
 		goto noresults;
@@ -4270,7 +4266,6 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				dest_cachelist);
-	WMA_LOGI("%s: sending cached results event", __func__);
 
 	dest_result = dest_cachelist->result;
 	for (i = 0; i < dest_cachelist->num_scan_ids; i++) {
@@ -4289,7 +4284,6 @@ noresults:
 	pMac->sme.pExtScanIndCb(pMac->hHdd,
 				eSIR_EXTSCAN_CACHED_RESULTS_IND,
 				&empty_cachelist);
-	WMA_LOGI("%s: sending cached results event", __func__);
 	return 0;
 }
 
@@ -5027,13 +5021,11 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		return -ENOMEM;
 	}
 
-	WMA_LOGD("Radio Stats Fixed Param:");
 	WMA_LOGD("request_id %u num_radio %u more_radio_events %u",
 			fixed_param->request_id, fixed_param->num_radio,
 			fixed_param->more_radio_events);
 
-	WMA_LOGD("Radio Info");
-	WMA_LOGD("radio_id %u on_time %u tx_time %u rx_time %u on_time_scan %u "
+	WMA_LOGD("Radio Info: radio_id %u on_time %u tx_time %u rx_time %u on_time_scan %u "
 			"on_time_nbd %u on_time_gscan %u on_time_roam_scan %u "
 			"on_time_pno_scan %u on_time_hs20 %u num_channels %u",
 			radio_stats->radio_id, radio_stats->on_time,
@@ -21610,11 +21602,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		if (param_buf->wow_packet_buffer) {
 			wow_buf_pkt_len =
 				*(uint32_t *)param_buf->wow_packet_buffer;
-			WMA_LOGD("wow_packet_buffer dump");
-			vos_trace_hex_dump(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_DEBUG,
-				param_buf->wow_packet_buffer,
-				wow_buf_pkt_len);
 			wma_extscan_wow_event_callback(handle,
 				(u_int8_t *)(param_buf->wow_packet_buffer + 4),
 				wow_buf_pkt_len);
@@ -26972,8 +26959,6 @@ static VOS_STATUS wma_process_ll_stats_getReq
 		nchannels +=  src_bucket->numChannels;
 		src_bucket++;
 	}
-	WMA_LOGD("%s: Total buckets: %d total #of channels is %d",
-		__func__, nbuckets, nchannels);
 	len += nchannels * sizeof(wmi_extscan_bucket_channel);
 	/* Allocate the memory */
 	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
@@ -26998,8 +26983,8 @@ static VOS_STATUS wma_process_ll_stats_getReq
 
 	if (pstart->configuration_flags & EXTSCAN_LP_EXTENDED_BATCHING)
 		cmd->configuration_flags |= WMI_EXTSCAN_EXTENDED_BATCHING_EN;
-	WMA_LOGI("%s: configuration_flags: 0x%x", __func__,
-			cmd->configuration_flags);
+	WMA_LOGD("%s: Total buckets: %d total #of channels: %d cfgn_flags: 0x%x",
+		__func__, nbuckets, nchannels, cmd->configuration_flags);
 
 	cmd->min_rest_time = WMA_EXTSCAN_REST_TIME;
 	cmd->max_rest_time = WMA_EXTSCAN_REST_TIME;
