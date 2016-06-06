@@ -19308,3 +19308,93 @@ eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
 
 	return status;
 }
+
+/**
+ * sme_update_short_retry_limit_threshold() - update short frame retry limit TH
+ * @hal: Handle returned by mac_open
+ * @session_id: Session ID on which short frame retry limit needs to be
+ * updated to FW
+ * @short_limit_count_th: Retry count TH to retry short frame.
+ *
+ * This function is used to configure count to retry short frame.
+ *
+ * Return: VOS_STATUS
+ */
+eHalStatus sme_update_short_retry_limit_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t short_limit_count_th)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	struct sme_short_retry_limit *srl;
+	vos_msg_t msg;
+
+	srl = vos_mem_malloc(sizeof(*srl));
+	if (NULL == srl) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc short retry limit", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+	smsLog(mac_ctx, LOG1, FL("session_id %d short retry limit count: %d"),
+			session_id, short_limit_count_th);
+	srl->session_id = session_id;
+	srl->short_retry_limit = short_limit_count_th;
+
+	vos_mem_zero(&msg, sizeof(vos_msg_t));
+	msg.type = WDA_UPDATE_SHORT_RETRY_LIMIT_CNT;
+	msg.reserved = 0;
+	msg.bodyptr = srl;
+	status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+	if(status != eHAL_STATUS_SUCCESS) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Not able to post short retry limit count to WDA"));
+		vos_mem_free(srl);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return status;
+}
+
+/**
+ * sme_update_long_retry_limit_threshold() - update long retry limit TH
+ * @hal: Handle returned by mac_open
+ * @session_id: Session ID on which long frames retry TH needs to be updated
+ * to FW
+ * @long_limit_count_th: Retry count to retry long frame.
+ *
+ * This function is used to configure TH to retry long frame.
+ *
+ * Return: VOS_STATUS
+ */
+eHalStatus sme_update_long_retry_limit_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t long_limit_count_th)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	struct sme_long_retry_limit *lrl;
+	vos_msg_t msg;
+
+	lrl = vos_mem_malloc(sizeof(*lrl));
+	if (NULL == lrl) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"%s: fail to alloc long retry limit", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+	smsLog(mac_ctx, LOG1, FL("session_id %d long retry limit count: %d"),
+			session_id, long_limit_count_th);
+	lrl->session_id = session_id;
+	lrl->long_retry_limit = long_limit_count_th;
+
+	vos_mem_zero(&msg, sizeof(vos_msg_t));
+	msg.type = WDA_UPDATE_LONG_RETRY_LIMIT_CNT;
+	msg.reserved = 0;
+	msg.bodyptr = lrl;
+	status = vos_mq_post_message(VOS_MQ_ID_WDA, &msg);
+
+	if(status != eHAL_STATUS_SUCCESS) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Not able to post long retry limit count to WDA"));
+		vos_mem_free(lrl);
+		return eHAL_STATUS_FAILURE;
+	}
+	return status;
+}

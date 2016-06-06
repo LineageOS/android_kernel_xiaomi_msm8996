@@ -30237,6 +30237,82 @@ static VOS_STATUS wma_update_tx_fail_cnt_th(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_update_short_retry_limit() - Set retry limit for short frames
+ * @wma_handle: WMA handle
+ * @short_retry_limit_th: retry limir count for Short frames.
+ *
+ * This function is used to configure the transmission retry limit at which
+ * short frames needs to be retry.
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+static VOS_STATUS wma_update_short_retry_limit(tp_wma_handle wma,
+		struct sme_short_retry_limit *short_retry_limit_th)
+{
+	u_int8_t vdev_id;
+	u_int32_t short_retry_limit;
+	int ret = -EIO;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue short retry limit threshold"));
+		return VOS_STATUS_E_INVAL;
+	}
+	vdev_id = short_retry_limit_th->session_id;
+	short_retry_limit = short_retry_limit_th->short_retry_limit;
+	WMA_LOGD("Set short retry limit threshold  vdevId %d count %d",
+			vdev_id, short_retry_limit);
+
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_NON_AGG_SW_RETRY_TH ,
+			short_retry_limit);
+
+	if (ret) {
+		WMA_LOGE(FL("Failed to send short limit threshold command"));
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_update_long_retry_limit() - Set retry limit for long frames
+ * @wma_handle: WMA handle
+ * @long_retry_limit_th: retry limir count for long frames
+ *
+ * This function is used to configure the transmission retry limit at which
+ * long frames needs to be retry
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+static VOS_STATUS wma_update_long_retry_limit(tp_wma_handle wma,
+		struct sme_long_retry_limit  *long_retry_limit_th)
+{
+	u_int8_t vdev_id;
+	u_int32_t long_retry_limit;
+	int ret = -EIO;
+
+	if (!wma || !wma->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue long retry limit threshold"));
+		return VOS_STATUS_E_INVAL;
+	}
+	vdev_id = long_retry_limit_th->session_id;
+	long_retry_limit = long_retry_limit_th->long_retry_limit;
+	WMA_LOGD("Set TX pkt fail count threshold  vdevId %d count %d",
+			vdev_id, long_retry_limit);
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+			WMI_VDEV_PARAM_AGG_SW_RETRY_TH,
+			long_retry_limit);
+
+	if (ret) {
+		WMA_LOGE(FL("Failed to send long limit threshold command"));
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
 
 /*
  * function   : wma_mc_process_msg
@@ -31121,6 +31197,15 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_update_tx_fail_cnt_th(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_UPDATE_LONG_RETRY_LIMIT_CNT:
+			wma_update_long_retry_limit(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_UPDATE_SHORT_RETRY_LIMIT_CNT:
+			wma_update_short_retry_limit(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
