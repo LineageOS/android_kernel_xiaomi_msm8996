@@ -1095,6 +1095,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WDA_UPDATE_TX_RATE                    SIR_HAL_UPDATE_TX_RATE
 #define WDA_UPDATE_TX_FAIL_CNT_TH             SIR_HAL_UPDATE_TX_FAIL_CNT_TH
+#define WDA_UPDATE_SHORT_RETRY_LIMIT_CNT      SIR_HAL_SHORT_RETRY_LIMIT_CNT
+#define WDA_UPDATE_LONG_RETRY_LIMIT_CNT       SIR_HAL_LONG_RETRY_LIMIT_CNT
+
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
