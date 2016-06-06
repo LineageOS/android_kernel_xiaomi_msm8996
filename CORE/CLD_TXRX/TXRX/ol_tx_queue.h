@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -95,12 +95,13 @@ ol_tx_dequeue(
  * @param pdev - the physical device object, which stores the txqs
  * @param txq - which tx queue to free frames from
  * @param tid - the extended TID that the queue belongs to
+ * @param is_peer_txq - peer queue or not
  */
 void
 ol_tx_queue_free(
     struct ol_txrx_pdev_t *pdev,
     struct ol_tx_frms_queue_t *txq,
-    int tid);
+    int tid, bool is_peer_txq);
 
 /**
  * @brief - discard pending tx frames from the tx queue
@@ -124,7 +125,7 @@ ol_tx_queue_discard(
 
 #define ol_tx_enqueue(pdev, txq, tx_desc, tx_msdu_info) /* no-op */
 #define ol_tx_dequeue(pdev, ext_tid, txq, head, num_frames, credit, bytes) 0
-#define ol_tx_queue_free(pdev, txq, tid) /* no-op */
+#define ol_tx_queue_free(pdev, txq, tid, is_peer_txq) /* no-op */
 #define ol_tx_queue_discard(pdev, flush, tx_descs) /* no-op */
 
 #endif /* defined(CONFIG_HL_SUPPORT) */

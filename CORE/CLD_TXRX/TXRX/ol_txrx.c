@@ -1204,10 +1204,10 @@ ol_txrx_vdev_detach(
 
         for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
             txq = &vdev->txqs[i];
-            ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
+            ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS), false);
         }
     }
-    #endif /* defined(CONFIG_HL_SUPPORT) */
+#endif /* defined(CONFIG_HL_SUPPORT) */
 
     adf_os_spin_lock_bh(&vdev->ll_pause.mutex);
     adf_os_timer_cancel(&vdev->ll_pause.timer);
@@ -1772,7 +1772,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
 
             for (i = 0; i < OL_TX_NUM_TIDS; i++) {
                 txq = &peer->txqs[i];
-                ol_tx_queue_free(pdev, txq, i);
+                ol_tx_queue_free(pdev, txq, i, true);
             }
         }
         #endif /* defined(CONFIG_HL_SUPPORT) */
