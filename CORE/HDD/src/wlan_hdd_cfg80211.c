@@ -1407,12 +1407,12 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     tANI_U32       fset         = 0;
     int ret;
 
+    /* ENTER() intentionally not used in a frequently invoked API */
+
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
     }
-
-    ENTER();
 
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret)
@@ -1514,7 +1514,6 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
     }
 
     ret = cfg80211_vendor_cmd_reply(skb);
-    EXIT();
     return ret;
 
 nla_put_failure:
@@ -2511,7 +2510,7 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 	int retval = 0;
 	unsigned long rc;
 
-	ENTER();
+	/* ENTER() intentionally not used in a frequently invoked API */
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -2546,8 +2545,6 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 
 	pReqMsg->requestId = nla_get_u32(tb[PARAM_REQUEST_ID]);
 	pReqMsg->sessionId = pAdapter->sessionId;
-	hddLog(LOG1, FL("Req Id %u Session Id %d"),
-		pReqMsg->requestId, pReqMsg->sessionId);
 
 	/* Parse and fetch flush parameter */
 	if (!tb[PARAM_FLUSH]) {
@@ -2555,7 +2552,8 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 		goto fail;
 	}
 	pReqMsg->flush = nla_get_u8(tb[PARAM_FLUSH]);
-	hddLog(LOG1, FL("Flush %d"), pReqMsg->flush);
+	hddLog(LOG1, FL("Req Id: %u Session Id: %d Flush: %d"),
+		pReqMsg->requestId, pReqMsg->sessionId, pReqMsg->flush);
 
 	spin_lock(&hdd_context_lock);
 	context = &pHddCtx->ext_scan_context;
@@ -2584,7 +2582,6 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 		retval = context->response_status;
 		spin_unlock(&hdd_context_lock);
 	}
-	EXIT();
 	return retval;
 
 fail:
@@ -3253,17 +3250,15 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     struct net_device *dev = wdev->netdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     uint32_t chan_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0};
-    uint8_t num_channels  = 0;
-    uint8_t num_chan_new  = 0;
+    uint8_t num_channels  = 0, num_chan_new = 0, buf[256] = {0};
     struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX + 1];
     tANI_U32 requestId, maxChannels;
     tWifiBand wifiBand;
     eHalStatus status;
     struct sk_buff *reply_skb;
-    tANI_U8 i, j, k;
-    int retval;
+    int i, j, k, retval, len = 0;
 
-    ENTER();
+    /* ENTER() intentionally not used in a frequently invoked API */
 
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -3288,7 +3283,6 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     }
     requestId = nla_get_u32(
               tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]);
-    hddLog(LOG1, FL("Req Id %d"), requestId);
 
     /* Parse and fetch wifi band */
     if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]) {
@@ -3297,7 +3291,6 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     }
     wifiBand = nla_get_u32(
      tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_WIFI_BAND]);
-    hddLog(LOG1, FL("Wifi band %d"), wifiBand);
 
     /* Parse and fetch max channels */
     if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]) {
@@ -3306,7 +3299,8 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
     }
     maxChannels = nla_get_u32(
      tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_VALID_CHANNELS_CONFIG_PARAM_MAX_CHANNELS]);
-    hddLog(LOG1, FL("Max channels %d"), maxChannels);
+    hddLog(LOG1, FL("Req Id: %d Wifi band: %d Max channels: %d"),
+           requestId, wifiBand, maxChannels);
 
     status = sme_GetValidChannelsByBand((tHalHandle)(pHddCtx->hHal),
                                         wifiBand, chan_list,
@@ -3350,9 +3344,10 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
             }
     }
 
-    hddLog(LOG1, FL("Number of channels %d"), num_chan_new);
+    hddLog(LOG1, FL("Number of channels: %d"), num_chan_new);
     for (i = 0; i < num_chan_new; i++)
-        hddLog(LOG1, "Channel: %u ", chan_list[i]);
+        len += scnprintf(buf + len, sizeof(buf) - len, "%u ", chan_list[i]);
+    hddLog(LOG1, "Channels: %s", buf);
 
     reply_skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
                                                     sizeof(u32) * num_chan_new +
@@ -3370,7 +3365,6 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
         }
 
         retval = cfg80211_vendor_cmd_reply(reply_skb);
-        EXIT();
         return retval;
     }
     hddLog(LOGE, FL("valid channels: buffer alloc fail"));
@@ -3530,8 +3524,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		}
 		pReqMsg->buckets[bktIndex].bucket = nla_get_u8(
 			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_INDEX]);
-		hddLog(LOG1, FL("Bucket spec Index %d"),
-				pReqMsg->buckets[bktIndex].bucket);
 
 		/* Parse and fetch wifi band */
 		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]) {
@@ -3540,8 +3532,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		}
 		pReqMsg->buckets[bktIndex].band = nla_get_u8(
 			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BAND]);
-		hddLog(LOG1, FL("Wifi band %d"),
-			pReqMsg->buckets[bktIndex].band);
 
 		/* Parse and fetch period */
 		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]) {
@@ -3550,8 +3540,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		}
 		pReqMsg->buckets[bktIndex].period = nla_get_u32(
 		bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_PERIOD]);
-		hddLog(LOG1, FL("period %d"),
-			pReqMsg->buckets[bktIndex].period);
 
 		/* Parse and fetch report events */
 		if (!bucket[
@@ -3562,8 +3550,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		pReqMsg->buckets[bktIndex].reportEvents = nla_get_u8(
 			bucket[
 			QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_REPORT_EVENTS]);
-		hddLog(LOG1, FL("report events %d"),
-				pReqMsg->buckets[bktIndex].reportEvents);
 
 		/* Parse and fetch max period */
 		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_MAX_PERIOD]) {
@@ -3572,8 +3558,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 	        }
 		pReqMsg->buckets[bktIndex].max_period = nla_get_u32(
 			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_MAX_PERIOD]);
-		hddLog(LOG1, FL("max period %u"),
-			pReqMsg->buckets[bktIndex].max_period);
 
 		/* Parse and fetch base */
 		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BASE]) {
@@ -3582,8 +3566,6 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		}
 		pReqMsg->buckets[bktIndex].exponent = nla_get_u32(
 			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_BASE]);
-		hddLog(LOG1, FL("base %u"),
-			pReqMsg->buckets[bktIndex].exponent);
 
 		/* Parse and fetch step count */
 		if (!bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_STEP_COUNT]) {
@@ -3592,8 +3574,14 @@ static int hdd_extscan_start_fill_bucket_channel_spec(
 		}
 		pReqMsg->buckets[bktIndex].step_count = nla_get_u32(
 			bucket[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BUCKET_SPEC_STEP_COUNT]);
-		hddLog(LOG1, FL("Step count %u"),
-			pReqMsg->buckets[bktIndex].step_count);
+		hddLog(LOG1, FL("Bucket spec Index: %d Wifi band: %d period: %d report events: %d max period: %u base: %u Step count: %u"),
+				pReqMsg->buckets[bktIndex].bucket,
+				pReqMsg->buckets[bktIndex].band,
+				pReqMsg->buckets[bktIndex].period,
+				pReqMsg->buckets[bktIndex].reportEvents,
+				pReqMsg->buckets[bktIndex].max_period,
+				pReqMsg->buckets[bktIndex].exponent,
+				pReqMsg->buckets[bktIndex].step_count);
 
 		/* start with known good values for bucket dwell times */
 		pReqMsg->buckets[bktIndex].min_dwell_time_active =
@@ -3977,8 +3965,6 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 
 	pReqMsg->requestId = nla_get_u32(tb[PARAM_REQUEST_ID]);
 	pReqMsg->sessionId = pAdapter->sessionId;
-	hddLog(LOG1, FL("Req Id %d Session Id %d"),
-		pReqMsg->requestId, pReqMsg->sessionId);
 
 	/* Parse and fetch base period */
 	if (!tb[PARAM_BASE_PERIOD]) {
@@ -3986,7 +3972,6 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 		goto fail;
 	}
 	pReqMsg->basePeriod = nla_get_u32(tb[PARAM_BASE_PERIOD]);
-	hddLog(LOG1, FL("Base Period %d"), pReqMsg->basePeriod);
 
 	/* Parse and fetch max AP per scan */
 	if (!tb[PARAM_MAX_AP_PER_SCAN]) {
@@ -3994,7 +3979,6 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 		goto fail;
 	}
 	pReqMsg->maxAPperScan = nla_get_u32(tb[PARAM_MAX_AP_PER_SCAN]);
-	hddLog(LOG1, FL("Max AP per Scan %d"), pReqMsg->maxAPperScan);
 
 	/* Parse and fetch report threshold percent */
 	if (!tb[PARAM_RPT_THRHLD_PERCENT]) {
@@ -4003,8 +3987,6 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 	}
 	pReqMsg->report_threshold_percent = nla_get_u8(
 		tb[PARAM_RPT_THRHLD_PERCENT]);
-	hddLog(LOG1, FL("Report Threshold percent %d"),
-		pReqMsg->report_threshold_percent);
 
 	/* Parse and fetch report threshold num scans */
 	if (!tb[PARAM_RPT_THRHLD_NUM_SCANS]) {
@@ -4013,7 +3995,10 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 	}
 	pReqMsg->report_threshold_num_scans = nla_get_u8(
 		tb[PARAM_RPT_THRHLD_NUM_SCANS]);
-	hddLog(LOG1, FL("Report Threshold num scans %d"),
+	hddLog(LOG1, FL("Req Id: %d Session Id: %d Base Period: %d Max AP per Scan: %d Rpt Thld percent: %d Rpt Thld num scans: %d"),
+		pReqMsg->requestId, pReqMsg->sessionId,
+		pReqMsg->basePeriod, pReqMsg->maxAPperScan,
+		pReqMsg->report_threshold_percent,
 		pReqMsg->report_threshold_num_scans);
 
 	/* Parse and fetch number of buckets */
@@ -14174,6 +14159,15 @@ static int __wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -EINVAL;
     }
+    if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
+        hdd_adapter_t  *pP2pAdapter = NULL;
+        pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
+        if (pP2pAdapter) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+                FL("cancel active p2p device ROC before GO starting"));
+            wlan_hdd_cancel_existing_remain_on_channel(pP2pAdapter);
+        }
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
         (pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
@@ -14256,6 +14250,15 @@ static int __wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
+    }
+    if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
+        hdd_adapter_t  *pP2pAdapter = NULL;
+        pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
+        if (pP2pAdapter) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+                FL("cancel active p2p device ROC before GO starting"));
+            wlan_hdd_cancel_existing_remain_on_channel(pP2pAdapter);
+        }
     }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) ||
@@ -14565,6 +14568,15 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -EINVAL;
     }
+    if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
+        hdd_adapter_t  *pP2pAdapter = NULL;
+        pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
+        if (pP2pAdapter) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+                FL("cancel active p2p device ROC before GO starting"));
+            wlan_hdd_cancel_existing_remain_on_channel(pP2pAdapter);
+        }
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -14698,6 +14710,15 @@ static int __wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
     if (!(pAdapter->device_mode == WLAN_HDD_SOFTAP ||
           pAdapter->device_mode == WLAN_HDD_P2P_GO)) {
         return -EOPNOTSUPP;
+    }
+    if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
+        hdd_adapter_t  *pP2pAdapter = NULL;
+        pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
+        if (pP2pAdapter) {
+            hddLog(VOS_TRACE_LEVEL_DEBUG,
+                FL("cancel active p2p device ROC before GO starting"));
+            wlan_hdd_cancel_existing_remain_on_channel(pP2pAdapter);
+        }
     }
 
     old = pAdapter->sessionCtx.ap.beacon;
@@ -19190,7 +19211,7 @@ disconnected:
      */
     hddLog(LOG1, FL("Send disconnected event to userspace"));
 
-    wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, false,
+    wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, true,
                                           WLAN_REASON_UNSPECIFIED);
 #endif
 
@@ -24188,7 +24209,7 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 	uint32_t i, j, nl_buf_len;
 	bool ignore_cached_results = false;
 
-	ENTER();
+	/* ENTER() intentionally not used in a frequently invoked API */
 
 	if (wlan_hdd_validate_context(pHddCtx))
 		return;
@@ -24256,7 +24277,6 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 		}
 	}
 
-	hddLog(LOG2, FL("nl_buf_len = %u"), nl_buf_len);
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(pHddCtx->wiphy, nl_buf_len);
 
 	if (!skb) {
@@ -24386,7 +24406,6 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 		complete(&context->response_event);
 		spin_unlock(&hdd_context_lock);
 	}
-	EXIT();
 	return;
 
 fail:
@@ -24866,18 +24885,18 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 					tpSirWifiFullScanResultEvent pData)
 {
 	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
-	struct sk_buff *skb     = NULL;
+	struct sk_buff *skb;
 	struct timespec ts;
 	int flags = vos_get_gfp_flags();
 	struct hdd_ext_scan_context *context;
 
-	ENTER();
+	/* ENTER() intentionally not used in a frequently invoked API */
 
 	if (wlan_hdd_validate_context(pHddCtx))
 		return;
 
 	if (!pData) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("pData is null"));
+		hddLog(LOGE, FL("pData is null"));
 		return;
 	}
 	/*
@@ -24905,8 +24924,6 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 	   Instead it wants a monotonic increasing value since boot */
 	vos_get_monotonic_boottime_ts(&ts);
 	pData->ap.ts = ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
-	hddLog(LOG1, "Req Id %u More Data %u",
-		pData->requestId, pData->moreData);
 	hddLog(LOG1, "AP Info: Timestamp %llu Ssid: %s "
 				"Bssid (" MAC_ADDRESS_STR ") "
 				"Channel %u "
@@ -24980,12 +24997,9 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 		hddLog(LOGE, FL("Failed to include buckets_scanned"));
 		goto nla_put_failure;
 	}
-	hddLog(LOG1, FL("Full scan buckets_scanned: %u"),
-		context->buckets_scanned);
 	spin_unlock(&hdd_context_lock);
 
 	cfg80211_vendor_event(skb, flags);
-	EXIT();
 	return;
 
 nla_put_failure:
@@ -25189,14 +25203,13 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
 	int flags = vos_get_gfp_flags();
 	struct hdd_ext_scan_context *context;
 
-	ENTER();
+	/* ENTER() intentionally not used in a frequently invoked API */
 
 	if (wlan_hdd_validate_context(pHddCtx))
 		return;
 
 	if (!data) {
 		hddLog(LOGE, FL("data is null"));
-		EXIT();
 		return;
 	}
 
@@ -25214,7 +25227,6 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
 		context->buckets_scanned = data->buckets_scanned;
 		/* No need to report to user space */
 		spin_unlock(&hdd_context_lock);
-		EXIT();
 		return;
 	} else {
 		spin_unlock(&hdd_context_lock);
@@ -25228,7 +25240,6 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
 
 	if (!skb) {
 		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
-		EXIT();
 		return;
 	}
 
@@ -25241,12 +25252,10 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
 	}
 
 	cfg80211_vendor_event(skb, flags);
-	EXIT();
 	return;
 
 nla_put_failure:
 	kfree_skb(skb);
-	EXIT();
 	return;
 }
 
@@ -25389,7 +25398,7 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)ctx;
 
-    ENTER();
+    /* ENTER() intentionally not used in a frequently invoked API */
 
     if (wlan_hdd_validate_context(pHddCtx))
         return;
@@ -25467,7 +25476,6 @@ void wlan_hdd_cfg80211_extscan_callback(void *ctx, const tANI_U16 evType,
             hddLog(LOGE, FL("Unknown event type %u"), evType);
             break;
     }
-    EXIT();
 }
 
 #endif /* FEATURE_WLAN_EXTSCAN */

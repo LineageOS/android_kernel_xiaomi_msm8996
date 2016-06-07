@@ -120,7 +120,6 @@ extern int process_wma_set_command(int sessid, int paramid,
 /* EID byte + length byte + four byte WiFi OUI */
 #define DOT11F_EID_HEADER_LEN (6)
 
-#define DUMP_DP_TRACE       0
 
 /*---------------------------------------------------------------------------
  *   Function definitions
@@ -2638,6 +2637,10 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
             value[1], value[2]);
         if (value[1] == DUMP_DP_TRACE)
             adf_dp_trace_dump_all(value[2]);
+        else if (value[1] == ENABLE_DP_TRACE_LIVE_MODE)
+            adf_dp_trace_enable_live_mode();
+        else if (value[1] == CLEAR_DP_TRACE_BUFFER)
+            adf_dp_trace_clear_buffer();
         else
             hddLog(LOGE, "unexpected value for dump_dp_trace");
         break;
@@ -6339,7 +6342,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_STOPBSS,
       IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
   { QCSAP_IOCTL_VERSION, 0,
-      IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
+      IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN, "version" },
   { QCSAP_IOCTL_GET_STA_INFO, 0,
       IW_PRIV_TYPE_CHAR | WE_SAP_MAX_STA_INFO, "get_sta_info" },
   { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,

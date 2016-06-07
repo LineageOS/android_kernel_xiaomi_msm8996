@@ -285,9 +285,6 @@ static void hif_usb_remove(struct usb_interface *interface)
 	/* do cold reset */
 	HIFDiagWriteCOLDRESET(sc->hif_device);
 
-	if (usb_sc->suspend_state) {
-		hif_usb_resume(usb_sc->interface);
-	}
 	unregister_reboot_notifier(&sc->reboot_notifier);
 	usb_put_dev(interface_to_usbdev(interface));
 	if (atomic_read(&hif_usb_unload_state) ==

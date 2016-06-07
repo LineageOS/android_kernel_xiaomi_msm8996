@@ -9871,9 +9871,14 @@ static void __hdd_set_multicast_list(struct net_device *dev)
    {
       mc_count = netdev_mc_count(dev);
       hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: mc_count = %u", __func__, mc_count);
+            "%s: mc_count : %u, max_mc_addr_list : %d",
+             __func__, mc_count, pHddCtx->max_mc_addr_list);
 
       netdev_for_each_mc_addr(ha, dev) {
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                FL("ha_addr[%d] "MAC_ADDRESS_STR),
+                i, MAC_ADDR_ARRAY(ha->addr));
+
          if (i == mc_count || i == pHddCtx->max_mc_addr_list)
             break;
          /*
@@ -11807,7 +11812,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                pAdapter->sessionCtx.station.hdd_ReassocScenario = VOS_FALSE;
 
                /* indicate disconnected event to nl80211 */
-               wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, true,
+               wlan_hdd_cfg80211_indicate_disconnect(pAdapter->dev, false,
                                                      WLAN_REASON_UNSPECIFIED);
             }
             else if (eConnectionState_Connecting == connState)
@@ -15859,7 +15864,8 @@ static void hdd_driver_exit(void)
       pHddCtx->driver_being_stopped = false;
 
 #ifdef QCA_PKT_PROTO_TRACE
-      vos_pkt_proto_trace_close();
+      if (VOS_FTM_MODE != hdd_get_conparam())
+          vos_pkt_proto_trace_close();
 #endif /* QCA_PKT_PROTO_TRACE */
       while(pHddCtx->isLogpInProgress ||
             vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {

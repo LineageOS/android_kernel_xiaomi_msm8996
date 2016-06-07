@@ -99,6 +99,8 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 // New HAL API interface defs.
 #include "logDump.h"
 
+#include "ol_txrx_ctrl_api.h"
+
 //Check if this definition can actually move here from halInternal.h even for Volans. In that case
 //this featurization can be removed.
 #define PMAC_STRUCT( _hHal )  (  (tpAniSirGlobal)_hHal )
@@ -1131,6 +1133,8 @@ typedef struct sMacOpenParameters
     bool force_target_assert_enabled;
     uint16_t pkt_bundle_timer_value;
     uint16_t pkt_bundle_size;
+
+    struct ol_tx_sched_wrr_ac_specs_t ac_specs[OL_TX_NUM_WMM_AC];
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters

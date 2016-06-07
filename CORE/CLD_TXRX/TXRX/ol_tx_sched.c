@@ -195,12 +195,13 @@ ol_tx_sched_select_batch_rr(
     struct ol_tx_sched_rr_t *scheduler = pdev->tx_sched.scheduler;
     struct ol_tx_active_queues_in_tid_t *txq_queue;
     struct ol_tx_frms_queue_t *next_tq;
-    u_int16_t frames, used_credits, tx_limit, tx_limit_flag = 0;
+    u_int16_t frames, used_credits = 0, tx_limit, tx_limit_flag = 0;
     int bytes;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
-    if (TAILQ_EMPTY(&scheduler->tx_active_tids_list)) return;
+    if (TAILQ_EMPTY(&scheduler->tx_active_tids_list))
+	return used_credits;
 
     txq_queue = TAILQ_FIRST(&scheduler->tx_active_tids_list);
 
@@ -212,10 +213,10 @@ ol_tx_sched_select_batch_rr(
 
     credit = OL_A_MIN(credit, TX_SCH_MAX_CREDIT_FOR_THIS_TID(next_tq));
     frames = next_tq->frms; /* download as many frames as credit allows */
-    tx_limit = ol_tx_bad_peer_dequeue_check(txq, category->specs.send_limit, &tx_limit_flag);
+    tx_limit = ol_tx_bad_peer_dequeue_check(next_tq, frames, &tx_limit_flag);
     frames = ol_tx_dequeue(
-            pdev, txq, &sctx->head, tx_limit, &credit, &bytes);
-    ol_tx_bad_peer_update_tx_limit(pdev, txq, frames, tx_limit_flag);
+	pdev, next_tq, &sctx->head, tx_limit, &credit, &bytes);
+    ol_tx_bad_peer_update_tx_limit(pdev, next_tq, frames, tx_limit_flag);
 
     used_credits = credit;
     txq_queue->frms -= frames;
@@ -423,6 +424,36 @@ ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wm
 {
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
         "Dummy function when OL_TX_SCHED_RR is enabled\n");
+}
+
+/**
+ * ol_tx_sched_stats_display() - tx sched stats display
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev)
+{
+}
+
+/**
+ * ol_tx_sched_cur_state_display() - tx sched cur stat display
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_cur_state_display(struct ol_txrx_pdev_t *pdev)
+{
+}
+
+/**
+ * ol_tx_sched_cur_state_display() - reset tx sched stats
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_clear(struct ol_txrx_pdev_t *pdev)
+{
 }
 
 #endif /* OL_TX_SCHED == OL_TX_SCHED_RR */
@@ -937,6 +968,72 @@ ol_tx_sched_category_info_wrr_adv(
     *bytes = category->state.bytes;
 }
 
+
+/**
+ * ol_tx_sched_wrr_param_update() - update the WRR TX sched params
+ * @pdev: Pointer to PDEV structure.
+ * @scheduler: Pointer to tx scheduler.
+ *
+ * Update the WRR TX schedule parameters for each category if it is
+ * specified in the ini file by user.
+ *
+ * Return: none
+ */
+void ol_tx_sched_wrr_param_update(struct ol_txrx_pdev_t *pdev,
+				struct ol_tx_sched_wrr_adv_t *scheduler)
+{
+	int i;
+	char *tx_sched_wrr_name[4] = {
+		"BE",
+		"BK",
+		"VI",
+		"VO"
+	};
+
+	if (NULL == scheduler)
+		return;
+
+	VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+		"%s: Tuning the TX scheduler wrr parameters by ini file:",
+		__func__);
+	VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+		"         skip credit limit credit disc");
+
+	for (i = OL_TX_SCHED_WRR_ADV_CAT_BE;
+		i <= OL_TX_SCHED_WRR_ADV_CAT_VO; i++) {
+		if (ol_cfg_get_wrr_skip_weight(pdev->ctrl_pdev, i)) {
+			scheduler->categories[i].specs.wrr_skip_weight =
+				ol_cfg_get_wrr_skip_weight(pdev->ctrl_pdev, i);
+			scheduler->categories[i].specs.credit_threshold =
+				ol_cfg_get_credit_threshold(pdev->ctrl_pdev, i);
+			scheduler->categories[i].specs.send_limit =
+				ol_cfg_get_send_limit(pdev->ctrl_pdev, i);
+			scheduler->categories[i].specs.credit_reserve =
+				ol_cfg_get_credit_reserve(pdev->ctrl_pdev, i);
+			scheduler->categories[i].specs.discard_weight =
+				ol_cfg_get_discard_weight(pdev->ctrl_pdev, i);
+
+			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+				"%s-update: %d,  %d,    %d,   %d,    %d",
+				tx_sched_wrr_name[i],
+				scheduler->categories[i].specs.wrr_skip_weight,
+				scheduler->categories[i].specs.credit_threshold,
+				scheduler->categories[i].specs.send_limit,
+				scheduler->categories[i].specs.credit_reserve,
+				scheduler->categories[i].specs.discard_weight);
+		} else {
+			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+				"%s-orig: %d,  %d,    %d,   %d,    %d",
+				tx_sched_wrr_name[i],
+				scheduler->categories[i].specs.wrr_skip_weight,
+				scheduler->categories[i].specs.credit_threshold,
+				scheduler->categories[i].specs.send_limit,
+				scheduler->categories[i].specs.credit_reserve,
+				scheduler->categories[i].specs.discard_weight);
+		}
+	}
+}
+
 void *
 ol_tx_sched_init_wrr_adv(
   struct ol_txrx_pdev_t *pdev)
@@ -959,6 +1056,8 @@ ol_tx_sched_init_wrr_adv(
     OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(UCAST_MGMT, scheduler);
     OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(MCAST_DATA, scheduler);
     OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(MCAST_MGMT, scheduler);
+
+    ol_tx_sched_wrr_param_update(pdev, scheduler);
 
     for (i = 0; i < OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES; i++) {
         scheduler->categories[i].state.active = 0;
@@ -1040,6 +1139,39 @@ ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wm
         scheduler->categories[i].specs.discard_weight =
                                  def_cfg.categories[ac_selected].specs.discard_weight;
     }
+}
+
+/**
+ * ol_tx_sched_stats_display() - tx sched stats display
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev)
+{
+    OL_TX_SCHED_WRR_ADV_CAT_STAT_DUMP(pdev->tx_sched.scheduler);
+}
+
+/**
+ * ol_tx_sched_cur_state_display() - tx sched cur stat display
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_cur_state_display(struct ol_txrx_pdev_t *pdev)
+{
+    OL_TX_SCHED_WRR_ADV_CAT_CUR_STATE_DUMP(pdev->tx_sched.scheduler);
+}
+
+/**
+ * ol_tx_sched_cur_state_display() - reset tx sched stats
+ * @pdev: Pointer to the PDEV structure.
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_clear(struct ol_txrx_pdev_t *pdev)
+{
+    OL_TX_SCHED_WRR_ADV_CAT_STAT_CLEAR(pdev->tx_sched.scheduler);
 }
 
 #endif /* OL_TX_SCHED == OL_TX_SCHED_WRR_ADV */
@@ -1412,20 +1544,5 @@ ol_tx_sched_log(struct ol_txrx_pdev_t *pdev)
 }
 
 #endif /* defined(DEBUG_HL_LOGGING) */
-
-void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev)
-{
-    OL_TX_SCHED_WRR_ADV_CAT_STAT_DUMP(pdev->tx_sched.scheduler);
-}
-
-void ol_tx_sched_cur_state_display(struct ol_txrx_pdev_t *pdev)
-{
-    OL_TX_SCHED_WRR_ADV_CAT_CUR_STATE_DUMP(pdev->tx_sched.scheduler);
-}
-
-void ol_tx_sched_stats_clear(struct ol_txrx_pdev_t *pdev)
-{
-    OL_TX_SCHED_WRR_ADV_CAT_STAT_CLEAR(pdev->tx_sched.scheduler);
-}
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
