@@ -553,7 +553,7 @@ int pktlog_send_per_pkt_stats_to_user(void)
 			goto err;
 		}
 		ret = nl_srv_bcast(pstats_msg->skb);
-		if (ret < 0) {
+		if ((ret < 0) && (ret != -ESRCH)) {
 			pr_info("%s: Send Failed %d drop_count = %u\n",
 				__func__, ret,
 				++gwlan_logging.pkt_stat_drop_cnt);
