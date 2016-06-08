@@ -466,18 +466,22 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     tANI_U8 num_channel = 0;
     tANI_U32 bufLen;
     vos_msg_t msg;
-    tANI_U8 i, j, social_channel[MAX_SOCIAL_CHANNELS] = {1,6,11};
+    tANI_U8 i;
     tANI_U8 channel_state;
     uint16_t unsafe_chan[NUM_20MHZ_RF_CHANNELS];
     uint16_t unsafe_chan_cnt = 0;
     uint16_t cnt = 0;
     uint8_t  channel;
     bool is_unsafe_chan;
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
+    int  j, social_channel[MAX_SOCIAL_CHANNELS] = {1,6,11};
+#endif
 
     vos_get_wlan_unsafe_channel(unsafe_chan,
             &unsafe_chan_cnt,
             sizeof(unsafe_chan));
 
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
     if (CSR_IS_5G_BAND_ONLY(pMac))
     {
         for (i = 0; i < MAX_SOCIAL_CHANNELS; i++)
@@ -490,6 +494,7 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
                 numChan++;
         }
     }
+#endif
 
     bufLen = sizeof(tSirUpdateChanList) +
         (sizeof(tSirUpdateChanParam) * (numChan));
@@ -569,6 +574,7 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     }
 
 
+#ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
     if (CSR_IS_5G_BAND_ONLY(pMac))
     {
         for (j = 0; j < MAX_SOCIAL_CHANNELS; j++)
@@ -585,6 +591,7 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
             }
         }
     }
+#endif
 
     if ((pMac->roam.configParam.uCfgDot11Mode == eCSR_CFG_DOT11_MODE_AUTO) ||
                     (pMac->roam.configParam.uCfgDot11Mode ==
