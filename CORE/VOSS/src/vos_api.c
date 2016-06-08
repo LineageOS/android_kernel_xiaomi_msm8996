@@ -423,6 +423,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* Initialize the timer module */
    vos_timer_module_init();
 
+   vos_wdthread_init_timer_work(vos_process_wd_timer);
+
    /* Initialize bug reporting structure */
    vos_init_log_completion();
 
@@ -1258,6 +1260,8 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 
   vos_deinit_log_completion();
+
+  vos_wdthread_flush_timer_work();
 
   return VOS_STATUS_SUCCESS;
 }
