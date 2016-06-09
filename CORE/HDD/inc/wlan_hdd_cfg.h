@@ -3944,6 +3944,21 @@ enum dot11p_mode {
 #define CFG_BUG_ON_REINIT_FAILURE_MAX      (1)
 #define CFG_BUG_ON_REINIT_FAILURE_DEFAULT  (1)
 
+/*
+ * This parameter will avoid updating ap_sta_inactivity from hostapd.conf
+ * file. If a station does not send anything in ap_max_inactivity seconds, an
+ * empty data frame is sent to it in order to verify whether it is
+ * still in range. If this frame is not ACKed, the station will be
+ * disassociated and then deauthenticated. This feature is used to
+ * clear station table of old entries when the STAs move out of the
+ * range.
+ * Default : Disable
+ */
+#define CFG_SAP_MAX_INACTIVITY_OVERRIDE_NAME     "gSapMaxInactivityOverride"
+#define CFG_SAP_MAX_INACTIVITY_OVERRIDE_DEFAULT  (0)
+#define CFG_SAP_MAX_INACTIVITY_OVERRIDE_MIN      (0)
+#define CFG_SAP_MAX_INACTIVITY_OVERRIDE_MAX      (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4723,6 +4738,7 @@ struct hdd_config {
    bool                        bug_on_reinit_failure;
    /* parameter to force sap into 11n */
    bool                        sap_force_11n_for_11ac;
+   uint8_t                     sap_max_inactivity_override;
 };
 
 typedef struct hdd_config hdd_config_t;
