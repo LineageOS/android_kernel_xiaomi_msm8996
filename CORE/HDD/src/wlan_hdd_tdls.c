@@ -2255,6 +2255,11 @@ void wlan_hdd_tdls_increment_peer_count(hdd_adapter_t *pAdapter)
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: %d",
                __func__, pHddCtx->connected_peer_count);
 
+    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask &&
+       (HDD_ANTENNA_MODE_2X2 != pHddCtx->current_antenna_mode))
+        hdd_decide_dynamic_chain_mask(pHddCtx,
+                       HDD_ANTENNA_MODE_2X2);
+
     mutex_unlock(&pHddCtx->tdls_lock);
     EXIT();
 }
@@ -2277,6 +2282,10 @@ void wlan_hdd_tdls_decrement_peer_count(hdd_adapter_t *pAdapter)
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: %d",
                __func__, pHddCtx->connected_peer_count);
 
+    if (!pHddCtx->connected_peer_count &&
+       pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
+        hdd_decide_dynamic_chain_mask(pHddCtx,
+                          HDD_ANTENNA_MODE_INVALID);
     mutex_unlock(&pHddCtx->tdls_lock);
     EXIT();
 }

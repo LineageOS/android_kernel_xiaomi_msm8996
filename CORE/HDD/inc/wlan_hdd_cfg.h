@@ -3397,6 +3397,26 @@ enum dot11p_mode {
 #define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX       (200)
 #define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_DEFAULT   (30)
 
+/**
+ * Config to set BT WLAN co-existing
+ * 0: enable BT WLAN co-existing
+ * 1: dynamically disable BT WLAN co-existing
+ */
+#define CFG_BTC_DYNAMIC_WLAN_BT_COEX           "gDynamicBTCOEX"
+#define CFG_BTC_DYNAMIC_WLAN_BT_COEX_MIN       (0)
+#define CFG_BTC_DYNAMIC_WLAN_BT_COEX_MAX       (1)
+#define CFG_BTC_DYNAMIC_WLAN_BT_COEX_DEFAULT   (0)
+
+/**
+ * Config to set antenna isolation
+ * range: 0 - 100 db
+ * default: 0 db
+ */
+#define CFG_BTC_ANTENNA_ISOLATION           "gAntennaIsolation"
+#define CFG_BTC_ANTENNA_ISOLATION_MIN       (0)
+#define CFG_BTC_ANTENNA_ISOLATION_MAX       (100)
+#define CFG_BTC_ANTENNA_ISOLATION_DEFAULT   (0)
+
 
 /* Parameters for roaming scans performed at high RSSI */
 
@@ -4576,6 +4596,8 @@ struct hdd_config {
 
    uint32_t                    coex_page_sap_bt_interval;
    uint32_t                    coex_page_sap_wlan_interval;
+   uint32_t                    dynamic_wlan_bt_coex;
+   uint32_t                    antenna_isolation;
 
    uint8_t                     inform_bss_rssi_raw;
 #ifdef WLAN_FEATURE_TSF

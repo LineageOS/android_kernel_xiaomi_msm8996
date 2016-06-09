@@ -4197,6 +4197,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MIN,
                 CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX),
 
+   REG_VARIABLE(CFG_BTC_DYNAMIC_WLAN_BT_COEX, WLAN_PARAM_Integer,
+                hdd_config_t, dynamic_wlan_bt_coex,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_DYNAMIC_WLAN_BT_COEX_DEFAULT,
+                CFG_BTC_DYNAMIC_WLAN_BT_COEX_MIN,
+                CFG_BTC_DYNAMIC_WLAN_BT_COEX_MAX),
+
+   REG_VARIABLE(CFG_BTC_ANTENNA_ISOLATION, WLAN_PARAM_Integer,
+                hdd_config_t, antenna_isolation,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_ANTENNA_ISOLATION_DEFAULT,
+                CFG_BTC_ANTENNA_ISOLATION_MIN,
+                CFG_BTC_ANTENNA_ISOLATION_MAX),
+
    REG_VARIABLE(CFG_INFORM_BSS_RSSI_RAW_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, inform_bss_rssi_raw,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -7902,4 +7916,10 @@ void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
 		if (VOS_STATUS_SUCCESS != status)
 			hddLog(LOGE, "Fail to set coex page sap bt interval parameters");
 	}
+
+	status = sme_set_btc_dynamic_bt_wlan_coex(
+		config->dynamic_wlan_bt_coex, config->antenna_isolation);
+
+	if (VOS_STATUS_SUCCESS != status)
+		hddLog(LOGE, "Fail to set enable bt wlan coex parameters");
 }
