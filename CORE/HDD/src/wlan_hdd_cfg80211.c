@@ -12126,7 +12126,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #ifdef CHANNEL_SWITCH_SUPPORTED
     wiphy->flags |= WIPHY_FLAG_HAS_CHANNEL_SWITCH;
 #endif
-
+    wiphy->features |= NL80211_FEATURE_INACTIVITY_TIMER;
     EXIT();
     return 0;
 }
@@ -14759,6 +14759,9 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             }
         }
         hdd_change_ch_avoidance_status(pHddCtx, false);
+        if (pHddCtx->cfg_ini->sap_max_inactivity_override)
+            sme_update_sta_inactivity_timeout(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                    pAdapter->sessionId, params->inactivity_timeout);
     }
 
     EXIT();
