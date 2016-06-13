@@ -774,12 +774,6 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
         }
 
         psessionEntry->limAID = 0;
-
-    } else if (
-       (mlmStaContext.cleanupTrigger == eLIM_LINK_MONITORING_DISASSOC) ||
-       (mlmStaContext.cleanupTrigger == eLIM_LINK_MONITORING_DEAUTH)) {
-       /* only for non-STA cases PE/SME is serialized */
-       return;
     }
 
     if ((mlmStaContext.cleanupTrigger ==
