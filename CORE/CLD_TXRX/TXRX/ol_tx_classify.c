@@ -349,7 +349,7 @@ ol_tx_classify(
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
     if (!dest_addr) {
        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-                 FL("Invalid dest_addr");
+                 "%s: Invalid dest_addr", __func__);
         return NULL;
     }
     if ((IEEE80211_IS_MULTICAST(dest_addr))
@@ -589,7 +589,7 @@ ol_tx_classify_mgmt(
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
     if (!dest_addr) {
        VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-                 FL("Invalid dest_addr");
+                 "%s: Invalid dest_addr", __func__);
         return NULL;
     }
     if (IEEE80211_IS_MULTICAST(dest_addr)) {
