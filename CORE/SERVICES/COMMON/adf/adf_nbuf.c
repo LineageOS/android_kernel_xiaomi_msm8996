@@ -1140,3 +1140,22 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 			rtap_hdr_len, rtap_len - rtap_hdr_len);
 	return rtap_len;
 }
+
+/**
+ * __adf_nbuf_validate_skb_cb() - validate skb CB
+ *
+ * SKB control block size limit is 48 byte, add compile time
+ * assert if SKB control block is exceeding 48 byte.
+ *
+ * Return: none
+ */
+void
+__adf_nbuf_validate_skb_cb(void)
+{
+	/*
+	 * Add compile time assert if SKB control block is exceeding
+	 * 48 byte.
+	 */
+	BUILD_BUG_ON(sizeof(struct cvg_nbuf_cb) >
+		FIELD_SIZEOF(struct sk_buff, cb));
+}
