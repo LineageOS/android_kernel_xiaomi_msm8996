@@ -117,11 +117,7 @@ static const int beacon_filter_table[] = {
 	SIR_MAC_ERP_INFO_EID,
 	SIR_MAC_EDCA_PARAM_SET_EID,
 	SIR_MAC_QOS_CAPABILITY_EID,
-	SIR_MAC_CHNL_SWITCH_ANN_EID,
 	SIR_MAC_HT_INFO_EID,
-#if defined WLAN_FEATURE_VOWIFI
-	SIR_MAC_PWR_CONSTRAINT_EID,
-#endif
 #ifdef WLAN_FEATURE_11AC
 	SIR_MAC_VHT_OPMODE_EID,
 	SIR_MAC_VHT_OPERATION_EID,
@@ -305,10 +301,10 @@ static int hdd_set_beacon_filter(hdd_adapter_t *adapter)
 	uint32_t ie_map[8] = {0};
 	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
 
-	for (i = 0; i < ARRAY_SIZE(beacon_filter_table); i++) {
-		__set_bit((beacon_filter_table[i] - 1),
+	for (i = 0; i < ARRAY_SIZE(beacon_filter_table); i++)
+		__set_bit(beacon_filter_table[i],
 			  (unsigned long int *)ie_map);
-	}
+
 	vos_status = sme_set_beacon_filter(adapter->sessionId, ie_map);
 	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
 		hddLog(LOGE, "%s: failed to set beacon filter",

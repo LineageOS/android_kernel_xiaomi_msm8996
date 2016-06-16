@@ -29997,7 +29997,6 @@ static VOS_STATUS wma_set_beacon_filter(tp_wma_handle wma,
 		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
-	WMA_LOGD("added beacon filter = %d", vos_status);
 
 	return vos_status;
 }
@@ -30044,7 +30043,6 @@ static VOS_STATUS wma_remove_beacon_filter(tp_wma_handle wma,
 		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
-	WMA_LOGA("removed beacon filter = %d", vos_status);
 
 	return vos_status;
 }
