@@ -291,9 +291,15 @@ ol_tx_dequeue(
     u_int16_t num_frames;
     int bytes_sum;
     unsigned credit_sum;
+    u_int16_t temp_frms;
+    u_int32_t temp_bytes;
+    bool flush_all = false;
+    struct ol_tx_desc_t *tx_flush_desc;
 
     TXRX_ASSERT2(txq->flag != ol_tx_queue_paused);
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
+    temp_frms = txq->frms;
+    temp_bytes = txq->bytes;
 
     if (txq->frms < max_frames) {
         max_frames = txq->frms;
@@ -304,6 +310,13 @@ ol_tx_dequeue(
         unsigned frame_credit;
         struct ol_tx_desc_t *tx_desc;
         tx_desc = TAILQ_FIRST(&txq->head);
+        if(!tx_desc) {
+           flush_all = true;
+           TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                      "%s: flush frames: num_frames = %d, max_frames = %d\n",
+                       __func__, num_frames, max_frames);
+           break;
+        }
 
         frame_credit = htt_tx_msdu_credit(tx_desc->netbuf);
         if (credit_sum + frame_credit > *credit) {
@@ -323,8 +336,22 @@ ol_tx_dequeue(
     OL_TX_QUEUE_LOG_DEQUEUE(pdev, txq, num_frames, bytes_sum);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 
-    *bytes = bytes_sum;
-    *credit = credit_sum;
+    if (flush_all && bytes_sum) {
+        *bytes = temp_bytes;
+        *credit = 0;
+        txq->frms = 0;
+        txq->bytes = 0;
+        while (num_frames) {
+            tx_flush_desc = TAILQ_FIRST(head);
+            TAILQ_REMOVE(head, tx_flush_desc, tx_desc_list_elem);
+            ol_tx_desc_frame_free_nonstd(pdev, tx_flush_desc, 0);
+            num_frames--;
+        }
+
+    } else {
+        *bytes = bytes_sum;
+        *credit = credit_sum;
+    }
     return num_frames;
 }
 
