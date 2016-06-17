@@ -582,6 +582,11 @@ A_STATUS HTCWaitRecvCtrlMessage(HTC_TARGET *target)
     /* Wait for BMI request/response transaction to complete */
     if(!adf_os_wait_for_completion_timeout(&target->CtrlResponseValid,
         adf_os_msecs_to_ticks(HTC_CONTROL_RX_TIMEOUT))) {
+        /* Reset the target by invoking power off and power on sequence to
+         * the card to bring back into active state.
+         */
+        if(hif_reset_target(target->hif_dev))
+            VOS_BUG(0);
         return A_ERROR;
     }
 
