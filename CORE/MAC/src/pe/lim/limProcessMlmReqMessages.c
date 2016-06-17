@@ -1737,6 +1737,9 @@ limMlmAddBss (
                  pMac->roam.configParam.rx_aggregation_size;
     }
     pAddBssParams->dot11_mode = psessionEntry->dot11mode;
+
+    pAddBssParams->beacon_tx_rate = pMlmStartReq->beacon_tx_rate;
+
     limLog(pMac, LOG2, FL("dot11_mode:%d"), pAddBssParams->dot11_mode);
 
     msgQ.type       = WDA_ADD_BSS_REQ;

@@ -192,6 +192,16 @@ WLANSAP_ScanCallback
                           "%s: ACS scan id: %d (skipped ACS SCAN)", __func__, scanID);
 #endif
             operChannel = sapSelectChannel(halHandle, psapContext, pResult);
+            if (!operChannel) {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("No channel was selected from preferred channel for Operating channel"));
+
+                operChannel = psapContext->acs_cfg->start_ch;
+
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("Selecting operating channel as starting channel from preferred channel list: %d"),
+                          operChannel);
+            }
 
             sme_ScanResultPurge(halHandle, pResult);
             break;
@@ -410,6 +420,16 @@ WLANSAP_PreStartBssAcsScanCallback
             }
 #endif
             operChannel = sapSelectChannel(halHandle, psapContext, pResult);
+            if (!operChannel) {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("No channel was selected from preferred channel for Operating channel"));
+
+                operChannel = psapContext->acs_cfg->start_ch;
+
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("Selecting operating channel as starting channel from preferred channel list: %d"),
+                          operChannel);
+            }
 
             sme_ScanResultPurge(halHandle, pResult);
         }

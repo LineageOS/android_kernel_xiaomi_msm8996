@@ -6483,6 +6483,7 @@ static int wma_unified_dfs_radar_rx_event_handler(void *handle,
 
 	/* Index of peak magnitude */
 	event->sidx = radar_event->peak_sidx;
+	event->re_flags = 0;
 
 	/*
 	 * Handle chirp flags.
@@ -12503,8 +12504,16 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		}
 	}
 
-   cmd->beacon_interval = req->beacon_intval;
+	cmd->beacon_interval = req->beacon_intval;
 	cmd->dtim_period = req->dtim_period;
+
+	if (req->beacon_tx_rate) {
+		WMA_LOGI("%s[%d]: beacon_tx_rate present [%hu]",
+				__func__, __LINE__, req->beacon_tx_rate);
+		cmd->flags |= WMI_UNIFIED_VDEV_START_BCN_TX_RATE_PRESENT;
+		cmd->bcn_tx_rate = req->beacon_tx_rate;
+	}
+
 	/* FIXME: Find out min, max and regulatory power levels */
 	WMI_SET_CHANNEL_REG_POWER(chan, req->max_txpow);
 	WMI_SET_CHANNEL_MAX_TX_POWER(chan, req->max_txpow);
@@ -15679,6 +15688,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 
 	req.beacon_intval = add_bss->beaconInterval;
 	req.dtim_period = add_bss->dtimPeriod;
+	req.beacon_tx_rate = add_bss->beacon_tx_rate;
 	req.hidden_ssid = add_bss->bHiddenSSIDEn;
 	req.is_dfs = add_bss->bSpectrumMgtEnabled;
 	req.oper_mode = BSS_OPERATIONAL_MODE_AP;

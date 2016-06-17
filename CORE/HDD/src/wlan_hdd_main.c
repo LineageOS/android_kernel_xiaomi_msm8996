@@ -9874,12 +9874,20 @@ static void __hdd_set_multicast_list(struct net_device *dev)
             "%s: mc_count : %u, max_mc_addr_list : %d",
              __func__, mc_count, pHddCtx->max_mc_addr_list);
 
+      if (mc_count > pHddCtx->max_mc_addr_list) {
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                "%s: No free filter available; allow all multicast frames",
+                __func__);
+         pAdapter->mc_addr_list.mc_cnt = 0;
+         return;
+      }
+
       netdev_for_each_mc_addr(ha, dev) {
          hddLog(VOS_TRACE_LEVEL_INFO,
                 FL("ha_addr[%d] "MAC_ADDRESS_STR),
                 i, MAC_ADDR_ARRAY(ha->addr));
 
-         if (i == mc_count || i == pHddCtx->max_mc_addr_list)
+         if (i == mc_count)
             break;
          /*
           * Skip following addresses:
@@ -15863,10 +15871,6 @@ static void hdd_driver_exit(void)
 
       pHddCtx->driver_being_stopped = false;
 
-#ifdef QCA_PKT_PROTO_TRACE
-      if (VOS_FTM_MODE != hdd_get_conparam())
-          vos_pkt_proto_trace_close();
-#endif /* QCA_PKT_PROTO_TRACE */
       while(pHddCtx->isLogpInProgress ||
             vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -15888,6 +15892,10 @@ static void hdd_driver_exit(void)
    }
 
    vos_wait_for_work_thread_completion(__func__);
+#ifdef QCA_PKT_PROTO_TRACE
+      if (VOS_FTM_MODE != hdd_get_conparam())
+          vos_pkt_proto_trace_close();
+#endif /* QCA_PKT_PROTO_TRACE */
 
    hif_unregister_driver();
 
