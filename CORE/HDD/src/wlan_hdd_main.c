@@ -16645,6 +16645,14 @@ void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx)
 		if ((adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode) &&
 				(!hdd_find_prefd_safe_chnl(hdd_ctx, adapter)))
 			return;
+
+		/* SAP restart due to unsafe channel. While restarting the SAP,
+		 * make sure to clear acs_channel, channel to reset to 0.
+		 * Otherwise these settings will override the ACS while restart.
+		 */
+		hdd_ctx->acs_policy.acs_channel = AUTO_CHANNEL_SELECT;
+		adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
+
 		hddLog(LOG1, FL("Current operation channel %d"),
 			adapter->sessionCtx.ap.operatingChannel);
 
