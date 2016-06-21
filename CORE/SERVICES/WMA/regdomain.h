@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -884,6 +884,9 @@ typedef struct ath_hal_reg_dmn_tables {
  *        - country definition: CTRY_ZIMBABWE
  *            - country string: ZW
  *            - country ID: 716
+ *        - country definition: CTRY_XA
+ *            - country string: XA
+ *            - country ID: 4100
  */
 enum CountryCode {
     CTRY_ALBANIA              = 8,       /* Albania */
@@ -1083,6 +1086,7 @@ enum CountryCode {
     CTRY_JAPAN57              = 4057,    /* Japan (J57) */
     CTRY_JAPAN58              = 4058,    /* Japan (J58) */
     CTRY_JAPAN59              = 4059,    /* Japan (J59) */
+    CTRY_XA                   = 4100,    /* Japan KDDI */
 
     /*
     ** "Special" codes for multiply defined countries, with the exception
