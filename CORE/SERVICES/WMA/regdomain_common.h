@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -463,6 +463,7 @@ static const REG_DMN_PAIR_MAPPING ahCmnRegDomainPairs[] = {
 
 	{MKK14_MKKA1,   MKK14,      MKKA,       DISALLOW_ADHOC_11A_TURB | NEED_NFC | LIMIT_FRAME_4MS, NEED_NFC, PSCAN_MKK1 | PSCAN_MKKA1 | PSCAN_MKKA1_G, CTRY_JAPAN58 },
 	{MKK15_MKKA1,   MKK15,      MKKA,       DISALLOW_ADHOC_11A_TURB | NEED_NFC | LIMIT_FRAME_4MS, NEED_NFC, PSCAN_MKK1 | PSCAN_MKK3 | PSCAN_MKKA1 | PSCAN_MKKA1_G, CTRY_JAPAN59 },
+	{MKK5_MKKA2,    MKK5,       MKKA,       DISALLOW_ADHOC_11A_TURB | NEED_NFC | LIMIT_FRAME_4MS, NEED_NFC, PSCAN_MKK3 | PSCAN_MKKA2 | PSCAN_MKKA2_G, CTRY_XA },
 
 		/* These are super domains */
 	{WOR0_WORLD,	WOR0_WORLD,	WOR0_WORLD,	NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
@@ -602,6 +603,7 @@ static const COUNTRY_CODE_TO_ENUM_RD ahCmnAllCountries[] = {
     {CTRY_JAPAN57,     MKK13_MKKB,    "JP", "JAPAN57",        YES,  NO,  NO, YES, YES, YES, YES, NO, 7000 },
     {CTRY_JAPAN58,     MKK14_MKKA1,   "JP", "JAPAN58",        YES,  NO,  NO, YES, YES, YES, YES, NO, 7000 },
     {CTRY_JAPAN59,     MKK15_MKKA1,   "JP", "JAPAN59",        YES,  NO,  NO, YES, YES, YES, YES, NO, 7000 },
+    {CTRY_XA,          MKK5_MKKA2,    "XA", "JAPAN PASSIVE",  YES,  NO,  NO, YES, YES, YES,  NO, NO, 7000 },
     {CTRY_JORDAN,      ETSI2_WORLD,   "JO", "JORDAN",         YES,  NO, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_KAZAKHSTAN,  NULL1_WORLD,   "KZ", "KAZAKHSTAN",     YES,  NO, YES, YES, YES,  NO,  NO, NO, 7000 },
     {CTRY_KENYA,       APL1_WORLD,    "KE", "KENYA",          YES,  NO, YES, YES, YES, YES, YES, YES, 7000 },
