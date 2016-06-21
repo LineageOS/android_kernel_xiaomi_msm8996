@@ -342,10 +342,10 @@ void vos_pkt_trace_buf_dump
    unsigned long local_time;
 
    spin_lock_bh(&trace_buffer_lock);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP START Current Timestamp %u",
               (unsigned int)vos_timer_get_system_time());
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "ORDER :          RTC TIME :    EVT");
 
    if (VOS_PKT_TRAC_MAX_TRACE_BUF > trace_buffer_order)
@@ -355,7 +355,7 @@ void vos_pkt_trace_buf_dump
          local_time = (u32)(trace_buffer[slot].event_sec_time -
                          (sys_tz.tz_minuteswest * 60));
          rtc_time_to_tm(local_time, &tm);
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    "%5d : [%02d:%02d:%02d.%06lu] : %s",
                    trace_buffer[slot].order,
                    tm.tm_hour, tm.tm_min, tm.tm_sec,
@@ -371,7 +371,7 @@ void vos_pkt_trace_buf_dump
          local_time = (u32)(trace_buffer[slot].event_msec_time -
                          (sys_tz.tz_minuteswest * 60));
          rtc_time_to_tm(local_time, &tm);
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    "%5d : [%02d:%02d:%02d.%06lu] : %s",
                    trace_buffer[slot].order,
                    tm.tm_hour, tm.tm_min, tm.tm_sec,
@@ -380,7 +380,7 @@ void vos_pkt_trace_buf_dump
       }
    }
 
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP END");
    spin_unlock_bh(&trace_buffer_lock);
 

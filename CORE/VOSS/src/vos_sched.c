@@ -76,7 +76,8 @@
 #define MAX_SSR_PROTECT_LOG (16)
 
 /* Timer value for detecting thread stuck issues */
-#define THREAD_STUCK_TIMER_VAL 5000 /* 5 seconds */
+#define THREAD_STUCK_TIMER_VAL 10000 /* 10 seconds */
+#define THREAD_STUCK_THRESHOLD 1
 
 static atomic_t ssr_protect_entry_count;
 static atomic_t load_unload_protect_count;
@@ -988,12 +989,11 @@ static void vos_wd_detect_thread_stuck(void)
 
 	spin_lock_irqsave(&gpVosWatchdogContext->thread_stuck_lock, flags);
 
-	if (gpVosWatchdogContext->mc_thread_stuck_count) {
+	if (gpVosWatchdogContext->mc_thread_stuck_count ==
+				THREAD_STUCK_THRESHOLD) {
 		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
 				flags);
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-				"%s: Thread Stuck!!! MC Count %d", __func__,
-				gpVosWatchdogContext->mc_thread_stuck_count);
+		hddLog(LOGE, FL("MC Thread Stuck!!!"));
 
 		vos_dump_stack(gpVosSchedContext->McThread);
 		vos_flush_logs(WLAN_LOG_TYPE_FATAL,
@@ -1004,11 +1004,18 @@ static void vos_wd_detect_thread_stuck(void)
 			flags);
 	}
 
+	if (!gpVosWatchdogContext->mc_thread_stuck_count) {
+		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
+				flags);
+		vos_probe_threads();
+		spin_lock_irqsave(&gpVosWatchdogContext->thread_stuck_lock,
+				flags);
+	}
+
 	/* Increment the thread stuck count for all threads */
 	gpVosWatchdogContext->mc_thread_stuck_count++;
 
 	spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock, flags);
-	vos_probe_threads();
 
 	/* Restart the timer */
 	if (VOS_STATUS_SUCCESS !=
