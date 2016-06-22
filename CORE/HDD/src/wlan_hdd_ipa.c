@@ -214,6 +214,9 @@ struct hdd_ipa_uc_rx_hdr {
 
 #define HDD_IPA_LOG(LVL, fmt, args...) VOS_TRACE(VOS_MODULE_ID_HDD, LVL, \
 				"%s:%d: "fmt, __func__, __LINE__, ## args)
+#define HDD_IPA_DP_LOG(LVL, fmt, args...) VOS_TRACE(VOS_MODULE_ID_HDD_DATA, LVL, \
+					"%s:%d: "fmt, __func__, __LINE__, ## args)
+
 
 #define HDD_IPA_DBG_DUMP(_lvl, _prefix, _buf, _len) \
 	do {\
@@ -1656,7 +1659,7 @@ static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 		return;
 	}
 
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
+	HDD_IPA_DP_LOG(VOS_TRACE_LEVEL_DEBUG,
 		"%s, OPCODE %s", __func__, op_string[msg->op_code]);
 
 	if ((HDD_IPA_UC_OPCODE_TX_RESUME == msg->op_code) ||
@@ -3002,7 +3005,7 @@ static enum hdd_ipa_forward_type hdd_ipa_intrabss_forward(
 	int ret = HDD_IPA_FORWARD_PKT_NONE;
 
 	if ((desc & FW_RX_DESC_FORWARD_M)) {
-		HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG,
+		HDD_IPA_DP_LOG(VOS_TRACE_LEVEL_DEBUG,
 				"Forward packet to Tx (fw_desc=%d)", desc);
 		hdd_ipa->ipa_tx_forward++;
 
@@ -3065,7 +3068,7 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 		if (hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			session_id = (uint8_t)skb->cb[0];
 			iface_id = vdev_to_iface[session_id];
-			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
+			HDD_IPA_DP_LOG(VOS_TRACE_LEVEL_INFO_HIGH,
 				"IPA_RECEIVE: session_id=%u, iface_id=%u",
 				session_id, iface_id);
 		} else
@@ -3165,7 +3168,7 @@ static void hdd_ipa_nbuf_cb(adf_nbuf_t skb)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 
-	HDD_IPA_LOG(VOS_TRACE_LEVEL_DEBUG, "%lx", NBUF_OWNER_PRIV_DATA(skb));
+	HDD_IPA_DP_LOG(VOS_TRACE_LEVEL_DEBUG, "%lx", NBUF_OWNER_PRIV_DATA(skb));
 	ipa_free_skb((struct ipa_rx_data *) NBUF_OWNER_PRIV_DATA(skb));
 
 	hdd_ipa->stats.num_tx_comp_cnt++;

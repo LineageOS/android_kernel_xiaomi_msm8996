@@ -1819,6 +1819,7 @@ struct hdd_context_s
      * at runtime and intersecting it with target capab before updating.
      */
     uint32_t fine_time_meas_cap_target;
+    uint32_t rx_high_ind_cnt;
 
     int radio_index;
 
