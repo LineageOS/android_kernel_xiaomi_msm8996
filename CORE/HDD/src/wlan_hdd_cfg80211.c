@@ -14647,13 +14647,13 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 #endif
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
-	if (status == 0) {
-		if (0 != wlan_hdd_set_udp_resp_offload(pAdapter, TRUE)) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				"%s: set udp resp cmd failed %d",
-				__func__, status);
-		}
-	}
+        if (status == 0) {
+            if (0 != wlan_hdd_set_udp_resp_offload(pAdapter, TRUE)) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: set udp resp cmd failed %d",
+                        __func__, status);
+            }
+        }
+        hdd_change_ch_avoidance_status(pHddCtx, false);
     }
 
     EXIT();
