@@ -2170,7 +2170,17 @@ sapGotoChannelSel
             return VOS_STATUS_E_ABORTED;
         }
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE
+            && sapContext->channel) {
+            /*
+             * For ACS request ,the sapContext->channel is 0, we skip
+             * below overlap checking. When the ACS finish and SAP
+             * BSS start, the sapContext->channel will not be 0. Then
+             * the overlap checking will be reactivated.
+             * If we use sapContext->channel = 0 to perform the overlap
+             * checking, an invalid overlap channel con_ch could be
+             * created. That may cause SAP start failed.
+             */
             con_ch = sme_CheckConcurrentChannelOverlap(hHal,
                                         sapContext->channel,
                                         sapContext->csrRoamProfile.phyMode,
@@ -2198,7 +2208,8 @@ sapGotoChannelSel
         }
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE
+            && sapContext->channel) {
              con_ch = sme_CheckConcurrentChannelOverlap(hHal,
                                         sapContext->channel,
                                         sapContext->csrRoamProfile.phyMode,
