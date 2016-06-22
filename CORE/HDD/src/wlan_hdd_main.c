@@ -16646,18 +16646,8 @@ void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx)
 				(!hdd_find_prefd_safe_chnl(hdd_ctx, adapter)))
 			return;
 
-		/* SAP restart due to unsafe channel. While restarting the SAP,
-		 * make sure to clear acs_channel, channel to reset to 0.
-		 * Otherwise these settings will override the ACS while restart.
-		 */
-		hdd_ctx->acs_policy.acs_channel = AUTO_CHANNEL_SELECT;
-		adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
-
 		hddLog(LOG1, FL("Current operation channel %d"),
 			adapter->sessionCtx.ap.operatingChannel);
-
-		hddLog(LOG1, FL("sessionCtx.ap.sapConfig.channel %d"),
-			adapter->sessionCtx.ap.sapConfig.channel);
 
 		for (channel_loop = 0;
 			channel_loop < hdd_ctx->unsafe_channel_count;
@@ -16678,6 +16668,20 @@ void hdd_unsafe_channel_restart_sap(hdd_context_t *hdd_ctx)
 				 */
 				hddLog(LOGE,
 					FL("Restarting SAP due to unsafe channel"));
+
+				/* SAP restart due to unsafe channel. While
+				 * restarting the SAP, makee sure to clear
+				 * acs_channel, channel to reset to 0.
+				 * Otherwise these settings will override the
+				 * ACS while restart.
+				 */
+				hdd_ctx->acs_policy.acs_channel =
+							AUTO_CHANNEL_SELECT;
+				adapter->sessionCtx.ap.sapConfig.channel =
+							AUTO_CHANNEL_SELECT;
+
+				hddLog(LOG1, FL("set sapConfig.channel to %d"),
+						AUTO_CHANNEL_SELECT);
 
 				wlan_hdd_send_svc_nlink_msg(
 						hdd_ctx->radio_index,
