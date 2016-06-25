@@ -7255,6 +7255,9 @@ static void wma_state_info_dump(char **buf_ptr, uint16_t *size)
 	len += vos_scnprintf(buf + len, *size - len,
 		"\n wow_ipv6_mcast_na_stats %d",
 		wma_handle->wow_ipv6_mcast_na_stats);
+	len += vos_scnprintf(buf + len, *size - len,
+		"\n wow_oem_response_wake_up_count %d",
+		wma_handle->wow_oem_response_wake_up_count);
 
 	*size -= len;
 	*buf_ptr += len;
@@ -20293,6 +20296,8 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 		return "REASSOC_RES_RECV";
 	case WOW_REASON_ACTION_FRAME_RECV:
 		return "ACTION_FRAME_RECV";
+	case WOW_REASON_OEM_RESPONSE_EVENT:
+		return "WOW_REASON_OEM_RESPONSE_EVENT";
 	}
 	return "unknown";
 }
@@ -20803,7 +20808,7 @@ static void wma_extscan_wow_event_callback(void *handle, void *event,
  */
 static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 {
-	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6 %d",
+	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6 %d oem %d",
 		wma->wow_ucast_wake_up_count,
 		wma->wow_bcast_wake_up_count,
 		wma->wow_ipv4_mcast_wake_up_count,
@@ -20817,7 +20822,8 @@ static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 		wma->wow_low_rssi_wake_up_count,
 		wma->wow_rssi_breach_wake_up_count,
 		wma->wow_icmpv4_count,
-		wma->wow_icmpv6_uc_bc_count);
+		wma->wow_icmpv6_uc_bc_count,
+		wma->wow_oem_response_wake_up_count);
 
 	return;
 }
@@ -20932,6 +20938,10 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 
 	case WOW_REASON_RSSI_BREACH_EVENT:
 		wma->wow_rssi_breach_wake_up_count++;
+		break;
+
+	case WOW_REASON_OEM_RESPONSE_EVENT:
+		wma->wow_oem_response_wake_up_count++;
 		break;
 
 	default:
@@ -21689,6 +21699,26 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		}
 		break;
 #endif
+
+	case WOW_REASON_OEM_RESPONSE_EVENT:
+		wma_wow_wake_up_stats(wma, NULL, 0,
+				WOW_REASON_OEM_RESPONSE_EVENT);
+		if (param_buf->wow_packet_buffer) {
+			WMA_LOGD(FL("Host woken up by OEM Response event"));
+			wow_buf_pkt_len =
+				*(uint32_t *)param_buf->wow_packet_buffer;
+			vos_trace_hex_dump(VOS_MODULE_ID_WDA,
+                                VOS_TRACE_LEVEL_DEBUG,
+                                param_buf->wow_packet_buffer,
+                                wow_buf_pkt_len);
+			wma_oem_data_response_handler(handle,
+				(uint8_t*)(param_buf->wow_packet_buffer),
+				wow_buf_pkt_len);
+		} else {
+			WMA_LOGD(FL("No wow_packet_buffer for OEM response"));
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -21778,6 +21808,8 @@ static const u8 *wma_wow_wakeup_event_str(WOW_WAKE_EVENT_TYPE event)
 		return "WOW_NAN_DATA_EVENT";
 	case WOW_TDLS_CONN_TRACKER_EVENT:
 		return "WOW_TDLS_CONN_TRACKER_EVENT";
+        case WOW_OEM_RESPONSE_EVENT:
+                return "WOW_OEM_RESPONSE_EVENT";
 	default:
 		return "UNSPECIFIED_EVENT";
 	}
@@ -22994,6 +23026,8 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	/* configure TDLS based wakeup */
 	wma_add_wow_wakeup_event(wma, WOW_TDLS_CONN_TRACKER_EVENT, TRUE);
 #endif
+
+        wma_add_wow_wakeup_event(wma, WOW_OEM_RESPONSE_EVENT, TRUE);
 
 	/* Enable wow wakeup events in FW */
 	ret = wma_send_wakeup_mask(wma, TRUE);
@@ -29806,7 +29840,7 @@ static VOS_STATUS wma_set_beacon_filter(tp_wma_handle wma,
 	ie_map = (A_UINT32 *)(buf + WMI_TLV_HDR_SIZE);
 	for (i = 0; i < BCN_FLT_MAX_ELEMS_IE_LIST; i++) {
 		ie_map[i] = filter_params->ie_map[i];
-		WMA_LOGA("beacon filter ie map = %u", ie_map[i]);
+		WMA_LOGD("beacon filter ie map = %u", ie_map[i]);
 	}
 
 	vos_status = wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, len,
@@ -29817,7 +29851,7 @@ static VOS_STATUS wma_set_beacon_filter(tp_wma_handle wma,
 		wmi_buf_free(wmi_buf);
 		return VOS_STATUS_E_FAILURE;
 	}
-	WMA_LOGA("added beacon filter = %d", vos_status);
+	WMA_LOGD("added beacon filter = %d", vos_status);
 
 	return vos_status;
 }

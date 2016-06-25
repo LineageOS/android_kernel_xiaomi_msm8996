@@ -288,6 +288,7 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
 #ifdef WLAN_FEATURE_11W
     pStaDs->last_assoc_received_time = 0;
 #endif
+    pStaDs->sta_deletion_in_progress = false;
     pStaDs->valid = 1;
     return pStaDs;
 }
@@ -436,6 +437,7 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
 #ifdef WLAN_FEATURE_11W
       ptr->last_assoc_received_time = 0;
 #endif
+      ptr->sta_deletion_in_progress = false;
       ptr->next = 0;
     }
   else

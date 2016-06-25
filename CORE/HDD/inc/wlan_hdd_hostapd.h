@@ -218,6 +218,7 @@ hdd_change_ch_avoidance_status(hdd_context_t *hdd_ctx,
     spin_lock(&hdd_ctx->sap_update_info_lock);
     hdd_ctx->is_ch_avoid_in_progress = value;
     spin_unlock(&hdd_ctx->sap_update_info_lock);
+    hddLog(LOG1, FL("is_ch_avoid_in_progress %d"), value);
 }
 
 #endif    // end #if !defined( WLAN_HDD_HOSTAPD_H )

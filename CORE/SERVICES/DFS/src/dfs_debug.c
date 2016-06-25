@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2013, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -109,7 +109,8 @@ dfs_print_filters(struct ath_dfs *dfs)
                     ft = dfs->dfs_radarf[i];
                     if((ft->ft_numfilters > DFS_MAX_NUM_RADAR_FILTERS) || (!ft->ft_numfilters))
                         continue;
-                    DFS_PRINTK("===========ft->ft_numfilters=%u===========\n", ft->ft_numfilters);
+                    DFS_PRINTK("===========ft->ft_numfilters=%u===========\n",
+                               ft->ft_numfilters);
                     for (j=0; j<ft->ft_numfilters; j++) {
                         rf = ft->ft_filters[j];
                         DFS_PRINTK("filter[%d] filterID = %d rf_numpulses=%u; rf->rf_minpri=%u; rf->rf_maxpri=%u; rf->rf_threshold=%u; rf->rf_filterlen=%u; rf->rf_mindur=%u; rf->rf_maxdur=%u\n",j, rf->rf_pulseid,
@@ -117,6 +118,26 @@ dfs_print_filters(struct ath_dfs *dfs)
                     }
             }
     }
+
+    for (i=0; i < DFS_MAX_RADAR_TYPES; i++) {
+        if (dfs->dfs_dc_radarf[i])
+            continue;
+
+        ft = dfs->dfs_dc_radarf[i];
+        if ((ft->ft_numfilters > DFS_MAX_NUM_RADAR_FILTERS) ||
+                (!ft->ft_numfilters))
+            continue;
+        DFS_PRINTK("===========DC ft->ft_numfilters=%u===========\n",
+                    ft->ft_numfilters);
+        for (j = 0; j < ft->ft_numfilters; j++) {
+            rf = ft->ft_filters[j];
+            DFS_PRINTK("DC filter[%d] filterID = %d rf_numpulses=%u; rf->rf_minpri=%u; rf->rf_maxpri=%u; rf->rf_threshold=%u; rf->rf_filterlen=%u; rf->rf_mindur=%u; rf->rf_maxdur=%u\n",
+            j, rf->rf_pulseid, rf->rf_numpulses, rf->rf_minpri,
+            rf->rf_maxpri, rf->rf_threshold, rf->rf_filterlen,
+            rf->rf_mindur, rf->rf_maxdur);
+        }
+    }
+
 }
 
 void dfs_print_activity(struct ath_dfs *dfs)

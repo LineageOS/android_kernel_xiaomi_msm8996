@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -115,6 +115,22 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
                 }
             }
         }
+        for (i = 0; i < DFS_MAX_RADAR_TYPES; i++) {
+            if (dfs->dfs_dc_radarf[i] == NULL)
+                continue;
+
+            ft = dfs->dfs_dc_radarf[i];
+            for (j = 0; j < ft->ft_numfilters; j++) {
+                rf = ft->ft_filters[j];
+                dl = &(rf->rf_dl);
+                if (dl == NULL)
+                    continue;
+
+                OS_MEMZERO(dl, sizeof(struct dfs_delayline));
+                dl->dl_lastelem = (0xFFFFFFFF) & DFS_MAX_DL_MASK;
+            }
+        }
+
         for (i = 0; i < dfs->dfs_rinfo.rn_numbin5radars; i++) {
             OS_MEMZERO(&(dfs->dfs_b5radars[i].br_elems[0]), sizeof(struct dfs_bin5elem)*DFS_MAX_B5_SIZE);
             dfs->dfs_b5radars[i].br_firstelem = 0;
@@ -230,6 +246,12 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
         for (i=0;i<DFS_MAX_RADAR_OVERLAP; i++)
             (dfs->dfs_radartable[n])[i] = -1;
     }
+    /* Clear dc filter type table */
+    for (n = 0; n < 256; n++) {
+        for (i = 0;i < DFS_MAX_RADAR_OVERLAP; i++)
+            (dfs->dfs_dc_radartable[n])[i] = -1;
+    }
+
     /* Now, initialize the radar filters */
     for (p=0; p<numradars; p++) {
     ft = NULL;
@@ -319,8 +341,109 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
 
     }
 
+    /* Initialize dc radar filters */
+    for (p = 0; p < numradars; p++) {
+        ft = NULL;
+        for (n = 0; n < dfs->dfs_rinfo.rn_numradars; n++) {
+            if ((dfs_radars[p].rp_pulsedur ==
+                     dfs->dfs_dc_radarf[n]->ft_filterdur) &&
+                (dfs_radars[p].rp_numpulses ==
+                     dfs->dfs_dc_radarf[n]->ft_numpulses) &&
+                (dfs_radars[p].rp_mindur == dfs->dfs_dc_radarf[n]->ft_mindur) &&
+                (dfs_radars[p].rp_maxdur == dfs->dfs_dc_radarf[n]->ft_maxdur)) {
+
+                ft = dfs->dfs_dc_radarf[n];
+                break;
+            }
+        }
+        if (ft == NULL) {
+            /* No filter of the appropriate dur was found */
+            if ((dfs->dfs_rinfo.rn_numradars+1) > DFS_MAX_RADAR_TYPES) {
+                DFS_DPRINTK(dfs, ATH_DEBUG_DFS, "%s: Too many filter types",
+                        __func__);
+                goto bad4;
+            }
+            ft = dfs->dfs_dc_radarf[dfs->dfs_rinfo.rn_numradars];
+            ft->ft_numfilters = 0;
+            ft->ft_numpulses = dfs_radars[p].rp_numpulses;
+            ft->ft_patterntype = dfs_radars[p].rp_patterntype;
+            ft->ft_mindur = dfs_radars[p].rp_mindur;
+            ft->ft_maxdur = dfs_radars[p].rp_maxdur;
+            ft->ft_filterdur = dfs_radars[p].rp_pulsedur;
+            ft->ft_rssithresh = dfs_radars[p].rp_rssithresh;
+            ft->ft_rssimargin = dfs_radars[p].rp_rssimargin;
+            ft->ft_minpri = DFS_FILTER_DEFAULT_PRI;
+
+            if (ft->ft_rssithresh < min_rssithresh)
+                min_rssithresh = ft->ft_rssithresh;
+            if (ft->ft_maxdur > max_pulsedur)
+                max_pulsedur = ft->ft_maxdur;
+            for (i = ft->ft_mindur; i <= ft->ft_maxdur; i++) {
+                u_int32_t stop = 0, tableindex = 0;
+
+                while ((tableindex < DFS_MAX_RADAR_OVERLAP) && (!stop)) {
+                    if ((dfs->dfs_dc_radartable[i])[tableindex] == -1)
+                        stop = 1;
+                    else
+                        tableindex++;
+                }
+                if (stop) {
+                    (dfs->dfs_dc_radartable[i])[tableindex] =
+                        (int8_t) (dfs->dfs_rinfo.rn_numradars);
+                } else {
+                    DFS_DPRINTK(dfs, ATH_DEBUG_DFS,
+                            "%s: Too many overlapping dc radar filters",
+                            __func__);
+                    goto bad4;
+               }
+            }
+            dfs->dfs_rinfo.rn_numradars++;
+        }
+        rf = ft->ft_filters[ft->ft_numfilters++];
+        dfs_reset_delayline(&rf->rf_dl);
+        numpulses = dfs_radars[p].rp_numpulses;
+
+        rf->rf_numpulses = numpulses;
+        rf->rf_patterntype = dfs_radars[p].rp_patterntype;
+        rf->rf_pulseid = dfs_radars[p].rp_pulseid;
+        rf->rf_mindur = dfs_radars[p].rp_mindur;
+        rf->rf_maxdur = dfs_radars[p].rp_maxdur;
+        rf->rf_numpulses = dfs_radars[p].rp_numpulses;
+        rf->rf_ignore_pri_window = dfs_radars[p].rp_ignore_pri_window;
+        T = (100000000/dfs_radars[p].rp_max_pulsefreq) -
+            100*(dfs_radars[p].rp_meanoffset);
+        rf->rf_minpri =
+            dfs_round((int32_t)T - (100*(dfs_radars[p].rp_pulsevar)));
+        Tmax = (100000000/dfs_radars[p].rp_pulsefreq) -
+            100*(dfs_radars[p].rp_meanoffset);
+        rf->rf_maxpri =
+            dfs_round((int32_t)Tmax + (100*(dfs_radars[p].rp_pulsevar)));
+
+        if(rf->rf_minpri < ft->ft_minpri)
+            ft->ft_minpri = rf->rf_minpri;
+
+        rf->rf_fixed_pri_radar_pulse =
+                (dfs_radars[p].rp_max_pulsefreq ==
+                    dfs_radars[p].rp_pulsefreq) ? 1 : 0;
+        /* for pulseid 5, increase threshould by 1 */
+        if (dfs_radars[p].rp_pulseid == 5)
+            rf->rf_threshold = dfs_radars[p].rp_threshold + 1;
+        else
+            rf->rf_threshold = dfs_radars[p].rp_threshold;
+
+        rf->rf_filterlen = rf->rf_maxpri * rf->rf_numpulses;
+
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]: minprf = %d maxprf = %d pulsevar = %d thresh=%d",
+                __func__, __LINE__, dfs_radars[p].rp_pulsefreq,
+                dfs_radars[p].rp_max_pulsefreq, dfs_radars[p].rp_pulsevar,
+                rf->rf_threshold);
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:minpri = %d maxpri = %d filterlen = %d filterID = %d",
+                __func__, __LINE__, rf->rf_minpri, rf->rf_maxpri,
+                rf->rf_filterlen, rf->rf_pulseid);
+
+    }
 #ifdef DFS_DEBUG
-    dfs_print_filters(ic);
+    dfs_print_filters(dfs);
 #endif
     dfs->dfs_rinfo.rn_numbin5radars  = numb5radars;
     if (dfs->dfs_b5radars != NULL)

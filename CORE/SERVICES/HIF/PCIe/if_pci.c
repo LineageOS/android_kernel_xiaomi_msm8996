@@ -798,12 +798,12 @@ wlan_tasklet(unsigned long data)
          * Enable the interrupt only when there is no pending frames in
          * any of the Copy Engine pipes.
          */
-        adf_os_atomic_set(&sc->ce_suspend, 1);
 #ifdef CONFIG_SLUB_DEBUG_ON
         schedule_work(&reschedule_tasklet_work);
 #else
         tasklet_schedule(&sc->intr_tq);
 #endif
+        adf_os_atomic_set(&sc->ce_suspend, 1);
         return;
     }
 irq_handled:
