@@ -13520,10 +13520,25 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     pConfig->dtim_period = pBeacon->dtim_period;
 
-    if (pHddCtx->acs_policy.acs_channel)
-        pConfig->channel = pHddCtx->acs_policy.acs_channel;
-    mode = pHddCtx->acs_policy.acs_dfs_mode;
-    pConfig->acs_dfs_mode = wlan_hdd_get_dfs_mode(mode);
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, FL("acs_mode %d"),
+            pConfig->acs_cfg.acs_mode);
+
+    if (pConfig->acs_cfg.acs_mode == true) {
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                FL("acs_channel %d, acs_dfs_mode %d"),
+                pHddCtx->acs_policy.acs_channel,
+                pHddCtx->acs_policy.acs_dfs_mode);
+
+        if (pHddCtx->acs_policy.acs_channel)
+            pConfig->channel = pHddCtx->acs_policy.acs_channel;
+
+        mode = pHddCtx->acs_policy.acs_dfs_mode;
+        pConfig->acs_dfs_mode = wlan_hdd_get_dfs_mode(mode);
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+            FL("pConfig->channel %d, pConfig->acs_dfs_mode %d"),
+            pConfig->channel, pConfig->acs_dfs_mode);
 
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"****pConfig->dtim_period=%d***",
                                       pConfig->dtim_period);
