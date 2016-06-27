@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1006,7 +1006,7 @@ A_STATUS usb_hif_submit_ctrl_out(HIF_DEVICE_USB *device,
 	do {
 
 		if (size > 0) {
-			buf = kmalloc(size, GFP_KERNEL);
+			buf = vos_mem_malloc(size);
 			if (NULL == buf) {
 				ret = A_NO_MEMORY;
 				break;
@@ -1035,7 +1035,7 @@ A_STATUS usb_hif_submit_ctrl_out(HIF_DEVICE_USB *device,
 	} while (FALSE);
 
 	if (buf != NULL)
-		kfree(buf);
+		vos_mem_free(buf);
 
 	return ret;
 }
@@ -1052,7 +1052,7 @@ A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *device,
 	do {
 
 		if (size > 0) {
-			buf = kmalloc(size, GFP_KERNEL);
+			buf = vos_mem_malloc(size);
 			if (NULL == buf) {
 				ret = A_NO_MEMORY;
 				break;
@@ -1083,7 +1083,7 @@ A_STATUS usb_hif_submit_ctrl_in(HIF_DEVICE_USB *device,
 	} while (FALSE);
 
 	if (buf != NULL)
-		kfree(buf);
+		vos_mem_free(buf);
 
 	return ret;
 }

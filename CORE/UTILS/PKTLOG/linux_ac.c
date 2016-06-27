@@ -440,7 +440,7 @@ static int pktlog_attach(struct ol_softc *scn)
 	pl_dev = get_pl_handle(scn);
 
 	if (pl_dev != NULL) {
-		pl_info_lnx = kmalloc(sizeof(*pl_info_lnx), GFP_KERNEL);
+		pl_info_lnx = vos_mem_malloc(sizeof(*pl_info_lnx));
 		if (pl_info_lnx == NULL) {
 			printk(PKTLOG_TAG "%s:allocation failed for pl_info\n",
 			       __func__);
@@ -510,7 +510,7 @@ attach_fail2:
 
 attach_fail1:
 	if (pl_dev)
-		kfree(pl_dev->pl_info);
+		vos_mem_free(pl_dev->pl_info);
 	return -1;
 }
 
@@ -554,7 +554,7 @@ static void pktlog_detach(struct ol_softc *scn)
 		pktlog_release_buf(scn);
 
 	if (pl_dev) {
-		kfree(pl_info);
+		vos_mem_free(pl_info);
 		pl_dev->pl_info = NULL;
 	}
 }

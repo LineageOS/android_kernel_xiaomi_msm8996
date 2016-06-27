@@ -2395,7 +2395,7 @@ err_re_init:
          /* Free up dynamically allocated members
           * inside HDD Adapter
           */
-         kfree(pHddCtx->cfg_ini);
+         vos_mem_free(pHddCtx->cfg_ini);
          pHddCtx->cfg_ini= NULL;
          /* Destroy all wakelocks */
          wlan_hdd_wakelocks_destroy(pHddCtx);

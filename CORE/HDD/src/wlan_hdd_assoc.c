@@ -436,7 +436,7 @@ static void hdd_SendFTAssocResponse(struct net_device *dev, hdd_adapter_t *pAdap
         (unsigned int)pFTAssocRsp[1]);
 
     // We need to send the IEs to the supplicant.
-    buff = kmalloc(IW_GENERIC_IE_MAX, GFP_ATOMIC);
+    buff = vos_mem_malloc(IW_GENERIC_IE_MAX);
     if (buff == NULL)
     {
         hddLog(LOGE, "%s: kmalloc unable to allocate memory", __func__);
@@ -450,7 +450,7 @@ static void hdd_SendFTAssocResponse(struct net_device *dev, hdd_adapter_t *pAdap
     memcpy(buff, pFTAssocRsp, len);
     wireless_send_event(dev, IWEVASSOCRESPIE, &wrqu, buff);
 
-    kfree(buff);
+    vos_mem_free(buff);
 }
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
@@ -530,7 +530,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
 
 #else
     // We need to send the IEs to the supplicant
-    buff = kmalloc(IW_CUSTOM_MAX, GFP_ATOMIC);
+    buff = vos_mem_malloc(IW_CUSTOM_MAX);
     if (buff == NULL)
     {
         hddLog(LOGE, "%s: kmalloc unable to allocate memory", __func__);
@@ -565,14 +565,14 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     if (auth_resp_len == 0)
     {
         hddLog(LOGE, "%s: AuthRsp FTIES is of length 0", __func__);
-        kfree(buff);
+        vos_mem_free(buff);
         return;
     }
 
     wrqu.data.length = str_len + auth_resp_len;
     wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buff);
 
-    kfree(buff);
+    vos_mem_free(buff);
 #endif
 }
 
@@ -643,7 +643,7 @@ hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter,
     hddLog(LOG1, "%s: Beacon IEs length = %d", __func__, pCsrRoamInfo->nBeaconLength - BEACON_FRAME_IES_OFFSET);
 
    // We need to send the IEs to the supplicant.
-    buff = kmalloc(IW_CUSTOM_MAX, GFP_ATOMIC);
+    buff = vos_mem_malloc(IW_CUSTOM_MAX);
     if (buff == NULL)
     {
         hddLog(LOGE, "%s: kmalloc unable to allocate memory", __func__);
@@ -674,7 +674,7 @@ hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter,
         wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buff);
     } while (totalIeLen > 0);
 
-    kfree(buff);
+    vos_mem_free(buff);
 }
 
 static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRoamInfo)
@@ -1425,7 +1425,7 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
 {
     unsigned int len = 0;
     u8 *pFTAssocRsp = NULL;
-    v_U8_t *rspRsnIe = kmalloc(IW_GENERIC_IE_MAX, GFP_KERNEL);
+    v_U8_t *rspRsnIe = vos_mem_malloc(IW_GENERIC_IE_MAX);
     tANI_U32 rspRsnLength = 0;
     struct ieee80211_channel *chan;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -1502,7 +1502,7 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     hddLog(LOG2, FL("SSIDIE:"));
     VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
        buf_ssid_ie, ssid_ie_len);
-    final_req_ie = kmalloc(IW_GENERIC_IE_MAX, GFP_KERNEL);
+    final_req_ie = vos_mem_malloc(IW_GENERIC_IE_MAX);
     if (final_req_ie == NULL)
         goto done;
     buf_ptr = final_req_ie;
@@ -1527,8 +1527,8 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
 done:
    sme_RoamFreeConnectProfile(hal_handle, &roam_profile);
    if (final_req_ie)
-      kfree(final_req_ie);
-   kfree(rspRsnIe);
+      vos_mem_free(final_req_ie);
+   vos_mem_free(rspRsnIe);
 }
 
 /**
