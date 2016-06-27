@@ -624,7 +624,7 @@ void *mem_alloc_copy_from_user_helper(const void *wrqu_data, size_t len)
     }
 
 
-    ptr = kmalloc(len + 1, GFP_KERNEL);
+    ptr = vos_mem_malloc(len + 1);
     if (NULL == ptr)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -636,7 +636,7 @@ void *mem_alloc_copy_from_user_helper(const void *wrqu_data, size_t len)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: failed to copy data to user buffer", __func__);
-        kfree(ptr);
+        vos_mem_free(ptr);
         return NULL;
     }
     ptr[len] = '\0';
@@ -2842,7 +2842,7 @@ static int __iw_set_genie(struct net_device *dev, struct iw_request_info *info,
     }
 exit:
     EXIT();
-    kfree(base_genie);
+    vos_mem_free(base_genie);
     return ret;
 }
 
@@ -4364,7 +4364,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                  "%s:LOGP in Progress. Ignore!!!",__func__);
-        kfree(cmd);
+        vos_mem_free(cmd);
         return -EBUSY;
     }
 
@@ -4468,7 +4468,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         {
             VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                        "%s: SME Change Country code fail", __func__);
-            kfree(cmd);
+            vos_mem_free(cmd);
             return -EIO;
         }
     }
@@ -4487,7 +4487,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         }else{
               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                         "CMD LENGTH %d is not correct",cmd_len);
-              kfree(cmd);
+              vos_mem_free(cmd);
               return -EINVAL;
         }
 
@@ -4495,7 +4495,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                       "powermode input %s is not correct",ptr);
-            kfree(cmd);
+            vos_mem_free(cmd);
             return -EIO;
         }
 
@@ -4566,14 +4566,14 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
 
         hddLog( VOS_TRACE_LEVEL_INFO, "pno");
         ret = iw_set_pno(dev, info, wrqu, cmd, 3);
-        kfree(cmd);
+        vos_mem_free(cmd);
         return ret;
     }
 #endif /*FEATURE_WLAN_SCAN_PNO*/
     else if( strncasecmp(cmd, "powerparams",11) == 0 ) {
       hddLog( VOS_TRACE_LEVEL_INFO, "powerparams");
       vos_status = iw_set_power_params(dev, info, wrqu, cmd, 11);
-      kfree(cmd);
+      vos_mem_free(cmd);
       return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
     }
     else if( 0 == strncasecmp(cmd, "CONFIG-TX-TRACKING", 18) ) {
@@ -4586,7 +4586,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         }else{
                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                          "CMD LENGTH %d is not correct",cmd_len);
-               kfree(cmd);
+               vos_mem_free(cmd);
                return -EINVAL;
         }
 
@@ -4598,7 +4598,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                       "CONFIG-TX-TRACKING %s input is not correct",ptr);
-                      kfree(cmd);
+                      vos_mem_free(cmd);
                       return -EIO;
         }
 
@@ -4607,7 +4607,7 @@ static int __iw_set_priv(struct net_device *dev, struct iw_request_info *info,
         if (0 == tTxPerTrackingParam.ucTxPerTrackingPeriod)
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Period input is not correct");
-            kfree(cmd);
+            vos_mem_free(cmd);
             return -EIO;
         }
 
@@ -4652,7 +4652,7 @@ done:
        {
           hddLog(VOS_TRACE_LEVEL_ERROR,
                  "%s: failed to copy data to user buffer", __func__);
-          kfree(cmd);
+          vos_mem_free(cmd);
           return -EFAULT;
        }
        wrqu->data.length = ret;
@@ -4663,7 +4663,7 @@ done:
        pr_info("%s: rsp [%s] len [%d] status %d\n",
                __func__, cmd, wrqu->data.length, rc);
     }
-    kfree(cmd);
+    vos_mem_free(cmd);
     return rc;
 }
 
@@ -7525,7 +7525,7 @@ static int __iw_setchar_getnone(struct net_device *dev,
            break;
        }
     }
-    kfree(pBuffer);
+    vos_mem_free(pBuffer);
     EXIT();
     return ret;
 }
@@ -10387,7 +10387,7 @@ static int __iw_set_packet_filter_params(struct net_device *dev,
 
     ret = wlan_hdd_set_filter(WLAN_HDD_GET_CTX(pAdapter), pRequest,
                               pAdapter->sessionId);
-    kfree(pRequest);
+    vos_mem_free(pRequest);
     EXIT();
     return ret;
 }
@@ -11127,7 +11127,7 @@ static int __iw_set_power_params_priv(struct net_device *dev,
   }
 
   ret = iw_set_power_params(dev, info, wrqu, ptr, 0);
-  kfree(ptr);
+  vos_mem_free(ptr);
   EXIT();
   return ret;
 }

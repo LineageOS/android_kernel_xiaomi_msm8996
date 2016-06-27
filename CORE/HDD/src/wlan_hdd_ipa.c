@@ -804,7 +804,7 @@ static void hdd_ipa_uc_rt_debug_handler(void *ctext)
 	 * And if allocation fail, will dump WLAN IPA stats
 	 */
 	dummy_ptr = kmalloc(HDD_IPA_UC_DEBUG_DUMMY_MEM_SIZE,
-		GFP_KERNEL | GFP_ATOMIC);
+				GFP_KERNEL | GFP_ATOMIC);
 	if (!dummy_ptr) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
 			"%s: Dummy alloc fail", __func__);
