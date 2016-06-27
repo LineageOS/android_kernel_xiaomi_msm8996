@@ -1567,6 +1567,13 @@ enum qca_wlan_vendor_acs_hw_mode {
  *                                   Tx aggregation size (8-bit unsigned value)
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION:
  *                                   Rx aggregation size (8-bit unsigned value)
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY:
+ *                                   Non aggregrate/11g sw retry threshold
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY: aggregrate sw retry threshold
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY: management frame sw retry threshold
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY: control frame sw retry threshold
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY:
+ *			     propagtion delay for 2G/5G band(Units in ms)
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_LAST: last config
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_MAX: max config
  */
@@ -1581,6 +1588,12 @@ enum qca_wlan_vendor_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_AVOIDANCE_IND,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_MPDU_AGGREGATION,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MAX =
