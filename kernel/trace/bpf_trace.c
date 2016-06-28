@@ -246,9 +246,15 @@ const struct bpf_func_proto *bpf_get_trace_printk_proto(void)
 BPF_CALL_2(bpf_perf_event_read, struct bpf_map *, map, u64, flags)
 {
 	struct bpf_array *array = container_of(map, struct bpf_array, map);
+	unsigned int cpu = smp_processor_id();
+	u64 index = flags & BPF_F_INDEX_MASK;
 	struct bpf_event_entry *ee;
 	struct perf_event *event;
 
+	if (unlikely(flags & ~(BPF_F_INDEX_MASK)))
+		return -EINVAL;
+	if (index == BPF_F_CURRENT_CPU)
+		index = cpu;
 	if (unlikely(index >= array->map.max_entries))
 		return -E2BIG;
 
@@ -262,8 +268,7 @@ BPF_CALL_2(bpf_perf_event_read, struct bpf_map *, map, u64, flags)
 		return -EINVAL;
 
 	/* make sure event is local and doesn't have pmu::count */
-	if (event->oncpu != smp_processor_id() ||
-	    event->pmu->count)
+	if (unlikely(event->oncpu != cpu || event->pmu->count))
 		return -EINVAL;
 
 	if (unlikely(event->attr.type != PERF_TYPE_HARDWARE &&
