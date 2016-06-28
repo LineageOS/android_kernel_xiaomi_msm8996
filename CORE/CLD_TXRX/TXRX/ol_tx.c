@@ -81,6 +81,12 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     v_CONTEXT_t vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
     void *adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, vos_ctx);
 
+    if (!adf_ctx) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                   "%s: adf_ctx is NULL\n", __func__);
+        return msdu_list;
+    }
+
     msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
     msdu_info.htt.action.tx_comp_req = 0;
     /*
