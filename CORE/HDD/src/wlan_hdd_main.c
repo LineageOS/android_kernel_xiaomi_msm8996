@@ -867,7 +867,7 @@ static void hdd_smps_force_mode_cb(void *context,
 
 #if defined (FEATURE_WLAN_MCC_TO_SCC_SWITCH) || defined (FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || defined (FEATURE_WLAN_CH_AVOID)
 /**
- * wlan_hdd_restart_sap() - This function is used to restart SAP in driver internally
+ * wlan_hdd_restart_sap() - to restart SAP in driver internally
  * @ap_adapter: - Pointer to SAP hdd_adapter_t structure
  *
  * wlan_hdd_restart_sap first delete SAP and do cleanup.
@@ -886,9 +886,11 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
     struct station_del_parameters delStaParams;
 #endif
     tsap_Config_t *pConfig;
+    void *p_sap_ctx;
 
     pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(ap_adapter);
-    pConfig = &ap_adapter->sessionCtx.ap.sapConfig;
+    pConfig = &pHddApCtx->sapConfig;
+    p_sap_ctx = pHddApCtx->sapContext;
 
     mutex_lock(&pHddCtx->sap_lock);
     if (test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags)) {
@@ -907,13 +909,7 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(ap_adapter);
         vos_event_reset(&pHostapdState->stop_bss_event);
 
-        if ( VOS_STATUS_SUCCESS == WLANSAP_StopBss(
-#ifdef WLAN_FEATURE_MBSSID
-            pHddApCtx->sapContext
-#else
-            (WLAN_HDD_GET_CTX(ap_adapter))->pvosContext
-#endif
-        )) {
+        if (VOS_STATUS_SUCCESS == WLANSAP_StopBss(p_sap_ctx)) {
             vos_status = vos_wait_single_event(&pHostapdState->stop_bss_event,
                                                10000);
             if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
@@ -933,13 +929,7 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
             goto end;
         }
 
-        if (WLANSAP_StartBss(
-#ifdef WLAN_FEATURE_MBSSID
-            pHddApCtx->sapContext,
-#else
-            pHddCtx->pvosContext,
-#endif
-            hdd_hostapd_SAPEventCB, &pHddApCtx->sapConfig,
+        if (WLANSAP_StartBss(p_sap_ctx, hdd_hostapd_SAPEventCB, pConfig,
             (v_PVOID_t)ap_adapter->dev) != VOS_STATUS_SUCCESS) {
             hddLog(LOGE, FL("SAP Start Bss fail"));
             goto end;
@@ -15898,13 +15888,7 @@ static void hdd_driver_exit(void)
    }
 
    vos_wait_for_work_thread_completion(__func__);
-#ifdef QCA_PKT_PROTO_TRACE
-      if (VOS_FTM_MODE != hdd_get_conparam())
-          vos_pkt_proto_trace_close();
-#endif /* QCA_PKT_PROTO_TRACE */
-
    hif_unregister_driver();
-
    vos_preClose( &pVosContext );
 
 #ifdef TIMER_MANAGER
@@ -15917,6 +15901,11 @@ static void hdd_driver_exit(void)
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
    wlan_logging_sock_deinit_svc();
 #endif
+
+#ifdef QCA_PKT_PROTO_TRACE
+      if (VOS_FTM_MODE != hdd_get_conparam())
+          vos_pkt_proto_trace_close();
+#endif /* QCA_PKT_PROTO_TRACE */
 
 done:
    hdd_wlan_wakelock_destroy();
@@ -17436,13 +17425,8 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     if (hHal == NULL)
         return;
 
-#ifdef WLAN_FEATURE_MBSSID
     intf_ch = WLANSAP_CheckCCIntf(pHddApCtx->sapContext);
     vht_channel_width = wlan_sap_get_vht_ch_width(pHddApCtx->sapContext);
-#else
-    intf_ch = WLANSAP_CheckCCIntf(pHddCtx->pvosContext);
-    vht_channel_width = wlan_sap_get_vht_ch_width(pHddApCtx->pvosContext);
-#endif
     if (intf_ch == 0)
         return;
 
@@ -17452,11 +17436,7 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
                      pHddApCtx->sapConfig.channel,
                      pHddApCtx->sapConfig.sec_ch,
                      &vht_channel_width, pHddApCtx->sapConfig.ch_width_orig);
-#ifdef WLAN_FEATURE_MBSSID
     wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);
-#else
-    wlan_sap_set_vht_ch_width(pHddApCtx->pvosContext, vht_channel_width);
-#endif
     wlan_hdd_restart_sap(ap_adapter);
 }
 #endif

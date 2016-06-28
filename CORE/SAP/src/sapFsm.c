@@ -2157,10 +2157,9 @@ sapGotoChannelSel
         return VOS_STATUS_E_FAULT;
     }
 
-#ifdef WLAN_FEATURE_MBSSID
     if (vos_concurrent_beaconing_sessions_running()) {
         con_ch = sme_GetConcurrentOperationChannel(hHal);
-
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
         if (con_ch && sapContext->channel == AUTO_CHANNEL_SELECT) {
             sapContext->dfs_ch_disable = VOS_TRUE;
         } else if (con_ch && sapContext->channel != con_ch &&
@@ -2169,8 +2168,19 @@ sapGotoChannelSel
                        "In %s, MCC DFS not supported in AP_AP Mode", __func__);
             return VOS_STATUS_E_ABORTED;
         }
+#endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE
+            && sapContext->channel) {
+            /*
+             * For ACS request ,the sapContext->channel is 0, we skip
+             * below overlap checking. When the ACS finish and SAP
+             * BSS start, the sapContext->channel will not be 0. Then
+             * the overlap checking will be reactivated.
+             * If we use sapContext->channel = 0 to perform the overlap
+             * checking, an invalid overlap channel con_ch could be
+             * created. That may cause SAP start failed.
+             */
             con_ch = sme_CheckConcurrentChannelOverlap(hHal,
                                         sapContext->channel,
                                         sapContext->csrRoamProfile.phyMode,
@@ -2184,7 +2194,6 @@ sapGotoChannelSel
         }
 #endif
     }
-#endif
 
     if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
@@ -2198,7 +2207,8 @@ sapGotoChannelSel
         }
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
+        if (sapContext->cc_switch_mode != VOS_MCC_TO_SCC_SWITCH_DISABLE
+            && sapContext->channel) {
              con_ch = sme_CheckConcurrentChannelOverlap(hHal,
                                         sapContext->channel,
                                         sapContext->csrRoamProfile.phyMode,
@@ -3588,7 +3598,6 @@ sapFsm
                          eCSR_DOT11_MODE_11g_ONLY))
                      sapContext->csrRoamProfile.phyMode = eCSR_DOT11_MODE_11a;
 
-#ifdef WLAN_FEATURE_MBSSID
                  /* when AP2 is started while AP1 is performing ACS, we may not
                   * have the AP1 channel yet.So here after the completion of AP2
                   * ACS check if AP1 ACS resulting channel is DFS and if yes
@@ -3601,7 +3610,6 @@ sapFsm
                      if (con_ch && VOS_IS_DFS_CH(con_ch))
                          sapContext->channel = con_ch;
                  }
-#endif
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __func__, "eSAP_CH_SELECT", "eSAP_STARTING");

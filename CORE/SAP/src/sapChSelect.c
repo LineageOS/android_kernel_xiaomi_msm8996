@@ -414,8 +414,7 @@ void sapUpdateUnsafeChannelList(ptSapContext pSapCtx)
    }
 
    /* Try to find unsafe channel */
-#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || \
-    defined(WLAN_FEATURE_MBSSID)
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
    for (i = 0; i < NUM_20MHZ_RF_CHANNELS; i++) {
         if (pSapCtx->dfs_ch_disable == VOS_TRUE) {
             if (VOS_IS_DFS_CH(safeChannels[i].channelNumber)) {
@@ -467,18 +466,8 @@ void sapUpdateUnsafeChannelList(ptSapContext pSapCtx)
     NULL
 ============================================================================*/
 
-void sapCleanupChannelList
-(
-#ifdef WLAN_FEATURE_MBSSID
-    v_PVOID_t pvosGCtx
-#else
-    void
-#endif
-)
+void sapCleanupChannelList(v_PVOID_t pvosGCtx)
 {
-#ifndef WLAN_FEATURE_MBSSID
-    v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
-#endif
     ptSapContext pSapCtx;
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
@@ -629,7 +618,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
     pSpectInfoParams->pSpectCh = pSpectCh;
 
     pChans = pMac->scan.base20MHzChannels.channelList;
-#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE) || defined(WLAN_FEATURE_MBSSID)
+#if defined(FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE)
         if (pSapCtx->dfs_ch_disable == VOS_TRUE)
             include_dfs_ch = VOS_FALSE;
 #endif

@@ -101,11 +101,7 @@ when           who                what, where, why
 #define       MAX_TEXT_SIZE                32
 
 #define       MAX_CHANNEL_LIST_LEN         256
-#ifdef WLAN_FEATURE_MBSSID
 #define       VOS_MAX_NO_OF_SAP_MODE       2 // max # of SAP
-#else
-#define       VOS_MAX_NO_OF_SAP_MODE       1 // max # of SAP
-#endif
 #define       SAP_MAX_NUM_SESSION          5
 #define       SAP_MAX_OBSS_STA_CNT         1 // max # of OBSS STA
 
@@ -814,11 +810,7 @@ typedef struct
 } sapSafeChannelType;
 #endif //FEATURE_WLAN_CH_AVOID
 
-#ifdef WLAN_FEATURE_MBSSID
 void sapCleanupChannelList(v_PVOID_t sapContext);
-#else
-void sapCleanupChannelList(void);
-#endif
 
 void sapCleanupAllChannelList(void);
 
@@ -971,15 +963,7 @@ typedef v_PVOID_t tSapHandle, *ptSapHandle;
 
   SIDE EFFECTS
 ============================================================================*/
-#ifdef WLAN_FEATURE_MBSSID
-v_PVOID_t
-#else
-VOS_STATUS
-#endif
-WLANSAP_Open
-(
-    v_PVOID_t  pvosGCtx
-);
+v_PVOID_t WLANSAP_Open(v_PVOID_t  pvosGCtx);
 
 /*==========================================================================
   FUNCTION    WLANSAP_Start
