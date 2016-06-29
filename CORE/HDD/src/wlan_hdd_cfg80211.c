@@ -20691,8 +20691,13 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     }
 
     if (rssi_stats_valid) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
         sinfo->filled |= STATION_INFO_CHAIN_SIGNAL_AVG;
         sinfo->filled |= STATION_INFO_SIGNAL_AVG;
+#else
+        sinfo->filled |= BIT(NL80211_STA_INFO_CHAIN_SIGNAL_AVG);
+        sinfo->filled |= BIT(NL80211_STA_INFO_CHAIN_SIGNAL);
+#endif
     }
 #endif
 
