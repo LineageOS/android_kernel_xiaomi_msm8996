@@ -427,11 +427,11 @@ ol_tx_delay_compute(
                 OL_TX_RESTORE_HDR((_tx_desc), (_netbuf)); /* restore orginal hdr offset */      \
                 adf_nbuf_unmap((_pdev)->osdev, (_netbuf), ADF_OS_DMA_TO_DEVICE);                \
                 adf_nbuf_free((_netbuf));                                                       \
-                ((struct ol_tx_desc_list_elem_t *)(_tx_desc))->next = (_lcl_freelist);          \
+                ((union ol_tx_desc_list_elem_t *)(_tx_desc))->next = (_lcl_freelist);          \
                 if (adf_os_unlikely(!lcl_freelist)) {                                           \
-                    (_tx_desc_last) = (struct ol_tx_desc_list_elem_t *)(_tx_desc);              \
+                    (_tx_desc_last) = (union ol_tx_desc_list_elem_t *)(_tx_desc);              \
                 }                                                                               \
-                (_lcl_freelist) = (struct ol_tx_desc_list_elem_t *)(_tx_desc);                  \
+                (_lcl_freelist) = (union ol_tx_desc_list_elem_t *)(_tx_desc);                  \
         } while (0)
 #else  /*!ATH_11AC_TXCOMPACT*/
 
@@ -440,11 +440,11 @@ ol_tx_delay_compute(
                 OL_TX_RESTORE_HDR((_tx_desc), (_netbuf)); /* restore orginal hdr offset */      \
                 adf_nbuf_unmap((_pdev)->osdev, (_netbuf), ADF_OS_DMA_TO_DEVICE);                \
                 adf_nbuf_free((_netbuf));                                                       \
-                ((struct ol_tx_desc_list_elem_t *)(_tx_desc))->next = (_lcl_freelist);          \
+                ((union ol_tx_desc_list_elem_t *)(_tx_desc))->next = (_lcl_freelist);          \
                 if (adf_os_unlikely(!lcl_freelist)) {                                           \
-                    (_tx_desc_last) = (struct ol_tx_desc_list_elem_t *)(_tx_desc);              \
+                    (_tx_desc_last) = (union ol_tx_desc_list_elem_t *)(_tx_desc);              \
                 }                                                                               \
-                (_lcl_freelist) = (struct ol_tx_desc_list_elem_t *)(_tx_desc);                  \
+                (_lcl_freelist) = (union ol_tx_desc_list_elem_t *)(_tx_desc);                  \
         } while (0)
 
 
@@ -492,8 +492,10 @@ void
 ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev)
 {
     int i = 0;
-    for (i = 0; i < pdev->tx_desc.pool_size; i++) {
+    struct ol_tx_desc_t *tx_desc;
 
+    for (i = 0; i < pdev->tx_desc.pool_size; i++) {
+        tx_desc = ol_tx_desc_find(pdev, i);
         /*
          * Confirm that each tx descriptor is "empty", i.e. it has
          * no tx frame attached.
@@ -501,12 +503,12 @@ ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev)
          * been given to the target to transmit, for which the
          * target has never provided a response.
          */
-        if (adf_os_atomic_read(&pdev->tx_desc.array[i].tx_desc->ref_cnt)) {
+        if (adf_os_atomic_read(&tx_desc->ref_cnt)) {
             TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
                 "Warning: freeing tx frame "
                 "(no tx completion from the target)\n");
             ol_tx_desc_frame_free_nonstd(
-                pdev, pdev->tx_desc.array[i].tx_desc, 1);
+                pdev, tx_desc, 1);
         }
     }
 }
@@ -539,11 +541,10 @@ ol_tx_completion_handler(
     char *trace_str;
 
     uint32_t   byte_cnt = 0;
-    struct ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
     adf_nbuf_t  netbuf;
 
-    struct ol_tx_desc_list_elem_t *lcl_freelist = NULL;
-    struct ol_tx_desc_list_elem_t *tx_desc_last = NULL;
+    union ol_tx_desc_list_elem_t *lcl_freelist = NULL;
+    union ol_tx_desc_list_elem_t *tx_desc_last = NULL;
     ol_tx_desc_list tx_descs;
     TAILQ_INIT(&tx_descs);
 
@@ -552,7 +553,7 @@ ol_tx_completion_handler(
     trace_str = (status) ? "OT:C:F:" : "OT:C:S:";
     for (i = 0; i < num_msdus; i++) {
         tx_desc_id = desc_ids[i];
-        tx_desc = td_array[tx_desc_id].tx_desc;
+        tx_desc = ol_tx_desc_find(pdev, tx_desc_id);
         tx_desc->status = status;
         netbuf = tx_desc->netbuf;
         NBUF_UPDATE_TX_PKT_COUNT(netbuf, NBUF_TX_PKT_FREE);
@@ -626,9 +627,8 @@ ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
     uint8_t i, is_member;
     uint16_t vdev_id_mask;
     struct ol_tx_desc_t *tx_desc;
-    struct ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
 
-    tx_desc = td_array[tx_desc_id].tx_desc;
+    tx_desc = ol_tx_desc_find(pdev, tx_desc_id);
 
     for (i = 0; i < OL_TX_MAX_TXQ_GROUPS; i++) {
         vdev_id_mask =
@@ -752,10 +752,9 @@ ol_tx_single_completion_handler(
     u_int16_t tx_desc_id)
 {
     struct ol_tx_desc_t *tx_desc;
-    struct ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
     adf_nbuf_t  netbuf;
 
-    tx_desc = td_array[tx_desc_id].tx_desc;
+    tx_desc = ol_tx_desc_find(pdev, tx_desc_id);
     tx_desc->status = status;
     netbuf = tx_desc->netbuf;
 
@@ -804,16 +803,15 @@ ol_tx_inspect_handler(
     u_int16_t *desc_ids = (u_int16_t *)tx_desc_id_iterator;
     u_int16_t tx_desc_id;
     struct ol_tx_desc_t *tx_desc;
-    struct ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
-    struct ol_tx_desc_list_elem_t *lcl_freelist = NULL;
-    struct ol_tx_desc_list_elem_t *tx_desc_last = NULL;
+    union ol_tx_desc_list_elem_t *lcl_freelist = NULL;
+    union ol_tx_desc_list_elem_t *tx_desc_last = NULL;
     adf_nbuf_t  netbuf;
     ol_tx_desc_list tx_descs;
     TAILQ_INIT(&tx_descs);
 
     for (i = 0; i < num_msdus; i++) {
         tx_desc_id = desc_ids[i];
-        tx_desc = td_array[tx_desc_id].tx_desc;
+        tx_desc = ol_tx_desc_find(pdev, tx_desc_id);
         netbuf = tx_desc->netbuf;
 
         /* find the "vdev" this tx_desc belongs to */
@@ -1033,7 +1031,7 @@ static int
 ol_tx_delay_category(struct ol_txrx_pdev_t *pdev, u_int16_t msdu_id)
 {
 #ifdef QCA_COMPUTE_TX_DELAY_PER_TID
-    struct ol_tx_desc_t *tx_desc = pdev->tx_desc.array[msdu_id].tx_desc;
+    struct ol_tx_desc_t *tx_desc = ol_tx_desc_find(pdev, msdu_id);
     u_int8_t tid;
 
     adf_nbuf_t msdu = tx_desc->netbuf;
@@ -1125,8 +1123,8 @@ ol_tx_delay_compute(
     pdev->tx_delay.tx_compl_timestamp_ticks = now_ticks;
 
     for (i = 0; i < num_msdus; i++) {
-        u_int16_t id = desc_ids[i];
-        struct ol_tx_desc_t *tx_desc = pdev->tx_desc.array[id].tx_desc;
+        uint16_t id = desc_ids[i];
+        struct ol_tx_desc_t *tx_desc = ol_tx_desc_find(pdev, id);
         int bin;
 
         tx_delay_queue_ticks = now_ticks - tx_desc->entry_timestamp_ticks;
