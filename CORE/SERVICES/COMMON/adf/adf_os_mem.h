@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013,2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2013,2015-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,6 +44,32 @@
 #endif
 
 #include <i_vos_types.h>
+
+/**
+ * struct adf_os_mem_dma_page_t - Allocated dmaable page
+ * @page_v_addr_start: Page start virtual address
+ * @page_v_addr_end: Page end virtual address
+ * @page_p_addr: Page start physical address
+ */
+struct adf_os_mem_dma_page_t {
+	char *page_v_addr_start;
+	char *page_v_addr_end;
+	adf_os_dma_addr_t page_p_addr;
+};
+
+/**
+ * struct adf_os_mem_multi_page_t - multiple page allocation information storage
+ * @num_element_per_page: Number of element in single page
+ * @num_pages: Number of allocation needed pages
+ * @dma_pages: page information storage in case of coherent memory
+ * @cacheable_pages: page information storage in case of cacheable memory
+ */
+struct adf_os_mem_multi_page_t {
+	uint16_t num_element_per_page;
+	uint16_t num_pages;
+	struct adf_os_mem_dma_page_t *dma_pages;
+	void **cacheable_pages;
+};
 
 #ifdef MEMORY_DEBUG
 #define adf_os_mem_alloc(_osdev, _size) adf_os_mem_alloc_debug(_osdev,\
@@ -231,15 +257,16 @@ adf_os_str_len(const char *str)
     return (a_int32_t)__adf_os_str_len(str);
 }
 
-/**
- * @brief Returns the system default page size
- *
- * @retval    system default page size
- */
-static inline a_int32_t
-adf_os_mem_get_page_size(void)
-{
-	return __adf_os_mem_get_page_size();
-}
+void adf_os_mem_multi_pages_alloc(adf_os_device_t osdev,
+		struct adf_os_mem_multi_page_t *pages,
+		size_t element_size,
+		uint16_t element_num,
+		adf_os_dma_context_t memctxt,
+		bool cacheable);
+
+void adf_os_mem_multi_pages_free(adf_os_device_t osdev,
+		struct adf_os_mem_multi_page_t *pages,
+		adf_os_dma_context_t memctxt,
+		bool cacheable);
 
 #endif

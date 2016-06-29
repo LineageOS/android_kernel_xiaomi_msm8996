@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -92,8 +92,16 @@ ol_tx_desc_hl(
  * @param tx_desc_id - the ID of the descriptor in question
  * @return the descriptor object that has the specified ID
  */
-struct ol_tx_desc_t *
-ol_tx_desc_find(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id);
+static inline struct ol_tx_desc_t *
+ol_tx_desc_find(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id)
+{
+	void **td_base = (void **)pdev->tx_desc.desc_pages.cacheable_pages;
+
+	return &((union ol_tx_desc_list_elem_t *)
+		(td_base[tx_desc_id >> pdev->tx_desc.page_divider] +
+		(pdev->tx_desc.desc_reserved_size *
+		(tx_desc_id & pdev->tx_desc.offset_filter))))->tx_desc;
+}
 
 /**
  * @brief Free a list of tx descriptors and the tx frames they refer to.

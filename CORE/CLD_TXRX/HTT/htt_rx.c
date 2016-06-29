@@ -110,21 +110,6 @@ extern int process_wma_set_command(int sessid, int paramid,
 void
 htt_rx_hash_deinit(struct htt_pdev_t *pdev);
 
-static int
-CEIL_PWR2(int value)
-{
-    int log2;
-    if (IS_PWR2(value)) {
-        return value;
-    }
-    log2 = 0;
-    while (value) {
-        value >>= 1;
-        log2++;
-    }
-    return (1 << log2);
-}
-
 /*
  * This function is used both below within this file (which the compiler
  * will hopefully inline), and out-line from other files via the
@@ -194,7 +179,7 @@ htt_rx_ring_size(struct htt_pdev_t *pdev)
     if (size > HTT_RX_RING_SIZE_MAX) {
         size = HTT_RX_RING_SIZE_MAX;
     }
-    size = CEIL_PWR2(size);
+    size = adf_os_get_pwr2(size);
     return size;
 }
 
@@ -3006,7 +2991,7 @@ htt_rx_hash_init(struct htt_pdev_t *pdev)
 {
     int i,j;
 
-    HTT_ASSERT2(IS_PWR2(RX_NUM_HASH_BUCKETS));
+    HTT_ASSERT2(ADF_OS_IS_PWR2(RX_NUM_HASH_BUCKETS));
 
     /* hash table is array of bucket pointers */
     pdev->rx_ring.hash_table = adf_os_mem_alloc(
@@ -3140,7 +3125,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
     adf_os_dma_addr_t paddr;
     if (!pdev->cfg.is_high_latency) {
         pdev->rx_ring.size = htt_rx_ring_size(pdev);
-        HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
+        HTT_ASSERT2(ADF_OS_IS_PWR2(pdev->rx_ring.size));
         pdev->rx_ring.size_mask = pdev->rx_ring.size - 1;
 
         /*
@@ -3265,7 +3250,7 @@ htt_rx_attach(struct htt_pdev_t *pdev)
         htt_rx_msdu_center_freq = htt_rx_msdu_center_freq_ll;
     } else {
         pdev->rx_ring.size = HTT_RX_RING_SIZE_MIN;
-        HTT_ASSERT2(IS_PWR2(pdev->rx_ring.size));
+        HTT_ASSERT2(ADF_OS_IS_PWR2(pdev->rx_ring.size));
         pdev->rx_ring.size_mask = pdev->rx_ring.size - 1;
 
         /* host can force ring base address if it wish to do so */
