@@ -1961,7 +1961,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy);
 
 void wlan_hdd_update_wiphy(struct wiphy *wiphy,
-                           hdd_config_t *pCfg);
+                           hdd_context_t *ctx);
 
 int wlan_hdd_cfg80211_register( struct wiphy *wiphy);
 void wlan_hdd_cfg80211_register_frames(hdd_adapter_t* pAdapter);

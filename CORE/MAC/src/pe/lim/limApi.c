@@ -305,6 +305,19 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
     }
     pMac->lim.gLimAssocStaLimit = val;
     pMac->lim.gLimIbssStaLimit = val;
+    if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT_AP, &val) != eSIR_SUCCESS)
+        limLog( pMac, LOGP, FL( "cfg get assoc sta of AP limit failed" ));
+
+    pMac->lim.glim_assoc_sta_limit_ap = val;
+
+    if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT_GO, &val) != eSIR_SUCCESS)
+        limLog( pMac, LOGP, FL( "cfg get assoc sta of GO limit failed" ));
+
+    pMac->lim.glim_assoc_sta_limit_go = val;
+
+    limLog(pMac, LOG1, FL("max_peer:%d ap_peer:%d go_peer:%d"),
+           pMac->lim.gLimAssocStaLimit, pMac->lim.glim_assoc_sta_limit_ap,
+           pMac->lim.glim_assoc_sta_limit_go);
     // Place holder for current authentication request
     // being handled
     pMac->lim.gpLimMlmAuthReq = NULL;

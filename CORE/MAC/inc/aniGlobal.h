@@ -592,6 +592,8 @@ typedef struct sAniSirLim
     /// Variable to keep track of number of currently associated STAs
     tANI_U16  gLimNumOfAniSTAs;      // count of ANI peers
     tANI_U16  gLimAssocStaLimit;
+    uint16_t  glim_assoc_sta_limit_ap;
+    uint16_t  glim_assoc_sta_limit_go;
 
     // Heart-Beat interval value
     tANI_U32   gLimHeartBeatCount;

@@ -2661,10 +2661,24 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_MAX     (1)
 #define CFG_IBSS_PS_1RX_CHAIN_IN_ATIM_WINDOW_DEFAULT (0)
 
+/*
+ * Max peers number of SAP
+ */
 #define CFG_SAP_MAX_NO_PEERS                       "gSoftApMaxPeers"
 #define CFG_SAP_MAX_NO_PEERS_MIN                   (1)
 #define CFG_SAP_MAX_NO_PEERS_MAX                   (32)
 #define CFG_SAP_MAX_NO_PEERS_DEFAULT               (32)
+
+/*
+ * Max peers number of P2P GO
+ * To make it backward compatible with old INI file which only set
+ * gSoftApMaxPeers, set gGoMaxPeers default value to 0, and add logic
+ * to set this item same as gSoftApMaxPeers if the value is 0
+ */
+#define CFG_GO_MAX_NO_PEERS                       "gGoMaxPeers"
+#define CFG_GO_MAX_NO_PEERS_MIN                   (0)
+#define CFG_GO_MAX_NO_PEERS_MAX                   (32)
+#define CFG_GO_MAX_NO_PEERS_DEFAULT               (0)
 
 /*
  * Connection related log Enable/Disable.
@@ -4399,7 +4413,8 @@ struct hdd_config {
 #endif
    v_U8_t                      maxWoWFilters;
    v_U8_t                      wowEnable;
-   v_U8_t                      maxNumberOfPeers;
+   v_U8_t                      max_sap_peers;
+   v_U8_t                      max_go_peers;
    v_U8_t                      disableDFSChSwitch;
    v_U8_t                      enableDFSMasterCap;
    v_U16_t                     thermalTempMinLevel0;

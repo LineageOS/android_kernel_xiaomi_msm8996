@@ -14630,6 +14630,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+   if (0 == pHddCtx->cfg_ini->max_go_peers)
+      pHddCtx->cfg_ini->max_go_peers = pHddCtx->cfg_ini->max_sap_peers;
+
+   pHddCtx->max_peers = MAX(pHddCtx->cfg_ini->max_sap_peers,
+                            pHddCtx->cfg_ini->max_go_peers);
+
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* store target type and target version info in hdd ctx */
@@ -14771,7 +14777,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
-         goto err_wdclose;
+         goto err_nl_srv;
       }
    }
 
@@ -14816,7 +14822,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
-   wlan_hdd_update_wiphy(wiphy, pHddCtx->cfg_ini);
+   wlan_hdd_update_wiphy(wiphy, pHddCtx);
 
    if (sme_IsFeatureSupportedByFW(DOT11AC)) {
       hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
@@ -15002,7 +15008,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_config;
+          goto err_nl_srv;
       }
 #if  defined(QCA_WIFI_FTM)
       if (hdd_ftm_start(pHddCtx))
@@ -15225,7 +15231,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if(btc_activate_service(pHddCtx) != 0)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: btc_activate_service failed",__func__);
-      goto err_nl_srv;
+      goto err_reg_netdev;
    }
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -15234,7 +15240,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              "%s: oem_activate_service failed", __func__);
-      goto err_nl_srv;
+      goto err_reg_netdev;
    }
 #endif
 
@@ -15243,7 +15249,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if(ptt_sock_activate_svc(pHddCtx) != 0)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: ptt_sock_activate_svc failed",__func__);
-      goto err_nl_srv;
+      goto err_reg_netdev;
    }
 #endif
 
@@ -15255,7 +15261,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,
              "%s: cnss_diag_activate_service failed", __func__);
-      goto err_nl_srv;
+      goto err_close_cesium;
    }
 
    hdd_register_mcast_bcast_filter(pHddCtx);
@@ -15279,7 +15285,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (ret < 0) {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",
             __func__);
-      goto err_nl_srv;
+      goto err_close_cesium;
    }
    reg_netdev_notifier_done = TRUE;
 #endif
@@ -15385,7 +15391,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: Memory allocation for TxPowerLimit "
                  "failed!", __func__);
-       goto err_nl_srv;
+       goto err_close_cesium;
    }
    hddtxlimit->txPower2g = pHddCtx->cfg_ini->TxPower2g;
    hddtxlimit->txPower5g = pHddCtx->cfg_ini->TxPower5g;
@@ -15492,10 +15498,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    complete(&wlan_comp.wlan_start_comp);
    goto success;
 
-err_nl_srv:
-   nl_srv_exit();
+err_close_cesium:
    hdd_close_cesium_nl_sock();
 
+err_reg_netdev:
    if (rtnl_lock_enable == TRUE) {
       rtnl_lock_enable = FALSE;
       rtnl_unlock();
@@ -15568,7 +15574,8 @@ err_free_ftm_open:
 
    if (VOS_FTM_MODE != hdd_get_conparam())
        wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
-
+err_nl_srv:
+   nl_srv_exit();
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;

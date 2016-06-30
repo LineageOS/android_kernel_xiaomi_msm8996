@@ -3001,11 +3001,18 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IBSS_ATIM_WIN_SIZE_MAX ),
 
    REG_VARIABLE( CFG_SAP_MAX_NO_PEERS, WLAN_PARAM_Integer,
-                 hdd_config_t, maxNumberOfPeers,
+                 hdd_config_t, max_sap_peers,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_SAP_MAX_NO_PEERS_DEFAULT,
                  CFG_SAP_MAX_NO_PEERS_MIN,
                  CFG_SAP_MAX_NO_PEERS_MAX),
+
+   REG_VARIABLE( CFG_GO_MAX_NO_PEERS, WLAN_PARAM_Integer,
+                 hdd_config_t, max_go_peers,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_GO_MAX_NO_PEERS_DEFAULT,
+                 CFG_GO_MAX_NO_PEERS_MIN,
+                 CFG_GO_MAX_NO_PEERS_MAX),
 
    REG_VARIABLE( CFG_IBSS_IS_POWER_SAVE_ALLOWED_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, isIbssPowerSaveAllowed,
@@ -6857,7 +6864,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      }
      else
      {
-            val = pConfig->maxNumberOfPeers;
+            val = pHddCtx->max_peers;
 
      }
      if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ASSOC_STA_LIMIT, val,
@@ -6865,6 +6872,20 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      {
          fStatus = FALSE;
          hddLog(LOGE,"Failure: Could not pass on WNI_CFG_ASSOC_STA_LIMIT configuration info to CCM");
+     }
+
+     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ASSOC_STA_LIMIT_AP,
+                     pConfig->max_sap_peers, NULL, eANI_BOOLEAN_FALSE)
+        == eHAL_STATUS_FAILURE) {
+         fStatus = FALSE;
+         hddLog(LOGE,"can't pass WNI_CFG_ASSOC_STA_LIMIT_AP to CCM");
+     }
+
+     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ASSOC_STA_LIMIT_GO,
+                     pConfig->max_go_peers, NULL, eANI_BOOLEAN_FALSE)
+        == eHAL_STATUS_FAILURE) {
+         fStatus = FALSE;
+         hddLog(LOGE,"can't pass WNI_CFG_ASSOC_STA_LIMIT_GO to CCM");
      }
 #endif
    if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_LPWR_IMG_TRANSITION,
