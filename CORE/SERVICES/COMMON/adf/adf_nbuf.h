@@ -56,6 +56,7 @@
 #define NBUF_PKT_TRAC_MAX_STRING   12
 #define NBUF_PKT_TRAC_PROTO_STRING 4
 #define ADF_NBUF_PKT_ERROR         1
+#define ADF_NBUF_FWD_FLAG          1
 
 #define ADF_NBUF_TRAC_IPV4_OFFSET       14
 #define ADF_NBUF_TRAC_IPV4_HEADER_SIZE  20
@@ -1280,6 +1281,31 @@ static inline void
 adf_nbuf_trace_set_proto_type(adf_nbuf_t buf, uint8_t proto_type)
 {
    __adf_nbuf_trace_set_proto_type(buf, proto_type);
+}
+
+/**
+ * adf_nbuf_get_fwd_flag() - get packet forwarding flag
+ * @buf: pointer to adf_nbuf_t structure
+ *
+ * Returns: packet forwarding flag
+*/
+static inline uint8_t
+adf_nbuf_get_fwd_flag(adf_nbuf_t buf)
+{
+   return __adf_nbuf_get_fwd_flag(buf);
+}
+
+/**
+ * adf_nbuf_get_fwd_flag() - update packet forwarding flag
+ * @buf: pointer to adf_nbuf_t structure
+ * @flag: forwarding flag
+ *
+ * Returns: none
+*/
+static inline void
+adf_nbuf_set_fwd_flag(adf_nbuf_t buf, uint8_t flag)
+{
+   __adf_nbuf_set_fwd_flag(buf, flag);
 }
 
 /**
