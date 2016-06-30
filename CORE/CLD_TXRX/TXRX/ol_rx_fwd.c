@@ -143,6 +143,7 @@ ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
         adf_nbuf_pull_head(msdu,
                 htt_rx_msdu_rx_desc_size_hl(pdev->htt_pdev,
                     rx_desc));
+        adf_nbuf_set_fwd_flag(msdu, ADF_NBUF_FWD_FLAG);
     }
 
     msdu = vdev->tx(vdev, msdu);
