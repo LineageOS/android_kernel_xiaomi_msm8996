@@ -1627,8 +1627,8 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
         channelBitmap.chanBondingSet[1].startChannel = 52;
         channelBitmap.chanBondingSet[2].startChannel = 100;
         channelBitmap.chanBondingSet[3].startChannel = 116;
-        channelBitmap.chanBondingSet[3].startChannel = 132;
-        channelBitmap.chanBondingSet[4].startChannel = 149;
+        channelBitmap.chanBondingSet[4].startChannel = 132;
+        channelBitmap.chanBondingSet[5].startChannel = 149;
         /* now loop through whatever is left of channel list */
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                   FL("sapdfs: Moving temp channel list to final."));
