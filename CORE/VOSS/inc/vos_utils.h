@@ -188,11 +188,17 @@ eHalStatus vos_send_flush_logs_cmd_to_fw(tpAniSirGlobal pMac);
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 void vos_tdls_tx_rx_mgmt_event(uint8_t event_id, uint8_t tx_rx,
 			uint8_t type, uint8_t sub_type, uint8_t *peer_mac);
+void vos_wow_wakeup_host_event(uint8_t wow_wakeup_cause);
 #else
 static inline
 void vos_tdls_tx_rx_mgmt_event(uint8_t event_id, uint8_t tx_rx,
 			uint8_t type, uint8_t sub_type, uint8_t *peer_mac)
 
+{
+	return;
+}
+static inline
+void vos_wow_wakeup_host_event(uint8_t wow_wakeup_cause)
 {
 	return;
 }
