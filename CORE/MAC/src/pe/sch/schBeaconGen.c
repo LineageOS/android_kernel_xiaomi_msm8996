@@ -241,7 +241,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
     /* Skip over the time stamp (it'll be updated later). */
 
-    pBcn1->BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
+    pBcn1->BeaconInterval.interval = psessionEntry->beaconParams.beaconInterval;
     PopulateDot11fCapabilities( pMac, &pBcn1->Capabilities, psessionEntry );
     if (psessionEntry->ssidHidden)
     {
