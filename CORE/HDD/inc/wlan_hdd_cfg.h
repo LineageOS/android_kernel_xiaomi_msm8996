@@ -3417,6 +3417,21 @@ enum dot11p_mode {
 #define CFG_BTC_WLAN_INTERVAL_PAGE_SAP_DEFAULT   (30)
 
 /**
+ * Config to set WLAN connection params
+ * 0: coex preference
+ * 1: reserved
+ */
+#define CFG_BTC_WLAN_CONN_PARAM0                 "gWlanConnVal0"
+#define CFG_BTC_WLAN_CONN_PARAM0_MIN             (0)
+#define CFG_BTC_WLAN_CONN_PARAM0_MAX             (0xffffffff)
+#define CFG_BTC_WLAN_CONN_PARAM0_DEFAULT         (0)
+
+#define CFG_BTC_WLAN_CONN_PARAM1                 "gWlanConnVal1"
+#define CFG_BTC_WLAN_CONN_PARAM1_MIN             (0)
+#define CFG_BTC_WLAN_CONN_PARAM1_MAX             (0xffffffff)
+#define CFG_BTC_WLAN_CONN_PARAM1_DEFAULT         (0)
+
+/**
  * Config to set BT WLAN co-existing
  * 0: enable BT WLAN co-existing
  * 1: dynamically disable BT WLAN co-existing
@@ -4617,6 +4632,10 @@ struct hdd_config {
 
    uint32_t                    coex_page_sap_bt_interval;
    uint32_t                    coex_page_sap_wlan_interval;
+
+   uint32_t                    coex_config_wlan_conn_val0;
+   uint32_t                    coex_config_wlan_conn_val1;
+
    uint32_t                    dynamic_wlan_bt_coex;
    uint32_t                    antenna_isolation;
 

@@ -4211,6 +4211,21 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MIN,
                 CFG_BTC_WLAN_INTERVAL_PAGE_SAP_MAX),
 
+/* During WLAN Conn */
+   REG_VARIABLE(CFG_BTC_WLAN_CONN_PARAM0, WLAN_PARAM_Integer,
+                hdd_config_t, coex_config_wlan_conn_val0,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_CONN_PARAM0_DEFAULT,
+                CFG_BTC_WLAN_CONN_PARAM0_MIN,
+                CFG_BTC_WLAN_CONN_PARAM0_MAX),
+
+   REG_VARIABLE(CFG_BTC_WLAN_CONN_PARAM1, WLAN_PARAM_Integer,
+                hdd_config_t, coex_config_wlan_conn_val1,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_BTC_WLAN_CONN_PARAM1_DEFAULT,
+                CFG_BTC_WLAN_CONN_PARAM1_MIN,
+                CFG_BTC_WLAN_CONN_PARAM1_MAX),
+
    REG_VARIABLE(CFG_BTC_DYNAMIC_WLAN_BT_COEX, WLAN_PARAM_Integer,
                 hdd_config_t, dynamic_wlan_bt_coex,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -7956,6 +7971,15 @@ void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
 					config->coex_page_sap_wlan_interval);
 		if (VOS_STATUS_SUCCESS != status)
 			hddLog(LOGE, "Fail to set coex page sap bt interval parameters");
+	}
+
+	if ((config->coex_config_wlan_conn_val0 != 0) ||
+		(config->coex_config_wlan_conn_val1 != 0)) {
+		status = sme_set_btc_wlan_conn_params(
+					config->coex_config_wlan_conn_val0,
+					config->coex_config_wlan_conn_val1);
+		if (VOS_STATUS_SUCCESS != status)
+			hddLog(LOGE, "Fail to set coex wlan connection parameters");
 	}
 
 	status = sme_set_btc_dynamic_bt_wlan_coex(

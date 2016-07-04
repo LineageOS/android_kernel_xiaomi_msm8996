@@ -17519,9 +17519,6 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
        request->n_channels = MAX_CHANNEL;
     }
 
-    hddLog(VOS_TRACE_LEVEL_INFO,
-           "No of Scan Channels: %d", request->n_channels);
-
     if (request->n_channels)
     {
        char chList [(request->n_channels*5)+1];
@@ -17544,8 +17541,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
           }
        }
 
+       hddLog(LOG1, "No of Scan Channels: %d", num_chan);
        hddLog(VOS_TRACE_LEVEL_INFO, "Channel-List: %s", chList);
-
     }
 
     if (!num_chan) {
@@ -22567,7 +22564,8 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
             {
                 VOS_STATUS status;
                 unsigned long rc;
-                tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams;
+                tCsrTdlsLinkEstablishParams tdlsLinkEstablishParams = { {0}, 0,
+                                                0, 0, 0, 0, 0, 0, {0}, 0, {0} };
                 pTdlsPeer = wlan_hdd_tdls_find_peer(pAdapter, peer, TRUE);
 
                 if (NULL == pTdlsPeer)

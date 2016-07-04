@@ -11477,8 +11477,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          }
          else
          {
-            hdd_abort_mac_scan(pHddCtx, pAdapter->sessionId,
-                               eCSR_SCAN_ABORT_DEFAULT);
+            wlan_hdd_scan_abort(pAdapter);
          }
          if ((pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) ||
               (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)) {
@@ -14836,13 +14835,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
    }
 
-   status = wlan_hdd_reg_init(pHddCtx);
-   if (status != VOS_STATUS_SUCCESS) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: Failed to init channel list", __func__);
-      goto err_vosclose;
-   }
-
    if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: Failed to set wow pulse", __func__);
@@ -14877,9 +14869,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( VOS_STATUS_SUCCESS != status )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_wiphy_unregister;
+      goto err_vosclose;
    }
 
+   status = wlan_hdd_reg_init(pHddCtx);
+   if (status != VOS_STATUS_SUCCESS) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: Failed to init channel list", __func__);
+      goto err_vosclose;
+   }
    ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS,
                                  pHddCtx->cfg_ini->tx_chain_mask_1ss,
                                  PDEV_CMD);
@@ -14999,7 +14997,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef QCA_PKT_PROTO_TRACE
-   vos_pkt_proto_trace_init();
+   /* Ensure pkt tracing happen only in Non FTM mode */
+   if (VOS_FTM_MODE != hdd_get_conparam())
+       vos_pkt_proto_trace_init();
 #endif /* QCA_PKT_PROTO_TRACE */
 
  ftm_processing:
@@ -15522,8 +15522,6 @@ err_unregister_pmops:
 
    hdd_debugfs_exit(pHddCtx);
 
-
-
 err_close_adapter:
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    if (rtnl_lock_enable == TRUE) {
@@ -15532,6 +15530,11 @@ err_close_adapter:
    }
 #endif
    hdd_close_all_adapters( pHddCtx );
+
+#ifdef QCA_PKT_PROTO_TRACE
+   if (VOS_FTM_MODE != hdd_get_conparam())
+       vos_pkt_proto_trace_close();
+#endif /* QCA_PKT_PROTO_TRACE */
 
 err_vosstop:
    vos_stop(pVosContext);
@@ -15898,6 +15901,11 @@ static void hdd_driver_exit(void)
    hif_unregister_driver();
    vos_preClose( &pVosContext );
 
+#ifdef QCA_PKT_PROTO_TRACE
+   if (VOS_FTM_MODE != hdd_get_conparam())
+       vos_pkt_proto_trace_close();
+#endif /* QCA_PKT_PROTO_TRACE */
+
 #ifdef TIMER_MANAGER
    vos_timer_exit();
 #endif
@@ -15908,11 +15916,6 @@ static void hdd_driver_exit(void)
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
    wlan_logging_sock_deinit_svc();
 #endif
-
-#ifdef QCA_PKT_PROTO_TRACE
-      if (VOS_FTM_MODE != hdd_get_conparam())
-          vos_pkt_proto_trace_close();
-#endif /* QCA_PKT_PROTO_TRACE */
 
 done:
    hdd_wlan_wakelock_destroy();

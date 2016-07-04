@@ -4460,6 +4460,8 @@ VOS_STATUS sme_set_btc_bt_wlan_interval_page_sta(uint32_t bt_interval,
 					uint32_t sta_interval);
 VOS_STATUS sme_set_btc_bt_wlan_interval_page_sap(uint32_t bt_interval,
 					uint32_t sap_interval);
+VOS_STATUS sme_set_btc_wlan_conn_params(uint32_t conn_val0,
+                                        uint32_t conn_val1);
 VOS_STATUS sme_set_btc_dynamic_bt_wlan_coex(uint32_t dynamic_wlan_bt_coex,
 					uint32_t antenna_isolation);
 

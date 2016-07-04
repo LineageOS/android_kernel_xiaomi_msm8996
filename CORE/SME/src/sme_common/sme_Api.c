@@ -18858,6 +18858,46 @@ VOS_STATUS sme_set_btc_bt_wlan_interval_page_sap(uint32_t bt_interval,
 }
 
 /**
+ * sme_set_btc_wlan_conn_params() - Set the btc wlan conn params
+ * @coex_config_during_wlan_conn_val0: wlan conn val0
+ * @coex_config_during_wlan_conn_val1: wlan conn val1
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_set_btc_wlan_conn_params(uint32_t conn_val0,
+			uint32_t conn_val1)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_interval;
+
+	sme_interval = vos_mem_malloc(sizeof(*sme_interval));
+	if (!sme_interval) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_interval->config_type = WMI_COEX_CONFIG_DURING_WLAN_CONN;
+	sme_interval->config_arg1 = conn_val0;
+	sme_interval->config_arg2 = conn_val1;
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_interval;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_interval);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+
+/**
  * sme_set_btc_bt_wlan_coex() - Set the btc bt wlan coex
  * @dynamic_wlan_bt_coex: enable bt wlan co-exist
  *
