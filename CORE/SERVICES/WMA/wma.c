@@ -12340,6 +12340,40 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 
 	return VOS_STATUS_SUCCESS;
 }
+
+uint32_t wma_get_bcn_rate_code(uint16_t rate)
+{
+	/* rate in multiples of 100 Kbps */
+	switch (rate) {
+		case WMA_BEACON_TX_RATE_1_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_1_M;
+		case WMA_BEACON_TX_RATE_2_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_2_M;
+		case WMA_BEACON_TX_RATE_5_5_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_5_5_M;
+		case WMA_BEACON_TX_RATE_11_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_11M;
+		case WMA_BEACON_TX_RATE_6_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_6_M;
+		case WMA_BEACON_TX_RATE_9_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_9_M;
+		case WMA_BEACON_TX_RATE_12_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_12_M;
+		case WMA_BEACON_TX_RATE_18_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_18_M;
+		case WMA_BEACON_TX_RATE_24_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_24_M;
+		case WMA_BEACON_TX_RATE_36_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_36_M;
+		case WMA_BEACON_TX_RATE_48_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_48_M;
+		case WMA_BEACON_TX_RATE_54_M:
+			return WMA_BEACON_TX_RATE_HW_CODE_54_M;
+		default:
+			return WMA_BEACON_TX_RATE_HW_CODE_1_M;
+	}
+}
+
 VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 			  struct wma_vdev_start_req *req, v_BOOL_t isRestart)
 {
@@ -12511,11 +12545,15 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	cmd->beacon_interval = req->beacon_intval;
 	cmd->dtim_period = req->dtim_period;
 
+	cmd->flags &= ~WMI_UNIFIED_VDEV_START_BCN_TX_RATE_PRESENT;
 	if (req->beacon_tx_rate) {
-		WMA_LOGI("%s[%d]: beacon_tx_rate present [%hu]",
-				__func__, __LINE__, req->beacon_tx_rate);
+		WMA_LOGI("%s: beacon_tx_rate present. beacon tx rate [%hu * 100 Kbps]",
+				__func__, req->beacon_tx_rate);
 		cmd->flags |= WMI_UNIFIED_VDEV_START_BCN_TX_RATE_PRESENT;
-		cmd->bcn_tx_rate = req->beacon_tx_rate;
+		/* beacon_tx_rate is in multiples of 100 Kbps. Convert the
+		 * data rate to hw rate code */
+		cmd->bcn_tx_rate = wma_get_bcn_rate_code(req->beacon_tx_rate);
+		WMA_LOGI("bcn rate code %02x", cmd->bcn_tx_rate);
 	}
 
 	/* FIXME: Find out min, max and regulatory power levels */

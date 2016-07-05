@@ -296,7 +296,7 @@ typedef struct sSapContext {
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     enum sap_acs_dfs_mode  dfs_mode;
 
-    uint8_t beacon_tx_rate;
+    uint16_t beacon_tx_rate;
     tSirMacRateSet supp_rate_set;
     tSirMacRateSet extended_rate_set;
 

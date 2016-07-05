@@ -694,7 +694,7 @@ typedef struct sSirSmeStartBssReq
     tANI_BOOLEAN            obssEnabled;
     uint8_t                 sap_dot11mc;
     bool                    vendor_vht_for_24ghz_sap;
-    uint8_t                 beacon_tx_rate;
+    uint16_t                beacon_tx_rate;
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
