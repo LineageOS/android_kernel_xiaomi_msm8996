@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -123,7 +123,7 @@ void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
    adf_nbuf_free((adf_nbuf_t)pPacket);
 }
 
-tANI_U32 palGetTickCount(tHddHandle hHdd)
+tANI_TIMESTAMP palGetTickCount(tHddHandle hHdd)
 {
    return( vos_timer_get_system_ticks() );
 }
