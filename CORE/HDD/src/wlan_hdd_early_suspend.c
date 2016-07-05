@@ -2036,8 +2036,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
     */
    /* Wait for MC to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down MC thread",__func__);
-   set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
-   set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   set_bit(MC_SHUTDOWN_EVENT, &vosSchedContext->mcEventFlag);
+   set_bit(MC_POST_EVENT, &vosSchedContext->mcEventFlag);
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
    wait_for_completion(&vosSchedContext->McShutdown);
 
@@ -2046,8 +2046,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TLshim RX thread",
           __func__);
    unregister_hotcpu_notifier(vosSchedContext->cpuHotPlugNotifier);
-   set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
-   set_bit(RX_POST_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+   set_bit(RX_SHUTDOWN_EVENT, &vosSchedContext->tlshimRxEvtFlg);
+   set_bit(RX_POST_EVENT, &vosSchedContext->tlshimRxEvtFlg);
    wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for TLshim RX thread to exit",
           __func__);
