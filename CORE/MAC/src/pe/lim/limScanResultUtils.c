@@ -240,7 +240,7 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     //SINR no longer reported by HW
     pBssDescr->sinr = 0;
-    pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
+    pBssDescr->nReceivedTime = vos_timer_get_system_time();
     pBssDescr->tsf_delta = WDA_GET_RX_TSF_DELTA(pRxPacketInfo);
 
     limLog(pMac, LOG1,

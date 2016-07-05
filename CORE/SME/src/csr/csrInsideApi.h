@@ -73,6 +73,7 @@
 
 #define CSR_MAX_BSS_SUPPORT            512
 #define SYSTEM_TIME_MSEC_TO_USEC      1000
+#define SYSTEM_TIME_SEC_TO_MSEC       1000
 
 /* This number minus 1 means the number of times a channel is scanned
    before a BSS is removed from cache scan result */
