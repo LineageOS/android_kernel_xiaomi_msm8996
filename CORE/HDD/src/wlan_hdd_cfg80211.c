@@ -17000,6 +17000,9 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     unsigned long rc;
     unsigned int current_timestamp, time_elapsed;
     int ret = 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    bool iface_down = false;
+#endif
 
     ENTER();
 
@@ -17013,6 +17016,13 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
         hddLog(LOGE, FL("HDD context is not valid!"));
         return eHAL_STATUS_FAILURE;
     }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    if (!(pAdapter->dev->flags & IFF_UP)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Interface is down"));
+        iface_down = true;
+    }
+#endif
 
     hddLog(VOS_TRACE_LEVEL_INFO,
             "%s called with halHandle = %p, pContext = %p,"
@@ -17046,31 +17056,34 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
                 "scanId = %d", __func__, (int) pScanInfo->scanId,
                 (int) scanId);
     }
-
-    ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+    if (!iface_down)
+#endif
+    {
+        ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy,
                                         pAdapter);
+        if (0 > ret) {
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);
 
-    if (0 > ret) {
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);
+            if (pHddCtx->cfg_ini->bug_report_for_scan_results) {
+                current_timestamp = jiffies_to_msecs(jiffies);
+                time_elapsed = current_timestamp -
+                               pHddCtx->last_scan_bug_report_timestamp;
 
-        if (pHddCtx->cfg_ini->bug_report_for_scan_results) {
-            current_timestamp = jiffies_to_msecs(jiffies);
-            time_elapsed = current_timestamp -
-                pHddCtx->last_scan_bug_report_timestamp;
-
-            /* check if we have generated bug report in
-             * MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT time.
-             * */
-            if (time_elapsed > MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT) {
-                vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
-                               WLAN_LOG_INDICATOR_HOST_DRIVER,
-                               WLAN_LOG_REASON_NO_SCAN_RESULTS,
-                               true);
-                pHddCtx->last_scan_bug_report_timestamp = current_timestamp;
+                /* check if we have generated bug report in
+                 * MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT time.
+                 *
+                 */
+                if (time_elapsed > MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT) {
+                    vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
+                                   WLAN_LOG_INDICATOR_HOST_DRIVER,
+                                   WLAN_LOG_REASON_NO_SCAN_RESULTS,
+                                   true);
+                    pHddCtx->last_scan_bug_report_timestamp = current_timestamp;
+                }
             }
         }
     }
-
 
     /* If any client wait scan result through WEXT
      * send scan done event to client */
@@ -17102,16 +17115,16 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     req = pAdapter->request;
     pAdapter->request = NULL;
 
+    /* Scan is no longer pending */
+    pScanInfo->mScanPending = VOS_FALSE;
+
     if (!req || req->wiphy == NULL)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL");
-        pScanInfo->mScanPending = VOS_FALSE;
         complete(&pScanInfo->abortscan_event_var);
         goto allow_suspend;
     }
 
-    /* Scan is no longer pending */
-    pScanInfo->mScanPending = VOS_FALSE;
 
     /*
      * cfg80211_scan_done informing NL80211 about completion
@@ -17122,7 +17135,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
          aborted = true;
     }
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
-    if (pAdapter->dev->flags & IFF_UP)
+    if (!iface_down)
 #endif
         cfg80211_scan_done(req, aborted);
 
@@ -17139,12 +17152,15 @@ allow_suspend:
      * to process the connect request to AP */
     hdd_prevent_suspend_timeout(1000, WIFI_POWER_EVENT_WAKELOCK_SCAN);
 
-#ifdef FEATURE_WLAN_TDLS
-    if (!(eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode))
-    {
-        wlan_hdd_tdls_scan_done_callback(pAdapter);
-    }
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+     if (!iface_down)
 #endif
+     {
+#ifdef FEATURE_WLAN_TDLS
+         if (!(eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode))
+             wlan_hdd_tdls_scan_done_callback(pAdapter);
+#endif
+     }
 
     EXIT();
     return 0;
