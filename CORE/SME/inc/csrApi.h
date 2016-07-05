@@ -1015,7 +1015,7 @@ typedef struct tagCsrRoamProfile
     tSirAddIeParams        addIeParams;
     uint8_t sap_dot11mc;
     bool do_not_roam;
-    uint8_t beacon_tx_rate;
+    uint16_t beacon_tx_rate;
     tSirMacRateSet supp_rate_set;
     tSirMacRateSet extended_rate_set;
 }tCsrRoamProfile;

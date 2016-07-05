@@ -15388,7 +15388,9 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
                 sizeof(pMac->roam.configParam.vendor_vht_for_24ghz_sap));
         pBuf += sizeof(pMac->roam.configParam.vendor_vht_for_24ghz_sap);
 
-        *pBuf++ = (tANI_U8)pParam->beacon_tx_rate;
+        vos_mem_copy(pBuf, &pParam->beacon_tx_rate,
+                sizeof(pParam->beacon_tx_rate));
+        pBuf += sizeof(pParam->beacon_tx_rate);
 
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
