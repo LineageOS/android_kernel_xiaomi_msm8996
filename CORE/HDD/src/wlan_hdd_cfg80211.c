@@ -24121,7 +24121,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     }
 
     /* Suspend MC thread */
-    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+    set_bit(MC_SUSPEND_EVENT, &vosSchedContext->mcEventFlag);
     wake_up_interruptible(&vosSchedContext->mcWaitQueue);
 
     /* Wait for suspend confirmation from MC thread */
@@ -24129,7 +24129,7 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                                  msecs_to_jiffies(WLAN_WAIT_TIME_MCTHREAD_SUSPEND));
     if (!rc)
     {
-        clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+        clear_bit(MC_SUSPEND_EVENT, &vosSchedContext->mcEventFlag);
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to stop mc thread", __func__);
         goto resume_tx;
@@ -24139,13 +24139,13 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 
 #ifdef QCA_CONFIG_SMP
     /* Suspend tlshim rx thread */
-    set_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+    set_bit(RX_SUSPEND_EVENT, &vosSchedContext->tlshimRxEvtFlg);
     wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
     rc = wait_for_completion_timeout(
                      &vosSchedContext->SuspndTlshimRxEvent,
                      msecs_to_jiffies(RX_TLSHIM_SUSPEND_TIMEOUT));
     if (!rc) {
-        clear_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+        clear_bit(RX_SUSPEND_EVENT, &vosSchedContext->tlshimRxEvtFlg);
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to stop tl_shim rx thread", __func__);
         goto resume_all;
