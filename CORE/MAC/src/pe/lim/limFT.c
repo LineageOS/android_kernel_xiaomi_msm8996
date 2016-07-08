@@ -1306,8 +1306,9 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
    }
 
 send_rsp:
-   if (psessionEntry->currentOperChannel !=
-         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum) {
+   if ((psessionEntry->currentOperChannel !=
+         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum)
+         || limIsInMCC(pMac)) {
       /* Need to move to the original AP channel */
       limChangeChannelWithCallback(pMac, psessionEntry->currentOperChannel,
             limPerformPostFTPreAuthAndChannelChange,
