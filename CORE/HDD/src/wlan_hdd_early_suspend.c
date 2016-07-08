@@ -1995,12 +1995,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
    }
 #endif
 
-   hdd_reset_all_adapters(pHddCtx);
-
 #ifdef IPA_UC_OFFLOAD
    hdd_ipa_uc_ssr_deinit();
 #endif
 
+   hdd_reset_all_adapters(pHddCtx);
    vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
