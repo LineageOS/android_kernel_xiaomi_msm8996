@@ -89,6 +89,7 @@
 #include "dfs_interface.h"
 #include "_ieee80211_common.h"
 #include "vos_api.h"
+#include "sirDebug.h"
 
 #define ATH_SUPPORT_DFS   1
 #define CHANNEL_TURBO     0x00010
@@ -128,6 +129,7 @@
 //#define MAX_BIN5_DUR  131 /* 105 * 1.25*/
 #define MAX_BIN5_DUR  145   /* use 145 for osprey */ //conversion is already done using dfs->dur_multiplier//
 #define MAX_BIN5_DUR_MICROSEC 105
+#define MAX_DFS_RADAR_TYPE 256
 
 #define DFS_MARGIN_EQUAL(a, b, margin) ((DFS_DIFF(a,b)) <= margin)
 #define DFS_MAX_STAGGERED_BURSTS 3
@@ -265,6 +267,7 @@ struct dfs_pulseline {
 #define  DFS_EVENT_HW_CHIRP   0x02  /* hardware chirp */
 #define  DFS_EVENT_SW_CHIRP   0x04  /* software chirp */
 
+
 /*
  * Use this only if the event has CHECKCHIRP set.
  */
@@ -298,6 +301,7 @@ struct dfs_event {
 #pragma pack(pop, dfs_event)
 #endif
 
+#define DFS_FILTER_DEFAULT_PRI 1000000
 #define DFS_AR_MAX_ACK_RADAR_DUR 511
 #define DFS_AR_MAX_NUM_PEAKS     3
 #define DFS_AR_ARQ_SIZE       2048  /* 8K AR events for buffer size */
@@ -569,10 +573,13 @@ struct ath_dfs {
 
     /* dfs_radarf - One filter for each radar pulse type */
     struct dfs_filtertype *dfs_radarf[DFS_MAX_RADAR_TYPES];
+    struct dfs_filtertype *dfs_dc_radarf[DFS_MAX_RADAR_TYPES];
 
     struct dfs_info dfs_rinfo;          /* State vars for radar processing */
     struct dfs_bin5radars *dfs_b5radars;/* array of bin5 radar events */
     int8_t **dfs_radartable;            /* map of radar durs to filter types */
+    /* map of dc radar durs to filter types */
+    int8_t **dfs_dc_radartable;
 #ifndef ATH_DFS_RADAR_DETECTION_ONLY
     struct dfs_nolelem *dfs_nol;        /* Non occupancy list for radar */
     int dfs_nol_count;                  /* How many items? */
