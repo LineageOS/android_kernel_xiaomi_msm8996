@@ -36,7 +36,7 @@
 #define DEFAULT_SAMPLING_MS 3000
 
 /* Sysfs attr group must be manually updated in order to change this */
-#define NR_THERMAL_ZONES 8
+#define NR_THERMAL_ZONES 12
 
 #define UNTHROTTLE_ZONE (-1)
 
@@ -360,6 +360,10 @@ static DEVICE_ATTR(zone4, 0644, thermal_zone_read, thermal_zone_write);
 static DEVICE_ATTR(zone5, 0644, thermal_zone_read, thermal_zone_write);
 static DEVICE_ATTR(zone6, 0644, thermal_zone_read, thermal_zone_write);
 static DEVICE_ATTR(zone7, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone8, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone9, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone10, 0644, thermal_zone_read, thermal_zone_write);
+static DEVICE_ATTR(zone11, 0644, thermal_zone_read, thermal_zone_write);
 
 static struct attribute *msm_thermal_attr[] = {
 	&dev_attr_enabled.attr,
@@ -373,6 +377,10 @@ static struct attribute *msm_thermal_attr[] = {
 	&dev_attr_zone5.attr,
 	&dev_attr_zone6.attr,
 	&dev_attr_zone7.attr,
+	&dev_attr_zone8.attr,
+	&dev_attr_zone9.attr,
+	&dev_attr_zone10.attr,
+	&dev_attr_zone11.attr,
 	NULL
 };
 

@@ -378,7 +378,7 @@ config THERMAL_MONITOR_SIMPLE
 	  This enables thermal monitoring capability in the kernel in the
 	  absence of a system wide thermal monitoring entity. Monitors temperature
 	  via a specified ADC channel on the VADC device, and limits the max frequency
-	  of the CPU cores accordingly. The code is simple, allows for up to 8 throttling
+	  of the CPU cores accordingly. The code is simple, allows for multiple throttling
 	  steps, and is completely configurable via sysfs.
 
 menu "Texas Instruments thermal drivers"
