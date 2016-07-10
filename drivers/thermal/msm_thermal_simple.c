@@ -29,6 +29,10 @@
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/slab.h>
 
+/* For MSM8996 */
+#define LITTLE_CPU_ID	0
+#define BIG_CPU_ID	2
+
 #define DEFAULT_SAMPLING_MS 3000
 
 /* Sysfs attr group must be manually updated in order to change this */
@@ -38,7 +42,7 @@
 
 struct throttle_policy {
 	int32_t curr_zone;
-	uint32_t freq;
+	uint32_t freq[2];
 };
 
 struct thermal_config {
@@ -50,7 +54,7 @@ struct thermal_config {
 };
 
 struct thermal_zone {
-	uint32_t freq;
+	uint32_t freq[2];
 	int64_t trip_degC;
 	int64_t reset_degC;
 };
@@ -88,7 +92,7 @@ static void msm_thermal_main(struct work_struct *work)
 	spin_lock(&t->lock);
 
 	for (i = 0; i < NR_THERMAL_ZONES; i++) {
-		if (!t->zone[i].freq) {
+		if (!t->zone[i].freq[0]) {
 			/*
 			 * The current thermal zone is not configured, so use
 			 * the previous one and exit.
@@ -142,10 +146,13 @@ static void msm_thermal_main(struct work_struct *work)
 	 * Update throttle freq. Setting throttle.freq to 0
 	 * tells the CPU notifier to unthrottle.
 	 */
-	if (curr_zone == UNTHROTTLE_ZONE)
-		t->throttle.freq = 0;
-	else
-		t->throttle.freq = t->zone[curr_zone].freq;
+	if (curr_zone == UNTHROTTLE_ZONE) {
+		memset(&t->throttle.freq[0], 0, sizeof(uint32_t) * 2);
+	} else {
+		/* Throttle both clusters */
+		t->throttle.freq[0] = t->zone[curr_zone].freq[0];
+		t->throttle.freq[1] = t->zone[curr_zone].freq[1];
+	}
 
 	spin_unlock(&t->lock);
 
@@ -169,7 +176,8 @@ static int do_cpu_throttle(struct notifier_block *nb,
 		return NOTIFY_OK;
 
 	spin_lock(&t->lock);
-	throttle_freq = t->throttle.freq;
+	throttle_freq =
+		t->throttle.freq[policy->cpu < BIG_CPU_ID ? 0 : 1];
 	user_max = t->conf.user_maxfreq;
 	spin_unlock(&t->lock);
 
@@ -235,7 +243,7 @@ static ssize_t enabled_write(struct device *dev,
 		 * Unthrottle all CPUS. No need to acquire lock here as we
 		 * will immediately update CPU policy anyway.
 		 */
-		t->throttle.freq = 0;
+		memset(&t->throttle.freq[0], 0, sizeof(uint32_t) * 2);
 		update_online_cpu_policy();
 	}
 
@@ -264,18 +272,21 @@ static ssize_t thermal_zone_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	struct thermal_policy *t = t_policy_g;
-	uint32_t freq, idx;
+	uint32_t freq[2], idx;
 	int64_t trip_degC, reset_degC;
 	int ret;
 
-	ret = sscanf(buf, "%u %lld %lld", &freq, &trip_degC, &reset_degC);
-	if (ret != 3)
+	ret = sscanf(buf, "%u %u %lld %lld", &freq[0], &freq[1],
+						&trip_degC, &reset_degC);
+	if (ret != 4)
 		return -EINVAL;
 
 	idx = get_thermal_zone_number(attr->attr.name);
 
 	spin_lock(&t->lock);
-	t->zone[idx].freq = freq;
+	/* freq[0] is assigned to LITTLE cluster, freq[1] to big cluster */
+	t->zone[idx].freq[0] = freq[0];
+	t->zone[idx].freq[1] = freq[1];
 	t->zone[idx].trip_degC = trip_degC;
 	t->zone[idx].reset_degC = reset_degC;
 	spin_unlock(&t->lock);
@@ -325,7 +336,8 @@ static ssize_t thermal_zone_read(struct device *dev,
 
 	idx = get_thermal_zone_number(attr->attr.name);
 
-	return snprintf(buf, PAGE_SIZE, "%u %lld %lld\n", t->zone[idx].freq,
+	return snprintf(buf, PAGE_SIZE, "%u %u %lld %lld\n",
+			t->zone[idx].freq[0], t->zone[idx].freq[1],
 			t->zone[idx].trip_degC, t->zone[idx].reset_degC);
 }
 
