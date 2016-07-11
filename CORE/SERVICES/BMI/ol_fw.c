@@ -1061,6 +1061,8 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 		printk(KERN_ERR "HifDiagReadiMem FW Dump Area Pointer failed!\n");
 #if !defined(HIF_SDIO)
 		ol_copy_ramdump(ramdump_scn);
+		pr_info("%s- %d: Invoke vos_device_crashed\n", __func__,
+			 __LINE__);
 		vos_device_crashed(dev);
 		return;
 #endif
@@ -1119,7 +1121,10 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	panic("CNSS Ram dump collected\n");
 #else
 	/* Notify SSR framework the target has crashed. */
-	vos_device_crashed(dev);
+	if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+		pr_info("%s- %d: Invoke vos_device_crash\n", __func__, __LINE__);
+		vos_device_crashed(dev);
+	}
 #endif
 	return;
 
@@ -1134,6 +1139,7 @@ out_fail:
 #if defined(HIF_SDIO) && !defined(CONFIG_CNSS)
 	panic("CNSS Ram dump collection failed \n");
 #else
+	pr_info("%s- %d: Invoke vos_device_crash\n", __func__, __LINE__);
 	vos_device_crashed(dev);
 #endif
 #endif

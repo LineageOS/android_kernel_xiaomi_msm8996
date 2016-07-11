@@ -2722,6 +2722,11 @@ static void hif_sdio_device_removed(struct sdio_func *func)
 
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
 {
+	if (vos_is_shutdown_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+		pr_err("%s: Shutdown is in progress, don't allow re-init\n",
+			__func__);
+		return -EAGAIN;
+	}
 	if ((func != NULL) && (id != NULL))
 		return hifDeviceInserted(func, id);
 	else
