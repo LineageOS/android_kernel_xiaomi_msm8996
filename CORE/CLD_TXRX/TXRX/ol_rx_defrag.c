@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -128,14 +128,11 @@ static inline void OL_RX_FRAG_PULL_HDR(htt_pdev_handle htt_pdev,
     rx_desc_len = htt_rx_msdu_rx_desc_size_hl(htt_pdev, rx_desc);
     adf_nbuf_pull_head(frag, rx_desc_len + hdrsize);
 }
-#define OL_RX_FRAG_CLONE(frag) \
-    adf_nbuf_clone(frag)
 #else
 #define OL_RX_FRAG_GET_MAC_HDR(pdev, frag) \
     (struct ieee80211_frame *) adf_nbuf_data(frag)
 #define OL_RX_FRAG_PULL_HDR(pdev, frag, hdrsize) \
     adf_nbuf_pull_head(frag, hdrsize);
-#define OL_RX_FRAG_CLONE(frag) NULL/* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 static inline void
@@ -353,11 +350,8 @@ ol_rx_fraglist_insert(
     struct ieee80211_frame *mac_hdr, *cmac_hdr, *next_hdr, *lmac_hdr;
     u_int8_t fragno, cur_fragno, lfragno, next_fragno;
     u_int8_t last_morefrag = 1, count = 0;
-    adf_nbuf_t frag_clone;
 
     adf_os_assert(frag);
-    frag_clone = OL_RX_FRAG_CLONE(frag);
-    frag = frag_clone ? frag_clone : frag;
 
     mac_hdr = (struct ieee80211_frame *) OL_RX_FRAG_GET_MAC_HDR(htt_pdev, frag);
     fragno = adf_os_le16_to_cpu(*(u_int16_t *) mac_hdr->i_seq) &
