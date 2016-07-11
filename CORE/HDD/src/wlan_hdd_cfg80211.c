@@ -7894,6 +7894,10 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	int status;
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
+	if (hdd_ctx->acs_policy.acs_channel)
+		sap_config->channel = hdd_ctx->acs_policy.acs_channel;
+	else
+		sap_config->channel = AUTO_CHANNEL_SELECT;
 	status = wlan_hdd_sap_cfg_dfs_override(adapter);
 	if (status < 0) {
 		return status;
