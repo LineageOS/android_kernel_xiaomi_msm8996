@@ -2194,7 +2194,7 @@ static int pp_dspp_setup(u32 disp_num, struct mdss_mdp_mixer *mixer)
 {
 	u32 ad_flags, flags, dspp_num, opmode = 0, ad_bypass;
 	struct mdp_pgc_lut_data *pgc_config;
-	struct pp_sts_type *pp_sts;
+	struct pp_sts_type *pp_sts = NULL;
 	char __iomem *base, *addr = NULL;
 	int ret = 0;
 	struct mdss_data_type *mdata;
@@ -2390,7 +2390,9 @@ static int pp_dspp_setup(u32 disp_num, struct mdss_mdp_mixer *mixer)
 		}
 	}
 
-	pp_dspp_opmode_config(ctl, dspp_num, pp_sts, mdata->mdp_rev, &opmode);
+	if (pp_sts != NULL)
+		pp_dspp_opmode_config(ctl, dspp_num, pp_sts, mdata->mdp_rev,
+					&opmode);
 
 	if (ad_hw) {
 		mutex_lock(&ad->lock);
