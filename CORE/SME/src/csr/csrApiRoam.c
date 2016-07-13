@@ -5855,6 +5855,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             // Connected state...
             smsLog(pMac, LOGW, FL("receives association indication"));
             vos_mem_set(&roamInfo, sizeof(roamInfo), 0);
+
+            roamInfo.reassoc = (eCsrReassocSuccess == Result);
+
             //always free the memory here
             if(pSession->pWpaRsnRspIE)
             {
@@ -6117,6 +6120,11 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                                 pJoinRsp->HTProfile.apChanWidth;
 #endif
 #endif
+                    roamInfo.vht_caps = pJoinRsp->vht_caps;
+                    roamInfo.ht_caps = pJoinRsp->ht_caps;
+                    roamInfo.hs20vendor_ie = pJoinRsp->hs20vendor_ie;
+                    roamInfo.ht_operation = pJoinRsp->ht_operation;
+                    roamInfo.vht_operation = pJoinRsp->vht_operation;
                 }
                 else
                 {

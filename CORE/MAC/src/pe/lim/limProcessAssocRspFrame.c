@@ -994,6 +994,17 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
       GET_IE_LEN_IN_BSS(psessionEntry->pLimJoinReq->bssDescription.length),
       pBeaconStruct);
 
+    if (pBeaconStruct->VHTCaps.present)
+        psessionEntry->vht_caps = pBeaconStruct->VHTCaps;
+    if (pBeaconStruct->HTCaps.present)
+        psessionEntry->ht_caps = pBeaconStruct->HTCaps;
+    if (pBeaconStruct->hs20vendor_ie.present)
+        psessionEntry->hs20vendor_ie = pBeaconStruct->hs20vendor_ie;
+    if (pBeaconStruct->HTInfo.present)
+        psessionEntry->ht_operation = pBeaconStruct->HTInfo;
+    if (pBeaconStruct->VHTOperation.present)
+        psessionEntry->vht_operation = pBeaconStruct->VHTOperation;
+
     if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
         limDecideStaProtectionOnAssoc(pMac, pBeaconStruct, psessionEntry);
 

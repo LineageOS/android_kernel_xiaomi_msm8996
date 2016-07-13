@@ -505,6 +505,10 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Supported NSS is intersection of self and peer NSS */
     bool supported_nss_1x1;
     bool is_ext_caps_present;
+    tDot11fIEHTCaps ht_caps;
+    tDot11fIEVHTCaps vht_caps;
+    tDot11fIEHTInfo ht_operation;
+    tDot11fIEVHTOperation vht_operation;
     bool is_vendor_specific_vhtcaps;
     uint8_t vendor_specific_vht_ie_type;
     uint8_t vendor_specific_vht_ie_sub_type;
