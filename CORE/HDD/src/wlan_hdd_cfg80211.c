@@ -19435,9 +19435,6 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     int status;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-#ifdef FEATURE_WLAN_TDLS
-    tANI_U8 staIdx;
-#endif
 
     ENTER();
 
@@ -19505,22 +19502,10 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
         wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
 #ifdef FEATURE_WLAN_TDLS
-        /* First clean up the tdls peers if any */
-        for (staIdx = 0 ; staIdx < pHddCtx->max_num_tdls_sta; staIdx++) {
-            if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pAdapter->sessionId) &&
-                (pHddCtx->tdlsConnInfo[staIdx].staId)) {
-                uint8 *mac;
-                mac = pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes;
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: call sme_DeleteTdlsPeerSta staId %d sessionId %d " MAC_ADDRESS_STR,
-                       __func__, pHddCtx->tdlsConnInfo[staIdx].staId,
-                        pAdapter->sessionId,
-                        MAC_ADDR_ARRAY(mac));
-                sme_DeleteTdlsPeerSta(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                      pAdapter->sessionId,
-                                      mac);
-            }
-        }
+        /* Delete all connected TDLS peers by sending deauth */
+        hddLog(LOG1, FL("Delete all connected TDLS peers"));
+        sme_delete_all_tdls_peers(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                        pAdapter->sessionId);
 #endif
         hddLog(LOGE,
                FL("Disconnect request from user space with reason: %s"),
