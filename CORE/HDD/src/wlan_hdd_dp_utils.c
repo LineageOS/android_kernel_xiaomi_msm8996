@@ -235,8 +235,13 @@ void hdd_dp_util_send_rps_ind(hdd_adapter_t *adapter)
 {
 	int i = 0;
 	uint8_t cpu_map_list_len = 0;
-	hdd_context_t *hdd_ctxt = WLAN_HDD_GET_CTX(adapter);
+	hdd_context_t *hdd_ctxt;
 	struct wlan_rps_data rps_data;
+
+	if (NULL == adapter)
+		return;
+
+	hdd_ctxt = WLAN_HDD_GET_CTX(adapter);
 
 	rps_data.num_queues = NUM_TX_QUEUES;
 
@@ -265,13 +270,11 @@ void hdd_dp_util_send_rps_ind(hdd_adapter_t *adapter)
 			i, rps_data.cpu_map_list[i]);
 	}
 
-	if (NULL != adapter) {
-		strlcpy(rps_data.ifname, adapter->dev->name,
-			sizeof(rps_data.ifname));
-		wlan_hdd_send_svc_nlink_msg(hdd_ctxt->radio_index,
-				WLAN_SVC_RPS_ENABLE_IND,
-				&rps_data, sizeof(rps_data));
-	}
+	strlcpy(rps_data.ifname, adapter->dev->name,
+		sizeof(rps_data.ifname));
+	wlan_hdd_send_svc_nlink_msg(hdd_ctxt->radio_index,
+			WLAN_SVC_RPS_ENABLE_IND,
+			&rps_data, sizeof(rps_data));
 }
 #endif /* QCA_FEATURE_RPS */
 
