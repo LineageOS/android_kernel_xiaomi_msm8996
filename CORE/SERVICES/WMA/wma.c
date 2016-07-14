@@ -30216,7 +30216,7 @@ static VOS_STATUS wma_update_tx_fail_cnt_th(tp_wma_handle wma,
 		struct sme_tx_fail_cnt_threshold *tx_fail_cnt_th)
 {
 	u_int8_t vdev_id;
-	u_int16_t tx_fail_disconn_th;
+	u_int32_t tx_fail_disconn_th;
 	int ret = -EIO;
 
 	if (!wma || !wma->wmi_handle) {
