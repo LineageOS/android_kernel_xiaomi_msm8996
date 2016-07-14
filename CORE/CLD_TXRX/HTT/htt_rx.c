@@ -48,6 +48,7 @@
 #include <ol_cfg.h>
 #include <ol_rx.h>
 #include <ol_htt_rx_api.h>
+#include <ol_txrx_peer_find.h>
 #include <htt_internal.h> /* HTT_ASSERT, htt_pdev_t, HTT_RX_BUF_SIZE */
 #include "regtable.h"
 #include "adf_trace.h"
@@ -1857,6 +1858,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
     struct htt_host_rx_desc_base *rx_desc;
     enum rx_pkt_fate status = RX_PKT_FATE_SUCCESS;
     uint16_t peer_id;
+    struct ol_txrx_peer_t *peer;
 
     HTT_ASSERT1(htt_rx_in_order_ring_elems(pdev) != 0);
 
@@ -1870,6 +1872,10 @@ htt_rx_amsdu_rx_in_order_pop_ll(
     HTT_RX_CHECK_MSDU_COUNT(msdu_count);
     peer_id = HTT_RX_IN_ORD_PADDR_IND_PEER_ID_GET(
                                  *(u_int32_t *)rx_ind_data);
+    peer = ol_txrx_peer_find_by_id(pdev->txrx_pdev, peer_id);
+    if (!peer)
+        adf_os_print("%s: invalid peer id %d and msdu count %d\n", __func__,
+                     peer_id, msdu_count);
 
     msg_word = (u_int32_t *)(rx_ind_data + HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES);
     if (offload_ind) {
@@ -1934,7 +1940,7 @@ htt_rx_amsdu_rx_in_order_pop_ll(
                     FW_RX_DESC_MIC_ERR_M))
             status = RX_PKT_FATE_FW_DROP_INVALID;
         if (pdev->rx_pkt_dump_cb)
-            pdev->rx_pkt_dump_cb(msdu, peer_id, status);
+            pdev->rx_pkt_dump_cb(msdu, peer, status);
 
         if (adf_os_unlikely((*((u_int8_t *) &rx_desc->fw_desc.u.val)) &
                              FW_RX_DESC_MIC_ERR_M)) {
