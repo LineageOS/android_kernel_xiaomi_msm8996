@@ -4592,7 +4592,7 @@ void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0);
 eHalStatus sme_update_access_policy_vendor_ie(tHalHandle hal,
 		uint8_t session_id, uint8_t *vendor_ie, int access_policy);
 eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
-		uint8_t session_id, uint8_t tx_fail_count);
+		uint8_t session_id, uint32_t tx_fail_count);
 eHalStatus sme_update_short_retry_limit_threshold(tHalHandle hal_handle,
 		uint8_t session_id, uint32_t short_limit_count_th);
 eHalStatus sme_update_long_retry_limit_threshold(tHalHandle hal_handle,

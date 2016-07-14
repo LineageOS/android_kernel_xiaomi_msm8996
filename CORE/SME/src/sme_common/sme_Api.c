@@ -19277,7 +19277,7 @@ eHalStatus sme_update_access_policy_vendor_ie(tHalHandle hal,
  * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
  */
 eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
-		uint8_t session_id, uint8_t tx_fail_count)
+		uint8_t session_id, uint32_t tx_fail_count)
 {
 	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
 	eHalStatus status = eHAL_STATUS_SUCCESS;

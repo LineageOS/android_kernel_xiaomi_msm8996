@@ -7494,7 +7494,7 @@ struct sme_update_access_policy_vendor_ie {
  */
 struct sme_tx_fail_cnt_threshold {
 	uint8_t session_id;
-	uint16_t tx_fail_cnt_threshold;
+	uint32_t tx_fail_cnt_threshold;
 };
 
 /**
