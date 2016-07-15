@@ -8460,9 +8460,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value;
-	uint8_t retry;
-	uint8_t delay;
+	uint8_t set_value, retry, delay;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -8595,8 +8593,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY]);
 
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_NON_AGG_RETRY_MAX ?
+				CFG_NON_AGG_RETRY_MAX : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_NON_AGG_SW_RETRY_TH,
 				retry, PDEV_CMD);
@@ -8606,11 +8604,12 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY]);
 
-		/* Maximum value is 31(0x1f), 0 disable */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_AGG_RETRY_MAX ?
+			CFG_AGG_RETRY_MAX : retry;
 
-		/* Value less than 5 has side effect to t-put */
-		retry = ((retry > 0) && (retry < 5)) ? 5 : retry;
+		/* Value less than CFG_AGG_RETRY_MIN has side effect to t-put */
+		retry = ((retry > 0) && (retry < CFG_AGG_RETRY_MIN)) ?
+				CFG_AGG_RETRY_MIN : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_AGG_SW_RETRY_TH,
 				retry, PDEV_CMD);
@@ -8620,8 +8619,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY]);
 
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_MGMT_RETRY_MAX ?
+				CFG_MGMT_RETRY_MAX : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_MGMT_RETRY_LIMIT,
 				retry, PDEV_CMD);
@@ -8630,8 +8629,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY]) {
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY]);
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_CTRL_RETRY_MAX ?
+				CFG_CTRL_RETRY_MAX : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_CTRL_RETRY_LIMIT,
 				retry, PDEV_CMD);
@@ -8640,8 +8639,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]) {
 		delay = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]);
-		/* Maximum value is 63 */
-		delay = delay > 63 ? 63 : delay;
+		delay = delay > CFG_PROPAGATION_DELAY_MAX ?
+				CFG_PROPAGATION_DELAY_MAX : delay;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
 				delay, PDEV_CMD);
