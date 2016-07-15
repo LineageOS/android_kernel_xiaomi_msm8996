@@ -2216,7 +2216,28 @@ tSirRetStatus sirvalidateandrectifyies(tpAniSirGlobal pMac,
                        FL("Added RSN Capability to the RSNIE as 0x00 0x00"));
 
                 return eHAL_STATUS_SUCCESS;
+            } else {
+                /*
+                 * Workaround: Some APs may add extra 0x00 padding after IEs.
+                 * Return true to allow these probe response frames proceed.
+                 */
+                if (nFrameBytes - length > 0) {
+                    tANI_U32 i;
+                    tANI_BOOLEAN zero_padding = VOS_TRUE;
+
+                    for (i = length; i < nFrameBytes; i ++) {
+                        if (pMgmtFrame[i-1] != 0x0) {
+                            zero_padding = VOS_FALSE;
+                            break;
+                        }
+                    }
+
+                    if (zero_padding) {
+                        return eHAL_STATUS_SUCCESS;
+                    }
+                }
             }
+
             return eSIR_FAILURE;
         }
     }
