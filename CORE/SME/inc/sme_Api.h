@@ -4472,7 +4472,8 @@ void sme_add_set_thermal_level_callback(tHalHandle hHal,
                    tSmeSetThermalLevelCallback callback);
 
 eHalStatus sme_handle_set_fcc_channel(tHalHandle hHal,
-				       bool fcc_constraint);
+		bool fcc_constraint,
+		uint32_t scan_pending);
 
 eHalStatus sme_set_rssi_monitoring(tHalHandle hal,
 					struct rssi_monitor_req *input);
@@ -4577,12 +4578,25 @@ VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id);
 
 eHalStatus sme_enable_disable_chanavoidind_event(tHalHandle hHal,
 							tANI_U8 set_value);
-
+eHalStatus sme_remove_bssid_from_scan_list(tHalHandle hal,
+	tSirMacAddr bssid);
 eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 		enum sta_roam_policy_dfs_mode dfs_mode,
 		bool skip_unsafe_channels,
 		uint8_t session_id);
 eHalStatus sme_register_p2p_ack_ind_callback(tHalHandle hal,
 					sir_p2p_ack_ind_callback callback);
+
 void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0);
+
+eHalStatus sme_update_access_policy_vendor_ie(tHalHandle hal,
+		uint8_t session_id, uint8_t *vendor_ie, int access_policy);
+eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t tx_fail_count);
+eHalStatus sme_update_short_retry_limit_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t short_limit_count_th);
+eHalStatus sme_update_long_retry_limit_threshold(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t long_limit_count_th);
+eHalStatus sme_update_sta_inactivity_timeout(tHalHandle hal_handle,
+		uint8_t session_id, uint32_t sta_inactivity_timeout);
 #endif //#if !defined( __SME_API_H )

@@ -260,6 +260,24 @@ error:
 	return status;
 }
 
+/**
+ * dfs_free_filter() - free memory allocated for dfs ft_filters
+ * @radarf: pointer holding ft_filters
+ *
+ * Return: NA
+*/
+static void dfs_free_filter(struct dfs_filtertype *radarf)
+{
+	int i;
+
+	for (i = 0; i < DFS_MAX_NUM_RADAR_FILTERS; i++) {
+		if (radarf->ft_filters[i]) {
+			vos_mem_free(radarf->ft_filters[i]);
+			radarf->ft_filters[i] = NULL;
+		}
+	}
+}
+
 int
 dfs_attach(struct ieee80211com *ic)
 {
@@ -417,6 +435,7 @@ bad2:
 bad1:
     for (n=0; n<DFS_MAX_RADAR_TYPES; n++) {
         if (dfs->dfs_radarf[n] != NULL) {
+         dfs_free_filter(dfs->dfs_radarf[n]);
          OS_FREE(dfs->dfs_radarf[n]);
          dfs->dfs_radarf[n] = NULL;
         }
@@ -436,24 +455,6 @@ bad1:
     }
     return 1;
 #undef N
-}
-
-/**
- * dfs_free_filter() - free memory allocated for dfs ft_filters
- * @radarf: pointer holding ft_filters
- *
- * Return: NA
-*/
-static void dfs_free_filter(struct dfs_filtertype *radarf)
-{
-	int i;
-
-	for (i = 0; i < DFS_MAX_NUM_RADAR_FILTERS; i++) {
-		if (radarf->ft_filters[i]) {
-			vos_mem_free(radarf->ft_filters[i]);
-			radarf->ft_filters[i] = NULL;
-		}
-	}
 }
 
 void

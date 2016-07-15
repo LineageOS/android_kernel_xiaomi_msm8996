@@ -803,6 +803,11 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
 #endif
 
+    if (psessionEntry->access_policy_vendor_ie)
+        vos_mem_free(psessionEntry->access_policy_vendor_ie);
+
+    psessionEntry->access_policy_vendor_ie = NULL;
+
     psessionEntry->valid = FALSE;
 
     if (LIM_IS_AP_ROLE(psessionEntry))

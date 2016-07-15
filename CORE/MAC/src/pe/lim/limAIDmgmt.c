@@ -136,16 +136,19 @@ limAssignPeerIdx(tpAniSirGlobal pMac, tpPESession pSessionEntry)
     tANI_U16 peerId;
     uint8 max_peer = 0;
 
+
+    limLog(pMac, LOG1, FL("pePersona:%d"),
+                          pSessionEntry->pePersona);
+
     if (pSessionEntry->pePersona == VOS_STA_SAP_MODE)
         max_peer = pMac->lim.glim_assoc_sta_limit_ap;
-
-    if (pSessionEntry->pePersona == VOS_P2P_GO_MODE)
+    else if (pSessionEntry->pePersona == VOS_P2P_GO_MODE)
         max_peer = pMac->lim.glim_assoc_sta_limit_go;
 
     // make sure we haven't exceeded the configurable limit on associations
     // This count is global to ensure that it doesnt exceed the hardware limits.
     if (peGetCurrentSTAsCount(pMac) >= pMac->lim.gLimAssocStaLimit ||
-        pSessionEntry->gLimNumOfCurrentSTAs >= max_peer)
+        (max_peer != 0 && pSessionEntry->gLimNumOfCurrentSTAs >= max_peer))
     {
         // too many associations already active
         return 0;

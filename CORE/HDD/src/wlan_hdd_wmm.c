@@ -1634,23 +1634,6 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
 }
 
 /**============================================================================
-  @brief is_dhcp_packet() - Function which will check OS packet for
-  DHCP packet
-
-  @param skb      : [in]  pointer to OS packet (sk_buff)
-  @return         : VOS_TRUE if the OS packet is DHCP packet
-                  : otherwise VOS_FALSE
-  ===========================================================================*/
-v_BOOL_t is_dhcp_packet(struct sk_buff *skb)
-{
-   if (*((u16*)((u8*)skb->data+34)) == DHCP_SOURCE_PORT ||
-       *((u16*)((u8*)skb->data+34)) == DHCP_DESTINATION_PORT)
-      return VOS_TRUE;
-
-   return VOS_FALSE;
-}
-
-/**============================================================================
   @brief hdd_wmm_classify_pkt() - Function which will classify an OS packet
   into a WMM AC based on either 802.1Q or DSCP
 

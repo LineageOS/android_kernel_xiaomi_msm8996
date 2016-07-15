@@ -197,6 +197,33 @@
 #define WMA_IPV6_PKT_INFO_GET_MIN_LEN     62
 #define WMA_ICMPV6_SUBTYPE_GET_MIN_LEN    55
 
+/* Beacon data rate changes */
+#define WMA_BEACON_TX_RATE_HW_CODE_1_M    0x43
+#define WMA_BEACON_TX_RATE_HW_CODE_2_M    0x42
+#define WMA_BEACON_TX_RATE_HW_CODE_5_5_M  0x41
+#define WMA_BEACON_TX_RATE_HW_CODE_11M    0x40
+#define WMA_BEACON_TX_RATE_HW_CODE_6_M    0x03
+#define WMA_BEACON_TX_RATE_HW_CODE_9_M    0x07
+#define WMA_BEACON_TX_RATE_HW_CODE_12_M   0x02
+#define WMA_BEACON_TX_RATE_HW_CODE_18_M   0x06
+#define WMA_BEACON_TX_RATE_HW_CODE_24_M   0x01
+#define WMA_BEACON_TX_RATE_HW_CODE_36_M   0x05
+#define WMA_BEACON_TX_RATE_HW_CODE_48_M   0x00
+#define WMA_BEACON_TX_RATE_HW_CODE_54_M   0x04
+
+#define WMA_BEACON_TX_RATE_1_M            10
+#define WMA_BEACON_TX_RATE_2_M            20
+#define WMA_BEACON_TX_RATE_5_5_M          55
+#define WMA_BEACON_TX_RATE_11_M           110
+#define WMA_BEACON_TX_RATE_6_M            60
+#define WMA_BEACON_TX_RATE_9_M            90
+#define WMA_BEACON_TX_RATE_12_M           120
+#define WMA_BEACON_TX_RATE_18_M           180
+#define WMA_BEACON_TX_RATE_24_M           240
+#define WMA_BEACON_TX_RATE_36_M           360
+#define WMA_BEACON_TX_RATE_48_M           480
+#define WMA_BEACON_TX_RATE_54_M           540
+
 /*
  * ds_mode: distribution system mode
  * @IEEE80211_NO_DS: NO DS at either side
@@ -1340,7 +1367,7 @@ struct wma_vdev_start_req {
 	u_int8_t dot11_mode;
 	bool is_half_rate;
 	bool is_quarter_rate;
-	u_int8_t beacon_tx_rate;
+	u_int16_t beacon_tx_rate;
 };
 
 struct wma_set_key_params {

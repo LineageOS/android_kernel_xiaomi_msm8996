@@ -395,7 +395,7 @@ int nl_srv_bcast(struct sk_buff *skb)
    } else {
        dev_kfree_skb(skb);
    }
-   if (err < 0)
+   if ((err < 0) && (err != -ESRCH))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
          "NLINK: netlink_broadcast failed err = %d", err);

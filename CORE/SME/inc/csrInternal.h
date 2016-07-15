@@ -387,8 +387,7 @@ typedef struct tagCsrRoamStartBssParams
 
     tSirAddIeParams     addIeParams;
     uint8_t             sap_dot11mc;
-    uint8_t             beacon_tx_rate;
-
+    uint16_t            beacon_tx_rate;
 }tCsrRoamStartBssParams;
 
 
@@ -854,6 +853,7 @@ typedef struct tagCsrScanStruct
     eCsrBand  scanBandPreference;  //This defines the band perference for scan
     csrScanCompleteCallback callback11dScanDone;
     bool fcc_constraint;
+    bool defer_update_channel_list;
 }tCsrScanStruct;
 
 //Save the connected information. This structure + connectedProfile

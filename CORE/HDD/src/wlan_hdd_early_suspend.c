@@ -100,11 +100,14 @@
 #endif
 
 #include "ol_fw.h"
-/* Time in msec */
+/* Time in msec.
+ * Time includes 60sec timeout of request_firmware for various binaries
+ * (OTP, BDWLAN, QWLAN) and other cleanup and re-init sequence
+ */
 #ifdef CONFIG_SLUB_DEBUG_ON
-#define HDD_SSR_BRING_UP_TIME 50000
+#define HDD_SSR_BRING_UP_TIME 250000
 #else
-#define HDD_SSR_BRING_UP_TIME 40000
+#define HDD_SSR_BRING_UP_TIME 240000
 #endif
 
 static eHalStatus g_full_pwr_status;

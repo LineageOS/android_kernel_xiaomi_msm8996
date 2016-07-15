@@ -368,6 +368,24 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         return;
     }
 
+    /* check for the presence of vendor IE */
+    if ((psessionEntry->access_policy_vendor_ie) &&
+            (psessionEntry->access_policy ==
+             LIM_ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT)) {
+        if (!cfg_get_vendor_ie_ptr_from_oui(pMac,
+                    &psessionEntry->access_policy_vendor_ie[2],
+                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET, framelen)) {
+            limLog(pMac, LOGE,
+                    FL("Vendor ie not present and access policy is %x, Rejected association"),
+                    psessionEntry->access_policy);
+            limSendAssocRspMgmtFrame(pMac,
+                    eSIR_MAC_UNSPEC_FAILURE_STATUS,
+                    1,
+                    pHdr->sa,
+                    subType, 0,psessionEntry);
+            return;
+        }
+    }
     // Allocate memory for the Assoc Request frame
     pAssocReq = vos_mem_malloc(sizeof(*pAssocReq));
     if (NULL == pAssocReq)
@@ -848,21 +866,21 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     /// Extract pre-auth context for the STA, if any.
     pStaPreAuthContext = limSearchPreAuthList(pMac, pHdr->sa);
 
-    limLog(pMac, LOG1, FL( "max:%d ap:%d go:%d mode:%d"),
+    limLog(pMac, LOG1, FL( "max:%d ap:%d go:%d mode:%d pePersona:%d"),
            pMac->lim.gLimAssocStaLimit, pMac->lim.glim_assoc_sta_limit_ap,
-           pMac->lim.glim_assoc_sta_limit_go, psessionEntry->pePersona);
+           pMac->lim.glim_assoc_sta_limit_go, psessionEntry->pePersona,
+           psessionEntry->pePersona);
 
     if (psessionEntry->pePersona == VOS_STA_SAP_MODE)
         max_peer = pMac->lim.glim_assoc_sta_limit_ap;
-
-    if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
+    else if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
         max_peer = pMac->lim.glim_assoc_sta_limit_go;
 
     if (pStaDs == NULL)
     {
         /// Requesting STA is not currently associated
         if ((peGetCurrentSTAsCount(pMac) == pMac->lim.gLimAssocStaLimit)||
-            (psessionEntry->gLimNumOfCurrentSTAs == max_peer))
+            (max_peer != 0 && psessionEntry->gLimNumOfCurrentSTAs == max_peer))
         {
             /**
              * Maximum number of STAs that AP can handle reached.

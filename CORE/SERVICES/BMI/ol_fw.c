@@ -2359,7 +2359,7 @@ int ol_diag_read(struct ol_softc *scn, u_int8_t *buffer,
 	}
 }
 
-#if defined(HIF_PCI)
+#ifdef HIF_PCI
 static int ol_ath_get_reg_table(A_UINT32 target_version,
 				tgt_reg_table *reg_table)
 {
@@ -2394,6 +2394,35 @@ static int ol_ath_get_reg_table(A_UINT32 target_version,
 
 	return section_len;
 }
+#elif defined(HIF_SDIO)
+static int ol_ath_get_reg_table(uint32_t target_version,
+				tgt_reg_table *reg_table)
+{
+	int len = 0;
+
+	if (!reg_table) {
+		ASSERT(0);
+		return len;
+	}
+
+	switch (target_version) {
+	case AR6320_REV3_VERSION:
+	case AR6320_REV3_2_VERSION:
+		reg_table->section = (tgt_reg_section *)&ar6320v3_reg_table[0];
+		reg_table->section_size = sizeof(ar6320v3_reg_table)/
+			sizeof(ar6320v3_reg_table[0]);
+		len = AR6320_REV3_REG_SIZE;
+		break;
+	default:
+		reg_table->section = (void *)NULL;
+		reg_table->section_size = 0;
+		len = 0;
+		break;
+	}
+
+	return len;
+}
+#endif
 
 static int ol_diag_read_reg_loc(struct ol_softc *scn, u_int8_t *buffer,
 		u_int32_t buffer_len)
@@ -2460,7 +2489,8 @@ out:
 	return result;
 }
 
-void ol_dump_target_memory(HIF_DEVICE *hif_device, void *memoryBlock)
+#ifdef HIF_PCI
+static void ol_dump_target_memory(HIF_DEVICE *hif_device, void *memoryBlock)
 {
 	char *bufferLoc = memoryBlock;
 	u_int32_t sectionCount = 0;
@@ -2484,6 +2514,99 @@ void ol_dump_target_memory(HIF_DEVICE *hif_device, void *memoryBlock)
 		bufferLoc += size;
 	}
 }
+
+static uint32_t ol_get_max_section_count(struct ol_softc *scn)
+{
+	return 5;
+}
+
+static int ol_get_iram1_len_and_pos(struct ol_softc *scn, uint32_t *pos,
+				     uint32_t *len)
+{
+	int status = scn->target_status;
+	int ret = hif_pci_set_ram_config_reg(scn->hif_sc, IRAM1_LOCATION >> 20);
+
+	if ((status != OL_TRGET_STATUS_RESET) || ret) {
+		pr_debug("%s: Skip IRAM1 Section; Target Status:%d; ret:%d\n",
+			 __func__, status, ret);
+		return -EBUSY;
+	}
+
+	*pos = IRAM1_LOCATION;
+	*len = IRAM1_SIZE;
+
+	return 0;
+}
+
+static int ol_get_iram2_len_and_pos(struct ol_softc *scn, uint32_t *pos,
+				    uint32_t *len)
+{
+	int ret = hif_pci_set_ram_config_reg(scn->hif_sc, IRAM2_LOCATION >> 20);
+
+	if (ret) {
+		pr_debug("Skipping IRAM2 Section; ret:%d\n", ret);
+		return -EBUSY;
+	}
+
+	*pos = IRAM2_LOCATION;
+	*len = IRAM2_SIZE;
+
+	return 0;
+}
+
+static int ol_get_iram_len_and_pos(struct ol_softc *scn, uint32_t *pos, uint32_t
+				   *len, uint32_t section)
+{
+	switch (section) {
+	case 3:
+		pr_info("%s: Dumping IRAM1 section\n", __func__);
+		return ol_get_iram1_len_and_pos(scn, pos, len);
+	case 4:
+		pr_info("%s: Dumping IRAM2 section\n", __func__);
+		return ol_get_iram2_len_and_pos(scn, pos, len);
+	default:
+		pr_err("%s: Invalid Arguments\n", __func__);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+#else /* HIF_PCI */
+static uint32_t ol_get_max_section_count(struct ol_softc *scn)
+{
+	return 4;
+}
+
+static int ol_get_iram_len_and_pos(struct ol_softc *scn, uint32_t *pos, uint32_t
+				   *len, uint32_t section)
+{
+	*pos = IRAM_LOCATION;
+	*len = IRAM_SIZE;
+
+	pr_info("%s: Dumping IRAM Section\n", __func__);
+	return 0;
+}
+#endif
+
+static int ol_read_reg_section(struct ol_softc *scn, char *ptr, uint32_t len)
+{
+	return ol_diag_read_reg_loc(scn, ptr, len);
+}
+
+#ifndef CONFIG_HL_SUPPORT
+static int ol_dump_fail_debug_info(struct ol_softc *scn, void *ptr)
+{
+	dump_CE_register(scn);
+	dump_CE_debug_register(scn->hif_sc);
+	ol_dump_target_memory(scn->hif_hdl, ptr);
+
+	return -EACCES;
+}
+#else
+static int ol_dump_fail_debug_info(struct ol_softc *scn, void *ptr)
+{
+	return 0;
+}
 #endif
 
 /**---------------------------------------------------------------------------
@@ -2503,130 +2626,67 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 	char *bufferLoc = memoryBlock;
 	int result = 0;
 	int ret = 0;
-	u_int32_t amountRead = 0;
-	u_int32_t sectionCount = 0;
-	u_int32_t pos = 0;
-	u_int32_t readLen = 0;
+	uint32_t amountRead = 0;
+	uint32_t sectionCount = 0;
+	uint32_t pos = 0;
+	uint32_t readLen = 0;
+	uint32_t max_count = ol_get_max_section_count(scn);
 
-	/*
-	* SECTION = DRAM
-	* START   = 0x00400000
-	* LENGTH  = 0x000a8000
-	*
-	* SECTION = AXI
-	* START   = 0x000a0000
-	* LENGTH  = 0x00018000
-	*
-	* SECTION = REG
-	* START   = 0x00000800
-	* LENGTH  = 0x0007F820
-	*
-	* SECTION = IRAM1
-	* START   = 0x00980000
-	* LENGTH  = 0x00080000
-	*
-	* SECTION = IRAM2
-	* START   = 0x00a00000
-	* LENGTH  = 0x00040000
-	*/
-#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
-	while ((sectionCount < 4) && (amountRead < blockLength)) {
-#else
-#ifdef HIF_PCI
-	while ((sectionCount < 5) && (amountRead < blockLength)) {
-#else
-	while ((sectionCount < 3) && (amountRead < blockLength)) {
-#endif
-#endif
+	while ((sectionCount < max_count) && (amountRead < blockLength)) {
 		switch (sectionCount) {
 		case 0:
-			/* DRAM SECTION */
 			pos = DRAM_LOCATION;
 			readLen = DRAM_SIZE;
 			pr_err("%s: Dumping DRAM section...\n", __func__);
 			break;
 		case 1:
-			/* AXI SECTION */
 			pos = AXI_LOCATION;
 			readLen = AXI_SIZE;
 			pr_err("%s: Dumping AXI section...\n", __func__);
 			break;
 		case 2:
-			/* REG SECTION */
 			pos = REGISTER_LOCATION;
-			/* ol_diag_read_reg_loc checks for buffer overrun */
 			readLen = 0;
 			pr_err("%s: Dumping Register section...\n", __func__);
 			break;
-#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
 		case 3:
-			/* IRAM SECTION */
-			pos = IRAM_LOCATION;
-			readLen = IRAM_SIZE;
-			pr_err("%s: Dumping IRAM section...\n", __func__);
-			break;
-#else
-#ifdef HIF_PCI
-		case 3:
-			if ((scn->target_status != OL_TRGET_STATUS_RESET) ||
-				hif_pci_set_ram_config_reg(scn->hif_sc,
-							IRAM1_LOCATION >> 20)) {
-				pr_debug("%s: Skipping IRAM1 section...\n",
-					__func__);
-				return 0;
-			}
-
-			/* IRAM1 SECTION */
-			pos = IRAM1_LOCATION;
-			readLen = IRAM1_SIZE;
-			pr_err("%s: Dumping IRAM1 section...\n", __func__);
-			break;
 		case 4:
-			if (hif_pci_set_ram_config_reg(scn->hif_sc,
-							IRAM2_LOCATION >> 20)) {
-				pr_debug("%s: Skipping IRAM2 section...\n",
-					__func__);
-				return 0;
+			ret = ol_get_iram_len_and_pos(scn, &pos, &readLen,
+						      sectionCount);
+			if (ret) {
+				pr_err("%s: Fail to Dump IRAM Section ret:%d\n",
+				       __func__, ret);
+				return ret;
 			}
-
-			/* IRAM2 SECTION */
-			pos = IRAM2_LOCATION;
-			readLen = IRAM2_SIZE;
-			pr_err("%s: Dumping IRAM2 section...\n", __func__);
 			break;
-#endif
-#endif
+		default:
+			pr_err("%s: INVALID SECTION_:%d\n", __func__,
+			       sectionCount);
+			return 0;
 		}
 
-		if ((blockLength - amountRead) >= readLen) {
-#if !defined(HIF_SDIO)
-			if (pos == REGISTER_LOCATION)
-				result = ol_diag_read_reg_loc(scn, bufferLoc,
-						blockLength - amountRead);
-			else
-#endif
-				result = ol_diag_read(scn, bufferLoc,
-						      pos, readLen);
-			if (result != -EIO) {
-				amountRead += result;
-				bufferLoc += result;
-				sectionCount++;
-			} else {
-#ifdef CONFIG_HL_SUPPORT
-#else
-				pr_err("Could not read dump section!\n");
-				dump_CE_register(scn);
-				dump_CE_debug_register(scn->hif_sc);
-				ol_dump_target_memory(scn->hif_hdl, memoryBlock);
-				ret = -EACCES;
-#endif
-				break; /* Could not read the section */
-			}
-		} else {
-			pr_err("Insufficient room in dump buffer!\n");
-			break; /* Insufficient room in buffer */
+		if (blockLength - amountRead < readLen) {
+			pr_err("%s: No memory to dump section:%d buffer!\n",
+			       __func__, sectionCount);
+			return -ENOMEM;
 		}
+
+		if (pos == REGISTER_LOCATION)
+			result = ol_read_reg_section(scn, bufferLoc,
+						     blockLength-amountRead);
+		else
+			result = ol_diag_read(scn, bufferLoc, pos, readLen);
+
+		if (result == -EIO)
+			return ol_dump_fail_debug_info(scn, memoryBlock);
+
+		pr_info("%s: Section:%d Bytes Read:%0x\n", __func__,
+			sectionCount, result);
+		amountRead += result;
+		bufferLoc += result;
+		sectionCount++;
 	}
+
 	return ret;
 }
 #endif

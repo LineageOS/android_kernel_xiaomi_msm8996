@@ -1386,6 +1386,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_TDLS_LINK_ESTABLISH_REQ:
 #endif
         case eWNI_SME_RESET_AP_CAPS_CHANGED:
+        case eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE:
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, true);  //need to response to hdd
             break;
@@ -1832,16 +1833,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             //if (pMac->sys.gSysEnableScanMode)
             pMac->lim.gLimReportBackgroundScanResults = FALSE;
             limTriggerBackgroundScan(pMac);
-            break;
-
-
-        case SIR_LIM_HASH_MISS_THRES_TIMEOUT:
-
-            /*
-            ** clear the credit to the send disassociate frame bucket
-            **/
-
-            pMac->lim.gLimDisassocFrameCredit = 0;
             break;
 
         case SIR_LIM_CNF_WAIT_TIMEOUT:

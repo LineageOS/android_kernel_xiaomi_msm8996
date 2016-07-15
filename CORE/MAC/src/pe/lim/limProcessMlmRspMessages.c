@@ -2342,7 +2342,8 @@ void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     if(NULL == pDeleteStaParams ||
        NULL == (psessionEntry = peFindSessionBySessionId(pMac, pDeleteStaParams->sessionId)))
     {
-        limLog(pMac, LOGP,FL("Session Does not exist or invalid body pointer in message"));
+        limLog(pMac, LOGP,FL("Session Does not exist or invalid body pointer in message: %d"),
+                pDeleteStaParams->sessionId);
         if(pDeleteStaParams != NULL)
         {
             vos_mem_free(pDeleteStaParams);

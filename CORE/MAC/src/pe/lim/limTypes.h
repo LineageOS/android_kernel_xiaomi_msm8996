@@ -193,7 +193,7 @@ typedef struct sLimMlmStartReq
     tANI_U8              ssidHidden;
     tANI_U8              wps_state;
     tANI_U8              obssProtEnabled;
-    uint8_t              beacon_tx_rate;
+    uint16_t             beacon_tx_rate;
 } tLimMlmStartReq, *tpLimMlmStartReq;
 
 typedef struct sLimMlmStartCnf

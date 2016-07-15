@@ -653,6 +653,8 @@ typedef enum
     eCSR_ROAM_RESULT_NDP_END_RSP,
     eCSR_ROAM_RESULT_NDP_PEER_DEPARTED_IND,
     eCSR_ROAM_RESULT_NDP_END_IND,
+    /* If Scan for SSID failed to found proper BSS */
+    eCSR_ROAM_RESULT_SCAN_FOR_SSID_FAILURE,
 }eCsrRoamResult;
 
 
@@ -1015,9 +1017,9 @@ typedef struct tagCsrRoamProfile
     tSirAddIeParams        addIeParams;
     uint8_t sap_dot11mc;
     bool do_not_roam;
-    uint8_t beacon_tx_rate;
-    tSirMacRateSet supp_rate_set;
-    tSirMacRateSet extended_rate_set;
+    uint16_t beacon_tx_rate;
+    tSirMacRateSet  supported_rates;
+    tSirMacRateSet  extended_rates;
 }tCsrRoamProfile;
 
 

@@ -54,10 +54,6 @@
 /// Maximum number of scan hash table entries
 #define LIM_MAX_NUM_OF_SCAN_RESULTS 256
 
-// Sending Disassociate frames threshold
-#define LIM_SEND_DISASSOC_FRAME_THRESHOLD       2
-#define LIM_HASH_MISS_TIMER_MS                  10000
-
 // Deferred Message Queue Length
 #define MAX_DEFERRED_QUEUE_LEN                  80
 
