@@ -72,3 +72,10 @@ config FB_MSM_MDSS_FRC_DEBUG
 	frame rate control (FRC) debugging features to: Collect video frame
 	statistics and check whether its output pattern matches expected
 	cadence.
+
+config FB_MSM_MDSS_KCAL_CTRL
+	depends on FB_MSM_MDSS
+	bool "MDSS color control"
+	---help---
+	  Enable sysfs for post-processing control of mdss-mdp5 display
+	  controllers in MDSS.
