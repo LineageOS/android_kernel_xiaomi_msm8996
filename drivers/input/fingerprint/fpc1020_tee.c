@@ -83,6 +83,7 @@ struct fpc1020_data {
 
 	struct input_handler input_handler;
 	bool report_key_events;
+	struct work_struct pm_work;
 };
 
 enum {
@@ -183,6 +184,30 @@ static void set_fpc_irq(struct fpc1020_data *fpc1020, bool enable)
 		disable_irq(gpio_to_irq(fpc1020->irq_gpio));
 }
 
+static void fpc1020_suspend_resume(struct work_struct *work)
+{
+	struct fpc1020_data *fpc1020 =
+		container_of(work, typeof(*fpc1020), pm_work);
+
+	if (fpc1020->screen_on) {
+		/* Unconditionally enable IRQ when screen turns on */
+		set_fpc_irq(fpc1020, true);
+
+		/* Restore fingerprintd priority to defaults */
+		set_fingerprintd_nice(0);
+	} else {
+		/* Disable IRQ when screen turns off,
+		   only if fingerprint wake up is disabled */
+		if (fpc1020->wakeup_enabled == 0)
+			set_fpc_irq(fpc1020, false);
+
+		/* Elevate fingerprintd priority when screen is off to ensure
+		 * the fingerprint sensor is responsive and that the haptic
+		 * response on successful verification always fires */
+		set_fingerprintd_nice(-1);
+	}
+}
+
 #ifdef CONFIG_FB
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		unsigned long event, void *data)
@@ -198,26 +223,12 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		if (event == FB_EVENT_BLANK) {
 			if (*transition == FB_BLANK_POWERDOWN) {
 				fpc1020->screen_on = false;
-
-				/* Disable IRQ when screen turns off,
-				   only if fingerprint wake up is disabled */
-				if (fpc1020->wakeup_enabled == 0)
-					set_fpc_irq(fpc1020, false);
-
-				/* Elevate fingerprintd priority when screen is off to ensure
-				 * the fingerprint sensor is responsive and that the haptic
-				 * response on successful verification always fires */
-				set_fingerprintd_nice(-1);
+				queue_work(system_highpri_wq, &fpc1020->pm_work);
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			if (*transition == FB_BLANK_UNBLANK || *transition == FB_BLANK_NORMAL) {
 				fpc1020->screen_on = true;
-
-				/* Unconditionally enable IRQ when screen turns on */
-				set_fpc_irq(fpc1020, true);
-
-				/* Restore fingerprintd priority to defaults */
-				set_fingerprintd_nice(0);
+				queue_work(system_highpri_wq, &fpc1020->pm_work);
 			}
 		}
 	}
@@ -651,6 +662,8 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	fp_id = fpc1020_get_fp_id_tee(fpc1020);
 	dev_info(fpc1020->dev,
 		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
+
+	INIT_WORK(&fpc1020->pm_work, fpc1020_suspend_resume);
 
 #ifdef CONFIG_FB
 	fpc1020->fb_notifier.notifier_call = fpc1020_fb_notifier_cb;
