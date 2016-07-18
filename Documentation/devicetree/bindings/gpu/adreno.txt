@@ -119,6 +119,29 @@ Optional Properties:
 				is programmed into protected registers and also
 				passed to the user as a property.
 
+- qcom,l2pc-cpu-mask:
+				Disables L2PC on masked CPUs when any of Graphics
+				rendering thread is running on masked CPUs.
+				Bit 0 is for CPU-0, bit 1 is for CPU-1...
+
+- qcom,snapshot-size:
+				Specify the size of snapshot in bytes. This will override
+				snapshot size defined in the driver code.
+
+- qcom,enable-ca-jump:
+                                Boolean. Enables use of context aware DCVS
+- qcom,ca-busy-penalty:
+                                This property represents the time in microseconds required to
+                                initiate context aware power level jump.
+- qcom,ca-target-pwrlevel:
+                                This value indicates which qcom,gpu-pwrlevel to jump on in case
+                                of context aware power level jump.
+
+- qcom,gpu-qdss-stm:
+				<baseAddr size>
+				baseAddr - base address of the gpu channels in the qdss stm memory region
+				size     - size of the gpu stm region
+
 GPU Quirks:
 - qcom,gpu-quirk-two-pass-use-wfi:
 				Signal the GPU to set Set TWOPASSUSEWFI bit in
