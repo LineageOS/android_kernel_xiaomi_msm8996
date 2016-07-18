@@ -14170,7 +14170,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
 
-    if (!VOS_IS_STATUS_SUCCESS(status))
+    if (!VOS_IS_STATUS_SUCCESS(status) ||
+        pHostapdState->vosStatus != VOS_STATUS_SUCCESS)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  ("%s: ERROR: HDD vos wait for single_event failed!!"),
