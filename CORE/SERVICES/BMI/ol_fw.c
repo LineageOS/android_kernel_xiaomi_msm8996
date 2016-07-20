@@ -1211,6 +1211,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 	A_UINT8 *ram_ptr = NULL;
 	A_UINT32 remaining;
 	char *fw_ram_seg_name[FW_RAM_SEG_CNT] = {"DRAM", "IRAM", "AXI"};
+	size_t fw_ram_seg_size[FW_RAM_SEG_CNT] = {DRAM_SIZE, IRAM_SIZE, AXI_SIZE};
 
 	data = scn->hif_sc->fw_data;
 	len = scn->hif_sc->fw_data_len;
@@ -1274,7 +1275,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 			scn->fw_ram_dumping = 1;
 			pr_err("Firmware %s dump:\n", fw_ram_seg_name[i]);
 			scn->ramdump[i] = kmalloc(sizeof(struct fw_ramdump) +
-							FW_RAMDUMP_SEG_SIZE,
+							fw_ram_seg_size[i],
 							GFP_KERNEL);
 			if (!scn->ramdump[i]) {
 				pr_err("Fail to allocate memory for ram dump");
@@ -1294,7 +1295,13 @@ void ol_ramdump_handler(struct ol_softc *scn)
 		reg++;
 		ram_ptr = (scn->ramdump[i])->mem + (scn->ramdump[i])->length;
 		(scn->ramdump[i])->length += (len - 8);
-		memcpy(ram_ptr, (A_UINT8 *) reg, len - 8);
+		if ((scn->ramdump[i])->length <= fw_ram_seg_size[i]) {
+			memcpy(ram_ptr, (A_UINT8 *) reg, len - 8);
+		}
+		else {
+			pr_err("memory copy overlap \n");
+			VOS_BUG(0);
+		}
 
 		if (pattern == FW_RAMDUMP_END_PATTERN) {
 			pr_err("%s memory size = %d\n", fw_ram_seg_name[i],
