@@ -75,13 +75,25 @@
 
 #ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
 #define DRAM_LOCATION           0x00400000
+#ifdef HIF_USB
+#define DRAM_SIZE               0x00098000
+#else
 #define DRAM_SIZE               0x00097FFC
+#endif
 
 #define IRAM_LOCATION           0x00980000
+#ifdef HIF_USB
+#define IRAM_SIZE               0x000C0000
+#else
 #define IRAM_SIZE               0x000BFFFC
+#endif
 
 #define AXI_LOCATION            0x000a0000
+#ifdef HIF_USB
+#define AXI_SIZE                0x00020000
+#else
 #define AXI_SIZE                0x0001FFFC
+#endif
 
 #else /* ELSE TARGET_DUMP_FOR_NON_QC_PLATFORM */
 #define DRAM_LOCATION           0x00400000
