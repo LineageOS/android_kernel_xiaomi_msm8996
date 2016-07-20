@@ -2813,6 +2813,9 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
     pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
     pMac->lim.gpchangeChannelData = NULL;
 
+    psessionEntry->sub20_channelwidth =
+         psessionEntry->lim_sub20_channel_switch_bandwidth;
+
 #if defined WLAN_FEATURE_VOWIFI
     limSendSwitchChnlParams(pMac, newChannel, PHY_SINGLE_CHANNEL_CENTERED,
                             psessionEntry->maxTxPower,
@@ -2872,6 +2875,9 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tpPESession psessionE
 
     pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
     pMac->lim.gpchangeChannelData = NULL;
+
+    psessionEntry->sub20_channelwidth =
+         psessionEntry->lim_sub20_channel_switch_bandwidth;
 
 #if defined WLAN_FEATURE_VOWIFI
                 limSendSwitchChnlParams(pMac, newChannel, subband,

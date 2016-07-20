@@ -704,6 +704,7 @@ typedef struct sSirSmeStartBssReq
     uint8_t                 sap_dot11mc;
     bool                    vendor_vht_for_24ghz_sap;
     uint16_t                beacon_tx_rate;
+    uint8_t                 sub20_channelwidth;
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
@@ -1152,7 +1153,7 @@ typedef struct sSirSmeJoinReq
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
     tSirBssDescription  bssDescription;
-
+    uint8_t             sub20_channelwidth;
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /* Definition for response message to previously issued join request */
@@ -1251,6 +1252,8 @@ typedef struct sSirSmeChanInfo
     uint8_t  nss;
     /* rate flags */
     uint32_t rate_flags;
+    /* sub20 channelwidth */
+    uint32_t sub20_channelwidth;
 } tSirSmeChanInfo, *tpSirSmeChanInfo;
 /// Definition for Association indication from peer
 /// MAC --->
@@ -4946,6 +4949,7 @@ typedef struct sSirChanChangeRequest
     tANI_U32     dot11mode;
     tSirMacRateSet      operational_rateset;
     tSirMacRateSet      extended_rateset;
+    uint8_t             sub20_channelwidth;
 }tSirChanChangeRequest, *tpSirChanChangeRequest;
 
 typedef struct sSirChanChangeResponse
@@ -5034,6 +5038,7 @@ typedef struct sSirDfsCsaIeRequest
     tANI_U8  csaIeRequired;
     tANI_U8  bssid[VOS_MAC_ADDR_SIZE];
     u_int8_t  ch_bandwidth;
+    uint8_t  sub20_channelwidth;
 }tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
 
 /* Indication from lower layer indicating the completion of first beacon send
@@ -8148,5 +8153,18 @@ struct scan_chan_info {
 struct get_chain_rssi_req_params
 {
 	v_MACADDR_t peer_macaddr;
+};
+/**
+ * struct sme_sub20_chan_width - set sub20 channel width
+ * @message_type: message Type.
+ * @length: message length.
+ * @session_id: session Id.
+ * @channelwidth: sub20 channel Width.
+ */
+struct sme_sub20_chan_width {
+	uint16_t	message_type;
+	uint16_t	length;
+	uint8_t	session_id;
+	uint8_t	channelwidth;
 };
 #endif /* __SIR_API_H */

@@ -8339,6 +8339,12 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	if (0 != status)
 		return status;
 
+	if (hdd_cfg_is_sub20_channel_width_enabled(hdd_ctx)) {
+		hddLog(LOGE, FL("ACS not support in sub20 enable"));
+		status = -EINVAL;
+		goto out;
+	}
+
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	vos_mem_zero(&sap_config->acs_cfg, sizeof(struct sap_acs_cfg));
 
@@ -15494,6 +15500,8 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
                                       struct cfg80211_ap_settings *params)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    uint8_t channel;
+    uint32_t channel_width;
     hdd_context_t *pHddCtx;
     int            status;
 
@@ -15530,6 +15538,110 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
     if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
         hdd_wlan_green_ap_start_bss(pHddCtx);
+
+    channel_width = params->chandef.width;
+    channel = ieee80211_frequency_to_channel(
+                  params->chandef.chan->center_freq);
+
+    /* Avoid ACS/DFS, and overwrite channel width to 20 */
+    if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
+            bool channel_support_sub20 = true;
+            tSmeConfigParams sme_config;
+            uint8_t sub20_config;
+            uint8_t sub20_dyn_channelwidth = 0;
+            uint8_t sub20_static_channelwidth = 0;
+            uint8_t sub20_channelwidth = 0;
+            enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
+
+            vos_mem_zero(&sme_config, sizeof(sme_config));
+            sme_GetConfigParam(pHddCtx->hHal, &sme_config);
+            sub20_config = sme_config.sub20_config_info;
+
+            switch (sub20_config) {
+            case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
+                sub20_static_channelwidth = SUB20_MODE_5MHZ;
+                break;
+            case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
+                sub20_static_channelwidth = SUB20_MODE_10MHZ;
+                break;
+            case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
+                sub20_dyn_channelwidth = SUB20_MODE_5MHZ;
+                break;
+            case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
+                sub20_dyn_channelwidth = SUB20_MODE_10MHZ;
+                break;
+            case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+                sub20_dyn_channelwidth = SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
+                break;
+            default:
+                break;
+            }
+
+            if (channel == 0) {
+                    hddLog(VOS_TRACE_LEVEL_WARN,
+                           FL("Can't start SAP-ACS with sub20 channel width"));
+                    return -EINVAL;
+            }
+
+            if (CSR_IS_CHANNEL_DFS(channel)) {
+                    hddLog(VOS_TRACE_LEVEL_WARN,
+                           FL("Can't start SAP-DFS with sub20 channel width"));
+                    return -EINVAL;
+            }
+
+            if (channel_width != NL80211_CHAN_WIDTH_20 &&
+                channel_width != NL80211_CHAN_WIDTH_20_NOHT) {
+                    hddLog(VOS_TRACE_LEVEL_WARN,
+                           FL("Hostapd (20+MHz) conflicts config.ini(sub20)"));
+                    return -EINVAL;
+            }
+
+            if (sub20_config != CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL) {
+                    sub20_channelwidth = (sub20_static_channelwidth != 0) ?
+                         sub20_static_channelwidth : sub20_dyn_channelwidth;
+                    phy_sub20_channel_width =
+                         (sub20_channelwidth == SUB20_MODE_5MHZ) ?
+                         CH_WIDTH_5MHZ : CH_WIDTH_10MHZ;
+                    channel_support_sub20 =
+                          vos_is_channel_support_sub20(channel,
+                                                       phy_sub20_channel_width,
+                                                       0);
+                    if (!channel_support_sub20) {
+                            hddLog(VOS_TRACE_LEVEL_ERROR,
+                                   FL("ch%dwidth%d unsupport by reg domain"),
+                                   channel, phy_sub20_channel_width);
+                            return -EINVAL;
+                    }
+            } else {
+                    channel_support_sub20 =
+                         vos_is_channel_support_sub20(channel,
+                                                      CH_WIDTH_5MHZ, 0);
+                    if (!channel_support_sub20) {
+                            hddLog(VOS_TRACE_LEVEL_ERROR,
+                                   FL("ch%dwidth5M unsupport by reg domain"),
+                                   channel);
+                            sub20_dyn_channelwidth &= ~SUB20_MODE_5MHZ;
+                    }
+
+                    channel_support_sub20 =
+                         vos_is_channel_support_sub20(channel,
+                                                      CH_WIDTH_10MHZ, 0);
+                    if (!channel_support_sub20) {
+                            hddLog(VOS_TRACE_LEVEL_ERROR,
+                                   FL("ch%dwidth10M unsupport by reg domain"),
+                                   channel);
+                            sub20_dyn_channelwidth &= ~SUB20_MODE_10MHZ;
+                    }
+
+                    if (sub20_dyn_channelwidth == 0) {
+                            return -EINVAL;
+                    } else {
+                            sme_config.sub20_dynamic_channelwidth =
+                                 sub20_dyn_channelwidth;
+                            sme_UpdateConfig(pHddCtx->hHal, &sme_config);
+                    }
+            }
+    }
 
     if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
         hdd_adapter_t  *pP2pAdapter = NULL;
@@ -16459,6 +16571,7 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
     tANI_U8 isOffChannelSupported = 0;
     bool is_qos_wmm_sta = false;
 #endif
+    uint32_t  sub20_chanwidth;
     int ret;
 
     ENTER();
@@ -16492,11 +16605,22 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                        FL("Not able to change TL state to AUTHENTICATED"));
                 return -EINVAL;
             }
+
+            if (hdd_hostapd_sub20_channelwidth_can_switch(pAdapter,
+                                                          &sub20_chanwidth)) {
+                    WLANSAP_set_sub20_channelwidth_with_csa(
+                        WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), sub20_chanwidth);
+            }
         }
     } else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
                (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)) {
 #ifdef FEATURE_WLAN_TDLS
         if (params->sta_flags_set & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
+                if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
+                        hddLog(LOGE, FL("TDLS not allowed with sub 20 MHz"));
+                        return -EINVAL;
+                }
+
             StaParams.capability = params->capability;
             StaParams.uapsd_queues = params->uapsd_queues;
             StaParams.max_sp = params->max_sp;

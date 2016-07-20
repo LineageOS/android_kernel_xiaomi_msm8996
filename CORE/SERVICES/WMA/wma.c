@@ -6232,6 +6232,7 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	u_int8_t bssid[IEEE80211_ADDR_LEN];
 	u_int8_t vdev_id = 0;
 	u_int8_t cur_chan = 0;
+	uint8_t cur_sb20_channelwidth = 0;
 	struct ieee80211_channelswitch_ie *csa_ie;
 	tpCSAOffloadParams csa_offload_event;
 	struct ieee80211_extendedchannelswitch_ie *xcsa_ie;
@@ -6284,6 +6285,29 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 		csa_offload_event->new_ch_freq_seg2 = wb_ie->new_ch_freq_seg2;
 	}
 
+	if (csa_event->ies_present_flag & WMI_QSBW_ISE_PRESENT) {
+		struct vendor_ie_sub20_channelwidth sub20width_ie;
+
+		sub20width_ie.elem_id =
+			 WMI_CSA_EVENT_QSBW_ISE_EXTRACT_ID(
+			csa_event->qsbw_ise);
+		sub20width_ie.elem_len =
+			 WMI_CSA_EVENT_QSBW_ISE_EXTRACT_LEN(
+			csa_event->qsbw_ise);
+		sub20width_ie.sub20_capability =
+			 WMI_CSA_EVENT_QSBW_ISE_EXTRACT_CAP(
+			csa_event->qsbw_ise);
+		sub20width_ie.new_sub20_channelwidth =
+			 WMI_CSA_EVENT_QSBW_ISE_EXTRACT_NOTIF(
+			csa_event->qsbw_ise);
+
+		WMA_LOGE("CSA event with sbw_ie capability: %d chwidth:%d",
+			 sub20width_ie.sub20_capability,
+			 sub20width_ie.new_sub20_channelwidth);
+		csa_offload_event->new_sub20_channelwidth =
+			 sub20width_ie.new_sub20_channelwidth;
+	}
+
 	csa_offload_event->ies_present_flag = csa_event->ies_present_flag;
 
 	WMA_LOGD("CSA: New Channel = %d BSSID:%pM",
@@ -6291,12 +6315,17 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 			csa_offload_event->bssId);
 
 	cur_chan = vos_freq_to_chan(intr[vdev_id].mhz);
+
+	cur_sb20_channelwidth =
+		 vos_phy_channel_width_to_sub20(intr[vdev_id].channelwidth);
 	/*
 	 * basic sanity check: requested channel should not be 0
 	 * and equal to home channel
 	 */
 	if( (0 == csa_offload_event->channel) ||
-	    (cur_chan == csa_offload_event->channel) ) {
+	    (cur_chan == csa_offload_event->channel &&
+	     cur_sb20_channelwidth ==
+	     csa_offload_event->new_sub20_channelwidth)) {
 		WMA_LOGE("CSA Event with channel %d. Ignore !!",
 		csa_offload_event->channel);
 		vos_mem_free(csa_offload_event);
@@ -13150,6 +13179,7 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 	intr[req->vdev_id].config.gtx_info.gtxBWMask =
 					CFG_TGT_DEFAULT_GTX_BW_MASK;
 	intr[req->vdev_id].mhz = cmd->mhz;
+	intr[req->vdev_id].channelwidth = req->channelwidth;
 
 	WMI_SET_CHANNEL_MODE(cmd, chanmode);
 	cmd->band_center_freq1 = cmd->mhz;
@@ -13172,6 +13202,9 @@ VOS_STATUS wma_switch_channel(tp_wma_handle wma, struct wma_vdev_start_req *req)
 		WMI_SET_CHANNEL_FLAG(cmd, WMI_CHAN_FLAG_HALF_RATE);
 	else if (req->is_quarter_rate)
 		WMI_SET_CHANNEL_FLAG(cmd, WMI_CHAN_FLAG_QUARTER_RATE);
+
+	WMA_LOGE("switch chan width: quarterrate_flag: %d, halfrate_flag: %d",
+		 req->is_quarter_rate, req->is_half_rate);
 
 	/* Find out min, max and regulatory power levels */
 	WMI_SET_CHANNEL_REG_POWER(cmd, req->max_txpow);
@@ -13305,6 +13338,7 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	intr[cmd->vdev_id].config.gtx_info.gtxTPCMin = CFG_TGT_DEFAULT_GTX_TPC_MIN;
 	intr[cmd->vdev_id].config.gtx_info.gtxBWMask = CFG_TGT_DEFAULT_GTX_BW_MASK;
 	intr[cmd->vdev_id].mhz = chan->mhz;
+	intr[req->vdev_id].channelwidth = req->channelwidth;
 
 	WMI_SET_CHANNEL_MODE(chan, chanmode);
 	chan->band_center_freq1 = chan->mhz;
@@ -13328,6 +13362,9 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	} else if (req->is_quarter_rate) {
 		WMI_SET_CHANNEL_FLAG(chan, WMI_CHAN_FLAG_QUARTER_RATE);
 	}
+
+	WMA_LOGE("BSS chan width: quarterrate_flag: %d, halfrate_flag: %d",
+		 req->is_quarter_rate, req->is_half_rate);
 
 	/*
 	 * If the channel has DFS set, flip on radar reporting.
@@ -14052,6 +14089,13 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		goto send_resp;
 	}
 	req.chan = params->channelNumber;
+	req.channelwidth = params->channelwidth;
+
+	if (params->channelwidth == CH_WIDTH_10MHZ)
+		req.is_half_rate = 1;
+	else if (params->channelwidth == CH_WIDTH_5MHZ)
+		req.is_quarter_rate = 1;
+
 	req.chan_offset = params->secondaryChannelOffset;
 	req.vht_capable = params->vhtCapable;
 	req.dot11_mode = params->dot11_mode;
@@ -16552,6 +16596,13 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	vos_mem_zero(&req, sizeof(req));
 	req.vdev_id = vdev_id;
 	req.chan = add_bss->currentOperChannel;
+	req.channelwidth = add_bss->channelwidth;
+
+	if (add_bss->channelwidth == CH_WIDTH_5MHZ)
+		req.is_quarter_rate = 1;
+	else if (add_bss->channelwidth == CH_WIDTH_10MHZ)
+		req.is_half_rate = 1;
+
 	req.chan_offset = add_bss->currentExtChannel;
         req.vht_capable = add_bss->vhtCapable;
 #if defined WLAN_FEATURE_VOWIFI
@@ -16975,6 +17026,13 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			req.vdev_id = vdev_id;
 			req.chan = add_bss->currentOperChannel;
 			req.chan_offset = add_bss->currentExtChannel;
+			req.channelwidth = add_bss->channelwidth;
+
+			if (add_bss->channelwidth == CH_WIDTH_5MHZ)
+				req.is_quarter_rate = 1;
+			else if (add_bss->channelwidth == CH_WIDTH_10MHZ)
+				req.is_half_rate = 1;
+
 #if defined WLAN_FEATURE_VOWIFI
 			req.max_txpow = add_bss->maxTxPower;
 #else
@@ -34822,6 +34880,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 
 	hdd_tgt_cfg.reg_domain = wma_handle->reg_cap.eeprom_rd;
 	hdd_tgt_cfg.eeprom_rd_ext = wma_handle->reg_cap.eeprom_rd_ext;
+	hdd_tgt_cfg.sub_20_support = wma_handle->sub_20_support;
 
 	switch (wma_handle->phy_capability) {
 	case WMI_11G_CAPABILITY:
@@ -35269,6 +35328,11 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	WMA_LOGA("WMA <-- WMI_READY_EVENTID");
 
 	ev = param_buf->fixed_param;
+
+	wma_handle->sub_20_support =
+	    WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+	                           WMI_SERVICE_HALF_RATE_QUARTER_RATE_SUPPORT);
+
 	/* Indicate to the waiting thread that the ready
 	 * event was received */
 	wma_handle->wmi_ready = TRUE;

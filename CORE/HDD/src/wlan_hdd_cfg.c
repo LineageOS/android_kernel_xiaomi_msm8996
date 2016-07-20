@@ -4903,6 +4903,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                        hdd_config_t, probe_req_ouis,
                        VAR_FLAGS_OPTIONAL,
                        (void *)CFG_PROBE_REQ_OUI_DEFAULT),
+
+   REG_VARIABLE(CFG_SUB_20_CHANNEL_WIDTH_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, sub_20_channel_width,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SUB_20_CHANNEL_WIDTH_DEFAULT,
+                CFG_SUB_20_CHANNEL_WIDTH_MIN,
+                CFG_SUB_20_CHANNEL_WIDTH_MAX),
 };
 
 
@@ -5754,6 +5761,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                  CFG_BPF_PACKET_FILTER_OFFLOAD,
                  pHddCtx->cfg_ini->bpf_packet_filter_enable);
 
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+         CFG_SUB_20_CHANNEL_WIDTH_NAME,
+         pHddCtx->cfg_ini->sub_20_channel_width);
+
   hdd_ndp_print_ini_config(pHddCtx);
 
   hddLog(LOG2, "Name = [%s] Value = [%u] ",
@@ -6362,6 +6373,85 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
    }
 
 }
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * hdd_cfg_get_sub20_dyn_capabilities()
+ * @hdd_ctx_ptr:  HDD context
+ *
+ * This function is used to get dynamic capabilities of sub 20MHz channel width
+ * Return: sub 20 channel width
+ */
+uint8_t hdd_cfg_get_sub20_dyn_capabilities(hdd_context_t *hdd_ctx_ptr)
+{
+	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+
+	if (config_ptr->sub_20_channel_width ==
+	    CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ) {
+		return SUB20_MODE_5MHZ;
+	} else if (config_ptr->sub_20_channel_width ==
+		   CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ) {
+		return SUB20_MODE_10MHZ;
+	} else if (config_ptr->sub_20_channel_width ==
+		   CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL) {
+		return SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
+	}
+	return SUB20_MODE_NONE;
+}
+
+/**
+ * hdd_cfg_get_static_sub20_channel_width()
+ * @hdd_ctx_ptr:  HDD context
+ *
+ * This function is used to get static sub 20MHz channel width
+ * Return: sub 20 channel width
+ */
+uint8_t hdd_cfg_get_static_sub20_channel_width(hdd_context_t *hdd_ctx_ptr)
+{
+	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+
+	if (config_ptr->sub_20_channel_width ==
+	    CFG_SUB_20_CHANNEL_WIDTH_5MHZ) {
+		return SUB20_MODE_5MHZ;
+	} else if (config_ptr->sub_20_channel_width ==
+		   CFG_SUB_20_CHANNEL_WIDTH_10MHZ) {
+		return SUB20_MODE_10MHZ;
+	}
+	return SUB20_MODE_NONE;
+}
+
+/**
+ * hdd_cfg_is_sub20_channel_width_enabled()
+ * @hdd_ctx_ptr:  HDD context
+ *
+ * This function is used to check if sub 20MHz enabled
+ * Return: true of false
+ */
+bool hdd_cfg_is_sub20_channel_width_enabled(hdd_context_t *hdd_ctx_ptr)
+{
+	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+
+	return config_ptr->sub_20_channel_width !=
+		 CFG_SUB_20_CHANNEL_WIDTH_DISABLE;
+}
+
+/**
+ * hdd_cfg_get_sub20_channel_config()
+ * @hdd_ctx_ptr:  HDD context
+ *
+ * This function is used to get sub20 config
+ * Return: sub20 config value
+ */
+uint8_t hdd_cfg_get_sub20_channel_config(hdd_context_t *hdd_ctx_ptr)
+{
+	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+
+	if (config_ptr->sub_20_channel_width >= CFG_SUB_20_CHANNEL_WIDTH_MIN &&
+	    config_ptr->sub_20_channel_width <= CFG_SUB_20_CHANNEL_WIDTH_MAX)
+		return config_ptr->sub_20_channel_width;
+	return 0;
+}
+#endif
 
 static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *smeConfig)
 {
@@ -7730,6 +7820,12 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->csrConfig.sta_roam_policy_params.skip_unsafe_channels = 0;
 
    smeConfig->snr_monitor_enabled = pHddCtx->cfg_ini->fEnableSNRMonitoring;
+   smeConfig->sub20_config_info =
+       hdd_cfg_get_sub20_channel_config(pHddCtx);
+   smeConfig->sub20_channelwidth =
+              hdd_cfg_get_static_sub20_channel_width(pHddCtx);
+   smeConfig->sub20_dynamic_channelwidth =
+              hdd_cfg_get_sub20_dyn_capabilities(pHddCtx);
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

@@ -1658,6 +1658,11 @@ limMlmAddBss (
 
     pAddBssParams->beacon_tx_rate = pMlmStartReq->beacon_tx_rate;
 
+    if (psessionEntry->sub20_channelwidth == SUB20_MODE_5MHZ)
+            pAddBssParams->channelwidth = CH_WIDTH_5MHZ;
+    else if (psessionEntry->sub20_channelwidth == SUB20_MODE_10MHZ)
+            pAddBssParams->channelwidth = CH_WIDTH_10MHZ;
+
     limLog(pMac, LOG2, FL("dot11_mode:%d"), pAddBssParams->dot11_mode);
 
     msgQ.type       = WDA_ADD_BSS_REQ;

@@ -2049,10 +2049,21 @@ IE Vendor3IE (EID_VENDOR_SPECIFIC) OUI (0x00, 0x16, 0x32)
 {
 }
 
+const EID_VENDOR_QCOM_MCC_CHAN              =    1;
+const EID_VENDOR_QCOM_SUB20_BW              =    2;
+
 IE QComVendorIE (EID_VENDOR_SPECIFIC) OUI (0x00, 0xA0, 0xC6)
 {
-    type,      1;
-    channel,   1;
+    OPTIE IE MccChanInfo (EID_VENDOR_QCOM_MCC_CHAN)
+    {
+        channel,   1;
+    }
+
+    OPTIE IE Sub20Info (EID_VENDOR_QCOM_SUB20_BW)
+    {
+        capability,     1;
+        csa_chanwidth,  1;
+    }
 }
 
 IE ESETrafStrmMet (EID_VENDOR_SPECIFIC) OUI (0x00, 0x40, 0x96, 0x07)
@@ -3274,6 +3285,7 @@ FRAME AssocRequest                        // 7.2.3.4
     OPTIE  OperatingMode;
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
+    OPTIE  QComVendorIE;
 } // End frame AssocRequest.
 
 FRAME AssocResponse                       // 7.2.3.5
@@ -3308,6 +3320,7 @@ FRAME AssocResponse                       // 7.2.3.5
     OPTIE  OBSSScanParameters;
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
+    OPTIE  QComVendorIE;
 } // End frame AssocResponse.
 
 FRAME ReAssocRequest                      // 7.2.3.6
@@ -3345,6 +3358,7 @@ FRAME ReAssocRequest                      // 7.2.3.6
     OPTIE  OperatingMode;
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
+    OPTIE  QComVendorIE;
 } // End frame ReAssocRequest.
 
 FRAME ReAssocResponse                     // 7.2.3.7
@@ -3380,6 +3394,7 @@ FRAME ReAssocResponse                     // 7.2.3.7
     OPTIE  OBSSScanParameters;
     OPTIE  QosMapSet;
     OPTIE  vendor2_ie;
+    OPTIE  QComVendorIE;
 } // End frame ReAssocResponse.
 
 FRAME ProbeRequest                        // 7.2.3.8

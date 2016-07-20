@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -270,6 +270,14 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
        pChnlParams->isDfsChannel = VOS_FALSE;
 
     pChnlParams->restart_on_chan_switch = is_restart;
+
+    if (pSessionEntry->sub20_channelwidth == SUB20_MODE_5MHZ)
+            pChnlParams->channelwidth = CH_WIDTH_5MHZ;
+    else if (pSessionEntry->sub20_channelwidth == SUB20_MODE_10MHZ)
+            pChnlParams->channelwidth = CH_WIDTH_10MHZ;
+
+    limLog(pMac, LOG1, FL("Set sub20 channel width %d"),
+           pSessionEntry->sub20_channelwidth);
 
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);

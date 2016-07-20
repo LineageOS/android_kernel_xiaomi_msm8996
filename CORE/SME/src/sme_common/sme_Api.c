@@ -1868,6 +1868,10 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    pMac->fine_time_meas_cap = pSmeConfigParams->fine_time_meas_cap;
 
    pMac->snr_monitor_enabled = pSmeConfigParams->snr_monitor_enabled;
+   pMac->sub20_config_info = pSmeConfigParams->sub20_config_info;
+   pMac->sub20_channelwidth = pSmeConfigParams->sub20_channelwidth;
+   pMac->sub20_dynamic_channelwidth =
+       pSmeConfigParams->sub20_dynamic_channelwidth;
 
    return status;
 }
@@ -5035,8 +5039,9 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
               pMac->roam.configParam.sta_roam_policy.dfs_mode;
       pParam->csrConfig.sta_roam_policy_params.skip_unsafe_channels =
               pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels;
-
-
+      pParam->sub20_config_info = pMac->sub20_config_info;
+      pParam->sub20_channelwidth = pMac->sub20_channelwidth;
+      pParam->sub20_dynamic_channelwidth = pMac->sub20_dynamic_channelwidth;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -19878,3 +19883,54 @@ void sme_set_5g_band_pref(tHalHandle hal_handle,
 			  "Unable to acquire global sme lock");
 
 }
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * sme_update_sub20_channel_width() - update sub 20 channel width
+ * @hal_handle: hal handle for getting global mac struct
+ * @session_id: Session ID on which sub20 channel width needs to be updated
+ * to FW
+ * @chan_width: channel width
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
+                                          uint8_t session_id,
+                                          uint8_t chan_width)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
+	eHalStatus status;
+	struct sme_sub20_chan_width *msg;
+	uint16_t msg_len;
+
+	if (mac_ctx == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+			  "%s: mac_ctx is null", __func__);
+		VOS_ASSERT(0);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	if (mac_ctx->sub20_dynamic_channelwidth == 0)
+		return eHAL_STATUS_SUCCESS;
+
+	msg = vos_mem_malloc(sizeof(*msg));
+	if (NULL == msg) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: mem alloc failed for pSub20ChannelWidth",
+			  __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	msg_len = sizeof(*msg);
+	msg->message_type = pal_cpu_to_be16(eWNI_SME_SET_SUB20_CH_WIDTH);
+	msg->length = pal_cpu_to_be16(msg_len);
+	msg->session_id = session_id;
+	msg->channelwidth = chan_width;
+
+	status = palSendMBMessage(mac_ctx->hHdd, msg);
+	if (eHAL_STATUS_SUCCESS != status)
+		smsLog(mac_ctx, LOGE, FL(
+		       "eWNI_SME_SET_SUB20_CH_WIDTH: msg to PE failed"));
+	return status;
+}
+#endif

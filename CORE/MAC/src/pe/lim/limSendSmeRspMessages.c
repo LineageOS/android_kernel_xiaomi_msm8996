@@ -3052,6 +3052,9 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
       limLog(pMac, LOG1, FL("secondarySubBand = %d"),
              psessionEntry->gLimChannelSwitch.secondarySubBand);
 
+      psessionEntry->lim_sub20_channel_switch_bandwidth =
+                         csa_params->new_sub20_channelwidth;
+
       limPrepareFor11hChannelSwitch(pMac, psessionEntry);
       pCsaOffloadInd = vos_mem_malloc(sizeof(tSmeCsaOffloadInd));
       if (NULL == pCsaOffloadInd) {

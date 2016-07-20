@@ -3384,7 +3384,8 @@ sapSignalHDDevent
             pChanInfo->reg_info_2 = pCsrRoamInfo->chan_info.reg_info_2;
             pChanInfo->nss = pCsrRoamInfo->chan_info.nss;
             pChanInfo->rate_flags = pCsrRoamInfo->chan_info.rate_flags;
-
+            pChanInfo->sub20_channelwidth =
+                                     pCsrRoamInfo->chan_info.sub20_channelwidth;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap = pCsrRoamInfo->timingMeasCap;

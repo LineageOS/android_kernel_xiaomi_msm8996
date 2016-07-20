@@ -704,6 +704,9 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     len -= sizeof(pStartBssReq->beacon_tx_rate);
     pBuf += sizeof(pStartBssReq->beacon_tx_rate);
 
+    pStartBssReq->sub20_channelwidth = *pBuf++;
+    len--;
+
     if (len)
     {
         limLog(pMac, LOGW, FL("Extra bytes left in SME_START_BSS_REQ, len=%d"), len);
@@ -1360,6 +1363,9 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
                        pJoinReq->bssDescription.length + 2);)
     pBuf += lenUsed;
     len -= lenUsed;
+
+    pJoinReq->sub20_channelwidth = *pBuf++;
+    len--;
 
     return eSIR_SUCCESS;
 } /*** end limJoinReqSerDes() ***/

@@ -4157,6 +4157,25 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_MIN        (1)
 #define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_MAX        (100)
 #define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_DEFAULT    (10)
+/*
+ * g_sub20_channel_width=0: Indicates do not use Sub 20 MHz bandwidth
+ * g_sub20_channel_width=1: Bring up SAP/STA in 5 MHz bandwidth
+ * g_sub20_channel_width=2: Bring up SAP/STA in 10 MHz bandwidth
+ * g_sub20_channel_width=3: Switch between 5 and 20 MHz bandwidth dynamically
+ * g_sub20_channel_width=4: Switch between 10 and 20 MHz bandwidth dynamically
+ * g_sub20_channel_width=5: Switch between 5/10 and 20 MHz bandwidth dynamically
+ * Default : Disable
+ */
+#define CFG_SUB_20_CHANNEL_WIDTH_NAME      "g_sub20_channel_width"
+#define CFG_SUB_20_CHANNEL_WIDTH_DISABLE         (0)
+#define CFG_SUB_20_CHANNEL_WIDTH_5MHZ            (1)
+#define CFG_SUB_20_CHANNEL_WIDTH_10MHZ           (2)
+#define CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ        (3)
+#define CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ       (4)
+#define CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL         (5)
+#define CFG_SUB_20_CHANNEL_WIDTH_MIN             (0)
+#define CFG_SUB_20_CHANNEL_WIDTH_MAX             (5)
+#define CFG_SUB_20_CHANNEL_WIDTH_DEFAULT         (0)
 
 /*
  * 5G preference parameters for boosting RSSI
@@ -5096,6 +5115,8 @@ struct hdd_config {
 
    /* Probe Request multiple vendor OUIs */
    uint8_t probe_req_ouis[MAX_PRB_REQ_VENDOR_OUI_INI_LEN];
+   /* parameter for indicating sub20 channel width */
+   uint8_t                     sub_20_channel_width;
 };
 
 typedef struct hdd_config hdd_config_t;
@@ -5263,4 +5284,35 @@ void print_hdd_cfg(hdd_context_t *pHddCtx);
 void hdd_set_btc_bt_wlan_interval(hdd_context_t *pHddCtx);
 
 VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss);
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+uint8_t hdd_cfg_get_sub20_dyn_capabilities(hdd_context_t *hdd_ctx_ptr);
+uint8_t hdd_cfg_get_static_sub20_channel_width(hdd_context_t *hdd_ctx_ptr);
+bool hdd_cfg_is_sub20_channel_width_enabled(hdd_context_t *hdd_ctx_ptr);
+uint8_t hdd_cfg_get_sub20_channel_config(hdd_context_t *hdd_ctx_ptr);
+#else
+static inline
+uint8_t hdd_cfg_get_sub20_dyn_capabilities(hdd_context_t *hdd_ctx_ptr)
+{
+	return SUB20_MODE_NONE;
+}
+
+static inline
+uint8_t hdd_cfg_get_static_sub20_channel_width(hdd_context_t *hdd_ctx_ptr)
+{
+	return SUB20_MODE_NONE;
+}
+
+static inline
+bool hdd_cfg_is_sub20_channel_width_enabled(hdd_context_t *hdd_ctx_ptr)
+{
+	return false;
+}
+
+static inline
+uint8_t hdd_cfg_get_sub20_channel_config(hdd_context_t *hdd_ctx_ptr)
+{
+	return 0;
+}
+#endif
 #endif

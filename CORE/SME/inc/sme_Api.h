@@ -127,6 +127,9 @@ typedef struct _smeConfigParams
     uint32_t      fine_time_meas_cap;
     int8_t        first_scan_bucket_threshold;
     bool          snr_monitor_enabled;
+    uint8_t      sub20_config_info;
+    uint8_t      sub20_channelwidth;
+    uint8_t      sub20_dynamic_channelwidth;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -4719,4 +4722,17 @@ void sme_set_chan_info_callback(tHalHandle hal_handle,
 void sme_set_5g_band_pref(tHalHandle hal_handle,
                                 struct sme_5g_band_pref_params *pref_params);
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
+                                          uint8_t session_id,
+                                          uint8_t chan_width);
+#else
+static inline
+eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
+                                          uint8_t session_id,
+                                          uint8_t chan_width)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+#endif
 #endif //#if !defined( __SME_API_H )

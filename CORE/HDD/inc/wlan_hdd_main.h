@@ -818,6 +818,9 @@ typedef struct {
 
    /** Rate Flags for this connection */
    uint32_t  rate_flags;
+
+   /** SUB 20 Bandwidth Flags */
+   uint8_t   sub20_dynamic_channelwidth;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s

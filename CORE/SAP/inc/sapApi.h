@@ -572,6 +572,7 @@ typedef struct sap_Config {
     tSirMacRateSet  supported_rates;
     tSirMacRateSet  extended_rates;
     eCsrBand   target_band;
+    uint16_t  sub20_channelwidth;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
@@ -682,6 +683,7 @@ typedef struct sSapDfsInfo
      */
     v_U8_t              disable_dfs_ch_switch;
     uint16_t            tx_leakage_threshold;
+    uint8_t             new_sub20_channelwidth;
 } tSapDfsInfo;
 
 typedef struct tagSapCtxList
@@ -2428,6 +2430,18 @@ VOS_STATUS wlansap_get_chan_width(void *pvosctx,
 
 VOS_STATUS wlansap_set_invalid_session(v_PVOID_t pctx);
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+VOS_STATUS
+WLANSAP_set_sub20_channelwidth_with_csa(
+	void *vos_ctx_ptr, uint32_t chan_width);
+#else
+static inline VOS_STATUS
+WLANSAP_set_sub20_channelwidth_with_csa(
+	void *vos_ctx_ptr, uint32_t chan_width)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
 #ifdef __cplusplus
  }
 #endif

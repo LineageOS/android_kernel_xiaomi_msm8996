@@ -356,10 +356,46 @@ populate_dot11f_avoid_channel_ie(tpAniSirGlobal mac_ctx,
 		return;
 
 	dot11f->present = true;
-	dot11f->type = QCOM_VENDOR_IE_MCC_AVOID_CH;
-	dot11f->channel = pe_session->currentOperChannel;
+	dot11f->MccChanInfo.present = true;
+	dot11f->MccChanInfo.channel = pe_session->currentOperChannel;
 }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * populate_dot11f_sub_20_channel_width_ie() - Populate a sDot11fIEQComVendorIE
+ * @mac_ctx_ptr: Pointer to Global MAC structure
+ * @dot11f_ptr: Pointer to Address of a sDot11fIEQComVendorIE to be filled in
+ * @pe_session: PE session entry
+ *
+ * Return: none
+ */
+void
+populate_dot11f_sub_20_channel_width_ie(
+	tpAniSirGlobal mac_ctx_ptr,
+	tDot11fIEQComVendorIE *dot11f_ptr,
+	tpPESession pe_session)
+{
+	if (mac_ctx_ptr->sub20_dynamic_channelwidth == 0)
+		return;
+
+	if (LIM_IS_AP_ROLE(pe_session) ||
+	    LIM_IS_STA_ROLE(pe_session)) {
+		dot11f_ptr->present = true;
+		dot11f_ptr->Sub20Info.present = true;
+		dot11f_ptr->Sub20Info.capability =
+			 mac_ctx_ptr->sub20_dynamic_channelwidth;
+	}
+
+	if (LIM_IS_AP_ROLE(pe_session) &&
+	    pe_session->dfsIncludeChanSwIe == VOS_TRUE) {
+		dot11f_ptr->present = true;
+		dot11f_ptr->Sub20Info.present = true;
+		dot11f_ptr->Sub20Info.csa_chanwidth =
+			 pe_session->lim_sub20_channel_switch_bandwidth;
+	}
+}
+#endif
 
 void
 PopulateDot11fChanSwitchWrapper(tpAniSirGlobal pMac,
@@ -2549,6 +2585,11 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
                                 sizeof(tDot11fIEVHTOperation));
     }
 
+    if (pr->QComVendorIE.present &&
+        pr->QComVendorIE.Sub20Info.present) {
+            pProbeResp->vendor_sub20_capability =
+                pr->QComVendorIE.Sub20Info.capability;
+    }
 
     vos_mem_free(pr);
     return eSIR_SUCCESS;
@@ -2780,6 +2821,11 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
             }
     }
 
+    if (ar->QComVendorIE.present &&
+        ar->QComVendorIE.Sub20Info.present)
+            pAssocReq->vendor_sub20_capability =
+             ar->QComVendorIE.Sub20Info.capability;
+
     vos_mem_free(ar);
     return eSIR_SUCCESS;
 
@@ -3007,6 +3053,11 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
             FL("Received Assoc Response with Vendor specific VHT Oper"));
             limLogVHTOperation(pMac, &pAssocRsp->VHTOperation);
     }
+
+    if (ar.QComVendorIE.present &&
+        ar.QComVendorIE.Sub20Info.present)
+            pAssocRsp->vendor_sub20_capability =
+             ar.QComVendorIE.Sub20Info.capability;
 
     return eSIR_SUCCESS;
 
@@ -3805,6 +3856,11 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
                                 sizeof(tDot11fIEVHTOperation));
     }
 
+    if (pBies->QComVendorIE.present &&
+        pBies->QComVendorIE.Sub20Info.present)
+            pBeaconStruct->vendor_sub20_capability =
+                       pBies->QComVendorIE.Sub20Info.capability;
+
     vos_mem_free(pBies);
     return eSIR_SUCCESS;
 } // End sirParseBeaconIE.
@@ -4161,12 +4217,19 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     if(pBeacon->QComVendorIE.present) {
         pBeaconStruct->AvoidChannelIE.present =
             pBeacon->QComVendorIE.present;
-        pBeaconStruct->AvoidChannelIE.type =
-            pBeacon->QComVendorIE.type;
-        pBeaconStruct->AvoidChannelIE.channel =
-            pBeacon->QComVendorIE.channel;
+        pBeaconStruct->AvoidChannelIE.MccChanInfo.present =
+            pBeacon->QComVendorIE.MccChanInfo.present;
+        pBeaconStruct->AvoidChannelIE.MccChanInfo.channel =
+            pBeacon->QComVendorIE.MccChanInfo.channel;
     }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+    if (pBeacon->QComVendorIE.present &&
+        pBeacon->QComVendorIE.Sub20Info.present &&
+        pBeacon->QComVendorIE.Sub20Info.csa_chanwidth) {
+            pBeaconStruct->vendor_sub20_capability =
+                 pBeacon->QComVendorIE.Sub20Info.capability;
+    }
 
     vos_mem_free(pBeacon);
     return eSIR_SUCCESS;

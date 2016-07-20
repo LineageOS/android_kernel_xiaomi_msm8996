@@ -8895,6 +8895,13 @@ void hdd_update_tgt_cfg(void *context, void *param)
     struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
     tANI_U8 temp_band_cap;
 
+    if (hdd_cfg_is_sub20_channel_width_enabled(hdd_ctx) &&
+        cfg->sub_20_support == 0) {
+            hddLog(VOS_TRACE_LEVEL_WARN,
+                   FL("requests 5/10M, target not support"));
+            hdd_ctx->cfg_ini->sub_20_channel_width = 0;
+    }
+
     /* first store the INI band capability */
     temp_band_cap = hdd_ctx->cfg_ini->nBandCapability;
 
@@ -10980,6 +10987,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                  "%s: Unable to add virtual intf: currentVdevCnt=%d,hostConfiguredVdevCnt=%d",
                  __func__,pHddCtx->current_intf_count, pHddCtx->max_intf_count);
         return NULL;
+   }
+
+   if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx) &&
+       pHddCtx->current_intf_count >= 1) {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Unable add another virtual intf when sub20 enable",
+                     __func__);
+           return NULL;
    }
 
    if(macAddr == NULL)
@@ -15406,7 +15421,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
       /* Open P2P device interface */
-      if (pAdapter != NULL) {
+      if (pAdapter != NULL &&
+          !hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
          if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
              !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] & 0x02)) {
             vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,

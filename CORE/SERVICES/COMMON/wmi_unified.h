@@ -3492,6 +3492,15 @@ typedef struct {
 #define WMI_CSA_EVENT_QSBW_ISE_NOTIF_10M(qsbw_ise) \
         (((qsbw_ise) >> 24) & WMI_CSA_EVENT_QSBW_ISE_10M_BITMASK)
 
+#define WMI_CSA_EVENT_QSBW_ISE_EXTRACT_ID(qsbw_ise) \
+        ((qsbw_ise) & WMI_CSA_EVENT_QSBW_ISE_ID_MASK)
+#define WMI_CSA_EVENT_QSBW_ISE_EXTRACT_LEN(qsbw_ise)  \
+        (((qsbw_ise) & WMI_CSA_EVENT_QSBW_ISE_LEN_MASK) >> 8)
+#define WMI_CSA_EVENT_QSBW_ISE_EXTRACT_CAP(qsbw_ise)  \
+        (((qsbw_ise) & WMI_CSA_EVENT_QSBW_ISE_CAP_MASK) >> 16)
+#define WMI_CSA_EVENT_QSBW_ISE_EXTRACT_NOTIF(qsbw_ise)  \
+        (((qsbw_ise) & WMI_CSA_EVENT_QSBW_ISE_NOTIF_MASK) >> 24)
+
 typedef enum {
 WMI_CSA_IE_PRESENT = 0x00000001,
 WMI_XCSA_IE_PRESENT = 0x00000002,

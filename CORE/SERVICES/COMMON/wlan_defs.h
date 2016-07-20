@@ -143,6 +143,10 @@ typedef enum {
     WLAN_11AG_CAPABILITY  = 3,
 }WLAN_CAPABILITY;
 
+#define SUB20_MODE_NONE (0x00)
+#define SUB20_MODE_5MHZ (0x01)
+#define SUB20_MODE_10MHZ (0x02)
+
 #if defined(CONFIG_AR900B_SUPPORT) || defined(AR900B)
 #define A_RATEMASK A_UINT64
 #else

@@ -1028,6 +1028,7 @@ typedef struct tagCsrRoamProfile
     uint16_t beacon_tx_rate;
     tSirMacRateSet  supported_rates;
     tSirMacRateSet  extended_rates;
+    uint8_t sub20_channelwidth;
 }tCsrRoamProfile;
 
 
