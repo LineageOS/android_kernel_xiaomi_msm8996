@@ -404,6 +404,8 @@ enum adf_proto_subtype  __adf_nbuf_data_get_eapol_subtype(uint8_t *data);
 enum adf_proto_subtype  __adf_nbuf_data_get_arp_subtype(uint8_t *data);
 enum adf_proto_subtype  __adf_nbuf_data_get_icmp_subtype(uint8_t *data);
 enum adf_proto_subtype  __adf_nbuf_data_get_icmpv6_subtype(uint8_t *data);
+uint8_t         __adf_nbuf_data_get_ipv4_proto(uint8_t *data);
+uint8_t         __adf_nbuf_data_get_ipv6_proto(uint8_t *data);
 bool __adf_nbuf_is_bcast_pkt(uint8_t *data);
 bool __adf_nbuf_is_multicast_pkt(uint8_t *data);
 bool __adf_nbuf_is_wai_pkt(uint8_t *data);
