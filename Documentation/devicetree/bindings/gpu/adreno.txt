@@ -157,6 +157,8 @@ GPU Quirks:
 				Disables L2PC on masked CPUs when any of Graphics
 				rendering thread is running on masked CPUs.
 				Bit 0 is for CPU-0, bit 1 is for CPU-1...
+- qcom,gpu-quirk-dp2clockgating-disable:
+				Disable RB sampler data path clock gating optimization
 
 The following properties are optional as collecting data via coresight might
 not be supported for every chipset. The documentation for coresight

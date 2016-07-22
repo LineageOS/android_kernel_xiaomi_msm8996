@@ -119,6 +119,8 @@
 #define ADRENO_QUIRK_IOMMU_SYNC BIT(1)
 /* Submit critical packets at GPU wake up */
 #define ADRENO_QUIRK_CRITICAL_PACKETS BIT(2)
+/* Disable RB sampler datapath clock gating optimization */
+#define ADRENO_QUIRK_DISABLE_RB_DP2CLOCKGATING BIT(4)
 
 /* Flags to control command packet settings */
 #define KGSL_CMD_FLAGS_NONE             0
