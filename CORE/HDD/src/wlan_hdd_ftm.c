@@ -932,7 +932,7 @@ err_status_failure:
 }
 
 #if  defined(QCA_WIFI_FTM)
-int hdd_ftm_start(hdd_context_t *pHddCtx)
+VOS_STATUS hdd_ftm_start(hdd_context_t *pHddCtx)
 {
     return wlan_hdd_ftm_start(pHddCtx);
 }
