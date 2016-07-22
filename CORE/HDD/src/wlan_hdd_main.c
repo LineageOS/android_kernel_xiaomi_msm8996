@@ -318,7 +318,6 @@ struct init_comp {
 static struct init_comp wlan_comp;
 
 #ifdef QCA_WIFI_FTM
-extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
@@ -13619,13 +13618,6 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
     wiphy->wowlan.pattern_max_len = WOW_MAX_PATTERN_SIZE;
 #endif
 
-   /* registration of wiphy dev with cfg80211 */
-   if (0 > wlan_hdd_cfg80211_register(wiphy))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-      status = VOS_STATUS_E_FAILURE;
-   }
-
    return status;
 }
 
@@ -14817,120 +14809,161 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
    vos_set_radio_index(pHddCtx->radio_index);
 
-   if (VOS_FTM_MODE == hdd_get_conparam())
-       goto ftm_processing;
-
-   //Open watchdog module
-   if(pHddCtx->cfg_ini->fIsLogpEnabled)
-   {
-      status = vos_watchdog_open(pVosContext,
-         &((VosContextType*)pVosContext)->vosWatchdog, sizeof(VosWatchdogContext));
-
-      if(!VOS_IS_STATUS_SUCCESS( status ))
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
-         goto err_nl_srv;
+          hddLog(VOS_TRACE_LEVEL_FATAL,
+                 "%s: wlan_hdd_ftm_open Failed",__func__);
+          goto err_nl_srv;
       }
-   }
+      if (VOS_STATUS_SUCCESS != hdd_ftm_start(pHddCtx))
+      {
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
+          goto err_free_ftm_open;
+      }
+   } else {
 
-   pHddCtx->isLogpInProgress = FALSE;
-   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      //Open watchdog module
+      if(pHddCtx->cfg_ini->fIsLogpEnabled)
+      {
+         status = vos_watchdog_open(pVosContext,
+            &((VosContextType*)pVosContext)->vosWatchdog,
+            sizeof(VosWatchdogContext));
 
-   status = vos_nv_open();
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      /* NV module cannot be initialized */
-      hddLog( VOS_TRACE_LEVEL_FATAL,
-            "%s: vos_nv_open failed", __func__);
-      goto err_wdclose;
-   }
+         if(!VOS_IS_STATUS_SUCCESS( status ))
+         {
+            hddLog(VOS_TRACE_LEVEL_FATAL,
+                   "%s: vos_watchdog_open failed",__func__);
+            goto err_nl_srv;
+         }
+      }
 
-   hdd_wlan_green_ap_init(pHddCtx);
+      pHddCtx->isLogpInProgress = FALSE;
+      vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
-   status = vos_open( &pVosContext, 0);
-   if ( !VOS_IS_STATUS_SUCCESS( status ))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_open failed", __func__);
-      goto err_vos_nv_close;
-   }
+      status = vos_nv_open();
+      if (!VOS_IS_STATUS_SUCCESS(status))
+      {
+         /* NV module cannot be initialized */
+         hddLog( VOS_TRACE_LEVEL_FATAL,
+               "%s: vos_nv_open failed", __func__);
+         goto err_wdclose;
+      }
+
+      hdd_wlan_green_ap_init(pHddCtx);
+
+      status = vos_open( &pVosContext, 0);
+      if ( !VOS_IS_STATUS_SUCCESS( status ))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_open failed", __func__);
+         goto err_vos_nv_close;
+      }
 
 #if      !defined(REMOVE_PKT_LOG)
-   hif_init_pdev_txrx_handle(hif_sc,
-                             vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
+      hif_init_pdev_txrx_handle(hif_sc,
+                            vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 #endif
 
-   pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );
+      pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME,
+                                                  pVosContext );
 
-   if ( NULL == pHddCtx->hHal )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HAL context is null", __func__);
-      goto err_vosclose;
-   }
+      if ( NULL == pHddCtx->hHal )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HAL context is null", __func__);
+         goto err_vosclose;
+      }
 
-   status = vos_preStart( pHddCtx->pvosContext );
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
-      goto err_vosclose;
-   }
+      status = vos_preStart( pHddCtx->pvosContext );
+      if ( !VOS_IS_STATUS_SUCCESS( status ) )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
+         goto err_vosclose;
+      }
 
-   wlan_hdd_update_wiphy(wiphy, pHddCtx);
+      wlan_hdd_update_wiphy(wiphy, pHddCtx);
 
-   if (sme_IsFeatureSupportedByFW(DOT11AC)) {
-      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
-   } else {
-      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: not support 11ac", __func__);
-      if ((pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)||
-          (pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac)) {
+      if (sme_IsFeatureSupportedByFW(DOT11AC)) {
+         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
+      } else {
+         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: not support 11ac", __func__);
+         if ((pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)||
+             (pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac)) {
 
-          pHddCtx->cfg_ini->dot11Mode = eHDD_DOT11_MODE_11n;
-          pHddCtx->cfg_ini->sap_p2p_11ac_override = 0;
+            pHddCtx->cfg_ini->dot11Mode = eHDD_DOT11_MODE_11n;
+            pHddCtx->cfg_ini->sap_p2p_11ac_override = 0;
+         }
+      }
+
+      if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to set wow pulse", __func__);
+      }
+
+
+      /* Set 802.11p config
+       * TODO-OCB: This has been temporarily added here to ensure this paramter
+       * is set in CSR when we init the channel list. This should be removed
+       * once the 5.9 GHz channels are added to the regulatory domain.
+       */
+      hdd_set_dot11p_config(pHddCtx);
+
+      if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
+      {
+         pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                "%s: module enable_dfs_chan_scan set to %d",
+                __func__, enable_dfs_chan_scan);
+      }
+      if (0 == enable_11d || 1 == enable_11d)
+      {
+         pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
+         hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
+                __func__, enable_11d);
+      }
+
+      /* Note that the vos_preStart() sequence triggers the cfg download.
+         The cfg download must occur before we update the SME config
+         since the SME config operation must access the cfg database */
+      status = hdd_set_sme_config( pHddCtx );
+
+      if ( VOS_STATUS_SUCCESS != status )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config",
+                __func__);
+         goto err_vosclose;
+      }
+
+      status = wlan_hdd_reg_init(pHddCtx);
+      if (status != VOS_STATUS_SUCCESS) {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to init channel list", __func__);
+         goto err_vosclose;
       }
    }
 
-   if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Failed to set wow pulse", __func__);
+   /* registration of wiphy dev with cfg80211 */
+   if (0 > wlan_hdd_cfg80211_register(pHddCtx->wiphy)) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
+      status = VOS_STATUS_E_FAILURE;
+      if (VOS_FTM_MODE == hdd_get_conparam())
+         goto err_free_ftm_open;
+      else
+         goto err_vosclose;
    }
 
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      pHddCtx->isLoadInProgress = FALSE;
 
-   /* Set 802.11p config
-    * TODO-OCB: This has been temporarily added here to ensure this paramter
-    * is set in CSR when we init the channel list. This should be removed
-    * once the 5.9 GHz channels are added to the regulatory domain.
-    */
-   hdd_set_dot11p_config(pHddCtx);
-
-   if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
-   {
-      pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_dfs_chan_scan set to %d",
-             __func__, enable_dfs_chan_scan);
-   }
-   if (0 == enable_11d || 1 == enable_11d)
-   {
-      pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
-             __func__, enable_11d);
+      memdump_init();
+      hdd_driver_memdump_init();
+      hddLog(LOGE, FL("FTM driver loaded"));
+      wlan_comp.status = 0;
+      complete(&wlan_comp.wlan_start_comp);
+      return VOS_STATUS_SUCCESS;
    }
 
-   /* Note that the vos_preStart() sequence triggers the cfg download.
-      The cfg download must occur before we update the SME config
-      since the SME config operation must access the cfg database */
-   status = hdd_set_sme_config( pHddCtx );
-
-   if ( VOS_STATUS_SUCCESS != status )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_vosclose;
-   }
-
-   status = wlan_hdd_reg_init(pHddCtx);
-   if (status != VOS_STATUS_SUCCESS) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: Failed to init channel list", __func__);
-      goto err_vosclose;
-   }
    ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS,
                                  pHddCtx->cfg_ini->tx_chain_mask_1ss,
                                  PDEV_CMD);
@@ -15051,43 +15084,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
 #ifdef QCA_PKT_PROTO_TRACE
    /* Ensure pkt tracing happen only in Non FTM mode */
-   if (VOS_FTM_MODE != hdd_get_conparam())
-       vos_pkt_proto_trace_init();
+   vos_pkt_proto_trace_init();
 #endif /* QCA_PKT_PROTO_TRACE */
-
- ftm_processing:
-   if (VOS_FTM_MODE == hdd_get_conparam())
-   {
-      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_nl_srv;
-      }
-#if  defined(QCA_WIFI_FTM)
-      if (hdd_ftm_start(pHddCtx))
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
-          goto err_free_ftm_open;
-      }
-#endif
-
-      /* registration of wiphy dev with cfg80211 */
-      if (0 > wlan_hdd_cfg80211_register(wiphy)) {
-          hddLog(LOGE, FL("wiphy register failed"));
-          goto err_free_ftm_open;
-      }
-
-      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-      vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-      pHddCtx->isLoadInProgress = FALSE;
-
-      memdump_init();
-      hdd_driver_memdump_init();
-      hddLog(LOGE, FL("FTM driver loaded"));
-      wlan_comp.status = 0;
-      complete(&wlan_comp.wlan_start_comp);
-      return VOS_STATUS_SUCCESS;
-   }
 
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    rtnl_lock();
