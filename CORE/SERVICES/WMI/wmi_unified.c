@@ -1056,11 +1056,8 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 	void *wmi_cmd_struct_ptr = NULL;
 	u_int32_t idx = 0;
 	int tlv_ok_status = 0;
-
-#if  defined(WMI_INTERFACE_EVENT_LOGGING) || !defined(QCA_CONFIG_SMP)
 	u_int32_t id;
 	u_int8_t *data;
-#endif
 
 	evt_buf = (wmi_buf_t) htc_packet->pPktContext;
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
