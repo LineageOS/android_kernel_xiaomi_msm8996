@@ -8370,6 +8370,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U8},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT] = {.type = NLA_U32 },
 };
 
 /**
@@ -8468,6 +8469,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	eHalStatus status;
 	struct sir_set_tx_rx_aggregation_size request;
 	VOS_STATUS vos_status;
+	uint32_t tx_fail_count;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8644,6 +8646,22 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
 				delay, PDEV_CMD);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT]) {
+		tx_fail_count = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT]);
+		if (tx_fail_count) {
+			status = sme_update_tx_fail_cnt_threshold(pHddCtx->hHal,
+				pAdapter->sessionId,
+				tx_fail_count);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				hddLog(LOGE,
+				FL("sme_update_tx_fail_cnt_threshold (err=%d)"),
+				status);
+				return -EINVAL;
+			}
+		}
 	}
 	return ret_val;
 }

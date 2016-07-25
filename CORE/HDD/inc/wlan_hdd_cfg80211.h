@@ -1574,6 +1574,9 @@ enum qca_wlan_vendor_acs_hw_mode {
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY: control frame sw retry threshold
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY:
  *			     propagtion delay for 2G/5G band(Units in ms)
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT: Unsigned 32-bit value to
+ * configure the number of unicast TX fail packet count.
+ * The peer is disconnected once this threshold is reached.
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_LAST: last config
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_MAX: max config
  */
@@ -1593,6 +1596,7 @@ enum qca_wlan_vendor_config {
 	QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY,
 	QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST,
