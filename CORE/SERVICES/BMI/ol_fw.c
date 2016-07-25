@@ -986,7 +986,7 @@ int dump_CE_register(struct ol_softc *scn)
 }
 #endif
 
-#if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
+#if (defined(CONFIG_CNSS) && !defined(HIF_USB)) || defined(HIF_SDIO)
 static struct ol_softc *ramdump_scn;
 #ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
 void *ol_fw_dram_addr=NULL;
@@ -1150,7 +1150,6 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 	schedule_work(&ramdump_work);
 }
 
-#ifndef HIF_USB
 static void fw_indication_work_handler(struct work_struct *fw_indication)
 {
 	struct device *dev = NULL;
@@ -1166,12 +1165,6 @@ static void fw_indication_work_handler(struct work_struct *fw_indication)
 
 	vos_device_self_recovery(dev);
 }
-#else
-static void fw_indication_work_handler(struct work_struct *fw_indication)
-{
-}
-#endif
-
 
 static DECLARE_WORK(fw_indication_work, fw_indication_work_handler);
 
@@ -1179,6 +1172,14 @@ void ol_schedule_fw_indication_work(struct ol_softc *scn)
 {
 	ramdump_scn = scn;
 	schedule_work(&fw_indication_work);
+}
+#elif defined(HIF_USB)
+void ol_schedule_fw_indication_work(struct ol_softc *scn)
+{
+}
+void ol_schedule_ramdump_work(struct ol_softc *scn)
+{
+	VOS_BUG(0);
 }
 #endif
 
