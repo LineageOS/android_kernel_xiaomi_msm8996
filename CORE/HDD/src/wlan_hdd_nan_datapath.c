@@ -1658,6 +1658,12 @@ static void hdd_ndp_end_ind_handler(hdd_adapter_t *adapter,
 			continue;
 		}
 		ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(ndi_adapter);
+		if (!ndp_ctx) {
+			hddLog(LOGE,
+			FL("ndp_ctx is NULL for vdev id: %d"),
+			end_ind->ndp_map[i].vdev_id);
+			continue;
+		}
 		idx = hdd_get_peer_idx(sta_ctx,
 				&end_ind->ndp_map[i].peer_ndi_mac_addr);
 		if (idx == INVALID_PEER_IDX) {
