@@ -3981,6 +3981,16 @@ enum dot11p_mode {
 #define CFG_ACTIVE_MODE_OFFLOAD_DEFAULT    (0)
 
 
+/*
+ * This parameter will control SIFS burst duration in FW from 0 to 12 ms.
+ * Default value is set to 8ms.
+ */
+
+#define CFG_SIFS_BURST_DURATION_NAME     "g_sifs_burst_duration"
+#define CFG_SIFS_BURST_DURATION_MIN      (0)
+#define CFG_SIFS_BURST_DURATION_MAX      (12)
+#define CFG_SIFS_BURST_DURATION_DEFAULT  (8)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4762,6 +4772,8 @@ struct hdd_config {
    bool                        sap_force_11n_for_11ac;
    uint8_t                     sap_max_inactivity_override;
    bool                        active_mode_offload;
+   /* parameter for indicating sifs burst duration to fw */
+   uint8_t                     sifs_burst_duration;
 };
 
 typedef struct hdd_config hdd_config_t;
