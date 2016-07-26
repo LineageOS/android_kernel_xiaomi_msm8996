@@ -13752,6 +13752,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
 
         if ((pAdapter = pAdapterNode->pAdapter) == NULL)
             continue;
+        /* Validate magic so we don't end up accessing a freed adapter.*/
+        if (pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC)
+            continue;
 
 #ifdef IPA_UC_OFFLOAD
         if (NULL == pValidAdapter)
