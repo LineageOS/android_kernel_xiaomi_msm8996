@@ -12196,12 +12196,34 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 void wlan_hdd_update_wiphy(struct wiphy *wiphy,
                            hdd_context_t *ctx)
 {
+    uint32_t val32;
+    uint16_t val16;
+    tSirMacHTCapabilityInfo *ht_cap_info;
+    eHalStatus status;
+
     wiphy->max_ap_assoc_sta = ctx->max_peers;
     if (!sme_IsFeatureSupportedByFW(DOT11AC)) {
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.cap = 0;
        wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.vht_supported = 0;
        wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.cap = 0;
+    }
+
+    status = ccmCfgGetInt(ctx->hHal, WNI_CFG_HT_CAP_INFO, &val32);
+    if (eHAL_STATUS_SUCCESS != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get HT capability info",
+                  __func__);
+        val32 = 0;
+    }
+    val16 = (uint16_t)val32;
+    ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
+
+    if (ht_cap_info->txSTBC == TRUE) {
+        wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
+						IEEE80211_HT_CAP_TX_STBC;
+        wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+						IEEE80211_HT_CAP_TX_STBC;
     }
 }
 
