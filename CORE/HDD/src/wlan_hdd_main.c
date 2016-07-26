@@ -14546,6 +14546,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef QCA_ARP_SPOOFING_WAR
    adf_os_device_t adf_ctx;
 #endif
+   int set_value;
 
    ENTER();
 
@@ -15519,6 +15520,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        if (eHAL_STATUS_SUCCESS != hal_status)
            hddLog(LOGE, FL("Failed to disable Chan Avoidance Indcation"));
    }
+
+   if (pHddCtx->cfg_ini->sifs_burst_duration) {
+       set_value = (SIFS_BURST_DUR_MULTIPLIER) *
+                    pHddCtx->cfg_ini->sifs_burst_duration;
+
+       if ((set_value > 0) && (set_value <= SIFS_BURST_DUR_MAX))
+           process_wma_set_command(0, (int)WMI_PDEV_PARAM_BURST_DUR,
+                                          set_value, PDEV_CMD);
+   }
+
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);
    goto success;
