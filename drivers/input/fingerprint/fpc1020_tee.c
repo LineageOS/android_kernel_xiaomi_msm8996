@@ -152,6 +152,20 @@ static const struct input_device_id ids[] = {
 	{ },
 };
 
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
 static void set_fpc_irq(struct fpc1020_data *fpc1020, bool enable)
 {
 	bool irq_enabled;
@@ -178,11 +192,20 @@ static void fpc1020_suspend_resume(struct work_struct *work)
 	if (fpc1020->screen_on) {
 		/* Unconditionally enable IRQ when screen turns on */
 		set_fpc_irq(fpc1020, true);
+
+		/* Restore fingerprintd priority to defaults */
+		set_fingerprintd_nice(0);
 	} else {
-		/* Disable IRQ when screen turns off,
-		   only if fingerprint wake up is disabled */
-		if (fpc1020->wakeup_enabled == 0)
+		if (fpc1020->wakeup_enabled == 0) {
+			/* Disable IRQ when screen turns off,
+			   only if fingerprint wake up is disabled */
 			set_fpc_irq(fpc1020, false);
+		} else {
+			/* Elevate fingerprintd priority when screen is off to ensure
+			 * the fingerprint sensor is responsive and that the haptic
+			 * response on successful verification always fires */
+			set_fingerprintd_nice(-1);
+		}
 	}
 }
 
