@@ -30406,9 +30406,11 @@ static void wma_update_sta_inactivity_timeout(tp_wma_handle wma,
 			vdev_id,
 			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
 			max_unresponsive_time))
-		WMA_LOGE("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
-			" max_unresponsive_time: %u", __func__, vdev_id,
-			min_inactive_time, max_inactive_time, max_unresponsive_time);
+		WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
+
+	WMA_LOGD("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
+		" max_unresponsive_time: %u", __func__, vdev_id,
+		min_inactive_time, max_inactive_time, max_unresponsive_time);
 
 	return;
 }
