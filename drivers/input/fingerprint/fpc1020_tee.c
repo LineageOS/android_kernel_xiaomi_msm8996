@@ -503,10 +503,25 @@ static struct of_device_id fpc1020_of_match[] = {
 MODULE_DEVICE_TABLE(of, fpc1020_of_match);
 
 #ifdef CONFIG_PM
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
 static int fpc1020_pm_suspend(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
+	set_fingerprintd_nice(MIN_NICE);
 	return 0;
 }
 
@@ -514,6 +529,7 @@ static int fpc1020_pm_resume(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
+	set_fingerprintd_nice(0);
 	return 0;
 }
 
