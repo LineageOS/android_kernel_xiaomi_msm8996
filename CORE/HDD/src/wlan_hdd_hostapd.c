@@ -1604,6 +1604,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                        FL("P2PGO is going down now"));
                 hdd_issue_stored_joinreq(sta_adapter, pHddCtx);
             }
+            pHddApCtx->groupKey.keyLength = 0;
+            for (i = 0; i < CSR_MAX_NUM_KEY; i++)
+                pHddApCtx->wepKey[i].keyLength = 0;
             goto stopbss;
 
         case eSAP_DFS_CAC_START:
