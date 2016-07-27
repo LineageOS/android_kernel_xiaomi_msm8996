@@ -29720,6 +29720,57 @@ static inline VOS_STATUS wma_send_wow_pulse_cmd(tp_wma_handle wma_handle,
 }
 #endif
 
+/**
+* wma_send_wakeup_gpio_cmd() - send wmi cmd of wakeup gpio cmd
+* infomation to fw.
+* @wma_handle: wma handler
+* @wakeup_gpio_cmd: wakeup_gpio_mode pointer
+*
+* Return: Return VOS_STATUS
+*/
+static VOS_STATUS wma_send_wakeup_gpio_cmd(tp_wma_handle wma_handle,
+				struct wakeup_gpio_mode *wakeup_gpio_cmd)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_buf_t buf;
+	WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param *cmd;
+	u_int16_t len;
+
+	WMA_LOGD("%s: Enter", __func__);
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		 WMA_LOGE("wmi_buf_alloc failed");
+		 return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param *)wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param));
+
+	cmd->host_wakeup_gpio = wakeup_gpio_cmd->host_wakeup_gpio;
+	cmd->host_wakeup_type = wakeup_gpio_cmd->host_wakeup_type;
+	cmd->target_wakeup_gpio = wakeup_gpio_cmd->target_wakeup_gpio;
+	cmd->target_wakeup_type = wakeup_gpio_cmd->target_wakeup_type;
+
+	WMA_LOGD("%s:host gpio:%d host type:%d target gpio:%d target type:%d",
+		__func__, cmd->host_wakeup_gpio, cmd->host_wakeup_type,
+		cmd->target_wakeup_gpio, cmd->target_wakeup_type);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+		WMI_PDEV_SET_WAKEUP_CONFIG_CMDID)) {
+		WMA_LOGE("Failed to send wakeup gpio cmd");
+		wmi_buf_free(buf);
+		vos_status = VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("%s: Exit", __func__);
+	return vos_status;
+}
+
 /*
  * wma_update_wep_default_key - function to update default key id
  * @wma: pointer to wma handler
@@ -31264,6 +31315,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_WOW_PULSE_CMD:
 			wma_send_wow_pulse_cmd(wma_handle,
 				(struct wow_pulse_mode *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_WAKEUP_GPIO_CMD:
+			wma_send_wakeup_gpio_cmd(wma_handle,
+				(struct wakeup_gpio_mode *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_UPDATE_WEP_DEFAULT_KEY:

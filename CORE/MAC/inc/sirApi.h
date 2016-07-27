@@ -6762,6 +6762,23 @@ struct wow_pulse_mode {
 };
 
 /*
+ * struct wakeup_gpio_mode
+ * @host_wakeup_gpio: GPIO num used to wakeup host
+ * @host_wakeup_type: Wakeup type for host. Refer to WMI_WAKE_GPIO_TYPE
+ * @target_wakeup_gpio: GPIO num used to wakeup target
+ * @target_wakeup_type: Wakeup type for target. Refer to WMI_WAKE_GPIO_TYPE
+ *
+ * SME uses this structure to configure wakeup gpio info
+ * and send it to WMA
+ */
+struct wakeup_gpio_mode {
+	uint32_t     host_wakeup_gpio;
+	uint32_t     host_wakeup_type;
+	uint32_t     target_wakeup_gpio;
+	uint32_t     target_wakeup_type;
+};
+
+/*
  * struct egap_params - the enhanced green ap params
  * @vdev_id: vdev id
  * @enable: enable or disable the enhance green ap in firmware

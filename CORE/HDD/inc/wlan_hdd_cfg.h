@@ -3994,6 +3994,50 @@ enum dot11p_mode {
 #define CFG_BPF_PACKET_FILTER_OFFLOAD_MAX       (1)
 #define CFG_BPF_PACKET_FILTER_OFFLOAD_DEFAULT   (1)
 
+/*
+ * GPIO num used to wakeup host, 0xFF disable wakeup.
+ * Default value is 0xFF
+ */
+#define CFG_HOST_WAKEUP_GPIO_NAME        "g_host_wakeup_gpio"
+#define CFG_HOST_WAKEUP_GPIO_MIN         (0)
+#define CFG_HOST_WAKEUP_GPIO_MAX         (0xFF)
+#define CFG_HOST_WAKEUP_GPIO_DEFAULT     (0xFF)
+
+/*
+ * Wakeup type for host.
+ * 1 Low level
+ * 2 High level
+ * 3 Rising edge
+ * 4 Falling edge
+ * Default value is 1.
+ */
+#define CFG_HOST_WAKEUP_TYPE_NAME        "g_host_wakeup_type"
+#define CFG_HOST_WAKEUP_TYPE_MIN         (1)
+#define CFG_HOST_WAKEUP_TYPE_MAX         (4)
+#define CFG_HOST_WAKEUP_TYPE_DEFAULT     (1)
+
+/*
+ * GPIO number used to wakeup target, 0xFF disable wakeup.
+ * Default value is 0xFF
+ */
+#define CFG_TARGET_WAKEUP_GPIO_NAME       "g_target_wakeup_gpio"
+#define CFG_TARGET_WAKEUP_GPIO_MIN        (0)
+#define CFG_TARGET_WAKEUP_GPIO_MAX        (0xFF)
+#define CFG_TARGET_WAKEUP_GPIO_DEFAULT    (0xFF)
+
+/*
+ * Wakeup type for host.
+ * 1 Low level
+ * 2 High level
+ * 3 Rising edge
+ * 4 Falling edge
+ * Default value is 1.
+ */
+#define CFG_TARGET_WAKEUP_TYPE_NAME       "g_target_wakeup_type"
+#define CFG_TARGET_WAKEUP_TYPE_MIN        (1)
+#define CFG_TARGET_WAKEUP_TYPE_MAX        (4)
+#define CFG_TARGET_WAKEUP_TYPE_DEFAULT    (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4776,7 +4820,11 @@ struct hdd_config {
    /* parameter for indicating sifs burst duration to fw */
    uint8_t                     sifs_burst_duration;
 
-   bool bpf_packet_filter_enable;
+   bool                        bpf_packet_filter_enable;
+   uint32_t                    host_wakeup_gpio;
+   uint32_t                    host_wakeup_type;
+   uint32_t                    target_wakeup_gpio;
+   uint32_t                    target_wakeup_type;
 };
 
 typedef struct hdd_config hdd_config_t;

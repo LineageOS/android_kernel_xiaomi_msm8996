@@ -18105,6 +18105,48 @@ VOS_STATUS sme_set_wow_pulse(struct wow_pulse_mode *wow_pulse_set_info)
 }
 #endif
 
+/**
+ * sme_set_wakeup_gpio() - set wakeup gpio info
+ * @wakeup_gpio_info: wakeup_gpio_mode structure pointer
+ *
+ * Return: HAL status
+ */
+VOS_STATUS sme_set_wakeup_gpio(struct wakeup_gpio_mode *wakeup_gpio_info)
+{
+	vos_msg_t vos_message;
+	VOS_STATUS vos_status;
+	struct wakeup_gpio_mode *wakeup_gpio_cmd;
+
+	if (!wakeup_gpio_info) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: invalid wakeup_gpio_info pointer", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wakeup_gpio_cmd = vos_mem_malloc(sizeof(*wakeup_gpio_cmd));
+	if (NULL == wakeup_gpio_cmd) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: fail to alloc wakeup_gpio_cmd", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	*wakeup_gpio_cmd = *wakeup_gpio_info;
+
+	vos_message.type = WDA_SET_WAKEUP_GPIO_CMD;
+	vos_message.bodyptr = wakeup_gpio_cmd;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,
+					&vos_message);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			"%s: Not able to post msg to WDA!",
+			__func__);
+		vos_mem_free(wakeup_gpio_cmd);
+		vos_status = VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+
 #ifdef FEATURE_GREEN_AP
 /**
  * sme_send_egap_conf_params() - set the enhanced green ap configuration params

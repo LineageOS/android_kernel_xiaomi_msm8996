@@ -14368,6 +14368,40 @@ static int inline wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
 #endif
 
 /**
+* wlan_hdd_set_wakeup_gpio() - call SME to send wmi cmd of wakeup gpio
+* @phddctx: hdd_context_t structure pointer
+*
+* Return: int
+*/
+static int wlan_hdd_set_wakeup_gpio(hdd_context_t *hddctx)
+{
+	hdd_config_t *cfg_ini = hddctx->cfg_ini;
+	struct wakeup_gpio_mode wakeup_gpio_info;
+	VOS_STATUS status;
+
+	wakeup_gpio_info.host_wakeup_gpio = cfg_ini->host_wakeup_gpio;
+	wakeup_gpio_info.host_wakeup_type = cfg_ini->host_wakeup_type;
+	wakeup_gpio_info.target_wakeup_gpio = cfg_ini->target_wakeup_gpio;
+	wakeup_gpio_info.target_wakeup_type = cfg_ini->target_wakeup_type;
+
+	hddLog(LOG1, "%s:host_gpio %d host_type %d tar_gpio %d tar_type %d",
+		__func__, wakeup_gpio_info.host_wakeup_gpio,
+		wakeup_gpio_info.host_wakeup_type,
+		wakeup_gpio_info.target_wakeup_gpio,
+		wakeup_gpio_info.target_wakeup_type);
+
+	status = sme_set_wakeup_gpio(&wakeup_gpio_info);
+	if (VOS_STATUS_E_FAILURE == status) {
+		hddLog(LOGE,
+			"%s: sme_set_wakeup_gpio failure!", __func__);
+		return -EIO;
+	}
+	hddLog(LOG1,
+		"%s: sme_set_wakeup_gpio success!", __func__);
+	return 0;
+}
+
+/**
  * hdd_tsf_init() - Initialize the TSF synchronization interface
  * @hdd_ctx: HDD global context
  *
@@ -14973,6 +15007,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                 "%s: Failed to set wow pulse", __func__);
       }
 
+      if ((pHddCtx->cfg_ini->host_wakeup_gpio !=
+				CFG_HOST_WAKEUP_GPIO_DEFAULT) ||
+          (pHddCtx->cfg_ini->target_wakeup_gpio !=
+				CFG_HOST_WAKEUP_GPIO_DEFAULT)) {
+          if (0 != wlan_hdd_set_wakeup_gpio(pHddCtx)) {
+             hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to set wakeup gpio", __func__);
+          }
+      }
 
       /* Set 802.11p config
        * TODO-OCB: This has been temporarily added here to ensure this paramter

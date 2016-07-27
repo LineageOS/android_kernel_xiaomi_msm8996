@@ -4674,6 +4674,34 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_BPF_PACKET_FILTER_OFFLOAD_DEFAULT,
                CFG_BPF_PACKET_FILTER_OFFLOAD_MIN,
                CFG_BPF_PACKET_FILTER_OFFLOAD_MAX),
+
+   REG_VARIABLE(CFG_HOST_WAKEUP_GPIO_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, host_wakeup_gpio,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_HOST_WAKEUP_GPIO_DEFAULT,
+                CFG_HOST_WAKEUP_GPIO_MIN,
+                CFG_HOST_WAKEUP_GPIO_MAX),
+
+   REG_VARIABLE(CFG_HOST_WAKEUP_TYPE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, host_wakeup_type,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_HOST_WAKEUP_TYPE_DEFAULT,
+                CFG_HOST_WAKEUP_TYPE_MIN,
+                CFG_HOST_WAKEUP_TYPE_MAX),
+
+   REG_VARIABLE(CFG_TARGET_WAKEUP_GPIO_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, target_wakeup_gpio,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TARGET_WAKEUP_GPIO_DEFAULT,
+                CFG_TARGET_WAKEUP_GPIO_MIN,
+                CFG_TARGET_WAKEUP_GPIO_MAX),
+
+   REG_VARIABLE(CFG_TARGET_WAKEUP_TYPE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, target_wakeup_type,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TARGET_WAKEUP_TYPE_DEFAULT,
+                CFG_TARGET_WAKEUP_TYPE_MIN,
+                CFG_TARGET_WAKEUP_TYPE_MAX),
 };
 
 
