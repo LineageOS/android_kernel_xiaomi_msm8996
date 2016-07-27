@@ -75,6 +75,7 @@ struct fpc1020_data {
 	struct workqueue_struct *reset_workqueue;
 #endif
 	struct input_dev	*input_dev;
+	struct work_struct       pm_work;
 };
 
 enum {
@@ -296,6 +297,31 @@ void fpc1020_input_destroy(struct fpc1020_data *fpc1020)
 	if (fpc1020->input_dev != NULL)
 		input_free_device(fpc1020->input_dev);
 }
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
+static void fpc1020_suspend_resume(struct work_struct *work)
+{
+	struct fpc1020_data *fpc1020 =
+		container_of(work, typeof(*fpc1020), pm_work);
+
+	/* Escalate fingerprintd priority when screen is off */
+	if (screen_on)
+		set_fingerprintd_nice(0);
+	else
+		set_fingerprintd_nice(MIN_NICE);
+}
 
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
@@ -516,6 +542,8 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	dev_info(fpc1020->dev,
 		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
 
+	INIT_WORK(&fpc1020->pm_work, fpc1020_suspend_resume);
+
 #ifdef CONFIG_FB
 	fpc1020->fb_notifier.notifier_call = fpc1020_fb_notifier_cb;
 	rc = fb_register_client(&fpc1020->fb_notifier);
@@ -543,6 +571,7 @@ static int fpc1020_pm_suspend(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
+	queue_work(system_highpri_wq, &fpc1020->pm_work);
 	return 0;
 }
 
@@ -550,6 +579,7 @@ static int fpc1020_pm_resume(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
+	queue_work(system_highpri_wq, &fpc1020->pm_work);
 	return 0;
 }
 
