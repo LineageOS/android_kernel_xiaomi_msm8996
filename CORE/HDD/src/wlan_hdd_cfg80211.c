@@ -8370,6 +8370,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U8},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT] = {.type = NLA_U32 },
 };
 
 /**
@@ -8468,6 +8469,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	eHalStatus status;
 	struct sir_set_tx_rx_aggregation_size request;
 	VOS_STATUS vos_status;
+	uint32_t tx_fail_count;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8644,6 +8646,22 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
 				delay, PDEV_CMD);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT]) {
+		tx_fail_count = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT]);
+		if (tx_fail_count) {
+			status = sme_update_tx_fail_cnt_threshold(pHddCtx->hHal,
+				pAdapter->sessionId,
+				tx_fail_count);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				hddLog(LOGE,
+				FL("sme_update_tx_fail_cnt_threshold (err=%d)"),
+				status);
+				return -EINVAL;
+			}
+		}
 	}
 	return ret_val;
 }
@@ -9831,6 +9849,8 @@ __wlan_hdd_cfg80211_set_ns_offload(struct wiphy *wiphy,
 	int status;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_MAX + 1];
 	hdd_context_t *pHddCtx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
 
 	ENTER();
 
@@ -9856,6 +9876,17 @@ __wlan_hdd_cfg80211_set_ns_offload(struct wiphy *wiphy,
 
 	pHddCtx->ns_offload_enable =
 		nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_FLAG]);
+
+	/*
+         * If active mode offload is enabled configure the nsoffload
+         * enable/disable request from the upper layer.
+         */
+	if (pHddCtx->cfg_ini->active_mode_offload) {
+		hddLog(LOG1,
+			FL("Configure NS offload with command: %d"),
+			pHddCtx->ns_offload_enable);
+		hdd_conf_ns_offload(pAdapter, pHddCtx->ns_offload_enable);
+	}
 
 	return 0;
 }
@@ -14170,7 +14201,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
 
-    if (!VOS_IS_STATUS_SUCCESS(status))
+    if (!VOS_IS_STATUS_SUCCESS(status) ||
+        pHostapdState->vosStatus != VOS_STATUS_SUCCESS)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  ("%s: ERROR: HDD vos wait for single_event failed!!"),
@@ -16708,7 +16740,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     qie_age->oui_2      = QCOM_OUI2;
     qie_age->oui_3      = QCOM_OUI3;
     qie_age->type       = QCOM_VENDOR_IE_AGE_TYPE;
-    qie_age->age        = vos_timer_get_system_ticks() - bss_desc->nReceivedTime;
+    qie_age->age        = vos_timer_get_system_time() - bss_desc->nReceivedTime;
     qie_age->tsf_delta  = bss_desc->tsf_delta;
 #endif
 
@@ -19082,34 +19114,39 @@ disconnected:
  * wlan_hdd_reassoc_bssid_hint() - Start reassociation if bssid is present
  * @adapter: Pointer to the HDD adapter
  * @req: Pointer to the structure cfg_connect_params receieved from user space
+ * @status: out variable for status of reassoc request
  *
  * This function will start reassociation if bssid hint, channel hint and
  * previous bssid parameters are present in the connect request
  *
- * Return: success if reassociation is happening
- *         Error code if reassociation is not permitted or not happening
+ * Return: true if connect was for ReAssociation, false otherwise
  */
 #ifdef CFG80211_CONNECT_PREV_BSSID
-static int wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
-				struct cfg80211_connect_params *req)
+static bool wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
+				struct cfg80211_connect_params *req,
+				int *status)
 {
-	int status = -EPERM;
+	bool reassoc = false;
 	if (req->bssid_hint && req->channel_hint && req->prev_bssid) {
+		reassoc = true;
 		hddLog(VOS_TRACE_LEVEL_INFO,
 			FL("REASSOC Attempt on channel %d to "MAC_ADDRESS_STR),
 			req->channel_hint->hw_value,
 			MAC_ADDR_ARRAY(req->bssid_hint));
-		status  = hdd_reassoc(adapter, req->bssid_hint,
+		*status  = hdd_reassoc(adapter, req->bssid_hint,
 					req->channel_hint->hw_value,
 					CONNECT_CMD_USERSPACE);
+		hddLog(VOS_TRACE_LEVEL_DEBUG,
+			"hdd_reassoc: status: %d", *status);
 	}
-	return status;
+	return reassoc;
 }
 #else
-static int wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
-				struct cfg80211_connect_params *req)
+static bool wlan_hdd_reassoc_bssid_hint(hdd_adapter_t *adapter,
+				struct cfg80211_connect_params *req,
+				int *status)
 {
-	return -EPERM;
+	return false;
 }
 #endif
 
@@ -19161,8 +19198,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    status = wlan_hdd_reassoc_bssid_hint(pAdapter, req);
-    if (0 == status)
+    if (true == wlan_hdd_reassoc_bssid_hint(pAdapter, req, &status))
         return status;
 
 #if defined(FEATURE_WLAN_LFR) && defined(WLAN_FEATURE_ROAM_SCAN_OFFLOAD)
@@ -19399,9 +19435,6 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
     int status;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-#ifdef FEATURE_WLAN_TDLS
-    tANI_U8 staIdx;
-#endif
 
     ENTER();
 
@@ -19469,22 +19502,10 @@ static int __wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
 
         wlan_hdd_cleanup_remain_on_channel_ctx(pAdapter);
 #ifdef FEATURE_WLAN_TDLS
-        /* First clean up the tdls peers if any */
-        for (staIdx = 0 ; staIdx < pHddCtx->max_num_tdls_sta; staIdx++) {
-            if ((pHddCtx->tdlsConnInfo[staIdx].sessionId == pAdapter->sessionId) &&
-                (pHddCtx->tdlsConnInfo[staIdx].staId)) {
-                uint8 *mac;
-                mac = pHddCtx->tdlsConnInfo[staIdx].peerMac.bytes;
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: call sme_DeleteTdlsPeerSta staId %d sessionId %d " MAC_ADDRESS_STR,
-                       __func__, pHddCtx->tdlsConnInfo[staIdx].staId,
-                        pAdapter->sessionId,
-                        MAC_ADDR_ARRAY(mac));
-                sme_DeleteTdlsPeerSta(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                      pAdapter->sessionId,
-                                      mac);
-            }
-        }
+        /* Delete all connected TDLS peers by sending deauth */
+        hddLog(LOG1, FL("Delete all connected TDLS peers"));
+        sme_delete_all_tdls_peers(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                        pAdapter->sessionId);
 #endif
         hddLog(LOGE,
                FL("Disconnect request from user space with reason: %s"),

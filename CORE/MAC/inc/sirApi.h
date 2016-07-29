@@ -721,7 +721,7 @@ typedef struct sSirBssDescription
     //used only in scan case.
     tANI_U8              channelIdSelf;
     tANI_U8              sSirBssDescriptionRsvd[3];
-    tANI_TIMESTAMP nReceivedTime;     //base on a tick count. It is a time stamp, not a relative time.
+    v_TIME_t nReceivedTime;     //base on a tick count. It is a time stamp, not a relative time.
 #if defined WLAN_FEATURE_VOWIFI
     tANI_U32       parentTSF;
     tANI_U32       startTSF[2];
@@ -7384,18 +7384,12 @@ struct peer_ndp_map {
  * @transaction_id: unique identifier for the request
  * @status: status of operation
  * @reason: reason(opaque to host driver)
- * @num_ndp_terminated: if successful, number of ndp instances terminated
- * @num_peers: number of peers in ndp_map
- * @ndp_map: mapping of NDP instances to peer to VDEV
  *
  */
 struct ndp_end_rsp_event {
 	uint32_t transaction_id;
 	uint32_t status;
 	uint32_t reason;
-	uint32_t num_ndp_terminated;
-	uint32_t num_peers;
-	struct peer_ndp_map ndp_map[];
 };
 
 /**

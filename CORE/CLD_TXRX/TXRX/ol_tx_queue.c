@@ -1241,6 +1241,7 @@ void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
             ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_OFF];
             /* pause all */
             ol_txrx_throttle_pause(pdev);
+            adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
         } else {
             pdev->tx_throttle.current_throttle_phase = THROTTLE_PHASE_ON;
             ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_ON];
@@ -1255,9 +1256,6 @@ void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
         ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_OFF];
 
         adf_os_timer_cancel(&pdev->tx_throttle.phase_timer);
-    }
-
-    if (level != THROTTLE_LEVEL_0) {
         adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
     }
 }

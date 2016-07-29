@@ -986,7 +986,7 @@ int dump_CE_register(struct ol_softc *scn)
 }
 #endif
 
-#if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
+#if (defined(CONFIG_CNSS) && !defined(HIF_USB)) || defined(HIF_SDIO)
 static struct ol_softc *ramdump_scn;
 #ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
 void *ol_fw_dram_addr=NULL;
@@ -1150,7 +1150,6 @@ void ol_schedule_ramdump_work(struct ol_softc *scn)
 	schedule_work(&ramdump_work);
 }
 
-#ifndef HIF_USB
 static void fw_indication_work_handler(struct work_struct *fw_indication)
 {
 	struct device *dev = NULL;
@@ -1166,12 +1165,6 @@ static void fw_indication_work_handler(struct work_struct *fw_indication)
 
 	vos_device_self_recovery(dev);
 }
-#else
-static void fw_indication_work_handler(struct work_struct *fw_indication)
-{
-}
-#endif
-
 
 static DECLARE_WORK(fw_indication_work, fw_indication_work_handler);
 
@@ -1179,6 +1172,14 @@ void ol_schedule_fw_indication_work(struct ol_softc *scn)
 {
 	ramdump_scn = scn;
 	schedule_work(&fw_indication_work);
+}
+#elif defined(HIF_USB)
+void ol_schedule_fw_indication_work(struct ol_softc *scn)
+{
+}
+void ol_schedule_ramdump_work(struct ol_softc *scn)
+{
+	VOS_BUG(0);
 }
 #endif
 
@@ -1211,6 +1212,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 	A_UINT8 *ram_ptr = NULL;
 	A_UINT32 remaining;
 	char *fw_ram_seg_name[FW_RAM_SEG_CNT] = {"DRAM", "IRAM", "AXI"};
+	size_t fw_ram_seg_size[FW_RAM_SEG_CNT] = {DRAM_SIZE, IRAM_SIZE, AXI_SIZE};
 
 	data = scn->hif_sc->fw_data;
 	len = scn->hif_sc->fw_data_len;
@@ -1274,7 +1276,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 			scn->fw_ram_dumping = 1;
 			pr_err("Firmware %s dump:\n", fw_ram_seg_name[i]);
 			scn->ramdump[i] = kmalloc(sizeof(struct fw_ramdump) +
-							FW_RAMDUMP_SEG_SIZE,
+							fw_ram_seg_size[i],
 							GFP_KERNEL);
 			if (!scn->ramdump[i]) {
 				pr_err("Fail to allocate memory for ram dump");
@@ -1294,7 +1296,13 @@ void ol_ramdump_handler(struct ol_softc *scn)
 		reg++;
 		ram_ptr = (scn->ramdump[i])->mem + (scn->ramdump[i])->length;
 		(scn->ramdump[i])->length += (len - 8);
-		memcpy(ram_ptr, (A_UINT8 *) reg, len - 8);
+		if ((scn->ramdump[i])->length <= fw_ram_seg_size[i]) {
+			memcpy(ram_ptr, (A_UINT8 *) reg, len - 8);
+		}
+		else {
+			pr_err("memory copy overlap \n");
+			VOS_BUG(0);
+		}
 
 		if (pattern == FW_RAMDUMP_END_PATTERN) {
 			pr_err("%s memory size = %d\n", fw_ram_seg_name[i],

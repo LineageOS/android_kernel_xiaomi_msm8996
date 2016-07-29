@@ -493,17 +493,10 @@ VOS_STATUS lim_handle_ndp_event_message(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 				msg->bodyval);
 		break;
 	case SIR_HAL_NDP_END_RSP: {
-		struct ndp_end_rsp_event *ndp_end_rsp = msg->bodyptr;
-		uint32_t rsp_len = sizeof(*ndp_end_rsp);
-
-		if (ndp_end_rsp && ndp_end_rsp->ndp_map) {
-			lim_ndp_delete_peers(mac_ctx, ndp_end_rsp->ndp_map,
-					     ndp_end_rsp->num_peers);
-			rsp_len += (ndp_end_rsp->num_peers *
-					sizeof(struct peer_ndp_map));
-		}
 		lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_END_RSP,
-				msg->bodyptr, rsp_len, msg->bodyval);
+					  msg->bodyptr,
+					  sizeof(struct ndp_end_rsp_event),
+					  msg->bodyval);
 		break;
 	}
 	case SIR_HAL_NDP_INDICATION:
@@ -721,11 +714,11 @@ void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx, tpSirMsgQ lim_msgq,
 	tLimMlmStartCnf mlm_start_cnf;
 	tpAddBssParams add_bss_params = (tpAddBssParams) lim_msgq->bodyptr;
 
-	limLog(mac_ctx, LOG1, FL("Status %d"), add_bss_params->status);
 	if (NULL == add_bss_params) {
 		limLog(mac_ctx, LOGE, FL("Invalid body pointer in message"));
 		goto end;
 	}
+	limLog(mac_ctx, LOG1, FL("Status %d"), add_bss_params->status);
 	if (eHAL_STATUS_SUCCESS == add_bss_params->status) {
 		limLog(mac_ctx, LOG1,
 		       FL("WDA_ADD_BSS_RSP returned eHAL_STATUS_SUCCESS"));

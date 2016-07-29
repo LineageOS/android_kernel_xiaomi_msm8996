@@ -135,7 +135,8 @@ typedef enum {
     eSAP_DFS_CAC_WAIT,
     eSAP_STARTING,
     eSAP_STARTED,
-    eSAP_DISCONNECTING
+    eSAP_DISCONNECTING,
+    eSAP_DISCONNECTPENDING
 } eSapFsmStates_t;
 
 /*----------------------------------------------------------------------------

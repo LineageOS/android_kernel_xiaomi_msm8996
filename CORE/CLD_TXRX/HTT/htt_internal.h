@@ -254,9 +254,6 @@ htt_print_rx_desc(struct htt_host_rx_desc_base *rx_desc)
 #define HTT_MAX_SEND_QUEUE_DEPTH 64
 
 
-#define IS_PWR2(value) (((value) ^ ((value)-1)) == ((value) << 1) - 1)
-
-
 /* FIX THIS
  * Should be: sizeof(struct htt_host_rx_desc) + max rx MSDU size,
  * rounded up to a cache line size.

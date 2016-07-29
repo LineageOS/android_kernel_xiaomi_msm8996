@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -241,7 +241,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
     }
 
     //All is good. Store the pattern locally
-    g_hdd_wowl_ptrns[first_empty_slot] = (char*) kmalloc(len+1, GFP_KERNEL);
+    g_hdd_wowl_ptrns[first_empty_slot] = (char*) vos_mem_malloc(len+1);
     if(g_hdd_wowl_ptrns[first_empty_slot] == NULL)
     {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -262,7 +262,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
       // Add failed, so invalidate the local storage
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
           "sme_WowlAddBcastPattern failed with error code (%d)", halStatus );
-      kfree(g_hdd_wowl_ptrns[first_empty_slot]);
+      vos_mem_free(g_hdd_wowl_ptrns[first_empty_slot]);
       g_hdd_wowl_ptrns[first_empty_slot] = NULL;
     }
 
@@ -321,7 +321,7 @@ v_BOOL_t hdd_del_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
           "Deleted pattern with id %d [%s]", id, g_hdd_wowl_ptrns[id]);
 
-      kfree(g_hdd_wowl_ptrns[id]);
+      vos_mem_free(g_hdd_wowl_ptrns[id]);
       g_hdd_wowl_ptrns[id] = NULL;
       return VOS_TRUE;
     }

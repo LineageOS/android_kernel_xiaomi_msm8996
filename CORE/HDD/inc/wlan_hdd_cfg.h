@@ -3959,6 +3959,38 @@ enum dot11p_mode {
 #define CFG_SAP_MAX_INACTIVITY_OVERRIDE_MIN      (0)
 #define CFG_SAP_MAX_INACTIVITY_OVERRIDE_MAX      (1)
 
+/*
+ * In static display use case when APPS is in stand alone power save mode enable
+ * active offload mode which helps FW to filter out MC/BC data packets to avoid
+ * APPS wake up and save more power.
+ *
+ * By default enable active mode offload as it helps to save more power in
+ * static display usecase(APPS stand alone power collapse).
+ *
+ * If active mode offload(gActiveModeOffload=1) is enabled then all applicable
+ * data offload/filtering is enabled immediately in FW once config is available
+ * in WLAN driver and FW caches this configuration accross suspend/resume
+ *
+ * If active mode offload is disabled(gActiveModeOffload=0) then all applicable
+ * data offload/filtering is enabled during cfg80211 suspend and disabled
+ * during cfg80211 resume
+ */
+#define CFG_ACTIVE_MODE_OFFLOAD            "gActiveModeOffload"
+#define CFG_ACTIVE_MODE_OFFLOAD_MIN        (0)
+#define CFG_ACTIVE_MODE_OFFLOAD_MAX        (1)
+#define CFG_ACTIVE_MODE_OFFLOAD_DEFAULT    (0)
+
+
+/*
+ * This parameter will control SIFS burst duration in FW from 0 to 12 ms.
+ * Default value is set to 8ms.
+ */
+
+#define CFG_SIFS_BURST_DURATION_NAME     "g_sifs_burst_duration"
+#define CFG_SIFS_BURST_DURATION_MIN      (0)
+#define CFG_SIFS_BURST_DURATION_MAX      (12)
+#define CFG_SIFS_BURST_DURATION_DEFAULT  (8)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4739,6 +4771,9 @@ struct hdd_config {
    /* parameter to force sap into 11n */
    bool                        sap_force_11n_for_11ac;
    uint8_t                     sap_max_inactivity_override;
+   bool                        active_mode_offload;
+   /* parameter for indicating sifs burst duration to fw */
+   uint8_t                     sifs_burst_duration;
 };
 
 typedef struct hdd_config hdd_config_t;

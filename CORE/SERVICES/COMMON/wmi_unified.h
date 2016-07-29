@@ -345,6 +345,10 @@ typedef enum {
     WMI_PDEV_WAL_POWER_DEBUG_CMDID,
     /** set per-AC rx reorder timeouts */
     WMI_PDEV_SET_REORDER_TIMEOUT_VAL_CMDID,
+    /** WMI command for WOW gpio and type */
+    WMI_PDEV_SET_WAKEUP_CONFIG_CMDID,
+    /* Get current ANT's per chain's RSSI info */
+    WMI_PDEV_GET_ANTDIV_STATUS_CMDID,
 
     /* VDEV (virtual device) specific commands */
     /** vdev create */
@@ -444,6 +448,11 @@ typedef enum {
     WMI_PEER_REORDER_QUEUE_REMOVE_CMDID,
     /** specify a limit for rx A-MPDU block size */
     WMI_PEER_SET_RX_BLOCKSIZE_CMDID,
+    /**
+     * request peer antdiv info from FW. FW shall respond with
+     * PEER_ANTDIV_INFO_EVENTID
+     */
+    WMI_PEER_ANTDIV_INFO_REQ_CMDID,
 
 
     /* beacon/management specific commands */
@@ -530,7 +539,7 @@ typedef enum {
     /** configure thresholds for MAWC */
     WMI_ROAM_CONFIGURE_MAWC_CMDID,
     /** configure MultiBand Operation(refer WFA MBO spec) parameter */
-    WMI_ROAM_SET_MBO_PARAM_CMDID,
+    WMI_ROAM_SET_MBO_PARAM_CMDID, /* DEPRECATED */
 
     /** offload scan specific commands */
     /** set offload scan AP profile   */
@@ -970,6 +979,13 @@ typedef enum {
     /** WMI is ready; after this event the wlan subsystem is initialized and can process commands. */
     WMI_READY_EVENTID,
 
+    /**
+     * Specify what WMI services the target supports
+     * (for services beyond what fits in the WMI_SERVICE_READY_EVENT
+     * message's wmi_service_bitmap)
+     */
+    WMI_SERVICE_AVAILABLE_EVENTID,
+
     /** Scan specific events */
     WMI_SCAN_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_SCAN) ,
 
@@ -1022,6 +1038,8 @@ typedef enum {
     WMI_PDEV_SET_HW_MODE_RESP_EVENTID,
     WMI_PDEV_HW_MODE_TRANSITION_EVENTID,
     WMI_PDEV_SET_MAC_CONFIG_RESP_EVENTID,
+    /** Report ANT DIV feature's status */
+    WMI_PDEV_ANTDIV_STATUS_EVENTID,
 
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
@@ -1075,6 +1093,8 @@ typedef enum {
     WMI_PEER_RATECODE_LIST_EVENTID,
     WMI_WDS_PEER_EVENTID,
     WMI_PEER_STA_PS_STATECHG_EVENTID,
+    /** Peer Ant Div Info Event with rssi per chain, etc */
+    WMI_PEER_ANTDIV_INFO_EVENTID,
 
     /* beacon/mgmt specific events */
     /** RX management frame. the entire frame is carried along with the event.  */
@@ -1843,6 +1863,25 @@ typedef struct {
          */
 } wmi_service_ready_event_fixed_param;
 
+#define WMI_SERVICE_SEGMENT_BM_SIZE32 4 /* 4x A_UINT32 = 128 bits */
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_service_available_event_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /**
+     * The wmi_service_segment offset field specifies the position within
+     * the logical bitmap of WMI service flags at which the WMI service
+     * flags specified within this message begin.
+     * Since the first 128 WMI service flags are specified within the
+     * wmi_service_bitmap field of the WMI_SERVICE_READY_EVENT message,
+     * the wmi_service_segment_offset value is expected to be 128 or more.
+     */
+    A_UINT32 wmi_service_segment_offset;
+    A_UINT32 wmi_service_segment_bitmap[WMI_SERVICE_SEGMENT_BM_SIZE32];
+} wmi_service_available_event_fixed_param;
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_SERVICE_EXT_READY_EVENT */
     /* which WMI_DBS_CONC_SCAN_CFG setting the FW is initialized with */
@@ -2431,6 +2470,23 @@ typedef struct {
     A_UINT32 ie_data[1];
 } wmi_ie_data;
 
+/**
+ * TLV used for length/buffer
+ */
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_tlv_buf_len_param
+     */
+    A_UINT32 tlv_header;
+    A_UINT32 buf_len;       /** Length of buf */
+    /**
+     * Following this structure is the TLV byte stream of buf
+     * of length buf_len:
+     * A_UINT8 buf[];
+     *
+     */
+} wmi_tlv_buf_len_param;
 
 typedef struct {
     /** Len of the SSID */
@@ -3601,6 +3657,27 @@ typedef enum {
      * Units are microseconds.
      */
     WMI_PDEV_PARAM_PROPAGATION_DELAY,
+    /**
+     * Host can enable/disable ANT DIV feature
+     * if it's been enabled in BDF
+     */
+    WMI_PDEV_PARAM_ENA_ANT_DIV,
+    /** Host can force one chain to select a specific ANT */
+    WMI_PDEV_PARAM_FORCE_CHAIN_ANT,
+    /**
+     * Start a cycle ANT self test periodically.
+     * In the test, the FW would select each ANT pair
+     * one by one, the cycle time could be configured
+     * via WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL
+     */
+    WMI_PDEV_PARAM_ANT_DIV_SELFTEST,
+    /**
+     * Configure the cycle time of ANT self test,
+     * the unit is micro second. Per the timer
+     * limitation, too small value could be not so
+     * accurate.
+     */
+    WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL,
 
 } WMI_PDEV_PARAM;
 
@@ -3975,6 +4052,32 @@ typedef struct {
     A_UINT32 dscp_to_tid_map[WMI_DSCP_MAP_MAX];
     A_UINT32 enable_override;
 } wmi_vdev_set_dscp_tid_map_cmd_fixed_param;
+
+enum WMI_WAKE_GPIO_TYPE {
+    WMI_WAKE_GPIO_LOW = 1,
+    WMI_WAKE_GPIO_HIGH = 2,
+    WMI_WAKE_GPIO_RISING_EDGE = 3,
+    WMI_WAKE_GPIO_FALLING_EDGE = 4,
+};
+
+/**
+ * Set GPIO numbers used to wakeup host and wakeup target.
+ */
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /* gpio num used to wakeup host, 0xff disable wakeup gpio */
+    A_UINT32 host_wakeup_gpio;
+    /* refer to WMI_WAKE_GPIO_TYPE */
+    A_UINT32 host_wakeup_type;
+    /* gpio num used to wakeup target, 0xff disable wakeup gpio */
+    A_UINT32 target_wakeup_gpio;
+    /* refer to WMI_WAKE_GPIO_TYPE */
+    A_UINT32 target_wakeup_type;
+} WMI_PDEV_SET_WAKEUP_CONFIG_CMDID_fixed_param;
 
 /** Fixed rate (rate-code) for broadcast/ multicast data frames */
 /* @brief bcast_mcast_data_rate - set the rates for the bcast/ mcast frames
@@ -5357,6 +5460,16 @@ typedef enum {
      */
     WMI_VDEV_PARAM_AGG_SW_RETRY_TH,
 
+    /** disable dynamic bw RTS **/
+    WMI_VDEV_PARAM_DISABLE_DYN_BW_RTS,
+
+    /**
+     * Per ssid (vdev) based ATF strict/fair scheduling policy
+     * Param values are WMI_ATF_SSID_FAIR_SCHED or
+     * WMI_ATF_SSID_STRICT_SCHED
+     */
+    WMI_VDEV_PARAM_ATF_SSID_SCHED_POLICY,
+
     /*
      * === ADD NEW VDEV PARAM TYPES ABOVE THIS LINE ===
      * The below vdev param types are used for prototyping, and are
@@ -6580,26 +6693,42 @@ typedef union {
 #define WMI_PEER_MAX_MIN_TX_RATE_SET(value32, tx_mode) WMI_SET_BITS(value32, 16, 16, tx_mode)
 
 /*   CCK max/min tx Rate description
- *   tx_rate = 0:    1Mbps,
- *   tx_rate = 1:    2Mbps
- *   tx_rate = 2:    5.5Mbps
- *   tx_rate = 3:    11Mbps
- *   tx_rate = else : invalid.
+ *   tx_rate = 0:  1   Mbps
+ *   tx_rate = 1:  2   Mbps
+ *   tx_rate = 2:  5.5 Mbps
+ *   tx_rate = 3: 11   Mbps
+ *   tx_rate = else: invalid
  */
-#define WMI_MAX_CCK_TX_RATE 0x03
+enum {
+    WMI_MAX_CCK_TX_RATE_1M,       /* up to 1M CCK Rate avaliable */
+    WMI_MAX_CCK_TX_RATE_2M,       /* up to 2M CCK Rate avaliable */
+    WMI_MAX_CCK_TX_RATE_5_5M,     /* up to 5.5M CCK Rate avaliable */
+    WMI_MAX_CCK_TX_RATE_11M,      /* up to 11M CCK Rate avaliable */
+    WMI_MAX_CCK_TX_RATE = WMI_MAX_CCK_TX_RATE_11M,
+};
 
 /*   OFDM max/min tx Rate description
- *   tx_rate = 0:   6Mbps,
- *   tx_rate = 1:    9Mbps
- *   tx_rate = 2:    12Mbps
- *   tx_rate = 3:     18Mbps
- *   tx_rate = 4:     24Mbps
- *   tx_rate = 5:     32Mbps
- *   tx_rate = 6:     48Mbps
- *   tx_rate = 7:     54Mbps
- *   tx_rate = else : invalid.
+ *   tx_rate = 0:  6 Mbps
+ *   tx_rate = 1:  9 Mbps
+ *   tx_rate = 2: 12 Mbps
+ *   tx_rate = 3: 18 Mbps
+ *   tx_rate = 4: 24 Mbps
+ *   tx_rate = 5: 32 Mbps
+ *   tx_rate = 6: 48 Mbps
+ *   tx_rate = 7: 54 Mbps
+ *   tx_rate = else: invalid
  */
-#define WMI_MAX_OFDM_TX_RATE 0x07
+enum {
+    WMI_MAX_OFDM_TX_RATE_6M,      /* up to 6M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_9M,      /* up to 9M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_12M,     /* up to 12M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_18M,     /* up to 18M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_24M,     /* up to 24M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_36M,     /* up to 36M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_48M,     /* up to 48M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE_54M,     /* up to 54M OFDM Rate avaliable */
+    WMI_MAX_OFDM_TX_RATE = WMI_MAX_OFDM_TX_RATE_54M,
+};
 
 /*   HT max/min tx rate description
  *    tx_rate = 0~7 : MCS Rate 0~7
@@ -8049,6 +8178,7 @@ typedef enum wake_reason_e {
     WOW_REASON_TDLS_CONN_TRACKER_EVENT,
     WOW_REASON_CRITICAL_LOG,
     WOW_REASON_P2P_LISTEN_OFFLOAD,
+    WOW_REASON_NAN_EVENT_WAKE_HOST,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -8414,6 +8544,7 @@ typedef struct {
     A_UINT32 swol_indoor_pattern;     /* wakeup pattern */
     A_UINT32 swol_indoor_exception;   /* wakeup when exception happens */
     A_UINT32 swol_indoor_exception_app;
+    A_UINT32 swol_assist_enable;      /* whether to enable IoT mode */
 } wmi_extwow_set_app_type1_params_cmd_fixed_param;
 
 typedef struct {
@@ -10506,6 +10637,69 @@ typedef struct {
      */
 } wmi_peer_info_event_fixed_param;
 
+/**
+ * WMI_PEER_ANTDIV_INFO_REQ_CMDID
+ * Request FW to provide peer info
+ */
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info_req_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /**
+     * In order to get the peer antdiv info for a single peer, host shall
+     * issue the peer_mac_address of that peer. For getting the
+     * info all peers, the host shall issue 0xFFFFFFFF as the mac
+     * address. The firmware will return the peer info for all the
+     * peers on the specified vdev_id
+     */
+    wmi_mac_addr peer_mac_address;
+    /** vdev id */
+    A_UINT32 vdev_id;
+} wmi_peer_antdiv_info_req_cmd_fixed_param;
+
+/** FW response with the peer antdiv info */
+typedef struct {
+    /** TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info_event_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /** number of peers in peer_info */
+    A_UINT32 num_peers;
+    /** VDEV to which the peer belongs to */
+    A_UINT32 vdev_id;
+    /**
+     * This TLV is followed by another TLV of array of structs
+     * wmi_peer_antdiv_info peer_antdiv_info[];
+     */
+} wmi_peer_antdiv_info_event_fixed_param;
+
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info
+     */
+    A_UINT32 tlv_header;
+    /** mac addr of the peer */
+    wmi_mac_addr peer_mac_address;
+    /**
+     * per chain rssi of the peer, for up to 8 chains.
+     * Each chain's entry reports the RSSI for different bandwidths:
+     * bits 7:0   -> primary 20 MHz
+     * bits 15:8  -> secondary 20 MHz of  40 MHz channel (if applicable)
+     * bits 23:16 -> secondary 40 MHz of  80 MHz channel (if applicable)
+     * bits 31:24 -> secondary 80 MHz of 160 MHz channel (if applicable)
+     * Each of these 8-bit RSSI reports is in dB units, with respect to
+     * the noise floor.
+     * 0x80 means invalid.
+     * All unused bytes within used chain_rssi indices shall be set
+     * to 0x80.
+     * All unused chain_rssi indices shall be set to 0x80808080.
+     */
+    A_INT32 chain_rssi[8];
+} wmi_peer_antdiv_info;
+
 /** FW response when tx failure count has reached threshold
  *  for a peer */
 typedef struct {
@@ -12513,6 +12707,50 @@ typedef struct {
     A_UINT32 pdev_id;
 } wmi_pdev_temperature_event_fixed_param;
 
+typedef enum {
+    ANTDIV_HW_CFG_STATUS,
+    ANTDIV_SW_CFG_STATUS,
+    ANTDIV_MAX_STATUS_TYPE_NUM
+} ANTDIV_STATUS_TYPE;
+
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_pdev_get_antdiv_status_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /* Status event ID - see ANTDIV_STATUS_TYPE */
+    A_UINT32 status_event_id;
+    /**
+     * pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+} wmi_pdev_get_antdiv_status_cmd_fixed_param;
+
+typedef struct {
+    /**
+     * TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_pdev_antdiv_status_event_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /* ANT DIV feature enabled or not */
+    A_UINT32 support;
+    A_UINT32 chain_num; /* how many chain supported */
+    /* how many ANT supported, 32 max */
+    A_UINT32 ant_num;
+    /**
+     * Each entry is for a tx/rx chain, and contains a bitmap identifying
+     * the antennas attached to that tx/rx chain.
+     */
+    A_UINT32 selectable_ant_mask[8];
+    /**
+     * pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+} wmi_pdev_antdiv_status_event_fixed_param;
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_set_dhcp_server_offload_cmd_fixed_param */
     A_UINT32 vdev_id;
@@ -13592,6 +13830,15 @@ typedef struct {
     A_UINT32 qtimer_high;
 } wmi_vdev_tsf_report_event_fixed_param;
 
+/**
+ * ie_id values:
+ * 0 to 255 are used for individual IEEE802.11 Information Element types
+ */
+#define WMI_SET_VDEV_IE_ID_SCAN_SET_DEFAULT_IE 256
+
+/* source values: */
+#define WMI_SET_VDEV_IE_SOURCE_HOST     0x0
+
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_vdev_set_ie_cmd_fixed_param */
     A_UINT32 tlv_header;
@@ -13600,6 +13847,8 @@ typedef struct {
     /** unique id to identify the ie_data as defined by ieee 802.11 spec */
     A_UINT32 ie_id; /** ie_len corresponds to num of bytes in ie_data[] */
     A_UINT32 ie_len;
+    /** source of this command */
+    A_UINT32 ie_source; /* see WMI_SET_VDEV_IE_SOURCE_ defs */
    /**
     * Following this structure is the TLV byte stream of ie data of length ie_buf_len:
     * A_UINT8 ie_data[]; */
@@ -13982,7 +14231,7 @@ typedef struct {
  *        1 - Allow to connect to MBO AP only
  * Bit 1-31 : reserved.
  */
-#define WMI_ROAM_MBO_FLAG_MBO_ONLY_MODE  (1<<0)
+#define WMI_ROAM_MBO_FLAG_MBO_ONLY_MODE  (1<<0) /* DEPRECATED */
 
 typedef struct {
     /* TLV tag and len; tag equals
@@ -13994,7 +14243,7 @@ typedef struct {
     A_UINT32 enable;
     /** MBO flags, refer to definition of MBO flags*/
     A_UINT32 flags;
-} wmi_roam_set_mbo_fixed_param;
+} wmi_roam_set_mbo_fixed_param; /* DEPRECATED */
 
 typedef struct {
     /* TLV tag and len; tag equals
@@ -14679,6 +14928,9 @@ typedef struct {
 } wmi_fwtest_set_param_cmd_fixed_param;
 
 #define WMI_ATF_DENOMINATION   1000 /* Expressed in 1 part in 1000 (permille) */
+
+#define WMI_ATF_SSID_FAIR_SCHED     0   /** Fair ATF scheduling for vdev */
+#define WMI_ATF_SSID_STRICT_SCHED   1   /** Strict ATF scheduling for vdev */
 
 typedef struct {
     /** TLV tag and len; tag equals

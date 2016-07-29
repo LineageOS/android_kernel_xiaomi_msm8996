@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -498,7 +498,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
    event.cmd = IWEVCUSTOM;
    p = custom;
    p += scnprintf(p, MAX_CUSTOM_LEN, " Age: %lu",
-                 vos_timer_get_system_ticks() - descriptor->nReceivedTime);
+                 vos_timer_get_system_time() - descriptor->nReceivedTime);
    event.u.data.length = p - custom;
    current_event = iwe_stream_add_point (scanInfo->info,current_event, end,
                                          &event, custom);

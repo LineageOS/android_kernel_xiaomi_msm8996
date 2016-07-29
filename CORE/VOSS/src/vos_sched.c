@@ -77,7 +77,7 @@
 
 /* Timer value for detecting thread stuck issues */
 #define THREAD_STUCK_TIMER_VAL 10000 /* 10 seconds */
-#define THREAD_STUCK_THRESHOLD 1
+#define THREAD_STUCK_THRESHOLD 3
 
 static atomic_t ssr_protect_entry_count;
 static atomic_t load_unload_protect_count;
@@ -1138,7 +1138,13 @@ VosWDThread
       /* Post Msg to detect thread stuck */
       if (test_and_clear_bit(WD_WLAN_DETECT_THREAD_STUCK_MASK,
                                    &pWdContext->wdEventFlag)) {
-        vos_wd_detect_thread_stuck();
+
+       if (!test_bit(MC_SUSPEND_EVENT_MASK, &gpVosSchedContext->mcEventFlag))
+            vos_wd_detect_thread_stuck();
+       else
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+               "%s: controller thread %s id: %d is suspended do not attemp probing",
+               __func__, current->comm, current->pid);
         /*
          * Process here and return without processing any SSR
          * related logic.

@@ -632,7 +632,7 @@ static tANI_U8 wma_get_mcs_idx(tANI_U16 maxRate, tANI_U8 rate_flags,
 		tANI_U8 *mcsRateFlag)
 {
 	tANI_U8  curIdx = 0;
-	tANI_U16 cur_rate;
+	tANI_U16 cur_rate = 0;
 	bool is_sgi = false;
 
 	WMA_LOGD("%s rate:%d rate_flgs: 0x%x, nss: %d",
@@ -14273,8 +14273,6 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 		wmi_buf_free(buf);
 		return -EIO;
 	}
-	/* Store the PS Status */
-	iface->ps_enabled = value ? TRUE : FALSE;
 	return 0;
 }
 
@@ -19137,17 +19135,17 @@ static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id,
 		psmode = WMI_STA_PS_MODE_ENABLED;
 	}
 
-	/*
-	 * QPower is enabled by default in Firmware
-	 * So Disable QPower explicitly
-	 */
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
 				WMI_STA_PS_ENABLE_QPOWER, qpower_config);
 	if (ret) {
-		WMA_LOGE("Disable QPower Failed vdevId %d", vdev_id);
+		WMA_LOGE("%s(%d) QPower Failed vdevId %d",
+			qpower_config ? "Enable" : "Disable",
+			qpower_config, vdev_id);
 		return ret;
 	}
-	WMA_LOGD("QPower Disabled vdevId %d", vdev_id);
+	WMA_LOGD("QPower %s(%d) vdevId %d",
+			qpower_config ? "Enabled" : "Disabled",
+			qpower_config, vdev_id);
 
 	/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
 	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
@@ -20851,7 +20849,7 @@ static void wma_extscan_wow_event_callback(void *handle, void *event,
  */
 static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 {
-	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6 %d oem %d",
+	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6_uc_bc %d oem %d",
 		wma->wow_ucast_wake_up_count,
 		wma->wow_bcast_wake_up_count,
 		wma->wow_ipv4_mcast_wake_up_count,
@@ -20961,6 +20959,7 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 
 	case WOW_REASON_RA_MATCH:
 		wma->wow_ipv6_mcast_ra_stats++;
+		wma->wow_ipv6_mcast_wake_up_count++;
 		break;
 
 	case WOW_REASON_NLOD:
@@ -21119,58 +21118,84 @@ static enum adf_proto_subtype
 wma_wow_get_pkt_proto_subtype(uint8_t *data,
 			uint32_t len)
 {
-	if (len >= WMA_IS_DHCP_GET_MIN_LEN) {
-		if (adf_nbuf_data_is_dhcp_pkt(data) == A_STATUS_OK) {
-			if (len >= WMA_DHCP_SUBTYPE_GET_MIN_LEN)
-				return adf_nbuf_data_get_dhcp_subtype(data);
-			VOS_TRACE(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_ERROR, "DHCP Packet");
-			return ADF_PROTO_INVALID;
+	uint16_t ether_type = (uint16_t)(*(uint16_t *)(data +
+				ADF_NBUF_TRAC_ETH_TYPE_OFFSET));
+
+	WMA_LOGE("Ether Type: 0x%04x",
+		adf_os_cpu_to_be16(ether_type));
+
+	if (ADF_NBUF_TRAC_EAPOL_ETH_TYPE ==
+		   adf_os_cpu_to_be16(ether_type)) {
+		if (len >= WMA_EAPOL_SUBTYPE_GET_MIN_LEN)
+			return adf_nbuf_data_get_eapol_subtype(data);
+		VOS_TRACE(VOS_MODULE_ID_WDA,
+			VOS_TRACE_LEVEL_ERROR, "EAPOL Packet");
+		return ADF_PROTO_INVALID;
+	} else if (ADF_NBUF_TRAC_ARP_ETH_TYPE ==
+		   adf_os_cpu_to_be16(ether_type)) {
+		if (len >= WMA_ARP_SUBTYPE_GET_MIN_LEN)
+			return adf_nbuf_data_get_arp_subtype(data);
+		VOS_TRACE(VOS_MODULE_ID_WDA,
+			VOS_TRACE_LEVEL_ERROR, "ARP Packet");
+		return ADF_PROTO_INVALID;
+	} else if (ADF_NBUF_TRAC_IPV4_ETH_TYPE ==
+		   adf_os_cpu_to_be16(ether_type)) {
+		if (len >= WMA_IPV4_PROTO_GET_MIN_LEN) {
+			uint8_t proto_type;
+
+			proto_type = adf_nbuf_data_get_ipv4_proto(data);
+			WMA_LOGE("IPV4_proto_type: %u", proto_type);
+			if (proto_type == ADF_NBUF_TRAC_ICMP_TYPE) {
+				if (len >= WMA_ICMP_SUBTYPE_GET_MIN_LEN)
+					return adf_nbuf_data_get_icmp_subtype(
+							data);
+				VOS_TRACE(VOS_MODULE_ID_WDA,
+					VOS_TRACE_LEVEL_ERROR, "ICMP Packet");
+				return ADF_PROTO_INVALID;
+			} else if (proto_type == ADF_NBUF_TRAC_UDP_TYPE) {
+				if (len >= WMA_IS_DHCP_GET_MIN_LEN) {
+					if (adf_nbuf_data_is_dhcp_pkt(data) ==
+						    A_STATUS_OK) {
+						if (len >=
+						   WMA_DHCP_SUBTYPE_GET_MIN_LEN)
+						  return adf_nbuf_data_get_dhcp_subtype(data);
+						VOS_TRACE(VOS_MODULE_ID_WDA,
+						    VOS_TRACE_LEVEL_ERROR,
+						    "DHCP Packet");
+						return ADF_PROTO_INVALID;
+					}
+				}
+				return ADF_PROTO_IPV4_UDP;
+			} else if (proto_type == ADF_NBUF_TRAC_TCP_TYPE) {
+				return ADF_PROTO_IPV4_TCP;
+			}
 		}
-	}
-	if (len >= WMA_IS_EAPOL_GET_MIN_LEN) {
-		if (adf_nbuf_data_is_eapol_pkt(data) == A_STATUS_OK) {
-			if (len >= WMA_EAPOL_SUBTYPE_GET_MIN_LEN)
-				return adf_nbuf_data_get_eapol_subtype(data);
-			VOS_TRACE(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_ERROR, "EAPOL Packet");
-			return ADF_PROTO_INVALID;
+		VOS_TRACE(VOS_MODULE_ID_WDA,
+			VOS_TRACE_LEVEL_ERROR, "IPV4 Packet");
+		return ADF_PROTO_INVALID;
+	} else if (ADF_NBUF_TRAC_IPV6_ETH_TYPE ==
+		   adf_os_cpu_to_be16(ether_type)) {
+		if (len >= WMA_IPV6_PROTO_GET_MIN_LEN) {
+			uint8_t proto_type;
+
+			proto_type = adf_nbuf_data_get_ipv6_proto(data);
+			WMA_LOGE("IPV6_proto_type: %u", proto_type);
+			if (proto_type == ADF_NBUF_TRAC_ICMPV6_TYPE) {
+				if (len >= WMA_ICMPV6_SUBTYPE_GET_MIN_LEN)
+					return adf_nbuf_data_get_icmpv6_subtype(
+							data);
+				VOS_TRACE(VOS_MODULE_ID_WDA,
+					VOS_TRACE_LEVEL_ERROR, "ICMPV6 Packet");
+				return ADF_PROTO_INVALID;
+			} else if (proto_type == ADF_NBUF_TRAC_UDP_TYPE) {
+				return ADF_PROTO_IPV6_UDP;
+			} else if (proto_type == ADF_NBUF_TRAC_TCP_TYPE) {
+				return ADF_PROTO_IPV6_TCP;
+			}
 		}
-	}
-	if (len >= WMA_IS_ARP_GET_MIN_LEN) {
-		if (adf_nbuf_data_is_ipv4_arp_pkt(data)) {
-			if (len >= WMA_ARP_SUBTYPE_GET_MIN_LEN)
-				return adf_nbuf_data_get_arp_subtype(data);
-			VOS_TRACE(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_ERROR, "ARP Packet");
-			return ADF_PROTO_INVALID;
-		}
-	}
-	if (len >= WMA_IPV4_PROTO_GET_MIN_LEN) {
-		if (adf_nbuf_data_is_icmp_pkt(data)) {
-			if (len >= WMA_ICMP_SUBTYPE_GET_MIN_LEN)
-				return adf_nbuf_data_get_icmp_subtype(data);
-			VOS_TRACE(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_ERROR, "ICMP Packet");
-			return ADF_PROTO_INVALID;
-		} else if (adf_nbuf_data_is_ipv4_udp_pkt(data)) {
-			return ADF_PROTO_IPV4_UDP;
-		} else if (adf_nbuf_data_is_ipv4_tcp_pkt(data)) {
-			return ADF_PROTO_IPV4_TCP;
-		}
-	}
-	if (len >= WMA_IPV6_PROTO_GET_MIN_LEN) {
-		if (adf_nbuf_data_is_icmpv6_pkt(data)) {
-			if (len >= WMA_ICMPV6_SUBTYPE_GET_MIN_LEN)
-				return adf_nbuf_data_get_icmpv6_subtype(data);
-			VOS_TRACE(VOS_MODULE_ID_WDA,
-				VOS_TRACE_LEVEL_ERROR, "ICMPV6 Packet");
-			return ADF_PROTO_INVALID;
-		} else if (adf_nbuf_data_is_ipv6_udp_pkt(data)) {
-			return ADF_PROTO_IPV6_UDP;
-		} else if (adf_nbuf_data_is_ipv6_tcp_pkt(data)) {
-			return ADF_PROTO_IPV6_TCP;
-		}
+		VOS_TRACE(VOS_MODULE_ID_WDA,
+			VOS_TRACE_LEVEL_ERROR, "IPV6 Packet");
+		return ADF_PROTO_INVALID;
 	}
 
 	return ADF_PROTO_INVALID;
@@ -21193,10 +21218,11 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 {
 	enum adf_proto_subtype proto_subtype;
 	uint16_t pkt_len, key_len, seq_num;
+	uint16_t src_port, dst_port;
 	uint32_t transaction_id, tcp_seq_num;
 
 	WMA_LOGD("wow_buf_pkt_len: %u", buf_len);
-	if (buf_len >= ADF_NBUF_TRAC_ETH_TYPE_OFFSET)
+	if (buf_len >= ADF_NBUF_TRAC_IPV4_OFFSET)
 		WMA_LOGE("Src_mac: " MAC_ADDRESS_STR " Dst_mac: " MAC_ADDRESS_STR,
 			MAC_ADDR_ARRAY(data + ADF_NBUF_SRC_MAC_OFFSET),
 			MAC_ADDR_ARRAY(data));
@@ -21286,8 +21312,15 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 		if (buf_len >= WMA_IPV4_PKT_INFO_GET_MIN_LEN) {
 			pkt_len = (uint16_t)(*(uint16_t *)(data +
 				IPV4_PKT_LEN_OFFSET));
+			src_port = (uint16_t)(*(uint16_t *)(data +
+				IPV4_SRC_PORT_OFFSET));
+			dst_port = (uint16_t)(*(uint16_t *)(data +
+				IPV4_DST_PORT_OFFSET));
 			WMA_LOGE("Pkt_len: %u",
 				adf_os_cpu_to_be16(pkt_len));
+			WMA_LOGE("src_port: %u, dst_port: %u",
+				adf_os_cpu_to_be16(src_port),
+				adf_os_cpu_to_be16(dst_port));
 			if (proto_subtype == ADF_PROTO_IPV4_TCP) {
 				tcp_seq_num = (uint32_t)(*(uint32_t *)(data +
 					IPV4_TCP_SEQ_NUM_OFFSET));
@@ -21304,8 +21337,15 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 		if (buf_len >= WMA_IPV6_PKT_INFO_GET_MIN_LEN) {
 			pkt_len = (uint16_t)(*(uint16_t *)(data +
 				IPV6_PKT_LEN_OFFSET));
+			src_port = (uint16_t)(*(uint16_t *)(data +
+				IPV6_SRC_PORT_OFFSET));
+			dst_port = (uint16_t)(*(uint16_t *)(data +
+				IPV6_DST_PORT_OFFSET));
 			WMA_LOGE("Pkt_len: %u",
 				adf_os_cpu_to_be16(pkt_len));
+			WMA_LOGE("src_port: %u, dst_port: %u",
+				adf_os_cpu_to_be16(src_port),
+				adf_os_cpu_to_be16(dst_port));
 			if (proto_subtype == ADF_PROTO_IPV6_TCP) {
 				tcp_seq_num = (uint32_t)(*(uint32_t *)(data +
 					IPV6_TCP_SEQ_NUM_OFFSET));
@@ -21456,11 +21496,13 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	if ((wake_info->wake_reason != WOW_REASON_UNSPECIFIED) ||
 	    (wake_info->wake_reason == WOW_REASON_UNSPECIFIED &&
-	     !wmi_get_runtime_pm_inprogress(wma->wmi_handle)))
+	     !wmi_get_runtime_pm_inprogress(wma->wmi_handle))) {
 		WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
 			wma_wow_wake_reason_str(wake_info->wake_reason, wma),
 			wake_info->wake_reason,
 			wake_info->vdev_id);
+		vos_wow_wakeup_host_event(wake_info->wake_reason);
+	}
 
 	vos_event_set(&wma->wma_resume_event);
 
@@ -30364,9 +30406,11 @@ static void wma_update_sta_inactivity_timeout(tp_wma_handle wma,
 			vdev_id,
 			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
 			max_unresponsive_time))
-		WMA_LOGE("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
-			" max_unresponsive_time: %u", __func__, vdev_id,
-			min_inactive_time, max_inactive_time, max_unresponsive_time);
+		WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
+
+	WMA_LOGD("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
+		" max_unresponsive_time: %u", __func__, vdev_id,
+		min_inactive_time, max_inactive_time, max_unresponsive_time);
 
 	return;
 }
@@ -36598,7 +36642,6 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 	enum powersave_qpower_mode qpower_config = wma_get_qpower_config(wma);
 
 	if ((iface->type == WMI_VDEV_TYPE_STA) &&
-		(iface->ps_enabled == TRUE) &&
 		(iface->dtimPeriod != 0)) {
 		int32_t ret;
 		u_int32_t listen_interval;
@@ -36651,7 +36694,6 @@ static void wma_set_vdev_suspend_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 			if (ret)
 				WMA_LOGE("Failed to disable Qpower in suspend mode!");
 
-			iface->ps_enabled = TRUE;
 		}
 
 		/*
@@ -36716,7 +36758,6 @@ static void wma_set_vdev_resume_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 	u_int32_t inactivity_time;
 
 	if ((iface->type == WMI_VDEV_TYPE_STA) &&
-		(iface->ps_enabled == TRUE) &&
 		(iface->dtim_policy == NORMAL_DTIM)) {
 		int32_t ret;
 		tANI_U32 cfg_data_val = 0;
@@ -36724,10 +36765,13 @@ static void wma_set_vdev_resume_dtim(tp_wma_handle wma, v_U8_t vdev_id)
 		struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 							wma->vos_context);
+		if (!mac) {
+			WMA_LOGE(FL("Failed to get mac context"));
+			return;
+		}
 		/* Set Listen Interval */
-		if ((NULL == mac) || (wlan_cfgGetInt(mac,
-				WNI_CFG_LISTEN_INTERVAL,
-				&cfg_data_val ) != eSIR_SUCCESS)) {
+		if (wlan_cfgGetInt(mac, WNI_CFG_LISTEN_INTERVAL,
+				&cfg_data_val) != eSIR_SUCCESS) {
 			VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for listen interval");
 			cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;

@@ -5269,7 +5269,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
    }
 
    /* Allocate +1 for '\0' */
-   command = kmalloc(priv_data.total_len + 1, GFP_KERNEL);
+   command = vos_mem_malloc(priv_data.total_len + 1);
    if (!command)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -7100,7 +7100,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
              * exceeds the size of 1024 bytes of default stack size. On
              * 64 bit devices, the default max stack size of 2048 bytes
              */
-            extra = kmalloc(WLAN_MAX_BUF_SIZE, GFP_KERNEL);
+            extra = vos_mem_malloc(WLAN_MAX_BUF_SIZE);
 
             if (NULL == extra)
             {
@@ -7174,7 +7174,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
             }
 
             /* Free temporary buffer */
-            kfree(extra);
+            vos_mem_free(extra);
          }
 
          else
@@ -7936,7 +7936,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 exit:
    if (command)
    {
-       kfree(command);
+       vos_mem_free(command);
    }
    EXIT();
    return ret;
@@ -13116,7 +13116,7 @@ free_hdd_ctx:
 
    /* Free up dynamically allocated members inside HDD Adapter */
    if (pHddCtx->cfg_ini) {
-       kfree(pHddCtx->cfg_ini);
+       vos_mem_free(pHddCtx->cfg_ini);
        pHddCtx->cfg_ini= NULL;
    }
 
@@ -14546,6 +14546,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #ifdef QCA_ARP_SPOOFING_WAR
    adf_os_device_t adf_ctx;
 #endif
+   int set_value;
 
    ENTER();
 
@@ -14636,7 +14637,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    spin_lock_init(&pHddCtx->sta_update_info_lock);
    hdd_init_offloaded_packets_ctx(pHddCtx);
    // Load all config first as TL config is needed during vos_open
-   pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
+   pHddCtx->cfg_ini = (hdd_config_t*) vos_mem_malloc(sizeof(hdd_config_t));
    if(pHddCtx->cfg_ini == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
@@ -15519,6 +15520,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        if (eHAL_STATUS_SUCCESS != hal_status)
            hddLog(LOGE, FL("Failed to disable Chan Avoidance Indcation"));
    }
+
+   if (pHddCtx->cfg_ini->sifs_burst_duration) {
+       set_value = (SIFS_BURST_DUR_MULTIPLIER) *
+                    pHddCtx->cfg_ini->sifs_burst_duration;
+
+       if ((set_value > 0) && (set_value <= SIFS_BURST_DUR_MAX))
+           process_wma_set_command(0, (int)WMI_PDEV_PARAM_BURST_DUR,
+                                          set_value, PDEV_CMD);
+   }
+
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);
    goto success;
@@ -15605,7 +15616,7 @@ err_free_ftm_open:
 err_nl_srv:
    nl_srv_exit();
 err_config:
-   kfree(pHddCtx->cfg_ini);
+   vos_mem_free(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
 err_histogram:
@@ -17396,7 +17407,7 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
     if (VOS_TIMER_STATE_RUNNING !=
         vos_timer_getCurrentState(&pHddCtx->bus_bw_timer)) {
         /* trying to stop timer, when not running is not good */
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                   "bus band width compute timer is not running");
         return;
     }

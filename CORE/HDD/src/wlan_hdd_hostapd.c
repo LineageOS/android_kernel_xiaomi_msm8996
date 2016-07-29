@@ -448,7 +448,7 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
    }
 
    /* Allocate +1 for '\0' */
-   command = kmalloc((priv_data->total_len + 1), GFP_KERNEL);
+   command = vos_mem_malloc((priv_data->total_len + 1));
    if (!command)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: failed to allocate memory", __func__);
@@ -484,7 +484,7 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
 exit:
    if (command)
    {
-      kfree(command);
+      vos_mem_free(command);
    }
    EXIT();
    return ret;
@@ -2627,6 +2627,8 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
         ret = process_wma_set_command_twoargs((int) pAdapter->sessionId,
                                            (int) GEN_PARAM_CRASH_INJECT,
                                            value[1], value[2], GEN_CMD);
+        if (!ret)
+            pHddCtx->isLogpInProgress = true;
         break;
 #endif
     case QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL:
@@ -2729,7 +2731,7 @@ static __iw_softap_wowl_config_pattern(struct net_device *dev,
         ret = -EINVAL;
         break;
     }
-    kfree(pBuffer);
+    vos_mem_free(pBuffer);
     return ret;
 }
 
@@ -4168,7 +4170,7 @@ static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
     }
 
     /* allocate local buffer to build the response */
-    buf = kmalloc(wrqu->data.length, GFP_KERNEL);
+    buf = vos_mem_malloc(wrqu->data.length);
     if (!buf) {
         hddLog(LOG1, "%s: failed to allocate response buffer", __func__);
         return -ENOMEM;
@@ -4197,7 +4199,7 @@ static __iw_softap_getassoc_stamacaddr(struct net_device *dev,
         hddLog(LOG1, "%s: failed to copy response to user buffer", __func__);
         ret = -EFAULT;
     }
-    kfree(buf);
+    vos_mem_free(buf);
     EXIT();
     return ret;
 }
@@ -4302,7 +4304,7 @@ static __iw_softap_ap_stats(struct net_device *dev,
     WLANSAP_GetStatistics((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                            &statBuffer, (v_BOOL_t)wrqu->data.flags);
 
-    pstatbuf = kmalloc(wrqu->data.length, GFP_KERNEL);
+    pstatbuf = vos_mem_malloc(wrqu->data.length);
     if(NULL == pstatbuf) {
         hddLog(LOG1, "unable to allocate memory");
         return -ENOMEM;
@@ -4322,16 +4324,16 @@ static __iw_softap_ap_stats(struct net_device *dev,
     if (len >= wrqu->data.length) {
         hddLog(LOG1, "%s: Insufficient buffer:%d, %d",
             __func__, wrqu->data.length, len);
-        kfree(pstatbuf);
+        vos_mem_free(pstatbuf);
         return -E2BIG;
     }
     if (copy_to_user((void *)wrqu->data.pointer, (void *)pstatbuf, len)) {
         hddLog(LOG1, "%s: failed to copy data to user buffer", __func__);
-        kfree(pstatbuf);
+        vos_mem_free(pstatbuf);
         return -EFAULT;
     }
     wrqu->data.length = len;
-    kfree(pstatbuf);
+    vos_mem_free(pstatbuf);
     EXIT();
     return 0;
 }
@@ -5657,7 +5659,7 @@ __iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
 
    if (wrqu->data.length >= MAC_ADDRESS_STR_LEN - 1)
    {
-      pmacAddress = kmalloc(MAC_ADDRESS_STR_LEN, GFP_KERNEL);
+      pmacAddress = vos_mem_malloc(MAC_ADDRESS_STR_LEN);
       if (NULL == pmacAddress) {
           hddLog(LOG1, "unable to allocate memory");
           return -ENOMEM;
@@ -5666,13 +5668,13 @@ __iw_get_softap_linkspeed(struct net_device *dev, struct iw_request_info *info,
           wrqu->data.pointer, MAC_ADDRESS_STR_LEN))
       {
           hddLog(LOG1, "%s: failed to copy data to user buffer", __func__);
-          kfree(pmacAddress);
+          vos_mem_free(pmacAddress);
           return -EFAULT;
       }
       pmacAddress[MAC_ADDRESS_STR_LEN -1] = '\0';
 
       status = hdd_string_to_hex (pmacAddress, MAC_ADDRESS_STR_LEN, macAddress );
-      kfree(pmacAddress);
+      vos_mem_free(pmacAddress);
 
       if (!VOS_IS_STATUS_SUCCESS(status ))
       {

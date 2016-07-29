@@ -390,6 +390,9 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status,
     authFrame.authTransactionSeqNumber = SIR_MAC_AUTH_FRAME_1;
     authFrame.authStatusCode = 0;
 
+    pMac->lim.limTimers.g_lim_periodic_auth_retry_timer.sessionId =
+                                          psessionEntry->peSessionId;
+
     /* Start timer here to come back to operating channel */
     pMac->lim.limTimers.gLimFTPreAuthRspTimer.sessionId =
                                        psessionEntry->peSessionId;
@@ -1306,8 +1309,9 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
    }
 
 send_rsp:
-   if (psessionEntry->currentOperChannel !=
-         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum) {
+   if ((psessionEntry->currentOperChannel !=
+         psessionEntry->ftPEContext.pFTPreAuthReq->preAuthchannelNum)
+         || limIsInMCC(pMac)) {
       /* Need to move to the original AP channel */
       limChangeChannelWithCallback(pMac, psessionEntry->currentOperChannel,
             limPerformPostFTPreAuthAndChannelChange,

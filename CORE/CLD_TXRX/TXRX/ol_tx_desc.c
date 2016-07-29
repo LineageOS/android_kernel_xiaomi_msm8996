@@ -66,7 +66,7 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     adf_os_spin_lock_bh(&pdev->tx_mutex);
     if (pdev->tx_desc.freelist) {
         pdev->tx_desc.num_free--;
-        tx_desc = pdev->tx_desc.freelist->tx_desc;
+        tx_desc = &pdev->tx_desc.freelist->tx_desc;
         pdev->tx_desc.freelist = pdev->tx_desc.freelist->next;
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
         if (tx_desc->pkt_type != 0xff
@@ -120,13 +120,6 @@ ol_tx_desc_alloc_hl(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     return tx_desc;
 }
 
-/* TBD: make this inline in the .h file? */
-struct ol_tx_desc_t *
-ol_tx_desc_find(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id)
-{
-    return pdev->tx_desc.array[tx_desc_id].tx_desc;
-}
-
 void
 ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
 {
@@ -137,9 +130,9 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
     tx_desc->entry_timestamp_ticks = 0xffffffff;
 #endif
 #endif
-    ((struct ol_tx_desc_list_elem_t *)(tx_desc->p_link))->next =
+    ((union ol_tx_desc_list_elem_t *)tx_desc)->next =
         pdev->tx_desc.freelist;
-    pdev->tx_desc.freelist = tx_desc->p_link;
+    pdev->tx_desc.freelist = (union ol_tx_desc_list_elem_t *) tx_desc;
     pdev->tx_desc.num_free++;
 #if defined(CONFIG_PER_VDEV_TX_DESC_POOL)
 #ifdef QCA_LL_TX_FLOW_CT

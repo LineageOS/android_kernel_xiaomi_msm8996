@@ -760,7 +760,8 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 	struct nan_datapath_ctx *ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(adapter);
 	bool create_fail = false;
 	uint8_t create_transaction_id = 0;
-	uint32_t create_status = 0;
+	uint32_t create_status = NDP_RSP_STATUS_ERROR;
+	uint32_t create_reason = NDP_NAN_DATA_IFACE_CREATE_FAILED;
 
 	ENTER();
 
@@ -770,6 +771,7 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 
 	if (ndi_rsp) {
 		create_status = ndi_rsp->status;
+		create_reason = ndi_rsp->reason;
 	} else {
 		hddLog(LOGE, FL("Invalid ndi create response"));
 		create_fail = true;
@@ -819,7 +821,7 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 	/* Status return value */
 	if (nla_put_u32(vendor_event,
 			QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_VALUE,
-			ndi_rsp->reason)) {
+			create_reason)) {
 		hddLog(LOGE, FL("VENDOR_ATTR_NDP_DRV_RETURN_VALUE put fail"));
 		goto nla_put_failure;
 	}
@@ -834,7 +836,7 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 		QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_TYPE, create_status);
 	hddLog(LOG2, FL("Return value: %d, value: %d"),
 		QCA_WLAN_VENDOR_ATTR_NDP_DRV_RETURN_VALUE,
-		ndi_rsp->reason);
+		create_reason);
 
 	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
 
@@ -848,7 +850,7 @@ static void hdd_ndp_iface_create_rsp_handler(hdd_adapter_t *adapter,
 	} else {
 		hddLog(LOGE,
 			FL("NDI interface creation failed with reason %d"),
-			ndi_rsp->reason);
+			create_reason);
 	}
 
 	/* Something went wrong while starting the BSS */
@@ -1524,10 +1526,7 @@ static void hdd_ndp_end_rsp_handler(hdd_adapter_t *adapter, void *rsp_params)
 	struct sk_buff *vendor_event;
 	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 	struct ndp_end_rsp_event *rsp = rsp_params;
-	struct nan_datapath_ctx *ndp_ctx;
-	uint32_t data_len, i;
-	int idx;
-	hdd_station_ctx_t *sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	uint32_t data_len;
 
 	ENTER();
 
@@ -1538,32 +1537,6 @@ static void hdd_ndp_end_rsp_handler(hdd_adapter_t *adapter, void *rsp_params)
 
 	if (0 != wlan_hdd_validate_context(hdd_ctx))
 		return;
-
-	/* adjust active ndp instances per peer */
-	if (rsp->status == NDP_CMD_RSP_STATUS_SUCCESS) {
-		for (i = 0; i < rsp->num_peers; i++) {
-			adapter = hdd_get_adapter_by_vdev(hdd_ctx,
-						rsp->ndp_map[i].vdev_id);
-			if (NULL == adapter) {
-				hddLog(LOGE,
-					FL("adapter for vdev_id: %d not found"),
-					rsp->ndp_map[i].vdev_id);
-				continue;
-			}
-			sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
-			ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(adapter);
-			idx = hdd_get_peer_idx(sta_ctx,
-					&rsp->ndp_map[i].peer_ndi_mac_addr);
-			if (idx == INVALID_PEER_IDX)
-				hddLog(LOGE,
-					FL("can't find addr: %pM in vdev_id: %d, peer table."),
-					&rsp->ndp_map[i].peer_ndi_mac_addr,
-					rsp->ndp_map[i].vdev_id);
-			else
-				ndp_ctx->active_ndp_sessions[idx] =
-					rsp->ndp_map[i].num_active_ndp_sessions;
-		}
-	}
 
 	data_len = NLMSG_HDRLEN + (4 * NLA_HDRLEN) + (3 * sizeof(uint32_t)) +
 		   sizeof(uint16_t);
@@ -1626,6 +1599,7 @@ static void hdd_ndp_end_ind_handler(hdd_adapter_t *adapter,
 	struct nan_datapath_ctx *ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(adapter);
 	hdd_station_ctx_t *sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
 	uint32_t *ndp_instance_array;
+	hdd_adapter_t *ndi_adapter;
 
 	ENTER();
 
@@ -1647,9 +1621,20 @@ static void hdd_ndp_end_ind_handler(hdd_adapter_t *adapter,
 		int idx;
 
 		ndp_instance_array[i] = end_ind->ndp_map[i].ndp_instance_id;
-		ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(
-				hdd_get_adapter_by_vdev(hdd_ctx,
-					end_ind->ndp_map[i].vdev_id));
+		ndi_adapter = hdd_get_adapter_by_vdev(hdd_ctx,
+					end_ind->ndp_map[i].vdev_id);
+		if (ndi_adapter == NULL) {
+			hddLog(LOGE, FL("Adapter not found for vdev_id: %d"),
+				end_ind->ndp_map[i].vdev_id);
+			continue;
+		}
+		ndp_ctx = WLAN_HDD_GET_NDP_CTX_PTR(ndi_adapter);
+		if (!ndp_ctx) {
+			hddLog(LOGE,
+			FL("ndp_ctx is NULL for vdev id: %d"),
+			end_ind->ndp_map[i].vdev_id);
+			continue;
+		}
 		idx = hdd_get_peer_idx(sta_ctx,
 				&end_ind->ndp_map[i].peer_ndi_mac_addr);
 		if (idx == INVALID_PEER_IDX) {

@@ -804,7 +804,7 @@ static void hdd_ipa_uc_rt_debug_handler(void *ctext)
 	 * And if allocation fail, will dump WLAN IPA stats
 	 */
 	dummy_ptr = kmalloc(HDD_IPA_UC_DEBUG_DUMMY_MEM_SIZE,
-		GFP_KERNEL | GFP_ATOMIC);
+				GFP_KERNEL | GFP_ATOMIC);
 	if (!dummy_ptr) {
 		HDD_IPA_LOG(VOS_TRACE_LEVEL_FATAL,
 			"%s: Dummy alloc fail", __func__);
@@ -4277,7 +4277,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			if ((!hdd_ipa->sap_num_connected_sta) ||
 				((!hdd_ipa->num_iface) &&
 					(HDD_IPA_UC_NUM_WDI_PIPE ==
-					hdd_ipa->activated_fw_pipe))) {
+					hdd_ipa->activated_fw_pipe &&
+					!hdd_ipa->ipa_pipes_down))) {
 				hdd_ipa_uc_handle_last_discon(hdd_ipa);
 			}
 		}
@@ -4307,7 +4308,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 
 #ifdef IPA_UC_OFFLOAD
 		if ((!hdd_ipa->num_iface) &&
-			(HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe)) {
+			(HDD_IPA_UC_NUM_WDI_PIPE == hdd_ipa->activated_fw_pipe) &&
+			!hdd_ipa->ipa_pipes_down) {
 			if (hdd_ipa->hdd_ctx->isUnloadInProgress) {
 				/* We disable WDI pipes directly here since
 				 * IPA_OPCODE_TX/RX_SUSPEND message will not be
@@ -4354,7 +4356,6 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			vos_lock_release(&hdd_ipa->event_lock);
 			return 0;
 		}
-
 		/* Enable IPA UC Data PIPEs when first STA connected */
 		if ((0 == hdd_ipa->sap_num_connected_sta)
 #ifdef IPA_UC_STA_OFFLOAD
@@ -4374,7 +4375,6 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 		}
 
 		hdd_ipa->sap_num_connected_sta++;
-
 		vos_lock_release(&hdd_ipa->event_lock);
 #endif /* IPA_UC_OFFLOAD */
 
@@ -4446,7 +4446,8 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			&& (VOS_TRUE == hdd_ipa->uc_loaded)
 			&& (VOS_FALSE == hdd_ipa->resource_unloading)
 			&& (HDD_IPA_UC_NUM_WDI_PIPE ==
-				hdd_ipa->activated_fw_pipe)
+				hdd_ipa->activated_fw_pipe) &&
+				!hdd_ipa->ipa_pipes_down
 		) {
 			hdd_ipa_uc_handle_last_discon(hdd_ipa);
 		}

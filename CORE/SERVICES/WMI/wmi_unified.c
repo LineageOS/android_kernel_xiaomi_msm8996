@@ -711,6 +711,9 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_READ_DATA_FROM_FLASH_CMDID);
 		CASE_RETURN_STRING(WMI_PDEV_SET_REORDER_TIMEOUT_VAL_CMDID);
 		CASE_RETURN_STRING(WMI_PEER_SET_RX_BLOCKSIZE_CMDID);
+		CASE_RETURN_STRING(WMI_PDEV_SET_WAKEUP_CONFIG_CMDID);
+		CASE_RETURN_STRING(WMI_PDEV_GET_ANTDIV_STATUS_CMDID);
+		CASE_RETURN_STRING(WMI_PEER_ANTDIV_INFO_REQ_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
@@ -893,7 +896,18 @@ dont_tag:
 		pr_err("%s: WMI Pending cmds: %d reached MAX: %d\n",
 			__func__, adf_os_atomic_read(&wmi_handle->pending_cmds), WMI_MAX_CMDS);
 		adf_os_atomic_dec(&wmi_handle->pending_cmds);
-		VOS_BUG(0);
+		if (scn && scn->enable_self_recovery) {
+			if (vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+				pr_err("%s- %d: SSR is in progress!!!!\n",
+					 __func__, __LINE__);
+				return -EBUSY;
+			}
+			vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+			pr_err("%s- %d: Start collecting ramdump\n",
+				__func__, __LINE__);
+			ol_schedule_ramdump_work(scn);
+		} else
+			VOS_BUG(0);
 		return -EBUSY;
 	}
 

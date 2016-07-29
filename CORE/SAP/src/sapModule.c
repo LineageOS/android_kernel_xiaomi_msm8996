@@ -226,6 +226,11 @@ WLANSAP_Start
         return VOS_STATUS_E_FAULT;
     }
     hal = (tHalHandle) VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+    if (!hal) {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  FL("Invalid HAL pointer"));
+        return VOS_STATUS_E_FAULT;
+    }
     vos_status = sap_OpenSession(hal, pSapCtx, session_id);
     if (VOS_STATUS_SUCCESS != vos_status) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,

@@ -58,6 +58,12 @@
 // macro to return the floor of an integer division operation
 #define VOS_FLOOR_DIV( _a, _b ) ( ( (_a) - ( (_a) % (_b) ) ) / (_b) )
 
+static inline unsigned int vos_round_div(unsigned int dividend,
+					 unsigned int divisor)
+{
+	return (dividend + (divisor / 2)) / divisor;
+}
+
 #define VOS_SWAP_U16(_x) \
    ( ( ( (_x) << 8 ) & 0xFF00 ) | ( ( (_x) >> 8 ) & 0x00FF ) )
 

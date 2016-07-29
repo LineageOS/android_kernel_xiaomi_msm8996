@@ -2339,16 +2339,17 @@ void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
-    if(NULL == pDeleteStaParams ||
-       NULL == (psessionEntry = peFindSessionBySessionId(pMac, pDeleteStaParams->sessionId)))
-    {
-        limLog(pMac, LOGP,FL("Session Does not exist or invalid body pointer in message: %d"),
+    if(!pDeleteStaParams) {
+        limLog(pMac, LOGP, FL("Invalid pDeleteStaParams message"));
+        return;
+    }
+
+    psessionEntry = peFindSessionBySessionId(pMac, pDeleteStaParams->sessionId);
+    if (!psessionEntry) {
+        limLog(pMac, LOGP, FL("Session Does not exist or invalid body pointer in message: %d"),
                 pDeleteStaParams->sessionId);
-        if(pDeleteStaParams != NULL)
-        {
-            vos_mem_free(pDeleteStaParams);
-            limMsgQ->bodyptr = NULL;
-        }
+        vos_mem_free(pDeleteStaParams);
+        limMsgQ->bodyptr = NULL;
         return;
     }
 
