@@ -22377,8 +22377,6 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 		return VOS_STATUS_E_FAULT;
 	}
 
-	HTCCancelDeferredTargetSleep(scn);
-
 	wma->wow.wow_enable_cmd_sent = TRUE;
 
 	return VOS_STATUS_SUCCESS;
@@ -34878,8 +34876,6 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		VOS_ASSERT(0);
 		return -1;
 	}
-
-	HTCCancelDeferredTargetSleep(scn);
 
 	return 0;
 }
