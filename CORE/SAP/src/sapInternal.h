@@ -301,6 +301,7 @@ typedef struct sSapContext {
     tSirMacRateSet supp_rate_set;
     tSirMacRateSet extended_rate_set;
     vos_event_t sap_session_opened_evt;
+    eCsrBand	target_band;
 } *ptSapContext;
 
 
@@ -1094,6 +1095,16 @@ eHalStatus sap_CloseSession(tHalHandle hHal,
                             ptSapContext sapContext,
                             csrRoamSessionCloseCallback callback,
                             v_BOOL_t valid);
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+bool
+sap_channel_switch_validate(
+	ptSapContext sap_context,
+	tHalHandle hal,
+	uint16_t target_channel,
+	eCsrPhyMode sap_phy_mode,
+	uint8_t cc_switch_mode,
+	uint32_t session_id);
+#endif
 #ifdef __cplusplus
 }
 #endif

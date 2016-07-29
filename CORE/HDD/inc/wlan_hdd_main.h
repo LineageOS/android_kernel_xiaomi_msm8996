@@ -215,7 +215,11 @@
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interfaces) */
 #ifndef WLAN_OPEN_P2P_INTERFACE
+#ifdef WLAN_4SAP_CONCURRENCY
+#define WLAN_MAX_INTERFACES 4
+#else
 #define WLAN_MAX_INTERFACES 3
+#endif
 #else
 #define WLAN_MAX_INTERFACES 4
 #endif

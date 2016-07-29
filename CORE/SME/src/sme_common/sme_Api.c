@@ -8496,6 +8496,86 @@ v_U16_t sme_CheckConcurrentChannelOverlap( tHalHandle hHal, v_U16_t sap_ch,
 
    return (channel);
 }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/**
+ * sme_find_sta_session_info() - get sta active session info
+ * @hHal: tHalHandle ptr
+ * @session_info: information returned.
+ *
+ * Return: TRUE if sta session info returned
+ */
+tANI_BOOLEAN sme_find_sta_session_info(
+	tHalHandle hHal,
+	session_info_t *session_info)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	tANI_BOOLEAN ret = eANI_BOOLEAN_FALSE;
+
+	status = sme_AcquireGlobalLock( &pMac->sme );
+	if ( HAL_STATUS_SUCCESS( status ) ) {
+		ret = csr_find_sta_session_info(hHal,
+				session_info);
+		sme_ReleaseGlobalLock( &pMac->sme );
+	}
+	return ret;
+}
+/**
+ * sme_find_all_session_info() - get all active session info
+ * @hHal: tHalHandle ptr
+ * @session_info: information returned.
+ * @session_count: number of session
+ *
+ * Return: TRUE if any session info returned
+ */
+tANI_BOOLEAN sme_find_all_session_info(
+	tHalHandle hHal,
+	session_info_t *session_info,
+	v_U8_t * session_count)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	tANI_BOOLEAN ret = eANI_BOOLEAN_FALSE;
+
+	status = sme_AcquireGlobalLock( &pMac->sme );
+	if ( HAL_STATUS_SUCCESS( status ) ) {
+		ret = csr_find_all_session_info(hHal,
+				session_info, session_count);
+		sme_ReleaseGlobalLock( &pMac->sme );
+	}
+	return ret;
+}
+/**
+ * sme_create_sap_session_info() - create session info based on
+ *  the input chan and phymode
+ * @hHal: tHalHandle ptr
+ * @sap_phymode: requesting phymode.
+ * @sap_ch: requesting channel number
+ * @session_info: information returned.
+ *
+ * Return: TRUE if any session info returned
+ */
+tANI_BOOLEAN sme_create_sap_session_info(
+	tHalHandle hHal,
+	eCsrPhyMode sap_phymode,
+	v_U16_t sap_ch,
+	session_info_t *session_info)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	tANI_BOOLEAN ret = eANI_BOOLEAN_FALSE;
+
+	status = sme_AcquireGlobalLock( &pMac->sme );
+	if ( HAL_STATUS_SUCCESS( status ) ) {
+		ret = csr_create_sap_session_info(hHal,
+			sap_phymode,
+			sap_ch,
+			session_info);
+		sme_ReleaseGlobalLock( &pMac->sme );
+	}
+	return ret;
+}
+#endif
 #endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO

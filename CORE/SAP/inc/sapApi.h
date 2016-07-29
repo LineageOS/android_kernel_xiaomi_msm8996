@@ -101,7 +101,14 @@ when           who                what, where, why
 #define       MAX_TEXT_SIZE                32
 
 #define       MAX_CHANNEL_LIST_LEN         256
-#define       VOS_MAX_NO_OF_SAP_MODE       2 // max # of SAP
+/*
+ * max # of SAP
+ */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define       VOS_MAX_NO_OF_SAP_MODE       4
+#else
+#define       VOS_MAX_NO_OF_SAP_MODE       2
+#endif
 #define       SAP_MAX_NUM_SESSION          5
 #define       SAP_MAX_OBSS_STA_CNT         1 // max # of OBSS STA
 
@@ -553,6 +560,7 @@ typedef struct sap_Config {
     uint8_t ampdu_size;
     tSirMacRateSet  supported_rates;
     tSirMacRateSet  extended_rates;
+    eCsrBand   target_band;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

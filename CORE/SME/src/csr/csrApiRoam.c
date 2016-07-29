@@ -6091,29 +6091,26 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                        roamInfo.tdls_chan_swit_prohibited);
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-                    if (pMac->roam.configParam.cc_switch_mode
-                                            != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
-                        pSession->connectedProfile.HTProfile.phymode =
-                            csrRoamdot11modeToPhymode(pJoinRsp->HTProfile.dot11mode);
-                        pSession->connectedProfile.HTProfile.htCapability =
-                                    pJoinRsp->HTProfile.htCapability;
-                        pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
-                                    pJoinRsp->HTProfile.htSupportedChannelWidthSet;
-                        pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
-                                    pJoinRsp->HTProfile.htRecommendedTxWidthSet;
-                        pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
-                                    pJoinRsp->HTProfile.htSecondaryChannelOffset;
+                    pSession->connectedProfile.HTProfile.phymode =
+                        csrRoamdot11modeToPhymode(pJoinRsp->HTProfile.dot11mode);
+                    pSession->connectedProfile.HTProfile.htCapability =
+                                pJoinRsp->HTProfile.htCapability;
+                    pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
+                                pJoinRsp->HTProfile.htSupportedChannelWidthSet;
+                    pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
+                                pJoinRsp->HTProfile.htRecommendedTxWidthSet;
+                    pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
+                                pJoinRsp->HTProfile.htSecondaryChannelOffset;
 #ifdef WLAN_FEATURE_11AC
-                        pSession->connectedProfile.HTProfile.vhtCapability =
-                                    pJoinRsp->HTProfile.vhtCapability;
-                        pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
-                                    pJoinRsp->HTProfile.vhtTxChannelWidthSet;
-                        pSession->connectedProfile.HTProfile.apCenterChan =
-                                    pJoinRsp->HTProfile.apCenterChan;
-                        pSession->connectedProfile.HTProfile.apChanWidth =
-                                    pJoinRsp->HTProfile.apChanWidth;
+                    pSession->connectedProfile.HTProfile.vhtCapability =
+                                pJoinRsp->HTProfile.vhtCapability;
+                    pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
+                                pJoinRsp->HTProfile.vhtTxChannelWidthSet;
+                    pSession->connectedProfile.HTProfile.apCenterChan =
+                                pJoinRsp->HTProfile.apCenterChan;
+                    pSession->connectedProfile.HTProfile.apChanWidth =
+                                pJoinRsp->HTProfile.apChanWidth;
 #endif
-                    }
 #endif
                 }
                 else
@@ -6420,29 +6417,26 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 }
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
-                if (pMac->roam.configParam.cc_switch_mode
-                                        != VOS_MCC_TO_SCC_SWITCH_DISABLE) {
-                    pSession->connectedProfile.HTProfile.phymode =
-                            csrRoamdot11modeToPhymode(pSmeStartBssRsp->HTProfile.dot11mode);
-                    pSession->connectedProfile.HTProfile.htCapability =
-                            pSmeStartBssRsp->HTProfile.htCapability;
-                    pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
-                            pSmeStartBssRsp->HTProfile.htSupportedChannelWidthSet;
-                    pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
-                            pSmeStartBssRsp->HTProfile.htRecommendedTxWidthSet;
-                    pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
-                            pSmeStartBssRsp->HTProfile.htSecondaryChannelOffset;
+                pSession->connectedProfile.HTProfile.phymode =
+                        csrRoamdot11modeToPhymode(pSmeStartBssRsp->HTProfile.dot11mode);
+                pSession->connectedProfile.HTProfile.htCapability =
+                        pSmeStartBssRsp->HTProfile.htCapability;
+                pSession->connectedProfile.HTProfile.htSupportedChannelWidthSet =
+                        pSmeStartBssRsp->HTProfile.htSupportedChannelWidthSet;
+                pSession->connectedProfile.HTProfile.htRecommendedTxWidthSet =
+                        pSmeStartBssRsp->HTProfile.htRecommendedTxWidthSet;
+                pSession->connectedProfile.HTProfile.htSecondaryChannelOffset =
+                        pSmeStartBssRsp->HTProfile.htSecondaryChannelOffset;
 #ifdef WLAN_FEATURE_11AC
-                    pSession->connectedProfile.HTProfile.vhtCapability =
-                                pSmeStartBssRsp->HTProfile.vhtCapability;
-                    pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
-                                pSmeStartBssRsp->HTProfile.vhtTxChannelWidthSet;
-                    pSession->connectedProfile.HTProfile.apCenterChan =
-                                pSmeStartBssRsp->HTProfile.apCenterChan;
-                    pSession->connectedProfile.HTProfile.apChanWidth =
-                                pSmeStartBssRsp->HTProfile.apChanWidth;
+                pSession->connectedProfile.HTProfile.vhtCapability =
+                            pSmeStartBssRsp->HTProfile.vhtCapability;
+                pSession->connectedProfile.HTProfile.vhtTxChannelWidthSet =
+                            pSmeStartBssRsp->HTProfile.vhtTxChannelWidthSet;
+                pSession->connectedProfile.HTProfile.apCenterChan =
+                            pSmeStartBssRsp->HTProfile.apCenterChan;
+                pSession->connectedProfile.HTProfile.apChanWidth =
+                            pSmeStartBssRsp->HTProfile.apChanWidth;
 #endif
-                }
 #endif
                 csrRoamCallCallback( pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, roamStatus, roamResult );
             }

@@ -480,7 +480,11 @@ wlan_hdd_adhoc_iface_limit[] = {
    },
 };
 
-/* AP ( + AP ) combination */
+/*
+ * AP ( + AP) combination or
+ * AP ( + AP + AP + AP) combination if 4-SAP is supported
+ *  (WLAN_4SAP_CONCURRENCY)
+ */
 static const struct ieee80211_iface_limit
 wlan_hdd_ap_iface_limit[] = {
    {
@@ -7846,14 +7850,20 @@ static void wlan_hdd_set_acs_ch_range(tsap_Config_t *sap_cfg, bool ht_enabled,
 		sap_cfg->acs_cfg.hw_mode = eCSR_DOT11_MODE_11b;
 		sap_cfg->acs_cfg.start_ch = rfChannels[RF_CHAN_1].channelNum;
 		sap_cfg->acs_cfg.end_ch = rfChannels[RF_CHAN_14].channelNum;
+		sap_cfg->target_band = eCSR_BAND_24;
 	} else if (sap_cfg->acs_cfg.hw_mode == QCA_ACS_MODE_IEEE80211G) {
 		sap_cfg->acs_cfg.hw_mode = eCSR_DOT11_MODE_11g;
 		sap_cfg->acs_cfg.start_ch = rfChannels[RF_CHAN_1].channelNum;
 		sap_cfg->acs_cfg.end_ch = rfChannels[RF_CHAN_13].channelNum;
+		sap_cfg->target_band = eCSR_BAND_24;
 	} else if (sap_cfg->acs_cfg.hw_mode == QCA_ACS_MODE_IEEE80211A) {
 		sap_cfg->acs_cfg.hw_mode = eCSR_DOT11_MODE_11a;
 		sap_cfg->acs_cfg.start_ch = rfChannels[RF_CHAN_36].channelNum;
 		sap_cfg->acs_cfg.end_ch = rfChannels[RF_CHAN_165].channelNum;
+		sap_cfg->target_band = eCSR_BAND_5G;
+	} else {
+		hddLog(LOG1, FL("hw_mode %d"), sap_cfg->acs_cfg.hw_mode);
+		sap_cfg->target_band = eCSR_BAND_5G;
 	}
 	if (ht_enabled)
 		sap_cfg->acs_cfg.hw_mode = eCSR_DOT11_MODE_11n;
@@ -7947,6 +7957,32 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 
 	return 0;
 }
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/**
+ * wlan_hdd_set_mcc_to_scc_switch() - set mcc to scc switch mode from ini
+ * @adapter:  hdd_adapter_t ptr of the interface
+ *
+ * This function updates ini WlanMccToSccSwitchMode value to adapter
+ * context. The value controls the MCC to SCC switch behavior.
+ *
+ * Return: void
+ */
+static void
+wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
+{
+	hdd_context_t * hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
+	tsap_Config_t *sap_config;
+
+	sap_config = &adapter->sessionCtx.ap.sapConfig;
+	sap_config->cc_switch_mode = cfg_ini->WlanMccToSccSwitchMode;
+}
+#else
+static void
+wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
+{}
+#endif
 
 /**
  * __wlan_hdd_cfg80211_do_acs : CFG80211 handler fucntion for DO_ACS Vendor CMD
@@ -8090,6 +8126,7 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 					sap_config->acs_cfg.ch_list_count);
 		}
 	}
+	wlan_hdd_set_mcc_to_scc_switch(adapter);
 	wlan_hdd_set_acs_ch_range(sap_config, ht_enabled, vht_enabled);
 
 	/* ACS override for android */

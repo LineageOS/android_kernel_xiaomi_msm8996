@@ -2979,7 +2979,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #endif
 
 #define CFG_MAX_CONCURRENT_CONNECTIONS_NAME        "gMaxConcurrentActiveSessions"
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT     ( 4 )
+#else
 #define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT     ( 2 )
+#endif
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MIN         ( 1 )
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MAX         ( 4 )
 

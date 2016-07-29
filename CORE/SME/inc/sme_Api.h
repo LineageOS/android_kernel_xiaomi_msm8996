@@ -4642,4 +4642,19 @@ eHalStatus sme_update_sta_inactivity_timeout(tHalHandle hal_handle,
 		uint8_t session_id, uint32_t sta_inactivity_timeout);
 
 VOS_STATUS sme_set_wakeup_gpio(struct wakeup_gpio_mode *wakeup_gpio_info);
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+tANI_BOOLEAN sme_find_sta_session_info(
+	tHalHandle hHal,
+	session_info_t *session_info);
+tANI_BOOLEAN sme_find_all_session_info(
+	tHalHandle hHal,
+	session_info_t *session_info,
+	v_U8_t * session_count);
+tANI_BOOLEAN sme_create_sap_session_info(
+	tHalHandle hHal,
+	eCsrPhyMode sap_phymode,
+	v_U16_t sap_ch,
+	session_info_t *session_info);
+#endif
 #endif //#if !defined( __SME_API_H )

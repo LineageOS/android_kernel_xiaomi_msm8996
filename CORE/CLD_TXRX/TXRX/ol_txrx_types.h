@@ -359,12 +359,19 @@ struct ol_tx_sched_t;
 typedef struct ol_tx_sched_t *ol_tx_sched_handle;
 
 #ifndef OL_TXRX_NUM_LOCAL_PEER_IDS
-
+#ifdef WLAN_4SAP_CONCURRENCY
+/*
+ * Each AP will occupy one ID, so it will occupy 4 IDs for 4 SAP mode.
+ * And the remainder IDs will be assigned to other 32 clients.
+ */
+#define OL_TXRX_NUM_LOCAL_PEER_IDS (4 + 32)
+#else
 /*
  * Each AP will occupy one ID, so it will occupy two IDs for AP-AP mode.
  * And the remainder IDs will be assigned to other 32 clients.
  */
 #define OL_TXRX_NUM_LOCAL_PEER_IDS (2 + 32)
+#endif
 #endif
 
 #ifndef ol_txrx_local_peer_id_t
