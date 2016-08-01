@@ -181,6 +181,10 @@ int htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
 	}
 	*p = NULL;
 
+	adf_os_atomic_init(&pdev->htt_tx_credit.target_delta);
+	adf_os_atomic_init(&pdev->htt_tx_credit.bus_delta);
+	adf_os_atomic_add(HTT_MAX_BUS_CREDIT, &pdev->htt_tx_credit.bus_delta);
+
 	/* success */
 	return 0;
 
