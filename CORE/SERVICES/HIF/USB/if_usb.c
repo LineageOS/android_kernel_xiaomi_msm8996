@@ -420,6 +420,7 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 
 static struct usb_device_id hif_usb_id_table[] = {
 	{USB_DEVICE_AND_INTERFACE_INFO(VENDOR_ATHR, 0x9378, 0xFF, 0xFF, 0xFF)},
+	{USB_DEVICE_AND_INTERFACE_INFO(VENDOR_ATHR, 0x9379, 0xFF, 0xFF, 0xFF)},
 	{}			/* Terminating entry */
 };
 
