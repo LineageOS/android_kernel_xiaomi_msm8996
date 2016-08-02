@@ -10315,6 +10315,35 @@ static void hdd_close_tx_queues(hdd_context_t *hdd_ctx)
 	EXIT();
 }
 
+/**
+ * hdd_check_and_init_tdls() - check and init TDLS operation for desired mode
+ * @adapter: pointer to device adapter
+ * @type: type of interface
+ *
+ * This routine will check the mode of adapter and if it is required then it
+ * will initialize the TDLS operations
+ *
+ * Return: VOS_STATUS
+ */
+#ifdef FEATURE_WLAN_TDLS
+static VOS_STATUS hdd_check_and_init_tdls(hdd_adapter_t *adapter, uint32_t type)
+{
+	if (VOS_IBSS_MODE != type) {
+		if (0 != wlan_hdd_tdls_init(adapter)) {
+			hddLog(LOGE, FL("wlan_hdd_tdls_init failed"));
+			return VOS_STATUS_E_FAILURE;
+		}
+		set_bit(TDLS_INIT_DONE, &adapter->event_flags);
+	}
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static VOS_STATUS hdd_check_and_init_tdls(hdd_adapter_t *adapter, uint32_t type)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
 {
    struct net_device *pWlanDev = pAdapter->dev;
@@ -10410,23 +10439,15 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
                    __func__, ret_val);
    }
 
-#ifdef FEATURE_WLAN_TDLS
-   if(0 != wlan_hdd_tdls_init(pAdapter))
-   {
-       status = VOS_STATUS_E_FAILURE;
-       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wlan_hdd_tdls_init failed",__func__);
+   status = hdd_check_and_init_tdls(pAdapter, type);
+   if (status != VOS_STATUS_SUCCESS)
        goto error_tdls_init;
-   }
-   set_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
-#endif
 
    return VOS_STATUS_SUCCESS;
 
-#ifdef FEATURE_WLAN_TDLS
 error_tdls_init:
    clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
    hdd_wmm_adapter_close(pAdapter);
-#endif
 error_wmm_init:
    clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
    hdd_deinit_tx_rx(pAdapter);
