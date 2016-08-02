@@ -3098,6 +3098,10 @@ void hif_disable_isr(void *ol_sc)
 	scn->MSI_magic = NULL;
 	scn->MSI_magic_dma = 0;
 #endif
+	/* disable the tasklet to avoid recursive scheduling
+	 * of tasklet if rx pending packet count is greater
+	 * than 0. */
+	tasklet_disable(&hif_sc->intr_tq);
 	/* Cancel the pending tasklet */
 	tasklet_kill(&hif_sc->intr_tq);
 }
