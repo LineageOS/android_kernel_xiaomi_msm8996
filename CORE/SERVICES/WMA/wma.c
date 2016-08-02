@@ -20849,7 +20849,7 @@ static void wma_extscan_wow_event_callback(void *handle, void *event,
  */
 static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 {
-	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6_uc_bc %d oem %d",
+	WMA_LOGA("uc %d bc %d v4_mc %d v6_mc %d ra %d ns %d na %d pno_match %d pno_complete %d gscan %d low_rssi %d rssi_breach %d icmp %d icmpv6 %d oem %d",
 		wma->wow_ucast_wake_up_count,
 		wma->wow_bcast_wake_up_count,
 		wma->wow_ipv4_mcast_wake_up_count,
@@ -20863,7 +20863,7 @@ static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 		wma->wow_low_rssi_wake_up_count,
 		wma->wow_rssi_breach_wake_up_count,
 		wma->wow_icmpv4_count,
-		wma->wow_icmpv6_uc_bc_count,
+		wma->wow_icmpv6_count,
 		wma->wow_oem_response_wake_up_count);
 
 	return;
@@ -20878,12 +20878,13 @@ static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
  */
 static void wma_wow_ipv6_mcast_stats(tp_wma_handle wma, uint8_t *data)
 {
-	static const uint8_t ipv6_mcast[] = {0x86, 0xDD};
+	static const uint8_t ipv6_ether_type[] = {0x86, 0xDD};
 
-	if (!memcmp(ipv6_mcast, (data + WMA_ETHER_TYPE_OFFSET),
-						sizeof(ipv6_mcast))) {
+	if (!memcmp(ipv6_ether_type, (data + WMA_ETHER_TYPE_OFFSET),
+						sizeof(ipv6_ether_type))) {
 		if (WMA_ICMP_V6_HEADER_TYPE ==
 			*(data + WMA_ICMP_V6_HEADER_OFFSET)) {
+			wma->wow_icmpv6_count++;
 			if (WMA_ICMP_V6_RA_TYPE ==
 				*(data + WMA_ICMP_V6_TYPE_OFFSET))
 				wma->wow_ipv6_mcast_ra_stats++;
@@ -20930,14 +20931,11 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 	case WOW_REASON_PATTERN_MATCH_FOUND:
 		if (WMA_BCAST_MAC_ADDR == *data) {
 			wma->wow_bcast_wake_up_count++;
-			if (adf_nbuf_data_is_ipv4_pkt(data) &&
-			    (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL)))
+			if (adf_nbuf_data_is_icmp_pkt(data))
 				wma->wow_icmpv4_count++;
-			else if (adf_nbuf_data_is_ipv6_pkt(data) &&
-			    (len > WMA_ICMP_V6_TYPE_OFFSET) &&
-			    (WMA_ICMP_V6_HEADER_TYPE ==
-			     *(data + WMA_ICMP_V6_HEADER_OFFSET)))
-				wma->wow_icmpv6_uc_bc_count++;
+			else if ((len > WMA_ICMP_V6_TYPE_OFFSET) &&
+			    adf_nbuf_data_is_icmpv6_pkt(data))
+				wma->wow_icmpv6_count++;
 		} else if (WMA_MCAST_IPV4_MAC_ADDR == *data) {
 			wma->wow_ipv4_mcast_wake_up_count++;
 			if (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL))
@@ -20950,18 +20948,20 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 				WMA_LOGA("ICMP_V6 data len %d", len);
 		} else {
 			wma->wow_ucast_wake_up_count++;
-			if (adf_nbuf_data_is_ipv4_pkt(data) &&
-			    (WMA_ICMP_PROTOCOL == *(data + WMA_IPV4_PROTOCOL)))
-				wma->wow_icmpv4_count++;
-			else if (adf_nbuf_data_is_ipv6_pkt(data) &&
-			    (len > WMA_ICMP_V6_TYPE_OFFSET) &&
-			    (WMA_ICMP_V6_HEADER_TYPE ==
-			     *(data + WMA_ICMP_V6_HEADER_OFFSET)))
-				wma->wow_icmpv6_uc_bc_count++;
+			if (adf_nbuf_data_is_ipv4_pkt(data)) {
+				if (adf_nbuf_data_is_ipv4_mcast_pkt(data))
+					wma->wow_ipv4_mcast_wake_up_count++;
+				if (WMA_ICMP_PROTOCOL ==
+				    *(data + WMA_IPV4_PROTOCOL))
+					wma->wow_icmpv4_count++;
+			} else if ((len > WMA_ICMP_V6_TYPE_OFFSET) &&
+			    adf_nbuf_data_is_icmpv6_pkt(data))
+				wma->wow_icmpv6_count++;
 		}
 		break;
 
 	case WOW_REASON_RA_MATCH:
+		wma->wow_icmpv6_count++;
 		wma->wow_ipv6_mcast_ra_stats++;
 		wma->wow_ipv6_mcast_wake_up_count++;
 		break;
@@ -21362,7 +21362,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 	default:
 end:
 		WMA_LOGE("wow_buf_pkt_len: %u", buf_len);
-		WMA_LOGE("Invalid Packet Type or Smaller WOW packet buffer than expected");
+		WMA_LOGE("Unknown Packet or Insufficient packet buffer");
 		break;
 	}
 }
@@ -30101,8 +30101,8 @@ VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
 	wake_lock_stats->wow_ipv6_mcast_na_stats =
 			wma_handle->wow_ipv6_mcast_na_stats;
 	wake_lock_stats->wow_icmpv4_count = wma_handle->wow_icmpv4_count;
-	wake_lock_stats->wow_icmpv6_uc_bc_count =
-			wma_handle->wow_icmpv6_uc_bc_count;
+	wake_lock_stats->wow_icmpv6_count =
+			wma_handle->wow_icmpv6_count;
 
 	return VOS_STATUS_SUCCESS;
 }
