@@ -16642,9 +16642,14 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
                            0,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && !defined(WITH_BACKPORTS) \
      && !defined(IEEE80211_PRIVACY)
-                           WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS,
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS);
 #else
-                           IEEE80211_BSS_TYPE_ESS, IEEE80211_PRIVACY_ANY);
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               IEEE80211_BSS_TYPE_IBSS : IEEE80211_BSS_TYPE_ESS,
+                           IEEE80211_PRIVACY_ANY);
 #endif
     if (bss == NULL) {
         hddLog(LOGE, FL("BSS not present"));
@@ -19827,6 +19832,7 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     tCsrRoamProfile *pRoamProfile;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int status;
     eHalStatus hal_status;
     tSirUpdateIE updateIE;
@@ -19873,6 +19879,13 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
             &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
          hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
     }
+
+    /* Delete scan cache in cfg80211 and remove BSSID from SME
+     * scan list
+     */
+    hddLog(LOG1, FL("clear scan cache in kernel cfg80211"));
+    wlan_hdd_cfg80211_update_bss_list(pAdapter, pWextState->req_bssId);
+    sme_remove_bssid_from_scan_list(hHal, pWextState->req_bssId );
 
     /* Reset WNI_CFG_PROBE_RSP Flags */
     wlan_hdd_reset_prob_rspies(pAdapter);
