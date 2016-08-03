@@ -1418,6 +1418,58 @@ VOS_STATUS hdd_roamRegisterSTA(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,
    return( vosStatus );
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/**
+ * hdd_send_roam_auth_event() - send roamed and authed event
+ * @hdd_ctx:   pointer to hdd context.
+ * @bssid:    pointer to bssid of roamed AP.
+ * @req_rsn_ie:    pointer to request RSN IE
+ * @req_rsn_len:   length of the request RSN IE
+ * @rsp_rsn_ie:    pointer to response RSN IE
+ * @rsp_rsn_len:   length of the response RSN IE
+ * @roam_info: pointer to the roaming related information
+ *
+ * this routine includes a condition check before call
+ * wlan_hdd_send_roam_auth_event.
+ */
+static int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
+		uint8_t *bssid, uint8_t *req_rsn_ie,
+		uint32_t req_rsn_len, uint8_t *rsp_rsn_ie,
+		uint32_t rsp_rsn_len,
+		tCsrRoamInfo *roam_info)
+{
+	if (hdd_ctx->cfg_ini->isRoamOffloadEnabled &&
+	    roam_info->roamSynchInProgress)
+		wlan_hdd_send_roam_auth_event(hdd_ctx, bssid,
+					req_rsn_ie, req_rsn_len,
+					rsp_rsn_ie, rsp_rsn_len,
+					roam_info);
+	return 0;
+}
+/**
+ * hdd_is_roam_sync_in_progress()- Check if roam offloaded
+ *
+ * Return: roam sync status if roaming offloaded else false
+ */
+static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
+{
+	return roaminfo->roamSynchInProgress;
+}
+#else
+static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
+{
+	return false;
+}
+
+static inline int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
+		uint8_t *bssid, uint8_t *req_rsn_ie, uint32_t req_rsn_length,
+		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_length,
+		tCsrRoamInfo *roam_info)
+{
+	return 0;
+}
+#endif
+
 static void hdd_SendReAssocEvent(struct net_device *dev,
                                  hdd_adapter_t *pAdapter,
                                  tCsrRoamInfo *pCsrRoamInfo, v_U8_t *reqRsnIe,
@@ -1519,34 +1571,15 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
        final_req_ie, (ssid_ie_len + reqRsnLength),
        rspRsnIe, rspRsnLength, GFP_KERNEL);
 
-    if (pHddCtx->cfg_ini->isRoamOffloadEnabled &&
-        pCsrRoamInfo->roamSynchInProgress)
-        wlan_hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
-                                      reqRsnIe, reqRsnLength, rspRsnIe,
-                                      rspRsnLength, pCsrRoamInfo);
+    hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
+                    reqRsnIe, reqRsnLength, rspRsnIe,
+                    rspRsnLength, pCsrRoamInfo);
 done:
    sme_RoamFreeConnectProfile(hal_handle, &roam_profile);
    if (final_req_ie)
       vos_mem_free(final_req_ie);
    vos_mem_free(rspRsnIe);
 }
-
-/**
- * hdd_is_roam_sync_in_progress()- Check if roam offloaded
- *
- * Return: roam sync status if roaming offloaded else false
- */
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
-{
-	return roaminfo->roamSynchInProgress;
-}
-#else
-static inline bool hdd_is_roam_sync_in_progress(tCsrRoamInfo *roaminfo)
-{
-	return false;
-}
-#endif
 
 
 /**

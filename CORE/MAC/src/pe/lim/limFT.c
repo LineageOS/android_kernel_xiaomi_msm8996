@@ -830,7 +830,9 @@ void limFillFTSession(tpAniSirGlobal pMac,
    tSchBeaconStruct  *pBeaconStruct;
    tANI_U32          selfDot11Mode;
    ePhyChanBondState cbEnabledMode;
+#ifdef WLAN_FEATURE_11W
    VOS_STATUS vosStatus;
+#endif
 
    pBeaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
    if (NULL == pBeaconStruct) {

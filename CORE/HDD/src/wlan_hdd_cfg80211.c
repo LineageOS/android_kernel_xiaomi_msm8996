@@ -6681,6 +6681,104 @@ static int wlan_hdd_cfg80211_keymgmt_set_key(struct wiphy *wiphy,
 	return ret;
 }
 
+/**
+ * wlan_hdd_send_roam_auth_event() - Send the roamed and authorized event
+ * @hdd_ctx_ptr:   pointer to HDD Context.
+ * @bssid:    pointer to bssid of roamed AP.
+ * @req_rsn_ie:    Pointer to request RSN IE
+ * @req_rsn_len:   Length of the request RSN IE
+ * @rsp_rsn_ie:    Pointer to response RSN IE
+ * @rsp_rsn_len:   Length of the response RSN IE
+ * @roam_info_ptr: Pointer to the roaming related information
+ *
+ * This is called when wlan driver needs to send the roaming and
+ * authorization information after roaming.
+ *
+ * The information that would be sent is the request RSN IE, response
+ * RSN IE and BSSID of the newly roamed AP.
+ *
+ * If the Authorized status is authenticated, then additional parameters
+ * like PTK's KCK and KEK and Replay Counter would also be passed to the
+ * supplicant.
+ *
+ * The supplicant upon receiving this event would ignore the legacy
+ * cfg80211_roamed call and use the entire information from this event.
+ * The cfg80211_roamed should still co-exist since the kernel will
+ * make use of the parameters even if the supplicant ignores it.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
+		uint8_t *req_rsn_ie, uint32_t req_rsn_len,
+		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_len,
+		tCsrRoamInfo *roam_info_ptr)
+{
+	struct sk_buff *skb     = NULL;
+	ENTER();
+
+	if (wlan_hdd_validate_context(hdd_ctx_ptr))
+		return -EINVAL;
+
+	skb = cfg80211_vendor_event_alloc(hdd_ctx_ptr->wiphy,
+			NULL,
+			ETH_ALEN + req_rsn_len + rsp_rsn_len +
+			sizeof(uint8) + SIR_REPLAY_CTR_LEN +
+			SIR_KCK_KEY_LEN + SIR_KCK_KEY_LEN +
+			(7 * NLMSG_HDRLEN),
+			QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX,
+			GFP_KERNEL);
+
+	if (!skb) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("cfg80211_vendor_event_alloc failed"));
+		return -EINVAL;
+	}
+
+	if (nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_BSSID,
+				ETH_ALEN, bssid) ||
+		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_REQ_IE,
+			req_rsn_len, req_rsn_ie) ||
+		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_RESP_IE,
+			rsp_rsn_len, rsp_rsn_ie)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+		goto nla_put_failure;
+	}
+	hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Auth Status = %d"),
+			roam_info_ptr->synchAuthStatus);
+	if (roam_info_ptr->synchAuthStatus ==
+			CSR_ROAM_AUTH_STATUS_AUTHENTICATED) {
+		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Include Auth Params TLV's"));
+		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
+					TRUE) ||
+			nla_put(skb,
+				QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_KEY_REPLAY_CTR,
+				SIR_REPLAY_CTR_LEN, roam_info_ptr->replay_ctr)
+			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KCK,
+				SIR_KCK_KEY_LEN, roam_info_ptr->kck)
+			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KEK,
+				SIR_KEK_KEY_LEN, roam_info_ptr->kek)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+			goto nla_put_failure;
+		}
+	} else {
+		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("No Auth Params TLV's"));
+		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
+					FALSE)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
+			goto nla_put_failure;
+		}
+	}
+
+	cfg80211_vendor_event(skb, GFP_KERNEL);
+	return 0;
+
+nla_put_failure:
+	kfree_skb(skb);
+	return -EINVAL;
+}
+
+#endif
+
 static const struct
 nla_policy
 qca_wlan_vendor_get_wifi_info_policy[
@@ -6909,105 +7007,6 @@ wlan_hdd_cfg80211_get_logger_supp_feature(struct wiphy *wiphy,
 
 	return ret;
 }
-
-/**
- * wlan_hdd_send_roam_auth_event() - Send the roamed and authorized event
- * @hdd_ctx_ptr:   pointer to HDD Context.
- * @bssid:    pointer to bssid of roamed AP.
- * @req_rsn_ie:    Pointer to request RSN IE
- * @req_rsn_len:   Length of the request RSN IE
- * @rsp_rsn_ie:    Pointer to response RSN IE
- * @rsp_rsn_len:   Length of the response RSN IE
- * @roam_info_ptr: Pointer to the roaming related information
- *
- * This is called when wlan driver needs to send the roaming and
- * authorization information after roaming.
- *
- * The information that would be sent is the request RSN IE, response
- * RSN IE and BSSID of the newly roamed AP.
- *
- * If the Authorized status is authenticated, then additional parameters
- * like PTK's KCK and KEK and Replay Counter would also be passed to the
- * supplicant.
- *
- * The supplicant upon receiving this event would ignore the legacy
- * cfg80211_roamed call and use the entire information from this event.
- * The cfg80211_roamed should still co-exist since the kernel will
- * make use of the parameters even if the supplicant ignores it.
- *
- * Return:   Return the Success or Failure code.
- */
-int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,
-		uint8_t *req_rsn_ie, uint32_t req_rsn_len,
-		uint8_t *rsp_rsn_ie, uint32_t rsp_rsn_len,
-		tCsrRoamInfo *roam_info_ptr)
-{
-	struct sk_buff *skb     = NULL;
-	ENTER();
-
-	if (wlan_hdd_validate_context(hdd_ctx_ptr))
-		return -EINVAL;
-
-	skb = cfg80211_vendor_event_alloc(hdd_ctx_ptr->wiphy,
-			NULL,
-			ETH_ALEN + req_rsn_len + rsp_rsn_len +
-			sizeof(uint8) + SIR_REPLAY_CTR_LEN +
-			SIR_KCK_KEY_LEN + SIR_KCK_KEY_LEN +
-			(7 * NLMSG_HDRLEN),
-			QCA_NL80211_VENDOR_SUBCMD_KEY_MGMT_ROAM_AUTH_INDEX,
-			GFP_KERNEL);
-
-	if (!skb) {
-		hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("cfg80211_vendor_event_alloc failed"));
-		return -EINVAL;
-	}
-
-	if (nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_BSSID,
-				ETH_ALEN, bssid) ||
-		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_REQ_IE,
-			req_rsn_len, req_rsn_ie) ||
-		nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_RESP_IE,
-			rsp_rsn_len, rsp_rsn_ie)) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-		goto nla_put_failure;
-	}
-	hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Auth Status = %d"),
-			roam_info_ptr->synchAuthStatus);
-	if (roam_info_ptr->synchAuthStatus ==
-			CSR_ROAM_AUTH_STATUS_AUTHENTICATED) {
-		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Include Auth Params TLV's"));
-		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
-					TRUE) ||
-			nla_put(skb,
-				QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_KEY_REPLAY_CTR,
-				SIR_REPLAY_CTR_LEN, roam_info_ptr->replay_ctr)
-			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KCK,
-				SIR_KCK_KEY_LEN, roam_info_ptr->kck)
-			|| nla_put(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_PTK_KEK,
-				SIR_KEK_KEY_LEN, roam_info_ptr->kek)) {
-			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-			goto nla_put_failure;
-		}
-	} else {
-		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("No Auth Params TLV's"));
-		if (nla_put_u8(skb, QCA_WLAN_VENDOR_ATTR_ROAM_AUTH_AUTHORIZED,
-					FALSE)) {
-			hddLog(VOS_TRACE_LEVEL_ERROR, FL("nla put fail"));
-			goto nla_put_failure;
-		}
-	}
-
-	cfg80211_vendor_event(skb, GFP_KERNEL);
-	return 0;
-
-nla_put_failure:
-	kfree_skb(skb);
-	return -EINVAL;
-}
-
-
-#endif
 
 #ifdef FEATURE_WLAN_TDLS
 /* EXT TDLS */
@@ -10524,19 +10523,13 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 	hddLog(LOG1, "wow_ipv6_mcast_na_stats %d",
 			data->wow_ipv6_mcast_na_stats);
 	hddLog(LOG1, "wow_icmpv4_count %d", data->wow_icmpv4_count);
-	hddLog(LOG1, "wow_icmpv6_uc_bc_count %d", data->wow_icmpv6_uc_bc_count);
+	hddLog(LOG1, "wow_icmpv6_count %d", data->wow_icmpv6_count);
 
 	ipv6_rx_multicast_addr_cnt =
-		data->wow_ipv6_mcast_wake_up_count +
-		data->wow_ipv6_mcast_ra_stats +
-		data->wow_ipv6_mcast_ns_stats +
-		data->wow_ipv6_mcast_na_stats;
+		data->wow_ipv6_mcast_wake_up_count;
 
 	icmpv6_cnt =
-		data->wow_icmpv6_uc_bc_count +
-		data->wow_ipv6_mcast_ra_stats +
-		data->wow_ipv6_mcast_ns_stats +
-		data->wow_ipv6_mcast_na_stats;
+		data->wow_icmpv6_count;
 
 	rx_multicast_cnt =
 		data->wow_ipv4_mcast_wake_up_count +
@@ -11710,24 +11703,23 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 				 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_dcc_update_ndl
 	},
-    {
-        .info.vendor_id = QCA_NL80211_VENDOR_ID,
-        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET,
-        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
-                 WIPHY_VENDOR_CMD_NEED_NETDEV |
-                 WIPHY_VENDOR_CMD_NEED_RUNNING,
-        .doit = wlan_hdd_cfg80211_get_logger_supp_feature
-    },
-
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_LOGGER_FEATURE_SET,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV |
+			WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_get_logger_supp_feature
+	},
 #ifdef WLAN_FEATURE_MEMDUMP
-    {
-        .info.vendor_id = QCA_NL80211_VENDOR_ID,
-        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP,
-        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
-                 WIPHY_VENDOR_CMD_NEED_NETDEV |
-                 WIPHY_VENDOR_CMD_NEED_RUNNING,
-        .doit = wlan_hdd_cfg80211_get_fw_mem_dump
-    },
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+			WIPHY_VENDOR_CMD_NEED_NETDEV |
+			WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_get_fw_mem_dump
+	},
 #endif /* WLAN_FEATURE_MEMDUMP */
 	{
 		.info.vendor_id = QCA_NL80211_VENDOR_ID,
@@ -12198,12 +12190,34 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 void wlan_hdd_update_wiphy(struct wiphy *wiphy,
                            hdd_context_t *ctx)
 {
+    uint32_t val32;
+    uint16_t val16;
+    tSirMacHTCapabilityInfo *ht_cap_info;
+    eHalStatus status;
+
     wiphy->max_ap_assoc_sta = ctx->max_peers;
     if (!sme_IsFeatureSupportedByFW(DOT11AC)) {
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
        wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.cap = 0;
        wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.vht_supported = 0;
        wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.cap = 0;
+    }
+
+    status = ccmCfgGetInt(ctx->hHal, WNI_CFG_HT_CAP_INFO, &val32);
+    if (eHAL_STATUS_SUCCESS != status) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get HT capability info",
+                  __func__);
+        val32 = 0;
+    }
+    val16 = (uint16_t)val32;
+    ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
+
+    if (ht_cap_info->txSTBC == TRUE) {
+        wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
+						IEEE80211_HT_CAP_TX_STBC;
+        wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+						IEEE80211_HT_CAP_TX_STBC;
     }
 }
 
@@ -16642,9 +16656,14 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
                            0,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && !defined(WITH_BACKPORTS) \
      && !defined(IEEE80211_PRIVACY)
-                           WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS,
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS);
 #else
-                           IEEE80211_BSS_TYPE_ESS, IEEE80211_PRIVACY_ANY);
+                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
+                               IEEE80211_BSS_TYPE_IBSS : IEEE80211_BSS_TYPE_ESS,
+                           IEEE80211_PRIVACY_ANY);
 #endif
     if (bss == NULL) {
         hddLog(LOGE, FL("BSS not present"));
@@ -18081,6 +18100,37 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
  */
 #define WLAN_HDD_CONNECTION_TIME (30 * 1000)
 
+#ifdef WLAN_FEATURE_11W
+/**
+ * wlan_hdd_cfg80211_check_pmf_valid() - check if pmf status is ok
+ * @ wext_state: pointer to wireless extension
+ *
+ * This routine is called when connecting, according to check result,
+ * host will decide drop the connect request or not.
+ *
+ * Return: 0 if check result is valid, otherwise return error code
+ */
+static int wlan_hdd_cfg80211_check_pmf_valid(hdd_wext_state_t *wext_state)
+{
+	if (wext_state->roamProfile.MFPEnabled &&
+	    !(wext_state->roamProfile.MFPRequired ||
+	    wext_state->roamProfile.MFPCapable)) {
+		hddLog(LOGE, FL("Drop connect req as supplicant has indicated PMF required for the non-PMF peer. MFPEnabled %d MFPRequired %d MFPCapable %d"),
+				wext_state->roamProfile.MFPEnabled,
+				wext_state->roamProfile.MFPRequired,
+				wext_state->roamProfile.MFPCapable);
+		return -EINVAL;
+	}
+	return 0;
+}
+#else
+static inline
+int wlan_hdd_cfg80211_check_pmf_valid(hdd_wext_state_t *wext_state)
+{
+	return 0;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_connect_start
  * This function is used to start the association process
@@ -18271,14 +18321,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
          * or pmf=2 is an explicit configuration in the supplicant
          * configuration, drop the connection request.
          */
-         if (pWextState->roamProfile.MFPEnabled &&
-            !(pWextState->roamProfile.MFPRequired ||
-            pWextState->roamProfile.MFPCapable)) {
-             hddLog(LOGE,
-                FL("Drop connect req as supplicant has indicated PMF required for the non-PMF peer. MFPEnabled %d MFPRequired %d MFPCapable %d"),
-                pWextState->roamProfile.MFPEnabled,
-                pWextState->roamProfile.MFPRequired,
-                pWextState->roamProfile.MFPCapable);
+        if (wlan_hdd_cfg80211_check_pmf_valid(pWextState) != 0) {
              return -EINVAL;
         }
         /*
@@ -18376,6 +18419,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
     EXIT();
     return status;
 }
+
 
 /*
  * FUNCTION: wlan_hdd_set_cfg80211_auth_type
@@ -19421,7 +19465,6 @@ static const char *hdd_ieee80211_reason_code_to_str(uint16_t reason)
 		return "Unknown";
 	}
 }
-
 /*
  * FUNCTION: __wlan_hdd_cfg80211_disconnect
  * This function is used to issue a disconnect request to SME
@@ -19827,6 +19870,7 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     tCsrRoamProfile *pRoamProfile;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int status;
     eHalStatus hal_status;
     tSirUpdateIE updateIE;
@@ -19873,6 +19917,13 @@ static int __wlan_hdd_cfg80211_leave_ibss(struct wiphy *wiphy,
             &updateIE, eUPDATE_IE_PROBE_BCN) == eHAL_STATUS_FAILURE) {
          hddLog(LOGE, FL("Could not pass on PROBE_RSP_BCN data to PE"));
     }
+
+    /* Delete scan cache in cfg80211 and remove BSSID from SME
+     * scan list
+     */
+    hddLog(LOG1, FL("clear scan cache in kernel cfg80211"));
+    wlan_hdd_cfg80211_update_bss_list(pAdapter, pWextState->req_bssId);
+    sme_remove_bssid_from_scan_list(hHal, pWextState->req_bssId );
 
     /* Reset WNI_CFG_PROBE_RSP Flags */
     wlan_hdd_reset_prob_rspies(pAdapter);
