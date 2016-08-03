@@ -356,10 +356,10 @@ void vos_pkt_trace_buf_dump
       spin_unlock_bh(&trace_buffer_lock);
       return;
    }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP START Current Timestamp %u",
               (unsigned int)vos_timer_get_system_time());
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "ORDER :          RTC TIME :    EVT");
 
    if (VOS_PKT_TRAC_MAX_TRACE_BUF > trace_buffer_order)
@@ -369,7 +369,7 @@ void vos_pkt_trace_buf_dump
          local_time = (u32)(trace_buffer[slot].event_sec_time -
                          (sys_tz.tz_minuteswest * 60));
          rtc_time_to_tm(local_time, &tm);
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                    "%5d : [%02d:%02d:%02d.%06lu] : %s",
                    trace_buffer[slot].order,
                    tm.tm_hour, tm.tm_min, tm.tm_sec,
@@ -382,19 +382,19 @@ void vos_pkt_trace_buf_dump
       for (idx = 0 ; idx < VOS_PKT_TRAC_MAX_TRACE_BUF; idx++)
       {
          slot = (trace_buffer_order + idx) % VOS_PKT_TRAC_MAX_TRACE_BUF;
-         local_time = (u32)(trace_buffer[slot].event_msec_time -
+         local_time = (u32)(trace_buffer[slot].event_sec_time -
                          (sys_tz.tz_minuteswest * 60));
          rtc_time_to_tm(local_time, &tm);
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                    "%5d : [%02d:%02d:%02d.%06lu] : %s",
                    trace_buffer[slot].order,
                    tm.tm_hour, tm.tm_min, tm.tm_sec,
-                   trace_buffer[slot].event_msec_time,
+                   trace_buffer[slot].event_sec_time,
                    trace_buffer[slot].event_string);
       }
    }
 
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP END");
    spin_unlock_bh(&trace_buffer_lock);
 
