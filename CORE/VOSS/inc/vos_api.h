@@ -376,5 +376,5 @@ void vos_set_fatal_event(bool value);
 void vos_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data);
 int vos_get_radio_index(void);
 int vos_set_radio_index(int radio_index);
-
+void vos_svc_fw_shutdown_ind(struct device *dev);
 #endif // if !defined __VOS_API_H

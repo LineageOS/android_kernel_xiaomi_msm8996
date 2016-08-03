@@ -3064,3 +3064,15 @@ int vos_set_radio_index(int radio_index)
 	gpVosContext->radio_index = radio_index;
 	return 0;
 }
+
+/**
+ * vos_svc_fw_shutdown_ind() - API to send userspace about FW crash
+ *
+ * @data: Device Pointer
+ *
+ * Return: None
+*/
+void vos_svc_fw_shutdown_ind(struct device *dev)
+{
+	hdd_svc_fw_shutdown_ind(dev);
+}

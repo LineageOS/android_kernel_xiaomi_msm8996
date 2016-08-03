@@ -1946,6 +1946,31 @@ static void hdd_ssr_timer_start(int msec)
     ssr_timer_started = true;
 }
 
+/**
+ * hdd_svc_fw_shutdown_ind() - API to send FW SHUTDOWN IND to Userspace
+ *
+ * @dev: Device Pointer
+ *
+ * Return: None
+ */
+void hdd_svc_fw_shutdown_ind(struct device *dev)
+{
+	v_CONTEXT_t g_context;
+	hdd_context_t *hdd_ctx;
+
+	g_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if(!g_context)
+		return;
+
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   g_context);
+
+	hdd_ctx ? wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+					      WLAN_SVC_FW_SHUTDOWN_IND,
+					      NULL, 0) : 0;
+}
+
 /* the HDD interface to WLAN driver shutdown,
  * the primary shutdown function in SSR
  */
