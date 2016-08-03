@@ -878,6 +878,7 @@ static void hif_pci_pm_work(struct work_struct *work)
 	msg_callbacks->txResumeAllHandler(msg_callbacks->Context);
 }
 
+#ifdef WLAN_OPEN_SOURCE
 static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 {
 #define HIF_PCI_AUTOPM_STATS(_s, _sc, _name) \
@@ -1126,6 +1127,52 @@ static ssize_t hif_pci_autopm_write(struct file *fp, const char __user *buf,
 	adf_os_mem_free(pattern);
 	return count;
 }
+#else
+#define HIF_ENABLE_AUTO_PM	1
+#define HIF_DISABLE_AUTO_PM	0
+static bool dynamic_auto_pm_state = HIF_ENABLE_AUTO_PM;
+
+static ssize_t hif_pci_enable_disable_autopm(struct file *fp, const char __user
+					     *buf, size_t count, loff_t *off)
+{
+	int enable_auto_pm;
+	struct seq_file *s;
+	struct hif_pci_softc *hif_sc;
+	int ret;
+	struct hif_pm_runtime_context *ctx;
+	struct ol_softc *sc;
+
+	s = (struct seq_file *)fp->private_data;
+	hif_sc = s->private;
+
+	if (!hif_sc)
+		return -EINVAL;
+
+	sscanf(buf, "%d", &enable_auto_pm);
+
+	if ((enable_auto_pm != HIF_ENABLE_AUTO_PM) && (enable_auto_pm !=
+	    HIF_DISABLE_AUTO_PM)) {
+		pr_err("%s: I/P is invalid:%d Valid: Enable(1), Disable(0)\n",
+		       __func__, enable_auto_pm);
+		return -EINVAL;
+	}
+
+	ctx = hif_sc->dynamic_ctx;
+	sc = hif_sc->ol_sc;
+
+	ret = enable_auto_pm ? hif_pm_runtime_allow_suspend(sc, ctx) :
+		hif_pm_runtime_prevent_suspend(sc, ctx);
+
+	if (ret)
+		return ret;
+
+	pr_info("%s: enable_auto_pm:%d ret:%d \n", __func__, enable_auto_pm,
+		ret);
+
+	dynamic_auto_pm_state = enable_auto_pm;
+
+	return count;
+}
 #endif
 
 static const struct file_operations hif_pci_autopm_fops = {
@@ -1136,8 +1183,11 @@ static const struct file_operations hif_pci_autopm_fops = {
 	.llseek		= seq_lseek,
 #ifdef FEATURE_RUNTIME_PM_UNIT_TEST
 	.write		= hif_pci_autopm_write,
+#else
+	.write		= hif_pci_enable_disable_autopm,
 #endif
 };
+#endif /*WLAN_OPEN_SOURCE*/
 
 static int __hif_pci_runtime_suspend(struct pci_dev *pdev)
 {
@@ -1323,14 +1373,38 @@ struct cnss_wlan_runtime_ops runtime_pm_ops = {
 };
 
 #ifdef WLAN_OPEN_SOURCE
+#ifdef FEATURE_RUNTIME_PM_UNIT_TEST
+static void hif_dynamic_auto_pm_init(struct hif_pci_softc *sc)
+{
+}
+static void hif_dynaic_auto_pm_deinit(struct hif_pci_softc *sc)
+{
+}
+#else /* else FEATURE_RUNTIME_PM_UNIT_TEST */
+static void hif_dynamic_auto_pm_init(struct hif_pci_softc *sc)
+{
+	sc->dynamic_ctx = hif_runtime_pm_prevent_suspend_init("dynamic_ctx");
+
+	if (!dynamic_auto_pm_state)
+		hif_pm_runtime_prevent_suspend(sc->ol_sc, sc->dynamic_ctx);
+}
+static void hif_dynaic_auto_pm_deinit(struct hif_pci_softc *sc)
+{
+	hif_runtime_pm_prevent_suspend_deinit(sc->dynamic_ctx);
+}
+#endif /* END FEATURE_RUNTIME_PM_UNIT_TEST */
+
 static inline void hif_pci_pm_debugfs(struct hif_pci_softc *sc, bool init)
 {
-	if (init)
+	if (init) {
 		sc->pm_dentry = debugfs_create_file("cnss_runtime_pm",
 						S_IRUSR, NULL, sc,
 						&hif_pci_autopm_fops);
-	else
+		hif_dynamic_auto_pm_init(sc);
+	} else {
+		hif_dynaic_auto_pm_deinit(sc);
 		debugfs_remove(sc->pm_dentry);
+	}
 }
 #else
 static inline void hif_pci_pm_debugfs(struct hif_pci_softc *sc, bool init)
