@@ -1621,7 +1621,6 @@ void hdd_ipa_uc_loaded_uc_cb(void *priv_ctxt)
 	return;
 }
 
-#define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
 static void hdd_ipa_uc_op_cb(struct op_msg_type *op_msg, void *usr_ctxt)
 {
 	struct op_msg_type *msg = op_msg;

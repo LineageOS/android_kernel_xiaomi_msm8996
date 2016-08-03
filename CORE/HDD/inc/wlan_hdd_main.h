@@ -264,6 +264,8 @@
 
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
+#define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
+
 /*
  * Generic asynchronous request/response support
  *

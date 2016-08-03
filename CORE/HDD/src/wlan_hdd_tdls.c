@@ -395,6 +395,12 @@ static v_VOID_t wlan_hdd_tdls_discovery_timeout_peer_cb(v_PVOID_t userData)
                            "%s: " MAC_ADDRESS_STR " to idle state", __func__,
                            MAC_ADDR_ARRAY(tmp->peerMac));
                 mutex_unlock(&pHddCtx->tdls_lock);
+                if (tmp->discovery_attempt ==
+                         pHddTdlsCtx->threshold_config.discovery_tries_n) {
+                    tmp->discovery_attempt = 0;
+                    tmp->discovery_cycles_retry_cnt++;
+                    tmp->last_discovery_req_cycle_ts = jiffies;
+                }
                 wlan_hdd_tdls_set_peer_link_status(tmp,
                                                    eTDLS_LINK_IDLE,
                                                    eTDLS_LINK_NOT_SUPPORTED);
@@ -573,6 +579,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
                     tmp->reason = eTDLS_LINK_UNSPECIFIED;
                     tmp->staId = 0;
                     tmp->discovery_attempt = 0;
+                    tmp->discovery_cycles_retry_cnt = 0;
                 }
             }
         }
@@ -1034,6 +1041,7 @@ void wlan_hdd_tdls_set_peer_link_status(hddTdlsPeer_t *curr_peer,
     if (status >= eTDLS_LINK_DISCOVERED)
     {
         curr_peer->discovery_attempt = 0;
+        curr_peer->discovery_cycles_retry_cnt = 0;
     }
 
     mutex_unlock(&pHddCtx->tdls_lock);
@@ -1091,6 +1099,7 @@ void wlan_hdd_tdls_set_link_status(hdd_adapter_t *pAdapter,
     if (linkStatus >= eTDLS_LINK_DISCOVERED)
     {
         curr_peer->discovery_attempt = 0;
+        curr_peer->discovery_cycles_retry_cnt = 0;
     }
 
     mutex_unlock(&pHddCtx->tdls_lock);
@@ -2525,14 +2534,19 @@ void wlan_hdd_tdls_implicit_send_discovery_request(tdlsCtx_t * pHddTdlsCtx)
      */
     if (FALSE == curr_peer->isForcedPeer)
     {
-        if (curr_peer->discovery_attempt >=
-            pHddTdlsCtx->threshold_config.discovery_tries_n)
-        {
+        if ((curr_peer->discovery_cycles_retry_cnt >=
+                        MAX_TDLS_DISCOVERY_CYCLE_RETRIES) ||
+            ((curr_peer->discovery_cycles_retry_cnt != 0) &&
+             (curr_peer->discovery_cycles_retry_cnt <
+                        MAX_TDLS_DISCOVERY_CYCLE_RETRIES) &&
+             (adf_os_ticks_to_msecs(HDD_BW_GET_DIFF(jiffies,
+                        curr_peer->last_discovery_req_cycle_ts)) <=
+                        MIN_TDLS_DISCOVERY_CYCLE_RETRY_TIME))) {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                      "%s: discovery attempt (%d) reached max (%d) for peer "
+                      "%s: discovery attempt (%d), discovery cycle retry count (%d) for peer "
                       MAC_ADDRESS_STR ", ignore discovery trigger from fw",
                       __func__, curr_peer->discovery_attempt,
-                      pHddTdlsCtx->threshold_config.discovery_tries_n,
+                      curr_peer->discovery_cycles_retry_cnt,
                       MAC_ADDR_ARRAY(curr_peer->peerMac));
             curr_peer->tdls_support = eTDLS_CAP_NOT_SUPPORTED;
             /* Since TDLS discovery attempt reached the
