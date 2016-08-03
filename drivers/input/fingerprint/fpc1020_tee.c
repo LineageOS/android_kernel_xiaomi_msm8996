@@ -444,10 +444,8 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	** since this is interrupt context (other thread...) */
 	smp_rmb();
 
-	if (fpc1020->wakeup_enabled) {
+	if (fpc1020->wakeup_enabled && !fpc1020->screen_on)
 		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
-		dev_dbg(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
-	}
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
