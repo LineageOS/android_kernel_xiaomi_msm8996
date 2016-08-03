@@ -79,6 +79,9 @@ should not be more than 2000 */
 
 #define TDLS_PEER_LIST_SIZE   256
 
+#define MAX_TDLS_DISCOVERY_CYCLE_RETRIES      2
+#define MIN_TDLS_DISCOVERY_CYCLE_RETRY_TIME  (5 * 60 * 1000)    /* 5 minutes */
+
 typedef struct
 {
     tANI_U32    tdls;
@@ -274,6 +277,8 @@ typedef struct _hddTdlsPeer_t {
     /* EXT TDLS */
     tTDLSLinkReason reason;
     cfg80211_exttdls_callback state_change_notification;
+    uint8_t     discovery_cycles_retry_cnt;
+    uint64_t    last_discovery_req_cycle_ts;
 } hddTdlsPeer_t;
 
 typedef struct {
