@@ -1502,6 +1502,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 		return;
 
 #if  defined(CONFIG_CNSS) || defined(HIF_SDIO)
+	vos_svc_fw_shutdown_ind(scn->adf_dev->dev);
 	/* Collect the RAM dump through a workqueue */
 	if (scn->enableRamdumpCollection)
 		ol_schedule_ramdump_work(scn);
