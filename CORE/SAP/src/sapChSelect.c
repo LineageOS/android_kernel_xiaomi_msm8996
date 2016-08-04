@@ -674,6 +674,9 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle,
         {
             continue;
         }
+        /* Skip DSRC channels */
+        if (vos_is_dsrc_channel(vos_chan_to_freq(*pChans)))
+            continue;
 
         if (VOS_TRUE == chSafe)
         {
