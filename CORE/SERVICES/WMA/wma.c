@@ -30303,7 +30303,7 @@ static VOS_STATUS wma_update_short_retry_limit(tp_wma_handle wma,
 		struct sme_short_retry_limit *short_retry_limit_th)
 {
 	u_int8_t vdev_id;
-	u_int32_t short_retry_limit;
+	u_int8_t short_retry_limit;
 	int ret = -EIO;
 
 	if (!wma || !wma->wmi_handle) {
@@ -30342,7 +30342,7 @@ static VOS_STATUS wma_update_long_retry_limit(tp_wma_handle wma,
 		struct sme_long_retry_limit  *long_retry_limit_th)
 {
 	u_int8_t vdev_id;
-	u_int32_t long_retry_limit;
+	u_int8_t long_retry_limit;
 	int ret = -EIO;
 
 	if (!wma || !wma->wmi_handle) {
@@ -30351,7 +30351,7 @@ static VOS_STATUS wma_update_long_retry_limit(tp_wma_handle wma,
 	}
 	vdev_id = long_retry_limit_th->session_id;
 	long_retry_limit = long_retry_limit_th->long_retry_limit;
-	WMA_LOGD("Set TX pkt fail count threshold  vdevId %d count %d",
+	WMA_LOGD("Set long retry limit threshold vdevId %d count %d",
 			vdev_id, long_retry_limit);
 
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
