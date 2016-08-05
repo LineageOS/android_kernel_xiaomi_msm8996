@@ -944,7 +944,7 @@ void limFillFTSession(tpAniSirGlobal pMac,
          limGetIElenFromBssDescription(pbssDescription),
          &pftSessionEntry->limCurrentBssQosCaps,
          &pftSessionEntry->limCurrentBssPropCap,
-         &currentBssUapsd , &localPowerConstraint, psessionEntry);
+         &currentBssUapsd , &localPowerConstraint, pftSessionEntry);
 
    pftSessionEntry->limReassocBssQosCaps =
       pftSessionEntry->limCurrentBssQosCaps;
