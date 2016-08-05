@@ -1805,6 +1805,30 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	return VOS_STATUS_SUCCESS;
 }
 
+void tl_shim_flush_cache_rx_queue(void)
+{
+    void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+    struct txrx_tl_shim_ctx *tl_shim;
+    u_int8_t sta_id;
+
+    if (!vos_ctx) {
+        TLSHIM_LOGE("%s, Global VOS context is Null\n", __func__);
+        return;
+    }
+
+    tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+    if (!tl_shim) {
+        TLSHIM_LOGE("%s, tl_shim is NULL\n", __func__);
+        return;
+    }
+
+    TLSHIM_LOGD("%s: called to flush cache rx queue.\n", __func__);
+    for (sta_id = 0; sta_id < WLAN_MAX_STA_COUNT; sta_id++)
+        tl_shim_flush_rx_frames(vos_ctx, tl_shim, sta_id, 1);
+
+    return;
+}
+
 /*
  * Register a station for data service. This API gives flexibility
  * to register different callbacks for different client though it is
