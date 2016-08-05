@@ -384,7 +384,7 @@ dfs_attach(struct ieee80211com *ic)
       if (!(dfs->dfs_dc_radarf[n])) {
          DFS_PRINTK("%s: cannot allocate memory for dc radar filter types\n",
             __func__);
-         goto bad1;
+         goto bad4;
       }
       vos_mem_zero(dfs->dfs_dc_radarf[n], sizeof(struct dfs_filtertype));
       if (0 != dfs_alloc_mem_filter(dfs->dfs_dc_radarf[n]))
