@@ -466,9 +466,9 @@ dfs_attach(struct ieee80211com *ic)
     return 0;
 
 bad3:
-    if (!(dfs->dfs_dc_radartable)) {
+    if (dfs->dfs_dc_radartable) {
        for (n = 0; n < DFS_MAX_RADAR_TYPES; n++) {
-          if (!(dfs->dfs_dc_radartable[n])) {
+          if (dfs->dfs_dc_radartable[n]) {
              OS_FREE(dfs->dfs_dc_radartable[n]);
              dfs->dfs_dc_radartable[n] = NULL;
           }
@@ -489,7 +489,7 @@ bad2:
     }
 bad4:
     for (n = 0; n < DFS_MAX_RADAR_TYPES; n++) {
-        if (!(dfs->dfs_dc_radarf[n])) {
+        if (dfs->dfs_dc_radarf[n]) {
          dfs_free_filter(dfs->dfs_dc_radarf[n]);
          OS_FREE(dfs->dfs_dc_radarf[n]);
          dfs->dfs_dc_radarf[n] = NULL;
@@ -584,7 +584,7 @@ dfs_detach(struct ieee80211com *ic)
       }
    }
    for (n = 0; n < DFS_MAX_RADAR_TYPES; n++) {
-      if (!(dfs->dfs_dc_radarf[n])) {
+      if (dfs->dfs_dc_radarf[n]) {
          dfs_free_filter(dfs->dfs_dc_radarf[n]);
          OS_FREE(dfs->dfs_dc_radarf[n]);
          dfs->dfs_dc_radarf[n] = NULL;
@@ -607,9 +607,9 @@ dfs_detach(struct ieee80211com *ic)
 #endif
    }
 
-   if (!(dfs->dfs_dc_radartable)) {
+   if (dfs->dfs_dc_radartable) {
       for (n = 0; n < DFS_MAX_RADAR_TYPES; n++) {
-         if (!(dfs->dfs_dc_radartable[n])) {
+         if (dfs->dfs_dc_radartable[n]) {
             OS_FREE(dfs->dfs_dc_radartable[n]);
             dfs->dfs_dc_radartable[n] = NULL;
          }
