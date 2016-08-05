@@ -2060,6 +2060,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vos_free_tlshim_pkt_freeq(vosSchedContext);
 #endif
 
+   tl_shim_flush_cache_rx_queue();
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing WDA STOP", __func__);
    vosStatus = WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
