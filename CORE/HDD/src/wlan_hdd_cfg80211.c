@@ -784,6 +784,11 @@ enum wlan_hdd_tm_cmd
 
 #define WLAN_HDD_TM_DATA_MAX_LEN    5000
 
+enum wlan_hdd_vendor_ie_access_policy {
+	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
+	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
+};
+
 static const struct nla_policy wlan_hdd_tm_policy[WLAN_HDD_TM_ATTR_MAX + 1] =
 {
     [WLAN_HDD_TM_ATTR_CMD]        = { .type = NLA_U32 },
@@ -8467,6 +8472,10 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	struct sir_set_tx_rx_aggregation_size request;
 	VOS_STATUS vos_status;
 	uint32_t tx_fail_count;
+	int attr_len;
+	int access_policy = 0;
+	char vendor_ie[SIR_MAC_MAX_IE_LENGTH + 2];
+	bool vendor_ie_present = false, access_policy_present = false;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8661,6 +8670,61 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			}
 		}
 	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST]) {
+		vos_mem_zero(&vendor_ie[0], SIR_MAC_MAX_IE_LENGTH + 2);
+		attr_len = nla_len(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST]);
+		if (attr_len < 0 || attr_len > SIR_MAC_MAX_IE_LENGTH + 2) {
+			hddLog(LOGE, FL("Invalid value. attr_len %d"),
+					attr_len);
+			return -EINVAL;
+		}
+
+		nla_memcpy(&vendor_ie,
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST],
+			attr_len);
+		vendor_ie_present = true;
+		hddLog(LOG1, FL("Access policy vendor ie present.attr_len %d"),
+				attr_len);
+		vos_trace_hex_dump(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+				&vendor_ie[0], attr_len);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY]) {
+		access_policy = (int) nla_get_u32(
+				tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY]);
+		if ((access_policy < QCA_ACCESS_POLICY_ACCEPT_UNLESS_LISTED) ||
+			(access_policy > QCA_ACCESS_POLICY_DENY_UNLESS_LISTED)){
+			hddLog(LOGE, FL("Invalid value. access_policy %d"),
+					access_policy);
+			return -EINVAL;
+		}
+		access_policy_present = true;
+		hddLog(LOG1, FL("Access policy present. access_policy %d"),
+				access_policy);
+	}
+
+	if (vendor_ie_present && access_policy_present) {
+		if (access_policy == QCA_ACCESS_POLICY_DENY_UNLESS_LISTED) {
+			access_policy =
+				WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED;
+		}
+		else {
+			access_policy = WLAN_HDD_VENDOR_IE_ACCESS_NONE;
+		}
+
+		hddLog(LOG1, FL("calling sme_update_access_policy_vendor_ie"));
+		status = sme_update_access_policy_vendor_ie(pHddCtx->hHal,
+				pAdapter->sessionId, &vendor_ie[0],
+				access_policy);
+		if (status == eHAL_STATUS_FAILURE) {
+			hddLog(LOGE, FL(
+				"Failed to set vendor ie and access policy."));
+			return -EINVAL;
+		}
+	}
+
 	return ret_val;
 }
 
