@@ -1247,13 +1247,11 @@ wmi_unified_detach(struct wmi_unified* wmi_handle)
 	wmi_buf_t buf;
 
 	vos_flush_work(&wmi_handle->rx_event_work);
-	adf_os_spin_lock_bh(&wmi_handle->eventq_lock);
 	buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
 	while (buf) {
 		adf_nbuf_free(buf);
 		buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
 	}
-	adf_os_spin_unlock_bh(&wmi_handle->eventq_lock);
 
 	OS_FREE(wmi_handle);
 }
