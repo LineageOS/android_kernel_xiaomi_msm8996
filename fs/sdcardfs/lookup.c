@@ -86,6 +86,14 @@ static int sdcardfs_inode_set(struct inode *inode, void *lower_inode)
 	return 0;
 }
 
+struct inode *sdcardfs_ilookup(struct super_block *sb, struct inode *lower_inode, userid_t id)
+{
+       struct inode_data data;
+       data.id = id;
+       data.lower_inode = lower_inode;
+       return ilookup5(sb, lower_inode->i_ino, sdcardfs_inode_test, &data);
+}
+
 struct inode *sdcardfs_iget(struct super_block *sb, struct inode *lower_inode, userid_t id)
 {
 	struct sdcardfs_inode_info *info;

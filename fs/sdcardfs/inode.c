@@ -360,6 +360,99 @@ out_eacces:
 	return err;
 }
 
+static void remove_others(struct sdcardfs_sb_info *my_sbi, struct inode *old_lower_inode,
+				struct inode *old_lower_inode_parent, userid_t id)
+{
+	struct sdcardfs_sb_info *sbinfo;
+	mutex_lock(&sdcardfs_super_list_lock);
+	list_for_each_entry(sbinfo, &sdcardfs_super_list, list) {
+		if (sbinfo != my_sbi) {
+			struct inode *sb_old_d_inode = NULL;
+			struct inode *sb_old_d_inode_parent = NULL;
+			struct dentry *alias;
+
+			if (!(sb_old_d_inode = sdcardfs_ilookup(sbinfo->sb, old_lower_inode, id)))
+				continue;
+			if (!(sb_old_d_inode_parent = sdcardfs_ilookup(sbinfo->sb, old_lower_inode_parent, id))) {
+				iput(sb_old_d_inode);
+				continue;
+			}
+			/* There can only be one alias, as we don't permit hard links */
+			spin_lock(&sb_old_d_inode->i_lock);
+			hlist_for_each_entry(alias, &sb_old_d_inode->i_dentry, d_u.d_alias) {
+				d_drop(alias);
+				if (alias->d_inode)
+					clear_nlink(alias->d_inode);
+				fsstack_copy_attr_times(sb_old_d_inode_parent, old_lower_inode_parent);
+				fsstack_copy_inode_size(sb_old_d_inode_parent, old_lower_inode_parent);
+				set_nlink(sb_old_d_inode_parent, old_lower_inode_parent->i_nlink);
+			}
+			spin_unlock(&sb_old_d_inode->i_lock);
+			iput(sb_old_d_inode_parent);
+			iput(sb_old_d_inode);
+
+		}
+	}
+	mutex_unlock(&sdcardfs_super_list_lock);
+}
+
+static void rename_others(struct sdcardfs_sb_info *my_sbi, struct dentry *upper_new_parent,
+				struct dentry *lower_new_dir_dentry, userid_t new_id,
+				struct dentry *lower_old_dir_dentry, userid_t old_id,
+				struct dentry *lower_old_dentry, struct dentry *new_dentry)
+{
+
+	struct sdcardfs_sb_info *sbinfo;if (!my_sbi) return;
+	mutex_lock(&sdcardfs_super_list_lock);
+	list_for_each_entry(sbinfo, &sdcardfs_super_list, list) {
+		if (sbinfo != my_sbi) {
+			struct inode *sb_old_d_inode = NULL;
+			struct inode *sb_new_d_parent_inode = NULL;
+			struct inode *sb_old_d_parent_inode = NULL;
+			struct dentry *alias;
+
+			if (!(sb_old_d_inode = sdcardfs_ilookup(sbinfo->sb, lower_old_dentry->d_inode, old_id))) {
+				continue; /* We don't care if the view does not know about the moved inode */
+			}
+			if (!(sb_new_d_parent_inode = sdcardfs_ilookup(sbinfo->sb, lower_new_dir_dentry->d_inode, new_id))) {
+				/* We don't have the new parent in the other view...
+				 * Because someone may have a current directory in the new one,
+				 * we must update the permissions. Create a fake inode to hold these */
+
+				struct sdcardfs_inode_info *pi = SDCARDFS_I(upper_new_parent->d_inode);
+				sb_new_d_parent_inode = sdcardfs_iget(sbinfo->sb, lower_new_dir_dentry->d_inode, pi->userid);;
+				SDCARDFS_I(sb_new_d_parent_inode)->perm = pi->perm;
+				SDCARDFS_I(sb_new_d_parent_inode)->userid = pi->userid;
+				SDCARDFS_I(sb_new_d_parent_inode)->d_uid = pi->d_uid;
+				SDCARDFS_I(sb_new_d_parent_inode)->under_android = pi->under_android;
+				set_top(SDCARDFS_I(sb_new_d_parent_inode), sb_new_d_parent_inode);
+				fix_derived_permission(sb_new_d_parent_inode);
+				/* This special inode will be cleaned up when no one has it set as their top */
+			}
+			sb_old_d_parent_inode = sdcardfs_ilookup(sbinfo->sb, lower_old_dir_dentry->d_inode, old_id);
+
+			/* There can only be one alias, as we don't permit hard links. */
+			spin_lock(&sb_old_d_inode->i_lock);
+			hlist_for_each_entry(alias, &sb_old_d_inode->i_dentry, d_u.d_alias) {
+				/* Copy attrs from lower dir, but i_uid/i_gid */
+				sdcardfs_copy_and_fix_attrs(sb_new_d_parent_inode, lower_new_dir_dentry->d_inode);
+				fsstack_copy_inode_size(sb_new_d_parent_inode, lower_new_dir_dentry->d_inode);
+				if (sb_old_d_parent_inode && sb_old_d_parent_inode != sb_new_d_parent_inode) {
+					sdcardfs_copy_and_fix_attrs(sb_old_d_parent_inode, lower_old_dir_dentry->d_inode);
+					fsstack_copy_inode_size(sb_old_d_parent_inode, lower_old_dir_dentry->d_inode);
+				}
+				get_derived_permission_new(sb_new_d_parent_inode, alias->d_inode, new_dentry);
+				fix_derived_permission(alias->d_inode);
+				fixup_top_recursive(alias);
+			}
+			spin_unlock(&sb_old_d_inode->i_lock);
+			iput(sb_new_d_parent_inode);
+			iput(sb_old_d_inode);
+		}
+	}
+	mutex_unlock(&sdcardfs_super_list_lock);
+}
+
 static int sdcardfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	struct dentry *lower_dentry;
@@ -396,6 +489,7 @@ static int sdcardfs_rmdir(struct inode *dir, struct dentry *dentry)
 	fsstack_copy_attr_times(dir, lower_dir_dentry->d_inode);
 	fsstack_copy_inode_size(dir, lower_dir_dentry->d_inode);
 	set_nlink(dir, lower_dir_dentry->d_inode->i_nlink);
+	remove_others(SDCARDFS_SB(dentry->d_sb), lower_dentry->d_inode, lower_dir_dentry->d_inode, SDCARDFS_I(dir)->userid);
 
 out:
 	unlock_dir(lower_dir_dentry);
@@ -499,23 +593,17 @@ static int sdcardfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	if (new_dir != old_dir) {
 		sdcardfs_copy_and_fix_attrs(old_dir, lower_old_dir_dentry->d_inode);
 		fsstack_copy_inode_size(old_dir, lower_old_dir_dentry->d_inode);
-
-		/* update the derived permission of the old_dentry
-		 * with its new parent
-		 */
-		new_parent = dget_parent(new_dentry);
-		if(new_parent) {
-			if(old_dentry->d_inode) {
-				update_derived_permission_lock(old_dentry);
-			}
-			dput(new_parent);
-		}
 	}
 	/* At this point, not all dentry information has been moved, so
-	 * we pass along new_dentry for the name.*/
-	get_derived_permission_new(new_dentry->d_parent, old_dentry, new_dentry);
+	 * we pass along new_dentry for the name. */
+	new_parent = dget_parent(new_dentry);
+	get_derived_permission_new(new_parent->d_inode, old_dentry->d_inode, new_dentry);
 	fix_derived_permission(old_dentry->d_inode);
 	fixup_top_recursive(old_dentry);
+	rename_others(SDCARDFS_SB(old_dir->i_sb)/**/, new_parent, lower_new_dir_dentry,
+			SDCARDFS_I(new_dir)->userid, lower_old_dir_dentry,
+			SDCARDFS_I(old_dir)->userid, lower_old_dentry, new_dentry);
+	dput(new_parent);
 out:
 	unlock_rename(lower_old_dir_dentry, lower_new_dir_dentry);
 	dput(lower_old_dir_dentry);

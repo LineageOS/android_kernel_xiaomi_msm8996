@@ -150,6 +150,8 @@ extern int new_dentry_private_data(struct dentry *dentry);
 extern void free_dentry_private_data(struct dentry *dentry);
 extern struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 				unsigned int flags);
+extern struct inode *sdcardfs_ilookup(struct super_block *sb,
+                                struct inode *lower_inode, userid_t id);
 extern struct inode *sdcardfs_iget(struct super_block *sb,
 				 struct inode *lower_inode, userid_t id);
 extern int sdcardfs_interpose(struct dentry *dentry, struct super_block *sb,
@@ -323,6 +325,19 @@ static inline void sdcardfs_put_reset_##pname(const struct dentry *dent) \
 SDCARDFS_DENT_FUNC(lower_path)
 SDCARDFS_DENT_FUNC(orig_path)
 
+/* grab a refererence if we aren't linking to ourself */
+static inline void set_top(struct sdcardfs_inode_info *info, struct inode *top)
+{
+	if (info->top){
+		if (info->top != &info->vfs_inode) {
+			iput(info->top);
+		}
+	}
+	if (top != &info->vfs_inode)
+		igrab(top);
+	info->top = top;
+}
+
 static inline int get_gid(struct sdcardfs_inode_info *info) {
 	struct sdcardfs_sb_info *sb_info = SDCARDFS_SB(info->vfs_inode.i_sb);
 	if (sb_info->options.gid == AID_SDCARD_RW) {
@@ -408,7 +423,7 @@ extern void packagelist_exit(void);
 extern void setup_derived_state(struct inode *inode, perm_t perm, userid_t userid,
 			uid_t uid, bool under_android, struct inode *top);
 extern void get_derived_permission(struct dentry *parent, struct dentry *dentry);
-extern void get_derived_permission_new(struct dentry *parent, struct dentry *dentry, struct dentry *newdentry);
+extern void get_derived_permission_new(struct inode *parent, struct inode *inode, struct dentry *newdentry);
 extern void fixup_top_recursive(struct dentry *parent);
 extern void fixup_perms_recursive(struct dentry *dentry, const char *name, size_t len);
 
