@@ -33934,16 +33934,18 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		return;
 	}
 
-	/* Initialize firmware time stamp sync timer */
-	vos_status = vos_timer_init(&wma_handle->wma_fw_time_sync_timer,
-		VOS_TIMER_TYPE_SW,
-		wma_send_time_stamp_sync_cmd,
-		wma_handle);
-	if (vos_status != VOS_STATUS_SUCCESS)
-		WMA_LOGE(FL("Failed to initialize firmware time stamp sync timer"));
+	if (VOS_FTM_MODE != vos_get_conparam()) {
+		/* Initialize firmware time stamp sync timer */
+		vos_status = vos_timer_init(&wma_handle->wma_fw_time_sync_timer,
+					    VOS_TIMER_TYPE_SW,
+					    wma_send_time_stamp_sync_cmd,
+					    wma_handle);
+		if (vos_status != VOS_STATUS_SUCCESS)
+			WMA_LOGE(FL("Failed to initialize firmware time stamp sync timer"));
 
-	/* Start firmware time stamp sync timer */
-	wma_send_time_stamp_sync_cmd(wma_handle);
+		/* Start firmware time stamp sync timer */
+		wma_send_time_stamp_sync_cmd(wma_handle);
+	}
 }
 
 /* function   : wma_rx_ready_event
