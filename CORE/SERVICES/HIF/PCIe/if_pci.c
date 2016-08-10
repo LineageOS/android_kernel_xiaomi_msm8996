@@ -2786,6 +2786,7 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         msleep(10);
     }
 
+    tasklet_disable(&sc->intr_tq);
     hif_irq_record(HIF_SUSPEND_AFTER_WOW, sc);
 
 #ifdef FEATURE_WLAN_D0WOW
@@ -2973,6 +2974,8 @@ skip:
         printk("%s: WDA module is NULL\n", __func__);
         goto out;
     }
+
+    tasklet_enable(&sc->intr_tq);
 
     if (!wma_is_wow_mode_selected(temp_module))
         err = wma_resume_target(temp_module, runtime_pm);
