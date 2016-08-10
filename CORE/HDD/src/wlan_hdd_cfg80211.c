@@ -784,6 +784,11 @@ enum wlan_hdd_tm_cmd
 
 #define WLAN_HDD_TM_DATA_MAX_LEN    5000
 
+enum wlan_hdd_vendor_ie_access_policy {
+	WLAN_HDD_VENDOR_IE_ACCESS_NONE = 0,
+	WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED,
+};
+
 static const struct nla_policy wlan_hdd_tm_policy[WLAN_HDD_TM_ATTR_MAX + 1] =
 {
     [WLAN_HDD_TM_ATTR_CMD]        = { .type = NLA_U32 },
@@ -8460,15 +8465,17 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value;
-	uint8_t retry;
-	uint8_t delay;
+	uint8_t set_value, retry, delay;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
 	struct sir_set_tx_rx_aggregation_size request;
 	VOS_STATUS vos_status;
 	uint32_t tx_fail_count;
+	int attr_len;
+	int access_policy = 0;
+	char vendor_ie[SIR_MAC_MAX_IE_LENGTH + 2];
+	bool vendor_ie_present = false, access_policy_present = false;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8593,35 +8600,68 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY]) {
 		retry = nla_get_u8(
-			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY]);
+				tb[QCA_WLAN_VENDOR_ATTR_CONFIG_NON_AGG_RETRY]);
 
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
-		ret_val = process_wma_set_command((int)pAdapter->sessionId,
-				(int)WMI_PDEV_PARAM_NON_AGG_SW_RETRY_TH,
-				retry, PDEV_CMD);
+		retry = retry > CFG_NON_AGG_RETRY_MAX ?
+				CFG_NON_AGG_RETRY_MAX : retry;
+
+		if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_IFINDEX]) {
+			status = sme_update_short_retry_limit_threshold(
+					pHddCtx->hHal,
+					pAdapter->sessionId,
+					retry);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				hddLog(LOGE,
+				FL("sme_update_short_retry_limit_threshold(err=%d)"),
+				status);
+				return -EINVAL;
+			}
+		} else {
+			ret_val = process_wma_set_command(
+					(int)pAdapter->sessionId,
+					(int)WMI_PDEV_PARAM_NON_AGG_SW_RETRY_TH,
+					retry, PDEV_CMD);
+		}
+
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY]) {
 		retry = nla_get_u8(
-			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY]);
+				tb[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY]);
 
-		/* Maximum value is 31(0x1f), 0 disable */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_AGG_RETRY_MAX ?
+			CFG_AGG_RETRY_MAX : retry;
 
-		/* Value less than 5 has side effect to t-put */
-		retry = ((retry > 0) && (retry < 5)) ? 5 : retry;
-		ret_val = process_wma_set_command((int)pAdapter->sessionId,
-				(int)WMI_PDEV_PARAM_AGG_SW_RETRY_TH,
-				retry, PDEV_CMD);
+		/* Value less than CFG_AGG_RETRY_MIN has side effect to t-put */
+		retry = ((retry > 0) && (retry < CFG_AGG_RETRY_MIN)) ?
+				CFG_AGG_RETRY_MIN : retry;
+
+		if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_IFINDEX]) {
+			status = sme_update_long_retry_limit_threshold(
+					pHddCtx->hHal,
+					pAdapter->sessionId,
+					retry);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				hddLog(LOGE,
+				FL("sme_update_long_retry_limit_threshold(err=%d)"),
+						status);
+				return -EINVAL;
+			}
+		} else {
+			ret_val = process_wma_set_command(
+					(int)pAdapter->sessionId,
+					(int)WMI_PDEV_PARAM_AGG_SW_RETRY_TH,
+					retry, PDEV_CMD);
+		}
+
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY]) {
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY]);
 
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_MGMT_RETRY_MAX ?
+				CFG_MGMT_RETRY_MAX : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_MGMT_RETRY_LIMIT,
 				retry, PDEV_CMD);
@@ -8630,8 +8670,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY]) {
 		retry = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY]);
-		/* Maximum value is 31 */
-		retry = retry > 31 ? 31 : retry;
+		retry = retry > CFG_CTRL_RETRY_MAX ?
+				CFG_CTRL_RETRY_MAX : retry;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_CTRL_RETRY_LIMIT,
 				retry, PDEV_CMD);
@@ -8640,8 +8680,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]) {
 		delay = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]);
-		/* Maximum value is 63 */
-		delay = delay > 63 ? 63 : delay;
+		delay = delay > CFG_PROPAGATION_DELAY_MAX ?
+				CFG_PROPAGATION_DELAY_MAX : delay;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
 				delay, PDEV_CMD);
@@ -8662,6 +8702,61 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			}
 		}
 	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST]) {
+		vos_mem_zero(&vendor_ie[0], SIR_MAC_MAX_IE_LENGTH + 2);
+		attr_len = nla_len(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST]);
+		if (attr_len < 0 || attr_len > SIR_MAC_MAX_IE_LENGTH + 2) {
+			hddLog(LOGE, FL("Invalid value. attr_len %d"),
+					attr_len);
+			return -EINVAL;
+		}
+
+		nla_memcpy(&vendor_ie,
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY_IE_LIST],
+			attr_len);
+		vendor_ie_present = true;
+		hddLog(LOG1, FL("Access policy vendor ie present.attr_len %d"),
+				attr_len);
+		vos_trace_hex_dump(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+				&vendor_ie[0], attr_len);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY]) {
+		access_policy = (int) nla_get_u32(
+				tb[QCA_WLAN_VENDOR_ATTR_CONFIG_ACCESS_POLICY]);
+		if ((access_policy < QCA_ACCESS_POLICY_ACCEPT_UNLESS_LISTED) ||
+			(access_policy > QCA_ACCESS_POLICY_DENY_UNLESS_LISTED)){
+			hddLog(LOGE, FL("Invalid value. access_policy %d"),
+					access_policy);
+			return -EINVAL;
+		}
+		access_policy_present = true;
+		hddLog(LOG1, FL("Access policy present. access_policy %d"),
+				access_policy);
+	}
+
+	if (vendor_ie_present && access_policy_present) {
+		if (access_policy == QCA_ACCESS_POLICY_DENY_UNLESS_LISTED) {
+			access_policy =
+				WLAN_HDD_VENDOR_IE_ACCESS_ALLOW_IF_LISTED;
+		}
+		else {
+			access_policy = WLAN_HDD_VENDOR_IE_ACCESS_NONE;
+		}
+
+		hddLog(LOG1, FL("calling sme_update_access_policy_vendor_ie"));
+		status = sme_update_access_policy_vendor_ie(pHddCtx->hHal,
+				pAdapter->sessionId, &vendor_ie[0],
+				access_policy);
+		if (status == eHAL_STATUS_FAILURE) {
+			hddLog(LOGE, FL(
+				"Failed to set vendor ie and access policy."));
+			return -EINVAL;
+		}
+	}
+
 	return ret_val;
 }
 

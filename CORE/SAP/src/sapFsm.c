@@ -3438,8 +3438,7 @@ sapFsm
                                 "failed to get vdev type");
                         return VOS_STATUS_E_FAILURE;
                     }
-                    /* Open SME Session for scan */
-                    vosStatus = sme_OpenSession(hHal, NULL,
+                    vosStatus = sme_OpenSession(hHal, &WLANSAP_RoamCallback,
                             sapContext, sapContext->self_mac_addr,
                             &sapContext->sessionId, type, subtype);
                     if (VOS_STATUS_SUCCESS != vosStatus) {
@@ -3464,9 +3463,6 @@ sapFsm
                  */
                 vosStatus = sapGotoChannelSel(sapContext, sapEvent, VOS_FALSE);
 
-                /* Transition from eSAP_DISCONNECTED to eSAP_CH_SELECT (both without substates) */
-                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
-                           __func__, "eSAP_DISCONNECTED", "eSAP_CH_SELECT");
             }
             else if (msg == eSAP_DFS_CHANNEL_CAC_START)
             {

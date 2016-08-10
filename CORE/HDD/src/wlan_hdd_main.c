@@ -7122,8 +7122,10 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                   pHddStaCtx->ibss_peer_info.peerInfoParams[idx].mac_addr,
                   sizeof(mac_addr));
 
-                  tx_rate =
-                     pHddStaCtx->ibss_peer_info.peerInfoParams[idx].txRate;
+                  tx_rate = pHddStaCtx->ibss_peer_info.peerInfoParams[idx].txRate;
+                  /* Only lower 3 bytes are rate info. Mask of the MSByte */
+                  tx_rate &= 0x00FFFFFF;
+
                   rssi = pHddStaCtx->ibss_peer_info.peerInfoParams[idx].rssi;
 
                   length += scnprintf((extra + length),
@@ -7250,6 +7252,8 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
          if (VOS_STATUS_SUCCESS == status)
          {
            v_U32_t txRate = pHddStaCtx->ibss_peer_info.peerInfoParams[0].txRate;
+           /* Only lower 3 bytes are rate info. Mask of the MSByte */
+           txRate &= 0x00FFFFFF;
 
            length = scnprintf( extra, sizeof(extra), "%d %d", (int)txRate,
                       (int)pHddStaCtx->ibss_peer_info.peerInfoParams[0].rssi);
@@ -13751,6 +13755,9 @@ static void hdd_bus_bw_compute_cbk(void *priv)
     {
 
         if ((pAdapter = pAdapterNode->pAdapter) == NULL)
+            continue;
+        /* Validate magic so we don't end up accessing a freed adapter.*/
+        if (pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC)
             continue;
 
 #ifdef IPA_UC_OFFLOAD

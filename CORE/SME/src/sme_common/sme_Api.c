@@ -19323,7 +19323,7 @@ eHalStatus sme_update_tx_fail_cnt_threshold(tHalHandle hal_handle,
  * Return: VOS_STATUS
  */
 eHalStatus sme_update_short_retry_limit_threshold(tHalHandle hal_handle,
-		uint8_t session_id, uint32_t short_limit_count_th)
+		uint8_t session_id, uint8_t short_limit_count_th)
 {
 	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
 	eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -19368,7 +19368,7 @@ eHalStatus sme_update_short_retry_limit_threshold(tHalHandle hal_handle,
  * Return: VOS_STATUS
  */
 eHalStatus sme_update_long_retry_limit_threshold(tHalHandle hal_handle,
-		uint8_t session_id, uint32_t long_limit_count_th)
+		uint8_t session_id, uint8_t long_limit_count_th)
 {
 	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal_handle);
 	eHalStatus status = eHAL_STATUS_SUCCESS;
