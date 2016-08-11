@@ -9274,17 +9274,22 @@ static int __wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
 		hddLog(LOG1, FL("Flushing/Retrieving packet stats"));
 	}
 
-	hddLog(LOG1, FL("Bug report triggered by framework"));
+	/*
+	 * As part of DRIVER ring ID, flush both driver and firmware logs.
+	 * For other Ring ID's driver doesn't have any rings to flush
+	 */
+	if (ring_id == RING_ID_DRIVER_DEBUG) {
+		hddLog(LOG1, FL("Bug report triggered by framework"));
 
-	ret = vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
-			     WLAN_LOG_INDICATOR_FRAMEWORK,
-			     WLAN_LOG_REASON_CODE_UNUSED,
-			     true);
-	if (VOS_STATUS_SUCCESS != ret) {
-		hddLog(LOGE, FL("Failed to trigger bug report"));
-		return -EINVAL;
+		ret = vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
+				     WLAN_LOG_INDICATOR_FRAMEWORK,
+				     WLAN_LOG_REASON_CODE_UNUSED,
+				     true);
+		if (VOS_STATUS_SUCCESS != ret) {
+			hddLog(LOGE, FL("Failed to trigger bug report"));
+			return -EINVAL;
+		}
 	}
-
 	return 0;
 }
 
