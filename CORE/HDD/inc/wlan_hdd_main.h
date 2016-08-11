@@ -1221,10 +1221,11 @@ struct hdd_adapter_s
     struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
     struct sir_dcc_get_stats_response *dcc_get_stats_resp;
     struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
-
+#ifdef WLAN_FEATURE_DSRC
     /* MAC addresses used for OCB interfaces */
     tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
     int ocb_mac_addr_count;
+#endif
     struct hdd_adapter_pm_context runtime_context;
     struct mib_stats_metrics mib_stats;
 
