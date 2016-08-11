@@ -1332,8 +1332,10 @@ static int __hif_pci_runtime_resume(struct pci_dev *pdev)
 
 	ret = __hif_pci_resume(pdev, true);
 
-	if (ret)
-		goto out;
+	if (ret) {
+		hif_pci_runtime_pm_warn(sc, "Link Resume Failed");
+		return ret;
+	}
 
 	ret = wma_runtime_resume_req(temp_module);
 	if (ret)
