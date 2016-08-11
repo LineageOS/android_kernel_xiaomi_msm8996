@@ -2882,7 +2882,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
                hddLog(VOS_TRACE_LEVEL_ERROR,
                        "%s: sme_RoamSetKey failed, returned %d",
                        __func__, vosStatus);
-               return VOS_STATUS_E_FAILURE;
+               return eHAL_STATUS_FAILURE;
             }
          }
          hddLog(LOG1, FL("Enabling queues"));
