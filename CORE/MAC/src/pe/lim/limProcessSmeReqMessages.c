@@ -1921,7 +1921,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                            WLAN_LOG_INDICATOR_HOST_DRIVER,
                            WLAN_LOG_REASON_STALE_SESSION_FOUND,
-                           true);
+                           DUMP_VOS_TRACE);
             retCode = eSIR_SME_REFUSED;
             goto end;
         }
@@ -2474,7 +2474,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                       WLAN_LOG_INDICATOR_HOST_DRIVER,
                       WLAN_LOG_REASON_STALE_SESSION_FOUND,
-                      true);
+                      DUMP_VOS_TRACE);
         retCode = eSIR_SME_REFUSED;
         goto end;
    }
