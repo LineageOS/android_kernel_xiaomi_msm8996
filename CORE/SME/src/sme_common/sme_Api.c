@@ -13468,7 +13468,7 @@ void smeGetCommandQStatus( tHalHandle hHal )
 
     return;
 }
-
+#ifdef WLAN_FEATURE_DSRC
 /* -------------------------------------------------------------------------
    \fn sme_set_dot11p_config
    \brief API to Set 802.11p config
@@ -13983,7 +13983,7 @@ eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void *context,
 
 	return 0;
 }
-
+#endif
 void sme_getRecoveryStats(tHalHandle hHal) {
     tANI_U8 i;
 
