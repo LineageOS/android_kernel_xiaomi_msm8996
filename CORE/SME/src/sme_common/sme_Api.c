@@ -14340,7 +14340,10 @@ eHalStatus sme_PsOffloadEnablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
    return (status);
 }
 
-eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
+eHalStatus sme_PsOffloadDisablePowerSave(tHalHandle hHal,
+                                         FullPowerReqCb callback_routine,
+                                         void *callback_context,
+                                         tANI_U32 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -14348,7 +14351,8 @@ eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
    status = sme_AcquireGlobalLock(&pMac->sme);
    if(HAL_STATUS_SUCCESS( status ))
    {
-       status =  PmcOffloadDisableStaModePowerSave(hHal, sessionId);
+       status =  PmcOffloadDisableStaModePowerSave(hHal,
+                         callback_routine, callback_context, sessionId);
        sme_ReleaseGlobalLock( &pMac->sme );
    }
    return (status);

@@ -2378,7 +2378,8 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter)
             sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                            pAdapter->sessionId, TRUE);
             sme_PsOffloadDisablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                        pAdapter->sessionId);
+                                          NULL, NULL,
+                                          pAdapter->sessionId);
 
         }
     }

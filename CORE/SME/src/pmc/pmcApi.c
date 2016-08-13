@@ -3605,14 +3605,40 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
 }
 
 eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
+                                             FullPowerReqCb callback_routine,
+                                             void *callback_context,
                                              tANI_U32 sessionId)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
     eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpPmcOffloadReqFullPowerEntry power_entry;
+    tListElem *pEntry;
 
     if (pmc->configStaPsEnabled) {
+        if (callback_routine) {
+            /* Allocate entry for Full Power Cb list. */
+            power_entry = vos_mem_malloc(sizeof(*power_entry));
+            if (!power_entry) {
+                smsLog(pMac, LOGE,
+                       FL("Cannot allocate memory for Full Pwr routine list"));
+                return eHAL_STATUS_FAILED_ALLOC;
+            }
+            /* Store routine and context in entry. */
+            power_entry->fullPwrCb = callback_routine;
+            power_entry->callbackContext = callback_context;
+            power_entry->sessionId = sessionId;
+            /* Add entry to list. */
+            csrLLInsertTail(&pmc->fullPowerCbList, &power_entry->link, FALSE);
+        }
         status = pmcOffloadDisableStaPsHandler(pMac, sessionId);
+        if ((eHAL_STATUS_SUCCESS != status) && callback_routine) {
+            pEntry = csrLLRemoveTail(&pmc->fullPowerCbList, TRUE);
+            power_entry = GET_BASE_ADDR(pEntry,
+                    tPmcOffloadReqFullPowerEntry, link);
+            vos_mem_free(power_entry);
+            return eHAL_STATUS_FAILURE;
+        }
     } else {
         /*
          * configStaPsEnabled is the master flag
@@ -3625,8 +3651,9 @@ eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
         /* Stop the Auto Sta Ps Timer if running */
         pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
         pmc->configDefStaPsEnabled = FALSE;
+        return eHAL_STATUS_SUCCESS;
     }
-    return status;
+    return eHAL_STATUS_PMC_PENDING;
 }
 
 eHalStatus pmcOffloadRequestFullPower (tHalHandle hHal, tANI_U32 sessionId,

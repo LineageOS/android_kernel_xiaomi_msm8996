@@ -3715,10 +3715,15 @@ eHalStatus sme_set_mib_stats_enable(tHalHandle hal, uint8_t value);
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_PsOffloadEnablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
-eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
 eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
                                                  tANI_U32 sessionId,
                                                  tANI_BOOLEAN isReassoc);
+
+eHalStatus sme_PsOffloadDisablePowerSave(tHalHandle hHal,
+					 FullPowerReqCb callback,
+					 void *callback_context,
+					 tANI_U32 sessionId);
+
 eHalStatus sme_PsOffloadDisableDeferredPowerSave (tHalHandle hHal,
                                                   tANI_U32 sessionId);
 

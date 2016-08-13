@@ -8439,6 +8439,54 @@ int wlan_hdd_update_tx_rate(hdd_context_t *hddctx, uint16_t tx_rate)
 	return 0;
 }
 
+/**
+ * hdd_set_qpower_config() - set qpower config to firmware
+ * @adapter: HDD adapter
+ * @qpower: new qpower config value
+ *
+ * Return: 0 on success; Errno on failure
+ */
+static int hdd_set_qpower_config(hdd_context_t *hddctx, hdd_adapter_t *adapter,
+				 uint8_t qpower)
+{
+	VOS_STATUS vos_status;
+
+	if (!hddctx->cfg_ini->enablePowersaveOffload) {
+		hddLog(LOGE,
+		       FL("qpower is disabled in configuration"));
+		return -EINVAL;
+	}
+	if (qpower > PS_DUTY_CYCLING_QPOWER ||
+	    qpower < PS_LEGACY_NODEEPSLEEP) {
+		hddLog(LOGE,
+		       FL("invalid qpower value=%d"), qpower);
+		return -EINVAL;
+	}
+	vos_status = wma_set_powersave_config(qpower);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		hddLog(LOGE,
+		       FL("failed to update qpower %d"),
+		       vos_status);
+		return -EINVAL;
+	}
+	vos_status =  wlan_hdd_set_powersave(adapter,
+					     DRIVER_POWER_MODE_ACTIVE);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		hddLog(LOGE,
+			FL("failed to get full power %d"),
+			vos_status);
+		return -EINVAL;
+	}
+	vos_status =  wlan_hdd_set_powersave(adapter,
+					     DRIVER_POWER_MODE_AUTO);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		hddLog(LOGE,
+		       FL("failed to put device in power save mode %d"),
+		       vos_status);
+		return -EINVAL;
+	}
+	return 0;
+}
 
 /**
  * __wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
@@ -8465,7 +8513,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value, retry, delay;
+	uint8_t set_value, retry, delay, qpower;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -8556,6 +8604,13 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_AVOIDANCE_IND]);
 		hddLog(LOG1, "set_value: %d", set_value);
 		ret_val = hdd_enable_disable_ca_event(pHddCtx, set_value);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_QPOWER]) {
+		qpower = nla_get_u8(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_QPOWER]);
+		if (hdd_set_qpower_config(pHddCtx, pAdapter, qpower) != 0)
+			ret_val = -EINVAL;
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION] ||
