@@ -30099,6 +30099,30 @@ VOS_STATUS wma_set_tx_rx_aggregation_size
 }
 
 /**
+ * wma_set_powersave_config() - update power save config in wma
+ * @val: new power save value
+ *
+ * This function update qpower value in wma layer
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+VOS_STATUS wma_set_powersave_config(uint8_t val)
+{
+	tp_wma_handle wma_handle;
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+	wma_handle->powersave_mode = val;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
  * wma_process_set_allowed_action_frames_ind() - Set bitmap to wma cache
  * @wma_handle: WMI handle
  * @allowed_action_frames: sir_allowed_action_frames parameter
