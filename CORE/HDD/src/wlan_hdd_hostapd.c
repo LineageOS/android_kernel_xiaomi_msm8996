@@ -1322,7 +1322,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: usrDataForCallback is null", __func__);
-        return eHAL_STATUS_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     pHostapdAdapter = netdev_priv(dev);
@@ -1332,7 +1332,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                 "invalid adapter or adapter has invalid magic");
-        return eHAL_STATUS_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
@@ -1342,7 +1342,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: pSapEvent is null", __func__);
-        return eHAL_STATUS_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     sapEvent = pSapEvent->sapHddEventCode;
@@ -1351,14 +1351,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
     if (!pHddCtx) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is null"));
-        return eHAL_STATUS_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     cfg = pHddCtx->cfg_ini;
 
     if (!cfg) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD config is null"));
-        return eHAL_STATUS_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     dfs_info.channel = pHddApCtx->operatingChannel;
@@ -1836,15 +1836,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                                           HDD_SAP_WAKE_LOCK_DURATION,
                                           WIFI_POWER_EVENT_WAKELOCK_SAP);
             {
-               struct station_info staInfo;
                v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
 
-               memset(&staInfo, 0, sizeof(staInfo));
                if (iesLen <= MAX_ASSOC_IND_IE_LEN )
                {
-                  staInfo.assoc_req_ies =
+                  struct station_info *stainfo;
+                  stainfo = vos_mem_malloc(sizeof(*stainfo));
+                  if (stainfo == NULL) {
+                      hddLog(LOGE, FL("alloc station_info failed"));
+                      return VOS_STATUS_E_NOMEM;
+                  }
+                  memset(stainfo, 0, sizeof(*stainfo));
+                  stainfo->assoc_req_ies =
                      (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
-                  staInfo.assoc_req_ies_len = iesLen;
+                  stainfo->assoc_req_ies_len = iesLen;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
                   /*
                    * After Kernel 4.0, it's no longer need to set
@@ -1853,12 +1858,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    * check the existance of request IE.
                    */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,31)) || defined(WITH_BACKPORTS)
-                  staInfo.filled |= STATION_INFO_ASSOC_REQ_IES;
+                  stainfo->filled |= STATION_INFO_ASSOC_REQ_IES;
 #endif
 #endif
                   cfg80211_new_sta(dev,
                         (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
-                        &staInfo, GFP_KERNEL);
+                        stainfo, GFP_KERNEL);
+                  vos_mem_free(stainfo);
                }
                else
                {
@@ -6685,9 +6691,6 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
          return status;
     }
 
-    init_completion(&pAdapter->session_close_comp_var);
-    init_completion(&pAdapter->session_open_comp_var);
-
     sema_init(&(WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->semWpsPBCOverlapInd, 1);
 
      // Register as a wireless device
@@ -6793,13 +6796,6 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
         pWlanHostapdDev->ieee80211_ptr = &pHostapdAdapter->wdev ;
         pHostapdAdapter->wdev.wiphy = pHddCtx->wiphy;
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;
-        init_completion(&pHostapdAdapter->tx_action_cnf_event);
-        init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
-        init_completion(&pHostapdAdapter->rem_on_chan_ready_event);
-        init_completion(&pHostapdAdapter->ula_complete);
-        init_completion(&pHostapdAdapter->offchannel_tx_event);
-        init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
-        init_completion(&pHostapdAdapter->scan_info.abortscan_event_var);
         vos_event_init(&pHostapdAdapter->scan_info.scan_finished_event);
         pHostapdAdapter->scan_info.scan_pending_option = WEXT_SCAN_PENDING_GIVEUP;
         /*

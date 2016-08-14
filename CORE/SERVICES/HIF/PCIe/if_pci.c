@@ -1332,8 +1332,10 @@ static int __hif_pci_runtime_resume(struct pci_dev *pdev)
 
 	ret = __hif_pci_resume(pdev, true);
 
-	if (ret)
-		goto out;
+	if (ret) {
+		hif_pci_runtime_pm_warn(sc, "Link Resume Failed");
+		return ret;
+	}
 
 	ret = wma_runtime_resume_req(temp_module);
 	if (ret)
@@ -2786,6 +2788,7 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         msleep(10);
     }
 
+    tasklet_disable(&sc->intr_tq);
     hif_irq_record(HIF_SUSPEND_AFTER_WOW, sc);
 
 #ifdef FEATURE_WLAN_D0WOW
@@ -2872,6 +2875,39 @@ static int hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     return ret;
 }
 
+/**
+ * __hif_check_link_status() - API to check if PCIe link is active/not
+ *
+ * @pdev: PCIe device structure
+ *
+ * API reads the PCIe config space to verify if PCIe link training is
+ * successful or not.
+ *
+ * Return: Success/Failure
+ */
+static int __hif_check_link_status(struct pci_dev *pdev)
+{
+	uint16_t dev_id;
+	struct hif_pci_softc *sc = pci_get_drvdata(pdev);
+
+	if (!sc) {
+		pr_err("%s: HIF Bus Context is Invalid\n", __func__);
+		return -EINVAL;
+	}
+
+	pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &dev_id);
+
+	if (dev_id == sc->devid)
+		return 0;
+
+	pr_err("%s: Invalid PCIe Config Space; PCIe link down dev_id:0x%04x\n",
+	       __func__, dev_id);
+	sc->recovery = true;
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+	vos_wlan_pci_link_down();
+	return -EACCES;
+}
+
 static int
 __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
 {
@@ -2887,6 +2923,10 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
 
     if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
         return err;
+
+    err = __hif_check_link_status(pdev);
+    if (err)
+       return err;
 
     adf_os_atomic_set(&sc->pci_link_suspended, 0);
     adf_os_atomic_set(&sc->wow_done, 0);
@@ -2973,6 +3013,8 @@ skip:
         printk("%s: WDA module is NULL\n", __func__);
         goto out;
     }
+
+    tasklet_enable(&sc->intr_tq);
 
     if (!wma_is_wow_mode_selected(temp_module))
         err = wma_resume_target(temp_module, runtime_pm);

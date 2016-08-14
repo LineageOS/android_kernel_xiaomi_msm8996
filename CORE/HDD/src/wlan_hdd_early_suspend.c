@@ -1946,6 +1946,31 @@ static void hdd_ssr_timer_start(int msec)
     ssr_timer_started = true;
 }
 
+/**
+ * hdd_svc_fw_shutdown_ind() - API to send FW SHUTDOWN IND to Userspace
+ *
+ * @dev: Device Pointer
+ *
+ * Return: None
+ */
+void hdd_svc_fw_shutdown_ind(struct device *dev)
+{
+	v_CONTEXT_t g_context;
+	hdd_context_t *hdd_ctx;
+
+	g_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if(!g_context)
+		return;
+
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   g_context);
+
+	hdd_ctx ? wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+					      WLAN_SVC_FW_SHUTDOWN_IND,
+					      NULL, 0) : 0;
+}
+
 /* the HDD interface to WLAN driver shutdown,
  * the primary shutdown function in SSR
  */
@@ -2036,8 +2061,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
     */
    /* Wait for MC to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down MC thread",__func__);
-   set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
-   set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   set_bit(MC_SHUTDOWN_EVENT, &vosSchedContext->mcEventFlag);
+   set_bit(MC_POST_EVENT, &vosSchedContext->mcEventFlag);
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
    wait_for_completion(&vosSchedContext->McShutdown);
 
@@ -2046,8 +2071,8 @@ VOS_STATUS hdd_wlan_shutdown(void)
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TLshim RX thread",
           __func__);
    unregister_hotcpu_notifier(vosSchedContext->cpuHotPlugNotifier);
-   set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
-   set_bit(RX_POST_EVENT_MASK, &vosSchedContext->tlshimRxEvtFlg);
+   set_bit(RX_SHUTDOWN_EVENT, &vosSchedContext->tlshimRxEvtFlg);
+   set_bit(RX_POST_EVENT, &vosSchedContext->tlshimRxEvtFlg);
    wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for TLshim RX thread to exit",
           __func__);
@@ -2060,6 +2085,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vos_free_tlshim_pkt_freeq(vosSchedContext);
 #endif
 
+   tl_shim_flush_cache_rx_queue();
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing WDA STOP", __func__);
    vosStatus = WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);

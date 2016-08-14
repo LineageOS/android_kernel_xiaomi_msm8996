@@ -264,6 +264,8 @@
 
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
+#define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
+
 /*
  * Generic asynchronous request/response support
  *
@@ -676,6 +678,7 @@ typedef enum {
     WLAN_HDD_DEV_DIS_RESP,
     WLAN_HDD_PROV_DIS_REQ,
     WLAN_HDD_PROV_DIS_RESP,
+    WLAN_HDD_ACTION_FRM_TYPE_MAX = 255,
 }tActionFrmType;
 
 typedef struct hdd_cfg80211_state_s
@@ -2244,4 +2247,6 @@ int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 void hdd_sap_restart_handle(struct work_struct *work);
 
 void hdd_set_rps_cpu_mask(hdd_context_t *hdd_ctx);
+void hdd_initialize_adapter_common(hdd_adapter_t *adapter);
+void hdd_svc_fw_shutdown_ind(struct device *dev);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

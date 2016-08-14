@@ -900,6 +900,14 @@ WLANTL_ClearSTAClient
 );
 
 /*===========================================================================
+ * tl_shim_flush_cache_rx_queue() - flush cache rx queue frame
+ *
+ *
+ * Return: None
+ ============================================================================*/
+void tl_shim_flush_cache_rx_queue(void);
+
+/*===========================================================================
 
   FUNCTION    WLANTL_ChangeSTAState
 

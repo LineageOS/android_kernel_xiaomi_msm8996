@@ -2214,6 +2214,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->enableMuBformee = pMac->roam.configParam.txMuBformee;
         pParam->enableVhtFor24GHz = pMac->roam.configParam.enableVhtFor24GHz;
         pParam->enable2x2 = pMac->roam.configParam.enable2x2;
+        pParam->enableVhtpAid = pMac->roam.configParam.enableVhtpAid;
+        pParam->enableVhtGid = pMac->roam.configParam.enableVhtGid;
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         vos_mem_copy(&pMac->roam.configParam.csr11rConfig,
@@ -2235,6 +2237,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 #endif
 #ifdef FEATURE_WLAN_LFR
         pParam->isFastRoamIniFeatureEnabled = pMac->roam.configParam.isFastRoamIniFeatureEnabled;
+        pParam->MAWCEnabled = pMac->roam.configParam.MAWCEnabled;
 #endif
 
 #ifdef FEATURE_WLAN_ESE
@@ -2294,8 +2297,10 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                      pMac->roam.configParam.is_sta_connection_in_5gz_enabled;
         pParam->sendDeauthBeforeCon =
                      pMac->roam.configParam.sendDeauthBeforeCon;
+        pParam->pkt_err_disconn_th = pMac->roam.configParam.pkt_err_disconn_th;
         pParam->first_scan_bucket_threshold =
                      pMac->first_scan_bucket_threshold;
+        pParam->enableAmpduPs = pMac->roam.configParam.enableAmpduPs;
         pParam->enableHtSmps = pMac->roam.configParam.enableHtSmps;
         pParam->htSmps = pMac->roam.configParam.htSmps;
         pParam->enable_fatal_event =
@@ -10316,6 +10321,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     tSirSmeAssocInd *pAssocInd;
     tSirSmeDisassocInd *pDisassocInd;
     tSirSmeDeauthInd *pDeauthInd;
+    tSirSmeDisConDoneInd *pDisConDoneInd;
     tSirSmeWmStatusChangeNtf *pStatusChangeMsg;
     tSirSmeNewBssInfo *pNewBss;
     tSmeIbssPeerInd *pIbssPeerInd;
@@ -10480,22 +10486,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDisassociated, pSirMsg );
                 if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
                 {
-
-                    pRoamInfo = &roamInfo;
-
-                    pRoamInfo->statusCode = pDisassocInd->statusCode;
-                    pRoamInfo->reasonCode = pDisassocInd->reasonCode;
-                    pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
-
-                    pRoamInfo->staId = (tANI_U8)pDisassocInd->staId;
-
-                    vos_mem_copy(pRoamInfo->peerMac, pDisassocInd->peerMacAddr,
-                                 sizeof(tSirMacAddr));
-                    vos_mem_copy(&pRoamInfo->bssid, pDisassocInd->bssId,
-                                 sizeof(tCsrBssid));
-
-                    status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_DISASSOC_IND);
-
                     /*
                     *  STA/P2P client got  disassociated so remove any pending deauth
                     *  commands in sme pending list
@@ -10563,24 +10553,30 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 #endif
                 csrRoamLinkDown(pMac, sessionId);
                 csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDeauthenticated, pSirMsg );
-                if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
-                {
+		}
+		break;
 
-                    pRoamInfo = &roamInfo;
-
-                    pRoamInfo->statusCode = pDeauthInd->statusCode;
-                    pRoamInfo->reasonCode = pDeauthInd->reasonCode;
-                    pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
-
-                    pRoamInfo->staId = (tANI_U8)pDeauthInd->staId;
-
-                    vos_mem_copy(pRoamInfo->peerMac, pDeauthInd->peerMacAddr,
-                                 sizeof(tSirMacAddr));
-                    vos_mem_copy(&pRoamInfo->bssid, pDeauthInd->bssId,
-                                 sizeof(tCsrBssid));
-
-                    status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_DEAUTH_IND);
-                }
+	case eWNI_SME_DISCONNECT_DONE_IND:
+		pDisConDoneInd = (tSirSmeDisConDoneInd *)(pSirMsg);
+		smsLog( pMac, LOG1,
+			FL("eWNI_SME_DISCONNECT_DONE_IND RC:%d"),
+				pDisConDoneInd->reasonCode);
+		if( CSR_IS_SESSION_VALID(pMac, pDisConDoneInd->sessionId))
+		{
+			roamInfo.reasonCode = pDisConDoneInd->reasonCode;
+			roamInfo.statusCode = eSIR_SME_STA_DISASSOCIATED;
+			vos_mem_copy(roamInfo.peerMac, pDisConDoneInd->peerMacAddr,
+				sizeof(tSirMacAddr));
+			status = csrRoamCallCallback(pMac,
+				pDisConDoneInd->sessionId,
+				&roamInfo, 0,
+				eCSR_ROAM_LOSTLINK,
+				eCSR_ROAM_RESULT_DISASSOC_IND);
+		}
+		else
+		{
+			smsLog(pMac, LOGE, FL("Inactive session %d"),
+				pDisConDoneInd->sessionId);
             }
             break;
 
@@ -11766,16 +11762,6 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     }
     if(!fToRoam)
     {
-        //Tell HDD about the lost link
-        if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
-        {
-            /* Don't call csrRoamCallCallback for GO/SoftAp case as this indication
-             * was already given as part of eWNI_SME_DISASSOC_IND msg handling in
-             * csrRoamCheckForLinkStatusChange API.
-             */
-            csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
-        }
-
        /*No need to start idle scan in case of IBSS/SAP
          Still enable idle scan for polling in case concurrent sessions are running */
         if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile))

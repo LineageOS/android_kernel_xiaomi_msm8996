@@ -318,7 +318,6 @@ struct init_comp {
 static struct init_comp wlan_comp;
 
 #ifdef QCA_WIFI_FTM
-extern int hdd_ftm_start(hdd_context_t *pHddCtx);
 extern int hdd_ftm_stop(hdd_context_t *pHddCtx);
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
@@ -10119,37 +10118,6 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       pAdapter->pHddCtx = pHddCtx;
       pAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
-      init_completion(&pAdapter->session_open_comp_var);
-      init_completion(&pAdapter->smps_force_mode_comp_var);
-      init_completion(&pAdapter->session_close_comp_var);
-      init_completion(&pAdapter->disconnect_comp_var);
-      init_completion(&pAdapter->linkup_event_var);
-      init_completion(&pAdapter->cancel_rem_on_chan_var);
-      init_completion(&pAdapter->rem_on_chan_ready_event);
-      init_completion(&pAdapter->offchannel_tx_event);
-      init_completion(&pAdapter->tx_action_cnf_event);
-#ifdef FEATURE_WLAN_TDLS
-      init_completion(&pAdapter->tdls_add_station_comp);
-      init_completion(&pAdapter->tdls_del_station_comp);
-      init_completion(&pAdapter->tdls_mgmt_comp);
-      init_completion(&pAdapter->tdls_link_establish_req_comp);
-#endif
-
-      init_completion(&pAdapter->ibss_peer_info_comp);
-      init_completion(&pHddCtx->mc_sus_event_var);
-      init_completion(&pHddCtx->tx_sus_event_var);
-      init_completion(&pHddCtx->rx_sus_event_var);
-      init_completion(&pHddCtx->ready_to_suspend);
-      init_completion(&pAdapter->ula_complete);
-      init_completion(&pAdapter->change_country_code);
-
-#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
-      init_completion(&pHddCtx->ready_to_extwow);
-#endif
-
-      init_completion(&pAdapter->scan_info.scan_req_completion_event);
-      init_completion(&pAdapter->scan_info.abortscan_event_var);
-
       vos_event_init(&pAdapter->scan_info.scan_finished_event);
       pAdapter->scan_info.scan_pending_option = WEXT_SCAN_PENDING_GIVEUP;
 
@@ -10315,6 +10283,35 @@ static void hdd_close_tx_queues(hdd_context_t *hdd_ctx)
 	EXIT();
 }
 
+/**
+ * hdd_check_and_init_tdls() - check and init TDLS operation for desired mode
+ * @adapter: pointer to device adapter
+ * @type: type of interface
+ *
+ * This routine will check the mode of adapter and if it is required then it
+ * will initialize the TDLS operations
+ *
+ * Return: VOS_STATUS
+ */
+#ifdef FEATURE_WLAN_TDLS
+static VOS_STATUS hdd_check_and_init_tdls(hdd_adapter_t *adapter, uint32_t type)
+{
+	if (VOS_IBSS_MODE != type) {
+		if (0 != wlan_hdd_tdls_init(adapter)) {
+			hddLog(LOGE, FL("wlan_hdd_tdls_init failed"));
+			return VOS_STATUS_E_FAILURE;
+		}
+		set_bit(TDLS_INIT_DONE, &adapter->event_flags);
+	}
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static VOS_STATUS hdd_check_and_init_tdls(hdd_adapter_t *adapter, uint32_t type)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
 {
    struct net_device *pWlanDev = pAdapter->dev;
@@ -10410,23 +10407,15 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
                    __func__, ret_val);
    }
 
-#ifdef FEATURE_WLAN_TDLS
-   if(0 != wlan_hdd_tdls_init(pAdapter))
-   {
-       status = VOS_STATUS_E_FAILURE;
-       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wlan_hdd_tdls_init failed",__func__);
+   status = hdd_check_and_init_tdls(pAdapter, type);
+   if (status != VOS_STATUS_SUCCESS)
        goto error_tdls_init;
-   }
-   set_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
-#endif
 
    return VOS_STATUS_SUCCESS;
 
-#ifdef FEATURE_WLAN_TDLS
 error_tdls_init:
    clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
    hdd_wmm_adapter_close(pAdapter);
-#endif
 error_wmm_init:
    clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
    hdd_deinit_tx_rx(pAdapter);
@@ -10918,6 +10907,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          pAdapter->device_mode = session_type;
 
+         hdd_initialize_adapter_common(pAdapter);
          if (WLAN_HDD_NDI == session_type)
                 status = hdd_init_nan_data_mode(pAdapter);
          else
@@ -10988,6 +10978,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                   NL80211_IFTYPE_P2P_GO;
          pAdapter->device_mode = session_type;
 
+         hdd_initialize_adapter_common(pAdapter);
          status = hdd_init_ap_mode(pAdapter);
          if( VOS_STATUS_SUCCESS != status )
             goto err_free_netdev;
@@ -11026,6 +11017,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          pAdapter->device_mode = session_type;
          status = hdd_register_interface( pAdapter, rtnl_held );
 
+         hdd_initialize_adapter_common(pAdapter);
          hdd_init_tx_rx( pAdapter );
 
          //Stop the Interface TX queue.
@@ -13598,13 +13590,6 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
     wiphy->wowlan.pattern_max_len = WOW_MAX_PATTERN_SIZE;
 #endif
 
-   /* registration of wiphy dev with cfg80211 */
-   if (0 > wlan_hdd_cfg80211_register(wiphy))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-      status = VOS_STATUS_E_FAILURE;
-   }
-
    return status;
 }
 
@@ -13728,7 +13713,6 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
     pHddCtx->hdd_txrx_hist_idx &= NUM_TX_RX_HISTOGRAM_MASK;
 }
 
-#define HDD_BW_GET_DIFF(x, y) ((x) >= (y) ? (x) - (y) : (ULONG_MAX - (y) + (x)))
 static void hdd_bus_bw_compute_cbk(void *priv)
 {
     hdd_context_t *pHddCtx = (hdd_context_t *)priv;
@@ -14615,6 +14599,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
    init_completion(&pHddCtx->req_bmps_comp_var);
+   init_completion(&pHddCtx->mc_sus_event_var);
+   init_completion(&pHddCtx->tx_sus_event_var);
+   init_completion(&pHddCtx->rx_sus_event_var);
+   init_completion(&pHddCtx->ready_to_suspend);
+#ifdef WLAN_FEATURE_EXTWOW_SUPPORT
+      init_completion(&pHddCtx->ready_to_extwow);
+#endif
    hdd_init_bpf_completion();
 #ifdef FEATURE_WLAN_EXTSCAN
    init_completion(&pHddCtx->ext_scan_context.response_event);
@@ -14797,120 +14788,161 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
    vos_set_radio_index(pHddCtx->radio_index);
 
-   if (VOS_FTM_MODE == hdd_get_conparam())
-       goto ftm_processing;
-
-   //Open watchdog module
-   if(pHddCtx->cfg_ini->fIsLogpEnabled)
-   {
-      status = vos_watchdog_open(pVosContext,
-         &((VosContextType*)pVosContext)->vosWatchdog, sizeof(VosWatchdogContext));
-
-      if(!VOS_IS_STATUS_SUCCESS( status ))
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
-         goto err_nl_srv;
+          hddLog(VOS_TRACE_LEVEL_FATAL,
+                 "%s: wlan_hdd_ftm_open Failed",__func__);
+          goto err_nl_srv;
       }
-   }
+      if (VOS_STATUS_SUCCESS != hdd_ftm_start(pHddCtx))
+      {
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
+          goto err_free_ftm_open;
+      }
+   } else {
 
-   pHddCtx->isLogpInProgress = FALSE;
-   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      //Open watchdog module
+      if(pHddCtx->cfg_ini->fIsLogpEnabled)
+      {
+         status = vos_watchdog_open(pVosContext,
+            &((VosContextType*)pVosContext)->vosWatchdog,
+            sizeof(VosWatchdogContext));
 
-   status = vos_nv_open();
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      /* NV module cannot be initialized */
-      hddLog( VOS_TRACE_LEVEL_FATAL,
-            "%s: vos_nv_open failed", __func__);
-      goto err_wdclose;
-   }
+         if(!VOS_IS_STATUS_SUCCESS( status ))
+         {
+            hddLog(VOS_TRACE_LEVEL_FATAL,
+                   "%s: vos_watchdog_open failed",__func__);
+            goto err_nl_srv;
+         }
+      }
 
-   hdd_wlan_green_ap_init(pHddCtx);
+      pHddCtx->isLogpInProgress = FALSE;
+      vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
-   status = vos_open( &pVosContext, 0);
-   if ( !VOS_IS_STATUS_SUCCESS( status ))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_open failed", __func__);
-      goto err_vos_nv_close;
-   }
+      status = vos_nv_open();
+      if (!VOS_IS_STATUS_SUCCESS(status))
+      {
+         /* NV module cannot be initialized */
+         hddLog( VOS_TRACE_LEVEL_FATAL,
+               "%s: vos_nv_open failed", __func__);
+         goto err_wdclose;
+      }
+
+      hdd_wlan_green_ap_init(pHddCtx);
+
+      status = vos_open( &pVosContext, 0);
+      if ( !VOS_IS_STATUS_SUCCESS( status ))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_open failed", __func__);
+         goto err_vos_nv_close;
+      }
 
 #if      !defined(REMOVE_PKT_LOG)
-   hif_init_pdev_txrx_handle(hif_sc,
-                             vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
+      hif_init_pdev_txrx_handle(hif_sc,
+                            vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 #endif
 
-   pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );
+      pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME,
+                                                  pVosContext );
 
-   if ( NULL == pHddCtx->hHal )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HAL context is null", __func__);
-      goto err_vosclose;
-   }
+      if ( NULL == pHddCtx->hHal )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HAL context is null", __func__);
+         goto err_vosclose;
+      }
 
-   status = vos_preStart( pHddCtx->pvosContext );
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
-      goto err_vosclose;
-   }
+      status = vos_preStart( pHddCtx->pvosContext );
+      if ( !VOS_IS_STATUS_SUCCESS( status ) )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
+         goto err_vosclose;
+      }
 
-   wlan_hdd_update_wiphy(wiphy, pHddCtx);
+      wlan_hdd_update_wiphy(wiphy, pHddCtx);
 
-   if (sme_IsFeatureSupportedByFW(DOT11AC)) {
-      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
-   } else {
-      hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: not support 11ac", __func__);
-      if ((pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)||
-          (pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac)) {
+      if (sme_IsFeatureSupportedByFW(DOT11AC)) {
+         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: support 11ac", __func__);
+      } else {
+         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: not support 11ac", __func__);
+         if ((pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY)||
+             (pHddCtx->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac)) {
 
-          pHddCtx->cfg_ini->dot11Mode = eHDD_DOT11_MODE_11n;
-          pHddCtx->cfg_ini->sap_p2p_11ac_override = 0;
+            pHddCtx->cfg_ini->dot11Mode = eHDD_DOT11_MODE_11n;
+            pHddCtx->cfg_ini->sap_p2p_11ac_override = 0;
+         }
+      }
+
+      if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to set wow pulse", __func__);
+      }
+
+
+      /* Set 802.11p config
+       * TODO-OCB: This has been temporarily added here to ensure this paramter
+       * is set in CSR when we init the channel list. This should be removed
+       * once the 5.9 GHz channels are added to the regulatory domain.
+       */
+      hdd_set_dot11p_config(pHddCtx);
+
+      if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
+      {
+         pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                "%s: module enable_dfs_chan_scan set to %d",
+                __func__, enable_dfs_chan_scan);
+      }
+      if (0 == enable_11d || 1 == enable_11d)
+      {
+         pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
+         hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
+                __func__, enable_11d);
+      }
+
+      /* Note that the vos_preStart() sequence triggers the cfg download.
+         The cfg download must occur before we update the SME config
+         since the SME config operation must access the cfg database */
+      status = hdd_set_sme_config( pHddCtx );
+
+      if ( VOS_STATUS_SUCCESS != status )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config",
+                __func__);
+         goto err_vosclose;
+      }
+
+      status = wlan_hdd_reg_init(pHddCtx);
+      if (status != VOS_STATUS_SUCCESS) {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to init channel list", __func__);
+         goto err_vosclose;
       }
    }
 
-   if (0 != wlan_hdd_set_wow_pulse(pHddCtx, true)) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Failed to set wow pulse", __func__);
+   /* registration of wiphy dev with cfg80211 */
+   if (0 > wlan_hdd_cfg80211_register(pHddCtx->wiphy)) {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
+      status = VOS_STATUS_E_FAILURE;
+      if (VOS_FTM_MODE == hdd_get_conparam())
+         goto err_free_ftm_open;
+      else
+         goto err_vosclose;
    }
 
+   if (VOS_FTM_MODE == hdd_get_conparam()) {
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+      pHddCtx->isLoadInProgress = FALSE;
 
-   /* Set 802.11p config
-    * TODO-OCB: This has been temporarily added here to ensure this paramter
-    * is set in CSR when we init the channel list. This should be removed
-    * once the 5.9 GHz channels are added to the regulatory domain.
-    */
-   hdd_set_dot11p_config(pHddCtx);
-
-   if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
-   {
-      pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_dfs_chan_scan set to %d",
-             __func__, enable_dfs_chan_scan);
-   }
-   if (0 == enable_11d || 1 == enable_11d)
-   {
-      pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
-             __func__, enable_11d);
+      memdump_init();
+      hdd_driver_memdump_init();
+      hddLog(LOGE, FL("FTM driver loaded"));
+      wlan_comp.status = 0;
+      complete(&wlan_comp.wlan_start_comp);
+      return VOS_STATUS_SUCCESS;
    }
 
-   /* Note that the vos_preStart() sequence triggers the cfg download.
-      The cfg download must occur before we update the SME config
-      since the SME config operation must access the cfg database */
-   status = hdd_set_sme_config( pHddCtx );
-
-   if ( VOS_STATUS_SUCCESS != status )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_vosclose;
-   }
-
-   status = wlan_hdd_reg_init(pHddCtx);
-   if (status != VOS_STATUS_SUCCESS) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: Failed to init channel list", __func__);
-      goto err_vosclose;
-   }
    ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS,
                                  pHddCtx->cfg_ini->tx_chain_mask_1ss,
                                  PDEV_CMD);
@@ -15031,43 +15063,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
 #ifdef QCA_PKT_PROTO_TRACE
    /* Ensure pkt tracing happen only in Non FTM mode */
-   if (VOS_FTM_MODE != hdd_get_conparam())
-       vos_pkt_proto_trace_init();
+   vos_pkt_proto_trace_init();
 #endif /* QCA_PKT_PROTO_TRACE */
-
- ftm_processing:
-   if (VOS_FTM_MODE == hdd_get_conparam())
-   {
-      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_nl_srv;
-      }
-#if  defined(QCA_WIFI_FTM)
-      if (hdd_ftm_start(pHddCtx))
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_ftm_start Failed",__func__);
-          goto err_free_ftm_open;
-      }
-#endif
-
-      /* registration of wiphy dev with cfg80211 */
-      if (0 > wlan_hdd_cfg80211_register(wiphy)) {
-          hddLog(LOGE, FL("wiphy register failed"));
-          goto err_free_ftm_open;
-      }
-
-      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-      vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-      pHddCtx->isLoadInProgress = FALSE;
-
-      memdump_init();
-      hdd_driver_memdump_init();
-      hddLog(LOGE, FL("FTM driver loaded"));
-      wlan_comp.status = 0;
-      complete(&wlan_comp.wlan_start_comp);
-      return VOS_STATUS_SUCCESS;
-   }
 
 #if defined(CONFIG_HDD_INIT_WITH_RTNL_LOCK)
    rtnl_lock();
@@ -17133,6 +17130,7 @@ void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
 
     switch(type) {
         case WLAN_SVC_FW_CRASHED_IND:
+        case WLAN_SVC_FW_SHUTDOWN_IND:
         case WLAN_SVC_LTE_COEX_IND:
         case WLAN_SVC_WLAN_AUTO_SHUTDOWN_IND:
         case WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND:
@@ -18131,6 +18129,45 @@ void hdd_set_rps_cpu_mask(hdd_context_t *hdd_ctx)
 		status = hdd_get_next_adapter (hdd_ctx, adapter_node, &next);
 		adapter_node = next;
 	}
+}
+
+/**
+ * hdd_initialize_adapter_common() - initialize completion variables
+ * @adapter: pointer to hdd_adapter_t
+ *
+ * Return: none
+ */
+void hdd_initialize_adapter_common(hdd_adapter_t *adapter)
+{
+	if (NULL == adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: adapter is NULL ", __func__);
+		return;
+	}
+	init_completion(&adapter->session_open_comp_var);
+	init_completion(&adapter->session_close_comp_var);
+	init_completion(&adapter->disconnect_comp_var);
+	init_completion(&adapter->linkup_event_var);
+	init_completion(&adapter->cancel_rem_on_chan_var);
+	init_completion(&adapter->rem_on_chan_ready_event);
+	init_completion(&adapter->offchannel_tx_event);
+	init_completion(&adapter->tx_action_cnf_event);
+#ifdef FEATURE_WLAN_TDLS
+	init_completion(&adapter->tdls_add_station_comp);
+	init_completion(&adapter->tdls_del_station_comp);
+	init_completion(&adapter->tdls_mgmt_comp);
+	init_completion(&adapter->tdls_link_establish_req_comp);
+#endif
+
+#ifdef WLAN_FEATURE_RMC
+	init_completion(&adapter->ibss_peer_info_comp);
+#endif /* WLAN_FEATURE_RMC */
+	init_completion(&adapter->ula_complete);
+	init_completion(&adapter->change_country_code);
+	init_completion(&adapter->smps_force_mode_comp_var);
+	init_completion(&adapter->scan_info.scan_req_completion_event);
+	init_completion(&adapter->scan_info.abortscan_event_var);
+
+	return;
 }
 
 //Register the module init/exit functions

@@ -714,6 +714,8 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_PDEV_SET_WAKEUP_CONFIG_CMDID);
 		CASE_RETURN_STRING(WMI_PDEV_GET_ANTDIV_STATUS_CMDID);
 		CASE_RETURN_STRING(WMI_PEER_ANTDIV_INFO_REQ_CMDID);
+		CASE_RETURN_STRING(WMI_MNT_FILTER_CMDID);
+		CASE_RETURN_STRING(WMI_PDEV_GET_CHIP_POWER_STATS_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
@@ -902,10 +904,7 @@ dont_tag:
 					 __func__, __LINE__);
 				return -EBUSY;
 			}
-			vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-			pr_err("%s- %d: Start collecting ramdump\n",
-				__func__, __LINE__);
-			ol_schedule_ramdump_work(scn);
+			vos_trigger_recovery(true);
 		} else
 			VOS_BUG(0);
 		return -EBUSY;
@@ -1247,13 +1246,11 @@ wmi_unified_detach(struct wmi_unified* wmi_handle)
 	wmi_buf_t buf;
 
 	vos_flush_work(&wmi_handle->rx_event_work);
-	adf_os_spin_lock_bh(&wmi_handle->eventq_lock);
 	buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
 	while (buf) {
 		adf_nbuf_free(buf);
 		buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
 	}
-	adf_os_spin_unlock_bh(&wmi_handle->eventq_lock);
 
 	OS_FREE(wmi_handle);
 }
