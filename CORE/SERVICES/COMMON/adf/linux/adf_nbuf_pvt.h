@@ -154,7 +154,6 @@ struct cvg_nbuf_cb {
 #endif /* QOS_FWD_SUPPORT */
 #ifdef QCA_TX_HTT2_SUPPORT
     unsigned char tx_htt2_frm: 1;
-    unsigned char tx_htt2_reserved: 7;
 #endif /* QCA_TX_HTT2_SUPPORT */
     struct {
         uint8_t is_eapol: 1;
