@@ -278,7 +278,15 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         WDA_GET_RX_MPDU_DATA(pRxPacketInfo), framelen);
         return;
     }
-
+    if (psessionEntry->limMlmState == eLIM_MLM_WT_DEL_BSS_RSP_STATE) {
+        limLog(pMac, LOGE, FL("drop ASSOC REQ on sessionid: %d "
+              "role=%d from: "MAC_ADDRESS_STR" in limMlmState %d"),
+              psessionEntry->peSessionId,
+              GET_LIM_SYSTEM_ROLE(psessionEntry),
+              MAC_ADDR_ARRAY(pHdr->sa),
+              eLIM_MLM_WT_DEL_BSS_RSP_STATE);
+        return;
+    }
     /*
      * If a STA is already present in DPH and it
      * is initiating a Assoc re-transmit, do not
