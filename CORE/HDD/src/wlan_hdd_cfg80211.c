@@ -10442,7 +10442,7 @@ __wlan_hdd_cfg80211_bpf_offload(struct wiphy *wiphy,
 	}
 
 	if (!hdd_ctx->bpf_enabled) {
-		hddLog(LOGE, FL("BPF offload is not supported by firmware"));
+		hddLog(LOGE, FL("BPF offload is not supported/enabled"));
 		return -ENOTSUPP;
 	}
 

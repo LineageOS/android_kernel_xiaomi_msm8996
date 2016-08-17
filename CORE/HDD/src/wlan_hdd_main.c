@@ -8840,7 +8840,11 @@ void hdd_update_tgt_cfg(void *context, void *param)
     hdd_ctx->fine_time_meas_cap_target = cfg->fine_time_measurement_cap;
     hddLog(LOG1, FL("fine_time_measurement_cap: 0x%x"),
              hdd_ctx->cfg_ini->fine_time_meas_cap);
-    hdd_ctx->bpf_enabled = cfg->bpf_enabled;
+
+    hddLog(LOG1, FL("Target BPF %d Host BPF %d"),
+             cfg->bpf_enabled, hdd_ctx->cfg_ini->bpf_packet_filter_enable);
+    hdd_ctx->bpf_enabled = (cfg->bpf_enabled &&
+                            hdd_ctx->cfg_ini->bpf_packet_filter_enable);
 
     /*
      * If BPF is enabled, maxWowFilters set to WMA_STA_WOW_DEFAULT_PTRN_MAX
