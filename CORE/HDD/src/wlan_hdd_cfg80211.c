@@ -12105,7 +12105,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                     | WIPHY_FLAG_OFFCHAN_TX;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
-    wiphy->regulatory_flags = REGULATORY_COUNTRY_IE_IGNORE;
+    wiphy->regulatory_flags |= REGULATORY_COUNTRY_IE_IGNORE;
 #else
     wiphy->country_ie_pref = NL80211_COUNTRY_IE_IGNORE_CORE;
 #endif
