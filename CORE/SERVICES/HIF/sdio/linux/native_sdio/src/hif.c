@@ -1969,6 +1969,11 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: +hifEnableFunc\n"));
     device = getHifDevice(func);
 
+    if (!device) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HIF device is NULL\n"));
+        return A_EINVAL;
+    }
+
     if (device->is_disabled) {
         int setAsyncIRQ = 0;
         __u16 manufacturer_id = device->id->device & MANUFACTURER_ID_AR6K_BASE_MASK;
@@ -2094,8 +2099,7 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
         AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
              ("AR6k: call devicePwrChangeApi\n"));
         /* start  up inform DRV layer */
-        if (device &&
-            device->claimedContext &&
+        if (device->claimedContext &&
             osdrvCallbacks.devicePowerChangeHandler &&
             ((ret = osdrvCallbacks.devicePowerChangeHandler(
                   device->claimedContext, HIF_DEVICE_POWER_UP)) != A_OK))
