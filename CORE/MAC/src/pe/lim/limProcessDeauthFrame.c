@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -546,7 +546,8 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     lim_update_lost_link_info(pMac, psessionEntry, frame_rssi);
 
     /// Deauthentication from peer MAC entity
-    limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
+    if (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
+        limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
 
     // send eWNI_SME_DEAUTH_IND to SME
     limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
