@@ -1164,6 +1164,16 @@ config SCHED_HMP
 	  in their instructions per-cycle capability or the maximum
 	  frequency they can attain.
 
+config SCHED_CORE_CTL
+	bool "QTI Core Control"
+	depends on SMP
+	help
+	  This options enables the core control functionality in
+	  the scheduler. Core control automatically offline and
+	  online cores based on cpu load and utilization.
+
+	  If unsure, say N here.
+
 config SCHED_QHMP
 	bool "QHMP scheduler extensions"
 	depends on SCHED_HMP
