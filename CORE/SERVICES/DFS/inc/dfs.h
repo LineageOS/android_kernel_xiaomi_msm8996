@@ -129,7 +129,7 @@
 //#define MAX_BIN5_DUR  131 /* 105 * 1.25*/
 #define MAX_BIN5_DUR  145   /* use 145 for osprey */ //conversion is already done using dfs->dur_multiplier//
 #define MAX_BIN5_DUR_MICROSEC 105
-#define MAX_DFS_RADAR_TYPE 256
+#define MAX_DFS_RADAR_TABLE_TYPE 256
 
 #define DFS_MARGIN_EQUAL(a, b, margin) ((DFS_DIFF(a,b)) <= margin)
 #define DFS_MAX_STAGGERED_BURSTS 3
