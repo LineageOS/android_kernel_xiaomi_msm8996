@@ -2063,8 +2063,6 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
             pSirSmeDisConDoneInd->sessionId   = smesessionId;
             pSirSmeDisConDoneInd->reasonCode  = reasonCode;
             pMsg = (tANI_U32 *)pSirSmeDisConDoneInd;
-            vos_mem_copy(pSirSmeDisConDoneInd->peerMacAddr, peerMacAddr,
-                         sizeof(tSirMacAddr));
 
             break;
 
