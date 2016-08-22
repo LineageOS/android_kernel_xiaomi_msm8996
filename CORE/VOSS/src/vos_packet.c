@@ -73,6 +73,7 @@ typedef struct
 
 vos_pkt_proto_trace_t   *trace_buffer = NULL;
 unsigned int            trace_buffer_order = 0;
+unsigned int trace_dump_order = 0;
 spinlock_t              trace_buffer_lock;
 #endif /* QCA_PKT_PROTO_TRACE */
 
@@ -337,12 +338,12 @@ void vos_pkt_trace_buf_update
 }
 
 /**
- * vos_pkt_trace_buf_dump_1() - Helper function to dump pkt trace
+ * vos_pkt_trace_dump_slot_buf() - Helper function to dump pkt trace
  * @slot: index
  *
  * Return: none
  */
-void vos_pkt_trace_buf_dump_1(int slot)
+void vos_pkt_trace_dump_slot_buf(int slot)
 {
 	struct rtc_time tm;
 	unsigned long local_time;
@@ -383,20 +384,23 @@ void vos_pkt_trace_buf_dump(void)
 		 * Scenario: Number of trace records less than MAX,
 		 * Circular buffer not overwritten.
 		 */
-		for (slot = latest_idx - 1; slot >= 0; slot--)
-			vos_pkt_trace_buf_dump_1(slot);
+		for (slot = latest_idx - 1; slot >= 0 &&
+		     slot > trace_dump_order; slot--)
+			vos_pkt_trace_dump_slot_buf(slot);
 	} else {
 		/*
 		 * Scenario: Number of trace records exceeded MAX,
 		 * Circular buffer is overwritten.
 		 */
-		for (i = 0; i < VOS_PKT_TRAC_MAX_TRACE_BUF; i++) {
+		for (i = 0; (i < VOS_PKT_TRAC_MAX_TRACE_BUF) &&
+		     (latest_idx - i - 1 > trace_dump_order); i++) {
 			slot = ((latest_idx - i - 1) %
 				VOS_PKT_TRAC_MAX_TRACE_BUF);
-			vos_pkt_trace_buf_dump_1(slot);
+			vos_pkt_trace_dump_slot_buf(slot);
 		}
 	}
 
+	trace_dump_order = latest_idx - 1;
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 			"PACKET TRACE DUMP END");
 
