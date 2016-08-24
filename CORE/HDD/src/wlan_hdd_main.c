@@ -10898,10 +10898,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          if (session_type == WLAN_HDD_P2P_CLIENT)
             pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)) || defined(WITH_BACKPORTS)
-         else if (session_type == WLAN_HDD_P2P_DEVICE)
-            pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_DEVICE;
-#endif
          else
             pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
 
