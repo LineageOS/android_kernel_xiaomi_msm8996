@@ -110,6 +110,9 @@ struct hdd_tgt_cfg {
 #endif
         uint32_t fine_time_measurement_cap;
         bool bpf_enabled;
+#ifdef FEATURE_WLAN_RA_FILTERING
+        bool is_ra_rate_limit_enabled;
+#endif
         uint16_t wmi_max_len;
 #ifdef WLAN_FEATURE_NAN_DATAPATH
         bool nan_datapath_enabled;
