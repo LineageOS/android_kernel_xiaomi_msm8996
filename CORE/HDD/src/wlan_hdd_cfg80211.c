@@ -12369,10 +12369,12 @@ void wlan_hdd_update_wiphy(struct wiphy *wiphy,
     ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
 
     if (ht_cap_info->txSTBC == TRUE) {
-        wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
-						IEEE80211_HT_CAP_TX_STBC;
-        wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
-						IEEE80211_HT_CAP_TX_STBC;
+        if (NULL != wiphy->bands[IEEE80211_BAND_2GHZ])
+            wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
+                                                    IEEE80211_HT_CAP_TX_STBC;
+        if (NULL != wiphy->bands[IEEE80211_BAND_5GHZ])
+            wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+                                                    IEEE80211_HT_CAP_TX_STBC;
     }
 }
 
