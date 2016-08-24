@@ -2407,6 +2407,8 @@ VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
 VOS_STATUS wlansap_get_chan_width(void *pvosctx,
 			uint32_t *pchanwidth);
 
+VOS_STATUS wlansap_set_invalid_session(v_PVOID_t pctx);
+
 #ifdef __cplusplus
  }
 #endif

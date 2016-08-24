@@ -11723,6 +11723,18 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
           clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
       }
 
+      /*
+       * If adapter is SAP, set session ID to invalid since SAP
+       * session will be cleanup during SSR.
+       */
+      if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
+          wlansap_set_invalid_session(
+#ifdef WLAN_FEATURE_MBSSID
+                  WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
+                  (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+#endif
+
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }

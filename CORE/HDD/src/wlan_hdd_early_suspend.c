@@ -2316,6 +2316,9 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    /* Pass FW version to HIF layer */
    hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 
+   wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                               WLAN_SVC_FW_CRASHED_IND, NULL, 0);
+
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
 
@@ -2361,9 +2364,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    pHddCtx->btCoexModeSet = false;
    hdd_register_mcast_bcast_filter(pHddCtx);
-
-   wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
-                               WLAN_SVC_FW_CRASHED_IND, NULL, 0);
 
    /* Allow the phone to go to sleep */
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
