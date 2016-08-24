@@ -471,6 +471,7 @@ static HIF_DEVICE_USB *usb_hif_create(struct usb_interface *interface)
 		spin_lock_init(&(device->cs_lock));
 		spin_lock_init(&(device->rx_lock));
 		spin_lock_init(&(device->tx_lock));
+		spin_lock_init(&(device->rx_prestart_lock));
 		device->udev = dev;
 		device->interface = interface;
 
