@@ -2839,6 +2839,7 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 	tSirMbMsg *pMsg = (tSirMbMsg *)pMsgBuf;
 	tSirSmeDisConDoneInd *pDisConDoneInd;
 	tCsrRoamInfo roamInfo = {0};
+	tCsrRoamSession  *pSession;
 
 	if ((eWNI_SME_SCAN_RSP == pMsg->type) ||
 	    (eWNI_SME_GET_SCANNED_CHANNEL_RSP == pMsg->type)) {
@@ -2847,7 +2848,6 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 		switch (pMsg->type) {
 		case eWNI_SME_UPPER_LAYER_ASSOC_CNF:
 		{
-			tCsrRoamSession  *pSession;
 			tSirSmeAssocIndToUpperLayerCnf *pUpperLayerAssocCnf;
 			tCsrRoamInfo *pRoamInfo = NULL;
 			tANI_U32 sessionId;
@@ -2934,6 +2934,22 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 					&roamInfo, 0,
 					eCSR_ROAM_LOSTLINK,
 					eCSR_ROAM_RESULT_DISASSOC_IND);
+
+				pSession = CSR_GET_SESSION(pMac,
+						pDisConDoneInd->sessionId);
+
+				/*
+				 * Update the previous state if
+				 * previous to eCSR_ROAMING_STATE_IDLE
+				 * as we are disconnected and
+				 * currunt state is scanning
+				 */
+				if (pSession &&
+				   !CSR_IS_INFRA_AP(
+				   &pSession->connectedProfile))
+					pMac->roam.prev_state[
+						pDisConDoneInd->sessionId] =
+						eCSR_ROAMING_STATE_IDLE;
 			}
 			else
 			{
@@ -6183,21 +6199,21 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     {
         for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
         {
-            pCommand->u.scanCmd.lastRoamState[i] =
+            pMac->roam.prev_state[i]=
                 csrRoamStateChange( pMac, eCSR_ROAMING_STATE_SCANNING, i);
             smsLog( pMac, LOG3, "starting SCAN command from %d state...."
-                    " reason is %d", pCommand->u.scanCmd.lastRoamState[i],
+                    " reason is %d", pMac->roam.prev_state[i],
                     pCommand->u.scanCmd.reason );
         }
     }
     else
     {
-        pCommand->u.scanCmd.lastRoamState[pCommand->sessionId] =
+        pMac->roam.prev_state[pCommand->sessionId] =
             csrRoamStateChange(pMac, eCSR_ROAMING_STATE_SCANNING,
                                pCommand->sessionId);
         smsLog( pMac, LOG3,
                 "starting SCAN command from %d state.... reason is %d",
-                pCommand->u.scanCmd.lastRoamState[pCommand->sessionId],
+                pMac->roam.prev_state[pCommand->sessionId],
                 pCommand->u.scanCmd.reason );
     }
 
@@ -7423,12 +7439,13 @@ void csrReleaseScanCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatu
     {
         tANI_U32 i;
         for(i = 0; i < CSR_ROAM_SESSION_MAX; i++)
-            csrRoamStateChange(pMac, pCommand->u.scanCmd.lastRoamState[i], i);
+            csrRoamStateChange(pMac,
+              pMac->roam.prev_state[i], i);
     }
     else
     {
         csrRoamStateChange(pMac,
-                pCommand->u.scanCmd.lastRoamState[pCommand->sessionId],
+                pMac->roam.prev_state[pCommand->sessionId],
                 pCommand->sessionId);
     }
 
