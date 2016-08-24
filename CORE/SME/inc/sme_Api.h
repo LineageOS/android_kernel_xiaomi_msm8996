@@ -791,6 +791,13 @@ eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal, tANI_U8 sessionId);
 eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDisconnectReason reason);
 
 /* ---------------------------------------------------------------------------
+    \fn.sme_dhcp_done_ind
+    \brief a wrapper function to set dhcp done ind  in sme session
+    \retun void.
+---------------------------------------------------------------------------*/
+void sme_dhcp_done_ind(tHalHandle hal, uint8_t session_id);
+
+/* ---------------------------------------------------------------------------
     \fn sme_RoamStopBss
     \brief a wrapper function to request CSR to stop bss
     \param sessionId    - sessionId of SoftAP
