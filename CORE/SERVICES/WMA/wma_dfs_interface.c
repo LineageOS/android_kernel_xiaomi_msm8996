@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -59,10 +59,6 @@
 #include "wma.h"
 #include "ath_dfs_structs.h"
 #include "wma_dfs_interface.h"
-
-#ifndef ATH_SUPPORT_DFS
-#define ATH_SUPPORT_DFS 1
-#endif
 
 int
 ol_if_dfs_attach(struct ieee80211com *ic, void *ptr, void *radar_info)
@@ -208,7 +204,7 @@ ol_if_dfs_get_mib_cycle_counts_pct(struct ieee80211com *ic,
 u_int16_t
 ol_if_dfs_usenol(struct ieee80211com *ic)
 {
-#if ATH_SUPPORT_DFS
+#ifdef ATH_SUPPORT_DFS
     return(dfs_usenol(ic));
 #else
     return (0);

@@ -56,9 +56,6 @@
 
 
 #include <osdep.h>
-
-#ifndef ATH_SUPPORT_DFS
-#define ATH_SUPPORT_DFS 1
 #include "sys/queue.h"
 
 //#include "if_athioctl.h"
@@ -77,6 +74,7 @@ int domainoverride=DFS_UNINIT_DOMAIN;
 
 int usenol=1;
 u_int32_t dfs_debug_level=ATH_DEBUG_DFS;
+#ifdef ATH_SUPPORT_DFS
 
 #if 0 /* the code to call this is curently commented-out below */
 /*
@@ -1125,5 +1123,14 @@ u_int16_t   dfs_isdfsregdomain(struct ieee80211com *ic)
     struct ath_dfs *dfs = (struct ath_dfs *)ic->ic_dfs;
     return dfs ? dfs->dfsdomain : 0;
 }
-
+#else
+int
+dfs_attach(struct ieee80211com *ic)
+{
+	return 0;
+}
+void
+dfs_detach(struct ieee80211com *ic)
+{
+}
 #endif /* ATH_UPPORT_DFS */

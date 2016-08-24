@@ -36187,6 +36187,7 @@ struct ieee80211com* wma_dfs_attach(struct ieee80211com *dfs_ic)
     return dfs_ic;
 }
 
+#ifdef ATH_SUPPORT_DFS
 /*
  * Configures Radar Filters during
  * vdev start/channel change/regulatory domain
@@ -36389,6 +36390,22 @@ void wma_set_dfs_regdomain(tp_wma_handle wma, uint8_t dfs_region)
 	WMA_LOGI("%s: DFS Region Domain: %d", __func__,
 		 wma->dfs_ic->current_dfs_regdomain);
 }
+#else
+void wma_dfs_configure(struct ieee80211com *ic)
+{
+}
+void wma_set_dfs_regdomain(tp_wma_handle wma, uint8_t dfs_region)
+{
+}
+struct ieee80211_channel *
+wma_dfs_configure_channel(struct ieee80211com *dfs_ic,
+						  wmi_channel *chan,
+						  WLAN_PHY_MODE chanmode,
+						  struct wma_vdev_start_req *req)
+{
+	return NULL;
+}
+#endif
 
 int wma_get_channels(struct ieee80211_channel *ichan,
 		struct wma_dfs_radar_channel_list *chan_list)
