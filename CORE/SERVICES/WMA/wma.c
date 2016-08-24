@@ -5890,7 +5890,12 @@ static int wma_oem_data_response_handler(void *handle,
 	wma_send_msg(wma, WDA_START_OEM_DATA_RSP, (void *)oem_rsp, 0);
 	return 0;
 }
-
+#else
+static inline int wma_oem_data_response_handler(void *handle,
+				uint8_t *datap, uint32_t len)
+{
+	return 0;
+}
 #endif /* FEATURE_OEM_DATA_SUPPORT */
 
 static int wma_p2p_noa_event_handler(void *handle, u_int8_t *event, u_int32_t len)

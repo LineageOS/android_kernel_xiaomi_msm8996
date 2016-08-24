@@ -243,6 +243,17 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimProbeRespDisableFlag = 0; // control over probe response
 }
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static void lim_set_oem_data_req(tpAniSirGlobal mac)
+{
+	mac->lim.gpLimMlmOemDataReq = NULL;
+}
+#else
+static inline void lim_set_oem_data_req(tpAniSirGlobal mac)
+{
+}
+#endif
+
 static void __limInitVars(tpAniSirGlobal pMac)
 {
     // Place holder for Measurement Req/Rsp/Ind related info
@@ -293,7 +304,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     /* Init SAP deffered Q Head */
     lim_init_sap_deferred_msg_queue(pMac);
 #endif
-    pMac->lim.gpLimMlmOemDataReq = NULL;
+    lim_set_oem_data_req(pMac);
 }
 
 static void __limInitAssocVars(tpAniSirGlobal pMac)
@@ -976,6 +987,24 @@ pe_open_psession_fail:
     return status;
 }
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static void lim_free_oem_data_req(tpAniSirGlobal mac)
+{
+	if (mac->lim.gpLimMlmOemDataReq) {
+		if (mac->lim.gpLimMlmOemDataReq->data) {
+			vos_mem_free(mac->lim.gpLimMlmOemDataReq->data);
+			mac->lim.gpLimMlmOemDataReq->data = NULL;
+		}
+		vos_mem_free(mac->lim.gpLimMlmOemDataReq);
+		mac->lim.gpLimMlmOemDataReq = NULL;
+	}
+}
+#else
+static inline void lim_free_oem_data_req(tpAniSirGlobal mac)
+{
+}
+#endif
+
 /** -------------------------------------------------------------
 \fn peClose
 \brief will be called in close sequence from macClose
@@ -999,16 +1028,7 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     }
     vos_mem_free(pMac->lim.limTimers.gpLimCnfWaitTimer);
     pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
-
-    if (pMac->lim.gpLimMlmOemDataReq) {
-        if (pMac->lim.gpLimMlmOemDataReq->data) {
-            vos_mem_free(pMac->lim.gpLimMlmOemDataReq->data);
-            pMac->lim.gpLimMlmOemDataReq->data = NULL;
-        }
-        vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
-        pMac->lim.gpLimMlmOemDataReq = NULL;
-    }
-
+    lim_free_oem_data_req(pMac);
     vos_mem_free(pMac->lim.gpSession);
     pMac->lim.gpSession = NULL;
     vos_mem_free(pMac->pmm.gPmmTim.pTim);
