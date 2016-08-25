@@ -11483,11 +11483,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+   hdd_scaninfo_t *pScanInfo = NULL;
    union iwreq_data wrqu;
    tSirUpdateIE updateIE ;
    unsigned long rc;
 
    ENTER();
+
+   pScanInfo = &pAdapter->scan_info;
 
    hddLog(LOG1, FL("Disabling queues"));
    wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
@@ -11541,7 +11544,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
            memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
            wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
-         else
+
+         if (pScanInfo != NULL && pScanInfo->mScanPending)
          {
             wlan_hdd_scan_abort(pAdapter);
          }
