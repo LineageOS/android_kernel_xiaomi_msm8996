@@ -322,6 +322,20 @@ struct vos_log_complete {
 	bool is_report_in_progress;
 };
 
+/**
+ * struct vos_wdthread_timer_work - Watchdog timer thread structure
+ * @callback: Watchdog timer work call back
+ * @userdata: Input to the timer call back function
+ * @node: wdthread timer work Linklist
+ *
+ * This structure internally stores wdthread timer work related params
+ */
+struct vos_wdthread_timer_work {
+	vos_timer_callback_t callback;
+	void *userdata;
+	struct list_head node;
+};
+
 typedef struct _VosContextType
 {
    /* Messages buffers */
@@ -397,6 +411,10 @@ typedef struct _VosContextType
 
    /* radio index per driver */
    int radio_index;
+   struct vos_wdthread_timer_work wdthread_timer_work;
+   struct list_head wdthread_timer_work_list;
+   struct work_struct wdthread_work;
+   spinlock_t wdthread_work_lock;
 } VosContextType, *pVosContextType;
 
 

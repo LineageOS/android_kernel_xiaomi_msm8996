@@ -141,6 +141,12 @@ ifeq ($(KERNEL_BUILD), 0)
 
         #Flag to enable 3 port concurrency feature
         CONFIG_QCA_WIFI_AUTOMOTIVE_CONC := y
+
+	#Enable DSRC feature
+	ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+	CONFIG_WLAN_FEATURE_DSRC := y
+	endif
+
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN
@@ -402,7 +408,6 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_ftm.o \
 		$(HDD_SRC_DIR)/wlan_hdd_hostapd.o \
 		$(HDD_SRC_DIR)/wlan_hdd_main.o \
-		$(HDD_SRC_DIR)/wlan_hdd_ocb.o \
 		$(HDD_SRC_DIR)/wlan_hdd_oemdata.o \
 		$(HDD_SRC_DIR)/wlan_hdd_scan.o \
 		$(HDD_SRC_DIR)/wlan_hdd_softap_tx_rx.o \
@@ -411,6 +416,10 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wext.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wmm.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wowl.o
+
+ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
+HDD_OBJS+=	$(HDD_SRC_DIR)/wlan_hdd_ocb.o
+endif
 
 ifeq ($(CONFIG_IPA_OFFLOAD), 1)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_ipa.o
@@ -859,9 +868,11 @@ WMA_OBJS :=	$(WMA_DIR)/regdomain.o \
 		$(WMA_DIR)/wlan_nv.o \
 		$(WMA_DIR)/wma.o \
 		$(WMA_DIR)/wma_dfs_interface.o \
-		$(WMA_DIR)/wma_ocb.o \
 		$(WMA_NDP_OBJS)
 
+ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
+WMA_OBJS+=	$(WMA_DIR)/wma_ocb.o
+endif
 
 ############ WDA ############
 WDA_DIR :=	CORE/WDA
@@ -1030,6 +1041,10 @@ CDEFINES +=     -DCONFIG_HL_SUPPORT \
                 -DCONFIG_ATH_PROCFS_DIAG_SUPPORT \
                 -DFEATURE_HL_GROUP_CREDIT_FLOW_CONTROL \
                 -DHIF_MBOX_SLEEP_WAR
+endif
+
+ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
+CDEFINES += -DWLAN_FEATURE_DSRC
 endif
 
 ifeq ($(CONFIG_ARCH_MDMCALIFORNIUM), y)

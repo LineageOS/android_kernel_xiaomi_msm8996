@@ -1786,6 +1786,8 @@ static void __limProcessSmeOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     if (!pMlmOemDataReq->data) {
         limLog(pMac, LOGP, FL("memory allocation failed"));
         vos_mem_free(pMlmOemDataReq);
+        /* buffer from SME copied, free it now */
+        vos_mem_free(pOemDataReq->data);
         return;
     }
 

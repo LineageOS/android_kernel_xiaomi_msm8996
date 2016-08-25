@@ -3715,10 +3715,15 @@ eHalStatus sme_set_mib_stats_enable(tHalHandle hal, uint8_t value);
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode);
 eHalStatus sme_PsOffloadEnablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
-eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId);
 eHalStatus sme_PsOffloadEnableDeferredPowerSave (tHalHandle hHal,
                                                  tANI_U32 sessionId,
                                                  tANI_BOOLEAN isReassoc);
+
+eHalStatus sme_PsOffloadDisablePowerSave(tHalHandle hHal,
+					 FullPowerReqCb callback,
+					 void *callback_context,
+					 tANI_U32 sessionId);
+
 eHalStatus sme_PsOffloadDisableDeferredPowerSave (tHalHandle hHal,
                                                   tANI_U32 sessionId);
 
@@ -3928,6 +3933,7 @@ eHalStatus sme_StatsExtEvent (tHalHandle hHal, void* pMsg);
    \param enable_dot11p - 802.11p config param
    \return eHalStatus
 ---------------------------------------------------------------------------*/
+#ifdef WLAN_FEATURE_DSRC
 void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p);
 
 eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
@@ -3962,6 +3968,78 @@ eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void* context,
 
 eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void* context,
                                             ocb_callback callback);
+#else
+static inline void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
+{
+	return;
+}
+
+static inline eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
+		ocb_callback callback,
+		struct sir_ocb_config *config)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_ocb_set_utc_time(struct sir_ocb_utc *utc)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_ocb_start_timing_advert(
+		struct sir_ocb_timing_advert *timing_advert)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_ocb_stop_timing_advert(struct sir_ocb_timing_advert
+		*timing_advert)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline int sme_ocb_gen_timing_advert_frame(tHalHandle hHal,
+		tSirMacAddr self_addr, uint8_t **buf,
+		uint32_t *timestamp_offset,
+		uint32_t *time_value_offset)
+{
+	return 0;
+}
+
+static inline eHalStatus sme_ocb_get_tsf_timer(tHalHandle hHal, void *context,
+		ocb_callback callback,
+		struct sir_ocb_get_tsf_timer *request)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_dcc_get_stats(tHalHandle hHal, void *context,
+		ocb_callback callback,
+		struct sir_dcc_get_stats *request)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_dcc_clear_stats(uint32_t vdev_id,
+		uint32_t dcc_stats_bitmap)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void* context,
+		ocb_callback callback,
+		struct sir_dcc_update_ndl *request)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal,
+		void* context, ocb_callback callback)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn sme_UpdateDFSScanMode

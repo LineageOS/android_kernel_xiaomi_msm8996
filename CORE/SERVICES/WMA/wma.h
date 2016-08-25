@@ -1790,6 +1790,7 @@ uint32_t wma_get_vht_ch_width(void);
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
 VOS_STATUS wma_set_tx_rx_aggregation_size
 	(struct sir_set_tx_rx_aggregation_size *tx_rx_aggregation_size);
+VOS_STATUS wma_set_powersave_config(uint8_t val);
 
 /**
  * wma_find_vdev_by_id() - Find vdev handle for given vdev id.

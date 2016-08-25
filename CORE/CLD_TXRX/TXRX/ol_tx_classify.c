@@ -498,7 +498,8 @@ ol_tx_classify(
             return NULL; /* error */
         }
         TX_SCHED_DEBUG_PRINT("Peer found\n");
-        if (!peer->qos_capable) {
+        if ((adf_nbuf_get_fwd_flag(tx_nbuf) != ADF_NBUF_FWD_FLAG) &&
+                          (!peer->qos_capable)) {
             tid = OL_TX_NON_QOS_TID;
         } else if ((peer->security[OL_TXRX_PEER_SECURITY_UNICAST].sec_type
                           != htt_sec_type_wapi) &&

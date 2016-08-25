@@ -1221,10 +1221,11 @@ struct hdd_adapter_s
     struct sir_ocb_get_tsf_timer_response ocb_get_tsf_timer_resp;
     struct sir_dcc_get_stats_response *dcc_get_stats_resp;
     struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
-
+#ifdef WLAN_FEATURE_DSRC
     /* MAC addresses used for OCB interfaces */
     tSirMacAddr ocb_mac_address[VOS_MAX_CONCURRENCY_PERSONA];
     int ocb_mac_addr_count;
+#endif
     struct hdd_adapter_pm_context runtime_context;
     struct mib_stats_metrics mib_stats;
 
@@ -2137,7 +2138,8 @@ wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
 void hdd_connect_result(struct net_device *dev, const u8 *bssid,
 			tCsrRoamInfo *roam_info, const u8 *req_ie,
 			size_t req_ie_len, const u8 * resp_ie,
-			size_t resp_ie_len, u16 status, gfp_t gfp);
+			size_t resp_ie_len, u16 status, gfp_t gfp,
+			bool connect_timeout);
 
 int wlan_hdd_init_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_deinit_tx_rx_histogram(hdd_context_t *pHddCtx);
