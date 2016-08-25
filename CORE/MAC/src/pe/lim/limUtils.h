@@ -462,8 +462,6 @@ tANI_BOOLEAN limCheckMembershipUserPosition( tpAniSirGlobal pMac, tpPESession ps
                                              tANI_U8 staId);
 #endif
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
-
 typedef enum
 {
     WLAN_PE_DIAG_SCAN_REQ_EVENT = 0,
@@ -544,8 +542,14 @@ typedef enum
     WLAN_PE_DIAG_AUTH_TIMEOUT,
 } WLAN_PE_DIAG_EVENT_TYPE;
 
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
 void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tpPESession pSessionEntry, tANI_U16 status, tANI_U16 reasonCode);
-
+#else
+static inline void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType,
+			tpPESession pSessionEntry, tANI_U16 status,
+			tANI_U16 reasonCode)
+{
+}
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
 void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, ePhyChanBondState cbState);
