@@ -4745,4 +4745,9 @@ eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
 	return eHAL_STATUS_SUCCESS;
 }
 #endif
+#ifdef WLAN_POWER_DEBUGFS
+eHalStatus sme_power_debug_stats_req(tHalHandle hal, void (*callback_fn)
+			(struct power_stats_response *response,
+			void *context), void *power_stats_context);
+#endif
 #endif //#if !defined( __SME_API_H )
