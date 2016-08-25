@@ -2409,14 +2409,13 @@ int __wlan_hdd_del_virtual_intf(struct wiphy *wiphy, struct net_device *dev)
     struct net_device *dev = wdev->netdev;
 #endif
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_adapter_t *pVirtAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int status;
     ENTER();
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_DEL_VIRTUAL_INTF,
-                     pAdapter->sessionId, pAdapter->device_mode));
+                     pVirtAdapter->sessionId, pVirtAdapter->device_mode));
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pVirtAdapter->device_mode),
            pVirtAdapter->device_mode);

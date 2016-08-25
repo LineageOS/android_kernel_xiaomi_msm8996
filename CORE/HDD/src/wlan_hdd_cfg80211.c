@@ -21430,7 +21430,9 @@ static int __wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 {
     int status = -EPERM;
 #ifdef FEATURE_WLAN_TDLS
+#ifdef TRACE_RECORD
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+#endif
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
     u32 mask, set;
 

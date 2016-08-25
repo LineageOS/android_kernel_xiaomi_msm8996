@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -62,9 +62,8 @@ tSirRetStatus macReset(tpAniSirGlobal pMac, tANI_U32 rc);
 
 tSirRetStatus macPreStart(tHalHandle hHal)
 {
-   tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-
 #if defined(ANI_LOGDUMP)
+   tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
    //logDumpInit must be called before any module starts
    logDumpInit(pMac);
 #endif //#if defined(ANI_LOGDUMP)
