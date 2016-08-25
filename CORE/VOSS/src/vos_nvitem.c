@@ -1495,6 +1495,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
     hdd_context_t *pHddCtx = NULL;
     struct wiphy *wiphy = NULL;
     int i;
+    int wait_result;
 
     /* sanity checks */
     if (NULL == pRegDomain)
@@ -1600,11 +1601,37 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
         }
 
     } else if (COUNTRY_IE == source || COUNTRY_USER == source) {
+        INIT_COMPLETION(pHddCtx->reg_init);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
         regulatory_hint_user(country_code, NL80211_USER_REG_HINT_USER);
 #else
         regulatory_hint_user(country_code);
 #endif
+        wait_result = wait_for_completion_interruptible_timeout(
+                               &pHddCtx->reg_init,
+                               msecs_to_jiffies(REG_WAIT_TIME));
+        /*
+         * if the country information does not exist with the kernel,
+         * then the driver callback would not be called
+         */
+
+        if (wait_result >= 0)
+        {
+           VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                       "runtime country code : %c%c is found in kernel db",
+                        country_code[0], country_code[1]);
+           *pRegDomain = temp_reg_domain;
+        }
+
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+                       "runtime country code : %c%c is not found"
+                       " in kernel db",
+                        country_code[0], country_code[1]);
+
+            return VOS_STATUS_E_EXISTS;
+        }
     }
 
     *pRegDomain = temp_reg_domain;
@@ -2242,9 +2269,6 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         if (pHddCtx->isVHT80Allowed != isVHT80Allowed)
             hdd_checkandupdate_phymode( pHddCtx);
 
-        if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator)
-            complete(&pHddCtx->reg_init);
-
         /* now pass the new country information to sme */
         if (request->alpha2[0] == '0' && request->alpha2[1] == '0')
         {
@@ -2264,6 +2288,10 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         vos_nv_set_dfs_region(request->dfs_region);
 
         regdmn_set_dfs_region(&pHddCtx->reg);
+
+        if ((NL80211_REGDOM_SET_BY_DRIVER == request->initiator) ||
+            (NL80211_REGDOM_SET_BY_USER == request->initiator))
+            complete(&pHddCtx->reg_init);
 
     default:
         break;
