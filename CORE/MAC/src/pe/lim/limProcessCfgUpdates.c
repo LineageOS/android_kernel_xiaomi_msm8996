@@ -570,28 +570,6 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         pMac->lim.glim_assoc_sta_limit_ap = (tANI_U16)val1;
         break;
 
-    case WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC:
-        if (wlan_cfgGetInt
-           (pMac, WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC, &val1) !=
-                 eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGE,
-                 FL( "Unable to get WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC"));
-            break;
-        }
-        if (val1)
-        {
-            limLog(pMac, LOGW,
-                FL("BTC requested to disable all RX BA sessions"));
-            limDelPerBssBASessionsBtc(pMac);
-        }
-        else
-        {
-            limLog(pMac, LOGW,
-                FL("Resetting the WNI_CFG_DEL_ALL_RX_BA_SESSIONS_2_4_G_BTC"));
-        }
-        break;
-
     default:
             break;
     }

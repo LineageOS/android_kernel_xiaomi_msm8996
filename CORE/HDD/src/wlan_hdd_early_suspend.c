@@ -52,7 +52,6 @@
 #include <vos_sched.h>
 #include <macInitApi.h>
 #include <wlan_qct_sys.h>
-#include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
 #include <wlan_hdd_main.h>
 #include <wlan_hdd_assoc.h>
@@ -2425,7 +2424,6 @@ err_re_init:
          /* Unregister all Net Device Notifiers */
          wlan_hdd_netdev_notifiers_cleanup(pHddCtx);
          /* Clean up HDD Nlink Service */
-         send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
          nl_srv_exit();
          hdd_runtime_suspend_deinit(pHddCtx);
          hdd_close_all_adapters(pHddCtx);
@@ -2448,8 +2446,6 @@ err_re_init:
    hdd_wlan_wakelock_destroy();
    return -EPERM;
 success:
-   /* Trigger replay of BTC events */
-   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    pHddCtx->isLogpInProgress = FALSE;
    hdd_ssr_timer_del();
    return VOS_STATUS_SUCCESS;
