@@ -9327,24 +9327,24 @@ static int __wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
 	if (ring_id == RING_ID_PER_PACKET_STATS) {
 		wlan_logging_set_per_pkt_stats();
 		hddLog(LOG1, FL("Flushing/Retrieving packet stats"));
-	}
-
-	/*
-	 * As part of DRIVER ring ID, flush both driver and firmware logs.
-	 * For other Ring ID's driver doesn't have any rings to flush
-	 */
-	if (ring_id == RING_ID_DRIVER_DEBUG) {
+	} else if (ring_id == RING_ID_DRIVER_DEBUG) {
+		/*
+		 * As part of DRIVER ring ID, flush both driver and fw logs.
+		 * For other Ring ID's driver doesn't have any rings to flush
+		 */
 		hddLog(LOG1, FL("Bug report triggered by framework"));
 
 		ret = vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
 				     WLAN_LOG_INDICATOR_FRAMEWORK,
 				     WLAN_LOG_REASON_CODE_UNUSED,
-				     true);
+				     DUMP_VOS_TRACE | DUMP_PACKET_TRACE);
 		if (VOS_STATUS_SUCCESS != ret) {
 			hddLog(LOGE, FL("Failed to trigger bug report"));
 			return -EINVAL;
 		}
-	}
+	} else
+		wlan_report_log_completion(FALSE, WLAN_LOG_INDICATOR_FRAMEWORK,
+					   WLAN_LOG_REASON_CODE_UNUSED);
 	return 0;
 }
 
@@ -12369,10 +12369,12 @@ void wlan_hdd_update_wiphy(struct wiphy *wiphy,
     ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
 
     if (ht_cap_info->txSTBC == TRUE) {
-        wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
-						IEEE80211_HT_CAP_TX_STBC;
-        wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
-						IEEE80211_HT_CAP_TX_STBC;
+        if (NULL != wiphy->bands[IEEE80211_BAND_2GHZ])
+            wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
+                                                    IEEE80211_HT_CAP_TX_STBC;
+        if (NULL != wiphy->bands[IEEE80211_BAND_5GHZ])
+            wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+                                                    IEEE80211_HT_CAP_TX_STBC;
     }
 }
 
@@ -17359,9 +17361,10 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
                     vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
                                    WLAN_LOG_INDICATOR_HOST_DRIVER,
                                    WLAN_LOG_REASON_NO_SCAN_RESULTS,
-                                   true);
+                                   DUMP_VOS_TRACE);
                     pHddCtx->last_scan_bug_report_timestamp = current_timestamp;
                 }
+                pHddCtx->last_scan_bug_report_timestamp = current_timestamp;
             }
         }
     }
@@ -22549,7 +22552,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
             vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                            WLAN_LOG_INDICATOR_HOST_DRIVER,
                            WLAN_LOG_REASON_HDD_TIME_OUT,
-                           true);
+                           DUMP_VOS_TRACE);
         pAdapter->mgmtTxCompletionStatus = FALSE;
         wlan_hdd_tdls_check_bmps(pAdapter);
         return -EINVAL;

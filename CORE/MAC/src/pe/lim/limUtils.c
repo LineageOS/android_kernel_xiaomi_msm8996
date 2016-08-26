@@ -1036,7 +1036,7 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
             vos_flush_logs(WLAN_LOG_TYPE_NON_FATAL,
                            WLAN_LOG_INDICATOR_HOST_DRIVER,
                            WLAN_LOG_REASON_QUEUE_FULL,
-                           true);
+                           DUMP_VOS_TRACE);
         }
         else
         {
@@ -7361,11 +7361,13 @@ void limPmfSaQueryTimerHandler(void *pMacGlobal, tANI_U32 param)
 
 #ifdef WLAN_FEATURE_11AC
 tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry,
-                                      tANI_U8 chanWidth, tANI_U8 staId, tANI_U8 *peerMac)
+                                      tANI_U8 chanWidth, tANI_U8 chanMode,
+                                      tANI_U8 staId, tANI_U8 *peerMac)
 {
     tUpdateVHTOpMode tempParam;
 
     tempParam.opMode = chanWidth;
+    tempParam.chanMode = chanMode;
     tempParam.staId  = staId;
     tempParam.smesessionId = psessionEntry->smeSessionId;
     vos_mem_copy(tempParam.peer_mac, peerMac,

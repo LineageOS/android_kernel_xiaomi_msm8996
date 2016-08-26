@@ -505,7 +505,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                            WLAN_LOG_INDICATOR_HOST_DRIVER,
                            WLAN_LOG_REASON_SME_OUT_OF_CMD_BUF,
-                           false);
+                           DUMP_NO_TRACE);
         } else {
             /* Trigger SSR */
             vos_wlanRestart();
@@ -14071,7 +14071,7 @@ void activeListCmdTimeoutHandle(void *userData)
         vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                        WLAN_LOG_INDICATOR_HOST_DRIVER,
                        WLAN_LOG_REASON_SME_COMMAND_STUCK,
-                       false);
+                       DUMP_NO_TRACE);
     } else {
         vosTraceDumpAll(mac_ctx, 0, 0, 500, 0);
     }
@@ -14176,6 +14176,7 @@ VOS_STATUS sme_notify_ht2040_mode(tHalHandle hHal, tANI_U16 staId,
    vos_mem_copy(pHtOpMode->peer_mac, macAddrSTA.bytes,
                  sizeof(tSirMacAddr));
    pHtOpMode->smesessionId = sessionId;
+   pHtOpMode->chanMode = MODE_MAX;
 
    msg.type     = WDA_UPDATE_OP_MODE;
    msg.reserved = 0;

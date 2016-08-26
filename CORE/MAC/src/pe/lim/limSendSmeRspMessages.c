@@ -1517,7 +1517,6 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
     tANI_U8                     *pBuf;
     tSirSmeDisassocRsp      *pSirSmeDisassocRsp;
     tSirSmeDisassocInd      *pSirSmeDisassocInd;
-    tSirSmeDisConDoneInd    *pSirSmeDisConDoneInd;
     tANI_U32 *pMsg;
     bool failure = false;
 
@@ -1528,6 +1527,12 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
 
     switch (disassocTrigger)
     {
+        case eLIM_PEER_ENTITY_DISASSOC:
+            if (reasonCode != eSIR_SME_STA_NOT_ASSOCIATED) {
+                failure = true;
+                goto error;
+            }
+
         case eLIM_HOST_DISASSOC:
             /**
              * Disassociation response due to
@@ -1577,30 +1582,6 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
                                       psessionEntry, (tANI_U16)reasonCode, 0);
 #endif
             pMsg = (tANI_U32*) pSirSmeDisassocRsp;
-            break;
-	case eLIM_PEER_ENTITY_DISASSOC:
-	case eLIM_LINK_MONITORING_DISASSOC:
-            pSirSmeDisConDoneInd =
-                                  vos_mem_malloc(sizeof(tSirSmeDisConDoneInd));
-            if ( NULL == pSirSmeDisConDoneInd )
-            {
-                /* Log error */
-                limLog(pMac, LOGP,
-                       FL("call to AllocateMemory failed for"
-                          "disconnect indication"));
-                return;
-            }
-            vos_mem_zero(pSirSmeDisConDoneInd, sizeof(tSirSmeDisConDoneInd));
-            limLog(pMac, LOG1,
-                   FL("send  eWNI_SME_DISCONNECT_DONE_IND with retCode: %d"),
-                   reasonCode);
-            pSirSmeDisConDoneInd->messageType = eWNI_SME_DISCONNECT_DONE_IND;
-            pSirSmeDisConDoneInd->length      = sizeof(tSirSmeDisConDoneInd);
-            vos_mem_copy(pSirSmeDisConDoneInd->peerMacAddr, peerMacAddr,
-                         sizeof(tSirMacAddr));
-            pSirSmeDisConDoneInd->sessionId   = smesessionId;
-            pSirSmeDisConDoneInd->reasonCode  = reasonCode;
-            pMsg = (tANI_U32 *)pSirSmeDisConDoneInd;
             break;
 
         default:
@@ -1999,7 +1980,6 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
     tANI_U8             *pBuf;
     tSirSmeDeauthRsp    *pSirSmeDeauthRsp;
     tSirSmeDeauthInd    *pSirSmeDeauthInd;
-    tSirSmeDisConDoneInd *pSirSmeDisConDoneInd;
     tpPESession         psessionEntry;
     tANI_U8             sessionId;
     tANI_U32            *pMsg;
@@ -2007,6 +1987,9 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
     psessionEntry = peFindSessionByBssid(pMac,peerMacAddr,&sessionId);
     switch (deauthTrigger)
     {
+        case eLIM_PEER_ENTITY_DEAUTH:
+            return;
+
         case eLIM_HOST_DEAUTH:
             /**
              * Deauthentication response to host triggered
@@ -2038,33 +2021,6 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
                                       psessionEntry, 0, (tANI_U16)reasonCode);
 #endif
             pMsg = (tANI_U32*)pSirSmeDeauthRsp;
-
-            break;
-
-	case eLIM_PEER_ENTITY_DEAUTH:
-	case eLIM_LINK_MONITORING_DEAUTH:
-            pSirSmeDisConDoneInd =
-                                vos_mem_malloc(sizeof(tSirSmeDisConDoneInd));
-            if ( NULL == pSirSmeDisConDoneInd )
-            {
-                /* Log error */
-                limLog(pMac, LOGP,
-                       FL("call to AllocateMemory failed for"
-                          "disconnect indication"));
-                return;
-            }
-
-            vos_mem_zero(pSirSmeDisConDoneInd, sizeof(tSirSmeDisConDoneInd));
-            limLog(pMac, LOG1,
-                   FL("send  eWNI_SME_DISCONNECT_DONE_IND withretCode: %d"),
-                   reasonCode);
-            pSirSmeDisConDoneInd->messageType = eWNI_SME_DISCONNECT_DONE_IND;
-            pSirSmeDisConDoneInd->length      = sizeof(tSirSmeDisConDoneInd);
-            pSirSmeDisConDoneInd->sessionId   = smesessionId;
-            pSirSmeDisConDoneInd->reasonCode  = reasonCode;
-            pMsg = (tANI_U32 *)pSirSmeDisConDoneInd;
-            vos_mem_copy(pSirSmeDisConDoneInd->peerMacAddr, peerMacAddr,
-                         sizeof(tSirMacAddr));
 
             break;
 
