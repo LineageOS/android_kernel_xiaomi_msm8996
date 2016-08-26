@@ -75,6 +75,7 @@
 #include "vos_memory.h"
 #include "nan_datapath.h"
 
+#define CHECK_BIT(value, mask)    ((value) & (1 << (mask)))
 void limLogSessionStates(tpAniSirGlobal pMac);
 
 /** -------------------------------------------------------------
@@ -2069,6 +2070,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         {
             tpPESession     psessionEntry;
             tANI_U8         sessionId;
+            tDphHashNode   *sta_ds = NULL;
+            int i, aid;
             tTdlsLinkEstablishParams *pTdlsLinkEstablishParams;
             pTdlsLinkEstablishParams = (tTdlsLinkEstablishParams*) limMsg->bodyptr;
 
@@ -2089,11 +2092,33 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             }
             else
             {
-                limSendSmeTdlsLinkEstablishReqRsp(pMac,
-                                                  psessionEntry->smeSessionId,
-                                                  NULL,
-                                                  NULL,
-                                                  pTdlsLinkEstablishParams->status) ;
+                for (i = 0;
+                     i < sizeof(psessionEntry->peerAIDBitmap)
+                                           / sizeof(uint32_t); i++) {
+                    for (aid = 0; aid < (sizeof(tANI_U32) << 3); aid++) {
+                        if (CHECK_BIT(psessionEntry->peerAIDBitmap[i], aid)) {
+                            sta_ds = dphGetHashEntry(pMac,
+                                           (aid + i*(sizeof(tANI_U32) << 3)),
+                                            &psessionEntry->dph.dphHashTable);
+                              if ((sta_ds) &&
+                                   (pTdlsLinkEstablishParams->staIdx ==
+                                                       sta_ds->staIndex))
+                                  goto send_link_resp;
+                        }
+                    }
+                }
+send_link_resp:
+                if (sta_ds)
+                    limSendSmeTdlsLinkEstablishReqRsp(pMac,
+                                              psessionEntry->smeSessionId,
+                                              sta_ds->staAddr,
+                                              sta_ds,
+                                              pTdlsLinkEstablishParams->status);
+                else
+                    limSendSmeTdlsLinkEstablishReqRsp(pMac,
+                                              psessionEntry->smeSessionId,
+                                              NULL, NULL,
+                                              pTdlsLinkEstablishParams->status);
             }
             vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
             limMsg->bodyptr = NULL;
