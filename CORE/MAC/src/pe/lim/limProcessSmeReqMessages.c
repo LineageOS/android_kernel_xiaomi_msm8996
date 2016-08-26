@@ -2077,17 +2077,14 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->txMuBformee = pSmeJoinReq->txMuBformee;
             psessionEntry->enableVhtpAid = pSmeJoinReq->enableVhtpAid;
             psessionEntry->enableVhtGid = pSmeJoinReq->enableVhtGid;
-            if( psessionEntry->txBFIniFeatureEnabled )
-            {
-                if (cfgSetInt(pMac, WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
-                                     psessionEntry->txBFIniFeatureEnabled)
-                                                             != eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGE, FL("could not set  "
-                                  "WNI_CFG_VHT_SU_BEAMFORMEE_CAP at CFG"));
+            if (cfgSetInt(pMac, WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
+                    psessionEntry->txBFIniFeatureEnabled)) {
+                    limLog(pMac, LOGE, FL("Could not set WNI_CFG_VHT_SU_BEAMFORMEE_CAP at CFG"));
                     retCode = eSIR_LOGP_EXCEPTION;
                     goto end;
-                }
+            }
+
+            if (psessionEntry->txBFIniFeatureEnabled) {
                 if (cfgSetInt(pMac, WNI_CFG_VHT_CSN_BEAMFORMEE_ANT_SUPPORTED,
                                                        pSmeJoinReq->txBFCsnValue)
                                                              != eSIR_SUCCESS)
