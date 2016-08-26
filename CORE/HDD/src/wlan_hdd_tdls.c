@@ -1091,6 +1091,9 @@ void wlan_hdd_tdls_set_link_status(hdd_adapter_t *pAdapter,
 
     mutex_lock(&pHddCtx->tdls_lock);
 
+    hddLog(LOG1, FL("tdls set peer " MAC_ADDRESS_STR " link status to %u"),
+                 MAC_ADDR_ARRAY(curr_peer->peerMac), linkStatus);
+
     curr_peer->link_status= linkStatus;
 
     /* If TDLS link status is already passed the discovery state

@@ -3123,8 +3123,17 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
         {
             if(eSIR_SME_SUCCESS != pRoamInfo->statusCode)
             {
+                hddTdlsPeer_t *curr_peer;
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                      ("%s: Add Sta is failed. %d"),__func__, pRoamInfo->statusCode);
+                mutex_lock(&pHddCtx->tdls_lock);
+                curr_peer = wlan_hdd_tdls_find_peer(pAdapter,
+                                     pRoamInfo->peerMac, FALSE);
+                if (curr_peer)
+                    curr_peer->link_status = eTDLS_LINK_TEARING;
+                else
+                    hddLog(LOG1, FL("curr_peer is Null"));
+                mutex_unlock(&pHddCtx->tdls_lock);
             }
             else
             {
