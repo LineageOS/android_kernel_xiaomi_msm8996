@@ -2961,6 +2961,11 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     tANI_U32 selfStaDot11Mode = 0;
 
+#ifdef FEATURE_WLAN_ESE
+    tLimMlmReassocReq *pMlmReassocReq;
+    tANI_U32 val = 0;
+#endif
+
     /* Sanity Checks */
 
     if (pAddBssParams == NULL)
@@ -2981,6 +2986,39 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
         limPrintMacAddr(pMac, pAddBssParams->staContext.staMac, LOGE);
         goto end;
     }
+
+#ifdef FEATURE_WLAN_ESE
+    /*
+     * In case of Ese Reassociation, change the reassoc timer
+     * value.
+     */
+    pMlmReassocReq = (tLimMlmReassocReq *)(psessionEntry->pLimMlmReassocReq);
+    if (pMlmReassocReq == NULL)
+    {
+        limLog(pMac, LOGE,
+                   FL("Invalid pMlmReassocReq"));
+        goto end;
+    }
+    val = pMlmReassocReq->reassocFailureTimeout;
+    if (psessionEntry->isESEconnection)
+    {
+        val = val/LIM_MAX_REASSOC_RETRY_LIMIT;
+    }
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer) !=
+            TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+                   FL("unable to deactivate Reassoc failure timer"));
+    }
+    val = SYS_MS_TO_TICKS(val);
+    if (tx_timer_change(&pMac->lim.limTimers.gLimReassocFailureTimer,
+                        val, 0) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+                   FL("unable to change Reassociation failure timer"));
+    }
+#endif
+
     // Prepare and send Reassociation request frame
     // start reassoc timer.
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -3814,6 +3852,11 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
 {
     tLimMlmReassocCnf       mlmReassocCnf;
     tLimMlmReassocReq       *pMlmReassocReq;
+
+#ifdef FEATURE_WLAN_ESE
+    tANI_U32                val = 0;
+#endif
+
     pMlmReassocReq = (tLimMlmReassocReq *)(psessionEntry->pLimMlmReassocReq);
     if(pMlmReassocReq == NULL)
     {
@@ -3828,6 +3871,32 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
         mlmReassocCnf.resultCode = eSIR_SME_CHANNEL_SWITCH_FAIL;
         goto end;
     }
+#ifdef FEATURE_WLAN_ESE
+    /*
+     * In case of Ese Reassociation, change the reassoc timer
+     * value.
+     */
+    val = pMlmReassocReq->reassocFailureTimeout;
+    if (psessionEntry->isESEconnection)
+    {
+        val = val/LIM_MAX_REASSOC_RETRY_LIMIT;
+    }
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer) !=
+                 TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to deactivate Reassoc failure timer"));
+    }
+    val = SYS_MS_TO_TICKS(val);
+    if (tx_timer_change(&pMac->lim.limTimers.gLimReassocFailureTimer,
+                        val, 0) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to change Reassociation failure timer"));
+
+    }
+#endif
+    pMac->lim.limTimers.gLimReassocFailureTimer.sessionId = psessionEntry->peSessionId;
     /// Start reassociation failure timer
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_REASSOC_FAIL_TIMER));
     if (tx_timer_activate(&pMac->lim.limTimers.gLimReassocFailureTimer)
