@@ -1546,7 +1546,8 @@ static void wlan_hdd_tdls_implicit_enable(tdlsCtx_t *pHddTdlsCtx)
 
 static void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
                             eTDLSSupportMode tdls_mode,
-                            v_BOOL_t bUpdateLast)
+                            v_BOOL_t bUpdateLast,
+                            enum tdls_disable_source source)
 {
     hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
     VOS_STATUS status;
@@ -1568,6 +1569,19 @@ static void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
         mutex_unlock(&pHddCtx->tdls_lock);
         hddLog(VOS_TRACE_LEVEL_INFO,
                "%s already in mode %d", __func__, (int)tdls_mode);
+
+        /* TDLS is already disabled hence set source mask and return */
+        if (eTDLS_SUPPORT_DISABLED == tdls_mode) {
+            set_bit((unsigned long)source, &pHddCtx->tdls_source_bitmap);
+            return;
+        }
+
+        /* TDLS is already enabled hence clear source mask and return */
+        if (eTDLS_SUPPORT_ENABLED == tdls_mode) {
+            clear_bit((unsigned long)source,
+                        &pHddCtx->tdls_source_bitmap);
+            return;
+        }
         return;
     }
 
@@ -1580,11 +1594,37 @@ static void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx,
        if (NULL != pHddTdlsCtx)
        {
            if(eTDLS_SUPPORT_ENABLED == tdls_mode ||
-              eTDLS_SUPPORT_EXTERNAL_CONTROL == tdls_mode)
+              eTDLS_SUPPORT_EXTERNAL_CONTROL == tdls_mode) {
+               clear_bit((unsigned long)source,
+                            &pHddCtx->tdls_source_bitmap);
+
+               /*
+                * Check if any TDLS source bit is set and if bitmap is
+                * not zero then we should not enable TDLS
+                */
+               if (pHddCtx->tdls_source_bitmap) {
+                   mutex_unlock(&pHddCtx->tdls_lock);
+                   return;
+               }
                wlan_hdd_tdls_implicit_enable(pHddTdlsCtx);
-           else if((eTDLS_SUPPORT_DISABLED == tdls_mode) ||
-                   (eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == tdls_mode))
+           } else if (eTDLS_SUPPORT_DISABLED == tdls_mode) {
+               set_bit((unsigned long)source,
+                            &pHddCtx->tdls_source_bitmap);
                wlan_hdd_tdls_implicit_disable(pHddTdlsCtx);
+           } else if (eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == tdls_mode) {
+               clear_bit((unsigned long)source,
+                            &pHddCtx->tdls_source_bitmap);
+               wlan_hdd_tdls_implicit_disable(pHddTdlsCtx);
+
+               /*
+                * Check if any TDLS source bit is set and if bitmap is
+                * not zero then we should not enable TDLS
+                */
+               if (pHddCtx->tdls_source_bitmap) {
+                   mutex_unlock(&pHddCtx->tdls_lock);
+                   return;
+               }
+           }
        }
        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
        pAdapterNode = pNext;
@@ -1651,7 +1691,8 @@ int wlan_hdd_tdls_set_params(struct net_device *dev, tdls_config_params_t *confi
             config->rssi_trigger_threshold,
             config->rssi_teardown_threshold);
 
-    wlan_hdd_tdls_set_mode(pHddCtx, req_tdls_mode, TRUE);
+    wlan_hdd_tdls_set_mode(pHddCtx, req_tdls_mode, TRUE,
+                        HDD_SET_TDLS_MODE_SOURCE_USER);
 
     tdlsParams = vos_mem_malloc(sizeof(tdlsInfo_t));
     if (NULL == tdlsParams)
@@ -2732,7 +2773,8 @@ int wlan_hdd_tdls_scan_callback (hdd_adapter_t *pAdapter,
         eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY == pHddCtx->tdls_mode)
     {
         /* Disable implicit trigger logic & tdls operation */
-        wlan_hdd_tdls_set_mode(pHddCtx, eTDLS_SUPPORT_DISABLED, FALSE);
+        wlan_hdd_tdls_set_mode(pHddCtx, eTDLS_SUPPORT_DISABLED, FALSE,
+                        HDD_SET_TDLS_MODE_SOURCE_SCAN);
         /* indicate the teardown all connected to peer */
         connectedTdlsPeers = wlan_hdd_tdlsConnectedPeers(pAdapter);
         if (connectedTdlsPeers)
@@ -2849,7 +2891,8 @@ void wlan_hdd_tdls_scan_done_callback(hdd_adapter_t *pAdapter)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                        ("%s: revert tdls mode %d"), __func__, pHddCtx->tdls_mode_last);
 
-        wlan_hdd_tdls_set_mode(pHddCtx, pHddCtx->tdls_mode_last, FALSE);
+        wlan_hdd_tdls_set_mode(pHddCtx, pHddCtx->tdls_mode_last, FALSE,
+                        HDD_SET_TDLS_MODE_SOURCE_SCAN);
     }
     wlan_hdd_tdls_check_bmps(pAdapter);
     EXIT();

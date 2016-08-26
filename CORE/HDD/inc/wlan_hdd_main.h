@@ -1837,6 +1837,8 @@ struct hdd_context_s
     uint8_t max_mc_addr_list;
     struct acs_dfs_policy acs_policy;
     uint8_t max_peers;
+    /* bit map to set/reset TDLS by different sources */
+    unsigned long tdls_source_bitmap;
 };
 
 /*---------------------------------------------------------------------------
