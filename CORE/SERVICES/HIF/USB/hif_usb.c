@@ -1060,5 +1060,5 @@ void HIFSetBundleMode(HIF_DEVICE *hif_device, bool enabled, int rx_bundle_cnt)
  */
 bool hif_is_80211_fw_wow_required(void)
 {
-	return false;
+	return true;
 }
