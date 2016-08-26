@@ -4607,6 +4607,16 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_ARP_AC_CATEGORY_MAX            (3)
 #define CFG_ARP_AC_CATEGORY_DEFAULT        (3)
 
+/*
+ * gSapProbeRespOffload: when set in sap, offloads the
+ * probe response transmission to firmware
+ */
+#define CFG_SAP_PROBE_RESP_OFFLOAD_NAME    "gSapProbeRespOffload"
+#define CFG_SAP_PROBE_RESP_OFFLOAD_MIN     (0)
+#define CFG_SAP_PROBE_RESP_OFFLOAD_MAX     (1)
+#define CFG_SAP_PROBE_RESP_OFFLOAD_DEFAULT (1)
+
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5453,6 +5463,8 @@ struct hdd_config {
    uint8_t                     dfs_beacon_tx_enhanced;
    uint16_t                    reduced_beacon_interval;
    uint32_t                    arp_ac_category;
+   /* parameter to control probe resp offloads */
+   bool                        sap_probe_resp_offload;
 };
 
 typedef struct hdd_config hdd_config_t;
