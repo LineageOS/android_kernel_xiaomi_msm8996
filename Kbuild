@@ -207,6 +207,7 @@ ifeq ($(CONFIG_ROME_IF),pci)
 endif
 ifeq ($(CONFIG_ROME_IF),usb)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 1
+	CONFIG_QCA_LL_TX_FLOW_CT := 1
 endif
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 0
@@ -1258,6 +1259,11 @@ endif
 #Enable per vdev Tx desc pool
 ifeq ($(CONFIG_PER_VDEV_TX_DESC_POOL), 1)
 CDEFINES += -DCONFIG_PER_VDEV_TX_DESC_POOL
+endif
+
+#Enable tx flow control
+ifeq ($(CONFIG_QCA_LL_TX_FLOW_CT), 1)
+CDEFINES += -DQCA_LL_TX_FLOW_CT
 endif
 
 #Enable Tx mgmt desc reserve

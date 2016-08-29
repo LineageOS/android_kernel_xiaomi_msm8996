@@ -12121,19 +12121,12 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                        WLAN_TFC_IPAUC_TX_DESC_RESERVE;
              } else
 #endif /* IPA_UC_OFFLOAD */
-#ifdef CONFIG_HL_SUPPORT
-             {
-                 pAdapter->tx_flow_low_watermark = 0;
-             }
-             pAdapter->tx_flow_high_watermark_offset = 0;
-#else
              {
                  pAdapter->tx_flow_low_watermark =
                        pHddCtx->cfg_ini->TxFlowLowWaterMark;
              }
              pAdapter->tx_flow_high_watermark_offset =
                        pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
-#endif
              WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                         pAdapter->sessionId,
                                         pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
@@ -12160,8 +12153,15 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
             if (preAdapterChannel == targetChannel)
             {
                 /* Current adapter */
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+                pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+                pAdapter->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
+#else
                 pAdapter->tx_flow_low_watermark = 0;
                 pAdapter->tx_flow_high_watermark_offset = 0;
+#endif
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            pAdapter->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
@@ -12183,8 +12183,15 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 }
 
                 /* Previous adapter */
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+                preAdapterContext->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+                preAdapterContext->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
+#else
                 preAdapterContext->tx_flow_low_watermark = 0;
                 preAdapterContext->tx_flow_high_watermark_offset = 0;
+#endif
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            preAdapterContext->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
