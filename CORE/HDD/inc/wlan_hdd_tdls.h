@@ -34,6 +34,25 @@
 \brief       Linux HDD TDLS include file
 ==========================================================================*/
 
+/**
+ * eTDLSSupportMode - TDLS support modes
+ * @eTDLS_SUPPORT_NOT_ENABLED: TDLS support not enabled
+ * @eTDLS_SUPPORT_DISABLED: suppress implicit trigger and not respond
+ *     to the peer
+ * @eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY: suppress implicit trigger,
+ *     but respond to the peer
+ * @eTDLS_SUPPORT_ENABLED: implicit trigger
+ * @eTDLS_SUPPORT_EXTERNAL_CONTROL: implicit trigger but only to a
+ *     peer mac configured by user space.
+ */
+typedef enum {
+    eTDLS_SUPPORT_NOT_ENABLED = 0,
+    eTDLS_SUPPORT_DISABLED,
+    eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY,
+    eTDLS_SUPPORT_ENABLED,
+    eTDLS_SUPPORT_EXTERNAL_CONTROL
+} eTDLSSupportMode;
+
 #ifdef FEATURE_WLAN_TDLS
 
 #define MAX_NUM_TDLS_PEER           3
@@ -125,17 +144,6 @@ typedef struct
     int reject;
     struct delayed_work tdls_scan_work;
 } tdls_scan_context_t;
-
-typedef enum {
-    eTDLS_SUPPORT_NOT_ENABLED = 0,
-    eTDLS_SUPPORT_DISABLED, /* suppress implicit trigger and not respond to the peer */
-    eTDLS_SUPPORT_EXPLICIT_TRIGGER_ONLY, /* suppress implicit trigger, but respond to the peer */
-    eTDLS_SUPPORT_ENABLED, /* implicit trigger */
-    /* External control means implicit trigger
-     * but only to a peer mac configured by user space.
-     */
-    eTDLS_SUPPORT_EXTERNAL_CONTROL
-} eTDLSSupportMode;
 
 enum tdls_spatial_streams {
     TDLS_NSS_1x1_MODE = 0,
@@ -502,7 +510,9 @@ int hdd_set_tdls_scan_type(hdd_context_t *hdd_ctx, int val);
 int wlan_hdd_tdls_antenna_switch(hdd_context_t *hdd_ctx,
 					hdd_adapter_t *adapter,
 					uint32_t mode);
-
+void wlan_hdd_change_tdls_mode(void *hdd_ctx);
+void wlan_hdd_start_stop_tdls_source_timer(hdd_context_t *pHddCtx,
+				eTDLSSupportMode tdls_mode);
 
 #else
 static inline void hdd_tdls_notify_mode_change(hdd_adapter_t *pAdapter,
@@ -526,6 +536,16 @@ static inline int wlan_hdd_tdls_antenna_switch(hdd_context_t *hdd_ctx,
 {
 	return 0;
 }
+static inline void
+wlan_hdd_change_tdls_mode(void *hdd_ctx)
+{
+}
+static inline void
+wlan_hdd_start_stop_tdls_source_timer(hdd_context_t *pHddCtx,
+				eTDLSSupportMode tdls_mode)
+{
+}
+
 #endif
 
 #endif // __HDD_TDSL_H

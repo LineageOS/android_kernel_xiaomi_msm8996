@@ -2249,6 +2249,12 @@ typedef enum
 
 #endif
 
+/* Timer to defer for enabling TDLS on P2P listen (Value in milliseconds) */
+#define CFG_TDLS_ENABLE_DEFER_TIMER                "gTDLSEnableDeferTime"
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MIN            (2000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MAX            (6000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_DEFAULT        (5000)
+
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE         "gEnableActiveModeOffload"
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_MIN     ( 0 )
@@ -4821,6 +4827,8 @@ struct hdd_config {
    uint8_t                     sifs_burst_duration;
 
    bool                        bpf_packet_filter_enable;
+   /* parameter for defer timer for enabling TDLS on p2p listen */
+   uint16_t                    tdls_enable_defer_time;
    uint32_t                    host_wakeup_gpio;
    uint32_t                    host_wakeup_type;
    uint32_t                    target_wakeup_gpio;
