@@ -2538,7 +2538,6 @@
 #define CFG_AP_SBUF_MAX_SIZE      3233
 #define CFG_STA_IBUF_MAX_SIZE     244
 #define CFG_STA_SBUF_MAX_SIZE     3199
-#define CFG_SEM_MAX_NUM           19
 
 #define CFG_STA_MAGIC_DWORD     0xbeefbeef
 
