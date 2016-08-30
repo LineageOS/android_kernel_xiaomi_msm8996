@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -117,6 +117,7 @@ typedef struct _HIF_DEVICE_USB {
 	spinlock_t cs_lock;
 	spinlock_t tx_lock;
 	spinlock_t rx_lock;
+	spinlock_t rx_prestart_lock;
 	MSG_BASED_HIF_CALLBACKS htcCallbacks;
 	struct usb_device *udev;
 	struct usb_interface *interface;

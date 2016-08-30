@@ -401,7 +401,9 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId, tSirMacReasonCodes
         mlmDeauthInd.reasonCode    = (tANI_U8) pStaDs->mlmStaContext.disassocReason;
         mlmDeauthInd.deauthTrigger =  pStaDs->mlmStaContext.cleanupTrigger;
 
-        limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
+        if (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
+            limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND,
+                                    (tANI_U32 *) &mlmDeauthInd);
 
         limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
         limReInitScanResults(pMac);
