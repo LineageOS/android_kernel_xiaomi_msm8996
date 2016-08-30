@@ -9985,10 +9985,16 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
                        hdd_connIsConnected(sta_ctx)) ||
                      (WLAN_HDD_IS_NDI(pAdapter) &&
                        WLAN_HDD_IS_NDI_CONNECTED(pAdapter)))) {
-
+                if (pAdapter->mc_addr_list.mc_cnt >
+                          HDD_MAX_NUM_MULTICAST_ADDRESS) {
+                    hddLog(LOGE, FL("mc_cnt: %u max: %u"),
+                           pAdapter->mc_addr_list.mc_cnt,
+                           HDD_MAX_NUM_MULTICAST_ADDRESS);
+                    pAdapter->mc_addr_list.mc_cnt =
+                        HDD_MAX_NUM_MULTICAST_ADDRESS;
+                }
                 pMulticastAddrs->ulMulticastAddrCnt =
                                  pAdapter->mc_addr_list.mc_cnt;
-
                 for (i = 0; i < pAdapter->mc_addr_list.mc_cnt; i++) {
                     memcpy(pMulticastAddrs->multicastAddr[i],
                            &pAdapter->mc_addr_list.addr[i * ETH_ALEN],
