@@ -2039,7 +2039,8 @@ int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
         NoA.single_noa_duration = 0;
         NoA.psSelection = P2P_POWER_SAVE_TYPE_PERIODIC_NOA;
     }
-    NoA.interval = MS_TO_MUS(100);
+    /* NOA interval in TU */
+    NoA.interval = NOA_INTERVAL_IN_TU;
     NoA.count = count;
     NoA.sessionid = pAdapter->sessionId;
 

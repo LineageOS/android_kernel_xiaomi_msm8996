@@ -26595,7 +26595,8 @@ static void wma_set_p2pgo_noa_Req(tp_wma_handle wma,
 	noa_discriptor->type_count = noa->count;
 	noa_discriptor->duration = duration;
 	noa_discriptor->interval = noa->interval;
-	noa_discriptor->start_time = 0;
+	/* Set the NOA start time as 25% of the NOA Interval as an offset */
+	noa_discriptor->start_time = noa_discriptor->interval/4;
 
 	WMA_LOGI("SET P2P GO NOA:vdev_id:%d count:%d duration:%d interval:%d",
 			cmd->vdev_id, noa->count, noa_discriptor->duration,

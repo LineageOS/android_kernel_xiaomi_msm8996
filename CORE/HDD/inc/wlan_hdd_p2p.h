@@ -72,6 +72,7 @@ enum hdd_rx_flags {
 #define P2P_POWER_SAVE_TYPE_OPPORTUNISTIC        (1 << 0)
 #define P2P_POWER_SAVE_TYPE_PERIODIC_NOA         (1 << 1)
 #define P2P_POWER_SAVE_TYPE_SINGLE_NOA           (1 << 2)
+#define NOA_INTERVAL_IN_TU                        102400
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
 typedef enum  { P2P_NOT_ACTIVE,
