@@ -23893,6 +23893,135 @@ nla_put_failure:
 #endif
 #endif /* CONFIG_NL80211_TESTMODE */
 
+/**
+ * wlan_hdd_chan_info_cb() - channel info callback
+ * @chan_info: struct scan_chan_info
+ *
+ * Store channel info into HDD context
+ *
+ * Return: None.
+ */
+static void wlan_hdd_chan_info_cb(struct scan_chan_info *info)
+{
+	v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+	hdd_context_t *hdd_ctx;
+	struct hdd_scan_chan_info *chan;
+	uint8_t idx = 0;
+
+	ENTER();
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+	if (NULL == hdd_ctx) {
+		hddLog(LOGE, FL("hdd_ctx is invalid"));
+		EXIT();
+		return;
+	}
+
+	if (NULL == hdd_ctx->chan_info) {
+		hddLog(LOGE, FL("chan_info is NULL"));
+		EXIT();
+		return;
+	}
+
+	mutex_lock(&hdd_ctx->chan_info_lock);
+	chan = hdd_ctx->chan_info;
+	for (; idx < SIR_MAX_NUM_CHANNELS; idx++) {
+		if (chan[idx].freq == info->freq) {
+			if (info->cmd_flag == WMI_CHAN_INFO_START_RESP) {
+				chan[idx].freq = info->freq;
+				chan[idx].cmd_flag = info->cmd_flag;
+				chan[idx].noise_floor = info->noise_floor;
+				chan[idx].cycle_count = info->cycle_count;
+				chan[idx].rx_clear_count = info->rx_clear_count;
+				chan[idx].tx_frame_count = info->tx_frame_count;
+				chan[idx].clock_freq = info->clock_freq;
+				break;
+			} else if (info->cmd_flag == WMI_CHAN_INFO_END_RESP) {
+				chan[idx].delta_cycle_count =
+						info->cycle_count -
+						chan[idx].cycle_count;
+
+				chan[idx].delta_rx_clear_count =
+						info->rx_clear_count -
+						chan[idx].rx_clear_count;
+
+				chan[idx].delta_tx_frame_count =
+						info->tx_frame_count -
+						chan[idx].tx_frame_count;
+
+				chan[idx].noise_floor = info->noise_floor;
+				chan[idx].cmd_flag = info->cmd_flag;
+				break;
+			} else {
+				hddLog(LOGE, FL("cmd flag is invalid: %d"),
+							info->cmd_flag);
+				break;
+			}
+		}
+	}
+	mutex_unlock(&hdd_ctx->chan_info_lock);
+
+	EXIT();
+}
+
+/**
+ * wlan_hdd_init_chan_info() - init chan info in hdd context
+ * @hdd_ctx: HDD context pointer
+ *
+ * Return: none
+ */
+void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx)
+{
+	uint8_t num_2g, num_5g, index = 0;
+
+	if (!hdd_ctx->cfg_ini->fEnableSNRMonitoring)
+		return;
+
+	hdd_ctx->chan_info =
+		vos_mem_malloc(sizeof(struct scan_chan_info)
+					* NUM_RF_CHANNELS);
+	if (NULL == hdd_ctx->chan_info) {
+		hddLog(LOGE, FL("Failed to malloc for chan info"));
+	} else {
+		mutex_init(&hdd_ctx->chan_info_lock);
+		vos_mem_zero(hdd_ctx->chan_info,
+			sizeof(struct scan_chan_info) * NUM_RF_CHANNELS);
+
+		num_2g = ARRAY_SIZE(hdd_channels_2_4_GHZ);
+		for (; index < num_2g; index++) {
+			hdd_ctx->chan_info[index].freq =
+				hdd_channels_2_4_GHZ[index].center_freq;
+		}
+
+		num_5g = ARRAY_SIZE(hdd_channels_5_GHZ);
+		for (; (index - num_2g) < num_5g; index++) {
+			if (vos_is_dsrc_channel(
+				hdd_channels_5_GHZ[index - num_2g].center_freq))
+				continue;
+			hdd_ctx->chan_info[index].freq =
+				hdd_channels_5_GHZ[index - num_2g].center_freq;
+		}
+		sme_set_chan_info_callback(
+			hdd_ctx->hHal,
+			&wlan_hdd_chan_info_cb
+			);
+	}
+}
+
+/**
+ * wlan_hdd_deinit_chan_info() - deinit chan info in hdd context
+ * @chan_info: channel information
+ *
+ * Return: none
+ */
+void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx)
+{
+	if (hdd_ctx->chan_info) {
+		vos_mem_free(hdd_ctx->chan_info);
+		hdd_ctx->chan_info = NULL;
+	}
+}
+
 static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
                                            struct net_device *dev,
                                            int idx, struct survey_info *survey)
@@ -23901,16 +24030,26 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
     hdd_station_ctx_t *pHddStaCtx;
     tHalHandle halHandle;
-    v_U32_t channel = 0, freq = 0; /* Initialization Required */
-    v_S7_t snr,rssi;
-    int status, i, j, filled = 0;
+    v_U32_t channel = 0, freq = 0, opfreq; /* Initialization Required */
+    int status, i, j = 0;
+    bool filled = false;
 
     ENTER();
+
+    hddLog(LOG1, FL("dump survey index:%d"), idx);
+    if (idx > NUM_RF_CHANNELS - 1) {
+        return -EINVAL;
+    }
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
         return status;
+
+    if (NULL == pHddCtx->chan_info) {
+        hddLog(LOGE, FL("chan_info is NULL"));
+        return -EINVAL;
+    }
 
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -23920,18 +24059,8 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
     if (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring ||
-        0 != pAdapter->survey_idx ||
         eConnectionState_Associated != pHddStaCtx->conn_info.connState)
     {
-        /* The survey dump ops when implemented completely is expected to
-         * return a survey of all channels and the ops is called by the
-         * kernel with incremental values of the argument 'idx' till it
-         * returns -ENONET. But we can only support the survey for the
-         * operating channel for now. survey_idx is used to track
-         * that the ops is called only once and then return -ENONET for
-         * the next iteration
-         */
-        pAdapter->survey_idx = 0;
         return -ENONET;
     }
 
@@ -23944,46 +24073,78 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
 
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
 
-    wlan_hdd_get_snr(pAdapter, &snr);
-    wlan_hdd_get_rssi(pAdapter, &rssi);
-
     MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_CFG80211_DUMP_SURVEY,
                       pAdapter->sessionId, pAdapter->device_mode));
     sme_GetOperationChannel(halHandle, &channel, pAdapter->sessionId);
-    hdd_wlan_get_freq(channel, &freq);
+    hdd_wlan_get_freq(channel, &opfreq);
 
+    mutex_lock(&pHddCtx->chan_info_lock);
+    freq = pHddCtx->chan_info[idx].freq;
 
-    for (i = 0; i < IEEE80211_NUM_BANDS; i++)
+    for (i = 0; i < IEEE80211_NUM_BANDS && !filled; i++)
     {
         if (NULL == wiphy->bands[i])
            continue;
 
-        for (j = 0; j < wiphy->bands[i]->n_channels; j++)
+        for (j = 0; j < wiphy->bands[i]->n_channels && !filled; j++)
         {
             struct ieee80211_supported_band *band = wiphy->bands[i];
 
             if (band->channels[j].center_freq == (v_U16_t)freq)
             {
                 survey->channel = &band->channels[j];
-                /* The Rx BDs contain SNR values in dB for the received frames
-                 * while the supplicant expects noise. So we calculate and
-                 * return the value of noise (dBm)
-                 *  SNR (dB) = RSSI (dBm) - NOISE (dBm)
-                 */
-                survey->noise = rssi - snr;
+                survey->noise = pHddCtx->chan_info[idx].noise_floor;
                 survey->filled = SURVEY_INFO_NOISE_DBM;
-                filled = 1;
+                if (pHddCtx->chan_info[idx].clock_freq > 0) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,0,0))
+                    /**
+                     * time = cycle_count * cycle
+                     * cycle = 1 / clock_freq
+                     * Since the unit of clock_freq reported from FW is MHZ,
+                     * and we want to calculate time in ms level, the result is
+                     * time = cycle / (clock_freq * 1000)
+                     */
+
+                    survey->time =
+                              pHddCtx->chan_info[idx].delta_cycle_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->time_busy =
+                              pHddCtx->chan_info[idx].delta_rx_clear_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->time_tx =
+                              pHddCtx->chan_info[idx].delta_tx_frame_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+
+                    survey->filled |= SURVEY_INFO_TIME |
+                                      SURVEY_INFO_TIME_BUSY |
+                                      SURVEY_INFO_TIME_TX;
+#else
+                    survey->channel_time =
+                              pHddCtx->chan_info[idx].delta_cycle_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->channel_time_busy =
+                              pHddCtx->chan_info[idx].delta_rx_clear_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->channel_time_tx =
+                              pHddCtx->chan_info[idx].delta_tx_frame_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
+
+                    survey->filled |= SURVEY_INFO_CHANNEL_TIME |
+                                      SURVEY_INFO_CHANNEL_TIME_BUSY |
+                                      SURVEY_INFO_CHANNEL_TIME_TX;
+#endif
+                }
+                if (opfreq == freq)
+                    survey->filled |= SURVEY_INFO_IN_USE;
+
+                filled = true;
             }
         }
      }
+     mutex_unlock(&pHddCtx->chan_info_lock);
 
-     if (filled)
-        pAdapter->survey_idx = 1;
-     else
-     {
-        pAdapter->survey_idx = 0;
+     if (!filled)
         return -ENONET;
-     }
      EXIT();
      return 0;
 }

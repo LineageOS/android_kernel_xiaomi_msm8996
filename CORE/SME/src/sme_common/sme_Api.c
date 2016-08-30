@@ -1867,6 +1867,8 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
                        pSmeConfigParams->f_prefer_non_dfs_on_radar;
    pMac->fine_time_meas_cap = pSmeConfigParams->fine_time_meas_cap;
 
+   pMac->snr_monitor_enabled = pSmeConfigParams->snr_monitor_enabled;
+
    return status;
 }
 
@@ -19678,4 +19680,21 @@ eHalStatus sme_update_sta_inactivity_timeout(tHalHandle hal_handle,
 	}
 
 	return eHAL_STATUS_FAILURE;
+}
+
+/**
+ * sme_set_chan_info_callback() - set scan chan info call back
+ * @hal: Handle returned by mac_open
+ * @callback: scan chan info call back
+ *
+ * This function is used to set scan chan info call back.
+ *
+ * Return: None
+ */
+void sme_set_chan_info_callback(tHalHandle hal_handle,
+                           void (*callback)(struct scan_chan_info *chan_info))
+{
+	tpAniSirGlobal mac = PMAC_STRUCT(hal_handle);
+
+	mac->chan_info_cb = callback;
 }

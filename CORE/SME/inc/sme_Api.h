@@ -125,7 +125,8 @@ typedef struct _smeConfigParams
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
     uint8_t       f_prefer_non_dfs_on_radar;
     uint32_t      fine_time_meas_cap;
-    int8_t       first_scan_bucket_threshold;
+    int8_t        first_scan_bucket_threshold;
+    bool          snr_monitor_enabled;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -4667,4 +4668,8 @@ tANI_BOOLEAN sme_create_sap_session_info(
 	v_U16_t sap_ch,
 	session_info_t *session_info);
 #endif
+
+void sme_set_chan_info_callback(tHalHandle hal_handle,
+                           void (*callback)(struct scan_chan_info *chan_info));
+
 #endif //#if !defined( __SME_API_H )

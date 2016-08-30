@@ -7551,6 +7551,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
        CSR_STA_ROAM_POLICY_DFS_ENABLED;
    smeConfig->csrConfig.sta_roam_policy_params.skip_unsafe_channels = 0;
 
+   smeConfig->snr_monitor_enabled = pHddCtx->cfg_ini->fEnableSNRMonitoring;
+
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {

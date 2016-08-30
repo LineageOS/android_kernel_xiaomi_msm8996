@@ -13221,6 +13221,7 @@ free_hdd_ctx:
        pHddCtx->cfg_ini= NULL;
    }
 
+   wlan_hdd_deinit_chan_info(pHddCtx);
    wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
    wiphy_unregister(wiphy) ;
    wlan_hdd_cfg80211_deinit(wiphy);
@@ -15626,6 +15627,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        hddLog(LOGE, FL("set bpf offload callback failed"));
 
    wlan_hdd_dcc_register_for_dcc_stats_event(pHddCtx);
+
+   wlan_hdd_init_chan_info(pHddCtx);
 
    /*
     * Register IPv6 notifier to notify if any change in IP
