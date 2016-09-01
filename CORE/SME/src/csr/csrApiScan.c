@@ -6559,7 +6559,19 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                             break;
                                         }
                                     }
-                                    if (is_unsafe_chan) {
+                                    if (is_unsafe_chan &&
+                                       ((CSR_IS_CHANNEL_24GHZ(
+                                                    pSrcReq->ChannelInfo.
+                                                    ChannelList[index]) &&
+                                        pMac->roam.configParam.sta_roam_policy.
+                                              sap_operating_band ==
+                                              eCSR_BAND_24) ||
+                                        (CSR_IS_CHANNEL_5GHZ(
+                                                    pSrcReq->ChannelInfo.
+                                                    ChannelList[index]) &&
+                                         pMac->roam.configParam.sta_roam_policy.
+                                              sap_operating_band ==
+                                              eCSR_BAND_5G))) {
                                         smsLog(pMac, LOG2,
                                             FL("ignoring unsafe channel %d"),
                                             pSrcReq->ChannelInfo.

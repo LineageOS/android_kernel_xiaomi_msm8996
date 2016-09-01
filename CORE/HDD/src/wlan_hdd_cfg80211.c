@@ -10951,6 +10951,40 @@ static enum sta_roam_policy_dfs_mode wlan_hdd_get_sta_roam_dfs_mode(
 		return  CSR_STA_ROAM_POLICY_NONE;
 	}
 }
+/*
+ * hdd_get_sap_operating_channel:  Get current operating channel
+ * for sap.
+ * @hdd_ctx: hdd context
+ *
+ * Return : Corresponding band for SAP operating channel
+ */
+uint8_t hdd_get_sap_operating_channel(hdd_context_t *hdd_ctx) {
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	VOS_STATUS status;
+	hdd_adapter_t *adapter;
+	uint8_t  operating_channel = 0;
+	uint8_t sap_operating_band = 0;
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+
+		if (!(adapter && (WLAN_HDD_SOFTAP == adapter->device_mode))) {
+			status = hdd_get_next_adapter(hdd_ctx, adapter_node,
+					&next);
+			adapter_node = next;
+			continue;
+		}
+		operating_channel = adapter->sessionCtx.ap.operatingChannel;
+		if (IS_24G_CH(operating_channel))
+			sap_operating_band = eCSR_BAND_24;
+		else if(IS_5G_CH(operating_channel))
+			sap_operating_band = eCSR_BAND_5G;
+		else sap_operating_band = eCSR_BAND_ALL;
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node,
+				&next);
+	}
+	return sap_operating_band;
+}
 
 static const struct nla_policy
 wlan_hdd_set_sta_roam_config_policy[
@@ -10991,6 +11025,7 @@ __wlan_hdd_cfg80211_sta_roam_policy(struct wiphy *wiphy,
 	enum dfs_mode mode = DFS_MODE_NONE;
 	bool skip_unsafe_channels = false;
 	eHalStatus status;
+	uint8_t sap_operating_band = 0;
 
 	ENTER();
 
@@ -11021,9 +11056,10 @@ __wlan_hdd_cfg80211_sta_roam_policy(struct wiphy *wiphy,
 	if (tb[QCA_WLAN_VENDOR_ATTR_STA_SKIP_UNSAFE_CHANNEL])
 		skip_unsafe_channels = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_STA_SKIP_UNSAFE_CHANNEL]);
-
+	sap_operating_band = hdd_get_sap_operating_channel(hdd_ctx);
 	status = sme_update_sta_roam_policy(hdd_ctx->hHal, sta_roam_dfs_mode,
-			skip_unsafe_channels, adapter->sessionId);
+			skip_unsafe_channels, adapter->sessionId,
+			sap_operating_band);
 
 	if (!HAL_STATUS_SUCCESS(status)) {
 		hddLog(LOGE,

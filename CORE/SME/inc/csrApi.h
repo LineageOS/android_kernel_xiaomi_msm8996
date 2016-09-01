@@ -1146,6 +1146,7 @@ enum sta_roam_policy_dfs_mode {
 struct csr_sta_roam_policy_params {
 	enum sta_roam_policy_dfs_mode dfs_mode;
 	bool skip_unsafe_channels;
+	uint8_t sap_operating_band;
 };
 
 typedef struct tagCsrConfigParam

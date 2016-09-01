@@ -536,7 +536,12 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
                         break;
                     }
                 }
-                if (is_unsafe_chan) {
+                if ((is_unsafe_chan) && ((CSR_IS_CHANNEL_24GHZ(channel) &&
+                     pMac->roam.configParam.sta_roam_policy.sap_operating_band ==
+                     eCSR_BAND_24) ||
+                    (CSR_IS_CHANNEL_5GHZ(channel) &&
+                     pMac->roam.configParam.sta_roam_policy.sap_operating_band ==
+                     eCSR_BAND_5G))) {
                     smsLog(pMac, LOG1,
                             FL("ignoring unsafe channel %d"), channel);
                     continue;
@@ -2120,6 +2125,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
             pParam->sta_roam_policy_params.dfs_mode;
         pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels =
             pParam->sta_roam_policy_params.skip_unsafe_channels;
+        pMac->roam.configParam.sta_roam_policy.sap_operating_band =
+            pParam->sta_roam_policy_params.sap_operating_band;
     }
 
     return status;
@@ -17655,7 +17662,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                 break;
                             }
                         }
-                        if (is_unsafe_chan) {
+                        if ((is_unsafe_chan) &&
+                           ((CSR_IS_CHANNEL_24GHZ(*ChannelList) &&
+                             pMac->roam.configParam.sta_roam_policy.sap_operating_band ==
+                             eCSR_BAND_24) ||
+                            (CSR_IS_CHANNEL_5GHZ(*ChannelList) &&
+                             pMac->roam.configParam.sta_roam_policy.sap_operating_band ==
+                             eCSR_BAND_5G))) {
+
                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                     FL("ignoring unsafe channel %d"),
                                     *ChannelList);
@@ -17700,7 +17714,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                         break;
                     }
                 }
-                if (is_unsafe_chan) {
+                if ((is_unsafe_chan) && ((CSR_IS_CHANNEL_24GHZ(*ChannelList) &&
+                     pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                     == eCSR_BAND_24) ||
+                    (CSR_IS_CHANNEL_5GHZ(*ChannelList) &&
+                     pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                     == eCSR_BAND_5G))) {
                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                             FL("ignoring unsafe channel %d"),
                             *ChannelList);
@@ -17767,7 +17786,12 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                           break;
                       }
                   }
-                  if (is_unsafe_chan) {
+                  if ((is_unsafe_chan) && (((CSR_IS_CHANNEL_24GHZ(*ChannelList) &&
+                      pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                      == eCSR_BAND_24) ||
+                      (CSR_IS_CHANNEL_5GHZ(*ChannelList) &&
+                      pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                      == eCSR_BAND_5G)))) {
                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                               FL("ignoring unsafe channel %d"),
                               *ChannelList);
@@ -17841,13 +17865,19 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
                     break;
                 }
             }
-            if (is_unsafe_chan) {
+            if ((is_unsafe_chan) && (((CSR_IS_CHANNEL_24GHZ(*ChannelList) &&
+                 pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                 == eCSR_BAND_24) ||
+                (CSR_IS_CHANNEL_5GHZ(*ChannelList) &&
+                pMac->roam.configParam.sta_roam_policy.sap_operating_band
+                == eCSR_BAND_5G)))) {
                 VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                      FL("ignoring unsafe channel %d"),
+                        FL("ignoring unsafe channel %d"),
                         *ChannelList);
                 ChannelList++;
                 continue;
             }
+
         }
         pRequestBuf->ValidChannelList[num_channels++] = *ChannelList;
         ChannelList++;

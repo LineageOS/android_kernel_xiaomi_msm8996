@@ -4661,7 +4661,8 @@ eHalStatus sme_remove_bssid_from_scan_list(tHalHandle hal,
 eHalStatus sme_update_sta_roam_policy(tHalHandle hal_handle,
 		enum sta_roam_policy_dfs_mode dfs_mode,
 		bool skip_unsafe_channels,
-		uint8_t session_id);
+		uint8_t session_id,
+		uint8_t sap_operating_band);
 eHalStatus sme_register_p2p_ack_ind_callback(tHalHandle hal,
 					sir_p2p_ack_ind_callback callback);
 
