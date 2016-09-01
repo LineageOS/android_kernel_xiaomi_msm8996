@@ -3139,6 +3139,9 @@ static void hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv;
 
+	if (!hdd_ipa || wlan_hdd_validate_context(hdd_ipa->hdd_ctx))
+		return;
+
 	switch (evt) {
 	case IPA_RECEIVE:
 		skb = (adf_nbuf_t) data;
