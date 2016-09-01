@@ -2029,13 +2029,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_AP_DATA_AVAIL_POLL_PERIOD_MIN,
                  CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX ),
 
-   REG_VARIABLE( CFG_ENABLE_CLOSE_LOOP_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, enableCloseLoop,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_CLOSE_LOOP_DEFAULT,
-                 CFG_ENABLE_CLOSE_LOOP_MIN,
-                 CFG_ENABLE_CLOSE_LOOP_MAX ),
-
    REG_VARIABLE( CFG_ENABLE_BYPASS_11D_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableBypass11d,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2063,13 +2056,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_DYNAMIC_DTIM_DEFAULT,
                  CFG_ENABLE_DYNAMIC_DTIM_MIN,
                  CFG_ENABLE_DYNAMIC_DTIM_MAX ),
-
-   REG_VARIABLE( CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, enableAutomaticTxPowerControl,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_DEFAULT,
-                 CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN,
-                 CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX ),
 
    REG_VARIABLE( CFG_SHORT_GI_40MHZ_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, ShortGI40MhzEnable,
@@ -6773,22 +6759,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE,"Failure: Could not pass on WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD configuration info to CCM");
-   }
-
-   if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_CLOSE_LOOP,
-                   pConfig->enableCloseLoop, NULL, eANI_BOOLEAN_FALSE)
-       ==eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_CLOSE_LOOP to CCM");
-   }
-
-   if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TX_PWR_CTRL_ENABLE,
-                   pConfig->enableAutomaticTxPowerControl, NULL, eANI_BOOLEAN_FALSE)
-                   ==eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_TX_PWR_CTRL_ENABLE to CCM");
    }
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_GI_40MHZ,
