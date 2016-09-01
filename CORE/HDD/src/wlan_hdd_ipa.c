@@ -4349,21 +4349,24 @@ int hdd_ipa_wlan_evt(hdd_adapter_t *adapter, uint8_t sta_id,
 			vos_lock_release(&hdd_ipa->event_lock);
 			return -EINVAL;
 		}
-		hdd_ipa->sta_connected = 0;
+
 		if (!hdd_ipa_uc_is_enabled(hdd_ipa)) {
 			HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
 				"%s: IPA UC OFFLOAD NOT ENABLED",
 				msg_ex->name);
 		} else {
 			/* Disable IPA UC TX PIPE when STA disconnected */
-			if ((!hdd_ipa->sap_num_connected_sta) ||
-				((!hdd_ipa->num_iface) &&
-					(HDD_IPA_UC_NUM_WDI_PIPE ==
-					hdd_ipa->activated_fw_pipe &&
-					!hdd_ipa->ipa_pipes_down))) {
+			if ((!hdd_ipa->sap_num_connected_sta &&
+			     hdd_ipa->sta_connected) ||
+			    (!hdd_ipa->num_iface &&
+			    (HDD_IPA_UC_NUM_WDI_PIPE ==
+					hdd_ipa->activated_fw_pipe) &&
+			    !hdd_ipa->ipa_pipes_down)) {
 				hdd_ipa_uc_handle_last_discon(hdd_ipa);
 			}
 		}
+
+		hdd_ipa->sta_connected = 0;
 
 		vos_lock_release(&hdd_ipa->event_lock);
 
