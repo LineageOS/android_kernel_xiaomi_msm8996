@@ -4064,6 +4064,13 @@ static ssize_t fwu_sysfs_store_image(struct file *data_file,
 	if (!mutex_trylock(&fwu_sysfs_mutex))
 		return -EBUSY;
 
+	if (count > (fwu->image_size - fwu->data_pos)) {
+		dev_err(fwu->rmi4_data->pdev->dev.parent,
+				"%s: Not enough space in buffer\n",
+				__func__);
+		return -EINVAL;
+	}
+
 	retval = secure_memcpy(&fwu->ext_data_source[fwu->data_pos],
 			fwu->image_size - fwu->data_pos, buf, count, count);
 	if (retval < 0) {
