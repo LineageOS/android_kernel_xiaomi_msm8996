@@ -361,6 +361,16 @@ htt_rx_detach(struct htt_pdev_t *pdev);
 int
 htt_htc_attach(struct htt_pdev_t *pdev);
 
+/**
+ * htt_htc_detach() - Detach htc service from htt
+ * @pdev: htt pdev handle
+ *
+ *
+ * Return: None
+ */
+void
+htt_htc_detach(struct htt_pdev_t *pdev);
+
 void
 htt_t2h_msg_handler(void *context, HTC_PACKET *pkt);
 

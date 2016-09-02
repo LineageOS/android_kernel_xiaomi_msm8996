@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -326,6 +326,17 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-HTCConnectService \n"));
 
     return status;
+}
+
+void htc_disconnect_service(HTC_HANDLE htc_handle, HTC_ENDPOINT_ID endpoint_id)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(htc_handle);
+    HTC_ENDPOINT *endpoint = &target->EndPoint[endpoint_id];
+
+    LOCK_HTC_ENDPOINT_RX(endpoint);
+    endpoint->EpCallBacks.EpRecv = NULL;
+    UNLOCK_HTC_ENDPOINT_RX(endpoint);
+    return;
 }
 
 
