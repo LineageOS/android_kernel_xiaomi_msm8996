@@ -11659,17 +11659,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         result = eCSR_ROAM_RESULT_DEAUTH_IND;
         pDeauthIndMsg = (tSirSmeDeauthInd *)pSirMsg;
         pSession->roamingStatusCode = pDeauthIndMsg->statusCode;
-        /* Convert into proper reason code */
-        if ((pDeauthIndMsg->reasonCode == eSIR_BEACON_MISSED) ||
-            (pDeauthIndMsg->reasonCode ==
-                 eSIR_MAC_DISASSOC_DUE_TO_INACTIVITY_REASON))
-            pSession->joinFailStatusCode.reasonCode = 0;
-        else
-            pSession->joinFailStatusCode.reasonCode = pDeauthIndMsg->reasonCode;
-        /*
-         * cfg layer expects 0 as reason code if the driver doesn't know the
-         * reason code eSIR_BEACON_MISSED is defined as locally
-         */
+        pSession->joinFailStatusCode.reasonCode = pDeauthIndMsg->reasonCode;
     }
     else
     {

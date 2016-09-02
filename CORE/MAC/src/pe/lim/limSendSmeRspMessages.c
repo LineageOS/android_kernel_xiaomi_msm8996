@@ -1600,7 +1600,17 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
             vos_mem_copy(pSirSmeDisConDoneInd->peerMacAddr, peerMacAddr,
                          sizeof(tSirMacAddr));
             pSirSmeDisConDoneInd->sessionId   = smesessionId;
-            pSirSmeDisConDoneInd->reasonCode  = reasonCode;
+
+            /*
+             * Instead of sending deauth reason code as 505 which is internal
+             * value to driver(eSIR_SME_LOST_LINK_WITH_PEER_RESULT_CODE).
+             * Send reason code as zero to Supplicant
+             */
+            if (reasonCode == eSIR_SME_LOST_LINK_WITH_PEER_RESULT_CODE)
+                pSirSmeDisConDoneInd->reasonCode = 0;
+            else
+                pSirSmeDisConDoneInd->reasonCode = reasonCode;
+
             pMsg = (tANI_U32 *)pSirSmeDisConDoneInd;
             break;
 
@@ -2062,7 +2072,16 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
             pSirSmeDisConDoneInd->messageType = eWNI_SME_DISCONNECT_DONE_IND;
             pSirSmeDisConDoneInd->length      = sizeof(tSirSmeDisConDoneInd);
             pSirSmeDisConDoneInd->sessionId   = smesessionId;
-            pSirSmeDisConDoneInd->reasonCode  = reasonCode;
+
+            /*
+             * Instead of sending deauth reason code as 505 which is internal
+             * value to driver(eSIR_SME_LOST_LINK_WITH_PEER_RESULT_CODE).
+             * Send reason code as zero to Supplicant
+             */
+            if (reasonCode == eSIR_SME_LOST_LINK_WITH_PEER_RESULT_CODE)
+                pSirSmeDisConDoneInd->reasonCode = 0;
+            else
+                pSirSmeDisConDoneInd->reasonCode = reasonCode;
             pMsg = (tANI_U32 *)pSirSmeDisConDoneInd;
             vos_mem_copy(pSirSmeDisConDoneInd->peerMacAddr, peerMacAddr,
                          sizeof(tSirMacAddr));
