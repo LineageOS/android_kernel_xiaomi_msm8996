@@ -493,6 +493,10 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    while (skb) {
        skb_next = skb->next;
+       /* memset skb control block */
+       vos_mem_zero(skb->cb, sizeof(skb->cb));
+       wlan_hdd_classify_pkt(skb);
+
        pDestMacAddress = (v_MACADDR_t*)skb->data;
        STAId = HDD_WLAN_INVALID_STA_ID;
 
@@ -668,7 +672,7 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
            list_tail->next = skb;
            list_tail = list_tail->next;
        }
-       vos_mem_zero(skb->cb, sizeof(skb->cb));
+
        adf_dp_trace_log_pkt(pAdapter->sessionId, skb, ADF_TX);
        NBUF_SET_PACKET_TRACK(skb, NBUF_TX_PKT_DATA_TRACK);
        NBUF_UPDATE_TX_PKT_COUNT(skb, NBUF_TX_PKT_HDD);
