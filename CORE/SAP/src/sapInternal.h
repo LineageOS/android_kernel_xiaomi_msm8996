@@ -1097,4 +1097,5 @@ eHalStatus sap_CloseSession(tHalHandle hHal,
 #ifdef __cplusplus
 }
 #endif
+uint8_t sap_select_default_oper_chan_ini(tHalHandle hal, uint32_t acs_11a);
 #endif /* #ifndef WLAN_QCT_WLANSAP_INTERNAL_H */

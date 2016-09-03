@@ -2102,6 +2102,42 @@ sapDfsIsChannelInNolList(ptSapContext sapContext, v_U8_t channelNumber,
     return VOS_FALSE;
 }
 
+/**
+ * sap_select_default_oper_chan_ini() - Selects operating channel based on ini
+ * @hal: pointer to HAL
+ * @acs_11a: 11a acs cfg
+ *
+ * Return: selected operating channel
+ */
+uint8_t sap_select_default_oper_chan_ini(tHalHandle hal, uint32_t acs_11a)
+{
+	uint32_t operating_band = 0;
+	uint8_t channel;
+	ccmCfgGetInt(hal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,
+			&operating_band);
+	if (acs_11a || operating_band == RF_SUBBAND_5_LOW_GHZ ||
+		operating_band == RF_SUBBAND_5_MID_GHZ ||
+		operating_band == RF_SUBBAND_5_HIGH_GHZ) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+				FL("Default channel selection from band %d"),
+				operating_band);
+		if (operating_band)
+			(operating_band == RF_SUBBAND_5_LOW_GHZ) ?
+				(channel = SAP_DEFAULT_LOW_5GHZ_CHANNEL) :
+				(operating_band == RF_SUBBAND_5_MID_GHZ) ?
+				(channel = SAP_DEFAULT_MID_5GHZ_CHANNEL) :
+				(operating_band == RF_SUBBAND_5_HIGH_GHZ) ?
+				(channel = SAP_DEFAULT_HIGH_5GHZ_CHANNEL) : 0;
+		else
+			channel = SAP_DEFAULT_LOW_5GHZ_CHANNEL;
+
+	} else {
+		channel = SAP_DEFAULT_24GHZ_CHANNEL;
+	}
+	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+			FL("channel selected to start bss %d"), channel);
+	return channel;
+}
 
 /*==========================================================================
   FUNCTION    sapGotoChannelSel
@@ -2332,9 +2368,9 @@ sapGotoChannelSel
                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                         "SoftAP Configuring for default channel, Ch= %d",
                         sapContext->channel);
-                    /* In case of error, switch to default channel */
-                    sapContext->channel = SAP_DEFAULT_24GHZ_CHANNEL;
 
+                        sapContext->channel =
+                                     sap_select_default_oper_chan_ini(hHal, 0);
 #ifdef SOFTAP_CHANNEL_RANGE
                     if(sapContext->channelList != NULL)
                     {
