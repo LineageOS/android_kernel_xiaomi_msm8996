@@ -86,6 +86,13 @@ config IOSCHED_FIOPS
           IOPS equally among all processes in the system. It's mainly for
           Flash based storage.
 
+config IOSCHED_FIFO
+	tristate "FIFO I/O scheduler"
+	default y
+	---help---
+	  Fifo is similar to no-op I/O scheduler and it's a minimal scheduler that does basic merging
+	  and sorting. Ported from: https://github.com/AndroidDeveloperAlliance/ZenKernel_TUNA/blob/master/block/fifo-iosched.c
+
 choice
 	prompt "Default I/O scheduler"
 	default DEFAULT_CFQ
@@ -118,6 +125,9 @@ choice
 	config DEFAULT_ZEN
 		bool "ZEN" if IOSCHED_ZEN=y
 
+	config DEFAULT_FIFO
+		bool "fifo" if IOSCHED_FIFO=y
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -128,6 +138,7 @@ config DEFAULT_IOSCHED
 	default "fiops" if DEFAULT_FIOPS
 	default "noop" if DEFAULT_NOOP
 	default "zen" if DEFAULT_ZEN
+	default "fifo" if DEFAULT_FIFO
 
 endmenu
 
