@@ -3654,8 +3654,11 @@ static __iw_softap_getparam(struct net_device *dev,
         }
 
     case QCSAP_PARAM_AUTO_CHANNEL:
-        *value = (WLAN_HDD_GET_CTX
+        {
+            *value = (WLAN_HDD_GET_CTX
                       (pHostapdAdapter))->cfg_ini->force_sap_acs;
+            break;
+        }
 
     case QCSAP_PARAM_RTSCTS:
         {
