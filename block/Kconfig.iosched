@@ -97,6 +97,12 @@ config IOSCHED_FIFO
 	  Fifo is similar to no-op I/O scheduler and it's a minimal scheduler that does basic merging
 	  and sorting. Ported from: https://github.com/AndroidDeveloperAlliance/ZenKernel_TUNA/blob/master/block/fifo-iosched.c
 
+config IOSCHED_TRIPNDROID
+	tristate "Tripndroid"
+	default y
+	---help---
+	  The Trip N Droid scheduler
+
 choice
 	prompt "Default I/O scheduler"
 	default DEFAULT_CFQ
@@ -135,6 +141,11 @@ choice
 	config DEFAULT_FIFO
 		bool "fifo" if IOSCHED_FIFO=y
 
+	config DEFAULT_SIOPLUS
+		bool "SIOPLUS" if IOSCHED_SIOPLUS=y
+
+	config DEFAULT_TRIPNDROID
+		bool "TRIPNDROID" if IOSCHED_TRIPNDROID=y
 endchoice
 
 config DEFAULT_IOSCHED
@@ -147,6 +158,8 @@ config DEFAULT_IOSCHED
 	default "zen" if DEFAULT_ZEN
 	default "fifo" if DEFAULT_FIFO
 	default "maple" if DEFAULT_MAPLE
+	default "sioplus" if DEFAULT_SIOPLUS
+	default "tripndroid" if DEFAULT_TRIPNDROID
 
 endmenu
 
