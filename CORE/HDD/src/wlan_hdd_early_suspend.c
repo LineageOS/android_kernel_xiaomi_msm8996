@@ -100,6 +100,8 @@
 #endif
 
 #include "ol_fw.h"
+#include "wlan_hdd_host_offload.h"
+
 /* Time in msec.
  * Time includes 60sec timeout of request_firmware for various binaries
  * (OTP, BDWLAN, QWLAN) and other cleanup and re-init sequence
