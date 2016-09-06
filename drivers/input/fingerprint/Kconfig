@@ -18,3 +18,8 @@ config FINGERPRINT_FPC1020
 	  If unsure, say N.
 
 	  To compile this driver as a module, choose M here.
+
+config HOMEBUTTON
+	tristate "Home button driver"
+	help
+	  Say Y here if you want home button to be visible to apps
