@@ -6065,6 +6065,8 @@ typedef struct
     tSirMacAddr    peerMacAddress;
     /* peer WIFI_CAPABILITY_XXX */
     tANI_U32       capabilities;
+    /* peer power saving mode */
+    uint32_t power_saving;
     /* number of rates */
     tANI_U32       numRate;
     /* per rate statistics, number of entries  = num_rate */
@@ -6195,6 +6197,21 @@ typedef struct
 /** Clear particular peer stats depending on the peer_mac */
 #define WIFI_STATS_IFACE_PER_PEER      0x00000200
 
+/**
+ * struct sir_wifi_iface_tx_fail - TX failure event
+ * @tid: TX TID
+ * @msdu_num: TX MSDU failed counter
+ * @status: failure status
+ *    1: TX packet discarded
+ *    2: No ACK
+ *    3: Postpone
+ */
+struct sir_wifi_iface_tx_fail {
+	uint8_t  tid;
+	uint16_t msdu_num;
+	uint32_t status;
+};
+
 typedef struct
 {
     tANI_U32 paramId;
@@ -6211,6 +6228,11 @@ typedef struct
     /* Variable  length field - Do not add anything after this */
     tANI_U8 results[0];
 } tSirLLStatsResults, *tpSirLLStatsResults;
+
+/* Result ID for LL stats extension */
+#define WMI_LL_STATS_EXT_PS_CHG             0x00000100
+#define WMI_LL_STATS_EXT_TX_FAIL            0x00000200
+#define WMI_LL_STATS_EXT_MAC_COUNTER        0x00000400
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 

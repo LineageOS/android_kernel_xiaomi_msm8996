@@ -1286,3 +1286,19 @@ adf_nbuf_t ol_tx_reinject(
 
     return NULL;
 }
+
+/**
+ * ol_tx_failure_cb_set() - add TX failure callback
+ * @pdev: PDEV TXRX handle
+ * @tx_failure_cb: TX failure callback
+ */
+void ol_tx_failure_cb_set(ol_txrx_pdev_handle pdev,
+			  void (*tx_failure_cb)(void *ctx,
+						unsigned int num_msdu,
+						unsigned char tid,
+						unsigned int status))
+{
+	 struct htt_pdev_t *htt_pdev = pdev->htt_pdev;
+
+	 htt_pdev->tx_failure_cb = tx_failure_cb;
+}

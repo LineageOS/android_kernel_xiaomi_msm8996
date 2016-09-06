@@ -1233,6 +1233,10 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .vendor_id = QCA_NL80211_VENDOR_ID,
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_LL_STATS_PEERS_RESULTS
     },
+    [QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT
+    },
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 /* EXT TDLS */
     [QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE_CHANGE_INDEX] =  {
@@ -6185,11 +6189,202 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
     return;
 }
 
+/**
+ * put_per_peer_ps_info() - put per peer sta's PS info into nl80211 msg
+ * @wifi_peer_info: peer information
+ * @vendor_event: buffer for vendor event
+ *
+ * Return: 0 success
+ */
+static int put_per_peer_ps_info(tSirWifiPeerInfo *wifi_peer_info,
+				struct sk_buff *vendor_event)
+{
+	if (!wifi_peer_info) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("Invalid pointer to peer info."));
+		return -EINVAL;
+	}
+
+	if (nla_put_u32(vendor_event,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_STATE,
+			wifi_peer_info->power_saving) ||
+	    nla_put(vendor_event,
+		    QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS,
+		    VOS_MAC_ADDR_SIZE, wifi_peer_info->peerMacAddress)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("QCA_WLAN_VENDOR_ATTR put fail"));
+		return -EINVAL;
+	}
+	return 0;
+}
+
+/**
+ * put_wifi_peer_ps_info() - Put peer sta's power state into nl80211 msg
+ * @data - stats for peer STA
+ * @vendor_event - buffer for vendor event
+ *
+ * Return: 0 success
+ */
+static int put_wifi_peer_ps_info(tSirWifiPeerStat *data,
+				 struct sk_buff *vendor_event)
+{
+	uint32_t peer_num, i;
+	tSirWifiPeerInfo *wifi_peer_info;
+	struct nlattr *peer_info, *peers;
+
+	if (!data) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("Invalid pointer to Wifi peer stat."));
+		return -EINVAL;
+	}
+
+	peer_num = data->numPeers;
+
+	if (peer_num == 0) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Peer number is zero."));
+		return -EINVAL;
+	}
+
+	if (nla_put_u32(vendor_event,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_NUM,
+			peer_num)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("QCA_WLAN_VENDOR_ATTR put fail"));
+		return -EINVAL;
+	}
+
+	peers = nla_nest_start(vendor_event,
+			       QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_CHG);
+	if (peers == NULL) {
+		hddLog(LOGE, FL("nla_nest_start failed"));
+		return -EINVAL;
+	}
+
+	for (i = 0; i < peer_num; i++) {
+		wifi_peer_info = &data->peerInfo[i];
+		peer_info = nla_nest_start(vendor_event, i);
+
+		if (peer_info == NULL) {
+			hddLog(LOGE, FL("nla_nest_start failed"));
+			return -EINVAL;
+		}
+
+		if (put_per_peer_ps_info(wifi_peer_info, vendor_event))
+			return -EINVAL;
+
+		nla_nest_end(vendor_event, peer_info);
+	}
+	nla_nest_end(vendor_event, peers);
+
+	return 0;
+}
+
+/**
+ * put_tx_failure_info() - Put TX failure info
+ * @tx_fail - TX failure info
+ * @skb - buffer for vendor event
+ *
+ * Return: 0 Success
+ */
+static inline int put_tx_failure_info(struct sir_wifi_iface_tx_fail *tx_fail,
+				      struct sk_buff *skb)
+{
+	int status = 0;
+
+	if (!tx_fail || !skb)
+		return -EINVAL;
+
+	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TID,
+			tx_fail->tid) ||
+	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_NUM_MSDU,
+			tx_fail->msdu_num) ||
+	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_STATUS,
+			tx_fail->status)) {
+		hddLog(LOGE, FL("QCA_WLAN_VENDOR_ATTR put fail"));
+		status = -EINVAL;
+	}
+	return status;
+}
+
+/**
+ * wlan_hdd_cfg80211_ll_stats_ext_callback() - LL stats callback
+ * @rsp - msg from FW
+ *
+ * An extension of wlan_hdd_cfg80211_link_layer_stats_callback.
+ * It converts monitoring parameters offloaded to NL data and send the same
+ * to the kerbel/upper layer.
+ */
+static void wlan_hdd_cfg80211_ll_stats_ext_callback(tSirLLStatsResults *rsp)
+{
+	hdd_context_t *hdd_ctx;
+	struct sk_buff *skb;
+	int flags = vos_get_gfp_flags();
+	uint32_t param_id, index;
+	hdd_adapter_t *adapter;
+	tSirWifiPeerStat *peer_stats;
+	uint8_t *results;
+	int status, len;
+	v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+
+	ENTER();
+
+	if (!rsp) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid result."));
+		return;
+	}
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status)
+		return;
+
+	adapter = hdd_get_adapter_by_vdev(hdd_ctx, rsp->ifaceId);
+	if (NULL == adapter) {
+		hddLog(LOGE, FL("vdev_id %d does not exist with host"),
+		       rsp->ifaceId);
+		return;
+	}
+
+	index = QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT_INDEX;
+	len = LL_STATS_EVENT_BUF_SIZE + NLMSG_HDRLEN;
+	skb = cfg80211_vendor_event_alloc(hdd_ctx->wiphy, NULL, len,
+					  index, flags);
+	if (!skb) {
+		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+		return;
+	}
+
+	results = rsp->results;
+	param_id = rsp->paramId;
+	hddLog(LOG1,
+	       FL("LL_STATS RESP paramID = 0x%x, ifaceId = %u, result = %p"),
+	       rsp->paramId, rsp->ifaceId, rsp->results);
+	if (param_id & WMI_LL_STATS_EXT_PS_CHG) {
+		peer_stats = (tSirWifiPeerStat *)results;
+		status = put_wifi_peer_ps_info(peer_stats, skb);
+	} else if (param_id & WMI_LL_STATS_EXT_TX_FAIL) {
+		struct sir_wifi_iface_tx_fail *tx_fail;
+
+		tx_fail = (struct sir_wifi_iface_tx_fail *)results;
+		status = put_tx_failure_info(tx_fail, skb);
+	} else {
+		hddLog(LOGE, FL("Unknown link layer stats"));
+		status = -1;
+	}
+
+	if (status == 0)
+		cfg80211_vendor_event(skb, flags);
+	else
+		kfree_skb(skb);
+	EXIT();
+}
 
 void wlan_hdd_cfg80211_link_layer_stats_init(hdd_context_t *pHddCtx)
 {
     sme_SetLinkLayerStatsIndCB(pHddCtx->hHal,
                                  wlan_hdd_cfg80211_link_layer_stats_callback);
+    sme_set_ll_ext_cb(pHddCtx->hHal,
+                      wlan_hdd_cfg80211_ll_stats_ext_callback);
 }
 
 

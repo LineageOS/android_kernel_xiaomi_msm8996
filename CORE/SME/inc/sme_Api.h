@@ -52,7 +52,7 @@
 #include "sirApi.h"
 #include "vos_nvitem.h"
 #include "p2p_Api.h"
-#include "smeInternal.h" 
+#include "smeInternal.h"
 #include "regdomain.h"
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -4226,6 +4226,9 @@ eHalStatus sme_SetLinkLayerStatsIndCB
     tHalHandle hHal,
     void (*callbackRoutine) (void *callbackCtx, int indType, void *pRsp)
 );
+
+eHalStatus sme_set_ll_ext_cb(tHalHandle hal,
+			     void (*ll_stats_ext_cb)(tSirLLStatsResults *rsp));
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 

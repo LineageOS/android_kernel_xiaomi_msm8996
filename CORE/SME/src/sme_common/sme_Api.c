@@ -3397,6 +3397,11 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_NDP_PEER_DEPARTED_IND:
                sme_ndp_msg_processor(pMac, pMsg);
                break;
+          case eWMI_SME_LL_STATS_IND:
+	       if (pMac->sme.link_layer_stats_ext_cb)
+			pMac->sme.link_layer_stats_ext_cb(pMsg->bodyptr);
+	       vos_mem_free(pMsg->bodyptr);
+	       break;
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -16515,6 +16520,31 @@ eHalStatus sme_SetLinkLayerStatsIndCB
     }
 
     return(status);
+}
+
+/**
+ * sme_set_link_layer_ext_cb() - Register callback for link layer statistics
+ * @hal: Mac global handle
+ * @ll_stats_ext_cb: HDD callback which needs to be invoked after getting
+ *                    status notification from FW
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_set_ll_ext_cb(tHalHandle hal,
+			     void (*ll_stats_ext_cb)(tSirLLStatsResults *rsp))
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (status == eHAL_STATUS_SUCCESS) {
+		mac->sme.link_layer_stats_ext_cb = ll_stats_ext_cb;
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+	}
+	return status;
 }
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */

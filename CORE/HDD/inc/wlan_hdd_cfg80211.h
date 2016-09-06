@@ -269,6 +269,9 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
 	QCA_NL80211_VENDOR_SUBCMD_STA_CONNECT_ROAM_POLICY = 117,
 	QCA_NL80211_VENDOR_SUBCMD_SET_SAP_CONFIG  = 118,
+
+	/* subcommand for link layer statistics extension */
+	QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT = 127,
 };
 
 enum qca_nl80211_vendor_subcmds_index {
@@ -307,6 +310,7 @@ enum qca_nl80211_vendor_subcmds_index {
     QCA_NL80211_VENDOR_SUBCMD_LL_RADIO_STATS_INDEX,
     QCA_NL80211_VENDOR_SUBCMD_LL_IFACE_STATS_INDEX,
     QCA_NL80211_VENDOR_SUBCMD_LL_PEER_INFO_STATS_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT_INDEX,
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
     /* EXT TDLS */
     QCA_NL80211_VENDOR_SUBCMD_TDLS_STATE_CHANGE_INDEX,
@@ -2019,6 +2023,67 @@ enum qca_vendor_attr_txpower_scale_decr_db {
 	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_MAX =
 		QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_DECR_DB_AFTER_LAST - 1
+};
+
+/**
+ * enum qca_wlan_vendor_attr_ll_stats_ext - Attributes for MAC layer monitoring
+ *    offload which is an extension for LL_STATS.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD: Monitoring period. Unit in ms.
+ *    If MAC counters do not exceed the threshold, FW will report monitored
+ *    link layer counters periodically as this setting. The first report is
+ *    always triggered by this timer.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_THRESHOLD: It is a percentage(1 ~ 99).
+ *    For each MAC layer counter, FW holds two copies. One is the current value.
+ *    The other is the last report. Once a current counter's increment is larger
+ *    than the theshold, FW will indicate that counter to host even the
+ *    monitoring timer does not expire.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS: Peer sta's MAC address
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_CHG: Peer sta power state change
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_STATE: Current power state of
+ *    peer STA.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TID: TID of msdu
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_NUM_MSDU: Count of msdu with the same
+ *    failure code.
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_STATUS: TX failure code
+ *    1: TX packet discarded
+ *    2: No ACK
+ *    3: Postpone
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS: peer MAC address
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_STATE: Peer STA current state
+ * @QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_NUM: number of peers
+*/
+enum qca_wlan_vendor_attr_ll_stats_ext {
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_INVALID = 0,
+
+	/* Attributes for configurations */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_THRESHOLD,
+
+	/* Peer STA power state change */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_CHG,
+
+	/* TX failure event */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TID,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_NUM_MSDU,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_STATUS,
+
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_STATE,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS,
+
+	/* MAC counters */
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_GLOBAL,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_EVENT_MODE,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_IFACE_ID,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_ID,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_BITMAP,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_BITMAP,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_CCA_BSS_BITMAP,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_SIGNAL_BITMAP,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_NUM,
+
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_LAST,
+	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MAX =
+		QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_LAST - 1
 };
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,

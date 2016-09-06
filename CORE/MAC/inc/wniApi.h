@@ -419,6 +419,9 @@ enum eWniMsgTypes
     eWNI_SME_REGISTER_P2P_ACK_CB,
     eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE,
 
+    /* Link layer statistics */
+    eWMI_SME_LL_STATS_IND,
+
     eWNI_SME_MSG_TYPES_END
 };
 
