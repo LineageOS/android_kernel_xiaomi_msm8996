@@ -5201,3 +5201,34 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
     }
     vos_mem_free(buf);
 }
+
+/**
+ * lim_process_rx_channel_status_event() - processes
+ * 	event WDA_RX_CHN_STATUS_EVENT
+ * @mac_ctx Pointer to Global MAC structure
+ * @buf: Received message info
+ *
+ * Return: None
+ */
+void lim_process_rx_channel_status_event(tpAniSirGlobal mac_ctx, void *buf)
+{
+	struct lim_channel_status *channel_status_info = buf;
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		if (channel_status_info != NULL)
+			lim_add_channel_status_info(mac_ctx,
+				 channel_status_info,
+				 channel_status_info->channel_id);
+		else
+			VOS_TRACE(VOS_MODULE_ID_PE,
+				VOS_TRACE_LEVEL_ERROR,
+				"%s: ACS evt report buf NULL", __func__);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+			"%s: Error evt report", __func__);
+	}
+
+	if (NULL != buf)
+		vos_mem_free(buf);
+	return;
+}

@@ -5989,6 +5989,55 @@ void limAddScanChannelInfo(tpAniSirGlobal pMac, tANI_U8 channelId)
     }
 }
 
+/**
+ * lim_add_channel_status_info() - store
+ * 	chan status info into Global MAC structure
+ * @p_mac: Pointer to Global MAC structure
+ * @channel_stat: Pointer to chan status info reported by firmware
+ * @channel_id: current channel id
+ *
+ * Return: None
+ */
+void lim_add_channel_status_info(tpAniSirGlobal p_mac,
+	struct lim_channel_status *channel_stat, uint8_t channel_id)
+{
+	uint8_t i;
+	boolean found = false;
+	struct lim_scan_channel_status *channel_info =
+		&p_mac->lim.scan_channel_status;
+	struct lim_channel_status *channel_status_list =
+		channel_info->channel_status_list;
+	uint8_t total_channel = channel_info->total_channel;
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		for (i = 0; i < total_channel; i++) {
+			if (channel_status_list[i].channel_id == channel_id) {
+				vos_mem_copy(
+					&channel_status_list[i],
+					 channel_stat,
+					 sizeof(*channel_status_list));
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			if (total_channel <
+				 SIR_MAX_SUPPORTED_ACS_CHANNEL_LIST) {
+				vos_mem_copy(
+					&channel_status_list[total_channel++],
+					 channel_stat,
+					 sizeof(*channel_status_list));
+				channel_info->total_channel = total_channel;
+			} else {
+				PELOGW(limLog(p_mac, LOGW,
+					FL("Chan cnt exceed, channel_id=%d"),
+					channel_id);)
+			}
+		}
+	}
+	return;
+}
+
 
 /**
  * @function :  limIsChannelValidForChannelSwitch()

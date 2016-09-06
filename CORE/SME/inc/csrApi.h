@@ -1989,4 +1989,7 @@ tANI_BOOLEAN csr_create_sap_session_info(
 	v_U16_t sap_ch,
 	session_info_t *session_info);
 #endif
+struct lim_channel_status *csr_get_channel_status(
+	void *p_mac, uint32_t channel_id);
+void csr_clear_channel_status(void *p_mac);
 #endif

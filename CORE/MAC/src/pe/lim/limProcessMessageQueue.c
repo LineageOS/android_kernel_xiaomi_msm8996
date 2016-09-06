@@ -2129,6 +2129,10 @@ send_link_resp:
         limProcessRxScanEvent(pMac, limMsg->bodyptr);
         break;
 
+    case WDA_RX_CHN_STATUS_EVENT:
+        lim_process_rx_channel_status_event(pMac, limMsg->bodyptr);
+        break;
+
     case WDA_IBSS_PEER_INACTIVITY_IND:
     {
        limProcessIbssPeerInactivity(pMac, limMsg->bodyptr);

@@ -6841,6 +6841,7 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 	wmi_chan_info_event_fixed_param *event;
 	struct scan_chan_info buf;
 	tpAniSirGlobal mac = NULL;
+	struct lim_channel_status *channel_status;
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -6875,6 +6876,54 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 		buf.cycle_count = event->cycle_count;
 		buf.rx_clear_count = event->rx_clear_count;
 		mac->chan_info_cb(&buf);
+	}
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED &&
+		 mac->sme.currDeviceMode == VOS_STA_SAP_MODE &&
+		 mac->scan.curScanType == eSIR_ACTIVE_SCAN) {
+		param_buf = (WMI_CHAN_INFO_EVENTID_param_tlvs *) event_buf;
+		if (!param_buf)  {
+			WMA_LOGE("Invalid chan info event buffer");
+			return -EINVAL;
+		}
+		event = param_buf->fixed_param;
+		if (event->cmd_flags == WMA_CHAN_END_RESP) {
+			channel_status =
+				 vos_mem_malloc(sizeof(*channel_status));
+			if (!channel_status) {
+				WMA_LOGE
+					(FL("Mem alloc fail"));
+				return -ENOMEM;
+			}
+			WMA_LOGI(
+				FL("freq=%d nf=%d rx_cnt=%d tx_pwr=%d"),
+				 event->freq,
+				 event->noise_floor,
+				 event->rx_clear_count,
+				 event->chan_tx_pwr_tp);
+
+			channel_status->channelfreq = event->freq;
+			channel_status->noise_floor = event->noise_floor;
+			channel_status->rx_clear_count =
+				 event->rx_clear_count;
+			channel_status->cycle_count = event->cycle_count;
+			channel_status->chan_tx_pwr_range =
+				 event->chan_tx_pwr_range;
+			channel_status->chan_tx_pwr_throughput =
+				 event->chan_tx_pwr_tp;
+			channel_status->rx_frame_count =
+				 event->rx_frame_count;
+			channel_status->bss_rx_cycle_count =
+				event->my_bss_rx_cycle_count;
+			channel_status->rx_11b_mode_data_duration =
+				event->rx_11b_mode_data_duration;
+			channel_status->channel_id =
+				vos_freq_to_chan(event->freq);
+
+			wma_send_msg(handle,
+				WDA_RX_CHN_STATUS_EVENT,
+				 (void *) channel_status, 0);
+		}
 	}
 	return 0;
 }
@@ -9091,6 +9140,17 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
                         cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
 		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
+
+		if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+			/* add chan stat info report tag */
+			if (scan_req->scanType == eSIR_ACTIVE_SCAN &&
+				scan_req->bssType == eSIR_INFRA_AP_MODE) {
+				cmd->scan_ctrl_flags |=
+					WMI_SCAN_CHAN_STAT_EVENT;
+				WMA_LOGI("set ACS ctrl BIT");
+			}
+		}
+
 
 		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_TPC_IE_IN_PROBE_REQ;
 		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;

@@ -6177,6 +6177,53 @@ void csrDisconnectAllActiveSessions(tpAniSirGlobal pMac)
     }
 }
 
+/**
+ * csr_get_channel_status() - get chan info via channel number
+ * @p_mac: Pointer to Global MAC structure
+ * @channel_id: channel id
+ *
+ * Return: chan status info
+ */
+struct lim_channel_status *csr_get_channel_status(
+	void *p_mac, uint32_t channel_id)
+{
+	uint8_t i;
+	struct lim_scan_channel_status *channel_status;
+	tpAniSirGlobal mac_ptr = (tpAniSirGlobal)p_mac;
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		channel_status = (struct lim_scan_channel_status *)
+				&mac_ptr->lim.scan_channel_status;
+		for (i = 0; i < channel_status->total_channel; i++) {
+			if (channel_status->channel_status_list[i].channel_id
+				 == channel_id)
+				return &channel_status->channel_status_list[i];
+		}
+		smsLog(mac_ptr, LOGW,
+			 FL("Channel %d status info not exist"),
+			  channel_id);
+	}
+	return NULL;
+}
+
+/**
+ * csr_clear_channel_status() - clear chan info
+ * @p_mac: Pointer to Global MAC structure
+ *
+ * Return: none
+ */
+void csr_clear_channel_status(void *p_mac)
+{
+	tpAniSirGlobal mac_ptr = (tpAniSirGlobal)p_mac;
+	struct lim_scan_channel_status *channel_status;
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		channel_status = (struct lim_scan_channel_status *)
+				&mac_ptr->lim.scan_channel_status;
+		channel_status->total_channel = 0;
+	}
+	return;
+}
+
 #ifdef FEATURE_WLAN_LFR
 tANI_BOOLEAN csrIsChannelPresentInList(
         tANI_U8 *pChannelList,

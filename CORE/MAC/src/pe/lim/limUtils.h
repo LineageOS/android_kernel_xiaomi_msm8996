@@ -403,6 +403,8 @@ void limDeleteDialogueTokenList(tpAniSirGlobal pMac);
 tSirRetStatus limSearchAndDeleteDialogueToken(tpAniSirGlobal pMac, tANI_U8 token, tANI_U16 assocId, tANI_U16 tid);
 void limRessetScanChannelInfo(tpAniSirGlobal pMac);
 void limAddScanChannelInfo(tpAniSirGlobal pMac, tANI_U8 channelId);
+void lim_add_channel_status_info(tpAniSirGlobal p_mac,
+	struct lim_channel_status *channel_stat, uint8_t channel_id);
 
 tANI_U8 limGetChannelFromBeacon(tpAniSirGlobal pMac, tpSchBeaconStruct pBeacon);
 tSirNwType limGetNwType(tpAniSirGlobal pMac, tANI_U8 channelNum, tANI_U32 type, tpSchBeaconStruct pBeacon);
