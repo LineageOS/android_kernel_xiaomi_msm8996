@@ -500,6 +500,25 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pDestMacAddress = (v_MACADDR_t*)skb->data;
        STAId = HDD_WLAN_INVALID_STA_ID;
 
+/*
+* The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,
+* the TCP sending limit will be smaller, which will throttle the TCP packets
+* to the host driver. The TCP UP LINK throughput will drop heavily.
+* In order to fix this issue, need to orphan the socket buffer asap, which will
+* call skb's destructor to notify the TCP stack that the SKB buffer is
+* unowned. And then the TCP stack will pump more packets to host driver.
+*
+* The TX packets might be dropped for UDP case in the iperf testing.
+* So need to be protected by follow control.
+*/
+#ifdef QCA_LL_TX_FLOW_CT
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
+      if (pAdapter->tx_flow_low_watermark > 0) {
+          skb_orphan(skb);
+      }
+#endif
+#endif
+
        hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
        if (STAId == HDD_WLAN_INVALID_STA_ID) {
            hddLog(LOGE, "Invalid station id, transmit operation suspended");
