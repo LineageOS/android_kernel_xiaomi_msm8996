@@ -149,6 +149,8 @@
 
 #define WLAN_WAIT_TIME_BPF     1000
 
+#define WLAN_WAIT_TIME_CHAIN_RSSI  1000
+
 #define MAX_NUMBER_OF_ADAPTERS 4
 
 #define MAX_CFG_STRING_LEN  255
@@ -1432,6 +1434,18 @@ struct hdd_ll_stats_context {
 };
 #endif /* End of WLAN_FEATURE_LINK_LAYER_STATS */
 
+/**
+ * struct hdd_chain_rssi_context - hdd chain rssi context
+ * @response_event: chain rssi request wait event
+ * @ignore_result: Flag to ignore the result or not
+ * @chain_rssi: chain rssi array
+ */
+struct hdd_chain_rssi_context {
+	struct completion response_event;
+	bool ignore_result;
+	struct chain_rssi_result result;
+};
+
 #ifdef WLAN_FEATURE_OFFLOAD_PACKETS
 /**
  * struct hdd_offloaded_packets - request id to pattern id mapping
@@ -1812,6 +1826,8 @@ struct hdd_context_s
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
     struct hdd_ll_stats_context ll_stats_context;
 #endif /* End of WLAN_FEATURE_LINK_LAYER_STATS */
+
+    struct hdd_chain_rssi_context chain_rssi_context;
 
 #ifdef WLAN_FEATURE_MEMDUMP
     uint8_t *fw_dump_loc;

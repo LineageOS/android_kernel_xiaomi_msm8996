@@ -4146,6 +4146,16 @@ eHalStatus sme_ResetSignificantChange (tHalHandle hHal,
 eHalStatus sme_getCachedResults (tHalHandle hHal,
                       tSirExtScanGetCachedResultsReqParams *pCachedResultsReq);
 
+/**
+ * sme_get_chain_rssi - sme api to get chain rssi
+ * @hHal: global hal handle
+ * @input: get chain rssi req params
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_get_chain_rssi(tHalHandle phal,
+	struct get_chain_rssi_req_params *input);
+
 eHalStatus sme_set_epno_list(tHalHandle hal,
                                 struct wifi_epno_params *req_msg);
 eHalStatus sme_set_passpoint_list(tHalHandle hal,
@@ -4163,6 +4173,16 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
                         void (*pExtScanIndCb)(void *, const tANI_U16, void *));
 
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+/**
+ * sme_chain_rssi_register_callback - chain rssi callback
+ * @hal: global hal handle
+ * @pchain_rssi_ind_cb: callback function pointer
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_chain_rssi_register_callback(tHalHandle phal,
+			void (*pchain_rssi_ind_cb)(void *, void *));
 
 eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
 			void (*pbpf_get_offload_cb)(void *,

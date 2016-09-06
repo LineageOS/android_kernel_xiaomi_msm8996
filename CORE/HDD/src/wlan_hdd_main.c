@@ -14879,6 +14879,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    hdd_init_ll_stats_ctx(pHddCtx);
 
+   init_completion(&pHddCtx->chain_rssi_context.response_event);
+
    spin_lock_init(&pHddCtx->schedScan_lock);
 
    hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
@@ -15734,6 +15736,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     sme_ExtScanRegisterCallback(pHddCtx->hHal,
                                 wlan_hdd_cfg80211_extscan_callback);
 #endif /* FEATURE_WLAN_EXTSCAN */
+    sme_chain_rssi_register_callback(pHddCtx->hHal,
+                                wlan_hdd_cfg80211_chainrssi_callback);
     sme_set_rssi_threshold_breached_cb(pHddCtx->hHal, hdd_rssi_threshold_breached);
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
    wlan_hdd_cfg80211_link_layer_stats_init(pHddCtx);

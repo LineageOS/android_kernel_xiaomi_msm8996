@@ -195,6 +195,7 @@ typedef struct tagSmeStruct
 #ifdef FEATURE_WLAN_EXTSCAN
     void (*pExtScanIndCb) (void *, const tANI_U16, void *);
 #endif /* FEATURE_WLAN_EXTSCAN */
+    void  (*pchain_rssi_ind_cb)(void *, void *);
 #ifdef WLAN_FEATURE_NAN
     void (*nanCallback) (void*, tSirNanEvent*);
 #endif

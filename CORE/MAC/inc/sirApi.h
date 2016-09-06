@@ -5394,6 +5394,15 @@ struct extscan_cached_scan_results
 	struct extscan_cached_scan_result  *result;
 };
 
+/**
+ * struct chain_rssi_result - chain rssi result
+ * @chain_rssi: chain rssi result
+ */
+struct chain_rssi_result
+{
+	#define CHAIN_RSSI_NUM  8
+	uint32_t chain_rssi[CHAIN_RSSI_NUM];
+};
 
 /**
  * struct tSirWifiFullScanResultEvent - extscan full scan event
@@ -8077,5 +8086,14 @@ struct scan_chan_info {
 	uint32_t rx_clear_count;
 	uint32_t tx_frame_count;
 	uint32_t clock_freq;
+};
+
+/**
+ * struct get_chain_rssi_req_params - get chain rssi req params
+ * @peer_macaddr: specific peer mac address
+ */
+struct get_chain_rssi_req_params
+{
+	v_MACADDR_t peer_macaddr;
 };
 #endif /* __SIR_API_H */

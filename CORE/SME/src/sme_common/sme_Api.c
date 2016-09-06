@@ -16018,6 +16018,48 @@ eHalStatus sme_getCachedResults (tHalHandle hHal,
 }
 
 /**
+ * sme_get_chain_rssi - sme api to get chain rssi
+ * @hHal: global hal handle
+ * @input: get chain rssi req params
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_get_chain_rssi(tHalHandle phal,
+	struct get_chain_rssi_req_params *input)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal pmac = PMAC_STRUCT(phal);
+	vos_msg_t vos_message;
+	struct get_chain_rssi_req_params *req_msg;
+
+	req_msg = vos_mem_malloc(sizeof(*req_msg));
+	if (!req_msg) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		"%s: Not able to allocate memory", __func__);
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	*req_msg = *input;
+
+	status = sme_AcquireGlobalLock(&pmac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		/* serialize the req through MC thread */
+		vos_message.bodyptr = req_msg;
+		vos_message.type    = SIR_HAL_GET_CHAIN_RSSI_REQ;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_message);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("Post Get Chain Rssi msg fail"));
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&pmac->sme);
+	}
+
+	return status;
+}
+
+/**
  * sme_set_epno_list() - set epno network list
  * @hHal: global hal handle
  * @input: request message
@@ -16235,6 +16277,27 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 }
 
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+/**
+ * sme_chain_rssi_register_callback - chain rssi callback
+ * @hal: global hal handle
+ * @pchain_rssi_ind_cb: callback function pointer
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_chain_rssi_register_callback(tHalHandle phal,
+			void (*pchain_rssi_ind_cb)(void *, void *))
+{
+	eHalStatus status    = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal pmac  = PMAC_STRUCT(phal);
+
+	status = sme_AcquireGlobalLock(&pmac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		pmac->sme.pchain_rssi_ind_cb = pchain_rssi_ind_cb;
+		sme_ReleaseGlobalLock(&pmac->sme);
+	}
+	return status;
+}
 
 /**
  * sme_set_rssi_threshold_breached_cb() - set rssi threshold breached callback

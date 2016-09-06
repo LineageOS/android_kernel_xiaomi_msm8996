@@ -5804,6 +5804,53 @@ static int wma_fw_mem_dump_event_handler(void *handle, u_int8_t *cmd_param_info,
 }
 #endif /* WLAN_FEATURE_MEMDUMP */
 
+static int wma_peer_ant_info_evt_handler(void *handle, u_int8_t *event,
+	u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	wmi_peer_antdiv_info *peer_ant_info;
+	WMI_PEER_ANTDIV_INFO_EVENTID_param_tlvs *param_buf;
+	wmi_peer_antdiv_info_event_fixed_param *fix_param;
+	struct chain_rssi_result chain_rssi_result;
+	u_int32_t chain_index;
+
+	tpAniSirGlobal pmac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
+	if (!pmac) {
+		WMA_LOGE("%s: Invalid pmac", __func__);
+		return -EINVAL;
+	}
+
+	param_buf = (WMI_PEER_ANTDIV_INFO_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid peer_ant_info event buffer");
+		return -EINVAL;
+	}
+	fix_param = param_buf->fixed_param;
+	peer_ant_info = param_buf->peer_info;
+
+	WMA_LOGD(FL("num_peers=%d\tvdev_id=%d\n"),
+		fix_param->num_peers, fix_param->vdev_id);
+	WMA_LOGD(FL("peer_ant_info: %p\n"), peer_ant_info);
+
+	if (!peer_ant_info) {
+		WMA_LOGE("Invalid peer_ant_info ptr\n");
+		return -EINVAL;
+	}
+
+	for (chain_index = 0; chain_index < CHAIN_RSSI_NUM; chain_index++)
+		WMA_LOGD(FL("chain%d rssi: %x\n"), chain_index,
+				peer_ant_info->chain_rssi[chain_index]);
+
+	vos_mem_copy(chain_rssi_result.chain_rssi,
+				peer_ant_info->chain_rssi,
+				sizeof(peer_ant_info->chain_rssi));
+
+	pmac->sme.pchain_rssi_ind_cb(pmac->hHdd, &chain_rssi_result);
+
+	return 0;
+}
+
 u_int8_t *wma_add_p2p_ie(u_int8_t *frm)
 {
 	u_int8_t wfa_oui[3] = WMA_P2P_WFA_OUI;
@@ -8406,6 +8453,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #ifdef FEATURE_WLAN_EXTSCAN
 	wma_register_extscan_event_handler(wma_handle);
 #endif
+
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_PEER_ANTDIV_INFO_EVENTID,
+					wma_peer_ant_info_evt_handler);
 
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					WMI_BPF_CAPABILIY_INFO_EVENTID,
@@ -15829,6 +15880,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			}
 			else
 				WMA_LOGE("Current band is not 5G");
+			break;
+		case WMI_PDEV_PARAM_ENA_ANT_DIV:
+		case WMI_PDEV_PARAM_FORCE_CHAIN_ANT:
+		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST:
+		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL:
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
@@ -31130,6 +31186,55 @@ void wma_process_set_allowed_action_frames_ind(tp_wma_handle wma_handle,
 	return;
 }
 
+static VOS_STATUS wma_get_chain_rssi(tp_wma_handle wma_handle,
+		struct get_chain_rssi_req_params *req_params)
+{
+	wmi_peer_antdiv_info_req_cmd_fixed_param *cmd;
+	wmi_buf_t wmi_buf;
+	uint32_t len = sizeof(wmi_peer_antdiv_info_req_cmd_fixed_param);
+	u_int8_t *buf_ptr;
+	int32_t vdev_id;
+
+	if (!wma_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (VOS_STA_MODE == vos_get_conparam()) {
+		vdev_id = wma_find_vdev_by_type(wma_handle, WMI_VDEV_TYPE_STA);
+	} else if (VOS_STA_SAP_MODE == vos_get_conparam()) {
+		vdev_id = wma_find_vdev_by_type(wma_handle, WMI_VDEV_TYPE_AP);
+	} else {
+		WMA_LOGE("vdev does not exist could not get peer info");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_peer_antdiv_info_req_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_peer_antdiv_info_req_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_peer_antdiv_info_req_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(req_params->peer_macaddr.bytes,
+				&cmd->peer_mac_address);
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+		WMI_PEER_ANTDIV_INFO_REQ_CMDID)) {
+		WMA_LOGE(FL("failed to send get chain rssi command"));
+		wmi_buf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /**
  * wma_update_tx_fail_cnt_th() - Set threshold for TX pkt fail
  * @wma_handle: WMA handle
@@ -32205,6 +32310,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_UPDATE_STA_INACTIVITY_TIMEOUT:
 			wma_update_sta_inactivity_timeout(wma_handle,
 					msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_GET_CHAIN_RSSI_REQ:
+			wma_get_chain_rssi(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:
