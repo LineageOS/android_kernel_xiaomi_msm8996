@@ -6,3 +6,4 @@
 
 obj-$(CONFIG_FINGERPRINT_FPC1020)	+= fpc1020/
 obj-$(CONFIG_FINGERPRINT_FPC1020_TA)	+= fpc1020_ta/
+obj-$(CONFIG_HOMEBUTTON)	        += homebutton.o
