@@ -11,6 +11,11 @@ menuconfig INPUT_FINGERPRINT
 
 if INPUT_FINGERPRINT
 
+config HOMEBUTTON
+	tristate "Home button driver"
+	help
+	  Say Y here if you want home button to be visible to apps
+
 source "drivers/input/fingerprint/fpc1020/Kconfig"
 source "drivers/input/fingerprint/fpc1020_ta/Kconfig"
 
