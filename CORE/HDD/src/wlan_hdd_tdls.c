@@ -548,7 +548,7 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
         vos_mem_zero(pHddTdlsCtx, sizeof(tdlsCtx_t));
 
         vos_timer_init(&pHddTdlsCtx->peerDiscoveryTimeoutTimer,
-                VOS_TIMER_TYPE_SW,
+                VOS_TIMER_TYPE_WAKE_APPS,
                 wlan_hdd_tdls_discovery_timeout_peer_cb,
                 pHddTdlsCtx);
 
@@ -2629,6 +2629,8 @@ void wlan_hdd_tdls_implicit_send_discovery_request(tdlsCtx_t * pHddTdlsCtx)
     curr_peer->discovery_attempt++;
 
     wlan_hdd_tdls_check_power_save_prohibited(pHddTdlsCtx->pAdapter);
+
+    wlan_hdd_tdls_check_bmps(pHddTdlsCtx->pAdapter);
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: discovery count %u timeout %u msec",
