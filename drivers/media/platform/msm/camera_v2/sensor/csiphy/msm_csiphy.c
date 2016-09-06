@@ -1,4 +1,5 @@
 /* Copyright (c) 2011-2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -328,7 +329,7 @@ static int msm_csiphy_2phase_lane_config(
 				csiphy_dev->ctrl_reg->csiphy_3ph_reg.
 				mipi_csiphy_2ph_lnn_cfg1_addr + offset);
 		}
-		msm_camera_io_w(0x52, csiphybase +
+		msm_camera_io_w(0x50, csiphybase +
 			csiphy_dev->ctrl_reg->csiphy_3ph_reg.
 			mipi_csiphy_2ph_lnn_cfg5_addr + offset);
 		msm_camera_io_w(0x1, csiphybase +

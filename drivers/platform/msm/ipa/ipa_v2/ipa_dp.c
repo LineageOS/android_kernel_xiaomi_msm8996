@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2705,6 +2706,7 @@ static int ipa_assign_policy(struct ipa_sys_connect_params *in,
 				sys->sps_callback = NULL;
 				sys->ep->status.status_ep = ipa2_get_ep_mapping(
 						IPA_CLIENT_APPS_LAN_CONS);
+				sys->ep->wakelock_client = IPA_WAKELOCK_REF_CLIENT_MAX;
 				if (IPA_CLIENT_IS_MEMCPY_DMA_PROD(in->client))
 					sys->ep->status.status_en = false;
 			} else {

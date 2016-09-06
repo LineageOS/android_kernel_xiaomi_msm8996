@@ -1,6 +1,7 @@
 /* Manage a process's keyrings
  *
  * Copyright (C) 2004-2005, 2008 Red Hat, Inc. All Rights Reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  * Written by David Howells (dhowells@redhat.com)
  *
  * This program is free software; you can redistribute it and/or

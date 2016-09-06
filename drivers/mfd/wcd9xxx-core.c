@@ -1,4 +1,5 @@
 /* Copyright (c) 2011-2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2193,11 +2194,20 @@ static int wcd9xxx_i2c_probe(struct i2c_client *client,
 			ret = -EINVAL;
 			goto fail;
 		}
-		ret = extcodec_get_pinctrl(&client->dev);
-		if (ret < 0)
-			pdata->use_pinctrl = false;
-		else
+
+		wcd9xxx->reset_gpio = pdata->reset_gpio;
+		wcd9xxx->wcd_rst_np = pdata->wcd_rst_np;
+
+		if (!wcd9xxx->wcd_rst_np) {
+			ret = extcodec_get_pinctrl(&client->dev);
+			if (ret < 0)
+				pdata->use_pinctrl = false;
+			else
+				pdata->use_pinctrl = true;
+		} else {
 			pdata->use_pinctrl = true;
+		}
+
 
 		if (i2c_check_functionality(client->adapter,
 					    I2C_FUNC_I2C) == 0) {
@@ -2207,7 +2217,6 @@ static int wcd9xxx_i2c_probe(struct i2c_client *client,
 		}
 		dev_set_drvdata(&client->dev, wcd9xxx);
 		wcd9xxx->dev = &client->dev;
-		wcd9xxx->reset_gpio = pdata->reset_gpio;
 		wcd9xxx->slim_device_bootup = true;
 		if (client->dev.of_node)
 			wcd9xxx->mclk_rate = pdata->mclk_rate;
