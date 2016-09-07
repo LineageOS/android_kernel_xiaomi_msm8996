@@ -2180,7 +2180,7 @@ static int hdd_ipa_send_disconnect(hdd_adapter_t *adapter)
 
 	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
 		if (vos_is_macaddr_broadcast(&adapter->aStaInfo[i].macAddrSTA))
-			return ret;
+			continue;
 		if ((adapter->aStaInfo[i].isUsed) &&
 			(!adapter->aStaInfo[i].isDeauthInProgress)) {
 			meta.msg_len = sizeof(struct ipa_wlan_msg);
