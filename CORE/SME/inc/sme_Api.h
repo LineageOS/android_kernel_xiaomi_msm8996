@@ -4505,6 +4505,16 @@ VOS_STATUS sme_set_btc_wlan_conn_params(uint32_t conn_val0,
 VOS_STATUS sme_set_btc_dynamic_bt_wlan_coex(uint32_t dynamic_wlan_bt_coex,
 					uint32_t antenna_isolation);
 
+VOS_STATUS sme_set_btc_bt_wlan_interval_page_p2p_sta(uint32_t bt_interval,
+					uint32_t p2p_sta_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_sta(uint32_t bt_interval,
+					uint32_t sta_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_sap(uint32_t bt_interval,
+					uint32_t sap_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_p2p(uint32_t bt_interval,
+					uint32_t p2p_interval);
+VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_p2p_sta(uint32_t bt_interval,
+					uint32_t p2p_sta_interval);
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
