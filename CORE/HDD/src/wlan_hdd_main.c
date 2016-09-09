@@ -15836,6 +15836,50 @@ int hdd_hif_register_driver(void)
 	return wlan_comp.status;
 }
 
+#ifdef TIMER_MANAGER
+static inline void hdd_timer_exit(void)
+{
+	vos_timer_exit();
+}
+#else
+static inline void hdd_timer_exit(void)
+{
+}
+#endif
+
+#ifdef MEMORY_DEBUG
+static inline void hdd_mem_exit(void)
+{
+	vos_mem_exit();
+}
+#else
+static inline void hdd_mem_exit(void)
+{
+}
+#endif
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+static inline void hdd_logging_sock_deinit_svc(void)
+{
+	wlan_logging_sock_deinit_svc();
+}
+#else
+static inline void hdd_logging_sock_deinit_svc(void)
+{
+}
+#endif
+
+static int hdd_register_fail_clean_up(v_CONTEXT_t vos_context)
+{
+	hif_unregister_driver();
+	vos_preClose(&vos_context);
+	hdd_timer_exit();
+	hdd_mem_exit();
+	hdd_logging_sock_deinit_svc();
+
+	return -ENODEV;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_driver_init() - Core Driver Init Function
@@ -15941,39 +15985,22 @@ static int hdd_driver_init( void)
 
    ret_status = hdd_hif_register_driver();
    vos_remove_pm_qos();
-   hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
-   if (ret_status) {
-       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN Driver Initialization failed",
-               __func__);
-       hif_unregister_driver();
-       vos_preClose( &pVosContext );
-       ret_status = -ENODEV;
-       break;
-   } else {
-       pr_info("%s: driver loaded in %lld\n", WLAN_MODULE_NAME,
-                                              adf_get_boottime() - start);
-       return 0;
+   if (ret_status == 0) {
+      pr_info("%s: driver loaded in %lld\n", WLAN_MODULE_NAME,
+             adf_get_boottime() - start);
+      hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
+      return 0;
    }
 
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN Driver Initialization failed",
+          __func__);
+
+   ret_status = hdd_register_fail_clean_up(pVosContext);
+   hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
+   hdd_wlan_wakelock_destroy();
 
    } while (0);
-
-   if (0 != ret_status)
-   {
-#ifdef TIMER_MANAGER
-      vos_timer_exit();
-#endif
-#ifdef MEMORY_DEBUG
-      vos_mem_exit();
-#endif
-     hdd_wlan_wakelock_destroy();
-
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-      wlan_logging_sock_deinit_svc();
-#endif
-      pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
-   }
 
    EXIT();
 
