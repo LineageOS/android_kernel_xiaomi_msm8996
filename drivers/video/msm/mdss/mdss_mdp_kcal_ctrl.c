@@ -41,7 +41,7 @@ struct kcal_lut_data {
 	int cont;
 };
 
-static uint32_t igc_inverted[IGC_LUT_ENTRIES] = {
+static uint32_t igc_Table_Inverted[IGC_LUT_ENTRIES] = {
 	267390960, 266342368, 265293776, 264245184,
 	263196592, 262148000, 261099408, 260050816,
 	259002224, 257953632, 256905040, 255856448,
@@ -108,7 +108,7 @@ static uint32_t igc_inverted[IGC_LUT_ENTRIES] = {
 	3145776, 2097184, 1048592, 0
 };
 
-static uint32_t igc_rgb[IGC_LUT_ENTRIES] = {
+static uint32_t igc_Table_RGB[IGC_LUT_ENTRIES] = {
 	4080, 4064, 4048, 4032, 4016, 4000, 3984, 3968, 3952, 3936, 3920, 3904,
 	3888, 3872, 3856, 3840, 3824, 3808, 3792, 3776, 3760, 3744, 3728, 3712,
 	3696, 3680, 3664, 3648, 3632, 3616, 3600, 3584, 3568, 3552, 3536, 3520,
@@ -177,8 +177,7 @@ static int mdss_mdp_kcal_display_commit(void)
 	for (i = 0; i < mdata->nctl; i++) {
 		ctl = mdata->ctl_off + i;
 		/* pp setup requires mfd */
-		if (mdss_mdp_ctl_is_power_on(ctl) && ctl->mfd &&
-				ctl->mfd->index == 0) {
+		if ((mdss_mdp_ctl_is_power_on(ctl)) && (ctl->mfd)) {
 			ret = mdss_mdp_pp_setup(ctl);
 			if (ret)
 				pr_err("%s: setup failed: %d\n", __func__, ret);
@@ -192,9 +191,8 @@ static void mdss_mdp_kcal_update_pcc(struct kcal_lut_data *lut_data)
 {
 	u32 copyback = 0;
 	struct mdp_pcc_cfg_data pcc_config;
-	struct mdp_pcc_data_v1_7 *payload;
 
-	memset(&pcc_config, 0, sizeof(struct mdp_pcc_cfg_data));
+	struct mdp_pcc_data_v1_7 *payload;
 
 	lut_data->red = lut_data->red < lut_data->minimum ?
 		lut_data->minimum : lut_data->red;
@@ -202,6 +200,8 @@ static void mdss_mdp_kcal_update_pcc(struct kcal_lut_data *lut_data)
 		lut_data->minimum : lut_data->green;
 	lut_data->blue = lut_data->blue < lut_data->minimum ?
 		lut_data->minimum : lut_data->blue;
+
+	memset(&pcc_config, 0, sizeof(struct mdp_pcc_cfg_data));
 
 	pcc_config.version = mdp_pcc_v1_7;
 	pcc_config.block = MDP_LOGICAL_BLOCK_DISP_0;
@@ -223,36 +223,14 @@ static void mdss_mdp_kcal_update_pcc(struct kcal_lut_data *lut_data)
 	kfree(payload);
 }
 
-static void mdss_mdp_kcal_read_pcc(struct kcal_lut_data *lut_data)
-{
-	u32 copyback = 0;
-	struct mdp_pcc_cfg_data pcc_config;
-
-	memset(&pcc_config, 0, sizeof(struct mdp_pcc_cfg_data));
-
-	pcc_config.block = MDP_LOGICAL_BLOCK_DISP_0;
-	pcc_config.ops = MDP_PP_OPS_READ;
-
-	mdss_mdp_pcc_config(fb0_ctl->mfd, &pcc_config, &copyback);
-
-	/* LiveDisplay disables pcc when using default values and regs
-	 * are zeroed on pp resume, so throw these values out.
-	 */
-	if (!pcc_config.r.r && !pcc_config.g.g && !pcc_config.b.b)
-		return;
-
-	lut_data->red = pcc_config.r.r / PCC_ADJ;
-	lut_data->green = pcc_config.g.g / PCC_ADJ;
-	lut_data->blue = pcc_config.b.b / PCC_ADJ;
-}
-
 static void mdss_mdp_kcal_update_pa(struct kcal_lut_data *lut_data)
 {
 	u32 copyback = 0;
 	struct mdp_pa_cfg_data pa_config;
 	struct mdp_pa_v2_cfg_data pa_v2_config;
-	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	struct mdp_pa_data_v1_7 *payload;
+
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 
 	if (!mdss_mdp_kcal_store_fb0_ctl()) return;
 
@@ -271,7 +249,7 @@ static void mdss_mdp_kcal_update_pa(struct kcal_lut_data *lut_data)
 		mdss_mdp_pa_config(fb0_ctl->mfd, &pa_config, &copyback);
 	} else {
 		memset(&pa_v2_config, 0, sizeof(struct mdp_pa_v2_cfg_data));
-
+		
 		pa_v2_config.version = mdp_pa_v1_7;
 		pa_v2_config.block = MDP_LOGICAL_BLOCK_DISP_0;
 		pa_v2_config.pa_v2_data.flags = lut_data->enable ?
@@ -309,7 +287,7 @@ static void mdss_mdp_kcal_update_igc(struct kcal_lut_data *lut_data)
 	u32 copyback = 0, copy_from_kernel = 1;
 	struct mdp_igc_lut_data igc_config;
 	struct mdp_igc_lut_data_v1_7 *payload;
-	
+
 	if (!mdss_mdp_kcal_store_fb0_ctl()) return;
 
 	memset(&igc_config, 0, sizeof(struct mdp_igc_lut_data));
@@ -320,14 +298,14 @@ static void mdss_mdp_kcal_update_igc(struct kcal_lut_data *lut_data)
 		MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE :
 			MDP_PP_OPS_WRITE | MDP_PP_OPS_DISABLE;
 	igc_config.len = IGC_LUT_ENTRIES;
-	igc_config.c0_c1_data = igc_inverted;
-	igc_config.c2_data = igc_rgb;
-	
+	igc_config.c0_c1_data = &igc_Table_Inverted[0];
+	igc_config.c2_data = &igc_Table_RGB[0];
+
 	payload = kzalloc(sizeof(struct mdp_igc_lut_data_v1_7),GFP_USER);
 	payload->len = IGC_LUT_ENTRIES;
-	payload->c0_c1_data = igc_inverted;
-	payload->c2_data = igc_rgb;
-	
+	payload->c0_c1_data = &igc_Table_Inverted[0];
+	payload->c2_data = &igc_Table_RGB[0];
+
 	igc_config.cfg_payload = payload;
 
 	mdss_mdp_igc_lut_config(fb0_ctl->mfd, &igc_config, &copyback, copy_from_kernel);
@@ -341,8 +319,8 @@ static ssize_t kcal_store(struct device *dev, struct device_attribute *attr,
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
 	r = sscanf(buf, "%d %d %d", &kcal_r, &kcal_g, &kcal_b);
-	if ((r != 3) || (kcal_r < 1 || kcal_r > 256) ||
-		(kcal_g < 1 || kcal_g > 256) || (kcal_b < 1 || kcal_b > 256))
+	if ((r != 3) || (kcal_r < 0 || kcal_r > 256) ||
+		(kcal_g < 0 || kcal_g > 256) || (kcal_b < 0 || kcal_b > 256))
 		return -EINVAL;
 
 	lut_data->red = kcal_r;
@@ -360,8 +338,6 @@ static ssize_t kcal_show(struct device *dev, struct device_attribute *attr,
 {
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
-	mdss_mdp_kcal_read_pcc(lut_data);
-
 	return scnprintf(buf, PAGE_SIZE, "%d %d %d\n",
 		lut_data->red, lut_data->green, lut_data->blue);
 }
@@ -373,7 +349,7 @@ static ssize_t kcal_min_store(struct device *dev,
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
 	r = kstrtoint(buf, 10, &kcal_min);
-	if ((r) || (kcal_min < 1 || kcal_min > 256))
+	if ((r) || (kcal_min < 0 || kcal_min > 256))
 		return -EINVAL;
 
 	lut_data->minimum = kcal_min;
