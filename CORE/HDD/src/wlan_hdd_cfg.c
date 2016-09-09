@@ -6433,7 +6433,7 @@ VOS_STATUS hdd_string_to_string_array(char *data, uint8_t *datalist,
     /* parse the string */
     while (str && ('\0' != *str) && (num < max_entries)) {
         field = str;
-        while (str && ('\0' != *str) && (separator != *str))
+        while (('\0' != *str) && (separator != *str))
            str++;
         if ('\0' == *str) {
             /* reach the end of string */
