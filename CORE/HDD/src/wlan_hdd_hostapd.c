@@ -6801,6 +6801,12 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
         hdd_set_needed_headroom(pWlanHostapdDev,
                            pWlanHostapdDev->hard_header_len);
 
+        if (pHddCtx->cfg_ini->enableIPChecksumOffload)
+            pWlanHostapdDev->features |= NETIF_F_HW_CSUM;
+        else if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
+            pWlanHostapdDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
+        pWlanHostapdDev->features |= NETIF_F_RXCSUM;
+
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
         spin_lock_init(&pHostapdAdapter->pause_map_lock);
         pHostapdAdapter->last_tx_jiffies = jiffies;
