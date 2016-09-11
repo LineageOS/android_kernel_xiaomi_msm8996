@@ -206,8 +206,8 @@ void msm_camera_io_dump(void __iomem *addr, int size, int enable)
 			p_str = line_str;
 		}
 	}
-	if (line_str[0] != '\0')
-		pr_err("%s\n", line_str);
+
+
 }
 
 void msm_camera_io_dump_wstring_base(void __iomem *addr,

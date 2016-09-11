@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1889,6 +1890,7 @@ static int msm_isp_process_done_buf(struct vfe_device *vfe_dev,
 				__func__, buf->bufq_handle);
 			return -EINVAL;
 		}
+
 		if ((bufq != NULL) && bufq->buf_type == ISP_SHARE_BUF)
 			msm_isp_send_event(vfe_dev->common_data->
 				dual_vfe_res->vfe_dev[ISP_VFE1],
@@ -2006,8 +2008,7 @@ static void msm_isp_get_camif_update_state_and_halt(
 				*camif_update = DISABLE_CAMIF_IMMEDIATELY;
 			else
 				*camif_update = DISABLE_CAMIF;
-		}
-		else
+		} else
 			*camif_update = NO_UPDATE;
 	} else
 		*camif_update = NO_UPDATE;
@@ -2930,6 +2931,7 @@ static int msm_isp_return_empty_buffer(struct vfe_device *vfe_dev,
 	}
 
 	msm_isp_get_timestamp(&timestamp);
+
 	buf->buf_debug.put_state[buf->buf_debug.put_state_last] =
 		MSM_ISP_BUFFER_STATE_DROP_REG;
 	buf->buf_debug.put_state_last ^= 1;
