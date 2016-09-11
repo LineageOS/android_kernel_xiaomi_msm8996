@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -73,6 +74,8 @@ static void *emergency_dload_mode_addr;
 static bool scm_dload_supported;
 
 static int dload_set(const char *val, struct kernel_param *kp);
+static int download_mode;
+
 /* interface for exporting attributes */
 struct reset_attribute {
 	struct attribute        attr;
@@ -138,41 +141,13 @@ static void set_dload_mode(int on)
 	ret = scm_set_dload_mode(on ? SCM_DLOAD_MODE : 0, 0);
 	if (ret)
 		pr_err("Failed to set secure DLOAD mode: %d\n", ret);
+	else
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 
 	if (!on)
 		scm_disable_sdi();
 
 	dload_mode_enabled = on;
-}
-
-static bool get_dload_mode(void)
-{
-	return dload_mode_enabled;
-}
-
-static void enable_emergency_dload_mode(void)
-{
-	int ret;
-
-	if (emergency_dload_mode_addr) {
-		__raw_writel(EMERGENCY_DLOAD_MAGIC1,
-				emergency_dload_mode_addr);
-		__raw_writel(EMERGENCY_DLOAD_MAGIC2,
-				emergency_dload_mode_addr +
-				sizeof(unsigned int));
-		__raw_writel(EMERGENCY_DLOAD_MAGIC3,
-				emergency_dload_mode_addr +
-				(2 * sizeof(unsigned int)));
-
-		/* Need disable the pmic wdt, then the emergency dload mode
-		 * will not auto reset. */
-		qpnp_pon_wd_config(0);
-		mb();
-	}
-
-	ret = scm_set_dload_mode(SCM_EDLOAD_MODE, 0);
-	if (ret)
-		pr_err("Failed to set secure EDLOAD mode: %d\n", ret);
 }
 
 static int dload_set(const char *val, struct kernel_param *kp)
@@ -195,15 +170,15 @@ static int dload_set(const char *val, struct kernel_param *kp)
 
 	return 0;
 }
+
+int get_dload_mode(void)
+{
+	return download_mode;
+}
 #else
 static void set_dload_mode(int on)
 {
 	scm_disable_sdi();
-}
-
-static void enable_emergency_dload_mode(void)
-{
-	pr_err("dload mode is not enabled on target\n");
 }
 
 static bool get_dload_mode(void)
@@ -294,8 +269,12 @@ static void msm_restart_prepare(const char *cmd)
 	} else {
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
 	}
-
-	if (cmd != NULL) {
+	if (in_panic) {
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+		qpnp_pon_set_restart_reason(
+			PON_RESTART_REASON_PANIC);
+		__raw_writel(0x77665508, restart_reason);
+	} else if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_BOOTLOADER);
@@ -327,11 +306,15 @@ static void msm_restart_prepare(const char *cmd)
 			if (!ret)
 				__raw_writel(0x6f656d00 | (code & 0xff),
 					     restart_reason);
-		} else if (!strncmp(cmd, "edl", 3)) {
-			enable_emergency_dload_mode();
 		} else {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_NORMAL);
 			__raw_writel(0x77665501, restart_reason);
 		}
+	} else {
+		qpnp_pon_set_restart_reason(
+			PON_RESTART_REASON_NORMAL);
+		__raw_writel(0x77665501, restart_reason);
 	}
 
 	flush_cache_all();
@@ -395,6 +378,9 @@ static void do_msm_poweroff(void)
 
 	set_dload_mode(0);
 	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
+	qpnp_pon_set_restart_reason(
+		PON_RESTART_REASON_UNKNOWN);
+	__raw_writel(0x0, restart_reason);
 
 	halt_spmi_pmic_arbiter();
 	deassert_ps_hold();
@@ -562,6 +548,10 @@ skip_sysfs_create:
 					   "tcsr-boot-misc-detect");
 	if (mem)
 		tcsr_boot_misc_detect = mem->start;
+
+	qpnp_pon_set_restart_reason(
+		PON_RESTART_REASON_UNKNOWN);
+	__raw_writel(0x77665510, restart_reason);
 
 	pm_power_off = do_msm_poweroff;
 	arm_pm_restart = do_msm_restart;
