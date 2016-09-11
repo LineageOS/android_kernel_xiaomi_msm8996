@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -440,6 +441,7 @@ struct mdss_dsi_ctrl_pdata {
 	int bklt_max;
 	int new_fps;
 	int pwm_enabled;
+	int on_cmds_tuning;
 	int clk_lane_cnt;
 	bool dmap_iommu_map;
 	bool dsi_irq_line;
@@ -492,6 +494,7 @@ struct mdss_dsi_ctrl_pdata {
 	int mdp_busy;
 	struct mutex mutex;
 	struct mutex cmd_mutex;
+	struct mutex dsi_ctrl_mutex;
 	struct mutex cmdlist_mutex;
 	struct regulator *lab; /* vreg handle */
 	struct regulator *ibb; /* vreg handle */
@@ -503,6 +506,7 @@ struct mdss_dsi_ctrl_pdata {
 	bool mmss_clamp;
 	char dlane_swap;	/* data lane swap */
 	bool is_phyreg_enabled;
+	bool dsi_pipe_ready;
 	bool burst_mode_enabled;
 
 	struct dsi_buf tx_buf;
