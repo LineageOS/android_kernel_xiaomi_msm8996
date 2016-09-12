@@ -102,8 +102,10 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
         msdu_info.peer = NULL;
 
-        adf_nbuf_map_single(adf_ctx, msdu,
+        if (!adf_nbuf_is_ipa_nbuf(msdu)) {
+            adf_nbuf_map_single(adf_ctx, msdu,
                              ADF_OS_DMA_TO_DEVICE);
+        }
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
 
         /*

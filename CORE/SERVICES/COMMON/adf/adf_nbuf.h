@@ -1314,6 +1314,27 @@ adf_nbuf_set_fwd_flag(adf_nbuf_t buf, uint8_t flag)
 }
 
 /**
+ * adf_nbuf_is_ipa_nbuf() - Check if frame owner is IPA
+ * @skb: Pointer to skb
+ *
+ * Returns: TRUE if the owner is IPA else FALSE
+ *
+ */
+#if (defined(QCA_MDM_DEVICE) && defined(IPA_OFFLOAD))
+static inline bool
+adf_nbuf_is_ipa_nbuf(adf_nbuf_t buf)
+{
+    return (NBUF_OWNER_ID(buf) == IPA_NBUF_OWNER_ID);
+}
+#else
+static inline bool
+adf_nbuf_is_ipa_nbuf(adf_nbuf_t buf)
+{
+    return false;
+}
+#endif /* QCA_MDM_DEVICE && IPA_OFFLOAD*/
+
+/**
  * @brief This function registers protocol trace callback
  *
  * @param[in] adf_nbuf_trace_update_t   callback pointer
