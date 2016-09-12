@@ -9722,6 +9722,9 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 			cmd->scan_req_id, cmd->vdev_id,
 			scan_req->p2pScanType);
 
+	if (scan_req->p2pScanType)
+		cmd->scan_priority = WMI_SCAN_PRIORITY_MEDIUM;
+
 	WMA_LOGD("scan_id %x, vdev_id %x, scan type %x, msg_type %x",
 			cmd->scan_id, cmd->vdev_id, scan_req->p2pScanType,
 			msg_type);
