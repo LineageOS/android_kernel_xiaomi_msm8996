@@ -703,17 +703,17 @@ void hdd_wlan_green_ap_start_bss(struct hdd_context_s *hdd_ctx)
 	 * and also the feature_flag enable, then we enable the egap
 	 */
 	if (hdd_ctx->green_ap_ctx->egap_support && cfg->enable_egap &&
-	    cfg->egap_feature_flag) {
+			cfg->egap_feature_flag) {
 		hddLog(LOG1,
-		       FL("Set EGAP - enabled: %d, flag: %x, inact_time: %d, wait_time: %d"),
-			  cfg->enable_egap,
-			  cfg->egap_feature_flag,
-			  cfg->egap_inact_time,
-			  cfg->egap_wait_time);
+				FL("Set EGAP - enabled: %d, flag: %x, inact_time: %d, wait_time: %d"),
+				cfg->enable_egap,
+				cfg->egap_feature_flag,
+				cfg->egap_inact_time,
+				cfg->egap_wait_time);
 		if (!sme_send_egap_conf_params(cfg->enable_egap,
-					       cfg->egap_inact_time,
-					       cfg->egap_wait_time,
-					       cfg->egap_feature_flag)) {
+					cfg->egap_inact_time,
+					cfg->egap_wait_time,
+					cfg->egap_feature_flag)) {
 			/* EGAP is enabled, disable host GAP */
 			hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
 			goto exit;
@@ -723,15 +723,20 @@ void hdd_wlan_green_ap_start_bss(struct hdd_context_s *hdd_ctx)
 		 */
 	}
 
-	if (!(VOS_STA & hdd_ctx->concurrency_mode) &&
-	    cfg->enable2x2 && cfg->enableGreenAP) {
+	if ((hdd_ctx->concurrency_mode & VOS_SAP) &&
+			!(hdd_ctx->concurrency_mode & (~VOS_SAP)) &&
+			cfg->enable2x2 && cfg->enableGreenAP) {
+		hddLog(LOG1,
+			FL("Green AP enabled - sta_con: %d, 2x2: %d, GAP: %d"),
+			(VOS_STA & hdd_ctx->concurrency_mode),
+			cfg->enable2x2, cfg->enableGreenAP);
 		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_START_EVENT);
 	} else {
 		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
 		hddLog(LOG1,
-		       FL("Green AP disabled - sta_con: %d, 2x2: %d, GAP: %d"),
-		       (VOS_STA & hdd_ctx->concurrency_mode),
-		       cfg->enable2x2, cfg->enableGreenAP);
+			FL("Green AP disabled- sta_con: %d, 2x2: %d, GAP: %d"),
+			(VOS_STA & hdd_ctx->concurrency_mode),
+			cfg->enable2x2, cfg->enableGreenAP);
 	}
 exit:
 	return;
@@ -16398,42 +16403,48 @@ v_BOOL_t hdd_is_suspend_notify_allowed(hdd_context_t* pHddCtx)
 
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 {
-   switch (mode) {
-       case VOS_STA_MODE:
-       case VOS_P2P_CLIENT_MODE:
-       case VOS_P2P_GO_MODE:
-       case VOS_STA_SAP_MODE:
-            pHddCtx->concurrency_mode |= (1 << mode);
-            pHddCtx->no_of_open_sessions[mode]++;
-            break;
-       default:
-            break;
-   }
-   hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x "
-          "Number of open sessions for mode %d = %d"),
-           pHddCtx->concurrency_mode, mode,
-           pHddCtx->no_of_open_sessions[mode]);
+	switch (mode) {
+		case VOS_STA_MODE:
+		case VOS_P2P_CLIENT_MODE:
+		case VOS_P2P_GO_MODE:
+		case VOS_STA_SAP_MODE:
+			pHddCtx->concurrency_mode |= (1 << mode);
+			pHddCtx->no_of_open_sessions[mode]++;
+			break;
+		default:
+			break;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x, Number of open sessions for mode %d = %d"),
+			pHddCtx->concurrency_mode, mode,
+			pHddCtx->no_of_open_sessions[mode]);
+
+	hdd_wlan_green_ap_start_bss(pHddCtx);
 }
 
 
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
-   {
-   switch (mode)  {
-       case VOS_STA_MODE:
-       case VOS_P2P_CLIENT_MODE:
-       case VOS_P2P_GO_MODE:
-       case VOS_STA_SAP_MODE:
-            pHddCtx->no_of_open_sessions[mode]--;
-            if (!(pHddCtx->no_of_open_sessions[mode]))
-                pHddCtx->concurrency_mode &= (~(1 << mode));
-            break;
-       default:
-            break;
-   }
-   hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x "
-          "Number of open sessions for mode %d = %d"),
-          pHddCtx->concurrency_mode, mode, pHddCtx->no_of_open_sessions[mode]);
-   }
+{
+	switch (mode)  {
+		case VOS_STA_MODE:
+		case VOS_P2P_CLIENT_MODE:
+		case VOS_P2P_GO_MODE:
+		case VOS_STA_SAP_MODE:
+			pHddCtx->no_of_open_sessions[mode]--;
+			if (!(pHddCtx->no_of_open_sessions[mode]))
+				pHddCtx->concurrency_mode &= (~(1 << mode));
+			break;
+		default:
+			break;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("concurrency_mode = 0x%x, Number of open sessions for mode %d = %d"),
+			pHddCtx->concurrency_mode, mode,
+			pHddCtx->no_of_open_sessions[mode]);
+
+	hdd_wlan_green_ap_start_bss(pHddCtx);
+}
 
 /**---------------------------------------------------------------------------
  *
