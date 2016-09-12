@@ -16443,13 +16443,6 @@ eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
     vos_msg_t vosMessage;
     tSirLLStatsGetReq *get_stats_req;
 
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                  "reqId = %u", pgetStatsReq->reqId);
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-              "staId = %u", pgetStatsReq->staId);
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-              "Stats Type = %u", pgetStatsReq->paramIdMask);
-
     get_stats_req = vos_mem_malloc(sizeof(*get_stats_req));
 
     if (!get_stats_req)

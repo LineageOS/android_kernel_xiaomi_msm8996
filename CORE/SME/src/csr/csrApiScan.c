@@ -5740,9 +5740,6 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
     }
     else
     {
-        smsLog(pMac, LOGW, "Aging out BSS "MAC_ADDRESS_STR" Channel %d",
-               MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId),
-               pResult->Result.BssDescriptor.channelId);
         //No need to hold the spin lock because caller should hold the lock for pMac->scan.scanResultList
         if(csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link,
                                  LL_ACCESS_NOLOCK))
@@ -6963,8 +6960,10 @@ static void csrPurgeScanResultByAge(void *pv)
 
         if((curTime - pResult->Result.BssDescriptor.nReceivedTime) > ageOutTime)
         {
-            smsLog(pMac, LOG1, FL("age out due to time out for BSSID" MAC_ADDRESS_STR),
-                           MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId));
+            smsLog(pMac, LOG1,
+                   FL("age out for BSSID" MAC_ADDRESS_STR" Channel %d"),
+                   MAC_ADDR_ARRAY(pResult->Result.BssDescriptor.bssId),
+                   pResult->Result.BssDescriptor.channelId);
             csrScanAgeOutBss(pMac, pResult);
         }
         pEntry = tmpEntry;

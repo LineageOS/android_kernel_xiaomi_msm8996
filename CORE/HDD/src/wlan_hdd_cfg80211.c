@@ -1428,19 +1428,19 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
         return -EINVAL;
 
     if (wiphy->interface_modes & BIT(NL80211_IFTYPE_STATION)) {
-        hddLog(LOG1, FL("Infra Station mode is supported by driver"));
+        hddLog(LOG1, "Infra Station mode is supported by driver");
         fset |= WIFI_FEATURE_INFRA;
     }
 
     if (TRUE == hdd_is_5g_supported(pHddCtx)) {
-        hddLog(LOG1, FL("INFRA_5G is supported by firmware"));
+        hddLog(LOG1, "INFRA_5G is supported by firmware");
         fset |= WIFI_FEATURE_INFRA_5G;
     }
 
 #ifdef WLAN_FEATURE_P2P
     if ((wiphy->interface_modes & BIT(NL80211_IFTYPE_P2P_CLIENT)) &&
         (wiphy->interface_modes & BIT(NL80211_IFTYPE_P2P_GO))) {
-        hddLog(LOG1, FL("WiFi-Direct is supported by driver"));
+        hddLog(LOG1, "WiFi-Direct is supported by driver");
         fset |= WIFI_FEATURE_P2P;
     }
 #endif
@@ -1454,20 +1454,20 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
 #ifdef FEATURE_WLAN_EXTSCAN
     if (pHddCtx->cfg_ini->extscan_enabled &&
         sme_IsFeatureSupportedByFW(EXTENDED_SCAN)) {
-        hddLog(LOG1, FL("EXTScan is supported by firmware"));
+        hddLog(LOG1, "EXTScan is supported by firmware");
         fset |= WIFI_FEATURE_EXTSCAN | WIFI_FEATURE_HAL_EPNO;
     }
 #endif
 
 #ifdef WLAN_FEATURE_NAN
     if (sme_IsFeatureSupportedByFW(NAN)) {
-        hddLog(LOG1, FL("NAN is supported by firmware"));
+        hddLog(LOG1, "NAN is supported by firmware");
         fset |= WIFI_FEATURE_NAN;
     }
 #endif
 
     if (sme_IsFeatureSupportedByFW(RTT)) {
-        hddLog(LOG1, FL("RTT is supported by firmware"));
+        hddLog(LOG1, "RTT is supported by firmware");
         fset |= WIFI_FEATURE_D2D_RTT;
         fset |= WIFI_FEATURE_D2AP_RTT;
     }
@@ -1475,7 +1475,7 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
 #ifdef FEATURE_WLAN_SCAN_PNO
     if (pHddCtx->cfg_ini->configPNOScanSupport &&
         sme_IsFeatureSupportedByFW(PNO)) {
-        hddLog(LOG1, FL("PNO is supported by firmware"));
+        hddLog(LOG1, "PNO is supported by firmware");
         fset |= WIFI_FEATURE_PNO;
     }
 #endif
@@ -1486,14 +1486,14 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
 #ifdef FEATURE_WLAN_TDLS
     if ((TRUE == pHddCtx->cfg_ini->fEnableTDLSSupport) &&
         sme_IsFeatureSupportedByFW(TDLS)) {
-        hddLog(LOG1, FL("TDLS is supported by firmware"));
+        hddLog(LOG1, "TDLS is supported by firmware");
         fset |= WIFI_FEATURE_TDLS;
     }
 
     if (sme_IsFeatureSupportedByFW(TDLS) &&
        (TRUE == pHddCtx->cfg_ini->fEnableTDLSOffChannel) &&
        sme_IsFeatureSupportedByFW(TDLS_OFF_CHANNEL)) {
-        hddLog(LOG1, FL("TDLS off-channel is supported by firmware"));
+        hddLog(LOG1, "TDLS off-channel is supported by firmware");
         fset |= WIFI_FEATURE_TDLS_OFFCHANNEL;
     }
 #endif
@@ -6343,7 +6343,7 @@ static int __wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-    ENTER();
+    /* ENTER() intentionally not used in a frequently invoked API */
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -6391,12 +6391,6 @@ static int __wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
                          QCA_WLAN_VENDOR_ATTR_LL_STATS_GET_CONFIG_REQ_MASK]);
 
     LinkLayerStatsGetReq.staId = pAdapter->sessionId;
-
-    hddLog(VOS_TRACE_LEVEL_INFO,
-           "LL_STATS_GET reqId = %d, StaId = %d, paramIdMask = %d",
-           LinkLayerStatsGetReq.reqId, LinkLayerStatsGetReq.staId,
-           LinkLayerStatsGetReq.paramIdMask);
-
 
     spin_lock(&hdd_context_lock);
     context = &pHddCtx->ll_stats_context;
@@ -17049,7 +17043,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     /* Supplicant takes the signal strength in terms of mBm(100*dBm) */
     rssi = (VOS_MIN(rssi, 0)) * 100;
 
-    hddLog(LOG1, FL("BSSID: "MAC_ADDRESS_STR" Channel:%d RSSI:%d"),
+    hddLog(LOG1, "BSSID: "MAC_ADDRESS_STR" Channel:%d RSSI:%d",
            MAC_ADDR_ARRAY(mgmt->bssid),
            vos_freq_to_chan(chan->center_freq),(int)(rssi/100));
 

@@ -894,8 +894,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     int ret = 0;
     int status = 0;
 
-    ENTER();
-
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
@@ -1007,7 +1005,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         hddLog(LOG1, FL("scheduling delayed work: no connection/roc active"));
         schedule_delayed_work(&pHddCtx->rocReqWork, 0);
     }
-    EXIT();
     return 0;
 }
 
