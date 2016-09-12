@@ -25,6 +25,33 @@ msm8996pro-auto-adp-lite-overlay.dtbo-base := msm8996pro-auto.dtb
 apq8096pro-auto-cdp-overlay.dtbo-base := apq8096pro-auto.dtb
 msm8996pro-v1.1-auto-cdp-overlay.dtbo-base := msm8996pro-v1.1-auto.dtb
 else
+ifeq ($(CONFIG_MACH_XIAOMI_MSM8996),y)
+dtb-$(CONFIG_MACH_XIAOMI_A1) += \
+	a1-msm8996-v2-pmi8994-mtp.dtb \
+	a1-msm8996-v3-pmi8994-mtp.dtb \
+	a1-msm8996-v3.0-pmi8994-mtp.dtb \
+	a1-msm8996pro-pmi8994-mtp.dtb \
+	a2-msm8996-v3-pmi8994-mtp.dtb \
+	a2-msm8996-v3.0-pmi8994-mtp.dtb \
+	a2-msm8996pro-pmi8994-mtp.dtb
+dtb-$(CONFIG_MACH_XIAOMI_A4) += \
+	a4-msm8996-v3-pmi8996-mtp.dtb \
+	a4-msm8996-v3.0-pmi8996-mtp.dtb \
+	a4-msm8996pro-pmi8996-mtp.dtb \
+	a4-p1-msm8996-v3-pmi8996-mtp.dtb \
+	a4-p1-msm8996-v3.0-pmi8996-mtp.dtb \
+	a4-p1-msm8996pro-pmi8996-mtp.dtb
+dtb-$(CONFIG_MACH_XIAOMI_A7) += \
+	a7-msm8996-v3-pmi8996-mtp.dtb \
+	a7-msm8996-v3.0-pmi8996-mtp.dtb \
+	a7-msm8996pro-pmi8996-mtp.dtb
+dtb-$(CONFIG_MACH_XIAOMI_A8) += \
+	a8-msm8996-v3.0-pmi8996-mtp.dtb \
+	a8-msm8996pro-pmi8996-mtp.dtb
+dtb-$(CONFIG_MACH_XIAOMI_B7) += \
+	b7-msm8996-v3.0-pmi8996-mtp.dtb \
+	b7-msm8996pro-pmi8996-mtp.dtb
+else
 dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	msm8996-v2-pmi8994-mtp.dtb \
 	msm8996-v2-pmi8994-pmk8001-cdp.dtb \
@@ -142,6 +169,7 @@ dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	apq8096-v3-pmi8996-mdm9x55-slimbus-mtp.dtb \
 	apq8096-v3-pmi8996-dragonboard.dtb \
 	msm8996-auto-mizar.dtb
+endif
 endif
 
 dtb-$(CONFIG_MSM_GVM_QUIN) += vplatform-lfv-msm8996-telematics.dtb \
