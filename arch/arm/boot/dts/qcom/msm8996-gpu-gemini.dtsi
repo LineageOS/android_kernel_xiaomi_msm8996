@@ -1,0 +1,77 @@
+/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&clock_gpu {
+	qcom,gfxfreq-speedbin0 =
+		<	   0  0  0 >,
+//		<  133000000  2  4 >,
+		<  214000000  3  4 >,
+		<  315000000  4  4 >,
+		<  401800000  5  5 >,
+		<  510000000  6  5 >,
+		<  560000000  7  7 >,
+		<  624000000  8  7 >;
+	qcom,gfxfreq-mx-speedbin0 =
+		<	   0  0 >,
+//		<  133000000  4 >,
+		<  214000000  4 >,
+		<  315000000  4 >,
+		<  401800000  5 >,
+		<  510000000  5 >,
+		<  560000000  7 >,
+		<  624000000  7 >;
+
+	qcom,gfxfreq-speedbin1 =
+		<	   0  0  0 >,
+//		<  133000000  2  4 >,
+		<  214000000  3  4 >,
+		<  315000000  4  4 >,
+		<  401800000  5  5 >,
+		<  510000000  6  5 >;
+	qcom,gfxfreq-mx-speedbin1 =
+		<	   0  0 >,
+//		<  133000000  4 >,
+		<  214000000  4 >,
+		<  315000000  4 >,
+		<  401800000  5 >,
+		<  510000000  5 >;
+};
+
+&msm_gpu {
+	qcom,gpu-pwrlevel-bins {
+		qcom,gpu-pwrlevels-0 {
+			qcom,gpu-pwrlevel@6 {
+				reg = <6>;
+				qcom,gpu-freq = <27000000>;
+				qcom,bus-freq = <0>;
+				qcom,bus-min = <0>;
+				qcom,bus-max = <0>;
+			};
+
+			/delete-node/ qcom,gpu-pwrlevel@7;
+		};
+
+		qcom,gpu-pwrlevels-1 {
+			qcom,gpu-pwrlevel@4 {
+				reg = <4>;
+				qcom,gpu-freq = <27000000>;
+				qcom,bus-freq = <0>;
+				qcom,bus-min = <0>;
+				qcom,bus-max = <0>;
+			};
+
+			/delete-node/ qcom,gpu-pwrlevel@5;
+		};
+
+	};
+};
