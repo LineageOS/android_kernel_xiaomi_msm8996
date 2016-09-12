@@ -1,3 +1,10 @@
+ifeq ($(CONFIG_MACH_XIAOMI_GEMINI),y)
+dtb-$(CONFIG_ARCH_MSM8996) += a1-msm8996-v2-pmi8994-mtp.dtb \
+	a1-msm8996-v3-pmi8994-mtp.dtb \
+	a1-msm8996-v3.0-pmi8994-mtp.dtb \
+	a2-msm8996-v3-pmi8994-mtp.dtb \
+	a2-msm8996-v3.0-pmi8994-mtp.dtb
+else
 dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	msm8996-v2-pmi8994-mtp.dtb \
 	msm8996-v2-pmi8994-pmk8001-cdp.dtb \
@@ -35,11 +42,6 @@ dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	msm8996-v3.0-fluid.dtb \
 	msm8996-v3.0-liquid.dtb \
 	msm8996-v3.0-dtp.dtb \
-	a1-msm8996-v2-pmi8994-mtp.dtb \
-	a1-msm8996-v3-pmi8994-mtp.dtb \
-	a1-msm8996-v3.0-pmi8994-mtp.dtb \
-	a2-msm8996-v3-pmi8994-mtp.dtb \
-	a2-msm8996-v3.0-pmi8994-mtp.dtb \
 	apq8096-v2-pmi8994-cdp.dtb \
 	apq8096-v2-pmi8994-pmk8001-cdp.dtb \
 	apq8096-v2-pmi8994-pm8004-cdp.dtb \
@@ -60,6 +62,7 @@ dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	apq8096-v3.0-pmi8996-cdp.dtb \
 	apq8096-v3.0-liquid.dtb \
 	apq8096-v3.0-dragonboard.dtb
+endif
 
 dtb-$(CONFIG_ARCH_MSMCOBALT) += msmcobalt-sim.dtb \
 	msmcobalt-rumi.dtb
