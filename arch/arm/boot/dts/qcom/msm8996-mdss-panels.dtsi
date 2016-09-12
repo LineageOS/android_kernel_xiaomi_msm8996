@@ -31,7 +31,6 @@
 #include "dsi-panel-jdi-fhd-r63452-cmd.dtsi"
 #include "dsi-panel-jdi-fhd-r63452-j1-cmd.dtsi"
 #include "dsi-panel-r69007-dualdsi-wqxga-cmd.dtsi"
-#include "dsi-panel-samsung-youm-s6e3hf3-dualmipi-wqhd-command.dtsi"
 
 &soc {
 	dsi_panel_pwr_supply: dsi_panel_pwr_supply {
