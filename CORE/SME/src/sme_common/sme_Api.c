@@ -15521,7 +15521,6 @@ VOS_STATUS sme_UpdateDSCPtoUPMapping( tHalHandle hHal,
                    if ((pSession->QosMapSet.dscp_range[i][0] == 255) &&
                                 (pSession->QosMapSet.dscp_range[i][1] == 255))
                    {
-                       dscpmapping[j]= 0;
                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                        "%s: User Priority %d is not used in mapping",
                                                              __func__, i);
