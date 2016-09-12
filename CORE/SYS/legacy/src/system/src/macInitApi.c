@@ -261,6 +261,18 @@ tSirRetStatus macClose(tHalHandle hHal)
     if (!pMac)
         return eHAL_STATUS_FAILURE;
 
+    /*
+     * CAC timer will be initiated and started only when SAP starts
+     * on DFS channel and it will be stopped and destroyed immediately
+     * once the radar detected or timedout. So as per design CAC timer
+     * should be destroyed after stop.
+     */
+    if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
+       vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+       pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+       vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+    }
+
     peClose(pMac);
     pMac->psOffloadEnabled = FALSE;
 
