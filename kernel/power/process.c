@@ -224,18 +224,17 @@ int freeze_kernel_threads(void)
 #ifdef CONFIG_MACH_MSM8996_15801
 void thaw_fingerprintd(void)
 {
-	struct task_struct *g, *p;
-	struct task_struct *curr = current;
+	struct task_struct *p;
 
 	pm_freezing = false;
 	pm_nosig_freezing = false;
 
 	read_lock(&tasklist_lock);
-	for_each_process_thread(g, p) {
-	/* No other threads should have PF_SUSPEND_TASK set */
-		WARN_ON((p != curr) && (p->flags & PF_SUSPEND_TASK));
-		if (!memcmp(p->comm, "fingerprintd", 13))
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
 			__thaw_task(p);
+			break;
+		}
 	}
 	read_unlock(&tasklist_lock);
 
