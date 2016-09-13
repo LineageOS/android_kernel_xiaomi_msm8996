@@ -889,6 +889,15 @@ nl80211_parse_connkeys(struct cfg80211_registered_device *rdev,
 	struct nlattr *key;
 	struct cfg80211_cached_keys *result;
 	int rem, err, def = 0;
+	bool have_key = false;
+
+	nla_for_each_nested(key, keys, rem) {
+		have_key = true;
+		break;
+	}
+
+	if (!have_key)
+		return NULL;
 
 	result = kzalloc(sizeof(*result), GFP_KERNEL);
 	if (!result)
@@ -932,6 +941,11 @@ nl80211_parse_connkeys(struct cfg80211_registered_device *rdev,
 			if (no_ht)
 				*no_ht = true;
 		}
+	}
+
+	if (result->def < 0) {
+		err = -EINVAL;
+		goto error;
 	}
 
 	return result;
