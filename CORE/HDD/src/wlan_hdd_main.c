@@ -8766,6 +8766,19 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
 }
 #endif  /* #ifdef WLAN_FEATURE_11AC */
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+static void hdd_update_ra_rate_limit(hdd_context_t *hdd_ctx,
+				     struct hdd_tgt_cfg *cfg)
+{
+    hdd_ctx->cfg_ini->IsRArateLimitEnabled = cfg->is_ra_rate_limit_enabled;
+}
+#else
+static void hdd_update_ra_rate_limit(hdd_context_t *hdd_ctx,
+				     struct hdd_tgt_cfg *cfg)
+{
+}
+#endif
+
 void hdd_update_tgt_cfg(void *context, void *param)
 {
     hdd_context_t *hdd_ctx = (hdd_context_t *)context;
@@ -8845,6 +8858,7 @@ void hdd_update_tgt_cfg(void *context, void *param)
              cfg->bpf_enabled, hdd_ctx->cfg_ini->bpf_packet_filter_enable);
     hdd_ctx->bpf_enabled = (cfg->bpf_enabled &&
                             hdd_ctx->cfg_ini->bpf_packet_filter_enable);
+    hdd_update_ra_rate_limit(hdd_ctx, cfg);
 
     /*
      * If BPF is enabled, maxWowFilters set to WMA_STA_WOW_DEFAULT_PTRN_MAX
