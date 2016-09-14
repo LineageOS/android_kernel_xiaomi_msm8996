@@ -1199,9 +1199,14 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     tANI_U8 *vht_cap_ie;
     tANI_U16 vht_cap_len = 0;
 #endif /* WLAN_FEATURE_11AC */
+    uint8_t *vendor_tpc_ie;
     tSirRetStatus status, rc = eSIR_SUCCESS;
     tDot11fIEExtCap extracted_extcap = {0};
     bool extcap_present = true;
+    uint32_t lim_11h_enable = WNI_CFG_11H_ENABLED_STADEF;
+
+    wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &lim_11h_enable);
+
 
     pMac->lim.fOffloadScanPending = 0;
     pMac->lim.fOffloadScanP2PSearch = 0;
@@ -1252,6 +1257,11 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
             addn_ie_len += vht_cap_len;
         }
 #endif /* WLAN_FEATURE_11AC */
+    }
+
+    if (lim_11h_enable) {
+            addn_ie_len += DOT11F_IE_WFATPC_MAX_LEN + 2;
+            len += DOT11F_IE_WFATPC_MAX_LEN + 2;
     }
 
     pScanOffloadReq = vos_mem_malloc(len);
@@ -1356,6 +1366,24 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
             pScanOffloadReq->uIEFieldLen += vht_cap_len;
         }
 #endif /* WLAN_FEATURE_11AC */
+    }
+
+    if (lim_11h_enable) {
+            tDot11fIEWFATPC wfa_tpc;
+            vendor_tpc_ie = (uint8_t *) pScanOffloadReq +
+                                 pScanOffloadReq->uIEFieldOffset +
+                                 pScanOffloadReq->uIEFieldLen;
+            PopulateDot11fWFATPC(pMac, &wfa_tpc,
+                                 rrmGetMgmtTxPower(pMac, NULL), 0);
+            vendor_tpc_ie[0] = DOT11F_EID_WFATPC;
+            vendor_tpc_ie[1] = DOT11F_IE_WFATPC_MAX_LEN;
+            vos_mem_copy(&vendor_tpc_ie[2], SIR_MAC_WFA_TPC_OUI,
+                                 SIR_MAC_WFA_TPC_OUI_SIZE);
+            vos_mem_copy(&vendor_tpc_ie[SIR_MAC_WFA_TPC_OUI_SIZE + 2],
+                                 ((uint8_t *)&wfa_tpc) + 1,
+                                  DOT11F_IE_WFATPC_MAX_LEN
+                                  - SIR_MAC_WFA_TPC_OUI_SIZE);
+            pScanOffloadReq->uIEFieldLen += DOT11F_IE_WFATPC_MAX_LEN + 2;
     }
 
     rc = wdaPostCtrlMsg(pMac, &msg);
