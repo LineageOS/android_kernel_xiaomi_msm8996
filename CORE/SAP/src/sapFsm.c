@@ -4143,13 +4143,14 @@ sapFsm
                 for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++)
                 {
                      ptSapContext sapContext;
+                     sapContext = pMac->sap.sapCtxList [intf].pSapContext;
                      if (((VOS_STA_SAP_MODE ==
                            pMac->sap.sapCtxList[intf].sapPersona) ||
                           (VOS_P2P_GO_MODE ==
                            pMac->sap.sapCtxList[intf].sapPersona)) &&
-                           pMac->sap.sapCtxList [intf].pSapContext != NULL)
+                           sapContext != NULL &&
+                           sapContext->sapsMachine != eSAP_DISCONNECTED)
                      {
-                         sapContext = pMac->sap.sapCtxList [intf].pSapContext;
                          /* SAP to be moved to DISCONNECTING state */
                          sapContext->sapsMachine = eSAP_DISCONNECTING;
                          /*
