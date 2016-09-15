@@ -2046,8 +2046,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         {
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
             tpPESession     psessionEntry;
-            tANI_U8 sessionId = (tANI_U8)limMsg->bodyval ;
-            psessionEntry = &pMac->lim.gpSession[sessionId];
+            tANI_U8 session_id;
+            tSirSetActiveModeSetBncFilterReq *bcn_filter_req =
+               (tSirSetActiveModeSetBncFilterReq *)limMsg->bodyptr;
+            psessionEntry = peFindSessionByBssid(pMac, bcn_filter_req->bssid,
+                                                 &session_id);
             if(psessionEntry != NULL && IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
             {
                // sending beacon filtering information down to HAL

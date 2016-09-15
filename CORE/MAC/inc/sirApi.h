@@ -4040,7 +4040,7 @@ typedef struct sSirTxPerTrackingParam
 #define    SIR_IPV4_ADDR_LEN                 4
 #define    SIR_MAC_ADDR_LEN                  6
 #define    SIR_MAX_FILTER_TEST_DATA_LEN       8
-#define    SIR_MAX_NUM_MULTICAST_ADDRESS    240
+#define    SIR_MAX_NUM_MULTICAST_ADDRESS    16
 #define    SIR_MAX_NUM_FILTERS               20
 #define    SIR_MAX_NUM_TESTS_PER_FILTER      10
 
@@ -4404,6 +4404,7 @@ typedef struct sSirActiveModeSetBcnFilterReq
    tANI_U16               messageType;
    tANI_U16               length;
    tANI_U8                seesionId;
+   tSirMacAddr            bssid;
 } tSirSetActiveModeSetBncFilterReq, *tpSirSetActiveModeSetBncFilterReq;
 
 //Reset AP Caps Changed

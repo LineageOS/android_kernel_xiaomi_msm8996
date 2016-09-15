@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,7 +54,7 @@
 #define HDD_IPV6_CMP_DATA_1               0xDD
 
 #define HDD_WLAN_MAC_ADDR_LEN             6
-#define HDD_MAX_NUM_MULTICAST_ADDRESS     10
+#define HDD_MAX_NUM_MULTICAST_ADDRESS     16
 
 typedef enum
 {

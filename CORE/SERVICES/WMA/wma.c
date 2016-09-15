@@ -9722,6 +9722,9 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 			cmd->scan_req_id, cmd->vdev_id,
 			scan_req->p2pScanType);
 
+	if (scan_req->p2pScanType)
+		cmd->scan_priority = WMI_SCAN_PRIORITY_MEDIUM;
+
 	WMA_LOGD("scan_id %x, vdev_id %x, scan type %x, msg_type %x",
 			cmd->scan_id, cmd->vdev_id, scan_req->p2pScanType,
 			msg_type);
@@ -24609,8 +24612,12 @@ static VOS_STATUS wma_process_mcbc_set_filter_req(tp_wma_handle wma_handle,
 	uint8_t vdev_id = 0;
 	int i;
 
-	if(mcbc_param->ulMulticastAddrCnt <= 0) {
-		WMA_LOGW("Number of multicast addresses is 0");
+	if (mcbc_param->ulMulticastAddrCnt <= 0 ||
+		mcbc_param->ulMulticastAddrCnt >
+			CFG_TGT_MAX_MULTICAST_FILTER_ENTRIES) {
+		WMA_LOGE("Number of multicast addresses: %u",
+				mcbc_param->ulMulticastAddrCnt);
+		WARN_ON(1);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -26588,7 +26595,8 @@ static void wma_set_p2pgo_noa_Req(tp_wma_handle wma,
 	noa_discriptor->type_count = noa->count;
 	noa_discriptor->duration = duration;
 	noa_discriptor->interval = noa->interval;
-	noa_discriptor->start_time = 0;
+	/* Set the NOA start time as 25% of the NOA Interval as an offset */
+	noa_discriptor->start_time = noa_discriptor->interval/4;
 
 	WMA_LOGI("SET P2P GO NOA:vdev_id:%d count:%d duration:%d interval:%d",
 			cmd->vdev_id, noa->count, noa_discriptor->duration,
