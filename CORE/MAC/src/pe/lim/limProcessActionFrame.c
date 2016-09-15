@@ -40,7 +40,7 @@
 #include "wniApi.h"
 #include "sirApi.h"
 #include "aniGlobal.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "schApi.h"
 #include "utilsApi.h"
 #include "limTypes.h"

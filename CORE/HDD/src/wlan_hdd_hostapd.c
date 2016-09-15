@@ -76,7 +76,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include "cfgApi.h"
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 #include "wlan_hdd_misc.h"
 #include <vos_utils.h>
 #include "vos_cnss.h"

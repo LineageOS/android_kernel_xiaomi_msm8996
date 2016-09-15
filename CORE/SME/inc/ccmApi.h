@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -39,7 +39,7 @@
 #ifndef CCMAPI_H__
 #define CCMAPI_H__
 
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "halTypes.h"
 
 #define CCM_IS_RESULT_SUCCESS(result)   (WNI_CFG_SUCCESS == (result) ||\
@@ -91,7 +91,7 @@ struct ccmlink {
 typedef struct {
     struct ccmlink      reqQ ;
     eCcmState           state ;
-    tCfgReq *           comp[CFG_PARAM_MAX_NUM] ;
+    tCfgReq *           comp[WNI_CFG_MAX] ;
     tCfgReplay          replay ;
     void                *lock;
 } tCcm ;

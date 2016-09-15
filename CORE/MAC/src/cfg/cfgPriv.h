@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -48,8 +48,7 @@
 #include <schApi.h>
 #include <cfgApi.h>
 #include "cfgDef.h"
-
-    #include <wniCfgSta.h>
+#include <wni_cfg.h>
 
 /*--------------------------------------------------------------------*/
 /* CFG miscellaneous definition                                       */
@@ -87,6 +86,6 @@ extern void cfgSendHostMsg(tpAniSirGlobal, tANI_U16, tANI_U32, tANI_U32, tANI_U3
 
 extern struct cfgstatic_string cfg_static_string[CFG_MAX_STATIC_STRING];
 
-extern struct cgstatic cfg_static[CFG_PARAM_MAX_NUM];
+extern struct cgstatic cfg_static[WNI_CFG_MAX];
 
 #endif /* __CFGPRIV_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013, 2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2013, 2015-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -40,8 +40,7 @@
 
 #include "sirCommon.h"
 #include "sirTypes.h"
-#include "wniCfgSta.h"
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 
 #define CFG_MAX_NUM_STA      SIR_MAX_NUM_STA_IN_IBSS
 

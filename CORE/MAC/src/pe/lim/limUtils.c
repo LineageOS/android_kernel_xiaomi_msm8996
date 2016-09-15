@@ -61,7 +61,7 @@
 
 #include "pmmApi.h"
 #ifdef WLAN_FEATURE_11W
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 #endif
 
 #ifdef SAP_AUTH_OFFLOAD

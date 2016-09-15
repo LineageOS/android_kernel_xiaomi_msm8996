@@ -50,7 +50,7 @@
 #include "limAssocUtils.h"
 #include "limFT.h"
 #ifdef WLAN_FEATURE_11W
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 #endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R

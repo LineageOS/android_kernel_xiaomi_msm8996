@@ -38,7 +38,7 @@
  *
  */
 #include "palTypes.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "wniApi.h"
 #include "sirCommon.h"
 #include "sirDebug.h"

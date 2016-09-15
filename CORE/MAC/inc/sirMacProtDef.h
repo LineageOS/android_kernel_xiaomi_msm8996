@@ -41,7 +41,7 @@
 
 #include "palTypes.h"
 #include "sirTypes.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 
 
 ///Capability information related
