@@ -14279,32 +14279,34 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             acl_entry++;
         }
     }
-
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
-            pBeacon->head_len, WLAN_EID_SUPP_RATES);
-    if (pIe != NULL) {
-        pIe++;
-        pConfig->supported_rates.numRates = pIe[0];
-        pIe++;
-        for (i = 0; i < pConfig->supported_rates.numRates; i++)
-            if (pIe[i]) {
-                pConfig->supported_rates.rate[i]= pIe[i];
-                hddLog(LOG1, FL("Configured Supported rate is %2x"),
-                        pConfig->supported_rates.rate[i]);
-            }
-    }
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
-            WLAN_EID_EXT_SUPP_RATES);
-    if (pIe != NULL) {
-        pIe++;
-        pConfig->extended_rates.numRates = pIe[0];
-        pIe++;
-        for (i = 0; i < pConfig->extended_rates.numRates; i++)
-            if (pIe[i]){
-                pConfig->extended_rates.rate[i]= pIe[i];
-                hddLog(LOG1, FL("Configured extended Supported rate is %2x"),
-                        pConfig->extended_rates.rate[i]);
-            }
+    if (!pHddCtx->cfg_ini->force_sap_acs) {
+        pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
+                pBeacon->head_len, WLAN_EID_SUPP_RATES);
+        if (pIe != NULL) {
+            pIe++;
+            pConfig->supported_rates.numRates = pIe[0];
+            pIe++;
+            for (i = 0; i < pConfig->supported_rates.numRates; i++)
+                if (pIe[i]) {
+                    pConfig->supported_rates.rate[i]= pIe[i];
+                    hddLog(LOG1, FL("Configured Supported rate is %2x"),
+                            pConfig->supported_rates.rate[i]);
+                }
+        }
+        pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
+                WLAN_EID_EXT_SUPP_RATES);
+        if (pIe != NULL) {
+            pIe++;
+            pConfig->extended_rates.numRates = pIe[0];
+            pIe++;
+            for (i = 0; i < pConfig->extended_rates.numRates; i++)
+                if (pIe[i]) {
+                    pConfig->extended_rates.rate[i]= pIe[i];
+                    hddLog(LOG1,
+                            FL("Configured extended Supported rate is %2x"),
+                            pConfig->extended_rates.rate[i]);
+                }
+        }
     }
 
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
