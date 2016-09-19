@@ -271,7 +271,7 @@ v_U8_t vos_pkt_get_proto_type
    /* EAPOL Tracking enabled */
    if (VOS_PKT_TRAC_TYPE_EAPOL & tracking_map)
    {
-      if (adf_nbuf_is_eapol_pkt(skb) == A_STATUS_OK) {
+      if (adf_nbuf_is_eapol_pkt(skb)) {
          pkt_proto_type = VOS_PKT_TRAC_TYPE_EAPOL;
          return pkt_proto_type;
       }
@@ -280,7 +280,7 @@ v_U8_t vos_pkt_get_proto_type
    /* DHCP Tracking enabled */
    if (VOS_PKT_TRAC_TYPE_DHCP & tracking_map)
    {
-      if (adf_nbuf_is_dhcp_pkt(skb) == A_STATUS_OK) {
+      if (adf_nbuf_is_dhcp_pkt(skb)) {
          pkt_proto_type = VOS_PKT_TRAC_TYPE_DHCP;
          return pkt_proto_type;
       }
