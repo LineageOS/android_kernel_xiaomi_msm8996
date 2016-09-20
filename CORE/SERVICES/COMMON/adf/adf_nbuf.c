@@ -1155,27 +1155,27 @@ __adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
    switch (adf_nbuf_trace_get_proto_type(buf)) {
    case NBUF_PKT_TRAC_TYPE_EAPOL:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "EPL", NBUF_PKT_TRAC_PROTO_STRING);
+                      "EPL", adf_os_str_len("EPL"));
       break;
    case NBUF_PKT_TRAC_TYPE_DHCP:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "DHC", NBUF_PKT_TRAC_PROTO_STRING);
+                      "DHC", adf_os_str_len("DHC"));
       break;
    case NBUF_PKT_TRAC_TYPE_MGMT_ACTION:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "MACT", NBUF_PKT_TRAC_PROTO_STRING);
+                      "MACT", adf_os_str_len("MACT"));
       break;
    case NBUF_PKT_TRAC_TYPE_ARP:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "ARP", NBUF_PKT_TRAC_PROTO_STRING);
+                      "ARP", adf_os_str_len("ARP"));
       break;
    case NBUF_PKT_TRAC_TYPE_NS:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "NS", NBUF_PKT_TRAC_PROTO_STRING);
+                      "NS", adf_os_str_len("NS"));
       break;
    case NBUF_PKT_TRAC_TYPE_NA:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "NA", NBUF_PKT_TRAC_PROTO_STRING);
+                      "NA", adf_os_str_len("NA"));
       break;
    default:
       break;
