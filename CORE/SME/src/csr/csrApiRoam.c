@@ -16000,6 +16000,10 @@ eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId,
                 purgeSmeSessionCmdList(pMac, sessionId,
                         &pMac->sme.smeScanCmdPendingList);
             }
+            if (pMac->fP2pListenOffload) {
+                purgeSmeSessionCmdList(pMac, sessionId,
+                        &pMac->sme.smeScanCmdActiveList);
+            }
             purgeCsrSessionCmdList(pMac, sessionId);
             status = csrIssueDelStaForSessionReq( pMac, sessionId,
                                         pSession->selfMacAddr, callback, pContext);
