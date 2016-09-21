@@ -7018,7 +7018,7 @@ eHalStatus csrRoamCopyConnectedProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
             vos_mem_copy(pDstProfile->BSSIDs.bssid, pSrcProfile->bssid,
                          sizeof(tCsrBssid));
         }
-        if(pSrcProfile->SSID.ssId)
+        if(pSrcProfile->SSID.length > 0)
         {
             pDstProfile->SSIDs.SSIDList = vos_mem_malloc(sizeof(tCsrSSIDInfo));
             if ( NULL == pDstProfile->SSIDs.SSIDList )
