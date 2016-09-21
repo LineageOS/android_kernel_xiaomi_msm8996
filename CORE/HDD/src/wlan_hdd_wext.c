@@ -1586,12 +1586,8 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
    pWextState->authKeyMgmt = 0;
 
    for (i=0; i < CSR_MAX_NUM_KEY; i++)
-   {
-      if (pWextState->roamProfile.Keys.KeyMaterial[i])
-      {
-         pWextState->roamProfile.Keys.KeyLength[i] = 0;
-      }
-   }
+       pWextState->roamProfile.Keys.KeyLength[i] = 0;
+
 #ifdef FEATURE_WLAN_WAPI
    pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_OPEN;
    pAdapter->wapi_info.nWapiMode = 0;
@@ -3016,14 +3012,10 @@ static int __iw_get_encode(struct net_device *dev, struct iw_request_info *info,
 
     for(i=0; i < MAX_WEP_KEYS; i++)
     {
-        if(pRoamProfile->Keys.KeyMaterial[i] == NULL)
-        {
+        if (pRoamProfile->Keys.KeyLength[i] == 0)
             continue;
-        }
         else
-        {
             break;
-        }
     }
 
     if(MAX_WEP_KEYS == i)
@@ -4526,11 +4518,8 @@ static int __iw_set_encode(struct net_device *dev,struct iw_request_info *info,
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "****iwconfig wlan0 key off*****");
        if(!fKeyPresent) {
 
-          for(i=0;i < CSR_MAX_NUM_KEY; i++) {
-
-             if(pWextState->roamProfile.Keys.KeyMaterial[i])
+          for(i=0;i < CSR_MAX_NUM_KEY; i++)
                 pWextState->roamProfile.Keys.KeyLength[i] = 0;
-          }
        }
        pHddStaCtx->conn_info.authType =  eCSR_AUTH_TYPE_OPEN_SYSTEM;
        pWextState->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
@@ -4707,7 +4696,7 @@ static int __iw_get_encodeext(struct net_device *dev,
 
     for(i=0; i < MAX_WEP_KEYS; i++)
     {
-        if(pRoamProfile->Keys.KeyMaterial[i] == NULL)
+        if (pRoamProfile->Keys.KeyLength[i] == 0)
         {
             continue;
         }
@@ -4830,8 +4819,8 @@ static int __iw_set_encodeext(struct net_device *dev,
        }
        else {
          /*Static wep, update the roam profile with the keys */
-          if(ext->key && (ext->key_len <= eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES) &&
-                                                               key_index < CSR_MAX_NUM_KEY) {
+          if ((ext->key_len <= eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES) &&
+                                               (key_index < CSR_MAX_NUM_KEY)) {
              vos_mem_copy(&pRoamProfile->Keys.KeyMaterial[key_index][0],ext->key,ext->key_len);
              pRoamProfile->Keys.KeyLength[key_index] = (v_U8_t)ext->key_len;
 
