@@ -16700,7 +16700,7 @@ static void wma_add_tdls_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	if (0 == add_sta->updateSta) {
 	 /* its a add sta request **/
 #if defined(CONFIG_HL_SUPPORT)
-         if (add_sta->bssId && vdev->last_real_peer &&
+         if (vdev->last_real_peer &&
             (adf_os_mem_cmp((u8 *)add_sta->bssId,
                              vdev->last_real_peer->mac_addr.raw,
                              IEEE80211_ADDR_LEN) == 0)) {
