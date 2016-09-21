@@ -1557,25 +1557,22 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
         vhtSupport = 0;
         centerFreq = 0;
 
-        if (pScanResult->BssDescriptor.ieFields != NULL)
-        {
-            ieLen = (pScanResult->BssDescriptor.length + sizeof(tANI_U16) + sizeof(tANI_U32) - sizeof(tSirBssDescription));
-            vos_mem_set((tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon), 0);
+        ieLen = (pScanResult->BssDescriptor.length + sizeof(tANI_U16) + sizeof(tANI_U32) - sizeof(tSirBssDescription));
+        vos_mem_set((tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon), 0);
 
-            if ((sirParseBeaconIE(pMac, pBeaconStruct,(tANI_U8 *)( pScanResult->BssDescriptor.ieFields), ieLen)) == eSIR_SUCCESS)
+        if ((sirParseBeaconIE(pMac, pBeaconStruct,(tANI_U8 *)( pScanResult->BssDescriptor.ieFields), ieLen)) == eSIR_SUCCESS)
+        {
+            if (pBeaconStruct->HTCaps.present && pBeaconStruct->HTInfo.present)
             {
-                if (pBeaconStruct->HTCaps.present && pBeaconStruct->HTInfo.present)
+                channelWidth = pBeaconStruct->HTCaps.supportedChannelWidthSet;
+                secondaryChannelOffset = pBeaconStruct->HTInfo.secondaryChannelOffset;
+                if(pBeaconStruct->VHTOperation.present)
                 {
-                    channelWidth = pBeaconStruct->HTCaps.supportedChannelWidthSet;
-                    secondaryChannelOffset = pBeaconStruct->HTInfo.secondaryChannelOffset;
-                    if(pBeaconStruct->VHTOperation.present)
+                    vhtSupport = pBeaconStruct->VHTOperation.present;
+                    if(pBeaconStruct->VHTOperation.chanWidth > WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
                     {
-                        vhtSupport = pBeaconStruct->VHTOperation.present;
-                        if(pBeaconStruct->VHTOperation.chanWidth > WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
-                        {
-                            channelWidth = eHT_CHANNEL_WIDTH_80MHZ;
-                            centerFreq = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
-                        }
+                        channelWidth = eHT_CHANNEL_WIDTH_80MHZ;
+                        centerFreq = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
                     }
                 }
             }
