@@ -271,6 +271,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 		usb_sc->hdd_removed_wait_cnt ++;
 	}
 	atomic_set(&usb_sc->hdd_removed_processing, 1);
+	vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
 	/* disable lpm to avoid following cold reset will
 	 *cause xHCI U1/U2 timeout
@@ -315,6 +316,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
+	vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, FALSE);
 	atomic_set(&usb_sc->hdd_removed_processing, 0);
 	hif_deinit_adf_ctx(scn);
 	A_FREE(scn);
