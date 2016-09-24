@@ -1124,54 +1124,47 @@
 	qcom,led-strings-list = [00 01];
 };
 
+&spmi_bus {
+	qcom,pmi8994@3 {
+		qcom,leds@d000 {
+			qcom,rgb-sync;
+		};
+	};
+};
+
 &red_led {
 	/delete-property/ linux,default-trigger;
-	qcom,duty-pcts = [
-			00 00 03 0b 19 2a
-			3b 4b 59 61 64
-			64 61 59 4b 3b
-			2a 19 0b 03 00
-			00];
-	qcom,start-idx = <1>;
-	qcom,idx-len = <22>;
-	qcom,pause-lo = <0>;
-	qcom,pause-hi = <0>;
-	qcom,ramp-step-ms = <150>;
-	qcom,lut-flags = <3>;
+	qcom,duty-pcts = [ 00 0E 1C 2A 38 46 54 64 ];
+	qcom,start-idx = <0>;
+	qcom,idx-len = <8>;
+	qcom,pause-lo = <500>;
+	qcom,pause-hi = <500>;
+	qcom,ramp-step-ms = <50>;
+	qcom,lut-flags = <31>; /* loop, ramp up, reverse, pause hi, pause lo */
 	qcom,use-blink;
 };
 
 &green_led {
 	/delete-property/ linux,default-trigger;
-	qcom,duty-pcts = [
-			00 00 03 0b 19 2a
-			3b 4b 59 61 64
-			64 61 59 4b 3b
-			2a 19 0b 03 00
-			00];
-	qcom,start-idx = <1>;
-	qcom,idx-len = <22>;
-	qcom,pause-lo = <0>;
-	qcom,pause-hi = <0>;
-	qcom,ramp-step-ms = <150>;
-	qcom,lut-flags = <3>;
+	qcom,duty-pcts = [ 00 0E 1C 2A 38 46 54 64 ];
+	qcom,start-idx = <8>;
+	qcom,idx-len = <8>;
+	qcom,pause-lo = <500>;
+	qcom,pause-hi = <500>;
+	qcom,ramp-step-ms = <50>;
+	qcom,lut-flags = <31>; /* loop, ramp up, reverse, pause hi, pause lo */
 	qcom,use-blink;
 };
 
 &blue_led {
 	/delete-property/ linux,default-trigger;
-	qcom,duty-pcts = [
-			00 00 03 0b 19 2a
-			3b 4b 59 61 64
-			64 61 59 4b 3b
-			2a 19 0b 03 00
-			00];
-	qcom,start-idx = <1>;
-	qcom,idx-len = <22>;
-	qcom,pause-lo = <0>;
-	qcom,pause-hi = <0>;
-	qcom,ramp-step-ms = <150>;
-	qcom,lut-flags = <3>;
+	qcom,duty-pcts = [ 00 0E 1C 2A 38 46 54 64 ];
+	qcom,start-idx = <16>;
+	qcom,idx-len = <8>;
+	qcom,pause-lo = <500>;
+	qcom,pause-hi = <500>;
+	qcom,ramp-step-ms = <50>;
+	qcom,lut-flags = <31>; /* loop, ramp up, reverse, pause hi, pause lo */
 	qcom,use-blink;
 };
 // msm-pmi8994.dtsi end
