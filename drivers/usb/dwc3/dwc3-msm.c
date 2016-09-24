@@ -2163,8 +2163,10 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc)
 		dev_dbg(mdwc->dev, "defer suspend with %d(msecs)\n",
 					mdwc->lpm_to_suspend_delay);
 		pm_wakeup_event(mdwc->dev, mdwc->lpm_to_suspend_delay);
+#ifndef CONFIG_MACH_XIAOMI
 	} else {
 		pm_relax(mdwc->dev);
+#endif
 	}
 
 	atomic_set(&dwc->in_lpm, 1);
@@ -2204,7 +2206,9 @@ static int dwc3_msm_resume(struct dwc3_msm *mdwc)
 		return 0;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	pm_stay_awake(mdwc->dev);
+#endif
 
 	/* Vote for TCXO while waking up USB HSPHY */
 	ret = clk_prepare_enable(mdwc->xo_clk);
@@ -2355,7 +2359,9 @@ static void dwc3_ext_event_notify(struct dwc3_msm *mdwc)
 		return;
 	}
 
+#ifndef CONFIG_MACH_XIAOMI
 	pm_stay_awake(mdwc->dev);
+#endif
 	queue_delayed_work(mdwc->sm_usb_wq, &mdwc->sm_work, 0);
 }
 
@@ -2477,8 +2483,10 @@ static irqreturn_t msm_dwc3_pwr_irq(int irq, void *data)
 	 * all other power events.
 	 */
 	if (atomic_read(&dwc->in_lpm)) {
+#ifndef CONFIG_MACH_XIAOMI
 		if (!mdwc->no_wakeup_src_in_hostmode || !mdwc->in_host_mode)
 			pm_stay_awake(mdwc->dev);
+#endif
 
 		/* set this to call dwc3_msm_resume() */
 		mdwc->resume_pending = true;
@@ -2553,7 +2561,9 @@ static int dwc3_msm_power_set_property_usb(struct power_supply *psy,
 		dbg_event(0xFF, "id_state", mdwc->id_state);
 		if (dwc->is_drd) {
 			dbg_event(0xFF, "stayID", 0);
+#ifndef CONFIG_MACH_XIAOMI
 			pm_stay_awake(mdwc->dev);
+#endif
 			queue_delayed_work(mdwc->dwc3_resume_wq,
 					&mdwc->resume_work, 0);
 		}
@@ -2593,7 +2603,9 @@ static int dwc3_msm_power_set_property_usb(struct power_supply *psy,
 			dbg_event(0xFF, "stayVbus", 0);
 			/* Ignore !vbus on stop_host */
 			if (mdwc->vbus_active || test_bit(ID, &mdwc->inputs)) {
+#ifndef CONFIG_MACH_XIAOMI
 				pm_stay_awake(mdwc->dev);
+#endif
 				queue_delayed_work(mdwc->dwc3_resume_wq,
 					&mdwc->resume_work, 0);
 			}
@@ -2711,7 +2723,9 @@ static irqreturn_t dwc3_pmic_id_irq(int irq, void *data)
 	if (mdwc->id_state != id) {
 		mdwc->id_state = id;
 		dbg_event(0xFF, "stayIDIRQ", 0);
+#ifndef CONFIG_MACH_XIAOMI
 		pm_stay_awake(mdwc->dev);
+#endif
 		queue_delayed_work(mdwc->dwc3_resume_wq, &mdwc->resume_work, 0);
 	}
 
@@ -3270,7 +3284,9 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 		register_cpu_notifier(&mdwc->dwc3_cpu_notifier);
 
 	device_init_wakeup(mdwc->dev, 1);
+#ifndef CONFIG_MACH_XIAOMI
 	pm_stay_awake(mdwc->dev);
+#endif
 
 	if (of_property_read_bool(node, "qcom,disable-dev-mode-pm"))
 		pm_runtime_get_noresume(mdwc->dev);
@@ -3935,9 +3951,11 @@ static void dwc3_msm_otg_sm_work(struct work_struct *w)
 			 * in probe for host mode.
 			 */
 			if (ret != -EPROBE_DEFER) {
+#ifndef CONFIG_MACH_XIAOMI
 				if (mdwc->no_wakeup_src_in_hostmode
 						&& mdwc->in_host_mode)
 					pm_relax(mdwc->dev);
+#endif
 				return;
 			}
 			/*
@@ -3961,7 +3979,9 @@ static void dwc3_msm_otg_sm_work(struct work_struct *w)
 						dcp_max_current);
 				atomic_set(&dwc->in_lpm, 1);
 				dbg_event(0xFF, "RelaxDCP", 0);
+#ifndef CONFIG_MACH_XIAOMI
 				pm_relax(mdwc->dev);
+#endif
 				break;
 			case DWC3_CDP_CHARGER:
 			case DWC3_SDP_CHARGER:
@@ -4018,7 +4038,9 @@ static void dwc3_msm_otg_sm_work(struct work_struct *w)
 				dwc3_msm_gadget_vbus_draw(mdwc,
 						dcp_max_current);
 				dbg_event(0xFF, "RelDCPBIDLE", 0);
+#ifndef CONFIG_MACH_XIAOMI
 				pm_relax(mdwc->dev);
+#endif
 				break;
 			case DWC3_CDP_CHARGER:
 				dbg_event(0xFF, "CDPCharger", 0);
@@ -4057,7 +4079,9 @@ static void dwc3_msm_otg_sm_work(struct work_struct *w)
 			dwc3_msm_gadget_vbus_draw(mdwc, 0);
 			dev_dbg(mdwc->dev, "No device, allowing suspend\n");
 			dbg_event(0xFF, "RelNodev", 0);
+#ifndef CONFIG_MACH_XIAOMI
 			pm_relax(mdwc->dev);
+#endif
 		}
 		break;
 
@@ -4214,7 +4238,9 @@ static int dwc3_msm_pm_prepare(struct device *dev)
 		mdwc->stop_host = true;
 		queue_delayed_work(mdwc->dwc3_resume_wq, &mdwc->resume_work, 0);
 		/* pm_relax will happen at the end of stop_host */
+#ifndef CONFIG_MACH_XIAOMI
 		pm_stay_awake(mdwc->dev);
+#endif
 		return -EBUSY;
 	}
 	/* If in lpm then prevent usb core to runtime_resume from pm_suspend */
