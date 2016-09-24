@@ -367,30 +367,3 @@
 	qcom,fastchg-current-ma = <3100>;
 	qcom,fastchg-current-comp = <1100>;
 };
-
-&red_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
-
-&green_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
-
-&blue_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
