@@ -366,30 +366,3 @@
 &pmi8994_charger {
 	qcom,fastchg-current-comp = <1500>;
 };
-
-&red_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
-
-&green_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
-
-&blue_led {
-	qcom,duty-pcts = [
-		00 00 01 03 06 0a
-		0f 13 16 18 19
-		19 18 16 13 0f
-		0a 06 03 01 00
-		00];
-};
