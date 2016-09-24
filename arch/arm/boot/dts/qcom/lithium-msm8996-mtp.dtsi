@@ -397,30 +397,3 @@
 &ssc_sensors {
 	qcom,firmware-name = "slpi_a4";
 };
-
-&red_led {
-	qcom,duty-pcts = [
-		00 00 02 06 0d 15
-		1d 25 2c 30 32
-		32 30 2c 25 1d
-		15 0d 06 02 00
-		00];
-};
-
-&green_led {
-	qcom,duty-pcts = [
-		00 00 02 06 0d 15
-		1d 25 2c 30 32
-		32 30 2c 25 1d
-		15 0d 06 02 00
-		00];
-};
-
-&blue_led {
-	qcom,duty-pcts = [
-		00 00 02 06 0d 15
-		1d 25 2c 30 32
-		32 30 2c 25 1d
-		15 0d 06 02 00
-		00];
-};
