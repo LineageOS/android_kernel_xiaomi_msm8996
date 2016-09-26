@@ -756,6 +756,8 @@ struct hdd_station_ctx
 #ifdef WLAN_FEATURE_NAN_DATAPATH
    struct nan_datapath_ctx ndp_ctx;
 #endif
+
+   uint8_t broadcast_staid;
 };
 
 #define BSS_STOP    0
