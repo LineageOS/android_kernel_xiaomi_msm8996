@@ -313,8 +313,10 @@ static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode
 	lower_parent_dentry = lock_parent(lower_dentry);
 
 	err = mnt_want_write(lower_path.mnt);
-	if (err)
+	if (err) {
+		unlock_dir(lower_parent_dentry);
 		goto out_unlock;
+	}
 
 	/* set last 16bytes of mode field to 0775 */
 	mode = (mode & S_IFMT) | 00775;
@@ -324,14 +326,17 @@ static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode
 	copied_fs = copy_fs_struct(current->fs);
 	if (!copied_fs) {
 		err = -ENOMEM;
+		unlock_dir(lower_parent_dentry);
 		goto out_drop;
 	}
 	current->fs = copied_fs;
 	current->fs->umask = 0;
 	err = vfs_mkdir(lower_parent_dentry->d_inode, lower_dentry, mode);
 
-	if (err)
+	if (err) {
+		unlock_dir(lower_parent_dentry);
 		goto out;
+	}
 
 	/* if it is a local obb dentry, setup it with the base obbpath */
 	if(need_graft_path(dentry)) {
@@ -353,13 +358,17 @@ static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode
 	}
 
 	err = sdcardfs_interpose(dentry, dir->i_sb, &lower_path, pi->userid);
-	if (err)
+	if (err) {
+		unlock_dir(lower_parent_dentry);
 		goto out;
+	}
 
 	fsstack_copy_attr_times(dir, sdcardfs_lower_inode(dir));
 	fsstack_copy_inode_size(dir, lower_parent_dentry->d_inode);
 	/* update number of links on parent directory */
 	set_nlink(dir, sdcardfs_lower_inode(dir)->i_nlink);
+
+	unlock_dir(lower_parent_dentry);
 
 	if ((!sbi->options.multiuser) && (!strcasecmp(dentry->d_name.name, "obb"))
 		&& (pi->perm == PERM_ANDROID) && (pi->userid == 0))
@@ -382,7 +391,6 @@ out:
 out_drop:
 	mnt_drop_write(lower_path.mnt);
 out_unlock:
-	unlock_dir(lower_parent_dentry);
 	sdcardfs_put_lower_path(dentry, &lower_path);
 out_revert:
 	REVERT_CRED(saved_cred);
