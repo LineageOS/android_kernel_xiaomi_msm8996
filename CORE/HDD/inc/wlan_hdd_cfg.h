@@ -1484,6 +1484,15 @@ typedef enum
 #define CFG_MAX_MPDUS_IN_AMPDU_DEFAULT          (0)
 
 /*
+ * SAP TX MCS limit
+ * Used only for HT rate configure.
+ */
+#define CFG_SAP_MAX_MCS_FOR_TX_DATA                 "gSapMaxMCSForTxData"
+#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MIN             (0)
+#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MAX             (383)
+#define CFG_SAP_MAX_MCS_FOR_TX_DATA_DEFAULT         (0)
+
+/*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
  */
@@ -4856,6 +4865,7 @@ struct hdd_config {
    v_U8_t                      acsScanBandPreference;
    uint8_t                     enable_rts_sifsbursting;
    uint8_t                     max_mpdus_inampdu;
+   uint16_t                    sap_max_mcs_txdata;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;
