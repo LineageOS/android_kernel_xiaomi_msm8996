@@ -17093,12 +17093,17 @@ wlan_hdd_cfg80211_update_bss_db(hdd_adapter_t *pAdapter,
     return bss;
 }
 
-/*
- * FUNCTION: wlan_hdd_cfg80211_update_bss
+/**
+ * wlan_hdd_cfg80211_update_bss() - update scan result to cfg80211
+ * @wiphy: wiphy context
+ * @pAdapter: hdd_adapter_t context
+ *
+ * This function will update the cached scan result to cfg80211 module
+ *
+ * Return: 0 for updating successfully
+ *            other value for error
  */
-static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
-                                         hdd_adapter_t *pAdapter
-                                        )
+int wlan_hdd_cfg80211_update_bss(struct wiphy *wiphy, hdd_adapter_t *pAdapter)
 {
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     tCsrScanResultInfo *pScanResult;
@@ -17688,6 +17693,66 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx)
 	return false;
 }
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+/**
+ * wlan_hdd_sap_skip_scan_check() - The function will check OBSS
+ *         scan skip or not for SAP.
+ * @hdd_ctx: pointer to hdd context.
+ * @request: pointer to scan request.
+ *
+ * This function will check the scan request's chan list against the
+ * previous ACS scan chan list. If all the chan are covered by
+ * previous ACS scan, we can skip the scan and return scan complete
+ * to save the SAP starting time.
+ *
+ * Return: true to skip the scan,
+ *            false to continue the scan
+ */
+static bool wlan_hdd_sap_skip_scan_check(hdd_context_t *hdd_ctx,
+	struct cfg80211_scan_request *request)
+{
+	int i, j;
+	bool skip;
+
+	hddLog(LOG1, FL("HDD_ACS_SKIP_STATUS = %d"),
+		hdd_ctx->skip_acs_scan_status);
+	if (hdd_ctx->skip_acs_scan_status != eSAP_SKIP_ACS_SCAN)
+		return false;
+	spin_lock(&hdd_ctx->acs_skip_lock);
+	if (hdd_ctx->last_acs_channel_list == NULL ||
+	   hdd_ctx->num_of_channels == 0 ||
+	   request->n_channels == 0) {
+		spin_unlock(&hdd_ctx->acs_skip_lock);
+		return false;
+	}
+	skip = true;
+	for (i = 0; i < request->n_channels ; i++ ) {
+		bool find = false;
+		for (j = 0; j < hdd_ctx->num_of_channels; j++) {
+			if (hdd_ctx->last_acs_channel_list[j] ==
+			   request->channels[i]->hw_value) {
+				find = true;
+				break;
+			}
+		}
+		if (!find) {
+			skip = false;
+			hddLog(LOG1, FL("Chan %d isn't in ACS chan list"),
+				request->channels[i]->hw_value);
+			break;
+		}
+	}
+	spin_unlock(&hdd_ctx->acs_skip_lock);
+	return skip;
+}
+#else
+static bool wlan_hdd_sap_skip_scan_check(hdd_context_t *hdd_ctx,
+	struct cfg80211_scan_request *request)
+{
+	return false;
+}
+#endif
+
 static void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work)
 {
     hdd_adapter_t *adapter = container_of(work,
@@ -17779,6 +17844,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
              * Thus we return null scan result. If we return scan failure
              * hostapd fails secondary AP startup.
              */
+            hddLog(LOGE,
+                   FL("##In DFS Master mode. Scan aborted"));
+
             pAdapter->request = request;
 
             vos_init_work(&pAdapter->scan_block_work,
@@ -17851,6 +17919,16 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     if (hdd_isConnectionInProgress(pHddCtx)) {
         hddLog(LOGE, FL("Scan not allowed"));
         return -EBUSY;
+    }
+    /* Check whether SAP scan can be skipped or not */
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
+       wlan_hdd_sap_skip_scan_check(pHddCtx, request)) {
+        hddLog(LOGE, FL("sap scan skipped"));
+        pAdapter->request = request;
+        vos_init_work(&pAdapter->scan_block_work,
+                  wlan_hdd_cfg80211_scan_block_cb);
+        schedule_work(&pAdapter->scan_block_work);
+        return 0;
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));

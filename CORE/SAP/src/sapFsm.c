@@ -2764,7 +2764,7 @@ sapGotoChannelSel
                 scanRequest.requestType = eCSR_SCAN_SOFTAP_CHANNEL_RANGE;
 
                 sapContext->channelList = channelList;
-
+                sapContext->num_of_channel = numOfChannels;
 #endif
                 /* Set requestType to Full scan */
 
@@ -2825,6 +2825,7 @@ sapGotoChannelSel
                         sapContext->channel = sapContext->channelList[0];
                         vos_mem_free(sapContext->channelList);
                         sapContext->channelList = NULL;
+                        sapContext->num_of_channel = 0;
                     }
 #endif
                     if (VOS_TRUE == sapDoAcsPreStartBss)
@@ -3155,6 +3156,33 @@ sapGotoDisconnected
     return vosStatus;
 }
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+/**
+ * sap_handle_acs_scan_event() - handle acs scan event for SAP
+ * @sap_context: ptSapContext
+ * @sap_event: tSap_Event
+ * @status: status of acs scan
+ *
+ * The function is to handle the eSAP_ACS_SCAN_SUCCESS_EVENT event.
+ *
+ * Return: void
+ */
+static void sap_handle_acs_scan_event(ptSapContext sap_context,
+		tSap_Event *sap_event, eSapStatus status)
+{
+	sap_event->sapHddEventCode = eSAP_ACS_SCAN_SUCCESS_EVENT;
+	sap_event->sapevt.sap_acs_scan_comp.status = status;
+	sap_event->sapevt.sap_acs_scan_comp.num_of_channels =
+			sap_context->num_of_channel;
+	sap_event->sapevt.sap_acs_scan_comp.channellist =
+			sap_context->channelList;
+}
+#else
+static void sap_handle_acs_scan_event(ptSapContext sap_context,
+		tSap_Event *sap_event, eSapStatus status)
+{
+}
+#endif
 /*==========================================================================
   FUNCTION    sapSignalHDDevent
 
@@ -3261,14 +3289,17 @@ sapSignalHDDevent
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                 "In %s, SAP event callback event = %s : %d", __func__,
                 "eSAP_DFS event", sapHddevent);
-#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-        case eSAP_ACS_SCAN_SUCCESS_EVENT:
-#endif
             sapApAppEvent.sapHddEventCode = sapHddevent;
             sapApAppEvent.sapevt.sapStopBssCompleteEvent.status =
-                                                        (eSapStatus )context;
+                                           (eSapStatus )context;
             break;
-
+        case eSAP_ACS_SCAN_SUCCESS_EVENT:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                "In %s, SAP event callback event = %s : %d", __func__,
+                "ACS Scan event", sapHddevent);
+            sap_handle_acs_scan_event(sapContext, &sapApAppEvent,
+                        (eSapStatus)context);
+            break;
         case eSAP_ACS_CHANNEL_SELECTED:
             sapApAppEvent.sapHddEventCode = sapHddevent;
             if ( eSAP_STATUS_SUCCESS == (eSapStatus )context)

@@ -13070,6 +13070,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hddLog(VOS_TRACE_LEVEL_ERROR,
             "%s: Cannot deallocate ACS Skip timer", __func__);
    }
+   spin_lock(&pHddCtx->acs_skip_lock);
+   vos_mem_free(pHddCtx->last_acs_channel_list);
+   pHddCtx->last_acs_channel_list = NULL;
+   pHddCtx->num_of_channels = 0;
+   spin_unlock(&pHddCtx->acs_skip_lock);
 #endif
 
    if (pConfig && !pConfig->enablePowersaveOffload)
@@ -13304,19 +13309,34 @@ void __hdd_wlan_exit(void)
 }
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+/**
+ * hdd_skip_acs_scan_timer_handler() - skip ACS scan timer timeout handler
+ * @data: pointer to hdd_context_t
+ *
+ * This function will reset acs_scan_status to eSAP_DO_NEW_ACS_SCAN.
+ * Then new ACS request will do a fresh scan without reusing the cached
+ * scan information.
+ *
+ * Return: void
+ */
 void hdd_skip_acs_scan_timer_handler(void * data)
 {
-    hdd_context_t *hdd_ctx = (hdd_context_t *) data;
-    hdd_adapter_t *ap_adapter;
+	hdd_context_t *hdd_ctx = (hdd_context_t *) data;
+	hdd_adapter_t *ap_adapter;
 
-    hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
-    hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+	hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
+	hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+	spin_lock(&hdd_ctx->acs_skip_lock);
+	vos_mem_free(hdd_ctx->last_acs_channel_list);
+	hdd_ctx->last_acs_channel_list = NULL;
+	hdd_ctx->num_of_channels = 0;
+	spin_unlock(&hdd_ctx->acs_skip_lock);
 
-    /* Get first SAP adapter to clear results */
-    ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
-    if (!hdd_ctx->hHal || !ap_adapter)
-        return;
-    sme_ScanFlushResult(hdd_ctx->hHal, ap_adapter->sessionId);
+	/* Get first SAP adapter to clear results */
+	ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
+	if (!hdd_ctx->hHal || !ap_adapter)
+		return;
+	sme_ScanFlushResult(hdd_ctx->hHal, ap_adapter->sessionId);
 }
 #endif
 
@@ -15514,6 +15534,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                   hdd_skip_acs_scan_timer_handler, (void *)pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(status))
         hddLog(LOGE, FL("Failed to init ACS Skip timer\n"));
+   spin_lock_init(&pHddCtx->acs_skip_lock);
 #endif
 
 #ifdef WLAN_FEATURE_NAN

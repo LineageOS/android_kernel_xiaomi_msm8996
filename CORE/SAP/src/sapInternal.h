@@ -246,6 +246,7 @@ typedef struct sSapContext {
     v_U32_t           nStaAddIeLength;
     v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN];
     v_U8_t            *channelList;
+    uint8_t            num_of_channel;
     tSapChannelListInfo SapChnlList;
     uint16_t           vht_channel_width;
     uint16_t           ch_width_orig;

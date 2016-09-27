@@ -2025,6 +2025,9 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
                                       tCsrRoamInfo *pRoamInfo
                                       );
 
+int wlan_hdd_cfg80211_update_bss(struct wiphy *wiphy,
+			hdd_adapter_t *pAdapter);
+
 #ifdef FEATURE_WLAN_LFR
 int wlan_hdd_cfg80211_pmksa_candidate_notify(
                     hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,

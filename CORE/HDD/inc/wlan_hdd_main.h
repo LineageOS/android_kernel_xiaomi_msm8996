@@ -1775,6 +1775,9 @@ struct hdd_context_s
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     vos_timer_t skip_acs_scan_timer;
     v_U8_t skip_acs_scan_status;
+    uint8_t *last_acs_channel_list;
+    uint8_t num_of_channels;
+    spinlock_t acs_skip_lock;
 #endif
 
     vos_wake_lock_t sap_dfs_wakelock;
