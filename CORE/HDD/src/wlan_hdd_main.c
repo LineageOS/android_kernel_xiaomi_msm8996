@@ -935,11 +935,13 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         if (WLANSAP_StartBss(p_sap_ctx, hdd_hostapd_SAPEventCB, pConfig,
             (v_PVOID_t)ap_adapter->dev) != VOS_STATUS_SUCCESS) {
             hddLog(LOGE, FL("SAP Start Bss fail"));
+            WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
             goto end;
         }
 
         hddLog(LOG1, FL("Waiting for SAP to start"));
         vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
             hddLog(LOGE, FL("SAP Start failed"));
             goto end;
