@@ -7353,6 +7353,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->ssdp = mac_params->ssdp;
 	wma_handle->enable_mc_list = mac_params->enable_mc_list;
 	wma_handle->enable_bcst_ptrn = mac_params->enable_bcst_ptrn;
+	wma_handle->bpf_packet_filter_enable =
+		mac_params->bpf_packet_filter_enable;
 #ifdef FEATURE_WLAN_RA_FILTERING
 	wma_handle->IsRArateLimitEnabled = mac_params->IsRArateLimitEnabled;
 	wma_handle->RArateLimitInterval = mac_params->RArateLimitInterval;
@@ -27142,7 +27144,7 @@ static VOS_STATUS wma_process_ll_stats_getReq
 				WMI_SCAN_ADD_OFDM_RATES |
 				WMI_SCAN_ADD_SPOOFED_MAC_IN_PROBE_REQ |
 				WMI_SCAN_ADD_DS_IE_IN_PROBE_REQ;
-	cmd->scan_priority = WMI_SCAN_PRIORITY_HIGH;
+	cmd->scan_priority = WMI_SCAN_PRIORITY_VERY_LOW;
 	cmd->num_ssids = 0;
 	cmd->num_bssid = 0;
 	cmd->ie_len = 0;
@@ -33674,6 +33676,20 @@ static inline void wma_update_target_vht_cap(tp_wma_handle wh,
 }
 #endif	/* #ifdef WLAN_FEATURE_11AC */
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+static void wma_update_ra_rate_limit(tp_wma_handle wma_handle,
+				     struct hdd_tgt_cfg *cfg)
+{
+	cfg->is_ra_rate_limit_enabled = wma_handle->IsRArateLimitEnabled;
+}
+#else
+static void wma_update_ra_rate_limit(tp_wma_handle wma_handle,
+				     struct hdd_tgt_cfg *cfg)
+{
+}
+#endif
+
+
 static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 {
 	struct hdd_tgt_cfg hdd_tgt_cfg;
@@ -33720,6 +33736,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	hdd_tgt_cfg.wmi_max_len = wmi_get_max_msg_len(wma_handle->wmi_handle)
 					- WMI_TLV_HEADROOM;
 	hdd_tgt_cfg.bpf_enabled = wma_handle->bpf_enabled;
+	wma_update_ra_rate_limit(wma_handle, &hdd_tgt_cfg);
 	wma_update_hdd_cfg_ndp(wma_handle, &hdd_tgt_cfg);
 	wma_setup_egap_support(&hdd_tgt_cfg, wma_handle);
         hdd_tgt_cfg.max_mc_addr_list =
@@ -33901,6 +33918,19 @@ static void wma_send_time_stamp_sync_cmd(void *data)
 		WMA_LOGE("Failed to start the firmware time sync timer");
 }
 
+#ifdef FEATURE_WLAN_RA_FILTERING
+static void wma_update_ra_limit(tp_wma_handle wma_handle)
+{
+	if (wma_handle->bpf_enabled)
+		wma_handle->IsRArateLimitEnabled = false;
+}
+#else
+static void wma_update_ra__limit(tp_wma_handle handle)
+{
+}
+#endif
+
+
 /* Process service ready event and send wmi_init command */
 v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 {
@@ -33991,9 +34021,10 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	wma_handle->ap_arpns_support =
 		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 					WMI_SERVICE_AP_ARPNS_OFFLOAD);
-	wma_handle->bpf_enabled =
+	wma_handle->bpf_enabled = (wma_handle->bpf_packet_filter_enable &&
 		WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
-					WMI_SERVICE_BPF_OFFLOAD);
+					WMI_SERVICE_BPF_OFFLOAD));
+	wma_update_ra_limit(wma_handle);
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				WMI_SERVICE_CSA_OFFLOAD)) {
 		WMA_LOGD("%s: FW support CSA offload capability", __func__);

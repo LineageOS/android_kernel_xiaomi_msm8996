@@ -4681,6 +4681,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SIFS_BURST_DURATION_DEFAULT,
                 CFG_SIFS_BURST_DURATION_MIN,
                 CFG_SIFS_BURST_DURATION_MAX),
+
+  REG_VARIABLE(CFG_BPF_PACKET_FILTER_OFFLOAD, WLAN_PARAM_Integer,
+               struct hdd_config, bpf_packet_filter_enable,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_BPF_PACKET_FILTER_OFFLOAD_DEFAULT,
+               CFG_BPF_PACKET_FILTER_OFFLOAD_MIN,
+               CFG_BPF_PACKET_FILTER_OFFLOAD_MAX),
 };
 
 
@@ -5527,6 +5534,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                  CFG_ACTIVE_MODE_OFFLOAD,
                  pHddCtx->cfg_ini->active_mode_offload);
+
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+                 CFG_BPF_PACKET_FILTER_OFFLOAD,
+                 pHddCtx->cfg_ini->bpf_packet_filter_enable);
 
   hdd_ndp_print_ini_config(pHddCtx);
 }
