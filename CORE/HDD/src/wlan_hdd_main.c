@@ -532,8 +532,7 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
 
         case GREEN_AP_PS_STOP_EVENT:
-            if (!(hdd_get_concurrency_mode() & VOS_SAP))
-                green_ap->ps_enable = 0;
+            green_ap->ps_enable = 0;
             break;
 
         case GREEN_AP_ADD_STA_EVENT:
@@ -554,18 +553,20 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
     }
 
-    /* Confirm that power save is enabled  before doing state transitions */
-    if (!green_ap->ps_enable) {
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("Green-AP is disabled"));
-        hdd_wlan_green_ap_update(pHddCtx,
-            GREEN_AP_PS_IDLE_STATE, GREEN_AP_PS_WAIT_EVENT);
-        goto done;
-    }
-
     pAdapter = hdd_get_adapter (pHddCtx, WLAN_HDD_SOFTAP );
 
     if (pAdapter == NULL) {
         hddLog(LOGE, FL("Green-AP no SAP adapter"));
+        goto done;
+    }
+
+    /* Confirm that power save is enabled  before doing state transitions */
+    if (!green_ap->ps_enable) {
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("green ap is disabled"));
+        hdd_wlan_green_ap_update(pHddCtx,
+            GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+        if (hdd_wlan_green_ap_enable(pAdapter, 0))
+            hddLog(LOGE, FL("failed to set green ap mode"));
         goto done;
     }
 
@@ -678,6 +679,65 @@ void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg)
 }
 
 /**
+ * hdd_wlan_is_egap_enabled() - Get Enhance Green AP feature status
+ * @fw_egap_support: flag whether firmware supports egap or not
+ * @cfg: pointer to the struct hdd_config_t
+ *
+ * Return: true if firmware, feature_flag and ini are all enabled the egap
+ */
+static bool hdd_wlan_is_egap_enabled(bool fw_egap_support, hdd_config_t *cfg)
+{
+	/* check if the firmware and ini are both enabled the egap,
+	 * and also the feature_flag enable.
+	 */
+	if (fw_egap_support && cfg->enable_egap &&
+			cfg->egap_feature_flag)
+		return true;
+
+	return false;
+}
+
+
+/**
+ * hdd_wlan_enable_egap() - Enable Enhance Green AP
+ * @hdd_ctx: HDD global context
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_wlan_enable_egap(struct hdd_context_s *hdd_ctx)
+{
+	hdd_config_t *cfg;
+
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return -EINVAL;
+	}
+
+	cfg = hdd_ctx->cfg_ini;
+
+	if (!cfg) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return -EINVAL;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return -EINVAL;
+	}
+
+	if (!hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return -ENOTSUPP;
+
+	if (VOS_STATUS_SUCCESS != sme_send_egap_conf_params(cfg->enable_egap,
+			cfg->egap_inact_time,
+			cfg->egap_wait_time,
+			cfg->egap_feature_flag))
+		return -EINVAL;
+	return 0;
+}
+
+/**
  * hdd_wlan_green_ap_start_bss() - Notify Green AP of Start BSS event
  * @hdd_ctx: HDD global context
  *
@@ -689,45 +749,24 @@ void hdd_wlan_green_ap_start_bss(struct hdd_context_s *hdd_ctx)
 
 	if (!hdd_ctx) {
 		hddLog(LOGE, FL("hdd context is NULL"));
-		goto exit;
+		return;
 	}
 
 	cfg = hdd_ctx->cfg_ini;
 
 	if (!cfg) {
 		hddLog(LOGE, FL("hdd cfg is NULL"));
-		goto exit;
+		return;
 	}
 
 	if (!hdd_ctx->green_ap_ctx) {
-		hddLog(LOGE,
-			FL("Green AP is not enabled. green_ap_ctx = NULL"));
-		goto exit;
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
 	}
 
-	/* check if the firmware and ini are both enabled the egap,
-	 * and also the feature_flag enable, then we enable the egap
-	 */
-	if (hdd_ctx->green_ap_ctx->egap_support && cfg->enable_egap &&
-			cfg->egap_feature_flag) {
-		hddLog(LOG1,
-				FL("Set EGAP - enabled: %d, flag: %x, inact_time: %d, wait_time: %d"),
-				cfg->enable_egap,
-				cfg->egap_feature_flag,
-				cfg->egap_inact_time,
-				cfg->egap_wait_time);
-		if (!sme_send_egap_conf_params(cfg->enable_egap,
-					cfg->egap_inact_time,
-					cfg->egap_wait_time,
-					cfg->egap_feature_flag)) {
-			/* EGAP is enabled, disable host GAP */
-			hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
-			goto exit;
-		}
-		/* fall through, if send_egap_conf_params() failed,
-		 * then check host GAP and enable it accordingly
-		 */
-	}
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
 
 	if ((hdd_ctx->concurrency_mode & VOS_SAP) &&
 			!(hdd_ctx->concurrency_mode & (~VOS_SAP)) &&
@@ -744,8 +783,6 @@ void hdd_wlan_green_ap_start_bss(struct hdd_context_s *hdd_ctx)
 			(VOS_STA & hdd_ctx->concurrency_mode),
 			cfg->enable2x2, cfg->enableGreenAP);
 	}
-exit:
-	return;
 }
 
 /**
@@ -756,7 +793,30 @@ exit:
  */
 void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx)
 {
-	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
+	/* For AP+AP mode, only trigger GREEN_AP_PS_STOP_EVENT, when the
+	 * last AP stops.
+	 */
+	if (1 == (hdd_ctx->no_of_open_sessions[VOS_STA_SAP_MODE]))
+		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
 }
 
 /**
@@ -767,6 +827,25 @@ void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx)
  */
 void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx)
 {
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
 	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_ADD_STA_EVENT);
 }
 
@@ -778,6 +857,25 @@ void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx)
  */
 void hdd_wlan_green_ap_del_sta(struct hdd_context_s *hdd_ctx)
 {
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
 	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_DEL_STA_EVENT);
 }
 
@@ -15708,6 +15806,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
            process_wma_set_command(0, (int)WMI_PDEV_PARAM_BURST_DUR,
                                           set_value, PDEV_CMD);
    }
+
+   if (hdd_wlan_enable_egap(pHddCtx))
+        hddLog(LOGE, FL("enhance green ap is not enabled"));
 
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);

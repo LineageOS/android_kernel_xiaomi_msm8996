@@ -1522,8 +1522,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             pHostapdState->bssState = BSS_START;
 
-            hdd_wlan_green_ap_start_bss(pHddCtx);
-
             /* Set default key index */
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: default key index %hu", __func__,
@@ -1633,8 +1631,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
-
-            hdd_wlan_green_ap_stop_bss(pHddCtx);
 
             //Free up Channel List incase if it is set
 
