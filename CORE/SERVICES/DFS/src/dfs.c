@@ -361,7 +361,7 @@ dfs_attach(struct ieee80211com *ic)
     dfs->pulses->pl_lastelem = DFS_MAX_PULSE_BUFFER_MASK;
 
     /* Allocate memory for radar filters */
-    for (n=0; n<DFS_MAX_RADAR_TYPES; n++) {
+    for (n = 0; n < DFS_MAX_RADAR_TYPES; n++) {
       dfs->dfs_radarf[n] = (struct dfs_filtertype *)OS_MALLOC(NULL, sizeof(struct dfs_filtertype),GFP_ATOMIC);
       if (dfs->dfs_radarf[n] == NULL) {
          DFS_PRINTK("%s: cannot allocate memory for radar filter types\n",
@@ -390,14 +390,15 @@ dfs_attach(struct ieee80211com *ic)
     }
 
     /* Allocate memory for radar table */
-    dfs->dfs_radartable = (int8_t **)OS_MALLOC(NULL, 256*sizeof(int8_t *), GFP_ATOMIC);
+    dfs->dfs_radartable = (int8_t **)OS_MALLOC(NULL,
+        MAX_DFS_RADAR_TABLE_TYPE * sizeof(int8_t *), GFP_ATOMIC);
     if (dfs->dfs_radartable == NULL) {
       DFS_PRINTK("%s: cannot allocate memory for radar table\n",
          __func__);
       goto bad4;
     }
-    for (n=0; n<256; n++) {
-      dfs->dfs_radartable[n] = OS_MALLOC(NULL, DFS_MAX_RADAR_OVERLAP*sizeof(int8_t),
+    for (n = 0; n < MAX_DFS_RADAR_TABLE_TYPE; n++) {
+      dfs->dfs_radartable[n] = OS_MALLOC(NULL, DFS_MAX_RADAR_OVERLAP * sizeof(int8_t),
                    GFP_ATOMIC);
       if (dfs->dfs_radartable[n] == NULL) {
          DFS_PRINTK("%s: cannot allocate memory for radar table entry\n",
@@ -473,7 +474,7 @@ bad3:
     OS_FREE(dfs->dfs_dc_radartable);
     dfs->dfs_dc_radartable = NULL;
 bad2:
-    for (n=0; n < DFS_MAX_RADAR_TYPES; n++) {
+    for (n=0; n < MAX_DFS_RADAR_TABLE_TYPE; n++) {
        if (dfs->dfs_radartable[n] != NULL) {
           OS_FREE(dfs->dfs_radartable[n]);
           dfs->dfs_radartable[n] = NULL;
@@ -588,7 +589,7 @@ dfs_detach(struct ieee80211com *ic)
 
 
    if (dfs->dfs_radartable != NULL) {
-      for (n=0; n<256; n++) {
+      for (n = 0; n < MAX_DFS_RADAR_TABLE_TYPE; n++) {
          if (dfs->dfs_radartable[n] != NULL) {
             OS_FREE(dfs->dfs_radartable[n]);
             dfs->dfs_radartable[n] = NULL;
