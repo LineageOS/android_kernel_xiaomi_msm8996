@@ -67,7 +67,11 @@
  * probably always be appropriate; it is probably not necessary to
  * determine this value dynamically.
  */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_AST_SKID_LIMIT          8
+#else
 #define CFG_TGT_AST_SKID_LIMIT          6
+#endif
 /*
  * total number of peers per device.
  * currently set to 8 to bring up IP3.9 for memory size problem
