@@ -2756,10 +2756,8 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     if (ar->ExtCap.present)
     {
         struct s_ext_cap *p_ext_cap;
-
-        vos_mem_copy(&pAssocReq->ExtCap.bytes, &ar->ExtCap.bytes,
-                     ar->ExtCap.num_bytes);
-
+        vos_mem_copy( &pAssocReq->ExtCap, &ar->ExtCap,
+                sizeof(tDot11fIEExtCap));
         p_ext_cap = (struct s_ext_cap *)&pAssocReq->ExtCap.bytes;
         limLog(pMac, LOG1,
                FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
@@ -2971,9 +2969,8 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
     if (ar.ExtCap.present)
     {
         struct s_ext_cap *p_ext_cap;
-
-        vos_mem_copy(&pAssocRsp->ExtCap.bytes, &ar.ExtCap.bytes,
-                     ar.ExtCap.num_bytes);
+        vos_mem_copy( &pAssocRsp->ExtCap, &ar.ExtCap,
+                sizeof(tDot11fIEExtCap));
         p_ext_cap = (struct s_ext_cap *)&pAssocRsp->ExtCap.bytes;
         limLog(pMac, LOG1,
                FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
@@ -3197,8 +3194,8 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     {
         struct s_ext_cap *p_ext_cap = (struct s_ext_cap *)
                                        &ar.ExtCap.bytes;
-        vos_mem_copy(&pAssocReq->ExtCap.bytes, &ar.ExtCap.bytes,
-                     ar.ExtCap.num_bytes);
+        vos_mem_copy( &pAssocReq->ExtCap, &ar.ExtCap,
+                sizeof(tDot11fIEExtCap));
         limLog(pMac, LOG1,
                FL("ExtCap present, timingMeas: %d Initiator: %d Responder: %d"),
                p_ext_cap->timingMeas, p_ext_cap->fine_time_meas_initiator,
@@ -3785,7 +3782,6 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     pBeaconStruct->Vendor1IEPresent = pBies->Vendor1IE.present;
     pBeaconStruct->Vendor3IEPresent = pBies->Vendor3IE.present;
     if (pBies->ExtCap.present) {
-        pBeaconStruct->ExtCap.present = 1;
         vos_mem_copy( &pBeaconStruct->ExtCap, &pBies->ExtCap,
                 sizeof(tDot11fIEExtCap));
     }
