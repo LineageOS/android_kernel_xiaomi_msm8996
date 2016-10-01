@@ -825,7 +825,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
 #ifdef WLAN_FEATURE_11W
     /* if PMF connection */
-    if (psessionEntry->limRmfEnabled) {
+    if (psessionEntry->limRmfEnabled && LIM_IS_STA_ROLE(psessionEntry)) {
         vos_timer_destroy(&psessionEntry->pmfComebackTimer);
     }
 #endif
