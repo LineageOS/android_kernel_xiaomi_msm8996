@@ -190,6 +190,8 @@ static int synaptics_rmi4_fb_notifier_cb_lgd(struct notifier_block *self,
 
 static void mdss_regulator_ctrl(struct synaptics_rmi4_data *rmi4_data, unsigned int flag, bool enable);
 
+static void synaptics_key_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable);
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #ifndef CONFIG_FB
 #define USE_EARLYSUSPEND
@@ -2093,6 +2095,8 @@ static int synaptics_rmi4_int_enable(struct synaptics_rmi4_data *rmi4_data,
 			}
 		}
 	}
+
+	synaptics_key_ctrl(rmi4_data, enable && rmi4_data->button_0d_enabled);
 
 	return retval;
 }
