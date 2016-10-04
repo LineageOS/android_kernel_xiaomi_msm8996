@@ -982,10 +982,13 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         return;
     }
 
-    /* Until DHCP is not completed remain in power active */
-    if(pMac->pmc.remainInPowerActiveTillDHCP)
-    {
-        pmcLog(pMac, LOG2, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS"));
+    /* Untill DHCP and set key is not completed remain in power active */
+    if (pMac->pmc.remainInPowerActiveTillDHCP ||
+       pMac->pmc.full_power_till_set_key) {
+        pmcLog(pMac, LOG2,
+          FL("BMPS Traffic Timer expired before DHCP(%d) or set key (%d) completion ignore enter BMPS"),
+          pMac->pmc.remainInPowerActiveTillDHCP,
+          pMac->pmc.full_power_till_set_key);
         pMac->pmc.remainInPowerActiveThreshold++;
         if( pMac->pmc.remainInPowerActiveThreshold >= DHCP_REMAIN_POWER_ACTIVE_THRESHOLD)
         {
@@ -993,6 +996,7 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
                   FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS"));
            /*FALLBACK: reset the flag to make BMPS entry possible*/
            pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+           pMac->pmc.full_power_till_set_key = false;
            pMac->pmc.remainInPowerActiveThreshold = 0;
         }
         //Activate the Traffic Timer again for entering into BMPS
