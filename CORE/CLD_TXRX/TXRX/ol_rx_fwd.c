@@ -154,7 +154,7 @@ ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
          * We could store the frame and try again later,
          * but the simplest solution is to discard the frames.
          */
-        adf_nbuf_free(msdu);
+        adf_nbuf_tx_free(msdu, ADF_NBUF_PKT_ERROR);
     }
 }
 

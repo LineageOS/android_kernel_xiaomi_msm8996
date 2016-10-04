@@ -210,7 +210,7 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
              */
             if (tx_msdu) {
                 adf_nbuf_unmap(vdev->pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
-                adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+                adf_nbuf_tx_free(tx_msdu, ADF_NBUF_PKT_ERROR);
             }
         }
     }
@@ -397,7 +397,7 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
                  */
                 if (tx_msdu) {
                     adf_nbuf_unmap(pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
-                    adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+                    adf_nbuf_tx_free(tx_msdu, ADF_NBUF_PKT_ERROR);
                 }
             }
             /*check if there are more msdus to transmit*/
