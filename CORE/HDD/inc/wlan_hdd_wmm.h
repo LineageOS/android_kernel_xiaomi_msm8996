@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -113,9 +113,8 @@ typedef enum
    HDD_WMM_USER_MODE_AUTO = 0,
    //SME will add the extra logic to make sure STA associates with a QAP only
    HDD_WMM_USER_MODE_QBSS_ONLY = 1,
-   //SME will not join a QoS AP, unless the phy mode setting says "Auto". In
-   // that case, STA is free to join 11n AP. Although from HDD point of view,
-   // it will not be doing any packet classifications
+
+   /* Join any AP, but uapsd is disabled */
    HDD_WMM_USER_MODE_NO_QOS = 2,
 
 } hdd_wmm_user_mode_t;
