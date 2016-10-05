@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -232,6 +232,8 @@ const char *adf_dp_code_to_string(enum ADF_DP_TRACE_ID code)
 		return "HTT: RX: OF: PTR:";
 	case ADF_DP_TRACE_RX_HDD_PACKET_PTR_RECORD:
 		return "HDD: RX: PTR:";
+	case ADF_DP_TRACE_HDD_RX_PACKET_RECORD:
+		return "HDD: RX: DATA:";
 	case ADF_DP_TRACE_TXRX_QUEUE_PACKET_PTR_RECORD:
 		return "TXRX: TX: Q: PTR:";
 	case ADF_DP_TRACE_TXRX_PACKET_PTR_RECORD:
@@ -683,6 +685,7 @@ void adf_dp_display_record(struct adf_dp_trace_record_s *pRecord,
 						"HDD SoftAP TX Timeout\n");
 		break;
 	case ADF_DP_TRACE_HDD_TX_PACKET_RECORD:
+	case ADF_DP_TRACE_HDD_RX_PACKET_RECORD:
 		dump_hex_trace("DATA", pRecord->data, rsize);
 		break;
 	default:

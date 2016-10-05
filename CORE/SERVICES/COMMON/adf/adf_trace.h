@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -113,6 +113,7 @@ enum  ADF_DP_TRACE_ID {
 	ADF_DP_TRACE_RX_TXRX_PACKET_PTR_RECORD,
 	ADF_DP_TRACE_MED_VERBOSITY,
 	ADF_DP_TRACE_HDD_TX_PACKET_RECORD,
+	ADF_DP_TRACE_HDD_RX_PACKET_RECORD,
 	ADF_DP_TRACE_HIGH_VERBOSITY,
 	ADF_DP_TRACE_MAX
 };
