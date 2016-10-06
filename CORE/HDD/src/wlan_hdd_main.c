@@ -5814,7 +5814,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            [Number of roam scan channels][Channel1][Channel2]... */
            /* copy the number of channels in the 0th index */
            len = scnprintf(extra, sizeof(extra), "%s %d", command, numChannels);
-           for (j = 0; (j < numChannels); j++)
+           for (j = 0; (j < numChannels) && len <= sizeof(extra); j++)
            {
                len += scnprintf(extra + len, sizeof(extra) - len, " %d",
                        ChannelList[j]);
