@@ -16977,7 +16977,14 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     qie_age->oui_2      = QCOM_OUI2;
     qie_age->oui_3      = QCOM_OUI3;
     qie_age->type       = QCOM_VENDOR_IE_AGE_TYPE;
-    qie_age->age        = vos_timer_get_system_time() - bss_desc->nReceivedTime;
+    /*
+     * Lowi expects the timestamp of bss in units of 1/10 ms. In driver all
+     * bss related timestamp is in units of ms. Due to this when scan results
+     * are sent to lowi the scan age is high.To address this, send age in units
+     * of 1/10 ms.
+     */
+    qie_age->age        = (vos_timer_get_system_time() -
+                                 bss_desc->nReceivedTime)/10;
     qie_age->tsf_delta  = bss_desc->tsf_delta;
 #endif
 
