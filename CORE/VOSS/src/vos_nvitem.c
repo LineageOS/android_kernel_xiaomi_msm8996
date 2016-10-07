@@ -2142,6 +2142,16 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
     }
 
+    if (pHddCtx->isWiphySuspended == TRUE) {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "system/cfg80211 is already suspend");
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
+        return;
+#else
+        return 0;
+#endif
+    }
+
     sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
 
     /* first check if this callback is in response to the driver callback */
