@@ -805,6 +805,15 @@ wlan_tasklet(unsigned long data)
     CE_per_engine_service_any(sc->irq_event, sc);
     adf_os_atomic_set(&sc->tasklet_from_intr, 0);
     if (CE_get_rx_pending(sc)) {
+        if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+            pr_err("%s: Load/Unload in Progress\n", __func__);
+            goto end;
+        }
+        if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+            pr_err("%s: LOGP in progress\n", __func__);
+            goto end;
+        }
+
         /*
          * There are frames pending, schedule tasklet to process them.
          * Enable the interrupt only when there is no pending frames in
@@ -815,6 +824,8 @@ wlan_tasklet(unsigned long data)
 #else
         tasklet_schedule(&sc->intr_tq);
 #endif
+
+end:
         adf_os_atomic_set(&sc->ce_suspend, 1);
         return;
     }
@@ -3140,10 +3151,6 @@ void hif_disable_isr(void *ol_sc)
 	scn->MSI_magic = NULL;
 	scn->MSI_magic_dma = 0;
 #endif
-	/* disable the tasklet to avoid recursive scheduling
-	 * of tasklet if rx pending packet count is greater
-	 * than 0. */
-	tasklet_disable(&hif_sc->intr_tq);
 	/* Cancel the pending tasklet */
 	tasklet_kill(&hif_sc->intr_tq);
 }
