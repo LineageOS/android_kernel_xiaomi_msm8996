@@ -92,6 +92,8 @@
 #include "wlan_logging_sock_svc.h"
 #include "wma.h"
 
+#include "vos_utils.h"
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -481,6 +483,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.IsRArateLimitEnabled = pHddCtx->cfg_ini->IsRArateLimitEnabled;
 #endif
 
+   macOpenParms.force_target_assert_enabled =
+               pHddCtx->cfg_ini->crash_inject_enabled;
    macOpenParms.apMaxOffloadPeers = pHddCtx->cfg_ini->apMaxOffloadPeers;
 
    macOpenParms.apMaxOffloadReorderBuffs =
@@ -494,8 +498,42 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifdef IPA_UC_OFFLOAD
     /* IPA micro controller data path offload resource config item */
     macOpenParms.ucOffloadEnabled = pHddCtx->cfg_ini->IpaUcOffloadEnabled;
+
+    if (!is_power_of_2(pHddCtx->cfg_ini->IpaUcTxBufCount)) {
+        /* IpaUcTxBufCount should be power of 2 */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Round down IpaUcTxBufCount %d to nearest power of two",
+                    __func__, pHddCtx->cfg_ini->IpaUcTxBufCount);
+        pHddCtx->cfg_ini->IpaUcTxBufCount =
+                    vos_rounddown_pow_of_two(pHddCtx->cfg_ini->IpaUcTxBufCount);
+        if (!pHddCtx->cfg_ini->IpaUcTxBufCount) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                        "%s: Failed to round down IpaUcTxBufCount", __func__);
+            goto err_htc_close;
+        }
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: IpaUcTxBufCount rounded down to %d", __func__,
+                    pHddCtx->cfg_ini->IpaUcTxBufCount);
+    }
     macOpenParms.ucTxBufCount = pHddCtx->cfg_ini->IpaUcTxBufCount;
     macOpenParms.ucTxBufSize = pHddCtx->cfg_ini->IpaUcTxBufSize;
+
+    if (!is_power_of_2(pHddCtx->cfg_ini->IpaUcRxIndRingCount)) {
+        /* IpaUcRxIndRingCount should be power of 2 */
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Round down IpaUcRxIndRingCount %d to nearest power of two",
+                __func__, pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+        pHddCtx->cfg_ini->IpaUcRxIndRingCount =
+                vos_rounddown_pow_of_two(pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+        if (!pHddCtx->cfg_ini->IpaUcRxIndRingCount) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: Failed to round down IpaUcRxIndRingCount", __func__);
+            goto err_htc_close;
+        }
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: IpaUcRxIndRingCount rounded down to %d", __func__,
+                    pHddCtx->cfg_ini->IpaUcRxIndRingCount);
+    }
     macOpenParms.ucRxIndRingCount = pHddCtx->cfg_ini->IpaUcRxIndRingCount;
     macOpenParms.ucTxPartitionBase = pHddCtx->cfg_ini->IpaUcTxPartitionBase;
 #endif /* IPA_UC_OFFLOAD */
@@ -1333,42 +1371,6 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
    pHddCtx->isLogpInProgress = value;
 }
 
-/**
- * vos_is_unload_in_progress() - check if driver unload is in
- * progress
- *
- * @moduleContext: the input module context pointer
- * @moduleId: the module ID who's context pointer is input in
- *        moduleContext
- *
- * Return: true  - unload in progress
- *         false - unload not in progress/error
- */
-
-
-v_BOOL_t vos_is_unload_in_progress(VOS_MODULE_ID moduleId,
-				 v_VOID_t *moduleContext)
-{
-	hdd_context_t *hdd_ctx = NULL;
-
-	if (gpVosContext == NULL) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-		"%s: global voss context is NULL", __func__);
-		VOS_ASSERT(0);
-		return 0;
-	}
-	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
-						   gpVosContext);
-	if (NULL == hdd_ctx) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-		"%s: hdd context is NULL", __func__);
-		VOS_ASSERT(0);
-		return 0;
-	}
-
-	return hdd_ctx->isUnloadInProgress;
-}
-
 v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
 {
   if (gpVosContext == NULL)
@@ -1399,6 +1401,41 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
 #endif
 }
 
+/**
+ * vos_is_unload_in_progress - check if driver unload is in progress
+ *
+ * Return: true - unload in progress
+ *         false - unload not in progress
+ */
+v_U8_t vos_is_unload_in_progress(void)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return 0;
+	}
+
+	return gpVosContext->is_unload_in_progress;
+}
+
+/**
+ * vos_set_unload_in_progress - set driver unload in progress status
+ * @value: true - driver unload starts
+ *         false - driver unload completes
+ *
+ * Return: none
+ */
+void vos_set_unload_in_progress(v_U8_t value)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return;
+	}
+
+	gpVosContext->is_unload_in_progress = value;
+}
+
 v_U8_t vos_is_reinit_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
 {
   if (gpVosContext == NULL)
@@ -1423,6 +1460,46 @@ void vos_set_reinit_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
    gpVosContext->isReInitInProgress = value;
 }
 
+
+/**
+ * vos_set_shutdown_in_progress - set SSR shutdown progress status
+ *
+ * @moduleId: the module ID of the caller
+ * @value: true - CNSS SSR shutdown start
+ *         false - CNSS SSR shutdown completes
+ * Return: none
+ */
+
+void vos_set_shutdown_in_progress(VOS_MODULE_ID moduleId, bool value)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return;
+	}
+	gpVosContext->is_shutdown_in_progress = value;
+}
+
+/**
+ * vos_is_shutdown_in_progress - check if SSR shutdown is in progress
+ *
+ * @moduleId: the module ID of the caller
+ * @moduleContext: the input module context pointer
+ *
+ * Return: true - shutdown in progress
+ *         false - shutdown is  not in progress
+ */
+
+bool vos_is_shutdown_in_progress(VOS_MODULE_ID moduleId,
+	 v_VOID_t *moduleContext)
+{
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			"%s: global voss context is NULL", __func__);
+		return 0;
+	}
+	return gpVosContext->is_shutdown_in_progress;
+}
 
 /**---------------------------------------------------------------------------
 
@@ -1661,45 +1738,22 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
 } /* vos_free_context() */
 
-
-/**---------------------------------------------------------------------------
-
-  \brief vos_mq_post_message() - post a message to a message queue
-
-  This API allows messages to be posted to a specific message queue.  Messages
-  can be posted to the following message queues:
-
-  <ul>
-    <li> SME
-    <li> PE
-    <li> HAL
-    <li> TL
-  </ul>
-
-  \param msgQueueId - identifies the message queue upon which the message
-         will be posted.
-
-  \param message - a pointer to a message buffer.  Memory for this message
-         buffer is allocated by the caller and free'd by the vOSS after the
-         message is posted to the message queue.  If the consumer of the
-         message needs anything in this message, it needs to copy the contents
-         before returning from the message queue handler.
-
-  \return VOS_STATUS_SUCCESS - the message has been successfully posted
-          to the message queue.
-
-          VOS_STATUS_E_INVAL - The value specified by msgQueueId does not
-          refer to a valid Message Queue Id.
-
-          VOS_STATUS_E_FAULT  - message is an invalid pointer.
-
-          VOS_STATUS_E_FAILURE - the message queue handler has reported
-          an unknown failure.
-
-  \sa
-
-  --------------------------------------------------------------------------*/
-VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
+/**
+ * vos_mq_post_message_by_priority() - posts message using priority
+ * to message queue
+ * @msgQueueId: message queue id
+ * @pMsg: message to be posted
+ * @is_high_priority: wheather message is high priority
+ *
+ * This function is used to post high priority message to message queue
+ *
+ * Return: VOS_STATUS_SUCCESS on success
+ *         VOS_STATUS_E_FAILURE on failure
+ *         VOS_STATUS_E_RESOURCES on resource allocation failure
+ */
+VOS_STATUS vos_mq_post_message_by_priority(VOS_MQ_ID msgQueueId,
+					   vos_msg_t *pMsg,
+					   int is_high_priority)
 {
   pVosMqType      pTargetMq   = NULL;
   pVosMsgWrapper  pMsgWrapper = NULL;
@@ -1794,14 +1848,17 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   vos_mem_copy( (v_VOID_t*)pMsgWrapper->pVosMsg,
                 (v_VOID_t*)pMsg, sizeof(vos_msg_t));
 
-  vos_mq_put(pTargetMq, pMsgWrapper);
+  if (is_high_priority)
+      vos_mq_put_front(pTargetMq, pMsgWrapper);
+  else
+      vos_mq_put(pTargetMq, pMsgWrapper);
 
   set_bit(MC_POST_EVENT_MASK, &gpVosContext->vosSched.mcEventFlag);
   wake_up_interruptible(&gpVosContext->vosSched.mcWaitQueue);
 
   return VOS_STATUS_SUCCESS;
 
-} /* vos_mq_post_message()*/
+}
 
 
 /**---------------------------------------------------------------------------

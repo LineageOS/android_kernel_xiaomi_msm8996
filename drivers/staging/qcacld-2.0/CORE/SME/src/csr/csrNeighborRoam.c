@@ -1579,6 +1579,7 @@ eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac,
     {
         tpCsrNeighborRoamBSSInfo    pNeighborBssNode = NULL;
         tListElem                   *pEntry;
+        bool is_dis_pending = false;
 
         smsLog(pMac, LOGE, FL("Preauth failed retry number %d, status = 0x%x"),
                pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries, limStatus);
@@ -1631,11 +1632,21 @@ eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac,
             }
         }
 
+        is_dis_pending = is_disconnect_pending(pMac, sessionId);
+        if (is_dis_pending) {
+           smsLog(pMac, LOGE,
+              FL(" Disconnect in progress, Abort preauth"));
+           goto abort_preauth;
+        }
+
+
+
         /* Issue preauth request for the same/next entry */
         if (eHAL_STATUS_SUCCESS == csrNeighborRoamIssuePreauthReq(pMac,
                                                                   sessionId))
         goto DEQ_PREAUTH;
 
+abort_preauth:
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
         if (csrRoamIsRoamOffloadScanEnabled(pMac))
         {
@@ -6018,7 +6029,8 @@ eHalStatus csrNeighborRoamCandidateFoundIndHdlr(tpAniSirGlobal pMac, void* pMsg)
     if ((eCSR_NEIGHBOR_ROAM_STATE_CONNECTED != pNeighborRoamInfo->neighborRoamState)
         || (pNeighborRoamInfo->uOsRequestedHandoff))
     {
-        smsLog(pMac, LOGE, FL("Received in not CONNECTED state OR uOsRequestedHandoff is set. Ignore it"));
+        smsLog(pMac, LOGE, FL("Received in not CONNECTED state(%d) or uOsRequestedHandoff(%d) is not set. Ignore it "),
+                                    pNeighborRoamInfo->neighborRoamState, pNeighborRoamInfo->uOsRequestedHandoff);
         status = eHAL_STATUS_FAILURE;
     }
     else
@@ -6286,8 +6298,7 @@ eHalStatus csrNeighborRoamProceedWithHandoffReq(tpAniSirGlobal pMac,
     if ((eCSR_NEIGHBOR_ROAM_STATE_CONNECTED != pNeighborRoamInfo->neighborRoamState)
         || (!pNeighborRoamInfo->uOsRequestedHandoff))
     {
-        smsLog(pMac, LOGE, FL("Received in not CONNECTED state(%d) or uOsRequestedHandoff(%d) is not set. Ignore it "),
-                                    pNeighborRoamInfo->neighborRoamState, pNeighborRoamInfo->uOsRequestedHandoff);
+        smsLog(pMac, LOGE, FL("Received in not CONNECTED state or uOsRequestedHandoff is not set. Ignore it"));
         status = eHAL_STATUS_FAILURE;
     }
     else

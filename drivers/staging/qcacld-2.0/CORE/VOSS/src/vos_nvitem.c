@@ -836,6 +836,56 @@ VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
    return status;
 }
 
+/**
+ * vos_nv_skip_dsrc_dfs_2g() - skip dsrc, dfs and 2g band channels
+ * @rf_channel: input channel enum to know, whether to skip or add the channel
+ * @skip_group: group to skip
+ *
+ * Return: true or false
+ */
+uint8_t vos_nv_skip_dsrc_dfs_2g(uint32_t rf_channel, int32_t skip_group)
+{
+	uint32_t channel_loop;
+	eRfChannels channel_enum = INVALID_RF_CHANNEL;
+	uint8_t ret = false;
+	int32_t start_channel, end_channel;
+
+	switch (skip_group){
+	case NV_CHANNEL_SKIP_DSRC:
+		start_channel = RF_CHAN_1;
+		end_channel = RF_CHAN_165;
+		break;
+	case NV_CHANNEL_SKIP_2G:
+		start_channel = RF_CHAN_36;
+		end_channel = RF_CHAN_165;
+		break;
+	default:
+		start_channel = RF_CHAN_1;
+		end_channel = RF_CHAN_184;
+		break;
+	}
+
+	for (channel_loop = start_channel;
+	     channel_loop <= end_channel; channel_loop++) {
+		if (rfChannels[channel_loop].channelNum == rf_channel) {
+			channel_enum = (eRfChannels)channel_loop;
+			break;
+		}
+	}
+
+	if (INVALID_RF_CHANNEL == channel_enum) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+			  FL("Invalid channel %d"), rf_channel);
+		ret = true;
+		goto exit_ok;
+	}
+
+	if (NV_CHANNEL_DFS == regChannels[channel_enum].enabled)
+		ret = true;
+exit_ok:
+	return ret;
+}
+
 /**------------------------------------------------------------------------
   \brief vos_nv_getChannelEnabledState -
   \param rfChannel  - input channel enum to know evabled state

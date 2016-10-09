@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1751,6 +1751,28 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
 eHalStatus sme_GenericChangeCountryCode( tHalHandle hHal,
                                          tANI_U8 *pCountry,
                                          v_REGDOMAIN_t reg_domain);
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_TXFailMonitorStartStopInd
+
+    \brief Indicate FW about TX Fail Monitor Indication`
+
+    \param hHal - The handle returned by macOpen.
+
+    \param tx_fail_count number of failures after which the firmware sends
+                         an indication to host
+
+    \param txFailIndCallback function to be called after receiving TX Fail
+                             indication
+    \return eHalStatus  SUCCESS.
+
+                         FAILURE or RESOURCES  The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_TXFailMonitorStartStopInd(tHalHandle hHal,
+                                         tANI_U8 tx_fail_count,
+                                         void * txFailIndCallback);
 
 /* ---------------------------------------------------------------------------
 
@@ -3578,6 +3600,33 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
 void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
                                     tANI_U8 nNumP2PChan);
 
+/**
+ * sme_enable_rmc() - enable RMC
+ * @hHal: handle
+ * @sessionId: session id
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_enable_rmc(tHalHandle hHal, tANI_U32 sessionId);
+
+/**
+ * sme_disable_rmc() - disable RMC
+ * @hHal: handle
+ * @sessionId: session id
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_disable_rmc(tHalHandle hHal, tANI_U32 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SendRmcActionPeriod
+    \brief  Used to send RMC action period param to fw
+    \param  hHal
+    \param  sessionId
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SendRmcActionPeriod(tHalHandle hHal, tANI_U32 sessionId);
+
 /* ---------------------------------------------------------------------------
     \fn sme_SendRateUpdateInd
     \brief  API to Update rate
@@ -3586,6 +3635,28 @@ void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetIBSSPeerInfo
+    \brief  Used to disable RMC
+    setting will not persist over reboots
+    \param  hHal
+    \param  ibssPeerInfoReq  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
+                                            pIbssPeerInfoCb peerInfoCbk,
+                                            tANI_BOOLEAN allPeerInfoReqd,
+                                            tANI_U8 staIdx);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SendCesiumEnableInd
+    \brief  Used to send proprietary cesium enable indication to fw
+    \param  hHal
+    \param  sessionId
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SendCesiumEnableInd(tHalHandle hHal, tANI_U32 sessionId);
 
 /*
  * sme API to trigger fast BSS roam to a given BSSID independent of RSSI
@@ -4016,6 +4087,9 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
 
 #endif /* FEATURE_WLAN_EXTSCAN */
 
+VOS_STATUS sme_set_beacon_filter(uint32_t vdev_id, uint32_t *ie_map);
+VOS_STATUS sme_unset_beacon_filter(uint32_t vdev_id);
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /* ---------------------------------------------------------------------------
     \fn sme_abortRoamScan
@@ -4335,6 +4409,8 @@ sme_set_tsf_gpio(tHalHandle hHal, uint32_t pinvalue)
 #endif
 
 bool smeNeighborMiddleOfRoaming(tHalHandle hHal, tANI_U8 sessionId);
+eHalStatus sme_register_mgmt_frame_ind_callback(tHalHandle hal,
+      sir_mgmt_frame_ind_callback callback);
 
 eHalStatus sme_update_nss(tHalHandle h_hal, uint8_t nss);
 void sme_enable_phy_error_logs(tHalHandle hal, bool enable_log);
@@ -4356,6 +4432,7 @@ void sme_set_pdev_ht_vht_ies(tHalHandle hHal, bool enable2x2);
 
 void sme_update_vdev_type_nss(tHalHandle hal, uint8_t max_supp_nss,
 		uint32_t vdev_type_nss, eCsrBand band);
+void sme_update_user_configured_nss(tHalHandle hal, uint8_t nss);
 void sme_set_vdev_nss(tHalHandle hal, bool enable2x2);
 void sme_set_per_band_chainmask_supp(tHalHandle hal, bool val);
 void sme_set_lte_coex_supp(tHalHandle hal, bool val);
@@ -4393,4 +4470,20 @@ eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
 eHalStatus sme_roam_set_default_key_index(tHalHandle hal, uint8_t session_id,
 					uint8_t default_idx);
 
+eHalStatus sme_set_smps_force_mode_cb(tHalHandle hal,
+		void (*cb)(void *, struct sir_smps_force_mode_event *));
+
+eHalStatus sme_update_mimo_power_save(tHalHandle hHal,
+				      uint8_t is_ht_smps_enabled,
+				      uint8_t ht_smps_mode);
+
+bool sme_is_sta_smps_allowed(tHalHandle hHal, uint8_t session_id);
+
+void sme_update_fine_time_measurement_capab(tHalHandle hal, uint32_t val);
+
+eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id);
+
+VOS_STATUS sme_is_session_valid(tHalHandle hal_handle, uint8_t session_id);
+eHalStatus sme_register_p2p_ack_ind_callback(tHalHandle hal,
+					sir_p2p_ack_ind_callback callback);
 #endif //#if !defined( __SME_API_H )
