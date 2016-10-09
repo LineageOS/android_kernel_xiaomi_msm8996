@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -520,6 +520,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         "and setting NULL"));
         vos_mem_free(psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
+        psessionEntry->assocRspLen = 0;
     }
 
     psessionEntry->assocRsp = vos_mem_malloc(frameLen);
@@ -539,6 +540,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     {
         vos_mem_free(psessionEntry->ricData);
         psessionEntry->ricData = NULL;
+        psessionEntry->RICDataLen = 0;
     }
     if(pAssocRsp->ricPresent) {
         psessionEntry->RICDataLen =
@@ -584,6 +586,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     {
         vos_mem_free(psessionEntry->tspecIes);
         psessionEntry->tspecIes = NULL;
+        psessionEntry->tspecLen = 0;
     }
     if(pAssocRsp->tspecPresent) {
         limLog(pMac, LOG1, FL("Tspec EID present in assoc rsp"));
@@ -656,8 +659,15 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 
     if (pAssocRsp->statusCode != eSIR_MAC_SUCCESS_STATUS
 #ifdef WLAN_FEATURE_11W
+       /*
+        * Consider eSIR_MAC_TRY_AGAIN_LATER as failure in re-assoc
+        * case as waiting for come back time and retrying reassociation
+        * again will increase roam time. Its better to allow supplicant
+        * to select new candiadte
+        */
       && (!psessionEntry->limRmfEnabled ||
-          pAssocRsp->statusCode != eSIR_MAC_TRY_AGAIN_LATER)
+          pAssocRsp->statusCode != eSIR_MAC_TRY_AGAIN_LATER ||
+          (subType == LIM_REASSOC))
 #endif /* WLAN_FEATURE_11W */
       )
     {
@@ -727,11 +737,29 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
                                 timeout_value)) {
                 PELOGE(limLog(pMac, LOGE,
                        FL("Failed to start comeback timer."));)
+
+                mlmAssocCnf.resultCode = eSIR_SME_ASSOC_REFUSED;
+                mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+
+                /* Delete Pre-auth context for the associated BSS */
+                if (limSearchPreAuthList(pMac, pHdr->sa))
+                    limDeletePreAuthNode(pMac, pHdr->sa);
+
+                goto assocReject;
             }
         } else {
             PELOGE(limLog(pMac, LOG1,
                    FL("ASSOC response with eSIR_MAC_TRY_AGAIN_LATER recvd."
                       "But try again time interval IE is wrong."));)
+
+            mlmAssocCnf.resultCode = eSIR_SME_ASSOC_REFUSED;
+            mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+
+            /* Delete Pre-auth context for the associated BSS */
+            if (limSearchPreAuthList(pMac, pHdr->sa))
+                limDeletePreAuthNode(pMac, pHdr->sa);
+
+            goto assocReject;
         }
         /* callback will send Assoc again */
         /* DO NOT send ASSOC CNF to MLM state machine */

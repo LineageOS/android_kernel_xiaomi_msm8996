@@ -50,8 +50,6 @@ static tANI_U32  __gCfgIBufMax[CFG_STA_IBUF_MAX_SIZE]          ;
 static tANI_U32  __gCfgIBuf[CFG_STA_IBUF_MAX_SIZE]             ;
 static tANI_U8   __gCfgSBuf[CFG_STA_SBUF_MAX_SIZE]             ;
 static tANI_U8   __gSBuffer[CFG_MAX_STR_LEN]                   ;
-static tANI_U32  __gParamList[WNI_CFG_MAX_PARAM_NUM +
-                              WNI_CFG_GET_PER_STA_STAT_RSP_NUM];
 
 static void Notify(tpAniSirGlobal, tANI_U16, tANI_U32);
 
@@ -142,7 +140,6 @@ tSirRetStatus cfgInit(tpAniSirGlobal pMac)
     pMac->cfg.gCfgSBuf     = __gCfgSBuf;
     pMac->cfg.gSBuffer     = __gSBuffer;
     pMac->cfg.gCfgEntry    = __gCfgEntry;
-    pMac->cfg.gParamList   = __gParamList;
 
     for (i = 0; i < CFG_PARAM_MAX_NUM; i++) {
         if (!(cfg_static[i].control & CFG_CTL_INT))
@@ -163,7 +160,6 @@ void cfgDeInit(tpAniSirGlobal pMac)
    pMac->cfg.gCfgSBuf     = NULL;
    pMac->cfg.gSBuffer     = NULL;
    pMac->cfg.gCfgEntry    = NULL;
-   pMac->cfg.gParamList   = NULL;
 }
 
 // ---------------------------------------------------------------------
@@ -977,7 +973,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 #if defined WLAN_FEATURE_VOWIFI
     pCapInfo->rrm = pMac->rrm.rrmSmeContext.rrmConfig.rrm_enabled;
 #if defined WLAN_VOWIFI_DEBUG
-    cfgLog( pMac, LOGE, "RRM = %d", pCapInfo->rrm);
+    cfgLog( pMac, LOG1, "RRM = %d", pCapInfo->rrm);
 #endif
 #endif
 

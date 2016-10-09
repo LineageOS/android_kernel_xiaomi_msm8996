@@ -550,6 +550,7 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
     HTC_PACKET          *pPacket = NULL;
     u_int16_t           payloadLen;
     HTC_FRAME_HDR       *pHtcHdr;
+    bool                is_tx_runtime_put = false;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("+HTCIssuePackets: Queue: %p, Pkts %d \n",
                     pPktQueue, HTC_PACKET_QUEUE_DEPTH(pPktQueue)));
@@ -622,6 +623,9 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
         pEndpoint->ul_outstanding_cnt++;
         UNLOCK_HTC_TX(target);
 
+        if (pPacket->PktInfo.AsTx.Tag == HTC_TX_PACKET_TAG_RUNTIME_PUT)
+            is_tx_runtime_put = true;
+
         status = HIFSend_head(target->hif_dev,
                               pEndpoint->UL_PipeID, pEndpoint->Id,
                               HTC_HDR_LENGTH + pPacket->ActualLength,
@@ -664,25 +668,18 @@ static A_STATUS HTCIssuePackets(HTC_TARGET       *target,
          * with HTC_TX_PACKET_TAG_RUNTIME_PUT releases the count after the
          * packet sent is successful
          */
-        if (pPacket->PktInfo.AsTx.Tag == HTC_TX_PACKET_TAG_RUNTIME_PUT)
-                hif_pm_runtime_put(target->hif_dev);
-    }
-
-    if (adf_os_unlikely(A_FAILED(status))) {
-        while (!HTC_QUEUE_EMPTY(pPktQueue)) {
-            if (status != A_NO_RESOURCE) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HTCIssuePackets, failed pkt:0x%p status:%d \n",pPacket,status));
-            }
-            pPacket = HTC_PACKET_DEQUEUE(pPktQueue);
-            if (pPacket) {
-               pPacket->Status = status;
-               hif_pm_runtime_put(target->hif_dev);
-               SendPacketCompletion(target,pPacket);
-            }
+        if (is_tx_runtime_put) {
+            is_tx_runtime_put = false;
+            hif_pm_runtime_put(target->hif_dev);
         }
     }
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("-HTCIssuePackets \n"));
+    if (adf_os_unlikely(A_FAILED(status)))
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+            ("htc_issue_packets, failed pkt:0x%p status:%d",
+            pPacket, status));
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_SEND, ("-HTCIssuePackets\n"));
 
     return status;
 }
@@ -1127,7 +1124,16 @@ static HTC_SEND_QUEUE_RESULT HTCTrySend(HTC_TARGET       *target,
         UNLOCK_HTC_TX(target);
 
             /* send what we can */
-        HTCIssuePackets(target,pEndpoint,&sendQueue);
+        result = HTCIssuePackets(target, pEndpoint, &sendQueue);
+        if (result) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+               ("htc_issue_packets, failed status:%d put it back to head of callers SendQueue",
+               result));
+            HTC_PACKET_QUEUE_TRANSFER_TO_HEAD(&pEndpoint->TxQueue,
+                             &sendQueue);
+            LOCK_HTC_TX(target);
+            break;
+        }
 
         if (!IS_TX_CREDIT_FLOW_ENABLED(pEndpoint)) {
             tx_resources = HIFGetFreeQueueNumber(target->hif_dev,pEndpoint->UL_PipeID);

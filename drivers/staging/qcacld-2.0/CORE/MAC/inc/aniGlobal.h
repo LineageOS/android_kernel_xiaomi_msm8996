@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -288,6 +288,13 @@ enum wifi_logging_ring_id {
 	RIND_ID_DRIVER_DEBUG,
 	RING_ID_FIRMWARE_DEBUG,
 };
+
+/* vendor element ID */
+#define IE_EID_VENDOR        (221) /* 0xDD */
+#define IE_LEN_SIZE          (1)
+#define IE_EID_SIZE          (1)
+/* Minimum size of vendor IE = 3 bytes of oui_data + 1 byte of data */
+#define IE_VENDOR_OUI_SIZE   (4)
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -980,6 +987,7 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tSirRemainOnChnReq  *gpLimRemainOnChanReq; //hold remain on chan request in this buf
     vos_list_t  gLimMgmtFrameRegistratinQueue;
     tANI_U32    mgmtFrameSessionId;
+    uint32_t tdls_frm_session_id;
     tSirBackgroundScanMode gLimBackgroundScanMode;
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
@@ -1116,6 +1124,7 @@ typedef struct sMacOpenParameters
     bool is_nan_enabled;
 #endif
     uint16_t  max_mgmt_tx_fail_count;
+    bool force_target_assert_enabled;
 } tMacOpenParameters;
 
 typedef struct sHalMacStartParameters
@@ -1248,9 +1257,12 @@ typedef struct sAniSirGlobal
     bool per_band_chainmask_supp;
     struct vdev_type_nss vdev_type_nss_2g;
     struct vdev_type_nss vdev_type_nss_5g;
+    uint8_t user_configured_nss;
     t_auth_ack_status auth_ack_status;
     bool first_scan_done;
     int8_t first_scan_bucket_threshold;
+    sir_mgmt_frame_ind_callback mgmt_frame_ind_cb;
+    sir_p2p_ack_ind_callback p2p_ack_ind_cb;
 } tAniSirGlobal;
 
 typedef enum

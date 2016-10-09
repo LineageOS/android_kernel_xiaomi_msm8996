@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -126,8 +126,9 @@
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  15000
 #define WLAN_WAIT_TIME_ABORTSCAN  2000
 #define WLAN_WAIT_TIME_EXTSCAN  1000
-#define WLAN_WAIT_TIME_LL_STATS 5000
+#define WLAN_WAIT_TIME_LL_STATS 800
 
+#define WLAN_WAIT_SMPS_FORCE_MODE  500
 
 /** Maximum time(ms) to wait for mc thread suspend **/
 #define WLAN_WAIT_TIME_MCTHREAD_SUSPEND  1200
@@ -230,6 +231,9 @@
 
 #define HDD_MAC_ADDR_LEN    6
 #define HDD_SESSION_ID_ANY  50 //This should be same as CSR_SESSION_ID_ANY
+/* This should be same as CSR_ROAM_SESSION_MAX */
+#define HDD_SESSION_MAX  5
+
 
 #define HDD_MIN_TX_POWER (-100) // minimum tx power
 #define HDD_MAX_TX_POWER (+100)  // maximum tx power
@@ -706,6 +710,8 @@ struct hdd_station_ctx
 
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
+   tSirPeerInfoRspParams ibss_peer_info;
+
    v_BOOL_t hdd_ReassocScenario;
 
    /* STA ctx debug variables */
@@ -950,6 +956,10 @@ struct hdd_adapter_s
    /* Completion variable for session open */
    struct completion session_open_comp_var;
 
+   /* Completion variable for smps force mode command */
+   struct completion smps_force_mode_comp_var;
+   int8_t smps_force_mode_status;
+
    //TODO: move these to sta ctx. These may not be used in AP
    /** completion variable for disconnect callback */
    struct completion disconnect_comp_var;
@@ -980,6 +990,8 @@ struct hdd_adapter_s
    struct completion tdls_link_establish_req_comp;
    eHalStatus tdlsAddStaStatus;
 #endif
+
+   struct completion ibss_peer_info_comp;
 
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
@@ -1230,6 +1242,36 @@ typedef struct
 
 }fw_log_info;
 
+/**
+ * enum antenna_mode - number of TX/RX chains
+ * @HDD_ANTENNA_MODE_INVALID: Invalid mode place holder
+ * @HDD_ANTENNA_MODE_1X1: Number of TX/RX chains equals 1
+ * @HDD_ANTENNA_MODE_2X2: Number of TX/RX chains equals 2
+ * @HDD_ANTENNA_MODE_MAX: Place holder for max mode
+ */
+enum antenna_mode {
+	HDD_ANTENNA_MODE_INVALID,
+	HDD_ANTENNA_MODE_1X1,
+	HDD_ANTENNA_MODE_2X2,
+	HDD_ANTENNA_MODE_MAX
+};
+
+/**
+ * enum smps_mode - SM power save mode
+ * @HDD_SMPS_MODE_STATIC: Static power save
+ * @HDD_SMPS_MODE_DYNAMIC: Dynamic power save
+ * @HDD_SMPS_MODE_RESERVED: Reserved
+ * @HDD_SMPS_MODE_DISABLED: Disable power save
+ * @HDD_SMPS_MODE_MAX: Place holder for max mode
+ */
+enum smps_mode {
+	HDD_SMPS_MODE_STATIC,
+	HDD_SMPS_MODE_DYNAMIC,
+	HDD_SMPS_MODE_RESERVED,
+	HDD_SMPS_MODE_DISABLED,
+	HDD_SMPS_MODE_MAX
+};
+
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
  * struct hdd_ext_scan_context - hdd ext scan context
@@ -1442,6 +1484,10 @@ struct hdd_context_s
     tANI_U8      tdls_off_channel;
     tANI_U16     tdls_channel_offset;
     int32_t      tdls_fw_off_chan_mode;
+    bool         tdls_nss_switch_in_progress;
+    bool         tdls_nss_teardown_complete;
+    int32_t      tdls_nss_transition_mode;
+    int32_t      tdls_teardown_peers_cnt;
 #endif
 
 #ifdef IPA_OFFLOAD
@@ -1595,6 +1641,7 @@ struct hdd_context_s
     vos_timer_t memdump_cleanup_timer;
     struct mutex memdump_lock;
     bool memdump_in_progress;
+    bool memdump_init_done;
 #endif /* WLAN_FEATURE_MEMDUMP */
 
     /* number of rf chains supported by target */
@@ -1617,6 +1664,16 @@ struct hdd_context_s
     uint16_t hdd_txrx_hist_idx;
     struct hdd_tx_rx_histogram *hdd_txrx_hist;
     struct hdd_runtime_pm_context runtime_context;
+    bool hbw_requested;
+    uint8_t supp_2g_chain_mask;
+    uint8_t supp_5g_chain_mask;
+    /* Current number of TX X RX chains being used */
+    enum antenna_mode current_antenna_mode;
+    /*
+     * place to store FTM capab of target. This allows changing of FTM capab
+     * at runtime and intersecting it with target capab before updating.
+     */
+    uint32_t fine_time_meas_cap_target;
 };
 
 /*---------------------------------------------------------------------------
@@ -1692,6 +1749,7 @@ void wlan_hdd_incr_active_session(hdd_context_t *pHddCtx,
                                   tVOS_CON_MODE mode);
 void wlan_hdd_decr_active_session(hdd_context_t *pHddCtx,
                                   tVOS_CON_MODE mode);
+uint8_t wlan_hdd_get_active_session_count(hdd_context_t *pHddCtx);
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 void hdd_prevent_suspend(uint32_t reason);
 void hdd_allow_suspend(uint32_t reason);
@@ -1721,6 +1779,7 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 s
 void hdd_ipv6_notifier_work_queue(struct work_struct *work);
 #endif
 
+v_MACADDR_t* hdd_wlan_get_ibss_mac_addr_from_staid(hdd_adapter_t *pAdapter, v_U8_t staIdx);
 
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 
@@ -1890,9 +1949,9 @@ wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
 #endif
 
 void hdd_connect_result(struct net_device *dev, const u8 *bssid,
-			const u8 *req_ie, size_t req_ie_len,
-			const u8 * resp_ie, size_t resp_ie_len,
-			u16 status, gfp_t gfp);
+			tCsrRoamInfo *roam_info, const u8 *req_ie,
+			size_t req_ie_len, const u8 * resp_ie,
+			size_t resp_ie_len, u16 status, gfp_t gfp);
 
 int wlan_hdd_init_tx_rx_histogram(hdd_context_t *pHddCtx);
 void wlan_hdd_deinit_tx_rx_histogram(hdd_context_t *pHddCtx);
@@ -1901,4 +1960,14 @@ void wlan_hdd_clear_tx_rx_histogram(hdd_context_t *pHddCtx);
 
 void hdd_runtime_suspend_init(hdd_context_t *);
 void hdd_runtime_suspend_deinit(hdd_context_t *);
+void hdd_indicate_mgmt_frame(tSirSmeMgmtFrameInd *frame_ind);
+hdd_adapter_t *hdd_get_adapter_by_sme_session_id(hdd_context_t *hdd_ctx,
+						uint32_t sme_session_id);
+
+int wlan_hdd_update_txrx_chain_mask(hdd_context_t *hdd_ctx,
+				    uint8_t chain_mask);
+void
+hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData,
+                                    tSirPeerInfoRspParams *pPeerInfo);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
