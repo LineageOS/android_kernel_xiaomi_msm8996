@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -80,7 +80,7 @@
 #define MAX_REG_READ_RETRIES 10
 
 unsigned int msienable = 0;
-module_param(msienable, int, 0644);
+module_param(msienable, int, S_IRUSR | S_IRGRP | S_IROTH);
 
 int hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl);
 void hif_nointrs(struct hif_pci_softc *sc);
@@ -134,8 +134,14 @@ static struct pci_device_id hif_pci_id_table[] = {
 /* HIF IRQ History */
 typedef enum {
 	HIF_IRQ,
+	HIF_IRQ_END,
 	HIF_TASKLET,
+	HIF_TASKLET_END,
 	HIF_CRASH,
+	HIF_SUSPEND_START,
+	HIF_SUSPEND_AFTER_WOW,
+	HIF_SUSPEND_END,
+	HIF_RESUME,
 } hif_irq_type;
 
 #ifdef CONFIG_SLUB_DEBUG_ON
@@ -144,6 +150,9 @@ typedef struct {
 	A_UINT64 time;
 	A_UINT32 irq_summary;
 	A_UINT32 fw_indicator;
+	A_UINT32 irq_enable;
+	A_UINT32 irq_cause;
+	A_UINT32 irq_clear;
 } hif_irq_history;
 
 #define HIF_IRQ_HISTORY_MAX 1024
@@ -158,15 +167,31 @@ void hif_irq_record(hif_irq_type type, struct hif_pci_softc *sc)
 	if (HIF_IRQ_HISTORY_MAX <= g_hif_irq_history_idx)
 		g_hif_irq_history_idx = 0;
 
-	hif_irq_history_buffer[g_hif_irq_history_idx].type = type;
-	hif_irq_history_buffer[g_hif_irq_history_idx].time = adf_get_boottime();
+	if (HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE) < 0) {
+		adf_os_mem_zero(&hif_irq_history_buffer[g_hif_irq_history_idx],
+				sizeof(hif_irq_history));
+		goto out;
+	}
 
-	HIFTargetSleepStateAdjust(hif_state->targid, FALSE, TRUE);
 	hif_irq_history_buffer[g_hif_irq_history_idx].irq_summary =
 			CE_INTERRUPT_SUMMARY(targid);
 	hif_irq_history_buffer[g_hif_irq_history_idx].fw_indicator =
 			A_TARGET_READ(targid, hif_state->fw_indicator_address);
+	hif_irq_history_buffer[g_hif_irq_history_idx].irq_enable =
+			A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+				PCIE_INTR_ENABLE_ADDRESS);
+	hif_irq_history_buffer[g_hif_irq_history_idx].irq_cause =
+			A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+				PCIE_INTR_CAUSE_ADDRESS);
+	hif_irq_history_buffer[g_hif_irq_history_idx].irq_clear =
+			A_PCI_READ32(sc->mem + SOC_CORE_BASE_ADDRESS +
+				PCIE_INTR_CLR_ADDRESS);
+
 	HIFTargetSleepStateAdjust(hif_state->targid, TRUE, FALSE);
+
+out:
+	hif_irq_history_buffer[g_hif_irq_history_idx].type = type;
+	hif_irq_history_buffer[g_hif_irq_history_idx].time = adf_get_boottime();
 
 	g_hif_irq_history_idx++;
 }
@@ -239,6 +264,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
     tasklet_schedule(&sc->intr_tq);
 
     if (sc->hif_init_done == TRUE) {
+        hif_irq_record(HIF_IRQ_END, sc);
         adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
     }
     return IRQ_HANDLED;
@@ -816,8 +842,10 @@ irq_handled:
         }
     }
 
-    if (hif_init_done == TRUE)
+    if (hif_init_done == TRUE) {
+        hif_irq_record(HIF_TASKLET_END, sc);
         adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+    }
 
     adf_os_atomic_set(&sc->ce_suspend, 1);
 }
@@ -2415,6 +2443,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     void __iomem *mem;
     struct hif_pci_softc *sc;
     struct ol_softc *scn;
+    struct HIF_CE_state *hif_state;
 
     sc = pci_get_drvdata(pdev);
     /* Attach did not succeed, all resources have been
@@ -2423,19 +2452,26 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     if (!sc)
         return;
 
+    hif_state = (struct HIF_CE_state *)sc->hif_device;
+
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
         printk("Load/unload in progress, ignore SSR shutdown\n");
         return;
     }
     /* this is for cases, where shutdown invoked from CNSS */
     vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
+    vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
     if (!vos_is_ssr_ready(__func__))
         pr_info("Host driver is not ready for SSR, attempting anyway\n");
 
-    hif_pci_device_reset(sc);
-
     scn = sc->ol_sc;
+
+    hif_disable_isr(scn);
+    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+    if (!adf_os_atomic_read(&sc->pci_link_suspended))
+        hif_pci_device_reset(sc);
+    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
 
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE &&
@@ -2447,10 +2483,8 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     hif_dump_pipe_debug_count(sc->hif_device);
 
-    if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam())) {
-        hif_disable_isr(scn);
+    if (!WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
         hdd_wlan_shutdown();
-    }
 
     mem = (void __iomem *)sc->mem;
 
@@ -2466,67 +2500,121 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     pci_release_region(pdev, BAR_NUM);
     pci_clear_master(pdev);
     pci_disable_device(pdev);
+    vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, FALSE);
 
     printk("%s: WLAN host driver shutting down completed!\n", __func__);
 }
 
+#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
+#ifdef FEATURE_RUNTIME_PM
+static bool is_hif_runtime_active(struct hif_pci_softc *sc)
+{
+	int pm_state = adf_os_atomic_read(&sc->pm_state);
+
+	if (pm_state  == HIF_PM_RUNTIME_STATE_ON ||
+	    pm_state == HIF_PM_RUNTIME_STATE_NONE)
+		return true;
+
+	return false;
+}
+#else /* ELSE FEATURE_RUNTIME_PM */
+static bool is_hif_runtime_active(struct hif_pci_softc *sc)
+{
+	return true;
+}
+#endif /* END FEATURE_RUNTIME_PM */
+
+#ifdef WLAN_DEBUG
+static void hif_dump_soc_and_ce_registers(struct hif_pci_softc *sc)
+{
+	int ret;
+	struct ol_softc *scn = sc->ol_sc;
+
+	ret = hif_pci_check_soc_status(sc);
+
+	if (ret) {
+		pr_err("%s: SOC wakeup Failed\n", __func__);
+		return;
+	}
+
+	ret = dump_CE_register(scn);
+
+	if (ret) {
+		pr_err("%s: Failed to dump Copy Engine Registers\n", __func__);
+		return;
+	}
+
+	dump_CE_debug_register(sc);
+}
+#else
+static void hif_dump_soc_and_ce_registers(struct hif_pci_softc *sc)
+{
+}
+#endif
+
+static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
+{
+	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
+	struct ol_softc *scn = sc->ol_sc;
+	int ret;
+
+	if (!hif_state)
+		return;
+
+	adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
+	hif_irq_record(HIF_CRASH, sc);
+	hif_dump_soc_and_ce_registers(sc);
+
+	ret = ol_copy_ramdump(scn);
+
+	if (ret) {
+		pr_err("%s: Failed to Copy Target Memory to Host DDR\n",
+		       __func__);
+		goto out;
+	}
+
+	pr_info("%s: RAM dump collecting completed!\n", __func__);
+out:
+	adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
+}
+
 void hif_pci_crash_shutdown(struct pci_dev *pdev)
 {
-#ifdef TARGET_RAMDUMP_AFTER_KERNEL_PANIC
-    struct hif_pci_softc *sc;
-    struct ol_softc *scn;
-    struct HIF_CE_state *hif_state;
+	struct hif_pci_softc *sc;
+	struct ol_softc *scn;
 
-    sc = pci_get_drvdata(pdev);
-    if (!sc)
-        return;
+	sc = pci_get_drvdata(pdev);
+	if (!sc)
+		return;
 
-    hif_state = (struct HIF_CE_state *)sc->hif_device;
-    if (!hif_state)
-        return;
+	scn = sc->ol_sc;
+	if (!scn)
+		return;
 
-    scn = sc->ol_sc;
-    if (!scn)
-        return;
+	if (OL_TRGET_STATUS_RESET == scn->target_status) {
+		pr_info("%s: Target is already asserted, ignore!\n", __func__);
+		return;
+	}
 
-    if (OL_TRGET_STATUS_RESET == scn->target_status) {
-        printk("%s: Target is already asserted, ignore!\n", __func__);
-        return;
-    }
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+		pr_info("%s: Target is already asserted, ignore!\n", __func__);
+		return;
+	}
 
-    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
-        pr_info("%s: Load/unload is in progress, ignore!\n", __func__);
-        return;
-    }
+	if (is_hif_runtime_active(sc))
+		hif_dump_crash_debug_info(sc);
+	else
+		pr_info("%s: Runtime Suspended; Ramdump Collection disabled\n",
+			__func__);
 
-    adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
-
-    hif_irq_record(HIF_CRASH, sc);
-
-#ifdef DEBUG
-    if (hif_pci_check_soc_status(scn->hif_sc)
-        || dump_CE_register(scn)) {
-        goto out;
-    }
-
-    dump_CE_debug_register(scn->hif_sc);
-#endif
-
-    if (ol_copy_ramdump(scn)) {
-        goto out;
-    }
-
-    printk("%s: RAM dump collecting completed!\n", __func__);
-
-out:
-    adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
-    return;
-#else
-    printk("%s: Collecting target RAM dump after kernel panic is disabled!\n",
-           __func__);
-    return;
-#endif
+	pr_info("%s: Crash Shutdown Complete\n", __func__);
 }
+#else /* TARGET_RAMDUMP_AFTER_KERNEL_PANIC */
+void hif_pci_crash_shutdown(struct pci_dev *pdev)
+{
+	pr_info("%s: QCA Ramdump Collected Disabled!\n", __func__);
+}
+#endif
 #endif
 
 #define OL_ATH_PCI_PM_CONTROL 0x44
@@ -2545,6 +2633,8 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
     v_VOID_t * temp_module;
     u32 tmp;
     int ret = -EBUSY;
+
+    hif_irq_record(HIF_SUSPEND_START, sc);
 
     if (vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL))
         return ret;
@@ -2605,6 +2695,8 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         msleep(10);
     }
 
+    hif_irq_record(HIF_SUSPEND_AFTER_WOW, sc);
+
 #ifdef FEATURE_WLAN_D0WOW
     if (wma_get_client_count(temp_module)) {
         if (enable_irq_wake(pdev->irq)) {
@@ -2635,6 +2727,8 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
          printk(KERN_ERR "%s: PCIe pcie link is down\n", __func__);
          VOS_ASSERT(0);
     }
+
+    hif_irq_record(HIF_SUSPEND_END, sc);
 
     if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0) {
         adf_os_spin_unlock_irqrestore(&hif_state->suspend_lock);
@@ -2737,6 +2831,9 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
         A_MDELAY(1);
         retry++;
     }
+
+    hif_irq_record(HIF_RESUME, sc);
+
     if (HIFTargetSleepStateAdjust(targid, TRUE, FALSE) < 0)
         goto out;
 

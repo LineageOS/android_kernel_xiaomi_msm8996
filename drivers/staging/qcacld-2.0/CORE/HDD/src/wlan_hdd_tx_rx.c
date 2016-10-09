@@ -853,7 +853,7 @@ void hdd_tx_resume_cb(void *adapter_context,
   @return         : NET_XMIT_DROP if packets are dropped
                   : NET_XMIT_SUCCESS if packet is enqueued successfully
   ===========================================================================*/
-int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    VOS_STATUS status;
    WLANTL_ACEnumType ac;
@@ -1071,6 +1071,16 @@ drop_pkt:
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
    kfree_skb(skb);
    return NETDEV_TX_OK;
+}
+
+int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __hdd_hard_start_xmit(skb, dev);
+	vos_ssr_unprotect(__func__);
+	return ret;
 }
 
 /**============================================================================

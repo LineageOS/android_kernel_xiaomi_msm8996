@@ -418,9 +418,13 @@ typedef struct _VosContextType
    v_VOID_t    *cfg_ctx;
 
    volatile v_U8_t    isLoadUnloadInProgress;
+   volatile v_U8_t    is_unload_in_progress;
 
    /* SSR re-init in progress */
    volatile v_U8_t     isReInitInProgress;
+
+   /* SSR shutdown in progress */
+   v_U8_t     is_shutdown_in_progress;
 
    bool is_wakelock_log_enabled;
    uint32_t wakelock_log_level;
@@ -650,6 +654,7 @@ VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext );
 VOS_STATUS vos_mq_init(pVosMqType pMq);
 void vos_mq_deinit(pVosMqType pMq);
 void vos_mq_put(pVosMqType pMq, pVosMsgWrapper pMsgWrapper);
+void vos_mq_put_front(pVosMqType mq, pVosMsgWrapper msg_wrapper);
 pVosMsgWrapper vos_mq_get(pVosMqType pMq);
 v_BOOL_t vos_is_mq_empty(pVosMqType pMq);
 pVosSchedContext get_vos_sched_ctxt(void);

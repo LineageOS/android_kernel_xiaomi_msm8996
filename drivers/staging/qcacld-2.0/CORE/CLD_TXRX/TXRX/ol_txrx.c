@@ -1689,17 +1689,18 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
         /* check whether the parent vdev has no peers left */
         if (TAILQ_EMPTY(&vdev->peer_list)) {
             /*
-             * Now that there are no references to the peer, we can
-             * release the peer reference lock.
-             */
-            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
-            /*
              * Check if the parent vdev was waiting for its peers to be
              * deleted, in order for it to be deleted too.
              */
-            if (vdev->delete.pending) {
+            if (vdev->delete.pending == 1) {
                 ol_txrx_vdev_delete_cb vdev_delete_cb = vdev->delete.callback;
                 void *vdev_delete_context = vdev->delete.context;
+
+                /*
+                 * Now that there are no references to the peer, we can
+                 * release the peer reference lock.
+                 */
+                adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
 
                 TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
                     "%s: deleting vdev object %p "
@@ -1714,6 +1715,8 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
                 if (vdev_delete_cb) {
                     vdev_delete_cb(vdev_delete_context);
                 }
+            } else {
+                adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
             }
         } else {
             adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
@@ -2237,12 +2240,14 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
  * *
  * to update the stats
  *
- * Return: None
+ * Return: VOS_STATUS
  */
-void
+VOS_STATUS
 ol_txrx_stats(ol_txrx_vdev_handle vdev, char *buffer, unsigned buf_len)
 {
-	snprintf(buffer, buf_len,
+	int ret;
+
+	ret = snprintf(buffer, buf_len,
 		"\nTXRX stats:\n"
 		"\nllQueue State : %s"
 		"\n pause %u unpause %u"
@@ -2254,6 +2259,12 @@ ol_txrx_stats(ol_txrx_vdev_handle vdev, char *buffer, unsigned buf_len)
 		vdev->ll_pause.q_overflow_cnt,
 		((vdev->ll_pause.is_q_timer_on == FALSE)
 			? "NOT-RUNNING" : "RUNNING"));
+	if (ret >= buf_len) {
+		VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+			"Insufficient buffer:%d, %d", buf_len, ret);
+		return VOS_STATUS_E_NOMEM;
+	}
+	return VOS_STATUS_SUCCESS;
 }
 
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF

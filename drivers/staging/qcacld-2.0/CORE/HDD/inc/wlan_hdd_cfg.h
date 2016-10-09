@@ -587,6 +587,24 @@ enum
 #define CFG_REST_TIME_CONC_MAX                      ( 10000 )
 #define CFG_REST_TIME_CONC_DEFAULT                  ( 100 )
 
+/* Mininum time spent on home channel before moving to a new channel to scan */
+#define CFG_MIN_REST_TIME_NAME                      "gMinRestTimeConc"
+#define CFG_MIN_REST_TIME_MIN                       ( 0 )
+#define CFG_MIN_REST_TIME_MAX                       ( 50 )
+#define CFG_MIN_REST_TIME_DEFAULT                   ( 50 )
+
+/* Data inactivity time in msec on bss channel that will be used
+ * by scan engine in firmware.
+ * for example if this value is 25ms then firmware will check for
+ * data inactivity every 25ms till gRestTimeConc is reached.
+ * If inactive then scan engine will move from home channel to
+ * scan the next frequency.
+ */
+#define CFG_IDLE_TIME_NAME                          "gIdleTimeConc"
+#define CFG_IDLE_TIME_MIN                           ( 0 )
+#define CFG_IDLE_TIME_MAX                           ( 25 )
+#define CFG_IDLE_TIME_DEFAULT                       ( 25 )
+
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_NAME             "gNumStaChanCombinedConc"
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_MIN              ( 1 )
 #define CFG_NUM_STA_CHAN_COMBINED_CONC_MAX              ( 255 )
@@ -1076,8 +1094,13 @@ enum
 #define CFG_ROAM_RESCAN_RSSI_DIFF_MAX                   (100)
 #define CFG_ROAM_RESCAN_RSSI_DIFF_DEFAULT               (5)
 
+/*
+ * This parameter is the continuous packets dropping threshold that will trigger
+ * kickout peer event from fw.
+ * MIN value will disable the kickout feature.
+ */
 #define CFG_DROPPED_PKT_DISCONNECT_TH_NAME      "gDroppedPktDisconnectTh"
-#define CFG_DROPPED_PKT_DISCONNECT_TH_MIN       (48)
+#define CFG_DROPPED_PKT_DISCONNECT_TH_MIN       (0)
 #define CFG_DROPPED_PKT_DISCONNECT_TH_MAX       (1024)
 #define CFG_DROPPED_PKT_DISCONNECT_TH_DEFAULT   (512)
 
@@ -1510,12 +1533,35 @@ typedef enum
 #define CFG_ENABLE_FW_MODULE_LOG_LEVEL    "gFwDebugModuleLoglevel"
 #define CFG_ENABLE_FW_MODULE_LOG_DEFAULT  ""
 
+/* gEnableRTSProfiles for configuring different RTS profiles
+ * to firmware.
+ * Following are the valid values for the rtsprofile:
+ * RTSCTS_DISABLED                           0
+ * RTSCTS_ENABLED_4_SECOND_RATESERIES        17
+ * CTS2SELF_ENABLED_4_SECOND_RATESERIES      18
+ * RTSCTS_ENABLED_4_SWRETRIES                33
+ * CTS2SELF_ENABLED_4_SWRETRIES              34
+ */
+#define CFG_ENABLE_FW_RTS_PROFILE              "gEnableRTSProfiles"
+#define CFG_ENABLE_FW_RTS_PROFILE_MIN          (0)
+#define CFG_ENABLE_FW_RTS_PROFILE_MAX          (34)
+#define CFG_ENABLE_FW_RTS_PROFILE_DEFAULT      (33)
+
 #ifdef FEATURE_GREEN_AP
 #define CFG_ENABLE_GREEN_AP_FEATURE         "gEnableGreenAp"
 #define CFG_ENABLE_GREEN_AP_FEATURE_MIN     ( 0 )
 #define CFG_ENABLE_GREEN_AP_FEATURE_MAX     ( 1 )
 #define CFG_ENABLE_GREEN_AP_FEATURE_DEFAULT ( 1 )
 #endif
+
+/*
+ * This INI item is used to control subsystem restart(SSR) test framework
+ * Set its value to 1 to enable APPS trigerred SSR testing
+ */
+#define CFG_ENABLE_CRASH_INJECT         "gEnableForceTargetAssert"
+#define CFG_ENABLE_CRASH_INJECT_MIN     (0)
+#define CFG_ENABLE_CRASH_INJECT_MAX     (1)
+#define CFG_ENABLE_CRASH_INJECT_DEFAULT (0)
 
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
 #define CFG_SAP_SCC_CHAN_AVOIDANCE         "gSapSccChanAvoidance"
@@ -2006,12 +2052,12 @@ typedef enum
 #define CFG_TDLS_IDLE_TIMEOUT                       "gTDLSIdleTimeout"
 #define CFG_TDLS_IDLE_TIMEOUT_MIN                   (500)
 #define CFG_TDLS_IDLE_TIMEOUT_MAX                   ( 40000 )
-#define CFG_TDLS_IDLE_TIMEOUT_DEFAULT               (2000)
+#define CFG_TDLS_IDLE_TIMEOUT_DEFAULT               (5000)
 
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD              "gTDLSIdlePacketThreshold"
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN          ( 0 )
 #define CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX          ( 40000 )
-#define CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT      (1)
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT      (3)
 
 #define CFG_TDLS_RSSI_HYSTERESIS                    "gTDLSRssiHysteresis"
 #define CFG_TDLS_RSSI_HYSTERESIS_MIN                ( 0 )
@@ -2607,12 +2653,12 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_SET_TXPOWER_LIMIT2G_NAME               "TxPower2g"
 #define CFG_SET_TXPOWER_LIMIT2G_MIN                ( 0 )
 #define CFG_SET_TXPOWER_LIMIT2G_MAX                ( 30 )
-#define CFG_SET_TXPOWER_LIMIT2G_DEFAULT            ( 15 )
+#define CFG_SET_TXPOWER_LIMIT2G_DEFAULT            ( 30 )
 
 #define CFG_SET_TXPOWER_LIMIT5G_NAME               "TxPower5g"
 #define CFG_SET_TXPOWER_LIMIT5G_MIN                ( 0 )
 #define CFG_SET_TXPOWER_LIMIT5G_MAX                ( 30 )
-#define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 15 )
+#define CFG_SET_TXPOWER_LIMIT5G_DEFAULT            ( 30 )
 
 #ifdef QCA_LL_TX_FLOW_CT
 /* Default, single interface case flow control parameters */
@@ -2828,6 +2874,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IPA_UC_OFFLOAD_ENABLED_MAX             ( 1 )
 #define CFG_IPA_UC_OFFLOAD_ENABLED_DEFAULT         ( 0 )
 
+/* IpaUcTxBufCount should be power of 2 */
 #define CFG_IPA_UC_TX_BUF_COUNT_NAME               "IpaUcTxBufCount"
 #define CFG_IPA_UC_TX_BUF_COUNT_MIN                ( 0 )
 #define CFG_IPA_UC_TX_BUF_COUNT_MAX                ( 2048 )
@@ -2838,6 +2885,7 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_IPA_UC_TX_BUF_SIZE_MAX                ( 4096 )
 #define CFG_IPA_UC_TX_BUF_SIZE_DEFAULT            ( 2048 )
 
+/* IpaUcRxIndRingCount should be power of 2 */
 #define CFG_IPA_UC_RX_IND_RING_COUNT_NAME          "IpaUcRxIndRingCount"
 #define CFG_IPA_UC_RX_IND_RING_COUNT_MIN           ( 0 )
 #define CFG_IPA_UC_RX_IND_RING_COUNT_MAX           ( 2048 )
@@ -2868,9 +2916,15 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_WLAN_LOGGING_NUM_BUF_DEFAULT            ( 256 )
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
+/*
+ * Sifs burst feature configuration
+ * gEnableSifsBurst = 0 means sifs burst toally disable
+ * gEnableSifsBurst = 1 means sifs burst enabled but disabled for legacy mode
+ * gEnableSifsBurst = 3 means sifs burst enabled and also for legacy mode
+ */
 #define CFG_ENABLE_SIFS_BURST                      "gEnableSifsBurst"
 #define CFG_ENABLE_SIFS_BURST_MIN                  ( 0 )
-#define CFG_ENABLE_SIFS_BURST_MAX                  ( 1 )
+#define CFG_ENABLE_SIFS_BURST_MAX                  (3)
 #define CFG_ENABLE_SIFS_BURST_DEFAULT              ( 0 )
 
 #ifdef WLAN_FEATURE_LPSS
@@ -3344,88 +3398,20 @@ enum dot11p_mode {
 #define CFG_FIRST_SCAN_BUCKET_THRESHOLD_DEFAULT   (-30)
 
 /*
- * If gEnableEdcaParams is set to 1, params gEdcaVoCwmin,
- * gEdcaViCwmin, gEdcaBkCwmin, gEdcaBeCwmin, gEdcaVoCwmax,
- * gEdcaViCwmax, gEdcaBkCwmax, gEdcaBeCwmax, gEdcaVoAifs,
- * gEdcaViAifs, gEdcaBkAifs and gEdcaBeAifs values are used
- * to overwrite the values received from AP
+ * sap tx leakage threshold
+ * customer can set this value from 100 to 1000 which means
+ * sap tx leakage threshold is -10db to -100db
  */
-#define CFG_ENABLE_EDCA_INI_NAME       "gEnableEdcaParams"
-#define CFG_ENABLE_EDCA_INI_MIN        (0)
-#define CFG_ENABLE_EDCA_INI_MAX        (1)
-#define CFG_ENABLE_EDCA_INI_DEFAULT    (0)
+#define CFG_SAP_TX_LEAKAGE_THRESHOLD_NAME    "gsap_tx_leakage_threshold"
+#define CFG_SAP_TX_LEAKAGE_THRESHOLD_MIN     (100)
+#define CFG_SAP_TX_LEAKAGE_THRESHOLD_MAX     (1000)
+#define CFG_SAP_TX_LEAKAGE_THRESHOLD_DEFAULT (310)
 
-/* Cwmin value for EDCA_AC_VO. CWVomin = 2^gEdcaVoCwmin -1 */
-#define CFG_EDCA_VO_CWMIN_VALUE_NAME      "gEdcaVoCwmin"
-#define CFG_EDCA_VO_CWMIN_VALUE_MIN       (0x0)
-#define CFG_EDCA_VO_CWMIN_VALUE_MAX       (15)
-#define CFG_EDCA_VO_CWMIN_VALUE_DEFAULT   (2)
+#define CFG_TGT_GTX_USR_CFG_NAME      "tgt_gtx_usr_cfg"
+#define CFG_TGT_GTX_USR_CFG_MIN       (0)
+#define CFG_TGT_GTX_USR_CFG_MAX       (32)
+#define CFG_TGT_GTX_USR_CFG_DEFAULT   (32)
 
-/* Cwmin value for EDCA_AC_VI. CWVimin = 2^gEdcaViCwmin -1 */
-#define CFG_EDCA_VI_CWMIN_VALUE_NAME      "gEdcaViCwmin"
-#define CFG_EDCA_VI_CWMIN_VALUE_MIN       (0x0)
-#define CFG_EDCA_VI_CWMIN_VALUE_MAX       (15)
-#define CFG_EDCA_VI_CWMIN_VALUE_DEFAULT   (3)
-
-/* Cwmin value for EDCA_AC_BK. CWBkmin = 2^gEdcaBkCwmin -1 */
-#define CFG_EDCA_BK_CWMIN_VALUE_NAME      "gEdcaBkCwmin"
-#define CFG_EDCA_BK_CWMIN_VALUE_MIN       (0x0)
-#define CFG_EDCA_BK_CWMIN_VALUE_MAX       (15)
-#define CFG_EDCA_BK_CWMIN_VALUE_DEFAULT   (4)
-
-/* Cwmin value for EDCA_AC_BE. CWBemin = 2^gEdcaBeCwmin -1 */
-#define CFG_EDCA_BE_CWMIN_VALUE_NAME      "gEdcaBeCwmin"
-#define CFG_EDCA_BE_CWMIN_VALUE_MIN       (0x0)
-#define CFG_EDCA_BE_CWMIN_VALUE_MAX       (15)
-#define CFG_EDCA_BE_CWMIN_VALUE_DEFAULT   (4)
-
-/* Cwmax value for EDCA_AC_VO. CWVomax = 2^gEdcaVoCwmax -1 */
-#define CFG_EDCA_VO_CWMAX_VALUE_NAME      "gEdcaVoCwmax"
-#define CFG_EDCA_VO_CWMAX_VALUE_MIN       (0)
-#define CFG_EDCA_VO_CWMAX_VALUE_MAX       (15)
-#define CFG_EDCA_VO_CWMAX_VALUE_DEFAULT   (3)
-
-/* Cwmax value for EDCA_AC_VI. CWVimax = 2^gEdcaViCwmax -1 */
-#define CFG_EDCA_VI_CWMAX_VALUE_NAME      "gEdcaViCwmax"
-#define CFG_EDCA_VI_CWMAX_VALUE_MIN       (0)
-#define CFG_EDCA_VI_CWMAX_VALUE_MAX       (15)
-#define CFG_EDCA_VI_CWMAX_VALUE_DEFAULT   (4)
-
-/* Cwmax value for EDCA_AC_BK. CWBkmax = 2^gEdcaBkCwmax -1 */
-#define CFG_EDCA_BK_CWMAX_VALUE_NAME      "gEdcaBkCwmax"
-#define CFG_EDCA_BK_CWMAX_VALUE_MIN       (0)
-#define CFG_EDCA_BK_CWMAX_VALUE_MAX       (15)
-#define CFG_EDCA_BK_CWMAX_VALUE_DEFAULT   (10)
-
-/* Cwmax value for EDCA_AC_BE. CWBemax = 2^gEdcaBeCwmax -1 */
-#define CFG_EDCA_BE_CWMAX_VALUE_NAME      "gEdcaBeCwmax"
-#define CFG_EDCA_BE_CWMAX_VALUE_MIN       (0)
-#define CFG_EDCA_BE_CWMAX_VALUE_MAX       (15)
-#define CFG_EDCA_BE_CWMAX_VALUE_DEFAULT   (10)
-
-/* Aifs value for EDCA_AC_VO.*/
-#define CFG_EDCA_VO_AIFS_VALUE_NAME       "gEdcaVoAifs"
-#define CFG_EDCA_VO_AIFS_VALUE_MIN        (0)
-#define CFG_EDCA_VO_AIFS_VALUE_MAX        (15)
-#define CFG_EDCA_VO_AIFS_VALUE_DEFAULT    (2)
-
-/* Aifs value for EDCA_AC_VI.*/
-#define CFG_EDCA_VI_AIFS_VALUE_NAME       "gEdcaViAifs"
-#define CFG_EDCA_VI_AIFS_VALUE_MIN        (0)
-#define CFG_EDCA_VI_AIFS_VALUE_MAX        (15)
-#define CFG_EDCA_VI_AIFS_VALUE_DEFAULT    (2)
-
-/* Aifs value for EDCA_AC_BK.*/
-#define CFG_EDCA_BK_AIFS_VALUE_NAME       "gEdcaBkAifs"
-#define CFG_EDCA_BK_AIFS_VALUE_MIN        (0)
-#define CFG_EDCA_BK_AIFS_VALUE_MAX        (15)
-#define CFG_EDCA_BK_AIFS_VALUE_DEFAULT    (7)
-
-/* Aifs value for EDCA_AC_BE.*/
-#define CFG_EDCA_BE_AIFS_VALUE_NAME       "gEdcaBeAifs"
-#define CFG_EDCA_BE_AIFS_VALUE_MIN        (0)
-#define CFG_EDCA_BE_AIFS_VALUE_MAX        (15)
-#define CFG_EDCA_BE_AIFS_VALUE_DEFAULT    (3)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -3561,6 +3547,11 @@ typedef struct
    v_U32_t        nActiveMinChnTimeConc;     //in units of milliseconds
    v_U32_t        nActiveMaxChnTimeConc;     //in units of milliseconds
    v_U32_t        nRestTimeConc;             //in units of milliseconds
+   /* In units of milliseconds */
+   uint32_t       min_rest_time_conc;
+   /* In units of milliseconds */
+   uint32_t       idle_time_conc;
+
    v_U8_t         nNumStaChanCombinedConc;   //number of channels combined for
                                              //STA in each split scan operation
    v_U8_t         nNumP2PChanCombinedConc;   //number of channels combined for
@@ -3967,6 +3958,9 @@ typedef struct
    v_U32_t     enableFwLogLevel;
    v_U8_t      enableFwModuleLogLevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
 
+   /* RTS profile parameter */
+   uint32_t    rts_profile;
+
 #ifdef WLAN_FEATURE_11W
    v_U32_t                     pmfSaQueryMaxRetries;
    v_U32_t                     pmfSaQueryRetryInterval;
@@ -3981,6 +3975,7 @@ typedef struct
    v_BOOL_t                    enableGreenAP;
 #endif
 
+   bool                        crash_inject_enabled;
    v_S31_t                     dfsRadarPriMultiplier;
    v_U8_t                      reorderOffloadSupport;
 
@@ -4002,7 +3997,7 @@ typedef struct
    v_U32_t                     wlanLoggingNumBuf;
 #endif /* WLAN_LOGGING_SOCK_SVC_ENABLE */
 
-   v_BOOL_t                    enableSifsBurst;
+   v_U8_t                      enableSifsBurst;
 
 #ifdef WLAN_FEATURE_LPSS
    v_BOOL_t                    enablelpasssupport;
@@ -4083,7 +4078,9 @@ typedef struct
    uint8_t                     sap_p2p_11ac_override;
    uint8_t                     prefer_non_dfs_on_radar;
    uint8_t                     inform_bss_rssi_raw;
+#ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
+#endif
    uint8_t                     multicast_host_fw_msgs;
    uint32_t                    fine_time_meas_cap;
 #ifdef FEATURE_SECURE_FIRMWARE
@@ -4112,19 +4109,9 @@ typedef struct
    uint16_t                    max_mgmt_tx_fail_count;
    int8_t                      first_scan_bucket_threshold;
    uint8_t                     ht_mpdu_density;
-   bool                        enable_edca_params;
-   uint32_t                    edca_vo_cwmin;
-   uint32_t                    edca_vi_cwmin;
-   uint32_t                    edca_bk_cwmin;
-   uint32_t                    edca_be_cwmin;
-   uint32_t                    edca_vo_cwmax;
-   uint32_t                    edca_vi_cwmax;
-   uint32_t                    edca_bk_cwmax;
-   uint32_t                    edca_be_cwmax;
-   uint32_t                    edca_vo_aifs;
-   uint32_t                    edca_vi_aifs;
-   uint32_t                    edca_bk_aifs;
-   uint32_t                    edca_be_aifs;
+   uint16_t                    sap_tx_leakage_threshold;
+   /* parameter to control GTX */
+   uint32_t                    tgt_gtx_usr_cfg;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID

@@ -2352,7 +2352,7 @@ HIF_sleep_entry(void *arg)
 	struct hif_pci_softc *sc = hif_state->sc;
 	u_int32_t idle_ms;
 
-	if (vos_is_unload_in_progress(VOS_MODULE_ID_HIF, NULL))
+	if (vos_is_unload_in_progress())
 		return;
 
 	if (sc->recovery)

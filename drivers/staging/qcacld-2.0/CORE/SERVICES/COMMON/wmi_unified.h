@@ -685,6 +685,8 @@ typedef enum {
     WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID,
     /** Enable/disable Large Receive Offload processing; provide cfg params */
     WMI_LRO_CONFIG_CMDID,
+    /** transfer data from host to firmware to write flash */
+    WMI_TRANSFER_DATA_TO_FLASH_CMDID,
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
     WMI_GPIO_OUTPUT_CMDID,
@@ -758,7 +760,8 @@ typedef enum {
     /*get batch scan result*/
     WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID,
     /* OEM related cmd */
-    WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM),
+    WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM), /* DEPRECATED */
+    WMI_OEM_REQUEST_CMDID,
 
     /** Nan Request */
     WMI_NAN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NAN),
@@ -1085,6 +1088,12 @@ typedef enum {
     /** event to report mix/max RSSI breach events */
     WMI_RSSI_BREACH_EVENTID,
 
+    /** event to report completion of data storage into flash memory */
+    WMI_TRANSFER_DATA_TO_FLASH_COMPLETE_EVENTID,
+
+    /** event to report SCPC calibrated data to host */
+    WMI_PDEV_UTF_SCPC_EVENTID,
+
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
     /** upload H_CV info WMI event
@@ -1102,15 +1111,20 @@ typedef enum {
     /* TDLS Event */
     WMI_TDLS_PEER_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_TDLS),
 
+    /** STA SMPS Event */
+    /** force SMPS mode */
+    WMI_STA_SMPS_FORCE_MODE_COMPLETE_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_STA_SMPS),
+
     /*location scan event*/
     /*report the firmware's capability of batch scan*/
     WMI_BATCH_SCAN_ENABLED_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_LOCATION_SCAN),
     /*batch scan result*/
     WMI_BATCH_SCAN_RESULT_EVENTID,
     /* OEM Event */
-    WMI_OEM_CAPABILITY_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_OEM),
-    WMI_OEM_MEASUREMENT_REPORT_EVENTID,
-    WMI_OEM_ERROR_REPORT_EVENTID,
+    WMI_OEM_CAPABILITY_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_OEM), /*DEPRECATED*/
+    WMI_OEM_MEASUREMENT_REPORT_EVENTID, /* DEPRECATED */
+    WMI_OEM_ERROR_REPORT_EVENTID, /* DEPRECATED */
+    WMI_OEM_RESPONSE_EVENTID,
 
     /* NAN Event */
     WMI_NAN_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_NAN),
@@ -2523,6 +2537,22 @@ typedef struct {
     A_UINT8 bufp[1];
 }wmi_single_phyerr_rx_event;
 
+/* PHY ERROR MASK 0 */
+/* bits 1:0 defined but not published */
+#define WMI_PHY_ERROR_MASK0_RADAR                           (1<<2 )
+/* bits 23:3 defined but not published */
+#define WMI_PHY_ERROR_MASK0_FALSE_RADAR_EXT                 (1<<24)
+/* bits 25:24 defined but not published */
+#define WMI_PHY_ERROR_MASK0_SPECTRAL_SCAN                   (1<<26)
+/* bits 31:27 defined but not published */
+
+/* PHY ERROR MASK 1 */
+/* bits 13:0 defined but not published */
+/* bits 31:14 reserved */
+
+/* PHY ERROR MASK 2 */
+/* bits 31:0 reserved */
+
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_comb_phyerr_rx_hdr */
     /** Phy error phy error count */
@@ -2531,6 +2561,9 @@ typedef struct {
     A_UINT32 tsf_u32;
     A_UINT32 buf_len;
     A_UINT32 pmac_id;
+    A_UINT32 rsPhyErrMask0; /* see WMI_PHY_ERROR_MASK0 */
+    A_UINT32 rsPhyErrMask1; /* see WMI_PHY_ERROR_MASK1 */
+    A_UINT32 rsPhyErrMask2; /* see WMI_PHY_ERROR_MASK2 */
     /* This TLV is followed by array of bytes:
          * // frame buffer - contains multiple payloads in the order:
          * // header - payload, header - payload...
@@ -2878,6 +2911,13 @@ typedef enum {
     WMI_PDEV_PARAM_TX_CHAIN_MASK_CCK,
     /* Set tx chain mask for 1SS stream */
     WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS,
+    /* Enable/Disable CTS2Self for P2P GO when Non-P2P Client is connected */
+    WMI_PDEV_PARAM_CTS2SELF_FOR_P2P_GO_CONFIG,
+    /** TX power backoff in dB: tx power -= param value
+     * Host passes values(DB) to Halphy, Halphy reduces the power table by
+     * the values. Safety check will happen in Halphy
+     */
+    WMI_PDEV_PARAM_TXPOWER_DECR_DB,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -4304,6 +4344,20 @@ typedef enum {
      * to increase the detectability of SAP in MCC mode */
     WMI_VDEV_PARAM_MCC_BROADCAST_PROBE_ENABLE,
 
+    /** This parameter indicates the power backoff in percentage
+     * currently supports 100%, 50%, 25%, 12.5%, and minimum
+     * Host passes 0, 1, 2, 3, 4 to Firmware
+     * 0 --> 100% --> no changes, 1 --> 50% --> -3dB,
+     * 2 --> 25% --> -6dB, 3 --> 12.5% --> -9dB, 4 --> minimum --> -32dB
+     */
+    WMI_VDEV_PARAM_TXPOWER_SCALE,
+
+    /** TX power backoff in dB: tx power -= param value
+     * Host passes values(DB) to Halphy, Halphy reduces the power table
+     * by the values.  Safety check will happen in Halphy.
+     */
+    WMI_VDEV_PARAM_TXPOWER_SCALE_DECR_DB,
+
 } WMI_VDEV_PARAM;
 
 /* Length of ATIM Window in TU */
@@ -4850,6 +4904,8 @@ typedef enum {
  * send ehanced green ap status to host
  */
 typedef struct {
+    /** TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_ap_ps_egap_info_chainmask_list */
     A_UINT32 tlv_header;
     /** The param indicates a mac under dual-mac */
     A_UINT32 mac_id;
@@ -6002,6 +6058,7 @@ typedef struct {
 
 } wmi_roam_event_fixed_param;
 
+/* roam_reason: bits 0-3 */
 #define WMI_ROAM_REASON_BETTER_AP 0x1 /** found a better AP */
 #define WMI_ROAM_REASON_BMISS     0x2 /** beacon miss detected */
 #define WMI_ROAM_REASON_DEAUTH    0x2 /** deauth/disassoc received */
@@ -6011,19 +6068,28 @@ typedef struct {
                                           WMI_ROAM_AP_PROFILE, found during scan
                                           triggered upon FINAL_BMISS **/
 #define WMI_ROAM_REASON_HO_FAILED  0x5  /** LFR3.0 roaming failed, indicate the disconnection to host */
+/* reserved up through 0xF */
 
-
-/*
- * These will be used in WMI_ROAM_SYNCH_EVENTID for passing the subnet change
- * info. Once roaming happens, firmware checks if subnet has changed and
- * populates roam_reason field in WMI_ROAM_SYNCH_EVENTID using the definitions
- * below.
- */
+/* subnet status: bits 4-5 */
 typedef enum {
     WMI_ROAM_SUBNET_CHANGE_STATUS_UNKNOWN = 0,
     WMI_ROAM_SUBNET_CHANGE_STATUS_UNCHANGED,
     WMI_ROAM_SUBNET_CHANGE_STATUS_CHANGED,
 } wmi_roam_subnet_change_status;
+
+#define WMI_ROAM_SUBNET_CHANGE_STATUS_MASK      0x30
+#define WMI_ROAM_SUBNET_CHANGE_STATUS_SHIFT     4
+
+#define WMI_SET_ROAM_SUBNET_CHANGE_STATUS(roam_reason, status) \
+    do { \
+        (roam_reason) |= \
+            (((status) << WMI_ROAM_SUBNET_CHANGE_STATUS_SHIFT) & \
+             WMI_ROAM_SUBNET_CHANGE_STATUS_MASK); \
+    } while (0)
+
+#define WMI_GET_ROAM_SUBNET_CHANGE_STATUS(roam_reason) \
+    (((roam_reason) & WMI_ROAM_SUBNET_CHANGE_STATUS_MASK) >> \
+     WMI_ROAM_SUBNET_CHANGE_STATUS_SHIFT)
 
 /**whenever RIC request information change, host driver should pass all ric related information to firmware (now only support tsepc)
 * Once, 11r roaming happens, firmware can generate RIC request in reassoc request based on these informations
@@ -6450,6 +6516,8 @@ when comparing wifi header.*/
 #define WOW_DEFAULT_IOAC_SOCKET_PATTERN_SIZE_DWORD 8
 #define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE       32
 #define WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE_DWORD 8
+#define WOW_DEFAULT_IOAC_SOCKET_PATTERN_ACKNAK_SIZE  128
+#define WOW_DEFAULT_IOAC_SOCKET_PATTERN_ACKNAK_SIZE_DWORD 32
 
 typedef enum pattern_type_e {
     WOW_PATTERN_MIN = 0,
@@ -6496,6 +6564,7 @@ typedef enum event_type_e {
     WOW_IOAC_REV_KA_FAIL_EVENT,
     WOW_IOAC_SOCK_EVENT,
     WOW_NLO_SCAN_COMPLETE_EVENT,
+    WOW_TDLS_CONN_TRACKER_EVENT,
 } WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -6539,6 +6608,7 @@ typedef enum wake_reason_e {
     WOW_REASON_REASSOC_REQ_RECV,
     WOW_REASON_REASSOC_RES_RECV,
     WOW_REASON_ACTION_FRAME_RECV,
+    WOW_REASON_TDLS_CONN_TRACKER_EVENT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -6621,6 +6691,11 @@ typedef struct ioac_sock_pattern_s {
     A_UINT32 remote_port;
     A_UINT32 pattern_len; /* units = bytes */
     A_UINT32 pattern[WOW_DEFAULT_IOAC_SOCKET_PATTERN_SIZE_DWORD];
+    WMI_IPV6_ADDR local_ipv6;
+    WMI_IPV6_ADDR remote_ipv6;
+    A_UINT32 ack_nak_len;
+    A_UINT32 ackpkt[WOW_DEFAULT_IOAC_SOCKET_PATTERN_ACKNAK_SIZE_DWORD];
+    A_UINT32 nakpkt[WOW_DEFAULT_IOAC_SOCKET_PATTERN_ACKNAK_SIZE_DWORD];
 } WOW_IOAC_SOCK_PATTERN_T;
 
 typedef struct ioac_pkt_pattern_s {
@@ -6662,6 +6737,8 @@ typedef struct ioac_keepalive_s {
     A_UINT32 recv_period_in_ms;
     A_UINT32 rev_ka_size;
     A_UINT32 rev_ka_data[WOW_DEFAULT_IOAC_KEEP_ALIVE_PKT_REV_SIZE_DWORD];
+    WMI_IPV6_ADDR local_ipv6;
+    WMI_IPV6_ADDR remote_ipv6;
 } WMI_WOW_IOAC_KEEPALIVE_T;
 
 typedef struct {
@@ -9305,8 +9382,9 @@ typedef struct {
     /** auth_status: connected or authorized */
     A_UINT32 auth_status;
      /*
-      *  roam_reason: whether roaming went to a new subnet;
-      *  see WMI_ROAM_SUBNET_CHANGE_STATUS_XXX
+      *  roam_reason:
+      *  bits 0-3 for roam reason   see WMI_ROAM_REASON_XXX
+      *  bits 4-5 for subnet status see WMI_ROAM_SUBNET_CHANGE_STATUS_XXX.
       */
     A_UINT32 roam_reason;
     /** associated AP's rssi calculated by FW when reason code is WMI_ROAM_REASON_LOW_RSSI. not valid if roam_reason is BMISS */
@@ -11878,6 +11956,49 @@ typedef struct {
      */
     A_UINT32 toeplitz_hash_ipv6_40;
 } wmi_lro_info_cmd_fixed_param;
+
+/*
+ * This structure is used to set the pattern for WOW host wakeup pin pulse
+ * pattern confirguration.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_transfer_data_to_flash_cmd_fixed_param  */
+    A_UINT32 offset; /* flash offset to write, starting from 0 */
+    A_UINT32 length; /* vaild data length in buffer, unit: byte */
+} wmi_transfer_data_to_flash_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_transfer_data_to_flash_complete_event_fixed_param */
+    /** Return status. 0 for success, non-zero otherwise */
+    A_UINT32 status;
+} wmi_transfer_data_to_flash_complete_event_fixed_param;
+
+/*
+ * This structure is used to report SCPC calibrated data to host.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_scpc_event_fixed_param */
+    /** number of BDF patches. Each patch contains offset, length and data */
+    A_UINT32 num_patch;
+    /*  This TLV is followed by another TLV of array of bytes
+     *  A_UINT8 data[];
+     *  This data array contains, for example
+     *  patch1 offset(byte3~0),   patch1 data length(byte7~4),   patch1 data(byte11~8)
+     *  patch2 offset(byte15~12), patch2 data length(byte19~16), patch2 data(byte47~20)
+     *
+     */
+} wmi_scpc_event_fixed_param;
+
+/*
+ * This structure is used to report SMPS force mode set complete to host.
+ */
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sta_smps_force_mode_complete_event_fixed_param */
+    /* Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+    /* Return status. 0 for success, non-zero otherwise */
+    A_UINT32 status;
+} wmi_sta_smps_force_mode_complete_event_fixed_param;
 
 /* ADD NEW DEFS HERE */
 

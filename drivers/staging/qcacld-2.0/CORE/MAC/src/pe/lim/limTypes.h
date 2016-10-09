@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -624,7 +624,7 @@ void limSetCfgProtection(tpAniSirGlobal pMac, tpPESession pesessionEntry);
 
 
 // Function to Initialize MLM state machine on STA
-void limInitMlm(tpAniSirGlobal);
+tSirRetStatus limInitMlm(tpAniSirGlobal);
 
 /* Function to clean up MLM state machine */
 void limCleanupMlm(tpAniSirGlobal);
@@ -727,6 +727,15 @@ eHalStatus limProcessTdlsAddStaRsp(tpAniSirGlobal pMac, void *msg, tpPESession);
 tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
            tSirMacAddr peerMac, tANI_U16 reason, tANI_U8 responder, tpPESession psessionEntry,
            tANI_U8 *addIe, tANI_U16 addIeLen);
+tSirRetStatus lim_process_sme_del_all_tdls_peers(tpAniSirGlobal p_mac,
+			uint32_t *msg_buf);
+#else
+static inline tSirRetStatus
+lim_process_sme_del_all_tdls_peers(tpAniSirGlobal p_mac,
+			uint32_t *msg_buf)
+{
+	return eSIR_SUCCESS;
+}
 #endif
 
 // Algorithms & Link Monitoring related functions

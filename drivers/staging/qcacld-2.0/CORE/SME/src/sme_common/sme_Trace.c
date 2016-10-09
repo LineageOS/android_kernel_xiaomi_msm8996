@@ -208,13 +208,13 @@ static void smeTraceDump(tpAniSirGlobal pMac, tpvosTraceRecord pRecord,
 {
     if (TRACE_CODE_SME_COMMAND == pRecord->code)
     {
-        smsLog(pMac, LOGE, "%04d %012llu S%d %-14s %-30s(0x%x)", recIndex,
+        smsLog(pMac, LOG1, "%04d %012llu S%d %-14s %-30s(0x%x)", recIndex,
                    pRecord->time, pRecord->session, "SME COMMAND:",
                    smeTraceGetCommandString(pRecord->data), pRecord->data );
     }
     else
     {
-        smsLog(pMac, LOGE, "%04d %012llu S%d %-14s %-30s(0x%x)", recIndex,
+        smsLog(pMac, LOG1, "%04d %012llu S%d %-14s %-30s(0x%x)", recIndex,
                    pRecord->time, pRecord->session, "RX HDD MSG:",
                    smeTraceGetRxMsgString(pRecord->code), pRecord->data );
     }

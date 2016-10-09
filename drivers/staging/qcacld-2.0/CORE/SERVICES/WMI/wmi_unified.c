@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -496,6 +496,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_THERMAL_MGMT_CMDID);
 		CASE_RETURN_STRING(WMI_RSSI_BREACH_MONITOR_CONFIG_CMDID);
                 CASE_RETURN_STRING(WMI_LRO_CONFIG_CMDID);
+                CASE_RETURN_STRING(WMI_TRANSFER_DATA_TO_FLASH_CMDID);
                 CASE_RETURN_STRING(WMI_MAWC_SENSOR_REPORT_IND_CMDID);
                 CASE_RETURN_STRING(WMI_ROAM_CONFIGURE_MAWC_CMDID);
                 CASE_RETURN_STRING(WMI_NLO_CONFIGURE_MAWC_CMDID);
@@ -570,6 +571,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_BATCH_SCAN_TRIGGER_RESULT_CMDID);
 		/* OEM related cmd */
 		CASE_RETURN_STRING(WMI_OEM_REQ_CMDID);
+		CASE_RETURN_STRING(WMI_OEM_REQUEST_CMDID);
 		/* NAN request cmd */
 		CASE_RETURN_STRING(WMI_NAN_CMDID);
 		/* Modem power state cmd */
@@ -663,30 +665,23 @@ inline bool wmi_get_runtime_pm_inprogress(wmi_unified_t wmi_handle)
 }
 #endif
 
-/* WMI command API */
-int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
-			 WMI_CMD_ID cmd_id)
+/**
+ * wmi_set_htc_tx_tag() - set HTC TX tag for WMI commands
+ * @wmi_handle: WMI handle
+ * @buf: WMI buffer
+ * @cmd_id: WMI command Id
+ *
+ * Return htc_tx_tag
+ */
+static uint16_t wmi_set_htc_tx_tag(wmi_unified_t wmi_handle,
+				wmi_buf_t buf,
+				WMI_CMD_ID cmd_id)
 {
-	HTC_PACKET *pkt;
-	A_STATUS status;
-	void *vos_context;
-	struct ol_softc *scn;
-	A_UINT16 htc_tag = 0;
+	uint16_t htc_tx_tag = 0;
+	uint16_t cur_tx_tag = 0;
+	wmi_vdev_set_param_cmd_fixed_param *set_cmd;
+	wmi_sta_powersave_param_cmd_fixed_param *ps_cmd;
 
-	if (wmi_get_runtime_pm_inprogress(wmi_handle))
-		goto skip_suspend_check;
-
-	if (adf_os_atomic_read(&wmi_handle->is_target_suspended) &&
-			( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) &&
-			  (WMI_PDEV_RESUME_CMDID != cmd_id)) ) {
-		pr_err("%s: Target is suspended  could not send WMI command: %d\n",
-				__func__, cmd_id);
-		VOS_ASSERT(0);
-		return -EBUSY;
-	} else
-		goto dont_tag;
-
-skip_suspend_check:
 	switch(cmd_id) {
 	case WMI_WOW_ENABLE_CMDID:
 	case WMI_PDEV_SUSPEND_CMDID:
@@ -698,15 +693,81 @@ skip_suspend_check:
 #ifdef FEATURE_WLAN_D0WOW
 	case WMI_D0_WOW_ENABLE_DISABLE_CMDID:
 #endif
-		htc_tag = HTC_TX_PACKET_TAG_AUTO_PM;
+		htc_tx_tag = HTC_TX_PACKET_TAG_AUTO_PM;
 	case WMI_FORCE_FW_HANG_CMDID:
-		if (wmi_handle->tag_crash_inject) {
-			htc_tag = HTC_TX_PACKET_TAG_AUTO_PM;
-			wmi_handle->tag_crash_inject = false;
-		}
+	if (wmi_handle->tag_crash_inject) {
+		htc_tx_tag = HTC_TX_PACKET_TAG_AUTO_PM;
+		wmi_handle->tag_crash_inject = false;
+	}
 	default:
 		break;
 	}
+
+	if(!adf_os_atomic_read(&wmi_handle->is_target_suspended))
+		cur_tx_tag = HTC_TX_PACKET_TAG_AUTO_PM;
+
+	if(cmd_id == WMI_VDEV_SET_PARAM_CMDID)
+	{
+		set_cmd = (wmi_vdev_set_param_cmd_fixed_param *)
+			wmi_buf_data(buf);
+
+		switch(set_cmd->param_id) {
+		case WMI_VDEV_PARAM_LISTEN_INTERVAL:
+		case WMI_VDEV_PARAM_DTIM_POLICY:
+			htc_tx_tag = cur_tx_tag;
+		default:
+			break;
+		}
+	}
+
+	if(cmd_id == WMI_STA_POWERSAVE_PARAM_CMDID)
+	{
+		ps_cmd = (wmi_sta_powersave_param_cmd_fixed_param *)
+			wmi_buf_data(buf);
+
+		switch(ps_cmd->param) {
+		case WMI_STA_PS_ENABLE_QPOWER:
+			htc_tx_tag = cur_tx_tag;
+		default:
+			break;
+		}
+	}
+
+	return htc_tx_tag;
+}
+
+/* WMI command API */
+int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
+			 WMI_CMD_ID cmd_id)
+{
+	HTC_PACKET *pkt;
+	A_STATUS status;
+	void *vos_context;
+	struct ol_softc *scn;
+	A_UINT16 htc_tag = 0;
+
+	if (vos_is_shutdown_in_progress(VOS_MODULE_ID_WDA, NULL)) {
+		adf_os_print("\nERROR: %s: shutdown is in progress so could not send WMI command: %d\n",
+			__func__, cmd_id);
+		return -EBUSY;
+	}
+
+	if (wmi_get_runtime_pm_inprogress(wmi_handle))
+		goto skip_suspend_check;
+
+	if (adf_os_atomic_read(&wmi_handle->is_target_suspended) &&
+			( (WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID != cmd_id) &&
+			  (WMI_PDEV_RESUME_CMDID != cmd_id)) ) {
+		adf_os_print("\nERROR: %s: Target is suspended  could not send WMI command: %d\n",
+				__func__, cmd_id);
+		VOS_ASSERT(0);
+		return -EBUSY;
+	} else
+		goto dont_tag;
+
+skip_suspend_check:
+	htc_tag = (A_UINT16) wmi_set_htc_tx_tag(wmi_handle,
+						buf, cmd_id);
 
 dont_tag:
 	/* Do sanity check on the TLV parameter structure */
@@ -1202,6 +1263,18 @@ void wmi_set_target_suspend(wmi_unified_t wmi_handle, A_BOOL val)
 	adf_os_atomic_set(&wmi_handle->is_target_suspended, val);
 }
 
+/**
+ * wmi_set_tgt_assert() - set target assert configuration
+ * @wmi_handle: Pointer to WMI handle
+ * @val: Target assert config value
+ *
+ * Return: none
+ */
+void wmi_set_tgt_assert(wmi_unified_t wmi_handle, bool val)
+{
+	wmi_handle->tgt_force_assert_enable = val;
+}
+
 #ifdef FEATURE_RUNTIME_PM
 void wmi_set_runtime_pm_inprogress(wmi_unified_t wmi_handle, A_BOOL val)
 {
@@ -1216,6 +1289,10 @@ void wmi_set_d0wow_flag(wmi_unified_t wmi_handle, A_BOOL flag)
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
 
+	if (NULL == scn) {
+		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		return;
+	}
 	adf_os_atomic_set(&scn->hif_sc->in_d0wow, flag);
 }
 
@@ -1224,6 +1301,11 @@ A_BOOL wmi_get_d0wow_flag(wmi_unified_t wmi_handle)
 	tp_wma_handle wma = wmi_handle->scn_handle;
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
+
+	if (NULL == scn) {
+		WMA_LOGE("%s: Failed to get HIF context", __func__);
+		return -EINVAL;
+	}
 
 	return adf_os_atomic_read(&scn->hif_sc->in_d0wow);
 }

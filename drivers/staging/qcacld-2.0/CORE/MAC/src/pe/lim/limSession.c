@@ -128,8 +128,7 @@ void pe_reset_protection_callback(void *ptr)
 
     VOS_TRACE(VOS_MODULE_ID_PE,
               VOS_TRACE_LEVEL_INFO,
-              FL("old protection state: 0x%04X, "
-                 "new protection state: 0x%04X\n"),
+              FL("old protection state: 0x%04X, new protection state: 0x%04X"),
               pe_session_entry->old_protection_state,
               current_protection_state);
 
@@ -159,6 +158,7 @@ void pe_reset_protection_callback(void *ptr)
 
     old_op_mode = pe_session_entry->htOperMode;
     pe_session_entry->htOperMode = eSIR_HT_OP_MODE_PURE;
+    mac_ctx->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
 
     vos_mem_zero(&beacon_params, sizeof(tUpdateBeaconParams));
     /* index 0, is self node, peers start from 1 */
@@ -179,7 +179,7 @@ void pe_reset_protection_callback(void *ptr)
         (VOS_FALSE == mac_ctx->sap.SapDfsInfo.is_dfs_cac_timer_running)) {
         VOS_TRACE(VOS_MODULE_ID_PE,
                   VOS_TRACE_LEVEL_ERROR,
-                  FL("protection changed, update beacon template\n"));
+                  FL("protection changed, update beacon template"));
         /* update beacon fix params and send update to FW */
         vos_mem_zero(&beacon_params, sizeof(tUpdateBeaconParams));
         beacon_params.bssIdx = pe_session_entry->bssIdx;
@@ -217,7 +217,7 @@ void pe_reset_protection_callback(void *ptr)
                              SCH_PROTECTION_RESET_TIME)) {
         VOS_TRACE(VOS_MODULE_ID_PE,
                   VOS_TRACE_LEVEL_ERROR,
-                  FL("cannot create or start protectionFieldsResetTimer\n"));
+                  FL("cannot create or start protectionFieldsResetTimer"));
     }
 }
 
@@ -346,7 +346,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
                    != eHAL_STATUS_SUCCESS)
                 {
                     limLog(pMac, LOGE,
-                       FL("Failed to open ps offload for pe session %x\n"),i);
+                       FL("Failed to open ps offload for pe session %x"), i);
                 }
             }
 
@@ -403,15 +403,15 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
                 if (status != VOS_STATUS_SUCCESS) {
                     VOS_TRACE(VOS_MODULE_ID_PE,
                               VOS_TRACE_LEVEL_ERROR,
-                              FL("cannot create or start "
-                                 "protectionFieldsResetTimer\n"));
+                              FL("cannot create or start protectionFieldsResetTimer"));
                 }
             }
 
             return(&pMac->lim.gpSession[i]);
         }
     }
-    limLog(pMac, LOGE, FL("Session can not be created.. Reached Max permitted sessions \n "));
+    limLog(pMac, LOGE,
+            FL("Session can not be created.. Reached Max permitted sessions"));
     return NULL;
 }
 
@@ -443,7 +443,7 @@ tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_
         }
     }
 
-    limLog(pMac, LOG4, FL("Session lookup fails for BSSID: \n "));
+    limLog(pMac, LOG4, FL("Session lookup fails for BSSID:"));
     limPrintMacAddr(pMac, bssid, LOG4);
     return(NULL);
 
@@ -519,7 +519,7 @@ tpPESession pe_find_session_by_sme_session_id(tpAniSirGlobal mac_ctx,
 {
     if(sessionId >=  pMac->lim.maxBssId)
     {
-        limLog(pMac, LOGE, FL("Invalid sessionId: %d \n "), sessionId);
+        limLog(pMac, LOGE, FL("Invalid sessionId: %d"), sessionId);
         return(NULL);
     }
     if((pMac->lim.gpSession[sessionId].valid == TRUE))
@@ -566,7 +566,7 @@ tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U
        }
     }
 
-    limLog(pMac, LOG4, FL("Session lookup fails for StaId: %d\n "), staid);
+    limLog(pMac, LOG4, FL("Session lookup fails for StaId: %d"), staid);
     return(NULL);
 }
 
@@ -662,18 +662,21 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     {
         vos_mem_free( psessionEntry->beacon);
         psessionEntry->beacon = NULL;
+        psessionEntry->bcnLen = 0;
     }
 
     if (psessionEntry->assocReq != NULL)
     {
         vos_mem_free( psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
+        psessionEntry->assocReqLen = 0;
     }
 
     if (psessionEntry->assocRsp != NULL)
     {
         vos_mem_free( psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
+        psessionEntry->assocRspLen = 0;
     }
 
 
@@ -824,7 +827,7 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac,  tANI_U8*  sa,    tANI_U
       }
    }
 
-   limLog(pMac, LOG1, FL("Session lookup fails for Peer StaId: \n "));
+   limLog(pMac, LOG1, FL("Session lookup fails for Peer StaId:"));
    limPrintMacAddr(pMac, sa, LOG1);
    return NULL;
 }
