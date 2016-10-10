@@ -391,7 +391,7 @@ htt_attach_target(htt_pdev_handle pdev)
 
 void htt_htc_detach(struct htt_pdev_t *pdev)
 {
-    htc_disconnect_service(pdev->htc_pdev, pdev->htc_endpoint);
+    htc_disconnect_service(pdev->htc_endpoint);
     return;
 }
 

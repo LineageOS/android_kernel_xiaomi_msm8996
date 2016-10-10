@@ -31,6 +31,7 @@
 #if defined(HIF_PCI)
 #include "if_pci.h"
 #endif
+#include <vos_api.h>
 
 extern unsigned int htc_credit_flow;
 
@@ -328,10 +329,18 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
     return status;
 }
 
-void htc_disconnect_service(HTC_HANDLE htc_handle, HTC_ENDPOINT_ID endpoint_id)
+void htc_disconnect_service(HTC_ENDPOINT_ID endpoint_id)
 {
-    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(htc_handle);
-    HTC_ENDPOINT *endpoint = &target->EndPoint[endpoint_id];
+    void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_HTC, NULL);
+    HTC_HANDLE *htc_hdl = vos_get_context(VOS_MODULE_ID_HTC, vos_ctx);
+    HTC_TARGET *target;
+    HTC_ENDPOINT *endpoint;
+
+    if (htc_hdl == NULL)
+        return;
+
+    target = GET_HTC_TARGET_FROM_HANDLE(htc_hdl);
+    endpoint = &target->EndPoint[endpoint_id];
 
     LOCK_HTC_ENDPOINT_RX(endpoint);
     endpoint->EpCallBacks.EpRecv = NULL;
