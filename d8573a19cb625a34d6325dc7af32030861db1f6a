@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ff2e2bb8_fe45e518",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 347,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "To be deleted. Line already existing bellow, within *** Xiaomi modifications *** section.",
+      "range": {
+        "startLine": 347,
+        "startChar": 0,
+        "endLine": 347,
+        "endChar": 57
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_5e4a1127",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 926,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "Double check required here. There are overrides down the file (Xiaomi changes applied to msm8996.dtsi). Can be merged.",
+      "range": {
+        "startLine": 921,
+        "startChar": 0,
+        "endLine": 926,
+        "endChar": 3
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_3e474d20",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 975,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "This part and sound-9335 related Xiaomi changes applied to msm8996.dtsi (down the file) can be merged.",
+      "range": {
+        "startLine": 933,
+        "startChar": 0,
+        "endLine": 975,
+        "endChar": 3
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_9ebf79fa",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1203,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "Remove tabs.",
+      "range": {
+        "startLine": 1203,
+        "startChar": 2,
+        "endLine": 1203,
+        "endChar": 4
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_3ec2ad86",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1328,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "Remove one tab.",
+      "range": {
+        "startLine": 1328,
+        "startChar": 3,
+        "endLine": 1328,
+        "endChar": 4
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_7ebc3505",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1849,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "Remove tab.",
+      "range": {
+        "startLine": 1849,
+        "startChar": 1,
+        "endLine": 1849,
+        "endChar": 2
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_de3621b5",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1850,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T11:41:58Z",
+      "side": 1,
+      "message": "Remove tab.",
+      "range": {
+        "startLine": 1850,
+        "startChar": 1,
+        "endLine": 1850,
+        "endChar": 2
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
