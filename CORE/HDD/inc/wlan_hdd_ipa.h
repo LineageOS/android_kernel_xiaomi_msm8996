@@ -78,6 +78,8 @@ void hdd_ipa_uc_stat_request( hdd_adapter_t *adapter, uint8_t reason);
 void hdd_ipa_uc_rt_debug_host_dump(hdd_context_t *hdd_ctx);
 void hdd_ipa_dump_info(hdd_context_t *hdd_ctx);
 #endif /* IPA_UC_OFFLOAD */
+#else
+#define hdd_ipa_set_perf_level(hdd_ctx, tx_p, rx_p) /* no-op */
 #endif /* IPA_OFFLOAD */
 
 #if !defined(IPA_OFFLOAD) || !defined(IPA_UC_OFFLOAD)
