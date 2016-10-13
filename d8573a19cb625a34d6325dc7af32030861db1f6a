@@ -71,6 +71,29 @@
     },
     {
       "key": {
+        "uuid": "ff2e2bb8_feba05dc",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1181,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T13:03:31Z",
+      "side": 1,
+      "message": "Missing };",
+      "range": {
+        "startLine": 1181,
+        "startChar": 0,
+        "endLine": 1181,
+        "endChar": 0
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ff2e2bb8_9ebf79fa",
         "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
         "patchSetId": 4
