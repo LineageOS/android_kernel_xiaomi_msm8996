@@ -1750,7 +1750,7 @@ int vos_update_band(v_U8_t  band_capability)
 		return VOS_STATUS_E_FAULT;
 	}
 
-	for (i = 0; i < IEEE80211_NUM_BANDS; i++) {
+	for (i = 0; i < NUM_NL80211_BANDS; i++) {
 		if (NULL == wiphy->bands[i])
 			continue;
 
@@ -1763,7 +1763,7 @@ int vos_update_band(v_U8_t  band_capability)
 				vos_nv_getChannelEnabledState(
 						band->channels[j].hw_value);
 			/* 5G only */
-			if (IEEE80211_BAND_2GHZ == i &&
+			if (NL80211_BAND_2GHZ == i &&
 					eCSR_BAND_5G == band_capability) {
 #ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
 				/* Enable Social channels for P2P */
@@ -1778,7 +1778,7 @@ int vos_update_band(v_U8_t  band_capability)
 					band->channels[j].flags |=
 						IEEE80211_CHAN_DISABLED;
 				continue;
-			} else if (IEEE80211_BAND_5GHZ == i &&
+			} else if (NL80211_BAND_5GHZ == i &&
 					eCSR_BAND_24 == band_capability) {
 				/* 2.4G only */
 				band->channels[j].flags |=
@@ -1959,7 +1959,7 @@ static int create_linux_regulatory_entry(v_REGDOMAIN_t temp_reg_domain,
     vos_mem_zero(pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels,
 		 NUM_RF_CHANNELS * sizeof(sRegulatoryChannel));
 
-    for (i = 0, m = 0; i<IEEE80211_NUM_BANDS; i++)
+    for (i = 0, m = 0; i<NUM_NL80211_BANDS; i++)
     {
         if (wiphy->bands[i] == NULL)
             continue;
@@ -2265,11 +2265,11 @@ static void restore_custom_reg_settings(struct wiphy *wiphy)
 {
 
 	struct ieee80211_supported_band *sband;
-	enum ieee80211_band band;
+	enum nl80211_band band;
 	struct ieee80211_channel *chan;
 	int i;
 
-	for (band = 0; band < IEEE80211_NUM_BANDS; band++) {
+	for (band = 0; band < NUM_NL80211_BANDS; band++) {
 		sband = wiphy->bands[band];
 		if (!sband)
 			continue;
@@ -2685,7 +2685,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
 #endif
     }
     m = 0;
-    for (i = 0; i < IEEE80211_NUM_BANDS; i++)
+    for (i = 0; i < NUM_NL80211_BANDS; i++)
     {
 
         if (wiphy->bands[i] == NULL)

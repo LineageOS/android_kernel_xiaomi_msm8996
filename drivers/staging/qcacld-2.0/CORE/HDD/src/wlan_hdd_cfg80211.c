@@ -168,7 +168,7 @@
 #define IBSS_CFG_PROTECTION_ENABLE_MASK 0x8282
 
 #define HDD2GHZCHAN(freq, chan, flag)   {     \
-    .band =  IEEE80211_BAND_2GHZ, \
+    .band =  NL80211_BAND_2GHZ, \
     .center_freq = (freq), \
     .hw_value = (chan),\
     .flags = (flag), \
@@ -177,7 +177,7 @@
 }
 
 #define HDD5GHZCHAN(freq, chan, flag)   {     \
-    .band =  IEEE80211_BAND_5GHZ, \
+    .band =  NL80211_BAND_5GHZ, \
     .center_freq = (freq), \
     .hw_value = (chan),\
     .flags = (flag), \
@@ -376,7 +376,7 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 {
     .channels = NULL,
     .n_channels = ARRAY_SIZE(hdd_channels_2_4_GHZ),
-    .band       = IEEE80211_BAND_2GHZ,
+    .band       = NL80211_BAND_2GHZ,
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
     .ht_cap.ht_supported   = 1,
@@ -406,7 +406,7 @@ static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
 {
     .channels = NULL,
     .n_channels = ARRAY_SIZE(hdd_channels_5_GHZ),
-    .band     = IEEE80211_BAND_5GHZ,
+    .band     = NL80211_BAND_5GHZ,
     .bitrates = a_mode_rates,
     .n_bitrates = a_mode_rates_size,
     .ht_cap.ht_supported   = 1,
@@ -3668,7 +3668,7 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
         !strncmp(hdd_get_fwpath(), "ap", 2)) {
         num_chan_new = 0;
         for (i = 0; i < num_channels; i++)
-            for (j = 0; j < IEEE80211_NUM_BANDS; j++) {
+            for (j = 0; j < NUM_NL80211_BANDS; j++) {
                 if (wiphy->bands[j] == NULL)
                     continue;
                 for (k = 0; k < wiphy->bands[j]->n_channels; k++) {
@@ -16560,15 +16560,15 @@ int wlan_hdd_cfg80211_init(struct device *dev,
      * wiphy flags don't get reset because of static memory.
      * It's better not to store channel in static memory.
      */
-    wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
-    wiphy->bands[IEEE80211_BAND_2GHZ]->channels =
+    wiphy->bands[NL80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
+    wiphy->bands[NL80211_BAND_2GHZ]->channels =
         vos_mem_malloc(sizeof(hdd_channels_2_4_GHZ));
-    if (wiphy->bands[IEEE80211_BAND_2GHZ]->channels == NULL) {
+    if (wiphy->bands[NL80211_BAND_2GHZ]->channels == NULL) {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                 FL("Not enough memory to allocate channels"));
         return -ENOMEM;
     }
-    vos_mem_copy(wiphy->bands[IEEE80211_BAND_2GHZ]->channels,
+    vos_mem_copy(wiphy->bands[NL80211_BAND_2GHZ]->channels,
             &hdd_channels_2_4_GHZ[0],
             sizeof(hdd_channels_2_4_GHZ));
     if (hdd_is_5g_supported(pHddCtx) &&
@@ -16577,59 +16577,59 @@ int wlan_hdd_cfg80211_init(struct device *dev,
         (eHDD_DOT11_MODE_11b_ONLY != pCfg->dot11Mode) &&
         (eHDD_DOT11_MODE_11g_ONLY != pCfg->dot11Mode)))
     {
-        wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+        wiphy->bands[NL80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
 
         if (pCfg->dot11p_mode) {
-            wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
+            wiphy->bands[NL80211_BAND_5GHZ]->channels =
                 vos_mem_malloc(sizeof(hdd_channels_5_GHZ) +
                                 sizeof(hdd_channels_dot11p));
-            if (wiphy->bands[IEEE80211_BAND_5GHZ]->channels == NULL) {
+            if (wiphy->bands[NL80211_BAND_5GHZ]->channels == NULL) {
                 hddLog(VOS_TRACE_LEVEL_ERROR,
                         FL("Not enough memory to allocate channels"));
-                vos_mem_free(wiphy->bands[IEEE80211_BAND_2GHZ]->channels);
-                wiphy->bands[IEEE80211_BAND_2GHZ]->channels = NULL;
+                vos_mem_free(wiphy->bands[NL80211_BAND_2GHZ]->channels);
+                wiphy->bands[NL80211_BAND_2GHZ]->channels = NULL;
                 return -ENOMEM;
             }
-            wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels =
+            wiphy->bands[NL80211_BAND_5GHZ]->n_channels =
                 ARRAY_SIZE(hdd_channels_5_GHZ) +
                 ARRAY_SIZE(hdd_channels_dot11p);
 
-            vos_mem_copy(wiphy->bands[IEEE80211_BAND_5GHZ]->channels,
+            vos_mem_copy(wiphy->bands[NL80211_BAND_5GHZ]->channels,
                             &hdd_channels_5_GHZ[0],
                             sizeof(hdd_channels_5_GHZ));
 
-            vos_mem_copy((char *)wiphy->bands[IEEE80211_BAND_5GHZ]->channels
+            vos_mem_copy((char *)wiphy->bands[NL80211_BAND_5GHZ]->channels
                             + sizeof(hdd_channels_5_GHZ),
                             &hdd_channels_dot11p[0],
                             sizeof(hdd_channels_dot11p));
         } else {
 
-            wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
+            wiphy->bands[NL80211_BAND_5GHZ]->channels =
                  vos_mem_malloc(sizeof(hdd_channels_5_GHZ) +
                                 sizeof(hdd_etsi_srd_chan));
-            if (wiphy->bands[IEEE80211_BAND_5GHZ]->channels == NULL) {
+            if (wiphy->bands[NL80211_BAND_5GHZ]->channels == NULL) {
                 hddLog(VOS_TRACE_LEVEL_ERROR,
                         FL("Not enough memory to allocate channels"));
-                vos_mem_free(wiphy->bands[IEEE80211_BAND_2GHZ]->channels);
-                wiphy->bands[IEEE80211_BAND_2GHZ]->channels = NULL;
+                vos_mem_free(wiphy->bands[NL80211_BAND_2GHZ]->channels);
+                wiphy->bands[NL80211_BAND_2GHZ]->channels = NULL;
                 return -ENOMEM;
             }
-            wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels =
+            wiphy->bands[NL80211_BAND_5GHZ]->n_channels =
                 ARRAY_SIZE(hdd_channels_5_GHZ) +
                 ARRAY_SIZE(hdd_etsi_srd_chan);
 
-            vos_mem_copy(wiphy->bands[IEEE80211_BAND_5GHZ]->channels,
+            vos_mem_copy(wiphy->bands[NL80211_BAND_5GHZ]->channels,
                             &hdd_channels_5_GHZ[0],
                             sizeof(hdd_channels_5_GHZ));
 
-            vos_mem_copy((char *)wiphy->bands[IEEE80211_BAND_5GHZ]->channels
+            vos_mem_copy((char *)wiphy->bands[NL80211_BAND_5GHZ]->channels
                             + sizeof(hdd_channels_5_GHZ),
                             &hdd_etsi_srd_chan[0],
                             sizeof(hdd_etsi_srd_chan));
         }
     }
 
-   for (i = 0; i < IEEE80211_NUM_BANDS; i++)
+   for (i = 0; i < NUM_NL80211_BANDS; i++)
    {
 
        if (NULL == wiphy->bands[i])
@@ -16639,7 +16639,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
        {
            struct ieee80211_supported_band *band = wiphy->bands[i];
 
-           if (IEEE80211_BAND_2GHZ == i && eCSR_BAND_5G == pCfg->nBandCapability) // 5G only
+           if (NL80211_BAND_2GHZ == i && eCSR_BAND_5G == pCfg->nBandCapability) // 5G only
            {
 #ifdef WLAN_ENABLE_SOCIAL_CHANNELS_5G_ONLY
                // Enable social channels for P2P
@@ -16650,7 +16650,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                    band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
                continue;
            }
-           else if (IEEE80211_BAND_5GHZ == i && eCSR_BAND_24 == pCfg->nBandCapability) // 2G only
+           else if (NL80211_BAND_5GHZ == i && eCSR_BAND_24 == pCfg->nBandCapability) // 2G only
            {
                band->channels[j].flags |= IEEE80211_CHAN_DISABLED;
                continue;
@@ -16718,7 +16718,7 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 {
 	int i;
 
-	for (i = 0; i < IEEE80211_NUM_BANDS; i++) {
+	for (i = 0; i < NUM_NL80211_BANDS; i++) {
 		if (NULL != wiphy->bands[i] &&
 		   (NULL != wiphy->bands[i]->channels)) {
 			vos_mem_free(wiphy->bands[i]->channels);
@@ -16744,10 +16744,10 @@ void wlan_hdd_update_wiphy(struct wiphy *wiphy,
 
     wiphy->max_ap_assoc_sta = ctx->max_peers;
     if (!sme_IsFeatureSupportedByFW(DOT11AC)) {
-       wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
-       wiphy->bands[IEEE80211_BAND_2GHZ]->vht_cap.cap = 0;
-       wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.vht_supported = 0;
-       wiphy->bands[IEEE80211_BAND_5GHZ]->vht_cap.cap = 0;
+       wiphy->bands[NL80211_BAND_2GHZ]->vht_cap.vht_supported = 0;
+       wiphy->bands[NL80211_BAND_2GHZ]->vht_cap.cap = 0;
+       wiphy->bands[NL80211_BAND_5GHZ]->vht_cap.vht_supported = 0;
+       wiphy->bands[NL80211_BAND_5GHZ]->vht_cap.cap = 0;
     }
 
     status = ccmCfgGetInt(ctx->hHal, WNI_CFG_HT_CAP_INFO, &val32);
@@ -16761,11 +16761,11 @@ void wlan_hdd_update_wiphy(struct wiphy *wiphy,
     ht_cap_info = (tSirMacHTCapabilityInfo *)&val16;
 
     if (ht_cap_info->txSTBC == TRUE) {
-        if (NULL != wiphy->bands[IEEE80211_BAND_2GHZ])
-            wiphy->bands[IEEE80211_BAND_2GHZ]->ht_cap.cap |=
+        if (NULL != wiphy->bands[NL80211_BAND_2GHZ])
+            wiphy->bands[NL80211_BAND_2GHZ]->ht_cap.cap |=
                                                     IEEE80211_HT_CAP_TX_STBC;
-        if (NULL != wiphy->bands[IEEE80211_BAND_5GHZ])
-            wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+        if (NULL != wiphy->bands[NL80211_BAND_5GHZ])
+            wiphy->bands[NL80211_BAND_5GHZ]->ht_cap.cap |=
                                                     IEEE80211_HT_CAP_TX_STBC;
     }
 }
@@ -19421,7 +19421,7 @@ static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
  * Return: zero for data rate on success or 0 on failure
  */
 uint16_t hdd_get_data_rate_from_rate_mask(struct wiphy *wiphy,
-		enum ieee80211_band band,
+		enum nl80211_band band,
 		struct cfg80211_bitrate_mask *bit_rate_mask)
 {
 	struct ieee80211_supported_band *sband = wiphy->bands[band];
@@ -19458,7 +19458,7 @@ void hdd_update_beacon_rate(hdd_adapter_t *pAdapter, struct wiphy *wiphy,
 		struct cfg80211_ap_settings *params)
 {
 	struct cfg80211_bitrate_mask *beacon_rate_mask;
-	enum ieee80211_band band;
+	enum nl80211_band band;
 
 	band = params->chandef.chan->band;
 	beacon_rate_mask = &params->beacon_rate;
@@ -21801,11 +21801,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     }
 
     if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ) &&
-        (wiphy->bands[IEEE80211_BAND_2GHZ] != NULL)) {
-        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+        (wiphy->bands[NL80211_BAND_2GHZ] != NULL)) {
+        freq = ieee80211_channel_to_frequency(chan_no, NL80211_BAND_2GHZ);
     } else if ((chan_no > ARRAY_SIZE(hdd_channels_2_4_GHZ)) &&
-               (wiphy->bands[IEEE80211_BAND_5GHZ] != NULL)) {
-        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_5GHZ);
+               (wiphy->bands[NL80211_BAND_5GHZ] != NULL)) {
+        freq = ieee80211_channel_to_frequency(chan_no, NL80211_BAND_5GHZ);
     } else {
         hddLog(LOGE, FL("Invalid chan_no %d"), chan_no);
         kfree(mgmt);
@@ -23535,10 +23535,10 @@ static bool wlan_hdd_sta_p2pgo_concur_handle(hdd_context_t *hdd_ctx,
               WLAN_HDD_GET_AP_CTX_PTR(p2pgo_adapter)->operatingChannel;
             if (p2pgo_channel_num <= ARRAY_SIZE(hdd_channels_2_4_GHZ)) {
                 freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
-                                                   IEEE80211_BAND_2GHZ);
+                                                   NL80211_BAND_2GHZ);
             } else {
                 freq = ieee80211_channel_to_frequency(p2pgo_channel_num,
-                                                   IEEE80211_BAND_5GHZ);
+                                                   NL80211_BAND_5GHZ);
             }
             vos_mem_zero(&hdd_avoid_freq_list,
                          sizeof(hdd_avoid_freq_list));
@@ -31218,7 +31218,7 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     mutex_lock(&pHddCtx->chan_info_lock);
     freq = pHddCtx->chan_info[idx].freq;
 
-    for (i = 0; i < IEEE80211_NUM_BANDS && !filled; i++)
+    for (i = 0; i < NUM_NL80211_BANDS && !filled; i++)
     {
         if (NULL == wiphy->bands[i])
            continue;

@@ -2870,26 +2870,12 @@ enum qca_wlan_vendor_attr_thermal_cmd {
 
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
-/**
- * enum ieee80211_band - supported frequency bands
- *
- * The bands are assigned this way because the supported
- * bitrates differ in these bands.
- *
- * @IEEE80211_BAND_2GHZ: 2.4GHz ISM band
- * @IEEE80211_BAND_5GHZ: around 5GHz band (4.9-5.7)
- * @IEEE80211_BAND_60GHZ: around 60 GHz band (58.32 - 64.80 GHz)
- * @IEEE80211_NUM_BANDS: number of defined bands
- */
-enum ieee80211_band {
-	IEEE80211_BAND_2GHZ = NL80211_BAND_2GHZ,
-	IEEE80211_BAND_5GHZ = NL80211_BAND_5GHZ,
-	IEEE80211_BAND_60GHZ = NL80211_BAND_60GHZ,
-
-	/* keep last */
-	IEEE80211_NUM_BANDS
-};
+/*
+ * As of 4.7, ieee80211_band is removed; add shims so we can reference
+ * nl80211_band instead
+  */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
+#define NUM_NL80211_BANDS ((enum nl80211_band)IEEE80211_NUM_BANDS)
 #endif
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,

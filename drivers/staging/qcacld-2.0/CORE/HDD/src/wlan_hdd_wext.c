@@ -5619,10 +5619,10 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
         }
 
         if (phddctx->cfg_ini->nChannelBondingMode5GHz)
-            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap |=
+            phddctx->wiphy->bands[NL80211_BAND_5GHZ]->ht_cap.cap |=
                                               IEEE80211_HT_CAP_SUP_WIDTH_20_40;
         else
-            phddctx->wiphy->bands[IEEE80211_BAND_5GHZ]->ht_cap.cap &=
+            phddctx->wiphy->bands[NL80211_BAND_5GHZ]->ht_cap.cap &=
                                               ~IEEE80211_HT_CAP_SUP_WIDTH_20_40;
 
 
