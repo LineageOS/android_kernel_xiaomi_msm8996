@@ -117,6 +117,52 @@
     },
     {
       "key": {
+        "uuid": "ff2e2bb8_fe5e85e4",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1772,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T12:04:19Z",
+      "side": 1,
+      "message": "Must be moved out of common. Include these msm8996-v3.0.dtsi overrides in a1-msm8996-v3.0-pmi8994-mtp.dts and a2-msm8996-v3.0-pmi8994-mtp.dts.",
+      "range": {
+        "startLine": 1760,
+        "startChar": 0,
+        "endLine": 1772,
+        "endChar": 24
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_5e733181",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
+        "patchSetId": 4
+      },
+      "lineNbr": 1839,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-13T12:04:19Z",
+      "side": 1,
+      "message": "Must be moved out of common. Include these msm8996-v3.dtsi overrides in a1-msm8996-v3-pmi8994-mtp.dts and a2-msm8996-v3-pmi8994-mtp.dts.",
+      "range": {
+        "startLine": 1774,
+        "startChar": 0,
+        "endLine": 1839,
+        "endChar": 22
+      },
+      "revId": "d8573a19cb625a34d6325dc7af32030861db1f6a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ff2e2bb8_7ebc3505",
         "filename": "arch/arm/boot/dts/qcom/msm8996-gemini-common.dtsi",
         "patchSetId": 4
