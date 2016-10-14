@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ff2e2bb8_47f520cb",
+        "filename": "drivers/tspdrv/ImmVibeSPI.c",
+        "patchSetId": 10
+      },
+      "lineNbr": 1477,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-14T14:17:46Z",
+      "side": 1,
+      "message": "Add: return VIBE_E_FAIL;",
+      "range": {
+        "startLine": 1476,
+        "startChar": 67,
+        "endLine": 1477,
+        "endChar": 1
+      },
+      "revId": "130f2dab64c2364e3b416e144c75f7d6b55052c1",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
