@@ -393,6 +393,7 @@ struct synaptics_rmi4_data {
 	bool eraser_enable;
 	bool fw_updating;
 	bool wakeup_en;
+	unsigned int old_status;
 	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data,
 			bool rebuild);
 	int (*irq_enable)(struct synaptics_rmi4_data *rmi4_data, bool enable,
