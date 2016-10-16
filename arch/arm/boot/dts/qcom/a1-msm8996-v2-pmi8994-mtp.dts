@@ -15,7 +15,6 @@
 /dts-v1/;
 
 #include "msm8996-v2.dtsi"
-//#include "msm8996-gpu-gemini.dtsi"
 #include "a1-msm8996-mtp.dtsi"
 
 / {
