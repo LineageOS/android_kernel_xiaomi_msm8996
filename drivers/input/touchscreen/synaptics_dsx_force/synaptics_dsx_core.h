@@ -402,6 +402,8 @@ struct synaptics_rmi4_data {
 	bool fw_updating;
 	bool wakeup_en;
 	bool homekey_wakeup;
+	bool is_jdi_panel;
+	unsigned int old_status;
 	int (*reset_device)(struct synaptics_rmi4_data *rmi4_data,
 			bool rebuild);
 	int (*irq_enable)(struct synaptics_rmi4_data *rmi4_data, bool enable,
