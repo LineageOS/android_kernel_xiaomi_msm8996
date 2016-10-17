@@ -14876,7 +14876,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
 
        if (wlan_hdd_logging_sock_activate_svc(pHddCtx) < 0)
-           goto err_config;
+           goto err_sock_activate;
 
        /*
         * Update VOS trace levels based upon the code. The multicast log
@@ -14932,7 +14932,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Initialize the nlink service */
    if (wlan_hdd_nl_init(pHddCtx) != 0) {
       hddLog(LOGP, FL("nl_srv_init failed"));
-      goto err_config;
+      goto err_sock_activate;
    }
    vos_set_radio_index(pHddCtx->radio_index);
 
@@ -15740,7 +15740,6 @@ err_ipa_cleanup:
 
 err_wiphy_unregister:
    wiphy_unregister(wiphy);
-   wlan_hdd_cfg80211_deinit(wiphy);
 
 err_vosclose:
    status = vos_sched_close( pVosContext );
@@ -15773,6 +15772,10 @@ err_free_ftm_open:
        wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
 err_nl_srv:
    nl_srv_exit();
+
+err_sock_activate:
+   wlan_hdd_cfg80211_deinit(wiphy);
+
 err_config:
    vos_mem_free(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
