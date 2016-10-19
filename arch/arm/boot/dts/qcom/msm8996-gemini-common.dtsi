@@ -1865,10 +1865,7 @@
 	};
 
 	qcom,bcl {
-		qcom,bcl-soc-hotplug-list = <&CPU3>;
-		qcom,ibat-monitor {
-			qcom,soc-low-threshold = <5>;
-		};
+		/delete-property/ qcom,bcl-enable;
 	};
 
 	/delete-node/ qcom,msm-dai-mi2s;
