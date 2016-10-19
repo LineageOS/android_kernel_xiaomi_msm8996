@@ -44,7 +44,6 @@
 		qcom,mdss-dsi-on-command = [
 				15 00 00 00 00 00 02 51 FF
 				15 00 00 00 00 00 02 53 24
-				15 00 00 00 00 00 02 55 00
 				15 00 00 00 00 00 02 35 00
 				39 01 00 00 00 00 05 30 00 00 02 A7
 				05 01 00 00 78 00 02 11 00
@@ -52,8 +51,7 @@
 				29 00 00 00 00 00 02 B0 04
 				39 00 00 00 00 00 02 84 00
 				29 00 00 00 00 00 02 C8 11
-				29 00 00 00 00 00 02 CA 1C
-				29 01 00 00 00 00 02 B0 03];
+				29 00 00 00 00 00 02 CA 1C];
 		qcom,mdss-dsi-off-command = [
 				05 01 00 00 14 00 02 28 00
 				05 01 00 00 78 00 02 10 00];
@@ -88,5 +86,13 @@
 		qcom,mdss-panel-on-dimming-delay = <120>;
 		qcom,panel-allow-phy-poweroff;
 		qcom,ulps-enabled;
+		cm,mdss-livedisplay-cabc-cmd = [
+				15 00 00 00 00 00 02 55 00];
+		cm,mdss-livedisplay-cabc-ui-value = <0x01>;
+		cm,mdss-livedisplay-cabc-image-value = <0x02>;
+		cm,mdss-livedisplay-cabc-video-value = <0x03>;
+		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
+		cm,mdss-livedisplay-post-cmd = [
+				29 01 00 00 00 00 02 B0 03];
 	};
 };

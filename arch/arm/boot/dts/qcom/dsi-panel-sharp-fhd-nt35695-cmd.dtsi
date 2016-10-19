@@ -56,9 +56,7 @@
 				15 00 00 00 00 00 02 BB 10
 				15 00 00 00 00 00 02 51 FF
 				15 00 00 00 00 00 02 53 24
-				15 01 00 00 00 00 02 55 00
-				05 01 00 00 78 00 02 11 00
-				05 01 00 00 14 00 02 29 00];
+				05 01 00 00 78 00 02 11 00];
 		qcom,mdss-dsi-off-command = [
 				15 01 00 00 00 00 02 FF 10
 				05 01 00 00 02 00 02 28 00
@@ -93,5 +91,13 @@
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,panel-allow-phy-poweroff;
 		qcom,ulps-enabled;
+		cm,mdss-livedisplay-cabc-cmd = [
+				15 01 00 00 00 00 02 55 00];
+		cm,mdss-livedisplay-cabc-ui-value = <0x01>;
+		cm,mdss-livedisplay-cabc-image-value = <0x02>;
+		cm,mdss-livedisplay-cabc-video-value = <0x03>;
+		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
+		cm,mdss-livedisplay-post-cmd = [
+				05 01 00 00 14 00 02 29 00];
 	};
 };
