@@ -36,6 +36,8 @@
 #include "epping_main.h"
 #include "htc_api.h"
 
+#define MAX_HTC_RX_BUNDLE  2
+
 #ifdef WLAN_DEBUG
 static ATH_DEBUG_MASK_DESCRIPTION g_HTCDebugDescription[] = {
     { ATH_DEBUG_SEND , "Send"},
@@ -534,6 +536,8 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
     HTC_SERVICE_CONNECT_RESP resp;
     HTC_READY_MSG *rdy_msg;
     A_UINT16 htc_rdy_msg_id;
+    A_UINT8 i = 0;
+    HTC_PACKET *pRxBundlePacket, *pTempBundlePacket;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("HTCWaitTarget - Enter (target:0x%p) \n", HTCHandle));
     AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("+HWT\n"));
@@ -588,6 +592,20 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
             status = A_ECOMM;
             break;
         }
+
+        /* Allocate expected number of RX bundle buffer allocation */
+        pTempBundlePacket = NULL;
+        for (i = 0; i < MAX_HTC_RX_BUNDLE; i++) {
+            pRxBundlePacket = AllocateHTCBundleRxPacket(target);
+            if (pRxBundlePacket != NULL) {
+                pRxBundlePacket->ListLink.pNext = (DL_LIST *)pTempBundlePacket;
+            } else {
+                break;
+            }
+            pTempBundlePacket = pRxBundlePacket;
+        }
+        target->pBundleFreeRxList = pTempBundlePacket;
+
             /* done processing */
         target->CtrlResponseProcessing = FALSE;
 

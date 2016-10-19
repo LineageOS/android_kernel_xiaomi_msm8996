@@ -39,6 +39,7 @@
 #include <adf_os_defer.h>
 #include <adf_os_atomic.h>
 #include <adf_nbuf.h>
+#include <vos_threads.h>
 #include <athdefs.h>
 #include <adf_net_types.h>
 #include <a_types.h>
@@ -51,6 +52,7 @@
 #include "regtable.h"
 #include "if_ath_sdio.h"
 
+#define NBUF_ALLOC_FAIL_WAIT_TIME 100
 
 static void HIFDevDumpRegisters(HIF_SDIO_DEVICE *pDev,
         MBOX_IRQ_PROC_REGISTERS *pIrqProcRegs,
@@ -645,6 +647,7 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
     if (!pPacketRxBundle) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("%s: pPacketRxBundle is NULL \n",
             __FUNCTION__));
+        vos_sleep(NBUF_ALLOC_FAIL_WAIT_TIME);  /* 100 msec sleep */
         return A_NO_MEMORY;
     }
     pBundleBuffer = pPacketRxBundle->pBuffer;
@@ -823,6 +826,16 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                         &pktsFetched,
                         partialBundle);
                 if (A_FAILED(status)) {
+                    while (!HTC_QUEUE_EMPTY(&recvPktQueue)) {
+                        adf_nbuf_t netbuf;
+
+                        pPacket = HTC_PACKET_DEQUEUE(&recvPktQueue);
+                        if (pPacket == NULL)
+                            break;
+                        netbuf = (adf_nbuf_t) pPacket->pNetBufContext;
+                        if (netbuf)
+                            adf_nbuf_free(netbuf);
+                    }
                     break;
                 }
 
