@@ -54,16 +54,13 @@
 				39 00 00 00 00 00 03 44 00 00
 				39 00 00 00 00 00 02 51 FF
 				39 00 00 00 00 00 02 53 24
-				39 00 00 00 00 00 02 55 00
 				39 00 00 00 00 00 02 5E 00
 				39 00 00 00 00 00 02 84 00
 				05 01 00 00 14 00 02 29 00
 				05 01 00 00 78 00 02 11 00
 				29 00 00 00 00 00 02 B0 04
 				39 00 00 00 00 00 02 84 00
-				29 00 00 00 00 00 02 C8 11
-				29 01 00 00 00 00 02 B0 03
-];
+				29 00 00 00 00 00 02 C8 11];
 		qcom,mdss-dsi-off-command = [
 				29 00 00 00 00 00 02 b0 00
 				29 00 00 00 00 00 02 d6 01
@@ -100,5 +97,14 @@
 		qcom,mdss-dsi-te-dcs-command = <1>;
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
+
+		cm,mdss-livedisplay-cabc-cmd = [
+				39 00 00 00 00 00 02 55 00];
+		cm,mdss-livedisplay-cabc-ui-value = <0x01>;
+		cm,mdss-livedisplay-cabc-image-value = <0x02>;
+		cm,mdss-livedisplay-cabc-video-value = <0x03>;
+		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
+		cm,mdss-livedisplay-post-cmd = [
+				29 01 00 00 00 00 02 B0 03];
 	};
 };
