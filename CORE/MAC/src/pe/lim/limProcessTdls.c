@@ -2412,19 +2412,21 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
         pStaDs->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
     }
 #endif
-    /*Calculate the Secondary Coannel Offset */
-    cbMode = limSelectCBMode(pStaDs, psessionEntry,
-                             psessionEntry->currentOperChannel,
-                             pStaDs->vhtSupportedChannelWidthSet);
+    /*
+     * Calculate the Secondary Channel Offset if our own channel bonding
+     * state is enabled
+     */
+    if (psessionEntry->htSupportedChannelWidthSet) {
+        cbMode = limSelectCBMode(pStaDs, psessionEntry,
+                                 psessionEntry->currentOperChannel,
+                                 pStaDs->vhtSupportedChannelWidthSet);
 
-    pStaDs->htSecondaryChannelOffset = cbMode;
-
+        pStaDs->htSecondaryChannelOffset = cbMode;
 #ifdef WLAN_FEATURE_11AC
-    if ( pStaDs->mlmStaContext.vhtCapability )
-    {
-        pStaDs->htSecondaryChannelOffset = limGetHTCBState(cbMode);
-    }
+        if ( pStaDs->mlmStaContext.vhtCapability )
+            pStaDs->htSecondaryChannelOffset = limGetHTCBState(cbMode);
 #endif
+    }
 
     pSessStaDs = dphLookupHashEntry(pMac, psessionEntry->bssId, &aid,
                                           &psessionEntry->dph.dphHashTable) ;

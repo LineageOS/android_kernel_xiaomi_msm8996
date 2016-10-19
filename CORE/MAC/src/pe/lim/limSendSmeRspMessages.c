@@ -3038,7 +3038,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
 
       } else
 #endif
-      if (psessionEntry->htCapability) {
+      if (psessionEntry->htSupportedChannelWidthSet) {
           psessionEntry->gLimChannelSwitch.secondarySubBand =
                                              limSelectCBMode(pStaDs,
                                                  psessionEntry,
