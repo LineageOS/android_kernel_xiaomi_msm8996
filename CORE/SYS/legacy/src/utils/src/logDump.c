@@ -92,14 +92,15 @@ logDump.c
 
 static int debug;
 
-    void
+int
 logPrintf(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4)
 {
     static tANI_U8 buf[MAX_LOGDUMP_SIZE + MAX_OVERFLOW_MSG];
-    tANI_U16 bufLen;
+
     pMac->gCurrentLogSize = 0;
 
-    bufLen = (tANI_U16)logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);
+    return logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);
+
 }
 
 /**
@@ -436,12 +437,14 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
                        pEntry->func(pMac, arg1, arg2, arg3, arg4, p);
                    } else {
                        p += log_sprintf( pMac,p, "Cmd not supported\n");
+                       return -1;
                    }
                    break;
                }
            }
        } else {
            p += log_sprintf( pMac,p, "Cmd not found \n");
+           return -1;
        }
     }
     if (debug)

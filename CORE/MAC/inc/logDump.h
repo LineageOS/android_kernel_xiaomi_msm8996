@@ -65,7 +65,7 @@ typedef struct sRegList {
 int log_sprintf(tpAniSirGlobal pMac, char *pBuf, char *fmt, ... );
 
 #ifdef ANI_LOGDUMP
-void logPrintf(tpAniSirGlobal mac, tANI_U32 cmd,
+int logPrintf(tpAniSirGlobal mac, tANI_U32 cmd,
 			   tANI_U32 arg1, tANI_U32 arg2,
 			   tANI_U32 arg3, tANI_U32 arg4);
 #else
