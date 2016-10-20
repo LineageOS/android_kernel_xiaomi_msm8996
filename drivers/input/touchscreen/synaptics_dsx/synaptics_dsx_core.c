@@ -31,8 +31,10 @@
  * DOLLARS.
  */
 
+#include <asm/uaccess.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
@@ -132,6 +134,11 @@
 #define INPUT_EVENT_COVER_MODE_OFF		6
 #define INPUT_EVENT_COVER_MODE_ON		7
 #define INPUT_EVENT_END				7
+
+/* Swap keys */
+static bool reversed_keys = false;
+#define REP_KEY_BACK (reversed_keys ? KEY_MENU : KEY_BACK)
+#define REP_KEY_MENU (reversed_keys ? KEY_BACK : KEY_MENU)
 
 #define COMMAND_TIMEOUT_100MS 20
 
@@ -1101,6 +1108,68 @@ static ssize_t synaptics_rmi4_virtual_key_map_show(struct kobject *kobj,
 	return count;
 }
 
+static ssize_t synaptics_rmi4_reversed_keys_write(struct file *file,
+		const char __user *page, size_t t, loff_t *lo)
+{
+	int ret = 0;
+	char buf[10] = {0};
+
+	if (t > 2)
+		return t;
+	if (copy_from_user(buf, page, t)) {
+		pr_err("%s: Read proc input error.\n", __func__);
+		return t;
+	}
+
+	sscanf(buf, "%d", &ret);
+	if (ret == 0 || ret == 1)
+		reversed_keys = ret;
+	return t;
+}
+
+static int synaptics_rmi4_reversed_keys_show(struct seq_file *seq, void *offset)
+{
+	seq_printf(seq, "%d\n", reversed_keys ? 1 : 0);
+	return 0 ;
+}
+
+static int synaptics_rmi4_reversed_keys_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, synaptics_rmi4_reversed_keys_show, inode->i_private);
+}
+
+const struct file_operations synaptics_rmi4_proc_reversed_keys =
+{
+	.owner		= THIS_MODULE,
+	.open		= synaptics_rmi4_reversed_keys_open,
+	.read		= seq_read,
+	.write		= synaptics_rmi4_reversed_keys_write,
+	.llseek 	= seq_lseek,
+	.release	= single_release,
+};
+
+static int synaptics_rmi4_proc_init(void)
+{
+	int ret = 0;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_entry_tmp  = NULL;
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	proc_entry_tmp = proc_create("reversed_keys", 0666,
+			proc_entry_tp, &synaptics_rmi4_proc_reversed_keys);
+	if (proc_entry_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys\n", __func__);
+	}
+
+	return ret;
+}
+
 static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
 		struct synaptics_rmi4_fn *fhandler)
 {
@@ -1646,16 +1715,22 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 				}
 			}
 			touch_count++;
-			input_report_key(rmi4_data->input_dev,
-					f1a->button_map[button],
-					status);
+			if (button == 1)
+				input_report_key(rmi4_data->input_dev,
+						REP_KEY_BACK, status);
+			else if (button == 0)
+				input_report_key(rmi4_data->input_dev,
+						REP_KEY_MENU, status);
 		} else {
 			if (before_2d_status[button] == 1) {
 				before_2d_status[button] = 0;
 				touch_count++;
-				input_report_key(rmi4_data->input_dev,
-						f1a->button_map[button],
-						status);
+				if (button == 1)
+					input_report_key(rmi4_data->input_dev,
+							REP_KEY_BACK, status);
+				else if (button == 0)
+					input_report_key(rmi4_data->input_dev,
+							REP_KEY_MENU, status);
 			} else {
 				if (status == 1)
 					while_2d_status[button] = 1;
@@ -1665,9 +1740,12 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 		}
 #else
 		touch_count++;
-		input_report_key(rmi4_data->input_dev,
-				f1a->button_map[button],
-				status);
+		if (button == 1)
+			input_report_key(rmi4_data->input_dev,
+					REP_KEY_BACK, status);
+		else if (button == 0)
+			input_report_key(rmi4_data->input_dev,
+					REP_KEY_MENU, status);
 #endif
 	}
 
@@ -4657,6 +4735,7 @@ static int synaptics_rmi4_probe(struct platform_device *pdev)
 		}
 	}
 
+	synaptics_rmi4_proc_init();
 
 	retval = sysfs_create_file(&rmi4_data->pdev->dev.parent->kobj, &dev_attr_panel_color.attr);
 
