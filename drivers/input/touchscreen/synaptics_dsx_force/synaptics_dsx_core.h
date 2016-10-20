@@ -394,6 +394,9 @@ struct synaptics_rmi4_data {
 	bool f12_wakeup_gesture;
 	bool enable_wakeup_gesture;
 	bool enable_cover_mode;
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	bool enable_reversed_keys;
+#endif
 	bool wedge_sensor;
 	bool report_pressure;
 	bool stylus_enable;
