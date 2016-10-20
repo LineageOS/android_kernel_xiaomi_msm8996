@@ -13,7 +13,9 @@
  *
  */
 
+#include <asm/uaccess.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
@@ -576,6 +578,11 @@
 
 #define MXT_MAX_FINGER_NUM	16
 #define BOOTLOADER_1664_1188	1
+
+/* Swap keys */
+static bool reversed_keys = false;
+#define REP_KEY_BACK (reversed_keys ? KEY_MENU : KEY_BACK)
+#define REP_KEY_MENU (reversed_keys ? KEY_BACK : KEY_MENU)
 
 struct mxt_info {
 	u8 family_id;
@@ -1458,12 +1465,18 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 		if (!curr_state && new_state) {
 			dev_dbg(dev, "T15 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 1);
+			else if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
 			dev_dbg(dev, "T15 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 0);
+			else if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 0);
 			sync = true;
 		}
 	}
@@ -1654,14 +1667,20 @@ static void mxt_proc_t97_messages(struct mxt_data *data, u8 *msg)
 		new_state = test_bit(key, &keystates);
 
 		if (!curr_state && new_state) {
-			dev_dbg(dev, "T97 key press: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 1);
+			else if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
-			dev_dbg(dev, "T97 key release: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 0);
+			else if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 0);
 			sync = true;
 		}
 	}
@@ -4879,6 +4898,68 @@ static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
 
+static ssize_t mxt_reversed_keys_write(struct file *file,
+		const char __user *page, size_t t, loff_t *lo)
+{
+	int ret = 0;
+	char buf[10] = {0};
+
+	if (t > 2)
+		return t;
+	if (copy_from_user(buf, page, t)) {
+		pr_err("%s: Read proc input error.\n", __func__);
+		return t;
+	}
+
+	sscanf(buf, "%d", &ret);
+	if (ret == 0 || ret == 1)
+		reversed_keys = ret;
+	return t;
+}
+
+static int mxt_reversed_keys_show(struct seq_file *seq, void *offset)
+{
+	seq_printf(seq, "%d\n", reversed_keys ? 1 : 0);
+	return 0 ;
+}
+
+static int mxt_reversed_keys_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, mxt_reversed_keys_show, inode->i_private);
+}
+
+const struct file_operations mxt_proc_reversed_keys =
+{
+	.owner		= THIS_MODULE,
+	.open		= mxt_reversed_keys_open,
+	.read		= seq_read,
+	.write		= mxt_reversed_keys_write,
+	.llseek 	= seq_lseek,
+	.release	= single_release,
+};
+
+static int mxt_proc_init(void)
+{
+	int ret = 0;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_entry_tmp  = NULL;
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	proc_entry_tmp = proc_create("reversed_keys", 0666,
+			proc_entry_tp, &mxt_proc_reversed_keys);
+	if (proc_entry_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys\n", __func__);
+	}
+
+	return ret;
+}
+
 static void mxt_set_gesture_wake_up(struct mxt_data *data, bool enable)
 {
 	int error;
@@ -6210,6 +6291,8 @@ static int mxt_probe(struct i2c_client *client,
 			error);
 		goto err_free_irq;
 	}
+
+	mxt_proc_init();
 
 	sysfs_bin_attr_init(&data->mem_access_attr);
 	data->mem_access_attr.attr.name = "mem_access";
