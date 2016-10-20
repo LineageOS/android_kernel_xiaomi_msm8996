@@ -114,6 +114,20 @@ config TOUCHSCREEN_SYNAPTICS_DSX_VIDEO_FORCE
 	  To compile this driver as a module, choose M here: the
 	  module will be called synaptics_dsx_video.
 
+config TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	bool "Synaptics DSX reversed keys support"
+	default n
+	depends on TOUCHSCREEN_SYNAPTICS_DSX_CORE_FORCE
+	help
+	  Say Y here to enable support for reversed keys.
+
+config TOUCHSCREEN_SYNAPTICS_DSX_2D_PRESSURE_FORCE
+	bool "Synaptics DSX 2D pressure support"
+	default n
+	depends on TOUCHSCREEN_SYNAPTICS_DSX_CORE_FORCE
+	help
+	  Say Y here to enable support for 2D pressure.
+
 config TOUCH_DEBUG_FS
 	bool "touch debugfs suport"
 	default n
