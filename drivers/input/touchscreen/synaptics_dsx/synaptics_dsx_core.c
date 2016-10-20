@@ -133,6 +133,11 @@
 #define INPUT_EVENT_COVER_MODE_ON		7
 #define INPUT_EVENT_END				7
 
+/* Swap keys */
+static int key_reverse = 0;
+#define REP_KEY_BACK (key_reverse ? KEY_BACK : KEY_MENU)
+#define REP_KEY_MENU (key_reverse ? KEY_MENU : KEY_BACK)
+
 #define COMMAND_TIMEOUT_100MS 20
 
 static int synaptics_rmi4_check_status(struct synaptics_rmi4_data *rmi4_data,
@@ -202,6 +207,12 @@ static ssize_t synaptics_rmi4_0dbutton_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
 
 static ssize_t synaptics_rmi4_0dbutton_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
+static ssize_t synaptics_rmi4_key_reverse_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
+static ssize_t synaptics_rmi4_key_reverse_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
 static ssize_t synaptics_rmi4_suspend_store(struct device *dev,
@@ -643,6 +654,9 @@ static struct device_attribute attrs[] = {
 	__ATTR(0dbutton, (S_IRUGO | S_IWUSR),
 			synaptics_rmi4_0dbutton_show,
 			synaptics_rmi4_0dbutton_store),
+	__ATTR(key_reverse, (S_IRUGO | S_IWUSR),
+			synaptics_rmi4_key_reverse_show,
+			synaptics_rmi4_key_reverse_store),
 	__ATTR(suspend, S_IWUSR,
 			synaptics_rmi4_show_error,
 			synaptics_rmi4_suspend_store),
@@ -1013,6 +1027,26 @@ static ssize_t synaptics_rmi4_0dbutton_store(struct device *dev,
 
 	rmi4_data->button_0d_enabled = input;
 
+	return count;
+}
+
+static ssize_t synaptics_rmi4_key_reverse_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			key_reverse);
+}
+
+static ssize_t synaptics_rmi4_key_reverse_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = 0;
+
+	if (count > 2)
+		return count;
+	sscanf(buf, "%d", &ret);
+	if ((ret == 0 )||(ret == 1))
+		key_reverse = ret;
 	return count;
 }
 
@@ -1646,16 +1680,22 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 				}
 			}
 			touch_count++;
-			input_report_key(rmi4_data->input_dev,
-					f1a->button_map[button],
-					status);
+			if (button == 1) // left key
+				input_report_key(rmi4_data->input_dev,
+						REP_KEY_BACK, status);
+			if (button == 0) // right key
+				input_report_key(rmi4_data->input_dev,
+						REP_KEY_MENU, status);
 		} else {
 			if (before_2d_status[button] == 1) {
 				before_2d_status[button] = 0;
 				touch_count++;
-				input_report_key(rmi4_data->input_dev,
-						f1a->button_map[button],
-						status);
+				if (button == 1) // left key
+					input_report_key(rmi4_data->input_dev,
+							REP_KEY_BACK, status);
+				if (button == 0) // right key
+					input_report_key(rmi4_data->input_dev,
+							REP_KEY_MENU, status);
 			} else {
 				if (status == 1)
 					while_2d_status[button] = 1;
@@ -1665,9 +1705,12 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 		}
 #else
 		touch_count++;
-		input_report_key(rmi4_data->input_dev,
-				f1a->button_map[button],
-				status);
+		if (button == 1) // left key
+			input_report_key(rmi4_data->input_dev,
+					REP_KEY_BACK, status);
+		if (button == 0) // right key
+			input_report_key(rmi4_data->input_dev,
+					REP_KEY_MENU, status);
 #endif
 	}
 
