@@ -224,7 +224,13 @@ static ssize_t synaptics_rmi4_0dbutton_show(struct device *dev,
 
 static ssize_t synaptics_rmi4_0dbutton_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+static ssize_t synaptics_rmi4_reversed_keys_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
+static ssize_t synaptics_rmi4_reversed_keys_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+#endif
 static ssize_t synaptics_rmi4_suspend_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
@@ -763,6 +769,11 @@ static struct device_attribute attrs[] = {
 	__ATTR(0dbutton, (S_IRUGO | S_IWUSR),
 			synaptics_rmi4_0dbutton_show,
 			synaptics_rmi4_0dbutton_store),
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	__ATTR(reversed_keys, (S_IRUGO | S_IWUSR),
+			synaptics_rmi4_reversed_keys_show,
+			synaptics_rmi4_reversed_keys_store),
+#endif
 	__ATTR(suspend, S_IWUSR,
 			synaptics_rmi4_show_error,
 			synaptics_rmi4_suspend_store),
@@ -1141,6 +1152,31 @@ static ssize_t synaptics_rmi4_0dbutton_store(struct device *dev,
 	return count;
 }
 
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+static ssize_t synaptics_rmi4_reversed_keys_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			rmi4_data->enable_reversed_keys);
+}
+
+static ssize_t synaptics_rmi4_reversed_keys_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
+
+	if (sscanf(buf, "%u", &input) == 1 && input < 2)
+		rmi4_data->enable_reversed_keys = (input == 1);
+	else
+		return -EINVAL;
+
+	return count;
+}
+#endif
+
 static ssize_t synaptics_rmi4_suspend_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -1289,6 +1325,9 @@ static int synaptics_rmi4_proc_init(struct kernfs_node *sysfs_node_parent)
 	int ret = 0;
 	char *buf, *path = NULL;
 	char *double_tap_sysfs_node, *key_disabler_sysfs_node;
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	char *swap_keys_sysfs_node;
+#endif
 	struct proc_dir_entry *proc_entry_tp = NULL;
 	struct proc_dir_entry *proc_symlink_tmp  = NULL;
 
@@ -1322,9 +1361,24 @@ static int synaptics_rmi4_proc_init(struct kernfs_node *sysfs_node_parent)
 		pr_err("%s: Couldn't create capacitive_keys_enable symlink\n", __func__);
 	}
 
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	swap_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (swap_keys_sysfs_node)
+		sprintf(swap_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
+	proc_symlink_tmp = proc_symlink("reversed_keys_enable",
+			proc_entry_tp, swap_keys_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys_enable symlink\n", __func__);
+	}
+#endif
+
 	kfree(buf);
 	kfree(double_tap_sysfs_node);
 	kfree(key_disabler_sysfs_node);
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	kfree(swap_keys_sysfs_node);
+#endif
 
 	return ret;
 }
@@ -1841,6 +1895,25 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 	return touch_count;
 }
 
+static void synaptics_rmi4_report_key(struct synaptics_rmi4_data *rmi4_data,
+		struct synaptics_rmi4_fn *fhandler, int button, int status)
+{
+	struct synaptics_rmi4_f1a_handle *f1a = fhandler->data;
+
+#ifndef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_REVERSED_KEYS_FORCE
+	input_report_key(rmi4_data->input_dev, f1a->button_map[button], status);
+#else
+	if (button == 2)
+		input_report_key(rmi4_data->input_dev, f1a->button_map[button], status);
+	else if (button == 1)
+		input_report_key(rmi4_data->input_dev,
+				rmi4_data->enable_reversed_keys ? KEY_MENU : KEY_BACK, status);
+	else if (button == 0)
+		input_report_key(rmi4_data->input_dev,
+				rmi4_data->enable_reversed_keys ? KEY_BACK : KEY_MENU, status);
+#endif
+}
+
 static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 		struct synaptics_rmi4_fn *fhandler)
 {
@@ -1924,16 +1997,12 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 					continue;
 			}
 			touch_count++;
-			input_report_key(rmi4_data->input_dev,
-					f1a->button_map[button],
-					status);
+			synaptics_rmi4_report_key(rmi4_data, fhandler, button, status);
 		} else {
 			if (before_2d_status[button] == 1) {
 				before_2d_status[button] = 0;
 				touch_count++;
-				input_report_key(rmi4_data->input_dev,
-						f1a->button_map[button],
-						status);
+				synaptics_rmi4_report_key(rmi4_data, fhandler, button, status);
 			} else {
 				if (status == 1)
 					while_2d_status[button] = 1;
@@ -1943,9 +2012,7 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 		}
 #else
 		touch_count++;
-		input_report_key(rmi4_data->input_dev,
-				f1a->button_map[button],
-				status);
+		synaptics_rmi4_report_key(rmi4_data, fhandler, button, status);
 #endif
 	}
 
