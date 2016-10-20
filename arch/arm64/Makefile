@@ -16,7 +16,7 @@ OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
 GZFLAGS		:=-9
 
 ifneq ($(CONFIG_RELOCATABLE),)
-LDFLAGS_vmlinux		+= -pie -Bsymbolic
+LDFLAGS_vmlinux		+= -pie -shared -Bsymbolic
 endif
 
 ifeq ($(CONFIG_ARM64_ERRATUM_843419),y)
