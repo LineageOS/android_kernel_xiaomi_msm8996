@@ -690,6 +690,7 @@ struct mxt_data {
 	unsigned int max_y;
 	struct bin_attribute mem_access_attr;
 	bool debug_enabled;
+	bool enable_reversed_keys;
 	bool driver_paused;
 	bool irq_enabled;
 	u8 bootloader_addr;
@@ -1281,6 +1282,19 @@ static int mxt_soft_reset(struct mxt_data *data, u8 value)
 	return 0;
 }
 
+static void mxt_report_key(struct device *dev,
+		struct input_dev *input_dev, int key, int status)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+
+	if (key == 1)
+		input_event(input_dev, EV_KEY,
+				data->enable_reversed_keys ? KEY_MENU : KEY_BACK, status);
+	else if (key == 0)
+		input_event(input_dev, EV_KEY,
+				data->enable_reversed_keys ? KEY_BACK : KEY_MENU, status);
+}
+
 static void mxt_proc_t6_messages(struct mxt_data *data, u8 *msg)
 {
 	struct device *dev = &data->client->dev;
@@ -1552,12 +1566,12 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 		if (!curr_state && new_state) {
 			dev_dbg(dev, "T15 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			mxt_report_key(&data->client->dev, input_dev, key, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
 			dev_dbg(dev, "T15 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			mxt_report_key(&data->client->dev, input_dev, key, 0);
 			sync = true;
 		}
 	}
@@ -1748,14 +1762,14 @@ static void mxt_proc_t97_messages(struct mxt_data *data, u8 *msg)
 		new_state = test_bit(key, &keystates);
 
 		if (!curr_state && new_state) {
-			dev_dbg(dev, "T97 key press: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			mxt_report_key(&data->client->dev, input_dev, key, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
-			dev_dbg(dev, "T97 key release: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			mxt_report_key(&data->client->dev, input_dev, key, 0);
 			sync = true;
 		}
 	}
@@ -3582,6 +3596,29 @@ static ssize_t mxt_build_show(struct device *dev,
 	return count;
 }
 
+static ssize_t mxt_reversed_keys_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			data->enable_reversed_keys);
+}
+
+static ssize_t mxt_reversed_keys_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2)
+		data->enable_reversed_keys = (i == 1);
+	else
+		return -EINVAL;
+
+	return count;
+}
+
 static ssize_t mxt_pause_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -5068,6 +5105,8 @@ static ssize_t mxt_panel_vendor_show(struct device *dev,
 static DEVICE_ATTR(update_fw, S_IWUSR | S_IRUSR, mxt_update_fw_show, mxt_update_fw_store);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
 			mxt_debug_enable_store);
+static DEVICE_ATTR(reversed_keys, S_IRUGO | S_IWUSR, mxt_reversed_keys_show,
+			mxt_reversed_keys_store);
 static DEVICE_ATTR(pause_driver, S_IWUSR | S_IRUSR, mxt_pause_show,
 			mxt_pause_store);
 static DEVICE_ATTR(version, S_IRUGO, mxt_version_show, NULL);
@@ -5095,6 +5134,7 @@ static DEVICE_ATTR(edge_suppression_enable, S_IWUSR | S_IRUSR, mxt_edge_suppress
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_update_fw.attr,
 	&dev_attr_debug_enable.attr,
+	&dev_attr_reversed_keys.attr,
 	&dev_attr_pause_driver.attr,
 	&dev_attr_version.attr,
 	&dev_attr_build.attr,
@@ -5127,7 +5167,7 @@ static int mxt_proc_init(struct kernfs_node *sysfs_node_parent)
 {
 	int ret = 0;
 	char *buf, *path = NULL;
-	char *double_tap_sysfs_node;
+	char *double_tap_sysfs_node, *swap_keys_sysfs_node;
 	struct proc_dir_entry *proc_entry_tp = NULL;
 	struct proc_dir_entry *proc_symlink_tmp  = NULL;
 
@@ -5151,8 +5191,19 @@ static int mxt_proc_init(struct kernfs_node *sysfs_node_parent)
 		pr_err("%s: Couldn't create double_tap_enable symlink\n", __func__);
 	}
 
+	swap_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (swap_keys_sysfs_node)
+		sprintf(swap_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
+	proc_symlink_tmp = proc_symlink("reversed_keys_enable",
+			proc_entry_tp, swap_keys_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys_enable symlink\n", __func__);
+	}
+
 	kfree(buf);
 	kfree(double_tap_sysfs_node);
+	kfree(swap_keys_sysfs_node);
 
 	return ret;
 }
