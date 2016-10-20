@@ -298,6 +298,15 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         return;
     }
 
+#ifdef FEATURE_WLAN_TDLS
+    /* Delete all the TDLS peers only if Disassoc is received from the AP */
+    if ((LIM_IS_STA_ROLE(psessionEntry)) &&
+        ((pStaDs->mlmStaContext.mlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) ||
+        (pStaDs->mlmStaContext.mlmState == eLIM_MLM_IDLE_STATE)) &&
+        (IS_CURRENT_BSSID(pMac, pHdr->sa, psessionEntry)))
+        limDeleteTDLSPeers(pMac, psessionEntry);
+#endif
+
     if (pStaDs->mlmStaContext.mlmState != eLIM_MLM_LINK_ESTABLISHED_STATE)
     {
         /**
