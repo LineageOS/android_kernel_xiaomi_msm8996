@@ -73,6 +73,7 @@ struct fpc1020_data {
 	struct workqueue_struct *reset_workqueue;
 #endif
 	spinlock_t irq_lock;
+	struct completion irq_sent;
 	struct mutex lock;
 };
 
@@ -214,7 +215,10 @@ static ssize_t irq_get(struct device *device,
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(device);
 	int irq = gpio_get_value(fpc1020->irq_gpio);
-	return scnprintf(buffer, PAGE_SIZE, "%i\n", irq);
+	ssize_t count;
+	count = scnprintf(buffer, PAGE_SIZE, "%i\n", irq);
+	complete(&fpc1020->irq_sent);
+	return count;
 }
 
 
@@ -288,6 +292,9 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	}
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
+
+	reinit_completion(&fpc1020->irq_sent);
+	wait_for_completion_timeout(&fpc1020->irq_sent, msecs_to_jiffies(100));
 
 	return IRQ_HANDLED;
 }
@@ -438,6 +445,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
 	mutex_init(&fpc1020->lock);
+	init_completion(&fpc1020->irq_sent);
 
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
