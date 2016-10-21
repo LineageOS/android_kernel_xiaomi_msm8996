@@ -21156,15 +21156,13 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 		   adf_os_cpu_to_be16(ether_type)) {
 		if (len >= WMA_EAPOL_SUBTYPE_GET_MIN_LEN)
 			return adf_nbuf_data_get_eapol_subtype(data);
-		VOS_TRACE(VOS_MODULE_ID_WDA,
-			VOS_TRACE_LEVEL_ERROR, "EAPOL Packet");
+		WMA_LOGD("EAPOL Packet");
 		return ADF_PROTO_INVALID;
 	} else if (ADF_NBUF_TRAC_ARP_ETH_TYPE ==
 		   adf_os_cpu_to_be16(ether_type)) {
 		if (len >= WMA_ARP_SUBTYPE_GET_MIN_LEN)
 			return adf_nbuf_data_get_arp_subtype(data);
-		VOS_TRACE(VOS_MODULE_ID_WDA,
-			VOS_TRACE_LEVEL_ERROR, "ARP Packet");
+		WMA_LOGD("ARP Packet");
 		return ADF_PROTO_INVALID;
 	} else if (ADF_NBUF_TRAC_IPV4_ETH_TYPE ==
 		   adf_os_cpu_to_be16(ether_type)) {
@@ -21177,8 +21175,7 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 				if (len >= WMA_ICMP_SUBTYPE_GET_MIN_LEN)
 					return adf_nbuf_data_get_icmp_subtype(
 							data);
-				VOS_TRACE(VOS_MODULE_ID_WDA,
-					VOS_TRACE_LEVEL_ERROR, "ICMP Packet");
+				WMA_LOGD("ICMP Packet");
 				return ADF_PROTO_INVALID;
 			} else if (proto_type == ADF_NBUF_TRAC_UDP_TYPE) {
 				if (len >= WMA_IS_DHCP_GET_MIN_LEN) {
@@ -21186,9 +21183,7 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 						if (len >=
 						   WMA_DHCP_SUBTYPE_GET_MIN_LEN)
 						  return adf_nbuf_data_get_dhcp_subtype(data);
-						VOS_TRACE(VOS_MODULE_ID_WDA,
-						    VOS_TRACE_LEVEL_ERROR,
-						    "DHCP Packet");
+						WMA_LOGD("DHCP Packet");
 						return ADF_PROTO_INVALID;
 					}
 				}
@@ -21197,8 +21192,7 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 				return ADF_PROTO_IPV4_TCP;
 			}
 		}
-		VOS_TRACE(VOS_MODULE_ID_WDA,
-			VOS_TRACE_LEVEL_ERROR, "IPV4 Packet");
+		WMA_LOGD("IPV4 Packet");
 		return ADF_PROTO_INVALID;
 	} else if (ADF_NBUF_TRAC_IPV6_ETH_TYPE ==
 		   adf_os_cpu_to_be16(ether_type)) {
@@ -21206,13 +21200,12 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 			uint8_t proto_type;
 
 			proto_type = adf_nbuf_data_get_ipv6_proto(data);
-			WMA_LOGE("IPV6_proto_type: %u", proto_type);
+			WMA_LOGD("IPV6_proto_type: %u", proto_type);
 			if (proto_type == ADF_NBUF_TRAC_ICMPV6_TYPE) {
 				if (len >= WMA_ICMPV6_SUBTYPE_GET_MIN_LEN)
 					return adf_nbuf_data_get_icmpv6_subtype(
 							data);
-				VOS_TRACE(VOS_MODULE_ID_WDA,
-					VOS_TRACE_LEVEL_ERROR, "ICMPV6 Packet");
+				WMA_LOGD("ICMPV6 Packet");
 				return ADF_PROTO_INVALID;
 			} else if (proto_type == ADF_NBUF_TRAC_UDP_TYPE) {
 				return ADF_PROTO_IPV6_UDP;
@@ -21220,8 +21213,7 @@ wma_wow_get_pkt_proto_subtype(uint8_t *data,
 				return ADF_PROTO_IPV6_TCP;
 			}
 		}
-		VOS_TRACE(VOS_MODULE_ID_WDA,
-			VOS_TRACE_LEVEL_ERROR, "IPV6 Packet");
+		WMA_LOGD("IPV6 Packet");
 		return ADF_PROTO_INVALID;
 	}
 
@@ -21269,7 +21261,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 				EAPOL_PKT_LEN_OFFSET));
 			key_len = (uint16_t)(*(uint16_t *)(data +
 				EAPOL_KEY_LEN_OFFSET));
-			WMA_LOGE("Pkt_len: %u, Key_len: %u",
+			WMA_LOGD("Pkt_len: %u, Key_len: %u",
 				adf_os_cpu_to_be16(pkt_len),
 				adf_os_cpu_to_be16(key_len));
 		}
@@ -21290,7 +21282,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 				DHCP_PKT_LEN_OFFSET));
 			transaction_id = (uint32_t)(*(uint32_t *)(data +
 				DHCP_TRANSACTION_ID_OFFSET));
-			WMA_LOGE("Pkt_len: %u, Transaction_id: %u",
+			WMA_LOGD("Pkt_len: %u, Transaction_id: %u",
 				adf_os_cpu_to_be16(pkt_len),
 				adf_os_cpu_to_be32(transaction_id));
 		}
@@ -21311,7 +21303,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 				IPV4_PKT_LEN_OFFSET));
 			seq_num = (uint16_t)(*(uint16_t *)(data +
 				ICMP_SEQ_NUM_OFFSET));
-			WMA_LOGE("Pkt_len: %u, Seq_num: %u",
+			WMA_LOGD("Pkt_len: %u, Seq_num: %u",
 				adf_os_cpu_to_be16(pkt_len),
 				adf_os_cpu_to_be16(seq_num));
 		}
@@ -21326,7 +21318,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 				IPV6_PKT_LEN_OFFSET));
 			seq_num = (uint16_t)(*(uint16_t *)(data +
 				ICMPV6_SEQ_NUM_OFFSET));
-			WMA_LOGE("Pkt_len: %u, Seq_num: %u",
+			WMA_LOGD("Pkt_len: %u, Seq_num: %u",
 				adf_os_cpu_to_be16(pkt_len),
 				adf_os_cpu_to_be16(seq_num));
 		}
@@ -21351,7 +21343,7 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 			if (proto_subtype == ADF_PROTO_IPV4_TCP) {
 				tcp_seq_num = (uint32_t)(*(uint32_t *)(data +
 					IPV4_TCP_SEQ_NUM_OFFSET));
-				WMA_LOGE("TCP_seq_num: %u",
+				WMA_LOGD("TCP_seq_num: %u",
 					adf_os_cpu_to_be32(tcp_seq_num));
 			}
 		}
@@ -21368,9 +21360,9 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 				IPV6_SRC_PORT_OFFSET));
 			dst_port = (uint16_t)(*(uint16_t *)(data +
 				IPV6_DST_PORT_OFFSET));
-			WMA_LOGE("Pkt_len: %u",
+			WMA_LOGD("Pkt_len: %u",
 				adf_os_cpu_to_be16(pkt_len));
-			WMA_LOGE("src_port: %u, dst_port: %u",
+			WMA_LOGD("src_port: %u, dst_port: %u",
 				adf_os_cpu_to_be16(src_port),
 				adf_os_cpu_to_be16(dst_port));
 			if (proto_subtype == ADF_PROTO_IPV6_TCP) {
@@ -21384,8 +21376,8 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 
 	default:
 end:
-		WMA_LOGE("wow_buf_pkt_len: %u", buf_len);
-		WMA_LOGE("Unknown Packet or Insufficient packet buffer");
+		WMA_LOGD("wow_buf_pkt_len: %u", buf_len);
+		WMA_LOGD("Unknown Packet or Insufficient packet buffer");
 		break;
 	}
 }
