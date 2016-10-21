@@ -16506,6 +16506,52 @@ eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
     return status;
 }
 
+/**
+ * eHalStatus sme_ll_stats_set_thresh - set threshold for mac counters
+ * @hal, hal layer handle
+ * @threshold, threshold for mac counters
+ */
+eHalStatus sme_ll_stats_set_thresh(tHalHandle hal,
+				   struct sir_ll_ext_stats_threshold *threshold)
+{
+	eHalStatus status    = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac  = PMAC_STRUCT(hal);
+	vos_msg_t message;
+	struct sir_ll_ext_stats_threshold *thresh;
+
+	thresh = vos_mem_malloc(sizeof(*thresh));
+	if (!thresh) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Fail to alloc mem", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+	*thresh = *threshold;
+
+	if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&mac->sme)) {
+		/* Serialize the req through MC thread */
+		message.bodyptr = thresh;
+		message.type    = WDA_LINK_LAYER_STATS_SET_THRESHOLD;
+		MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG,
+				 NO_SESSION, message.type));
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &message);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  "%s: not able to post WDA_LL_STATS_GET_REQ",
+				  __func__);
+			vos_mem_free(thresh);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+		vos_mem_free(thresh);
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_SetLinkLayerStatsIndCB
     \brief  SME API to trigger the stats are available  after get request

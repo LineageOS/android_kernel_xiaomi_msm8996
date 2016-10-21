@@ -4213,6 +4213,9 @@ eHalStatus sme_LLStatsSetReq (tHalHandle hHal,
 eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
                         tSirLLStatsGetReq *pgetStatsReq);
 
+eHalStatus sme_ll_stats_set_thresh(tHalHandle hal,
+				   struct sir_ll_ext_stats_threshold *thresh);
+
 /* ---------------------------------------------------------------------------
     \fn sme_SetLinkLayerStatsIndCB
     \brief  SME API to trigger the stats are available  after get request
