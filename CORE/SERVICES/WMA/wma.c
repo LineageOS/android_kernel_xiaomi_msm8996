@@ -5569,6 +5569,10 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	return 0;
 }
 
+static int wmi_unified_pdev_set_param(wmi_unified_t wmi_handle,
+				      WMI_PDEV_PARAM param_id,
+				      u_int32_t param_value);
+
 /**
  * wma_tx_failure_cb() - TX failure callback
  * @ctx: txrx context
@@ -5643,6 +5647,20 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	wmi_peer_signal_stats_thresh *signal;
 	wmi_tx_stats_thresh *tx;
 	wmi_rx_stats_thresh *rx;
+
+	if (thresh->period != LL_STATS_INVALID_PERIOD &&
+	    wmi_unified_pdev_set_param(wma->wmi_handle,
+				       WMI_PDEV_PARAM_STATS_OBSERVATION_PERIOD,
+				       thresh->period)) {
+		WMA_LOGP(FL("Failed to set MAC counter period."));
+		return;
+	}
+
+	/* period==0, mac counter disabled. no parameter is needed. */
+	if (thresh->period == 0) {
+		WMA_LOGI("%s: Mac counter is disabled.", __func__);
+		return;
+	}
 
 	len = sizeof(wmi_pdev_set_stats_threshold_cmd_fixed_param) +
 	      sizeof(wmi_chan_cca_stats_thresh) +

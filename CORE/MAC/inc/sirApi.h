@@ -6133,10 +6133,13 @@ typedef struct
     tSirMacAddr    peerMacAddress;
     /* peer WIFI_CAPABILITY_XXX */
     tANI_U32       capabilities;
-    /* peer power saving mode */
-    uint32_t power_saving;
-    /* number of rates */
-    tANI_U32       numRate;
+
+    union {
+        /* peer power saving mode */
+        uint32_t power_saving;
+        /* number of rates */
+        tANI_U32       numRate;
+    };
     /* per rate statistics, number of entries  = num_rate */
     tSirWifiRateStat rateStats[0];
 } tSirWifiPeerInfo, *tpSirWifiPeerInfo;
@@ -6640,6 +6643,7 @@ struct sir_rx_threshold {
 
 /**
  * struct sir_wifi_ll_ext_stats_threshold - Threshold for stats update
+ * @period: MAC counter indication period (unit in ms)
  * @enable: if threshold mechnism is enabled or disabled
  * @enable_bitmap: whether dedicated threshold is enabed.
  *     Every MAC counter has a dedicated threshold. If the dedicated
@@ -6701,6 +6705,7 @@ struct sir_rx_threshold {
  * This structure contains threshold for different counters.
  */
 struct sir_ll_ext_stats_threshold {
+	uint32_t period;
 	uint32_t enable;
 	uint32_t enable_bitmap;
 	uint32_t global;
@@ -6714,6 +6719,10 @@ struct sir_ll_ext_stats_threshold {
 	struct sir_tx_threshold tx;
 	struct sir_rx_threshold rx;
 };
+
+#define LL_STATS_MIN_PERIOD          10
+#define LL_STATS_MAX_PERIOD          10000
+#define LL_STATS_INVALID_PERIOD      0xFFFFFFFF
 
 typedef struct
 {
