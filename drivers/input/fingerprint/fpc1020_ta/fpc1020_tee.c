@@ -45,6 +45,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/wakelock.h>
 #include <soc/qcom/scm.h>
+#include "../../../video/msm/mdss/mdss_dsi.h"
 
 #ifdef CONFIG_FB
 #include <linux/notifier.h>
@@ -87,40 +88,20 @@ enum {
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		unsigned long event, void *data)
 {
-	int *transition;
 	struct fb_event *evdata = data;
 	struct fpc1020_data *fpc1020 =
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
+	int *blank = evdata->data;
 
-	if (evdata && evdata->data && fpc1020) {
-		if (event == FB_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_POWERDOWN) {
-				if ((0 == fpc1020->wakeup_enabled)) {
-					if (true == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s POWERDOWN disable irq!\n", __func__);
-						*/
-						disable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = false;
-					}
-				}
-			}
-		} else if (event == FB_EARLY_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
-				if (0 == fpc1020->wakeup_enabled) {
-					if (false == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s UNBLANK enable irq!\n", __func__);
-						*/
-						enable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = true;
-					}
-				}
-			}
-		}
+	if (0 == fpc1020->wakeup_enabled) {
+		if (*blank == FB_BLANK_POWERDOWN && true == fpc1020->irq_enabled) {
+			disable_irq(gpio_to_irq(fpc1020->irq_gpio));
+			fpc1020->irq_enabled = false;
+		} else if (*blank == FB_BLANK_UNBLANK && false == fpc1020->irq_enabled) {
+			enable_irq(gpio_to_irq(fpc1020->irq_gpio));
+			fpc1020->irq_enabled = true;
+ 		}
 	}
 	return 0;
 }
@@ -324,6 +305,9 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	/* Make sure 'wakeup_enabled' is updated before using it
 	** since this is interrupt context (other thread...) */
 	smp_rmb();
+
+	if (screen_on)
+		return IRQ_HANDLED;
 
 	if (fpc1020->wakeup_enabled) {
 		__pm_wakeup_event(&fpc1020->ttw_wl, FPC_TTW_HOLD_TIME);

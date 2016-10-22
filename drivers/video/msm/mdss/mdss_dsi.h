@@ -207,6 +207,8 @@ enum dsi_pm_type {
 
 #define MAX_ERR_INDEX			10
 
+extern bool screen_on;
+
 extern struct device dsi_dev;
 extern u32 dsi_irq;
 extern struct mdss_dsi_ctrl_pdata *ctrl_list[];

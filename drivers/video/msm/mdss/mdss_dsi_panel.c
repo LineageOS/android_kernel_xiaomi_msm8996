@@ -56,6 +56,8 @@ static char dsc_rc_range_bpg_offset[] = {2, 0, 0, -2, -4, -6, -8, -8,
 
 static bool mdss_panel_reset_skip;
 
+bool screen_on = true;
+
 void mdss_panel_reset_skip_enable(bool enable)
 {
 	mdss_panel_reset_skip = enable;
@@ -924,6 +926,8 @@ static int mdss_dsi_post_panel_on(struct mdss_panel_data *pdata)
 		return -EINVAL;
 	}
 
+	screen_on = true;
+
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
@@ -953,6 +957,8 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+
+	screen_on = false;
 
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
