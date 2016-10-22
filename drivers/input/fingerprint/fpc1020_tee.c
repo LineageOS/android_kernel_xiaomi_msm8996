@@ -65,6 +65,8 @@ struct fpc1020_data {
 	int  wakeup_enabled;
 	int  homebutton_enabled;
 	bool report_home_allowed;
+	spinlock_t irq_lock;
+	struct mutex lock;
 
 	struct pinctrl         *ts_pinctrl;
 	struct pinctrl_state   *gpio_state_active;
@@ -109,15 +111,19 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		if (*transition == FB_BLANK_POWERDOWN && (event == FB_EARLY_EVENT_BLANK)) {
 			if ((0 == fpc1020->wakeup_enabled)) {
 				if (true == fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
 					disable_irq(gpio_to_irq(fpc1020->irq_gpio));
 					fpc1020->irq_enabled = false;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
 		} else if (*transition == FB_BLANK_UNBLANK && (event == FB_EARLY_EVENT_BLANK )) {
 			if (0 == fpc1020->wakeup_enabled) {
 				if (false == fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
 					enable_irq(gpio_to_irq(fpc1020->irq_gpio));
 					fpc1020->irq_enabled = true;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
 		}
@@ -523,9 +529,11 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 		goto exit;
 
 	wakeup_source_init(&fpc1020->ttw_wl, "fpc_ttw_wl");
+	device_init_wakeup(fpc1020->dev, 1);
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
 
+	mutex_init(&fpc1020->lock);
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
 			dev_name(dev), fpc1020);
@@ -539,7 +547,9 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (fpc1020->wakeup_enabled) {
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 	}
+	spin_lock(&fpc1020->irq_lock);
 	fpc1020->irq_enabled = true;
+	spin_unlock(&fpc1020->irq_lock);
 
 	rc = sysfs_create_group(&dev->kobj, &attribute_group);
 	if (rc) {
