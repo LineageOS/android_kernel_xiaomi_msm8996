@@ -45,6 +45,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/wakelock.h>
 #include <soc/qcom/scm.h>
+
 #ifdef CONFIG_FB
 #include <linux/notifier.h>
 #include <linux/fb.h>
@@ -66,13 +67,13 @@ struct fpc1020_data {
 	struct pinctrl         *ts_pinctrl;
 	struct pinctrl_state   *gpio_state_active;
 	struct pinctrl_state   *gpio_state_suspend;
-	struct wake_lock        ttw_wl;
+	struct wakeup_source    ttw_wl;
 #ifdef CONFIG_FB
 	struct notifier_block fb_notifier;
 	struct work_struct reset_work;
 	struct workqueue_struct *reset_workqueue;
 #endif
-
+	struct input_dev	*input_dev;
 };
 
 enum {
@@ -274,6 +275,47 @@ static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
 
+int fpc1020_input_init(struct fpc1020_data *fpc1020)
+{
+	int error = 0;
+
+
+	dev_dbg(fpc1020->dev, "%s\n", __func__);
+
+	fpc1020->input_dev = input_allocate_device();
+
+	if (!fpc1020->input_dev) {
+		dev_err(fpc1020->dev, "Input_allocate_device failed.\n");
+		error  = -ENOMEM;
+	}
+
+	if (!error) {
+		fpc1020->input_dev->name = "fpc1020";
+
+		/* Set event bits according to what events we are generating */
+		set_bit(EV_KEY, fpc1020->input_dev->evbit);
+		set_bit(KEY_F19, fpc1020->input_dev->keybit);
+
+		/* Register the input device */
+		error = input_register_device(fpc1020->input_dev);
+
+		if (error) {
+			dev_err(fpc1020->dev, "Input_register_device failed.\n");
+			input_free_device(fpc1020->input_dev);
+			fpc1020->input_dev = NULL;
+		}
+	}
+	return error;
+}
+
+void fpc1020_input_destroy(struct fpc1020_data *fpc1020)
+{
+	dev_dbg(fpc1020->dev, "%s\n", __func__);
+
+	if (fpc1020->input_dev != NULL)
+		input_free_device(fpc1020->input_dev);
+}
+
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
 	struct fpc1020_data *fpc1020 = handle;
@@ -284,9 +326,15 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	smp_rmb();
 
 	if (fpc1020->wakeup_enabled) {
-		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
-		dev_info(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
+		__pm_wakeup_event(&fpc1020->ttw_wl, FPC_TTW_HOLD_TIME);
+		dev_info(fpc1020->dev, "%s - __pm_wakeup_event\n", __func__);
 	}
+
+       /* Report button input */
+       input_report_key(fpc1020->input_dev, KEY_F19, 1);
+       input_sync(fpc1020->input_dev);
+       input_report_key(fpc1020->input_dev, KEY_F19, 0);
+       input_sync(fpc1020->input_dev);
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
@@ -435,7 +483,11 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (rc)
 		goto exit;
 
-	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
+	rc = fpc1020_input_init(fpc1020);
+	if (rc)
+		goto exit;
+
+	wakeup_source_init(&fpc1020->ttw_wl, "fpc_ttw_wl");
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
 
