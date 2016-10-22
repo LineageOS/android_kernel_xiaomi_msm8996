@@ -45,6 +45,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/wakelock.h>
 #include <soc/qcom/scm.h>
+
 #ifdef CONFIG_FB
 #include <linux/notifier.h>
 #include <linux/fb.h>
@@ -62,17 +63,19 @@ struct fpc1020_data {
 	int  rst_gpio;
 	int  fp_id_gpio;
 	int  wakeup_enabled;
+	int  homebutton_enabled;
+	bool report_home_allowed;
 
 	struct pinctrl         *ts_pinctrl;
 	struct pinctrl_state   *gpio_state_active;
 	struct pinctrl_state   *gpio_state_suspend;
-	struct wake_lock        ttw_wl;
+	struct wake_lock       ttw_wl;
 #ifdef CONFIG_FB
 	struct notifier_block fb_notifier;
 	struct work_struct reset_work;
 	struct workqueue_struct *reset_workqueue;
 #endif
-
+	struct input_dev	*input_dev;
 };
 
 enum {
@@ -96,6 +99,7 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		if (event == FB_EVENT_BLANK) {
 			transition = evdata->data;
 			if (*transition == FB_BLANK_POWERDOWN) {
+				fpc1020->report_home_allowed = false;
 				if ((0 == fpc1020->wakeup_enabled)) {
 					if (true == fpc1020->irq_enabled) {
 						/*
@@ -109,6 +113,7 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			transition = evdata->data;
 			if (*transition == FB_BLANK_UNBLANK) {
+				fpc1020->report_home_allowed = true;
 				if (0 == fpc1020->wakeup_enabled) {
 					if (false == fpc1020->irq_enabled) {
 						/*
@@ -260,19 +265,92 @@ static ssize_t enable_wakeup_store(struct device *dev,
 		return -EINVAL;
 	}
 }
+
+static ssize_t homebutton_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+	char c;
+
+	c = fpc1020->homebutton_enabled ? '1' : '0';
+	return scnprintf(buf, PAGE_SIZE, "%c\n", c);
+}
+
+
+static ssize_t homebutton_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
+		fpc1020->homebutton_enabled = (i == 1);
+
+		dev_info(dev, "%s\n", i ? "homebutton enabled" : "homebutton disabled");
+		return count;
+	} else {
+		dev_info(dev, "homebutton write error\n");
+		return -EINVAL;
+	}
+}
+
 static DEVICE_ATTR(enable_wakeup, S_IWUSR | S_IRUSR, enable_wakeup_show,
 		   enable_wakeup_store);
 
+static DEVICE_ATTR(homebutton, S_IWUSR | S_IRUSR, homebutton_show,
+		   homebutton_store);
 
 static struct attribute *attributes[] = {
 	&dev_attr_irq.attr,
 	&dev_attr_enable_wakeup.attr,
+	&dev_attr_homebutton.attr,
 	NULL
 };
 
 static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
+
+int fpc1020_input_init(struct fpc1020_data *fpc1020)
+{
+	int error = 0;
+
+
+	dev_dbg(fpc1020->dev, "%s\n", __func__);
+
+	fpc1020->input_dev = input_allocate_device();
+
+	if (!fpc1020->input_dev) {
+		dev_err(fpc1020->dev, "Input_allocate_device failed.\n");
+		error  = -ENOMEM;
+	}
+
+	if (!error) {
+		fpc1020->input_dev->name = "fpc1020";
+
+		/* Set event bits according to what events we are generating */
+		set_bit(EV_KEY, fpc1020->input_dev->evbit);
+		set_bit(KEY_HOME, fpc1020->input_dev->keybit);
+
+		/* Register the input device */
+		error = input_register_device(fpc1020->input_dev);
+
+		if (error) {
+			dev_err(fpc1020->dev, "Input_register_device failed.\n");
+			input_free_device(fpc1020->input_dev);
+			fpc1020->input_dev = NULL;
+		}
+	}
+	return error;
+}
+
+void fpc1020_input_destroy(struct fpc1020_data *fpc1020)
+{
+	dev_dbg(fpc1020->dev, "%s\n", __func__);
+
+	if (fpc1020->input_dev != NULL)
+		input_free_device(fpc1020->input_dev);
+}
 
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
@@ -286,6 +364,15 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	if (fpc1020->wakeup_enabled) {
 		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
 		dev_info(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
+	}
+
+	/* Report button input */
+	if (report_home_allowed && (1 == fpc1020->homebutton_enabled)) {
+		input_report_key(fpc1020->input_dev, KEY_HOME, 1);
+		input_sync(fpc1020->input_dev);
+		input_report_key(fpc1020->input_dev, KEY_HOME, 0);
+		input_sync(fpc1020->input_dev);
+		msleep(500); // 500ms delay between reports
 	}
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
@@ -432,6 +519,10 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 		goto exit;
 
 	rc = fpc1020_pinctrl_select_tee(fpc1020, true);
+	if (rc)
+		goto exit;
+
+	rc = fpc1020_input_init(fpc1020);
 	if (rc)
 		goto exit;
 
