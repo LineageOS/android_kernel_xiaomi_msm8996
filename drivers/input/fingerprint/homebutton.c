@@ -42,7 +42,7 @@ static void hb_input_callback(struct work_struct *unused) {
 		return;
 
 	if (hb_data.key_down) {
-		set_vibrate(hb_data.vib_strength);
+		//set_vibrate(hb_data.vib_strength);
 		hb_data.pressed = true;
 	} else {
 		hb_data.pressed = false;
