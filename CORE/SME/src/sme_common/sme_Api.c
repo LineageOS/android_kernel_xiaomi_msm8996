@@ -3421,6 +3421,13 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 			pMac->sme.link_layer_stats_ext_cb(pMsg->bodyptr);
 	       vos_mem_free(pMsg->bodyptr);
 	       break;
+          case eWNI_SME_RX_AGGR_HOLE_IND:
+               if (pMac->sme.stats_ext2_cb)
+                   pMac->sme.stats_ext2_cb(pMac->hHdd,
+                       (struct stats_ext2_event *)pMsg->bodyptr);
+               vos_mem_free(pMsg->bodyptr);
+               break;
+
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -19881,7 +19888,131 @@ void sme_set_5g_band_pref(tHalHandle hal_handle,
 	else
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 			  "Unable to acquire global sme lock");
+}
 
+/**
+ * sme_set_reorder_timeout() - set reorder timeout value
+ * including Voice,Video,Besteffort,Background parameters
+ * @hal: hal handle for getting global mac struct
+ * @reg: struct sir_set_rx_reorder_timeout_val
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_set_reorder_timeout(tHalHandle hal,
+			struct sir_set_rx_reorder_timeout_val *req)
+{
+	eHalStatus          status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac_ctx    = PMAC_STRUCT(hal);
+	vos_msg_t           vos_msg;
+	struct sir_set_rx_reorder_timeout_val *reorder_timeout;
+
+	smsLog(mac_ctx, LOG1, FL("enter"));
+
+	reorder_timeout = vos_mem_malloc(sizeof(*reorder_timeout));
+	if (NULL == reorder_timeout) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to alloc txrate_update"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	*reorder_timeout = *req;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = reorder_timeout;
+		vos_msg.type = SIR_HAL_SET_REORDER_TIMEOUT_CMDID;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("Post Update tx_rate msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(reorder_timeout);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(reorder_timeout);
+	}
+	smsLog(mac_ctx, LOG1, FL("exit"));
+	return status;
+}
+
+/**
+ * sme_set_rx_set_blocksize() - set blocksize value
+ * including mac_addr and win_limit parameters
+ * @hal: hal handle for getting global mac struct
+ * @reg: struct sir_peer_set_rx_blocksize
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_set_rx_set_blocksize(tHalHandle hal,
+			struct sir_peer_set_rx_blocksize *req)
+{
+	eHalStatus          status     = eHAL_STATUS_SUCCESS;
+	VOS_STATUS          vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal      mac_ctx    = PMAC_STRUCT(hal);
+	vos_msg_t           vos_msg;
+	struct sir_peer_set_rx_blocksize *rx_blocksize;
+
+	smsLog(mac_ctx, LOG1, FL("enter"));
+
+	rx_blocksize = vos_mem_malloc(sizeof(*rx_blocksize));
+	if (NULL == rx_blocksize) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("Failed to alloc rx_blocksize"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	*rx_blocksize = *req;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = rx_blocksize;
+		vos_msg.type = SIR_HAL_SET_RX_BLOCKSIZE_CMDID;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				FL("Post Update tx_rate msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(rx_blocksize);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(rx_blocksize);
+	}
+	smsLog(mac_ctx, LOG1, FL("exit"));
+	return status;
+}
+/**
+ * sme_register_stats_ext2_callback() - Register drone callback to SME
+ * @hal_handle: hal handle for getting global mac struct
+ * @stats_ext2_cb: callback to be registered
+ *
+ * This function will register a callback for frame aggregation failure
+ * indications processing.
+ *
+ * Return: eHAL_STATUS_SUCCESS or non-zero on failure.
+ */
+eHalStatus sme_register_stats_ext2_callback(tHalHandle hal_handle,
+			void (*stats_ext2_cb)(void *, struct stats_ext2_event *))
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal pmac = PMAC_STRUCT(hal_handle);
+
+	status = sme_AcquireGlobalLock(&pmac->sme);
+	if (status == eHAL_STATUS_SUCCESS) {
+		pmac->sme.stats_ext2_cb = stats_ext2_cb;
+		sme_ReleaseGlobalLock(&pmac->sme);
+	}
+	return status;
 }
 
 #ifdef FEATURE_WLAN_SUB_20_MHZ

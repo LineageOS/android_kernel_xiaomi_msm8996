@@ -7732,6 +7732,66 @@ static int wma_stats_ext_event_handler(void *handle, u_int8_t *event_buf,
 	WMA_LOGD("%s: stats ext event Posted to SME", __func__);
 	return 0;
 }
+
+static int wma_rx_aggr_failure_event_handler(void *handle, u_int8_t *event_buf,
+						u_int32_t len)
+{
+	WMI_REPORT_RX_AGGR_FAILURE_EVENTID_param_tlvs *param_buf;
+	struct sir_sme_rx_aggr_hole_ind *rx_aggr_hole_event;
+	wmi_rx_aggr_failure_event_fixed_param *rx_aggr_failure_info;
+	wmi_rx_aggr_failure_info *hole_info;
+	u_int32_t i, alloc_len;
+	VOS_STATUS status;
+	vos_msg_t vos_msg;
+
+	WMA_LOGD("%s: Posting stats ext event to SME", __func__);
+
+	param_buf = (WMI_REPORT_RX_AGGR_FAILURE_EVENTID_param_tlvs *)event_buf;
+	if (!param_buf) {
+		WMA_LOGE("%s: Invalid stats ext event buf", __func__);
+		return -EINVAL;
+	}
+
+	rx_aggr_failure_info = param_buf->fixed_param;
+	hole_info = param_buf->failure_info;
+
+	alloc_len = sizeof(*rx_aggr_hole_event) +
+		(rx_aggr_failure_info->num_failure_info)*
+		sizeof(rx_aggr_hole_event->hole_info_array[0]);
+	rx_aggr_hole_event = vos_mem_malloc(alloc_len);
+	if (NULL == rx_aggr_hole_event) {
+		WMA_LOGE("%s: Memory allocation failure", __func__);
+		return -ENOMEM;
+	}
+
+	rx_aggr_hole_event->hole_cnt = rx_aggr_failure_info->num_failure_info;
+	WMA_LOGD("aggr holes_sum: %d\n",
+		rx_aggr_failure_info->num_failure_info);
+	for (i = 0; i < rx_aggr_hole_event->hole_cnt; i++) {
+		rx_aggr_hole_event->hole_info_array[i] =
+			hole_info->end_seq - hole_info->start_seq + 1;
+		WMA_LOGD("aggr_index: %d\tstart_seq: %d\tend_seq: %d\t"
+			"hole_info: %d mpdu lost",
+			i, hole_info->start_seq, hole_info->end_seq,
+			rx_aggr_hole_event->hole_info_array[i]);
+		hole_info++;
+	}
+
+	vos_msg.type = eWNI_SME_RX_AGGR_HOLE_IND;
+	vos_msg.bodyptr = rx_aggr_hole_event;
+	vos_msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to post stats ext event to SME", __func__);
+		vos_mem_free(rx_aggr_hole_event);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("%s: stats ext event Posted to SME", __func__);
+
+	return 0;
+}
 #endif
 
 /**
@@ -8496,6 +8556,9 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_STATS_EXT_EVENTID,
 					   wma_stats_ext_event_handler);
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_REPORT_RX_AGGR_FAILURE_EVENTID,
+					wma_rx_aggr_failure_event_handler);
 #endif
 #ifdef FEATURE_WLAN_EXTSCAN
 	wma_register_extscan_event_handler(wma_handle);
@@ -31630,6 +31693,122 @@ static void wma_update_sta_inactivity_timeout(tp_wma_handle wma,
 	return;
 }
 
+/**
+ * wma_set_rx_reorder_timeout_val() - set rx recorder timeout value
+ * @wma_handle: pointer to wma handle
+ * @sir_set_rx_reorder_timeout_val: rx recorder timeout value
+ *
+ * Return: VOS_STATUS_SUCCESS for success or error code.
+ */
+static VOS_STATUS wma_set_rx_reorder_timeout_val(tp_wma_handle wma_handle,
+	struct sir_set_rx_reorder_timeout_val *reorder_timeout)
+{
+	wmi_pdev_set_reorder_timeout_val_cmd_fixed_param *cmd;
+	uint32_t len;
+	wmi_buf_t buf;
+	int ret;
+
+	if (!reorder_timeout) {
+		WMA_LOGE(FL("invalid pointer"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (!wma_handle) {
+		WMA_LOGE(FL("WMA context is invald!"));
+		return VOS_STATUS_E_INVAL;
+	}
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+	if (!buf) {
+		WMA_LOGE(FL("Failed allocate wmi buffer"));
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (wmi_pdev_set_reorder_timeout_val_cmd_fixed_param *)
+		wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_wmi_pdev_set_reorder_timeout_val_cmd_fixed_param,
+	WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_set_reorder_timeout_val_cmd_fixed_param));
+
+	memcpy(cmd->rx_timeout_pri, reorder_timeout->rx_timeout_pri,
+		sizeof(reorder_timeout->rx_timeout_pri));
+
+	WMA_LOGD("rx aggr record timeout: VO: %d, VI: %d, BE: %d, BK: %d",
+		cmd->rx_timeout_pri[0], cmd->rx_timeout_pri[1],
+		cmd->rx_timeout_pri[2], cmd->rx_timeout_pri[3]);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			WMI_PDEV_SET_REORDER_TIMEOUT_VAL_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("Failed to send aggregation timeout"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_rx_blocksize() - set rx blocksize
+ * @wma_handle: pointer to wma handle
+ * @sir_peer_set_rx_blocksize: rx blocksize for peer mac
+ *
+ * Return: VOS_STATUS_SUCCESS for success or error code.
+ */
+static VOS_STATUS wma_set_rx_blocksize(tp_wma_handle wma_handle,
+	struct sir_peer_set_rx_blocksize *peer_rx_blocksize)
+{
+	wmi_peer_set_rx_blocksize_cmd_fixed_param *cmd;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int ret;
+
+	if (!peer_rx_blocksize) {
+		WMA_LOGE(FL("invalid pointer"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (!wma_handle) {
+		WMA_LOGE(FL(" WMA context is invald!"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+	if (!buf) {
+		WMA_LOGE(FL("Failed allocate wmi buffer"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+	cmd = (wmi_peer_set_rx_blocksize_cmd_fixed_param *) buf_ptr;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_wmi_peer_set_rx_blocksize_cmd_fixed_param,
+	WMITLV_GET_STRUCT_TLVLEN(wmi_peer_set_rx_blocksize_cmd_fixed_param));
+
+	cmd->vdev_id = peer_rx_blocksize->vdev_id;
+	cmd->rx_block_ack_win_limit =
+		peer_rx_blocksize->rx_block_ack_win_limit;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_rx_blocksize->peer_macaddr.bytes,
+		&cmd->peer_macaddr);
+
+	WMA_LOGD("rx aggr blocksize: %d", cmd->rx_block_ack_win_limit);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			WMI_PEER_SET_RX_BLOCKSIZE_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("Failed to send aggregation size command"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -32538,6 +32717,15 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case SIR_HAL_GET_CHAIN_RSSI_REQ:
 			wma_get_chain_rssi(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_SET_REORDER_TIMEOUT_CMDID:
+			wma_set_rx_reorder_timeout_val(wma_handle,
+							msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case SIR_HAL_SET_RX_BLOCKSIZE_CMDID:
+			wma_set_rx_blocksize(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

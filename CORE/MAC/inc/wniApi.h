@@ -419,6 +419,7 @@ enum eWniMsgTypes
     eWNI_SME_NDP_END_IND,
     eWNI_SME_REGISTER_P2P_ACK_CB,
     eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE,
+    eWNI_SME_RX_AGGR_HOLE_IND,
 
     /* Link layer statistics */
     eWMI_SME_LL_STATS_IND,

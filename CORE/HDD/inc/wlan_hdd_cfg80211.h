@@ -443,6 +443,12 @@ enum qca_wlan_vendor_attr {
     QCA_WLAN_VENDOR_ATTR_CHAIN_INDEX = 26,
     QCA_WLAN_VENDOR_ATTR_CHAIN_RSSI = 27,
 
+    /* Used in QCA_NL80211_VENDOR_SUBCMD_STATS_EXT command
+     * to report frame aggregation statistics to userspace.
+     */
+    QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_NUM = 34,
+    QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_INFO = 35,
+
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_MAX =
@@ -1637,6 +1643,18 @@ enum qca_access_policy {
  *                                       parameters
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_QPOWER: Unsigned 8bit length attribute to update
  *                                      power save config to turn off/on qpower
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE:
+ *                  32-bit unsigned value to set reorder timeout for AC_VO
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO:
+ *                  32-bit unsigned value to set reorder timeout for AC_VI
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT:
+ *                  32-bit unsigned value to set reorder timeout for AC_BE
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND:
+ *                  32-bit unsigned value to set reorder timeout for AC_BK
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC:
+ *                  6-byte MAC address to point out the specific peer
+ * @QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT:
+ *                  32-bit unsigned value to set window size for specific peer
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_LAST: last config
  * @QCA_WLAN_VENDOR_ATTR_CONFIG_MAX: max config
  */
@@ -1708,6 +1726,13 @@ enum qca_wlan_vendor_config {
 	/* 32-bit unsigned to configure the cycle time of selftest
 	 * the unit is micro-second */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_SELFTEST_INTVL = 30,
+
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE = 31,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO = 32,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT = 33,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND = 34,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC = 35,
+	QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT = 36,
 
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_CONFIG_LAST,

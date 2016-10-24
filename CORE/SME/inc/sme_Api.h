@@ -4721,6 +4721,12 @@ void sme_set_chan_info_callback(tHalHandle hal_handle,
 
 void sme_set_5g_band_pref(tHalHandle hal_handle,
                                 struct sme_5g_band_pref_params *pref_params);
+eHalStatus sme_set_reorder_timeout(tHalHandle hal,
+		struct sir_set_rx_reorder_timeout_val *req);
+eHalStatus sme_set_rx_set_blocksize(tHalHandle hal,
+		struct sir_peer_set_rx_blocksize *req);
+eHalStatus sme_register_stats_ext2_callback(tHalHandle hHal,
+		void (*stats_ext2_cb)(void *, struct stats_ext2_event *));
 
 #ifdef FEATURE_WLAN_SUB_20_MHZ
 eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,

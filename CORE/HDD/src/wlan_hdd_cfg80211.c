@@ -2286,11 +2286,75 @@ static void wlan_hdd_cfg80211_stats_ext_callback(void* ctx, tStatsExtEvent* msg)
 
 }
 
+/**
+ * wlan_hdd_cfg80211_stats_ext2_callback - stats_ext2_callback
+ * @ctx: hdd context
+ * @pmsg: stats_ext2_event
+ *
+ * Return: void
+ */
+static void wlan_hdd_cfg80211_stats_ext2_callback(void *ctx,
+	struct stats_ext2_event *pmsg)
+{
+	hdd_context_t *hdd_ctx = (hdd_context_t *)ctx;
+	int status, data_size;
+	struct sk_buff *vendor_event;
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status)
+		return;
+
+	if (NULL == pmsg) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				"msg received here is null");
+		return;
+	}
+
+	data_size = sizeof(struct stats_ext2_event) +
+		(pmsg->hole_cnt)*sizeof(pmsg->hole_info_array[0]);
+
+	vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
+			NULL,
+			data_size + NLMSG_HDRLEN + NLMSG_HDRLEN,
+			QCA_NL80211_VENDOR_SUBCMD_STATS_EXT_INDEX,
+			GFP_KERNEL);
+
+	if (!vendor_event) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"vendor_event_alloc failed for STATS_EXT2");
+		return;
+	}
+
+	if (nla_put_u32(vendor_event,
+			QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_NUM,
+			pmsg->hole_cnt)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"%s put fail",
+			"QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_NUM");
+		kfree_skb(vendor_event);
+		return;
+	}
+
+        if (nla_put(vendor_event,
+			QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_INFO,
+			(pmsg->hole_cnt)*sizeof(pmsg->hole_info_array[0]),
+			(void *)(pmsg->hole_info_array))) {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			"%s put fail",
+			"QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_INFO");
+		kfree_skb(vendor_event);
+		return;
+	}
+
+	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+}
 
 void wlan_hdd_cfg80211_stats_ext_init(hdd_context_t *pHddCtx)
 {
     sme_StatsExtRegisterCallback(pHddCtx->hHal,
                                  wlan_hdd_cfg80211_stats_ext_callback);
+    sme_register_stats_ext2_callback(pHddCtx->hHal,
+				wlan_hdd_cfg80211_stats_ext2_callback);
 }
 
 #endif
@@ -9623,6 +9687,18 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_CHAIN] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_SELFTEST] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_SELFTEST_INTVL] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE] = {
+							.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO] = {
+							.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT] = {
+							.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND] = {
+							.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC] = {
+							.type = NLA_UNSPEC},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT] = {
+							.type = NLA_U32},
 };
 
 /**
@@ -9766,6 +9842,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	u32 ftm_capab;
 	eHalStatus status;
 	struct sir_set_tx_rx_aggregation_size request;
+	struct sir_set_rx_reorder_timeout_val reorder_timeout;
+	struct sir_peer_set_rx_blocksize rx_blocksize;
 	VOS_STATUS vos_status;
 	uint32_t tx_fail_count;
 	uint32_t antdiv_ena, antdiv_chain;
@@ -10112,6 +10190,93 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		if (ret_val) {
 			hddLog(LOG1, FL("Failed to set antdiv_selftest_intvl"));
 			return ret_val;
+		}
+	}
+
+#define RX_TIMEOUT_VAL_MIN 10
+#define RX_TIMEOUT_VAL_MAX 1000
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE] ||
+	    tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO] ||
+	    tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT] ||
+	    tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND]) {
+
+		/* if one is specified, all must be specified */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE] ||
+		    !tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO] ||
+		    !tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT] ||
+		    !tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND]) {
+			hddLog(LOGE,
+				FL("four AC timeout val are required MAC"));
+			return -EINVAL;
+		}
+
+		reorder_timeout.rx_timeout_pri[0] = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VOICE]);
+		reorder_timeout.rx_timeout_pri[1] = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_VIDEO]);
+		reorder_timeout.rx_timeout_pri[2] = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BESTEFFORT]);
+		reorder_timeout.rx_timeout_pri[3] = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_REORDER_TIMEOUT_BACKGROUND]);
+		/* timeout value is required to be in the rang 10 to 1000ms */
+		if (reorder_timeout.rx_timeout_pri[0] >= RX_TIMEOUT_VAL_MIN &&
+		    reorder_timeout.rx_timeout_pri[0] <= RX_TIMEOUT_VAL_MAX &&
+		    reorder_timeout.rx_timeout_pri[1] >= RX_TIMEOUT_VAL_MIN &&
+		    reorder_timeout.rx_timeout_pri[1] <= RX_TIMEOUT_VAL_MAX &&
+		    reorder_timeout.rx_timeout_pri[2] >= RX_TIMEOUT_VAL_MIN &&
+		    reorder_timeout.rx_timeout_pri[2] <= RX_TIMEOUT_VAL_MAX &&
+		    reorder_timeout.rx_timeout_pri[3] >= RX_TIMEOUT_VAL_MIN &&
+		    reorder_timeout.rx_timeout_pri[3] <= RX_TIMEOUT_VAL_MAX) {
+			vos_status = sme_set_reorder_timeout(pHddCtx->hHal,
+				&reorder_timeout);
+			if (vos_status != VOS_STATUS_SUCCESS) {
+				hddLog(LOGE,
+					FL("failed to set reorder timeout err %d"),
+					vos_status);
+				ret_val = -EPERM;
+			}
+		} else {
+			hddLog(LOGE,
+				FL("one of the timeout value is not in range"));
+			ret_val = -EINVAL;
+		}
+	}
+
+#define WINDOW_SIZE_VAL_MIN 1
+#define WINDOW_SIZE_VAL_MAX 64
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC] ||
+	    tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT]) {
+
+		/* if one is specified, both must be specified */
+		if (!tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC] ||
+		    !tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT]) {
+			hddLog(LOGE,
+				FL("Both Peer MAC and windows limit required"));
+			return -EINVAL;
+		}
+
+		memcpy(&rx_blocksize.peer_macaddr,
+			nla_data(tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_PEER_MAC]),
+			sizeof(rx_blocksize.peer_macaddr)),
+
+		rx_blocksize.vdev_id = pAdapter->sessionId;
+		set_value = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT]);
+		/* maximum window size is 64 */
+		if (set_value >= WINDOW_SIZE_VAL_MIN &&
+		    set_value <= WINDOW_SIZE_VAL_MAX) {
+			rx_blocksize.rx_block_ack_win_limit = set_value;
+			vos_status = sme_set_rx_set_blocksize(pHddCtx->hHal,
+							&rx_blocksize);
+			if (vos_status != VOS_STATUS_SUCCESS) {
+				hddLog(LOGE,
+					FL("failed to set aggr sizes err %d"),
+					vos_status);
+				ret_val = -EPERM;
+			}
+		} else {
+			hddLog(LOGE, FL("window size val is not in range"));
+			ret_val = -EINVAL;
 		}
 	}
 
