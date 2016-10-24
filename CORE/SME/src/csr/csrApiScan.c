@@ -2919,6 +2919,12 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 			smsLog( pMac, LOG1,
 				FL("eWNI_SME_DISCONNECT_DONE_IND RC:%d"),
 				pDisConDoneInd->reasonCode);
+			pSession = CSR_GET_SESSION(pMac,
+					pDisConDoneInd->sessionId);
+			if (!pSession) {
+				smsLog(pMac, LOGE, FL("Invalid session"));
+				return eHAL_STATUS_FAILURE;
+			}
 			if (CSR_IS_SESSION_VALID(pMac,
 				pDisConDoneInd->sessionId))
 			{
@@ -2935,18 +2941,14 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 					eCSR_ROAM_LOSTLINK,
 					eCSR_ROAM_RESULT_DISASSOC_IND);
 
-				pSession = CSR_GET_SESSION(pMac,
-						pDisConDoneInd->sessionId);
-
 				/*
 				 * Update the previous state if
 				 * previous to eCSR_ROAMING_STATE_IDLE
 				 * as we are disconnected and
 				 * currunt state is scanning
 				 */
-				if (pSession &&
-				   !CSR_IS_INFRA_AP(
-				   &pSession->connectedProfile))
+				if (!CSR_IS_INFRA_AP(
+				    &pSession->connectedProfile))
 					pMac->roam.prev_state[
 						pDisConDoneInd->sessionId] =
 						eCSR_ROAMING_STATE_IDLE;
