@@ -2904,18 +2904,25 @@ void wlan_hdd_tdls_timer_restart(hdd_adapter_t *pAdapter,
                                  vos_timer_t *timer,
                                  v_U32_t expirationTime)
 {
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+	hdd_station_ctx_t *pHddStaCtx;
 
-    /* Check whether driver load unload is in progress */
-    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
-       hddLog(LOGE, FL("Driver load/unload is in progress."));
-       return;
-    }
+	if (NULL == pAdapter || WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+				  FL("invalid pAdapter: %p"), pAdapter);
+		return;
+	}
 
-    if (hdd_connIsConnected(pHddStaCtx)) {
-        vos_timer_stop(timer);
-        vos_timer_start(timer, expirationTime);
-    }
+	pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+	/* Check whether driver load unload is in progress */
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+		hddLog(LOGE, FL("Driver load/unload is in progress."));
+		return;
+	}
+
+	if (hdd_connIsConnected(pHddStaCtx)) {
+		vos_timer_stop(timer);
+		vos_timer_start(timer, expirationTime);
+	}
 }
 
 void wlan_hdd_tdls_indicate_teardown(hdd_adapter_t *pAdapter,
