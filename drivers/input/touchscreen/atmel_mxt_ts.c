@@ -577,6 +577,11 @@
 #define MXT_MAX_FINGER_NUM	16
 #define BOOTLOADER_1664_1188	1
 
+/* Swap keys */
+static int key_reverse = 0;
+#define REP_KEY_BACK (key_reverse ? KEY_MENU : KEY_BACK)
+#define REP_KEY_MENU (key_reverse ? KEY_BACK : KEY_MENU)
+
 struct mxt_info {
 	u8 family_id;
 	u8 variant_id;
@@ -1458,12 +1463,18 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 		if (!curr_state && new_state) {
 			dev_dbg(dev, "T15 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 1);
+			if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
 			dev_dbg(dev, "T15 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 0);
+			if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 0);
 			sync = true;
 		}
 	}
@@ -1654,14 +1665,20 @@ static void mxt_proc_t97_messages(struct mxt_data *data, u8 *msg)
 		new_state = test_bit(key, &keystates);
 
 		if (!curr_state && new_state) {
-			dev_dbg(dev, "T97 key press: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key press: %u\n", key);
 			__set_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY, pdata->config_array[index].key_codes[key], 1);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 1);
+			if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 1);
 			sync = true;
 		} else if (curr_state && !new_state) {
-			dev_dbg(dev, "T97 key release: %u, key_code = %u\n", key, pdata->config_array[index].key_codes[key]);
+			dev_dbg(dev, "T97 key release: %u\n", key);
 			__clear_bit(key, &data->keystatus);
-			input_event(input_dev, EV_KEY,  pdata->config_array[index].key_codes[key], 0);
+			if (key == 1)
+				input_event(input_dev, EV_KEY, REP_KEY_BACK, 0);
+			if (key == 0)
+				input_event(input_dev, EV_KEY, REP_KEY_MENU, 0);
 			sync = true;
 		}
 	}
@@ -3501,6 +3518,26 @@ static ssize_t mxt_build_show(struct device *dev,
 	return count;
 }
 
+static ssize_t mxt_key_reverse_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			key_reverse);
+}
+
+static ssize_t mxt_key_reverse_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = 0;
+
+	if (count > 2)
+		return count;
+	sscanf(buf, "%d", &ret);
+	if (ret == 0 || ret == 1)
+		key_reverse = ret;
+	return count;
+}
+
 static ssize_t mxt_pause_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -4830,6 +4867,8 @@ static ssize_t mxt_panel_color_show(struct device *dev,
 static DEVICE_ATTR(update_fw, S_IWUSR | S_IRUSR, mxt_update_fw_show, mxt_update_fw_store);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
 			mxt_debug_enable_store);
+static DEVICE_ATTR(key_reverse, S_IRUGO | S_IWUSR, mxt_key_reverse_show,
+			mxt_key_reverse_store);
 static DEVICE_ATTR(pause_driver, S_IWUSR | S_IRUSR, mxt_pause_show,
 			mxt_pause_store);
 static DEVICE_ATTR(version, S_IRUGO, mxt_version_show, NULL);
@@ -4854,6 +4893,7 @@ static DEVICE_ATTR(panel_color, S_IRUSR, mxt_panel_color_show, NULL);
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_update_fw.attr,
 	&dev_attr_debug_enable.attr,
+	&dev_attr_key_reverse.attr,
 	&dev_attr_pause_driver.attr,
 	&dev_attr_version.attr,
 	&dev_attr_build.attr,
