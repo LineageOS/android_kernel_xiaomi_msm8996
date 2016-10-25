@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "ff2e2bb8_132ea942",
+        "filename": "drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c",
+        "patchSetId": 8
+      },
+      "lineNbr": 1718,
+      "author": {
+        "id": 7880
+      },
+      "writtenOn": "2016-10-25T11:37:27Z",
+      "side": 1,
+      "message": "considering how these statements are being repeated, you might wanna create a separate function for these statements.\n\nsomething along the lines of:\nstatic void synaptics_report_key(int key)\n{\nblah blah statements here\n}",
+      "revId": "c2ed89a4003031dd9de41a069479de53a92392c4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ff2e2bb8_f30985dd",
         "filename": "drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c",
         "patchSetId": 8
@@ -19,6 +36,24 @@
         "endLine": 4738,
         "endChar": 28
       },
+      "revId": "c2ed89a4003031dd9de41a069479de53a92392c4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ff2e2bb8_b3189d1d",
+        "filename": "drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c",
+        "patchSetId": 8
+      },
+      "lineNbr": 4738,
+      "author": {
+        "id": 7880
+      },
+      "writtenOn": "2016-10-25T11:37:27Z",
+      "side": 1,
+      "message": "the placement seems fine. however, i\u0027d rather raise a more fundamental question: why add in a whole bunch of unnecessary code when the driver already uses its own sysfs framework?",
+      "parentUuid": "ff2e2bb8_f30985dd",
       "revId": "c2ed89a4003031dd9de41a069479de53a92392c4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
