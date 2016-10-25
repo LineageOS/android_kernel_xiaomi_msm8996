@@ -588,6 +588,9 @@ wlan_hdd_iface_combination[] = {
       .max_interfaces = (SAP_MAX_OBSS_STA_CNT +
                          VOS_MAX_NO_OF_SAP_MODE),
       .n_limits = ARRAY_SIZE(wlan_hdd_ap_iface_limit),
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_INTV_BACKPORTS)
+      .beacon_int_min_gcd = 1,
+#endif
    },
    /* P2P */
    {
@@ -604,6 +607,9 @@ wlan_hdd_iface_combination[] = {
                          VOS_MAX_NO_OF_SAP_MODE),
       .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
       .beacon_int_infra_match = true,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_INTV_BACKPORTS)
+      .beacon_int_min_gcd = 1,
+#endif
    },
    /* STA + P2P */
    {
