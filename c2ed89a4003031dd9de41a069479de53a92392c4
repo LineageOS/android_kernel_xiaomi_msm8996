@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ff2e2bb8_f30985dd",
+        "filename": "drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c",
+        "patchSetId": 8
+      },
+      "lineNbr": 4738,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-25T11:28:43Z",
+      "side": 1,
+      "message": "Do you think this is properly placed or should be moved further down the probe function?",
+      "range": {
+        "startLine": 4738,
+        "startChar": 1,
+        "endLine": 4738,
+        "endChar": 28
+      },
+      "revId": "c2ed89a4003031dd9de41a069479de53a92392c4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
