@@ -2971,7 +2971,7 @@ static int fb_notifier_cb(struct notifier_block *self,
 	if (evdata && evdata->data && ft5x46 && mdss_panel_is_prim(evdata->info)) {
 		if (event == FB_EVENT_BLANK) {
 			blank = evdata->data;
-			if (*blank == FB_BLANK_UNBLANK) {
+			if (*blank == FB_BLANK_UNBLANK || *blank == FB_BLANK_NORMAL) {
 				dev_dbg(ft5x46->dev, "##### UNBLANK SCREEN #####\n");
 				ft5x46_input_enable(ft5x46->input);
 				ft5x46_power_on(ft5x46, true);
