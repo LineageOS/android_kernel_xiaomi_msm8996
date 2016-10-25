@@ -143,4 +143,5 @@ void vos_clear_concurrent_session_count(void);
 v_BOOL_t vos_is_multiple_active_sta_sessions (void);
 v_BOOL_t vos_is_sta_active_connection_exists (void);
 v_BOOL_t vos_concurrent_beaconing_sessions_running(v_VOID_t);
+v_BOOL_t vos_active_session_exists (tVOS_CON_MODE mode);
 #endif // !defined __VOS_GETBIN_H

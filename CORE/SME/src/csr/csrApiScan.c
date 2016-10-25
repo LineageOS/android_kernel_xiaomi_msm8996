@@ -4371,7 +4371,12 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
     tANI_BOOLEAN useVoting = eANI_BOOLEAN_FALSE;
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
-        return eHAL_STATUS_SUCCESS;
+    {
+        if (vos_active_session_exists (VOS_STA_SAP_MODE))
+        {
+            return eHAL_STATUS_SUCCESS;
+        }
+    }
 
     if ((NULL == pSirBssDesc) && (NULL == pIes))
         useVoting = eANI_BOOLEAN_TRUE;
