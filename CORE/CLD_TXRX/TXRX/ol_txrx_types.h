@@ -126,6 +126,7 @@ enum ol_tx_frm_type {
     ol_tx_frm_tso,     /* TSO segment, with a modified IP header added */
     ol_tx_frm_audio,   /* audio frames, with a custom LLC/SNAP header added */
     ol_tx_frm_no_free, /* frame requires special tx completion callback */
+    ol_tx_frm_freed = 0xff, /* the tx desc is in free list */
 };
 
 #if defined(CONFIG_HL_SUPPORT) && defined(QCA_BAD_PEER_TX_FLOW_CL)

@@ -208,6 +208,7 @@ endif
 ifeq ($(CONFIG_ROME_IF),usb)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 1
 	CONFIG_QCA_LL_TX_FLOW_CT := 1
+	CONFIG_QCA_TXDESC_SANITY_CHECKS := 1
 endif
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 0
@@ -1259,6 +1260,11 @@ endif
 #Enable tx flow control
 ifeq ($(CONFIG_QCA_LL_TX_FLOW_CT), 1)
 CDEFINES += -DQCA_LL_TX_FLOW_CT
+endif
+
+#Enable the tx desc sanity check
+ifeq ($(CONFIG_QCA_TXDESC_SANITY_CHECKS), 1)
+CDEFINES += -DQCA_SUPPORT_TXDESC_SANITY_CHECKS
 endif
 
 #Enable Tx mgmt desc reserve

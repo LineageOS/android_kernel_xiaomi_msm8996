@@ -288,7 +288,14 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 				adf_os_mem_free(data);
 			}
 		} else {
-			tx_desc = ol_tx_desc_find(txrx_pdev, desc_id);
+			tx_desc = ol_tx_desc_find_check(txrx_pdev, desc_id);
+			if (tx_desc == NULL) {
+				adf_os_print("%s: invalid desc_id(%u), ignore it.\n",
+					__func__,
+					desc_id);
+				return A_ERROR;
+			}
+
 			adf_os_assert(tx_desc);
 			netbuf = tx_desc->netbuf;
 			if (netbuf)
