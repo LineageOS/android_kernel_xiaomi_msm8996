@@ -2710,6 +2710,40 @@ static const struct attribute_group ft5x46_attr_group = {
 	.attrs = ft5x46_attrs
 };
 
+static int ft5x46_proc_init(struct kernfs_node *sysfs_node_parent)
+{
+	int ret = 0;
+	char *buf, *path = NULL;
+	char *double_tap_sysfs_node;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_symlink_tmp  = NULL;
+
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (buf)
+		path = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	double_tap_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (double_tap_sysfs_node)
+		sprintf(double_tap_sysfs_node, "/sys%s/%s", path, "wakeup_mode");
+	proc_symlink_tmp = proc_symlink("double_tap_enable",
+			proc_entry_tp, double_tap_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create double_tap_enable symlink\n", __func__);
+	}
+
+	kfree(buf);
+	kfree(double_tap_sysfs_node);
+
+	return ret;
+}
+
 static int ft5x46_power_on(struct ft5x46_data *data, bool on)
 {
 	static bool status;
@@ -3887,6 +3921,8 @@ struct ft5x46_data *ft5x46_probe(struct device *dev,
 		dev_err(dev, "fail to export sysfs entires\n");
 		goto err_free_irq;
 	}
+
+	ft5x46_proc_init(dev->kobj.sd);
 
 	error = ft5x46_configure_sleep(ft5x46, true);
 	if (error) {
