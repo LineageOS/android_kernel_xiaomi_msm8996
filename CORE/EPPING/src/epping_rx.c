@@ -163,6 +163,7 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                    &pEpping_ctx->kperf_num_rx_recv[eid],
                    sizeof(unsigned int));
                epping_set_kperf_flag(pAdapter, eid, false);
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                break;
             case 0: /* RXPERF hard code 0 in FW */
@@ -175,9 +176,11 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                break;
             case EPPING_CMD_CAPTURE_RECV_CNT:
                epping_set_kperf_flag(pAdapter, eid, false);
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                break;
             default:
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                pEpping_ctx->kperf_num_rx_recv[eid]++;
                if ((pAdapter->stats.rx_packets % EPPING_STATS_LOG_COUNT) == 0) {
@@ -187,6 +190,7 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                break;
             }
          } else {
+            adf_net_buf_debug_release_skb(pktSkb);
             netif_rx_ni(pktSkb);
             if ((pAdapter->stats.rx_packets % EPPING_STATS_LOG_COUNT) == 0) {
                EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: total_rx_pkts = %lu",

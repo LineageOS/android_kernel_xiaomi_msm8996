@@ -411,7 +411,49 @@ adf_nbuf_dmamap_info(adf_os_dma_map_t bmap, adf_os_dmamap_info_t *sg)
     __adf_nbuf_dmamap_info(bmap, sg);
 }
 
+#ifdef MEMORY_DEBUG
+void adf_net_buf_debug_init(void);
+void adf_net_buf_debug_exit(void);
+void adf_net_buf_debug_clean(void);
+void adf_net_buf_debug_add_node(adf_nbuf_t net_buf, size_t size,
+			uint8_t *file_name, uint32_t line_num);
+void adf_net_buf_debug_delete_node(adf_nbuf_t net_buf);
+void adf_net_buf_debug_release_skb(adf_nbuf_t net_buf);
 
+/* nbuf allocation routines */
+
+#define adf_nbuf_alloc(d, s, r, a, p)			\
+	adf_nbuf_alloc_debug(d, s, r, a, p, __FILE__, __LINE__)
+static inline adf_nbuf_t
+adf_nbuf_alloc_debug(adf_os_device_t osdev, adf_os_size_t size, int reserve,
+		int align, int prio, uint8_t *file_name,
+		uint32_t line_num)
+{
+	adf_nbuf_t net_buf;
+	net_buf = __adf_nbuf_alloc(osdev, size, reserve, align, prio);
+
+	/* Store SKB in internal ADF tracking table */
+	if (adf_os_likely(net_buf))
+		adf_net_buf_debug_add_node(net_buf, size, file_name, line_num);
+
+	return net_buf;
+}
+
+static inline void adf_nbuf_free(adf_nbuf_t net_buf)
+{
+	/* Remove SKB from internal ADF tracking table */
+	if (adf_os_likely(net_buf))
+		adf_net_buf_debug_delete_node(net_buf);
+
+	__adf_nbuf_free(net_buf);
+}
+
+#else
+
+static inline void adf_net_buf_debug_release_skb(adf_nbuf_t net_buf)
+{
+	return;
+}
 
 /*
  * nbuf allocation rouines
@@ -480,6 +522,8 @@ adf_nbuf_free(adf_nbuf_t buf)
 {
     __adf_nbuf_free(buf);
 }
+
+#endif
 
 /**
  * @brief Free adf_nbuf
@@ -1111,6 +1155,20 @@ adf_nbuf_append_ext_list(adf_nbuf_t head_buf, adf_nbuf_t ext_list,
         adf_os_size_t ext_len)
 {
     __adf_nbuf_append_ext_list(head_buf, ext_list, ext_len);
+}
+
+/**
+ * adf_nbuf_get_ext_list() - Get the link to extended nbuf list.
+ * @head_buf: Network buf holding head segment (single)
+ *
+ * This ext_list is populated when we have Jumbo packet, for example in case of
+ * monitor mode amsdu packet reception, and are stiched using frags_list.
+ *
+ * Return: Network buf list holding linked extensions from head buf.
+ */
+static inline adf_nbuf_t adf_nbuf_get_ext_list(adf_nbuf_t head_buf)
+{
+	return (adf_nbuf_t)__adf_nbuf_get_ext_list(head_buf);
 }
 
 /**

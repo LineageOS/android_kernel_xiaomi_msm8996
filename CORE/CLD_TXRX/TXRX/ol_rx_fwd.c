@@ -231,6 +231,7 @@ ol_rx_fwd_check(
             if (!do_not_fwd) {
                 if (htt_rx_msdu_discard(pdev->htt_pdev, rx_desc)) {
                         htt_rx_msdu_desc_free(pdev->htt_pdev, msdu);
+                        adf_net_buf_debug_release_skb(msdu);
                         ol_rx_fwd_to_tx(tx_vdev, msdu);
                         msdu = NULL; /* already handled this MSDU */
                         tx_vdev->fwd_tx_packets++;

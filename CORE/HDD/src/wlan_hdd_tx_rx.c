@@ -1262,8 +1262,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
                "%s: Dropping HS 2.0 Gratuitous ARP or Unsolicited NA"
                " else dropping as Driver load/unload is in progress",
                __func__);
-            kfree_skb(skb);
-
+            adf_nbuf_free(skb);
             skb = skb_next;
             continue;
       }
@@ -1311,8 +1310,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
          ++pAdapter->hdd_stats.hddTxRxStats.rxDropped[cpu_index];
          VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_INFO,
                    "%s: Dropping multicast to self NA", __func__);
-         kfree_skb(skb);
-
+         adf_nbuf_free(skb);
          skb = skb_next;
          continue;
       }
@@ -1320,6 +1318,12 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
+
+      /**
+       * Remove SKB from internal tracking table before submitting it
+       * to stack.
+       */
+      adf_net_buf_debug_release_skb(skb);
 
       /*
        * If this is not a last packet on the chain

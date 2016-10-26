@@ -2428,6 +2428,7 @@ err_vosclose:
    vos_sched_close(pVosContext);
 
 #ifdef MEMORY_DEBUG
+   adf_net_buf_debug_exit();
    vos_mem_exit();
 #endif
 

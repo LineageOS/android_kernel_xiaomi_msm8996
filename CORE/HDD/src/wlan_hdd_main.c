@@ -15995,6 +15995,7 @@ static inline void hdd_timer_exit(void)
 #ifdef MEMORY_DEBUG
 static inline void hdd_mem_exit(void)
 {
+	adf_net_buf_debug_exit();
 	vos_mem_exit();
 }
 #else
@@ -16058,6 +16059,7 @@ static int hdd_driver_init( void)
 
 #ifdef MEMORY_DEBUG
       vos_mem_init();
+      adf_net_buf_debug_init();
 #endif
 
    hdd_wlan_wakelock_create();
@@ -16260,6 +16262,7 @@ static void hdd_driver_exit(void)
    vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
+   adf_net_buf_debug_exit();
    vos_mem_exit();
 #endif
 

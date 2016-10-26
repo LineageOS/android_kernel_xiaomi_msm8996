@@ -1210,6 +1210,21 @@ __adf_nbuf_append_ext_list(
         skb_head->len += skb_head->data_len;
 }
 
+/**
+ * __adf_nbuf_get_ext_list() - Get the link to extended nbuf list.
+ * @head_buf: Network buf holding head segment (single)
+ *
+ * This ext_list is populated when we have Jumbo packet, for example in case of
+ * monitor mode amsdu packet reception, and are stiched using frags_list.
+ *
+ * Return: Network buf list holding linked extensions from head buf.
+ */
+static inline struct sk_buff *
+__adf_nbuf_get_ext_list(struct sk_buff *head_buf)
+{
+	return skb_shinfo(head_buf)->frag_list;
+}
+
 static inline void
 __adf_nbuf_tx_free(struct sk_buff *bufs, int tx_err)
 {

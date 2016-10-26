@@ -901,6 +901,12 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
       skb->protocol = eth_type_trans(skb, skb->dev);
 
+      /**
+       * Remove SKB from internal tracking table before submitting it
+       * to stack.
+       */
+      adf_net_buf_debug_release_skb(skb);
+
       /*
        * If this is not a last packet on the chain
        * Just put packet into backlog queue, not scheduling RX sirq
