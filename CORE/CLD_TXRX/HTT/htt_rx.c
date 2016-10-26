@@ -1859,8 +1859,8 @@ htt_rx_amsdu_rx_in_order_pop_ll(
                                  *(u_int32_t *)rx_ind_data);
     peer = ol_txrx_peer_find_by_id(pdev->txrx_pdev, peer_id);
     if (!peer)
-        adf_os_print("%s: invalid peer id %d and msdu count %d\n", __func__,
-                     peer_id, msdu_count);
+        adf_os_print(KERN_DEBUG "%s: invalid peer id %d and msdu count %d\n",
+                     __func__, peer_id, msdu_count);
 
     msg_word = (u_int32_t *)(rx_ind_data + HTT_RX_IN_ORD_PADDR_IND_HDR_BYTES);
     if (offload_ind) {
