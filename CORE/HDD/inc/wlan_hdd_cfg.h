@@ -3598,6 +3598,11 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_TX_CHAIN_MASK_1SS_MAX      (3)
 #define CFG_TX_CHAIN_MASK_1SS_DEFAULT  (1)
 
+#define CFG_TX_SCH_DELAY            "gTxSchDelay"
+#define CFG_TX_SCH_DELAY_MIN           (0)
+#define CFG_TX_SCH_DELAY_MAX           (1)
+#define CFG_TX_SCH_DELAY_DEFAULT       (1)
+
 #define CFG_SELF_GEN_FRM_PWR        "gSelfGenFrmPwr"
 #define CFG_SELF_GEN_FRM_PWR_MIN      (0)
 #define CFG_SELF_GEN_FRM_PWR_MAX      (0xffff)
@@ -4853,6 +4858,7 @@ struct hdd_config {
    uint16_t                    pkt_err_disconn_th;
    bool                        tx_chain_mask_cck;
    uint8_t                     tx_chain_mask_1ss;
+   uint8_t                     tx_sch_delay;
    uint16_t                    self_gen_frm_pwr;
 
 #ifdef FEATURE_WLAN_EXTSCAN

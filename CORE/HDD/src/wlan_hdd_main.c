@@ -15231,6 +15231,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               __func__, ret);
    }
 
+   ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_SCH_DELAY,
+                                 pHddCtx->cfg_ini->tx_sch_delay,
+                                 PDEV_CMD);
+   if (0 != ret) {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: WMI_PDEV_PARAM_TX_SCH_DELAY failed %d",
+              __func__, ret);
+   }
+
+
    status = hdd_set_sme_chan_list(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
