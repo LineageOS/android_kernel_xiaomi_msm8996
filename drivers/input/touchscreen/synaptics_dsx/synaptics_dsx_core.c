@@ -33,6 +33,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
@@ -1099,6 +1100,41 @@ static ssize_t synaptics_rmi4_virtual_key_map_show(struct kobject *kobj,
 	}
 
 	return count;
+}
+
+static int synaptics_rmi4_proc_init(struct kernfs_node *sysfs_node_parent)
+{
+	int ret = 0;
+	char *buf, *sysfs_node, *path = NULL;
+	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_symlink_tmp  = NULL;
+
+	proc_entry_tp = proc_mkdir("touchpanel", NULL);
+	if (proc_entry_tp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create touchpanel\n", __func__);
+	}
+
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (buf)
+		path = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
+
+	sysfs_node = (char *) kmalloc(strlen("/sys") + strlen(path) + strlen("/wake_gesture") + 1, GFP_KERNEL);
+	strcpy(sysfs_node, "/sys");
+	strcat(sysfs_node, path);
+	strcat(sysfs_node, "/wake_gesture");
+
+	proc_symlink_tmp = proc_symlink("double_tap_enable",
+			proc_entry_tp, sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create double_tap_enable symlink\n", __func__);
+	}
+
+	kfree(buf);
+	kfree(sysfs_node);
+
+	return ret;
 }
 
 static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
@@ -4657,6 +4693,7 @@ static int synaptics_rmi4_probe(struct platform_device *pdev)
 		}
 	}
 
+	synaptics_rmi4_proc_init(rmi4_data->input_dev->dev.kobj.sd);
 
 	retval = sysfs_create_file(&rmi4_data->pdev->dev.parent->kobj, &dev_attr_panel_color.attr);
 
