@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ff2e2bb8_27a44357",
+        "filename": "drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 1125,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2016-10-27T12:31:29Z",
+      "side": 1,
+      "message": "Simply use asprintf() and replace all this code.",
+      "range": {
+        "startLine": 1122,
+        "startChar": 0,
+        "endLine": 1125,
+        "endChar": 37
+      },
+      "revId": "0e8075bced02b7c3095aa8a7a7f7b840ed26a1ac",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
