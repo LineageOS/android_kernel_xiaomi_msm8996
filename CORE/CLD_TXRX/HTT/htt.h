@@ -6332,6 +6332,10 @@ PREPACK struct htt_txq_group {
  */
 #define HTT_TX_COMPL_IND_STAT_PEER_DEL    4
 
+#if defined(CONFIG_HL_SUPPORT)
+/* The FAIL_NOTIFY status is used for regular frms in HL cases */
+#define HTT_TX_COMPL_IND_STAT_FAIL_NOTIFY   5
+#endif
 
 #define HTT_TX_COMPL_IND_APPEND_SET_MORE_RETRY(f)  ((f) |= 0x1)
 #define HTT_TX_COMPL_IND_APPEND_CLR_MORE_RETRY(f)  ((f) &= (~0x1))
