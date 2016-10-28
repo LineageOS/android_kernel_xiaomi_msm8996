@@ -4138,6 +4138,24 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_TARGET_WAKEUP_TYPE_MAX        (4)
 #define CFG_TARGET_WAKEUP_TYPE_DEFAULT    (1)
 
+/*
+ * maximum interval (in seconds) for a
+ * single scan plan supported by the device.
+ */
+#define CFG_MAX_SCHED_SCAN_PLAN_INT_NAME       "g_max_sched_scan_plan_int"
+#define CFG_MAX_SCHED_SCAN_PLAN_INT_MIN        (1)
+#define CFG_MAX_SCHED_SCAN_PLAN_INT_MAX        (7200)
+#define CFG_MAX_SCHED_SCAN_PLAN_INT_DEFAULT    (3600)
+
+/*
+ * maximum number of iterations for a single
+ * scan plan supported by the device.
+ */
+#define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_NAME       "g_max_sched_scan_plan_itrns"
+#define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_MIN        (1)
+#define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_MAX        (100)
+#define CFG_MAX_SCHED_SCAN_PLAN_ITRNS_DEFAULT    (10)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4941,6 +4959,8 @@ struct hdd_config {
    uint32_t                    host_wakeup_type;
    uint32_t                    target_wakeup_gpio;
    uint32_t                    target_wakeup_type;
+   uint32_t                    max_sched_scan_plan_interval;
+   uint32_t                    max_sched_scan_plan_iterations;
 };
 
 typedef struct hdd_config hdd_config_t;
