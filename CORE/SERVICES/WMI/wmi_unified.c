@@ -719,6 +719,7 @@ static u_int8_t* get_wmi_cmd_string(WMI_CMD_ID wmi_command)
 		CASE_RETURN_STRING(WMI_COEX_GET_ANTENNA_ISOLATION_CMDID);
 		CASE_RETURN_STRING(WMI_PDEV_SET_STATS_THRESHOLD_CMDID);
 		CASE_RETURN_STRING(WMI_REQUEST_WLAN_STATS_CMDID);
+		CASE_RETURN_STRING(WMI_VDEV_ENCRYPT_DECRYPT_DATA_REQ_CMDID);
 	}
 	return "Invalid WMI cmd";
 }
@@ -1294,6 +1295,8 @@ void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 {
 	struct wmi_unified *wmi_handle = (struct wmi_unified *)ctx;
 	wmi_buf_t wmi_cmd_buf = GET_HTC_PACKET_NET_BUF_CONTEXT(htc_pkt);
+	u_int8_t *buf_ptr;
+	u_int32_t len;
 #ifdef WMI_INTERFACE_EVENT_LOGGING
 	u_int32_t cmd_id;
 #endif
@@ -1309,6 +1312,9 @@ void wmi_htc_tx_complete(void *ctx, HTC_PACKET *htc_pkt)
 		((u_int32_t *)adf_nbuf_data(wmi_cmd_buf) + 2));
 	adf_os_spin_unlock_bh(&wmi_handle->wmi_record_lock);
 #endif
+	buf_ptr = (u_int8_t *) wmi_buf_data(wmi_cmd_buf);
+	len = adf_nbuf_len(wmi_cmd_buf);
+	OS_MEMZERO(buf_ptr, len);
 	adf_nbuf_free(wmi_cmd_buf);
 	adf_os_mem_free(htc_pkt);
 	adf_os_atomic_dec(&wmi_handle->pending_cmds);

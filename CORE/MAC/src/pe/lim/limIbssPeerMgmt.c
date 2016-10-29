@@ -38,7 +38,7 @@
 #include "palTypes.h"
 #include "aniGlobal.h"
 #include "sirCommon.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "limUtils.h"
 #include "limAssocUtils.h"
 #include "limStaHashApi.h"

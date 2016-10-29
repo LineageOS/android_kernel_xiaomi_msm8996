@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -62,9 +62,8 @@ tSirRetStatus macReset(tpAniSirGlobal pMac, tANI_U32 rc);
 
 tSirRetStatus macPreStart(tHalHandle hHal)
 {
-   tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-
 #if defined(ANI_LOGDUMP)
+   tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
    //logDumpInit must be called before any module starts
    logDumpInit(pMac);
 #endif //#if defined(ANI_LOGDUMP)
@@ -261,6 +260,18 @@ tSirRetStatus macClose(tHalHandle hHal)
 
     if (!pMac)
         return eHAL_STATUS_FAILURE;
+
+    /*
+     * CAC timer will be initiated and started only when SAP starts
+     * on DFS channel and it will be stopped and destroyed immediately
+     * once the radar detected or timedout. So as per design CAC timer
+     * should be destroyed after stop.
+     */
+    if (pMac->sap.SapDfsInfo.is_dfs_cac_timer_running) {
+       vos_timer_stop(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+       pMac->sap.SapDfsInfo.is_dfs_cac_timer_running = 0;
+       vos_timer_destroy(&pMac->sap.SapDfsInfo.sap_dfs_cac_timer);
+    }
 
     peClose(pMac);
     pMac->psOffloadEnabled = FALSE;

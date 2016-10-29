@@ -174,21 +174,17 @@ void hdd_flush_ibss_tx_queues( hdd_adapter_t *pAdapter, v_U8_t STAId)
       list_for_each_safe(tmp, next, &pAdapter->wmm_tx_queue[i].anchor)
       {
          pktNode = list_entry(tmp, skb_list_node_t, anchor);
-         if (pktNode != NULL)
-         {
-            skb = pktNode->skb;
+         skb = pktNode->skb;
 
-            /* Get the STAId from data */
-            skbStaIdx = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
-            if (skbStaIdx == STAId)
-            {
-               /* Data for STAId is freed along with the queue node */
+         /* Get the STAId from data */
+         skbStaIdx = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+         if (skbStaIdx == STAId) {
+            /* Data for STAId is freed along with the queue node */
 
-               list_del(tmp);
-               kfree_skb(skb);
+            list_del(tmp);
+            kfree_skb(skb);
 
-               pAdapter->wmm_tx_queue[i].count--;
-            }
+            pAdapter->wmm_tx_queue[i].count--;
          }
       }
 
@@ -439,7 +435,7 @@ static void hdd_get_transmit_sta_id(hdd_adapter_t *adapter,
 		 * overwritten for UC traffic in NAN data mode
 		 */
 		if (mcbc_addr)
-			*station_id = NDP_BROADCAST_STAID;
+			*station_id = sta_ctx->broadcast_staid;
 	} else {
 		/* For the rest, traffic is directed to AP/P2P GO */
            if (eConnectionState_Associated == sta_ctx->conn_info.connState)
@@ -497,8 +493,31 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    while (skb) {
        skb_next = skb->next;
+       /* memset skb control block */
+       vos_mem_zero(skb->cb, sizeof(skb->cb));
+       wlan_hdd_classify_pkt(skb);
+
        pDestMacAddress = (v_MACADDR_t*)skb->data;
        STAId = HDD_WLAN_INVALID_STA_ID;
+
+/*
+* The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,
+* the TCP sending limit will be smaller, which will throttle the TCP packets
+* to the host driver. The TCP UP LINK throughput will drop heavily.
+* In order to fix this issue, need to orphan the socket buffer asap, which will
+* call skb's destructor to notify the TCP stack that the SKB buffer is
+* unowned. And then the TCP stack will pump more packets to host driver.
+*
+* The TX packets might be dropped for UDP case in the iperf testing.
+* So need to be protected by follow control.
+*/
+#ifdef QCA_LL_TX_FLOW_CT
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
+      if (pAdapter->tx_flow_low_watermark > 0) {
+          skb_orphan(skb);
+      }
+#endif
+#endif
 
        hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
        if (STAId == HDD_WLAN_INVALID_STA_ID) {
@@ -653,7 +672,7 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
            list_tail->next = skb;
            list_tail = list_tail->next;
        }
-       vos_mem_zero(skb->cb, sizeof(skb->cb));
+
        adf_dp_trace_log_pkt(pAdapter->sessionId, skb, ADF_TX);
        NBUF_SET_PACKET_TRACK(skb, NBUF_TX_PKT_DATA_TRACK);
        NBUF_UPDATE_TX_PKT_COUNT(skb, NBUF_TX_PKT_HDD);

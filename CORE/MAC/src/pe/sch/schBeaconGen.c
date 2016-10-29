@@ -38,7 +38,7 @@
  */
 
 #include "palTypes.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "aniGlobal.h"
 #include "sirMacProtDef.h"
 
@@ -492,7 +492,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         /* merge extcap IE */
         if (extcap_present &&
             psessionEntry->limSystemRole != eLIM_STA_IN_IBSS_ROLE)
-            lim_merge_extcap_struct(&pBcn2->ExtCap, &extracted_extcap);
+            lim_merge_extcap_struct(&pBcn2->ExtCap, &extracted_extcap, true);
 
     }
 

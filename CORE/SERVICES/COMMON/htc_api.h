@@ -391,6 +391,19 @@ A_STATUS    HTCAddReceivePkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
 A_STATUS    HTCConnectService(HTC_HANDLE HTCHandle,
                               HTC_SERVICE_CONNECT_REQ  *pReq,
                               HTC_SERVICE_CONNECT_RESP *pResp);
+
+/**
+ * htc_disconnect_service() - Disconnect to an HTC service
+ * @htc_handle: HTC handle
+ * @endpoint_id: endpoint id
+ *
+ * Service disconnection must be performed during htt_detach.
+ *
+ * Return: None
+ */
+void htc_disconnect_service(HTC_HANDLE htc_handle,
+                            HTC_ENDPOINT_ID endpoint_id);
+
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   @desc: HTC register log dump
   @function name: HTCDump

@@ -36,7 +36,7 @@
  *
  */
 #include "palTypes.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "aniGlobal.h"
 #include "sirApi.h"
 #include "sirParams.h"
@@ -3712,7 +3712,7 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
         {
             // This shouldn't be the case, but when this happens, this timeout should be for the last channelId.
             // Get the channelNum as close to correct as possible.
-            if(pMac->lim.gpLimMlmScanReq->channelList.channelNumber)
+            if (pMac->lim.gpLimMlmScanReq->channelList.numChannels > 0)
             {
                 channelNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber[pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1];
             }
@@ -3788,7 +3788,7 @@ limProcessMaxChannelTimeout(tpAniSirGlobal pMac)
         }
         else
         {
-            if(pMac->lim.gpLimMlmScanReq->channelList.channelNumber)
+            if (pMac->lim.gpLimMlmScanReq->channelList.numChannels > 0)
             {
                 channelNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber[pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1];
             }

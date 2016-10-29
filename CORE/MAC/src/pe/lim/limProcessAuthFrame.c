@@ -39,7 +39,7 @@
  */
 
 #include "wniApi.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "aniGlobal.h"
 #include "cfgApi.h"
 
@@ -1242,38 +1242,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                         if (pKeyMapEntry)
                         {
-                            if (pKeyMapEntry->key == NULL)
-                            {
-                                // Log error
-                                PELOGE(limLog(pMac, LOGE,
-                                       FL("received Auth frame from peer when key mapping key is NULL"
-                                       MAC_ADDRESS_STR),MAC_ADDR_ARRAY(pHdr->sa));)
-
-                                /**
-                                 * Key Mapping entry has null key.
-                                 * Send Auth frame with
-                                 * challenge failure status code
-                                 */
-                                authFrame.authAlgoNumber =
-                                pRxAuthFrameBody->authAlgoNumber;
-                                authFrame.authTransactionSeqNumber =
-                                pRxAuthFrameBody->authTransactionSeqNumber + 1;
-                                authFrame.authStatusCode =
-                                eSIR_MAC_CHALLENGE_FAILURE_STATUS;
-
-                                limSendAuthMgmtFrame(pMac, &authFrame,
-                                                     pHdr->sa,
-                                                     LIM_NO_WEP_IN_FC,
-                                                     psessionEntry,
-                                                     eSIR_FALSE);
-
-                                limRestoreFromAuthState(pMac, eSIR_SME_NO_KEY_MAPPING_KEY_FOR_PEER,
-                                                              eSIR_MAC_UNSPEC_FAILURE_REASON,psessionEntry);
-
-                                return;
-                            } // if (pKeyMapEntry->key == NULL)
-                            else
-                            {
                                 ((tpSirMacAuthFrameBody) plainBody)->authAlgoNumber =
                                 sirSwapU16ifNeeded(pRxAuthFrameBody->authAlgoNumber);
                                 ((tpSirMacAuthFrameBody) plainBody)->authTransactionSeqNumber =
@@ -1301,7 +1269,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                      eSIR_FALSE);
 
                                 break;
-                            } // end if (pKeyMapEntry->key == NULL)
                         } // if (pKeyMapEntry)
                         else
                         {

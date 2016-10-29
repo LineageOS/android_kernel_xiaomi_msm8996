@@ -667,6 +667,10 @@ void adf_dp_trace_ptr(adf_nbuf_t nbuf, enum ADF_DP_TRACE_ID code,
 void adf_dp_display_record(struct adf_dp_trace_record_s *pRecord,
 				uint16_t recIndex)
 {
+	uint8_t rsize = pRecord->size;
+	if (rsize > ADF_DP_TRACE_RECORD_SIZE)
+		rsize = ADF_DP_TRACE_RECORD_SIZE;
+
 	adf_os_print("DPT: %04d: %012llu: %s\n", recIndex,
 		pRecord->time, adf_dp_code_to_string(pRecord->code));
 	switch (pRecord->code) {
@@ -679,10 +683,10 @@ void adf_dp_display_record(struct adf_dp_trace_record_s *pRecord,
 						"HDD SoftAP TX Timeout\n");
 		break;
 	case ADF_DP_TRACE_HDD_TX_PACKET_RECORD:
-		dump_hex_trace("DATA", pRecord->data, pRecord->size);
+		dump_hex_trace("DATA", pRecord->data, rsize);
 		break;
 	default:
-		dump_hex_trace("cookie", pRecord->data, pRecord->size);
+		dump_hex_trace("cookie", pRecord->data, rsize);
 	}
 }
 

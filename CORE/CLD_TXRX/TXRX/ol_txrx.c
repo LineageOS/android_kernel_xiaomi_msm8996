@@ -1222,7 +1222,7 @@ ol_txrx_vdev_detach(
         adf_nbuf_set_next(vdev->ll_pause.txq.head, NULL);
         adf_nbuf_unmap(pdev->osdev, vdev->ll_pause.txq.head,
                        ADF_OS_DMA_TO_DEVICE);
-        adf_nbuf_tx_free(vdev->ll_pause.txq.head, 1 /* error */);
+        adf_nbuf_tx_free(vdev->ll_pause.txq.head, ADF_NBUF_PKT_ERROR);
         vdev->ll_pause.txq.head = next;
     }
     adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
@@ -2710,6 +2710,8 @@ ol_txrx_ipa_uc_op_response(
 {
    if (pdev->ipa_uc_op_cb) {
       pdev->ipa_uc_op_cb(op_msg, pdev->osif_dev);
+   } else {
+      adf_os_mem_free(op_msg);
    }
 }
 

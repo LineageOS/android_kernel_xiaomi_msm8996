@@ -551,16 +551,6 @@ enum
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_MAX        ( 10000 )
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    ( 20 )
 
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_NAME       "gActiveMaxChannelTimeBtc"
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_MIN        ( 0 )
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_MAX        ( 10000 )
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_DEFAULT    ( 120 )
-
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_BTC_NAME       "gActiveMinChannelTimeBtc"
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_BTC_MIN        ( 0 )
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_BTC_MAX        ( 10000 )
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_BTC_DEFAULT    ( 60 )
-
 #define CFG_RETRY_LIMIT_ZERO_NAME       "gRetryLimitZero"
 #define CFG_RETRY_LIMIT_ZERO_MIN        ( 0 )
 #define CFG_RETRY_LIMIT_ZERO_MAX        ( 15 )
@@ -1304,11 +1294,6 @@ enum
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_MAX           ( 1 )
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_DEFAULT       ( 0 )
 
-#define CFG_ENABLE_CLOSE_LOOP_NAME                 "gEnableCloseLoop"
-#define CFG_ENABLE_CLOSE_LOOP_MIN                  WNI_CFG_FIXED_RATE_STAMIN
-#define CFG_ENABLE_CLOSE_LOOP_MAX                  WNI_CFG_FIXED_RATE_STAMAX
-#define CFG_ENABLE_CLOSE_LOOP_DEFAULT              WNI_CFG_FIXED_RATE_STADEF
-
 #define CFG_ENABLE_BYPASS_11D_NAME                 "gEnableBypass11d"
 #define CFG_ENABLE_BYPASS_11D_MIN                  ( 0 )
 #define CFG_ENABLE_BYPASS_11D_MAX                  ( 1 )
@@ -1786,11 +1771,6 @@ typedef enum
 #define CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_DEFAULT    ( 0 )
 
 
-#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME  "gEnableAutomaticTxPowerControl"
-#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN        ( 0 )
-#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX        ( 1 )
-#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_DEFAULT    ( 1 )
-
 #define CFG_SHORT_GI_40MHZ_NAME                "gShortGI40Mhz"
 #define CFG_SHORT_GI_40MHZ_MIN                 0
 #define CFG_SHORT_GI_40MHZ_MAX                 1
@@ -2198,7 +2178,7 @@ typedef enum
 #define CFG_TDLS_EXTERNAL_CONTROL                   "gTDLSExternalControl"
 #define CFG_TDLS_EXTERNAL_CONTROL_MIN               (0)
 #define CFG_TDLS_EXTERNAL_CONTROL_MAX               (1)
-#define CFG_TDLS_EXTERNAL_CONTROL_DEFAULT           (0)
+#define CFG_TDLS_EXTERNAL_CONTROL_DEFAULT           (1)
 
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE          "gEnableTDLSOffChannel"
 #define CFG_TDLS_OFF_CHANNEL_SUPPORT_ENABLE_MIN      (0)
@@ -2258,6 +2238,12 @@ typedef enum
 #define CFG_TDLS_PEER_KICKOUT_THRESHOLD_DEFAULT    (96)
 
 #endif
+
+/* Timer to defer for enabling TDLS on P2P listen (Value in milliseconds) */
+#define CFG_TDLS_ENABLE_DEFER_TIMER                "gTDLSEnableDeferTime"
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MIN            (2000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_MAX            (6000)
+#define CFG_TDLS_ENABLE_DEFER_TIMER_DEFAULT        (5000)
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE         "gEnableActiveModeOffload"
@@ -2983,7 +2969,11 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #endif
 
 #define CFG_MAX_CONCURRENT_CONNECTIONS_NAME        "gMaxConcurrentActiveSessions"
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT     ( 4 )
+#else
 #define CFG_MAX_CONCURRENT_CONNECTIONS_DEFAULT     ( 2 )
+#endif
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MIN         ( 1 )
 #define CFG_MAX_CONCURRENT_CONNECTIONS_MAX         ( 4 )
 
@@ -3455,6 +3445,101 @@ enum dot11p_mode {
 #define CFG_BTC_ANTENNA_ISOLATION_MAX       (100)
 #define CFG_BTC_ANTENNA_ISOLATION_DEFAULT   (0)
 
+/**
+* For P2P + STA + BT Paging
+* gBTIntervalPageP2PSTA/gWLIntervalPageP2PSTA intervals length (in ms) during
+* intervals length (in ms) during WLAN P2P + STA (multi vdev) + BT Paging,
+* min 20ms, max 200ms
+* Customer could change these parameters' value to improve P2P throughput
+* during BT Page
+* gBTIntervalPageP2PSTA=80
+* gWLIntervalPageP2PSTA=30
+*/
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_STA           "gBTIntervalPageP2PSTA"
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_STA_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_STA_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT   (80)
+
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_STA           "gWLIntervalPageP2PSTA"
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_STA_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_STA_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_PAGE_P2P_STA_DEFAULT   (30)
+
+/**
+FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
+* intervals length (in ms) during WLAN STA (single vdev) + BT Inquiry,
+* min 20ms, max 200ms
+* Customer could change these parameters' value to improve STA throughput
+* during BT Inquiry
+* gBTIntervalInquirySTA=120
+* gWLIntervalInquirySTA=30
+*/
+#define CFG_BTC_BT_INTERVAL_INQ_STA           "gBTIntervalInquirySTA"
+#define CFG_BTC_BT_INTERVAL_INQ_STA_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_INQ_STA_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_INQ_STA_DEFAULT   (120)
+
+#define CFG_BTC_WLAN_INTERVAL_INQ_STA           "gWLIntervalInquirySTA"
+#define CFG_BTC_WLAN_INTERVAL_INQ_STA_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_INQ_STA_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_INQ_STA_DEFAULT   (30)
+
+/**
+* For SAP + BT Inquiry
+* intervals length (in ms) during WLAN SAP (single vdev) + BT Inquiry,
+* min 20ms, max 200ms
+* Customer could change these parameters' value to improve SAP throughput
+* during BT Inquiry
+* gBTIntervalInquirySAP=120
+* gWLIntervalInquirySAP=30
+*/
+#define CFG_BTC_BT_INTERVAL_INQ_SAP           "gBTIntervalInquirySAP"
+#define CFG_BTC_BT_INTERVAL_INQ_SAP_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_INQ_SAP_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_INQ_SAP_DEFAULT   (120)
+
+#define CFG_BTC_WLAN_INTERVAL_INQ_SAP           "gWLIntervalInquirySAP"
+#define CFG_BTC_WLAN_INTERVAL_INQ_SAP_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_INQ_SAP_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_INQ_SAP_DEFAULT   (30)
+
+/**
+* For P2P + BT Inquiry
+* intervals length (in ms) during WLAN P2P (single vdev) + BT Inquiry,
+* min 20ms, max 200ms
+* Customer could change these parameters' value to improve P2P throughput
+* during BT Inquiry
+* gBTIntervalInquiryP2P=120
+* gWLIntervalInquiryP2P=30
+*/
+#define CFG_BTC_BT_INTERVAL_INQ_P2P           "gBTIntervalInquiryP2P"
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_DEFAULT   (120)
+
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P           "gWLIntervalInquiryP2P"
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_DEFAULT   (30)
+
+/**
+* For P2P + STA + BT Inquiry
+* intervals length (in ms) during WLAN P2P + STA (multi vdev) + BT Inquiry,
+* min 20ms, max 200ms
+* Customer could change these parameters' value to improve P2P throughput
+* during BT Inquiry
+* gBTIntervalInquiryP2PSTA=80
+* gWLIntervalInquiryP2PSTA=30
+*/
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_STA           "gBTIntervalInquiryP2PSTA"
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_STA_MIN       (20)
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_STA_MAX       (200)
+#define CFG_BTC_BT_INTERVAL_INQ_P2P_STA_DEFAULT   (80)
+
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_STA           "gWLIntervalInquiryP2PSTA"
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_STA_MIN       (20)
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_STA_MAX       (200)
+#define CFG_BTC_WLAN_INTERVAL_INQ_P2P_STA_DEFAULT   (30)
 
 /* Parameters for roaming scans performed at high RSSI */
 
@@ -4004,6 +4089,50 @@ enum dot11p_mode {
 #define CFG_BPF_PACKET_FILTER_OFFLOAD_MAX       (1)
 #define CFG_BPF_PACKET_FILTER_OFFLOAD_DEFAULT   (1)
 
+/*
+ * GPIO num used to wakeup host, 0xFF disable wakeup.
+ * Default value is 0xFF
+ */
+#define CFG_HOST_WAKEUP_GPIO_NAME        "g_host_wakeup_gpio"
+#define CFG_HOST_WAKEUP_GPIO_MIN         (0)
+#define CFG_HOST_WAKEUP_GPIO_MAX         (0xFF)
+#define CFG_HOST_WAKEUP_GPIO_DEFAULT     (0xFF)
+
+/*
+ * Wakeup type for host.
+ * 1 Low level
+ * 2 High level
+ * 3 Rising edge
+ * 4 Falling edge
+ * Default value is 1.
+ */
+#define CFG_HOST_WAKEUP_TYPE_NAME        "g_host_wakeup_type"
+#define CFG_HOST_WAKEUP_TYPE_MIN         (1)
+#define CFG_HOST_WAKEUP_TYPE_MAX         (4)
+#define CFG_HOST_WAKEUP_TYPE_DEFAULT     (1)
+
+/*
+ * GPIO number used to wakeup target, 0xFF disable wakeup.
+ * Default value is 0xFF
+ */
+#define CFG_TARGET_WAKEUP_GPIO_NAME       "g_target_wakeup_gpio"
+#define CFG_TARGET_WAKEUP_GPIO_MIN        (0)
+#define CFG_TARGET_WAKEUP_GPIO_MAX        (0xFF)
+#define CFG_TARGET_WAKEUP_GPIO_DEFAULT    (0xFF)
+
+/*
+ * Wakeup type for host.
+ * 1 Low level
+ * 2 High level
+ * 3 Rising edge
+ * 4 Falling edge
+ * Default value is 1.
+ */
+#define CFG_TARGET_WAKEUP_TYPE_NAME       "g_target_wakeup_type"
+#define CFG_TARGET_WAKEUP_TYPE_MIN        (1)
+#define CFG_TARGET_WAKEUP_TYPE_MAX        (4)
+#define CFG_TARGET_WAKEUP_TYPE_DEFAULT    (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4130,8 +4259,6 @@ struct hdd_config {
    v_U32_t        nInitialDwellTime;     //in units of milliseconds
    bool           initial_scan_no_dfs_chnl;
 
-   v_U32_t        nActiveMinChnTimeBtc;     //in units of milliseconds
-   v_U32_t        nActiveMaxChnTimeBtc;     //in units of milliseconds
 #ifdef WLAN_AP_STA_CONCURRENCY
    v_U32_t        nPassiveMinChnTimeConc;    //in units of milliseconds
    v_U32_t        nPassiveMaxChnTimeConc;    //in units of milliseconds
@@ -4297,12 +4424,10 @@ struct hdd_config {
    v_U16_t                     nTeleBcnTransLiNumIdleBeacons;
    v_U16_t                     nTeleBcnMaxLiNumIdleBeacons;
    v_U8_t                      bcnEarlyTermWakeInterval;
-   v_U32_t                     enableCloseLoop;
    v_U8_t                      enableBypass11d;
    v_U8_t                      enableDFSChnlScan;
    v_U8_t                      enable_dfs_pno_chnl_scan;
    v_U8_t                      enableDynamicDTIM;
-   v_U8_t                      enableAutomaticTxPowerControl;
    v_U8_t                      ShortGI40MhzEnable;
    eHddLinkSpeedReportType     reportMaxLinkSpeed;
    v_S31_t                     linkSpeedRssiHigh;
@@ -4699,6 +4824,21 @@ struct hdd_config {
    uint32_t                    dynamic_wlan_bt_coex;
    uint32_t                    antenna_isolation;
 
+   uint32_t                    coex_page_p2p_sta_bt_interval;
+   uint32_t                    coex_page_p2p_sta_wlan_interval;
+
+   uint32_t                    coex_inquiry_sta_bt_interval;
+   uint32_t                    coex_inquiry_sta_wlan_interval;
+
+   uint32_t                    coex_inquiry_sap_bt_interval;
+   uint32_t                    coex_inquiry_sap_wlan_interval;
+
+   uint32_t                    coex_inquiry_p2p_bt_interval;
+   uint32_t                    coex_inquiry_p2p_wlan_interval;
+
+   uint32_t                    coex_inquiry_p2p_sta_bt_interval;
+   uint32_t                    coex_inquiry_p2p_sta_wlan_interval;
+
    uint8_t                     inform_bss_rssi_raw;
 #ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
@@ -4788,7 +4928,13 @@ struct hdd_config {
    /* parameter for indicating sifs burst duration to fw */
    uint8_t                     sifs_burst_duration;
 
-   bool bpf_packet_filter_enable;
+   bool                        bpf_packet_filter_enable;
+   /* parameter for defer timer for enabling TDLS on p2p listen */
+   uint16_t                    tdls_enable_defer_time;
+   uint32_t                    host_wakeup_gpio;
+   uint32_t                    host_wakeup_type;
+   uint32_t                    target_wakeup_gpio;
+   uint32_t                    target_wakeup_type;
 };
 
 typedef struct hdd_config hdd_config_t;
