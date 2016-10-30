@@ -545,6 +545,7 @@ static void sg_timeout(unsigned long _req)
 {
 	struct usb_sg_request	*req = (struct usb_sg_request *) _req;
 
+	req->status = -ETIMEDOUT;
 	usb_sg_cancel(req);
 }
 
@@ -575,10 +576,8 @@ static int perform_sglist(
 		mod_timer(&sg_timer, jiffies +
 				msecs_to_jiffies(SIMPLE_IO_TIMEOUT));
 		usb_sg_wait(req);
-		if (!del_timer_sync(&sg_timer))
-			retval = -ETIMEDOUT;
-		else
-			retval = req->status;
+		del_timer_sync(&sg_timer);
+		retval = req->status;
 
 		/* FIXME check resulting data pattern */
 
