@@ -552,7 +552,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     if (LIM_IS_AP_ROLE(psessionEntry) &&
        (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11AC_ONLY) &&
-       (vht_caps != NULL) && (!vht_caps->present)) {
+       ((vht_caps == NULL) || ((vht_caps != NULL) && (!vht_caps->present)))) {
         limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS,
                                   1, pHdr->sa, subType, 0, psessionEntry );
         limLog(pMac, LOGE, FL("SOFTAP was in 11AC only mode, reject"));
