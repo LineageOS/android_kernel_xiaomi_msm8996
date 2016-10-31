@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -131,6 +131,9 @@ ol_rx_err(
     u_int64_t *pn,
     u_int8_t key_id);
 
+#ifdef HL_RX_AGGREGATION_HOLE_DETCTION
+void ol_rx_aggregation_hole(uint32_t hole_info);
+#endif
 
 enum ol_rx_notify_type {
     OL_RX_NOTIFY_IPV4_IGMP,

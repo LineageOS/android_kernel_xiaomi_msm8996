@@ -37977,6 +37977,44 @@ VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
         return VOS_STATUS_SUCCESS;
 }
 
+#ifdef HL_RX_AGGREGATION_HOLE_DETCTION
+/**
+ * ol_rx_aggregation_hole - ol rx aggregation hole report
+ * @hole_info: hole_info
+ *
+ * Return: void
+ */
+void ol_rx_aggregation_hole(uint32_t hole_info)
+{
+	struct sir_sme_rx_aggr_hole_ind *rx_aggr_hole_event;
+	uint32_t alloc_len;
+	vos_msg_t vos_msg;
+	VOS_STATUS status;
+
+	alloc_len = sizeof(*rx_aggr_hole_event) +
+		sizeof(rx_aggr_hole_event->hole_info_array[0]);
+	rx_aggr_hole_event = vos_mem_malloc(alloc_len);
+	if (NULL == rx_aggr_hole_event) {
+		WMA_LOGE("%s: Memory allocation failure", __func__);
+		return;
+	}
+
+	rx_aggr_hole_event->hole_cnt = 1;
+	rx_aggr_hole_event->hole_info_array[0] = hole_info;
+
+	vos_msg.type = eWNI_SME_RX_AGGR_HOLE_IND;
+	vos_msg.bodyptr = rx_aggr_hole_event;
+	vos_msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to post aggr event to SME", __func__);
+		vos_mem_free(rx_aggr_hole_event);
+		return;
+	}
+}
+#endif
+
 void ol_rx_err(ol_pdev_handle pdev, u_int8_t vdev_id,
 	       u_int8_t *peer_mac_addr, int tid, u_int32_t tsf32,
 	       enum ol_rx_err_type err_type, adf_nbuf_t rx_frame,

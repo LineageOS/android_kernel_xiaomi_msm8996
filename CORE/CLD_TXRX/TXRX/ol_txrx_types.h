@@ -87,6 +87,8 @@
 
 #define OL_TXRX_INVALID_VDEV_ID		(-1)
 
+#define INVALID_REORDER_INDEX 0xFFFF
+
 struct ol_txrx_pdev_t;
 struct ol_txrx_vdev_t;
 struct ol_txrx_peer_t;
