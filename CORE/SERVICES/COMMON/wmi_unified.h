@@ -11444,67 +11444,6 @@ typedef struct {
 /** FW response when tx failure count has reached threshold
  *  for a peer */
 typedef struct {
-    /**
-     * TLV tag and len; tag equals
-     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info_req_cmd_fixed_param
-     */
-    A_UINT32 tlv_header;
-    /**
-     * In order to get the peer antdiv info for a single peer, host shall
-     * issue the peer_mac_address of that peer. For getting the
-     * info all peers, the host shall issue 0xFFFFFFFF as the mac
-     * address. The firmware will return the peer info for all the
-     * peers on the specified vdev_id
-     */
-    wmi_mac_addr peer_mac_address;
-    /** vdev id */
-    A_UINT32 vdev_id;
-} wmi_peer_antdiv_info_req_cmd_fixed_param;
-
-/** FW response with the peer antdiv info */
-typedef struct {
-    /** TLV tag and len; tag equals
-     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info_event_fixed_param
-     */
-    A_UINT32 tlv_header;
-    /** number of peers in peer_info */
-    A_UINT32 num_peers;
-    /** VDEV to which the peer belongs to */
-    A_UINT32 vdev_id;
-    /**
-     * This TLV is followed by another TLV of array of structs
-     * wmi_peer_antdiv_info peer_antdiv_info[];
-     */
-} wmi_peer_antdiv_info_event_fixed_param;
-
-typedef struct {
-    /**
-     * TLV tag and len; tag equals
-     * WMITLV_TAG_STRUC_wmi_peer_antdiv_info
-     */
-    A_UINT32 tlv_header;
-    /** mac addr of the peer */
-    wmi_mac_addr peer_mac_address;
-    /**
-     * per chain rssi of the peer, for up to 8 chains.
-     * Each chain's entry reports the RSSI for different bandwidths:
-     * bits 7:0   -> primary 20 MHz
-     * bits 15:8  -> secondary 20 MHz of  40 MHz channel (if applicable)
-     * bits 23:16 -> secondary 40 MHz of  80 MHz channel (if applicable)
-     * bits 31:24 -> secondary 80 MHz of 160 MHz channel (if applicable)
-     * Each of these 8-bit RSSI reports is in dB units, with respect to
-     * the noise floor.
-     * 0x80 means invalid.
-     * All unused bytes within used chain_rssi indices shall be set
-     * to 0x80.
-     * All unused chain_rssi indices shall be set to 0x80808080.
-     */
-    A_INT32 chain_rssi[8];
-} wmi_peer_antdiv_info;
-
-/** FW response when tx failure count has reached threshold
- *  for a peer */
-typedef struct {
     /** TLV tag and len; tag equals
      *  WMITLV_TAG_STRUC_wmi_peer_tx_fail_cnt_thr_event_fixed_param */
     A_UINT32 tlv_header;

@@ -30634,61 +30634,6 @@ static void wma_update_sta_inactivity_timeout(tp_wma_handle wma,
 }
 
 /*
- * wma_update_sta_inactivity_timeout() - Set sta_inactivity_timeout to fw
- * @wma_handle: WMA handle
- * @sta_inactivity_timer: sme_sta_inactivity_timeout
- *
- * This function is used to set sta_inactivity_timeout.
- * If a station does not send anything in sta_inactivity_timeout seconds, an
- * empty data frame is sent to it in order to verify whether it is
- * still in range. If this frame is not ACKed, the station will be
- * disassociated and then deauthenticated.
- *
- * Return: None
- */
-static void wma_update_sta_inactivity_timeout(tp_wma_handle wma,
-		struct sme_sta_inactivity_timeout  *sta_inactivity_timer)
-{
-	u_int8_t vdev_id;
-	u_int32_t max_unresponsive_time;
-	u_int32_t min_inactive_time, max_inactive_time;
-
-	if (!wma || !wma->wmi_handle) {
-		WMA_LOGE(FL("WMA is closed, can not issue sta_inactivity_timeout"));
-		return;
-	}
-	vdev_id = sta_inactivity_timer->session_id;
-	max_unresponsive_time = sta_inactivity_timer->sta_inactivity_timeout;
-	max_inactive_time = max_unresponsive_time* 2/3;
-	min_inactive_time = max_unresponsive_time - max_inactive_time ;
-
-	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
-			vdev_id,
-			WMI_VDEV_PARAM_AP_KEEPALIVE_MIN_IDLE_INACTIVE_TIME_SECS,
-				min_inactive_time))
-		WMA_LOGE("Failed to Set AP MIN IDLE INACTIVE TIME");
-
-	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
-			vdev_id,
-			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_IDLE_INACTIVE_TIME_SECS,
-				max_inactive_time))
-		WMA_LOGE("Failed to Set AP MAX IDLE INACTIVE TIME");
-
-
-	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
-			vdev_id,
-			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
-			max_unresponsive_time))
-		WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
-
-	WMA_LOGD("%s:vdev_id:%d min_inactive_time: %u max_inactive_time: %u"
-		" max_unresponsive_time: %u", __func__, vdev_id,
-		min_inactive_time, max_inactive_time, max_unresponsive_time);
-
-	return;
-}
-
-/*
  * function   : wma_mc_process_msg
  * Description :
  * Args       :

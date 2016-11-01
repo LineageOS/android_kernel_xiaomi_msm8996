@@ -15866,7 +15866,6 @@ err_ipa_cleanup:
 
 err_wiphy_unregister:
    wiphy_unregister(wiphy);
-   wlan_hdd_cfg80211_deinit(wiphy);
 
 err_vosclose:
    status = vos_sched_close( pVosContext );
@@ -16024,48 +16023,6 @@ static int hdd_register_fail_clean_up(v_CONTEXT_t vos_context)
 	hdd_logging_sock_deinit_svc();
 
 	return -ENODEV;
-}
-
-/* accommodate the request firmware bin time out 2 min */
-#define REQUEST_FWR_TIMEOUT 120000
-#define HDD_WLAN_START_WAIT_TIME (VOS_WDA_TIMEOUT + 5000 + REQUEST_FWR_TIMEOUT)
-/**
- * hdd_hif_register_driver() - API for HDD to register with HIF
- *
- * API for HDD to register with HIF layer
- *
- * Return: success/failure
- */
-int hdd_hif_register_driver(void)
-{
-	int ret;
-	unsigned long rc, timeout;
-
-	init_completion(&wlan_comp.wlan_start_comp);
-	wlan_comp.status = 0;
-
-	ret = hif_register_driver();
-
-	if (ret) {
-		hddLog(LOGE, FL("HIF registration failed"));
-		return ret;
-	}
-
-	timeout = msecs_to_jiffies(HDD_WLAN_START_WAIT_TIME);
-
-	rc = wait_for_completion_timeout(&wlan_comp.wlan_start_comp, timeout);
-
-	if (!rc) {
-		hddLog(LOGE, FL("hif registration timedout"));
-		return -EAGAIN;
-	}
-
-	if (wlan_comp.status)
-		hddLog(LOGE,
-		       FL("hdd_wlan_startup failed status:%d jiffies_left:%lu"),
-		       wlan_comp.status, rc);
-
-	return wlan_comp.status;
 }
 
 /**---------------------------------------------------------------------------

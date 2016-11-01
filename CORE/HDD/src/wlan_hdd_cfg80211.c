@@ -14498,33 +14498,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
     }
 
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
-            pBeacon->head_len, WLAN_EID_SUPP_RATES);
-    if (pIe != NULL) {
-        pIe++;
-        pConfig->supported_rates.numRates = pIe[0];
-        pIe++;
-        for (i = 0; i < pConfig->supported_rates.numRates; i++)
-            if (pIe[i]) {
-                pConfig->supported_rates.rate[i]= pIe[i];
-                hddLog(LOG1, FL("Configured Supported rate is %2x"),
-                        pConfig->supported_rates.rate[i]);
-            }
-    }
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
-            WLAN_EID_EXT_SUPP_RATES);
-    if (pIe != NULL) {
-        pIe++;
-        pConfig->extended_rates.numRates = pIe[0];
-        pIe++;
-        for (i = 0; i < pConfig->extended_rates.numRates; i++)
-            if (pIe[i]){
-                pConfig->extended_rates.rate[i]= pIe[i];
-                hddLog(LOG1, FL("Configured extended Supported rate is %2x"),
-                        pConfig->extended_rates.rate[i]);
-            }
-    }
-
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
 
     if (pHddCtx->cfg_ini->sap_force_11n_for_11ac) {
@@ -15186,15 +15159,6 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Reached max concurrent connections"));
         return -EINVAL;
-    }
-    if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
-        hdd_adapter_t  *pP2pAdapter = NULL;
-        pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
-        if (pP2pAdapter) {
-            hddLog(VOS_TRACE_LEVEL_DEBUG,
-                FL("cancel active p2p device ROC before GO starting"));
-            wlan_hdd_cancel_existing_remain_on_channel(pP2pAdapter);
-        }
     }
 
     if (WLAN_HDD_SOFTAP == pAdapter->device_mode)

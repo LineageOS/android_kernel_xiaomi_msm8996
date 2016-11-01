@@ -241,7 +241,6 @@ HTC_HANDLE HTCCreate(void *ol_sc, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
     adf_os_spinlock_init(&target->HTCRxLock);
     adf_os_spinlock_init(&target->HTCTxLock);
     adf_os_spinlock_init(&target->HTCCreditLock);
-    target->is_nodrop_pkt = FALSE;
 
     for (j = 0; j < ENDPOINT_MAX; j++) {
         pEndpoint = &target->EndPoint[j];

@@ -65,17 +65,6 @@ typedef void (*__adf_nbuf_callback_fn) (struct sk_buff *skb);
 #define CVG_NBUF_MAX_EXTRA_FRAGS 2
 
 typedef void (*adf_nbuf_trace_update_t)(char *);
-struct nbuf_rx_cb {
-	uint8_t dp_trace:1,
-		    reserved:7;
-	uint8_t packet_trace;
-};
-
-#define ADF_NBUF_CB_RX_DP_TRACE(skb) \
-	(((struct nbuf_rx_cb*)((skb)->cb))->dp_trace)
-
-#define ADF_NBUF_CB_RX_PACKET_TRACE(skb) \
-	(((struct nbuf_rx_cb*)((skb)->cb))->packet_trace)
 
 struct cvg_nbuf_cb {
     /*
