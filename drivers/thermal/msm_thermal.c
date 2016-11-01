@@ -3017,7 +3017,8 @@ static int __ref update_offline_cores(int val)
 
 	if (pend_hotplug_req && !in_suspend && !retry_in_progress) {
 		retry_in_progress = true;
-		schedule_delayed_work(&retry_hotplug_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&retry_hotplug_work,
 			msecs_to_jiffies(HOTPLUG_RETRY_INTERVAL_MS));
 	}
 
@@ -3510,8 +3511,9 @@ static void check_temp(struct work_struct *work)
 
 reschedule:
 	if (polling_enabled)
-		schedule_delayed_work(&check_temp_work,
-				msecs_to_jiffies(msm_thermal_info.poll_ms));
+		queue_delayed_work(system_power_efficient_wq,
+			&check_temp_work,
+			msecs_to_jiffies(msm_thermal_info.poll_ms));
 }
 
 static int __ref msm_thermal_cpu_callback(struct notifier_block *nfb,
