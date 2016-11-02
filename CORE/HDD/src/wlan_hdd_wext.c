@@ -10560,6 +10560,20 @@ int iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     ptr += nOffset;
   }/*For ucNetworkCount*/
 
+  if (sscanf(ptr, "%u %n", &(pnoRequest.fast_scan_period), &nOffset) > 0) {
+    pnoRequest.fast_scan_period *= MSEC_PER_SEC;
+    ptr += nOffset;
+  }
+
+  if (sscanf(ptr, "%hhu %n", &(pnoRequest.fast_scan_max_cycles),
+             &nOffset) > 0)
+    ptr += nOffset;
+
+  if (sscanf(ptr, "%u %n", &(pnoRequest.slow_scan_period), &nOffset) > 0) {
+    pnoRequest.slow_scan_period *= MSEC_PER_SEC;
+    ptr += nOffset;
+  }
+
   ucParams = sscanf(ptr,"%hhu %n",&(ucMode), &nOffset);
 
   pnoRequest.modePNO = ucMode;
