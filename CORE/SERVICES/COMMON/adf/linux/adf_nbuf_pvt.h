@@ -65,17 +65,6 @@ typedef void (*__adf_nbuf_callback_fn) (struct sk_buff *skb);
 #define CVG_NBUF_MAX_EXTRA_FRAGS 2
 
 typedef void (*adf_nbuf_trace_update_t)(char *);
-struct nbuf_rx_cb {
-	uint8_t dp_trace:1,
-		    reserved:7;
-	uint8_t packet_trace;
-};
-
-#define ADF_NBUF_CB_RX_DP_TRACE(skb) \
-	(((struct nbuf_rx_cb*)((skb)->cb))->dp_trace)
-
-#define ADF_NBUF_CB_RX_PACKET_TRACE(skb) \
-	(((struct nbuf_rx_cb*)((skb)->cb))->packet_trace)
 
 struct cvg_nbuf_cb {
     /*
@@ -99,10 +88,10 @@ struct cvg_nbuf_cb {
      * Store info for data path tracing
      */
     struct {
-        uint8_t packet_state: 4;
-        uint8_t packet_track: 2;
-        uint8_t dp_trace: 1;
-        uint8_t dp_trace_reserved: 1;
+        uint8_t packet_state:4;
+        uint8_t packet_track:2;
+        uint8_t dp_trace_tx:1;
+        uint8_t dp_trace_rx:1;
     } trace;
 
     /*
@@ -271,7 +260,10 @@ struct cvg_nbuf_cb {
     adf_nbuf_set_state(skb, PACKET_STATE)
 
 #define ADF_NBUF_CB_TX_DP_TRACE(skb) \
-    (((struct cvg_nbuf_cb *)((skb)->cb))->trace.dp_trace)
+    (((struct cvg_nbuf_cb *)((skb)->cb))->trace.dp_trace_tx)
+
+#define ADF_NBUF_CB_RX_DP_TRACE(skb) \
+    (((struct cvg_nbuf_cb *)((skb)->cb))->trace.dp_trace_rx)
 
 #define ADF_NBUF_GET_IS_EAPOL(skb) \
     (((struct cvg_nbuf_cb *)((skb)->cb))->packet_type.is_eapol)
@@ -1216,6 +1208,21 @@ __adf_nbuf_append_ext_list(
         skb_shinfo(skb_head)->frag_list = ext_list;
         skb_head->data_len = ext_len;
         skb_head->len += skb_head->data_len;
+}
+
+/**
+ * __adf_nbuf_get_ext_list() - Get the link to extended nbuf list.
+ * @head_buf: Network buf holding head segment (single)
+ *
+ * This ext_list is populated when we have Jumbo packet, for example in case of
+ * monitor mode amsdu packet reception, and are stiched using frags_list.
+ *
+ * Return: Network buf list holding linked extensions from head buf.
+ */
+static inline struct sk_buff *
+__adf_nbuf_get_ext_list(struct sk_buff *head_buf)
+{
+	return skb_shinfo(head_buf)->frag_list;
 }
 
 static inline void

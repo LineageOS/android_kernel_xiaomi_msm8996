@@ -207,6 +207,8 @@ ifeq ($(CONFIG_ROME_IF),pci)
 endif
 ifeq ($(CONFIG_ROME_IF),usb)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 1
+	CONFIG_QCA_LL_TX_FLOW_CT := 1
+	CONFIG_QCA_TXDESC_SANITY_CHECKS := 1
 endif
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_PER_VDEV_TX_DESC_POOL := 0
@@ -630,7 +632,6 @@ SME_CMN_OBJS := $(SME_SRC_DIR)/sme_common/sme_Api.o \
 		$(SME_SRC_DIR)/sme_common/sme_FTApi.o \
 		$(SME_SRC_DIR)/sme_common/sme_Trace.o
 
-SME_BTC_OBJS := $(SME_SRC_DIR)/btc/btcApi.o
 
 SME_OEM_DATA_OBJS := $(SME_SRC_DIR)/oemData/oemDataApi.o
 
@@ -646,8 +647,7 @@ ifeq ($(CONFIG_WLAN_FEATURE_NAN_DATAPATH),y)
 SME_NDP_OBJS += $(SME_SRC_DIR)/nan/nan_datapath_api.o
 endif
 
-SME_OBJS :=	$(SME_BTC_OBJS) \
-		$(SME_CCM_OBJS) \
+SME_OBJS :=	$(SME_CCM_OBJS) \
 		$(SME_CMN_OBJS) \
 		$(SME_CSR_OBJS) \
 		$(SME_OEM_DATA_OBJS) \
@@ -666,9 +666,6 @@ SVC_SRC_DIR :=	$(SVC_DIR)/src
 SVC_INC := 	-I$(WLAN_ROOT)/$(SVC_INC_DIR) \
 		-I$(WLAN_ROOT)/$(SVC_DIR)/external
 
-BTC_SRC_DIR :=	$(SVC_SRC_DIR)/btc
-BTC_OBJS :=	$(BTC_SRC_DIR)/wlan_btc_svc.o
-
 NLINK_SRC_DIR := $(SVC_SRC_DIR)/nlink
 NLINK_OBJS :=	$(NLINK_SRC_DIR)/wlan_nlink_srv.o
 
@@ -678,8 +675,7 @@ PTT_OBJS :=	$(PTT_SRC_DIR)/wlan_ptt_sock_svc.o
 WLAN_LOGGING_SRC_DIR := $(SVC_SRC_DIR)/logging
 WLAN_LOGGING_OBJS := $(WLAN_LOGGING_SRC_DIR)/wlan_logging_sock_svc.o
 
-SVC_OBJS :=	$(BTC_OBJS) \
-		$(NLINK_OBJS) \
+SVC_OBJS :=	$(NLINK_OBJS) \
 		$(PTT_OBJS) \
 		$(WLAN_LOGGING_OBJS)
 
@@ -1020,7 +1016,8 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DFEATURE_WLAN_LFR \
 		-DFEATURE_WLAN_CH144 \
 		-DHTC_CRP_DEBUG \
-		-DWLAN_VOWIFI_DEBUG
+		-DWLAN_VOWIFI_DEBUG \
+		-DATH_SUPPORT_DFS
 
 ifeq ($(CONFIG_SCPC_FEATURE), y)
 CDEFINES += -DWLAN_SCPC_FEATURE
@@ -1040,7 +1037,8 @@ CDEFINES +=     -DCONFIG_HL_SUPPORT \
                 -DHIF_SDIO \
                 -DCONFIG_ATH_PROCFS_DIAG_SUPPORT \
                 -DFEATURE_HL_GROUP_CREDIT_FLOW_CONTROL \
-                -DHIF_MBOX_SLEEP_WAR
+                -DHIF_MBOX_SLEEP_WAR \
+                -DDEBUG_HL_LOGGING
 endif
 
 ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
@@ -1057,7 +1055,6 @@ endif
 
 ifeq ($(CONFIG_ARCH_MDM9607), y)
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
-CDEFINES += -DDEBUG_HL_LOGGING
 CDEFINES += -DHIF_SYNC_READ
 endif
 endif
@@ -1258,6 +1255,16 @@ endif
 #Enable per vdev Tx desc pool
 ifeq ($(CONFIG_PER_VDEV_TX_DESC_POOL), 1)
 CDEFINES += -DCONFIG_PER_VDEV_TX_DESC_POOL
+endif
+
+#Enable tx flow control
+ifeq ($(CONFIG_QCA_LL_TX_FLOW_CT), 1)
+CDEFINES += -DQCA_LL_TX_FLOW_CT
+endif
+
+#Enable the tx desc sanity check
+ifeq ($(CONFIG_QCA_TXDESC_SANITY_CHECKS), 1)
+CDEFINES += -DQCA_SUPPORT_TXDESC_SANITY_CHECKS
 endif
 
 #Enable Tx mgmt desc reserve

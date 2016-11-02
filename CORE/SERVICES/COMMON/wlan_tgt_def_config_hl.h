@@ -37,7 +37,11 @@
 /*
  * default limit of VAPs per device.
  */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_NUM_VDEV                4
+#else
 #define CFG_TGT_NUM_VDEV                3
+#endif
 #endif
 /*
  * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize
@@ -63,7 +67,11 @@
  * probably always be appropriate; it is probably not necessary to
  * determine this value dynamically.
  */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_AST_SKID_LIMIT          8
+#else
 #define CFG_TGT_AST_SKID_LIMIT          6
+#endif
 /*
  * total number of peers per device.
  * currently set to 8 to bring up IP3.9 for memory size problem
@@ -243,7 +251,11 @@
  * Maximum number of VDEV that beacon tx offload will support
  */
 #ifdef HIF_SDIO
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 4
+#else
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
+#endif
 #else
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 1
 #endif

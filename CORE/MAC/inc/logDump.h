@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,18 @@ typedef struct sRegList {
 
 int log_sprintf(tpAniSirGlobal pMac, char *pBuf, char *fmt, ... );
 
+#ifdef ANI_LOGDUMP
+int logPrintf(tpAniSirGlobal mac, tANI_U32 cmd,
+			   tANI_U32 arg1, tANI_U32 arg2,
+			   tANI_U32 arg3, tANI_U32 arg4);
+#else
+static inline void logPrintf(tpAniSirGlobal mac, tANI_U32 cmd,
+			tANI_U32 arg1, tANI_U32 arg2,
+			tANI_U32 arg3, tANI_U32 arg4)
+{
+    return;
+}
+#endif
 char *
 dump_log_level_set( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p);
 

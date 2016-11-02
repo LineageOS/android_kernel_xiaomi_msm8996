@@ -204,6 +204,7 @@ eHalStatus pmcStart (tHalHandle hHal)
     pMac->pmc.wowlModeRequired = FALSE;
     pMac->pmc.bmpsRequestedByHdd = FALSE;
     pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+    pMac->pmc.full_power_till_set_key = false;
     pMac->pmc.remainInPowerActiveThreshold = 0;
 
     /* WLAN Switch initial states. */

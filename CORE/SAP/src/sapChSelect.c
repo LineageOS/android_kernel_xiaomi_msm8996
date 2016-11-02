@@ -741,6 +741,109 @@ v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
 }
 
 
+/**
+ * sap_get_channel_status() - get channel info via channel number
+ * @p_mac: Pointer to Global MAC structure
+ * @channel_id: channel id
+ *
+ * Return: chan status info
+ */
+struct lim_channel_status *sap_get_channel_status
+	(tpAniSirGlobal p_mac, uint32_t channel_id)
+{
+	return csr_get_channel_status(p_mac, channel_id);
+}
+
+/**
+ * sap_clear_channel_status() - clear chan info
+ * @p_mac: Pointer to Global MAC structure
+ *
+ * Return: none
+ */
+void sap_clear_channel_status(tpAniSirGlobal p_mac)
+{
+	csr_clear_channel_status(p_mac);
+}
+/**
+ * sap_weight_channel_status() - compute chan status weight
+ * @chn_stat: Pointer to chan status info
+ *
+ * Return: chan status weight
+ */
+uint32_t sap_weight_channel_status(struct lim_channel_status *channel_stat)
+{
+	int32_t     noisefloor_weight = 0;
+	uint32_t     chnfree_weight = 0;
+	uint32_t     txpwr_weight_lowspeed = 0;
+	uint32_t     txpwr_weight_highspeed = 0;
+	uint32_t     channelstatus_weight = 0;
+	uint32_t     rx_clear_count = 0;
+	uint32_t     cycle_count = 0;
+	uint32_t     chan_tx_pwr_throughput = 0;
+
+	if (channel_stat == NULL || channel_stat->channelfreq == 0)
+		return 0;
+
+	rx_clear_count = channel_stat->rx_clear_count;
+	cycle_count = channel_stat->cycle_count;
+	chan_tx_pwr_throughput =
+		 channel_stat->chan_tx_pwr_throughput;
+
+	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+	 "chan id=%d freq=%d nf=%d rx_cnt=%d cycle_cnt=%d tx_pwr_throughput=%d",
+	 channel_stat->channel_id,
+	 channel_stat->channelfreq, channel_stat->noise_floor,
+	 rx_clear_count, cycle_count, chan_tx_pwr_throughput);
+
+	noisefloor_weight = (channel_stat->noise_floor == 0) ? 0 :
+			 (SOFTAP_NF_WEIGHT *
+			 (channel_stat->noise_floor - SOFTAP_MIN_NF)
+			 /(SOFTAP_MAX_NF - SOFTAP_MIN_NF));
+
+	if (noisefloor_weight > SOFTAP_NF_WEIGHT)
+		noisefloor_weight = SOFTAP_NF_WEIGHT;
+	else if (noisefloor_weight < 0)
+		noisefloor_weight = 0;
+
+	chnfree_weight = (cycle_count == 0) ? 0 :
+			 (SOFTAP_CHNFREE_WEIGHT *
+			 (rx_clear_count/cycle_count -
+			 SOFTAP_MIN_CHNFREE)
+			 /(SOFTAP_MAX_CHNFREE - SOFTAP_MIN_CHNFREE));
+
+	if (chnfree_weight > SOFTAP_CHNFREE_WEIGHT)
+		chnfree_weight = SOFTAP_CHNFREE_WEIGHT;
+
+	txpwr_weight_lowspeed = (channel_stat->chan_tx_pwr_range == 0) ? 0 :
+				 (SOFTAP_TXPWR_WEIGHT *
+				 (channel_stat->chan_tx_pwr_range -
+				 SOFTAP_MIN_TXPWR)
+				 /(SOFTAP_MAX_TXPWR - SOFTAP_MIN_TXPWR));
+
+	if (txpwr_weight_lowspeed > SOFTAP_TXPWR_WEIGHT)
+		txpwr_weight_lowspeed = SOFTAP_TXPWR_WEIGHT;
+
+	txpwr_weight_highspeed = (chan_tx_pwr_throughput == 0) ? 0 :
+				 (SOFTAP_TXPWR_WEIGHT *
+				 (chan_tx_pwr_throughput -
+				  SOFTAP_MIN_TXPWR)
+				 /(SOFTAP_MAX_TXPWR - SOFTAP_MIN_TXPWR));
+
+	if (txpwr_weight_highspeed > SOFTAP_TXPWR_WEIGHT)
+		txpwr_weight_highspeed = SOFTAP_TXPWR_WEIGHT;
+
+
+	channelstatus_weight = noisefloor_weight + chnfree_weight +
+			 txpwr_weight_lowspeed + txpwr_weight_highspeed;
+
+	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+	 "In %s, nfWt=%d, chnfreeWt=%d, txpwrLspeedWt=%d, txpwrHspeedWt=%d",
+	 __func__, noisefloor_weight, chnfree_weight,
+	 txpwr_weight_lowspeed, txpwr_weight_highspeed);
+
+	return channelstatus_weight;
+}
+
 /*==========================================================================
   FUNCTION    sapInterferenceRssiCount
 
@@ -1557,25 +1660,22 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
         vhtSupport = 0;
         centerFreq = 0;
 
-        if (pScanResult->BssDescriptor.ieFields != NULL)
-        {
-            ieLen = (pScanResult->BssDescriptor.length + sizeof(tANI_U16) + sizeof(tANI_U32) - sizeof(tSirBssDescription));
-            vos_mem_set((tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon), 0);
+        ieLen = (pScanResult->BssDescriptor.length + sizeof(tANI_U16) + sizeof(tANI_U32) - sizeof(tSirBssDescription));
+        vos_mem_set((tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon), 0);
 
-            if ((sirParseBeaconIE(pMac, pBeaconStruct,(tANI_U8 *)( pScanResult->BssDescriptor.ieFields), ieLen)) == eSIR_SUCCESS)
+        if ((sirParseBeaconIE(pMac, pBeaconStruct,(tANI_U8 *)( pScanResult->BssDescriptor.ieFields), ieLen)) == eSIR_SUCCESS)
+        {
+            if (pBeaconStruct->HTCaps.present && pBeaconStruct->HTInfo.present)
             {
-                if (pBeaconStruct->HTCaps.present && pBeaconStruct->HTInfo.present)
+                channelWidth = pBeaconStruct->HTCaps.supportedChannelWidthSet;
+                secondaryChannelOffset = pBeaconStruct->HTInfo.secondaryChannelOffset;
+                if(pBeaconStruct->VHTOperation.present)
                 {
-                    channelWidth = pBeaconStruct->HTCaps.supportedChannelWidthSet;
-                    secondaryChannelOffset = pBeaconStruct->HTInfo.secondaryChannelOffset;
-                    if(pBeaconStruct->VHTOperation.present)
+                    vhtSupport = pBeaconStruct->VHTOperation.present;
+                    if(pBeaconStruct->VHTOperation.chanWidth > WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
                     {
-                        vhtSupport = pBeaconStruct->VHTOperation.present;
-                        if(pBeaconStruct->VHTOperation.chanWidth > WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
-                        {
-                            channelWidth = eHT_CHANNEL_WIDTH_80MHZ;
-                            centerFreq = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
-                        }
+                        channelWidth = eHT_CHANNEL_WIDTH_80MHZ;
+                        centerFreq = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
                     }
                 }
             }
@@ -1875,7 +1975,10 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 
         rssi = (v_S7_t)pSpectCh->rssiAgr;
 
-        pSpectCh->weight = SAPDFS_NORMALISE_1000 * sapweightRssiCount(rssi, pSpectCh->bssCount);
+        pSpectCh->weight = SAPDFS_NORMALISE_1000 *
+                (sapweightRssiCount(rssi, pSpectCh->bssCount)
+                 + sap_weight_channel_status(
+                 sap_get_channel_status(pMac, pSpectCh->chNum)));
         pSpectCh->weight_copy = pSpectCh->weight;
 
         //------ Debug Info ------
@@ -1886,6 +1989,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
         //------ Debug Info ------
         pSpectCh++;
     }
+    sap_clear_channel_status(pMac);
     vos_mem_free(pBeaconStruct);
 }
 

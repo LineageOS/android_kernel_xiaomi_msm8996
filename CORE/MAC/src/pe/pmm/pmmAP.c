@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2013, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,8 +44,7 @@
 #include "schApi.h"
 #include "limApi.h"
 #include "cfgApi.h"
-#include "wniCfgSta.h"
-
+#include "wni_cfg.h"
 #include "pmmApi.h"
 #include "pmmDebug.h"
 

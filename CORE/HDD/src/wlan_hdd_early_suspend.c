@@ -52,7 +52,6 @@
 #include <vos_sched.h>
 #include <macInitApi.h>
 #include <wlan_qct_sys.h>
-#include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
 #include <wlan_hdd_main.h>
 #include <wlan_hdd_assoc.h>
@@ -100,6 +99,8 @@
 #endif
 
 #include "ol_fw.h"
+#include "wlan_hdd_host_offload.h"
+
 /* Time in msec.
  * Time includes 60sec timeout of request_firmware for various binaries
  * (OTP, BDWLAN, QWLAN) and other cleanup and re-init sequence
@@ -599,6 +600,13 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
 	if (adapter->device_mode == WLAN_HDD_INFRA_STATION ||
 	    adapter->device_mode == WLAN_HDD_P2P_CLIENT ||
 	    adapter->device_mode == WLAN_HDD_NDI) {
+
+		if (eConnectionState_Associated ==
+			WLAN_HDD_GET_STATION_CTX_PTR
+			(adapter)->conn_info.connState)
+				sme_dhcp_done_ind(hdd_ctx->hHal,
+				adapter->sessionId);
+
 		if (hdd_ctx->cfg_ini->nEnableSuspend ==
 			WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER &&
 			hdd_ctx->ns_offload_enable)
@@ -1180,6 +1188,12 @@ static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
 	      adapter->device_mode == WLAN_HDD_P2P_CLIENT ||
 	      adapter->device_mode == WLAN_HDD_NDI))
 		return NOTIFY_DONE;
+
+	if (eConnectionState_Associated ==
+		WLAN_HDD_GET_STATION_CTX_PTR(
+		adapter)->conn_info.connState)
+			sme_dhcp_done_ind(hdd_ctx->hHal,
+			adapter->sessionId);
 
 	if ((hdd_ctx->cfg_ini->nEnableSuspend !=
 				WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) ||
@@ -2011,6 +2025,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
    hddLog(VOS_TRACE_LEVEL_INFO,
            FL("Invoking packetdump deregistration API"));
    wlan_deregister_txrx_packetdump();
+
+   if (VOS_TIMER_STATE_RUNNING ==
+            vos_timer_getCurrentState(&pHddCtx->tdls_source_timer))
+      vos_timer_stop(&pHddCtx->tdls_source_timer);
+
 #ifdef FEATURE_BUS_BANDWIDTH
    if (VOS_TIMER_STATE_RUNNING ==
            vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
@@ -2316,6 +2335,9 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    /* Pass FW version to HIF layer */
    hif_set_fw_info(hif_sc, pHddCtx->target_fw_version);
 
+   wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
+                               WLAN_SVC_FW_CRASHED_IND, NULL, 0);
+
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
 
@@ -2362,9 +2384,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    pHddCtx->btCoexModeSet = false;
    hdd_register_mcast_bcast_filter(pHddCtx);
 
-   wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
-                               WLAN_SVC_FW_CRASHED_IND, NULL, 0);
-
    /* Allow the phone to go to sleep */
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
    /* register for riva power on lock */
@@ -2409,6 +2428,7 @@ err_vosclose:
    vos_sched_close(pVosContext);
 
 #ifdef MEMORY_DEBUG
+   adf_net_buf_debug_exit();
    vos_mem_exit();
 #endif
 
@@ -2423,7 +2443,6 @@ err_re_init:
          /* Unregister all Net Device Notifiers */
          wlan_hdd_netdev_notifiers_cleanup(pHddCtx);
          /* Clean up HDD Nlink Service */
-         send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
          nl_srv_exit();
          hdd_runtime_suspend_deinit(pHddCtx);
          hdd_close_all_adapters(pHddCtx);
@@ -2446,8 +2465,6 @@ err_re_init:
    hdd_wlan_wakelock_destroy();
    return -EPERM;
 success:
-   /* Trigger replay of BTC events */
-   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    pHddCtx->isLogpInProgress = FALSE;
    hdd_ssr_timer_del();
    return VOS_STATUS_SUCCESS;

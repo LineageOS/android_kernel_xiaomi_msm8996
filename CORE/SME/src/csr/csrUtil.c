@@ -973,6 +973,215 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
                          "Not" : "Are" );
   return intf_ch;
 }
+
+/**
+ * csr_create_sap_session_info() - create session info based on
+ *    the input chan and  phymode
+ * @pMac: tpAniSirGlobal ptr
+ * @sap_phymode: requesting phymode.
+ * @sap_ch: requesting channel number
+ * @session_info: information returned.
+ *
+ * Return: TRUE if any session info returned
+ */
+tANI_BOOLEAN csr_create_sap_session_info(
+	tHalHandle hHal,
+	eCsrPhyMode sap_phymode,
+	v_U16_t sap_ch,
+	session_info_t *session_info)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	v_U8_t chb = PHY_SINGLE_CHANNEL_CENTERED;
+	v_U16_t sap_hbw = 0, sap_cfreq = 0;
+	v_U16_t sap_lfreq, sap_hfreq, sap_cch;
+
+	sap_cch = sap_ch;
+	sap_hbw = HALF_BW_OF(eCSR_BW_20MHz_VAL);
+
+	if (sap_ch > MAX_2_4GHZ_CHANNEL)
+		chb = pMac->roam.configParam.channelBondingMode5GHz;
+	else
+		chb = pMac->roam.configParam.channelBondingMode24GHz;
+	if (!chb)
+		goto RET;
+
+	if (sap_phymode == eCSR_DOT11_MODE_11n ||
+		sap_phymode == eCSR_DOT11_MODE_11n_ONLY) {
+
+		sap_hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
+		if (chb == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+			sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+		else if (chb == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+			sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+	}
+#ifdef WLAN_FEATURE_11AC
+	else if (sap_phymode == eCSR_DOT11_MODE_11ac ||
+		sap_phymode == eCSR_DOT11_MODE_11ac_ONLY) {
+		/*
+		 * 11AC only 80/40/20 Mhz supported in Rome
+		 */
+		if (pMac->roam.configParam.nVhtChannelWidth ==
+			(WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ + 1)) {
+			sap_hbw = HALF_BW_OF(eCSR_BW_80MHz_VAL);
+			if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW
+				- 1))
+			    sap_cch = CSR_GET_HT80_PLUS_LL_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW
+				- 1))
+				sap_cch = CSR_GET_HT80_PLUS_HL_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH
+				- 1))
+				sap_cch = CSR_GET_HT80_MINUS_LH_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH
+				- 1))
+				sap_cch = CSR_GET_HT80_MINUS_HH_CCH(sap_ch);
+		} else {
+			sap_hbw = HALF_BW_OF(eCSR_BW_40MHz_VAL);
+			if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW
+				- 1))
+				sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW
+				- 1))
+				sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH
+				- 1))
+				sap_cch = CSR_GET_HT40_PLUS_CCH(sap_ch);
+			else if (chb ==
+				(PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH
+				- 1))
+				sap_cch = CSR_GET_HT40_MINUS_CCH(sap_ch);
+		}
+	}
+#endif
+RET:
+	sap_cfreq = vos_chan_to_freq(sap_cch);
+	sap_lfreq = sap_cfreq - sap_hbw;
+	sap_hfreq = sap_cfreq + sap_hbw;
+	if (sap_ch > MAX_2_4GHZ_CHANNEL)
+		session_info->band = eCSR_BAND_5G;
+	else
+		session_info->band = eCSR_BAND_24;
+	session_info->och = sap_ch;
+	session_info->lfreq = sap_lfreq;
+	session_info->hfreq = sap_hfreq;
+	session_info->cfreq = sap_cfreq;
+	session_info->hbw = sap_hbw;
+	session_info->con_mode = VOS_STA_SAP_MODE;
+	return TRUE;
+}
+/**
+ * csr_find_sta_session_info() - get sta active session info
+ * @pMac: tpAniSirGlobal ptr
+ * @session_info: information returned.
+ *
+ * Return: TRUE if sta session info returned
+ */
+tANI_BOOLEAN csr_find_sta_session_info(
+	tHalHandle hHal,
+	session_info_t *info)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	tCsrRoamSession *pSession = NULL;
+	v_U8_t i = 0;
+
+	for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ ) {
+		if( !CSR_IS_SESSION_VALID( pMac, i ) )
+			continue;
+		pSession = CSR_GET_SESSION( pMac, i );
+		if (NULL == pSession->pCurRoamProfile)
+			continue;
+		if (((pSession->pCurRoamProfile->csrPersona ==
+				VOS_STA_MODE) ||
+			 (pSession->pCurRoamProfile->csrPersona ==
+				VOS_P2P_CLIENT_MODE)) &&
+			(pSession->connectState ==
+				eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)) {
+			info->och =
+				pSession->connectedProfile.operationChannel;
+			csrGetChFromHTProfile(pMac,
+				&pSession->connectedProfile.HTProfile,
+				info->och, &info->cfreq, &info->hbw);
+			info->lfreq = info->cfreq - info->hbw;
+			info->hfreq = info->cfreq + info->hbw;
+			if (info->och > MAX_2_4GHZ_CHANNEL)
+				info->band = eCSR_BAND_5G;
+			else
+				info->band = eCSR_BAND_24;
+			info->con_mode = VOS_STA_MODE;
+			return eANI_BOOLEAN_TRUE;
+		}
+	}
+	return eANI_BOOLEAN_FALSE;
+}
+/**
+ * csr_find_all_session_info() - get all active session info
+ * @pMac: tpAniSirGlobal ptr
+ * @session_info: information returned.
+ * @session_count: number of session
+ *
+ * Return: TRUE if any session info returned
+ */
+tANI_BOOLEAN csr_find_all_session_info(
+	tHalHandle hHal,
+	session_info_t *session_info,
+	v_U8_t *session_count)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	tCsrRoamSession *pSession = NULL;
+	v_U8_t i = 0;
+	v_U8_t count = 0;
+
+	for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ ) {
+		if( !CSR_IS_SESSION_VALID( pMac, i ) )
+			continue;
+		pSession = CSR_GET_SESSION( pMac, i );
+		if (NULL == pSession->pCurRoamProfile)
+			continue;
+		if ((((pSession->pCurRoamProfile->csrPersona ==
+				VOS_STA_MODE) ||
+			(pSession->pCurRoamProfile->csrPersona ==
+				VOS_P2P_CLIENT_MODE)) &&
+			(pSession->connectState ==
+				eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)) ||
+			(((pSession->pCurRoamProfile->csrPersona ==
+				VOS_P2P_GO_MODE) ||
+			(pSession->pCurRoamProfile->csrPersona ==
+				VOS_STA_SAP_MODE)||
+			(pSession->pCurRoamProfile->csrPersona ==
+				VOS_IBSS_MODE)) &&
+			(pSession->connectState !=
+				eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))) {
+			session_info_t *info = &session_info[count++];
+			info->och =
+				pSession->connectedProfile.operationChannel;
+			csrGetChFromHTProfile(pMac,
+				&pSession->connectedProfile.HTProfile,
+				info->och, &info->cfreq, &info->hbw);
+			info->lfreq = info->cfreq - info->hbw;
+			info->hfreq = info->cfreq + info->hbw;
+			if ((pSession->pCurRoamProfile->csrPersona ==
+					VOS_STA_MODE) ||
+				(pSession->pCurRoamProfile->csrPersona ==
+					VOS_P2P_CLIENT_MODE))
+				info->con_mode = VOS_STA_MODE;
+			else
+				info->con_mode = VOS_STA_SAP_MODE;
+			if (info->och > MAX_2_4GHZ_CHANNEL)
+				info->band = eCSR_BAND_5G;
+			else
+				info->band = eCSR_BAND_24;
+		}
+	}
+	*session_count = count;
+	return count != 0;
+}
 #endif
 
 tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac )
@@ -5966,6 +6175,53 @@ void csrDisconnectAllActiveSessions(tpAniSirGlobal pMac)
             csrRoamDisconnectInternal(pMac, i, eCSR_DISCONNECT_REASON_UNSPECIFIED);
         }
     }
+}
+
+/**
+ * csr_get_channel_status() - get chan info via channel number
+ * @p_mac: Pointer to Global MAC structure
+ * @channel_id: channel id
+ *
+ * Return: chan status info
+ */
+struct lim_channel_status *csr_get_channel_status(
+	void *p_mac, uint32_t channel_id)
+{
+	uint8_t i;
+	struct lim_scan_channel_status *channel_status;
+	tpAniSirGlobal mac_ptr = (tpAniSirGlobal)p_mac;
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		channel_status = (struct lim_scan_channel_status *)
+				&mac_ptr->lim.scan_channel_status;
+		for (i = 0; i < channel_status->total_channel; i++) {
+			if (channel_status->channel_status_list[i].channel_id
+				 == channel_id)
+				return &channel_status->channel_status_list[i];
+		}
+		smsLog(mac_ptr, LOGW,
+			 FL("Channel %d status info not exist"),
+			  channel_id);
+	}
+	return NULL;
+}
+
+/**
+ * csr_clear_channel_status() - clear chan info
+ * @p_mac: Pointer to Global MAC structure
+ *
+ * Return: none
+ */
+void csr_clear_channel_status(void *p_mac)
+{
+	tpAniSirGlobal mac_ptr = (tpAniSirGlobal)p_mac;
+	struct lim_scan_channel_status *channel_status;
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		channel_status = (struct lim_scan_channel_status *)
+				&mac_ptr->lim.scan_channel_status;
+		channel_status->total_channel = 0;
+	}
+	return;
 }
 
 #ifdef FEATURE_WLAN_LFR

@@ -1142,9 +1142,9 @@ static HTC_SEND_QUEUE_RESULT HTCTrySend(HTC_TARGET       *target,
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
                ("htc_issue_packets, failed status:%d put it back to head of callers SendQueue",
                result));
+            LOCK_HTC_TX(target);
             HTC_PACKET_QUEUE_TRANSFER_TO_HEAD(&pEndpoint->TxQueue,
                              &sendQueue);
-            LOCK_HTC_TX(target);
             break;
         }
 

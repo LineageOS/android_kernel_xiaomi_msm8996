@@ -69,7 +69,6 @@
 #include <wlan_hdd_tx_rx.h>
 #include <wniApi.h>
 #include <wlan_nlink_srv.h>
-#include <wlan_btc_svc.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <dbglog_host.h>
@@ -533,8 +532,7 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
 
         case GREEN_AP_PS_STOP_EVENT:
-            if (!(hdd_get_concurrency_mode() & VOS_SAP))
-                green_ap->ps_enable = 0;
+            green_ap->ps_enable = 0;
             break;
 
         case GREEN_AP_ADD_STA_EVENT:
@@ -555,18 +553,20 @@ void hdd_wlan_green_ap_mc(hdd_context_t *pHddCtx,
             break;
     }
 
-    /* Confirm that power save is enabled  before doing state transitions */
-    if (!green_ap->ps_enable) {
-        hddLog(VOS_TRACE_LEVEL_INFO, FL("Green-AP is disabled"));
-        hdd_wlan_green_ap_update(pHddCtx,
-            GREEN_AP_PS_IDLE_STATE, GREEN_AP_PS_WAIT_EVENT);
-        goto done;
-    }
-
     pAdapter = hdd_get_adapter (pHddCtx, WLAN_HDD_SOFTAP );
 
     if (pAdapter == NULL) {
         hddLog(LOGE, FL("Green-AP no SAP adapter"));
+        goto done;
+    }
+
+    /* Confirm that power save is enabled  before doing state transitions */
+    if (!green_ap->ps_enable) {
+        hddLog(VOS_TRACE_LEVEL_INFO, FL("green ap is disabled"));
+        hdd_wlan_green_ap_update(pHddCtx,
+            GREEN_AP_PS_OFF_STATE, GREEN_AP_PS_WAIT_EVENT);
+        if (hdd_wlan_green_ap_enable(pAdapter, 0))
+            hddLog(LOGE, FL("failed to set green ap mode"));
         goto done;
     }
 
@@ -679,6 +679,65 @@ void wlan_hdd_set_egap_support(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg)
 }
 
 /**
+ * hdd_wlan_is_egap_enabled() - Get Enhance Green AP feature status
+ * @fw_egap_support: flag whether firmware supports egap or not
+ * @cfg: pointer to the struct hdd_config_t
+ *
+ * Return: true if firmware, feature_flag and ini are all enabled the egap
+ */
+static bool hdd_wlan_is_egap_enabled(bool fw_egap_support, hdd_config_t *cfg)
+{
+	/* check if the firmware and ini are both enabled the egap,
+	 * and also the feature_flag enable.
+	 */
+	if (fw_egap_support && cfg->enable_egap &&
+			cfg->egap_feature_flag)
+		return true;
+
+	return false;
+}
+
+
+/**
+ * hdd_wlan_enable_egap() - Enable Enhance Green AP
+ * @hdd_ctx: HDD global context
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+int hdd_wlan_enable_egap(struct hdd_context_s *hdd_ctx)
+{
+	hdd_config_t *cfg;
+
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return -EINVAL;
+	}
+
+	cfg = hdd_ctx->cfg_ini;
+
+	if (!cfg) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return -EINVAL;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return -EINVAL;
+	}
+
+	if (!hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return -ENOTSUPP;
+
+	if (VOS_STATUS_SUCCESS != sme_send_egap_conf_params(cfg->enable_egap,
+			cfg->egap_inact_time,
+			cfg->egap_wait_time,
+			cfg->egap_feature_flag))
+		return -EINVAL;
+	return 0;
+}
+
+/**
  * hdd_wlan_green_ap_start_bss() - Notify Green AP of Start BSS event
  * @hdd_ctx: HDD global context
  *
@@ -690,52 +749,40 @@ void hdd_wlan_green_ap_start_bss(struct hdd_context_s *hdd_ctx)
 
 	if (!hdd_ctx) {
 		hddLog(LOGE, FL("hdd context is NULL"));
-		goto exit;
+		return;
 	}
 
 	cfg = hdd_ctx->cfg_ini;
 
 	if (!cfg) {
 		hddLog(LOGE, FL("hdd cfg is NULL"));
-		goto exit;
+		return;
 	}
 
-	/* check if the firmware and ini are both enabled the egap,
-	 * and also the feature_flag enable, then we enable the egap
-	 */
-	if (hdd_ctx->green_ap_ctx->egap_support && cfg->enable_egap &&
-	    cfg->egap_feature_flag) {
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
+	if ((hdd_ctx->concurrency_mode & VOS_SAP) &&
+			!(hdd_ctx->concurrency_mode & (~VOS_SAP)) &&
+			cfg->enable2x2 && cfg->enableGreenAP) {
 		hddLog(LOG1,
-		       FL("Set EGAP - enabled: %d, flag: %x, inact_time: %d, wait_time: %d"),
-			  cfg->enable_egap,
-			  cfg->egap_feature_flag,
-			  cfg->egap_inact_time,
-			  cfg->egap_wait_time);
-		if (!sme_send_egap_conf_params(cfg->enable_egap,
-					       cfg->egap_inact_time,
-					       cfg->egap_wait_time,
-					       cfg->egap_feature_flag)) {
-			/* EGAP is enabled, disable host GAP */
-			hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
-			goto exit;
-		}
-		/* fall through, if send_egap_conf_params() failed,
-		 * then check host GAP and enable it accordingly
-		 */
-	}
-
-	if (!(VOS_STA & hdd_ctx->concurrency_mode) &&
-	    cfg->enable2x2 && cfg->enableGreenAP) {
+			FL("Green AP enabled - sta_con: %d, 2x2: %d, GAP: %d"),
+			(VOS_STA & hdd_ctx->concurrency_mode),
+			cfg->enable2x2, cfg->enableGreenAP);
 		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_START_EVENT);
 	} else {
 		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
 		hddLog(LOG1,
-		       FL("Green AP disabled - sta_con: %d, 2x2: %d, GAP: %d"),
-		       (VOS_STA & hdd_ctx->concurrency_mode),
-		       cfg->enable2x2, cfg->enableGreenAP);
+			FL("Green AP disabled- sta_con: %d, 2x2: %d, GAP: %d"),
+			(VOS_STA & hdd_ctx->concurrency_mode),
+			cfg->enable2x2, cfg->enableGreenAP);
 	}
-exit:
-	return;
 }
 
 /**
@@ -746,7 +793,30 @@ exit:
  */
 void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx)
 {
-	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
+	/* For AP+AP mode, only trigger GREEN_AP_PS_STOP_EVENT, when the
+	 * last AP stops.
+	 */
+	if (1 == (hdd_ctx->no_of_open_sessions[VOS_STA_SAP_MODE]))
+		hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_PS_STOP_EVENT);
 }
 
 /**
@@ -757,6 +827,25 @@ void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx)
  */
 void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx)
 {
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
 	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_ADD_STA_EVENT);
 }
 
@@ -768,6 +857,25 @@ void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx)
  */
 void hdd_wlan_green_ap_del_sta(struct hdd_context_s *hdd_ctx)
 {
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("hdd context is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->cfg_ini) {
+		hddLog(LOGE, FL("hdd cfg is NULL"));
+		return;
+	}
+
+	if (!hdd_ctx->green_ap_ctx) {
+		hddLog(LOGE, FL("green ap context is NULL"));
+		return;
+	}
+
+	if (hdd_wlan_is_egap_enabled(hdd_ctx->green_ap_ctx->egap_support,
+			hdd_ctx->cfg_ini))
+		return;
+
 	hdd_wlan_green_ap_mc(hdd_ctx, GREEN_AP_DEL_STA_EVENT);
 }
 
@@ -931,11 +1039,13 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         if (WLANSAP_StartBss(p_sap_ctx, hdd_hostapd_SAPEventCB, pConfig,
             (v_PVOID_t)ap_adapter->dev) != VOS_STATUS_SUCCESS) {
             hddLog(LOGE, FL("SAP Start Bss fail"));
+            WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
             goto end;
         }
 
         hddLog(LOG1, FL("Waiting for SAP to start"));
         vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+        WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ALL);
         if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
             hddLog(LOGE, FL("SAP Start failed"));
             goto end;
@@ -5802,7 +5912,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            [Number of roam scan channels][Channel1][Channel2]... */
            /* copy the number of channels in the 0th index */
            len = scnprintf(extra, sizeof(extra), "%s %d", command, numChannels);
-           for (j = 0; (j < numChannels); j++)
+           for (j = 0; (j < numChannels) && len <= sizeof(extra); j++)
            {
                len += scnprintf(extra + len, sizeof(extra) - len, " %d",
                        ChannelList[j]);
@@ -9028,6 +9138,14 @@ static int __hdd_open(struct net_device *dev)
             WLAN_CONTROL_PATH);
    }
 
+   /* Enable carrier and transmit queues for NDI */
+   if (WLAN_HDD_IS_NDI(pAdapter)) {
+       hddLog(LOG1, FL("Enabling Tx Queues"));
+       wlan_hdd_netif_queue_control(pAdapter,
+            WLAN_START_ALL_NETIF_QUEUE_N_CARRIER,
+            WLAN_CONTROL_PATH);
+   }
+
    return 0;
 }
 
@@ -9120,7 +9238,7 @@ static int hdd_mon_open(struct net_device *dev)
  *
  * For module, when all the interfaces are down, enter low power mode.
  */
-static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
+void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
 {
 	hddLog(VOS_TRACE_LEVEL_INFO,
 			"%s: All Interfaces are Down entering standby",
@@ -9239,7 +9357,7 @@ static int kickstart_driver(bool load, bool mode_change)
  * For static driver, when all the interfaces are down, enter low power mode by
  * bringing down WLAN hardware.
  */
-static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
+void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
 {
 	bool ready;
 
@@ -9334,6 +9452,17 @@ static int __hdd_stop(struct net_device *dev)
    hddLog(LOG1, FL("Disabling queues"));
    wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
                          WLAN_CONTROL_PATH);
+
+   /*
+    * NAN data interface is different in some sense. The traffic on NDI is
+    * bursty in nature and depends on the need to transfer. The service layer
+    * may down the interface after the usage and up again when required.
+    * In some sense, the NDI is expected to be available (like SAP) iface
+    * until NDI delete request is issued by the service layer.
+    * Skip BSS termination and adapter deletion for NAN Data interface (NDI).
+    */
+    if (WLAN_HDD_IS_NDI(pAdapter))
+       return 0;
 
    /* The interface is marked as down for outside world (aka kernel)
     * But the driver is pretty much alive inside. The driver needs to
@@ -10153,13 +10282,12 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
        * so just reserve it
        */
       hdd_set_needed_headroom(pWlanDev, pWlanDev->hard_header_len);
-      pWlanDev->hard_header_len += HDD_HW_NEEDED_HEADROOM;
 
       if (pHddCtx->cfg_ini->enableIPChecksumOffload)
          pWlanDev->features |= NETIF_F_HW_CSUM;
       else if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
          pWlanDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
-         pWlanDev->features |= NETIF_F_RXCSUM;
+      pWlanDev->features |= NETIF_F_RXCSUM;
       hdd_set_station_ops( pAdapter->dev );
 
       pWlanDev->destructor = free_netdev;
@@ -11466,11 +11594,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+   hdd_scaninfo_t *pScanInfo = NULL;
    union iwreq_data wrqu;
    tSirUpdateIE updateIE ;
    unsigned long rc;
 
    ENTER();
+
+   pScanInfo = &pAdapter->scan_info;
 
    hddLog(LOG1, FL("Disabling queues"));
    wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
@@ -11524,7 +11655,8 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
            memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
            wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
-         else
+
+         if (pScanInfo != NULL && pScanInfo->mScanPending)
          {
             wlan_hdd_scan_abort(pAdapter);
          }
@@ -11703,6 +11835,18 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
           hdd_wmm_adapter_close( pAdapter );
           clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
       }
+
+      /*
+       * If adapter is SAP, set session ID to invalid since SAP
+       * session will be cleanup during SSR.
+       */
+      if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
+          wlansap_set_invalid_session(
+#ifdef WLAN_FEATURE_MBSSID
+                  WLAN_HDD_GET_SAP_CTX_PTR(pAdapter));
+#else
+                  (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+#endif
 
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
@@ -12102,19 +12246,12 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                        WLAN_TFC_IPAUC_TX_DESC_RESERVE;
              } else
 #endif /* IPA_UC_OFFLOAD */
-#ifdef CONFIG_HL_SUPPORT
-             {
-                 pAdapter->tx_flow_low_watermark = 0;
-             }
-             pAdapter->tx_flow_high_watermark_offset = 0;
-#else
              {
                  pAdapter->tx_flow_low_watermark =
                        pHddCtx->cfg_ini->TxFlowLowWaterMark;
              }
              pAdapter->tx_flow_high_watermark_offset =
                        pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
-#endif
              WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                         pAdapter->sessionId,
                                         pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
@@ -12141,8 +12278,15 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
             if (preAdapterChannel == targetChannel)
             {
                 /* Current adapter */
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+                pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+                pAdapter->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
+#else
                 pAdapter->tx_flow_low_watermark = 0;
                 pAdapter->tx_flow_high_watermark_offset = 0;
+#endif
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            pAdapter->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
@@ -12164,8 +12308,15 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 }
 
                 /* Previous adapter */
+#ifdef CONFIG_PER_VDEV_TX_DESC_POOL
+                preAdapterContext->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+                preAdapterContext->tx_flow_high_watermark_offset =
+                       pHddCtx->cfg_ini->TxFlowHighWaterMarkOffset;
+#else
                 preAdapterContext->tx_flow_low_watermark = 0;
                 preAdapterContext->tx_flow_high_watermark_offset = 0;
+#endif
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            preAdapterContext->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
@@ -12968,6 +13119,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
 
+   if (VOS_TIMER_STATE_RUNNING ==
+                  vos_timer_getCurrentState(&pHddCtx->tdls_source_timer))
+       vos_timer_stop(&pHddCtx->tdls_source_timer);
+   vos_timer_destroy(&pHddCtx->tdls_source_timer);
+
    /*
     * Cancel any outstanding scan requests.  We are about to close all
     * of our adapters, but an adapter structure is what SME passes back
@@ -13012,6 +13168,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hddLog(VOS_TRACE_LEVEL_ERROR,
             "%s: Cannot deallocate ACS Skip timer", __func__);
    }
+   spin_lock(&pHddCtx->acs_skip_lock);
+   vos_mem_free(pHddCtx->last_acs_channel_list);
+   pHddCtx->last_acs_channel_list = NULL;
+   pHddCtx->num_of_channels = 0;
+   spin_unlock(&pHddCtx->acs_skip_lock);
 #endif
 
    if (pConfig && !pConfig->enablePowersaveOffload)
@@ -13135,9 +13296,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    if (pConfig && pConfig->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
 
-   //Clean up HDD Nlink Service
-   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
-
    if (VOS_FTM_MODE != hdd_get_conparam())
        wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
 
@@ -13174,6 +13332,7 @@ free_hdd_ctx:
        pHddCtx->cfg_ini= NULL;
    }
 
+   wlan_hdd_deinit_chan_info(pHddCtx);
    wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
    wiphy_unregister(wiphy) ;
    wlan_hdd_cfg80211_deinit(wiphy);
@@ -13248,19 +13407,34 @@ void __hdd_wlan_exit(void)
 }
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+/**
+ * hdd_skip_acs_scan_timer_handler() - skip ACS scan timer timeout handler
+ * @data: pointer to hdd_context_t
+ *
+ * This function will reset acs_scan_status to eSAP_DO_NEW_ACS_SCAN.
+ * Then new ACS request will do a fresh scan without reusing the cached
+ * scan information.
+ *
+ * Return: void
+ */
 void hdd_skip_acs_scan_timer_handler(void * data)
 {
-    hdd_context_t *hdd_ctx = (hdd_context_t *) data;
-    hdd_adapter_t *ap_adapter;
+	hdd_context_t *hdd_ctx = (hdd_context_t *) data;
+	hdd_adapter_t *ap_adapter;
 
-    hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
-    hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+	hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
+	hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
+	spin_lock(&hdd_ctx->acs_skip_lock);
+	vos_mem_free(hdd_ctx->last_acs_channel_list);
+	hdd_ctx->last_acs_channel_list = NULL;
+	hdd_ctx->num_of_channels = 0;
+	spin_unlock(&hdd_ctx->acs_skip_lock);
 
-    /* Get first SAP adapter to clear results */
-    ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
-    if (!hdd_ctx->hHal || !ap_adapter)
-        return;
-    sme_ScanFlushResult(hdd_ctx->hHal, ap_adapter->sessionId);
+	/* Get first SAP adapter to clear results */
+	ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
+	if (!hdd_ctx->hHal || !ap_adapter)
+		return;
+	sme_ScanFlushResult(hdd_ctx->hHal, ap_adapter->sessionId);
 }
 #endif
 
@@ -14331,6 +14505,40 @@ static int inline wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
 #endif
 
 /**
+* wlan_hdd_set_wakeup_gpio() - call SME to send wmi cmd of wakeup gpio
+* @phddctx: hdd_context_t structure pointer
+*
+* Return: int
+*/
+static int wlan_hdd_set_wakeup_gpio(hdd_context_t *hddctx)
+{
+	hdd_config_t *cfg_ini = hddctx->cfg_ini;
+	struct wakeup_gpio_mode wakeup_gpio_info;
+	VOS_STATUS status;
+
+	wakeup_gpio_info.host_wakeup_gpio = cfg_ini->host_wakeup_gpio;
+	wakeup_gpio_info.host_wakeup_type = cfg_ini->host_wakeup_type;
+	wakeup_gpio_info.target_wakeup_gpio = cfg_ini->target_wakeup_gpio;
+	wakeup_gpio_info.target_wakeup_type = cfg_ini->target_wakeup_type;
+
+	hddLog(LOG1, "%s:host_gpio %d host_type %d tar_gpio %d tar_type %d",
+		__func__, wakeup_gpio_info.host_wakeup_gpio,
+		wakeup_gpio_info.host_wakeup_type,
+		wakeup_gpio_info.target_wakeup_gpio,
+		wakeup_gpio_info.target_wakeup_type);
+
+	status = sme_set_wakeup_gpio(&wakeup_gpio_info);
+	if (VOS_STATUS_E_FAILURE == status) {
+		hddLog(LOGE,
+			"%s: sme_set_wakeup_gpio failure!", __func__);
+		return -EIO;
+	}
+	hddLog(LOG1,
+		"%s: sme_set_wakeup_gpio success!", __func__);
+	return 0;
+}
+
+/**
  * hdd_tsf_init() - Initialize the TSF synchronization interface
  * @hdd_ctx: HDD global context
  *
@@ -14711,6 +14919,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+   /* If IPA HW is not existing, disable offload from INI */
+   if (!hdd_ipa_is_present(pHddCtx))
+      hdd_ipa_reset_ipaconfig(pHddCtx, 0);
+
    if (0 == pHddCtx->cfg_ini->max_go_peers)
       pHddCtx->cfg_ini->max_go_peers = pHddCtx->cfg_ini->max_sap_peers;
 
@@ -14786,7 +14998,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        vos_set_multicast_logging(pHddCtx->cfg_ini->multicast_host_fw_msgs);
 
        if (wlan_hdd_logging_sock_activate_svc(pHddCtx) < 0)
-           goto err_config;
+           goto err_sock_activate;
 
        /*
         * Update VOS trace levels based upon the code. The multicast log
@@ -14842,7 +15054,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Initialize the nlink service */
    if (wlan_hdd_nl_init(pHddCtx) != 0) {
       hddLog(LOGP, FL("nl_srv_init failed"));
-      goto err_config;
+      goto err_sock_activate;
    }
    vos_set_radio_index(pHddCtx->radio_index);
 
@@ -14936,6 +15148,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                 "%s: Failed to set wow pulse", __func__);
       }
 
+      if ((pHddCtx->cfg_ini->host_wakeup_gpio !=
+				CFG_HOST_WAKEUP_GPIO_DEFAULT) ||
+          (pHddCtx->cfg_ini->target_wakeup_gpio !=
+				CFG_HOST_WAKEUP_GPIO_DEFAULT)) {
+          if (0 != wlan_hdd_set_wakeup_gpio(pHddCtx)) {
+             hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to set wakeup gpio", __func__);
+          }
+      }
 
       /* Set 802.11p config
        * TODO-OCB: This has been temporarily added here to ensure this paramter
@@ -15315,13 +15536,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    pHddCtx->kd_nl_init = 1;
 #endif /* WLAN_KD_READY_NOTIFIER */
 
-   //Initialize the BTC service
-   if(btc_activate_service(pHddCtx) != 0)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: btc_activate_service failed",__func__);
-      goto err_reg_netdev;
-   }
-
 #ifdef FEATURE_OEM_DATA_SUPPORT
    //Initialize the OEM service
    if (oem_activate_service(pHddCtx) != 0)
@@ -15422,6 +15636,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                   hdd_skip_acs_scan_timer_handler, (void *)pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(status))
         hddLog(LOGE, FL("Failed to init ACS Skip timer\n"));
+   spin_lock_init(&pHddCtx->acs_skip_lock);
 #endif
 
 #ifdef WLAN_FEATURE_NAN
@@ -15491,6 +15706,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
    hdd_tsf_init(pHddCtx);
+   vos_timer_init(&pHddCtx->tdls_source_timer, VOS_TIMER_TYPE_SW,
+                  wlan_hdd_change_tdls_mode, (void *)pHddCtx);
 
 #ifdef FEATURE_BUS_BANDWIDTH
    spin_lock_init(&pHddCtx->bus_bw_lock);
@@ -15542,6 +15759,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    wlan_hdd_dcc_register_for_dcc_stats_event(pHddCtx);
 
+   wlan_hdd_init_chan_info(pHddCtx);
+
    /*
     * Register IPv6 notifier to notify if any change in IP
     * So that we can reconfigure the offload parameters
@@ -15591,6 +15810,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
            process_wma_set_command(0, (int)WMI_PDEV_PARAM_BURST_DUR,
                                           set_value, PDEV_CMD);
    }
+
+   if (hdd_wlan_enable_egap(pHddCtx))
+        hddLog(LOGE, FL("enhance green ap is not enabled"));
 
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);
@@ -15644,7 +15866,6 @@ err_ipa_cleanup:
 
 err_wiphy_unregister:
    wiphy_unregister(wiphy);
-   wlan_hdd_cfg80211_deinit(wiphy);
 
 err_vosclose:
    status = vos_sched_close( pVosContext );
@@ -15677,6 +15898,10 @@ err_free_ftm_open:
        wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
 err_nl_srv:
    nl_srv_exit();
+
+err_sock_activate:
+   wlan_hdd_cfg80211_deinit(wiphy);
+
 err_config:
    vos_mem_free(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
@@ -15756,6 +15981,51 @@ int hdd_hif_register_driver(void)
 	return wlan_comp.status;
 }
 
+#ifdef TIMER_MANAGER
+static inline void hdd_timer_exit(void)
+{
+	vos_timer_exit();
+}
+#else
+static inline void hdd_timer_exit(void)
+{
+}
+#endif
+
+#ifdef MEMORY_DEBUG
+static inline void hdd_mem_exit(void)
+{
+	adf_net_buf_debug_exit();
+	vos_mem_exit();
+}
+#else
+static inline void hdd_mem_exit(void)
+{
+}
+#endif
+
+#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
+static inline void hdd_logging_sock_deinit_svc(void)
+{
+	wlan_logging_sock_deinit_svc();
+}
+#else
+static inline void hdd_logging_sock_deinit_svc(void)
+{
+}
+#endif
+
+static int hdd_register_fail_clean_up(v_CONTEXT_t vos_context)
+{
+	hif_unregister_driver();
+	vos_preClose(&vos_context);
+	hdd_timer_exit();
+	hdd_mem_exit();
+	hdd_logging_sock_deinit_svc();
+
+	return -ENODEV;
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_driver_init() - Core Driver Init Function
@@ -15789,6 +16059,7 @@ static int hdd_driver_init( void)
 
 #ifdef MEMORY_DEBUG
       vos_mem_init();
+      adf_net_buf_debug_init();
 #endif
 
    hdd_wlan_wakelock_create();
@@ -15861,39 +16132,22 @@ static int hdd_driver_init( void)
 
    ret_status = hdd_hif_register_driver();
    vos_remove_pm_qos();
-   hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
 
-   if (ret_status) {
-       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN Driver Initialization failed",
-               __func__);
-       hif_unregister_driver();
-       vos_preClose( &pVosContext );
-       ret_status = -ENODEV;
-       break;
-   } else {
-       pr_info("%s: driver loaded in %lld\n", WLAN_MODULE_NAME,
-                                              adf_get_boottime() - start);
-       return 0;
+   if (ret_status == 0) {
+      pr_info("%s: driver loaded in %lld\n", WLAN_MODULE_NAME,
+             adf_get_boottime() - start);
+      hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
+      return 0;
    }
 
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN Driver Initialization failed",
+          __func__);
+
+   ret_status = hdd_register_fail_clean_up(pVosContext);
+   hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_INIT);
+   hdd_wlan_wakelock_destroy();
 
    } while (0);
-
-   if (0 != ret_status)
-   {
-#ifdef TIMER_MANAGER
-      vos_timer_exit();
-#endif
-#ifdef MEMORY_DEBUG
-      vos_mem_exit();
-#endif
-     hdd_wlan_wakelock_destroy();
-
-#ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
-      wlan_logging_sock_deinit_svc();
-#endif
-      pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
-   }
 
    EXIT();
 
@@ -16008,6 +16262,7 @@ static void hdd_driver_exit(void)
    vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
+   adf_net_buf_debug_exit();
    vos_mem_exit();
 #endif
 
@@ -16291,42 +16546,48 @@ v_BOOL_t hdd_is_suspend_notify_allowed(hdd_context_t* pHddCtx)
 
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 {
-   switch (mode) {
-       case VOS_STA_MODE:
-       case VOS_P2P_CLIENT_MODE:
-       case VOS_P2P_GO_MODE:
-       case VOS_STA_SAP_MODE:
-            pHddCtx->concurrency_mode |= (1 << mode);
-            pHddCtx->no_of_open_sessions[mode]++;
-            break;
-       default:
-            break;
-   }
-   hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x "
-          "Number of open sessions for mode %d = %d"),
-           pHddCtx->concurrency_mode, mode,
-           pHddCtx->no_of_open_sessions[mode]);
+	switch (mode) {
+		case VOS_STA_MODE:
+		case VOS_P2P_CLIENT_MODE:
+		case VOS_P2P_GO_MODE:
+		case VOS_STA_SAP_MODE:
+			pHddCtx->concurrency_mode |= (1 << mode);
+			pHddCtx->no_of_open_sessions[mode]++;
+			break;
+		default:
+			break;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x, Number of open sessions for mode %d = %d"),
+			pHddCtx->concurrency_mode, mode,
+			pHddCtx->no_of_open_sessions[mode]);
+
+	hdd_wlan_green_ap_start_bss(pHddCtx);
 }
 
 
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
-   {
-   switch (mode)  {
-       case VOS_STA_MODE:
-       case VOS_P2P_CLIENT_MODE:
-       case VOS_P2P_GO_MODE:
-       case VOS_STA_SAP_MODE:
-            pHddCtx->no_of_open_sessions[mode]--;
-            if (!(pHddCtx->no_of_open_sessions[mode]))
-                pHddCtx->concurrency_mode &= (~(1 << mode));
-            break;
-       default:
-            break;
-   }
-   hddLog(VOS_TRACE_LEVEL_INFO, FL("concurrency_mode = 0x%x "
-          "Number of open sessions for mode %d = %d"),
-          pHddCtx->concurrency_mode, mode, pHddCtx->no_of_open_sessions[mode]);
-   }
+{
+	switch (mode)  {
+		case VOS_STA_MODE:
+		case VOS_P2P_CLIENT_MODE:
+		case VOS_P2P_GO_MODE:
+		case VOS_STA_SAP_MODE:
+			pHddCtx->no_of_open_sessions[mode]--;
+			if (!(pHddCtx->no_of_open_sessions[mode]))
+				pHddCtx->concurrency_mode &= (~(1 << mode));
+			break;
+		default:
+			break;
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("concurrency_mode = 0x%x, Number of open sessions for mode %d = %d"),
+			pHddCtx->concurrency_mode, mode,
+			pHddCtx->no_of_open_sessions[mode]);
+
+	hdd_wlan_green_ap_start_bss(pHddCtx);
+}
 
 /**---------------------------------------------------------------------------
  *
@@ -17500,6 +17761,8 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
 
     if (can_stop == VOS_TRUE) {
         vos_timer_stop(&pHddCtx->bus_bw_timer);
+        /* reset the ipa perf level */
+        hdd_ipa_set_perf_level(pHddCtx, 0, 0);
         hdd_rst_tcp_delack(pHddCtx);
         tlshim_reset_bundle_require();
     }

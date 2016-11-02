@@ -347,8 +347,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
               "Create a new PE session (%d) with BSSID: "
                MAC_ADDRESS_STR " Max No. of STA %d",
-               pMac->lim.gpSession[i].peSessionId,
-               MAC_ADDR_ARRAY(bssid), numSta);
+               *sessionId, MAC_ADDR_ARRAY(bssid), numSta);
             pMac->lim.gpSession[i].roaming_in_progress = false;
 
             /* Initialize PMM Ps Offload Module */
@@ -826,7 +825,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
 #ifdef WLAN_FEATURE_11W
     /* if PMF connection */
-    if (psessionEntry->limRmfEnabled) {
+    if (psessionEntry->limRmfEnabled && LIM_IS_STA_ROLE(psessionEntry)) {
         vos_timer_destroy(&psessionEntry->pmfComebackTimer);
     }
 #endif

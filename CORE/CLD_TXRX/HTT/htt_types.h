@@ -377,6 +377,9 @@ struct htt_pdev_t {
     /* callback function for packetdump */
     tp_rx_pkt_dump_cb rx_pkt_dump_cb;
 
+    /* Callback to indicate failure to user space */
+    void (*tx_failure_cb)(void *ctx, unsigned int num_msdu,
+                          unsigned char tid, unsigned int status);
 };
 
 #endif /* _HTT_TYPES__H_ */
