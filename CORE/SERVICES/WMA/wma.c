@@ -424,6 +424,8 @@ static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
 static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
 				uint32_t len);
 
+static void wma_send_time_stamp_sync_cmd(void *data);
+
 tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset);
 
 /*
@@ -34352,6 +34354,18 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		WMA_LOGP("%s: Failed to register tx management", __func__);
 		goto end;
 	}
+	if (VOS_FTM_MODE != vos_get_conparam()) {
+		/* Initialize firmware time stamp sync timer */
+	    vos_status = vos_timer_init(&wma_handle->wma_fw_time_sync_timer,
+	                                VOS_TIMER_TYPE_SW,
+	                                wma_send_time_stamp_sync_cmd,
+	                                wma_handle);
+	    if (vos_status != VOS_STATUS_SUCCESS)
+			WMA_LOGE(FL("Failed to initialize firmware time stamp sync timer"));
+
+	    /* Start firmware time stamp sync timer */
+	    wma_send_time_stamp_sync_cmd(wma_handle);
+	}
 
 	/* Initialize scan completion timeout */
 	vos_status = vos_timer_init(&wma_handle->wma_scan_comp_timer,
@@ -34499,10 +34513,12 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		WMA_LOGE("Failed to destroy the log completion timer");
 	}
 
-	/* Destroy firmware time stamp sync timer */
-	vos_status = vos_timer_destroy(&wma_handle->wma_fw_time_sync_timer);
-	if (vos_status != VOS_STATUS_SUCCESS)
-		WMA_LOGE(FL("Failed to destroy the fw time sync timer"));
+	if (VOS_FTM_MODE != vos_get_conparam()) {
+		/* Destroy firmware time stamp sync timer */
+		vos_status = vos_timer_destroy(&wma_handle->wma_fw_time_sync_timer);
+		if (vos_status != VOS_STATUS_SUCCESS)
+			WMA_LOGE(FL("Failed to destroy the fw time sync timer"));
+	}
 
 	/* There's no need suspend target which is already down during SSR. */
 	if (!vos_is_logp_in_progress(VOS_MODULE_ID_HIF, NULL)) {
@@ -35329,7 +35345,6 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	struct wma_target_cap target_cap;
 	WMI_SERVICE_READY_EVENTID_param_tlvs *param_buf;
 	wmi_service_ready_event_fixed_param *ev;
-	VOS_STATUS vos_status;
 	int status;
 
 	WMA_LOGD("%s: Enter", __func__);
@@ -35495,19 +35510,6 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 		WMA_LOGE("Failed to send WMI_INIT_CMDID command");
 		wmi_buf_free(buf);
 		return;
-	}
-
-	if (VOS_FTM_MODE != vos_get_conparam()) {
-		/* Initialize firmware time stamp sync timer */
-		vos_status = vos_timer_init(&wma_handle->wma_fw_time_sync_timer,
-					    VOS_TIMER_TYPE_SW,
-					    wma_send_time_stamp_sync_cmd,
-					    wma_handle);
-		if (vos_status != VOS_STATUS_SUCCESS)
-			WMA_LOGE(FL("Failed to initialize firmware time stamp sync timer"));
-
-		/* Start firmware time stamp sync timer */
-		wma_send_time_stamp_sync_cmd(wma_handle);
 	}
 }
 
