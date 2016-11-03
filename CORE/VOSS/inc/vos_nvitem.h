@@ -123,6 +123,9 @@ enum phy_ch_width {
 	CH_WIDTH_MAX
 };
 
+#define HT40PLUS_2G_FCC_CH_END       7
+#define HT40PLUS_2G_EURJAP_CH_END    9
+
 /**
  * struct ch_params_s
  * @ch_width: channel width
@@ -168,6 +171,13 @@ void vos_set_channel_params(uint16_t oper_ch, uint16_t sec_ch_2g,
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       const v_COUNTRYCODE_t countryCode, v_CountryInfoSource_t source);
+
+/* vos_is_fcc_regdomian() - is the regdomain FCC
+ *
+ * Return: true if FCC regdomain
+ *         false otherwise
+ */
+bool vos_is_fcc_regdomain(void);
 
 /**------------------------------------------------------------------------
 
