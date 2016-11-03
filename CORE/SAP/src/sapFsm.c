@@ -3251,6 +3251,9 @@ sapSignalHDDevent
             sapApAppEvent.sapevt.sapAssocIndication.assocReqLength = pCsrRoamInfo->assocReqLength;
             sapApAppEvent.sapevt.sapAssocIndication.assocReqPtr = pCsrRoamInfo->assocReqPtr;
             sapApAppEvent.sapevt.sapAssocIndication.fWmmEnabled = pCsrRoamInfo->wmmEnabledSta;
+            sapApAppEvent.sapevt.sapAssocIndication.ecsa_capable =
+                pCsrRoamInfo->ecsa_capable;
+
             if ( pCsrRoamInfo->u.pConnectedProfile != NULL )
             {
                sapApAppEvent.sapevt.sapAssocIndication.negotiatedAuthType = pCsrRoamInfo->u.pConnectedProfile->AuthType;
@@ -3333,6 +3336,10 @@ sapSignalHDDevent
         case eSAP_STA_REASSOC_EVENT:
         {
             tSirSmeChanInfo *pChanInfo;
+            tSap_StationAssocReassocCompleteEvent *sta_event_ptr;
+
+            sta_event_ptr =
+                &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent;
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                        FL("SAP event callback event = %s"),
                           "eSAP_STA_ASSOC_EVENT");
@@ -3389,6 +3396,7 @@ sapSignalHDDevent
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;
             sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap = pCsrRoamInfo->timingMeasCap;
+            sta_event_ptr->ecsa_capable = pCsrRoamInfo->ecsa_capable;
             //TODO: Need to fill sapAuthType
             //sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.SapAuthType = pCsrRoamInfo->pProfile->negotiatedAuthType;
             break;

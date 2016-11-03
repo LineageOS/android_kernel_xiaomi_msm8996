@@ -1499,6 +1499,9 @@ typedef struct tagCsrRoamInfo
         struct ndi_delete_rsp ndi_delete_params;
     } ndp;
 #endif
+
+    /* Extended capabilities of STA */
+    uint8_t ecsa_capable;
 }tCsrRoamInfo;
 
 
@@ -1529,6 +1532,8 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8              timingMeasCap;
     tSirSmeChanInfo      chan_info;
+    /* Extended capabilities of STA */
+    uint8_t              ecsa_capable;
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 
 typedef struct tagCsrSummaryStatsInfo

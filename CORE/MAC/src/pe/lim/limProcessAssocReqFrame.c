@@ -1309,6 +1309,12 @@ sendIndToSme:
         pStaDs->vhtLdpcCapable = (tANI_U8)vht_caps->ldpcCodingCap;
     }
 
+    if (pAssocReq->ExtCap.present)
+            pStaDs->non_ecsa_capable =
+                !((struct s_ext_cap *)pAssocReq->ExtCap.bytes)->extChanSwitch;
+    else
+            pStaDs->non_ecsa_capable = 1;
+
     if (!pAssocReq->wmeInfoPresent) {
         pStaDs->mlmStaContext.htCapability = 0;
 #ifdef WLAN_FEATURE_11AC
@@ -1857,6 +1863,9 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
         pMlmAssocInd->chan_info.sub20_channelwidth =
                  pStaDs->sub20_dynamic_channelwidth;
+        if (pAssocReq->ExtCap.present)
+                pMlmAssocInd->ecsa_capable =
+                  ((struct s_ext_cap *)pAssocReq->ExtCap.bytes)->extChanSwitch;
 
         limPostSmeMessage(pMac, LIM_MLM_ASSOC_IND, (tANI_U32 *) pMlmAssocInd);
         vos_mem_free(pMlmAssocInd);
@@ -1993,6 +2002,10 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
         pMlmReassocInd->beaconPtr = psessionEntry->beacon;
         pMlmReassocInd->beaconLength = psessionEntry->bcnLen;
+
+        if (pAssocReq->ExtCap.present)
+                pMlmReassocInd->ecsa_capable =
+                   ((struct s_ext_cap *)pAssocReq->ExtCap.bytes)->extChanSwitch;
 
         limPostSmeMessage(pMac, LIM_MLM_REASSOC_IND, (tANI_U32 *) pMlmReassocInd);
         vos_mem_free(pMlmReassocInd);

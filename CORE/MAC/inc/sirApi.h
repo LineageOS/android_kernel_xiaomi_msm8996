@@ -1290,6 +1290,8 @@ typedef struct sSirSmeAssocInd
     /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8              timingMeasCap;
     tSirSmeChanInfo      chan_info;
+    /* Extended CSA capability of station */
+    uint8_t              ecsa_capable;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 

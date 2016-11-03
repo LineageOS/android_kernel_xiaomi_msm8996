@@ -824,6 +824,8 @@ typedef struct {
 
    /** SUB 20 Bandwidth Flags */
    uint8_t   sub20_dynamic_channelwidth;
+   /** Extended CSA capabilities */
+   uint8_t   ecsa_capable;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s
