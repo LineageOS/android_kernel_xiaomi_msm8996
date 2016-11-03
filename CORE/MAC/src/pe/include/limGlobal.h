@@ -68,8 +68,6 @@
 #define IS_5G_BAND(__rfBand)     ((__rfBand & 0x3) == 0x2)
 #define IS_24G_BAND(__rfBand)    ((__rfBand & 0x3) == 0x1)
 
-#define LIM_MAX_CSA_IE_UPDATES                  ( 5 )
-
 // enums exported by LIM are as follows
 
 /// System role definition

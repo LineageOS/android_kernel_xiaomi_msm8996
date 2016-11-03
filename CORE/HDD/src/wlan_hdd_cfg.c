@@ -4937,7 +4937,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_RX_WAKELOCK_TIMEOUT_DEFAULT,
                 CFG_RX_WAKELOCK_TIMEOUT_MIN,
-                CFG_RX_WAKELOCK_TIMEOUT_MAX)
+                CFG_RX_WAKELOCK_TIMEOUT_MAX),
+
+   REG_VARIABLE(CFG_SAP_CH_SWITCH_BEACON_CNT, WLAN_PARAM_Integer,
+                hdd_config_t, sap_chanswitch_beacon_cnt,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_DEFAULT,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_MIN,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_MAX),
 };
 
 

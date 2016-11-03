@@ -7330,6 +7330,7 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 	uint16_t op_class;
 	uint8_t switch_mode = 0, i;
 	tpDphHashNode psta;
+	uint8_t switch_count;
 
 
 	op_class = regdm_get_opclass_from_channel(
@@ -7341,6 +7342,8 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 		(mac_ctx->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE))
 		switch_mode = 1;
 
+	switch_count = session_entry->gLimChannelSwitch.switchCount;
+
 	if (LIM_IS_AP_ROLE(session_entry)) {
 		for (i = 0; i < mac_ctx->lim.maxStation; i++) {
 			psta =
@@ -7350,14 +7353,14 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 					mac_ctx,
 					psta->staAddr,
 					switch_mode, op_class, new_channel,
-					LIM_MAX_CSA_IE_UPDATES, session_entry);
+					switch_count, session_entry);
 			}
 		}
 	} else if (LIM_IS_STA_ROLE(session_entry)) {
 		lim_send_extended_chan_switch_action_frame(mac_ctx,
 					session_entry->bssId,
 					switch_mode, op_class, new_channel,
-					LIM_MAX_CSA_IE_UPDATES, session_entry);
+					switch_count, session_entry);
 	}
 
 }
@@ -7419,7 +7422,11 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
         /* Channel switch announcement needs to be included in beacon */
         psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
-        psessionEntry->gLimChannelSwitch.switchCount = LIM_MAX_CSA_IE_UPDATES;
+
+        psessionEntry->gLimChannelSwitch.switchCount =
+            pDfsCsaIeRequest->ch_switch_beacon_cnt;
+
+
         if (pMac->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE)
             psessionEntry->gLimChannelSwitch.switchMode = 1;
         psessionEntry->gLimChannelSwitch.secondarySubBand =

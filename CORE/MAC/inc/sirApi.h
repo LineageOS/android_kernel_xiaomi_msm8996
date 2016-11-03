@@ -5052,6 +5052,7 @@ typedef struct sSirDfsCsaIeRequest
     tANI_U8  bssid[VOS_MAC_ADDR_SIZE];
     u_int8_t  ch_bandwidth;
     uint8_t  sub20_channelwidth;
+    uint8_t  ch_switch_beacon_cnt;
 }tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
 
 /* Indication from lower layer indicating the completion of first beacon send

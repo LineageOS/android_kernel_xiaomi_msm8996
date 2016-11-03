@@ -15601,6 +15601,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     pConfig->disableDFSChSwitch = iniConfig->disableDFSChSwitch;
 
+    pConfig->sap_chanswitch_beacon_cnt =
+        iniConfig->sap_chanswitch_beacon_cnt;
+
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
 

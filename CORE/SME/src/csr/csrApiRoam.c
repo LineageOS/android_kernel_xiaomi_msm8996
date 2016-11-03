@@ -19746,6 +19746,7 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
     vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
     pMsg->ch_bandwidth = ch_bandwidth;
     pMsg->sub20_channelwidth = pMac->sap.SapDfsInfo.new_sub20_channelwidth;
+    pMsg->ch_switch_beacon_cnt = pMac->sap.SapDfsInfo.sap_ch_switch_beacon_cnt;
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

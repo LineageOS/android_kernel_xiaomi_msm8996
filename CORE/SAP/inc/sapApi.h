@@ -575,6 +575,8 @@ typedef struct sap_Config {
     tSirMacRateSet  extended_rates;
     eCsrBand   target_band;
     uint16_t  sub20_channelwidth;
+    /* beacon count before channel switch */
+    uint8_t          sap_chanswitch_beacon_cnt;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
@@ -686,6 +688,8 @@ typedef struct sSapDfsInfo
     v_U8_t              disable_dfs_ch_switch;
     uint16_t            tx_leakage_threshold;
     uint8_t             new_sub20_channelwidth;
+    /* beacon count before channel switch */
+    uint8_t            sap_ch_switch_beacon_cnt;
 } tSapDfsInfo;
 
 typedef struct tagSapCtxList
