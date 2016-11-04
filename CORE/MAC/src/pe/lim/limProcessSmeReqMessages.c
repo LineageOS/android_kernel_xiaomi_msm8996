@@ -1386,6 +1386,15 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
             pScanOffloadReq->uIEFieldLen += DOT11F_IE_WFATPC_MAX_LEN + 2;
     }
 
+    pScanOffloadReq->enable_scan_randomization =
+                                           pScanReq->enable_scan_randomization;
+    if (pScanOffloadReq->enable_scan_randomization) {
+        vos_mem_copy(pScanOffloadReq->mac_addr, pScanReq->mac_addr,
+                     VOS_MAC_ADDR_SIZE);
+        vos_mem_copy(pScanOffloadReq->mac_addr_mask, pScanReq->mac_addr_mask,
+                     VOS_MAC_ADDR_SIZE);
+    }
+
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc != eSIR_SUCCESS)
     {
