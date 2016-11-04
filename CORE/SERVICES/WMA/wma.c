@@ -25970,7 +25970,7 @@ static VOS_STATUS wma_enable_arp_ns_offload(tp_wma_handle wma,
 	res = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				WMI_SET_ARP_NS_OFFLOAD_CMDID);
 	if (res) {
-		WMA_LOGE("Failed to enable ARP NDP/NSffload");
+		WMA_LOGW("Failed to enable ARP NDP/NSffload");
 		goto err_cmd_send;
 	}
 
