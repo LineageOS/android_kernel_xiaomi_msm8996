@@ -265,6 +265,8 @@ typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 #define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
 
+#define MAX_PROBE_REQ_OUIS 16
+
 /*
  * Generic asynchronous request/response support
  *
@@ -1894,6 +1896,9 @@ struct hdd_context_s
     vos_timer_t tdls_source_timer;
     struct hdd_scan_chan_info *chan_info;
     struct mutex chan_info_lock;
+
+    uint32_t no_of_probe_req_ouis;
+    struct vendor_oui *probe_req_voui;
 };
 
 /*---------------------------------------------------------------------------
