@@ -17861,12 +17861,6 @@ static void wma_del_pm_vote(tp_wma_handle wma)
 		vos_pm_control(ENABLE_PCIE_POWER_COLLAPSE);
 	}
 }
-
-int wma_get_client_count(WMA_HANDLE handle)
-{
-	tp_wma_handle wma = (tp_wma_handle)handle;
-	return wma->ap_client_cnt;
-}
 #else
 static void wma_prevent_suspend_check(tp_wma_handle wma)
 {
@@ -17894,6 +17888,12 @@ static void wma_allow_suspend_check(tp_wma_handle wma)
 	}
 }
 #endif /* FEATURE_WLAN_D0WOW */
+
+int wma_get_client_count(WMA_HANDLE handle)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	return wma->ap_client_cnt;
+}
 
 static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
