@@ -222,6 +222,51 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 #endif
 
 static enum powersave_qpower_mode wma_get_qpower_config(tp_wma_handle wma);
+
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * wma_wow_wakeup_stats_event()- send wow wakeup stats
+ * tp_wma_handle wma: WOW wakeup packet counter
+ *
+ * This function sends wow wakeup stats diag event
+ *
+ * Return: void.
+ */
+static void wma_wow_wakeup_stats_event(tp_wma_handle wma)
+{
+        WLAN_VOS_DIAG_EVENT_DEF(WowStats,
+                vos_event_wlan_powersave_wow_stats);
+        vos_mem_zero(&WowStats, sizeof(WowStats));
+
+        WowStats.wow_ucast_wake_up_count = wma->wow_ucast_wake_up_count;
+        WowStats.wow_bcast_wake_up_count = wma->wow_bcast_wake_up_count;
+        WowStats.wow_ipv4_mcast_wake_up_count =
+                                        wma->wow_ipv4_mcast_wake_up_count;
+        WowStats.wow_ipv6_mcast_wake_up_count =
+                                        wma->wow_ipv6_mcast_wake_up_count;
+        WowStats.wow_ipv6_mcast_ra_stats = wma->wow_ipv6_mcast_ra_stats;
+        WowStats.wow_ipv6_mcast_ns_stats = wma->wow_ipv6_mcast_ns_stats;
+        WowStats.wow_ipv6_mcast_na_stats = wma->wow_ipv6_mcast_na_stats;
+        WowStats.wow_pno_match_wake_up_count = wma->wow_pno_match_wake_up_count;
+        WowStats.wow_pno_complete_wake_up_count =
+                                        wma->wow_pno_complete_wake_up_count;
+        WowStats.wow_gscan_wake_up_count = wma->wow_gscan_wake_up_count;
+        WowStats.wow_low_rssi_wake_up_count =  wma->wow_low_rssi_wake_up_count;
+        WowStats.wow_rssi_breach_wake_up_count =
+                                        wma->wow_rssi_breach_wake_up_count;
+        WowStats.wow_icmpv4_count = wma->wow_icmpv4_count;
+        WowStats.wow_icmpv6_count = wma->wow_icmpv6_count;
+        WowStats.wow_oem_response_wake_up_count =
+                                        wma->wow_oem_response_wake_up_count;
+        WLAN_VOS_DIAG_EVENT_REPORT(&WowStats, EVENT_WLAN_POWERSAVE_WOW_STATS);
+}
+#else
+static void wma_wow_wakeup_stats_event(tp_wma_handle wma)
+{
+        return;
+}
+#endif
+
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
  * enum extscan_report_events_type - extscan report events type
@@ -22627,6 +22672,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			wake_info->wake_reason,
 			wake_info->vdev_id);
 		vos_wow_wakeup_host_event(wake_info->wake_reason);
+		wma_wow_wakeup_stats_event(wma);
 	}
 
 	vos_event_set(&wma->wma_resume_event);
