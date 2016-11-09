@@ -453,17 +453,22 @@ ol_tx_delay_compute(
 #ifdef QCA_TX_SINGLE_COMPLETIONS
     #ifdef QCA_TX_STD_PATH_ONLY
         #define ol_tx_msdu_complete(_pdev, _tx_desc, _tx_descs, _netbuf, _lcl_freelist,         \
-                                        _tx_desc_last, _status)                                 \
+                                        _tx_desc_last, _status, is_tx_desc_freed)               \
+        do {                                                                                    \
+            is_tx_desc_freed = 0;                                                               \
             ol_tx_msdu_complete_single((_pdev), (_tx_desc), (_netbuf), (_lcl_freelist),         \
-                                             _tx_desc_last)
+                                             _tx_desc_last);                                    \
+        } while (0)
     #else   /* !QCA_TX_STD_PATH_ONLY */
         #define ol_tx_msdu_complete(_pdev, _tx_desc, _tx_descs, _netbuf, _lcl_freelist,         \
-                                        _tx_desc_last, _status)                                 \
+                                        _tx_desc_last, _status, is_tx_desc_freed)               \
         do {                                                                                    \
             if (adf_os_likely((_tx_desc)->pkt_type == ol_tx_frm_std)) {                         \
+                is_tx_desc_freed = 0;                                                           \
                 ol_tx_msdu_complete_single((_pdev), (_tx_desc), (_netbuf), (_lcl_freelist),     \
                                              (_tx_desc_last));                                  \
             } else {                                                                            \
+                is_tx_desc_freed = 1;                                                           \
                 ol_tx_desc_frame_free_nonstd(                                                   \
                     (_pdev), (_tx_desc), (_status) != htt_tx_status_ok);                        \
             }                                                                                   \
@@ -472,15 +477,20 @@ ol_tx_delay_compute(
 #else  /* !QCA_TX_SINGLE_COMPLETIONS */
     #ifdef QCA_TX_STD_PATH_ONLY
         #define ol_tx_msdu_complete(_pdev, _tx_desc, _tx_descs, _netbuf, _lcl_freelist,         \
-                                        _tx_desc_last, _status)                                 \
-            ol_tx_msdus_complete_batch((_pdev), (_tx_desc), (_tx_descs), (_status))
+                                        _tx_desc_last, _status, is_tx_desc_freed)               \
+        do {                                                                                    \
+            is_tx_desc_freed = 0;                                                               \
+            ol_tx_msdu_complete_batch((_pdev), (_tx_desc), (_tx_descs), (_status));             \
+        } while (0)
     #else   /* !QCA_TX_STD_PATH_ONLY */
         #define ol_tx_msdu_complete(_pdev, _tx_desc, _tx_descs, _netbuf, _lcl_freelist,         \
-                                        _tx_desc_last, _status)                                 \
+                                        _tx_desc_last, _status, is_tx_desc_freed)               \
         do {                                                                                    \
             if (adf_os_likely((_tx_desc)->pkt_type == ol_tx_frm_std)) {                         \
+                is_tx_desc_freed = 0;                                                           \
                 ol_tx_msdu_complete_batch((_pdev), (_tx_desc), (_tx_descs), (_status));         \
             } else {                                                                            \
+                is_tx_desc_freed = 1;                                                           \
                 ol_tx_desc_frame_free_nonstd(                                                   \
                     (_pdev), (_tx_desc), (_status) != htt_tx_status_ok);                        \
             }                                                                                   \
@@ -546,6 +556,8 @@ ol_tx_completion_handler(
     union ol_tx_desc_list_elem_t *lcl_freelist = NULL;
     union ol_tx_desc_list_elem_t *tx_desc_last = NULL;
     ol_tx_desc_list tx_descs;
+    uint32_t is_tx_desc_freed = 0;
+
     TAILQ_INIT(&tx_descs);
 
     OL_TX_DELAY_COMPUTE(pdev, status, desc_ids, num_msdus);
@@ -580,14 +592,17 @@ ol_tx_completion_handler(
                 status != htt_tx_status_ok);
             ol_tx_msdu_complete(
                 pdev, tx_desc, tx_descs, netbuf,
-                lcl_freelist, tx_desc_last, status);
-        }
+                lcl_freelist, tx_desc_last, status, is_tx_desc_freed);
+
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
-        tx_desc->pkt_type = ol_tx_frm_freed;
+            if (!is_tx_desc_freed) {
+                tx_desc->pkt_type = ol_tx_frm_freed;
 #ifdef QCA_COMPUTE_TX_DELAY
-        tx_desc->entry_timestamp_ticks = 0xffffffff;
+                tx_desc->entry_timestamp_ticks = 0xffffffff;
 #endif
+            }
 #endif
+        }
     }
 
     /* One shot protected access to pdev freelist, when setup */
@@ -815,6 +830,8 @@ ol_tx_inspect_handler(
     union ol_tx_desc_list_elem_t *tx_desc_last = NULL;
     adf_nbuf_t  netbuf;
     ol_tx_desc_list tx_descs;
+    uint32_t is_tx_desc_freed = 0;
+
     TAILQ_INIT(&tx_descs);
 
     for (i = 0; i < num_msdus; i++) {
@@ -840,13 +857,16 @@ ol_tx_inspect_handler(
              * for graceful freeing of this multicast frame
              */
             ol_tx_msdu_complete(pdev, tx_desc, tx_descs, netbuf, lcl_freelist,
-                                    tx_desc_last, htt_tx_status_ok);
+                                    tx_desc_last, htt_tx_status_ok,
+                                    is_tx_desc_freed);
 
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
-            tx_desc->pkt_type = ol_tx_frm_freed;
+            if (!is_tx_desc_freed) {
+                tx_desc->pkt_type = ol_tx_frm_freed;
 #ifdef QCA_COMPUTE_TX_DELAY
-            tx_desc->entry_timestamp_ticks = 0xffffffff;
+                tx_desc->entry_timestamp_ticks = 0xffffffff;
 #endif
+            }
 #endif
         }
     }
