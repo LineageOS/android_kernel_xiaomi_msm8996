@@ -22572,7 +22572,7 @@ static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *adapter)
  * Return: None
  */
 static void hdd_config_sched_scan_plan(tpSirPNOScanReq pno_req,
-				struct cfg80211_sched_scan_request *request
+				struct cfg80211_sched_scan_request *request,
 				hdd_context_t *hdd_ctx)
 {
 	pno_req->fast_scan_period =
