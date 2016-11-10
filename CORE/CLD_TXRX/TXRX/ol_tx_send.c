@@ -579,7 +579,7 @@ ol_tx_completion_handler(
         }
 
         if (pdev->ol_tx_packetdump_cb)
-            pdev->ol_tx_packetdump_cb(netbuf, status, tx_desc->vdev->vdev_id,
+            pdev->ol_tx_packetdump_cb(netbuf, status, tx_desc->vdev_id,
                                       TX_DATA_PKT);
 
         htc_pm_runtime_put(pdev->htt_pdev->htc_pdev);
@@ -649,7 +649,7 @@ ol_tx_desc_update_group_credit(ol_txrx_pdev_handle pdev, u_int16_t tx_desc_id,
         vdev_id_mask =
                OL_TXQ_GROUP_VDEV_ID_MASK_GET(pdev->txq_grps[i].membership);
         is_member = OL_TXQ_GROUP_VDEV_ID_BIT_MASK_GET(vdev_id_mask,
-                                                      tx_desc->vdev->vdev_id);
+                                                      tx_desc->vdev_id);
         if (is_member) {
             ol_txrx_update_group_credit(&pdev->txq_grps[i],
                                         credit, absolute);
@@ -786,7 +786,7 @@ ol_tx_single_completion_handler(
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, 1, adf_nbuf_len(netbuf));
 
     if (pdev->ol_tx_packetdump_cb)
-        pdev->ol_tx_packetdump_cb(netbuf, status, tx_desc->vdev->vdev_id,
+        pdev->ol_tx_packetdump_cb(netbuf, status, tx_desc->vdev_id,
                                   TX_MGMT_PKT);
 
     if (OL_TX_DESC_NO_REFS(tx_desc)) {
