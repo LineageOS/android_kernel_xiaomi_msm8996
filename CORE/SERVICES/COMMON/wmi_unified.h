@@ -3850,6 +3850,8 @@ typedef enum {
     WMI_PDEV_PARAM_RX_MPDU_AGGR_ARRAY_LEN,
    /** Set TX delay value in TX sch module, unit is microseconds */
     WMI_PDEV_PARAM_TX_SCH_DELAY,
+   /** Set RTS enable for SIFS bursting */
+    WMI_PDEV_PARAM_ENABLE_RTS_SIFS_BURSTING,
 
 } WMI_PDEV_PARAM;
 
