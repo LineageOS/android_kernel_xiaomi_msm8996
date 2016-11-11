@@ -52,6 +52,7 @@
 #include <linux/if_ether.h>
 #endif
 
+#include <linux/inetdevice.h>
 #include <wlan_hdd_p2p.h>
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
@@ -1193,6 +1194,49 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 
 	return VOS_STATUS_SUCCESS;
 }
+
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+/**
+ * hdd_is_arp_local() - check if local or non local arp
+ * @skb: pointer to sk_buff
+ *
+ * Return: true if local arp or false otherwise.
+ */
+static bool hdd_is_arp_local(struct sk_buff *skb)
+{
+
+	struct arphdr *arp;
+	struct in_ifaddr **ifap = NULL;
+	struct in_ifaddr *ifa = NULL;
+	struct in_device *in_dev;
+	unsigned char *arp_ptr;
+	__be32 tip;
+
+	arp = (struct arphdr *)skb->data;
+	if (arp->ar_op == htons(ARPOP_REQUEST)) {
+		if ((in_dev = __in_dev_get_rtnl(skb->dev)) != NULL) {
+			for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
+				ifap = &ifa->ifa_next) {
+				if (!strcmp(skb->dev->name,
+				    ifa->ifa_label))
+					break;
+			}
+		}
+
+		if (ifa && ifa->ifa_local) {
+			arp_ptr = (unsigned char *)(arp + 1);
+			arp_ptr += (skb->dev->addr_len + 4 + skb->dev->addr_len);
+			memcpy(&tip, arp_ptr, 4);
+			hddLog(VOS_TRACE_LEVEL_INFO, "ARP packets: local IP: %x dest IP: %x\n",
+					ifa->ifa_local, tip);
+			if (ifa->ifa_local != tip)
+				return false;
+		}
+	}
+	return true;
+}
+#endif
+
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were
@@ -1218,7 +1262,9 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
    v_U8_t proto_type;
 #endif /* QCA_PKT_PROTO_TRACE */
    hdd_station_ctx_t *pHddStaCtx = NULL;
-
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+   bool wake_lock = false;
+#endif
    //Sanity check on inputs
    if ((NULL == vosContext) || (NULL == rxBuf))
    {
@@ -1325,6 +1371,16 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        */
       adf_net_buf_debug_release_skb(skb);
 
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+      if (!wake_lock) {
+         if (skb->protocol == htons(ETH_P_ARP)) {
+            if (hdd_is_arp_local(skb))
+               wake_lock = true;
+         }
+         else
+            wake_lock = true;
+      }
+#endif
       /*
        * If this is not a last packet on the chain
        * Just put packet into backlog queue, not scheduling RX sirq
@@ -1333,6 +1389,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
          rxstat = netif_rx(skb);
       } else {
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+      if (wake_lock)
          vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
                                        HDD_WAKE_LOCK_DURATION,
                                        WIFI_POWER_EVENT_WAKELOCK_HOLD_RX);
