@@ -68,7 +68,7 @@ struct fpc1020_data {
 	struct pinctrl         *ts_pinctrl;
 	struct pinctrl_state   *gpio_state_active;
 	struct pinctrl_state   *gpio_state_suspend;
-	struct wake_lock       ttw_wl;
+	struct wakeup_source    ttw_wl;
 #ifdef CONFIG_FB
 	struct notifier_block fb_notifier;
 	struct work_struct reset_work;
@@ -359,8 +359,8 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	smp_rmb();
 
 	if (fpc1020->wakeup_enabled) {
-		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
-		dev_info(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
+		__pm_wakeup_event(&fpc1020->ttw_wl, FPC_TTW_HOLD_TIME);
+		dev_dbg(fpc1020->dev, "%s - __pm_wakeup_event\n", __func__);
 	}
 
 	/* Report button input */
@@ -523,7 +523,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (rc)
 		goto exit;
 
-	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
+	wakeup_source_init(&fpc1020->ttw_wl, "fpc_ttw_wl");
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
 
