@@ -1411,6 +1411,10 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         limSendBeaconParams(pMac, &beaconParams, psessionEntry );
     }
 
+    if (pSta->sub20_dynamic_channelwidth != 0)
+            populate_dot11f_sub_20_channel_width_ie(
+                pMac, &frm.QComVendorIE, psessionEntry);
+
     // Allocate a buffer for this frame:
     if ( pAssocReq != NULL )
     {
@@ -2343,6 +2347,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
             lim_merge_extcap_struct(&pFrm->ExtCap, &ap_extcap, false);
         }
     }
+
+    populate_dot11f_sub_20_channel_width_ie(pMac,
+                                            &pFrm->QComVendorIE,
+                                            psessionEntry);
 
     nStatus = dot11fGetPackedAssocRequestSize(pMac, pFrm, &nPayload);
     if (DOT11F_FAILED(nStatus))

@@ -136,9 +136,7 @@ int wma_runtime_suspend_req(WMA_HANDLE handle);
 int wma_runtime_resume_req(WMA_HANDLE handle);
 #endif
 
-#ifdef FEATURE_WLAN_D0WOW
 int wma_get_client_count(WMA_HANDLE handle);
-#endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);
 #ifdef NOT_YET

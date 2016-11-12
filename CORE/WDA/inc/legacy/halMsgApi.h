@@ -314,6 +314,7 @@ typedef struct
     tANI_U8  nonRoamReassoc;
     uint32_t nss; /* Number of spatial streams supported */
     tANI_U8  max_amsdu_num;
+    uint8_t  channelwidth;
 } tAddStaParams, *tpAddStaParams;
 
 
@@ -545,6 +546,7 @@ typedef struct
     uint32_t tx_aggregation_size;
     uint32_t rx_aggregation_size;
     uint16_t beacon_tx_rate;
+    uint8_t  channelwidth;
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct
@@ -1037,6 +1039,8 @@ typedef struct
     tANI_U8  dot11_mode;
 
     uint8_t restart_on_chan_switch;
+
+    uint32_t channelwidth;
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {
@@ -1047,6 +1051,7 @@ typedef struct CSAOffloadParams {
    tANI_U8 new_op_class;       /* New operating class */
    tANI_U8 new_ch_freq_seg1;   /* Channel Center frequency 1 */
    tANI_U8 new_ch_freq_seg2;   /* Channel Center frequency 2 */
+   tANI_U8 new_sub20_channelwidth;  /* 5MHz or 10Mhz channel width */
    tANI_U32 ies_present_flag;   /* WMI_CSA_EVENT_IES_PRESENT_FLAG */
    tSirMacAddr bssId;
 }*tpCSAOffloadParams, tCSAOffloadParams;

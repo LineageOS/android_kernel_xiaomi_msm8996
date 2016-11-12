@@ -67,9 +67,24 @@ struct sAvoidChannelIE {
 	uint8_t oui[3];
 	/* following must be 0x01 */
 	uint8_t type;
+	uint8_t type_len;
 	uint8_t channel;
 };
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
+
+/**
+ * struct vendor_ie_sub20_channelwidth
+ * @elem_id: Vendor Sub20 Channel Width Element id
+ * @elem_len: Vendor Sub20 Channel Width Element data length
+ * @sub20_capability: sub20 capability
+ * @new_sub20_channelwidth: new sub20 channelwidth
+ */
+struct vendor_ie_sub20_channelwidth {
+        uint8_t    elem_id;
+        uint8_t    elem_len;
+        uint8_t    sub20_capability;
+        uint8_t    new_sub20_channelwidth;
+} __packed;
 
 #define SIZE_OF_FIXED_PARAM ( 12 )
 #define SIZE_OF_TAG_PARAM_NUM  ( 1 )
@@ -181,6 +196,7 @@ typedef struct sSirProbeRespBeacon
 #ifdef FEATURE_WLAN_ESE
     uint8_t    is_ese_ver_ie_present;
 #endif
+    uint8_t                   vendor_sub20_capability;
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
 // probe Request structure
@@ -256,6 +272,7 @@ typedef struct sSirAssocReq
 #endif
     tDot11fIEExtCap           ExtCap;
     tDot11fIEvendor2_ie       vendor2_ie;
+    uint8_t                   vendor_sub20_capability;
 } tSirAssocReq, *tpSirAssocReq;
 
 
@@ -313,6 +330,7 @@ typedef struct sSirAssocRsp
     tDot11fIETimeoutInterval  TimeoutInterval;
 #endif
     tDot11fIEvendor2_ie       vendor2_ie;
+    uint8_t                   vendor_sub20_capability;
 } tSirAssocRsp, *tpSirAssocRsp;
 
 #if defined(FEATURE_WLAN_ESE_UPLOAD)
@@ -632,6 +650,22 @@ populate_dot11f_avoid_channel_ie(tpAniSirGlobal mac_ctx,
 				 tpPESession session_entry);
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+void
+populate_dot11f_sub_20_channel_width_ie(tpAniSirGlobal mac_ctx_ptr,
+                                        tDot11fIEQComVendorIE *dot11f_ptr,
+                                        tpPESession pe_session);
+#else
+static inline void
+populate_dot11f_sub_20_channel_width_ie(
+	tpAniSirGlobal mac_ctx_ptr,
+	tDot11fIEQComVendorIE *dot11f_ptr,
+	tpPESession pe_session)
+{
+	dot11f_ptr->Sub20Info.present = false;
+	return;
+}
+#endif
 /// Populate a tDot11fIECountry
 tSirRetStatus
 PopulateDot11fCountry(tpAniSirGlobal    pMac,

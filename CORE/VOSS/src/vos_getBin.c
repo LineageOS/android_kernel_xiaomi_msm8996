@@ -283,3 +283,30 @@ v_BOOL_t vos_is_sta_active_connection_exists (void)
     return (j ? VOS_TRUE : VOS_FALSE);
 }
 
+
+/**---------------------------------------------------------------------------
+ *   \brief vos_active_session_exists()
+ *
+ *   This function checks if a active session exists for a device mode
+ *   and it returns TRUE if exists.
+ *
+ *   \param  - Device Mode
+ *
+ *   \return - VOS_TRUE or VOS_FALSE
+ *
+ * --------------------------------------------------------------------------*/
+v_BOOL_t vos_active_session_exists (tVOS_CON_MODE mode)
+{
+    hdd_context_t *pHddCtx;
+    v_U8_t         j = 0;
+
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    if (NULL != pVosContext) {
+        pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+        if (NULL != pHddCtx) {
+            j = pHddCtx->no_of_active_sessions[mode];
+       }
+    }
+
+    return (j ? VOS_TRUE : VOS_FALSE);
+}

@@ -132,6 +132,16 @@ typedef struct sStatsExtEvent {
     tANI_U8 event_data[];
 } tStatsExtEvent, *tpStatsExtEvent;
 
+/**
+ * struct stats_ext2_event - stats ext2 event
+ * @hole_cnt: hole counter
+ * @hole_info_array: hole informaton
+ */
+struct stats_ext2_event {
+	uint32_t hole_cnt;
+	uint32_t hole_info_array[];
+};
+
 #define MAX_ACTIVE_CMD_STATS    16
 
 typedef struct sActiveCmdStats {
@@ -195,6 +205,7 @@ typedef struct tagSmeStruct
 #ifdef FEATURE_WLAN_EXTSCAN
     void (*pExtScanIndCb) (void *, const tANI_U16, void *);
 #endif /* FEATURE_WLAN_EXTSCAN */
+    void  (*pchain_rssi_ind_cb)(void *, void *);
 #ifdef WLAN_FEATURE_NAN
     void (*nanCallback) (void*, tSirNanEvent*);
 #endif
@@ -236,6 +247,7 @@ typedef struct tagSmeStruct
     void (*pbpf_get_offload_cb)(void *context, struct sir_bpf_get_offload *);
     void *mib_stats_context;
     void (*csr_mib_stats_callback) (struct mib_stats_metrics*, void*);
+    void (*stats_ext2_cb)(void *, struct stats_ext2_event *);
 } tSmeStruct, *tpSmeStruct;
 
 

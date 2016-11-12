@@ -574,6 +574,12 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
                 pChanList->chanParam[num_channel].dfsSet = VOS_FALSE;
             else
                 pChanList->chanParam[num_channel].dfsSet = VOS_TRUE;
+
+            if (pMac->sub20_channelwidth == SUB20_MODE_5MHZ)
+                pChanList->chanParam[num_channel].quarter_rate = VOS_TRUE;
+            else if (pMac->sub20_channelwidth == SUB20_MODE_10MHZ)
+                pChanList->chanParam[num_channel].half_rate = VOS_TRUE;
+
             num_channel++;
         }
     }
@@ -592,6 +598,14 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
                     csrFindChannelPwr(pScan->defaultPowerTable,
                                       social_channel[j]);
                 pChanList->chanParam[num_channel].dfsSet = VOS_FALSE;
+
+                if (pMac->sub20_channelwidth == SUB20_MODE_5MHZ)
+                        pChanList->chanParam[num_channel].quarter_rate =
+                             VOS_TRUE;
+                else if (pMac->sub20_channelwidth == SUB20_MODE_10MHZ)
+                        pChanList->chanParam[num_channel].half_rate =
+                             VOS_TRUE;
+
                 num_channel++;
             }
         }
@@ -13684,9 +13698,10 @@ static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsr
 
 //pBuf is caller allocated memory point to &(tSirSmeJoinReq->rsnIE.rsnIEdata[ 0 ]) + pMsg->rsnIE.length;
 //or &(tSirSmeReassocReq->rsnIE.rsnIEdata[ 0 ]) + pMsg->rsnIE.length;
-static void csrPrepareJoinReassocReqBuffer( tpAniSirGlobal pMac,
-                                            tSirBssDescription *pBssDescription,
-                                            tANI_U8 *pBuf, tANI_U8 uapsdMask)
+static uint16_t
+csrPrepareJoinReassocReqBuffer(tpAniSirGlobal pMac,
+                               tSirBssDescription *pBssDescription,
+                               tANI_U8 *pBuf, tANI_U8 uapsdMask)
 {
     tCsrChannelSet channelGroup;
     tSirMacCapabilityInfo *pAP_capabilityInfo;
@@ -13695,6 +13710,8 @@ static void csrPrepareJoinReassocReqBuffer( tpAniSirGlobal pMac,
     tANI_U32 size = 0;
     tANI_S8 pwrLimit = 0;
     tANI_U16 i;
+    uint8_t *tmp_ptr = pBuf;
+    uint16_t used_length = 0;
     // 802.11h
     //We can do this because it is in HOST CPU order for now.
     pAP_capabilityInfo = (tSirMacCapabilityInfo *)&pBssDescription->capabilityInfo;
@@ -13753,6 +13770,8 @@ static void csrPrepareJoinReassocReqBuffer( tpAniSirGlobal pMac,
     vos_mem_copy(pBuf, pBssDescription,
                  pBssDescription->length + sizeof( pBssDescription->length ));
     pBuf += pBssDescription->length + sizeof( pBssDescription->length );   // update to new location
+    used_length = pBuf - tmp_ptr;
+    return used_length;
 }
 
 /*
@@ -13784,6 +13803,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U8 txBFCsnValue = 0;
     tpCsrNeighborRoamControlInfo neigh_roam_info;
     eHalStatus packetdump_timer_status;
+    uint16_t used_length = 0;
 
     if(!pSession)
     {
@@ -14463,8 +14483,13 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf += sizeof(struct rrm_config_param);
 
         //BssDesc
-        csrPrepareJoinReassocReqBuffer( pMac, pBssDescription, pBuf,
-                (tANI_U8)pProfile->uapsd_mask);
+        used_length =
+            csrPrepareJoinReassocReqBuffer(pMac, pBssDescription, pBuf,
+                                           (tANI_U8)pProfile->uapsd_mask);
+
+        pBuf += used_length;
+        if (eWNI_SME_JOIN_REQ == messageType)
+                *pBuf++ = pMac->sub20_channelwidth;
 
         /*
          * conc_custom_rule1:
@@ -15436,6 +15461,8 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         vos_mem_copy(pBuf, &pParam->beacon_tx_rate,
                 sizeof(pParam->beacon_tx_rate));
         pBuf += sizeof(pParam->beacon_tx_rate);
+
+        *pBuf++ = pMac->sub20_channelwidth;
 
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
@@ -19382,7 +19409,7 @@ eHalStatus csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
                           tANI_U8 sessionId)
 {
     tCsrNeighborRoamBSSInfo handoffNode = {{0}};
-    tANI_U32                timer_diff = 0;
+    uint64_t                timer_diff = 0;
     tANI_U32                timeStamp[2];
     tpSirBssDescription     pBssDescription = NULL;
 
@@ -19391,10 +19418,11 @@ eHalStatus csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
         return eHAL_STATUS_FAILURE;
     }
     pBssDescription = handoffNode.pBssDescription;
-    // Get the time diff in milli seconds
-    timer_diff = vos_timer_get_system_time() - pBssDescription->scanSysTimeMsec;
-    // Convert msec to micro sec timer
-    timer_diff = (tANI_U32)(timer_diff * SYSTEM_TIME_MSEC_TO_USEC);
+    // Get the time diff in nano seconds
+    timer_diff = (vos_get_monotonic_boottime_ns() -
+                  pBssDescription->scansystimensec);
+    // Convert nano to micro sec timer
+    timer_diff = (timer_diff / SYSTEM_TIME_NSEC_TO_USEC);
     timeStamp[0] = pBssDescription->timeStamp[0];
     timeStamp[1] = pBssDescription->timeStamp[1];
     UpdateCCKMTSF(&(timeStamp[0]), &(timeStamp[1]), &timer_diff);
@@ -19434,6 +19462,7 @@ csrRoamChannelChangeReq(tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->vht_channel_width = pprofile->vht_channel_width;
     pMsg->dot11mode =
        csrTranslateToWNICfgDot11Mode(pMac,pMac->roam.configParam.uCfgDot11Mode);
+    pMsg->sub20_channelwidth = pprofile->sub20_channelwidth;
 
     if (IS_24G_CH(pMsg->targetChannel) &&
        (false == pMac->roam.configParam.enableVhtFor24GHz) &&
@@ -19687,6 +19716,7 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->csaIeRequired = csaIeReqd;
     vos_mem_copy(pMsg->bssid, bssid, VOS_MAC_ADDR_SIZE);
     pMsg->ch_bandwidth = ch_bandwidth;
+    pMsg->sub20_channelwidth = pMac->sap.SapDfsInfo.new_sub20_channelwidth;
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

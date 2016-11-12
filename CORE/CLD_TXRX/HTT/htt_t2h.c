@@ -90,6 +90,8 @@ htt_t2h_mac_addr_deswizzle(u_int8_t *tgt_mac_addr, u_int8_t *buffer)
 
 #if defined(CONFIG_HL_SUPPORT)
 #define HTT_RX_FRAG_SET_LAST_MSDU(pdev, msg) /* no-op */
+#define HTT_FAIL_NOTIFY_BREAK_CHECK(status) \
+	((status) == htt_tx_status_fail_notify)
 #else
 static void HTT_RX_FRAG_SET_LAST_MSDU(
     struct htt_pdev_t *pdev, adf_nbuf_t msg)
@@ -135,6 +137,8 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
     rx_desc->msdu_end.last_msdu = 1;
     adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
 }
+
+#define HTT_FAIL_NOTIFY_BREAK_CHECK(status)  0
 #endif /* CONFIG_HL_SUPPORT */
 
 /* Target to host Msg/event  handler  for low priority messages*/
@@ -659,12 +663,14 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
 
             if (pdev->cfg.is_high_latency) {
                 /*
-                 * If status is not success, then check whether is
-                 * data frm. Once tx_free_at_download is true, data frm
-                 * has already been freed.
-                 * Just indicate the failure msg.
+                 * For regular frms in HL case, frms have already been
+                 * freed and tx credit has been updated. FW indicates
+                 * special message for failure MSDUs with status type
+                 * htt_tx_status_fail_notify. Once such message was
+                 * received, just break here.
                  */
-                if (ol_cfg_tx_free_at_download(pdev->ctrl_pdev)) {
+                if (ol_cfg_tx_free_at_download(pdev->ctrl_pdev) &&
+                    HTT_FAIL_NOTIFY_BREAK_CHECK(status)) {
                     adf_os_print("HTT TX COMPL for failed data frm.\n");
                     break;
                 }

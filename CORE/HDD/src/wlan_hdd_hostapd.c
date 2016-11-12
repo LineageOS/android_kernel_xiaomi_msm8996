@@ -244,6 +244,126 @@ void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx)
     vos_wake_lock_destroy(&pHddCtx->sap_dfs_wakelock);
 }
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+  * hdd_hostapd_sub20_channelwidth_can_switch() - check
+  *	 channel width switch to 5/10M condition
+  * @adapter: pointer to HDD context
+  * @sub20_channel_width: 5MHz/10MHz channel width
+  *
+  * Return:  true or false
+  */
+bool hdd_hostapd_sub20_channelwidth_can_switch(
+	hdd_adapter_t *adapter, uint32_t *sub20_channel_width)
+{
+	int i;
+	int sta_count = 0;
+	uint8_t sap_s20_caps;
+	uint8_t sta_s20_caps = SUB20_MODE_NONE;
+	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+	tSmeConfigParams *sme_config;
+	hdd_station_info_t *sta;
+	hdd_ap_ctx_t *ap = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+
+	sme_config = vos_mem_malloc(sizeof(*sme_config));
+	if (!sme_config) {
+		hddLog(LOGE, FL("mem alloc failed for sme_config"));
+		return false;
+	}
+	vos_mem_zero(sme_config, sizeof(*sme_config));
+
+	sme_GetConfigParam(hHal, sme_config);
+	sap_s20_caps = sme_config->sub20_dynamic_channelwidth;
+	vos_mem_free(sme_config);
+	if (sap_s20_caps == SUB20_MODE_NONE) {
+		hddLog(LOGE, FL("sub20 none"));
+		return false;
+	}
+
+	spin_lock_bh(&adapter->staInfo_lock);
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		sta = &adapter->aStaInfo[i];
+		if (sta->isUsed && (ap->uBCStaId != i)) {
+			sta_count++;
+			sta_s20_caps |=
+				sta->sub20_dynamic_channelwidth;
+		}
+	}
+	spin_unlock_bh(&adapter->staInfo_lock);
+
+	if (sta_count != 1) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%d STAs connected with sub20 Channelwidth %d",
+		       sta_count, sta_s20_caps);
+		return false;
+	}
+
+	*sub20_channel_width = sta_s20_caps & sap_s20_caps;
+
+	if (*sub20_channel_width == (SUB20_MODE_5MHZ | SUB20_MODE_10MHZ))
+		*sub20_channel_width = SUB20_MODE_10MHZ;
+
+	if (*sub20_channel_width != 0)
+		return true;
+	else
+		return false;
+}
+
+/**
+  * hdd_hostapd_sub20_channelwidth_can_restore() - check
+  *	 channel width switch to normal condition
+  * @adapter: pointer to HDD context
+  *
+  * Return:  true or false
+  */
+bool hdd_hostapd_sub20_channelwidth_can_restore(
+	hdd_adapter_t *adapter)
+{
+	int i;
+	int sta_count = 0;
+	uint8_t sap_s20_caps;
+	uint8_t sta_s20_caps = SUB20_MODE_NONE;
+	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+	tSmeConfigParams *sme_config;
+	hdd_station_info_t *sta;
+	hdd_ap_ctx_t *ap = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+
+	sme_config = vos_mem_malloc(sizeof(*sme_config));
+	if (!sme_config) {
+		hddLog(LOGE, FL("mem alloc failed for sme_config"));
+		return false;
+	}
+	vos_mem_zero(sme_config, sizeof(*sme_config));
+	sme_GetConfigParam(hHal, sme_config);
+
+	sap_s20_caps = sme_config->sub20_dynamic_channelwidth;
+	vos_mem_free(sme_config);
+	if (sap_s20_caps == SUB20_MODE_NONE) {
+		hddLog(LOGE, FL("sub20 none"));
+		return false;
+	}
+	spin_lock_bh(&adapter->staInfo_lock);
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		sta = &adapter->aStaInfo[i];
+		if (sta->isUsed && (ap->uBCStaId != i)) {
+			sta_count++;
+			sta_s20_caps |=
+				sta->sub20_dynamic_channelwidth;
+		}
+	}
+	spin_unlock_bh(&adapter->staInfo_lock);
+
+	if (sta_count != 0) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%d STAs connected with sub20 Channelwidth %d",
+		       sta_count, sta_s20_caps);
+		return false;
+	} else {
+		return true;
+	}
+}
+#endif
+
 /**
  * __hdd_hostapd_open() - HDD Open function for hostapd interface
  * @dev: pointer to net device
@@ -1844,6 +1964,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.chan_info.nss;
                 pHostapdAdapter->aStaInfo[staId].rate_flags =
                     pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.chan_info.rate_flags;
+                pHostapdAdapter->aStaInfo[staId].sub20_dynamic_channelwidth =
+                     pSapEvent
+                    ->sapevt.sapStationAssocReassocCompleteEvent.
+                    chan_info.sub20_channelwidth;
             }
 
 #ifdef IPA_OFFLOAD
@@ -1957,6 +2081,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             hdd_wlan_green_ap_add_sta(pHddCtx);
 
+            if (pHostapdAdapter->device_mode == WLAN_HDD_SOFTAP &&
+                !bAuthRequired  && bWPSState == eANI_BOOLEAN_FALSE) {
+                    uint32_t sub20_channelwidth;
+
+                    if (hdd_hostapd_sub20_channelwidth_can_switch(
+                         pHostapdAdapter, &sub20_channelwidth))
+                            WLANSAP_set_sub20_channelwidth_with_csa(
+                                WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
+                                sub20_channelwidth);
+            }
             break;
         case eSAP_STA_DISASSOC_EVENT:
             memcpy(wrqu.addr.sa_data, &pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac,
@@ -2090,6 +2224,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             hdd_wlan_green_ap_del_sta(pHddCtx);
 
+            if (hdd_hostapd_sub20_channelwidth_can_restore(pHostapdAdapter)) {
+                        WLANSAP_set_sub20_channelwidth_with_csa(
+                               WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter), 0);
+            }
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
         {

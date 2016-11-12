@@ -346,6 +346,7 @@ enum eWniMsgTypes
 #ifdef FEATURE_WLAN_CH_AVOID
     eWNI_SME_CH_AVOID_IND,
 #endif /* FEATURE_WLAN_CH_AVOID */
+    eWNI_SME_SET_SUB20_CH_WIDTH,
     /* DFS EVENTS */
     eWNI_SME_DFS_RADAR_FOUND, //RADAR found indication from DFS
     eWNI_SME_CHANNEL_CHANGE_REQ,//Channel Change Request from SAP
@@ -418,6 +419,7 @@ enum eWniMsgTypes
     eWNI_SME_NDP_END_IND,
     eWNI_SME_REGISTER_P2P_ACK_CB,
     eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE,
+    eWNI_SME_RX_AGGR_HOLE_IND,
 
     /* Link layer statistics */
     eWMI_SME_LL_STATS_IND,

@@ -358,6 +358,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tLimChannelSwitchInfo  gLimChannelSwitch;
     /* *********************End 11H related*****************************/
 
+    uint8_t    lim_sub20_channel_switch_bandwidth;
+
     /*Flag to Track Status/Indicate HBFailure on this session */
     tANI_BOOLEAN LimHBFailureStatus;
     tANI_U32           gLimPhyMode;
@@ -508,7 +510,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     uint16_t beacon_tx_rate;
     uint8_t *access_policy_vendor_ie;
     uint8_t access_policy;
-
+    uint8_t sap_sub20_channelwidth;
+    uint8_t sub20_channelwidth;
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

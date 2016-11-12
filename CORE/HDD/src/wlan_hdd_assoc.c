@@ -1211,6 +1211,14 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
        hdd_decide_dynamic_chain_mask(pHddCtx,
                           HDD_ANTENNA_MODE_INVALID);
+
+    if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
+            sme_update_sub20_channel_width(
+                WLAN_HDD_GET_HAL_CTX(pAdapter),
+                 pAdapter->sessionId,
+                 SUB20_MODE_NONE);
+    }
+
     //Unblock anyone waiting for disconnect to complete
     complete(&pAdapter->disconnect_comp_var);
     return( status );
@@ -3356,7 +3364,7 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             curr_peer = wlan_hdd_tdls_get_peer(pAdapter, pRoamInfo->peerMac);
             if (!curr_peer)
             {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: curr_peer null", __func__);
                 status = eHAL_STATUS_FAILURE;
             }
@@ -3407,7 +3415,7 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
             if (!curr_peer)
             {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: curr_peer null", __func__);
                 status = eHAL_STATUS_FAILURE;
             }
@@ -3463,7 +3471,7 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             curr_peer = wlan_hdd_tdls_find_peer(pAdapter, pRoamInfo->peerMac, TRUE);
             if (!curr_peer)
             {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: curr_peer null", __func__);
                 status = eHAL_STATUS_FAILURE;
             }
@@ -4005,6 +4013,11 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
 #endif
             }
            break;
+	case eCSR_ROAM_LOSTLINK_DETECTED:
+            if((roamResult != eCSR_ROAM_RESULT_DISASSOC_IND) &&
+               (roamResult != eCSR_ROAM_RESULT_DEAUTH_IND)) {
+                break;
+            } /* else fall through */
         case eCSR_ROAM_LOSTLINK:
             if(roamResult == eCSR_ROAM_RESULT_LOSTLINK) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4015,10 +4028,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                     WLAN_CONTROL_PATH);
                 break;
             }
-	case eCSR_ROAM_LOSTLINK_DETECTED:
-            if(roamResult != eCSR_ROAM_RESULT_DISASSOC_IND) {
-                break;
-            } /* else fall through */
         case eCSR_ROAM_DISASSOCIATED:
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,

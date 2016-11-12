@@ -6455,7 +6455,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                                                    pAdapter->sessionId,
                                                    nOpportunisticThresholdDiff);
        }
-       else if (strncmp(priv_data.buf, "GETOPPORTUNISTICRSSIDIFF", 24) == 0)
+       else if (strncmp(command, "GETOPPORTUNISTICRSSIDIFF", 24) == 0)
        {
            tANI_S8 val = sme_GetRoamOpportunisticScanThresholdDiff(
                                                                  pHddCtx->hHal);
@@ -6498,7 +6498,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                                      pAdapter->sessionId,
                                      nRoamRescanRssiDiff);
        }
-       else if (strncmp(priv_data.buf, "GETROAMRESCANRSSIDIFF", 21) == 0)
+       else if (strncmp(command, "GETROAMRESCANRSSIDIFF", 21) == 0)
        {
            tANI_U8 val = sme_GetRoamRescanRssiDiff(pHddCtx->hHal);
            char extra[32];
@@ -8895,6 +8895,13 @@ void hdd_update_tgt_cfg(void *context, void *param)
     struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
     tANI_U8 temp_band_cap;
 
+    if (hdd_cfg_is_sub20_channel_width_enabled(hdd_ctx) &&
+        cfg->sub_20_support == 0) {
+            hddLog(VOS_TRACE_LEVEL_WARN,
+                   FL("requests 5/10M, target not support"));
+            hdd_ctx->cfg_ini->sub_20_channel_width = 0;
+    }
+
     /* first store the INI band capability */
     temp_band_cap = hdd_ctx->cfg_ini->nBandCapability;
 
@@ -10980,6 +10987,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                  "%s: Unable to add virtual intf: currentVdevCnt=%d,hostConfiguredVdevCnt=%d",
                  __func__,pHddCtx->current_intf_count, pHddCtx->max_intf_count);
         return NULL;
+   }
+
+   if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx) &&
+       pHddCtx->current_intf_count >= 1) {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Unable add another virtual intf when sub20 enable",
+                     __func__);
+           return NULL;
    }
 
    if(macAddr == NULL)
@@ -13334,6 +13349,7 @@ free_hdd_ctx:
 
    wlan_hdd_deinit_chan_info(pHddCtx);
    wlan_hdd_deinit_tx_rx_histogram(pHddCtx);
+   hdd_free_probe_req_ouis(pHddCtx);
    wiphy_unregister(wiphy) ;
    wlan_hdd_cfg80211_deinit(wiphy);
    wiphy_free(wiphy) ;
@@ -14804,6 +14820,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    adf_os_device_t adf_ctx;
 #endif
    int set_value;
+   struct sme_5g_band_pref_params band_pref_params;
 
    ENTER();
 
@@ -14879,6 +14896,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    hdd_init_ll_stats_ctx(pHddCtx);
 
+   init_completion(&pHddCtx->chain_rssi_context.response_event);
+
    spin_lock_init(&pHddCtx->schedScan_lock);
 
    hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
@@ -14922,6 +14941,27 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* If IPA HW is not existing, disable offload from INI */
    if (!hdd_ipa_is_present(pHddCtx))
       hdd_ipa_reset_ipaconfig(pHddCtx, 0);
+
+   if (pHddCtx->cfg_ini->probe_req_ie_whitelist)
+   {
+      if (hdd_validate_prb_req_ie_bitmap(pHddCtx))
+      {
+         /* parse ini string probe req oui */
+         status = hdd_parse_probe_req_ouis(pHddCtx);
+         if (VOS_STATUS_SUCCESS != status)
+         {
+            hddLog(LOGE, FL("Error parsing probe req ouis - Ignoring them"
+                            " disabling white list"));
+            pHddCtx->cfg_ini->probe_req_ie_whitelist = false;
+         }
+      }
+      else
+      {
+         hddLog(LOGE, FL("invalid probe req ie bitmap and ouis,"
+                         " disabling white list"));
+         pHddCtx->cfg_ini->probe_req_ie_whitelist = false;
+      }
+   }
 
    if (0 == pHddCtx->cfg_ini->max_go_peers)
       pHddCtx->cfg_ini->max_go_peers = pHddCtx->cfg_ini->max_sap_peers;
@@ -15054,7 +15094,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    /* Initialize the nlink service */
    if (wlan_hdd_nl_init(pHddCtx) != 0) {
       hddLog(LOGP, FL("nl_srv_init failed"));
-      goto err_sock_activate;
+      goto err_logging_sock;
    }
    vos_set_radio_index(pHddCtx->radio_index);
 
@@ -15231,6 +15271,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               __func__, ret);
    }
 
+   ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_SCH_DELAY,
+                                 pHddCtx->cfg_ini->tx_sch_delay,
+                                 PDEV_CMD);
+   if (0 != ret) {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: WMI_PDEV_PARAM_TX_SCH_DELAY failed %d",
+              __func__, ret);
+   }
+
+
    status = hdd_set_sme_chan_list(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
       hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -15371,7 +15421,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
       /* Open P2P device interface */
-      if (pAdapter != NULL) {
+      if (pAdapter != NULL &&
+          !hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
          if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
              !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] & 0x02)) {
             vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,
@@ -15724,6 +15775,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     sme_ExtScanRegisterCallback(pHddCtx->hHal,
                                 wlan_hdd_cfg80211_extscan_callback);
 #endif /* FEATURE_WLAN_EXTSCAN */
+    sme_chain_rssi_register_callback(pHddCtx->hHal,
+                                wlan_hdd_cfg80211_chainrssi_callback);
     sme_set_rssi_threshold_breached_cb(pHddCtx->hHal, hdd_rssi_threshold_breached);
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
    wlan_hdd_cfg80211_link_layer_stats_init(pHddCtx);
@@ -15801,6 +15854,22 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        if (eHAL_STATUS_SUCCESS != hal_status)
            hddLog(LOGE, FL("Failed to disable Chan Avoidance Indcation"));
    }
+   if (pHddCtx->cfg_ini->enable_5g_band_pref) {
+        band_pref_params.rssi_boost_threshold_5g =
+                                  pHddCtx->cfg_ini->rssi_boost_threshold_5g;
+        band_pref_params.rssi_boost_factor_5g =
+                                  pHddCtx->cfg_ini->rssi_boost_factor_5g;
+        band_pref_params.max_rssi_boost_5g =
+                                  pHddCtx->cfg_ini->max_rssi_boost_5g;
+        band_pref_params.rssi_penalize_threshold_5g =
+                                  pHddCtx->cfg_ini->rssi_penalize_threshold_5g;
+        band_pref_params.rssi_penalize_factor_5g =
+                                  pHddCtx->cfg_ini->rssi_penalize_factor_5g;
+        band_pref_params.max_rssi_penalize_5g =
+                                  pHddCtx->cfg_ini->max_rssi_penalize_5g;
+        sme_set_5g_band_pref(pHddCtx->hHal, &band_pref_params);
+   }
+
 
    if (pHddCtx->cfg_ini->sifs_burst_duration) {
        set_value = (SIFS_BURST_DUR_MULTIPLIER) *
@@ -15894,10 +15963,12 @@ err_free_ftm_open:
 #endif
 }
 
-   if (VOS_FTM_MODE != hdd_get_conparam())
-       wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
 err_nl_srv:
    nl_srv_exit();
+
+err_logging_sock:
+   if (VOS_FTM_MODE != hdd_get_conparam())
+       wlan_hdd_logging_sock_deactivate_svc(pHddCtx);
 
 err_sock_activate:
    wlan_hdd_cfg80211_deinit(wiphy);
@@ -15911,8 +15982,10 @@ err_histogram:
 
 err_free_hdd_context:
    /* wiphy_free() will free the HDD context so remove global reference */
-   if (pVosContext)
+   if (pVosContext) {
+      hdd_free_probe_req_ouis(pHddCtx);
       ((VosContextType*)(pVosContext))->pHDDContext = NULL;
+   }
 
    wiphy_free(wiphy) ;
    //kfree(wdev) ;

@@ -552,7 +552,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     if (LIM_IS_AP_ROLE(psessionEntry) &&
        (psessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11AC_ONLY) &&
-       (vht_caps != NULL) && (!vht_caps->present)) {
+       ((vht_caps == NULL) || ((vht_caps != NULL) && (!vht_caps->present)))) {
         limSendAssocRspMgmtFrame( pMac, eSIR_MAC_CAPABILITIES_NOT_SUPPORTED_STATUS,
                                   1, pHdr->sa, subType, 0, psessionEntry );
         limLog(pMac, LOGE, FL("SOFTAP was in 11AC only mode, reject"));
@@ -1470,6 +1470,8 @@ if (limPopulateMatchingRateSet(pMac,
         PELOG1(limLog(pMac, LOG1, FL("ExtCap not present"));)
     }
 
+    pStaDs->sub20_dynamic_channelwidth = pAssocReq->vendor_sub20_capability;
+
     // BTAMP: Storing the parsed assoc request in the psessionEntry array
     if(psessionEntry->parsedAssocReq)
         psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
@@ -1852,6 +1854,9 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         pMlmAssocInd->chan_info.nss = pStaDs->nss;
         pMlmAssocInd->chan_info.rate_flags =
                       lim_get_max_rate_flags(pMac, pStaDs);
+
+        pMlmAssocInd->chan_info.sub20_channelwidth =
+                 pStaDs->sub20_dynamic_channelwidth;
 
         limPostSmeMessage(pMac, LIM_MLM_ASSOC_IND, (tANI_U32 *) pMlmAssocInd);
         vos_mem_free(pMlmAssocInd);

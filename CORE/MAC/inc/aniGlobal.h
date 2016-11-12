@@ -1286,6 +1286,9 @@ typedef struct sAniSirGlobal
     bool snr_monitor_enabled;
     /* channel information callback */
     void (*chan_info_cb)(struct scan_chan_info *chan_info);
+    uint8_t  sub20_config_info;
+    uint8_t  sub20_channelwidth;
+    uint8_t  sub20_dynamic_channelwidth;
 } tAniSirGlobal;
 
 typedef enum

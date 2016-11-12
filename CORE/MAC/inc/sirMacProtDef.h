@@ -408,11 +408,9 @@
 #define NSS_1x1_MODE 1
 #define NSS_2x2_MODE 2
 
-#ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 #define SIR_MAC_QCOM_VENDOR_EID      200
 #define SIR_MAC_QCOM_VENDOR_OUI      "\x00\xA0\xC6"
 #define SIR_MAC_QCOM_VENDOR_SIZE     3
-#endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
 /// Workaround IE to change beacon length when it is 4*n+1
 #define SIR_MAC_ANI_WORKAROUND_EID     255

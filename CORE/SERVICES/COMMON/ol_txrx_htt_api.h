@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -140,6 +140,11 @@ enum htt_tx_status {
 
     /* peer_del - tx completion for alreay deleted peer used for HL case */
     htt_tx_status_peer_del = HTT_TX_COMPL_IND_STAT_PEER_DEL,
+
+#if defined(CONFIG_HL_SUPPORT)
+    /* failure notify */
+    htt_tx_status_fail_notify = HTT_TX_COMPL_IND_STAT_FAIL_NOTIFY,
+#endif
 };
 
 /**

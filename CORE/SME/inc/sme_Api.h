@@ -127,6 +127,9 @@ typedef struct _smeConfigParams
     uint32_t      fine_time_meas_cap;
     int8_t        first_scan_bucket_threshold;
     bool          snr_monitor_enabled;
+    uint8_t      sub20_config_info;
+    uint8_t      sub20_channelwidth;
+    uint8_t      sub20_dynamic_channelwidth;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -264,6 +267,24 @@ struct sme_oem_capability {
 	uint32_t lci_capability:1;
 	uint32_t reserved1:30;
 	uint32_t reserved2;
+};
+
+/*
+ * struct sme_5g_pref_params : 5G preference params to be read from ini
+ * @rssi_boost_threshold_5g: RSSI threshold above which 5 GHz is favored
+ * @rssi_boost_factor_5g: Factor by which 5GHz RSSI is boosted
+ * @max_rssi_boost_5g: Maximum boost that can be applied to 5GHz RSSI
+ * @rssi_penalize_threshold_5g: RSSI threshold below which 5G is not favored
+ * @rssi_penalize_factor_5g: Factor by which 5GHz RSSI is penalized
+ * @max_rssi_penalize_5g: Maximum penalty that can be applied to 5G RSSI
+ */
+struct sme_5g_band_pref_params {
+	int8_t      rssi_boost_threshold_5g;
+	uint8_t     rssi_boost_factor_5g;
+	uint8_t     max_rssi_boost_5g;
+	int8_t      rssi_penalize_threshold_5g;
+	uint8_t     rssi_penalize_factor_5g;
+	uint8_t     max_rssi_penalize_5g;
 };
 
 /*-------------------------------------------------------------------------
@@ -4146,6 +4167,16 @@ eHalStatus sme_ResetSignificantChange (tHalHandle hHal,
 eHalStatus sme_getCachedResults (tHalHandle hHal,
                       tSirExtScanGetCachedResultsReqParams *pCachedResultsReq);
 
+/**
+ * sme_get_chain_rssi - sme api to get chain rssi
+ * @hHal: global hal handle
+ * @input: get chain rssi req params
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_get_chain_rssi(tHalHandle phal,
+	struct get_chain_rssi_req_params *input);
+
 eHalStatus sme_set_epno_list(tHalHandle hal,
                                 struct wifi_epno_params *req_msg);
 eHalStatus sme_set_passpoint_list(tHalHandle hal,
@@ -4163,6 +4194,16 @@ eHalStatus sme_ExtScanRegisterCallback (tHalHandle hHal,
                         void (*pExtScanIndCb)(void *, const tANI_U16, void *));
 
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+/**
+ * sme_chain_rssi_register_callback - chain rssi callback
+ * @hal: global hal handle
+ * @pchain_rssi_ind_cb: callback function pointer
+ *
+ * Return: eHalStatus enumeration.
+ */
+eHalStatus sme_chain_rssi_register_callback(tHalHandle phal,
+			void (*pchain_rssi_ind_cb)(void *, void *));
 
 eHalStatus sme_bpf_offload_register_callback(tHalHandle hal,
 			void (*pbpf_get_offload_cb)(void *,
@@ -4212,6 +4253,9 @@ eHalStatus sme_LLStatsSetReq (tHalHandle hHal,
     -------------------------------------------------------------------------*/
 eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
                         tSirLLStatsGetReq *pgetStatsReq);
+
+eHalStatus sme_ll_stats_set_thresh(tHalHandle hal,
+				   struct sir_ll_ext_stats_threshold *thresh);
 
 /* ---------------------------------------------------------------------------
     \fn sme_SetLinkLayerStatsIndCB
@@ -4675,4 +4719,26 @@ tANI_BOOLEAN sme_create_sap_session_info(
 void sme_set_chan_info_callback(tHalHandle hal_handle,
                            void (*callback)(struct scan_chan_info *chan_info));
 
+void sme_set_5g_band_pref(tHalHandle hal_handle,
+                                struct sme_5g_band_pref_params *pref_params);
+eHalStatus sme_set_reorder_timeout(tHalHandle hal,
+		struct sir_set_rx_reorder_timeout_val *req);
+eHalStatus sme_set_rx_set_blocksize(tHalHandle hal,
+		struct sir_peer_set_rx_blocksize *req);
+eHalStatus sme_register_stats_ext2_callback(tHalHandle hHal,
+		void (*stats_ext2_cb)(void *, struct stats_ext2_event *));
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
+                                          uint8_t session_id,
+                                          uint8_t chan_width);
+#else
+static inline
+eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
+                                          uint8_t session_id,
+                                          uint8_t chan_width)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+#endif
 #endif //#if !defined( __SME_API_H )

@@ -1751,6 +1751,118 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
     return VOS_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * WLANSAP_set_sub20_channelwidth_with_csa() -
+ *	This api function does a channel width change
+ * @vos_ctx_ptr: Pointer to vos global context structure
+ * @chan_width:  New channel width to change to
+ *
+ * Return: The VOS_STATUS code associated with performing
+ *	the operation
+ */
+VOS_STATUS
+WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
+{
+	ptSapContext sap_context_ptr = NULL;
+	tWLAN_SAPEvent sap_event;
+	tpAniSirGlobal mac_ptr = NULL;
+	void *hal_ptr = NULL;
+
+	sap_context_ptr = VOS_GET_SAP_CB(vos_ctx_ptr);
+	if (NULL == sap_context_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_SAP,
+			  VOS_TRACE_LEVEL_ERROR,
+			  "%s: Invalid SAP pointer from pvosGCtx", __func__);
+
+		return VOS_STATUS_E_FAULT;
+	}
+	hal_ptr = VOS_GET_HAL_CB(sap_context_ptr->pvosGCtx);
+	if (NULL == hal_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_SAP,
+			  VOS_TRACE_LEVEL_ERROR,
+			  "%s: Invalid HAL pointer from pvosGCtx", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+	mac_ptr = PMAC_STRUCT(hal_ptr);
+
+	/*
+	 * Now, validate if the passed channel is valid in the
+	 * current regulatory domain.
+	 */
+	if (sap_context_ptr->sub20_channelwidth != chan_width &&
+	    ((vos_nv_getChannelEnabledState(sap_context_ptr->channel) ==
+	    NV_CHANNEL_ENABLE) ||
+	    (vos_nv_getChannelEnabledState(sap_context_ptr->channel) ==
+	    NV_CHANNEL_DFS &&
+	    !vos_concurrent_open_sessions_running()))) {
+		/*
+		 * Post a CSA IE request to SAP state machine with
+		 * target channel information and also CSA IE required
+		 * flag set in sapContext only, if SAP is in eSAP_STARTED
+		 * state.
+		 */
+		if (eSAP_STARTED == sap_context_ptr->sapsMachine) {
+			mac_ptr->sap.SapDfsInfo.target_channel =
+				 sap_context_ptr->channel;
+			mac_ptr->sap.SapDfsInfo.new_chanWidth =
+				sap_context_ptr->ch_width_orig;
+			mac_ptr->sap.SapDfsInfo.new_sub20_channelwidth =
+				 chan_width;
+			mac_ptr->sap.SapDfsInfo.csaIERequired =
+				 VOS_TRUE;
+
+			/*
+			 * Set the radar found status to allow the channel
+			 * change to happen same as in the case of a radar
+			 * detection. Since, this will allow SAP to be in
+			 * correct state and also resume the netif queues
+			 * that were suspended in HDD before the channel
+			 * request was issued.
+			 */
+			mac_ptr->sap.SapDfsInfo.sap_radar_found_status =
+				 VOS_TRUE;
+			mac_ptr->sap.SapDfsInfo.cac_state = eSAP_DFS_SKIP_CAC;
+			sap_CacResetNotify(hal_ptr);
+
+			/*
+			 * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START
+			 * to SAP state machine to process the channel
+			 * request with CSA IE set in the beacons.
+			 */
+			sap_event.event =
+				 eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START;
+			sap_event.params = 0;
+			sap_event.u1 = 0;
+			sap_event.u2 = 0;
+
+			sapFsm(sap_context_ptr, &sap_event);
+
+		} else {
+			VOS_TRACE(VOS_MODULE_ID_SAP,
+				  VOS_TRACE_LEVEL_ERROR,
+				  "%s: SAP is not in eSAP_STARTED state",
+				  __func__);
+			return VOS_STATUS_E_FAULT;
+		}
+
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SAP,
+			  VOS_TRACE_LEVEL_ERROR,
+			  "%s: ChannelWidth = %d is not valid",
+			  __func__, chan_width);
+
+		return VOS_STATUS_E_FAULT;
+	}
+
+	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+		  "%s: Posted CSA start evt for ChannelWidth = %d",
+		  __func__, chan_width);
+
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*==========================================================================
   FUNCTION    WLANSAP_SetCounterMeasure
 
@@ -2778,6 +2890,12 @@ WLANSAP_ChannelChangeRequest(v_PVOID_t pSapCtx, uint8_t target_channel)
                                          pMac->sap.SapDfsInfo.new_chanWidth);
     sapContext->csrRoamProfile.vht_channel_width = vhtChannelWidth;
     sapContext->vht_channel_width = vhtChannelWidth;
+
+    sapContext->sub20_channelwidth =
+         pMac->sap.SapDfsInfo.new_sub20_channelwidth;
+    sapContext->csrRoamProfile.sub20_channelwidth =
+         pMac->sap.SapDfsInfo.new_sub20_channelwidth;
+
     /* Update the channel as this will be used to
      * send event to supplicant
      */

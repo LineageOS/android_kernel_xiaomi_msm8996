@@ -11045,6 +11045,8 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
 
             hddLog(LOG1, "Set monitor mode Channel %d", value[1]);
             hdd_select_cbmode(pAdapter, value[1], &vht_channel_width);
+
+            vos_mem_zero(&roam_profile, sizeof(roam_profile));
             roam_profile.ChannelInfo.ChannelList = &ch_info->channel;
             roam_profile.ChannelInfo.numOfChannels = 1;
             roam_profile.vht_channel_width = ch_info->channel_width;

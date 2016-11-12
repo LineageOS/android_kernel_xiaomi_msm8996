@@ -149,6 +149,8 @@
 
 #define WLAN_WAIT_TIME_BPF     1000
 
+#define WLAN_WAIT_TIME_CHAIN_RSSI  1000
+
 #define MAX_NUMBER_OF_ADAPTERS 4
 
 #define MAX_CFG_STRING_LEN  255
@@ -262,6 +264,8 @@
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 #define HDD_BW_GET_DIFF(_x, _y) (unsigned long)((ULONG_MAX - (_y)) + (_x) + 1)
+
+#define MAX_PROBE_REQ_OUIS 16
 
 /*
  * Generic asynchronous request/response support
@@ -814,6 +818,9 @@ typedef struct {
 
    /** Rate Flags for this connection */
    uint32_t  rate_flags;
+
+   /** SUB 20 Bandwidth Flags */
+   uint8_t   sub20_dynamic_channelwidth;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s
@@ -1432,6 +1439,18 @@ struct hdd_ll_stats_context {
 };
 #endif /* End of WLAN_FEATURE_LINK_LAYER_STATS */
 
+/**
+ * struct hdd_chain_rssi_context - hdd chain rssi context
+ * @response_event: chain rssi request wait event
+ * @ignore_result: Flag to ignore the result or not
+ * @chain_rssi: chain rssi array
+ */
+struct hdd_chain_rssi_context {
+	struct completion response_event;
+	bool ignore_result;
+	struct chain_rssi_result result;
+};
+
 #ifdef WLAN_FEATURE_OFFLOAD_PACKETS
 /**
  * struct hdd_offloaded_packets - request id to pattern id mapping
@@ -1813,6 +1832,8 @@ struct hdd_context_s
     struct hdd_ll_stats_context ll_stats_context;
 #endif /* End of WLAN_FEATURE_LINK_LAYER_STATS */
 
+    struct hdd_chain_rssi_context chain_rssi_context;
+
 #ifdef WLAN_FEATURE_MEMDUMP
     uint8_t *fw_dump_loc;
     uint32_t dump_loc_paddr;
@@ -1878,6 +1899,9 @@ struct hdd_context_s
     vos_timer_t tdls_source_timer;
     struct hdd_scan_chan_info *chan_info;
     struct mutex chan_info_lock;
+
+    uint32_t no_of_probe_req_ouis;
+    struct vendor_oui *probe_req_voui;
 };
 
 /*---------------------------------------------------------------------------

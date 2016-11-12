@@ -118,6 +118,7 @@ struct hdd_tgt_cfg {
         bool nan_datapath_enabled;
 #endif
         uint8_t max_mc_addr_list;
+        bool sub_20_support;
 };
 
 struct hdd_dfs_radar_ind {

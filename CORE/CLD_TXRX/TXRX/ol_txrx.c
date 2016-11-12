@@ -1197,6 +1197,8 @@ ol_txrx_vdev_detach(
     void *context)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    int i;
+    struct ol_tx_desc_t *tx_desc;
 
     /* preconditions */
     TXRX_ASSERT2(vdev);
@@ -1262,6 +1264,24 @@ ol_txrx_vdev_detach(
         vdev->mac_addr.raw[3], vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
 
     htt_vdev_detach(pdev->htt_pdev, vdev->vdev_id);
+
+    /*
+    * The ol_tx_desc_free might access the invalid content of vdev referred
+    * by tx desc, since this vdev might be detached in another thread
+    * asynchronous.
+    *
+    * Go through tx desc pool to set corresponding tx desc's vdev to NULL
+    * when detach this vdev, and add vdev checking in the ol_tx_desc_free
+    * to avoid crash.
+    *
+    */
+    adf_os_spin_lock_bh(&pdev->tx_mutex);
+    for (i = 0; i < pdev->tx_desc.pool_size; i++) {
+        tx_desc = ol_tx_desc_find(pdev, i);
+        if (tx_desc->vdev == vdev)
+            tx_desc->vdev = NULL;
+    }
+    adf_os_spin_unlock_bh(&pdev->tx_mutex);
 
     /*
      * Doesn't matter if there are outstanding tx frames -
@@ -1743,12 +1763,31 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             if (vdev->delete.pending == 1) {
                 ol_txrx_vdev_delete_cb vdev_delete_cb = vdev->delete.callback;
                 void *vdev_delete_context = vdev->delete.context;
+                struct ol_tx_desc_t *tx_desc;
 
                 /*
                  * Now that there are no references to the peer, we can
                  * release the peer reference lock.
                  */
                 adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+
+                /*
+                * The ol_tx_desc_free might access the invalid content of vdev
+                * referred by tx desc, since this vdev might be detached in
+                * another thread asynchronous.
+                *
+                * Go through tx desc pool to set corresponding tx desc's vdev
+                * to NULL when detach this vdev, and add vdev checking in the
+                * ol_tx_desc_free to avoid crash.
+                *
+                */
+                adf_os_spin_lock_bh(&pdev->tx_mutex);
+                for (i = 0; i < pdev->tx_desc.pool_size; i++) {
+                    tx_desc = ol_tx_desc_find(pdev, i);
+                    if (tx_desc->vdev == vdev)
+                        tx_desc->vdev = NULL;
+                }
+                adf_os_spin_unlock_bh(&pdev->tx_mutex);
 
                 TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
                     "%s: deleting vdev object %p "

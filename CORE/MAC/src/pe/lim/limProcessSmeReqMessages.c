@@ -727,6 +727,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limLog(pMac, LOG1, FL("Session RMF enabled: %d"), psessionEntry->limRmfEnabled);
 #endif
 
+        /* Update sub 20MHz channel width */
+        psessionEntry->sub20_channelwidth = pSmeStartBssReq->sub20_channelwidth;
+
         vos_mem_copy((void*)&psessionEntry->rateSet,
             (void*)&pSmeStartBssReq->operationalRateSet,
             sizeof(tSirMacRateSet));
@@ -1233,7 +1236,7 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     /* The tSirScanOffloadReq will reserve the space for first channel,
        so allocate the memory for (numChannels - 1) and uIEFieldLen */
     len = sizeof(tSirScanOffloadReq) + (pScanReq->channelList.numChannels - 1) +
-        pScanReq->uIEFieldLen;
+        pScanReq->uIEFieldLen + pScanReq->oui_field_len;
 
     if (!pMac->per_band_chainmask_supp) {
         if (IS_DOT11_MODE_HT(pScanReq->dot11mode)) {
@@ -1332,7 +1335,8 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
 
     pScanOffloadReq->uIEFieldLen = pScanReq->uIEFieldLen;
     pScanOffloadReq->uIEFieldOffset = len - addn_ie_len -
-                                      pScanOffloadReq->uIEFieldLen;
+                                      pScanOffloadReq->uIEFieldLen -
+                                      pScanReq->oui_field_len;
     vos_mem_copy(
             (tANI_U8 *) pScanOffloadReq + pScanOffloadReq->uIEFieldOffset,
             (tANI_U8 *) pScanReq + pScanReq->uIEFieldOffset,
@@ -1384,6 +1388,32 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
                                   DOT11F_IE_WFATPC_MAX_LEN
                                   - SIR_MAC_WFA_TPC_OUI_SIZE);
             pScanOffloadReq->uIEFieldLen += DOT11F_IE_WFATPC_MAX_LEN + 2;
+    }
+
+    pScanOffloadReq->enable_scan_randomization =
+                                           pScanReq->enable_scan_randomization;
+    if (pScanOffloadReq->enable_scan_randomization) {
+        vos_mem_copy(pScanOffloadReq->mac_addr, pScanReq->mac_addr,
+                     VOS_MAC_ADDR_SIZE);
+        vos_mem_copy(pScanOffloadReq->mac_addr_mask, pScanReq->mac_addr_mask,
+                     VOS_MAC_ADDR_SIZE);
+    }
+
+    pScanOffloadReq->oui_field_len = pScanReq->oui_field_len;
+    pScanOffloadReq->num_vendor_oui = pScanReq->num_vendor_oui;
+    pScanOffloadReq->ie_whitelist = pScanReq->ie_whitelist;
+    if (pScanOffloadReq->ie_whitelist)
+        vos_mem_copy(pScanOffloadReq->probe_req_ie_bitmap,
+                     pScanReq->probe_req_ie_bitmap,
+                     PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
+    pScanOffloadReq->oui_field_offset = sizeof(tSirScanOffloadReq) +
+                               (pScanOffloadReq->channelList.numChannels - 1) +
+                               pScanOffloadReq->uIEFieldLen;
+    if (pScanOffloadReq->num_vendor_oui != 0) {
+        vos_mem_copy(
+            (tANI_U8 *) pScanOffloadReq + pScanOffloadReq->oui_field_offset,
+            (uint8_t *) pScanReq + pScanReq->oui_field_offset,
+            pScanReq->oui_field_len);
     }
 
     rc = wdaPostCtrlMsg(pMac, &msg);
@@ -2365,6 +2395,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->isOSENConnection =
            pSmeJoinReq->isOSENConnection;
+
+        psessionEntry->sub20_channelwidth = pSmeJoinReq->sub20_channelwidth;
 
         /* Issue LIM_MLM_JOIN_REQ to MLM */
         limPostMlmMessage(pMac, LIM_MLM_JOIN_REQ, (tANI_U32 *) pMlmJoinReq);
@@ -6055,6 +6087,49 @@ static void lim_process_sme_update_access_policy_vendor_ie(
 	return;
 }
 
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * lim_process_sme_set_sub20_channelwidth() - update sub 20MHz channel width
+ * @mac_ptr: Mac pointer
+ * @msgbuf_ptr: Msg pointer containing the callback
+ *
+ * This function is used to save sub 20MHz channel width
+ *
+ * Return: None
+ */
+static void lim_process_sme_set_sub20_channelwidth(
+	tpAniSirGlobal mac_ptr, uint32_t *msgbuf_ptr)
+{
+	struct sme_sub20_chan_width *msg;
+	tpPESession	session_entry_ptr;
+
+	if (msgbuf_ptr == NULL) {
+		limLog(mac_ptr, LOGE, FL("Buffer is Pointing to NULL"));
+		return;
+	}
+
+	msg = (struct sme_sub20_chan_width *)msgbuf_ptr;
+	session_entry_ptr =
+		 pe_find_session_by_sme_session_id(mac_ptr, msg->session_id);
+	if (session_entry_ptr == NULL) {
+		limLog(mac_ptr, LOGE, FL("Session not exist"));
+		return;
+	}
+
+	session_entry_ptr->sub20_channelwidth = msg->channelwidth;
+	limLog(mac_ptr, LOGE, "Set sub20 channel width %d\n",
+	       session_entry_ptr->sub20_channelwidth);
+	return;
+}
+#else
+static void lim_process_sme_set_sub20_channelwidth(
+	tpAniSirGlobal mac_ptr, uint32_t *msgbuf_ptr)
+{
+	limLog(mac_ptr, LOGE, FL("invalid event"));
+	return;
+}
+#endif
+
 /**
  * limProcessSmeReqMessages()
  *
@@ -6411,6 +6486,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_UPDATE_ACCESS_POLICY_VENDOR_IE:
             lim_process_sme_update_access_policy_vendor_ie(pMac, pMsgBuf);
             break;
+        case eWNI_SME_SET_SUB20_CH_WIDTH:
+            lim_process_sme_set_sub20_channelwidth(pMac, pMsgBuf);
+            break;
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
@@ -6534,13 +6612,14 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
         /* Store the New Channel Params in psessionEntry */
         if (psessionEntry->currentOperChannel !=
-                              pChannelChangeReq->targetChannel)
-        {
-            limLog(pMac, LOGE,
-                   FL("switch old chnl %d --> new chnl %d and CH width - %d"),
-                                 psessionEntry->currentOperChannel,
-                                 pChannelChangeReq->targetChannel,
-                                 pChannelChangeReq->vht_channel_width);
+            pChannelChangeReq->targetChannel ||
+            psessionEntry->sub20_channelwidth !=
+            pChannelChangeReq->sub20_channelwidth) {
+                limLog(pMac, LOGE,
+                       FL("switch old chn %d --> new chn %d CH width - %d"),
+                       psessionEntry->currentOperChannel,
+                       pChannelChangeReq->targetChannel,
+                       pChannelChangeReq->vht_channel_width);
 
 
 #ifdef WLAN_FEATURE_11AC
@@ -6601,6 +6680,11 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                                   pChannelChangeReq->targetChannel;
             psessionEntry->limRFBand =
                                 limGetRFBand(psessionEntry->currentOperChannel);
+
+            /* Update sub 20MHz channel width */
+            psessionEntry->sub20_channelwidth =
+                 pChannelChangeReq->sub20_channelwidth;
+
             // Initialize 11h Enable Flag
             if (SIR_BAND_5_GHZ == psessionEntry->limRFBand)
             {
@@ -7343,6 +7427,10 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         psessionEntry->gLimChannelSwitch.secondarySubBand =
                                          pDfsCsaIeRequest->ch_bandwidth;
 
+        /* Sub 20MHz channel width changing request */
+        psessionEntry->lim_sub20_channel_switch_bandwidth =
+                 pDfsCsaIeRequest->sub20_channelwidth;
+
         /* Validate if SAP is operating HT or VHT
          * mode and set the Channel Switch Wrapper
          * element with the Wide Band Switch
@@ -7439,10 +7527,15 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                    FL(" Updated CSA IE, IE COUNT = %d"),
                        psessionEntry->gLimChannelSwitch.switchCount );
         /* Send ECSA Action frame after updating the beacon */
-        send_extended_chan_switch_action_frame(pMac,
-          psessionEntry->gLimChannelSwitch.primaryChannel,
-            psessionEntry->gLimChannelSwitch.secondarySubBand,
-                                                  psessionEntry);
+        /* Action frame is not required for sub 20 channel width changing */
+        if (pDfsCsaIeRequest->sub20_channelwidth == 0) {
+                send_extended_chan_switch_action_frame
+                     (pMac,
+                      psessionEntry->gLimChannelSwitch.primaryChannel,
+                      psessionEntry->gLimChannelSwitch.secondarySubBand,
+                      psessionEntry);
+        }
+
         psessionEntry->gLimChannelSwitch.switchCount--;
     }
     return;

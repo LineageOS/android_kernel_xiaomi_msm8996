@@ -303,6 +303,7 @@ typedef struct sSapContext {
     tSirMacRateSet extended_rate_set;
     vos_event_t sap_session_opened_evt;
     eCsrBand	target_band;
+    uint8_t     sub20_channelwidth;
 } *ptSapContext;
 
 

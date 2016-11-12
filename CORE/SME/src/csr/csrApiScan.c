@@ -4371,7 +4371,12 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
     tANI_BOOLEAN useVoting = eANI_BOOLEAN_FALSE;
 
     if (VOS_STA_SAP_MODE == vos_get_conparam ())
-        return eHAL_STATUS_SUCCESS;
+    {
+        if (vos_active_session_exists (VOS_STA_SAP_MODE))
+        {
+            return eHAL_STATUS_SUCCESS;
+        }
+    }
 
     if ((NULL == pSirBssDesc) && (NULL == pIes))
         useVoting = eANI_BOOLEAN_TRUE;
@@ -5822,7 +5827,8 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
 
     msgLen = (tANI_U16)(sizeof( tSirSmeScanReq ) - sizeof( pMsg->channelList.channelNumber ) +
                         ( sizeof( pMsg->channelList.channelNumber ) * pScanReq->ChannelInfo.numOfChannels )) +
-                   ( pScanReq->uIEFieldLen ) ;
+                   ( pScanReq->uIEFieldLen ) +
+                   pScanReq->num_vendor_oui * sizeof(struct vendor_oui);
 
     pMsg = vos_mem_malloc(msgLen);
     if ( NULL == pMsg )
@@ -5984,6 +5990,36 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             if (pScanReq->requestType == eCSR_SCAN_HO_BG_SCAN)
             {
                 pMsg->backgroundScanMode = eSIR_ROAMING_SCAN;
+            }
+
+            pMsg->enable_scan_randomization =
+                                       pScanReq->enable_scan_randomization;
+            if (pMsg->enable_scan_randomization) {
+                vos_mem_copy(pMsg->mac_addr, pScanReq->mac_addr,
+                             VOS_MAC_ADDR_SIZE);
+                vos_mem_copy(pMsg->mac_addr_mask, pScanReq->mac_addr_mask,
+                             VOS_MAC_ADDR_SIZE);
+            }
+
+            pMsg->ie_whitelist = pScanReq->ie_whitelist;
+            if (pMsg->ie_whitelist)
+                vos_mem_copy(pMsg->probe_req_ie_bitmap,
+                             pScanReq->probe_req_ie_bitmap,
+                             PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
+            pMsg->num_vendor_oui = pScanReq->num_vendor_oui;
+            pMsg->oui_field_len = pScanReq->num_vendor_oui *
+                                  sizeof(struct vendor_oui);
+            pMsg->oui_field_offset = (tANI_U16)(sizeof( tSirSmeScanReq ) -
+                                   sizeof( pMsg->channelList.channelNumber ) +
+                                   (sizeof( pMsg->channelList.channelNumber ) *
+                                   pScanReq->ChannelInfo.numOfChannels )) +
+                                   pScanReq->uIEFieldLen;
+
+            if (pScanReq->num_vendor_oui != 0)
+            {
+                vos_mem_copy((tANI_U8 *)pMsg + pMsg->oui_field_offset,
+                             (uint8_t*)(pScanReq->voui),
+                             pMsg->oui_field_len);
             }
 
         }while(0);
@@ -6466,6 +6502,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             pDstReq->pIEField = NULL;
             pDstReq->ChannelInfo.ChannelList = NULL;
             pDstReq->SSIDs.SSIDList = NULL;
+            pDstReq->voui = NULL;
 
             if(pSrcReq->uIEFieldLen == 0)
             {
@@ -6708,6 +6745,35 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             pDstReq->p2pSearch = pSrcReq->p2pSearch;
             pDstReq->skipDfsChnlInP2pSearch = pSrcReq->skipDfsChnlInP2pSearch;
 
+            if (pSrcReq->num_vendor_oui == 0)
+            {
+                pDstReq->num_vendor_oui = 0;
+                pDstReq->voui = NULL;
+            }
+            else
+            {
+                pDstReq->voui = vos_mem_malloc(pSrcReq->num_vendor_oui *
+                                         sizeof(*pDstReq->voui));
+                if (NULL == pDstReq->voui)
+                        status = eHAL_STATUS_FAILURE;
+                else
+                        status = eHAL_STATUS_SUCCESS;
+
+                if (HAL_STATUS_SUCCESS(status))
+                {
+                    pDstReq->num_vendor_oui = pSrcReq->num_vendor_oui;
+                    vos_mem_copy(pDstReq->voui,
+                                 pSrcReq->voui,
+                                 pSrcReq->num_vendor_oui *
+                                 sizeof(*pDstReq->voui));
+                }
+                else
+                {
+                    pDstReq->num_vendor_oui = 0;
+                    smsLog(pMac, LOGE, FL("No memory for voui"));
+                    break;
+                }
+            }
         }
     }while(0);
 
@@ -6741,6 +6807,13 @@ eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq)
         pReq->SSIDs.SSIDList = NULL;
     }
     pReq->SSIDs.numOfSSIDs = 0;
+
+    if(pReq->voui)
+    {
+        vos_mem_free(pReq->voui);
+        pReq->voui = NULL;
+    }
+    pReq->num_vendor_oui = 0;
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -8935,10 +9008,10 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
 
 #ifdef FEATURE_WLAN_ESE
 //  Update the TSF with the difference in system time
-void UpdateCCKMTSF(tANI_U32 *timeStamp0, tANI_U32 *timeStamp1, tANI_U32 *incr)
+void UpdateCCKMTSF(tANI_U32 *timeStamp0, tANI_U32 *timeStamp1, uint64_t *incr)
 {
     tANI_U64 timeStamp64 = ((tANI_U64)*timeStamp1 << 32) | (*timeStamp0);
-    timeStamp64 = (tANI_U64)(timeStamp64 + (tANI_U64)*incr);
+    timeStamp64 = (tANI_U64)(timeStamp64 + (*incr));
     *timeStamp0 = (tANI_U32)(timeStamp64 & 0xffffffff);
     *timeStamp1 = (tANI_U32)((timeStamp64 >> 32) & 0xffffffff);
 }

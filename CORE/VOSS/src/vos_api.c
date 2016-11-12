@@ -3074,3 +3074,11 @@ void vos_svc_fw_shutdown_ind(struct device *dev)
 {
 	hdd_svc_fw_shutdown_ind(dev);
 }
+
+v_U64_t vos_get_monotonic_boottime_ns(void)
+{
+	struct timespec ts;
+
+	ktime_get_ts(&ts);
+	return timespec_to_ns(&ts);
+}

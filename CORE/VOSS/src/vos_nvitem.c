@@ -1666,6 +1666,67 @@ bool vos_is_dsrc_channel(uint16_t center_freq)
     }
     return 0;
 }
+
+/**
+ * vos_is_channel_support_sub20() - check channel
+ * support sub20 channel width
+ * @oper_ch: operating channel
+ * @ch_width: channel width
+ * @sec_ch: secondary channel
+ *
+ * Return: true or false
+ */
+bool vos_is_channel_support_sub20(uint16_t operation_channel,
+				  enum phy_ch_width channel_width,
+				  uint16_t secondary_channel)
+{
+	eNVChannelEnabledType channel_state;
+
+	if (VOS_IS_CHANNEL_5GHZ(operation_channel)) {
+		const struct bonded_chan *bonded_chan_ptr;
+
+		channel_state =
+		    vos_search_5g_bonded_channel(operation_channel,
+						 channel_width,
+						 &bonded_chan_ptr);
+		if (NV_CHANNEL_DISABLE == channel_state)
+			return false;
+
+		channel_state =
+		    vos_get_5g_bonded_channel_state(operation_channel,
+						    channel_width,
+						    bonded_chan_ptr);
+		if (NV_CHANNEL_DISABLE == channel_state)
+			return false;
+
+	} else if (VOS_IS_CHANNEL_24GHZ(operation_channel)) {
+		channel_state =
+		    vos_get_2g_bonded_channel_state(operation_channel,
+						    channel_width,
+						    secondary_channel);
+		if (NV_CHANNEL_DISABLE == channel_state)
+			return false;
+	}
+
+	return true;
+}
+
+/**
+ * vos_phy_channel_width_to_sub20: convert phy channel width
+ * to sub20 channel width
+ * @channel_width:  phy channel width
+ * Return: sub20 channel width
+ */
+uint8_t vos_phy_channel_width_to_sub20(enum phy_ch_width channel_width)
+{
+	if (channel_width == CH_WIDTH_5MHZ)
+		return SUB20_MODE_5MHZ;
+	else if (channel_width == CH_WIDTH_10MHZ)
+		return SUB20_MODE_10MHZ;
+	else
+		return SUB20_MODE_NONE;
+}
+
 /**
  * vos_update_band: Update the band
  * @eBand: Band value
