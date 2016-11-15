@@ -357,6 +357,44 @@ ol_rx_indication_handler(
     int num_mpdu_ranges);
 
 /**
+ * ol_rx_mon_indication_handler - brief Process an rx indication message
+ * sent by the target in monitor mode (only for HL, LL is in another path).
+ *
+ * The target sends a rx indication message to the host as a
+ * notification that there are new rx frames available for the
+ * host to process.
+ * The HTT host layer locates the rx descriptors and rx frames
+ * associated with the indication, and calls this function to
+ * invoke the rx data processing on the new frames.
+ * (For LL, the rx descriptors and frames are delivered directly
+ * to the host via MAC DMA, while for HL the rx descriptor and
+ * frame for individual frames are combined with the rx indication
+ * message.)
+ * All MPDUs referenced by a rx indication message belong to the
+ * same peer-TID.
+ *
+ * @pdev:            the data physical device that received the frames
+ *                   (registered with HTT as a context pointer during
+ *                   attach time)
+ * @rx_ind_msg:      the network buffer holding the rx indication message
+ *                   (For HL, this netbuf also holds the rx desc and rx
+ *                   payload, but the data SW is agnostic to whether the
+ *                   desc and payload are piggybacked with the rx indication
+ *                   message.)
+ * @peer_id: which peer sent this rx data
+ * @tid:             what (extended) traffic type the rx data is
+ * @num_mpdu_ranges: how many ranges of MPDUs does the message describe.
+ *                   Each MPDU within the range has the same rx status.
+ */
+void
+ol_rx_mon_indication_handler(
+	ol_txrx_pdev_handle pdev,
+	adf_nbuf_t rx_ind_msg,
+	u_int16_t peer_id,
+	u_int8_t tid,
+	int num_mpdu_ranges);
+
+/**
  * @brief Process an rx fragment indication message sent by the target.
  * @details
  *  The target sends a rx fragment indication message to the host as a

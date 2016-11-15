@@ -618,9 +618,14 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                  * TODO: remove copy after stopping reuse skb on HIF layer
                  * because SDIO HIF may reuse skb before upper layer release it
                  */
-                ol_rx_indication_handler(
-                    pdev->txrx_pdev, htt_t2h_msg, peer_id, tid,
-                    num_mpdu_ranges);
+                if (VOS_MONITOR_MODE == vos_get_conparam())
+                    ol_rx_mon_indication_handler(
+                            pdev->txrx_pdev, htt_t2h_msg, peer_id, tid,
+                            num_mpdu_ranges);
+                else
+                    ol_rx_indication_handler(
+                            pdev->txrx_pdev, htt_t2h_msg, peer_id, tid,
+                            num_mpdu_ranges);
 
                 return;
             } else {

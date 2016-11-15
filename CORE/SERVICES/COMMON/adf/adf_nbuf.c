@@ -1705,12 +1705,13 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_RATE);
 	rtap_buf[rtap_len] = rx_status->rate;
 	rtap_len += 1;
+
+	/* IEEE80211_RADIOTAP_CHANNEL */
 	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_CHANNEL);
-	/* IEEE80211_RADIOTAP_CHANNEL, Channel frequency in Mhz */
+	/* Channel frequency in Mhz */
 	put_unaligned_le16(rx_status->chan, (void *)&rtap_buf[rtap_len]);
 	rtap_len += 2;
 	/* Channel flags. */
-
 	put_unaligned_le16(rx_status->chan_flags, (void *)&rtap_buf[rtap_len]);
 	rtap_len += 2;
 
@@ -1724,16 +1725,30 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 	rtap_buf[rtap_len] = rx_status->ant_signal_db +
 		NORMALIZED_TO_NOISE_FLOOR;
 	rtap_len += 1;
+
+	/* IEEE80211_RADIOTAP_DBM_ANTNOISE */
+	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_DBM_ANTNOISE);
+	rtap_buf[rtap_len] = NORMALIZED_TO_NOISE_FLOOR;
+	rtap_len += 1;
+
+	/* IEEE80211_RADIOTAP_ANTENNA */
 	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_ANTENNA);
 	rtap_buf[rtap_len] = rx_status->nr_ant;
 	rtap_len += 1;
 
 	rthdr->it_len = cpu_to_le16(rtap_len);
 
-	adf_nbuf_pull_head(nbuf, headroom_sz  - rtap_len);
-	adf_os_mem_copy(adf_nbuf_data(nbuf), rthdr, rtap_hdr_len);
-	adf_os_mem_copy(adf_nbuf_data(nbuf) + rtap_hdr_len, rtap_buf +
-			rtap_hdr_len, rtap_len - rtap_hdr_len);
+	if (headroom_sz >= rtap_len) {
+		adf_nbuf_pull_head(nbuf, headroom_sz  - rtap_len);
+		adf_os_mem_copy(adf_nbuf_data(nbuf), rthdr, rtap_len);
+	} else {
+		/* If no headroom, append to tail */
+		uint8_t *rtap_start = adf_nbuf_put_tail(nbuf, rtap_len);
+
+		adf_os_mem_copy(rtap_start, rthdr, rtap_len);
+		adf_nbuf_trim_tail(nbuf, rtap_len);
+	}
+
 	return rtap_len;
 }
 

@@ -27,6 +27,8 @@
 
 #include <ol_cfg.h>
 #include <ol_if_athvar.h>
+#include <vos_types.h>
+#include <vos_getBin.h>
 
 unsigned int vow_config = 0;
 module_param(vow_config, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -94,7 +96,10 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev,
 	cfg_ctx->max_peer_id = 511;
 	cfg_ctx->max_vdev = CFG_TGT_NUM_VDEV;
 	cfg_ctx->pn_rx_fwd_check = 1;
-	cfg_ctx->frame_type = wlan_frm_fmt_802_3;
+	if (VOS_MONITOR_MODE == vos_get_conparam())
+		cfg_ctx->frame_type = wlan_frm_fmt_raw;
+	else
+		cfg_ctx->frame_type = wlan_frm_fmt_802_3;
 	cfg_ctx->max_thruput_mbps = 800;
 	cfg_ctx->max_nbuf_frags = 1;
 	cfg_ctx->vow_config = vow_config;
