@@ -10137,6 +10137,9 @@ static struct net_device_ops wlan_drv_ops = {
  static struct net_device_ops wlan_mon_drv_ops = {
       .ndo_open = hdd_mon_open,
       .ndo_stop = hdd_stop,
+#ifdef CONFIG_HL_SUPPORT
+      .ndo_start_xmit = hdd_hard_start_xmit,
+#endif
       .ndo_get_stats = hdd_stats,
 };
 
@@ -11094,11 +11097,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             goto err_free_netdev;
          }
 
-         //Stop the Interface TX queue.
-         hddLog(LOG1, FL("Disabling queues"));
-         wlan_hdd_netif_queue_control(pAdapter,
-            WLAN_NETIF_TX_DISABLE_N_CARRIER,
-            WLAN_CONTROL_PATH);
+         /* do not disable tx in monitor mode */
+         if (VOS_MONITOR_MODE != vos_get_conparam()) {
+             /* Stop the Interface TX queue */
+             hddLog(LOG1, FL("Disabling queues"));
+             wlan_hdd_netif_queue_control(pAdapter,
+                                          WLAN_NETIF_TX_DISABLE_N_CARRIER,
+                                          WLAN_CONTROL_PATH);
+         }
 
 #ifdef QCA_LL_TX_FLOW_CT
          /* SAT mode default TX Flow control instance
