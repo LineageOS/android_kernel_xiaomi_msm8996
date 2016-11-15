@@ -4945,6 +4945,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_CH_SWITCH_BEACON_CNT_DEFAULT,
                 CFG_SAP_CH_SWITCH_BEACON_CNT_MIN,
                 CFG_SAP_CH_SWITCH_BEACON_CNT_MAX),
+
+   REG_VARIABLE(CFG_SAP_CH_SWITCH_MODE, WLAN_PARAM_Integer,
+                hdd_config_t, sap_chanswitch_mode,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_CH_SWITCH_MODE_DEFAULT,
+                CFG_SAP_CH_SWITCH_MODE_MIN,
+                CFG_SAP_CH_SWITCH_MODE_MAX),
 };
 
 

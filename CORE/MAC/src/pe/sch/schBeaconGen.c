@@ -309,9 +309,10 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
     if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
        psessionEntry->dfsIncludeChanSwIe == VOS_TRUE) {
-           populate_dot_11_f_ext_chann_switch_ann(pMac,
-                           &pBcn2->ext_chan_switch_ann,
-                           psessionEntry);
+           if (!CHAN_HOP_ALL_BANDS_ENABLE ||
+               psessionEntry->lim_non_ecsa_cap_num == 0)
+                   populate_dot_11_f_ext_chann_switch_ann(
+                       pMac, &pBcn2->ext_chan_switch_ann, psessionEntry);
     }
 
     populate_dot11_supp_operating_classes(pMac, &pBcn2->SuppOperatingClasses,
@@ -335,8 +336,11 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
           * and SAP has instructed to announce channel switch IEs
           * in beacon and probe responses
           */
-         PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
-                                     psessionEntry);
+          if (!CHAN_HOP_ALL_BANDS_ENABLE ||
+              psessionEntry->lim_non_ecsa_cap_num > 0)
+                  PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
+                                              psessionEntry);
+
 #ifdef WLAN_FEATURE_11AC
          /* TODO: If in 11AC mode, wider bw channel switch announcement needs
           * to be called

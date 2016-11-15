@@ -4331,6 +4331,26 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SAP_CH_SWITCH_BEACON_CNT_MAX     (5)
 #define CFG_SAP_CH_SWITCH_BEACON_CNT_DEFAULT (5)
 
+/*
+ * <ini>
+ * g_sap_chanswitch_mode - channel switch mode
+ * @Min: 0
+ * @Max: 1
+ * @Default: 1
+ *
+ * This ini is used to configure channel switch mode
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_SAP_CH_SWITCH_MODE         "g_sap_chanswitch_mode"
+#define CFG_SAP_CH_SWITCH_MODE_MIN     (0)
+#define CFG_SAP_CH_SWITCH_MODE_MAX     (1)
+#define CFG_SAP_CH_SWITCH_MODE_DEFAULT (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5167,6 +5187,7 @@ struct hdd_config {
    uint32_t                    rx_wakelock_timeout;
    /* beacon count before channel switch */
    uint8_t                     sap_chanswitch_beacon_cnt;
+   uint8_t                     sap_chanswitch_mode;
 };
 
 typedef struct hdd_config hdd_config_t;

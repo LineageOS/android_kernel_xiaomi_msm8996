@@ -1064,23 +1064,23 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         // Initialize 11h Enable Flag
         psessionEntry->lim11hEnable = 0;
-        if((pMlmStartReq->bssType != eSIR_IBSS_MODE) &&
-            (SIR_BAND_5_GHZ == psessionEntry->limRFBand) )
-        {
-            if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
-            psessionEntry->lim11hEnable = val;
-
-            if (psessionEntry->lim11hEnable &&
-                (eSIR_INFRA_AP_MODE == pMlmStartReq->bssType))
-            {
-                if (wlan_cfgGetInt(pMac, WNI_CFG_DFS_MASTER_ENABLED, &val) !=
-                                eSIR_SUCCESS)
-                {
-                    limLog(pMac, LOGE,
-                            FL("Fail to get WNI_CFG_DFS_MASTER_ENABLED"));
-                }
+        if (pMlmStartReq->bssType != eSIR_IBSS_MODE) {
+            if (CHAN_HOP_ALL_BANDS_ENABLE ||
+                SIR_BAND_5_GHZ == psessionEntry->limRFBand) {
+                if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) !=
+                    eSIR_SUCCESS)
+                        limLog(pMac, LOGP,
+                               FL("Fail to get WNI_CFG_11H_ENABLED "));
                 psessionEntry->lim11hEnable = val;
+
+                if (psessionEntry->lim11hEnable &&
+                    (eSIR_INFRA_AP_MODE == pMlmStartReq->bssType)) {
+                        if (wlan_cfgGetInt(pMac, WNI_CFG_DFS_MASTER_ENABLED,
+                                           &val) != eSIR_SUCCESS)
+                        limLog(pMac, LOGE,
+                               FL("Fail to get WNI_CFG_DFS_MASTER_ENABLED"));
+                    psessionEntry->lim11hEnable = val;
+                }
             }
         }
 
@@ -6684,11 +6684,12 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                  pChannelChangeReq->sub20_channelwidth;
 
             // Initialize 11h Enable Flag
-            if (SIR_BAND_5_GHZ == psessionEntry->limRFBand)
-            {
-                if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) !=
-                                               eSIR_SUCCESS)
-                    limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED "));
+            if (CHAN_HOP_ALL_BANDS_ENABLE ||
+                SIR_BAND_5_GHZ == psessionEntry->limRFBand) {
+                    if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) !=
+                        eSIR_SUCCESS)
+                            limLog(pMac, LOGP,
+                                   FL("Fail to get WNI_CFG_11H_ENABLED "));
             }
 
             psessionEntry->lim11hEnable = val;
@@ -7340,7 +7341,7 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 
 	if (LIM_IS_AP_ROLE(session_entry) &&
 		(mac_ctx->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE))
-		switch_mode = 1;
+	        switch_mode = session_entry->gLimChannelSwitch.switchMode;
 
 	switch_count = session_entry->gLimChannelSwitch.switchCount;
 
@@ -7363,6 +7364,64 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 					switch_count, session_entry);
 	}
 
+}
+
+/**
+ * lim_send_chan_switch_action_frame()- Send an action frame
+ * containing CSA IE or ECSA IE depending on the connected
+ * sta capability.
+ *
+ * @mac_ctx: pointer to global mac structure
+ * @new_channel: new channel to switch to.
+ * @ch_bandwidth: BW of channel to calculate op_class
+ * @session_entry: pe session
+ *
+ * Return: void
+ */
+static void lim_send_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
+					      uint16_t new_channel,
+					      uint8_t ch_bandwidth,
+					      tpPESession session_entry)
+{
+	uint16_t op_class;
+	uint8_t switch_mode = 0, i;
+	uint8_t switch_count;
+	tpDphHashNode psta;
+	tpDphHashNode dph_node_array_ptr;
+
+	dph_node_array_ptr = session_entry->dph.dphHashTable.pDphNodeArray;
+
+	op_class = regdm_get_opclass_from_channel(
+			mac_ctx->scan.countryCodeCurrent,
+			new_channel, ch_bandwidth);
+
+	if (LIM_IS_AP_ROLE(session_entry) &&
+	    mac_ctx->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE)
+		switch_mode = session_entry->gLimChannelSwitch.switchMode;
+
+	switch_count = session_entry->gLimChannelSwitch.switchCount;
+
+	if (LIM_IS_AP_ROLE(session_entry)) {
+		for (i = 0; i < mac_ctx->lim.maxStation; i++) {
+			psta = dph_node_array_ptr + i;
+			if (!(psta && psta->added))
+				continue;
+			if (session_entry->lim_non_ecsa_cap_num == 0)
+			    lim_send_extended_chan_switch_action_frame
+				(mac_ctx, psta->staAddr, switch_mode,
+				 op_class, new_channel, switch_count,
+				 session_entry);
+			else
+			    limSendChannelSwitchMgmtFrame
+				(mac_ctx, psta->staAddr, switch_mode,
+				 new_channel, switch_count,
+				 session_entry);
+		}
+	} else if (LIM_IS_STA_ROLE(session_entry)) {
+		lim_send_extended_chan_switch_action_frame
+			(mac_ctx, session_entry->bssId, switch_mode, op_class,
+			 new_channel, switch_count, session_entry);
+	}
 }
 
 /**
@@ -7427,8 +7486,11 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             pDfsCsaIeRequest->ch_switch_beacon_cnt;
 
 
-        if (pMac->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_FALSE)
-            psessionEntry->gLimChannelSwitch.switchMode = 1;
+        if (pDfsCsaIeRequest->dfs_ch_switch_disable == VOS_FALSE)
+                psessionEntry->gLimChannelSwitch.switchMode =
+                    pDfsCsaIeRequest->ch_switch_mode;
+
+
         psessionEntry->gLimChannelSwitch.secondarySubBand =
                                          pDfsCsaIeRequest->ch_bandwidth;
 
@@ -7531,14 +7593,21 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         limLog(pMac, LOG1,
                    FL(" Updated CSA IE, IE COUNT = %d"),
                        psessionEntry->gLimChannelSwitch.switchCount );
-        /* Send ECSA Action frame after updating the beacon */
-        /* Action frame is not required for sub 20 channel width changing */
+        /**
+         * Send Action frame after updating the beacon
+         * Action frame is not required for sub 20 channel width changing
+         */
         if (pDfsCsaIeRequest->sub20_channelwidth == 0) {
+            if (CHAN_HOP_ALL_BANDS_ENABLE)
+                lim_send_chan_switch_action_frame
+                    (pMac, psessionEntry->gLimChannelSwitch.primaryChannel,
+                     psessionEntry->gLimChannelSwitch.secondarySubBand,
+                     psessionEntry);
+            else
                 send_extended_chan_switch_action_frame
-                     (pMac,
-                      psessionEntry->gLimChannelSwitch.primaryChannel,
-                      psessionEntry->gLimChannelSwitch.secondarySubBand,
-                      psessionEntry);
+                    (pMac, psessionEntry->gLimChannelSwitch.primaryChannel,
+                     psessionEntry->gLimChannelSwitch.secondarySubBand,
+                     psessionEntry);
         }
 
         psessionEntry->gLimChannelSwitch.switchCount--;

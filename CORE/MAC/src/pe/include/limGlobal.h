@@ -68,6 +68,12 @@
 #define IS_5G_BAND(__rfBand)     ((__rfBand & 0x3) == 0x2)
 #define IS_24G_BAND(__rfBand)    ((__rfBand & 0x3) == 0x1)
 
+#ifdef CHANNEL_HOPPING_ALL_BANDS
+#define CHAN_HOP_ALL_BANDS_ENABLE        1
+#else
+#define CHAN_HOP_ALL_BANDS_ENABLE        0
+#endif
+
 // enums exported by LIM are as follows
 
 /// System role definition
