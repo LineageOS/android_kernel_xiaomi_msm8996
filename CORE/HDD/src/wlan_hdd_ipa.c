@@ -1210,7 +1210,20 @@ void hdd_ipa_dump_iface_context(struct hdd_ipa_priv *hdd_ipa)
  */
 void hdd_ipa_dump_info(hdd_context_t *hdd_ctx)
 {
-	struct hdd_ipa_priv *hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
+	struct hdd_ipa_priv *hdd_ipa;
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	hdd_ipa = (struct hdd_ipa_priv *)hdd_ctx->hdd_ipa;
+	if (!hdd_ipa_is_enabled(hdd_ctx) ||
+	    !hdd_ipa_uc_is_enabled(hdd_ipa)) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"IPA/IPA UC is not enabled, IpaConfig %u,IpaUcOffloadEnabled %u.",
+			hdd_ctx->cfg_ini->IpaConfig,
+			hdd_ctx->cfg_ini->IpaUcOffloadEnabled);
+		return;
+	}
 
 	hdd_ipa_dump_hdd_ipa(hdd_ipa);
 	hdd_ipa_dump_sys_pipe(hdd_ipa);
