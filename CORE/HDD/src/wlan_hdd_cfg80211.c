@@ -4825,11 +4825,19 @@ static int hdd_extscan_epno_fill_network_list(
 	struct nlattr *networks;
 	int rem1, ssid_len;
 	uint8_t index, *ssid;
+	uint32_t expected_networks;
 
+	expected_networks = req_msg->num_networks;
 	index = 0;
 	nla_for_each_nested(networks,
 			    tb[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORKS_LIST],
 			    rem1) {
+
+		if (index == expected_networks) {
+			hddLog(LOGW, FL("ignoring excess networks"));
+			break;
+		}
+
 		if (nla_parse(network, QCA_WLAN_VENDOR_ATTR_PNO_MAX,
 			      nla_data(networks), nla_len(networks),
 			      wlan_hdd_pno_config_policy)) {
@@ -4883,6 +4891,7 @@ static int hdd_extscan_epno_fill_network_list(
 
 		index++;
 	}
+	req_msg->num_networks = index;
 	return 0;
 }
 
@@ -20146,20 +20155,16 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 }
 
 void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
-                uint16_t *vht_channel_width)
+                       uint16_t *vht_channel_width)
 {
     v_U8_t iniDot11Mode =
                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->dot11Mode;
     eHddDot11Mode   hddDot11Mode = iniDot11Mode;
-    hdd_station_ctx_t *station_ctx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    uint32_t cb_mode;
-    struct hdd_mon_set_ch_info *ch_info = &station_ctx->ch_info;
 
     hddLog(LOG1, FL("Channel Bonding Mode Selected is %u"),
            iniDot11Mode);
-    if (VOS_MONITOR_MODE != hdd_get_conparam())
-        *vht_channel_width =
-                  (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
+    *vht_channel_width =
+               (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->vhtChannelWidth;
 
     /*
      * In IBSS mode while operating in 2.4 GHz,
@@ -20192,21 +20197,71 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
           break;
     }
      /* This call decides required channel bonding mode */
-    cb_mode = sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
+    sme_SelectCBMode((WLAN_HDD_GET_CTX(pAdapter)->hHal),
                      hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode),
                      operationChannel, 0,
                      vht_channel_width,
                      *vht_channel_width);
-
-    if (VOS_MONITOR_MODE == hdd_get_conparam()) {
-        ch_info->channel_width = *vht_channel_width;
-        ch_info->phy_mode = hdd_cfg_xlate_to_csr_phy_mode(hddDot11Mode);
-        ch_info->channel = operationChannel;
-        ch_info->cb_mode = cb_mode;
-        hddLog(LOG1, FL("ch_info width %d, phymode %d channel %d"),
-               ch_info->channel_width, ch_info->phy_mode, ch_info->channel);
-    }
 }
+
+/**
+ * hdd_select_mon_cbmode() - This function will handle channel bonding mode
+                             for monitor mode.
+ * @adapter: pointer to hdd adapter.
+ * @operation_channel: operating channel.
+ * @vht_channel_width: pointer to channel width.
+ *
+ *
+ * Return: None.
+ */
+void hdd_select_mon_cbmode(hdd_adapter_t *adapter, v_U8_t operation_channel,
+                uint16_t *vht_channel_width)
+{
+    v_U8_t ini_dot11_mode = (WLAN_HDD_GET_CTX(adapter))->cfg_ini->dot11Mode;
+    eHddDot11Mode   hdd_dot11_mode = ini_dot11_mode;
+    hdd_station_ctx_t *station_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+    uint32_t cb_mode;
+    struct hdd_mon_set_ch_info *ch_info = &station_ctx->ch_info;
+
+    hddLog(LOG1, FL("Channel Bonding Mode Selected is %u"), ini_dot11_mode);
+
+    switch ( ini_dot11_mode )
+    {
+       case eHDD_DOT11_MODE_AUTO:
+       case eHDD_DOT11_MODE_11ac:
+       case eHDD_DOT11_MODE_11ac_ONLY:
+#ifdef WLAN_FEATURE_11AC
+          if (sme_IsFeatureSupportedByFW(DOT11AC))
+              hdd_dot11_mode = eHDD_DOT11_MODE_11ac;
+          else
+              hdd_dot11_mode = eHDD_DOT11_MODE_11n;
+#else
+          hdd_dot11_mode = eHDD_DOT11_MODE_11n;
+#endif
+          break;
+       case eHDD_DOT11_MODE_11n:
+       case eHDD_DOT11_MODE_11n_ONLY:
+          hdd_dot11_mode = eHDD_DOT11_MODE_11n;
+          break;
+       default:
+          hdd_dot11_mode = ini_dot11_mode;
+          break;
+    }
+    /* This call decides required channel bonding mode */
+    cb_mode = sme_SelectCBMode((WLAN_HDD_GET_CTX(adapter)->hHal),
+                     hdd_cfg_xlate_to_csr_phy_mode(hdd_dot11_mode),
+                     operation_channel, 0,
+                     vht_channel_width,
+                     *vht_channel_width);
+
+    ch_info->channel_width = *vht_channel_width;
+    ch_info->phy_mode = hdd_cfg_xlate_to_csr_phy_mode(hdd_dot11_mode);
+    ch_info->channel = operation_channel;
+    ch_info->cb_mode = cb_mode;
+    hddLog(LOG1, FL("ch_info width %d, phymode %d channel %d"),
+           ch_info->channel_width, ch_info->phy_mode, ch_info->channel);
+}
+
 
 /**
  * wlan_hdd_sta_sap_concur_handle() - This function will handle Station and sap

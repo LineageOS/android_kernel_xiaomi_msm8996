@@ -214,6 +214,8 @@ typedef struct tagSmeCmd
         tTdlsCmd  tdlsCmd;
 #endif
         struct s_ani_set_tx_max_pwr set_tx_max_pwr;
+        struct csr_set_tx_max_pwr_per_band set_tx_max_pwr_per_band;
+
 #ifdef WLAN_FEATURE_NAN_DATAPATH
         struct ndp_initiator_req initiator_req;
         struct ndp_responder_req responder_req;

@@ -1730,6 +1730,17 @@ struct tagCsrDelStaParams
 };
 
 /**
+ * struct csr_set_tx_max_pwr_per_band - Req params to
+ * set max tx power per band
+ * @band: band for which power to be set
+ * @power: power to set in dB
+ */
+struct csr_set_tx_max_pwr_per_band {
+	eCsrBand band;
+	tPowerdBm power;
+};
+
+/**
  * struct wep_update_default_key_idx: wep default key index structure
  *
  * @session_id: session ID for the connection session

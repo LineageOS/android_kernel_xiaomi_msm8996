@@ -1638,6 +1638,34 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
     return VOS_STATUS_SUCCESS;
 }
 
+/* vos_is_fcc_regdomian() - is the regdomain FCC
+ *
+ * Return: true if FCC regdomain
+ *         false otherwise
+ */
+bool vos_is_fcc_regdomain(void)
+{
+	v_CONTEXT_t pVosContext = NULL;
+	hdd_context_t *pHddCtx = NULL;
+	v_REGDOMAIN_t domainId;
+
+	pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if (!pVosContext)
+		return false;
+	pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+	if (!pHddCtx) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				("Invalid pHddCtx pointer"));
+		return false;
+	}
+	vos_nv_getRegDomainFromCountryCode(&domainId,
+			pHddCtx->reg.alpha2, COUNTRY_QUERY);
+	if (REGDOMAIN_FCC == domainId)
+		return true;
+	return false;
+}
+
 #ifdef FEATURE_STATICALLY_ADD_11P_CHANNELS
 #define DEFAULT_11P_POWER (30)
 #endif

@@ -131,6 +131,9 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
                            v_U16_t msg_type,void *pMsgBuf);
 eHalStatus sme_process_set_max_tx_power(tpAniSirGlobal pMac,
 						tSmeCmd *command);
+eHalStatus
+sme_process_set_max_tx_power_per_band(tpAniSirGlobal mac_ctx,
+						tSmeCmd *command);
 
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
@@ -1074,6 +1077,18 @@ sme_process_cmd:
                             fContinue = eANI_BOOLEAN_TRUE;
                             /* No Rsp expected, free cmd from active list */
                             if(csrLLRemoveEntry(&pMac->sme.smeCmdActiveList,
+                                        &pCommand->Link, LL_ACCESS_LOCK)) {
+                               csrReleaseCommand(pMac, pCommand);
+                            }
+                            break;
+                        case eSmeCommandSetMaxTxPowerPerBand:
+                            csrLLUnlock(&pMac->sme.smeCmdActiveList);
+                            sme_process_set_max_tx_power_per_band(pMac,
+                                                                     pCommand);
+                            /* We need to re-run the command */
+                            fContinue = eANI_BOOLEAN_TRUE;
+                            /* No Rsp expected, free cmd from active list */
+                            if (csrLLRemoveEntry(&pMac->sme.smeCmdActiveList,
                                         &pCommand->Link, LL_ACCESS_LOCK)) {
                                csrReleaseCommand(pMac, pCommand);
                             }
@@ -5367,6 +5382,49 @@ eHalStatus sme_process_set_max_tx_power(tpAniSirGlobal pMac,
 		smsLog(pMac, LOGE,
 			FL("Not able to post WDA_SET_MAX_TX_POWER_REQ message to WDA"));
 		vos_mem_free(max_tx_params);
+		return eHAL_STATUS_FAILURE;
+	}
+	return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * sme_process_set_max_tx_power_per_band() - Set the Maximum Transmit Power
+ * specific to band dynamically
+ * @mac_ctx: mac context
+ * @command: cmd param containing band, and power in db
+ *
+ * Set the maximum transmit power dynamically per band
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_process_set_max_tx_power_per_band(tpAniSirGlobal mac_ctx,
+                  tSmeCmd *command)
+{
+	vos_msg_t msg;
+	tMaxTxPowerPerBandParams *max_tx_params_per_band;
+
+	max_tx_params_per_band =
+		vos_mem_malloc(sizeof(*max_tx_params_per_band));
+	if (max_tx_params_per_band == NULL) {
+		smsLog(mac_ctx, LOGE,
+			   FL("fail to allocate memory"));
+		return eHAL_STATUS_FAILURE;
+	}
+
+	max_tx_params_per_band->bandInfo =
+		command->u.set_tx_max_pwr_per_band.band;
+	max_tx_params_per_band->power =
+			command->u.set_tx_max_pwr_per_band.power;
+
+	msg.type = WDA_SET_MAX_TX_POWER_PER_BAND_REQ;
+	msg.reserved = 0;
+	msg.bodyptr = max_tx_params_per_band;
+
+	if (VOS_STATUS_SUCCESS !=
+			vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+		smsLog(mac_ctx, LOGE,
+			   FL("Unable to post message to WDA"));
+		vos_mem_free(max_tx_params_per_band);
 		return eHAL_STATUS_FAILURE;
 	}
 	return eHAL_STATUS_SUCCESS;
@@ -9687,50 +9745,60 @@ eHalStatus sme_WakeReasonIndCallback (tHalHandle hHal, void* pMsg)
 }
 #endif // WLAN_WAKEUP_EVENTS
 
-
-/* ---------------------------------------------------------------------------
-    \fn sme_SetMaxTxPowerPerBand
-
-    \brief Set the Maximum Transmit Power specific to band dynamically.
-    Note: this setting will not persist over reboots.
-
-    \param band
-    \param power to set in dB
-    \- return eHalStatus
-
-  ----------------------------------------------------------------------------*/
-eHalStatus sme_SetMaxTxPowerPerBand(eCsrBand band, v_S7_t dB)
+/**
+ * sme_SetMaxTxPowerPerBand() - Set the Maximum Transmit Power
+ * specific to band dynamically
+ * @band: Band for which power needs to be applied
+ * @dB: power to set in dB
+ * @hal: HAL handle
+ *
+ * Set the maximum transmit power dynamically per band
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_SetMaxTxPowerPerBand(eCsrBand band, v_S7_t dB,
+                  tHalHandle hal)
 {
-    vos_msg_t msg;
-    tpMaxTxPowerPerBandParams pMaxTxPowerPerBandParams = NULL;
+	vos_msg_t msg;
+	eHalStatus status;
+	tSmeCmd *set_max_tx_pwr_per_band;
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
 
-    pMaxTxPowerPerBandParams = vos_mem_malloc(sizeof(tMaxTxPowerPerBandParams));
-    if (NULL == pMaxTxPowerPerBandParams)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s:Not able to allocate memory for pMaxTxPowerPerBandParams",
-                  __func__);
-        return eHAL_STATUS_FAILURE;
-    }
+	smsLog(mac_ctx, LOG1,
+		  FL("band : %d power %d dB"),
+		  band, dB);
 
-    pMaxTxPowerPerBandParams->power = dB;
-    pMaxTxPowerPerBandParams->bandInfo = band;
+	MTRACE(vos_trace(VOS_MODULE_ID_SME,
+			TRACE_CODE_SME_TX_WDA_MSG, NO_SESSION, msg.type));
 
-    msg.type = WDA_SET_MAX_TX_POWER_PER_BAND_REQ;
-    msg.reserved = 0;
-    msg.bodyptr = pMaxTxPowerPerBandParams;
-    MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG, NO_SESSION,
-                                                          msg.type));
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s:Not able to post WDA_SET_MAX_TX_POWER_PER_BAND_REQ",
-                  __func__);
-        vos_mem_free(pMaxTxPowerPerBandParams);
-        return eHAL_STATUS_FAILURE;
-    }
-
-    return eHAL_STATUS_SUCCESS;
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		set_max_tx_pwr_per_band = csrGetCommandBuffer(mac_ctx);
+		if (set_max_tx_pwr_per_band) {
+			set_max_tx_pwr_per_band->command =
+					eSmeCommandSetMaxTxPowerPerBand;
+			set_max_tx_pwr_per_band->u.
+				set_tx_max_pwr_per_band.band = band;
+			set_max_tx_pwr_per_band->u.
+				set_tx_max_pwr_per_band.power = dB;
+			status = csrQueueSmeCommand(mac_ctx,
+						set_max_tx_pwr_per_band,
+						eANI_BOOLEAN_TRUE);
+			if (!HAL_STATUS_SUCCESS(status)) {
+				smsLog(mac_ctx, LOGE,
+					FL("fail to send msg status = %d"),
+						status);
+				csrReleaseCommand(mac_ctx,
+						set_max_tx_pwr_per_band);
+			}
+		} else {
+			smsLog(mac_ctx, LOGE,
+				FL("can not obtain a common buffer"));
+			status = eHAL_STATUS_RESOURCES;
+		}
+	sme_ReleaseGlobalLock(&mac_ctx->sme);
+	}
+	return status;
 }
 
 /**
@@ -12755,6 +12823,7 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                             uint16_t ch_width_orig)
 {
    tSmeConfigParams  smeConfig;
+   tANI_U32 ht40plus2gendch = 0;
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
    eIniChanBondState cb_mode = eCSR_INI_SINGLE_CHANNEL_CENTERED;
    /* Donot check pMac->roam.configParam.channelBondingMode5GHz / 24GHz
@@ -12819,6 +12888,10 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
         eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
         (eHT_CHANNEL_WIDTH_40MHZ == ch_width_orig)) {
+       if (vos_is_fcc_regdomain())
+           ht40plus2gendch = HT40PLUS_2G_FCC_CH_END;
+       else
+           ht40plus2gendch = HT40PLUS_2G_EURJAP_CH_END;
        if (channel== 40 || channel == 48 || channel == 56 ||
                 channel == 64 || channel == 104 || channel == 112 ||
                 channel == 120 || channel == 128 || channel == 136 ||
@@ -12838,14 +12911,14 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
        } else if (channel >= 1 && channel < 5) {
            smeConfig.csrConfig.channelBondingMode24GHz =
                                            eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
-       } else if (channel >= 5 && channel <= 9) {
+       } else if (channel >= 5 && channel <= ht40plus2gendch) {
           if (ht_sec_ch > channel)
               smeConfig.csrConfig.channelBondingMode24GHz =
                     eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
           else
               smeConfig.csrConfig.channelBondingMode24GHz =
                     eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
-       } else if (channel > 9 && channel <= 13) {
+       } else if (channel > ht40plus2gendch && channel <= 13) {
            smeConfig.csrConfig.channelBondingMode24GHz =
                                            eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
        } else if (channel ==14) {

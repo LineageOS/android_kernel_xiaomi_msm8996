@@ -2085,6 +2085,8 @@ void sapSortChlWeightHT80(tSapChSelSpectInfo *pSpectInfoParams)
     v_U8_t i, j, n;
     tSapSpectChInfo *pSpectInfo;
     v_U8_t minIdx;
+    int start_channel = 0;
+    chan_bonding_bitmap channelBitmap;
 
     pSpectInfo = pSpectInfoParams->pSpectCh;
     /* for each HT80 channel, calculate the combined weight of the
@@ -2154,6 +2156,39 @@ void sapSortChlWeightHT80(tSapChSelSpectInfo *pSpectInfoParams)
         }
     }
 
+    /* mark the weight of the channel that can't satisfy 80MHZ
+       as max value, so that it will be sorted to the bottom*/
+
+    vos_mem_zero(&channelBitmap, sizeof(channelBitmap));
+    channelBitmap.chanBondingSet[0].startChannel = 36;
+    channelBitmap.chanBondingSet[1].startChannel = 52;
+    channelBitmap.chanBondingSet[2].startChannel = 100;
+    channelBitmap.chanBondingSet[3].startChannel = 116;
+    channelBitmap.chanBondingSet[4].startChannel = 132;
+    channelBitmap.chanBondingSet[5].startChannel = 149;
+
+    pSpectInfo = pSpectInfoParams->pSpectCh;
+    for (j = 0; j < pSpectInfoParams->numSpectChans; j++) {
+        for (i = 0; i < MAX_80MHZ_BANDS; i++) {
+            start_channel = channelBitmap.chanBondingSet[i].startChannel;
+            if (pSpectInfo[j].chNum >= start_channel &&
+                    (pSpectInfo[j].chNum <= start_channel + 12)) {
+                channelBitmap.chanBondingSet[i].channelMap |=
+                    1 << ((pSpectInfo[j].chNum - start_channel)/4);
+                break;
+            }
+        }
+    }
+    for (j =0; j < pSpectInfoParams->numSpectChans; j++) {
+        for (i = 0; i < MAX_80MHZ_BANDS; i++) {
+            start_channel = channelBitmap.chanBondingSet[i].startChannel;
+            if (pSpectInfo[j].chNum >= start_channel &&
+                    (pSpectInfo[j].chNum <= start_channel + 12) &&
+                    channelBitmap.chanBondingSet[i].channelMap != SAP_80MHZ_MASK)
+                pSpectInfo[j].weight = ACS_WEIGHT_MAX * 4;
+        }
+    }
+
     pSpectInfo = pSpectInfoParams->pSpectCh;
     for (j = 0; j < pSpectInfoParams->numSpectChans; j++)
     {
@@ -2200,6 +2235,7 @@ void sapSortChlWeightHT40_24G(tSapChSelSpectInfo *pSpectInfoParams)
     v_U8_t i, j;
     tSapSpectChInfo *pSpectInfo;
     v_U32_t tmpWeight1, tmpWeight2;
+    v_U32_t ht40plus2gendch = 0;
 
     pSpectInfo = pSpectInfoParams->pSpectCh;
     /*for each HT40 channel, calculate the combined weight of the
@@ -2277,6 +2313,29 @@ void sapSortChlWeightHT40_24G(tSapChSelSpectInfo *pSpectInfoParams)
             pSpectInfo[j].weight = ACS_WEIGHT_MAX * 2;
     }
 
+    /* Every channel should be checked. Add the check for the omissive channel.
+       Mark the channel whose combination can't satisfy 40MHZ as max value,
+       so that it will be sorted to the bottom*/
+    if (vos_is_fcc_regdomain())
+        ht40plus2gendch = HT40PLUS_2G_FCC_CH_END;
+    else
+        ht40plus2gendch = HT40PLUS_2G_EURJAP_CH_END;
+    for (i = 5; i <= ht40plus2gendch; i++) {
+        for (j = 0; j < pSpectInfoParams->numSpectChans; j++) {
+            if (pSpectInfo[j].chNum == i &&
+                    ((pSpectInfo[j].chNum + 4) != pSpectInfo[j+4].chNum) &&
+                    ((pSpectInfo[j].chNum - 4) != pSpectInfo[j-4].chNum))
+                pSpectInfo[j].weight = ACS_WEIGHT_MAX * 2;
+        }
+    }
+    for (i = ht40plus2gendch + 1; i <= 13; i++) {
+        for (j = 0; j < pSpectInfoParams->numSpectChans; j++) {
+            if (pSpectInfo[j].chNum == i &&
+                    (pSpectInfo[j].chNum - 4) != pSpectInfo[j-4].chNum)
+                pSpectInfo[j].weight = ACS_WEIGHT_MAX * 2;
+        }
+    }
+
     sapSortChlWeight(pSpectInfoParams);
 }
 
@@ -2345,6 +2404,18 @@ void sapSortChlWeightHT40_5G(tSapChSelSpectInfo *pSpectInfoParams)
            pSpectInfo[j].weight = ACS_WEIGHT_MAX * 2;
     }
 
+    /* Every channel should be checked. Add the check for the omissive channel.
+       Mark the channel whose combination can't satisfy 40MHZ as max value,
+       so that it will be sorted to the bottom*/
+    for (j = 1; j < pSpectInfoParams->numSpectChans; j++) {
+        for (i = 0; i < ARRAY_SIZE(acsHT40Channels5G); i++) {
+            if (pSpectInfo[j].chNum == (acsHT40Channels5G[i].chStartNum + 4) &&
+                    pSpectInfo[j-1].chNum != acsHT40Channels5G[i].chStartNum) {
+                pSpectInfo[j].weight = ACS_WEIGHT_MAX * 2;
+                break;
+            }
+        }
+    }
     /* avoid channel 165 by setting its weight to max */
     pSpectInfo = pSpectInfoParams->pSpectCh;
     for (j = 0; j < pSpectInfoParams->numSpectChans; j++)
@@ -2512,6 +2583,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     tSapChSelSpectInfo oSpectInfoParams = {NULL,0};
     tSapChSelSpectInfo *pSpectInfoParams = &oSpectInfoParams; // Memory? NB
     v_U8_t bestChNum = SAP_CHANNEL_NOT_SELECTED;
+    v_U32_t ht40plus2gendch = 0;
 #ifdef FEATURE_WLAN_CH_AVOID
     v_U8_t i;
     v_U8_t firstSafeChannelInRange = SAP_CHANNEL_NOT_SELECTED;
@@ -2752,17 +2824,20 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     /* determine secondary channel for 2.4G channel 5, 6, 7 in HT40 */
     if ((operatingBand == eCSR_DOT11_MODE_11g) && (pSapCtx->acs_cfg->ch_width ==
                                              eHT_CHANNEL_WIDTH_40MHZ)) {
+        if (vos_is_fcc_regdomain())
+            ht40plus2gendch = HT40PLUS_2G_FCC_CH_END;
+        else
+            ht40plus2gendch = HT40PLUS_2G_EURJAP_CH_END;
+        if ((bestChNum >= 5) && (bestChNum <= ht40plus2gendch)) {
+            int weight_below, weight_above, i;
+            tSapSpectChInfo *pSpectInfo;
 
-            if ((bestChNum >= 5) && (bestChNum <= 7)) {
-                int weight_below, weight_above, i;
-                tSapSpectChInfo *pSpectInfo;
+            weight_below = weight_above  = ACS_WEIGHT_MAX;
+            pSpectInfo = pSpectInfoParams->pSpectCh;
 
-               weight_below = weight_above  = ACS_WEIGHT_MAX;
-                pSpectInfo = pSpectInfoParams->pSpectCh;
-
-                for (i = 0; i < pSpectInfoParams->numSpectChans ; i++) {
-                   if (pSpectInfo[i].chNum == (bestChNum - 4))
-                        weight_below = pSpectInfo[i].weight;
+            for (i = 0; i < pSpectInfoParams->numSpectChans ; i++) {
+               if (pSpectInfo[i].chNum == (bestChNum - 4))
+                    weight_below = pSpectInfo[i].weight;
 
                if (pSpectInfo[i].chNum == (bestChNum + 4))
                     weight_above = pSpectInfo[i].weight;
@@ -2775,9 +2850,9 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
         } else {
             if (bestChNum >= 1 && bestChNum <= 4)
                 pSapCtx->acs_cfg->ht_sec_ch = pSapCtx->acs_cfg->pri_ch + 4;
-           else if (bestChNum >= 8 && bestChNum <= 13)
+           else if (bestChNum > ht40plus2gendch && bestChNum <= 13)
                 pSapCtx->acs_cfg->ht_sec_ch = pSapCtx->acs_cfg->pri_ch - 4;
-            else if (bestChNum ==14)
+            else if (bestChNum == 14)
                 pSapCtx->acs_cfg->ht_sec_ch = 0;
         }
         pSapCtx->secondary_ch = pSapCtx->acs_cfg->ht_sec_ch;
