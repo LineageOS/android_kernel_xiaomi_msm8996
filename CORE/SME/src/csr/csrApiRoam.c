@@ -19422,7 +19422,7 @@ eHalStatus csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
     timer_diff = (vos_get_monotonic_boottime_ns() -
                   pBssDescription->scansystimensec);
     // Convert nano to micro sec timer
-    do_div(timer_diff, SYSTEM_TIME_NSEC_TO_USEC);
+    timer_diff = vos_do_div(timer_diff, SYSTEM_TIME_NSEC_TO_USEC);
     timeStamp[0] = pBssDescription->timeStamp[0];
     timeStamp[1] = pBssDescription->timeStamp[1];
     UpdateCCKMTSF(&(timeStamp[0]), &(timeStamp[1]), &timer_diff);
