@@ -189,7 +189,7 @@ static int wlan_send_sock_msg_to_app(tAniHdr *wmsg, int radio,
 	tAniNlHdr *wnl = NULL;
 	struct sk_buff *skb;
 	struct nlmsghdr *nlh;
-	int wmsg_length = wmsg->length;
+	int wmsg_length = ntohs(wmsg->length);
 	static int nlmsg_seq;
 
 	if (radio < 0 || radio > ANI_MAX_RADIOS) {
@@ -818,7 +818,7 @@ static int wlan_logging_proc_sock_rx_msg(struct sk_buff *skb)
 	tAniNlHdr *wnl;
 	int radio;
 	int type;
-	int ret;
+	int ret, len;
 
 	wnl = (tAniNlHdr *) skb->data;
 	radio = wnl->radio;
@@ -831,10 +831,12 @@ static int wlan_logging_proc_sock_rx_msg(struct sk_buff *skb)
 		return -EINVAL;
 	}
 
-	if (wnl->wmsg.length > skb->data_len) {
+	len = ntohs(wnl->wmsg.length) + sizeof(tAniNlHdr);
+	if (len > skb_headlen(skb)) {
 		LOGGING_TRACE(VOS_TRACE_LEVEL_ERROR,
-			"%s: invalid length msgLen:%x skb data_len:%x\n",
-			__func__, wnl->wmsg.length, skb->data_len);
+			"%s: invalid length, msgLen:%x skb len:%x headLen: %d data_len: %d",
+			__func__, len, skb->len, skb_headlen(skb),
+			skb->data_len);
 		return -EINVAL;
 	}
 
