@@ -773,6 +773,7 @@ typedef struct hdd_hostapd_state_s
     int bssState;
     vos_event_t vosEvent;
     vos_event_t stop_bss_event;
+    vos_event_t sta_disassoc_event;
     VOS_STATUS vosStatus;
     v_BOOL_t bCommit;
 
