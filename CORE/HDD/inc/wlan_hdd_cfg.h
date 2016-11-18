@@ -1473,6 +1473,16 @@ typedef enum
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
 #define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
 
+#define CFG_SET_RTS_FOR_SIFS_BURSTING           "gSetRTSForSIFSBursting"
+#define CFG_SET_RTS_FOR_SIFS_BURSTING_MIN       (0)
+#define CFG_SET_RTS_FOR_SIFS_BURSTING_MAX       (1)
+#define CFG_SET_RTS_FOR_SIFS_BURSTING_DEFAULT   (0)
+
+#define CFG_MAX_MPDUS_IN_AMPDU                  "gMaxMPDUsInAMPDU"
+#define CFG_MAX_MPDUS_IN_AMPDU_MIN              (0)
+#define CFG_MAX_MPDUS_IN_AMPDU_MAX              (64)
+#define CFG_MAX_MPDUS_IN_AMPDU_DEFAULT          (0)
+
 /*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
@@ -4804,6 +4814,8 @@ struct hdd_config {
    v_BOOL_t                    gEnableOverLapCh;
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
+   uint8_t                     enable_rts_sifsbursting;
+   uint8_t                     max_mpdus_inampdu;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;

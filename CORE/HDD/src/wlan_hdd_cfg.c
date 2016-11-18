@@ -2373,6 +2373,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DISABLE_DFS_JAPAN_W53_MAX,
                  chNotify_set_gDisableDfsJapanW53, 0),
 
+   REG_VARIABLE(CFG_SET_RTS_FOR_SIFS_BURSTING, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_rts_sifsbursting,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_DEFAULT,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_MIN,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_MAX),
+
+   REG_VARIABLE(CFG_MAX_MPDUS_IN_AMPDU, WLAN_PARAM_Integer,
+                 hdd_config_t, max_mpdus_inampdu,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MAX_MPDUS_IN_AMPDU_DEFAULT,
+                 CFG_MAX_MPDUS_IN_AMPDU_MIN,
+                 CFG_MAX_MPDUS_IN_AMPDU_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,

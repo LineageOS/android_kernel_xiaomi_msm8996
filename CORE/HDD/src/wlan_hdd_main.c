@@ -15893,6 +15893,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                           set_value, PDEV_CMD);
    }
 
+   if (pHddCtx->cfg_ini->max_mpdus_inampdu) {
+       set_value = pHddCtx->cfg_ini->max_mpdus_inampdu;
+       process_wma_set_command(0, (int)WMI_PDEV_PARAM_MAX_MPDUS_IN_AMPDU,
+                                      set_value, PDEV_CMD);
+   }
+
+   if (pHddCtx->cfg_ini->enable_rts_sifsbursting) {
+       set_value = pHddCtx->cfg_ini->enable_rts_sifsbursting;
+       process_wma_set_command(0, (int)WMI_PDEV_PARAM_ENABLE_RTS_SIFS_BURSTING,
+                                      set_value, PDEV_CMD);
+
+   }
+
    if (hdd_wlan_enable_egap(pHddCtx))
         hddLog(LOGE, FL("enhance green ap is not enabled"));
 
