@@ -21616,6 +21616,12 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         channel = 0;
     if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
        hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_2X2);
+
+    /* Abort if any scan is going on */
+    status = wlan_hdd_scan_abort(pAdapter);
+    if (0 != status)
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("scan abort failed"));
+
     status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
                                        req->ssid_len, req->bssid,
                                        bssid_hint, channel);
