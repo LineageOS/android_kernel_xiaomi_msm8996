@@ -735,4 +735,55 @@ u_int32_t ol_tx_get_max_tx_groups_supported(struct ol_txrx_pdev_t *pdev);
 #define OL_TX_GET_MAX_GROUPS(pdev) 0
 #endif
 
+#ifdef MAC_NOTIFICATION_FEATURE
+/**
+ * ol_tx_failure_cb_set() - add TX failure callback
+ * @pdev: PDEV TXRX handle
+ * @tx_failure_cb: TX failure callback
+ */
+void
+ol_tx_failure_cb_set(struct ol_txrx_pdev_t *pdev,
+		     void (*tx_failure_cb)(void *ctx,
+					   unsigned int num_msdu,
+					   unsigned char tid,
+					   unsigned int status));
+
+/**
+ * ol_tx_failure_indication() - indicate TX failure to user layer
+ * @pdev: Pdev TXRX handle
+ * @tid: TID
+ * @msdu_num: number of MSDUs with the same failure status
+ * @status: failure status
+ */
+void
+ol_tx_failure_indication(struct ol_txrx_pdev_t *pdev, uint8_t tid,
+			 uint32_t msdu_num, uint32_t status);
+#else
+/**
+ * ol_tx_failure_cb_set() - add TX failure callback
+ * @pdev: PDEV TXRX handle
+ * @tx_failure_cb: TX failure callback
+ */
+static inline void
+ol_tx_failure_cb_set(ol_txrx_pdev_handle pdev,
+		     void (*tx_failure_cb)(void *ctx,
+					   unsigned int num_msdu,
+					   unsigned char tid,
+					   unsigned int status))
+{
+}
+
+/**
+ * ol_tx_failure_indication() - indicate TX failure to user layer
+ * @pdev: Pdev TXRX handle
+ * @tid: TID
+ * @msdu_num: number of MSDUs with the same failure status
+ * @status: failure status
+ */
+static inline void
+ol_tx_failure_indication(struct ol_txrx_pdev_t *pdev, uint8_t tid,
+			 uint32_t msdu_num, uint32_t status)
+{
+}
+#endif
 #endif /* _OL_TXRX_HTT_API__H_ */

@@ -2008,8 +2008,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		return VOS_STATUS_E_NOMEM;
 	}
 
-	if (wdi_out_cfg_is_high_latency(txrx_pdev->ctrl_pdev))
-		ol_tx_failure_cb_set(txrx_pdev, wma_tx_failure_cb);
+	ol_tx_failure_cb_set(txrx_pdev, wma_tx_failure_cb);
 
 	adf_os_spinlock_init(&tl_shim->bufq_lock);
 	adf_os_spinlock_init(&tl_shim->mgmt_lock);

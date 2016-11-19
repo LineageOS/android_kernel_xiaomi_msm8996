@@ -655,11 +655,9 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
             }
 
             /* Indicate failure status to user space */
-            if (pdev->tx_failure_cb && (status != htt_tx_status_ok)) {
-                unsigned char tid = HTT_TX_COMPL_IND_TID_GET(*msg_word);
-
-                pdev->tx_failure_cb(pdev, num_msdus, tid, status);
-            }
+            ol_tx_failure_indication(pdev->txrx_pdev,
+                                     HTT_TX_COMPL_IND_TID_GET(*msg_word),
+                                     num_msdus, status);
 
             if (pdev->cfg.is_high_latency) {
                 /*
