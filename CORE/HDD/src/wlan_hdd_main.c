@@ -15850,6 +15850,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
+   if (pHddCtx->cfg_ini->fIsLogpEnabled) {
+       vos_wdthread_init_timer_work(vos_process_wd_timer);
+       /* Initialize the timer to detect thread stuck issues */
+       vos_thread_stuck_timer_init(
+               &((VosContextType*)pVosContext)->vosWatchdog);
+   }
+
    if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
       hdd_decide_dynamic_chain_mask(pHddCtx,
                             HDD_ANTENNA_MODE_1X1);
