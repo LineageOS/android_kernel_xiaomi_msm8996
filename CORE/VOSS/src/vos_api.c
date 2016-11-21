@@ -3082,3 +3082,18 @@ v_U64_t vos_get_monotonic_boottime_ns(void)
 	ktime_get_ts(&ts);
 	return timespec_to_ns(&ts);
 }
+
+/**
+ * vos_do_div() - wrapper function for kernel macro(do_div).
+ *
+ * @dividend: Dividend value
+ * @divisor : Divisor value
+ *
+ * Return: Quotient
+ */
+uint64_t vos_do_div(uint64_t dividend, uint32_t divisor)
+{
+	do_div(dividend, divisor);
+	/*do_div macro updates dividend with Quotient of dividend/divisor */
+	return dividend;
+}

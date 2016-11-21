@@ -466,9 +466,9 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
 
     vos_mem_set((tANI_U8 *) pAddBssParams, sizeof( tAddBssParams ), 0);
 
-    limExtractApCapabilities( pMac,
+    limExtractApCapabilities(pMac,
         (tANI_U8 *) bssDescription->ieFields,
-        limGetIElenFromBssDescription( bssDescription ), pBeaconStruct );
+        GET_IE_LEN_IN_BSS(bssDescription->length), pBeaconStruct);
 
     if (pMac->lim.gLimProtectionControl !=
                                     WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
@@ -858,10 +858,10 @@ void limFillFTSession(tpAniSirGlobal pMac,
    pftSessionEntry->smeSessionId = psessionEntry->smeSessionId;
    pftSessionEntry->transactionId = 0;
 
-   limExtractApCapabilities( pMac,
-         (tANI_U8 *) pbssDescription->ieFields,
-         limGetIElenFromBssDescription( pbssDescription ),
-         pBeaconStruct );
+   limExtractApCapabilities(pMac,
+         (tANI_U8 *)pbssDescription->ieFields,
+         GET_IE_LEN_IN_BSS(pbssDescription->length),
+         pBeaconStruct);
 
    pftSessionEntry->rateSet.numRates = pBeaconStruct->supportedRates.numRates;
    vos_mem_copy(pftSessionEntry->rateSet.rate,
@@ -941,7 +941,7 @@ void limFillFTSession(tpAniSirGlobal pMac,
                                           pftSessionEntry->currentOperChannel );
    localPowerConstraint = regMax;
    limExtractApCapability( pMac, (tANI_U8 *) pbssDescription->ieFields,
-         limGetIElenFromBssDescription(pbssDescription),
+         GET_IE_LEN_IN_BSS(pbssDescription->length),
          &pftSessionEntry->limCurrentBssQosCaps,
          &pftSessionEntry->limCurrentBssPropCap,
          &currentBssUapsd , &localPowerConstraint, pftSessionEntry);

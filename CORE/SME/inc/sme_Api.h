@@ -4567,6 +4567,9 @@ VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_p2p(uint32_t bt_interval,
 					uint32_t p2p_interval);
 VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_p2p_sta(uint32_t bt_interval,
 					uint32_t p2p_sta_interval);
+
+VOS_STATUS sme_set_btc_wlan_coex_tx_power(uint32_t coex_tx_power);
+
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
@@ -4744,5 +4747,10 @@ eHalStatus sme_update_sub20_channel_width(tHalHandle hal_handle,
 {
 	return eHAL_STATUS_SUCCESS;
 }
+#endif
+#ifdef WLAN_POWER_DEBUGFS
+eHalStatus sme_power_debug_stats_req(tHalHandle hal, void (*callback_fn)
+			(struct power_stats_response *response,
+			void *context), void *power_stats_context);
 #endif
 #endif //#if !defined( __SME_API_H )

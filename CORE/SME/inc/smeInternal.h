@@ -191,6 +191,12 @@ typedef struct tagSmeStruct
                                         int indType, void *pRsp);
     void (*link_layer_stats_ext_cb)(tSirLLStatsResults *rsp);
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
+
+#ifdef WLAN_POWER_DEBUGFS
+    void *power_debug_stats_context;
+    void(*power_stats_resp_callback)(struct power_stats_response *rsp,
+				    void *callback_context);
+#endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
     void (*pAutoShutdownNotificationCb) (void);
 #endif
