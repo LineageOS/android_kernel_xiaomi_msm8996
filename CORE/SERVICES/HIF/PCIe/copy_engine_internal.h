@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -216,6 +216,7 @@ struct CE_sendlist_s {
 
 #define CDC_WAR_MAGIC_STR   0xceef0000
 #define CDC_WAR_DATA_CE     4
+#define CE_HW_INDEX_LINK_DOWN 0xFFFFFFFF
 
 /* Additional internal-only CE_send flags */
 #define CE_SEND_FLAG_GATHER             0x00010000         /* Use Gather */
