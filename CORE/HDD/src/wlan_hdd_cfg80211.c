@@ -20060,8 +20060,13 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         else
             scanRequest.scanType = pHddCtx->ioctl_scan_mode;
     }
-    scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
-    scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
+    if (scanRequest.scanType == eSIR_PASSIVE_SCAN) {
+        scanRequest.minChnTime = cfg_param->nPassiveMinChnTime;
+        scanRequest.maxChnTime = cfg_param->nPassiveMaxChnTime;
+    } else {
+        scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
+        scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
+    }
 
 #ifdef CFG80211_SCAN_BSSID
     vos_mem_copy(scanRequest.bssid, request->bssid, VOS_MAC_ADDR_SIZE);
