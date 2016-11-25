@@ -2630,12 +2630,16 @@ void wlan_hdd_tdls_implicit_send_discovery_request(tdlsCtx_t * pHddTdlsCtx)
 
     wlan_hdd_tdls_check_power_save_prohibited(pHddTdlsCtx->pAdapter);
 
+    mutex_unlock(&pHddCtx->tdls_lock);
+
     wlan_hdd_tdls_check_bmps(pHddTdlsCtx->pAdapter);
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: discovery count %u timeout %u msec",
                __func__, pHddTdlsCtx->discovery_sent_cnt,
                pHddTdlsCtx->threshold_config.tx_period_t - TDLS_DISCOVERY_TIMEOUT_BEFORE_UPDATE);
+
+    mutex_lock(&pHddCtx->tdls_lock);
 
     wlan_hdd_tdls_timer_restart(pHddTdlsCtx->pAdapter,
                                 &pHddTdlsCtx->peerDiscoveryTimeoutTimer,
