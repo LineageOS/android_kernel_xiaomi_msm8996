@@ -108,7 +108,7 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
+			if (*transition == FB_BLANK_UNBLANK || *transition == FB_BLANK_NORMAL) {
 				if (0 == fpc1020->wakeup_enabled) {
 					if (false == fpc1020->irq_enabled) {
 						/*
