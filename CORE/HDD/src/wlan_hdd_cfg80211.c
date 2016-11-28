@@ -12554,6 +12554,7 @@ uint8_t hdd_get_sap_operating_channel(hdd_context_t *hdd_ctx) {
 		else sap_operating_band = eCSR_BAND_ALL;
 		status = hdd_get_next_adapter(hdd_ctx, adapter_node,
 				&next);
+		adapter_node = next;
 	}
 	return sap_operating_band;
 }
