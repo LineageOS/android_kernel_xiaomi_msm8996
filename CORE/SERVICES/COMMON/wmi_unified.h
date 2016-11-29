@@ -4801,6 +4801,10 @@ typedef struct {
         time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
         a data frame with PM bit set) */
     A_UINT32 rx_leak_window;
+    A_UINT32 tx_rts_succ_cnt;
+    A_UINT32 tx_rts_fail_cnt;
+    A_UINT32 tx_ppdu_succ_cnt;
+    A_UINT32 tx_ppdu_fail_cnt;
 } wmi_iface_link_stats;
 
 /** Interface statistics (once started) reset and start afresh after each connection */

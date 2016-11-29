@@ -3412,9 +3412,11 @@ void csrNeighborRoamNeighborScanTimerCallback(void *pv)
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
         return;
     }
-    if (CSR_SESSION_ID_INVALID == sessionId)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+    if ((CSR_SESSION_ID_INVALID == sessionId) ||
+        (CSR_ROAM_SESSION_MAX <= sessionId)) {
+        smsLog(pMac, LOGE,
+               FL("Invalid sessionId/Reached maximum no.of sessions %d"),
+               sessionId);
         return;
     }
 
@@ -3471,9 +3473,11 @@ void csrNeighborRoamEmptyScanRefreshTimerCallback(void *context)
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
         return;
     }
-    if (CSR_SESSION_ID_INVALID == sessionId)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+    if ((CSR_SESSION_ID_INVALID == sessionId) ||
+        (CSR_ROAM_SESSION_MAX <= sessionId)) {
+        smsLog(pMac, LOGE,
+               FL("Invalid sessionId/Reached maximum no.of sessions %d"),
+               sessionId);
         return;
     }
     pNeighborRoamInfo = &pMac->roam.neighborRoamInfo[sessionId];
@@ -3537,9 +3541,11 @@ void csrNeighborRoamResultsRefreshTimerCallback(void *context)
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("pMac is Null"));
         return;
     }
-    if (CSR_SESSION_ID_INVALID == sessionId)
-    {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("invalid sessionId"));
+    if ((CSR_SESSION_ID_INVALID == sessionId) ||
+        (CSR_ROAM_SESSION_MAX <= sessionId)) {
+        smsLog(pMac, LOGE,
+               FL("Invalid sessionId/Reached maximum no.of sessions %d"),
+               sessionId);
         return;
     }
     pNeighborRoamInfo = &pMac->roam.neighborRoamInfo[sessionId];

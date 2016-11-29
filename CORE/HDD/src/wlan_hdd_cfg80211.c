@@ -588,6 +588,9 @@ wlan_hdd_iface_combination[] = {
       .max_interfaces = (SAP_MAX_OBSS_STA_CNT +
                          VOS_MAX_NO_OF_SAP_MODE),
       .n_limits = ARRAY_SIZE(wlan_hdd_ap_iface_limit),
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_INTV_BACKPORTS)
+      .beacon_int_min_gcd = 1,
+#endif
    },
    /* P2P */
    {
@@ -604,6 +607,9 @@ wlan_hdd_iface_combination[] = {
                          VOS_MAX_NO_OF_SAP_MODE),
       .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
       .beacon_int_infra_match = true,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_INTV_BACKPORTS)
+      .beacon_int_min_gcd = 1,
+#endif
    },
    /* STA + P2P */
    {
@@ -5121,11 +5127,19 @@ static int hdd_extscan_passpoint_fill_network_list(
 	struct nlattr *networks;
 	int rem1, len;
 	uint8_t index;
+	uint32_t expected_networks;
 
+	expected_networks = req_msg->num_networks;
 	index = 0;
 	nla_for_each_nested(networks,
 		tb[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_LIST_PARAM_NETWORK_ARRAY],
 		rem1) {
+
+		if (index == expected_networks) {
+			hddLog(LOGW, FL("ignoring excess networks"));
+			break;
+		}
+
 		if (nla_parse(network,
 			QCA_WLAN_VENDOR_ATTR_PNO_MAX,
 			nla_data(networks), nla_len(networks), NULL)) {
@@ -5187,6 +5201,7 @@ static int hdd_extscan_passpoint_fill_network_list(
 
 		index++;
 	}
+	req_msg->num_networks = index;
 	return 0;
 }
 
@@ -5240,8 +5255,13 @@ static int __wlan_hdd_cfg80211_set_passpoint_list(struct wiphy *wiphy,
 	}
 	num_networks = nla_get_u32(
 		tb[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_LIST_PARAM_NUM]);
-	hddLog(LOG1, FL("num networks %u"), num_networks);
+	if (num_networks > SIR_PASSPOINT_LIST_MAX_NETWORKS) {
+		hddLog(LOGE, FL("num networks %u exceeds max %u"),
+		       num_networks, SIR_PASSPOINT_LIST_MAX_NETWORKS);
+		return -EINVAL;
+	}
 
+	hddLog(LOG1, FL("num networks %u"), num_networks);
 	req_msg = vos_mem_malloc(sizeof(*req_msg) +
 			(num_networks * sizeof(req_msg->networks[0])));
 	if (!req_msg) {
@@ -16578,6 +16598,78 @@ static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 }
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_RATE_BACKPORTS)
+/**
+ * hdd_get_data_rate_from_rate_mask() - convert mask to rate
+ * @wiphy: Pointer to wiphy
+ * @band: band
+ * @bit_rate_mask: pointer to bit_rake_mask
+ *
+ * This function takes band and bit_rate_mask as input and
+ * derives the beacon_tx_rate based on the supported rates
+ * published as part of wiphy register.
+ *
+ * Return: zero for data rate on success or 0 on failure
+ */
+uint16_t hdd_get_data_rate_from_rate_mask(struct wiphy *wiphy,
+		enum ieee80211_band band,
+		struct cfg80211_bitrate_mask *bit_rate_mask)
+{
+	struct ieee80211_supported_band *sband = wiphy->bands[band];
+	int sband_n_bitrates;
+	struct ieee80211_rate *sband_bitrates;
+	int i;
+
+	if (sband) {
+		sband_bitrates = sband->bitrates;
+		sband_n_bitrates = sband->n_bitrates;
+		for (i = 0; i < sband_n_bitrates; i++) {
+			if (bit_rate_mask->control[band].legacy ==
+				sband_bitrates[i].hw_value) {
+				return sband_bitrates[i].bitrate;
+			}
+		}
+	}
+	return 0;
+}
+
+/**
+ * hdd_update_beacon_rate() - Update beacon tx rate
+ * @pAdapter: Pointer to hdd_adapter_t
+ * @wiphy: Pointer to wiphy
+ * @params: Pointet to cfg80211_ap_settings
+ *
+ * This function updates the beacon tx rate which is provided
+ * as part of cfg80211_ap_settions in to the sapConfig
+ * structure
+ *
+ * Return: zero for data rate on success or 0 on failure
+ */
+void hdd_update_beacon_rate(hdd_adapter_t *pAdapter, struct wiphy *wiphy,
+		struct cfg80211_ap_settings *params)
+{
+	struct cfg80211_bitrate_mask *beacon_rate_mask;
+	enum ieee80211_band band;
+
+	band = params->chandef.chan->band;
+	beacon_rate_mask = &params->beacon_rate;
+	if (beacon_rate_mask->control[band].legacy) {
+		pAdapter->sessionCtx.ap.sapConfig.beacon_tx_rate =
+			hdd_get_data_rate_from_rate_mask(wiphy, band,
+					beacon_rate_mask);
+		hddLog(VOS_TRACE_LEVEL_INFO,
+				FL("beacon mask value %u, rate %hu"),
+				params->beacon_rate.control[0].legacy,
+				pAdapter->sessionCtx.ap.sapConfig.beacon_tx_rate);
+	}
+}
+#else
+void hdd_update_beacon_rate(hdd_adapter_t *pAdapter, struct wiphy *wiphy,
+		struct cfg80211_ap_settings *params)
+{
+}
+#endif
+
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) || defined(WITH_BACKPORTS)
 
 static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
@@ -16589,7 +16681,6 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
     uint32_t channel_width;
     hdd_context_t *pHddCtx;
     int            status;
-
     ENTER();
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -16784,6 +16875,9 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         params->chandef.chan, channel_type);
 #endif
 #endif
+
+        hdd_update_beacon_rate(pAdapter, wiphy, params);
+
         /* set authentication type */
         switch ( params->auth_type )
         {
@@ -16801,6 +16895,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
                                              params->chandef.width;
 #endif
+
         status = wlan_hdd_cfg80211_start_bss(pAdapter, &params->beacon, params->ssid,
                                              params->ssid_len, params->hidden_ssid);
         if (status == 0) {

@@ -1411,7 +1411,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         limSendBeaconParams(pMac, &beaconParams, psessionEntry );
     }
 
-    if (pSta->sub20_dynamic_channelwidth != 0)
+    if (NULL != pSta && pSta->sub20_dynamic_channelwidth != 0)
             populate_dot11f_sub_20_channel_width_ie(
                 pMac, &frm.QComVendorIE, psessionEntry);
 
