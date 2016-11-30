@@ -7674,9 +7674,11 @@ static eHalStatus csr_ssid_scan_done_callback(tHalHandle halHandle,
 	struct csr_scan_for_ssid_context *scan_context =
 		(struct csr_scan_for_ssid_context *)context;
 
-	if (NULL == scan_context)
+	if (NULL == scan_context) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 				FL("scan for ssid context not found"));
+		return eHAL_STATUS_FAILURE;
+	}
 
 	if (eCSR_SCAN_ABORT == status)
 		csrRoamCallCallback(scan_context->pMac, scan_context->sessionId,
