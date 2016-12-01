@@ -264,6 +264,7 @@ typedef struct sap_StationAssocIndication_s {
     eCsrEncryptionType negotiatedUCEncryptionType;
     eCsrEncryptionType negotiatedMCEncryptionType;
     tANI_BOOLEAN fAuthRequired;
+    uint8_t      ecsa_capable;
 } tSap_StationAssocIndication;
 
 typedef struct sap_StationAssocReassocCompleteEvent_s {
@@ -284,6 +285,7 @@ typedef struct sap_StationAssocReassocCompleteEvent_s {
     tANI_U8*     assocRespPtr;
     tANI_U8      timingMeasCap;
     tSirSmeChanInfo chan_info;
+    uint8_t      ecsa_capable;
 } tSap_StationAssocReassocCompleteEvent;
 
 typedef struct sap_StationDisassocCompleteEvent_s {

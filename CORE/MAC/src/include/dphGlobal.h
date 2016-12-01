@@ -516,6 +516,8 @@ typedef struct sDphHashNode
     struct sDphHashNode  *next;
     tANI_S8 del_sta_ctx_rssi;
     uint8_t sub20_dynamic_channelwidth;
+    /* Flag indicating connected STA doesn't support ECSA */
+    uint8_t non_ecsa_capable;
 } tDphHashNode, *tpDphHashNode;
 
 

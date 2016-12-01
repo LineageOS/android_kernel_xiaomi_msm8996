@@ -1257,6 +1257,8 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                  sizeof(tSirSmeChanInfo));
     // Fill in WmmInfo
     pSirSmeAssocInd->wmmEnabledSta = pAssocInd->WmmStaInfoPresent;
+    pSirSmeAssocInd->ecsa_capable = pAssocInd->ecsa_capable;
+
 } /*** end limAssocIndSerDes() ***/
 
 

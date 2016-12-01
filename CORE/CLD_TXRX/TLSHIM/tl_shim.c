@@ -1254,13 +1254,39 @@ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
 	}
 
 	peer = ol_txrx_peer_find_by_local_id(
-			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
+			vos_get_context(VOS_MODULE_ID_TXRX,vos_ctx),
 			sta_id);
 	if (!peer) {
 		TLSHIM_LOGW("Invalid peer");
 		return NULL;
 	} else {
 		return (void *)peer->vdev;
+	}
+}
+
+/**
+ * tlshim_selfpeer_vdev() - get the vdev of self peer
+ * @vos_ctx: vos context
+ *
+ * Return: on success return vdev, NULL when self peer is invalid/NULL
+ */
+void *tlshim_selfpeer_vdev(void *vos_ctx)
+{
+	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+							   vos_ctx);
+	struct ol_txrx_peer_t *peer;
+
+	if (!pdev) {
+		TLSHIM_LOGE("Txrx pdev is NULL");
+		return NULL;
+	}
+
+	peer = pdev->self_peer;
+	if (!peer) {
+		TLSHIM_LOGW("Invalid peer");
+		return NULL;
+	} else {
+		return peer->vdev;
 	}
 }
 
@@ -2008,8 +2034,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 		return VOS_STATUS_E_NOMEM;
 	}
 
-	if (wdi_out_cfg_is_high_latency(txrx_pdev->ctrl_pdev))
-		ol_tx_failure_cb_set(txrx_pdev, wma_tx_failure_cb);
+	ol_tx_failure_cb_set(txrx_pdev, wma_tx_failure_cb);
 
 	adf_os_spinlock_init(&tl_shim->bufq_lock);
 	adf_os_spinlock_init(&tl_shim->mgmt_lock);

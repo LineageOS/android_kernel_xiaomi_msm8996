@@ -9402,6 +9402,8 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             pRoamInfo->timingMeasCap = pUpperLayerAssocCnf->timingMeasCap;
             vos_mem_copy(&pRoamInfo->chan_info, &pUpperLayerAssocCnf->chan_info,
                                                        sizeof(tSirSmeChanInfo));
+            pRoamInfo->ecsa_capable = pUpperLayerAssocCnf->ecsa_capable;
+
             if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) )
             {
                 pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
@@ -10389,6 +10391,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                  sizeof(tCsrBssid));
                     pRoamInfo->wmmEnabledSta = pAssocInd->wmmEnabledSta;
                     pRoamInfo->timingMeasCap = pAssocInd->timingMeasCap;
+                    pRoamInfo->ecsa_capable = pAssocInd->ecsa_capable;
                     vos_mem_copy(&pRoamInfo->chan_info, &pAssocInd->chan_info,
                                  sizeof(tSirSmeChanInfo));
                     if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
@@ -15147,6 +15150,10 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         pBuf += sizeof (tANI_U8);
         vos_mem_copy((void *)pBuf, &pAssocInd->chan_info,
                         sizeof(tSirSmeChanInfo));
+
+        pBuf += sizeof(tSirSmeChanInfo);
+        *pBuf = pAssocInd->ecsa_capable;
+
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
         msgQ.bodyptr = pMsg;
         msgQ.bodyval = 0;

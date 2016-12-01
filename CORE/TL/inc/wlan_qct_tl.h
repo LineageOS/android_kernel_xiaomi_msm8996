@@ -644,6 +644,14 @@ typedef struct
 
 void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id);
 
+/**
+ * tlshim_selfpeer_vdev() - get vdev of self peer
+ * @vos_ctx		vos context
+ *
+ * Return: on success return vdev, NULL when self peer is invalid/NULL
+ */
+void *tlshim_selfpeer_vdev(void *vos_ctx);
+
 /*==========================================================================
 
   FUNCTION    WLANTL_Open

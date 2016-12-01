@@ -460,7 +460,7 @@ VOS_STATUS iw_set_tdls_params(struct net_device *dev, struct iw_request_info *in
 #endif
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
+int wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
 #endif
 void* wlan_hdd_change_country_code_callback(void *pAdapter);
 

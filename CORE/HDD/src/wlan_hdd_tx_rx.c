@@ -520,14 +520,20 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #endif
 #endif
 
-       hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
-       if (STAId == HDD_WLAN_INVALID_STA_ID) {
-           hddLog(LOG1, "Invalid station id, transmit operation suspended");
-           goto drop_pkt;
-       }
+       /* use self peer directly in monitor mode */
+       if (VOS_MONITOR_MODE != vos_get_conparam()) {
+           hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
+           if (STAId == HDD_WLAN_INVALID_STA_ID) {
+               hddLog(LOG1, "Invalid station id, transmit operation suspended");
+               goto drop_pkt;
+           }
 
-       vdev_temp = tlshim_peer_validity(
-                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
+           vdev_temp = tlshim_peer_validity(
+                   (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
+       } else {
+           vdev_temp =
+               tlshim_selfpeer_vdev((WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+       }
        if (!vdev_temp)
            goto drop_pkt;
 
@@ -1112,6 +1118,40 @@ bool drop_ip6_mcast(struct sk_buff *skb)
 #define drop_ip6_mcast(_a) 0
 #endif
 
+#ifdef CONFIG_HL_SUPPORT
+/*
+ * hdd_move_radiotap_header_forward - move radiotap header to head of skb
+ * @skb: skb to be modified
+ *
+ * For HL monitor mode, radiotap is appended to tail when update radiotap
+ * info in htt layer. Need to copy it ahead of skb before indicating to OS.
+ */
+static void hdd_move_radiotap_header_forward(struct sk_buff *skb)
+{
+	adf_nbuf_t msdu = (adf_nbuf_t)skb;
+	struct ieee80211_radiotap_header *rthdr;
+	uint8_t rtap_len;
+
+	adf_nbuf_put_tail(msdu,
+		sizeof(struct ieee80211_radiotap_header));
+	rthdr = (struct ieee80211_radiotap_header *)
+	    (adf_nbuf_data(msdu) + adf_nbuf_len(msdu) -
+	     sizeof(struct ieee80211_radiotap_header));
+	rtap_len = rthdr->it_len;
+	adf_nbuf_put_tail(msdu,
+			  rtap_len -
+			  sizeof(struct ieee80211_radiotap_header));
+	adf_nbuf_push_head(msdu, rtap_len);
+	adf_os_mem_copy(adf_nbuf_data(msdu), rthdr, rtap_len);
+	adf_nbuf_trim_tail(msdu, rtap_len);
+}
+#else
+static inline void hdd_move_radiotap_header_forward(struct sk_buff *skb)
+{
+    /* no-op */
+}
+#endif
+
 /**
  * hdd_mon_rx_packet_cbk() - Receive callback registered with TLSHIM.
  * @vosContext: [in] pointer to VOS context
@@ -1161,6 +1201,8 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 	/* walk the chain until all are processed */
 	skb = (struct sk_buff *) rx_buf;
 	while (NULL != skb) {
+		hdd_move_radiotap_header_forward(skb);
+
 		skb_next = skb->next;
 		skb->dev = adapter->dev;
 

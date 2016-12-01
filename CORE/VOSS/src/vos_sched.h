@@ -658,6 +658,7 @@ int vos_get_gfp_flags(void);
 void vos_wd_reset_thread_stuck_count(int thread_id);
 bool vos_is_wd_thread(int thread_id);
 int vos_sched_is_mc_thread(int thread_id);
+void vos_thread_stuck_timer_init(pVosWatchdogContext wd_ctx);
 
 #define vos_wait_for_work_thread_completion(func) vos_is_ssr_ready(func)
 

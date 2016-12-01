@@ -1290,6 +1290,8 @@ typedef struct sSirSmeAssocInd
     /* Timing and fine Timing measurement capability clubbed together */
     tANI_U8              timingMeasCap;
     tSirSmeChanInfo      chan_info;
+    /* Extended CSA capability of station */
+    uint8_t              ecsa_capable;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 
@@ -6259,6 +6261,10 @@ typedef struct
         time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
         a data frame with PM bit set) */
     tANI_U32 rx_leak_window;
+    uint32_t rts_succ_cnt;
+    uint32_t rts_fail_cnt;
+    uint32_t ppdu_succ_cnt;
+    uint32_t ppdu_fail_cnt;
     /* per ac data packet statistics */
     tSirWifiWmmAcStat    AccessclassStats[WIFI_AC_MAX];
 } tSirWifiIfaceStat, *tpSirWifiIfaceStat;

@@ -985,11 +985,9 @@ static void __vos_process_wd_timer(void)
 						node);
 		list_del(pos);
 		spin_unlock(&vos_global_context->wdthread_work_lock);
-		if ((NULL != wdthread_timer_work->callback) &&
-		    (NULL != wdthread_timer_work->userdata)) {
+		if (NULL != wdthread_timer_work->callback)
 			wdthread_timer_work->callback(
 				wdthread_timer_work->userdata);
-		}
 		vos_mem_free(wdthread_timer_work);
 		spin_lock(&vos_global_context->wdthread_work_lock);
 	}

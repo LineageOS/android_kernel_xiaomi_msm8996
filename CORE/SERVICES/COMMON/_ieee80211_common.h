@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -547,5 +547,22 @@ struct ieee80211_chanutil_info {
     u_int32_t    beacon_count;
     u_int8_t     beacon_intervals;
 };
+
+/**
+ * struct ieee80211_radiotap_header - radio tap header
+ * @it_version: version 0
+ * @it_pad:     padding
+ * @it_len:     length of the whole header in bytes
+ * @it_present: bitmap telling which fields are present
+ *
+ * This struct is used to indicate rx status in monitor mode
+ * and carry tx parameters in packet injection.
+ */
+struct ieee80211_radiotap_header {
+	u_int8_t it_version;
+	u_int8_t it_pad;
+	u_int16_t it_len;
+	u_int32_t it_present;
+} __packed;
 
 #endif /* _COMMON__IEEE80211_H_ */

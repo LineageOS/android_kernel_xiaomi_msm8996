@@ -38,6 +38,7 @@
 #include <ol_htt_rx_api.h>     /* htt_rx_peer_id, etc. */
 
 /* internal API header files */
+#include <ol_txrx.h>           /* ol_txrx_peer_unref_delete */
 #include <ol_txrx_types.h>     /* ol_txrx_vdev_t, etc. */
 #include <ol_txrx_peer_find.h> /* ol_txrx_peer_find_by_id */
 #include <ol_rx_reorder.h>     /* ol_rx_reorder_store, etc. */
@@ -224,6 +225,78 @@ OL_RX_MPDU_RSSI_UPDATE(
 #define OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg) /* no-op */
 #define OL_RX_MPDU_RSSI_UPDATE(peer, rx_mpdu_desc) /* no-op */
 #endif /* QCA_SUPPORT_PEER_DATA_RX_RSSI */
+
+/**
+ * ol_rx_mon_indication_handler() - htt rx indication message handler
+ * for HL monitor mode.
+ * @pdev: pointer to struct ol_txrx_pdev_handle
+ * @rx_ind_msg:      htt rx indication message
+ * @peer_id:         peer id
+ * @tid:             tid
+ * @num_mpdu_ranges: number of mpdu ranges
+ *
+ * This function pops amsdu from rx indication message and directly
+ * deliver to upper layer.
+ */
+void
+ol_rx_mon_indication_handler(
+	ol_txrx_pdev_handle pdev,
+	adf_nbuf_t rx_ind_msg,
+	u_int16_t peer_id,
+	u_int8_t tid,
+	int num_mpdu_ranges)
+{
+	int mpdu_range;
+	struct ol_txrx_peer_t *peer;
+	htt_pdev_handle htt_pdev;
+	struct ol_txrx_vdev_t *vdev = NULL;
+
+	htt_pdev = pdev->htt_pdev;
+
+	peer = pdev->self_peer;
+
+	if (peer) {
+	    adf_os_atomic_inc(&peer->ref_cnt);
+	    vdev = peer->vdev;
+	}
+
+	for (mpdu_range = 0; mpdu_range < num_mpdu_ranges; mpdu_range++) {
+		enum htt_rx_status status;
+		int i, num_mpdus;
+		adf_nbuf_t head_msdu, tail_msdu;
+
+		htt_rx_ind_mpdu_range_info(
+			pdev->htt_pdev,
+			rx_ind_msg,
+			mpdu_range,
+			&status,
+			&num_mpdus);
+
+		TXRX_STATS_ADD(pdev, priv.rx.normal.mpdus, num_mpdus);
+
+		for (i = 0; i < num_mpdus; i++) {
+			htt_rx_amsdu_pop(
+				htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
+			if (peer && vdev) {
+				peer->rx_opt_proc(vdev, peer, tid, head_msdu);
+			} else {
+				while (1) {
+					adf_nbuf_t next;
+					next = adf_nbuf_next(head_msdu);
+					htt_rx_desc_frame_free(
+						htt_pdev,
+						head_msdu);
+					if (head_msdu == tail_msdu)
+						break;
+					head_msdu = next;
+				}
+			}
+		}
+	}
+
+	if (peer)
+		ol_txrx_peer_unref_delete(peer);
+}
 
 void
 ol_rx_indication_handler(

@@ -8998,8 +8998,9 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 	struct wma_txrx_node *iface = &wma_handle->interfaces[vdev_id];
 	struct wma_target_req *msg;
 
-	if ((iface->type == WMI_VDEV_TYPE_AP) &&
-	    (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) {
+	if (((iface->type == WMI_VDEV_TYPE_AP) &&
+	     (iface->sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) ||
+	    (iface->type == WMI_VDEV_TYPE_MONITOR)) {
 
 		WMA_LOGA("P2P Device: removing self peer %pM",
 				pdel_sta_self_req_param->selfMacAddr);

@@ -263,6 +263,7 @@ typedef struct sLimMlmAssocInd
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
     tSirSmeChanInfo      chan_info;
+    uint8_t              ecsa_capable;
 } tLimMlmAssocInd, *tpLimMlmAssocInd;
 
 typedef struct sLimMlmReassocReq
@@ -303,6 +304,7 @@ typedef struct sLimMlmReassocInd
     tANI_U8*             beaconPtr;
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
+    uint8_t              ecsa_capable;
 } tLimMlmReassocInd, *tpLimMlmReassocInd;
 
 typedef struct sLimMlmAuthCnf

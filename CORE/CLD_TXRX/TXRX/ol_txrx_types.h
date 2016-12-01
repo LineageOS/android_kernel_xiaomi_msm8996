@@ -858,6 +858,12 @@ struct ol_txrx_pdev_t {
 
 	struct ol_txrx_peer_t *self_peer;
 	uint32_t total_bundle_queue_length;
+
+#ifdef MAC_NOTIFICATION_FEATURE
+	/* Callback to indicate failure to user space */
+	void (*tx_failure_cb)(void *ctx, unsigned int num_msdu,
+			      unsigned char tid, unsigned int status);
+#endif
 };
 
 struct ol_txrx_ocb_chan_info {

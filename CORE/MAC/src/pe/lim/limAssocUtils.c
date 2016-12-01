@@ -3329,6 +3329,19 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
                 }
             }
 
+            if (pStaDs->non_ecsa_capable) {
+                    if (psessionEntry->lim_non_ecsa_cap_num == 0) {
+                            limLog(pMac, LOGE,
+                                   FL("Non ECSA sta cnt 0, sta: %d is ecsa\n"),
+                                   staId);
+                    } else {
+                            psessionEntry->lim_non_ecsa_cap_num--;
+                            limLog(pMac, LOGE,
+                                   FL("reducing the non ECSA num to %d"),
+                                   psessionEntry->lim_non_ecsa_cap_num);
+                    }
+            }
+
             if (LIM_IS_IBSS_ROLE(psessionEntry))
                 limIbssDecideProtectionOnDelete(pMac, pStaDs, &beaconParams, psessionEntry);
 
