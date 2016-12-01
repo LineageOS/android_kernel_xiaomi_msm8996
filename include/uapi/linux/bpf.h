@@ -99,11 +99,13 @@ enum bpf_prog_type {
 	BPF_PROG_TYPE_XDP,
 	BPF_PROG_TYPE_PERF_EVENT,
 	BPF_PROG_TYPE_CGROUP_SKB,
+	BPF_PROG_TYPE_CGROUP_SOCK,
 };
 
 enum bpf_attach_type {
 	BPF_CGROUP_INET_INGRESS,
 	BPF_CGROUP_INET_EGRESS,
+	BPF_CGROUP_INET_SOCK_CREATE,
 	__MAX_BPF_ATTACH_TYPE
 };
 
@@ -625,6 +627,10 @@ struct bpf_tunnel_key {
 	__u8 tunnel_ttl;
 	__u16 tunnel_ext;
 	__u32 tunnel_label;
+};
+
+struct bpf_sock {
+	__u32 bound_dev_if;
 };
 
 /* User return codes for XDP prog type.
