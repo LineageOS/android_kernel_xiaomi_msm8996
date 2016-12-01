@@ -1,5 +1,4 @@
 /* Copyright (c) 2008-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -4117,8 +4116,6 @@ static int __init kgsl_core_init(void)
 		goto err;
 
 	kgsl_memfree_init();
-
-	kgsl_heap_init();
 
 	return 0;
 
