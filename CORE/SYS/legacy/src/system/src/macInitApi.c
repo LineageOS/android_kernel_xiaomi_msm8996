@@ -124,7 +124,11 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    peStop(pMac);
+
+    //In FTM mode,  peStart is not called during driver load.
+    if (pMac->gDriverType != eDRIVER_TYPE_MFG)
+        peStop(pMac);
+
     cfgCleanup( pMac );
     // need to free memory if not called in reset context.
     // in reset context this memory will be freed by HDD.
