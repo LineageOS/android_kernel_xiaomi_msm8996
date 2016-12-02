@@ -3289,7 +3289,9 @@ sapSignalHDDevent
             }
             else
             {
-                sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = 0;
+                sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId =
+                    tl_shim_get_sta_id_by_addr(sapContext->pvosGCtx,
+                        sapContext->self_mac_addr);
             }
 
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s(eSAP_START_BSS_EVENT): staId = %d",

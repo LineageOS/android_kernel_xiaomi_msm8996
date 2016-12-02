@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2950,4 +2950,16 @@ VOS_STATUS WLANTL_RegisterOCBPeer(void *vos_ctx, uint8_t *mac_addr,
 void WLANTL_display_datapath_stats(void *vos_ctx, uint16_t bitmap);
 void WLANTL_clear_datapath_stats(void *vos_ctx, uint16_t bitmap);
 
+#ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+/**
+ * tl_shim_get_sta_id_by_addr() - get peer local id given the MAC address.
+ * @vos_context: pointer to vos context
+ * @mac_addr: pointer to mac address
+ *
+ * Return: local id of the peer given the MAC address.
+ */
+uint16_t tl_shim_get_sta_id_by_addr(void *vos_context, uint8_t *mac_addr);
+#else
+#define tl_shim_get_sta_id_by_addr(vos_context,mac_addr) 0
+#endif
 #endif /* #ifndef WLAN_QCT_WLANTL_H */
