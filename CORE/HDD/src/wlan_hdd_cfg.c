@@ -6582,9 +6582,10 @@ VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-   hddLog(LOG1, "hdd_set_idle_ps_config: Enter Val %d", val);
+   hddLog(LOG1, "hdd_set_idle_ps_config: Enter Val %d pconfig %p ",
+                 val, pConfig);
 
-   if(pConfig->fIsImpsEnabled)
+   if(pConfig && pConfig->fIsImpsEnabled)
    {
       status = sme_SetIdlePowersaveConfig(pHddCtx->pvosContext, val);
       if(VOS_STATUS_SUCCESS != status)
