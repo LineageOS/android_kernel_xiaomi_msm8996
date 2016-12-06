@@ -3154,8 +3154,13 @@ __wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 		ssid_length = nla_strlcpy(ssid_string,
 			   tb2[PARAM_SSID],
 			   sizeof(ssid_string));
-		hddLog(LOG1, FL("SSID %s"),
-		       ssid_string);
+
+		/* nla_parse will detect overflow but not underflow */
+		if (0 == ssid_length) {
+			hddLog(LOGE, FL("zero ssid length"));
+			goto fail;
+		}
+		hddLog(LOG1, FL("SSID %s"), ssid_string);
 		ssid_len = strlen(ssid_string);
 		if (ssid_length > SIR_MAC_MAX_SSID_LENGTH) {
 			hddLog(LOGE, FL("Invalid ssid length"));
