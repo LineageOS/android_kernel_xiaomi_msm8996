@@ -13729,6 +13729,13 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
     wiphy->features |= NL80211_FEATURE_INACTIVITY_TIMER;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)) || \
+    defined(CFG80211_BEACON_TX_RATE_CUSTOM_BACKPORT)
+    wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_LEGACY);
+    wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_HT);
+    wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_VHT);
+#endif
+
     hdd_config_sched_scan_plans_to_wiphy(wiphy, pCfg);
     wlan_hdd_cfg80211_scan_randomization_init(wiphy);
 
