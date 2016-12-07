@@ -336,16 +336,22 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status,
                          tANI_U32 *data, tpPESession psessionEntry)
 {
     tSirMacAuthFrameBody authFrame;
+    tANI_U32 session_id;
+    eCsrAuthType auth_type;
 
     if (NULL == psessionEntry) {
         PELOGE(limLog(pMac, LOGE, FL("psessionEntry is NULL"));)
         return;
     }
 
+    session_id = psessionEntry->smeSessionId;
+    auth_type = pMac->roam.roamSession[session_id].connectedProfile.AuthType;
+
     if (psessionEntry->is11Rconnection &&
         psessionEntry->ftPEContext.pFTPreAuthReq) {
         /* Only 11r assoc has FT IEs */
-        if (psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length == 0) {
+        if ((auth_type != eCSR_AUTH_TYPE_OPEN_SYSTEM) &&
+            (psessionEntry->ftPEContext.pFTPreAuthReq->ft_ies_length == 0)) {
             PELOGE(limLog( pMac, LOGE,
                            "%s: FTIEs for Auth Req Seq 1 is absent",
                            __func__);)

@@ -70,10 +70,6 @@ config WLAN_UDP_RESPONSE_OFFLOAD
 	bool "Enable UDP response offload feature"
 	default n
 
-config WLAN_FEATURE_RX_WAKELOCK
-	bool "Enable RX wake lock feature"
-	default n
-
 config WLAN_WOW_PULSE
 	bool "Enable WOW Pulse feature"
 	default n

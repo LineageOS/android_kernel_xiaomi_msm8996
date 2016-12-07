@@ -590,7 +590,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tSmeCmd *pScanCmd = NULL;
-    eCsrConnectState ConnectState;
 
     if(pScanRequest == NULL)
     {
@@ -704,25 +703,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                     pScanRequest->ChannelInfo.numOfChannels == P2P_SOCIAL_CHANNELS
                     && (!(pMac->sme.miracast_value))) {
                     pScanRequest->maxChnTime += P2P_SEARCH_DWELL_TIME_INCREASE;
-                }
-
-                 /*For Standalone wlan : channel time will remain the same.
-                   For BTC with A2DP up: Channel time = Channel time * 2, if station is not already associated.
-                   This has been done to provide a larger scan window for faster connection during btc.Else Scan is seen
-                   to take a long time.
-                   For BTC with A2DP up: Channel time will not be doubled, if station is already associated.
-                 */
-                status = csrRoamGetConnectState(pMac,sessionId,&ConnectState);
-                if (HAL_STATUS_SUCCESS(status) &&
-                   (eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED != ConnectState) &&
-                   (eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED != ConnectState))
-                {
-                    pScanRequest->maxChnTime = pScanRequest->maxChnTime << 1;
-                    pScanRequest->minChnTime = pScanRequest->minChnTime << 1;
-                    smsLog( pMac, LOG1, FL("BTC A2DP up, doubling max and min"
-                          " ChnTime (Max=%d Min=%d)"),
-                          pScanRequest->maxChnTime,
-                          pScanRequest->minChnTime);
                 }
 
                 //Need to make the following atomic
@@ -7694,9 +7674,11 @@ static eHalStatus csr_ssid_scan_done_callback(tHalHandle halHandle,
 	struct csr_scan_for_ssid_context *scan_context =
 		(struct csr_scan_for_ssid_context *)context;
 
-	if (NULL == scan_context)
+	if (NULL == scan_context) {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
 				FL("scan for ssid context not found"));
+		return eHAL_STATUS_FAILURE;
+	}
 
 	if (eCSR_SCAN_ABORT == status)
 		csrRoamCallCallback(scan_context->pMac, scan_context->sessionId,

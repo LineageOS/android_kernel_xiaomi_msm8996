@@ -19093,6 +19093,7 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
    eCsrAuthType conn_Auth_type;
    tANI_U32     sessionId = pFTPreAuthRsp->smeSessionId;
    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+   tDot11fAuthentication *pAuth = NULL;
 
    if (NULL == pSession)
    {
@@ -19199,6 +19200,22 @@ void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuth
          pSession->ftSmeContext.reassoc_ft_ies_length = 0;
          pSession->ftSmeContext.reassoc_ft_ies = NULL;
       }
+
+      pAuth = (tDot11fAuthentication *) vos_mem_malloc(sizeof(tDot11fAuthentication));
+      if(pAuth == NULL)
+         return;
+
+      status = dot11fUnpackAuthentication(pMac, pFTPreAuthRsp->ft_ies,
+                  pFTPreAuthRsp->ft_ies_length, pAuth);
+      if (DOT11F_FAILED(status))
+      {
+         smsLog( pMac, LOGE, FL("Failed to parse an Authentication frame"));
+      }
+      else if (pAuth->MobilityDomain.present)
+      {
+         pSession->ftSmeContext.addMDIE = TRUE;
+      }
+      vos_mem_free(pAuth);
 
       if (!ft_ies_length)
          return;

@@ -268,6 +268,8 @@ enum {
     QCASAP_PARAM_RX_STBC,
     QCASAP_SET_RADAR_DBG,
     QCSAP_PARAM_CHAN_WIDTH,
+    QCSAP_SET_DEFAULT_AMPDU,
+    QCSAP_ENABLE_RTS_BURSTING,
 };
 
 int iw_get_channel_list(struct net_device *dev,

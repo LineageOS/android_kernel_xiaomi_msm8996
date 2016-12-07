@@ -3727,6 +3727,20 @@ static __iw_softap_setparam(struct net_device *dev,
             ret = hdd_set_rx_stbc(pHostapdAdapter, set_value);
             break;
 
+        case QCSAP_SET_DEFAULT_AMPDU:
+            hddLog(LOG1, "QCSAP_SET_DEFAULT_AMPDU val %d", set_value);
+            ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_MAX_MPDUS_IN_AMPDU,
+                                         set_value, PDEV_CMD);
+            break;
+
+        case QCSAP_ENABLE_RTS_BURSTING:
+            hddLog(LOG1, "QCSAP_ENABLE_RTS_BURSTING val %d", set_value);
+            ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                   (int)WMI_PDEV_PARAM_ENABLE_RTS_SIFS_BURSTING,
+                                   set_value, PDEV_CMD);
+            break;
+
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -6485,6 +6499,16 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
         0,
         "set_rx_stbc" },
+
+    {   QCSAP_SET_DEFAULT_AMPDU,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "def_ampdu" },
+
+    {   QCSAP_ENABLE_RTS_BURSTING,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "rts_bursting" },
 
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },

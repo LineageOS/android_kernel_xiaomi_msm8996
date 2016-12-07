@@ -2373,6 +2373,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DISABLE_DFS_JAPAN_W53_MAX,
                  chNotify_set_gDisableDfsJapanW53, 0),
 
+   REG_VARIABLE(CFG_SET_RTS_FOR_SIFS_BURSTING, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_rts_sifsbursting,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_DEFAULT,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_MIN,
+                 CFG_SET_RTS_FOR_SIFS_BURSTING_MAX),
+
+   REG_VARIABLE(CFG_MAX_MPDUS_IN_AMPDU, WLAN_PARAM_Integer,
+                 hdd_config_t, max_mpdus_inampdu,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MAX_MPDUS_IN_AMPDU_DEFAULT,
+                 CFG_MAX_MPDUS_IN_AMPDU_MIN,
+                 CFG_MAX_MPDUS_IN_AMPDU_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4917,6 +4931,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SUB_20_CHANNEL_WIDTH_DEFAULT,
                 CFG_SUB_20_CHANNEL_WIDTH_MIN,
                 CFG_SUB_20_CHANNEL_WIDTH_MAX),
+
+   REG_VARIABLE(CFG_RX_WAKELOCK_TIMEOUT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, rx_wakelock_timeout,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_RX_WAKELOCK_TIMEOUT_DEFAULT,
+                CFG_RX_WAKELOCK_TIMEOUT_MIN,
+                CFG_RX_WAKELOCK_TIMEOUT_MAX)
 };
 
 
@@ -6575,9 +6596,10 @@ VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-   hddLog(LOG1, "hdd_set_idle_ps_config: Enter Val %d", val);
+   hddLog(LOG1, "hdd_set_idle_ps_config: Enter Val %d pconfig %p ",
+                 val, pConfig);
 
-   if(pConfig->fIsImpsEnabled)
+   if(pConfig && pConfig->fIsImpsEnabled)
    {
       status = sme_SetIdlePowersaveConfig(pHddCtx->pvosContext, val);
       if(VOS_STATUS_SUCCESS != status)

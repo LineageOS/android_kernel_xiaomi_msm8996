@@ -13296,10 +13296,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    /* Destroy the wake lock */
    vos_wake_lock_destroy(&pHddCtx->rx_wake_lock);
-#endif
    /* Destroy the wake lock */
    vos_wake_lock_destroy(&pHddCtx->sap_wake_lock);
 
@@ -13618,9 +13616,7 @@ void hdd_wlan_wakelock_destroy(void)
 void wlan_hdd_wakelocks_destroy(hdd_context_t *hdd_ctx)
 {
 	if (hdd_ctx) {
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
 		vos_wake_lock_destroy(&hdd_ctx->rx_wake_lock);
-#endif
 		vos_wake_lock_destroy(&hdd_ctx->sap_wake_lock);
 		hdd_hostapd_channel_wakelock_deinit(hdd_ctx);
 	}
@@ -15655,11 +15651,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    reg_netdev_notifier_done = TRUE;
 #endif
 
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    /* Initialize the wake lcok */
    vos_wake_lock_init(&pHddCtx->rx_wake_lock,
            "qcom_rx_wakelock");
-#endif
    /* Initialize the wake lcok */
    vos_wake_lock_init(&pHddCtx->sap_wake_lock,
            "qcom_sap_wakelock");
@@ -15897,6 +15891,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        if ((set_value > 0) && (set_value <= SIFS_BURST_DUR_MAX))
            process_wma_set_command(0, (int)WMI_PDEV_PARAM_BURST_DUR,
                                           set_value, PDEV_CMD);
+   }
+
+   if (pHddCtx->cfg_ini->max_mpdus_inampdu) {
+       set_value = pHddCtx->cfg_ini->max_mpdus_inampdu;
+       process_wma_set_command(0, (int)WMI_PDEV_PARAM_MAX_MPDUS_IN_AMPDU,
+                                      set_value, PDEV_CMD);
+   }
+
+   if (pHddCtx->cfg_ini->enable_rts_sifsbursting) {
+       set_value = pHddCtx->cfg_ini->enable_rts_sifsbursting;
+       process_wma_set_command(0, (int)WMI_PDEV_PARAM_ENABLE_RTS_SIFS_BURSTING,
+                                      set_value, PDEV_CMD);
+
    }
 
    if (hdd_wlan_enable_egap(pHddCtx))

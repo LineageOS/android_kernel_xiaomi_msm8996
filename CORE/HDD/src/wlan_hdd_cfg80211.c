@@ -2893,6 +2893,11 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     }
     pReqMsg->numAp = nla_get_u32(
               tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_BSSID_HOTLIST_PARAMS_NUM_AP]);
+    if (pReqMsg->numAp > WLAN_EXTSCAN_MAX_HOTLIST_APS) {
+        hddLog(LOGE, FL("Number of AP: %u exceeds max: %u"),
+               pReqMsg->numAp, WLAN_EXTSCAN_MAX_HOTLIST_APS);
+        goto fail;
+    }
     hddLog(LOG1, FL("Number of AP %d"), pReqMsg->numAp);
 
     /* Parse and fetch lost ap sample size */
@@ -2911,6 +2916,11 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     i = 0;
     nla_for_each_nested(apTh,
                 tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM], rem) {
+        if (i == pReqMsg->numAp) {
+            hddLog(LOGW, FL("Ignoring excess AP"));
+            break;
+        }
+
         if (nla_parse(tb2, QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
                 nla_data(apTh), nla_len(apTh),
                 wlan_hdd_extscan_config_policy)) {
@@ -2947,6 +2957,12 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
             tb2[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_RSSI_HIGH]);
         hddLog(LOG1, FL("RSSI High %d"), pReqMsg->ap[i].high);
         i++;
+    }
+
+    if (i < pReqMsg->numAp) {
+        hddLog(LOGW, FL("Number of AP %u less than expected %u"),
+               i, pReqMsg->numAp);
+        pReqMsg->numAp = i;
     }
 
     context = &pHddCtx->ext_scan_context;
@@ -3342,6 +3358,11 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
     }
     pReqMsg->numAp = nla_get_u32(
             tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SIGNIFICANT_CHANGE_PARAMS_NUM_AP]);
+    if (pReqMsg->numAp > WLAN_EXTSCAN_MAX_SIGNIFICANT_CHANGE_APS) {
+        hddLog(LOGE, FL("Number of AP %u exceeds max %u"),
+               pReqMsg->numAp, WLAN_EXTSCAN_MAX_SIGNIFICANT_CHANGE_APS);
+        goto fail;
+    }
 
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(LOG1, FL("Number of AP %d Session Id %d"), pReqMsg->numAp,
@@ -3350,6 +3371,12 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
     i = 0;
     nla_for_each_nested(apTh,
                 tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM], rem) {
+
+        if (i == pReqMsg->numAp) {
+            hddLog(LOGW, FL("Ignoring excess AP"));
+            break;
+        }
+
         if (nla_parse(tb2,
                 QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
                 nla_data(apTh), nla_len(apTh),
@@ -3388,6 +3415,11 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
         hddLog(LOG1, FL("RSSI High %d"), pReqMsg->ap[i].high);
 
         i++;
+    }
+    if (i < pReqMsg->numAp) {
+        hddLog(LOGW, FL("Number of AP %u less than expected %u"),
+               i, pReqMsg->numAp);
+        pReqMsg->numAp = i;
     }
 
     context = &pHddCtx->ext_scan_context;
@@ -12522,6 +12554,7 @@ uint8_t hdd_get_sap_operating_channel(hdd_context_t *hdd_ctx) {
 		else sap_operating_band = eCSR_BAND_ALL;
 		status = hdd_get_next_adapter(hdd_ctx, adapter_node,
 				&next);
+		adapter_node = next;
 	}
 	return sap_operating_band;
 }
@@ -20027,8 +20060,13 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         else
             scanRequest.scanType = pHddCtx->ioctl_scan_mode;
     }
-    scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
-    scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
+    if (scanRequest.scanType == eSIR_PASSIVE_SCAN) {
+        scanRequest.minChnTime = cfg_param->nPassiveMinChnTime;
+        scanRequest.maxChnTime = cfg_param->nPassiveMaxChnTime;
+    } else {
+        scanRequest.minChnTime = cfg_param->nActiveMinChnTime;
+        scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
+    }
 
 #ifdef CFG80211_SCAN_BSSID
     vos_mem_copy(scanRequest.bssid, request->bssid, VOS_MAC_ADDR_SIZE);
