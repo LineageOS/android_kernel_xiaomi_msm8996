@@ -5177,7 +5177,7 @@ limDeleteBASessions(tpAniSirGlobal pMac, tpPESession pSessionEntry,
                 LIM_IS_BT_AMP_AP_ROLE(pSessionEntry) ||
                 LIM_IS_IBSS_ROLE(pSessionEntry) ||
                 LIM_IS_P2P_DEVICE_GO(pSessionEntry)) {
-                for (i = 0; i < pMac->lim.maxStation; i++)
+                for (i = 0; i < (pMac->lim.maxStation + 1); i++)
                 {
                     pSta = pSessionEntry->dph.dphHashTable.pDphNodeArray + i;
                     if (pSta && pSta->added)
