@@ -290,9 +290,11 @@ int cnss_common_request_bus_bandwidth(struct device *dev, int bandwidth)
 	int ret;
 
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		ret = cnss_sdio_request_bus_bandwidth(bandwidth);
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		ret = cnss_pci_request_bus_bandwidth(bandwidth);
 		break;
@@ -309,8 +311,10 @@ EXPORT_SYMBOL(cnss_common_request_bus_bandwidth);
 void *cnss_common_get_virt_ramdump_mem(struct device *dev, unsigned long *size)
 {
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		return cnss_sdio_get_virt_ramdump_mem(size);
+#endif
 	case CNSS_BUS_PCI:
 		return cnss_pci_get_virt_ramdump_mem(size);
 	default:
@@ -323,9 +327,11 @@ EXPORT_SYMBOL(cnss_common_get_virt_ramdump_mem);
 void cnss_common_device_self_recovery(struct device *dev)
 {
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		cnss_sdio_device_self_recovery();
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		cnss_pci_device_self_recovery();
 		break;
@@ -339,9 +345,11 @@ EXPORT_SYMBOL(cnss_common_device_self_recovery);
 void cnss_common_schedule_recovery_work(struct device *dev)
 {
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		cnss_sdio_schedule_recovery_work();
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		cnss_pci_schedule_recovery_work();
 		break;
@@ -355,9 +363,11 @@ EXPORT_SYMBOL(cnss_common_schedule_recovery_work);
 void cnss_common_device_crashed(struct device *dev)
 {
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		cnss_sdio_device_crashed();
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		cnss_pci_device_crashed();
 		break;
@@ -373,9 +383,11 @@ u8 *cnss_common_get_wlan_mac_address(struct device *dev, uint32_t *num)
 	u8 *ret;
 
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		ret = cnss_sdio_get_wlan_mac_address(num);
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		ret = cnss_pci_get_wlan_mac_address(num);
 		break;
@@ -394,9 +406,11 @@ int cnss_common_set_wlan_mac_address(
 	int ret;
 
 	switch (cnss_get_dev_bus_type(dev)) {
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		ret = cnss_sdio_set_wlan_mac_address(in, len);
 		break;
+#endif
 	case CNSS_BUS_PCI:
 		ret = cnss_pcie_set_wlan_mac_address(in, len);
 		break;
@@ -418,9 +432,11 @@ int cnss_power_up(struct device *dev)
 	case CNSS_BUS_PCI:
 		ret = cnss_pcie_power_up(dev);
 		break;
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		ret = cnss_sdio_power_up(dev);
 		break;
+#endif
 	default:
 		pr_err("%s: Invalid Bus Type\n", __func__);
 		ret = -EINVAL;
@@ -439,9 +455,11 @@ int cnss_power_down(struct device *dev)
 	case CNSS_BUS_PCI:
 		ret = cnss_pcie_power_down(dev);
 		break;
+#if defined(CONFIG_CNSS_SDIO)
 	case CNSS_BUS_SDIO:
 		ret = cnss_sdio_power_down(dev);
 		break;
+#endif
 	default:
 		pr_err("%s: Invalid Bus Type\n", __func__);
 		ret = -EINVAL;
