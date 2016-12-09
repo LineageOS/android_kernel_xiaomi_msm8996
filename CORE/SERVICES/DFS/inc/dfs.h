@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2005-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -230,6 +230,15 @@
 #define DFS_ETSI_TYPE3_WAR_PRI_UPPER_LIMIT 435
 #define DFS_ETSI_WAR_VALID_PULSE_DURATION 15
 
+#define DFS_RADAR_DELAY 500
+#define DFS_RADAR_IGNORE 300
+#define DFS_RADAR_FALSE_PRI_START 5
+#define DFS_RADAR_FLASE_PRI_END   14
+#define DFS_SIDX1_SIDX2_SIZE 0x20
+#define DFS_SIDX1_SIDX2_MASK 0x1f
+#define DFS_SIDX1_SIDX2_TIME_WINDOW 20000
+#define DFS_SIDX1_SIDX2_DR_LIM 10
+
 typedef  adf_os_spinlock_t  dfsq_lock_t;
 
 #ifdef WIN32
@@ -247,6 +256,13 @@ struct dfs_pulseparams {
 #ifdef WIN32
 #pragma pack(push, dfs_pulseline, 1)
 #endif
+struct dfs_sidx1_sidx2_pulse_line {
+    /* pl_elems - array of pulses in delay line */
+    struct dfs_pulseparams pl_elems[DFS_SIDX1_SIDX2_SIZE];
+    u_int32_t  pl_firstelem;  /* Index of the first element */
+    u_int32_t  pl_lastelem;   /* Index of the last element */
+    u_int32_t  pl_numelems;   /* Number of elements in the delay line */
+} adf_os_packed;
 struct dfs_pulseline {
     /* pl_elems - array of pulses in delay line */
     struct dfs_pulseparams pl_elems[DFS_MAX_PULSE_BUFFER_SIZE];
@@ -588,11 +604,14 @@ struct ath_dfs {
     struct dfs_stats     ath_dfs_stats; /* DFS related stats */
     struct dfs_pulseline *pulses;       /* pulse history */
     struct dfs_event     *events;       /* Events structure */
+    struct dfs_sidx1_sidx2_pulse_line sidx1_sidx2_elems;
 
     u_int32_t
         ath_radar_tasksched:1,      /* radar task is scheduled */
         ath_dfswait:1,         /* waiting on channel for radar detect */
-        ath_dfstest:1;        /* Test timer in progress */
+        ath_dfstest:1,        /* Test timer in progress */
+        ath_radar_delaysched:1,    /*radar found event delay*/
+        ath_radar_ignore_after_assoc:1; /*ignore radar 300ms after assoc*/
     struct ath_dfs_caps dfs_caps;
     u_int8_t   ath_dfstest_ieeechan; /* IEEE chan num to return to after
                                      * a dfs mute test */
@@ -605,6 +624,8 @@ struct ath_dfs {
     u_int8_t   dfs_bangradar;
 #endif
     os_timer_t ath_dfs_task_timer;   /* dfs wait timer */
+    vos_timer_t ath_dfs_radar_ignore_timer; /*ignore radar timer*/
+    vos_timer_t ath_dfs_radar_delay_timer;   /*radar found event delay timer*/
     int        dur_multiplier;
 
     u_int16_t  ath_dfs_isdfsregdomain;   /* true when we are DFS domain */
@@ -628,6 +649,18 @@ struct ath_dfs {
      * channel switch is disabled.
      */
     int8_t     disable_dfs_ch_switch;
+    /*
+     * Currently some WiFi chips sends radar, so add war as below
+     * Ignore radar found 500ms before assoc request packet and 300ms after
+     * assoc request packet.
+     * Create new queue and collect radar pulse with pulse index1 and pulse
+     * index2. Save 32 radar pulses for the new queue. Once radar is found,
+     * for radar pulse in the new queue, remove radar pulse that happens 20ms
+     * ago. Find the biggest and smallest dur for the rest radar pulse in the
+     * new queue. If they have more than 10 difference, then ignore this radar
+     * found.
+     */
+    int8_t     dfs_enable_radar_war;
 };
 
 /* This should match the table from if_ath.c */

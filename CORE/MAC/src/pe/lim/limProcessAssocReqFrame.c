@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -57,6 +57,7 @@
 
 #include "vos_types.h"
 #include "vos_utils.h"
+#include "wma.h"
 /**
  * limConvertSupportedChannels
  *
@@ -264,6 +265,11 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
           psessionEntry->peSessionId, GET_LIM_SYSTEM_ROLE(psessionEntry),
           psessionEntry->limMlmState, MAC_ADDR_ARRAY(pHdr->sa));
 
+   if (pMac->sap.SapDfsInfo.sap_enable_radar_war && (NV_CHANNEL_DFS ==
+           vos_nv_getChannelEnabledState(psessionEntry->currentOperChannel))) {
+       wma_ignore_radar_soon_after_assoc();
+       wma_stop_radar_delay_timer();
+   }
    if (LIM_IS_STA_ROLE(psessionEntry) ||
        LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) {
         limLog(pMac, LOGE, FL("received unexpected ASSOC REQ on sessionid: %d "

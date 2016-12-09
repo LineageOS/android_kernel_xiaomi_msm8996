@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -127,59 +127,109 @@ dfs_channel_mark_radar(struct ath_dfs *dfs, struct ieee80211_channel *chan)
 }
 #endif /* #if 0 */
 
+/**
+ * dfs_radar_ignore() - ignore radar found event
+ * @data: pointer to struct ieee80211com
+ *
+ * Return: none
+ */
+static void dfs_radar_ignore(void *data)
+{
+	struct ieee80211com *ic = (struct ieee80211com *)data;
+	struct ath_dfs *dfs = NULL;
+
+	dfs = (struct ath_dfs *)ic->ic_dfs;
+	dfs->ath_radar_ignore_after_assoc = false;
+}
+
+/**
+ * dfs_radar_delay() - delay radar found event
+ * @data: pointer to struct ieee80211com
+ *
+ * Return: none
+ */
+static void dfs_radar_delay(void *data)
+{
+	struct ieee80211com *ic = (struct ieee80211com *)data;
+	struct ath_dfs *dfs = NULL;
+
+	dfs = (struct ath_dfs *)ic->ic_dfs;
+
+	/*
+	 * This calls into the umac DFS code, which sets the umac related
+	 * radar flags and begins the channel change machinery.
+	 *
+	 * XXX TODO: the umac NOL code isn't used, but IEEE80211_CHAN_RADAR
+	 * still gets set.  Since the umac NOL code isn't used, that flag
+	 * is never cleared.  This needs to be fixed. See EV 105776.
+	 */
+	if (dfs->dfs_rinfo.rn_use_nol == 1)  {
+		ic->ic_dfs_notify_radar(ic, ic->ic_curchan);
+	} else if (dfs->dfs_rinfo.rn_use_nol == 0) {
+		/*
+		 * For the test mode, don't do a CSA here; but setup the
+		 * test timer so we get a CSA _back_ to the original channel.
+		 */
+		OS_CANCEL_TIMER(&dfs->ath_dfstesttimer);
+		dfs->ath_dfstest = 1;
+		adf_os_spin_lock_bh(&ic->chan_lock);
+		dfs->ath_dfstest_ieeechan = ic->ic_curchan->ic_ieee;
+		adf_os_spin_unlock_bh(&ic->chan_lock);
+		dfs->ath_dfstesttime = 1;   /* 1ms */
+		OS_SET_TIMER(&dfs->ath_dfstesttimer, dfs->ath_dfstesttime);
+	}
+	dfs->ath_radar_delaysched = 0;
+}
+
 static OS_TIMER_FUNC(dfs_task)
 {
-    struct ieee80211com *ic;
-    struct ath_dfs *dfs = NULL;
+	struct ieee80211com *ic;
+	struct ath_dfs *dfs = NULL;
 
-    OS_GET_TIMER_ARG(ic, struct ieee80211com *);
-    dfs = (struct ath_dfs *)ic->ic_dfs;
-    /*
-     * XXX no locking?!
-     */
-    if (dfs_process_radarevent(dfs, ic->ic_curchan)) {
-#ifndef ATH_DFS_RADAR_DETECTION_ONLY
+	OS_GET_TIMER_ARG(ic, struct ieee80211com *);
+	dfs = (struct ath_dfs *)ic->ic_dfs;
 
-        /*
-         * This marks the channel (and the extension channel, if HT40) as
-         * having seen a radar event.  It marks CHAN_INTERFERENCE and
-         * will add it to the local NOL implementation.
-         *
-         * This is only done for 'usenol=1', as the other two modes
-         * don't do radar notification or CAC/CSA/NOL; it just notes
-         * there was a radar.
-         */
-
-        if (dfs->dfs_rinfo.rn_use_nol == 1) {
-            //dfs_channel_mark_radar(dfs, ic->ic_curchan);
-        }
-#endif /* ATH_DFS_RADAR_DETECTION_ONLY */
-
-        /*
-         * This calls into the umac DFS code, which sets the umac related
-         * radar flags and begins the channel change machinery.
-         *
-         * XXX TODO: the umac NOL code isn't used, but IEEE80211_CHAN_RADAR
-         * still gets set.  Since the umac NOL code isn't used, that flag
-         * is never cleared.  This needs to be fixed. See EV 105776.
-         */
-        if (dfs->dfs_rinfo.rn_use_nol == 1)  {
-            ic->ic_dfs_notify_radar(ic, ic->ic_curchan);
-        } else if (dfs->dfs_rinfo.rn_use_nol == 0) {
-            /*
-             * For the test mode, don't do a CSA here; but setup the
-             * test timer so we get a CSA _back_ to the original channel.
-             */
-            OS_CANCEL_TIMER(&dfs->ath_dfstesttimer);
-            dfs->ath_dfstest = 1;
-            adf_os_spin_lock_bh(&ic->chan_lock);
-            dfs->ath_dfstest_ieeechan = ic->ic_curchan->ic_ieee;
-            adf_os_spin_unlock_bh(&ic->chan_lock);
-            dfs->ath_dfstesttime = 1;   /* 1ms */
-            OS_SET_TIMER(&dfs->ath_dfstesttimer, dfs->ath_dfstesttime);
-        }
-    }
-    dfs->ath_radar_tasksched = 0;
+	if (dfs_process_radarevent(dfs, ic->ic_curchan)) {
+		if (!dfs->dfs_enable_radar_war) {
+			/*
+			 * This calls into the umac DFS code, which sets the
+			 * umac related radar flags and begins the channel
+			 * change machinery.
+			 *
+			 * XXX TODO: the umac NOL code isn't used, but
+			 * IEEE80211_CHAN_RADAR still gets set.  Since the umac
+			 * NOL code isn't used, that flag is never cleared.
+			 * This needs to be fixed. See EV 105776.
+			 */
+			if (dfs->dfs_rinfo.rn_use_nol == 1)  {
+				ic->ic_dfs_notify_radar(ic, ic->ic_curchan);
+			} else if (dfs->dfs_rinfo.rn_use_nol == 0) {
+				/*
+				 * For the test mode, don't do a CSA here; but
+				 * setup the test timer so we get a CSA _back_
+				 * to the original channel.
+				 */
+				OS_CANCEL_TIMER(&dfs->ath_dfstesttimer);
+				dfs->ath_dfstest = 1;
+				adf_os_spin_lock_bh(&ic->chan_lock);
+				dfs->ath_dfstest_ieeechan =
+					ic->ic_curchan->ic_ieee;
+				adf_os_spin_unlock_bh(&ic->chan_lock);
+				dfs->ath_dfstesttime = 1;   /* 1ms */
+				OS_SET_TIMER(&dfs->ath_dfstesttimer,
+					dfs->ath_dfstesttime);
+			}
+		} else {
+			if ((!dfs->ath_radar_delaysched) &&
+				(!dfs->ath_radar_ignore_after_assoc)) {
+				ic->ic_update_dfs_cac_block_tx(true);
+				vos_timer_start(&dfs->ath_dfs_radar_delay_timer,
+					DFS_RADAR_DELAY);
+				dfs->ath_radar_delaysched = 1;
+			}
+		}
+	}
+	dfs->ath_radar_tasksched = 0;
 }
 
 static
@@ -323,6 +373,14 @@ dfs_attach(struct ieee80211com *ic)
     dfs->dfs_event_log_on = 0;
     OS_INIT_TIMER(NULL, &(dfs->ath_dfs_task_timer), dfs_task, (void *) (ic),
            ADF_DEFERRABLE_TIMER);
+    vos_timer_init(&(dfs->ath_dfs_radar_delay_timer), VOS_TIMER_TYPE_SW,
+           dfs_radar_delay, (void *) (ic));
+    vos_timer_init(&(dfs->ath_dfs_radar_ignore_timer), VOS_TIMER_TYPE_SW,
+           dfs_radar_ignore, (void *) (ic));
+
+    dfs->sidx1_sidx2_elems.pl_firstelem = 0;
+    dfs->sidx1_sidx2_elems.pl_lastelem = DFS_SIDX1_SIDX2_MASK;
+    dfs->sidx1_sidx2_elems.pl_numelems = 0;
 #ifndef ATH_DFS_RADAR_DETECTION_ONLY
     OS_INIT_TIMER(NULL, &(dfs->ath_dfstesttimer), dfs_testtimer_task,
         (void *) ic, ADF_DEFERRABLE_TIMER);
@@ -533,6 +591,11 @@ dfs_detach(struct ieee80211com *ic)
             dfs->ath_radar_tasksched = 0;
         }
 
+   vos_timer_stop(&dfs->ath_dfs_radar_delay_timer);
+   vos_timer_destroy(&dfs->ath_dfs_radar_delay_timer);
+
+   vos_timer_stop(&dfs->ath_dfs_radar_ignore_timer);
+   vos_timer_destroy(&dfs->ath_dfs_radar_ignore_timer);
    if (dfs->ath_dfstest) {
       OS_CANCEL_TIMER(&dfs->ath_dfstesttimer);
       dfs->ath_dfstest = 0;

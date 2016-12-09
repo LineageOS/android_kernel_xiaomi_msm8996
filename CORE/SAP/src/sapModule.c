@@ -820,6 +820,8 @@ WLANSAP_StartBss
          * Copy the DFS Test Mode setting to pmac for
          * access in lower layers
          */
+        pmac->sap.SapDfsInfo.sap_enable_radar_war =
+                                   pConfig->enable_radar_war;
         pmac->sap.SapDfsInfo.disable_dfs_ch_switch =
                                    pConfig->disableDFSChSwitch;
         pmac->sap.SapDfsInfo.sap_ch_switch_beacon_cnt =
@@ -834,6 +836,7 @@ WLANSAP_StartBss
         if (pConfig->sub20_switch_mode == SUB20_STATIC)
                 pmac->sap.SapDfsInfo.new_sub20_channelwidth =
                                             pmac->sub20_channelwidth;
+
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
         vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac, sizeof(pConfig->accept_mac));

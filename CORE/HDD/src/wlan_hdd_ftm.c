@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -346,7 +346,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    macOpenParms.powersaveOffloadEnabled =
       pHddCtx->cfg_ini->enablePowersaveOffload;
    vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
-                      wlan_hdd_ftm_update_tgt_cfg, NULL,
+                      wlan_hdd_ftm_update_tgt_cfg, NULL, NULL,
                       &macOpenParms);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {

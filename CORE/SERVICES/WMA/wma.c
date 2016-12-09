@@ -6440,6 +6440,68 @@ static void wma_update_probe_resp_noa(tp_wma_handle wma_handle,
 			0);
 }
 
+void wma_ignore_radar_soon_after_assoc(void)
+{
+	void *vos_context;
+	tp_wma_handle wma;
+	struct ieee80211com *ic = NULL;
+	struct ath_dfs *dfs = NULL;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (!vos_context) {
+		WMA_LOGE("%s: VOS context is invald!", __func__);
+		return;
+	}
+
+	wma = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA,
+			vos_context);
+
+	if (!wma) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return;
+	}
+
+	ic = wma->dfs_ic;
+	if (ic && ic->ic_dfs) {
+		dfs = (struct ath_dfs *)ic->ic_dfs;
+		dfs->ath_radar_ignore_after_assoc = true;
+		vos_timer_start(&dfs->ath_dfs_radar_ignore_timer,
+				DFS_RADAR_IGNORE);
+	}
+}
+
+void wma_stop_radar_delay_timer(void)
+{
+	void *vos_context;
+	tp_wma_handle wma;
+	struct ieee80211com *ic = NULL;
+	struct ath_dfs *dfs = NULL;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (!vos_context) {
+		WMA_LOGE("%s: VOS context is invald!", __func__);
+		return;
+	}
+
+	wma = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA,
+			vos_context);
+
+	if (!wma) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return;
+	}
+
+	ic = wma->dfs_ic;
+	if (ic && ic->ic_dfs) {
+		dfs = (struct ath_dfs *)ic->ic_dfs;
+		if (dfs->ath_radar_delaysched) {
+			wma_update_dfs_cac_block_tx(false);
+			vos_timer_stop(&dfs->ath_dfs_radar_delay_timer);
+			dfs->ath_radar_delaysched = 0;
+		}
+	}
+}
+
 static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 				ol_txrx_pdev_handle pdev,
 				u_int8_t vdev_id,
@@ -8617,6 +8679,7 @@ struct wma_version_info g_wmi_version_info;
 VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		    wda_tgt_cfg_cb tgt_cfg_cb,
 		    wda_dfs_radar_indication_cb radar_ind_cb,
+		    wda_dfs_block_tx_cb dfs_block_tx_cb,
 		    tMacOpenParameters *mac_params)
 {
 	tp_wma_handle wma_handle;
@@ -8809,6 +8872,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
 	wma_handle->dfs_radar_indication_cb = radar_ind_cb;
+	wma_handle->dfs_block_tx_cb = dfs_block_tx_cb;
 
         vos_status = vos_event_init(&wma_handle->wma_ready_event);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -14023,6 +14087,8 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 			wma_unified_dfs_phyerr_filter_offload_enable(wma);
 			dfs->disable_dfs_ch_switch =
 				pmac->sap.SapDfsInfo.disable_dfs_ch_switch;
+			dfs->dfs_enable_radar_war =
+				pmac->sap.SapDfsInfo.sap_enable_radar_war;
 		}
 	}
 
@@ -38404,6 +38470,7 @@ struct ieee80211com* wma_dfs_attach(struct ieee80211com *dfs_ic)
      * and shared DFS code
      */
     dfs_ic->ic_dfs_notify_radar = ieee80211_mark_dfs;
+    dfs_ic->ic_update_dfs_cac_block_tx = ieee80211_update_dfs_cac_block_tx;
     adf_os_spinlock_init(&dfs_ic->chan_lock);
     /* Initializes DFS Data Structures and queues*/
     dfs_attach(dfs_ic);
@@ -38660,6 +38727,28 @@ int wma_get_channels(struct ieee80211_channel *ichan,
 	}
 
 	return chan_list->nchannels;
+}
+
+void wma_update_dfs_cac_block_tx(bool cac_block_tx)
+{
+	tp_wma_handle wma;
+	void *hdd_ctx;
+	void *vos_context;
+
+	vos_context = vos_get_global_context(VOS_MODULE_ID_VOSS, NULL);
+	if (!vos_context) {
+		WMA_LOGE("%s: VOS context is invald!", __func__);
+		return;
+	}
+
+	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (wma == NULL) {
+		WMA_LOGE("%s: DFS- Invalid wma", __func__);
+		return;
+	}
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, wma->vos_context);
+	wma->dfs_block_tx_cb(hdd_ctx, cac_block_tx);
 }
 
 /*

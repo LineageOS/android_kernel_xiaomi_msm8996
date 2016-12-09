@@ -1482,6 +1482,11 @@ typedef enum
 #define CFG_DISABLE_DFS_CH_SWITCH_MAX             ( 1 )
 #define CFG_DISABLE_DFS_CH_SWITCH_DEFAULT         ( 0 )
 
+#define CFG_ENABLE_RADAR_WAR                 "gEnableRadarAssocWar"
+#define CFG_ENABLE_RADAR_WAR_MIN             ( 0 )
+#define CFG_ENABLE_RADAR_WAR_MAX             ( 1 )
+#define CFG_ENABLE_RADAR_WAR_DEFAULT         ( 1 )
+
 #define CFG_ENABLE_DFS_MASTER_CAPABILITY               "gEnableDFSMasterCap"
 #define CFG_ENABLE_DFS_MASTER_CAPABILITY_MIN           ( 0 )
 #define CFG_ENABLE_DFS_MASTER_CAPABILITY_MAX           ( 1 )
@@ -5055,6 +5060,7 @@ struct hdd_config {
    v_U8_t                      max_sap_peers;
    v_U8_t                      max_go_peers;
    v_U8_t                      disableDFSChSwitch;
+   v_U8_t                      enable_radar_war;
    v_U8_t                      enableDFSMasterCap;
    v_U16_t                     thermalTempMinLevel0;
    v_U16_t                     thermalTempMaxLevel0;
@@ -5558,6 +5564,14 @@ tANI_BOOLEAN hdd_is_okc_mode_enabled(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val);
 
 void hdd_update_tgt_cfg(void *context, void *param);
+/**
+ * hdd_update_dfs_cac_block_tx_flag() - to set dfs_cac_block_tx flag
+ * @context: Pointer to hdd contex
+ * @cac_block_tx: value to be set
+ *
+ * Return: none
+ */
+void hdd_update_dfs_cac_block_tx_flag(void *context, bool cac_block_tx);
 bool hdd_dfs_indicate_radar(void *context, void *param);
 
 VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len,

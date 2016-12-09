@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -276,6 +276,44 @@ static void dfs_process_dc_pulse(struct ath_dfs *dfs, struct dfs_event *event,
     }
 }
 
+/**
+ * dfs_cal_sidx1_sidx2_dur_diff() - cal dur difference in sidx1_sidx2
+ * pluse line
+ * @dfs: pointer to dfs structure
+ *
+ * Return: max dur difference in sidx1_sidx2 pulse line
+ */
+static int dfs_cal_sidx1_sidx2_dur_diff(struct ath_dfs *dfs)
+{
+	u_int32_t index, loop;
+	u_int32_t lowdur, highdur;
+	struct dfs_sidx1_sidx2_pulse_line *sidx1_sidx2_p;
+	struct dfs_pulseline *pl;
+
+	if (dfs == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			"%s[%d]: dfs is NULL", __func__, __LINE__);
+		return 0;
+	}
+	pl = dfs->pulses;
+	sidx1_sidx2_p = &dfs->sidx1_sidx2_elems;
+	lowdur = highdur =
+		sidx1_sidx2_p->pl_elems[sidx1_sidx2_p->pl_lastelem].p_dur;
+	for (loop = 0; loop < sidx1_sidx2_p->pl_numelems; loop++) {
+		index = sidx1_sidx2_p->pl_firstelem + loop;
+		index &= DFS_SIDX1_SIDX2_MASK;
+		if (sidx1_sidx2_p->pl_elems[index].p_time >
+				pl->pl_elems[pl->pl_lastelem].p_time -
+			DFS_SIDX1_SIDX2_TIME_WINDOW) {
+			if (sidx1_sidx2_p->pl_elems[index].p_dur < lowdur)
+				lowdur = sidx1_sidx2_p->pl_elems[index].p_dur;
+			if (sidx1_sidx2_p->pl_elems[index].p_dur > highdur)
+				highdur = sidx1_sidx2_p->pl_elems[index].p_dur;
+		}
+	}
+	return highdur - lowdur;
+}
+
 /*
  * Process a radar event.
  *
@@ -289,18 +327,17 @@ static void dfs_process_dc_pulse(struct ath_dfs *dfs, struct dfs_event *event,
 int
 dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
 {
-//commenting for now to validate radar indication msg to SAP
-//#if 0
     struct dfs_event re,*event;
     struct dfs_state *rs=NULL;
     struct dfs_filtertype *ft;
     struct dfs_filter *rf;
     int found, retval = 0, p, empty;
     int events_processed = 0;
-    u_int32_t tabledepth, index;
+    u_int32_t tabledepth, index, sidx1_sidx2_index;
     u_int64_t deltafull_ts = 0, this_ts, deltaT;
     struct ieee80211_channel *thischan;
     struct dfs_pulseline *pl;
+    struct dfs_sidx1_sidx2_pulse_line *sidx1_sidx2_p;
     static u_int32_t  test_ts  = 0;
     static u_int32_t  diff_ts  = 0;
     int ext_chan_event_flag = 0;
@@ -315,6 +352,7 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
       return 0;
    }
     pl = dfs->pulses;
+    sidx1_sidx2_p = &dfs->sidx1_sidx2_elems;
    adf_os_spin_lock_bh(&dfs->ic->chan_lock);
    if ( !(IEEE80211_IS_CHAN_DFS(dfs->ic->ic_curchan))) {
            adf_os_spin_unlock_bh(&dfs->ic->chan_lock);
@@ -540,6 +578,22 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                 pl->pl_elems[index].p_time = this_ts;
                 pl->pl_elems[index].p_dur = re.re_dur;
                 pl->pl_elems[index].p_rssi = re.re_rssi;
+                if (dfs->dfs_enable_radar_war &&
+                            (re.sidx == 1 || re.sidx == 2)) {
+                        sidx1_sidx2_index = (sidx1_sidx2_p->pl_lastelem + 1) &
+                                DFS_SIDX1_SIDX2_MASK;
+                        if (sidx1_sidx2_p->pl_numelems == DFS_SIDX1_SIDX2_SIZE)
+                                sidx1_sidx2_p->pl_firstelem =
+                                        (sidx1_sidx2_p->pl_firstelem + 1) &
+                                        DFS_SIDX1_SIDX2_MASK;
+                        else
+                                sidx1_sidx2_p->pl_numelems++;
+                        sidx1_sidx2_p->pl_lastelem = sidx1_sidx2_index;
+                        sidx1_sidx2_p->pl_elems[sidx1_sidx2_index].p_time =
+                                this_ts;
+                        sidx1_sidx2_p->pl_elems[sidx1_sidx2_index].p_dur =
+                                re.re_dur;
+                }
                 diff_ts = (u_int32_t)this_ts - test_ts;
                 test_ts = (u_int32_t)this_ts;
                 DFS_DPRINTK(dfs, ATH_DEBUG_DFS1,"ts%u %u %u diff %u pl->pl_lastelem.p_time=%llu",(u_int32_t)this_ts, re.re_dur, re.re_rssi, diff_ts, (unsigned long long)pl->pl_elems[index].p_time);
@@ -830,6 +884,13 @@ VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "%s[%d]:filterID= %d :: Rejec
    }
 dfsfound:
    if (retval) {
+      if (dfs->dfs_enable_radar_war &&
+            (DFS_SIDX1_SIDX2_DR_LIM < dfs_cal_sidx1_sidx2_dur_diff(dfs))) {
+         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+            "%s [%d] false detection",__func__,__LINE__);
+         return 0;
+      }
+
       /* Collect stats */
       dfs->ath_dfs_stats.num_radar_detects++;
       thischan = &rs->rs_chan;
@@ -881,7 +942,6 @@ thischan->ic_freq);
    }
         //VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "IN FUNC %s[%d]: retval = %d ",__func__,__LINE__,retval);
    return retval;
-//#endif
 //        return 1;
 }
 

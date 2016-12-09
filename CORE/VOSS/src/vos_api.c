@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -649,6 +649,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
                        hdd_update_tgt_cfg,
                        hdd_dfs_indicate_radar,
+                       hdd_update_dfs_cac_block_tx_flag,
                        &macOpenParms );
 
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
