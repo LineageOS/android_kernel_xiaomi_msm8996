@@ -1791,15 +1791,40 @@
 	aliases {
 		i2c3 = &i2c_3;
 		i2c9 = &i2c_9;
+		/delete-property/ spi9;
+		/delete-property/ spi10;
+		/delete-property/ spi12;
+	};
+
+	reserved-memory {
+		removed_regions: removed_regions@85800000 {
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0x0 0x85800000 0x0 0x4400000>;
+		};
+
+		/delete-node/ peripheral_region@8ea00000;
+		peripheral_mem: peripheral_region@8fe00000 {
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0x0 0x8fe00000 0x0 0x2b00000>;
+		};
+
+		/delete-node/ modem_region@88800000;
+		modem_mem: modem_region@89c00000 {
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0x0 0x89c00000 0x0 0x6200000>;
+		};
 	};
 };
 
-&i2c_8 {
-	qcom,disable-dma;
-	qcom,clk-freq-out = <1000000>;
-};
-
 &soc {
+	/delete-node/ uart@7571000;
+	/delete-node/ uart@7574000;
+	/delete-node/ spi@75B7000;
+	/delete-node/ spi@75B8000;
+
 	i2c_3: i2c@7577000 { /* BLSP1 QUP6 */
 		compatible = "qcom,i2c-msm-v2";
 		#address-cells = <1>;
