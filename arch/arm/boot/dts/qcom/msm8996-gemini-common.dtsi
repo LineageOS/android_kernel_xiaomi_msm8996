@@ -1734,7 +1734,7 @@
 
 	cam_sensor_rear_active: cam_sensor_rear_active {
 		mux {
-			pins = "gpio86";
+			pins = "gpio86", "gpio30";
 		};
 
 		config {
