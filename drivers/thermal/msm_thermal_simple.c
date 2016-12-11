@@ -221,6 +221,26 @@ static uint32_t get_thermal_zone_number(const char *filename)
 	return num;
 }
 
+static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq)
+{
+	struct cpufreq_frequency_table *table;
+	struct cpufreq_policy policy;
+	uint32_t index, ret;
+
+	ret = cpufreq_get_policy(&policy, cpu);
+	if (ret)
+		return freq;
+
+	table = cpufreq_frequency_get_table(cpu);
+	if (!table)
+		return freq;
+
+	cpufreq_frequency_table_target(&policy, table, freq,
+					CPUFREQ_RELATION_L, &index);
+
+	return table[index].frequency;
+}
+
 static ssize_t enabled_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
@@ -285,8 +305,8 @@ static ssize_t thermal_zone_write(struct device *dev,
 
 	spin_lock(&t->lock);
 	/* freq[0] is assigned to LITTLE cluster, freq[1] to big cluster */
-	t->zone[idx].freq[0] = freq[0];
-	t->zone[idx].freq[1] = freq[1];
+	t->zone[idx].freq[0] = get_valid_cpufreq(0, freq[0]);
+	t->zone[idx].freq[1] = get_valid_cpufreq(2, freq[1]);
 	t->zone[idx].trip_degC = trip_degC;
 	t->zone[idx].reset_degC = reset_degC;
 	spin_unlock(&t->lock);
@@ -306,7 +326,7 @@ static ssize_t user_maxfreq_write(struct device *dev,
 		return -EINVAL;
 
 	spin_lock(&t->lock);
-	t->conf.user_maxfreq = data;
+	t->conf.user_maxfreq = data ? get_valid_cpufreq(0, data) : 0;
 	spin_unlock(&t->lock);
 
 	return size;
