@@ -12249,6 +12249,10 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           }
           break;
       case WLAN_HDD_IBSS:
+#ifdef QCA_LL_TX_FLOW_CT
+          pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+#endif
           return; /* skip printing station message below */
       default:
           break;
