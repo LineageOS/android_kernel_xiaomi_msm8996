@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -333,5 +333,8 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"DFS_MASTER_ENABLED",
     (unsigned char *)"VHT_ENABLE_TXBF_20MHZ",
     (unsigned char *)"TDLS_WMM_MODE_ENABLED",
+    (unsigned char *)"TGT_GTX_USR_CFG",
+    (unsigned char *)"ASSOC_STA_LIMIT_GO",
+    (unsigned char *)"ASSOC_STA_LIMIT_AP",
+    (unsigned char *)"SAP_MAX_MCS_DATA",
 };
-

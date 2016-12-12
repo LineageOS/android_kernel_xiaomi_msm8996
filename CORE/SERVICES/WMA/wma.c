@@ -222,6 +222,51 @@ static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
 #endif
 
 static enum powersave_qpower_mode wma_get_qpower_config(tp_wma_handle wma);
+
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
+/**
+ * wma_wow_wakeup_stats_event()- send wow wakeup stats
+ * tp_wma_handle wma: WOW wakeup packet counter
+ *
+ * This function sends wow wakeup stats diag event
+ *
+ * Return: void.
+ */
+static void wma_wow_wakeup_stats_event(tp_wma_handle wma)
+{
+        WLAN_VOS_DIAG_EVENT_DEF(WowStats,
+                vos_event_wlan_powersave_wow_stats);
+        vos_mem_zero(&WowStats, sizeof(WowStats));
+
+        WowStats.wow_ucast_wake_up_count = wma->wow_ucast_wake_up_count;
+        WowStats.wow_bcast_wake_up_count = wma->wow_bcast_wake_up_count;
+        WowStats.wow_ipv4_mcast_wake_up_count =
+                                        wma->wow_ipv4_mcast_wake_up_count;
+        WowStats.wow_ipv6_mcast_wake_up_count =
+                                        wma->wow_ipv6_mcast_wake_up_count;
+        WowStats.wow_ipv6_mcast_ra_stats = wma->wow_ipv6_mcast_ra_stats;
+        WowStats.wow_ipv6_mcast_ns_stats = wma->wow_ipv6_mcast_ns_stats;
+        WowStats.wow_ipv6_mcast_na_stats = wma->wow_ipv6_mcast_na_stats;
+        WowStats.wow_pno_match_wake_up_count = wma->wow_pno_match_wake_up_count;
+        WowStats.wow_pno_complete_wake_up_count =
+                                        wma->wow_pno_complete_wake_up_count;
+        WowStats.wow_gscan_wake_up_count = wma->wow_gscan_wake_up_count;
+        WowStats.wow_low_rssi_wake_up_count =  wma->wow_low_rssi_wake_up_count;
+        WowStats.wow_rssi_breach_wake_up_count =
+                                        wma->wow_rssi_breach_wake_up_count;
+        WowStats.wow_icmpv4_count = wma->wow_icmpv4_count;
+        WowStats.wow_icmpv6_count = wma->wow_icmpv6_count;
+        WowStats.wow_oem_response_wake_up_count =
+                                        wma->wow_oem_response_wake_up_count;
+        WLAN_VOS_DIAG_EVENT_REPORT(&WowStats, EVENT_WLAN_POWERSAVE_WOW_STATS);
+}
+#else
+static void wma_wow_wakeup_stats_event(tp_wma_handle wma)
+{
+        return;
+}
+#endif
+
 #ifdef FEATURE_WLAN_EXTSCAN
 /**
  * enum extscan_report_events_type - extscan report events type
@@ -17521,6 +17566,8 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	VOS_STATUS status;
 	int32_t ret;
 	struct wma_txrx_node *iface = NULL;
+	uint32_t mcs_limit, i, j;
+	uint8_t *rate_pos;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -17598,6 +17645,46 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	}
 
 	wmi_unified_send_txbf(wma, add_sta);
+
+	/*
+	 * Get MCS limit from ini configure, and map it to rate parameters
+	 * This will limit HT rate upper bound. CFG_CTRL_MASK is used to
+	 * check whether ini config is enabled and CFG_DATA_MASK to get the
+	 * MCS value.
+	 */
+#define CFG_CTRL_MASK              0xFF00
+#define CFG_DATA_MASK              0x00FF
+
+	if (wlan_cfgGetInt(wma->mac_context, WNI_CFG_SAP_MAX_MCS_DATA,
+			   &mcs_limit) != eSIR_SUCCESS) {
+		mcs_limit = WNI_CFG_SAP_MAX_MCS_DATA_DEF;
+	}
+
+	if (mcs_limit & CFG_CTRL_MASK) {
+		WMA_LOGD("%s: set mcs_limit %x", __func__, mcs_limit);
+
+		mcs_limit &= CFG_DATA_MASK;
+		rate_pos = (u_int8_t *)add_sta->supportedRates.supportedMCSSet;
+		for (i = 0, j = 0; i < MAX_SUPPORTED_RATES;) {
+			if (j < mcs_limit / 8) {
+				rate_pos[j] = 0xff;
+				j++;
+				i += 8;
+			} else if (j < mcs_limit / 8 + 1) {
+				if (i <= mcs_limit)
+					rate_pos[i / 8] |= 1 << (i % 8);
+				else
+					rate_pos[i / 8] &= ~(1 << (i % 8));
+				i++;
+
+				if (i >= (j + 1) * 8)
+					j++;
+			} else {
+				rate_pos[j++] = 0;
+				i += 8;
+			}
+		}
+	}
 
 	ret = wmi_unified_send_peer_assoc(wma, add_sta->nwType, add_sta);
 	if (ret) {
@@ -22585,6 +22672,7 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			wake_info->wake_reason,
 			wake_info->vdev_id);
 		vos_wow_wakeup_host_event(wake_info->wake_reason);
+		wma_wow_wakeup_stats_event(wma);
 	}
 
 	vos_event_set(&wma->wma_resume_event);
@@ -31408,6 +31496,16 @@ VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats)
 	wake_lock_stats->wow_icmpv4_count = wma_handle->wow_icmpv4_count;
 	wake_lock_stats->wow_icmpv6_count =
 			wma_handle->wow_icmpv6_count;
+	wake_lock_stats->wow_rssi_breach_wake_up_count =
+			wma_handle->wow_rssi_breach_wake_up_count;
+	wake_lock_stats->wow_low_rssi_wake_up_count =
+			wma_handle->wow_low_rssi_wake_up_count;
+	wake_lock_stats->wow_gscan_wake_up_count =
+			wma_handle->wow_gscan_wake_up_count;
+	wake_lock_stats->wow_pno_complete_wake_up_count =
+			wma_handle->wow_pno_complete_wake_up_count;
+	wake_lock_stats->wow_pno_match_wake_up_count =
+			wma_handle->wow_pno_match_wake_up_count;
 
 	return VOS_STATUS_SUCCESS;
 }

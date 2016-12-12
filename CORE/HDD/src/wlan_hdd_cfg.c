@@ -2387,6 +2387,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_MAX_MPDUS_IN_AMPDU_MIN,
                  CFG_MAX_MPDUS_IN_AMPDU_MAX),
 
+   REG_VARIABLE(CFG_SAP_MAX_MCS_FOR_TX_DATA, WLAN_PARAM_Integer,
+                 hdd_config_t, sap_max_mcs_txdata,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_MAX_MCS_FOR_TX_DATA_DEFAULT,
+                 CFG_SAP_MAX_MCS_FOR_TX_DATA_MIN,
+                 CFG_SAP_MAX_MCS_FOR_TX_DATA_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4937,7 +4944,21 @@ REG_TABLE_ENTRY g_registry_table[] =
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_RX_WAKELOCK_TIMEOUT_DEFAULT,
                 CFG_RX_WAKELOCK_TIMEOUT_MIN,
-                CFG_RX_WAKELOCK_TIMEOUT_MAX)
+                CFG_RX_WAKELOCK_TIMEOUT_MAX),
+
+   REG_VARIABLE(CFG_SAP_CH_SWITCH_BEACON_CNT, WLAN_PARAM_Integer,
+                hdd_config_t, sap_chanswitch_beacon_cnt,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_DEFAULT,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_MIN,
+                CFG_SAP_CH_SWITCH_BEACON_CNT_MAX),
+
+   REG_VARIABLE(CFG_SAP_CH_SWITCH_MODE, WLAN_PARAM_Integer,
+                hdd_config_t, sap_chanswitch_mode,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_CH_SWITCH_MODE_DEFAULT,
+                CFG_SAP_CH_SWITCH_MODE_MIN,
+                CFG_SAP_CH_SWITCH_MODE_MAX),
 };
 
 
@@ -7460,6 +7481,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_TGT_GTX_USR_CFG to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SAP_MAX_MCS_DATA,
+                    pConfig->sap_max_mcs_txdata, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_SAP_MAX_MCS_DATA to CCM");
    }
 
    return fStatus;

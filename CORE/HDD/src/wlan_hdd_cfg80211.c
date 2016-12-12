@@ -3154,8 +3154,13 @@ __wlan_hdd_cfg80211_extscan_set_ssid_hotlist(struct wiphy *wiphy,
 		ssid_length = nla_strlcpy(ssid_string,
 			   tb2[PARAM_SSID],
 			   sizeof(ssid_string));
-		hddLog(LOG1, FL("SSID %s"),
-		       ssid_string);
+
+		/* nla_parse will detect overflow but not underflow */
+		if (0 == ssid_length) {
+			hddLog(LOGE, FL("zero ssid length"));
+			goto fail;
+		}
+		hddLog(LOG1, FL("SSID %s"), ssid_string);
 		ssid_len = strlen(ssid_string);
 		if (ssid_length > SIR_MAC_MAX_SSID_LENGTH) {
 			hddLog(LOGE, FL("Invalid ssid length"));
@@ -12201,6 +12206,16 @@ static int wlan_hdd_cfg80211_get_bus_size(struct wiphy *wiphy,
 		QCA_WLAN_VENDOR_ATTR_ICMP6_RX_MULTICAST_CNT
 #define PARAM_OTHER_RX_MULTICAST_CNT \
 		QCA_WLAN_VENDOR_ATTR_OTHER_RX_MULTICAST_CNT
+#define PARAM_RSSI_BREACH_CNT \
+		QCA_WLAN_VENDOR_ATTR_RSSI_BREACH_CNT
+#define PARAM_LOW_RSSI_CNT \
+		QCA_WLAN_VENDOR_ATTR_LOW_RSSI_CNT
+#define PARAM_GSCAN_CNT \
+		QCA_WLAN_VENDOR_ATTR_GSCAN_CNT
+#define PARAM_PNO_COMPLETE_CNT \
+		QCA_WLAN_VENDOR_ATTR_PNO_COMPLETE_CNT
+#define PARAM_PNO_MATCH_CNT \
+		QCA_WLAN_VENDOR_ATTR_PNO_MATCH_CNT
 
 
 /**
@@ -12251,6 +12266,16 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 			data->wow_ipv6_mcast_na_stats);
 	hddLog(LOG1, "wow_icmpv4_count %d", data->wow_icmpv4_count);
 	hddLog(LOG1, "wow_icmpv6_count %d", data->wow_icmpv6_count);
+	hddLog(LOG1, "wow_rssi_breach_wake_up_count %d",
+			data->wow_rssi_breach_wake_up_count);
+	hddLog(LOG1, "wow_low_rssi_wake_up_count %d",
+			data->wow_low_rssi_wake_up_count);
+	hddLog(LOG1, "wow_gscan_wake_up_count %d",
+			data->wow_gscan_wake_up_count);
+	hddLog(LOG1, "wow_pno_complete_wake_up_count %d",
+			data->wow_pno_complete_wake_up_count);
+	hddLog(LOG1, "wow_pno_match_wake_up_count %d",
+			data->wow_pno_match_wake_up_count);
 
 	ipv6_rx_multicast_addr_cnt =
 		data->wow_ipv6_mcast_wake_up_count;
@@ -12295,7 +12320,17 @@ static uint32_t hdd_send_wakelock_stats(hdd_context_t *hdd_ctx,
 				data->wow_ipv4_mcast_wake_up_count) ||
 	    nla_put_u32(skb, PARAM_ICMP6_RX_MULTICAST_CNT,
 				ipv6_rx_multicast_addr_cnt) ||
-	    nla_put_u32(skb, PARAM_OTHER_RX_MULTICAST_CNT, 0)) {
+	    nla_put_u32(skb, PARAM_OTHER_RX_MULTICAST_CNT, 0) ||
+	    nla_put_u32(skb, PARAM_RSSI_BREACH_CNT,
+				data->wow_rssi_breach_wake_up_count) ||
+		nla_put_u32(skb, PARAM_LOW_RSSI_CNT,
+				data->wow_low_rssi_wake_up_count) ||
+		nla_put_u32(skb, PARAM_GSCAN_CNT,
+				data->wow_gscan_wake_up_count) ||
+		nla_put_u32(skb, PARAM_PNO_COMPLETE_CNT,
+				data->wow_pno_complete_wake_up_count) ||
+		nla_put_u32(skb, PARAM_PNO_MATCH_CNT,
+				data->wow_pno_match_wake_up_count)) {
 		hddLog(LOGE, FL("nla put fail"));
 		goto nla_put_failure;
 	}
@@ -15600,6 +15635,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->beacon_int =  pMgmt_frame->u.beacon.beacon_int;
 
     pConfig->disableDFSChSwitch = iniConfig->disableDFSChSwitch;
+
+    pConfig->sap_chanswitch_beacon_cnt =
+        iniConfig->sap_chanswitch_beacon_cnt;
+    pConfig->sap_chanswitch_mode =
+        iniConfig->sap_chanswitch_mode;
 
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
