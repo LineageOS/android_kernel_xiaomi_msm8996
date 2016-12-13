@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -119,6 +119,7 @@ struct hif_device {
     void *htcContext;
     /* mailbox swapping for control and data svc*/
     A_BOOL swap_mailbox;
+    bool ctrl_response_timeout;
 };
 
 #define HIF_DMA_BUFFER_SIZE (4 * 1024)
