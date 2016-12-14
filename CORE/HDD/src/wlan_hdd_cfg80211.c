@@ -18970,9 +18970,11 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t * pAdapter,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
                                                        cfg80211_scan_request
-                                                       *scan_req)
+                                                       *scan_req, hdd_context_t
+                                                       *hdd_ctx)
 {
-        if (!scan_req || !scan_req->wiphy) {
+        if (!scan_req || !scan_req->wiphy ||
+            scan_req->wiphy != hdd_ctx->wiphy ) {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid scan request");
                 return false;
         }
@@ -18985,9 +18987,11 @@ static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
 #else
 static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
                                                        cfg80211_scan_request
-                                                       *scan_req)
+                                                       *scan_req, hdd_context_t
+                                                       *hdd_ctx)
 {
-        if (!scan_req || !scan_req->wiphy) {
+        if (!scan_req || !scan_req->wiphy ||
+            scan_req->wiphy != hdd_ctx->wiphy) {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid scan request");
                 return false;
         }
@@ -19136,7 +19140,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     /* Scan is no longer pending */
     pScanInfo->mScanPending = VOS_FALSE;
 
-    if (!wlan_hdd_cfg80211_validate_scan_req(req))
+    if (!wlan_hdd_cfg80211_validate_scan_req(req, pHddCtx))
     {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("interface state %s"),
