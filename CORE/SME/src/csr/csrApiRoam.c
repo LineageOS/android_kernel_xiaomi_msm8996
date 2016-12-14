@@ -10837,11 +10837,12 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pApNewCaps->bssId, &sessionId );
                     if( HAL_STATUS_SUCCESS( status ) )
                     {
-                        if ((eCSR_ROAMING_STATE_JOINED == pMac->roam.curState[sessionId]) &&
+                        if (((eCSR_ROAMING_STATE_JOINED == pMac->roam.curState[sessionId]) &&
                                 ((eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC == pMac->roam.curSubState[sessionId]) ||
                                  (eCSR_ROAM_SUBSTATE_NONE == pMac->roam.curSubState[sessionId]) ||
                                  (eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC == pMac->roam.curSubState[sessionId]) ||
-                                 (eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC == pMac->roam.curSubState[sessionId]))
+                                 (eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC == pMac->roam.curSubState[sessionId]))) ||
+                            (eCSR_ROAMING_STATE_SCANNING == pMac->roam.curState[sessionId])
                            )
                         {
                             smsLog(pMac, LOGW, "Calling csrRoamDisconnectInternal");

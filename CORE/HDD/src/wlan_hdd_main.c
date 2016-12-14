@@ -12249,6 +12249,10 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
           }
           break;
       case WLAN_HDD_IBSS:
+#ifdef QCA_LL_TX_FLOW_CT
+          pAdapter->tx_flow_low_watermark =
+                       pHddCtx->cfg_ini->TxFlowLowWaterMark;
+#endif
           return; /* skip printing station message below */
       default:
           break;
@@ -17901,7 +17905,12 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
     if (intf_ch == 0)
         return;
 
+    hddLog(VOS_TRACE_LEVEL_INFO,
+        FL("SAP restarts due to MCC->SCC switch, orig chan: %d, new chan: %d"),
+        pHddApCtx->sapConfig.channel, intf_ch);
+
     pHddApCtx->sapConfig.channel = intf_ch;
+    pHddApCtx->bss_stop_reason = BSS_STOP_DUE_TO_MCC_SCC_SWITCH;
     sme_SelectCBMode(hHal,
                      pHddApCtx->sapConfig.SapHw_mode,
                      pHddApCtx->sapConfig.channel,

@@ -1393,7 +1393,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         if(psessionEntry->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
         limDecideApProtection(pMac, peerMacAddr, &beaconParams,psessionEntry);
 
-        if (pSta->non_ecsa_capable)
+        if (NULL != pSta && pSta->non_ecsa_capable)
                 psessionEntry->lim_non_ecsa_cap_num++;
     }
 
