@@ -2772,7 +2772,8 @@ typedef struct {
     * Req Type
     * req_type should be WMI_SCAN_STOP_ONE, WMI_SCN_STOP_VAP_ALL or WMI_SCAN_STOP_ALL
     * WMI_SCAN_STOP_ONE indicates to stop a specific scan with scan_id
-    * WMI_SCN_STOP_VAP_ALL indicates to stop all scan requests on a specific vDev with vdev_id
+    * WMI_SCN_STOP_VAP_ALL indicates to stop all scan requests on a specific
+    * vDev with vdev_id and pdev with pdev_id
     * WMI_SCAN_STOP_ALL indicates to stop all scan requests in both Scheduler's queue and Scan Engine
     */
     A_UINT32 req_type;
@@ -2781,6 +2782,11 @@ typedef struct {
     * used when req_type equals to WMI_SCN_STOP_VAP_ALL, it indexed the vDev on which to stop the scan
     */
     A_UINT32 vdev_id;
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     * In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
 } wmi_stop_scan_cmd_fixed_param;
 
 #define MAX_NUM_CHAN_PER_WMI_CMD     58    // each WMI cmd can hold 58 channel entries at most
@@ -2830,6 +2836,12 @@ typedef struct {
     * for WLAN_M_STA type, there are 3 entries in the table (refer to default_scan_priority_mapping_table definition)
     */
     A_UINT32                    number_rows;
+    /**
+     * pdev_id for identifying the MAC.  See macros starting with
+     * WMI_PDEV_ID_ for values.In non-DBDC case host should
+     * set it to 0.
+     */
+    A_UINT32 pdev_id;
     /**  mapping_table for a specific vdev follows this TLV
       *   WLAN_PRIORITY_MAPPING mapping_table[]; */
 }wmi_scan_sch_priority_table_cmd_fixed_param;
@@ -2853,6 +2865,11 @@ typedef struct {
     A_UINT32 min_rest_time;
     /** min rest time. Only valid if WMI_SCAN_UPDATE_MAX_REST_TIME flag is set in scan_update_flag */
     A_UINT32 max_rest_time;
+    /**
+     * pdev_id for identifying the MAC. See macros starting with
+     * WMI_PDEV_ID_ for values. In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
 } wmi_scan_update_request_cmd_fixed_param;
 
 #define WMI_SCAN_PROBE_OUI_SPOOFED_MAC_IN_PROBE_REQ 0x1
@@ -2878,6 +2895,11 @@ typedef struct {
     A_UINT32 ie_bitmap[WMI_IE_BITMAP_SIZE];
     /** Number of vendor OUIs. In the TLV vendor_oui[] **/
     A_UINT32 num_vendor_oui;
+    /**
+     * pdev_id for identifying the MAC. See macros starting with
+     * WMI_PDEV_ID_ for values. In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
     /* Following this tlv, there comes an array of structure of type wmi_vendor_ouiwmi_vendor_oui vendor_oui[];*/
 
 } wmi_scan_prob_req_oui_cmd_fixed_param;
@@ -16819,11 +16841,16 @@ typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_scan_adaptive_dwell_config_fixed_param */
     /* globally enable/disable adaptive dwell */
     A_UINT32 enable;
-/**
- * followed by TLV (tag length value) parameters array
- * The TLV's are:
- * wmi_scan_adaptive_dwell_parameters_tlv param[]; (0 or 1 elements)
- */
+    /**
+     * pdev_id for identifying the MAC. See macros starting with
+     * WMI_PDEV_ID_ for values. In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
+    /**
+     * followed by TLV (tag length value) parameters array
+     * The TLV's are:
+     * wmi_scan_adaptive_dwell_parameters_tlv param[]; (0 or 1 elements)
+     */
 } wmi_scan_adaptive_dwell_config_fixed_param;
 
 typedef struct {
