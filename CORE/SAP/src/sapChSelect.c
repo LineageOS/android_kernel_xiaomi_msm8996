@@ -584,6 +584,8 @@ v_U8_t sapSelectPreferredChannelFromChannelList(v_U8_t bestChNum,
         for(count=0; count < pSpectInfoParams->numSpectChans ; count++)
         {
             bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[count].chNum;
+            if (bestChNum == 0)
+                continue;
             // Select the best channel from allowed list
             for(j=0;j < pSapCtx->acs_cfg->ch_list_count;j++)
             {
@@ -2978,6 +2980,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                         {
                             /* previous stored channel is better */
                             bestChNum = pSapCtx->acsBestChannelInfo.channelNum;
+                            break;
                         }
                         else
                         {
