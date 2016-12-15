@@ -572,8 +572,8 @@ EXPORT_SYMBOL_GPL(rcutorture_record_progress);
 static int
 cpu_has_callbacks_ready_to_invoke(struct rcu_data *rdp)
 {
-    return &rdp->nxtlist != rdp->nxttail[RCU_DONE_TAIL] &&
-           rdp->nxttail[RCU_DONE_TAIL] != NULL;
+	return &rdp->nxtlist != rdp->nxttail[RCU_DONE_TAIL] &&
+	       rdp->nxttail[RCU_NEXT_TAIL] != NULL;
 }
 
 /*
