@@ -5343,13 +5343,17 @@ static void __wma_fill_tx_stats(struct sir_wifi_ll_ext_stats *ll_stats,
 				ac = &tx_stats[k];
 				WMA_FILL_TX_STATS(wmi_tx_stats, ac);
 				ac->mpdu_aggr_size = tx_mpdu_aggr;
-				ac->aggr_len = tx_mpdu_aggr_array_len;
-				ac->success_mcs_len = tx_succ_mcs_array_len;
+				ac->aggr_len = tx_mpdu_aggr_array_len *
+							sizeof(uint32_t);
+				ac->success_mcs_len = tx_succ_mcs_array_len *
+							sizeof(uint32_t);
 				ac->success_mcs = tx_succ_mcs;
 				ac->fail_mcs = tx_fail_mcs;
-				ac->fail_mcs_len = tx_fail_mcs_array_len;
+				ac->fail_mcs_len = tx_fail_mcs_array_len *
+							sizeof(uint32_t);
 				ac->delay = tx_delay;
-				ac->delay_len = tx_delay_array_len;
+				ac->delay_len = tx_delay_array_len *
+							sizeof(uint32_t);
 				peer_stats->ac_stats[k].tx_stats = ac;
 				peer_stats->ac_stats[k].type = k;
 				tx_mpdu_aggr += tx_mpdu_aggr_array_len;
@@ -5455,9 +5459,11 @@ static void __wma_fill_rx_stats(struct sir_wifi_ll_ext_stats *ll_stats,
 				ac = &rx_stats[k];
 				WMA_FILL_RX_STATS(wmi_rx_stats, ac);
 				ac->mpdu_aggr = rx_mpdu_aggr;
-				ac->aggr_len = rx_mpdu_aggr_array_len;
+				ac->aggr_len = rx_mpdu_aggr_array_len *
+							sizeof(uint32_t);
 				ac->mcs = rx_mcs;
-				ac->mcs_len = rx_mcs_array_len;
+				ac->mcs_len = rx_mcs_array_len *
+							sizeof(uint32_t);
 				peer_stats->ac_stats[k].rx_stats = ac;
 				peer_stats->ac_stats[k].type = k;
 				rx_mpdu_aggr += rx_mpdu_aggr_array_len;
