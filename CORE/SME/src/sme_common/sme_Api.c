@@ -6803,6 +6803,7 @@ eHalStatus sme_DHCPStartInd( tHalHandle hHal,
             sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
+        pSession->dhcp_done = false;
 
         pMsg = (tAniDHCPInd*)vos_mem_malloc(sizeof(tAniDHCPInd));
         if (NULL == pMsg)
@@ -6875,6 +6876,7 @@ eHalStatus sme_DHCPStopInd( tHalHandle hHal,
             sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
+        pSession->dhcp_done = false;
 
         pMsg = (tAniDHCPInd*)vos_mem_malloc(sizeof(tAniDHCPInd));
         if (NULL == pMsg)
