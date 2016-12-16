@@ -31414,25 +31414,30 @@ VOS_STATUS wma_set_tx_rx_aggregation_size
 /**
  * wma_set_powersave_config() - update power save config in wma
  * @val: new power save value
+ * @vdev_id: vdev id
  *
  * This function update qpower value in wma layer
  *
  * Return: VOS_STATUS_SUCCESS on success, error number otherwise
  */
-VOS_STATUS wma_set_powersave_config(uint8_t val)
+VOS_STATUS wma_set_powersave_config(uint8_t vdev_id, uint8_t val)
 {
 	tp_wma_handle wma_handle;
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA,
 			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
 
+	WMA_LOGI("configuring qpower: %d vdev %d", val, vdev_id);
 	if (!wma_handle) {
 		WMA_LOGE("%s: WMA context is invald!", __func__);
 		return VOS_STATUS_E_INVAL;
 	}
 	wma_handle->powersave_mode = val;
 
-	return VOS_STATUS_SUCCESS;
+	return wmi_unified_set_sta_ps_param(wma_handle->wmi_handle,
+					    vdev_id,
+					    WMI_STA_PS_ENABLE_QPOWER,
+					    wma_get_qpower_config(wma_handle));
 }
 
 /**

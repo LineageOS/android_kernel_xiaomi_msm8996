@@ -9511,26 +9511,10 @@ static int hdd_set_qpower_config(hdd_context_t *hddctx, hdd_adapter_t *adapter,
 		       FL("invalid qpower value=%d"), qpower);
 		return -EINVAL;
 	}
-	vos_status = wma_set_powersave_config(qpower);
+	vos_status = wma_set_powersave_config(adapter->sessionId, qpower);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		hddLog(LOGE,
 		       FL("failed to update qpower %d"),
-		       vos_status);
-		return -EINVAL;
-	}
-	vos_status =  wlan_hdd_set_powersave(adapter,
-					     DRIVER_POWER_MODE_ACTIVE);
-	if (vos_status != VOS_STATUS_SUCCESS) {
-		hddLog(LOGE,
-			FL("failed to get full power %d"),
-			vos_status);
-		return -EINVAL;
-	}
-	vos_status =  wlan_hdd_set_powersave(adapter,
-					     DRIVER_POWER_MODE_AUTO);
-	if (vos_status != VOS_STATUS_SUCCESS) {
-		hddLog(LOGE,
-		       FL("failed to put device in power save mode %d"),
 		       vos_status);
 		return -EINVAL;
 	}
