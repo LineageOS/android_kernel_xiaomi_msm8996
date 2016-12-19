@@ -4966,6 +4966,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_CH_SWITCH_MODE_DEFAULT,
                 CFG_SAP_CH_SWITCH_MODE_MIN,
                 CFG_SAP_CH_SWITCH_MODE_MAX),
+
+   REG_VARIABLE(CFG_DFS_BEACON_TX_ENHANCED, WLAN_PARAM_Integer,
+                hdd_config_t, dfs_beacon_tx_enhanced,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_DFS_BEACON_TX_ENHANCED_DEFAULT,
+                CFG_DFS_BEACON_TX_ENHANCED_MIN,
+                CFG_DFS_BEACON_TX_ENHANCED_MAX),
 };
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -681,4 +681,7 @@ void lim_parse_beacon_for_tim(tpAniSirGlobal mac_ctx, uint8_t* rx_packet_info,
 eHalStatus limP2PActionCnf(tpAniSirGlobal mac_ctx,
 				uint32_t tx_complete_success);
 
+void lim_send_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
+	uint16_t new_channel, uint8_t ch_bandwidth,
+	tpPESession session_entry);
 #endif /* __LIM_UTILS_H */

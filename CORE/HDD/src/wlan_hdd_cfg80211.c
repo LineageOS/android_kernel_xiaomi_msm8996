@@ -15750,6 +15750,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->sap_chanswitch_mode =
         iniConfig->sap_chanswitch_mode;
 
+    pConfig->dfs_beacon_tx_enhanced =
+        iniConfig->dfs_beacon_tx_enhanced;
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
 

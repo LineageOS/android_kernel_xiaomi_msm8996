@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7378,10 +7378,10 @@ static void send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
  *
  * Return: void
  */
-static void lim_send_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
-					      uint16_t new_channel,
-					      uint8_t ch_bandwidth,
-					      tpPESession session_entry)
+void lim_send_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
+				       uint16_t new_channel,
+				       uint8_t ch_bandwidth,
+				       tpPESession session_entry)
 {
 	uint16_t op_class;
 	uint8_t switch_mode = 0, i;
