@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -270,6 +270,8 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
        pChnlParams->isDfsChannel = VOS_FALSE;
 
     pChnlParams->restart_on_chan_switch = is_restart;
+    pChnlParams->reduced_beacon_interval =
+       pMac->sap.SapDfsInfo.reduced_beacon_interval;
 
     if (pSessionEntry->sub20_channelwidth == SUB20_MODE_5MHZ)
             pChnlParams->channelwidth = CH_WIDTH_5MHZ;

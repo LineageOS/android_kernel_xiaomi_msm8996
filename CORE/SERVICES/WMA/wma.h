@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1873,4 +1873,10 @@ VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 WLAN_PHY_MODE wma_chan_to_mode(uint8_t chan, ePhyChanBondState chan_offset,
 		uint8_t vht_capable, uint8_t dot11_mode);
 
+#define RESET_BEACON_INTERVAL_TIMEOUT 200
+struct wma_beacon_interval_reset_req {
+	vos_timer_t event_timeout;
+	uint8_t vdev_id;
+	uint16_t interval;
+};
 #endif

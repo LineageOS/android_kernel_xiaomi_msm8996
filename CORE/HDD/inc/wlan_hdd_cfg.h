@@ -4422,6 +4422,27 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_DFS_BEACON_TX_ENHANCED_MIN     (0)
 #define CFG_DFS_BEACON_TX_ENHANCED_MAX     (1)
 #define CFG_DFS_BEACON_TX_ENHANCED_DEFAULT (0)
+
+/*
+ * <ini>
+ * gReducedBeaconInterval - beacon interval reduced
+ * @Min: 0
+ * @Max: 100
+ * @Default: 0
+ *
+ * This ini is used to reduce beacon interval when val
+ * great than 0, or the feature is disabled.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_REDUCED_BEACON_INTERVAL         "gReducedBeaconInterval"
+#define CFG_REDUCED_BEACON_INTERVAL_MIN     (0)
+#define CFG_REDUCED_BEACON_INTERVAL_MAX     (100)
+#define CFG_REDUCED_BEACON_INTERVAL_DEFAULT (0)
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5262,6 +5283,7 @@ struct hdd_config {
    uint8_t                     sap_chanswitch_beacon_cnt;
    uint8_t                     sap_chanswitch_mode;
    uint8_t                     dfs_beacon_tx_enhanced;
+   uint16_t                    reduced_beacon_interval;
 };
 
 typedef struct hdd_config hdd_config_t;

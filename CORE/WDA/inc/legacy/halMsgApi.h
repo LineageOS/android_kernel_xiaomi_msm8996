@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1041,6 +1041,8 @@ typedef struct
     uint8_t restart_on_chan_switch;
 
     uint32_t channelwidth;
+
+    uint16_t reduced_beacon_interval;
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {

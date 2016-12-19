@@ -828,6 +828,8 @@ WLANSAP_StartBss
             pConfig->sap_chanswitch_mode;
         pmac->sap.SapDfsInfo.dfs_beacon_tx_enhanced =
             pConfig->dfs_beacon_tx_enhanced;
+        pmac->sap.SapDfsInfo.reduced_beacon_interval =
+            pConfig->reduced_beacon_interval;
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
         vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac, sizeof(pConfig->accept_mac));

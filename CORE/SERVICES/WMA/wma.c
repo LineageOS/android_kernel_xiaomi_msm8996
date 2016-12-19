@@ -473,6 +473,7 @@ static void wma_send_time_stamp_sync_cmd(void *data);
 
 tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset);
 
+
 /*
  * 802.11n D2.0 defined values for "Minimum MPDU Start Spacing":
  *   0 for no restriction
@@ -13942,6 +13943,77 @@ free_tgt_req:
 	adf_os_mem_free(tgt_req);
 }
 
+static void
+wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
+                           u_int16_t beacon_interval);
+/**
+ * wma_vdev_reset_beacon_interval_timer() - reset beacon interval back
+ * to its original value after the channel switch.
+ *
+ * @data: data
+ *
+ * Return: void
+ */
+void wma_vdev_reset_beacon_interval_timer(void *data)
+{
+	tp_wma_handle wma;
+	struct wma_beacon_interval_reset_req *req =
+		(struct wma_beacon_interval_reset_req *)data;
+	void *vos_context =
+		vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	uint16_t beacon_interval = req->interval;
+	uint8_t vdev_id = req->vdev_id;
+	wma = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (NULL == wma) {
+	    WMA_LOGE("%s: Failed to get wma", __func__);
+	    goto end;
+	}
+
+	/* Change the beacon interval back to its original value */
+	WMA_LOGE("%s: Change beacon interval back to %d",
+			__func__, beacon_interval);
+	wma_update_beacon_interval(wma, vdev_id, beacon_interval);
+
+end:
+	vos_timer_stop(&req->event_timeout);
+	vos_timer_destroy(&req->event_timeout);
+	adf_os_mem_free(req);
+}
+
+/**
+ * wma_fill_beacon_interval_reset_req() - req to reset beacon interval
+ *
+ * @wma: wma handle
+ * @vdev_id: vdev id
+ * @beacon_interval: beacon interval
+ * @timeout: timeout val
+ *
+ * Return: status
+ */
+int wma_fill_beacon_interval_reset_req(tp_wma_handle wma, uint8_t vdev_id,
+				uint16_t beacon_interval, uint32_t timeout)
+{
+	struct wma_beacon_interval_reset_req *req;
+
+	req = adf_os_mem_alloc(NULL, sizeof(*req));
+	if (!req) {
+	    WMA_LOGE("%s: Failed to allocate memory"
+			"for beacon_interval_reset_req vdev %d",
+			__func__, vdev_id);
+	    return -ENOMEM;
+	}
+
+	WMA_LOGD("%s: vdev_id %d ", __func__, vdev_id);
+	req->vdev_id = vdev_id;
+	req->interval = beacon_interval;
+	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
+		wma_vdev_reset_beacon_interval_timer, req);
+	vos_timer_start(&req->event_timeout, timeout);
+
+	return 0;
+}
+
 struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 					 u_int32_t msg_type, u_int8_t type,
 					 void *params, u_int32_t timeout)
@@ -14166,6 +14238,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
         ol_txrx_peer_handle peer;
         ol_txrx_pdev_handle pdev;
         struct wma_txrx_node *intr = wma->interfaces;
+        uint16_t beacon_interval_ori;
 
 	WMA_LOGD("%s: Enter", __func__);
         if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &vdev_id)) {
@@ -14267,6 +14340,34 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	if ((wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true) ||
 		params->restart_on_chan_switch == VOS_TRUE)
 		wma->interfaces[req.vdev_id].is_channel_switch = VOS_TRUE;
+
+	if ((wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true)) {
+		if (params->reduced_beacon_interval) {
+			/* Reduce the beacon interval just before the channel switch.
+			 * This would help in reducing the downtime on the STA side
+			 * (which is waiting for beacons from the AP to resume back
+			 * transmission). Switch back the beacon_interval to its
+			 * original value after the channel switch based on the
+			 * timeout. This would ensure there are atleast some beacons
+			 * sent with increased frequency.
+			 */
+
+			WMA_LOGD("%s: Changing beacon interval to %d",
+				__func__, params->reduced_beacon_interval);
+
+			/* Add a timer to reset the beacon interval back*/
+			beacon_interval_ori = req.beacon_intval;
+			req.beacon_intval = params->reduced_beacon_interval;
+			if (wma_fill_beacon_interval_reset_req(wma,
+				req.vdev_id,
+				beacon_interval_ori,
+				RESET_BEACON_INTERVAL_TIMEOUT)) {
+
+				WMA_LOGD("%s: Failed to fill beacon"
+					" interval reset req", __func__);
+			}
+		}
+	}
 
 	if ((VOS_MONITOR_MODE == vos_get_conparam()) && wma_is_vdev_up(0)) {
 		status = wma_switch_channel(wma, &req);

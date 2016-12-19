@@ -15752,6 +15752,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     pConfig->dfs_beacon_tx_enhanced =
         iniConfig->dfs_beacon_tx_enhanced;
+
+    pConfig->reduced_beacon_interval =
+        iniConfig->reduced_beacon_interval;
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
 
