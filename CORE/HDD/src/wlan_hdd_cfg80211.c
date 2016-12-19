@@ -21472,12 +21472,15 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     unsigned long rc;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    eConnectionState prev_conn_state;
 
     ENTER();
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
         return status;
+
+    prev_conn_state = pHddStaCtx->conn_info.connState;
 
     /*stop tx queues*/
     hddLog(LOG1, FL("Disabling queues"));
@@ -21492,13 +21495,20 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 
     status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                  pAdapter->sessionId, reason);
+    if ((eHAL_STATUS_CMD_NOT_QUEUED == status) &&
+             prev_conn_state != eConnectionState_Connecting) {
+        hddLog(LOG1,
+               FL("status = %d, already disconnected"), status);
+        result = 0;
+        goto disconnected;
+    }
     /*
      * Wait here instead of returning directly, this will block the next
      * connect command and allow processing of the scan for ssid and
      * the previous connect command in CSR. Else we might hit some
      * race conditions leading to SME and HDD out of sync.
      */
-    if (eHAL_STATUS_CMD_NOT_QUEUED == status) {
+    else if (eHAL_STATUS_CMD_NOT_QUEUED == status) {
         hddLog(LOG1,
            FL("Already disconnected or connect was in sme/roam pending list and removed by disconnect"));
     } else if (0 != status) {
