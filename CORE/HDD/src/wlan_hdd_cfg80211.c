@@ -19660,7 +19660,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         /* set the scan type to active */
         scanRequest.scanType = eSIR_ACTIVE_SCAN;
     }
-    else if (WLAN_HDD_P2P_GO == pAdapter->device_mode)
+    else if (WLAN_HDD_P2P_GO == pAdapter->device_mode ||
+             WLAN_HDD_SOFTAP == pAdapter->device_mode)
     {
         /* set the scan type to active */
         scanRequest.scanType = eSIR_ACTIVE_SCAN;
