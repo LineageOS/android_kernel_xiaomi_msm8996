@@ -66,6 +66,8 @@ typedef void (*__adf_nbuf_callback_fn) (struct sk_buff *skb);
 
 typedef void (*adf_nbuf_trace_update_t)(char *);
 
+#pragma pack(push)
+#pragma pack(1)
 struct cvg_nbuf_cb {
     /*
      * Store a pointer to a parent network buffer.
@@ -136,7 +138,6 @@ struct cvg_nbuf_cb {
 #endif /* QCA_MDM_DEVICE */
 #ifdef QCA_PKT_PROTO_TRACE
     unsigned char proto_type;
-    unsigned char vdev_id;
 #endif /* QCA_PKT_PROTO_TRACE */
 #ifdef QOS_FWD_SUPPORT
     unsigned char fwd_flag: 1;
@@ -154,6 +155,7 @@ struct cvg_nbuf_cb {
         uint8_t reserved: 2;
     } packet_type;
 } __packed;
+#pragma pack(pop)
 
 #ifdef QCA_ARP_SPOOFING_WAR
 #define NBUF_CB_PTR(skb) \
