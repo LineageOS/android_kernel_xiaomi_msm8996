@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7922,43 +7922,51 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			return -EINVAL;
 		}
 		event = param_buf->fixed_param;
-		if (event->cmd_flags == WMA_CHAN_END_RESP) {
-			channel_status =
-				 vos_mem_malloc(sizeof(*channel_status));
-			if (!channel_status) {
-				WMA_LOGE
-					(FL("Mem alloc fail"));
-				return -ENOMEM;
-			}
-			WMA_LOGI(
-				FL("freq=%d nf=%d rx_cnt=%d tx_pwr=%d"),
-				 event->freq,
-				 event->noise_floor,
-				 event->rx_clear_count,
-				 event->chan_tx_pwr_tp);
-
-			channel_status->channelfreq = event->freq;
-			channel_status->noise_floor = event->noise_floor;
-			channel_status->rx_clear_count =
-				 event->rx_clear_count;
-			channel_status->cycle_count = event->cycle_count;
-			channel_status->chan_tx_pwr_range =
-				 event->chan_tx_pwr_range;
-			channel_status->chan_tx_pwr_throughput =
-				 event->chan_tx_pwr_tp;
-			channel_status->rx_frame_count =
-				 event->rx_frame_count;
-			channel_status->bss_rx_cycle_count =
-				event->my_bss_rx_cycle_count;
-			channel_status->rx_11b_mode_data_duration =
-				event->rx_11b_mode_data_duration;
-			channel_status->channel_id =
-				vos_freq_to_chan(event->freq);
-
-			wma_send_msg(handle,
-				WDA_RX_CHN_STATUS_EVENT,
-				 (void *) channel_status, 0);
+		channel_status =
+			vos_mem_malloc(sizeof(*channel_status));
+		if (!channel_status) {
+			WMA_LOGE(FL("Mem alloc fail"));
+			return -ENOMEM;
 		}
+		WMA_LOGI(FL("freq=%d nf=%d rx_cnt=%d cycle_count=%d "
+			    "tx_pwr_range=%d tx_pwr_tput=%d "
+			    "rx_frame_count=%d my_bss_rx_cycle_count=%d "
+			    "rx_11b_mode_data_duration=%d cmd_flags=%d"),
+			 event->freq,
+			 event->noise_floor,
+			 event->rx_clear_count,
+			 event->cycle_count,
+			 event->chan_tx_pwr_range,
+			 event->chan_tx_pwr_tp,
+			 event->rx_frame_count,
+			 event->my_bss_rx_cycle_count,
+			 event->rx_11b_mode_data_duration,
+			 event->cmd_flags
+			);
+
+		channel_status->channelfreq = event->freq;
+		channel_status->noise_floor = event->noise_floor;
+		channel_status->rx_clear_count =
+			 event->rx_clear_count;
+		channel_status->cycle_count = event->cycle_count;
+		channel_status->chan_tx_pwr_range =
+			 event->chan_tx_pwr_range;
+		channel_status->chan_tx_pwr_throughput =
+			 event->chan_tx_pwr_tp;
+		channel_status->rx_frame_count =
+			 event->rx_frame_count;
+		channel_status->bss_rx_cycle_count =
+			event->my_bss_rx_cycle_count;
+		channel_status->rx_11b_mode_data_duration =
+			event->rx_11b_mode_data_duration;
+		channel_status->channel_id =
+			vos_freq_to_chan(event->freq);
+		channel_status->cmd_flags =
+			event->cmd_flags;
+
+		wma_send_msg(handle,
+			WDA_RX_CHN_STATUS_EVENT,
+			 (void *) channel_status, 0);
 	}
 	return 0;
 }

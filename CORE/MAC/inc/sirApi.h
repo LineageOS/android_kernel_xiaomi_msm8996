@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3043,6 +3043,7 @@ typedef struct sLimScanChn
  * @bss_rx_cycle_count: BSS rx cycle count
  * @rx_11b_mode_data_duration: b-mode data rx time (units are microseconds)
  * @channel_id: channel index
+ * @cmd_flags: indicate which stat event is this status coming from
  */
 struct lim_channel_status {
 	uint32_t    channelfreq;
@@ -3055,6 +3056,7 @@ struct lim_channel_status {
 	uint32_t    bss_rx_cycle_count;
 	uint32_t    rx_11b_mode_data_duration;
 	uint32_t    channel_id;
+	uint32_t    cmd_flags;
 };
 
 typedef struct sSmeGetScanChnRsp

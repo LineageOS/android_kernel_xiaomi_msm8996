@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -654,6 +654,7 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
 #endif
     pSapCtx->scanBandPreference = pConfig->scanBandPreference;
     pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
+    pSapCtx->auto_channel_select_weight = pConfig->auto_channel_select_weight;
     pSapCtx->pUsrContext = pUsrContext;
     pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
     /*
@@ -774,6 +775,8 @@ WLANSAP_StartBss
 #endif
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
+        pSapCtx->auto_channel_select_weight =
+            pConfig->auto_channel_select_weight;
         pSapCtx->pUsrContext = pUsrContext;
         pSapCtx->enableOverLapCh = pConfig->enOverLapCh;
         pSapCtx->acs_cfg = &pConfig->acs_cfg;

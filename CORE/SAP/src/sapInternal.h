@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -267,6 +267,7 @@ typedef struct sSapContext {
     eCsrBand           currentPreferredBand;
     eCsrBand           scanBandPreference;
     v_U16_t            acsBandSwitchThreshold;
+    uint32_t           auto_channel_select_weight;
     tSapAcsChannelInfo acsBestChannelInfo;
     tANI_BOOLEAN       enableOverLapCh;
 

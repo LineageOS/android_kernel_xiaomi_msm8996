@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3351,6 +3351,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MIN,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MAX ),
+
+   REG_VARIABLE( CFG_AUTO_CHANNEL_SELECT_WEIGHT, WLAN_PARAM_HexInteger,
+                 hdd_config_t, auto_channel_select_weight,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_DEFAULT,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_MIN,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_MAX ),
 
 #ifdef QCA_LL_TX_FLOW_CT
    REG_VARIABLE( CFG_LL_TX_FLOW_LWM, WLAN_PARAM_Integer,

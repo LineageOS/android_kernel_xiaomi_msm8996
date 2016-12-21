@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -555,6 +555,7 @@ typedef struct sap_Config {
     eCsrBand        scanBandPreference;
     v_BOOL_t        enOverLapCh;
     v_U16_t         acsBandSwitchThreshold;
+    uint32_t        auto_channel_select_weight;
     struct sap_acs_cfg acs_cfg;
 #ifdef WLAN_FEATURE_11W
     v_BOOL_t        mfpRequired;
