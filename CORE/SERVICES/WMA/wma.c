@@ -467,6 +467,7 @@ static VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
 		tAbortScanParams *abort_scan_req);
 
 static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id);
+static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id);
 static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
 				uint32_t len);
 
@@ -9567,6 +9568,47 @@ static inline void wma_get_link_probe_timeout(struct sAniSirGlobal *mac,
 	*max_unresponsive_time = *max_inactive_time + keep_alive;
 }
 
+/**
+ * wma_set_mgmt_rate() - set vdev mgmt rate.
+ * @wma:     wma handle
+ * @vdev_id: vdev id
+ *
+ * Return: None
+ */
+static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	uint32_t cfg_val;
+	int ret;
+	struct sAniSirGlobal *mac =
+	    (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+						       wma->vos_context);
+
+	if (NULL == mac) {
+		WMA_LOGE("%s: Failed to get mac", __func__);
+		return;
+	}
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT,
+			   &cfg_val) == eSIR_SUCCESS) {
+		if (!cfg_val) {
+			WMA_LOGD("WNI_CFG_RATE_FOR_TX_MGMT "
+				"is 0, ignore");
+		} else {
+			ret = wmi_unified_vdev_set_param_send(
+				wma->wmi_handle,
+				vdev_id,
+				WMI_VDEV_PARAM_MGMT_TX_RATE,
+				cfg_val);
+			if (ret)
+				WMA_LOGE("Failed to set "
+					"WMI_VDEV_PARAM_MGMT_TX_RATE");
+		}
+	} else {
+		WMA_LOGE("Failed to get value of "
+			"WNI_CFG_RATE_FOR_TX_MGMT");
+	}
+}
+
 static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
 {
 	tANI_U32 min_inactive_time, max_inactive_time, max_unresponsive_time;
@@ -10114,6 +10156,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	} else {
 		WMA_LOGE("Failed to get value of HT_CAP, TX STBC unchanged");
 	}
+
+	wma_set_vdev_mgmt_rate(wma_handle, self_sta_req->sessionId);
 	/* Initialize roaming offload state */
 	if ((self_sta_req->type == WMI_VDEV_TYPE_STA) &&
 			(self_sta_req->subType == 0)) {
@@ -18586,6 +18630,7 @@ static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 	}
 	else {
 		wma->interfaces[params->smesessionId].vdev_up = TRUE;
+		wma_set_vdev_mgmt_rate(wma, params->smesessionId);
 	}
 
 	adf_os_atomic_set(&iface->bss_status, WMA_BSS_STATUS_STARTED);
@@ -20402,6 +20447,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 			}
 			wma->interfaces[vdev_id].vdev_up = TRUE;
 			wma_set_sap_keepalive(wma, vdev_id);
+			wma_set_vdev_mgmt_rate(wma, vdev_id);
 		}
 	}
 }

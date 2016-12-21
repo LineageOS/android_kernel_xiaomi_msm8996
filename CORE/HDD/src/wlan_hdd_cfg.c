@@ -2422,6 +2422,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MIN,
                  CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MAX),
 
+   REG_VARIABLE(CFG_RATE_FOR_TX_MGMT, WLAN_PARAM_HexInteger,
+                 hdd_config_t, rate_for_tx_mgmt,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RATE_FOR_TX_MGMT_DEFAULT,
+                 CFG_RATE_FOR_TX_MGMT_MIN,
+                 CFG_RATE_FOR_TX_MGMT_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -7558,6 +7565,12 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
        hddLog(LOGE, "Could not pass on WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA to CCM");
    }
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RATE_FOR_TX_MGMT,
+                    pConfig->rate_for_tx_mgmt, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_RATE_FOR_TX_MGMT to CCM");
+   }
    return fStatus;
 }
 

@@ -1584,6 +1584,25 @@ typedef enum
 #define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_DEFAULT         (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STADEF)
 
 /*
+ * <ini>
+ * gRateForTxMgmt - rate for tx mgmt frame
+ * @Min: 0x0
+ * @Max: 0xFF
+ * @Default: 0x0
+ *
+ * This ini is used to configure the rate for tx
+ * mgmt frame.
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_RATE_FOR_TX_MGMT                  "gRateForTxMgmt"
+#define CFG_RATE_FOR_TX_MGMT_MIN              (WNI_CFG_RATE_FOR_TX_MGMT_STAMIN)
+#define CFG_RATE_FOR_TX_MGMT_MAX              (WNI_CFG_RATE_FOR_TX_MGMT_STAMAX)
+#define CFG_RATE_FOR_TX_MGMT_DEFAULT          (WNI_CFG_RATE_FOR_TX_MGMT_STADEF)
+
+/*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
  */
@@ -5059,6 +5078,7 @@ struct hdd_config {
    uint16_t                    max_ht_mcs_txdata;
    bool                        sap_get_peer_info;
    bool                        disable_abg_rate_txdata;
+   uint8_t                     rate_for_tx_mgmt;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;
