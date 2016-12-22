@@ -9286,18 +9286,8 @@ static inline int wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
  */
 static void kickstart_driver_handler(struct work_struct *work)
 {
-	bool ready;
-
-	ready = vos_is_load_unload_ready(__func__);
-	if (!ready) {
-		VOS_ASSERT(0);
-		return;
-	}
-
-	vos_load_unload_protect(__func__);
 	hdd_driver_exit();
 	wlan_hdd_inited = 0;
-	vos_load_unload_unprotect(__func__);
 }
 
 static DECLARE_WORK(kickstart_driver_work, kickstart_driver_handler);
