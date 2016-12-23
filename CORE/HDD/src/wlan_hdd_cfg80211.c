@@ -26018,7 +26018,8 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    if (NULL == pHddCtx->chan_info) {
+    if ((NULL == pHddCtx->chan_info) &&
+        (pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
         hddLog(LOGE, FL("chan_info is NULL"));
         return -EINVAL;
     }
