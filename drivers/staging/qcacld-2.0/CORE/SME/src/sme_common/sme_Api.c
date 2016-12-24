@@ -5895,10 +5895,10 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       smsLog(pMac, LOGE, FL("Invalid key length %d"), pSetKey->keyLength);
       return eHAL_STATUS_FAILURE;
    }
-   /*Once Setkey is done, we can go in BMPS*/
+   /*Once Setkey is done, we can go in BMPS */
    if(pSetKey->keyLength) {
-     pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
-     smsLog(pMac, LOG1, FL("Reset remainInPowerActiveTillDHCP"
+     pMac->pmc.full_power_till_set_key = false;
+     smsLog(pMac, LOG1, FL("Reset full_power_till_set_key"
                            " to allow BMPS"));
    }
 

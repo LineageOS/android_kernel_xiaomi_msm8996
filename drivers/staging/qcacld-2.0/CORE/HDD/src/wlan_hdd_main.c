@@ -14711,6 +14711,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+   /* If IPA HW is not existing, disable offload from INI */
+   if (!hdd_ipa_is_present(pHddCtx))
+      hdd_ipa_reset_ipaconfig(pHddCtx, 0);
+
    if (0 == pHddCtx->cfg_ini->max_go_peers)
       pHddCtx->cfg_ini->max_go_peers = pHddCtx->cfg_ini->max_sap_peers;
 
@@ -17500,6 +17504,8 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
 
     if (can_stop == VOS_TRUE) {
         vos_timer_stop(&pHddCtx->bus_bw_timer);
+        /* reset the ipa perf level */
+        hdd_ipa_set_perf_level(pHddCtx, 0, 0);
         hdd_rst_tcp_delack(pHddCtx);
         tlshim_reset_bundle_require();
     }

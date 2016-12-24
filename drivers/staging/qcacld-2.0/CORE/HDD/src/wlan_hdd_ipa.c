@@ -2718,6 +2718,39 @@ int hdd_ipa_set_perf_level(hdd_context_t *hdd_ctx, uint64_t tx_packets,
 	return 0;
 }
 
+/**
+ * hdd_ipa_is_present() - get IPA hw status
+ * @hdd_ctx: pointer to hdd context
+ *
+ * ipa_uc_reg_rdyCB is not directly designed to check
+ * ipa hw status. This is an undocumented function which
+ * has confirmed with IPA team.
+ *
+ * Return: true - ipa hw present
+ *         false - ipa hw not present
+ */
+bool hdd_ipa_is_present(hdd_context_t *hdd_ctx)
+{
+	/* Check if ipa hw is enabled */
+	if (ipa_uc_reg_rdyCB(NULL) != -EPERM)
+		return true;
+	else
+		return false;
+}
+
+/**
+ * hdd_ipa_reset_ipaconfig() - reset IpaConfig
+ * @hdd_ctx: pointer to hdd context
+ * @ipaconfig: new value for IpaConfig
+ *
+ * Return: none
+ */
+void hdd_ipa_reset_ipaconfig(hdd_context_t *hdd_ctx, v_U32_t ipaconfig)
+{
+	hdd_ctx->cfg_ini->IpaConfig = ipaconfig;
+	return;
+}
+
 static int hdd_ipa_setup_rm(struct hdd_ipa_priv *hdd_ipa)
 {
 	struct ipa_rm_create_params create_params = {0};

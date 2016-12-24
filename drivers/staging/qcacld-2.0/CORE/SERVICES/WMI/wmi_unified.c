@@ -789,6 +789,12 @@ static uint16_t wmi_tag_fw_hang_cmd(wmi_unified_t wmi_handle)
 {
 	uint16_t tag = 0;
 
+	if (adf_os_atomic_read(&wmi_handle->is_target_suspended)) {
+		pr_err("%s: Target is already suspended, Ignore FW Hang Command\n",
+			__func__);
+		return tag;
+	}
+
 	if (wmi_handle->tag_crash_inject)
 		tag = HTC_TX_PACKET_TAG_AUTO_PM;
 

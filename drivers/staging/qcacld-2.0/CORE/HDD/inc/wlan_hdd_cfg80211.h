@@ -2089,6 +2089,8 @@ extern void wlan_hdd_cfg80211_update_replayCounterCallback(void *callbackContext
 void* wlan_hdd_change_country_code_cb(void *pAdapter);
 void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
                 uint16_t *ch_width);
+void hdd_select_mon_cbmode(hdd_adapter_t *adapter, v_U8_t operation_channel,
+                           uint16_t *ch_width);
 
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(const v_U8_t *pIes,
                                      int length,
