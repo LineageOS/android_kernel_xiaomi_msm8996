@@ -854,6 +854,15 @@ void sapCleanupChannelList(v_PVOID_t sapContext);
 
 void sapCleanupAllChannelList(void);
 
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+/**
+ * is_auto_channel_select() - is channel AUTO_CHANNEL_SELECT
+ * @p_vos_gctx: Pointer to ptSapContext
+ *
+ * Return: true on AUTO_CHANNEL_SELECT, false otherwise
+ */
+bool is_auto_channel_select(v_PVOID_t p_vos_gctx);
+#endif
 /*==========================================================================
   FUNCTION    WLANSAP_Set_WpsIe
 
