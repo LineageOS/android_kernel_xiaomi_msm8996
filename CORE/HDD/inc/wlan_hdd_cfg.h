@@ -1484,13 +1484,26 @@ typedef enum
 #define CFG_MAX_MPDUS_IN_AMPDU_DEFAULT          (0)
 
 /*
- * SAP TX MCS limit
- * Used only for HT rate configure.
+ * <ini>
+ * gMaxHTMCSForTxData - max HT mcs for TX
+ * @Min: 0
+ * @Max: 383
+ * @Default: 0
+ *
+ * This ini is used to configure the max HT mcs
+ * for tx data.
+ *
+ * Usage: External
+ *
+ * bits 0-15:  max HT mcs
+ * bits 16-31: zero to disable, otherwise enable.
+ *
+ * </ini>
  */
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA                 "gSapMaxMCSForTxData"
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MIN             (0)
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MAX             (383)
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_DEFAULT         (0)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA                 "gMaxHTMCSForTxData"
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_MIN             (WNI_CFG_MAX_HT_MCS_TX_DATA_STAMIN)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_MAX             (WNI_CFG_MAX_HT_MCS_TX_DATA_STAMAX)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_DEFAULT         (WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF)
 
 /*
  * RSSI Thresholds
@@ -4896,7 +4909,7 @@ struct hdd_config {
    uint32_t                    auto_channel_select_weight;
    uint8_t                     enable_rts_sifsbursting;
    uint8_t                     max_mpdus_inampdu;
-   uint16_t                    sap_max_mcs_txdata;
+   uint16_t                    max_ht_mcs_txdata;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;

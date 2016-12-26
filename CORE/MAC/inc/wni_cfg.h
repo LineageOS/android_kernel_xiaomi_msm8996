@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -328,7 +328,7 @@ enum {
 	WNI_CFG_TGT_GTX_USR_CFG,
 	WNI_CFG_ASSOC_STA_LIMIT_GO,
 	WNI_CFG_ASSOC_STA_LIMIT_AP,
-	WNI_CFG_SAP_MAX_MCS_DATA,
+	WNI_CFG_MAX_HT_MCS_TX_DATA,
 
 	WNI_CFG_MAX,
 };
@@ -1612,9 +1612,9 @@ enum {
 #define WNI_CFG_ASSOC_STA_LIMIT_GO_STAMAX    32
 #define WNI_CFG_ASSOC_STA_LIMIT_GO_STADEF    10
 
-#define WNI_CFG_SAP_MAX_MCS_DATA_MIN  0x0
-#define WNI_CFG_SAP_MAX_MCS_DATA_MAX  0x17f
-#define WNI_CFG_SAP_MAX_MCS_DATA_DEF  0x0
+#define WNI_CFG_MAX_HT_MCS_TX_DATA_STAMIN  0x0
+#define WNI_CFG_MAX_HT_MCS_TX_DATA_STAMAX  0x17f
+#define WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF  0x0
 
 #define CFG_STA_IBUF_MAX_SIZE    245
 #define CFG_STA_SBUF_MAX_SIZE    3199
