@@ -5356,6 +5356,11 @@ static void __wma_fill_rx_stats(struct sir_wifi_ll_ext_stats *ll_stats,
 		if (j < ll_stats->peer_num) {
 			peer_stats->peer_id = wmi_peer_rx[i].peer_id;
 			peer_stats->vdev_id = wmi_peer_rx[i].vdev_id;
+			peer_stats->sta_ps_inds = wmi_peer_rx[i].sta_ps_inds;
+			peer_stats->sta_ps_durs = wmi_peer_rx[i].sta_ps_durs;
+			peer_stats->rx_probe_reqs =
+						wmi_peer_rx[i].rx_probe_reqs;
+			peer_stats->rx_oth_mgmts = wmi_peer_rx[i].rx_oth_mgmts;
 			rx_stats = (struct sir_wifi_rx *)result;
 
 			for (k = 0; k < WLAN_MAX_AC; k++) {

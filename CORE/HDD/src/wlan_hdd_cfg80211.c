@@ -6848,7 +6848,7 @@ put_attr_fail:
 }
 
 /**
- * put_wifi_wmm_ac_rx_info() - put AC TX info
+ * put_wifi_wmm_ac_rx_info() - put AC RX info
  * @info: rx info
  * @skb: vendor event buffer
  *
@@ -6887,18 +6887,6 @@ static int put_wifi_wmm_ac_rx_info(struct sir_wifi_rx *rx_stats,
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MPDU_DISCARD,
 			rx_stats->mpdu_discard) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_TIMES,
-			rx_stats->sta_ps_inds) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_DURATION,
-			rx_stats->sta_ps_durs) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_PROBE_REQ,
-			rx_stats->probe_reqs) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MGMT,
-			rx_stats->mgmts) ||
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_AGGR_NUM,
 			rx_stats->aggr_len) ||
@@ -6977,6 +6965,18 @@ static int put_wifi_ll_ext_peer_info(struct sir_wifi_ll_ext_peer_stats *peers,
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_IFACE_ID,
 			peers->vdev_id) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_TIMES,
+			peers->sta_ps_inds) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_DURATION,
+			peers->sta_ps_durs) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_PROBE_REQ,
+			peers->rx_probe_reqs) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MGMT,
+			peers->rx_oth_mgmts) ||
 	    put_wifi_signal_info(&peers->peer_signal_stats, skb)) {
 		hddLog(LOGE, FL("put peer signal attr failed"));
 		return -EINVAL;

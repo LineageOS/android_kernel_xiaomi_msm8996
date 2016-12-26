@@ -6390,10 +6390,6 @@ struct sir_wifi_tx {
  * @mpdu_retry: number of RX packets flagged as retransmissions
  * @mpdu_dup: number of RX packets identified as duplicates
  * @mpdu_discard: number of RX packets discarded
- * @sta_ps_inds: how many times STAs go to sleep
- * @sta_ps_durs: total sleep time of STAs
- * @probe_reqs: number of probe requests received
- * @mgmts: number of management frames received, no probe requests
  * @aggr_len: length of MPDU aggregation histogram buffer
  * @mpdu_aggr: histogram of MPDU aggregation size
  * @mcs_len: length of mcs histogram buffer
@@ -6408,10 +6404,6 @@ struct sir_wifi_rx {
 	uint32_t mpdu_retry;
 	uint32_t mpdu_dup;
 	uint32_t mpdu_discard;
-	uint32_t sta_ps_inds;
-	uint32_t sta_ps_durs;
-	uint32_t probe_reqs;
-	uint32_t mgmts;
 	uint32_t aggr_len;
 	uint32_t *mpdu_aggr;
 	uint32_t mcs_len;
@@ -6438,15 +6430,21 @@ struct sir_wifi_ll_ext_wmm_ac_stats {
  * struct sir_wifi_ll_ext_peer_stats - per peer stats
  * @peer_id: peer ID
  * @vdev_id: VDEV ID
+ * @sta_ps_inds: how many times STAs go to sleep
+ * @sta_ps_durs: total sleep time of STAs (units in ms)
+ * @rx_probe_reqs: number of probe requests received
+ * @rx_oth_mgmts: number of other management frames received,
+ *		  not including probe requests
  * @peer_signal_stat: signal stats
- * @be_stats: WMM BE stats
- * @bk_stats: WMM BK stats
- * @vi_stats: WMM VI stats
- * @vo_stats: WMM VO stats
+ * @ac_stats: WMM BE/BK/VI/VO stats
  */
 struct sir_wifi_ll_ext_peer_stats {
 	uint32_t peer_id;
 	uint32_t vdev_id;
+	uint32_t sta_ps_inds;
+	uint32_t sta_ps_durs;
+	uint32_t rx_probe_reqs;
+	uint32_t rx_oth_mgmts;
 	struct sir_wifi_peer_signal_stats peer_signal_stats;
 	struct sir_wifi_ll_ext_wmm_ac_stats ac_stats[WIFI_MAX_AC];
 };
