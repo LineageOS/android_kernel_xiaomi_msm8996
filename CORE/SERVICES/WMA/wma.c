@@ -14283,8 +14283,8 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 				WMA_ROAM_PREAUTH_CHAN_NONE) {
 				/* Is channel change required?
 				 */
-				if(vos_chan_to_freq(params->channelNumber) !=
-					wma->interfaces[vdev_id].mhz)
+				if(wma_is_mcc_starting(wma,
+				   vos_chan_to_freq(params->channelNumber)))
 				{
 				    status = wma_roam_preauth_chan_set(wma,
 							params, vdev_id);
