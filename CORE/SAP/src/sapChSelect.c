@@ -814,8 +814,8 @@ uint32_t sap_weight_channel_status(struct lim_channel_status *channel_stat)
 
 	txpwr_weight_lowspeed = (channel_stat->chan_tx_pwr_range == 0) ? 0 :
 				 (SOFTAP_TXPWR_WEIGHT *
-				 (channel_stat->chan_tx_pwr_range -
-				 SOFTAP_MIN_TXPWR)
+				 (SOFTAP_MAX_TXPWR -
+				 channel_stat->chan_tx_pwr_range)
 				 /(SOFTAP_MAX_TXPWR - SOFTAP_MIN_TXPWR));
 
 	if (txpwr_weight_lowspeed > SOFTAP_TXPWR_WEIGHT)
@@ -823,8 +823,8 @@ uint32_t sap_weight_channel_status(struct lim_channel_status *channel_stat)
 
 	txpwr_weight_highspeed = (chan_tx_pwr_throughput == 0) ? 0 :
 				 (SOFTAP_TXPWR_WEIGHT *
-				 (chan_tx_pwr_throughput -
-				  SOFTAP_MIN_TXPWR)
+				 (SOFTAP_MAX_TXPWR -
+				 chan_tx_pwr_throughput)
 				 /(SOFTAP_MAX_TXPWR - SOFTAP_MIN_TXPWR));
 
 	if (txpwr_weight_highspeed > SOFTAP_TXPWR_WEIGHT)

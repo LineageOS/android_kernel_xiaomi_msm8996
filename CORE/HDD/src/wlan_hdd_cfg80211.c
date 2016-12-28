@@ -6848,7 +6848,7 @@ put_attr_fail:
 }
 
 /**
- * put_wifi_wmm_ac_rx_info() - put AC TX info
+ * put_wifi_wmm_ac_rx_info() - put AC RX info
  * @info: rx info
  * @skb: vendor event buffer
  *
@@ -6887,18 +6887,6 @@ static int put_wifi_wmm_ac_rx_info(struct sir_wifi_rx *rx_stats,
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MPDU_DISCARD,
 			rx_stats->mpdu_discard) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_TIMES,
-			rx_stats->sta_ps_inds) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_DURATION,
-			rx_stats->sta_ps_durs) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_PROBE_REQ,
-			rx_stats->probe_reqs) ||
-	    nla_put_u32(skb,
-			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MGMT,
-			rx_stats->mgmts) ||
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_AGGR_NUM,
 			rx_stats->aggr_len) ||
@@ -6977,6 +6965,18 @@ static int put_wifi_ll_ext_peer_info(struct sir_wifi_ll_ext_peer_stats *peers,
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_IFACE_ID,
 			peers->vdev_id) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_TIMES,
+			peers->sta_ps_inds) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_DURATION,
+			peers->sta_ps_durs) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_PROBE_REQ,
+			peers->rx_probe_reqs) ||
+	    nla_put_u32(skb,
+			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MGMT,
+			peers->rx_oth_mgmts) ||
 	    put_wifi_signal_info(&peers->peer_signal_stats, skb)) {
 		hddLog(LOGE, FL("put peer signal attr failed"));
 		return -EINVAL;
@@ -8630,6 +8630,32 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 	hdd_adapter_t *con_sap_adapter;
 	tsap_Config_t *sap_config, *con_sap_config;
 	int con_ch;
+	tHalHandle hHal;
+
+	/*
+	 * Check if STA is running in a concurrent channel
+	 */
+	hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+	con_ch = sme_GetConcurrentOperationChannel(hHal);
+	sap_config = &adapter->sessionCtx.ap.sapConfig;
+
+	if (con_ch && vos_get_concurrency_mode() == VOS_STA_SAP) {
+
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+			FL("concurrent STA role running on channel %d"), con_ch);
+
+		/*
+		 * There is a STA role running on the same card, in that case
+		 * DFS channel cannot be used by concurrent SAP.
+		 * Try to use the same channel as the STA to achieve SCC
+		 */
+		if (VOS_IS_DFS_CH(sap_config->channel)) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+				FL("SAP channel config overridden due to DFS channel not allowed in STA+SAP mode %d -> %d"),
+				sap_config->channel, con_ch);
+			sap_config->channel = con_ch;
+		}
+	}
 
 	/*
 	 * Check if AP+AP case, once primary AP chooses a DFS
@@ -8642,7 +8668,6 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 	if (!con_sap_adapter)
 		return 0;
 
-	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	con_sap_config = &con_sap_adapter->sessionCtx.ap.sapConfig;
 	con_ch = con_sap_adapter->sessionCtx.ap.operatingChannel;
 
@@ -18970,9 +18995,11 @@ VOS_STATUS wlan_hdd_cfg80211_roam_metrics_handover(hdd_adapter_t * pAdapter,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
                                                        cfg80211_scan_request
-                                                       *scan_req)
+                                                       *scan_req, hdd_context_t
+                                                       *hdd_ctx)
 {
-        if (!scan_req || !scan_req->wiphy) {
+        if (!scan_req || !scan_req->wiphy ||
+            scan_req->wiphy != hdd_ctx->wiphy ) {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid scan request");
                 return false;
         }
@@ -18985,9 +19012,11 @@ static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
 #else
 static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
                                                        cfg80211_scan_request
-                                                       *scan_req)
+                                                       *scan_req, hdd_context_t
+                                                       *hdd_ctx)
 {
-        if (!scan_req || !scan_req->wiphy) {
+        if (!scan_req || !scan_req->wiphy ||
+            scan_req->wiphy != hdd_ctx->wiphy) {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid scan request");
                 return false;
         }
@@ -19136,7 +19165,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     /* Scan is no longer pending */
     pScanInfo->mScanPending = VOS_FALSE;
 
-    if (!wlan_hdd_cfg80211_validate_scan_req(req))
+    if (!wlan_hdd_cfg80211_validate_scan_req(req, pHddCtx))
     {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("interface state %s"),
@@ -19192,23 +19221,144 @@ allow_suspend:
     return 0;
 }
 
+/**
+ * hdd_is_sta_in_middle_of_eapol() - to check STA connection Status
+ * @adapter: Pointer to Global MAC Structure
+ * @session_id: session id
+ * @reason: scan reject reason
+ *
+ * This function is used to check the connection status of STA/P2P Client
+ *
+ * Return: true or false
+ */
+static bool hdd_is_sta_in_middle_of_eapol(hdd_adapter_t *adapter,
+			v_U8_t *session_id, scan_reject_states *reason)
+{
+	hdd_station_ctx_t *hdd_sta_ctx = NULL;
+	v_U8_t *sta_mac = NULL;
+
+	hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	if ((eConnectionState_Associated == hdd_sta_ctx->conn_info.connState) &&
+	    (VOS_FALSE == hdd_sta_ctx->conn_info.uIsAuthenticated)) {
+		sta_mac = (v_U8_t *) &(adapter->macAddressCurrent.bytes[0]);
+		hddLog(LOGE, FL("client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange."),
+			MAC_ADDR_ARRAY(sta_mac));
+		if (session_id && reason) {
+			*session_id = adapter->sessionId;
+			*reason = eHDD_EAPOL_IN_PROGRESS;
+		}
+		return true;
+	}
+	return false;
+}
+
+/**
+ * hdd_is_sap_in_middle_of_eapol() - to check SAP connection Status
+ * @adapter: Pointer to Global MAC Structure
+ * @session_id: session id
+ * @reason: scan reject reason
+ *
+ * This function is used to check the connection status of SAP/P2P GO
+ *
+ * Return: true or false
+ */
+static bool hdd_is_sap_in_middle_of_eapol(hdd_adapter_t *adapter,
+			v_U8_t *session_id, scan_reject_states *reason)
+{
+	v_U8_t sta_id = 0;
+	v_U8_t *sta_mac = NULL;
+
+	for (sta_id = 0; sta_id < WLAN_MAX_STA_COUNT; sta_id++) {
+		if ((adapter->aStaInfo[sta_id].isUsed) &&
+		    (WLANTL_STA_CONNECTED ==
+		     adapter->aStaInfo[sta_id].tlSTAState)) {
+			sta_mac = (v_U8_t *) &(adapter->aStaInfo[sta_id].
+				macAddrSTA.bytes[0]);
+
+			hddLog(LOGE, FL("client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the middle of WPS/EAPOL exchange."),
+				MAC_ADDR_ARRAY(sta_mac));
+			if (session_id && reason) {
+				*session_id = adapter->sessionId;
+				*reason = eHDD_SAP_EAPOL_IN_PROGRESS;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * hdd_check_connection_status() - to check connection Status
+ * @adapter: Pointer to Global MAC Structure
+ * @session_id: session id
+ * @reason: scan reject reason
+ *
+ * This function is used to check the connection status
+ *
+ * Return: true or false
+ */
+static bool hdd_check_connection_status(hdd_adapter_t *adapter,
+			v_U8_t *session_id, scan_reject_states *reason)
+{
+	hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
+		hdd_device_mode_to_string(adapter->device_mode),
+		adapter->device_mode);
+	if (((WLAN_HDD_INFRA_STATION == adapter->device_mode) ||
+	     (WLAN_HDD_P2P_CLIENT == adapter->device_mode) ||
+	     (WLAN_HDD_P2P_DEVICE == adapter->device_mode)) &&
+	    (eConnectionState_Connecting ==
+	     (WLAN_HDD_GET_STATION_CTX_PTR(adapter))->conn_info.connState)) {
+		hddLog(LOGE, FL("%p(%d) Connection is in progress"),
+			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
+			adapter->sessionId);
+		if (session_id && reason) {
+			*session_id = adapter->sessionId;
+			*reason = eHDD_CONNECTION_IN_PROGRESS;
+		}
+		return true;
+	}
+	if ((WLAN_HDD_INFRA_STATION == adapter->device_mode) &&
+	    smeNeighborMiddleOfRoaming(WLAN_HDD_GET_HAL_CTX(adapter),
+					adapter->sessionId)) {
+		hddLog(LOGE, FL("%p(%d) Reassociation is in progress"),
+			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
+			adapter->sessionId);
+		if (session_id && reason) {
+			*session_id = adapter->sessionId;
+			*reason = eHDD_REASSOC_IN_PROGRESS;
+		}
+		return true;
+	}
+	if ((WLAN_HDD_INFRA_STATION == adapter->device_mode) ||
+	    (WLAN_HDD_P2P_CLIENT == adapter->device_mode) ||
+	    (WLAN_HDD_P2P_DEVICE == adapter->device_mode)) {
+		if(hdd_is_sta_in_middle_of_eapol(adapter, session_id, reason))
+			return true;
+	} else if ((WLAN_HDD_SOFTAP == adapter->device_mode) ||
+		   (WLAN_HDD_P2P_GO == adapter->device_mode)) {
+		if(hdd_is_sap_in_middle_of_eapol(adapter, session_id, reason))
+			return true;
+	}
+	return false;
+}
+
+
 /*
  * hdd_isConnectionInProgress() - HDD function to check connection in progress
  * @pHddCtx - HDD context
- * @is_roc - roc
+ * @session_id: session id
+ * @reason: scan reject reason
  *
  * Go through each adapter and check if Connection is in progress
  *
  * Return: true if connection in progress; false otherwise.
  */
-bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx)
+bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, v_U8_t *session_id,
+				scan_reject_states *reason)
 {
 	hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-	hdd_station_ctx_t *pHddStaCtx = NULL;
 	hdd_adapter_t *pAdapter = NULL;
 	VOS_STATUS status = 0;
-	v_U8_t staId = 0;
-	v_U8_t *staMac = NULL;
 
 	if (TRUE == pHddCtx->btCoexModeSet) {
 		hddLog(LOG1, FL("BTCoex Mode operation in progress"));
@@ -19220,76 +19370,9 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx)
 	while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
 		pAdapter = pAdapterNode->pAdapter;
 
-		if (pAdapter) {
-			hddLog(LOG1, FL("Adapter with device mode %s(%d) exists"),
-				hdd_device_mode_to_string(pAdapter->device_mode),
-				pAdapter->device_mode);
-			if (((WLAN_HDD_INFRA_STATION ==
-					pAdapter->device_mode) ||
-				(WLAN_HDD_P2P_CLIENT ==
-					pAdapter->device_mode) ||
-				(WLAN_HDD_P2P_DEVICE ==
-					pAdapter->device_mode)) &&
-				(eConnectionState_Connecting ==
-				(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->
-					conn_info.connState)) {
-				hddLog(LOGE,
-					FL("%p(%d) Connection is in progress"),
-					WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-					pAdapter->sessionId);
-				return true;
-			}
-			if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-				smeNeighborMiddleOfRoaming(
-				WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId))
-			{
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-				"%s: %p(%d) Reassociation is in progress", __func__,
-				WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
-				return VOS_TRUE;
-			}
-			if ((WLAN_HDD_INFRA_STATION ==
-					pAdapter->device_mode) ||
-				(WLAN_HDD_P2P_CLIENT ==
-					pAdapter->device_mode) ||
-				(WLAN_HDD_P2P_DEVICE ==
-					pAdapter->device_mode)) {
-				pHddStaCtx =
-					WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-				if ((eConnectionState_Associated ==
-					pHddStaCtx->conn_info.connState) &&
-					(VOS_FALSE ==
-						pHddStaCtx->conn_info.
-							uIsAuthenticated)) {
-					staMac = (v_U8_t *) &(pAdapter->
-						macAddressCurrent.bytes[0]);
-					hddLog(LOGE,
-						FL("client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange."),
-						MAC_ADDR_ARRAY(staMac));
-					return true;
-				}
-			} else if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
-				   (WLAN_HDD_P2P_GO == pAdapter->device_mode)) {
-				for (staId = 0; staId < WLAN_MAX_STA_COUNT;
-					staId++) {
-					if ((pAdapter->aStaInfo[staId].
-							isUsed) &&
-						(WLANTL_STA_CONNECTED ==
-						 pAdapter->aStaInfo[staId].
-								tlSTAState)) {
-						staMac = (v_U8_t *) &(pAdapter->
-							aStaInfo[staId].
-							macAddrSTA.bytes[0]);
-
-					hddLog(LOGE,
-						FL("client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
-						"middle of WPS/EAPOL exchange."),
-						MAC_ADDR_ARRAY(staMac));
-					return true;
-					}
-				}
-			}
-		}
+		if (pAdapter)
+			hdd_check_connection_status(pAdapter, session_id,
+						    reason);
 		status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
 		pAdapterNode = pNext;
 	}
@@ -19492,6 +19575,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     uint16_t con_dfs_ch;
     bool is_p2p_scan = false;
     uint8_t num_chan = 0;
+    v_U8_t curr_session_id;
+    scan_reject_states curr_reason;
 
     ENTER();
 
@@ -19603,10 +19688,40 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
     /* Check if scan is allowed at this point of time.
      */
-    if (hdd_isConnectionInProgress(pHddCtx)) {
+    if (hdd_isConnectionInProgress(pHddCtx, &curr_session_id, &curr_reason)) {
         hddLog(LOGE, FL("Scan not allowed"));
+        if (pHddCtx->last_scan_reject_session_id != curr_session_id ||
+            pHddCtx->last_scan_reject_reason != curr_reason ||
+            !pHddCtx->last_scan_reject_timestamp) {
+            pHddCtx->last_scan_reject_session_id = curr_session_id;
+            pHddCtx->last_scan_reject_reason = curr_reason;
+            pHddCtx->last_scan_reject_timestamp = jiffies_to_msecs(jiffies);
+        } else {
+            hddLog(LOGE, FL("curr_session id %d curr_reason %d time delta %lu"),
+                   curr_session_id, curr_reason,
+                   (jiffies_to_msecs(jiffies) -
+                    pHddCtx->last_scan_reject_timestamp));
+            if ((jiffies_to_msecs(jiffies) -
+                 pHddCtx->last_scan_reject_timestamp) >=
+                SCAN_REJECT_THRESHOLD_TIME) {
+                pHddCtx->last_scan_reject_timestamp = 0;
+                if (pHddCtx->cfg_ini->enable_fatal_event) {
+                    vos_flush_logs(WLAN_LOG_TYPE_FATAL,
+                          WLAN_LOG_INDICATOR_HOST_DRIVER,
+                          WLAN_LOG_REASON_SCAN_NOT_ALLOWED,
+                          DUMP_NO_TRACE);
+                } else {
+                    hddLog(LOGE, FL("Triggering SSR due to scan stuck"));
+                    vos_wlanRestart();
+                }
+            }
+         }
         return -EBUSY;
     }
+    pHddCtx->last_scan_reject_timestamp = 0;
+    pHddCtx->last_scan_reject_session_id = 0xFF;
+    pHddCtx->last_scan_reject_reason = 0;
+
     /* Check whether SAP scan can be skipped or not */
     if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
        wlan_hdd_sap_skip_scan_check(pHddCtx, request)) {
@@ -21468,12 +21583,15 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     unsigned long rc;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    eConnectionState prev_conn_state;
 
     ENTER();
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
         return status;
+
+    prev_conn_state = pHddStaCtx->conn_info.connState;
 
     /*stop tx queues*/
     hddLog(LOG1, FL("Disabling queues"));
@@ -21488,13 +21606,20 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 
     status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                  pAdapter->sessionId, reason);
+    if ((eHAL_STATUS_CMD_NOT_QUEUED == status) &&
+             prev_conn_state != eConnectionState_Connecting) {
+        hddLog(LOG1,
+               FL("status = %d, already disconnected"), status);
+        result = 0;
+        goto disconnected;
+    }
     /*
      * Wait here instead of returning directly, this will block the next
      * connect command and allow processing of the scan for ssid and
      * the previous connect command in CSR. Else we might hit some
      * race conditions leading to SME and HDD out of sync.
      */
-    if (eHAL_STATUS_CMD_NOT_QUEUED == status) {
+    else if (eHAL_STATUS_CMD_NOT_QUEUED == status) {
         hddLog(LOG1,
            FL("Already disconnected or connect was in sme/roam pending list and removed by disconnect"));
     } else if (0 != status) {
@@ -25979,7 +26104,8 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    if (NULL == pHddCtx->chan_info) {
+    if ((NULL == pHddCtx->chan_info) &&
+        (pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
         hddLog(LOGE, FL("chan_info is NULL"));
         return -EINVAL;
     }

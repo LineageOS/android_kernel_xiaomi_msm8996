@@ -2686,7 +2686,8 @@ sapGotoChannelSel
             sapContext->dfs_ch_disable = VOS_TRUE;
         else if (VOS_IS_DFS_CH(sapContext->channel)) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-                       "In %s, DFS not supported in STA_AP Mode", __func__);
+                       "In %s, DFS not supported in STA_AP Mode, chan=%d",
+                       __func__, sapContext->channel);
             return VOS_STATUS_E_ABORTED;
         }
 #endif
@@ -2708,6 +2709,9 @@ sapGotoChannelSel
         if (con_ch)
         { /*if a valid channel is returned then use concurrent channel.
                   Else take whatever comes from configuartion*/
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                FL("Channel overridden due to MCC->SCC switch: %d -> %d"),
+                sapContext->channel, con_ch);
             sapContext->channel = con_ch;
             sme_SelectCBMode(hHal, sapContext->csrRoamProfile.phyMode,
                                 con_ch, 0, &sapContext->vht_channel_width,
