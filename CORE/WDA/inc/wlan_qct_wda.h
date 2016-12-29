@@ -968,7 +968,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_DEAUTH_TX_COMP         SIR_HAL_DEAUTH_TX_COMP
 #define WDA_GET_LINK_SPEED         SIR_HAL_GET_LINK_SPEED
 
-#define WDA_GET_RSSI               SIR_HAL_GET_RSSI
+#define WDA_GET_PEER_INFO               SIR_HAL_GET_PEER_INFO
 
 #define WDA_MODEM_POWER_STATE_IND SIR_HAL_MODEM_POWER_STATE_IND
 

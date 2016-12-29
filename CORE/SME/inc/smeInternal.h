@@ -206,9 +206,10 @@ typedef struct tagSmeStruct
     /* link speed callback */
     void (*pLinkSpeedIndCb) (tSirLinkSpeedInfo *indParam, void *pDevContext);
     void *pLinkSpeedCbContext;
-    /* get rssi callback */
-    void (*pget_rssi_ind_cb) (struct sir_rssi_resp *param, void *pcontext);
-    void *pget_rssi_cb_context;
+    /* get peer info callback */
+    void (*pget_peer_info_ind_cb) (struct sir_peer_info_resp *param,
+		    void *pcontext);
+    void *pget_peer_info_cb_context;
 #ifdef FEATURE_WLAN_EXTSCAN
     void (*pExtScanIndCb) (void *, const tANI_U16, void *);
 #endif /* FEATURE_WLAN_EXTSCAN */

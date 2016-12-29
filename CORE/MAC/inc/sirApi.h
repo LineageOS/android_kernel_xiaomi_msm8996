@@ -1253,6 +1253,13 @@ typedef struct sSirSmeChanInfo
     /* sub20 channelwidth */
     uint32_t sub20_channelwidth;
 } tSirSmeChanInfo, *tpSirSmeChanInfo;
+
+enum sir_sme_phy_mode {
+	SIR_SME_PHY_MODE_LEGACY = 0,
+	SIR_SME_PHY_MODE_HT = 1,
+	SIR_SME_PHY_MODE_VHT = 2
+};
+
 /// Definition for Association indication from peer
 /// MAC --->
 typedef struct sSirSmeAssocInd
@@ -1290,6 +1297,17 @@ typedef struct sSirSmeAssocInd
     tSirSmeChanInfo      chan_info;
     /* Extended CSA capability of station */
     uint8_t              ecsa_capable;
+    bool                 ampdu;
+    bool                 sgi_enable;
+    bool                 tx_stbc;
+    bool                 rx_stbc;
+    tSirMacHTChannelWidth ch_width;
+    enum sir_sme_phy_mode mode;
+    uint8_t              max_supp_idx;
+    uint8_t              max_ext_idx;
+    uint8_t              max_mcs_idx;
+    uint8_t              rx_mcs_map;
+    uint8_t              tx_mcs_map;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 
@@ -4760,40 +4778,44 @@ typedef struct sSirLinkSpeedInfo
 
 
 /*
- * struct sir_rssi_req - rssi request struct
+ * struct sir_peer_info_req - peer info request struct
  * @peer_macaddr: MAC address
  * @sessionId: vdev id
  *
- * rssi request message's struct
+ * peer info request message's struct
  */
-struct sir_rssi_req {
+struct sir_peer_info_req {
 	v_MACADDR_t peer_macaddr;
-	uint8_t sessionId;
+	uint8_t sessionid;
 };
 
 
 /*
- * struct sir_rssi_info - rssi information struct
+ * struct sir_peer_info - peer information struct
  * @peer_macaddr: MAC address
  * @rssi: rssi
+ * @tx_rate: last tx rate
+ * @rx_rate: last rx rate
  *
- * a station's rssi information
+ * a station's information
  */
-struct sir_rssi_info {
+struct sir_peer_info {
 	tSirMacAddr peer_macaddr;
 	int8_t rssi;
+	uint32_t tx_rate;
+	uint32_t rx_rate;
 };
 
 /*
- * struct sir_rssi_info - all peers rssi information struct
+ * struct sir_peer_info_resp - all peers information struct
  * @count: peer's number
- * @info: rssi information
+ * @info: peer information
  *
- * all station's rssi information
+ * all station's information
  */
-struct sir_rssi_resp {
+struct sir_peer_info_resp {
 	uint8_t count;
-	struct sir_rssi_info info[0];
+	struct sir_peer_info info[0];
 };
 
 

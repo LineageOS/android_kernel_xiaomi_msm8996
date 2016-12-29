@@ -410,6 +410,11 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pAdapter->stats.tx_bytes += skb->len;
        ++pAdapter->stats.tx_packets;
 
+       /* Per peer tx/rx statistics */
+       pAdapter->aStaInfo[STAId].tx_packets++;
+       pAdapter->aStaInfo[STAId].tx_bytes += skb->len;
+       pAdapter->aStaInfo[STAId].last_tx_rx_ts = vos_system_ticks();
+
        if (!list_head) {
            list_head = skb;
            list_tail = skb;
@@ -866,6 +871,10 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
+
+      pAdapter->aStaInfo[staId].rx_packets++;
+      pAdapter->aStaInfo[staId].rx_bytes += skb->len;
+      pAdapter->aStaInfo[staId].last_tx_rx_ts = vos_system_ticks();
 
       DPTRACE(adf_dp_trace(skb,
               ADF_DP_TRACE_RX_HDD_PACKET_PTR_RECORD,

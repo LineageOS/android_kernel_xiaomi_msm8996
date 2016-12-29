@@ -802,7 +802,7 @@ typedef struct wma_handle {
 	v_BOOL_t ptrn_match_enable_all_vdev;
 	void* pGetRssiReq;
 	v_S7_t first_rssi;
-	bool get_sta_rssi;
+	bool get_sta_peer_info;
 	v_MACADDR_t peer_macaddr;
 	t_thermal_mgmt thermal_mgmt_info;
         v_BOOL_t  roam_offload_enabled;

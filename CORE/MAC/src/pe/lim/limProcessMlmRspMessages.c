@@ -1258,7 +1258,17 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
     // Fill in WmmInfo
     pSirSmeAssocInd->wmmEnabledSta = pAssocInd->WmmStaInfoPresent;
     pSirSmeAssocInd->ecsa_capable = pAssocInd->ecsa_capable;
-
+    pSirSmeAssocInd->ampdu = pAssocInd->ampdu;
+    pSirSmeAssocInd->sgi_enable = pAssocInd->sgi_enable;
+    pSirSmeAssocInd->tx_stbc = pAssocInd->tx_stbc;
+    pSirSmeAssocInd->rx_stbc = pAssocInd->rx_stbc;
+    pSirSmeAssocInd->ch_width = pAssocInd->ch_width;
+    pSirSmeAssocInd->mode = pAssocInd->mode;
+    pSirSmeAssocInd->max_supp_idx = pAssocInd->max_supp_idx;
+    pSirSmeAssocInd->max_ext_idx = pAssocInd->max_ext_idx;
+    pSirSmeAssocInd->max_mcs_idx = pAssocInd->max_mcs_idx;
+    pSirSmeAssocInd->rx_mcs_map = pAssocInd->rx_mcs_map;
+    pSirSmeAssocInd->tx_mcs_map = pAssocInd->tx_mcs_map;
 } /*** end limAssocIndSerDes() ***/
 
 

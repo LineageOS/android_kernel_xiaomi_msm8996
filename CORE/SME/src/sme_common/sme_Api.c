@@ -3214,10 +3214,10 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    vos_mem_free(pMsg->bodyptr);
                }
                break;
-          case eWNI_SME_GET_RSSI_IND:
-               if (pMac->sme.pget_rssi_ind_cb)
-                   pMac->sme.pget_rssi_ind_cb(pMsg->bodyptr,
-                                            pMac->sme.pget_rssi_cb_context);
+          case eWNI_SME_GET_PEER_INFO_IND:
+               if (pMac->sme.pget_peer_info_ind_cb)
+                   pMac->sme.pget_peer_info_ind_cb(pMsg->bodyptr,
+                                        pMac->sme.pget_peer_info_cb_context);
                vos_mem_free(pMsg->bodyptr);
                break;
           case eWNI_SME_CSA_OFFLOAD_EVENT:
@@ -12526,19 +12526,19 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
 
 
 /**
- * sme_get_rssi() - get station's rssi
+ * sme_get_peer_info() - get station's info
  * @hal: hal interface
- * @req: get rssi request information
+ * @req: get peer info request information
  * @context: event handle context
  * @pcallbackfn: callback function pointer
  *
- * This function will send WDA_GET_RSSI to WMA
+ * This function will send WDA_GET_PEER_INFO to WMA
  *
  * Return: 0 on success, otherwise error value
  */
-eHalStatus sme_get_rssi(tHalHandle hal, struct sir_rssi_req req,
+eHalStatus sme_get_peer_info(tHalHandle hal, struct sir_peer_info_req req,
 			void *context,
-			void (*callbackfn)(struct sir_rssi_resp *param,
+			void (*callbackfn)(struct sir_peer_info_resp *param,
 						void *pcontext))
 {
 
@@ -12557,8 +12557,8 @@ eHalStatus sme_get_rssi(tHalHandle hal, struct sir_rssi_req req,
 			return eHAL_STATUS_FAILURE;
 		}
 
-		mac->sme.pget_rssi_ind_cb = callbackfn;
-		mac->sme.pget_rssi_cb_context = context;
+		mac->sme.pget_peer_info_ind_cb = callbackfn;
+		mac->sme.pget_peer_info_cb_context = context;
 
 		/* serialize the req through MC thread */
 		vosmessage.bodyptr = vos_mem_malloc(sizeof(req));
@@ -12569,11 +12569,11 @@ eHalStatus sme_get_rssi(tHalHandle hal, struct sir_rssi_req req,
 			return eHAL_STATUS_E_MALLOC_FAILED;
 		}
 		vos_mem_copy(vosmessage.bodyptr, &req, sizeof(req));
-		vosmessage.type    = WDA_GET_RSSI;
+		vosmessage.type    = WDA_GET_PEER_INFO;
 		vosstatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosmessage);
 		if (!VOS_IS_STATUS_SUCCESS(vosstatus)) {
 			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-				"%s: Post get rssi msg fail", __func__);
+				"%s: Post get peer info msg fail", __func__);
 			vos_mem_free(vosmessage.bodyptr);
 			status = eHAL_STATUS_FAILURE;
 		}
