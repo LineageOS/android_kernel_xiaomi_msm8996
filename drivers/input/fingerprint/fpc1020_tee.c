@@ -72,7 +72,8 @@ struct fpc1020_data {
 	struct work_struct reset_work;
 	struct workqueue_struct *reset_workqueue;
 #endif
-
+	spinlock_t irq_lock;
+	struct mutex lock;
 };
 
 enum {
@@ -81,6 +82,7 @@ enum {
 	FP_ID_FLOAT_2,
 	FP_ID_UNKNOWN
 };
+
 
 #ifdef CONFIG_FB
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
@@ -92,31 +94,28 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
 
+	if (FB_EARLY_EVENT_BLANK != event && FB_EVENT_BLANK != event)
+		return 0;
+
 	if (evdata && evdata->data && fpc1020) {
-		if (event == FB_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_POWERDOWN) {
-				if ((0 == fpc1020->wakeup_enabled)) {
-					if (true == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s POWERDOWN disable irq!\n", __func__);
-						*/
-						disable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = false;
-					}
+		transition = evdata->data;
+
+		if (*transition == FB_BLANK_POWERDOWN && (event == FB_EARLY_EVENT_BLANK)) {
+			if ((0 == fpc1020->wakeup_enabled)) {
+				if (true == fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
+					disable_irq(gpio_to_irq(fpc1020->irq_gpio));
+					fpc1020->irq_enabled = false;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
-		} else if (event == FB_EARLY_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
-				if (0 == fpc1020->wakeup_enabled) {
-					if (false == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s UNBLANK enable irq!\n", __func__);
-						*/
-						enable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = true;
-					}
+		} else if (*transition == FB_BLANK_UNBLANK && (event == FB_EARLY_EVENT_BLANK )) {
+			if (0 == fpc1020->wakeup_enabled) {
+				if (false == fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
+					enable_irq(gpio_to_irq(fpc1020->irq_gpio));
+					fpc1020->irq_enabled = true;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
 		}
@@ -438,6 +437,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
+	mutex_init(&fpc1020->lock);
 
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
@@ -452,7 +452,9 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (fpc1020->wakeup_enabled) {
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 	}
+	spin_lock_init(&fpc1020->irq_lock);
 	fpc1020->irq_enabled = true;
+
 
 	rc = sysfs_create_group(&dev->kobj, &attribute_group);
 	if (rc) {
