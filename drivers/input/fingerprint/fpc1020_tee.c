@@ -72,7 +72,12 @@ struct fpc1020_data {
 	struct work_struct reset_work;
 	struct workqueue_struct *reset_workqueue;
 #endif
-
+	bool screen_on;
+	int proximity_state;
+	spinlock_t irq_lock;
+	struct mutex lock;
+	struct workqueue_struct *fpc_wq;
+	struct work_struct irq_work;
 };
 
 enum {
@@ -92,31 +97,34 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
 
+	if (FB_EARLY_EVENT_BLANK != event || FB_EVENT_BLANK != event)
+		return 0;
+
 	if (evdata && evdata->data && fpc1020) {
-		if (event == FB_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_POWERDOWN) {
-				if ((0 == fpc1020->wakeup_enabled)) {
-					if (true == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s POWERDOWN disable irq!\n", __func__);
-						*/
-						disable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = false;
-					}
+		transition = evdata->data;
+
+		if (*transition == FB_BLANK_NORMAL) {
+			fpc1020->screen_on = false;
+		} else {
+			fpc1020->screen_on = true;
+		}
+
+		if (*transition == FB_BLANK_POWERDOWN && (event == FB_EARLY_EVENT_BLANK)) {
+			if ((!fpc1020->wakeup_enabled)) {
+				if (fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
+					disable_irq(gpio_to_irq(fpc1020->irq_gpio));
+					fpc1020->irq_enabled = false;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
-		} else if (event == FB_EARLY_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
-				if (0 == fpc1020->wakeup_enabled) {
-					if (false == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s UNBLANK enable irq!\n", __func__);
-						*/
-						enable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = true;
-					}
+		} else if (*transition == FB_BLANK_UNBLANK && (event == FB_EARLY_EVENT_BLANK )) {
+			if (!fpc1020->wakeup_enabled) {
+				if (!fpc1020->irq_enabled) {
+					spin_lock(&fpc1020->irq_lock);
+					enable_irq(gpio_to_irq(fpc1020->irq_gpio));
+					fpc1020->irq_enabled = true;
+					spin_unlock(&fpc1020->irq_lock);
 				}
 			}
 		}
@@ -264,9 +272,56 @@ static DEVICE_ATTR(enable_wakeup, S_IWUSR | S_IRUSR, enable_wakeup_show,
 		   enable_wakeup_store);
 
 
+static ssize_t proximity_state_set(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct  fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+		return -EINVAL;
+
+	fpc1020->proximity_state = !!val;
+
+	mutex_lock(&fpc1020->irq_lock);
+	if (!fpc1020->screen_on) {
+		if (fpc1020->proximity_state) {
+			spin_lock(&fpc1020->irq_lock);
+			disable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
+			spin_unlock(&fpc1020->irq_lock);
+
+		} else {
+			spin_lock(&fpc1020->irq_lock);
+			enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
+			spin_unlock(&fpc1020->irq_lock);
+
+			rc = gpio_direction_output(fpc1020->rst_gpio, 1);
+			if (rc) {
+				dev_err(fpc1020->dev,
+					"gpio_direction_output failed.\n");
+				mutex_unlock(&fpc1020->irq_lock);
+				return rc;
+			}
+
+			gpio_set_value(fpc1020->rst_gpio, 1);
+			udelay(FPC1020_RESET_HIGH1_US);
+			gpio_set_value(fpc1020->rst_gpio, 0);
+			udelay(FPC1020_RESET_LOW_US);
+			gpio_set_value(fpc1020->rst_gpio, 1);
+			udelay(FPC1020_RESET_HIGH2_US);
+		}
+	}
+	mutex_unlock(&fpc1020->irq_lock);
+	return count;
+}
+
+static DEVICE_ATTR(proximity_state, S_IWUSR, NULL, proximity_state_set);
+
 static struct attribute *attributes[] = {
 	&dev_attr_irq.attr,
 	&dev_attr_enable_wakeup.attr,
+	&dev_attr_proximity_state.attr,
 	NULL
 };
 
@@ -274,23 +329,40 @@ static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
 
-static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
+static void fpc1020_irq_work(struct work_struct *work)
 {
-	struct fpc1020_data *fpc1020 = handle;
-	dev_dbg(fpc1020->dev, "%s\n", __func__);
+	struct fpc1020_data *fpc1020 =
+		container_of(work, typeof(*fpc1020), irq_work);
+	bool status;
+
+	mutex_lock(&fpc1020->irq_lock);
+	status = !fpc1020->screen_on && fpc1020->proximity_state;
+	mutex_unlock(&fpc1020->irq_lock);
+
+	if (status)
+		return;
 
 	/* Make sure 'wakeup_enabled' is updated before using it
 	** since this is interrupt context (other thread...) */
 	smp_rmb();
 
-	if (fpc1020->wakeup_enabled) {
-		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
-		dev_info(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
-	}
-
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 
-	return IRQ_HANDLED;
+	if (fpc1020->screen_on)
+		return;
+
+	if (fpc1020->wakeup_enabled) {
+		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
+	}
+}
+
+static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
+{
+	struct fpc1020_data *fpc1020 = handle;
+
+	queue_work(fpc1020->fpc_wq, &fpc1020->irq_work);
+  
+ 	return IRQ_HANDLED;
 }
 
 /* -------------------------------------------------------------------- */
@@ -383,7 +455,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	int rc = 0;
-	int irqf;
+	unsigned long irqf;
 	int fp_id = FP_ID_UNKNOWN;
 	struct device_node *np = dev->of_node;
 
@@ -438,6 +510,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
+	mutex_init(&fpc1020->lock);
 
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
@@ -452,7 +525,9 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (fpc1020->wakeup_enabled) {
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 	}
+	spin_lock_init(&fpc1020->irq_lock);
 	fpc1020->irq_enabled = true;
+
 
 	rc = sysfs_create_group(&dev->kobj, &attribute_group);
 	if (rc) {
@@ -480,6 +555,13 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	dev_info(fpc1020->dev,
 		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
 
+	fpc1020->fpc_wq = create_singlethread_workqueue("fpc_wq");
+	if (!fpc1020->fpc_wq) {
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	INIT_WORK(&fpc1020->irq_work, fpc1020_irq_work);
 #ifdef CONFIG_FB
 	fpc1020->fb_notifier.notifier_call = fpc1020_fb_notifier_cb;
 	rc = fb_register_client(&fpc1020->fb_notifier);
@@ -488,6 +570,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 			"%s: Failed to register fb notifier client\n",
 			__func__);
 	}
+	fpc1020->screen_on = true;
 #endif
 
 	dev_info(dev, "%s: ok - end\n", __func__);
