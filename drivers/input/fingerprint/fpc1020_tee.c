@@ -72,7 +72,9 @@ struct fpc1020_data {
 	struct work_struct reset_work;
 	struct workqueue_struct *reset_workqueue;
 #endif
-
+	bool screen_on;
+	spinlock_t irq_lock;
+	struct mutex lock;
 };
 
 enum {
@@ -82,45 +84,63 @@ enum {
 	FP_ID_UNKNOWN
 };
 
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
+
 #ifdef CONFIG_FB
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		unsigned long event, void *data)
 {
-	int *transition;
 	struct fb_event *evdata = data;
 	struct fpc1020_data *fpc1020 =
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
+	int *transition = evdata->data;
 
-	if (evdata && evdata->data && fpc1020) {
-		if (event == FB_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_POWERDOWN) {
-				if ((0 == fpc1020->wakeup_enabled)) {
-					if (true == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s POWERDOWN disable irq!\n", __func__);
-						*/
-						disable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = false;
-					}
-				}
-			}
-		} else if (event == FB_EARLY_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
-				if (0 == fpc1020->wakeup_enabled) {
-					if (false == fpc1020->irq_enabled) {
-						/*
-						dev_info(fpc1020->dev, "%s UNBLANK enable irq!\n", __func__);
-						*/
-						enable_irq(gpio_to_irq(fpc1020->irq_gpio));
-						fpc1020->irq_enabled = true;
-					}
-				}
-			}
+	if (event != FB_EARLY_EVENT_BLANK || fpc1020->wakeup_enabled != 0)
+		dev_info(fpc1020->dev, "Fails the tripple check");
+		return 0;
+
+	if (*transition == FB_BLANK_NORMAL) {
+		fpc1020->screen_on = false;
+		set_fingerprintd_nice(MIN_NICE);
+		dev_info(fpc1020->dev, "fingerprintd set to MIN_NICE");
+	} else {
+		fpc1020->screen_on = true;
+		set_fingerprintd_nice(0);
+		dev_info(fpc1020->dev, "fingerprintd set to 0");
+	}
+
+	if (*transition == FB_BLANK_POWERDOWN) {
+		if (fpc1020->irq_enabled) {
+			spin_lock(&fpc1020->irq_lock);
+			dev_info(fpc1020->dev, "Disable IRQ");
+			disable_irq(gpio_to_irq(fpc1020->irq_gpio));
+			fpc1020->irq_enabled = false;
+			spin_unlock(&fpc1020->irq_lock);
+		}
+	} else if (*transition == FB_BLANK_UNBLANK) {
+		if (!fpc1020->irq_enabled) {
+			spin_lock(&fpc1020->irq_lock);
+			dev_info(fpc1020->dev, "Enable IRQ");
+			enable_irq(gpio_to_irq(fpc1020->irq_gpio));
+			fpc1020->irq_enabled = true;
+			spin_unlock(&fpc1020->irq_lock);
 		}
 	}
+
 	return 0;
 }
 #endif
@@ -283,6 +303,10 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	** since this is interrupt context (other thread...) */
 	smp_rmb();
 
+
+	if (fpc1020->screen_on)
+		return IRQ_HANDLED;
+
 	if (fpc1020->wakeup_enabled) {
 		wake_lock_timeout(&fpc1020->ttw_wl, msecs_to_jiffies(FPC_TTW_HOLD_TIME));
 		dev_info(fpc1020->dev, "%s - wake_lock_timeout\n", __func__);
@@ -438,6 +462,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
 
 	irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT;
+	mutex_init(&fpc1020->lock);
 
 	rc = devm_request_threaded_irq(dev, gpio_to_irq(fpc1020->irq_gpio),
 			NULL, fpc1020_irq_handler, irqf,
@@ -452,6 +477,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	if (fpc1020->wakeup_enabled) {
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 	}
+	spin_lock_init(&fpc1020->irq_lock);
 	fpc1020->irq_enabled = true;
 
 	rc = sysfs_create_group(&dev->kobj, &attribute_group);
@@ -488,6 +514,7 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 			"%s: Failed to register fb notifier client\n",
 			__func__);
 	}
+	fpc1020->screen_on = true;
 #endif
 
 	dev_info(dev, "%s: ok - end\n", __func__);
@@ -503,25 +530,10 @@ static struct of_device_id fpc1020_of_match[] = {
 MODULE_DEVICE_TABLE(of, fpc1020_of_match);
 
 #ifdef CONFIG_PM
-static void set_fingerprintd_nice(int nice)
-{
-	struct task_struct *p;
-
-	read_lock(&tasklist_lock);
-	for_each_process(p) {
-		if (!memcmp(p->comm, "fingerprintd", 13)) {
-			set_user_nice(p, nice);
-			break;
-		}
-	}
-	read_unlock(&tasklist_lock);
-}
-
 static int fpc1020_pm_suspend(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
-	set_fingerprintd_nice(MIN_NICE);
 	return 0;
 }
 
@@ -529,7 +541,6 @@ static int fpc1020_pm_resume(struct device *dev)
 {
 	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_dbg(fpc1020->dev, "%s \n", __func__);
-	set_fingerprintd_nice(0);
 	return 0;
 }
 
