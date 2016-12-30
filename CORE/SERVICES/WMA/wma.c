@@ -16236,12 +16236,16 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
 			break;
 		case WMI_PDEV_PARAM_TX_CHAIN_MASK_2G:
+			wma->pdevconfig.chainmask_2g_tx = privcmd->param_value;
+			break;
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK_2G:
-			wma->pdevconfig.chainmask_2g = privcmd->param_value;
+			wma->pdevconfig.chainmask_2g_rx = privcmd->param_value;
 			break;
 		case WMI_PDEV_PARAM_TX_CHAIN_MASK_5G:
+			wma->pdevconfig.chainmask_5g_tx = privcmd->param_value;
+			break;
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK_5G:
-			wma->pdevconfig.chainmask_5g = privcmd->param_value;
+			wma->pdevconfig.chainmask_5g_rx = privcmd->param_value;
 			break;
 		case WMI_PDEV_PARAM_BURST_ENABLE:
 			wma->pdevconfig.burst_enable = privcmd->param_value;

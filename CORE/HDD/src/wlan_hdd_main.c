@@ -8311,66 +8311,83 @@ static void hdd_update_chain_mask_vdev_nss(hdd_context_t *hdd_ctx,
 		struct hdd_tgt_services *cfg)
 {
 	hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
-	uint8_t chain_mask, ret;
+	uint8_t chain_mask_rx, chain_mask_tx, ret;
 	uint8_t max_supp_nss = 1;
 
 	cfg_ini->enable2x2 = 0;
-	chain_mask = cfg->chain_mask_2g & cfg_ini->chain_mask_2g;
-	if (!chain_mask)
-		chain_mask = cfg->chain_mask_2g;
-	hddLog(VOS_TRACE_LEVEL_INFO,
-			"%s: set 2G chain mask value %d",
-			__func__, chain_mask);
+	chain_mask_rx = cfg->chain_mask_2g & cfg_ini->chain_mask_2g_rx;
+	chain_mask_tx = cfg->chain_mask_2g & cfg_ini->chain_mask_2g_tx;
+	if (!chain_mask_rx)
+		chain_mask_rx = cfg->chain_mask_2g;
+	if (!chain_mask_tx)
+		chain_mask_tx = chain_mask_rx;
+	hddLog(LOG1,
+		FL("set 2G chain mask rx %d tx %d"),
+		chain_mask_rx, chain_mask_tx);
 	ret = process_wma_set_command(0, WMI_PDEV_PARAM_RX_CHAIN_MASK_2G,
-			chain_mask, PDEV_CMD);
+			chain_mask_rx, PDEV_CMD);
 	if (0 != ret) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: set WMI_PDEV_PARAM_RX_CHAIN_MASK_2G failed %d",
 			__func__, ret);
 	}
 	ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_2G,
-			chain_mask, PDEV_CMD);
+			chain_mask_tx, PDEV_CMD);
 	if (0 != ret) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: WMI_PDEV_PARAM_TX_CHAIN_MASK_2G set failed %d",
 			__func__, ret);
 	}
-	max_supp_nss += ((chain_mask & 0x3) == 0x3);
+	if (((chain_mask_rx & 0x3) == 0x3) ||
+		((chain_mask_tx & 0x3) == 0x3))
+		max_supp_nss++;
 
 	if (max_supp_nss == 2)
 		cfg_ini->enable2x2 = 1;
 	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
 			cfg_ini->vdev_type_nss_2g, eCSR_BAND_24);
-	hdd_ctx->supp_2g_chain_mask = chain_mask;
+
+	if (chain_mask_rx >= chain_mask_tx)
+		hdd_ctx->supp_2g_chain_mask = chain_mask_rx;
+	else
+		hdd_ctx->supp_2g_chain_mask = chain_mask_tx;
 
 	max_supp_nss = 1;
-	chain_mask = cfg->chain_mask_5g & cfg_ini->chain_mask_5g;
-	if (!chain_mask)
-		chain_mask = cfg->chain_mask_5g;
-	hddLog(VOS_TRACE_LEVEL_INFO,
-			"%s: set 5G chain mask value %d",
-			__func__, chain_mask);
+	chain_mask_rx = cfg->chain_mask_5g & cfg_ini->chain_mask_5g_rx;
+	chain_mask_tx = cfg->chain_mask_5g & cfg_ini->chain_mask_5g_tx;
+	if (!chain_mask_rx)
+		chain_mask_rx = cfg->chain_mask_5g;
+	if (!chain_mask_tx)
+		chain_mask_tx = chain_mask_rx;
+	hddLog(LOG1,
+		FL("set 5G chain mask rx %d tx %d"),
+		chain_mask_rx, chain_mask_tx);
 	ret = process_wma_set_command(0, WMI_PDEV_PARAM_RX_CHAIN_MASK_5G,
-			chain_mask, PDEV_CMD);
+			chain_mask_rx, PDEV_CMD);
 	if (0 != ret) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: set WMI_PDEV_PARAM_RX_CHAIN_MASK_5G failed %d",
 			__func__, ret);
 	}
 	ret = process_wma_set_command(0, WMI_PDEV_PARAM_TX_CHAIN_MASK_5G,
-			chain_mask, PDEV_CMD);
+			chain_mask_tx, PDEV_CMD);
 	if (0 != ret) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: WMI_PDEV_PARAM_TX_CHAIN_MASK_5G set failed %d",
 			__func__, ret);
 	}
-	max_supp_nss += ((chain_mask & 0x3) == 0x3);
+	if (((chain_mask_rx & 0x3) == 0x3) ||
+		((chain_mask_tx & 0x3) == 0x3))
+		max_supp_nss++;
 
 	if (max_supp_nss == 2)
 		cfg_ini->enable2x2 = 1;
 	sme_update_vdev_type_nss(hdd_ctx->hHal, max_supp_nss,
 			cfg_ini->vdev_type_nss_5g, eCSR_BAND_5G);
-	hdd_ctx->supp_5g_chain_mask = chain_mask;
+	if (chain_mask_rx >= chain_mask_tx)
+		hdd_ctx->supp_5g_chain_mask = chain_mask_rx;
+	else
+		hdd_ctx->supp_5g_chain_mask = chain_mask_tx;
 	hddLog(LOG1, FL("Supported chain mask 2G: %d 5G: %d"),
 	       hdd_ctx->supp_2g_chain_mask,
 	       hdd_ctx->supp_5g_chain_mask);

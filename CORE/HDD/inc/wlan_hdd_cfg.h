@@ -1359,20 +1359,62 @@ typedef enum
 #define CFG_ENABLE_VHT_DYNAMIC_STA_CHAINMASK_DEFAULT (0)
 
 /*
+ * gChainMask_2g: to set RX chainmask for 2.4GH if
+ * per band chainmask is supported
+ *
  * Valid chain mask values.
  * 01 - enables chain0
  * 02 - enables chain1
  * 03 - enables both chain 0 and chain 1
  */
-#define CFG_CHAIN_MASK_2G         "gChainMask_2g"
-#define CFG_CHAIN_MASK_2G_MIN     ( 1 )
-#define CFG_CHAIN_MASK_2G_MAX     ( 3 )
-#define CFG_CHAIN_MASK_2G_DEFAULT ( 3 )
+#define CFG_RX_CHAIN_MASK_2G         "gChainMask_2g"
+#define CFG_RX_CHAIN_MASK_2G_MIN     (1)
+#define CFG_RX_CHAIN_MASK_2G_MAX     (3)
+#define CFG_RX_CHAIN_MASK_2G_DEFAULT (3)
 
-#define CFG_CHAIN_MASK_5G         "gChainMask_5g"
-#define CFG_CHAIN_MASK_5G_MIN     ( 1 )
-#define CFG_CHAIN_MASK_5G_MAX     ( 3 )
-#define CFG_CHAIN_MASK_5G_DEFAULT ( 3 )
+/*
+ * gChainMask_5g: to set RX chainmask for 5GH if
+ * per band chainmask is supported
+ *
+ * Valid chain mask values.
+ * 01 - enables chain0
+ * 02 - enables chain1
+ * 03 - enables both chain 0 and chain 1
+ */
+#define CFG_RX_CHAIN_MASK_5G         "gChainMask_5g"
+#define CFG_RX_CHAIN_MASK_5G_MIN     (1)
+#define CFG_RX_CHAIN_MASK_5G_MAX     (3)
+#define CFG_RX_CHAIN_MASK_5G_DEFAULT (3)
+
+/*
+ * gChainMask_2g_tx: to set TX chainmask for 2.4GH if
+ * per band chainmask is supported
+ *
+ * Valid chain mask values.
+ * 01 - enables chain0
+ * 02 - enables chain1
+ * 03 - enables both chain 0 and chain 1
+ */
+#define CFG_TX_CHAIN_MASK_2G         "gChainMask_2g_tx"
+#define CFG_TX_CHAIN_MASK_2G_MIN     (1)
+#define CFG_TX_CHAIN_MASK_2G_MAX     (3)
+#define CFG_TX_CHAIN_MASK_2G_DEFAULT (3)
+
+/*
+ * gChainMask_5g_tx: to set TX chainmask for 5GH if
+ * per band chainmask is supported
+ *
+ * Valid chain mask values.
+ * 01 - enables chain0
+ * 02 - enables chain1
+ * 03 - enables both chain 0 and chain 1
+ */
+#define CFG_TX_CHAIN_MASK_5G         "gChainMask_5g_tx"
+#define CFG_TX_CHAIN_MASK_5G_MIN     (1)
+#define CFG_TX_CHAIN_MASK_5G_MAX     (3)
+#define CFG_TX_CHAIN_MASK_5G_DEFAULT (3)
+
+
 /*
  * NSS cfg bit definition.
  * STA          BIT[0:1]
@@ -4793,8 +4835,10 @@ struct hdd_config {
    v_U8_t                      vhtRxMCS2x2;
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
-   uint8_t                     chain_mask_2g;
-   uint8_t                     chain_mask_5g;
+   uint8_t                     chain_mask_2g_rx;
+   uint8_t                     chain_mask_5g_rx;
+   uint8_t                     chain_mask_2g_tx;
+   uint8_t                     chain_mask_5g_tx;
    uint32_t                    vdev_type_nss_2g;
    uint32_t                    vdev_type_nss_5g;
    v_BOOL_t                    txchainmask1x1;
