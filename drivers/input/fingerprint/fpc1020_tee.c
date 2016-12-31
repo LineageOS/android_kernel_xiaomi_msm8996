@@ -71,6 +71,8 @@ struct fpc1020_data {
 	struct workqueue_struct *reset_workqueue;
 #endif
 
+	bool screen_on;
+	int proximity_state; /* 0:far 1:near */
 };
 
 enum {
@@ -79,8 +81,6 @@ enum {
 	FP_ID_FLOAT_2,
 	FP_ID_UNKNOWN
 };
-
-static bool s_screenon = true;
 
 static void config_irq(struct fpc1020_data *fpc1020, bool enabled)
 {
@@ -112,21 +112,22 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 			fb_notifier);
 
 	if (evdata && evdata->data && fpc1020) {
+		transition = evdata->data;
 		if (event == FB_EVENT_BLANK) {
-			transition = evdata->data;
 			if (*transition == FB_BLANK_POWERDOWN) {
-				if (0 == fpc1020->wakeup_enabled) {
+				fpc1020->screen_on = false;
+
+				/* Disable IRQ when screen turns off,
+				   only if fingerprint wake up is disabled */
+				if (fpc1020->wakeup_enabled == 0)
 					config_irq(fpc1020, false);
-					s_screenon = false;
-				}
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
-			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
-				if (0 == fpc1020->wakeup_enabled) {
-					config_irq(fpc1020, true);
-					s_screenon = true;
-				}
+			if (*transition == FB_BLANK_UNBLANK || *transition == FB_BLANK_NORMAL) {
+				fpc1020->screen_on = true;
+
+				/* Unconditionally enable IRQ when screen turns on */
+				config_irq(fpc1020, true);
 			}
 		}
 	}
@@ -259,31 +260,49 @@ static ssize_t enable_wakeup_store(struct device *dev,
 	int i;
 
 	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
-		dev_info(dev, "%s: %s\n", __func__, i ? "irq enabled" : "irq disabled");
-		if (s_screenon) { /*OK, screen on status*/
-			if (i)
-				config_irq(fpc1020, true);
-			else
-				config_irq(fpc1020, false);
-		} else {
-			if (i)
-				dev_info(dev, "%s: try to enable irq during screen off, DO NOTHING~!\n", __func__);
-			else
-				config_irq(fpc1020, false);
-		}
+		fpc1020->wakeup_enabled = (i == 1);
+
+		dev_info(dev, "%s\n", i ? "wakeup enabled" : "wakeup disabled");
 		return count;
 	} else {
-		dev_info(dev, "%s: wakeup_enabled(irq) write error\n", __func__);
+		dev_info(dev, "%s: wakeup_enabled write error\n", __func__);
 		return -EINVAL;
 	}
 }
 static DEVICE_ATTR(enable_wakeup, S_IWUSR | S_IRUSR, enable_wakeup_show,
 		   enable_wakeup_store);
 
+static ssize_t proximity_state_set(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct fpc1020_data *fpc1020 = dev_get_drvdata(dev);
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+		return -EINVAL;
+
+	fpc1020->proximity_state = !!val;
+
+	if (!fpc1020->screen_on) {
+		if (fpc1020->proximity_state == 1) {
+			/* Disable IRQ when screen is off and proximity sensor is covered */
+			config_irq(fpc1020, false);
+		} else if (fpc1020->wakeup_enabled == 1) {
+			/* Enable IRQ when screen is off and proximity sensor is uncovered,
+			   but only if fingerprint wake up is enabled */
+			config_irq(fpc1020, true);
+		}
+	}
+
+	return count;
+}
+static DEVICE_ATTR(proximity_state, S_IWUSR, NULL, proximity_state_set);
 
 static struct attribute *attributes[] = {
 	&dev_attr_irq.attr,
 	&dev_attr_enable_wakeup.attr,
+	&dev_attr_proximity_state.attr,
 	NULL
 };
 
