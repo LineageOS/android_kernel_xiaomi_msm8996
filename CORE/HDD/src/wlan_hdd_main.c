@@ -4682,6 +4682,11 @@ static int hdd_set_rx_filter(hdd_adapter_t *adapter, bool action,
 		return -EINVAL;
 	}
 
+	if (!hdd_ctx->cfg_ini->fEnableMCAddrList) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("mc addr ini is disabled"));
+		return -EINVAL;
+	}
+
 	/*
 	 * If action is false it means start dropping packets
 	 * Set addr_filter_pattern which will be used when sending
@@ -9996,6 +10001,11 @@ static void __hdd_set_multicast_list(struct net_device *dev)
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    if (0 != wlan_hdd_validate_context(pHddCtx))
       return;
+
+   if (!pHddCtx->cfg_ini->fEnableMCAddrList) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("mc addr list ini is disabled"));
+      return;
+   }
 
    /* Delete already configured multicast address list */
    if (0 < pAdapter->mc_addr_list.mc_cnt)

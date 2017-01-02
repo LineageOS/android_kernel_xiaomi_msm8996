@@ -535,7 +535,7 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_FLUSH_LOG_TO_FW            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 218)
 
-#define SIR_HAL_GET_RSSI                   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 219)
+#define SIR_HAL_GET_PEER_INFO              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 219)
 
 #define SIR_HAL_SMPS_FORCE_MODE_IND        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 220)
 

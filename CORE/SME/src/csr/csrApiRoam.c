@@ -9401,6 +9401,17 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             vos_mem_copy(&pRoamInfo->chan_info, &pUpperLayerAssocCnf->chan_info,
                                                        sizeof(tSirSmeChanInfo));
             pRoamInfo->ecsa_capable = pUpperLayerAssocCnf->ecsa_capable;
+            pRoamInfo->ampdu = pUpperLayerAssocCnf->ampdu;
+            pRoamInfo->sgi_enable = pUpperLayerAssocCnf->sgi_enable;
+            pRoamInfo->tx_stbc = pUpperLayerAssocCnf->tx_stbc;
+            pRoamInfo->tx_stbc = pUpperLayerAssocCnf->rx_stbc;
+            pRoamInfo->ch_width = pUpperLayerAssocCnf->ch_width;
+            pRoamInfo->mode = pUpperLayerAssocCnf->mode;
+            pRoamInfo->max_supp_idx = pUpperLayerAssocCnf->max_supp_idx;
+            pRoamInfo->max_ext_idx = pUpperLayerAssocCnf->max_ext_idx;
+            pRoamInfo->max_mcs_idx = pUpperLayerAssocCnf->max_mcs_idx;
+            pRoamInfo->rx_mcs_map = pUpperLayerAssocCnf->rx_mcs_map;
+            pRoamInfo->tx_mcs_map = pUpperLayerAssocCnf->tx_mcs_map;
 
             if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) )
             {
@@ -10331,19 +10342,25 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     eCsrRoamResult result = eCSR_ROAM_RESULT_NONE;
     eRoamCmdStatus roamStatus = eCSR_ROAM_FAILED;
     tCsrRoamInfo *pRoamInfo = NULL;
-    tCsrRoamInfo roamInfo;
     eHalStatus status;
     tANI_U32 sessionId = CSR_SESSION_ID_INVALID;
     tCsrRoamSession *pSession = NULL;
     tpSirSmeSwitchChannelInd pSwitchChnInd;
     tSmeMaxAssocInd *pSmeMaxAssocInd;
     tSmeCmd pCommand;
-    vos_mem_set(&roamInfo, sizeof(roamInfo), 0);
 
     if (NULL == pSirMsg)
     {   smsLog(pMac, LOGE, FL("pSirMsg is NULL"));
         return;
     }
+
+    pRoamInfo = vos_mem_malloc(sizeof(tCsrRoamInfo));
+    if (!pRoamInfo) {
+        smsLog(pMac, LOGE, FL("pRoamInfo alloc failed"));
+        return;
+    }
+    vos_mem_set(pRoamInfo, sizeof(tCsrRoamInfo), 0);
+
     switch( pSirMsg->messageType )
     {
         case eWNI_SME_ASSOC_IND:
@@ -10359,10 +10376,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     if(!pSession)
                     {
                         smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                        if (pRoamInfo)
+                            vos_mem_free(pRoamInfo);
+
                         return;
                     }
-
-                pRoamInfo = &roamInfo;
 
                 // Required for indicating the frames to upper layer
                 pRoamInfo->assocReqLength = pAssocInd->assocReqLength;
@@ -10474,6 +10492,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if(!pSession)
                 {
                     smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                    if (pRoamInfo)
+                        vos_mem_free(pRoamInfo);
                     return;
                 }
 
@@ -10543,6 +10563,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if(!pSession)
                 {
                     smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                    if (pRoamInfo)
+                        vos_mem_free(pRoamInfo);
                     return;
                 }
 
@@ -10565,13 +10587,13 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         pDisConDoneInd->reasonCode);
             if (CSR_IS_SESSION_VALID(pMac, pDisConDoneInd->sessionId))
             {
-                roamInfo.reasonCode = pDisConDoneInd->reasonCode;
-                roamInfo.statusCode = eSIR_SME_STA_DISASSOCIATED;
-                vos_mem_copy(roamInfo.peerMac, pDisConDoneInd->peerMacAddr,
+                pRoamInfo->reasonCode = pDisConDoneInd->reasonCode;
+                pRoamInfo->statusCode = eSIR_SME_STA_DISASSOCIATED;
+                vos_mem_copy(pRoamInfo->peerMac, pDisConDoneInd->peerMacAddr,
                              sizeof(tSirMacAddr));
                 status = csrRoamCallCallback(pMac,
                                              pDisConDoneInd->sessionId,
-                                             &roamInfo, 0,
+                                             pRoamInfo, 0,
                                              eCSR_ROAM_LOSTLINK,
                                              eCSR_ROAM_RESULT_DISASSOC_IND);
                 pSession = CSR_GET_SESSION(pMac,
@@ -10601,6 +10623,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if(!pSession)
                 {
                     smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                    if (pRoamInfo)
+                        vos_mem_free(pRoamInfo);
                     return;
                 }
                 pSession->connectedProfile.operationChannel = (tANI_U8)pSwitchChnInd->newChannelId;
@@ -10621,7 +10645,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     pSession = CSR_GET_SESSION(pMac, sessionId);
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {
-                        pRoamInfo = &roamInfo;
                         pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
                         vos_mem_copy(pRoamInfo->peerMac, pDeauthRsp->peerMacAddr,
                                      sizeof(tSirMacAddr));
@@ -10644,7 +10667,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     pSession = CSR_GET_SESSION(pMac, sessionId);
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {
-                        pRoamInfo = &roamInfo;
                         pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
                         vos_mem_copy(pRoamInfo->peerMac, pDisassocRsp->peerMacAddr,
                                      sizeof(tSirMacAddr));
@@ -10663,9 +10685,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pMicInd->bssId, &sessionId );
                 if( HAL_STATUS_SUCCESS( status ) )
                 {
-                    vos_mem_set(&roamInfo, sizeof(tCsrRoamInfo), 0);
-                    roamInfo.u.pMICFailureInfo = &pMicInd->info;
-                    pRoamInfo = &roamInfo;
+                    vos_mem_set(pRoamInfo, sizeof(tCsrRoamInfo), 0);
+                    pRoamInfo->u.pMICFailureInfo = &pMicInd->info;
                     if(pMicInd->info.multicast)
                     {
                         result = eCSR_ROAM_RESULT_MIC_ERROR_GROUP;
@@ -10684,6 +10705,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     if(!pSession)
                     {
                         smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                        if (pRoamInfo)
+                            vos_mem_free(pRoamInfo);
                         return;
                     }
 
@@ -10710,9 +10733,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pProbeReqInd->bssId, &sessionId );
                 if( HAL_STATUS_SUCCESS( status ) )
                 {
-                    vos_mem_set(&roamInfo, sizeof(tCsrRoamInfo), 0);
-                    roamInfo.u.pWPSPBCProbeReq = &pProbeReqInd->WPSPBCProbeReq;
-                    csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_WPS_PBC_PROBE_REQ_IND,
+                    vos_mem_set(pRoamInfo, sizeof(tCsrRoamInfo), 0);
+                    pRoamInfo->u.pWPSPBCProbeReq =
+                        &pProbeReqInd->WPSPBCProbeReq;
+                    csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0,
+                        eCSR_ROAM_WPS_PBC_PROBE_REQ_IND,
                         eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND);
                 }
             }
@@ -10730,16 +10755,18 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if(!pSession)
                         {
                             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                            if (pRoamInfo)
+                                vos_mem_free(pRoamInfo);
                             return;
                         }
                         pSession->connectState = eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED;
                         if(pSession->pConnectBssDesc)
                         {
-                            vos_mem_copy(&roamInfo.bssid,
+                            vos_mem_copy(&pRoamInfo->bssid,
                                          pSession->pConnectBssDesc->bssId,
                                          sizeof(tCsrBssid));
-                            roamInfo.u.pConnectedProfile = &pSession->connectedProfile;
-                            pRoamInfo = &roamInfo;
+                            pRoamInfo->u.pConnectedProfile =
+                                    &pSession->connectedProfile;
                         }
                         else
                         {
@@ -10757,6 +10784,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if(!pSession)
                         {
                             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                            if (pRoamInfo)
+                                vos_mem_free(pRoamInfo);
                             return;
                         }
                         pSession->connectState = eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED;
@@ -10772,6 +10801,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if(!pSession)
                         {
                             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                            if (pRoamInfo)
+                                vos_mem_free(pRoamInfo);
                             return;
                         }
                         // update the connection state information
@@ -10816,9 +10847,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         }
                         result = eCSR_ROAM_RESULT_IBSS_COALESCED;
                         roamStatus = eCSR_ROAM_IBSS_IND;
-                        vos_mem_copy(&roamInfo.bssid, &pNewBss->bssId,
+                        vos_mem_copy(&pRoamInfo->bssid, &pNewBss->bssId,
                                      sizeof(tCsrBssid));
-                        pRoamInfo = &roamInfo;
                         /* This BSSID is the real BSSID, let's save it */
                         if(pSession->pConnectBssDesc)
                         {
@@ -10896,63 +10926,58 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if(!pSession)
                 {
                     smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                    if (pRoamInfo)
+                        vos_mem_free(pRoamInfo);
                     return;
                 }
             // Issue the set Context request to LIM to establish the Unicast STA context for the new peer...
                 if(pSession->pConnectBssDesc)
                 {
-                    vos_mem_copy(&roamInfo.peerMac, pIbssPeerInd->peerAddr,
+                    vos_mem_copy(&pRoamInfo->peerMac, pIbssPeerInd->peerAddr,
                                  sizeof(tCsrBssid));
-                    vos_mem_copy(&roamInfo.bssid, pSession->pConnectBssDesc->bssId,
+                    vos_mem_copy(&pRoamInfo->bssid,
+                                 pSession->pConnectBssDesc->bssId,
                                  sizeof(tCsrBssid));
                     if(pIbssPeerInd->mesgLen > sizeof(tSmeIbssPeerInd))
                     {
-                        roamInfo.pbFrames = vos_mem_malloc((pIbssPeerInd->mesgLen
-                                                    - sizeof(tSmeIbssPeerInd)));
-                        if ( NULL == roamInfo.pbFrames )
+                        pRoamInfo->pbFrames =
+                                vos_mem_malloc((pIbssPeerInd->mesgLen -
+                                                sizeof(tSmeIbssPeerInd)));
+                        if (NULL == pRoamInfo->pbFrames)
                             status = eHAL_STATUS_FAILURE;
                         else
                             status = eHAL_STATUS_SUCCESS;
                         if (HAL_STATUS_SUCCESS(status))
                         {
-                            roamInfo.nBeaconLength = (pIbssPeerInd->mesgLen - sizeof(tSmeIbssPeerInd));
-                            vos_mem_copy(roamInfo.pbFrames,
+                            pRoamInfo->nBeaconLength =
+                                    (pIbssPeerInd->mesgLen -
+                                     sizeof(tSmeIbssPeerInd));
+                            vos_mem_copy(pRoamInfo->pbFrames,
                                         ((tANI_U8 *)pIbssPeerInd) + sizeof(tSmeIbssPeerInd),
-                                         roamInfo.nBeaconLength);
+                                         pRoamInfo->nBeaconLength);
                         }
-                        roamInfo.staId = (tANI_U8)pIbssPeerInd->staId;
-                        roamInfo.ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
-                        roamInfo.bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
-                        roamInfo.pBssDesc = vos_mem_malloc(pSession->pConnectBssDesc->length);
-                        if ( NULL == roamInfo.pBssDesc )
+                        pRoamInfo->staId = (tANI_U8)pIbssPeerInd->staId;
+                        pRoamInfo->ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
+                        pRoamInfo->bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
+                        pRoamInfo->pBssDesc =
+                            vos_mem_malloc(pSession->pConnectBssDesc->length);
+                        if (NULL == pRoamInfo->pBssDesc)
                             status = eHAL_STATUS_FAILURE;
                         else
                             status = eHAL_STATUS_SUCCESS;
                         if (HAL_STATUS_SUCCESS(status))
                         {
-                            vos_mem_copy(roamInfo.pBssDesc,
+                            vos_mem_copy(pRoamInfo->pBssDesc,
                                          pSession->pConnectBssDesc,
                                          pSession->pConnectBssDesc->length);
                         }
-                        if(HAL_STATUS_SUCCESS(status))
+                        if(!HAL_STATUS_SUCCESS(status))
                         {
-                            pRoamInfo = &roamInfo;
+                            if(pRoamInfo->pbFrames)
+                                vos_mem_free(pRoamInfo->pbFrames);
+                            if(pRoamInfo->pBssDesc)
+                                vos_mem_free(pRoamInfo->pBssDesc);
                         }
-                        else
-                        {
-                            if(roamInfo.pbFrames)
-                            {
-                                vos_mem_free(roamInfo.pbFrames);
-                            }
-                            if(roamInfo.pBssDesc)
-                            {
-                                vos_mem_free(roamInfo.pBssDesc);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        pRoamInfo = &roamInfo;
                     }
                     if ((eCSR_ENCRYPT_TYPE_NONE ==
                               pSession->connectedProfile.EncryptionType ))
@@ -10977,14 +11002,10 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                             eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_NEW_PEER);
                 if(pRoamInfo)
                 {
-                    if(roamInfo.pbFrames)
-                    {
-                        vos_mem_free(roamInfo.pbFrames);
-                    }
-                    if(roamInfo.pBssDesc)
-                    {
-                        vos_mem_free(roamInfo.pBssDesc);
-                    }
+                    if(pRoamInfo->pbFrames)
+                        vos_mem_free(pRoamInfo->pbFrames);
+                    if(pRoamInfo->pBssDesc)
+                        vos_mem_free(pRoamInfo->pBssDesc);
                 }
             }
             break;
@@ -11011,12 +11032,12 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
                 smsLog(pMac, LOGW, "CSR: Peer departed notification from LIM");
-                roamInfo.staId = (tANI_U8)pIbssPeerInd->staId;
-                roamInfo.ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
-                roamInfo.bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
-                vos_mem_copy(&roamInfo.peerMac, pIbssPeerInd->peerAddr,
+                pRoamInfo->staId = (tANI_U8)pIbssPeerInd->staId;
+                pRoamInfo->ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
+                pRoamInfo->bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
+                vos_mem_copy(&pRoamInfo->peerMac, pIbssPeerInd->peerAddr,
                              sizeof(tCsrBssid));
-                csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+                csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0,
                         eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED);
             }
             break;
@@ -11038,6 +11059,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if(!pSession)
                         {
                             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                            if (pRoamInfo)
+                                vos_mem_free(pRoamInfo);
                             return;
                         }
 
@@ -11088,7 +11111,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         }
                         if( eSIR_SME_SUCCESS == pRsp->statusCode )
                         {
-                            vos_mem_copy(&roamInfo.peerMac,
+                            vos_mem_copy(&pRoamInfo->peerMac,
                                          &pRsp->peerMacAddr, sizeof(tCsrBssid));
                                 //Make sure we install the GTK before indicating to HDD as authenticated
                                 //This is to prevent broadcast packets go out after PTK and before GTK.
@@ -11103,6 +11126,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                        if (!pMsg) {
                                            smsLog(pMac, LOGE,
                                                FL("Failed to allocate memory"));
+                                           if (pRoamInfo)
+                                               vos_mem_free(pRoamInfo);
                                            return;
                                        }
                                        pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SET_BCN_FILTER_REQ);
@@ -11121,7 +11146,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                 {
                                     result = eCSR_ROAM_RESULT_NONE;
                                 }
-                            pRoamInfo = &roamInfo;
                         }
                         else
                         {
@@ -11130,10 +11154,12 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                    "command failed(%d) PeerMac "MAC_ADDRESS_STR,
                                    pRsp->statusCode, MAC_ADDR_ARRAY(pRsp->peerMacAddr));
                         }
-                        roamInfo.is11rAssoc = csrRoamIs11rAssoc(pMac,
+                        pRoamInfo->is11rAssoc = csrRoamIs11rAssoc(pMac,
                                                                   sessionId);
-                        csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.setKeyCmd.roamId,
-                                            eCSR_ROAM_SET_KEY_COMPLETE, result);
+                        csrRoamCallCallback(pMac, sessionId, pRoamInfo,
+                                            pCommand->u.setKeyCmd.roamId,
+                                            eCSR_ROAM_SET_KEY_COMPLETE,
+                                            result);
                         // Indicate SME_QOS that the SET_KEY is completed, so that SME_QOS
                         // can go ahead and initiate the TSPEC if any are pending
                         sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_SET_KEY_SUCCESS_IND, NULL);
@@ -11186,6 +11212,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if(!pSession)
                         {
                             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+                            if (pRoamInfo)
+                                vos_mem_free(pRoamInfo);
                             return;
                         }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
@@ -11211,17 +11239,19 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
                         if( eSIR_SME_SUCCESS == pRsp->statusCode )
                         {
-                            vos_mem_copy(&roamInfo.peerMac, &pRsp->peerMacAddr,
+                            vos_mem_copy(&pRoamInfo->peerMac,
+                                         &pRsp->peerMacAddr,
                                          sizeof(tCsrBssid));
                             result = eCSR_ROAM_RESULT_NONE;
-                            pRoamInfo = &roamInfo;
                         }
                         else
                         {
                             result = eCSR_ROAM_RESULT_FAILURE;
                         }
-                        csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.setKeyCmd.roamId,
-                                            eCSR_ROAM_REMOVE_KEY_COMPLETE, result);
+                        csrRoamCallCallback(pMac, sessionId, pRoamInfo,
+                                            pCommand->u.setKeyCmd.roamId,
+                                            eCSR_ROAM_REMOVE_KEY_COMPLETE,
+                                            result);
                         if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK ) )
                         {
                             csrReleaseCommandRemoveKey( pMac, pCommand );
@@ -11268,10 +11298,10 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             pSmeMaxAssocInd = (tSmeMaxAssocInd*)pSirMsg;
             smsLog( pMac, LOG1, FL("send indication that max assoc have been reached and the new peer cannot be accepted"));
             sessionId = pSmeMaxAssocInd->sessionId;
-            roamInfo.sessionId = sessionId;
-            vos_mem_copy(&roamInfo.peerMac, pSmeMaxAssocInd->peerMac,
+            pRoamInfo->sessionId = sessionId;
+            vos_mem_copy(&pRoamInfo->peerMac, pSmeMaxAssocInd->peerMac,
                          sizeof(tCsrBssid));
-            csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0,
                     eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED);
             break;
 
@@ -11296,6 +11326,9 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
         default:
             break;
     }  // end switch on message type
+
+    if (pRoamInfo)
+        vos_mem_free(pRoamInfo);
 }
 
 void csrCallRoamingCompletionCallback(tpAniSirGlobal pMac, tCsrRoamSession *pSession,
@@ -15152,6 +15185,39 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
 
         pBuf += sizeof(tSirSmeChanInfo);
         *pBuf = pAssocInd->ecsa_capable;
+        pBuf += sizeof(pAssocInd->ecsa_capable);
+        /** ampdu */
+        *pBuf = pAssocInd->ampdu;
+        pBuf += sizeof(bool);
+        /** sgi_enable */
+        *pBuf = pAssocInd->sgi_enable;
+        pBuf += sizeof(bool);
+        /** tx stbc */
+        *pBuf = pAssocInd->tx_stbc;
+        pBuf += sizeof(bool);
+        /** ch_width */
+        *pBuf = pAssocInd->ch_width;
+        pBuf += sizeof(pAssocInd->ch_width);
+        /** mode */
+        *pBuf = pAssocInd->mode;
+        pBuf += sizeof(pAssocInd->mode);
+        /** rx stbc */
+        *pBuf = pAssocInd->rx_stbc;
+        pBuf += sizeof(bool);
+        /** max supported idx */
+        *pBuf = pAssocInd->max_supp_idx;
+        pBuf += sizeof(tANI_U8);
+        /** max extended idx */
+        *pBuf = pAssocInd->max_ext_idx;
+        pBuf += sizeof(tANI_U8);
+        /** max ht mcs idx */
+        *pBuf = pAssocInd->max_mcs_idx;
+        pBuf += sizeof(tANI_U8);
+        /** vht rx mcs map */
+        *pBuf = pAssocInd->rx_mcs_map;
+        pBuf += sizeof(tANI_U8);
+        /** vht tx mcs map */
+        *pBuf = pAssocInd->tx_mcs_map;
 
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
         msgQ.bodyptr = pMsg;

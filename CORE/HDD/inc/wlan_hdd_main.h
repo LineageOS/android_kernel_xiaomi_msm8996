@@ -334,7 +334,7 @@ struct linkspeedContext
 extern spinlock_t hdd_context_lock;
 
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
-#define RSSI_CONTEXT_MAGIC  0x52535349   //RSSI
+#define PEER_INFO_CONTEXT_MAGIC  0x52535349   /* PEER_INFO */
 #define POWER_CONTEXT_MAGIC 0x504F5752   //POWR
 #define SNR_CONTEXT_MAGIC   0x534E5200   //SNR
 #define LINK_CONTEXT_MAGIC  0x4C494E4B   //LINKSPEED
@@ -855,6 +855,66 @@ typedef struct {
    uint8_t   sub20_dynamic_channelwidth;
    /** Extended CSA capabilities */
    uint8_t   ecsa_capable;
+
+   /** Max phy rate */
+   uint32_t max_phy_rate;
+
+   /** Tx packets */
+   uint32_t tx_packets;
+
+   /** Tx bytes */
+   uint64_t tx_bytes;
+
+   /** Rx packets */
+   uint32_t rx_packets;
+
+   /** Rx bytes */
+   uint64_t rx_bytes;
+
+   /** Last tx/rx timestamp */
+   adf_os_time_t last_tx_rx_ts;
+
+   /** Assoc timestamp */
+   adf_os_time_t assoc_ts;
+
+   /** Tx Rate */
+   uint32_t tx_rate;
+
+   /** Rx Rate */
+   uint32_t rx_rate;
+
+   /** Ampdu */
+   bool ampdu;
+
+   /** Short GI */
+   bool sgi_enable;
+
+   /** Tx stbc */
+   bool tx_stbc;
+
+   /** Rx stbc */
+   bool rx_stbc;
+
+   /** Channel Width */
+   uint8_t ch_width;
+
+   /** Mode */
+   uint8_t mode;
+
+   /** Max supported idx */
+   uint8_t max_supp_idx;
+
+   /** Max extended idx */
+   uint8_t max_ext_idx;
+
+   /** HT max mcs idx */
+   uint8_t max_mcs_idx;
+
+   /** VHT rx mcs map */
+   uint8_t rx_mcs_map;
+
+   /** VHT tx mcs map */
+   uint8_t tx_mcs_map;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s

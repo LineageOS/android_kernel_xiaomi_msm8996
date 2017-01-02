@@ -3353,21 +3353,32 @@ sapSignalHDDevent
                 sapApAppEvent.sapHddEventCode = eSAP_STA_ASSOC_EVENT;
 
             //TODO: Need to fill the SET KEY information and pass to HDD
-            vos_mem_copy( &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.staMac,
+            vos_mem_copy(&sta_event_ptr->staMac,
                          pCsrRoamInfo->peerMac,sizeof(tSirMacAddr));
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.staId = pCsrRoamInfo->staId ;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.statusCode = pCsrRoamInfo->statusCode;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen = pCsrRoamInfo->rsnIELen;
-            vos_mem_copy(sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies, pCsrRoamInfo->prsnIE,
-                        pCsrRoamInfo->rsnIELen);
+            sta_event_ptr->staId = pCsrRoamInfo->staId;
+            sta_event_ptr->statusCode = pCsrRoamInfo->statusCode;
+            sta_event_ptr->iesLen = pCsrRoamInfo->rsnIELen;
+            vos_mem_copy(sta_event_ptr->ies, pCsrRoamInfo->prsnIE,
+                         pCsrRoamInfo->rsnIELen);
+            sta_event_ptr->ampdu = pCsrRoamInfo->ampdu;
+            sta_event_ptr->sgi_enable = pCsrRoamInfo->sgi_enable;
+            sta_event_ptr->tx_stbc = pCsrRoamInfo->tx_stbc;
+            sta_event_ptr->rx_stbc = pCsrRoamInfo->rx_stbc;
+            sta_event_ptr->ch_width = pCsrRoamInfo->ch_width;
+            sta_event_ptr->mode = pCsrRoamInfo->mode;
+            sta_event_ptr->max_supp_idx = pCsrRoamInfo->max_supp_idx;
+            sta_event_ptr->max_ext_idx = pCsrRoamInfo->max_ext_idx;
+            sta_event_ptr->max_mcs_idx = pCsrRoamInfo->max_mcs_idx;
+            sta_event_ptr->rx_mcs_map = pCsrRoamInfo->rx_mcs_map;
+            sta_event_ptr->tx_mcs_map = pCsrRoamInfo->tx_mcs_map;
 
 #ifdef FEATURE_WLAN_WAPI
             if(pCsrRoamInfo->wapiIELen)
             {
-                v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen
+                v_U8_t  len = sta_event_ptr->iesLen;
+                sta_event_ptr->iesLen
                                                         += pCsrRoamInfo->wapiIELen;
-                vos_mem_copy(&sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies[len],
+                vos_mem_copy(&sta_event_ptr->ies[len],
                         pCsrRoamInfo->pwapiIE,
                             pCsrRoamInfo->wapiIELen);
             }
@@ -3375,16 +3386,16 @@ sapSignalHDDevent
 
             if(pCsrRoamInfo->addIELen)
             {
-                v_U8_t  len = sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen
+                v_U8_t  len = sta_event_ptr->iesLen;
+                sta_event_ptr->iesLen
                                                         += pCsrRoamInfo->addIELen;
-                vos_mem_copy(&sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies[len], pCsrRoamInfo->paddIE,
+                vos_mem_copy(&sta_event_ptr->ies[len], pCsrRoamInfo->paddIE,
                             pCsrRoamInfo->addIELen);
             }
 
             /* also fill up the channel info from the csrRoamInfo */
             pChanInfo =
-            &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.chan_info;
+            &sta_event_ptr->chan_info;
 
             pChanInfo->chan_id = pCsrRoamInfo->chan_info.chan_id;
             pChanInfo->mhz = pCsrRoamInfo->chan_info.mhz;
@@ -3397,9 +3408,9 @@ sapSignalHDDevent
             pChanInfo->rate_flags = pCsrRoamInfo->chan_info.rate_flags;
             pChanInfo->sub20_channelwidth =
                                      pCsrRoamInfo->chan_info.sub20_channelwidth;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.timingMeasCap = pCsrRoamInfo->timingMeasCap;
+            sta_event_ptr->wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
+            sta_event_ptr->status = (eSapStatus )context;
+            sta_event_ptr->timingMeasCap = pCsrRoamInfo->timingMeasCap;
             sta_event_ptr->ecsa_capable = pCsrRoamInfo->ecsa_capable;
             //TODO: Need to fill sapAuthType
             //sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.SapAuthType = pCsrRoamInfo->pProfile->negotiatedAuthType;

@@ -1192,7 +1192,7 @@ static void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
       serialize these actions */
    spin_lock(&hdd_context_lock);
 
-   if ((NULL == pAdapter) || (RSSI_CONTEXT_MAGIC != pStatsContext->magic))
+   if ((NULL == pAdapter) || (PEER_INFO_CONTEXT_MAGIC != pStatsContext->magic))
    {
       /* the caller presumably timed out so there is nothing we can do */
       spin_unlock(&hdd_context_lock);
@@ -1324,7 +1324,7 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
 
    init_completion(&context.completion);
    context.pAdapter = pAdapter;
-   context.magic = RSSI_CONTEXT_MAGIC;
+   context.magic = PEER_INFO_CONTEXT_MAGIC;
 
    hstatus = sme_GetRssi(pHddCtx->hHal, hdd_GetRssiCB,
                          pHddStaCtx->conn_info.staId[ 0 ],
