@@ -11903,6 +11903,44 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
    return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_get_bss_entry() - Get the bss entry matching the chan, bssid and ssid
+ * @wiphy: wiphy
+ * @channel: channel of the BSS to find
+ * @bssid: bssid of the BSS to find
+ * @ssid: ssid of the BSS to find
+ * @ssid_len: ssid len of of the BSS to find
+ *
+ * The API is a wrapper to get bss from kernel matching the chan,
+ * bssid and ssid
+ *
+ * Return: bss structure if found else NULL
+ */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) \
+	&& !defined(WITH_BACKPORTS) && !defined(IEEE80211_PRIVACY)
+struct cfg80211_bss *hdd_cfg80211_get_bss(struct wiphy *wiphy,
+	  struct ieee80211_channel *channel,
+	  const u8 *bssid, const u8 *ssid,
+	  size_t ssid_len)
+{
+	return cfg80211_get_bss(wiphy, channel, bssid,
+			ssid, ssid_len,
+			WLAN_CAPABILITY_ESS,
+			WLAN_CAPABILITY_ESS);
+}
+#else
+struct cfg80211_bss *hdd_cfg80211_get_bss(struct wiphy *wiphy,
+	  struct ieee80211_channel *channel,
+	  const u8 *bssid, const u8 *ssid,
+	  size_t ssid_len)
+{
+	return cfg80211_get_bss(wiphy, channel, bssid,
+			ssid, ssid_len,
+			IEEE80211_BSS_TYPE_ESS,
+			IEEE80211_PRIVACY_ANY);
+}
+#endif
+
 #if defined CFG80211_CONNECT_BSS
 /**
  * hdd_connect_bss() - API to send connection status to supplicant
@@ -11990,17 +12028,9 @@ void hdd_connect_result(struct net_device *dev,
 						IEEE80211_BAND_5GHZ);
 
 		chan = ieee80211_get_channel(padapter->wdev.wiphy, freq);
-		bss = cfg80211_get_bss(padapter->wdev.wiphy, chan, bssid,
-				   roam_info->u.pConnectedProfile->SSID.ssId,
-				   roam_info->u.pConnectedProfile->SSID.length,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) \
-    && !defined(WITH_BACKPORTS) && !defined(IEEE80211_PRIVACY)
-				   WLAN_CAPABILITY_ESS
-				   WLAN_CAPABILITY_ESS);
-#else
-				   IEEE80211_BSS_TYPE_ESS,
-				   IEEE80211_PRIVACY_ANY);
-#endif
+		bss = hdd_cfg80211_get_bss(padapter->wdev.wiphy, chan, bssid,
+			roam_info->u.pConnectedProfile->SSID.ssId,
+			roam_info->u.pConnectedProfile->SSID.length);
 	}
 
 	hdd_connect_bss(dev, bssid, bss, req_ie,

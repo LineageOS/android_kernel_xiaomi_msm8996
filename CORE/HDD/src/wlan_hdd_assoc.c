@@ -1539,15 +1539,10 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
                                  (int)pCsrRoamInfo->pBssDesc->channelId);
     memset(&roam_profile, 0, sizeof(tCsrRoamConnectedProfile));
     sme_RoamGetConnectProfile(hal_handle, pAdapter->sessionId, &roam_profile);
-    bss = cfg80211_get_bss(pAdapter->wdev.wiphy, chan, pCsrRoamInfo->bssid,
-        &roam_profile.SSID.ssId[0], roam_profile.SSID.length,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && !defined(WITH_BACKPORTS) \
-     && !defined(IEEE80211_PRIVACY)
-        WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
-#else
-        IEEE80211_BSS_TYPE_ESS, IEEE80211_PRIVACY_ANY);
-#endif
-
+    bss = hdd_cfg80211_get_bss(pAdapter->wdev.wiphy,
+            chan, pCsrRoamInfo->bssid,
+            &roam_profile.SSID.ssId[0],
+            roam_profile.SSID.length);
     if (bss == NULL)
         hddLog(LOGE, FL("Get BSS returned NULL"));
     buf_ptr = buf_ssid_ie;
@@ -1961,6 +1956,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 {
                     if ( !hddDisconInProgress )
                     {
+                        struct cfg80211_bss *roam_bss;
+
                         /* After roaming is completed, active session count is
                          * incremented as a part of connect indication but
                          * effectively the active session count should still
@@ -1975,9 +1972,19 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                              (int)pRoamInfo->pBssDesc->channelId);
                         hddLog(LOG1, "assocReqlen %d assocRsplen %d", assocReqlen,
                                              assocRsplen);
-                        cfg80211_roamed(dev,chan, pRoamInfo->bssid,
-                                         pFTAssocReq, assocReqlen, pFTAssocRsp, assocRsplen,
-                                        GFP_KERNEL);
+                        roam_bss =
+                            hdd_cfg80211_get_bss(
+                               pAdapter->wdev.wiphy,
+                               chan,
+                               pRoamInfo->bssid,
+                               pRoamInfo->u.
+                               pConnectedProfile->SSID.ssId,
+                               pRoamInfo->u.
+                               pConnectedProfile->SSID.length);
+                        cfg80211_roamed_bss(dev, roam_bss,
+                               pFTAssocReq, assocReqlen,
+                               pFTAssocRsp, assocRsplen,
+                               GFP_KERNEL);
                     }
                     if (sme_GetFTPTKState(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                           pAdapter->sessionId))
