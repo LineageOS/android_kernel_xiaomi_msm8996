@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa3479d7_955e8611",
+        "filename": "drivers/input/fingerprint/fpc1020_tee.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-01-02T13:14:56Z",
+      "side": 1,
+      "message": "What\u0027s your opinion on this? Enable IRQ when dozing or not?",
+      "range": {
+        "startLine": 115,
+        "startChar": 42,
+        "endLine": 115,
+        "endChar": 72
+      },
+      "revId": "0b1c177250af3ea2b20325479fbe89464ae1d59d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
