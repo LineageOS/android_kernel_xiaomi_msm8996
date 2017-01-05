@@ -1751,6 +1751,11 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 		/* If no headroom, append to tail */
 		uint8_t *rtap_start = adf_nbuf_put_tail(nbuf, rtap_len);
 
+		if (!rtap_start) {
+			adf_print("No enough tail room to save radiotap len: "
+				"%d", rtap_len);
+			return 0;
+		}
 		adf_os_mem_copy(rtap_start, rthdr, rtap_len);
 		adf_nbuf_trim_tail(nbuf, rtap_len);
 	}
