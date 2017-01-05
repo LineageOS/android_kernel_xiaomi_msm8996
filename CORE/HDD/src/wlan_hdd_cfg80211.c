@@ -20937,8 +20937,11 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId),
                 ssid, ssid_len);
 
-        if (bssid)
-        {
+        /* cleanup bssid hint and bssid */
+        vos_mem_zero(pRoamProfile->bssid_hint, VOS_MAC_ADDR_SIZE);
+        vos_mem_zero(pRoamProfile->BSSIDs.bssid, VOS_MAC_ADDR_SIZE);
+
+        if (bssid) {
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
             pRoamProfile->do_not_roam = true;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
@@ -20949,11 +20952,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
              */
             vos_mem_copy((void *)(pWextState->req_bssId), bssid,
                     VOS_MAC_ADDR_SIZE);
-        }
-        else if (bssid_hint)
-        {
-            pRoamProfile->BSSIDs.numOfBSSIDs = 1;
-            vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid_hint,
+        } else if (bssid_hint) {
+            vos_mem_copy(pRoamProfile->bssid_hint, bssid_hint,
                     VOS_MAC_ADDR_SIZE);
             /* Save BSSID in separate variable as well, as RoamProfile
                BSSID is getting zeroed out in the association process. And in
@@ -20963,11 +20963,6 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                     VOS_MAC_ADDR_SIZE);
             hddLog(LOGW, FL(" bssid_hint "MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY(bssid_hint));
-
-        }
-        else
-        {
-            vos_mem_zero((void *)(pRoamProfile->BSSIDs.bssid), VOS_MAC_ADDR_SIZE);
         }
 
         hddLog(LOG1, FL("Connect to SSID: %.*s operating Channel: %u"),
