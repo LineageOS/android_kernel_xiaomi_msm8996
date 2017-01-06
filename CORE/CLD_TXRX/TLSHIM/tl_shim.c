@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1236,10 +1236,16 @@ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
 {
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							vos_ctx);
+	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+							vos_ctx);
 	struct ol_txrx_peer_t *peer;
 
 	if (!tl_shim) {
 		TLSHIM_LOGE("tl_shim is NULL");
+		return NULL;
+	}
+	if (!pdev) {
+		TLSHIM_LOGE("pdev is NULL");
 		return NULL;
 	}
 
@@ -1253,9 +1259,7 @@ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
 		return NULL;
 	}
 
-	peer = ol_txrx_peer_find_by_local_id(
-			vos_get_context(VOS_MODULE_ID_TXRX,vos_ctx),
-			sta_id);
+	peer = ol_txrx_peer_find_by_local_id(pdev, sta_id);
 	if (!peer) {
 		TLSHIM_LOGW("Invalid peer");
 		return NULL;

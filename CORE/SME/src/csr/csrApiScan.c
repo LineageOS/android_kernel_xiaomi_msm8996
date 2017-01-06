@@ -735,6 +735,12 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                     {
                         tANI_U32 numChn = pMac->scan.baseChannels.numChannels;
 
+                        if (numChn > WNI_CFG_VALID_CHANNEL_LIST_LEN) {
+                           smsLog(pMac, LOGE,
+                               FL("Invalid number of channels: %d"), numChn);
+                           status = eHAL_STATUS_FAILURE;
+                           break;
+                        }
                         vos_mem_set(&p11dScanCmd->u.scanCmd, sizeof(tScanCmd), 0);
                         pChnInfo->ChannelList = vos_mem_malloc(numChn);
                         if ( NULL == pChnInfo->ChannelList )
