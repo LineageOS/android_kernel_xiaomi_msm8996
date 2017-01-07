@@ -17806,14 +17806,6 @@ eHalStatus vos_send_flush_logs_cmd_to_fw(tpAniSirGlobal mac)
 	VOS_STATUS vos_status;
 	vos_msg_t vos_message;
 
-	status = sme_AcquireGlobalLock(&mac->sme);
-	if (status != eHAL_STATUS_SUCCESS) {
-		smsLog(mac, LOGE,
-			FL("sme_AcquireGlobalLock failed!(status=%d)"),
-			status);
-		return status;
-	}
-
 	/* Serialize the req through MC thread */
 	vos_message.bodyptr = NULL;
 	vos_message.type    = SIR_HAL_FLUSH_LOG_TO_FW;
@@ -17824,7 +17816,6 @@ eHalStatus vos_send_flush_logs_cmd_to_fw(tpAniSirGlobal mac)
 			vos_status);
 		status = eHAL_STATUS_FAILURE;
 	}
-	sme_ReleaseGlobalLock(&mac->sme);
 	return status;
 }
 

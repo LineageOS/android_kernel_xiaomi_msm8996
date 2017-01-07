@@ -502,7 +502,7 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
        hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
        if (STAId == HDD_WLAN_INVALID_STA_ID) {
-           hddLog(LOGE, "Invalid station id, transmit operation suspended");
+           hddLog(LOG1, "Invalid station id, transmit operation suspended");
            goto drop_pkt;
        }
 
