@@ -3378,7 +3378,8 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                 break;
             }
 
-            curr_peer = wlan_hdd_tdls_get_peer(pAdapter, pRoamInfo->peerMac);
+            curr_peer = wlan_hdd_tdls_get_peer(pAdapter, pRoamInfo->peerMac,
+                                               TRUE);
             if (!curr_peer)
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
