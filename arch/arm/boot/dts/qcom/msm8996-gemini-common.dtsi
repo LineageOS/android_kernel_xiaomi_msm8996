@@ -422,6 +422,8 @@
 / {
 	mtp_batterydata: qcom,battery-data {
 		qcom,batt-id-range-pct = <15>;
+		#include "batterydata-a1-atl-3000mah.dtsi"
+		#include "batterydata-a1-sdi-3000mah.dtsi"
 		#include "batterydata-itech-3020mah.dtsi"
 	};
 };
@@ -1227,7 +1229,7 @@
 	qcom,fg-iterm-ma = <200>;
 	fg-cutoff-voltage-mv = <3400>;
 	qcom,thermal-coefficients = [DA 86 F0 50 08 3C];
-	qcom,vbat-estimate-diff-mv = <100>;
+	qcom,vbat-estimate-diff-mv = <300>;
 
 	qcom,warm-bat-decidegc = <450>;
 	qcom,cool-bat-decidegc = <100>;
