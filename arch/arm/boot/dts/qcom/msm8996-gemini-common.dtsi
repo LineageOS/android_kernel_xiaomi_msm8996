@@ -1295,6 +1295,46 @@
 // msm-pmi8994.dtsi end
 
 // msm8996-camera.dtsi start
+&soc {
+	qcom,csiphy@a34000 {
+		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+	};
+
+	qcom,csiphy@a35000 {
+		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+	};
+
+	qcom,csiphy@a36000 {
+		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+	};
+
+	qcom,csid@a30000 {
+		qcom,clock-rates = <0 0 0 480000000 0 0 0 0 0 0>;
+	};
+
+	qcom,csid@a30400 {
+		qcom,clock-rates = <0 0 0 480000000 0 0 0 0 0 0>;
+	};
+
+	qcom,csid@a30800 {
+		qcom,clock-rates = <0 0 0 480000000 0 0 0 0 0 0>;
+	};
+
+	qcom,csid@a30c00 {
+		qcom,clock-rates = <0 0 0 480000000 0 0 0 0 0 0>;
+	};
+
+	qcom,ispif@a31000 {
+		qcom,clock-rates = <0 0 0 0
+			480000000 0 0 0
+			480000000 0 0 0
+			480000000 0 0 0
+			480000000 0 0 0
+			0 0 0
+			0 0 0>;
+	};
+};
+
 &i2c_freq_100Khz {
 	qcom,hw-scl-stretch-en = <1>;
 };
@@ -1305,13 +1345,13 @@
 };
 
 &i2c_freq_custom {
-	qcom,hw-thigh = <15>;
-	qcom,hw-tlow = <28>;
-	qcom,hw-tsu-sto = <21>;
-	qcom,hw-tsu-sta = <21>;
-	qcom,hw-thd-dat = <13>;
-	qcom,hw-thd-sta = <18>;
-	qcom,hw-tbuf = <25>;
+	qcom,hw-thigh = <38>;
+	qcom,hw-tlow = <56>;
+	qcom,hw-tsu-sto = <40>;
+	qcom,hw-tsu-sta = <40>;
+	qcom,hw-thd-dat = <22>;
+	qcom,hw-thd-sta = <35>;
+	qcom,hw-tbuf = <62>;
 };
 
 &i2c_freq_1Mhz {
