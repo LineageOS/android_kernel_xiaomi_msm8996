@@ -422,6 +422,8 @@
 / {
 	mtp_batterydata: qcom,battery-data {
 		qcom,batt-id-range-pct = <15>;
+		#include "batterydata-a1-atl-3000mah.dtsi"
+		#include "batterydata-a1-sdi-3000mah.dtsi"
 		#include "batterydata-itech-3020mah.dtsi"
 	};
 };
