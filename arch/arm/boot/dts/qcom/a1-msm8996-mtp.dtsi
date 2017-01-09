@@ -28,8 +28,3 @@
 		};
 	};
 };
-
-&mtp_batterydata {
-	#include "batterydata-a1-atl-3000mah.dtsi"
-	#include "batterydata-a1-sdi-3000mah.dtsi"
-};
