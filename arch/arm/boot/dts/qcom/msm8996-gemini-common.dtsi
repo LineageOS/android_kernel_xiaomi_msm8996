@@ -1186,8 +1186,8 @@
 &spmi_bus {
 	qcom,pm8994@0 {
 		qcom,power-on@800 {
-			qcom,s3-debounce = <16>;
-			qcom,s3-src = "kpdpwr";
+			qcom,s3-debounce = <32>;
+			qcom,s3-src = "kpdpwr-and-resin";
 
 			qcom,pon_1 {
 				qcom,s1-timer = <4480>;
@@ -1211,6 +1211,10 @@
 		};
 
 		pm8994_pwm_4: pwm@b400 {
+			status = "okay";
+		};
+
+		pm8994_pwm_6: pwm@b600 {
 			status = "okay";
 		};
 	};
@@ -1251,6 +1255,7 @@
 	qcom,switch-freq-khz = <600>;
 	qcom,fs-curr-ua = <20000>;
 	qcom,en-cabc;
+	qcom,en-phase-stag;
 	qcom,led-strings-list = [00 01];
 };
 
@@ -1998,8 +2003,16 @@
 	qcom,pet-time = <15000>;
 };
 
+&pcm1 {
+	/delete-property/ qcom,latency-level;
+};
+
 &pcm2 {
 	/delete-property/ qcom,latency-level;
+};
+
+&qcom_seecom {
+	reg = <0x86600000 0x3600000>;
 };
 
 &qusb_phy0 {
