@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -92,11 +92,13 @@ int hdd_softap_unpackIE( tHalHandle halHandle,
                 u_int8_t *gen_ie );
 
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback);
-VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter );
+VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter, bool reinit);
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev );
 int hdd_hostapd_stop (struct net_device *dev);
 void hdd_hostapd_channel_wakelock_init(hdd_context_t *pHddCtx);
 void hdd_hostapd_channel_wakelock_deinit(hdd_context_t *pHddCtx);
+void hdd_sap_indicate_disconnect_for_sta(hdd_adapter_t *adapter);
+void hdd_sap_destroy_events(hdd_adapter_t *adapter);
 #ifdef FEATURE_WLAN_FORCE_SAP_SCC
 void hdd_restart_softap (hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter);
 #endif /* FEATURE_WLAN_FORCE_SAP_SCC */

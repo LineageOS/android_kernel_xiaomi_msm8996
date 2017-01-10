@@ -17586,7 +17586,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 }
             }
 
-            vstatus = hdd_init_ap_mode(pAdapter);
+            vstatus = hdd_init_ap_mode(pAdapter, false);
             if (vstatus != VOS_STATUS_SUCCESS) {
                 hddLog(LOGP, FL("Error initializing the ap mode"));
                 return -EINVAL;
