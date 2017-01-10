@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1039,6 +1039,14 @@ typedef __ani_attr_pre_packed struct sSirMacRateSet
     tANI_U8  rate[SIR_MAC_RATESET_EID_MAX];
 } __ani_attr_packed tSirMacRateSet;
 
+/** struct merged_mac_rate_set - merged mac rate set
+ * @num_rates: num of rates
+ * @rate: rate list
+ */
+struct merged_mac_rate_set {
+	uint8_t num_rates;
+	uint8_t rate[2 * SIR_MAC_RATESET_EID_MAX];
+};
 
 typedef __ani_attr_pre_packed struct sSirMacSSid
 {
