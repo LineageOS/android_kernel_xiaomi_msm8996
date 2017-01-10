@@ -68,35 +68,29 @@
 			qcom,supply-max-voltage = <1800000>;
 			qcom,supply-enable-load = <62000>;
 			qcom,supply-disable-load = <80>;
+			qcom,supply-pre-on-sleep = <0x0>;
 			qcom,supply-post-on-sleep = <20>;
 		};
 
 		qcom,panel-supply-entry@1 {
 			reg = <1>;
-			qcom,supply-name = "lab";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
-			qcom,supply-enable-load = <100000>;
-			qcom,supply-disable-load = <100>;
+			qcom,supply-name = "disp_vddr_vreg";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <1800000>;
+			qcom,supply-disable-load = <0>;
+			qcom,supply-pre-on-sleep = <0>;
+			qcom,supply-post-on-sleep = <0>;
 		};
 
 		qcom,panel-supply-entry@2 {
 			reg = <2>;
-			qcom,supply-name = "ibb";
-			qcom,supply-min-voltage = <4600000>;
-			qcom,supply-max-voltage = <6000000>;
-			qcom,supply-enable-load = <100000>;
-			qcom,supply-disable-load = <100>;
-			qcom,supply-post-on-sleep = <20>;
-		};
-
-		qcom,panel-supply-entry@3 {
-			reg = <3>;
 			qcom,supply-name = "oled-vdda";
-			qcom,supply-min-voltage = <3000000>;
+			qcom,supply-min-voltage = <2000000>;
 			qcom,supply-max-voltage = <3000000>;
-			qcom,supply-enable-load = <857000>;
+			qcom,supply-enable-load = <50000>;
 			qcom,supply-disable-load = <0>;
+			qcom,supply-pre-on-sleep = <0x0>;
 			qcom,supply-post-on-sleep = <0>;
 		};
 	};
