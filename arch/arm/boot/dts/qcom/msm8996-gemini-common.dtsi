@@ -1217,11 +1217,12 @@
 
 // msm-pmi8994.dtsi start
 &pmi8994_charger {
-	qcom,fastchg-current-ma = <2300>;
+	qcom,fastchg-current-ma = <3000>;
 	qcom,float-voltage-mv = <4400>;
-	qcom,thermal-mitigation = <1500 1200 1000 0>;
-	qcom,fastchg-current-comp = <900>;
+	qcom,thermal-mitigation = <2500 2000 1500 1000>;
+	qcom,fastchg-current-comp = <1200>;
 	qcom,float-voltage-comp = <16>;
+	qcom,override-usb-current;
 };
 
 &pmi8994_fg {
@@ -1996,5 +1997,43 @@
 
 &pcm2 {
 	/delete-property/ qcom,latency-level;
+};
+
+&qusb_phy0 {
+	reg = <0x07411000 0x180>,
+		<0x06af8800 0x400>,
+		<0x00388018 0x4>;
+	reg-names = "qusb_phy_base", "qscratch_base", "ref_clk_addr";
+	qcom,qusb-phy-init-seq = <0x38 0x80
+				0x7b 0x84
+				0x93 0x88
+				0xcf 0x8c
+				0x30 0x8
+				0x79 0xc
+				0x21 0x10
+				0x14 0x9c
+				0x9f 0x1c
+				0x0 0x18>;
+};
+
+&qusb_phy1 {
+	reg = <0x07412000 0x180>,
+		<0x076f8800 0x400>,
+		<0x00388014 0x4>;
+	reg-names = "qusb_phy_base", "qscratch_base", "ref_clk_addr";
+	qcom,qusb-phy-init-seq = <0x38 0x80
+				0x7b 0x84
+				0x93 0x88
+				0xcf 0x8c
+				0x30 0x8
+				0x79 0xc
+				0x21 0x10
+				0x14 0x9c
+				0x9f 0x1c
+				0x0 0x18>;
+};
+
+&usb3 {
+	qcom,detect-dpdm-floating;
 };
 // msm8996.dtsi end
