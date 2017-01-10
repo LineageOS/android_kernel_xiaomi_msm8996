@@ -1823,6 +1823,7 @@
 		regulator-name = "disp_vddr_vreg";
 		startup-delay-us = <4000>;
 		enable-active-high;
+		regulator-boot-on;
 		gpio = <&tlmm 40 0>;
 	};
 };
