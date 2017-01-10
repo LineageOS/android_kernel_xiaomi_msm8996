@@ -1,0 +1,162 @@
+/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "dsi-panel-sharp-fhd-nt35695-video.dtsi"
+#include "dsi-panel-sharp-fhd-nt35695-cmd.dtsi"
+#include "dsi-panel-lgd-fhd-td4322-cmd.dtsi"
+#include "dsi-panel-jdi-fhd-r63452-video.dtsi"
+#include "dsi-panel-jdi-fhd-r63452-cmd.dtsi"
+#include "dsi-panel-jdi-fhd-r63452-j1-cmd.dtsi"
+
+&soc {
+	dsi_panel_pwr_supply: dsi_panel_pwr_supply {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <62000>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <1>;
+			qcom,supply-pre-off-sleep = <10>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "lab";
+			qcom,supply-min-voltage = <4600000>;
+			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+		};
+
+		qcom,panel-supply-entry@2 {
+			reg = <2>;
+			qcom,supply-name = "ibb";
+			qcom,supply-min-voltage = <4600000>;
+			qcom,supply-max-voltage = <6000000>;
+			qcom,supply-enable-load = <100000>;
+			qcom,supply-disable-load = <100>;
+			qcom,supply-post-on-sleep = <10>;
+			qcom,supply-pre-off-sleep = <5>;
+		};
+	};
+};
+
+&soc {
+	dsi_panel_pwr_supply_amoled: dsi_panel_pwr_supply_amoled {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <62000>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-pre-on-sleep = <0x0>;
+			qcom,supply-post-on-sleep = <20>;
+		};
+
+		qcom,panel-supply-entry@1 {
+			reg = <1>;
+			qcom,supply-name = "disp_vddr_vreg";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <1800000>;
+			qcom,supply-disable-load = <0>;
+			qcom,supply-pre-on-sleep = <0>;
+			qcom,supply-post-on-sleep = <0>;
+		};
+
+		qcom,panel-supply-entry@2 {
+			reg = <2>;
+			qcom,supply-name = "oled-vdda";
+			qcom,supply-min-voltage = <2000000>;
+			qcom,supply-max-voltage = <3000000>;
+			qcom,supply-enable-load = <50000>;
+			qcom,supply-disable-load = <0>;
+			qcom,supply-pre-on-sleep = <0x0>;
+			qcom,supply-post-on-sleep = <0>;
+		};
+	};
+};
+
+&soc {
+	dsi_panel_pwr_supply_no_labibb: dsi_panel_pwr_supply_no_labibb {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,panel-supply-entry@0 {
+			reg = <0>;
+			qcom,supply-name = "vddio";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1800000>;
+			qcom,supply-enable-load = <62000>;
+			qcom,supply-disable-load = <80>;
+			qcom,supply-post-on-sleep = <20>;
+		};
+	};
+};
+
+&dsi_sharp_fhd_nt35695_video {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
+
+&dsi_sharp_fhd_nt35695_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
+
+&dsi_lgd_fhd_td4322_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
+
+&dsi_jdi_fhd_r63452_video {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
+
+&dsi_jdi_fhd_r63452_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
+
+&dsi_jdi_fhd_r63452_j1_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 20 06 09 05 03 04 a0
+			23 2e 06 08 05 03 04 a0];
+};
