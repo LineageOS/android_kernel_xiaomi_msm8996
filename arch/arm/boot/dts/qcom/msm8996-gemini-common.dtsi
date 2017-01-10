@@ -351,6 +351,7 @@
 };
 
 &mdss_dsi0 {
+	vddr-supply = <&disp_vddr_vreg>;
 	qcom,dsi-pref-prim-pan = <&dsi_sharp_fhd_nt35695_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
@@ -409,6 +410,7 @@
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
 	qcom,mdss-dsi-bl-max-level = <4095>;
+	qcom,cont-splash-enabled;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
@@ -1824,6 +1826,7 @@
 		regulator-name = "disp_vddr_vreg";
 		startup-delay-us = <4000>;
 		enable-active-high;
+		regulator-boot-on;
 		gpio = <&tlmm 40 0>;
 	};
 };
