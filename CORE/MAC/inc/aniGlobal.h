@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1291,6 +1291,7 @@ typedef struct sAniSirGlobal
     uint8_t  sub20_config_info;
     uint8_t  sub20_channelwidth;
     uint8_t  sub20_dynamic_channelwidth;
+    bool max_power_cmd_pending;
 } tAniSirGlobal;
 
 typedef enum
